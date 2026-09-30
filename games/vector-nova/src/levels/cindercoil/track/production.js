@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { beveledBoxGeometry } from './beveled-box.js';
+import { createCeramicTextures } from './ceramic-textures.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { framePoint } from '../../../track/frames.js';
 import {
@@ -48,42 +50,75 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
     materials.add(result);
     return result;
   };
-  const roughnessData = new Uint8Array(128 * 128 * 4);
-  let seed = 197103;
-  for (let index = 0; index < 128 * 128; index += 1) {
-    seed = (1664525 * seed + 1013904223) >>> 0;
-    const value = 168 + (seed >>> 26);
-    roughnessData.set([value, value, value, 255], index * 4);
-  }
-  const ceramicGrain = new THREE.DataTexture(roughnessData, 128, 128);
-  ceramicGrain.wrapS = ceramicGrain.wrapT = THREE.RepeatWrapping;
-  ceramicGrain.repeat.set(10, 2);
-  ceramicGrain.needsUpdate = true;
-  textures.add(ceramicGrain);
+  const ceramic = shape ? {} : createCeramicTextures();
+  for (const texture of Object.values(ceramic)) textures.add(texture);
+  const bodyFinish = shape
+    ? {}
+    : {
+        map: ceramic.bodyColor,
+        bumpMap: ceramic.bodyHeight,
+        bumpScale: 0.09,
+        roughnessMap: ceramic.roughness,
+      };
+  const plateFinish = shape
+    ? {}
+    : {
+        map: ceramic.plateColor,
+        bumpMap: ceramic.plateHeight,
+        bumpScale: 0.075,
+        roughnessMap: ceramic.roughness,
+      };
   const ivory = material({
-    color: shape ? 0xb4bdc0 : 0xc4baa2,
-    roughness: 0.87,
-    roughnessMap: shape ? null : ceramicGrain,
-    metalness: 0.02,
+    color: shape ? 0xb4bdc0 : 0xd9ceb7,
+    roughness: 0.94,
+    metalness: 0.025,
+    ...bodyFinish,
   });
   const charcoal = material({
-    color: shape ? 0x89979c : 0x39494e,
-    roughness: 0.76,
-    roughnessMap: shape ? null : ceramicGrain,
-    metalness: 0.09,
+    color: shape ? 0x89979c : 0x60696b,
+    roughness: 0.9,
+    metalness: 0.055,
+    ...bodyFinish,
   });
   const oxide = material({
-    color: shape ? 0x7b8b90 : 0x8f4538,
-    roughness: 0.83,
+    color: shape ? 0x7b8b90 : 0x914d3c,
+    roughness: 0.93,
     metalness: 0.03,
+    ...bodyFinish,
+  });
+  const palePlate = material({
+    color: 0xdbd0b8,
+    roughness: 0.93,
+    metalness: 0.025,
+    ...plateFinish,
+  });
+  const darkPlate = material({
+    color: 0x647173,
+    roughness: 0.88,
+    metalness: 0.09,
+    ...plateFinish,
+  });
+  const redPlate = material({
+    color: 0x975748,
+    roughness: 0.88,
+    metalness: 0.055,
+    ...plateFinish,
+  });
+  const blackglass = material({
+    color: 0x37484f,
+    roughness: 0.53,
+    metalness: 0.24,
+    ...plateFinish,
   });
   const keel = material({
-    color: shape ? 0x77878e : 0x30383d,
-    roughness: 0.92,
+    color: shape ? 0x77878e : 0x343b3e,
+    roughness: 0.95,
+    ...bodyFinish,
   });
   const edge = material({
-    color: shape ? 0xc0c8ca : 0xe4d4af,
+    color: shape ? 0xc0c8ca : 0xe0d4b8,
     roughness: 0.83,
+    ...bodyFinish,
   });
   const basalt = material({ color: 0x30323b, roughness: 0.98 });
   const amber = material({
@@ -143,13 +178,13 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
     edgeParts = [];
   const palePlates = [],
     darkPlates = [],
-    redPlates = [];
+    redPlates = [],
+    glassPlates = [];
   const wallBlocks = [],
     wallCaps = [],
     wallBrackets = [],
     coolingSlats = [];
   const oxideCaps = [],
-    seamBands = [],
     edgeBolts = [],
     shoulders = [],
     warningTabs = [];
@@ -160,16 +195,17 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
     return s >= section.start && s <= section.end;
   };
   for (const { start, end } of intervals) {
-    deckParts.push(
-      sweepGeometry(
-        track,
-        [
-          [-15, 0],
-          [15, 0],
-        ],
-        { start, end, step: 2.5 },
-      ),
-    );
+    if (shape)
+      deckParts.push(
+        sweepGeometry(
+          track,
+          [
+            [-15, 0],
+            [15, 0],
+          ],
+          { start, end, step: 2.5 },
+        ),
+      );
     sideParts.push(
       sweepGeometry(
         track,
@@ -209,52 +245,52 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
         }),
       );
     }
-    // Large inlaid cassettes supply readable broad material blocks. These are
-    // real surface regions; no light tile grid stands in for road construction.
-    if (!shape)
-      for (let s = start; s < end; s += 24) {
-        const finish = Math.min(s + 24, end);
-        const phase = Math.floor(s / 24) % 2;
-        const middle = (s + finish) / 2;
-        const split = phase ? [-15, -8, 2, 15] : [-15, -2, 8, 15];
-        const surfaceParts = inCrown(middle) ? darkPlates : palePlates;
-        for (const [a, b] of [
-          [split[0], split[1]],
-          [split[2], split[3]],
-        ])
-          surfaceParts.push(
-            sweepGeometry(
-              track,
-              [
-                [a, 0.065],
-                [b, 0.065],
-              ],
-              { start: s, end: finish, step: 2 },
-            ),
-          );
-        const insert = isCoil(middle) && phase === 0 ? redPlates : darkPlates;
-        insert.push(
-          sweepGeometry(
+    // One tessellated running surface: adjacent cassettes meet on identical
+    // 2 m stations. Joint/bevel maps replace coplanar overlays, preventing the
+    // near-field cracks and z-fighting previously visible through the roll.
+    if (!shape) {
+      const edges = [-15, -9, -3, 3, 9, 15];
+      for (let column = 0; column < edges.length - 1; column += 1) {
+        const stagger = column % 2 ? 6 : 0;
+        for (let rowStart = start - stagger; rowStart < end; rowStart += 12) {
+          const from = Math.max(start, rowStart),
+            to = Math.min(end, rowStart + 12);
+          if (to <= from) continue;
+          const row = Math.floor((rowStart - start + stagger) / 12);
+          const middle = (from + to) / 2;
+          let parts = palePlates;
+          if (
+            column === 2 ||
+            (column === 1 && row % 7 === 3) ||
+            (column === 3 && row % 9 === 6)
+          )
+            parts = darkPlates;
+          if (
+            isCoil(middle) &&
+            (column === 2 || (column === 4 && row % 5 === 2))
+          )
+            parts = redPlates;
+          if (inCrown(middle) && column > 0 && column < 4) parts = glassPlates;
+          const geometry = sweepGeometry(
             track,
             [
-              [split[1] + 0.06, 0.065],
-              [split[2] - 0.06, 0.065],
+              [edges[column], 0],
+              [edges[column + 1], 0],
             ],
-            { start: s, end: finish, step: 2 },
-          ),
-        );
-        if (finish - s > 1)
-          seamBands.push(
-            sweepGeometry(
-              track,
-              [
-                [-14.95, 0.085],
-                [14.95, 0.085],
-              ],
-              { start: finish - 0.09, end: finish, step: 0.1 },
-            ),
+            { start: from, end: to, step: 2 },
           );
+          const uv = geometry.attributes.uv;
+          const segments = uv.count / 2 - 1;
+          for (let index = 0; index < uv.count; index += 1) {
+            const distance =
+              from + ((to - from) * Math.floor(index / 2)) / segments;
+            const u = index % 2;
+            uv.setXY(index, row % 2 ? 1 - u : u, (distance - rowStart) / 12);
+          }
+          parts.push(geometry);
+        }
       }
+    }
     const spacing = shape ? 24 : 18;
     for (let s = start + 8; s < end - 7; s += spacing) {
       for (const side of [-1, 1]) {
@@ -274,15 +310,15 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
   }
   merged('Continuous 30 m ceramic deck / gap omitted', deckParts, ivory, true);
   if (!shape) {
-    merged('Broad pale interlocking heat plates', palePlates, ivory, true);
-    merged('Charcoal glazed cassette fields', darkPlates, charcoal, true);
+    merged('Broad pale interlocking heat plates', palePlates, palePlate, true);
+    merged('Charcoal glazed cassette fields', darkPlates, darkPlate, true);
     merged(
       'Oxide replacement cassettes / furnace reinforcement',
       redPlates,
-      oxide,
+      redPlate,
       true,
     );
-    merged('Recessed plate expansion joints', seamBands, keel);
+    merged('Cool polished Blackglass cassettes', glassPlates, blackglass, true);
   }
   merged('Deep beveled ceramic box keel', sideParts, keel);
   merged('Low continuous inner ceramic curb', railParts, ivory);
@@ -290,25 +326,25 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
   merged('External cantilever shoulder ledges', shoulders, oxide);
   instanced(
     'Slotted kiln-shelf upper wall masses',
-    new THREE.BoxGeometry(2.8, 1.0, 11.4),
+    beveledBoxGeometry(2.8, 1.0, 11.4, 0.13),
     ivory,
     wallBlocks,
   );
   instanced(
     'Overhanging kiln-shelf wall caps',
-    new THREE.BoxGeometry(3.65, 0.48, 13.2),
+    beveledBoxGeometry(3.65, 0.48, 13.2, 0.095),
     edge,
     wallCaps,
   );
   instanced(
     'Offset wall cantilever brackets',
-    new THREE.BoxGeometry(1.6, 3.9, 1.15),
+    beveledBoxGeometry(1.6, 3.9, 1.15, 0.09),
     oxide,
     wallBrackets,
   );
   instanced(
     'Oxide red wall replacement ends',
-    new THREE.BoxGeometry(3.68, 0.2, 2.3),
+    beveledBoxGeometry(3.68, 0.2, 2.3, 0.045),
     oxide,
     oxideCaps,
   );
@@ -565,6 +601,9 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
     grid,
   );
   group.userData.roadIntervals = intervals;
+  group.userData.surfaceConstruction =
+    'Single tessellation / staggered 6 x 12 m ceramic cassettes / no coplanar overlay';
+  group.userData.ownedTextures = [...textures];
   group.userData.supportBounds = supportBounds;
   group.userData.supportSegments = supportSegments;
   group.userData.supportCounts = {

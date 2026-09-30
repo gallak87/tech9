@@ -60,6 +60,10 @@ export function createCindercoilRuntime(context) {
       state: { ...track.scenarios[`${section}-showcase`], time: 13 },
     };
   }
+  scenarios['coil-entry'] = {
+    label: 'Furnace Coil · full roll entry',
+    state: { distance: track.landmarks.coil.start + 4, speed: 62, time: 5 },
+  };
   const jump = track.jumps[0];
   scenarios['vent-clean'] = {
     label: 'Vent · calm crossing',

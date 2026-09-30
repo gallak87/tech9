@@ -27,8 +27,8 @@ test('Cindercoil hero kit loads, updates deterministically and disposes owned re
   await world.ready;
   const metrics = world.group.userData.metrics;
   assert.ok(metrics.meshCount < 100, JSON.stringify(metrics));
-  assert.ok(metrics.triangleCount < 400000, JSON.stringify(metrics));
-  assert.equal(metrics.crustRafts, 48);
+  assert.ok(metrics.triangleCount < 500000, JSON.stringify(metrics));
+  assert.equal(metrics.crustRafts, 96);
   assert.ok(metrics.basaltClusters > 80);
   const camera = new T.PerspectiveCamera();
   camera.position.set(...track.landmarks.basin.center);
@@ -111,11 +111,11 @@ test('Cindercoil hero and ordinary rock masses clear rolled road and camera enve
       !clearance.clears(
         p.position[0],
         p.position[2],
-        60 * p.scale,
-        60 * p.scale,
-        p.position[1] + 46 * p.heightScale,
+        p.width,
+        p.width,
+        p.top,
         0,
-        p.position[1] - 3,
+        p.bottom,
       )
     )
       collisions.push(`cluster ${p.s}`);

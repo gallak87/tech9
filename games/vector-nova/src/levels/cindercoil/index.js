@@ -7,12 +7,13 @@ import { createCindercoilCues } from './cues.js';
 import { createCindercoilOverlay } from './overlay.js';
 
 export default function createLevel({ shape = false }) {
+  let runtime;
   return {
     version: '0.5.0-cindercoil-v1',
     renderer: {
       world: shape ? 'cindercoil-shape' : 'cindercoil-caldera',
-      background: '#263743',
-      fog: { color: '#35434d', density: 0.00024 },
+      background: '#303c49',
+      fog: { color: '#3c4854', density: 0.00016 },
       bloomStrength: 0.35,
       bloomThreshold: 1.25,
       reflectionFar: 4200,
@@ -64,7 +65,14 @@ export default function createLevel({ shape = false }) {
     },
     createBackdrop: ({ settings }) =>
       createCindercoilBackdrop({ shape, settings }),
-    createRuntime: createCindercoilRuntime,
-    createOverlay: createCindercoilOverlay,
+    createRuntime(context) {
+      runtime = createCindercoilRuntime(context);
+      return runtime;
+    },
+    createOverlay: (context) =>
+      createCindercoilOverlay({
+        ...context,
+        readRuntime: () => runtime?.snapshot(),
+      }),
   };
 }

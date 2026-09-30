@@ -5,9 +5,13 @@ import {
   groundFrame,
 } from '../../../environment/placement.js';
 import { sampleCindercoilEvent } from '../mechanics.js';
-import { createCindercoilMaterials } from './materials.js';
+import {
+  createCindercoilMaterials,
+  applyCindercoilAssetMaterials,
+} from './materials.js';
 import {
   createCalderaTerrain,
+  createCalderaHeight,
   createLavaPool,
   disposeOwned,
   seededRandom,
@@ -110,7 +114,8 @@ export function createCindercoilEnvironment({
     sidePadding: 17,
     localVertical: [-22, 34],
   });
-  const terrain = createCalderaTerrain(track, materials.basalt);
+  const heightAt = createCalderaHeight(track);
+  const terrain = createCalderaTerrain(track, materials.basalt, heightAt);
   group.add(terrain);
   const basin = track.landmarks.basin;
   const lake = createLavaPool(
@@ -212,8 +217,8 @@ export function createCindercoilEnvironment({
   let leftPanel = null,
     rightPanel = null;
   const metrics = {
-    assetBytes: 642568,
-    sourceTriangles: 21590,
+    assetBytes: 1497696,
+    sourceTriangles: 46596,
     textures: 0,
     additionalRenderPasses: 0,
     localLights: 3,
@@ -237,6 +242,7 @@ export function createCindercoilEnvironment({
       return;
     }
     assetScene = gltf.scene;
+    applyCindercoilAssetMaterials(assetScene, materials.lava.uniforms.time);
     const template = (name) => {
       const node = assetScene.getObjectByName(name);
       if (!node) throw new Error(`Cindercoil hero kit is missing ${name}`);
@@ -267,7 +273,23 @@ export function createCindercoilEnvironment({
       towerBase - towerBounds.min.y * sy,
       coil.center[2],
     );
-    tower.scale.set(coil.towerRadius / 67, sy, coil.towerRadius / 67);
+    let towerRadius = 0;
+    const towerVertex = new T.Vector3();
+    template('hollow_tower').traverse((node) => {
+      if (!node.isMesh) return;
+      for (let i = 0; i < node.geometry.attributes.position.count; i += 1) {
+        towerVertex.fromBufferAttribute(node.geometry.attributes.position, i);
+        towerRadius = Math.max(
+          towerRadius,
+          Math.hypot(towerVertex.x, towerVertex.z),
+        );
+      }
+    });
+    tower.scale.set(
+      (coil.towerRadius - 1) / towerRadius,
+      sy,
+      (coil.towerRadius - 1) / towerRadius,
+    );
     group.add(tower);
     // Real launch geometry belongs to the road. These broken external braces
     // stay beyond the entire flight/camera corridor and root into basalt feet.
@@ -285,13 +307,19 @@ export function createCindercoilEnvironment({
     }
     // Basalt clusters are composed along every district, with conservative
     // route-space rejection that also protects the fully inverted climb.
-    for (let s = 15; s < track.length; s += 65) {
+    const clusterBounds = new T.Box3().setFromObject(
+      template('basalt_cluster'),
+    );
+    const clusterWidth =
+      Math.hypot(
+        Math.max(Math.abs(clusterBounds.min.x), Math.abs(clusterBounds.max.x)),
+        Math.max(Math.abs(clusterBounds.min.z), Math.abs(clusterBounds.max.z)),
+      ) * 2;
+    for (let s = 15; s < track.length; s += 72) {
       const frame = groundFrame(track, s);
       for (const side of [-1, 1]) {
-        const scale = 0.75 + random() * 1.65;
-        const heightScale =
-          ((frame.position.y - track.groundY + 50) / 38) *
-          (0.68 + random() * 0.32);
+        const scale = 1.05 + random() * 1.65;
+        const heightScale = scale * (0.84 + random() * 0.63);
         let position,
           accepted = false;
         for (let attempt = 0; attempt < 7; attempt += 1) {
@@ -301,17 +329,17 @@ export function createCindercoilEnvironment({
               frame.right,
               side * (60 + attempt * 22 + random() * 12),
             );
-          position.y = track.groundY - 38;
-          const top = position.y + 46 * heightScale;
+          position.y = heightAt(position.x, position.z) - 12;
+          const top = position.y + clusterBounds.max.y * heightScale;
           if (
             clearance.clears(
               position.x,
               position.z,
-              60 * scale,
-              60 * scale,
+              clusterWidth * scale,
+              clusterWidth * scale,
               top,
               0,
-              position.y - 3,
+              position.y + clusterBounds.min.y * heightScale,
             )
           ) {
             accepted = true;
@@ -333,6 +361,9 @@ export function createCindercoilEnvironment({
           position: position.toArray(),
           scale,
           heightScale,
+          width: clusterWidth * scale,
+          top: position.y + clusterBounds.max.y * heightScale,
+          bottom: position.y + clusterBounds.min.y * heightScale,
         });
       }
     }
@@ -344,8 +375,8 @@ export function createCindercoilEnvironment({
       ),
     );
     // Thick plates sit above both main lake and cascade plunge basin.
-    for (let i = 0; i < 48; i += 1) {
-      const onRupture = i >= 30;
+    for (let i = 0; i < 96; i += 1) {
+      const onRupture = i >= 60;
       const angle = random() * Math.PI * 2,
         radius = Math.sqrt(random()) * 0.89;
       const position = new T.Vector3(
@@ -357,14 +388,18 @@ export function createCindercoilEnvironment({
         position.z += 102;
         position.applyAxisAngle(UP, wall.rotation.y).add(wall.position);
       } else position.add(new T.Vector3(...basin.center));
-      const scale = 0.34 + random() * 0.55;
+      const scale = 0.64 + random() * 0.74;
       raftPlacements.push({
         position,
         quaternion: new T.Quaternion().setFromAxisAngle(
           UP,
           random() * Math.PI * 2,
         ),
-        scale: new T.Vector3(scale, 0.7 + random() * 0.5, scale),
+        scale: new T.Vector3(
+          scale,
+          0.5 + random() * 0.7,
+          scale * (0.55 + random() * 0.7),
+        ),
       });
     }
     rafts = instantiateModule(
@@ -432,7 +467,7 @@ export function createCindercoilEnvironment({
         for (let i = 0; i < raftPlacements.length; i += 1) {
           const p = raftPlacements[i];
           raftPosition.copy(p.position);
-          const expansion = event.rupture * (i >= 30 ? 5.2 : 1.8);
+          const expansion = event.rupture * (i >= 60 ? 5.2 : 1.8);
           raftPosition.x += Math.sin(i * 2.4) * expansion;
           raftPosition.z += Math.cos(i * 2.4) * expansion;
           if (!currentSettings.reducedMotion)

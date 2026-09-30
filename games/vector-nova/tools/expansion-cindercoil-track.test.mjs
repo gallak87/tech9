@@ -116,20 +116,36 @@ test('Cindercoil road keeps the vent open, supports outside the camera corridor,
     ownedMaterial = new Set(),
     ownedTexture = new Set();
   let meshes = 0,
-    triangles = 0;
+    triangles = 0,
+    surfaceArea = 0;
   road.group.traverse((object) => {
     if (!object.isMesh) return;
     meshes += 1;
     const geometry = object.geometry;
     ownedGeometry.add(geometry);
     ownedMaterial.add(object.material);
-    if (object.material.roughnessMap)
-      ownedTexture.add(object.material.roughnessMap);
+    for (const key of ['map', 'roughnessMap', 'bumpMap']) {
+      if (object.material[key]) ownedTexture.add(object.material[key]);
+    }
     triangles +=
       ((geometry.index?.count ?? geometry.attributes.position.count) / 3) *
       (object.count ?? 1);
     if (!object.userData.drivingSurface) return;
+    assert.ok(
+      object.material.map &&
+        object.material.bumpMap &&
+        object.material.roughnessMap,
+    );
     const position = geometry.attributes.position;
+    const a = new THREE.Vector3(),
+      b = new THREE.Vector3(),
+      c = new THREE.Vector3();
+    for (let index = 0; index < geometry.index.count; index += 3) {
+      a.fromBufferAttribute(position, geometry.index.getX(index));
+      b.fromBufferAttribute(position, geometry.index.getX(index + 1));
+      c.fromBufferAttribute(position, geometry.index.getX(index + 2));
+      surfaceArea += b.sub(a).cross(c.sub(a)).length() / 2;
+    }
     for (let index = 0; index < position.count; index += 1) {
       const x = position.getX(index),
         y = position.getY(index),
@@ -147,7 +163,22 @@ test('Cindercoil road keeps the vent open, supports outside the camera corridor,
     }
   });
   assert.ok(meshes < 40);
-  assert.ok(triangles < 200000);
+  // Beveled wall modules add physical edge catches while retaining 25 draws.
+  assert.ok(triangles < 250000);
+  const referenceArea =
+    (track.length - jump.landingStart + jump.takeoff) * track.width;
+  assert.ok(
+    surfaceArea > referenceArea * 0.98 && surfaceArea < referenceArea * 1.025,
+    'Single ceramic tessellation must neither duplicate nor omit the running surface',
+  );
+  assert.equal(ownedTexture.size, 5);
+  assert.ok(
+    [...ownedTexture].reduce(
+      (bytes, texture) => bytes + texture.image.data.byteLength,
+      0,
+    ) <=
+      11 * 1024 * 1024,
+  );
   assert.ok(road.group.userData.supportCounts.piers >= 30);
   assert.ok(road.group.userData.supportCounts.coilArms >= 3);
   const frames = [];

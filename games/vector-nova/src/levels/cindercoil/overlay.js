@@ -1,6 +1,6 @@
 import { sampleCindercoilEvent, sampleSurge, surgeAt } from './mechanics.js';
 
-export function createCindercoilOverlay({ host, track }) {
+export function createCindercoilOverlay({ host, track, readRuntime }) {
   const notice = document.createElement('div');
   notice.className = 'cindercoil-notice';
   notice.setAttribute('role', 'status');
@@ -28,9 +28,10 @@ export function createCindercoilOverlay({ host, track }) {
       const height = host.clientHeight || globalThis.innerHeight;
       const compact = height < 560;
       notice.style.top =
-        width < 600 && !compact ? '234px' : compact ? '100px' : '108px';
+        width < 600 && !compact ? '286px' : compact ? '50px' : '108px';
       notice.style.padding = compact ? '4px 8px' : '7px 12px';
       notice.style.fontSize = compact ? '10px' : '11px';
+      notice.style.lineHeight = compact ? '1.1' : '1.4';
       const distance =
         ((state.distance % track.length) + track.length) % track.length;
       const local = surgeAt(track, state);
@@ -41,8 +42,16 @@ export function createCindercoilOverlay({ host, track }) {
       const cue = zone ? sampleSurge(time, zone) : null;
       const event = sampleCindercoilEvent(time);
       const jump = track.jumps[0];
+      const flight = readRuntime?.()?.flight;
+      const reviewOpen =
+        host.querySelector('#review-toggle')?.getAttribute('aria-expanded') ===
+        'true';
       let text = '';
-      if (local?.contact) text = 'LAVA CONTACT · SPEED + RESERVE LOSS';
+      if (flight?.mode === 'flight')
+        text = 'AIRBORNE · HOLD LINE FOR THE RECEIVING SHELF';
+      else if (flight?.mode === 'recovery')
+        text = `MISSED LANDING · RECOVERY ${flight.flight.remaining.toFixed(1)}s`;
+      else if (local?.contact) text = 'LAVA CONTACT · SPEED + RESERVE LOSS';
       else if (zone) {
         const safe = zone.side > 0 ? 'RIGHT' : 'LEFT';
         text = cue.warning
@@ -60,7 +69,7 @@ export function createCindercoilOverlay({ host, track }) {
       }
       notice.textContent = text;
       notice.style.display =
-        text && !reviewing && ['racing', 'paused'].includes(mode)
+        text && !reviewing && !reviewOpen && ['racing', 'paused'].includes(mode)
           ? 'block'
           : 'none';
       presentation = {

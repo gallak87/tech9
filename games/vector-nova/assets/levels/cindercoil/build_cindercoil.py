@@ -19,13 +19,13 @@ def material(name, color, roughness=.85, emission=None, strength=0):
         p.inputs['Emission Color'].default_value=(*emission,1); p.inputs['Emission Strength'].default_value=strength
     return m
 M={
- 'basalt':material('Basalt / cold cut planes',(.10,.125,.16)),
- 'ash':material('Ash / silver cooling strata',(.29,.32,.36)),
- 'dark':material('Blackglass / folded crust',(.033,.043,.06),.54),
- 'warm':material('Scoria / oxidized interior',(.22,.105,.07)),
- 'lava':material('Lava / golden interior',(.7,.12,.013),.45,(1,.22,.02),1.8),
- 'core':material('Lava / pale narrow hot cores',(1,.4,.035),.5,(1,.35,.018),2.1),
- 'edge':material('Lava / cooling red margins',(.29,.032,.012),.8,(.55,.05,.004),.6),
+ 'basalt':material('Basalt / cold cut planes',(.014,.019,.027)),
+ 'ash':material('Ash / silver cooling strata',(.052,.063,.074)),
+ 'dark':material('Blackglass / folded crust',(.008,.011,.015),.54),
+ 'warm':material('Scoria / oxidized interior',(.064,.023,.012)),
+ 'lava':material('Lava / golden interior',(.22,.038,.007),.6,(1,.11,.005),.85),
+ 'core':material('Lava / pale narrow hot cores',(.7,.19,.012),.5,(1,.3,.02),1.15),
+ 'edge':material('Lava / cooling red margins',(.07,.009,.003),.9,(.45,.026,.001),.28),
  'ivory':material('Ceramic / warm ivory',(.72,.70,.61),.69),
  'charcoal':material('Ceramic / charcoal heat shields',(.095,.105,.12),.68),
  'oxide':material('Ceramic / oxide-red cassettes',(.32,.084,.054),.8),
@@ -44,12 +44,14 @@ def mesh(name, verts, faces, mat, parent, smooth=False):
 
 def rock(parent,name,x,y,z,rx,ry,rz,mat='basalt',sides=7,rings=4):
     phase=R.random()*6.28; verts=[]
-    wobble=[R.uniform(.82,1.18) for _ in range(sides)]
+    wobble=[R.uniform(.75,1.23) for _ in range(sides)]
+    leanX=R.uniform(-.12,.12)*rx;leanZ=R.uniform(-.15,.15)*rz
     for j in range(rings):
-        v=j/(rings-1); scale=1 if j not in (0,rings-1) else .77
+        v=j/(rings-1); scale=(1.04 if j==0 else .81 if j==rings-1 else R.uniform(.89,1.10))
+        shiftX=math.sin(j*1.9)*rx*.075+v*leanX;shiftZ=math.cos(j*2.2)*rz*.07+v*leanZ
         for k in range(sides):
-            a=phase+k*math.tau/sides; n=wobble[k]*(1+R.uniform(-.055,.055))
-            verts.append((x+math.cos(a)*rx*n*scale,y+v*ry+R.uniform(-.045,.045)*ry,z+math.sin(a)*rz*n*scale))
+            a=phase+k*math.tau/sides; n=wobble[k]*(1+R.uniform(-.10,.10))
+            verts.append((x+math.cos(a)*rx*n*scale+shiftX,y+v*ry+R.uniform(-.045,.045)*ry,z+math.sin(a)*rz*n*scale+shiftZ))
     faces=[tuple(range(sides-1,-1,-1))]
     for j in range(rings-1):
         for k in range(sides):
@@ -78,45 +80,54 @@ def tube(parent,name,points,radii,mat,sides=9):
     faces.extend([tuple(range(sides-1,-1,-1)),tuple((len(points)-1)*sides+k for k in range(sides))])
     return mesh(name,verts,faces,mat,parent,True)
 
-# Broad basalt buttresses have actual stepped depth, cold shadow faces and offset strata.
+# Broad fault planes retain natural broken profiles and unequal, recessed strata.
 wall=group('rupture_wall')
-for i in range(30):
-    x=(i-14.5)*15; height=235+34*math.sin(i*.37)+R.uniform(-18,25)
-    rock(wall,'layered_caldera_column',x,-18,-17+R.uniform(-14,5),14,height,31,'basalt',6,5)
-    for k in range(3):
-        rock(wall,'cooling_ledge',x,-18+height*(.24+k*.25),10,16,5,25,'ash' if k==2 else 'dark',6,2)
+for i in range(43):
+    x=(i-21)*10.6; height=225+39*math.sin(i*.27)+R.uniform(-21,31)
+    rock(wall,'fractured_caldera_column',x,-23,-20+R.uniform(-20,8),R.uniform(10,16),height,R.uniform(27,43),'basalt',7,10)
+    for k in range(2):
+        rock(wall,'unequal_cooling_ledge',x,-18+height*(.18+k*.39)+R.uniform(-15,15),R.uniform(5,19),R.uniform(12,22),R.uniform(5,12),R.uniform(19,33),'ash' if i%6==0 else 'dark',7,3)
 for sign in (-1,1):
     g=group('rupture_left' if sign<0 else 'rupture_right')
-    for i in range(9):
-        y=24+i*27;x=sign*(28+math.sin(i*.7)*8)
-        rock(g,'detached_fault_face',x,y,28,30,35,21,'basalt',6,3)
-        rock(g,'warm_fault_interior',x-sign*20,y+2,35,9,28,10,'warm',6,2)
-# Three closed-volume falls; the lateral streams originate in upper shelves and end in plunge lobes.
+    for i in range(12):
+        y=12+i*22;x=sign*(25+math.sin(i*.7)*9)
+        rock(g,'displaced_fault_face',x,y,28,29,29,23,'basalt',7,5)
+        rock(g,'oxidized_fault_interior',x-sign*18,y+2,39,9,23,9,'warm',6,4)
+# Full cross-section cascades have irregular shoulders, bulging rope flow,
+# narrow hotter seams and fractured surface crust; none are planar ribbons.
 for n,(x,h) in enumerate([(-105,250),(0,270),(103,229)]):
     g=group('cascade_'+str(n)); points=[];radii=[]
-    for j in range(31):
-        t=j/30;points.append((x+math.sin(t*9+n)*5,h*(1-t)+3,28+55*t*t+6*math.sin(t*5)))
-        radii.append((15+5*math.sin(t*13+n)**2,7+4*t))
-    tube(g,'thick_molten_channel',points,radii,'lava',12)
-    for k in range(5):
-        offsets=(k-2)*5.5
-        ps=[(p[0]+offsets+1.4*math.sin(j*.53+k),p[1],p[2]+7+math.sin(j*.46+k)) for j,p in enumerate(points)]
-        tube(g,'ropy_hot_strand',ps,[(1.4+1.2*math.sin(j*.34+k)**2,1.2) for j in range(31)],'core' if k%2 else 'edge',7)
+    for j in range(45):
+        t=j/44;points.append((x+math.sin(t*10+n)*8+math.sin(t*25)*2,h*(1-t)+3,29+57*t*t+7*math.sin(t*7+n)))
+        bulge=math.sin(t*18+n)**2
+        radii.append((10+8*bulge+3*math.sin(t*41)**2,9+6*bulge+4*t))
+    tube(g,'bulging_molten_channel',points,radii,'lava',16)
+    source=[(x-8,h+12,-34),(x-4,h+10,-7),(x,h+5,19),points[0]]
+    tube(g,'source_channel',source,[(16,8),(17,10),(13,12),radii[0]],'lava',14)
+    for k in range(9):
+        offsets=(k-4)*3.4
+        ps=[(p[0]+offsets+2*math.sin(j*.37+k),p[1],p[2]+radii[j][1]*.84+math.sin(j*.8+k)) for j,p in enumerate(points)]
+        tube(g,'ropy_flow_ridge',ps,[(.65+.6*math.sin(j*.43+k)**2,1.1) for j in range(45)],'core' if k in (2,6) else 'edge' if k%2 else 'dark',7)
     for sign in (-1,1):
-        ps=[(p[0]+sign*(15+3*math.sin(j*.4)),p[1],p[2]+1) for j,p in enumerate(points)]
-        tube(g,'cooled_channel_lip',ps,[(3.8,3) for _ in ps],'dark',7)
-    rock(g,'plunge_lobe',x,-3,87,31,9,27,'lava',16,3)
-    for i in range(7):
-        rock(g,'splash_crust',x+R.uniform(-26,26),3,80+R.uniform(-13,23),R.uniform(3,8),4,R.uniform(3,8),'dark',6,2)
-# A thick reusable layered crust plate with coiled ropes and hot edge shelf.
+        ps=[(p[0]+sign*(radii[j][0]+1),p[1],p[2]+2) for j,p in enumerate(points)]
+        tube(g,'cooled_channel_shoulder',ps,[(4.5+1.1*math.sin(j),4) for j in range(45)],'dark',8)
+    for i in range(27):
+        j=R.randrange(2,42);p=points[j]
+        rock(g,'floating_flow_crust',p[0]+R.uniform(-10,10),p[1],p[2]+radii[j][1]*.91,R.uniform(1.2,3.4),R.uniform(4,10),1.6,'dark',6,3)
+    rock(g,'molten_plunge_fan',x,-4,90,39,9,34,'lava',15,4)
+    for i in range(10):
+        rock(g,'splintered_plunge_crust',x+R.uniform(-34,34),2,88+R.uniform(-20,28),R.uniform(3,9),4,R.uniform(3,9),'dark',7,3)
+# Asymmetric fractured crust with offset slabs and broken folded ropes.
+# No complete circles or concentric rings; every plate has a sheared edge.
 g=group('crust_raft')
-rock(g,'raft_molten_undercut',0,-3,0,25,5,20,'edge',15,2)
-rock(g,'raft_cooled_slab',0,0,0,24,4,19,'dark',15,3)
-for i in range(7):
-    radius=3+i*2.9;ps=[]
-    for j in range(37):
-        a=j*math.tau/36;ps.append((math.cos(a)*radius,4+math.sin(a*3+i)*.4,math.sin(a)*radius*.73))
-    tube(g,'roped_pahoehoe',ps,[(.8,.65) for _ in ps],'basalt',5)
+rock(g,'raft_molten_undercut',-1,-2,1,26,3.5,19,'edge',11,2)
+for i,(x,z,rx,rz) in enumerate([(-8,-3,18,14),(11,5,15,12),(4,-12,11,10)]):
+    rock(g,'sheared_cooled_plate',x,0.2+i*.4,z,rx,3.2,rz,'dark',9,3)
+for i in range(5):
+    ps=[]
+    for j in range(13):
+        t=j/12;ps.append((-18+t*33+math.sin(t*5+i)*2,4+math.sin(t*7+i)*.35,-11+i*4+math.sin(t*5+i)*2.5))
+    tube(g,'broken_pahoehoe_fold',ps,[(.32+.16*math.sin(j)**2,.34) for j in range(13)],'basalt',5)
 # The coil anchor is a hollow volcanic chimney, keeping its centre genuinely open.
 g=group('hollow_tower')
 for i in range(22):
@@ -124,11 +135,18 @@ for i in range(22):
     rock(g,'chimney_column',math.cos(a)*r,-20,math.sin(a)*r,11,h,11,'basalt',6,5)
     rock(g,'chimney_outer_shelf',math.cos(a)*r,50,math.sin(a)*r,15,8,15,'ash',6,2)
     if i%2==0:rock(g,'chimney_red_seam',math.cos(a)*(r-8),15,math.sin(a)*(r-8),3,h*.56,3,'warm',6,2)
-# Repeat family for ordinary connectors: combined angular pillars with ash plates.
+# Chunky column groups include battered shoulders, low talus and tilted
+# fractures. Runtime preserves these proportions instead of stretching needles.
 g=group('basalt_cluster')
-for i in range(10):
-    a=i*2.4;r=math.sqrt(i)*6;h=R.uniform(17,42)
-    rock(g,'hexagonal_teeth',math.cos(a)*r,0,math.sin(a)*r,5.5,h,5.5,'basalt' if i%3 else 'ash',6,3)
+for i in range(13):
+    a=i*2.4;r=math.sqrt(i)*4.3;h=R.uniform(12,39)
+    x=math.cos(a)*r;z=math.sin(a)*r
+    rock(g,'irregular_hexagonal_face',x,-3,z,R.uniform(4.5,7),h,R.uniform(4.5,7),'basalt' if i%5 else 'dark',7,7)
+    if i%2==0:
+        rock(g,'fracture_shelf',x+3,h*.44,z+2,8,5,7,'ash' if i%6==0 else 'basalt',7,3)
+for i in range(11):
+    a=i*2.399;r=16+R.random()*6
+    rock(g,'foot_scree',math.cos(a)*r,-5,math.sin(a)*r,R.uniform(3,6),R.uniform(5,11),R.uniform(3,6),'dark' if i%3 else 'warm',7,3)
 # Broken ceramic buttress does not include a driving surface; the route owns the real launch.
 g=group('broken_launch_pylon')
 for sign in (-1,1):

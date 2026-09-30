@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chromium } from 'playwright';
+import { createCindercoilTrack } from '../src/levels/cindercoil/track/model.js';
+const route = createCindercoilTrack();
 const base = process.env.VN_URL;
 if (!base)
   throw new Error(
@@ -17,7 +19,10 @@ const report = {
     'Hidden browser checks; foreground pacing, physical devices and independent audio listening remain unverified.',
   ],
 };
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({
+  headless: true,
+  channel: process.env.VN_BROWSER_CHANNEL || 'chrome',
+});
 const snapshot = (page) => page.evaluate(() => window.__VN.getSnapshot());
 const capture = async (page, name) => {
   const state = await snapshot(page);
@@ -29,9 +34,32 @@ const capture = async (page, name) => {
     state.camera.up,
   ])
     assert.ok(values.every(Number.isFinite));
+  const layout = await page.evaluate(() => {
+    const notice = document.querySelector('.cindercoil-notice');
+    if (!notice || getComputedStyle(notice).display === 'none')
+      return { visible: false, conflicts: [] };
+    const own = notice.getBoundingClientRect();
+    const conflicts = [
+      ...document.querySelectorAll(
+        '.lap,.timing,#minimap,.speed,.energy,#shape-controls,#touch button,#notice',
+      ),
+    ]
+      .filter((element) => {
+        const r = element.getBoundingClientRect();
+        return (
+          r.width > 0 &&
+          r.height > 0 &&
+          Math.min(own.right, r.right) - Math.max(own.left, r.left) > 0.5 &&
+          Math.min(own.bottom, r.bottom) - Math.max(own.top, r.top) > 0.5
+        );
+      })
+      .map((element) => element.id || element.className || element.textContent);
+    return { visible: true, conflicts };
+  });
+  assert.deepEqual(layout.conflicts, [], `Cindercoil notice overlaps ${name}`);
   await page.screenshot({ path: `${folder}/${name}.png` });
   const metrics = await page.evaluate(() => window.__VN.getMetrics());
-  report.cases.push({ name, state, metrics });
+  report.cases.push({ name, state, metrics, layout });
   return state;
 };
 try {
@@ -136,6 +164,49 @@ try {
         );
         assert.deepEqual(replayed.runtime.state, paused.runtime.state);
       }
+      await page.evaluate(() => window.__VN.loadScenario('coil-entry', 71));
+      const coilDeadline = Date.now() + 18000;
+      let coilState;
+      while (Date.now() < coilDeadline) {
+        coilState = await snapshot(page);
+        if (coilState.vehicle.distance > route.landmarks.coil.end + 12) break;
+        const vehicle = coilState.vehicle;
+        const curvature = route.sample(vehicle.distance).curvature;
+        const targetHeading = (curvature * vehicle.speed * 0.75) / 7.2;
+        const desired = Math.max(
+          -1,
+          Math.min(
+            1,
+            (-curvature * vehicle.speed) / 1.5 +
+              (vehicle.heading - targetHeading) * 1.7 +
+              vehicle.lateral * 0.012 +
+              vehicle.lateralSpeed * 0.007,
+          ),
+        );
+        if (vehicle.speed < 65) {
+          await page.keyboard.up('s');
+          await page.keyboard.down('w');
+        } else {
+          await page.keyboard.up('w');
+          if (vehicle.speed > 69) await page.keyboard.down('s');
+          else await page.keyboard.up('s');
+        }
+        const key = desired > 0 ? 'd' : 'a';
+        const duration = Math.round(Math.abs(desired) * 90);
+        if (duration > 0) {
+          await page.keyboard.down(key);
+          await page.waitForTimeout(duration);
+          await page.keyboard.up(key);
+        }
+        await page.waitForTimeout(Math.max(1, 90 - duration));
+      }
+      await page.keyboard.up('w');
+      await page.keyboard.up('s');
+      assert.ok(
+        coilState.vehicle.distance > route.landmarks.coil.end,
+        'real-key coil traversal reaches full roll exit',
+      );
+      await capture(page, 'high-coil-full-real-key-traversal');
       for (const phase of ['clean', 'erupting']) {
         await page.evaluate(
           (scenario) => window.__VN.loadScenario(scenario, 71),

@@ -199,7 +199,9 @@ async function boot() {
         track.sample(e.payload.distance ?? state.distance),
         e.payload.lateral ??
           (definition.railContactSparks
-            ? e.payload.side * (track.width / 2 - 0.4)
+            ? Number.isFinite(e.payload.railLateral)
+              ? e.payload.railLateral - e.payload.side * 0.4
+              : e.payload.side * (track.width / 2 - 0.4)
             : state.lateral),
       );
     }

@@ -39,7 +39,12 @@ export function validateMetadata(metadata, id = metadata?.id) {
   ])
     if (typeof metadata.ui[field] !== 'string')
       throw new Error(`Invalid circuit text: ${id}.${field}`);
-  for (const flag of ['compact', 'stackedReview', 'lowNotice'])
+  for (const flag of [
+    'compact',
+    'stackedReview',
+    'lowNotice',
+    'compactLandscape',
+  ])
     if (
       metadata.ui[flag] !== undefined &&
       typeof metadata.ui[flag] !== 'boolean'

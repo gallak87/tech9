@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "phase": "builder_browser_pending",
+  "phase": "independent_critic_pending",
   "worktree": "/Users/g/.codex/worktrees/fzero-vesper1/tech9",
   "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
   "branch": "codex/fzero-vesper1",
   "formalRounds": 0,
-  "maximumRounds": 8,
+  "maximumRounds": null,
   "humanApproved": false,
   "currentChecks": [
     {
@@ -30,7 +30,7 @@
       "geometry": 8,
       "runtime": 8,
       "denseLandings": 152,
-      "note": "15 tests rerun after shared fix plus the final targeted petal/barrier test."
+      "note": "8runtime tests rerun after finalcontactv4 incl152/152dense landings;8geometry tests rerun after actual-triangle decorative surface fix."
     },
     {
       "check": "full-lint-format",
@@ -44,12 +44,36 @@
       "check": "asset-lifecycle-animation-clearance",
       "result": "pass",
       "scope": "CPU asset-builder probes; 118 support connections,41 creature crossing positions; visual checks pending"
+    },
+    {
+      "check": "actual-key-production",
+      "result": "pass",
+      "segments": 10,
+      "compatibleReplayExact": 10,
+      "evidence": ".experiments/expansion/vesper/builder-drive-v4/report.json",
+      "launchSpeeds": {
+        "boostedCrown": 124.4129343061319,
+        "crown": 110.17853317113088,
+        "imperfectCrownRecovered": 72.0796063966328,
+        "branch": 96.63667769159588
+      }
+    },
+    {
+      "check": "production-visual-builder",
+      "result": "inspected",
+      "stills": 21,
+      "evidence": ".experiments/expansion/vesper/builder-presentation-v5/report.json",
+      "scope": "Seven districts plus hollow/creature; high/low+reduced;390x844,844x390,640x360. No renderer errors. Independent judgment pending."
+    },
+    {
+      "check": "shared-browser-smoke",
+      "result": "pass",
+      "cases": 4,
+      "scope": "Final builder production/shape high/low, compatible replay, input clearing, reset, repeated disposal, unknown-level and owned-asset failure cleanup.",
+      "evidence": ".experiments/expansion/vesper/generic-final-builder/report.json"
     }
   ],
-  "openFindings": [
-    "Builder real-camera and actual-key browser verification pending exclusive GPU lease.",
-    "Responsive shared HUD correction under integrator investigation; formal review has not started."
-  ],
+  "openFindings": ["Independent production critic has not completed round1."],
   "rounds": [],
   "futureSupport": [
     {
@@ -61,7 +85,7 @@
       "world": [156.5347450269974, 177.96610047906998, 390.8004216966328],
       "suggestedAid": "boost or reserve refill",
       "purpose": "Build launch speed on the straight crown shelf.",
-      "observedDifficulty": "Pending real-key production verification; existing manual boost only."
+      "observedDifficulty": "Actual-key manual boost launched124.41m/s and landed; unboosted110.18m/s also landed. Imperfect72.08m/s attempt recovered after1.5s. Numerical centered window105\u2013160m/s contiguous."
     },
     {
       "id": "trunk-shelf",
@@ -72,7 +96,7 @@
       "world": [-119.89303862942405, 55.88857881478009, 203.3305258864858],
       "suggestedAid": "reserve refill",
       "purpose": "Enter the precision hollow ascent with impact reserve.",
-      "observedDifficulty": "Pending real-key production verification; existing manual boost only."
+      "observedDifficulty": "Actual-key throttle/braking/steering held about40m/s through872m of hollow ascent with no impact; precision setup is useful before the tight spiral."
     },
     {
       "id": "bloom-recovery",
@@ -83,7 +107,7 @@
       "world": [339.19001386911526, 97.04095921107991, 15.42614382499467],
       "suggestedAid": "recovery or reserve refill",
       "purpose": "Recover speed after flowing sap.",
-      "observedDifficulty": "Pending real-key production verification; existing manual boost only."
+      "observedDifficulty": "Matched85m/s approach,3s actual-key coast: sap40.94m/s versus resin53.24m/s; both replayed exactly."
     },
     {
       "id": "branch-setup",
@@ -94,7 +118,7 @@
       "world": [724.2494690640201, 141.61005001654792, 25.58309326006529],
       "suggestedAid": "boost or reserve refill",
       "purpose": "Offer support before the optional narrow branch bypass.",
-      "observedDifficulty": "Pending real-key production verification; existing manual boost only."
+      "observedDifficulty": "Actual-key branch launch96.64m/s at driver-left8.5m landed. Optional19.5m main strip remains available; numerical65\u2013160m/s centered branch window lands."
     },
     {
       "id": "rootfall-recovery",
@@ -105,7 +129,7 @@
       "world": [351.12298830243486, -0.8434913591908336, -332.5999199292501],
       "suggestedAid": "recovery or stability aid",
       "purpose": "Support the banked recovery after the root descent.",
-      "observedDifficulty": "Pending real-key production verification; existing manual boost only."
+      "observedDifficulty": "Actual-key432m descent and recovery at roughly48m/s completed without impacts. Numeric grounded rest remains exact."
     }
   ],
   "placementTrackRevision": "vesper-route-2",
@@ -118,15 +142,27 @@
     {
       "sourceCommit": "643fd3a69e0f8feef9b27c545888f8a8c45239f2",
       "localCommit": "0b4ddb4d"
+    },
+    {
+      "sourceCommit": "2bb9e28ab97f23d279f2b032563a275a6cd76619",
+      "localCommit": "4c92ac9c"
+    },
+    {
+      "sourceCommit": "bd72bc56bd9800bdd3b93a2ce0759fd36f877bdb",
+      "localCommit": "d31f3bb9"
+    },
+    {
+      "sourceCommit": "f6727333ff83fd7067c5a7f459b8be8f64bca914",
+      "localCommit": "9897022b"
+    },
+    {
+      "sourceCommit": "bd060f2f6ea67043b312f3f679e749bd0f669475",
+      "localCommit": "262b3055"
     }
   ],
   "sourceBudgets": {
-    "roadMeshes": 123,
-    "roadTriangles": 176202,
-    "environmentHighTriangles": 1500373,
-    "environmentLowTriangles": 998499,
-    "assetBytes": 3529636,
-    "scope": "Authored source counts only; actual rendered/transfer/GPU measurements pending"
+    "assetBytes": 3454916,
+    "scope": "See renderedBudgets for measured draw/triangle/residency values; runtime geometry uses material cells and camera-distance leaf detail."
   },
   "preview": {
     "production": "http://127.0.0.1:5202/?level=vesper",
@@ -134,14 +170,36 @@
     "owner": "fzero-int1",
     "running": true,
     "bundles": {
-      "level": "vesper-DtBeeHic.js",
-      "main": "index-CbyPyWr_.js",
-      "css": "index-CnBlraa9.css"
+      "level": "vesper-Bx20fLIA.js",
+      "main": "index-BJCiE5uW.js",
+      "css": "index-Kqb5NyXd.css"
+    },
+    "assetHashes": {
+      "assets/vesper-Bx20fLIA.js": "e4db447c343529947ea663378214cd150d48ead932e0c8b7a93146bcf3d1ee16",
+      "assets/index-BJCiE5uW.js": "e243b1f727ef2d2039e00da2f86e5cfb57b84b664ff0a933f546c258c280996f",
+      "assets/index-Kqb5NyXd.css": "99c0cd94e3123b637a2e216908722bc71fbcd4a99b227df5cae2d140000fb81d",
+      "assets/levels/vesper/vesper-canopy.glb": "817d460b22aece31b63c26a5a7d72214635520e04d7261ef07d8f40c4567fb69"
     }
   },
   "unverified": [
     "Foreground frame pacing",
     "Independent audio listening",
     "Physical gamepad/mobile"
-  ]
+  ],
+  "reviewPolicy": "One independent critic loop; original8-round cap removed by direct human completion override relayed by integrator2026-09-30. Preserve actual rounds; external-only evidence gaps do not justify unchanged reviews.",
+  "renderedBudgets": {
+    "high": {
+      "calls": 760,
+      "triangles": 1895313,
+      "estimatedGpuMiB": 157.20401527404783,
+      "initialTransferredBytes": 5021600
+    },
+    "low": {
+      "calls": 385,
+      "triangles": 989453,
+      "estimatedGpuMiB": 90.40714027404785,
+      "initialTransferredBytes": 5021600
+    },
+    "scope": "Actual all-pass headless renderer metrics across9driving-camera starts, includingAO/shadows; capture RAF intervals are not foreground pacing certification."
+  }
 }

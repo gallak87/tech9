@@ -1,8 +1,8 @@
 {
-  "title": "Vesper Canopy — original scene-to-Blender assets",
+  "title": "Vesper Canopy \u2014 original scene-to-Blender assets",
   "date": "2026-09-29",
   "ownership": "Original geometry, shaders and Blender generator authored for VECTOR//NOVA. Scene concepts generated using the built-in image_gen tool; no third-party meshes or textures.",
-  "workflow": "Selected scene concepts → reproducible CPU Blender geometry and named animation joints → one glTF runtime library → in-game lighting/placement. No generated image is used as scenery.",
+  "workflow": "Selected scene concepts \u2192 reproducible CPU Blender geometry and named animation joints \u2192 one glTF runtime library \u2192 in-game lighting/placement. No generated image is used as scenery.",
   "concepts": [
     {
       "file": "concepts/hollow-tree-scene.png",
@@ -25,5 +25,5 @@
   "materials": "Original flat PBR materials, physical petal thickness, modeled leaf veins, geometric bark furrows and emissive local accents. No texture dependencies.",
   "animation": "Named shoulder/knee/neck/head joints posed deterministically from simulation time and route distance. Two-link leg IK raises crossing feet. Nearby crowns bend, falling leaves/spores use deterministic simulation time. Reduced motion freezes cosmetic movement.",
   "approximation": "Sculpted procedural Blender surfaces reproduce the selected concepts' silhouette/material hierarchy, without reproducing every fine bark or creature-surface detail. Plant/creature events are visual scenery and do not simulate physical forestry.",
-  "validation": "CPU-only authoring/export completed. Production visual judgment and independent critic evidence belong to the integrated lane review; not certified by these source asset counts."
+  "validation": "CPU export, asset lifecycle and route-envelope clearance probes passed. Production builder inspected high/low+reduced driving cameras; static cells and foliage reduction measured below starting budgets in9district/signature views. Independent critic pending; foreground/audio/physical devices unverified."
 }

@@ -3,7 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createVesperTrack } from '../src/levels/vesper/track/model.js';
 
-// Invoked only under the integrator's exclusive GPU lease. Never starts a server.
+// Hidden production evidence only. Never starts a server or drives a full lap.
 const url = process.env.VN_URL;
 if (!url)
   throw new Error(
@@ -14,11 +14,10 @@ const out = resolve(
 );
 await mkdir(out, { recursive: true });
 const track = createVesperTrack();
-const browser = await chromium.launch({ headless: true });
-const deadline = setTimeout(
-  () => void browser.close(),
-  Number(process.env.VN_CAPTURE_TIMEOUT_MS || 210000),
-);
+const browser = await chromium.launch({
+  headless: true,
+  channel: process.env.VN_BROWSER_CHANNEL || 'chrome',
+});
 const report = {
   url,
   headless: true,
@@ -94,6 +93,7 @@ try {
         scenario,
         path,
         snapshot: await snapshot(page),
+        metrics: await page.evaluate(() => window.__VN.getMetrics()),
       });
     }
     report.metrics.push({
@@ -119,6 +119,7 @@ try {
           viewport,
           path,
           snapshot: await snapshot(page),
+          metrics: await page.evaluate(() => window.__VN.getMetrics()),
         });
       }
       await page.setViewportSize({ width: 1280, height: 720 });
@@ -264,7 +265,6 @@ try {
     await context.close();
   }
 } finally {
-  clearTimeout(deadline);
   await browser.close();
   report.browserClosed = true;
   console.log('BROWSER CLOSED');

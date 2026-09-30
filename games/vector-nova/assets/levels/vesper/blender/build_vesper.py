@@ -286,6 +286,14 @@ tube('Great landing bough',[(0,-6,-90),(7,-10,-38),(0,-12,30),(-9,-24,95)], [10,
 for side in [-1,1]:tube('Braided landing sapwood',[(side*7,-3,-85),(side*11,-7,-30),(side*8,-8,40),(side*6,-20,94)],[2.4,3,2.8,.3],sapwood,branch,7)
 merge_materials(branch)
 
+# Ordinary near foliage keeps its thick silhouette and modeled veins with fewer
+# interior triangles; hero blossoms, trunks and articulated walker remain exact.
+for variant in range(3):
+    for o in bpy.data.objects['foliage_'+str(variant)].children:
+        if o.type!='MESH':continue
+        dec=o.modifiers.new('Ordinary foliage interior reduction','DECIMATE');dec.ratio=.65
+        bpy.context.view_layer.objects.active=o;bpy.ops.object.modifier_apply(modifier=dec.name)
+
 # Geometric distance family preserves branch/leaf silhouettes without billboards.
 for variant in range(3):
     source=bpy.data.objects['tree_'+str(variant)]

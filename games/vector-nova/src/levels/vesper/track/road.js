@@ -47,12 +47,89 @@ function mergeParts(group, parts, material, name) {
   return mesh;
 }
 
+// Cut decorative laminae directly from the submitted driving triangles. An
+// independently swept thin layer intersects banked quads along their diagonals.
+function deckPatch(surface, x0, x1, s0, s1, offset) {
+  const { position, uv, normal: sourceNormals } = surface.geometry.attributes;
+  const source = surface.geometry.index;
+  const positions = [],
+    normals = [],
+    uvs = [],
+    indices = [];
+  const right = surface.userData.rightEdge;
+  for (let i = 0; i < source.count; i += 3) {
+    let polygon = [0, 1, 2].map((j) => {
+      const index = source.getX(i + j);
+      return {
+        x: -14 + uv.getX(index) * (right + 14),
+        s: uv.getY(index) * 16,
+        p: new T.Vector3().fromBufferAttribute(position, index),
+        normal: new T.Vector3().fromBufferAttribute(sourceNormals, index),
+      };
+    });
+    if (polygon.every((v) => v.s < s0) || polygon.every((v) => v.s > s1))
+      continue;
+    for (const [axis, edge, sign] of [
+      ['x', x0, 1],
+      ['x', x1, -1],
+      ['s', s0, 1],
+      ['s', s1, -1],
+    ]) {
+      const clipped = [];
+      for (let j = 0; j < polygon.length; j++) {
+        const a = polygon[j],
+          b = polygon[(j + 1) % polygon.length];
+        const da = (a[axis] - edge) * sign,
+          db = (b[axis] - edge) * sign;
+        if (da >= 0) clipped.push(a);
+        if (da >= 0 !== db >= 0) {
+          const t = da / (da - db);
+          clipped.push({
+            x: T.MathUtils.lerp(a.x, b.x, t),
+            s: T.MathUtils.lerp(a.s, b.s, t),
+            p: a.p.clone().lerp(b.p, t),
+            normal: a.normal.clone().lerp(b.normal, t),
+          });
+        }
+      }
+      polygon = clipped;
+    }
+    for (let j = 1; j < polygon.length - 1; j++) {
+      const triangle = [polygon[0], polygon[j], polygon[j + 1]];
+      if (
+        new T.Vector3()
+          .crossVectors(
+            triangle[1].p.clone().sub(triangle[0].p),
+            triangle[2].p.clone().sub(triangle[0].p),
+          )
+          .lengthSq() < 1e-12
+      )
+        continue;
+      for (const vertex of triangle) {
+        const normal = vertex.normal.clone().normalize();
+        const point = vertex.p.clone().addScaledVector(normal, offset);
+        normals.push(...normal.toArray());
+        indices.push(positions.length / 3);
+        positions.push(...point.toArray());
+        uvs.push((vertex.x - x0) / (x1 - x0), vertex.s / 16);
+      }
+    }
+  }
+  const geometry = new T.BufferGeometry();
+  geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.setAttribute('normal', new T.Float32BufferAttribute(normals, 3));
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
 export function createVesperRoad({ track, shape = false }) {
   const group = new T.Group();
   group.name = shape ? 'Vesper route study' : 'Cast amber transport ribbon';
   const amber = new T.MeshPhysicalMaterial({
     color: shape ? 0x88959c : 0xbf651e,
-    roughness: 0.34,
+    roughness: 0.44,
     metalness: 0.12,
     clearcoat: 0.68,
     clearcoatRoughness: 0.25,
@@ -69,7 +146,7 @@ export function createVesperRoad({ track, shape = false }) {
   });
   const polished = new T.MeshPhysicalMaterial({
     color: shape ? 0x9faab0 : 0xe8a738,
-    roughness: 0.2,
+    roughness: 0.34,
     metalness: 0.24,
     clearcoat: 0.9,
   });
@@ -97,8 +174,8 @@ export function createVesperRoad({ track, shape = false }) {
     color: 0xd2b076,
     emissive: 0x644715,
     emissiveIntensity: 0.2,
-    roughness: 0.15,
-    clearcoat: 1,
+    roughness: 0.36,
+    clearcoat: 0.5,
   });
   const sapClock = { value: 0 };
   for (const material of [amber, polished, milk, smoked, sap]) {
@@ -161,6 +238,7 @@ export function createVesperRoad({ track, shape = false }) {
     );
     surface.name = 'Cast resin driving surface';
     surface.userData.drivingSurface = true;
+    surface.userData.rightEdge = right;
     surface.receiveShadow = true;
     group.add(surface);
     const thickness = new T.Mesh(
@@ -219,14 +297,7 @@ export function createVesperRoad({ track, shape = false }) {
       if (x + 1.9 > right) continue;
       group.add(
         new T.Mesh(
-          sweepGeometry(
-            track,
-            [
-              [x - 1.8, 0.025],
-              [x + 1.8, 0.025],
-            ],
-            { start, end, step: 3 },
-          ),
+          deckPatch(surface, x - 1.8, x + 1.8, start, end, 0.025),
           polished,
         ),
       );
@@ -254,47 +325,29 @@ export function createVesperRoad({ track, shape = false }) {
       ),
     );
   }
-  // Visible broad sap films have the same declared spatial extent as the simulation.
-  if (!shape)
-    for (const zone of track.sapZones) {
-      for (const [a, b] of [
-        [-13.9, zone.resinCenter - zone.resinHalfWidth],
-        [zone.resinCenter + zone.resinHalfWidth, 13.9],
-      ]) {
-        const ranges = [
-          zone.start,
-          ...track.jumps
-            .filter(
-              (j) =>
-                j.optional &&
-                j.takeoff > zone.start &&
-                j.landingStart < zone.end,
-            )
-            .flatMap((j) => [j.takeoff, j.landingStart]),
-          zone.end,
-        ].sort((a, b) => a - b);
-        for (let i = 0; i < ranges.length - 1; i++) {
-          const gap = track.jumps.find(
-            (j) => j.optional && inside((ranges[i] + ranges[i + 1]) / 2, j),
+  // Visible films are clipped to the exact same physical zone and road mesh.
+  if (!shape) {
+    const surfaces = group.children.filter(
+      (mesh) => mesh.userData.drivingSurface,
+    );
+    for (const zone of track.sapZones)
+      for (const surface of surfaces)
+        for (const [a, b] of [
+          [-13.9, zone.resinCenter - zone.resinHalfWidth],
+          [zone.resinCenter + zone.resinHalfWidth, 13.9],
+        ]) {
+          const geometry = deckPatch(
+            surface,
+            a,
+            b,
+            zone.start,
+            zone.end,
+            0.045,
           );
-          const edge = gap ? Math.min(b, 5.5) : b;
-          if (edge <= a) continue;
-          group.add(
-            new T.Mesh(
-              sweepGeometry(
-                track,
-                [
-                  [a, 0.045],
-                  [edge, 0.045],
-                ],
-                { start: ranges[i], end: ranges[i + 1], step: 3 },
-              ),
-              sap,
-            ),
-          );
+          if (geometry.index.count) group.add(new T.Mesh(geometry, sap));
+          else geometry.dispose();
         }
-      }
-    }
+  }
   group.traverse((o) => {
     if (o.material === sap) {
       o.name = 'Flowing sap film';

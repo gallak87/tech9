@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export function seededRandom(seed = 81733) {
   return () => {
@@ -48,9 +49,23 @@ export function instanceTemplate(
   template,
   placements,
   group,
-  { shadow = false, name = template.name } = {},
+  { shadow = false, name = template.name, cellSize = 500 } = {},
 ) {
   if (!placements.length) return [];
+  // Separate distant instance bounds let camera and shadow frusta reject whole
+  // forest cells instead of submitting every tree on the circuit in every pass.
+  if (cellSize && placements.length > 5) {
+    const cells = new Map();
+    for (const placement of placements) {
+      const [x, , z] = placement.position;
+      const key = `${Math.floor(x / cellSize)},${Math.floor(z / cellSize)}`;
+      if (!cells.has(key)) cells.set(key, []);
+      cells.get(key).push(placement);
+    }
+    return [...cells.values()].flatMap((cell) =>
+      instanceTemplate(template, cell, group, { shadow, name, cellSize: 0 }),
+    );
+  }
   template.updateMatrixWorld(true);
   const inverse = template.matrixWorld.clone().invert();
   const local = new T.Matrix4();
@@ -112,4 +127,38 @@ export function createSceneryClearance(track) {
       }
     return true;
   };
+}
+
+// Static distant families share materials. Joining their cells keeps distinct
+// silhouettes while avoiding a separate draw for every template/material pair.
+export function consolidateStaticInstances(group) {
+  const bins = new Map();
+  const matrix = new T.Matrix4();
+  const position = new T.Vector3();
+  for (const mesh of [...group.children]) {
+    if (!mesh.isInstancedMesh) continue;
+    for (let i = 0; i < mesh.count; i++) {
+      mesh.getMatrixAt(i, matrix);
+      position.setFromMatrixPosition(matrix);
+      const key = `${mesh.material.uuid}/${mesh.castShadow}/${Math.floor(position.x / 500)}/${Math.floor(position.z / 500)}`;
+      if (!bins.has(key))
+        bins.set(key, {
+          parts: [],
+          material: mesh.material,
+          shadow: mesh.castShadow,
+        });
+      bins.get(key).parts.push(mesh.geometry.clone().applyMatrix4(matrix));
+    }
+    group.remove(mesh);
+    mesh.dispose();
+  }
+  for (const { parts, material, shadow } of bins.values()) {
+    const geometry = mergeGeometries(parts);
+    parts.forEach((part) => part.dispose());
+    const mesh = new T.Mesh(geometry, material);
+    mesh.name = 'Vesper / spatially batched forest material';
+    mesh.castShadow = shadow;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+  }
 }

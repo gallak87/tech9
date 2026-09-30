@@ -11,6 +11,7 @@ import {
   instanceTemplate,
   tube,
   createSceneryClearance,
+  consolidateStaticInstances,
 } from './geometry.js';
 import { createCanopyWalker } from './creature.js';
 
@@ -69,6 +70,7 @@ export function createVesperEnvironment({
   let disposed = false;
   let assetScene;
   let creature;
+  const treeLods = [];
   let loaded = false;
   const metrics = {
     assetUrl: ASSET_URL,
@@ -294,7 +296,7 @@ export function createVesperEnvironment({
   stemMesh.name = 'Vesper / grown lantern stems';
   group.add(stemMesh);
   const practicalLights = Array.from({ length: 7 }, () => {
-    const light = new T.PointLight('#ffc878', 700, 64, 2);
+    const light = new T.PointLight('#ffc878', 170, 64, 2);
     group.add(light);
     return light;
   });
@@ -393,7 +395,7 @@ export function createVesperEnvironment({
       }
     });
     group.add(flower);
-    const flowerLight = new T.PointLight('#ffcc8a', 12000, 200, 2);
+    const flowerLight = new T.PointLight('#ffcc8a', 5000, 200, 2);
     flowerLight.position.copy(flower.position).add(new T.Vector3(0, -35, 0));
     group.add(flowerLight);
     const stationFrame = groundFrame(track, track.landmarks.station.s + 20);
@@ -408,7 +410,7 @@ export function createVesperEnvironment({
     );
     station.name = 'Vesper / split seedpod station';
     group.add(station);
-    const stationLight = new T.PointLight('#ffc77c', 3600, 110, 2);
+    const stationLight = new T.PointLight('#ffc77c', 1400, 110, 2);
     stationLight.position.copy(station.position).add(new T.Vector3(0, 20, 0));
     group.add(stationLight);
     const branchFrame = groundFrame(track, track.jumps[0].landingStart + 95);
@@ -537,14 +539,30 @@ export function createVesperEnvironment({
         }
       }
     for (let i = 0; i < 3; i++) {
-      instanceTemplate(get(`tree_${i}`), near[i], highTrees, { shadow: true });
-      instanceTemplate(get(`tree_lod_${i}`), near[i], lowTrees, {
-        shadow: true,
-      });
+      for (const placement of near[i]) {
+        const detailed = new T.Group(),
+          simple = new T.Group();
+        highTrees.add(detailed);
+        lowTrees.add(simple);
+        instanceTemplate(get(`tree_${i}`), [placement], detailed, {
+          shadow: true,
+        });
+        instanceTemplate(get(`tree_lod_${i}`), [placement], simple);
+        // Fine leaf-vein geometry need not be submitted again to shadow maps.
+        detailed.traverse((mesh) => {
+          if (mesh.isMesh && !mesh.material.name.includes('bark'))
+            mesh.castShadow = false;
+        });
+        treeLods.push({
+          detailed,
+          simple,
+          center: new T.Vector3(...placement.position).add(
+            new T.Vector3(0, 100, 0),
+          ),
+        });
+      }
       instanceTemplate(get(`tree_lod_${i}`), distant[i], group);
-      instanceTemplate(get(`foliage_${i}`), foliage[i], group, {
-        shadow: true,
-      });
+      instanceTemplate(get(`foliage_${i}`), foliage[i], group);
       metrics.closeTrees += near[i].length;
       metrics.distantTrees += distant[i].length;
       metrics.foliageClusters += foliage[i].length;
@@ -595,16 +613,22 @@ export function createVesperEnvironment({
       group.add(tree);
       bent.push(tree);
     }
+    consolidateStaticInstances(group);
     creature = createCanopyWalker(get('hero_walker'), track, group, bent);
     loaded = true;
     metrics.loadState = 'ready';
     setQuality(settings);
     creature.update({ settings, time: 0, state: { distance: 0 } });
   }
-  function setQuality(next) {
+  function setQuality(next, camera) {
     const low = next.quality === 'low';
     highTrees.visible = !low;
-    lowTrees.visible = low;
+    lowTrees.visible = true;
+    for (const { detailed, simple, center } of treeLods) {
+      detailed.visible =
+        !low && Boolean(camera) && center.distanceTo(camera.position) < 240;
+      simple.visible = !detailed.visible;
+    }
     details.visible = !low;
   }
   const ready =
@@ -627,7 +651,7 @@ export function createVesperEnvironment({
     ready,
     update(frame = {}) {
       const next = frame.settings ?? settings;
-      setQuality(next);
+      setQuality(next, frame.camera);
       const s = frame.state?.distance ?? 0;
       const nearest = Math.round(s / 42);
       practicalLights.forEach((light, i) => {
@@ -635,7 +659,7 @@ export function createVesperEnvironment({
           (((nearest + i - 2) % lanternSites.length) + lanternSites.length) %
           lanternSites.length;
         light.position.copy(lanternSites[index].position);
-        light.intensity = next.quality === 'low' && i > 3 ? 0 : 700;
+        light.intensity = next.quality === 'low' && i > 3 ? 0 : 170;
       });
       if (loaded) creature.update(frame);
     },

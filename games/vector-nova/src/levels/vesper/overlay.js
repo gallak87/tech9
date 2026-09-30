@@ -5,6 +5,14 @@ export function createVesperOverlay({ host, track, getMotion }) {
   label.dataset.vesperSurface = '';
   label.style.cssText =
     'display:block;margin:0 0 7px;color:#ffcf86;font-size:9px;letter-spacing:.08em;text-shadow:0 1px 4px #000';
+  const style = document.createElement('style');
+  style.textContent = `
+    [data-vesper-surface] { position:absolute; bottom:calc(100% + 7px); left:0; }
+    @media (max-height:570px) and (orientation:landscape) {
+      [data-vesper-surface] { position:fixed; top:52px; bottom:auto; left:50%; transform:translateX(-50%); }
+    }
+  `;
+  host.append(style);
   let presentation = { surface: 'resin', drag: 0 };
   return {
     update({ state, mode }) {
@@ -33,6 +41,7 @@ export function createVesperOverlay({ host, track, getMotion }) {
     getPresentation: () => ({ ...presentation }),
     dispose() {
       label.remove();
+      style.remove();
     },
   };
 }

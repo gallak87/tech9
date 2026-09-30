@@ -112,13 +112,17 @@
     }
   ],
   "open": [
-    "GPU production smoke and responsive layout check pending; formal critic remains0/8.",
+    "Awaiting explicit GPU grant; final shared contact/HUD revisions applied and production rebuilt.",
     "GPU smoke, production visual/input checks and independent critic pending.",
     "Foreground pacing, audio listening and physical gamepad/mobile unverified."
   ],
   "sharedExtensions": [
     "8c6f05a733453ddbc9f7428c3804c9c419a7f67b",
-    "643fd3a69e0f8feef9b27c545888f8a8c45239f2"
+    "643fd3a69e0f8feef9b27c545888f8a8c45239f2",
+    "2bb9e28ab97f23d279f2b032563a275a6cd76619",
+    "bd72bc56bd9800bdd3b93a2ce0759fd36f877bdb",
+    "f6727333ff83fd7067c5a7f459b8be8f64bca914",
+    "bd060f2f6ea67043b312f3f679e749bd0f669475"
   ],
   "testedTrackRevision": {
     "geometryVersion": "helion-route-v1",
@@ -140,6 +144,20 @@
     "browser": "Pending exclusive GPU grant.",
     "assets": "Selected scene reference, exact prompt, Blender generator/.blend, runtimeGLB and provenance retained.",
     "fullTests": "267/267 before shared-v2; affected Helion+shared flight20/20 after v2.",
-    "lint": "Full lint and format passed."
+    "lint": "Full lint and format passed.",
+    "finalFlight": "21/21 affected Helion/shared flight tests after contact-order v4; complete model.rules serialized in rules identity.",
+    "cameraClearance": "2,478 bidirectional 1.2m probes along actual shared centerline chase path at80m/s,12m increments: no geometry intersections. Sampled CPU evidence only.",
+    "physicalCover": "312 roof ray checks through complete landing envelopes; minimum32.69m local-up clearance."
+  },
+  "preview": {
+    "production": "http://127.0.0.1:5212/?level=helion",
+    "shape": "http://127.0.0.1:5212/?level=helion&review=shape",
+    "owner": "integrator fzero-int1",
+    "assets": [
+      "helion-CRdjrMRe.js",
+      "index-D1Zs2Ou6.js",
+      "flight-Cc8rKPRd.js",
+      "index-Kqb5NyXd.css"
+    ]
   }
 }

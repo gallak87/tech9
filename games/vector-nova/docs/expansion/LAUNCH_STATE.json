@@ -1,51 +1,36 @@
 {
   "schemaVersion": 2,
   "updatedAt": "2026-09-29",
-  "phase": "shared_foundation_cleanup",
-  "handoffOnly": false,
+  "phase": "ready_for_fresh_integrator",
+  "handoffOnly": true,
   "newChatsCreated": 0,
   "launchAuthorizedAfterPrerequisites": true,
-  "launchAllowedNow": false,
+  "launchAllowedNow": true,
   "launchOwner": {
     "threadId": null,
     "hostId": null
   },
   "readiness": {
-    "state": "nacre_merged",
-    "sourceRevision": "1060550b159c479d182505830691f56ab9067965",
-    "userCompletionSignalReceived": true,
-    "next": "Discuss geometry-helper extraction (cleanup item 4), then finish shared helpers, validation and foundation packaging before dispatch."
+    "state": "committed_foundation_verified",
+    "sourceRevision": "8f330df98a20617a3e3423909d0b5867d887d046",
+    "next": "Fresh integrator reviews this foundation, coordinates minimal runtime extensions for the approved local mechanics, and dispatches the seven owned builds. Shared pickup/boost implementation remains deferred."
   },
   "reuseReview": {
-    "state": "preliminary_complete_final_review_pending",
+    "state": "complete",
     "findingsDocument": "games/vector-nova/ROADMAP.md",
-    "source": "Merged shared revision 1060550b159c479d182505830691f56ab9067965"
+    "disposition": "Loader/lifecycle/metadata, optional geometry helpers, level-owned folders and reusable validation are integrated. Further mesh/instance extraction waits for demonstrated reuse."
   },
   "foundation": {
-    "state": "loader_lifecycle_metadata_verified_remaining_foundation_work_pending",
-    "provisionalBase": "1060550b159c479d182505830691f56ab9067965",
-    "selectedBase": null,
-    "preparationWorktree": "/Users/g/.codex/worktrees/level-expansion/tech9",
-    "uncommittedPreparedFiles": [
-      "games/vector-nova/tools/expansion-track-contract.test.mjs",
-      "games/vector-nova/tools/level-checks/track-contract.mjs",
-      "games/vector-nova/tools/level-checks/README.md"
-    ],
-    "toolingChecks": "134 tests, lint/build, read-only Nacre track check passed",
-    "verified": false,
-    "preparationBase": "1dfff69100b6d4df2e82253c5f3754aba3367c3b",
-    "implementationWorktree": "/Users/g/code/scratch/tech9",
-    "implementationBase": "504c1451afa4f456ed5171882a36e07bb5c9d6e4",
-    "implementationChecks": "207 tests; lint/build; all six approved route/mode combinations plus disposable production/shape fixture; high/low, controls, review, pause/reset, asset isolation, error cleanup and repeated disposal passed in hidden Chrome."
+    "state": "committed_and_verified",
+    "selectedBase": "8f330df98a20617a3e3423909d0b5867d887d046",
+    "sourceWorktree": "/Users/g/code/scratch/tech9",
+    "verified": true,
+    "checks": "236 tests, lint/build; 10 approved high/low production/shape combinations and 4 disposable fixture combinations, including unknown-level and owned-asset failure cleanup. Integrated build matches the tested build byte-for-byte.",
+    "verificationWorktree": "/Users/g/.codex/worktrees/level-foundation/tech9",
+    "rawReports": ".experiments/level-checks/",
+    "runtimeExtensionBoundary": "createRuntime supports local versioned rules; generalized flight/grip/heat/hazard/tidal helpers are not yet implemented. The integrator coordinates required shared support and jump/checkpoint semantics before dependent work.",
+    "packaging": "Start isolated worktrees at selectedBase. No old preparation patch or document-copy step is required."
   },
-  "documentsToCopy": [
-    "games/vector-nova/AGENTS.md",
-    "games/vector-nova/ARCHITECTURE.md",
-    "games/vector-nova/README.md",
-    "games/vector-nova/ROADMAP.md",
-    "games/vector-nova/docs/**",
-    "games/vector-nova/src/ships/README.md"
-  ],
   "reviewPolicy": {
     "earlyHumanStopDuringLevelProduction": false,
     "finalHumanApprovalRequired": true,

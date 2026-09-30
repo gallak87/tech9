@@ -41,7 +41,7 @@ Halcyon devices load only for exact track identity plus `features=halcyon-pickup
 
 Device ticks expire timers and apply brake cancellation before physics, consume shields on qualifying impacts, then sweep new forward crossings. A shield collected later in a tick cannot protect an earlier impact. Effects do not stack; manual recovery clears effects while retaining the consumed-device ledger. Reverse/parking/reset farming must not rearm devices. Shields protect reserve loss, not collision separation or speed consequences. Layout/tuning/rules IDs live in `src/pickups/halcyon/`.
 
-Nacre's adapter adds true flight and swept landings. Automatic missed-jump recovery counts its delay as elapsed time and retains a valid lap; manual recovery still invalidates it. Keep that specialized behavior out of the ordinary magnetic adapter and the seven new continuous-surface maps.
+Nacre's adapter adds true flight and swept landings. Automatic missed-jump recovery counts its delay as elapsed time and retains a valid lap; manual recovery still invalidates it. Keep Nacre-specific tuning out of the ordinary magnetic adapter. New levels may declare their approved local flight, surface, hazard and force rules through versioned session adapters; the integrator owns reusable support and shared checkpoint changes.
 
 ## Ship and rendering
 

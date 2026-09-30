@@ -6,7 +6,7 @@
 
 **Goal:** Finish a complete floating-island circuit with woven graphite and bronze raceway, cathedral-scale stone forms and a spiral cloud ascent, then deliver the verified candidate through one independent critic loop and final human review.
 
-Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md) and the [frozen level contract](../../EXPANSION_LEVEL_CONTRACT.md) when available. Consult architecture/art sections only as needed; do not preload the full roadmap or other lane briefs. Use the integrator’s verified base/API.
+Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md) and the [level contract](../../EXPANSION_LEVEL_CONTRACT.md) included in your foundation commit. Consult architecture/art sections only as needed; do not preload the full roadmap or other lane briefs. Use the integrator’s verified base/API.
 
 Own only `src/levels/zephyr/**`, `public/assets/levels/zephyr/**`, `tools/expansion-zephyr-*.mjs` and `docs/expansion/zephyr/**` in the assigned isolated worktree. Shared core, renderer, camera, UI, physics, race, settings, package/config and other levels are outside this lane. Request necessary contract changes from the launching integrator recorded in `docs/expansion/LAUNCH_STATE.json`; continue independent owned work while they are resolved. No copied runtime, private launcher or alternate shared implementation.
 

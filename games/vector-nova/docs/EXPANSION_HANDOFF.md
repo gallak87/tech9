@@ -1,6 +1,6 @@
 # Seven-map overnight production — shared lane brief
 
-Shared readiness, base revision and assignments live in the [launch ledger](expansion/LAUNCH_STATE.json). This brief defines the work; do not duplicate that status in lane handoffs.
+Shared readiness, base revision and assignments live in the [launch ledger](expansion/LAUNCH_STATE.json). This brief defines the work; do not duplicate that status in lane handoffs. Read the live ledger at `/Users/g/code/scratch/tech9/games/vector-nova/docs/expansion/LAUNCH_STATE.json`; copies inside isolated worktrees are snapshots, not current coordination state.
 
 ## Latest user direction
 
@@ -24,7 +24,7 @@ Production entry is `?level=<slug>`; bare review adds `&review=shape`. Each rout
 
 ## Isolation and dependency
 
-Start from the integrator's recorded reviewed base plus the byte-verified foundation patch, in your own managed worktree. Do not edit the primary checkout, another lane, shared dependencies or another dist. Read the [level API](EXPANSION_LEVEL_CONTRACT.md) and require the integrator’s verified foundation revision from the launch ledger before production launch.
+Start from the exact committed foundation recorded in the launch ledger, in your own managed worktree. All shared code and handoffs are part of that revision; do not layer an old preparation patch onto it. Do not edit the primary checkout, another lane, shared dependencies or another dist. Read the [level API](EXPANSION_LEVEL_CONTRACT.md) and require the integrator’s verified foundation revision from the launch ledger before production launch.
 
 Each lane exclusively owns:
 
@@ -69,13 +69,13 @@ Keep the selected reference, editable Blender source or reproducible generator, 
 
 Build the approved level experience now. Note where future game-wide pickups/boost support could help, but implement no new items, spawn systems, boost pads/refills, inventories, protection abilities or substitutes. The current manual boost remains available. Do not flatten jumps, remove hazards or replace the brief with an easier concept merely because future support is absent. Rough or hard no-pickup gameplay is acceptable at this stage; crashes, broken physics, missing landings and dishonest claims are not.
 
-Keep one compact `futureSupport` array in the lane’s existing `STATUS.json`; this is a handoff note, not a runtime schema or a new document. Populate actual coordinates after route construction, not invented planning coordinates. Each entry should include `id`, `section`, route distance `s` (metres), `lateral`/`height` offsets in the documented route-frame convention, derived world position `[x, y, z]`, suggested shared aid, purpose, and observed difficulty with current controls/boost. Add an `endS` for a zone when useful. Record the tested track revision once alongside the array so placements can be reprojected if geometry changes.
+Keep one compact `futureSupport` array in the lane’s existing `STATUS.json`; this is a handoff note, not a runtime schema or a new document. Populate actual coordinates after route construction, not invented planning coordinates. Each entry should include `id`, `section`, route distance `s` (metres), `lateral`/`height` offsets in the documented route-frame convention, derived world position `[x, y, z]`, suggested shared aid, purpose, and observed difficulty with current controls/boost. Add an `endS` for a zone when useful. Record the tested track revision once alongside the array so placements can be reprojected if geometry changes. Unimplemented placement notes remain active until the shared gameplay round consumes them; do not discard them with completed review history.
 
 Mark candidates before demanding jumps/forces/hazards and on safe recovery shelves as appropriate; each lane brief names the relevant areas. Suggestions may include boost/refill, protection, recovery or stability support, but they are product notes for the later shared gameplay round, not authorization to build those systems. Handback distinguishes a verified difficult passage, a support-dependent intended line and an actual defect. The critic still grades the implemented local mechanics, art, lighting, stability and readable feedback at 9/10; future-item balance is explicitly deferred, not a reason to change the design or restart review.
 
 ## Production and critique loop
 
-1. Create one full scoped goal: finished level plus verified playable handback and truthful capped critique. Do not invent a token budget. Record actual worktree/base/foundation hash and 0/8 counter.
+1. Create one full scoped goal: finished level plus verified playable handback and truthful capped critique. Do not invent a token budget. Record actual worktree/foundation commit and 0/8 counter.
 2. Read the frozen API; build the model, neutral shape, overview/section starts and representative road/barrier sample. Check route frames, grounded/airborne transitions, length, banks, clearance and real controls; identify any required shared-runtime extension early. **Continue automatically to production; do not wait for human shape approval.**
 3. Fan out narrowly where useful: track/raceway and environment/backdrop builders with exclusive files, one integrator and a separate critic. Respect available slots; the critic writes no implementation. No builder edits someone else's folder.
 4. Finish the entire course. Inspect ordinary running stretches, hardest turn, vertical signature, starts/returns, off-axis views and high/low/responsive states. Record actual asset provenance and approximations, plus measured future-support coordinates without implementing those aids.

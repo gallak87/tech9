@@ -11,6 +11,8 @@ Each level supplies two files:
 
 Required `ui` strings: `edition`, `subtitle`, `eyebrow`, `intro`, `detail`, `start`, `tag`, `tagDetail`; `heading` is two text strings. Optional `ui.shape` overrides copy for shape review. Optional layout flags are `compact`, `stackedReview` and `lowNotice`. Use real text, not HTML. The approved level metadata files are small working examples.
 
+Complete working examples are the [Halcyon descriptor](../src/levels/halcyon/index.js), [Orbital production/shape descriptor](../src/levels/orbital/index.js) and [Nacre custom-runtime descriptor](../src/levels/nacre/index.js). Reuse their factory/ownership pattern, while authoring your own route, assets and presentation.
+
 Unknown slugs, orphaned modules, invalid metadata and missing required factories produce a recoverable error screen. Query text never becomes an arbitrary import path. The default route remains Halcyon; production uses `?level=<slug>` and shape adds `&review=shape` when supported.
 
 ## Descriptor and owned components

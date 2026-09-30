@@ -11,26 +11,26 @@ Approved and merged: Halcyon Viaduct, Asterion Orbital, Nacre Tempest, the initi
 - [x] Replace hardcoded level branches with a small validated lazy loader and level descriptor.
 - [x] Standardize async readiness, one presentation update per frame, reset/disposal and borrowed-resource ownership.
 - [x] Drive shared UI/review navigation from metadata and camera behavior from explicit options.
-- [ ] Expose existing robust frame, road-sweep and clearance helpers for new level authors.
-- [ ] Extract small mesh/instance/resource helpers where reuse is demonstrated; keep world-specific art local.
-- [ ] Complete the common validation harness and frozen level contract. CPU track checks are already prepared in the isolated expansion checkout; they are not integrated yet.
+- [x] Expose optional frame, road-sweep, transformed-bounds and clearance helpers; keep profiles, materials and scenery authored locally.
+- [ ] Extract additional small mesh/instance/resource helpers only when repeated production needs justify them; this is not a prerequisite for the seven-level handoff.
+- [x] Integrate the common CPU/runtime validation harness and documented level contract. Exact foundation and verification live in the launch ledger.
 - [x] Rewrite the README around the whole game and consolidate documentation around current state and lasting decisions.
 
 See the [launch ledger](docs/expansion/LAUNCH_STATE.json) for current readiness and the [integrator handoff](docs/EXPANSION_INTEGRATOR_HANDOFF.md) for execution. Keep coordination status there rather than repeating it in the map briefs.
 
 ## Seven requested maps
 
-Each map gets an independent isolated build, internal shape checks, full production and capped critique, then final human review. Preserve the existing Kestrel, controls and 0.3 assistance. These seven routes use continuous magnetic surfaces; Nacre flight, pickups and new game systems are outside this wave.
+Each map gets an independent isolated build, internal shape checks, full production and capped critique, then final human review. Preserve the existing Kestrel, controls and 0.3 assistance. Their briefs authorize distinct jumps, surface effects, hazards, environmental forces and large world events. Shared pickup/boost expansion remains deferred: builders record actual future-support coordinates and preserve the intended challenge even if current play is rough or hard. All assets and lighting share one eight-round critic cap per level, targeting at least 9/10 in every applicable category.
 
-| Map                   | Direction and owned brief                                                                                   |
-| --------------------- | ----------------------------------------------------------------------------------------------------------- |
-| 4 — Vesper Canopy     | [Luminous alien forest; amber resin road and hooked petal edges](docs/expansion/vesper/HANDOFF.md)          |
-| 5 — Glasswake Comet   | [Crystal decks, cobalt ice caverns and a supported canyon crossing](docs/expansion/glasswake/HANDOFF.md)    |
-| 6 — Cindercoil        | [Volcanic terraces, ceramic road, gravity bowls and rising corkscrew](docs/expansion/cindercoil/HANDOFF.md) |
-| 7 — Saffron Leviathan | [Fossil ribs, dune sea, gold-glass road and offset braking turns](docs/expansion/saffron/HANDOFF.md)        |
-| 8 — Zephyr Basilica   | [Floating stone islands, graphite bridges, waterfalls and spiral ascent](docs/expansion/zephyr/HANDOFF.md)  |
-| 9 — Helion Flare      | [Solar observatory, heat tiles, radiator edges and shield-wall ride](docs/expansion/helion/HANDOFF.md)      |
-| 10 — Umbra Fold       | [Gravity observatory, accretion ring, stacked crossings and inversions](docs/expansion/umbra/HANDOFF.md)    |
+| Map                   | Direction and owned brief                                                                                 |
+| --------------------- | --------------------------------------------------------------------------------------------------------- |
+| 4 — Vesper Canopy     | [Living-tree interiors, crown jumps, sap lines and a canopy creature](docs/expansion/vesper/HANDOFF.md)   |
+| 5 — Glasswake Comet   | [Crystal fracture jumps, frost/grip choices and a calving ice shelf](docs/expansion/glasswake/HANDOFF.md) |
+| 6 — Cindercoil        | [Lava-surge route choices, a vent launch and a rupturing caldera](docs/expansion/cindercoil/HANDOFF.md)   |
+| 7 — Saffron Leviathan | [Skull/vertebral traversal, sand crossings and a living burrower](docs/expansion/saffron/HANDOFF.md)      |
+| 8 — Zephyr Basilica   | [Cathedral interiors, waterfall jumps and a falling island/tower](docs/expansion/zephyr/HANDOFF.md)       |
+| 9 — Helion Flare      | [Flare-swept lanes, furnace/heat choices and gigantic solar flares](docs/expansion/helion/HANDOFF.md)     |
+| 10 — Umbra Fold       | [Tidal pull, curved leaps and debris stretched into the black hole](docs/expansion/umbra/HANDOFF.md)      |
 
 Spread vertical events and signature moments throughout each course. Ordinary connectors, road construction and surroundings need the same attention as hero views. The [common brief](docs/EXPANSION_HANDOFF.md) owns execution/quality rules; individual briefs own distinctive worlds and acceptance scenarios.
 
@@ -46,6 +46,10 @@ Each phase ends with human review after its scoped independent critic loop. Agre
 - [ ] Asterion: locate and fix the reported flickering road section; its exact location is not yet known.
 - [ ] Nacre: make the entire sound mix feel submerged when entering the water, including propulsion, boost, lightning/thunder and other effects, with smooth transitions back to the above-water mix.
 - [ ] Nacre: add bubbles around takeoff, mid-jump travel and landing for the underwater portions, driven by actual submersion and water crossings.
+
+### Candidate next round: shared pickups and boost support
+
+Consider prioritizing game-wide boost/refill, protection, recovery and other shared aids using the seven builders’ measured placement notes. The user will choose the systems and iterate through human playtests. Do not implement them during level production or treat hard unsupported sections as permission to redesign the maps.
 
 ### Gate 5: complete race flow
 

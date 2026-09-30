@@ -6,7 +6,7 @@
 
 **Goal:** Finish a complete, drivable nocturnal alien forest circuit whose grown resin raceway, immense living canopy and root descent remain distinctive through an ordinary lap, then deliver the verified candidate through one independent critic loop and final human review.
 
-Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md) and the [frozen level contract](../../EXPANSION_LEVEL_CONTRACT.md) when available. Consult architecture/art sections only as needed; do not preload the full roadmap or other lane briefs. Use the integrator’s verified base/API.
+Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md) and the [level contract](../../EXPANSION_LEVEL_CONTRACT.md) included in your foundation commit. Consult architecture/art sections only as needed; do not preload the full roadmap or other lane briefs. Use the integrator’s verified base/API.
 
 Own only `src/levels/vesper/**`, `public/assets/levels/vesper/**`, `tools/expansion-vesper-*.mjs` and `docs/expansion/vesper/**` in the assigned isolated worktree. Shared core, renderer, camera, UI, physics, race, settings, package/config and other levels are outside this lane. Request necessary contract changes from the launching integrator recorded in `docs/expansion/LAUNCH_STATE.json`; continue independent owned work while they are resolved. No copied runtime, private launcher or alternate shared implementation.
 

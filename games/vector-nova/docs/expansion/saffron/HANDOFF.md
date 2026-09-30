@@ -6,7 +6,7 @@
 
 **Goal:** Finish a complete alien desert circuit across huge fossil architecture and dunes, with fused-gold glass raceway and an authored panoramic acceleration reach, then deliver the verified candidate through one independent critic loop and final human review.
 
-Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md) and the [frozen level contract](../../EXPANSION_LEVEL_CONTRACT.md) when available. Consult architecture/art sections only as needed; do not preload the full roadmap or other lane briefs. Use the integrator’s verified base/API.
+Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md) and the [level contract](../../EXPANSION_LEVEL_CONTRACT.md) included in your foundation commit. Consult architecture/art sections only as needed; do not preload the full roadmap or other lane briefs. Use the integrator’s verified base/API.
 
 Own only `src/levels/saffron/**`, `public/assets/levels/saffron/**`, `tools/expansion-saffron-*.mjs` and `docs/expansion/saffron/**` in the assigned isolated worktree. Shared core, renderer, camera, UI, physics, race, settings, package/config and other levels are outside this lane. Request necessary contract changes from the launching integrator recorded in `docs/expansion/LAUNCH_STATE.json`; continue independent owned work while they are resolved. No copied runtime, private launcher or alternate shared implementation.
 

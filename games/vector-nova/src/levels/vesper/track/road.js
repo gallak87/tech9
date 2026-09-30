@@ -49,13 +49,34 @@ function mergeParts(group, parts, material, name) {
 
 // Cut decorative laminae directly from the submitted driving triangles. An
 // independently swept thin layer intersects banked quads along their diagonals.
-function deckPatch(surface, x0, x1, s0, s1, offset) {
+function deckPatch(surface, x0, x1, s0, s1, offset, shape) {
   const { position, uv, normal: sourceNormals } = surface.geometry.attributes;
   const source = surface.geometry.index;
   const positions = [],
     normals = [],
     uvs = [],
     indices = [];
+  const cuts = [
+    (v) => v.x - x0,
+    (v) => x1 - v.x,
+    (v) => v.s - s0,
+    (v) => s1 - v.s,
+  ];
+  if (shape) {
+    const area = shape.reduce((sum, a, i) => {
+      const b = shape[(i + 1) % shape.length];
+      return sum + a[0] * b[1] - b[0] * a[1];
+    }, 0);
+    for (let i = 0; i < shape.length; i++) {
+      const a = shape[i],
+        b = shape[(i + 1) % shape.length];
+      cuts.push(
+        (v) =>
+          ((b[0] - a[0]) * (v.s - a[1]) - (b[1] - a[1]) * (v.x - a[0])) *
+          Math.sign(area),
+      );
+    }
+  }
   const right = surface.userData.rightEdge;
   for (let i = 0; i < source.count; i += 3) {
     let polygon = [0, 1, 2].map((j) => {
@@ -69,18 +90,13 @@ function deckPatch(surface, x0, x1, s0, s1, offset) {
     });
     if (polygon.every((v) => v.s < s0) || polygon.every((v) => v.s > s1))
       continue;
-    for (const [axis, edge, sign] of [
-      ['x', x0, 1],
-      ['x', x1, -1],
-      ['s', s0, 1],
-      ['s', s1, -1],
-    ]) {
+    for (const distance of cuts) {
       const clipped = [];
       for (let j = 0; j < polygon.length; j++) {
         const a = polygon[j],
           b = polygon[(j + 1) % polygon.length];
-        const da = (a[axis] - edge) * sign,
-          db = (b[axis] - edge) * sign;
+        const da = distance(a),
+          db = distance(b);
         if (da >= 0) clipped.push(a);
         if (da >= 0 !== db >= 0) {
           const t = da / (da - db);
@@ -111,7 +127,7 @@ function deckPatch(surface, x0, x1, s0, s1, offset) {
         normals.push(...normal.toArray());
         indices.push(positions.length / 3);
         positions.push(...point.toArray());
-        uvs.push((vertex.x - x0) / (x1 - x0), vertex.s / 16);
+        uvs.push((vertex.x + 14) / 28, vertex.s / 16);
       }
     }
   }
@@ -128,11 +144,15 @@ export function createVesperRoad({ track, shape = false }) {
   const group = new T.Group();
   group.name = shape ? 'Vesper route study' : 'Cast amber transport ribbon';
   const amber = new T.MeshPhysicalMaterial({
-    color: shape ? 0x88959c : 0xbf651e,
-    roughness: 0.44,
-    metalness: 0.12,
-    clearcoat: 0.68,
-    clearcoatRoughness: 0.25,
+    color: shape ? 0x88959c : 0xcb781e,
+    roughness: 0.32,
+    metalness: 0.02,
+    clearcoat: 0.4,
+    clearcoatRoughness: 0.3,
+    specularIntensity: 0.42,
+    specularColor: 0xffd8a0,
+    emissive: shape ? 0 : 0x512503,
+    emissiveIntensity: 0.13,
   });
   const milk = new T.MeshStandardMaterial({
     color: shape ? 0xc1c9cc : 0xd7b47a,
@@ -141,19 +161,35 @@ export function createVesperRoad({ track, shape = false }) {
   });
   const smoked = new T.MeshStandardMaterial({
     color: shape ? 0x7b8b90 : 0x673715,
-    roughness: 0.58,
-    metalness: 0.13,
+    roughness: 0.72,
+    metalness: 0.02,
   });
   const polished = new T.MeshPhysicalMaterial({
-    color: shape ? 0x9faab0 : 0xe8a738,
-    roughness: 0.34,
-    metalness: 0.24,
-    clearcoat: 0.9,
+    color: shape ? 0x9faab0 : 0xda8a27,
+    roughness: 0.26,
+    metalness: 0.02,
+    clearcoat: 0.46,
+    clearcoatRoughness: 0.29,
+    specularIntensity: 0.45,
+    specularColor: 0xffd8a0,
+    emissive: shape ? 0 : 0x592503,
+    emissiveIntensity: 0.12,
+  });
+  const core = new T.MeshPhysicalMaterial({
+    color: shape ? 0x8d969b : 0xd57a1d,
+    roughness: 0.3,
+    metalness: 0.02,
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.3,
+    specularIntensity: 0.4,
+    specularColor: 0xffd39a,
+    emissive: shape ? 0 : 0x9d4103,
+    emissiveIntensity: shape ? 0 : 0.22,
   });
   const vein = new T.MeshStandardMaterial({
     color: 0xffc46e,
     emissive: 0xf2a327,
-    emissiveIntensity: shape ? 0 : 0.6,
+    emissiveIntensity: shape ? 0 : 1.6,
     roughness: 0.45,
   });
   const tissue = new T.MeshStandardMaterial({
@@ -171,14 +207,18 @@ export function createVesperRoad({ track, shape = false }) {
     roughness: 0.4,
   });
   const sap = new T.MeshPhysicalMaterial({
-    color: 0xd2b076,
-    emissive: 0x644715,
-    emissiveIntensity: 0.2,
-    roughness: 0.36,
-    clearcoat: 0.5,
+    color: 0xba8944,
+    emissive: 0x402409,
+    emissiveIntensity: 0.06,
+    roughness: 0.6,
+    clearcoat: 0.12,
+    clearcoatRoughness: 0.7,
+    specularIntensity: 0.12,
   });
   const sapClock = { value: 0 };
-  for (const material of [amber, polished, milk, smoked, sap]) {
+  for (const material of shape
+    ? []
+    : [amber, polished, core, milk, smoked, sap]) {
     const flowing = material === sap;
     material.onBeforeCompile = (shader) => {
       shader.uniforms.vesperSapTime = sapClock;
@@ -189,19 +229,31 @@ export function createVesperRoad({ track, shape = false }) {
           '#include <begin_vertex>\n vVesperUv=uv;',
         );
       shader.fragmentShader =
-        'varying vec2 vVesperUv;\nuniform float vesperSapTime;\n' +
+        `varying vec2 vVesperUv;
+        uniform float vesperSapTime;
+        float resinHash(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+        float resinNoise(vec2 p) {
+          vec2 i=floor(p),f=fract(p); f=f*f*(3.-2.*f);
+          return mix(mix(resinHash(i),resinHash(i+vec2(1,0)),f.x),mix(resinHash(i+vec2(0,1)),resinHash(i+vec2(1,1)),f.x),f.y);
+        }
+        ` +
         shader.fragmentShader.replace(
           '#include <color_fragment>',
           `#include <color_fragment>
-        float lamina = sin(vVesperUv.x * 136.0 + sin(vVesperUv.y * 0.9) * 2.2);
-        float fineLayer = sin(vVesperUv.x * 463.0 + sin(vVesperUv.y * 2.5));
-        diffuseColor.rgb *= 0.94 + 0.04 * lamina + 0.02 * fineLayer;
+        float longitudinal = vVesperUv.y * 16.0;
+        vec2 resinP = vec2(vVesperUv.x * 28.0, longitudinal);
+        vec2 warp = vec2(resinNoise(resinP * .09),resinNoise(resinP * .08 + 19.0));
+        float cloud = resinNoise(resinP * .18 + warp * 3.0);
+        float deep = resinNoise(resinP * .37 + warp * 4.0 + 8.0);
+        float filament = 1.0-smoothstep(.012,.06,abs(deep-.49));
+        diffuseColor.rgb *= .83 + .26 * cloud;
+        diffuseColor.rgb += vec3(.11,.053,.009)*filament*(.3+.7*cloud);
         ${flowing ? 'float flow = pow(0.5 + 0.5 * sin(vVesperUv.y * 11.0 - vesperSapTime * 0.75 + sin(vVesperUv.x * 19.0)), 9.0); diffuseColor.rgb += vec3(0.045,0.027,0.01)*flow;' : ''}
       `,
         );
     };
     material.customProgramCacheKey = () =>
-      flowing ? 'vesper-flow-v1' : 'vesper-lamina-v1';
+      flowing ? 'vesper-flow-v3' : 'vesper-lamina-v3';
   }
   const slices = [
     0,
@@ -232,7 +284,7 @@ export function createVesperRoad({ track, shape = false }) {
           [-14, 0],
           [right, 0],
         ],
-        { start, end, step: 3 },
+        { start, end, step: 1 },
       ),
       mat,
     );
@@ -254,7 +306,7 @@ export function createVesperRoad({ track, shape = false }) {
         ],
         { start, end, step: 4 },
       ),
-      smoked,
+      shape ? smoked : core,
     );
     group.add(thickness);
     for (const sign of [-1, 1]) {
@@ -266,7 +318,7 @@ export function createVesperRoad({ track, shape = false }) {
             end,
             step: 4,
           }),
-          milk,
+          shape ? milk : core,
         ),
       );
       group.add(
@@ -295,12 +347,12 @@ export function createVesperRoad({ track, shape = false }) {
     }
     for (const x of [-5, 5]) {
       if (x + 1.9 > right) continue;
-      group.add(
-        new T.Mesh(
-          deckPatch(surface, x - 1.8, x + 1.8, start, end, 0.025),
-          polished,
-        ),
+      const lane = new T.Mesh(
+        deckPatch(surface, x - 1.8, x + 1.8, start, end, 0.025),
+        polished,
       );
+      lane.receiveShadow = true;
+      group.add(lane);
     }
   }
   for (const jump of track.jumps.filter((j) => j.optional)) {
@@ -350,6 +402,7 @@ export function createVesperRoad({ track, shape = false }) {
   }
   group.traverse((o) => {
     if (o.material === sap) {
+      o.receiveShadow = true;
       o.name = 'Flowing sap film';
       o.userData.sapFilm = true;
     }
@@ -458,27 +511,90 @@ export function createVesperRoad({ track, shape = false }) {
   mergeParts(group, roots, bark, 'Paired braided load roots');
   mergeParts(group, clamps, metal, 'Maintenance sleeves and root sockets');
   mergeParts(group, inlays, vein, 'Amber resin edge windows');
-  // Launch teeth and catch bands are geometry, readable in both quality presets.
-  for (const jump of track.jumps) {
-    for (const offset of [-50, -32, -16]) {
-      const f = track.sample(jump.takeoff + offset);
-      const width = jump.optional ? 6 : 22;
-      const marker = new T.Mesh(new T.BoxGeometry(width, 0.09, 1.4), vein);
-      marker.position.copy(framePoint(f, jump.optional ? 9 : 0, 0.12));
-      marker.quaternion.copy(f.quaternion);
-      group.add(marker);
+  // Advance lane arrows and continuous boundary inlays communicate a real
+  // flight choice; they are visual guidance, never boost pads or hidden rails.
+  const guide = new T.MeshStandardMaterial({
+    color: 0xf2deb0,
+    emissive: 0xcaa261,
+    emissiveIntensity: shape ? 0 : 0.22,
+    roughness: 0.78,
+  });
+  const guideParts = [];
+  const surfaces = group.children.filter(
+    (mesh) => mesh.userData.drivingSurface,
+  );
+  function mark(x0, x1, start, end, shape) {
+    for (const surface of surfaces) {
+      const part = deckPatch(surface, x0, x1, start, end, 0.13, shape);
+      if (part.index.count) guideParts.push(part);
+      else part.dispose();
     }
-    const f = track.sample(jump.landingStart + 2);
-    const marker = new T.Mesh(
-      new T.BoxGeometry(jump.optional ? 8 : 27, 0.09, 3),
-      polished,
-    );
-    marker.position.copy(framePoint(f, jump.optional ? 9 : 0, 0.1));
-    marker.quaternion.copy(f.quaternion);
-    group.add(marker);
   }
+  for (const jump of track.jumps) {
+    const center = jump.optional ? 9.4 : 0;
+    const span = jump.optional ? 2.4 : 6.5;
+    for (
+      let distance = jump.takeoff - 150;
+      distance < jump.takeoff - 12;
+      distance += 24
+    ) {
+      for (const side of [-1, 1]) {
+        const arrow = [
+          [center, distance + 3],
+          [center + side * span, distance - 2],
+          [center + side * span, distance - 0.1],
+          [center, distance + 4.9],
+        ];
+        mark(center - span, center + span, distance - 2, distance + 5, arrow);
+      }
+    }
+    if (jump.optional) mark(5.7, 6.05, jump.takeoff - 165, jump.takeoff - 1);
+    mark(
+      jump.optional ? 6.2 : -13.5,
+      13.5,
+      jump.takeoff - 3.2,
+      jump.takeoff - 1.5,
+    );
+    mark(
+      jump.optional ? 6.2 : -13.5,
+      13.5,
+      jump.landingStart + 2,
+      jump.landingStart + 5,
+    );
+    for (const s of [jump.takeoff - 3, jump.landingStart + 8]) {
+      const f = track.sample(s);
+      for (const side of jump.optional ? [1] : [-1, 1]) {
+        const beacon = new T.Mesh(
+          new T.CylinderGeometry(0.22, 0.5, 5, 6),
+          milk,
+        );
+        beacon.position.copy(framePoint(f, side * 17.2, 2.1));
+        beacon.quaternion.copy(f.quaternion);
+        beacon.name = 'Jump edge sapwood beacon';
+        group.add(beacon);
+        const head = new T.Mesh(new T.SphereGeometry(0.7, 8, 6), guide);
+        head.position.copy(framePoint(f, side * 17.2, 4.9));
+        group.add(head);
+      }
+    }
+  }
+  mergeParts(
+    group,
+    guideParts,
+    guide,
+    'Advance jump lane and landing guidance',
+  );
   return {
     group,
+    setReflection(texture) {
+      if (shape) return;
+      for (const material of [amber, polished, core]) {
+        // Borrow the shared scene probe; renderer lifetime owns this texture.
+        material.envMap = texture;
+        material.envMapIntensity = 0.8;
+        material.needsUpdate = true;
+      }
+    },
     update({ time, settings }) {
       sapClock.value = settings.reducedMotion ? 0 : time;
     },

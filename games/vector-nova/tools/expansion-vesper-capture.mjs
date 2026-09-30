@@ -55,7 +55,9 @@ async function load(page, scenario, paused = false) {
   await page.waitForTimeout(220);
 }
 try {
-  for (const quality of ['high', 'low']) {
+  for (const quality of process.argv.includes('--high-only')
+    ? ['high']
+    : ['high', 'low']) {
     const context = await browser.newContext({
       viewport: { width: 1280, height: 720 },
       deviceScaleFactor: 1,
@@ -74,7 +76,7 @@ try {
     await page.waitForFunction(() => window.__VN?.ready, null, {
       timeout: 120000,
     });
-    for (const scenario of [
+    for (const scenario of process.env.VN_SCENARIOS?.split(',') ?? [
       'saplight-showcase',
       'pillar-showcase',
       'spiral-climb',
@@ -101,7 +103,7 @@ try {
       viewport: 'desktop',
       metrics: await page.evaluate(() => window.__VN.getMetrics()),
     });
-    if (quality === 'low') {
+    if (quality === 'low' && process.argv.includes('--mobile-final')) {
       for (const viewport of [
         { width: 390, height: 844 },
         { width: 844, height: 390 },

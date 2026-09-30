@@ -1200,3 +1200,16 @@ select {
     padding: 6px 8px;
   }
 }
+
+/* Opt-in for circuits whose portrait chase craft occupies the upper telemetry
+   edge. The notice sits in the gap between reserve/speed and touch controls. */
+@media (max-width: 760px) and (min-height: 700px) and (orientation: portrait) {
+  #interface.portrait-low-notice.driving #notice {
+    top: auto;
+    bottom: 108px;
+    width: calc(100vw - 32px);
+    font-size: 11px;
+    line-height: 1.25;
+    padding: 6px 8px;
+  }
+}

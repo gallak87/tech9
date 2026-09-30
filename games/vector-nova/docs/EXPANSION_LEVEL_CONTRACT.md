@@ -9,7 +9,7 @@ Each level supplies two files:
 - `metadata.js`: default-export an asset-free object with `id` matching the folder, `name`, numeric `order`, boolean `shape`/`review`, and `ui` copy. Metadata feeds the paddock picker, briefing and review controls.
 - `index.js`: default-export `createLevel({ shape, features })`, returning the descriptor below. Only the selected implementation is imported. No shared catalog/core edit is required.
 
-Required `ui` strings: `edition`, `subtitle`, `eyebrow`, `intro`, `detail`, `start`, `tag`, `tagDetail`; `heading` is two text strings. Optional `ui.shape` overrides copy for shape review. Optional layout flags are `compact`, `stackedReview`, `lowNotice` and `compactLandscape`. Use real text, not HTML. The approved level metadata files are small working examples.
+Required `ui` strings: `edition`, `subtitle`, `eyebrow`, `intro`, `detail`, `start`, `tag`, `tagDetail`; `heading` is two text strings. Optional `ui.shape` overrides copy for shape review. Optional layout flags are `compact`, `stackedReview`, `lowNotice`, `compactLandscape` and `portraitLowNotice`. Use real text, not HTML. The approved level metadata files are small working examples.
 
 Complete working examples are the [Halcyon descriptor](../src/levels/halcyon/index.js), [Orbital production/shape descriptor](../src/levels/orbital/index.js) and [Nacre custom-runtime descriptor](../src/levels/nacre/index.js). Reuse their factory/ownership pattern, while authoring your own route, assets and presentation.
 
@@ -100,3 +100,11 @@ Shared model defaults include `curvedContact: true`: if the cached plane sweep f
 New levels should opt into `ui.compactLandscape: true` for short landscape HUDs. At heights up to 570 px it separates the upper-right minimap, lower telemetry, left collapsed review toggle and centered expanded review panel, including 640×360. Shared transient notices use the central area 75 px above the bottom; coordinate lane-owned overlays with that region and visible touch controls. It also keeps shared portrait notices above bottom telemetry and below review controls at portrait heights of at least700px; desktop layout remains unchanged. Approved circuits do not opt in automatically.
 
 With curved contact enabled, the solver compares road and rail hit fractions before resolving either. An earlier supported deck contact wins; a later rail must not restart the landing sweep underneath the deck. `model.rules.contactVersion` is fixed by the shared model and must remain in the serialized rules identity when adopting solver changes. Nacre's explicit legacy contact mode preserves its existing order.
+
+`ui.portraitLowNotice: true` places transient notices in the reserved gap between
+bottom telemetry and touch controls for portrait viewports up to760px wide and
+at least700px tall. Use it when the chase craft occupies the default portrait
+notice band. The notice is108px above the bottom; leave that region free of
+level-owned overlays. Desktop and landscape layouts are unchanged. The flag is
+optional and defaults off, so approved circuits retain their notice positions.
+Vesper opts in; its surface and approach cues use separate upper portrait bounds.

@@ -8,6 +8,13 @@ import random
 from mathutils import Vector
 
 
+# Human art steer: regain oversized broad leaves and substantial boughs.
+LEAF_LENGTH_SCALE = 1.85
+LEAF_WIDTH_SCALE = 2.0
+BRANCH_REACH_SCALE = 1.10
+BRANCH_RADIUS_SCALE = 1.22
+
+
 def make_connected_tree(seed=290930, forest_budget=False):
     rng=random.Random(seed)
     B=lambda p:(p[0],-p[2],p[1])
@@ -20,6 +27,8 @@ def make_connected_tree(seed=290930, forest_budget=False):
         d=parts[part];d['v'].append(B(p));d['uv'].append(uv);d['c'].append(color);return len(d['v'])-1
 
     def tube(name,points,radii,sides,parent=None,anchor=None):
+        if name.startswith('limb-'):
+            radii=[r*BRANCH_RADIUS_SCALE for r in radii]
         if forest_budget and "-petiole-" in name: sides=3
         points=[Vector(p) for p in points];rings=[];length=0
         for i,p in enumerate(points):
@@ -48,6 +57,7 @@ def make_connected_tree(seed=290930, forest_budget=False):
         u=max(0,min(1,f))*(len(points)-1);i=min(len(points)-2,int(u));return points[i].lerp(points[i+1],u-i)
 
     def leaf(base,direction,length,width,shade):
+        length*=LEAF_LENGTH_SCALE; width*=LEAF_WIDTH_SCALE
         forward=direction.normalized();side=forward.cross(Vector((0,1,0)))
         if side.length<.05:side=forward.cross(Vector((1,0,0)))
         side.normalize();up=side.cross(forward).normalized();grid=[]
@@ -91,7 +101,7 @@ def make_connected_tree(seed=290930, forest_budget=False):
     for k in range(14):
         t=.43+k*.037+rng.uniform(-.008,.008);base=along(trunk_points,t)
         a=k*2.399+.3*math.sin(k);direction=Vector((math.cos(a),0,math.sin(a)));side=Vector((-math.sin(a),0,math.cos(a)))
-        length=(38+17*math.sin((t-.40)/.58*math.pi))*rng.uniform(.88,1.08)
+        length=(38+17*math.sin((t-.40)/.58*math.pi))*rng.uniform(.88,1.08)*BRANCH_REACH_SCALE
         rise=14+rng.random()*17;sway=rng.uniform(-8,8)
         pts=[base+direction*(length*f)+side*(math.sin(f*2.2)*sway)+Vector((0,rise*f+7*math.sin(f*math.pi),0)) for f in [j/9 for j in range(10)]]
         r=(6.5*(1-t)+3.5);radii=[r*(1-j/9)**1.05+.32 for j in range(10)]
@@ -99,7 +109,7 @@ def make_connected_tree(seed=290930, forest_budget=False):
         for n,f in enumerate([.54,.84]):
             socket=along(pts,f)
             for sign in [-1,1]:
-                out=(direction*.5+side*sign*.80+Vector((0,.40+rng.random()*.35,0))).normalized();reach=14+rng.random()*9
+                out=(direction*.5+side*sign*.80+Vector((0,.40+rng.random()*.35,0))).normalized();reach=(14+rng.random()*9)*BRANCH_REACH_SCALE
                 forks=[socket+out*(reach*q)+Vector((0,2.7*math.sin(q*math.pi),0)) for q in [0,.25,.5,.75,1]]
                 twig=name+'-fork-'+str(n)+'-'+str(sign);tube(twig,forks,[2.0,1.5,1.05,.62,.17],7,name,socket)
                 for m,q in enumerate([.55,1]):

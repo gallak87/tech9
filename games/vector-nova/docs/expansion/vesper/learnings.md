@@ -21,3 +21,5 @@ Human art and workflow steers from Vesper Canopy, 2026-09-29–30. Carry these i
 - **Prove a new asset method in the first driving view.** Checkpoint first, replace the exact tree the human selected, and show it in place before rolling the method across the forest. The connected pilot was approved; regenerate secondary trees while preserving the colossal hollow.
 
 - **After a successful pilot, carry its structure through every detail level.** Regenerate the secondary forest consistently, including distant trees and floating leaf islands. Preserve any landmark the human explicitly excludes. Fit roots to the rendered terrain triangles; retain supported branches even in simplified distance meshes.
+
+- **Keep the oversized leaf identity when repairing trees.** Connected geometry should still feel colossal and lush. The user preferred larger trees, substantial boughs and broad, clearly visible leaves. Enlarge foliage in both near and distant models; do not normalize the new dimensions back into the old size. Preserve attachment and road clearance.

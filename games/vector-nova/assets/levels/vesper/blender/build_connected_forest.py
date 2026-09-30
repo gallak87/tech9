@@ -13,7 +13,7 @@ from mathutils import Vector
 ROOT = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(ROOT))
-from connected_tree_geometry import make_connected_tree
+from connected_tree_geometry import make_connected_tree, LEAF_LENGTH_SCALE, LEAF_WIDTH_SCALE, BRANCH_REACH_SCALE, BRANCH_RADIUS_SCALE
 
 DEST = ROOT.parents[3] / 'public/assets/levels/vesper'
 bpy.ops.wm.open_mainfile(filepath=str(ROOT / 'vesper-assets.blend'))
@@ -23,9 +23,13 @@ MATERIALS = {
     'wood': bpy.data.materials['Vesper | ridged indigo bark'],
     'leaves': bpy.data.materials['Vesper | waxed blue teal leaves'],
 }
-LEGACY_BOUNDS = [(149.0402222,188.3497007,79.1590423),
-                 (159.792199,215.05524,104.251213),
-                 (155.157212,152.062433,124.482354)]
+# Keep authored metre scales stable: refitting enlarged crowns to the previous
+# bounds would silently cancel the requested growth.
+TREE_SCALE = 1.12
+BASE_SCALES = [(0.8899411351875766,0.7837743848951181,0.8899411351875766),
+               (1.0059162811908304,0.8990763613492714,1.0059162811908304),
+               (1.0062208464490618,0.6348278746856992,1.0062208464490618)]
+
 
 
 def sample(points, fraction):
@@ -79,7 +83,7 @@ def make_distance_tree(full):
             side=(i-2)*.55
             out=(forward+across*side+Vector((0,.12+.18*math.sin(seed+i),0))).normalized()
             lateral=out.cross(Vector((0,1,0))).normalized()
-            length=16+(seed%4);width=5.3
+            length=(16+(seed%4))*1.45;width=5.3*1.65
             middle=base+out*length*.48+Vector((0,2,0))
             points=[base,middle-lateral*width,base+out*length,middle+lateral*width]
             ids=[vertex('leaves',p,uv,.85+.1*math.sin(seed+i)) for p,uv in zip(points,[(0,.5),(.48,0),(1,.5),(.48,1)])]
@@ -137,7 +141,7 @@ def mesh_objects(name,data,scale):
     return root
 
 
-report={'asset':'vesper-connected-forest-v1.glb','families':[],'colossalHollowUnchanged':True}
+report={'asset':'vesper-connected-forest-v1.glb','families':[],'colossalHollowUnchanged':True,'growth':{'treeScale':TREE_SCALE,'branchReach':BRANCH_REACH_SCALE,'branchRadius':BRANCH_RADIUS_SCALE,'leafLength':LEAF_LENGTH_SCALE,'leafWidth':LEAF_WIDTH_SCALE}}
 for variant,seed in enumerate([290927,290930,290934]):
     full=make_connected_tree(seed,forest_budget=True)
     maximum_gap=0
@@ -150,19 +154,17 @@ for variant,seed in enumerate([290927,290930,290934]):
     points=[v for d in full['parts'].values() for v in d['v']]
     radius=max(math.hypot(v[0],v[1]) for v in points)
     top=max(v[2] for v in points)
-    bounds=LEGACY_BOUNDS[variant]
-    horizontal=.96*math.hypot(bounds[0],bounds[2])/(2*radius)
-    scale=(horizontal,(bounds[1]-4)/top,horizontal)
+    scale=tuple(v*TREE_SCALE for v in BASE_SCALES[variant])
     high=mesh_objects('connected_tree_'+str(variant),full,scale)
     low=mesh_objects('connected_tree_lod_'+str(variant),lod,scale)
     for root in [high,low]:
-        root['clearanceSize']=list(bounds)
+        root['clearanceSize']=[2*radius*scale[0],top*scale[1],2*radius*scale[2]]
         root['connectedTreeFamily']=variant
         root['seed']=seed
         root['rooted']=True
     if variant==1:
-        # Keep the human-approved pilot exactly at its full original detail.
-        pilot=mesh_objects('pilot_connected_elder',make_connected_tree(seed),(1,1,1))
+        # Retain full-detail pilot construction with the same requested growth.
+        pilot=mesh_objects('pilot_connected_elder',make_connected_tree(seed),(TREE_SCALE,TREE_SCALE,TREE_SCALE))
         pilot['approvedPilot']=True
     counts=lambda root:sum(len(p.vertices)-2 for o in root.children for p in o.data.polygons)
     report['families'].append({'variant':variant,'seed':seed,'highTriangles':counts(high),'distanceTriangles':counts(low),'leafCount':full['leafCount'],'attachmentCount':len(full['structure'])-1,'maxAttachmentGapMetres':maximum_gap,'distanceAttachments':lod['attachmentCount'],'distanceMaxAttachmentGapMetres':lod['maxAttachmentGapMetres'],'scale':list(scale)})
@@ -172,7 +174,7 @@ bpy.context.preferences.filepaths.save_version=0
 bpy.ops.wm.save_as_mainfile(filepath=str(ROOT/'vesper-connected-forest.blend'),compress=True)
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.export_scene.gltf(filepath=str(DEST/report['asset']),export_format='GLB',use_selection=True,export_yup=True,export_apply=True,export_texcoords=True,export_normals=True,export_materials='EXPORT',export_extras=True)
-evidence=ROOT.parents[3]/'.experiments/expansion/vesper/forest-regeneration'
+evidence=ROOT.parents[3]/'.experiments/expansion/vesper/forest-scale'
 evidence.mkdir(parents=True,exist_ok=True)
 (evidence/'generator-report.json').write_text(json.dumps(report,indent=2)+'\n')
 print('CONNECTED_FOREST_REPORT',json.dumps(report))

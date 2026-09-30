@@ -27,7 +27,7 @@
   "approximation": "The complete upper tree uses a tall tapering branched bole above the preserved road cavity. Generated bark provides UV surface detail; the new 2:1 LDR sky panorama provides distant atmosphere and PMREM reflection radiance. Resin transmission uses the Three.js screen-space scene capture, not volumetric ray tracing.",
   "validation": "Connected forest validation and current performance are recorded in connectedForest and docs/expansion/vesper/STATUS.json. Prior road/physics/camera and sky baseline remains unchanged. Foreground pacing and physical devices remain unverified.",
   "authoredFamilies": "Three regenerated connected broadleaf tree families with distance variants and rooted understory; original giant hollow, hanging flower, fungal shelves, root supports, station, landing branch and dormant creature library retained.",
-  "secondaryGeometryOptimization": "Original library still contains its historical reduced foliage and tree variants for recovery; these secondary trees are no longer instantiated. Regenerated family bounds fit the established placement envelopes. Fine near trees switch to connected distance models; far trees and rooted understory are batched into material/spatial cells. See connectedForest for current source counts.",
+  "secondaryGeometryOptimization": "Original library secondary trees remain for recovery but are not instantiated. Connected-tree source polygon counts are unchanged by the scale/leaf growth pass; actual route clearance is audited after growth. Near models switch to supported distance geometry; far trees/understory are batched by material and spatial cell.",
   "materialTextures": [
     {
       "file": "textures/ancient-bark-color.png",
@@ -88,8 +88,8 @@
         "attachmentCount": 1782,
         "maxAttachmentGapMetres": 1.7481138973067626e-5,
         "distanceAttachments": 79,
-        "distanceMaxAttachmentGapMetres": 4.264961199760036e-6,
-        "scale": [0.8899411351875766, 0.7837743848951181, 0.8899411351875766]
+        "distanceMaxAttachmentGapMetres": 4.074098465594068e-6,
+        "scale": [0.9967340714100859, 0.8778273110825323, 0.9967340714100859]
       },
       {
         "variant": 1,
@@ -98,10 +98,10 @@
         "distanceTriangles": 1876,
         "leafCount": 1703,
         "attachmentCount": 1782,
-        "maxAttachmentGapMetres": 1.7059844799040144e-5,
+        "maxAttachmentGapMetres": 1.7481138973067626e-5,
         "distanceAttachments": 79,
-        "distanceMaxAttachmentGapMetres": 4.264961199760036e-6,
-        "scale": [1.0059162811908304, 0.8990763613492714, 1.0059162811908304]
+        "distanceMaxAttachmentGapMetres": 3.814697265625e-6,
+        "scale": [1.1266262349337302, 1.006965524711184, 1.1266262349337302]
       },
       {
         "variant": 2,
@@ -112,18 +112,33 @@
         "attachmentCount": 1782,
         "maxAttachmentGapMetres": 1.7481138973067626e-5,
         "distanceAttachments": 79,
-        "distanceMaxAttachmentGapMetres": 3.881173275971343e-6,
-        "scale": [1.0062208464490618, 0.6348278746856992, 1.0062208464490618]
+        "distanceMaxAttachmentGapMetres": 3.814697265625e-6,
+        "scale": [1.1269673480229494, 0.7110072196479832, 1.1269673480229494]
       }
     ],
     "placements": 208,
     "rootedUnderstory": 73,
     "terrain": "Root collars and buttresses conform to the actual triangles of the existing floor. Far trees stay inside its footprint.",
     "giantHollow": "Original mesh, materials and transform retained; vesper-canopy.glb is byte-identical.",
-    "pilot": "The approved starting-view tree retains its full 55,332-triangle geometry; repeated detailed trees use39,088 triangles and distance models1,876.",
-    "bytes": 10431416,
-    "sha256": "ae8bc5982262446ded0848b3b8811462453c280c3b388808a1bdf4dc76987d5e",
+    "pilot": "The first-view pilot retains full-detail connected construction and receives the same enlarged branches/leaves and1.12overallscale. Its55,332triangles, repeated detailed39,088triangles and distance1,876triangles are unchanged.",
+    "bytes": 10431612,
+    "sha256": "5cac1b108caebd819de5ccc2fba244f3297aeffe7af0240d133de5d29c588e1a",
     "rollbackToApprovedPilot": "ed7c82b5",
-    "validation": "All240placed high/distance models audited:1,737,642vertices and4,554,200triangle/corridor tests; no intersections. All parent-path gaps below0.0001m. Terrain matches64raycasts within0.000006m. Normal/double/late/failed asset cleanup passes.19final hidden-browser stills with no renderer errors, including one3viewportmobile pass. No critic rounds."
+    "validation": "All240placed high/distance models audited:1,737,642vertices and21,134,988triangle/corridor tests; no intersections. Parent attachments and exact terrain seating pass; giant hollow unchanged.17final hidden-browser stills without renderer errors, including one3viewportmobile phase. No critic rounds.",
+    "growth": {
+      "treeScale": 1.12,
+      "branchReach": 1.1,
+      "branchRadius": 1.22,
+      "leafLength": 1.85,
+      "leafWidth": 2.0,
+      "relativeTo": "b324ee3b",
+      "effectiveDetailedLeafLength": 2.072,
+      "effectiveDetailedLeafWidth": 2.24,
+      "distanceSprayLength": 1.45,
+      "distanceSprayWidth": 1.65,
+      "polygonCountsUnchanged": true,
+      "placementAdjustment": "Third gateway tree moved8m in world+Z to keep its expanded canopy clear of road/camera corridor."
+    },
+    "rollbackBeforeGrowth": "b324ee3b"
   }
 }

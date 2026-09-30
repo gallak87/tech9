@@ -746,6 +746,8 @@ export function createVesperEnvironment({
           p.y = ground;
           if (!clearance.clears(p.x, p.z, 212, 212, ground + 295, 0, ground))
             continue;
+          // Give the enlarged third gateway crown room beside the camera corridor.
+          if (i === 2) p.z += 8;
           const placement = {
             position: p.toArray(),
             scale: [1.25, 1.25, 1.25],

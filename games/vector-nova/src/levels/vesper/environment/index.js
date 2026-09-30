@@ -14,8 +14,10 @@ import {
   consolidateStaticInstances,
 } from './geometry.js';
 import { finishVesperMaterial } from './materials.js';
+import { vesperGroundHeight } from './terrain.js';
 
 const ASSET_URL = '/assets/levels/vesper/vesper-canopy.glb';
+const PILOT_ASSET_URL = '/assets/levels/vesper/vesper-connected-elder-v1.glb';
 const ENVIRONMENT_LIGHT_UPLIFT = 1.1;
 
 export function createVesperEnvironment({
@@ -96,7 +98,9 @@ export function createVesperEnvironment({
   const treeLods = [];
   const metrics = {
     assetUrl: ASSET_URL,
-    authoredTemplates: 17,
+    authoredTemplates: 18,
+    pilotAssetUrl: PILOT_ASSET_URL,
+    connectedTreePilots: 0,
     closeTrees: 0,
     distantTrees: 0,
     foliageClusters: 0,
@@ -130,13 +134,7 @@ export function createVesperEnvironment({
   for (let i = 0; i < vertices.count; i++) {
     const x = vertices.getX(i),
       z = vertices.getZ(i);
-    vertices.setY(
-      i,
-      ground -
-        8 +
-        Math.sin(x * 0.011) * Math.cos(z * 0.009) * 12 +
-        Math.sin((x + z) * 0.021) * 4,
-    );
+    vertices.setY(i, vesperGroundHeight(x + 300, z, ground));
   }
   floorGeometry.computeVertexNormals();
   const floor = new T.Mesh(floorGeometry, floorMaterial);
@@ -727,12 +725,50 @@ export function createVesperEnvironment({
           p.y = ground;
           if (!clearance.clears(p.x, p.z, 212, 212, ground + 295, 0, ground))
             continue;
-          const tree = get(`tree_${i}`).clone(true);
+          // Human-selected pilot: only gateway tree 2 changes. All repeated
+          // tree_1 instances retain their original asset for this comparison.
+          const pilot = i === 1;
+          const tree = get(pilot ? 'pilot_connected_elder' : `tree_${i}`).clone(
+            true,
+          );
+          if (pilot) p.y = vesperGroundHeight(p.x, p.z, ground) - 0.8;
           tree.position.copy(p);
           tree.scale.setScalar(1.25);
           tree.rotation.y = i * 1.9;
           tree.name = `Vesper / three-trunk gate ${i + 1}`;
           group.add(tree);
+          if (pilot) {
+            tree.userData.pilot = true;
+            tree.updateMatrixWorld(true);
+            // Seat the basal flare and buttresses on the same undulating floor;
+            // retain every connected vertex above the root collar unchanged.
+            tree.traverse((mesh) => {
+              if (!mesh.isMesh || mesh.name !== 'pilot_elder_wood') return;
+              mesh.geometry = mesh.geometry.clone();
+              const positions = mesh.geometry.attributes.position;
+              const point = new T.Vector3();
+              const inverse = mesh.matrixWorld.clone().invert();
+              const centerHeight = vesperGroundHeight(p.x, p.z, ground);
+              for (let v = 0; v < positions.count; v++) {
+                point
+                  .fromBufferAttribute(positions, v)
+                  .applyMatrix4(mesh.matrixWorld);
+                const height = point.y - p.y;
+                if (height >= 16) continue;
+                const weight = 1 - T.MathUtils.smoothstep(height, 0, 16);
+                point.y +=
+                  (vesperGroundHeight(point.x, point.z, ground) -
+                    centerHeight) *
+                  weight;
+                point.applyMatrix4(inverse);
+                positions.setXYZ(v, point.x, point.y, point.z);
+              }
+              mesh.geometry.computeVertexNormals();
+              mesh.geometry.computeBoundingBox();
+              mesh.geometry.computeBoundingSphere();
+            });
+            metrics.connectedTreePilots = 1;
+          }
           metrics.gateTrunks++;
           break;
         }
@@ -774,11 +810,22 @@ export function createVesperEnvironment({
     loadAsset ||
     (typeof document !== 'undefined' && typeof location !== 'undefined')
       ? Promise.resolve()
-          .then(() =>
-            (loadAsset ?? (() => new GLTFLoader().loadAsync(ASSET_URL)))(
-              ASSET_URL,
-            ),
-          )
+          .then(async () => {
+            const load =
+              loadAsset ?? ((url) => new GLTFLoader().loadAsync(url));
+            const library = await load(ASSET_URL);
+            try {
+              const pilot = await load(PILOT_ASSET_URL);
+              library.scene.add(pilot.scene);
+              return library;
+            } catch (error) {
+              disposeResources([library.scene]);
+              throw new Error(
+                'Vesper starting-view tree could not load. Reload to retry.',
+                { cause: error },
+              );
+            }
+          })
           .then(accept)
           .catch((error) => {
             metrics.loadState = 'failed';

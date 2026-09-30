@@ -1,8 +1,8 @@
 {
-  "title": "Vesper Canopy — original scene, material and sky assets",
+  "title": "Vesper Canopy \u2014 original scene, material and sky assets",
   "date": "2026-09-30",
   "ownership": "Original geometry, shaders and Blender generator authored for VECTOR//NOVA. Scene concepts generated using the built-in image_gen tool; no third-party meshes or textures.",
-  "workflow": "Original scene concepts → reproducible CPU Blender geometry → glTF runtime library. The bark tile is embedded in the GLB. A separate original imagegen panorama supplies only the far sky/horizon and environment reflections; nearby forest remains real world geometry.",
+  "workflow": "Original scene concepts \u2192 reproducible CPU Blender geometry \u2192 glTF runtime library. The bark tile is embedded in the GLB. A separate original imagegen panorama supplies only the far sky/horizon and environment reflections; nearby forest remains real world geometry.",
   "concepts": [
     {
       "file": "concepts/hollow-tree-scene.png",
@@ -55,5 +55,21 @@
     "use": "Original unedited 2:1 panorama on a camera-centred sky sphere, with a four-percent runtime UV overlap to close the longitude seam. Distant clouds/forest only; also supplies PMREM environment reflections. Analytic UV derivatives prevent the wrap meridian from selecting incorrect mip levels.",
     "prompt": "Use case: stylized-concept.\nAsset type: a finished 2:1 equirectangular 360-degree sky panorama texture for a premium 3D forest racing game, 4096 by 2048 if possible.\nPrimary request: a gorgeous dim blue-hour nocturnal forest atmosphere, rich layered clouds and distant ancient treetops, with exceptional cinematic detail and believable soft moonlit illumination. This is the sky and far horizon only.\nComposition: true full-sphere equirectangular projection, smoothly seamless left and right boundaries; calm zenith, cloud banks around the upper hemisphere, level atmospheric horizon at the middle. Very distant colossal forest crowns form a low, varied silhouette near and below the horizon, fading through deep blue and teal mist. Lower hemisphere transitions smoothly into shadowy blue-green atmospheric haze, with no identifiable foreground.\nClouds: luxurious voluminous stratocumulus and delicate high cloud wisps, luminous pearl-blue rims and soft internal shading, subtle breaks of muted indigo sky, spacious breathable areas between dramatic formations. The detail must remain visible in a dim game without being near-black or overexposed. Sparse faint stars only through a few clear gaps.\nMood and palette: majestic, tranquil, mysterious living forest at night; ink blue, muted cyan, smoky teal, silver moonlit cloud edges. A very restrained pale warm-grey glow low on part of the horizon complements amber resin roads that will be separate game geometry. Not a bright daytime sky or fiery sunset.\nStyle: beautiful high-end cinematic environmental matte painting approaching photorealism, natural atmospheric depth, refined organic silhouettes, rich subtle gradients, no visible brush strokes or game UI.\nConstraints: no road, no bridge, no vehicles, no creature, no close trees or trunk interior, no buildings, no text, no borders, no watermark, no visible sun or moon disk. Far treetops only, so real 3D forest geometry remains the foreground. No split panels, no cubemap cross. Opaque image.",
     "sha256": "259fa927c01f4d438ea5a0276b82ba1f672182493ac10d0ba9279d62ff48162c"
+  },
+  "connectedTreePilot": {
+    "asset": "public/assets/levels/vesper/vesper-connected-elder-v1.glb",
+    "source": "assets/levels/vesper/blender/vesper-connected-elder.blend",
+    "generator": "assets/levels/vesper/blender/build_connected_tree.py",
+    "seed": 290930,
+    "method": "Independent parent-anchored trunk/limb/shoot/leaf geometry, informed by the local landscape build_forest.py approach; no framework imports. Existing Vesper bark and leaf materials reused.",
+    "placement": "Only three-trunk gate 2; the first-view tree selected by the human. Roots conform to the existing terrain.",
+    "triangles": 55332,
+    "leaves": 1703,
+    "attachments": 1782,
+    "maximumAttachmentGapMetres": 1.7059844799040144e-5,
+    "sha256": "e35b92ff731efe602888de2d493fd5188e0330f2b97e3924ffc8d7abf6d519f9",
+    "originalLibraryUnchanged": true,
+    "rollbackCheckpoint": "bc9383e",
+    "humanReview": "Approved visually; human now requests the same approach for all other secondary trees, excluding the colossal hollow."
   }
 }

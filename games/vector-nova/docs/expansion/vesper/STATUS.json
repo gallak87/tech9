@@ -93,7 +93,7 @@
       "check": "final-mobile-sanity",
       "result": "pass",
       "cases": 3,
-      "scope": "390×844,844×390,640×360 final low-preset stills: sky/resin render, hull/HUD/touch controls remain visible. Existing prior touch-input proof carried; no physical devices.",
+      "scope": "390\u00d7844,844\u00d7390,640\u00d7360 final low-preset stills: sky/resin render, hull/HUD/touch controls remain visible. Existing prior touch-input proof carried; no physical devices.",
       "evidence": ".experiments/expansion/vesper/human-finish-final/report.json"
     }
   ],
@@ -186,7 +186,7 @@
       "world": [156.5347450269974, 177.96610047906998, 390.8004216966328],
       "suggestedAid": "boost or reserve refill",
       "purpose": "Build launch speed on the straight crown shelf.",
-      "observedDifficulty": "Actual-key manual boost launched124.41m/s and landed; unboosted110.18m/s also landed. Imperfect72.08m/s attempt recovered after1.5s. Numerical centered window105–160m/s contiguous."
+      "observedDifficulty": "Actual-key manual boost launched124.41m/s and landed; unboosted110.18m/s also landed. Imperfect72.08m/s attempt recovered after1.5s. Numerical centered window105\u2013160m/s contiguous."
     },
     {
       "id": "trunk-shelf",
@@ -219,7 +219,7 @@
       "world": [724.2494690640201, 141.61005001654792, 25.58309326006529],
       "suggestedAid": "boost or reserve refill",
       "purpose": "Offer support before the optional narrow branch bypass.",
-      "observedDifficulty": "Actual-key branch launch96.64m/s at driver-left8.5m landed. Optional19.5m main strip remains available; numerical65–160m/s centered branch window lands."
+      "observedDifficulty": "Actual-key branch launch96.64m/s at driver-left8.5m landed. Optional19.5m main strip remains available; numerical65\u2013160m/s centered branch window lands."
     },
     {
       "id": "rootfall-recovery",
@@ -310,7 +310,7 @@
     "Audio listening",
     "Physical mobile/gamepad devices"
   ],
-  "reviewPolicy": "Latest human request explicitly ends critic rounds. Implement the five requested refinements and verify functionality; the four earlier formal rounds are historical baseline evidence, not a rescore of this art pass.",
+  "reviewPolicy": "No new critic rounds. Human approved the connected starting-view tree pilot and requests regeneration of the secondary forest, excluding the giant hollow. Final mobile check only once after desktop work.",
   "renderedBudgets": {
     "scope": "Actual all-pass draw/triangle measurements include transmission, shadows and postprocessing. GPU estimate from shared metrics excludes driver overhead and the new transmission buffers. Hidden RAF timing does not certify foreground pacing.",
     "high": {
@@ -361,5 +361,13 @@
     "Owned implementation and additional shared opt-in UI/camera work remain packaged separately; no approved-level source changed in this pass.",
     "Future pickup/boost placement notes remain deferred; no shared pickups or AI/race gate implemented."
   ],
-  "criticScope": "Scores below apply to reviewedSource before the latest human-directed edge/resin/creature/lighting/sky refinements. No new critic round was run."
+  "criticScope": "Scores below apply to reviewedSource before the latest human-directed edge/resin/creature/lighting/sky refinements. No new critic round was run.",
+  "treeRegeneration": {
+    "phase": "pilot_approved",
+    "checkpoint": "bc9383e",
+    "pilot": "Vesper / three-trunk gate 2",
+    "pilotEvidence": ".experiments/expansion/vesper/tree-pilot-after/",
+    "verification": "All other environment geometry/placements match checkpoint; original GLB unchanged; pilot vertex/triangle-centroid road clearance and normal/double/late/failed asset disposal pass; desktop high/low staging and Saplight renders without errors.",
+    "next": "Human authorized regeneration of every secondary tree using this connected construction; colossal hollow must remain unchanged."
+  }
 }

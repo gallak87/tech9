@@ -16,3 +16,6 @@ Human art and workflow steers from Vesper Canopy, 2026-09-29–30. Carry these i
 - **Retire an unsuccessful secondary spectacle promptly.** Hide the creature and its associated movement/effects; retain its source and asset for possible reuse. The map stands on its environment and does not require a moving hero. Do not spend more creature-polish cycles.
 - **Lift a dim scene modestly.** Increase the existing lighting by about ten percent while preserving the night mood. Use a dedicated generated cloud-and-distant-forest sky to complete the scene instead of a mostly flat dark background.
 - **Respect a direct finish request.** This pass is implementation and verification only: the user explicitly requested no more critic rounds.
+
+- **Build trees as connected structures.** Branches must start on the actual bent parent trunk, shoots on branches, and leaves on supported stems. Root collars must meet the rendered terrain. Surface texture cannot repair floating parts. Borrow useful construction methods without importing another game engine.
+- **Prove a new asset method in the first driving view.** Checkpoint first, replace the exact tree the human selected, and show it in place before rolling the method across the forest. The connected pilot was approved; regenerate secondary trees while preserving the colossal hollow.

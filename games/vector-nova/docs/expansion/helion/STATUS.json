@@ -17,7 +17,7 @@
       "world": [-81.413, 66.137, 327.872],
       "suggestedSharedAid": "Future boost/refill or thermal protection",
       "purpose": "Prepare for unavoidable short exposure; do not erase the mandatory passage.",
-      "observedDifficulty": "Measured CPU entry80m/s:17.5–17.71heat in0.70–0.71s, no contact or aids; stopping saturates heat and reduces thrust to56%."
+      "observedDifficulty": "Measured CPU entry80m/s:17.5\u201317.71heat in0.70\u20130.71s, no contact or aids; stopping saturates heat and reduces thrust to56%."
     },
     {
       "id": "furnace-dawn-recovery",
@@ -40,7 +40,7 @@
       "world": [-326.441, 143.076, -653.768],
       "suggestedSharedAid": "Future boost/refill or thermal protection",
       "purpose": "Prepare for unavoidable short exposure; do not erase the mandatory passage.",
-      "observedDifficulty": "Measured CPU entry80m/s:17.5–17.71heat in0.70–0.71s, no contact or aids; stopping saturates heat and reduces thrust to56%."
+      "observedDifficulty": "Measured CPU entry80m/s:17.5\u201317.71heat in0.70\u20130.71s, no contact or aids; stopping saturates heat and reduces thrust to56%."
     },
     {
       "id": "furnace-umbrae-recovery",
@@ -63,7 +63,7 @@
       "world": [532.84, 69.145, -75.466],
       "suggestedSharedAid": "Future boost/refill or thermal protection",
       "purpose": "Prepare for unavoidable short exposure; do not erase the mandatory passage.",
-      "observedDifficulty": "Measured CPU entry80m/s:17.5–17.71heat in0.70–0.71s, no contact or aids; stopping saturates heat and reduces thrust to56%."
+      "observedDifficulty": "Measured CPU entry80m/s:17.5\u201317.71heat in0.70\u20130.71s, no contact or aids; stopping saturates heat and reduces thrust to56%."
     },
     {
       "id": "furnace-coronal-recovery",
@@ -112,11 +112,14 @@
     }
   ],
   "open": [
-    "Awaiting integrator verified swept-contact follow-up before final runtime freeze.",
+    "GPU production smoke and responsive layout check pending; formal critic remains0/8.",
     "GPU smoke, production visual/input checks and independent critic pending.",
     "Foreground pacing, audio listening and physical gamepad/mobile unverified."
   ],
-  "sharedExtensions": ["8c6f05a733453ddbc9f7428c3804c9c419a7f67b"],
+  "sharedExtensions": [
+    "8c6f05a733453ddbc9f7428c3804c9c419a7f67b",
+    "643fd3a69e0f8feef9b27c545888f8a8c45239f2"
+  ],
   "testedTrackRevision": {
     "geometryVersion": "helion-route-v1",
     "sha256": "6a473f10e3acb25e3212b666f552c02a89236dbee16647128a63540f5d3fae7d"
@@ -135,6 +138,8 @@
     "localTests": "19 local tests passing across route,world,runtime,thermal.",
     "numericalLap": "74.18s ordered supported traversal;0impacts; peak21.875heat. This is not a real-input or difficulty certification.",
     "browser": "Pending exclusive GPU grant.",
-    "assets": "Selected scene reference, exact prompt, Blender generator/.blend, runtimeGLB and provenance retained."
+    "assets": "Selected scene reference, exact prompt, Blender generator/.blend, runtimeGLB and provenance retained.",
+    "fullTests": "267/267 before shared-v2; affected Helion+shared flight20/20 after v2.",
+    "lint": "Full lint and format passed."
   }
 }

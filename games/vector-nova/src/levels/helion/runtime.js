@@ -32,7 +32,7 @@ export function createHelionRuntime(context, telemetry = {}) {
   const { track } = context;
   let heat = 0,
     disposed = false;
-  const rulesId = `helion-thermal-flight-v1:${JSON.stringify({ geometry: track.geometryVersion, heat: HELION_HEAT_RULES, flight: FLIGHT_RULES, jumps: track.jumps, zones: track.thermalZones })}`;
+  const rulesId = `helion-thermal-flight-v1:${JSON.stringify({ geometry: track.geometryVersion, heat: HELION_HEAT_RULES, flight: flightModel.rules, jumps: track.jumps, zones: track.thermalZones })}`;
   const scenarios = Object.fromEntries(
     Object.entries(track.scenarios).map(([name, state]) => [
       name,

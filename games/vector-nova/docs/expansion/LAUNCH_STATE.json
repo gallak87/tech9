@@ -1,18 +1,18 @@
 {
   "schemaVersion": 2,
   "updatedAt": "2026-09-29",
-  "phase": "ready_for_fresh_integrator",
-  "handoffOnly": true,
-  "newChatsCreated": 0,
+  "phase": "initial_dispatch_started",
+  "handoffOnly": false,
+  "newChatsCreated": 2,
   "launchAuthorizedAfterPrerequisites": true,
   "launchAllowedNow": true,
   "launchOwner": {
-    "threadId": null,
-    "hostId": null
+    "threadId": "01a0f0b6-803c-7291-ba3c-2bc16be6f713",
+    "hostId": "local"
   },
   "readiness": {
     "state": "committed_foundation_verified",
-    "next": "Fresh integrator reviews this foundation, coordinates minimal runtime extensions for the approved local mechanics, and dispatches the seven owned builds. Shared pickup/boost implementation remains deferred."
+    "next": "Integrator coordination is starting; level-agent chats are being brought up separately and registered here."
   },
   "reuseReview": {
     "state": "complete",
@@ -57,22 +57,24 @@
       "map": 4,
       "slug": "vesper",
       "title": "Vesper Canopy",
-      "suggestedChatTitle": "fzero-m4-vesper",
+      "suggestedChatTitle": "fzero-vesper1",
       "handoff": "docs/expansion/vesper/HANDOFF.md",
-      "state": "not_started",
+      "state": "created",
       "devPort": 5201,
       "previewPort": 5202,
-      "portsVerifiedFree": false,
+      "portsVerifiedFree": true,
       "previewUrl": "http://127.0.0.1:5202/?level=vesper",
       "serverStarted": false,
       "formalRounds": 0,
-      "humanApproved": false
+      "humanApproved": false,
+      "threadId": "01a0f0b7-3956-7552-bca6-501a6ee3acd3",
+      "hostId": "local"
     },
     {
       "map": 5,
       "slug": "glasswake",
       "title": "Glasswake Comet",
-      "suggestedChatTitle": "fzero-m5-glasswake",
+      "suggestedChatTitle": "fzero-glasswake1",
       "handoff": "docs/expansion/glasswake/HANDOFF.md",
       "state": "not_started",
       "devPort": 5203,
@@ -87,7 +89,7 @@
       "map": 6,
       "slug": "cindercoil",
       "title": "Cindercoil",
-      "suggestedChatTitle": "fzero-m6-cindercoil",
+      "suggestedChatTitle": "fzero-cindercoil1",
       "handoff": "docs/expansion/cindercoil/HANDOFF.md",
       "state": "not_started",
       "devPort": 5205,
@@ -102,7 +104,7 @@
       "map": 7,
       "slug": "saffron",
       "title": "Saffron Leviathan",
-      "suggestedChatTitle": "fzero-m7-saffron",
+      "suggestedChatTitle": "fzero-saffron1",
       "handoff": "docs/expansion/saffron/HANDOFF.md",
       "state": "not_started",
       "devPort": 5207,
@@ -117,7 +119,7 @@
       "map": 8,
       "slug": "zephyr",
       "title": "Zephyr Basilica",
-      "suggestedChatTitle": "fzero-m8-zephyr",
+      "suggestedChatTitle": "fzero-zephyr1",
       "handoff": "docs/expansion/zephyr/HANDOFF.md",
       "state": "not_started",
       "devPort": 5209,
@@ -132,7 +134,7 @@
       "map": 9,
       "slug": "helion",
       "title": "Helion Flare",
-      "suggestedChatTitle": "fzero-m9-helion",
+      "suggestedChatTitle": "fzero-helion1",
       "handoff": "docs/expansion/helion/HANDOFF.md",
       "state": "not_started",
       "devPort": 5211,
@@ -147,7 +149,7 @@
       "map": 10,
       "slug": "umbra",
       "title": "Umbra Fold",
-      "suggestedChatTitle": "fzero-m10-umbra",
+      "suggestedChatTitle": "fzero-umbra1",
       "handoff": "docs/expansion/umbra/HANDOFF.md",
       "state": "not_started",
       "devPort": 5213,
@@ -158,5 +160,12 @@
       "formalRounds": 0,
       "humanApproved": false
     }
-  ]
+  ],
+  "integration": {
+    "worktree": "/Users/g/.codex/worktrees/vector-nova-expansion-integration/tech9",
+    "state": "bootstrap_build",
+    "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
+    "sharedExtensions": [],
+    "humanApproved": false
+  }
 }

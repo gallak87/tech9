@@ -22,6 +22,7 @@ export default function createLevel({ shape = false } = {}) {
     },
     camera: {
       preserveFlightView: true,
+      safeFrame: { left: -0.9, right: 0.9, bottom: -0.85, top: 0.9 },
       portraitAspect: 0.64,
       maxPortraitScale: 1.45,
     },

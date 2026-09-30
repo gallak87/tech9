@@ -14,7 +14,8 @@
     "build": "Production passed",
     "numericalTraversal": "55.5s, valid ordered full lap, 2 swept landings, 0 impacts; numerical steering controller, not human difficulty evidence",
     "browser": "Awaiting coordinated GPU grant",
-    "curvedContactV2": "9 affected runtime tests passed including full valid numerical lap"
+    "curvedContactV2": "9 affected runtime tests passed including full valid numerical lap",
+    "contactOrderV4": "9 affected runtime checks pass; contactVersion2 participates in serialized replay rules"
   },
   "futureSupport": [
     {
@@ -102,6 +103,10 @@
     {
       "source": "f6727333ff83fd7067c5a7f459b8be8f64bca914",
       "local": "e4215c7b"
+    },
+    {
+      "source": "bd060f2f6ea67043b312f3f679e749bd0f669475",
+      "local": "f23ac17f"
     }
   ],
   "trackRevision": {

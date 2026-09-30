@@ -15,9 +15,10 @@ import {
 } from './geometry.js';
 import { finishVesperMaterial } from './materials.js';
 import { vesperGroundHeight } from './terrain.js';
+import { createGroundedTree } from './trees.js';
 
 const ASSET_URL = '/assets/levels/vesper/vesper-canopy.glb';
-const PILOT_ASSET_URL = '/assets/levels/vesper/vesper-connected-elder-v1.glb';
+const FOREST_ASSET_URL = '/assets/levels/vesper/vesper-connected-forest-v1.glb';
 const ENVIRONMENT_LIGHT_UPLIFT = 1.1;
 
 export function createVesperEnvironment({
@@ -98,8 +99,10 @@ export function createVesperEnvironment({
   const treeLods = [];
   const metrics = {
     assetUrl: ASSET_URL,
-    authoredTemplates: 18,
-    pilotAssetUrl: PILOT_ASSET_URL,
+    authoredTemplates: 24,
+    forestAssetUrl: FOREST_ASSET_URL,
+    connectedTrees: 0,
+    rootedUnderstory: 0,
     connectedTreePilots: 0,
     closeTrees: 0,
     distantTrees: 0,
@@ -677,31 +680,49 @@ export function createVesperEnvironment({
           }
         }
       }
+    const addTree = (template, placement, target) => {
+      const tree = createGroundedTree(template, placement, ground);
+      target.add(tree);
+      return tree;
+    };
+    const addTreeLod = (variant, placement, target, range = 300) => {
+      const detailed = addTree(
+        get(`connected_tree_${variant}`),
+        placement,
+        target,
+      );
+      const simple = addTree(
+        get(`connected_tree_lod_${variant}`),
+        placement,
+        target,
+      );
+      treeLods.push({
+        detailed,
+        simple,
+        center: detailed.position.clone().add(new T.Vector3(0, 100, 0)),
+        range,
+      });
+      metrics.connectedTrees++;
+      return detailed;
+    };
     for (let i = 0; i < 3; i++) {
-      for (const placement of near[i]) {
-        const detailed = new T.Group(),
-          simple = new T.Group();
-        highTrees.add(detailed);
-        lowTrees.add(simple);
-        instanceTemplate(get(`tree_${i}`), [placement], detailed, {
-          shadow: true,
-        });
-        instanceTemplate(get(`tree_lod_${i}`), [placement], simple);
-        // Fine leaf-vein geometry need not be submitted again to shadow maps.
-        detailed.traverse((mesh) => {
-          if (mesh.isMesh && !mesh.material.name.includes('bark'))
-            mesh.castShadow = false;
-        });
-        treeLods.push({
-          detailed,
-          simple,
-          center: new T.Vector3(...placement.position).add(
-            new T.Vector3(0, 100, 0),
-          ),
-        });
+      for (const placement of near[i]) addTreeLod(i, placement, highTrees);
+      for (const placement of distant[i]) {
+        const tree = addTree(get(`connected_tree_lod_${i}`), placement, group);
+        tree.userData.batchForest = true;
+        metrics.connectedTrees++;
       }
-      instanceTemplate(get(`tree_lod_${i}`), distant[i], group);
-      instanceTemplate(get(`foliage_${i}`), foliage[i], group);
+      for (const placement of foliage[i]) {
+        // Former floating leaf islands become small rooted understory trees.
+        const tree = addTree(
+          get(`connected_tree_lod_${i}`),
+          { ...placement, scale: [0.25, 0.25, 0.25] },
+          group,
+        );
+        tree.userData.batchForest = true;
+        metrics.rootedUnderstory++;
+        metrics.connectedTrees++;
+      }
       metrics.closeTrees += near[i].length;
       metrics.distantTrees += distant[i].length;
       metrics.foliageClusters += foliage[i].length;
@@ -711,7 +732,7 @@ export function createVesperEnvironment({
     instanceTemplate(get('fungal_fan'), fans, group);
     metrics.fungusClusters = fans.length;
 
-    // Three pillars deliberately differ in taper, wound silhouette and crown tier.
+    // Three connected gateway trees retain distinct heights and branching.
     const pillar = track.sections.find((section) => section.id === 'pillar');
     if (pillar)
       for (let i = 0; i < 3; i++) {
@@ -725,49 +746,20 @@ export function createVesperEnvironment({
           p.y = ground;
           if (!clearance.clears(p.x, p.z, 212, 212, ground + 295, 0, ground))
             continue;
-          // Human-selected pilot: only gateway tree 2 changes. All repeated
-          // tree_1 instances retain their original asset for this comparison.
+          const placement = {
+            position: p.toArray(),
+            scale: [1.25, 1.25, 1.25],
+            yaw: i * 1.9,
+          };
           const pilot = i === 1;
-          const tree = get(pilot ? 'pilot_connected_elder' : `tree_${i}`).clone(
-            true,
-          );
-          if (pilot) p.y = vesperGroundHeight(p.x, p.z, ground) - 0.8;
-          tree.position.copy(p);
-          tree.scale.setScalar(1.25);
-          tree.rotation.y = i * 1.9;
+          const tree = pilot
+            ? addTree(get('pilot_connected_elder'), placement, group)
+            : addTreeLod(i, placement, group, 850);
           tree.name = `Vesper / three-trunk gate ${i + 1}`;
-          group.add(tree);
           if (pilot) {
             tree.userData.pilot = true;
-            tree.updateMatrixWorld(true);
-            // Seat the basal flare and buttresses on the same undulating floor;
-            // retain every connected vertex above the root collar unchanged.
-            tree.traverse((mesh) => {
-              if (!mesh.isMesh || mesh.name !== 'pilot_elder_wood') return;
-              mesh.geometry = mesh.geometry.clone();
-              const positions = mesh.geometry.attributes.position;
-              const point = new T.Vector3();
-              const inverse = mesh.matrixWorld.clone().invert();
-              const centerHeight = vesperGroundHeight(p.x, p.z, ground);
-              for (let v = 0; v < positions.count; v++) {
-                point
-                  .fromBufferAttribute(positions, v)
-                  .applyMatrix4(mesh.matrixWorld);
-                const height = point.y - p.y;
-                if (height >= 16) continue;
-                const weight = 1 - T.MathUtils.smoothstep(height, 0, 16);
-                point.y +=
-                  (vesperGroundHeight(point.x, point.z, ground) -
-                    centerHeight) *
-                  weight;
-                point.applyMatrix4(inverse);
-                positions.setXYZ(v, point.x, point.y, point.z);
-              }
-              mesh.geometry.computeVertexNormals();
-              mesh.geometry.computeBoundingBox();
-              mesh.geometry.computeBoundingSphere();
-            });
             metrics.connectedTreePilots = 1;
+            metrics.connectedTrees++;
           }
           metrics.gateTrunks++;
           break;
@@ -781,11 +773,13 @@ export function createVesperEnvironment({
       const p = new T.Vector3(...site);
       if (!clearance.clears(p.x, p.z, 196, 196, ground + 260, 0, ground))
         continue;
-      const tree = get(`tree_${i}`).clone(true);
-      tree.position.copy(p);
-      tree.scale.setScalar(1.15);
+      const tree = addTreeLod(
+        i,
+        { position: p.toArray(), scale: [1.15, 1.15, 1.15] },
+        group,
+        450,
+      );
       tree.name = 'Vesper / static tree at canopy clearing';
-      group.add(tree);
       metrics.staticClearingTrees++;
     }
     consolidateStaticInstances(group);
@@ -797,11 +791,11 @@ export function createVesperEnvironment({
   }
   function setQuality(next, camera) {
     const low = next.quality === 'low';
-    highTrees.visible = !low;
+    highTrees.visible = true;
     lowTrees.visible = true;
-    for (const { detailed, simple, center } of treeLods) {
+    for (const { detailed, simple, center, range } of treeLods) {
       detailed.visible =
-        !low && Boolean(camera) && center.distanceTo(camera.position) < 240;
+        !low && Boolean(camera) && center.distanceTo(camera.position) < range;
       simple.visible = !detailed.visible;
     }
     details.visible = !low;
@@ -815,13 +809,13 @@ export function createVesperEnvironment({
               loadAsset ?? ((url) => new GLTFLoader().loadAsync(url));
             const library = await load(ASSET_URL);
             try {
-              const pilot = await load(PILOT_ASSET_URL);
-              library.scene.add(pilot.scene);
+              const forest = await load(FOREST_ASSET_URL);
+              library.scene.add(forest.scene);
               return library;
             } catch (error) {
               disposeResources([library.scene]);
               throw new Error(
-                'Vesper starting-view tree could not load. Reload to retry.',
+                'Vesper connected forest could not load. Reload to retry.',
                 { cause: error },
               );
             }

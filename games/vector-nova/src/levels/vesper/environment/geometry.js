@@ -142,7 +142,25 @@ export function consolidateStaticInstances(group) {
   const bins = new Map();
   const matrix = new T.Matrix4();
   const position = new T.Vector3();
+  group.updateMatrixWorld(true);
+  const inverseGroup = group.matrixWorld.clone().invert();
   for (const mesh of [...group.children]) {
+    if (mesh.userData.batchForest) {
+      // Ground fitting varies per tree; bake these small distance meshes into
+      // the same material/spatial cells as the existing static scenery.
+      position.copy(mesh.position);
+      mesh.traverse((part) => {
+        if (!part.isMesh) return;
+        const key = `${part.material.uuid}/false/${Math.floor(position.x / 500)}/${Math.floor(position.z / 500)}`;
+        if (!bins.has(key))
+          bins.set(key, { parts: [], material: part.material, shadow: false });
+        matrix.multiplyMatrices(inverseGroup, part.matrixWorld);
+        bins.get(key).parts.push(part.geometry.clone().applyMatrix4(matrix));
+        if (part.geometry.userData.terrainFitted) part.geometry.dispose();
+      });
+      group.remove(mesh);
+      continue;
+    }
     if (!mesh.isInstancedMesh) continue;
     for (let i = 0; i < mesh.count; i++) {
       mesh.getMatrixAt(i, matrix);

@@ -25,9 +25,9 @@
   "materials": "Original PBR materials with packed, UV-mapped imagegen bark/chitin color tile; geometric bark furrows/cambium ribs; per-leaf COLOR_0 variation; irregular pale-gilled fungal shelves. The retained creature includes mapped body/legs/face detail but is not instantiated. Resin uses restrained physical transmission; all existing practical/emissive and sky rig intensities are lifted ten percent.",
   "animation": "Creature presentation is disabled at the human request: no walker, leaf shower, spores, bent crowns or movement events are instantiated. Its deterministic path/IK/animation implementation and original Blender sources remain available for future reuse.",
   "approximation": "The complete upper tree uses a tall tapering branched bole above the preserved road cavity. Generated bark provides UV surface detail; the new 2:1 LDR sky panorama provides distant atmosphere and PMREM reflection radiance. Resin transmission uses the Three.js screen-space scene capture, not volumetric ray tracing.",
-  "validation": "Unchanged whole-tree geometry/route clearance baseline retained. Latest refinements pass21targetedCPUtests, environment absence/static-tree/exact-lighting/late+double-disposal checks, independent texture ownership/disposal checks, full lint and production build.32builder stills including one final3viewportmobile sanity phase; zero renderer errors. Production/shape high/low runtime smoke and sky-asset failure cleanup pass. No new critic round. High draw-budget cost from physical transmission is documented in STATUS.json; foreground pacing, audio listening and physical devices remain unverified.",
-  "authoredFamilies": "Three forked/wounded/buttressed tree species and geometric distance variants; three foliage and two root families; irregular offset fungal shelves with pale undersides and varied proportions; a complete giant hollow with continuous upper bole into a branching crown (world top552m), real internal cambium vault and clearance-cut entrance/exit; hanging flower; retained dormant articulated canopy walker; split seedpod station; landing branch.",
-  "secondaryGeometryOptimization": "The established secondary reductions remain: foliage lamina0.45/veins0.30, distant crown leaves0.135 and bark0.18. Approved tree placement envelopes are now explicit, so leaf changes do not alter accepted sites. After completing the upper tree and simplifying fungal forms, CPU overview active source geometry is649888 triangles/345meshes versus642203/349 before this pass (+1.20% geometry, four fewer meshes). These source counts exclude extra render passes and are not GPU measurements.",
+  "validation": "Connected forest validation and current performance are recorded in connectedForest and docs/expansion/vesper/STATUS.json. Prior road/physics/camera and sky baseline remains unchanged. Foreground pacing and physical devices remain unverified.",
+  "authoredFamilies": "Three regenerated connected broadleaf tree families with distance variants and rooted understory; original giant hollow, hanging flower, fungal shelves, root supports, station, landing branch and dormant creature library retained.",
+  "secondaryGeometryOptimization": "Original library still contains its historical reduced foliage and tree variants for recovery; these secondary trees are no longer instantiated. Regenerated family bounds fit the established placement envelopes. Fine near trees switch to connected distance models; far trees and rooted understory are batched into material/spatial cells. See connectedForest for current source counts.",
   "materialTextures": [
     {
       "file": "textures/ancient-bark-color.png",
@@ -71,5 +71,59 @@
     "originalLibraryUnchanged": true,
     "rollbackCheckpoint": "bc9383e",
     "humanReview": "Approved visually; human now requests the same approach for all other secondary trees, excluding the colossal hollow."
+  },
+  "connectedForest": {
+    "asset": "public/assets/levels/vesper/vesper-connected-forest-v1.glb",
+    "source": "assets/levels/vesper/blender/vesper-connected-forest.blend",
+    "generator": "assets/levels/vesper/blender/build_connected_forest.py",
+    "geometryBuilder": "assets/levels/vesper/blender/connected_tree_geometry.py",
+    "approach": "Independent Vesper tree geometry using parent-anchored trunk, branches, shoots and petiolate leaves. Three deterministic variants with connected distance models. No Tech9 engine/module imports. Existing Vesper bark and leaf materials retained.",
+    "families": [
+      {
+        "variant": 0,
+        "seed": 290927,
+        "highTriangles": 39088,
+        "distanceTriangles": 1876,
+        "leafCount": 1703,
+        "attachmentCount": 1782,
+        "maxAttachmentGapMetres": 1.7481138973067626e-5,
+        "distanceAttachments": 79,
+        "distanceMaxAttachmentGapMetres": 4.264961199760036e-6,
+        "scale": [0.8899411351875766, 0.7837743848951181, 0.8899411351875766]
+      },
+      {
+        "variant": 1,
+        "seed": 290930,
+        "highTriangles": 39088,
+        "distanceTriangles": 1876,
+        "leafCount": 1703,
+        "attachmentCount": 1782,
+        "maxAttachmentGapMetres": 1.7059844799040144e-5,
+        "distanceAttachments": 79,
+        "distanceMaxAttachmentGapMetres": 4.264961199760036e-6,
+        "scale": [1.0059162811908304, 0.8990763613492714, 1.0059162811908304]
+      },
+      {
+        "variant": 2,
+        "seed": 290934,
+        "highTriangles": 39088,
+        "distanceTriangles": 1876,
+        "leafCount": 1703,
+        "attachmentCount": 1782,
+        "maxAttachmentGapMetres": 1.7481138973067626e-5,
+        "distanceAttachments": 79,
+        "distanceMaxAttachmentGapMetres": 3.881173275971343e-6,
+        "scale": [1.0062208464490618, 0.6348278746856992, 1.0062208464490618]
+      }
+    ],
+    "placements": 208,
+    "rootedUnderstory": 73,
+    "terrain": "Root collars and buttresses conform to the actual triangles of the existing floor. Far trees stay inside its footprint.",
+    "giantHollow": "Original mesh, materials and transform retained; vesper-canopy.glb is byte-identical.",
+    "pilot": "The approved starting-view tree retains its full 55,332-triangle geometry; repeated detailed trees use39,088 triangles and distance models1,876.",
+    "bytes": 10431416,
+    "sha256": "ae8bc5982262446ded0848b3b8811462453c280c3b388808a1bdf4dc76987d5e",
+    "rollbackToApprovedPilot": "ed7c82b5",
+    "validation": "All240placed high/distance models audited:1,737,642vertices and4,554,200triangle/corridor tests; no intersections. All parent-path gaps below0.0001m. Terrain matches64raycasts within0.000006m. Normal/double/late/failed asset cleanup passes.19final hidden-browser stills with no renderer errors, including one3viewportmobile pass. No critic rounds."
   }
 }

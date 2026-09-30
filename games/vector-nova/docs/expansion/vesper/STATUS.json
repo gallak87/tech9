@@ -95,13 +95,38 @@
       "cases": 3,
       "scope": "390\u00d7844,844\u00d7390,640\u00d7360 final low-preset stills: sky/resin render, hull/HUD/touch controls remain visible. Existing prior touch-input proof carried; no physical devices.",
       "evidence": ".experiments/expansion/vesper/human-finish-final/report.json"
+    },
+    {
+      "check": "connected-forest-geometry",
+      "result": "pass",
+      "models": 240,
+      "vertices": 1737642,
+      "triangleCorridorTests": 4554200,
+      "intersections": 0,
+      "scope": "208trees including73rootedunderstory; original giant hollow/flower/station/floor geometry unchanged.",
+      "evidence": ".experiments/expansion/vesper/forest-regeneration/geometry-audit.json"
+    },
+    {
+      "check": "connected-forest-lifetime-and-terrain",
+      "result": "pass",
+      "tests": 3,
+      "scope": "Retained CPU regressions for terrain triangle interpolation and rejected/late two-library cleanup; production aborted-forest load shows reload message and removes canvas.",
+      "evidence": ".experiments/expansion/vesper/forest-regeneration/final/forest-failure.json"
+    },
+    {
+      "check": "connected-forest-final-visuals",
+      "result": "inspected",
+      "stills": 19,
+      "rendererErrors": 0,
+      "scope": "Final desktop high/low driving and overview stills plus one3viewportmobile sanity pass. No new critic round.",
+      "evidence": ".experiments/expansion/vesper/forest-regeneration/final/report.json"
     }
   ],
   "openFindings": [
     {
-      "id": "physical-transmission-high-budget",
+      "id": "high-preset-geometry-budget",
       "status": "known_tradeoff",
-      "scope": "Requested physical resin transmission adds an opaque-scene capture and mip resolve. High overview peaks1187calls/2468430tri against1000calls/2Mtri targets; low760calls/1679291tri is within target. Existing forest batching/LOD is already active; no scenery was hidden or substantially simplified to compensate. Foreground pacing remains unverified."
+      "scope": "Regenerated connected trees plus physical resin transmission peak1005calls/2944746tri at high versus1000calls/2Mtri targets. Low peaks641calls/1916689tri and stays within target. Initial23.29MB and estimated263.49MiB high GPU usage remain within30MB/512MiB targets. Foreground pacing is unverified."
     }
   ],
   "rounds": [
@@ -283,8 +308,9 @@
   ],
   "sourceBudgets": {
     "assetBytes": 9474740,
-    "scope": "See renderedBudgets for measured draw/triangle/residency values; runtime geometry uses material cells and camera-distance leaf detail.",
-    "skyBytes": 1810035
+    "scope": "Original hero library and new connected-forest GLB sizes listed separately; see renderedBudgets for full initial transfer and estimated GPU use.",
+    "skyBytes": 1810035,
+    "forestBytes": 10431416
   },
   "preview": {
     "production": "http://127.0.0.1:5202/?level=vesper",
@@ -292,16 +318,17 @@
     "owner": "fzero-int1",
     "running": true,
     "bundles": {
-      "main": "index-sWdZGvW7.js",
-      "level": "vesper-BAM1DuGB.js",
+      "main": "index-K9x3N0to.js",
+      "level": "vesper-DnXQhCBS.js",
       "css": "index-DuS16sdu.css"
     },
     "assetHashes": {
-      "assets/index-sWdZGvW7.js": "3a47be8b7a60fa5bb77a890e806afad7c143f6c017019d5fcc250345d58febbb",
-      "assets/vesper-BAM1DuGB.js": "b283dcb582a573f457f8cd2d64f96afea70346e423c4e7a5ca5de9dec1a02581",
+      "assets/index-K9x3N0to.js": "3b050f2ebd17c2c937f1a8ca17c31f3c8d589285af13f646416365fcfd426cee",
+      "assets/vesper-DnXQhCBS.js": "7232f8c0407d1e6e20403901c5a8f77fa2ea793b89d02aacb517fd8001177ac4",
       "assets/index-DuS16sdu.css": "35f3ee2efb8246512f79d4cff4dcb3cfe01a44d9756616ecadfe2c8f2cdb7cd6",
       "assets/levels/vesper/vesper-canopy.glb": "33244b847375b3c21ac25fc0db4321bc9da44bfda73419a40820cc4679252cd0",
-      "assets/levels/vesper/vesper-night-sky-v1.png": "259fa927c01f4d438ea5a0276b82ba1f672182493ac10d0ba9279d62ff48162c"
+      "assets/levels/vesper/vesper-night-sky-v1.png": "259fa927c01f4d438ea5a0276b82ba1f672182493ac10d0ba9279d62ff48162c",
+      "assets/levels/vesper/vesper-connected-forest-v1.glb": "ae8bc5982262446ded0848b3b8811462453c280c3b388808a1bdf4dc76987d5e"
     },
     "servedBytesVerified": true
   },
@@ -310,23 +337,23 @@
     "Audio listening",
     "Physical mobile/gamepad devices"
   ],
-  "reviewPolicy": "No new critic rounds. Human approved the connected starting-view tree pilot and requests regeneration of the secondary forest, excluding the giant hollow. Final mobile check only once after desktop work.",
+  "reviewPolicy": "No new critic rounds. Human approved the connected starting-view tree pilot and requested all secondary trees regenerated while preserving the giant hollow. Rollout is complete; one final mobile sanity pass performed.",
   "renderedBudgets": {
     "scope": "Actual all-pass draw/triangle measurements include transmission, shadows and postprocessing. GPU estimate from shared metrics excludes driver overhead and the new transmission buffers. Hidden RAF timing does not certify foreground pacing.",
     "high": {
-      "calls": 1187,
-      "triangles": 2468430,
-      "estimatedGpuMiB": 215.55291648864747,
-      "initialTransferredBytes": 12855231,
-      "evidence": ".experiments/expansion/vesper/human-finish-final/report.json",
+      "calls": 1005,
+      "triangles": 2944746,
+      "estimatedGpuMiB": 263.486679763794,
+      "initialTransferredBytes": 23287650,
+      "evidence": ".experiments/expansion/vesper/forest-regeneration/final/report.json",
       "withinDrawTargets": false
     },
     "low": {
-      "calls": 760,
-      "triangles": 1679291,
-      "estimatedGpuMiB": 121.61981101989747,
-      "initialTransferredBytes": 12855231,
-      "evidence": ".experiments/expansion/vesper/human-finish-final/report.json",
+      "calls": 641,
+      "triangles": 1916689,
+      "estimatedGpuMiB": 169.55357429504394,
+      "initialTransferredBytes": 23287650,
+      "evidence": ".experiments/expansion/vesper/forest-regeneration/final/report.json",
       "withinDrawTargets": true
     }
   },
@@ -340,7 +367,8 @@
     "creature": "Hide creature and all linked effects; preserve source/GLB for possible future reuse. No further creature artwork.",
     "edge": "Remove raised pale/brown hooked petals; preserve low orange curb and thin glow.",
     "lighting": "Raise the existing map lighting/emissive rig ten percent while preserving dim night mood.",
-    "sky": "Use an original imagegen cloud-and-distant-forest panorama; keep real nearby forest geometry."
+    "sky": "Use an original imagegen cloud-and-distant-forest panorama; keep real nearby forest geometry.",
+    "secondaryTrees": "Human approved the first-view connected tree, then requested regeneration of every secondary tree while preserving the giant hollow."
   },
   "criticResult": "historical_baseline_pass",
   "criticScores": {
@@ -354,8 +382,8 @@
   "reviewedSource": "82c9e64c09bf439010916b69426bc73d9aa5188c",
   "criticEvidence": ".experiments/expansion/vesper/critic-r4/verdict.json",
   "handoffNotes": [
-    "Latest human-requested refinements complete; no new critic round. Historical all9 baseline scores do not rescore the changed art.",
-    "Physical transmission high-preset draw budget tradeoff is documented in openFindings; low remains within target.",
+    "Human-approved connected-tree pilot expanded to all208secondary tree/understory placements. Giant hollow unchanged; no new critic rounds.",
+    "High-preset triangle/draw budget tradeoff recorded in openFindings; low remains within target. See final forest measurements.",
     "Creature source and original GLB remain intact for reuse but are not instantiated.",
     "Final human approval remains pending; no push or merge. Production preview remains running under fzero-int1 ownership; all automation browsers closed.",
     "Owned implementation and additional shared opt-in UI/camera work remain packaged separately; no approved-level source changed in this pass.",
@@ -363,11 +391,15 @@
   ],
   "criticScope": "Scores below apply to reviewedSource before the latest human-directed edge/resin/creature/lighting/sky refinements. No new critic round was run.",
   "treeRegeneration": {
-    "phase": "pilot_approved",
-    "checkpoint": "bc9383e",
-    "pilot": "Vesper / three-trunk gate 2",
-    "pilotEvidence": ".experiments/expansion/vesper/tree-pilot-after/",
-    "verification": "All other environment geometry/placements match checkpoint; original GLB unchanged; pilot vertex/triangle-centroid road clearance and normal/double/late/failed asset disposal pass; desktop high/low staging and Saplight renders without errors.",
-    "next": "Human authorized regeneration of every secondary tree using this connected construction; colossal hollow must remain unchanged."
+    "phase": "complete_ready_for_human_review",
+    "prePilotCheckpoint": "bc9383e",
+    "approvedPilotCheckpoint": "ed7c82b5",
+    "scope": "All secondary tree families and floating foliage clusters regenerated; colossal hollow unchanged.",
+    "trees": 208,
+    "understoryTrees": 73,
+    "families": 3,
+    "giantMeshAndPlacementUnchanged": true,
+    "evidence": ".experiments/expansion/vesper/forest-regeneration/",
+    "checks": "Parent-path attachment assertions; exact triangle road/camera corridor audit; floor raycasts; full and distance model finite UV/color geometry; normal/double/late/rejected resource disposal; desktop high/low and one final mobile pass."
   }
 }

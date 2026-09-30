@@ -53,4 +53,44 @@ Run `npm run check:level -- <slug>`, contract/unit tests, lint/build and the [ge
 
 Own implementation files under `src/levels/<slug>/track/`, `environment/` and `backdrop/` as useful; those names are organization conventions, not additional required factories. Shared directories contain mechanics used across levels. Existing public asset URLs stay stable across source moves.
 
-The existing flight implementation is Nacre-owned, not a general flight/hazard library. The session API already supports custom deterministic `advance`, `snapshot`/`restore`, world `pose` and runtime scenarios. Current race `jump-transfer` validation uses `track.jumps` entries with `id`, `takeoff`, `landingStart`, `landingEnd` and `recovery`; it requires exactly one credited checkpoint at `landingStart` across each transfer. A lane needing different checkpoint/flight semantics must coordinate the minimal shared change with the integrator. Generic surface-response, heat/hazard and tidal-force helpers are not implemented by this geometry cleanup.
+## Shared local mechanics
+
+`src/physics/flight.js` exports `DEFAULT_FLIGHT_RULES` and `createFlightModel(overrides)`. A model returns `{ rules, sweptLanding, sweptRail, createRuntime }`; its swept-contact functions accept `(track, jump, beforePose, afterPose[, velocity])`, with velocity required by `sweptLanding`. Poses contain world `position` and `quaternion`. Only the authored receiving interval can catch a forward, upright descending hull. There is no invisible road across gaps or target-seeking flight assistance.
+
+```js
+const model = createFlightModel({ gravity: 26 });
+const runtime = model.createRuntime(context, {
+  id: 'my-level-flight',
+  version: 1,
+  rulesId: `my-rules-v1:${JSON.stringify({ track: track.geometryVersion, rules: model.rules, jumps: track.jumps, zones })}`,
+  groundOptions: ({ state }) => ({ surface: sampleSurface(state) }),
+  shouldLaunch: ({ jump, state }) => inOptionalLaunchLane(jump, state),
+  airAcceleration: ({ position, time }) => sampleWorldForce(position, time),
+});
+```
+
+The context requires `track`, optionally `settings`; preserve steering assistance 0.3. The options require replay identity `id`, integer `version`, and `rulesId`. Include authored layout/rules revisions in `rulesId`, and bump identity when callback behavior changes. Optional `scenarios` uses the session contract; otherwise track scenarios receive plain labels. `edgeSource` optionally labels edge-catch impact events. No shared HUD, notice positions, scenario speeds, world colors or heat tuning are imposed on new levels. Nacre retains its own version-5 identity, scenarios, notices and rules through an adapter over this model.
+
+`track.jumps` may be empty. Each jump supplies `{ id, takeoff, landingStart, landingEnd, recovery, halfWidth }` in route metres. Jumps are ordered, non-overlapping and contained within a lap; the landing and recovery cannot wrap the finish. `halfWidth` describes the receiving road and must accommodate the craft. Exactly one checkpoint, at `landingStart`, is allowed between takeoff and the furthest of `landingEnd`/`recovery`. Invalid definitions fail at runtime construction. Route geometry and landing clearance still need lane-owned numerical and real-input checks.
+
+Mandatory gaps always launch. An authored optional branch adds `optional: true`, requires `shouldLaunch({ jump, state, input, from })`, and must retain a supported main road for the false case. The predicate samples the vehicle immediately before the tick crossing its lip; author clear lateral boundaries and matching geometry. A true predicate uses normal flight/landing; a false predicate uses ordinary checkpoint traversal. Optional does not bypass transfer validation once an airborne transfer occurs. Mandatory gaps retain the original strict transfer rule.
+
+The flight adapter holds unwrapped route distance at takeoff, then emits `jump-launch`, `jump-miss` and validated `jump-transfer` events. Missed-jump recovery takes simulation time and preserves the valid timed lap; manual recovery remains invalidating through core. Snapshot/restore carries flight, world pose, settling and recovery state; reset clears them. Its `pose()` includes `grounded` during landing settlement. Presentation settings never change simulation.
+
+`groundOptions({ state, input, dt, track })` is a **pure** sample passed to shared `stepVehicle`. It may be evaluated more than once when a tick splits at takeoff: do not increment timers, consume resources or emit events in this callback. The optional `surface` object contains:
+
+| Property              | Meaning / default                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------------------- |
+| `grip`                | Lateral response multiplier, default 1, bounded 0.05–4. Lower values preserve drift longer.    |
+| `drag`                | Extra forward deceleration in m/s², default 0, bounded 0–100.                                  |
+| `thrustScale`         | Engine multiplier for declared power loss, default 1, bounded 0–1.                             |
+| `forwardAcceleration` | Signed route-tangent acceleration in m/s², default 0, bounded −100–100.                        |
+| `lateralAcceleration` | Signed route-right acceleration in m/s², default 0, bounded −100–100. Positive is driver-left. |
+
+These same per-call options are available on `stepVehicle(state, input, track, dt, { surface })` for grounded adapters. Omitted/invalid values use defaults; baseline steering, braking, reserve accounting and stationary magnetic hold remain intact. Declared forces act on moving craft; parked magnetic hold remains active. Zones, membership, surface IDs, enter/exit events, heat/cooling accumulation and visible moving boundaries belong to the lane's deterministic wrapper. Store additional mutable state in the wrapper's snapshot/restore/reset methods, and keep all mutation in `advance`, never presentation or the pure samplers. New pickups and boost systems remain deferred.
+
+`airAcceleration({ state, jump, position, velocity, time })` is an optional pure world-force sampler. It returns a finite `{x,y,z}` vector, added to gravity and limited pilot control in flight. Position and velocity are copies; treat state as read-only. It does not affect automatic missed-jump recovery. Curved leaps need authored clearance and landing envelopes; the helper does not aim at the receiving road. Flight rule overrides are finite nonnegative numbers (positive dimensions, timeout, settle duration and step); the step cannot exceed 1/120 second. Per-jump receiving rail heights use `railHeight: { [jumpId]: metres }`, defaulting to 0.9 m.
+
+`launchImpulse({ state, jump, position, time })` optionally returns a finite world velocity delta in m/s, sampled exactly once at real takeoff. Use it only for an authored, visibly signalled launch interaction such as Cindercoil's vent phase. It is not a boost-pad or reserve system. Its resulting velocity is part of the flight snapshot. The configurable miss bounds `missBelow` (23 m), `missBeyond` (18 m) and `missLateral` (55 m) measure receiving-frame separation before timed recovery; curved paths must set bounds from their measured flight envelope and retain a bounded `timeout`.
+
+Optional split decks must supply per-call `roadBounds: { min, max }` from `groundOptions` while the grounded route narrows. Bounds are geometric route-lateral deck edges, inside the full track width and at least the craft's diagonal hull width (about 8.33 m) apart. The swept hull collides with these asymmetric rails and returns `impact.payload.railLateral` for accurate shared sparks. Omission retains full-width rails. Invalid bounds are ignored, so validate authored bounds in lane tests. Build a visible divider/taper matching the bounds; selecting no launch must never allow later sideways driving over the missing branch strip. Bounds affect grounded travel only, not a launched trajectory or the full receiving shelf.

@@ -1,0 +1,53 @@
+{
+  "format": 1,
+  "gameAxes": "+X lateral, +Y up, +Z forward",
+  "modules": {
+    "skull": {
+      "origin": "mouth floor center",
+      "length": 300,
+      "clearHalfWidth": 50,
+      "overheadMinimum": 70
+    },
+    "vertebra": {
+      "origin": "road platform center",
+      "width": 205,
+      "height": 155
+    },
+    "rib": {
+      "origin": "road at center",
+      "width": 215,
+      "height": 147
+    },
+    "dune": {
+      "origin": "base center",
+      "width": 300,
+      "depth": 220,
+      "height": 65
+    },
+    "sandfall": {
+      "origin": "top",
+      "height": 80,
+      "width": 32
+    },
+    "burrower": {
+      "origin": "head root",
+      "length": 275,
+      "width": 85
+    }
+  },
+  "polygonCounts": {
+    "skull": 8616,
+    "vertebra": 1604,
+    "rib": 430,
+    "dune": 2052,
+    "sandfall": 384,
+    "burrower": 11466
+  },
+  "runtime": "/assets/levels/saffron/leviathan-kit.glb",
+  "sha256": {
+    "assets/levels/saffron/scene-reference.png": "cd7a3799d7fe2ac8beaea380fcdae1d317209f86f806cd5d99fd43b421e5abdb",
+    "assets/levels/saffron/leviathan-kit.blend": "03dcef21abfd709ef5a4f34ed10fa5a9e3ea2348e6b5af7e0e5ec47792f6d629",
+    "assets/levels/saffron/build_saffron.py": "8f1410d411554ddc4cafda1a86a90386e344daf3fc657ff78838debec1c6a37f",
+    "public/assets/levels/saffron/leviathan-kit.glb": "2d6b78f8a9e442e9c2f2fd71ce74df276d382272644683a0413ff14c03d682fb"
+  }
+}

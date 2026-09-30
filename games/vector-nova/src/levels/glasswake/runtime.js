@@ -10,8 +10,8 @@ export function createGlasswakeRuntime(context) {
   const { track } = context;
   const runtime = flightModel.createRuntime(context, {
     id: 'glasswake-fracture-grip',
-    version: 2,
-    rulesId: `glasswake-v2:${JSON.stringify({ geometry: track.geometryVersion, jumps: track.jumps, frost: track.gripZones, rules: flightModel.rules })}`,
+    version: 3,
+    rulesId: `glasswake-v3:${JSON.stringify({ geometry: track.geometryVersion, jumps: track.jumps, frost: track.gripZones, rules: flightModel.rules })}`,
     scenarios: Object.fromEntries(
       Object.entries(track.scenarios).map(([name, state]) => [
         name,

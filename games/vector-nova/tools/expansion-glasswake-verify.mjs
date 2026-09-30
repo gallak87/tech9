@@ -233,6 +233,30 @@ try {
       await context.close();
     }
   }
+  const failureContext = await browser.newContext({
+    viewport: { width: 640, height: 360 },
+  });
+  try {
+    const failurePage = await failureContext.newPage();
+    await failurePage.route(
+      '**/assets/levels/glasswake/glasswake-environment.glb',
+      (route) => route.abort('failed'),
+    );
+    await failurePage.goto(`${base}?level=glasswake`);
+    await failurePage
+      .locator('.failure')
+      .waitFor({ state: 'visible', timeout: 60000 });
+    check(
+      'Glasswake owned environment load failure cleans renderer',
+      (await failurePage.locator('canvas#world').count()) === 0,
+    );
+    check(
+      'Glasswake owned environment error is actionable',
+      (await failurePage.locator('.failure button').count()) === 2,
+    );
+  } finally {
+    await failureContext.close();
+  }
 } catch (error) {
   report.error = error.stack;
   process.exitCode = 1;

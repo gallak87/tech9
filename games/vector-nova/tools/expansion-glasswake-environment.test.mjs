@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises';
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createGlasswakeTrack } from '../src/levels/glasswake/track/model.js';
+import { createGlasswakeRuntime } from '../src/levels/glasswake/runtime.js';
+import { createVehicleState } from '../src/physics/index.js';
 import { createGlasswakeEnvironment } from '../src/levels/glasswake/environment/index.js';
 import {
   sampleCalvingState,
@@ -245,4 +247,144 @@ test('Thawlight warms only its bounded return section and restores borrowed colo
     [sun, fill, ambient].map((light) => light.color.toArray()),
     baseline,
   );
+});
+
+test('actual calving meshes clear the banked route and sampled flight/camera envelopes in five poses', async (context) => {
+  const env = createGlasswakeEnvironment({ track, loadAsset });
+  await env.ready;
+  const corridors = [];
+  // Corners use the actual rolled route frame. The box is deliberately wider
+  // than the 30m deck and includes fins, ship and the ordinary chase camera.
+  for (let s = 0; s < track.length; s += 4) {
+    const frame = track.sample(s);
+    const box = new T.Box3();
+    for (const lateral of [-27, 27])
+      for (const height of [-13, 34])
+        for (const along of [-2.5, 2.5]) {
+          box.expandByPoint(
+            frame.position
+              .clone()
+              .addScaledVector(frame.right, lateral)
+              .addScaledVector(frame.up, height)
+              .addScaledVector(frame.tangent, along),
+          );
+        }
+    corridors.push({ kind: 'route', s, box });
+  }
+  const routeSamples = corridors.length;
+  let flightSamples = 0;
+  const controls = {
+    throttle: 0,
+    brake: 0,
+    steer: 0,
+    boost: false,
+    airbrake: false,
+  };
+  // Real runtime trajectories cover both nominal jumps, slow/long misses and
+  // angled departures. Each center is expanded for the hull and chase view.
+  for (const jump of track.jumps)
+    for (const [speed, heading] of [
+      [52, 0],
+      [112, 0],
+      [157, 0],
+      [112, -0.27],
+      [112, 0.27],
+    ]) {
+      const runtime = createGlasswakeRuntime({ track });
+      const state = Object.assign(createVehicleState(), {
+        distance: jump.takeoff - 0.25,
+        speed,
+        heading,
+      });
+      let launched = false;
+      for (let step = 0; step < 1200; step++) {
+        const events = runtime.advance(state, controls, 1 / 120);
+        const pose = runtime.pose();
+        if (runtime.snapshot().mode === 'flight' && pose) {
+          launched = true;
+          flightSamples++;
+          const center = pose.position;
+          corridors.push({
+            kind: `flight ${jump.id} speed${speed} heading${heading}`,
+            s: state.distance,
+            box: new T.Box3(
+              center.clone().add(new T.Vector3(-27, -13, -27)),
+              center.clone().add(new T.Vector3(27, 34, 27)),
+            ),
+          });
+        }
+        if (events.some((event) => event.type === 'jump-transfer')) break;
+      }
+      assert.ok(launched, `${jump.id} sampled trajectory launched`);
+      runtime.dispose();
+    }
+  const separationDistance = (target) => {
+    if (target === 0) return track.bridge.start - 180;
+    if (target === 1) return track.bridge.end;
+    let low = track.bridge.start + 40;
+    let high = low + 430;
+    for (let step = 0; step < 40; step++) {
+      const middle = (low + high) * 0.5;
+      if (sampleCalvingState(track, { distance: middle }).separation < target)
+        low = middle;
+      else high = middle;
+    }
+    return (low + high) * 0.5;
+  };
+  let comparisons = 0;
+  let meshCount = 0;
+  let minimumBoundsSeparation = Infinity;
+  const shelf = env.group.getObjectByName(
+    'Glasswake / calving shelf and revealed cavern',
+  );
+  assert.ok(shelf);
+  for (const fraction of [0, 0.25, 0.5, 0.75, 1]) {
+    env.update({ state: { distance: separationDistance(fraction) } });
+    env.group.updateMatrixWorld(true);
+    const actual = [];
+    shelf.traverse((mesh) => {
+      if (!mesh.isMesh) return;
+      mesh.geometry.computeBoundingBox();
+      actual.push({
+        name: mesh.name,
+        box: mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrixWorld),
+      });
+    });
+    meshCount = actual.length;
+    assert.ok(
+      meshCount > 70,
+      'test includes the actual multipart cavity, veins, seams and moving faces',
+    );
+    for (const mesh of actual)
+      for (const corridor of corridors) {
+        comparisons++;
+        const a = mesh.box,
+          b = corridor.box;
+        const dx = Math.max(a.min.x - b.max.x, b.min.x - a.max.x, 0);
+        const dy = Math.max(a.min.y - b.max.y, b.min.y - a.max.y, 0);
+        const dz = Math.max(a.min.z - b.max.z, b.min.z - a.max.z, 0);
+        minimumBoundsSeparation = Math.min(
+          minimumBoundsSeparation,
+          Math.hypot(dx, dy, dz),
+        );
+        assert.equal(
+          a.intersectsBox(b),
+          false,
+          `${mesh.name}, separation ${fraction}, ${corridor.kind} at route distance ${corridor.s.toFixed(2)}`,
+        );
+      }
+  }
+  context.diagnostic(
+    JSON.stringify({
+      poses: 5,
+      meshCount,
+      routeSamples,
+      flightSamples,
+      comparisons,
+      minimumBoundsSeparationMetres: Number(minimumBoundsSeparation.toFixed(3)),
+      scope:
+        'Conservative world AABBs at five absolute event poses; route frame samples every4m and real flight at120Hz. This bounds selected poses/trajectories, not every possible player trajectory or continuous-time swept scenery.',
+    }),
+  );
+  env.dispose();
 });

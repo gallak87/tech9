@@ -23,7 +23,12 @@ export const NACRE_FLIGHT_RULES = Object.freeze({
 });
 const R = NACRE_FLIGHT_RULES;
 
-const model = createFlightModel(NACRE_FLIGHT_RULES);
+// Preserve the approved version-5 contact/replay domain exactly. New expansion
+// rules opt into refined curved contact through the shared model defaults.
+const model = createFlightModel({
+  ...NACRE_FLIGHT_RULES,
+  curvedContact: false,
+});
 export const sweptNacreRail = model.sweptRail;
 export const sweptNacreLanding = model.sweptLanding;
 

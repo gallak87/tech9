@@ -137,7 +137,7 @@ export async function createZephyrEnvironment({ track, view, shape = false }) {
   place('island-terrace', track.landmarks.halo.s, { height: -68, scale: 1.25 });
   const towerS = track.landmarks.fallingTower.s;
   const towerPivot = new T.Group();
-  towerPivot.position.copy(stonePoint(track, towerS, -360, -32));
+  towerPivot.position.copy(stonePoint(track, towerS, 280, -32));
   towerPivot.rotation.y = Math.atan2(
     groundFrame(track, towerS).tangent.x,
     groundFrame(track, towerS).tangent.z,
@@ -146,7 +146,7 @@ export async function createZephyrEnvironment({ track, view, shape = false }) {
   const tower = library['falling-tower'].clone(true);
   towerPivot.add(tower);
   const towerIsland = place('island-shard', towerS, {
-    lateral: -360,
+    lateral: 280,
     height: -32,
     scale: 0.9,
   });
@@ -389,9 +389,9 @@ export async function createZephyrEnvironment({ track, view, shape = false }) {
         material.userData.time.value = frame.time;
       const start = track.zephyrPresentation?.towerStart;
       event = sampleTowerEvent(start == null ? -1 : frame.time - start);
-      towerPivot.rotation.z = event.tilt;
+      towerPivot.rotation.z = -event.tilt;
       towerPivot.position.y =
-        stonePoint(track, towerS, -360, -32).y - event.drop;
+        stonePoint(track, towerS, 280, -32).y - event.drop;
       towerIsland.rotation.z = -event.fall * 0.08;
       towerWater.rotation.z = event.trail * 0.65;
       towerWater.scale.y = 1.6 + event.trail * 0.9;

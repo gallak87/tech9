@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "phase": "critic_round2_ready",
+  "phase": "critic_round2_corrections",
   "worktree": "/Users/g/.codex/worktrees/fzero-vesper1/tech9",
   "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
   "branch": "codex/fzero-vesper1",
-  "formalRounds": 1,
+  "formalRounds": 2,
   "maximumRounds": null,
   "humanApproved": false,
   "currentChecks": [
@@ -48,15 +48,16 @@
     {
       "check": "actual-key-production",
       "result": "pass",
-      "segments": 10,
-      "compatibleReplayExact": 10,
-      "evidence": ".experiments/expansion/vesper/builder-drive-v4/report.json",
+      "segments": 11,
+      "compatibleReplayExact": 11,
+      "evidence": ".experiments/expansion/vesper/critic-r2/evidence.json",
       "launchSpeeds": {
         "boostedCrown": 124.4129343061319,
         "crown": 110.17853317113088,
         "imperfectCrownRecovered": 72.0796063966328,
         "branch": 96.63667769159588
-      }
+      },
+      "scope": "Independent actual keys:947.19m continuous hollow and481.72m Rootfall without impacts;11/11 exact replays."
     },
     {
       "check": "production-visual-builder",
@@ -69,8 +70,8 @@
       "check": "shared-browser-smoke",
       "result": "pass",
       "cases": 4,
-      "scope": "Final builder production/shape high/low, compatible replay, input clearing, reset, repeated disposal, unknown-level and owned-asset failure cleanup.",
-      "evidence": ".experiments/expansion/vesper/generic-final-builder/report.json"
+      "scope": "Frozen3bdfa production/shape high/low, compatible replay, input clearing, reset, repeated disposal, unknown-level and owned-asset failure cleanup.",
+      "evidence": ".experiments/expansion/vesper/generic-r2/report.json"
     },
     {
       "check": "desktop-layout",
@@ -85,46 +86,55 @@
   ],
   "openFindings": [
     {
-      "id": "R1-art-forest",
+      "id": "R2-resin-depth",
       "priority": 1,
-      "finding": "Ordinary forest reads as dense repeated straight polygon poles with one palm/frond crown silhouette. Hollow-tree walls read as a faceted dark silo with square-edged openings; the lower vault/return offer little distinct fungal/root/atmospheric composition. Hero presence does not achieve the required living-forest material/silhouette quality.",
-      "implementation": "Builder corrections applied; independent round2 verification pending."
+      "category": "lightingMaterialDepth",
+      "finding": "The broad warm amber color and thin luminous border are substantially improved, but most driving views still read as opaque ochre/brown panels with faint wavy markings. There is little convincing layer separation, enclosed inclusions or warm reflected depth compared with the selected hollow-tree scene concept. Removing glare has flattened much of the surface.",
+      "fix": "Retain the present amber palette/border and readable lanes; introduce several scales/depths of internal resin structure and restrained view-dependent warm reflection/refraction/roughness response. The target is perceived deep resin at driving scale, not a demand for a costly physically exact transmission pipeline. Keep bright highlights bounded and preserve sap/resin contrast.",
+      "evidence": [
+        "high-staging.png",
+        "high-crown-showcase.png",
+        "high-rootfall-showcase.png",
+        "low-motion-crown-showcase.png"
+      ],
+      "reference": "assets/levels/vesper/concepts/hollow-tree-scene.png"
     },
     {
-      "id": "R1-light-material",
-      "priority": 1,
-      "finding": "Rootfall contains a broad near-white specular stripe crossing road and craft; creature approach blows out much of the warm road. Resin reads as striped polished wood/plastic with jagged color borders and repeated black/grey rectangular patches, while bark and foliage have too little material depth. Low retains the white road streak.",
-      "implementation": "Builder corrections applied; independent round2 verification pending."
+      "id": "R2-organic-finish",
+      "priority": 2,
+      "category": "art",
+      "finding": "The whole hollow is preserved and bark texture is better, but nearby bark still resolves into largely vertical bands and long flat faces. Ordinary crown silhouettes look like repeated coarse leaf cutouts, while Mycelium fans appear as very regular cyan umbrella stacks. These remain visibly procedural compared with the stronger hero composition.",
+      "fix": "Preserve the enclosure, silhouette scale and existing layout. Add localized medium-scale bark/root/branch variation and motivated shading; give leaf/fungal families varied volume, spacing, underside/gill color and softened material response so repetition is less obvious. Prefer a small number of better modules/materials over dense added detail.",
+      "evidence": [
+        "high-pillar-showcase.png",
+        "high-vault-showcase.png",
+        "continuous-rootfall-outcome.png",
+        "high-dawnscar-showcase.png"
+      ]
     },
     {
-      "id": "R1-creature-staging",
-      "priority": 1,
-      "finding": "Creature has a readable distant silhouette at crown flight, but the designated crossing approach crops it to a belly slab and poles overhead; crossing/departure captures lose it entirely and the flower becomes the only focal point. Leaf shower/tree bend consequence is not convincingly readable in the actual drive-camera evidence.",
-      "implementation": "Builder corrections applied; independent round2 verification pending."
+      "id": "R2-impact-camera",
+      "priority": 2,
+      "category": "handlingCamera",
+      "finding": "A deliberate rail impact at1440x900 clips a substantial lower/rear part of the craft at the viewport bottom and puts the bottom control legend over it. The road remains visible and simulation is stable, but edge-camera framing is not yet robust.",
+      "reproduction": "Load impact; hold actual w+d for approximately1.2simulationseconds; evidence screenshot time1.225s. The exact inputs/state are in evidence.json drive impact-feedback.",
+      "fix": "Through the authorized shared camera owner, preserve full craft framing during banked rail contact without changing ordinary camera/handling or hiding the UI. Recheck this exact impact plus a normal ascent/landing after the adjustment.",
+      "evidence": ["impact-feedback-outcome.png"]
     },
     {
-      "id": "R1-jump-cues",
+      "id": "human-complete-crown",
       "priority": 1,
-      "finding": "Approaching branch bypass shows an almost uniform milky deck with a small flat yellow rectangle; the optional lane, divider and actual gap become clear only at the lip/airborne view. Crown speed/alignment requirement is not clearly signalled before takeoff.",
-      "implementation": "Builder corrections applied; independent round2 verification pending."
+      "finding": "The enclosed trunk still has a literally missing top and reads as an open stump. Complete its upper trunk/crown, preserving route/camera clearance."
+    },
+    {
+      "id": "human-creature-texture",
+      "priority": 2,
+      "finding": "Creature remains toyish. One focused body/legs/face texture/material pass is sufficient; avoid extensive Blender remodeling or perfection rounds."
     },
     {
       "id": "R1-portrait-overlap",
       "priority": 2,
-      "finding": "At390x844 the barrier-contact notice overlays the HARDENED RESIN surface label and crosses the craft rear.",
-      "implementation": "Opt-in shared portrait notice and local overlay bounds corrected in source. User requires one mobile verification pass at the end only."
-    },
-    {
-      "id": "R1-review-view",
-      "priority": 2,
-      "finding": "Production3D/profile views are heavily obscured by foreground canopy; profile does not show an assessable route profile.",
-      "implementation": "Human override preserves the enclosed giant tree and all production scenery. Separate bare shape review supplies unobstructed route analysis; production retains place identity."
-    },
-    {
-      "id": "R1-budget",
-      "priority": 2,
-      "finding": "Measured high peaks exceed2M drawn triangles in creature departure2030875 and844x390 impact2064093; review reaches2240865triangles and1011calls.",
-      "implementation": "Final desktop high optimized foliage: actual peak1,891,793tri983calls including full-forest overview, zero browser errors. Independent review pending."
+      "finding": "Source correction is implemented; final single mobile verification remains pending per direct human instruction."
     }
   ],
   "rounds": [
@@ -143,6 +153,27 @@
       "evidence": ".experiments/expansion/vesper/critic-r1/verdict.json",
       "actualKeyCases": 13,
       "stills": 60
+    },
+    {
+      "round": 2,
+      "source": "3bdfaee5f5596480300c1bb915981f5d0dc1da0d",
+      "result": "changes_required",
+      "scores": {
+        "art": 7.5,
+        "lightingMaterialDepth": 7.5,
+        "handlingCamera": 8.5,
+        "routeReadability": 9,
+        "feedbackUI": 9,
+        "stabilityPerformance": 9
+      },
+      "scoreScope": {
+        "feedbackUI": "Desktop only. R1 portrait issue remains pending the single final mobile check requested by human.",
+        "stabilityPerformance": "Measured hidden-browser functionality and resource budgets only; not a foreground pacing/listening/device certification.",
+        "aiRaceMode": "N/A; separate gate."
+      },
+      "evidence": ".experiments/expansion/vesper/critic-r2/verdict.json",
+      "actualKeyCases": 11,
+      "stills": 58
     }
   ],
   "futureSupport": [
@@ -237,7 +268,7 @@
     }
   ],
   "sourceBudgets": {
-    "assetBytes": 3454916,
+    "assetBytes": 3781392,
     "scope": "See renderedBudgets for measured draw/triangle/residency values; runtime geometry uses material cells and camera-distance leaf detail."
   },
   "preview": {
@@ -287,13 +318,35 @@
       "reviewCalls": 1011,
       "estimatedGpuMiB": 190.05313636779783,
       "scope": "Independent1440x900desktop/highresponsive/productionreview; gameplayandreviewexceedstartingbudget, correctionsrequired."
+    },
+    "criticRound2": {
+      "captures": 58,
+      "actualKeyDrives": 11,
+      "replayExact": 11,
+      "browserErrors": 0,
+      "hollowMetresNoImpacts": 947.1889556580664,
+      "rootfallMetresNoImpacts": 481.7197996359864,
+      "peakCalls": 977,
+      "peakTriangles": 1886821,
+      "peakGpuMiB": 190.8794226837158,
+      "transferBytes": 5351332,
+      "productionDispose": {
+        "ready": false,
+        "canvas": 0
+      },
+      "shapeDispose": {
+        "ready": false,
+        "canvas": 0
+      }
     }
   },
   "humanSteers": {
-    "date": "2026-09-29",
+    "date": "2026-09-30",
     "learnings": "docs/expansion/vesper/learnings.md",
     "resin": "Deep amber depth and warm reflections with a thin glowing edge; preserve concept identity while controlling blown highlights.",
     "tree": "Keep the enclosing giant hollow tree whole, including production overview presence; refine its art within that silhouette.",
-    "verification": "Desktop art/driving iteration; one mobile pass at the end only."
+    "verification": "Desktop art/driving iteration; one mobile pass at the end only.",
+    "treeTop": "Complete the literal missing top/crown; walls alone leave an open stump.",
+    "creature": "One focused body/legs/face texture pass is sufficient for now; avoid extended modeling cycles."
   }
 }

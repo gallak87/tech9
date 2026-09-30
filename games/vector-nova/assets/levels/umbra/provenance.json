@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "world": "Umbra Fold",
+  "date": "2026-09-29",
+  "workflow": "Built-in imagegen scene -> Blender geometry -> in-game lighting and deterministic deformation",
+  "reference": {
+    "path": "umbra-scene-reference.png",
+    "tool": "image_gen.imagegen",
+    "source": "/Users/g/.codex/generated_images/01a0f0bb-b4fb-7151-8662-646c04b6becf/exec-ff112be1-928f-4675-b763-8ea8ec75fd84.png",
+    "prompt": "Use case: stylized-concept. Asset type: scene concept reference for actual low-poly Blender game architecture, NOT a skybox texture. Primary request: Umbra Fold, a ruined gravity observatory race circuit suspended near a immense tilted black hole accretion disk. Wide cinematic scene with a 28 metre wide graphite racetrack in foreground and small angular racing ship for scale. Three clear architectural subjects: left an asymmetrical fractured pale stone observatory landing terrace with broad layered triangular buttresses and cold-metal tension ribs, center a very large tilted open circular optical lens assembly with three nested broken rings and an opaque dark center aperture, right an enormous intact ribbed instrument cathedral tower being pulled into elongated luminous strands, then distinct fragments spiraling toward the ring. Dark graphite, chalk ivory fractured stone, brushed cold silver, fine amber service lights and restrained icy-blue instrument strips. Authored faceted construction and strong silhouettes; monumental architecture with real interior apertures, structural ribs, stepped terraces and readable repair bands. Black hole behind has a luminous orange-gold flat accretion band plus localized thin upper lensed arc around pure black circular void, distant blue stars. Far side away from ring also includes abandoned observatory ribs and designed fragments, not empty space. Motivated warm ring light grazing pale architecture and cool functional lights keeping foreground road visible. Wide 16:9 image, polished game concept render, solid volume and rough materials. No text, no logos, no random cubes, no characters, no HUD, no full-screen distortion."
+  },
+  "blender": {
+    "generator": "build_umbra_assets.py",
+    "source": "umbra-observatory.blend",
+    "version": "5.1.1",
+    "seed": 1029,
+    "command": "/Applications/Blender.app/Contents/MacOS/Blender --background --python assets/levels/umbra/build_umbra_assets.py",
+    "models": [
+      "terrace",
+      "lens",
+      "vault",
+      "instrument",
+      "event_stretched",
+      "event_fragmented",
+      "rib"
+    ],
+    "gpuUsed": false
+  },
+  "runtime": {
+    "export": "public/assets/levels/umbra/umbra-observatory.glb",
+    "conceptServed": false,
+    "geometry": "Authored pale terraces, repair buttresses, nested open lens rings, vault ribs, and instrument tower with three exported stages.",
+    "animation": "Runtime deforms the intact instrument's 12 structural groups, separates them and pulls them into the ring. Exported stretched/fragmented forms are editable reference poses. Six distant streams pass from intact instruments to elongated forms to broken structural ribs.",
+    "backdrop": "Code-native localized disk/halo shader and black sphere. Stars and subdued dust surround all views. No rendered-road or screen-space distortion.",
+    "presets": "Low retains all major architecture, disk and stars. Reduced motion canonically freezes decorative ring flow and distant consumption. Required giant-event timing remains unchanged.",
+    "rights": "Original generated scene reference and authored Blender/Three.js geometry; no third-party assets.",
+    "limitations": [
+      "Lensing is a composed artistic approximation, not a physical astrophysics simulation.",
+      "CPU tests do not establish foreground frame pacing, physical-device behavior, or independent visual approval."
+    ]
+  }
+}

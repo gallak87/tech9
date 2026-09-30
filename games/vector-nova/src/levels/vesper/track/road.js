@@ -145,10 +145,10 @@ export function createVesperRoad({ track, shape = false }) {
   group.name = shape ? 'Vesper route study' : 'Cast amber transport ribbon';
   const amber = new T.MeshPhysicalMaterial({
     color: shape ? 0x88959c : 0xcb781e,
-    roughness: 0.32,
+    roughness: 0.19,
     metalness: 0.02,
-    clearcoat: 0.4,
-    clearcoatRoughness: 0.3,
+    clearcoat: 0.82,
+    clearcoatRoughness: 0.17,
     specularIntensity: 0.42,
     specularColor: 0xffd8a0,
     emissive: shape ? 0 : 0x512503,
@@ -166,10 +166,10 @@ export function createVesperRoad({ track, shape = false }) {
   });
   const polished = new T.MeshPhysicalMaterial({
     color: shape ? 0x9faab0 : 0xda8a27,
-    roughness: 0.26,
+    roughness: 0.15,
     metalness: 0.02,
-    clearcoat: 0.46,
-    clearcoatRoughness: 0.29,
+    clearcoat: 0.9,
+    clearcoatRoughness: 0.16,
     specularIntensity: 0.45,
     specularColor: 0xffd8a0,
     emissive: shape ? 0 : 0x592503,
@@ -216,30 +216,47 @@ export function createVesperRoad({ track, shape = false }) {
     specularIntensity: 0.12,
   });
   const sapClock = { value: 0 };
+  const resinLayers = { value: 6 };
   for (const material of shape
     ? []
     : [amber, polished, core, milk, smoked, sap]) {
     const flowing = material === sap;
     material.onBeforeCompile = (shader) => {
       shader.uniforms.vesperSapTime = sapClock;
+      shader.uniforms.vesperResinLayers = resinLayers;
       shader.vertexShader =
-        'varying vec2 vVesperUv;\n' +
+        `varying vec2 vVesperUv;
+        attribute vec3 vesperResinCoord, vesperResinRight, vesperResinUp, vesperResinTangent;
+        attribute float vesperResinActive;
+        varying vec3 vVesperResinCoord, vVesperResinView, vVesperResinNormal;
+        varying float vVesperResinActive;
+        ` +
         shader.vertexShader.replace(
           '#include <begin_vertex>',
-          '#include <begin_vertex>\n vVesperUv=uv;',
+          `#include <begin_vertex>
+            vVesperUv=uv;
+            vVesperResinActive=vesperResinActive;
+            vVesperResinCoord=vesperResinCoord;
+            vec3 resinEye=cameraPosition-(modelMatrix*vec4(transformed,1.)).xyz;
+            vec3 resinNormal=normalize(mat3(modelMatrix)*normal);
+            vVesperResinView=vec3(dot(resinEye,vesperResinRight),dot(resinEye,vesperResinUp),dot(resinEye,vesperResinTangent));
+            vVesperResinNormal=vec3(dot(resinNormal,vesperResinRight),dot(resinNormal,vesperResinUp),dot(resinNormal,vesperResinTangent));`,
         );
       shader.fragmentShader =
         `varying vec2 vVesperUv;
-        uniform float vesperSapTime;
+        uniform float vesperSapTime, vesperResinLayers;
+        varying vec3 vVesperResinCoord, vVesperResinView, vVesperResinNormal;
+        varying float vVesperResinActive;
         float resinHash(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
         float resinNoise(vec2 p) {
           vec2 i=floor(p),f=fract(p); f=f*f*(3.-2.*f);
           return mix(mix(resinHash(i),resinHash(i+vec2(1,0)),f.x),mix(resinHash(i+vec2(0,1)),resinHash(i+vec2(1,1)),f.x),f.y);
         }
         ` +
-        shader.fragmentShader.replace(
-          '#include <color_fragment>',
-          `#include <color_fragment>
+        shader.fragmentShader
+          .replace(
+            '#include <color_fragment>',
+            `#include <color_fragment>
         float longitudinal = vVesperUv.y * 16.0;
         vec2 resinP = vec2(vVesperUv.x * 28.0, longitudinal);
         vec2 warp = vec2(resinNoise(resinP * .09),resinNoise(resinP * .08 + 19.0));
@@ -247,13 +264,47 @@ export function createVesperRoad({ track, shape = false }) {
         float deep = resinNoise(resinP * .37 + warp * 4.0 + 8.0);
         float filament = 1.0-smoothstep(.012,.06,abs(deep-.49));
         diffuseColor.rgb *= .83 + .26 * cloud;
-        diffuseColor.rgb += vec3(.11,.053,.009)*filament*(.3+.7*cloud);
+        diffuseColor.rgb += vec3(.035,.014,.002)*filament*(.3+.7*cloud);
+        vec3 vesperInterior=vec3(0.);
+        if(vVesperResinActive>.5) {
+          // Six refracted interior layers give inclusions real view parallax.
+          // The shared scene probe supplies the surface reflections; this finite
+          // volume approximation does not require another scene render pass.
+          vec3 entryNormal=normalize(vVesperResinNormal);
+          vec3 interiorRay=refract(-normalize(vVesperResinView),entryNormal,.68);
+          for(int layer=0;layer<6;layer++) {
+            if(float(layer)>=vesperResinLayers) break;
+            float depth=(float(layer)+.5)*3.8/vesperResinLayers;
+            vec3 p=vVesperResinCoord+interiorRay*depth;
+            float curl=sin(p.x*.78+sin(p.z*.17+p.y*1.3)*2.1)+.42*sin(p.z*.43-p.y*1.7);
+            float strand=1.-smoothstep(.025,.085+fwidth(curl)*.8,abs(curl));
+            vec3 cells=p*vec3(.5,.65,.5);
+            vec3 cell=floor(cells);
+            float seed=resinHash(cell.xz+cell.y*13.7);
+            vec3 bead=fract(cells)-vec3(.3+seed*.35,.4,.4);
+            float bubble=(1.-smoothstep(.045,.085,abs(length(bead)-.12)))*step(.83,seed);
+            float soft=.5+.5*sin(p.z*.24+sin(p.x*.35)+p.y*1.7);
+            vec3 attenuation=exp(-vec3(.12,.42,.9)*depth*.6);
+            float edgeLight=.22+.78*exp(-abs(abs(p.x)-14.)*.2);
+            vesperInterior+=vec3(1.,.43,.045)*attenuation*edgeLight*(strand*.35+bubble*.72+soft*.035)/vesperResinLayers;
+          }
+          diffuseColor.rgb*=.72+.25*cloud;
+          diffuseColor.rgb+=vesperInterior*.9;
+        }
         ${flowing ? 'float flow = pow(0.5 + 0.5 * sin(vVesperUv.y * 11.0 - vesperSapTime * 0.75 + sin(vVesperUv.x * 19.0)), 9.0); diffuseColor.rgb += vec3(0.045,0.027,0.01)*flow;' : ''}
       `,
-        );
+          )
+          .replace(
+            '#include <roughnessmap_fragment>',
+            '#include <roughnessmap_fragment>\n roughnessFactor*=.78+.4*cloud;',
+          )
+          .replace(
+            '#include <emissivemap_fragment>',
+            '#include <emissivemap_fragment>\n totalEmissiveRadiance+=vesperInterior*.2;',
+          );
     };
     material.customProgramCacheKey = () =>
-      flowing ? 'vesper-flow-v3' : 'vesper-lamina-v3';
+      flowing ? 'vesper-flow-v4' : 'vesper-lamina-v4';
   }
   const slices = [
     0,
@@ -584,6 +635,43 @@ export function createVesperRoad({ track, shape = false }) {
     guide,
     'Advance jump lane and landing guidance',
   );
+  if (!shape) {
+    const volumeMaterials = new Set([amber, polished, core]);
+    group.traverse((mesh) => {
+      if (!mesh.isMesh || !volumeMaterials.has(mesh.material)) return;
+      const { position, uv } = mesh.geometry.attributes;
+      const active = new Float32Array(position.count);
+      const coordinates = new Float32Array(position.count * 3);
+      const right = new Float32Array(position.count * 3);
+      const up = new Float32Array(position.count * 3);
+      const tangent = new Float32Array(position.count * 3);
+      if (uv) {
+        for (let i = 0; i < position.count; i++) {
+          const s = uv.getY(i) * 16;
+          const frame = track.sample(s);
+          const delta = new T.Vector3()
+            .fromBufferAttribute(position, i)
+            .sub(frame.position);
+          active[i] = 1;
+          coordinates.set(
+            [delta.dot(frame.right), delta.dot(frame.up), s],
+            i * 3,
+          );
+          right.set(frame.right.toArray(), i * 3);
+          up.set(frame.up.toArray(), i * 3);
+          tangent.set(frame.tangent.toArray(), i * 3);
+        }
+      }
+      for (const [name, values, size] of [
+        ['vesperResinActive', active, 1],
+        ['vesperResinCoord', coordinates, 3],
+        ['vesperResinRight', right, 3],
+        ['vesperResinUp', up, 3],
+        ['vesperResinTangent', tangent, 3],
+      ])
+        mesh.geometry.setAttribute(name, new T.BufferAttribute(values, size));
+    });
+  }
   return {
     group,
     setReflection(texture) {
@@ -597,6 +685,7 @@ export function createVesperRoad({ track, shape = false }) {
     },
     update({ time, settings }) {
       sapClock.value = settings.reducedMotion ? 0 : time;
+      resinLayers.value = settings.quality === 'low' ? 3 : 6;
     },
     dispose() {
       const gs = new Set(),

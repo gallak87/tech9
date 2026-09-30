@@ -47,13 +47,20 @@ export function createGlasswakeOverlay({ host, track }) {
                 ? 'FROST · MORE DRIFT · CLEAR RIBS RESTORE GRIP'
                 : 'CRYSTAL · MAGNETIC GRIP';
       notice.textContent = text;
-      notice.style.display = ['racing', 'paused'].includes(mode)
-        ? 'block'
-        : 'none';
+      const reviewOpen =
+        host.querySelector('#review-toggle')?.getAttribute('aria-expanded') ===
+        'true';
+      notice.style.display =
+        !reviewOpen && ['racing', 'paused'].includes(mode) ? 'block' : 'none';
       const width = globalThis.innerWidth ?? 1280;
       const heightPx = globalThis.innerHeight ?? 720;
-      notice.style.bottom =
-        heightPx < 500 ? '65px' : width < 600 ? '142px' : '108px';
+      const portrait = width < 600 && heightPx > width;
+      const shortLandscape = heightPx < 500;
+      notice.style.top = portrait ? '276px' : shortLandscape ? '148px' : 'auto';
+      notice.style.bottom = portrait || shortLandscape ? 'auto' : '108px';
+      notice.style.maxWidth = shortLandscape
+        ? 'min(280px, calc(100% - 420px))'
+        : 'calc(100% - 40px)';
       notice.style.fontSize = heightPx < 500 ? '9px' : '11px';
       notice.style.borderColor = gap
         ? '#ffe0a6'

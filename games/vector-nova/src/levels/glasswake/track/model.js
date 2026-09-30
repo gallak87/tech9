@@ -369,7 +369,14 @@ export function createGlasswakeTrack() {
   for (const section of sections)
     scenarios[`${section.id}-showcase`] = parked(section.showcase);
   for (const [index, jump] of jumps.entries()) {
-    scenarios[`jump${index + 1}-approach`] = parked(jump.takeoff - 120);
+    scenarios[`jump${index + 1}-approach`] = parked(
+      jump.takeoff - (index === 0 ? 75 : 120),
+    );
+    scenarios[`jump${index + 1}-straight-setup`] = {
+      ...scenarios[`jump${index + 1}-approach`],
+    };
+    if (index === 0)
+      scenarios['jump1-bend-approach'] = parked(jump.takeoff - 120);
     for (const [name, speed, heading] of [
       ['success', 112, 0],
       ['cruise70', 78.4, 0],

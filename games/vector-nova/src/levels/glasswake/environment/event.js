@@ -35,10 +35,18 @@ export function sampleCalvingState(track, state = {}) {
 }
 export function sampleCaveBlend(track, distance = 0) {
   const d = ((distance % track.length) + track.length) % track.length;
-  let blend = 0;
-  for (const section of track.sections.filter(({ id }) =>
+  const tunnels = track.sections.filter(({ id }) =>
     ['mouth', 'gallery', 'chasm'].includes(id),
-  )) {
+  );
+  const intervals = [];
+  for (const section of tunnels) {
+    const previous = intervals.at(-1);
+    if (previous && Math.abs(previous.end - section.start) < 1)
+      previous.end = section.end;
+    else intervals.push({ start: section.start, end: section.end });
+  }
+  let blend = 0;
+  for (const section of intervals) {
     blend = Math.max(
       blend,
       smooth((d - section.start + 25) / 95) *

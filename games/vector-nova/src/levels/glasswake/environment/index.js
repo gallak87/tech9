@@ -44,20 +44,24 @@ export function createGlasswakeEnvironment({
   const cracks = [];
   const lights = [];
   const baseLights = [];
+  let cavityLight = null;
   let disposed = false;
   let loaded = false;
   let caveBlend = 0;
+  let returnBlend = 0;
+  const returnSection = track.sections.find(({ id }) => id === 'return');
+  const thawlight = new T.Color('#ffe5bf');
   let event = sampleCalvingState(track);
   let referenceTexture = null;
   let currentSettings = settings;
   const metrics = {
-    assetBytes: 483212,
-    sourceTriangles: 7480,
+    assetBytes: 2769136,
+    sourceTriangles: 42284,
     instances: 0,
     meshes: 0,
     triangles: 0,
     textures: 0,
-    localLights: 3,
+    localLights: 4,
     rejectedPlacements: 0,
   };
   let error = null;
@@ -100,8 +104,10 @@ export function createGlasswakeEnvironment({
       throw new Error(`Missing Glasswake Blender template ${name}`);
     const bounds = template.bounds.clone().applyMatrix4(matrix);
     if (clear && !routeClear(bounds)) return false;
-    if (!batches.has(name)) batches.set(name, []);
-    batches.get(name).push(matrix);
+    const position = new T.Vector3().setFromMatrixPosition(matrix);
+    const key = `${name}/${Math.floor(position.x / 420)}/${Math.floor(position.z / 420)}`;
+    if (!batches.has(key)) batches.set(key, { name, matrices: [] });
+    batches.get(key).matrices.push(matrix);
     placements.push({
       name: label,
       bounds: [bounds.min.toArray(), bounds.max.toArray()],
@@ -134,14 +140,14 @@ export function createGlasswakeEnvironment({
       const mesh = new T.Mesh(part.geometry, part.material);
       mesh.name = name;
       mesh.castShadow = true;
-      mesh.receiveShadow = true;
+      mesh.receiveShadow = false;
       result.add(mesh);
     }
     parent.add(result);
     return result;
   }
   function flushBatches() {
-    for (const [name, matrices] of batches) {
+    for (const { name, matrices } of batches.values()) {
       for (const part of templates.get(name).parts) {
         const mesh = new T.InstancedMesh(
           part.geometry,
@@ -151,7 +157,7 @@ export function createGlasswakeEnvironment({
         matrices.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
         mesh.name = `Glasswake / ${name} / ${matrices.length} authored forms`;
         mesh.castShadow = true;
-        mesh.receiveShadow = true;
+        mesh.receiveShadow = false;
         mesh.computeBoundingSphere();
         group.add(mesh);
       }
@@ -192,6 +198,11 @@ export function createGlasswakeEnvironment({
           );
       }
     }
+    // Low, opaque basal strata close the chasm beneath the authored wall family.
+    // Their tops lie ~280m below the local road; no geometry bridges flight gaps.
+    for (let s = 0, i = 0; s < track.length; s += 165, i += 1) {
+      place('basal_strata', s, 0, -280, [1.18, 1.2, 1.17], Math.sin(i) * 0.22);
+    }
     // Exterior horizon fragments remain sparse, large and isolated.
     for (const [i, s] of [180, 460, 2720, 3090, 4210].entries()) {
       place(
@@ -211,15 +222,16 @@ export function createGlasswakeEnvironment({
         s < section.end - 50;
         s += 104, i += 1
       ) {
-        place('cave_roof', s, 0, 12, [1.2, 1, 1.06], 0);
+        if (section.id !== 'chasm' || i % 3 === 2)
+          place('cave_roof', s, 0, 28, [1.15 + 0.1 * noise(i), 1, 1.05], 0);
         for (const side of [-1, 1]) {
           place(
             'cave_pier',
             s + 18,
-            side * 89,
-            -2,
-            [1.05, 1.3, 1.14],
-            side * 0.12,
+            side * (87 + 10 * noise(i + side)),
+            -9 + 8 * noise(i),
+            [0.87 + noise(i + side) * 0.28, 1.15 + noise(i * 7) * 0.3, 1.18],
+            side * (0.06 + noise(i) * 0.22),
           );
           if (i % 2 === 0 || section.id === 'gallery')
             place(
@@ -279,6 +291,12 @@ export function createGlasswakeEnvironment({
         moving.push({ object, index, chip: name.includes('chip') });
       }
     }
+    // A motivated non-shadow practical lights the actual revealed cavity surfaces.
+    // It adds no render pass; reveal state drives illumination in all presets.
+    cavityLight = new T.PointLight('#64d8ff', 0, 350, 2);
+    cavityLight.name = 'Glasswake / revealed cavern practical';
+    cavityLight.position.set(5, 60, 0);
+    calving.add(cavityLight);
     const crackMaterial = new T.MeshStandardMaterial({
       color: '#71d7f8',
       emissive: '#32b8fa',
@@ -393,8 +411,23 @@ export function createGlasswakeEnvironment({
     if (disposed) return;
     currentSettings = nextSettings;
     event = sampleCalvingState(track, state);
+    if (cavityLight) cavityLight.intensity = 25000 * event.reveal;
     caveBlend =
       shape || reviewing ? 0 : sampleCaveBlend(track, state.distance ?? 0);
+    returnBlend =
+      shape || reviewing || !returnSection
+        ? 0
+        : T.MathUtils.smoothstep(
+            event.distance,
+            returnSection.start,
+            returnSection.start + 110,
+          ) *
+          (1 -
+            T.MathUtils.smoothstep(
+              event.distance,
+              returnSection.end - 110,
+              returnSection.end,
+            ));
     for (const { object, index, chip } of moving) {
       const delay = index * 0.012;
       const t = Math.max(0, (event.separation - delay) / (1 - delay));
@@ -420,14 +453,27 @@ export function createGlasswakeEnvironment({
         scene.children
           .filter((node) => node.isDirectionalLight || node.isHemisphereLight)
           .forEach((light) =>
-            baseLights.push({ light, intensity: light.intensity }),
+            baseLights.push({
+              light,
+              intensity: light.intensity,
+              color: light.color.clone(),
+            }),
           );
         originalEnvironmentIntensity = scene.environmentIntensity;
         originalFog = scene.fog;
       }
-      for (const { light, intensity } of baseLights)
+      for (const { light, intensity, color } of baseLights) {
         light.intensity =
           intensity * (1 - caveBlend * (light.isHemisphereLight ? 0.32 : 0.8));
+        // Re-evaluate from the borrowed baseline, so seeking or resetting never
+        // accumulates tint and cavern/exterior colors restore exactly.
+        light.color.copy(color);
+        if (light.isDirectionalLight)
+          light.color.lerp(
+            thawlight,
+            returnBlend * (light.castShadow ? 0.42 : 0.24),
+          );
+      }
       scene.environmentIntensity =
         originalEnvironmentIntensity * (1 - caveBlend * 0.46);
       localFog.density = reviewing ? 0.00004 : 0.00018 + caveBlend * 0.00042;
@@ -444,12 +490,14 @@ export function createGlasswakeEnvironment({
     });
     group.userData.calving = event;
     group.userData.caveBlend = caveBlend;
+    group.userData.returnBlend = returnBlend;
   }
   group.userData.metrics = metrics;
   group.userData.getEnvironmentPresentation = () => ({
     loaded,
     error,
     caveBlend,
+    returnBlend,
     calving: event,
     metrics,
     reducedMotion: Boolean(currentSettings.reducedMotion),
@@ -473,8 +521,10 @@ export function createGlasswakeEnvironment({
     dispose() {
       if (disposed) return;
       disposed = true;
-      for (const { light, intensity } of baseLights)
+      for (const { light, intensity, color } of baseLights) {
         light.intensity = intensity;
+        light.color.copy(color);
+      }
       if (view?.scene && originalEnvironmentIntensity !== undefined) {
         view.scene.environmentIntensity = originalEnvironmentIntensity;
         if (view.scene.fog === localFog) view.scene.fog = originalFog;

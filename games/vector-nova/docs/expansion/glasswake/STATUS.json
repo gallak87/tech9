@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "level": "glasswake",
-  "state": "production",
+  "state": "preparing_formal_review",
   "worktree": "/Users/g/.codex/worktrees/fzero-glasswake1/tech9",
   "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
   "branch": "codex/fzero-glasswake1",
@@ -17,7 +17,7 @@
       "height": 1,
       "suggestedAid": "future shared boost/refill",
       "purpose": "Safe alignment and reserve setup before mandatory fracture flight",
-      "observedDifficulty": "CPU aligned launches land at78.4–157m/s;52m/s misses. Real-key check pending.",
+      "observedDifficulty": "The gallery bend requires steering. A separate75m straight practice setup lands from rest with W+Shift in CPU tests; aligned78.4–157m/s land,52m/s misses.",
       "world": [151.96933075922513, 230.89811872355716, 602.2094109298852]
     },
     {
@@ -28,7 +28,7 @@
       "height": 1,
       "suggestedAid": "future shared recovery/reserve aid",
       "purpose": "Safe stationary recovery shelf after a missed jump",
-      "observedDifficulty": "CPU slow misses recover after1.5s; current reserve/controls remain unchanged.",
+      "observedDifficulty": "Actual-key slow launches recover deterministically; fresh latest-build confirmation pending.",
       "world": [489.4570505307036, 236, 598.6061385877035]
     },
     {
@@ -39,7 +39,7 @@
       "height": 1,
       "suggestedAid": "future shared boost/refill",
       "purpose": "Safe alignment and reserve setup before mandatory fracture flight",
-      "observedDifficulty": "CPU aligned launches land at78.4–157m/s;52m/s misses. Real-key check pending.",
+      "observedDifficulty": "Actual-key120m parked W+Shift run-up lands; aligned78.4–157m/s pass dense CPU sweep.",
       "world": [441.6130891079248, 236, 600.2158842341132]
     },
     {
@@ -50,7 +50,7 @@
       "height": 1,
       "suggestedAid": "future shared recovery/reserve aid",
       "purpose": "Safe stationary recovery shelf after a missed jump",
-      "observedDifficulty": "CPU slow misses recover after1.5s; current reserve/controls remain unchanged.",
+      "observedDifficulty": "Actual-key slow launches recover deterministically; fresh latest-build confirmation pending.",
       "world": [793.9642696312691, 232.0062197402344, 581.6313719054299]
     },
     {
@@ -61,7 +61,7 @@
       "height": 1,
       "suggestedAid": "future shared grip/stability aid",
       "purpose": "Optional help before repeated frost/crystal choices",
-      "observedDifficulty": "Matched55m/s brake sample retained lateral velocity4.256m/s on frost versus2.520m/s on clear crystal; braking equal.",
+      "observedDifficulty": "Matched75m/s real-key brake+steer samples show distinct lateral response with equal forward braking; lower frost grip delays correction. CPU residual drift4.256 vs2.520m/s after matched brake sample.",
       "world": [-42.22911814781865, 59.74043267366973, 253.19362619275512]
     },
     {
@@ -82,10 +82,6 @@
     "Independent audio listening",
     "Physical gamepad/mobile"
   ],
-  "sharedExtension": {
-    "source": "8c6f05a733453ddbc9f7428c3804c9c419a7f67b",
-    "applied": "5fef9995"
-  },
   "track": {
     "revision": "glasswake-fracture-route-v1",
     "length": 4820.692447810725,
@@ -120,12 +116,11 @@
   },
   "checks": {
     "route": "production/shape pass:4822 samples,max arc error0.000046m,max turn0.01985rad/m",
-    "laneTests": "9/9 pass (runtime6,environment3); track tests in progress",
-    "fullTests": "257/257 pass",
-    "lint": "pass",
-    "format": "pass",
-    "build": "pass",
-    "browser": "pending exclusive GPU grant"
+    "laneTests": "16/16 pass (runtime6,environment3,track7),including632 dense aligned launches and ordered full CPU traversal",
+    "fullTests": "265/265 pass after curved-contact v2",
+    "lint": "pass before final return-light/HUD integration",
+    "build": "pass; new frozen build pending shared responsive layout",
+    "browser": "Initial generic6 cases pass; targeted37/38 pass, one practice approach fixed afterward; revised build awaits critic capture"
   },
   "servedBuild": {
     "js": "index-Cot3gQV4.js",
@@ -135,5 +130,24 @@
     "verified": false
   },
   "futureSupportTrackRevision": "glasswake-fracture-route-v1",
-  "frameConvention": "s is metres along wrapped route; +lateral is geometric right/driver-left; +height is frame.up; world XYZ metres."
+  "frameConvention": "s is metres along wrapped route; +lateral is geometric right/driver-left; +height is frame.up; world XYZ metres.",
+  "sharedExtensions": [
+    {
+      "source": "8c6f05a733453ddbc9f7428c3804c9c419a7f67b",
+      "applied": "5fef9995",
+      "scope": "flight and local grip"
+    },
+    {
+      "source": "643fd3a69e0f8feef9b27c545888f8a8c45239f2",
+      "applied": "506dd085",
+      "scope": "curved receiving contact"
+    }
+  ],
+  "measuredInitialResources": {
+    "peakDrawCalls": 607,
+    "peakTriangles": 1006155,
+    "estimatedGpuMiB": 139.84371711730955,
+    "transferredBytes": 2046391,
+    "scope": "Initial production high/low1280x720 hidden Chromium batch; revised geometry requires fresh measurement; no foreground certification"
+  }
 }

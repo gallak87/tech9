@@ -41,28 +41,95 @@ def mesh(name, verts, faces, mats, mids=None):
     return o
 
 def slab(name,w,d,h,seed=1,center=(0,0,0),levels=5):
-    """Fracture massif: stratified convex footprint, no spikes or sphere silhouettes."""
-    r=random.Random(seed); n=12
-    # Chamfered rectangle with asymmetric broken corners.
-    ring=[(-.8,-1),(-.1,-1),( .66,-1),(1,-.73),(1,-.1),(1,.67),(.72,1),(.05,1),(-.7,1),(-1,.73),(-1,.1),(-1,-.68)]
-    verts=[]
-    bands=[]
+    """Layered fractured massif with broad asymmetric lobes and eroded pockets.
+    Coherent angular strata, not independent vertex jitter or a stack of boxes.
+    """
+    r=random.Random(seed); n=36; levels=max(10,levels*2)
+    phase=r.random()*math.tau; verts=[]
     for j in range(levels):
-        v=j/(levels-1); scale=1.0+r.uniform(-.085,.06)
-        bands.append(v)
-        for i,(x,z) in enumerate(ring):
-            y=(-.5+v)*h + r.uniform(-.065,.065)*h
-            verts.append((center[0]+x*w*.5*scale+r.uniform(-.025,.025)*w,center[1]+y,center[2]+z*d*.5*scale+r.uniform(-.025,.025)*d))
-    faces=[]; mids=[]
-    faces.append(tuple(reversed(range(n)))); mids.append(0)
+        v=j/(levels-1)
+        bulge=.93+.10*math.sin(v*4.8+phase)+.032*math.sin(v*31+phase)
+        for i in range(n):
+            a=i*math.tau/n
+            # Superellipse footprint plus three broad shoulders and a fissure.
+            c=math.cos(a); q=math.sin(a)
+            contour=1+.075*math.sin(a*3+phase)+.044*math.sin(a*7-phase)
+            pocket=.10*math.exp(-((v-.56)/.21)**2)*max(0,math.sin(a*2+phase))**4
+            x=math.copysign(abs(c)**.68,c)*w*.5*(bulge*contour-pocket)
+            z=math.copysign(abs(q)**.68,q)*d*.5*(bulge*contour-pocket)
+            y=(-.5+v)*h + math.sin(a*2+phase+v*.6)*h*.022+math.sin(a*9+v*7)*h*.006
+            verts.append((center[0]+x,center[1]+y,center[2]+z))
+    faces=[tuple(reversed(range(n)))]; mids=[0]
     for j in range(levels-1):
         for i in range(n):
-            a=j*n+i; bb=j*n+(i+1)%n; c=(j+1)*n+(i+1)%n; e=(j+1)*n+i
-            if (i+j)%3==0:
-                faces.extend([(a,bb,e),(bb,c,e)]); mids.extend([min(2,j//2),min(2,j//2)])
-            else: faces.append((a,bb,c,e)); mids.append(min(2,j//2))
-    faces.append(tuple((levels-1)*n+i for i in range(n))); mids.append(3)
+            aa=j*n+i; bb=j*n+(i+1)%n; cc=(j+1)*n+(i+1)%n; ee=(j+1)*n+i
+            band=0 if j/(levels-1)<.14 else 1 if j/(levels-1)<.6 else 2
+            faces.extend([(aa,bb,ee),(bb,cc,ee)]); mids.extend([band,band])
+    # Two domed top rings keep pale crust sculpted rather than one giant ngon.
+    outer=(levels-1)*n
+    for ringScale in [.58,.19]:
+        start=len(verts)
+        for i in range(n):
+            x,y,z=verts[outer+i]
+            verts.append((center[0]+(x-center[0])*ringScale,center[1]+h*(.51+.016*math.sin(i*.6+phase)),center[2]+(z-center[2])*ringScale))
+        for i in range(n):faces.append((outer+i,outer+(i+1)%n,start+(i+1)%n,start+i));mids.append(3)
+        outer=start
+    faces.append(tuple(outer+i for i in range(n)));mids.append(3)
     return mesh(name,verts,faces,['core','blue','ice','frost'],mids)
+
+def vault(name,width,length,height,base=0,thickness=9):
+    """A thick, open barrel of eroded ice with rounded recesses in its underside."""
+    seg=30; rows=10; verts=[]; faces=[]; mids=[]
+    for layer in range(2):
+        for j in range(rows+1):
+            z=(j/rows-.5)*length
+            for i in range(seg+1):
+                a=i/seg*math.pi
+                x=math.cos(a)*(width*.5+layer*thickness)
+                y=base+math.sin(a)*(height+layer*thickness)
+                # Quiet longitudinal fluting and broad roof melt pockets.
+                y+=math.sin(a*4+j*.42)*2+math.sin(a*7-j*.5)*1.1
+                y+=4.5*math.exp(-((i/seg-.3)/.12)**2-((j/rows-.47)/.25)**2)
+                verts.append((x,y,z))
+    size=(rows+1)*(seg+1)
+    for layer in range(2):
+        for j in range(rows):
+            for i in range(seg):
+                a=layer*size+j*(seg+1)+i;b=a+1;c=a+seg+2;d=a+seg+1
+                faces.append((a,b,c,d) if layer else (d,c,b,a));mids.append(layer)
+    for j in [0,rows]:
+        for i in range(seg):
+            a=j*(seg+1)+i;faces.append((a,a+1,a+size+1,a+size));mids.append(2)
+    for i in [0,seg]:
+        for j in range(rows):
+            a=j*(seg+1)+i;faces.append((a,a+seg+1,a+size+seg+1,a+size));mids.append(2)
+    return mesh(name,verts,faces,['blue','ice','edge'],mids)
+
+def curtain(name):
+    cols=44;rows=13;verts=[];faces=[];mids=[]
+    for side in range(2):
+        for j in range(rows+1):
+            t=j/rows
+            for i in range(cols+1):
+                x=-38+i/cols*76
+                lower=-21-10*(.5+.5*math.cos(i/cols*math.pi*13)) - 4*math.sin(i*.52)
+                y=55*(1-t)+lower*t
+                z=(4.7+3*math.cos(i/cols*math.pi*13)+1.1*math.sin(t*6+i*.25))*(-1 if side else 1)
+                x+=2*math.sin(t*3+i*.35)*t
+                verts.append((x,y,z))
+    size=(rows+1)*(cols+1)
+    for side in range(2):
+        for j in range(rows):
+            for i in range(cols):
+                a=side*size+j*(cols+1)+i;b=a+1;c=a+cols+2;d=a+cols+1
+                faces.append((d,c,b,a) if side else (a,b,c,d));mids.append(1 if i%11<2 else 0)
+    for j in [0,rows]:
+        for i in range(cols):
+            a=j*(cols+1)+i;faces.append((a,a+1,a+size+1,a+size));mids.append(1)
+    for i in [0,cols]:
+        for j in range(rows):
+            a=j*(cols+1)+i;faces.append((a,a+cols+1,a+size+cols+1,a+size));mids.append(1)
+    return mesh(name,verts,faces,['ice','edge'],mids)
 
 def box(name,center,scale,material):
     x,y,z=center; a,c,d=[v*.5 for v in scale]
@@ -91,23 +158,24 @@ def join(prefix,name):
 for i,(w,d,h) in enumerate([(90,94,168),(120,80,128),(86,124,194)]):
     slab('cliff_'+str(i),w,d,h,17+i,center=(0,-h*.5,0),levels=7)
 slab('rubble_shelf',64,82,38,37,center=(0,-19,0),levels=5)
+slab('basal_strata',300,328,58,45,center=(0,-29,0),levels=5)
+for p in bpy.data.objects['basal_strata'].data.polygons: p.material_index=0
 slab('far_fragment',320,250,215,66,levels=7)
 # Cavern roof transverse plates, piers and cut-back curtains are separate for real apertures.
-slab('cave_roof',150,132,30,91,center=(0,63,0),levels=4)
+vault('cave_roof',158,140,31,base=42,thickness=12)
 slab('cave_pier',54,90,112,92,center=(0,6,0),levels=6)
-# Layered hanging ice curtain: broad flutes attached to a broken slab.
-slab('curtain_base',66,18,58,95,center=(0,18,0),levels=5)
-for i in range(9):
-    x=-29+i*7.2; h=36+(i*13%29)
-    slab('curtain_flute_'+str(i),6.2,9,h,101+i,center=(x,5-h*.25,1+math.sin(i)*3),levels=4)
-join('curtain_','ice_curtain')
-# Bell vault is a hollow flared 3D ceiling; open lower rim prevents a solid blob over the road.
-verts=[]; faces=[]; mids=[]; n=20
-for j,(rad,y) in enumerate([(66,0),(59,16),(45,42),(25,57),(13,63)]):
+# Continuous folded curtain with scalloped melt edge and broad flutes.
+curtain('ice_curtain')
+# Suspended bell-shaped ice chamber: round open lip, narrowing domed crown,
+# with radial melt flutes. Continuous normals retain its non-triangular silhouette.
+verts=[];faces=[];mids=[];n=64;levels=15
+for j in range(levels):
+    t=j/(levels-1);rad=68*(math.cos(t*math.pi*.5)**.65)+5
     for i in range(n):
-        a=i*math.tau/n; rr=rad*(1+.035*math.sin(i*2.3+j)); verts.append((math.cos(a)*rr,y,math.sin(a)*rr*.85))
-for j in range(4):
-    for i in range(n):faces.append((j*n+i,j*n+(i+1)%n,(j+1)*n+(i+1)%n,(j+1)*n+i));mids.append(1 if (i+j)%4 else 0)
+        a=i*math.tau/n;rr=rad*(1+.018*math.sin(a*12+t*2)+.027*math.sin(a*3))
+        verts.append((math.cos(a)*rr,t*71+math.sin(a*4)*1.5,math.sin(a)*rr*.88))
+for j in range(levels-1):
+    for i in range(n):faces.append((j*n+i,j*n+(i+1)%n,(j+1)*n+(i+1)%n,(j+1)*n+i));mids.append(1 if (i//8+j//3)%5 else 0)
 mesh('bell_vault',verts,faces,['blue','ice'],mids)
 # Meteor inclusion, multi-part with long readable diagonal facets.
 slab('inclusion_body',63,106,100,201,center=(0,25,0),levels=6)
@@ -164,8 +232,9 @@ for j in range(6):
 for o in bpy.context.scene.objects:
     if o.type=='MESH':
         # Explicit flat fractured planes avoid unstable smoothed triangle highlights.
-        for p in o.data.polygons:p.use_smooth=False
+        for p in o.data.polygons:p.use_smooth=o.name in ['cave_roof','bell_vault','ice_curtain']
         o['unit']='metres';o['source']='Glasswake selected scene-reference.png'
+bpy.context.preferences.filepaths.save_version=0
 scene=bpy.context.scene;scene.render.engine='BLENDER_WORKBENCH'
 scene.world.color=(.015,.025,.055)
 scene['asset_notes']='Named reusable prototypes overlap at origin by design; runtime aligns to route frames.'

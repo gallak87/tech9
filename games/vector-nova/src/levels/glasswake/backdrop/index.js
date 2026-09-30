@@ -21,8 +21,8 @@ export function createGlasswakeBackdrop({ shape = false } = {}) {
         for(int i=0;i<3;i++){
           float n=float(i); float bend=.43+.09*n+.085*sin(az*2.5+n+clock*.012)+.04*sin(az*5.-n*.8);
           float curtain=exp(-abs(el-bend)*18.)*smoothstep(.07,.2,d.y);
-          float ribs=.62+.38*sin(az*86.+sin(az*17.)*3.+clock*.016);
-          col+=mix(vec3(.015,.17,.115),vec3(.09,.035,.16),n*.43)*curtain*ribs*.55;
+          float ribs=.78+.14*sin(az*26.+sin(az*7.)*2.+clock*.016)+.08*sin(az*61.);
+          col+=mix(vec3(.015,.115,.082),vec3(.09,.025,.14),n*.43)*curtain*ribs*.4;
         }
         vec2 st=vec2(az,el)*vec2(420.,280.); vec2 id=floor(st); vec2 uv=fract(st)-.5;
         float stars=step(.997,hash(id))*exp(-dot(uv,uv)*55.)*smoothstep(-.05,.3,d.y);

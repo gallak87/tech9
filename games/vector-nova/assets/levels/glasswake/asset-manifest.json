@@ -6,53 +6,58 @@
   "meshes": [
     {
       "name": "cliff_0",
-      "vertices": 84,
-      "triangles": 164
+      "vertices": 576,
+      "triangles": 1148
     },
     {
       "name": "cliff_1",
-      "vertices": 84,
-      "triangles": 164
+      "vertices": 576,
+      "triangles": 1148
     },
     {
       "name": "cliff_2",
-      "vertices": 84,
-      "triangles": 164
+      "vertices": 576,
+      "triangles": 1148
     },
     {
       "name": "rubble_shelf",
-      "vertices": 60,
-      "triangles": 116
+      "vertices": 432,
+      "triangles": 860
+    },
+    {
+      "name": "basal_strata",
+      "vertices": 432,
+      "triangles": 860
     },
     {
       "name": "far_fragment",
-      "vertices": 84,
-      "triangles": 164
+      "vertices": 576,
+      "triangles": 1148
     },
     {
       "name": "cave_roof",
-      "vertices": 48,
-      "triangles": 92
+      "vertices": 682,
+      "triangles": 1360
     },
     {
       "name": "cave_pier",
-      "vertices": 72,
-      "triangles": 140
+      "vertices": 504,
+      "triangles": 1004
     },
     {
       "name": "ice_curtain",
-      "vertices": 492,
-      "triangles": 944
+      "vertices": 1260,
+      "triangles": 2516
     },
     {
       "name": "bell_vault",
-      "vertices": 100,
-      "triangles": 160
+      "vertices": 960,
+      "triangles": 1792
     },
     {
       "name": "dark_inclusion",
-      "vertices": 216,
-      "triangles": 412
+      "vertices": 2232,
+      "triangles": 4444
     },
     {
       "name": "bridge_arch",
@@ -61,8 +66,8 @@
     },
     {
       "name": "landing_shelf",
-      "vertices": 60,
-      "triangles": 116
+      "vertices": 432,
+      "triangles": 860
     },
     {
       "name": "dock_mast",
@@ -71,38 +76,38 @@
     },
     {
       "name": "calving_back",
-      "vertices": 84,
-      "triangles": 164
+      "vertices": 576,
+      "triangles": 1148
     },
     {
       "name": "calving_roof",
-      "vertices": 48,
-      "triangles": 92
+      "vertices": 432,
+      "triangles": 860
     },
     {
       "name": "calving_floor",
-      "vertices": 48,
-      "triangles": 92
+      "vertices": 432,
+      "triangles": 860
     },
     {
       "name": "calving_ledge_0",
-      "vertices": 36,
-      "triangles": 68
+      "vertices": 432,
+      "triangles": 860
     },
     {
       "name": "calving_ledge_1",
-      "vertices": 36,
-      "triangles": 68
+      "vertices": 432,
+      "triangles": 860
     },
     {
       "name": "calving_ledge_2",
-      "vertices": 36,
-      "triangles": 68
+      "vertices": 432,
+      "triangles": 860
     },
     {
       "name": "calving_ledge_3",
-      "vertices": 36,
-      "triangles": 68
+      "vertices": 432,
+      "triangles": 860
     },
     {
       "name": "cavity_vein_0",
@@ -166,80 +171,80 @@
     },
     {
       "name": "calving_chunk_00",
-      "vertices": 84,
-      "triangles": 164
+      "vertices": 576,
+      "triangles": 1148
     },
     {
       "name": "calving_chunk_01",
-      "vertices": 84,
-      "triangles": 164
+      "vertices": 576,
+      "triangles": 1148
     },
     {
       "name": "calving_chunk_02",
-      "vertices": 84,
-      "triangles": 164
+      "vertices": 576,
+      "triangles": 1148
     },
     {
       "name": "calving_chunk_03",
-      "vertices": 84,
-      "triangles": 164
+      "vertices": 576,
+      "triangles": 1148
     },
     {
       "name": "calving_chunk_04",
-      "vertices": 84,
-      "triangles": 164
+      "vertices": 576,
+      "triangles": 1148
     },
     {
       "name": "calving_chunk_05",
-      "vertices": 84,
-      "triangles": 164
+      "vertices": 576,
+      "triangles": 1148
     },
     {
       "name": "calving_chunk_06",
-      "vertices": 84,
-      "triangles": 164
+      "vertices": 576,
+      "triangles": 1148
     },
     {
       "name": "calving_chunk_07",
-      "vertices": 84,
-      "triangles": 164
+      "vertices": 576,
+      "triangles": 1148
     },
     {
       "name": "calving_chunk_08",
-      "vertices": 84,
-      "triangles": 164
+      "vertices": 576,
+      "triangles": 1148
     },
     {
       "name": "calving_chip_00",
-      "vertices": 48,
-      "triangles": 92
+      "vertices": 432,
+      "triangles": 860
     },
     {
       "name": "calving_chip_01",
-      "vertices": 48,
-      "triangles": 92
+      "vertices": 432,
+      "triangles": 860
     },
     {
       "name": "calving_chip_02",
-      "vertices": 48,
-      "triangles": 92
+      "vertices": 432,
+      "triangles": 860
     },
     {
       "name": "calving_chip_03",
-      "vertices": 48,
-      "triangles": 92
+      "vertices": 432,
+      "triangles": 860
     },
     {
       "name": "calving_chip_04",
-      "vertices": 48,
-      "triangles": 92
+      "vertices": 432,
+      "triangles": 860
     },
     {
       "name": "calving_chip_05",
-      "vertices": 48,
-      "triangles": 92
+      "vertices": 432,
+      "triangles": 860
     }
   ],
-  "triangles": 7480,
-  "bytes": 483212
+  "triangles": 42284,
+  "bytes": 2769136
 }

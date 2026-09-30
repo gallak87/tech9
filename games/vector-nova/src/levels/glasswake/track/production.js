@@ -55,8 +55,9 @@ export function buildGlasswakeRoad(
   const crystalHigh = material(
     {
       color: 0x8fc3df,
-      roughness: 0.22,
-      metalness: 0.08,
+      roughness: 0.34,
+      metalness: 0.04,
+      specularIntensity: 0.4,
       transparent: true,
       opacity: 0.52,
       depthWrite: false,

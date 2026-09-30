@@ -46,7 +46,7 @@ export function validateMetadata(metadata, id = metadata?.id) {
     'stackedReview',
     'lowNotice',
     'compactLandscape',
-    'portraitLowNotice',
+    'portraitCompactHud',
   ])
     if (
       metadata.ui[flag] !== undefined &&

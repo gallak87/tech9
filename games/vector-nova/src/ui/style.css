@@ -1161,17 +1161,32 @@ select {
     margin-bottom: 8px;
   }
   #interface.compact-landscape.driving #notice {
-    top: auto;
-    bottom: 75px;
+    top: 48px;
+    bottom: auto;
     width: min(260px, calc(100vw - 380px));
     font-size: 10px;
     line-height: 1.25;
     padding: 5px 8px;
   }
   #interface.compact-landscape.driving #touch {
-    bottom: 14px;
+    position: absolute;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    left: 3vw;
+    right: 3vw;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  #interface.compact-landscape.driving #touch > div {
+    display: flex;
+    gap: 5px;
+    align-items: flex-end;
   }
   #interface.compact-landscape.driving #touch button {
+    font-size: 9px;
+    touch-action: none;
+    background: #142732b8;
+    border-color: #9bb3bb66;
     min-width: 44px;
     min-height: 48px;
     padding: 14px 10px;
@@ -1201,16 +1216,55 @@ select {
   }
 }
 
-/* Opt-in for circuits whose portrait chase craft occupies the upper telemetry
-   edge. The notice sits in the gap between reserve/speed and touch controls. */
+/* Opt-in upper portrait HUD leaves the lower chase craft and touch row clear.
+   Reserve a separate cue/notice band; expanded review uses the next two bands. */
 @media (max-width: 760px) and (min-height: 700px) and (orientation: portrait) {
-  #interface.portrait-low-notice.driving #notice {
-    top: auto;
-    bottom: 108px;
+  #interface.portrait-compact-hud.driving .telemetry {
+    top: 272px;
+    bottom: auto;
+    align-items: flex-start;
+  }
+  #interface.portrait-compact-hud.driving .energy {
+    font-size: 8px;
+    line-height: 1.2;
+  }
+  #interface.portrait-compact-hud.driving .energy span {
+    font-size: 8px;
+  }
+  #interface.portrait-compact-hud.driving .energy-track {
+    margin: 6px 0;
+  }
+  #interface.portrait-compact-hud.driving .energy small {
+    display: block;
+    font-size: 8px;
+    line-height: 1.2;
+  }
+  #interface.portrait-compact-hud.driving .speed strong {
+    font-size: 34px;
+  }
+  #interface.portrait-compact-hud.driving .speed i {
+    font-size: 8px;
+    bottom: -14px;
+  }
+  #interface.portrait-compact-hud.driving #notice {
+    top: 330px;
+    bottom: auto;
     width: calc(100vw - 32px);
     font-size: 11px;
     line-height: 1.25;
     padding: 6px 8px;
+  }
+  #interface.portrait-compact-hud.driving:has(
+      #review-toggle[aria-expanded='true']
+    )
+    .telemetry {
+    top: 468px;
+  }
+  #interface.portrait-compact-hud.driving:has(
+      #review-toggle[aria-expanded='true']
+    )
+    #notice {
+    top: 420px;
   }
 }
 

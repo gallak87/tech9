@@ -43,7 +43,10 @@ export function createUI(
   root.classList.toggle('stacked-review', Boolean(copy.stackedReview));
   root.classList.toggle('low-notice', Boolean(copy.lowNotice));
   root.classList.toggle('compact-landscape', Boolean(copy.compactLandscape));
-  root.classList.toggle('portrait-low-notice', Boolean(copy.portraitLowNotice));
+  root.classList.toggle(
+    'portrait-compact-hud',
+    Boolean(copy.portraitCompactHud),
+  );
   const editionDetail = document.createElement('span');
   editionDetail.textContent = blockout ? 'BARE TRACK' : copy.subtitle;
   root

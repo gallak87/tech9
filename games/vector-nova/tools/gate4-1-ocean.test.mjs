@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import { createCameraRig } from '../src/camera/index.js';
+import createNacreLevel from '../src/levels/nacre/index.js';
 import { createNacreMaterials } from '../src/environment/level3/materials.js';
 import { createLevel3Track } from '../src/track/level3/model.js';
 import { createNacreEnvironment } from '../src/environment/level3/index.js';
@@ -273,7 +274,10 @@ test('Nacre readonly sky presentation reports actual lightning uniforms and same
 
 test('Nacre first seeded lightning pulse projects into the normal 1440x900 exposed storm approach view', () => {
   const camera = new T.PerspectiveCamera(64, 1440 / 900, 0.2, 14000);
-  const rig = createCameraRig(camera);
+  const rig = createCameraRig(
+    camera,
+    createNacreLevel({ shape: false }).camera,
+  );
   rig.update(
     track,
     { ...track.scenarios['storm-showcase'], lateral: 0, speed: 0 },

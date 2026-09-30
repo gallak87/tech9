@@ -14,6 +14,7 @@ import {
 import { createVehicleState, stepVehicle } from '../src/physics/index.js';
 import { createRace } from '../src/race/index.js';
 import { createCameraRig } from '../src/camera/index.js';
+import createNacreLevel from '../src/levels/nacre/index.js';
 
 const track = createLevel3Track();
 const DT = 1 / 120;
@@ -1104,7 +1105,10 @@ test('camera handoffs preserve the same craft anchor without injecting lane offs
         heading,
       };
       const camera = new THREE.PerspectiveCamera(64, 16 / 9, 0.2, 14000);
-      const rig = createCameraRig(camera);
+      const rig = createCameraRig(
+        camera,
+        createNacreLevel({ shape: false }).camera,
+      );
       rig.update(track, state, 1 / 60);
       const pose = displayedRoadPose(state);
       // With no elapsed motion, merely changing the coordinate source must not
@@ -1247,7 +1251,10 @@ test('moving off-centre jumps retain their screen composition through takeoff an
           };
           const adapter = runtime();
           const camera = new THREE.PerspectiveCamera(64, 16 / 9, 0.2, 14000);
-          const rig = createCameraRig(camera);
+          const rig = createCameraRig(
+            camera,
+            createNacreLevel({ shape: false }).camera,
+          );
           const input = { ...empty, throttle: 1, boost: speed > 150 };
           let previous = { ...state };
           let previousScreenX;

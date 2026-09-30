@@ -7,9 +7,10 @@ Approved and merged: Halcyon Viaduct, Asterion Orbital, Nacre Tempest, the initi
 ## Next: integration and shared cleanup
 
 - [x] Merge the approved Nacre circuit and final revision.
-- [ ] Replace hardcoded level branches with a small validated lazy loader and level descriptor.
-- [ ] Standardize async readiness, one presentation update per frame, reset/disposal and borrowed-resource ownership.
-- [ ] Drive shared UI/review navigation from metadata and camera behavior from explicit options.
+- [x] Add a simple paddock circuit picker for the available levels.
+- [x] Replace hardcoded level branches with a small validated lazy loader and level descriptor.
+- [x] Standardize async readiness, one presentation update per frame, reset/disposal and borrowed-resource ownership.
+- [x] Drive shared UI/review navigation from metadata and camera behavior from explicit options.
 - [ ] Expose existing robust frame, road-sweep and clearance helpers for new level authors.
 - [ ] Extract small mesh/instance/resource helpers where reuse is demonstrated; keep world-specific art local.
 - [ ] Complete the common validation harness and frozen level contract. CPU track checks are already prepared in the isolated expansion checkout; they are not integrated yet.
@@ -36,6 +37,15 @@ Spread vertical events and signature moments throughout each course. Ordinary co
 ## Proposed gameplay phases — not started
 
 Each phase ends with human review after its scoped independent critic loop. Agree the actual phase before implementation; the seven map builds do not authorize these systems.
+
+### Level polish
+
+- [ ] Add subtle motion blur during boost, keeping the road and HUD readable and respecting reduced motion.
+- [ ] Emit sparks from the actual side/contact point when scraping rails or other surfaces, and when ship-to-ship bumps become available. Explore short-lived scrape streaks on the contacted road panels/walls, with bounded effects and cleanup.
+- [ ] Halcyon: investigate and fix remaining flicker on the ground, especially white areas and street-lane markings.
+- [ ] Asterion: locate and fix the reported flickering road section; its exact location is not yet known.
+- [ ] Nacre: make the entire sound mix feel submerged when entering the water, including propulsion, boost, lightning/thunder and other effects, with smooth transitions back to the above-water mix.
+- [ ] Nacre: add bubbles around takeoff, mid-jump travel and landing for the underwater portions, driven by actual submersion and water crossings.
 
 ### Gate 5: complete race flow
 

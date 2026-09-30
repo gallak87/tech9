@@ -20,11 +20,11 @@ This supersedes the roadmap's former planning-only/one-map-at-a-time/early-revie
 | 9 — Helion Flare      | `helion`     | [Brief](expansion/helion/HANDOFF.md)     | 5211 / 5212   |
 | 10 — Umbra Fold       | `umbra`      | [Brief](expansion/umbra/HANDOFF.md)      | 5213 / 5214   |
 
-Production entry is `?level=<slug>`; bare review adds `&review=shape`. These routes are **planned until the integrator implements and freezes the expansion loader**. The launch ledger supplies actual assignments/IDs/builds; port numbers here are reservations to verify, not proof that servers are running.
+Production entry is `?level=<slug>`; bare review adds `&review=shape`. Each route becomes available when its level module is present in the verified shared build. The launch ledger supplies actual assignments/IDs/builds; port numbers here are reservations to verify, not proof that servers are running.
 
 ## Isolation and dependency
 
-Start from the integrator's recorded reviewed base plus the byte-verified foundation patch, in your own managed worktree. Do not edit the primary checkout, another lane, shared dependencies or another dist. The [level contract](EXPANSION_LEVEL_CONTRACT.md) must say implemented/frozen before production launch; its initial requirements are not an API to assume exists.
+Start from the integrator's recorded reviewed base plus the byte-verified foundation patch, in your own managed worktree. Do not edit the primary checkout, another lane, shared dependencies or another dist. Read the [level API](EXPANSION_LEVEL_CONTRACT.md) and require the integrator’s verified foundation revision from the launch ledger before production launch.
 
 Each lane exclusively owns:
 
@@ -44,6 +44,16 @@ Preserve driver-left/right through banks/inversions, stationary slope hold, brak
 Identity has to extend across the **world and raceway**: broad running-surface treatment, barrier silhouette, shoulders, underside/supports, foreground detail, inhabited/geological middle distance, distant massing, sky and lighting. No Halcyon asphalt reskin, repeated Orbital U-frame road, tiny neon highlights standing in for design, blank ordinary stretches or one hero vista masking an unfinished course. Real apertures, broad color and layered scenery worked in the prior human review because the player could see the construction and surrounding world.
 
 Model authored large/medium/small forms, material roughness and coherent light before multiplying detail. Preserve road/landing/craft clarity under spectacle. High and low quality must share the same art identity; reduced motion must restrain flashes/movement without erasing navigation cues. No random environmental damage, mandatory camera shake or invisible weather forces. No new visible browser windows or videos.
+
+## Asset workflow: imagegen to Blender
+
+For distinctive creatures, vegetation, architecture and focal props, prefer **imagegen concept → Blender model → in-game iteration**, following the successful Nacre leviathan workflow.
+
+1. Generate a clear asset concept with readable silhouette, proportions and materials; add consistent reference views when useful.
+2. Use the chosen image as a visual reference while modeling/sculpting the actual 3D asset in Blender. Preserve its character through geometry, materials and animation where appropriate.
+3. Export and inspect it at gameplay scale, from the driving camera and under the level’s lighting. Iterate the Blender asset against both the concept and its in-game appearance, within the existing review/resource limits.
+
+Keep the selected reference, editable Blender source or reproducible generator, export and concise provenance in the lane’s owned asset paths. Scratch variants and renders stay in ignored `.experiments/`. Apply this workflow where concept development helps; simple procedural parts can stay procedural.
 
 ## Production and critique loop
 

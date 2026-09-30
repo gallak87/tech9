@@ -4,6 +4,8 @@ A browser anti-gravity racer built with Three.js and Vite. Drive the Blender-aut
 
 ## Circuits and features
 
+Choose a circuit in the paddock dropdown and press **Load**, then enter its practice loop. During a session, pause and return to the paddock to switch circuits.
+
 | Circuit          | Identity                                                                                   | Availability      |
 | ---------------- | ------------------------------------------------------------------------------------------ | ----------------- |
 | Halcyon Viaduct  | 5 km metropolitan expressway with a skyline corkscrew, inverted hold and plunge            | Default route `/` |
@@ -43,6 +45,8 @@ WebGL2 is required. Gameplay uses local assets and needs no account or backend. 
 Bend assistance is 0.3; the player steers the remaining turn. Magnetic adhesion follows road pitch/roll and holds a parked craft on slopes. Physical gamepad/mobile use, independent audio listening and foreground frame pacing still need direct verification.
 
 ## Development
+
+Levels register through asset-free metadata plus a lazy implementation under `src/levels/<slug>/`. The picker and briefing consume the same metadata; see the [level API](docs/EXPANSION_LEVEL_CONTRACT.md) for factories, camera options and resource ownership. Existing circuit models remain in `src/track/`.
 
 `npm run lint:fix` runs the existing formatting/lint tools. Package `prepare` installs Husky; pre-commit uses lint-staged. No custom installation scripts are needed.
 

@@ -1,21 +1,22 @@
 import './style.css';
+import { circuitURL } from '../levels/contract.js';
 export function createUI(
   host,
   actions,
   settings,
   track,
-  runtimeScenarios = {},
+  { runtimeScenarios = {}, metadata, circuits, shape: blockout = false },
 ) {
   const root = document.createElement('main');
   root.id = 'interface';
   host.append(root);
-  root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> PROVING GROUND <span>GATE 02 / FIRST LEVEL</span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>
- <section id="title-panel" class="panel"><div class="eyebrow">HALCYON INFRASTRUCTURE AUTHORITY · TEST 001</div><h1>FIND YOUR<br><em>LIMIT.</em></h1><p class="intro">Above the city. On the edge.<br>Take the Kestrel through Halcyon’s elevated proving loop.</p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>01</b><span>PROTOTYPE</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="inspect">INSPECT KESTREL <span>↗</span></button></div><p class="small">Halcyon Viaduct · First-level development review.<br>Core handling and city environment under review.</p></section>
+  root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>
+ <section id="title-panel" class="panel"><div class="eyebrow"></div><h1><br><em></em></h1><p class="intro"></p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>01</b><span>PROTOTYPE</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="inspect">INSPECT KESTREL <span>↗</span></button></div><p class="small"></p></section>
  <section id="inspection-panel" class="panel hidden"><div class="eyebrow">AERODYNAMICS DIVISION / 07</div><h1 class="inspect-title">KESTREL<span class="dot">.</span></h1><p class="intro">Twin-core magnetic interceptor.<br>Ceramic armour. Exposed titanium propulsion.<br>Built to stay close to the limit.</p><dl><div><dt>DESIGN</dt><dd>Split prow / swept ceramic chassis</dd></div><div><dt>PROPULSION</dt><dd>Dual induction turbines</dd></div><div><dt>CONTROL</dt><dd>Integrated magnetic suspension</dd></div></dl><div class="actions"><button id="inspect-start" class="primary">DRIVE PROTOTYPE <span>↗</span></button><button id="inspect-back">BACK TO PROVING GROUND</button></div><p class="small">Actual in-game asset · Neutral inspection lighting</p></section>
  <section id="pause-panel" class="modal hidden"><div class="eyebrow">PROVING SESSION</div><h2>TAKE A BREATH.</h2><button id="resume" class="primary">RESUME SESSION ↗</button><button id="restart">RESTART LAP</button><button id="home">RETURN TO PADDOCK</button><label>MASTER VOLUME <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>GRAPHICS <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>REDUCED MOTION <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p class="small">Prototype settings are saved locally when available.</p></section>
- <section id="hud" class="hidden"><div class="top-telemetry"><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>SESSION TIME</span><b id="time">00:00.000</b><small id="best">SET YOUR FIRST CLEAN LAP</small></div><div class="section-name"><span>HALCYON VIADUCT</span><b id="section">PROVING STRAIGHT</b></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST DRAWS FROM IMPACT RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas><div id="notice" role="status"></div></section>
+ <section id="hud" class="hidden"><div class="top-telemetry"><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>SESSION TIME</span><b id="time">00:00.000</b><small id="best">SET YOUR FIRST CLEAN LAP</small></div><div class="section-name"><span></span><b id="section">PROVING STRAIGHT</b></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST DRAWS FROM IMPACT RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas><div id="notice" role="status"></div></section>
  <footer id="legend"><div><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RESET</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>
- <div id="touch" class="hidden"><div><button data-drive="left" aria-label="Steer left">◀</button><button data-drive="right" aria-label="Steer right">▶</button><button data-drive="brake">BRAKE</button></div><div><button data-drive="airbrake">SLIP</button><button data-drive="boost">BOOST</button><button data-drive="throttle">GO</button></div></div><div class="review-tag">FIRST LEVEL <span>02 / HALCYON</span></div>`;
+ <div id="touch" class="hidden"><div><button data-drive="left" aria-label="Steer left">◀</button><button data-drive="right" aria-label="Steer right">▶</button><button data-drive="brake">BRAKE</button></div><div><button data-drive="airbrake">SLIP</button><button data-drive="boost">BOOST</button><button data-drive="throttle">GO</button></div></div><div class="review-tag"><span></span></div>`;
   const $ = (id) => root.querySelector('#' + id);
   const pausePanel = $('pause-panel');
   pausePanel.setAttribute('role', 'dialog');
@@ -34,46 +35,57 @@ export function createUI(
       first.focus();
     }
   };
-  const blockout = track.review?.kind === 'bare-track';
-  const nacre = track.id.startsWith('nacre-');
-  const orbital = !!track.review;
-  if (orbital) {
-    root.classList.add('blockout-review');
-    root.classList.toggle('orbital-production', !blockout);
-    root.querySelector('.edition').innerHTML = blockout
-      ? '<i></i> SHAPE REVIEW <span>LEVEL 02 / BARE TRACK</span>'
-      : '<i></i> ASTERION DOCKYARD <span>ORBITAL CIRCUIT / 02</span>';
-    const panel = $('title-panel');
-    panel.querySelector('.eyebrow').textContent = blockout
-      ? 'LEVEL 02 · EARLY HUMAN CHECKPOINT'
-      : 'HIGH ORBIT · COMMISSIONING RUN';
-    panel.querySelector('h1').innerHTML = 'ASTERION<br><em>ORBITAL.</em>';
-    panel.querySelector('.intro').textContent = blockout
-      ? 'Grade the shape, elevation and rhythm above the planet. Bare track first; the shipyard and full art pass follow your approval.'
-      : 'A living world below. Open space ahead. Race the Kestrel through Asterion’s crown decks and orbital shipyards.';
-    panel.querySelector('.small').textContent = blockout
-      ? 'Choose a whole-track view, drive the full circuit, or start parked at any section. W / ↑ to accelerate. Same 0.3 bend assistance as Halcyon.'
-      : 'Bank along the planetary limb. Climb through the yards. Brake before the final docking turn. W / ↑ to accelerate.';
-    $('start').innerHTML = blockout
-      ? 'DRIVE FULL CIRCUIT <span>↗</span>'
-      : 'ENTER ORBITAL CIRCUIT <span>↗</span>';
-    $('inspect').classList.toggle('hidden', blockout);
-    root.querySelector('.section-name > span').textContent =
-      track.name.toUpperCase();
-    root.querySelector('.review-tag').innerHTML = blockout
-      ? 'BARE TRACK <span>02 / HUMAN SHAPE REVIEW</span>'
-      : 'ASTERION <span>02 / ORBITAL SHIPYARD</span>';
-    $('home').textContent = blockout
-      ? 'RETURN TO TRACK OVERVIEW'
-      : 'RETURN TO ORBITAL PADDOCK';
+  const review = metadata.review;
+  const copy = { ...metadata.ui, ...(blockout ? metadata.ui.shape : {}) };
+  const panel = $('title-panel');
+  root.classList.toggle('has-review', Boolean(review));
+  root.classList.toggle('compact-paddock', Boolean(copy.compact) && !blockout);
+  root.classList.toggle('stacked-review', Boolean(copy.stackedReview));
+  root.classList.toggle('low-notice', Boolean(copy.lowNotice));
+  const editionDetail = document.createElement('span');
+  editionDetail.textContent = blockout ? 'BARE TRACK' : copy.subtitle;
+  root
+    .querySelector('.edition')
+    .replaceChildren(
+      document.createElement('i'),
+      document.createTextNode(
+        blockout ? ' SHAPE REVIEW ' : ` ${copy.edition} `,
+      ),
+      editionDetail,
+    );
+  panel.querySelector('.eyebrow').textContent = copy.eyebrow;
+  const emphasis = document.createElement('em');
+  emphasis.textContent = copy.heading[1];
+  panel
+    .querySelector('h1')
+    .replaceChildren(
+      document.createTextNode(copy.heading[0]),
+      document.createElement('br'),
+      emphasis,
+    );
+  panel.querySelector('.intro').textContent = copy.intro;
+  panel.querySelector('.small').textContent = copy.detail;
+  $('start').firstChild.textContent =
+    `${blockout ? 'DRIVE FULL CIRCUIT' : copy.start} `;
+  $('inspect').classList.toggle('hidden', blockout);
+  root.querySelector('.section-name > span').textContent =
+    metadata.name.toUpperCase();
+  const tagDetail = document.createElement('span');
+  tagDetail.textContent = blockout ? 'ROUTE STUDY' : copy.tagDetail;
+  root
+    .querySelector('.review-tag')
+    .replaceChildren(document.createTextNode(copy.tag), tagDetail);
+  if (review) {
     const controls = document.createElement('section');
     controls.id = 'shape-controls';
     controls.setAttribute('aria-label', 'Circuit views and practice sections');
-    controls.innerHTML = `<button id="review-toggle" aria-expanded="true">CIRCUIT VIEWS <span>−</span></button><div id="review-options"><div class="shape-views" aria-label="Whole-track views"><button data-overview="perspective">3D VIEW</button><button data-overview="top">TOP</button><button data-overview="profile">PROFILE</button></div><div class="shape-jump"><label for="review-section">PRACTICE SECTION</label><select id="review-section"></select><button id="review-drive">DRIVE SECTION ↗</button></div><a href="/">RETURN TO HALCYON</a></div>`;
+    controls.innerHTML = `<button id="review-toggle" aria-expanded="true">CIRCUIT VIEWS <span>−</span></button><div id="review-options"><div class="shape-views" aria-label="Whole-track views"><button data-overview="perspective">3D VIEW</button><button data-overview="top">TOP</button><button data-overview="profile">PROFILE</button></div><div class="shape-jump"><label for="review-section">PRACTICE SECTION</label><select id="review-section"></select><button id="review-drive">DRIVE SECTION ↗</button></div></div>`;
     root.append(controls);
     for (const section of track.sections) {
+      const scenario = `${section.id}-showcase`;
+      if (!track.scenarios[scenario] && !runtimeScenarios[scenario]) continue;
       const option = document.createElement('option');
-      option.value = `${section.id}-showcase`;
+      option.value = scenario;
       option.textContent = `${section.name} · ${((section.showcase ?? section.start) / 1000).toFixed(2)} km`;
       $('review-section').append(option);
     }
@@ -83,41 +95,39 @@ export function createUI(
     $('review-drive').onclick = () =>
       actions.reviewSection($('review-section').value);
     $('review-toggle').onclick = () => {
-      const open = $('review-options').classList.toggle('hidden') === false;
+      const open = !$('review-options').classList.toggle('hidden');
       $('review-toggle').setAttribute('aria-expanded', String(open));
       $('review-toggle').querySelector('span').textContent = open ? '−' : '+';
     };
-
-    if (nacre) {
-      root.classList.add('nacre-review');
-      root.querySelector('.edition').innerHTML =
-        '<i></i> NACRE TEMPEST <span>OCEAN CIRCUIT / 03</span>';
-      panel.querySelector('.eyebrow').textContent =
-        'NACRE TEMPEST · DEVELOPMENT REVIEW';
-      panel.querySelector('h1').innerHTML = 'BENEATH<br><em>THE STORM.</em>';
-      panel.querySelector('.intro').textContent =
-        'Two real leaps. A luminous ocean below. Race the Kestrel through storm causeways and submerged trenches.';
-      panel.querySelector('.small').textContent =
-        'Build speed and align before each gap. A missed landing recovers beyond the jump after 1.5 seconds; the delay counts in your valid lap. W to resume. R remains a manual reset and invalidates the lap.';
-      $('start').innerHTML = 'ENTER NACRE CIRCUIT <span>↗</span>';
-      root.querySelector('.review-tag').innerHTML =
-        'NACRE TEMPEST <span>03 / GATE 4.1 REVIEW</span>';
-      $('home').textContent = 'RETURN TO NACRE OVERVIEW';
-    }
-  } else {
-    const link = document.createElement('a');
-    link.className = 'orbital-access';
-    link.href = '/?level=orbital';
-    link.textContent = 'ASTERION ORBITAL CIRCUIT ↗';
-    $('title-panel').append(link);
   }
-  if (!nacre) {
-    const link = document.createElement('a');
-    link.className = 'orbital-access';
-    link.href = '/?level=nacre';
-    link.textContent = 'NACRE TEMPEST CIRCUIT ↗';
-    $('title-panel').append(link);
+  const currentCircuit = metadata.id;
+  const picker = document.createElement('form');
+  picker.className = 'circuit-picker';
+  picker.setAttribute('aria-label', 'Choose a circuit');
+  picker.innerHTML = `<label for="circuit-select">CIRCUIT</label><select id="circuit-select" name="level"></select><button id="circuit-load" type="submit" disabled>LOAD ↗</button>`;
+  $('title-panel').prepend(picker);
+  for (const circuit of circuits) {
+    const option = document.createElement('option');
+    option.value = circuit.id;
+    option.textContent = circuit.name;
+    $('circuit-select').append(option);
   }
+  $('circuit-select').value = currentCircuit;
+  $('circuit-select').onchange = () => {
+    $('circuit-load').disabled = $('circuit-select').value === currentCircuit;
+  };
+  picker.onsubmit = (event) => {
+    event.preventDefault();
+    const selected = $('circuit-select').value;
+    if (
+      selected === currentCircuit ||
+      !circuits.some((circuit) => circuit.id === selected)
+    )
+      return;
+    // Enter the selected paddock without carrying another circuit's review
+    // scenario or opt-in gameplay features into the new session.
+    location.assign(circuitURL(location.href, selected));
+  };
   if (Object.keys(runtimeScenarios).length) {
     let select = $('review-section');
     if (!select) {
@@ -218,12 +228,18 @@ export function createUI(
         'whole-route-view',
         mode === 'overview' || (blockout && mode === 'title'),
       );
+      const reviewControls = $('shape-controls');
+      if (reviewControls) {
+        const stacked =
+          copy.stackedReview && root.classList.contains('whole-route-view');
+        (stacked ? $('title-panel') : root).append(reviewControls);
+      }
       $('shape-controls')?.classList.toggle(
         'hidden',
         mode === 'paused' || mode === 'inspection',
       );
-      if (orbital) {
-        const expanded = mode !== 'racing';
+      if (review) {
+        const expanded = mode !== 'racing' && innerWidth > 760;
         $('review-options').classList.toggle('hidden', !expanded);
         $('review-toggle').setAttribute('aria-expanded', String(expanded));
         $('review-toggle').querySelector('span').textContent = expanded

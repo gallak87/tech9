@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "updatedAt": "2026-09-29",
-  "phase": "awaiting_user_playtest_discussion",
+  "phase": "shared_foundation_cleanup",
   "handoffOnly": false,
   "newChatsCreated": 0,
   "launchAuthorizedAfterPrerequisites": true,
@@ -14,7 +14,7 @@
     "state": "nacre_merged",
     "sourceRevision": "1060550b159c479d182505830691f56ab9067965",
     "userCompletionSignalReceived": true,
-    "next": "Discuss user playtest feedback, then complete reuse review and verify the shared foundation before dispatch."
+    "next": "Discuss geometry-helper extraction (cleanup item 4), then finish shared helpers, validation and foundation packaging before dispatch."
   },
   "reuseReview": {
     "state": "preliminary_complete_final_review_pending",
@@ -22,7 +22,7 @@
     "source": "Merged shared revision 1060550b159c479d182505830691f56ab9067965"
   },
   "foundation": {
-    "state": "track_checks_prepared_loader_not_implemented",
+    "state": "loader_lifecycle_metadata_verified_remaining_foundation_work_pending",
     "provisionalBase": "1060550b159c479d182505830691f56ab9067965",
     "selectedBase": null,
     "preparationWorktree": "/Users/g/.codex/worktrees/level-expansion/tech9",
@@ -33,7 +33,10 @@
     ],
     "toolingChecks": "134 tests, lint/build, read-only Nacre track check passed",
     "verified": false,
-    "preparationBase": "1dfff69100b6d4df2e82253c5f3754aba3367c3b"
+    "preparationBase": "1dfff69100b6d4df2e82253c5f3754aba3367c3b",
+    "implementationWorktree": "/Users/g/code/scratch/tech9",
+    "implementationBase": "504c1451afa4f456ed5171882a36e07bb5c9d6e4",
+    "implementationChecks": "207 tests; lint/build; all six approved route/mode combinations plus disposable production/shape fixture; high/low, controls, review, pause/reset, asset isolation, error cleanup and repeated disposal passed in hidden Chrome."
   },
   "documentsToCopy": [
     "games/vector-nova/AGENTS.md",
@@ -52,11 +55,11 @@
     "externalEvidenceAloneDoesNotJustifyRepeatedReviews": true
   },
   "gpu": {
-    "state": "must_reconcile_existing_gate4_owner_before_any_capture",
+    "state": "idle_recheck_coordinator_before_capture",
     "owner": null,
     "queue": [],
     "existingCoordinatorState": "/Users/g/code/scratch/tech9/games/vector-nova/.experiments/gate4-server-owner/state.json",
-    "lastKnownExistingOwner": "4.1",
+    "lastKnownExistingOwner": null,
     "concurrentCaptureLimit": 1
   },
   "existingPortsToPreserve": [5179, 5180, 5191, 5192, 5193, 5194, 5195, 5196],

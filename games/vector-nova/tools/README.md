@@ -1,30 +1,9 @@
-# First-level verification
+# Verification tools
 
-From the application directory, `npm test` runs physics, camera, track, lap-order
-and audio lifecycle checks. `npm run verify` starts/reuses port 5179, waits for
-runtime readiness and exercises real keyboard controls. Screenshot sequences,
-snapshots, input logs, environment details and pass/fail results go to ignored
-`.experiments/`. No video recording or playback is used.
+Run `npm test` for all circuits' numerical checks: magnetic handling, Nacre flight, devices, camera composition, track frames/clearance, replay, catalog loading and resource lifecycle. `npm run lint` checks source and formatting; `npm run build` produces the shared application.
 
-For the production application, start `npm run preview`, then run:
+Browser harnesses are circuit-specific. `npm run verify` covers baseline Halcyon controls; `npm run verify:orbital` covers Asterion. The `gate4-1-*` and `gate4-2-*` tools retain Nacre and Halcyon-device checks. Read a harness's options before using it; passing another level URL does not make its assertions generic.
 
-```sh
-VN_URL=http://127.0.0.1:5180 npm run verify
-VN_URL=http://127.0.0.1:5180 node tools/lap-run.mjs
-```
+Use `VN_URL` to target the intended existing preview. Verify the served build and coordinate the exclusive GPU slot before opening a browser. Keep checks hidden/headless and use short real-input segments plus fast numerical traversal/replay checks. `lap-run.mjs` is a legacy real-time full-lap driver; run it only when the user explicitly requests that check. No unsolicited videos or reference playback.
 
-The second command drives one complete circuit with actual keyboard events and a
-feedback controller confined to this verification tool. It allows 110 seconds,
-captures section stills, checks a valid lap and compares the recorded fixed-step
-replay with its original final state. It does not evaluate human driving feel.
-The game does not import this driver.
-
-`VN_EVIDENCE` selects the output directory. The main harness accepts
-`VN_BROWSER_PATH` or `VN_BROWSER_CHANNEL`; otherwise it prefers installed macOS
-Chrome, falling back to Playwright Chromium. Keep sessions hidden/headless under
-the user's review preference. Browser launch may need shell sandbox permission.
-The harness keeps any development server it starts running.
-
-Capture timings include overhead. Headless results and responsive viewport
-screenshots do not establish foreground performance, physical mobile/gamepad
-support or audible sound quality. Independent timing runs omit screenshots.
+`VN_EVIDENCE` selects ignored output; the main harness accepts `VN_BROWSER_PATH` or `VN_BROWSER_CHANNEL`. Raw captures/reports belong in `.experiments/`. Preserve servers owned by other sessions and close the verification browser afterward. Hidden timings and viewport checks do not establish foreground performance, physical-device support or audible quality.

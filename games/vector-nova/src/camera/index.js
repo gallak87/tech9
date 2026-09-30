@@ -1,5 +1,12 @@
 import * as T from 'three';
-export function createCameraRig(camera) {
+export function createCameraRig(
+  camera,
+  {
+    preserveFlightView = false,
+    portraitAspect = 0,
+    maxPortraitScale = 1.5,
+  } = {},
+) {
   let initialized = false;
   const previousAnchor = new T.Vector3();
   const previousFrame = new T.Quaternion();
@@ -25,7 +32,6 @@ export function createCameraRig(camera) {
       { mode = 'chase', reducedMotion = false, worldPose = null } = {},
     ) {
       const worldMotion = !!worldPose && !worldPose.grounded;
-      const nacre = track.id?.startsWith('nacre-');
       const f = worldMotion
         ? {
             position: worldPose.position.clone(),
@@ -44,7 +50,7 @@ export function createCameraRig(camera) {
             .addScaledVector(f.right, state.lateral)
             .addScaledVector(f.up, 0.72);
       const changedSource = initialized && worldMotion !== previousWorldMotion;
-      if (nacre && mode === 'chase' && changedSource) {
+      if (preserveFlightView && mode === 'chase' && changedSource) {
         const inverse = f.quaternion.clone().invert();
         const carriedView = {
           offset: camera.position
@@ -120,7 +126,7 @@ export function createCameraRig(camera) {
       // Translation alone leaves the eye lagging inside a steep crest/pullout;
       // blending up vectors can collapse when the road turns upside down.
       if (initialized && mode === 'chase') {
-        if (nacre && changedSource) {
+        if (preserveFlightView && changedSource) {
           // Road frames are anchored on the centerline, flight frames on the
           // craft itself. Compare craft anchors at the handoff: subtracting one
           // frame origin from the other injects the entire lane offset sideways.
@@ -173,11 +179,14 @@ export function createCameraRig(camera) {
       camera.up.copy(localUp).applyQuaternion(camera.quaternion);
       const baseFov =
         61 + (reducedMotion ? 0 : Math.min(state.speed / 157, 1) * 7);
-      // Keep the Nacre craft above telemetry in narrow portrait viewports.
-      // Preserve the approved circuits and every landscape chase projection.
-      const portraitScale = track.id?.startsWith('nacre-')
-        ? Math.min(1.5, Math.max(1, 0.64 / camera.aspect))
-        : 1;
+      // A level can opt into more vertical room in narrow portrait viewports.
+      const portraitScale =
+        portraitAspect > 0
+          ? Math.min(
+              maxPortraitScale,
+              Math.max(1, portraitAspect / camera.aspect),
+            )
+          : 1;
       const fov =
         portraitScale === 1
           ? baseFov

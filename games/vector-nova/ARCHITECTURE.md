@@ -6,6 +6,7 @@ Standalone Vite + Three.js ES modules, WebGL2, PBR/ACES and sRGB output. No repo
 
 | Module                 | Responsibility                                                                  |
 | ---------------------- | ------------------------------------------------------------------------------- |
+| levels                 | Validated discovery, per-level factories, metadata and presentation adapters    |
 | core                   | Boot/readiness, fixed-step session, replay, mode changes and teardown           |
 | track                  | Renderer-independent route/frame model; shape and production road geometry      |
 | environment / renderer | World content; sky, light, reflections, postprocessing and resource metrics     |
@@ -15,7 +16,7 @@ Standalone Vite + Three.js ES modules, WebGL2, PBR/ACES and sRGB output. No repo
 | audio / effects        | Event-driven presentation; failure must not stop simulation                     |
 | pickups/halcyon        | Explicit opt-in adapter, deterministic devices and owned presentation           |
 
-Shared changes have one integrator; level builders own their assigned files. The generic expansion loader is not implemented yet. Its [contract requirements](docs/EXPANSION_LEVEL_CONTRACT.md) are provisional.
+Shared changes have one integrator; level builders own their assigned files. `src/levels/` discovers asset-free metadata eagerly and imports only the selected implementation. Its [level API](docs/EXPANSION_LEVEL_CONTRACT.md) defines factories, presentation and ownership; unknown or malformed levels fail visibly.
 
 ## Route, coordinates and handling
 
@@ -52,7 +53,7 @@ Camera damping follows transport through the road frame, with quaternion rotatio
 
 ## Lifecycle and verification
 
-One owner releases each geometry, material, texture, listener, audio node and animation callback. Await owned assets and shader warmup before setting ready. Dispose must be idempotent; failed boot should show a useful reload error. Audio/storage failure stays recoverable, and context loss pauses.
+One owner releases each geometry, material, texture, listener, audio node and animation callback. `createLifetime` unwinds owners in reverse order on shutdown or failed boot; inspection owns only its floor/ring, and level components borrow renderer probes/sky textures. The shared presentation controller updates road, environment and backdrop once per frame, supplies zero dt outside racing and propagates resets. Camera flight/portrait behavior uses explicit descriptor options. Await owned assets and shader warmup before setting ready. Dispose must be idempotent; failed boot should show a useful reload error. Audio/storage failure stays recoverable, and context loss pauses.
 
 `window.__VN` exposes readiness, snapshots/metrics, named scenarios, camera selection, start/pause/restart, replay and disposal for verification. Scenario placement is deterministic setup, not autopilot. Runtime metrics distinguish source geometry from drawn multipass totals.
 
@@ -60,7 +61,7 @@ Targets per active level: ≤1,000 drawn calls, ≤2M drawn triangles, ≤512 Mi
 
 ## Nacre flight, water and moving scenery
 
-The Nacre runtime owns ballistic flight, bounded air control and swept receiving-road/rail contact. Landing coverage is derived from the accepted70%-through-boost launch envelope, including long receiving straights. Sweep the hull between ticks to prevent tunnelling; accept only the authored road and orientation. A forgiving half-width rail catch deflects the craft inward with one small penalty. Automatic recovery credits only its validated jump interval; ordinary manual recovery stays invalidating.
+The Nacre runtime owns ballistic flight, bounded air control and swept receiving-road/rail contact. Landing coverage is derived from the accepted 70%-through-boost launch envelope, including long receiving straights. Sweep the hull between ticks to prevent tunnelling; accept only the authored road and orientation. A forgiving half-width rail catch deflects the craft inward with one small penalty. Automatic recovery credits only its validated jump interval; ordinary manual recovery stays invalidating.
 
 Keep craft, road and camera origins consistent at takeoff and landing. Transport the previous camera relative to the craft anchor, not between mismatched road-centre/world-pose origins; otherwise off-centre launches visibly jump sideways. Preserve the actual contact pose, then settle height/attitude smoothly. Both live input and replay consume the same advance routine and rules identity.
 

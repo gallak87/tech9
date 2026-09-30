@@ -133,6 +133,51 @@ button.primary:hover {
   left: 6vw;
   max-width: 510px;
 }
+#title-panel {
+  top: var(--paddock-top, 25vh);
+  max-height: calc(100dvh - var(--paddock-top, 25vh) - 82px);
+  overflow-y: auto;
+  pointer-events: auto;
+  padding: 6px;
+  margin: -6px;
+}
+.circuit-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  width: 100%;
+  max-width: 340px;
+  margin: 0 0 22px;
+}
+.circuit-picker label {
+  grid-column: 1 / -1;
+  font-size: 9px;
+  letter-spacing: 0.17em;
+  color: #c9d4d3;
+}
+.circuit-picker select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid #ffffff50;
+  background: #14222e;
+  color: #edf0e9;
+  font: inherit;
+  font-size: 12px;
+  color-scheme: dark;
+}
+.circuit-picker button {
+  min-height: 44px;
+  padding: 10px 12px;
+  font-size: 10px;
+}
+.circuit-picker button:disabled {
+  opacity: 0.4;
+  cursor: default;
+  background: #122029ba;
+  border-color: #ffffff35;
+}
 .eyebrow {
   font-size: 9px;
   letter-spacing: 0.2em;
@@ -484,6 +529,9 @@ select {
     left: 7vw;
     max-width: 85vw;
   }
+  #title-panel {
+    --paddock-top: 21vh;
+  }
   h1 {
     font-size: 60px;
   }
@@ -611,6 +659,9 @@ select {
   .panel {
     top: 20%;
   }
+  #title-panel {
+    --paddock-top: 20vh;
+  }
   .panel h1 {
     font-size: 48px;
     margin-bottom: 14px;
@@ -706,30 +757,30 @@ select {
 }
 
 /* Deliberately small review shell; the actual road remains the subject. */
-#interface.blockout-review {
+#interface.has-review {
   background: none;
 }
-.blockout-review #title-panel {
-  top: 140px;
+.has-review #title-panel {
+  --paddock-top: 140px;
   left: 4vw;
   width: 310px;
   max-width: 310px;
 }
-.blockout-review #title-panel h1 {
+.has-review #title-panel h1 {
   font-size: 47px;
   line-height: 0.95;
   margin: 14px 0 20px;
 }
-.blockout-review #title-panel .intro {
+.has-review #title-panel .intro {
   font-size: 14px;
   line-height: 1.6;
   margin-bottom: 20px;
 }
-.blockout-review .track-facts {
+.has-review .track-facts {
   margin: 18px 0;
   gap: 20px;
 }
-.blockout-review #title-panel .small {
+.has-review #title-panel .small {
   font-size: 12px;
   line-height: 1.65;
 }
@@ -779,30 +830,30 @@ select {
   color: #dbe5e2;
   letter-spacing: 0.05em;
 }
-.blockout-review.driving #shape-controls {
+.has-review.driving #shape-controls {
   top: 160px;
   bottom: auto;
 }
-.blockout-review.driving #shape-controls a {
+.has-review.driving #shape-controls a {
   display: none;
 }
-.blockout-review #minimap {
+.has-review #minimap {
   top: 390px;
 }
 @media (max-width: 760px), (max-height: 700px) {
-  .blockout-review #title-panel {
-    top: 90px;
+  .has-review #title-panel {
+    --paddock-top: 90px;
     width: 230px;
   }
-  .blockout-review #title-panel h1 {
+  .has-review #title-panel h1 {
     font-size: 32px;
     margin: 8px 0;
   }
-  .blockout-review #title-panel .intro {
+  .has-review #title-panel .intro {
     font-size: 12px;
   }
-  .blockout-review #title-panel .small,
-  .blockout-review .track-facts {
+  .has-review #title-panel .small,
+  .has-review .track-facts {
     display: none;
   }
   #shape-controls {
@@ -811,16 +862,17 @@ select {
   }
 }
 @media (max-width: 760px) {
-  .blockout-review #minimap {
+  .has-review #minimap {
     top: 175px;
   }
-  .blockout-review.shape-overview #title-panel .intro {
+  .has-review.shape-overview #title-panel .intro {
     display: none;
   }
-  .blockout-review #title-panel {
-    top: 75px;
+  .has-review #title-panel {
+    --paddock-top: 75px;
+    max-height: calc(100dvh - var(--paddock-top) - 150px);
   }
-  .blockout-review.driving #shape-controls {
+  .has-review.driving #shape-controls {
     top: 175px;
     left: 4vw;
     right: auto;
@@ -829,14 +881,14 @@ select {
     max-height: calc(100dvh - 195px);
     overflow-y: auto;
   }
-  .blockout-review.driving .shape-jump,
-  .blockout-review.driving #shape-controls a {
+  .has-review.driving .shape-jump,
+  .has-review.driving #shape-controls a {
     display: none;
   }
-  .blockout-review.driving .shape-views {
+  .has-review.driving .shape-views {
     margin: 0;
   }
-  .orbital-production.driving .shape-jump {
+  .compact-paddock.driving .shape-jump {
     display: grid;
     margin-top: 12px;
   }
@@ -857,14 +909,14 @@ select {
   .driving #legend {
     display: none;
   }
-  .blockout-review.driving #shape-controls {
+  .has-review.driving #shape-controls {
     top: 170px;
     width: 220px;
     padding: 8px;
     max-height: calc(100dvh - 190px);
     overflow-y: auto;
   }
-  .blockout-review #minimap {
+  .has-review #minimap {
     top: 170px;
     left: 4vw;
     right: auto;
@@ -882,36 +934,29 @@ select {
     padding: 10px;
   }
 }
-#interface.orbital-production:not(.driving) {
+#interface.compact-paddock:not(.driving) {
   background: linear-gradient(90deg, #06121ce6, #06121c60 38%, transparent 65%);
 }
-.orbital-production .actions {
+.compact-paddock .actions {
   gap: 8px;
 }
-.orbital-production #title-panel {
-  top: 23vh;
+.compact-paddock #title-panel {
+  --paddock-top: 23vh;
   width: 330px;
   max-width: 330px;
 }
-.orbital-production #title-panel h1 {
+.compact-paddock #title-panel h1 {
   font-size: 55px;
 }
-.orbital-access {
-  display: inline-block;
-  color: #e8cba8;
-  margin-top: 14px;
-  font-size: 12px;
-  letter-spacing: 0.09em;
-}
-.orbital-production #shape-controls {
+.compact-paddock #shape-controls {
   border-color: #e2c5a445;
 }
 @media (max-width: 760px), (max-height: 700px) {
-  .orbital-production #title-panel {
-    top: 15vh;
+  .compact-paddock #title-panel {
+    --paddock-top: max(86px, 15vh);
     width: 230px;
   }
-  .orbital-production #title-panel h1 {
+  .compact-paddock #title-panel h1 {
     font-size: 32px;
   }
 }
@@ -968,7 +1013,7 @@ select {
 
 /* Compact landscape keeps the map clear of speed and reserve telemetry. */
 @media (max-height: 570px) and (min-width: 761px) {
-  #interface.driving:not(.blockout-review) #minimap {
+  #interface.driving:not(.has-review) #minimap {
     top: 145px;
     left: auto;
     right: 4vw;
@@ -978,23 +1023,24 @@ select {
   }
 }
 
-/* Nacre route review keeps readable controls beside the fitted circuit. */
-.nacre-review.whole-route-view #title-panel {
+/* Optional stacked review layout keeps controls beside the fitted circuit. */
+.stacked-review.whole-route-view #title-panel {
   padding: 18px;
   background: #102732eb;
   border: 1px solid #bdd4d34d;
 }
-.nacre-review.whole-route-view #title-panel .small {
+.stacked-review.whole-route-view #title-panel .small {
   display: none;
 }
-.nacre-review.whole-route-view #shape-controls {
-  left: 4vw;
-  right: auto;
-  bottom: 78px;
+.stacked-review.whole-route-view #shape-controls {
+  position: static;
+  width: 100%;
+  max-height: none;
+  margin-top: 18px;
 }
 @media (min-width: 761px) and (min-height: 701px) {
-  .nacre-review.whole-route-view #title-panel {
-    top: 110px;
+  .stacked-review.whole-route-view #title-panel {
+    --paddock-top: 110px;
   }
 }
 
@@ -1007,9 +1053,9 @@ select {
   }
 }
 
-/* Keep Nacre's post-landing notice below the timing row in short landscapes. */
+/* Opt-in notice placement below the timing row in short landscapes. */
 @media (max-height: 570px) and (orientation: landscape) {
-  .nacre-review #notice {
+  .low-notice #notice {
     top: max(148px, 30%);
     width: min(300px, calc(100vw - 280px));
     padding: 5px 8px;

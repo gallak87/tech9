@@ -49,6 +49,8 @@ The [common brief](../../EXPANSION_HANDOFF.md) defines resource limits, ownershi
 
 ## Production and review
 
+Prefer [imagegen concepts as Blender references](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for distinctive modeled assets.
+
 Follow the [shared production/critic loop](../../EXPANSION_HANDOFF.md): internal shape checks, full production, one independent counter capped at eight, then final human review. The initial critique counts; stop at the first verified pass or cap. Use the level-specific checks below alongside shared control/lifecycle regressions.
 
 ## Acceptance on the actual production build

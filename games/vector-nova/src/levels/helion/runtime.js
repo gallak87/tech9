@@ -32,7 +32,7 @@ export function createHelionRuntime(context, telemetry = {}) {
   const { track } = context;
   let heat = 0,
     disposed = false;
-  const rulesId = `helion-thermal-flight-v1:${JSON.stringify({ geometry: track.geometryVersion, heat: HELION_HEAT_RULES, flight: flightModel.rules, jumps: track.jumps, zones: track.thermalZones })}`;
+  const rulesId = `helion-thermal-flight-v2:${JSON.stringify({ geometry: track.geometryVersion, heat: HELION_HEAT_RULES, flight: flightModel.rules, jumps: track.jumps, zones: track.thermalZones })}`;
   const scenarios = Object.fromEntries(
     Object.entries(track.scenarios).map(([name, state]) => [
       name,
@@ -55,7 +55,7 @@ export function createHelionRuntime(context, telemetry = {}) {
     };
   const base = flightModel.createRuntime(context, {
     id: 'helion-thermal-flight',
-    version: 1,
+    version: 2,
     rulesId,
     scenarios,
     shouldLaunch: helionShouldLaunch,
@@ -71,7 +71,7 @@ export function createHelionRuntime(context, telemetry = {}) {
       state.distance,
       state.lateral,
       state.time,
-      { airborne: flightMode === 'flight' },
+      { airborne: flightMode !== 'magnetic' },
     );
     let warning = sample.warning;
     const s = wrapped(state.distance, track.length);
@@ -104,7 +104,7 @@ export function createHelionRuntime(context, telemetry = {}) {
           state.distance,
           state.lateral,
           state.time,
-          { airborne: flightMode === 'flight' },
+          { airborne: flightMode !== 'magnetic' },
         );
         const before = heat;
         events.push(...base.advance(state, input, step));

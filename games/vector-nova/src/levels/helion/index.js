@@ -8,7 +8,7 @@ import { createHelionOverlay } from './overlay.js';
 export default function createLevel({ shape = false } = {}) {
   const telemetry = {};
   return {
-    version: '0.5.0-helion-thermal-v1',
+    version: '0.5.1-helion-thermal-v2',
     renderer: {
       world: shape ? 'helion-shape' : 'helion-flare',
       background: '#090e19',

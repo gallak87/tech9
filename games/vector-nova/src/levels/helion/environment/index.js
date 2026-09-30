@@ -58,6 +58,7 @@ export async function createHelionEnvironment(
   );
   const clearance = createRouteClearance(track, { localVertical: [-14, 22] });
   const placements = [];
+  const airborneCover = [];
   const lamps = [];
   const bodies = [];
   const geometry = new T.BoxGeometry(1, 1, 1);
@@ -284,9 +285,17 @@ export async function createHelionEnvironment(
       }
     }
     for (const jump of track.jumps ?? []) {
-      const count = Math.ceil((jump.landingStart - jump.takeoff + 140) / 45);
+      const start = jump.takeoff - 60;
+      const end = jump.landingEnd + 40;
+      // At the outer 15 m driving edge the tapered roof still has at least
+      // 42 m longitudinal coverage. A <=34 m pitch leaves physical overlap,
+      // including through the full fast-flight landing envelope.
+      const count = Math.ceil((end - start) / 34);
+      const pitch = (end - start) / count;
+      const intervals = [];
       for (let i = 0; i < count; i++) {
-        const s = jump.takeoff - 45 + i * 45;
+        const s = start + (i + 0.5) * pitch;
+        intervals.push({ start: s - 21, end: s + 21 });
         const frame = track.sample(s);
         const cover = clone('JumpCanopy');
         cover.name = `${jump.id} / shielded airborne corridor`;
@@ -295,6 +304,13 @@ export async function createHelionEnvironment(
         cover.scale.set(0.77, 1.1, 0.67);
         group.add(cover);
       }
+      airborneCover.push({
+        id: jump.id,
+        start,
+        end,
+        minimumUndersideUp: 32.69,
+        intervals,
+      });
     }
     const flareDefinitions = [
       {
@@ -389,6 +405,7 @@ export async function createHelionEnvironment(
     modelPlacements: placements.length,
     source: URL,
     placements,
+    airborneCover,
     meshCount: 0,
     triangles: 0,
   };

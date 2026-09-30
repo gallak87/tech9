@@ -46,7 +46,7 @@ export function createHelionOverlay(host, telemetry) {
   let layoutKey = '';
   function place(width, height, short, portrait) {
     const notice = host.querySelector('#notice');
-    const key = `${width}:${height}:${notice?.textContent}:${host.querySelector('#review-toggle')?.getAttribute('aria-expanded')}`;
+    const key = `${width}:${height}:${element.offsetHeight}:${notice?.textContent}:${host.querySelector('#review-toggle')?.getAttribute('aria-expanded')}`;
     if (key === layoutKey) return;
     layoutKey = key;
     const own = element.getBoundingClientRect();

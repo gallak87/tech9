@@ -42,6 +42,43 @@ test('Helion modeled world stays bounded, deterministic across presets, and rele
   assert.ok(world.metrics.meshCount < 130, JSON.stringify(world.metrics));
   assert.ok(world.metrics.triangles < 900000);
   assert.equal(world.metrics.modelPlacements, 23);
+  world.group.updateMatrixWorld(true);
+  const ray = new T.Raycaster();
+  ray.near = 0;
+  ray.far = 22;
+  for (const jump of track.jumps) {
+    const cover = world.metrics.airborneCover.find(
+      (entry) => entry.id === jump.id,
+    );
+    assert.ok(cover.start <= jump.takeoff - 50);
+    assert.ok(cover.end >= jump.landingEnd + 30);
+    assert.ok(cover.minimumUndersideUp > 24 + 8);
+    for (let i = 1; i < cover.intervals.length; i++)
+      assert.ok(cover.intervals[i].start < cover.intervals[i - 1].end);
+    // Check real exported roof geometry from above the maximum tested flight
+    // apex, across the entire supported landing envelope and jump branch.
+    for (let s = jump.takeoff - 45; s <= jump.landingEnd + 25; s += 8) {
+      const frame = track.sample(s);
+      for (const lateral of [3.5, 8, 14]) {
+        ray.set(
+          frame.position
+            .clone()
+            .addScaledVector(frame.right, lateral)
+            .addScaledVector(frame.up, 24),
+          frame.up,
+        );
+        const hits = ray.intersectObject(world.group, true);
+        assert.ok(
+          hits.length > 0,
+          `Missing physical jump cover: ${jump.id} at ${s}, ${lateral}`,
+        );
+        assert.ok(
+          hits[0].distance + 24 >= 32.65,
+          `Low jump roof: ${jump.id} at ${s}, ${lateral}`,
+        );
+      }
+    }
+  }
   const disposal = new Map();
   for (const root of [loaded.scene, world.group])
     root.traverse((object) => {

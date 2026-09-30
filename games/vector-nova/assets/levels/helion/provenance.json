@@ -27,8 +27,22 @@
     "sourceMeshes": 22,
     "sourceTriangles": 42640,
     "runtimeEnvironmentMeshes": 69,
-    "runtimeEnvironmentTriangles": 183082,
-    "sourceOfCounts": "CPU geometry inspection; not renderer measurements"
+    "runtimeEnvironmentTriangles": 200170,
+    "sourceOfCounts": "CPU geometry inspection; not renderer measurements",
+    "airborneCover": [
+      {
+        "id": "radiator-vault",
+        "start": 527.2133896975457,
+        "end": 949.2329375451686,
+        "roofModules": 13
+      },
+      {
+        "id": "prominence-vault",
+        "start": 2645.5714386912487,
+        "end": 3099.8240468575777,
+        "roofModules": 14
+      }
+    ]
   },
   "authorship": "Original programmatic hard-surface and plasma meshes modeled from the retained scene reference. No third-party geometry or textures. Project-authored original material shaders.",
   "approximations": [
@@ -41,6 +55,15 @@
     "cpuTests": "2 passed: GLB roots and geometry budget, cross-preset moving thermal boundary, exact-once resource disposal, reflection calls/backdrop lifecycle",
     "lint": "assigned environment/backdrop files passed",
     "gpuStatus": "No GPU/browser usage by environment builder; integrated production review pending",
-    "processes": "Blender CPU process exited cleanly; browser never opened"
+    "processes": "Blender CPU process exited cleanly; browser never opened",
+    "canopyCoverage": {
+      "rayCount": 312,
+      "laterals": [3.5, 8, 14],
+      "spacing": 8,
+      "minimumOverheadMetres": 32.69000244140625,
+      "maximumOverheadMetres": 38.596446141984,
+      "flightApexTestedMetres": 24,
+      "coverThrough": "landingEnd+25m checked against exported physical roof geometry"
+    }
   }
 }

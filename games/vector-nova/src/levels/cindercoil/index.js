@@ -34,6 +34,8 @@ export default function createLevel({ shape = false }) {
         cues = createCindercoilCues(context.track, shape);
         const group = new T.Group();
         group.add(world.group, cues.group);
+        group.userData.metrics = world.group.userData.metrics;
+        group.userData.clearanceReport = world.group.userData.clearanceReport;
         return {
           group,
           ready: world.ready,

@@ -1083,3 +1083,101 @@ select {
   opacity: 0;
   background: #d4eaff;
 }
+
+/* Expansion opt-in: disjoint telemetry, map and review regions at short widths. */
+@media (max-height: 570px) and (orientation: landscape) {
+  #interface.compact-landscape.driving .top-telemetry {
+    top: 74px;
+    gap: 22px;
+  }
+  #interface.compact-landscape.driving .lap b {
+    font-size: 32px;
+  }
+  #interface.compact-landscape.driving .timing b {
+    font-size: 23px;
+  }
+  #interface.compact-landscape.driving .timing small {
+    font-size: 8px;
+  }
+  #interface.compact-landscape.driving .section-name {
+    display: none;
+  }
+  #interface.compact-landscape.driving #minimap {
+    top: 76px;
+    left: auto;
+    right: 4vw;
+    bottom: auto;
+    width: 94px;
+    height: 70px;
+  }
+  #interface.compact-landscape.driving .telemetry {
+    bottom: 92px;
+  }
+  #interface.compact-landscape.driving .energy {
+    width: 160px;
+  }
+  #interface.compact-landscape.driving .energy span {
+    font-size: 8px;
+    letter-spacing: 0.08em;
+  }
+  #interface.compact-landscape.driving .energy small {
+    font-size: 8px;
+    line-height: 1.2;
+  }
+  #interface.compact-landscape.driving .speed strong {
+    font-size: 48px;
+  }
+  #interface.compact-landscape.driving .speed {
+    gap: 6px;
+  }
+  #interface.compact-landscape.driving .speed i {
+    font-size: 8px;
+    bottom: -14px;
+  }
+  #interface.compact-landscape.driving #shape-controls {
+    top: 148px;
+    bottom: auto;
+    left: 4vw;
+    right: auto;
+    width: 170px;
+    padding: 6px;
+    max-height: calc(100dvh - 230px);
+    overflow: auto;
+  }
+  #interface.compact-landscape.driving
+    #shape-controls:has(#review-toggle[aria-expanded='true']) {
+    left: calc(50% - 130px);
+    width: 260px;
+  }
+  #interface.compact-landscape.driving #review-toggle {
+    font-size: 10px;
+    padding: 5px 2px;
+  }
+  #interface.compact-landscape.driving .shape-jump {
+    display: grid;
+    margin-top: 8px;
+  }
+  #interface.compact-landscape.driving .shape-views {
+    margin-bottom: 8px;
+  }
+  #interface.compact-landscape.driving #notice {
+    top: auto;
+    bottom: 75px;
+    width: min(260px, calc(100vw - 380px));
+    font-size: 10px;
+    line-height: 1.25;
+    padding: 5px 8px;
+  }
+  #interface.compact-landscape.driving #touch {
+    bottom: 14px;
+  }
+  #interface.compact-landscape.driving #touch button {
+    min-width: 44px;
+    min-height: 48px;
+    padding: 14px 10px;
+  }
+  #interface.compact-landscape.driving #legend,
+  #interface.compact-landscape.driving .review-tag {
+    display: none;
+  }
+}

@@ -158,6 +158,22 @@ try {
     }
   }
   assert.deepEqual(report.errors, []);
+  if (!shape) {
+    const failedPage = await context.newPage();
+    await failedPage.route(
+      '**/assets/levels/zephyr/cathedral-facade.glb',
+      (route) => route.abort('failed'),
+    );
+    await failedPage.goto(
+      `${process.env.VN_URL || 'http://127.0.0.1:5210/'}?level=zephyr`,
+    );
+    await failedPage
+      .locator('.failure')
+      .waitFor({ state: 'visible', timeout: 45000 });
+    assert.equal(await failedPage.locator('canvas#world').count(), 0);
+    report.checks.push({ id: 'zephyr-owned-asset-failure', status: 'pass' });
+    await failedPage.close();
+  }
   report.status = 'passed';
 } catch (error) {
   report.status = 'failed';

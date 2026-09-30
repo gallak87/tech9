@@ -1,0 +1,10 @@
+{
+  "lengthMetres": 180,
+  "materials": 5,
+  "triangles": 25328,
+  "textureCount": 0,
+  "vertexCount": 14079,
+  "blenderVersion": "5.1.1",
+  "runtimeAxis": "GLTF +X head-to-tail, +Y dorsal, +Z starboard",
+  "glbBytes": 546076
+}

@@ -11,7 +11,7 @@ import { createContactShadow } from './contact-shadow.js';
 export async function createRenderer(
   host,
   settings,
-  { orbital = false, blockout = false } = {},
+  { orbital = false, blockout = false, nacre = false } = {},
 ) {
   const renderer = new T.WebGLRenderer({
     antialias: true,
@@ -29,8 +29,25 @@ export async function createRenderer(
   const scene = new T.Scene();
   scene.background = new T.Color(orbital ? '#03070d' : '#77899d');
   scene.fog = orbital ? null : new T.FogExp2('#8195af', 0.00025);
-  const backdrop =
-    orbital && !blockout
+  let nacreSkyTexture = null;
+  if (nacre && !blockout) {
+    nacreSkyTexture = await new T.TextureLoader().loadAsync(
+      '/assets/level3/nacre-storm-sky-v1.png',
+    );
+    nacreSkyTexture.colorSpace = T.SRGBColorSpace;
+    nacreSkyTexture.wrapS = T.RepeatWrapping;
+    nacreSkyTexture.minFilter = T.LinearMipmapLinearFilter;
+    nacreSkyTexture.magFilter = T.LinearFilter;
+    nacreSkyTexture.generateMipmaps = true;
+  }
+  const backdrop = nacre
+    ? (await import('./level3/index.js')).createNacreBackdrop({
+        waterY: 0,
+        blockout,
+        settings,
+        skyTexture: nacreSkyTexture,
+      })
+    : orbital && !blockout
       ? await (await import('./orbital/index.js')).createOrbitalBackdrop()
       : null;
   const sky = backdrop ? null : await createSky();
@@ -38,9 +55,21 @@ export async function createRenderer(
   const camera = new T.PerspectiveCamera(64, 1, 0.2, far);
   const backgroundGroup = backdrop?.group ?? sky.mesh;
   scene.add(backgroundGroup);
-  backgroundGroup.visible = !blockout;
+  backgroundGroup.visible = nacre || !blockout;
+  let presentationTime = 0;
+  const presentationOptions = {
+    direction: new T.Vector3(0, 0, 1),
+    enabled: false,
+    reset: false,
+  };
   function updateBackdrop(position, time = 0) {
-    if (backdrop) backdrop.update?.(position, time);
+    if (backdrop)
+      backdrop.update?.(
+        position,
+        nacre ? presentationTime : time,
+        settings,
+        presentationOptions,
+      );
     else sky.mesh.position.copy(position);
   }
   const contactShadow = createContactShadow(
@@ -112,6 +141,14 @@ export async function createRenderer(
   ao.render = (...args) => {
     const skyVisible = backgroundGroup.visible;
     const contactVisible = contactShadow.mesh.visible;
+    const excluded = [];
+    if (nacre)
+      scene.traverse((object) => {
+        if (object.userData.aoExclude) {
+          excluded.push([object, object.visible]);
+          object.visible = false;
+        }
+      });
     backgroundGroup.visible = false;
     contactShadow.mesh.visible = false;
     try {
@@ -119,6 +156,7 @@ export async function createRenderer(
     } finally {
       backgroundGroup.visible = skyVisible;
       contactShadow.mesh.visible = contactVisible;
+      for (const [object, visible] of excluded) object.visible = visible;
     }
   };
   composer.addPass(ao);
@@ -165,6 +203,16 @@ export async function createRenderer(
     .multiplyScalar(700);
   return {
     renderer,
+    nacreSkyTexture,
+    setOverview: (active) => backdrop?.setOverview?.(active),
+    updatePresentation({ time = 0, mode, reset = false }) {
+      presentationTime = time;
+      presentationOptions.enabled = mode === 'racing' || mode === 'paused';
+      presentationOptions.reset = reset;
+      camera.getWorldDirection(presentationOptions.direction);
+    },
+    getPresentation: () => backdrop?.getPresentation?.() ?? null,
+    drainStormEvents: () => backdrop?.drainStormEvents?.() ?? [],
     scene,
     camera,
     sun,
@@ -213,7 +261,7 @@ export async function createRenderer(
       sun.target.position.copy(position);
       sun.position.copy(position).add(sunOffset);
       sun.target.updateMatrixWorld();
-      updateBackdrop(camera.position, elapsed);
+      if (!nacre) updateBackdrop(camera.position, elapsed);
     },
     render(now) {
       const dt = last ? Math.min((now - last) / 1000, 0.1) : 1 / 60;
@@ -222,6 +270,7 @@ export async function createRenderer(
       elapsed += dt;
       if (times.length > 24000) times.shift();
       updateBackdrop(camera.position, elapsed);
+      presentationOptions.reset = false;
       scene.userData.elapsed = elapsed;
       renderer.info.reset();
       renderer.shadowMap.needsUpdate = true;
@@ -234,6 +283,8 @@ export async function createRenderer(
       );
     },
     renderInspection(otherScene) {
+      if (nacre) updateBackdrop(camera.position, presentationTime);
+      presentationOptions.reset = false;
       renderer.info.reset();
       renderer.render(otherScene, camera);
     },
@@ -293,6 +344,21 @@ export async function createRenderer(
         (settings.quality === 'high' ? 92 : 16);
       return {
         frames: times.length,
+        resources: performance.getEntriesByType('resource').reduce(
+          (result, entry) => ({
+            requests: result.requests + 1,
+            transferredBytes:
+              result.transferredBytes + (entry.transferSize || 0),
+            encodedBytes: result.encodedBytes + (entry.encodedBodySize || 0),
+            decodedBytes: result.decodedBytes + (entry.decodedBodySize || 0),
+          }),
+          {
+            requests: 0,
+            transferredBytes: 0,
+            encodedBytes: 0,
+            decodedBytes: 0,
+          },
+        ),
         frameMs: {
           p50: q(0.5),
           p95: q(0.95),
@@ -319,16 +385,21 @@ export async function createRenderer(
           : gl.getParameter(gl.RENDERER),
         userAgent: navigator.userAgent,
         viewport: { width: innerWidth, height: innerHeight, dpr: ratio },
+        presentation: backdrop?.getPresentation?.() ?? null,
         pipeline: {
           ambientOcclusion: ao.enabled,
           bloom: bloom.enabled,
           tonemapping: 'ACES',
           colourSpace: 'sRGB',
-          world: orbital
+          world: nacre
             ? blockout
-              ? 'orbital-blockout'
-              : 'asterion-orbital'
-            : 'halcyon',
+              ? 'nacre-shape'
+              : 'nacre-tempest'
+            : orbital
+              ? blockout
+                ? 'orbital-blockout'
+                : 'asterion-orbital'
+              : 'halcyon',
         },
         timingNote:
           'RAF intervals; headless and capture runs not foreground certification',

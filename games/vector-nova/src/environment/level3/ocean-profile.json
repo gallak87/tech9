@@ -1,0 +1,39 @@
+{
+  "version": "nacre-storm-swells-v1",
+  "description": "Original layered storm swell study; lengths, amplitudes and speeds in metres/seconds. The same profile drives Blender and the live GPU ocean.",
+  "waves": [
+    {
+      "direction": [0.94, 0.342],
+      "wavelength": 178,
+      "amplitude": 11.0,
+      "speed": 13.8,
+      "phase": 0.6,
+      "sharpness": 0.24
+    },
+    {
+      "direction": [0.78, -0.626],
+      "wavelength": 103,
+      "amplitude": 5.2,
+      "speed": 10.7,
+      "phase": 2.1,
+      "sharpness": 0.2
+    },
+    {
+      "direction": [0.31, 0.951],
+      "wavelength": 61,
+      "amplitude": 2.1,
+      "speed": 8.2,
+      "phase": 4.0,
+      "sharpness": 0.16
+    }
+  ],
+  "mesh": {
+    "highSpacing": 18,
+    "lowSpacing": 36,
+    "detailedMargin": 720
+  },
+  "roadShelter": {
+    "flatRadius": 96,
+    "fullRadius": 200
+  }
+}

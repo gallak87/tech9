@@ -12,6 +12,7 @@ import { createEffects } from '../effects/index.js';
 import { createUI } from '../ui/index.js';
 import { loadSettings, saveSettings } from '../progression/index.js';
 import { createReviewCamera } from './review-camera.js';
+import { createNacreImmersion } from './nacre-presentation.js';
 import {
   createMagneticRuntime,
   hasHalcyonFeatures,
@@ -24,12 +25,15 @@ import {
 } from './session-runtime.js';
 const parameters = new URLSearchParams(location.search);
 const orbital = parameters.get('level') === 'orbital';
-const blockout = orbital && parameters.get('review') === 'shape';
-const VERSION = orbital
-  ? blockout
-    ? '0.3.0-level2-blockout'
-    : '0.3.0-gate3-orbital'
-  : '0.2.2-gate2-pacing';
+const nacre = parameters.get('level') === 'nacre';
+const blockout = (orbital || nacre) && parameters.get('review') === 'shape';
+const VERSION = nacre
+  ? '0.4.1-nacre-v1'
+  : orbital
+    ? blockout
+      ? '0.3.0-level2-blockout'
+      : '0.3.0-gate3-orbital'
+    : '0.2.2-gate2-pacing';
 const host = document.querySelector('#app');
 const errors = [];
 function fail(error) {
@@ -53,10 +57,18 @@ window.addEventListener('unhandledrejection', (e) =>
 );
 async function boot() {
   const settings = loadSettings(),
-    view = await createRenderer(host, settings, { orbital, blockout }),
+    view = await createRenderer(host, settings, { orbital, blockout, nacre }),
     { scene, camera, renderer } = view;
-  const candidate = orbital ? await import('../track/level2/index.js') : null;
-  const track = candidate ? candidate.createLevel2Track() : createTrack();
+  const candidate = nacre
+    ? await import('../track/level3/index.js')
+    : orbital
+      ? await import('../track/level2/index.js')
+      : null;
+  const track = nacre
+    ? candidate.createLevel3Track()
+    : candidate
+      ? candidate.createLevel2Track()
+      : createTrack();
   if (orbital && !blockout) {
     track.id = 'asterion-orbital-1';
     track.review = {
@@ -65,21 +77,39 @@ async function boot() {
       phase: 'gate-3',
     };
   }
-  const road = candidate
+  if (nacre && !blockout)
+    track.review = {
+      ...track.review,
+      kind: 'nacre-production',
+      phase: 'gate-4.1',
+    };
+  const road = nacre
     ? blockout
-      ? candidate.buildLevel2Blockout(track)
-      : candidate.buildOrbitalTrack(track)
-    : buildTrackVisual(track);
-  const reviewCamera = orbital ? createReviewCamera(track, camera) : null;
+      ? candidate.buildLevel3Blockout(track)
+      : candidate.buildNacreTrack(track)
+    : candidate
+      ? blockout
+        ? candidate.buildLevel2Blockout(track)
+        : candidate.buildOrbitalTrack(track)
+      : buildTrackVisual(track);
+  const reviewCamera =
+    orbital || nacre ? createReviewCamera(track, camera) : null;
   const signatureReview = parameters.get('review') === 'signature';
-  const environment = orbital
-    ? blockout
-      ? new T.Group()
-      : (
-          await import('../environment/orbital/index.js')
-        ).createOrbitalEnvironment(track)
-    : createEnvironment(track);
+  const environment = nacre
+    ? (await import('../environment/level3/index.js')).createNacreEnvironment(
+        track,
+        { blockout, skyTexture: view.nacreSkyTexture },
+      )
+    : orbital
+      ? blockout
+        ? new T.Group()
+        : (
+            await import('../environment/orbital/index.js')
+          ).createOrbitalEnvironment(track)
+      : createEnvironment(track);
   scene.add(road, environment);
+  await environment.userData.ready;
+  const immersion = nacre && !blockout ? createNacreImmersion(host) : null;
   const ship = await createShip({
     plumeExposure: orbital && !blockout ? 1.65 : 1,
   });
@@ -158,10 +188,11 @@ async function boot() {
     raf = 0,
     active = true,
     inspectionTime = 0,
-    inspectionLayout = null;
+    inspectionLayout = null,
+    environmentReset = true;
   const inputLog = [],
     events = [],
-    audio = createAudio(),
+    audio = createAudio({ nacre: nacre && !blockout }),
     rig = createCameraRig(camera),
     effects = createEffects(scene, { refinedSparks: orbital && !blockout });
   const emit = (e) => {
@@ -175,29 +206,46 @@ async function boot() {
     }
     if (e.type === 'impact') {
       ui.notice(
-        e.payload.shielded
-          ? 'BARRIER CONTACT · SHIELD PROTECTED RESERVE'
-          : 'BARRIER CONTACT · RESERVE LOST',
+        e.payload.source === 'nacre-edge-catch'
+          ? 'EDGE CATCH · SMALL SPEED LOSS'
+          : e.payload.shielded
+            ? 'BARRIER CONTACT · SHIELD PROTECTED RESERVE'
+            : 'BARRIER CONTACT · RESERVE LOST',
       );
       effects.impact(
-        track.sample(state.distance),
-        orbital && !blockout
-          ? e.payload.side * (track.width / 2 - 0.4)
-          : state.lateral,
+        track.sample(e.payload.distance ?? state.distance),
+        e.payload.lateral ??
+          (orbital && !blockout
+            ? e.payload.side * (track.width / 2 - 0.4)
+            : state.lateral),
       );
     }
+    if (e.type === 'jump-transfer') prev = { ...state };
+    if (e.type === 'jump-transfer')
+      ui.notice(
+        e.payload.outcome === 'recovered'
+          ? `RECOVERED BEYOND LANDING · ${race.valid ? 'LAP VALID' : 'UNTIMED SESSION'} · W TO RESUME`
+          : e.payload.edgeCaught
+            ? 'EDGE CATCH · LANDING CONFIRMED'
+            : 'LANDING CONFIRMED',
+      );
     if (e.type === 'lap')
       ui.notice(
         `${e.payload.valid ? 'LAP COMPLETE' : 'INVALID LAP'} · ${e.payload.duration.toFixed(3)}s`,
       );
   };
-  const runtimeFactory = hasHalcyonFeatures(track, parameters.get('features'))
-    ? (await import('../pickups/halcyon/index.js')).createHalcyonRuntime
-    : createMagneticRuntime;
+  const runtimeFactory = nacre
+    ? candidate.createNacreRuntime
+    : hasHalcyonFeatures(track, parameters.get('features'))
+      ? (await import('../pickups/halcyon/index.js')).createHalcyonRuntime
+      : createMagneticRuntime;
   const runtime = runtimeFactory({ track, scene, ship, host, settings, emit });
   const makeRace = () => createRace(track, { rulesId: runtime.rulesId });
-  const resetRuntime = (reason) =>
+  const resetRuntime = (reason) => {
     runtime.reset({ reason, state, scenario, seed });
+    audio.resetEnvironment();
+    environmentReset = true;
+  };
   const advance = (control) =>
     advanceSession({ state, input: control, dt: 1 / 120, runtime, race, emit });
   race = makeRace();
@@ -304,6 +352,7 @@ async function boot() {
       ship.group.quaternion.identity();
       inspectionTime = 0;
       inspectionLayout = null;
+      environmentReset = true;
       input.clear();
     } else {
       sceneShip();
@@ -404,7 +453,9 @@ async function boot() {
     view.updateContact(
       track,
       s,
-      worldPose ? () => 0 : road.userData.surfaceCoverage,
+      worldPose && !worldPose.grounded
+        ? () => 0
+        : road.userData.surfaceCoverage,
     );
     return worldPose;
   }
@@ -493,14 +544,17 @@ async function boot() {
         camera,
         settings,
       });
+      immersion?.update(camera.position.y, track.waterY ?? 0, false);
+      view.updatePresentation({ time: s.time, mode, reset: environmentReset });
       view.renderInspection(inspectionScene);
+      immersion?.updateStorm(null);
     } else {
       camera.clearViewOffset();
       const worldPose = pose(s, alpha);
-      if (
-        reviewCamera &&
-        (mode === 'overview' || (blockout && mode === 'title'))
-      ) {
+      const reviewing = mode === 'overview' || (blockout && mode === 'title');
+      environment.userData.setOverview?.(reviewing);
+      view.setOverview?.(reviewing);
+      if (reviewCamera && reviewing) {
         reviewCamera.update();
       } else if (mode === 'title') {
         const f = track.sample(0);
@@ -531,7 +585,29 @@ async function boot() {
           worldPose,
         });
       road.userData.update?.(s.distance);
-      environment.userData.update?.(camera.position, time);
+      environment.userData.updateVehicle?.({
+        position: ship.group.position,
+        quaternion: ship.group.quaternion,
+        speed: s.speed,
+        distance: s.distance,
+        time: s.time,
+        mode,
+        reset: environmentReset,
+      });
+      view.updatePresentation({ time: s.time, mode, reset: environmentReset });
+      environmentReset = false;
+      immersion?.update(
+        camera.position.y,
+        track.waterY ?? 0,
+        !reviewing && mode !== 'title',
+      );
+      environment.userData.update?.(camera.position, s.time);
+      environment.userData.updateScene?.(
+        scene,
+        camera.position,
+        s.time,
+        settings,
+      );
       runtime.update?.({
         state: s,
         dt: mode === 'racing' ? dt : 0,
@@ -541,10 +617,14 @@ async function boot() {
         settings,
       });
       view.render(now);
+      immersion?.updateStorm(view.getPresentation());
     }
     effects.update(mode === 'racing' ? dt : 0);
     audio.update(state, settings.volume, mode === 'racing');
-    ui.update(state, race);
+    for (const event of view.drainStormEvents()) audio.event(event);
+    ui.update(state, race, nacre ? runtime.snapshot() : null, {
+      practice: nacre && scenario !== 'staging',
+    });
     raf = requestAnimationFrame(render);
   }
   window.__VN = {
@@ -565,16 +645,7 @@ async function boot() {
       resetRuntime('scenario');
       initial = captureInitial(state, runtime);
       prev = { ...state };
-      race.checkpoint = Math.floor(
-        (state.distance % track.length) /
-          (track.length / (track.checkpoints?.length || 12)),
-      );
-      race.startDistance =
-        Math.floor(
-          state.distance / (track.length / (track.checkpoints?.length || 12)),
-        ) *
-        (track.length / (track.checkpoints?.length || 12));
-      race.valid = state.distance === 0;
+      race.placeScenario(state.distance);
       rig.reset();
       view.resetMetrics();
       return this.getSnapshot();
@@ -621,6 +692,7 @@ async function boot() {
         seed,
         tick,
         accumulator,
+        environmentReset,
         initial,
         runtime: runtime.snapshot(),
         inputs: [...inputLog],
@@ -640,6 +712,7 @@ async function boot() {
           seed,
           tick,
           accumulator,
+          environmentReset,
           initial,
         } = retained);
         runtime.restore(retained.runtime);
@@ -682,6 +755,10 @@ async function boot() {
           position: frame.position.toArray(),
         },
         vehicle: { ...state },
+        ship: {
+          position: ship.group.position.toArray(),
+          quaternion: ship.group.quaternion.toArray(),
+        },
         camera: {
           position: camera.position.toArray(),
           up: camera.up.toArray(),
@@ -711,6 +788,9 @@ async function boot() {
           width: track.width,
           sections: track.sections,
           signature: track.signature,
+          waterY: track.waterY,
+          jumps: track.jumps,
+          sourceBudgets: road.userData.sourceBudgets,
           featureZones: track.featureZones,
           scenarios: [
             ...new Set([
@@ -720,6 +800,12 @@ async function boot() {
           ],
         },
         environment: {
+          immersion: immersion?.getPresentation(),
+          storm: view.getPresentation(),
+          thunder: audio.getPresentation(),
+          water: environment.userData.getWaterPresentation?.(),
+          ocean: environment.userData.getOceanPresentation?.(),
+          leviathan: environment.userData.getLeviathanPresentation?.(),
           metrics: environment.userData.metrics,
           clearance: environment.userData.clearanceReport
             ? {
@@ -727,7 +813,7 @@ async function boot() {
                 placements: environment.userData.clearanceReport.placements.map(
                   ({ bounds, ...placement }) => ({
                     ...placement,
-                    partCount: bounds.length,
+                    partCount: bounds?.length ?? placement.partCount ?? 1,
                   }),
                 ),
               }
@@ -748,6 +834,7 @@ async function boot() {
       runtime.dispose();
       input.dispose();
       audio.dispose();
+      immersion?.dispose();
       effects.dispose();
       ui.dispose();
       ship.dispose();

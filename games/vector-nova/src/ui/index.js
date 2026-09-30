@@ -35,6 +35,7 @@ export function createUI(
     }
   };
   const blockout = track.review?.kind === 'bare-track';
+  const nacre = track.id.startsWith('nacre-');
   const orbital = !!track.review;
   if (orbital) {
     root.classList.add('blockout-review');
@@ -86,12 +87,35 @@ export function createUI(
       $('review-toggle').setAttribute('aria-expanded', String(open));
       $('review-toggle').querySelector('span').textContent = open ? '−' : '+';
     };
-    if (blockout) $('review-toggle').classList.add('hidden');
+
+    if (nacre) {
+      root.classList.add('nacre-review');
+      root.querySelector('.edition').innerHTML =
+        '<i></i> NACRE TEMPEST <span>OCEAN CIRCUIT / 03</span>';
+      panel.querySelector('.eyebrow').textContent =
+        'NACRE TEMPEST · DEVELOPMENT REVIEW';
+      panel.querySelector('h1').innerHTML = 'BENEATH<br><em>THE STORM.</em>';
+      panel.querySelector('.intro').textContent =
+        'Two real leaps. A luminous ocean below. Race the Kestrel through storm causeways and submerged trenches.';
+      panel.querySelector('.small').textContent =
+        'Build speed and align before each gap. A missed landing recovers beyond the jump after 1.5 seconds; the delay counts in your valid lap. W to resume. R remains a manual reset and invalidates the lap.';
+      $('start').innerHTML = 'ENTER NACRE CIRCUIT <span>↗</span>';
+      root.querySelector('.review-tag').innerHTML =
+        'NACRE TEMPEST <span>03 / GATE 4.1 REVIEW</span>';
+      $('home').textContent = 'RETURN TO NACRE OVERVIEW';
+    }
   } else {
     const link = document.createElement('a');
     link.className = 'orbital-access';
     link.href = '/?level=orbital';
     link.textContent = 'ASTERION ORBITAL CIRCUIT ↗';
+    $('title-panel').append(link);
+  }
+  if (!nacre) {
+    const link = document.createElement('a');
+    link.className = 'orbital-access';
+    link.href = '/?level=nacre';
+    link.textContent = 'NACRE TEMPEST CIRCUIT ↗';
     $('title-panel').append(link);
   }
   if (Object.keys(runtimeScenarios).length) {
@@ -112,6 +136,7 @@ export function createUI(
       $('title-panel').append(controls);
     }
     for (const [name, scenario] of Object.entries(runtimeScenarios)) {
+      if ([...select.options].some((option) => option.value === name)) continue;
       const option = document.createElement('option');
       option.value = name;
       option.textContent = scenario.label || name;
@@ -189,11 +214,15 @@ export function createUI(
         'shape-overview',
         mode === 'title' || mode === 'overview',
       );
+      root.classList.toggle(
+        'whole-route-view',
+        mode === 'overview' || (blockout && mode === 'title'),
+      );
       $('shape-controls')?.classList.toggle(
         'hidden',
         mode === 'paused' || mode === 'inspection',
       );
-      if (orbital && !blockout) {
+      if (orbital) {
         const expanded = mode !== 'racing';
         $('review-options').classList.toggle('hidden', !expanded);
         $('review-toggle').setAttribute('aria-expanded', String(expanded));
@@ -213,7 +242,7 @@ export function createUI(
       if (f) $(f).focus({ preventScroll: true });
       else document.activeElement?.blur();
     },
-    update(s, r) {
+    update(s, r, motion = null, { practice = false } = {}) {
       $('speed').textContent = String(Math.round(s.speed * 3.6)).padStart(
         3,
         '0',
@@ -223,16 +252,23 @@ export function createUI(
       $('energy-label').textContent = `${Math.round(s.energy)}%`;
       $('energy-fill').style.width = `${s.energy}%`;
       $('energy-fill').style.background = s.energy < 25 ? '#ef764e' : '#a9d0c9';
-      $('boost-status').textContent = s.boosting
-        ? 'BOOST ENGAGED'
-        : 'MAGNETIC DRIVE';
+      $('boost-status').textContent =
+        motion?.mode === 'recovery'
+          ? 'RECOVERY DELAY'
+          : motion?.mode === 'flight'
+            ? 'AIRBORNE'
+            : s.boosting
+              ? 'BOOST ENGAGED'
+              : 'MAGNETIC DRIVE';
       $('boost-status').classList.toggle('active', s.boosting);
       $('energy-state').textContent =
         s.energy < 25
           ? 'LOW RESERVE · RELEASE BOOST TO RECOVER'
           : 'BOOST DRAWS FROM IMPACT RESERVE';
       $('best').textContent = !r.valid
-        ? 'LAP INVALIDATED · RESET'
+        ? practice && s.resetCount === 0
+          ? 'PRACTICE SECTION'
+          : 'LAP INVALIDATED · RESET'
         : r.best
           ? `BEST ${fmt(r.best)}`
           : 'SET YOUR FIRST CLEAN LAP';
@@ -251,7 +287,12 @@ export function createUI(
       });
       ctx.closePath();
       ctx.stroke();
-      const [x, y] = coord(track.sample(s.distance).position);
+      const world = motion?.currentPose?.position;
+      const [x, y] = coord(
+        world
+          ? { x: world[0], z: world[2] }
+          : track.sample(s.distance).position,
+      );
       ctx.fillStyle = '#fb7959';
       ctx.beginPath();
       ctx.arc(x, y, 4, 0, Math.PI * 2);

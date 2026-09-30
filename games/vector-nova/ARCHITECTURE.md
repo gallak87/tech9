@@ -38,7 +38,7 @@ Halcyon devices load only for exact track identity plus `features=halcyon-pickup
 
 Device ticks expire timers and apply brake cancellation before physics, consume shields on qualifying impacts, then sweep new forward crossings. A shield collected later in a tick cannot protect an earlier impact. Effects do not stack; manual recovery clears effects while retaining the consumed-device ledger. Reverse/parking/reset farming must not rearm devices. Shields protect reserve loss, not collision separation or speed consequences. Layout/tuning/rules IDs live in `src/pickups/halcyon/`.
 
-Nacre's pending adapter adds true flight and swept landings. Automatic missed-jump recovery counts its delay as elapsed time and retains a valid lap; manual recovery still invalidates it. Keep that specialized behavior out of the ordinary magnetic adapter and the seven new continuous-surface maps.
+Nacre's adapter adds true flight and swept landings. Automatic missed-jump recovery counts its delay as elapsed time and retains a valid lap; manual recovery still invalidates it. Keep that specialized behavior out of the ordinary magnetic adapter and the seven new continuous-surface maps.
 
 ## Ship and rendering
 
@@ -57,3 +57,13 @@ One owner releases each geometry, material, texture, listener, audio node and an
 `window.__VN` exposes readiness, snapshots/metrics, named scenarios, camera selection, start/pause/restart, replay and disposal for verification. Scenario placement is deterministic setup, not autopilot. Runtime metrics distinguish source geometry from drawn multipass totals.
 
 Targets per active level: ≤1,000 drawn calls, ≤2M drawn triangles, ≤512 MiB estimated GPU assets and ≤30 MB initial compressed transfer. Target 60 Hz on M1 Pro/Chrome at 1920×1080; estimates and hidden capture timings do not certify foreground performance. Load only selected-level assets. Test high/low, reduced motion, pause/reset/replay, resource disposal and relevant real input after runtime changes.
+
+## Nacre flight, water and moving scenery
+
+The Nacre runtime owns ballistic flight, bounded air control and swept receiving-road/rail contact. Landing coverage is derived from the accepted70%-through-boost launch envelope, including long receiving straights. Sweep the hull between ticks to prevent tunnelling; accept only the authored road and orientation. A forgiving half-width rail catch deflects the craft inward with one small penalty. Automatic recovery credits only its validated jump interval; ordinary manual recovery stays invalidating.
+
+Keep craft, road and camera origins consistent at takeoff and landing. Transport the previous camera relative to the craft anchor, not between mismatched road-centre/world-pose origins; otherwise off-centre launches visibly jump sideways. Preserve the actual contact pose, then settle height/attitude smoothly. Both live input and replay consume the same advance routine and rules identity.
+
+Water crossings use actual world height. Protect the mean-water road/contact corridors inside displaced storm waves, and apply underwater absorption to the scene, ship and HUD together. Seeded lightning/thunder and pooled splashes follow simulation time and obey pause/reset, mute and reduced motion. Environment geometry, not just its centreline, must clear banked roads and flight envelopes.
+
+Moving creatures are presentation only. Reuse one loaded mesh, deform positions and normals by arc-length transport, and verify the full asset envelope. For a crossing, use a fixed world-space heading rather than successive route frames: following the road makes the creature turn alongside it. Stage the entire body across a viewing window with speed-scaled timing, including boost acceleration; a head-only or single-instant visibility check misses the intended spectacle. Keep reproducible asset sources and provenance; screenshots, critique scores and iteration histories are not architecture.

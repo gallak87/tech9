@@ -1,0 +1,14 @@
+{
+  "lengthMetres": 280,
+  "conservativeRadius": 24,
+  "artRevision": 11,
+  "vertexColorMeshes": 3,
+  "materialVariation": "GLTF COLOR_0 organic growth edges, broad head mottling, muted belly gradient; exported scalar PBR roughness",
+  "materials": 5,
+  "triangles": 35772,
+  "textureCount": 0,
+  "vertexCount": 19894,
+  "blenderVersion": "5.1.1",
+  "runtimeAxis": "GLTF +X head-to-tail, +Y dorsal, +Z starboard",
+  "glbBytes": 917044
+}

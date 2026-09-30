@@ -4,15 +4,15 @@ A browser anti-gravity racer built with Three.js and Vite. Drive the Blender-aut
 
 ## Circuits and features
 
-| Circuit          | Identity                                                                                   | Availability                                            |
-| ---------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| Halcyon Viaduct  | 5 km metropolitan expressway with a skyline corkscrew, inverted hold and plunge            | Default route `/`                                       |
-| Asterion Orbital | 4.5 km shipyard above a planet, open lattice spans, neon decks and tall containment frames | `/?level=orbital`                                       |
-| Nacre Tempest    | Ocean/storm world, submerged racing and two airborne jumps                                 | Separate review checkout; final tweak and merge pending |
+| Circuit          | Identity                                                                                   | Availability      |
+| ---------------- | ------------------------------------------------------------------------------------------ | ----------------- |
+| Halcyon Viaduct  | 5 km metropolitan expressway with a skyline corkscrew, inverted hold and plunge            | Default route `/` |
+| Asterion Orbital | 4.5 km shipyard above a planet, open lattice spans, neon decks and tall containment frames | `/?level=orbital` |
+| Nacre Tempest    | Ocean/storm world, submerged racing and two airborne jumps                                 | `/?level=nacre`   |
 
 Halcyon's automatic Vector boost strips and Aegis shields are available with `/?features=halcyon-pickups`. They activate on crossing, with no inventory or use-item button. The plain route retains the baseline handling.
 
-Orbital's bare route review is available at `/?level=orbital&review=shape`. Circuit views provide 3D/top/profile overviews and parked section starts. Nacre's integration details are in the [active handoff](docs/GATE4_HANDOFF.md); its route is not yet available in the shared branch.
+Orbital's bare route review is available at `/?level=orbital&review=shape`. Circuit views provide 3D/top/profile overviews and parked section starts. Nacre adds storm swells, underwater immersion, two real jumps and one enormous swimming leviathan. Its automatic missed-jump recovery keeps the lap valid while counting the recovery delay; manual R recovery still invalidates it.
 
 Seven additional worlds are planned in the [roadmap](ROADMAP.md). Opponents, complete race/results flow, Time Trial and championships are future work.
 

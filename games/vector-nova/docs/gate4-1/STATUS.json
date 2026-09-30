@@ -1,38 +1,33 @@
 {
-  "gate": "4.1",
-  "state": "handoff_ready_not_started",
-  "objective": "Nacre Tempest level 3: early human shape/jump gate, then complete ocean/storm world and real long jumps",
-  "baseCommit": null,
-  "preflightCommit": null,
-  "preflightState": "not_implemented",
-  "goalActive": false,
-  "humanApproved": false,
-  "shapeApprovalRequired": true,
-  "shapeApproved": false,
-  "gauntlet": {
-    "rounds": 0,
-    "cap": 8,
-    "state": "not_started",
-    "stopAtFirstVerifiedPass": true,
-    "history": []
-  },
+  "level": "Nacre Tempest",
+  "state": "human_approved_merged",
+  "humanApproved": true,
+  "approvedAt": "2026-09-29",
+  "branch": "codex/gate4-1-nacre-tempest",
+  "targetBranch": "g/scene-test",
+  "preview": "http://127.0.0.1:5192/?level=nacre",
+  "build": "/assets/index-5b6LGW3t.js",
+  "features": [
+    "Ocean/storm circuit with exactly two airborne jumps and underwater road",
+    "Swept landing and forgiving rail catches; missed-jump recovery keeps a valid lap",
+    "Displaced storm swells, water crossing splash, underwater tint, lightning and thunder",
+    "One280m leviathan with a first-jump arch and early left-to-right underwater crossing",
+    "Approved Blender Kestrel"
+  ],
   "verification": {
-    "build": null,
-    "tests": null,
-    "browserChecks": null,
-    "fullLint": null,
-    "foregroundPerformance": "unverified",
-    "audioListening": "unverified",
-    "physicalDevices": "unverified"
+    "tests": "197/197 combined main suite",
+    "lint": "passed",
+    "build": "passed",
+    "http": "Lane preview verified before merge; merged main production build passed",
+    "gameplay": "User approved; no new agent playtesting",
+    "preservation": "55 main generated-doc, ship, physics and pickup files byte-identical to a54d21ec"
   },
-  "openIssues": [],
-  "sharedDocsPolicy": "Write this lane only during production; integrator aggregates root documents",
-  "jumpRules": {
-    "count": 2,
-    "airborne": true,
-    "missInvalidatesLap": false,
-    "penalty": "Timed recovery beyond landing, included in lap time",
-    "initialRecoveryDelaySeconds": 1.5
-  },
-  "serverOwner": "parent Gate 3 session"
+  "knownLimitations": [
+    "Compact landscape/portrait HUD overlap remains outside this accepted track scope.",
+    "Foreground frame pacing, independent audio listening and physical devices remain unmeasured."
+  ],
+  "integration": "Merged with the real Halcyon pickup runtime. Other generated docs remain unchanged; Nacre decisions are in ARCHITECTURE.md.",
+  "provenance": "ASSET_MANIFEST.json",
+  "implementationCommit": "dcbce614",
+  "sharedBranch": "g/scene-test"
 }

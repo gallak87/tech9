@@ -978,6 +978,26 @@ select {
   }
 }
 
+/* Nacre route review keeps readable controls beside the fitted circuit. */
+.nacre-review.whole-route-view #title-panel {
+  padding: 18px;
+  background: #102732eb;
+  border: 1px solid #bdd4d34d;
+}
+.nacre-review.whole-route-view #title-panel .small {
+  display: none;
+}
+.nacre-review.whole-route-view #shape-controls {
+  left: 4vw;
+  right: auto;
+  bottom: 78px;
+}
+@media (min-width: 761px) and (min-height: 701px) {
+  .nacre-review.whole-route-view #title-panel {
+    top: 110px;
+  }
+}
+
 @media (max-width: 760px) {
   .timing small {
     display: block;
@@ -985,4 +1005,35 @@ select {
     white-space: normal;
     line-height: 1.3;
   }
+}
+
+/* Keep Nacre's post-landing notice below the timing row in short landscapes. */
+@media (max-height: 570px) and (orientation: landscape) {
+  .nacre-review #notice {
+    top: max(148px, 30%);
+    width: min(300px, calc(100vw - 280px));
+    padding: 5px 8px;
+    font-size: 11px;
+    line-height: 1.25;
+  }
+}
+
+/* Nacre water absorption includes the world, craft and interface. */
+.nacre-immersion {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at 50% 43%, #75d6e2 12%, #4194ad 100%);
+  mix-blend-mode: multiply;
+}
+
+.nacre-storm-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 31;
+  pointer-events: none;
+  opacity: 0;
+  background: #d4eaff;
 }

@@ -171,7 +171,7 @@ async function boot() {
   const inputLog = [],
     events = [],
     audio = lifetime.own(createAudio(definition.audio)),
-    rig = createCameraRig(camera, definition.camera),
+    rig = createCameraRig(camera, definition.camera, inspectionBounds),
     effects = lifetime.own(createEffects(scene, definition.effects));
   lifetime.defer(() => {
     active = false;
@@ -571,6 +571,7 @@ async function boot() {
           reducedMotion: settings.reducedMotion,
           time,
           worldPose,
+          subject: ship.group,
         });
     }
     const frame = {

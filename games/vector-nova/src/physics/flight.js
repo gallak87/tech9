@@ -4,6 +4,7 @@ import { stepVehicle, STEERING_ASSIST } from './index.js';
 export const DEFAULT_FLIGHT_RULES = Object.freeze({
   gravity: 26,
   curvedContact: true,
+  contactVersion: 2,
   hover: 0.72,
   halfWidth: 2.25,
   halfLength: 3.5,
@@ -33,6 +34,7 @@ export function createFlightModel(overrides = {}) {
   const R = {
     ...DEFAULT_FLIGHT_RULES,
     ...overrides,
+    contactVersion: DEFAULT_FLIGHT_RULES.contactVersion,
     railHeight: {
       ...(overrides.railHeight ?? DEFAULT_FLIGHT_RULES.railHeight),
     },
@@ -742,7 +744,15 @@ export function createFlightModel(overrides = {}) {
       currentPose.quaternion.slerp(orientation, -Math.expm1(-8 * dt));
       let landingBefore = before;
       const rail = sweptRail(track, jump, before, currentPose);
-      if (rail) {
+      // A lower-hull road hit can precede side contact in the same tick.
+      // Resolving the later rail first would start the road sweep underneath
+      // the deck and incorrectly discard a valid landing.
+      const directLanding = R.curvedContact
+        ? sweptLanding(track, jump, before, currentPose, flight.velocity)
+        : null;
+      const floorFirst =
+        directLanding && (!rail || directLanding.fraction <= rail.fraction);
+      if (rail && !floorFirst) {
         const contact = {
           position: rail.position.clone(),
           quaternion: rail.quaternion.clone(),
@@ -759,13 +769,16 @@ export function createFlightModel(overrides = {}) {
         flight.velocity.addScaledVector(acceleration, remaining);
         landingBefore = contact;
       }
-      const landing = sweptLanding(
-        track,
-        jump,
-        landingBefore,
-        currentPose,
-        flight.velocity,
-      );
+      const landing =
+        R.curvedContact && (!rail || floorFirst)
+          ? directLanding
+          : sweptLanding(
+              track,
+              jump,
+              landingBefore,
+              currentPose,
+              flight.velocity,
+            );
       if (landing) {
         const contactPose = {
           position: landingBefore.position

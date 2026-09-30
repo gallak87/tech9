@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "updatedAt": "2026-09-29",
-  "phase": "awaiting_final_nacre_revision_then_foundation",
+  "phase": "awaiting_user_playtest_discussion",
   "handoffOnly": false,
   "newChatsCreated": 0,
   "launchAuthorizedAfterPrerequisites": true,
@@ -11,20 +11,19 @@
     "hostId": null
   },
   "readiness": {
-    "state": "final_nacre_tweak_pending",
-    "sourceWorktree": "/Users/g/.codex/worktrees/gate4-1-nacre-tempest/tech9",
-    "sourceThreadId": "01a0ebc7-32f4-79d1-b223-ebbf88104f31",
-    "finalRevision": null,
-    "userCompletionSignalReceived": false
+    "state": "nacre_merged",
+    "sourceRevision": "1060550b159c479d182505830691f56ab9067965",
+    "userCompletionSignalReceived": true,
+    "next": "Discuss user playtest feedback, then complete reuse review and verify the shared foundation before dispatch."
   },
   "reuseReview": {
     "state": "preliminary_complete_final_review_pending",
     "findingsDocument": "games/vector-nova/ROADMAP.md",
-    "source": "Nacre working tree; final revision not pinned"
+    "source": "Merged shared revision 1060550b159c479d182505830691f56ab9067965"
   },
   "foundation": {
     "state": "track_checks_prepared_loader_not_implemented",
-    "provisionalBase": "1dfff69100b6d4df2e82253c5f3754aba3367c3b",
+    "provisionalBase": "1060550b159c479d182505830691f56ab9067965",
     "selectedBase": null,
     "preparationWorktree": "/Users/g/.codex/worktrees/level-expansion/tech9",
     "uncommittedPreparedFiles": [
@@ -33,7 +32,8 @@
       "games/vector-nova/tools/level-checks/README.md"
     ],
     "toolingChecks": "134 tests, lint/build, read-only Nacre track check passed",
-    "verified": false
+    "verified": false,
+    "preparationBase": "1dfff69100b6d4df2e82253c5f3754aba3367c3b"
   },
   "documentsToCopy": [
     "games/vector-nova/AGENTS.md",
@@ -72,7 +72,7 @@
       "title": "Vesper Canopy",
       "suggestedChatTitle": "fzero-m4-vesper",
       "handoff": "docs/expansion/vesper/HANDOFF.md",
-      "state": "not_started_launch_on_hold",
+      "state": "not_started",
       "devPort": 5201,
       "previewPort": 5202,
       "portsVerifiedFree": false,
@@ -87,7 +87,7 @@
       "title": "Glasswake Comet",
       "suggestedChatTitle": "fzero-m5-glasswake",
       "handoff": "docs/expansion/glasswake/HANDOFF.md",
-      "state": "not_started_launch_on_hold",
+      "state": "not_started",
       "devPort": 5203,
       "previewPort": 5204,
       "portsVerifiedFree": false,
@@ -102,7 +102,7 @@
       "title": "Cindercoil",
       "suggestedChatTitle": "fzero-m6-cindercoil",
       "handoff": "docs/expansion/cindercoil/HANDOFF.md",
-      "state": "not_started_launch_on_hold",
+      "state": "not_started",
       "devPort": 5205,
       "previewPort": 5206,
       "portsVerifiedFree": false,
@@ -117,7 +117,7 @@
       "title": "Saffron Leviathan",
       "suggestedChatTitle": "fzero-m7-saffron",
       "handoff": "docs/expansion/saffron/HANDOFF.md",
-      "state": "not_started_launch_on_hold",
+      "state": "not_started",
       "devPort": 5207,
       "previewPort": 5208,
       "portsVerifiedFree": false,
@@ -132,7 +132,7 @@
       "title": "Zephyr Basilica",
       "suggestedChatTitle": "fzero-m8-zephyr",
       "handoff": "docs/expansion/zephyr/HANDOFF.md",
-      "state": "not_started_launch_on_hold",
+      "state": "not_started",
       "devPort": 5209,
       "previewPort": 5210,
       "portsVerifiedFree": false,
@@ -147,7 +147,7 @@
       "title": "Helion Flare",
       "suggestedChatTitle": "fzero-m9-helion",
       "handoff": "docs/expansion/helion/HANDOFF.md",
-      "state": "not_started_launch_on_hold",
+      "state": "not_started",
       "devPort": 5211,
       "previewPort": 5212,
       "portsVerifiedFree": false,
@@ -162,7 +162,7 @@
       "title": "Umbra Fold",
       "suggestedChatTitle": "fzero-m10-umbra",
       "handoff": "docs/expansion/umbra/HANDOFF.md",
-      "state": "not_started_launch_on_hold",
+      "state": "not_started",
       "devPort": 5213,
       "previewPort": 5214,
       "portsVerifiedFree": false,

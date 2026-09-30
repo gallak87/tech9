@@ -2,13 +2,11 @@
 
 ## Current position
 
-Approved and merged: Halcyon Viaduct, Asterion Orbital, the initial Halcyon boost/shield devices and the Blender Kestrel with stronger blue exhaust. Completed review history is in Git.
-
-Nacre Tempest is finishing a final user tweak in its own checkout before merge. Preserve its accepted track/water direction, two real jumps and elapsed-time recovery penalty. Follow the [active merge brief](docs/GATE4_HANDOFF.md).
+Approved and merged: Halcyon Viaduct, Asterion Orbital, Nacre Tempest, the initial Halcyon boost/shield devices and the Blender Kestrel with stronger blue exhaust. Completed review history is in Git.
 
 ## Next: integration and shared cleanup
 
-- [ ] Finish/review the final Nacre revision and merge only with the user's authorization.
+- [x] Merge the approved Nacre circuit and final revision.
 - [ ] Replace hardcoded level branches with a small validated lazy loader and level descriptor.
 - [ ] Standardize async readiness, one presentation update per frame, reset/disposal and borrowed-resource ownership.
 - [ ] Drive shared UI/review navigation from metadata and camera behavior from explicit options.
@@ -17,7 +15,7 @@ Nacre Tempest is finishing a final user tweak in its own checkout before merge. 
 - [ ] Complete the common validation harness and frozen level contract. CPU track checks are already prepared in the isolated expansion checkout; they are not integrated yet.
 - [x] Rewrite the README around the whole game and consolidate documentation around current state and lasting decisions.
 
-The preliminary reuse review is complete; the final candidate and shared foundation still need verification. See the [launch ledger](docs/expansion/LAUNCH_STATE.json) and [integrator handoff](docs/EXPANSION_INTEGRATOR_HANDOFF.md). Seven-map production remains on hold until these prerequisites are satisfied.
+See the [launch ledger](docs/expansion/LAUNCH_STATE.json) for current readiness and the [integrator handoff](docs/EXPANSION_INTEGRATOR_HANDOFF.md) for execution. Keep coordination status there rather than repeating it in the map briefs.
 
 ## Seven requested maps
 

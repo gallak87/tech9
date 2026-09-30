@@ -18,7 +18,7 @@ Approved angular futuristic jet silhouette: slender split nose, swept planform, 
 
 - **Halcyon Viaduct:** elevated metropolitan infrastructure at blue hour, warm low horizon and cool steel/sky. Dark composite deck, pale concrete spine, engineered barriers and amber guidance. Layered authored neighborhoods, supports meeting the city floor, canal courts and split-crown landmark; preserve the varied introductory route.
 - **Asterion Orbital:** sunlit orbital shipyard above a living planet, with ivory alloy, graphite and planetary bounce. Smooth induction cassette panels, real open lattice spans, broad cyan/magenta/blue road sections and tall open U frames. Designed dockyards and service structures, large lit moon and structured stellar sky.
-- **Nacre Tempest (pending merge):** ocean storm, basalt spires, luminous reefs and tide observatory. Pearl/ceramic scales, translucent pressure inserts, swept fin edges and distinct surface/submerged districts. Actual water depth and motion, readable jumps/landings, restrained lightning and a monumental creature; retain the human-approved track/water direction and final lane feedback.
+- **Nacre Tempest:** ocean storm, basalt spires, luminous reefs and tide observatory. Pearl/ceramic scales, translucent pressure inserts, swept fin edges and distinct surface/submerged districts. Actual water depth and motion, readable jumps/landings, restrained lightning and a monumental creature; retain the human-approved track/water direction and final lane feedback.
 
 ## UI and feedback
 

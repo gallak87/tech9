@@ -6,8 +6,6 @@
 
 **Goal:** Finish a complete continuous comet circuit through fractured cobalt ice, with legible transparent crystal raceway construction and a spectacular engineered canyon crossing, then deliver the verified candidate through one independent critic loop and final human review.
 
-Launch remains on hold for final Nacre completion/review and a verified shared foundation. The [integrator handoff](../../EXPANSION_INTEGRATOR_HANDOFF.md) owns readiness and launch; this brief does not start work.
-
 Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md) and the [frozen level contract](../../EXPANSION_LEVEL_CONTRACT.md) when available. Consult architecture/art sections only as needed; do not preload the full roadmap or other lane briefs. Use the integrator’s verified base/API.
 
 Own only `src/levels/glasswake/**`, `public/assets/levels/glasswake/**`, `tools/expansion-glasswake-*.mjs` and `docs/expansion/glasswake/**` in the assigned isolated worktree. Shared core, renderer, camera, UI, physics, race, settings, package/config and other levels are outside this lane. Request necessary contract changes from the launching integrator recorded in `docs/expansion/LAUNCH_STATE.json`; continue independent owned work while they are resolved. No copied runtime, private launcher or alternate shared implementation.

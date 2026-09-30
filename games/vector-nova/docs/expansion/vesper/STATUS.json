@@ -3,7 +3,7 @@
   "mapNumber": 4,
   "name": "Vesper Canopy",
   "slug": "vesper",
-  "state": "not_started_launch_on_hold",
+  "state": "not_started",
   "implementationStarted": false,
   "worktree": null,
   "foundationRevision": null,

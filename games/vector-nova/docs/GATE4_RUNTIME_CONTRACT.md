@@ -1,6 +1,6 @@
 # Session runtime adapter contract
 
-The shared adapter shipped with the approved Halcyon pickups in `a0069329`. Baseline physics remains version 3 with steering assistance 0.3. Nacre-specific flight/race wiring is pending integration; consult its current merge brief.
+The shared session adapter supports baseline magnetic driving, opt-in Halcyon pickups and Nacre flight. Baseline physics remains version 3 with steering assistance 0.3.
 
 Factory `createHalcyonRuntime({track, scene, ship, host, settings, emit})` is dynamically imported only when `track.id === "halcyon-viaduct-4-compact"` and the exact query `features=halcyon-pickups`. Other tracks ignore the opt-in. The ordinary baseline factory is `createMagneticRuntime`.
 
@@ -19,7 +19,7 @@ Core tick order: save previous vehicle state; log input; `advanceSession` calls 
 
 Replay header includes application version, track ID, physics version, runtime `{id,version,rulesId}`, seed, scenario and tick inputs. Mismatch is rejected. Replay resets to deterministic scenario and re-runs the same advance path. Existing manual R recovery invalidates lap and disables clean input-only replay; automatic Nacre recovery does not set that manual reset counter. Race history includes rulesId; no persistence or additional time-trial feature is introduced.
 
-Pending Nacre-specific extension: its adapter holds distance at the exact unwrapped takeoff through flight/recovery, then emits `jump-transfer` with `{id,from,to,outcome:"landed"|"recovered"}`. Core race checks this against only that jump's authored takeoff, landing and apron interval before crediting ordered checkpoints. Recovery delay is included in normal dt, no surcharge, no invalidation. This does not affect Halcyon adapters.
+Nacre-specific extension: its adapter holds distance at the exact unwrapped takeoff through flight/recovery, then emits `jump-transfer` with `{id,from,to,outcome:"landed"|"recovered"}`. Core race checks this against only that jump's authored takeoff, landing and apron interval before crediting ordered checkpoints. Recovery delay is included in normal dt, no surcharge, no invalidation. This does not affect Halcyon adapters.
 
 Tests cover baseline state/event equivalence, feature guards, shared live/replay determinism and rules compatibility; each feature owns its outcome tests.
 

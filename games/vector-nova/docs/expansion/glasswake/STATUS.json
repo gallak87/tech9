@@ -3,7 +3,7 @@
   "mapNumber": 5,
   "name": "Glasswake Comet",
   "slug": "glasswake",
-  "state": "not_started_launch_on_hold",
+  "state": "not_started",
   "implementationStarted": false,
   "worktree": null,
   "foundationRevision": null,

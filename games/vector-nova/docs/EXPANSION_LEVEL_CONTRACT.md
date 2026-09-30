@@ -1,10 +1,6 @@
-# Expansion level contract — requirements, not yet implemented
+# Expansion level contract — requirements
 
-**Status: NOT IMPLEMENTED / NOT FROZEN.** This document describes the integrator's preflight assignment. The current shared implementation at `1dfff691` has the shared simulation adapter for Halcyon pickups, but its level boot/render path still special-cases Halcyon and Orbital. No seven-map route is available just because it appears in a handoff.
-
-**Readiness prerequisite:** Nacre has been identified and preliminarily reviewed, but its final tweak/merge and final reuse review are pending. Isolated track-validation tooling is prepared; this does not implement or freeze the loader. Adapt these requirements to the final reviewed candidate and record the selected base.
-
-The fresh integrator must implement, test and replace these requirements with the actual frozen API and a minimal working example **before launching the seven production chats**. Keep the contract small and preserve the existing session-runtime contract. Do not introduce a framework, second entry point or cloned game runtime.
+The integrator must implement and verify this small shared API before dispatch, then replace these requirements with exact exports and a working example. The [launch ledger](expansion/LAUNCH_STATE.json) owns the current foundation state and frozen revision. Preserve the existing session adapter; do not introduce a second entry point or cloned runtime.
 
 ## Required capabilities
 

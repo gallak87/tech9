@@ -15,7 +15,7 @@ Start with this file and [current status](docs/STATUS.json).
 
 - Preserve approved levels, shared controls and 0.3 steering assistance unless the user requests a change.
 - Use isolated worktrees for parallel implementation, exclusive file ownership and one integrator for shared code. Preserve other agents' edits and servers.
-- The Nacre merge and seven-map launch remain separate pending steps; follow their current handoffs. Finished critic loops stay closed.
+- Follow the assigned handoff; finished critic loops stay closed.
 - Run checks appropriate to the change: targeted tests, lint/build for code; formatting and links for docs. Existing ESLint/Prettier/Husky package scripts own tooling.
 - Browsers stay hidden/headless. No unsolicited videos or normal-speed automated full laps. Coordinate GPU use and servers with their owner; report only actually verified results.
 - Commit when requested. Human approval cannot be supplied by an agent.
@@ -23,3 +23,5 @@ Start with this file and [current status](docs/STATUS.json).
 ## Keep documentation small
 
 STATUS.json is a current snapshot, not an event log. Put lasting technical decisions in architecture/source docs, visual direction in the art bible, and future work in the roadmap. Handoffs hold only active execution context. After merge, remove completed handoffs/review histories; Git retains them. Keep asset provenance and licences. Raw captures/reports belong in ignored .experiments/. Do not create separate status, implementation, performance and integration reports that repeat each other.
+
+Keep handoffs stable: describe the assigned work, not temporary cross-task holds or progress. Store shared readiness once in the coordination ledger and link to it; do not copy it into each handoff.

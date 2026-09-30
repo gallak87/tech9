@@ -3,14 +3,13 @@
   "updated": "2026-09-29",
   "sharedBranch": "g/scene-test",
   "merged": {
-    "circuits": ["Halcyon Viaduct", "Asterion Orbital"],
+    "circuits": ["Halcyon Viaduct", "Asterion Orbital", "Nacre Tempest"],
     "halcyonPickups": "a0069329",
-    "kestrel": "1dfff691"
+    "kestrel": "1dfff691",
+    "nacre": "1060550b"
   },
   "active": {
-    "nacre": "Final user tweak; approval/merge pending",
-    "mergeHandoff": "docs/GATE4_HANDOFF.md",
-    "expansion": "Seven maps requested; launch waits for Nacre completion, final reuse review and frozen foundation",
+    "work": "User playtest of merged Nacre; next discussion before expansion work",
     "expansionLedger": "docs/expansion/LAUNCH_STATE.json"
   },
   "unverified": [

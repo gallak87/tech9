@@ -1,12 +1,12 @@
 # Seven-map overnight production — shared lane brief
 
-**Launch hold:** Nacre is finishing its last user tweak in the identified Gate 4.1 checkout. A preliminary reuse review and isolated CPU track checks are done; final candidate review and the generic foundation are still pending. The launching integrator must verify these before starting seven maps.
+Shared readiness, base revision and assignments live in the [launch ledger](expansion/LAUNCH_STATE.json). This brief defines the work; do not duplicate that status in lane handoffs.
 
 ## Latest user direction
 
 The user approved the seven proposed worlds for **parallel overnight construction** and explicitly removed early human review: **no human stop until end state**. The fresh integrator launches one chat per map using [the integrator handoff](EXPANSION_INTEGRATOR_HANDOFF.md). Each lane must build/check a bare route first internally, then continue complete production and a single independent brutal-critic loop without waiting for the user to grade shape. Final human approval is mandatory and never supplied by an agent.
 
-This supersedes the roadmap's former planning-only/one-map-at-a-time/early-review language for these seven maps only. It does not start the proposed race/AI/ship/cup gates and does not reopen the completed Gate 4 critic loops. The initial Halcyon pickup implementation is approved and merged; Nacre is being refined independently. Preserve both and leave their chats to the user.
+This supersedes the roadmap's former planning-only/one-map-at-a-time/early-review language for these seven maps only. It does not start the proposed race/AI/ship/cup gates and does not reopen the completed Gate 4 critic loops. Preserve the approved circuits and devices; leave unrelated chats to the user.
 
 ## Lanes
 
@@ -24,7 +24,7 @@ Production entry is `?level=<slug>`; bare review adds `&review=shape`. These rou
 
 ## Isolation and dependency
 
-Start from the integrator's recorded reviewed base plus the byte-verified foundation patch, in your own managed worktree. The earlier `a0069329` checkpoint is provisional until the reuse review selects the common source. Do not edit the primary checkout, another lane, shared dependencies or another dist. The [level contract](EXPANSION_LEVEL_CONTRACT.md) must say implemented/frozen before production launch; its initial requirements are not an API to assume exists.
+Start from the integrator's recorded reviewed base plus the byte-verified foundation patch, in your own managed worktree. Do not edit the primary checkout, another lane, shared dependencies or another dist. The [level contract](EXPANSION_LEVEL_CONTRACT.md) must say implemented/frozen before production launch; its initial requirements are not an API to assume exists.
 
 Each lane exclusively owns:
 
@@ -37,7 +37,7 @@ Shared core, renderer, camera, UI, input, physics, race, ships, audio/effects, d
 
 ## Gameplay and presentation boundaries
 
-Use the existing Kestrel, controls, fixed-step magnetic motion and steering assistance 0.3. Author real 3D centreline/frame geometry, with continuous bank/elevation, supported undersides, reliable rail bounds and route clearance. All seven initial circuits have continuous magnetic running surfaces. Open visual apertures must retain an engineered driving structure; no invisible magnetic bridge presented as free flight. Glasswake's canyon crossing is a real supported/suspended bridge, not an unimplemented jump. Do not depend on Nacre's evolving jump runtime, add pickups or start race-system/ship expansion.
+Use the existing Kestrel, controls, fixed-step magnetic motion and steering assistance 0.3. Author real 3D centreline/frame geometry, with continuous bank/elevation, supported undersides, reliable rail bounds and route clearance. All seven initial circuits have continuous magnetic running surfaces. Open visual apertures must retain an engineered driving structure; no invisible magnetic bridge presented as free flight. Glasswake's canyon crossing is a real supported/suspended bridge, not an unimplemented jump. Do not depend on Nacre's specialized jump runtime, add pickups or start race-system/ship expansion.
 
 Preserve driver-left/right through banks/inversions, stationary slope hold, braking authority, replay identity, pause/reset, inspection and lifecycle. Track distance/order must remain reliable at overpasses and loops. Use each map's district rhythm rather than stretching an oval to a length target. Starting dimensions in the briefs are hypotheses; prove the actual route with numerical and real-key checks.
 

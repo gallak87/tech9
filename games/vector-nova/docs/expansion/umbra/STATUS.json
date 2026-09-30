@@ -75,7 +75,6 @@
   ],
   "open": [
     "Builder graphical/real-input checks queued",
-    "Shared responsive HUD follow-up under integrator review",
     "Independent formal critique remains0/8"
   ],
   "unverified": [
@@ -91,6 +90,18 @@
     {
       "source": "643fd3a69e0f8feef9b27c545888f8a8c45239f2",
       "local": "96b2d6d9"
+    },
+    {
+      "source": "2bb9e28ab97f23d279f2b032563a275a6cd76619",
+      "local": "82bb51d0"
+    },
+    {
+      "source": "bd72bc56bd9800bdd3b93a2ce0759fd36f877bdb",
+      "local": "7f8ab718"
+    },
+    {
+      "source": "f6727333ff83fd7067c5a7f459b8be8f64bca914",
+      "local": "e4215c7b"
     }
   ],
   "trackRevision": {

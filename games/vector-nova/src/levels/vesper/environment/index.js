@@ -515,7 +515,7 @@ export function createVesperEnvironment({
     group.add(branch);
 
     const templateBounds = [0, 1, 2].map((i) =>
-      new T.Box3().setFromObject(get(`tree_${i}`)).getSize(new T.Vector3()),
+      new T.Vector3().fromArray(get(`tree_${i}`).userData.clearanceSize),
     );
     // Near/mid/far layers are authored geometry instances with clearance in every district.
     const near = [[], [], []],
@@ -639,7 +639,12 @@ export function createVesperEnvironment({
             fans.push({
               position: p.toArray(),
               yaw: random() * Math.PI * 2,
-              scale: [1, 1, 1],
+              // Vary proportions at the existing sockets without expanding clearance.
+              scale: [
+                0.82 + 0.16 * Math.abs(Math.sin(s * 0.037 + side)),
+                0.68 + 0.3 * Math.abs(Math.cos(s * 0.021)),
+                0.78 + 0.2 * Math.abs(Math.sin(s * 0.029)),
+              ],
             });
             break;
           }

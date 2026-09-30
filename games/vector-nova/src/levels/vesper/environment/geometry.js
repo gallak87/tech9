@@ -28,7 +28,14 @@ export function disposeResources(roots, extraMaterials = []) {
   }
   for (const geometry of geometries) geometry.dispose();
   for (const material of materials) material.dispose();
-  for (const texture of textures) texture.dispose();
+  const bitmaps = new Set();
+  for (const texture of textures) {
+    texture.dispose();
+    const bitmap = texture.source?.data;
+    if (typeof bitmap?.close === 'function') bitmaps.add(bitmap);
+  }
+  // Embedded glTF images may share one ImageBitmap across several tinted maps.
+  for (const bitmap of bitmaps) bitmap.close();
 }
 
 export function tube(points, radius = 1, segments = 32, sides = 7) {

@@ -38,7 +38,21 @@ creatureshell=mat('Vesper | walker layered carapace',(.115,.23,.26),.73,.04)
 creatureunder=mat('Vesper | walker ivory joints',(.46,.40,.27),.84)
 creatureridge=mat('Vesper | walker weathered plate margins',(.23,.35,.31),.8)
 metal=mat('Vesper | maintenance bronze',(.28,.20,.11),.35,.58)
-fungus=mat('Vesper | fungal moon tissue',(.32,.52,.43),.74,glow=(.05,.27,.23),strength=.38)
+fungus=mat('Vesper | fungal moon tissue',(.22,.32,.19),.88,glow=(.04,.12,.08),strength=.13)
+# One original imagegen material tile, embedded in the GLB and packed in Blender.
+# Explicit UVs below survive mesh joining, distance simplification and instancing.
+bark_image=bpy.data.images.load(str(ROOT.parent/'textures'/'ancient-bark-color.png'));bark_image.pack()
+for material,tint in [(bark,(.53,.66,.69,1)),(inner,(.87,.70,.46,1)),(creatureshell,(.115,.23,.26,1)),(creatureunder,(.46,.40,.27,1)),(creatureridge,(.23,.35,.31,1))]:
+    nodes=material.node_tree.nodes;links=material.node_tree.links
+    image=nodes.new('ShaderNodeTexImage');image.image=bark_image;image.extension='REPEAT'
+    color=nodes.new('ShaderNodeMix');color.data_type='RGBA';color.blend_type='MULTIPLY';color.inputs[0].default_value=1;color.inputs[7].default_value=tint
+    links.new(image.outputs['Color'],color.inputs[6]);links.new(color.outputs[2],nodes.get('Principled BSDF').inputs['Base Color'])
+# Export actual per-leaf color instead of an unused Blender color attribute.
+nodes=leafmat.node_tree.nodes;links=leafmat.node_tree.links
+color=nodes.new('ShaderNodeVertexColor');color.layer_name='COLOR_0'
+mix=nodes.new('ShaderNodeMix');mix.data_type='RGBA';mix.blend_type='MULTIPLY';mix.inputs[0].default_value=1;mix.inputs[7].default_value=(.08,.24,.19,1)
+links.new(color.outputs['Color'],mix.inputs[6]);links.new(mix.outputs[2],nodes.get('Principled BSDF').inputs['Base Color'])
+
 
 def empty(name,parent=None,loc=(0,0,0)):
     o=bpy.data.objects.new(name,None); bpy.context.collection.objects.link(o); o.location=B(loc)
@@ -50,6 +64,23 @@ def mesh(name, verts, faces, material, parent=None, smooth=True):
     o=bpy.data.objects.new(name,d); bpy.context.collection.objects.link(o); o.data.materials.append(material)
     if parent:o.parent=parent
     for p in d.polygons:p.use_smooth=smooth
+    if material in [bark,inner,creatureshell,creatureunder,creatureridge]:
+        uv=d.uv_layers.new(name='Living bark metres')
+        for face in d.polygons:
+            coords=[]
+            for loop in face.loop_indices:
+                v=d.vertices[d.loops[loop].vertex_index].co
+                if name.startswith(('Sinuous hollow','Continuous upper trunk')):
+                    coords.append((math.atan2(-v.y,v.x)*R/22,v.z/22))
+                else:
+                    normal=face.normal;axis=max(range(3),key=lambda a:abs(normal[a]))
+                    coords.append(((v.y if axis==0 else v.x)/18,(v.y if axis==2 else v.z)/18))
+            if name.startswith(('Sinuous hollow','Continuous upper trunk')) and max(u for u,v in coords)-min(u for u,v in coords)>math.pi*R/22:
+                coords=[(u+math.tau*R/22 if u<0 else u,v) for u,v in coords]
+            for loop,coord in zip(face.loop_indices,coords):uv.data[loop].uv=coord
+    if material==leafmat:
+        ca=d.color_attributes.new(name='COLOR_0',type='FLOAT_COLOR',domain='CORNER')
+        for c in ca.data:c.color=(1,1,1,1)
     return o
 
 def tube(name, pts, radii, material, parent=None, sides=9):
@@ -125,7 +156,10 @@ kdt.balance()
 hero=empty('hero_hollow'); R=h['radius']+46; H=h['top']-h['base']; n=192; levels=44
 
 def ring(t,a,inside=False):
-    radius=R*(1-.08*t)+5.5*math.sin(a*19+t*3)+2.2*math.sin(a*37-t*4)
+    warp=.055*math.sin(t*18+a*3)+.022*math.sin(t*39-a*7)
+    radius=R*(1-.08*t)+5.5*math.sin((a+warp)*19+t*3)+2.2*math.sin((a+warp*.6)*37-t*4)
+    # Broad healed swellings interrupt furrows without opening the enclosure.
+    radius+=1.9*math.sin(a*11+t*29)*math.sin(t*17-a*5)**2
     radius+=3.2*math.sin(a*5+t*4)+2.1*math.sin(a*3-t*5)
     if inside:radius-=13+1.7*math.sin(a*13+t*9)
     y=t*H
@@ -135,7 +169,7 @@ def ring(t,a,inside=False):
 def field(t,a):
     # Irregular smooth scar edges follow actual clear road voids, never a square mask.
     distance=min(kdt.find(ring(t,a,False))[2],kdt.find(ring(t,a,True))[2])
-    return distance-(42+3*math.sin(a*11+t*27)+2*math.sin(a*17-t*19))
+    return distance-(46+3*math.sin(a*11+t*27)+2*math.sin(a*17-t*19))
 
 verts=[[],[]];faces=[[],[]];rimverts=[];rimfaces=[]
 for i in range(levels):
@@ -159,23 +193,41 @@ for insidewall,material in [(0,bark),(1,inner)]:
     o=mesh('Sinuous hollow '+('cambium' if insidewall else 'bark'),verts[insidewall],faces[insidewall],material,hero)
     bm=bmesh.new();bm.from_mesh(o.data);bmesh.ops.remove_doubles(bm,verts=bm.verts,dist=.015);bm.to_mesh(o.data);bm.free()
 mesh('Rounded pale aperture scar tissue',rimverts,rimfaces,sapwood,hero)
-# Visible torn crown thickness joins both skins; only actual route ports remain open.
-for t in [0,1]:
-    rv=[];rf=[]
-    for j in range(n):
-        a=j*math.tau/n;b=(j+1)*math.tau/n
-        if min(field(t,a),field(t,b))<0:continue
-        start=len(rv);rv.extend([ring(t,a),ring(t,b),ring(t,b,True),ring(t,a,True)])
-        rf.append(tuple(start+k for k in range(4)))
-    mesh('Living crown thickness' if t else 'Basal collar thickness',rv,rf,sapwood if t else bark,hero)
-
+# Complete living upper trunk: the cavity continues upward before closing inside
+# a tapering, branching bole. No roof cap is pasted across the raceway opening.
+def upper_ring(t,a,inside=False):
+    bottom=ring(1,a,inside)
+    if t==0:return bottom
+    rr=(R*.90-7)*(1-t)**.82+7+3*math.sin(a*7+t*8)*math.sin(math.pi*t)
+    if inside:rr=max(0,rr-13)*(max(0,1-t/.62))**.55
+    return Vector((math.cos(a)*rr+24*math.sin(t*2.1),bottom.y+t*330,math.sin(a)*rr+18*math.sin(t*3.2)))
+# Clip the upper continuation against the same actual road/camera envelope so
+# the existing crown exit remains a genuine portal through the continuous bole.
+for insidewall,material in [(False,bark),(True,inner)]:
+    uv=[];uf=[];upper_levels=10
+    for i in range(upper_levels):
+        for j in range(n):
+            corners=[(i/upper_levels,j*math.tau/n),(i/upper_levels,(j+1)*math.tau/n),((i+1)/upper_levels,(j+1)*math.tau/n),((i+1)/upper_levels,j*math.tau/n)]
+            for inds in [(0,1,2),(0,2,3)]:
+                poly=[corners[k] for k in inds];result=[]
+                for k,q in enumerate(poly):
+                    prev=poly[k-1]
+                    fq=kdt.find(upper_ring(*q,insidewall))[2]-44;fp=kdt.find(upper_ring(*prev,insidewall))[2]-44
+                    if (fq>=0)!=(fp>=0):
+                        u=fp/(fp-fq);result.append((prev[0]+(q[0]-prev[0])*u,prev[1]+(q[1]-prev[1])*u))
+                    if fq>=0:result.append(q)
+                if len(result)<3:continue
+                start=len(uv);uv.extend(upper_ring(t,a,insidewall) for t,a in result)
+                for k in range(1,len(result)-1):uf.append((start+k+1,start+k,start) if insidewall else (start,start+k,start+k+1))
+    o=mesh('Continuous upper trunk '+('cambium' if insidewall else 'bark'),uv,uf,material,hero)
+    bm=bmesh.new();bm.from_mesh(o.data);bmesh.ops.remove_doubles(bm,verts=bm.verts,dist=.015);bm.to_mesh(o.data);bm.free()
 # Fine raised living grain follows the inside wall and splits around the route openings.
 for j in range(50):
     a0=j*math.tau/50+.06*math.sin(j*7); run=[]
     for k in range(53):
-        t=k/52; a=a0+.035*math.sin(t*8+j)
+        t=k/52; a=a0+.055*math.sin(t*12+j)+.025*math.sin(t*29+j*.7)
         q=ring(t,a,True);q*=Vector((.992,1,.992))
-        if kdt.find(q)[2]>41:
+        if kdt.find(q)[2]>43:
             run.append(q)
         else:
             if len(run)>3:tube('Cambium sinew',run,[1.3+.5*math.sin(k*.6)**2]*len(run),sapwood if j%7==0 else bark,hero,6)
@@ -201,15 +253,21 @@ def crown_leaf(base,length,width,yaw,pitch,parent,tint=1):
     for i in range(rows):
         t=i/(rows-1)
         for j in range(cols+1):
-            w=j/cols*2-1; x=math.sin(math.pi*t)**.8*width*w
-            z=t*length; y=math.sin(math.pi*t)*length*.12+abs(w)*width*.17-t*t*length*.14
+            w=j/cols*2-1
+            # Rounded, asymmetric lobes and curled margins vary by branch orientation.
+            profile=math.sin(math.pi*t)**(.62+.16*math.sin(yaw*2))
+            x=profile*width*w*(.88+.12*math.sin(t*math.pi*3+yaw))
+            x+=length*.055*math.sin(math.pi*t)*math.sin(yaw*3)
+            z=t*length; y=math.sin(math.pi*t)*length*.16+abs(w)**1.6*width*(.18+.18*math.sin(yaw))
+            y-=t*t*length*(.10+.18*(.5+.5*math.sin(yaw*4)))
+            y+=w*t*width*.16*math.sin(yaw*2)
             yy=y*math.cos(pitch)+z*math.sin(pitch);zz=z*math.cos(pitch)-y*math.sin(pitch)
             verts.append((base[0]+x*math.cos(yaw)+zz*math.sin(yaw),base[1]+yy,base[2]-x*math.sin(yaw)+zz*math.cos(yaw)))
     for i in range(rows-1):
         for j in range(cols):
             a=i*(cols+1)+j;faces.append((a,a+1,a+cols+2,a+cols+1))
     o=mesh('Clustered broad leaf',verts,faces,leafmat,parent)
-    ca=o.data.color_attributes.new(name='COLOR_0',type='FLOAT_COLOR',domain='CORNER')
+    ca=o.data.color_attributes.get('COLOR_0') or o.data.color_attributes.new(name='COLOR_0',type='FLOAT_COLOR',domain='CORNER')
     for c in ca.data:c.color=(tint,tint*(.88+.12*tint),tint*.89,1)
     return o
 
@@ -218,7 +276,24 @@ def crown_cluster(center,radius,parent,seed,count=18,flat=False):
     for j in range(count):
         a=j*2.399+.3*rng.random();r=radius*math.sqrt(rng.random())
         p=(center[0]+math.cos(a)*r,center[1]+(rng.random()-.5)*radius*(.42 if flat else .85),center[2]+math.sin(a)*r)
-        crown_leaf(p,11+rng.random()*7,4+rng.random()*3,a+rng.random(),-.1+rng.random()*.4,parent,.67+rng.random()*.45)
+        # Leading leaves sit above smaller, drooping subordinate sprays.
+        leader=j%5==0
+        crown_leaf(p,(12 if leader else 8)+rng.random()*5,(5 if leader else 3)+rng.random()*3,a+rng.random(),(-.12 if leader else -.45)+rng.random()*.75,parent,.60+rng.random()*.65)
+
+# High living crown grows out of the continuous bole, completing its silhouette.
+for j in range(7):
+    a=j*2.399;start_y=H+105+(j%3)*34
+    start=(math.cos(a)*97,start_y,math.sin(a)*97)
+    tip=(math.cos(a)*(180+(j%2)*28),H+230+(j%3)*28,math.sin(a)*(180+(j%2)*28))
+    mid=(start[0]*.8+tip[0]*.2,start_y+55,start[2]*.8+tip[2]*.2)
+    tube('Upper living crown fork',[start,mid,tip],[18,13,3],bark,hero,9)
+    crown_cluster(tip,44,hero,9100+j,22)
+    for side in [-1,1]:
+        twig=(tip[0]+math.cos(a+side*.8)*28,tip[1]+20,tip[2]+math.sin(a+side*.8)*28)
+        tube('High crown secondary arm',[mid,twig],[7,.8],bark,hero,6)
+        crown_cluster(twig,32,hero,9200+j*2+side,12)
+crown_cluster((22,H+337,12),39,hero,9337,26)
+merge_materials(hero)
 
 # Distinct authored species: twin-fork vault oak, crooked wounded elder, low broad bole.
 for variant in range(3):
@@ -277,24 +352,38 @@ for variant in range(2):
     for side in [-1,1]:tube('Pale twisted rib',[(p[0]+side*4*math.sin(i*.8),p[1]+4,p[2]) for i,p in enumerate(points)],[2.5*(1-j/10) for j in range(9)],sapwood,root,6)
     merge_materials(root)
 root=empty('fungal_fan')
-for j in range(4):
-    angle=j*1.7;base=(math.cos(angle)*5,0,math.sin(angle)*5);height=25+j*8
-    tube('Gnarled fungal stalk',[base,(base[0]+2,height*.5,base[2]),(base[0],height,base[2])],[2.2,1.6,1.1],sapwood,root,7)
-    verts=[];faces=[];rings=6;sides=24;rad=13+j*2
+# Four unequal bracket forms spread around a root, not a concentric umbrella tower.
+for j,(height,rad,bx,bz,dome) in enumerate([(17,15,-5,-4,3),(29,11,5,3,7),(41,16,-4,5,-1),(49,9,4,-5,4)]):
+    angle=j*1.7;base=(bx,0,bz)
+    tube('Gnarled fungal stalk',[base,(bx+3,height*.48,bz-2),(bx,height+dome,bz)],[2.2,1.6,1.1],sapwood,root,7)
+    verts=[];faces=[];rings=6;sides=24
+    def cap(t,a):
+        outline=(.77+.23*math.cos(a-angle))*(1+.075*math.sin(a*3+j)+.035*math.sin(a*7-j))
+        rr=rad*t*outline
+        curl=(1.2*math.sin(a*3+j)+1.0*math.cos(a*2-j))*t**3
+        y=height+dome*(1-t*t)+curl+t*.9*math.sin(a+j)
+        return (bx+math.cos(a)*rr,y,bz+math.sin(a)*rr)
     for i in range(rings):
-        t=i/(rings-1)
-        for k in range(sides):
-            a=k*math.tau/sides;r=rad*t*(1+.065*math.sin(a*9))
-            verts.append((base[0]+math.cos(a)*r,height+6*(1-t*t)+math.sin(a*7)*t*t,base[2]+math.sin(a)*r))
+        for k in range(sides):verts.append(cap(i/(rings-1),k*math.tau/sides))
     for i in range(rings-1):
         for k in range(sides):
             a=i*sides+k;b=i*sides+(k+1)%sides;faces.append((a,b,b+sides,a+sides))
-    o=mesh('Layered scalloped fungal shelf',verts,faces,fungus,root)
-    sol=o.modifiers.new('Fleshy fungal edge','SOLIDIFY');sol.thickness=.8;bpy.context.view_layer.objects.active=o;bpy.ops.object.modifier_apply(modifier=sol.name)
-    rim=[(base[0]+math.cos(k*math.tau/40)*rad*(1+.065*math.sin(k*math.tau/40*9)),height+math.sin(k*math.tau/40*7),base[2]+math.sin(k*math.tau/40)*rad*(1+.065*math.sin(k*math.tau/40*9))) for k in range(41)]
-    tube('Steady luminous fungal lip',rim,[.3]*len(rim),vein,root,4)
-    for k in range(10):
-        a=k*math.tau/10;tube('Radial fungal gill',[(base[0],height+3,base[2]),(base[0]+math.cos(a)*rad*.55,height+2,base[2]+math.sin(a)*rad*.55),(base[0]+math.cos(a)*rad*.94,height-.35,base[2]+math.sin(a)*rad*.94)],[.28,.22,.08],sapwood,root,4)
+    mesh('Asymmetric curled fungal shelf',verts,faces,fungus,root)
+    lower=[(x,y-1.1,z) for x,y,z in verts]
+    lowerfaces=[tuple(reversed(f)) for f in faces]
+    # Ivory underside, fleshy edge thickness and cool gills carry separate shading.
+    mesh('Pale fungal underside',lower,lowerfaces,sapwood,root)
+    rim=[cap(1,k*math.tau/32) for k in range(33)]
+    tube('Steady luminous fungal lip',rim,[.22]*len(rim),vein,root,4)
+    edge=[];edgefaces=[]
+    for k in range(sides):
+        top=cap(1,k*math.tau/sides);edge.extend([top,(top[0],top[1]-1.1,top[2])])
+        edgefaces.append((k*2,k*2+1,((k+1)%sides)*2+1,((k+1)%sides)*2))
+    mesh('Fleshy torn fungal edge',edge,edgefaces,fungus,root)
+    for k in range(8):
+        a=k*math.tau/8+j*.13
+        pts=[cap(t,a+.08*t) for t in [.06,.5,.94]]
+        tube('Underside radial gill',[(x,y-1.28,z) for x,y,z in pts],[.25,.22,.08],fungus,root,4)
 merge_materials(root)
 
 # Flower: thick curled double-layer petals, ribbed backs, actual hanging anthers.
@@ -430,6 +519,22 @@ for variant in range(3):
         # only redundant leaf interiors on ordinary far crowns.
         dec.ratio=.135 if o.data.materials[0]==leafmat else .18
         bpy.context.view_layer.objects.active=o;bpy.ops.object.modifier_apply(modifier=dec.name)
+# Approved placement envelopes remain fixed while leaf interiors are refined.
+approved_tree_bounds=[((-76.9239197,-2.7276151,-42.7764816),(72.1163025,185.6220856,36.3825607)),((-87.206337,-2.706378,-58.949352),(72.585862,212.348862,45.301861)),((-73.538826,-2.838007,-56.924149),(81.618386,149.224426,67.558205))]
+for variant,(lower,upper) in enumerate(approved_tree_bounds):
+    for prefix in ['tree_','tree_lod_']:
+        root=bpy.data.objects[prefix+str(variant)]
+        root['clearanceSize']=[upper[k]-lower[k] for k in range(3)]
+        for obj in root.children:
+            if obj.type!='MESH':continue
+            for v in obj.data.vertices:
+                x,z,y=v.co.x,-v.co.y,v.co.z
+                x=max(lower[0],min(upper[0],x));y=max(lower[1],min(upper[1],y));z=max(lower[2],min(upper[2],z))
+                v.co=B((x,y,z))
+            obj.data.update()
+# Validate modifiers before export; the only texture is packed original art.
+for obj in bpy.data.objects:
+    if obj.type=='MESH':obj.data.validate(clean_customdata=False)
 # Material-backed original meshes, no external dependencies or texture downloads.
 for m in bpy.data.materials:
     m.use_backface_culling=False

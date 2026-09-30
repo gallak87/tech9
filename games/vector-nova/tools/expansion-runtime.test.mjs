@@ -356,3 +356,36 @@ test('curved receiving surface catches a real crossing between cached tangent pl
   };
   assert.equal(model.sweptLanding(track, jump, below, after, velocity), null);
 });
+
+test('a descending deck hit resolves before a later side-rail hit in the same tick', () => {
+  const track = course();
+  const results = [];
+  for (const curvedContact of [false, true]) {
+    const adapter = runtime(track, {}, { curvedContact });
+    const state = { ...createVehicleState(), distance: 99.5, speed: 100 };
+    adapter.advance(state, {}, DT);
+    const snapshot = adapter.snapshot();
+    snapshot.currentPose = {
+      position: [16.5, -9, 200],
+      quaternion: [0, 0, 0, 1],
+    };
+    snapshot.previousPose = structuredClone(snapshot.currentPose);
+    snapshot.flight.velocity = [180, -60, 100];
+    adapter.restore(snapshot);
+    results.push(adapter.advance(state, {}, DT));
+  }
+  assert.equal(
+    results[0].some((e) => e.type === 'jump-transfer'),
+    false,
+    'legacy rail-first ordering loses this earlier floor contact',
+  );
+  assert.equal(
+    results[1].find((e) => e.type === 'jump-transfer')?.payload.outcome,
+    'landed',
+  );
+  assert.equal(
+    results[1].some((e) => e.type === 'impact'),
+    false,
+    'a rail beyond the first supported floor contact cannot hit the airborne hull',
+  );
+});

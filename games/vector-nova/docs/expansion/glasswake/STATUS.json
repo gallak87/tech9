@@ -1,18 +1,139 @@
 {
-  "schemaVersion": 2,
-  "mapNumber": 5,
-  "name": "Glasswake Comet",
-  "slug": "glasswake",
-  "state": "not_started",
-  "worktree": null,
-  "foundationRevision": null,
-  "coordination": "Live primary docs/expansion/LAUNCH_STATE.json; see common brief",
-  "critic": {
-    "completedRounds": 0,
-    "lastScores": null,
-    "verifiedPass": false
+  "schemaVersion": 1,
+  "level": "glasswake",
+  "state": "production",
+  "worktree": "/Users/g/.codex/worktrees/fzero-glasswake1/tech9",
+  "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
+  "branch": "codex/fzero-glasswake1",
+  "formalRounds": [],
+  "formalRoundLimit": 8,
+  "humanApproved": false,
+  "futureSupport": [
+    {
+      "id": "fracture-1-setup",
+      "section": "fracture",
+      "s": 1469.1963725916794,
+      "lateral": 0,
+      "height": 1,
+      "suggestedAid": "future shared boost/refill",
+      "purpose": "Safe alignment and reserve setup before mandatory fracture flight",
+      "observedDifficulty": "CPU aligned launches land at78.4–157m/s;52m/s misses. Real-key check pending.",
+      "world": [151.96933075922513, 230.89811872355716, 602.2094109298852]
+    },
+    {
+      "id": "fracture-1-recovery",
+      "section": "fracture",
+      "s": 1807.5193852237642,
+      "lateral": 0,
+      "height": 1,
+      "suggestedAid": "future shared recovery/reserve aid",
+      "purpose": "Safe stationary recovery shelf after a missed jump",
+      "observedDifficulty": "CPU slow misses recover after1.5s; current reserve/controls remain unchanged.",
+      "world": [489.4570505307036, 236, 598.6061385877035]
+    },
+    {
+      "id": "fracture-2-setup",
+      "section": "fracture",
+      "s": 1759.648279496713,
+      "lateral": 0,
+      "height": 1,
+      "suggestedAid": "future shared boost/refill",
+      "purpose": "Safe alignment and reserve setup before mandatory fracture flight",
+      "observedDifficulty": "CPU aligned launches land at78.4–157m/s;52m/s misses. Real-key check pending.",
+      "world": [441.6130891079248, 236, 600.2158842341132]
+    },
+    {
+      "id": "fracture-2-recovery",
+      "section": "fracture",
+      "s": 2113.1623277831814,
+      "lateral": 0,
+      "height": 1,
+      "suggestedAid": "future shared recovery/reserve aid",
+      "purpose": "Safe stationary recovery shelf after a missed jump",
+      "observedDifficulty": "CPU slow misses recover after1.5s; current reserve/controls remain unchanged.",
+      "world": [793.9642696312691, 232.0062197402344, 581.6313719054299]
+    },
+    {
+      "id": "gallery-grip-setup",
+      "section": "gallery",
+      "s": 999.2885333075467,
+      "lateral": 0,
+      "height": 1,
+      "suggestedAid": "future shared grip/stability aid",
+      "purpose": "Optional help before repeated frost/crystal choices",
+      "observedDifficulty": "Matched55m/s brake sample retained lateral velocity4.256m/s on frost versus2.520m/s on clear crystal; braking equal.",
+      "world": [-42.22911814781865, 59.74043267366973, 253.19362619275512]
+    },
+    {
+      "id": "chasm-grip-setup",
+      "section": "chasm",
+      "s": 3366.371236397038,
+      "lateral": 0,
+      "height": 1,
+      "suggestedAid": "future shared grip/stability aid",
+      "purpose": "Optional help before the descending frosted S",
+      "observedDifficulty": "Current controls and authored frost retained; real-key braking sample pending.",
+      "world": [694.9802536575221, 147.1316656659371, -448.94206777749264]
+    }
+  ],
+  "unverified": [
+    "Production driving and visual verification pending",
+    "Foreground frame pacing",
+    "Independent audio listening",
+    "Physical gamepad/mobile"
+  ],
+  "sharedExtension": {
+    "source": "8c6f05a733453ddbc9f7428c3804c9c419a7f67b",
+    "applied": "5fef9995"
   },
-  "verification": {},
-  "openIssues": [],
-  "humanApproved": false
+  "track": {
+    "revision": "glasswake-fracture-route-v1",
+    "length": 4820.692447810725,
+    "width": 30,
+    "bridge": {
+      "start": 1513.8586803738242,
+      "end": 2115.1623308116823,
+      "length": 601.3036504378581
+    },
+    "jumps": [
+      {
+        "id": "prism-fracture",
+        "takeoff": 1579.1963725916794,
+        "landingStart": 1639.5193852171753,
+        "landingEnd": 1799.5193852240911,
+        "recovery": 1807.5193852237642,
+        "halfWidth": 15,
+        "targetSpeed": 112,
+        "recoveryDelay": 1.5
+      },
+      {
+        "id": "canyon-fracture",
+        "takeoff": 1869.648279496713,
+        "landingStart": 1940.1623245715282,
+        "landingEnd": 2105.1623245672995,
+        "recovery": 2113.1623277831814,
+        "halfWidth": 15,
+        "targetSpeed": 112,
+        "recoveryDelay": 1.5
+      }
+    ]
+  },
+  "checks": {
+    "route": "production/shape pass:4822 samples,max arc error0.000046m,max turn0.01985rad/m",
+    "laneTests": "9/9 pass (runtime6,environment3); track tests in progress",
+    "fullTests": "257/257 pass",
+    "lint": "pass",
+    "format": "pass",
+    "build": "pass",
+    "browser": "pending exclusive GPU grant"
+  },
+  "servedBuild": {
+    "js": "index-Cot3gQV4.js",
+    "css": "index-CnBlraa9.css",
+    "level": "glasswake-COI1l518.js",
+    "preview": "http://127.0.0.1:5204/?level=glasswake",
+    "verified": false
+  },
+  "futureSupportTrackRevision": "glasswake-fracture-route-v1",
+  "frameConvention": "s is metres along wrapped route; +lateral is geometric right/driver-left; +height is frame.up; world XYZ metres."
 }

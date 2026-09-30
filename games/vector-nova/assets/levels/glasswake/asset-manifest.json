@@ -1,0 +1,245 @@
+{
+  "generator": "generate-environment.py",
+  "reference": "scene-reference.png",
+  "runtime": "/assets/levels/glasswake/glasswake-environment.glb",
+  "units": "metres",
+  "meshes": [
+    {
+      "name": "cliff_0",
+      "vertices": 84,
+      "triangles": 164
+    },
+    {
+      "name": "cliff_1",
+      "vertices": 84,
+      "triangles": 164
+    },
+    {
+      "name": "cliff_2",
+      "vertices": 84,
+      "triangles": 164
+    },
+    {
+      "name": "rubble_shelf",
+      "vertices": 60,
+      "triangles": 116
+    },
+    {
+      "name": "far_fragment",
+      "vertices": 84,
+      "triangles": 164
+    },
+    {
+      "name": "cave_roof",
+      "vertices": 48,
+      "triangles": 92
+    },
+    {
+      "name": "cave_pier",
+      "vertices": 72,
+      "triangles": 140
+    },
+    {
+      "name": "ice_curtain",
+      "vertices": 492,
+      "triangles": 944
+    },
+    {
+      "name": "bell_vault",
+      "vertices": 100,
+      "triangles": 160
+    },
+    {
+      "name": "dark_inclusion",
+      "vertices": 216,
+      "triangles": 412
+    },
+    {
+      "name": "bridge_arch",
+      "vertices": 1020,
+      "triangles": 1700
+    },
+    {
+      "name": "landing_shelf",
+      "vertices": 60,
+      "triangles": 116
+    },
+    {
+      "name": "dock_mast",
+      "vertices": 154,
+      "triangles": 256
+    },
+    {
+      "name": "calving_back",
+      "vertices": 84,
+      "triangles": 164
+    },
+    {
+      "name": "calving_roof",
+      "vertices": 48,
+      "triangles": 92
+    },
+    {
+      "name": "calving_floor",
+      "vertices": 48,
+      "triangles": 92
+    },
+    {
+      "name": "calving_ledge_0",
+      "vertices": 36,
+      "triangles": 68
+    },
+    {
+      "name": "calving_ledge_1",
+      "vertices": 36,
+      "triangles": 68
+    },
+    {
+      "name": "calving_ledge_2",
+      "vertices": 36,
+      "triangles": 68
+    },
+    {
+      "name": "calving_ledge_3",
+      "vertices": 36,
+      "triangles": 68
+    },
+    {
+      "name": "cavity_vein_0",
+      "vertices": 12,
+      "triangles": 20
+    },
+    {
+      "name": "cavity_vein_1",
+      "vertices": 12,
+      "triangles": 20
+    },
+    {
+      "name": "cavity_vein_2",
+      "vertices": 12,
+      "triangles": 20
+    },
+    {
+      "name": "cavity_vein_3",
+      "vertices": 12,
+      "triangles": 20
+    },
+    {
+      "name": "cavity_vein_4",
+      "vertices": 12,
+      "triangles": 20
+    },
+    {
+      "name": "cavity_vein_5",
+      "vertices": 12,
+      "triangles": 20
+    },
+    {
+      "name": "cavity_vein_6",
+      "vertices": 12,
+      "triangles": 20
+    },
+    {
+      "name": "cavity_vein_7",
+      "vertices": 12,
+      "triangles": 20
+    },
+    {
+      "name": "cavity_vein_8",
+      "vertices": 12,
+      "triangles": 20
+    },
+    {
+      "name": "cavity_rib_0",
+      "vertices": 12,
+      "triangles": 20
+    },
+    {
+      "name": "cavity_rib_1",
+      "vertices": 12,
+      "triangles": 20
+    },
+    {
+      "name": "cavity_rib_2",
+      "vertices": 12,
+      "triangles": 20
+    },
+    {
+      "name": "calving_chunk_00",
+      "vertices": 84,
+      "triangles": 164
+    },
+    {
+      "name": "calving_chunk_01",
+      "vertices": 84,
+      "triangles": 164
+    },
+    {
+      "name": "calving_chunk_02",
+      "vertices": 84,
+      "triangles": 164
+    },
+    {
+      "name": "calving_chunk_03",
+      "vertices": 84,
+      "triangles": 164
+    },
+    {
+      "name": "calving_chunk_04",
+      "vertices": 84,
+      "triangles": 164
+    },
+    {
+      "name": "calving_chunk_05",
+      "vertices": 84,
+      "triangles": 164
+    },
+    {
+      "name": "calving_chunk_06",
+      "vertices": 84,
+      "triangles": 164
+    },
+    {
+      "name": "calving_chunk_07",
+      "vertices": 84,
+      "triangles": 164
+    },
+    {
+      "name": "calving_chunk_08",
+      "vertices": 84,
+      "triangles": 164
+    },
+    {
+      "name": "calving_chip_00",
+      "vertices": 48,
+      "triangles": 92
+    },
+    {
+      "name": "calving_chip_01",
+      "vertices": 48,
+      "triangles": 92
+    },
+    {
+      "name": "calving_chip_02",
+      "vertices": 48,
+      "triangles": 92
+    },
+    {
+      "name": "calving_chip_03",
+      "vertices": 48,
+      "triangles": 92
+    },
+    {
+      "name": "calving_chip_04",
+      "vertices": 48,
+      "triangles": 92
+    },
+    {
+      "name": "calving_chip_05",
+      "vertices": 48,
+      "triangles": 92
+    }
+  ],
+  "triangles": 7480,
+  "bytes": 483212
+}

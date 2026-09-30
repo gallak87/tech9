@@ -1,0 +1,196 @@
+{
+  "name": "Zephyr Basilica authored scene kit",
+  "version": 1,
+  "coordinates": "Runtime glTF uses metres, X lateral, Y up, +Z forward. Blender source converts native coordinates as (X,-Z,Y).",
+  "source": "build_assets.py; zephyr-asset-library.blend",
+  "concept": {
+    "file": "zephyr-scene-reference.png",
+    "tool": "image_gen__imagegen (built-in image generation; no CLI)",
+    "generatedDate": "2026-09-29",
+    "originalOutput": "/Users/g/.codex/generated_images/01a0f0ba-5093-7dc0-b2cb-d41cc4e1ec01/exec-b5054043-fd06-4664-8c67-8de09028f8d8.png",
+    "usage": "Selected scene reference for modeling, not a runtime texture or rendered backdrop.",
+    "prompt": "Use case: stylized-concept. Asset type: selected world scene concept reference for editable 3D racing-game assets, Zephyr Basilica. Create one wide cinematic architectural scene at actual driving scale in a floating cathedral archipelago. In foreground a small angular antigravity racing ship on a broad 32 metre woven graphite bridge, warm deep bronze keel and outward swept sail-like side ribs. The route pierces the huge shattered rose window of a weathered limestone cathedral into a deep shadowed rib-vaulted nave, curves up its inside wall and launches through a missing floor toward an adjacent chapel on another floating island. Massive silver waterfalls originate in carved stone catch basins, pour beside and through selected bridge gaps, with broken layered sheets and white foam, tapering hundreds of metres down into pastel cloud bands. At side a separate cathedral tower is slowly falling from its island, pulling a long trailing arc of water into the clouds. Include tall central stone needle behind, a broken stone halo far above, terraced islands with visibly stratified tapered undersides. The next landing shelf must be visibly clear through the backlit water. Lighting: dark violet grey nave interior with rose-window colored light and warm roof shafts contrasting pale peach/aqua exterior atmosphere. Palette: weathered ivory, graphite, bronze, silver water, dusty lilac and apricot clouds. High-end detailed game environment concept with large readable architectural forms, real apertures and convincing scale. Avoid neon strip aesthetics, asphalt, repeated identical rocks, opaque fog, flat water planes, text, logos or UI."
+  },
+  "workflow": "Selected scene reference \u2192 CPU Blender mesh/material modeling \u2192 glTF \u2192 in-game lighting and inspection. No baked lighting or image planes.",
+  "copyright": "Original procedural geometry authored for this task. No external models, textures, fonts, or third-party source assets.",
+  "approximations": [
+    "Stone detail and erosion are modeled from deterministic geometry rather than sculpted displacement.",
+    "Stained-glass fragments are colored solid materials; motivated shafts and local light remain level-owned.",
+    "Water is a reusable modeled volume; streaming motion, mist, trailing arc and wet presentation remain level-owned."
+  ],
+  "assets": [
+    {
+      "purpose": "Drive-through shattered rose facade",
+      "anchor": "road crosses origin along +Z",
+      "clearEnvelope": {
+        "x": [-32, 32],
+        "y": [-18, 38],
+        "z": [-22, 22]
+      },
+      "placement": "Align local +Z with route tangent; local +Y with route up.",
+      "file": "/assets/levels/zephyr/cathedral-facade.glb",
+      "root": "cathedral-facade",
+      "bounds": {
+        "min": [-117.0, -68.0, -21.95],
+        "max": [117.0, 183.0, 24.0]
+      },
+      "triangles": 10550,
+      "meshCount": 8,
+      "bytes": 521164
+    },
+    {
+      "purpose": "Reusable rib-vaulted nave bay with clerestories and dark real roof",
+      "anchor": "road at origin, bay from z=-36 to +36",
+      "clearEnvelope": {
+        "x": [-40, 40],
+        "y": [-18, 55],
+        "z": [-36, 36]
+      },
+      "placement": "Use overlapping bays in gentle curves; road wall ride remains inside broad clear envelope.",
+      "file": "/assets/levels/zephyr/nave-bay.glb",
+      "root": "nave-bay",
+      "bounds": {
+        "min": [-83.884, -28.0, -44.0],
+        "max": [83.884, 130.5, 44.0]
+      },
+      "triangles": 5924,
+      "meshCount": 8,
+      "bytes": 314872
+    },
+    {
+      "purpose": "Open floating chapel with two true portals, nave and transepts",
+      "anchor": "road at origin, entrance z=-69, exit z=+69",
+      "clearEnvelope": {
+        "x": [-40, 40],
+        "y": [-18, 45],
+        "z": [-75, 75]
+      },
+      "file": "/assets/levels/zephyr/chapel.glb",
+      "root": "chapel",
+      "bounds": {
+        "min": [-91.0, -28.0, -77.7],
+        "max": [87.0, 169.0, 77.7]
+      },
+      "triangles": 10532,
+      "meshCount": 8,
+      "bytes": 531964
+    },
+    {
+      "purpose": "Stratified floating island with eroded undersides, terraces and suspension roots",
+      "anchor": "terrace center [0,0,0]; choose road-relative vertical offset explicitly",
+      "placement": "Keep terrace safely below road; nonuniform scaling acceptable within 0.7..1.5.",
+      "file": "/assets/levels/zephyr/island-grand.glb",
+      "root": "island-grand",
+      "bounds": {
+        "min": [-145.997, -220.139, -125.866],
+        "max": [167.782, 29.914, 138.398]
+      },
+      "triangles": 2576,
+      "meshCount": 8,
+      "bytes": 156648
+    },
+    {
+      "purpose": "Stratified floating island with eroded undersides, terraces and suspension roots",
+      "anchor": "terrace center [0,0,0]; choose road-relative vertical offset explicitly",
+      "placement": "Keep terrace safely below road; nonuniform scaling acceptable within 0.7..1.5.",
+      "file": "/assets/levels/zephyr/island-terrace.glb",
+      "root": "island-terrace",
+      "bounds": {
+        "min": [-101.601, -154.739, -75.748],
+        "max": [109.835, 27.653, 77.291]
+      },
+      "triangles": 2588,
+      "meshCount": 8,
+      "bytes": 157300
+    },
+    {
+      "purpose": "Stratified floating island with eroded undersides, terraces and suspension roots",
+      "anchor": "terrace center [0,0,0]; choose road-relative vertical offset explicitly",
+      "placement": "Keep terrace safely below road; nonuniform scaling acceptable within 0.7..1.5.",
+      "file": "/assets/levels/zephyr/island-shard.glb",
+      "root": "island-shard",
+      "bounds": {
+        "min": [-63.639, -142.438, -45.724],
+        "max": [64.802, 30.203, 47.113]
+      },
+      "triangles": 2588,
+      "meshCount": 8,
+      "bytes": 157296
+    },
+    {
+      "purpose": "Massive falling belfry, open bell chamber, weathered copper spire",
+      "anchor": "base pivot [0,0,0] for whole-object tilt/fall",
+      "placement": "Animate group around origin; attach a separate flowing-water asset to source ledge.",
+      "file": "/assets/levels/zephyr/falling-tower.glb",
+      "root": "falling-tower",
+      "bounds": {
+        "min": [-28.5, 0.0, -28.5],
+        "max": [28.5, 260.0, 28.5]
+      },
+      "triangles": 4408,
+      "meshCount": 5,
+      "bytes": 229356
+    },
+    {
+      "purpose": "Hero modeled waterfall with closed layered volume, grooves and irregular long strands",
+      "anchor": "source lip centered [0,0,0], flow down -Y; wide face in XY",
+      "deformation": "Optional level shader may bend by normalized -Y/370; preserve source lip and phase by simulation time.",
+      "materials": "water, water_silver, water_shadow, water_foam are separate merged mesh roles",
+      "file": "/assets/levels/zephyr/waterfall.glb",
+      "root": "waterfall",
+      "bounds": {
+        "min": [-46.883, -360.7, -11.739],
+        "max": [41.997, 0.687, 40.268]
+      },
+      "triangles": 17708,
+      "meshCount": 4,
+      "bytes": 323792
+    },
+    {
+      "purpose": "Readable traversable water curtain, roughly 45 percent open between modeled water ropes",
+      "anchor": "source at y=0; place source 45\u201360 m above road; road crossing local z=0",
+      "collision": "Visual only; actual wet-zone response belongs to level runtime/presentation.",
+      "file": "/assets/levels/zephyr/waterfall-curtain.glb",
+      "root": "waterfall-curtain",
+      "bounds": {
+        "min": [-35.839, -116.697, -4.163],
+        "max": [36.92, 0.699, 8.313]
+      },
+      "triangles": 7820,
+      "meshCount": 3,
+      "bytes": 145016
+    },
+    {
+      "purpose": "Slender eroded Cloudspire needle with separated buttress fins and bronze suspension collars",
+      "anchor": "spire base at origin; vertical along +Y",
+      "file": "/assets/levels/zephyr/cloudspire-needle.glb",
+      "root": "cloudspire-needle",
+      "bounds": {
+        "min": [-51.829, -4.5, -57.209],
+        "max": [53.187, 342.0, 52.16]
+      },
+      "triangles": 1432,
+      "meshCount": 6,
+      "bytes": 91232
+    },
+    {
+      "purpose": "Monumental broken stone halo in XY plane with five fractured runs, carved lips and bronze tethers",
+      "anchor": "center of clear circle [0,0,0]; circle normal +Z",
+      "clearEnvelope": {
+        "circleRadius": 103
+      },
+      "placement": "Rotate full group to frame a road vista or off-axis world composition.",
+      "file": "/assets/levels/zephyr/broken-halo.glb",
+      "root": "broken-halo",
+      "bounds": {
+        "min": [-132.55, -133.002, -13.1],
+        "max": [130.407, 132.81, 11.7]
+      },
+      "triangles": 7048,
+      "meshCount": 4,
+      "bytes": 332088
+    }
+  ],
+  "totalExportBytes": 2960728,
+  "uniqueTriangles": 73174
+}

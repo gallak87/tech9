@@ -4,6 +4,8 @@
 
 Standalone Vite + Three.js ES modules, WebGL2, PBR/ACES and sRGB output. No repository framework, alternate launcher or cloned runtime. See [status](docs/STATUS.json) for what is merged and [roadmap](ROADMAP.md) for planned work.
 
+The locally owned ESLint/Prettier/lint-staged/Husky configuration was adapted from Chronoforge Echo at the user's request.
+
 | Module                 | Responsibility                                                                  |
 | ---------------------- | ------------------------------------------------------------------------------- |
 | levels                 | Validated discovery, per-level factories, metadata and presentation adapters    |

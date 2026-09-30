@@ -13,10 +13,10 @@ import {
   createSceneryClearance,
   consolidateStaticInstances,
 } from './geometry.js';
-import { createCanopyWalker } from './creature.js';
 import { finishVesperMaterial } from './materials.js';
 
 const ASSET_URL = '/assets/levels/vesper/vesper-canopy.glb';
+const ENVIRONMENT_LIGHT_UPLIFT = 1.1;
 
 export function createVesperEnvironment({
   track,
@@ -48,7 +48,7 @@ export function createVesperEnvironment({
     .position.sub(dawnFrame.position)
     .setY(0)
     .normalize();
-  const inCreatureOpening = (position) =>
+  const inCanopyClearing = (position) =>
     position.x > 440 &&
     position.x < 1140 &&
     position.z > -235 &&
@@ -62,6 +62,8 @@ export function createVesperEnvironment({
   const ownedMaterials = [];
   const material = (name, options) => {
     const value = new T.MeshStandardMaterial({ name, ...options });
+    if (value.emissive.getHex() !== 0)
+      value.emissiveIntensity *= ENVIRONMENT_LIGHT_UPLIFT;
     finishVesperMaterial(value);
     ownedMaterials.push(value);
     return value;
@@ -91,9 +93,7 @@ export function createVesperEnvironment({
   });
   let disposed = false;
   let assetScene;
-  let creature;
   const treeLods = [];
-  let loaded = false;
   const metrics = {
     assetUrl: ASSET_URL,
     authoredTemplates: 17,
@@ -105,7 +105,11 @@ export function createVesperEnvironment({
     shellAnchors: 0,
     omittedAnchors: 0,
     gateTrunks: 0,
-    heroLandmarks: 4,
+    heroLandmarks: 3,
+    activeCreatures: 0,
+    activeCreatureEvents: 0,
+    bendingCrowns: 0,
+    staticClearingTrees: 0,
     renderedTriangles: null,
     loadState: 'pending',
     clearanceRejected: 0,
@@ -322,7 +326,12 @@ export function createVesperEnvironment({
   stemMesh.name = 'Vesper / grown lantern stems';
   group.add(stemMesh);
   const practicalLights = Array.from({ length: 7 }, () => {
-    const light = new T.PointLight('#ffc878', 110, 60, 2);
+    const light = new T.PointLight(
+      '#ffc878',
+      110 * ENVIRONMENT_LIGHT_UPLIFT,
+      60,
+      2,
+    );
     group.add(light);
     return light;
   });
@@ -401,7 +410,12 @@ export function createVesperEnvironment({
       roots.receiveShadow = true;
       group.add(roots);
     }
-    const cool = new T.PointLight('#6ac9c0', 580, 145, 2);
+    const cool = new T.PointLight(
+      '#6ac9c0',
+      580 * ENVIRONMENT_LIGHT_UPLIFT,
+      145,
+      2,
+    );
     cool.position
       .copy(track.sample(vault.showcase + 45).position)
       .add(new T.Vector3(25, 25, 0));
@@ -449,9 +463,14 @@ export function createVesperEnvironment({
       if (!value) throw new Error(`Vesper asset is missing ${name}`);
       return value;
     };
+    const finishedMaterials = new Set();
     assetScene.traverse((object) => {
       if (!object.isMesh) return;
       for (const m of [object.material].flat()) {
+        if (finishedMaterials.has(m)) continue;
+        finishedMaterials.add(m);
+        if (m.emissive && m.emissive.getHex() !== 0)
+          m.emissiveIntensity *= ENVIRONMENT_LIGHT_UPLIFT;
         m.side = T.DoubleSide;
         m.envMapIntensity = 0.32;
         finishVesperMaterial(m);
@@ -487,7 +506,12 @@ export function createVesperEnvironment({
       }
     });
     group.add(flower);
-    const flowerLight = new T.PointLight('#ffcc8a', 2400, 160, 2);
+    const flowerLight = new T.PointLight(
+      '#ffcc8a',
+      2400 * ENVIRONMENT_LIGHT_UPLIFT,
+      160,
+      2,
+    );
     flowerLight.position.copy(flower.position).add(new T.Vector3(0, -35, 0));
     group.add(flowerLight);
     const stationFrame = groundFrame(track, track.landmarks.station.s + 20);
@@ -502,7 +526,12 @@ export function createVesperEnvironment({
     );
     station.name = 'Vesper / split seedpod station';
     group.add(station);
-    const stationLight = new T.PointLight('#ffc77c', 1000, 95, 2);
+    const stationLight = new T.PointLight(
+      '#ffc77c',
+      1000 * ENVIRONMENT_LIGHT_UPLIFT,
+      95,
+      2,
+    );
     stationLight.position.copy(station.position).add(new T.Vector3(0, 20, 0));
     group.add(stationLight);
     const branchFrame = groundFrame(track, track.jumps[0].landingStart + 95);
@@ -553,7 +582,7 @@ export function createVesperEnvironment({
           metrics.clearanceRejected++;
           continue;
         }
-        if (inDawnOpening(p, footprint * 0.5) || inCreatureOpening(p)) continue;
+        if (inDawnOpening(p, footprint * 0.5) || inCanopyClearing(p)) continue;
         const place = {
           position: p.toArray(),
           scale: [scale, scale, scale],
@@ -619,7 +648,7 @@ export function createVesperEnvironment({
         )
       )
         continue;
-      if (inDawnOpening(p, 65 * scale) || inCreatureOpening(p)) continue;
+      if (inDawnOpening(p, 65 * scale) || inCanopyClearing(p)) continue;
       distant[variant].push({
         position: p.toArray(),
         scale: [scale, scale, scale],
@@ -708,7 +737,6 @@ export function createVesperEnvironment({
           break;
         }
       }
-    const bent = [];
     for (const [i, site] of [
       [0, [1060, ground, -160]],
       [1, [815, ground, -122]],
@@ -720,17 +748,16 @@ export function createVesperEnvironment({
       const tree = get(`tree_${i}`).clone(true);
       tree.position.copy(p);
       tree.scale.setScalar(1.15);
-      tree.name = 'Vesper / crown flexed by approaching walker';
+      tree.name = 'Vesper / static tree at canopy clearing';
       group.add(tree);
-      bent.push(tree);
+      metrics.staticClearingTrees++;
     }
-    metrics.bendingCrowns = bent.length;
     consolidateStaticInstances(group);
-    creature = createCanopyWalker(get('hero_walker'), track, group, bent);
-    loaded = true;
+    // Presentation intentionally omits the creature and all linked effects.
+    // creature.js and the GLB's hero_walker remain intact for possible reuse;
+    // do not instantiate its mesh, lights, moving crowns, leaf shower or spores.
     metrics.loadState = 'ready';
     setQuality(settings);
-    creature.update({ settings, time: 0, state: { distance: 0 } });
   }
   function setQuality(next, camera) {
     const low = next.quality === 'low';
@@ -773,9 +800,9 @@ export function createVesperEnvironment({
           (((nearest + i - 2) % lanternSites.length) + lanternSites.length) %
           lanternSites.length;
         light.position.copy(lanternSites[index].position);
-        light.intensity = next.quality === 'low' && i > 3 ? 0 : 110;
+        light.intensity =
+          next.quality === 'low' && i > 3 ? 0 : 110 * ENVIRONMENT_LIGHT_UPLIFT;
       });
-      if (loaded) creature.update(frame);
     },
     reset() {},
     dispose() {

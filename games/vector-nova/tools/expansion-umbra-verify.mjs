@@ -100,6 +100,15 @@ try {
       await page.keyboard.down('w');
       await waitMotion('flight');
       await capture(`jump${i}-${kind}-flight`);
+      if (kind === 'imperfect') {
+        await page.keyboard.down('d');
+        await page.waitForTimeout(80);
+        check(
+          `jump${i} real airborne steering`,
+          (await snap()).vehicle.steer > 0,
+        );
+        await page.keyboard.up('d');
+      }
       await page.waitForFunction(
         () =>
           window.__VN

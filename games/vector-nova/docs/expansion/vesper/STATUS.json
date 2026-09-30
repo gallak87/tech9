@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "phase": "critic_round3_ready",
+  "phase": "critic_round4_responsive_recheck_ready",
   "worktree": "/Users/g/.codex/worktrees/fzero-vesper1/tech9",
   "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
   "branch": "codex/fzero-vesper1",
-  "formalRounds": 2,
+  "formalRounds": 3,
   "maximumRounds": null,
   "humanApproved": false,
   "currentChecks": [
@@ -96,65 +96,44 @@
       "rendererErrors": 0,
       "scope": "One bounded material adjustment makes face/body/leg texture visible at driving distance in high/low. Geometry, staging and lighting unchanged.",
       "evidence": ".experiments/expansion/vesper/creature-texture-final/report.json"
+    },
+    {
+      "check": "final-responsive-repair",
+      "result": "pending-browser-recheck",
+      "contractTests": 4,
+      "scope": "Only R3 affected portrait and short landscape touch/HUD cases need recheck. No art or camera changes."
     }
   ],
   "openFindings": [
     {
-      "id": "R2-resin-depth",
+      "id": "R3-landscape-touch-controls",
       "priority": 1,
-      "category": "lightingMaterialDepth",
-      "finding": "The broad warm amber color and thin luminous border are substantially improved, but most driving views still read as opaque ochre/brown panels with faint wavy markings. There is little convincing layer separation, enclosed inclusions or warm reflected depth compared with the selected hollow-tree scene concept. Removing glare has flattened much of the surface.",
-      "fix": "Retain the present amber palette/border and readable lanes; introduce several scales/depths of internal resin structure and restrained view-dependent warm reflection/refraction/roughness response. The target is perceived deep resin at driving scale, not a demand for a costly physically exact transmission pipeline. Keep bright highlights bounded and preserve sap/resin contrast.",
+      "category": "feedbackUI",
+      "finding": "At 844x390, all on-screen steering/braking/throttle/boost controls are absent in both quality presets and all captured play states, including on a touch-capable emulated context. The touch region is display:none with zero bounds. The CSS enables its display only at max-width:760px, so rotating a phone beyond that width removes the driving controls.",
+      "reproduction": "Touch-capable 390x844 context, rotate/set viewport to 844x390; enter any racing scenario. No on-screen drive controls remain.",
+      "fix": "Make the existing touch control row available in the supported touch landscape layout without requiring a width under 761px. Preserve non-overlapping notice/map/telemetry regions and verify pointer input/release after rotation.",
+      "source": "src/ui/style.css:514",
       "evidence": [
-        "high-staging.png",
-        "high-crown-showcase.png",
-        "high-rootfall-showcase.png",
-        "low-motion-crown-showcase.png"
+        "final-844x390-high-crown-closed.png",
+        "final-844x390-high-impact-open.png",
+        "final-844x390-low-rootfall.png",
+        "mobile-final.json"
       ],
-      "reference": "assets/levels/vesper/concepts/hollow-tree-scene.png",
-      "implementation": "Correction applied; independent round3 verification pending."
+      "implementation": "Responsive correction committed; scoped affected-view verification pending. Accepted art and camera unchanged."
     },
     {
-      "id": "R2-organic-finish",
+      "id": "R3-responsive-impact-hud-craft",
       "priority": 2,
-      "category": "art",
-      "finding": "The whole hollow is preserved and bark texture is better, but nearby bark still resolves into largely vertical bands and long flat faces. Ordinary crown silhouettes look like repeated coarse leaf cutouts, while Mycelium fans appear as very regular cyan umbrella stacks. These remain visibly procedural compared with the stronger hero composition.",
-      "fix": "Preserve the enclosure, silhouette scale and existing layout. Add localized medium-scale bark/root/branch variation and motivated shading; give leaf/fungal families varied volume, spacing, underside/gill color and softened material response so repetition is less obvious. Prefer a small number of better modules/materials over dense added detail.",
+      "category": "feedbackUI",
+      "finding": "At 390x844 during deliberate impact, reserve text and speed cover substantial portions of the banked craft, and the full-width impact notice crosses its rear/engines. At 640x360 the impact notice also crosses the craft. DOM regions are disjoint, so the automatic rectangle audit misses this world-space overlap. The road remains visible and the craft is not cropped by the viewport; this is an overlay placement/framing issue.",
+      "reproduction": "At 390x844 or640x360 load impact, hold actual w+d for approximately1.2s, release and capture. Both high and low show the interference. Portrait screenshots are near1.35s because setup/capture takes real frames.",
+      "fix": "Reserve a clear impact-notice band away from the visible craft and keep essential reserve/speed legible during banked contact. A responsive notice placement and/or opt-in safe-frame adjustment is sufficient; leave accepted desktop art unchanged. Check review open/closed and one ordinary crown view to avoid moving the collision elsewhere.",
       "evidence": [
-        "high-pillar-showcase.png",
-        "high-vault-showcase.png",
-        "continuous-rootfall-outcome.png",
-        "high-dawnscar-showcase.png"
+        "final-390x844-high-impact-closed.png",
+        "final-390x844-high-impact-open.png",
+        "final-640x360-low-impact-closed.png"
       ],
-      "implementation": "Correction applied; independent round3 verification pending."
-    },
-    {
-      "id": "R2-impact-camera",
-      "priority": 2,
-      "category": "handlingCamera",
-      "finding": "A deliberate rail impact at1440x900 clips a substantial lower/rear part of the craft at the viewport bottom and puts the bottom control legend over it. The road remains visible and simulation is stable, but edge-camera framing is not yet robust.",
-      "reproduction": "Load impact; hold actual w+d for approximately1.2simulationseconds; evidence screenshot time1.225s. The exact inputs/state are in evidence.json drive impact-feedback.",
-      "fix": "Through the authorized shared camera owner, preserve full craft framing during banked rail contact without changing ordinary camera/handling or hiding the UI. Recheck this exact impact plus a normal ascent/landing after the adjustment.",
-      "evidence": ["impact-feedback-outcome.png"],
-      "implementation": "Correction applied; independent round3 verification pending."
-    },
-    {
-      "id": "human-complete-crown",
-      "priority": 1,
-      "finding": "The enclosed trunk still has a literally missing top and reads as an open stump. Complete its upper trunk/crown, preserving route/camera clearance.",
-      "implementation": "Correction applied; independent round3 verification pending."
-    },
-    {
-      "id": "human-creature-texture",
-      "priority": 2,
-      "finding": "Creature remains toyish. One focused body/legs/face texture/material pass is sufficient; avoid extensive Blender remodeling or perfection rounds.",
-      "implementation": "Correction applied; independent round3 verification pending."
-    },
-    {
-      "id": "R1-portrait-overlap",
-      "priority": 2,
-      "finding": "Source correction is implemented; final single mobile verification remains pending per direct human instruction.",
-      "implementation": "Source correction applied; one final mobile pass pending after art settles."
+      "implementation": "Responsive correction committed; scoped affected-view verification pending. Accepted art and camera unchanged."
     }
   ],
   "rounds": [
@@ -194,6 +173,24 @@
       "evidence": ".experiments/expansion/vesper/critic-r2/verdict.json",
       "actualKeyCases": 11,
       "stills": 58
+    },
+    {
+      "round": 3,
+      "source": "45616c396337eaa4322428f78f2238dadff7c521",
+      "result": "changes_required",
+      "scores": {
+        "art": 9,
+        "lightingMaterialDepth": 9,
+        "handlingCamera": 9,
+        "routeReadability": 9,
+        "feedbackUI": 8,
+        "stabilityPerformance": 9
+      },
+      "scope": "Desktop all9 accepted; final mobile phase found2responsive defects, now repaired for scoped recheck. Art remains frozen.",
+      "evidence": ".experiments/expansion/vesper/critic-r3/verdict.json",
+      "actualKeyCases": 7,
+      "desktopStills": 48,
+      "responsiveStills": 36
     }
   ],
   "futureSupport": [
@@ -292,6 +289,13 @@
       "ownedOptInCommit": "b4ef596b",
       "scope": "Optional camera.safeFrame projects cached ship bounds and minimally corrects grounded chase aim; default approved circuits unchanged.",
       "verification": "38targetedCPU regressions and full271suite; actual-key independent review pending."
+    },
+    {
+      "source": "Final mobile defect repair within human-authorized shared UI scope",
+      "localCommits": ["e670bddd"],
+      "ownedOptInCommit": "ea021817",
+      "scope": "Compact short landscape touch controls/upper impact notices and portraitCompactHud upper telemetry. Replaces unmerged portraitLowNotice. Existing approved metadata remains opted out.",
+      "verification": "4affectedcontract tests,full lint/build; targeted final responsive verification pending."
     }
   ],
   "sourceBudgets": {
@@ -304,16 +308,16 @@
     "owner": "fzero-int1",
     "running": true,
     "bundles": {
-      "main": "index-BMCXxhgf.js",
-      "level": "vesper-CIQjj0P8.js",
-      "css": "index-VT23Dp9i.css"
+      "main": "index-7wceQpLi.js",
+      "level": "vesper-DHRYRQp3.js",
+      "css": "index-DuS16sdu.css"
     },
     "assetHashes": {
-      "assets/index-BMCXxhgf.js": "2ab83ead56c2b82e322be6707e250b85dec6d7b7d91d7cc77aebd4f2477b8cd5",
+      "assets/index-7wceQpLi.js": "53d555fc01de2989efd4c83391b18a0266e572188cc4a348c3ac5f12dba8197f",
       "assets/BufferGeometryUtils-CxZJpR84.js": "24d2e8a1d4f18f31a0e636fa300057d585e3a96719b1e320093c5d5565ccc2ec",
       "assets/physics-3KfmHGEp.js": "b8ee27b6dbd690fb411f385e9636d52ae04f784b8bbac4c53ef5b0c81750cd9b",
-      "assets/index-VT23Dp9i.css": "8606810cccadf8dd53226a25290df8f6eb13969076d13114db31e2837c965d8a",
-      "assets/vesper-CIQjj0P8.js": "84e59e94ab406302816e29efcab1255827809c750fa5f5e3840f3016844d2598",
+      "assets/index-DuS16sdu.css": "35f3ee2efb8246512f79d4cff4dcb3cfe01a44d9756616ecadfe2c8f2cdb7cd6",
+      "assets/vesper-DHRYRQp3.js": "ed60801b7cf33cd1205083f508d96a4b289894067d946804270bdaf3578584ab",
       "assets/levels/vesper/vesper-canopy.glb": "33244b847375b3c21ac25fc0db4321bc9da44bfda73419a40820cc4679252cd0"
     },
     "servedBytesVerified": true

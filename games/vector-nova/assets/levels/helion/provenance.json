@@ -1,0 +1,46 @@
+{
+  "project": "Helion Flare",
+  "reference": {
+    "file": "reference/thermal-observatory-scene.png",
+    "tool": "built-in image_gen.imagegen",
+    "mode": "generate",
+    "prompt": "reference/prompt.txt",
+    "selected": true,
+    "sourceOutput": "/Users/g/.codex/generated_images/01a0f0bb-a247-78c0-b5f8-19523a72b483/exec-69b2112e-900d-4c9a-82d7-95d0e2e3d187.png"
+  },
+  "production": {
+    "generator": "blender/build_helion.py",
+    "editableSource": "blender/thermal-observatory.blend",
+    "blender": "5.1.1",
+    "execution": "CPU background CLI; no GPU renders or baked images",
+    "runtimeExport": "public/assets/levels/helion/thermal-observatory.glb",
+    "sha256": "65a0fa42f689124883bc78cc2640beea3be0a2315d3be3b2390c93b6feb517ed",
+    "bytes": 1530128,
+    "assetRoots": [
+      "Sunshield",
+      "RadiatorFan",
+      "JumpCanopy",
+      "InstrumentTower",
+      "ProminenceCrown",
+      "ProminenceRibbon"
+    ],
+    "sourceMeshes": 22,
+    "sourceTriangles": 42640,
+    "runtimeEnvironmentMeshes": 69,
+    "runtimeEnvironmentTriangles": 183082,
+    "sourceOfCounts": "CPU geometry inspection; not renderer measurements"
+  },
+  "authorship": "Original programmatic hard-surface and plasma meshes modeled from the retained scene reference. No third-party geometry or textures. Project-authored original material shaders.",
+  "approximations": [
+    "Prominences use modeled thick twisted sheets with slow vertex deformation and layered radiance; no plasma fluid simulation.",
+    "Photosphere uses procedural cellular radiance, sunspot basins and filaments on an actual sphere; no stellar scientific simulation.",
+    "World static architecture is merged by material and broad district to bound draw calls.",
+    "Distant prominence light uses two unshadowed point lights, motivated service light uses three pooled point lights, and exposure/shade modulates the level sun smoothly."
+  ],
+  "verification": {
+    "cpuTests": "2 passed: GLB roots and geometry budget, cross-preset moving thermal boundary, exact-once resource disposal, reflection calls/backdrop lifecycle",
+    "lint": "assigned environment/backdrop files passed",
+    "gpuStatus": "No GPU/browser usage by environment builder; integrated production review pending",
+    "processes": "Blender CPU process exited cleanly; browser never opened"
+  }
+}

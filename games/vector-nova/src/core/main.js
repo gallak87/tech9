@@ -3,11 +3,7 @@ import { createTrack, buildTrackVisual } from '../track/index.js';
 import { createShip } from '../ships/index.js';
 import { createRenderer } from '../renderer/index.js';
 import { createEnvironment } from '../environment/index.js';
-import {
-  createVehicleState,
-  stepVehicle,
-  STEERING_ASSIST,
-} from '../physics/index.js';
+import { createVehicleState, STEERING_ASSIST } from '../physics/index.js';
 import { createRace } from '../race/index.js';
 import { createInput } from '../input/index.js';
 import { createCameraRig } from '../camera/index.js';
@@ -16,14 +12,28 @@ import { createEffects } from '../effects/index.js';
 import { createUI } from '../ui/index.js';
 import { loadSettings, saveSettings } from '../progression/index.js';
 import { createReviewCamera } from './review-camera.js';
+import { createNacreImmersion } from './nacre-presentation.js';
+import {
+  createMagneticRuntime,
+  hasHalcyonFeatures,
+  runtimeIdentity,
+  compatibleRuntime,
+  advanceSession,
+  captureInitial,
+  restoreReplayInitial,
+  validateReplayInputs,
+} from './session-runtime.js';
 const parameters = new URLSearchParams(location.search);
 const orbital = parameters.get('level') === 'orbital';
-const blockout = orbital && parameters.get('review') === 'shape';
-const VERSION = orbital
-  ? blockout
-    ? '0.3.0-level2-blockout'
-    : '0.3.0-gate3-orbital'
-  : '0.2.2-gate2-pacing';
+const nacre = parameters.get('level') === 'nacre';
+const blockout = (orbital || nacre) && parameters.get('review') === 'shape';
+const VERSION = nacre
+  ? '0.4.1-nacre-v1'
+  : orbital
+    ? blockout
+      ? '0.3.0-level2-blockout'
+      : '0.3.0-gate3-orbital'
+    : '0.2.2-gate2-pacing';
 const host = document.querySelector('#app');
 const errors = [];
 function fail(error) {
@@ -47,10 +57,18 @@ window.addEventListener('unhandledrejection', (e) =>
 );
 async function boot() {
   const settings = loadSettings(),
-    view = await createRenderer(host, settings, { orbital, blockout }),
+    view = await createRenderer(host, settings, { orbital, blockout, nacre }),
     { scene, camera, renderer } = view;
-  const candidate = orbital ? await import('../track/level2/index.js') : null;
-  const track = candidate ? candidate.createLevel2Track() : createTrack();
+  const candidate = nacre
+    ? await import('../track/level3/index.js')
+    : orbital
+      ? await import('../track/level2/index.js')
+      : null;
+  const track = nacre
+    ? candidate.createLevel3Track()
+    : candidate
+      ? candidate.createLevel2Track()
+      : createTrack();
   if (orbital && !blockout) {
     track.id = 'asterion-orbital-1';
     track.review = {
@@ -59,22 +77,42 @@ async function boot() {
       phase: 'gate-3',
     };
   }
-  const road = candidate
+  if (nacre && !blockout)
+    track.review = {
+      ...track.review,
+      kind: 'nacre-production',
+      phase: 'gate-4.1',
+    };
+  const road = nacre
     ? blockout
-      ? candidate.buildLevel2Blockout(track)
-      : candidate.buildOrbitalTrack(track)
-    : buildTrackVisual(track);
-  const reviewCamera = orbital ? createReviewCamera(track, camera) : null;
+      ? candidate.buildLevel3Blockout(track)
+      : candidate.buildNacreTrack(track)
+    : candidate
+      ? blockout
+        ? candidate.buildLevel2Blockout(track)
+        : candidate.buildOrbitalTrack(track)
+      : buildTrackVisual(track);
+  const reviewCamera =
+    orbital || nacre ? createReviewCamera(track, camera) : null;
   const signatureReview = parameters.get('review') === 'signature';
-  const environment = orbital
-    ? blockout
-      ? new T.Group()
-      : (
-          await import('../environment/orbital/index.js')
-        ).createOrbitalEnvironment(track)
-    : createEnvironment(track);
+  const environment = nacre
+    ? (await import('../environment/level3/index.js')).createNacreEnvironment(
+        track,
+        { blockout, skyTexture: view.nacreSkyTexture },
+      )
+    : orbital
+      ? blockout
+        ? new T.Group()
+        : (
+            await import('../environment/orbital/index.js')
+          ).createOrbitalEnvironment(track)
+      : createEnvironment(track);
   scene.add(road, environment);
-  const ship = createShip({ plumeExposure: orbital && !blockout ? 1.65 : 1 });
+  await environment.userData.ready;
+  const immersion = nacre && !blockout ? createNacreImmersion(host) : null;
+  const ship = await createShip({
+    plumeExposure: orbital && !blockout ? 1.65 : 1,
+  });
   const inspectionBounds = new T.Box3().setFromObject(ship.group);
   const inspectionExtent = {
     radial: Math.hypot(
@@ -138,7 +176,7 @@ async function boot() {
   inspectionScene.add(ring);
   let state = createVehicleState(),
     prev = { ...state },
-    race = createRace(track),
+    race,
     mode = 'title',
     cameraMode = 'chase',
     scenario = 'staging',
@@ -150,10 +188,11 @@ async function boot() {
     raf = 0,
     active = true,
     inspectionTime = 0,
-    inspectionLayout = null;
+    inspectionLayout = null,
+    environmentReset = true;
   const inputLog = [],
     events = [],
-    audio = createAudio(),
+    audio = createAudio({ nacre: nacre && !blockout }),
     rig = createCameraRig(camera),
     effects = createEffects(scene, { refinedSparks: orbital && !blockout });
   const emit = (e) => {
@@ -166,19 +205,52 @@ async function boot() {
       /* Decorative audio must not interrupt physics. */
     }
     if (e.type === 'impact') {
-      ui.notice('BARRIER CONTACT · RESERVE LOST');
+      ui.notice(
+        e.payload.source === 'nacre-edge-catch'
+          ? 'EDGE CATCH · SMALL SPEED LOSS'
+          : e.payload.shielded
+            ? 'BARRIER CONTACT · SHIELD PROTECTED RESERVE'
+            : 'BARRIER CONTACT · RESERVE LOST',
+      );
       effects.impact(
-        track.sample(state.distance),
-        orbital && !blockout
-          ? e.payload.side * (track.width / 2 - 0.4)
-          : state.lateral,
+        track.sample(e.payload.distance ?? state.distance),
+        e.payload.lateral ??
+          (orbital && !blockout
+            ? e.payload.side * (track.width / 2 - 0.4)
+            : state.lateral),
       );
     }
+    if (e.type === 'jump-transfer') prev = { ...state };
+    if (e.type === 'jump-transfer')
+      ui.notice(
+        e.payload.outcome === 'recovered'
+          ? `RECOVERED BEYOND LANDING · ${race.valid ? 'LAP VALID' : 'UNTIMED SESSION'} · W TO RESUME`
+          : e.payload.edgeCaught
+            ? 'EDGE CATCH · LANDING CONFIRMED'
+            : 'LANDING CONFIRMED',
+      );
     if (e.type === 'lap')
       ui.notice(
         `${e.payload.valid ? 'LAP COMPLETE' : 'INVALID LAP'} · ${e.payload.duration.toFixed(3)}s`,
       );
   };
+  const runtimeFactory = nacre
+    ? candidate.createNacreRuntime
+    : hasHalcyonFeatures(track, parameters.get('features'))
+      ? (await import('../pickups/halcyon/index.js')).createHalcyonRuntime
+      : createMagneticRuntime;
+  const runtime = runtimeFactory({ track, scene, ship, host, settings, emit });
+  const makeRace = () => createRace(track, { rulesId: runtime.rulesId });
+  const resetRuntime = (reason) => {
+    runtime.reset({ reason, state, scenario, seed });
+    audio.resetEnvironment();
+    environmentReset = true;
+  };
+  const advance = (control) =>
+    advanceSession({ state, input: control, dt: 1 / 120, runtime, race, emit });
+  race = makeRace();
+  resetRuntime('initialize');
+  let initial = captureInitial(state, runtime);
   function sceneShip() {
     if (ship.group.parent !== scene) scene.add(ship.group);
   }
@@ -190,7 +262,9 @@ async function boot() {
       scenario = 'staging';
       state = createVehicleState();
       prev = { ...state };
-      race = createRace(track);
+      race = makeRace();
+      resetRuntime('fresh-lap');
+      initial = captureInitial(state, runtime);
       tick = 0;
       inputLog.length = 0;
       events.length = 0;
@@ -229,7 +303,9 @@ async function boot() {
     sceneShip();
     state = createVehicleState();
     prev = { ...state };
-    race = createRace(track);
+    race = makeRace();
+    resetRuntime('fresh-lap');
+    initial = captureInitial(state, runtime);
     mode = 'racing';
     cameraMode = 'chase';
     accumulator = 0;
@@ -251,6 +327,7 @@ async function boot() {
     state.lateralSpeed = 0;
     state.speed = 0;
     state.resetCount++;
+    resetRuntime('manual-recover');
     prev = { ...state };
     rig.reset();
     emit({ type: 'recover', payload: { penalty: 'current lap invalid' } });
@@ -260,6 +337,7 @@ async function boot() {
     sceneShip();
     mode = 'title';
     state = createVehicleState();
+    resetRuntime('home');
     prev = { ...state };
     cameraMode = 'chase';
     input.clear();
@@ -274,6 +352,7 @@ async function boot() {
       ship.group.quaternion.identity();
       inspectionTime = 0;
       inspectionLayout = null;
+      environmentReset = true;
       input.clear();
     } else {
       sceneShip();
@@ -315,6 +394,7 @@ async function boot() {
     },
     settings,
     track,
+    runtime.scenarios,
   );
   const input = createInput((command) => {
     if (command === 'pause') {
@@ -347,7 +427,8 @@ async function boot() {
     localRoll = new T.Quaternion();
   const upAxis = new T.Vector3(0, 1, 0),
     forwardAxis = new T.Vector3(0, 0, 1);
-  function pose(s) {
+  function pose(s, alpha = 1) {
+    const worldPose = runtime.pose?.(alpha);
     const f = track.sample(s.distance);
     ship.group.position
       .copy(f.position)
@@ -357,6 +438,10 @@ async function boot() {
     localYaw.setFromAxisAngle(upAxis, s.heading);
     localRoll.setFromAxisAngle(forwardAxis, s.steer * 0.08);
     ship.group.quaternion.multiply(localYaw).multiply(localRoll);
+    if (worldPose) {
+      ship.group.position.copy(worldPose.position);
+      ship.group.quaternion.copy(worldPose.quaternion);
+    }
     ship.update({
       speed: s.speed,
       boost: s.boosting,
@@ -365,7 +450,14 @@ async function boot() {
       energy: s.energy / 100,
     });
     view.follow(ship.group.position);
-    view.updateContact(track, s, road.userData.surfaceCoverage);
+    view.updateContact(
+      track,
+      s,
+      worldPose && !worldPose.grounded
+        ? () => 0
+        : road.userData.surfaceCoverage,
+    );
+    return worldPose;
   }
   function render(now) {
     if (!active) return;
@@ -379,9 +471,7 @@ async function boot() {
         prev = { ...state };
         inputLog.push({ tick, input: { ...control } });
         if (inputLog.length > 36000) inputLog.shift();
-        const old = state.distance;
-        stepVehicle(state, control, track, 1 / 120).forEach(emit);
-        race.step(old, state.distance, 1 / 120).forEach(emit);
+        advance(control);
         tick++;
         accumulator -= 1 / 120;
       }
@@ -446,14 +536,25 @@ async function boot() {
       );
       camera.lookAt(target);
       camera.updateProjectionMatrix();
+      runtime.update?.({
+        state: s,
+        dt: mode === 'racing' ? dt : 0,
+        time: s.time,
+        mode,
+        camera,
+        settings,
+      });
+      immersion?.update(camera.position.y, track.waterY ?? 0, false);
+      view.updatePresentation({ time: s.time, mode, reset: environmentReset });
       view.renderInspection(inspectionScene);
+      immersion?.updateStorm(null);
     } else {
       camera.clearViewOffset();
-      pose(s);
-      if (
-        reviewCamera &&
-        (mode === 'overview' || (blockout && mode === 'title'))
-      ) {
+      const worldPose = pose(s, alpha);
+      const reviewing = mode === 'overview' || (blockout && mode === 'title');
+      environment.userData.setOverview?.(reviewing);
+      view.setOverview?.(reviewing);
+      if (reviewCamera && reviewing) {
         reviewCamera.update();
       } else if (mode === 'title') {
         const f = track.sample(0);
@@ -481,14 +582,49 @@ async function boot() {
           mode: cameraMode,
           reducedMotion: settings.reducedMotion,
           time,
+          worldPose,
         });
       road.userData.update?.(s.distance);
-      environment.userData.update?.(camera.position, time);
+      environment.userData.updateVehicle?.({
+        position: ship.group.position,
+        quaternion: ship.group.quaternion,
+        speed: s.speed,
+        distance: s.distance,
+        time: s.time,
+        mode,
+        reset: environmentReset,
+      });
+      view.updatePresentation({ time: s.time, mode, reset: environmentReset });
+      environmentReset = false;
+      immersion?.update(
+        camera.position.y,
+        track.waterY ?? 0,
+        !reviewing && mode !== 'title',
+      );
+      environment.userData.update?.(camera.position, s.time);
+      environment.userData.updateScene?.(
+        scene,
+        camera.position,
+        s.time,
+        settings,
+      );
+      runtime.update?.({
+        state: s,
+        dt: mode === 'racing' ? dt : 0,
+        time: s.time,
+        mode,
+        camera,
+        settings,
+      });
       view.render(now);
+      immersion?.updateStorm(view.getPresentation());
     }
     effects.update(mode === 'racing' ? dt : 0);
     audio.update(state, settings.volume, mode === 'racing');
-    ui.update(state, race);
+    for (const event of view.drainStormEvents()) audio.event(event);
+    ui.update(state, race, nacre ? runtime.snapshot() : null, {
+      practice: nacre && scenario !== 'staging',
+    });
     raf = requestAnimationFrame(render);
   }
   window.__VN = {
@@ -498,24 +634,18 @@ async function boot() {
       restart();
       scenario = name;
       seed = newSeed;
-      const source = track.scenarios?.[name] || {};
+      const source =
+        runtime.scenarios?.[name]?.state || track.scenarios?.[name] || {};
       Object.assign(state, source);
       if (name === 'inspection') setCamera('inspection');
       if (name === 'impact') {
         state.lateral = -track.width / 2 + 2.3;
         state.speed = 85;
       }
+      resetRuntime('scenario');
+      initial = captureInitial(state, runtime);
       prev = { ...state };
-      race.checkpoint = Math.floor(
-        (state.distance % track.length) /
-          (track.length / (track.checkpoints?.length || 12)),
-      );
-      race.startDistance =
-        Math.floor(
-          state.distance / (track.length / (track.checkpoints?.length || 12)),
-        ) *
-        (track.length / (track.checkpoints?.length || 12));
-      race.valid = state.distance === 0;
+      race.placeScenario(state.distance);
       rig.reset();
       view.resetMetrics();
       return this.getSnapshot();
@@ -527,6 +657,7 @@ async function boot() {
     restart,
     resume,
     getReplay() {
+      validateReplayInputs(inputLog, tick);
       if (state.resetCount)
         throw new Error(
           'Recovery session cannot be replayed; restart for a clean recording',
@@ -535,6 +666,8 @@ async function boot() {
         version: VERSION,
         trackId: track.id,
         physicsVersion: 3,
+        runtime: runtimeIdentity(runtime),
+        initial: JSON.parse(JSON.stringify(initial)),
         seed,
         scenario,
         inputs: inputLog.map((e) => ({ ...e, input: { ...e.input } })),
@@ -544,15 +677,58 @@ async function boot() {
       if (
         replay.version !== VERSION ||
         replay.trackId !== track.id ||
-        replay.physicsVersion !== 3
+        replay.physicsVersion !== 3 ||
+        !compatibleRuntime(runtime, replay.runtime)
       )
         throw new Error('Replay version mismatch');
-      this.loadScenario(replay.scenario || 'staging', replay.seed);
+      validateReplayInputs(replay.inputs);
+      const retained = {
+        state,
+        prev,
+        race,
+        mode,
+        cameraMode,
+        scenario,
+        seed,
+        tick,
+        accumulator,
+        environmentReset,
+        initial,
+        runtime: runtime.snapshot(),
+        inputs: [...inputLog],
+        events: [...events],
+      };
+      try {
+        this.loadScenario(replay.scenario || 'staging', replay.seed);
+        restoreReplayInitial(replay.initial, initial, state, runtime);
+      } catch (error) {
+        ({
+          state,
+          prev,
+          race,
+          mode,
+          cameraMode,
+          scenario,
+          seed,
+          tick,
+          accumulator,
+          environmentReset,
+          initial,
+        } = retained);
+        runtime.restore(retained.runtime);
+        inputLog.splice(0, inputLog.length, ...retained.inputs);
+        events.splice(0, events.length, ...retained.events);
+        if (mode === 'inspection') inspectionScene.add(ship.group);
+        else sceneShip();
+        rig.reset();
+        ui.setMode(mode);
+        throw error;
+      }
+      prev = { ...state };
       for (const entry of replay.inputs) {
-        const old = state.distance;
+        inputLog.push({ tick: entry.tick, input: { ...entry.input } });
         prev = { ...state };
-        stepVehicle(state, entry.input, track, 1 / 120).forEach(emit);
-        race.step(old, state.distance, 1 / 120).forEach(emit);
+        advance(entry.input);
         tick++;
       }
       pause();
@@ -568,6 +744,7 @@ async function boot() {
         tick,
         settings: { ...settings },
         handling: { steeringAssist: STEERING_ASSIST },
+        runtime: { ...runtimeIdentity(runtime), state: runtime.snapshot() },
         trackFrame: {
           bank: frame.bank,
           roll: frame.roll ?? frame.bank,
@@ -578,6 +755,10 @@ async function boot() {
           position: frame.position.toArray(),
         },
         vehicle: { ...state },
+        ship: {
+          position: ship.group.position.toArray(),
+          quaternion: ship.group.quaternion.toArray(),
+        },
         camera: {
           position: camera.position.toArray(),
           up: camera.up.toArray(),
@@ -596,6 +777,8 @@ async function boot() {
           lastLap: race.lastLap,
           best: race.best,
           valid: race.valid,
+          rulesId: race.rulesId,
+          history: [...race.history],
         },
         track: {
           id: track.id,
@@ -605,10 +788,24 @@ async function boot() {
           width: track.width,
           sections: track.sections,
           signature: track.signature,
+          waterY: track.waterY,
+          jumps: track.jumps,
+          sourceBudgets: road.userData.sourceBudgets,
           featureZones: track.featureZones,
-          scenarios: Object.keys(track.scenarios || {}),
+          scenarios: [
+            ...new Set([
+              ...Object.keys(track.scenarios || {}),
+              ...Object.keys(runtime.scenarios || {}),
+            ]),
+          ],
         },
         environment: {
+          immersion: immersion?.getPresentation(),
+          storm: view.getPresentation(),
+          thunder: audio.getPresentation(),
+          water: environment.userData.getWaterPresentation?.(),
+          ocean: environment.userData.getOceanPresentation?.(),
+          leviathan: environment.userData.getLeviathanPresentation?.(),
           metrics: environment.userData.metrics,
           clearance: environment.userData.clearanceReport
             ? {
@@ -616,7 +813,7 @@ async function boot() {
                 placements: environment.userData.clearanceReport.placements.map(
                   ({ bounds, ...placement }) => ({
                     ...placement,
-                    partCount: bounds.length,
+                    partCount: bounds?.length ?? placement.partCount ?? 1,
                   }),
                 ),
               }
@@ -634,8 +831,10 @@ async function boot() {
     dispose() {
       active = false;
       cancelAnimationFrame(raf);
+      runtime.dispose();
       input.dispose();
       audio.dispose();
+      immersion?.dispose();
       effects.dispose();
       ui.dispose();
       ship.dispose();

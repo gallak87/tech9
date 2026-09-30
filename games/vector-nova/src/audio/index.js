@@ -1,19 +1,25 @@
 import { createPropulsion, smooth } from './propulsion.js';
+import { createNacreThunder } from './nacre-thunder.js';
 
 const close = (context) => {
   if (context.state === 'closed') return Promise.resolve();
   return context.close().catch(() => {});
 };
 
-export function createAudio({ createContext = () => new AudioContext() } = {}) {
+export function createAudio({
+  createContext = () => new AudioContext(),
+  nacre = false,
+} = {}) {
   let resources;
   let unlocking;
   let disposed = false;
   let disposal;
   let active = false;
+  let audible = false;
 
   function release(owned) {
     owned.propulsion.dispose();
+    owned.thunder?.dispose();
     for (const shot of owned.shots) shot.stop();
     owned.shots.clear();
     owned.bus.disconnect();
@@ -54,6 +60,7 @@ export function createAudio({ createContext = () => new AudioContext() } = {}) {
               compressor,
               master,
               propulsion,
+              thunder: nacre ? createNacreThunder(context, bus) : null,
               shots: new Set(),
             };
           }
@@ -79,6 +86,7 @@ export function createAudio({ createContext = () => new AudioContext() } = {}) {
       const level = Number.isFinite(volume)
         ? Math.max(0, Math.min(1, volume))
         : 0;
+      audible = active && level > 0;
       smooth(
         master.gain,
         active ? level : 0,
@@ -86,8 +94,20 @@ export function createAudio({ createContext = () => new AudioContext() } = {}) {
         active ? 0.06 : 0.012,
       );
       propulsion.update(state);
+      if (!active || level === 0) resources.thunder?.stop();
+    },
+    resetEnvironment() {
+      resources?.thunder?.stop();
+    },
+    getPresentation() {
+      return resources?.thunder?.getPresentation() ?? null;
     },
     event(event) {
+      if (event?.type === 'nacre-thunder') {
+        if (resources && !disposed && audible)
+          resources.thunder?.trigger(event);
+        return;
+      }
       // Retain the existing contact/lap cues; broader effects are a later phase.
       if (
         !resources ||

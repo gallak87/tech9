@@ -1,11 +1,17 @@
 import './style.css';
-export function createUI(host, actions, settings, track) {
+export function createUI(
+  host,
+  actions,
+  settings,
+  track,
+  runtimeScenarios = {},
+) {
   const root = document.createElement('main');
   root.id = 'interface';
   host.append(root);
   root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> PROVING GROUND <span>GATE 02 / FIRST LEVEL</span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>
  <section id="title-panel" class="panel"><div class="eyebrow">HALCYON INFRASTRUCTURE AUTHORITY · TEST 001</div><h1>FIND YOUR<br><em>LIMIT.</em></h1><p class="intro">Above the city. On the edge.<br>Take the Kestrel through Halcyon’s elevated proving loop.</p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>01</b><span>PROTOTYPE</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="inspect">INSPECT KESTREL <span>↗</span></button></div><p class="small">Halcyon Viaduct · First-level development review.<br>Core handling and city environment under review.</p></section>
- <section id="inspection-panel" class="panel hidden"><div class="eyebrow">AERODYNAMICS DIVISION / 07</div><h1 class="inspect-title">KESTREL<span class="dot">.</span></h1><p class="intro">Twin-core magnetic interceptor.<br>Ceramic armour. Exposed titanium propulsion.<br>Built to stay close to the limit.</p><dl><div><dt>DESIGN</dt><dd>Split prow / compact chassis</dd></div><div><dt>PROPULSION</dt><dd>Dual induction turbines</dd></div><div><dt>CONTROL</dt><dd>Four articulated levitation shoes</dd></div></dl><div class="actions"><button id="inspect-start" class="primary">DRIVE PROTOTYPE <span>↗</span></button><button id="inspect-back">BACK TO PROVING GROUND</button></div><p class="small">Actual in-game asset · Neutral inspection lighting</p></section>
+ <section id="inspection-panel" class="panel hidden"><div class="eyebrow">AERODYNAMICS DIVISION / 07</div><h1 class="inspect-title">KESTREL<span class="dot">.</span></h1><p class="intro">Twin-core magnetic interceptor.<br>Ceramic armour. Exposed titanium propulsion.<br>Built to stay close to the limit.</p><dl><div><dt>DESIGN</dt><dd>Split prow / swept ceramic chassis</dd></div><div><dt>PROPULSION</dt><dd>Dual induction turbines</dd></div><div><dt>CONTROL</dt><dd>Integrated magnetic suspension</dd></div></dl><div class="actions"><button id="inspect-start" class="primary">DRIVE PROTOTYPE <span>↗</span></button><button id="inspect-back">BACK TO PROVING GROUND</button></div><p class="small">Actual in-game asset · Neutral inspection lighting</p></section>
  <section id="pause-panel" class="modal hidden"><div class="eyebrow">PROVING SESSION</div><h2>TAKE A BREATH.</h2><button id="resume" class="primary">RESUME SESSION ↗</button><button id="restart">RESTART LAP</button><button id="home">RETURN TO PADDOCK</button><label>MASTER VOLUME <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>GRAPHICS <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>REDUCED MOTION <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p class="small">Prototype settings are saved locally when available.</p></section>
  <section id="hud" class="hidden"><div class="top-telemetry"><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>SESSION TIME</span><b id="time">00:00.000</b><small id="best">SET YOUR FIRST CLEAN LAP</small></div><div class="section-name"><span>HALCYON VIADUCT</span><b id="section">PROVING STRAIGHT</b></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST DRAWS FROM IMPACT RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas><div id="notice" role="status"></div></section>
  <footer id="legend"><div><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RESET</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>
@@ -29,6 +35,7 @@ export function createUI(host, actions, settings, track) {
     }
   };
   const blockout = track.review?.kind === 'bare-track';
+  const nacre = track.id.startsWith('nacre-');
   const orbital = !!track.review;
   if (orbital) {
     root.classList.add('blockout-review');
@@ -80,13 +87,61 @@ export function createUI(host, actions, settings, track) {
       $('review-toggle').setAttribute('aria-expanded', String(open));
       $('review-toggle').querySelector('span').textContent = open ? '−' : '+';
     };
-    if (blockout) $('review-toggle').classList.add('hidden');
+
+    if (nacre) {
+      root.classList.add('nacre-review');
+      root.querySelector('.edition').innerHTML =
+        '<i></i> NACRE TEMPEST <span>OCEAN CIRCUIT / 03</span>';
+      panel.querySelector('.eyebrow').textContent =
+        'NACRE TEMPEST · DEVELOPMENT REVIEW';
+      panel.querySelector('h1').innerHTML = 'BENEATH<br><em>THE STORM.</em>';
+      panel.querySelector('.intro').textContent =
+        'Two real leaps. A luminous ocean below. Race the Kestrel through storm causeways and submerged trenches.';
+      panel.querySelector('.small').textContent =
+        'Build speed and align before each gap. A missed landing recovers beyond the jump after 1.5 seconds; the delay counts in your valid lap. W to resume. R remains a manual reset and invalidates the lap.';
+      $('start').innerHTML = 'ENTER NACRE CIRCUIT <span>↗</span>';
+      root.querySelector('.review-tag').innerHTML =
+        'NACRE TEMPEST <span>03 / GATE 4.1 REVIEW</span>';
+      $('home').textContent = 'RETURN TO NACRE OVERVIEW';
+    }
   } else {
     const link = document.createElement('a');
     link.className = 'orbital-access';
     link.href = '/?level=orbital';
     link.textContent = 'ASTERION ORBITAL CIRCUIT ↗';
     $('title-panel').append(link);
+  }
+  if (!nacre) {
+    const link = document.createElement('a');
+    link.className = 'orbital-access';
+    link.href = '/?level=nacre';
+    link.textContent = 'NACRE TEMPEST CIRCUIT ↗';
+    $('title-panel').append(link);
+  }
+  if (Object.keys(runtimeScenarios).length) {
+    let select = $('review-section');
+    if (!select) {
+      const controls = document.createElement('section');
+      controls.id = 'runtime-controls';
+      controls.className = 'runtime-controls';
+      const label = document.createElement('label');
+      label.textContent = 'PRACTICE SCENARIO ';
+      select = document.createElement('select');
+      select.id = 'runtime-scenario';
+      label.append(select);
+      const button = document.createElement('button');
+      button.textContent = 'DRIVE SCENARIO ↗';
+      button.onclick = () => actions.reviewSection(select.value);
+      controls.append(label, button);
+      $('title-panel').append(controls);
+    }
+    for (const [name, scenario] of Object.entries(runtimeScenarios)) {
+      if ([...select.options].some((option) => option.value === name)) continue;
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = scenario.label || name;
+      select.append(option);
+    }
   }
   const bind = (id, fn) => ($(id).onclick = fn);
   bind('start', actions.start);
@@ -159,11 +214,15 @@ export function createUI(host, actions, settings, track) {
         'shape-overview',
         mode === 'title' || mode === 'overview',
       );
+      root.classList.toggle(
+        'whole-route-view',
+        mode === 'overview' || (blockout && mode === 'title'),
+      );
       $('shape-controls')?.classList.toggle(
         'hidden',
         mode === 'paused' || mode === 'inspection',
       );
-      if (orbital && !blockout) {
+      if (orbital) {
         const expanded = mode !== 'racing';
         $('review-options').classList.toggle('hidden', !expanded);
         $('review-toggle').setAttribute('aria-expanded', String(expanded));
@@ -183,7 +242,7 @@ export function createUI(host, actions, settings, track) {
       if (f) $(f).focus({ preventScroll: true });
       else document.activeElement?.blur();
     },
-    update(s, r) {
+    update(s, r, motion = null, { practice = false } = {}) {
       $('speed').textContent = String(Math.round(s.speed * 3.6)).padStart(
         3,
         '0',
@@ -193,16 +252,23 @@ export function createUI(host, actions, settings, track) {
       $('energy-label').textContent = `${Math.round(s.energy)}%`;
       $('energy-fill').style.width = `${s.energy}%`;
       $('energy-fill').style.background = s.energy < 25 ? '#ef764e' : '#a9d0c9';
-      $('boost-status').textContent = s.boosting
-        ? 'BOOST ENGAGED'
-        : 'MAGNETIC DRIVE';
+      $('boost-status').textContent =
+        motion?.mode === 'recovery'
+          ? 'RECOVERY DELAY'
+          : motion?.mode === 'flight'
+            ? 'AIRBORNE'
+            : s.boosting
+              ? 'BOOST ENGAGED'
+              : 'MAGNETIC DRIVE';
       $('boost-status').classList.toggle('active', s.boosting);
       $('energy-state').textContent =
         s.energy < 25
           ? 'LOW RESERVE · RELEASE BOOST TO RECOVER'
           : 'BOOST DRAWS FROM IMPACT RESERVE';
       $('best').textContent = !r.valid
-        ? 'LAP INVALIDATED · RESET'
+        ? practice && s.resetCount === 0
+          ? 'PRACTICE SECTION'
+          : 'LAP INVALIDATED · RESET'
         : r.best
           ? `BEST ${fmt(r.best)}`
           : 'SET YOUR FIRST CLEAN LAP';
@@ -221,7 +287,12 @@ export function createUI(host, actions, settings, track) {
       });
       ctx.closePath();
       ctx.stroke();
-      const [x, y] = coord(track.sample(s.distance).position);
+      const world = motion?.currentPose?.position;
+      const [x, y] = coord(
+        world
+          ? { x: world[0], z: world[2] }
+          : track.sample(s.distance).position,
+      );
       ctx.fillStyle = '#fb7959';
       ctx.beginPath();
       ctx.arc(x, y, 4, 0, Math.PI * 2);

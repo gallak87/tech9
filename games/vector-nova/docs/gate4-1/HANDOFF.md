@@ -1,55 +1,9 @@
-# Gate 4.1 — Nacre Tempest, level 3
+# Nacre Tempest
 
-Implement only the new third level and its scoped jump movement. Gates 1–3 are approved. Read [parallel contract](../GATE4_HANDOFF.md), ../../AGENTS.md, ../../ARCHITECTURE.md, ../ART_BIBLE.md and STATUS.json first. This lane owns the common preflight and shared core/render wiring described there; the other session owns Halcyon boosts/shields and shared physics opt-ins. Keep their behavior out of this level.
+The user approved the finished level and authorized commit/merge on2026-09-29. See [current status](STATUS.json) and [asset provenance](ASSET_MANIFEST.json).
 
-## Proposed direction
+Preserve the accepted route, exactly two jumps, swept landing/rail catches, ship, storm water and creature. The first breach is5m closer to the jump pad; the underwater encounter crosses left-to-right ahead of boosting players. Automatic failed-jump recovery counts elapsed time and retains lap validity.
 
-**Nacre Tempest**, an ocean planet under a vast electrical storm. Race on a pearl-white and deep-teal magnetic causeway around dark basalt spires, launch over violent surf, descend beneath a real water surface into bioluminescent reef canyons, then climb through a break in the storm. Lightning silhouettes distant cloud towers and a monumental ocean observatory; luminous marine life and layered seabed formations carry the submerged views. The pitch is ocean exploration at racing speed, not the deleted industrial energy complex.
+Merge into `g/scene-test`, retaining its real Halcyon pickup adapter and opt-in physics. The Nacre branch contains the old preflight stub; do not replace the real adapter with it. Preserve the committed documentation cleanup and other generated docs. Transfer lasting engineering lessons into architecture/README, without critique scores or chronology.
 
-Make the raceway itself alien and aquatic: overlapping pearlescent ceramic scales, translucent pressure-rated inserts, sweeping fin-shaped containment ribs and wave-cut supports. Exposed sections are wet and reflective with restrained spray; submerged sections reveal luminous conduits and reef light, while route edges remain readable. Differentiate these from Halcyon's asphalt/steel highway and Asterion's smooth cassette deck/open U frames. Do not simply transplant orbital gaps/neon rails, tint everything blue or put the whole underwater sequence inside an opaque tunnel.
-
-Actual route geometry, craft and camera must go below a defined world-space water surface. Use depth-based absorption/fog, a visible surface above, local caustic lighting, drifting particulates and spatial layers; keep convincing views at high and low quality. Surface crossings change rendering smoothly using actual camera position. Underwater adhesion remains the existing magnetic racing model; no fluid simulation, new ship or underwater vehicle controls are required. Water/storm effects must not conceal the route, hard-reset camera exposure or destroy frame pacing. Lightning is seeded environmental presentation, with restrained brightness, low frequency and reduced-motion accommodation; no random unavoidable lightning damage.
-
-## Route and difficulty
-
-Target a compact authored route around 4.6–5.2 km as a starting hypothesis; tune from early driving, not the original prompt's length target. Harder than Halcyon through line choice, braking, banks and jump approaches, not stronger auto-steering or sudden blind turns. Keep assistance 0.3 and use real corner exit speed. Distribute events across the lap with readable recoveries. Suggested rhythm:
-
-| Sector                | Racing identity                                  | World and roadway identity                                                                       |
-| --------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| Tide observatory grid | Gentle opening bend, quick elevation change      | Pearl launch structure, storm wall and ocean horizon; finished deck language immediately visible |
-| Breaker causeway      | Banked S turns, first readable crest             | Waves through sculpted supports; fin barriers and wet ceramic plates                             |
-| Storm leap            | First genuine long jump, generous landing        | Exposed gap above surf, clear takeoff direction and landing beacons                              |
-| Surface breach        | Descent through water with a recovery straight   | Surface passes overhead; bubbles and light attenuation introduce submerged depth                 |
-| Luminous trench       | Sustained bank, tight line choices               | Reef pillars at several scales, translucent track inserts, luminous route guidance               |
-| Abyss crossing        | Harder second long jump; tune the landing margin | Real void between supported track ends; seafloor and structures show height                      |
-| Eye ascent            | Climb/roll and calmer technical recovery         | Ocean surface exit, clearing in storm, dramatic sunlight/weather contrast                        |
-| Crown return          | Braking turn and short return                    | Observatory landmark from a new angle; distinctive road treatment continues to the grid          |
-
-This is a design brief, not an unchangeable spline. Build **exactly two long jumps**. A third is not authorized. Do not increase length to make room for more spectacle.
-
-## Real jumps and failure contract
-
-The user explicitly requested more difficulty and long jumps where a bad approach can fall, followed by recovery slightly beyond the jump. Implement actual disconnected running surfaces and **real world-space airborne motion** in `src/track/level3/` via the level runtime adapter. A transparent cosmetic hole with magnetic adhesion across it does not satisfy this feature.
-
-Start with a broad introductory gap around 80–120 m and a harder gap around 160–220 m, then derive final lengths/ramps from the existing speed envelope and playtest. Author each takeoff/landing volume from track frames, not world-height assumptions. Launch velocity inherits actual speed, heading and ramp direction; gravity and bounded air control determine the trajectory. Braking or aiming badly must plausibly undershoot, overshoot or miss sideways. No scripted success, automatic steering toward a landing point or global free flight.
-
-While airborne, render the craft and camera from the adapter's world pose; preserve apparent left/right and smooth takeoff/landing orientation. Only a swept hull crossing the authored landing surface within lateral/orientation tolerances may relatch to the magnetic track. Account for high-speed tunnelling, rolled landings, wrong-way/underside approaches and surface seams. Do not select a nearby unrelated road at crossings. A miss past explicit bounds, water/depth kill volumes or a bounded flight timeout is a failure; underwater jumps use authored clearances rather than treating every submerged position as dead.
-
-On failure, show a readable fall/missed-landing cue, impose an initial 1.5-second simulation-time recovery delay, **keep the lap valid**, and recover at a safe authored apron just **after** that jump's landing zone, stationary and aligned. Do not repeatedly send the player back to the takeoff. Resume through normal throttle. The recovery delay counts toward the running lap/session time; it is the entire failure penalty, with no extra time surcharge and no automatic lap invalidation. Author checkpoints so the approved takeoff-to-landing recovery advances only this jump's allowed route interval and credits its landing checkpoint once. Do not allow arbitrary checkpoint skipping, duplicate events or an early finish. A delayed recovered lap may legitimately finish valid and be recorded under Nacre's jump rules. Repeated failures must remain recoverable. Pause/blur freezes both lap and recovery timers; restart, scenario jump and manual recovery clear all airborne/recovery state. This exception applies to automatic missed-jump recovery; preserve existing manual R recovery behavior elsewhere. Include jump configuration/rules in replay compatibility and use the same advance routine for live input and replay.
-
-Jumps belong only to Nacre. Do not add them to Halcyon or orbital, and do not modify the other lane's physics files to implement them. If shared interfaces are insufficient, extend only your declared core/adapter wiring and preserve the frozen Halcyon contract.
-
-## Execution and human gates
-
-1. Create the lane's early goal: common preflight, bare drivable route with both authored jumps/landing/recovery aprons, actual flight/failure recovery and a playable shape handback. Record base and preflight revisions in STATUS.json; coordinate the stub ownership transfer. New level imports must not be required for the other session to boot.
-2. Build neutral track + simple ocean plane/sky massing, named section starts and 3D/top/profile overview. Include a small representative deck/barrier sample so the human can judge the proposed identity early. Verify length, banks, sightlines, crossings, rest/steering and actual successful/failed jump motion at both gaps. Show the whole shape plus the surface entry/exit. **Stop for explicit human shape/jump approval before full environment production or the formal art loop.** Finish the early goal at that handback rather than pretending production is complete.
-3. After approval, create the full production/critic goal. Fan out narrowly across track/flight, environment and ocean/sky, with one integrator and an independent brutal critic. Preserve the approved layout/feel; record any later human-requested change.
-4. Finish the entire circuit: ordinary deck stretches, supports/undersides, approach/landing engineering, world depth above and below water, sky/weather, landmark composition and readable transition lighting. Inspect foreground/middle/far distance and views away from the hero vista. One successful screenshot does not establish a finished level.
-5. Run the integrated lane gauntlet to first verified pass or eight completed rounds, using the common rules. Each round covers art, lighting/depth, handling/camera including flight, track/readability, existing feedback/UI and stability; deferred race/AI N/A. Preserve actual failures and unverified categories.
-6. Hand back the production URL and concise results for **Gate 4.1 human approval**. Do not build pickups or broader racing systems afterward without further direction.
-
-## Required verification
-
-Tests should catch real risks: route/frame continuity and clearance; default magnetic physics unchanged; swept successful/missed/sideways/underside landings; takeoff speed/angle changing outcome; wrong-road rejection; correct ordered landing-checkpoint credit and valid lap completion after timed recovery, with no duplicate/early finish; deterministic flight/recovery replays; pause/reset/disposal. Expose success, short approach, lateral miss, long landing, surface entry/exit and hardest-turn parked scenarios.
-
-Coordinate preview ports and capture access with the parent server-owner session; do not take over its servers. Use short actual-key production motion for takeoff, midair steering, landing, fall/recovery and resumed driving. Inspect wet deck and submerged material detail, waterline continuity, readable landing ahead, lightning/reduced motion, high/low quality, portrait/landscape and all baseline circuits. Keep existing resource budgets; count water/refraction/shadow passes and runtime maps. Underwater clarity must survive low quality. Record actual source and rendered budgets, provenance and limitation of headless timing. Add lane test entry files under tools so npm test runs them. Keep evidence ignored and update only docs/gate4-1 during production.
+The user owns playtesting: use code/asset tests, lint and builds; do not open gameplay browsers or drive. Keep existing servers running. No push or new feature work was requested.

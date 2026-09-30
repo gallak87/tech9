@@ -1,0 +1,21 @@
+{
+  "asset": "Kestrel / Concept 01",
+  "date": "2026-09-29",
+  "concept": {
+    "path": "assets/ships/kestrel/concept-01.png",
+    "tool": "OpenAI imagegen",
+    "sha256": "1b2852782159d9aedebccce2935b4844824935be70477fd4552ecf5723eabf43",
+    "sourceKind": "Original generated concept, explicitly approved by the user",
+    "prompt": "Use case: stylized-concept. Create one premium industrial-design concept sheet redesigning the anti-gravity racing craft in the two supplied screenshots. These screenshots show front and rear of the SAME existing Kestrel and are reference inputs only: retain its pearl ceramic / graphite / brushed titanium / restrained vermilion racing identity and twin propulsion concept, but substantially redesign its silhouette. The user's primary request is a more futuristic jet-like craft, less bulky, less bubbly. Make this a credible original racing machine for an interactive high-speed 3D game.\n\nShape direction: a long, lean, sharply tapered central fuselage with a decisive pointed wedge nose; roughly 2.3 times as long as wide. Very low, elongated dark canopy integrated flush into a defined central spine, with crisp edges rather than a tall bubble. Thin swept shoulders / compact delta-like body chines, negative space beneath the side edges, tightly packaged mechanical underside. Short swept stabilizing surfaces and restrained rear canted fins can give a jet-derived silhouette. Twin compact propulsion units blended into the rear fuselage, ending in angular titanium exhaust apertures with restrained cyan active cores. Eliminate the reference's oversized freestanding circular drums and swollen rounded side shells. Use sculpted hard-surface planes, clean chamfers, a few intentional seams, recessed vents and credible construction, not random greeble or excessive tiny panels. Slim integrated anti-gravity hardware on the underside. No wheels, landing gear, weapons or missiles. Not a copied recognizable franchise craft. Preserve the original small 07 marking and subtle vermilion stripes; do not invent sponsor branding.\n\nComposition: polished landscape design board on a neutral warm-gray studio background. One large beautifully lit front three-quarter hero view occupies the left two-thirds, showing the entire ship with ample margin, hovering low with a soft grounding shadow. Two smaller clearly separated views of the exact SAME consistent design on the right: an upper top-down silhouette and a lower rear three-quarter/chase-oriented view, making the slim rear and propulsion readable. No environment, track, game HUD, speed lines, motion blur or cinematic distractions. Small restrained typography only: 'KESTREL / CONCEPT 01' and 'FRONT', 'TOP', 'REAR' adjacent to the appropriate views. The craft itself is the focus.\n\nFinish: realistic AAA vehicle concept rendering with physically plausible ceramic, satin composite and brushed metal, neutral studio key/fill and subtle warm highlights; deliberate sleek aerospace surfacing, muscular but lightweight and elegant. This is concept exploration for a replacement model, not a screenshot of the existing game.",
+    "referenceInputs": "Two local front/rear stills of the earlier original Kestrel from .experiments/ship-gate2/refined/"
+  },
+  "model": {
+    "source": "assets/ships/kestrel/kestrel.blend",
+    "generator": "assets/ships/kestrel/build_kestrel.py",
+    "runtime": "public/assets/ships/kestrel/kestrel.glb",
+    "tool": "Blender 5.1.1, stock glTF 2.0 exporter",
+    "authorship": "Original component geometry authored for this project against the approved concept. No downloaded model, external texture or font asset.",
+    "userDirection": "More futuristic jet, less bulky and bubbly; delegated Blender refinement with independent critic target of at least 9/10, bounded to eight formal rounds."
+  },
+  "reviewEvidence": "Ignored .experiments/kestrel-blender; root owns durable formal review record."
+}

@@ -240,3 +240,44 @@ test('existing cue voices have an attack, are bounded, and release on end/dispos
   await audio.dispose();
   assert.ok(context.nodes.every((node) => node.disconnected));
 });
+
+test('Nacre thunder respects unlock, master mute, pause, reset and baseline isolation', async () => {
+  const context = new Context();
+  const audio = createAudio({ createContext: () => context, nacre: true });
+  const event = {
+    type: 'nacre-thunder',
+    id: 'storm-0',
+    submerged: 0,
+    pan: 0.1,
+  };
+  audio.event(event);
+  assert.equal(audio.getPresentation(), null);
+  await audio.unlock();
+  audio.update(state, 0, true);
+  audio.event(event);
+  assert.equal(audio.getPresentation().triggerCount, 0);
+  audio.update(state, 0.35, true);
+  audio.event(event);
+  assert.equal(audio.getPresentation().activeVoices, 1);
+  assert.equal(audio.getPresentation().triggerCount, 1);
+  audio.update(state, 0.35, false);
+  assert.equal(audio.getPresentation().activeVoices, 0);
+  audio.event({ ...event, id: 'storm-1' });
+  assert.equal(audio.getPresentation().triggerCount, 1);
+  audio.update(state, 0.35, true);
+  audio.event({ ...event, id: 'storm-2' });
+  audio.resetEnvironment();
+  assert.equal(audio.getPresentation().activeVoices, 0);
+  audio.event({ ...event, id: 'storm-3' });
+  audio.update(state, 0, true);
+  assert.equal(audio.getPresentation().activeVoices, 0);
+  await audio.dispose();
+  assert.ok(context.nodes.every((node) => node.disconnected));
+
+  const baseline = createAudio({ createContext: () => new Context() });
+  await baseline.unlock();
+  baseline.update(state, 1, true);
+  baseline.event(event);
+  assert.equal(baseline.getPresentation(), null);
+  await baseline.dispose();
+});

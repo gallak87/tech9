@@ -23,8 +23,8 @@ export function createSaffronRuntime(context) {
     lastEvent = null;
   const runtime = flightModel.createRuntime(context, {
     id: 'saffron-sand-flight',
-    version: 2,
-    rulesId: `saffron-v2:${JSON.stringify({ track: track.id, geometry: track.geometryVersion, jumps: track.jumps, rules: flightModel.rules, sand: 'migrating-four-v1-drag3' })}`,
+    version: 3,
+    rulesId: `saffron-v3:${JSON.stringify({ track: track.id, geometry: track.geometryVersion, jumps: track.jumps, rules: flightModel.rules, sand: 'migrating-four-v1-drag3' })}`,
     edgeSource: 'saffron-baffle-catch',
     scenarios: Object.fromEntries(
       Object.entries(track.scenarios).map(([id, state]) => [
@@ -143,7 +143,7 @@ export function createSaffronOverlay({ track, host }) {
       const height = globalThis.innerHeight ?? host.clientHeight;
       const portrait = width < 600 && height > width;
       const compact = height < 570;
-      status.style.top = portrait ? '306px' : compact ? '208px' : '204px';
+      status.style.top = portrait ? '306px' : compact ? '100px' : '204px';
       status.style.maxWidth = compact ? '190px' : portrait ? '300px' : '340px';
       status.style.padding = compact ? '4px 6px' : '7px 10px';
       let text = '';

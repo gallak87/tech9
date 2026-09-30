@@ -27,11 +27,12 @@ const neutral = {
   airbrake: false,
   boost: false,
 };
-function fly(index, scenario, input = neutral) {
+function fly(index, scenario, input = neutral, overrides = {}) {
   const runtime = createSaffronRuntime(context);
   const state = {
     ...createVehicleState(),
     ...track.scenarios[`jump${index}-${scenario}`],
+    ...overrides,
   };
   const events = [];
   for (let tick = 0; tick < 1200; tick++) {
@@ -165,6 +166,30 @@ test('real takeoff and swept landing cover cruise envelopes; misses recover afte
     'recovered',
     'full boost deliberately overshoots compact optional bypass',
   );
+});
+
+test('earlier deck contact wins over a later rail hit at both former Saffron contact holes', () => {
+  for (const [index, speed] of [
+    [1, 87.4],
+    [3, 143.4],
+  ]) {
+    const result = fly(index, 'success', neutral, { speed, heading: -0.025 });
+    assert.equal(
+      result.transfer?.payload.outcome,
+      'landed',
+      `jump ${index} / ${speed} m/s`,
+    );
+    assert.ok(
+      !result.transfer.payload.edgeCaught,
+      'deck landing must not inherit a later rail contact',
+    );
+    assert.ok(
+      !result.events.some((event) => event.type === 'impact'),
+      'no spurious rail-impact penalty',
+    );
+    assert.ok(!result.events.some((event) => event.type === 'jump-miss'));
+    assert.equal(result.state.energy, 100);
+  }
 });
 
 test('right glass line stays grounded across optional crest; magnetic hold and braking survive banks', () => {

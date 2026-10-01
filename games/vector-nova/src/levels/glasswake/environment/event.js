@@ -7,10 +7,20 @@ const smooth = (x) => {
   const t = clamp(x);
   return t * t * (3 - 2 * t);
 };
-export function sampleCalvingState(track, state = {}) {
+export function sampleCalvingState(track, state = {}, worldPosition) {
+  let displayDistance = Number(state.distance ?? 0);
+  if (worldPosition) {
+    const frame = track.sample(displayDistance);
+    const p = worldPosition.toArray ? worldPosition.toArray() : worldPosition;
+    const origin = frame.position.toArray(),
+      tangent = frame.tangent.toArray();
+    displayDistance += p.reduce(
+      (sum, x, i) => sum + (x - origin[i]) * tangent[i],
+      0,
+    );
+  }
   const distance =
-    ((Number(state.distance ?? 0) % track.length) + track.length) %
-    track.length;
+    ((displayDistance % track.length) + track.length) % track.length;
   const start = track.bridge.start - 180;
   const end = track.bridge.end + 300;
   const crack = smooth((distance - start) / 200);

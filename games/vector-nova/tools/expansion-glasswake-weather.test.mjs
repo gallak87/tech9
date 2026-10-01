@@ -53,7 +53,7 @@ test('snow volumes preserve phase across presets, suppress review and dispose ea
   }
   weather.dispose();
   weather.dispose();
-  assert.equal(count, 4);
+  assert.equal(count, 6);
   assert.equal(weather.group.children.length, 0);
   const shape = createGlasswakeWeather({ track, shape: true });
   assert.equal(shape.group.children.length, 0);

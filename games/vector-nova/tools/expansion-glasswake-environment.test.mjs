@@ -13,7 +13,7 @@ import {
 } from '../src/levels/glasswake/environment/event.js';
 const track = createGlasswakeTrack();
 const assetPath = new URL(
-  '../public/assets/levels/glasswake/glasswake-environment-v3.glb',
+  '../public/assets/levels/glasswake/glasswake-environment-v4.glb',
   import.meta.url,
 );
 async function loadAsset() {
@@ -154,11 +154,11 @@ test('authored GLB builds bounded layered world and restores borrowed scene owne
   });
   assert.deepEqual(aperture.position.toArray(), fixedPosition);
   assert.deepEqual(aperture.target.position.toArray(), fixedTarget);
-  assert.equal(aperture.intensity, 185000);
+  assert.equal(aperture.intensity, 65000);
   env.update({ reviewing: true });
   assert.equal(aperture.intensity, 0);
   env.reset();
-  assert.equal(aperture.intensity, 185000);
+  assert.equal(aperture.intensity, 65000);
   const reflection = new T.Texture();
   let borrowedDisposed = false;
   reflection.addEventListener('dispose', () => {
@@ -406,5 +406,47 @@ test('actual calving meshes clear the banked route and sampled flight/camera env
         'Conservative world AABBs at five absolute event poses; route frame samples every4m and real flight at120Hz. This bounds selected poses/trajectories, not every possible player trajectory or continuous-time swept scenery.',
     }),
   );
+  env.dispose();
+});
+
+test('calving progresses continuously through real flight poses and landing transfer', () => {
+  const env = createGlasswakeEnvironment({ track, shape: true });
+  for (const jump of track.jumps) {
+    const runtime = createGlasswakeRuntime({ track });
+    const state = Object.assign(createVehicleState(), {
+      distance: jump.takeoff - 0.2,
+      speed: 112,
+    });
+    const controls = {
+      throttle: 0,
+      brake: 0,
+      steer: 0,
+      boost: false,
+      airbrake: false,
+    };
+    let previous,
+      airSamples = 0,
+      landed = false;
+    for (let tick = 0; tick < 1000; tick++) {
+      const events = runtime.advance(state, controls, 1 / 120);
+      const pose = runtime.pose();
+      env.update({ state, ship: { group: { position: pose?.position } } });
+      const event = env.group.userData.calving;
+      if (previous)
+        assert.ok(
+          Math.abs(event.separation - previous.separation) < 0.025,
+          'no landing skip in shelf pose',
+        );
+      if (runtime.snapshot().mode === 'flight') airSamples++;
+      previous = event;
+      if (events.some((e) => e.type === 'jump-transfer')) {
+        landed = true;
+        break;
+      }
+    }
+    assert.ok(airSamples > 20);
+    assert.ok(landed);
+    runtime.dispose();
+  }
   env.dispose();
 });

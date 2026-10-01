@@ -21,7 +21,7 @@ export function createCalvingPowder() {
     vertexShader: `
     attribute vec4 powderSeed;uniform float separation;varying vec2 powderUv;
     void main(){float t=max(0.,separation-powderSeed.w*.13);
-      vec3 p=vec3(-47.-t*(27.+powderSeed.x*65.),130.-t*t*(200.+powderSeed.y*90.),(powderSeed.z-.5)*415.);
+      vec3 p=vec3(-72.-t*(27.+powderSeed.x*65.),140.-t*t*(200.+powderSeed.y*90.),(powderSeed.z-.5)*415.);
       vec4 mv=modelViewMatrix*vec4(p,1.);mv.xy+=position.xy*(5.+powderSeed.y*11.)*(.6+t);
       gl_Position=projectionMatrix*mv;powderUv=uv;
     }`,

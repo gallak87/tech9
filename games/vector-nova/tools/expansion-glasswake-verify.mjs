@@ -227,7 +227,7 @@ try {
     report.faults,
   );
   for (const ownedAsset of [
-    'glasswake-environment-v3.glb',
+    'glasswake-environment-v4.glb',
     'aurora-sky-v1.png',
     'ice-surface-v1.png',
   ]) {

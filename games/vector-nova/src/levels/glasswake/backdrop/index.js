@@ -1,6 +1,7 @@
 import * as T from 'three';
+import { sampleGlasswakeWeather } from '../weather/state.js';
 
-export async function createGlasswakeBackdrop({ shape = false } = {}) {
+export async function createGlasswakeBackdrop({ shape = false, track } = {}) {
   const texture = shape
     ? null
     : await new T.TextureLoader()
@@ -28,9 +29,10 @@ export async function createGlasswakeBackdrop({ shape = false } = {}) {
       skyMap: { value: texture },
       clock: { value: 0 },
       neutral: { value: shape ? 1 : 0 },
+      storm: { value: 0 },
     },
     vertexShader: `varying vec3 ray; void main(){ ray=position; vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.); gl_Position=p.xyww; }`,
-    fragmentShader: `varying vec3 ray; uniform sampler2D skyMap; uniform float clock; uniform float neutral;
+    fragmentShader: `varying vec3 ray; uniform sampler2D skyMap; uniform float clock; uniform float neutral; uniform float storm;
       const float PI=3.141592653589793;
       void main(){
         vec3 direction=normalize(ray);
@@ -50,6 +52,9 @@ export async function createGlasswakeBackdrop({ shape = false } = {}) {
         }
         col*=.65;
         col=mix(col,vec3(.008,.017,.033),(1.-smoothstep(-.6,0.,direction.y))*.8);
+        float cloud=.5+.25*sin(direction.x*7.+direction.z*4.+clock*.012)*sin(direction.z*9.-direction.y*5.);
+        float veil=storm*(.42+.45*cloud)*(1.-smoothstep(.25,.95,direction.y)*.25);
+        col=mix(col,vec3(.12,.20,.27)*(1.+cloud*.26),veil);
         col=mix(col,vec3(.065,.09,.12),neutral);
         gl_FragColor=vec4(col,1.);
         #include <tonemapping_fragment>
@@ -69,14 +74,18 @@ export async function createGlasswakeBackdrop({ shape = false } = {}) {
     sunIntensity: shape ? 2.4 : 2.8,
     ambientSky: '#b4cedf',
     ambientGround: '#345168',
-    ambientIntensity: shape ? 1.6 : 1.1,
+    ambientIntensity: shape ? 1.6 : 0.8,
     fillColor: '#b7cfea',
-    fillIntensity: 0.75,
-    environmentIntensity: 0.65,
+    fillIntensity: 0.48,
+    environmentIntensity: 0.5,
     ownedTextures: texture ? [texture] : [],
-    update({ camera, time = 0, settings = {} }) {
+    update({ camera, state, reviewing = false, time = 0, settings = {} }) {
       if (disposed) return;
       if (camera) group.position.copy(camera.position);
+      material.uniforms.storm.value =
+        shape || reviewing || !track || !state
+          ? 0
+          : sampleGlasswakeWeather(track, state, settings).storm;
       material.uniforms.clock.value = settings.reducedMotion ? 0 : time;
     },
     dispose() {

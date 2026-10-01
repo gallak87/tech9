@@ -5,7 +5,7 @@ import { finishIceMaterial } from './materials.js';
 import { createGlasswakeWeather } from '../weather/index.js';
 import { createCalvingPowder } from '../weather/calving-powder.js';
 
-const ASSET_URL = '/assets/levels/glasswake/glasswake-environment-v3.glb';
+const ASSET_URL = '/assets/levels/glasswake/glasswake-environment-v4.glb';
 const UP = new T.Vector3(0, 1, 0);
 const fract = (n) => n - Math.floor(n);
 const noise = (n) => fract(Math.sin(n * 172.41 + 41.7) * 4537.114);
@@ -30,6 +30,7 @@ export function createGlasswakeEnvironment({
   shape = false,
   view,
   loadAsset,
+  road,
 } = {}) {
   const group = new T.Group();
   group.name = 'Glasswake / layered comet geology';
@@ -64,13 +65,13 @@ export function createGlasswakeEnvironment({
   let referenceTexture = null;
   let currentSettings = settings;
   const metrics = {
-    assetBytes: 3095704,
-    sourceTriangles: 46396,
+    assetBytes: 3041092,
+    sourceTriangles: 56580,
     instances: 0,
     meshes: 0,
     triangles: 0,
     textures: 0,
-    localLights: 8,
+    localLights: 9,
     rejectedPlacements: 0,
   };
   let error = null;
@@ -183,7 +184,11 @@ export function createGlasswakeEnvironment({
       for (const side of [-1, 1]) {
         const n = noise(i * 17 + side * 11);
         const nearOffset = inBridge ? 117 : 79;
-        if (!inclusionWindow(s, side))
+        const calvingWindow =
+          side === 1 &&
+          s > track.bridge.start - 200 &&
+          s < track.bridge.end + 260;
+        if (!inclusionWindow(s, side) && !calvingWindow)
           place(
             `cliff_${i % 3}`,
             s,
@@ -192,7 +197,7 @@ export function createGlasswakeEnvironment({
             [0.8 + n * 0.44, 0.94 + n * 0.52, 1.35 + noise(i + side) * 0.5],
             side * (n - 0.5) * 0.42,
           );
-        if (i % 2 === 0)
+        if (i % 2 === 0 && !calvingWindow)
           place(
             'rubble_shelf',
             s + 32,
@@ -201,7 +206,7 @@ export function createGlasswakeEnvironment({
             [0.7, 0.7, 0.72],
             n,
           );
-        if (i % 3 === 0)
+        if (i % 3 === 0 && !calvingWindow)
           place(
             `cliff_${(i + 1) % 3}`,
             s,
@@ -329,10 +334,19 @@ export function createGlasswakeEnvironment({
       const light = new T.SpotLight('#e2efff', 65000, 320, 0.63, 0.72, 2);
       light.name = `Glasswake / ${section.id} daylight aperture`;
       light.position.copy(frame.position).add(new T.Vector3(-25, 116, 14));
-      light.target.position.copy(frame.position).add(new T.Vector3(32, 15, 5));
+      light.target.position.copy(frame.position).add(new T.Vector3(96, 38, 5));
       group.add(light, light.target);
       apertureLights.push(light);
     }
+    const floor = track.sample(track.crevice.floor);
+    const floorLight = new T.SpotLight('#afdef0', 125000, 380, 0.72, 0.82, 2);
+    floorLight.name = 'Glasswake / crevice rim aperture';
+    floorLight.position.copy(floor.position).add(new T.Vector3(55, 160, -35));
+    floorLight.target.position
+      .copy(floor.position)
+      .add(new T.Vector3(-55, 80, 80));
+    group.add(floorLight, floorLight.target);
+    apertureLights.push(floorLight);
     const inclusionMatrix = place(
       'dark_inclusion',
       inclusionS,
@@ -344,7 +358,7 @@ export function createGlasswakeEnvironment({
     if (inclusionMatrix) {
       // Fixed aperture light grazes the embedded meteor and its pale ice bands.
       // It owns its target, has no shadow map, and does not follow the craft.
-      inclusionLight = new T.SpotLight('#f0f4ff', 185000, 300, 0.64, 0.8, 2);
+      inclusionLight = new T.SpotLight('#f0f4ff', 65000, 300, 0.64, 0.8, 2);
       inclusionLight.name = 'Glasswake / inclusion aperture light';
       inclusionLight.position.copy(
         new T.Vector3(52, 115, -30).applyMatrix4(inclusionMatrix),
@@ -378,7 +392,7 @@ export function createGlasswakeEnvironment({
       );
     const centerS = (track.bridge.start + track.bridge.end) * 0.5;
     // Front faces the raceway; the opening lies within an actual fixed rear shell.
-    calving.applyMatrix4(transform(centerS, 265, -32));
+    calving.applyMatrix4(transform(centerS, 235, -32));
     // Stage the far shelf ahead of the span: the opened cavity remains in the
     // forward sight line through departure, rather than falling behind chase.
     calving.position.addScaledVector(track.sample(centerS).tangent, 820);
@@ -433,6 +447,18 @@ export function createGlasswakeEnvironment({
       cracks.push(mesh);
     }
     flushBatches();
+    group.updateMatrixWorld(true);
+    const terrain = [];
+    group.traverse((mesh) => {
+      if (
+        mesh.isInstancedMesh &&
+        /\/ (?:cliff_\d|basal_strata|rubble_shelf|landing_shelf|cave_roof|cave_pier|recess_wall|crevice_wall) \//.test(
+          mesh.name,
+        )
+      )
+        terrain.push(mesh);
+    });
+    road?.anchorToTerrain(terrain);
     for (const color of ['#a5dfff', '#7ebafa', '#ffcfa4']) {
       const light = new T.PointLight(color, 0, 190, 2);
       group.add(light);
@@ -536,6 +562,7 @@ export function createGlasswakeEnvironment({
   }
   function update({
     state = {},
+    ship,
     settings: nextSettings = currentSettings,
     reviewing = false,
     camera,
@@ -544,11 +571,16 @@ export function createGlasswakeEnvironment({
     currentSettings = nextSettings;
     weather.update({ state, camera, settings: nextSettings, reviewing });
     const conditions = weather.snapshot();
-    event = sampleCalvingState(track, state);
+    event = sampleCalvingState(track, state, ship?.group?.position);
     calvingPowder?.update(event, nextSettings);
     if (cavityLight) cavityLight.intensity = 38000 * event.reveal;
-    if (inclusionLight) inclusionLight.intensity = reviewing ? 0 : 185000;
-    for (const light of apertureLights) light.intensity = reviewing ? 0 : 65000;
+    if (inclusionLight) inclusionLight.intensity = reviewing ? 0 : 65000;
+    for (const light of apertureLights)
+      light.intensity = reviewing
+        ? 0
+        : light.name.includes('rim aperture')
+          ? 125000
+          : 65000;
     caveBlend =
       shape || reviewing ? 0 : sampleCaveBlend(track, state.distance ?? 0);
     returnBlend =
@@ -601,7 +633,7 @@ export function createGlasswakeEnvironment({
       }
       for (const { light, intensity, color } of baseLights) {
         light.intensity =
-          intensity * (1 - caveBlend * (light.isHemisphereLight ? 0.18 : 0.66));
+          intensity * (1 - caveBlend * (light.isHemisphereLight ? 0.4 : 0.55));
         // Re-evaluate from the borrowed baseline, so seeking or resetting never
         // accumulates tint and cavern/exterior colors restore exactly.
         light.color.copy(color);
@@ -612,10 +644,10 @@ export function createGlasswakeEnvironment({
           );
       }
       scene.environmentIntensity =
-        originalEnvironmentIntensity * (1 - caveBlend * 0.22);
+        originalEnvironmentIntensity * (1 - caveBlend * 0.36);
       localFog.density = reviewing
         ? 0.00004
-        : 0.00016 + caveBlend * 0.0003 + (conditions.storm ?? 0) * 0.00019;
+        : 0.00016 + caveBlend * 0.0003 + (conditions.storm ?? 0) * 0.00075;
       localFog.color.set(caveBlend > 0.5 ? '#25435e' : '#6384a8');
       scene.fog = localFog;
     }

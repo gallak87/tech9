@@ -50,7 +50,11 @@ export function createGlasswakeOverlay({ host, track }) {
               : surface.grip < 1
                 ? 'FROST · MORE DRIFT · CLEAR RIBS RESTORE GRIP'
                 : 'CRYSTAL · MAGNETIC GRIP';
-      const calving = sampleCalvingState(track, state);
+      const calving = sampleCalvingState(
+        track,
+        state,
+        frame.ship?.group?.position,
+      );
       const calvingCue =
         calving.phase === 'cracking'
           ? ' · ICE SHELF FRACTURING'
@@ -83,7 +87,11 @@ export function createGlasswakeOverlay({ host, track }) {
           weather: screen.snapshot(),
           surface,
           flightMode: flight.mode,
-          calving: sampleCalvingState(track, state),
+          calving: sampleCalvingState(
+            track,
+            state,
+            frame.ship?.group?.position,
+          ),
           nextFracture: gap?.id ?? null,
           distanceToFracture: near,
           message: text,

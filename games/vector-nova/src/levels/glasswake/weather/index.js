@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { createSnowDriftLayer } from './drift.js';
 import { sampleGlasswakeWeather } from './state.js';
 /** Local racing adaptation of the Tech9 weather reference's seeded GPU volumes.
  * World-space wrapping, faded volume edges and two depth layers suit race speed.
@@ -13,8 +14,8 @@ export function createGlasswakeWeather({ track, shape = false }) {
   let presentation = {};
   if (!shape)
     for (const [radius, height, capacity, size] of [
-      [24, 36, 2000, 0.085],
-      [78, 100, 2200, 0.21],
+      [28, 42, 2400, 0.09],
+      [120, 140, 4400, 0.22],
     ]) {
       const base = new T.PlaneGeometry(1, 1);
       const geometry = new T.InstancedBufferGeometry();
@@ -81,6 +82,11 @@ export function createGlasswakeWeather({ track, shape = false }) {
       group.add(mesh);
       layers.push({ mesh, geometry, material, capacity });
     }
+  if (!shape) {
+    const drift = createSnowDriftLayer();
+    group.add(drift.mesh);
+    layers.push(drift);
+  }
   return {
     group,
     update({ state = {}, camera, settings = {}, reviewing = false } = {}) {
@@ -88,10 +94,10 @@ export function createGlasswakeWeather({ track, shape = false }) {
       const weather = sampleGlasswakeWeather(track, state, settings);
       let count = 0;
       for (const layer of layers) {
-        const quality = settings.quality === 'low' ? 0.42 : 1;
+        const quality = settings.quality === 'low' ? 0.65 : 1;
         const intensity = reviewing
           ? 0
-          : weather.storm * (settings.reducedMotion ? 0.4 : 1);
+          : weather.storm * (settings.reducedMotion ? 0.7 : 1);
         layer.geometry.instanceCount = Math.round(
           layer.capacity * intensity * quality,
         );

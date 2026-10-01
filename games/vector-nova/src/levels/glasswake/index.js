@@ -5,6 +5,7 @@ import { createGlasswakeRuntime } from './runtime.js';
 import { createGlasswakeOverlay } from './overlay.js';
 
 export default function createLevel({ shape = false } = {}) {
+  let road, track;
   return {
     version: '0.5.0-glasswake-v4',
     renderer: {
@@ -22,12 +23,12 @@ export default function createLevel({ shape = false } = {}) {
     },
     railContactSparks: true,
     practiceSectionsUntimed: true,
-    createTrack: createGlasswakeTrack,
+    createTrack: () => (track = createGlasswakeTrack()),
     createRoad: ({ track, settings }) =>
-      buildGlasswakeRoad(track, { shape, settings }),
+      (road = buildGlasswakeRoad(track, { shape, settings })),
     createEnvironment: (context) =>
-      createGlasswakeEnvironment({ ...context, shape }),
-    createBackdrop: () => createGlasswakeBackdrop({ shape }),
+      createGlasswakeEnvironment({ ...context, shape, road }),
+    createBackdrop: () => createGlasswakeBackdrop({ shape, track }),
     createRuntime: createGlasswakeRuntime,
     createOverlay: createGlasswakeOverlay,
   };

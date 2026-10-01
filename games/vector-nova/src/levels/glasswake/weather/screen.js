@@ -74,7 +74,15 @@ export function createGlasswakeScreen({ host, track }) {
           ctx.save();
           ctx.translate(x, y);
           ctx.rotate(hash(i + 63) * Math.PI);
-          ctx.strokeStyle = `rgba(219,241,255,${fade * 0.58})`;
+          const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, radius * 1.35);
+          halo.addColorStop(0, `rgba(224,243,255,${fade * 0.24})`);
+          halo.addColorStop(1, 'rgba(224,243,255,0)');
+          ctx.fillStyle = halo;
+          ctx.beginPath();
+          ctx.arc(0, 0, radius * 1.35, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.filter = 'blur(.5px)';
+          ctx.strokeStyle = `rgba(219,241,255,${fade * 0.28})`;
           ctx.lineWidth = 0.7;
           for (let arm = 0; arm < 6; arm++) {
             ctx.rotate(Math.PI / 3);

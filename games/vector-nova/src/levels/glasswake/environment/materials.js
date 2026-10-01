@@ -5,13 +5,16 @@
 export function finishIceMaterial(material, texture = null) {
   if (
     !material.isMeshStandardMaterial ||
-    /Titanium|Warm navigation/.test(material.name)
+    /Titanium|Warm navigation|Deep cavity/.test(material.name)
   )
     return;
   const dark = /buried|meteoric/.test(material.name),
     crust = /frost/.test(material.name);
-  material.roughness = crust ? 0.88 : dark ? 0.72 : 0.36;
-  material.metalness = dark ? 0.06 : 0.015;
+  const road = /travel bands|fin ice/.test(material.name),
+    fresh = /Fresh fracture/.test(material.name);
+  const textureScale = road ? 0.16 : dark ? 0.043 : 0.026;
+  material.roughness = crust ? 0.93 : dark ? 0.83 : fresh ? 0.23 : 0.44;
+  material.metalness = dark ? 0.025 : 0.01;
   material.onBeforeCompile = (shader) => {
     shader.uniforms.glasswakeIceMap = { value: texture };
     shader.uniforms.hasGlasswakeIceMap = { value: texture ? 1 : 0 };
@@ -36,10 +39,11 @@ export function finishIceMaterial(material, texture = null) {
       float iceNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
       return mix(mix(mix(iceHash(i),iceHash(i+vec3(1,0,0)),f.x),mix(iceHash(i+vec3(0,1,0)),iceHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(iceHash(i+vec3(0,0,1)),iceHash(i+vec3(1,0,1)),f.x),mix(iceHash(i+vec3(0,1,1)),iceHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
       vec3 iceDetail(vec3 p,vec3 n){
+        p+=vec3(iceNoise(p*.012),iceNoise(p*.017+21.),iceNoise(p*.015-13.))*8.;
         vec3 w=pow(abs(normalize(n)),vec3(6.));w/=max(.0001,w.x+w.y+w.z);
-        vec3 a=texture2D(glasswakeIceMap,p.yz*.066+vec2(.31,.12)).rgb;
-        vec3 b=texture2D(glasswakeIceMap,p.xz*.066+vec2(.17,.44)).rgb;
-        vec3 c=texture2D(glasswakeIceMap,p.xy*.066+vec2(.57,.23)).rgb;
+        vec3 a=texture2D(glasswakeIceMap,p.yz*${textureScale.toFixed(3)}+vec2(.31,.12)).rgb;
+        vec3 b=texture2D(glasswakeIceMap,p.xz*${textureScale.toFixed(3)}+vec2(.17,.44)).rgb;
+        vec3 c=texture2D(glasswakeIceMap,p.xy*${textureScale.toFixed(3)}+vec2(.57,.23)).rgb;
         return mix(vec3(.3,.47,.55),a*w.x+b*w.y+c*w.z,hasGlasswakeIceMap);
       }
     ` + shader.fragmentShader;
@@ -51,9 +55,11 @@ export function finishIceMaterial(material, texture = null) {
       float iceLuma=dot(iceTex,vec3(.2126,.7152,.0722));
       float drift=iceNoise(p*.033),grain=iceNoise(p*2.7);
       diffuseColor.rgb*=.87+drift*.25;
-      ${dark ? 'diffuseColor.rgb*=.82+iceLuma*.7;' : 'diffuseColor.rgb=mix(diffuseColor.rgb,iceTex*(.8+diffuseColor.rgb*.6),.43);'}
+      ${dark ? 'diffuseColor.rgb*=.65+drift*.55+grain*.06;' : crust ? 'diffuseColor.rgb*=.87+grain*.12;' : `diffuseColor.rgb=mix(diffuseColor.rgb,iceTex*(.45+diffuseColor.rgb*.48),${road ? '.23' : '.15'});`}
+      float cloud=iceNoise(vec3(p.x*.016,p.y*.045,p.z*.016));
+      diffuseColor.rgb*=.84+cloud*.32;
       float deposit=smoothstep(.35,.82,normalize(vIceNormal).y)*(0.55+drift*.45);
-      diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.69,.79,.85),deposit*${dark ? '.18' : crust ? '.35' : '.17'});
+      diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.69,.79,.85),deposit*${dark ? '.06' : crust ? '.18' : '.09'});
       diffuseColor.rgb+=vec3(.007,.009,.011)*smoothstep(.74,.91,grain);
     `,
     );
@@ -61,14 +67,14 @@ export function finishIceMaterial(material, texture = null) {
       '#include <roughnessmap_fragment>',
       `
       #include <roughnessmap_fragment>
-      roughnessFactor=clamp(roughnessFactor+(iceLuma-.3)*.43+(grain-.5)*.045,.26,.94);
+      roughnessFactor=clamp(roughnessFactor+(iceLuma-.3)*.18+(grain-.5)*.045,.26,.94);
     `,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <normal_fragment_maps>',
       `
       #include <normal_fragment_maps>
-      float iceHeight=iceNoise(p*.29)*.08+iceNoise(p*2.7)*.003+iceLuma*.022;
+      float iceHeight=iceNoise(p*.29)*.08+iceNoise(p*2.7)*.003+iceLuma*.018;
       vec3 sigmaX=dFdx(-vViewPosition),sigmaY=dFdy(-vViewPosition);
       vec3 r1=cross(sigmaY,normal),r2=cross(normal,sigmaX);float det=dot(sigmaX,r1);
       vec3 grad=sign(det)*(dFdx(iceHeight)*r1+dFdy(iceHeight)*r2);
@@ -77,7 +83,7 @@ export function finishIceMaterial(material, texture = null) {
     );
   };
   material.customProgramCacheKey = () =>
-    `glasswake-ice-detail-v3:${dark}:${crust}:${Boolean(texture)}`;
+    `glasswake-ice-detail-v4:${dark}:${crust}:${road}:${fresh}:${Boolean(texture)}`;
 }
 
 /** A light frost/vein veil on clear panes. Keep the transparent view into real

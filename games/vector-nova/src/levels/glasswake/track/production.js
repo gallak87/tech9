@@ -1,3 +1,4 @@
+import { groundGlasswakeSupports } from './grounding.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
@@ -317,7 +318,13 @@ export function buildGlasswakeRoad(
     mesh.receiveShadow = true;
     const transform = new THREE.Object3D();
     for (const [index, entry] of entries.entries()) {
-      if (entry.from) {
+      if (entry.matrix) {
+        entry.matrix.decompose(
+          transform.position,
+          transform.quaternion,
+          transform.scale,
+        );
+      } else if (entry.from) {
         const beam = beamTransform(
           entry.from,
           entry.to,
@@ -362,6 +369,7 @@ export function buildGlasswakeRoad(
     supports = [],
     collars = [],
     footings = [];
+  const anchors = [];
   const nearGap = (distance, margin = 7) =>
     track.jumps.some(
       (jump) =>
@@ -419,6 +427,12 @@ export function buildGlasswakeRoad(
       const shoulder = framePoint(frame, side * 11, -3.3);
       const knee = framePoint(frame, side * 23, -25);
       const root = framePoint(frame, side * 35, -depth);
+      anchors.push({
+        distance,
+        side,
+        knee: knee.clone(),
+        nominal: root.clone(),
+      });
       for (const offset of [-1.8, 0, 1.8]) {
         const shift = frame.tangent.clone().multiplyScalar(offset);
         supports.push({
@@ -427,15 +441,22 @@ export function buildGlasswakeRoad(
           width: 1.4,
           depth: 1.2,
         });
-        supports.push({
-          from: knee.clone().add(shift),
-          to: root.clone().add(shift),
-          width: 1.8,
-          depth: 1.45,
-        });
+        if (shape)
+          supports.push({
+            from: knee.clone().add(shift),
+            to: root.clone().add(shift),
+            width: 1.8,
+            depth: 1.45,
+          });
       }
       collars.push({ distance, x: side * 23, y: -25, scale: [4.8, 3.2, 7.3] });
-      footings.push({ distance, x: side * 35, y: -depth, scale: [12, 5, 13] });
+      if (shape)
+        footings.push({
+          distance,
+          x: side * 35,
+          y: -depth,
+          scale: [12, 5, 13],
+        });
     }
   }
   instance(
@@ -621,6 +642,61 @@ export function buildGlasswakeRoad(
       if (disposed || shape || nextSettings.quality === currentQuality) return;
       currentQuality = nextSettings.quality;
       glass.material = currentQuality === 'low' ? crystalLow : crystalHigh;
+    },
+    anchorToTerrain(terrain) {
+      if (disposed || shape || group.userData.supportContacts) return;
+      const contacts = groundGlasswakeSupports(track, anchors, terrain);
+      const legs = [],
+        shoes = [];
+      for (const contact of contacts) {
+        const f = track.sample(contact.distance);
+        for (const offset of [-1.8, 0, 1.8]) {
+          const shift = f.tangent.clone().multiplyScalar(offset);
+          legs.push({
+            from: contact.knee.clone().add(shift),
+            to: contact.root.clone().add(shift),
+            width: 1.8,
+            depth: 1.45,
+          });
+        }
+        shoes.push({
+          matrix: new THREE.Matrix4().compose(
+            contact.root,
+            new THREE.Quaternion().setFromUnitVectors(
+              new THREE.Vector3(0, 1, 0),
+              contact.normal,
+            ),
+            new THREE.Vector3(12, 3.8, 13),
+          ),
+        });
+      }
+      instance(
+        'Terrain-connected bundled compression legs',
+        new THREE.BoxGeometry(1, 1, 1),
+        strut,
+        legs,
+      );
+      instance(
+        'Anchor shoes embedded in actual geological faces',
+        new THREE.BoxGeometry(1, 1, 1),
+        deep,
+        shoes,
+      );
+      group.userData.supportContacts = contacts.map((c) => ({
+        distance: c.distance,
+        side: c.side,
+        knee: c.knee.toArray(),
+        point: c.point.toArray(),
+        root: c.root.toArray(),
+        normal: c.normal.toArray(),
+        terrain: c.terrain,
+        terrainUuid: c.terrainUuid,
+        instanceId: c.instanceId,
+      }));
+      group.userData.sourceBudgets.calls = group.children.length;
+      group.userData.sourceBudgets.parts += legs.length + shoes.length;
+      group.userData.sourceBudgets.triangles +=
+        (legs.length + shoes.length) * 12;
     },
     setReflection(texture) {
       if (disposed) return;

@@ -105,23 +105,21 @@ export function createUI(
       $('review-toggle').querySelector('span').textContent = open ? '−' : '+';
     };
   }
-  if (metadata.flyCamera) {
-    const button = document.createElement('button');
-    button.id = 'fly-camera';
-    button.textContent = 'FLY CAMERA · F';
-    button.onclick = actions.fly;
-    ($('review-options') ?? $('title-panel')).insertBefore(
-      button,
-      root.querySelector('.shape-jump'),
-    );
-    const controls = document.createElement('section');
-    controls.id = 'fly-controls';
-    controls.className = 'hidden';
-    controls.setAttribute('aria-label', 'Free camera controls');
-    controls.innerHTML = `<div class="fly-heading"><b>FREE CAMERA <small>SESSION PAUSED</small></b><button id="fly-return">RETURN · F / ESC</button></div><p>Drag to look · WASD move · Q / E down / up</p><div class="fly-touch"><button data-fly="KeyA" aria-label="Fly left">←</button><button data-fly="KeyW" aria-label="Fly forward">FORWARD</button><button data-fly="KeyD" aria-label="Fly right">→</button><button data-fly="KeyQ" aria-label="Fly down">DOWN</button><button data-fly="KeyS" aria-label="Fly backward">BACK</button><button data-fly="KeyE" aria-label="Fly up">UP</button></div>`;
-    root.append(controls);
-    $('fly-return').onclick = actions.leaveFly;
-  }
+  const flyButton = document.createElement('button');
+  flyButton.id = 'fly-camera';
+  flyButton.textContent = 'FLY CAMERA · F';
+  flyButton.onclick = actions.fly;
+  ($('review-options') ?? $('title-panel')).insertBefore(
+    flyButton,
+    root.querySelector('.shape-jump'),
+  );
+  const flyControls = document.createElement('section');
+  flyControls.id = 'fly-controls';
+  flyControls.className = 'hidden';
+  flyControls.setAttribute('aria-label', 'Free camera controls');
+  flyControls.innerHTML = `<div class="fly-heading"><b>FREE CAMERA <small>SESSION PAUSED</small></b><button id="fly-return">RETURN · F / ESC</button></div><p>Drag to look · WASD move · Q / E down / up</p><div class="fly-touch"><button data-fly="KeyA" aria-label="Fly left">←</button><button data-fly="KeyW" aria-label="Fly forward">FORWARD</button><button data-fly="KeyD" aria-label="Fly right">→</button><button data-fly="KeyQ" aria-label="Fly down">DOWN</button><button data-fly="KeyS" aria-label="Fly backward">BACK</button><button data-fly="KeyE" aria-label="Fly up">UP</button></div>`;
+  root.append(flyControls);
+  $('fly-return').onclick = actions.leaveFly;
   const currentCircuit = metadata.id;
   const picker = document.createElement('form');
   picker.className = 'circuit-picker';

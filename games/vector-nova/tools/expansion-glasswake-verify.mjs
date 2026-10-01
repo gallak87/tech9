@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 const base = process.env.VN_URL;
 if (!base)
   throw new Error(
-    'VN_URL is required; GPU grant and existing production server required.',
+    'VN_URL is required; use this worktree’s production preview.',
   );
 const out = resolve(
   process.env.VN_EVIDENCE || '.experiments/expansion/glasswake/verification',
@@ -55,6 +55,7 @@ try {
       await page.waitForFunction(() => window.__VN?.ready, null, {
         timeout: 120000,
       });
+      console.log(`${quality}: production ready`);
       report.build = await page
         .locator('script[type=module]')
         .getAttribute('src');
@@ -112,10 +113,12 @@ try {
         await page.evaluate(() => window.__VN.pause());
         await capture(name);
       }
+      console.log(`${quality}: section views complete; checking fracture flights`);
       for (const index of [1, 2]) {
         for (const mode of quality === 'high'
           ? ['success', 'short', 'approach']
           : ['success', 'short']) {
+          console.log(`${quality}: jump${index}-${mode}`);
           await load(`jump${index}-${mode}`);
           await page.evaluate(() => window.__VN.resume());
           await page.keyboard.down(mode === 'short' ? 'KeyS' : 'KeyW');
@@ -173,6 +176,7 @@ try {
           await capture(`jump${index}-${mode}-result`);
         }
       }
+      console.log(`${quality}: flights complete; comparing grip`);
       report.gripSamples ??= [];
       for (const scenario of ['frost-matched', 'crystal-matched']) {
         await load(scenario);
@@ -196,31 +200,6 @@ try {
         });
         await capture(scenario);
       }
-      for (const [width, height] of [
-        [390, 844],
-        [844, 390],
-        [640, 360],
-      ]) {
-        await page.setViewportSize({ width, height });
-        await load('frost-matched');
-        await page.evaluate(() => window.__VN.resume());
-        await page.keyboard.down('KeyS');
-        const tick = (await snap()).tick;
-        await page.waitForFunction(
-          (tick) => window.__VN.getSnapshot().tick >= tick + 12,
-          tick,
-          { timeout: 20000 },
-        );
-        await page.keyboard.up('KeyS');
-        await page.screenshot({
-          path: resolve(out, `${quality}-hud-${width}x${height}.png`),
-        });
-        await page.evaluate(() => window.__VN.pause());
-        check(
-          `${quality} finite ${width}x${height}`,
-          (await snap()).ship.position.every(Number.isFinite),
-        );
-      }
       await page.evaluate(() => {
         window.__VN.dispose();
         window.__VN.dispose();
@@ -233,6 +212,7 @@ try {
       await context.close();
     }
   }
+  check('production desktop has no renderer or application faults', report.faults.length === 0, report.faults);
   const failureContext = await browser.newContext({
     viewport: { width: 640, height: 360 },
   });

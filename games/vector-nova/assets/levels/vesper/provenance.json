@@ -22,12 +22,12 @@
   "routeEnvelope": "blender/route-envelope.json (sampled from the actual authored track)",
   "reproduce": "/Applications/Blender.app/Contents/MacOS/Blender --background --python assets/levels/vesper/blender/build_connected_hollow.py",
   "export": "public/assets/levels/vesper/vesper-canopy.glb",
-  "materials": "Original PBR materials with packed, UV-mapped imagegen bark/chitin color tile; geometric bark furrows/cambium ribs; per-leaf COLOR_0 variation; irregular pale-gilled fungal shelves. The retained creature includes mapped body/legs/face detail but is not instantiated. Resin uses restrained physical transmission; all existing practical/emissive and sky rig intensities are lifted ten percent.",
+  "materials": "Original PBR materials with packed, UV-mapped imagegen bark/chitin color tile; geometric bark furrows/cambium ribs; per-leaf COLOR_0 variation; irregular pale-gilled fungal shelves. The retained creature includes mapped body/legs/face detail but is not instantiated. Resin uses restrained physical transmission; all existing practical/emissive and sky rig intensities are lifted ten percent. Connected broad leaves now have cupped surfaces, curved midribs, rolled margins and curled tips. UV procedural midrib/secondary veins, mottling, a lighter underside and roughness variation provide close-up surface detail without a new texture asset.",
   "animation": "Creature presentation is disabled at the human request: no walker, leaf shower, spores, bent crowns or movement events are instantiated. Its deterministic path/IK/animation implementation and original Blender sources remain available for future reuse.",
   "approximation": "The complete upper tree uses a tall tapering branched bole above the preserved road cavity. Generated bark provides UV surface detail; the new 2:1 LDR sky panorama provides distant atmosphere and PMREM reflection radiance. Resin transmission uses the Three.js screen-space scene capture, not volumetric ray tracing.",
   "validation": "Current hollow checks in connectedHollow; secondary forest checks in connectedForest. Road/physics/camera and sky remain unchanged. Current render budgets are in docs/expansion/vesper/STATUS.json; foreground pacing and physical devices remain unverified.",
   "authoredFamilies": "Three connected broadleaf tree families with distance variants and rooted understory; colossal hollow with a connected exterior crown; hanging flower, fungal shelves, root supports, station, landing branch and dormant creature library retained.",
-  "secondaryGeometryOptimization": "Original library secondary trees remain for recovery but are not instantiated. Connected-tree source polygon counts are unchanged by the scale/leaf growth pass; actual route clearance is audited after growth. Near models switch to supported distance geometry; far trees/understory are batched by material and spatial cell.",
+  "secondaryGeometryOptimization": "Connected near models switch to supported distance geometry; distant trees/understory batch by material and cell. Current leaf pass uses 12 nondegenerate triangles per detailed leaf and four per distance leaf; wood geometry remains byte-identical. Original library secondary trees remain dormant for recovery.",
   "materialTextures": [
     {
       "file": "textures/ancient-bark-color.png",
@@ -82,8 +82,8 @@
       {
         "variant": 0,
         "seed": 290927,
-        "highTriangles": 39088,
-        "distanceTriangles": 1876,
+        "highTriangles": 45900,
+        "distanceTriangles": 2302,
         "leafCount": 1703,
         "attachmentCount": 1782,
         "maxAttachmentGapMetres": 1.7481138973067626e-5,
@@ -94,8 +94,8 @@
       {
         "variant": 1,
         "seed": 290930,
-        "highTriangles": 39088,
-        "distanceTriangles": 1876,
+        "highTriangles": 45900,
+        "distanceTriangles": 2302,
         "leafCount": 1703,
         "attachmentCount": 1782,
         "maxAttachmentGapMetres": 1.7481138973067626e-5,
@@ -106,8 +106,8 @@
       {
         "variant": 2,
         "seed": 290934,
-        "highTriangles": 39088,
-        "distanceTriangles": 1876,
+        "highTriangles": 45900,
+        "distanceTriangles": 2302,
         "leafCount": 1703,
         "attachmentCount": 1782,
         "maxAttachmentGapMetres": 1.7481138973067626e-5,
@@ -120,11 +120,11 @@
     "rootedUnderstory": 73,
     "terrain": "Root collars and buttresses conform to the actual triangles of the existing floor. Far trees stay inside its footprint.",
     "giantHollow": "Excluded from the secondary-forest generation; the later exterior crown replacement is documented separately in connectedHollow.",
-    "pilot": "The first-view pilot retains full-detail connected construction and receives the same enlarged branches/leaves and1.12overallscale. Its55,332triangles, repeated detailed39,088triangles and distance1,876triangles are unchanged.",
-    "bytes": 10431612,
-    "sha256": "5cac1b108caebd819de5ccc2fba244f3297aeffe7af0240d133de5d29c588e1a",
+    "pilot": "The approved full-detail pilot keeps its connected wood, oversized scale and 55,332 triangles. Cupped leaf surfaces replace degenerate tip faces; detailed families now use 45,900 triangles and distance families 2,302.",
+    "bytes": 10726952,
+    "sha256": "3f836b3190acf4c17452dd038e7701f46685b91c76fb409a9bc068380115dc13",
     "rollbackToApprovedPilot": "ed7c82b5",
-    "validation": "All240placed high/distance models audited:1,737,642vertices and21,134,988triangle/corridor tests; no intersections. Parent attachments and exact terrain seating pass.17final hidden-browser stills without renderer errors, including one3viewportmobile phase. No critic rounds.",
+    "validation": "Current leaf pass audits all 240 models / 1,844,931 vertices / 25,558,306 triangle-corridor tests without intersections. Parent attachments, exact terrain seating and normal/double/late/rejected disposal pass.",
     "growth": {
       "treeScale": 1.12,
       "branchReach": 1.1,
@@ -137,7 +137,7 @@
       "distanceSprayLength": 1.45,
       "distanceSprayWidth": 1.65,
       "polygonCountsUnchanged": true,
-      "placementAdjustment": "Third gateway tree moved8m in world+Z to keep its expanded canopy clear of road/camera corridor."
+      "placementAdjustment": "Growth moved third gateway 8 m in world +Z; current cupped-leaf pass adds 4 m, for 12 m total, preserving road/camera clearance."
     },
     "rollbackBeforeGrowth": "b324ee3b"
   },
@@ -148,17 +148,28 @@
     "generator": "assets/levels/vesper/blender/build_connected_hollow.py",
     "geometryBuilder": "assets/levels/vesper/blender/connected_tree_geometry.py",
     "approach": "Rebuild only exterior boughs/crown. Embed bases in the actual lower/upper shell surfaces; sample every fork and shoot on its parent; attach large leaves by petioles. Whole boughs are omitted around road portals instead of clipping their geometry. No external engine imports.",
-    "preserved": "All 72,457 shell/interior/root triangles match the checkpoint. All 16 other original library roots retain identical geometry/attributes/transforms. Secondary forest GLB is byte-identical; default connected-tree generation is identical in six seed/detail cases.",
+    "preserved": "All 72,457 shell/interior/root triangles, all 16 other original library roots and connected crown wood remain unchanged. This leaf pass also updates secondary forest leaves.",
     "mainBoughs": 22,
     "apicalShoots": 7,
     "leaves": 2665,
     "crownTriangles": 93194,
     "attachments": 2746,
     "maxParentGapMetres": 6.394597860046467e-5,
-    "assetBytes": 11924548,
-    "validation": "No new road/camera corridor intersections in 32,626,047 triangle tests. Six conservative-padding contacts are two unchanged baseline shell triangles outside the driving envelope. 274 sampled jump poses / 11,468,354 crown triangle tests pass. 12 targeted geometry/lifetime tests, lint and build pass; 17 final high/low/overview/mobile stills have no renderer errors. No critic rounds.",
+    "assetBytes": 11807288,
+    "validation": "No new road/camera intersections in 32,721,987 triangle tests. Two unchanged shell triangles touch conservative outer padding only. All 274 flight samples / 11,564,294 crown triangle tests pass. 15 targeted tests, lint/build and high/low close-up and final viewport checks pass.",
     "evidence": ".experiments/expansion/vesper/connected-hollow",
-    "performance": "Denser crown increases geometry cost: measured peaks 3.10M high / 2.14M low submitted triangles, both above the 2M target. Initial transfer 25.74MB and estimated memory remain within targets; foreground frame pacing unverified.",
+    "performance": "Current leaf-pass budgets: 3.34M high / 2.30M low submitted triangles exceed the 2M target; 25.92 MB transfer and estimated memory remain within targets. See current STATUS.json. Foreground pacing unverified.",
     "humanReview": "Ready for review in the existing production preview."
+  },
+  "leafRefinement": {
+    "checkpoint": "7311b954",
+    "method": "Cupped lamina, curved midrib, asymmetrical rolled margins and drooping tips; UV procedural veins, mottling and varied roughness. Distance leaves also bend.",
+    "woodMeshesUnchanged": 8,
+    "nondegenerateLeafTriangles": 136688,
+    "detailedFamilyTriangles": 45900,
+    "distanceFamilyTriangles": 2302,
+    "giantCrownTriangles": 93194,
+    "gateway3OffsetZ": 12,
+    "evidence": ".experiments/expansion/vesper/leaf-refinement/"
   }
 }

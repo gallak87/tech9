@@ -6,8 +6,8 @@ export function finishVesperMaterial(material) {
   const fungus = /fungal moon/.test(name);
   const walker = /walker/.test(name);
   if (!bark && !leaf && !fungus && !walker) return;
-  material.roughness = bark ? 0.9 : leaf ? 0.84 : walker ? 0.76 : 0.88;
-  material.envMapIntensity = bark ? 0.18 : 0.22;
+  material.roughness = bark ? 0.9 : leaf ? 0.58 : walker ? 0.76 : 0.88;
+  material.envMapIntensity = bark ? 0.18 : leaf ? 0.36 : 0.22;
   material.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
       .replace(
@@ -18,6 +18,21 @@ export function finishVesperMaterial(material) {
         '#include <begin_vertex>',
         '#include <begin_vertex>\nvVesperSurface = position;',
       );
+    if (leaf) {
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          '#include <common>',
+          '#include <common>\nvarying vec2 vVesperLeafUv;',
+        )
+        .replace(
+          '#include <begin_vertex>',
+          '#include <begin_vertex>\nvVesperLeafUv = uv;',
+        );
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <common>',
+        '#include <common>\nvarying vec2 vVesperLeafUv;',
+      );
+    }
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <common>',
       `#include <common>
@@ -41,10 +56,22 @@ export function finishVesperMaterial(material) {
            vesperHeight+=dot(sampledDiffuseColor.rgb,vec3(.21,.72,.07))*.09;
          #endif`
       : leaf
-        ? `float broad=vesperNoise(vVesperSurface*.17); float fine=vesperNoise(vVesperSurface*1.7);
-           diffuseColor.rgb*=mix(.62,1.26,broad); diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.2,1.06,.72),smoothstep(.6,.86,broad)*.35);
-           diffuseColor.rgb*=gl_FrontFacing?vec3(1.):vec3(.87,.97,.73);
-           float vesperHeight=fine*.024;`
+        ? `float leafT=clamp(vVesperLeafUv.x,0.,1.);
+           float leafW=abs(vVesperLeafUv.y*2.-1.);
+           float broad=vesperNoise(vVesperSurface*.24);
+           float fine=vesperNoise(vVesperSurface*2.8);
+           float ribAA=max(fwidth(leafW)*1.25,.008);
+           float midrib=1.-smoothstep(.015,.035+ribAA,leafW);
+           float branchPhase=leafT*8.-leafW*.85+.09*sin(leafW*5.);
+           float branchAA=max(fwidth(branchPhase)*1.25,.015);
+           float secondary=1.-smoothstep(.02,.045+branchAA,abs(fract(branchPhase+.5)-.5));
+           secondary*=smoothstep(.03,.15,leafT)*(1.-smoothstep(.88,1.,leafT));
+           float veins=max(midrib,secondary*.58);
+           float margin=smoothstep(.80,1.,leafW);
+           diffuseColor.rgb*=mix(.76,1.22,broad)*(1.-margin*.18);
+           diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.36,1.30,.87),veins*.68);
+           diffuseColor.rgb*=gl_FrontFacing?vec3(1.):vec3(1.12,1.10,.84);
+           float vesperHeight=midrib*.15+secondary*.045+fine*.018;`
         : walker
           ? `float broad=vesperNoise(vVesperSurface*.18); float pore=vesperNoise(vVesperSurface*1.6);
              diffuseColor.rgb*=mix(.76,1.23,broad); diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.79,1.13,1.04),smoothstep(.55,.8,broad)*.35);
@@ -65,6 +92,11 @@ export function finishVesperMaterial(material) {
           diffuseColor.a*=sampledDiffuseColor.a;
         #endif
 ${treatment}`,
+      );
+    if (leaf)
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <roughnessmap_fragment>',
+        '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor*mix(.87,1.12,broad)+veins*.07,.38,.76);',
       );
     if (walker)
       shader.fragmentShader = shader.fragmentShader.replace(
@@ -90,5 +122,5 @@ ${treatment}`,
       );
   };
   material.customProgramCacheKey = () =>
-    `vesper-organic-r5-${bark ? 'bark' : leaf ? 'leaf' : walker ? 'walker' : 'fungus'}`;
+    `vesper-organic-r6-${bark ? 'bark' : leaf ? 'leaf' : walker ? 'walker' : 'fungus'}`;
 }

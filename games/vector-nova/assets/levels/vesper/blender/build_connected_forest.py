@@ -13,7 +13,7 @@ from mathutils import Vector
 ROOT = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(ROOT))
-from connected_tree_geometry import make_connected_tree, LEAF_LENGTH_SCALE, LEAF_WIDTH_SCALE, BRANCH_REACH_SCALE, BRANCH_RADIUS_SCALE
+from connected_tree_geometry import broadleaf_surface, make_connected_tree, LEAF_LENGTH_SCALE, LEAF_WIDTH_SCALE, BRANCH_REACH_SCALE, BRANCH_RADIUS_SCALE
 
 DEST = ROOT.parents[3] / 'public/assets/levels/vesper'
 bpy.ops.wm.open_mainfile(filepath=str(ROOT / 'vesper-assets.blend'))
@@ -79,15 +79,12 @@ def make_distance_tree(full):
     def spray(base,direction,seed):
         forward=direction.normalized()
         across=forward.cross(Vector((0,1,0))).normalized()
-        for i in range(5):
-            side=(i-2)*.55
+        for i in range(4):
+            side=(i-1.5)*.72
             out=(forward+across*side+Vector((0,.12+.18*math.sin(seed+i),0))).normalized()
-            lateral=out.cross(Vector((0,1,0))).normalized()
-            length=(16+(seed%4))*1.45;width=5.3*1.65
-            middle=base+out*length*.48+Vector((0,2,0))
-            points=[base,middle-lateral*width,base+out*length,middle+lateral*width]
-            ids=[vertex('leaves',p,uv,.85+.1*math.sin(seed+i)) for p,uv in zip(points,[(0,.5),(.48,0),(1,.5),(.48,1)])]
-            parts['leaves']['f'].append(tuple(ids))
+            data=broadleaf_surface(base,out,(16+(seed%4))*1.45,5.3*1.65,.85+.1*math.sin(seed+i),rows=3)
+            ids=[vertex('leaves',p,uv,color[0]) for p,uv,color in zip(data['v'],data['uv'],data['c'])]
+            parts['leaves']['f'].extend(tuple(ids[i] for i in face) for face in data['f'])
 
     for part in full['structure']:
         name=part['id']
@@ -174,7 +171,7 @@ bpy.context.preferences.filepaths.save_version=0
 bpy.ops.wm.save_as_mainfile(filepath=str(ROOT/'vesper-connected-forest.blend'),compress=True)
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.export_scene.gltf(filepath=str(DEST/report['asset']),export_format='GLB',use_selection=True,export_yup=True,export_apply=True,export_texcoords=True,export_normals=True,export_materials='EXPORT',export_extras=True)
-evidence=ROOT.parents[3]/'.experiments/expansion/vesper/forest-scale'
+evidence=ROOT.parents[3]/'.experiments/expansion/vesper/leaf-refinement'
 evidence.mkdir(parents=True,exist_ok=True)
 (evidence/'generator-report.json').write_text(json.dumps(report,indent=2)+'\n')
 print('CONNECTED_FOREST_REPORT',json.dumps(report))

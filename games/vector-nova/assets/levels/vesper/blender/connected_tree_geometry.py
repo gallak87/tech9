@@ -15,6 +15,42 @@ BRANCH_REACH_SCALE = 1.10
 BRANCH_RADIUS_SCALE = 1.22
 
 
+def broadleaf_surface(base, direction, length, width, shade, rows=5):
+    """A cupped lamina with a curved midrib and rolled, asymmetric margins.
+
+    Single vertices close the base/tip; collapsed endpoint quads formerly spent
+    triangles on zero-area faces and produced coarse, sheet-like shading.
+    UV.x follows the midrib and UV.y runs across it for procedural veins.
+    """
+    base=Vector(base);forward=direction.normalized()
+    side=forward.cross(Vector((0,1,0)))
+    if side.length<.05:side=forward.cross(Vector((1,0,0)))
+    side.normalize();up=side.cross(forward).normalized()
+    phase=math.sin(base.dot(Vector((.73,.41,.29)))+shade*8)
+    roll=phase*.30
+    side,up=side*math.cos(roll)+up*math.sin(roll),up*math.cos(roll)-side*math.sin(roll)
+    data={'v':[],'f':[],'uv':[],'c':[]};rings=[]
+    for i in range(rows):
+        t=i/(rows-1);profile=math.sin(math.pi*t)**.72;ring=[]
+        for w in ([0] if i in [0,rows-1] else [-1,0,1]):
+            asym=1+.10*phase*w*math.sin(math.pi*t)
+            curl=(.26+.12*math.sin(t*math.pi*2+phase))*abs(w)*width*profile
+            ridge=length*(.22*math.sin(math.pi*t)-(.24+.025*phase)*t**3)
+            twist=phase*w*width*profile*(t-.35)*.35
+            p=base+forward*(length*t)+side*(width*profile*w*asym)
+            p+=up*(ridge+curl+twist)
+            ring.append(len(data['v']));data['v'].append(p)
+            data['uv'].append((t,(w+1)*.5))
+            value=shade*(.89+.11*math.sin(math.pi*t))*(1-.07*abs(w))
+            data['c'].append((value,value*(.93+.06*t),value*.88,1))
+        rings.append(ring)
+    data['f'].extend([(rings[0][0],rings[1][j],rings[1][j+1]) for j in range(2)])
+    for i in range(1,rows-2):
+        for j in range(2):data['f'].append((rings[i][j],rings[i+1][j],rings[i+1][j+1],rings[i][j+1]))
+    data['f'].extend([(rings[-2][j],rings[-1][0],rings[-2][j+1]) for j in range(2)])
+    return data
+
+
 def make_connected_tree(seed=290930, forest_budget=False, layout=None, foliage_scale=1.0):
     rng=random.Random(seed)
     B=lambda p:(p[0],-p[2],p[1])
@@ -57,21 +93,9 @@ def make_connected_tree(seed=290930, forest_budget=False, layout=None, foliage_s
         u=max(0,min(1,f))*(len(points)-1);i=min(len(points)-2,int(u));return points[i].lerp(points[i+1],u-i)
 
     def leaf(base,direction,length,width,shade):
-        length*=LEAF_LENGTH_SCALE; width*=LEAF_WIDTH_SCALE
-        forward=direction.normalized();side=forward.cross(Vector((0,1,0)))
-        if side.length<.05:side=forward.cross(Vector((1,0,0)))
-        side.normalize();up=side.cross(forward).normalized();grid=[]
-        rows=3 if forest_budget else 4
-        for i in range(rows):
-            t=i/(rows-1);row=[];profile=math.sin(math.pi*t)**.72
-            for j in range(3):
-                w=j-1
-                p=base+forward*(length*t)+side*(width*profile*w)
-                p+=up*(length*(.17*math.sin(math.pi*t)-.16*t*t)-abs(w)*width*profile*.17)
-                row.append(add_vertex('leaves',p,(t,(w+1)*.5),(shade,shade*(.93+.06*t),shade*.88,1)))
-            grid.append(row)
-        for i in range(rows-1):
-            for j in range(2):parts['leaves']['f'].append((grid[i][j],grid[i+1][j],grid[i+1][j+1],grid[i][j+1]))
+        data=broadleaf_surface(base,direction,length*LEAF_LENGTH_SCALE,width*LEAF_WIDTH_SCALE,shade)
+        indices=[add_vertex('leaves',p,uv,color) for p,uv,color in zip(data['v'],data['uv'],data['c'])]
+        parts['leaves']['f'].extend(tuple(indices[i] for i in face) for face in data['f'])
 
     leaf_count=0
     def leafy_shoot(name,base,direction,length,parent):

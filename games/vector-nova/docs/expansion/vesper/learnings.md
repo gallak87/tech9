@@ -27,3 +27,7 @@ Human art and workflow steers from Vesper Canopy, 2026-09-29–30. Carry these i
 - **Adapt a proven tree method to the landmark’s architecture.** For a hollow tree containing the circuit, preserve the shell, full top and route portals. Regenerate the exterior limbs/crown with roots sampled on the actual curved shell and forks/leaves attached to their parents. Checkpoint first; compare the starting view and audit road/jump clearance. Do not replace the navigable hollow with a scaled ordinary solid tree.
 
 - **Make environment inspection easy.** Provide a fly camera so the human can inspect trees and scenery directly without driving to every angle or supplying screenshots. Freeze the session during inspection, preserve the whole environment, and offer an obvious return to the previous view.
+
+- **Inspect foliage close up, not only from the road.** Large flat polygons become obvious in fly-camera views. Preserve broad leaf scale while adding curved midribs, cupped/rolled margins, curled tips, veins and surface variation. Keep stems connected and give simplified distance leaves some volume too. Use a bounded pass.
+
+- **Keep inspection controls simple.** The user found adjustable fly speed awkward. Use a fixed 200 m/s and remove speed UI, wheel adjustment and Shift acceleration.

@@ -11,7 +11,7 @@ export default function createLevel({ shape = false } = {}) {
       world: shape ? 'glasswake-shape' : 'glasswake-comet',
       background: '#050b1c',
       fog: { color: '#102347', density: shape ? 0 : 0.00014 },
-      bloomStrength: 0.2,
+      bloomStrength: 0.08,
       bloomThreshold: 1.1,
       reflectionFar: 2800,
     },

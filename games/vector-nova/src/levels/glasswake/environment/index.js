@@ -1,8 +1,9 @@
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { sampleCalvingState, sampleCaveBlend } from './event.js';
+import { finishIceMaterial } from './materials.js';
 
-const ASSET_URL = '/assets/levels/glasswake/glasswake-environment.glb';
+const ASSET_URL = '/assets/levels/glasswake/glasswake-environment-v2.glb';
 const UP = new T.Vector3(0, 1, 0);
 const fract = (n) => n - Math.floor(n);
 const noise = (n) => fract(Math.sin(n * 172.41 + 41.7) * 4537.114);
@@ -55,8 +56,8 @@ export function createGlasswakeEnvironment({
   let referenceTexture = null;
   let currentSettings = settings;
   const metrics = {
-    assetBytes: 2769136,
-    sourceTriangles: 42284,
+    assetBytes: 2821008,
+    sourceTriangles: 41748,
     instances: 0,
     meshes: 0,
     triangles: 0,
@@ -223,7 +224,18 @@ export function createGlasswakeEnvironment({
         s += 104, i += 1
       ) {
         if (section.id !== 'chasm' || i % 3 === 2)
-          place('cave_roof', s, 0, 28, [1.15 + 0.1 * noise(i), 1, 1.05], 0);
+          place(
+            'cave_roof',
+            s,
+            Math.sin(i * 2.7) * 7,
+            30 + noise(i * 5) * 12,
+            [
+              1.12 + 0.16 * noise(i),
+              0.96 + 0.12 * noise(i + 2),
+              0.82 + 0.26 * noise(i + 7),
+            ],
+            Math.sin(i * 2.3) * 0.08,
+          );
         for (const side of [-1, 1]) {
           place(
             'cave_pier',
@@ -239,8 +251,12 @@ export function createGlasswakeEnvironment({
               s + 28,
               side * 62,
               33,
-              [1.05, 1.1, 1],
-              Math.PI / 2,
+              [
+                0.78 + noise(i * 9 + side) * 0.38,
+                0.88 + noise(i * 3) * 0.32,
+                1,
+              ],
+              Math.PI / 2 + Math.sin(i * 3.7 + side) * 0.12,
             );
         }
         if (section.id === 'chasm' && i % 2 === 0)
@@ -281,6 +297,9 @@ export function createGlasswakeEnvironment({
     const centerS = (track.bridge.start + track.bridge.end) * 0.5;
     // Front faces the raceway; the opening lies within an actual fixed rear shell.
     calving.applyMatrix4(transform(centerS, 265, -32));
+    // Stage the far shelf ahead of the span: the opened cavity remains in the
+    // forward sight line through departure, rather than falling behind chase.
+    calving.position.addScaledVector(track.sample(centerS).tangent, 820);
     group.add(calving);
     for (const name of templates.keys()) {
       if (/^(calving_(back|roof|floor|ledge)|cavity_)/.test(name))
@@ -372,6 +391,7 @@ export function createGlasswakeEnvironment({
         geometries.add(geometry);
         for (const material of [node.material].flat()) {
           material.side = T.DoubleSide;
+          finishIceMaterial(material);
           material.envMapIntensity = 0.35;
           if (referenceTexture) material.envMap = referenceTexture;
           materials.add(material);

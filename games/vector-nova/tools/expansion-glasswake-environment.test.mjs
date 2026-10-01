@@ -13,7 +13,7 @@ import {
 } from '../src/levels/glasswake/environment/event.js';
 const track = createGlasswakeTrack();
 const assetPath = new URL(
-  '../public/assets/levels/glasswake/glasswake-environment.glb',
+  '../public/assets/levels/glasswake/glasswake-environment-v2.glb',
   import.meta.url,
 );
 async function loadAsset() {

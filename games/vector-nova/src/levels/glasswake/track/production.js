@@ -93,7 +93,7 @@ export function buildGlasswakeRoad(
     side: THREE.DoubleSide,
   });
   const cobalt = material({
-    color: shape ? 0x596669 : 0x1a4d89,
+    color: shape ? 0x596669 : 0x436a87,
     roughness: 0.48,
     metalness: 0.25,
   });
@@ -449,6 +449,7 @@ export function buildGlasswakeRoad(
     deep,
     footings,
   );
+  const lipCues = [];
   const ends = [],
     beacons = [],
     warnings = [],
@@ -459,6 +460,7 @@ export function buildGlasswakeRoad(
       [jump.landingStart + 0.8, 1],
     ]) {
       ends.push({ distance, y: -1.65, scale: [track.width + 2.2, 2.6, 1.25] });
+      lipCues.push({ distance, y: 0.13, scale: [track.width, 0.2, 0.35] });
       const frame = track.sample(distance);
       const rootFrame = track.sample(distance + direction * 24);
       for (const side of [-1, 1]) {
@@ -500,6 +502,12 @@ export function buildGlasswakeRoad(
           scale: [1.2, 4.2, 1.2],
         });
   }
+  instance(
+    'Amber cut-edge line / actual fracture boundary',
+    new THREE.BoxGeometry(1, 1, 1),
+    warm,
+    lipCues,
+  );
   instance(
     'Fracture lip and catch-deck diaphragms',
     new THREE.BoxGeometry(1, 1, 1),

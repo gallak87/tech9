@@ -1,37 +1,56 @@
 import * as T from 'three';
 
-export function createGlasswakeBackdrop({ shape = false } = {}) {
+export async function createGlasswakeBackdrop({ shape = false } = {}) {
+  const texture = shape
+    ? null
+    : await new T.TextureLoader().loadAsync(
+        '/assets/levels/glasswake/aurora-sky-v1.png',
+      );
+  if (texture) {
+    texture.colorSpace = T.SRGBColorSpace;
+    texture.wrapS = T.RepeatWrapping;
+    texture.anisotropy = 4;
+  }
   const group = new T.Group();
-  group.name = 'Glasswake / quiet auroral sky';
+  group.name = 'Glasswake / generated auroral sky';
   group.userData.spaceBackdrop = true;
   group.userData.aoExclude = true;
-  const geometry = new T.SphereGeometry(7200, 48, 28);
   const material = new T.ShaderMaterial({
     side: T.BackSide,
     depthWrite: false,
-    uniforms: { clock: { value: 0 }, neutral: { value: shape ? 1 : 0 } },
-    vertexShader: `varying vec3 direction;
-      void main(){ direction=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
-    fragmentShader: `varying vec3 direction; uniform float clock; uniform float neutral;
-      float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+    uniforms: {
+      skyMap: { value: texture },
+      clock: { value: 0 },
+      neutral: { value: shape ? 1 : 0 },
+    },
+    vertexShader: `varying vec3 ray; void main(){ ray=position; vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.); gl_Position=p.xyww; }`,
+    fragmentShader: `varying vec3 ray; uniform sampler2D skyMap; uniform float clock; uniform float neutral;
+      const float PI=3.141592653589793;
       void main(){
-        vec3 d=normalize(direction); float az=atan(d.z,d.x); float el=asin(d.y);
-        vec3 col=mix(vec3(.025,.055,.115),vec3(.002,.006,.023),smoothstep(-.12,.8,d.y));
-        float horizon=exp(-abs(d.y+.07)*9.); col+=vec3(.015,.025,.048)*horizon;
-        for(int i=0;i<3;i++){
-          float n=float(i); float bend=.43+.09*n+.085*sin(az*2.5+n+clock*.012)+.04*sin(az*5.-n*.8);
-          float curtain=exp(-abs(el-bend)*18.)*smoothstep(.07,.2,d.y);
-          float ribs=.78+.14*sin(az*26.+sin(az*7.)*2.+clock*.016)+.08*sin(az*61.);
-          col+=mix(vec3(.015,.115,.082),vec3(.09,.025,.14),n*.43)*curtain*ribs*.4;
+        vec3 direction=normalize(ray);
+        float u=fract(atan(direction.z,direction.x)/(2.*PI)+.34+sin(clock*.004)*.004);
+        float v=asin(clamp(direction.y,-1.,1.))/PI+.5;
+        float overlap=.04;
+        float panoramaU=u*(1.-overlap);
+        vec3 dx=dFdx(direction),dy=dFdy(direction);
+        float longitudeScale=(1.-overlap)/(2.*PI*max(dot(direction.xz,direction.xz),.000001));
+        float latitudeScale=1./(PI*sqrt(max(1.-direction.y*direction.y,.000001)));
+        vec2 uvDx=vec2((direction.x*dx.z-direction.z*dx.x)*longitudeScale,dx.y*latitudeScale);
+        vec2 uvDy=vec2((direction.x*dy.z-direction.z*dy.x)*longitudeScale,dy.y*latitudeScale);
+        vec3 col=textureGrad(skyMap,vec2(panoramaU,v),uvDx,uvDy).rgb;
+        if(panoramaU<overlap){
+          vec3 opposite=textureGrad(skyMap,vec2(panoramaU+1.-overlap,v),uvDx,uvDy).rgb;
+          col=mix(opposite,col,smoothstep(0.,overlap,panoramaU));
         }
-        vec2 st=vec2(az,el)*vec2(420.,280.); vec2 id=floor(st); vec2 uv=fract(st)-.5;
-        float stars=step(.997,hash(id))*exp(-dot(uv,uv)*55.)*smoothstep(-.05,.3,d.y);
-        col+=vec3(.54,.65,.82)*stars;
+        col*=.65;
+        col=mix(col,vec3(.008,.017,.033),(1.-smoothstep(-.6,0.,direction.y))*.8);
         col=mix(col,vec3(.065,.09,.12),neutral);
         gl_FragColor=vec4(col,1.);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
       }`,
   });
-  const sky = new T.Mesh(geometry, material);
+  const sky = new T.Mesh(new T.SphereGeometry(7200, 48, 28), material);
   sky.frustumCulled = false;
   sky.renderOrder = -1000;
   group.add(sky);
@@ -48,7 +67,7 @@ export function createGlasswakeBackdrop({ shape = false } = {}) {
     fillColor: '#b7cfea',
     fillIntensity: 0.5,
     environmentIntensity: 0.55,
-    ownedTextures: [],
+    ownedTextures: texture ? [texture] : [],
     update({ camera, time = 0, settings = {} }) {
       if (disposed) return;
       if (camera) group.position.copy(camera.position);
@@ -57,7 +76,8 @@ export function createGlasswakeBackdrop({ shape = false } = {}) {
     dispose() {
       if (disposed) return;
       disposed = true;
-      geometry.dispose();
+      texture?.dispose();
+      sky.geometry.dispose();
       material.dispose();
       group.clear();
     },

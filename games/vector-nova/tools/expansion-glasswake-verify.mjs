@@ -113,7 +113,9 @@ try {
         await page.evaluate(() => window.__VN.pause());
         await capture(name);
       }
-      console.log(`${quality}: section views complete; checking fracture flights`);
+      console.log(
+        `${quality}: section views complete; checking fracture flights`,
+      );
       for (const index of [1, 2]) {
         for (const mode of quality === 'high'
           ? ['success', 'short', 'approach']
@@ -212,30 +214,39 @@ try {
       await context.close();
     }
   }
-  check('production desktop has no renderer or application faults', report.faults.length === 0, report.faults);
-  const failureContext = await browser.newContext({
-    viewport: { width: 640, height: 360 },
-  });
-  try {
-    const failurePage = await failureContext.newPage();
-    await failurePage.route(
-      '**/assets/levels/glasswake/glasswake-environment.glb',
-      (route) => route.abort('failed'),
-    );
-    await failurePage.goto(`${base}?level=glasswake`);
-    await failurePage
-      .locator('.failure')
-      .waitFor({ state: 'visible', timeout: 60000 });
-    check(
-      'Glasswake owned environment load failure cleans renderer',
-      (await failurePage.locator('canvas#world').count()) === 0,
-    );
-    check(
-      'Glasswake owned environment error is actionable',
-      (await failurePage.locator('.failure button').count()) === 2,
-    );
-  } finally {
-    await failureContext.close();
+  check(
+    'production desktop has no renderer or application faults',
+    report.faults.length === 0,
+    report.faults,
+  );
+  for (const ownedAsset of [
+    'glasswake-environment-v2.glb',
+    'aurora-sky-v1.png',
+  ]) {
+    const failureContext = await browser.newContext({
+      viewport: { width: 640, height: 360 },
+    });
+    try {
+      const failurePage = await failureContext.newPage();
+      await failurePage.route(
+        `**/assets/levels/glasswake/${ownedAsset}`,
+        (route) => route.abort('failed'),
+      );
+      await failurePage.goto(`${base}?level=glasswake`);
+      await failurePage
+        .locator('.failure')
+        .waitFor({ state: 'visible', timeout: 60000 });
+      check(
+        `Glasswake ${ownedAsset} load failure cleans renderer`,
+        (await failurePage.locator('canvas#world').count()) === 0,
+      );
+      check(
+        `Glasswake ${ownedAsset} load error is actionable`,
+        (await failurePage.locator('.failure button').count()) === 2,
+      );
+    } finally {
+      await failureContext.close();
+    }
   }
 } catch (error) {
   report.error = error.stack;

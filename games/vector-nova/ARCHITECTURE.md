@@ -22,6 +22,12 @@ The locally owned ESLint/Prettier/lint-staged/Husky configuration was adapted fr
 
 Shared changes have one integrator; level builders own their assigned files. `src/levels/` discovers asset-free metadata eagerly and imports only the selected implementation. Its [level API](docs/EXPANSION_LEVEL_CONTRACT.md) defines factories, presentation and ownership; unknown or malformed levels fail visibly.
 
+## Reuse from Vesper
+
+The Vesper integration brings shared flight/landing and grounded surface response (`src/physics/flight.js`), optional grounded subject framing (`camera.safeFrame`), the opt-in free camera and compact HUD layouts. These are existing shared mechanisms, with level metadata/rules selecting them; approved circuits retain their defaults. Nacre explicitly retains legacy contact ordering and its replay identity.
+
+Keep Vesper's resin, sky shader, tree placement and material batching inside its level. Their dimensions, material names, terrain grid and ownership rules are authored for this map. The standalone Blender [connected-tree builder](assets/levels/vesper/blender/connected_tree_geometry.py) is a useful source pattern: parent-sampled branches, attached petioles, deterministic variants and curved leaves; the hollow generator supplies a custom shell-anchored layout. Adapt those construction methods when another environment needs them, without adding a universal forest API now. See the [level-building learnings](docs/expansion/vesper/learnings.md).
+
 ## Route, coordinates and handling
 
 - Metres/seconds/radians. World +Y up; ship local +Z forward, +Y up.

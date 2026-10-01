@@ -11,12 +11,13 @@ Choose a circuit in the paddock dropdown and press **Load**, then enter its prac
 | Halcyon Viaduct  | 5 km metropolitan expressway with a skyline corkscrew, inverted hold and plunge            | Default route `/` |
 | Asterion Orbital | 4.5 km shipyard above a planet, open lattice spans, neon decks and tall containment frames | `/?level=orbital` |
 | Nacre Tempest    | Ocean/storm world, submerged racing and two airborne jumps                                 | `/?level=nacre`   |
+| Vesper Canopy    | Colossal hollow trees, amber resin, crown jumps and sap lines                              | `/?level=vesper`  |
 
 Halcyon's automatic Vector boost strips and Aegis shields are available with `/?features=halcyon-pickups`. They activate on crossing, with no inventory or use-item button. The plain route retains the baseline handling.
 
 Orbital's bare route review is available at `/?level=orbital&review=shape`. Circuit views provide 3D/top/profile overviews and parked section starts. Nacre adds storm swells, underwater immersion, two real jumps and one enormous swimming leviathan. Its automatic missed-jump recovery keeps the lap valid while counting the recovery delay; manual R recovery still invalidates it.
 
-Seven additional worlds are planned in the [roadmap](ROADMAP.md). Opponents, complete race/results flow, Time Trial and championships are future work.
+Six additional worlds are planned in the [roadmap](ROADMAP.md). Opponents, complete race/results flow, Time Trial and championships are future work.
 
 ## Run
 
@@ -39,6 +40,7 @@ WebGL2 is required. Gameplay uses local assets and needs no account or backend. 
 - Space: airbrake. Shift: manual boost using reserve.
 - R: recover at the last checkpoint and invalidate the current timed lap.
 - Escape: pause/settings/restart. I: inspect the ship. C: alternate camera.
+- Vesper F: free camera; drag to look, WASD move, Q/E down/up at 200 m/s. F/Escape returns.
 - Menus: Tab/Shift-Tab, Enter/Space. Small viewports expose pointer controls.
 - Prototype gamepad: left stick steering, RT throttle, LT brake, A boost, B airbrake.
 

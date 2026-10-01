@@ -10,15 +10,15 @@ The proposed race/AI/ship/cup gates remain separate, and completed Gate 4 critic
 
 ## Lanes
 
-| Map                   | Slug / entry | Brief                                    |
-| --------------------- | ------------ | ---------------------------------------- |
-| 4 — Vesper Canopy     | `vesper`     | [Brief](expansion/vesper/HANDOFF.md)     |
-| 5 — Glasswake Comet   | `glasswake`  | [Brief](expansion/glasswake/HANDOFF.md)  |
-| 6 — Cindercoil        | `cindercoil` | [Brief](expansion/cindercoil/HANDOFF.md) |
-| 7 — Saffron Leviathan | `saffron`    | [Brief](expansion/saffron/HANDOFF.md)    |
-| 8 — Zephyr Basilica   | `zephyr`     | [Brief](expansion/zephyr/HANDOFF.md)     |
-| 9 — Helion Flare      | `helion`     | [Brief](expansion/helion/HANDOFF.md)     |
-| 10 — Umbra Fold       | `umbra`      | [Brief](expansion/umbra/HANDOFF.md)      |
+| Map                   | Slug / entry | Brief                                             |
+| --------------------- | ------------ | ------------------------------------------------- |
+| 4 — Vesper Canopy     | `vesper`     | [Complete / status](expansion/vesper/STATUS.json) |
+| 5 — Glasswake Comet   | `glasswake`  | [Brief](expansion/glasswake/HANDOFF.md)           |
+| 6 — Cindercoil        | `cindercoil` | [Brief](expansion/cindercoil/HANDOFF.md)          |
+| 7 — Saffron Leviathan | `saffron`    | [Brief](expansion/saffron/HANDOFF.md)             |
+| 8 — Zephyr Basilica   | `zephyr`     | [Brief](expansion/zephyr/HANDOFF.md)              |
+| 9 — Helion Flare      | `helion`     | [Brief](expansion/helion/HANDOFF.md)              |
+| 10 — Umbra Fold       | `umbra`      | [Brief](expansion/umbra/HANDOFF.md)               |
 
 Production entry is `?level=<slug>`; bare review adds `&review=shape`. Each route becomes available when its level module is present in the verified shared build. The live launch ledger supplies assignments, ports and served builds. Port reservations are not proof of a running server; use the integrator’s reported URL.
 

@@ -1,12 +1,28 @@
 {
-  "schemaVersion": 1,
-  "phase": "ready_for_human_review",
-  "worktree": "/Users/g/.codex/worktrees/fzero-vesper1/tech9",
-  "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
-  "branch": "codex/fzero-vesper1",
-  "formalRounds": 4,
-  "maximumRounds": null,
-  "humanApproved": false,
+  "schemaVersion": 2,
+  "phase": "approved_for_integration",
+  "humanApproved": true,
+  "approval": "User requested wrap-up, commit and merge to the main worktree branch on 2026-09-30.",
+  "sourceBranch": "codex/fzero-vesper1",
+  "artCommit": "7f37f1b6",
+  "integration": {
+    "targetBranch": "g/scene-test",
+    "state": "pending",
+    "production": "http://127.0.0.1:5180/?level=vesper",
+    "shape": "http://127.0.0.1:5180/?level=vesper&review=shape"
+  },
+  "identity": "Enclosed colossal hollow, connected oversized trees with curved veined leaves, translucent amber resin and thin luminous curbs, cloudy forest sky. Creature retained but hidden.",
+  "learnings": "docs/expansion/vesper/learnings.md",
+  "provenance": "assets/levels/vesper/provenance.json",
+  "reuseReview": {
+    "shared": [
+      "Flight/landing and pure surface/force samplers",
+      "Optional camera safe framing",
+      "Metadata opt-in free camera at fixed 200 m/s",
+      "Optional compact desktop/portrait/landscape HUD layouts"
+    ],
+    "environment": "Keep authored materials, terrain, placement and batching local. Retain deterministic parent-connected Blender builder as a documented construction pattern; no speculative environment framework extraction."
+  },
   "currentChecks": [
     {
       "check": "track-contract",
@@ -41,62 +57,6 @@
       "scope": "Carried unchanged route, physics and camera baseline. 38targeted regressions and3,947saved-input60Hz samples; full hull fits, eye/FOV unchanged,max added step1.48degrees. Independent R3 impact/ascent/Rootfall/jump driving passes."
     },
     {
-      "check": "targeted-cpu-tests",
-      "result": "pass",
-      "count": 21,
-      "scope": "9 geometry/material tests, 8 runtime tests including152dense landings, and4 level contract/lifetime tests."
-    },
-    {
-      "check": "environment-hide-and-lighting",
-      "result": "pass",
-      "scope": "No creature or linked events in normal/review/high/low/reduced modes. Whole forest and3static clearing trees retained; exact1.10lighting factors, reset and late/double disposal checked."
-    },
-    {
-      "check": "sky-lifecycle",
-      "result": "pass",
-      "scope": "Unique texture ownership per creation; camera following; exact1.10lighting rig factors; idempotent texture/geometry/material disposal and rejected-load propagation."
-    },
-    {
-      "check": "full-lint-format",
-      "result": "pass"
-    },
-    {
-      "check": "production-build",
-      "result": "pass"
-    },
-    {
-      "check": "human-refinement-visuals",
-      "result": "inspected",
-      "stills": 32,
-      "rendererErrors": 0,
-      "scope": "18initial desktop stills,13final desktop/mobile stills and1focused sky-seam repair. Plain low curbs, physical resin transmission, no creature, intact whole forest, modest lighting lift and generated cloud/forest sky. One final mobile phase only; final shader seam repair checked on desktop. No critic rounds.",
-      "evidence": [
-        ".experiments/expansion/vesper/human-finish/report.json",
-        ".experiments/expansion/vesper/human-finish-final/report.json",
-        ".experiments/expansion/vesper/sky-wrap-fix/report.json"
-      ]
-    },
-    {
-      "check": "shared-browser-smoke",
-      "result": "pass",
-      "cases": 4,
-      "scope": "Production/shape high/low; compatible replay, reset, input clearing, repeated disposal, unknown-level and ship-asset failure cleanup. Final sky derivative/error-copy repair separately verified.",
-      "evidence": ".experiments/expansion/vesper/generic-human-finish/report.json"
-    },
-    {
-      "check": "sky-asset-failure",
-      "result": "pass",
-      "scope": "Aborted sky request yields useful reload message and releases renderer canvas; ready remains false.",
-      "evidence": ".experiments/expansion/vesper/human-finish-final/sky-failure.json"
-    },
-    {
-      "check": "final-mobile-sanity",
-      "result": "pass",
-      "cases": 3,
-      "scope": "One final low-preset viewport phase: 390\u00d7844, 844\u00d7390 and 640\u00d7360. Road/HUD render; simplified fly panel stays in bounds and returns correctly. No physical devices.",
-      "evidence": ".experiments/expansion/vesper/leaf-refinement/final/report.json"
-    },
-    {
       "check": "connected-forest-geometry",
       "result": "pass",
       "models": 240,
@@ -105,21 +65,6 @@
       "intersections": 0,
       "scope": "All 240 models across 208 tree placements, both detail levels, clear the road/camera corridor after cupped leaf regeneration. Exact terrain seating and resource disposal pass.",
       "evidence": ".experiments/expansion/vesper/leaf-refinement/geometry-audit.json"
-    },
-    {
-      "check": "connected-forest-lifetime-and-terrain",
-      "result": "pass",
-      "tests": 3,
-      "scope": "Retained CPU regressions for terrain triangle interpolation and rejected/late two-library cleanup; production aborted-forest load shows reload message and removes canvas.",
-      "evidence": ".experiments/expansion/vesper/forest-regeneration/final/forest-failure.json"
-    },
-    {
-      "check": "connected-forest-final-visuals",
-      "result": "inspected",
-      "stills": 24,
-      "rendererErrors": 0,
-      "scope": "Current leaf pass: four high/low fly-camera close-ups and 17 final road/overview/mobile stills, plus three compact fly-panel captures in the same final mobile phase. No renderer errors or critic rounds.",
-      "evidence": ".experiments/expansion/vesper/leaf-refinement/"
     },
     {
       "check": "connected-hollow-geometry",
@@ -135,25 +80,39 @@
       "evidence": ".experiments/expansion/vesper/leaf-refinement/hollow-audit.json"
     },
     {
-      "check": "connected-hollow-generator-and-tests",
-      "result": "pass",
-      "scope": "All parent attachments below 0.1 mm; eight connected wood meshes byte-identical, 136,688 nondegenerate leaf triangles. 15 targeted geometry/lifetime/fly-camera tests pass."
-    },
-    {
-      "check": "connected-hollow-final-visuals",
-      "result": "inspected",
-      "stills": 24,
-      "rendererErrors": 0,
-      "scope": "Current leaf pass: four high/low fly-camera close-ups and 17 final road/overview/mobile stills, plus three compact fly-panel captures in the same final mobile phase. No renderer errors or critic rounds.",
-      "evidence": ".experiments/expansion/vesper/leaf-refinement/"
-    },
-    {
       "check": "fly-camera-controls",
       "result": "pass",
       "scope": "Original high/low keyboard/mouse, frozen simulation, return modes and emulated touch baseline retained. Current controller regressions confirm normalized 200 m/s movement with Shift/wheel unable to change it. Production high/low movement, frozen state and return pass; slider and stale hints absent. Final three-viewport panel/return sanity passes.",
       "evidence": ".experiments/expansion/vesper/leaf-refinement/"
     }
   ],
+  "latestLeafChecks": "15 targeted geometry/lifetime/controller tests, lint/build, four high/low close-ups and final desktop/overview plus one mobile phase passed; zero renderer errors. Eight wood meshes, shell/interior/root geometry and other library assets preserved.",
+  "leafEvidence": ".experiments/expansion/vesper/leaf-refinement/",
+  "sourceBudgets": {
+    "assetBytes": 11807288,
+    "scope": "Main library with connected giant crown and separate connected forest; full initial transfer and estimated GPU use in renderedBudgets.",
+    "skyBytes": 1810035,
+    "forestBytes": 10726952
+  },
+  "renderedBudgets": {
+    "scope": "Actual all-pass draw/triangle measurements include transmission, shadows and postprocessing. GPU estimate from shared metrics excludes driver overhead and the new transmission buffers. Hidden RAF timing does not certify foreground pacing.",
+    "high": {
+      "calls": 1013,
+      "triangles": 3339297,
+      "estimatedGpuMiB": 266.6189887237549,
+      "initialTransferredBytes": 25917679,
+      "evidence": ".experiments/expansion/vesper/leaf-refinement/final/report.json",
+      "withinDrawTargets": false
+    },
+    "low": {
+      "calls": 648,
+      "triangles": 2297007,
+      "estimatedGpuMiB": 172.68588325500488,
+      "initialTransferredBytes": 25917679,
+      "evidence": ".experiments/expansion/vesper/leaf-refinement/final/report.json",
+      "withinDrawTargets": false
+    }
+  },
   "openFindings": [
     {
       "id": "geometry-budget",
@@ -161,77 +120,10 @@
       "scope": "Curved leaf geometry: high peaks 1,013 calls / 3,339,297 submitted triangles; low 648 calls / 2,297,007. Both exceed the existing 2M triangle target. Initial transfer 25.92 MB and estimated 266.62 MiB remain within targets; foreground pacing unverified."
     }
   ],
-  "rounds": [
-    {
-      "round": 1,
-      "source": "34eb3e6f52079726f6041d2e1886dd95049c5163",
-      "result": "changes_required",
-      "scores": {
-        "art": 6.5,
-        "lightingMaterialDepth": 6.5,
-        "handlingCamera": 8.5,
-        "routeReadability": 7.5,
-        "feedbackUI": 7.5,
-        "stabilityPerformance": 8.5
-      },
-      "evidence": ".experiments/expansion/vesper/critic-r1/verdict.json",
-      "actualKeyCases": 13,
-      "stills": 60
-    },
-    {
-      "round": 2,
-      "source": "3bdfaee5f5596480300c1bb915981f5d0dc1da0d",
-      "result": "changes_required",
-      "scores": {
-        "art": 7.5,
-        "lightingMaterialDepth": 7.5,
-        "handlingCamera": 8.5,
-        "routeReadability": 9,
-        "feedbackUI": 9,
-        "stabilityPerformance": 9
-      },
-      "scoreScope": {
-        "feedbackUI": "Desktop only. R1 portrait issue remains pending the single final mobile check requested by human.",
-        "stabilityPerformance": "Measured hidden-browser functionality and resource budgets only; not a foreground pacing/listening/device certification.",
-        "aiRaceMode": "N/A; separate gate."
-      },
-      "evidence": ".experiments/expansion/vesper/critic-r2/verdict.json",
-      "actualKeyCases": 11,
-      "stills": 58
-    },
-    {
-      "round": 3,
-      "source": "45616c396337eaa4322428f78f2238dadff7c521",
-      "result": "changes_required",
-      "scores": {
-        "art": 9,
-        "lightingMaterialDepth": 9,
-        "handlingCamera": 9,
-        "routeReadability": 9,
-        "feedbackUI": 8,
-        "stabilityPerformance": 9
-      },
-      "scope": "Desktop all9 accepted; final mobile phase found2responsive defects, now repaired for scoped recheck. Art remains frozen.",
-      "evidence": ".experiments/expansion/vesper/critic-r3/verdict.json",
-      "actualKeyCases": 7,
-      "desktopStills": 48,
-      "responsiveStills": 36
-    },
-    {
-      "round": 4,
-      "source": "82c9e64c09bf439010916b69426bc73d9aa5188c",
-      "result": "pass",
-      "scores": {
-        "art": 9,
-        "lightingMaterialDepth": 9,
-        "handlingCamera": 9,
-        "routeReadability": 9,
-        "feedbackUI": 9,
-        "stabilityPerformance": 9
-      },
-      "scope": "Focused final responsive repair:18stills,6pointer hold/release checks,pauseclear,desktop CSS sanity; R3 accepted art/camera/mechanics carried unchanged.",
-      "evidence": ".experiments/expansion/vesper/critic-r4/verdict.json"
-    }
+  "unverified": [
+    "Foreground frame pacing",
+    "Audio listening",
+    "Physical mobile/gamepad devices"
   ],
   "futureSupport": [
     {
@@ -292,187 +184,5 @@
   ],
   "placementTrackRevision": "vesper-route-2",
   "routeFrameConvention": "Geometric +right is driver-left; height is local +up. World position = sample(s).position + right*lateral + up*height.",
-  "sharedExtensions": [
-    {
-      "sourceCommit": "8c6f05a733453ddbc9f7428c3804c9c419a7f67b",
-      "localCommit": "e3a801641941ac47bd441aab7f159916d1f403ec"
-    },
-    {
-      "sourceCommit": "643fd3a69e0f8feef9b27c545888f8a8c45239f2",
-      "localCommit": "0b4ddb4d"
-    },
-    {
-      "sourceCommit": "2bb9e28ab97f23d279f2b032563a275a6cd76619",
-      "localCommit": "4c92ac9c"
-    },
-    {
-      "sourceCommit": "bd72bc56bd9800bdd3b93a2ce0759fd36f877bdb",
-      "localCommit": "d31f3bb9"
-    },
-    {
-      "sourceCommit": "f6727333ff83fd7067c5a7f459b8be8f64bca914",
-      "localCommit": "9897022b"
-    },
-    {
-      "sourceCommit": "bd060f2f6ea67043b312f3f679e749bd0f669475",
-      "localCommit": "262b3055"
-    },
-    {
-      "source": "Human-authorized narrowly scoped shared UI work in Vesper checkout",
-      "localCommits": ["839d0d13", "925d2580", "3a9d98db"],
-      "scope": "Initial optional portrait HUD and compactLandscape desktop spacing; final portrait flag/placement superseded by e670bddd. Approved metadata remains unchanged.",
-      "verification": "266initial CPU suite,24desktop layout cases; final responsive proof recorded byR4."
-    },
-    {
-      "source": "Human-authorized narrow shared camera fix",
-      "localCommits": ["dcc66d0b"],
-      "ownedOptInCommit": "b4ef596b",
-      "scope": "Optional camera.safeFrame projects cached ship bounds and minimally corrects grounded chase aim; default approved circuits unchanged.",
-      "verification": "38targetedCPU regressions,271fullsuite and R3 actual-key camera review pass."
-    },
-    {
-      "source": "Final mobile defect repair within human-authorized shared UI scope",
-      "localCommits": ["e670bddd"],
-      "ownedOptInCommit": "ea021817",
-      "scope": "Compact short landscape touch controls/upper impact notices and portraitCompactHud upper telemetry. Replaces unmerged portraitLowNotice. Existing approved metadata remains opted out.",
-      "verification": "4affectedcontract tests,full lint/build andR4 scoped18stills+6pointercontrol checks+pauseclear pass."
-    }
-  ],
-  "sourceBudgets": {
-    "assetBytes": 11807288,
-    "scope": "Main library with connected giant crown and separate connected forest; full initial transfer and estimated GPU use in renderedBudgets.",
-    "skyBytes": 1810035,
-    "forestBytes": 10726952
-  },
-  "preview": {
-    "production": "http://127.0.0.1:5202/?level=vesper",
-    "shape": "http://127.0.0.1:5202/?level=vesper&review=shape",
-    "owner": "fzero-int1",
-    "running": true,
-    "bundles": {
-      "main": "index-CLFs8_Df.js",
-      "level": "vesper-RqRNn6Go.js",
-      "css": "index-BSu8zZun.css"
-    },
-    "assetHashes": {
-      "assets/index-CLFs8_Df.js": "1b91fcb2d3d39b864cdd35d39ed36da0651f3d5630f7b32c5cbd4cf5ff9217fd",
-      "assets/vesper-RqRNn6Go.js": "29aabd437eb40eb6a7392e02e9e8417a37e7f94524c101c921d8abd6cee263b2",
-      "assets/index-BSu8zZun.css": "7d53b5a7c67bd00acfdc28da5a22475eb275f2e7144e634b065abd0035dfafc5",
-      "assets/levels/vesper/vesper-canopy.glb": "73b3f19217664402e9a8399b4c186b44e48c1f71c82a2f6af9df7a18463068ad",
-      "assets/levels/vesper/vesper-night-sky-v1.png": "259fa927c01f4d438ea5a0276b82ba1f672182493ac10d0ba9279d62ff48162c",
-      "assets/levels/vesper/vesper-connected-forest-v1.glb": "3f836b3190acf4c17452dd038e7701f46685b91c76fb409a9bc068380115dc13"
-    },
-    "servedBytesVerified": true
-  },
-  "unverified": [
-    "Foreground frame pacing",
-    "Audio listening",
-    "Physical mobile/gamepad devices"
-  ],
-  "reviewPolicy": "No new critic rounds. Human approved connected trees and requested one bounded leaf refinement pass. Oversized cupped leaves and fixed 200 m/s fly camera are ready for review; final mobile phase completed once.",
-  "renderedBudgets": {
-    "scope": "Actual all-pass draw/triangle measurements include transmission, shadows and postprocessing. GPU estimate from shared metrics excludes driver overhead and the new transmission buffers. Hidden RAF timing does not certify foreground pacing.",
-    "high": {
-      "calls": 1013,
-      "triangles": 3339297,
-      "estimatedGpuMiB": 266.6189887237549,
-      "initialTransferredBytes": 25917679,
-      "evidence": ".experiments/expansion/vesper/leaf-refinement/final/report.json",
-      "withinDrawTargets": false
-    },
-    "low": {
-      "calls": 648,
-      "triangles": 2297007,
-      "estimatedGpuMiB": 172.68588325500488,
-      "initialTransferredBytes": 25917679,
-      "evidence": ".experiments/expansion/vesper/leaf-refinement/final/report.json",
-      "withinDrawTargets": false
-    }
-  },
-  "humanSteers": {
-    "date": "2026-09-30",
-    "learnings": "docs/expansion/vesper/learnings.md",
-    "resin": "Keep deep amber gloss, add restrained actual transmission through the resin deck.",
-    "tree": "Keep the enclosing giant hollow tree whole, including production overview presence; refine its art within that silhouette.",
-    "verification": "No more critic rounds. Final mobile sanity once after desktop art; no repeated mobile matrix.",
-    "treeTop": "Complete the literal missing top/crown; walls alone leave an open stump.",
-    "creature": "Hide creature and all linked effects; preserve source/GLB for possible future reuse. No further creature artwork.",
-    "edge": "Remove raised pale/brown hooked petals; preserve low orange curb and thin glow.",
-    "lighting": "Raise the existing map lighting/emissive rig ten percent while preserving dim night mood.",
-    "sky": "Use an original imagegen cloud-and-distant-forest panorama; keep real nearby forest geometry.",
-    "secondaryTrees": "Human approved the first-view connected tree, then requested regeneration of every secondary tree while preserving the giant hollow.",
-    "leafScale": "Keep oversized broad leaves and substantial boughs. Secondary forest growth remains unchanged; human has now authorized the same approach on the giant exterior crown.",
-    "giantCrown": "Checkpoint first, then replace exterior branches/crown using the connected-tree method. Preserve hollow shell, complete top, interior spiral and route portals.",
-    "leafSurface": "Improve flat polygon leaves with curved broad silhouettes, curled tips and visible veins; retain their oversized scale and supported stems.",
-    "flyCamera": "Keep inspection simple: hard-code speed to 200 and remove speed controls."
-  },
-  "criticResult": "historical_baseline_pass",
-  "criticScores": {
-    "art": 9,
-    "lightingMaterialDepth": 9,
-    "handlingCamera": 9,
-    "routeReadability": 9,
-    "feedbackUI": 9,
-    "stabilityPerformance": 9
-  },
-  "reviewedSource": "82c9e64c09bf439010916b69426bc73d9aa5188c",
-  "criticEvidence": ".experiments/expansion/vesper/critic-r4/verdict.json",
-  "handoffNotes": [
-    "Leaf refinement preserves all eight connected wood meshes, all 72,457 giant shell/interior/root triangles and all 16 other library assets. Leaf geometry/shading updated; third gateway moved a further 4 m (+12 m total Z) for bent-tip clearance. No new critic rounds.",
-    "Both high and low now exceed the submitted-triangle target with the denser crown; measured cost and limits recorded in openFindings/renderedBudgets.",
-    "Creature source and original GLB remain intact for reuse but are not instantiated.",
-    "Final human approval remains pending; no push or merge. Production preview remains running under fzero-int1 ownership; all automation browsers closed.",
-    "Owned implementation and additional shared opt-in UI/camera work remain packaged separately; no approved-level source changed in this pass.",
-    "Future pickup/boost placement notes remain deferred; no shared pickups or AI/race gate implemented.",
-    "Human-requested free camera remains Vesper-only, now fixed at 200 m/s with no speed controls. Frozen inspection and previous-view return verified."
-  ],
-  "criticScope": "Historical scores apply to reviewedSource before subsequent human-directed art changes, including the connected forest and giant crown. No new critic round was run.",
-  "treeRegeneration": {
-    "phase": "connected_trees_approved_leaf_refinement_ready_for_review",
-    "prePilotCheckpoint": "bc9383e",
-    "approvedPilotCheckpoint": "ed7c82b5",
-    "scope": "All secondary tree families and floating foliage clusters regenerated and approved. Giant crown rebuilt separately while preserving its enclosing shell and route portals.",
-    "trees": 208,
-    "understoryTrees": 73,
-    "families": 3,
-    "evidence": ".experiments/expansion/vesper/forest-scale/",
-    "checks": "Parent-path attachment assertions; exact triangle road/camera corridor audit; floor raycasts; full and distance model finite UV/color geometry; normal/double/late/rejected resource disposal; desktop high/low and one final mobile pass.",
-    "scaleRefinement": {
-      "checkpoint": "b324ee3b",
-      "treeScale": 1.12,
-      "branchReach": 1.1,
-      "branchRadius": 1.22,
-      "leafLengthBeforeOverallScale": 1.85,
-      "leafWidthBeforeOverallScale": 2.0,
-      "distanceLeavesEnlarged": true,
-      "sourcePolygonCountsUnchanged": true,
-      "gateway3OffsetZ": 8
-    },
-    "giantCrownRefinement": {
-      "checkpoint": "927bfc63",
-      "mainBoughs": 22,
-      "apicalShoots": 7,
-      "preservedShellInteriorAndRoots": true,
-      "evidence": ".experiments/expansion/vesper/connected-hollow/"
-    },
-    "leafRefinement": {
-      "checkpoint": "7311b954",
-      "method": "Cupped lamina, curved midrib, asymmetrical rolled margins and drooping tips; UV procedural veins, mottling and varied roughness. Distance leaves also bend.",
-      "woodMeshesUnchanged": 8,
-      "nondegenerateLeafTriangles": 136688,
-      "detailedFamilyTriangles": 45900,
-      "distanceFamilyTriangles": 2302,
-      "giantCrownTriangles": 93194,
-      "gateway3OffsetZ": 12,
-      "evidence": ".experiments/expansion/vesper/leaf-refinement/"
-    }
-  },
-  "freeCamera": {
-    "enabled": true,
-    "entry": "Circuit Views \u2192 Fly Camera, or F",
-    "movement": "Drag to look; WASD move; Q/E down/up. Fixed 200 m/s; no speed slider, wheel adjustment or Shift acceleration. Touch movement buttons on coarse pointers.",
-    "exit": "F, Escape or Return restores the previous view.",
-    "simulation": "Vehicle, race clock and input recording remain frozen during inspection.",
-    "scope": "Shared optional controller and UI; only Vesper metadata opts in."
-  }
+  "reviewPolicy": "Human-directed finish complete. No new critic rounds. Completed review history remains in Git; future shared pickup/boost work is deferred."
 }

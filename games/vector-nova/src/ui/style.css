@@ -881,7 +881,7 @@ select {
     top: 175px;
     left: 4vw;
     right: auto;
-    width: 190px;
+    width: min(190px, calc(92vw - 120px));
     padding: 8px;
     max-height: calc(100dvh - 195px);
     overflow-y: auto;

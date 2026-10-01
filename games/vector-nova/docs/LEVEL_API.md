@@ -11,7 +11,7 @@ Each level supplies two files:
 
 Required `ui` strings: `edition`, `subtitle`, `eyebrow`, `intro`, `detail`, `start`, `tag`, `tagDetail`; `heading` is two text strings. Optional `ui.shape` overrides copy for shape review. Optional layout flags are `compact`, `stackedReview`, `lowNotice`, `compactLandscape` and `portraitCompactHud`. Use real text, not HTML. The approved level metadata files are small working examples.
 
-Optional `flyCamera: true` enables shared environment inspection: F or Circuit Views enters, drag looks, WASD and Q/E move at a fixed 200 m/s, and F/Escape/Return restores the previous view. Session time, vehicle and replay recording are frozen. The controller owns its listeners; no level-specific camera fork is needed. Defaults off.
+Every level includes shared environment inspection without a metadata flag: F or the Fly Camera button enters, drag looks, WASD and Q/E move at a fixed 200 m/s, and F/Escape/Return restores the previous view. Session time, vehicle and replay recording are frozen. The controller owns its listeners; no level-specific camera fork is needed.
 
 Complete working examples are the [Halcyon descriptor](../src/levels/halcyon/index.js), [Orbital production/shape descriptor](../src/levels/orbital/index.js) and [Nacre custom-runtime descriptor](../src/levels/nacre/index.js). Reuse their factory/ownership pattern, while authoring your own route, assets and presentation.
 

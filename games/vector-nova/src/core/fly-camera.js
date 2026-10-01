@@ -2,7 +2,7 @@ import * as T from 'three';
 
 const FLY_SPEED = 200;
 
-/** Optional inspection controls. Simulation ownership stays in core/main. */
+/** Shared inspection controls. Simulation ownership stays in core/main. */
 export function createFlyCamera(camera, canvas, { toggle, exit } = {}) {
   const abort = new AbortController();
   const keys = new Set();

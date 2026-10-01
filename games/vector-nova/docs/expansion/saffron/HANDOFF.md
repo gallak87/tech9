@@ -24,7 +24,7 @@ Preserve the corrected landing rules, shared deck/rail contact behavior, compact
 
 ### Selected generated sky
 
-Use the [original sky panorama](../../../assets/levels/saffron/saffron-sky-v1.png), [exact generation prompt](../../../assets/levels/saffron/sky-prompt.txt) and [sky provenance](../../../assets/levels/saffron/SKY_PROVENANCE.md) brought in from the primary worktree. Use the selected immense dry sky with pale saffron/apricot horizon light, lavender haze, clear soft blue above and finely resolved cirrus. Match pale sun and warm sand bounce to the panorama, preserving fossil silhouettes and readable skull interiors.
+Use the [selected reference-guided sky](../../../assets/levels/saffron/saffron-sky-v2.png), [exact generation prompt](../../../assets/levels/saffron/sky-prompt-v2.txt) and [sky provenance](../../../assets/levels/saffron/SKY_PROVENANCE.md) brought in from the primary worktree. Match the [original scene drawing](../../../assets/levels/saffron/scene-reference.png): luminous pale lavender/lilac dry daylight, calm open atmosphere, soft golden illumination and a faint large moon. Preserve the selected image's moon and avoid also drawing the old procedural moon disk. Align the separate sun/light direction, warm sand bounce and readable bone interiors with the reference; avoid changing the world to blue/peach sunset.
 
 Follow the [sky integration checks](../README.md#generated-sky-panoramas), preserve the source image and export a runtime texture under `public/assets/levels/saffron/`. Confirm seam/horizon, exposure, loading/disposal and high/low/reduced motion on the actual production build. Nearby scenery and gameplay remain authored 3D content.
 
@@ -67,6 +67,16 @@ Start near 5.2 km with a constant 32 m usable width and roughly 130 m of rolling
 
 **Reject these shortcuts:** Reject a flat yellow backdrop, copied highway panels, repeated identical ribs, sand obscuring the route, rib-shadow strobing, or a featureless full-throttle straight added solely for length. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
 
+## Finish targets and atmosphere
+
+Make the skull-mouth descent, sheltered interior bank, broken-vertebra flights and broad dune crests feel physically distinct. The player should experience entering an enormous fossil and emerging into an immense desert; retain the worthwhile panoramic acceleration reach. Stage the burrower's moving ridge, breach and pouring sand through bones where they register during ordinary driving.
+
+Finish specific fossil anatomy, porous bone with layered erosion, varied dune slopes/strata and thick smoked-gold glass with readable surface response. Preserve lavender daylight, warm sand bounce and deep but readable skull interiors. Repeated ribs, flat yellow dunes or uniform shiny glass do not satisfy the drawing's finish.
+
+Use the [weather/atmosphere references](../README.md#atmosphere-and-screen-effects) for spatial particle layering, cover queries and coordinated surface/light response. Author localized blowing grains, thin crest dust and volumetric sandfalls; increase disturbed sand around the burrower's actual event, then clear it. Use bone shelters to reveal relief from dust. Atmospheric wind moves particles only; sand drag remains confined to declared deposits.
+
+Add brief peripheral dust/grain traces during real sandfall or exposed-sand encounters, with sparse streaks that clear quickly in sheltered corridors. Keep the next crest, vertebral landing, glass/sand boundary and HUD legible; visual residue does not invent a new grip penalty. Reduced motion removes streaming grains while retaining sand/contact cues. The critic must drive the skeleton traversal and sand choices, and observe the breach without relying on inspection views.
+
 ## Presets and resource discipline
 
 High may add sparse drifting grains, limited glass transmission and animated sandfall ribbons. Low preserves the fossil silhouettes, dune contours, deck thickness and readable inner corridor lighting while simplifying grains and material layers. Reduced motion removes blowing grains and holds sandfalls nearly still; ensure repeated ribs do not produce harsh flashing at speed.
@@ -75,7 +85,7 @@ High may add sparse drifting grains, limited glass transmission and animated san
 
 Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The traversable skull and anatomically varied vertebrae, living burrower, and displaced dune/sandfall assemblies are major scene-to-Blender subjects. Establish reusable bone and dune families for the remaining landscape.
 
-Use the [shared production/critic loop](../README.md#production-and-critique-loop) and [common verification/completion rules](../README.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
+Use the [shared production/critic loop](../README.md#production-and-critique-loop), explicit [brutal AAA critic standard](../README.md#critic-standard) and [common verification/completion rules](../README.md#verification-and-resource-discipline). Pass the selected drawing and this level's finish/atmosphere targets directly into the independent critic's instructions. The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
 
 ## Acceptance on the actual production build
 

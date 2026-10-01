@@ -452,15 +452,13 @@ async function boot() {
     }, pause),
   );
   input.bindTouch(ui.root);
-  const flyCamera = metadata.flyCamera
-    ? lifetime.own(
-        createFlyCamera(camera, renderer.domElement, {
-          toggle: toggleFly,
-          exit: leaveFly,
-        }),
-      )
-    : null;
-  flyCamera?.bindControls(ui.root);
+  const flyCamera = lifetime.own(
+    createFlyCamera(camera, renderer.domElement, {
+      toggle: toggleFly,
+      exit: leaveFly,
+    }),
+  );
+  flyCamera.bindControls(ui.root);
   renderer.domElement.addEventListener(
     'webglcontextlost',
     (e) => {

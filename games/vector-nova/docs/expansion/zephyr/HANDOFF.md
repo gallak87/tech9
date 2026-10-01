@@ -24,7 +24,7 @@ Preserve the cathedral/island kit, curtain-water persistence through flight, com
 
 ### Selected generated sky
 
-Use the [original sky panorama](../../../assets/levels/zephyr/zephyr-sky-v1.png), [exact generation prompt](../../../assets/levels/zephyr/sky-prompt.txt) and [sky provenance](../../../assets/levels/zephyr/SKY_PROVENANCE.md) brought in from the primary worktree. Use the selected vast ivory/lavender/peach cloud panorama with open azure gaps and layered atmospheric depth. Compose real floating islands, cathedrals and waterfalls against it, then check dark nave exits and backlit landing shelves.
+Use the [selected reference-guided sky](../../../assets/levels/zephyr/zephyr-sky-v2.png), [exact generation prompt](../../../assets/levels/zephyr/sky-prompt-v2.txt) and [sky provenance](../../../assets/levels/zephyr/SKY_PROVENANCE.md) brought in from the primary worktree. Match the [original scene drawing](../../../assets/levels/zephyr/zephyr-scene-reference.png): luminous ivory/peach/lavender cloud banks, soft gold backlight, violet shadow volume and deep open cloud shelves around the floating architecture. Carry this light into weathered stone, bronze supports, dark naves and layered waterfalls while preserving landing visibility.
 
 Follow the [sky integration checks](../README.md#generated-sky-panoramas), preserve the source image and export a runtime texture under `public/assets/levels/zephyr/`. Confirm seam/horizon, exposure, loading/disposal and high/low/reduced motion on the actual production build. Nearby scenery and gameplay remain authored 3D content.
 
@@ -67,6 +67,16 @@ Start near 4.9 km with a constant 32 m usable width and roughly 300 m of climb/d
 
 **Reject these shortcuts:** Reject pastel fog replacing geometry, identical floating rocks, asphalt on an unrelated bridge, sails filling the camera, water curtains that erase the next landing, or unauthorized wind physics. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
 
+## Finish targets and atmosphere
+
+Make the rose-window entry, dark nave wall ride, missing-floor chapel leap, waterfall crossings and Cloudspire climb memorable from the racing camera. Vary height, enclosure and light through those authored features; preserve visible landing shelves. Stage the tilting island or falling tower and its trailing waterfall so its enormous scale and motion register from the course.
+
+Finish weathered stone with readable masonry, erosion and carved depth; give bronze keels/joints convincing material response and graphite weave an appropriate scale. Waterfalls need a visible source, mass, layered breakup, spray and depth into the clouds. Dark naves need purposeful window shafts and restrained local fill; bright cloud/water views must retain road and craft shape.
+
+Use the [weather/atmosphere references](../README.md#atmosphere-and-screen-effects) for wetness, localized impacts, shelter and coordinated lighting. Author waterfall spray and mist near actual curtains, soft cloud wisps around exposed islands and a convincing clearing transition inside chapels. The receiving/cover logic must respect stacked bridges and open architectural portals. Wind remains visual atmosphere.
+
+Implement camera/visor droplets and short draining streaks when crossing a real waterfall, plus wet ship/deck response appropriate to exposure. Let droplets disperse and surfaces dry after shelter; avoid a permanent uniform wet overlay. Keep rose-window exits, landing shelves, HUD and touch controls clear. Reduced motion simplifies droplet travel/mist while preserving the crossing cue. The critic must test wet-to-dry and dark-to-bright transitions during the actual jumps and notice the falling architecture.
+
 ## Presets and resource discipline
 
 High may add soft local waterfall mist and slow sail flex beyond the collision envelope. Low keeps the large falls, island openings, bridge structure and cloud depth while reducing mist and minor hanging fragments. Reduced motion freezes sail flex and moving cloud texture; no camera sway or procedural wind force. Avoid full-screen opaque cloud transitions.
@@ -75,7 +85,7 @@ High may add soft local waterfall mist and slow sail flex beyond the collision e
 
 Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The traversable cathedral/nave/rose window, adjacent chapels, large waterfall masses and falling tower/island assembly are major scene-to-Blender subjects. Use a small authored kit for secondary islands and bridge hardware; hero water must have convincing volume, layered breakup and scale.
 
-Use the [shared production/critic loop](../README.md#production-and-critique-loop) and [common verification/completion rules](../README.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
+Use the [shared production/critic loop](../README.md#production-and-critique-loop), explicit [brutal AAA critic standard](../README.md#critic-standard) and [common verification/completion rules](../README.md#verification-and-resource-discipline). Pass the selected drawing and this level's finish/atmosphere targets directly into the independent critic's instructions. The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
 
 ## Acceptance on the actual production build
 

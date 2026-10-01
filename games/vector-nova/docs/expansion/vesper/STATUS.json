@@ -93,8 +93,8 @@
       "check": "final-mobile-sanity",
       "result": "pass",
       "cases": 3,
-      "scope": "390\u00d7844,844\u00d7390,640\u00d7360 final low-preset stills: sky/resin render, hull/HUD/touch controls remain visible. Existing prior touch-input proof carried; no physical devices.",
-      "evidence": ".experiments/expansion/vesper/human-finish-final/report.json"
+      "scope": "One final 3-viewport low-preset check after the giant crown pass: 390\u00d7844, 844\u00d7390, 640\u00d7360. Crown opening, hull/HUD/touch controls render without errors; no physical devices.",
+      "evidence": ".experiments/expansion/vesper/connected-hollow/final/report.json"
     },
     {
       "check": "connected-forest-geometry",
@@ -103,7 +103,7 @@
       "vertices": 1737642,
       "triangleCorridorTests": 21134988,
       "intersections": 0,
-      "scope": "All208enlarged tree/understory placements and both detail levels clear the road/camera corridor; giant hollow, flower, station and floor are unchanged.",
+      "scope": "Carried secondary-forest audit: all 208 enlarged placements and both detail levels clear the road/camera corridor. Forest GLB remains byte-identical; giant hollow is separately audited below.",
       "evidence": ".experiments/expansion/vesper/forest-scale/geometry-audit.json"
     },
     {
@@ -120,13 +120,39 @@
       "rendererErrors": 0,
       "scope": "Enlarged trees, branches and broad leaves in desktop high/low driving/overview views plus one3viewportmobile sanity phase. No critic round.",
       "evidence": ".experiments/expansion/vesper/forest-scale/final/report.json"
+    },
+    {
+      "check": "connected-hollow-geometry",
+      "result": "pass",
+      "scope": "Keep the enclosing giant hollow tree whole, including production overview presence; refine its art within that silhouette.",
+      "preservedTriangles": 72457,
+      "unchangedOtherAssetRoots": 16,
+      "triangleCorridorTests": 32626047,
+      "newIntersections": 0,
+      "baselinePaddingContacts": "Two unchanged shell triangles touch only the conservative outer padding at three crown-exit samples; actual driving envelope clear.",
+      "flightSamples": 274,
+      "flightTriangleTests": 11468354,
+      "evidence": ".experiments/expansion/vesper/connected-hollow/geometry-audit.json"
+    },
+    {
+      "check": "connected-hollow-generator-and-tests",
+      "result": "pass",
+      "scope": "All parent attachments below 0.1 mm; six default secondary-tree seed/detail outputs identical; 12 targeted geometry/lifetime tests pass."
+    },
+    {
+      "check": "connected-hollow-final-visuals",
+      "result": "inspected",
+      "stills": 17,
+      "rendererErrors": 0,
+      "scope": "Desktop high/low starting view, interior, crown exit and overview, followed by one final mobile phase. No critic rounds.",
+      "evidence": ".experiments/expansion/vesper/connected-hollow/final/report.json"
     }
   ],
   "openFindings": [
     {
-      "id": "high-preset-geometry-budget",
+      "id": "geometry-budget",
       "status": "known_tradeoff",
-      "scope": "High peaks1023calls/3064140tri against1000calls/2Mtri targets; low658calls/1854376tri stays within target. Source polygon counts are unchanged by growth; larger canopies affect visibility and multipass submissions. Initial23.29MB and peak estimated263.49MiB stay within30MB/512MiB targets. Foreground pacing is unverified."
+      "scope": "Denser connected giant crown: high peaks 1013 calls / 3,104,145 submitted triangles; low 648 calls / 2,140,239. Both exceed the 2M triangle target; high slightly exceeds 1000 calls. Initial transfer 25.74MB and peak estimated 265.83MiB remain within 30MB/512MiB targets. Foreground pacing unverified."
     }
   ],
   "rounds": [
@@ -307,8 +333,8 @@
     }
   ],
   "sourceBudgets": {
-    "assetBytes": 9474740,
-    "scope": "Original hero library and new connected-forest GLB sizes listed separately; see renderedBudgets for full initial transfer and estimated GPU use.",
+    "assetBytes": 11924548,
+    "scope": "Main library with connected giant crown and separate connected forest; full initial transfer and estimated GPU use in renderedBudgets.",
     "skyBytes": 1810035,
     "forestBytes": 10431612
   },
@@ -326,7 +352,7 @@
       "assets/index-B71Ow2uj.js": "b22d39ec9e2ae91d176d82ab84db35466df63fc88cac93fb7b723954c38246e8",
       "assets/vesper-CJqBCT3h.js": "b892893c4a335bb75f93a4583424be2c55beea6bab576d12dffcddeeba2a61c7",
       "assets/index-DuS16sdu.css": "35f3ee2efb8246512f79d4cff4dcb3cfe01a44d9756616ecadfe2c8f2cdb7cd6",
-      "assets/levels/vesper/vesper-canopy.glb": "33244b847375b3c21ac25fc0db4321bc9da44bfda73419a40820cc4679252cd0",
+      "assets/levels/vesper/vesper-canopy.glb": "e5cbba5fa5f0388c8880481e0f657c3fde83eaa169201b8a85af59e57603f07f",
       "assets/levels/vesper/vesper-night-sky-v1.png": "259fa927c01f4d438ea5a0276b82ba1f672182493ac10d0ba9279d62ff48162c",
       "assets/levels/vesper/vesper-connected-forest-v1.glb": "5cac1b108caebd819de5ccc2fba244f3297aeffe7af0240d133de5d29c588e1a"
     },
@@ -337,24 +363,24 @@
     "Audio listening",
     "Physical mobile/gamepad devices"
   ],
-  "reviewPolicy": "No new critic rounds. Human approved the connected starting-view tree pilot and requested all secondary trees regenerated while preserving the giant hollow. Rollout is complete; one final mobile sanity pass performed.",
+  "reviewPolicy": "No new critic rounds. Human approved the enlarged secondary forest and authorized connected exterior branches/crown on the giant hollow while preserving its enclosing shell. One final mobile phase completed; new giant canopy awaits human review.",
   "renderedBudgets": {
     "scope": "Actual all-pass draw/triangle measurements include transmission, shadows and postprocessing. GPU estimate from shared metrics excludes driver overhead and the new transmission buffers. Hidden RAF timing does not certify foreground pacing.",
     "high": {
-      "calls": 1023,
-      "triangles": 3064140,
-      "estimatedGpuMiB": 263.486679763794,
-      "initialTransferredBytes": 23287865,
-      "evidence": ".experiments/expansion/vesper/forest-scale/final/report.json",
+      "calls": 1013,
+      "triangles": 3104145,
+      "estimatedGpuMiB": 265.82268592834475,
+      "initialTransferredBytes": 25737673,
+      "evidence": ".experiments/expansion/vesper/connected-hollow/final/report.json",
       "withinDrawTargets": false
     },
     "low": {
-      "calls": 658,
-      "triangles": 1854376,
-      "estimatedGpuMiB": 169.55357429504394,
-      "initialTransferredBytes": 23287865,
-      "evidence": ".experiments/expansion/vesper/forest-scale/final/report.json",
-      "withinDrawTargets": true
+      "calls": 648,
+      "triangles": 2140239,
+      "estimatedGpuMiB": 171.88958045959473,
+      "initialTransferredBytes": 25737673,
+      "evidence": ".experiments/expansion/vesper/connected-hollow/final/report.json",
+      "withinDrawTargets": false
     }
   },
   "humanSteers": {
@@ -369,7 +395,8 @@
     "lighting": "Raise the existing map lighting/emissive rig ten percent while preserving dim night mood.",
     "sky": "Use an original imagegen cloud-and-distant-forest panorama; keep real nearby forest geometry.",
     "secondaryTrees": "Human approved the first-view connected tree, then requested regeneration of every secondary tree while preserving the giant hollow.",
-    "leafScale": "Preserve the oversized foliage identity: slightly larger trees, longer/thicker boughs and substantially larger leaves across both detail levels. Giant hollow remains excluded."
+    "leafScale": "Keep oversized broad leaves and substantial boughs. Secondary forest growth remains unchanged; human has now authorized the same approach on the giant exterior crown.",
+    "giantCrown": "Checkpoint first, then replace exterior branches/crown using the connected-tree method. Preserve hollow shell, complete top, interior spiral and route portals."
   },
   "criticResult": "historical_baseline_pass",
   "criticScores": {
@@ -383,23 +410,22 @@
   "reviewedSource": "82c9e64c09bf439010916b69426bc73d9aa5188c",
   "criticEvidence": ".experiments/expansion/vesper/critic-r4/verdict.json",
   "handoffNotes": [
-    "All208secondary trees retain connected grounded geometry; latest human refinement enlarges tree scale12%, branches and broad leaves. Source polygon counts unchanged. Giant hollow intact; no new critic rounds.",
-    "High-preset triangle/draw budget tradeoff recorded in openFindings; low remains within target. See final forest measurements.",
+    "Giant exterior now has 22 connected main boughs plus seven apical shoots and oversized leaves. All shell/interior/root triangles and all secondary forest assets are preserved. No new critic rounds.",
+    "Both high and low now exceed the submitted-triangle target with the denser crown; measured cost and limits recorded in openFindings/renderedBudgets.",
     "Creature source and original GLB remain intact for reuse but are not instantiated.",
     "Final human approval remains pending; no push or merge. Production preview remains running under fzero-int1 ownership; all automation browsers closed.",
     "Owned implementation and additional shared opt-in UI/camera work remain packaged separately; no approved-level source changed in this pass.",
     "Future pickup/boost placement notes remain deferred; no shared pickups or AI/race gate implemented."
   ],
-  "criticScope": "Scores below apply to reviewedSource before the latest human-directed edge/resin/creature/lighting/sky refinements. No new critic round was run.",
+  "criticScope": "Historical scores apply to reviewedSource before subsequent human-directed art changes, including the connected forest and giant crown. No new critic round was run.",
   "treeRegeneration": {
-    "phase": "complete_ready_for_human_review",
+    "phase": "secondary_forest_human_approved_giant_crown_ready_for_review",
     "prePilotCheckpoint": "bc9383e",
     "approvedPilotCheckpoint": "ed7c82b5",
-    "scope": "All secondary tree families and floating foliage clusters regenerated; colossal hollow unchanged.",
+    "scope": "All secondary tree families and floating foliage clusters regenerated and approved. Giant crown rebuilt separately while preserving its enclosing shell and route portals.",
     "trees": 208,
     "understoryTrees": 73,
     "families": 3,
-    "giantMeshAndPlacementUnchanged": true,
     "evidence": ".experiments/expansion/vesper/forest-scale/",
     "checks": "Parent-path attachment assertions; exact triangle road/camera corridor audit; floor raycasts; full and distance model finite UV/color geometry; normal/double/late/rejected resource disposal; desktop high/low and one final mobile pass.",
     "scaleRefinement": {
@@ -412,6 +438,13 @@
       "distanceLeavesEnlarged": true,
       "sourcePolygonCountsUnchanged": true,
       "gateway3OffsetZ": 8
+    },
+    "giantCrownRefinement": {
+      "checkpoint": "927bfc63",
+      "mainBoughs": 22,
+      "apicalShoots": 7,
+      "preservedShellInteriorAndRoots": true,
+      "evidence": ".experiments/expansion/vesper/connected-hollow/"
     }
   }
 }

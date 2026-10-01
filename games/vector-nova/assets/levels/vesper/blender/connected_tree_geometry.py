@@ -15,7 +15,7 @@ BRANCH_REACH_SCALE = 1.10
 BRANCH_RADIUS_SCALE = 1.22
 
 
-def make_connected_tree(seed=290930, forest_budget=False):
+def make_connected_tree(seed=290930, forest_budget=False, layout=None, foliage_scale=1.0):
     rng=random.Random(seed)
     B=lambda p:(p[0],-p[2],p[1])
     parts={'wood':{'v':[],'f':[],'uv':[],'c':[]},'leaves':{'v':[],'f':[],'uv':[],'c':[]}}
@@ -78,15 +78,20 @@ def make_connected_tree(seed=290930, forest_budget=False):
         nonlocal leaf_count
         forward=direction.normalized();side=forward.cross(Vector((0,1,0))).normalized()
         pts=[base+forward*(length*f)+Vector((0,math.sin(f*math.pi)*length*.17,0)) for f in [0,.25,.5,.75,1]]
-        tube(name,pts,[.48,.35,.25,.13,.035],5,parent,base)
+        tube(name,pts,[r*foliage_scale for r in [.48,.35,.25,.13,.035]],5,parent,base)
         for k in range(6):
             f=.14+k*.145;socket=along(pts,f)
             for sign in [-1,1]:
                 out=(forward*.42+side*sign*.85+Vector((0,rng.uniform(-.16,.60),0))).normalized()
-                petiole=socket+out*rng.uniform(.7,1.1)
-                tube(name+'-petiole-'+str(k)+'-'+str(sign),[socket,petiole],[.095,.045],4,name,socket)
-                leaf(petiole,out,rng.uniform(5.5,8.0)*(1-.27*f),rng.uniform(1.8,2.9),rng.uniform(.70,1.32));leaf_count+=1
-        leaf(pts[-1],forward+Vector((0,.2,0)),6,2.4,1.03);leaf_count+=1
+                petiole=socket+out*rng.uniform(.7,1.1)*foliage_scale
+                tube(name+'-petiole-'+str(k)+'-'+str(sign),[socket,petiole],[.095*foliage_scale,.045*foliage_scale],4,name,socket)
+                leaf(petiole,out,rng.uniform(5.5,8.0)*(1-.27*f)*foliage_scale,rng.uniform(1.8,2.9)*foliage_scale,rng.uniform(.70,1.32));leaf_count+=1
+        leaf(pts[-1],forward+Vector((0,.2,0)),6*foliage_scale,2.4*foliage_scale,1.03);leaf_count+=1
+
+    # A hollow landmark supplies shell-anchored limbs instead of a solid trunk.
+    if layout is not None:
+        layout(tube, along, leafy_shoot)
+        return {'parts':parts,'paths':paths,'profiles':profiles,'structure':structure,'leafCount':leaf_count}
 
     def trunk_center(t):return Vector((-23*t**1.4+5*math.sin(t*math.tau)*t,205*t,12*math.sin(t*2.8)*t))
     trunk_points=[trunk_center(i/64) for i in range(65)]

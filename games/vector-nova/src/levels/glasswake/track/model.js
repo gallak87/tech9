@@ -104,12 +104,14 @@ export function createGlasswakeTrack() {
     [second + 70, 231, 0],
     [second + 235, 231, 0],
     [2580, 240, 0],
-    [2920, 206, -0.17],
-    [3260, 147, -0.14],
-    [3620, 56, -0.12],
-    [3850, 20, 0],
-    [4150, 42, 0.16],
-    [4440, 88, 0.12],
+    [2920, 232, 0],
+    [3170, 236, -0.1],
+    [3390, 131, -0.7],
+    [3620, -4, -0.2],
+    [3820, -12, 0],
+    [4020, 26, 0.42],
+    [4260, 119, 0.2],
+    [4440, 110, -0.06],
     [horizontalLength, 100, 0],
   ];
   const rawPoint = (distance) => {
@@ -171,10 +173,16 @@ export function createGlasswakeTrack() {
       smooth((h - bridgeStart + 100) / 80) *
         (1 - smooth((h - bridgeEnd - 35) / 90));
     const gridSuppression = smooth(Math.min(h, horizontalLength - h) / 90);
+    // One complete barrel corkscrew accompanies the plunge. The quintic roll
+    // has zero derivative at both joins; the frame, fins and clear deck rotate
+    // together, while geology and snowfall remain in the world's gravity frame.
+    const corkscrew =
+      h >= 3260 && h <= 3790 ? Math.PI * 2 * smooth((h - 3260) / 530) : 0;
     return (
       -THREE.MathUtils.clamp(Math.atan(curvature * 74), -0.55, 0.55) *
-      bridgeSuppression *
-      gridSuppression
+        bridgeSuppression *
+        gridSuppression +
+      corkscrew
     );
   };
   function sample(distance) {
@@ -349,6 +357,12 @@ export function createGlasswakeTrack() {
     'hardest-turn': parked(hardestApex - 80),
     'fast-corner': { ...parked(hardestApex - 80), speed: 80 },
     'slope-rest': parked(routeDistance(1195)),
+    'crevice-dive': parked(routeDistance(3190)),
+    'corkscrew-entry': parked(routeDistance(3320)),
+    'corkscrew-inverted': parked(routeDistance(3525)),
+    'crevice-floor': parked(routeDistance(3820)),
+    'crevice-ascent': parked(routeDistance(4160)),
+    'blizzard-rim': parked(routeDistance(2810)),
     'calving-approach': parked(routeDistance(bridgeStart) - 100),
     'calving-departure': parked(routeDistance(bridgeEnd) + 150),
     'calving-cracks': parked(routeDistance(bridgeStart) + 30),
@@ -420,12 +434,19 @@ export function createGlasswakeTrack() {
     [jumps[1].landingStart, length],
   ];
   return {
-    id: 'glasswake-comet-v1',
+    id: 'glasswake-comet-v2',
     name: 'Glasswake Comet',
-    geometryVersion: 'glasswake-fracture-route-v1',
+    geometryVersion: 'glasswake-crevice-corkscrew-v2',
     length,
     width: WIDTH,
     groundY: -150,
+    crevice: {
+      entry: routeDistance(3170),
+      corkscrewStart: routeDistance(3260),
+      corkscrewEnd: routeDistance(3790),
+      floor: routeDistance(3820),
+      exit: routeDistance(4260),
+    },
     sample,
     sections,
     jumps,

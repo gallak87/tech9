@@ -13,7 +13,7 @@ import {
 } from '../src/levels/glasswake/environment/event.js';
 const track = createGlasswakeTrack();
 const assetPath = new URL(
-  '../public/assets/levels/glasswake/glasswake-environment-v2.glb',
+  '../public/assets/levels/glasswake/glasswake-environment-v3.glb',
   import.meta.url,
 );
 async function loadAsset() {
@@ -90,6 +90,7 @@ test('authored GLB builds bounded layered world and restores borrowed scene owne
     'bridge_arch',
     'basal_strata',
     'recess_wall',
+    'crevice_wall',
   ])
     assert.ok(
       report.placements.some((p) => p.name === name),
@@ -104,8 +105,8 @@ test('authored GLB builds bounded layered world and restores borrowed scene owne
         p.x <= max[0] + 27 &&
         p.z >= min[2] - 27 &&
         p.z <= max[2] + 27 &&
-        p.y + 34 >= min[1] &&
-        p.y - 13 <= max[1];
+        p.y + 45 >= min[1] &&
+        p.y - 45 <= max[1];
       assert.equal(hit, false, `${entry.name} intersects camera/route at ${s}`);
     }
   }
@@ -153,11 +154,11 @@ test('authored GLB builds bounded layered world and restores borrowed scene owne
   });
   assert.deepEqual(aperture.position.toArray(), fixedPosition);
   assert.deepEqual(aperture.target.position.toArray(), fixedTarget);
-  assert.equal(aperture.intensity, 44000);
+  assert.equal(aperture.intensity, 185000);
   env.update({ reviewing: true });
   assert.equal(aperture.intensity, 0);
   env.reset();
-  assert.equal(aperture.intensity, 44000);
+  assert.equal(aperture.intensity, 185000);
   const reflection = new T.Texture();
   let borrowedDisposed = false;
   reflection.addEventListener('dispose', () => {

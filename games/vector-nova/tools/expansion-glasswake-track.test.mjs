@@ -13,10 +13,10 @@ import { assertTrackContract } from './level-checks/track-contract.mjs';
 const track = createGlasswakeTrack();
 const clamp = THREE.MathUtils.clamp;
 
-test('Glasswake route is a continuous metre-parameterized 4.8 km loop with a 220 m relief', () => {
+test('Glasswake route is a continuous metre-parameterized loop with a pronounced crevice plunge', () => {
   const report = assertTrackContract(track);
   assert.ok(report.samples > 4800);
-  assert.ok(track.length > 4700 && track.length < 4900);
+  assert.ok(track.length > 4700 && track.length < 5050);
   assert.equal(track.width, 30);
   let minimum = Infinity;
   let maximum = -Infinity;
@@ -31,9 +31,9 @@ test('Glasswake route is a continuous metre-parameterized 4.8 km loop with a 220
     maxFrame = Math.max(maxFrame, frame.quaternion.angleTo(next.quaternion));
     assert.ok(Math.abs(frame.position.distanceTo(next.position) - 1) < 0.0003);
   }
-  assert.ok(maximum - minimum > 218 && maximum - minimum < 223);
+  assert.ok(maximum - minimum > 250 && maximum - minimum < 258);
   assert.ok(maxTurn < 0.019, `Curvature turn ${maxTurn}`);
-  assert.ok(maxFrame < 0.025, `Frame rotation ${maxFrame}`);
+  assert.ok(maxFrame < 0.04, `Frame rotation ${maxFrame}`);
   assert.ok(
     track.sample(-0.001).position.distanceTo(track.sample(0.001).position) <
       0.00201,
@@ -299,4 +299,27 @@ test('Glasswake short launch setups reach both shelves from rest with held throt
     );
     runtime.dispose();
   }
+});
+
+// Absolute frames verify a complete rotation and a genuinely steep descent,
+// while retaining metre spacing and the original fracture takeoff geometry.
+test('crevice corkscrew rotates continuously through inversion and climbs back out', () => {
+  const { crevice } = track;
+  const midpoint = (crevice.corkscrewStart + crevice.corkscrewEnd) / 2;
+  assert.ok(track.sample(midpoint).up.y < -0.5);
+  assert.ok(track.sample(crevice.floor).position.y < 0);
+  assert.ok(
+    track.sample(crevice.entry).position.y -
+      track.sample(crevice.floor).position.y >
+      240,
+  );
+  assert.ok(
+    track.sample(crevice.exit).position.y -
+      track.sample(crevice.floor).position.y >
+      125,
+  );
+  let steepest = 0;
+  for (let s = crevice.entry; s < crevice.floor; s += 2)
+    steepest = Math.min(steepest, track.sample(s).tangent.y);
+  assert.ok(steepest < -0.55);
 });

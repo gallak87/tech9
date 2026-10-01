@@ -2,8 +2,10 @@ import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { sampleCalvingState, sampleCaveBlend } from './event.js';
 import { finishIceMaterial } from './materials.js';
+import { createGlasswakeWeather } from '../weather/index.js';
+import { createCalvingPowder } from '../weather/calving-powder.js';
 
-const ASSET_URL = '/assets/levels/glasswake/glasswake-environment-v2.glb';
+const ASSET_URL = '/assets/levels/glasswake/glasswake-environment-v3.glb';
 const UP = new T.Vector3(0, 1, 0);
 const fract = (n) => n - Math.floor(n);
 const noise = (n) => fract(Math.sin(n * 172.41 + 41.7) * 4537.114);
@@ -31,6 +33,10 @@ export function createGlasswakeEnvironment({
 } = {}) {
   const group = new T.Group();
   group.name = 'Glasswake / layered comet geology';
+  const weather = createGlasswakeWeather({ track, shape });
+  group.add(weather.group);
+  let iceTexture = null;
+  const apertureLights = [];
   const geometries = new Set();
   const materials = new Set();
   const placements = [];
@@ -47,6 +53,7 @@ export function createGlasswakeEnvironment({
   const baseLights = [];
   let cavityLight = null;
   let inclusionLight = null;
+  let calvingPowder = null;
   let disposed = false;
   let loaded = false;
   let caveBlend = 0;
@@ -57,13 +64,13 @@ export function createGlasswakeEnvironment({
   let referenceTexture = null;
   let currentSettings = settings;
   const metrics = {
-    assetBytes: 2924316,
-    sourceTriangles: 43644,
+    assetBytes: 3095704,
+    sourceTriangles: 46396,
     instances: 0,
     meshes: 0,
     triangles: 0,
     textures: 0,
-    localLights: 5,
+    localLights: 8,
     rejectedPlacements: 0,
   };
   let error = null;
@@ -96,8 +103,8 @@ export function createGlasswakeEnvironment({
         point.x <= box.max.x + 27 &&
         point.z >= box.min.z - 27 &&
         point.z <= box.max.z + 27 &&
-        point.y + 34 >= box.min.y &&
-        point.y - 13 <= box.max.y,
+        point.y + 45 >= box.min.y &&
+        point.y - 45 <= box.max.y,
     );
   }
   function addInstance(name, matrix, { clear = true, label = name } = {}) {
@@ -167,9 +174,9 @@ export function createGlasswakeEnvironment({
   }
   function buildWorld() {
     const gallery = track.sections.find(({ id }) => id === 'gallery');
-    const inclusionS = gallery.showcase + 148;
+    const inclusionS = gallery.showcase + 105;
     const inclusionWindow = (s, side) =>
-      side === -1 && Math.abs(s - inclusionS) < 165;
+      side === -1 && Math.abs(s - inclusionS) < 195;
     // Ordinary stretches carry three scales: cut rim, deeper wall, distant mass.
     for (let s = 24, i = 0; s < track.length; s += 84, i += 1) {
       const inBridge = s > track.bridge.start - 50 && s < track.bridge.end + 65;
@@ -234,7 +241,7 @@ export function createGlasswakeEnvironment({
             'cave_roof',
             s,
             Math.sin(i * 2.7) * 7,
-            30 + noise(i * 5) * 12,
+            12 + noise(i * 5) * 9,
             [
               1.12 + 0.16 * noise(i),
               0.96 + 0.12 * noise(i + 2),
@@ -296,24 +303,54 @@ export function createGlasswakeEnvironment({
         }
       }
     }
+    for (
+      let s = track.crevice.entry - 85, i = 0;
+      s < track.crevice.exit + 70;
+      s += 134, i++
+    ) {
+      const frame = track.sample(s);
+      for (const side of [-1, 1]) {
+        place(
+          'crevice_wall',
+          s,
+          side * (97 + noise(i + side) * 14),
+          242 - frame.position.y - 245,
+          [1, 1, 1.12],
+          side === -1 ? Math.PI : 0,
+        );
+      }
+    }
+    // Real aperture shafts pick out the road and surrounding ice, with a gentle
+    // near-white key rather than following the craft with another blue wash.
+    for (const section of track.sections.filter(({ id }) =>
+      ['mouth', 'gallery', 'chasm'].includes(id),
+    )) {
+      const frame = track.sample(section.showcase + 54);
+      const light = new T.SpotLight('#e2efff', 65000, 320, 0.63, 0.72, 2);
+      light.name = `Glasswake / ${section.id} daylight aperture`;
+      light.position.copy(frame.position).add(new T.Vector3(-25, 116, 14));
+      light.target.position.copy(frame.position).add(new T.Vector3(32, 15, 5));
+      group.add(light, light.target);
+      apertureLights.push(light);
+    }
     const inclusionMatrix = place(
       'dark_inclusion',
       inclusionS,
-      -82,
-      8,
-      [0.92, 1.3, 1.08],
+      -84,
+      6,
+      [1.08, 1.14, 1.08],
       0.16,
     );
     if (inclusionMatrix) {
       // Fixed aperture light grazes the embedded meteor and its pale ice bands.
       // It owns its target, has no shadow map, and does not follow the craft.
-      inclusionLight = new T.SpotLight('#dce2ff', 44000, 290, 0.51, 0.7, 2);
+      inclusionLight = new T.SpotLight('#f0f4ff', 185000, 300, 0.64, 0.8, 2);
       inclusionLight.name = 'Glasswake / inclusion aperture light';
       inclusionLight.position.copy(
-        new T.Vector3(58, 157, -38).applyMatrix4(inclusionMatrix),
+        new T.Vector3(52, 115, -30).applyMatrix4(inclusionMatrix),
       );
       inclusionLight.target.position.copy(
-        new T.Vector3(26, 28, -6).applyMatrix4(inclusionMatrix),
+        new T.Vector3(10, 30, -8).applyMatrix4(inclusionMatrix),
       );
       group.add(inclusionLight, inclusionLight.target);
     }
@@ -346,6 +383,8 @@ export function createGlasswakeEnvironment({
     // forward sight line through departure, rather than falling behind chase.
     calving.position.addScaledVector(track.sample(centerS).tangent, 820);
     group.add(calving);
+    calvingPowder = createCalvingPowder();
+    calving.add(calvingPowder.mesh);
     for (const name of templates.keys()) {
       if (/^(calving_(back|roof|floor|ledge)|cavity_)/.test(name))
         unique(name, calving);
@@ -412,7 +451,8 @@ export function createGlasswakeEnvironment({
     group.userData.clearanceReport = {
       sampleStep: 8,
       routeMargin: 27,
-      cameraHeight: 34,
+      cameraHeight: 45,
+      cameraDepth: 45,
       placements,
       conservative: true,
     };
@@ -436,7 +476,7 @@ export function createGlasswakeEnvironment({
         geometries.add(geometry);
         for (const material of [node.material].flat()) {
           material.side = T.DoubleSide;
-          finishIceMaterial(material);
+          finishIceMaterial(material, iceTexture);
           material.envMapIntensity = 0.35;
           if (referenceTexture) material.envMap = referenceTexture;
           materials.add(material);
@@ -451,12 +491,38 @@ export function createGlasswakeEnvironment({
   let ready = Promise.resolve(false);
   if (!shape && (loadAsset || typeof document !== 'undefined')) {
     ready = Promise.resolve()
-      .then(() =>
-        (loadAsset ?? ((url) => new GLTFLoader().loadAsync(url)))(ASSET_URL),
-      )
-      .then(accept)
+      .then(async () => {
+        if (disposed) return null;
+        // Injected CPU asset tests intentionally do not need DOM image loading.
+        if (!loadAsset) {
+          iceTexture = await new T.TextureLoader()
+            .loadAsync('/assets/levels/glasswake/ice-surface-v1.png')
+            .catch((reason) => {
+              throw new Error(
+                'Glasswake ice material failed to load: image request failed',
+                { cause: reason },
+              );
+            });
+          if (disposed) {
+            iceTexture.dispose();
+            iceTexture = null;
+            return null;
+          }
+          iceTexture.colorSpace = T.SRGBColorSpace;
+          iceTexture.wrapS = iceTexture.wrapT = T.RepeatWrapping;
+          iceTexture.anisotropy = 4;
+          metrics.textures = 1;
+        }
+        return (loadAsset ?? ((url) => new GLTFLoader().loadAsync(url)))(
+          ASSET_URL,
+        );
+      })
+      .then((gltf) => (gltf ? accept(gltf) : false))
       .catch((reason) => {
         error = reason instanceof Error ? reason.message : String(reason);
+        weather.dispose();
+        iceTexture?.dispose();
+        iceTexture = null;
         if (!disposed) disposeResources(group, geometries, materials);
         throw new Error(`Glasswake environment failed to load: ${error}`, {
           cause: reason,
@@ -472,12 +538,17 @@ export function createGlasswakeEnvironment({
     state = {},
     settings: nextSettings = currentSettings,
     reviewing = false,
+    camera,
   } = {}) {
     if (disposed) return;
     currentSettings = nextSettings;
+    weather.update({ state, camera, settings: nextSettings, reviewing });
+    const conditions = weather.snapshot();
     event = sampleCalvingState(track, state);
-    if (cavityLight) cavityLight.intensity = 25000 * event.reveal;
-    if (inclusionLight) inclusionLight.intensity = reviewing ? 0 : 44000;
+    calvingPowder?.update(event, nextSettings);
+    if (cavityLight) cavityLight.intensity = 38000 * event.reveal;
+    if (inclusionLight) inclusionLight.intensity = reviewing ? 0 : 185000;
+    for (const light of apertureLights) light.intensity = reviewing ? 0 : 65000;
     caveBlend =
       shape || reviewing ? 0 : sampleCaveBlend(track, state.distance ?? 0);
     returnBlend =
@@ -530,7 +601,7 @@ export function createGlasswakeEnvironment({
       }
       for (const { light, intensity, color } of baseLights) {
         light.intensity =
-          intensity * (1 - caveBlend * (light.isHemisphereLight ? 0.58 : 0.84));
+          intensity * (1 - caveBlend * (light.isHemisphereLight ? 0.18 : 0.66));
         // Re-evaluate from the borrowed baseline, so seeking or resetting never
         // accumulates tint and cavern/exterior colors restore exactly.
         light.color.copy(color);
@@ -541,9 +612,11 @@ export function createGlasswakeEnvironment({
           );
       }
       scene.environmentIntensity =
-        originalEnvironmentIntensity * (1 - caveBlend * 0.66);
-      localFog.density = reviewing ? 0.00004 : 0.00018 + caveBlend * 0.00042;
-      localFog.color.set(caveBlend > 0.5 ? '#102a45' : '#10243d');
+        originalEnvironmentIntensity * (1 - caveBlend * 0.22);
+      localFog.density = reviewing
+        ? 0.00004
+        : 0.00016 + caveBlend * 0.0003 + (conditions.storm ?? 0) * 0.00019;
+      localFog.color.set(caveBlend > 0.5 ? '#25435e' : '#6384a8');
       scene.fog = localFog;
     }
     lights.forEach((light, i) => {
@@ -559,6 +632,7 @@ export function createGlasswakeEnvironment({
     group.userData.calving = event;
     group.userData.caveBlend = caveBlend;
     group.userData.returnBlend = returnBlend;
+    group.userData.weather = conditions;
   }
   group.userData.metrics = metrics;
   group.userData.getEnvironmentPresentation = () => ({
@@ -568,6 +642,7 @@ export function createGlasswakeEnvironment({
     returnBlend,
     calving: event,
     metrics,
+    weather: weather.snapshot(),
     reducedMotion: Boolean(currentSettings.reducedMotion),
     quality: currentSettings.quality ?? 'high',
   });
@@ -597,6 +672,9 @@ export function createGlasswakeEnvironment({
         view.scene.environmentIntensity = originalEnvironmentIntensity;
         if (view.scene.fog === localFog) view.scene.fog = originalFog;
       }
+      weather.dispose();
+      iceTexture?.dispose();
+      iceTexture = null;
       disposeResources(group, geometries, materials);
       templates.clear();
       batches.clear();

@@ -1,8 +1,10 @@
 import { glasswakeFlightState } from './runtime.js';
 import { surfaceAt } from './surface.js';
 import { sampleCalvingState } from './environment/event.js';
+import { createGlasswakeScreen } from './weather/screen.js';
 
 export function createGlasswakeOverlay({ host, track }) {
+  const screen = createGlasswakeScreen({ host, track });
   const notice = document.createElement('div');
   notice.dataset.glasswakeNotice = '';
   notice.setAttribute('aria-live', 'polite');
@@ -26,7 +28,9 @@ export function createGlasswakeOverlay({ host, track }) {
   let presentation = {};
   let disposed = false;
   return {
-    update({ state, mode }) {
+    update(frame) {
+      const { state, mode } = frame;
+      screen.update(frame);
       if (disposed) return;
       const surface = surfaceAt(track, state.distance, state.lateral);
       const s = ((state.distance % track.length) + track.length) % track.length;
@@ -46,7 +50,14 @@ export function createGlasswakeOverlay({ host, track }) {
               : surface.grip < 1
                 ? 'FROST · MORE DRIFT · CLEAR RIBS RESTORE GRIP'
                 : 'CRYSTAL · MAGNETIC GRIP';
-      notice.textContent = text;
+      const calving = sampleCalvingState(track, state);
+      const calvingCue =
+        calving.phase === 'cracking'
+          ? ' · ICE SHELF FRACTURING'
+          : calving.phase === 'separating'
+            ? ' · SHELF CALVING'
+            : '';
+      notice.textContent = text + calvingCue;
       const reviewOpen =
         host.querySelector('#review-toggle')?.getAttribute('aria-expanded') ===
         'true';
@@ -69,6 +80,7 @@ export function createGlasswakeOverlay({ host, track }) {
           : '#639abb';
       presentation = {
         glasswake: {
+          weather: screen.snapshot(),
           surface,
           flightMode: flight.mode,
           calving: sampleCalvingState(track, state),
@@ -80,12 +92,14 @@ export function createGlasswakeOverlay({ host, track }) {
     },
     getPresentation: () => presentation,
     reset() {
+      screen.reset();
       presentation = {};
       notice.style.display = 'none';
     },
     dispose() {
       if (disposed) return;
       disposed = true;
+      screen.dispose();
       notice.remove();
     },
   };

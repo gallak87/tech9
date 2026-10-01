@@ -6,6 +6,10 @@ import {
   beamTransform,
 } from '../../../track/geometry.js';
 import { framePoint } from '../../../track/frames.js';
+import {
+  finishIceMaterial,
+  finishCrystalPane,
+} from '../environment/materials.js';
 
 function bladeGeometry(inset = false) {
   const shape = new THREE.Shape();
@@ -27,11 +31,14 @@ function bladeGeometry(inset = false) {
     ? new THREE.ShapeGeometry(shape)
     : new THREE.ExtrudeGeometry(shape, {
         depth: 0.85,
-        bevelEnabled: false,
+        bevelEnabled: true,
+        bevelThickness: 0.065,
+        bevelSize: 0.07,
+        bevelSegments: 1,
         curveSegments: 1,
       });
   geometry.rotateY(Math.PI / 2);
-  geometry.translate(inset ? 0.435 : -0.425, 0, 0);
+  geometry.translate(inset ? 0.53 : -0.425, 0, 0);
   return geometry;
 }
 
@@ -571,8 +578,45 @@ export function buildGlasswakeRoad(
   });
   let disposed = false;
   let currentQuality = settings.quality;
+  let surfaceTexture = null;
+  const ready =
+    shape || typeof document === 'undefined'
+      ? Promise.resolve(false)
+      : new THREE.TextureLoader()
+          .loadAsync('/assets/levels/glasswake/ice-surface-v1.png')
+          .then((texture) => {
+            if (disposed) {
+              texture.dispose();
+              return false;
+            }
+            surfaceTexture = texture;
+            texture.colorSpace = THREE.SRGBColorSpace;
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.anisotropy = 4;
+            frost.name = 'Opaque frost travel bands';
+            edge.name = 'Pale fractured fin ice';
+            for (const mat of [frost, edge]) {
+              finishIceMaterial(mat, texture);
+              mat.needsUpdate = true;
+            }
+            for (const mat of [crystalHigh, crystalLow]) {
+              finishCrystalPane(mat, texture);
+              mat.needsUpdate = true;
+            }
+            group.userData.sourceBudgets.textures = 1;
+            group.userData.sourceBudgets.textureBytes =
+              (texture.image.width * texture.image.height * 4 * 4) / 3;
+            return true;
+          })
+          .catch((reason) => {
+            throw new Error(
+              'Glasswake frost detail failed to load: image request failed',
+              { cause: reason },
+            );
+          });
   return {
     group,
+    ready,
     update({ settings: nextSettings = settings } = {}) {
       if (disposed || shape || nextSettings.quality === currentQuality) return;
       currentQuality = nextSettings.quality;
@@ -589,6 +633,8 @@ export function buildGlasswakeRoad(
     dispose() {
       if (disposed) return;
       disposed = true;
+      surfaceTexture?.dispose();
+      surfaceTexture = null;
       geometries.forEach((geometry) => geometry.dispose());
       materials.forEach((mat) => mat.dispose());
       geometries.clear();

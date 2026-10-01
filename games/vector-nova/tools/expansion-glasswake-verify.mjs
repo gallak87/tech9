@@ -97,6 +97,11 @@ try {
         'hardest-turn',
         'calving-approach',
         'calving-departure',
+        'crevice-dive',
+        'corkscrew-inverted',
+        'crevice-floor',
+        'crevice-ascent',
+        'blizzard-rim',
       ]) {
         const names = (await snap()).track.scenarios;
         if (!names.includes(name)) continue;
@@ -208,7 +213,9 @@ try {
       });
       check(
         `${quality} own HUD disposed`,
-        (await page.locator('[data-glasswake-notice]').count()) === 0,
+        (await page
+          .locator('[data-glasswake-notice], [data-glasswake-weather-glass]')
+          .count()) === 0,
       );
     } finally {
       await context.close();
@@ -220,8 +227,9 @@ try {
     report.faults,
   );
   for (const ownedAsset of [
-    'glasswake-environment-v2.glb',
+    'glasswake-environment-v3.glb',
     'aurora-sky-v1.png',
+    'ice-surface-v1.png',
   ]) {
     const failureContext = await browser.newContext({
       viewport: { width: 640, height: 360 },
@@ -238,7 +246,9 @@ try {
         .waitFor({ state: 'visible', timeout: 60000 });
       check(
         `Glasswake ${ownedAsset} load failure cleans renderer`,
-        (await failurePage.locator('canvas#world').count()) === 0,
+        (await failurePage
+          .locator('canvas#world, [data-glasswake-weather-glass]')
+          .count()) === 0,
       );
       check(
         `Glasswake ${ownedAsset} load error is actionable`,
@@ -248,9 +258,11 @@ try {
       check(
         `Glasswake ${ownedAsset} load error identifies the asset`,
         failureText.includes(
-          ownedAsset.endsWith('.png')
+          ownedAsset === 'aurora-sky-v1.png'
             ? 'Glasswake aurora sky failed to load'
-            : 'Glasswake environment failed to load',
+            : ownedAsset === 'ice-surface-v1.png'
+              ? 'failed to load'
+              : 'Glasswake environment failed to load',
         ) && !failureText.includes('[object Event]'),
       );
     } finally {

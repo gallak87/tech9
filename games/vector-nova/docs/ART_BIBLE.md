@@ -24,6 +24,12 @@ Approved angular futuristic jet silhouette: slender split nose, swept planform, 
 
 Colossal enclosed living trees, connected oversized foliage and an amber resin road with restrained transmission and a thin glowing orange curb. Keep the giant hollow complete around genuine route portals and preserve dark-to-lit contrast against a cloudy forest sky. Broad leaves need curved silhouettes and vein detail at fly-camera distance as well as canopy mass from the road. The retired creature remains source-only; raised petals, roadside bulbs/stalks and jump-edge beacons stay removed. Asset construction details remain in [Vesper provenance](../assets/levels/vesper/provenance.json).
 
+## Glasswake Comet
+
+Pale fractured glacial ice, dark buried meteor, cobalt crevices and aurora above a supported transparent crystal raceway. Preserve the approved see-through floor: a light cloudy vein texture gives it an ice feel without hiding the ribs or canyon. Opaque ice carries cloud layers, granular frost and fine fractures, with readable broad forms and restrained warm fittings.
+
+The paired fracture jumps lead to a deep fissure plunge, complete corkscrew and steep climb. Show the height of the surrounding rim from the actual chase view. The calving shelf cracks, sheds independent pieces and exposes the layered cavity; powder and notices support its visible geometry. Exterior gusting snow gives way to shelter in the caverns. Keep snow adhesion and frost at the screen edges, clear of the road, craft, map, telemetry and controls.
+
 ## UI and feedback
 
 Warm off-white/graphite, technical numerals, vermilion active accents, generous spacing and real controls. Keep telemetry and notices away from the craft, upcoming road and touch controls. Moderate chase FOV, no default camera shake, and road-local camera clearance.

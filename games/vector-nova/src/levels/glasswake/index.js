@@ -6,7 +6,7 @@ import { createGlasswakeOverlay } from './overlay.js';
 
 export default function createLevel({ shape = false } = {}) {
   return {
-    version: '0.5.0-glasswake-v3',
+    version: '0.5.0-glasswake-v4',
     renderer: {
       world: shape ? 'glasswake-shape' : 'glasswake-comet',
       background: '#050b1c',

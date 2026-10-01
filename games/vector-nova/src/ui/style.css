@@ -613,12 +613,17 @@ select {
     gap: 10px;
   }
   #touch > div {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(44px, 1fr));
+    flex: 1;
     gap: 5px;
     align-items: flex-end;
   }
   #touch button {
-    padding: 21px 12px;
+    min-width: 44px;
+    min-height: 54px;
+    padding: 18px 4px;
+    text-align: center;
     font-size: 9px;
     touch-action: none;
     background: #142732b8;
@@ -1343,9 +1348,15 @@ select {
     margin-top: 10px;
   }
   .fly-touch button {
+    min-width: 44px;
+    min-height: 44px;
     padding: 12px 6px;
     touch-action: none;
     font-size: 10px;
+  }
+  #fly-return {
+    min-width: 44px;
+    min-height: 44px;
   }
   #fly-controls {
     bottom: 12px;

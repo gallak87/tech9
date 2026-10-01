@@ -42,7 +42,7 @@ function fixture() {
     },
   };
 }
-test('fly translation is normalized, frame-rate independent and Shift accelerates', () => {
+test('fly translation stays at 200 m/s across directions, Shift and wheel input', () => {
   const f = fixture();
   try {
     f.fly.enter();
@@ -50,17 +50,17 @@ test('fly translation is normalized, frame-rate independent and Shift accelerate
     f.press('KeyW');
     f.press('KeyD');
     for (let i = 0; i < 60; i++) f.fly.update(1 / 60);
-    assert.ok(Math.abs(f.camera.position.distanceTo(start) - 60) < 1e-8);
+    assert.ok(Math.abs(f.camera.position.distanceTo(start) - 200) < 1e-8);
     assert.ok(f.camera.position.x > start.x && f.camera.position.z < start.z);
     f.release('KeyD');
     f.press('ShiftLeft');
-    const fast = f.camera.position.clone();
+    const steady = f.camera.position.clone();
     f.fly.update(0.1);
-    assert.ok(Math.abs(f.camera.position.distanceTo(fast) - 24) < 1e-8);
-    f.fly.setSpeed(10000);
-    assert.equal(f.fly.speed, 300);
-    f.fly.setSpeed(-5);
-    assert.equal(f.fly.speed, 10);
+    assert.ok(Math.abs(f.camera.position.distanceTo(steady) - 20) < 1e-8);
+    f.fire(f.canvas, 'wheel', { deltaY: -100 });
+    const afterWheel = f.camera.position.clone();
+    for (let i = 0; i < 120; i++) f.fly.update(1 / 120);
+    assert.ok(Math.abs(f.camera.position.distanceTo(afterWheel) - 200) < 1e-8);
   } finally {
     f.dispose();
   }

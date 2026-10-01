@@ -118,11 +118,9 @@ export function createUI(
     controls.id = 'fly-controls';
     controls.className = 'hidden';
     controls.setAttribute('aria-label', 'Free camera controls');
-    controls.innerHTML = `<div class="fly-heading"><b>FREE CAMERA <small>SESSION PAUSED</small></b><button id="fly-return">RETURN · F / ESC</button></div><p>Drag to look · WASD move · Q / E down / up · Shift faster</p><label for="fly-speed">SPEED <output id="fly-speed-label">60 m/s</output><input id="fly-speed" type="range" min="10" max="300" step="1" value="60"></label><div class="fly-touch"><button data-fly="KeyA" aria-label="Fly left">←</button><button data-fly="KeyW" aria-label="Fly forward">FORWARD</button><button data-fly="KeyD" aria-label="Fly right">→</button><button data-fly="KeyQ" aria-label="Fly down">DOWN</button><button data-fly="KeyS" aria-label="Fly backward">BACK</button><button data-fly="KeyE" aria-label="Fly up">UP</button></div>`;
+    controls.innerHTML = `<div class="fly-heading"><b>FREE CAMERA <small>SESSION PAUSED</small></b><button id="fly-return">RETURN · F / ESC</button></div><p>Drag to look · WASD move · Q / E down / up</p><div class="fly-touch"><button data-fly="KeyA" aria-label="Fly left">←</button><button data-fly="KeyW" aria-label="Fly forward">FORWARD</button><button data-fly="KeyD" aria-label="Fly right">→</button><button data-fly="KeyQ" aria-label="Fly down">DOWN</button><button data-fly="KeyS" aria-label="Fly backward">BACK</button><button data-fly="KeyE" aria-label="Fly up">UP</button></div>`;
     root.append(controls);
     $('fly-return').onclick = actions.leaveFly;
-    $('fly-speed').oninput = () =>
-      actions.flySpeed(Number($('fly-speed').value));
   }
   const currentCircuit = metadata.id;
   const picker = document.createElement('form');
@@ -228,11 +226,6 @@ export function createUI(
         width: innerWidth * 0.88,
         height: Math.max(100, specs.top - heading.bottom - 28),
       };
-    },
-    setFlySpeed(speed) {
-      if (!$('fly-speed')) return;
-      $('fly-speed').value = speed;
-      $('fly-speed-label').textContent = `${speed} m/s`;
     },
     setMode(mode) {
       if (mode === oldMode) return;

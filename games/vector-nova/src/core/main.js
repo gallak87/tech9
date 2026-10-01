@@ -412,7 +412,6 @@ async function boot() {
         overview,
         fly: toggleFly,
         leaveFly,
-        flySpeed: (speed) => flyCamera?.setSpeed(speed),
         reviewSection(name) {
           window.__VN.loadScenario(name, 47219);
           document.activeElement?.blur();
@@ -458,7 +457,6 @@ async function boot() {
         createFlyCamera(camera, renderer.domElement, {
           toggle: toggleFly,
           exit: leaveFly,
-          onSpeed: (speed) => ui.setFlySpeed(speed),
         }),
       )
     : null;

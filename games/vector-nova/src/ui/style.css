@@ -1332,19 +1332,6 @@ select {
   line-height: 1.6;
   margin: 12px 0;
 }
-#fly-controls label {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-#fly-speed-label {
-  white-space: nowrap;
-  min-width: 58px;
-}
-#fly-speed {
-  flex: 1;
-  min-width: 0;
-}
 .fly-touch {
   display: none;
 }

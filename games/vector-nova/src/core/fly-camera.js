@@ -1,11 +1,9 @@
 import * as T from 'three';
 
+const FLY_SPEED = 200;
+
 /** Optional inspection controls. Simulation ownership stays in core/main. */
-export function createFlyCamera(
-  camera,
-  canvas,
-  { toggle, exit, onSpeed } = {},
-) {
+export function createFlyCamera(camera, canvas, { toggle, exit } = {}) {
   const abort = new AbortController();
   const keys = new Set();
   const touches = new Map();
@@ -17,7 +15,6 @@ export function createFlyCamera(
   let active = false,
     saved,
     pointer = null,
-    speed = 60,
     pointerX = 0,
     pointerY = 0;
   const motionKeys = new Set([
@@ -31,8 +28,6 @@ export function createFlyCamera(
     'ArrowDown',
     'ArrowLeft',
     'ArrowRight',
-    'ShiftLeft',
-    'ShiftRight',
   ]);
   const listen = (target, type, handler, options = {}) =>
     target.addEventListener(type, handler, {
@@ -48,11 +43,6 @@ export function createFlyCamera(
     keys.clear();
     touches.clear();
     releaseLook();
-  }
-  function setSpeed(value) {
-    if (!Number.isFinite(value)) return;
-    speed = T.MathUtils.clamp(Math.round(value), 10, 300);
-    onSpeed?.(speed);
   }
   listen(
     window,
@@ -123,16 +113,6 @@ export function createFlyCamera(
     listen(canvas, type, (event) => {
       if (event.pointerId === pointer) releaseLook();
     });
-  listen(
-    canvas,
-    'wheel',
-    (event) => {
-      if (!active) return;
-      event.preventDefault();
-      setSpeed(speed * (event.deltaY < 0 ? 1.2 : 1 / 1.2));
-    },
-    { passive: false },
-  );
   const down = (...codes) =>
     codes.some(
       (code) => keys.has(code) || [...touches.values()].includes(code),
@@ -141,10 +121,6 @@ export function createFlyCamera(
     get active() {
       return active;
     },
-    get speed() {
-      return speed;
-    },
-    setSpeed,
     enter() {
       if (active) return;
       saved = {
@@ -163,7 +139,6 @@ export function createFlyCamera(
       camera.clearViewOffset();
       camera.updateProjectionMatrix();
       canvas.classList.add('fly-camera-active');
-      onSpeed?.(speed);
     },
     leave() {
       if (!active) return;
@@ -196,9 +171,7 @@ export function createFlyCamera(
       if (movement.lengthSq() > 0)
         camera.position.addScaledVector(
           movement.normalize(),
-          Math.min(Math.max(dt, 0), 0.1) *
-            speed *
-            (down('ShiftLeft', 'ShiftRight') ? 4 : 1),
+          Math.min(Math.max(dt, 0), 0.1) * FLY_SPEED,
         );
     },
     bindControls(root) {

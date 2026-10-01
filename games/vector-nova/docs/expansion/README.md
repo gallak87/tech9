@@ -1,6 +1,6 @@
 # Level expansion
 
-The user resumes the existing level chats one at a time. Each agent finishes its assigned level, implements necessary shared improvements, completes desktop critique, checks mobile last, commits and merges into the primary worktree. Resume existing work; chat startup and sequencing belong to the user.
+The user starts replacement level sessions one at a time. Each agent takes over its level's existing worktree and finishes the authored work, implements necessary shared improvements, completes desktop critique, checks mobile last, commits and merges into the primary worktree. Preserve the implementation, artwork and useful learnings; chat startup and sequencing belong to the user.
 
 Expansion-specific briefs and process belong only in this folder. Keep progress and review findings in the chat, with raw evidence ignored in `.experiments/`. Do not create status files, coordination ledgers, budget reports or interim handoff packages. Once a level is merged, remove its completed execution notes; its merged availability is enough. General docs should describe the shipped game, actual APIs and general working practices.
 
@@ -16,7 +16,7 @@ Expansion-specific briefs and process belong only in this folder. Keep progress 
 
 ## Execution and authority
 
-Continue to the full scoped finish when the user resumes you. Check route shape internally, then proceed to production without an early human-review stop. Small art steers refine the ongoing work. Critic fixes must preserve the qualities the human values.
+Continue to the full scoped finish when the user starts you. Check route shape internally, then proceed to production without an early human-review stop. Small art steers refine the ongoing work. Critic fixes must preserve the qualities the human values.
 
 Local commits and the final merge into `/Users/g/code/scratch/tech9` are part of completion. Confirm its current branch (`g/scene-test` at this writing), preserve unrelated edits and present the merged playable result for human review. A critic score does not supply human approval. Pushing and unrelated feature work need their own user instruction.
 
@@ -24,7 +24,9 @@ Do not message, resume or monitor other level chats, launch an integrator, or ad
 
 ## Worktree and completion ownership
 
-Read the current brief from the primary worktree on resume and incorporate its latest code into your assigned checkout, preserving authored work. Use the actual [level API](../LEVEL_API.md) and existing shared helpers. Do not reuse old foundation packages or resurrect deleted status files when resolving conflicts.
+Before implementation or critic round 1, read the current game instructions and level brief from `/Users/g/code/scratch/tech9`. Inspect the assigned worktree, preserving staged, unstaged and untracked gameplay/asset work with a local commit or stash as appropriate. Merge the latest commit currently checked out in the primary worktree into the existing level branch. Read the primary's live branch and HEAD when starting; earlier levels may have been integrated since this handoff was written.
+
+Resolve conflicts preserving authored level work, all integrated levels and shared improvements. Keep the primary's current documentation and deletions of retired process files. Build and run affected checks on the merged state before beginning production or the new critique cycle. Use the actual [level API](../LEVEL_API.md) and existing shared helpers. Do not reuse old foundation packages or resurrect deleted status files when resolving conflicts.
 
 Author local track, scenery and presentation under `src/levels/<slug>/`; sources and provenance under `assets/levels/<slug>/`; runtime exports under `public/assets/levels/<slug>/`; and meaningful checks under `tools/expansion-<slug>-*.mjs`. Keep `.blend` files and concepts out of the served directory.
 
@@ -48,12 +50,20 @@ Use scene imagegen → Blender geometry/materials/animation → in-game iteratio
 
 Retain selected references, editable sources or reproducible generators, provenance and licences with the assets. Keep temporary renders ignored. Assets, lighting and whole-level finish share the same critic counter.
 
+## Generated sky panoramas
+
+Each level brief links its selected original generated sky, exact generation prompt and provenance under `assets/levels/<slug>/`. Preserve these files when updating the branch. Glasswake's chosen violet-green aurora is already generated; the other levels have their own atmospheric or space panoramas. Use the selected native image as the starting point and export the runtime texture under `public/assets/levels/<slug>/` when integrating it.
+
+Integrate the panorama into the level's own backdrop and inspect it in the actual driving camera around the whole course. Check spherical mapping, horizontal wrap, seam, zenith/nadir, horizon orientation, exposure, loading and disposal. Match the world's local lighting and reflections to the sky without treating the image as HDR data. Preserve high/low identity, shape-review behavior and reduced motion. A simple gradient or procedural sky is useful as a fallback; the finished world should use its selected detailed image.
+
+Sky textures contain distant atmosphere or space. Nearby terrain, architecture, water, creatures, stellar events, accretion effects and gameplay remain authored scene content. Preserve existing concept drawings and editable Blender sources as well as the sky. Any necessary sky refinement belongs to the same desktop critic cycle, with its updated prompt and provenance saved beside the asset.
+
 ## Production and critique loop
 
-1. Resume existing work and formal round count. Inspect current code and validate route shape/frames, grounded/airborne transitions, clearance and controls; implement missing shared support yourself.
+1. Preserve existing work and learnings, update from the primary worktree first, and start the replacement session's formal critic count at round 1. Previous-session scores and counts do not consume this new allowance. Inspect current code and validate route shape/frames, grounded/airborne transitions, clearance and controls; implement missing shared support yourself.
 2. Finish desktop production across the whole course. Inspect ordinary stretches, hard turns, signatures, starts/returns, close-up and off-axis views in high/low and reduced motion.
 3. Use a separate independent critic on the actual frozen desktop build. It captures its own stills and drives short real-key segments, grading art, lighting/material/depth, handling/camera, route/readability, feedback/UI and stability separately. Run its browser/render work after yours has closed; no builder fan-out is needed.
-4. Stop at the first verified pass or eight completed formal rounds, including the initial critique. Each applicable category needs at least 9/10, actual evidence and no critical failures. Preserve honest shortcomings at the cap; do not restart counters or add a disguised ninth art pass. Missing external evidence remains unverified and does not justify repeating unchanged rounds.
+4. Stop at the first verified pass or eight completed formal rounds, including the initial critique. Each applicable category needs at least 9/10, actual evidence and no critical failures. The fresh count starts once for this replacement session; keep one counter across geometry, skies, lighting and shared fixes. Preserve honest shortcomings at the cap; do not reset this counter again, split it into separate asset loops or add a disguised ninth art pass. Missing external evidence remains unverified and does not justify repeating unchanged rounds.
 5. Once desktop art, critique and shared changes are settled, run the final mobile pass. Fix findings and recheck affected cases without reopening the art loop.
 6. Commit and merge the completed level and necessary shared changes. Resolve conflicts, build and verify the primary game, and leave a working preview for the user's playtest.
 

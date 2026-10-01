@@ -1,12 +1,32 @@
-# Map 7 — Saffron Leviathan: level completion brief
+# Map 7 — Saffron Leviathan: replacement session handoff
 
 ## Assignment and authority
 
 **Goal:** Finish a fossil-desert circuit through skull and vertebrae, with sand/glass route choices, a breaching burrower and readable sheltered interiors.
 
-Read this brief, [the common execution rules](../README.md) and the current [level API](../../LEVEL_API.md) from the primary worktree when the user resumes you. Continue your existing level work with the latest primary code. Consult architecture/art sections as needed.
+Read the current version of this handoff from the primary worktree. Take over the existing authored level and complete it using the startup instructions below.
 
 Own `saffron` through production, critique, necessary shared framework/environment/tooling improvements, final mobile verification, commit and merge into the primary worktree. Follow the [completion ownership rules](../README.md#worktree-and-completion-ownership). Start your own preview on a free port; use `?level=saffron` and `&review=shape`. Chat sequencing belongs to the user. Keep progress in the chat and expansion notes in this folder. Document reusable technical changes with their APIs.
+
+## Start here: replacement session
+
+Existing worktree: `/Users/g/.codex/worktrees/fzero-saffron1/tech9`. Existing branch: `codex/fzero-saffron1`. Primary worktree: `/Users/g/code/scratch/tech9`.
+
+1. Read the current primary's `games/vector-nova/AGENTS.md`, this handoff, [common execution rules](../README.md) and [level API](../../LEVEL_API.md). Consult architecture/art sections as needed.
+2. Preserve existing committed and uncommitted gameplay/asset work, then merge the latest commit currently checked out in the primary worktree into this existing branch before implementation or critic round 1. Resolve conflicts retaining authored work, integrated levels and shared improvements; use the primary's current docs and process-file deletions. Build and run affected checks before continuing.
+3. Begin a fresh formal critic cycle at round 1. Keep the existing implementation, selected artwork and useful learnings. Stop when every applicable category reaches at least 9/10 with evidence and no critical failures, or after 8 completed formal rounds, whichever comes first. Use one counter for the whole desktop finish, including sky/lighting changes; complete mobile last, then commit, merge and verify the primary game.
+
+### Preserve existing artwork and useful fixes
+
+Sources are in `games/vector-nova/assets/levels/saffron/` inside the existing worktree. Preserve `scene-reference.png`, `PROVENANCE.md`, `leviathan-kit.blend` and `build_saffron.py`, their runtime exports and any newer authored versions. View the selected scene reference before making art changes and carry useful technical learnings forward from source/provenance and existing evidence. Keep raw captures/reports ignored.
+
+Preserve the corrected landing rules, shared deck/rail contact behavior, compact mechanic feedback and authored fossil kit. Confirm them with real-input skull/vertebral traversal, sand-versus-glass comparisons and recovery. Keep the chosen fossil anatomy, dune families and sheltered bone lighting while finishing the burrower and sandfalls.
+
+### Selected generated sky
+
+Use the [original sky panorama](../../../assets/levels/saffron/saffron-sky-v1.png), [exact generation prompt](../../../assets/levels/saffron/sky-prompt.txt) and [sky provenance](../../../assets/levels/saffron/SKY_PROVENANCE.md) brought in from the primary worktree. Use the selected immense dry sky with pale saffron/apricot horizon light, lavender haze, clear soft blue above and finely resolved cirrus. Match pale sun and warm sand bounce to the panorama, preserving fossil silhouettes and readable skull interiors.
+
+Follow the [sky integration checks](../README.md#generated-sky-panoramas), preserve the source image and export a runtime texture under `public/assets/levels/saffron/`. Confirm seam/horizon, exposure, loading/disposal and high/low/reduced motion on the actual production build. Nearby scenery and gameplay remain authored 3D content.
 
 ## Defining interactions and spectacle
 

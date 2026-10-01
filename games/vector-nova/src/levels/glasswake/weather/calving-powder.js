@@ -38,7 +38,7 @@ export function createCalvingPowder() {
     update(event, settings = {}) {
       material.uniforms.separation.value = event.separation;
       material.uniforms.opacity.value =
-        Math.sin(event.separation * Math.PI) * 0.11;
+        Math.sin(event.separation * Math.PI) * 0.24;
       geometry.instanceCount = settings.quality === 'low' ? 70 : 160;
       mesh.visible = event.separation > 0.015 && event.separation < 0.995;
     },

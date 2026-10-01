@@ -2,10 +2,11 @@ import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { sampleCalvingState, sampleCaveBlend } from './event.js';
 import { finishIceMaterial } from './materials.js';
+import { consolidateIceParts } from './consolidate.js';
 import { createGlasswakeWeather } from '../weather/index.js';
 import { createCalvingPowder } from '../weather/calving-powder.js';
 
-const ASSET_URL = '/assets/levels/glasswake/glasswake-environment-v4.glb';
+const ASSET_URL = '/assets/levels/glasswake/glasswake-environment-v5.glb';
 const UP = new T.Vector3(0, 1, 0);
 const fract = (n) => n - Math.floor(n);
 const noise = (n) => fract(Math.sin(n * 172.41 + 41.7) * 4537.114);
@@ -65,8 +66,8 @@ export function createGlasswakeEnvironment({
   let referenceTexture = null;
   let currentSettings = settings;
   const metrics = {
-    assetBytes: 3041092,
-    sourceTriangles: 56580,
+    assetBytes: 2953172,
+    sourceTriangles: 65092,
     instances: 0,
     meshes: 0,
     triangles: 0,
@@ -150,7 +151,7 @@ export function createGlasswakeEnvironment({
       const mesh = new T.Mesh(part.geometry, part.material);
       mesh.name = name;
       mesh.castShadow = true;
-      mesh.receiveShadow = false;
+      mesh.receiveShadow = true;
       result.add(mesh);
     }
     parent.add(result);
@@ -167,7 +168,7 @@ export function createGlasswakeEnvironment({
         matrices.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
         mesh.name = `Glasswake / ${name} / ${matrices.length} authored forms`;
         mesh.castShadow = true;
-        mesh.receiveShadow = false;
+        mesh.receiveShadow = true;
         mesh.computeBoundingSphere();
         group.add(mesh);
       }
@@ -188,8 +189,9 @@ export function createGlasswakeEnvironment({
           side === 1 &&
           s > track.bridge.start - 200 &&
           s < track.bridge.end + 260;
+        let nearCliff;
         if (!inclusionWindow(s, side) && !calvingWindow)
-          place(
+          nearCliff = place(
             `cliff_${i % 3}`,
             s,
             side * (nearOffset + n * 18),
@@ -197,15 +199,15 @@ export function createGlasswakeEnvironment({
             [0.8 + n * 0.44, 0.94 + n * 0.52, 1.35 + noise(i + side) * 0.5],
             side * (n - 0.5) * 0.42,
           );
-        if (i % 2 === 0 && !calvingWindow)
-          place(
-            'rubble_shelf',
-            s + 32,
-            side * (inBridge ? 90 : 54),
-            -47 - n * 24,
-            [0.7, 0.7, 0.72],
-            n,
-          );
+        // Rubble ledges belong to the placed massif. Never independently push
+        // them outward: that left detached pads which could catch support rays.
+        if (i % 2 === 0 && nearCliff) {
+          const ledge = nearCliff
+            .clone()
+            .multiply(new T.Matrix4().makeTranslation(-side * 24, -30, 28))
+            .multiply(new T.Matrix4().makeScale(0.72, 0.72, 0.72));
+          addInstance('rubble_shelf', ledge);
+        }
         if (i % 3 === 0 && !calvingWindow)
           place(
             `cliff_${(i + 1) % 3}`,
@@ -492,6 +494,16 @@ export function createGlasswakeEnvironment({
       disposeResources(gltf.scene, new Set(), new Set());
       return false;
     }
+    const iceMaterial = new T.MeshStandardMaterial({
+      name: 'Glasswake composite ice',
+      color: '#ffffff',
+      vertexColors: true,
+      side: T.DoubleSide,
+      envMapIntensity: 0.35,
+    });
+    finishIceMaterial(iceMaterial, iceTexture, { composite: true });
+    if (referenceTexture) iceMaterial.envMap = referenceTexture;
+    materials.add(iceMaterial);
     for (const root of gltf.scene.children) {
       const parts = [];
       const bounds = new T.Box3();
@@ -511,7 +523,11 @@ export function createGlasswakeEnvironment({
         }
         parts.push({ geometry, material: node.material });
       });
-      if (parts.length) templates.set(root.name, { parts, bounds });
+      if (parts.length) {
+        const consolidated = consolidateIceParts(parts, iceMaterial);
+        if (consolidated.geometry) geometries.add(consolidated.geometry);
+        templates.set(root.name, { parts: consolidated.parts, bounds });
+      }
     }
     buildWorld();
     return true;
@@ -609,6 +625,7 @@ export function createGlasswakeEnvironment({
       );
       object.rotation.z = t * (chip ? -0.22 : -0.15 - index * 0.032);
       object.rotation.x = t * Math.sin(index) * 0.15;
+      object.rotation.y = t * Math.sin(index * 2.7) * 0.18;
     }
     cracks.forEach((mesh, i) => {
       const progress = Math.max(0, Math.min(1, event.crack * 1.5 - i * 0.058));

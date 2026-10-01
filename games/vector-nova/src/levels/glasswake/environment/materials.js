@@ -2,7 +2,11 @@
  * Triplanar metre coordinates require no UV unwrap; derivative relief and
  * luminance-driven roughness are artistic proxies, not scanned PBR measurements.
  */
-export function finishIceMaterial(material, texture = null) {
+export function finishIceMaterial(
+  material,
+  texture = null,
+  { composite = false } = {},
+) {
   if (
     !material.isMeshStandardMaterial ||
     /Titanium|Warm navigation|Deep cavity/.test(material.name)
@@ -12,7 +16,7 @@ export function finishIceMaterial(material, texture = null) {
     crust = /frost/.test(material.name);
   const road = /travel bands|fin ice/.test(material.name),
     fresh = /Fresh fracture/.test(material.name);
-  const textureScale = road ? 0.16 : dark ? 0.043 : 0.026;
+  const textureScale = road ? 0.16 : 0.039;
   material.roughness = crust ? 0.93 : dark ? 0.83 : fresh ? 0.23 : 0.44;
   material.metalness = dark ? 0.025 : 0.01;
   material.onBeforeCompile = (shader) => {
@@ -20,6 +24,9 @@ export function finishIceMaterial(material, texture = null) {
     shader.uniforms.hasGlasswakeIceMap = { value: texture ? 1 : 0 };
     shader.vertexShader =
       'varying vec3 vIcePoint; varying vec3 vIceNormal;\n' +
+      (composite
+        ? 'attribute float iceRoughness; attribute float iceRole; varying float vIceRoughness; varying float vIceRole;\n'
+        : '') +
       shader.vertexShader;
     shader.vertexShader = shader.vertexShader.replace(
       '#include <begin_vertex>',
@@ -31,15 +38,17 @@ export function finishIceMaterial(material, texture = null) {
         iceNormal=transpose(inverse(mat3(instanceMatrix)))*iceNormal;
       #endif
       vIcePoint=icePoint.xyz;vIceNormal=normalize(iceNormal);
+      ${composite ? 'vIceRoughness=iceRoughness;vIceRole=iceRole;' : ''}
     `,
     );
     shader.fragmentShader =
       `varying vec3 vIcePoint;varying vec3 vIceNormal;uniform sampler2D glasswakeIceMap;uniform float hasGlasswakeIceMap;
+      ${composite ? 'varying float vIceRoughness;varying float vIceRole;' : ''}
       float iceHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
       float iceNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
       return mix(mix(mix(iceHash(i),iceHash(i+vec3(1,0,0)),f.x),mix(iceHash(i+vec3(0,1,0)),iceHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(iceHash(i+vec3(0,0,1)),iceHash(i+vec3(1,0,1)),f.x),mix(iceHash(i+vec3(0,1,1)),iceHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
       vec3 iceDetail(vec3 p,vec3 n){
-        p+=vec3(iceNoise(p*.012),iceNoise(p*.017+21.),iceNoise(p*.015-13.))*8.;
+        p+=vec3(1.,.37,-.8)*iceNoise(p*.014)*8.;
         vec3 w=pow(abs(normalize(n)),vec3(6.));w/=max(.0001,w.x+w.y+w.z);
         vec3 a=texture2D(glasswakeIceMap,p.yz*${textureScale.toFixed(3)}+vec2(.31,.12)).rgb;
         vec3 b=texture2D(glasswakeIceMap,p.xz*${textureScale.toFixed(3)}+vec2(.17,.44)).rgb;
@@ -54,36 +63,42 @@ export function finishIceMaterial(material, texture = null) {
       vec3 p=vIcePoint;vec3 iceTex=iceDetail(p,vIceNormal);
       float iceLuma=dot(iceTex,vec3(.2126,.7152,.0722));
       float drift=iceNoise(p*.033),grain=iceNoise(p*2.7);
-      diffuseColor.rgb*=.87+drift*.25;
-      ${dark ? 'diffuseColor.rgb*=.65+drift*.55+grain*.06;' : crust ? 'diffuseColor.rgb*=.87+grain*.12;' : `diffuseColor.rgb=mix(diffuseColor.rgb,iceTex*(.45+diffuseColor.rgb*.48),${road ? '.23' : '.15'});`}
+      float role=${composite ? 'vIceRole' : dark ? '0.' : crust ? '2.' : fresh ? '3.' : '1.'};
+      float darkIce=1.-step(.5,role),frostIce=1.-step(.45,abs(role-2.)),freshIce=step(2.5,role);
+      diffuseColor.rgb*=.82+drift*.36;
+      vec3 detailed=mix(diffuseColor.rgb,iceTex*(.28+diffuseColor.rgb*.8),${road ? '.23' : '.27'}+freshIce*.06);
+      diffuseColor.rgb=mix(detailed,diffuseColor.rgb*(.78+drift*.35),darkIce);
       float cloud=iceNoise(vec3(p.x*.016,p.y*.045,p.z*.016));
-      diffuseColor.rgb*=.84+cloud*.32;
+      diffuseColor.rgb*=.82+cloud*.36;
+      float vein=smoothstep(.58,.79,iceLuma);
+      diffuseColor.rgb+=vec3(.045,.065,.073)*vein*(1.-darkIce);
       float deposit=smoothstep(.35,.82,normalize(vIceNormal).y)*(0.55+drift*.45);
-      diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.69,.79,.85),deposit*${dark ? '.06' : crust ? '.18' : '.09'});
-      diffuseColor.rgb+=vec3(.007,.009,.011)*smoothstep(.74,.91,grain);
+      diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.69,.79,.85),deposit*mix(.1,.24,frostIce)*(1.-darkIce*.55));
+      diffuseColor.rgb+=vec3(.008,.011,.013)*smoothstep(.74,.91,grain);
     `,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <roughnessmap_fragment>',
       `
       #include <roughnessmap_fragment>
-      roughnessFactor=clamp(roughnessFactor+(iceLuma-.3)*.18+(grain-.5)*.045,.26,.94);
+      ${composite ? 'roughnessFactor=vIceRoughness;' : ''}
+      roughnessFactor=clamp(roughnessFactor+(cloud-.5)*.22+(iceLuma-.35)*.3+(grain-.5)*.065,.18,.96);
     `,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <normal_fragment_maps>',
       `
       #include <normal_fragment_maps>
-      float iceHeight=iceNoise(p*.29)*.08+iceNoise(p*2.7)*.003+iceLuma*.018;
+      float iceHeight=iceLuma*.04+vein*.022+grain*.0009;
       vec3 sigmaX=dFdx(-vViewPosition),sigmaY=dFdy(-vViewPosition);
       vec3 r1=cross(sigmaY,normal),r2=cross(normal,sigmaX);float det=dot(sigmaX,r1);
       vec3 grad=sign(det)*(dFdx(iceHeight)*r1+dFdy(iceHeight)*r2);
-      normal=normalize(abs(det)*normal-grad*.28);
+      normal=normalize(abs(det)*normal-grad*.38);
     `,
     );
   };
   material.customProgramCacheKey = () =>
-    `glasswake-ice-detail-v4:${dark}:${crust}:${road}:${fresh}:${Boolean(texture)}`;
+    `glasswake-ice-detail-v5:${composite}:${dark}:${crust}:${road}:${fresh}:${Boolean(texture)}`;
 }
 
 /** A light frost/vein veil on clear panes. Keep the transparent view into real

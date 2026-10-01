@@ -13,7 +13,7 @@ import {
 } from '../src/levels/glasswake/environment/event.js';
 const track = createGlasswakeTrack();
 const assetPath = new URL(
-  '../public/assets/levels/glasswake/glasswake-environment-v4.glb',
+  '../public/assets/levels/glasswake/glasswake-environment-v5.glb',
   import.meta.url,
 );
 async function loadAsset() {
@@ -371,9 +371,27 @@ test('actual calving meshes clear the banked route and sampled flight/camera env
       });
     });
     meshCount = actual.length;
-    assert.ok(
-      meshCount > 70,
-      'test includes the actual multipart cavity, veins, seams and moving faces',
+    const names = new Set(actual.map((mesh) => mesh.name));
+    for (const name of [
+      'calving_back',
+      'calving_roof',
+      'calving_floor',
+      ...Array.from({ length: 4 }, (_, i) => `calving_ledge_${i}`),
+      ...Array.from(
+        { length: 9 },
+        (_, i) => `calving_chunk_${String(i).padStart(2, '0')}`,
+      ),
+      ...Array.from(
+        { length: 6 },
+        (_, i) => `calving_chip_${String(i).padStart(2, '0')}`,
+      ),
+      ...Array.from({ length: 9 }, (_, i) => `cavity_vein_${i}`),
+      ...Array.from({ length: 3 }, (_, i) => `cavity_rib_${i}`),
+    ])
+      assert.ok(names.has(name), `actual shelf component ${name} retained`);
+    assert.equal(
+      actual.filter((mesh) => mesh.name === 'Propagating fracture seam').length,
+      8,
     );
     for (const mesh of actual)
       for (const corridor of corridors) {

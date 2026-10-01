@@ -12,7 +12,7 @@ test('every production shoe straddles an actual static geological triangle, incl
     road = buildGlasswakeRoad(track);
   const bytes = await readFile(
     new URL(
-      '../public/assets/levels/glasswake/glasswake-environment-v4.glb',
+      '../public/assets/levels/glasswake/glasswake-environment-v5.glb',
       import.meta.url,
     ),
   );

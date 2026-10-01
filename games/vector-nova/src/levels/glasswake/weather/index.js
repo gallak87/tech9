@@ -94,10 +94,10 @@ export function createGlasswakeWeather({ track, shape = false }) {
       const weather = sampleGlasswakeWeather(track, state, settings);
       let count = 0;
       for (const layer of layers) {
-        const quality = settings.quality === 'low' ? 0.65 : 1;
+        const quality = settings.quality === 'low' ? 0.8 : 1;
         const intensity = reviewing
           ? 0
-          : weather.storm * (settings.reducedMotion ? 0.7 : 1);
+          : weather.storm * (settings.reducedMotion ? 0.9 : 1);
         layer.geometry.instanceCount = Math.round(
           layer.capacity * intensity * quality,
         );

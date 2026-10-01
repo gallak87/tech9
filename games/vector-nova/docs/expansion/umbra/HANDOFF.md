@@ -1,12 +1,32 @@
-# Map 10 — Umbra Fold: level completion brief
+# Map 10 — Umbra Fold: replacement session handoff
 
 ## Assignment and authority
 
 **Goal:** Finish a gravity-observatory circuit with tidal line control, curved airborne crossings, continuous debris consumption and one enormous spaghettification event.
 
-Read this brief, [the common execution rules](../README.md) and the current [level API](../../LEVEL_API.md) from the primary worktree when the user resumes you. Continue your existing level work with the latest primary code. Consult architecture/art sections as needed.
+Read the current version of this handoff from the primary worktree. Take over the existing authored level and complete it using the startup instructions below.
 
 Own `umbra` through production, critique, necessary shared framework/environment/tooling improvements, final mobile verification, commit and merge into the primary worktree. Follow the [completion ownership rules](../README.md#worktree-and-completion-ownership). Start your own preview on a free port; use `?level=umbra` and `&review=shape`. Chat sequencing belongs to the user. Keep progress in the chat and expansion notes in this folder. Document reusable technical changes with their APIs.
+
+## Start here: replacement session
+
+Existing worktree: `/Users/g/.codex/worktrees/fzero-umbra1/tech9`. Existing branch: `codex/fzero-umbra1`. Primary worktree: `/Users/g/code/scratch/tech9`.
+
+1. Read the current primary's `games/vector-nova/AGENTS.md`, this handoff, [common execution rules](../README.md) and [level API](../../LEVEL_API.md). Consult architecture/art sections as needed.
+2. Preserve existing committed and uncommitted gameplay/asset work, then merge the latest commit currently checked out in the primary worktree into this existing branch before implementation or critic round 1. Resolve conflicts retaining authored work, integrated levels and shared improvements; use the primary's current docs and process-file deletions. Build and run affected checks before continuing.
+3. Begin a fresh formal critic cycle at round 1. Keep the existing implementation, selected artwork and useful learnings. Stop when every applicable category reaches at least 9/10 with evidence and no critical failures, or after 8 completed formal rounds, whichever comes first. Use one counter for the whole desktop finish, including sky/lighting changes; complete mobile last, then commit, merge and verify the primary game.
+
+### Preserve existing artwork and useful fixes
+
+Sources are in `games/vector-nova/assets/levels/umbra/` inside the existing worktree. Preserve `umbra-scene-reference.png`, `provenance.json`, `umbra-observatory.blend` and `build_umbra_assets.py`, their runtime exports and any newer authored versions. View the selected scene reference before making art changes and carry useful technical learnings forward from source/provenance and existing evidence. Keep raw captures/reports ignored.
+
+Preserve the observatory kit, grounded inversion/fold, airborne steering checks and final shared deck/rail contact behavior. Establish a visible, correctly framed production world before critique; investigate the user's reported black 3D viewport with visible HUD/minimap. Verify actual tidal countersteering, curved landings and recovery, then finish continuous accretion and the enormous stretching object.
+
+### Selected generated sky
+
+Use the [original sky panorama](../../../assets/levels/umbra/umbra-sky-v1.png), [exact generation prompt](../../../assets/levels/umbra/sky-prompt.txt) and [sky provenance](../../../assets/levels/umbra/SKY_PROVENANCE.md) brought in from the primary worktree. Use the selected graphite/ink-blue starfield with sparse stars and faint silver-blue/violet dust to give distant depth in every direction. Keep the black hole, luminous accretion ring, lensing and consumed structures as separate scene content. Populate and light views away from the ring while keeping the road legible.
+
+Follow the [sky integration checks](../README.md#generated-sky-panoramas), preserve the source image and export a runtime texture under `public/assets/levels/umbra/`. Confirm seam/horizon, exposure, loading/disposal and high/low/reduced motion on the actual production build. Nearby scenery and gameplay remain authored 3D content.
 
 ## Defining interactions and spectacle
 

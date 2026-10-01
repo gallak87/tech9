@@ -1,12 +1,32 @@
-# Map 9 — Helion Flare: level completion brief
+# Map 9 — Helion Flare: replacement session handoff
 
 ## Assignment and authority
 
 **Goal:** Finish a solar-observatory circuit with flare-lane evasion, mandatory heat passages and optional sheltered jumps, a couple of gigantic solar flares and readable exposure/shade transitions.
 
-Read this brief, [the common execution rules](../README.md) and the current [level API](../../LEVEL_API.md) from the primary worktree when the user resumes you. Continue your existing level work with the latest primary code. Consult architecture/art sections as needed.
+Read the current version of this handoff from the primary worktree. Take over the existing authored level and complete it using the startup instructions below.
 
 Own `helion` through production, critique, necessary shared framework/environment/tooling improvements, final mobile verification, commit and merge into the primary worktree. Follow the [completion ownership rules](../README.md#worktree-and-completion-ownership). Start your own preview on a free port; use `?level=helion` and `&review=shape`. Chat sequencing belongs to the user. Keep progress in the chat and expansion notes in this folder. Document reusable technical changes with their APIs.
+
+## Start here: replacement session
+
+Existing worktree: `/Users/g/.codex/worktrees/fzero-helion1/tech9`. Existing branch: `codex/fzero-helion1`. Primary worktree: `/Users/g/code/scratch/tech9`.
+
+1. Read the current primary's `games/vector-nova/AGENTS.md`, this handoff, [common execution rules](../README.md) and [level API](../../LEVEL_API.md). Consult architecture/art sections as needed.
+2. Preserve existing committed and uncommitted gameplay/asset work, then merge the latest commit currently checked out in the primary worktree into this existing branch before implementation or critic round 1. Resolve conflicts retaining authored work, integrated levels and shared improvements; use the primary's current docs and process-file deletions. Build and run affected checks before continuing.
+3. Begin a fresh formal critic cycle at round 1. Keep the existing implementation, selected artwork and useful learnings. Stop when every applicable category reaches at least 9/10 with evidence and no critical failures, or after 8 completed formal rounds, whichever comes first. Use one counter for the whole desktop finish, including sky/lighting changes; complete mobile last, then commit, merge and verify the primary game.
+
+### Preserve existing artwork and useful fixes
+
+Sources are in `games/vector-nova/assets/levels/helion/` inside the existing worktree. Preserve `reference/thermal-observatory-scene.png`, `reference/prompt.txt`, `provenance.json`, `blender/thermal-observatory.blend` and `blender/build_helion.py`, their runtime exports and any newer authored versions. View the selected scene reference before making art changes and carry useful technical learnings forward from source/provenance and existing evidence. Keep raw captures/reports ignored.
+
+Preserve the observatory kit, heat/contact logic, shared landing/contact fixes and responsive mechanic feedback. Confirm production rendering and real-input flare evasion, mandatory furnace passages, cooling strips and sheltered jumps. Keep useful existing checks and remove obsolete scheduling dependencies from verification scripts when updating them.
+
+### Selected generated sky
+
+Use the [original sky panorama](../../../assets/levels/helion/helion-sky-v1.png), [exact generation prompt](../../../assets/levels/helion/sky-prompt.txt) and [sky provenance](../../../assets/levels/helion/SKY_PROVENANCE.md) brought in from the primary worktree. Use the selected restrained deep-space starfield with fine cold stellar dust, dark negative space and subtle copper horizon glow. Keep the star limb, radiance and gigantic prominences as separate scene effects with their own local illumination. Verify white tile shape and readable shield shade at peak exposure.
+
+Follow the [sky integration checks](../README.md#generated-sky-panoramas), preserve the source image and export a runtime texture under `public/assets/levels/helion/`. Confirm seam/horizon, exposure, loading/disposal and high/low/reduced motion on the actual production build. Nearby scenery and gameplay remain authored 3D content.
 
 ## Defining interactions and spectacle
 

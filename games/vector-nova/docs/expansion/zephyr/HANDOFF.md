@@ -1,12 +1,32 @@
-# Map 8 — Zephyr Basilica: level completion brief
+# Map 8 — Zephyr Basilica: replacement session handoff
 
 ## Assignment and authority
 
 **Goal:** Finish a floating-cathedral circuit through windows, naves and waterfall jumps, with a falling tower/island event and convincing dark-interior/bright-exterior light.
 
-Read this brief, [the common execution rules](../README.md) and the current [level API](../../LEVEL_API.md) from the primary worktree when the user resumes you. Continue your existing level work with the latest primary code. Consult architecture/art sections as needed.
+Read the current version of this handoff from the primary worktree. Take over the existing authored level and complete it using the startup instructions below.
 
 Own `zephyr` through production, critique, necessary shared framework/environment/tooling improvements, final mobile verification, commit and merge into the primary worktree. Follow the [completion ownership rules](../README.md#worktree-and-completion-ownership). Start your own preview on a free port; use `?level=zephyr` and `&review=shape`. Chat sequencing belongs to the user. Keep progress in the chat and expansion notes in this folder. Document reusable technical changes with their APIs.
+
+## Start here: replacement session
+
+Existing worktree: `/Users/g/.codex/worktrees/fzero-zephyr1/tech9`. Existing branch: `codex/fzero-zephyr1`. Primary worktree: `/Users/g/code/scratch/tech9`.
+
+1. Read the current primary's `games/vector-nova/AGENTS.md`, this handoff, [common execution rules](../README.md) and [level API](../../LEVEL_API.md). Consult architecture/art sections as needed.
+2. Preserve existing committed and uncommitted gameplay/asset work, then merge the latest commit currently checked out in the primary worktree into this existing branch before implementation or critic round 1. Resolve conflicts retaining authored work, integrated levels and shared improvements; use the primary's current docs and process-file deletions. Build and run affected checks before continuing.
+3. Begin a fresh formal critic cycle at round 1. Keep the existing implementation, selected artwork and useful learnings. Stop when every applicable category reaches at least 9/10 with evidence and no critical failures, or after 8 completed formal rounds, whichever comes first. Use one counter for the whole desktop finish, including sky/lighting changes; complete mobile last, then commit, merge and verify the primary game.
+
+### Preserve existing artwork and useful fixes
+
+Sources are in `games/vector-nova/assets/levels/zephyr/` inside the existing worktree. Preserve `zephyr-scene-reference.png`, `README.md`, `zephyr-asset-library.blend`, `build_assets.py` and `validate_assets.py`, their runtime exports and any newer authored versions. View the selected scene reference before making art changes and carry useful technical learnings forward from source/provenance and existing evidence. Keep raw captures/reports ignored.
+
+Preserve the cathedral/island kit, curtain-water persistence through flight, compact HUD behavior and asset-load failure cleanup. Verify the rose-window/nave/chapel traversal and waterfall-to-jump visibility with actual inputs. Keep useful existing checks and remove obsolete scheduling dependencies from verification scripts when updating them.
+
+### Selected generated sky
+
+Use the [original sky panorama](../../../assets/levels/zephyr/zephyr-sky-v1.png), [exact generation prompt](../../../assets/levels/zephyr/sky-prompt.txt) and [sky provenance](../../../assets/levels/zephyr/SKY_PROVENANCE.md) brought in from the primary worktree. Use the selected vast ivory/lavender/peach cloud panorama with open azure gaps and layered atmospheric depth. Compose real floating islands, cathedrals and waterfalls against it, then check dark nave exits and backlit landing shelves.
+
+Follow the [sky integration checks](../README.md#generated-sky-panoramas), preserve the source image and export a runtime texture under `public/assets/levels/zephyr/`. Confirm seam/horizon, exposure, loading/disposal and high/low/reduced motion on the actual production build. Nearby scenery and gameplay remain authored 3D content.
 
 ## Defining interactions and spectacle
 

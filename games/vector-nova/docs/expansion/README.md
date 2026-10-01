@@ -44,15 +44,17 @@ Defining interactions and lighting take precedence over illustrative district ta
 
 Use scene imagegen → Blender geometry/materials/animation → in-game iteration for major bespoke architecture, creatures, terrain and spectacle. Small props, repeats, road panels, particles and suitable procedural elements do not need this pipeline.
 
-1. Choose a useful scene reference with road/ship scale, composition, materials and lighting.
+1. View the existing selected scene drawing first. Use its palette, lighting balance, material response, large forms and layered depth as the visual target while preserving the brief's playable interactions and road/ship scale.
 2. Build real geometry for gameplay views, interiors and silhouettes; shaders and particles may complement it.
 3. Export early and inspect in the actual driving camera and level lighting. Fix large forms first and reuse authored families for secondary scenery.
 
 Retain selected references, editable sources or reproducible generators, provenance and licences with the assets. Keep temporary renders ignored. Assets, lighting and whole-level finish share the same critic counter.
 
+Compare the actual driving and inspection views against the selected drawing throughout production. Carry its visual quality into ordinary stretches as well as hero vistas: recognizable silhouettes, purposeful near/middle/far layers, natural surface detail, convincing light and shadow, and readable material differences. Sky polish alone does not finish the world. The independent critic should use the drawing when assessing whether the actual geometry, lighting and materials achieve the intended art direction.
+
 ## Generated sky panoramas
 
-Each level brief links its selected original generated sky, exact generation prompt and provenance under `assets/levels/<slug>/`. Preserve these files when updating the branch. Glasswake's chosen violet-green aurora is already generated; the other levels have their own atmospheric or space panoramas. Use the selected native image as the starting point and export the runtime texture under `public/assets/levels/<slug>/` when integrating it.
+Each level brief links its selected sky, exact generation prompt and provenance under `assets/levels/<slug>/`. Cindercoil, Saffron, Zephyr, Helion and Umbra use their original scene drawings as image references for the selected panoramas' palette, atmosphere, lighting and cloud/star character; those drawings are preserved alongside their asset sources. Glasswake's existing selected aurora stays with its current level owner. Preserve the sources when updating the branch, use the selected native panorama as the starting point and export the runtime texture under `public/assets/levels/<slug>/` when integrating it. Earlier source versions remain available with their prompts.
 
 Integrate the panorama into the level's own backdrop and inspect it in the actual driving camera around the whole course. Check spherical mapping, horizontal wrap, seam, zenith/nadir, horizon orientation, exposure, loading and disposal. Match the world's local lighting and reflections to the sky without treating the image as HDR data. Preserve high/low identity, shape-review behavior and reduced motion. A simple gradient or procedural sky is useful as a fallback; the finished world should use its selected detailed image.
 

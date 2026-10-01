@@ -24,7 +24,7 @@ Preserve the corrected landing rules, shared deck/rail contact behavior, compact
 
 ### Selected generated sky
 
-Use the [original sky panorama](../../../assets/levels/saffron/saffron-sky-v1.png), [exact generation prompt](../../../assets/levels/saffron/sky-prompt.txt) and [sky provenance](../../../assets/levels/saffron/SKY_PROVENANCE.md) brought in from the primary worktree. Use the selected immense dry sky with pale saffron/apricot horizon light, lavender haze, clear soft blue above and finely resolved cirrus. Match pale sun and warm sand bounce to the panorama, preserving fossil silhouettes and readable skull interiors.
+Use the [selected reference-guided sky](../../../assets/levels/saffron/saffron-sky-v2.png), [exact generation prompt](../../../assets/levels/saffron/sky-prompt-v2.txt) and [sky provenance](../../../assets/levels/saffron/SKY_PROVENANCE.md) brought in from the primary worktree. Match the [original scene drawing](../../../assets/levels/saffron/scene-reference.png): luminous pale lavender/lilac dry daylight, calm open atmosphere, soft golden illumination and a faint large moon. Preserve the selected image's moon and avoid also drawing the old procedural moon disk. Align the separate sun/light direction, warm sand bounce and readable bone interiors with the reference; avoid changing the world to blue/peach sunset.
 
 Follow the [sky integration checks](../README.md#generated-sky-panoramas), preserve the source image and export a runtime texture under `public/assets/levels/saffron/`. Confirm seam/horizon, exposure, loading/disposal and high/low/reduced motion on the actual production build. Nearby scenery and gameplay remain authored 3D content.
 

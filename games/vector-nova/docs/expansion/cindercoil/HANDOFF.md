@@ -24,7 +24,7 @@ Preserve the ceramic/volcanic material refinements, authored caldera kit and sha
 
 ### Selected generated sky
 
-Use the [original sky panorama](../../../assets/levels/cindercoil/cindercoil-sky-v1.png), [exact generation prompt](../../../assets/levels/cindercoil/sky-prompt.txt) and [sky provenance](../../../assets/levels/cindercoil/SKY_PROVENANCE.md) brought in from the primary worktree. Use the selected sculptural charcoal/slate ash-cloud panorama with restrained ember light along the low clouds and clear cool upper atmosphere. Match the lava's local illumination to that contrast while keeping surge boundaries and protected lines readable.
+Use the [selected reference-guided sky](../../../assets/levels/cindercoil/cindercoil-sky-v2.png), [exact generation prompt](../../../assets/levels/cindercoil/sky-prompt-v2.txt) and [sky provenance](../../../assets/levels/cindercoil/SKY_PROVENANCE.md) brought in from the primary worktree. Match the [original scene drawing](../../../assets/levels/cindercoil/reference/cindercoil-scene-v1.png): cool slate/violet-grey ash dusk, soft diffuse cloud volume and a pale muted horizon. Keep lava warmth concentrated in the world and reflected onto nearby rock/ceramic; the sky should support that contrast without becoming a red sunset or orange storm.
 
 Follow the [sky integration checks](../README.md#generated-sky-panoramas), preserve the source image and export a runtime texture under `public/assets/levels/cindercoil/`. Confirm seam/horizon, exposure, loading/disposal and high/low/reduced motion on the actual production build. Nearby scenery and gameplay remain authored 3D content.
 

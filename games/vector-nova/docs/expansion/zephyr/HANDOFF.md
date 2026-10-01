@@ -24,7 +24,7 @@ Preserve the cathedral/island kit, curtain-water persistence through flight, com
 
 ### Selected generated sky
 
-Use the [original sky panorama](../../../assets/levels/zephyr/zephyr-sky-v1.png), [exact generation prompt](../../../assets/levels/zephyr/sky-prompt.txt) and [sky provenance](../../../assets/levels/zephyr/SKY_PROVENANCE.md) brought in from the primary worktree. Use the selected vast ivory/lavender/peach cloud panorama with open azure gaps and layered atmospheric depth. Compose real floating islands, cathedrals and waterfalls against it, then check dark nave exits and backlit landing shelves.
+Use the [selected reference-guided sky](../../../assets/levels/zephyr/zephyr-sky-v2.png), [exact generation prompt](../../../assets/levels/zephyr/sky-prompt-v2.txt) and [sky provenance](../../../assets/levels/zephyr/SKY_PROVENANCE.md) brought in from the primary worktree. Match the [original scene drawing](../../../assets/levels/zephyr/zephyr-scene-reference.png): luminous ivory/peach/lavender cloud banks, soft gold backlight, violet shadow volume and deep open cloud shelves around the floating architecture. Carry this light into weathered stone, bronze supports, dark naves and layered waterfalls while preserving landing visibility.
 
 Follow the [sky integration checks](../README.md#generated-sky-panoramas), preserve the source image and export a runtime texture under `public/assets/levels/zephyr/`. Confirm seam/horizon, exposure, loading/disposal and high/low/reduced motion on the actual production build. Nearby scenery and gameplay remain authored 3D content.
 

@@ -24,7 +24,7 @@ Preserve the observatory kit, grounded inversion/fold, airborne steering checks 
 
 ### Selected generated sky
 
-Use the [original sky panorama](../../../assets/levels/umbra/umbra-sky-v1.png), [exact generation prompt](../../../assets/levels/umbra/sky-prompt.txt) and [sky provenance](../../../assets/levels/umbra/SKY_PROVENANCE.md) brought in from the primary worktree. Use the selected graphite/ink-blue starfield with sparse stars and faint silver-blue/violet dust to give distant depth in every direction. Keep the black hole, luminous accretion ring, lensing and consumed structures as separate scene content. Populate and light views away from the ring while keeping the road legible.
+Use the [selected reference-guided sky](../../../assets/levels/umbra/umbra-sky-v2.png), [exact generation prompt](../../../assets/levels/umbra/sky-prompt-v2.txt) and [sky provenance](../../../assets/levels/umbra/SKY_PROVENANCE.md) brought in from the primary worktree. Match the [original scene drawing](../../../assets/levels/umbra/umbra-scene-reference.png): deep navy/graphite space with fine blue-white stellar depth behind the warm luminous ring and ruined pale observatory. Keep the black hole, photon rim, accretion ring, lensing and consumed structures as separate scene effects. Preserve the reference's warm/cool contrast, layered ruins and lit views away from the ring.
 
 Follow the [sky integration checks](../README.md#generated-sky-panoramas), preserve the source image and export a runtime texture under `public/assets/levels/umbra/`. Confirm seam/horizon, exposure, loading/disposal and high/low/reduced motion on the actual production build. Nearby scenery and gameplay remain authored 3D content.
 

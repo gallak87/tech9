@@ -1,7 +1,9 @@
 # Map 10 — Umbra Fold sky panorama
 
-[Native source image](umbra-sky-v1.png); [exact generation prompt](sky-prompt.txt).
+Selected source: [reference-guided panorama](umbra-sky-v2.png) and [exact generation prompt](sky-prompt-v2.txt).
 
-Original opaque 2:1 sky/space panorama generated with the built-in imagegen tool on 2026-09-30. No reference image or external artwork was supplied. No third-party assets or licences are involved.
+Generated with the built-in imagegen tool using the project's [original scene drawing](umbra-scene-reference.png) as the image reference for palette, atmosphere, lighting and celestial detail. The original drawing is preserved unchanged. No external artwork or third-party assets were supplied.
 
-The PNG contains bounded image color, not captured HDR radiance. It supplies distant atmosphere/space; the level's terrain, architecture, lighting, events and gameplay are authored separately. Preserve this native source when exporting the runtime texture.
+Earlier source: [first panorama](umbra-sky-v1.png) and [its exact prompt](sky-prompt.txt), generated without reference images.
+
+The PNGs contain bounded image color, not captured HDR radiance. They supply distant atmosphere/space; terrain, architecture, lighting, events and gameplay are authored separately. Preserve native source images when exporting runtime textures.

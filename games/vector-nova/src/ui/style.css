@@ -1083,3 +1083,286 @@ select {
   opacity: 0;
   background: #d4eaff;
 }
+
+/* Expansion opt-in: disjoint telemetry, map and review regions at short widths. */
+@media (max-height: 570px) and (orientation: landscape) {
+  #interface.compact-landscape.driving .top-telemetry {
+    top: 74px;
+    gap: 22px;
+  }
+  #interface.compact-landscape.driving .lap b {
+    font-size: 32px;
+  }
+  #interface.compact-landscape.driving .timing b {
+    font-size: 23px;
+  }
+  #interface.compact-landscape.driving .timing small {
+    font-size: 8px;
+  }
+  #interface.compact-landscape.driving .section-name {
+    display: none;
+  }
+  #interface.compact-landscape.driving #minimap {
+    top: 76px;
+    left: auto;
+    right: 4vw;
+    bottom: auto;
+    width: 94px;
+    height: 70px;
+  }
+  #interface.compact-landscape.driving .telemetry {
+    bottom: 92px;
+  }
+  #interface.compact-landscape.driving .energy {
+    width: 160px;
+  }
+  #interface.compact-landscape.driving .energy span {
+    font-size: 8px;
+    letter-spacing: 0.08em;
+  }
+  #interface.compact-landscape.driving .energy small {
+    font-size: 8px;
+    line-height: 1.2;
+  }
+  #interface.compact-landscape.driving .speed strong {
+    font-size: 48px;
+  }
+  #interface.compact-landscape.driving .speed {
+    gap: 6px;
+  }
+  #interface.compact-landscape.driving .speed i {
+    font-size: 8px;
+    bottom: -14px;
+  }
+  #interface.compact-landscape.driving #shape-controls {
+    top: 148px;
+    bottom: auto;
+    left: 4vw;
+    right: auto;
+    width: 170px;
+    padding: 6px;
+    max-height: calc(100dvh - 230px);
+    overflow: auto;
+  }
+  #interface.compact-landscape.driving
+    #shape-controls:has(#review-toggle[aria-expanded='true']) {
+    left: calc(50% - 130px);
+    width: 260px;
+  }
+  #interface.compact-landscape.driving #review-toggle {
+    font-size: 10px;
+    padding: 5px 2px;
+  }
+  #interface.compact-landscape.driving .shape-jump {
+    display: grid;
+    margin-top: 8px;
+  }
+  #interface.compact-landscape.driving .shape-views {
+    margin-bottom: 8px;
+  }
+  #interface.compact-landscape.driving #notice {
+    top: 48px;
+    bottom: auto;
+    width: min(260px, calc(100vw - 380px));
+    font-size: 10px;
+    line-height: 1.25;
+    padding: 5px 8px;
+  }
+  #interface.compact-landscape.driving #touch {
+    position: absolute;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    left: 3vw;
+    right: 3vw;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  #interface.compact-landscape.driving #touch > div {
+    display: flex;
+    gap: 5px;
+    align-items: flex-end;
+  }
+  #interface.compact-landscape.driving #touch button {
+    font-size: 9px;
+    touch-action: none;
+    background: #142732b8;
+    border-color: #9bb3bb66;
+    min-width: 44px;
+    min-height: 48px;
+    padding: 14px 10px;
+  }
+  #interface.compact-landscape.driving #legend,
+  #interface.compact-landscape.driving .review-tag {
+    display: none;
+  }
+}
+
+@media (max-height: 570px) and (orientation: landscape) {
+  #interface.compact-landscape.driving:has(#review-toggle[aria-expanded='true'])
+    #notice {
+    top: 48px;
+    bottom: auto;
+  }
+}
+
+@media (max-width: 760px) and (min-height: 700px) and (orientation: portrait) {
+  #interface.compact-landscape.driving #notice {
+    top: auto;
+    bottom: 235px;
+    width: calc(100vw - 32px);
+    font-size: 11px;
+    line-height: 1.25;
+    padding: 6px 8px;
+  }
+}
+
+/* Opt-in upper portrait HUD leaves the lower chase craft and touch row clear.
+   Reserve a separate cue/notice band; expanded review uses the next two bands. */
+@media (max-width: 760px) and (min-height: 700px) and (orientation: portrait) {
+  #interface.portrait-compact-hud.driving .telemetry {
+    top: 272px;
+    bottom: auto;
+    align-items: flex-start;
+  }
+  #interface.portrait-compact-hud.driving .energy {
+    font-size: 8px;
+    line-height: 1.2;
+  }
+  #interface.portrait-compact-hud.driving .energy span {
+    font-size: 8px;
+  }
+  #interface.portrait-compact-hud.driving .energy-track {
+    margin: 6px 0;
+  }
+  #interface.portrait-compact-hud.driving .energy small {
+    display: block;
+    font-size: 8px;
+    line-height: 1.2;
+  }
+  #interface.portrait-compact-hud.driving .speed strong {
+    font-size: 34px;
+  }
+  #interface.portrait-compact-hud.driving .speed i {
+    font-size: 8px;
+    bottom: -14px;
+  }
+  #interface.portrait-compact-hud.driving #notice {
+    top: 330px;
+    bottom: auto;
+    width: calc(100vw - 32px);
+    font-size: 11px;
+    line-height: 1.25;
+    padding: 6px 8px;
+  }
+  #interface.portrait-compact-hud.driving:has(
+      #review-toggle[aria-expanded='true']
+    )
+    .telemetry {
+    top: 468px;
+  }
+  #interface.portrait-compact-hud.driving:has(
+      #review-toggle[aria-expanded='true']
+    )
+    #notice {
+    top: 420px;
+  }
+}
+
+/* Expansion review controls occupy their own desktop band above the map. */
+@media (min-width: 761px) and (min-height: 701px) {
+  #interface.compact-landscape.driving .section-name {
+    align-self: flex-start;
+  }
+  #interface.compact-landscape.driving #shape-controls {
+    top: 182px;
+  }
+  #interface.compact-landscape.driving #minimap {
+    top: 428px;
+    height: clamp(80px, calc(100dvh - 625px), 120px);
+    width: calc(clamp(80px, calc(100dvh - 625px), 120px) * 4 / 3);
+  }
+}
+
+/* Free-camera inspection retains the full world with a compact control strip. */
+#fly-camera {
+  width: 100%;
+  margin-bottom: 14px;
+}
+.fly-camera-active {
+  touch-action: none;
+  cursor: grab;
+}
+.fly-camera-active:active {
+  cursor: grabbing;
+}
+.flying #legend,
+.flying .review-tag {
+  display: none;
+}
+#fly-controls {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(620px, calc(100% - 32px));
+  padding: 16px;
+  background: #14222eeb;
+  border: 1px solid #ffffff30;
+  pointer-events: auto;
+  font-size: 11px;
+}
+.fly-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.fly-heading small {
+  display: block;
+  margin-top: 5px;
+  color: #b1c4c7;
+  font-size: 9px;
+}
+.fly-heading button {
+  padding: 10px;
+  font-size: 10px;
+}
+#fly-controls p {
+  color: #c4d2d4;
+  line-height: 1.6;
+  margin: 12px 0;
+}
+.fly-touch {
+  display: none;
+}
+@media (pointer: coarse) {
+  .fly-touch {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .fly-touch button {
+    padding: 12px 6px;
+    touch-action: none;
+    font-size: 10px;
+  }
+  #fly-controls {
+    bottom: 12px;
+    padding: 12px;
+  }
+}
+
+@media (pointer: coarse) {
+  #fly-controls p {
+    display: none;
+  }
+  #fly-controls label {
+    margin-top: 10px;
+  }
+}
+@media (pointer: coarse) and (min-width: 600px) {
+  .fly-touch {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}

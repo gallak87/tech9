@@ -2,7 +2,7 @@
 
 ## Current position
 
-Approved and merged: Halcyon Viaduct, Asterion Orbital, Nacre Tempest, the initial Halcyon boost/shield devices and the Blender Kestrel with stronger blue exhaust. Completed review history is in Git.
+Approved and merged: Halcyon Viaduct, Asterion Orbital, Nacre Tempest, Vesper Canopy, the initial Halcyon boost/shield devices and the Blender Kestrel with stronger blue exhaust. Completed review history is in Git.
 
 ## Next: integration and shared cleanup
 
@@ -24,7 +24,7 @@ Each map gets an independent isolated build, internal shape checks, full product
 
 | Map                   | Direction and owned brief                                                                                 |
 | --------------------- | --------------------------------------------------------------------------------------------------------- |
-| 4 — Vesper Canopy     | [Living-tree interiors, crown jumps, sap lines and a canopy creature](docs/expansion/vesper/HANDOFF.md)   |
+| 4 — Vesper Canopy     | [Complete: living-tree interiors, crown jumps and sap lines](docs/expansion/vesper/STATUS.json)           |
 | 5 — Glasswake Comet   | [Crystal fracture jumps, frost/grip choices and a calving ice shelf](docs/expansion/glasswake/HANDOFF.md) |
 | 6 — Cindercoil        | [Lava-surge route choices, a vent launch and a rupturing caldera](docs/expansion/cindercoil/HANDOFF.md)   |
 | 7 — Saffron Leviathan | [Skull/vertebral traversal, sand crossings and a living burrower](docs/expansion/saffron/HANDOFF.md)      |

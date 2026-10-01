@@ -1,12 +1,17 @@
 import * as T from 'three';
+import { createSafeFrame } from './safe-frame.js';
 export function createCameraRig(
   camera,
   {
     preserveFlightView = false,
     portraitAspect = 0,
     maxPortraitScale = 1.5,
+    safeFrame,
   } = {},
+  subjectBounds = null,
 ) {
+  const fitSubject =
+    safeFrame === undefined ? null : createSafeFrame(safeFrame, subjectBounds);
   let initialized = false;
   const previousAnchor = new T.Vector3();
   const previousFrame = new T.Quaternion();
@@ -29,7 +34,12 @@ export function createCameraRig(
       track,
       state,
       dt,
-      { mode = 'chase', reducedMotion = false, worldPose = null } = {},
+      {
+        mode = 'chase',
+        reducedMotion = false,
+        worldPose = null,
+        subject = null,
+      } = {},
     ) {
       const worldMotion = !!worldPose && !worldPose.grounded;
       const f = worldMotion
@@ -176,7 +186,6 @@ export function createCameraRig(
         desiredRotation,
         initialized ? 1 - Math.exp(-dt * 12) : 1,
       );
-      camera.up.copy(localUp).applyQuaternion(camera.quaternion);
       const baseFov =
         61 + (reducedMotion ? 0 : Math.min(state.speed / 157, 1) * 7);
       // A level can opt into more vertical room in narrow portrait viewports.
@@ -199,6 +208,9 @@ export function createCameraRig(
       camera.fov +=
         (fov - camera.fov) * (initialized ? 1 - Math.exp(-dt * 4) : 1);
       camera.updateProjectionMatrix();
+      if (fitSubject && subject && mode === 'chase' && !worldMotion)
+        fitSubject(camera, subject);
+      camera.up.copy(localUp).applyQuaternion(camera.quaternion);
       initialized = true;
     },
   };

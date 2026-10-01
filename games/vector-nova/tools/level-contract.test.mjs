@@ -69,6 +69,7 @@ test('shape mismatches and malformed optional metadata are rejected by reusable 
   );
   for (const ui of [
     { ...metadata.ui, compact: 'yes' },
+    { ...metadata.ui, portraitCompactHud: 'yes' },
     { ...metadata.ui, shape: { intro: 4 } },
     { ...metadata.ui, shape: { heading: ['one'] } },
   ])

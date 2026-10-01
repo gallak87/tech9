@@ -9,6 +9,7 @@ import { createAudio } from '../audio/index.js';
 import { createEffects } from '../effects/index.js';
 import { createUI } from '../ui/index.js';
 import { loadSettings, saveSettings } from '../progression/index.js';
+import { createFlyCamera } from './fly-camera.js';
 import { createReviewCamera } from './review-camera.js';
 import { discoverLevels } from '../levels/catalog.js';
 import { validateTrack, circuitURL } from '../levels/contract.js';
@@ -244,6 +245,10 @@ async function boot() {
     if (ship.group.parent !== scene) scene.add(ship.group);
   }
   function start() {
+    if (mode === 'fly') {
+      leaveFly();
+      return;
+    }
     sceneShip();
     const newRun =
       mode === 'title' || mode === 'inspection' || mode === 'overview';
@@ -281,6 +286,7 @@ async function boot() {
     ui.setMode(mode);
   }
   function resume() {
+    flyCamera?.leave();
     mode = 'racing';
     accumulator = 0;
     input.clear();
@@ -288,6 +294,7 @@ async function boot() {
     audio.unlock().catch(() => {});
   }
   function restart() {
+    flyCamera?.leave();
     scenario = 'staging';
     sceneShip();
     state = createVehicleState();
@@ -323,6 +330,7 @@ async function boot() {
     ui.notice('RECOVERED AT CHECKPOINT · LAP INVALID');
   }
   function home() {
+    flyCamera?.leave();
     sceneShip();
     mode = 'title';
     state = createVehicleState();
@@ -334,6 +342,11 @@ async function boot() {
     ui.setMode(mode);
   }
   function setCamera(preset) {
+    if (preset === 'fly') {
+      toggleFly();
+      return;
+    }
+    flyCamera?.leave();
     if (preset === 'inspection') {
       mode = 'inspection';
       inspectionScene.add(ship.group);
@@ -353,9 +366,34 @@ async function boot() {
   }
   function overview(preset = 'perspective') {
     if (!reviewCamera) return;
+    flyCamera?.leave();
     sceneShip();
     reviewCamera.select(preset);
     mode = 'overview';
+    accumulator = 0;
+    input.clear();
+    rig.reset();
+    ui.setMode(mode);
+  }
+  let flyReturnMode = 'title';
+  function toggleFly() {
+    if (!flyCamera || mode === 'inspection') return;
+    if (mode === 'fly') {
+      leaveFly();
+      return;
+    }
+    flyReturnMode = mode;
+    sceneShip();
+    flyCamera.enter();
+    mode = 'fly';
+    accumulator = 0;
+    input.clear();
+    ui.setMode(mode);
+  }
+  function leaveFly() {
+    if (mode !== 'fly') return;
+    flyCamera.leave();
+    mode = flyReturnMode;
     accumulator = 0;
     input.clear();
     rig.reset();
@@ -372,6 +410,9 @@ async function boot() {
         home,
         camera: setCamera,
         overview,
+        fly: toggleFly,
+        leaveFly,
+        flySpeed: (speed) => flyCamera?.setSpeed(speed),
         reviewSection(name) {
           window.__VN.loadScenario(name, 47219);
           document.activeElement?.blur();
@@ -412,6 +453,16 @@ async function boot() {
     }, pause),
   );
   input.bindTouch(ui.root);
+  const flyCamera = metadata.flyCamera
+    ? lifetime.own(
+        createFlyCamera(camera, renderer.domElement, {
+          toggle: toggleFly,
+          exit: leaveFly,
+          onSpeed: (speed) => ui.setFlySpeed(speed),
+        }),
+      )
+    : null;
+  flyCamera?.bindControls(ui.root);
   renderer.domElement.addEventListener(
     'webglcontextlost',
     (e) => {
@@ -542,7 +593,10 @@ async function boot() {
       camera.clearViewOffset();
       const worldPose = pose(s, alpha);
       const reviewing = mode === 'overview' || (blockout && mode === 'title');
-      if (reviewCamera && reviewing) {
+      if (mode === 'fly') {
+        flyCamera.update(dt);
+        view.follow(camera.position);
+      } else if (reviewCamera && reviewing) {
         reviewCamera.update();
       } else if (mode === 'title') {
         const f = track.sample(0);
@@ -622,6 +676,8 @@ async function boot() {
     },
     setCamera,
     overview,
+    fly: toggleFly,
+    leaveFly,
     start,
     pause,
     restart,
@@ -652,6 +708,7 @@ async function boot() {
       )
         throw new Error('Replay version mismatch');
       validateReplayInputs(replay.inputs);
+      if (mode === 'fly') leaveFly();
       const retained = {
         state,
         prev,

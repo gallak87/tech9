@@ -25,3 +25,5 @@ Human art and workflow steers from Vesper Canopy, 2026-09-29–30. Carry these i
 - **Keep the oversized leaf identity when repairing trees.** Connected geometry should still feel colossal and lush. The user preferred larger trees, substantial boughs and broad, clearly visible leaves. Enlarge foliage in both near and distant models; do not normalize the new dimensions back into the old size. Preserve attachment and road clearance.
 
 - **Adapt a proven tree method to the landmark’s architecture.** For a hollow tree containing the circuit, preserve the shell, full top and route portals. Regenerate the exterior limbs/crown with roots sampled on the actual curved shell and forks/leaves attached to their parents. Checkpoint first; compare the starting view and audit road/jump clearance. Do not replace the navigable hollow with a scaled ordinary solid tree.
+
+- **Make environment inspection easy.** Provide a fly camera so the human can inspect trees and scenery directly without driving to every angle or supplying screenshots. Freeze the session during inspection, preserve the whole environment, and offer an obvious return to the previous view.

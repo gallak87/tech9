@@ -4,6 +4,7 @@ export default {
   order: 4,
   shape: true,
   review: true,
+  flyCamera: true,
   ui: {
     edition: 'FOREST CIRCUIT',
     subtitle: 'VESPER CANOPY / 04',

@@ -146,6 +146,12 @@
       "rendererErrors": 0,
       "scope": "Desktop high/low starting view, interior, crown exit and overview, followed by one final mobile phase. No critic rounds.",
       "evidence": ".experiments/expansion/vesper/connected-hollow/final/report.json"
+    },
+    {
+      "check": "fly-camera-controls",
+      "result": "pass",
+      "scope": "Opt-in Vesper free camera. Real high/low keyboard/mouse checks: translation, drag-look, frozen vehicle/time/replay, blocked driving shortcuts, speed slider, blur cleanup, return to racing/paused/overview, scenario reset and disposal. Halcyon remains opted out. Final three-viewport emulated-touch hold/release/return checks pass. Shared production/shape high/low pause/reset/replay smoke passes; targeted controller/camera/contract tests, lint and build pass.",
+      "evidence": ".experiments/expansion/vesper/fly-camera/"
     }
   ],
   "openFindings": [
@@ -344,14 +350,14 @@
     "owner": "fzero-int1",
     "running": true,
     "bundles": {
-      "main": "index-B71Ow2uj.js",
-      "level": "vesper-CJqBCT3h.js",
-      "css": "index-DuS16sdu.css"
+      "main": "index-gXpU3Xdk.js",
+      "level": "vesper-CAioNZVe.js",
+      "css": "index-B6BrbGpm.css"
     },
     "assetHashes": {
-      "assets/index-B71Ow2uj.js": "b22d39ec9e2ae91d176d82ab84db35466df63fc88cac93fb7b723954c38246e8",
-      "assets/vesper-CJqBCT3h.js": "b892893c4a335bb75f93a4583424be2c55beea6bab576d12dffcddeeba2a61c7",
-      "assets/index-DuS16sdu.css": "35f3ee2efb8246512f79d4cff4dcb3cfe01a44d9756616ecadfe2c8f2cdb7cd6",
+      "assets/index-gXpU3Xdk.js": "d0b8f254ae05fd934f130a7b1b184b9eff38f6c985a73fdae2941c544f5ee2a2",
+      "assets/vesper-CAioNZVe.js": "49d4cd4136bc059d3ed1ff84c063bb3390fce1fdd438aac25b13443e3369d630",
+      "assets/index-B6BrbGpm.css": "a156c07404f0fb020a1c6e17a3a7dfc3033022b03eaea6c45ef8c73ac7861239",
       "assets/levels/vesper/vesper-canopy.glb": "e5cbba5fa5f0388c8880481e0f657c3fde83eaa169201b8a85af59e57603f07f",
       "assets/levels/vesper/vesper-night-sky-v1.png": "259fa927c01f4d438ea5a0276b82ba1f672182493ac10d0ba9279d62ff48162c",
       "assets/levels/vesper/vesper-connected-forest-v1.glb": "5cac1b108caebd819de5ccc2fba244f3297aeffe7af0240d133de5d29c588e1a"
@@ -415,7 +421,8 @@
     "Creature source and original GLB remain intact for reuse but are not instantiated.",
     "Final human approval remains pending; no push or merge. Production preview remains running under fzero-int1 ownership; all automation browsers closed.",
     "Owned implementation and additional shared opt-in UI/camera work remain packaged separately; no approved-level source changed in this pass.",
-    "Future pickup/boost placement notes remain deferred; no shared pickups or AI/race gate implemented."
+    "Future pickup/boost placement notes remain deferred; no shared pickups or AI/race gate implemented.",
+    "Human-requested free camera is enabled for Vesper through optional shared controller/UI support. Frozen inspection and previous-view return verified; original racing controls remain unchanged."
   ],
   "criticScope": "Historical scores apply to reviewedSource before subsequent human-directed art changes, including the connected forest and giant crown. No new critic round was run.",
   "treeRegeneration": {
@@ -446,5 +453,13 @@
       "preservedShellInteriorAndRoots": true,
       "evidence": ".experiments/expansion/vesper/connected-hollow/"
     }
+  },
+  "freeCamera": {
+    "enabled": true,
+    "entry": "Circuit Views \u2192 Fly Camera, or F",
+    "movement": "Drag to look; WASD move; Q/E down/up; Shift 4\u00d7 speed; wheel or slider adjusts base speed. Touch movement buttons on coarse pointers.",
+    "exit": "F, Escape or Return restores the previous view.",
+    "simulation": "Vehicle, race clock and input recording remain frozen during inspection.",
+    "scope": "Shared optional controller and UI; only Vesper metadata opts in."
   }
 }

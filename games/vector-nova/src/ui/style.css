@@ -1282,3 +1282,100 @@ select {
     width: calc(clamp(80px, calc(100dvh - 625px), 120px) * 4 / 3);
   }
 }
+
+/* Free-camera inspection retains the full world with a compact control strip. */
+#fly-camera {
+  width: 100%;
+  margin-bottom: 14px;
+}
+.fly-camera-active {
+  touch-action: none;
+  cursor: grab;
+}
+.fly-camera-active:active {
+  cursor: grabbing;
+}
+.flying #legend,
+.flying .review-tag {
+  display: none;
+}
+#fly-controls {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(620px, calc(100% - 32px));
+  padding: 16px;
+  background: #14222eeb;
+  border: 1px solid #ffffff30;
+  pointer-events: auto;
+  font-size: 11px;
+}
+.fly-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.fly-heading small {
+  display: block;
+  margin-top: 5px;
+  color: #b1c4c7;
+  font-size: 9px;
+}
+.fly-heading button {
+  padding: 10px;
+  font-size: 10px;
+}
+#fly-controls p {
+  color: #c4d2d4;
+  line-height: 1.6;
+  margin: 12px 0;
+}
+#fly-controls label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+#fly-speed-label {
+  white-space: nowrap;
+  min-width: 58px;
+}
+#fly-speed {
+  flex: 1;
+  min-width: 0;
+}
+.fly-touch {
+  display: none;
+}
+@media (pointer: coarse) {
+  .fly-touch {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .fly-touch button {
+    padding: 12px 6px;
+    touch-action: none;
+    font-size: 10px;
+  }
+  #fly-controls {
+    bottom: 12px;
+    padding: 12px;
+  }
+}
+
+@media (pointer: coarse) {
+  #fly-controls p {
+    display: none;
+  }
+  #fly-controls label {
+    margin-top: 10px;
+  }
+}
+@media (pointer: coarse) and (min-width: 600px) {
+  .fly-touch {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}

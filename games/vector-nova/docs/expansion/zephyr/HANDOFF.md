@@ -1,12 +1,12 @@
-# Map 8 — Zephyr Basilica: overnight production handoff
+# Map 8 — Zephyr Basilica: level completion brief
 
 ## Assignment and authority
 
 **Goal:** Finish a floating-cathedral circuit through windows, naves and waterfall jumps, with a falling tower/island event and convincing dark-interior/bright-exterior light.
 
-Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md) and the [level contract](../../EXPANSION_LEVEL_CONTRACT.md) included in your foundation commit. Consult architecture/art sections only as needed; do not preload the full roadmap or other lane briefs. Use the integrator’s verified base/API.
+Read this brief, [the common execution rules](../README.md) and the current [level API](../../LEVEL_API.md) from the primary worktree when the user resumes you. Continue your existing level work with the latest primary code. Consult architecture/art sections as needed.
 
-Own the `zephyr` paths defined in the [common ownership rules](../../EXPANSION_HANDOFF.md#isolation-and-dependency). Use `?level=zephyr` and `&review=shape`; obtain current ports, URLs and the integrator identity from the live launch ledger linked there.
+Own `zephyr` through production, critique, necessary shared framework/environment/tooling improvements, final mobile verification, commit and merge into the primary worktree. Follow the [completion ownership rules](../README.md#worktree-and-completion-ownership). Start your own preview on a free port; use `?level=zephyr` and `&review=shape`. Chat sequencing belongs to the user. Keep progress in the chat and expansion notes in this folder. Document reusable technical changes with their APIs.
 
 ## Defining interactions and spectacle
 
@@ -47,23 +47,19 @@ Start near 4.9 km with a constant 32 m usable width and roughly 300 m of climb/d
 
 **Reject these shortcuts:** Reject pastel fog replacing geometry, identical floating rocks, asphalt on an unrelated bridge, sails filling the camera, water curtains that erase the next landing, or unauthorized wind physics. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
 
-## Future shared pickup/boost locations
-
-Mark sheltered boost/refill setup points before waterfall/chapel jumps, recovery shelves after landings and a possible shared visibility/protection aid before the hardest water curtain. Record intended benefits only; keep the cathedral/waterfall experience even if it is demanding without later items. Record actual built-route coordinates using the [shared placement-note format](../../EXPANSION_HANDOFF.md#future-shared-pickup-and-boost-placement), without implementing those systems or replacing the approved level mechanics.
-
 ## Presets and resource discipline
 
 High may add soft local waterfall mist and slow sail flex beyond the collision envelope. Low keeps the large falls, island openings, bridge structure and cloud depth while reducing mist and minor hanging fragments. Reduced motion freezes sail flex and moving cloud texture; no camera sway or procedural wind force. Avoid full-screen opaque cloud transitions.
 
 ## Production and review
 
-Use the [scene-imagegen → Blender workflow](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for major assets: The traversable cathedral/nave/rose window, adjacent chapels, large waterfall masses and falling tower/island assembly are major scene-to-Blender subjects. Use a small authored kit for secondary islands and bridge hardware; hero water must have convincing volume, layered breakup and scale.
+Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The traversable cathedral/nave/rose window, adjacent chapels, large waterfall masses and falling tower/island assembly are major scene-to-Blender subjects. Use a small authored kit for secondary islands and bridge hardware; hero water must have convincing volume, layered breakup and scale.
 
-Use the [shared production/critic loop](../../EXPANSION_HANDOFF.md#production-and-critique-loop) and [common verification/handback rules](../../EXPANSION_HANDOFF.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting; they do not replace the shared checks.
+Use the [shared production/critic loop](../README.md#production-and-critique-loop) and [common verification/completion rules](../README.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
 
 ## Acceptance on the actual production build
 
 1. Drive through the rose window, nave wall ride and chapel jump using actual input; verify architectural/camera clearance and a genuine flight/landing transition.
 2. Cross waterfalls into selected jumps with existing manual boost; inspect wet camera/ship effects, exit cues, imperfect approaches and recovery.
 3. Inspect the tilting island or falling tower and trailing waterfall while racing; verify the supported racing surface stays predictable and event reset/pause/replay works.
-4. Check dark interiors, bright windows and backlit water in high/low/reduced motion; verify future aid coordinates and honestly record no-pickup difficulty.
+4. Check dark interiors, bright windows and backlit water in high/low/reduced motion; verify landing/recovery cues and report difficult passages.

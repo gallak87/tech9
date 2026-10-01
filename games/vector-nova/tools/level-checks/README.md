@@ -1,6 +1,6 @@
 # Reusable level checks
 
-These checks use the shipped [level API](../../docs/EXPANSION_LEVEL_CONTRACT.md). They do not select art, prescribe route shape, require flat ground, or load a copied runtime.
+These checks use the shipped [level API](../../docs/LEVEL_API.md). They do not select art, prescribe route shape, require flat ground, or load a copied runtime.
 
 ```sh
 npm run check:level -- <slug>
@@ -14,12 +14,12 @@ For level-owned tests, import `assertTrackContract(track, options)` from `track-
 
 ## Hidden runtime smoke check
 
-Coordinate the GPU slot and start the intended worktree's own built preview first. The command requires `VN_URL` and never starts or replaces a server:
+Build and start the intended worktree's own preview on a free port first. The command requires `VN_URL` and never starts or replaces a server:
 
 ```sh
 VN_URL=http://127.0.0.1:5180 npm run verify:level -- <slug>
 ```
 
-Optional `VN_BROWSER_PATH` or `VN_BROWSER_CHANNEL` selects Chromium; `VN_EVIDENCE` selects an ignored output folder. One hidden browser checks high/low and supported shape/production combinations, using brief real keyboard input. It verifies readiness, finite vehicle/camera poses, the served track identity, pause/input clearing, deterministic replay, review camera when supported, reset, repeated disposal and unknown-level/owned-asset failure cleanup. Low also enables reduced motion. Requests and metrics are retained in the ignored JSON report for selected-asset/budget review. No video, normal-speed lap or screenshot is produced.
+Optional `VN_BROWSER_PATH` or `VN_BROWSER_CHANNEL` selects Chromium; `VN_EVIDENCE` selects an ignored output folder. One hidden browser checks high/low and supported shape/production combinations, using brief real keyboard input. It verifies readiness, finite vehicle/camera poses, the served track identity, pause/input clearing, deterministic replay, review camera when supported, reset, repeated disposal and unknown-level/owned-asset failure cleanup. Low also enables reduced motion. Requests and metrics are retained in the ignored JSON report for selected-asset diagnostics. No video, normal-speed lap or screenshot is produced.
 
-A passing smoke check does not certify visual quality, foreground pacing, audible mix or physical gamepad/mobile support. Library lifecycle tests inject failures and malformed components directly; the browser command exercises the actual selected module and renderer. Builders should run their own scenery/geometry tests alongside these shared checks.
+A passing smoke check does not certify visual quality, foreground pacing, audible mix or physical gamepad/mobile support. Library lifecycle tests inject failures and malformed components directly; the browser command exercises the actual selected module and renderer. Use authored scenery/geometry tests alongside these shared checks.

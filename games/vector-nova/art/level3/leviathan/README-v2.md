@@ -8,6 +8,6 @@ The revision replaces the paired geometric head strips with one rounded bony cro
 
 The GLB contains **35,772 triangles**, five material draws, no image textures and no decoder dependency; it is 917,044 bytes. `nacre-leviathan-v2.blend` retains the five editable mesh groups and the weighted 31-station armature. `build-model-v2.py` rebuilds only this version in a separate background Blender process.
 
-The integrator owns runtime path, timing, first-jump placement, water attenuation and numerical collision-clearance verification. Contextual authoring renders use that exported path, actual track geometry and chase-camera values. No gameplay or browser testing is part of this revision.
+The level agent owns runtime path, timing, first-jump placement, water attenuation and numerical collision-clearance verification. Contextual authoring renders use that exported path, actual track geometry and chase-camera values. This source asset revision did not include gameplay or browser testing.
 
 The final GLB SHA-256 is `7144cf836dc045fc5e174af655397fd77b25bfc3d9fc11a639b5986a1a627844`. The neutral straight mesh is the editing rest pose; runtime arc-length transport supplies the curved breach and crossing.

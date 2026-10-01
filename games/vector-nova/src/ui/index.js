@@ -43,6 +43,10 @@ export function createUI(
   root.classList.toggle('stacked-review', Boolean(copy.stackedReview));
   root.classList.toggle('low-notice', Boolean(copy.lowNotice));
   root.classList.toggle('compact-landscape', Boolean(copy.compactLandscape));
+  root.classList.toggle(
+    'portrait-compact-hud',
+    Boolean(copy.portraitCompactHud),
+  );
   const editionDetail = document.createElement('span');
   editionDetail.textContent = blockout ? 'BARE TRACK' : copy.subtitle;
   root
@@ -100,6 +104,23 @@ export function createUI(
       $('review-toggle').setAttribute('aria-expanded', String(open));
       $('review-toggle').querySelector('span').textContent = open ? '−' : '+';
     };
+  }
+  if (metadata.flyCamera) {
+    const button = document.createElement('button');
+    button.id = 'fly-camera';
+    button.textContent = 'FLY CAMERA · F';
+    button.onclick = actions.fly;
+    ($('review-options') ?? $('title-panel')).insertBefore(
+      button,
+      root.querySelector('.shape-jump'),
+    );
+    const controls = document.createElement('section');
+    controls.id = 'fly-controls';
+    controls.className = 'hidden';
+    controls.setAttribute('aria-label', 'Free camera controls');
+    controls.innerHTML = `<div class="fly-heading"><b>FREE CAMERA <small>SESSION PAUSED</small></b><button id="fly-return">RETURN · F / ESC</button></div><p>Drag to look · WASD move · Q / E down / up</p><div class="fly-touch"><button data-fly="KeyA" aria-label="Fly left">←</button><button data-fly="KeyW" aria-label="Fly forward">FORWARD</button><button data-fly="KeyD" aria-label="Fly right">→</button><button data-fly="KeyQ" aria-label="Fly down">DOWN</button><button data-fly="KeyS" aria-label="Fly backward">BACK</button><button data-fly="KeyE" aria-label="Fly up">UP</button></div>`;
+    root.append(controls);
+    $('fly-return').onclick = actions.leaveFly;
   }
   const currentCircuit = metadata.id;
   const picker = document.createElement('form');
@@ -219,6 +240,8 @@ export function createUI(
         $(id).classList.toggle('hidden', !show);
       root.classList.toggle('driving', mode === 'racing' || mode === 'paused');
       root.classList.toggle('paused', mode === 'paused');
+      root.classList.toggle('flying', mode === 'fly');
+      $('fly-controls')?.classList.toggle('hidden', mode !== 'fly');
       root.classList.toggle('inspecting', mode === 'inspection');
       root.querySelector('.masthead').inert = mode === 'paused';
       root.classList.toggle(
@@ -237,7 +260,7 @@ export function createUI(
       }
       $('shape-controls')?.classList.toggle(
         'hidden',
-        mode === 'paused' || mode === 'inspection',
+        mode === 'paused' || mode === 'inspection' || mode === 'fly',
       );
       if (review) {
         const expanded = mode !== 'racing' && innerWidth > 760;

@@ -20,10 +20,14 @@ Approved angular futuristic jet silhouette: slender split nose, swept planform, 
 - **Asterion Orbital:** sunlit orbital shipyard above a living planet, with ivory alloy, graphite and planetary bounce. Smooth induction cassette panels, real open lattice spans, broad cyan/magenta/blue road sections and tall open U frames. Designed dockyards and service structures, large lit moon and structured stellar sky.
 - **Nacre Tempest:** ocean storm, basalt spires, luminous reefs and tide observatory. Pearl/ceramic scales, translucent pressure inserts, swept fin edges and distinct surface/submerged districts. Actual water depth and motion, readable jumps/landings, restrained lightning and a monumental creature; retain the human-approved track/water direction and final lane feedback.
 
+## Vesper Canopy
+
+Colossal enclosed living trees, connected oversized foliage and an amber resin road with restrained transmission and a thin glowing orange curb. Keep the giant hollow complete around genuine route portals and preserve dark-to-lit contrast against a cloudy forest sky. Broad leaves need curved silhouettes and vein detail at fly-camera distance as well as canopy mass from the road. The retired creature remains source-only; raised petals, roadside bulbs/stalks and jump-edge beacons stay removed. Asset construction details remain in [Vesper provenance](../assets/levels/vesper/provenance.json).
+
 ## UI and feedback
 
 Warm off-white/graphite, technical numerals, vermilion active accents, generous spacing and real controls. Keep telemetry and notices away from the craft, upcoming road and touch controls. Moderate chase FOV, no default camera shake, and road-local camera clearance.
 
 Halcyon's immediate devices use manufactured amber-white Vector strips and symbol-marked teal Aegis hardware. Show collection, active effect, hit and expiry with form/timing as well as color. Ship feedback stays subordinate to the silhouette.
 
-The [active expansion briefs](EXPANSION_HANDOFF.md) own the seven new worlds' specific directions. Do not apply Halcyon asphalt or Asterion U frames as a universal template.
+Each world needs its own construction and material identity. Do not apply Halcyon asphalt or Asterion U frames as a universal template.

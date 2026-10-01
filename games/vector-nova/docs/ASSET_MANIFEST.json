@@ -1,5 +1,5 @@
 {
-  "policy": "Original project-owned geometry/materials with an original generated Halcyon sky and four generated orbital regional/surrounding material maps; no copied reference-game artwork.",
+  "policy": "Project-owned geometry/materials and generated sky/material imagery; detailed ownership and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
       "id": "kestrel",
@@ -114,6 +114,20 @@
       ],
       "starCount": 17500,
       "starSeed": 41917
+    },
+    {
+      "id": "vesper-canopy",
+      "source": "assets/levels/vesper/ and src/levels/vesper/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original deterministic Blender forest/hollow/flower geometry, procedural resin and leaf shaders, generated bark tile and forest sky. Editable sources and retired creature retained.",
+      "rights": "Project-authored/generated; no third-party reference artwork or meshes",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/levels/vesper/vesper-canopy.glb",
+        "public/assets/levels/vesper/vesper-connected-forest-v1.glb",
+        "public/assets/levels/vesper/vesper-night-sky-v1.png"
+      ],
+      "provenanceRecord": "assets/levels/vesper/provenance.json"
     }
   ],
   "thirdParty": [

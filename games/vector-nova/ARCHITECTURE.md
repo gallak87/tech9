@@ -2,7 +2,7 @@
 
 ## Stack and module boundaries
 
-Standalone Vite + Three.js ES modules, WebGL2, PBR/ACES and sRGB output. No repository framework, alternate launcher or cloned runtime. See [status](docs/STATUS.json) for what is merged and [roadmap](ROADMAP.md) for planned work.
+Standalone Vite + Three.js ES modules, WebGL2, PBR/ACES and sRGB output. No repository framework, alternate launcher or cloned runtime. See the [README](README.md) for available circuits and the [roadmap](ROADMAP.md) for planned work.
 
 The locally owned ESLint/Prettier/lint-staged/Husky configuration was adapted from Chronoforge Echo at the user's request.
 
@@ -20,7 +20,7 @@ The locally owned ESLint/Prettier/lint-staged/Husky configuration was adapted fr
 
 `src/levels/<slug>/track/`, `environment/` and `backdrop/` own each circuit’s route, construction, materials, scenery and sky; Nacre also owns its overlay and flight presentation adapter. Shared directories contain reusable mechanics, never a default world style. Existing public asset URLs and replay identities remain stable across source moves.
 
-Shared changes have one integrator; level builders own their assigned files. `src/levels/` discovers asset-free metadata eagerly and imports only the selected implementation. Its [level API](docs/EXPANSION_LEVEL_CONTRACT.md) defines factories, presentation and ownership; unknown or malformed levels fail visibly.
+`src/levels/` discovers asset-free metadata eagerly and imports only the selected implementation. Its [level API](docs/LEVEL_API.md) defines factories, presentation and ownership; unknown or malformed levels fail visibly.
 
 ## Route, coordinates and handling
 
@@ -43,7 +43,7 @@ Halcyon devices load only for exact track identity plus `features=halcyon-pickup
 
 Device ticks expire timers and apply brake cancellation before physics, consume shields on qualifying impacts, then sweep new forward crossings. A shield collected later in a tick cannot protect an earlier impact. Effects do not stack; manual recovery clears effects while retaining the consumed-device ledger. Reverse/parking/reset farming must not rearm devices. Shields protect reserve loss, not collision separation or speed consequences. Layout/tuning/rules IDs live in `src/pickups/halcyon/`.
 
-The opt-in `src/physics/flight.js` model supplies ballistic flight, swept landings and timed recovery. Nacre's adapter retains its authored rules, identity, scenarios and notices. Expansion adapters may supply pure grounded surface/force and airborne force samplers; zones, heat and events remain level-owned. Per-call surface options default to unchanged magnetic response. Optional authored jumps retain supported main-road traversal; actual transfers keep strict landing-checkpoint validation. See the [level API](docs/EXPANSION_LEVEL_CONTRACT.md#shared-local-mechanics). Automatic missed-jump recovery counts its delay as elapsed time and retains a valid lap; manual recovery still invalidates it. Keep Nacre-specific tuning out of the ordinary magnetic adapter. New levels may declare their approved local flight, surface, hazard and force rules through versioned session adapters; the integrator owns reusable support and shared checkpoint changes.
+The opt-in `src/physics/flight.js` model supplies ballistic flight, swept landings and timed recovery. Nacre's adapter retains its authored rules, identity, scenarios and notices. Level adapters may supply pure grounded surface/force and airborne force samplers; zones, heat and events remain level-owned. Per-call surface options default to unchanged magnetic response. Optional authored jumps retain supported main-road traversal; actual transfers keep strict landing-checkpoint validation. See the [level API](docs/LEVEL_API.md#shared-local-mechanics). Automatic missed-jump recovery counts its delay as elapsed time and retains a valid lap; manual recovery still invalidates it. Keep Nacre-specific tuning out of the ordinary magnetic adapter. Local flight, surface, hazard and force rules use versioned session adapters. Shared defaults remain compatible with existing circuits.
 
 ## Ship and rendering
 
@@ -59,9 +59,11 @@ Camera damping follows transport through the road frame, with quaternion rotatio
 
 One owner releases each geometry, material, texture, listener, audio node and animation callback. `createLifetime` unwinds owners in reverse order on shutdown or failed boot; inspection owns only its floor/ring, and level components borrow renderer probes/sky textures. The shared presentation controller updates road, environment and backdrop once per frame, supplies zero dt outside racing and propagates resets. Camera flight/portrait behavior uses explicit descriptor options. Await owned assets and shader warmup before setting ready. Dispose must be idempotent; failed boot should show a useful reload error. Audio/storage failure stays recoverable, and context loss pauses.
 
+`metadata.flyCamera` optionally enables a free inspection camera (currently Vesper): F or Circuit Views enters from the current camera pose; drag-look, WASD and Q/E move through the full environment at a fixed 200 m/s. The `fly` mode freezes simulation, lap timing and replay recording. Returning restores the prior racing/paused/title/overview mode and clears controls. Its keyboard/pointer/touch listeners are owned by `src/core/fly-camera.js` and disposed with the session.
+
 `window.__VN` exposes readiness, snapshots/metrics, named scenarios, camera selection, start/pause/restart, replay and disposal for verification. Scenario placement is deterministic setup, not autopilot. Runtime metrics distinguish source geometry from drawn multipass totals.
 
-Targets per active level: ≤1,000 drawn calls, ≤2M drawn triangles, ≤512 MiB estimated GPU assets and ≤30 MB initial compressed transfer. Target 60 Hz on M1 Pro/Chrome at 1920×1080; estimates and hidden capture timings do not certify foreground performance. Load only selected-level assets. The [common level checks](tools/level-checks/README.md) validate CPU track/module contracts and short hidden runtime behavior. Test high/low, reduced motion, pause/reset/replay, resource disposal and relevant real input after runtime changes.
+Load only selected-level assets. The [common level checks](tools/level-checks/README.md) validate CPU track/module contracts and short hidden runtime behavior. Test high/low, reduced motion, pause/reset/replay, resource disposal and relevant real input after runtime changes.
 
 ## Nacre flight, water and moving scenery
 

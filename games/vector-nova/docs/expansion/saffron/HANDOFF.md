@@ -1,12 +1,12 @@
-# Map 7 — Saffron Leviathan: overnight production handoff
+# Map 7 — Saffron Leviathan: level completion brief
 
 ## Assignment and authority
 
 **Goal:** Finish a fossil-desert circuit through skull and vertebrae, with sand/glass route choices, a breaching burrower and readable sheltered interiors.
 
-Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md) and the [level contract](../../EXPANSION_LEVEL_CONTRACT.md) included in your foundation commit. Consult architecture/art sections only as needed; do not preload the full roadmap or other lane briefs. Use the integrator’s verified base/API.
+Read this brief, [the common execution rules](../README.md) and the current [level API](../../LEVEL_API.md) from the primary worktree when the user resumes you. Continue your existing level work with the latest primary code. Consult architecture/art sections as needed.
 
-Own the `saffron` paths defined in the [common ownership rules](../../EXPANSION_HANDOFF.md#isolation-and-dependency). Use `?level=saffron` and `&review=shape`; obtain current ports, URLs and the integrator identity from the live launch ledger linked there.
+Own `saffron` through production, critique, necessary shared framework/environment/tooling improvements, final mobile verification, commit and merge into the primary worktree. Follow the [completion ownership rules](../README.md#worktree-and-completion-ownership). Start your own preview on a free port; use `?level=saffron` and `&review=shape`. Chat sequencing belongs to the user. Keep progress in the chat and expansion notes in this folder. Document reusable technical changes with their APIs.
 
 ## Defining interactions and spectacle
 
@@ -47,23 +47,19 @@ Start near 5.2 km with a constant 32 m usable width and roughly 130 m of rolling
 
 **Reject these shortcuts:** Reject a flat yellow backdrop, copied highway panels, repeated identical ribs, sand obscuring the route, rib-shadow strobing, or a featureless full-throttle straight added solely for length. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
 
-## Future shared pickup/boost locations
-
-Mark boost/refill opportunities before vertebral and dune-skip jumps, safe recovery points after sand-heavy stretches, and preparation space before the skull descent. Note future shared support needs without creating a desert-specific item or shortening the fossil experience. Record actual built-route coordinates using the [shared placement-note format](../../EXPANSION_HANDOFF.md#future-shared-pickup-and-boost-placement), without implementing those systems or replacing the approved level mechanics.
-
 ## Presets and resource discipline
 
 High may add sparse drifting grains, limited glass transmission and animated sandfall ribbons. Low preserves the fossil silhouettes, dune contours, deck thickness and readable inner corridor lighting while simplifying grains and material layers. Reduced motion removes blowing grains and holds sandfalls nearly still; ensure repeated ribs do not produce harsh flashing at speed.
 
 ## Production and review
 
-Use the [scene-imagegen → Blender workflow](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for major assets: The traversable skull and anatomically varied vertebrae, living burrower, and displaced dune/sandfall assemblies are major scene-to-Blender subjects. Establish reusable bone and dune families for the remaining landscape.
+Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The traversable skull and anatomically varied vertebrae, living burrower, and displaced dune/sandfall assemblies are major scene-to-Blender subjects. Establish reusable bone and dune families for the remaining landscape.
 
-Use the [shared production/critic loop](../../EXPANSION_HANDOFF.md#production-and-critique-loop) and [common verification/handback rules](../../EXPANSION_HANDOFF.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting; they do not replace the shared checks.
+Use the [shared production/critic loop](../README.md#production-and-critique-loop) and [common verification/completion rules](../README.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
 
 ## Acceptance on the actual production build
 
 1. Drive the skull descent/interior bank and vertebral jumps with actual inputs; verify camera clearance, real takeoff/landing and visible exits.
 2. Compare exposed glass and sand drag at matched speeds; check migrating deposit state, crest-jump bypasses and deterministic reset/replay.
 3. Inspect the burrower ridge, breach and bone sandfalls along the route; ensure the spectacle has scale without hiding landings or becoming repeated identical props.
-4. Check exterior/interior lighting and glass/sand readability in high/low/reduced motion; verify future placement coordinates and report unsupported difficulty.
+4. Check exterior/interior lighting and glass/sand readability in high/low/reduced motion; verify landing/recovery cues and report difficult passages.

@@ -1,3 +1,5 @@
+import { validateSafeFrame } from '../camera/contract.js';
+
 const slugPattern = /^[a-z][a-z0-9-]*$/;
 
 const textFields = [
@@ -44,6 +46,7 @@ export function validateMetadata(metadata, id = metadata?.id) {
     'stackedReview',
     'lowNotice',
     'compactLandscape',
+    'portraitCompactHud',
   ])
     if (
       metadata.ui[flag] !== undefined &&
@@ -87,6 +90,8 @@ export function validateDefinition(definition, id = 'circuit') {
       typeof definition[name] !== 'function'
     )
       throw new Error(`Invalid ${id}.${name}`);
+  if (definition.camera?.safeFrame !== undefined)
+    validateSafeFrame(definition.camera.safeFrame);
   if (typeof definition.version !== 'string' || !definition.version)
     throw new Error(`${id} is missing a version`);
   return definition;

@@ -2,41 +2,11 @@
 
 ## Current position
 
-Approved and merged: Halcyon Viaduct, Asterion Orbital, Nacre Tempest, the initial Halcyon boost/shield devices and the Blender Kestrel with stronger blue exhaust. Completed review history is in Git.
-
-## Next: integration and shared cleanup
-
-- [x] Merge the approved Nacre circuit and final revision.
-- [x] Add a simple paddock circuit picker for the available levels.
-- [x] Replace hardcoded level branches with a small validated lazy loader and level descriptor.
-- [x] Standardize async readiness, one presentation update per frame, reset/disposal and borrowed-resource ownership.
-- [x] Drive shared UI/review navigation from metadata and camera behavior from explicit options.
-- [x] Expose optional frame, road-sweep, transformed-bounds and clearance helpers; keep profiles, materials and scenery authored locally.
-- [ ] Extract additional small mesh/instance/resource helpers only when repeated production needs justify them; this is not a prerequisite for the seven-level handoff.
-- [x] Integrate the common CPU/runtime validation harness and documented level contract. Exact foundation and verification live in the launch ledger.
-- [x] Rewrite the README around the whole game and consolidate documentation around current state and lasting decisions.
-
-See the [launch ledger](docs/expansion/LAUNCH_STATE.json) for current readiness and the [integrator handoff](docs/EXPANSION_INTEGRATOR_HANDOFF.md) for execution. Keep coordination status there rather than repeating it in the map briefs.
-
-## Seven requested maps
-
-Each map gets an independent isolated build, internal shape checks, full production and capped critique, then final human review. Preserve the existing Kestrel, controls and 0.3 assistance. Their briefs authorize distinct jumps, surface effects, hazards, environmental forces and large world events. Shared pickup/boost expansion remains deferred: builders record actual future-support coordinates and preserve the intended challenge even if current play is rough or hard. All assets and lighting share one eight-round critic cap per level, targeting at least 9/10 in every applicable category.
-
-| Map                   | Direction and owned brief                                                                                 |
-| --------------------- | --------------------------------------------------------------------------------------------------------- |
-| 4 — Vesper Canopy     | [Living-tree interiors, crown jumps, sap lines and a canopy creature](docs/expansion/vesper/HANDOFF.md)   |
-| 5 — Glasswake Comet   | [Crystal fracture jumps, frost/grip choices and a calving ice shelf](docs/expansion/glasswake/HANDOFF.md) |
-| 6 — Cindercoil        | [Lava-surge route choices, a vent launch and a rupturing caldera](docs/expansion/cindercoil/HANDOFF.md)   |
-| 7 — Saffron Leviathan | [Skull/vertebral traversal, sand crossings and a living burrower](docs/expansion/saffron/HANDOFF.md)      |
-| 8 — Zephyr Basilica   | [Cathedral interiors, waterfall jumps and a falling island/tower](docs/expansion/zephyr/HANDOFF.md)       |
-| 9 — Helion Flare      | [Flare-swept lanes, furnace/heat choices and gigantic solar flares](docs/expansion/helion/HANDOFF.md)     |
-| 10 — Umbra Fold       | [Tidal pull, curved leaps and debris stretched into the black hole](docs/expansion/umbra/HANDOFF.md)      |
-
-Spread vertical events and signature moments throughout each course. Ordinary connectors, road construction and surroundings need the same attention as hero views. The [common brief](docs/EXPANSION_HANDOFF.md) owns execution/quality rules; individual briefs own distinctive worlds and acceptance scenarios.
+Approved and merged: Halcyon Viaduct, Asterion Orbital, Nacre Tempest, Vesper Canopy, the initial Halcyon boost/shield devices and the Blender Kestrel with stronger blue exhaust. Completed review history is in Git.
 
 ## Proposed gameplay phases — not started
 
-Each phase ends with human review after its scoped independent critic loop. Agree the actual phase before implementation; the seven map builds do not authorize these systems.
+Each phase ends with human review after its scoped independent critic loop. Agree the actual phase before implementation.
 
 ### Level polish
 
@@ -49,7 +19,7 @@ Each phase ends with human review after its scoped independent critic loop. Agre
 
 ### Candidate next round: shared pickups and boost support
 
-Consider prioritizing game-wide boost/refill, protection, recovery and other shared aids using the seven builders’ measured placement notes. The user will choose the systems and iterate through human playtests. Do not implement them during level production or treat hard unsupported sections as permission to redesign the maps.
+Consider game-wide boost/refill, protection and recovery aids. The user will choose the systems and iterate through human playtests.
 
 ### Gate 5: complete race flow
 
@@ -57,7 +27,7 @@ Track select → briefing → grid/countdown → three laps → finish/results �
 
 ### Gate 6: opponents and competitive Quick Race
 
-Start with three AI rivals on Halcyon, then reach player plus 11 rivals across approved circuits. Use real route lines, braking/boost decisions, overtakes and recoverable mistakes; Rookie/Racer/Ace vary precision and judgment, initially without catch-up assistance. All racers obey the same limits, device and jump rules. Rank by valid lap/checkpoint progress, including meaningful airborne presentation. Add restrained body contact with cooldowns, no sustained rail pinning or repeated damage from one contact. Verify the full-grid start and independent finishes against performance budgets.
+Start with three AI rivals on Halcyon, then reach player plus 11 rivals across approved circuits. Use real route lines, braking/boost decisions, overtakes and recoverable mistakes; Rookie/Racer/Ace vary precision and judgment, initially without catch-up assistance. All racers obey the same limits, device and jump rules. Rank by valid lap/checkpoint progress, including meaningful airborne presentation. Add restrained body contact with cooldowns, no sustained rail pinning or repeated damage from one contact. Verify the full-grid start, independent finishes and actual performance.
 
 ### Gate 7: energy choices and Time Trial
 
@@ -69,7 +39,7 @@ Time Trial is a deterministic three-lap solo run with a local non-colliding ghos
 
 Retain balanced Kestrel; proposed additions are agile lower-top-speed Vesper, heavy high-reserve Bastion and fast Needle with weaker braking. Names/tuning are provisional; each needs an actual distinct asset and a meaningful tradeoff.
 
-After all three existing circuits are approved, add a Founders Cup over Halcyon/Asterion/Nacre. Proposed 12-place points: 25/20/16/13/11/9/7/5/4/3/2/1, ties by wins then total time. Save between races with restart/abandon controls. Track/ship select, Quick Race, Cup and Time Trial should lead to working actions. Rewards unlock cosmetics, not stronger stats; retain all completed content in Practice/Quick Race.
+Add a Founders Cup over Halcyon/Asterion/Nacre. Proposed 12-place points: 25/20/16/13/11/9/7/5/4/3/2/1, ties by wins then total time. Save between races with restart/abandon controls. Track/ship select, Quick Race, Cup and Time Trial should lead to working actions. Rewards unlock cosmetics, not stronger stats; retain all completed content in Practice/Quick Race.
 
 ## Deferred
 

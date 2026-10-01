@@ -296,7 +296,7 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
       for (const side of [-1, 1]) {
         wallBlocks.push(transform(track, s, side * 17.2, 1.9));
         wallCaps.push(transform(track, s, side * 17.3, 3.12));
-        wallBrackets.push(transform(track, s, side * 17.6, -0.25));
+        wallBrackets.push(transform(track, s, side * 17.6, 0.7));
         if (Math.floor(s / spacing) % 4 === 0)
           oxideCaps.push(transform(track, s, side * 17.34, 3.17));
         if (!shape && settings.quality !== 'low') {
@@ -338,7 +338,7 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
   );
   instanced(
     'Offset wall cantilever brackets',
-    beveledBoxGeometry(1.6, 3.9, 1.15, 0.09),
+    beveledBoxGeometry(1.6, 5.0, 1.15, 0.09),
     oxide,
     wallBrackets,
   );

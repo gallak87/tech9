@@ -5,6 +5,7 @@ import {
   groundFrame,
 } from '../../../environment/placement.js';
 import { sampleCindercoilEvent } from '../mechanics.js';
+import { createCindercoilAtmosphere } from '../atmosphere.js';
 import {
   createCindercoilMaterials,
   applyCindercoilAssetMaterials,
@@ -17,7 +18,7 @@ import {
   seededRandom,
 } from './geometry.js';
 
-const ASSET = '/assets/levels/cindercoil/cindercoil-hero-kit.glb';
+const ASSET = '/assets/levels/cindercoil/cindercoil-hero-kit-v3.glb';
 const UP = new T.Vector3(0, 1, 0);
 
 function instantiateModule(template, placements, name) {
@@ -52,36 +53,6 @@ function instantiateModule(template, placements, name) {
   return group;
 }
 
-function particles(track) {
-  const random = seededRandom(418);
-  const count = 680;
-  const positions = new Float32Array(count * 3);
-  const basin = track.landmarks.basin;
-  for (let i = 0; i < count; i += 1) {
-    positions.set(
-      [
-        basin.center[0] + (random() - 0.5) * 1450,
-        -15 + random() * 440,
-        basin.center[2] + (random() - 0.5) * 1400,
-      ],
-      i * 3,
-    );
-  }
-  const geometry = new T.BufferGeometry();
-  geometry.setAttribute('position', new T.BufferAttribute(positions, 3));
-  const material = new T.ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    uniforms: { time: { value: 0 } },
-    vertexShader: `uniform float time;varying float opacity;void main(){vec3 p=position;p.x+=sin(time*.14+p.y)*5.;p.y=mod(p.y-time*1.6+500.,500.)-20.;vec4 v=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*v;gl_PointSize=clamp(180./max(1.,-v.z),1.,3.);opacity=.35*(1.-smoothstep(700.,1200.,-v.z));}`,
-    fragmentShader: `varying float opacity;void main(){float r=length(gl_PointCoord-.5)*2.;if(r>1.)discard;gl_FragColor=vec4(.52,.60,.67,opacity*(1.-r));\n#include <tonemapping_fragment>\n#include <colorspace_fragment>}`,
-  });
-  const points = new T.Points(geometry, material);
-  points.name = 'Cindercoil / sparse slow ash';
-  points.frustumCulled = false;
-  return points;
-}
-
 /** Local world ownership: no cached GLB, shared scene edits or wall-clock animation. */
 export function createCindercoilEnvironment({
   track,
@@ -107,7 +78,15 @@ export function createCindercoilEnvironment({
       },
     };
   }
-  const materials = createCindercoilMaterials();
+  const fallbackRock = new T.DataTexture(
+    new Uint8Array([115, 115, 115, 255]),
+    1,
+    1,
+  );
+  fallbackRock.colorSpace = T.SRGBColorSpace;
+  fallbackRock.needsUpdate = true;
+  const rockTexture = { value: fallbackRock };
+  const materials = createCindercoilMaterials({ rockTexture });
   const random = seededRandom();
   const clearance = createRouteClearance(track, {
     spacing: 6,
@@ -138,7 +117,7 @@ export function createCindercoilEnvironment({
     ruptureLocation.direction[2],
   );
   group.add(wall);
-  const plungePool = createLavaPool(190, 104, materials.lava, 16);
+  const plungePool = createLavaPool(340, 230, materials.lava, 16);
   plungePool.position.set(0, 1, 100);
   wall.add(plungePool);
   const launch = track.landmarks.launch;
@@ -153,6 +132,7 @@ export function createCindercoilEnvironment({
   fountain.name = 'Cindercoil / active vent molten tongues';
   fountain.position.copy(ventPosition);
   const ventMaterial = new T.MeshStandardMaterial({
+    name: 'Lava / fragmented eruption cores',
     color: '#e45116',
     emissive: '#ff6215',
     emissiveIntensity: 1.8,
@@ -164,7 +144,7 @@ export function createCindercoilEnvironment({
   });
   for (let i = 0; i < 5; i += 1) {
     const angle = (i * Math.PI * 2) / 5;
-    const height = 132 + i * 9;
+    const height = 95 + i * 10;
     const path = new T.CatmullRomCurve3([
       new T.Vector3(Math.cos(angle) * 7, 0, Math.sin(angle) * 7),
       new T.Vector3(Math.cos(angle) * 9, height * 0.36, Math.sin(angle) * 9),
@@ -173,7 +153,7 @@ export function createCindercoilEnvironment({
       new T.Vector3(Math.cos(angle) * 33, height * 0.88, Math.sin(angle) * 33),
     ]);
     const tongue = new T.Mesh(
-      new T.TubeGeometry(path, 22, 3.1 - i * 0.27, 7, false),
+      new T.TubeGeometry(path, 28, 1.8 - i * 0.18, 9, false),
       ventMaterial,
     );
     tongue.name = 'Cindercoil / volumetric volcanic tongue';
@@ -185,9 +165,22 @@ export function createCindercoilEnvironment({
   );
   ventRim.position.copy(ventPosition);
   ventRim.position.y -= 1;
+  applyCindercoilAssetMaterials(fountain, materials.lava.uniforms.time);
   group.add(fountain, ventRim);
-  const ash = particles(track);
-  group.add(ash);
+  const spatter = new T.InstancedMesh(
+    new T.IcosahedronGeometry(1, 1),
+    ventMaterial,
+    48,
+  );
+  spatter.name = 'Cindercoil / broken ballistic molten spray';
+  spatter.frustumCulled = false;
+  group.add(spatter);
+  const spatterMatrix = new T.Matrix4();
+  const spatterPosition = new T.Vector3(),
+    spatterScale = new T.Vector3();
+  const spatterRotation = new T.Quaternion();
+  const atmosphere = createCindercoilAtmosphere(track, ventPosition);
+  group.add(atmosphere.group);
   const lights = Array.from({ length: 3 }, () => {
     const light = new T.PointLight('#ff772b', 0, 270, 2);
     light.name = 'Cindercoil / motivated molten bounce';
@@ -197,9 +190,9 @@ export function createCindercoilEnvironment({
   const lightAnchors = [
     new T.Vector3(...basin.center).add(new T.Vector3(0, 35, 0)),
     new T.Vector3(
-      ruptureLocation.position[0] + 85,
+      ruptureLocation.position[0] + ruptureLocation.direction[0] * 85,
       108,
-      ruptureLocation.position[2],
+      ruptureLocation.position[2] + ruptureLocation.direction[2] * 85,
     ),
     ventPosition.clone().add(new T.Vector3(0, 72, 0)),
   ];
@@ -217,8 +210,8 @@ export function createCindercoilEnvironment({
   let leftPanel = null,
     rightPanel = null;
   const metrics = {
-    assetBytes: 1497696,
-    sourceTriangles: 46596,
+    assetBytes: 2896956,
+    sourceTriangles: 75790,
     textures: 0,
     additionalRenderPasses: 0,
     localLights: 3,
@@ -242,7 +235,11 @@ export function createCindercoilEnvironment({
       return;
     }
     assetScene = gltf.scene;
-    applyCindercoilAssetMaterials(assetScene, materials.lava.uniforms.time);
+    applyCindercoilAssetMaterials(
+      assetScene,
+      materials.lava.uniforms.time,
+      rockTexture,
+    );
     const template = (name) => {
       const node = assetScene.getObjectByName(name);
       if (!node) throw new Error(`Cindercoil hero kit is missing ${name}`);
@@ -262,6 +259,19 @@ export function createCindercoilEnvironment({
       if (name === 'rupture_right') rightPanel = object;
       if (name.startsWith('cascade_')) animated.push(object);
     }
+    // A separate, permanently flowing rim feeds the Ember basin. The northern
+    // fault remains the active rupture, ahead of normal Curtain Reach views.
+    const curtains = new T.Group();
+    curtains.name = 'Cindercoil / southern layered lava curtains';
+    curtains.position.set(-610, basin.lakeY, -150);
+    curtains.rotation.y = Math.PI / 2;
+    curtains.scale.set(0.78, 0.9, 0.82);
+    for (const name of ['rupture_wall', 'cascade_0', 'cascade_1', 'cascade_2'])
+      curtains.add(template(name).clone(true));
+    const southernPool = createLavaPool(160, 90, materials.lava, 23);
+    southernPool.position.set(0, 1, 92);
+    curtains.add(southernPool);
+    group.add(curtains);
     const coil = track.landmarks.coil;
     const tower = template('hollow_tower').clone(true);
     const towerBounds = new T.Box3().setFromObject(template('hollow_tower'));
@@ -319,7 +329,7 @@ export function createCindercoilEnvironment({
       const frame = groundFrame(track, s);
       for (const side of [-1, 1]) {
         const scale = 1.05 + random() * 1.65;
-        const heightScale = scale * (0.84 + random() * 0.63);
+        const heightScale = scale * (1.3 + random() * 1.05);
         let position,
           accepted = false;
         for (let attempt = 0; attempt < 7; attempt += 1) {
@@ -327,7 +337,7 @@ export function createCindercoilEnvironment({
             .clone()
             .addScaledVector(
               frame.right,
-              side * (60 + attempt * 22 + random() * 12),
+              side * (98 + attempt * 22 + random() * 12),
             );
           position.y = heightAt(position.x, position.z) - 12;
           const top = position.y + clusterBounds.max.y * heightScale;
@@ -372,6 +382,55 @@ export function createCindercoilEnvironment({
         template('basalt_cluster'),
         poses,
         'Cindercoil / ordinary basalt teeth',
+      ),
+    );
+    const aprons = [];
+    const apronBounds = new T.Box3().setFromObject(template('talus_apron'));
+    for (let s = 35; s < track.length; s += 185) {
+      const frame = groundFrame(track, s);
+      const side = Math.floor(s / 185) % 2 ? -1 : 1;
+      const scale = 0.65 + random() * 0.75;
+      const position = frame.position
+        .clone()
+        .addScaledVector(frame.right, side * (72 + random() * 24));
+      position.y = heightAt(position.x, position.z) - 2;
+      const width = 85 * scale;
+      const top = position.y + apronBounds.max.y * scale;
+      if (
+        !clearance.clears(
+          position.x,
+          position.z,
+          width,
+          width,
+          top,
+          0,
+          position.y - 12,
+        )
+      )
+        continue;
+      aprons.push({
+        position,
+        quaternion: new T.Quaternion().setFromAxisAngle(
+          UP,
+          random() * Math.PI * 2,
+        ),
+        scale: new T.Vector3(scale, scale, scale),
+      });
+      placements.push({
+        type: 'cooled-apron',
+        s,
+        position: position.toArray(),
+        width,
+        top,
+        bottom: position.y - 12,
+        scale,
+      });
+    }
+    group.add(
+      instantiateModule(
+        template('talus_apron'),
+        aprons,
+        'Cindercoil / cooled flow shelves and talus',
       ),
     );
     // Thick plates sit above both main lake and cascade plunge basin.
@@ -436,8 +495,38 @@ export function createCindercoilEnvironment({
       .then(() =>
         (loadAsset ?? ((url) => new GLTFLoader().loadAsync(url)))(ASSET),
       )
-      .then((gltf) => {
+      .then(async (gltf) => {
         accept(gltf);
+        if (
+          !disposed &&
+          typeof document !== 'undefined' &&
+          typeof location !== 'undefined'
+        ) {
+          const texture = await new T.TextureLoader().loadAsync(
+            '/assets/levels/cindercoil/basalt-albedo-v1.png',
+          );
+          if (disposed) {
+            texture.dispose();
+            return false;
+          }
+          texture.colorSpace = T.SRGBColorSpace;
+          texture.wrapS = texture.wrapT = T.RepeatWrapping;
+          texture.anisotropy = 8;
+          rockTexture.value = texture;
+          const bind = (material) => {
+            if (material.map === fallbackRock) {
+              material.map = texture;
+              material.needsUpdate = true;
+            }
+          };
+          bind(materials.basalt);
+          assetScene.traverse((node) => {
+            for (const material of [node.material].flat().filter(Boolean))
+              bind(material);
+          });
+          fallbackRock.dispose();
+          metrics.textures = 1;
+        }
         return !disposed;
       })
       .catch((error) => {
@@ -448,6 +537,7 @@ export function createCindercoilEnvironment({
   }
   function update({
     time = 0,
+    state,
     camera,
     settings: currentSettings = settings,
   } = {}) {
@@ -461,7 +551,29 @@ export function createCindercoilEnvironment({
     fountain.rotation.y = currentSettings.reducedMotion
       ? 0
       : Math.sin(motionTime * 0.35) * 0.06;
-    ventMaterial.emissiveIntensity = 1.1 + event.vent * 0.7;
+    ventMaterial.emissiveIntensity = 0.7 + event.vent * 0.45;
+    spatter.visible = event.vent > 0.02;
+    for (let i = 0; i < spatter.count; i++) {
+      const age = (motionTime * 0.42 + i * 0.61803398875) % 1;
+      const angle = i * 2.399;
+      const height = Math.sin(age * Math.PI) * (250 + (i % 6) * 17);
+      const radius = 3 + age * (22 + (i % 18));
+      spatterPosition
+        .copy(ventPosition)
+        .add(
+          new T.Vector3(
+            Math.cos(angle) * radius,
+            height * event.vent,
+            Math.sin(angle) * radius,
+          ),
+        );
+      spatterScale.setScalar(0.55 + (i % 7) * 0.12);
+      spatterScale.y *= 1.6;
+      spatterRotation.setFromAxisAngle(UP, age * 4 + i);
+      spatterMatrix.compose(spatterPosition, spatterRotation, spatterScale);
+      spatter.setMatrixAt(i, spatterMatrix);
+    }
+    spatter.instanceMatrix.needsUpdate = true;
     if (rafts) {
       for (const { mesh, sourceMatrix } of rafts.userData.batches) {
         for (let i = 0; i < raftPlacements.length; i += 1) {
@@ -479,13 +591,12 @@ export function createCindercoilEnvironment({
         mesh.instanceMatrix.needsUpdate = true;
       }
     }
-    ash.visible = !currentSettings.reducedMotion && !overview;
-    ash.material.uniforms.time.value = motionTime;
-    ash.geometry.setDrawRange(0, currentSettings.quality === 'low' ? 180 : 680);
-    if (leftPanel) leftPanel.position.x = -event.rupture * 7;
-    if (rightPanel) rightPanel.position.x = event.rupture * 7;
+    atmosphere.update({ state, time, camera, settings: currentSettings });
+    if (leftPanel) leftPanel.position.x = -event.rupture * 32;
+    if (rightPanel) rightPanel.position.x = event.rupture * 32;
     for (const [index, channel] of animated.entries()) {
-      channel.scale.z = 0.91 + event.rupture * 0.22;
+      channel.scale.z =
+        index === 1 ? 0.08 + event.rupture * 1.12 : 0.85 + event.rupture * 0.26;
       channel.position.y = currentSettings.reducedMotion
         ? 0
         : Math.sin(motionTime * 0.47 + index) * 0.55;
@@ -507,11 +618,15 @@ export function createCindercoilEnvironment({
             : anchor.index === 2
               ? 1 + event.vent * 0.35
               : 1;
+        if (anchor.index === 2)
+          light.position.y = ventPosition.y + 72 + event.vent * 170;
         light.intensity = overview
           ? 0
           : 10500 *
             strength *
-            (1 - T.MathUtils.smoothstep(anchor.distance, 260, 560));
+            (anchor.index === 1
+              ? 1
+              : 1 - T.MathUtils.smoothstep(anchor.distance, 260, 560));
       }
     }
     group.userData.presentation = {

@@ -1,4 +1,5 @@
 import { sampleCindercoilEvent, sampleSurge, surgeAt } from './mechanics.js';
+import { sampleCindercoilAtmosphere } from './atmosphere.js';
 
 export function createCindercoilOverlay({ host, track, readRuntime }) {
   const notice = document.createElement('div');
@@ -21,9 +22,22 @@ export function createCindercoilOverlay({ host, track, readRuntime }) {
     maxWidth: 'calc(100% - 32px)',
   });
   host.append(notice);
+  const peripheral = document.createElement('canvas');
+  peripheral.className = 'cindercoil-exposure';
+  peripheral.setAttribute('aria-hidden', 'true');
+  Object.assign(peripheral.style, {
+    position: 'absolute',
+    inset: '0',
+    width: '100%',
+    height: '100%',
+    pointerEvents: 'none',
+    zIndex: '2',
+  });
+  host.append(peripheral);
+  const ink = peripheral.getContext('2d');
   let presentation = {};
   return {
-    update({ state, time, mode, reviewing }) {
+    update({ state, time, mode, reviewing, settings = {} }) {
       const width = host.clientWidth || globalThis.innerWidth;
       const height = host.clientHeight || globalThis.innerHeight;
       const compact = height < 560;
@@ -67,6 +81,38 @@ export function createCindercoilOverlay({ host, track, readRuntime }) {
               ? 'VENT BUILDING · ALIGN FOR TAKEOFF'
               : `VENT GAP ${Math.ceil(jump.takeoff - distance)}m · ALIGN + BUILD SPEED`;
       }
+      const atmosphere = sampleCindercoilAtmosphere(track, state);
+      const show =
+        !reviewing && !reviewOpen && ['racing', 'paused'].includes(mode);
+      if (peripheral.width !== width || peripheral.height !== height) {
+        peripheral.width = width;
+        peripheral.height = height;
+      }
+      ink.clearRect(0, 0, width, height);
+      if (show && !settings.reducedMotion) {
+        for (let i = 0; i < (settings.quality === 'low' ? 10 : 24); i++) {
+          const phase = (i * 0.61803398875 + time * 0.018) % 1;
+          const x =
+            (i % 2
+              ? 0.91 + 0.08 * Math.sin(i * 7)
+              : 0.09 + 0.08 * Math.sin(i * 7)) * width;
+          const y = phase * height;
+          ink.strokeStyle = `rgba(183,194,206,${atmosphere.ash * 0.13})`;
+          ink.beginPath();
+          ink.moveTo(x, y);
+          ink.lineTo(x + 2 + atmosphere.hot * Math.sin(time + i) * 3, y + 3);
+          ink.stroke();
+        }
+      }
+      if (show && atmosphere.contact) {
+        const heat = ink.createLinearGradient(0, 0, width, 0);
+        heat.addColorStop(0, 'rgba(236,109,44,.07)');
+        heat.addColorStop(0.15, 'transparent');
+        heat.addColorStop(0.85, 'transparent');
+        heat.addColorStop(1, 'rgba(236,109,44,.07)');
+        ink.fillStyle = heat;
+        ink.fillRect(0, 0, width, height);
+      }
       notice.textContent = text;
       notice.style.display =
         text && !reviewing && !reviewOpen && ['racing', 'paused'].includes(mode)
@@ -78,9 +124,13 @@ export function createCindercoilOverlay({ host, track, readRuntime }) {
         event,
         surge: cue,
         contact: local?.contact ?? false,
+        atmosphere,
       };
     },
     getPresentation: () => ({ cindercoil: presentation }),
-    dispose: () => notice.remove(),
+    dispose() {
+      notice.remove();
+      peripheral.remove();
+    },
   };
 }

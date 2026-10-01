@@ -12,7 +12,7 @@ const track = createCindercoilTrack();
 async function loadAsset() {
   const bytes = await readFile(
     new URL(
-      '../public/assets/levels/cindercoil/cindercoil-hero-kit.glb',
+      '../public/assets/levels/cindercoil/cindercoil-hero-kit-v3.glb',
       import.meta.url,
     ),
   );
@@ -27,7 +27,7 @@ test('Cindercoil hero kit loads, updates deterministically and disposes owned re
   await world.ready;
   const metrics = world.group.userData.metrics;
   assert.ok(metrics.meshCount < 100, JSON.stringify(metrics));
-  assert.ok(metrics.triangleCount < 500000, JSON.stringify(metrics));
+  assert.ok(metrics.triangleCount < 750000, JSON.stringify(metrics));
   assert.equal(metrics.crustRafts, 96);
   assert.ok(metrics.basaltClusters > 80);
   const camera = new T.PerspectiveCamera();
@@ -173,8 +173,42 @@ test('Cindercoil loading rejection unwinds world and shape loads no asset', asyn
   });
   assert.equal(shape.group.children.length, 1);
   shape.dispose();
-  const backdrop = createCindercoilBackdrop();
+  const backdrop = await createCindercoilBackdrop({ shape: true });
   backdrop.update({ time: 0, settings: {} });
   backdrop.dispose();
   backdrop.dispose();
+});
+
+test('Cindercoil selected sky is owned, camera-relative and released once', async () => {
+  const texture = new T.Texture();
+  let requested;
+  const backdrop = await createCindercoilBackdrop({
+    loadTexture: async (url) => {
+      requested = url;
+      return texture;
+    },
+  });
+  assert.equal(requested, '/assets/levels/cindercoil/cindercoil-sky-v2.png');
+  assert.equal(texture.colorSpace, T.SRGBColorSpace);
+  assert.deepEqual(backdrop.ownedTextures, [texture]);
+  const camera = new T.PerspectiveCamera();
+  camera.position.set(20, 200, -400);
+  backdrop.update({ camera, time: 10, settings: { reducedMotion: true } });
+  assert.deepEqual(
+    backdrop.group.position.toArray(),
+    camera.position.toArray(),
+  );
+  let count = 0;
+  texture.addEventListener('dispose', () => count++);
+  backdrop.dispose();
+  backdrop.dispose();
+  assert.equal(count, 1);
+  await assert.rejects(
+    createCindercoilBackdrop({
+      loadTexture: async () => {
+        throw new Error('missing');
+      },
+    }),
+    /ash sky could not load/,
+  );
 });

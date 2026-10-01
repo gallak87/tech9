@@ -13,7 +13,7 @@ export default function createLevel({ shape = false }) {
     renderer: {
       world: shape ? 'cindercoil-shape' : 'cindercoil-caldera',
       background: '#303c49',
-      fog: { color: '#3c4854', density: 0.00016 },
+      fog: { color: '#3c4854', density: 0.0004 },
       bloomStrength: 0.35,
       bloomThreshold: 1.25,
       reflectionFar: 4200,

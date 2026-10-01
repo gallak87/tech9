@@ -24,6 +24,10 @@ Approved angular futuristic jet silhouette: slender split nose, swept planform, 
 
 Colossal enclosed living trees, connected oversized foliage and an amber resin road with restrained transmission and a thin glowing orange curb. Keep the giant hollow complete around genuine route portals and preserve dark-to-lit contrast against a cloudy forest sky. Broad leaves need curved silhouettes and vein detail at fly-camera distance as well as canopy mass from the road. The retired creature remains source-only; raised petals, roadside bulbs/stalks and jump-edge beacons stay removed. Asset construction details remain in [Vesper provenance](../assets/levels/vesper/provenance.json).
 
+## Cindercoil
+
+Cool slate/violet ash dusk surrounds ivory, charcoal and oxide ceramic construction. Keep broad heat-shield plates, thick kiln-shelf boundaries, dark glazed Crown panels and deep supported keels. Warm lava belongs to modeled channels, vent tongues and fractured crust basins; reflected warmth retains ceramic detail against readable cool basalt. The selected panorama supplies distant clouds only. The full rising furnace roll and explicit receiving shelf retain clear camera envelopes; the warned surge boundary remains visible in every preset. Reduced motion removes drifting ash, swirling embers and heat shimmer while event phases and contact cues remain accurate.
+
 ## UI and feedback
 
 Warm off-white/graphite, technical numerals, vermilion active accents, generous spacing and real controls. Keep telemetry and notices away from the craft, upcoming road and touch controls. Moderate chase FOV, no default camera shake, and road-local camera clearance.

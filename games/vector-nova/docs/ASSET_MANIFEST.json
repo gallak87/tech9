@@ -128,6 +128,20 @@
         "public/assets/levels/vesper/vesper-night-sky-v1.png"
       ],
       "provenanceRecord": "assets/levels/vesper/provenance.json"
+    },
+    {
+      "id": "cindercoil-caldera",
+      "source": "assets/levels/cindercoil/ and src/levels/cindercoil/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original reproducible Blender caldera/channel/crust/tower/launch kit, procedural ceramic and geology detail, selected reference-guided ash panorama and deterministic local atmosphere.",
+      "rights": "Project-authored/generated; no third-party artwork or meshes",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/levels/cindercoil/cindercoil-hero-kit-v3.glb",
+        "public/assets/levels/cindercoil/cindercoil-sky-v2.png",
+        "public/assets/levels/cindercoil/basalt-albedo-v1.png"
+      ],
+      "provenanceRecord": "assets/levels/cindercoil/PROVENANCE.md"
     }
   ],
   "thirdParty": [

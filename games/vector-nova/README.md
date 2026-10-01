@@ -6,16 +6,19 @@ A browser anti-gravity racer built with Three.js and Vite. Drive the Blender-aut
 
 Choose a circuit in the paddock dropdown and press **Load**, then enter its practice loop. During a session, pause and return to the paddock to switch circuits.
 
-| Circuit          | Identity                                                                                   | Availability      |
-| ---------------- | ------------------------------------------------------------------------------------------ | ----------------- |
-| Halcyon Viaduct  | 5 km metropolitan expressway with a skyline corkscrew, inverted hold and plunge            | Default route `/` |
-| Asterion Orbital | 4.5 km shipyard above a planet, open lattice spans, neon decks and tall containment frames | `/?level=orbital` |
-| Nacre Tempest    | Ocean/storm world, submerged racing and two airborne jumps                                 | `/?level=nacre`   |
-| Vesper Canopy    | Colossal hollow trees, amber resin, crown jumps and sap lines                              | `/?level=vesper`  |
+| Circuit          | Identity                                                                                   | Availability         |
+| ---------------- | ------------------------------------------------------------------------------------------ | -------------------- |
+| Halcyon Viaduct  | 5 km metropolitan expressway with a skyline corkscrew, inverted hold and plunge            | Default route `/`    |
+| Asterion Orbital | 4.5 km shipyard above a planet, open lattice spans, neon decks and tall containment frames | `/?level=orbital`    |
+| Nacre Tempest    | Ocean/storm world, submerged racing and two airborne jumps                                 | `/?level=nacre`      |
+| Vesper Canopy    | Colossal hollow trees, amber resin, crown jumps and sap lines                              | `/?level=vesper`     |
+| Cindercoil       | Ceramic volcanic circuit, warned lava surges, a furnace corkscrew and vent flight          | `/?level=cindercoil` |
 
 Halcyon's automatic Vector boost strips and Aegis shields are available with `/?features=halcyon-pickups`. They activate on crossing, with no inventory or use-item button. The plain route retains the baseline handling.
 
 Orbital's bare route review is available at `/?level=orbital&review=shape`. Circuit views provide 3D/top/profile overviews and parked section starts. Nacre adds storm swells, underwater immersion, two real jumps and one enormous swimming leviathan. Its automatic missed-jump recovery keeps the lap valid while counting the recovery delay; manual R recovery still invalidates it.
+
+Cindercoil adds three warned surge zones with a protected lane, speed/reserve penalties on lava contact, a full rising roll and a physical vent gap. Eruption timing changes takeoff lift; missed transfers recover with their delay counted. Its caldera rupture and local ash/heat presentation follow simulation time. Shape review uses `/?level=cindercoil&review=shape`.
 
 Opponents, complete race/results flow, Time Trial and championships are future work.
 

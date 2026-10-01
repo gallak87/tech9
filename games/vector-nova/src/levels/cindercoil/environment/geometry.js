@@ -78,13 +78,20 @@ export function createCalderaHeight(track) {
       const distance = Math.hypot(x - mx, z - mz) / width;
       y += Math.exp(-distance * distance * 1.8) * height * (0.6 + broad * 0.65);
     }
+    // Unequal erosion benches break the continuous rim into stacked shelves.
+    const layer = (y + broad * 13) / 43;
+    const fraction = layer - Math.floor(layer);
+    const terraced =
+      (Math.floor(layer) + T.MathUtils.smoothstep(fraction, 0.64, 0.96)) * 43 -
+      broad * 13;
+    y = T.MathUtils.lerp(y, terraced, 0.72);
     const poolDistance = Math.hypot(
       (x - basin.center[0]) / (basin.radius * 1.6),
       (z - basin.center[2]) / (basin.radius * 1.23),
     );
     const plungeDistance = Math.hypot(
-      (x - rupture.position[0] - 95) / 143,
-      (z - rupture.position[2]) / 205,
+      (x - rupture.position[0] - 90) / 210,
+      (z - rupture.position[2] + 180) / 450,
     );
     const pool = Math.min(poolDistance, plungeDistance);
     y = T.MathUtils.lerp(
@@ -94,7 +101,13 @@ export function createCalderaHeight(track) {
     );
     for (const point of route) {
       const d = Math.hypot(x - point.x, z - point.z);
-      if (d < 86) y = Math.min(y, point.y - 55 + Math.max(0, d - 35) * 0.15);
+      if (d < 240) {
+        const shoulder = T.MathUtils.smoothstep(d, 75, 240);
+        y = Math.min(
+          y,
+          point.y - 55 + Math.max(0, d - 35) * 0.38 + shoulder * 150,
+        );
+      }
     }
     return y;
   };
@@ -106,7 +119,7 @@ export function createCalderaTerrain(
   heightAt = createCalderaHeight(track),
 ) {
   const center = track.bounds.getCenter(new T.Vector3());
-  const geometry = new T.PlaneGeometry(3200, 3200, 192, 192).rotateX(
+  const geometry = new T.PlaneGeometry(3200, 3200, 224, 224).rotateX(
     -Math.PI / 2,
   );
   const positions = geometry.getAttribute('position');

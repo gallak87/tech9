@@ -477,8 +477,8 @@ export function createCindercoilTrack() {
         end: routeDistance(coilEnd),
       },
       rupture: {
-        position: [-960 * scale, 195, -230 * scale],
-        direction: [1, 0, 0],
+        position: [-560, 195, 400],
+        direction: [0.3, 0, -0.954],
       },
       launch: {
         takeoff: sample(jump.takeoff).position.toArray(),

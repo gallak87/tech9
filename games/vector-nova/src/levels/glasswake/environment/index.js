@@ -405,6 +405,7 @@ export function createGlasswakeEnvironment({
       if (/^calving_(chunk|chip)_/.test(name)) {
         const object = unique(name, calving);
         const index = Number(name.slice(-2));
+        if (!name.includes('chip')) object.scale.y = 1.45;
         moving.push({ object, index, chip: name.includes('chip') });
       }
     }
@@ -444,6 +445,7 @@ export function createGlasswakeEnvironment({
       const mesh = new T.Mesh(geometry, crackMaterial);
       mesh.name = 'Propagating fracture seam';
       calving.add(mesh);
+      mesh.scale.y = 1.45;
       cracks.push(mesh);
     }
     flushBatches();
@@ -598,15 +600,15 @@ export function createGlasswakeEnvironment({
               returnSection.end,
             ));
     for (const { object, index, chip } of moving) {
-      const delay = index * 0.012;
+      const delay = index * (chip ? 0.025 : 0.055);
       const t = Math.max(0, (event.separation - delay) / (1 - delay));
       object.position.set(
         -t * (chip ? 69 + index * 4 : 20 + index * 2),
         -t * t * (chip ? 150 : 248 + index * 7),
         t * Math.sin(index * 4.1) * 10,
       );
-      object.rotation.z = t * (chip ? -0.22 : -0.06 - index * 0.013);
-      object.rotation.x = t * Math.sin(index) * 0.055;
+      object.rotation.z = t * (chip ? -0.22 : -0.15 - index * 0.032);
+      object.rotation.x = t * Math.sin(index) * 0.15;
     }
     cracks.forEach((mesh, i) => {
       const progress = Math.max(0, Math.min(1, event.crack * 1.5 - i * 0.058));

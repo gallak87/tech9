@@ -4,15 +4,15 @@ The user starts replacement level sessions one at a time. Each agent takes over 
 
 Expansion-specific briefs and process belong only in this folder. Keep progress and review findings in the chat, with raw evidence ignored in `.experiments/`. Do not create status files, coordination ledgers, budget reports or interim handoff packages. Once a level is merged, remove its completed execution notes; its merged availability is enough. General docs should describe the shipped game, actual APIs and general working practices.
 
-| Map                   | Entry        | Brief / completion             |
-| --------------------- | ------------ | ------------------------------ |
-| 4 — Vesper Canopy     | `vesper`     | Merged                         |
-| 5 — Glasswake Comet   | `glasswake`  | [Brief](glasswake/HANDOFF.md)  |
-| 6 — Cindercoil        | `cindercoil` | [Brief](cindercoil/HANDOFF.md) |
-| 7 — Saffron Leviathan | `saffron`    | [Brief](saffron/HANDOFF.md)    |
-| 8 — Zephyr Basilica   | `zephyr`     | [Brief](zephyr/HANDOFF.md)     |
-| 9 — Helion Flare      | `helion`     | [Brief](helion/HANDOFF.md)     |
-| 10 — Umbra Fold       | `umbra`      | [Brief](umbra/HANDOFF.md)      |
+| Map                   | Entry        | Brief / completion            |
+| --------------------- | ------------ | ----------------------------- |
+| 4 — Vesper Canopy     | `vesper`     | Merged                        |
+| 5 — Glasswake Comet   | `glasswake`  | [Brief](glasswake/HANDOFF.md) |
+| 6 — Cindercoil        | `cindercoil` | Merged                        |
+| 7 — Saffron Leviathan | `saffron`    | [Brief](saffron/HANDOFF.md)   |
+| 8 — Zephyr Basilica   | `zephyr`     | [Brief](zephyr/HANDOFF.md)    |
+| 9 — Helion Flare      | `helion`     | [Brief](helion/HANDOFF.md)    |
+| 10 — Umbra Fold       | `umbra`      | [Brief](umbra/HANDOFF.md)     |
 
 ## Execution and authority
 

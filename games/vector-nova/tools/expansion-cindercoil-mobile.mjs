@@ -118,7 +118,7 @@ try {
         await page.locator('#review-toggle').tap();
         await page.waitForTimeout(120);
         assert.equal(
-          (await snapshot(page)).presentation.cindercoil.visible,
+          (await snapshot(page)).environment.cindercoil.visible,
           false,
         );
         await capture(page, `${name}-review-open`);
@@ -184,6 +184,50 @@ try {
           await page.evaluate((n) => window.__VN.loadScenario(n, 71), scenario);
           await page.waitForTimeout(120);
           await capture(page, `${name}-${scenario}`);
+        }
+        await page.evaluate(() =>
+          window.__VN.loadScenario('vent-edge-right', 71),
+        );
+        await page.waitForFunction(
+          () =>
+            window.__VN.getSnapshot().events.some((e) => e.type === 'impact'),
+          null,
+          { timeout: 20000 },
+        );
+        await capture(page, `${name}-barrier-catch`);
+        await page.waitForFunction(
+          () =>
+            window.__VN
+              .getSnapshot()
+              .events.some((e) => e.type === 'jump-transfer'),
+          null,
+          { timeout: 20000 },
+        );
+        assert.equal(
+          (await snapshot(page)).events.find((e) => e.type === 'jump-transfer')
+            .payload.outcome,
+          'landed',
+        );
+        await capture(page, `${name}-barrier-landed`);
+        if (view === 'compact') {
+          await page.evaluate(() => window.__VN.loadScenario('vent-short', 71));
+          await page.waitForFunction(
+            () =>
+              window.__VN.getSnapshot().runtime.state.flight.mode ===
+              'recovery',
+            null,
+            { timeout: 20000 },
+          );
+          await capture(page, `${name}-short-recovery`);
+          await page.waitForFunction(
+            () =>
+              window.__VN
+                .getSnapshot()
+                .events.some((e) => e.type === 'jump-transfer'),
+            null,
+            { timeout: 20000 },
+          );
+          await capture(page, `${name}-short-recovered`);
         }
         await page.evaluate(() => window.__VN.dispose());
         assert.equal(await page.locator('.cindercoil-exposure').count(), 0);

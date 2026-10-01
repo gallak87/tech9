@@ -13,7 +13,7 @@ const browser = await chromium.launch({
 const report = [];
 try {
   for (const asset of [
-    'cindercoil-hero-kit-v3.glb',
+    'cindercoil-hero-kit-v6.glb',
     'cindercoil-sky-v2.png',
     'basalt-albedo-v1.png',
   ]) {

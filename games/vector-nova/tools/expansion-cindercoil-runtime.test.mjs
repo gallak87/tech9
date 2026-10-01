@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCindercoilTrack } from '../src/levels/cindercoil/track/model.js';
-import { createCindercoilRuntime } from '../src/levels/cindercoil/runtime.js';
+import * as T from 'three';
+import { createFlightModel } from '../src/physics/flight.js';
+import {
+  CINDERCOIL_FLIGHT_RULES,
+  createCindercoilRuntime,
+} from '../src/levels/cindercoil/runtime.js';
 import { createVehicleState, stepVehicle } from '../src/physics/index.js';
 import { createRace } from '../src/race/index.js';
 import {
@@ -214,4 +219,132 @@ test('ordered numerical lap traverses every district, full coil and vent without
   assert.equal(impacts, 0);
   assert.equal(landed, 1);
   runtime.dispose();
+});
+
+test('outboard receiving barriers catch supported top and side hits without extending the deck', () => {
+  const model = createFlightModel(CINDERCOIL_FLIGHT_RULES);
+  const jump = track.jumps[0];
+  const poseAt = (frame, x, y) => ({
+    position: frame.position
+      .clone()
+      .addScaledVector(frame.right, x)
+      .addScaledVector(frame.up, y),
+    quaternion: frame.quaternion.clone(),
+  });
+  for (const offset of [40, 42, 44, 100, 200])
+    for (const side of [-1, 1]) {
+      const frame = track.sample(jump.landingStart + offset);
+      const top = model.sweptRail(
+        track,
+        jump,
+        poseAt(frame, side * 17.3, 6),
+        poseAt(frame, side * 17.3, 1),
+      );
+      assert.ok(top, `top ${offset}/${side}`);
+      assert.ok(
+        Math.abs(
+          top.position.clone().sub(frame.position).dot(frame.up) - 4.08,
+        ) < 0.005,
+      );
+      assert.ok(
+        model.sweptRail(
+          track,
+          jump,
+          poseAt(frame, side * 14, 2.8),
+          poseAt(frame, side * 18, 2.8),
+        ),
+      );
+      assert.equal(
+        model.sweptLanding(
+          track,
+          jump,
+          poseAt(frame, side * 17.3, 12),
+          poseAt(frame, side * 17.3, -12),
+          frame.up.clone().multiplyScalar(-100),
+        ),
+        null,
+      );
+      for (const [x, fromY, toY] of [
+        [17.31, 6, 1],
+        [14, -2, 2],
+        [14, 20, 18],
+      ])
+        assert.equal(
+          model.sweptRail(
+            track,
+            jump,
+            poseAt(frame, side * x, fromY),
+            poseAt(frame, side * x, toY),
+          ),
+          null,
+        );
+      const wrong = frame.quaternion
+        .clone()
+        .multiply(
+          new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 0, 1), Math.PI),
+        );
+      const before = poseAt(frame, side * 17.3, 6),
+        after = poseAt(frame, side * 17.3, 1);
+      before.quaternion = wrong;
+      after.quaternion = wrong;
+      assert.equal(model.sweptRail(track, jump, before, after), null);
+    }
+});
+
+test('imperfect vent approaches reuse one inward edge bounce and land with ordered checkpoint credit', () => {
+  for (const side of ['left', 'right'])
+    for (const coarse of [1 / 120, 1 / 30]) {
+      const runtime = createCindercoilRuntime({ track });
+      const state = {
+        ...createVehicleState(),
+        ...runtime.scenarios[`vent-edge-${side}`].state,
+      };
+      const race = createRace(track, { rulesId: runtime.rulesId });
+      race.placeScenario(state.distance);
+      race.valid = true;
+      const events = [];
+      let replay;
+      for (let i = 0; i < 1200; i++) {
+        const previous = state.distance;
+        const next = runtime.advance(state, idle, coarse);
+        events.push(...next);
+        race.step(previous, state.distance, coarse, next);
+        if (!replay && next.some((e) => e.type === 'impact'))
+          replay = {
+            state: { ...state },
+            snapshot: JSON.parse(JSON.stringify(runtime.snapshot())),
+          };
+        if (next.some((e) => e.type === 'jump-transfer')) break;
+      }
+      const impacts = events.filter((e) => e.type === 'impact');
+      assert.equal(impacts.length, 1);
+      assert.equal(impacts[0].payload.source, 'cindercoil-volcanic-edge-catch');
+      assert.equal(impacts[0].payload.speedRetention, 0.95);
+      assert.equal(impacts[0].payload.energyCost, 2);
+      assert.equal(
+        events.find((e) => e.type === 'jump-transfer').payload.outcome,
+        'landed',
+      );
+      assert.equal(
+        race.checkpoint,
+        track.checkpoints.findIndex(
+          (cp) => cp.distance === track.jumps[0].landingStart,
+        ),
+      );
+      assert.equal(race.valid, true);
+      assert.ok(Math.abs(state.lateral) < 13);
+      const copy = createCindercoilRuntime({ track });
+      copy.restore(replay.snapshot);
+      const replayState = replay.state;
+      const continuation = [];
+      for (let i = 0; i < 1200; i++) {
+        const next = copy.advance(replayState, idle, coarse);
+        continuation.push(...next);
+        if (next.some((e) => e.type === 'jump-transfer')) break;
+      }
+      assert.deepEqual(replayState, state);
+      assert.equal(continuation.filter((e) => e.type === 'impact').length, 0);
+      runtime.dispose();
+      copy.dispose();
+    }
 });

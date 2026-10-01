@@ -137,7 +137,7 @@
       "rights": "Project-authored/generated; no third-party artwork or meshes",
       "runtimeDependencies": ["three"],
       "runtimeAssets": [
-        "public/assets/levels/cindercoil/cindercoil-hero-kit-v3.glb",
+        "public/assets/levels/cindercoil/cindercoil-hero-kit-v6.glb",
         "public/assets/levels/cindercoil/cindercoil-sky-v2.png",
         "public/assets/levels/cindercoil/basalt-albedo-v1.png"
       ],

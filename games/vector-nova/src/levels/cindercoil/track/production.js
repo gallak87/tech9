@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { beveledBoxGeometry } from './beveled-box.js';
 import { createCeramicTextures } from './ceramic-textures.js';
+import { applyCindercoilAssetMaterials } from '../environment/materials.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { framePoint } from '../../../track/frames.js';
 import {
@@ -120,7 +121,11 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
     roughness: 0.83,
     ...bodyFinish,
   });
-  const basalt = material({ color: 0x30323b, roughness: 0.98 });
+  const basalt = material({
+    name: 'Basalt / stable support plinths',
+    color: 0x424a55,
+    roughness: 0.98,
+  });
   const amber = material({
     color: shape ? 0xc2ad79 : 0xd5a750,
     roughness: 0.72,
@@ -477,13 +482,13 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
   }
   instanced(
     'Basalt-founded offset ceramic piers',
-    new THREE.BoxGeometry(1, 1, 1),
+    beveledBoxGeometry(1, 1, 1, 0.022),
     ivory,
     piers,
   );
   instanced(
     'Wide under-deck bracket arms',
-    new THREE.BoxGeometry(1, 1, 1),
+    beveledBoxGeometry(1, 1, 1, 0.018),
     oxide,
     arms,
   );
@@ -495,19 +500,19 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
   );
   instanced(
     'Pier spread foundation blocks',
-    new THREE.BoxGeometry(13, 4.5, 15),
+    beveledBoxGeometry(13, 4.5, 15, 0.32),
     keel,
     footings,
   );
   instanced(
     'Columnar basalt stable support plinths',
-    new THREE.CylinderGeometry(12, 16, 46, 7, 1),
+    naturalPlinthGeometry(),
     basalt,
     rockBases,
   );
   instanced(
     'Ceramic pier bearing capitals',
-    new THREE.BoxGeometry(10.5, 3.2, 12.5),
+    beveledBoxGeometry(10.5, 3.2, 12.5, 0.28),
     oxide,
     collars,
   );
@@ -620,9 +625,24 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
     for (const surface of materials) surface.dispose();
     for (const texture of textures) texture.dispose();
   };
+  if (!shape) applyCindercoilAssetMaterials(group);
   group.traverse((object) => {
     object.updateMatrix();
     object.matrixAutoUpdate = false;
   });
   return { group, dispose };
+}
+
+function naturalPlinthGeometry() {
+  const geometry = new THREE.CylinderGeometry(12, 16, 46, 9, 5);
+  const positions = geometry.attributes.position;
+  for (let i = 0; i < positions.count; i++) {
+    const x = positions.getX(i),
+      y = positions.getY(i),
+      z = positions.getZ(i);
+    const factor = 1 + 0.045 * Math.sin(y * 0.32 + Math.atan2(z, x) * 3);
+    positions.setXYZ(i, x * factor, y, z * factor);
+  }
+  geometry.computeVertexNormals();
+  return geometry;
 }

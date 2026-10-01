@@ -12,7 +12,7 @@ const track = createCindercoilTrack();
 async function loadAsset() {
   const bytes = await readFile(
     new URL(
-      '../public/assets/levels/cindercoil/cindercoil-hero-kit-v3.glb',
+      '../public/assets/levels/cindercoil/cindercoil-hero-kit-v6.glb',
       import.meta.url,
     ),
   );
@@ -211,4 +211,63 @@ test('Cindercoil selected sky is owned, camera-relative and released once', asyn
     }),
     /ash sky could not load/,
   );
+});
+
+test('loaded basalt texture replaces the fallback and has one owner', async () => {
+  const texture = new T.Texture();
+  let textureDisposals = 0;
+  texture.addEventListener('dispose', () => textureDisposals++);
+  const world = createCindercoilEnvironment({
+    track,
+    loadAsset,
+    loadTexture: async (url) => {
+      assert.equal(url, '/assets/levels/cindercoil/basalt-albedo-v1.png');
+      return texture;
+    },
+  });
+  await world.ready;
+  assert.equal(world.group.userData.metrics.textures, 1);
+  let users = 0;
+  world.group.traverse((n) => {
+    for (const m of [n.material].flat().filter(Boolean))
+      if (m.map === texture) users++;
+  });
+  assert.ok(users > 5);
+  world.dispose();
+  world.dispose();
+  assert.equal(textureDisposals, 1);
+});
+
+test('late texture failure after disposal does not release geometry or materials twice', async () => {
+  let begin, reject;
+  const began = new Promise((resolve) => (begin = resolve));
+  const pending = new Promise((_, rejectLoad) => (reject = rejectLoad));
+  const world = createCindercoilEnvironment({
+    track,
+    loadAsset,
+    loadTexture: () => {
+      begin();
+      return pending;
+    },
+  });
+  const failure = assert.rejects(world.ready, /basalt surface could not load/);
+  await began;
+  const releases = new Map();
+  world.group.traverse((n) => {
+    for (const resource of [n.geometry, ...[n.material].flat()].filter(
+      Boolean,
+    )) {
+      if (releases.has(resource)) continue;
+      releases.set(resource, 0);
+      resource.addEventListener('dispose', () =>
+        releases.set(resource, releases.get(resource) + 1),
+      );
+    }
+  });
+  world.dispose();
+  reject(new Error('texture unavailable'));
+  await failure;
+  world.dispose();
+  assert.equal(world.group.children.length, 0);
+  for (const count of releases.values()) assert.equal(count, 1);
 });

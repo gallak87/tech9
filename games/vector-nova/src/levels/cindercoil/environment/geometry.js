@@ -79,20 +79,34 @@ export function createCalderaHeight(track) {
       y += Math.exp(-distance * distance * 1.8) * height * (0.6 + broad * 0.65);
     }
     // Unequal erosion benches break the continuous rim into stacked shelves.
-    const layer = (y + broad * 13) / 43;
+    const layerHeight = 31 + terrainNoise(x * 0.0018 + 21, z * 0.0018) * 27;
+    const layer = (y + broad * 13) / layerHeight;
     const fraction = layer - Math.floor(layer);
     const terraced =
-      (Math.floor(layer) + T.MathUtils.smoothstep(fraction, 0.64, 0.96)) * 43 -
+      (Math.floor(layer) + T.MathUtils.smoothstep(fraction, 0.64, 0.96)) *
+        layerHeight -
       broad * 13;
-    y = T.MathUtils.lerp(y, terraced, 0.72);
+    y = T.MathUtils.lerp(
+      y,
+      terraced,
+      0.36 + terrainNoise(x * 0.006 - 40, z * 0.006 + 11) * 0.42,
+    );
+    const fractureNoise = terrainNoise(x * 0.006 + 2, z * 0.006 - 7);
+    const fractured =
+      T.MathUtils.smoothstep(fractureNoise, 0.46, 0.5) *
+      (1 - T.MathUtils.smoothstep(fractureNoise, 0.51, 0.56));
+    y -= fractured * (10 + radial * 30);
     const poolDistance = Math.hypot(
       (x - basin.center[0]) / (basin.radius * 1.6),
       (z - basin.center[2]) / (basin.radius * 1.23),
     );
-    const plungeDistance = Math.hypot(
-      (x - rupture.position[0] - 90) / 210,
-      (z - rupture.position[2] + 180) / 450,
-    );
+    const faultX = x - rupture.position[0],
+      faultZ = z - rupture.position[2];
+    const localX =
+      faultX * rupture.direction[2] - faultZ * rupture.direction[0];
+    const localZ =
+      faultX * rupture.direction[0] + faultZ * rupture.direction[2];
+    const plungeDistance = Math.hypot(localX / 380, (localZ - 110) / 255);
     const pool = Math.min(poolDistance, plungeDistance);
     y = T.MathUtils.lerp(
       -49 + (fine - 0.5) * 5,
@@ -119,7 +133,7 @@ export function createCalderaTerrain(
   heightAt = createCalderaHeight(track),
 ) {
   const center = track.bounds.getCenter(new T.Vector3());
-  const geometry = new T.PlaneGeometry(3200, 3200, 224, 224).rotateX(
+  const geometry = new T.PlaneGeometry(3200, 3200, 288, 288).rotateX(
     -Math.PI / 2,
   );
   const positions = geometry.getAttribute('position');
@@ -135,7 +149,7 @@ export function createCalderaTerrain(
     const n = terrainNoise(x * 0.008, z * 0.008);
     const color = cold
       .clone()
-      .lerp(ash, Math.pow(n, 2) * 0.66)
+      .lerp(ash, T.MathUtils.smoothstep(n, 0.37, 0.73) * 0.75)
       .lerp(oxide, Math.max(0, 0.35 - n));
     colors.set(color.toArray(), i * 3);
   }
@@ -156,12 +170,14 @@ export function createLavaPool(radiusX, radiusZ, material, seed = 3) {
     () => 0.94 + random() * 0.09,
   );
   const vertices = [],
+    uvs = [],
     indices = [];
   for (let r = 0; r <= rings; r += 1)
     for (let i = 0; i <= segments; i += 1) {
       const a = (i / segments) * Math.PI * 2,
         t = r / rings;
       const edge = outline[i % segments];
+      uvs.push(Math.cos(a) * t, Math.sin(a) * t);
       vertices.push(
         Math.cos(a) * radiusX * t * edge,
         -0.7 + Math.sin(a * 7 + r * 0.7) * 0.6 * t,
@@ -176,6 +192,7 @@ export function createLavaPool(radiusX, radiusZ, material, seed = 3) {
     }
   const geometry = new T.BufferGeometry();
   geometry.setAttribute('position', new T.Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
   const mesh = new T.Mesh(geometry, material);

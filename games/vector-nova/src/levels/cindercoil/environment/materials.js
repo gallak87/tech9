@@ -11,6 +11,7 @@ function geologyMaterial(
   material,
   { molten = false, time = { value: 0 }, terrain = false, rockTexture } = {},
 ) {
+  const fragmented = /fragmented/.test(material.name);
   if (rockTexture && !molten) material.map = rockTexture.value;
   material.onBeforeCompile = (shader) => {
     shader.uniforms.ccTime = time;
@@ -54,14 +55,20 @@ function geologyMaterial(
         float fracture=ccFbm(cp*vec3(1.7,.23,1.7)+vec3(macro*2.));
         float veins=smoothstep(.40,.47,fracture)*(1.-smoothstep(.49,.58,fracture));
         float relief=ccNoise(cp*vec3(.9,4.1,.9)+vec3(macro*2.));
+        ${terrain ? 'float ccReceiving=smoothstep(.20,.90,abs(normalize(cross(dFdx(ccWorld),dFdy(ccWorld))).y)); float ccAshCoverage=ccReceiving*smoothstep(.58,.76,ccFbm(ccWorld*.013+vec3(17.,3.,-9.)));' : ''}
         diffuseColor.rgb*=mix(.70,1.24,macro)*mix(.82,1.08,grit)*mix(.87,1.12,strata)*(1.-veins*${molten ? '.26' : '.19'});
-        ${molten ? '' : 'diffuseColor.rgb+=vec3(.018,.022,.026)*smoothstep(.64,.82,relief)*.22;'}
+        ${terrain ? 'diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.13,.15,.17)*mix(.72,1.15,macro),ccAshCoverage*.60);' : ''}
+        ${molten ? `float ccLiquid=smoothstep(${fragmented ? '.38,.68,ccFbm(cp*1.9)' : '.26,.50,ccFbm(cp*vec3(.85,.10,.85))'}); diffuseColor.rgb=mix(vec3(.026,.032,.04),diffuseColor.rgb,ccLiquid);` : 'diffuseColor.rgb+=vec3(.018,.022,.026)*smoothstep(.64,.82,relief)*.22;'}
       `,
+      )
+      .replace(
+        '#include <roughnessmap_fragment>',
+        `#include <roughnessmap_fragment>\n${terrain ? 'roughnessFactor=mix(.67,.98,ccAshCoverage);' : ''}`,
       )
       .replace(
         '#include <normal_fragment_begin>',
         `#include <normal_fragment_begin>
-        float stoneHeight=(relief*.45+grit*.18+fracture*.25+grain*.12)*${molten ? '.32' : terrain ? '.8' : '.32'};
+        float stoneHeight=(relief*.45+grit*.18+fracture*.25+grain*.12)*${molten ? '.32' : terrain ? '.52' : '.32'};
         normal=ccBump(normal,stoneHeight${rockTexture && !molten ? '+ccDetailHeight*.18' : ''});
       `,
       )
@@ -73,14 +80,14 @@ function geologyMaterial(
             ? `float rippled=ccFbm(cp*vec3(1.8,.45,1.8));
         float crustMask=smoothstep(.24,.63,rippled);
         float fold=sin(cp.y*2.3+ccNoise(cp*.7)*9.)*.5+.5;
-        totalEmissiveRadiance*=mix(.09,1.15,crustMask)*(.72+fold*.28);`
+        totalEmissiveRadiance*=ccLiquid*mix(.09,1.15,crustMask)*(.72+fold*.28);`
             : ''
         }
       `,
       );
   };
   material.customProgramCacheKey = () =>
-    `cindercoil-geology-5-${molten}-${terrain}`;
+    `cindercoil-geology-8-${molten}-${terrain}-${fragmented}`;
   return material;
 }
 
@@ -109,14 +116,16 @@ export function createCindercoilMaterials({ rockTexture } = {}) {
   );
   const lava = new T.ShaderMaterial({
     fog: true,
+    transparent: true,
+    depthWrite: false,
     uniforms: { ...T.UniformsLib.fog, time: { value: 0 }, pulse: { value: 0 } },
-    vertexShader: `varying vec3 world;
+    vertexShader: `varying vec3 world;varying vec2 poolUV;
       #include <fog_pars_vertex>
-      void main(){world=(modelMatrix*vec4(position,1.)).xyz;vec4 mvPosition=viewMatrix*vec4(world,1.);gl_Position=projectionMatrix*mvPosition;
+      void main(){poolUV=uv;world=(modelMatrix*vec4(position,1.)).xyz;vec4 mvPosition=viewMatrix*vec4(world,1.);gl_Position=projectionMatrix*mvPosition;
       #include <fog_vertex>
       }`,
     fragmentShader: `
-      uniform float time;uniform float pulse;varying vec3 world;
+      uniform float time;uniform float pulse;varying vec3 world;varying vec2 poolUV;
       #include <fog_pars_fragment>
       float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
       float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
@@ -128,8 +137,12 @@ export function createCindercoilMaterials({ rockTexture } = {}) {
         float small=noise(warped*9.);float ropy=noise(warped*vec2(2.8,8.));
         vec3 crust=mix(vec3(.010,.012,.014),vec3(.044,.037,.031),fold)*(.65+ropy*.5);
         vec3 molten=mix(vec3(.67,.032,.003),vec3(1.25,.22,.006),small*.7+fold*.3+clamp(pulse*.1,0.,.1));
-        vec3 color=mix(crust,molten,fissure*(.55+.45*small));
-        gl_FragColor=vec4(color,1.);
+        float edge=length(poolUV)+(noise(world.xz*.027)-.5)*.07;
+        float hot=1.-smoothstep(.74,.94,edge);
+        float alpha=1.-smoothstep(.89,.995,edge);
+        vec3 color=mix(crust,molten,fissure*(.55+.45*small)*hot);
+        if(alpha<.003)discard;
+        gl_FragColor=vec4(color,alpha);
         #include <fog_fragment>
         #include <tonemapping_fragment>
         #include <colorspace_fragment>

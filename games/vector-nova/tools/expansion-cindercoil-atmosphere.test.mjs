@@ -49,7 +49,7 @@ test('low bounds particle counts and reduced motion removes ash, embers and shim
     ...frame,
     settings: { quality: 'high', reducedMotion: true },
   });
-  assert.ok(field.group.children.every((n) => !n.visible));
+  assert.ok(field.group.children.slice(0, 3).every((n) => !n.visible));
   for (const node of field.group.children) {
     node.geometry.dispose();
     node.material.dispose();

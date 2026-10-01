@@ -19,9 +19,15 @@ export function createCindercoilOverlay({ host, track, readRuntime }) {
     letterSpacing: '.06em',
     textAlign: 'center',
     pointerEvents: 'none',
+    width: 'max-content',
     maxWidth: 'calc(100% - 32px)',
+    boxSizing: 'border-box',
   });
   host.append(notice);
+  host.classList.add('cindercoil-overlay-host');
+  const style = document.createElement('style');
+  style.textContent = `@media(min-width:1100px){.cindercoil-overlay-host #interface.driving #shape-controls:has(#review-toggle[aria-expanded="false"]){width:180px;padding:8px;background:rgba(14,29,39,.55)}}`;
+  host.append(style);
   const peripheral = document.createElement('canvas');
   peripheral.className = 'cindercoil-exposure';
   peripheral.setAttribute('aria-hidden', 'true');
@@ -62,7 +68,10 @@ export function createCindercoilOverlay({ host, track, readRuntime }) {
         'true';
       let text = '';
       if (flight?.mode === 'flight')
-        text = 'AIRBORNE · HOLD LINE FOR THE RECEIVING SHELF';
+        text =
+          event.vent > 0.05
+            ? 'AIRBORNE · VENT ACTIVE · HOLD THE RECEIVING LINE'
+            : 'AIRBORNE · HOLD LINE FOR THE RECEIVING SHELF';
       else if (flight?.mode === 'recovery')
         text = `MISSED LANDING · RECOVERY ${flight.flight.remaining.toFixed(1)}s`;
       else if (local?.contact) text = 'LAVA CONTACT · SPEED + RESERVE LOSS';
@@ -115,7 +124,11 @@ export function createCindercoilOverlay({ host, track, readRuntime }) {
       }
       notice.textContent = text;
       notice.style.display =
-        text && !reviewing && !reviewOpen && ['racing', 'paused'].includes(mode)
+        text &&
+        !host.querySelector('#notice')?.textContent.trim() &&
+        !reviewing &&
+        !reviewOpen &&
+        ['racing', 'paused'].includes(mode)
           ? 'block'
           : 'none';
       presentation = {
@@ -129,6 +142,8 @@ export function createCindercoilOverlay({ host, track, readRuntime }) {
     },
     getPresentation: () => ({ cindercoil: presentation }),
     dispose() {
+      style.remove();
+      host.classList.remove('cindercoil-overlay-host');
       notice.remove();
       peripheral.remove();
     },

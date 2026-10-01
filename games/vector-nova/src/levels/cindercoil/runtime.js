@@ -6,16 +6,21 @@ import {
   surgeAt,
 } from './mechanics.js';
 
+export const CINDERCOIL_FLIGHT_RULES = Object.freeze({
+  railHeight: Object.freeze({ 'vent-launch': 3.36 }),
+  railOffset: Object.freeze({ 'vent-launch': 2.3 }),
+});
+
 export function createCindercoilRuntime(context) {
   const { track } = context;
-  const model = createFlightModel({ railHeight: { 'vent-launch': 1.25 } });
+  const model = createFlightModel(CINDERCOIL_FLIGHT_RULES);
   let contactSeconds = 0;
   let contactId = null;
   let disposed = false;
   const flight = model.createRuntime(context, {
     id: 'cindercoil-volcanic',
     version: 1,
-    rulesId: `cindercoil-v1:${JSON.stringify({ geometry: track.geometryVersion, jumps: track.jumps, zones: track.surgeZones, rules: CINDERCOIL_RULES })}`,
+    rulesId: `cindercoil-v1:${JSON.stringify({ geometry: track.geometryVersion, flight: model.rules, jumps: track.jumps, zones: track.surgeZones, rules: CINDERCOIL_RULES })}`,
     groundOptions: ({ state }) => ({
       surface: {
         drag: surgeAt(track, state)?.contact ? CINDERCOIL_RULES.surgeDrag : 0,
@@ -69,6 +74,24 @@ export function createCindercoilRuntime(context) {
     label: 'Vent · calm crossing',
     state: { distance: jump.takeoff - 3, speed: 102, time: 7 },
   };
+  scenarios['vent-short'] = {
+    label: 'Vent · short transfer and recovery',
+    state: { distance: jump.takeoff - 3, speed: 45, time: 7 },
+  };
+  for (const [name, side] of [
+    ['left', -1],
+    ['right', 1],
+  ])
+    scenarios[`vent-edge-${name}`] = {
+      label: `Vent · ${name} barrier catch`,
+      state: {
+        distance: jump.takeoff - 0.01,
+        speed: 102,
+        time: 7,
+        lateral: side * 12,
+        heading: side * 0.02,
+      },
+    };
   scenarios['vent-erupting'] = {
     label: 'Vent · erupting crossing',
     state: { distance: jump.takeoff - 3, speed: 102, time: 3 },

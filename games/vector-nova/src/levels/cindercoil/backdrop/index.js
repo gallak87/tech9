@@ -52,6 +52,11 @@ export async function createCindercoilBackdrop({
           vec3 opposite=textureGrad(ashSky,vec2(panoramaU+1.-overlap,v),uvDx,uvDy).rgb;
           radiance=mix(opposite,radiance,smoothstep(0.,overlap,panoramaU));
         }
+        // The source pole rows carry longitude detail; blend their mean at the
+        // last few degrees rather than pinching those clouds into a bright star.
+        float poleV=direction.y>0. ? .99 : .01;
+        vec3 poleColor=(textureLod(ashSky,vec2(.125,poleV),3.).rgb+textureLod(ashSky,vec2(.375,poleV),3.).rgb+textureLod(ashSky,vec2(.625,poleV),3.).rgb+textureLod(ashSky,vec2(.875,poleV),3.).rgb)*.25;
+        radiance=mix(radiance,poleColor,smoothstep(.965,.998,abs(direction.y)));
         radiance*=.86;
         radiance=mix(radiance,mix(vec3(.17,.21,.26),vec3(.08,.12,.19),max(0.,direction.y)),shape);
         gl_FragColor=vec4(radiance,1.);
@@ -71,10 +76,10 @@ export async function createCindercoilBackdrop({
     sunColor: '#e4e0d5',
     sunIntensity: 1.85,
     ambientSky: '#a9c5df',
-    ambientGround: '#493f43',
+    ambientGround: '#66748b',
     ambientIntensity: 1.05,
     fillColor: '#b0d1e4',
-    fillIntensity: 0.36,
+    fillIntensity: 0.62,
     environmentIntensity: 0.38,
     far: 6500,
     ownedTextures: [texture],

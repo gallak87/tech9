@@ -118,6 +118,95 @@ export function createCindercoilAtmosphere(track, ventPosition) {
   const heat = new T.Mesh(new T.PlaneGeometry(74, 105), heatMaterial);
   heat.position.copy(ventPosition).add(new T.Vector3(0, 60, 0));
   group.add(heat);
+  const plumeGeometry = new T.SphereGeometry(1, 16, 12);
+  const pp = plumeGeometry.attributes.position;
+  for (let i = 0; i < pp.count; i++) {
+    const p = new T.Vector3().fromBufferAttribute(pp, i);
+    const lobes =
+      1 +
+      0.13 * Math.sin(p.x * 11 + p.y * 8) * Math.cos(p.z * 9) +
+      0.08 * Math.sin(p.y * 17 + p.z * 5);
+    pp.setXYZ(i, p.x * lobes, p.y * lobes, p.z * lobes);
+  }
+  plumeGeometry.computeVertexNormals();
+  const plumeTime = { value: 0 };
+  const plumeMaterial = new T.MeshStandardMaterial({
+    name: 'Cindercoil / billowing local ash volume',
+    color: '#77808c',
+    roughness: 1,
+    transparent: true,
+    opacity: 0.16,
+    depthWrite: false,
+  });
+  plumeMaterial.onBeforeCompile = (shader) => {
+    shader.uniforms.plumeTime = plumeTime;
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        '#include <common>',
+        '#include <common>\nvarying vec3 plumeLocal;',
+      )
+      .replace(
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\nplumeLocal=position;',
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <common>',
+        `#include <common>
+      varying vec3 plumeLocal;uniform float plumeTime;
+      float paHash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
+      float paNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(paHash(i),paHash(i+vec3(1,0,0)),f.x),mix(paHash(i+vec3(0,1,0)),paHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(paHash(i+vec3(0,0,1)),paHash(i+vec3(1,0,1)),f.x),mix(paHash(i+vec3(0,1,1)),paHash(i+vec3(1,1,1)),f.x),f.y),f.z);}`,
+      )
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+        vec3 ashP=plumeLocal*5.+vec3(plumeTime*.013,-plumeTime*.021,0.);
+        float ashDensity=paNoise(ashP)*.7+paNoise(ashP*2.13)*.3;
+        diffuseColor.rgb*=mix(.65,1.22,ashDensity);`,
+      )
+      .replace(
+        '#include <opaque_fragment>',
+        `diffuseColor.a*=pow(abs(dot(normal,normalize(vViewPosition))),1.6)*smoothstep(.18,.68,ashDensity);
+        if(diffuseColor.a<.003)discard;
+        #include <opaque_fragment>`,
+      );
+  };
+  const ventPlume = new T.InstancedMesh(plumeGeometry, plumeMaterial, 16);
+  const rupturePlume = new T.InstancedMesh(
+    plumeGeometry,
+    plumeMaterial.clone(),
+    16,
+  );
+  rupturePlume.material.onBeforeCompile = plumeMaterial.onBeforeCompile;
+  const plumePose = new T.Object3D();
+  const ruptureSource = new T.Vector3(...track.landmarks.rupture.position);
+  ruptureSource.y = track.landmarks.basin.lakeY + 260;
+  for (const [field, source] of [
+    [ventPlume, ventPosition],
+    [rupturePlume, ruptureSource],
+  ]) {
+    field.name =
+      field === ventPlume
+        ? 'Cindercoil / source vent ash plume'
+        : 'Cindercoil / fault ash plume';
+    field.frustumCulled = false;
+    for (let i = 0; i < 16; i++) {
+      const row = i % 8,
+        side = i < 8 ? -1 : 1;
+      // Keep the vent plume downwind of the gap and receiving shelf.
+      plumePose.position
+        .copy(source)
+        .add(
+          new T.Vector3(24 + row * 8 + side * 19, 35 + row * 31, 55 + row * 9),
+        );
+      const size = 17 + row * 4.5;
+      plumePose.scale.set(size * 1.2, size, size * 0.86);
+      plumePose.rotation.set(i * 0.4, i * 1.2, i * 0.7);
+      plumePose.updateMatrix();
+      field.setMatrixAt(i, plumePose.matrix);
+    }
+    group.add(field);
+  }
   return {
     group,
     update({ state, time = 0, settings = {}, camera } = {}) {
@@ -138,6 +227,11 @@ export function createCindercoilAtmosphere(track, ventPosition) {
       heatMaterial.uniforms.time.value = time;
       heatMaterial.uniforms.eruption.value = event.vent;
       if (camera) heat.quaternion.copy(camera.quaternion);
+      plumeTime.value = settings.reducedMotion ? 0 : time;
+      ventPlume.material.opacity = 0.045 + event.vent * 0.13;
+      rupturePlume.material.opacity = 0.045 + event.rupture * 0.09;
+      ventPlume.count = rupturePlume.count =
+        settings.quality === 'low' ? 8 : 16;
     },
   };
 }

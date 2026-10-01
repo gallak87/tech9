@@ -4,7 +4,6 @@ export default {
   order: 6,
   shape: true,
   review: true,
-  flyCamera: true,
   ui: {
     compact: true,
     compactLandscape: true,

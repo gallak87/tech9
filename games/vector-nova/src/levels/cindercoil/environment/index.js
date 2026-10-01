@@ -18,7 +18,7 @@ import {
   seededRandom,
 } from './geometry.js';
 
-const ASSET = '/assets/levels/cindercoil/cindercoil-hero-kit-v3.glb';
+const ASSET = '/assets/levels/cindercoil/cindercoil-hero-kit-v6.glb';
 const UP = new T.Vector3(0, 1, 0);
 
 function instantiateModule(template, placements, name) {
@@ -59,6 +59,7 @@ export function createCindercoilEnvironment({
   shape = false,
   settings = {},
   loadAsset,
+  loadTexture,
 } = {}) {
   const group = new T.Group();
   group.name = shape
@@ -167,11 +168,17 @@ export function createCindercoilEnvironment({
   ventRim.position.y -= 1;
   applyCindercoilAssetMaterials(fountain, materials.lava.uniforms.time);
   group.add(fountain, ventRim);
-  const spatter = new T.InstancedMesh(
-    new T.IcosahedronGeometry(1, 1),
-    ventMaterial,
-    48,
-  );
+  const spatterGeometry = new T.IcosahedronGeometry(1, 1);
+  const spatterVertices = spatterGeometry.attributes.position;
+  for (let i = 0; i < spatterVertices.count; i++) {
+    const p = new T.Vector3().fromBufferAttribute(spatterVertices, i);
+    const radius =
+      0.78 + 0.22 * Math.sin(p.x * 11 + p.z * 17) * Math.cos(p.y * 13);
+    spatterVertices.setXYZ(i, p.x * radius, p.y * radius, p.z * radius);
+  }
+  spatterGeometry.computeVertexNormals();
+  ventMaterial.flatShading = true;
+  const spatter = new T.InstancedMesh(spatterGeometry, ventMaterial, 48);
   spatter.name = 'Cindercoil / broken ballistic molten spray';
   spatter.frustumCulled = false;
   group.add(spatter);
@@ -199,7 +206,9 @@ export function createCindercoilEnvironment({
   const poses = [],
     raftPlacements = [],
     animated = [];
-  let rafts = null;
+  let rafts = null,
+    fallingCrust = null;
+  const fallingPlacements = [];
   const raftMatrix = new T.Matrix4(),
     raftTransform = new T.Matrix4(),
     raftPosition = new T.Vector3();
@@ -210,8 +219,8 @@ export function createCindercoilEnvironment({
   let leftPanel = null,
     rightPanel = null;
   const metrics = {
-    assetBytes: 2896956,
-    sourceTriangles: 75790,
+    assetBytes: 3221068,
+    sourceTriangles: 82980,
     textures: 0,
     additionalRenderPasses: 0,
     localLights: 3,
@@ -317,19 +326,35 @@ export function createCindercoilEnvironment({
     }
     // Basalt clusters are composed along every district, with conservative
     // route-space rejection that also protects the fully inverted climb.
-    const clusterBounds = new T.Box3().setFromObject(
-      template('basalt_cluster'),
+    const rockFamilies = [
+      'basalt_cluster',
+      'fractured_ridge',
+      'broken_lava_tube',
+    ];
+    const familyBounds = rockFamilies.map((name) =>
+      new T.Box3().setFromObject(template(name)),
     );
-    const clusterWidth =
-      Math.hypot(
-        Math.max(Math.abs(clusterBounds.min.x), Math.abs(clusterBounds.max.x)),
-        Math.max(Math.abs(clusterBounds.min.z), Math.abs(clusterBounds.max.z)),
-      ) * 2;
+    const familyPlacements = rockFamilies.map(() => []);
+    const clusterWidth = Math.max(
+      ...familyBounds.map(
+        (bounds) =>
+          Math.hypot(
+            Math.max(Math.abs(bounds.min.x), Math.abs(bounds.max.x)),
+            Math.max(Math.abs(bounds.min.z), Math.abs(bounds.max.z)),
+          ) * 2,
+      ),
+    );
     for (let s = 15; s < track.length; s += 72) {
       const frame = groundFrame(track, s);
       for (const side of [-1, 1]) {
+        const family =
+          (Math.floor(s / 72) + (side > 0 ? 1 : 0)) % rockFamilies.length;
+        const clusterBounds = familyBounds[family];
         const scale = 1.05 + random() * 1.65;
-        const heightScale = scale * (1.3 + random() * 1.05);
+        const heightScale =
+          scale *
+          (1.3 + random() * 1.05) *
+          (family === 1 ? 0.55 : family === 2 ? 0.7 : 1);
         let position,
           accepted = false;
         for (let attempt = 0; attempt < 7; attempt += 1) {
@@ -357,6 +382,22 @@ export function createCindercoilEnvironment({
           }
         }
         if (!accepted) continue;
+        const faultDelta = position
+          .clone()
+          .sub(new T.Vector3(...ruptureLocation.position));
+        const faultAcross =
+          faultDelta.x * ruptureLocation.direction[2] -
+          faultDelta.z * ruptureLocation.direction[0];
+        const faultForward =
+          faultDelta.x * ruptureLocation.direction[0] +
+          faultDelta.z * ruptureLocation.direction[2];
+        // Keep the active fault and its plunge basin open to Curtain Reach.
+        if (
+          Math.abs(faultAcross) < 185 &&
+          faultForward > 0 &&
+          faultForward < 310
+        )
+          continue;
         poses.push({
           position,
           quaternion: new T.Quaternion().setFromAxisAngle(
@@ -365,8 +406,9 @@ export function createCindercoilEnvironment({
           ),
           scale: new T.Vector3(scale, heightScale, scale),
         });
+        familyPlacements[family].push(poses.at(-1));
         placements.push({
-          type: 'basalt-cluster',
+          type: rockFamilies[family],
           s,
           position: position.toArray(),
           scale,
@@ -377,13 +419,15 @@ export function createCindercoilEnvironment({
         });
       }
     }
-    group.add(
-      instantiateModule(
-        template('basalt_cluster'),
-        poses,
-        'Cindercoil / ordinary basalt teeth',
-      ),
-    );
+    for (let family = 0; family < rockFamilies.length; family++) {
+      group.add(
+        instantiateModule(
+          template(rockFamilies[family]),
+          familyPlacements[family],
+          `Cindercoil / ordinary ${rockFamilies[family]}`,
+        ),
+      );
+    }
     const aprons = [];
     const apronBounds = new T.Box3().setFromObject(template('talus_apron'));
     for (let s = 35; s < track.length; s += 185) {
@@ -429,8 +473,15 @@ export function createCindercoilEnvironment({
     group.add(
       instantiateModule(
         template('talus_apron'),
-        aprons,
+        aprons.filter((_, i) => i % 3),
         'Cindercoil / cooled flow shelves and talus',
+      ),
+    );
+    group.add(
+      instantiateModule(
+        template('ash_pocket'),
+        aprons.filter((_, i) => i % 3 === 0),
+        'Cindercoil / sheltered ash and broken cooling slabs',
       ),
     );
     // Thick plates sit above both main lake and cascade plunge basin.
@@ -467,6 +518,25 @@ export function createCindercoilEnvironment({
       'Cindercoil / fractured cooling crust rafts',
     );
     group.add(rafts);
+    for (let i = 0; i < 16; i++) {
+      fallingPlacements.push({
+        position: new T.Vector3(),
+        quaternion: new T.Quaternion().setFromAxisAngle(UP, i * 2.4),
+        scale: new T.Vector3(
+          0.11 + (i % 4) * 0.025,
+          0.1,
+          0.11 + (i % 4) * 0.025,
+        ),
+      });
+    }
+    fallingCrust = instantiateModule(
+      template('crust_raft'),
+      fallingPlacements,
+      'Cindercoil / breaking and falling fault crust',
+    );
+    fallingCrust.position.copy(wall.position);
+    fallingCrust.rotation.copy(wall.rotation);
+    group.add(fallingCrust);
     let meshes = 0,
       triangles = 0;
     group.traverse((node) => {
@@ -499,12 +569,22 @@ export function createCindercoilEnvironment({
         accept(gltf);
         if (
           !disposed &&
-          typeof document !== 'undefined' &&
-          typeof location !== 'undefined'
+          (loadTexture ||
+            (typeof document !== 'undefined' &&
+              typeof location !== 'undefined'))
         ) {
-          const texture = await new T.TextureLoader().loadAsync(
-            '/assets/levels/cindercoil/basalt-albedo-v1.png',
-          );
+          const texture = await Promise.resolve()
+            .then(() =>
+              (loadTexture ?? ((url) => new T.TextureLoader().loadAsync(url)))(
+                '/assets/levels/cindercoil/basalt-albedo-v1.png',
+              ),
+            )
+            .catch((cause) => {
+              throw new Error(
+                'The Cindercoil basalt surface could not load. Reload to try again.',
+                { cause },
+              );
+            });
           if (disposed) {
             texture.dispose();
             return false;
@@ -530,7 +610,8 @@ export function createCindercoilEnvironment({
         return !disposed;
       })
       .catch((error) => {
-        disposeOwned(group, [assetScene], Object.values(materials));
+        if (!disposed)
+          disposeOwned(group, [assetScene], Object.values(materials));
         disposed = true;
         throw error;
       });
@@ -553,6 +634,7 @@ export function createCindercoilEnvironment({
       : Math.sin(motionTime * 0.35) * 0.06;
     ventMaterial.emissiveIntensity = 0.7 + event.vent * 0.45;
     spatter.visible = event.vent > 0.02;
+    spatter.count = currentSettings.reducedMotion ? 12 : 48;
     for (let i = 0; i < spatter.count; i++) {
       const age = (motionTime * 0.42 + i * 0.61803398875) % 1;
       const angle = i * 2.399;
@@ -567,7 +649,7 @@ export function createCindercoilEnvironment({
             Math.sin(angle) * radius,
           ),
         );
-      spatterScale.setScalar(0.55 + (i % 7) * 0.12);
+      spatterScale.setScalar(0.32 + (i % 7) * 0.08);
       spatterScale.y *= 1.6;
       spatterRotation.setFromAxisAngle(UP, age * 4 + i);
       spatterMatrix.compose(spatterPosition, spatterRotation, spatterScale);
@@ -585,6 +667,30 @@ export function createCindercoilEnvironment({
           if (!currentSettings.reducedMotion)
             raftPosition.y += Math.sin(motionTime * 0.38 + i) * 0.38;
           raftTransform.compose(raftPosition, p.quaternion, p.scale);
+          raftMatrix.multiplyMatrices(raftTransform, sourceMatrix);
+          mesh.setMatrixAt(i, raftMatrix);
+        }
+        mesh.instanceMatrix.needsUpdate = true;
+      }
+    }
+    if (fallingCrust) {
+      fallingCrust.visible = event.rupture > 0.02;
+      for (const { mesh, sourceMatrix } of fallingCrust.userData.batches) {
+        mesh.count = currentSettings.quality === 'low' ? 8 : 16;
+        for (let i = 0; i < mesh.count; i++) {
+          const p = fallingPlacements[i];
+          const age = (motionTime * 0.13 + i * 0.61803398875) % 1;
+          const lane = ((i % 3) - 1) * 103;
+          raftPosition.set(
+            lane + Math.sin(i * 2.3) * 7,
+            258 - age * 250,
+            48 + age * age * 63,
+          );
+          raftTransform.compose(
+            raftPosition,
+            p.quaternion,
+            p.scale.clone().multiplyScalar(Math.max(0.001, event.rupture)),
+          );
           raftMatrix.multiplyMatrices(raftTransform, sourceMatrix);
           mesh.setMatrixAt(i, raftMatrix);
         }

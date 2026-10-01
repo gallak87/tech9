@@ -67,6 +67,16 @@ Start near 5.4 km with a constant 28 m usable width and roughly 320 m of vertica
 
 **Reject these shortcuts:** Reject arbitrary floating blocks, empty black views away from the ring, a technical route that is merely confusing, invisible crossings, bright guides hiding absent road geometry, inverted camera collisions or unexplained global gravity changes. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
 
+## Finish targets and atmosphere
+
+Make the stacked crossings, inversion, curved gravity-assisted leaps and descending Event Fold unmistakable and learnable in the racing camera. Give each entry and lower landing recognizable landmarks, visible spatial separation and a recovery shelf. Stage continuous distant accretion and the enormous object's stretch, strand formation, fragmentation and inward spiral where a driver can observe their sequence and scale.
+
+Finish pale fractured observatory stone, graphite panels, cold metallic edges and repaired structural joints with convincing geometry and surface detail. Populate views away from the ring with layered ruins and stellar depth. Ring-derived warm light and cool fill must reveal those surfaces without flattening the contrast. Bright guidance cannot disguise missing road or black, unfinished architecture.
+
+Use the [weather/atmosphere references](../README.md#atmosphere-and-screen-effects) as inspiration for bounded world-space particle fields, state-driven variation and lifecycle ownership. Author distant stellar dust, accretion strands and localized consumed debris appropriate to space; retain the separate black-hole/ring scene effects. Accretion debris follows the spectacle's authored path and timing rather than becoming decorative atmospheric snowfall.
+
+Use restrained peripheral instrument/field feedback for declared tidal zones, communicating pull direction and strength from actual simulation state. Keep any lensing localized to celestial content; the road, camera horizon and HUD must remain stable and readable. Reduced motion removes decorative debris flow while preserving the factual tidal cue. The critic must drive the inversion/leaps/fold, observe the enormous consumption event and inspect lit away-from-ring views.
+
 ## Presets and resource discipline
 
 High may add restrained layered ring detail and slow far-debris drift. Low keeps the accretion silhouette, background stars, every route marker and major ruined landmark while simplifying distant assemblies. Reduced motion stops decorative ring flow and far-debris drift; no camera shake, rotating horizon illusion or pulsing edge lights. Never distort HUD or driving geometry.
@@ -75,7 +85,7 @@ High may add restrained layered ring detail and slow far-debris drift. Low keeps
 
 Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The observatory fragments/landing structures, tilted lens and enormous object with staged stretched/fragmented forms are major scene-to-Blender subjects. Use reproducible deformation/animation for continuous accretion and reuse small debris families.
 
-Use the [shared production/critic loop](../README.md#production-and-critique-loop) and [common verification/completion rules](../README.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
+Use the [shared production/critic loop](../README.md#production-and-critique-loop), explicit [brutal AAA critic standard](../README.md#critic-standard) and [common verification/completion rules](../README.md#verification-and-resource-discipline). Pass the selected drawing and this level's finish/atmosphere targets directly into the independent critic's instructions. The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
 
 ## Acceptance on the actual production build
 

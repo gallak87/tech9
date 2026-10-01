@@ -67,6 +67,16 @@ Start near 4.5 km with a constant 30 m usable width and about 260 m of vertical 
 
 **Reject these shortcuts:** Reject orange fog that erases the route, generic factory scenery, unsupported bridge masses, repeated identical bowls, corkscrew camera intersections, or heat/smoke that secretly changes handling. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
 
+## Finish targets and atmosphere
+
+Make the descent into Ember Bowl, the rising Furnace Coil corkscrew and the broken-ramp vent crossing unmistakable from the racing camera. Give their approaches clear landmarks, changing foreground depth and visible receiving shelves. Stage the caldera wall rupture so a driver sees anticipation, the massive break and thick cascading lava/crust motion across normal approach and departure views.
+
+Finish stratified basalt, ropy cooled flows and fractured crust with convincing macro forms and surface detail; finish ceramic thickness, bevels, roughness and expansion joints. Cool ash light must reveal the shadowed rock layers while motivated molten light shapes nearby surfaces without erasing ceramic texture or safe lines.
+
+Use the [weather/atmosphere references](../README.md#atmosphere-and-screen-effects) for bounded particles, receiving/shelter logic and coordinated material/light response. Author volcanic ash drift over exposed bowls, sparse ember bursts near active vents and localized heat shimmer above real lava. Thin or clear particles beneath rock/ceramic cover and on cool sheltered shelves. Keep the selected cool ash sky visible between local plumes.
+
+Add restrained peripheral ash/ember traces and heat response during genuinely exposed hot passages, clearing on sheltered/cool stretches. Tie the effect to the declared surge/vent state; preserve the protected line, launch/landing cues and mechanic warnings. Reduced motion removes shimmer and swirling fields. The critic must inspect the whole ceramic/volcanic world, feel the coil/descent and notice the rupture while driving.
+
 ## Presets and resource discipline
 
 High may add slow lava-surface detail, sparse ember particles and limited localized heat distortion. Low retains the large lava silhouettes, terrain layers, ceramic material blocks and lighting contrast while reducing particles and secondary molten detail. Reduced motion disables distortion and swirling ember fields; decorative lava flow can become a static illuminated surface while active surges retain accurate boundary cues.
@@ -75,7 +85,7 @@ High may add slow lava-surface detail, sparse ember particles and limited locali
 
 Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The rupturing caldera wall, volumetric lava channels/cascades and crust rafts, and broken vent-launch structure are major scene-to-Blender subjects. Use reusable rock/ceramic families for ordinary stretches; avoid flat orange sheets and visibly crude hero silhouettes.
 
-Use the [shared production/critic loop](../README.md#production-and-critique-loop) and [common verification/completion rules](../README.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
+Use the [shared production/critic loop](../README.md#production-and-critique-loop), explicit [brutal AAA critic standard](../README.md#critic-standard) and [common verification/completion rules](../README.md#verification-and-resource-discipline). Pass the selected drawing and this level's finish/atmosphere targets directly into the independent critic's instructions. The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
 
 ## Acceptance on the actual production build
 

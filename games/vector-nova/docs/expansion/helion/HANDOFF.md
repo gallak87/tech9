@@ -67,6 +67,16 @@ Start near 5.0 km with a constant 30 m usable width and roughly 200 m of elevati
 
 **Reject these shortcuts:** Reject a featureless overexposed star, crushed black service areas, generic orbital U frames, thin orange highlights on Halcyon panels, shield-wall camera collisions, or hidden solar forces/damage. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
 
+## Finish targets and atmosphere
+
+Make the shield-wall ride, fast exposed lanes, deliberate shaded braking shelves, mandatory furnace passages and optional shielded jumps feel different in movement, framing and light. A driver must clearly recognize the safe cover, burning lane and cooling surfaces before committing. Stage at least two gigantic prominences with distinct silhouettes/timing so they visibly light and frame the ride.
+
+Finish a structured amber-red photosphere, thick white heat tiles, feathered copper radiators, graphite shields and service hardware with convincing surface detail. Preserve tile bevels/texture at peak exposure and legible cool structure beneath shields. A flat glowing star, generic orange trim or crushed-black service zone cannot meet the selected drawing's art standard.
+
+Use the [weather/atmosphere references](../README.md#atmosphere-and-screen-effects) for bounded local effects, exposure/shelter response and coherent material/light transitions. Author stellar plasma, ember-like hot fragments near actual flare contact and localized thermal shimmer; this is a solar facility with its own thermal effects. Flare-swept road sections need visible moving fire/plasma occupying the declared hazard area and lighting adjacent tiles/shields, with the safe lane still readable. Match visual timing and footprint to heat/contact state.
+
+Add restrained peripheral thermal shimmer or a visor heat cue as actual exposure/heat builds, clearing under physical cover and through cooling strips. Keep the central road, craft, heat warnings and touch HUD sharp; reduced motion removes distortion while retaining factual heat feedback. The critic must witness road fire, evade its lanes and see the prominences affect local lighting, including shaded views after exposure.
+
 ## Presets and resource discipline
 
 High may add slowly evolving prominence detail, restrained radiance and small instrument motions. Low preserves star structure, major flare silhouettes, shield geometry and shaded route fill while reducing fine turbulence and minor hardware. Reduced motion holds stellar surface flow and instruments steady; no rapid flare flashes or camera shake; retain readable heat warnings and all gameplay hazard cues.
@@ -75,7 +85,7 @@ High may add slowly evolving prominence detail, restrained radiance and small in
 
 Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The monumental shields/radiators, shielded jump structures and large flare/plasma shapes are major scene-to-Blender subjects. Use the modeled forms as the basis for layered animated materials/particles where useful; fire and stellar flow need not be literal static meshes. Keep ordinary service hardware reusable.
 
-Use the [shared production/critic loop](../README.md#production-and-critique-loop) and [common verification/completion rules](../README.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
+Use the [shared production/critic loop](../README.md#production-and-critique-loop), explicit [brutal AAA critic standard](../README.md#critic-standard) and [common verification/completion rules](../README.md#verification-and-resource-discipline). Pass the selected drawing and this level's finish/atmosphere targets directly into the independent critic's instructions. The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
 
 ## Acceptance on the actual production build
 

@@ -29,7 +29,6 @@ npm run dev       # http://127.0.0.1:5179
 npm run build
 npm run preview   # http://127.0.0.1:5180
 npm test
-npm run lint
 ```
 
 WebGL2 is required. Gameplay uses local assets and needs no account or backend. Keep npm optional dependencies enabled for Vite's native package.
@@ -50,7 +49,7 @@ Bend assistance is 0.3; the player steers the remaining turn. Magnetic adhesion 
 
 Levels register through asset-free metadata plus a lazy implementation under `src/levels/<slug>/`. The picker and briefing consume the same metadata; see the [level API](docs/EXPANSION_LEVEL_CONTRACT.md) for factories, camera options and resource ownership. Existing circuit models remain in `src/track/`.
 
-`npm run lint:fix` runs the existing formatting/lint tools. Package `prepare` installs Husky; pre-commit uses lint-staged. No custom installation scripts are needed.
+Package `prepare` installs Husky; the pre-commit hook runs ESLint/Prettier through lint-staged. Routine edits rely on that hook. Manual lint/format scripts are available for explicit whole-repository checks or troubleshooting. Use Node/npm from your configured shell or version manager, meeting the Node requirement above.
 
 `npm run verify` and `npm run verify:orbital` use Chrome/Playwright for short real-input checks. Configure `VN_URL`, `VN_BROWSER_CHANNEL`, `VN_BROWSER_PATH` and `VN_EVIDENCE` as needed; coordinate existing servers before running. Review browsers stay hidden/headless, with temporary output in ignored `.experiments/`.
 

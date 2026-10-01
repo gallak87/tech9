@@ -1,15 +1,60 @@
 {
   "schemaVersion": 2,
-  "phase": "approved_for_integration",
+  "phase": "complete",
   "humanApproved": true,
   "approval": "User requested wrap-up, commit and merge to the main worktree branch on 2026-09-30.",
   "sourceBranch": "codex/fzero-vesper1",
   "artCommit": "7f37f1b6",
   "integration": {
     "targetBranch": "g/scene-test",
-    "state": "pending",
+    "state": "merged_and_verified",
     "production": "http://127.0.0.1:5180/?level=vesper",
-    "shape": "http://127.0.0.1:5180/?level=vesper&review=shape"
+    "shape": "http://127.0.0.1:5180/?level=vesper&review=shape",
+    "mergeCommit": "92501ea296a2f5e6661d3ad7dd6fe1571bb56a45",
+    "sourceCommit": "e4f30d98",
+    "worktree": "/Users/g/code/scratch/tech9",
+    "evidence": ".experiments/expansion/vesper/integration/",
+    "cpuTests": 278,
+    "browserCases": 14,
+    "failureCleanupCases": 8,
+    "pickerAndFlyCamera": "pass",
+    "jumpCases": 4,
+    "halcyonPickupReplay": "pass",
+    "servedAssetsVerified": true,
+    "servedAssets": [
+      {
+        "path": "assets/index-B-1DbWg8.js",
+        "sha256": "75a5a159144c335a2d5b39f5ee86fcf7b2f06e59073588786102076c2fc71875",
+        "bytes": 581179
+      },
+      {
+        "path": "assets/index-BSu8zZun.css",
+        "sha256": "7d53b5a7c67bd00acfdc28da5a22475eb275f2e7144e634b065abd0035dfafc5",
+        "bytes": 18765
+      },
+      {
+        "path": "assets/vesper-BQJ1HY3f.js",
+        "sha256": "f9b4fa642098d739fedf1017a2b232b966a8c950642d57a95d1ed355acd89e2c",
+        "bytes": 45178
+      },
+      {
+        "path": "assets/levels/vesper/vesper-canopy.glb",
+        "sha256": "73b3f19217664402e9a8399b4c186b44e48c1f71c82a2f6af9df7a18463068ad",
+        "bytes": 11807288
+      },
+      {
+        "path": "assets/levels/vesper/vesper-connected-forest-v1.glb",
+        "sha256": "3f836b3190acf4c17452dd038e7701f46685b91c76fb409a9bc068380115dc13",
+        "bytes": 10726952
+      },
+      {
+        "path": "assets/levels/vesper/vesper-night-sky-v1.png",
+        "sha256": "259fa927c01f4d438ea5a0276b82ba1f672182493ac10d0ba9279d62ff48162c",
+        "bytes": 1810035
+      }
+    ],
+    "baselineBeforePlainEdgeRemovalMatchedLane": true,
+    "plainEdgeFollowup": "Roadside bulbs/stalks and jump-edge posts removed on the main worktree; 12 targeted tests, build and six high/low stills pass."
   },
   "identity": "Enclosed colossal hollow, connected oversized trees with curved veined leaves, translucent amber resin and thin luminous curbs, cloudy forest sky. Creature retained but hidden.",
   "learnings": "docs/expansion/vesper/learnings.md",
@@ -25,65 +70,45 @@
   },
   "currentChecks": [
     {
+      "check": "full-cpu-suite",
+      "result": "pass",
+      "tests": 278
+    },
+    {
+      "check": "full-lint-format-and-production-build",
+      "result": "pass",
+      "note": "Pre-existing ledger formatting normalized with data preserved."
+    },
+    {
       "check": "track-contract",
       "result": "pass",
-      "id": "vesper-canopy-1",
       "samples": 4602,
-      "spacing": 0.9997826559463131,
-      "measuredLength": 4599.982745304713,
-      "maxArcError": 0.00039931438062046354,
-      "maxFrameTurnPerMetre": 0.05325363961090339,
-      "evidence": ".experiments/expansion/vesper/check-level-r3.log",
-      "scope": "Carried unchanged route, physics and camera baseline. "
+      "measuredLength": 4599.982745304713
     },
     {
-      "check": "actual-key-production",
+      "check": "main-preview-runtime-regressions",
       "result": "pass",
-      "segments": 7,
-      "compatibleReplayExact": 7,
-      "evidence": ".experiments/expansion/vesper/critic-r3/evidence.json",
-      "launchSpeeds": {
-        "boostedCrown": 124.4129343061319,
-        "crown": 110.17853317113088,
-        "imperfectCrownRecovered": 72.0796063966328,
-        "branch": 96.63667769159588
-      },
-      "scope": "Carried unchanged route, physics and camera baseline. Final art/camera actual keys:946.62m continuous hollow and483.54m Rootfall without impacts; crown107.94/122.48m/s andbranch93.91m/s landed cleanly. R2 surface/control/recovery proof carried unchanged."
+      "cases": 14,
+      "failureCleanupCases": 8,
+      "levels": ["vesper", "halcyon", "orbital", "nacre"],
+      "scope": "High/low production and supported shape modes; controls, pause/reset, exact replay, unknown-level/asset failure cleanup and repeated disposal."
     },
     {
-      "check": "camera-safe-frame",
+      "check": "main-picker-fly-pickups-and-flight",
       "result": "pass",
-      "count": 38,
-      "scope": "Carried unchanged route, physics and camera baseline. 38targeted regressions and3,947saved-input60Hz samples; full hull fits, eye/FOV unchanged,max added step1.48degrees. Independent R3 impact/ascent/Rootfall/jump driving passes."
+      "scope": "Four-circuit picker; feature flag cleared on Vesper selection; Vesper-only fly entry/move/frozen state/return; existing Halcyon Vector collection and exact replay; Vesper crown/branch and Nacre two-jump landings."
     },
     {
-      "check": "connected-forest-geometry",
+      "check": "verified-art-build-preservation",
       "result": "pass",
-      "models": 240,
-      "vertices": 1844931,
-      "triangleCorridorTests": 25558306,
-      "intersections": 0,
-      "scope": "All 240 models across 208 tree placements, both detail levels, clear the road/camera corridor after cupped leaf regeneration. Exact terrain seating and resource disposal pass.",
-      "evidence": ".experiments/expansion/vesper/leaf-refinement/geometry-audit.json"
+      "files": 30,
+      "scope": "Before the final plain-edge follow-up, all 30 main build files matched the verified lane. Current main entry/style/level and Vesper asset bytes match disk; binary assets remain unchanged. Bulb/post removal passes 12 targeted tests and six high/low stills. Prior mobile results carry; no repeated mobile or critic round."
     },
     {
-      "check": "connected-hollow-geometry",
+      "check": "plain-resin-edge",
       "result": "pass",
-      "scope": "Keep the enclosing giant hollow tree whole, including production overview presence; refine its art within that silhouette.",
-      "preservedTriangles": 72457,
-      "unchangedOtherAssetRoots": 16,
-      "triangleCorridorTests": 32721987,
-      "newIntersections": 0,
-      "baselinePaddingContacts": "Two unchanged shell triangles touch only the conservative outer padding at three crown-exit samples; actual driving envelope clear.",
-      "flightSamples": 274,
-      "flightTriangleTests": 11564294,
-      "evidence": ".experiments/expansion/vesper/leaf-refinement/hollow-audit.json"
-    },
-    {
-      "check": "fly-camera-controls",
-      "result": "pass",
-      "scope": "Original high/low keyboard/mouse, frozen simulation, return modes and emulated touch baseline retained. Current controller regressions confirm normalized 200 m/s movement with Shift/wheel unable to change it. Production high/low movement, frozen state and return pass; slider and stale hints absent. Final three-viewport panel/return sanity passes.",
-      "evidence": ".experiments/expansion/vesper/leaf-refinement/"
+      "scope": "No continuous bulbs, stalks or jump-edge posts. Flat resin curb and deck guidance retained. 12 targeted tests and six high/low production stills; no renderer errors.",
+      "evidence": ".experiments/expansion/vesper/integration/plain-edge/"
     }
   ],
   "latestLeafChecks": "15 targeted geometry/lifetime/controller tests, lint/build, four high/low close-ups and final desktop/overview plus one mobile phase passed; zero renderer errors. Eight wood meshes, shell/interior/root geometry and other library assets preserved.",
@@ -95,7 +120,7 @@
     "forestBytes": 10726952
   },
   "renderedBudgets": {
-    "scope": "Actual all-pass draw/triangle measurements include transmission, shadows and postprocessing. GPU estimate from shared metrics excludes driver overhead and the new transmission buffers. Hidden RAF timing does not certify foreground pacing.",
+    "scope": "Actual all-pass draw/triangle measurements include transmission, shadows and postprocessing. GPU estimate from shared metrics excludes driver overhead and the new transmission buffers. Hidden RAF timing does not certify foreground pacing. Peak measurements precede the roadside bulb/post removal and remain a conservative baseline.",
     "high": {
       "calls": 1013,
       "triangles": 3339297,
@@ -184,5 +209,6 @@
   ],
   "placementTrackRevision": "vesper-route-2",
   "routeFrameConvention": "Geometric +right is driver-left; height is local +up. World position = sample(s).position + right*lateral + up*height.",
-  "reviewPolicy": "Human-directed finish complete. No new critic rounds. Completed review history remains in Git; future shared pickup/boost work is deferred."
+  "reviewPolicy": "Human-directed finish complete. No new critic rounds. Completed review history remains in Git; future shared pickup/boost work is deferred.",
+  "artEvidenceWorktree": "/Users/g/.codex/worktrees/fzero-vesper1/tech9/games/vector-nova"
 }

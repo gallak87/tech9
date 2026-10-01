@@ -79,12 +79,6 @@ export function createVesperEnvironment({
     color: '#88714a',
     roughness: 0.76,
   });
-  const warm = material('Vesper / maintenance sap lamps', {
-    color: '#f2ab36',
-    emissive: '#ff9a25',
-    emissiveIntensity: 1.6,
-    roughness: 0.28,
-  });
   const poolMaterial = material('Vesper / still black fungal pools', {
     color: '#091f26',
     roughness: 0.15,
@@ -285,7 +279,8 @@ export function createVesperEnvironment({
   collarMesh.receiveShadow = true;
   group.add(collarMesh);
 
-  const lanternSites = [];
+  // Pooled warm fill carries amber resin light along the circuit.
+  const resinLightSites = [];
   for (let s = 4; s < track.length; s += 42) {
     const f = track.sample(s);
     const side = Math.floor(s / 42) % 2 ? 1 : -1;
@@ -293,39 +288,8 @@ export function createVesperEnvironment({
       .clone()
       .addScaledVector(f.right, side * 23)
       .addScaledVector(f.up, 8);
-    lanternSites.push({ s, position: p });
+    resinLightSites.push({ s, position: p });
   }
-  const lamps = new T.InstancedMesh(
-    new T.SphereGeometry(1, 7, 5),
-    warm,
-    lanternSites.length,
-  );
-  const stems = [];
-  lanternSites.forEach(({ position }, i) => {
-    dummy.position.copy(position);
-    dummy.scale.set(0.72, 1.7, 0.72);
-    dummy.updateMatrix();
-    lamps.setMatrixAt(i, dummy.matrix);
-    stems.push(
-      tube(
-        [
-          position.clone().add(new T.Vector3(0, -11, 0)),
-          position.clone().add(new T.Vector3(1.5, -3, 0)),
-          position,
-        ],
-        0.35,
-        6,
-        5,
-      ),
-    );
-  });
-  lamps.name = 'Vesper / continuous warm maintenance lanterns';
-  group.add(lamps);
-  const stemGeometry = mergeGeometries(stems);
-  for (const stem of stems) stem.dispose();
-  const stemMesh = new T.Mesh(stemGeometry, sapwood);
-  stemMesh.name = 'Vesper / grown lantern stems';
-  group.add(stemMesh);
   const practicalLights = Array.from({ length: 7 }, () => {
     const light = new T.PointLight(
       '#ffc878',
@@ -840,9 +804,10 @@ export function createVesperEnvironment({
       const nearest = Math.round(s / 42);
       practicalLights.forEach((light, i) => {
         const index =
-          (((nearest + i - 2) % lanternSites.length) + lanternSites.length) %
-          lanternSites.length;
-        light.position.copy(lanternSites[index].position);
+          (((nearest + i - 2) % resinLightSites.length) +
+            resinLightSites.length) %
+          resinLightSites.length;
+        light.position.copy(resinLightSites[index].position);
         light.intensity =
           next.quality === 'low' && i > 3 ? 0 : 110 * ENVIRONMENT_LIGHT_UPLIFT;
       });

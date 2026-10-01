@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "updatedAt": "2026-09-29",
-  "phase": "level_chats_created",
+  "phase": "vesper_complete_other_lanes_stopped",
   "handoffOnly": false,
   "newChatsCreated": 8,
   "launchAuthorizedAfterPrerequisites": true,
@@ -11,8 +11,8 @@
     "hostId": "local"
   },
   "readiness": {
-    "state": "committed_foundation_verified",
-    "next": "All seven level chats are registered; the integrator owns ongoing shared support, servers and review coordination."
+    "state": "vesper_merged_verified",
+    "next": "Vesper is finished. Six other lanes remain stopped until explicitly resumed by the user."
   },
   "reuseReview": {
     "state": "complete",
@@ -39,17 +39,18 @@
     "externalEvidenceAloneDoesNotJustifyRepeatedReviews": true
   },
   "gpu": {
-    "state": "held",
-    "owner": {
-      "slug": "integrator",
-      "threadId": "01a0f0b6-803c-7291-ba3c-2bc16be6f713",
-      "purpose": "Shared runtime regression: Nacre, baseline and Halcyon opt-in; hidden short checks",
-      "boundedBatch": "One browser at a time; report each process closure before release"
-    },
+    "state": "idle",
+    "owner": null,
     "queue": [],
     "existingCoordinatorState": "/Users/g/code/scratch/tech9/games/vector-nova/.experiments/gate4-server-owner/state.json",
     "lastKnownExistingOwner": null,
-    "concurrentCaptureLimit": 1
+    "concurrentCaptureLimit": 1,
+    "lastRelease": "Vesper main integration verification complete; all automation browsers closed.",
+    "policy": {
+      "mode": "Vesper complete; other lanes remain stopped.",
+      "activeLane": null,
+      "coordination": "No Vesper capture work remains; resuming another lane requires user direction."
+    }
   },
   "existingPortsToPreserve": [5179, 5180, 5191, 5192, 5193, 5194, 5195, 5196],
   "oldAutomation": {
@@ -63,21 +64,30 @@
       "slug": "vesper",
       "title": "Vesper Canopy",
       "suggestedChatTitle": "fzero-vesper1",
-      "handoff": "docs/expansion/vesper/HANDOFF.md",
-      "state": "building",
-      "devPort": 5201,
-      "previewPort": 5202,
-      "portsVerifiedFree": true,
-      "previewUrl": "http://127.0.0.1:5202/?level=vesper",
-      "serverStarted": false,
-      "formalRounds": 0,
-      "humanApproved": false,
       "threadId": "01a0f0b7-3956-7552-bca6-501a6ee3acd3",
       "hostId": "local",
-      "worktree": "/Users/g/.codex/worktrees/fzero-vesper1/tech9",
       "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
-      "runtimeRequest": "Mandatory crown jump, optional lateral branch bypass, sap drag 2.5\u20134 m/s\u00b2; queued shared extension.",
-      "sharedExtensionsApplied": []
+      "state": "complete_merged",
+      "humanApproved": true,
+      "status": "docs/expansion/vesper/STATUS.json",
+      "sourceBranch": "codex/fzero-vesper1",
+      "sourceCommit": "e4f30d98",
+      "mergedBranch": "g/scene-test",
+      "mergeCommit": "92501ea296a2f5e6661d3ad7dd6fe1571bb56a45",
+      "worktree": "/Users/g/code/scratch/tech9",
+      "previewUrl": "http://127.0.0.1:5180/?level=vesper",
+      "previewPort": 5180,
+      "previewPid": 99416,
+      "serverStarted": true,
+      "servedHashesVerified": true,
+      "verification": "278 CPU tests; lint/build and route contract; 14 production/shape runtime cases plus 8 failure/cleanup cases; picker, fly camera, Halcyon pickup replay and four Vesper/Nacre jumps pass. Final plain-edge cleanup: 12 targeted tests, build and six high/low stills pass; no renderer errors.",
+      "learnedHints": "docs/expansion/vesper/learnings.md",
+      "limitations": "Known geometry budget overage retained in Vesper STATUS; foreground pacing, listening and physical devices unverified.",
+      "servedEntryAssets": [
+        "/assets/index-B-1DbWg8.js",
+        "/assets/index-BSu8zZun.css",
+        "/assets/vesper-BQJ1HY3f.js"
+      ]
     },
     {
       "map": 5,
@@ -218,6 +228,12 @@
       "saffron": "4dbe108d-86ef-483a-8dc4-2aa987df67cb:1",
       "zephyr": "95ec0429-8eb1-41c6-bbef-5ea6f180142d:1",
       "helion": "7994abf0-ada4-4ffc-874e-aeaf34e21778:1"
+    },
+    "completedVesper": {
+      "mergeCommit": "92501ea296a2f5e6661d3ad7dd6fe1571bb56a45",
+      "branch": "g/scene-test",
+      "status": "docs/expansion/vesper/STATUS.json",
+      "previewUrl": "http://127.0.0.1:5180/?level=vesper"
     }
   }
 }

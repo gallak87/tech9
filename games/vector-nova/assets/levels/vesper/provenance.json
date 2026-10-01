@@ -159,7 +159,7 @@
     "validation": "No new road/camera intersections in 32,721,987 triangle tests. Two unchanged shell triangles touch conservative outer padding only. All 274 flight samples / 11,564,294 crown triangle tests pass. 15 targeted tests, lint/build and high/low close-up and final viewport checks pass.",
     "evidence": ".experiments/expansion/vesper/connected-hollow",
     "performance": "Current leaf-pass budgets: 3.34M high / 2.30M low submitted triangles exceed the 2M target; 25.92 MB transfer and estimated memory remain within targets. See current STATUS.json. Foreground pacing unverified.",
-    "humanReview": "Ready for review in the existing production preview."
+    "humanReview": "Approved for completion and main-worktree integration by the user on 2026-09-30; merged with the final curved-leaf refinement."
   },
   "leafRefinement": {
     "checkpoint": "7311b954",
@@ -171,5 +171,12 @@
     "giantCrownTriangles": 93194,
     "gateway3OffsetZ": 12,
     "evidence": ".experiments/expansion/vesper/leaf-refinement/"
-  }
+  },
+  "integration": {
+    "branch": "g/scene-test",
+    "mergeCommit": "92501ea296a2f5e6661d3ad7dd6fe1571bb56a45",
+    "assetBytesVerified": true,
+    "provenancePreserved": true
+  },
+  "edgeFinish": "Plain resin curb with a thin glowing line and deck-only jump guidance; roadside bulbs/stalks and jump-edge posts removed at the user request. Warm pooled road fill retained."
 }

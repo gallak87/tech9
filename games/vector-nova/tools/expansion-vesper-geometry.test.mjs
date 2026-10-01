@@ -372,7 +372,7 @@ test('plain low curbs retain their boundary and clear the nonlocal ten-metre cam
       road.group.children.filter(
         (mesh) => mesh.name === 'Jump edge sapwood beacon',
       ).length,
-      6,
+      0,
     );
     for (const mesh of road.group.children) {
       const positions = mesh.geometry?.attributes.position;

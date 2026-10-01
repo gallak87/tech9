@@ -573,22 +573,6 @@ export function createVesperRoad({ track, shape = false }) {
       jump.landingStart + 2,
       jump.landingStart + 5,
     );
-    for (const s of [jump.takeoff - 3, jump.landingStart + 8]) {
-      const f = track.sample(s);
-      for (const side of jump.optional ? [1] : [-1, 1]) {
-        const beacon = new T.Mesh(
-          new T.CylinderGeometry(0.22, 0.5, 5, 6),
-          milk,
-        );
-        beacon.position.copy(framePoint(f, side * 17.2, 2.1));
-        beacon.quaternion.copy(f.quaternion);
-        beacon.name = 'Jump edge sapwood beacon';
-        group.add(beacon);
-        const head = new T.Mesh(new T.SphereGeometry(0.7, 8, 6), guide);
-        head.position.copy(framePoint(f, side * 17.2, 4.9));
-        group.add(head);
-      }
-    }
   }
   mergeParts(
     group,

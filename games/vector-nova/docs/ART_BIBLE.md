@@ -22,7 +22,7 @@ Approved angular futuristic jet silhouette: slender split nose, swept planform, 
 
 ## Vesper Canopy
 
-Colossal enclosed living trees, connected oversized foliage and an amber resin road with restrained transmission and a thin glowing orange curb. Keep the giant hollow complete around genuine route portals and preserve dark-to-lit contrast against a cloudy forest sky. Broad leaves need curved silhouettes and vein detail at fly-camera distance as well as canopy mass from the road. The retired creature remains source-only; raised petal barriers stay removed. Human steers and construction lessons are retained in [Vesper learnings](expansion/vesper/learnings.md).
+Colossal enclosed living trees, connected oversized foliage and an amber resin road with restrained transmission and a thin glowing orange curb. Keep the giant hollow complete around genuine route portals and preserve dark-to-lit contrast against a cloudy forest sky. Broad leaves need curved silhouettes and vein detail at fly-camera distance as well as canopy mass from the road. The retired creature remains source-only; raised petals, roadside bulbs/stalks and jump-edge beacons stay removed. Human steers and construction lessons are retained in [Vesper learnings](expansion/vesper/learnings.md).
 
 ## UI and feedback
 

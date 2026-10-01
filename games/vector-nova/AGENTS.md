@@ -16,7 +16,8 @@ Start with this file and [current status](docs/STATUS.json).
 - Preserve approved levels, shared controls and 0.3 steering assistance unless the user requests a change.
 - Use isolated worktrees for parallel implementation, exclusive file ownership and one integrator for shared code. Preserve other agents' edits and servers.
 - Follow the assigned handoff; finished critic loops stay closed.
-- Run checks appropriate to the change: targeted tests, lint/build for code; formatting and links for docs. Existing ESLint/Prettier/Husky package scripts own tooling.
+- Run targeted tests and a production build when appropriate; check documentation links. Let the pre-commit hook run ESLint/Prettier through lint-staged. Do not repeat manual lint/format passes for routine edits. Ensure generated Husky hooks exist in a new worktree via the existing package prepare script.
+- Use Node/npm from the user's configured shell or version manager. Check the project's Node requirement once; do not prepend a machine-specific runtime path to every command. Report a version mismatch rather than silently pinning another runtime.
 - Browsers stay hidden/headless. No unsolicited videos or normal-speed automated full laps. Coordinate GPU use and servers with their owner; report only actually verified results.
 - Commit when requested. Human approval cannot be supplied by an agent.
 

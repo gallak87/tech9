@@ -101,8 +101,9 @@ export function finishIceMaterial(
     `glasswake-ice-detail-v5:${composite}:${dark}:${crust}:${road}:${fresh}:${Boolean(texture)}`;
 }
 
-/** A light frost/vein veil on clear panes. Keep the transparent view into real
- * ribs and canyon; opaque detail adds at most five percentage points locally.
+/** Visible cloudy ice and sparse trapped air on clear panes. The bitmap is
+ * sampled in linear colour, so masks use its measured luminance range. Clear
+ * areas retain the real ribs/canyon; only local veins/bubbles approach .82 alpha.
  */
 export function finishCrystalPane(material, texture) {
   material.onBeforeCompile = (shader) => {
@@ -121,19 +122,39 @@ export function finishCrystalPane(material, texture) {
     `,
     );
     shader.fragmentShader =
-      'varying vec3 panePoint;varying vec3 paneAxis;uniform sampler2D paneIceMap;\n' +
-      shader.fragmentShader;
+      `varying vec3 panePoint;varying vec3 paneAxis;uniform sampler2D paneIceMap;
+      float paneHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+      float paneBubbles(vec2 p){
+        vec2 cell=floor(p*1.3),f=fract(p*1.3);float seed=paneHash(cell);
+        vec2 center=.22+.56*vec2(paneHash(cell+17.),paneHash(cell-23.));
+        float r=.05+seed*.065;
+        float ring=1.-smoothstep(.009,.027,abs(length(f-center)-r));
+        float small=1.-smoothstep(.014,.034,length(f-center-vec2(.16,-.1)));
+        return step(.78,seed)*max(ring,small*.7);
+      }
+    ` + shader.fragmentShader;
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <color_fragment>',
       `
       #include <color_fragment>
       vec3 pw=pow(abs(normalize(paneAxis)),vec3(8.));pw/=max(.0001,pw.x+pw.y+pw.z);
       vec3 pt=texture2D(paneIceMap,panePoint.yz*.13).rgb*pw.x+texture2D(paneIceMap,panePoint.xz*.13).rgb*pw.y+texture2D(paneIceMap,panePoint.xy*.13).rgb*pw.z;
-      float vein=smoothstep(.47,.74,dot(pt,vec3(.2126,.7152,.0722)));
-      diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.75,.88,.94),.025+vein*.055);
-      diffuseColor.a=min(.76,diffuseColor.a+.012+vein*.038);
+      float luma=dot(pt,vec3(.2126,.7152,.0722));
+      float paneCloud=smoothstep(.17,.43,luma);
+      float paneVein=smoothstep(.33,.57,luma);
+      float paneAir=paneBubbles(panePoint.yz)*pw.x+paneBubbles(panePoint.xz)*pw.y+paneBubbles(panePoint.xy)*pw.z;
+      float veil=.04+paneCloud*.18+paneVein*.14+paneAir*.3;
+      diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.76,.9,.95),min(.6,veil));
+      diffuseColor.a=min(.82,diffuseColor.a+.015+paneCloud*.1+paneVein*.05+paneAir*.075);
+    `,
+    );
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <roughnessmap_fragment>',
+      `
+      #include <roughnessmap_fragment>
+      roughnessFactor=clamp(roughnessFactor+paneCloud*.08+paneVein*.1+paneAir*.08,.2,.65);
     `,
     );
   };
-  material.customProgramCacheKey = () => 'glasswake-clear-pane-veil-v1';
+  material.customProgramCacheKey = () => 'glasswake-clear-pane-veil-v2';
 }

@@ -243,8 +243,13 @@
       "name": "ice_curtain",
       "vertices": 992,
       "triangles": 1980
+    },
+    {
+      "name": "recess_wall",
+      "vertices": 950,
+      "triangles": 1896
     }
   ],
-  "triangles": 41748,
-  "bytes": 2821008
+  "triangles": 43644,
+  "bytes": 2924316
 }

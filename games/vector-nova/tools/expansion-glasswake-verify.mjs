@@ -244,6 +244,15 @@ try {
         `Glasswake ${ownedAsset} load error is actionable`,
         (await failurePage.locator('.failure button').count()) === 2,
       );
+      const failureText = await failurePage.locator('.failure').innerText();
+      check(
+        `Glasswake ${ownedAsset} load error identifies the asset`,
+        failureText.includes(
+          ownedAsset.endsWith('.png')
+            ? 'Glasswake aurora sky failed to load'
+            : 'Glasswake environment failed to load',
+        ) && !failureText.includes('[object Event]'),
+      );
     } finally {
       await failureContext.close();
     }

@@ -3,9 +3,15 @@ import * as T from 'three';
 export async function createGlasswakeBackdrop({ shape = false } = {}) {
   const texture = shape
     ? null
-    : await new T.TextureLoader().loadAsync(
-        '/assets/levels/glasswake/aurora-sky-v1.png',
-      );
+    : await new T.TextureLoader()
+        .loadAsync('/assets/levels/glasswake/aurora-sky-v1.png')
+        .catch((reason) => {
+          const detail =
+            reason instanceof Error ? reason.message : 'image request failed';
+          throw new Error(`Glasswake aurora sky failed to load: ${detail}`, {
+            cause: reason,
+          });
+        });
   if (texture) {
     texture.colorSpace = T.SRGBColorSpace;
     texture.wrapS = T.RepeatWrapping;

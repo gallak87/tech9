@@ -46,6 +46,7 @@ export function createGlasswakeEnvironment({
   const lights = [];
   const baseLights = [];
   let cavityLight = null;
+  let inclusionLight = null;
   let disposed = false;
   let loaded = false;
   let caveBlend = 0;
@@ -56,13 +57,13 @@ export function createGlasswakeEnvironment({
   let referenceTexture = null;
   let currentSettings = settings;
   const metrics = {
-    assetBytes: 2821008,
-    sourceTriangles: 41748,
+    assetBytes: 2924316,
+    sourceTriangles: 43644,
     instances: 0,
     meshes: 0,
     triangles: 0,
     textures: 0,
-    localLights: 4,
+    localLights: 5,
     rejectedPlacements: 0,
   };
   let error = null;
@@ -128,8 +129,8 @@ export function createGlasswakeEnvironment({
   ) {
     for (let attempt = 0; attempt < 12; attempt += 1) {
       const offset = lateral + Math.sign(lateral || 1) * attempt * 24;
-      if (addInstance(name, transform(s, offset, height, scale, yaw), options))
-        return;
+      const matrix = transform(s, offset, height, scale, yaw);
+      if (addInstance(name, matrix, options)) return matrix;
       metrics.rejectedPlacements += 1;
     }
   }
@@ -165,20 +166,25 @@ export function createGlasswakeEnvironment({
     }
   }
   function buildWorld() {
+    const gallery = track.sections.find(({ id }) => id === 'gallery');
+    const inclusionS = gallery.showcase + 148;
+    const inclusionWindow = (s, side) =>
+      side === -1 && Math.abs(s - inclusionS) < 165;
     // Ordinary stretches carry three scales: cut rim, deeper wall, distant mass.
     for (let s = 24, i = 0; s < track.length; s += 84, i += 1) {
       const inBridge = s > track.bridge.start - 50 && s < track.bridge.end + 65;
       for (const side of [-1, 1]) {
         const n = noise(i * 17 + side * 11);
         const nearOffset = inBridge ? 117 : 79;
-        place(
-          `cliff_${i % 3}`,
-          s,
-          side * (nearOffset + n * 18),
-          -22 - n * 12,
-          [0.78 + n * 0.4, 1 + n * 0.4, 1.06],
-          side * n * 0.16,
-        );
+        if (!inclusionWindow(s, side))
+          place(
+            `cliff_${i % 3}`,
+            s,
+            side * (nearOffset + n * 18),
+            -14 - n * 23 + (i % 5 === 2 ? 34 : 0),
+            [0.8 + n * 0.44, 0.94 + n * 0.52, 1.35 + noise(i + side) * 0.5],
+            side * (n - 0.5) * 0.42,
+          );
         if (i % 2 === 0)
           place(
             'rubble_shelf',
@@ -237,15 +243,19 @@ export function createGlasswakeEnvironment({
             Math.sin(i * 2.3) * 0.08,
           );
         for (const side of [-1, 1]) {
-          place(
-            'cave_pier',
-            s + 18,
-            side * (87 + 10 * noise(i + side)),
-            -9 + 8 * noise(i),
-            [0.87 + noise(i + side) * 0.28, 1.15 + noise(i * 7) * 0.3, 1.18],
-            side * (0.06 + noise(i) * 0.22),
-          );
-          if (i % 2 === 0 || section.id === 'gallery')
+          if (!(section.id === 'gallery' && inclusionWindow(s + 18, side)))
+            place(
+              'cave_pier',
+              s + 18,
+              side * (87 + 10 * noise(i + side)),
+              -9 + 8 * noise(i),
+              [0.87 + noise(i + side) * 0.28, 1.15 + noise(i * 7) * 0.3, 1.18],
+              side * (0.06 + noise(i) * 0.22),
+            );
+          if (
+            (i % 2 === 0 || section.id === 'gallery') &&
+            !(section.id === 'gallery' && inclusionWindow(s + 28, side))
+          )
             place(
               'ice_curtain',
               s + 28,
@@ -263,15 +273,50 @@ export function createGlasswakeEnvironment({
           place('bell_vault', s, 0, 62, [0.95, 0.82, 1.2], 0);
       }
     }
-    const gallery = track.sections.find(({ id }) => id === 'gallery');
-    place(
+    // Solid recessed walls join the foreground curtains into chambers. Keep one
+    // high aperture toward the exterior, and a more open inner side in Chasm.
+    for (const section of track.sections.filter(({ id }) =>
+      ['mouth', 'gallery', 'chasm'].includes(id),
+    )) {
+      for (
+        let s = section.start + 95, i = 0;
+        s < section.end;
+        s += 190, i += 1
+      ) {
+        for (const side of [-1, 1]) {
+          if (section.id === 'chasm' && side === -1 && i % 2 === 0) continue;
+          place(
+            'recess_wall',
+            s,
+            side * 139,
+            0,
+            [1, section.id === 'chasm' ? 0.72 : 1, 0.95],
+            side === -1 ? Math.PI : 0,
+          );
+        }
+      }
+    }
+    const inclusionMatrix = place(
       'dark_inclusion',
-      gallery.start + (gallery.end - gallery.start) * 0.42,
-      -113,
-      14,
-      [1.35, 1.5, 1.7],
-      -0.36,
+      inclusionS,
+      -82,
+      8,
+      [0.92, 1.3, 1.08],
+      0.16,
     );
+    if (inclusionMatrix) {
+      // Fixed aperture light grazes the embedded meteor and its pale ice bands.
+      // It owns its target, has no shadow map, and does not follow the craft.
+      inclusionLight = new T.SpotLight('#dce2ff', 44000, 290, 0.51, 0.7, 2);
+      inclusionLight.name = 'Glasswake / inclusion aperture light';
+      inclusionLight.position.copy(
+        new T.Vector3(58, 157, -38).applyMatrix4(inclusionMatrix),
+      );
+      inclusionLight.target.position.copy(
+        new T.Vector3(26, 28, -6).applyMatrix4(inclusionMatrix),
+      );
+      group.add(inclusionLight, inclusionLight.target);
+    }
     place('dock_mast', 35, 62, -4, [1.1, 1.1, 1.1], 0.1);
     place('dock_mast', track.length - 180, 80, -14, [0.62, 0.62, 0.62], -0.18);
     // Actual three-dimensional compression arches under supported bridge runs.
@@ -432,6 +477,7 @@ export function createGlasswakeEnvironment({
     currentSettings = nextSettings;
     event = sampleCalvingState(track, state);
     if (cavityLight) cavityLight.intensity = 25000 * event.reveal;
+    if (inclusionLight) inclusionLight.intensity = reviewing ? 0 : 44000;
     caveBlend =
       shape || reviewing ? 0 : sampleCaveBlend(track, state.distance ?? 0);
     returnBlend =
@@ -484,7 +530,7 @@ export function createGlasswakeEnvironment({
       }
       for (const { light, intensity, color } of baseLights) {
         light.intensity =
-          intensity * (1 - caveBlend * (light.isHemisphereLight ? 0.32 : 0.8));
+          intensity * (1 - caveBlend * (light.isHemisphereLight ? 0.58 : 0.84));
         // Re-evaluate from the borrowed baseline, so seeking or resetting never
         // accumulates tint and cavern/exterior colors restore exactly.
         light.color.copy(color);
@@ -495,7 +541,7 @@ export function createGlasswakeEnvironment({
           );
       }
       scene.environmentIntensity =
-        originalEnvironmentIntensity * (1 - caveBlend * 0.46);
+        originalEnvironmentIntensity * (1 - caveBlend * 0.66);
       localFog.density = reviewing ? 0.00004 : 0.00018 + caveBlend * 0.00042;
       localFog.color.set(caveBlend > 0.5 ? '#102a45' : '#10243d');
       scene.fog = localFog;
@@ -506,7 +552,9 @@ export function createGlasswakeEnvironment({
         .copy(frame.position)
         .addScaledVector(frame.right, (i % 2 ? -1 : 1) * 39);
       light.position.y += 16;
-      light.intensity = reviewing ? 0 : (i === 2 ? 175 : 1400) * caveBlend;
+      light.intensity = reviewing
+        ? 0
+        : (i === 2 ? 175 : i === 0 ? 900 : 650) * caveBlend;
     });
     group.userData.calving = event;
     group.userData.caveBlend = caveBlend;

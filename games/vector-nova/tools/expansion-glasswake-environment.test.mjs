@@ -89,6 +89,7 @@ test('authored GLB builds bounded layered world and restores borrowed scene owne
     'landing_shelf',
     'bridge_arch',
     'basal_strata',
+    'recess_wall',
   ])
     assert.ok(
       report.placements.some((p) => p.name === name),
@@ -139,6 +140,24 @@ test('authored GLB builds bounded layered world and restores borrowed scene owne
     },
   });
   assert.ok(sun.intensity < 1);
+  const aperture = env.group.getObjectByName(
+    'Glasswake / inclusion aperture light',
+  );
+  assert.ok(aperture?.isSpotLight);
+  assert.equal(aperture.castShadow, false);
+  const fixedPosition = aperture.position.toArray();
+  const fixedTarget = aperture.target.position.toArray();
+  env.update({
+    state: { distance: track.bridge.end },
+    settings: { quality: 'low', reducedMotion: true },
+  });
+  assert.deepEqual(aperture.position.toArray(), fixedPosition);
+  assert.deepEqual(aperture.target.position.toArray(), fixedTarget);
+  assert.equal(aperture.intensity, 44000);
+  env.update({ reviewing: true });
+  assert.equal(aperture.intensity, 0);
+  env.reset();
+  assert.equal(aperture.intensity, 44000);
   const reflection = new T.Texture();
   let borrowedDisposed = false;
   reflection.addEventListener('dispose', () => {

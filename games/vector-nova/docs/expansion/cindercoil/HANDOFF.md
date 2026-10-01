@@ -1,12 +1,12 @@
-# Map 6 — Cindercoil: overnight production handoff
+# Map 6 — Cindercoil: level completion brief
 
 ## Assignment and authority
 
 **Goal:** Finish a volcanic circuit with lava-surge line choices, a vent launch, a rupturing caldera and warm molten light against cool ash/shadow.
 
-Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md) and the [level contract](../../EXPANSION_LEVEL_CONTRACT.md) included in your foundation commit. Consult architecture/art sections only as needed; do not preload the full roadmap or other lane briefs. Use the integrator’s verified base/API.
+Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md), the current [level API](../../EXPANSION_LEVEL_CONTRACT.md) and [Vesper learnings](../vesper/learnings.md) from the primary worktree when the user resumes you. Continue your existing level work with the latest primary code. Consult architecture/art sections as needed.
 
-Own the `cindercoil` paths defined in the [common ownership rules](../../EXPANSION_HANDOFF.md#isolation-and-dependency). Use `?level=cindercoil` and `&review=shape`; obtain current ports, URLs and the integrator identity from the live launch ledger linked there.
+Own `cindercoil` through production, critique, necessary shared framework/environment/tooling improvements, final mobile verification, commit and merge into the primary worktree. Follow the [completion ownership rules](../../EXPANSION_HANDOFF.md#worktree-and-completion-ownership). Start your own preview on a free port; use `?level=cindercoil` and `&review=shape`. Chat sequencing belongs to the user. Keep progress in the chat; leave reusable learnings in the relevant docs.
 
 ## Defining interactions and spectacle
 
@@ -59,7 +59,7 @@ High may add slow lava-surface detail, sparse ember particles and limited locali
 
 Use the [scene-imagegen → Blender workflow](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for major assets: The rupturing caldera wall, volumetric lava channels/cascades and crust rafts, and broken vent-launch structure are major scene-to-Blender subjects. Use reusable rock/ceramic families for ordinary stretches; avoid flat orange sheets and visibly crude hero silhouettes.
 
-Use the [shared production/critic loop](../../EXPANSION_HANDOFF.md#production-and-critique-loop) and [common verification/handback rules](../../EXPANSION_HANDOFF.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting; they do not replace the shared checks.
+Use the [shared production/critic loop](../../EXPANSION_HANDOFF.md#production-and-critique-loop) and [common verification/completion rules](../../EXPANSION_HANDOFF.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
 
 ## Acceptance on the actual production build
 

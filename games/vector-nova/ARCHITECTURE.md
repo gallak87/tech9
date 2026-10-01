@@ -2,7 +2,7 @@
 
 ## Stack and module boundaries
 
-Standalone Vite + Three.js ES modules, WebGL2, PBR/ACES and sRGB output. No repository framework, alternate launcher or cloned runtime. See [status](docs/STATUS.json) for what is merged and [roadmap](ROADMAP.md) for planned work.
+Standalone Vite + Three.js ES modules, WebGL2, PBR/ACES and sRGB output. No repository framework, alternate launcher or cloned runtime. See the [README](README.md) for available circuits and the [roadmap](ROADMAP.md) for planned work.
 
 The locally owned ESLint/Prettier/lint-staged/Husky configuration was adapted from Chronoforge Echo at the user's request.
 
@@ -20,7 +20,7 @@ The locally owned ESLint/Prettier/lint-staged/Husky configuration was adapted fr
 
 `src/levels/<slug>/track/`, `environment/` and `backdrop/` own each circuit’s route, construction, materials, scenery and sky; Nacre also owns its overlay and flight presentation adapter. Shared directories contain reusable mechanics, never a default world style. Existing public asset URLs and replay identities remain stable across source moves.
 
-Shared changes have one integrator; level builders own their assigned files. `src/levels/` discovers asset-free metadata eagerly and imports only the selected implementation. Its [level API](docs/EXPANSION_LEVEL_CONTRACT.md) defines factories, presentation and ownership; unknown or malformed levels fail visibly.
+The user runs level agents sequentially. Each agent owns its level and necessary shared improvements through merge and verification in the primary worktree; see the [completion workflow](docs/EXPANSION_HANDOFF.md). `src/levels/` discovers asset-free metadata eagerly and imports only the selected implementation. Its [level API](docs/EXPANSION_LEVEL_CONTRACT.md) defines factories, presentation and ownership; unknown or malformed levels fail visibly.
 
 ## Reuse from Vesper
 
@@ -49,7 +49,7 @@ Halcyon devices load only for exact track identity plus `features=halcyon-pickup
 
 Device ticks expire timers and apply brake cancellation before physics, consume shields on qualifying impacts, then sweep new forward crossings. A shield collected later in a tick cannot protect an earlier impact. Effects do not stack; manual recovery clears effects while retaining the consumed-device ledger. Reverse/parking/reset farming must not rearm devices. Shields protect reserve loss, not collision separation or speed consequences. Layout/tuning/rules IDs live in `src/pickups/halcyon/`.
 
-The opt-in `src/physics/flight.js` model supplies ballistic flight, swept landings and timed recovery. Nacre's adapter retains its authored rules, identity, scenarios and notices. Expansion adapters may supply pure grounded surface/force and airborne force samplers; zones, heat and events remain level-owned. Per-call surface options default to unchanged magnetic response. Optional authored jumps retain supported main-road traversal; actual transfers keep strict landing-checkpoint validation. See the [level API](docs/EXPANSION_LEVEL_CONTRACT.md#shared-local-mechanics). Automatic missed-jump recovery counts its delay as elapsed time and retains a valid lap; manual recovery still invalidates it. Keep Nacre-specific tuning out of the ordinary magnetic adapter. New levels may declare their approved local flight, surface, hazard and force rules through versioned session adapters; the integrator owns reusable support and shared checkpoint changes.
+The opt-in `src/physics/flight.js` model supplies ballistic flight, swept landings and timed recovery. Nacre's adapter retains its authored rules, identity, scenarios and notices. Expansion adapters may supply pure grounded surface/force and airborne force samplers; zones, heat and events remain level-owned. Per-call surface options default to unchanged magnetic response. Optional authored jumps retain supported main-road traversal; actual transfers keep strict landing-checkpoint validation. See the [level API](docs/EXPANSION_LEVEL_CONTRACT.md#shared-local-mechanics). Automatic missed-jump recovery counts its delay as elapsed time and retains a valid lap; manual recovery still invalidates it. Keep Nacre-specific tuning out of the ordinary magnetic adapter. New levels may declare their approved local flight, surface, hazard and force rules through versioned session adapters; the active level agent implements reusable support and shared checkpoint changes, preserving approved defaults and verifying affected circuits.
 
 ## Ship and rendering
 

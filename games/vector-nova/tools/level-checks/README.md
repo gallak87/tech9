@@ -14,7 +14,7 @@ For level-owned tests, import `assertTrackContract(track, options)` from `track-
 
 ## Hidden runtime smoke check
 
-Coordinate the GPU slot and start the intended worktree's own built preview first. The command requires `VN_URL` and never starts or replaces a server:
+Build and start the intended worktree's own preview on a free port first. Run browser/render batches sequentially and close owned processes afterward; no external GPU grant is required. The command requires `VN_URL` and never starts or replaces a server:
 
 ```sh
 VN_URL=http://127.0.0.1:5180 npm run verify:level -- <slug>

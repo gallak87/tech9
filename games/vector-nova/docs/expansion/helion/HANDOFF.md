@@ -1,12 +1,12 @@
-# Map 9 — Helion Flare: overnight production handoff
+# Map 9 — Helion Flare: level completion brief
 
 ## Assignment and authority
 
 **Goal:** Finish a solar-observatory circuit with flare-lane evasion, mandatory heat passages and optional sheltered jumps, a couple of gigantic solar flares and readable exposure/shade transitions.
 
-Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md) and the [level contract](../../EXPANSION_LEVEL_CONTRACT.md) included in your foundation commit. Consult architecture/art sections only as needed; do not preload the full roadmap or other lane briefs. Use the integrator’s verified base/API.
+Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md), the current [level API](../../EXPANSION_LEVEL_CONTRACT.md) and [Vesper learnings](../vesper/learnings.md) from the primary worktree when the user resumes you. Continue your existing level work with the latest primary code. Consult architecture/art sections as needed.
 
-Own the `helion` paths defined in the [common ownership rules](../../EXPANSION_HANDOFF.md#isolation-and-dependency). Use `?level=helion` and `&review=shape`; obtain current ports, URLs and the integrator identity from the live launch ledger linked there.
+Own `helion` through production, critique, necessary shared framework/environment/tooling improvements, final mobile verification, commit and merge into the primary worktree. Follow the [completion ownership rules](../../EXPANSION_HANDOFF.md#worktree-and-completion-ownership). Start your own preview on a free port; use `?level=helion` and `&review=shape`. Chat sequencing belongs to the user. Keep progress in the chat; leave reusable learnings in the relevant docs.
 
 ## Defining interactions and spectacle
 
@@ -59,7 +59,7 @@ High may add slowly evolving prominence detail, restrained radiance and small in
 
 Use the [scene-imagegen → Blender workflow](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for major assets: The monumental shields/radiators, shielded jump structures and large flare/plasma shapes are major scene-to-Blender subjects. Use the modeled forms as the basis for layered animated materials/particles where useful; fire and stellar flow need not be literal static meshes. Keep ordinary service hardware reusable.
 
-Use the [shared production/critic loop](../../EXPANSION_HANDOFF.md#production-and-critique-loop) and [common verification/handback rules](../../EXPANSION_HANDOFF.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting; they do not replace the shared checks.
+Use the [shared production/critic loop](../../EXPANSION_HANDOFF.md#production-and-critique-loop) and [common verification/completion rules](../../EXPANSION_HANDOFF.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
 
 ## Acceptance on the actual production build
 

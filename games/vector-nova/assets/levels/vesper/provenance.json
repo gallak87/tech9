@@ -25,7 +25,7 @@
   "materials": "Original PBR materials with packed, UV-mapped imagegen bark/chitin color tile; geometric bark furrows/cambium ribs; per-leaf COLOR_0 variation; irregular pale-gilled fungal shelves. The retained creature includes mapped body/legs/face detail but is not instantiated. Resin uses restrained physical transmission; all existing practical/emissive and sky rig intensities are lifted ten percent. Connected broad leaves now have cupped surfaces, curved midribs, rolled margins and curled tips. UV procedural midrib/secondary veins, mottling, a lighter underside and roughness variation provide close-up surface detail without a new texture asset.",
   "animation": "Creature presentation is disabled at the human request: no walker, leaf shower, spores, bent crowns or movement events are instantiated. Its deterministic path/IK/animation implementation and original Blender sources remain available for future reuse.",
   "approximation": "The complete upper tree uses a tall tapering branched bole above the preserved road cavity. Generated bark provides UV surface detail; the new 2:1 LDR sky panorama provides distant atmosphere and PMREM reflection radiance. Resin transmission uses the Three.js screen-space scene capture, not volumetric ray tracing.",
-  "validation": "Current hollow checks in connectedHollow; secondary forest checks in connectedForest. Road/physics/camera and sky remain unchanged. Current render budgets are in docs/expansion/vesper/STATUS.json; foreground pacing and physical devices remain unverified.",
+  "validation": "Current hollow checks in connectedHollow; secondary forest checks in connectedForest. Road/physics/camera and sky remain unchanged. Recorded render budgets are in renderedBudgets below; foreground pacing and physical devices remain unverified.",
   "authoredFamilies": "Three connected broadleaf tree families with distance variants and rooted understory; colossal hollow with a connected exterior crown; hanging flower, fungal shelves, root supports, station, landing branch and dormant creature library retained.",
   "secondaryGeometryOptimization": "Connected near models switch to supported distance geometry; distant trees/understory batch by material and cell. Current leaf pass uses 12 nondegenerate triangles per detailed leaf and four per distance leaf; wood geometry remains byte-identical. Original library secondary trees remain dormant for recovery.",
   "materialTextures": [
@@ -158,7 +158,7 @@
     "assetBytes": 11807288,
     "validation": "No new road/camera intersections in 32,721,987 triangle tests. Two unchanged shell triangles touch conservative outer padding only. All 274 flight samples / 11,564,294 crown triangle tests pass. 15 targeted tests, lint/build and high/low close-up and final viewport checks pass.",
     "evidence": ".experiments/expansion/vesper/connected-hollow",
-    "performance": "Current leaf-pass budgets: 3.34M high / 2.30M low submitted triangles exceed the 2M target; 25.92 MB transfer and estimated memory remain within targets. See current STATUS.json. Foreground pacing unverified.",
+    "performance": "Current leaf-pass budgets: 3.34M high / 2.30M low submitted triangles exceed the 2M target; 25.92 MB transfer and estimated memory remain within targets. See renderedBudgets below for recorded multipass measurements. Foreground pacing unverified.",
     "humanReview": "Approved for completion and main-worktree integration by the user on 2026-09-30; merged with the final curved-leaf refinement."
   },
   "leafRefinement": {
@@ -178,5 +178,25 @@
     "assetBytesVerified": true,
     "provenancePreserved": true
   },
-  "edgeFinish": "Plain resin curb with a thin glowing line and deck-only jump guidance; roadside bulbs/stalks and jump-edge posts removed at the user request. Warm pooled road fill retained."
+  "edgeFinish": "Plain resin curb with a thin glowing line and deck-only jump guidance; roadside bulbs/stalks and jump-edge posts removed at the user request. Warm pooled road fill retained.",
+  "renderedBudgets": {
+    "recordedOn": "2026-09-30",
+    "scope": "Actual all-pass draw/triangle measurements include transmission, shadows and postprocessing. GPU estimate from shared metrics excludes driver overhead and the new transmission buffers. Hidden RAF timing does not certify foreground pacing. Peak measurements precede the roadside bulb/post removal and remain a conservative baseline.",
+    "high": {
+      "calls": 1013,
+      "triangles": 3339297,
+      "estimatedGpuMiB": 266.6189887237549,
+      "initialTransferredBytes": 25917679,
+      "evidence": ".experiments/expansion/vesper/leaf-refinement/final/report.json",
+      "withinDrawTargets": false
+    },
+    "low": {
+      "calls": 648,
+      "triangles": 2297007,
+      "estimatedGpuMiB": 172.68588325500488,
+      "initialTransferredBytes": 25917679,
+      "evidence": ".experiments/expansion/vesper/leaf-refinement/final/report.json",
+      "withinDrawTargets": false
+    }
+  }
 }

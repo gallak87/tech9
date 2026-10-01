@@ -13,24 +13,24 @@ Approved and merged: Halcyon Viaduct, Asterion Orbital, Nacre Tempest, Vesper Ca
 - [x] Drive shared UI/review navigation from metadata and camera behavior from explicit options.
 - [x] Expose optional frame, road-sweep, transformed-bounds and clearance helpers; keep profiles, materials and scenery authored locally.
 - [ ] Extract additional small mesh/instance/resource helpers only when repeated production needs justify them; this is not a prerequisite for the seven-level handoff.
-- [x] Integrate the common CPU/runtime validation harness and documented level contract. Exact foundation and verification live in the launch ledger.
+- [x] Integrate the common CPU/runtime validation harness and documented level contract. The API and verification commands are documented with the shipped code.
 - [x] Rewrite the README around the whole game and consolidate documentation around current state and lasting decisions.
 
-See the [launch ledger](docs/expansion/LAUNCH_STATE.json) for current readiness and the [integrator handoff](docs/EXPANSION_INTEGRATOR_HANDOFF.md) for execution. Keep coordination status there rather than repeating it in the map briefs.
+The user resumes the existing level chats one at a time. Each agent follows the [common completion brief](docs/EXPANSION_HANDOFF.md), incorporates current primary code and owns its shared improvements, final mobile pass, commit, merge and verification. Progress stays in the chat; reusable lessons belong with the code/docs. No integrator or coordination ledger is needed.
 
 ## Seven requested maps
 
-Each map gets an independent isolated build, internal shape checks, full production and capped critique, then final human review. Preserve the existing Kestrel, controls and 0.3 assistance. Their briefs authorize distinct jumps, surface effects, hazards, environmental forces and large world events. Shared pickup/boost expansion remains deferred: builders record actual future-support coordinates and preserve the intended challenge even if current play is rough or hard. All assets and lighting share one eight-round critic cap per level, targeting at least 9/10 in every applicable category.
+Each map gets internal shape checks, full desktop production and capped critique, then one final mobile pass and a verified merge into the primary worktree for human playtesting. The level agent handles framework/environment/tooling improvements and documents reusable learnings as part of completion. Preserve the existing Kestrel, controls and 0.3 assistance. Their briefs authorize distinct jumps, surface effects, hazards, environmental forces and large world events. Shared pickup/boost expansion remains deferred: builders record actual future-support coordinates and preserve the intended challenge even if current play is rough or hard. All assets and lighting share one eight-round critic cap per level, targeting at least 9/10 in every applicable category.
 
-| Map                   | Direction and owned brief                                                                                 |
-| --------------------- | --------------------------------------------------------------------------------------------------------- |
-| 4 — Vesper Canopy     | [Complete: living-tree interiors, crown jumps and sap lines](docs/expansion/vesper/STATUS.json)           |
-| 5 — Glasswake Comet   | [Crystal fracture jumps, frost/grip choices and a calving ice shelf](docs/expansion/glasswake/HANDOFF.md) |
-| 6 — Cindercoil        | [Lava-surge route choices, a vent launch and a rupturing caldera](docs/expansion/cindercoil/HANDOFF.md)   |
-| 7 — Saffron Leviathan | [Skull/vertebral traversal, sand crossings and a living burrower](docs/expansion/saffron/HANDOFF.md)      |
-| 8 — Zephyr Basilica   | [Cathedral interiors, waterfall jumps and a falling island/tower](docs/expansion/zephyr/HANDOFF.md)       |
-| 9 — Helion Flare      | [Flare-swept lanes, furnace/heat choices and gigantic solar flares](docs/expansion/helion/HANDOFF.md)     |
-| 10 — Umbra Fold       | [Tidal pull, curved leaps and debris stretched into the black hole](docs/expansion/umbra/HANDOFF.md)      |
+| Map                   | Direction and owned brief                                                                                   |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 4 — Vesper Canopy     | Complete: living-tree interiors, crown jumps and sap lines; [learnings](docs/expansion/vesper/learnings.md) |
+| 5 — Glasswake Comet   | [Crystal fracture jumps, frost/grip choices and a calving ice shelf](docs/expansion/glasswake/HANDOFF.md)   |
+| 6 — Cindercoil        | [Lava-surge route choices, a vent launch and a rupturing caldera](docs/expansion/cindercoil/HANDOFF.md)     |
+| 7 — Saffron Leviathan | [Skull/vertebral traversal, sand crossings and a living burrower](docs/expansion/saffron/HANDOFF.md)        |
+| 8 — Zephyr Basilica   | [Cathedral interiors, waterfall jumps and a falling island/tower](docs/expansion/zephyr/HANDOFF.md)         |
+| 9 — Helion Flare      | [Flare-swept lanes, furnace/heat choices and gigantic solar flares](docs/expansion/helion/HANDOFF.md)       |
+| 10 — Umbra Fold       | [Tidal pull, curved leaps and debris stretched into the black hole](docs/expansion/umbra/HANDOFF.md)        |
 
 Spread vertical events and signature moments throughout each course. Ordinary connectors, road construction and surroundings need the same attention as hero views. The [common brief](docs/EXPANSION_HANDOFF.md) owns execution/quality rules; individual briefs own distinctive worlds and acceptance scenarios.
 

@@ -4,9 +4,9 @@
 
 **Goal:** Finish a cobalt-comet circuit with crystal fracture jumps, readable frost/grip choices, a calving ice shelf and distinct cavern/exterior light.
 
-Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md), the current [level API](../../EXPANSION_LEVEL_CONTRACT.md) and [Vesper learnings](../vesper/learnings.md) from the primary worktree when the user resumes you. Continue your existing level work with the latest primary code. Consult architecture/art sections as needed.
+Read this brief, [the common execution rules](../README.md) and the current [level API](../../LEVEL_API.md) from the primary worktree when the user resumes you. Continue your existing level work with the latest primary code. Consult architecture/art sections as needed.
 
-Own `glasswake` through production, critique, necessary shared framework/environment/tooling improvements, final mobile verification, commit and merge into the primary worktree. Follow the [completion ownership rules](../../EXPANSION_HANDOFF.md#worktree-and-completion-ownership). Start your own preview on a free port; use `?level=glasswake` and `&review=shape`. Chat sequencing belongs to the user. Keep progress in the chat; leave reusable learnings in the relevant docs.
+Own `glasswake` through production, critique, necessary shared framework/environment/tooling improvements, final mobile verification, commit and merge into the primary worktree. Follow the [completion ownership rules](../README.md#worktree-and-completion-ownership). Start your own preview on a free port; use `?level=glasswake` and `&review=shape`. Chat sequencing belongs to the user. Keep progress in the chat and expansion notes in this folder. Document reusable technical changes with their APIs.
 
 ## Defining interactions and spectacle
 
@@ -47,23 +47,19 @@ Start near 4.8 km with a constant 30 m usable width and roughly 220 m of elevati
 
 **Reject these shortcuts:** Reject a transparent road that disappears, ice triangles with unstable highlights, a sky-only world, repeated crystal spikes, an invisible bridge masquerading as a jump, or unmarked grip changes. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
 
-## Future shared pickup/boost locations
-
-Mark safe boost setup/refill positions before fracture jumps, recovery areas after landings, and approaches where a future shared grip/stability aid could help with frost. These are shared-system candidates only; keep the authored mixed-grip challenge. Record actual built-route coordinates using the [shared placement-note format](../../EXPANSION_HANDOFF.md#future-shared-pickup-and-boost-placement), without implementing those systems or replacing the approved level mechanics.
-
 ## Presets and resource discipline
 
 High may use restrained crystal transmission and slow layered aurora motion; low replaces costly transmission with carefully lit transparent/opaque approximations while preserving floor thickness, support visibility and route contrast. Reduce overlapping transparent surfaces first, not canyon depth. Reduced motion holds the aurora pattern and removes dust streaks; no rapid glitter or full-screen flashes.
 
 ## Production and review
 
-Use the [scene-imagegen → Blender workflow](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for major assets: The fractured bridge and landing shelves, layered cavern/ice curtains, and multi-part calving shelf are major scene-to-Blender subjects. Reuse authored fracture families for secondary rubble instead of generating each shard separately.
+Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The fractured bridge and landing shelves, layered cavern/ice curtains, and multi-part calving shelf are major scene-to-Blender subjects. Reuse authored fracture families for secondary rubble instead of generating each shard separately.
 
-Use the [shared production/critic loop](../../EXPANSION_HANDOFF.md#production-and-critique-loop) and [common verification/completion rules](../../EXPANSION_HANDOFF.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
+Use the [shared production/critic loop](../README.md#production-and-critique-loop) and [common verification/completion rules](../README.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
 
 ## Acceptance on the actual production build
 
 1. Drive linked bends across declared frost/crystal boundaries and compare braking/drift at matched speeds; preserve ordinary handling outside those zones.
 2. Cross the fracture jumps with actual input and existing boost; inspect takeoff, real airborne motion, transparent landing shelves, misses/recovery and checkpoint order.
 3. Inspect the calving shelf and clear road against bright ice, deep canyon and sky at high/low; verify the event and grip state reset/replay deterministically.
-4. Check cavern-to-rim lighting, low/reduced-motion readability and future support coordinates; record difficult speed/grip requirements without implementing pickups.
+4. Check cavern-to-rim lighting, low/reduced-motion readability and landing/recovery behavior; record difficult speed/grip requirements without implementing pickups.

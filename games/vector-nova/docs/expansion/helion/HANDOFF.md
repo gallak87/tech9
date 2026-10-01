@@ -4,9 +4,9 @@
 
 **Goal:** Finish a solar-observatory circuit with flare-lane evasion, mandatory heat passages and optional sheltered jumps, a couple of gigantic solar flares and readable exposure/shade transitions.
 
-Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md), the current [level API](../../EXPANSION_LEVEL_CONTRACT.md) and [Vesper learnings](../vesper/learnings.md) from the primary worktree when the user resumes you. Continue your existing level work with the latest primary code. Consult architecture/art sections as needed.
+Read this brief, [the common execution rules](../README.md) and the current [level API](../../LEVEL_API.md) from the primary worktree when the user resumes you. Continue your existing level work with the latest primary code. Consult architecture/art sections as needed.
 
-Own `helion` through production, critique, necessary shared framework/environment/tooling improvements, final mobile verification, commit and merge into the primary worktree. Follow the [completion ownership rules](../../EXPANSION_HANDOFF.md#worktree-and-completion-ownership). Start your own preview on a free port; use `?level=helion` and `&review=shape`. Chat sequencing belongs to the user. Keep progress in the chat; leave reusable learnings in the relevant docs.
+Own `helion` through production, critique, necessary shared framework/environment/tooling improvements, final mobile verification, commit and merge into the primary worktree. Follow the [completion ownership rules](../README.md#worktree-and-completion-ownership). Start your own preview on a free port; use `?level=helion` and `&review=shape`. Chat sequencing belongs to the user. Keep progress in the chat and expansion notes in this folder. Document reusable technical changes with their APIs.
 
 ## Defining interactions and spectacle
 
@@ -47,23 +47,19 @@ Start near 5.0 km with a constant 30 m usable width and roughly 200 m of elevati
 
 **Reject these shortcuts:** Reject a featureless overexposed star, crushed black service areas, generic orbital U frames, thin orange highlights on Halcyon panels, shield-wall camera collisions, or hidden solar forces/damage. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
 
-## Future shared pickup/boost locations
-
-Mark boost/refill setup areas before mandatory furnace passages, safe recovery points after heat chains and optional jump approaches. Flag where future shared heat protection, repair or energy support would help; implement no pickups, shields, inventory or new boost system. Preserve unavoidable short exposure and report its cost/difficulty without those aids. Record actual built-route coordinates using the [shared placement-note format](../../EXPANSION_HANDOFF.md#future-shared-pickup-and-boost-placement), without implementing those systems or replacing the approved level mechanics.
-
 ## Presets and resource discipline
 
 High may add slowly evolving prominence detail, restrained radiance and small instrument motions. Low preserves star structure, major flare silhouettes, shield geometry and shaded route fill while reducing fine turbulence and minor hardware. Reduced motion holds stellar surface flow and instruments steady; no rapid flare flashes or camera shake; retain readable heat warnings and all gameplay hazard cues.
 
 ## Production and review
 
-Use the [scene-imagegen → Blender workflow](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for major assets: The monumental shields/radiators, shielded jump structures and large flare/plasma shapes are major scene-to-Blender subjects. Use the modeled forms as the basis for layered animated materials/particles where useful; fire and stellar flow need not be literal static meshes. Keep ordinary service hardware reusable.
+Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The monumental shields/radiators, shielded jump structures and large flare/plasma shapes are major scene-to-Blender subjects. Use the modeled forms as the basis for layered animated materials/particles where useful; fire and stellar flow need not be literal static meshes. Keep ordinary service hardware reusable.
 
-Use the [shared production/critic loop](../../EXPANSION_HANDOFF.md#production-and-critique-loop) and [common verification/completion rules](../../EXPANSION_HANDOFF.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
+Use the [shared production/critic loop](../README.md#production-and-critique-loop) and [common verification/completion rules](../README.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
 
 ## Acceptance on the actual production build
 
 1. Drive exposed flare lanes and sheltered detours; verify telegraphing, heat buildup, declared damage or power-loss consequence and cooling-strip recovery.
 2. Traverse mandatory furnace passages, optional shielded jumps and the sunshield wall ride with existing controls/boost; record unsupported heat cost and speed requirements.
 3. Inspect at least two gigantic flare/prominence events and their local illumination at peak brightness and deep shade; verify reset/replay, legible warnings and non-strobing reduced-motion behavior.
-4. Check high/low and bright-to-dark transitions, future boost/protection/recovery coordinates, controlled impacts and reset while heat is active.
+4. Check high/low and bright-to-dark transitions, heat and landing cues, controlled impacts and reset while heat is active.

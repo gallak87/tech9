@@ -22,7 +22,7 @@ Approved angular futuristic jet silhouette: slender split nose, swept planform, 
 
 ## Vesper Canopy
 
-Colossal enclosed living trees, connected oversized foliage and an amber resin road with restrained transmission and a thin glowing orange curb. Keep the giant hollow complete around genuine route portals and preserve dark-to-lit contrast against a cloudy forest sky. Broad leaves need curved silhouettes and vein detail at fly-camera distance as well as canopy mass from the road. The retired creature remains source-only; raised petals, roadside bulbs/stalks and jump-edge beacons stay removed. Asset construction details remain in [Vesper provenance](../assets/levels/vesper/provenance.json); [Vesper learnings](expansion/vesper/learnings.md) capture reusable workflow steers.
+Colossal enclosed living trees, connected oversized foliage and an amber resin road with restrained transmission and a thin glowing orange curb. Keep the giant hollow complete around genuine route portals and preserve dark-to-lit contrast against a cloudy forest sky. Broad leaves need curved silhouettes and vein detail at fly-camera distance as well as canopy mass from the road. The retired creature remains source-only; raised petals, roadside bulbs/stalks and jump-edge beacons stay removed. Asset construction details remain in [Vesper provenance](../assets/levels/vesper/provenance.json).
 
 ## UI and feedback
 
@@ -30,4 +30,4 @@ Warm off-white/graphite, technical numerals, vermilion active accents, generous 
 
 Halcyon's immediate devices use manufactured amber-white Vector strips and symbol-marked teal Aegis hardware. Show collection, active effect, hit and expiry with form/timing as well as color. Ship feedback stays subordinate to the silhouette.
 
-The [active expansion briefs](EXPANSION_HANDOFF.md) own the seven new worlds' specific directions. Do not apply Halcyon asphalt or Asterion U frames as a universal template.
+Each world needs its own construction and material identity. Do not apply Halcyon asphalt or Asterion U frames as a universal template.

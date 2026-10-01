@@ -1,8 +1,8 @@
 {
-  "title": "Vesper Canopy \u2014 original scene, material and sky assets",
+  "title": "Vesper Canopy — original scene, material and sky assets",
   "date": "2026-09-30",
   "ownership": "Original geometry, shaders and Blender generator authored for VECTOR//NOVA. Scene concepts generated using the built-in image_gen tool; no third-party meshes or textures.",
-  "workflow": "Original scene concepts \u2192 reproducible CPU Blender geometry \u2192 glTF runtime library. The bark tile is embedded in the GLB. A separate original imagegen panorama supplies only the far sky/horizon and environment reflections; nearby forest remains real world geometry.",
+  "workflow": "Original scene concepts → reproducible CPU Blender geometry → glTF runtime library. The bark tile is embedded in the GLB. A separate original imagegen panorama supplies only the far sky/horizon and environment reflections; nearby forest remains real world geometry.",
   "concepts": [
     {
       "file": "concepts/hollow-tree-scene.png",
@@ -22,12 +22,10 @@
   "routeEnvelope": "blender/route-envelope.json (sampled from the actual authored track)",
   "reproduce": "/Applications/Blender.app/Contents/MacOS/Blender --background --python assets/levels/vesper/blender/build_connected_hollow.py",
   "export": "public/assets/levels/vesper/vesper-canopy.glb",
-  "materials": "Original PBR materials with packed, UV-mapped imagegen bark/chitin color tile; geometric bark furrows/cambium ribs; per-leaf COLOR_0 variation; irregular pale-gilled fungal shelves. The retained creature includes mapped body/legs/face detail but is not instantiated. Resin uses restrained physical transmission; all existing practical/emissive and sky rig intensities are lifted ten percent. Connected broad leaves now have cupped surfaces, curved midribs, rolled margins and curled tips. UV procedural midrib/secondary veins, mottling, a lighter underside and roughness variation provide close-up surface detail without a new texture asset.",
-  "animation": "Creature presentation is disabled at the human request: no walker, leaf shower, spores, bent crowns or movement events are instantiated. Its deterministic path/IK/animation implementation and original Blender sources remain available for future reuse.",
-  "approximation": "The complete upper tree uses a tall tapering branched bole above the preserved road cavity. Generated bark provides UV surface detail; the new 2:1 LDR sky panorama provides distant atmosphere and PMREM reflection radiance. Resin transmission uses the Three.js screen-space scene capture, not volumetric ray tracing.",
-  "validation": "Current hollow checks in connectedHollow; secondary forest checks in connectedForest. Road/physics/camera and sky remain unchanged. Recorded render budgets are in renderedBudgets below; foreground pacing and physical devices remain unverified.",
+  "materials": "Original PBR materials with a packed, UV-mapped imagegen bark/chitin color tile, geometric bark furrows/cambium ribs, per-leaf COLOR_0 variation and irregular pale-gilled fungal shelves. Resin uses restrained physical transmission. Connected broad leaves have cupped surfaces, curved midribs, rolled margins, curled tips, procedural veins, mottling, underside color and roughness variation.",
+  "animation": "The creature and its associated presentation effects are disabled. Its original Blender source and deterministic path/IK implementation remain dormant.",
+  "approximation": "A tapered branched bole encloses the road cavity. Generated bark provides UV surface detail, and a 2:1 LDR sky panorama supplies distant atmosphere and PMREM reflection radiance. Resin transmission uses the Three.js screen-space scene capture.",
   "authoredFamilies": "Three connected broadleaf tree families with distance variants and rooted understory; colossal hollow with a connected exterior crown; hanging flower, fungal shelves, root supports, station, landing branch and dormant creature library retained.",
-  "secondaryGeometryOptimization": "Connected near models switch to supported distance geometry; distant trees/understory batch by material and cell. Current leaf pass uses 12 nondegenerate triangles per detailed leaf and four per distance leaf; wood geometry remains byte-identical. Original library secondary trees remain dormant for recovery.",
   "materialTextures": [
     {
       "file": "textures/ancient-bark-color.png",
@@ -37,16 +35,6 @@
     }
   ],
   "cpuGeometryProbe": "blender/geometry-probe-loader.js exports createVesperGeometryProbeLoader() for Node parseAsync probes. It preserves actual geometry, UV/color attributes and material bindings while substituting Texture objects for bitmap decoding; browser validation still checks pixels/shaders.",
-  "creatureTextureDriveDistanceFollowup": "Historical bounded surface-detail pass remains in the preserved creature source. The latest human steer hides the creature and ends creature artwork changes.",
-  "inactiveCreature": {
-    "reason": "Hidden at the human request because the appearance/movement did not justify more polish cycles. Keep for possible future reuse.",
-    "source": "src/levels/vesper/environment/creature.js",
-    "blender": "assets/levels/vesper/blender/vesper-assets.blend",
-    "generator": "assets/levels/vesper/blender/build_vesper.py",
-    "runtimeLibrary": "public/assets/levels/vesper/vesper-canopy.glb",
-    "node": "hero_walker",
-    "exportUnchanged": true
-  },
   "sky": {
     "file": "public/assets/levels/vesper/vesper-night-sky-v1.png",
     "tool": "built-in image_gen",
@@ -56,21 +44,12 @@
     "prompt": "Use case: stylized-concept.\nAsset type: a finished 2:1 equirectangular 360-degree sky panorama texture for a premium 3D forest racing game, 4096 by 2048 if possible.\nPrimary request: a gorgeous dim blue-hour nocturnal forest atmosphere, rich layered clouds and distant ancient treetops, with exceptional cinematic detail and believable soft moonlit illumination. This is the sky and far horizon only.\nComposition: true full-sphere equirectangular projection, smoothly seamless left and right boundaries; calm zenith, cloud banks around the upper hemisphere, level atmospheric horizon at the middle. Very distant colossal forest crowns form a low, varied silhouette near and below the horizon, fading through deep blue and teal mist. Lower hemisphere transitions smoothly into shadowy blue-green atmospheric haze, with no identifiable foreground.\nClouds: luxurious voluminous stratocumulus and delicate high cloud wisps, luminous pearl-blue rims and soft internal shading, subtle breaks of muted indigo sky, spacious breathable areas between dramatic formations. The detail must remain visible in a dim game without being near-black or overexposed. Sparse faint stars only through a few clear gaps.\nMood and palette: majestic, tranquil, mysterious living forest at night; ink blue, muted cyan, smoky teal, silver moonlit cloud edges. A very restrained pale warm-grey glow low on part of the horizon complements amber resin roads that will be separate game geometry. Not a bright daytime sky or fiery sunset.\nStyle: beautiful high-end cinematic environmental matte painting approaching photorealism, natural atmospheric depth, refined organic silhouettes, rich subtle gradients, no visible brush strokes or game UI.\nConstraints: no road, no bridge, no vehicles, no creature, no close trees or trunk interior, no buildings, no text, no borders, no watermark, no visible sun or moon disk. Far treetops only, so real 3D forest geometry remains the foreground. No split panels, no cubemap cross. Opaque image.",
     "sha256": "259fa927c01f4d438ea5a0276b82ba1f672182493ac10d0ba9279d62ff48162c"
   },
-  "connectedTreePilot": {
+  "connectedElder": {
     "asset": "public/assets/levels/vesper/vesper-connected-elder-v1.glb",
     "source": "assets/levels/vesper/blender/vesper-connected-elder.blend",
     "generator": "assets/levels/vesper/blender/build_connected_tree.py",
     "seed": 290930,
-    "method": "Independent parent-anchored trunk/limb/shoot/leaf geometry, informed by the local landscape build_forest.py approach; no framework imports. Existing Vesper bark and leaf materials reused.",
-    "placement": "Only three-trunk gate 2; the first-view tree selected by the human. Roots conform to the existing terrain.",
-    "triangles": 55332,
-    "leaves": 1703,
-    "attachments": 1782,
-    "maximumAttachmentGapMetres": 1.7059844799040144e-5,
-    "sha256": "e35b92ff731efe602888de2d493fd5188e0330f2b97e3924ffc8d7abf6d519f9",
-    "originalLibraryUnchanged": true,
-    "rollbackCheckpoint": "bc9383e",
-    "humanReview": "Approved visually; human now requests the same approach for all other secondary trees, excluding the colossal hollow."
+    "method": "Independent parent-anchored trunk/limb/shoot/leaf geometry, informed by the local landscape build_forest.py approach; no framework imports. Existing Vesper bark and leaf materials reused."
   },
   "connectedForest": {
     "asset": "public/assets/levels/vesper/vesper-connected-forest-v1.glb",
@@ -78,125 +57,21 @@
     "generator": "assets/levels/vesper/blender/build_connected_forest.py",
     "geometryBuilder": "assets/levels/vesper/blender/connected_tree_geometry.py",
     "approach": "Independent Vesper tree geometry using parent-anchored trunk, branches, shoots and petiolate leaves. Three deterministic variants with connected distance models. No Tech9 engine/module imports. Existing Vesper bark and leaf materials retained.",
-    "families": [
-      {
-        "variant": 0,
-        "seed": 290927,
-        "highTriangles": 45900,
-        "distanceTriangles": 2302,
-        "leafCount": 1703,
-        "attachmentCount": 1782,
-        "maxAttachmentGapMetres": 1.7481138973067626e-5,
-        "distanceAttachments": 79,
-        "distanceMaxAttachmentGapMetres": 4.074098465594068e-6,
-        "scale": [0.9967340714100859, 0.8778273110825323, 0.9967340714100859]
-      },
-      {
-        "variant": 1,
-        "seed": 290930,
-        "highTriangles": 45900,
-        "distanceTriangles": 2302,
-        "leafCount": 1703,
-        "attachmentCount": 1782,
-        "maxAttachmentGapMetres": 1.7481138973067626e-5,
-        "distanceAttachments": 79,
-        "distanceMaxAttachmentGapMetres": 3.814697265625e-6,
-        "scale": [1.1266262349337302, 1.006965524711184, 1.1266262349337302]
-      },
-      {
-        "variant": 2,
-        "seed": 290934,
-        "highTriangles": 45900,
-        "distanceTriangles": 2302,
-        "leafCount": 1703,
-        "attachmentCount": 1782,
-        "maxAttachmentGapMetres": 1.7481138973067626e-5,
-        "distanceAttachments": 79,
-        "distanceMaxAttachmentGapMetres": 3.814697265625e-6,
-        "scale": [1.1269673480229494, 0.7110072196479832, 1.1269673480229494]
-      }
-    ],
-    "placements": 208,
-    "rootedUnderstory": 73,
-    "terrain": "Root collars and buttresses conform to the actual triangles of the existing floor. Far trees stay inside its footprint.",
-    "giantHollow": "Excluded from the secondary-forest generation; the later exterior crown replacement is documented separately in connectedHollow.",
-    "pilot": "The approved full-detail pilot keeps its connected wood, oversized scale and 55,332 triangles. Cupped leaf surfaces replace degenerate tip faces; detailed families now use 45,900 triangles and distance families 2,302.",
-    "bytes": 10726952,
-    "sha256": "3f836b3190acf4c17452dd038e7701f46685b91c76fb409a9bc068380115dc13",
-    "rollbackToApprovedPilot": "ed7c82b5",
-    "validation": "Current leaf pass audits all 240 models / 1,844,931 vertices / 25,558,306 triangle-corridor tests without intersections. Parent attachments, exact terrain seating and normal/double/late/rejected disposal pass.",
-    "growth": {
-      "treeScale": 1.12,
-      "branchReach": 1.1,
-      "branchRadius": 1.22,
-      "leafLength": 1.85,
-      "leafWidth": 2.0,
-      "relativeTo": "b324ee3b",
-      "effectiveDetailedLeafLength": 2.072,
-      "effectiveDetailedLeafWidth": 2.24,
-      "distanceSprayLength": 1.45,
-      "distanceSprayWidth": 1.65,
-      "polygonCountsUnchanged": true,
-      "placementAdjustment": "Growth moved third gateway 8 m in world +Z; current cupped-leaf pass adds 4 m, for 12 m total, preserving road/camera clearance."
-    },
-    "rollbackBeforeGrowth": "b324ee3b"
+    "terrain": "Root collars and buttresses conform to the actual triangles of the existing floor. Far trees stay inside its footprint."
   },
-  "baselineLibrary": "blender/vesper-assets.blend, generated by build_vesper.py; retained unchanged as the source for all other library assets and the checkpoint hollow.",
   "connectedHollow": {
-    "checkpoint": "927bfc63",
     "source": "assets/levels/vesper/blender/vesper-connected-hollow.blend",
     "generator": "assets/levels/vesper/blender/build_connected_hollow.py",
     "geometryBuilder": "assets/levels/vesper/blender/connected_tree_geometry.py",
-    "approach": "Rebuild only exterior boughs/crown. Embed bases in the actual lower/upper shell surfaces; sample every fork and shoot on its parent; attach large leaves by petioles. Whole boughs are omitted around road portals instead of clipping their geometry. No external engine imports.",
-    "preserved": "All 72,457 shell/interior/root triangles, all 16 other original library roots and connected crown wood remain unchanged. This leaf pass also updates secondary forest leaves.",
-    "mainBoughs": 22,
-    "apicalShoots": 7,
-    "leaves": 2665,
-    "crownTriangles": 93194,
-    "attachments": 2746,
-    "maxParentGapMetres": 6.394597860046467e-5,
-    "assetBytes": 11807288,
-    "validation": "No new road/camera intersections in 32,721,987 triangle tests. Two unchanged shell triangles touch conservative outer padding only. All 274 flight samples / 11,564,294 crown triangle tests pass. 15 targeted tests, lint/build and high/low close-up and final viewport checks pass.",
-    "evidence": ".experiments/expansion/vesper/connected-hollow",
-    "performance": "Current leaf-pass budgets: 3.34M high / 2.30M low submitted triangles exceed the 2M target; 25.92 MB transfer and estimated memory remain within targets. See renderedBudgets below for recorded multipass measurements. Foreground pacing unverified.",
-    "humanReview": "Approved for completion and main-worktree integration by the user on 2026-09-30; merged with the final curved-leaf refinement."
+    "approach": "Rebuild only exterior boughs/crown. Embed bases in the actual lower/upper shell surfaces; sample every fork and shoot on its parent; attach large leaves by petioles. Whole boughs are omitted around road portals instead of clipping their geometry. No external engine imports."
   },
-  "leafRefinement": {
-    "checkpoint": "7311b954",
-    "method": "Cupped lamina, curved midrib, asymmetrical rolled margins and drooping tips; UV procedural veins, mottling and varied roughness. Distance leaves also bend.",
-    "woodMeshesUnchanged": 8,
-    "nondegenerateLeafTriangles": 136688,
-    "detailedFamilyTriangles": 45900,
-    "distanceFamilyTriangles": 2302,
-    "giantCrownTriangles": 93194,
-    "gateway3OffsetZ": 12,
-    "evidence": ".experiments/expansion/vesper/leaf-refinement/"
+  "baselineLibrary": "blender/vesper-assets.blend, generated by build_vesper.py; editable source for the original asset library.",
+  "inactiveCreature": {
+    "source": "src/levels/vesper/environment/creature.js",
+    "blender": "assets/levels/vesper/blender/vesper-assets.blend",
+    "generator": "assets/levels/vesper/blender/build_vesper.py",
+    "runtimeLibrary": "public/assets/levels/vesper/vesper-canopy.glb",
+    "node": "hero_walker"
   },
-  "integration": {
-    "branch": "g/scene-test",
-    "mergeCommit": "92501ea296a2f5e6661d3ad7dd6fe1571bb56a45",
-    "assetBytesVerified": true,
-    "provenancePreserved": true
-  },
-  "edgeFinish": "Plain resin curb with a thin glowing line and deck-only jump guidance; roadside bulbs/stalks and jump-edge posts removed at the user request. Warm pooled road fill retained.",
-  "renderedBudgets": {
-    "recordedOn": "2026-09-30",
-    "scope": "Actual all-pass draw/triangle measurements include transmission, shadows and postprocessing. GPU estimate from shared metrics excludes driver overhead and the new transmission buffers. Hidden RAF timing does not certify foreground pacing. Peak measurements precede the roadside bulb/post removal and remain a conservative baseline.",
-    "high": {
-      "calls": 1013,
-      "triangles": 3339297,
-      "estimatedGpuMiB": 266.6189887237549,
-      "initialTransferredBytes": 25917679,
-      "evidence": ".experiments/expansion/vesper/leaf-refinement/final/report.json",
-      "withinDrawTargets": false
-    },
-    "low": {
-      "calls": 648,
-      "triangles": 2297007,
-      "estimatedGpuMiB": 172.68588325500488,
-      "initialTransferredBytes": 25917679,
-      "evidence": ".experiments/expansion/vesper/leaf-refinement/final/report.json",
-      "withinDrawTargets": false
-    }
-  }
+  "edgeFinish": "Plain resin curb with a thin glowing line, deck-only jump guidance and warm pooled road fill."
 }

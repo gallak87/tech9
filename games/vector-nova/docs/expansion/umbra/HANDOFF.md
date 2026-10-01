@@ -4,9 +4,9 @@
 
 **Goal:** Finish a gravity-observatory circuit with tidal line control, curved airborne crossings, continuous debris consumption and one enormous spaghettification event.
 
-Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md), the current [level API](../../EXPANSION_LEVEL_CONTRACT.md) and [Vesper learnings](../vesper/learnings.md) from the primary worktree when the user resumes you. Continue your existing level work with the latest primary code. Consult architecture/art sections as needed.
+Read this brief, [the common execution rules](../README.md) and the current [level API](../../LEVEL_API.md) from the primary worktree when the user resumes you. Continue your existing level work with the latest primary code. Consult architecture/art sections as needed.
 
-Own `umbra` through production, critique, necessary shared framework/environment/tooling improvements, final mobile verification, commit and merge into the primary worktree. Follow the [completion ownership rules](../../EXPANSION_HANDOFF.md#worktree-and-completion-ownership). Start your own preview on a free port; use `?level=umbra` and `&review=shape`. Chat sequencing belongs to the user. Keep progress in the chat; leave reusable learnings in the relevant docs.
+Own `umbra` through production, critique, necessary shared framework/environment/tooling improvements, final mobile verification, commit and merge into the primary worktree. Follow the [completion ownership rules](../README.md#worktree-and-completion-ownership). Start your own preview on a free port; use `?level=umbra` and `&review=shape`. Chat sequencing belongs to the user. Keep progress in the chat and expansion notes in this folder. Document reusable technical changes with their APIs.
 
 ## Defining interactions and spectacle
 
@@ -47,19 +47,15 @@ Start near 5.4 km with a constant 28 m usable width and roughly 320 m of vertica
 
 **Reject these shortcuts:** Reject arbitrary floating blocks, empty black views away from the ring, a technical route that is merely confusing, invisible crossings, bright guides hiding absent road geometry, inverted camera collisions or unexplained global gravity changes. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
 
-## Future shared pickup/boost locations
-
-Mark safe shared boost/refill setup positions before strong tidal zones and curved launches, plus recovery shelves after difficult landings. Note future shared stability/protection support candidates if useful; do not build a gravity-specific inventory or remove the tidal challenge to avoid the missing support. Record actual built-route coordinates using the [shared placement-note format](../../EXPANSION_HANDOFF.md#future-shared-pickup-and-boost-placement), without implementing those systems or replacing the approved level mechanics.
-
 ## Presets and resource discipline
 
 High may add restrained layered ring detail and slow far-debris drift. Low keeps the accretion silhouette, background stars, every route marker and major ruined landmark while simplifying distant assemblies. Reduced motion stops decorative ring flow and far-debris drift; no camera shake, rotating horizon illusion or pulsing edge lights. Never distort HUD or driving geometry.
 
 ## Production and review
 
-Use the [scene-imagegen → Blender workflow](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for major assets: The observatory fragments/landing structures, tilted lens and enormous object with staged stretched/fragmented forms are major scene-to-Blender subjects. Use reproducible deformation/animation for continuous accretion and reuse small debris families.
+Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The observatory fragments/landing structures, tilted lens and enormous object with staged stretched/fragmented forms are major scene-to-Blender subjects. Use reproducible deformation/animation for continuous accretion and reuse small debris families.
 
-Use the [shared production/critic loop](../../EXPANSION_HANDOFF.md#production-and-critique-loop) and [common verification/completion rules](../../EXPANSION_HANDOFF.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
+Use the [shared production/critic loop](../README.md#production-and-critique-loop) and [common verification/completion rules](../README.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
 
 ## Acceptance on the actual production build
 
@@ -68,4 +64,4 @@ The user reported an apparently oversized or incomplete map, with a black centra
 1. Drive progressively stronger tidal zones with actual countersteering/braking/boost; measure the declared pull and show ordinary handling outside the zones.
 2. Traverse curved gravity-assisted leaps with actual input, visible lower landing and an imperfect approach; verify airborne force integration, recovery and ordered checkpoints alongside grounded inversions/crossings.
 3. Inspect continuous debris consumption and the enormous object stretching into strands, fragmenting and spiralling inward; verify event/runtime reset, pause and replay without screen-wide road distortion.
-4. Check ring-facing and shadowed views at high/low/reduced motion, tidal/landing cues and future support coordinates; report hard no-pickup sections honestly.
+4. Check ring-facing and shadowed views at high/low/reduced motion, tidal/landing cues and landing/recovery behavior; report hard no-pickup sections honestly.

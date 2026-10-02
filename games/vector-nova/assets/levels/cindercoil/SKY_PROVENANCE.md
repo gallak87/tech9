@@ -7,3 +7,5 @@ Generated with the built-in imagegen tool using the project's [original scene dr
 Earlier source: [first panorama](cindercoil-sky-v1.png) and [its exact prompt](sky-prompt.txt), generated without reference images.
 
 The PNGs contain bounded image color, not captured HDR radiance. They supply distant atmosphere/space; terrain, architecture, lighting, events and gameplay are authored separately. Preserve native source images when exporting runtime textures.
+
+Runtime export: `public/assets/levels/cindercoil/cindercoil-sky-v2.png`, copied unchanged from the selected 1774×887 native PNG. The local backdrop maps it spherically with a blended longitude overlap and analytic UV derivatives; the source remains intact. The last few degrees at each pole blend the source-row mean to soften panorama pinching. Shape review uses a neutral sky.

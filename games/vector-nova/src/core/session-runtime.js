@@ -16,11 +16,6 @@ export function createMagneticRuntime({ track }) {
     dispose() {},
   };
 }
-export function hasHalcyonFeatures(track, features) {
-  return (
-    track.id === 'halcyon-viaduct-4-compact' && features === 'halcyon-pickups'
-  );
-}
 export function runtimeIdentity(runtime) {
   return { id: runtime.id, version: runtime.version, rulesId: runtime.rulesId };
 }

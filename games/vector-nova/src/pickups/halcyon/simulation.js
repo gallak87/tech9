@@ -1,6 +1,6 @@
-export const PICKUP_STATE_VERSION = 1;
-export const VECTOR_DURATION = 1.25;
+export const PICKUP_STATE_VERSION = 2;
 export const AEGIS_DURATION = 6;
+export const VECTOR_ENTRY_SPEED_GAIN = 16;
 export const VECTOR_PROPULSION = Object.freeze({
   cruiseSpeed: 142,
   thrust: 50,
@@ -9,32 +9,31 @@ export const VECTOR_PROPULSION = Object.freeze({
 const EPSILON = 1e-9;
 const HALF_WIDTH = 2.25;
 const HALF_LENGTH = 3.5;
-const effectKeys = ['vector', 'aegis'];
-const remainingKey = (kind) => `${kind}Remaining`;
-const deviceKey = (kind) => `${kind}Device`;
+const HULL_RADIUS = Math.hypot(HALF_WIDTH, HALF_LENGTH);
 const finite = (value, fallback = 0) =>
   Number.isFinite(value) ? value : fallback;
+const event = (type, kind, deviceId, extra = {}) => ({
+  type,
+  payload: { kind, deviceId, ...extra },
+});
+const extents = (heading = 0) => ({
+  lateral:
+    Math.abs(Math.cos(heading)) * HALF_WIDTH +
+    Math.abs(Math.sin(heading)) * HALF_LENGTH,
+  longitudinal:
+    Math.abs(Math.cos(heading)) * HALF_LENGTH +
+    Math.abs(Math.sin(heading)) * HALF_WIDTH,
+});
+const supported = (vehicle) =>
+  vehicle?.grounded !== false && vehicle?.airborne !== true;
+const movingForward = (vehicle) =>
+  finite(vehicle?.speed) * Math.cos(finite(vehicle?.heading)) > 0.5;
 
-function event(type, kind, deviceId, extra = {}) {
-  return { type, payload: { kind, deviceId, ...extra } };
-}
-
-function clearEffect(state, kind, type, extra = {}) {
-  if (state[remainingKey(kind)] <= 0) return null;
-  const result = event(type, kind, state[deviceKey(kind)], extra);
-  state[remainingKey(kind)] = 0;
-  state[deviceKey(kind)] = null;
-  return result;
-}
-
-// The trigger is the device's centre plane. Crossing uses unwrapped forward
-// distance and the hull's interpolated lateral/yaw envelope at that plane, so
-// an entire device can be traversed in one tick without being missed. A first
-// pass consumes that occurrence even on a lateral miss: reversing to change
-// lanes cannot farm a previously passed device.
+// Aegis arches retain a swept centre-plane trigger. The lateral hull envelope
+// is interpolated at that plane so fast crossings cannot miss the charge.
 export function sweptDeviceCrossings(previous, vehicle, devices, trackLength) {
-  const start = previous.distance;
-  const end = vehicle.distance;
+  const start = previous.distance,
+    end = vehicle.distance;
   if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start)
     return [];
   const crossings = [];
@@ -50,9 +49,6 @@ export function sweptDeviceCrossings(previous, vehicle, devices, trackLength) {
       const heading =
         finite(previous.heading) +
         (finite(vehicle.heading) - finite(previous.heading)) * fraction;
-      const hullExtent =
-        Math.abs(Math.cos(heading)) * HALF_WIDTH +
-        Math.abs(Math.sin(heading)) * HALF_LENGTH;
       crossings.push({
         device,
         traversal,
@@ -62,14 +58,89 @@ export function sweptDeviceCrossings(previous, vehicle, devices, trackLength) {
         heading,
         overlap:
           Math.abs(lateral - device.lateral) <=
-          device.width / 2 + hullExtent + EPSILON,
+          device.width / 2 + extents(heading).lateral + EPSILON,
       });
     }
   }
   return crossings.sort(
-    (a, b) =>
-      a.distance - b.distance ||
-      (a.device.id < b.device.id ? -1 : a.device.id > b.device.id ? 1 : 0),
+    (a, b) => a.fraction - b.fraction || a.device.id.localeCompare(b.device.id),
+  );
+}
+
+function interval(from, to, lower, upper) {
+  const change = to - from;
+  if (Math.abs(change) <= EPSILON)
+    return from >= lower - EPSILON && from <= upper + EPSILON ? [0, 1] : null;
+  const a = (lower - from) / change,
+    b = (upper - from) / change;
+  const start = Math.max(0, Math.min(a, b)),
+    end = Math.min(1, Math.max(a, b));
+  return start <= end + EPSILON ? [start, end] : null;
+}
+
+function overlaps(device, traversal, vehicle, trackLength) {
+  const hull = extents(finite(vehicle.heading));
+  const center = device.distance + traversal * trackLength;
+  return (
+    supported(vehicle) &&
+    Math.abs(vehicle.distance - center) <=
+      device.length / 2 + hull.longitudinal + EPSILON &&
+    Math.abs(finite(vehicle.lateral) - device.lateral) <=
+      device.width / 2 + hull.lateral + EPSILON
+  );
+}
+
+// Vector is an authored rectangle, not a timer granted at its centre. Sweeping
+// both route distance and lateral position also admits a late lane entry while
+// the nose is already over the strip. No support means no ground catapult.
+export function sweptVectorContacts(previous, vehicle, devices, trackLength) {
+  if (
+    !supported(previous) ||
+    !supported(vehicle) ||
+    vehicle.distance < previous.distance - EPSILON
+  )
+    return [];
+  const a = extents(finite(previous.heading)),
+    b = extents(finite(vehicle.heading));
+  const longitudinal = Math.max(a.longitudinal, b.longitudinal),
+    lateral = Math.max(a.lateral, b.lateral);
+  const contacts = [];
+  for (const device of devices) {
+    const first =
+      Math.ceil(
+        (previous.distance -
+          device.distance -
+          device.length / 2 -
+          longitudinal) /
+          trackLength,
+      ) || 0;
+    const last = Math.floor(
+      (vehicle.distance - device.distance + device.length / 2 + longitudinal) /
+        trackLength,
+    );
+    for (let traversal = first; traversal <= last; traversal++) {
+      const center = device.distance + traversal * trackLength;
+      const along = interval(
+        previous.distance,
+        vehicle.distance,
+        center - device.length / 2 - longitudinal,
+        center + device.length / 2 + longitudinal,
+      );
+      const across = interval(
+        finite(previous.lateral),
+        finite(vehicle.lateral),
+        device.lateral - device.width / 2 - lateral,
+        device.lateral + device.width / 2 + lateral,
+      );
+      if (!along || !across) continue;
+      const fraction = Math.max(along[0], across[0]),
+        exitFraction = Math.min(along[1], across[1]);
+      if (fraction <= exitFraction + EPSILON)
+        contacts.push({ device, traversal, fraction, exitFraction });
+    }
+  }
+  return contacts.sort(
+    (a, b) => a.fraction - b.fraction || a.device.id.localeCompare(b.device.id),
   );
 }
 
@@ -86,66 +157,99 @@ export function createPickupSimulation({
       typeof device.id !== 'string' ||
       !device.id ||
       ids.has(device.id) ||
-      !effectKeys.includes(device.type) ||
+      !['vector', 'aegis'].includes(device.type) ||
       !Number.isFinite(device.distance) ||
       device.distance < 0 ||
       device.distance >= trackLength ||
       !Number.isFinite(device.lateral) ||
       !Number.isFinite(device.width) ||
-      device.width <= 0
+      device.width <= 0 ||
+      !Number.isFinite(device.length) ||
+      device.length <= 0 ||
+      device.length >= trackLength
     )
       throw new Error('Invalid pickup device layout');
     ids.add(device.id);
     return { ...device };
   });
+  const vectors = layout.filter((device) => device.type === 'vector');
+  const aegises = layout.filter((device) => device.type === 'aegis');
   const layoutKey = JSON.stringify([
     trackLength,
-    ...layout.map(({ id, type, distance, lateral, width }) => [
+    ...layout.map(({ id, type, distance, lateral, width, length }) => [
       id,
       type,
       distance,
       lateral,
       width,
+      length,
     ]),
   ]);
-
   let state;
-  function markPassed(distance) {
+
+  function clearVector(type, reason) {
+    if (!state.vectorActive) return null;
+    const result = event(
+      type,
+      'vector',
+      state.vectorDevice,
+      reason ? { reason } : {},
+    );
+    state.vectorActive = false;
+    state.vectorDevice = null;
+    state.vectorTraversal = null;
+    return result;
+  }
+  function clearAegis(type, extra = {}) {
+    if (state.aegisRemaining <= 0) return null;
+    const result = event(type, 'aegis', state.aegisDevice, extra);
+    state.aegisRemaining = 0;
+    state.aegisDevice = null;
+    return result;
+  }
+  function passedOccurrence(device, distance, leading = false) {
+    const offset =
+      device.type === 'vector'
+        ? leading
+          ? -(device.length / 2 + HULL_RADIUS)
+          : device.length / 2 + HULL_RADIUS
+        : 0;
+    return Math.floor((distance - device.distance - offset) / trackLength);
+  }
+  function markPassed(distance, leading = false) {
     for (const device of layout)
       state.used[device.id] = Math.max(
         state.used[device.id],
-        Math.floor((distance - device.distance) / trackLength),
+        passedOccurrence(device, distance, leading),
       );
   }
-
   function reset({ reason = 'restart', state: currentVehicle = vehicle } = {}) {
     const distance = finite(currentVehicle.distance);
     const events = [];
-    if (state && (reason === 'recover' || reason === 'manual-recover')) {
-      for (const kind of effectKeys) {
-        const canceled = clearEffect(state, kind, 'pickup-cancel', {
-          reason: 'recover',
-        });
-        if (canceled) events.push(canceled);
-      }
+    if (state && ['recover', 'manual-recover'].includes(reason)) {
+      const vector = clearVector('pickup-cancel', 'recover'),
+        aegis = clearAegis('pickup-cancel', { reason: 'recover' });
+      if (vector) events.push(vector);
+      if (aegis) events.push(aegis);
       state.lastDistance = distance;
       state.highWaterDistance = Math.max(state.highWaterDistance, distance);
-      markPassed(state.highWaterDistance);
+      markPassed(state.highWaterDistance, true);
     } else {
       state = {
         version: PICKUP_STATE_VERSION,
         layoutKey,
         time: 0,
-        vectorRemaining: 0,
-        aegisRemaining: 0,
+        vectorActive: false,
         vectorDevice: null,
+        vectorTraversal: null,
+        aegisRemaining: 0,
         aegisDevice: null,
         lastDistance: distance,
         highWaterDistance: distance,
         used: Object.fromEntries(
           layout.map((device) => [
             device.id,
-            Math.floor((distance - device.distance) / trackLength),
+            passedOccurrence(device, distance, true),
           ]),
         ),
       };
@@ -154,28 +258,68 @@ export function createPickupSimulation({
   }
   reset();
 
-  function beforeStep(input, dt) {
+  function activateVector(contact, input, events) {
+    const { device, traversal } = contact;
+    if (traversal <= state.used[device.id]) return;
+    state.used[device.id] = traversal;
+    const reason =
+      finite(input?.brake) >= 0.1
+        ? 'braking'
+        : state.vectorActive
+          ? 'active'
+          : null;
+    if (reason) {
+      events.push(event('pickup-unavailable', 'vector', device.id, { reason }));
+      return;
+    }
+    state.vectorActive = true;
+    state.vectorDevice = device.id;
+    state.vectorTraversal = traversal;
+    events.push(
+      event('pickup-activate', 'vector', device.id, {
+        speedGain: VECTOR_ENTRY_SPEED_GAIN,
+      }),
+    );
+  }
+  function activeContact(vehicle) {
+    const device = vectors.find((device) => device.id === state.vectorDevice);
+    return (
+      device && overlaps(device, state.vectorTraversal, vehicle, trackLength)
+    );
+  }
+
+  function beforeStep(input, dt, currentVehicle) {
     const events = [];
     if (!Number.isFinite(dt) || dt <= 0) return { modifiers: {}, events };
     state.time += dt;
-    // Expiry is resolved before this step's collision. A shield with exactly
-    // dt left provides no protection on this step. New pickups become active
-    // after collision resolution and first modify the following fixed step.
-    for (const kind of effectKeys) {
-      const key = remainingKey(kind);
-      if (state[key] > 0 && state[key] <= dt + EPSILON) {
-        events.push(clearEffect(state, kind, 'pickup-expire'));
-      } else state[key] = Math.max(0, state[key] - dt);
-    }
-    if (finite(input?.brake) >= 0.1) {
-      const canceled = clearEffect(state, 'vector', 'pickup-cancel', {
-        reason: 'brake',
-      });
-      if (canceled) events.push(canceled);
-    }
+    // Aegis expiry remains before collision resolution. Vector never expires:
+    // contact or brake ends its force; already gained speed is ordinary inertia.
+    if (state.aegisRemaining > 0 && state.aegisRemaining <= dt + EPSILON)
+      events.push(clearAegis('pickup-expire'));
+    else state.aegisRemaining = Math.max(0, state.aegisRemaining - dt);
+    if (
+      currentVehicle &&
+      Math.abs(currentVehicle.distance - state.lastDistance) > EPSILON
+    )
+      events.push(...reset({ reason: 'recover', state: currentVehicle }));
+    if (
+      state.vectorActive &&
+      currentVehicle &&
+      (!activeContact(currentVehicle) || !movingForward(currentVehicle))
+    )
+      events.push(clearVector('pickup-exit', 'left-strip'));
+    if (state.vectorActive && finite(input?.brake) >= 0.1)
+      events.push(clearVector('pickup-cancel', 'brake'));
+    if (!state.vectorActive && currentVehicle && movingForward(currentVehicle))
+      for (const contact of sweptVectorContacts(
+        currentVehicle,
+        currentVehicle,
+        vectors,
+        trackLength,
+      ))
+        activateVector(contact, input, events);
     const modifiers = {};
-    if (state.vectorRemaining > 0)
-      modifiers.propulsion = { ...VECTOR_PROPULSION };
+    if (state.vectorActive) modifiers.propulsion = { ...VECTOR_PROPULSION };
     if (state.aegisRemaining > 0) modifiers.shield = true;
     return { modifiers, events };
   }
@@ -187,63 +331,71 @@ export function createPickupSimulation({
       !Number.isFinite(current.distance)
     )
       throw new Error('Pickup vehicle distance must be finite');
-    // A teleport without the adapter reset hook is conservatively treated as
-    // recovery. It cannot manufacture a long swept pickup or renew eligibility.
-    if (Math.abs(previous.distance - state.lastDistance) > EPSILON) {
-      events.push(...reset({ reason: 'recover', state: current }));
-      return events;
-    }
+    if (Math.abs(previous.distance - state.lastDistance) > EPSILON)
+      return reset({ reason: 'recover', state: current });
     if (state.aegisRemaining > 0) {
       const impact = physicsEvents.find(
         (entry) => entry.type === 'impact' && entry.payload?.shielded === true,
       );
       if (impact)
         events.push(
-          clearEffect(state, 'aegis', 'shield-hit', {
+          clearAegis('shield-hit', {
             severity: impact.payload.severity,
             side: impact.payload.side,
           }),
         );
     }
-    for (const crossing of sweptDeviceCrossings(
-      previous,
-      current,
-      layout,
-      trackLength,
-    )) {
-      const { device, traversal, overlap } = crossing;
-      if (traversal <= state.used[device.id]) continue;
-      state.used[device.id] = traversal;
-      if (!overlap) continue;
-      const kind = device.type;
-      const key = remainingKey(kind);
-      const reason =
-        kind === 'vector' && finite(input?.brake) >= 0.1
-          ? 'braking'
-          : state[key] > 0
-            ? 'active'
-            : null;
-      if (reason) {
-        events.push(event('pickup-unavailable', kind, device.id, { reason }));
+    const contacts = [
+      ...(movingForward(current)
+        ? sweptVectorContacts(previous, current, vectors, trackLength)
+        : []),
+      ...sweptDeviceCrossings(previous, current, aegises, trackLength),
+    ].sort(
+      (a, b) =>
+        a.fraction - b.fraction || a.device.id.localeCompare(b.device.id),
+    );
+    for (const contact of contacts) {
+      const { device, traversal } = contact;
+      if (device.type === 'vector') {
+        activateVector(contact, input, events);
         continue;
       }
-      const duration = kind === 'vector' ? VECTOR_DURATION : AEGIS_DURATION;
-      state[key] = duration;
-      state[deviceKey(kind)] = device.id;
-      events.push(event('pickup-activate', kind, device.id, { duration }));
+      if (traversal <= state.used[device.id]) continue;
+      state.used[device.id] = traversal;
+      if (!contact.overlap) continue;
+      if (state.aegisRemaining > 0)
+        events.push(
+          event('pickup-unavailable', 'aegis', device.id, { reason: 'active' }),
+        );
+      else {
+        state.aegisRemaining = AEGIS_DURATION;
+        state.aegisDevice = device.id;
+        events.push(
+          event('pickup-activate', 'aegis', device.id, {
+            duration: AEGIS_DURATION,
+          }),
+        );
+      }
     }
+    if (
+      state.vectorActive &&
+      (!activeContact(current) ||
+        current.distance < previous.distance - EPSILON ||
+        !movingForward(current))
+    )
+      events.push(clearVector('pickup-exit', 'left-strip'));
     state.lastDistance = current.distance;
     state.highWaterDistance = Math.max(
       state.highWaterDistance,
       current.distance,
     );
+    markPassed(state.highWaterDistance);
     return events;
   }
 
   function snapshot() {
     return { ...state, used: { ...state.used } };
   }
-
   function restore(data) {
     if (
       !data ||
@@ -257,37 +409,37 @@ export function createPickupSimulation({
       !data.used ||
       Object.keys(data.used).length !== layout.length ||
       layout.some((device) => !Number.isSafeInteger(data.used[device.id])) ||
-      effectKeys.some((kind) => {
-        const remaining = data[remainingKey(kind)];
-        const duration = kind === 'vector' ? VECTOR_DURATION : AEGIS_DURATION;
-        const id = data[deviceKey(kind)];
-        return (
-          !Number.isFinite(remaining) ||
-          remaining < 0 ||
-          remaining > duration ||
-          (remaining === 0
-            ? id !== null
-            : !layout.some(
-                (device) => device.id === id && device.type === kind,
-              ))
-        );
-      })
+      typeof data.vectorActive !== 'boolean' ||
+      (data.vectorActive
+        ? !Number.isSafeInteger(data.vectorTraversal) ||
+          !vectors.some(
+            (device) =>
+              device.id === data.vectorDevice &&
+              data.used[device.id] === data.vectorTraversal,
+          )
+        : data.vectorDevice !== null || data.vectorTraversal !== null) ||
+      !Number.isFinite(data.aegisRemaining) ||
+      data.aegisRemaining < 0 ||
+      data.aegisRemaining > AEGIS_DURATION ||
+      (data.aegisRemaining === 0
+        ? data.aegisDevice !== null
+        : !aegises.some((device) => device.id === data.aegisDevice))
     )
       throw new Error('Pickup replay state mismatch');
     state = {
       version: PICKUP_STATE_VERSION,
       layoutKey,
       time: data.time,
-      vectorRemaining: data.vectorRemaining,
-      aegisRemaining: data.aegisRemaining,
+      vectorActive: data.vectorActive,
       vectorDevice: data.vectorDevice,
+      vectorTraversal: data.vectorTraversal,
+      aegisRemaining: data.aegisRemaining,
       aegisDevice: data.aegisDevice,
       lastDistance: data.lastDistance,
       highWaterDistance: data.highWaterDistance,
       used: { ...data.used },
     };
   }
-
   return {
     beforeStep,
     afterStep,
@@ -295,7 +447,11 @@ export function createPickupSimulation({
     snapshot,
     restore,
     isAvailable(id, distance = state.lastDistance) {
-      return ids.has(id) && state.used[id] < Math.floor(distance / trackLength);
+      return (
+        ids.has(id) &&
+        ((state.vectorActive && state.vectorDevice === id) ||
+          state.used[id] < Math.floor(distance / trackLength))
+      );
     },
   };
 }

@@ -1,5 +1,7 @@
 import * as T from 'three';
-import { createShip } from '../ships/index.js';
+import { createFleetShip } from '../ships/fleet.js';
+import { RIVAL_SHIPS, createRivalPreview } from '../ships/rivals.js';
+import { loadShipSelection, saveShipSelection } from '../ships/catalog.js';
 import { createRenderer } from '../renderer/index.js';
 import { createVehicleState, STEERING_ASSIST } from '../physics/index.js';
 import { createRace } from '../race/index.js';
@@ -11,6 +13,7 @@ import { createUI } from '../ui/index.js';
 import { loadSettings, saveSettings } from '../progression/index.js';
 import { createFlyCamera } from './fly-camera.js';
 import { createReviewCamera } from './review-camera.js';
+import { createStartCountdown } from './start-countdown.js';
 import { discoverLevels } from '../levels/catalog.js';
 import { validateTrack, circuitURL } from '../levels/contract.js';
 import { createLevelPresentation } from '../levels/presentation.js';
@@ -64,7 +67,6 @@ async function boot() {
     shape: blockout,
   } = await levelCatalog.load(parameters.get('level'), {
     review: parameters.get('review'),
-    features: parameters.get('features'),
   });
   const VERSION = definition.version;
   const settings = loadSettings();
@@ -85,7 +87,13 @@ async function boot() {
     ? createReviewCamera(track, camera)
     : null;
   const signatureReview = parameters.get('review') === 'signature';
-  const ship = lifetime.own(await createShip(definition.ship));
+  const ship = lifetime.own(
+    await createFleetShip({
+      ...definition.ship,
+      id: loadShipSelection().id,
+    }),
+  );
+  let shipLoading = false;
   lifetime.defer(() => ship.group.removeFromParent());
   const inspectionBounds = new T.Box3().setFromObject(ship.group);
   const inspectionExtent = {
@@ -154,7 +162,7 @@ async function boot() {
     ring.material.dispose();
     inspectionScene.clear();
   });
-  let state = createVehicleState(),
+  let state = createVehicleState(ship.selected.id),
     prev = { ...state },
     race,
     mode = 'title',
@@ -172,8 +180,17 @@ async function boot() {
   const inputLog = [],
     events = [],
     audio = lifetime.own(createAudio(definition.audio)),
-    rig = createCameraRig(camera, definition.camera, inspectionBounds),
     effects = lifetime.own(createEffects(scene, definition.effects));
+  let rig = createCameraRig(camera, definition.camera, inspectionBounds);
+  let inspectionTab = 'fleet',
+    inspectedRival = RIVAL_SHIPS[0],
+    rivalPreview = null,
+    rivalLoading = false,
+    rivalRequest = 0;
+  lifetime.defer(() => {
+    rivalRequest++;
+    rivalPreview?.dispose();
+  });
   lifetime.defer(() => {
     active = false;
     cancelAnimationFrame(raf);
@@ -230,21 +247,131 @@ async function boot() {
       emit,
     }),
   );
-  const makeRace = () => createRace(track, { rulesId: runtime.rulesId });
+  const halcyonRacing = metadata.id === 'halcyon' && !blockout;
+  const racerModule = halcyonRacing
+    ? await import('../race/halcyon-racers.js')
+    : null;
+  const racers = racerModule
+    ? lifetime.own(racerModule.createHalcyonRacers({ track }))
+    : null;
+  const racerPresentation = racers
+    ? lifetime.own(
+        await racerModule.createRacerPresentation({ racers, scene, track }),
+      )
+    : null;
+  let competition = false,
+    lastResults = null,
+    raceDifficulty = settings.difficulty,
+    countdownRequest = 0,
+    pausedCountdown = false,
+    goUntil = 0;
+  const countdown = createStartCountdown();
+  const makeRace = () =>
+    createRace(track, {
+      rulesId: `${runtime.rulesId}:ship-${ship.selected.id}-v${ship.selected.version}${competition ? `:difficulty-${raceDifficulty}` : ''}`,
+    });
   const resetRuntime = (reason) => {
     runtime.reset({ reason, state, scenario, seed });
     audio.resetEnvironment();
     world.reset();
   };
-  const advance = (control) =>
-    advanceSession({ state, input: control, dt: 1 / 120, runtime, race, emit });
+  const advance = (control) => {
+    const result = advanceSession({
+      state,
+      input: control,
+      dt: 1 / 120,
+      runtime,
+      race,
+      emit,
+    });
+    racers?.advance(1 / 120, {
+      playerState: state,
+      playerRace: race,
+      playerInput: control,
+    });
+    return result;
+  };
+  function resetRacers(enabled = competition) {
+    racers?.reset({
+      playerState: state,
+      playerRace: race,
+      enabled,
+      difficulty: raceDifficulty,
+    });
+  }
   race = makeRace();
+  resetRacers(false);
   resetRuntime('initialize');
   let initial = captureInitial(state, runtime);
+  function fitInspection(group) {
+    inspectionBounds.min.fromArray(group.userData.bounds.min);
+    inspectionBounds.max.fromArray(group.userData.bounds.max);
+    inspectionExtent.radial = Math.hypot(
+      Math.max(
+        Math.abs(inspectionBounds.min.x),
+        Math.abs(inspectionBounds.max.x),
+      ),
+      Math.max(
+        Math.abs(inspectionBounds.min.z),
+        Math.abs(inspectionBounds.max.z),
+      ),
+    );
+    inspectionExtent.vertical = Math.max(
+      Math.abs(inspectionBounds.min.y - 0.55),
+      Math.abs(inspectionBounds.max.y - 0.55),
+    );
+    inspectionTime = 0;
+    inspectionLayout = null;
+  }
+  function restoreFleetInspection() {
+    rivalRequest++;
+    rivalPreview?.dispose();
+    rivalPreview = null;
+    rivalLoading = false;
+    inspectionTab = 'fleet';
+    ship.group.visible = true;
+    fitInspection(ship.group);
+    ui.setInspectionTab('fleet');
+    ui.setRivalLoading(false);
+    ui.shipError('');
+  }
   function sceneShip() {
+    if (inspectionTab !== 'fleet') restoreFleetInspection();
     if (ship.group.parent !== scene) scene.add(ship.group);
   }
+  function armCountdown(resuming = false) {
+    const request = ++countdownRequest;
+    mode = 'countdown';
+    pausedCountdown = false;
+    accumulator = 0;
+    if (!resuming) countdown.begin();
+    countdown.pause();
+    ui.setMode(mode);
+    ui.setCountdown(countdown.snapshot().step ?? 3);
+    audio
+      .unlock()
+      .catch(() => {})
+      .finally(() => {
+        if (!active || request !== countdownRequest || mode !== 'countdown')
+          return;
+        countdown.resume();
+      });
+  }
+  function cancelCountdown() {
+    countdownRequest++;
+    countdown.cancel();
+    pausedCountdown = false;
+    goUntil = 0;
+    ui.setCountdown(null);
+  }
   function start() {
+    if (shipLoading || (mode === 'inspection' && inspectionTab === 'rivals'))
+      return;
+    if (mode === 'countdown') return;
+    if (mode === 'paused') {
+      resume();
+      return;
+    }
     if (mode === 'fly') {
       leaveFly();
       return;
@@ -253,10 +380,14 @@ async function boot() {
     const newRun =
       mode === 'title' || mode === 'inspection' || mode === 'overview';
     if (newRun) {
+      raceDifficulty = settings.difficulty;
+      competition = halcyonRacing;
       scenario = 'staging';
-      state = createVehicleState();
+      state = createVehicleState(ship.selected.id);
+      if (competition) Object.assign(state, racerModule.HALCYON_GRID.player);
       prev = { ...state };
       race = makeRace();
+      resetRacers();
       resetRuntime('fresh-lap');
       initial = captureInitial(state, runtime);
       tick = 0;
@@ -271,6 +402,7 @@ async function boot() {
     audio.unlock().catch(() => {});
     input.clear();
     ui.setMode(mode);
+    if (newRun) armCountdown();
     // Review links still enter through the real start button/audio gesture.
     // Normal launch and fresh-lap actions retain the complete circuit.
     if (newRun && signatureReview && track.scenarios['signature-entry']) {
@@ -279,7 +411,12 @@ async function boot() {
     }
   }
   function pause() {
-    if (mode !== 'racing') return;
+    if (!['racing', 'countdown'].includes(mode)) return;
+    pausedCountdown = mode === 'countdown';
+    if (pausedCountdown) {
+      countdown.pause();
+      countdownRequest++;
+    }
     mode = 'paused';
     accumulator = 0;
     input.clear();
@@ -287,19 +424,30 @@ async function boot() {
   }
   function resume() {
     flyCamera?.leave();
+    if (pausedCountdown) {
+      armCountdown(true);
+      input.clear();
+      return;
+    }
     mode = 'racing';
     accumulator = 0;
     input.clear();
     ui.setMode(mode);
     audio.unlock().catch(() => {});
   }
-  function restart() {
+  function restart(compete = competition, withCountdown = false) {
+    if (shipLoading) return;
     flyCamera?.leave();
+    cancelCountdown();
     scenario = 'staging';
     sceneShip();
-    state = createVehicleState();
+    competition = halcyonRacing && compete;
+    if (withCountdown) raceDifficulty = settings.difficulty;
+    state = createVehicleState(ship.selected.id);
+    if (competition) Object.assign(state, racerModule.HALCYON_GRID.player);
     prev = { ...state };
     race = makeRace();
+    resetRacers();
     resetRuntime('fresh-lap');
     initial = captureInitial(state, runtime);
     mode = 'racing';
@@ -313,6 +461,7 @@ async function boot() {
     view.resetMetrics();
     ui.notice('');
     ui.setMode(mode);
+    if (withCountdown) armCountdown();
   }
   function recover() {
     if (mode !== 'racing') return;
@@ -330,11 +479,26 @@ async function boot() {
     ui.notice('RECOVERED AT CHECKPOINT · LAP INVALID');
   }
   function home() {
+    const results = racers?.snapshot({
+      playerState: state,
+      playerRace: race,
+    }).results;
+    if (results) lastResults = structuredClone(results);
+    cancelCountdown();
     flyCamera?.leave();
     sceneShip();
     mode = 'title';
-    state = createVehicleState();
+    scenario = 'staging';
+    state = createVehicleState(ship.selected.id);
+    competition = false;
+    race = makeRace();
+    resetRacers(false);
     resetRuntime('home');
+    initial = captureInitial(state, runtime);
+    tick = 0;
+    accumulator = 0;
+    inputLog.length = 0;
+    events.length = 0;
     prev = { ...state };
     cameraMode = 'chase';
     input.clear();
@@ -346,8 +510,10 @@ async function boot() {
       toggleFly();
       return;
     }
+    cancelCountdown();
     flyCamera?.leave();
     if (preset === 'inspection') {
+      if (mode === 'inspection') return;
       mode = 'inspection';
       inspectionScene.add(ship.group);
       ship.group.position.set(0, 0.1, 0);
@@ -383,6 +549,10 @@ async function boot() {
       return;
     }
     flyReturnMode = mode;
+    if (mode === 'countdown') {
+      countdown.pause();
+      countdownRequest++;
+    }
     sceneShip();
     flyCamera.enter();
     mode = 'fly';
@@ -398,45 +568,167 @@ async function boot() {
     input.clear();
     rig.reset();
     ui.setMode(mode);
+    if (mode === 'countdown') armCountdown(true);
+  }
+  async function selectShip(id) {
+    if (shipLoading || !['title', 'overview', 'inspection'].includes(mode))
+      return false;
+    if (inspectionTab !== 'fleet') return false;
+    shipLoading = true;
+    input.clear();
+    ui.setShipLoading(true);
+    try {
+      if (!(await ship.select(id)) || !active) return false;
+      fitInspection(ship.group);
+      rig = createCameraRig(camera, definition.camera, inspectionBounds);
+      ship.group.traverse((object) => {
+        for (const material of Array.isArray(object.material)
+          ? object.material
+          : [object.material])
+          if (material?.isMeshStandardMaterial)
+            material.envMap = cityReflection;
+      });
+      scenario = 'staging';
+      state = createVehicleState(ship.selected.id);
+      prev = { ...state };
+      competition = false;
+      race = makeRace();
+      resetRacers(false);
+      resetRuntime('ship-change');
+      initial = captureInitial(state, runtime);
+      tick = 0;
+      accumulator = 0;
+      inputLog.length = 0;
+      events.length = 0;
+      inspectionTime = 0;
+      inspectionLayout = null;
+      ui.setShip(ship.selected);
+      saveShipSelection(ship.selected.id);
+      await renderer.compileAsync(ship.group.parent ?? scene, camera);
+      return true;
+    } catch (error) {
+      ui.shipError(`Could not load ship. ${error.message}`);
+      return false;
+    } finally {
+      shipLoading = false;
+      if (active) ui.setShipLoading(false);
+    }
+  }
+  async function inspectRival(id) {
+    const craft = RIVAL_SHIPS.find((entry) => entry.id === id);
+    if (!craft || mode !== 'inspection' || inspectionTab !== 'rivals')
+      return false;
+    const request = ++rivalRequest;
+    rivalLoading = true;
+    input.clear();
+    ui.shipError('');
+    ui.setRivalLoading(true);
+    let loaded;
+    try {
+      loaded = await createRivalPreview(id);
+      if (!active || request !== rivalRequest || mode !== 'inspection') {
+        loaded.dispose();
+        return false;
+      }
+      // Warm the candidate while hidden; keep the previous preview on failure.
+      await renderer.compileAsync(loaded.group, camera, inspectionScene);
+      if (!active || request !== rivalRequest || mode !== 'inspection') {
+        loaded.dispose();
+        return false;
+      }
+      rivalPreview?.dispose();
+      rivalPreview = loaded;
+      inspectedRival = craft;
+      inspectionScene.add(loaded.group);
+      fitInspection(loaded.group);
+      ui.setInspectedRival(craft);
+      return true;
+    } catch {
+      loaded?.dispose();
+      if (active && request === rivalRequest)
+        ui.shipError(`Could not load ${craft.name}. Choose a racer to retry.`);
+      return false;
+    } finally {
+      if (active && request === rivalRequest) {
+        rivalLoading = false;
+        ui.setRivalLoading(false);
+      }
+    }
+  }
+  function selectInspectionTab(tab) {
+    if (
+      mode !== 'inspection' ||
+      shipLoading ||
+      !['fleet', 'rivals'].includes(tab)
+    )
+      return;
+    if (tab === inspectionTab) return;
+    if (tab === 'fleet') {
+      restoreFleetInspection();
+      return;
+    }
+    inspectionTab = 'rivals';
+    ship.group.visible = false;
+    ui.setInspectionTab(tab);
+    ui.setInspectedRival(inspectedRival);
+    inspectionLayout = null;
+    return inspectRival(inspectedRival.id);
   }
   const ui = lifetime.own(
     createUI(
       host,
       {
         start,
+        practice() {
+          if (shipLoading) return;
+          restart(false, true);
+          audio.unlock().catch(() => {});
+        },
         pause,
         resume,
-        restart,
+        restart: () => restart(competition, true),
         home,
         camera: setCamera,
+        selectShip,
+        selectInspectionTab,
+        inspectRival,
         overview,
-        fly: toggleFly,
         leaveFly,
-        reviewSection(name) {
-          window.__VN.loadScenario(name, 47219);
-          document.activeElement?.blur();
-          ui.notice('SECTION REVIEW · LAP UNTIMED');
-        },
         settings: () => {
           view.apply();
+          saveSettings(settings);
+        },
+        difficulty(value) {
+          if (
+            !['title', 'overview'].includes(mode) ||
+            !['easy', 'medium', 'hard'].includes(value)
+          )
+            return;
+          settings.difficulty = value;
           saveSettings(settings);
         },
       },
       settings,
       track,
       {
-        runtimeScenarios: runtime.scenarios,
         metadata,
         circuits: levelCatalog.list,
         shape: blockout,
+        selectedShip: ship.selected,
       },
     ),
   );
   const input = lifetime.own(
     createInput((command) => {
       if (command === 'pause') {
-        if (mode === 'paused') resume();
-        else if (mode === 'racing') pause();
+        if (
+          ['racing', 'paused'].includes(mode) &&
+          racers?.snapshot({ playerState: state, playerRace: race })
+            .playerFinished
+        )
+          home();
+        else if (mode === 'paused') resume();
+        else if (mode === 'racing' || mode === 'countdown') pause();
         else home();
       }
       if (command === 'restart') recover();
@@ -513,6 +805,29 @@ async function boot() {
     const dt = last ? Math.min((now - last) / 1000, 0.1) : 1 / 60;
     last = now;
     time += dt;
+    audio.update(state, settings.volume, mode === 'racing', {
+      countdown: mode === 'countdown',
+    });
+    if (mode === 'countdown') {
+      const step = countdown.advance();
+      if (step !== null) {
+        ui.setCountdown(step);
+        audio.event({
+          type: step === 0 ? 'countdown-go' : 'countdown-beep',
+          payload: { step },
+        });
+        if (step === 0) {
+          mode = 'racing';
+          accumulator = 0;
+          goUntil = now + 700;
+          ui.setMode(mode);
+        }
+      }
+    }
+    if (goUntil && now >= goUntil) {
+      ui.setCountdown(null);
+      goUntil = 0;
+    }
     if (mode === 'racing') {
       accumulator += dt;
       const control = input.sample();
@@ -537,9 +852,12 @@ async function boot() {
         : state;
     if (mode === 'inspection') {
       if (!settings.reducedMotion) inspectionTime += dt;
-      ship.group.position.set(0, 0.15, 0);
-      ship.group.rotation.set(0, inspectionTime * 0.12, 0);
-      ship.update({ speed: 0, boost: false, steer: 0, time, energy: 100 });
+      const subject =
+        inspectionTab === 'rivals' ? rivalPreview?.group : ship.group;
+      subject?.position.set(0, 0.15, 0);
+      subject?.rotation.set(0, inspectionTime * 0.12, 0);
+      if (inspectionTab === 'fleet')
+        ship.update({ speed: 0, boost: false, steer: 0, time, energy: 100 });
       camera.position.set(10.4, 6.2, 12.5);
       camera.up.set(0, 1, 0);
       camera.fov = 39;
@@ -635,23 +953,40 @@ async function boot() {
       reviewing: mode === 'overview' || (blockout && mode === 'title'),
     };
     runtime.update?.(frame);
+    racerPresentation?.update({
+      alpha,
+      mode: mode === 'fly' ? flyReturnMode : mode,
+    });
+    view.setRacingFeedback?.({
+      mode,
+      speed: s.speed,
+      boosting: s.boosting || runtime.snapshot()?.vectorActive,
+      enabled: halcyonRacing,
+    });
     world.update(frame);
     if (mode === 'inspection') view.renderInspection(inspectionScene);
     else view.render(now);
     world.afterRender(frame);
     effects.update(mode === 'racing' ? dt : 0);
-    audio.update(state, settings.volume, mode === 'racing');
     for (const event of view.drainStormEvents()) audio.event(event);
     ui.update(state, race, runtime.snapshot(), {
       practice: definition.practiceSectionsUntimed && scenario !== 'staging',
+      competition: racers?.snapshot({ playerState: state, playerRace: race }),
+      lastResults,
     });
     raf = requestAnimationFrame(render);
   }
   window.__VN = {
     ready: false,
     version: VERSION,
+    /**
+     * Load a deterministic internal verification scenario.
+     * @deprecated Remove after all levels are merged. Keep using this API while
+     * level development or its verification depends on scenario loading.
+     */
     loadScenario(name = 'staging', newSeed = 7) {
-      restart();
+      if (shipLoading) throw new Error('Wait for ship loading to finish');
+      restart(false);
       scenario = name;
       seed = newSeed;
       const source =
@@ -676,8 +1011,12 @@ async function boot() {
     leaveFly,
     start,
     pause,
-    restart,
+    restart: () => restart(),
     resume,
+    selectShip,
+    selectInspectionTab,
+    inspectRival,
+    home,
     getReplay() {
       validateReplayInputs(inputLog, tick);
       if (state.resetCount)
@@ -688,10 +1027,13 @@ async function boot() {
         version: VERSION,
         trackId: track.id,
         physicsVersion: 3,
+        ship: { id: ship.selected.id, version: ship.selected.version },
         runtime: runtimeIdentity(runtime),
         initial: JSON.parse(JSON.stringify(initial)),
         seed,
         scenario,
+        competition,
+        difficulty: raceDifficulty,
         inputs: inputLog.map((e) => ({ ...e, input: { ...e.input } })),
       };
     },
@@ -700,6 +1042,8 @@ async function boot() {
         replay.version !== VERSION ||
         replay.trackId !== track.id ||
         replay.physicsVersion !== 3 ||
+        replay.ship?.id !== ship.selected.id ||
+        replay.ship?.version !== ship.selected.version ||
         !compatibleRuntime(runtime, replay.runtime)
       )
         throw new Error('Replay version mismatch');
@@ -717,11 +1061,29 @@ async function boot() {
         accumulator,
         initial,
         runtime: runtime.snapshot(),
+        racers: racers?.serialize(),
+        competition,
+        lastResults,
+        raceDifficulty,
+        countdown: countdown.snapshot(),
+        pausedCountdown,
+        goUntil,
         inputs: [...inputLog],
         events: [...events],
       };
       try {
+        if (
+          replay.competition &&
+          !['easy', 'medium', 'hard'].includes(replay.difficulty)
+        )
+          throw new Error('Replay difficulty mismatch');
+        raceDifficulty = replay.difficulty ?? 'easy';
         this.loadScenario(replay.scenario || 'staging', replay.seed);
+        if (replay.competition) {
+          if (!halcyonRacing || replay.scenario !== 'staging')
+            throw new Error('Replay competition mismatch');
+          restart(true);
+        }
         restoreReplayInitial(replay.initial, initial, state, runtime);
       } catch (error) {
         ({
@@ -735,8 +1097,18 @@ async function boot() {
           tick,
           accumulator,
           initial,
+          competition,
+          lastResults,
+          raceDifficulty,
+          pausedCountdown,
+          goUntil,
         } = retained);
         runtime.restore(retained.runtime);
+        if (racers) racers.restore(retained.racers);
+        countdown.restore(retained.countdown);
+        if (mode === 'countdown') ui.setCountdown(retained.countdown.step ?? 3);
+        if (mode === 'countdown' && !retained.countdown.running)
+          armCountdown(true);
         world.reset();
         inputLog.splice(0, inputLog.length, ...retained.inputs);
         events.splice(0, events.length, ...retained.events);
@@ -765,7 +1137,10 @@ async function boot() {
         seed,
         tick,
         settings: { ...settings },
-        handling: { steeringAssist: STEERING_ASSIST },
+        handling: {
+          steeringAssist: STEERING_ASSIST,
+          ...ship.selected.handling,
+        },
         runtime: { ...runtimeIdentity(runtime), state: runtime.snapshot() },
         trackFrame: {
           bank: frame.bank,
@@ -777,7 +1152,21 @@ async function boot() {
           position: frame.position.toArray(),
         },
         vehicle: { ...state },
+        competition:
+          racers?.snapshot({ playerState: state, playerRace: race }) ?? null,
+        countdown:
+          mode === 'countdown' || pausedCountdown ? countdown.snapshot() : null,
+        lastResults,
+        inspection: {
+          tab: inspectionTab,
+          rivalId: rivalPreview?.specification.id ?? null,
+          loading: rivalLoading,
+          bounds: rivalPreview?.group.userData.bounds ?? null,
+        },
         ship: {
+          id: ship.selected.id,
+          loading: shipLoading,
+          version: ship.selected.version,
           position: ship.group.position.toArray(),
           quaternion: ship.group.quaternion.toArray(),
         },

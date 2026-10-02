@@ -1,0 +1,21 @@
+{
+  "asset": "mule",
+  "status": "asset-only draft",
+  "blender": "5.1.1",
+  "axes": "+Z forward / +Y up / metres",
+  "bounds": {
+    "min": [-1.8207011222839355, 0.02800000086426735, -3.009999990463257],
+    "max": [1.8207011222839355, 1.280001163482666, 2.9000000953674316]
+  },
+  "dimensions": [3.641402244567871, 1.2520011626183987, 5.9100000858306885],
+  "triangles": 19040,
+  "meshes": 9,
+  "materials": 9,
+  "sourceComponents": 91,
+  "anchors": {
+    "Exhaust_C": [0, 0.43, -3.025]
+  },
+  "glbBytes": 3481636,
+  "textureCount": 9,
+  "textures": "Embedded original baked base-color, roughness and tangent normals"
+}

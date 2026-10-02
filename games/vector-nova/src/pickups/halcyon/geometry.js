@@ -51,6 +51,7 @@ export function createRoadProjector(track, suppliedSurface) {
   function geometry(shapes, offset = 0.08, skirt = null) {
     const positions = [];
     const normals = [];
+    const coordinates = [];
     for (const original of shapes) {
       const low = Math.min(...original.map((p) => p[1]));
       const high = Math.max(...original.map((p) => p[1]));
@@ -130,6 +131,9 @@ export function createRoadProjector(track, suppliedSurface) {
                 for (const index of [0, 2, 1, 1, 2, 3]) {
                   positions.push(...corners[index].toArray());
                   normals.push(...sideNormal.toArray());
+                  coordinates.push(
+                    ...polygon[index % 2 ? (i + 1) % polygon.length : i].at,
+                  );
                 }
               }
             }
@@ -138,6 +142,7 @@ export function createRoadProjector(track, suppliedSurface) {
                 const p = vertex.p.clone().addScaledVector(normal, offset);
                 positions.push(p.x, p.y, p.z);
                 normals.push(normal.x, normal.y, normal.z);
+                coordinates.push(...vertex.at);
               }
             }
           }
@@ -150,6 +155,10 @@ export function createRoadProjector(track, suppliedSurface) {
       new THREE.Float32BufferAttribute(positions, 3),
     );
     result.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    result.setAttribute(
+      'roadCoord',
+      new THREE.Float32BufferAttribute(coordinates, 2),
+    );
     result.computeBoundingSphere();
     return result;
   }
@@ -279,6 +288,39 @@ export function createDeviceGeometry(track, device, projector) {
       metalness: 0.25,
     }),
   };
+  // Authored road coordinates survive triangle clipping, so the bright wave
+  // follows the actual banked deck rather than scrolling through world space.
+  const pulseUniforms = {
+    pickupTime: { value: 0 },
+    pickupMotion: { value: 1 },
+  };
+  if (vector) {
+    materials.signal.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, pulseUniforms);
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          '#include <common>',
+          '#include <common>\nattribute vec2 roadCoord; varying vec2 pickupCoord;',
+        )
+        .replace(
+          '#include <begin_vertex>',
+          '#include <begin_vertex>\npickupCoord = roadCoord;',
+        );
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          '#include <common>',
+          '#include <common>\nuniform float pickupTime; uniform float pickupMotion; varying vec2 pickupCoord;',
+        )
+        .replace(
+          '#include <emissivemap_fragment>',
+          `#include <emissivemap_fragment>
+          float chase = pow(.5 + .5 * sin(pickupCoord.y * .72 - pickupTime * 6.4), 4.);
+          totalEmissiveRadiance *= mix(1., .66 + chase * 1.25, pickupMotion);`,
+        );
+    };
+    materials.signal.customProgramCacheKey = () =>
+      'halcyon-vector-road-wave-v1';
+  }
   const bins = new Map();
   const archBins = new Map();
   const arch = new THREE.Group();
@@ -338,7 +380,18 @@ export function createDeviceGeometry(track, device, projector) {
         ]);
       }
     }
+    // The full-width luminous threshold marks the exact leading edge; the
+    // travelling chevrons then guide the driver through the entire live strip.
+    road('signal', [rectangle(x0, x1, from, from + 0.8)], 0.082);
     road('signal', chevrons, 0.082);
+    road(
+      'signal',
+      [
+        rectangle(x0 + 0.08, x0 + 0.22, from, to),
+        rectangle(x1 - 0.22, x1 - 0.08, from, to),
+      ],
+      0.084,
+    );
     road('white', white, 0.086);
     const markers = [];
     for (const before of [12, 24, 38]) {
@@ -473,6 +526,26 @@ export function createDeviceGeometry(track, device, projector) {
   if (arch.children.length) group.add(arch);
   const archBounds = new THREE.Box3().setFromObject(arch);
   group.userData.deviceId = device.id;
+  let available = true;
+  let pulseTime = 0;
+  let motion = 1;
+  function signalBrightness() {
+    const pulse = motion ? 0.5 + 0.5 * Math.sin(pulseTime * 3.2) : 0.65;
+    for (const owned of [materials, archMaterials]) {
+      if (!owned.signal) continue;
+      owned.signal.emissiveIntensity = available
+        ? vector
+          ? 3.3 + pulse * 1.7
+          : 1.15 + pulse * 0.5
+        : 0.06;
+      owned.white.emissiveIntensity = available
+        ? vector
+          ? 1.25 + pulse * 0.65
+          : 0.45
+        : 0.02;
+    }
+  }
+  signalBrightness();
   return {
     group,
     materials,
@@ -492,15 +565,22 @@ export function createDeviceGeometry(track, device, projector) {
         mesh.castShadow = opacity >= 0.999;
       }
     },
-    setAvailable(available) {
+    update({ time = pulseTime, reducedMotion = false, running = false } = {}) {
+      if (running) pulseTime = time;
+      motion = reducedMotion ? 0 : 1;
+      pulseUniforms.pickupTime.value = pulseTime;
+      pulseUniforms.pickupMotion.value = motion;
+      signalBrightness();
+    },
+    setAvailable(nextAvailable) {
+      available = nextAvailable;
       for (const owned of [materials, archMaterials]) {
         if (!owned.signal) continue;
-        owned.signal.emissiveIntensity = available ? 0.8 : 0.06;
         owned.signal.color.setHex(
           available ? (vector ? 0xf4b24b : 0x39bdac) : 0x586368,
         );
-        owned.white.emissiveIntensity = available ? 0.26 : 0.02;
       }
+      signalBrightness();
     },
   };
 }
@@ -521,28 +601,33 @@ function shieldHullGeometry() {
   const positions = [];
   const uv = [];
   const indices = [];
+  const layers = [];
   const sides = 32;
-  for (let row = 0; row < stations.length; row++) {
-    const [z, width, height] = stations[row];
-    for (let side = 0; side <= sides; side++) {
-      const u = side / sides;
-      const angle = (u - 0.5) * Math.PI;
-      positions.push(
-        Math.sin(angle) * width,
-        0.22 + Math.cos(angle) * height,
-        z,
-      );
-      uv.push(u, (z + 3.55) / 7.35);
-      if (row < stations.length - 1 && side < sides) {
-        const i = row * (sides + 1) + side;
-        indices.push(
-          i,
-          i + sides + 1,
-          i + 1,
-          i + 1,
-          i + sides + 1,
-          i + sides + 2,
+  for (let layer = 0; layer < 3; layer++) {
+    for (let row = 0; row < stations.length; row++) {
+      const [z, width, height] = stations[row];
+      for (let side = 0; side <= sides; side++) {
+        const u = side / sides;
+        const angle = (u - 0.5) * Math.PI * 1.12;
+        positions.push(
+          Math.sin(angle) * width,
+          0.22 + Math.cos(angle) * height,
+          z,
         );
+        uv.push(u, (z + 3.55) / 7.35);
+        layers.push(layer);
+        if (row < stations.length - 1 && side < sides) {
+          const i =
+            layer * stations.length * (sides + 1) + row * (sides + 1) + side;
+          indices.push(
+            i,
+            i + sides + 1,
+            i + 1,
+            i + 1,
+            i + sides + 1,
+            i + sides + 2,
+          );
+        }
       }
     }
   }
@@ -552,9 +637,14 @@ function shieldHullGeometry() {
     new THREE.Float32BufferAttribute(positions, 3),
   );
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geometry.setAttribute(
+    'fieldLayer',
+    new THREE.Float32BufferAttribute(layers, 1),
+  );
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
+  geometry.boundingSphere.radius *= 1.35;
   return geometry;
 }
 
@@ -562,24 +652,43 @@ export function createShipFeedback() {
   const group = new THREE.Group();
   group.name = 'Halcyon pickup feedback / owned';
   const shieldMaterial = new THREE.ShaderMaterial({
-    name: 'Aegis / translucent segmented hull field',
+    name: 'Aegis / expanding ion-field pulses',
+    forceSinglePass: true,
     transparent: true,
     depthWrite: false,
+    side: THREE.FrontSide,
+    blending: THREE.AdditiveBlending,
     toneMapped: false,
     uniforms: {
       strength: { value: 1 },
       hit: { value: 0 },
       hitSide: { value: 1 },
       release: { value: 0 },
+      flowTime: { value: 0 },
+      reducedMotion: { value: 0 },
     },
     vertexShader: `
+      uniform float flowTime;
+      uniform float reducedMotion;
+      uniform float hit;
+      attribute float fieldLayer;
       varying vec2 fieldUv;
       varying vec3 viewNormal;
       varying vec3 viewPosition;
+      varying float layer;
+      varying float pulse;
       void main() {
         fieldUv = uv;
+        layer = fieldLayer;
+        float motion = 1. - reducedMotion;
+        pulse = fract(flowTime * .85 + max(fieldLayer - 1., 0.) * .5);
+        float outward = fieldLayer > .5 ? pulse * .34 * motion : .008 * sin(flowTime * 5.) * motion;
+        vec3 expanded = position;
+        expanded.x *= 1. + outward;
+        expanded.y = .22 + (expanded.y - .22) * (1. + outward);
+        expanded.z *= 1. + outward * .55;
         viewNormal = normalize(normalMatrix * normal);
-        vec4 p = modelViewMatrix * vec4(position,1.);
+        vec4 p = modelViewMatrix * vec4(expanded, 1.);
         viewPosition = p.xyz;
         gl_Position = projectionMatrix * p;
       }`,
@@ -588,28 +697,45 @@ export function createShipFeedback() {
       uniform float hit;
       uniform float hitSide;
       uniform float release;
+      uniform float flowTime;
+      uniform float reducedMotion;
       varying vec2 fieldUv;
       varying vec3 viewNormal;
       varying vec3 viewPosition;
+      varying float layer;
+      varying float pulse;
       void main() {
-        float fresnel = pow(1.-abs(dot(normalize(viewNormal), normalize(-viewPosition))),2.8);
-        float sideRim = smoothstep(.45,.49,abs(fieldUv.x-.5));
-        float endRim = smoothstep(.465,.493,abs(fieldUv.y-.5));
-        float seam = 1.-smoothstep(.004,.012,abs(fract(fieldUv.y*4.)-.5));
-        float gap = smoothstep(.003,.012,abs(fract(fieldUv.y*4.)-.5));
-        float alpha = .017 + fresnel*.13 + sideRim*.27*gap + endRim*.18 + seam*.045;
+        if (layer > .5 && reducedMotion > .5) discard;
+        float fresnel = pow(1.-abs(dot(normalize(viewNormal), normalize(-viewPosition))), 8.);
+        float grazingRim = smoothstep(.84,.98,fresnel);
+        float sideRim = smoothstep(.4895,.4985,abs(fieldUv.x-.5));
+        float endRim = 1.-smoothstep(.0045,.015,min(fieldUv.y,1.-fieldUv.y));
+        float seam = 1.-smoothstep(.002,.006,abs(fract(fieldUv.y*8.)-.5));
+        float ribs = 1.-smoothstep(.0015,.005,abs(fract(fieldUv.x*13.+fieldUv.y*3.)-.5));
+        float moving = 1. - reducedMotion;
+        float surge = pow(.5+.5*sin(fieldUv.y*15.-flowTime*5.), 5.) * moving;
         float side = smoothstep(.18,.8, hitSide > 0. ? fieldUv.x : 1.-fieldUv.x);
         float contact = side * exp(-pow((fieldUv.y-.3)/.45,2.)) * hit;
-        alpha = (alpha + contact*.48) * strength;
-        // A short departing band makes expiry visible without expanding a bubble.
+        // Keep the hull readable: energy lives on edges and a sparse lattice,
+        // with two low-opacity shells rippling outward in alternating phases.
+        float alpha = grazingRim*.09 + sideRim*.24 + endRim*.26;
+        alpha += seam*.025 + ribs*.012 + surge*(grazingRim*.025+seam*.035);
+        if (layer > .5) alpha = max(sideRim,endRim)*.42 * pow(1.-pulse,2.) * smoothstep(0.,.09,pulse);
         float departing = exp(-pow((fieldUv.y-release)/.095,2.)) * step(.001,release);
-        alpha += departing*.065*strength;
-        vec3 color = mix(vec3(.24,.82,.73),vec3(.84,1.,.93),contact*.85);
-        gl_FragColor = vec4(color,min(alpha,.66));
+        alpha = (alpha + contact*.18 + departing*seam*.075) * strength;
+        vec3 color = mix(vec3(.12,2.7,2.05),vec3(2.5,3.5,3.05),min(1.,contact*.9+surge*.14));
+        // Concentrate HDR energy on the narrow boundary core, never on the
+        // transparent shell faces, so bloom reads as a field around the craft.
+        float rimCore = smoothstep(.92,1.,max(sideRim,endRim));
+        color *= 1. + rimCore * 2.;
+        if(alpha < .002) discard;
+        gl_FragColor = vec4(color,min(alpha,.5));
       }`,
   });
   const shield = new THREE.Mesh(shieldHullGeometry(), shieldMaterial);
-  shield.name = 'Aegis / cohesive hull field';
+  shield.name = 'Aegis / hull field and outward pulses';
+  shield.userData.aoExclude = true;
+  shield.userData.reflectionExclude = true;
   group.add(shield);
   const driveMaterial = new THREE.ShaderMaterial({
     name: 'Vector / tapered propulsion volume',
@@ -671,6 +797,8 @@ export function createShipFeedback() {
   });
   const drive = new THREE.Mesh(joined(volumes), driveMaterial);
   drive.name = 'Vector / soft twin nozzle volume';
+  drive.userData.aoExclude = true;
+  drive.userData.reflectionExclude = true;
   group.add(drive);
   shield.visible = drive.visible = false;
   return { group, shield, shieldMaterial, drive, driveMaterial };

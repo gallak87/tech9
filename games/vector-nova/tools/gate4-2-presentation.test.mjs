@@ -123,18 +123,23 @@ test('device geometry is finite, bounded and entirely owned for disposal', () =>
 
 class Param {
   value = 0;
-  setValueAtTime(value) {
+  automation = [];
+  setValueAtTime(value, time) {
     this.value = value;
+    this.automation.push({ type: 'set', value, time });
   }
-  setTargetAtTime(value) {
+  setTargetAtTime(value, time) {
     this.value = value;
+    this.automation.push({ type: 'target', value, time });
   }
-  linearRampToValueAtTime(value) {
+  linearRampToValueAtTime(value, time) {
     this.value = value;
+    this.automation.push({ type: 'linear', value, time });
   }
-  exponentialRampToValueAtTime(value) {
+  exponentialRampToValueAtTime(value, time) {
     assert.ok(value > 0);
     this.value = value;
+    this.automation.push({ type: 'exponential', value, time });
   }
   cancelScheduledValues() {}
 }
@@ -156,6 +161,7 @@ class Context {
       gain: new Param(),
       frequency: new Param(),
       stopped: false,
+      stopTimes: [],
       disconnected: false,
       connect() {
         return this;
@@ -163,9 +169,12 @@ class Context {
       disconnect() {
         this.disconnected = true;
       },
-      start() {},
-      stop() {
+      start(time) {
+        this.startTime = time;
+      },
+      stop(time) {
         this.stopped = true;
+        this.stopTimes.push(time);
       },
     };
     this.nodes.push(node);
@@ -237,6 +246,83 @@ test('blocked and absent AudioContext cannot prevent visual gameplay', async () 
   assert.equal(context.state, 'closed');
 });
 
+test('acquisition signatures are distinct, finite and release every layered voice', async () => {
+  const context = new Context();
+  const audio = createPickupAudio({ createContext: () => context });
+  await audio.unlock();
+  audio.update({ volume: 0.5 }, true);
+  const signatures = [];
+  for (const [type, kind] of [
+    ['pickup-activate', 'vector'],
+    ['pickup-activate', 'aegis'],
+    ['shield-hit', 'aegis'],
+  ]) {
+    const first = context.nodes.length;
+    audio.event({ type, payload: { kind } });
+    const voices = context.nodes
+      .slice(first)
+      .filter((node) => node.kind === 'oscillator');
+    const envelopes = context.nodes
+      .slice(first)
+      .filter((node) => node.kind === 'gain');
+    assert.ok(
+      voices.length > 1,
+      'A complete signature has a body and harmonic layer',
+    );
+    assert.equal(audio.getStatus().shots, 1);
+    signatures.push(
+      voices.map((voice) => [voice.type, voice.frequency.automation]),
+    );
+    for (const envelope of envelopes) {
+      assert.equal(envelope.gain.automation[0].value, 0);
+      const attack = envelope.gain.automation.find(
+        (item) => item.type === 'linear' && item.value > 0,
+      );
+      assert.ok(attack.time > context.currentTime);
+      assert.equal(envelope.gain.automation.at(-1).value, 0);
+    }
+    for (const voice of voices) {
+      assert.ok(Number.isFinite(voice.stopTimes[0]));
+      assert.ok(voice.stopTimes[0] > voice.startTime);
+    }
+    voices[0].onended();
+    assert.equal(
+      audio.getStatus().shots,
+      1,
+      'Ending one layer leaves its remaining tail owned',
+    );
+    for (const voice of voices.slice(1)) voice.onended();
+    assert.equal(audio.getStatus().shots, 0);
+    assert.ok([...voices, ...envelopes].every((node) => node.disconnected));
+  }
+  assert.notDeepEqual(signatures[0], signatures[1]);
+  assert.notDeepEqual(signatures[1], signatures[2]);
+  audio.event({ type: 'pickup-activate', payload: { kind: 'aegis' } });
+  audio.silence();
+  assert.equal(audio.getStatus().shots, 0);
+  assert.ok(context.nodes.slice(1).every((node) => node.disconnected));
+  await audio.dispose();
+});
+
+test('failed audio unlock releases its graph and a later gesture can recover', async () => {
+  const failed = new Context();
+  failed.fail = true;
+  const recovered = new Context();
+  let attempts = 0;
+  const audio = createPickupAudio({
+    createContext: () => (attempts++ ? recovered : failed),
+  });
+  assert.equal(await audio.unlock(), false);
+  assert.equal(failed.state, 'closed');
+  assert.ok(failed.nodes.every((node) => node.disconnected));
+  assert.equal(await audio.unlock(), true);
+  audio.update({ volume: 1 }, true);
+  audio.event({ type: 'pickup-activate', payload: { kind: 'vector' } });
+  assert.equal(audio.getStatus().shots, 1);
+  await audio.dispose();
+  assert.equal(recovered.state, 'closed');
+});
+
 test('later unprotected contact replaces protection feedback immediately; pause and reset freeze/clear effects', async () => {
   // Load the actual module with only browser CSS removed for the Node harness.
   const { readFile } = await import('node:fs/promises');
@@ -254,13 +340,21 @@ test('later unprotected contact replaces protection feedback immediately; pause 
     .replace(
       "'./audio.js'",
       JSON.stringify(new URL('./audio.js', sourceUrl).href),
+    )
+    .replace(
+      "'./simulation.js'",
+      JSON.stringify(new URL('./simulation.js', sourceUrl).href),
     );
   const { createPickupPresentation } = await import(
     `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`
   );
   class Element {
     children = new Map();
-    style = {};
+    style = {
+      setProperty(name, value) {
+        this[name] = value;
+      },
+    };
     dataset = {};
     classes = new Set();
     classList = {
@@ -300,7 +394,7 @@ test('later unprotected contact replaces protection feedback immediately; pause 
     settings: { volume: 0 },
   });
   const field = ship.children[0].children.find(
-    (object) => object.name === 'Aegis / cohesive hull field',
+    (object) => object.name === 'Aegis / hull field and outward pulses',
   );
   const drive = ship.children[0].children.find(
     (object) => object.name === 'Vector / soft twin nozzle volume',
@@ -309,11 +403,57 @@ test('later unprotected contact replaces protection feedback immediately; pause 
   try {
     const frame = {
       state: { distance: 370 },
-      effects: { aegisRemaining: 0, vectorRemaining: 0 },
+      effects: { aegisRemaining: 0, vectorActive: false },
       mode: 'racing',
       dt: 0.01,
       settings: { volume: 0 },
     };
+    const vectorRow = view.hud.querySelector('[data-kind="vector"]');
+    view.update({
+      ...frame,
+      effects: { vectorActive: true, aegisRemaining: 0 },
+      events: [{ type: 'pickup-activate', payload: { kind: 'vector' } }],
+    });
+    assert.equal(vectorRow.classes.has('is-acquired'), true);
+    assert.equal(
+      vectorRow.querySelector('[data-toast]').textContent,
+      'CATAPULT',
+    );
+    assert.equal(
+      vectorRow.querySelector('[data-value]').textContent,
+      'ON STRIP · ACCELERATING',
+    );
+    assert.equal(drive.visible, true);
+    assert.equal(
+      vectorRow.querySelector('em').style.transform,
+      undefined,
+      'Vector has no timed meter',
+    );
+    const acquisitionPop = vectorRow.style['--device-pop'];
+    view.update({ ...frame, mode: 'paused', dt: 10 });
+    assert.equal(
+      vectorRow.style['--device-pop'],
+      acquisitionPop,
+      'Pause freezes acquisition feedback',
+    );
+    view.update({
+      ...frame,
+      dt: 0.1,
+      events: [{ type: 'pickup-exit', payload: { kind: 'vector' } }],
+    });
+    assert.equal(
+      drive.visible,
+      false,
+      'Strip exit stops force feedback immediately',
+    );
+    assert.equal(
+      vectorRow.querySelector('[data-value]').textContent,
+      'DRIVE OVER STRIP',
+    );
+    assert.match(notice.textContent, /SPEED CARRIED/);
+    view.update({ ...frame, dt: 1.2 });
+    assert.equal(vectorRow.classes.has('is-acquired'), false);
+    assert.equal(vectorRow.querySelector('[data-toast]').textContent, '');
     view.update({
       ...frame,
       events: [{ type: 'shield-hit', payload: { kind: 'aegis', side: -1 } }],
@@ -346,17 +486,19 @@ test('later unprotected contact replaces protection feedback immediately; pause 
     assert.equal(field.visible, false);
     view.update({
       ...frame,
-      effects: { aegisRemaining: 4, vectorRemaining: 0.6 },
+      effects: { aegisRemaining: 4, vectorActive: true },
       settings: { volume: 0, reducedMotion: true },
     });
     assert.equal(drive.visible, true);
     assert.equal(view.hud.classes.has('has-vector'), true);
     assert.equal(view.hud.classes.has('has-aegis'), true);
     assert.equal(drive.material.uniforms.flowTime.value, 0);
+    assert.equal(field.material.uniforms.reducedMotion.value, 1);
     view.reset();
     assert.equal(notice.textContent, '');
     assert.equal(field.visible, false);
     assert.equal(drive.visible, false);
+    assert.equal(vectorRow.classes.has('is-acquired'), false);
   } finally {
     view.dispose();
     assert.equal(scene.children.length, 0);

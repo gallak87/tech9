@@ -14,6 +14,10 @@ High/low presets retain the same world and navigation cues. Reduced motion restr
 
 Approved angular futuristic jet silhouette: slender split nose, swept planform, layered ceramic/graphite/titanium construction, dark canopy and restrained vermilion markings. Blue exhaust should feel powerful in cruise and grow under boost without hiding the hull. Use the actual Blender model in gameplay and inspection; the concept image is reference only.
 
+## Fleet additions
+
+Keep the ceramic/graphite/titanium family but distinct silhouettes. **Shrike** uses broad crescent wings, a compact single prow and teal markings. **Bastion** uses low, narrow chisel-nose sponsons, visible open cross braces and brass-orange bands; it must stay slim rather than becoming a bulky tank or another Kestrel. **Needle** uses a single tapered prow with broad shoulder armor, swept stabilisers, violet details and exactly one oversized central ion engine. Blue ion emission attaches to the real rear nozzle(s), growing under boost. Generated concepts are design references; all displayed ships are actual Blender geometry. Use subtle baked paint grain, roughness variation and brushed-metal response with formed panels and real intake depth; texture noise alone must not substitute for construction.
+
 ## Existing worlds
 
 - **Halcyon Viaduct:** elevated metropolitan infrastructure at blue hour, warm low horizon and cool steel/sky. Dark composite deck, pale concrete spine, engineered barriers and amber guidance. Layered authored neighborhoods, supports meeting the city floor, canal courts and split-crown landmark; preserve the varied introductory route.
@@ -29,6 +33,10 @@ Colossal enclosed living trees, connected oversized foliage and an amber resin r
 Pale fractured glacial ice, dark buried meteor, cobalt crevices and aurora above a supported transparent crystal raceway. Preserve the approved see-through floor: a light cloudy vein texture gives it an ice feel without hiding the ribs or canyon. Opaque ice carries cloud layers, granular frost and fine fractures, with readable broad forms and restrained warm fittings.
 
 The paired fracture jumps lead to a deep fissure plunge, complete corkscrew and steep climb. Show the height of the surrounding rim from the actual chase view. The calving shelf cracks, sheds independent pieces and exposes the layered cavity; powder and notices support its visible geometry. Exterior gusting snow gives way to shelter in the caverns. Keep snow adhesion and frost at the screen edges, clear of the road, craft, map, telemetry and controls.
+
+## Cindercoil
+
+Cool slate/violet ash dusk surrounds ivory, charcoal and oxide ceramic construction. Keep broad heat-shield plates, thick kiln-shelf boundaries, dark glazed Crown panels and deep supported keels. Warm lava belongs to modeled channels, vent tongues and fractured crust basins; reflected warmth retains ceramic detail against readable cool basalt. The selected panorama supplies distant clouds only. The full rising furnace roll and explicit receiving shelf retain clear camera envelopes; the warned surge boundary remains visible in every preset. At Curtain Reach, a broad diagonal crater spill carries a gentle orange glow pulse and rising smoke only where it touches the road. Keep the craft readable against the molten surface. Reduced motion removes drifting ash, swirling embers and heat shimmer, and holds the spill glow and smoke still while event phases and contact cues remain accurate.
 
 ## UI and feedback
 

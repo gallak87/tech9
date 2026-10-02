@@ -1,6 +1,38 @@
 const clamp = (value) =>
   Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
 
+// Short acquisition signatures sit above the existing propulsion/boost bed.
+// Aegis has a rising harmonic ring; Vector has a quick accelerating sweep.
+function cueFor(event) {
+  const aegis = event.payload?.kind === 'aegis';
+  if (event.type === 'pickup-activate')
+    return aegis
+      ? [
+          ['sine', 396, 528, 0.45, 0.085],
+          ['sine', 594, 792, 0.6, 0.038, 0.035],
+          ['sine', 792, 1056, 0.65, 0.025, 0.06],
+        ]
+      : [
+          ['triangle', 210, 640, 0.45, 0.12],
+          ['sine', 420, 1280, 0.29, 0.035, 0.025],
+        ];
+  if (event.type === 'shield-hit')
+    return [
+      ['triangle', 180, 50, 0.3, 0.11],
+      ['sine', 990, 220, 0.32, 0.06],
+    ];
+  if (event.type === 'pickup-expire' && aegis)
+    return [
+      ['sine', 792, 396, 0.28, 0.035],
+      ['sine', 528, 264, 0.34, 0.025],
+    ];
+  if (event.type === 'pickup-unavailable')
+    return [['sine', 280, 250, 0.08, 0.02]];
+  if (event.type === 'pickup-cancel')
+    return [['triangle', 190, 95, 0.14, 0.03]];
+  return [];
+}
+
 // This bus owns only immediate road-device cues. It never writes vehicle state.
 export function createPickupAudio({
   createContext = () => new AudioContext(),
@@ -40,6 +72,12 @@ export function createPickupAudio({
           return !disposed && context.state === 'running';
         } catch {
           // Unsupported/blocked audio is optional; the complete visual cue remains.
+          master?.disconnect();
+          master = undefined;
+          const failed = context;
+          context = undefined;
+          if (failed && failed.state !== 'closed')
+            await failed.close().catch(() => {});
           return false;
         }
       })().finally(() => {
@@ -56,7 +94,7 @@ export function createPickupAudio({
       }
       if (!master) return;
       master.gain.cancelScheduledValues(context.currentTime);
-      master.gain.setTargetAtTime(volume * 0.55, context.currentTime, 0.025);
+      master.gain.setTargetAtTime(volume * 0.7, context.currentTime, 0.025);
     },
     event(event) {
       if (
@@ -67,54 +105,51 @@ export function createPickupAudio({
         shots.size >= 4
       )
         return;
-      const kind = event.payload?.kind;
-      let notes;
-      let gain = 0.06;
-      if (event.type === 'pickup-activate')
-        notes = kind === 'vector' ? [165, 330, 0.42] : [660, 990, 0.35];
-      else if (event.type === 'shield-hit') {
-        notes = [220, 70, 0.23];
-        gain = 0.11;
-      } else if (event.type === 'pickup-expire')
-        notes = kind === 'aegis' ? [540, 270, 0.25] : [210, 155, 0.18];
-      else if (event.type === 'pickup-unavailable') {
-        notes = [280, 250, 0.08];
-        gain = 0.025;
-      } else if (event.type === 'pickup-cancel') {
-        notes = [190, 110, 0.14];
-        gain = 0.035;
-      } else return;
-      const [from, to, duration] = notes;
+      const notes = cueFor(event);
+      if (!notes.length) return;
       const now = context.currentTime;
-      const oscillator = context.createOscillator();
-      const envelope = context.createGain();
-      oscillator.type = event.type === 'shield-hit' ? 'triangle' : 'sine';
-      oscillator.frequency.setValueAtTime(from, now);
-      oscillator.frequency.exponentialRampToValueAtTime(
-        to,
-        now + duration * 0.8,
-      );
-      envelope.gain.setValueAtTime(0, now);
-      envelope.gain.linearRampToValueAtTime(gain, now + 0.012);
-      envelope.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-      envelope.gain.linearRampToValueAtTime(0, now + duration + 0.02);
-      oscillator.connect(envelope).connect(master);
-      let stopped = false;
+      const voices = [];
       const shot = {
         stop() {
-          if (stopped) return;
-          stopped = true;
-          oscillator.onended = null;
-          oscillator.stop();
-          oscillator.disconnect();
-          envelope.disconnect();
+          for (const voice of voices) {
+            if (voice.ended) continue;
+            voice.ended = true;
+            voice.oscillator.onended = null;
+            voice.oscillator.stop();
+            voice.oscillator.disconnect();
+            voice.envelope.disconnect();
+          }
           shots.delete(shot);
         },
       };
-      oscillator.onended = shot.stop;
       shots.add(shot);
-      oscillator.start(now);
-      oscillator.stop(now + duration + 0.025);
+      for (const [type, from, to, duration, gain, delay = 0] of notes) {
+        const start = now + delay;
+        const oscillator = context.createOscillator();
+        const envelope = context.createGain();
+        const voice = { oscillator, envelope, ended: false };
+        voices.push(voice);
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(from, start);
+        oscillator.frequency.exponentialRampToValueAtTime(
+          to,
+          start + duration * 0.8,
+        );
+        envelope.gain.setValueAtTime(0, now);
+        envelope.gain.setValueAtTime(0, start);
+        envelope.gain.linearRampToValueAtTime(gain, start + 0.012);
+        envelope.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        envelope.gain.linearRampToValueAtTime(0, start + duration + 0.02);
+        oscillator.connect(envelope).connect(master);
+        oscillator.onended = () => {
+          voice.ended = true;
+          oscillator.disconnect();
+          envelope.disconnect();
+          if (voices.every((entry) => entry.ended)) shots.delete(shot);
+        };
+        oscillator.start(start);
+        oscillator.stop(start + duration + 0.025);
+      }
     },
     silence,
     getStatus() {

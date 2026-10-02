@@ -6,18 +6,24 @@ A browser anti-gravity racer built with Three.js and Vite. Drive the Blender-aut
 
 Choose a circuit in the paddock dropdown and press **Load**, then enter its practice loop. During a session, pause and return to the paddock to switch circuits.
 
-| Circuit          | Identity                                                                                   | Availability      |
-| ---------------- | ------------------------------------------------------------------------------------------ | ----------------- |
-| Halcyon Viaduct  | 5 km metropolitan expressway with a skyline corkscrew, inverted hold and plunge            | Default route `/` |
-| Asterion Orbital | 4.5 km shipyard above a planet, open lattice spans, neon decks and tall containment frames | `/?level=orbital` |
-| Nacre Tempest    | Ocean/storm world, submerged racing and two airborne jumps                                 | `/?level=nacre`   |
-| Vesper Canopy    | Colossal hollow trees, amber resin, crown jumps and sap lines                              | `/?level=vesper`  |
+| Circuit          | Identity                                                                                   | Availability         |
+| ---------------- | ------------------------------------------------------------------------------------------ | -------------------- |
+| Halcyon Speedway | 5 km metropolitan expressway with a skyline corkscrew, inverted hold and plunge            | Default route `/`    |
+| Asterion Orbital | 4.5 km shipyard above a planet, open lattice spans, neon decks and tall containment frames | `/?level=orbital`    |
+| Nacre Tempest    | Ocean/storm world, submerged racing and two airborne jumps                                 | `/?level=nacre`      |
+| Vesper Canopy    | Colossal hollow trees, amber resin, crown jumps and sap lines                              | `/?level=vesper`     |
+| Glasswake Comet  | Transparent ice, paired fracture jumps, a crevice corkscrew and collapsing shelves         | `/?level=glasswake`  |
+| Cindercoil       | Ceramic volcanic circuit, warned lava surges, a furnace corkscrew and vent flight          | `/?level=cindercoil` |
 
-Halcyon's automatic Vector boost strips and Aegis shields are available with `/?features=halcyon-pickups`. They activate on crossing, with no inventory or use-item button. The plain route retains the baseline handling.
+Halcyon includes automatic Vector boost strips and Aegis shields on its normal route. Vector gives an immediate kick at entry and accelerates while you remain on the strip; Aegis protects reserve from impacts for six seconds. **Enter Proving Loop** starts a two-lap session against Rook, Latch and Mule from a 2×2 grid after audible start lights; **Practice Lap** starts solo. Easy uses the baseline rival pace, Medium is faster, and Hard is faster again with more boosting as you boost. Each rival uses its own vehicle physics, reserve and device eligibility. After two laps the compact roster records placements and lap/total times, while driving continues. Escape returns to the paddock with the last roster retained beside the menu; unfinished rivals show elapsed times and invalid laps are marked untimed.
 
-Orbital's bare route review is available at `/?level=orbital&review=shape`. Circuit views provide 3D/top/profile overviews and parked section starts. Nacre adds storm swells, underwater immersion, two real jumps and one enormous swimming leviathan. Its automatic missed-jump recovery keeps the lap valid while counting the recovery delay; manual R recovery still invalidates it.
+Orbital's bare route review is available at `/?level=orbital&review=shape`. Shape review provides 3D/top/profile overviews. The shared paddock offers full-circuit Practice Lap and ship inspection. Nacre adds storm swells, underwater immersion, two real jumps and one enormous swimming leviathan. Its automatic missed-jump recovery keeps the lap valid while counting the recovery delay; manual R recovery still invalidates it.
 
-Opponents, complete race/results flow, Time Trial and championships are future work.
+Glasswake Comet combines clear crystal deck panes, low-grip frost, paired fracture jumps and a deep crevice with a full corkscrew. The opening ice sheet breaks once per session; the later shelf collapses at the second jump. Exterior snow and blizzard haze give way to sheltered caverns. Shape review uses `/?level=glasswake&review=shape`.
+
+Cindercoil adds two warned surges with a protected lane and a permanent narrow diagonal crater spill across Curtain Reach. Cross the flow briefly instead of following it; lava contact costs speed and reserve. The route retains its full rising roll and physical vent gap. Eruption timing changes takeoff lift; supported barrier landings bounce inward, and missed transfers recover with their delay counted. Its caldera rupture and local ash/heat presentation follow simulation time. Shape review uses `/?level=cindercoil&review=shape`.
+
+Other circuits retain solo practice. Time Trial, championships, ship-to-ship collision and larger opponent fields are future work.
 
 ## Run
 
@@ -38,7 +44,7 @@ WebGL2 is required. Gameplay uses local assets and needs no account or backend. 
 - W / Up: accelerate. S / Down: brake. A/D or Left/Right: steer.
 - Space: airbrake. Shift: manual boost using reserve.
 - R: recover at the last checkpoint and invalidate the current timed lap.
-- Escape: pause/settings/restart. I: inspect the ship. C: alternate camera.
+- Escape: pause/settings/restart; after Halcyon's two-lap run, return to paddock. I: inspect the ship. C: alternate camera.
 - F: free camera on every circuit; drag to look, WASD move, Q/E down/up at 200 m/s. F/Escape returns.
 - Menus: Tab/Shift-Tab, Enter/Space. Small viewports expose pointer controls.
 - Prototype gamepad: left stick steering, RT throttle, LT brake, A boost, B airbrake.

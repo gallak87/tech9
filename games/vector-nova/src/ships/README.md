@@ -1,48 +1,23 @@
-# Kestrel — Concept 01
+# Fleet
 
-The human-approved jet-like redesign replaces the broad procedural hull with an
-original Blender-authored model. Source and reproducible exporter are in
-`assets/ships/kestrel/`; the runtime loads
-`public/assets/ships/kestrel/kestrel.glb`. The approved concept is a design
-reference, never a runtime billboard or substitute for geometry. Completed
-review history is retained in Git (approved integration: `1dfff691`).
+`catalog.js` contains four versioned ship definitions: Kestrel (balanced), Shrike (agile), Bastion (endurance) and Needle (speed). `await createShip({id, plumeExposure, model})` loads one GLB; an omitted/unknown id uses Kestrel. The returned `{group, update, dispose}` owns its geometry, materials and asset textures. Supplied parsed models are cloned. Borrowed renderer reflections remain renderer-owned.
 
-`await createShip({plumeExposure})` returns `{group, update, dispose}`. Loading
-finishes before the core measures inspection bounds, bakes reflections or warms
-shaders. Missing assets or attachment points reject boot through its existing
-visible failure path. `createShip({model})` accepts an already parsed glTF scene
-for asset tests; it clones owned resources so the caller's scene stays reusable.
+`createFleetShip` wraps one chassis in a stable root, retaining level feedback attached to that root across changes. It exposes `selected` and async `select(id)`; failed requests leave the old chassis usable, superseded/disposed requests release their new resources. Core owns menu-only switching, fresh simulation state, shader warmup and camera fitting. Paddock/inspection use the same selector and locally saved choice. Replay compatibility checks ship id/version; changing ships resets lap history.
 
-Local +Z points forward, +Y points up; y=0 is the hover hardware datum. The core
-owns world position/orientation and retains its existing 0.72 m road clearance.
-`Exhaust_L` and `Exhaust_R` mark the aft apertures. Both levels use the existing
-Orbital emission volume to avoid transparent surface facets around the angular
-nozzles. The user's follow-up requests a more powerful blue beam: cruise has a
-fuller blue core, while boost widens and lengthens it with restrained compression
-variation. Orbital retains its brighter exposure compensation.
-`update({speed,boost,steer,time,energy})` accepts
-the existing presentation input; rigid integrated suspension does not articulate
-separately with steer. Boost animates emission and exhaust below the root only.
+**Inspect Ships → AI racers** loads Rook, Latch and Mule through the separate `rivals.js` mesh catalog. They race on Halcyon using Kestrel, Shrike and Bastion handling respectively, assigned by the circuit race model; they are not player-selectable. Core owns the selected inspection preview, cancels superseded requests, releases it on tab/scene exit, and preserves the player's chassis and saved choice. Sources and rebuild instructions live in [rival assets](../../assets/ships/rivals/README.md). Both player selectors use a vertical list beside stacked performance bars.
 
-`dispose()` is idempotent and releases the instance's geometry, materials and
-asset textures. City reflections assigned later are borrowed from the renderer
-and are not disposed by the ship. No global model/resource cache is retained.
+Assets use metres, local +Z forward and +Y up. Twin-engine ships export `Exhaust_L` and `Exhaust_R`; Needle exports only `Exhaust_C`. Exhaust points aft along -Z. `update({speed,boost,steer,time,energy})` animates local emission only. Reserve is normalized to 0–1 for presentation. `group.userData.bounds` contains static local hull bounds without animated exhaust.
 
-The development-only `/src/ships/showcase.html` shows the actual loaded game
-asset with orbit controls and a neutral studio. `window.__KESTREL.ready` is set
-after shader warmup. The main game's inspection mode uses the same asset and
-fits its measured envelope, including portrait layouts.
+Source models/concepts/provenance: `assets/ships/<id>/`. Runtime models: `public/assets/ships/<id>/<id>.glb`. Rebuild the additions from the app directory with:
 
-Run `npm test`, `npm run lint` and `npm run build` from this application. With
-private dev and production servers running, `node tools/kestrel-verify.mjs`
-checks real keyboard throttle/boost/release on Halcyon and Orbital, both quality
-presets, portrait inspection and seven studio angles. Set `VN_URL`, `VN_SHIP_URL`
-and `VN_EVIDENCE` to override its private review defaults. It starts no servers,
-opens no visible windows and records no videos. Temporary stills and reports
-remain in ignored `.experiments/`; hidden-browser timings are not foreground
-performance certification.
+```sh
+blender --background --threads 6 --python assets/ships/build_fleet.py
+```
 
-The independent ship review stopped at round 2 with 9/10 in each of its five
-scoped categories. The user approved the finished ship on 2026-09-29 and requested
-integration into the shared `g/scene-test` branch. Foreground frame rate, physical
-devices and audio listening remain unverified.
+Add `-- --ship needle --render` for optional neutral review renders in ignored `.experiments/fleet-blender/`. The saved blends retain named editable meshes, modifiers, procedural PBR materials and a studio. Exports join by material, unwrap and bake base-color/roughness/tangent-normal maps, embed those images in the GLB, and exclude the studio. Baked source maps are retained under each ship’s `textures/` directory. No third-party geometry, fonts or textures are used.
+
+The development-only `/src/ships/showcase.html?ship=needle` displays the same runtime model with orbit controls. The main game's **Inspect Ships** screen supplies the shared four-ship picker. With a private server running, `VN_URL=http://127.0.0.1:5237 node tools/fleet-verify.mjs` verifies real input, boost, replay, persistence, asset/storage failure and responsive selection across the installed circuits. `src/ships/fleet.test.js` verifies actual speed/turn/brake/endurance tradeoffs and exported geometry/anchors. Browsers stay hidden; captures belong in ignored `.experiments/`.
+
+## Approved Kestrel baseline
+
+The original Kestrel remains unchanged visually and in handling. Its source/exporter/provenance are in `assets/ships/kestrel/`. The human approved its integration on 2026-09-29; completed review history is in Git (`1dfff691`). The existing `tools/kestrel-verify.mjs` and propulsion ownership tests remain available. The user approved the expanded fleet and requested integration on 2026-10-01.

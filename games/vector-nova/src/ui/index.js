@@ -3,6 +3,13 @@ import { SHIPS } from '../ships/catalog.js';
 import { RIVAL_SHIPS } from '../ships/rivals.js';
 import { circuitURL } from '../levels/contract.js';
 
+const racerColors = Object.freeze({
+  player: '#fb7959',
+  rook: '#72d9ff',
+  latch: '#c799ff',
+  mule: '#ffe075',
+});
+
 // Compare the actual tuning across the fleet; no separate cosmetic ratings.
 const shipStats = [
   {
@@ -40,7 +47,7 @@ export function createUI(
  <section id="title-panel" class="panel"><h1><span class="circuit-name"></span><em></em></h1><p class="intro"></p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>04</b><span>SHIPS</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions launch-actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="practice">PRACTICE LAP <span>↗</span></button></div><div class="actions inspection-actions"><button id="inspect">INSPECT SHIPS <span>↗</span></button></div></section>
  <section id="inspection-panel" class="panel hidden"><div class="eyebrow">AERODYNAMICS DIVISION / 07</div><h1 class="inspect-title" aria-live="polite">KESTREL<span class="dot">.</span></h1><p class="intro">Twin-core magnetic interceptor.<br>Ceramic armour. Exposed titanium propulsion.<br>Built to stay close to the limit.</p><dl><div><dt>DESIGN</dt><dd>Split prow / swept ceramic chassis</dd></div><div><dt>PROPULSION</dt><dd>Dual induction turbines</dd></div></dl><div class="actions"><button id="inspect-start" class="primary">DRIVE PROTOTYPE <span>↗</span></button><button id="inspect-back">BACK TO PROVING GROUND</button></div></section>
  <section id="pause-panel" class="modal hidden"><div class="eyebrow">PROVING SESSION</div><h2>TAKE A BREATH.</h2><button id="resume" class="primary">RESUME SESSION ↗</button><button id="restart">RESTART LAP</button><button id="home">RETURN TO PADDOCK</button><label>MASTER VOLUME <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>GRAPHICS <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>REDUCED MOTION <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p class="small">Prototype settings are saved locally when available.</p></section>
- <section id="hud" class="hidden"><div class="top-telemetry"><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>SESSION TIME</span><b id="time">00:00.000</b><small id="best">SET YOUR FIRST CLEAN LAP</small></div><div class="section-name"><span></span><b id="section">PROVING STRAIGHT</b></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST DRAWS FROM IMPACT RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas><div id="notice" role="status"></div></section>
+ <section id="hud" class="hidden"><div class="top-telemetry"><div class="position hidden"><span>POSITION</span><b id="position">1 / 4</b><small id="position-state"></small></div><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>LAP TIME</span><b id="time">00:00.000</b><small id="last">LAST —</small><small id="best">SET YOUR FIRST CLEAN LAP</small></div><div class="section-name"><span></span><b id="section">PROVING STRAIGHT</b></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST DRAWS FROM IMPACT RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas><div id="notice" role="status"></div></section>
  <footer id="legend"><div><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RESET</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>
  <div id="touch" class="hidden"><div><button data-drive="left" aria-label="Steer left">◀</button><button data-drive="right" aria-label="Steer right">▶</button><button data-drive="brake">BRAKE</button></div><div><button data-drive="airbrake">SLIP</button><button data-drive="boost">BOOST</button><button data-drive="throttle">GO</button></div></div><div class="review-tag"><span></span></div>`;
   const $ = (id) => root.querySelector('#' + id);
@@ -66,71 +73,80 @@ export function createUI(
   function updateRoster() {
     const driving = oldMode === 'racing' || oldMode === 'countdown';
     const paddock = oldMode === 'title';
-    const data =
-      driving && currentCompetition?.enabled
-        ? (currentCompetition.results ?? currentCompetition)
-        : paddock
-          ? retainedResults
-          : null;
+    const data = paddock
+      ? retainedResults
+      : driving &&
+          currentCompetition?.enabled &&
+          !currentCompetition.playerFinished
+        ? currentCompetition
+        : null;
     roster.classList.toggle('hidden', !data);
     roster.classList.toggle('in-paddock', paddock);
     if (!data) return;
-    const rows = data.standings;
-    const finished = paddock || currentCompetition?.playerFinished;
+    const rows = paddock
+      ? data.standings
+      : [
+          data.relative?.ahead && {
+            ...data.relative.ahead,
+            direction: 'AHEAD',
+          },
+          data.relative?.behind && {
+            ...data.relative.behind,
+            direction: 'BEHIND',
+          },
+        ].filter(Boolean);
+    const gapText = (entry) =>
+      entry.lapGap > 0
+        ? `${entry.lapGap} LAP${entry.lapGap === 1 ? '' : 'S'}`
+        : entry.seconds === null
+          ? entry.finished
+            ? 'FINISHED'
+            : '—'
+          : `${entry.seconds.toFixed(1)}s`;
     const key = JSON.stringify({
-      rows: rows.map(
-        ({
-          id,
-          name,
-          position,
-          lapTimes,
-          totalTime,
-          currentLapTime,
-          finished,
-          valid,
-        }) => ({
-          id,
-          name,
-          position,
-          lapTimes,
-          totalTime,
-          currentLapTime: Math.floor(currentLapTime * 10) / 10,
-          finished,
-          valid,
-        }),
-      ),
-      finished,
       paddock,
+      rows: rows.map((entry) => ({
+        ...entry,
+        seconds: entry.seconds == null ? null : entry.seconds.toFixed(1),
+        currentLapTime: undefined,
+        distance: undefined,
+        speed: undefined,
+        lateral: undefined,
+      })),
     });
     if (key === rosterKey) return;
     rosterKey = key;
     roster.querySelector('.roster-heading span').textContent = paddock
       ? 'LAST SESSION'
-      : finished
-        ? 'TWO LAPS RECORDED'
-        : 'RUNNING ORDER';
-    roster.querySelector('.roster-heading b').textContent = 'HALCYON · 2 LAPS';
+      : 'RELATIVE GAP';
+    const heading = roster.querySelector('.roster-heading b');
+    heading.textContent = paddock ? 'HALCYON · 2 LAPS' : '';
+    heading.classList.toggle('hidden', !paddock);
     const entries = rows.map((entry) => {
       const row = document.createElement('li');
+      row.dataset.racer = entry.id;
+      row.style.setProperty('--racer-color', racerColors[entry.id]);
       row.classList.toggle('is-player', entry.id === 'player');
       const place = document.createElement('b');
-      place.textContent =
-        entry.position === null ? '—' : String(entry.position).padStart(2, '0');
+      place.textContent = paddock
+        ? entry.position === null
+          ? '—'
+          : String(entry.position).padStart(2, '0')
+        : entry.direction;
       const name = document.createElement('span');
       name.textContent =
         entry.id === 'player' ? 'YOU' : entry.name.toUpperCase();
       const duration = document.createElement('small');
-      duration.textContent = entry.finished
-        ? `${fmt(entry.totalTime)}${entry.valid ? '' : ' *'}`
-        : fmt(
-            entry.lapTimes.reduce((total, lap) => total + lap, 0) +
-              entry.currentLapTime,
-          );
+      duration.textContent = paddock
+        ? entry.finished
+          ? `${fmt(entry.totalTime)}${entry.valid ? '' : ' *'}`
+          : 'IN PROGRESS'
+        : gapText(entry);
       row.append(place, name, duration);
       return row;
     });
     roster.querySelector('ol').replaceChildren(...entries);
-    const player = rows.find((entry) => entry.id === 'player');
+    const player = paddock ? rows.find((entry) => entry.id === 'player') : null;
     roster.querySelector('.roster-laps').replaceChildren(
       ...(player?.lapTimes ?? []).map((duration, index) => {
         const row = document.createElement('div');
@@ -142,14 +158,13 @@ export function createUI(
         return row;
       }),
     );
-    const invalid = rows.some((entry) => entry.finished && !entry.valid);
-    roster.querySelector('.roster-hint').textContent = paddock
-      ? invalid
+    const hint = roster.querySelector('.roster-hint');
+    hint.textContent = paddock
+      ? rows.some((entry) => entry.finished && !entry.valid)
         ? '* Untimed: lap invalidated'
         : 'Recorded at return to paddock'
-      : finished
-        ? 'KEEP DRIVING · ESC TO PADDOCK'
-        : 'Finish two laps to record your times';
+      : '';
+    hint.classList.toggle('hidden', !paddock);
   }
   const pausePanel = $('pause-panel');
   pausePanel.setAttribute('role', 'dialog');
@@ -660,6 +675,17 @@ export function createUI(
           ? 'PADDOCK'
           : 'PAUSE';
       updateRoster();
+      const player = competition?.standings.find(
+        (entry) => entry.id === 'player',
+      );
+      root
+        .querySelector('.position')
+        .classList.toggle('hidden', !competition?.enabled);
+      $('position').textContent =
+        `${player?.position ?? '—'} / ${competition?.standings.length ?? 4}`;
+      $('position-state').textContent = competition?.playerFinished
+        ? 'ESC · PADDOCK'
+        : '';
       root.querySelector('.lap > span').textContent = competition?.enabled
         ? competition.playerFinished
           ? 'FREE DRIVE'
@@ -696,6 +722,7 @@ export function createUI(
         : s.energy < 25
           ? 'LOW RESERVE · RELEASE BOOST TO RECOVER'
           : 'BOOST DRAWS FROM IMPACT RESERVE';
+      $('last').textContent = r.lastLap ? `LAST ${fmt(r.lastLap)}` : 'LAST —';
       $('best').textContent = !r.valid
         ? practice && s.resetCount === 0
           ? 'PRACTICE SECTION'
@@ -718,17 +745,49 @@ export function createUI(
       });
       ctx.closePath();
       ctx.stroke();
+      const dot = (position, color, radius, player = false) => {
+        const [x, y] = coord(position);
+        ctx.fillStyle = color;
+        ctx.strokeStyle = player ? '#ffffff' : '#0c1926';
+        ctx.lineWidth = player ? 1.5 : 2;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      };
+      if (competition?.enabled) {
+        for (const rival of competition.standings.filter(
+          (entry) => entry.id !== 'player',
+        )) {
+          const frame = track.sample(rival.distance);
+          dot(
+            frame.position.clone().addScaledVector(frame.right, rival.lateral),
+            racerColors[rival.id],
+            3.5,
+          );
+        }
+      }
       const world = motion?.currentPose?.position;
-      const [x, y] = coord(
+      dot(
         world
           ? { x: world[0], z: world[2] }
           : track.sample(s.distance).position,
+        racerColors.player,
+        4,
+        true,
       );
-      ctx.fillStyle = '#fb7959';
-      ctx.beginPath();
-      ctx.arc(x, y, 4, 0, Math.PI * 2);
-      ctx.fill();
       if (performance.now() > noticeUntil) $('notice').textContent = '';
+    },
+    lapComplete({ lap, duration, valid, delta }) {
+      const comparison =
+        delta === null || !valid
+          ? ''
+          : delta === 0
+            ? ' · MATCHED BEST'
+            : ` · ${Math.abs(delta).toFixed(3)}s ${delta < 0 ? 'FASTER' : 'SLOWER'} THAN BEST`;
+      this.notice(
+        `${valid ? `LAP ${lap}` : 'INVALID LAP'} · ${fmt(duration)}${comparison}`,
+      );
     },
     notice(text) {
       $('notice').textContent = text;

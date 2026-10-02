@@ -670,7 +670,8 @@ select {
   color: #cbd9d8;
   display: block;
 }
-.lap b {
+.lap b,
+.position b {
   font-size: 42px;
   line-height: 1.2;
   font-weight: 400;
@@ -684,6 +685,8 @@ select {
   margin-top: 5px;
 }
 .timing small {
+  display: block;
+  margin-top: 4px;
   font-size: 8px;
   letter-spacing: 0.12em;
   color: #ccd8d8;
@@ -1882,7 +1885,7 @@ select {
   position: absolute;
   top: 350px;
   right: 4vw;
-  width: 248px;
+  width: 210px;
   padding: 16px;
   background: rgba(12, 23, 31, 0.72);
   border: 1px solid rgba(190, 216, 226, 0.28);
@@ -1891,6 +1894,7 @@ select {
   font-variant-numeric: tabular-nums;
 }
 #race-roster.in-paddock {
+  width: 248px;
   top: 96px;
   left: calc(4vw + 440px);
   right: auto;
@@ -1914,15 +1918,28 @@ select {
 }
 #race-roster li {
   display: grid;
-  grid-template-columns: 22px 1fr auto;
+  grid-template-columns: 45px 1fr auto;
   align-items: center;
   gap: 8px;
-  padding: 8px 0;
+  padding: 8px 0 8px 8px;
+  border-left: 3px solid var(--racer-color);
+  margin-bottom: 5px;
   font-size: 11px;
 }
 #race-roster li > b {
   color: #93aeb9;
   font-weight: 400;
+  font-size: 8px;
+}
+#race-roster.in-paddock li {
+  grid-template-columns: 22px 1fr auto;
+}
+.position small {
+  display: block;
+  margin-top: 4px;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  color: #cbd9d8;
 }
 #race-roster li > small {
   font-size: 10px;

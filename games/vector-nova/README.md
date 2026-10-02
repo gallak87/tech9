@@ -15,7 +15,7 @@ Choose a circuit in the paddock dropdown and press **Load**, then enter its prac
 | Glasswake Comet  | Transparent ice, paired fracture jumps, a crevice corkscrew and collapsing shelves         | `/?level=glasswake`  |
 | Cindercoil       | Ceramic volcanic circuit, warned lava surges, a furnace corkscrew and vent flight          | `/?level=cindercoil` |
 
-Halcyon includes automatic Vector boost strips and Aegis shields on its normal route. Vector gives an immediate kick at entry and accelerates while you remain on the strip; Aegis protects reserve from impacts for six seconds. **Enter Proving Loop** starts a two-lap session against Rook, Latch and Mule from a 2×2 grid after audible start lights; **Practice Lap** starts solo. Easy uses the baseline rival pace, Medium is faster, and Hard is faster again with more boosting as you boost. Each rival uses its own vehicle physics, reserve and device eligibility. After two laps the compact roster records placements and lap/total times, while driving continues. Escape returns to the paddock with the last roster retained beside the menu; unfinished rivals show elapsed times and invalid laps are marked untimed.
+Halcyon includes automatic Vector boost strips and Aegis shields on its normal route. Vector gives an immediate kick at entry and accelerates while you remain on the strip; Aegis protects reserve from impacts for six seconds. **Enter Proving Loop** starts a two-lap session against Rook, Latch and Mule from a 2×2 grid after audible start lights; **Practice Lap** starts solo. Easy uses the baseline rival pace, Medium is faster, and Hard is faster again with more boosting as you boost. Each rival uses its own vehicle physics, reserve and device eligibility. After two laps placements and lap/total times are recorded while driving continues. Escape returns to the paddock with the last roster retained beside the menu; unfinished rivals remain in progress and invalid laps are marked untimed.
 
 Orbital's bare route review is available at `/?level=orbital&review=shape`. Shape review provides 3D/top/profile overviews. The shared paddock offers full-circuit Practice Lap and ship inspection. Nacre adds storm swells, underwater immersion, two real jumps and one enormous swimming leviathan. Its automatic missed-jump recovery keeps the lap valid while counting the recovery delay; manual R recovery still invalidates it.
 
@@ -24,6 +24,8 @@ Glasswake Comet combines clear crystal deck panes, low-grip frost, paired fractu
 Cindercoil adds two warned surges with a protected lane and a permanent narrow diagonal crater spill across Curtain Reach. Cross the flow briefly instead of following it; lava contact costs speed and reserve. The route retains its full rising roll and physical vent gap. Eruption timing changes takeoff lift; supported barrier landings bounce inward, and missed transfers recover with their delay counted. Its caldera rupture and local ash/heat presentation follow simulation time. Shape review uses `/?level=cindercoil&review=shape`.
 
 Other circuits retain solo practice. Time Trial, championships, ship-to-ship collision and larger opponent fields are future work.
+
+During a race, the HUD shows your position, lap timing and time gaps to the rivals immediately ahead and behind. Rival dots on the minimap match the colored strips beside their names: Rook cyan, Latch violet and Mule yellow; your marker is orange with a white outline. The full timing roster remains in the paddock.
 
 ## Run
 

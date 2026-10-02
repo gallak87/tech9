@@ -19,6 +19,42 @@ export function createGlasswakeScreen({ host, track }) {
   const ctx = canvas.getContext('2d');
   let disposed = false;
   let presentation = {};
+  let paintKey = null;
+  let paints = 0;
+  const sprites = [];
+  function snowSprite(i) {
+    if (sprites[i]) return sprites[i];
+    const sprite = document.createElement('canvas');
+    sprite.width = sprite.height = 48;
+    const ink = sprite.getContext('2d');
+    const radius = 5 + hash(i + 38) * 10;
+    ink.translate(24, 24);
+    ink.rotate(hash(i + 63) * Math.PI);
+    const halo = ink.createRadialGradient(0, 0, 0, 0, 0, radius * 1.35);
+    halo.addColorStop(0, 'rgba(224,243,255,.24)');
+    halo.addColorStop(1, 'rgba(224,243,255,0)');
+    ink.fillStyle = halo;
+    ink.beginPath();
+    ink.arc(0, 0, radius * 1.35, 0, Math.PI * 2);
+    ink.fill();
+    ink.strokeStyle = 'rgba(219,241,255,.28)';
+    ink.lineWidth = 0.7;
+    ink.beginPath();
+    for (let arm = 0; arm < 6; arm++) {
+      ink.rotate(Math.PI / 3);
+      ink.moveTo(0, 0);
+      ink.lineTo(0, -radius);
+      for (const k of [0.43, 0.7]) {
+        ink.moveTo(0, -radius * k);
+        ink.lineTo(radius * 0.2, -radius * (k + 0.17));
+        ink.moveTo(0, -radius * k);
+        ink.lineTo(-radius * 0.2, -radius * (k + 0.17));
+      }
+    }
+    ink.stroke();
+    sprites[i] = sprite;
+    return sprite;
+  }
   function clear() {
     ctx?.clearRect(0, 0, canvas.width, canvas.height);
   }
@@ -31,31 +67,38 @@ export function createGlasswakeScreen({ host, track }) {
         canvas.width = width;
         canvas.height = height;
       }
-      clear();
       const weather = sampleGlasswakeWeather(track, state, settings);
       let flakes = 0,
         beads = 0;
       const visible = mode === 'racing' && !reviewing;
       canvas.style.display = visible ? 'block' : 'none';
+      const returning = track.sections.find((s) => s.id === 'return');
+      const inReturn =
+        returning &&
+        state.distance >= returning.start &&
+        state.distance < returning.end;
+      const key = [
+        width,
+        height,
+        visible,
+        settings.quality,
+        settings.reducedMotion,
+        Math.floor(weather.time * 24),
+        Math.round(weather.storm * 32),
+        weather.sheltered,
+        inReturn,
+        host.querySelector('#review-toggle')?.getAttribute('aria-expanded'),
+      ].join(':');
+      if (key === paintKey) {
+        presentation = { ...presentation, ...weather };
+        return;
+      }
+      paintKey = key;
+      // Adhesion moves slowly: repaint at 24 Hz and on exposure/layout changes.
+      // Small cached sprites avoid full-canvas blur/clip surfaces every frame.
+      clear();
+      paints++;
       if (visible) {
-        ctx.save();
-        const hostRect = host.getBoundingClientRect();
-        for (const node of host.querySelectorAll(
-          '#minimap, .top-telemetry, .telemetry, #touch, .controls',
-        )) {
-          if (node.closest('.hidden')) continue;
-          const r = node.getBoundingClientRect();
-          if (!r.width || !r.height) continue;
-          ctx.beginPath();
-          ctx.rect(0, 0, width, height);
-          ctx.rect(
-            r.left - hostRect.left - 9,
-            r.top - hostRect.top - 9,
-            r.width + 18,
-            r.height + 18,
-          );
-          ctx.clip('evenodd');
-        }
         const t = weather.time;
         for (let i = 0; i < (settings.quality === 'low' ? 8 : 14); i++) {
           const phase = (t / 7.8 + hash(i)) % 1;
@@ -70,42 +113,12 @@ export function createGlasswakeScreen({ host, track }) {
             (right ? 0.94 - hash(i + 8) * 0.05 : 0.025 + hash(i + 8) * 0.055);
           const y =
             height * (0.3 + hash(i + 17) * 0.29) + phase * height * 0.014;
-          const radius = 5 + hash(i + 38) * 10;
-          ctx.save();
-          ctx.translate(x, y);
-          ctx.rotate(hash(i + 63) * Math.PI);
-          const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, radius * 1.35);
-          halo.addColorStop(0, `rgba(224,243,255,${fade * 0.24})`);
-          halo.addColorStop(1, 'rgba(224,243,255,0)');
-          ctx.fillStyle = halo;
-          ctx.beginPath();
-          ctx.arc(0, 0, radius * 1.35, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.filter = 'blur(.5px)';
-          ctx.strokeStyle = `rgba(219,241,255,${fade * 0.28})`;
-          ctx.lineWidth = 0.7;
-          for (let arm = 0; arm < 6; arm++) {
-            ctx.rotate(Math.PI / 3);
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(0, -radius);
-            for (const k of [0.43, 0.7]) {
-              ctx.moveTo(0, -radius * k);
-              ctx.lineTo(radius * 0.2, -radius * (k + 0.17));
-              ctx.moveTo(0, -radius * k);
-              ctx.lineTo(-radius * 0.2, -radius * (k + 0.17));
-            }
-            ctx.stroke();
-          }
-          ctx.restore();
+          ctx.globalAlpha = fade;
+          ctx.drawImage(snowSprite(i), x - 24, y - 24);
           flakes++;
         }
-        const returning = track.sections.find((s) => s.id === 'return');
-        if (
-          returning &&
-          state.distance >= returning.start &&
-          state.distance < returning.end
-        ) {
+        ctx.globalAlpha = 1;
+        if (inReturn) {
           for (let i = 0; i < 4; i++) {
             const phase = (t / 5.6 + hash(i + 200)) % 1;
             const fade = Math.sin(phase * Math.PI) * 0.32;
@@ -139,23 +152,47 @@ export function createGlasswakeScreen({ host, track }) {
             }
           }
       }
-      if (visible) ctx.restore();
+      if (visible) {
+        // Clear the union of reserved UI rectangles after compositing. Repeated
+        // clearRect calls also handle overlapping regions without even-odd holes.
+        const hostRect = host.getBoundingClientRect();
+        for (const node of host.querySelectorAll(
+          '#minimap, .top-telemetry, .telemetry, #touch, .controls, #shape-controls, [data-glasswake-notice]',
+        )) {
+          if (node.closest('.hidden')) continue;
+          const r = node.getBoundingClientRect();
+          if (r.width && r.height)
+            ctx.clearRect(
+              r.left - hostRect.left - 9,
+              r.top - hostRect.top - 9,
+              r.width + 18,
+              r.height + 18,
+            );
+        }
+      }
       presentation = {
         ...weather,
         screenFlakes: flakes,
         meltBeads: beads,
         screenVisible: visible,
+        screenPaints: paints,
+        cachedSprites: sprites.filter(Boolean).length,
       };
     },
     snapshot: () => ({ ...presentation }),
     reset() {
       clear();
+      paintKey = null;
+      paints = 0;
       presentation = {};
     },
     dispose() {
       if (disposed) return;
       disposed = true;
       clear();
+      for (const sprite of sprites)
+        if (sprite) sprite.width = sprite.height = 0;
+      sprites.length = 0;
       canvas.remove();
     },
   };

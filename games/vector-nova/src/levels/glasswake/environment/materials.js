@@ -16,6 +16,7 @@ export function finishIceMaterial(
     crust = /frost/.test(material.name);
   const road = /travel bands|fin ice/.test(material.name),
     fresh = /Fresh fracture/.test(material.name);
+  const frostRoad = crust && road;
   const textureScale = road ? 0.16 : 0.039;
   material.roughness = crust ? 0.93 : dark ? 0.83 : fresh ? 0.23 : 0.44;
   material.metalness = dark ? 0.025 : 0.01;
@@ -70,11 +71,21 @@ export function finishIceMaterial(
       diffuseColor.rgb=mix(detailed,diffuseColor.rgb*(.78+drift*.35),darkIce);
       float cloud=iceNoise(vec3(p.x*.016,p.y*.045,p.z*.016));
       diffuseColor.rgb*=.82+cloud*.36;
-      float vein=smoothstep(.58,.79,iceLuma);
+      float vein=smoothstep(${frostRoad ? '.33,.57' : '.58,.79'},iceLuma);
       diffuseColor.rgb+=vec3(.045,.065,.073)*vein*(1.-darkIce);
       float deposit=smoothstep(.35,.82,normalize(vIceNormal).y)*(0.55+drift*.45);
       diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.69,.79,.85),deposit*mix(.1,.24,frostIce)*(1.-darkIce*.55));
       diffuseColor.rgb+=vec3(.008,.011,.013)*smoothstep(.74,.91,grain);
+      ${
+        frostRoad
+          ? `
+        // Matte granular crust stays opaque and distinct from clear grip panes.
+        vec3 frostBody=mix(vec3(.22,.36,.45),vec3(.66,.8,.87),smoothstep(.13,.47,iceLuma));
+        diffuseColor.rgb=mix(diffuseColor.rgb,frostBody,.68);
+        diffuseColor.rgb+=vec3(.04,.055,.06)*vein;
+      `
+          : ''
+      }
     `,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
@@ -89,7 +100,7 @@ export function finishIceMaterial(
       '#include <normal_fragment_maps>',
       `
       #include <normal_fragment_maps>
-      float iceHeight=iceLuma*.04+vein*.022+grain*.0009;
+      float iceHeight=iceLuma*${frostRoad ? '.085' : '.04'}+vein*.022+grain*.0009;
       vec3 sigmaX=dFdx(-vViewPosition),sigmaY=dFdy(-vViewPosition);
       vec3 r1=cross(sigmaY,normal),r2=cross(normal,sigmaX);float det=dot(sigmaX,r1);
       vec3 grad=sign(det)*(dFdx(iceHeight)*r1+dFdy(iceHeight)*r2);
@@ -98,7 +109,7 @@ export function finishIceMaterial(
     );
   };
   material.customProgramCacheKey = () =>
-    `glasswake-ice-detail-v5:${composite}:${dark}:${crust}:${road}:${fresh}:${Boolean(texture)}`;
+    `glasswake-ice-detail-v6:${composite}:${dark}:${crust}:${road}:${fresh}:${Boolean(texture)}`;
 }
 
 /** Visible cloudy ice and sparse trapped air on clear panes. The bitmap is

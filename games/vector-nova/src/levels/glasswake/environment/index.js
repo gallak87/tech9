@@ -666,8 +666,8 @@ export function createGlasswakeEnvironment({
         originalEnvironmentIntensity * (1 - caveBlend * 0.36);
       localFog.density = reviewing
         ? 0.00004
-        : 0.00016 + caveBlend * 0.0003 + (conditions.storm ?? 0) * 0.00075;
-      localFog.color.set(caveBlend > 0.5 ? '#25435e' : '#6384a8');
+        : 0.00016 + caveBlend * 0.0003 + (conditions.storm ?? 0) * 0.0021;
+      localFog.color.set(caveBlend > 0.5 ? '#25435e' : '#7897ad');
       scene.fog = localFog;
     }
     lights.forEach((light, i) => {

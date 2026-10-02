@@ -1,9 +1,9 @@
 export const PICKUP_STATE_VERSION = 2;
 export const AEGIS_DURATION = 6;
-export const VECTOR_ENTRY_SPEED_GAIN = 16;
+export const VECTOR_ENTRY_SPEED_GAIN = 65;
 export const VECTOR_PROPULSION = Object.freeze({
-  cruiseSpeed: 142,
-  thrust: 50,
+  cruiseSpeed: 600 / 3.6,
+  thrust: 1800,
 });
 
 const EPSILON = 1e-9;

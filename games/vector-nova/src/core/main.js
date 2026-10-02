@@ -972,7 +972,8 @@ async function boot() {
     view.setRacingFeedback?.({
       mode,
       speed: s.speed,
-      boosting: s.boosting || runtime.snapshot()?.vectorActive,
+      boosting: s.boosting,
+      catapulting: runtime.snapshot()?.vectorActive === true,
       enabled: halcyonRacing,
     });
     world.update(frame);

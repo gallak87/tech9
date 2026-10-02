@@ -127,23 +127,16 @@ function integrate(s, controls, track, dt, events) {
     // No speed clamp: grades cost/gain energy and boost release decelerates
     // continuously, instead of snapping a fast craft to its cruise speed.
     // A road impulse is a separate, free profile. Choose the strongest active
-    // profile once; manual boost keeps its existing reserve cost and cap.
-    const cruiseSpeed = boost
-      ? handling.boostSpeed
-      : pad
-        ? Math.min(
-            handling.boostSpeed,
-            Math.max(handling.cruiseSpeed, controls.propulsion.cruiseSpeed),
-          )
-        : handling.cruiseSpeed;
-    const thrust = boost
-      ? handling.boostThrust
-      : pad
-        ? Math.min(
-            handling.boostThrust,
-            Math.max(handling.thrust, controls.propulsion.thrust),
-          )
-        : handling.thrust;
+    // profile once; a road catapult may exceed manual boost. Holding boost
+    // still spends reserve, but cannot weaken the strip's free propulsion.
+    const cruiseSpeed = Math.max(
+      boost ? handling.boostSpeed : handling.cruiseSpeed,
+      pad ? controls.propulsion.cruiseSpeed : 0,
+    );
+    const thrust = Math.max(
+      boost ? handling.boostThrust : handling.thrust,
+      pad ? controls.propulsion.thrust : 0,
+    );
     const cruiseDrag = 4.4 + 0.0018 * cruiseSpeed * cruiseSpeed;
     const engine = Math.max(
       0,
@@ -272,13 +265,13 @@ export function stepVehicle(state, input, track, dt, options = {}) {
     boost: !!input?.boost,
     airbrake: !!input?.airbrake,
     // Options are per-call values, never global feature state. Invalid profiles
-    // are ignored and valid impulses cannot exceed explicit manual boost.
+    // are ignored. Authored road catapults may exceed manual boost profiles.
     propulsion:
       Number.isFinite(options.propulsion?.cruiseSpeed) &&
       Number.isFinite(options.propulsion?.thrust)
         ? {
-            cruiseSpeed: clamp(options.propulsion.cruiseSpeed, 112, 157),
-            thrust: clamp(options.propulsion.thrust, 42, 59),
+            cruiseSpeed: clamp(options.propulsion.cruiseSpeed, 112, 200),
+            thrust: clamp(options.propulsion.thrust, 42, 2000),
           }
         : null,
     // Level-scoped surface response. Omitted values reproduce the baseline.

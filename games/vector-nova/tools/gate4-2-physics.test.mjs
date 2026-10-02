@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createVehicleState, stepVehicle } from '../src/physics/index.js';
+import { VECTOR_PROPULSION } from '../src/pickups/halcyon/simulation.js';
 
 const track = {
   width: 28,
@@ -52,6 +53,15 @@ test('manual boost selects its stronger profile and still spends reserve', () =>
   assert.deepEqual(run(impulse, input), run({}, input));
   assert.ok(run(impulse, input).energy < 65);
   assert.ok(run(impulse, input).speed > run(impulse).speed);
+});
+
+test('catapult propulsion exceeds manual boost and holding boost cannot weaken it', () => {
+  const catapult = { propulsion: VECTOR_PROPULSION };
+  const free = run(catapult),
+    combined = run(catapult, { throttle: 1, boost: true });
+  assert.ok(free.speed * 3.6 >= 599);
+  assert.equal(combined.speed, free.speed);
+  assert.ok(combined.energy < free.energy);
 });
 
 test('disabled options preserve baseline state and event shape', () => {

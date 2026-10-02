@@ -5,7 +5,7 @@ import { legacyPart } from '../legacy.js';
 
 export default function createLevel() {
   return {
-    version: '0.3.2-halcyon-gameplay',
+    version: '0.3.3-halcyon-gameplay',
     renderer: {
       world: 'halcyon',
       background: '#77899d',

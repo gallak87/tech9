@@ -154,8 +154,8 @@ export async function createRenderer(
       ),
     );
     composer.addPass(bloom);
-    // A short spatial blur conveys racing speed without frame history/ghosting.
-    // Preserve the upcoming road and the lower-centre ship silhouette.
+    // Radial streaks convey the catapult's launch without frame history.
+    // Preserve the vanishing point and the lower-centre ship silhouette.
     const racingBlur = lifetime.own(
       new ShaderPass({
         uniforms: { tDiffuse: { value: null }, strength: { value: 0 } },
@@ -171,22 +171,22 @@ export async function createRenderer(
         varying vec2 racingUv;
         void main() {
           vec2 radial = racingUv - vec2(.5,.52);
-          float edge = smoothstep(.25,.66,length(radial * vec2(1.15,1.)));
-          float craft = smoothstep(.08,.25,length((racingUv-vec2(.5,.25))*vec2(1.,1.4)));
+          float edge = smoothstep(.08,.42,length(radial * vec2(1.15,1.)));
+          float craft = smoothstep(.09,.20,length((racingUv-vec2(.5,.25))*vec2(1.,1.4)));
           vec2 stride = radial * strength * edge * craft;
-          vec4 sharp = texture2D(tDiffuse,racingUv);
-          vec4 softened = sharp * .4;
-          softened += texture2D(tDiffuse,clamp(racingUv-stride*.25,vec2(0.),vec2(1.))) * .24;
-          softened += texture2D(tDiffuse,clamp(racingUv-stride*.5,vec2(0.),vec2(1.))) * .18;
-          softened += texture2D(tDiffuse,clamp(racingUv-stride*.75,vec2(0.),vec2(1.))) * .12;
-          softened += texture2D(tDiffuse,clamp(racingUv-stride,vec2(0.),vec2(1.))) * .06;
-          gl_FragColor = softened;
+          vec4 streak = vec4(0.);
+          for (int i=0; i<32; i++) {
+            float amount = float(i)/31.;
+            streak += texture2D(tDiffuse,clamp(racingUv-stride*amount,vec2(0.),vec2(1.)));
+          }
+          gl_FragColor = streak / 32.;
         }`,
       }),
     );
     racingBlur.enabled = false;
     composer.addPass(racingBlur);
-    let blurTarget = 0;
+    let blurTarget = 0,
+      catapultBlur = false;
     const output = lifetime.own(new OutputPass());
     composer.addPass(output);
     const antialias = lifetime.own(new SMAAPass());
@@ -234,13 +234,21 @@ export async function createRenderer(
         mode,
         speed = 0,
         boosting = false,
+        catapulting = false,
         enabled = false,
       }) {
         const active =
-          enabled && mode === 'racing' && !shape && !settings.reducedMotion;
+          enabled &&
+          mode === 'racing' &&
+          !shape &&
+          !settings.reducedMotion &&
+          (settings.quality === 'high' || catapulting);
+        catapultBlur = active && catapulting;
         blurTarget = active
-          ? T.MathUtils.smoothstep(speed, 75, 135) * 0.011 +
-            (boosting ? 0.007 : 0)
+          ? catapulting
+            ? 0.24
+            : T.MathUtils.smoothstep(speed, 75, 150) * 0.016 +
+              (boosting ? 0.012 : 0)
           : 0;
         if (!active) {
           racingBlur.uniforms.strength.value = 0;
@@ -313,11 +321,12 @@ export async function createRenderer(
         const targetBlur = settings.reducedMotion || shape ? 0 : blurTarget;
         racingBlur.uniforms.strength.value +=
           (targetBlur - racingBlur.uniforms.strength.value) *
-          (1 - Math.exp(-dt * 9));
+          (1 - Math.exp(-dt * (catapultBlur ? 60 : 12)));
         racingBlur.enabled =
-          settings.quality === 'high' &&
+          (settings.quality === 'high' || catapultBlur) &&
           racingBlur.uniforms.strength.value > 0.0001;
-        if (settings.quality === 'high') composer.render(dt);
+        if (settings.quality === 'high' || racingBlur.enabled)
+          composer.render(dt);
         else renderer.render(scene, camera);
         maxima.calls = Math.max(maxima.calls, renderer.info.render.calls);
         maxima.triangles = Math.max(

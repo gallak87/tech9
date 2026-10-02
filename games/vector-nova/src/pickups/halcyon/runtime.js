@@ -1,10 +1,9 @@
 import { stepVehicle } from '../../physics/index.js';
-import { getShip } from '../../ships/catalog.js';
 import { createHalcyonDevices, HALCYON_TRACK_ID } from './placements.js';
-import { createPickupSimulation } from './simulation.js';
+import { createPickupSimulation, VECTOR_PROPULSION } from './simulation.js';
 
 export const HALCYON_RULES_ID =
-  'halcyon-strips-v2-entry16-142-50-aegis6-layout2';
+  'halcyon-strips-v3-entry65-600kph-1800-aegis6-layout2';
 
 // The browser wrapper supplies presentation. The deterministic adapter remains
 // importable without DOM, CSS, WebAudio or WebGL, including during replay tests.
@@ -44,14 +43,14 @@ export function createHalcyonSimulationRuntime({ track, presentation = null }) {
         state.speed = Math.max(
           state.speed,
           Math.min(
-            getShip(state.shipId).handling.boostSpeed,
+            VECTOR_PROPULSION.cruiseSpeed,
             state.speed + event.payload.speedGain,
           ),
         );
   }
   return {
     id: 'halcyon-pickups',
-    version: 3,
+    version: 4,
     rulesId: HALCYON_RULES_ID,
     scenarios,
     advance(state, input, dt) {

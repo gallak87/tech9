@@ -57,13 +57,13 @@ test('strip entry catapults at the leading hull edge, spends no reserve and stop
     entry = run.events.find((event) => event.type === 'pickup-activate');
   }
   assert.equal(entry.payload.kind, 'vector');
-  assert.equal(entry.payload.speedGain, 16);
+  assert.equal(entry.payload.speedGain, 65);
   assert.ok(
     run.state.distance < 43,
     'front hull contact precedes the visible leadingedge at43m',
   );
   assert.ok(
-    run.state.speed > baseline.speed + 15.9,
+    run.state.speed > baseline.speed + 64.9,
     'entry gain appears immediately on the contact tick',
   );
   assert.equal(run.state.energy, baseline.energy);
@@ -75,6 +75,10 @@ test('strip entry catapults at the leading hull edge, spends no reserve and stop
     tick(run, { throttle: 1 });
   assert.equal(run.runtime.snapshot().vectorActive, false);
   assert.ok(run.events.some((event) => event.type === 'pickup-exit'));
+  assert.ok(
+    run.state.speed * 3.6 >= 599,
+    'a full strip reaches approximately 600 km/h',
+  );
   const ordinary = { ...run.state };
   for (let index = 0; index < 10; index++) {
     stepVehicle(ordinary, { throttle: 1 }, track, dt);
@@ -85,6 +89,36 @@ test('strip entry catapults at the leading hull edge, spends no reserve and stop
     ordinary,
     'exit retains actual speed with exactly baseline forces afterward',
   );
+});
+
+test('full strip traversal reaches 600 km/h on every chassis; leaving early retains only earned speed', () => {
+  for (const shipId of ['kestrel', 'shrike', 'bastion', 'needle']) {
+    const full = session(30),
+      clipped = session(30);
+    full.state.shipId = clipped.state.shipId = shipId;
+    full.state.speed = clipped.state.speed = 30;
+    while (!clipped.runtime.snapshot().vectorActive)
+      tick(clipped, { throttle: 1 });
+    clipped.state.lateral = 12;
+    tick(clipped, { throttle: 1 });
+    assert.equal(clipped.runtime.snapshot().vectorActive, false);
+    for (
+      let tickIndex = 0;
+      tickIndex < 180 &&
+      !full.events.some((event) => event.type === 'pickup-exit');
+      tickIndex++
+    )
+      tick(full, { throttle: 1 });
+    assert.ok(full.events.some((event) => event.type === 'pickup-exit'));
+    assert.ok(
+      full.state.speed * 3.6 >= 599,
+      `${shipId} must reach 600 km/h on a full pass`,
+    );
+    assert.ok(
+      clipped.state.speed < full.state.speed - 40,
+      'a brief contact cannot earn the full strip speed',
+    );
+  }
 });
 
 test('actual feature live/replay uses one core advance and preserves all state and event order', () => {

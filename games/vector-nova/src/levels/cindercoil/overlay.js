@@ -26,7 +26,7 @@ export function createCindercoilOverlay({ host, track, readRuntime }) {
   host.append(notice);
   host.classList.add('cindercoil-overlay-host');
   const style = document.createElement('style');
-  style.textContent = `@media(min-width:1100px){.cindercoil-overlay-host #interface.driving #shape-controls:has(#review-toggle[aria-expanded="false"]){width:180px;padding:8px;background:rgba(14,29,39,.55)}}`;
+  style.textContent = `.cindercoil-overlay-host #interface.whole-route-view #title-panel{overflow-y:auto}@media(min-width:1100px){.cindercoil-overlay-host #interface.driving #shape-controls:has(#review-toggle[aria-expanded="false"]){width:180px;padding:8px;background:rgba(14,29,39,.55)}}`;
   host.append(style);
   const peripheral = document.createElement('canvas');
   peripheral.className = 'cindercoil-exposure';

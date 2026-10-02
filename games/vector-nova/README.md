@@ -8,7 +8,7 @@ Choose a circuit in the paddock dropdown and press **Load**, then enter its prac
 
 | Circuit          | Identity                                                                                   | Availability         |
 | ---------------- | ------------------------------------------------------------------------------------------ | -------------------- |
-| Halcyon Viaduct  | 5 km metropolitan expressway with a skyline corkscrew, inverted hold and plunge            | Default route `/`    |
+| Halcyon Speedway | 5 km metropolitan expressway with a skyline corkscrew, inverted hold and plunge            | Default route `/`    |
 | Asterion Orbital | 4.5 km shipyard above a planet, open lattice spans, neon decks and tall containment frames | `/?level=orbital`    |
 | Nacre Tempest    | Ocean/storm world, submerged racing and two airborne jumps                                 | `/?level=nacre`      |
 | Vesper Canopy    | Colossal hollow trees, amber resin, crown jumps and sap lines                              | `/?level=vesper`     |
@@ -16,7 +16,7 @@ Choose a circuit in the paddock dropdown and press **Load**, then enter its prac
 
 Halcyon's automatic Vector boost strips and Aegis shields are available with `/?features=halcyon-pickups`. They activate on crossing, with no inventory or use-item button. The plain route retains the baseline handling.
 
-Orbital's bare route review is available at `/?level=orbital&review=shape`. Circuit views provide 3D/top/profile overviews and parked section starts. Nacre adds storm swells, underwater immersion, two real jumps and one enormous swimming leviathan. Its automatic missed-jump recovery keeps the lap valid while counting the recovery delay; manual R recovery still invalidates it.
+Orbital's bare route review is available at `/?level=orbital&review=shape`. Shape review provides 3D/top/profile overviews. The shared paddock offers full-circuit Practice Lap and ship inspection. Nacre adds storm swells, underwater immersion, two real jumps and one enormous swimming leviathan. Its automatic missed-jump recovery keeps the lap valid while counting the recovery delay; manual R recovery still invalidates it.
 
 Cindercoil adds two warned surges with a protected lane and a permanent narrow diagonal crater spill across Curtain Reach. Cross the flow briefly instead of following it; lava contact costs speed and reserve. The route retains its full rising roll and physical vent gap. Eruption timing changes takeoff lift; supported barrier landings bounce inward, and missed transfers recover with their delay counted. Its caldera rupture and local ash/heat presentation follow simulation time. Shape review uses `/?level=cindercoil&review=shape`.
 

@@ -563,6 +563,11 @@ async function boot() {
       host,
       {
         start,
+        practice() {
+          if (shipLoading) return;
+          restart();
+          audio.unlock().catch(() => {});
+        },
         pause,
         resume,
         restart,
@@ -572,14 +577,7 @@ async function boot() {
         selectInspectionTab,
         inspectRival,
         overview,
-        fly: toggleFly,
         leaveFly,
-        reviewSection(name) {
-          if (shipLoading) return;
-          window.__VN.loadScenario(name, 47219);
-          document.activeElement?.blur();
-          ui.notice('SECTION REVIEW · LAP UNTIMED');
-        },
         settings: () => {
           view.apply();
           saveSettings(settings);
@@ -588,7 +586,6 @@ async function boot() {
       settings,
       track,
       {
-        runtimeScenarios: runtime.scenarios,
         metadata,
         circuits: levelCatalog.list,
         shape: blockout,
@@ -817,6 +814,11 @@ async function boot() {
   window.__VN = {
     ready: false,
     version: VERSION,
+    /**
+     * Load a deterministic internal verification scenario.
+     * @deprecated Remove after all levels are merged. Keep using this API while
+     * level development or its verification depends on scenario loading.
+     */
     loadScenario(name = 'staging', newSeed = 7) {
       if (shipLoading) throw new Error('Wait for ship loading to finish');
       restart();

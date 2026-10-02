@@ -2,16 +2,8 @@ import { validateSafeFrame } from '../camera/contract.js';
 
 const slugPattern = /^[a-z][a-z0-9-]*$/;
 
-const textFields = [
-  'edition',
-  'subtitle',
-  'eyebrow',
-  'intro',
-  'detail',
-  'start',
-  'tag',
-  'tagDetail',
-];
+const textFields = ['edition', 'subtitle', 'intro', 'tag', 'tagDetail'];
+const legacyTextFields = ['eyebrow', 'detail', 'start'];
 export function validateMetadata(metadata, id = metadata?.id) {
   if (
     !slugPattern.test(id || '') ||
@@ -22,24 +14,19 @@ export function validateMetadata(metadata, id = metadata?.id) {
     typeof metadata.review !== 'boolean' ||
     typeof metadata.shape !== 'boolean' ||
     !metadata.ui ||
-    !Array.isArray(metadata.ui.heading) ||
-    metadata.ui.heading.length !== 2 ||
-    !metadata.ui.heading.every(
-      (line) => typeof line === 'string' && line.trim(),
-    )
+    (metadata.ui.heading !== undefined &&
+      (!Array.isArray(metadata.ui.heading) ||
+        metadata.ui.heading.length !== 2 ||
+        !metadata.ui.heading.every(
+          (line) => typeof line === 'string' && line.trim(),
+        )))
   )
     throw new Error(`Invalid circuit metadata: ${id}`);
-  for (const field of [
-    'edition',
-    'subtitle',
-    'eyebrow',
-    'intro',
-    'detail',
-    'start',
-    'tag',
-    'tagDetail',
-  ])
-    if (typeof metadata.ui[field] !== 'string')
+  for (const field of [...textFields, ...legacyTextFields])
+    if (
+      (textFields.includes(field) || metadata.ui[field] !== undefined) &&
+      typeof metadata.ui[field] !== 'string'
+    )
       throw new Error(`Invalid circuit text: ${id}.${field}`);
   for (const flag of [
     'compact',
@@ -61,7 +48,10 @@ export function validateMetadata(metadata, id = metadata?.id) {
     )
       throw new Error(`Invalid circuit shape text: ${id}`);
     for (const [key, value] of Object.entries(metadata.ui.shape)) {
-      if (textFields.includes(key) && typeof value !== 'string')
+      if (
+        [...textFields, ...legacyTextFields].includes(key) &&
+        typeof value !== 'string'
+      )
         throw new Error(`Invalid circuit shape text: ${id}.${key}`);
       if (
         key === 'heading' &&

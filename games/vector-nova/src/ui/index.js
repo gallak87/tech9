@@ -31,19 +31,13 @@ export function createUI(
   actions,
   settings,
   track,
-  {
-    runtimeScenarios = {},
-    metadata,
-    circuits,
-    shape: blockout = false,
-    selectedShip = SHIPS[0],
-  },
+  { metadata, circuits, shape: blockout = false, selectedShip = SHIPS[0] },
 ) {
   const root = document.createElement('main');
   root.id = 'interface';
   host.append(root);
   root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>
- <section id="title-panel" class="panel"><div class="eyebrow"></div><h1><br><em></em></h1><p class="intro"></p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>04</b><span>SHIPS</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="inspect">INSPECT SHIPS <span>↗</span></button></div><p class="small"></p></section>
+ <section id="title-panel" class="panel"><h1><span class="circuit-name"></span><em></em></h1><p class="intro"></p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>04</b><span>SHIPS</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions launch-actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="practice">PRACTICE LAP <span>↗</span></button></div><div class="actions inspection-actions"><button id="inspect">INSPECT SHIPS <span>↗</span></button></div></section>
  <section id="inspection-panel" class="panel hidden"><div class="eyebrow">AERODYNAMICS DIVISION / 07</div><h1 class="inspect-title" aria-live="polite">KESTREL<span class="dot">.</span></h1><p class="intro">Twin-core magnetic interceptor.<br>Ceramic armour. Exposed titanium propulsion.<br>Built to stay close to the limit.</p><dl><div><dt>DESIGN</dt><dd>Split prow / swept ceramic chassis</dd></div><div><dt>PROPULSION</dt><dd>Dual induction turbines</dd></div></dl><div class="actions"><button id="inspect-start" class="primary">DRIVE PROTOTYPE <span>↗</span></button><button id="inspect-back">BACK TO PROVING GROUND</button></div></section>
  <section id="pause-panel" class="modal hidden"><div class="eyebrow">PROVING SESSION</div><h2>TAKE A BREATH.</h2><button id="resume" class="primary">RESUME SESSION ↗</button><button id="restart">RESTART LAP</button><button id="home">RETURN TO PADDOCK</button><label>MASTER VOLUME <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>GRAPHICS <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>REDUCED MOTION <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p class="small">Prototype settings are saved locally when available.</p></section>
  <section id="hud" class="hidden"><div class="top-telemetry"><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>SESSION TIME</span><b id="time">00:00.000</b><small id="best">SET YOUR FIRST CLEAN LAP</small></div><div class="section-name"><span></span><b id="section">PROVING STRAIGHT</b></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST DRAWS FROM IMPACT RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas><div id="notice" role="status"></div></section>
@@ -67,10 +61,10 @@ export function createUI(
       first.focus();
     }
   };
-  const review = metadata.review;
+  const review = blockout && metadata.review;
   const copy = { ...metadata.ui, ...(blockout ? metadata.ui.shape : {}) };
   const panel = $('title-panel');
-  root.classList.toggle('has-review', Boolean(review));
+  root.classList.toggle('has-review', metadata.review);
   root.classList.toggle('compact-paddock', Boolean(copy.compact) && !blockout);
   root.classList.toggle('stacked-review', Boolean(copy.stackedReview));
   root.classList.toggle('low-notice', Boolean(copy.lowNotice));
@@ -90,22 +84,16 @@ export function createUI(
       ),
       editionDetail,
     );
-  panel.querySelector('.eyebrow').textContent = copy.eyebrow;
-  const emphasis = document.createElement('em');
-  emphasis.textContent = copy.heading[1];
-  panel
-    .querySelector('h1')
-    .replaceChildren(
-      document.createTextNode(copy.heading[0]),
-      document.createElement('br'),
-      emphasis,
-    );
+  const [name, ...suffix] = metadata.name.trim().split(/\s+/);
+  panel.querySelector('.circuit-name').textContent = name.toUpperCase();
+  panel.querySelector('h1 em').textContent = (
+    suffix.join(' ') || copy.subtitle.split('/')[0].trim()
+  ).toUpperCase();
   panel.querySelector('.intro').textContent = copy.intro
     .replace(/the Kestrel/g, 'your ship')
     .replace(/Kestrel/g, 'Your ship');
-  panel.querySelector('.small').textContent = copy.detail;
   $('start').firstChild.textContent =
-    `${blockout ? 'DRIVE FULL CIRCUIT' : copy.start} `;
+    `${blockout ? 'DRIVE FULL CIRCUIT' : 'ENTER PROVING LOOP'} `;
   $('inspect').classList.toggle('hidden', blockout);
   root.querySelector('.section-name > span').textContent =
     metadata.name.toUpperCase();
@@ -117,36 +105,18 @@ export function createUI(
   if (review) {
     const controls = document.createElement('section');
     controls.id = 'shape-controls';
-    controls.setAttribute('aria-label', 'Circuit views and practice sections');
-    controls.innerHTML = `<button id="review-toggle" aria-expanded="true">CIRCUIT VIEWS <span>−</span></button><div id="review-options"><div class="shape-views" aria-label="Whole-track views"><button data-overview="perspective">3D VIEW</button><button data-overview="top">TOP</button><button data-overview="profile">PROFILE</button></div><div class="shape-jump"><label for="review-section">PRACTICE SECTION</label><select id="review-section"></select><button id="review-drive">DRIVE SECTION ↗</button></div></div>`;
+    controls.setAttribute('aria-label', 'Circuit views');
+    controls.innerHTML = `<button id="review-toggle" aria-expanded="true">CIRCUIT VIEWS <span>−</span></button><div id="review-options"><div class="shape-views" aria-label="Whole-track views"><button data-overview="perspective">3D VIEW</button><button data-overview="top">TOP</button><button data-overview="profile">PROFILE</button></div></div>`;
     root.append(controls);
-    for (const section of track.sections) {
-      const scenario = `${section.id}-showcase`;
-      if (!track.scenarios[scenario] && !runtimeScenarios[scenario]) continue;
-      const option = document.createElement('option');
-      option.value = scenario;
-      option.textContent = `${section.name} · ${((section.showcase ?? section.start) / 1000).toFixed(2)} km`;
-      $('review-section').append(option);
-    }
     controls.querySelectorAll('[data-overview]').forEach((button) => {
       button.onclick = () => actions.overview(button.dataset.overview);
     });
-    $('review-drive').onclick = () =>
-      actions.reviewSection($('review-section').value);
     $('review-toggle').onclick = () => {
       const open = !$('review-options').classList.toggle('hidden');
       $('review-toggle').setAttribute('aria-expanded', String(open));
       $('review-toggle').querySelector('span').textContent = open ? '−' : '+';
     };
   }
-  const flyButton = document.createElement('button');
-  flyButton.id = 'fly-camera';
-  flyButton.textContent = 'FLY CAMERA · F';
-  flyButton.onclick = actions.fly;
-  ($('review-options') ?? $('title-panel')).insertBefore(
-    flyButton,
-    root.querySelector('.shape-jump'),
-  );
   const flyControls = document.createElement('section');
   flyControls.id = 'fly-controls';
   flyControls.className = 'hidden';
@@ -159,7 +129,7 @@ export function createUI(
   picker.className = 'circuit-picker';
   picker.setAttribute('aria-label', 'Choose a circuit');
   picker.innerHTML = `<label for="circuit-select">CIRCUIT</label><select id="circuit-select" name="level"></select><button id="circuit-load" type="submit" disabled>LOAD ↗</button>`;
-  $('title-panel').prepend(picker);
+  panel.insertBefore(picker, panel.querySelector('.launch-actions'));
   for (const circuit of circuits) {
     const option = document.createElement('option');
     option.value = circuit.id;
@@ -182,31 +152,6 @@ export function createUI(
     // scenario or opt-in gameplay features into the new session.
     location.assign(circuitURL(location.href, selected));
   };
-  if (Object.keys(runtimeScenarios).length) {
-    let select = $('review-section');
-    if (!select) {
-      const controls = document.createElement('section');
-      controls.id = 'runtime-controls';
-      controls.className = 'runtime-controls';
-      const label = document.createElement('label');
-      label.textContent = 'PRACTICE SCENARIO ';
-      select = document.createElement('select');
-      select.id = 'runtime-scenario';
-      label.append(select);
-      const button = document.createElement('button');
-      button.textContent = 'DRIVE SCENARIO ↗';
-      button.onclick = () => actions.reviewSection(select.value);
-      controls.append(label, button);
-      $('title-panel').append(controls);
-    }
-    for (const [name, scenario] of Object.entries(runtimeScenarios)) {
-      if ([...select.options].some((option) => option.value === name)) continue;
-      const option = document.createElement('option');
-      option.value = name;
-      option.textContent = scenario.label || name;
-      select.append(option);
-    }
-  }
   const shipPickers = [];
   for (const [panelId, prefix] of [
     ['title-panel', 'paddock'],
@@ -251,7 +196,9 @@ export function createUI(
     const destination = $(panelId);
     destination.insertBefore(
       section,
-      destination.querySelector(panelId === 'title-panel' ? '.actions' : 'dl'),
+      destination.querySelector(
+        panelId === 'title-panel' ? '.inspection-actions' : 'dl',
+      ),
     );
     shipPickers.push(section);
   }
@@ -409,6 +356,7 @@ export function createUI(
   let pickerFocus = null;
   const bind = (id, fn) => ($(id).onclick = fn);
   bind('start', actions.start);
+  bind('practice', actions.practice);
   bind('inspect-start', actions.start);
   bind('inspect', () => actions.camera('inspection'));
   bind('inspect-back', actions.home);
@@ -465,6 +413,7 @@ export function createUI(
           button.disabled = loading;
       }
       $('start').disabled = loading;
+      $('practice').disabled = loading;
       $('inspect-start').disabled = loading;
       for (const button of tabs.children) button.disabled = loading;
       if (loading) loadingMessage.textContent = 'Preparing ship…';

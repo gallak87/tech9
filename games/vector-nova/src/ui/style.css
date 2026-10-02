@@ -7,6 +7,152 @@
   --accent: #fa7957;
 }
 
+/* The shared paddock follows the same reading order on every circuit. */
+#title-panel.panel {
+  top: 96px;
+  bottom: auto;
+  max-height: calc(100dvh - 120px);
+  left: 4vw;
+  width: min(420px, 92vw);
+  max-width: none;
+  margin: 0;
+  padding: 24px;
+  background: rgb(12 23 31 / 60%);
+  border: 1px solid #ffffff24;
+  pointer-events: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+#title-panel h1 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  font-size: clamp(36px, 4.4vw, 64px);
+  line-height: 1;
+  margin: 0 0 14px;
+}
+#title-panel h1 em {
+  font-size: 0.44em;
+  font-style: italic;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+#title-panel .intro {
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 18px;
+}
+#title-panel .track-facts {
+  display: flex;
+  gap: 30px;
+  margin: 0 0 18px;
+}
+#title-panel .track-facts b {
+  font-size: 26px;
+}
+#title-panel .circuit-picker {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+#title-panel .actions {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  gap: 7px;
+}
+#title-panel .actions button {
+  min-height: 44px;
+  padding: 12px 16px;
+}
+#title-panel .launch-actions {
+  margin: 16px 0;
+  padding: 14px 0;
+  border-top: 1px solid #ffffff30;
+  border-bottom: 1px solid #ffffff30;
+}
+#title-panel .ship-selection {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(0, 1.35fr);
+  gap: 8px 14px;
+  margin: 0 0 16px;
+}
+#title-panel .ship-picker button {
+  height: var(--ship-row-height);
+  min-height: 0;
+  padding: 7px 9px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+}
+#interface:not(.driving):not(.inspecting) #legend,
+#interface:not(.driving):not(.inspecting) .review-tag {
+  display: none;
+}
+@media (max-height: 850px) {
+  #title-panel.panel {
+    top: 84px;
+    max-height: calc(100dvh - 102px);
+    padding: 16px;
+  }
+  #title-panel h1 {
+    font-size: 40px;
+    margin-bottom: 10px;
+  }
+  #title-panel .intro {
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+  #title-panel .track-facts {
+    margin-bottom: 12px;
+  }
+  #title-panel .track-facts b {
+    font-size: 22px;
+  }
+  #title-panel .launch-actions {
+    margin: 12px 0;
+    padding: 10px 0;
+  }
+  #title-panel .actions button {
+    min-height: 40px;
+    padding: 10px 14px;
+  }
+  #interface #title-panel .ship-selection {
+    --ship-row-height: 30px;
+    margin-bottom: 12px;
+  }
+}
+@media (max-width: 760px) {
+  #title-panel.panel {
+    top: 84px;
+    max-height: calc(100dvh - 84px - max(18px, env(safe-area-inset-bottom)));
+    left: 4vw;
+    padding: 18px;
+  }
+  #title-panel h1 {
+    font-size: clamp(32px, 9.5vw, 44px);
+  }
+  #title-panel .ship-selection {
+    gap: 8px 10px;
+  }
+}
+@media (max-height: 570px) and (orientation: landscape) {
+  #title-panel.panel {
+    top: 68px;
+    max-height: calc(100dvh - 68px - max(14px, env(safe-area-inset-bottom)));
+    width: min(420px, 92vw);
+    padding: 16px;
+  }
+  #title-panel h1 {
+    font-size: 32px;
+  }
+}
+
 /* A single fleet choice follows the player between paddock and inspection. */
 .ship-selection {
   max-width: 430px;
@@ -295,13 +441,6 @@ button.primary:hover {
   top: 25%;
   left: 6vw;
   max-width: 510px;
-}
-#title-panel {
-  top: var(--paddock-top, 25vh);
-  bottom: 68px;
-  pointer-events: auto;
-  padding: 6px;
-  margin: -6px;
 }
 .circuit-picker {
   display: grid;
@@ -691,9 +830,6 @@ select {
     left: 7vw;
     max-width: 85vw;
   }
-  #title-panel {
-    --paddock-top: 21vh;
-  }
   h1 {
     font-size: 60px;
   }
@@ -821,9 +957,6 @@ select {
   .panel {
     top: 20%;
   }
-  #title-panel {
-    --paddock-top: 20vh;
-  }
   .panel h1 {
     font-size: 48px;
     margin-bottom: 14px;
@@ -922,29 +1055,9 @@ select {
 #interface.has-review {
   background: none;
 }
-.has-review #title-panel {
-  --paddock-top: 140px;
-  left: 4vw;
-  width: 310px;
-  max-width: 310px;
-}
-.has-review #title-panel h1 {
-  font-size: 47px;
-  line-height: 0.95;
-  margin: 14px 0 20px;
-}
-.has-review #title-panel .intro {
-  font-size: 14px;
-  line-height: 1.6;
-  margin-bottom: 20px;
-}
 .has-review .track-facts {
   margin: 18px 0;
   gap: 20px;
-}
-.has-review #title-panel .small {
-  font-size: 12px;
-  line-height: 1.65;
 }
 #shape-controls {
   position: absolute;
@@ -967,24 +1080,6 @@ select {
   text-align: center;
   letter-spacing: 0.04em;
 }
-.shape-jump {
-  display: grid;
-  gap: 9px;
-}
-.shape-jump label {
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  color: #d3ddd9;
-}
-.shape-jump select {
-  width: 100%;
-  padding: 10px;
-  background: #233440;
-  border: 1px solid #ffffff50;
-  color: #fff;
-  font: inherit;
-  font-size: 12px;
-}
 #shape-controls a {
   display: inline-block;
   font-size: 10px;
@@ -1003,18 +1098,6 @@ select {
   top: 390px;
 }
 @media (max-width: 760px), (max-height: 700px) {
-  .has-review #title-panel {
-    --paddock-top: 90px;
-    width: 230px;
-  }
-  .has-review #title-panel h1 {
-    font-size: 32px;
-    margin: 8px 0;
-  }
-  .has-review #title-panel .intro {
-    font-size: 12px;
-  }
-  .has-review #title-panel .small,
   .has-review .track-facts {
     display: none;
   }
@@ -1027,12 +1110,6 @@ select {
   .has-review #minimap {
     top: 175px;
   }
-  .has-review.shape-overview #title-panel .intro {
-    display: none;
-  }
-  .has-review #title-panel {
-    --paddock-top: 75px;
-  }
   .has-review.driving #shape-controls {
     top: 175px;
     left: 4vw;
@@ -1042,16 +1119,11 @@ select {
     max-height: calc(100dvh - 195px);
     overflow-y: auto;
   }
-  .has-review.driving .shape-jump,
   .has-review.driving #shape-controls a {
     display: none;
   }
   .has-review.driving .shape-views {
     margin: 0;
-  }
-  .compact-paddock.driving .shape-jump {
-    display: grid;
-    margin-top: 12px;
   }
 }
 
@@ -1101,25 +1173,8 @@ select {
 .compact-paddock .actions {
   gap: 8px;
 }
-.compact-paddock #title-panel {
-  --paddock-top: 23vh;
-  width: 330px;
-  max-width: 330px;
-}
-.compact-paddock #title-panel h1 {
-  font-size: 55px;
-}
 .compact-paddock #shape-controls {
   border-color: #e2c5a445;
-}
-@media (max-width: 760px), (max-height: 700px) {
-  .compact-paddock #title-panel {
-    --paddock-top: max(86px, 15vh);
-    width: 230px;
-  }
-  .compact-paddock #title-panel h1 {
-    font-size: 32px;
-  }
 }
 
 .inspecting #legend,
@@ -1185,24 +1240,11 @@ select {
 }
 
 /* Optional stacked review layout keeps controls beside the fitted circuit. */
-.stacked-review.whole-route-view #title-panel {
-  padding: 18px;
-  background: #102732eb;
-  border: 1px solid #bdd4d34d;
-}
-.stacked-review.whole-route-view #title-panel .small {
-  display: none;
-}
 .stacked-review.whole-route-view #shape-controls {
   position: static;
   width: 100%;
   max-height: none;
   margin-top: 18px;
-}
-@media (min-width: 761px) and (min-height: 701px) {
-  .stacked-review.whole-route-view #title-panel {
-    --paddock-top: 110px;
-  }
 }
 
 @media (max-width: 760px) {
@@ -1313,10 +1355,6 @@ select {
   #interface.compact-landscape.driving #review-toggle {
     font-size: 10px;
     padding: 5px 2px;
-  }
-  #interface.compact-landscape.driving .shape-jump {
-    display: grid;
-    margin-top: 8px;
   }
   #interface.compact-landscape.driving .shape-views {
     margin-bottom: 8px;
@@ -1445,10 +1483,6 @@ select {
 }
 
 /* Free-camera inspection retains the full world with a compact control strip. */
-#fly-camera {
-  width: 100%;
-  margin-bottom: 14px;
-}
 .fly-camera-active {
   touch-action: none;
   cursor: grab;
@@ -1527,55 +1561,24 @@ select {
     grid-template-columns: repeat(6, 1fr);
   }
 }
-
-/* Use the full menu height, with tighter content instead of a scroll area. */
-#interface:not(.whole-route-view) #title-panel {
-  --paddock-top: clamp(96px, 11vh, 116px);
-}
-.compact-paddock:not(.whole-route-view) #title-panel {
-  width: 390px;
-  max-width: 390px;
-}
-#title-panel .circuit-picker {
-  margin-bottom: 12px;
-}
-#title-panel .eyebrow,
 #inspection-panel .eyebrow {
   margin-bottom: 10px;
 }
-#interface:not(.whole-route-view) #title-panel h1 {
-  font-size: clamp(40px, 5.7vh, 60px);
-  margin: 0 0 12px;
-}
-#title-panel .intro,
 #inspection-panel .intro {
   font-size: 13px;
   line-height: 1.5;
   margin: 0 0 14px;
 }
-#title-panel .track-facts {
-  margin-bottom: 12px;
-}
-#title-panel .ship-selection,
 #inspection-panel .ship-selection {
   margin: 12px 0;
 }
-#title-panel .actions,
 #inspection-panel .actions {
   gap: 6px;
 }
-#title-panel .actions button,
 #inspection-panel .actions button {
   min-height: 44px;
   padding: 12px 16px;
 }
-#title-panel > #fly-camera {
-  width: min(100%, 340px);
-  min-height: 36px;
-  padding: 9px 16px;
-  margin: 8px 0 0;
-}
-#title-panel .small,
 #inspection-panel .small {
   margin: 10px 0 0;
 }
@@ -1615,26 +1618,7 @@ select {
     font-size: 9px;
   }
 }
-@media (max-height: 850px) {
-  #interface:not(.whole-route-view) #title-panel .small,
-  #interface:not(.whole-route-view) #title-panel .track-facts {
-    display: none;
-  }
-}
-@media (max-height: 680px) {
-  #interface:not(.whole-route-view) #title-panel .intro {
-    display: none;
-  }
-}
 @media (max-width: 760px) and (max-aspect-ratio: 1/1) {
-  #interface:not(.whole-route-view) #title-panel {
-    --paddock-top: 84px;
-    width: 86vw;
-    max-width: 86vw;
-  }
-  #interface:not(.whole-route-view) #title-panel h1 {
-    font-size: 36px;
-  }
   #inspection-panel {
     top: 84px;
     max-width: none;
@@ -1647,7 +1631,6 @@ select {
     max-width: none;
     margin: 12px 0 0;
   }
-  #title-panel .ship-picker button,
   #inspection-panel .ship-picker button {
     min-height: 44px;
     padding: 8px 30px 8px 11px;
@@ -1664,9 +1647,6 @@ select {
   }
 }
 @media (max-width: 760px) and (max-height: 740px) and (orientation: portrait) {
-  #title-panel .eyebrow {
-    display: none;
-  }
   #inspection-panel dl div {
     padding: 6px 0;
   }
@@ -1677,43 +1657,6 @@ select {
 @media (max-height: 570px) and (orientation: landscape) {
   #interface:not(.driving):not(.paused) #legend {
     display: none;
-  }
-  #interface:not(.whole-route-view) #title-panel {
-    --paddock-top: 68px;
-    bottom: max(14px, env(safe-area-inset-bottom));
-    width: min(680px, 88vw);
-    max-width: none;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas:
-      'circuit ship'
-      'heading ship'
-      'actions actions'
-      'fly fly';
-    align-content: start;
-    gap: 10px 18px;
-  }
-  #title-panel .circuit-picker {
-    grid-area: circuit;
-    margin: 0;
-    gap: 5px;
-  }
-  #title-panel .circuit-picker select,
-  #title-panel .circuit-picker button {
-    min-height: 36px;
-    padding: 8px;
-  }
-  #interface:not(.whole-route-view) #title-panel h1 {
-    grid-area: heading;
-    font-size: 32px;
-    margin: 0;
-  }
-  #interface:not(.whole-route-view) #title-panel .eyebrow {
-    display: none;
-  }
-  #title-panel .ship-selection {
-    grid-area: ship;
-    margin: 0;
   }
   .ship-stats {
     gap: 6px 10px;
@@ -1729,58 +1672,6 @@ select {
   .ship-stat-track {
     margin-top: 3px;
     height: 3px;
-  }
-  #title-panel .actions {
-    grid-area: actions;
-    max-width: none;
-  }
-  #title-panel .actions button {
-    flex: 1;
-  }
-  #title-panel > #fly-camera {
-    grid-area: fly;
-    width: 100%;
-    margin: 0;
-  }
-  #interface.has-review:not(.whole-route-view) #title-panel {
-    display: block;
-    width: 44vw;
-  }
-  #interface.has-review:not(.whole-route-view) #title-panel h1 {
-    font-size: 28px;
-  }
-  .has-review #title-panel .circuit-picker {
-    margin-bottom: 8px;
-  }
-  .has-review #title-panel .ship-selection {
-    margin: 6px 0;
-  }
-  .has-review #title-panel .ship-picker-label {
-    margin-bottom: 6px;
-  }
-  .has-review #title-panel .ship-picker {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  .has-review #title-panel .ship-picker button {
-    min-height: 40px;
-    padding: 7px 5px;
-  }
-  .has-review #title-panel .ship-picker button b {
-    font-size: 9px;
-    letter-spacing: 0.04em;
-  }
-  .has-review #title-panel .ship-picker button span {
-    display: none;
-  }
-  .has-review #title-panel .ship-picker button i {
-    top: auto;
-    bottom: 2px;
-    right: 4px;
-    font-size: 8px;
-  }
-  .has-review #title-panel .ship-summary {
-    margin-top: 6px;
-    font-size: 9px;
   }
   #interface.has-review:not(.driving):not(.whole-route-view) #shape-controls {
     top: 68px;
@@ -1827,7 +1718,6 @@ select {
 }
 
 /* Both menus keep a vertical chassis list beside a vertical performance stack. */
-#title-panel .ship-selection,
 #inspection-panel .ship-selection {
   display: grid;
   grid-template-columns: minmax(110px, 1fr) minmax(0, 1.35fr);
@@ -1849,7 +1739,6 @@ select {
   gap: 6px;
   margin: 0;
 }
-#title-panel .ship-picker button,
 #inspection-panel .ship-picker button,
 #inspection-panel .rival-selection .ship-picker button {
   min-height: 34px;
@@ -1912,7 +1801,6 @@ select {
   grid-auto-rows: var(--ship-row-height);
   align-content: start;
 }
-#interface #title-panel .ship-picker button,
 #interface #inspection-panel .ship-picker button {
   min-height: 0;
   height: var(--ship-row-height);
@@ -1951,13 +1839,8 @@ select {
   grid-row: 2;
 }
 @media (min-width: 761px) and (min-height: 571px) {
-  #interface:not(.whole-route-view) #title-panel,
   #inspection-panel {
     width: min(560px, 44vw);
-    max-width: none;
-  }
-  #title-panel .actions {
-    width: 100%;
     max-width: none;
   }
 }
@@ -1981,48 +1864,5 @@ select {
   #inspect-back {
     grid-column: 2;
     grid-row: 1;
-  }
-}
-#runtime-controls {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: end;
-  margin-top: 8px;
-}
-#runtime-controls label {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  font-size: 9px;
-  letter-spacing: 0.1em;
-}
-#runtime-controls select,
-#runtime-controls button {
-  min-width: 0;
-  height: 32px;
-  padding: 7px 9px;
-  border: 1px solid #ffffff50;
-  background: #14222e;
-  color: #edf0e9;
-  font: inherit;
-  font-size: 10px;
-}
-@media (max-height: 850px) {
-  #title-panel:has(#runtime-controls) .intro {
-    display: none;
-  }
-}
-@media (max-height: 570px) and (orientation: landscape) {
-  #interface:not(.whole-route-view) #title-panel:has(#runtime-controls) {
-    grid-template-areas:
-      'circuit ship'
-      'heading ship'
-      'actions actions'
-      'fly scenario';
-  }
-  #runtime-controls {
-    grid-area: scenario;
-    margin: 0;
   }
 }

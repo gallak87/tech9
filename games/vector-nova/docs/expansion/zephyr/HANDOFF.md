@@ -77,6 +77,8 @@ Implement camera/visor droplets and short draining streaks when crossing a real 
 
 High may add soft local waterfall mist and slow sail flex beyond the collision envelope. Low keeps the large falls, island openings, bridge structure and cloud depth while reducing mist and minor hanging fragments. Reduced motion freezes sail flex and moving cloud texture; no camera sway or procedural wind force. Avoid full-screen opaque cloud transitions.
 
+Reuse the [shared racing/device system](../README.md#gameplay-and-presentation-boundaries): author placements, supply the level's pure motion adapter for rivals and verify physical two-lap finishes, replay and solo practice.
+
 ## Production and review
 
 Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The traversable cathedral/nave/rose window, adjacent chapels, large waterfall masses and falling tower/island assembly are major scene-to-Blender subjects. Use a small authored kit for secondary islands and bridge hardware; hero water must have convincing volume, layered breakup and scale.

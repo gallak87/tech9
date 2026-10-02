@@ -491,6 +491,7 @@ export function createFlightModel(overrides = {}) {
     let landingSettle = null;
     let disposed = false;
     let seed = 0;
+    let stepModifiers = {};
     const poseOnRoad = (state) => {
       const f = track.sample(state.distance);
       return {
@@ -681,7 +682,8 @@ export function createFlightModel(overrides = {}) {
           flight.velocity.dot(frame.tangent) * (R.edgeSpeedRetention - 1),
         );
         state.speed *= R.edgeSpeedRetention;
-        state.energy = Math.max(0, state.energy - R.edgeEnergyCost);
+        const energyCost = stepModifiers.shield ? 0 : R.edgeEnergyCost;
+        state.energy = Math.max(0, state.energy - energyCost);
         state.impact = 0.35;
         flight.edgeCaught = true;
         events.push({
@@ -694,7 +696,8 @@ export function createFlightModel(overrides = {}) {
             lateral,
             overlap: contact.overlap,
             speedRetention: R.edgeSpeedRetention,
-            energyCost: R.edgeEnergyCost,
+            energyCost,
+            ...(stepModifiers.shield ? { shielded: true } : {}),
           },
         });
       }
@@ -848,6 +851,7 @@ export function createFlightModel(overrides = {}) {
       // Pure sampled options: a split takeoff can evaluate this more than once.
       const groundOptions = () => ({
         ...options.groundOptions?.({ state, input, dt, track }),
+        ...stepModifiers,
         steeringAssist: settings.steeringAssist ?? STEERING_ASSIST,
       });
       const magneticEvents = stepVehicle(
@@ -906,9 +910,10 @@ export function createFlightModel(overrides = {}) {
       version: options.version,
       rulesId: options.rulesId,
       scenarios,
-      advance(state, input, dt) {
+      advance(state, input, dt, modifiers = {}) {
         const events = [];
         if (disposed || !Number.isFinite(dt) || dt <= 0) return events;
+        stepModifiers = modifiers;
         if (releasePose) {
           currentPose = null;
           previousPose = null;

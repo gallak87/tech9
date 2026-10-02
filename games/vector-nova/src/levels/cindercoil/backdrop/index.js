@@ -1,3 +1,4 @@
+import { assetURL } from '../../../assets/url.js';
 import * as T from 'three';
 
 /** Selected ash panorama; all nearby caldera forms remain authored geometry. */
@@ -9,7 +10,9 @@ export async function createCindercoilBackdrop({
   try {
     texture = shape
       ? new T.DataTexture(new Uint8Array([90, 105, 122, 255]), 1, 1)
-      : await loadTexture('/assets/levels/cindercoil/cindercoil-sky-v2.png');
+      : await loadTexture(
+          assetURL('assets/levels/cindercoil/cindercoil-sky-v2.png'),
+        );
     texture.needsUpdate = true;
   } catch (cause) {
     throw new Error(

@@ -2,7 +2,6 @@
   "generator": "author-environment-v3.py",
   "base": "glasswake-environment-v2.blend",
   "reference": "scene-reference.png",
-  "runtime": "/assets/levels/glasswake/glasswake-environment-v3.glb",
   "meshes": [
     {
       "name": "cliff_0",
@@ -256,5 +255,6 @@
     }
   ],
   "triangles": 46396,
-  "bytes": 3095704
+  "bytes": 3095704,
+  "authoringExport": ".experiments/glasswake-authoring/glasswake-environment-v3.glb"
 }

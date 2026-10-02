@@ -1,3 +1,4 @@
+import { assetURL } from '../assets/url.js';
 import { Box3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { resourcesFor } from './index.js';
@@ -41,7 +42,7 @@ export async function createRivalPreview(
   const specification = RIVAL_SHIPS.find((craft) => craft.id === id);
   if (!specification) throw new Error(`Unknown rival: ${id}`);
   const { scene: group } = await loadAsset(
-    `${import.meta.env?.BASE_URL ?? '/'}assets/ships/rivals/${id}/${id}.glb`,
+    assetURL(`assets/ships/rivals/${id}/${id}.glb`),
   );
   const resources = resourcesFor(group);
   group.name = `${specification.name} / AI racer preview`;

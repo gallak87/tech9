@@ -15,8 +15,8 @@
   ],
   "triangles": 46596,
   "meshCount": 34,
-  "runtimeAsset": "/assets/levels/cindercoil/cindercoil-hero-kit.glb",
   "runtimeBytes": 1497696,
   "textures": 0,
-  "sourceReference": "reference/cindercoil-scene-v1.png"
+  "sourceReference": "reference/cindercoil-scene-v1.png",
+  "authoringExport": ".experiments/cindercoil-authoring/cindercoil-hero-kit.glb"
 }

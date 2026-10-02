@@ -77,6 +77,8 @@ Use restrained peripheral instrument/field feedback for declared tidal zones, co
 
 High may add restrained layered ring detail and slow far-debris drift. Low keeps the accretion silhouette, background stars, every route marker and major ruined landmark while simplifying distant assemblies. Reduced motion stops decorative ring flow and far-debris drift; no camera shake, rotating horizon illusion or pulsing edge lights. Never distort HUD or driving geometry.
 
+Reuse the [shared racing/device system](../README.md#gameplay-and-presentation-boundaries): author placements, supply the level's pure motion adapter for rivals and verify physical two-lap finishes, replay and solo practice.
+
 ## Production and review
 
 Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The observatory fragments/landing structures, tilted lens and enormous object with staged stretched/fragmented forms are major scene-to-Blender subjects. Use reproducible deformation/animation for continuous accretion and reuse small debris families.

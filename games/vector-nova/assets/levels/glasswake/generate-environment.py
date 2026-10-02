@@ -5,7 +5,7 @@ Selected scene-reference.png is the visual source; no raster pixels ship at runt
 import bpy, math, random, json, os
 from mathutils import Vector
 ROOT = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.abspath(os.path.join(ROOT, '../../../public/assets/levels/glasswake'))
+OUT = os.path.abspath(os.path.join(ROOT, '../../../.experiments/glasswake-authoring'))
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete(use_global=False)
 random.seed(91052)
@@ -242,7 +242,7 @@ scene['reference']='scene-reference.png'
 os.makedirs(OUT,exist_ok=True)
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ROOT,'glasswake-environment.blend'))
 bpy.ops.export_scene.gltf(filepath=os.path.join(OUT,'glasswake-environment.glb'),export_format='GLB',export_yup=True,export_apply=True,export_animations=False,export_cameras=False,export_lights=False)
-manifest={'generator':'generate-environment.py','reference':'scene-reference.png','runtime':'/assets/levels/glasswake/glasswake-environment.glb','units':'metres','meshes':[]}
+manifest={'generator':'generate-environment.py','reference':'scene-reference.png','authoringExport':'.experiments/glasswake-authoring/glasswake-environment.glb','units':'metres','meshes':[]}
 for o in bpy.context.scene.objects:
     if o.type=='MESH':
         o.data.calc_loop_triangles()

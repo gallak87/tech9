@@ -9,7 +9,8 @@ from pathlib import Path
 from mathutils import Vector
 
 ROOT=Path(__file__).resolve().parent
-DEST=ROOT.parents[3]/'public/assets/levels/vesper'
+DEST=ROOT.parents[3]/'.experiments/vesper-authoring'
+DEST.mkdir(parents=True, exist_ok=True)
 bpy.ops.wm.open_mainfile(filepath=str(ROOT/'vesper-assets.blend'))
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
 rng=random.Random(290930)

@@ -1,7 +1,6 @@
 {
   "generator": "generate-environment.py",
   "reference": "scene-reference.png",
-  "runtime": "/assets/levels/glasswake/glasswake-environment.glb",
   "units": "metres",
   "meshes": [
     {
@@ -246,5 +245,6 @@
     }
   ],
   "triangles": 42284,
-  "bytes": 2769136
+  "bytes": 2769136,
+  "authoringExport": ".experiments/glasswake-authoring/glasswake-environment.glb"
 }

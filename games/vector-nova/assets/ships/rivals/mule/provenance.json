@@ -10,7 +10,7 @@
   },
   "model": {
     "source": "assets/ships/rivals/mule/mule.blend",
-    "export": "assets/ships/rivals/mule/mule.glb",
+    "export": "public/assets/ships/rivals/mule/mule.glb",
     "generator": "assets/ships/rivals/build_rivals.py",
     "sharedHelpers": "assets/ships/build_fleet.py",
     "authorship": "Original Blender geometry authored from its generated reference using project-owned construction helpers; no third-party meshes, fonts or textures.",

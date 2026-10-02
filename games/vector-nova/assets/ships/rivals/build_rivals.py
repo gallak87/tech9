@@ -1,13 +1,13 @@
-"""Three original production-class rivals. Asset-only; no gameplay registration.
+"""Three original AI racer chassis, separate from the player-selectable fleet.
 
 Run: blender --background --threads 6 --python assets/ships/rivals/build_rivals.py
 Optional arguments after --: --ship rook|latch|mule|all --render
-Editable sources stay beside this script; GLBs are copied to public for inspection.
+Editable sources stay beside this script; each GLB exports directly to public.
 """
 import argparse
+import hashlib
 import json
 import math
-import shutil
 import sys
 from pathlib import Path
 
@@ -490,13 +490,11 @@ def build(id, render=False):
     for obj in joined + empties:
         obj.select_set(True)
     bpy.context.view_layer.objects.active = joined[0]
-    output = directory / (id + '.glb')
+    output = ROOT / 'public/assets/ships/rivals' / id / (id + '.glb')
+    output.parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.export_scene.gltf(filepath=str(output), export_format='GLB', use_selection=True,
                               export_yup=True, export_apply=True, export_extras=True,
                               export_cameras=False, export_lights=False, export_animations=False)
-    runtime_output = ROOT / 'public/assets/ships/rivals' / id / (id + '.glb')
-    runtime_output.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(output, runtime_output)
     vertices = [obj.matrix_world @ vertex.co for obj in joined for vertex in obj.data.vertices]
     points = [(v.x, v.z, -v.y) for v in vertices]
     bounds = {'min': [min(p[k] for p in points) for k in range(3)],
@@ -506,7 +504,8 @@ def build(id, render=False):
               'dimensions': [bounds['max'][k] - bounds['min'][k] for k in range(3)],
               'triangles': sum(len(obj.data.polygons) for obj in joined),
               'meshes': len(joined), 'materials': len(joined), 'sourceComponents': len(components),
-              'anchors': F.anchors, 'glbBytes': output.stat().st_size, 'textureCount': len(finishes) * 3,
+              'anchors': F.anchors, 'glbBytes': output.stat().st_size,
+              'sha256': hashlib.sha256(output.read_bytes()).hexdigest(), 'textureCount': len(finishes) * 3,
               'textures': 'Embedded original baked base-color, roughness and tangent normals'}
     (directory / 'asset-manifest.json').write_text(json.dumps(report, indent=2) + '\n')
     print('RIVAL_ASSET ' + json.dumps(report), flush=True)

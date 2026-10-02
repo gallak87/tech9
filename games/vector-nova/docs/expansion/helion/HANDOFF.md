@@ -77,6 +77,8 @@ Add restrained peripheral thermal shimmer or a visor heat cue as actual exposure
 
 High may add slowly evolving prominence detail, restrained radiance and small instrument motions. Low preserves star structure, major flare silhouettes, shield geometry and shaded route fill while reducing fine turbulence and minor hardware. Reduced motion holds stellar surface flow and instruments steady; no rapid flare flashes or camera shake; retain readable heat warnings and all gameplay hazard cues.
 
+Reuse the [shared racing/device system](../README.md#gameplay-and-presentation-boundaries): author placements, supply the level's pure motion adapter for rivals and verify physical two-lap finishes, replay and solo practice.
+
 ## Production and review
 
 Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The monumental shields/radiators, shielded jump structures and large flare/plasma shapes are major scene-to-Blender subjects. Use the modeled forms as the basis for layered animated materials/particles where useful; fire and stellar flow need not be literal static meshes. Keep ordinary service hardware reusable.

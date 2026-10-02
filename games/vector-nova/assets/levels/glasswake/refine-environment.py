@@ -4,7 +4,8 @@ Run in background Blender from the game root; no render, bake or external data.
 """
 import bpy, math, os, json
 ROOT=os.path.dirname(os.path.abspath(__file__))
-OUT=os.path.abspath(os.path.join(ROOT,'../../../public/assets/levels/glasswake'))
+OUT=os.path.abspath(os.path.join(ROOT,'../../../.experiments/glasswake-authoring'))
+os.makedirs(OUT, exist_ok=True)
 bpy.ops.wm.open_mainfile(filepath=os.path.join(ROOT,'glasswake-environment.blend'))
 # Erode the barrel ends and give the existing vault broad broken recesses.
 roof=bpy.data.objects['cave_roof']
@@ -108,7 +109,7 @@ bpy.context.preferences.filepaths.save_version=0
 bpy.context.scene['asset_notes']='Refined vaults, torn sheets, eroded cliff crowns and thick chamber recesses; original scene preserved separately.'
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ROOT,'glasswake-environment-v2.blend'))
 bpy.ops.export_scene.gltf(filepath=os.path.join(OUT,'glasswake-environment-v2.glb'),export_format='GLB',export_yup=True,export_apply=True,export_animations=False,export_cameras=False,export_lights=False)
-manifest={'generator':'refine-environment.py','base':'glasswake-environment.blend','reference':'scene-reference.png','runtime':'/assets/levels/glasswake/glasswake-environment-v2.glb','meshes':[]}
+manifest={'generator':'refine-environment.py','base':'glasswake-environment.blend','reference':'scene-reference.png','authoringExport':'.experiments/glasswake-authoring/glasswake-environment-v2.glb','meshes':[]}
 for item in bpy.context.scene.objects:
     if item.type=='MESH':
         item.data.calc_loop_triangles();manifest['meshes'].append({'name':item.name,'vertices':len(item.data.vertices),'triangles':len(item.data.loop_triangles)})

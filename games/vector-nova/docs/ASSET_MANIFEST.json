@@ -45,17 +45,18 @@
     },
     {
       "id": "halcyon-sky",
-      "source": "public/assets/sky/halcyon-clouds-v1.png and src/levels/halcyon/backdrop/",
+      "source": "public/assets/levels/halcyon/halcyon-clouds-v1.png and src/levels/halcyon/backdrop/",
       "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project; renderer shader by project contributors",
       "provenance": "Original generated cloud panorama without reference images; exact prompt retained beside level provenance. Runtime geometry/lighting and approximate reflections remain authored by the project.",
       "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
       "runtimeDependencies": ["three"],
       "dimensions": [1774, 887],
-      "provenanceRecord": "assets/levels/halcyon/SKY_PROVENANCE.md"
+      "provenanceRecord": "assets/levels/halcyon/SKY_PROVENANCE.md",
+      "runtimeAsset": "public/assets/levels/halcyon/halcyon-clouds-v1.png"
     },
     {
-      "id": "halcyon-devices",
-      "source": "src/pickups/halcyon/",
+      "id": "shared-road-devices",
+      "source": "src/pickups/ and src/levels/<slug>/devices.js",
       "creator": "VECTOR//NOVA project contributors",
       "provenance": "Original source-native Vector cassette strips, Aegis arches, ship fields and owned shader/WebAudio feedback; no downloaded art, recordings or external fonts.",
       "rights": "Project-authored; no third-party asset restrictions",
@@ -79,7 +80,7 @@
     },
     {
       "id": "asterion-planet",
-      "source": "src/levels/orbital/backdrop/ and public/assets/orbital/",
+      "source": "src/levels/orbital/backdrop/ and public/assets/levels/orbital/",
       "creator": "VECTOR//NOVA project contributors",
       "provenance": "Original deterministic global maps plus original imagegen terrain and separate weather-density material maps covering the near region and visible surrounding globe. Real spherical surface/cloud/atmosphere geometry with runtime lighting; no screenshot scenery.",
       "rights": "Project-authored; no third-party asset restrictions",
@@ -88,14 +89,14 @@
       "textureMemoryEstimateMiB": 80,
       "compressedAssetBytes": 16001716,
       "generationMode": "Built-in image_gen tool for regional terrain and grayscale weather; no reference images",
-      "promptRecord": "src/levels/orbital/backdrop/asset-provenance.json",
+      "promptRecord": "assets/levels/orbital/PROVENANCE.json",
       "runtimeMaps": [
-        "public/assets/orbital/asterion-surface.webp",
-        "public/assets/orbital/asterion-clouds.webp",
-        "public/assets/orbital/asterion-terrain-authored-v1.png",
-        "public/assets/orbital/asterion-weather-density-v1.png",
-        "public/assets/orbital/asterion-terrain-surround-v1.png",
-        "public/assets/orbital/asterion-weather-surround-v1.png"
+        "public/assets/levels/orbital/asterion-surface.webp",
+        "public/assets/levels/orbital/asterion-clouds.webp",
+        "public/assets/levels/orbital/asterion-terrain-authored-v1.png",
+        "public/assets/levels/orbital/asterion-weather-density-v1.png",
+        "public/assets/levels/orbital/asterion-terrain-surround-v1.png",
+        "public/assets/levels/orbital/asterion-weather-surround-v1.png"
       ]
     },
     {
@@ -118,16 +119,16 @@
     },
     {
       "id": "nacre-tempest",
-      "source": "src/levels/nacre/ and art/level3/",
+      "source": "src/levels/nacre/ and assets/levels/nacre/blender/",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",
       "provenance": "Original route, marine geometry, analytic ocean/materials, generated storm panorama and Blender-authored leviathan. Editable sources and exact sky prompt retained.",
       "rights": "Project-authored/generated; no third-party artwork or meshes",
       "runtimeDependencies": ["three"],
       "runtimeAssets": [
-        "public/assets/level3/nacre-storm-sky-v1.png",
-        "public/assets/level3/leviathan/nacre-leviathan-v2.glb"
+        "public/assets/levels/nacre/nacre-storm-sky-v1.png",
+        "public/assets/levels/nacre/leviathan/nacre-leviathan-v2.glb"
       ],
-      "provenanceRecord": "src/levels/nacre/environment/asset-provenance.json",
+      "provenanceRecord": "assets/levels/nacre/PROVENANCE.json",
       "skyProvenance": "assets/levels/nacre/SKY_PROVENANCE.json"
     },
     {
@@ -194,7 +195,7 @@
       "id": "ai-racers",
       "source": "assets/ships/rivals/ and src/ships/rivals.js",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",
-      "provenance": "Original Rook, Latch and Mule Blender chassis, generated design concepts and embedded project-authored PBR maps. Shared by Halcyon racing and AI-racer inspection.",
+      "provenance": "Original Rook, Latch and Mule Blender chassis, generated design concepts and embedded project-authored PBR maps. Shared by circuit racing and AI-racer inspection.",
       "rights": "Project-authored/generated; no third-party artwork or meshes",
       "runtimeDependencies": ["three"],
       "runtimeAssets": [

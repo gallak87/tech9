@@ -77,6 +77,8 @@ Add brief peripheral dust/grain traces during real sandfall or exposed-sand enco
 
 High may add sparse drifting grains, limited glass transmission and animated sandfall ribbons. Low preserves the fossil silhouettes, dune contours, deck thickness and readable inner corridor lighting while simplifying grains and material layers. Reduced motion removes blowing grains and holds sandfalls nearly still; ensure repeated ribs do not produce harsh flashing at speed.
 
+Reuse the [shared racing/device system](../README.md#gameplay-and-presentation-boundaries): author placements, supply the level's pure motion adapter for rivals and verify physical two-lap finishes, replay and solo practice.
+
 ## Production and review
 
 Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The traversable skull and anatomically varied vertebrae, living burrower, and displaced dune/sandfall assemblies are major scene-to-Blender subjects. Establish reusable bone and dune families for the remaining landscape.

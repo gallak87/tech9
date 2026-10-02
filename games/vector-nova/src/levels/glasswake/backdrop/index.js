@@ -1,3 +1,4 @@
+import { assetURL } from '../../../assets/url.js';
 import * as T from 'three';
 import { sampleGlasswakeWeather } from '../weather/state.js';
 
@@ -5,7 +6,7 @@ export async function createGlasswakeBackdrop({ shape = false, track } = {}) {
   const texture = shape
     ? null
     : await new T.TextureLoader()
-        .loadAsync('/assets/levels/glasswake/aurora-sky-v1.png')
+        .loadAsync(assetURL('assets/levels/glasswake/aurora-sky-v1.png'))
         .catch((reason) => {
           const detail =
             reason instanceof Error ? reason.message : 'image request failed';

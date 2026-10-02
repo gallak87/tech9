@@ -1,3 +1,4 @@
+import { assetURL } from '../../../assets/url.js';
 import { groundGlasswakeSupports } from './grounding.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -604,7 +605,7 @@ export function buildGlasswakeRoad(
     shape || typeof document === 'undefined'
       ? Promise.resolve(false)
       : new THREE.TextureLoader()
-          .loadAsync('/assets/levels/glasswake/ice-surface-v1.png')
+          .loadAsync(assetURL('assets/levels/glasswake/ice-surface-v1.png'))
           .then((texture) => {
             if (disposed) {
               texture.dispose();

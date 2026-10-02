@@ -1,3 +1,4 @@
+import { assetURL } from '../../../assets/url.js';
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { CALVING_RULES, sampleCalvingState, sampleCaveBlend } from './event.js';
@@ -9,7 +10,9 @@ import { glasswakeFlightState } from '../runtime.js';
 import { FIRST_SHELF_RULES, sampleFirstShelf } from './first-shelf.js';
 import { createOpeningAvalanche } from './opening-avalanche.js';
 
-const ASSET_URL = '/assets/levels/glasswake/glasswake-environment-v5.glb';
+const ASSET_URL = assetURL(
+  'assets/levels/glasswake/glasswake-environment-v5.glb',
+);
 const UP = new T.Vector3(0, 1, 0);
 const fract = (n) => n - Math.floor(n);
 const noise = (n) => fract(Math.sin(n * 172.41 + 41.7) * 4537.114);
@@ -651,7 +654,7 @@ export function createGlasswakeEnvironment({
         // Injected CPU asset tests intentionally do not need DOM image loading.
         if (!loadAsset) {
           iceTexture = await new T.TextureLoader()
-            .loadAsync('/assets/levels/glasswake/ice-surface-v1.png')
+            .loadAsync(assetURL('assets/levels/glasswake/ice-surface-v1.png'))
             .catch((reason) => {
               throw new Error(
                 'Glasswake ice material failed to load: image request failed',

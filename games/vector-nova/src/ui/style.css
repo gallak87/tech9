@@ -1295,25 +1295,25 @@ select {
   background: #d4eaff;
 }
 
-/* Expansion opt-in: disjoint telemetry, map and review regions at short widths. */
+/* Shared racing and expansion review use disjoint short-landscape HUD regions. */
 @media (max-height: 570px) and (orientation: landscape) {
-  #interface.compact-landscape.driving .top-telemetry {
+  #interface:is(.compact-landscape, .has-racing).driving .top-telemetry {
     top: 74px;
     gap: 22px;
   }
-  #interface.compact-landscape.driving .lap b {
+  #interface:is(.compact-landscape, .has-racing).driving .lap b {
     font-size: 32px;
   }
-  #interface.compact-landscape.driving .timing b {
+  #interface:is(.compact-landscape, .has-racing).driving .timing b {
     font-size: 23px;
   }
-  #interface.compact-landscape.driving .timing small {
+  #interface:is(.compact-landscape, .has-racing).driving .timing small {
     font-size: 8px;
   }
-  #interface.compact-landscape.driving .section-name {
+  #interface:is(.compact-landscape, .has-racing).driving .section-name {
     display: none;
   }
-  #interface.compact-landscape.driving #minimap {
+  #interface:is(.compact-landscape, .has-racing).driving #minimap {
     top: 76px;
     left: auto;
     right: 4vw;
@@ -1321,31 +1321,31 @@ select {
     width: 94px;
     height: 70px;
   }
-  #interface.compact-landscape.driving .telemetry {
+  #interface:is(.compact-landscape, .has-racing).driving .telemetry {
     bottom: 92px;
   }
-  #interface.compact-landscape.driving .energy {
+  #interface:is(.compact-landscape, .has-racing).driving .energy {
     width: 160px;
   }
-  #interface.compact-landscape.driving .energy span {
+  #interface:is(.compact-landscape, .has-racing).driving .energy span {
     font-size: 8px;
     letter-spacing: 0.08em;
   }
-  #interface.compact-landscape.driving .energy small {
+  #interface:is(.compact-landscape, .has-racing).driving .energy small {
     font-size: 8px;
     line-height: 1.2;
   }
-  #interface.compact-landscape.driving .speed strong {
+  #interface:is(.compact-landscape, .has-racing).driving .speed strong {
     font-size: 48px;
   }
-  #interface.compact-landscape.driving .speed {
+  #interface:is(.compact-landscape, .has-racing).driving .speed {
     gap: 6px;
   }
-  #interface.compact-landscape.driving .speed i {
+  #interface:is(.compact-landscape, .has-racing).driving .speed i {
     font-size: 8px;
     bottom: -14px;
   }
-  #interface.compact-landscape.driving #shape-controls {
+  #interface:is(.compact-landscape, .has-racing).driving #shape-controls {
     top: 148px;
     bottom: auto;
     left: 4vw;
@@ -1355,19 +1355,19 @@ select {
     max-height: calc(100dvh - 230px);
     overflow: auto;
   }
-  #interface.compact-landscape.driving
+  #interface:is(.compact-landscape, .has-racing).driving
     #shape-controls:has(#review-toggle[aria-expanded='true']) {
     left: calc(50% - 130px);
     width: 260px;
   }
-  #interface.compact-landscape.driving #review-toggle {
+  #interface:is(.compact-landscape, .has-racing).driving #review-toggle {
     font-size: 10px;
     padding: 5px 2px;
   }
-  #interface.compact-landscape.driving .shape-views {
+  #interface:is(.compact-landscape, .has-racing).driving .shape-views {
     margin-bottom: 8px;
   }
-  #interface.compact-landscape.driving #notice {
+  #interface:is(.compact-landscape, .has-racing).driving #notice {
     top: 48px;
     bottom: auto;
     width: min(260px, calc(100vw - 380px));
@@ -1375,7 +1375,7 @@ select {
     line-height: 1.25;
     padding: 5px 8px;
   }
-  #interface.compact-landscape.driving #touch {
+  #interface:is(.compact-landscape, .has-racing).driving #touch {
     position: absolute;
     bottom: max(14px, env(safe-area-inset-bottom));
     left: 3vw;
@@ -1384,12 +1384,12 @@ select {
     justify-content: space-between;
     gap: 10px;
   }
-  #interface.compact-landscape.driving #touch > div {
+  #interface:is(.compact-landscape, .has-racing).driving #touch > div {
     display: flex;
     gap: 5px;
     align-items: flex-end;
   }
-  #interface.compact-landscape.driving #touch button {
+  #interface:is(.compact-landscape, .has-racing).driving #touch button {
     font-size: 9px;
     touch-action: none;
     background: #142732b8;
@@ -1398,14 +1398,16 @@ select {
     min-height: 48px;
     padding: 14px 10px;
   }
-  #interface.compact-landscape.driving #legend,
-  #interface.compact-landscape.driving .review-tag {
+  #interface:is(.compact-landscape, .has-racing).driving #legend,
+  #interface:is(.compact-landscape, .has-racing).driving .review-tag {
     display: none;
   }
 }
 
 @media (max-height: 570px) and (orientation: landscape) {
-  #interface.compact-landscape.driving:has(#review-toggle[aria-expanded='true'])
+  #interface:is(.compact-landscape, .has-racing).driving:has(
+      #review-toggle[aria-expanded='true']
+    )
     #notice {
     top: 48px;
     bottom: auto;
@@ -1899,6 +1901,9 @@ select {
   left: calc(4vw + 440px);
   right: auto;
 }
+#race-roster:not(.in-paddock) {
+  padding: 12px;
+}
 .roster-heading span {
   display: block;
   font-size: 9px;
@@ -1939,6 +1944,10 @@ select {
   border-left: 3px solid var(--racer-color);
   margin-bottom: 5px;
   font-size: 11px;
+}
+#race-roster:not(.in-paddock) li {
+  padding-top: 6px;
+  padding-bottom: 6px;
 }
 #race-roster li > b {
   color: #93aeb9;
@@ -2049,4 +2058,55 @@ select {
   font-size: 8px;
   letter-spacing: 0.05em;
   color: #bcced8;
+}
+
+/* Shared field placement respects the existing compact world HUD options. */
+@media (min-width: 761px) and (min-height: 701px) {
+  #interface.compact-paddock #race-roster:not(.in-paddock) {
+    top: 210px;
+  }
+}
+@media (max-width: 760px), (max-height: 700px) {
+  #race-roster:not(.in-paddock) {
+    width: 150px;
+    padding: 6px;
+  }
+  #race-roster:not(.in-paddock) .roster-heading span,
+  #race-roster:not(.in-paddock) .roster-heading b {
+    font-size: 6px;
+  }
+  #race-roster:not(.in-paddock) ol {
+    margin-top: 4px;
+    padding-top: 4px;
+  }
+  #race-roster:not(.in-paddock) li {
+    grid-template-columns: 14px 1fr auto;
+    gap: 4px;
+    margin-bottom: 2px;
+    padding: 2px 0 2px 4px;
+    line-height: 1.1;
+  }
+  #race-roster:not(.in-paddock) li,
+  #race-roster:not(.in-paddock) li > b,
+  #race-roster:not(.in-paddock) li > small {
+    font-size: 8px;
+  }
+  #interface.has-live-race #notice {
+    width: calc(92vw - 160px);
+    left: 4vw;
+    transform: none;
+  }
+}
+@media (max-width: 760px), (max-height: 570px) {
+  #title-panel #race-roster.in-paddock {
+    position: static;
+    width: 100%;
+    margin-top: 16px;
+    padding: 12px;
+  }
+}
+@media (max-height: 570px) {
+  #race-roster:not(.in-paddock) {
+    top: 152px;
+  }
 }

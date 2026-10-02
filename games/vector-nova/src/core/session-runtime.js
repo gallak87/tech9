@@ -7,7 +7,8 @@ export function createMagneticRuntime({ track }) {
     version: 1,
     rulesId: BASELINE_RULES,
     scenarios: {},
-    advance: (state, input, dt) => stepVehicle(state, input, track, dt),
+    advance: (state, input, dt, modifiers) =>
+      stepVehicle(state, input, track, dt, modifiers),
     reset() {},
     snapshot: () => null,
     restore() {},

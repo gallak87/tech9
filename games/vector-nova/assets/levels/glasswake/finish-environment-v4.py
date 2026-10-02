@@ -3,7 +3,8 @@ Selected original scene reference remains the composition/art direction source.
 """
 import bpy, math, random, os, json
 ROOT=os.path.dirname(os.path.abspath(__file__))
-OUT=os.path.abspath(os.path.join(ROOT,'../../../public/assets/levels/glasswake'))
+OUT=os.path.abspath(os.path.join(ROOT,'../../../.experiments/glasswake-authoring'))
+os.makedirs(OUT, exist_ok=True)
 bpy.ops.wm.open_mainfile(filepath=os.path.join(ROOT,'glasswake-environment-v3.blend'))
 M=[bpy.data.materials[n] for n in ['Cobalt buried blue-black core','Blue compact ice planes','Pale fractured wind-polished ice','Opaque frost crust','Fresh fracture blue edges']]
 def mass(name,w,d,h,seed,center):
@@ -72,7 +73,7 @@ bpy.context.preferences.filepaths.save_version=0
 bpy.context.scene['asset_notes']='Asymmetric fault massifs, deep fissure cuts and attached cavity ice; earlier scenes preserved.'
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ROOT,'glasswake-environment-v4.blend'))
 bpy.ops.export_scene.gltf(filepath=os.path.join(OUT,'glasswake-environment-v4.glb'),export_format='GLB',export_yup=True,export_apply=True,export_animations=False,export_cameras=False,export_lights=False)
-manifest={'generator':'finish-environment-v4.py','base':'glasswake-environment-v3.blend','reference':'scene-reference.png','runtime':'/assets/levels/glasswake/glasswake-environment-v4.glb','meshes':[]}
+manifest={'generator':'finish-environment-v4.py','base':'glasswake-environment-v3.blend','reference':'scene-reference.png','authoringExport':'.experiments/glasswake-authoring/glasswake-environment-v4.glb','meshes':[]}
 for o in bpy.context.scene.objects:
     if o.type=='MESH':
         o.data.calc_loop_triangles();manifest['meshes'].append({'name':o.name,'vertices':len(o.data.vertices),'triangles':len(o.data.loop_triangles)})

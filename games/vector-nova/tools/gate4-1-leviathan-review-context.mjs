@@ -242,7 +242,7 @@ const context = {
   coordinateSystem:
     'Three.js world +Y up. Transform to Blender with (x,-z,y); camera matrix/orientation must receive the same transform.',
   trackGeometry: 'track-geometry.json',
-  modelAsset: 'public/assets/level3/leviathan/nacre-leviathan-v2.glb',
+  modelAsset: 'public/assets/levels/nacre/leviathan/nacre-leviathan-v2.glb',
   constants: NACRE_LEVIATHAN,
   path: {
     anchorDistance: route.anchorDistance,

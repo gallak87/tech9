@@ -1,8 +1,8 @@
 {
-  "title": "Vesper Canopy — original scene, material and sky assets",
+  "title": "Vesper Canopy \u2014 original scene, material and sky assets",
   "date": "2026-09-30",
   "ownership": "Original geometry, shaders and Blender generator authored for VECTOR//NOVA. Scene concepts generated using the built-in image_gen tool; no third-party meshes or textures.",
-  "workflow": "Original scene concepts → reproducible CPU Blender geometry → glTF runtime library. The bark tile is embedded in the GLB. A separate original imagegen panorama supplies only the far sky/horizon and environment reflections; nearby forest remains real world geometry.",
+  "workflow": "Original scene concepts \u2192 reproducible CPU Blender geometry \u2192 glTF runtime library. The bark tile is embedded in the GLB. A separate original imagegen panorama supplies only the far sky/horizon and environment reflections; nearby forest remains real world geometry.",
   "concepts": [
     {
       "file": "concepts/hollow-tree-scene.png",
@@ -45,11 +45,11 @@
     "sha256": "259fa927c01f4d438ea5a0276b82ba1f672182493ac10d0ba9279d62ff48162c"
   },
   "connectedElder": {
-    "asset": "public/assets/levels/vesper/vesper-connected-elder-v1.glb",
     "source": "assets/levels/vesper/blender/vesper-connected-elder.blend",
     "generator": "assets/levels/vesper/blender/build_connected_tree.py",
     "seed": 290930,
-    "method": "Independent parent-anchored trunk/limb/shoot/leaf geometry, informed by the local landscape build_forest.py approach; no framework imports. Existing Vesper bark and leaf materials reused."
+    "method": "Independent parent-anchored trunk/limb/shoot/leaf geometry, informed by the local landscape build_forest.py approach; no framework imports. Existing Vesper bark and leaf materials reused.",
+    "authoringExport": ".experiments/vesper-authoring/vesper-connected-elder-v1.glb"
   },
   "connectedForest": {
     "asset": "public/assets/levels/vesper/vesper-connected-forest-v1.glb",

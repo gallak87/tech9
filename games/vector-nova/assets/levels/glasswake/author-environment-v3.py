@@ -5,7 +5,8 @@ Blender background CPU geometry/export only; no bake or GPU render.
 import bpy, math, os, json
 from mathutils import Vector
 ROOT=os.path.dirname(os.path.abspath(__file__))
-OUT=os.path.abspath(os.path.join(ROOT,'../../../public/assets/levels/glasswake'))
+OUT=os.path.abspath(os.path.join(ROOT,'../../../.experiments/glasswake-authoring'))
+os.makedirs(OUT, exist_ok=True)
 bpy.ops.wm.open_mainfile(filepath=os.path.join(ROOT,'glasswake-environment-v2.blend'))
 M={k:bpy.data.materials[v] for k,v in {'blue':'Blue compact ice planes','ice':'Pale fractured wind-polished ice','frost':'Opaque frost crust','core':'Cobalt buried blue-black core','edge':'Fresh fracture blue edges','dark':'Trapped meteoric inclusion','glow':'Deep cavity fracture light'}.items()}
 for k,col,rough in [('blue',(.23,.44,.57),.33),('ice',(.52,.73,.8),.39),('frost',(.76,.86,.9),.82),('core',(.075,.14,.22),.76),('edge',(.35,.62,.73),.29),('dark',(.047,.059,.078),.62)]:
@@ -102,7 +103,7 @@ bpy.context.scene['asset_notes']='Playtest revision: broken aperture vault, tall
 bpy.context.preferences.filepaths.save_version=0
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ROOT,'glasswake-environment-v3.blend'))
 bpy.ops.export_scene.gltf(filepath=os.path.join(OUT,'glasswake-environment-v3.glb'),export_format='GLB',export_yup=True,export_apply=True,export_animations=False,export_cameras=False,export_lights=False)
-manifest={'generator':'author-environment-v3.py','base':'glasswake-environment-v2.blend','reference':'scene-reference.png','runtime':'/assets/levels/glasswake/glasswake-environment-v3.glb','meshes':[]}
+manifest={'generator':'author-environment-v3.py','base':'glasswake-environment-v2.blend','reference':'scene-reference.png','authoringExport':'.experiments/glasswake-authoring/glasswake-environment-v3.glb','meshes':[]}
 for o in bpy.context.scene.objects:
  if o.type=='MESH':
   o.data.calc_loop_triangles();manifest['meshes'].append({'name':o.name,'vertices':len(o.data.vertices),'triangles':len(o.data.loop_triangles)})

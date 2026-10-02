@@ -2,7 +2,6 @@
   "generator": "finish-environment-v4.py",
   "base": "glasswake-environment-v3.blend",
   "reference": "scene-reference.png",
-  "runtime": "/assets/levels/glasswake/glasswake-environment-v4.glb",
   "meshes": [
     {
       "name": "rubble_shelf",
@@ -256,5 +255,6 @@
     }
   ],
   "triangles": 56580,
-  "bytes": 3041092
+  "bytes": 3041092,
+  "authoringExport": ".experiments/glasswake-authoring/glasswake-environment-v4.glb"
 }

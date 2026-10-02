@@ -119,7 +119,7 @@ export function createCindercoilRuntime(context) {
   return {
     ...flight,
     scenarios,
-    advance(state, input, dt) {
+    advance(state, input, dt, modifiers) {
       if (disposed || !Number.isFinite(dt) || dt <= 0) return [];
       const events = [];
       const elapsed = Math.min(dt, 0.1);
@@ -129,7 +129,7 @@ export function createCindercoilRuntime(context) {
         const contact = surgeAt(track, state);
         const pose = flight.pose(1);
         const touching = (!pose || pose.grounded) && contact?.contact;
-        events.push(...flight.advance(state, input, step));
+        events.push(...flight.advance(state, input, step, modifiers));
         if (touching) {
           state.energy = Math.max(
             0,

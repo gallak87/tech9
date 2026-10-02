@@ -1,3 +1,4 @@
+import { assetURL } from '../../../assets/url.js';
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
@@ -19,7 +20,7 @@ import {
   seededRandom,
 } from './geometry.js';
 
-const ASSET = '/assets/levels/cindercoil/cindercoil-hero-kit-v7.glb';
+const ASSET = assetURL('assets/levels/cindercoil/cindercoil-hero-kit-v7.glb');
 const UP = new T.Vector3(0, 1, 0);
 
 function instantiateModule(template, placements, name) {
@@ -618,7 +619,7 @@ export function createCindercoilEnvironment({
           const texture = await Promise.resolve()
             .then(() =>
               (loadTexture ?? ((url) => new T.TextureLoader().loadAsync(url)))(
-                '/assets/levels/cindercoil/basalt-albedo-v1.png',
+                assetURL('assets/levels/cindercoil/basalt-albedo-v1.png'),
               ),
             )
             .catch((cause) => {

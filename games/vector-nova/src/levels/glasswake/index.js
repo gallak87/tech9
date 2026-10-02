@@ -1,3 +1,4 @@
+import { createDevices } from './devices.js';
 import { createGlasswakeTrack, buildGlasswakeRoad } from './track/index.js';
 import { createGlasswakeEnvironment } from './environment/index.js';
 import { createGlasswakeBackdrop } from './backdrop/index.js';
@@ -8,8 +9,9 @@ import { createGlasswakeShelfAudio } from './audio.js';
 export default function createLevel({ shape = false } = {}) {
   let road, track;
   return {
-    version: '0.5.0-glasswake-v6',
+    version: '0.5.1-glasswake-racing',
     audio: { environment: shape ? undefined : createGlasswakeShelfAudio },
+    racing: { createDevices, createMotion: createGlasswakeRuntime },
     renderer: {
       world: shape ? 'glasswake-shape' : 'glasswake-comet',
       background: '#050b1c',

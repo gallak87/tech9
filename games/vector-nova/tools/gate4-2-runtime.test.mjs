@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createVehicleState, stepVehicle } from '../src/physics/index.js';
-import { createHalcyonSimulationRuntime } from '../src/pickups/halcyon/runtime.js';
+import { createHalcyonSimulationRuntime } from '../src/levels/halcyon/device-runtime.js';
 import {
   advanceSession,
   createMagneticRuntime,

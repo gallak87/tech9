@@ -82,6 +82,18 @@ export function validateDefinition(definition, id = 'circuit') {
       throw new Error(`Invalid ${id}.${name}`);
   if (definition.camera?.safeFrame !== undefined)
     validateSafeFrame(definition.camera.safeFrame);
+  if (definition.racing !== undefined) {
+    if (
+      !definition.racing ||
+      typeof definition.racing.createDevices !== 'function'
+    )
+      throw new Error(`Invalid ${id}.racing.createDevices`);
+    if (
+      definition.racing.createMotion !== undefined &&
+      typeof definition.racing.createMotion !== 'function'
+    )
+      throw new Error(`Invalid ${id}.racing.createMotion`);
+  }
   if (typeof definition.version !== 'string' || !definition.version)
     throw new Error(`${id} is missing a version`);
   return definition;

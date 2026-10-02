@@ -6,11 +6,11 @@ import {
   createPickupSimulation,
   sweptDeviceCrossings,
   sweptVectorContacts,
-} from '../src/pickups/halcyon/simulation.js';
+} from '../src/pickups/simulation.js';
 import {
   HALCYON_TRACK_ID,
   createHalcyonDevices,
-} from '../src/pickups/halcyon/placements.js';
+} from '../src/levels/halcyon/devices.js';
 import { createTrack } from '../src/levels/halcyon/track/model.js';
 import { createVehicleState } from '../src/physics/index.js';
 
@@ -210,8 +210,11 @@ test('seam crossing orders Vector volume entry and Aegis arch by actual contact 
   assert.equal(sim.snapshot().used.seam, 1);
 });
 
-test('unsupported motion cannot collect a ground strip', () => {
-  const sim = simulation([device('strip', 'vector', 100)]);
+test('unsupported motion cannot collect ground strips or shield arches', () => {
+  const sim = simulation([
+    device('strip', 'vector', 100),
+    device('shield', 'aegis', 100),
+  ]);
   assert.equal(
     cross(
       sim,
@@ -221,6 +224,7 @@ test('unsupported motion cannot collect a ground strip', () => {
     0,
   );
   assert.equal(sim.snapshot().vectorActive, false);
+  assert.equal(sim.snapshot().aegisRemaining, 0);
 });
 
 test('Aegis centre crossing retains interpolated lateral and yaw coverage', () => {

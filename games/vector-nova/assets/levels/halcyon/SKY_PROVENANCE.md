@@ -1,6 +1,6 @@
 # Halcyon cloud panorama
 
-Runtime asset: `public/assets/sky/halcyon-clouds-v1.png`.
+Runtime asset: `public/assets/levels/halcyon/halcyon-clouds-v1.png`.
 
 Created with the built-in imagegen tool for this project on 2026-09-28. No reference image, external artwork, city, track or gameplay image was supplied. This is an original generated cloud-only environment texture; the interactive scene, architecture, track, vehicle and lighting remain real 3D geometry and simulation. It is not an HDR capture: bounded radiance is supplemented by the scene's explicit solar source.
 

@@ -38,7 +38,13 @@ export function createUI(
   actions,
   settings,
   track,
-  { metadata, circuits, shape: blockout = false, selectedShip = SHIPS[0] },
+  {
+    metadata,
+    circuits,
+    shape: blockout = false,
+    selectedShip = SHIPS[0],
+    racing = false,
+  },
 ) {
   const root = document.createElement('main');
   root.id = 'interface';
@@ -82,6 +88,12 @@ export function createUI(
         : null;
     roster.classList.toggle('hidden', !data);
     roster.classList.toggle('in-paddock', paddock);
+    root.classList.toggle('has-live-race', Boolean(data) && !paddock);
+    const rosterParent =
+      paddock && (innerWidth <= 760 || innerHeight <= 570)
+        ? $('title-panel')
+        : root;
+    if (roster.parentElement !== rosterParent) rosterParent.append(roster);
     if (!data) return;
     const rows = paddock ? data.standings : (data.relative?.field ?? []);
     const gapText = (entry) => {
@@ -112,7 +124,9 @@ export function createUI(
       ? 'LAST SESSION'
       : 'RACE ORDER';
     const heading = roster.querySelector('.roster-heading b');
-    heading.textContent = paddock ? 'HALCYON · 2 LAPS' : 'GAP TO YOU';
+    heading.textContent = paddock
+      ? `${metadata.name.toUpperCase()} · 2 LAPS`
+      : 'GAP TO YOU';
     const entries = rows.map((entry) => {
       const row = document.createElement('li');
       row.dataset.racer = entry.id;
@@ -181,7 +195,7 @@ export function createUI(
   const review = blockout && metadata.review;
   const copy = { ...metadata.ui, ...(blockout ? metadata.ui.shape : {}) };
   const panel = $('title-panel');
-  if (metadata.id === 'halcyon' && !blockout) {
+  if (racing && !blockout) {
     const difficulty = document.createElement('label');
     difficulty.className = 'difficulty-picker';
     difficulty.textContent = 'DIFFICULTY';
@@ -199,6 +213,7 @@ export function createUI(
     panel.insertBefore(difficulty, panel.querySelector('.launch-actions'));
   }
   root.classList.toggle('has-review', metadata.review);
+  root.classList.toggle('has-racing', racing);
   root.classList.toggle('compact-paddock', Boolean(copy.compact) && !blockout);
   root.classList.toggle('stacked-review', Boolean(copy.stackedReview));
   root.classList.toggle('low-notice', Boolean(copy.lowNotice));
@@ -386,7 +401,7 @@ export function createUI(
   rivalPicker.setAttribute('role', 'tabpanel');
   rivalPicker.setAttribute('aria-labelledby', 'inspection-rivals-tab');
   rivalPicker.innerHTML =
-    '<div class="ship-picker-label" id="rival-ship-label">AI RACERS <span>03 CHASSIS</span></div><div class="ship-picker" role="radiogroup" aria-labelledby="rival-ship-label"></div><p class="ship-summary">RACING ON HALCYON · INSPECTION ONLY</p>';
+    '<div class="ship-picker-label" id="rival-ship-label">AI RACERS <span>03 CHASSIS</span></div><div class="ship-picker" role="radiogroup" aria-labelledby="rival-ship-label"></div><p class="ship-summary">AI RACING FLEET · INSPECTION ONLY</p>';
   const rivalChoices = rivalPicker.querySelector('.ship-picker');
   RIVAL_SHIPS.forEach((craft, index) => {
     const button = document.createElement('button');

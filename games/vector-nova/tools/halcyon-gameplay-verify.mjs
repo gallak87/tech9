@@ -5,13 +5,13 @@ import { chromium } from 'playwright';
 import { createTrack } from '../src/levels/halcyon/track/model.js';
 import { createVehicleState } from '../src/physics/index.js';
 import { createRace } from '../src/race/index.js';
-import { HALCYON_GRID, getRacerControl } from '../src/race/halcyon-racers.js';
-import { createHalcyonSimulationRuntime } from '../src/pickups/halcyon/runtime.js';
+import { RACE_GRID, getRacerControl } from '../src/race/racers.js';
+import { createHalcyonSimulationRuntime } from '../src/levels/halcyon/device-runtime.js';
 
 // A CPU-generated input recording exercises the real replay/finish path without
 // running a normal-speed automated lap or teleporting over checkpoints.
 const track = createTrack();
-const vehicle = { ...createVehicleState(), ...HALCYON_GRID.player };
+const vehicle = { ...createVehicleState(), ...RACE_GRID.player };
 const race = createRace(track);
 const runtime = createHalcyonSimulationRuntime({ track });
 runtime.reset({ reason: 'fresh-lap', state: vehicle });
@@ -183,7 +183,7 @@ try {
   await capture('boost-acquired');
   check(
     'Vector acquisition shows a toast without a timer',
-    (await page.locator('.halcyon-devices').innerText()).includes('CATAPULT') &&
+    (await page.locator('.race-devices').innerText()).includes('CATAPULT') &&
       (await page.locator('[data-kind="vector"] em').count()) === 0,
   );
   check(
@@ -194,7 +194,7 @@ try {
   await acquire('aegis-crown', 'aegis');
   check(
     'Aegis acquisition shows a toast',
-    (await page.locator('.halcyon-devices').innerText()).includes(
+    (await page.locator('.race-devices').innerText()).includes(
       'SHIELD ACQUIRED',
     ),
   );
@@ -276,11 +276,48 @@ try {
   await go('?level=orbital');
   const orbital = await snapshot();
   check(
-    'other circuits retain their own runtime without AI allocation',
-    orbital.runtime.id === 'magnetic' &&
-      orbital.competition === null &&
-      (await page.locator('.halcyon-devices').count()) === 0,
+    'Orbital uses the shared devices and field',
+    orbital.runtime.id === 'magnetic-devices' &&
+      orbital.competition?.enabled === false &&
+      (await page.locator('.race-devices').count()) === 1,
   );
+  // Finish through the same recording on compact screens, after desktop checks.
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.evaluate(() =>
+      localStorage.setItem(
+        'vector-nova.settings',
+        JSON.stringify({ quality: 'low', reducedMotion: true, volume: 0 }),
+      ),
+    );
+    await go('?level=halcyon');
+    await page.locator('#start').click();
+    await page.evaluate(() => window.__VN.pause());
+    const header = await page.evaluate(() => window.__VN.getReplay());
+    await page.evaluate((replay) => window.__VN.playReplay(replay), {
+      ...header,
+      inputs,
+    });
+    await page.evaluate(() => window.__VN.resume());
+    await page.keyboard.press('Escape');
+    const results = page.locator('#title-panel #race-roster.in-paddock');
+    await results.scrollIntoViewIfNeeded();
+    const box = await results.boundingBox();
+    check(
+      `compact ${viewport.width} paddock results remain reachable`,
+      box &&
+        box.x >= 0 &&
+        box.x + box.width <= viewport.width &&
+        box.y >= 0 &&
+        box.y + box.height <= viewport.height &&
+        (await snapshot()).lastResults.standings.length === 4,
+      box,
+    );
+    await capture(`compact-${viewport.width}-paddock-results`);
+  }
   check(
     'no runtime, asset or shader errors',
     report.errors.length === 0,

@@ -1,3 +1,4 @@
+import { assetURL } from '../../../assets/url.js';
 import * as T from 'three';
 
 /** Authored far sky and forest horizon; the nearby forest remains world geometry. */
@@ -5,7 +6,7 @@ export async function createVesperBackdrop() {
   let texture;
   try {
     texture = await new T.TextureLoader().loadAsync(
-      '/assets/levels/vesper/vesper-night-sky-v1.png',
+      assetURL('assets/levels/vesper/vesper-night-sky-v1.png'),
     );
   } catch (cause) {
     throw new Error(

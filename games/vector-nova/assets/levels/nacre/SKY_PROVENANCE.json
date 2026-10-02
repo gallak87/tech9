@@ -3,7 +3,7 @@
   "method": "OpenAI built-in image_gen, original generated sky texture",
   "generatedAt": "2026-09-29",
   "sourcePath": "/Users/g/.codex/generated_images/01a0ebc7-32f4-79d1-b223-ebbf88104f31/exec-814d50a6-6763-4ef1-9e87-d2dc8007f54f.png",
-  "projectAsset": "public/assets/level3/nacre-storm-sky-v1.png",
+  "projectAsset": "public/assets/levels/nacre/nacre-storm-sky-v1.png",
   "width": 1774,
   "height": 887,
   "format": "PNG",

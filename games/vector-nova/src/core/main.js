@@ -249,22 +249,47 @@ async function boot() {
       });
     }
   };
-  const runtime = lifetime.own(
-    await (definition.createRuntime ?? createMagneticRuntime)({
-      track,
-      scene,
-      ship,
-      host,
-      settings,
-      emit,
-    }),
+  const racingEnabled = Boolean(definition.racing) && !blockout;
+  const runtimeContext = {
+    track,
+    scene,
+    ship,
+    host,
+    settings,
+    emit,
+  };
+  const motion = await (definition.createRuntime ?? createMagneticRuntime)(
+    runtimeContext,
   );
-  const halcyonRacing = metadata.id === 'halcyon' && !blockout;
-  const racerModule = halcyonRacing
-    ? await import('../race/halcyon-racers.js')
-    : null;
+  const devices = racingEnabled ? definition.racing.createDevices(track) : [];
+  const runtime = lifetime.own(
+    racingEnabled
+      ? (await import('../pickups/index.js')).createCircuitDeviceRuntime(
+          runtimeContext,
+          { motion, devices, ...definition.racing },
+        )
+      : motion,
+  );
+  const racerModule = racingEnabled ? await import('../race/racers.js') : null;
+  const { createDeviceRuntime } = racingEnabled
+    ? await import('../pickups/runtime.js')
+    : {};
   const racers = racerModule
-    ? lifetime.own(racerModule.createHalcyonRacers({ track }))
+    ? lifetime.own(
+        racerModule.createRacers({
+          track,
+          devices,
+          createRuntime: () =>
+            createDeviceRuntime({
+              track,
+              devices,
+              identity: definition.racing.identity,
+              motion: (definition.racing.createMotion ?? createMagneticRuntime)(
+                { track, settings, presentation: false },
+              ),
+            }),
+        }),
+      )
     : null;
   const racerPresentation = racers
     ? lifetime.own(
@@ -393,10 +418,10 @@ async function boot() {
       mode === 'title' || mode === 'inspection' || mode === 'overview';
     if (newRun) {
       raceDifficulty = settings.difficulty;
-      competition = halcyonRacing;
+      competition = racingEnabled;
       scenario = 'staging';
       state = createVehicleState(ship.selected.id);
-      if (competition) Object.assign(state, racerModule.HALCYON_GRID.player);
+      if (competition) Object.assign(state, racerModule.RACE_GRID.player);
       prev = { ...state };
       race = makeRace();
       resetRacers();
@@ -453,10 +478,10 @@ async function boot() {
     cancelCountdown();
     scenario = 'staging';
     sceneShip();
-    competition = halcyonRacing && compete;
+    competition = racingEnabled && compete;
     if (withCountdown) raceDifficulty = settings.difficulty;
     state = createVehicleState(ship.selected.id);
-    if (competition) Object.assign(state, racerModule.HALCYON_GRID.player);
+    if (competition) Object.assign(state, racerModule.RACE_GRID.player);
     prev = { ...state };
     race = makeRace();
     resetRacers();
@@ -727,6 +752,7 @@ async function boot() {
         circuits: levelCatalog.list,
         shape: blockout,
         selectedShip: ship.selected,
+        racing: racingEnabled,
       },
     ),
   );
@@ -974,7 +1000,7 @@ async function boot() {
       speed: s.speed,
       boosting: s.boosting,
       catapulting: runtime.snapshot()?.vectorActive === true,
-      enabled: halcyonRacing,
+      enabled: racingEnabled,
     });
     world.update(frame);
     if (mode === 'inspection') view.renderInspection(inspectionScene);
@@ -1093,7 +1119,7 @@ async function boot() {
         raceDifficulty = replay.difficulty ?? 'easy';
         this.loadScenario(replay.scenario || 'staging', replay.seed);
         if (replay.competition) {
-          if (!halcyonRacing || replay.scenario !== 'staging')
+          if (!racingEnabled || replay.scenario !== 'staging')
             throw new Error('Replay competition mismatch');
           restart(true);
         }

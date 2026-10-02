@@ -1,6 +1,6 @@
 # VECTOR//NOVA
 
-A browser anti-gravity racer built with Three.js and Vite. Choose Kestrel, Shrike, Bastion or Needle and drive six distinct circuits with banked roads, inversions and real jumps. Halcyon adds two-lap racing against three rivals; every circuit offers solo practice, manual boost, airbraking, ship inspection and circuit review.
+A browser anti-gravity racer built with Three.js and Vite. Choose Kestrel, Shrike, Bastion or Needle and drive six distinct circuits with banked roads, inversions and real jumps. Halcyon, Orbital, Vesper, Glasswake and Cindercoil offer two-lap racing against three rivals; every circuit offers solo practice, manual boost, airbraking, ship inspection and circuit review.
 
 ## Circuits and features
 
@@ -15,7 +15,7 @@ Choose your ship in the paddock, or inspect the player fleet and AI racers. Choo
 | Glasswake Comet  | Transparent ice, paired fracture jumps, a crevice corkscrew and collapsing shelves         | `/?level=glasswake`  |
 | Cindercoil       | Ceramic volcanic circuit, warned lava surges, a furnace corkscrew and vent flight          | `/?level=cindercoil` |
 
-Halcyon includes automatic Vector boost strips and Aegis shields on its normal route. Vector gives an immediate catapult kick and drives toward 600 km/h during a full strip pass, with strong radial motion blur unless reduced motion is enabled. Leaving early retains only the speed already gained; Aegis protects reserve from impacts for six seconds. **Enter Proving Loop** starts a two-lap session against Rook, Latch and Mule from a 2×2 grid after audible start lights; **Practice Lap** starts solo. Easy uses the baseline rival pace, Medium is faster, and Hard is faster again with more boosting as you boost. Each rival uses its own vehicle physics, reserve and device eligibility. After two laps placements and lap/total times are recorded while driving continues. Escape returns to the paddock with the last roster retained beside the menu; unfinished rivals remain in progress and invalid laps are marked untimed.
+Those five circuits share automatic Vector boost strips and Aegis shields, with circuit-owned placements. Nacre keeps its existing solo gameplay pending its next integration pass. Vector gives an immediate catapult kick and drives toward 600 km/h during a full strip pass, with strong radial motion blur unless reduced motion is enabled. Leaving early retains only the speed already gained; Aegis protects reserve from impacts for six seconds. **Enter Proving Loop** starts a two-lap session against Rook, Latch and Mule from a 2×2 grid after audible start lights; **Practice Lap** starts solo. Easy uses the baseline rival pace, Medium is faster, and Hard is faster again with more boosting as you boost. Each rival uses its own vehicle physics, reserve and device eligibility. After two laps placements and lap/total times are recorded while driving continues. Escape returns to the paddock with the last roster beside the desktop menu or below the controls on compact screens; unfinished rivals remain in progress and invalid laps are marked untimed.
 
 Orbital's bare route review is available at `/?level=orbital&review=shape`. Shape review provides 3D/top/profile overviews. The shared paddock offers full-circuit Practice Lap and ship inspection. Nacre adds storm swells, underwater immersion, two real jumps and one enormous swimming leviathan. Its automatic missed-jump recovery keeps the lap valid while counting the recovery delay; manual R recovery still invalidates it.
 
@@ -25,7 +25,7 @@ Cindercoil adds two warned surges with a protected lane and a permanent broad di
 
 Other circuits retain solo practice. Time Trial, championships, ship-to-ship collision and larger opponent fields are future work.
 
-During a Halcyon race, the HUD shows position, lap timing and all four racers in race order with gaps relative to YOU: 0.0s for the player, negative for rivals ahead and positive for rivals behind. Unavailable gaps remain unknown. Rival dots on the minimap match the colored strips beside their names: Rook cyan, Latch violet and Mule yellow; your marker is orange with a white outline. The full timing roster remains in the paddock.
+During a race, the HUD shows position, lap timing and all four racers in race order with gaps relative to YOU: 0.0s for the player, negative for rivals ahead and positive for rivals behind. Unavailable gaps remain unknown. Rival dots on the minimap match the colored strips beside their names: Rook cyan, Latch violet and Mule yellow; your marker is orange with a white outline. The full timing roster remains in the paddock.
 
 ## Run
 
@@ -46,7 +46,7 @@ WebGL2 is required. Gameplay uses local assets and needs no account or backend. 
 - W / Up: accelerate. S / Down: brake. A/D or Left/Right: steer.
 - Space: airbrake. Shift: manual boost using reserve.
 - R: recover at the last checkpoint and invalidate the current timed lap.
-- Escape: pause/settings/restart; after Halcyon's two-lap run, return to paddock. I: inspect the ship. C: alternate camera.
+- Escape: pause/settings/restart; after a two-lap run, return to paddock. I: inspect the ship. C: alternate camera.
 - F: free camera on every circuit; drag to look, WASD move, Q/E down/up at 200 m/s. F/Escape returns.
 - Menus: Tab/Shift-Tab, Enter/Space. Small viewports expose pointer controls.
 - Prototype gamepad: left stick steering, RT throttle, LT brake, A boost, B airbrake.

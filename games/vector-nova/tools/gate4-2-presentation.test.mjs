@@ -8,10 +8,10 @@ import {
   createDeviceGeometry,
   createShipFeedback,
   disposeGroup,
-} from '../src/pickups/halcyon/geometry.js';
-import { createPickupAudio } from '../src/pickups/halcyon/audio.js';
+} from '../src/pickups/geometry.js';
+import { createPickupAudio } from '../src/pickups/audio.js';
 import { createCameraRig } from '../src/camera/index.js';
-import { createHalcyonDevices } from '../src/pickups/halcyon/placements.js';
+import { createHalcyonDevices } from '../src/levels/halcyon/devices.js';
 
 test('pickup panels conform to real road triangle planes through banking, inversion, plunge and seam', () => {
   const track = createTrack();
@@ -326,10 +326,7 @@ test('failed audio unlock releases its graph and a later gesture can recover', a
 test('later unprotected contact replaces protection feedback immediately; pause and reset freeze/clear effects', async () => {
   // Load the actual module with only browser CSS removed for the Node harness.
   const { readFile } = await import('node:fs/promises');
-  const sourceUrl = new URL(
-    '../src/pickups/halcyon/presentation.js',
-    import.meta.url,
-  );
+  const sourceUrl = new URL('../src/pickups/presentation.js', import.meta.url);
   const source = (await readFile(sourceUrl, 'utf8'))
     .replace("import './style.css';", '')
     .replace("'three'", JSON.stringify(import.meta.resolve('three')))
@@ -399,7 +396,7 @@ test('later unprotected contact replaces protection feedback immediately; pause 
   const drive = ship.children[0].children.find(
     (object) => object.name === 'Vector / soft twin nozzle volume',
   );
-  const notice = view.hud.querySelector('.halcyon-device-message');
+  const notice = view.hud.querySelector('.race-device-message');
   try {
     const frame = {
       state: { distance: 370 },

@@ -17,5 +17,6 @@
   },
   "glbBytes": 3651260,
   "textureCount": 9,
-  "textures": "Embedded original baked base-color, roughness and tangent normals"
+  "textures": "Embedded original baked base-color, roughness and tangent normals",
+  "sha256": "a6e5bf29f8fdbc3380611f34e9a77d1fc60e415eba5bd3c393447475bbcb6aaf"
 }

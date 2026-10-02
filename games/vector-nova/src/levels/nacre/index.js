@@ -1,3 +1,4 @@
+import { assetURL } from '../../assets/url.js';
 import * as T from 'three';
 import {
   createLevel3Track,
@@ -66,7 +67,7 @@ export default function createLevel({ shape }) {
       try {
         if (!shape) {
           skyTexture = await new T.TextureLoader().loadAsync(
-            '/assets/level3/nacre-storm-sky-v1.png',
+            assetURL('assets/levels/nacre/nacre-storm-sky-v1.png'),
           );
           skyTexture.colorSpace = T.SRGBColorSpace;
           skyTexture.wrapS = T.RepeatWrapping;

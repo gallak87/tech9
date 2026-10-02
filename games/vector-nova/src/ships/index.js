@@ -1,3 +1,4 @@
+import { assetURL } from '../assets/url.js';
 import * as THREE from 'three';
 import { getShip } from './catalog.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -66,11 +67,7 @@ export async function createShip({
   const specification = getShip(id);
   const hull = model
     ? cloneModel(model)
-    : (
-        await new GLTFLoader().loadAsync(
-          `${import.meta.env?.BASE_URL ?? '/'}${specification.asset}`,
-        )
-      ).scene;
+    : (await new GLTFLoader().loadAsync(assetURL(specification.asset))).scene;
   const group = new THREE.Group();
   group.name = `${specification.name} / racing chassis`;
   group.add(hull);

@@ -16,20 +16,17 @@
 - [x] Gate 8 fleet: add Kestrel/Shrike/Bastion/Needle, distinct handling, saved selection/stats and fleet/rival inspection.
 - [x] Shared inspection: add free-camera navigation and responsive driving/review controls across circuits.
 - [x] Halcyon feedback: add position/lap timing, full-field relative race gaps, matching rival colors and catapults toward 600 km/h with strong launch blur.
+- [x] Asset layout: normalize Halcyon/Orbital/Nacre folders and base-aware loading; prune obsolete served models and duplicate rival GLBs while retaining sources/provenance.
+- [x] Shared racing graduation: reuse Vector/Aegis, 600 km/h launch feedback, three physical rivals, difficulty, timing/results and replay on Halcyon/Orbital/Vesper/Glasswake/Cindercoil.
 
 ## Remaining level expansion
 
-Continue the existing authored worktrees using the [expansion rules](docs/expansion/README.md). Each level owner finishes the level and necessary shared improvements, completes desktop critique, checks mobile last, then commits and merges. Completed review history remains in Git.
+Continue the existing authored worktrees using the [expansion rules](docs/expansion/README.md). New circuits must use the shared race/device system, with authored placements and their actual motion adapter. Each level owner finishes the level and necessary shared improvements, completes desktop critique, checks mobile last, then commits and merges. Completed review history remains in Git.
 
 - [ ] [Saffron Leviathan](docs/expansion/saffron/HANDOFF.md): fossil traversal, sand/glass choices and the burrower.
 - [ ] [Zephyr Basilica](docs/expansion/zephyr/HANDOFF.md): cathedral traversal, waterfall jumps and falling architecture.
 - [ ] [Helion Flare](docs/expansion/helion/HANDOFF.md): flare-lane evasion, heat/cooling choices and stellar prominences.
 - [ ] [Umbra Fold](docs/expansion/umbra/HANDOFF.md): tidal zones, curved leaps and debris consumption.
-
-## Asset maintenance
-
-- [ ] Normalize legacy Halcyon/Orbital/Nacre source and public folders to stable level slugs, preserving `ships/rivals/` for AI racers; update loaders, exporters, provenance and checks together.
-- [ ] Remove unused runtime exports and redundant rival GLB copies after checking generator/tool dependencies; retain current editable sources, selected references, exact prompts and licences.
 
 ## Remaining gameplay
 
@@ -37,25 +34,20 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 ### Level polish
 
-- [ ] Extend Halcyon's racing/launch blur to other circuits after their gameplay integration.
 - [ ] Extend existing rail-local sparks to consistent actual contact points across circuits and other surfaces; add body-contact feedback when available and explore bounded scrape marks.
 - [ ] Halcyon: fix remaining ground flicker, especially white areas and street-lane markings.
 - [ ] Asterion: locate and fix the reported flickering road section.
 - [ ] Nacre: blend the entire sound mix underwater, including propulsion, boost and thunder, with smooth exit transitions.
 - [ ] Nacre: extend existing crossing bubbles to actual submerged takeoff, flight and landing.
 
-### Shared pickups and boost support
-
-- [ ] Choose and review game-wide boost/refill, protection and recovery aids; Halcyon's existing devices remain circuit-local.
-
 ### Gate 5: broader race flow
 
-- [ ] Scope briefing, sector splits and persistent personal records separately from the completed two-lap Halcyon flow. Retain continued driving and Escape-to-paddock until the user requests a change.
+- [ ] Scope briefing, sector splits and persistent personal records separately from the completed shared two-lap flow. Retain continued driving and Escape-to-paddock until the user requests a change.
 
 ### Gate 6: opponents and competitive Quick Race
 
-- [ ] Adapt opponents/devices to other completed circuits, including their flight and local hazards.
-- [ ] Expand toward player plus 11 rivals after cross-circuit integration; verify independent finishes and actual performance.
+- [ ] Integrate Nacre with the shared devices/opponents after addressing its submerged/flight gotcha in the next iteration; keep its current gameplay for now.
+- [ ] Expand toward player plus 11 rivals; verify independent finishes and actual performance.
 - [ ] Add restrained body contact with cooldowns, without sustained rail pinning or repeated damage from one contact.
 
 ### Gate 7: energy choices and Time Trial

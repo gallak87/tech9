@@ -1,5 +1,6 @@
 // Asset validation only: does not add rivals to the playable fleet.
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { Box3, Raycaster, Texture, Vector3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -12,16 +13,16 @@ for (const id of ['rook', 'latch', 'mule']) {
     !SHIPS.some((ship) => ship.id === id),
     'Rivals must remain outside the player catalog',
   );
-  const bytes = await readFile(new URL(`${id}/${id}.glb`, directory));
-  const served = await readFile(
+  const bytes = await readFile(
     new URL(`../public/assets/ships/rivals/${id}/${id}.glb`, import.meta.url),
-  );
-  assert.ok(
-    bytes.equals(served),
-    `${id}: inspection copy matches authored export`,
   );
   const manifest = JSON.parse(
     await readFile(new URL(`${id}/asset-manifest.json`, directory), 'utf8'),
+  );
+  assert.equal(
+    createHash('sha256').update(bytes).digest('hex'),
+    manifest.sha256,
+    `${id}: canonical export matches its authored manifest`,
   );
   const loader = new GLTFLoader();
   // In-game inspection validates decoding; this pass inspects asset geometry.

@@ -29,8 +29,8 @@ export function createVesperRuntime(context) {
   let surface = { id: 'resin', zone: null, drag: 0 };
   return {
     ...runtime,
-    advance(state, input, dt) {
-      const events = runtime.advance(state, input, dt);
+    advance(state, input, dt, modifiers) {
+      const events = runtime.advance(state, input, dt, modifiers);
       const motion = runtime.snapshot();
       const next =
         motion.mode === 'magnetic'

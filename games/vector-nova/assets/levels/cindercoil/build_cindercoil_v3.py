@@ -7,7 +7,7 @@ import bpy, math, random, json, pathlib
 from mathutils import Vector
 R = random.Random(61129)
 ROOT = pathlib.Path(__file__).resolve().parent
-OUT = ROOT.parents[2] / 'public/assets/levels/cindercoil'
+OUT = ROOT.parents[2] / '.experiments/cindercoil-authoring'
 OUT.mkdir(parents=True, exist_ok=True)
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete(use_global=False)
@@ -188,6 +188,6 @@ for ob in bpy.data.objects:
         ob.data.calc_loop_triangles();triangles+=len(ob.data.loop_triangles)
 bpy.ops.wm.save_as_mainfile(filepath=str(ROOT/'cindercoil-hero-kit-v3.blend'))
 bpy.ops.export_scene.gltf(filepath=str(OUT/'cindercoil-hero-kit-v3.glb'),export_format='GLB',export_yup=True,export_apply=True,export_animations=False,export_cameras=False,export_lights=False)
-manifest={'generator':'build_cindercoil_v3.py','seed':61129,'modules':list(modules),'triangles':triangles,'meshCount':sum(ob.type=='MESH' for ob in bpy.data.objects),'runtimeAsset':'/assets/levels/cindercoil/cindercoil-hero-kit-v3.glb','runtimeBytes':(OUT/'cindercoil-hero-kit-v3.glb').stat().st_size,'textures':0,'sourceReference':'reference/cindercoil-scene-v1.png'}
+manifest={'generator':'build_cindercoil_v3.py','seed':61129,'modules':list(modules),'triangles':triangles,'meshCount':sum(ob.type=='MESH' for ob in bpy.data.objects),'authoringExport':'.experiments/cindercoil-authoring/cindercoil-hero-kit-v3.glb','runtimeBytes':(OUT/'cindercoil-hero-kit-v3.glb').stat().st_size,'textures':0,'sourceReference':'reference/cindercoil-scene-v1.png'}
 (ROOT/'asset-manifest-v3.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print('CINDERCOIL_MANIFEST '+json.dumps(manifest))

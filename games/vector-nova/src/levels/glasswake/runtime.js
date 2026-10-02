@@ -52,10 +52,10 @@ export function createGlasswakeRuntime(context) {
   let calvingSoundLap = -1;
   const calvingSoundAt = calvingSeparationDistance(track);
   const { advance, reset, snapshot, restore } = runtime;
-  runtime.advance = (state, input, dt) => {
+  runtime.advance = (state, input, dt, modifiers) => {
     const beforeDistance = state.distance;
     const beforeTime = state.time;
-    const events = advance(state, input, dt);
+    const events = advance(state, input, dt, modifiers);
     const elapsed = state.time - beforeTime;
     if (!(elapsed > 0)) return events;
     if (openingShelf !== null) {
@@ -133,7 +133,7 @@ export function createGlasswakeRuntime(context) {
     openingShelf = data.openingShelf;
     calvingSoundLap = data.calvingSoundLap;
   };
-  runtimes.set(track, runtime);
+  if (context.presentation !== false) runtimes.set(track, runtime);
   const dispose = runtime.dispose;
   runtime.dispose = () => {
     if (runtimes.get(track) === runtime) runtimes.delete(track);

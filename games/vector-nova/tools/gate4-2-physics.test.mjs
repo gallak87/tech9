@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createVehicleState, stepVehicle } from '../src/physics/index.js';
-import { VECTOR_PROPULSION } from '../src/pickups/halcyon/simulation.js';
+import { VECTOR_PROPULSION } from '../src/pickups/simulation.js';
 
 const track = {
   width: 28,

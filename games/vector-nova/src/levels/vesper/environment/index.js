@@ -1,3 +1,4 @@
+import { assetURL } from '../../../assets/url.js';
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -17,8 +18,10 @@ import { finishVesperMaterial } from './materials.js';
 import { vesperGroundHeight } from './terrain.js';
 import { createGroundedTree } from './trees.js';
 
-const ASSET_URL = '/assets/levels/vesper/vesper-canopy.glb';
-const FOREST_ASSET_URL = '/assets/levels/vesper/vesper-connected-forest-v1.glb';
+const ASSET_URL = assetURL('assets/levels/vesper/vesper-canopy.glb');
+const FOREST_ASSET_URL = assetURL(
+  'assets/levels/vesper/vesper-connected-forest-v1.glb',
+);
 const ENVIRONMENT_LIGHT_UPLIFT = 1.1;
 
 export function createVesperEnvironment({

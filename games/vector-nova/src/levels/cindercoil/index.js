@@ -1,3 +1,4 @@
+import { createDevices } from './devices.js';
 import * as T from 'three';
 import { createCindercoilTrack, createCindercoilRoad } from './track/index.js';
 import { createCindercoilEnvironment } from './environment/index.js';
@@ -9,7 +10,8 @@ import { createCindercoilOverlay } from './overlay.js';
 export default function createLevel({ shape = false }) {
   let runtime;
   return {
-    version: '0.5.0-cindercoil-v1',
+    version: '0.5.1-cindercoil-racing',
+    racing: { createDevices, createMotion: createCindercoilRuntime },
     renderer: {
       world: shape ? 'cindercoil-shape' : 'cindercoil-caldera',
       background: '#303c49',

@@ -1,3 +1,4 @@
+import { createDevices } from './devices.js';
 import * as T from 'three';
 import { createVesperTrack } from './track/model.js';
 import { createVesperRoad } from './track/road.js';
@@ -9,7 +10,8 @@ import { createVesperOverlay } from './overlay.js';
 export default function createLevel({ shape = false } = {}) {
   let activeRuntime;
   return {
-    version: '0.5.0-vesper-1',
+    version: '0.5.1-vesper-racing',
+    racing: { createDevices, createMotion: createVesperRuntime },
     renderer: {
       world: shape ? 'vesper-shape' : 'vesper-canopy',
       background: shape ? '#19242e' : '#081722',

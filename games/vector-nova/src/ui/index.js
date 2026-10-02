@@ -83,26 +83,18 @@ export function createUI(
     roster.classList.toggle('hidden', !data);
     roster.classList.toggle('in-paddock', paddock);
     if (!data) return;
-    const rows = paddock
-      ? data.standings
-      : [
-          data.relative?.ahead && {
-            ...data.relative.ahead,
-            direction: 'AHEAD',
-          },
-          data.relative?.behind && {
-            ...data.relative.behind,
-            direction: 'BEHIND',
-          },
-        ].filter(Boolean);
-    const gapText = (entry) =>
-      entry.lapGap > 0
-        ? `${entry.lapGap} LAP${entry.lapGap === 1 ? '' : 'S'}`
-        : entry.seconds === null
-          ? entry.finished
-            ? 'FINISHED'
-            : '—'
-          : `${entry.seconds.toFixed(1)}s`;
+    const rows = paddock ? data.standings : (data.relative?.field ?? []);
+    const gapText = (entry) => {
+      if (entry.direction === 'self') return '0.0s';
+      const sign = entry.direction === 'ahead' ? '−' : '+';
+      if (entry.seconds !== null) {
+        const seconds = entry.seconds.toFixed(1);
+        return `${seconds === '0.0' ? '' : sign}${seconds}s`;
+      }
+      if (entry.lapGap > 0)
+        return `${sign}${entry.lapGap} LAP${entry.lapGap === 1 ? '' : 'S'}`;
+      return entry.finished ? 'FINISHED' : '—';
+    };
     const key = JSON.stringify({
       paddock,
       rows: rows.map((entry) => ({
@@ -118,21 +110,17 @@ export function createUI(
     rosterKey = key;
     roster.querySelector('.roster-heading span').textContent = paddock
       ? 'LAST SESSION'
-      : 'RELATIVE GAP';
+      : 'RACE ORDER';
     const heading = roster.querySelector('.roster-heading b');
-    heading.textContent = paddock ? 'HALCYON · 2 LAPS' : '';
-    heading.classList.toggle('hidden', !paddock);
+    heading.textContent = paddock ? 'HALCYON · 2 LAPS' : 'GAP TO YOU';
     const entries = rows.map((entry) => {
       const row = document.createElement('li');
       row.dataset.racer = entry.id;
       row.style.setProperty('--racer-color', racerColors[entry.id]);
       row.classList.toggle('is-player', entry.id === 'player');
       const place = document.createElement('b');
-      place.textContent = paddock
-        ? entry.position === null
-          ? '—'
-          : String(entry.position).padStart(2, '0')
-        : entry.direction;
+      place.textContent =
+        entry.position === null ? '—' : String(entry.position).padStart(2, '0');
       const name = document.createElement('span');
       name.textContent =
         entry.id === 'player' ? 'YOU' : entry.name.toUpperCase();
@@ -142,6 +130,13 @@ export function createUI(
           ? `${fmt(entry.totalTime)}${entry.valid ? '' : ' *'}`
           : 'IN PROGRESS'
         : gapText(entry);
+      if (!paddock)
+        duration.setAttribute(
+          'aria-label',
+          entry.direction === 'self'
+            ? 'Your reference time'
+            : `${gapText(entry)} ${entry.direction === 'ahead' ? 'ahead of' : 'behind'} you`,
+        );
       row.append(place, name, duration);
       return row;
     });

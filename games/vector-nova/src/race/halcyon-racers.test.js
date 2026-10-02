@@ -75,6 +75,56 @@ test('each opponent owns device eligibility, shield timers and reserve independe
   racers.dispose();
 });
 
+test('live relative timing covers the full field and keeps its order and gaps through rollback', () => {
+  const racers = createHalcyonRacers({ track });
+  const playerState = { ...createVehicleState(), ...HALCYON_GRID.player };
+  const playerRace = createRace(track);
+  const runtime = createHalcyonSimulationRuntime({ track });
+  runtime.reset({ state: playerState });
+  racers.reset({ enabled: true });
+  const context = { playerState, playerRace };
+  for (let tick = 0; tick < 120 * 20; tick++) {
+    const previous = playerState.distance;
+    const events = runtime.advance(
+      playerState,
+      getRacerControl(playerState, track, { pace: 0.65 }),
+      dt,
+    );
+    runtime.update({});
+    playerRace.step(previous, playerState.distance, dt, events);
+    racers.advance(dt, context);
+  }
+  const { standings, relative } = racers.snapshot(context);
+  assert.equal(relative.field.length, 4);
+  assert.deepEqual(
+    relative.field.map(({ id, position }) => ({ id, position })),
+    standings.map(({ id, position }) => ({ id, position })),
+  );
+  const playerIndex = relative.field.findIndex(({ id }) => id === 'player');
+  assert.ok(
+    playerIndex > 1,
+    'more than the nearest opponent must have a measured gap',
+  );
+  relative.field.forEach((entry, index) => {
+    assert.equal(
+      entry.direction,
+      index === playerIndex ? 'self' : index < playerIndex ? 'ahead' : 'behind',
+    );
+    if (entry.id === 'player') assert.equal(entry.seconds, 0);
+    else
+      assert.ok(
+        Number.isFinite(entry.seconds) && entry.seconds > 0,
+        `${entry.id} has a real passage gap`,
+      );
+  });
+  const saved = racers.serialize();
+  step(racers, 2, context);
+  racers.restore(saved);
+  assert.deepEqual(racers.snapshot(context).relative, relative);
+  runtime.dispose();
+  racers.dispose();
+});
+
 test('racer rollback reproduces all controls, clocks, checkpoint and device state exactly', () => {
   const racers = createHalcyonRacers({ track });
   racers.reset({ enabled: true });

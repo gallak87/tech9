@@ -1910,6 +1910,20 @@ select {
   font-size: 12px;
   letter-spacing: 0.07em;
 }
+#race-roster:not(.in-paddock) .roster-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+#race-roster:not(.in-paddock) .roster-heading span {
+  margin-bottom: 0;
+}
+#race-roster:not(.in-paddock) .roster-heading b {
+  font-size: 8px;
+  font-weight: 400;
+  color: #a9c4ce;
+}
 #race-roster ol {
   list-style: none;
   padding: 10px 0 0;
@@ -1918,7 +1932,7 @@ select {
 }
 #race-roster li {
   display: grid;
-  grid-template-columns: 45px 1fr auto;
+  grid-template-columns: 22px 1fr auto;
   align-items: center;
   gap: 8px;
   padding: 8px 0 8px 8px;
@@ -1928,11 +1942,11 @@ select {
 }
 #race-roster li > b {
   color: #93aeb9;
-  font-weight: 400;
-  font-size: 8px;
+  font-weight: 600;
+  font-size: 10px;
 }
-#race-roster.in-paddock li {
-  grid-template-columns: 22px 1fr auto;
+#race-roster li.is-player {
+  background: #fb795914;
 }
 .position small {
   display: block;

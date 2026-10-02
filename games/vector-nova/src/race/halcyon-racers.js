@@ -395,11 +395,16 @@ export function createHalcyonRacers({ track }) {
             id: entry.id,
             name: entry.name,
             position: entry.position,
-            seconds: relativeTiming.gap(
-              ahead ? entry.id : 'player',
-              ahead ? 'player' : entry.id,
-              elapsed,
-            ),
+            direction:
+              entry.id === 'player' ? 'self' : ahead ? 'ahead' : 'behind',
+            seconds:
+              entry.id === 'player'
+                ? 0
+                : relativeTiming.gap(
+                    ahead ? entry.id : 'player',
+                    ahead ? 'player' : entry.id,
+                    elapsed,
+                  ),
             lapGap: Math.floor(
               Math.abs(entry.distance - player.distance) / track.length,
             ),
@@ -419,6 +424,9 @@ export function createHalcyonRacers({ track }) {
           ? {
               ahead: relative(standings[playerIndex - 1], true),
               behind: relative(standings[playerIndex + 1], false),
+              field: standings.map((entry, index) =>
+                relative(entry, index < playerIndex),
+              ),
             }
           : null,
       results:

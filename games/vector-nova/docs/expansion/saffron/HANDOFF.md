@@ -1,24 +1,20 @@
-# Map 7 — Saffron Leviathan: replacement session handoff
+# Map 7 — Saffron Leviathan: level brief
 
 ## Assignment and authority
 
 **Goal:** Finish a fossil-desert circuit through skull and vertebrae, with sand/glass route choices, a breaching burrower and readable sheltered interiors.
 
-Read the current version of this handoff from the primary worktree. Take over the existing authored level and complete it using the startup instructions below.
+Own `saffron` through the [common execution and completion rules](../README.md). Use `?level=saffron` for production and `&review=shape` for route review.
 
-Own `saffron` through production, critique, necessary shared framework/environment/tooling improvements, final mobile verification, commit and merge into the primary worktree. Follow the [completion ownership rules](../README.md#worktree-and-completion-ownership). Start your own preview on a free port; use `?level=saffron` and `&review=shape`. Chat sequencing belongs to the user. Keep progress in the chat and expansion notes in this folder. Document reusable technical changes with their APIs.
+## Existing work
 
-## Start here: replacement session
+Existing worktree: `/Users/g/.codex/worktrees/fzero-saffron1/tech9`. Existing branch: `codex/fzero-saffron1`.
 
-Existing worktree: `/Users/g/.codex/worktrees/fzero-saffron1/tech9`. Existing branch: `codex/fzero-saffron1`. Primary worktree: `/Users/g/code/scratch/tech9`.
+Read the current primary's game instructions, this brief and the [startup/merge rules](../README.md#worktree-and-completion-ownership) before continuing. The [production loop](../README.md#production-and-critique-loop) owns the fresh eight-round desktop critic allowance and final mobile pass.
 
-1. Read the current primary's `games/vector-nova/AGENTS.md`, this handoff, [common execution rules](../README.md) and [level API](../../LEVEL_API.md). Consult architecture/art sections as needed.
-2. Preserve existing committed and uncommitted gameplay/asset work, then merge the latest commit currently checked out in the primary worktree into this existing branch before implementation or critic round 1. Resolve conflicts retaining authored work, integrated levels and shared improvements; use the primary's current docs and process-file deletions. Build and run affected checks before continuing.
-3. Begin a fresh formal critic cycle at round 1. Keep the existing implementation, selected artwork and useful learnings. Stop when every applicable category reaches at least 9/10 with evidence and no critical failures, or after 8 completed formal rounds, whichever comes first. Use one counter for the whole desktop finish, including sky/lighting changes; complete mobile last, then commit, merge and verify the primary game.
+### Sources and retained behavior
 
-### Preserve existing artwork and useful fixes
-
-Sources are in `games/vector-nova/assets/levels/saffron/` inside the existing worktree. Preserve `scene-reference.png`, `PROVENANCE.md`, `leviathan-kit.blend` and `build_saffron.py`, their runtime exports and any newer authored versions. View the selected scene reference before making art changes and carry useful technical learnings forward from source/provenance and existing evidence. Keep raw captures/reports ignored.
+Sources are in `games/vector-nova/assets/levels/saffron/` inside the existing worktree. Preserve `scene-reference.png`, `PROVENANCE.md`, `leviathan-kit.blend` and `build_saffron.py`, their runtime exports and any newer authored versions.
 
 Preserve the corrected landing rules, shared deck/rail contact behavior, compact mechanic feedback and authored fossil kit. Confirm them with real-input skull/vertebral traversal, sand-versus-glass comparisons and recovery. Keep the chosen fossil anatomy, dune families and sheltered bone lighting while finishing the burrower and sandfalls.
 
@@ -85,7 +81,7 @@ High may add sparse drifting grains, limited glass transmission and animated san
 
 Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The traversable skull and anatomically varied vertebrae, living burrower, and displaced dune/sandfall assemblies are major scene-to-Blender subjects. Establish reusable bone and dune families for the remaining landscape.
 
-Use the [shared production/critic loop](../README.md#production-and-critique-loop), explicit [brutal AAA critic standard](../README.md#critic-standard) and [common verification/completion rules](../README.md#verification-and-resource-discipline). Pass the selected drawing and this level's finish/atmosphere targets directly into the independent critic's instructions. The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
+Apply the [production/critic loop](../README.md#production-and-critique-loop), [critic standard](../README.md#critic-standard) and [verification rules](../README.md#verification-and-resource-discipline). Give the critic the selected drawing and this brief's finish/atmosphere targets; the checks below add level-specific acceptance.
 
 ## Acceptance on the actual production build
 

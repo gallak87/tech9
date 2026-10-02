@@ -1,6 +1,6 @@
 # Level expansion
 
-The user starts replacement level sessions one at a time. Each agent takes over its level's existing worktree and finishes the authored work, implements necessary shared improvements, completes desktop critique, checks mobile last, commits and merges into the primary worktree. Preserve the implementation, artwork and useful learnings; chat startup and sequencing belong to the user.
+The user starts the remaining level sessions one at a time. Each agent takes over its level's existing worktree and finishes the authored work, implements necessary shared improvements, completes desktop critique, checks mobile last, commits and merges into the primary worktree. Preserve the implementation, artwork and useful learnings; chat startup and sequencing belong to the user.
 
 Expansion-specific briefs and process belong only in this folder. Keep progress and review findings in the chat, with raw evidence ignored in `.experiments/`. Do not create status files, coordination ledgers, budget reports or interim handoff packages. Once a level is merged, remove its completed execution notes; its merged availability is enough. General docs should describe the shipped game, actual APIs and general working practices.
 
@@ -18,7 +18,7 @@ Expansion-specific briefs and process belong only in this folder. Keep progress 
 
 Continue to the full scoped finish when the user starts you. Check route shape internally, then proceed to production without an early human-review stop. Small art steers refine the ongoing work. Critic fixes must preserve the qualities the human values.
 
-Local commits and the final merge into `/Users/g/code/scratch/tech9` are part of completion. Confirm its current branch (`g/scene-test` at this writing), preserve unrelated edits and present the merged playable result for human review. A critic score does not supply human approval. Pushing and unrelated feature work need their own user instruction.
+Local commits and the final merge into `/Users/g/code/scratch/tech9` are part of completion. Read its current branch and HEAD, preserve unrelated edits and present the merged playable result for human review. A critic score does not supply human approval. Pushing and unrelated feature work need their own user instruction.
 
 Do not message, resume or monitor other level chats, launch an integrator, or add coordination automations. Start your own server on a free port. Run browser/render batches sequentially and close owned processes afterward; there are no GPU grants or queues.
 
@@ -28,15 +28,15 @@ Before implementation or critic round 1, read the current game instructions and 
 
 Resolve conflicts preserving authored level work, all integrated levels and shared improvements. Keep the primary's current documentation and deletions of retired process files. Build and run affected checks on the merged state before beginning production or the new critique cycle. Use the actual [level API](../LEVEL_API.md) and existing shared helpers. Do not reuse old foundation packages or resurrect deleted status files when resolving conflicts.
 
-Author local track, scenery and presentation under `src/levels/<slug>/`; sources and provenance under `assets/levels/<slug>/`; runtime exports under `public/assets/levels/<slug>/`; and meaningful checks under `tools/expansion-<slug>-*.mjs`. Keep `.blend` files and concepts out of the served directory.
+Author local track, scenery and presentation under `src/levels/<slug>/`; sources and provenance under `assets/levels/<slug>/`; runtime exports under `public/assets/levels/<slug>/`; and meaningful checks under `tools/expansion-<slug>-*.mjs`. Use the [asset layout convention](../../ARCHITECTURE.md#asset-ownership-and-layout), including the `ships/rivals/` subdivision for AI chassis. Keep `.blend` files and concepts out of the served directory; retain all inputs needed by current generators.
 
 The level owner also implements concrete framework, environment-helper, camera, UI, physics, lifecycle or tooling improvements needed for the level. Verify affected existing behavior and merge those changes with the level. Document lasting technical APIs or decisions in the relevant general/source docs; keep expansion instructions here. Keep world-specific materials, terrain, placement, zones, timing and effects local. Extract reusable helpers when a real need demonstrates their value.
 
 ## Gameplay and presentation boundaries
 
-Preserve the existing Kestrel, controls, fixed-step simulation and 0.3 steering assistance. Build the brief's named jumps, surface effects, hazards, forces and spectacle with deterministic reset/replay and readable cues. Real gaps require actual takeoff, flight, landing and recovery. Preserve baseline handling outside declared local effects and Nacre's existing rules/replay behavior.
+Preserve all six integrated circuits, the four-ship fleet and saved selection, shared controls, fixed-step simulation and 0.3 steering assistance. Build the brief's named jumps, surface effects, hazards, forces and spectacle with deterministic reset/replay and readable cues. Real gaps require actual takeoff, flight, landing and recovery. Preserve baseline handling outside declared local effects and Nacre's existing rules/replay behavior.
 
-Use current manual boost. Shared pickup/boost additions, inventory, race/AI/ship/cup/economy expansion remain separate scope. Preserve the intended challenge while those systems are absent; distinguish difficult play from broken physics or application failures.
+Use current manual boost and ship handling. Halcyon's Vector/Aegis devices, two-lap race and three AI rivals are already integrated; preserve them when updating shared code. Rolling those systems into expansion levels, or adding pickups, inventory, race modes, ships, cups or economies, requires separate scope. Preserve each level's intended challenge with its existing mechanics; distinguish difficult play from broken physics or application failures.
 
 Defining interactions and lighting take precedence over illustrative district tables and dimensions. Author a complete world and raceway, including ordinary stretches, barriers, undersides/supports, foreground, middle distance, sky and local light transitions. Audit attachment, terrain contact and road/jump/camera clearance before surface polish. High/low retain identity and navigation cues; reduced motion never changes simulation or hazard boundaries. See the [art principles](../ART_BIBLE.md).
 
@@ -54,7 +54,7 @@ Compare the actual driving and inspection views against the selected drawing thr
 
 ## Generated sky panoramas
 
-Each level brief links its selected sky, exact generation prompt and provenance under `assets/levels/<slug>/`. Cindercoil, Saffron, Zephyr, Helion and Umbra use their original scene drawings as image references for the selected panoramas' palette, atmosphere, lighting and cloud/star character; those drawings are preserved alongside their asset sources. Glasswake's existing selected aurora stays with its current level owner. Preserve the sources when updating the branch, use the selected native panorama as the starting point and export the runtime texture under `public/assets/levels/<slug>/` when integrating it. Earlier source versions remain available with their prompts.
+Each remaining level brief links its selected reference-guided panorama, exact prompt, provenance and original scene drawing under `assets/levels/<slug>/`. Match that drawing's palette, atmosphere, lighting and cloud/star character. Preserve the sources when updating the branch, use the selected native panorama and export the runtime texture under `public/assets/levels/<slug>/` when integrating it.
 
 Integrate the panorama into the level's own backdrop and inspect it in the actual driving camera around the whole course. Check spherical mapping, horizontal wrap, seam, zenith/nadir, horizon orientation, exposure, loading and disposal. Match the world's local lighting and reflections to the sky without treating the image as HDR data. Preserve high/low identity, shape-review behavior and reduced motion. A simple gradient or procedural sky is useful as a fallback; the finished world should use its selected detailed image.
 

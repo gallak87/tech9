@@ -12,6 +12,6 @@
   "notes": [
     "Original generated image copied without edits; no external copyrighted source image used.",
     "LDR equirectangular cloud radiance, not HDR atmospheric simulation. Gameplay lightning remains separately seeded and reduced-motion aware.",
-    "Left/right wrapping, eye alignment and in-engine visual quality require independent review."
+    "The backdrop owns the runtime texture; water materials borrow it."
   ]
 }

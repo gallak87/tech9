@@ -1,24 +1,20 @@
-# Map 10 — Umbra Fold: replacement session handoff
+# Map 10 — Umbra Fold: level brief
 
 ## Assignment and authority
 
 **Goal:** Finish a gravity-observatory circuit with tidal line control, curved airborne crossings, continuous debris consumption and one enormous spaghettification event.
 
-Read the current version of this handoff from the primary worktree. Take over the existing authored level and complete it using the startup instructions below.
+Own `umbra` through the [common execution and completion rules](../README.md). Use `?level=umbra` for production and `&review=shape` for route review.
 
-Own `umbra` through production, critique, necessary shared framework/environment/tooling improvements, final mobile verification, commit and merge into the primary worktree. Follow the [completion ownership rules](../README.md#worktree-and-completion-ownership). Start your own preview on a free port; use `?level=umbra` and `&review=shape`. Chat sequencing belongs to the user. Keep progress in the chat and expansion notes in this folder. Document reusable technical changes with their APIs.
+## Existing work
 
-## Start here: replacement session
+Existing worktree: `/Users/g/.codex/worktrees/fzero-umbra1/tech9`. Existing branch: `codex/fzero-umbra1`.
 
-Existing worktree: `/Users/g/.codex/worktrees/fzero-umbra1/tech9`. Existing branch: `codex/fzero-umbra1`. Primary worktree: `/Users/g/code/scratch/tech9`.
+Read the current primary's game instructions, this brief and the [startup/merge rules](../README.md#worktree-and-completion-ownership) before continuing. The [production loop](../README.md#production-and-critique-loop) owns the fresh eight-round desktop critic allowance and final mobile pass.
 
-1. Read the current primary's `games/vector-nova/AGENTS.md`, this handoff, [common execution rules](../README.md) and [level API](../../LEVEL_API.md). Consult architecture/art sections as needed.
-2. Preserve existing committed and uncommitted gameplay/asset work, then merge the latest commit currently checked out in the primary worktree into this existing branch before implementation or critic round 1. Resolve conflicts retaining authored work, integrated levels and shared improvements; use the primary's current docs and process-file deletions. Build and run affected checks before continuing.
-3. Begin a fresh formal critic cycle at round 1. Keep the existing implementation, selected artwork and useful learnings. Stop when every applicable category reaches at least 9/10 with evidence and no critical failures, or after 8 completed formal rounds, whichever comes first. Use one counter for the whole desktop finish, including sky/lighting changes; complete mobile last, then commit, merge and verify the primary game.
+### Sources and retained behavior
 
-### Preserve existing artwork and useful fixes
-
-Sources are in `games/vector-nova/assets/levels/umbra/` inside the existing worktree. Preserve `umbra-scene-reference.png`, `provenance.json`, `umbra-observatory.blend` and `build_umbra_assets.py`, their runtime exports and any newer authored versions. View the selected scene reference before making art changes and carry useful technical learnings forward from source/provenance and existing evidence. Keep raw captures/reports ignored.
+Sources are in `games/vector-nova/assets/levels/umbra/` inside the existing worktree. Preserve `umbra-scene-reference.png`, `provenance.json`, `umbra-observatory.blend` and `build_umbra_assets.py`, their runtime exports and any newer authored versions.
 
 Preserve the observatory kit, grounded inversion/fold, airborne steering checks and final shared deck/rail contact behavior. Establish a visible, correctly framed production world before critique; investigate the user's reported black 3D viewport with visible HUD/minimap. Verify actual tidal countersteering, curved landings and recovery, then finish continuous accretion and the enormous stretching object.
 
@@ -85,7 +81,7 @@ High may add restrained layered ring detail and slow far-debris drift. Low keeps
 
 Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The observatory fragments/landing structures, tilted lens and enormous object with staged stretched/fragmented forms are major scene-to-Blender subjects. Use reproducible deformation/animation for continuous accretion and reuse small debris families.
 
-Use the [shared production/critic loop](../README.md#production-and-critique-loop), explicit [brutal AAA critic standard](../README.md#critic-standard) and [common verification/completion rules](../README.md#verification-and-resource-discipline). Pass the selected drawing and this level's finish/atmosphere targets directly into the independent critic's instructions. The checks below add this level’s specific interactions and lighting. Iterate on desktop first; perform the mobile pass once desktop art and critique are settled. Merge and verify the completed level yourself, including affected existing circuits after shared changes.
+Apply the [production/critic loop](../README.md#production-and-critique-loop), [critic standard](../README.md#critic-standard) and [verification rules](../README.md#verification-and-resource-discipline). Give the critic the selected drawing and this brief's finish/atmosphere targets; the checks below add level-specific acceptance.
 
 ## Acceptance on the actual production build
 

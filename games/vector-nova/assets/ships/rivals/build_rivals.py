@@ -438,7 +438,7 @@ def build(id, render=False):
     scene['asset'] = id
     scene['design_reference'] = 'concept-01.png'
     scene['coordinate_contract'] = 'metres; exported +Z forward, +Y up; exhaust aft -Z'
-    scene['integration'] = 'Asset-only rival draft; not registered in gameplay or the player fleet'
+    scene['integration'] = 'AI racer chassis; separate from the player-selectable fleet'
     bpy.context.preferences.filepaths.save_version = 0
     bpy.ops.wm.save_as_mainfile(filepath=str(directory / (id + '.blend')))
     components = list(F.ship.objects)
@@ -501,7 +501,7 @@ def build(id, render=False):
     points = [(v.x, v.z, -v.y) for v in vertices]
     bounds = {'min': [min(p[k] for p in points) for k in range(3)],
               'max': [max(p[k] for p in points) for k in range(3)]}
-    report = {'asset': id, 'status': 'asset-only draft', 'blender': bpy.app.version_string,
+    report = {'asset': id, 'blender': bpy.app.version_string,
               'axes': '+Z forward / +Y up / metres', 'bounds': bounds,
               'dimensions': [bounds['max'][k] - bounds['min'][k] for k in range(3)],
               'triangles': sum(len(obj.data.polygons) for obj in joined),

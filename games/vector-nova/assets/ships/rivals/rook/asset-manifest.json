@@ -1,6 +1,5 @@
 {
   "asset": "rook",
-  "status": "asset-only draft",
   "blender": "5.1.1",
   "axes": "+Z forward / +Y up / metres",
   "bounds": {

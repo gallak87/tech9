@@ -1,7 +1,6 @@
 {
   "asset": "rook",
   "date": "2026-10-01",
-  "status": "inspection-only rival draft; not racing or human-approved",
   "concept": {
     "path": "assets/ships/rivals/rook/concept-01.png",
     "tool": "OpenAI built-in imagegen",
@@ -17,7 +16,6 @@
     "authorship": "Original Blender geometry authored from its generated reference using project-owned construction helpers; no third-party meshes, fonts or textures.",
     "materials": "Original procedural matte paint, structural composite and brushed metal baked to embedded base-color, roughness and tangent-normal maps.",
     "textureSources": "assets/ships/rivals/rook/textures/",
-    "inspectionExport": "public/assets/ships/rivals/rook/rook.glb"
-  },
-  "request": "Three visually distinct, more ordinary rival ships, with no gameplay integration."
+    "runtime": "public/assets/ships/rivals/rook/rook.glb"
+  }
 }

@@ -1,10 +1,10 @@
 # VECTOR//NOVA
 
-A browser anti-gravity racer built with Three.js and Vite. Drive the Blender-authored Kestrel through distinct circuits with banked roads, inversions and steep drops. The current game offers repeatable practice laps, boost, airbraking, ship inspection and circuit review views.
+A browser anti-gravity racer built with Three.js and Vite. Choose Kestrel, Shrike, Bastion or Needle and drive six distinct circuits with banked roads, inversions and real jumps. Halcyon adds two-lap racing against three rivals; every circuit offers solo practice, manual boost, airbraking, ship inspection and circuit review.
 
 ## Circuits and features
 
-Choose a circuit in the paddock dropdown and press **Load**, then enter its practice loop. During a session, pause and return to the paddock to switch circuits.
+Choose your ship in the paddock, or inspect the player fleet and AI racers. Choose a circuit in the dropdown and press **Load**, then launch racing or solo practice. During a session, pause and return to the paddock to switch circuits.
 
 | Circuit          | Identity                                                                                   | Availability         |
 | ---------------- | ------------------------------------------------------------------------------------------ | -------------------- |
@@ -21,11 +21,11 @@ Orbital's bare route review is available at `/?level=orbital&review=shape`. Shap
 
 Glasswake Comet combines clear crystal deck panes, low-grip frost, paired fracture jumps and a deep crevice with a full corkscrew. The opening ice sheet breaks once per session; the later shelf collapses at the second jump. Exterior snow and blizzard haze give way to sheltered caverns. Shape review uses `/?level=glasswake&review=shape`.
 
-Cindercoil adds two warned surges with a protected lane and a permanent narrow diagonal crater spill across Curtain Reach. Cross the flow briefly instead of following it; lava contact costs speed and reserve. The route retains its full rising roll and physical vent gap. Eruption timing changes takeoff lift; supported barrier landings bounce inward, and missed transfers recover with their delay counted. Its caldera rupture and local ash/heat presentation follow simulation time. Shape review uses `/?level=cindercoil&review=shape`.
+Cindercoil adds two warned surges with a protected lane and a permanent broad diagonal crater spill across Curtain Reach. Cross the flow briefly instead of following it; lava contact costs speed and reserve. The route retains its full rising roll and physical vent gap. Eruption timing changes takeoff lift; supported barrier landings bounce inward, and missed transfers recover with their delay counted. Its caldera rupture and local ash/heat presentation follow simulation time. Shape review uses `/?level=cindercoil&review=shape`.
 
 Other circuits retain solo practice. Time Trial, championships, ship-to-ship collision and larger opponent fields are future work.
 
-During a race, the HUD shows your position, lap timing and time gaps to the rivals immediately ahead and behind. Rival dots on the minimap match the colored strips beside their names: Rook cyan, Latch violet and Mule yellow; your marker is orange with a white outline. The full timing roster remains in the paddock.
+During a Halcyon race, the HUD shows position, lap timing and all four racers in race order with gaps relative to YOU: 0.0s for the player, negative for rivals ahead and positive for rivals behind. Unavailable gaps remain unknown. Rival dots on the minimap match the colored strips beside their names: Rook cyan, Latch violet and Mule yellow; your marker is orange with a white outline. The full timing roster remains in the paddock.
 
 ## Run
 
@@ -55,7 +55,7 @@ Bend assistance is 0.3; the player steers the remaining turn. Magnetic adhesion 
 
 ## Development
 
-Levels register through asset-free metadata plus a lazy implementation under `src/levels/<slug>/`. The picker and briefing consume the same metadata; see the [level API](docs/LEVEL_API.md) for factories, camera options and resource ownership. Existing circuit models remain in `src/track/`.
+Levels register through asset-free metadata plus a lazy implementation under `src/levels/<slug>/`. The picker and briefing consume the same metadata; see the [level API](docs/LEVEL_API.md) for factories, camera options and resource ownership. Each circuit owns its model under `src/levels/<slug>/track/`; shared `src/track/` contains reusable geometry/frame helpers.
 
 Package `prepare` installs Husky; the pre-commit hook runs ESLint/Prettier through lint-staged. Routine edits rely on that hook. Manual lint/format scripts are available for explicit whole-repository checks or troubleshooting. Use Node/npm from your configured shell or version manager, meeting the Node requirement above.
 

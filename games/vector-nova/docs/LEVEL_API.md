@@ -1,6 +1,6 @@
 # Level module API
 
-The shared app discovers circuits under `src/levels/<slug>/`. This document defines the shipped metadata, factories, ownership and runtime options. Session adapters also follow the [session runtime contract](GATE4_RUNTIME_CONTRACT.md).
+The shared app discovers circuits under `src/levels/<slug>/`. This document defines the shipped metadata, factories, ownership and runtime options. Session adapters follow the [contract below](#session-adapters-and-replay).
 
 ## Discovery and metadata
 
@@ -36,6 +36,27 @@ Road/environment context is `{ track, view, host, settings }`. Each component re
 Each component's `update(frame)` runs once per displayed frame. The frame contains `{ state, ship, camera, settings, time, dt, mode, reviewing, reset }`; `state` is interpolated, `time` is simulation time, and `dt` is zero outside racing. Treat inputs as read-only. `reset` is true on initialization, scenario/replay changes, recovery and fresh sessions; use it to clear presentation history. Inspection/pause must not advance racing effects. `setReflection(texture)` borrows a renderer-owned texture: never dispose it.
 
 Optional descriptor fields: `createRuntime(context)` replaces only the session adapter; otherwise ordinary magnetic motion is used. `createOverlay(context)` returns `{ dispose, update?, afterRender?, reset?, getPresentation? }`. `ship`, `audio` and `effects` pass existing constructor options; `railContactSparks` chooses rail-local spark placement and `practiceSectionsUntimed` labels section practice. These are extension points for declared level-specific rules. Versioned adapters support true jumps, surface response, hazards/heat and environmental forces while preserving defaults for other circuits. Only Halcyon’s adapter loads its exact pickup feature.
+
+## Session adapters and replay
+
+Core calls `createRuntime({ track, scene, ship, host, settings, emit })`, or the ordinary `createMagneticRuntime` when omitted. Halcyon's descriptor imports its device runtime for normal play; flight/hazard adapters remain level-owned. Preserve physics version 3 and steering assistance 0.3.
+
+The returned adapter supplies:
+
+- `id`, integer `version` and string `rulesId`: deterministic compatibility identity used by replay, snapshots and race records. Change identity when layout/rules or callback behavior changes.
+- `scenarios`: optional dictionary of `{ label, state }` for deterministic verification setup. The paddock starts full-circuit practice.
+- `advance(state, input, dt)`: sole vehicle mutation path, returning ordered events. Core calls it at 120 Hz instead of calling physics directly. Advance `state.time` exactly once per tick, including timed recovery.
+- `reset({ reason, state, scenario, seed })`: reset owned simulation for `initialize`, `fresh-lap`, `scenario`, `manual-recover`, `home` or `ship-change`. Manual recovery clears active effects/flight but may retain consumed-device eligibility. Pause/resume does not reset simulation.
+- `snapshot()` and `restore(data)`: JSON-serializable simulation state, excluding meshes, audio and DOM. Core exposes it at `getSnapshot().runtime.state`.
+- `pose(alpha)`: `null` for magnetic motion, or interpolated world `{ position, quaternion, grounded? }`. Ship +Z is forward, +Y is up; core and camera consume the same pose.
+- `update({ state, dt, time, mode, camera, settings })`: presentation after pose/camera, once per rendered frame in all modes, including inspection. Use zero dt outside racing and simulation time; never mutate simulation.
+- `dispose()`: idempotent release of exclusively owned resources, listeners, DOM and audio. Supplied scene/host/ship resources remain borrowed.
+
+`advanceSession` calls adapter advance, emits its events, then steps the race with old/new distance and those events. Core saves previous vehicle state, logs input and advances the shared live/replay tick. Factory `emit` is for presentation feedback outside deterministic advance; deterministic events must be returned by `advance`.
+
+Replay includes application/track/physics versions, runtime identity, ship identity/version, seed, scenario, competitive mode, difficulty and complete tick inputs. `initial: { vehicle, runtime }` is captured after deterministic reset; playback rejects nonfinite or mismatched initial state, then restores it through the adapter. Countdown wall time is excluded. Competitive replay advances the same rival field, and failed initialization restores the prior session/field. Manual R recovery invalidates the lap and prevents clean input-only replay; automatic flight recovery counts elapsed time without that manual-reset penalty. Race history remains scoped by rules and ship.
+
+Flight adapters hold unwrapped distance at takeoff and emit `jump-transfer` with `{ id, from, to, outcome: "landed" | "recovered" }`. Race validation credits only the named jump's authored takeoff/landing/recovery interval and ordered checkpoint; an arbitrary skip is rejected. The [shared flight contract](#shared-local-mechanics) defines supported landings and level-local forces.
 
 ## Rendering and camera options
 
@@ -94,6 +115,8 @@ The flight adapter holds unwrapped route distance at takeoff, then emits `jump-l
 | `lateralAcceleration` | Signed route-right acceleration in m/s², default 0, bounded −100–100. Positive is driver-left. |
 
 These same per-call options are available on `stepVehicle(state, input, track, dt, { surface })` for grounded adapters. Omitted/invalid values use defaults; baseline steering, braking, reserve accounting and stationary magnetic hold remain intact. Declared forces act on moving craft; parked magnetic hold remains active. Zones, membership, surface IDs, enter/exit events, heat/cooling accumulation and visible moving boundaries belong to the level's deterministic wrapper. Store additional mutable state in the wrapper's snapshot/restore/reset methods, and keep all mutation in `advance`, never presentation or the pure samplers.
+
+Grounded adapters may also pass `propulsion: { cruiseSpeed, thrust }` to `stepVehicle`. Finite values are bounded to 112–200 m/s and 42–2000 m/s². The stronger active manual/road profile supplies speed/thrust; manual boost still spends reserve, and braking cancels road propulsion. Halcyon uses this for Vector catapults; other circuits retain their existing profile when omitted.
 
 `airAcceleration({ state, jump, position, velocity, time })` is an optional pure world-force sampler. It returns a finite `{x,y,z}` vector, added to gravity and limited pilot control in flight. Position and velocity are copies; treat state as read-only. It does not affect automatic missed-jump recovery. Curved leaps need authored clearance and landing envelopes; the helper does not aim at the receiving road. Flight rule overrides are finite nonnegative numbers (positive dimensions, timeout, settle duration and step); the step cannot exceed 1/120 second. Per-jump receiving rail heights use `railHeight: { [jumpId]: metres }`, defaulting to 0.9 m. `railOffset: { [jumpId]: metres }` extends only the receiving rail envelope beyond the usable deck edge to match outboard barriers; the default is zero. Road landings retain the authored width, and a supported rail hit uses the same inward bounce onto the deck.
 

@@ -13,7 +13,7 @@
     },
     {
       "id": "halcyon-circuit",
-      "source": "src/track/",
+      "source": "src/levels/halcyon/track/",
       "creator": "VECTOR//NOVA project contributors",
       "provenance": "Original authored control points, frame-based geometry, procedural surface textures and signage",
       "rights": "Project-authored; no third-party asset restrictions",
@@ -21,7 +21,7 @@
     },
     {
       "id": "halcyon-city",
-      "source": "src/environment/",
+      "source": "src/levels/halcyon/environment/",
       "creator": "VECTOR//NOVA project contributors",
       "provenance": "Original seeded and authored city districts, tapered/setback architecture, facade and occupied-room maps, roof services, lower streets, landscape courts and split-crown landmark",
       "rights": "Project-authored; no third-party asset restrictions",
@@ -45,18 +45,19 @@
     },
     {
       "id": "halcyon-sky",
-      "source": "public/assets/sky/halcyon-clouds-v1.png and src/renderer/",
+      "source": "public/assets/sky/halcyon-clouds-v1.png and src/levels/halcyon/backdrop/",
       "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project; renderer shader by project contributors",
-      "provenance": "Original generated sky/cloud panorama, no reference images; final prompt and method in docs/SKY_ASSET.md. Scene geometry is never baked into the panorama. Runtime shader supplies solar radiance; PMREM and static city probe supply approximate reflections.",
+      "provenance": "Original generated cloud panorama without reference images; exact prompt retained beside level provenance. Runtime geometry/lighting and approximate reflections remain authored by the project.",
       "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
       "runtimeDependencies": ["three"],
-      "dimensions": [1774, 887]
+      "dimensions": [1774, 887],
+      "provenanceRecord": "assets/levels/halcyon/SKY_PROVENANCE.md"
     },
     {
-      "id": "asterion-orbital-blockout",
-      "source": "src/levels/orbital/track/",
+      "id": "halcyon-devices",
+      "source": "src/pickups/halcyon/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original authored orbital route, shared project-owned frame/sweep helpers, neutral road geometry and simple sphere planet for early human shape review; no new external imagery",
+      "provenance": "Original source-native Vector cassette strips, Aegis arches, ship fields and owned shader/WebAudio feedback; no downloaded art, recordings or external fonts.",
       "rights": "Project-authored; no third-party asset restrictions",
       "runtimeDependencies": ["three"]
     },
@@ -116,6 +117,20 @@
       "starSeed": 41917
     },
     {
+      "id": "nacre-tempest",
+      "source": "src/levels/nacre/ and art/level3/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original route, marine geometry, analytic ocean/materials, generated storm panorama and Blender-authored leviathan. Editable sources and exact sky prompt retained.",
+      "rights": "Project-authored/generated; no third-party artwork or meshes",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/level3/nacre-storm-sky-v1.png",
+        "public/assets/level3/leviathan/nacre-leviathan-v2.glb"
+      ],
+      "provenanceRecord": "src/levels/nacre/environment/asset-provenance.json",
+      "skyProvenance": "assets/levels/nacre/SKY_PROVENANCE.json"
+    },
+    {
       "id": "vesper-canopy",
       "source": "assets/levels/vesper/ and src/levels/vesper/",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",
@@ -156,6 +171,42 @@
         "public/assets/levels/glasswake/ice-surface-v1.png"
       ],
       "provenanceRecord": "assets/levels/glasswake/PROVENANCE.md"
+    },
+    {
+      "id": "player-fleet-additions",
+      "source": "assets/ships/ and src/ships/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original Shrike, Bastion and Needle Blender chassis, generated design concepts and project-authored baked PBR maps embedded in runtime GLBs.",
+      "rights": "Project-authored/generated; no third-party artwork or meshes",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/ships/shrike/shrike.glb",
+        "public/assets/ships/bastion/bastion.glb",
+        "public/assets/ships/needle/needle.glb"
+      ],
+      "provenanceRecords": [
+        "assets/ships/shrike/provenance.json",
+        "assets/ships/bastion/provenance.json",
+        "assets/ships/needle/provenance.json"
+      ]
+    },
+    {
+      "id": "ai-racers",
+      "source": "assets/ships/rivals/ and src/ships/rivals.js",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original Rook, Latch and Mule Blender chassis, generated design concepts and embedded project-authored PBR maps. Shared by Halcyon racing and AI-racer inspection.",
+      "rights": "Project-authored/generated; no third-party artwork or meshes",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/ships/rivals/rook/rook.glb",
+        "public/assets/ships/rivals/latch/latch.glb",
+        "public/assets/ships/rivals/mule/mule.glb"
+      ],
+      "provenanceRecords": [
+        "assets/ships/rivals/rook/provenance.json",
+        "assets/ships/rivals/latch/provenance.json",
+        "assets/ships/rivals/mule/provenance.json"
+      ]
     }
   ],
   "thirdParty": [

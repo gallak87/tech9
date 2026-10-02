@@ -37,7 +37,7 @@ Halcyon uses a 5 km route with distributed rise/descent, full roll/inverted hold
 
 ## Session, devices and replay
 
-`src/core/session-runtime.js` provides the ordinary magnetic adapter and one `advanceSession` path shared by live input and replay. The [session adapter contract](docs/GATE4_RUNTIME_CONTRACT.md) defines hooks and event order. Preserve identity `{id, version, rulesId}`; replay also checks app/track/physics versions, seed and deterministic initial state. Reject incompatible or incomplete logs.
+`src/core/session-runtime.js` provides the ordinary magnetic adapter and one `advanceSession` path shared by live input and replay. The [session adapter contract](docs/LEVEL_API.md#session-adapters-and-replay) defines hooks and event order. Preserve identity `{id, version, rulesId}`; replay also checks app/track/physics versions, seed and deterministic initial state. Reject incompatible or incomplete logs.
 
 Halcyon always loads its device adapter; the old `features` query is unnecessary. Other levels retain their own adapters. `src/race/halcyon-racers.js` supplies three independent vehicle/race/device states and deterministic steering, braking, manual boost and lane decisions. Rivals borrow the fleet's versioned handling profiles (Rook/Kestrel, Latch/Shrike, Mule/Bastion) while rendering their own GLBs. All four clocks start together on a 2×2 grid; rear-row travel to the start counts toward time without crediting a partial lap. Easy uses the baseline pace, Medium drives faster, and Hard drives faster again and earns boost usage from actual player boosting, spending its own reserve in suitable acceleration windows. Difficulty is fixed for the run. Solo practice and verification scenarios disable opponents.
 
@@ -45,7 +45,7 @@ Human launches use the shared HTML/CSS start lights and three countdown beeps fo
 
 Competitive runs latch each racer's first two checkpoint-complete laps and classify valid finishes by total time; invalid runs remain explicitly untimed. Unfinished rivals retain live progress and elapsed times until they actually finish. Vehicles continue after recording their times. Escape after the player records two laps returns to the paddock; core retains a copy of the roster beside the menu. No finish lock or podium is used. Replay records competitive/solo mode and difficulty and advances rivals through the same fixed ticks; rejected replay initialization restores the complete prior field.
 
-The driving HUD shows position, lap count, personal current/last/best lap times and gaps to the rivals immediately ahead/behind. `src/race/relative-timing.js` retains bounded passage samples on unwrapped course distance, interpolating the leader's passage at the trailing ship's current point; gaps never subtract lap clocks or divide distance by current speed. Recovery/reversal clears that ship's passage history, unavailable gaps remain unknown, and replay rollback includes the samples. Full placements/times appear only in the paddock. Rival minimap dots and row strips share one stable color per identity; the player has an orange marker with a white outline.
+The driving HUD shows position, lap count, personal current/last/best lap times and all four racers in race order. Relative gaps use YOU as 0.0s, negative for rivals ahead and positive for rivals behind. `src/race/relative-timing.js` retains bounded passage samples on unwrapped course distance, interpolating the leader's passage at the trailing ship's current point; gaps never subtract lap clocks or divide distance by current speed. Recovery/reversal clears that ship's passage history, unavailable gaps remain unknown, and replay rollback includes the samples. Recorded lap/total finish times appear in the paddock. Rival minimap dots and row strips share one stable color per identity; the player has an orange marker with a white outline.
 
 Vector strips apply a +65 m/s entry impulse at leading hull contact, capped at their 600 km/h target, and add strong propulsion only while the hull overlaps the strip. The per-call road profile can exceed the selected ship's manual boost; holding boost selects the stronger active profile and still spends reserve. Exiting removes the force immediately and retains actual vehicle speed; no timed boost or reserve charge remains. Sweeps include yaw, lateral entry and lap seams. Device ticks expire Aegis's six-second protection and apply brake cancellation before physics, consume shields on qualifying impacts, then sweep new contacts. A shield collected later in a tick cannot protect an earlier impact. Effects do not stack; manual recovery clears effects while retaining the consumed-device ledger. Reverse/parking/reset farming must not rearm devices. Shields protect reserve loss, not collision separation or speed consequences. Layout/tuning/rules IDs live in `src/pickups/halcyon/`.
 
@@ -60,6 +60,24 @@ High uses single-sample HDR, GTAO, restrained bloom, OutputPass and SMAA. Halcyo
 Sky PMREM and a static scene probe approximate reflections; these are not realtime reflections. Renderer-owned reflection textures are borrowed by ship/environment materials and must not be disposed by borrowers. Road coverage masks the analytic contact footprint over real apertures.
 
 Camera damping follows transport through the road frame, with quaternion rotation and local road clearance to handle inverted decks and steep crests. Inspection fits the loaded ship's bounds to the available UI region. Pooled road lights use continuous fades; thin road details must follow the tessellated surface to avoid flicker.
+
+## Asset ownership and layout
+
+Use stable circuit slugs and ship identities to organize assets. For new work, keep the following boundaries:
+
+| Content                                                                             | Location                                                                          |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Level concepts, editable Blender sources/generators, source textures and provenance | `assets/levels/<slug>/`, using `reference/`, `blender/` and `textures/` as useful |
+| Level runtime models and textures                                                   | `public/assets/levels/<slug>/`                                                    |
+| Player ship sources and runtime exports                                             | `assets/ships/<id>/` and `public/assets/ships/<id>/`                              |
+| AI racer sources and runtime exports                                                | `assets/ships/rivals/<id>/` and `public/assets/ships/rivals/<id>/`                |
+| Runtime geometry/materials, placement and loading                                   | `src/levels/<slug>/` or `src/ships/`                                              |
+
+Keep the `rivals/` subdivision: it distinguishes AI chassis from player-selectable ships. Keep exact image prompts, selected references, licences and all inputs required by current generators with their sources. Embedded GLB textures do not need separate runtime PNG copies. The [asset index](docs/ASSET_MANIFEST.json) points to detailed provenance rather than duplicating review history.
+
+Vite copies the whole public directory into each production build, including unreferenced exports. Retire obsolete runtime versions after checking consumers and generator dependencies; temporary renders belong in ignored `.experiments/`. Existing Nacre `art/level3`/`public/assets/level3`, Halcyon `public/assets/sky` and Orbital `public/assets/orbital` are legacy locations awaiting a separate migration. Update loaders, generators, provenance and asset checks together when moving them; keep track/rules/replay identities independent of folder names.
+
+Level discovery imports only the selected implementation. Fleet selection loads the selected player GLB; Halcyon boot also loads its three rival chassis, and rival inspection owns a separate loaded instance. Ship URLs respect Vite's base URL; current level loaders use root-relative URLs. Preserve ownership and readiness when normalizing paths.
 
 ## Lifecycle and verification
 

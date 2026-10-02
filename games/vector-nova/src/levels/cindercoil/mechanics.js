@@ -27,7 +27,7 @@ export function sampleSpill(zone, distance) {
       zone.side *
       (-17 + 34 * t + 0.45 * Math.sin(t * Math.PI * 4) * Math.sin(t * Math.PI)),
     halfWidth:
-      (zone.halfWidth ?? 3.1) +
+      (zone.halfWidth ?? 8.8) +
       Math.sin(t * Math.PI) * 0.35 +
       Math.sin(t * Math.PI * 13) * 0.12,
   };

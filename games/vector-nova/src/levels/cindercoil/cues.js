@@ -2,6 +2,7 @@ import * as T from 'three';
 import { sweepGeometry } from '../../track/geometry.js';
 import { sampleSurge, sampleSpill } from './mechanics.js';
 import { createSpillGeometry } from './spill.js';
+import { createSpillEffects } from './spill-effects.js';
 import { createCalderaHeight } from './environment/geometry.js';
 
 export function createCindercoilCues(track, shape = false) {
@@ -11,10 +12,13 @@ export function createCindercoilCues(track, shape = false) {
   const ownedMaterials = [];
   const patches = [];
   const flowTime = { value: 0 };
+  const flowPulse = { value: 1 };
+  const spillEffects = [];
   let disposed = false;
   const decorateLava = (material, directed = false) => {
     material.onBeforeCompile = (shader) => {
       shader.uniforms.cinderFlowTime = flowTime;
+      if (directed) shader.uniforms.cinderPulse = flowPulse;
       shader.vertexShader = shader.vertexShader
         .replace(
           '#include <common>',
@@ -30,7 +34,7 @@ export function createCindercoilCues(track, shape = false) {
         .replace(
           '#include <common>',
           `#include <common>
-        uniform float cinderFlowTime; varying vec3 vCinderWorld; varying float vCinderEdge; ${directed ? 'varying float vCinderAlong;' : ''}
+        uniform float cinderFlowTime; ${directed ? 'uniform float cinderPulse;' : ''} varying vec3 vCinderWorld; varying float vCinderEdge; ${directed ? 'varying float vCinderAlong;' : ''}
         float cinderHash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
         float cinderNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(cinderHash(i),cinderHash(i+vec3(1,0,0)),f.x),mix(cinderHash(i+vec3(0,1,0)),cinderHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(cinderHash(i+vec3(0,0,1)),cinderHash(i+vec3(1,0,1)),f.x),mix(cinderHash(i+vec3(0,1,1)),cinderHash(i+vec3(1,1,1)),f.x),f.y),f.z);}`,
         )
@@ -41,17 +45,17 @@ export function createCindercoilCues(track, shape = false) {
         float broad=cinderNoise(lavaP+vec3(cinderNoise(lavaP*.43)*2.));
         float molten=smoothstep(.28,.72,broad*.7+cinderNoise(lavaP*4.8)*.3);
         float rim=smoothstep(.91,1.,vCinderEdge);
-        ${directed ? 'float skin=smoothstep(.29,.69,cinderNoise(vec3(vCinderAlong*.30-cinderFlowTime*1.6,vCinderEdge*10.,11.))); diffuseColor.rgb=mix(vec3(.025,.030,.036),mix(vec3(.25,.065,.016),vec3(.48,.13,.035),molten),skin);' : 'diffuseColor.rgb=mix(vec3(.14,.035,.012),vec3(.92,.30,.055),molten);'}
+        ${directed ? 'float skin=smoothstep(.18,.66,cinderNoise(vec3(vCinderAlong*.30-cinderFlowTime*1.6,vCinderEdge*10.,11.))); diffuseColor.rgb=mix(vec3(.04,.032,.023),mix(vec3(.78,.12,.008),vec3(1.,.48,.08),molten),.35+.65*skin);' : 'diffuseColor.rgb=mix(vec3(.14,.035,.012),vec3(.92,.30,.055),molten);'}
         diffuseColor.rgb=mix(diffuseColor.rgb,${directed ? 'vec3(.026,.034,.04)' : 'vec3(1.,.46,.08)'},rim*.8);`,
         )
         .replace(
           '#include <emissivemap_fragment>',
           `#include <emissivemap_fragment>
-        totalEmissiveRadiance=mix(vec3(.12,.015,.001),vec3(1.05,.24,.018),molten*molten)${directed ? '*(1.-rim*.85)*skin*skin*.9' : '+rim*vec3(.42,.16,.014)'};`,
+        totalEmissiveRadiance=${directed ? 'mix(vec3(.48,.025,.001),vec3(1.75,.33,.016),molten*.65+skin*.35)*(1.-rim*.70)*(.4+.6*skin)*cinderPulse' : 'mix(vec3(.12,.015,.001),vec3(1.05,.24,.018),molten*molten)+rim*vec3(.42,.16,.014)'};`,
         );
     };
     material.customProgramCacheKey = () =>
-      `cindercoil-visible-lava-v2-${directed}`;
+      `cindercoil-visible-lava-v3-${directed}`;
   };
   for (const zone of track.surgeZones ?? []) {
     const warningMaterial = new T.MeshStandardMaterial({
@@ -81,6 +85,11 @@ export function createCindercoilCues(track, shape = false) {
       lava.name = 'Cindercoil / continuous diagonal crater spill';
       group.add(lava);
       ownedGeometries.push(flow);
+      if (!shape) {
+        const effects = createSpillEffects(track, zone, flowPulse);
+        group.add(effects.group);
+        spillEffects.push(effects);
+      }
       for (const side of [-1, 1]) {
         const positions = [];
         const count = Math.ceil((zone.end - zone.start) / 2),
@@ -187,6 +196,10 @@ export function createCindercoilCues(track, shape = false) {
   const update = ({ time = 0, settings = {} }) => {
     if (disposed) return;
     flowTime.value = settings.reducedMotion ? 0 : time;
+    flowPulse.value = settings.reducedMotion
+      ? 1
+      : 1 + 0.14 * Math.sin(time * 1.8);
+    spillEffects.forEach((effects) => effects.update({ time, settings }));
     for (const { zone, frames, lava, warningMaterial } of patches) {
       const cue = sampleSurge(time, zone);
       lava.visible = cue.coverage > 0.002;
@@ -225,6 +238,7 @@ export function createCindercoilCues(track, shape = false) {
     dispose() {
       if (disposed) return;
       disposed = true;
+      spillEffects.forEach((effects) => effects.dispose());
       ownedGeometries.forEach((geometry) => geometry.dispose());
       ownedMaterials.forEach((material) => material.dispose());
       group.clear();

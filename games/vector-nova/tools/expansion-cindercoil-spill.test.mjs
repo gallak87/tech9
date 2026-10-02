@@ -81,7 +81,7 @@ test('continuous cue retains geometry in every phase, freezes advection and disp
 test('permanent flow contact costs reserve while the dry shoulder keeps baseline response', () => {
   for (const time of [0, 4, 9]) {
     const results = [];
-    for (const lateral of [0, -8.5]) {
+    for (const lateral of [0, -12]) {
       const runtime = createCindercoilRuntime({ track });
       const state = {
         ...createVehicleState(),
@@ -99,4 +99,83 @@ test('permanent flow contact costs reserve while the dry shoulder keeps baseline
     assert.ok(results[0].state.energy < results[1].state.energy);
     assert.ok(results[0].state.speed < results[1].state.speed);
   }
+});
+
+test('wide deck lava is a visible surface with matching contact instead of a thin painted line', () => {
+  const frame = track.sample((zone.start + zone.end) / 2);
+  const { flow, bed } = createSpillGeometry(
+    track,
+    zone,
+    createCalderaHeight(track),
+  );
+  const material = new T.MeshBasicMaterial({ side: T.DoubleSide });
+  const mesh = new T.Mesh(flow, material);
+  mesh.updateMatrixWorld(true);
+  for (const lateral of [-8, 0, 8]) {
+    const ray = new T.Raycaster(
+      frame.position
+        .clone()
+        .addScaledVector(frame.right, lateral)
+        .addScaledVector(frame.up, 5),
+      frame.up.clone().negate(),
+      0,
+      8,
+    );
+    assert.ok(
+      ray.intersectObject(mesh).length > 0,
+      `wide molten surface missing at lateral ${lateral}`,
+    );
+  }
+  const dry = new T.Raycaster(
+    frame.position
+      .clone()
+      .addScaledVector(frame.right, -12)
+      .addScaledVector(frame.up, 5),
+    frame.up.clone().negate(),
+    0,
+    8,
+  );
+  assert.equal(dry.intersectObject(mesh).length, 0);
+  flow.dispose();
+  bed.dispose();
+  material.dispose();
+});
+
+test('contact smoke and glow reproduce the clock, freeze in reduced motion and release every resource once', () => {
+  const cues = createCindercoilCues(track);
+  const smoke = cues.group.getObjectByName(
+    'Cindercoil / lava contact smoke plumes',
+  );
+  const glow = cues.group.getObjectByName('Cindercoil / lava glow on ceramic');
+  assert.ok(smoke?.isInstancedMesh && glow?.isMesh);
+  cues.update({ time: 3.2, settings: { quality: 'high' } });
+  assert.equal(smoke.count, 48);
+  const first = Array.from(smoke.instanceMatrix.array);
+  const pulse = glow.material.uniforms.spillPulse.value;
+  cues.update({ time: 10, settings: { quality: 'high' } });
+  assert.notDeepEqual(Array.from(smoke.instanceMatrix.array), first);
+  assert.notEqual(glow.material.uniforms.spillPulse.value, pulse);
+  cues.update({ time: 3.2, settings: { quality: 'high' } });
+  assert.deepEqual(Array.from(smoke.instanceMatrix.array), first);
+  assert.equal(glow.material.uniforms.spillPulse.value, pulse);
+  cues.update({ time: 7, settings: { quality: 'low', reducedMotion: true } });
+  assert.equal(smoke.count, 24);
+  const still = Array.from(smoke.instanceMatrix.array);
+  cues.update({ time: 25, settings: { quality: 'low', reducedMotion: true } });
+  assert.deepEqual(Array.from(smoke.instanceMatrix.array), still);
+  assert.equal(glow.material.uniforms.spillPulse.value, 1);
+  const resources = new Set();
+  cues.group.traverse((node) => {
+    if (node.geometry) resources.add(node.geometry);
+    for (const material of [node.material].flat().filter(Boolean))
+      resources.add(material);
+  });
+  const disposals = new Map();
+  for (const resource of resources)
+    resource.addEventListener('dispose', () =>
+      disposals.set(resource, (disposals.get(resource) ?? 0) + 1),
+    );
+  cues.dispose();
+  cues.dispose();
+  for (const resource of resources) assert.equal(disposals.get(resource), 1);
 });

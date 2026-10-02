@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { sampleCindercoilEvent, surgeAt } from './mechanics.js';
+import { createCindercoilPlumeResources } from './plume.js';
 
 const smooth = T.MathUtils.smoothstep;
 
@@ -118,59 +119,9 @@ export function createCindercoilAtmosphere(track, ventPosition) {
   const heat = new T.Mesh(new T.PlaneGeometry(74, 105), heatMaterial);
   heat.position.copy(ventPosition).add(new T.Vector3(0, 60, 0));
   group.add(heat);
-  const plumeGeometry = new T.SphereGeometry(1, 16, 12);
-  const pp = plumeGeometry.attributes.position;
-  for (let i = 0; i < pp.count; i++) {
-    const p = new T.Vector3().fromBufferAttribute(pp, i);
-    const lobes =
-      1 +
-      0.13 * Math.sin(p.x * 11 + p.y * 8) * Math.cos(p.z * 9) +
-      0.08 * Math.sin(p.y * 17 + p.z * 5);
-    pp.setXYZ(i, p.x * lobes, p.y * lobes, p.z * lobes);
-  }
-  plumeGeometry.computeVertexNormals();
   const plumeTime = { value: 0 };
-  const plumeMaterial = new T.MeshStandardMaterial({
-    name: 'Cindercoil / billowing local ash volume',
-    color: '#77808c',
-    roughness: 1,
-    transparent: true,
-    opacity: 0.16,
-    depthWrite: false,
-  });
-  plumeMaterial.onBeforeCompile = (shader) => {
-    shader.uniforms.plumeTime = plumeTime;
-    shader.vertexShader = shader.vertexShader
-      .replace(
-        '#include <common>',
-        '#include <common>\nvarying vec3 plumeLocal;',
-      )
-      .replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\nplumeLocal=position;',
-      );
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
-        '#include <common>',
-        `#include <common>
-      varying vec3 plumeLocal;uniform float plumeTime;
-      float paHash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
-      float paNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(paHash(i),paHash(i+vec3(1,0,0)),f.x),mix(paHash(i+vec3(0,1,0)),paHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(paHash(i+vec3(0,0,1)),paHash(i+vec3(1,0,1)),f.x),mix(paHash(i+vec3(0,1,1)),paHash(i+vec3(1,1,1)),f.x),f.y),f.z);}`,
-      )
-      .replace(
-        '#include <color_fragment>',
-        `#include <color_fragment>
-        vec3 ashP=plumeLocal*5.+vec3(plumeTime*.013,-plumeTime*.021,0.);
-        float ashDensity=paNoise(ashP)*.7+paNoise(ashP*2.13)*.3;
-        diffuseColor.rgb*=mix(.65,1.22,ashDensity);`,
-      )
-      .replace(
-        '#include <opaque_fragment>',
-        `diffuseColor.a*=pow(abs(dot(normal,normalize(vViewPosition))),1.6)*smoothstep(.18,.68,ashDensity);
-        if(diffuseColor.a<.003)discard;
-        #include <opaque_fragment>`,
-      );
-  };
+  const { geometry: plumeGeometry, material: plumeMaterial } =
+    createCindercoilPlumeResources({ time: plumeTime });
   const ventPlume = new T.InstancedMesh(plumeGeometry, plumeMaterial, 16);
   const rupturePlume = new T.InstancedMesh(
     plumeGeometry,

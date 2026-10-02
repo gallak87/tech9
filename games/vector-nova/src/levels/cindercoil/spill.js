@@ -19,8 +19,8 @@ export function spillOpenings(track, side) {
   return (track.surgeZones ?? [])
     .filter((z) => z.kind === 'spill')
     .map((z) => ({
-      start: (side === z.side ? z.end : z.start) - 10,
-      end: (side === z.side ? z.end : z.start) + 10,
+      start: (side === z.side ? z.end : z.start) - ((z.halfWidth ?? 8.8) + 7),
+      end: (side === z.side ? z.end : z.start) + ((z.halfWidth ?? 8.8) + 7),
     }));
 }
 
@@ -98,14 +98,15 @@ function loft(samples, { bed = false } = {}) {
 export function createSpillGeometry(track, zone, heightAt) {
   const { entry, exit, source } = spillAnchors(track, zone);
   const up = new T.Vector3(0, 1, 0);
+  const halfWidth = zone.halfWidth ?? 8.8;
   const feed = [];
   for (const [lateral, height, width] of [
     [65, 29, 3.8],
-    [58, 29, 3.9],
-    [52, 26, 3.8],
-    [41, 17, 3.5],
-    [28, 5, 3.3],
-    [17, 0.18, 3.1],
+    [58, 29, 4.6],
+    [52, 26, 5.8],
+    [41, 17, 7.5],
+    [28, 5, halfWidth + 0.3],
+    [17, 0.18, halfWidth],
   ]) {
     const point = entry.position
       .clone()
@@ -130,10 +131,10 @@ export function createSpillGeometry(track, zone, heightAt) {
     });
   }
   for (const [along, lateral, drop, width] of [
-    [-3, 19, 2, 3.1],
-    [-8, 23, 9, 3],
-    [-16, 27, 26, 2.8],
-    [-23, 30, 48, 3.8],
+    [-3, 19, 2, halfWidth],
+    [-8, 23, 9, halfWidth * 0.95],
+    [-16, 27, 26, halfWidth * 0.9],
+    [-23, 30, 48, halfWidth + 1],
   ]) {
     const point = exit.position
       .clone()

@@ -44,7 +44,7 @@ test('simulation-clock spectacle is periodic, finite and unchanged at paused tim
   }
 });
 
-test('the second hazard is a permanent diagonal spill with contact matching its narrow visible ribbon', async () => {
+test('the second hazard is a permanent diagonal spill with contact matching its wide visible flow', async () => {
   const { createCindercoilTrack } =
     await import('../src/levels/cindercoil/track/model.js');
   const track = createCindercoilTrack(),

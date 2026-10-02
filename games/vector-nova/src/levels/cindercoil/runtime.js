@@ -56,7 +56,7 @@ export function createCindercoilRuntime(context) {
             zone.kind === 'spill'
               ? line === 'exposed'
                 ? sampleSpill(zone, (zone.start + zone.end) / 2).center
-                : -zone.side * 8.5
+                : -zone.side * 12
               : side * zone.side * 8.5,
           speed: 45,
           time: (((4 - zone.phaseOffset) % 13) + 13) % 13,

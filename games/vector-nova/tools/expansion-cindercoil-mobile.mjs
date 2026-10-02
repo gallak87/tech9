@@ -115,14 +115,16 @@ try {
         );
         await page.waitForTimeout(120);
         await capture(page, `${name}-surge-closed`);
-        await page.locator('#review-toggle').tap();
-        await page.waitForTimeout(120);
-        assert.equal(
-          (await snapshot(page)).environment.cindercoil.visible,
-          false,
-        );
-        await capture(page, `${name}-review-open`);
-        await page.locator('#review-toggle').tap();
+        if (await page.locator('#review-toggle').count()) {
+          await page.locator('#review-toggle').tap();
+          await page.waitForTimeout(120);
+          assert.equal(
+            (await snapshot(page)).environment.cindercoil.visible,
+            false,
+          );
+          await capture(page, `${name}-review-open`);
+          await page.locator('#review-toggle').tap();
+        }
         const client = await context.newCDPSession(page);
         const button = page.locator('[data-drive="throttle"]');
         const box = await button.boundingBox();

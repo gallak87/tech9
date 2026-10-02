@@ -314,7 +314,7 @@ export function createCindercoilEnvironment({
     bed.name = 'Cindercoil / rooted crater spill apron';
     bed.receiveShadow = true;
     group.add(bed);
-    const spillPool = createLavaPool(12, 9, materials.lava, 81);
+    const spillPool = createLavaPool(26, 20, materials.lava, 81);
     spillPool.position.copy(spillGeometry.outfall);
     group.add(spillPool);
     const spillLight = new T.PointLight('#ff7938', 180, 65, 2);

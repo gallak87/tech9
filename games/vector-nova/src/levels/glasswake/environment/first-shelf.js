@@ -1,9 +1,9 @@
 // The existing third Mouth vault is the large sheet visible from Aurora Berth.
 // Fixed-step runtime owns elapsed time; rendering only samples this pose.
 export const FIRST_SHELF_RULES = Object.freeze({
-  triggerDistance: 325,
+  triggerDistance: 285,
   duration: 3.4,
-  crackSeconds: 0.4,
+  crackSeconds: 0.25,
   roofIndex: 2,
 });
 export function sampleFirstShelf(elapsed = null) {

@@ -12,6 +12,11 @@ import {
   sampleFirstShelf,
 } from '../src/levels/glasswake/environment/first-shelf.js';
 import {
+  sampleCalvingState,
+  calvingSeparationDistance,
+} from '../src/levels/glasswake/environment/event.js';
+import { openingFragmentPose } from '../src/levels/glasswake/environment/opening-avalanche.js';
+import {
   createGlasswakeShelfBuffer,
   SHELF_AUDIO_RULES,
 } from '../src/levels/glasswake/audio.js';
@@ -29,7 +34,10 @@ const shelfEvents = (events) =>
 test('opening sheet cracks first, falls once, remains gone on subsequent laps/recovery, and rearms on fresh session', () => {
   const track = createGlasswakeTrack(),
     runtime = createGlasswakeRuntime({ track });
-  const state = fresh({ distance: 324.99, speed: 30 });
+  const state = fresh({
+    distance: FIRST_SHELF_RULES.triggerDistance - 0.01,
+    speed: 30,
+  });
   runtime.reset({ reason: 'fresh-lap', state });
   assert.equal(runtime.snapshot().openingShelf, null);
   assert.equal(
@@ -58,21 +66,22 @@ test('opening sheet cracks first, falls once, remains gone on subsequent laps/re
     );
     assert.ok(state.distance > track.length * lap);
     assert.equal(runtime.snapshot().openingShelf, FIRST_SHELF_RULES.duration);
-    state.distance = track.length * lap + 324.99;
+    state.distance =
+      track.length * lap + FIRST_SHELF_RULES.triggerDistance - 0.01;
     assert.equal(
       shelfEvents(runtime.advance(state, controls, 1 / 120)).length,
       0,
     );
   }
   runtime.reset({ reason: 'manual-recover', state });
-  state.distance = 324.99;
+  state.distance = FIRST_SHELF_RULES.triggerDistance - 0.01;
   state.speed = 30;
   assert.equal(
     shelfEvents(runtime.advance(state, controls, 1 / 120)).length,
     0,
   );
   runtime.reset({ reason: 'fresh-lap', state });
-  state.distance = 324.99;
+  state.distance = FIRST_SHELF_RULES.triggerDistance - 0.01;
   assert.equal(
     shelfEvents(runtime.advance(state, controls, 1 / 120)).length,
     1,
@@ -83,7 +92,10 @@ test('opening sheet cracks first, falls once, remains gone on subsequent laps/re
 test('opening collapse snapshots resume exactly; scenario seeks and pause never manufacture audio events', () => {
   const track = createGlasswakeTrack(),
     first = createGlasswakeRuntime({ track });
-  const state = fresh({ distance: 324.99, speed: 30 });
+  const state = fresh({
+    distance: FIRST_SHELF_RULES.triggerDistance - 0.01,
+    speed: 30,
+  });
   first.advance(state, controls, 1 / 120);
   for (let i = 0; i < 110; i++) first.advance(state, controls, 1 / 120);
   const saved = structuredClone(first.snapshot()),
@@ -209,6 +221,9 @@ test('the actual opening vault falls clear of the entire rolled route/camera cor
         });
       }
       const pose = [...pivot.position.toArray(), ...pivot.quaternion.toArray()];
+      const positions = sheet.children.map((m) =>
+        m.geometry.attributes.position.array.slice(),
+      );
       env.update({
         settings: { quality: 'low', reducedMotion: true },
         state: { time: 1000 },
@@ -216,6 +231,10 @@ test('the actual opening vault falls clear of the entire rolled route/camera cor
       assert.deepEqual(
         [...pivot.position.toArray(), ...pivot.quaternion.toArray()],
         pose,
+      );
+      assert.deepEqual(
+        sheet.children.map((m) => m.geometry.attributes.position.array),
+        positions,
       );
     }
     assert.equal(pivot.visible, false);
@@ -285,4 +304,182 @@ test('original cached shelf synthesis contains a sharp initial crack and delayed
     'snow rush builds after fracture',
   );
   assert.ok(rms(3.35, 3.4) < rms(0.6, 1.5) * 0.15, 'clean tail');
+});
+
+test('second shelf separates at the second jump with one sound per forward lap; recovery and seeks do not duplicate it', () => {
+  const track = createGlasswakeTrack(),
+    runtime = createGlasswakeRuntime({ track });
+  const trigger = calvingSeparationDistance(track);
+  const state = fresh({ distance: trigger - 0.01, speed: 30 });
+  runtime.reset({ reason: 'fresh-lap', state });
+  const takeoffEvents = runtime.advance(state, controls, 1 / 120);
+  const cues = shelfEvents(takeoffEvents);
+  assert.ok(
+    takeoffEvents.some(
+      (e) => e.type === 'jump-launch' && e.payload.id === track.jumps[1].id,
+    ),
+    'sound shares the exact second takeoff tick',
+  );
+  assert.equal(cues.length, 1);
+  assert.equal(cues[0].id, 'calving-shelf:0');
+  assert.equal(
+    runtime.snapshot().calvingSoundLap,
+    0,
+    'lap zero round-trips through JSON without negative zero',
+  );
+  assert.ok(
+    sampleCalvingState(track, state).separation < 1e-12,
+    'fall begins at the takeoff boundary',
+  );
+  assert.equal(trigger, track.jumps[1].takeoff);
+  assert.ok(cues.some((e) => e.id === 'calving-shelf:0'));
+  assert.equal(
+    sampleCalvingState(track, { distance: track.jumps[0].landingEnd })
+      .separation,
+    0,
+  );
+  assert.ok(
+    sampleCalvingState(track, { distance: trigger + 70 }).separation > 0.25,
+    'visible fall during the second flight',
+  );
+  for (let i = 0; i < 120; i++)
+    assert.equal(
+      shelfEvents(runtime.advance(state, controls, 1 / 120)).length,
+      0,
+    );
+  runtime.reset({ reason: 'manual-recover', state });
+  state.distance = trigger - 0.01;
+  state.speed = 30;
+  assert.equal(
+    shelfEvents(runtime.advance(state, controls, 1 / 120)).length,
+    0,
+  );
+  for (let lap = 1; lap <= 3; lap++) {
+    runtime.reset({ reason: 'manual-recover', state });
+    state.distance = trigger + lap * track.length - 0.01;
+    state.speed = 30;
+    const next = shelfEvents(runtime.advance(state, controls, 1 / 120));
+    assert.equal(next.length, 1);
+    assert.equal(next[0].id, `calving-shelf:${lap}`);
+  }
+  runtime.reset({
+    reason: 'scenario',
+    scenario: 'calving-open',
+    state: fresh(track.scenarios['calving-open']),
+  });
+  state.distance = trigger + 100;
+  state.speed = 0;
+  assert.equal(
+    shelfEvents(runtime.advance(state, controls, 1 / 120)).length,
+    0,
+  );
+  assert.throws(() =>
+    runtime.restore({ ...runtime.snapshot(), calvingSoundLap: 0.5 }),
+  );
+  runtime.dispose();
+});
+
+test('second shelf cue and ledger restore identically immediately before its forward trigger', () => {
+  const track = createGlasswakeTrack(),
+    first = createGlasswakeRuntime({ track });
+  const state = fresh({
+    distance: calvingSeparationDistance(track) - 0.01,
+    speed: 30,
+  });
+  first.reset({ reason: 'scenario', state });
+  const second = createGlasswakeRuntime({ track }),
+    copy = { ...state };
+  second.restore(structuredClone(first.snapshot()));
+  const cues = first.advance(state, controls, 1 / 120);
+  assert.deepEqual(second.advance(copy, controls, 1 / 120), cues);
+  assert.equal(shelfEvents(cues)[0]?.id, 'calving-shelf:0');
+  for (let i = 0; i < 500; i++)
+    assert.deepEqual(
+      first.advance(state, controls, 1 / 120),
+      second.advance(copy, controls, 1 / 120),
+    );
+  assert.deepEqual(state, copy);
+  assert.deepEqual(first.snapshot(), second.snapshot());
+  first.dispose();
+  second.dispose();
+});
+
+test('opening avalanche releases the small exposed tip first and accelerates larger sections outward/down without more draw meshes', async () => {
+  const track = createGlasswakeTrack(),
+    runtime = createGlasswakeRuntime({ track });
+  const bytes = await readFile(
+    new URL(
+      '../public/assets/levels/glasswake/glasswake-environment-v5.glb',
+      import.meta.url,
+    ),
+  );
+  const env = createGlasswakeEnvironment({
+    track,
+    loadAsset: () =>
+      new GLTFLoader().parseAsync(
+        bytes.buffer.slice(
+          bytes.byteOffset,
+          bytes.byteOffset + bytes.byteLength,
+        ),
+        '',
+      ),
+  });
+  try {
+    await env.ready;
+    const sheet = env.group.getObjectByName(
+      'Glasswake / progressively fractured opening sheet',
+    );
+    assert.equal(
+      sheet.children.length,
+      1,
+      'same consolidated draw mesh as the original sheet',
+    );
+    const geometry = sheet.children[0].geometry;
+    const intact = geometry.attributes.position.array.slice();
+    const first = { index: 0, strip: 0, column: 0, columns: 5 };
+    const last = { index: 15, strip: 4, column: 1, columns: 2 };
+    assert.ok(openingFragmentPose(0.4, first).progress > 0);
+    assert.equal(
+      openingFragmentPose(0.4, last).progress,
+      0,
+      'larger rear sections still held',
+    );
+    assert.ok(
+      openingFragmentPose(1.1, last).progress > 0,
+      'release propagates into the larger body',
+    );
+    for (
+      let elapsed = 0;
+      elapsed <= FIRST_SHELF_RULES.duration;
+      elapsed += 0.02
+    ) {
+      for (const fragment of [first, last]) {
+        const pose = openingFragmentPose(elapsed, fragment);
+        assert.ok(
+          pose.offset.z <= 0 && pose.offset.y <= 0,
+          'fall goes toward the exposed side and down',
+        );
+        if (pose.progress >= 0.5)
+          assert.ok(
+            Math.abs(pose.offset.y) > Math.abs(pose.offset.z) * 2,
+            'drop accelerates beyond the outward release',
+          );
+      }
+    }
+    const saved = runtime.snapshot();
+    runtime.restore({ ...saved, openingShelf: 0.4 });
+    env.update();
+    assert.notDeepEqual(geometry.attributes.position.array, intact);
+    assert.ok(geometry.attributes.position.array.every(Number.isFinite));
+    runtime.restore({ ...saved, openingShelf: null });
+    env.update();
+    assert.deepEqual(
+      geometry.attributes.position.array,
+      intact,
+      'reset reconstructs exact authored silhouette',
+    );
+  } finally {
+    runtime.dispose();
+    env.dispose();
+  }
 });

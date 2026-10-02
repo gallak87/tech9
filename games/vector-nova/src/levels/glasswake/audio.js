@@ -76,7 +76,8 @@ export function createGlasswakeShelfAudio(context, destination) {
         disposed ||
         context.state !== 'running' ||
         event?.type !== 'glasswake-shelf' ||
-        event.id !== 'opening-sheet' ||
+        (event.id !== 'opening-sheet' &&
+          !/^calving-shelf:\d+$/.test(event.id)) ||
         lastId === event.id ||
         voice
       )

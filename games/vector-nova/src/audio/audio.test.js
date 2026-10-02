@@ -302,10 +302,24 @@ test('level-owned shelf sound uses the shared master bus and obeys unlock, mute,
   audio.event(event);
   assert.equal(audio.getPresentation().triggerCount, 1);
   assert.equal(audio.getPresentation().activeVoices, 1);
+  // The same cached crack/snow buffer serves the distant shelf too.
+  const openingVoice = context.nodes.filter((n) => n.kind === 'buffer').at(-1);
+  openingVoice.onended();
+  const secondCue = { type: 'glasswake-shelf', id: 'calving-shelf:0' };
+  audio.event(secondCue);
+  audio.event(secondCue);
+  assert.equal(audio.getPresentation().triggerCount, 2);
+  assert.equal(audio.getPresentation().activeVoices, 1);
+  assert.equal(
+    context.nodes.filter((n) => n.kind === 'buffer').at(-1).buffer,
+    openingVoice.buffer,
+  );
+  audio.event({ type: 'glasswake-shelf', id: 'unrelated' });
+  assert.equal(audio.getPresentation().triggerCount, 2);
   audio.update(state, 0.35, false);
   assert.equal(audio.getPresentation().activeVoices, 0);
   audio.event(event);
-  assert.equal(audio.getPresentation().triggerCount, 1);
+  assert.equal(audio.getPresentation().triggerCount, 2);
   audio.update(state, 0.35, true);
   audio.event(event);
   audio.resetEnvironment();

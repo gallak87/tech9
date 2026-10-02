@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { CALVING_RULES } from '../environment/event.js';
 import { createReferenceFrames } from '../../../track/frames.js';
 
 const WIDTH = 30;
@@ -363,14 +364,14 @@ export function createGlasswakeTrack() {
     'crevice-floor': parked(routeDistance(3820)),
     'crevice-ascent': parked(routeDistance(4160)),
     'blizzard-rim': parked(routeDistance(2810)),
-    'first-shelf-approach': parked(280),
+    'first-shelf-approach': parked(245),
     'first-shelf-crack': parked(350),
     'first-shelf-fall': parked(390),
     'first-shelf-gone': parked(390),
     'calving-approach': parked(routeDistance(bridgeStart) - 100),
     'calving-departure': parked(routeDistance(bridgeEnd) + 150),
-    'calving-cracks': parked(routeDistance(bridgeStart) + 30),
-    'calving-open': parked(routeDistance(bridgeEnd) - 40),
+    'calving-cracks': parked(jumps[1].takeoff - 45),
+    'calving-open': parked(jumps[1].takeoff + CALVING_RULES.separationSpan),
     'frost-approach': parked(gripZones[0].start - 55),
     'frost-matched': {
       ...parked(gripZones[0].start + 10),

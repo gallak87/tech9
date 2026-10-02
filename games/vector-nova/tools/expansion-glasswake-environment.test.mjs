@@ -8,6 +8,8 @@ import { createGlasswakeRuntime } from '../src/levels/glasswake/runtime.js';
 import { createVehicleState } from '../src/physics/index.js';
 import { createGlasswakeEnvironment } from '../src/levels/glasswake/environment/index.js';
 import {
+  CALVING_RULES,
+  calvingSeparationDistance,
   sampleCalvingState,
   sampleCaveBlend,
 } from '../src/levels/glasswake/environment/event.js';
@@ -40,7 +42,9 @@ test('calving cracks precede separation; distance seeking and lap reset are exac
     ),
     1,
   );
-  const warned = sampleCalvingState(track, { distance: track.bridge.start });
+  const warned = sampleCalvingState(track, {
+    distance: calvingSeparationDistance(track) - 45,
+  });
   assert.ok(warned.crack > 0.95);
   assert.equal(warned.separation, 0);
   assert.equal(warned.phase, 'cracking');
@@ -110,7 +114,7 @@ test('authored GLB builds bounded layered world and restores borrowed scene owne
       assert.equal(hit, false, `${entry.name} intersects camera/route at ${s}`);
     }
   }
-  const state = { distance: track.bridge.start + 330, time: 12 };
+  const state = { distance: calvingSeparationDistance(track) + 100, time: 12 };
   env.update({ state, settings: { quality: 'high', reducedMotion: false } });
   const high = pose(env.group);
   const cavityLight = env.group.getObjectByName(
@@ -339,10 +343,11 @@ test('actual calving meshes clear the banked route and sampled flight/camera env
       runtime.dispose();
     }
   const separationDistance = (target) => {
-    if (target === 0) return track.bridge.start - 180;
+    if (target === 0)
+      return calvingSeparationDistance(track) - CALVING_RULES.warningLead;
     if (target === 1) return track.bridge.end;
-    let low = track.bridge.start + 40;
-    let high = low + 430;
+    let low = calvingSeparationDistance(track);
+    let high = low + CALVING_RULES.separationSpan;
     for (let step = 0; step < 40; step++) {
       const middle = (low + high) * 0.5;
       if (sampleCalvingState(track, { distance: middle }).separation < target)

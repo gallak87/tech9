@@ -1,6 +1,10 @@
 import { createFlightModel } from '../../physics/flight.js';
 import { surfaceAt } from './surface.js';
 import { FIRST_SHELF_RULES } from './environment/first-shelf.js';
+import {
+  CALVING_RULES,
+  calvingSeparationDistance,
+} from './environment/event.js';
 
 export const GLASSWAKE_RULES = Object.freeze({ gravity: 26 });
 const flightModel = createFlightModel(GLASSWAKE_RULES);
@@ -11,8 +15,8 @@ export function createGlasswakeRuntime(context) {
   const { track } = context;
   const runtime = flightModel.createRuntime(context, {
     id: 'glasswake-fracture-grip',
-    version: 5,
-    rulesId: `glasswake-v5:${JSON.stringify({ geometry: track.geometryVersion, jumps: track.jumps, frost: track.gripZones, rules: flightModel.rules, openingShelf: FIRST_SHELF_RULES })}`,
+    version: 6,
+    rulesId: `glasswake-v6:${JSON.stringify({ geometry: track.geometryVersion, jumps: track.jumps, frost: track.gripZones, rules: flightModel.rules, openingShelf: FIRST_SHELF_RULES, calving: CALVING_RULES })}`,
     scenarios: Object.fromEntries(
       Object.entries(track.scenarios).map(([name, state]) => [
         name,
@@ -45,6 +49,8 @@ export function createGlasswakeRuntime(context) {
     }),
   });
   let openingShelf = null;
+  let calvingSoundLap = -1;
+  const calvingSoundAt = calvingSeparationDistance(track);
   const { advance, reset, snapshot, restore } = runtime;
   runtime.advance = (state, input, dt) => {
     const beforeDistance = state.distance;
@@ -69,15 +75,39 @@ export function createGlasswakeRuntime(context) {
         });
       } else openingShelf = FIRST_SHELF_RULES.duration;
     }
+    // The second shelf remains route-sampled, including during real flight.
+    // Give each forward lap crossing one cue; seeking/recovery never farms it.
+    const launched = events.some(
+      (e) => e.type === 'jump-launch' && e.payload.id === track.jumps[1].id,
+    );
+    const lap = launched
+      ? Math.max(
+          0,
+          Math.round((state.distance - calvingSoundAt) / track.length),
+        )
+      : Math.floor((state.distance - calvingSoundAt) / track.length);
+    if (lap >= 0 && lap > calvingSoundLap) {
+      if (launched)
+        events.push({
+          type: 'glasswake-shelf',
+          id: `calving-shelf:${lap}`,
+          payload: { distance: state.distance },
+        });
+      calvingSoundLap = lap;
+    }
     return events;
   };
   runtime.reset = (args = {}) => {
     reset(args);
     if (args.reason === 'manual-recover') return;
     openingShelf = null;
+    calvingSoundLap = -1;
     if (args.reason === 'scenario') {
+      calvingSoundLap = Math.floor(
+        ((args.state?.distance ?? 0) - calvingSoundAt) / track.length,
+      );
       const phases = {
-        'first-shelf-crack': 0.28,
+        'first-shelf-crack': 0.18,
         'first-shelf-fall': 1.65,
         'first-shelf-gone': FIRST_SHELF_RULES.duration,
       };
@@ -88,7 +118,7 @@ export function createGlasswakeRuntime(context) {
           : null);
     }
   };
-  runtime.snapshot = () => ({ ...snapshot(), openingShelf });
+  runtime.snapshot = () => ({ ...snapshot(), openingShelf, calvingSoundLap });
   runtime.restore = (data) => {
     if (
       data?.openingShelf !== null &&
@@ -97,8 +127,11 @@ export function createGlasswakeRuntime(context) {
         data.openingShelf > FIRST_SHELF_RULES.duration)
     )
       throw new Error('Invalid Glasswake opening shelf state.');
+    if (!Number.isInteger(data?.calvingSoundLap) || data.calvingSoundLap < -1)
+      throw new Error('Invalid Glasswake calving sound ledger.');
     restore(data);
     openingShelf = data.openingShelf;
+    calvingSoundLap = data.calvingSoundLap;
   };
   runtimes.set(track, runtime);
   const dispose = runtime.dispose;

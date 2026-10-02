@@ -1,12 +1,13 @@
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { sampleCalvingState, sampleCaveBlend } from './event.js';
+import { CALVING_RULES, sampleCalvingState, sampleCaveBlend } from './event.js';
 import { finishIceMaterial } from './materials.js';
 import { consolidateIceParts } from './consolidate.js';
 import { createGlasswakeWeather } from '../weather/index.js';
 import { createCalvingPowder } from '../weather/calving-powder.js';
 import { glasswakeFlightState } from '../runtime.js';
 import { FIRST_SHELF_RULES, sampleFirstShelf } from './first-shelf.js';
+import { createOpeningAvalanche } from './opening-avalanche.js';
 
 const ASSET_URL = '/assets/levels/glasswake/glasswake-environment-v5.glb';
 const UP = new T.Vector3(0, 1, 0);
@@ -62,6 +63,7 @@ export function createGlasswakeEnvironment({
   let openingPivot = null;
   let openingCentre = null;
   let openingPowder = null;
+  let openingAvalanche = null;
   const openingCracks = [];
   let firstShelf = sampleFirstShelf();
   let disposed = false;
@@ -136,8 +138,21 @@ export function createGlasswakeEnvironment({
       openingPivot = new T.Group();
       openingPivot.position.copy(openingCentre);
       openingShelf.add(openingPivot);
-      const sheet = unique(name, openingPivot);
+      openingAvalanche = createOpeningAvalanche(
+        template.parts,
+        template.bounds,
+      );
+      const sheet = new T.Group();
+      sheet.name = 'Glasswake / progressively fractured opening sheet';
       sheet.position.copy(openingCentre).negate();
+      for (const part of openingAvalanche.parts) {
+        const mesh = new T.Mesh(part.geometry, part.material);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        sheet.add(mesh);
+        geometries.add(part.geometry);
+      }
+      openingPivot.add(sheet);
       // Seams follow the actual authored underside. No floating decals or
       // extra texture/render pass; one small, bounded mesh per seam.
       const probe = unique(name, new T.Group());
@@ -181,10 +196,12 @@ export function createGlasswakeEnvironment({
         openingPivot.add(seam);
         openingCracks.push(seam);
       }
-      openingPowder = createCalvingPowder({ count: 80, lowCount: 36 });
+      openingPowder = createCalvingPowder({
+        count: 80,
+        lowCount: 36,
+        opening: true,
+      });
       openingPowder.mesh.name = 'Glasswake / opening sheet powder';
-      openingPowder.mesh.position.set(72, -65, 0);
-      openingPowder.mesh.scale.z = 0.35;
       openingShelf.add(openingPowder.mesh);
       placements.push({
         name: 'opening-sheet',
@@ -477,10 +494,21 @@ export function createGlasswakeEnvironment({
       );
     const centerS = (track.bridge.start + track.bridge.end) * 0.5;
     // Front faces the raceway; the opening lies within an actual fixed rear shell.
-    calving.applyMatrix4(transform(centerS, 235, -32));
-    // Stage the far shelf ahead of the span: the opened cavity remains in the
-    // forward sight line through departure, rather than falling behind chase.
-    calving.position.addScaledVector(track.sample(centerS).tangent, 820);
+    calving.applyMatrix4(
+      transform(
+        centerS,
+        CALVING_RULES.lateral,
+        CALVING_RULES.height,
+        [1, 1, 1],
+        CALVING_RULES.yaw,
+      ),
+    );
+    // Keep the falling faces in the forward vista through the paired jumps.
+    // The full cavity and moving slabs remain outside the route/camera corridor.
+    calving.position.addScaledVector(
+      track.sample(centerS).tangent,
+      CALVING_RULES.forwardOffset,
+    );
     group.add(calving);
     calvingPowder = createCalvingPowder();
     calving.add(calvingPowder.mesh);
@@ -676,10 +704,7 @@ export function createGlasswakeEnvironment({
     firstShelf = sampleFirstShelf(glasswakeFlightState(track).openingShelf);
     if (openingPivot) {
       const t = firstShelf.separation;
-      openingPivot.position
-        .copy(openingCentre)
-        .add(new T.Vector3(-170 * t, -420 * t * t, 0));
-      openingPivot.rotation.set(0.1 * t, -0.08 * t, 0.18 * t);
+      openingAvalanche.update(firstShelf.elapsed);
       openingPivot.visible = firstShelf.phase !== 'fallen';
       for (const seam of openingCracks) {
         const full = seam.geometry.index.count;
@@ -687,7 +712,7 @@ export function createGlasswakeEnvironment({
           0,
           Math.floor((full * firstShelf.crack) / 18) * 18,
         );
-        seam.visible = firstShelf.crack > 0 && t < 0.65;
+        seam.visible = firstShelf.crack > 0 && t < 0.04;
       }
       openingPowder.update(firstShelf, nextSettings);
     }
@@ -830,6 +855,7 @@ export function createGlasswakeEnvironment({
       iceTexture?.dispose();
       iceTexture = null;
       disposeResources(group, geometries, materials);
+      openingAvalanche?.dispose();
       templates.clear();
       batches.clear();
       moving.length = 0;

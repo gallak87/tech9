@@ -8,7 +8,7 @@ import { createGlasswakeShelfAudio } from './audio.js';
 export default function createLevel({ shape = false } = {}) {
   let road, track;
   return {
-    version: '0.5.0-glasswake-v5',
+    version: '0.5.0-glasswake-v6',
     audio: { environment: shape ? undefined : createGlasswakeShelfAudio },
     renderer: {
       world: shape ? 'glasswake-shape' : 'glasswake-comet',

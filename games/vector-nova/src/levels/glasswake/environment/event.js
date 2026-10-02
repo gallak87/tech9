@@ -2,11 +2,23 @@
  * An absolute pose supports seeking, section starts, pause and replay without
  * replaying frame history. Every quality preset evaluates exactly this state.
  */
+export const CALVING_RULES = Object.freeze({
+  warningLead: 240,
+  crackSpan: 200,
+  separationOffset: 0,
+  separationSpan: 200,
+  forwardOffset: 650,
+  lateral: 150,
+  height: -32,
+  yaw: -1.5,
+});
 const clamp = (x) => Math.max(0, Math.min(1, x));
 const smooth = (x) => {
   const t = clamp(x);
   return t * t * (3 - 2 * t);
 };
+export const calvingSeparationDistance = (track) =>
+  track.jumps[1].takeoff + CALVING_RULES.separationOffset;
 export function sampleCalvingState(track, state = {}, worldPosition) {
   let displayDistance = Number(state.distance ?? 0);
   if (worldPosition) {
@@ -21,10 +33,13 @@ export function sampleCalvingState(track, state = {}, worldPosition) {
   }
   const distance =
     ((displayDistance % track.length) + track.length) % track.length;
-  const start = track.bridge.start - 180;
+  const takeoff = calvingSeparationDistance(track);
+  const start = takeoff - CALVING_RULES.warningLead;
   const end = track.bridge.end + 300;
-  const crack = smooth((distance - start) / 200);
-  const separation = smooth((distance - track.bridge.start - 40) / 430);
+  const crack = smooth((distance - start) / CALVING_RULES.crackSpan);
+  const separation = smooth(
+    (distance - takeoff) / CALVING_RULES.separationSpan,
+  );
   const reveal = smooth((separation - 0.1) / 0.8);
   return {
     distance,

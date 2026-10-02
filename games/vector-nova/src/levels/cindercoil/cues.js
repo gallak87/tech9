@@ -1,6 +1,8 @@
 import * as T from 'three';
 import { sweepGeometry } from '../../track/geometry.js';
-import { sampleSurge } from './mechanics.js';
+import { sampleSurge, sampleSpill } from './mechanics.js';
+import { createSpillGeometry } from './spill.js';
+import { createCalderaHeight } from './environment/geometry.js';
 
 export function createCindercoilCues(track, shape = false) {
   const group = new T.Group();
@@ -9,45 +11,47 @@ export function createCindercoilCues(track, shape = false) {
   const ownedMaterials = [];
   const patches = [];
   const flowTime = { value: 0 };
-  const decorateLava = (material) => {
+  let disposed = false;
+  const decorateLava = (material, directed = false) => {
     material.onBeforeCompile = (shader) => {
       shader.uniforms.cinderFlowTime = flowTime;
       shader.vertexShader = shader.vertexShader
         .replace(
           '#include <common>',
           `#include <common>
-        varying vec3 vCinderWorld; varying float vCinderEdge; attribute float cinderEdge;`,
+        varying vec3 vCinderWorld; varying float vCinderEdge; attribute float cinderEdge; ${directed ? 'varying float vCinderAlong; attribute float cinderAlong;' : ''}`,
         )
         .replace(
           '#include <begin_vertex>',
           `#include <begin_vertex>
-        vCinderWorld=(modelMatrix*vec4(transformed,1.)).xyz;vCinderEdge=cinderEdge;`,
+        vCinderWorld=(modelMatrix*vec4(transformed,1.)).xyz;vCinderEdge=cinderEdge; ${directed ? 'vCinderAlong=cinderAlong;' : ''}`,
         );
       shader.fragmentShader = shader.fragmentShader
         .replace(
           '#include <common>',
           `#include <common>
-        uniform float cinderFlowTime; varying vec3 vCinderWorld; varying float vCinderEdge;
+        uniform float cinderFlowTime; varying vec3 vCinderWorld; varying float vCinderEdge; ${directed ? 'varying float vCinderAlong;' : ''}
         float cinderHash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
         float cinderNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(cinderHash(i),cinderHash(i+vec3(1,0,0)),f.x),mix(cinderHash(i+vec3(0,1,0)),cinderHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(cinderHash(i+vec3(0,0,1)),cinderHash(i+vec3(1,0,1)),f.x),mix(cinderHash(i+vec3(0,1,1)),cinderHash(i+vec3(1,1,1)),f.x),f.y),f.z);}`,
         )
         .replace(
           '#include <color_fragment>',
           `#include <color_fragment>
-        vec3 lavaP=vCinderWorld*.24+vec3(cinderFlowTime*.1,0.,cinderFlowTime*.025);
+        vec3 lavaP=${directed ? 'vec3(vCinderAlong*.085-cinderFlowTime*.45,vCinderEdge*3.5,0.)' : 'vCinderWorld*.24+vec3(cinderFlowTime*.1,0.,cinderFlowTime*.025)'};
         float broad=cinderNoise(lavaP+vec3(cinderNoise(lavaP*.43)*2.));
         float molten=smoothstep(.28,.72,broad*.7+cinderNoise(lavaP*4.8)*.3);
         float rim=smoothstep(.91,1.,vCinderEdge);
-        diffuseColor.rgb=mix(vec3(.14,.035,.012),vec3(.92,.30,.055),molten);
-        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(1.,.46,.08),rim*.8);`,
+        ${directed ? 'float skin=smoothstep(.29,.69,cinderNoise(vec3(vCinderAlong*.30-cinderFlowTime*1.6,vCinderEdge*10.,11.))); diffuseColor.rgb=mix(vec3(.025,.030,.036),mix(vec3(.25,.065,.016),vec3(.48,.13,.035),molten),skin);' : 'diffuseColor.rgb=mix(vec3(.14,.035,.012),vec3(.92,.30,.055),molten);'}
+        diffuseColor.rgb=mix(diffuseColor.rgb,${directed ? 'vec3(.026,.034,.04)' : 'vec3(1.,.46,.08)'},rim*.8);`,
         )
         .replace(
           '#include <emissivemap_fragment>',
           `#include <emissivemap_fragment>
-        totalEmissiveRadiance=mix(vec3(.12,.015,.001),vec3(1.05,.24,.018),molten*molten)+rim*vec3(.42,.16,.014);`,
+        totalEmissiveRadiance=mix(vec3(.12,.015,.001),vec3(1.05,.24,.018),molten*molten)${directed ? '*(1.-rim*.85)*skin*skin*.9' : '+rim*vec3(.42,.16,.014)'};`,
         );
     };
-    material.customProgramCacheKey = () => 'cindercoil-visible-lava-v1';
+    material.customProgramCacheKey = () =>
+      `cindercoil-visible-lava-v2-${directed}`;
   };
   for (const zone of track.surgeZones ?? []) {
     const warningMaterial = new T.MeshStandardMaterial({
@@ -64,8 +68,58 @@ export function createCindercoilCues(track, shape = false) {
       roughness: 0.66,
       side: T.DoubleSide,
     });
-    if (!shape) decorateLava(lavaMaterial);
+    if (!shape) decorateLava(lavaMaterial, zone.kind === 'spill');
     ownedMaterials.push(warningMaterial, lavaMaterial);
+    if (zone.kind === 'spill') {
+      const { flow, bed } = createSpillGeometry(
+        track,
+        zone,
+        createCalderaHeight(track),
+      );
+      bed.dispose();
+      const lava = new T.Mesh(flow, lavaMaterial);
+      lava.name = 'Cindercoil / continuous diagonal crater spill';
+      group.add(lava);
+      ownedGeometries.push(flow);
+      for (const side of [-1, 1]) {
+        const positions = [];
+        const count = Math.ceil((zone.end - zone.start) / 2),
+          indices = [];
+        for (let i = 0; i <= count; i++) {
+          const distance = T.MathUtils.lerp(zone.start, zone.end, i / count),
+            frame = track.sample(distance),
+            flow = sampleSpill(zone, distance);
+          for (const offset of [0, 0.12])
+            positions.push(
+              ...frame.position
+                .clone()
+                .addScaledVector(
+                  frame.right,
+                  flow.center + side * (flow.halfWidth + 0.4 + offset),
+                )
+                .addScaledVector(frame.up, 0.06)
+                .toArray(),
+            );
+          if (i) {
+            const a = (i - 1) * 2,
+              b = i * 2;
+            indices.push(a, b, a + 1, a + 1, b, b + 1);
+          }
+        }
+        const geometry = new T.BufferGeometry();
+        geometry.setAttribute(
+          'position',
+          new T.Float32BufferAttribute(positions, 3),
+        );
+        geometry.setIndex(indices);
+        geometry.computeVertexNormals();
+        const warning = new T.Mesh(geometry, warningMaterial);
+        group.add(warning);
+        ownedGeometries.push(geometry);
+      }
+      warningMaterial.emissiveIntensity = 0.4;
+      continue;
+    }
     const boundary = -3 * zone.side;
     const warning = new T.Mesh(
       sweepGeometry(
@@ -131,6 +185,7 @@ export function createCindercoilCues(track, shape = false) {
   }
   const point = new T.Vector3();
   const update = ({ time = 0, settings = {} }) => {
+    if (disposed) return;
     flowTime.value = settings.reducedMotion ? 0 : time;
     for (const { zone, frames, lava, warningMaterial } of patches) {
       const cue = sampleSurge(time, zone);
@@ -168,6 +223,8 @@ export function createCindercoilCues(track, shape = false) {
     group,
     update,
     dispose() {
+      if (disposed) return;
+      disposed = true;
       ownedGeometries.forEach((geometry) => geometry.dispose());
       ownedMaterials.forEach((material) => material.dispose());
       group.clear();

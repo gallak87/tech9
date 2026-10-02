@@ -5,6 +5,7 @@ import {
   groundFrame,
 } from '../../../environment/placement.js';
 import { sampleCindercoilEvent } from '../mechanics.js';
+import { spillAnchors, createSpillGeometry } from '../spill.js';
 import { createCindercoilAtmosphere } from '../atmosphere.js';
 import {
   createCindercoilMaterials,
@@ -18,7 +19,7 @@ import {
   seededRandom,
 } from './geometry.js';
 
-const ASSET = '/assets/levels/cindercoil/cindercoil-hero-kit-v6.glb';
+const ASSET = '/assets/levels/cindercoil/cindercoil-hero-kit-v7.glb';
 const UP = new T.Vector3(0, 1, 0);
 
 function instantiateModule(template, placements, name) {
@@ -219,11 +220,11 @@ export function createCindercoilEnvironment({
   let leftPanel = null,
     rightPanel = null;
   const metrics = {
-    assetBytes: 3221068,
-    sourceTriangles: 82980,
+    assetBytes: 3332036,
+    sourceTriangles: 85013,
     textures: 0,
     additionalRenderPasses: 0,
-    localLights: 3,
+    localLights: 4,
   };
   group.userData.metrics = metrics;
   const placements = [];
@@ -281,6 +282,47 @@ export function createCindercoilEnvironment({
     southernPool.position.set(0, 1, 92);
     curtains.add(southernPool);
     group.add(curtains);
+    const spillZone = track.surgeZones.find((z) => z.kind === 'spill');
+    const anchors = spillAnchors(track, spillZone);
+    const crater = template('spill_crater').clone(true);
+    crater.name = 'Cindercoil / hollow roadside spill crater';
+    crater.position.copy(anchors.source);
+    crater.rotation.y = anchors.yaw;
+    const base = heightAt(anchors.source.x, anchors.source.z) - 3;
+    crater.traverse((node) => {
+      if (!node.isMesh) return;
+      node.geometry = node.geometry.clone();
+      const position = node.geometry.attributes.position;
+      for (let i = 0; i < position.count; i++) {
+        const y = position.getY(i);
+        if (y < -16)
+          position.setY(
+            i,
+            -16 + ((y + 16) * (anchors.source.y - base - 16)) / 56,
+          );
+      }
+      position.needsUpdate = true;
+      node.geometry.computeVertexNormals();
+      node.geometry.computeBoundingBox();
+      node.geometry.computeBoundingSphere();
+    });
+    // The mouth retains its original dimensions; only the lower cone reaches terrain.
+    group.add(crater);
+    const spillGeometry = createSpillGeometry(track, spillZone, heightAt);
+    spillGeometry.flow.dispose();
+    const bed = new T.Mesh(spillGeometry.bed, materials.basalt);
+    bed.name = 'Cindercoil / rooted crater spill apron';
+    bed.receiveShadow = true;
+    group.add(bed);
+    const spillPool = createLavaPool(12, 9, materials.lava, 81);
+    spillPool.position.copy(spillGeometry.outfall);
+    group.add(spillPool);
+    const spillLight = new T.PointLight('#ff7938', 180, 65, 2);
+    spillLight.position
+      .copy(anchors.entry.position)
+      .addScaledVector(anchors.entry.right, spillZone.side * 20);
+    spillLight.position.y += 7;
+    group.add(spillLight);
     const coil = track.landmarks.coil;
     const tower = template('hollow_tower').clone(true);
     const towerBounds = new T.Box3().setFromObject(template('hollow_tower'));

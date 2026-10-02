@@ -18,7 +18,7 @@ Halcyon's automatic Vector boost strips and Aegis shields are available with `/?
 
 Orbital's bare route review is available at `/?level=orbital&review=shape`. Circuit views provide 3D/top/profile overviews and parked section starts. Nacre adds storm swells, underwater immersion, two real jumps and one enormous swimming leviathan. Its automatic missed-jump recovery keeps the lap valid while counting the recovery delay; manual R recovery still invalidates it.
 
-Cindercoil adds three warned surge zones with a protected lane, speed/reserve penalties on lava contact, a full rising roll and a physical vent gap. Eruption timing changes takeoff lift; supported barrier landings bounce inward, and missed transfers recover with their delay counted. Its caldera rupture and local ash/heat presentation follow simulation time. Shape review uses `/?level=cindercoil&review=shape`.
+Cindercoil adds two warned surges with a protected lane and a permanent narrow diagonal crater spill across Curtain Reach. Cross the flow briefly instead of following it; lava contact costs speed and reserve. The route retains its full rising roll and physical vent gap. Eruption timing changes takeoff lift; supported barrier landings bounce inward, and missed transfers recover with their delay counted. Its caldera rupture and local ash/heat presentation follow simulation time. Shape review uses `/?level=cindercoil&review=shape`.
 
 Opponents, complete race/results flow, Time Trial and championships are future work.
 

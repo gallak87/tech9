@@ -413,7 +413,9 @@ export function createCindercoilTrack() {
       phaseOffset: 0,
     },
     {
-      id: 'curtain-surge',
+      id: 'curtain-spill',
+      kind: 'spill',
+      halfWidth: 3.1,
       start: routeDistance(sourceDistance(11) - 30),
       end: routeDistance(sourceDistance(11) + 105),
       side: 1,

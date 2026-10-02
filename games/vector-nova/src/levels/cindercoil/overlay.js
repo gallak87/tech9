@@ -75,6 +75,8 @@ export function createCindercoilOverlay({ host, track, readRuntime }) {
       else if (flight?.mode === 'recovery')
         text = `MISSED LANDING · RECOVERY ${flight.flight.remaining.toFixed(1)}s`;
       else if (local?.contact) text = 'LAVA CONTACT · SPEED + RESERVE LOSS';
+      else if (zone?.kind === 'spill')
+        text = 'DIAGONAL LAVA FLOW · CROSS BRIEFLY';
       else if (zone) {
         const safe = zone.side > 0 ? 'RIGHT' : 'LEFT';
         text = cue.warning

@@ -10,6 +10,7 @@ import {
   sweepGeometry,
 } from '../../../track/geometry.js';
 import { createRouteClearance } from '../../../environment/placement.js';
+import { spillRoadIntervals, spillOpenings } from '../spill.js';
 
 export function roadIntervals(track) {
   const result = [];
@@ -228,27 +229,29 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
       ),
     );
     for (const side of [-1, 1]) {
-      railParts.push(
-        sweepGeometry(track, boxProfile(side * 15.65, 0.55, 1.25, 1.1), {
-          start,
-          end,
-          step: 2.5,
-        }),
-      );
-      edgeParts.push(
-        sweepGeometry(track, boxProfile(side * 15.5, 1.11, 1.0, 0.12), {
-          start,
-          end,
-          step: 2.5,
-        }),
-      );
-      shoulders.push(
-        sweepGeometry(track, boxProfile(side * 16.8, -2.3, 2.4, 1.2), {
-          start,
-          end,
-          step: 3,
-        }),
-      );
+      for (const segment of spillRoadIntervals(track, side, start, end)) {
+        railParts.push(
+          sweepGeometry(track, boxProfile(side * 15.65, 0.55, 1.25, 1.1), {
+            start: segment.start,
+            end: segment.end,
+            step: 2.5,
+          }),
+        );
+        edgeParts.push(
+          sweepGeometry(track, boxProfile(side * 15.5, 1.11, 1.0, 0.12), {
+            start: segment.start,
+            end: segment.end,
+            step: 2.5,
+          }),
+        );
+        shoulders.push(
+          sweepGeometry(track, boxProfile(side * 16.8, -2.3, 2.4, 1.2), {
+            start: segment.start,
+            end: segment.end,
+            step: 3,
+          }),
+        );
+      }
     }
     // One tessellated running surface: adjacent cassettes meet on identical
     // 2 m stations. Joint/bevel maps replace coplanar overlays, preventing the
@@ -299,6 +302,12 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
     const spacing = shape ? 24 : 18;
     for (let s = start + 8; s < end - 7; s += spacing) {
       for (const side of [-1, 1]) {
+        if (
+          spillOpenings(track, side).some(
+            (gap) => s > gap.start - 7 && s < gap.end + 7,
+          )
+        )
+          continue;
         wallBlocks.push(transform(track, s, side * 17.2, 1.9));
         wallCaps.push(transform(track, s, side * 17.3, 3.12));
         wallBrackets.push(transform(track, s, side * 17.6, 0.7));

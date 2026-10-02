@@ -180,6 +180,10 @@ try {
           'vent-approach',
           'vent-erupting',
           'crown-showcase',
+          'spill-approach',
+          'spill-crossing',
+          'spill-source',
+          'spill-outfall',
         ]) {
           await page.evaluate((n) => window.__VN.loadScenario(n, 71), scenario);
           await page.waitForTimeout(120);

@@ -12,7 +12,7 @@ const track = createCindercoilTrack();
 async function loadAsset() {
   const bytes = await readFile(
     new URL(
-      '../public/assets/levels/cindercoil/cindercoil-hero-kit-v6.glb',
+      '../public/assets/levels/cindercoil/cindercoil-hero-kit-v7.glb',
       import.meta.url,
     ),
   );
@@ -270,4 +270,29 @@ test('late texture failure after disposal does not release geometry or materials
   world.dispose();
   assert.equal(world.group.children.length, 0);
   for (const count of releases.values()) assert.equal(count, 1);
+});
+
+test('roadside spill crater exposes an open molten throat and an upward-facing rim', async () => {
+  const world = createCindercoilEnvironment({ track, loadAsset });
+  await world.ready;
+  world.group.updateMatrixWorld(true);
+  const crater = world.group.getObjectByName(
+    'Cindercoil / hollow roadside spill crater',
+  );
+  assert.ok(crater);
+  const down = new T.Vector3(0, -1, 0);
+  const hitAt = (x) =>
+    new T.Raycaster(
+      crater.localToWorld(new T.Vector3(x, 30, 0)),
+      down,
+    ).intersectObject(crater, true);
+  assert.ok(
+    hitAt(0).some((hit) => /Lava/.test(hit.object.name)),
+    'the open mouth exposes molten fill',
+  );
+  assert.ok(
+    hitAt(9.3).some((hit) => /Scoria/.test(hit.object.name)),
+    'the crater rim is visible from above',
+  );
+  world.dispose();
 });

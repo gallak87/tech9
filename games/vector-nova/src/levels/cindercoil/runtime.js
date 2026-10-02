@@ -4,6 +4,7 @@ import {
   CINDERCOIL_RULES,
   sampleCindercoilEvent,
   surgeAt,
+  sampleSpill,
 } from './mechanics.js';
 
 export const CINDERCOIL_FLIGHT_RULES = Object.freeze({
@@ -47,8 +48,16 @@ export function createCindercoilRuntime(context) {
       scenarios[`surge${index + 1}-${line}`] = {
         label: `Surge ${index + 1} · ${line} line`,
         state: {
-          distance: zone.start + 8,
-          lateral: side * zone.side * 8.5,
+          distance:
+            zone.kind === 'spill'
+              ? (zone.start + zone.end) / 2
+              : zone.start + 8,
+          lateral:
+            zone.kind === 'spill'
+              ? line === 'exposed'
+                ? sampleSpill(zone, (zone.start + zone.end) / 2).center
+                : -zone.side * 8.5
+              : side * zone.side * 8.5,
           speed: 45,
           time: (((4 - zone.phaseOffset) % 13) + 13) % 13,
         },
@@ -65,6 +74,17 @@ export function createCindercoilRuntime(context) {
       state: { ...track.scenarios[`${section}-showcase`], time: 13 },
     };
   }
+  const spill = track.surgeZones.find((z) => z.kind === 'spill');
+  for (const [name, distance] of [
+    ['spill-approach', spill.start - 95],
+    ['spill-crossing', (spill.start + spill.end) / 2],
+    ['spill-source', spill.end - 10],
+    ['spill-outfall', spill.start + 10],
+  ])
+    scenarios[name] = {
+      label: name.replaceAll('-', ' '),
+      state: { distance, lateral: 0, speed: 0, time: 7 },
+    };
   scenarios['coil-entry'] = {
     label: 'Furnace Coil · full roll entry',
     state: { distance: track.landmarks.coil.start + 4, speed: 62, time: 5 },

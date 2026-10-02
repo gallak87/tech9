@@ -9,17 +9,26 @@ import {
 import { createNacreEnvironment } from './environment/index.js';
 import { createNacreBackdrop } from './backdrop/index.js';
 import { createNacreImmersion } from './overlay.js';
+import { sampleNacreWater } from './environment/atmosphere.js';
+import { createDevices } from './devices.js';
 import { legacyPart } from '../legacy.js';
 
 export default function createLevel({ shape }) {
   return {
-    version: '0.4.1-nacre-v1',
+    version: '0.4.2-nacre-racing',
+    racing: { createDevices, createMotion: createNacreRuntime },
     renderer: {
       world: shape ? 'nacre-shape' : 'nacre-tempest',
       background: '#77899d',
       fog: { color: '#8195af', density: 0.00025 },
     },
-    audio: { nacre: !shape },
+    audio: {
+      nacre: !shape,
+      immersion: shape
+        ? undefined
+        : ({ camera, track }) =>
+            sampleNacreWater(camera.position.y, track.waterY).submerged,
+    },
     camera: {
       preserveFlightView: true,
       portraitAspect: 0.64,
@@ -53,6 +62,7 @@ export default function createLevel({ shape }) {
           time: frame.time,
           mode: frame.mode,
           reset: frame.reset,
+          motion: frame.motion,
         });
         group.userData.updateScene?.(
           view.scene,

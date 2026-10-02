@@ -107,6 +107,7 @@ export function createDeviceRuntime({
       presentation?.reset();
     },
     pose: (alpha) => motion.pose(alpha),
+    getPresentation: () => presentation?.getPresentation?.() ?? null,
     update(context) {
       motion.update(context);
       presentation?.update({

@@ -154,150 +154,136 @@ async function checkCase(slug, quality, viewport, mobile = false) {
       { quality },
     );
     const page = await boot(context, slug, faults, requests);
-    const competitive = slug !== 'nacre';
-    assert.equal(
-      await page.locator('#difficulty').count(),
-      competitive ? 1 : 0,
-    );
-    assert.equal(
-      await page.locator('.race-devices').count(),
-      competitive ? 1 : 0,
-    );
+    assert.equal(await page.locator('#difficulty').count(), 1);
+    assert.equal(await page.locator('.race-devices').count(), 1);
     if (!smokeOnly) {
       await page.locator('#start').click();
       await page.evaluate(() => window.__VN.pause());
       const grid = await snapshot(page);
-      if (competitive) {
-        assert.equal(grid.competition.standings.length, 4);
-        assert.equal(grid.competition.difficulty, 'medium');
-        assert.equal(grid.competition.elapsed, 0);
-        await page.evaluate(() => window.__VN.resume());
-        await page.waitForFunction(
-          () => window.__VN.getSnapshot().mode === 'racing',
-          null,
-          { timeout: 10000 },
+      assert.equal(grid.competition.standings.length, 4);
+      assert.equal(grid.competition.difficulty, 'medium');
+      assert.equal(grid.competition.elapsed, 0);
+      await page.evaluate(() => window.__VN.resume());
+      await page.waitForFunction(
+        () => window.__VN.getSnapshot().mode === 'racing',
+        null,
+        { timeout: 10000 },
+      );
+      const geometry = await hudBounds(page);
+      assert.ok(
+        fits(geometry.roster, geometry) && !geometry.overflow,
+        'live roster fits viewport',
+      );
+      for (const other of ['map', 'speed', 'touch'])
+        assert.ok(
+          !overlaps(geometry.roster, geometry[other]),
+          `live roster clears ${other}`,
         );
+      assert.ok(
+        !overlaps(geometry.device, geometry.telemetry),
+        'device HUD clears lap telemetry',
+      );
+      if (quality === 'high' || mobile)
+        await page.screenshot({
+          path: resolve(
+            output,
+            `${slug}-${mobile ? 'mobile' : 'desktop'}-${viewport.width}-race.png`,
+          ),
+        });
+      await page.keyboard.down('KeyW');
+      await page.waitForFunction(
+        () => window.__VN.getSnapshot().vehicle.distance > 5,
+        null,
+        { timeout: 15000 },
+      );
+      await page.keyboard.up('KeyW');
+      await page.evaluate(() => window.__VN.pause());
+      const replay = await page.evaluate(() => {
+        const before = window.__VN.getSnapshot();
+        const log = window.__VN.getReplay();
+        const after = window.__VN.playReplay(log);
+        const invalid = structuredClone(log);
+        invalid.initial.vehicle.energy -= 1;
+        let rejected = false;
+        try {
+          window.__VN.playReplay(invalid);
+        } catch {
+          rejected = true;
+        }
+        const retained = window.__VN.getSnapshot();
+        return { before, after, retained, rejected };
+      });
+      for (const key of ['vehicle', 'competition']) {
+        assert.deepEqual(
+          replay.after[key],
+          replay.before[key],
+          `${slug}: competitive replay ${key}`,
+        );
+        assert.deepEqual(
+          replay.retained[key],
+          replay.after[key],
+          `${slug}: rejected replay preserves ${key}`,
+        );
+      }
+      assert.deepEqual(replay.after.runtime.state, replay.before.runtime.state);
+      assert.equal(replay.rejected, true);
+      const { createHalcyonDevices, createDevices } = await import(
+        `../src/levels/${slug}/devices.js`
+      );
+      // The live track is represented by the local pure factory for the plan.
+      const factoryNames = {
+        halcyon: 'createTrack',
+        orbital: 'createLevel2Track',
+        vesper: 'createVesperTrack',
+        glasswake: 'createGlasswakeTrack',
+        cindercoil: 'createCindercoilTrack',
+        nacre: 'createLevel3Track',
+      };
+      const track = (await import(`../src/levels/${slug}/track/model.js`))[
+        factoryNames[slug]
+      ]();
+      const devices = (createDevices ?? createHalcyonDevices)(track);
+      await acquire(
+        page,
+        devices.find((device) => device.type === 'vector').id,
+        'vector',
+      );
+      assert.equal(
+        (await snapshot(page)).competition.enabled,
+        false,
+        'section practice remains solo',
+      );
+      if (quality === 'low')
+        assert.equal(
+          (await page.evaluate(() => window.__VN.getMetrics())).pipeline
+            .racingBlurStrength,
+          0,
+          'reduced motion',
+        );
+      else
+        assert.ok(
+          (await page.evaluate(() => window.__VN.getMetrics())).pipeline
+            .racingBlurStrength > 0,
+          'shared launch blur',
+        );
+      await acquire(
+        page,
+        devices.find((device) => device.type === 'aegis').id,
+        'aegis',
+      );
+      assert.ok((await snapshot(page)).runtime.state.aegisRemaining > 0);
+      if (mobile) {
         const geometry = await hudBounds(page);
         assert.ok(
-          fits(geometry.roster, geometry) && !geometry.overflow,
-          'live roster fits viewport',
+          fits(geometry.device, geometry) &&
+            geometry.device.bottom < geometry.touch.top &&
+            !geometry.overflow,
+          'device HUD fits and clears touch controls',
         );
-        for (const other of ['map', 'speed', 'touch'])
-          assert.ok(
-            !overlaps(geometry.roster, geometry[other]),
-            `live roster clears ${other}`,
-          );
         assert.ok(
-          !overlaps(geometry.device, geometry.telemetry),
-          'device HUD clears lap telemetry',
+          !overlaps(geometry.device, geometry.energy),
+          'active device HUD clears reserve telemetry',
         );
-        if (quality === 'high' || mobile)
-          await page.screenshot({
-            path: resolve(
-              output,
-              `${slug}-${mobile ? 'mobile' : 'desktop'}-${viewport.width}-race.png`,
-            ),
-          });
-        await page.keyboard.down('KeyW');
-        await page.waitForFunction(
-          () => window.__VN.getSnapshot().vehicle.distance > 5,
-          null,
-          { timeout: 15000 },
-        );
-        await page.keyboard.up('KeyW');
-        await page.evaluate(() => window.__VN.pause());
-        const replay = await page.evaluate(() => {
-          const before = window.__VN.getSnapshot();
-          const log = window.__VN.getReplay();
-          const after = window.__VN.playReplay(log);
-          const invalid = structuredClone(log);
-          invalid.initial.vehicle.energy -= 1;
-          let rejected = false;
-          try {
-            window.__VN.playReplay(invalid);
-          } catch {
-            rejected = true;
-          }
-          const retained = window.__VN.getSnapshot();
-          return { before, after, retained, rejected };
-        });
-        for (const key of ['vehicle', 'competition']) {
-          assert.deepEqual(
-            replay.after[key],
-            replay.before[key],
-            `${slug}: competitive replay ${key}`,
-          );
-          assert.deepEqual(
-            replay.retained[key],
-            replay.after[key],
-            `${slug}: rejected replay preserves ${key}`,
-          );
-        }
-        assert.deepEqual(
-          replay.after.runtime.state,
-          replay.before.runtime.state,
-        );
-        assert.equal(replay.rejected, true);
-        const { createHalcyonDevices, createDevices } = await import(
-          `../src/levels/${slug}/devices.js`
-        );
-        // The live track is represented by the local pure factory for the plan.
-        const factoryNames = {
-          halcyon: 'createTrack',
-          orbital: 'createLevel2Track',
-          vesper: 'createVesperTrack',
-          glasswake: 'createGlasswakeTrack',
-          cindercoil: 'createCindercoilTrack',
-        };
-        const track = (await import(`../src/levels/${slug}/track/model.js`))[
-          factoryNames[slug]
-        ]();
-        const devices = (createDevices ?? createHalcyonDevices)(track);
-        await acquire(
-          page,
-          devices.find((device) => device.type === 'vector').id,
-          'vector',
-        );
-        assert.equal(
-          (await snapshot(page)).competition.enabled,
-          false,
-          'section practice remains solo',
-        );
-        if (quality === 'low')
-          assert.equal(
-            (await page.evaluate(() => window.__VN.getMetrics())).pipeline
-              .racingBlurStrength,
-            0,
-            'reduced motion',
-          );
-        else
-          assert.ok(
-            (await page.evaluate(() => window.__VN.getMetrics())).pipeline
-              .racingBlurStrength > 0,
-            'shared launch blur',
-          );
-        await acquire(
-          page,
-          devices.find((device) => device.type === 'aegis').id,
-          'aegis',
-        );
-        assert.ok((await snapshot(page)).runtime.state.aegisRemaining > 0);
-        if (mobile) {
-          const geometry = await hudBounds(page);
-          assert.ok(
-            fits(geometry.device, geometry) &&
-              geometry.device.bottom < geometry.touch.top &&
-              !geometry.overflow,
-            'device HUD fits and clears touch controls',
-          );
-          assert.ok(
-            !overlaps(geometry.device, geometry.energy),
-            'active device HUD clears reserve telemetry',
-          );
-        }
-      } else {
-        assert.equal(grid.competition, null, 'Nacre gameplay remains deferred');
-        await page.evaluate(() => window.__VN.resume());
       }
       if (quality === 'high' || mobile)
         await page.screenshot({

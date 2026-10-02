@@ -51,6 +51,7 @@ export function createPickupPresentation({
   host,
   settings = {},
   devices = [],
+  audioImmersion,
 }) {
   const root = new THREE.Group();
   root.name = 'Circuit / immediate road devices';
@@ -64,7 +65,7 @@ export function createPickupPresentation({
   projector.dispose();
   const feedback = createShipFeedback();
   (ship.group || ship).add(feedback.group);
-  const audio = createPickupAudio();
+  const audio = createPickupAudio({ immersion: Boolean(audioImmersion) });
   const hud = document.createElement('aside');
   hud.className = 'race-devices';
   hud.setAttribute('aria-label', 'Automatic road devices');
@@ -148,7 +149,11 @@ export function createPickupPresentation({
       );
       if (lastMode !== mode && !driving) reset();
       lastMode = mode;
-      audio.update(currentSettings, racing);
+      audio.update(
+        currentSettings,
+        racing,
+        audioImmersion?.({ camera, track, state }) ?? 0,
+      );
       if (racing) {
         noticeTime = Math.max(0, noticeTime - dt);
         hitTime = Math.max(0, hitTime - dt);
@@ -265,6 +270,7 @@ export function createPickupPresentation({
       }
     },
     reset,
+    getPresentation: () => ({ audio: audio.getStatus() }),
     dispose() {
       if (disposed) return;
       disposed = true;

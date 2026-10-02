@@ -78,6 +78,13 @@ test('shape mismatches and malformed optional metadata are rejected by reusable 
   await assert.rejects(
     assertLevelContract({
       metadata,
+      createLevel: () => ({ ...createLevel(), audio: { immersion: true } }),
+    }),
+    /audio.immersion/,
+  );
+  await assert.rejects(
+    assertLevelContract({
+      metadata,
       createLevel: () => ({ ...createLevel(), racing: undefined }),
     }),
     /require shared racing/,

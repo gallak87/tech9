@@ -32,11 +32,16 @@ const model = createFlightModel({
 export const sweptNacreRail = model.sweptRail;
 export const sweptNacreLanding = model.sweptLanding;
 
-export function createNacreRuntime({ track, host, settings = {} }) {
+export function createNacreRuntime({
+  track,
+  host,
+  settings = {},
+  presentation = true,
+}) {
   if (track.id !== 'nacre-tempest-1-shape')
     throw new Error('Nacre flight requires its exact authored track.');
   let status = null;
-  if (host?.appendChild && typeof document !== 'undefined') {
+  if (presentation && host?.appendChild && typeof document !== 'undefined') {
     status = document.createElement('div');
     status.dataset.nacreFlight = '';
     status.setAttribute('aria-live', 'polite');

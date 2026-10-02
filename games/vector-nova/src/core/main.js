@@ -257,6 +257,7 @@ async function boot() {
     host,
     settings,
     emit,
+    audioImmersion: definition.audio?.immersion,
   };
   const motion = await (definition.createRuntime ?? createMagneticRuntime)(
     runtimeContext,
@@ -988,8 +989,10 @@ async function boot() {
       camera,
       settings,
       ship,
+      motion: runtime.snapshot(),
       reviewing: mode === 'overview' || (blockout && mode === 'title'),
     };
+    audio.setImmersion(definition.audio?.immersion?.({ ...frame, track }) ?? 0);
     runtime.update?.(frame);
     racerPresentation?.update({
       alpha,
@@ -1253,6 +1256,8 @@ async function boot() {
           ...world.getPresentation(),
           storm: view.getPresentation(),
           thunder: audio.getPresentation(),
+          audio: audio.getStatus(),
+          devices: runtime.getPresentation?.() ?? null,
           water: environment.userData.getWaterPresentation?.(),
           ocean: environment.userData.getOceanPresentation?.(),
           leviathan: environment.userData.getLeviathanPresentation?.(),

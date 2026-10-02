@@ -1,3 +1,5 @@
+import { createImmersionMix } from '../audio/immersion.js';
+
 const clamp = (value) =>
   Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
 
@@ -36,9 +38,11 @@ function cueFor(event) {
 // This bus owns only immediate road-device cues. It never writes vehicle state.
 export function createPickupAudio({
   createContext = () => new AudioContext(),
+  immersion = false,
 } = {}) {
   let context;
   let master;
+  let waterMix;
   let pending;
   let disposed = false;
   let running = false;
@@ -66,13 +70,18 @@ export function createPickupAudio({
             context = createContext();
             master = context.createGain();
             master.gain.value = 0;
-            master.connect(context.destination);
+            waterMix = immersion
+              ? createImmersionMix(context, context.destination)
+              : null;
+            master.connect(waterMix?.input ?? context.destination);
           }
           await context.resume();
           return !disposed && context.state === 'running';
         } catch {
           // Unsupported/blocked audio is optional; the complete visual cue remains.
           master?.disconnect();
+          waterMix?.dispose();
+          waterMix = undefined;
           master = undefined;
           const failed = context;
           context = undefined;
@@ -85,7 +94,8 @@ export function createPickupAudio({
       });
       return pending;
     },
-    update(settings = {}, active = false) {
+    update(settings = {}, active = false, submerged = 0) {
+      waterMix?.update(submerged);
       volume = settings.muted ? 0 : clamp(settings.volume);
       running = !!active && !disposed && volume > 0;
       if (!running) {
@@ -159,6 +169,7 @@ export function createPickupAudio({
         volume,
         shots: shots.size,
         disposed,
+        immersion: waterMix?.getStatus() ?? null,
       };
     },
     async dispose() {
@@ -167,6 +178,7 @@ export function createPickupAudio({
       silence();
       await pending;
       master?.disconnect();
+      waterMix?.dispose();
       if (context && context.state !== 'closed')
         await context.close().catch(() => {});
     },

@@ -11,6 +11,7 @@ import {
 import { createGlasswakeTrack } from '../levels/glasswake/track/model.js';
 
 const circuits = [
+  ['nacre', 'createLevel3Track', 'createNacreRuntime'],
   ['orbital', 'createLevel2Track', null],
   ['vesper', 'createVesperTrack', 'createVesperRuntime'],
   ['glasswake', 'createGlasswakeTrack', 'createGlasswakeRuntime'],
@@ -26,7 +27,11 @@ for (const [slug, trackName, motionName] of circuits) {
         await import(`../levels/${slug}/devices.js`)
       ).createDevices(track);
       const createMotion = motionName
-        ? (await import(`../levels/${slug}/runtime.js`))[motionName]
+        ? (
+            await import(
+              `../levels/${slug}/${slug === 'nacre' ? 'track/' : ''}runtime.js`
+            )
+          )[motionName]
         : createMagneticRuntime;
       const records = [];
       const createRuntime = () => {
@@ -35,7 +40,12 @@ for (const [slug, trackName, motionName] of circuits) {
           devices,
           motion: createMotion({ track, presentation: false }),
         });
-        const record = { vectors: 0, launches: 0, landings: 0 };
+        const record = {
+          vectors: 0,
+          launches: 0,
+          landings: 0,
+          landingsByJump: {},
+        };
         records.push(record);
         const advance = runtime.advance;
         runtime.advance = (...args) => {
@@ -50,8 +60,11 @@ for (const [slug, trackName, motionName] of circuits) {
             if (
               event.type === 'jump-transfer' &&
               event.payload.outcome === 'landed'
-            )
+            ) {
               record.landings++;
+              record.landingsByJump[event.payload.id] =
+                (record.landingsByJump[event.payload.id] ?? 0) + 1;
+            }
           }
           return events;
         };
@@ -86,6 +99,11 @@ for (const [slug, trackName, motionName] of circuits) {
               records[index].landings >= 2,
               'AI earns physical landings',
             );
+            for (const jump of track.jumps.filter((jump) => !jump.optional))
+              assert.ok(
+                records[index].landingsByJump[jump.id] >= 2,
+                `${opponent.specification.id} physically lands ${jump.id} each lap`,
+              );
           }
         });
         const saved = field.serialize();

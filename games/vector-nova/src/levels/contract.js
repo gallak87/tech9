@@ -82,6 +82,11 @@ export function validateDefinition(definition, id = 'circuit') {
       throw new Error(`Invalid ${id}.${name}`);
   if (definition.camera?.safeFrame !== undefined)
     validateSafeFrame(definition.camera.safeFrame);
+  if (
+    definition.audio?.immersion !== undefined &&
+    typeof definition.audio.immersion !== 'function'
+  )
+    throw new Error(`Invalid ${id}.audio.immersion`);
   if (definition.racing !== undefined) {
     if (
       !definition.racing ||

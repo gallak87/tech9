@@ -1,5 +1,6 @@
 import { createPropulsion, smooth } from './propulsion.js';
 import { createNacreThunder } from './nacre-thunder.js';
+import { createImmersionMix } from './immersion.js';
 
 const close = (context) => {
   if (context.state === 'closed') return Promise.resolve();
@@ -10,6 +11,7 @@ export function createAudio({
   createContext = () => new AudioContext(),
   nacre = false,
   environment,
+  immersion = false,
 } = {}) {
   let resources;
   let unlocking;
@@ -29,6 +31,7 @@ export function createAudio({
     owned.compressor.disconnect();
     owned.master.disconnect();
     owned.propulsionBus.disconnect();
+    owned.immersion?.dispose();
     return close(owned.context);
   }
 
@@ -53,10 +56,11 @@ export function createAudio({
             compressor.release.value = 0.18;
             const master = context.createGain();
             master.gain.value = 0;
-            bus
-              .connect(compressor)
-              .connect(master)
-              .connect(context.destination);
+            const waterMix = immersion
+              ? createImmersionMix(context, compressor)
+              : null;
+            bus.connect(waterMix?.input ?? compressor);
+            compressor.connect(master).connect(context.destination);
             const propulsionBus = context.createGain();
             propulsionBus.gain.value = 0;
             propulsionBus.connect(bus);
@@ -68,7 +72,12 @@ export function createAudio({
               master,
               propulsionBus,
               propulsion,
-              thunder: nacre ? createNacreThunder(context, bus) : null,
+              immersion: waterMix,
+              thunder: nacre
+                ? createNacreThunder(context, bus, {
+                    immersionAtOutput: Boolean(waterMix),
+                  })
+                : null,
               environment: environment?.(context, bus),
               shots: new Set(),
             };
@@ -115,6 +124,16 @@ export function createAudio({
     resetEnvironment() {
       resources?.thunder?.stop();
       resources?.environment?.stop();
+    },
+    setImmersion(submerged) {
+      resources?.immersion?.update(submerged);
+    },
+    getStatus() {
+      return {
+        active,
+        audible,
+        immersion: resources?.immersion?.getStatus() ?? null,
+      };
     },
     getPresentation() {
       return (

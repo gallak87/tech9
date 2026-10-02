@@ -2,12 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAudio } from './index.js';
 import { createPropulsion } from './propulsion.js';
+import { createPickupAudio } from '../pickups/audio.js';
 
 class Param {
   value = 0;
   automation = [];
   cancelAndHoldAtTime(time) {
     this.automation = [{ type: 'hold', time }];
+  }
+  cancelScheduledValues(time) {
+    this.automation = [{ type: 'cancel', time }];
   }
   setTargetAtTime(value, time, response) {
     assert.ok(Number.isFinite(value));
@@ -115,6 +119,64 @@ class Context {
   }
 }
 const state = { speed: 0, time: 0, steer: 0, boosting: false };
+
+test('listener immersion filters the complete propulsion/cue/thunder graph and device bus, then eases back to dry', async () => {
+  const context = new Context();
+  const audio = createAudio({
+    createContext: () => context,
+    nacre: true,
+    immersion: true,
+  });
+  await audio.unlock();
+  audio.update({ ...state, speed: 112, boosting: true }, 0.5, true);
+  audio.setImmersion(1);
+  const wet = audio.getStatus().immersion;
+  assert.equal(wet.cutoff, 560);
+  assert.equal(wet.gain, 0.65);
+  const waterFilter = context.nodes.find(
+    (node) => node.kind === 'filter' && node.frequency.value === 560,
+  );
+  const masterBus = context.nodes.find((node) => node.kind === 'filter');
+  assert.equal(masterBus.destination, waterFilter);
+  audio.event({ type: 'nacre-thunder', id: 'wet', submerged: 1 });
+  audio.event({ type: 'impact' });
+  const thunder = context.nodes.filter((node) => node.kind === 'buffer').at(-1);
+  let destination = thunder.destination;
+  for (let n = 0; n < 10 && destination !== waterFilter; n++)
+    destination = destination.destination;
+  assert.equal(
+    destination,
+    waterFilter,
+    'already-playing thunder shares the output filter',
+  );
+  audio.setImmersion(0.5);
+  assert.ok(audio.getStatus().immersion.cutoff > wet.cutoff);
+  audio.setImmersion(0);
+  assert.ok(audio.getStatus().immersion.cutoff > 3000);
+  assert.equal(waterFilter.frequency.automation.at(-1).response, 0.22);
+  audio.update(state, 0, true);
+  assert.equal(audio.getStatus().audible, false);
+  await audio.dispose();
+  assert.ok(context.nodes.every((node) => node.disconnected));
+
+  const deviceContext = new Context();
+  const devices = createPickupAudio({
+    createContext: () => deviceContext,
+    immersion: true,
+  });
+  await devices.unlock();
+  devices.update({ volume: 0.5 }, true, 1);
+  devices.event({ type: 'pickup-activate', payload: { kind: 'vector' } });
+  assert.deepEqual(devices.getStatus().immersion, wet);
+  const voice = deviceContext.nodes.find((node) => node.kind === 'oscillator');
+  assert.equal(voice.destination.destination.destination.frequency.value, 560);
+  devices.update({ volume: 0.5 }, false, 1);
+  assert.equal(devices.getStatus().shots, 0);
+  devices.update({ volume: 0.5 }, true, 0);
+  assert.equal(devices.getStatus().immersion.gain, 1);
+  await devices.dispose();
+  assert.ok(deviceContext.nodes.every((node) => node.disconnected));
+});
 
 test('unlock is lazy, coalesced, initially silent and cannot reopen after disposal', async () => {
   const context = new Context();

@@ -42,6 +42,6 @@ Cool slate/violet ash dusk surrounds ivory, charcoal and oxide ceramic construct
 
 Warm off-white/graphite, technical numerals, vermilion active accents, generous spacing and real controls. Keep telemetry and notices away from the craft, upcoming road and touch controls. Moderate chase FOV, no default camera shake, and road-local camera clearance.
 
-Halcyon's immediate devices use manufactured amber-white Vector strips and symbol-marked teal Aegis hardware. Show collection, active effect, hit and expiry with form/timing as well as color. Ship feedback stays subordinate to the silhouette.
+Shared immediate devices use manufactured amber-white Vector strips and symbol-marked teal Aegis hardware. Show collection, active effect, hit and expiry with form/timing as well as color. Ship feedback stays subordinate to the silhouette.
 
 Each world needs its own construction and material identity. Do not apply Halcyon asphalt or Asterion U frames as a universal template.

@@ -17,7 +17,8 @@
 - [x] Shared inspection: add free-camera navigation and responsive driving/review controls across circuits.
 - [x] Halcyon feedback: add position/lap timing, full-field relative race gaps, matching rival colors and catapults toward 600 km/h with strong launch blur.
 - [x] Asset layout: normalize Halcyon/Orbital/Nacre folders and base-aware loading; prune obsolete served models and duplicate rival GLBs while retaining sources/provenance.
-- [x] Shared racing graduation: reuse Vector/Aegis, 600 km/h launch feedback, three physical rivals, difficulty, timing/results and replay on Halcyon/Orbital/Vesper/Glasswake/Cindercoil.
+- [x] Shared racing graduation: reuse Vector/Aegis, 600 km/h launch feedback, three physical rivals, difficulty, timing/results and replay on Halcyon/Orbital/Nacre/Vesper/Glasswake/Cindercoil.
+- [x] Nacre immersion: blend the entire sound mix underwater and restore it smoothly on exit; add pooled bubbles at actual submerged takeoff, flight and landing.
 
 ## Remaining level expansion
 
@@ -37,8 +38,6 @@ Agree each phase's scope before implementation; scoped independent critique ends
 - [ ] Extend existing rail-local sparks to consistent actual contact points across circuits and other surfaces; add body-contact feedback when available and explore bounded scrape marks.
 - [ ] Halcyon: fix remaining ground flicker, especially white areas and street-lane markings.
 - [ ] Asterion: locate and fix the reported flickering road section.
-- [ ] Nacre: blend the entire sound mix underwater, including propulsion, boost and thunder, with smooth exit transitions.
-- [ ] Nacre: extend existing crossing bubbles to actual submerged takeoff, flight and landing.
 
 ### Gate 5: broader race flow
 
@@ -46,7 +45,6 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 ### Gate 6: opponents and competitive Quick Race
 
-- [ ] Integrate Nacre with the shared devices/opponents after addressing its submerged/flight gotcha in the next iteration; keep its current gameplay for now.
 - [ ] Expand toward player plus 11 rivals; verify independent finishes and actual performance.
 - [ ] Add restrained body contact with cooldowns, without sustained rail pinning or repeated damage from one contact.
 

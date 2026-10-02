@@ -215,6 +215,8 @@ export function createNacreEnvironment(
     creatureAssetBytes: leviathan.metrics.assetBytes,
     crossingWaterDraws: 1,
     splashPoolSlots: waterCrossings.metrics.splashSlots,
+    bubblePoolSlots: waterCrossings.metrics.bubbleSlots,
+    maxBubbleDraws: waterCrossings.metrics.bubbleSlots,
     maxSplashDraws: waterCrossings.metrics.splashSlots * 2,
     crossingTriangles: waterCrossings.metrics.triangleCount,
     localLights: 3,

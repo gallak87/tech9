@@ -5,6 +5,7 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { createLifetime } from '../core/lifecycle.js';
 import { createContactShadow } from './contact-shadow.js';
 
@@ -153,6 +154,39 @@ export async function createRenderer(
       ),
     );
     composer.addPass(bloom);
+    // Radial streaks convey the catapult's launch without frame history.
+    // Preserve the vanishing point and the lower-centre ship silhouette.
+    const racingBlur = lifetime.own(
+      new ShaderPass({
+        uniforms: { tDiffuse: { value: null }, strength: { value: 0 } },
+        vertexShader: `
+        varying vec2 racingUv;
+        void main() {
+          racingUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.);
+        }`,
+        fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float strength;
+        varying vec2 racingUv;
+        void main() {
+          vec2 radial = racingUv - vec2(.5,.52);
+          float edge = smoothstep(.08,.42,length(radial * vec2(1.15,1.)));
+          float craft = smoothstep(.09,.20,length((racingUv-vec2(.5,.25))*vec2(1.,1.4)));
+          vec2 stride = radial * strength * edge * craft;
+          vec4 streak = vec4(0.);
+          for (int i=0; i<32; i++) {
+            float amount = float(i)/31.;
+            streak += texture2D(tDiffuse,clamp(racingUv-stride*amount,vec2(0.),vec2(1.)));
+          }
+          gl_FragColor = streak / 32.;
+        }`,
+      }),
+    );
+    racingBlur.enabled = false;
+    composer.addPass(racingBlur);
+    let blurTarget = 0,
+      catapultBlur = false;
     const output = lifetime.own(new OutputPass());
     composer.addPass(output);
     const antialias = lifetime.own(new SMAAPass());
@@ -195,6 +229,31 @@ export async function createRenderer(
         Object.assign(frame, update);
         backdrop.setOverview?.(Boolean(update.reviewing));
         updateBackdrop();
+      },
+      setRacingFeedback({
+        mode,
+        speed = 0,
+        boosting = false,
+        catapulting = false,
+        enabled = false,
+      }) {
+        const active =
+          enabled &&
+          mode === 'racing' &&
+          !shape &&
+          !settings.reducedMotion &&
+          (settings.quality === 'high' || catapulting);
+        catapultBlur = active && catapulting;
+        blurTarget = active
+          ? catapulting
+            ? 0.24
+            : T.MathUtils.smoothstep(speed, 75, 150) * 0.016 +
+              (boosting ? 0.012 : 0)
+          : 0;
+        if (!active) {
+          racingBlur.uniforms.strength.value = 0;
+          racingBlur.enabled = false;
+        }
       },
       getPresentation: () => backdrop?.getPresentation?.() ?? null,
       drainStormEvents: () => backdrop?.drainStormEvents?.() ?? [],
@@ -259,7 +318,15 @@ export async function createRenderer(
         scene.userData.elapsed = elapsed;
         renderer.info.reset();
         renderer.shadowMap.needsUpdate = true;
-        if (settings.quality === 'high') composer.render(dt);
+        const targetBlur = settings.reducedMotion || shape ? 0 : blurTarget;
+        racingBlur.uniforms.strength.value +=
+          (targetBlur - racingBlur.uniforms.strength.value) *
+          (1 - Math.exp(-dt * (catapultBlur ? 60 : 12)));
+        racingBlur.enabled =
+          (settings.quality === 'high' || catapultBlur) &&
+          racingBlur.uniforms.strength.value > 0.0001;
+        if (settings.quality === 'high' || racingBlur.enabled)
+          composer.render(dt);
         else renderer.render(scene, camera);
         maxima.calls = Math.max(maxima.calls, renderer.info.render.calls);
         maxima.triangles = Math.max(
@@ -371,6 +438,8 @@ export async function createRenderer(
           pipeline: {
             ambientOcclusion: ao.enabled,
             bloom: bloom.enabled,
+            racingBlur: racingBlur.enabled,
+            racingBlurStrength: racingBlur.uniforms.strength.value,
             tonemapping: 'ACES',
             colourSpace: 'sRGB',
             world: options.world,

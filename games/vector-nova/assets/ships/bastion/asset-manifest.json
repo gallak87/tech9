@@ -1,0 +1,18 @@
+{
+  "asset": "bastion",
+  "blender": "5.1.1",
+  "bounds": {
+    "min": [-1.8113031387329102, 0.011741666123270988, -3.2799999713897705],
+    "max": [1.8113031387329102, 0.9223269820213318, 3.328000068664551]
+  },
+  "triangles": 35308,
+  "meshes": 11,
+  "anchors": {
+    "Exhaust_L": [-1.28, 0.51, -3.295],
+    "Exhaust_R": [1.28, 0.51, -3.295]
+  },
+  "sourceComponents": 125,
+  "glbBytes": 4664496,
+  "textures": "Embedded base color, roughness and tangent normal maps; original procedural Blender materials",
+  "textureCount": 12
+}

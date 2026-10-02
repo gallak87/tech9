@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createVehicleState } from '../src/physics/index.js';
-import { createHalcyonSimulationRuntime } from '../src/pickups/halcyon/runtime.js';
+import { createVehicleState, stepVehicle } from '../src/physics/index.js';
+import { createHalcyonSimulationRuntime } from '../src/levels/halcyon/device-runtime.js';
 import {
   advanceSession,
   createMagneticRuntime,
@@ -22,7 +22,7 @@ const track = {
   }),
 };
 const dt = 1 / 120;
-function session(distance = 40, lateral = 0) {
+function session(distance = 30, lateral = 0) {
   const state = {
     ...createVehicleState(),
     distance,
@@ -46,6 +46,80 @@ function session(distance = 40, lateral = 0) {
 function tick(run, input) {
   advanceSession({ ...run, input });
 }
+
+test('strip entry catapults at the leading hull edge, spends no reserve and stops modifying physics on exit', () => {
+  const run = session(35);
+  const baseline = { ...run.state };
+  let entry = null;
+  for (let index = 0; index < 20 && !entry; index++) {
+    stepVehicle(baseline, { throttle: 1 }, track, dt);
+    tick(run, { throttle: 1 });
+    entry = run.events.find((event) => event.type === 'pickup-activate');
+  }
+  assert.equal(entry.payload.kind, 'vector');
+  assert.equal(entry.payload.speedGain, 65);
+  assert.ok(
+    run.state.distance < 43,
+    'front hull contact precedes the visible leadingedge at43m',
+  );
+  assert.ok(
+    run.state.speed > baseline.speed + 64.9,
+    'entry gain appears immediately on the contact tick',
+  );
+  assert.equal(run.state.energy, baseline.energy);
+  for (
+    let index = 0;
+    index < 100 && run.runtime.snapshot().vectorActive;
+    index++
+  )
+    tick(run, { throttle: 1 });
+  assert.equal(run.runtime.snapshot().vectorActive, false);
+  assert.ok(run.events.some((event) => event.type === 'pickup-exit'));
+  assert.ok(
+    run.state.speed * 3.6 >= 599,
+    'a full strip reaches approximately 600 km/h',
+  );
+  const ordinary = { ...run.state };
+  for (let index = 0; index < 10; index++) {
+    stepVehicle(ordinary, { throttle: 1 }, track, dt);
+    tick(run, { throttle: 1 });
+  }
+  assert.deepEqual(
+    run.state,
+    ordinary,
+    'exit retains actual speed with exactly baseline forces afterward',
+  );
+});
+
+test('full strip traversal reaches 600 km/h on every chassis; leaving early retains only earned speed', () => {
+  for (const shipId of ['kestrel', 'shrike', 'bastion', 'needle']) {
+    const full = session(30),
+      clipped = session(30);
+    full.state.shipId = clipped.state.shipId = shipId;
+    full.state.speed = clipped.state.speed = 30;
+    while (!clipped.runtime.snapshot().vectorActive)
+      tick(clipped, { throttle: 1 });
+    clipped.state.lateral = 12;
+    tick(clipped, { throttle: 1 });
+    assert.equal(clipped.runtime.snapshot().vectorActive, false);
+    for (
+      let tickIndex = 0;
+      tickIndex < 180 &&
+      !full.events.some((event) => event.type === 'pickup-exit');
+      tickIndex++
+    )
+      tick(full, { throttle: 1 });
+    assert.ok(full.events.some((event) => event.type === 'pickup-exit'));
+    assert.ok(
+      full.state.speed * 3.6 >= 599,
+      `${shipId} must reach 600 km/h on a full pass`,
+    );
+    assert.ok(
+      clipped.state.speed < full.state.speed - 40,
+      'a brief contact cannot earn the full strip speed',
+    );
+  }
+});
 
 test('actual feature live/replay uses one core advance and preserves all state and event order', () => {
   const live = session();
@@ -97,7 +171,7 @@ test('pause and presentation updates do not advance deterministic effect time', 
   const run = session();
   for (let i = 0; i < 40; i++) tick(run, { throttle: 1 });
   const before = run.runtime.snapshot();
-  assert.ok(before.vectorRemaining > 0);
+  assert.ok(before.vectorActive);
   for (let i = 0; i < 60; i++)
     run.runtime.update({
       state: run.state,
@@ -113,14 +187,14 @@ test('pause and presentation updates do not advance deterministic effect time', 
 test('manual recovery clears effects without rearming; fresh lap deliberately rearms', () => {
   const run = session();
   for (let i = 0; i < 40; i++) tick(run, { throttle: 1 });
-  run.state.distance = 40;
+  run.state.distance = 30;
   run.runtime.reset({ reason: 'manual-recover', state: run.state });
-  assert.equal(run.runtime.snapshot().vectorRemaining, 0);
+  assert.equal(run.runtime.snapshot().vectorActive, false);
   assert.equal(run.runtime.snapshot().used['vector-launch'], 0);
   run.events.length = 0;
   for (let i = 0; i < 40; i++) tick(run, { throttle: 1 });
   assert.ok(!run.events.some((event) => event.type === 'pickup-activate'));
-  run.state.distance = 40;
+  run.state.distance = 30;
   run.runtime.reset({ reason: 'fresh-lap', state: run.state });
   for (let i = 0; i < 40; i++) tick(run, { throttle: 1 });
   assert.ok(run.events.some((event) => event.type === 'pickup-activate'));

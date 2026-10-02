@@ -1,0 +1,13 @@
+# Cindercoil scene, geometry and surfaces
+
+The selected [scene drawing](reference/cindercoil-scene-v1.png) was generated with built-in `image_gen.imagegen` on 2026-09-29. Its [exact prompt](reference/prompt.txt) is preserved. The [selected ash sky](SKY_PROVENANCE.md) uses that original drawing as its reference. No external source artwork, textures or meshes were supplied.
+
+The current original Blender kit translates the drawing's fault layers, thick lava channels, cooling crust, hollow tower, roadside spill crater and ceramic launch supports into seeded CPU-authored geometry. [build_cindercoil_v7.py](build_cindercoil_v7.py) produces [cindercoil-hero-kit-v7.blend](cindercoil-hero-kit-v7.blend), [asset-manifest-v7.json](asset-manifest-v7.json) and `public/assets/levels/cindercoil/cindercoil-hero-kit-v7.glb` using Blender 5.1.1 background geometry/export. It uses no external mesh or texture inputs.
+
+The modeled forms approximate the selected concept rather than photogrammetry or fluid simulation. The track owns the driving surface, real flight gap and collision rules; scenery remains outside its tested road/camera envelope.
+
+[basalt-albedo-v1.png](basalt-albedo-v1.png) is an original diffuse surface tile generated with built-in imagegen on 2026-09-30 without references or external art. Its [exact prompt](basalt-prompt-v1.txt) and native pixels are preserved; the runtime copy is unchanged. World-space triplanar sampling and shader-derived relief cover authored terrain/rock. This surface detail does not replace nearby modeled scenery.
+
+The continuous roadside spill is an authored volume following the transported road, with a rooted basalt feed apron and terrain receiving pool. Its directional surface advection follows simulation time; reduced motion freezes that decorative flow. Its broad glow and contact smoke remain readable alongside the two warned surges.
+
+The game-owned bounded ash, source plumes, embers, local heat veil and peripheral canvas are in `src/levels/cindercoil/atmosphere.js` and `overlay.js`. Exposure/receiving logic is informed by the repository weather module and forest adapter; no weather source or external assets were copied. Wall opening, cascade pulse, separating/falling crust and vent state follow deterministic simulation time. Reduced motion removes drift, shimmer and decorative motion while retaining event state and contact feedback. Shape review requests no production kit/sky/surface texture. Sources are unserved; raw verification evidence stays ignored.

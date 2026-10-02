@@ -109,12 +109,6 @@ test('all approved adapters preserve production/shape tracks and runtime identit
         );
     }
   }
-  const baseline = createHalcyon({ features: 'unknown' });
-  const runtime = await baseline.createRuntime({
-    track: baseline.createTrack(),
-  });
-  assert.equal(runtime.id, 'magnetic');
-  runtime.dispose();
 });
 
 test('track contract rejects malformed dimensions and non-finite frames before world construction', () => {

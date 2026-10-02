@@ -1,12 +1,28 @@
-# Map 10 — Umbra Fold: overnight production handoff
+# Map 10 — Umbra Fold: level brief
 
 ## Assignment and authority
 
 **Goal:** Finish a gravity-observatory circuit with tidal line control, curved airborne crossings, continuous debris consumption and one enormous spaghettification event.
 
-Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md) and the [level contract](../../EXPANSION_LEVEL_CONTRACT.md) included in your foundation commit. Consult architecture/art sections only as needed; do not preload the full roadmap or other lane briefs. Use the integrator’s verified base/API.
+Own `umbra` through the [common execution and completion rules](../README.md). Use `?level=umbra` for production and `&review=shape` for route review.
 
-Own the `umbra` paths defined in the [common ownership rules](../../EXPANSION_HANDOFF.md#isolation-and-dependency). Use `?level=umbra` and `&review=shape`; obtain current ports, URLs and the integrator identity from the live launch ledger linked there.
+## Existing work
+
+Existing worktree: `/Users/g/.codex/worktrees/fzero-umbra1/tech9`. Existing branch: `codex/fzero-umbra1`.
+
+Read the current primary's game instructions, this brief and the [startup/merge rules](../README.md#worktree-and-completion-ownership) before continuing. The [production loop](../README.md#production-and-critique-loop) owns the fresh eight-round desktop critic allowance and final mobile pass.
+
+### Sources and retained behavior
+
+Sources are in `games/vector-nova/assets/levels/umbra/` inside the existing worktree. Preserve `umbra-scene-reference.png`, `provenance.json`, `umbra-observatory.blend` and `build_umbra_assets.py`, their runtime exports and any newer authored versions.
+
+Preserve the observatory kit, grounded inversion/fold, airborne steering checks and final shared deck/rail contact behavior. Establish a visible, correctly framed production world before critique; investigate the user's reported black 3D viewport with visible HUD/minimap. Verify actual tidal countersteering, curved landings and recovery, then finish continuous accretion and the enormous stretching object.
+
+### Selected generated sky
+
+Use the [selected reference-guided sky](../../../assets/levels/umbra/umbra-sky-v2.png), [exact generation prompt](../../../assets/levels/umbra/sky-prompt-v2.txt) and [sky provenance](../../../assets/levels/umbra/SKY_PROVENANCE.md) brought in from the primary worktree. Match the [original scene drawing](../../../assets/levels/umbra/umbra-scene-reference.png): deep navy/graphite space with fine blue-white stellar depth behind the warm luminous ring and ruined pale observatory. Keep the black hole, photon rim, accretion ring, lensing and consumed structures as separate scene effects. Preserve the reference's warm/cool contrast, layered ruins and lit views away from the ring.
+
+Follow the [sky integration checks](../README.md#generated-sky-panoramas), preserve the source image and export a runtime texture under `public/assets/levels/umbra/`. Confirm seam/horizon, exposure, loading/disposal and high/low/reduced motion on the actual production build. Nearby scenery and gameplay remain authored 3D content.
 
 ## Defining interactions and spectacle
 
@@ -47,23 +63,33 @@ Start near 5.4 km with a constant 28 m usable width and roughly 320 m of vertica
 
 **Reject these shortcuts:** Reject arbitrary floating blocks, empty black views away from the ring, a technical route that is merely confusing, invisible crossings, bright guides hiding absent road geometry, inverted camera collisions or unexplained global gravity changes. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
 
-## Future shared pickup/boost locations
+## Finish targets and atmosphere
 
-Mark safe shared boost/refill setup positions before strong tidal zones and curved launches, plus recovery shelves after difficult landings. Note future shared stability/protection support candidates if useful; do not build a gravity-specific inventory or remove the tidal challenge to avoid the missing support. Record actual built-route coordinates using the [shared placement-note format](../../EXPANSION_HANDOFF.md#future-shared-pickup-and-boost-placement), without implementing those systems or replacing the approved level mechanics.
+Make the stacked crossings, inversion, curved gravity-assisted leaps and descending Event Fold unmistakable and learnable in the racing camera. Give each entry and lower landing recognizable landmarks, visible spatial separation and a recovery shelf. Stage continuous distant accretion and the enormous object's stretch, strand formation, fragmentation and inward spiral where a driver can observe their sequence and scale.
+
+Finish pale fractured observatory stone, graphite panels, cold metallic edges and repaired structural joints with convincing geometry and surface detail. Populate views away from the ring with layered ruins and stellar depth. Ring-derived warm light and cool fill must reveal those surfaces without flattening the contrast. Bright guidance cannot disguise missing road or black, unfinished architecture.
+
+Use the [weather/atmosphere references](../README.md#atmosphere-and-screen-effects) as inspiration for bounded world-space particle fields, state-driven variation and lifecycle ownership. Author distant stellar dust, accretion strands and localized consumed debris appropriate to space; retain the separate black-hole/ring scene effects. Accretion debris follows the spectacle's authored path and timing rather than becoming decorative atmospheric snowfall.
+
+Use restrained peripheral instrument/field feedback for declared tidal zones, communicating pull direction and strength from actual simulation state. Keep any lensing localized to celestial content; the road, camera horizon and HUD must remain stable and readable. Reduced motion removes decorative debris flow while preserving the factual tidal cue. The critic must drive the inversion/leaps/fold, observe the enormous consumption event and inspect lit away-from-ring views.
 
 ## Presets and resource discipline
 
 High may add restrained layered ring detail and slow far-debris drift. Low keeps the accretion silhouette, background stars, every route marker and major ruined landmark while simplifying distant assemblies. Reduced motion stops decorative ring flow and far-debris drift; no camera shake, rotating horizon illusion or pulsing edge lights. Never distort HUD or driving geometry.
 
+Reuse the [shared racing/device system](../README.md#gameplay-and-presentation-boundaries): author placements, supply the level's pure motion adapter for rivals and verify physical two-lap finishes, replay and solo practice.
+
 ## Production and review
 
-Use the [scene-imagegen → Blender workflow](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for major assets: The observatory fragments/landing structures, tilted lens and enormous object with staged stretched/fragmented forms are major scene-to-Blender subjects. Use reproducible deformation/animation for continuous accretion and reuse small debris families.
+Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The observatory fragments/landing structures, tilted lens and enormous object with staged stretched/fragmented forms are major scene-to-Blender subjects. Use reproducible deformation/animation for continuous accretion and reuse small debris families.
 
-Use the [shared production/critic loop](../../EXPANSION_HANDOFF.md#production-and-critique-loop) and [common verification/handback rules](../../EXPANSION_HANDOFF.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting; they do not replace the shared checks.
+Apply the [production/critic loop](../README.md#production-and-critique-loop), [critic standard](../README.md#critic-standard) and [verification rules](../README.md#verification-and-resource-discipline). Give the critic the selected drawing and this brief's finish/atmosphere targets; the checks below add level-specific acceptance.
 
 ## Acceptance on the actual production build
+
+The user reported an apparently oversized or incomplete map, with a black central 3D viewport while the HUD/minimap remained visible. Inspect the resumed production build and establish the cause before declaring completion; the screenshot alone did not establish whether this was scale, loading, camera placement or missing scenery.
 
 1. Drive progressively stronger tidal zones with actual countersteering/braking/boost; measure the declared pull and show ordinary handling outside the zones.
 2. Traverse curved gravity-assisted leaps with actual input, visible lower landing and an imperfect approach; verify airborne force integration, recovery and ordered checkpoints alongside grounded inversions/crossings.
 3. Inspect continuous debris consumption and the enormous object stretching into strands, fragmenting and spiralling inward; verify event/runtime reset, pause and replay without screen-wide road distortion.
-4. Check ring-facing and shadowed views at high/low/reduced motion, tidal/landing cues and future support coordinates; report hard no-pickup sections honestly.
+4. Check ring-facing and shadowed views at high/low/reduced motion, tidal/landing cues and landing/recovery behavior; report hard no-pickup sections honestly.

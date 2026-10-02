@@ -1,76 +1,64 @@
 # VECTOR//NOVA roadmap
 
-## Current position
+## Completed
 
-Approved and merged: Halcyon Viaduct, Asterion Orbital, Nacre Tempest, the initial Halcyon boost/shield devices and the Blender Kestrel with stronger blue exhaust. Completed review history is in Git.
+- [x] Gate 1: establish the Kestrel silhouette and playable anti-gravity prototype.
+- [x] Gate 2: finish Halcyon Speedway, correct steering/slope handling and retain 0.3 bend assistance.
+- [x] Gate 3: finish Asterion Orbital, its open lattice raceway, shipyard and planet/stellar backdrop.
+- [x] Gate 4.1: integrate Nacre Tempest, submerged racing, two real jumps, timed recovery and the leviathan.
+- [x] Gate 4.2: integrate Halcyon's automatic Vector catapults and Aegis shields, feedback and deterministic replay rules.
+- [x] Shared level foundation: add the circuit picker, lazy discovery, owned lifecycle, geometry helpers and common verification.
+- [x] Vesper Canopy: merge the hollow-tree/resin circuit, crown jumps, sap surfaces and connected forest.
+- [x] Glasswake Comet: merge crystal/frost driving, fracture jumps, the crevice corkscrew, shelf collapses and snow presentation.
+- [x] Cindercoil: merge the volcanic circuit, lava surges/spill, furnace roll, vent flight and ash/heat presentation.
+- [x] Gate 5 initial flow: add audible start lights, two-lap timing/results, continued driving and retained paddock results.
+- [x] Gate 6 initial opponents: add Rook/Latch/Mule using actual physics/devices, a 2×2 grid and Easy/Medium/Hard difficulty.
+- [x] Gate 8 fleet: add Kestrel/Shrike/Bastion/Needle, distinct handling, saved selection/stats and fleet/rival inspection.
+- [x] Shared inspection: add free-camera navigation and responsive driving/review controls across circuits.
+- [x] Halcyon feedback: add position/lap timing, full-field relative race gaps, matching rival colors and catapults toward 600 km/h with strong launch blur.
+- [x] Asset layout: normalize Halcyon/Orbital/Nacre folders and base-aware loading; prune obsolete served models and duplicate rival GLBs while retaining sources/provenance.
+- [x] Shared racing graduation: reuse Vector/Aegis, 600 km/h launch feedback, three physical rivals, difficulty, timing/results and replay on Halcyon/Orbital/Nacre/Vesper/Glasswake/Cindercoil.
+- [x] Nacre immersion: blend the entire sound mix underwater and restore it smoothly on exit; add pooled bubbles at actual submerged takeoff, flight and landing.
 
-## Next: integration and shared cleanup
+## Remaining level expansion
 
-- [x] Merge the approved Nacre circuit and final revision.
-- [x] Add a simple paddock circuit picker for the available levels.
-- [x] Replace hardcoded level branches with a small validated lazy loader and level descriptor.
-- [x] Standardize async readiness, one presentation update per frame, reset/disposal and borrowed-resource ownership.
-- [x] Drive shared UI/review navigation from metadata and camera behavior from explicit options.
-- [x] Expose optional frame, road-sweep, transformed-bounds and clearance helpers; keep profiles, materials and scenery authored locally.
-- [ ] Extract additional small mesh/instance/resource helpers only when repeated production needs justify them; this is not a prerequisite for the seven-level handoff.
-- [x] Integrate the common CPU/runtime validation harness and documented level contract. Exact foundation and verification live in the launch ledger.
-- [x] Rewrite the README around the whole game and consolidate documentation around current state and lasting decisions.
+Continue the existing authored worktrees using the [expansion rules](docs/expansion/README.md). New circuits must use the shared race/device system, with authored placements and their actual motion adapter. Each level owner finishes the level and necessary shared improvements, completes desktop critique, checks mobile last, then commits and merges. Completed review history remains in Git.
 
-See the [launch ledger](docs/expansion/LAUNCH_STATE.json) for current readiness and the [integrator handoff](docs/EXPANSION_INTEGRATOR_HANDOFF.md) for execution. Keep coordination status there rather than repeating it in the map briefs.
+- [ ] [Saffron Leviathan](docs/expansion/saffron/HANDOFF.md): fossil traversal, sand/glass choices and the burrower.
+- [ ] [Zephyr Basilica](docs/expansion/zephyr/HANDOFF.md): cathedral traversal, waterfall jumps and falling architecture.
+- [ ] [Helion Flare](docs/expansion/helion/HANDOFF.md): flare-lane evasion, heat/cooling choices and stellar prominences.
+- [ ] [Umbra Fold](docs/expansion/umbra/HANDOFF.md): tidal zones, curved leaps and debris consumption.
 
-## Seven requested maps
+## Remaining gameplay
 
-Each map gets an independent isolated build, internal shape checks, full production and capped critique, then final human review. Preserve the existing Kestrel, controls and 0.3 assistance. Their briefs authorize distinct jumps, surface effects, hazards, environmental forces and large world events. Shared pickup/boost expansion remains deferred: builders record actual future-support coordinates and preserve the intended challenge even if current play is rough or hard. All assets and lighting share one eight-round critic cap per level, targeting at least 9/10 in every applicable category.
-
-| Map                   | Direction and owned brief                                                                                 |
-| --------------------- | --------------------------------------------------------------------------------------------------------- |
-| 4 — Vesper Canopy     | [Living-tree interiors, crown jumps, sap lines and a canopy creature](docs/expansion/vesper/HANDOFF.md)   |
-| 5 — Glasswake Comet   | [Crystal fracture jumps, frost/grip choices and a calving ice shelf](docs/expansion/glasswake/HANDOFF.md) |
-| 6 — Cindercoil        | [Lava-surge route choices, a vent launch and a rupturing caldera](docs/expansion/cindercoil/HANDOFF.md)   |
-| 7 — Saffron Leviathan | [Skull/vertebral traversal, sand crossings and a living burrower](docs/expansion/saffron/HANDOFF.md)      |
-| 8 — Zephyr Basilica   | [Cathedral interiors, waterfall jumps and a falling island/tower](docs/expansion/zephyr/HANDOFF.md)       |
-| 9 — Helion Flare      | [Flare-swept lanes, furnace/heat choices and gigantic solar flares](docs/expansion/helion/HANDOFF.md)     |
-| 10 — Umbra Fold       | [Tidal pull, curved leaps and debris stretched into the black hole](docs/expansion/umbra/HANDOFF.md)      |
-
-Spread vertical events and signature moments throughout each course. Ordinary connectors, road construction and surroundings need the same attention as hero views. The [common brief](docs/EXPANSION_HANDOFF.md) owns execution/quality rules; individual briefs own distinctive worlds and acceptance scenarios.
-
-## Proposed gameplay phases — not started
-
-Each phase ends with human review after its scoped independent critic loop. Agree the actual phase before implementation; the seven map builds do not authorize these systems.
+Agree each phase's scope before implementation; scoped independent critique ends with human review.
 
 ### Level polish
 
-- [ ] Add subtle motion blur during boost, keeping the road and HUD readable and respecting reduced motion.
-- [ ] Emit sparks from the actual side/contact point when scraping rails or other surfaces, and when ship-to-ship bumps become available. Explore short-lived scrape streaks on the contacted road panels/walls, with bounded effects and cleanup.
-- [ ] Halcyon: investigate and fix remaining flicker on the ground, especially white areas and street-lane markings.
-- [ ] Asterion: locate and fix the reported flickering road section; its exact location is not yet known.
-- [ ] Nacre: make the entire sound mix feel submerged when entering the water, including propulsion, boost, lightning/thunder and other effects, with smooth transitions back to the above-water mix.
-- [ ] Nacre: add bubbles around takeoff, mid-jump travel and landing for the underwater portions, driven by actual submersion and water crossings.
+- [ ] Extend existing rail-local sparks to consistent actual contact points across circuits and other surfaces; add body-contact feedback when available and explore bounded scrape marks.
+- [ ] Halcyon: fix remaining ground flicker, especially white areas and street-lane markings.
+- [ ] Asterion: locate and fix the reported flickering road section.
 
-### Candidate next round: shared pickups and boost support
+### Gate 5: broader race flow
 
-Consider prioritizing game-wide boost/refill, protection, recovery and other shared aids using the seven builders’ measured placement notes. The user will choose the systems and iterate through human playtests. Do not implement them during level production or treat hard unsupported sections as permission to redesign the maps.
-
-### Gate 5: complete race flow
-
-Track select → briefing → grid/countdown → three laps → finish/results → retry or another track. Keep Practice one action away and settings available before racing. Show lap/sector splits, last-lap feedback, total/best/personal times; position waits for real opponents. Prevent pre-GO launch advantage and duplicate finishes. Persist settings/records locally with a working storage-failure fallback, and separate ship/track/rules versions. Target roughly 2–4 minutes without stretching empty road.
+- [ ] Scope briefing, sector splits and persistent personal records separately from the completed shared two-lap flow. Retain continued driving and Escape-to-paddock until the user requests a change.
 
 ### Gate 6: opponents and competitive Quick Race
 
-Start with three AI rivals on Halcyon, then reach player plus 11 rivals across approved circuits. Use real route lines, braking/boost decisions, overtakes and recoverable mistakes; Rookie/Racer/Ace vary precision and judgment, initially without catch-up assistance. All racers obey the same limits, device and jump rules. Rank by valid lap/checkpoint progress, including meaningful airborne presentation. Add restrained body contact with cooldowns, no sustained rail pinning or repeated damage from one contact. Verify the full-grid start and independent finishes against performance budgets.
+- [ ] Expand toward player plus 11 rivals; verify independent finishes and actual performance.
+- [ ] Add restrained body contact with cooldowns, without sustained rail pinning or repeated damage from one contact.
 
 ### Gate 7: energy choices and Time Trial
 
-Initially try two recharge stretches and two immediate 25-point energy cells on Halcyon, capped at 100 reserve. Put recharge on slower/wider lines so it is a real time/energy choice; retain passive regeneration while tuning. Eligibility resets per racer/lap with forward crossings and anti-farming. Expand placements to another circuit only after review.
+- [ ] Try two recharge stretches and two immediate 25-point cells on Halcyon, capped at 100 reserve. Place recharge on slower/wider lines; retain passive regeneration while tuning. Reset eligibility per racer/lap using forward crossings and anti-farming; expand only after review.
+- [ ] Add a deterministic three-lap solo Time Trial with a local non-colliding ghost, sector deltas and instant retry. Use fixed initial state, manual boost/regeneration and disabled road devices; separate circuit/ship/rules records and reject incompatible ghosts. Automatic failed-jump recovery remains valid with elapsed-time loss.
 
-Time Trial is a deterministic three-lap solo run with a local non-colliding ghost, sector deltas and instant retry. Fixed initial state; manual boost/regeneration remain, road devices are disabled. Separate circuit/ship/rules records and reject incompatible ghosts. Automatic failed-jump recovery remains valid with elapsed time loss.
+### Gate 8: cups and front end
 
-### Gate 8: ships, cups and front end
-
-Retain balanced Kestrel; proposed additions are agile lower-top-speed Vesper, heavy high-reserve Bastion and fast Needle with weaker braking. Names/tuning are provisional; each needs an actual distinct asset and a meaningful tradeoff.
-
-After all three existing circuits are approved, add a Founders Cup over Halcyon/Asterion/Nacre. Proposed 12-place points: 25/20/16/13/11/9/7/5/4/3/2/1, ties by wins then total time. Save between races with restart/abandon controls. Track/ship select, Quick Race, Cup and Time Trial should lead to working actions. Rewards unlock cosmetics, not stronger stats; retain all completed content in Practice/Quick Race.
+- [ ] Restructure the menu into **Ship selector → Map selector → Launch**. Retain ship stats, saved choices and Inspect Ships; each step should fit without scrolling.
+- [ ] Carry shared ship selection into future race modes and add a Founders Cup over Halcyon/Asterion/Nacre. Proposed 12-place points: 25/20/16/13/11/9/7/5/4/3/2/1; ties by wins, then total time. Save between races with restart/abandon controls.
+- [ ] Connect Quick Race, Cup and Time Trial to working actions; rewards unlock cosmetics rather than stronger stats. Retain completed content in Practice/Quick Race.
 
 ## Deferred
 
-Stored/manual-use items, offensive pickups, side attacks, destructive damage/elimination, online systems, upgrade economies, procedural tracks and the industrial energy complex require a separate scope decision. Quality and a complete racing loop take priority over map count.
+Stored/manual-use items, offensive pickups, side attacks, destructive damage/elimination, online systems, upgrade economies, procedural tracks and the industrial energy complex require separate scope. Quality and a complete racing loop take priority over map count.

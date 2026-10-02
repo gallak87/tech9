@@ -1,0 +1,101 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  BoxGeometry,
+  Group,
+  Mesh,
+  MeshStandardMaterial,
+  Raycaster,
+  Texture,
+  Vector3,
+} from 'three';
+import { createVesperTrack } from '../src/levels/vesper/track/model.js';
+import { createVesperEnvironment } from '../src/levels/vesper/environment/index.js';
+import { vesperTerrainHeight } from '../src/levels/vesper/environment/terrain.js';
+
+const track = createVesperTrack();
+function watchedAsset() {
+  const scene = new Group();
+  const geometry = new BoxGeometry();
+  const map = new Texture();
+  const material = new MeshStandardMaterial({ map });
+  scene.add(new Mesh(geometry, material));
+  const counts = [0, 0, 0];
+  [geometry, material, map].forEach((resource, i) =>
+    resource.addEventListener('dispose', () => counts[i]++),
+  );
+  return { scene, counts };
+}
+
+test('tree seating samples the rendered terrain triangles rather than the analytic surface between vertices', () => {
+  const environment = createVesperEnvironment({ track });
+  try {
+    environment.group.updateMatrixWorld(true);
+    const floor = environment.group.getObjectByName(
+      'Vesper / continuous ravine floor and root terraces',
+    );
+    const ray = new Raycaster();
+    for (let i = 0; i < 64; i++) {
+      const x = -1580 + ((i * 977) % 3750);
+      const z = -1650 + ((i * 631) % 3280);
+      ray.set(new Vector3(x, 50, z), new Vector3(0, -1, 0));
+      const hit = ray.intersectObject(floor)[0];
+      assert.ok(hit);
+      assert.ok(
+        Math.abs(hit.point.y - vesperTerrainHeight(x, z, track.groundY)) <
+          0.0001,
+      );
+    }
+  } finally {
+    environment.dispose();
+  }
+});
+
+test('a rejected secondary forest load releases the already loaded main library', async () => {
+  const first = watchedAsset();
+  const environment = createVesperEnvironment({
+    track,
+    loadAsset: async (url) => {
+      if (url.endsWith('vesper-canopy.glb')) return first;
+      throw new Error('Missing forest fixture');
+    },
+  });
+  try {
+    await assert.rejects(environment.ready, {
+      message: 'Vesper connected forest could not load. Reload to retry.',
+    });
+    assert.deepEqual(first.counts, [1, 1, 1]);
+    assert.equal(environment.group.userData.metrics.loadState, 'failed');
+  } finally {
+    environment.dispose();
+    environment.dispose();
+  }
+  assert.deepEqual(first.counts, [1, 1, 1]);
+});
+
+test('disposing while the secondary forest is loading releases both late libraries once', async () => {
+  const first = watchedAsset(),
+    second = watchedAsset();
+  let resolveSecond, started;
+  const loadingSecond = new Promise((resolve) => {
+    started = resolve;
+  });
+  const environment = createVesperEnvironment({
+    track,
+    loadAsset: async (url) => {
+      if (url.endsWith('vesper-canopy.glb')) return first;
+      started();
+      return new Promise((resolve) => {
+        resolveSecond = resolve;
+      });
+    },
+  });
+  await loadingSecond;
+  environment.dispose();
+  resolveSecond(second);
+  await environment.ready;
+  environment.dispose();
+  assert.deepEqual(first.counts, [1, 1, 1]);
+  assert.deepEqual(second.counts, [1, 1, 1]);
+  assert.equal(environment.group.children.length, 0);
+});

@@ -7,7 +7,8 @@ export function createMagneticRuntime({ track }) {
     version: 1,
     rulesId: BASELINE_RULES,
     scenarios: {},
-    advance: (state, input, dt) => stepVehicle(state, input, track, dt),
+    advance: (state, input, dt, modifiers) =>
+      stepVehicle(state, input, track, dt, modifiers),
     reset() {},
     snapshot: () => null,
     restore() {},
@@ -15,11 +16,6 @@ export function createMagneticRuntime({ track }) {
     update() {},
     dispose() {},
   };
-}
-export function hasHalcyonFeatures(track, features) {
-  return (
-    track.id === 'halcyon-viaduct-4-compact' && features === 'halcyon-pickups'
-  );
 }
 export function runtimeIdentity(runtime) {
   return { id: runtime.id, version: runtime.version, rulesId: runtime.rulesId };

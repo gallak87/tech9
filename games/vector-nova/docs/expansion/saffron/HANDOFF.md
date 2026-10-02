@@ -1,12 +1,28 @@
-# Map 7 — Saffron Leviathan: overnight production handoff
+# Map 7 — Saffron Leviathan: level brief
 
 ## Assignment and authority
 
 **Goal:** Finish a fossil-desert circuit through skull and vertebrae, with sand/glass route choices, a breaching burrower and readable sheltered interiors.
 
-Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md) and the [level contract](../../EXPANSION_LEVEL_CONTRACT.md) included in your foundation commit. Consult architecture/art sections only as needed; do not preload the full roadmap or other lane briefs. Use the integrator’s verified base/API.
+Own `saffron` through the [common execution and completion rules](../README.md). Use `?level=saffron` for production and `&review=shape` for route review.
 
-Own the `saffron` paths defined in the [common ownership rules](../../EXPANSION_HANDOFF.md#isolation-and-dependency). Use `?level=saffron` and `&review=shape`; obtain current ports, URLs and the integrator identity from the live launch ledger linked there.
+## Existing work
+
+Existing worktree: `/Users/g/.codex/worktrees/fzero-saffron1/tech9`. Existing branch: `codex/fzero-saffron1`.
+
+Read the current primary's game instructions, this brief and the [startup/merge rules](../README.md#worktree-and-completion-ownership) before continuing. The [production loop](../README.md#production-and-critique-loop) owns the fresh eight-round desktop critic allowance and final mobile pass.
+
+### Sources and retained behavior
+
+Sources are in `games/vector-nova/assets/levels/saffron/` inside the existing worktree. Preserve `scene-reference.png`, `PROVENANCE.md`, `leviathan-kit.blend` and `build_saffron.py`, their runtime exports and any newer authored versions.
+
+Preserve the corrected landing rules, shared deck/rail contact behavior, compact mechanic feedback and authored fossil kit. Confirm them with real-input skull/vertebral traversal, sand-versus-glass comparisons and recovery. Keep the chosen fossil anatomy, dune families and sheltered bone lighting while finishing the burrower and sandfalls.
+
+### Selected generated sky
+
+Use the [selected reference-guided sky](../../../assets/levels/saffron/saffron-sky-v2.png), [exact generation prompt](../../../assets/levels/saffron/sky-prompt-v2.txt) and [sky provenance](../../../assets/levels/saffron/SKY_PROVENANCE.md) brought in from the primary worktree. Match the [original scene drawing](../../../assets/levels/saffron/scene-reference.png): luminous pale lavender/lilac dry daylight, calm open atmosphere, soft golden illumination and a faint large moon. Preserve the selected image's moon and avoid also drawing the old procedural moon disk. Align the separate sun/light direction, warm sand bounce and readable bone interiors with the reference; avoid changing the world to blue/peach sunset.
+
+Follow the [sky integration checks](../README.md#generated-sky-panoramas), preserve the source image and export a runtime texture under `public/assets/levels/saffron/`. Confirm seam/horizon, exposure, loading/disposal and high/low/reduced motion on the actual production build. Nearby scenery and gameplay remain authored 3D content.
 
 ## Defining interactions and spectacle
 
@@ -47,23 +63,31 @@ Start near 5.2 km with a constant 32 m usable width and roughly 130 m of rolling
 
 **Reject these shortcuts:** Reject a flat yellow backdrop, copied highway panels, repeated identical ribs, sand obscuring the route, rib-shadow strobing, or a featureless full-throttle straight added solely for length. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
 
-## Future shared pickup/boost locations
+## Finish targets and atmosphere
 
-Mark boost/refill opportunities before vertebral and dune-skip jumps, safe recovery points after sand-heavy stretches, and preparation space before the skull descent. Note future shared support needs without creating a desert-specific item or shortening the fossil experience. Record actual built-route coordinates using the [shared placement-note format](../../EXPANSION_HANDOFF.md#future-shared-pickup-and-boost-placement), without implementing those systems or replacing the approved level mechanics.
+Make the skull-mouth descent, sheltered interior bank, broken-vertebra flights and broad dune crests feel physically distinct. The player should experience entering an enormous fossil and emerging into an immense desert; retain the worthwhile panoramic acceleration reach. Stage the burrower's moving ridge, breach and pouring sand through bones where they register during ordinary driving.
+
+Finish specific fossil anatomy, porous bone with layered erosion, varied dune slopes/strata and thick smoked-gold glass with readable surface response. Preserve lavender daylight, warm sand bounce and deep but readable skull interiors. Repeated ribs, flat yellow dunes or uniform shiny glass do not satisfy the drawing's finish.
+
+Use the [weather/atmosphere references](../README.md#atmosphere-and-screen-effects) for spatial particle layering, cover queries and coordinated surface/light response. Author localized blowing grains, thin crest dust and volumetric sandfalls; increase disturbed sand around the burrower's actual event, then clear it. Use bone shelters to reveal relief from dust. Atmospheric wind moves particles only; sand drag remains confined to declared deposits.
+
+Add brief peripheral dust/grain traces during real sandfall or exposed-sand encounters, with sparse streaks that clear quickly in sheltered corridors. Keep the next crest, vertebral landing, glass/sand boundary and HUD legible; visual residue does not invent a new grip penalty. Reduced motion removes streaming grains while retaining sand/contact cues. The critic must drive the skeleton traversal and sand choices, and observe the breach without relying on inspection views.
 
 ## Presets and resource discipline
 
 High may add sparse drifting grains, limited glass transmission and animated sandfall ribbons. Low preserves the fossil silhouettes, dune contours, deck thickness and readable inner corridor lighting while simplifying grains and material layers. Reduced motion removes blowing grains and holds sandfalls nearly still; ensure repeated ribs do not produce harsh flashing at speed.
 
+Reuse the [shared racing/device system](../README.md#gameplay-and-presentation-boundaries): author placements, supply the level's pure motion adapter for rivals and verify physical two-lap finishes, replay and solo practice.
+
 ## Production and review
 
-Use the [scene-imagegen → Blender workflow](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for major assets: The traversable skull and anatomically varied vertebrae, living burrower, and displaced dune/sandfall assemblies are major scene-to-Blender subjects. Establish reusable bone and dune families for the remaining landscape.
+Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The traversable skull and anatomically varied vertebrae, living burrower, and displaced dune/sandfall assemblies are major scene-to-Blender subjects. Establish reusable bone and dune families for the remaining landscape.
 
-Use the [shared production/critic loop](../../EXPANSION_HANDOFF.md#production-and-critique-loop) and [common verification/handback rules](../../EXPANSION_HANDOFF.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting; they do not replace the shared checks.
+Apply the [production/critic loop](../README.md#production-and-critique-loop), [critic standard](../README.md#critic-standard) and [verification rules](../README.md#verification-and-resource-discipline). Give the critic the selected drawing and this brief's finish/atmosphere targets; the checks below add level-specific acceptance.
 
 ## Acceptance on the actual production build
 
 1. Drive the skull descent/interior bank and vertebral jumps with actual inputs; verify camera clearance, real takeoff/landing and visible exits.
 2. Compare exposed glass and sand drag at matched speeds; check migrating deposit state, crest-jump bypasses and deterministic reset/replay.
 3. Inspect the burrower ridge, breach and bone sandfalls along the route; ensure the spectacle has scale without hiding landings or becoming repeated identical props.
-4. Check exterior/interior lighting and glass/sand readability in high/low/reduced motion; verify future placement coordinates and report unsupported difficulty.
+4. Check exterior/interior lighting and glass/sand readability in high/low/reduced motion; verify landing/recovery cues and report difficult passages.

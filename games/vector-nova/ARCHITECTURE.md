@@ -6,17 +6,17 @@ Standalone Vite + Three.js ES modules, WebGL2, PBR/ACES and sRGB output. No repo
 
 The locally owned ESLint/Prettier/lint-staged/Husky configuration was adapted from Chronoforge Echo at the user's request.
 
-| Module                 | Responsibility                                                                  |
-| ---------------------- | ------------------------------------------------------------------------------- |
-| levels                 | Validated discovery, per-level factories, metadata and presentation adapters    |
-| core                   | Boot/readiness, fixed-step session, replay, mode changes and teardown           |
-| track                  | Optional route-frame, sweep and geometry mechanics                              |
-| environment / renderer | Optional placement mechanics; shared rendering, lighting and resource metrics   |
-| ships / camera         | Async Kestrel asset and local presentation; road-frame chase/inspection cameras |
-| physics / race         | Vehicle motion and rail response; checkpoint/lap validation                     |
-| input / ui             | Normalized controls, focus/visibility cleanup, menus/HUD/settings               |
-| audio / effects        | Event-driven presentation; failure must not stop simulation                     |
-| pickups/halcyon        | Explicit opt-in adapter, deterministic devices and owned presentation           |
+| Module                 | Responsibility                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------- |
+| levels                 | Validated discovery, per-level factories, metadata and presentation adapters              |
+| core                   | Boot/readiness, fixed-step session, replay, mode changes and teardown                     |
+| track                  | Optional route-frame, sweep and geometry mechanics                                        |
+| environment / renderer | Optional placement mechanics; shared rendering, lighting and resource metrics             |
+| ships / camera         | Selectable async fleet assets and local presentation; road-frame chase/inspection cameras |
+| physics / race         | Vehicle motion and rail response; checkpoint/lap validation                               |
+| input / ui             | Normalized controls, focus/visibility cleanup, menus/HUD/settings                         |
+| audio / effects        | Event-driven presentation; failure must not stop simulation                               |
+| pickups/halcyon        | Explicit opt-in adapter, deterministic devices and owned presentation                     |
 
 `src/levels/<slug>/track/`, `environment/` and `backdrop/` own each circuit’s route, construction, materials, scenery and sky; Nacre also owns its overlay and flight presentation adapter. Shared directories contain reusable mechanics, never a default world style. Existing public asset URLs and replay identities remain stable across source moves.
 
@@ -47,7 +47,7 @@ The opt-in `src/physics/flight.js` model supplies ballistic flight, swept landin
 
 ## Ship and rendering
 
-`await createShip(options)` returns `{group, update, dispose}`. Load the GLB before measuring inspection bounds, baking reflections or warming shaders. Core owns world pose; update animates only local presentation. Source/exporter/provenance: `assets/ships/kestrel/`; runtime asset: `public/assets/ships/kestrel/kestrel.glb`. See [ship API](src/ships/README.md).
+`await createShip({id, ...options})` returns `{group, update, dispose}`. `src/ships/catalog.js` owns asset-free ship identities, handling versions and tuning. `createFleetShip` retains a stable root for borrowed level effects while replacing and disposing the selected chassis; failed loads retain the current model. Core restricts switching to menus, blocks launch during loading, refreshes camera bounds and starts a fresh deterministic state. Selection persists when local storage is available. Vehicle state carries `shipId`; grounded physics reads its profile while steering assistance stays 0.3. Replays check ship id/version and lap rules are ship-scoped. Load the GLB before measuring inspection bounds, baking reflections or warming shaders. Core owns world pose; update animates only local presentation. Editable sources, concepts and provenance live in `assets/ships/<id>/`; runtime GLBs live in `public/assets/ships/<id>/`. The original Kestrel exporter remains unchanged; `assets/ships/build_fleet.py` builds the three additions. See [ship API](src/ships/README.md).
 
 High uses single-sample HDR, GTAO, restrained bloom, OutputPass and SMAA. Multisampled HDR plus GTAO caused an ANGLE Metal opaque-region fault; retain the working pipeline. Low omits postprocessing. DPR caps are 1.25 desktop / 1 mobile.
 

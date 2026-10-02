@@ -6,6 +6,122 @@
   background: #111a21;
   --accent: #fa7957;
 }
+
+/* A single fleet choice follows the player between paddock and inspection. */
+.ship-selection {
+  max-width: 430px;
+  margin: 18px 0;
+}
+.ship-picker-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 9px;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+}
+.ship-picker-label span {
+  color: #a6b7bf;
+}
+.ship-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.ship-picker button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 53px;
+  padding: 11px 32px 11px 13px;
+  background: #10202de0;
+  text-transform: uppercase;
+}
+.ship-picker button b {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+.ship-picker button span {
+  color: #b6c8ce;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+.ship-picker button i {
+  display: none;
+  position: absolute;
+  right: 12px;
+  top: 16px;
+  font-style: normal;
+}
+.ship-picker button[aria-checked='true'] {
+  background: #4a332df0;
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 var(--accent);
+}
+.ship-picker button[aria-checked='true'] i {
+  display: block;
+  color: var(--accent);
+}
+.ship-summary {
+  margin: 9px 0 0;
+  color: #d1dcde;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.ship-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px 14px;
+  margin-top: 12px;
+}
+.ship-stat {
+  min-width: 0;
+}
+.ship-stat-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  color: #b7c7cd;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.ship-stat-label b {
+  color: #edf0e9;
+  font-size: 9px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.ship-stat-track {
+  height: 4px;
+  margin-top: 5px;
+  background: #c4d7dd26;
+  transform: skewX(-20deg);
+}
+.ship-stat-track i {
+  display: block;
+  width: var(--stat-fill, 0%);
+  height: 100%;
+  background: linear-gradient(90deg, #c95e43, var(--accent));
+}
+.ship-load-status {
+  position: absolute;
+  bottom: 24px;
+  left: 6vw;
+  font-size: 12px;
+  color: #fff;
+}
+.ship-load-status:not(:empty) {
+  background: #14222e;
+  padding: 12px 18px;
+}
+.ship-picker button:disabled,
+.actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
 * {
   box-sizing: border-box;
 }
@@ -135,8 +251,7 @@ button.primary:hover {
 }
 #title-panel {
   top: var(--paddock-top, 25vh);
-  max-height: calc(100dvh - var(--paddock-top, 25vh) - 82px);
-  overflow-y: auto;
+  bottom: 68px;
   pointer-events: auto;
   padding: 6px;
   margin: -6px;
@@ -870,7 +985,6 @@ select {
   }
   .has-review #title-panel {
     --paddock-top: 75px;
-    max-height: calc(100dvh - var(--paddock-top) - 150px);
   }
   .has-review.driving #shape-controls {
     top: 175px;
@@ -1364,5 +1478,303 @@ select {
 @media (pointer: coarse) and (min-width: 600px) {
   .fly-touch {
     grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+/* Use the full menu height, with tighter content instead of a scroll area. */
+#interface:not(.whole-route-view) #title-panel {
+  --paddock-top: clamp(96px, 11vh, 116px);
+}
+.compact-paddock:not(.whole-route-view) #title-panel {
+  width: 390px;
+  max-width: 390px;
+}
+#title-panel .circuit-picker {
+  margin-bottom: 12px;
+}
+#title-panel .eyebrow,
+#inspection-panel .eyebrow {
+  margin-bottom: 10px;
+}
+#interface:not(.whole-route-view) #title-panel h1 {
+  font-size: clamp(40px, 5.7vh, 60px);
+  margin: 0 0 12px;
+}
+#title-panel .intro,
+#inspection-panel .intro {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+#title-panel .track-facts {
+  margin-bottom: 12px;
+}
+#title-panel .ship-selection,
+#inspection-panel .ship-selection {
+  margin: 12px 0;
+}
+#title-panel .actions,
+#inspection-panel .actions {
+  gap: 6px;
+}
+#title-panel .actions button,
+#inspection-panel .actions button {
+  min-height: 44px;
+  padding: 12px 16px;
+}
+#title-panel > #fly-camera {
+  width: min(100%, 340px);
+  min-height: 36px;
+  padding: 9px 16px;
+  margin: 8px 0 0;
+}
+#title-panel .small,
+#inspection-panel .small {
+  margin: 10px 0 0;
+}
+#inspection-panel {
+  top: clamp(96px, 12vh, 140px);
+  bottom: max(18px, env(safe-area-inset-bottom));
+  max-width: 430px;
+}
+#inspection-panel .inspect-title {
+  font-size: clamp(40px, 6vh, 60px);
+  margin-bottom: 12px;
+}
+#inspection-panel dl {
+  margin: 16px 0;
+}
+#inspection-panel dl div {
+  padding: 9px 0;
+}
+@media (min-width: 761px) {
+  .ship-picker {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .ship-picker button {
+    min-height: 46px;
+    padding: 8px 9px;
+  }
+  .ship-picker button b {
+    font-size: 10px;
+  }
+  .ship-picker button span {
+    font-size: 8px;
+  }
+  .ship-picker button i {
+    top: auto;
+    bottom: 7px;
+    right: 6px;
+    font-size: 9px;
+  }
+}
+@media (max-height: 850px) {
+  #interface:not(.whole-route-view) #title-panel .small,
+  #interface:not(.whole-route-view) #title-panel .track-facts {
+    display: none;
+  }
+}
+@media (max-height: 680px) {
+  #interface:not(.whole-route-view) #title-panel .intro {
+    display: none;
+  }
+}
+@media (max-width: 760px) and (max-aspect-ratio: 1/1) {
+  #interface:not(.whole-route-view) #title-panel {
+    --paddock-top: 84px;
+    width: 86vw;
+    max-width: 86vw;
+  }
+  #interface:not(.whole-route-view) #title-panel h1 {
+    font-size: 36px;
+  }
+  #inspection-panel {
+    top: 84px;
+    max-width: none;
+  }
+  #inspection-panel .inspect-title {
+    font-size: 36px;
+    margin-bottom: 0;
+  }
+  #inspection-panel .ship-selection {
+    max-width: none;
+    margin: 12px 0 0;
+  }
+  #title-panel .ship-picker button,
+  #inspection-panel .ship-picker button {
+    min-height: 44px;
+    padding: 8px 30px 8px 11px;
+  }
+  #inspection-panel .ship-summary {
+    font-size: 9px;
+  }
+  #inspection-panel dl {
+    margin-top: auto;
+  }
+  .ship-stats {
+    gap: 8px 10px;
+    margin-top: 9px;
+  }
+}
+@media (max-width: 760px) and (max-height: 740px) and (orientation: portrait) {
+  #title-panel .eyebrow {
+    display: none;
+  }
+  #inspection-panel dl div {
+    padding: 6px 0;
+  }
+  #inspection-panel .small {
+    margin-top: 6px;
+  }
+}
+@media (max-height: 570px) and (orientation: landscape) {
+  #interface:not(.driving):not(.paused) #legend {
+    display: none;
+  }
+  #interface:not(.whole-route-view) #title-panel {
+    --paddock-top: 68px;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    width: min(680px, 88vw);
+    max-width: none;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'circuit ship'
+      'heading ship'
+      'actions actions'
+      'fly fly';
+    align-content: start;
+    gap: 10px 18px;
+  }
+  #title-panel .circuit-picker {
+    grid-area: circuit;
+    margin: 0;
+    gap: 5px;
+  }
+  #title-panel .circuit-picker select,
+  #title-panel .circuit-picker button {
+    min-height: 36px;
+    padding: 8px;
+  }
+  #interface:not(.whole-route-view) #title-panel h1 {
+    grid-area: heading;
+    font-size: 32px;
+    margin: 0;
+  }
+  #interface:not(.whole-route-view) #title-panel .eyebrow {
+    display: none;
+  }
+  #title-panel .ship-selection {
+    grid-area: ship;
+    margin: 0;
+  }
+  .ship-stats {
+    gap: 6px 10px;
+    margin-top: 8px;
+  }
+  .ship-stat-label {
+    font-size: 7px;
+    letter-spacing: 0;
+  }
+  .ship-stat-label b {
+    font-size: 8px;
+  }
+  .ship-stat-track {
+    margin-top: 3px;
+    height: 3px;
+  }
+  #title-panel .actions {
+    grid-area: actions;
+    max-width: none;
+  }
+  #title-panel .actions button {
+    flex: 1;
+  }
+  #title-panel > #fly-camera {
+    grid-area: fly;
+    width: 100%;
+    margin: 0;
+  }
+  #interface.has-review:not(.whole-route-view) #title-panel {
+    display: block;
+    width: 44vw;
+  }
+  #interface.has-review:not(.whole-route-view) #title-panel h1 {
+    font-size: 28px;
+  }
+  .has-review #title-panel .circuit-picker {
+    margin-bottom: 8px;
+  }
+  .has-review #title-panel .ship-selection {
+    margin: 6px 0;
+  }
+  .has-review #title-panel .ship-picker-label {
+    margin-bottom: 6px;
+  }
+  .has-review #title-panel .ship-picker {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .has-review #title-panel .ship-picker button {
+    min-height: 40px;
+    padding: 7px 5px;
+  }
+  .has-review #title-panel .ship-picker button b {
+    font-size: 9px;
+    letter-spacing: 0.04em;
+  }
+  .has-review #title-panel .ship-picker button span {
+    display: none;
+  }
+  .has-review #title-panel .ship-picker button i {
+    top: auto;
+    bottom: 2px;
+    right: 4px;
+    font-size: 8px;
+  }
+  .has-review #title-panel .ship-summary {
+    margin-top: 6px;
+    font-size: 9px;
+  }
+  #interface.has-review:not(.driving):not(.whole-route-view) #shape-controls {
+    top: 68px;
+    bottom: auto;
+    right: 4vw;
+    width: min(300px, 44vw);
+    padding: 10px;
+  }
+  #inspection-panel {
+    top: 68px;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    width: min(430px, 46vw);
+    max-width: none;
+    pointer-events: auto;
+    padding: 6px;
+    margin: -6px;
+  }
+  #inspection-panel .inspect-title {
+    font-size: 30px;
+    margin-bottom: 6px;
+  }
+  #inspection-panel .intro,
+  #inspection-panel dl,
+  #inspection-panel .small {
+    display: none;
+  }
+  #inspection-panel .eyebrow {
+    margin-bottom: 6px;
+  }
+  #inspection-panel .ship-selection {
+    margin: 8px 0;
+  }
+  .ship-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ship-picker button {
+    min-height: 42px;
+    padding: 8px 24px 8px 10px;
+  }
+  #inspection-panel .actions button {
+    min-height: 40px;
+    padding: 10px;
   }
 }

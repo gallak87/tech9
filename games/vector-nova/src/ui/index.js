@@ -1,17 +1,48 @@
 import './style.css';
+import { SHIPS } from '../ships/catalog.js';
 import { circuitURL } from '../levels/contract.js';
+
+// Compare the actual tuning across the fleet; no separate cosmetic ratings.
+const shipStats = [
+  {
+    id: 'speed',
+    label: 'SPEED',
+    value: (h) => h.cruiseSpeed,
+    format: (value) => `${Math.round(value * 3.6)} km/h`,
+  },
+  { id: 'acceleration', label: 'ACCEL', value: (h) => h.thrust },
+  { id: 'handling', label: 'HANDLING', value: (h) => h.turn },
+  { id: 'braking', label: 'BRAKING', value: (h) => h.braking },
+  { id: 'grip', label: 'GRIP', value: (h) => h.grip },
+  {
+    id: 'boost',
+    label: 'BOOST',
+    value: (h) => 100 / h.boostDrain,
+    format: (value) => `${value.toFixed(1)} s`,
+  },
+].map((stat) => ({
+  ...stat,
+  maximum: Math.max(...SHIPS.map((craft) => stat.value(craft.handling))),
+}));
+
 export function createUI(
   host,
   actions,
   settings,
   track,
-  { runtimeScenarios = {}, metadata, circuits, shape: blockout = false },
+  {
+    runtimeScenarios = {},
+    metadata,
+    circuits,
+    shape: blockout = false,
+    selectedShip = SHIPS[0],
+  },
 ) {
   const root = document.createElement('main');
   root.id = 'interface';
   host.append(root);
   root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>
- <section id="title-panel" class="panel"><div class="eyebrow"></div><h1><br><em></em></h1><p class="intro"></p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>01</b><span>PROTOTYPE</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="inspect">INSPECT KESTREL <span>↗</span></button></div><p class="small"></p></section>
+ <section id="title-panel" class="panel"><div class="eyebrow"></div><h1><br><em></em></h1><p class="intro"></p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>04</b><span>SHIPS</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="inspect">INSPECT SHIPS <span>↗</span></button></div><p class="small"></p></section>
  <section id="inspection-panel" class="panel hidden"><div class="eyebrow">AERODYNAMICS DIVISION / 07</div><h1 class="inspect-title">KESTREL<span class="dot">.</span></h1><p class="intro">Twin-core magnetic interceptor.<br>Ceramic armour. Exposed titanium propulsion.<br>Built to stay close to the limit.</p><dl><div><dt>DESIGN</dt><dd>Split prow / swept ceramic chassis</dd></div><div><dt>PROPULSION</dt><dd>Dual induction turbines</dd></div><div><dt>CONTROL</dt><dd>Integrated magnetic suspension</dd></div></dl><div class="actions"><button id="inspect-start" class="primary">DRIVE PROTOTYPE <span>↗</span></button><button id="inspect-back">BACK TO PROVING GROUND</button></div><p class="small">Actual in-game asset · Neutral inspection lighting</p></section>
  <section id="pause-panel" class="modal hidden"><div class="eyebrow">PROVING SESSION</div><h2>TAKE A BREATH.</h2><button id="resume" class="primary">RESUME SESSION ↗</button><button id="restart">RESTART LAP</button><button id="home">RETURN TO PADDOCK</button><label>MASTER VOLUME <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>GRAPHICS <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>REDUCED MOTION <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p class="small">Prototype settings are saved locally when available.</p></section>
  <section id="hud" class="hidden"><div class="top-telemetry"><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>SESSION TIME</span><b id="time">00:00.000</b><small id="best">SET YOUR FIRST CLEAN LAP</small></div><div class="section-name"><span></span><b id="section">PROVING STRAIGHT</b></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST DRAWS FROM IMPACT RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas><div id="notice" role="status"></div></section>
@@ -68,7 +99,9 @@ export function createUI(
       document.createElement('br'),
       emphasis,
     );
-  panel.querySelector('.intro').textContent = copy.intro;
+  panel.querySelector('.intro').textContent = copy.intro
+    .replace(/the Kestrel/g, 'your ship')
+    .replace(/Kestrel/g, 'Your ship');
   panel.querySelector('.small').textContent = copy.detail;
   $('start').firstChild.textContent =
     `${blockout ? 'DRIVE FULL CIRCUIT' : copy.start} `;
@@ -173,6 +206,103 @@ export function createUI(
       select.append(option);
     }
   }
+  const shipPickers = [];
+  for (const [panelId, prefix] of [
+    ['title-panel', 'paddock'],
+    ['inspection-panel', 'inspection'],
+  ]) {
+    const section = document.createElement('section');
+    section.className = 'ship-selection';
+    section.innerHTML = `<div class="ship-picker-label" id="${prefix}-ship-label">CHOOSE SHIP <span>04 CHASSIS</span></div><div class="ship-picker" role="radiogroup" aria-labelledby="${prefix}-ship-label"></div><div class="ship-stats" role="group" aria-label="Selected ship performance; bars compare the current fleet"></div><p class="ship-summary" aria-live="polite"></p>`;
+    const stats = section.querySelector('.ship-stats');
+    for (const stat of shipStats) {
+      const row = document.createElement('div');
+      row.className = 'ship-stat';
+      row.dataset.stat = stat.id;
+      row.innerHTML = `<div class="ship-stat-label"><span id="${prefix}-${stat.id}-label">${stat.label}</span><b></b></div><div class="ship-stat-track" role="meter" aria-labelledby="${prefix}-${stat.id}-label" aria-valuemin="0" aria-valuemax="100"><i></i></div>`;
+      stats.append(row);
+    }
+    const choices = section.querySelector('.ship-picker');
+    for (const craft of SHIPS) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.ship = craft.id;
+      button.setAttribute('role', 'radio');
+      button.innerHTML = `<b>${craft.name}</b><span>${craft.role}</span><i aria-hidden="true">✓</i>`;
+      button.onclick = () => actions.selectShip(craft.id);
+      button.onkeydown = (event) => {
+        const direction = ['ArrowRight', 'ArrowDown'].includes(event.key)
+          ? 1
+          : ['ArrowLeft', 'ArrowUp'].includes(event.key)
+            ? -1
+            : 0;
+        if (!direction) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const next =
+          (SHIPS.indexOf(craft) + direction + SHIPS.length) % SHIPS.length;
+        const target = choices.children[next];
+        target.focus();
+        target.click();
+      };
+      choices.append(button);
+    }
+    const destination = $(panelId);
+    destination.insertBefore(
+      section,
+      destination.querySelector(panelId === 'title-panel' ? '.actions' : 'dl'),
+    );
+    shipPickers.push(section);
+  }
+  const loadingMessage = document.createElement('p');
+  loadingMessage.className = 'ship-load-status';
+  loadingMessage.setAttribute('role', 'status');
+  root.append(loadingMessage);
+  function setShip(craft) {
+    selectedShip = craft;
+    for (const section of shipPickers) {
+      for (const button of section.querySelectorAll('[data-ship]')) {
+        const chosen = button.dataset.ship === craft.id;
+        button.setAttribute('aria-checked', String(chosen));
+        button.tabIndex = chosen ? 0 : -1;
+      }
+      section.querySelector('.ship-summary').textContent =
+        `${craft.name} · ${craft.role} · Ratings relative to fleet`;
+      for (const stat of shipStats) {
+        const value = stat.value(craft.handling);
+        const fraction = value / stat.maximum;
+        const rating = (fraction * 10).toFixed(1);
+        const text = stat.format ? stat.format(value) : `${rating}/10`;
+        const row = section.querySelector(`[data-stat="${stat.id}"]`);
+        const meter = row.querySelector('[role="meter"]');
+        row.querySelector('b').textContent = text;
+        row.style.setProperty('--stat-fill', `${fraction * 100}%`);
+        row.title = `${stat.label}: ${text}. ${rating}/10 relative to the current fleet.`;
+        meter.setAttribute('aria-valuenow', String(Math.round(fraction * 100)));
+        meter.setAttribute(
+          'aria-valuetext',
+          `${text}; relative to the current fleet`,
+        );
+      }
+    }
+    const inspection = $('inspection-panel');
+    inspection.querySelector('.eyebrow').textContent =
+      'FLEET / SHIP INSPECTION';
+    inspection.querySelector('h1').textContent = craft.name.toUpperCase() + '.';
+    inspection.querySelector('.intro').textContent = craft.description;
+    const details = inspection.querySelectorAll('dd');
+    details[0].textContent = craft.design;
+    details[1].textContent =
+      craft.exhausts.length === 1
+        ? 'Single oversized ion core'
+        : 'Twin ion cores';
+    details[2].textContent = craft.role + ' / magnetic suspension';
+    $('inspect-start').firstChild.textContent =
+      `DRIVE ${craft.name.toUpperCase()} `;
+    $('inspect-back').textContent = 'BACK TO PADDOCK';
+  }
+  setShip(selectedShip);
+  let pickerFocus = null;
   const bind = (id, fn) => ($(id).onclick = fn);
   bind('start', actions.start);
   bind('inspect-start', actions.start);
@@ -213,10 +343,41 @@ export function createUI(
     `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(3).padStart(6, '0')}`;
   return {
     root,
+    setShip,
+    setShipLoading(loading) {
+      if (loading)
+        pickerFocus = document.activeElement?.closest('.ship-picker');
+      for (const section of shipPickers) {
+        section.setAttribute('aria-busy', String(loading));
+        for (const button of section.querySelectorAll('button'))
+          button.disabled = loading;
+      }
+      $('start').disabled = loading;
+      $('inspect-start').disabled = loading;
+      if (loading) loadingMessage.textContent = 'Preparing ship…';
+      else if (loadingMessage.textContent === 'Preparing ship…')
+        loadingMessage.textContent = '';
+      if (
+        !loading &&
+        pickerFocus &&
+        document.activeElement === document.body &&
+        !pickerFocus.closest('.panel').classList.contains('hidden')
+      ) {
+        pickerFocus
+          .querySelector('[aria-checked="true"]')
+          ?.focus({ preventScroll: true });
+      }
+      if (!loading) pickerFocus = null;
+    },
+    shipError(message) {
+      loadingMessage.textContent = message;
+    },
     inspectionViewport() {
       if (innerWidth > 760 || innerWidth > innerHeight) return null;
       const panel = $('inspection-panel');
-      const heading = panel.querySelector('h1').getBoundingClientRect();
+      const heading = panel
+        .querySelector('.ship-selection')
+        .getBoundingClientRect();
       const specs = panel.querySelector('dl').getBoundingClientRect();
       return {
         left: innerWidth * 0.06,

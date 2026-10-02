@@ -1,3 +1,4 @@
+import { getShip } from '../ships/catalog.js';
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const finite = (value, fallback = 0) =>
   Number.isFinite(value) ? value : fallback;
@@ -36,8 +37,9 @@ function sweptHullExtent(before, after) {
   return Math.max(extent(before), extent(after));
 }
 
-export function createVehicleState() {
+export function createVehicleState(shipId = 'kestrel') {
   return {
+    shipId: getShip(shipId).id,
     distance: 0,
     lateral: 0,
     speed: 0,
@@ -55,6 +57,7 @@ export function createVehicleState() {
 
 function integrate(s, controls, track, dt, events) {
   const { throttle, brake, steer, airbrake, steeringAssist } = controls;
+  const handling = getShip(s.shipId).handling;
   const frame = track.sample(s.distance);
   const previousSpeed = s.speed;
   const previousHeading = s.heading;
@@ -81,13 +84,17 @@ function integrate(s, controls, track, dt, events) {
   // even if we subtracted some road turn each tick.
   const previousSteering =
     steeringAssist === 1 ? s.heading : finite(s.steeringHeading);
-  const targetHeading = -steer * (airbrake ? 0.27 : 0.18) * steeringAssist;
-  const response = airbrake ? 10.5 : 8.5;
+  const targetHeading =
+    -steer * (airbrake ? 0.27 : 0.18) * steeringAssist * handling.turn;
+  const response = (airbrake ? 10.5 : 8.5) * handling.response;
   const yawBlend = -Math.expm1(-response * dt);
   s.steeringHeading =
     previousSteering + (targetHeading - previousSteering) * yawBlend;
   const manualYawRate =
-    -steer * (airbrake ? 2.1 : 1.5) * clamp(previousSpeed / 30, 0, 1);
+    -steer *
+    (airbrake ? 2.1 : 1.5) *
+    handling.turn *
+    clamp(previousSpeed / 30, 0, 1);
   const manualYawStep = (1 - steeringAssist) * manualYawRate * dt;
   s.heading += s.steeringHeading - previousSteering + manualYawStep;
   const estimatedRoadYaw =
@@ -122,11 +129,21 @@ function integrate(s, controls, track, dt, events) {
     // A road impulse is a separate, free profile. Choose the strongest active
     // profile once; manual boost keeps its existing reserve cost and cap.
     const cruiseSpeed = boost
-      ? 157
+      ? handling.boostSpeed
       : pad
-        ? controls.propulsion.cruiseSpeed
-        : 112;
-    const thrust = boost ? 59 : pad ? controls.propulsion.thrust : 42;
+        ? Math.min(
+            handling.boostSpeed,
+            Math.max(handling.cruiseSpeed, controls.propulsion.cruiseSpeed),
+          )
+        : handling.cruiseSpeed;
+    const thrust = boost
+      ? handling.boostThrust
+      : pad
+        ? Math.min(
+            handling.boostThrust,
+            Math.max(handling.thrust, controls.propulsion.thrust),
+          )
+        : handling.thrust;
     const cruiseDrag = 4.4 + 0.0018 * cruiseSpeed * cruiseSpeed;
     const engine = Math.max(
       0,
@@ -135,7 +152,7 @@ function integrate(s, controls, track, dt, events) {
     const drag = 4.4 + 0.0018 * previousSpeed * previousSpeed;
     const acceleration =
       driveThrottle * engine * controls.surface.thrustScale -
-      brake * 83 -
+      brake * handling.braking -
       drag -
       (airbrake ? 7 : 0) -
       controls.surface.drag +
@@ -157,7 +174,10 @@ function integrate(s, controls, track, dt, events) {
     // Project world gravity through the actual banked frame. Positive right.y
     // means +lateral is uphill, so gravity must act toward -lateral. Magnetic
     // grip resists the outward corner load but does not cancel it entirely.
-    const grip = (parking ? 24 : airbrake ? 4.5 : 7.2) * controls.surface.grip;
+    const grip =
+      (parking ? 24 : airbrake ? 4.5 : 7.2) *
+      controls.surface.grip *
+      handling.grip;
     const outwardForce =
       -finite(frame.curvature) * meanSpeed * meanSpeed * 0.75 +
       controls.surface.lateralAcceleration;
@@ -235,7 +255,11 @@ function integrate(s, controls, track, dt, events) {
       s.steeringHeading *= 0.65;
     } else s.lateral = next;
   }
-  s.energy = clamp(s.energy + (boost ? -21 : 5.5) * dt, 0, 100);
+  s.energy = clamp(
+    s.energy + (boost ? -handling.boostDrain : handling.recharge) * dt,
+    0,
+    100,
+  );
 }
 
 export function stepVehicle(state, input, track, dt, options = {}) {

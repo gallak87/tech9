@@ -14,6 +14,10 @@ High/low presets retain the same world and navigation cues. Reduced motion restr
 
 Approved angular futuristic jet silhouette: slender split nose, swept planform, layered ceramic/graphite/titanium construction, dark canopy and restrained vermilion markings. Blue exhaust should feel powerful in cruise and grow under boost without hiding the hull. Use the actual Blender model in gameplay and inspection; the concept image is reference only.
 
+## Fleet additions
+
+Keep the ceramic/graphite/titanium family but distinct silhouettes. **Shrike** uses broad crescent wings, a compact single prow and teal markings. **Bastion** uses low, narrow chisel-nose sponsons, visible open cross braces and brass-orange bands; it must stay slim rather than becoming a bulky tank or another Kestrel. **Needle** uses a single tapered prow with broad shoulder armor, swept stabilisers, violet details and exactly one oversized central ion engine. Blue ion emission attaches to the real rear nozzle(s), growing under boost. Generated concepts are design references; all displayed ships are actual Blender geometry. Use subtle baked paint grain, roughness variation and brushed-metal response with formed panels and real intake depth; texture noise alone must not substitute for construction.
+
 ## Existing worlds
 
 - **Halcyon Viaduct:** elevated metropolitan infrastructure at blue hour, warm low horizon and cool steel/sky. Dark composite deck, pale concrete spine, engineered barriers and amber guidance. Layered authored neighborhoods, supports meeting the city floor, canal courts and split-crown landmark; preserve the varied introductory route.

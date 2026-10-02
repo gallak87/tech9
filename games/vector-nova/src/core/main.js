@@ -1,5 +1,6 @@
 import * as T from 'three';
-import { createShip } from '../ships/index.js';
+import { createFleetShip } from '../ships/fleet.js';
+import { loadShipSelection, saveShipSelection } from '../ships/catalog.js';
 import { createRenderer } from '../renderer/index.js';
 import { createVehicleState, STEERING_ASSIST } from '../physics/index.js';
 import { createRace } from '../race/index.js';
@@ -85,7 +86,13 @@ async function boot() {
     ? createReviewCamera(track, camera)
     : null;
   const signatureReview = parameters.get('review') === 'signature';
-  const ship = lifetime.own(await createShip(definition.ship));
+  const ship = lifetime.own(
+    await createFleetShip({
+      ...definition.ship,
+      id: loadShipSelection().id,
+    }),
+  );
+  let shipLoading = false;
   lifetime.defer(() => ship.group.removeFromParent());
   const inspectionBounds = new T.Box3().setFromObject(ship.group);
   const inspectionExtent = {
@@ -154,7 +161,7 @@ async function boot() {
     ring.material.dispose();
     inspectionScene.clear();
   });
-  let state = createVehicleState(),
+  let state = createVehicleState(ship.selected.id),
     prev = { ...state },
     race,
     mode = 'title',
@@ -172,8 +179,8 @@ async function boot() {
   const inputLog = [],
     events = [],
     audio = lifetime.own(createAudio(definition.audio)),
-    rig = createCameraRig(camera, definition.camera, inspectionBounds),
     effects = lifetime.own(createEffects(scene, definition.effects));
+  let rig = createCameraRig(camera, definition.camera, inspectionBounds);
   lifetime.defer(() => {
     active = false;
     cancelAnimationFrame(raf);
@@ -230,7 +237,10 @@ async function boot() {
       emit,
     }),
   );
-  const makeRace = () => createRace(track, { rulesId: runtime.rulesId });
+  const makeRace = () =>
+    createRace(track, {
+      rulesId: `${runtime.rulesId}:ship-${ship.selected.id}-v${ship.selected.version}`,
+    });
   const resetRuntime = (reason) => {
     runtime.reset({ reason, state, scenario, seed });
     audio.resetEnvironment();
@@ -245,6 +255,7 @@ async function boot() {
     if (ship.group.parent !== scene) scene.add(ship.group);
   }
   function start() {
+    if (shipLoading) return;
     if (mode === 'fly') {
       leaveFly();
       return;
@@ -254,7 +265,7 @@ async function boot() {
       mode === 'title' || mode === 'inspection' || mode === 'overview';
     if (newRun) {
       scenario = 'staging';
-      state = createVehicleState();
+      state = createVehicleState(ship.selected.id);
       prev = { ...state };
       race = makeRace();
       resetRuntime('fresh-lap');
@@ -294,10 +305,11 @@ async function boot() {
     audio.unlock().catch(() => {});
   }
   function restart() {
+    if (shipLoading) return;
     flyCamera?.leave();
     scenario = 'staging';
     sceneShip();
-    state = createVehicleState();
+    state = createVehicleState(ship.selected.id);
     prev = { ...state };
     race = makeRace();
     resetRuntime('fresh-lap');
@@ -333,7 +345,7 @@ async function boot() {
     flyCamera?.leave();
     sceneShip();
     mode = 'title';
-    state = createVehicleState();
+    state = createVehicleState(ship.selected.id);
     resetRuntime('home');
     prev = { ...state };
     cameraMode = 'chase';
@@ -399,6 +411,62 @@ async function boot() {
     rig.reset();
     ui.setMode(mode);
   }
+  async function selectShip(id) {
+    if (shipLoading || !['title', 'overview', 'inspection'].includes(mode))
+      return false;
+    shipLoading = true;
+    input.clear();
+    ui.setShipLoading(true);
+    try {
+      if (!(await ship.select(id)) || !active) return false;
+      inspectionBounds.min.fromArray(ship.group.userData.bounds.min);
+      inspectionBounds.max.fromArray(ship.group.userData.bounds.max);
+      inspectionExtent.radial = Math.hypot(
+        Math.max(
+          Math.abs(inspectionBounds.min.x),
+          Math.abs(inspectionBounds.max.x),
+        ),
+        Math.max(
+          Math.abs(inspectionBounds.min.z),
+          Math.abs(inspectionBounds.max.z),
+        ),
+      );
+      inspectionExtent.vertical = Math.max(
+        Math.abs(inspectionBounds.min.y - 0.55),
+        Math.abs(inspectionBounds.max.y - 0.55),
+      );
+      rig = createCameraRig(camera, definition.camera, inspectionBounds);
+      ship.group.traverse((object) => {
+        for (const material of Array.isArray(object.material)
+          ? object.material
+          : [object.material])
+          if (material?.isMeshStandardMaterial)
+            material.envMap = cityReflection;
+      });
+      scenario = 'staging';
+      state = createVehicleState(ship.selected.id);
+      prev = { ...state };
+      race = makeRace();
+      resetRuntime('ship-change');
+      initial = captureInitial(state, runtime);
+      tick = 0;
+      accumulator = 0;
+      inputLog.length = 0;
+      events.length = 0;
+      inspectionTime = 0;
+      inspectionLayout = null;
+      ui.setShip(ship.selected);
+      saveShipSelection(ship.selected.id);
+      await renderer.compileAsync(ship.group.parent ?? scene, camera);
+      return true;
+    } catch (error) {
+      ui.shipError(`Could not load ship. ${error.message}`);
+      return false;
+    } finally {
+      shipLoading = false;
+      if (active) ui.setShipLoading(false);
+    }
+  }
   const ui = lifetime.own(
     createUI(
       host,
@@ -409,10 +477,12 @@ async function boot() {
         restart,
         home,
         camera: setCamera,
+        selectShip,
         overview,
         fly: toggleFly,
         leaveFly,
         reviewSection(name) {
+          if (shipLoading) return;
           window.__VN.loadScenario(name, 47219);
           document.activeElement?.blur();
           ui.notice('SECTION REVIEW · LAP UNTIMED');
@@ -429,6 +499,7 @@ async function boot() {
         metadata,
         circuits: levelCatalog.list,
         shape: blockout,
+        selectedShip: ship.selected,
       },
     ),
   );
@@ -651,6 +722,7 @@ async function boot() {
     ready: false,
     version: VERSION,
     loadScenario(name = 'staging', newSeed = 7) {
+      if (shipLoading) throw new Error('Wait for ship loading to finish');
       restart();
       scenario = name;
       seed = newSeed;
@@ -678,6 +750,8 @@ async function boot() {
     pause,
     restart,
     resume,
+    selectShip,
+    home,
     getReplay() {
       validateReplayInputs(inputLog, tick);
       if (state.resetCount)
@@ -688,6 +762,7 @@ async function boot() {
         version: VERSION,
         trackId: track.id,
         physicsVersion: 3,
+        ship: { id: ship.selected.id, version: ship.selected.version },
         runtime: runtimeIdentity(runtime),
         initial: JSON.parse(JSON.stringify(initial)),
         seed,
@@ -700,6 +775,8 @@ async function boot() {
         replay.version !== VERSION ||
         replay.trackId !== track.id ||
         replay.physicsVersion !== 3 ||
+        replay.ship?.id !== ship.selected.id ||
+        replay.ship?.version !== ship.selected.version ||
         !compatibleRuntime(runtime, replay.runtime)
       )
         throw new Error('Replay version mismatch');
@@ -765,7 +842,10 @@ async function boot() {
         seed,
         tick,
         settings: { ...settings },
-        handling: { steeringAssist: STEERING_ASSIST },
+        handling: {
+          steeringAssist: STEERING_ASSIST,
+          ...ship.selected.handling,
+        },
         runtime: { ...runtimeIdentity(runtime), state: runtime.snapshot() },
         trackFrame: {
           bank: frame.bank,
@@ -778,6 +858,9 @@ async function boot() {
         },
         vehicle: { ...state },
         ship: {
+          id: ship.selected.id,
+          loading: shipLoading,
+          version: ship.selected.version,
           position: ship.group.position.toArray(),
           quaternion: ship.group.quaternion.toArray(),
         },

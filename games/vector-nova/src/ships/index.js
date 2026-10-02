@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { getShip } from './catalog.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   createOrbitalPlumeGeometry,
@@ -54,19 +55,24 @@ function cloneModel(source) {
   return model;
 }
 
-/** Loads the Blender-authored Kestrel before shader warmup and inspection fit.
+/** Loads the selected Blender-authored ship before shader warmup and inspection fit.
  * Local +Z is forward, +Y is up; the parent owns the world pose. A supplied
  * parsed model avoids fetching for asset validation and remains caller-owned. */
-export async function createShip({ plumeExposure = 1, model } = {}) {
+export async function createShip({
+  id = 'kestrel',
+  plumeExposure = 1,
+  model,
+} = {}) {
+  const specification = getShip(id);
   const hull = model
     ? cloneModel(model)
     : (
         await new GLTFLoader().loadAsync(
-          `${import.meta.env?.BASE_URL ?? '/'}assets/ships/kestrel/kestrel.glb`,
+          `${import.meta.env?.BASE_URL ?? '/'}${specification.asset}`,
         )
       ).scene;
   const group = new THREE.Group();
-  group.name = 'Kestrel / jet chassis 07';
+  group.name = `${specification.name} / racing chassis`;
   group.add(hull);
   group.updateMatrixWorld(true);
   const resources = resourcesFor(hull);
@@ -75,12 +81,14 @@ export async function createShip({ plumeExposure = 1, model } = {}) {
     resources.materials.forEach((value) => value.dispose());
     resources.textures.forEach((value) => value.dispose());
   };
-  const anchors = ['Exhaust_L', 'Exhaust_R'].map((name) =>
+  const anchors = specification.exhausts.map((name) =>
     hull.getObjectByName(name),
   );
   if (anchors.some((anchor) => !anchor)) {
     release();
-    throw new Error('Kestrel model is missing its exhaust attachment points.');
+    throw new Error(
+      `${specification.name} model is missing its exhaust attachment points.`,
+    );
   }
   hull.traverse((object) => {
     if (!object.isMesh) return;
@@ -91,10 +99,12 @@ export async function createShip({ plumeExposure = 1, model } = {}) {
   const bounds = new THREE.Box3().setFromObject(hull);
   const size = bounds.getSize(new THREE.Vector3());
   group.userData = {
-    asset: 'Kestrel / concept 01',
+    shipId: specification.id,
+    asset: `${specification.name} / concept 01`,
     provenance:
       'Original Blender model based on the approved generated concept',
     dimensionsMetres: { width: size.x, length: size.z, height: size.y },
+    bounds: { min: bounds.min.toArray(), max: bounds.max.toArray() },
     forward: '+Z',
     hoverDatum: 0,
     showcase: { speed: 70, boost: false, steer: 0, time: 0, energy: 1 },
@@ -143,8 +153,8 @@ export async function createShip({ plumeExposure = 1, model } = {}) {
       const pulse = 1 + Math.sin(t * 17 + index * 2) * 0.008;
       const width = (activeBoost ? 1.5 : 0.95 + velocity * 0.42) * pulse;
       plumes[index].scale.set(
-        width,
-        width,
+        width * specification.plumeWidth,
+        width * specification.plumeWidth,
         (0.38 + velocity * 1.65 + (activeBoost ? 3.5 : 0)) * pulse,
       );
     }

@@ -1,6 +1,11 @@
+import { assetURL } from '../../../assets/url.js';
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { applyFossilWeathering } from './materials.js';
+import {
+  applyFossilWeathering,
+  applyGeologicalWeathering,
+  applyCreatureWeathering,
+} from './materials.js';
 import {
   horizontalFrame,
   instanced,
@@ -10,7 +15,9 @@ import {
   UP,
 } from './geometry.js';
 
-export const SAFFRON_KIT_URL = '/assets/levels/saffron/leviathan-kit.glb';
+export const SAFFRON_KIT_URL = assetURL(
+  'assets/levels/saffron/leviathan-kit.glb',
+);
 
 export function skullPlacement(track) {
   const start = track.sample(track.landmarks.skullStart).position.clone();
@@ -30,13 +37,29 @@ export function skullPlacement(track) {
   };
 }
 
+export function sandfallAnchors(track) {
+  return [
+    [track.landmarks.sandfall - 40, -70, 58],
+    [track.landmarks.sandfall + 80, -70, 66],
+    [track.landmarks.skullStart + 60, 85, 58],
+    [track.landmarks.skullEnd - 80, -85, 62],
+  ];
+}
+
 function buildPlacements(track, survey) {
   const random = randomSequence(0x5aff32);
   const placements = {
     skull: [skullPlacement(track).matrix],
     rib: [],
+    rib_1: [],
+    rib_2: [],
+    outcrop: [],
+    outcrop_1: [],
     vertebra: [],
+    vertebra_1: [],
+    vertebra_2: [],
     dune: [],
+    dune_1: [],
     sandfall: [],
   };
   const [ribStart, ribEnd] = sectionRange(track, /ribshadow/i, [0.1, 0.22]);
@@ -51,7 +74,7 @@ function buildPlacements(track, survey) {
     const rotation = frame.quaternion
       .clone()
       .multiply(new T.Quaternion().setFromAxisAngle(UP, (i - 2) * 0.026));
-    placements.rib.push(
+    placements[['rib', 'rib_1', 'rib_2'][i % 3]].push(
       matrixAt(
         frame.position.clone().addScaledVector(UP, -17),
         scale,
@@ -72,7 +95,10 @@ function buildPlacements(track, survey) {
         0.86 + random() * 0.17,
         0.76 + random() * 0.16,
       );
-      placements.vertebra.push(matrixAt(position, scale, frame.quaternion));
+      const variant = ['vertebra', 'vertebra_1', 'vertebra_2'][
+        Math.floor(s) % 3
+      ];
+      placements[variant].push(matrixAt(position, scale, frame.quaternion));
     }
   }
   // Half-buried lateral vertebrae carry the fossil into the panorama, with
@@ -87,6 +113,7 @@ function buildPlacements(track, survey) {
       const position = frame.position
         .clone()
         .addScaledVector(frame.right, side * (175 + random() * 90));
+      if (side < 0 && s > track.landmarks.vistaStart + 230) continue;
       if (!survey.clears(position, 98)) continue;
       position.y = survey.heightAt(position.x, position.z) - 35;
       const rotation = frame.quaternion
@@ -121,9 +148,15 @@ function buildPlacements(track, survey) {
       matrixAt(position, new T.Vector3(0.73, 0.86, 1.3), frame.quaternion),
     );
   }
-  for (let s = 60; s < track.length; s += 135) {
+  for (let s = 60; s < track.length; s += 190) {
     const frame = horizontalFrame(track, s);
     for (const side of [-1, 1]) {
+      if (
+        side < 0 &&
+        s > track.landmarks.vistaStart - 180 &&
+        s < track.landmarks.vistaEnd + 160
+      )
+        continue;
       const scale = 0.55 + random() * 0.8;
       const position = frame.position
         .clone()
@@ -137,7 +170,7 @@ function buildPlacements(track, survey) {
         UP,
         -0.65 + (random() - 0.5) * 0.55,
       );
-      placements.dune.push(
+      placements[random() > 0.5 ? 'dune' : 'dune_1'].push(
         matrixAt(
           position,
           new T.Vector3(scale, scale * (0.8 + random() * 0.6), scale),
@@ -146,19 +179,67 @@ function buildPlacements(track, survey) {
       );
     }
   }
-  for (const [s, side, height] of [
-    [track.landmarks.sandfall - 40, -1, 60],
-    [track.landmarks.sandfall + 80, -1, 73],
-    [track.landmarks.skullStart + 60, 1, 72],
-    [track.landmarks.skullEnd - 80, -1, 76],
-  ]) {
+  for (let s = 10; s < track.length; s += 175) {
+    const frame = horizontalFrame(track, s);
+    for (const side of [-1, 1]) {
+      const scale = 0.6 + random() * 0.75;
+      const position = frame.position
+        .clone()
+        .addScaledVector(frame.right, side * (220 + random() * 175));
+      if (!survey.clears(position, scale * 92)) continue;
+      const inVista =
+        s > track.landmarks.vistaStart - 130 &&
+        s < track.landmarks.vistaEnd + 100;
+      if (inVista && side < 0) continue;
+      position.y = survey.heightAt(position.x, position.z) - 10;
+      placements[random() > 0.46 ? 'outcrop' : 'outcrop_1'].push(
+        matrixAt(
+          position,
+          new T.Vector3(
+            scale * (1 + random() * 0.5),
+            scale * (0.6 + random() * 0.8),
+            scale,
+          ),
+          new T.Quaternion().setFromAxisAngle(UP, random() * 6.28),
+        ),
+      );
+    }
+  }
+  for (const [s, lateral, height] of sandfallAnchors(track)) {
     const frame = horizontalFrame(track, s);
     const position = frame.position
       .clone()
-      .addScaledVector(frame.right, side * 58)
+      .addScaledVector(frame.right, lateral)
       .addScaledVector(UP, height);
+    const drop = position.y - survey.heightAt(position.x, position.z) + 4;
     placements.sandfall.push(
-      matrixAt(position, new T.Vector3(0.58, 0.96, 0.45), frame.quaternion),
+      matrixAt(
+        position,
+        new T.Vector3(0.8, Math.max(0.8, drop / 80), 0.8),
+        frame.quaternion,
+      ),
+    );
+  }
+  for (const [index, [s, lateral]] of sandfallAnchors(track).entries()) {
+    const frame = horizontalFrame(track, s);
+    const position = frame.position
+      .clone()
+      .addScaledVector(frame.right, lateral);
+    position.y = survey.heightAt(position.x, position.z) - 4;
+    placements.dune.push(
+      matrixAt(
+        position,
+        new T.Vector3(0.18 + index * 0.012, 0.14 + index * 0.015, 0.18),
+        frame.quaternion,
+      ),
+    );
+    const spread = position
+      .clone()
+      .addScaledVector(frame.right, index % 2 ? -18 : 20)
+      .addScaledVector(frame.forward, 12);
+    spread.y = survey.heightAt(spread.x, spread.z) - 3;
+    placements.dune_1.push(
+      matrixAt(spread, new T.Vector3(0.15, 0.1, 0.18), frame.quaternion),
     );
   }
   return placements;
@@ -218,7 +299,11 @@ export function createFossils(
       'Saffron / neutral receiving vertebra apertures',
       geometry,
       material,
-      placements.vertebra.slice(0, 6),
+      [
+        ...placements.vertebra,
+        ...placements.vertebra_1,
+        ...placements.vertebra_2,
+      ].slice(0, 6),
     );
   }
   let disposed = false;
@@ -232,8 +317,15 @@ export function createFossils(
     for (const name of [
       'skull',
       'rib',
+      'rib_1',
+      'rib_2',
+      'outcrop',
+      'outcrop_1',
       'vertebra',
+      'vertebra_1',
+      'vertebra_2',
       'dune',
+      'dune_1',
       'sandfall',
       'burrower',
     ]) {
@@ -247,14 +339,60 @@ export function createFossils(
             .clone()
             .applyMatrix4(inverseRoot.clone().multiply(object.matrixWorld)),
         );
+        if (
+          name === 'sandfall' &&
+          object.material.name === 'Saffron_mineral_bands'
+        )
+          object.material = resources.material(object.material.clone());
         const materials = [object.material].flat();
         for (const material of materials) {
           if (!materialSet.has(material)) {
             materialSet.add(material);
-            if (['skull', 'rib', 'vertebra'].includes(name))
+            if (
+              [
+                'skull',
+                'rib',
+                'rib_1',
+                'rib_2',
+                'vertebra',
+                'vertebra_1',
+                'vertebra_2',
+              ].includes(name)
+            )
               applyFossilWeathering(material);
-            if (name === 'burrower') {
+            if (['dune', 'dune_1', 'outcrop', 'outcrop_1'].includes(name))
+              applyGeologicalWeathering(material);
+            if (
+              name === 'sandfall' &&
+              material.name === 'Saffron_mineral_bands'
+            ) {
+              material.transparent = true;
+              material.opacity = 0.28;
+              material.depthWrite = false;
+              material.roughness = 1;
+              material.color.set('#aa8b56');
+              material.forceSinglePass = true;
               material.onBeforeCompile = (shader) => {
+                shader.uniforms.saffronFlowTime = poseUniforms.time;
+                shader.vertexShader =
+                  `uniform float saffronFlowTime; varying vec3 vFall;\n${shader.vertexShader}`.replace(
+                    '#include <begin_vertex>',
+                    '#include <begin_vertex>\nvFall=position;transformed.z+=sin(position.y*.16+saffronFlowTime*.7)*.35;',
+                  );
+                shader.fragmentShader =
+                  `varying vec3 vFall; uniform float saffronFlowTime; float fHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float fNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(fHash(i),fHash(i+vec2(1,0)),f.x),mix(fHash(i+vec2(0,1)),fHash(i+vec2(1,1)),f.x),f.y);}\n${shader.fragmentShader}`.replace(
+                    '#include <color_fragment>',
+                    '#include <color_fragment>\nfloat edge=abs(vFall.x)/(10.+17.*clamp(-vFall.y/80.,0.,1.));diffuseColor.a*=1.-smoothstep(.28,.5,edge);float flow=fNoise(vec2(vFall.x*.27,vFall.y*.13+saffronFlowTime*.8));diffuseColor.a*=smoothstep(.08,.76,flow);diffuseColor.rgb*=.8+flow*.2;',
+                  );
+              };
+              material.customProgramCacheKey = () =>
+                'saffron-irregular-sand-volume-v5';
+            }
+            if (name === 'burrower') {
+              applyCreatureWeathering(material);
+              const finish = material.onBeforeCompile;
+              material.onBeforeCompile = (shader) => {
+                finish(shader);
                 shader.uniforms.saffronBurrowerTime = poseUniforms.time;
                 shader.uniforms.saffronBurrowerStrength = poseUniforms.strength;
                 shader.vertexShader =
@@ -263,7 +401,8 @@ export function createFossils(
                     `#include <begin_vertex>\nfloat flex = clamp((position.z + 40.) / 250., 0., 1.); transformed.x += sin(flex*5.-saffronBurrowerTime*.8)*flex*12.*saffronBurrowerStrength; transformed.y += sin(flex*3.8+saffronBurrowerTime*.35)*flex*8.*saffronBurrowerStrength;`,
                   );
               };
-              material.customProgramCacheKey = () => 'saffron-burrower-flex-v1';
+              material.customProgramCacheKey = () =>
+                'saffron-weathered-armor-flex-v2';
             }
             material.side = T.DoubleSide;
           }
@@ -282,7 +421,15 @@ export function createFossils(
             placements[name],
           );
           if (mesh)
-            mesh.castShadow = ['skull', 'rib', 'vertebra'].includes(name);
+            mesh.castShadow = [
+              'skull',
+              'rib',
+              'rib_1',
+              'rib_2',
+              'vertebra',
+              'vertebra_1',
+              'vertebra_2',
+            ].includes(name);
         }
       });
     }

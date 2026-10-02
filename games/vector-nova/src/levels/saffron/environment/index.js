@@ -1,3 +1,4 @@
+import { createSaffronDust, sampleSaffronAtmosphere } from '../atmosphere.js';
 import * as T from 'three';
 import { createResources, countResources, routePosition } from './geometry.js';
 import { createSaffronMaterials } from './materials.js';
@@ -7,7 +8,7 @@ import { createSurveyStation } from './station.js';
 import { createDesertEffects } from './effects.js';
 
 export function createSaffronEnvironment(
-  { track, settings = {} },
+  { track, settings = {}, view, road },
   { shape = false, loadAsset } = {},
 ) {
   const group = new T.Group();
@@ -27,7 +28,8 @@ export function createSaffronEnvironment(
     resources,
     fossils.burrower,
   );
-  group.add(terrain.group, fossils.group, station, effects.group);
+  const dust = createSaffronDust(track, resources);
+  group.add(terrain.group, fossils.group, station, effects.group, dust.group);
   station.visible = !shape;
   effects.group.visible = !shape;
   const lightAnchors = [
@@ -44,6 +46,8 @@ export function createSaffronEnvironment(
     group.add(light);
     return light;
   });
+  const borrowedLights = [];
+  let borrowedEnvironment;
   let disposed = false;
   let quality = settings.quality ?? 'high';
   let reducedMotion = Boolean(settings.reducedMotion);
@@ -61,6 +65,7 @@ export function createSaffronEnvironment(
   group.userData.getLeviathanPresentation = () => ({
     ...fossils.getPresentation(),
     ...effects.getPresentation(),
+    atmosphere: dust.getPresentation(),
     quality,
     reducedMotion,
   });
@@ -70,12 +75,17 @@ export function createSaffronEnvironment(
     disposed = true;
     fossils.dispose();
     effects.dispose();
+    for (const { light, intensity } of borrowedLights)
+      light.intensity = intensity;
+    if (view?.scene && borrowedEnvironment !== undefined)
+      view.scene.environmentIntensity = borrowedEnvironment;
     resources.dispose();
     group.clear();
   }
   const ready = fossils.ready
     .then((loaded) => {
       if (disposed) return false;
+      road?.anchorToFossils?.(fossils.group);
       Object.assign(metrics, countResources(group), { modelLoaded: loaded });
       return loaded;
     })
@@ -91,12 +101,39 @@ export function createSaffronEnvironment(
       quality = frame.settings?.quality ?? quality;
       reducedMotion = Boolean(frame.settings?.reducedMotion);
       overview = Boolean(frame.reviewing);
+      const scene = view?.scene;
+      if (scene && !shape) {
+        if (!borrowedLights.length) {
+          for (const light of scene.children.filter(
+            (o) => o.isDirectionalLight || o.isHemisphereLight,
+          ))
+            borrowedLights.push({ light, intensity: light.intensity });
+          borrowedEnvironment = scene.environmentIntensity;
+        }
+        const shelter = overview
+          ? 0
+          : sampleSaffronAtmosphere(track, frame.state).shelter;
+        for (const { light, intensity } of borrowedLights)
+          light.intensity =
+            intensity *
+            (1 -
+              shelter *
+                (light.isHemisphereLight
+                  ? 0.65
+                  : light.castShadow
+                    ? 0.72
+                    : 0.48));
+        scene.environmentIntensity = borrowedEnvironment * (1 - shelter * 0.48);
+      }
       terrain.group.visible = !overview;
       fossils.group.visible = !overview;
       station.visible = !overview && !shape;
       for (let i = 0; i < lights.length; i++)
-        lights[i].intensity = overview || shape ? 0 : lightAnchors[i][5];
-      if (!shape) effects.update(frame);
+        lights[i].intensity = overview || shape ? 0 : lightAnchors[i][4];
+      if (!shape) {
+        effects.update(frame);
+        dust.update(frame);
+      }
     },
     reset() {
       if (!disposed && !shape)

@@ -1,51 +1,75 @@
+import { assetURL } from '../../../assets/url.js';
 import * as T from 'three';
 
-/** Dry atmospheric layers remain celestial; all dunes/fossils are real geometry. */
-export function createSaffronBackdrop({ shape = false } = {}) {
+/** Selected dry panorama; all nearby dunes and fossil forms remain authored geometry. */
+export async function createSaffronBackdrop({
+  shape = false,
+  loadTexture = (url) => new T.TextureLoader().loadAsync(url),
+} = {}) {
+  let texture;
+  try {
+    texture = shape
+      ? new T.DataTexture(new Uint8Array([90, 105, 122, 255]), 1, 1)
+      : await loadTexture(assetURL('assets/levels/saffron/saffron-sky-v2.png'));
+    texture.needsUpdate = true;
+  } catch (cause) {
+    throw new Error(
+      'The Saffron dry sky could not load. Reload to try again.',
+      { cause },
+    );
+  }
+  texture.colorSpace = T.SRGBColorSpace;
+  texture.wrapS = T.RepeatWrapping;
+  texture.wrapT = T.ClampToEdgeWrapping;
+  texture.anisotropy = 4;
   const group = new T.Group();
-  group.name = 'Saffron / immense dry atmosphere and pale high sun';
-  group.userData.aoExclude = true;
+  group.name = 'Saffron / lavender daylight and warm dry horizon';
   const sunDirection = new T.Vector3(-0.72, 0.48, 0.49).normalize();
   const material = new T.ShaderMaterial({
-    name: 'Saffron / lavender aerosol layers, cirrus, and distant moon',
+    name: 'Saffron / dry sky radiance',
     side: T.BackSide,
     depthWrite: false,
     uniforms: {
-      sunDirection: { value: sunDirection },
-      neutral: { value: shape ? 1 : 0 },
+      desertSky: { value: texture },
+      shape: { value: shape ? 1 : 0 },
     },
-    vertexShader: `varying vec3 skyRay; void main(){skyRay=position;vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_Position=p.xyww;}`,
-    fragmentShader: `
-      varying vec3 skyRay; uniform vec3 sunDirection; uniform float neutral;
-      float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
-      float noise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}
+    vertexShader: `varying vec3 ray; void main(){ ray=position; vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.); gl_Position=p.xyww; }`,
+    fragmentShader: `varying vec3 ray; uniform sampler2D desertSky; uniform float shape;
+      const float PI=3.141592653589793;
       void main(){
-        vec3 ray=normalize(skyRay);
-        float h=smoothstep(-.09,.83,ray.y);
-        vec3 sky=mix(vec3(.69,.49,.34),vec3(.235,.235,.33),h);
-        float nearHorizon=exp(-pow((ray.y-.015)/.16,2.));
-        sky=mix(sky,vec3(.79,.61,.43),nearHorizon*.57);
-        float aerosol=exp(-pow((ray.y-.15-.025*sin(atan(ray.z,ray.x)*2.))/ .095,2.));
-        sky=mix(sky,vec3(.48,.38,.48),aerosol*.2);
-        float wisps=noise(vec3(ray.x*3.,ray.y*51.,ray.z*8.))*.7+noise(ray*21.)*.3;
-        float highCloud=smoothstep(.54,.75,wisps)*smoothstep(.2,.38,ray.y)*(1.-smoothstep(.69,.88,ray.y));
-        sky+=vec3(.13,.105,.08)*highCloud*.55;
-        float sun=max(dot(ray,sunDirection),0.);
-        sky+=vec3(.42,.31,.15)*pow(sun,28.);
-        sky+=vec3(3.4,2.75,1.7)*smoothstep(.99931,.99945,sun);
-        vec3 moonDir=normalize(vec3(.57,.46,-.52));
-        float lunar=dot(ray,moonDir);
-        float disk=smoothstep(.9937,.9942,lunar);
-        float shadow=smoothstep(.0,.12,dot(ray-moonDir,normalize(vec3(-.5,.2,.6))));
-        sky=mix(sky,vec3(.64,.52,.50),disk*.30*(.24+shadow));
-        sky=mix(sky,vec3(dot(sky,vec3(.2126,.7152,.0722))),neutral*.65);
-        gl_FragColor=vec4(sky,1.);
+        vec3 direction=normalize(ray);
+        float u=fract(atan(direction.z,direction.x)/(2.*PI)+.34);
+        float v=asin(clamp(direction.y,-1.,1.))/PI+.5;
+        // Overlap the panorama ends so imperfect authored edge matches cannot
+        // create a visible meridian. Source pixels remain unchanged.
+        float overlap=.04;
+        float panoramaU=u*(1.-overlap);
+        // Analytic UV derivatives stay continuous across the longitude wrap;
+        // implicit derivatives there select a visibly wrong, tiny mip level.
+        vec3 dx=dFdx(direction),dy=dFdy(direction);
+        float longitudeScale=(1.-overlap)/(2.*PI*max(dot(direction.xz,direction.xz),.000001));
+        float latitudeScale=1./(PI*sqrt(max(1.-direction.y*direction.y,.000001)));
+        vec2 uvDx=vec2((direction.x*dx.z-direction.z*dx.x)*longitudeScale,dx.y*latitudeScale);
+        vec2 uvDy=vec2((direction.x*dy.z-direction.z*dy.x)*longitudeScale,dy.y*latitudeScale);
+        vec3 radiance=textureGrad(desertSky,vec2(panoramaU,v),uvDx,uvDy).rgb;
+        if(panoramaU<overlap){
+          vec3 opposite=textureGrad(desertSky,vec2(panoramaU+1.-overlap,v),uvDx,uvDy).rgb;
+          radiance=mix(opposite,radiance,smoothstep(0.,overlap,panoramaU));
+        }
+        // The source pole rows carry longitude detail; blend their mean at the
+        // upper cap rather than pinching those clouds into a bright star.
+        float poleV=direction.y>0. ? .99 : .01;
+        vec3 poleColor=(textureLod(desertSky,vec2(.125,poleV),3.).rgb+textureLod(desertSky,vec2(.375,poleV),3.).rgb+textureLod(desertSky,vec2(.625,poleV),3.).rgb+textureLod(desertSky,vec2(.875,poleV),3.).rgb)*.25;
+        radiance=mix(radiance,poleColor,smoothstep(.83,.985,abs(direction.y)));
+        radiance*=1.12;
+        radiance=mix(radiance,mix(vec3(.17,.21,.26),vec3(.08,.12,.19),max(0.,direction.y)),shape);
+        gl_FragColor=vec4(radiance,1.);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`,
   });
-  const sky = new T.Mesh(new T.SphereGeometry(12000, 48, 24), material);
-  sky.name = 'Saffron / dry alien celestial dome';
+  const sky = new T.Mesh(new T.SphereGeometry(12000, 32, 16), material);
+  sky.name = 'Saffron / selected dry panorama';
   sky.frustumCulled = false;
   sky.renderOrder = -1000;
   group.add(sky);
@@ -54,21 +78,22 @@ export function createSaffronBackdrop({ shape = false } = {}) {
     group,
     sunDirection,
     sunColor: '#fff0d0',
-    sunIntensity: 2.75,
-    ambientSky: '#d5c4bf',
-    ambientGround: '#927044',
-    ambientIntensity: 1.08,
-    fillColor: '#b4a3c9',
-    fillIntensity: 0.42,
-    environmentIntensity: 0.62,
+    sunIntensity: 2.6,
+    ambientSky: '#d5c4e4',
+    ambientGround: '#b48b58',
+    ambientIntensity: 0.54,
+    fillColor: '#cfbde2',
+    fillIntensity: 0.18,
+    environmentIntensity: 0.68,
     far: 15000,
-    ownedTextures: [],
+    ownedTextures: [texture],
     update({ camera } = {}) {
-      if (!disposed && camera) sky.position.copy(camera.position);
+      if (camera) group.position.copy(camera.position);
     },
     dispose() {
       if (disposed) return;
       disposed = true;
+      texture.dispose();
       sky.geometry.dispose();
       material.dispose();
       group.clear();

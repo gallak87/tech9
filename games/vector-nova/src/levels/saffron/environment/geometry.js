@@ -27,18 +27,33 @@ export function createResources() {
       return value;
     },
     collect(group) {
+      const lateGeometry = new Set(),
+        lateMaterials = new Set(),
+        lateTextures = new Set();
       group.traverse((object) => {
         if (object.geometry) {
-          if (disposed) object.geometry.dispose();
-          else geometries.add(object.geometry);
+          if (disposed) {
+            if (!lateGeometry.has(object.geometry)) {
+              lateGeometry.add(object.geometry);
+              object.geometry.dispose();
+            }
+          } else geometries.add(object.geometry);
         }
         for (const material of [object.material].flat().filter(Boolean)) {
-          if (disposed) material.dispose();
-          else materials.add(material);
+          if (disposed) {
+            if (!lateMaterials.has(material)) {
+              lateMaterials.add(material);
+              material.dispose();
+            }
+          } else materials.add(material);
           for (const value of Object.values(material)) {
             if (!value?.isTexture) continue;
-            if (disposed) value.dispose();
-            else textures.add(value);
+            if (disposed) {
+              if (!lateTextures.has(value)) {
+                lateTextures.add(value);
+                value.dispose();
+              }
+            } else textures.add(value);
           }
         }
       });

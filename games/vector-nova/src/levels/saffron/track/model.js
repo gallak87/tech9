@@ -217,15 +217,15 @@ export function createSaffronTrack() {
       id: 'first-vertebra',
       takeoff: first,
       landingStart: first + 85,
-      landingEnd: first + 360,
-      recovery: first + 385,
+      landingEnd: first + 400,
+      recovery: first + 425,
     },
     {
       id: 'second-vertebra',
       takeoff: second,
       landingStart: second + 105,
-      landingEnd: second + 385,
-      recovery: second + 415,
+      landingEnd: second + 435,
+      recovery: second + 460,
     },
   ].map((j) => ({
     ...j,
@@ -350,7 +350,7 @@ export function createSaffronTrack() {
     speed: 65,
   };
   scenarios['sand-glass'] = {
-    ...parked(jumps[0].takeoff + 20),
+    ...parked(jumps[0].takeoff + 100),
     speed: 85,
     lateral: -9,
   };
@@ -395,6 +395,7 @@ export function createSaffronTrack() {
       station: 0,
     }).map(([key, s]) => [key, distanceAt(s)]),
   );
+  scenarios['skull-interior'] = { ...parked(landmarks.skullCenter), time: 32 };
   scenarios['burrower-ridge'] = {
     ...parked(landmarks.vistaStart + 120),
     time: 18,
@@ -407,7 +408,7 @@ export function createSaffronTrack() {
   return {
     id: 'saffron-leviathan',
     name: 'Saffron Leviathan',
-    geometryVersion: 'saffron-fossil-route-v1',
+    geometryVersion: 'saffron-fossil-route-v2',
     length,
     width: WIDTH,
     groundY: -52,

@@ -6,6 +6,8 @@ export function createCameraRig(
     preserveFlightView = false,
     portraitAspect = 0,
     maxPortraitScale = 1.5,
+    chaseHeight = 5,
+    lookAhead = 35,
     safeFrame,
   } = {},
   subjectBounds = null,
@@ -104,12 +106,14 @@ export function createCameraRig(
               .addScaledVector(f.up, 4.0);
         target = p.clone().addScaledVector(f.tangent, 22);
       } else {
-        const ahead = track.sample(state.distance + 35 + state.speed * 0.18);
+        const ahead = track.sample(
+          state.distance + lookAhead + state.speed * 0.18,
+        );
         back = track.sample(state.distance - 12.5 - state.speed * 0.025);
         eye = back.position
           .clone()
           .addScaledVector(back.right, state.lateral * 0.83)
-          .addScaledVector(back.up, 5.0);
+          .addScaledVector(back.up, chaseHeight);
         target = p.clone().lerp(
           ahead.position
             .clone()

@@ -38,6 +38,12 @@ The paired fracture jumps lead to a deep fissure plunge, complete corkscrew and 
 
 Cool slate/violet ash dusk surrounds ivory, charcoal and oxide ceramic construction. Keep broad heat-shield plates, thick kiln-shelf boundaries, dark glazed Crown panels and deep supported keels. Warm lava belongs to modeled channels, vent tongues and fractured crust basins; reflected warmth retains ceramic detail against readable cool basalt. The selected panorama supplies distant clouds only. The full rising furnace roll and explicit receiving shelf retain clear camera envelopes; the warned surge boundary remains visible in every preset. At Curtain Reach, a broad diagonal crater spill carries a gentle orange glow pulse and rising smoke only where it touches the road. Keep the craft readable against the molten surface. Reduced motion removes drifting ash, swirling embers and heat shimmer, and holds the spill glow and smoke still while event phases and contact cues remain accurate.
 
+## Saffron Leviathan
+
+Pale aged fossil anatomy, saffron dune seas and thick smoked-gold glass sit beneath the selected luminous lavender daylight panorama. Retain the source moon, soft gold key light and warm sand bounce. The mouth descent, sheltered cranial bank and broken vertebral flights define the route; receiving decks and upcoming bends take priority over detail.
+
+Use actual orbital/cortical openings with rounded thick lips, fractured anatomical processes and varied rib families. Layer buried remains, stratified eroded shelves and wind-carved dunes through ordinary stretches. Split horizontal ceramic baffles and forked gold supports belong to the glass construction. Transparent shoulders, internal mineral laminae and gas inclusions distinguish glass from migrating granular sand. Sandfall volumes begin at modeled bone shelves and clear at the ground. The living plated burrower raises a moving ridge, breaches beyond the road and settles; dust strengthens that sequence without covering the route. Bone shelters clear peripheral sand traces, and reduced motion removes drifting grains while preserving physical sand and jump cues.
+
 ## UI and feedback
 
 Warm off-white/graphite, technical numerals, vermilion active accents, generous spacing and real controls. Keep telemetry and notices away from the craft, upcoming road and touch controls. Moderate chase FOV, no default camera shake, and road-local camera clearance.

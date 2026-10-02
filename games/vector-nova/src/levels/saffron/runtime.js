@@ -1,8 +1,14 @@
+import { createSaffronScreenDust } from './atmosphere.js';
 import { createFlightModel } from '../../physics/flight.js';
 import { sampleSaffronDeposits, saffronSandExposure } from './track/sand.js';
 
 export const SAFFRON_RULES = Object.freeze({
   gravity: 26,
+  railOffset: {
+    'dune-skip': 1.3,
+    'first-vertebra': 1.3,
+    'second-vertebra': 1.3,
+  },
   airAcceleration: 4,
   railHeight: {
     'dune-skip': 2.7,
@@ -44,9 +50,9 @@ export function createSaffronRuntime(context) {
   });
   const owner = {
     ...runtime,
-    advance(state, input, dt) {
+    advance(state, input, dt, modifiers) {
       if (disposed) return [];
-      const events = runtime.advance(state, input, dt);
+      const events = runtime.advance(state, input, dt, modifiers);
       const grounded = runtime.snapshot().mode === 'magnetic';
       sandExposure = grounded
         ? saffronSandExposure(track, state.distance, state.lateral, state.time)
@@ -101,7 +107,7 @@ export function createSaffronRuntime(context) {
       lastEvent = null;
     },
   };
-  activeRuntimes.set(track, owner);
+  if (context.presentation !== false) activeRuntimes.set(track, owner);
   return owner;
 }
 
@@ -131,9 +137,12 @@ export function createSaffronOverlay({ track, host }) {
     display: 'none',
   });
   host.append(status);
+  const dust = createSaffronScreenDust(track, host);
   let presentation = {};
   return {
-    update({ state, mode }) {
+    update(frame) {
+      dust.update(frame);
+      const { state, mode } = frame;
       const data = activeRuntimes.get(track)?.snapshot();
       if (!data || !state || mode !== 'racing') {
         status.style.display = 'none';
@@ -182,10 +191,12 @@ export function createSaffronOverlay({ track, host }) {
     getPresentation: () => ({ ...presentation }),
     reset() {
       status.style.display = 'none';
+      dust.reset();
       presentation = {};
     },
     dispose() {
       status.remove();
+      dust.dispose();
     },
   };
 }

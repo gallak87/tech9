@@ -3,15 +3,18 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chromium } from 'playwright';
 
-// Run only with the integrator's exclusive GPU grant and existing production preview.
+// Run sequentially against this worktree's frozen production preview.
 const base = process.env.VN_URL;
-if (!base) throw new Error('VN_URL must select the coordinated built preview');
+if (!base) throw new Error('VN_URL must select the built preview');
 const output = resolve(
   process.env.VN_EVIDENCE || '.experiments/expansion/saffron/targeted',
 );
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({
   headless: true,
+  ...(process.env.VN_BROWSER_CHANNEL
+    ? { channel: process.env.VN_BROWSER_CHANNEL }
+    : {}),
   ...(process.env.VN_BROWSER_PATH
     ? { executablePath: process.env.VN_BROWSER_PATH }
     : {}),

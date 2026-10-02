@@ -9,6 +9,7 @@ const close = (context) => {
 export function createAudio({
   createContext = () => new AudioContext(),
   nacre = false,
+  environment,
 } = {}) {
   let resources;
   let unlocking;
@@ -20,6 +21,7 @@ export function createAudio({
   function release(owned) {
     owned.propulsion.dispose();
     owned.thunder?.dispose();
+    owned.environment?.dispose();
     for (const shot of owned.shots) shot.stop();
     owned.shots.clear();
     owned.bus.disconnect();
@@ -61,6 +63,7 @@ export function createAudio({
               master,
               propulsion,
               thunder: nacre ? createNacreThunder(context, bus) : null,
+              environment: environment?.(context, bus),
               shots: new Set(),
             };
           }
@@ -94,15 +97,25 @@ export function createAudio({
         active ? 0.06 : 0.012,
       );
       propulsion.update(state);
-      if (!active || level === 0) resources.thunder?.stop();
+      if (!active || level === 0) {
+        resources.thunder?.stop();
+        resources.environment?.stop();
+      }
     },
     resetEnvironment() {
       resources?.thunder?.stop();
+      resources?.environment?.stop();
     },
     getPresentation() {
-      return resources?.thunder?.getPresentation() ?? null;
+      return (
+        resources?.thunder?.getPresentation() ??
+        resources?.environment?.getPresentation() ??
+        null
+      );
     },
     event(event) {
+      if (resources && !disposed && audible)
+        resources.environment?.trigger(event);
       if (event?.type === 'nacre-thunder') {
         if (resources && !disposed && audible)
           resources.thunder?.trigger(event);

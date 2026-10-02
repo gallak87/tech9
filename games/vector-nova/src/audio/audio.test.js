@@ -281,3 +281,46 @@ test('Nacre thunder respects unlock, master mute, pause, reset and baseline isol
   assert.equal(baseline.getPresentation(), null);
   await baseline.dispose();
 });
+
+test('level-owned shelf sound uses the shared master bus and obeys unlock, mute, pause, reset and disposal', async () => {
+  const { createGlasswakeShelfAudio } =
+    await import('../levels/glasswake/audio.js');
+  const context = new Context();
+  const audio = createAudio({
+    createContext: () => context,
+    environment: createGlasswakeShelfAudio,
+  });
+  const event = { type: 'glasswake-shelf', id: 'opening-sheet' };
+  audio.event(event);
+  assert.equal(context.nodes.length, 0);
+  await audio.unlock();
+  audio.update(state, 0, true);
+  audio.event(event);
+  assert.equal(audio.getPresentation().triggerCount, 0);
+  audio.update(state, 0.35, true);
+  audio.event(event);
+  audio.event(event);
+  assert.equal(audio.getPresentation().triggerCount, 1);
+  assert.equal(audio.getPresentation().activeVoices, 1);
+  audio.update(state, 0.35, false);
+  assert.equal(audio.getPresentation().activeVoices, 0);
+  audio.event(event);
+  assert.equal(audio.getPresentation().triggerCount, 1);
+  audio.update(state, 0.35, true);
+  audio.event(event);
+  audio.resetEnvironment();
+  assert.equal(audio.getPresentation().activeVoices, 0);
+  audio.event(event);
+  audio.update(state, 0, true);
+  assert.equal(audio.getPresentation().activeVoices, 0);
+  await audio.dispose();
+  await audio.dispose();
+  assert.equal(context.closes, 1);
+  assert.ok(context.nodes.every((n) => n.disconnected));
+  const ordinary = createAudio({ createContext: () => new Context() });
+  await ordinary.unlock();
+  ordinary.update(state, 1, true);
+  ordinary.event(event);
+  assert.equal(ordinary.getPresentation(), null);
+  await ordinary.dispose();
+});

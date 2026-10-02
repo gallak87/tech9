@@ -19,6 +19,8 @@ Unknown slugs, orphaned modules, invalid metadata and missing required factories
 
 ## Descriptor and owned components
 
+The optional `audio` descriptor configures the shared audio owner. `audio.environment(context, bus)` may return a level-owned `{ trigger(event), stop(), dispose(), getPresentation?() }` voice component. The context is the existing, gesture-unlocked AudioContext and `bus` feeds the shared compressor/master gain. `trigger` receives session events only while running and audible; `stop` runs on pause, mute or environment reset, and `dispose` releases owned nodes before context closure. Reject unrelated event types locally. Keep sound synthesis and tuning in the selected level.
+
 Required descriptor fields:
 
 | Field                          | Result                                                                                                  |

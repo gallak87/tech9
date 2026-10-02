@@ -3,11 +3,13 @@ import { createGlasswakeEnvironment } from './environment/index.js';
 import { createGlasswakeBackdrop } from './backdrop/index.js';
 import { createGlasswakeRuntime } from './runtime.js';
 import { createGlasswakeOverlay } from './overlay.js';
+import { createGlasswakeShelfAudio } from './audio.js';
 
 export default function createLevel({ shape = false } = {}) {
   let road, track;
   return {
-    version: '0.5.0-glasswake-v4',
+    version: '0.5.0-glasswake-v5',
+    audio: { environment: shape ? undefined : createGlasswakeShelfAudio },
     renderer: {
       world: shape ? 'glasswake-shape' : 'glasswake-comet',
       background: '#050b1c',

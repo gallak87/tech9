@@ -5,6 +5,8 @@ import { finishIceMaterial } from './materials.js';
 import { consolidateIceParts } from './consolidate.js';
 import { createGlasswakeWeather } from '../weather/index.js';
 import { createCalvingPowder } from '../weather/calving-powder.js';
+import { glasswakeFlightState } from '../runtime.js';
+import { FIRST_SHELF_RULES, sampleFirstShelf } from './first-shelf.js';
 
 const ASSET_URL = '/assets/levels/glasswake/glasswake-environment-v5.glb';
 const UP = new T.Vector3(0, 1, 0);
@@ -56,6 +58,12 @@ export function createGlasswakeEnvironment({
   let cavityLight = null;
   let inclusionLight = null;
   let calvingPowder = null;
+  let openingShelf = null;
+  let openingPivot = null;
+  let openingCentre = null;
+  let openingPowder = null;
+  const openingCracks = [];
+  let firstShelf = sampleFirstShelf();
   let disposed = false;
   let loaded = false;
   let caveBlend = 0;
@@ -109,12 +117,83 @@ export function createGlasswakeEnvironment({
         point.y - 45 <= box.max.y,
     );
   }
-  function addInstance(name, matrix, { clear = true, label = name } = {}) {
+  function addInstance(
+    name,
+    matrix,
+    { clear = true, label = name, opening = false } = {},
+  ) {
     const template = templates.get(name);
     if (!template)
       throw new Error(`Missing Glasswake Blender template ${name}`);
     const bounds = template.bounds.clone().applyMatrix4(matrix);
     if (clear && !routeClear(bounds)) return false;
+    if (opening) {
+      openingShelf = new T.Group();
+      openingShelf.name = 'Glasswake / opening ice sheet';
+      openingShelf.applyMatrix4(matrix);
+      group.add(openingShelf);
+      openingCentre = template.bounds.getCenter(new T.Vector3());
+      openingPivot = new T.Group();
+      openingPivot.position.copy(openingCentre);
+      openingShelf.add(openingPivot);
+      const sheet = unique(name, openingPivot);
+      sheet.position.copy(openingCentre).negate();
+      // Seams follow the actual authored underside. No floating decals or
+      // extra texture/render pass; one small, bounded mesh per seam.
+      const probe = unique(name, new T.Group());
+      probe.updateMatrixWorld(true);
+      const ray = new T.Raycaster();
+      const seamMaterial = new T.MeshStandardMaterial({
+        color: '#c9edff',
+        emissive: '#7bbad0',
+        emissiveIntensity: 0.5,
+        roughness: 0.5,
+      });
+      materials.add(seamMaterial);
+      for (const x of [-65, 64]) {
+        const points = [];
+        for (let i = 0; i < 20; i++) {
+          const z = -65 + i * 6.5;
+          ray.set(
+            new T.Vector3(
+              x + Math.sin(i * 2.1) * 3,
+              template.bounds.min.y - 5,
+              z,
+            ),
+            UP,
+          );
+          const hit = ray.intersectObject(probe, true)[0];
+          if (hit)
+            points.push(hit.point.addScaledVector(hit.face.normal, 0.25));
+        }
+        if (points.length < 2) continue;
+        const geometry = new T.TubeGeometry(
+          new T.CatmullRomCurve3(points),
+          30,
+          0.5,
+          3,
+          false,
+        );
+        geometries.add(geometry);
+        const seam = new T.Mesh(geometry, seamMaterial);
+        seam.name = 'Glasswake / opening sheet fracture';
+        seam.position.copy(openingCentre).negate();
+        openingPivot.add(seam);
+        openingCracks.push(seam);
+      }
+      openingPowder = createCalvingPowder({ count: 80, lowCount: 36 });
+      openingPowder.mesh.name = 'Glasswake / opening sheet powder';
+      openingPowder.mesh.position.set(72, -65, 0);
+      openingPowder.mesh.scale.z = 0.35;
+      openingShelf.add(openingPowder.mesh);
+      placements.push({
+        name: 'opening-sheet',
+        bounds: [bounds.min.toArray(), bounds.max.toArray()],
+        checked: true,
+      });
+      metrics.instances += 1;
+      return true;
+    }
     const position = new T.Vector3().setFromMatrixPosition(matrix);
     const key = `${name}/${Math.floor(position.x / 420)}/${Math.floor(position.z / 420)}`;
     if (!batches.has(key)) batches.set(key, { name, matrices: [] });
@@ -255,6 +334,10 @@ export function createGlasswakeEnvironment({
               0.82 + 0.26 * noise(i + 7),
             ],
             Math.sin(i * 2.3) * 0.08,
+            {
+              opening:
+                section.id === 'mouth' && i === FIRST_SHELF_RULES.roofIndex,
+            },
           );
         for (const side of [-1, 1]) {
           if (!(section.id === 'gallery' && inclusionWindow(s + 18, side)))
@@ -590,6 +673,24 @@ export function createGlasswakeEnvironment({
     weather.update({ state, camera, settings: nextSettings, reviewing });
     const conditions = weather.snapshot();
     event = sampleCalvingState(track, state, ship?.group?.position);
+    firstShelf = sampleFirstShelf(glasswakeFlightState(track).openingShelf);
+    if (openingPivot) {
+      const t = firstShelf.separation;
+      openingPivot.position
+        .copy(openingCentre)
+        .add(new T.Vector3(-170 * t, -420 * t * t, 0));
+      openingPivot.rotation.set(0.1 * t, -0.08 * t, 0.18 * t);
+      openingPivot.visible = firstShelf.phase !== 'fallen';
+      for (const seam of openingCracks) {
+        const full = seam.geometry.index.count;
+        seam.geometry.setDrawRange(
+          0,
+          Math.floor((full * firstShelf.crack) / 18) * 18,
+        );
+        seam.visible = firstShelf.crack > 0 && t < 0.65;
+      }
+      openingPowder.update(firstShelf, nextSettings);
+    }
     calvingPowder?.update(event, nextSettings);
     if (cavityLight) cavityLight.intensity = 38000 * event.reveal;
     if (inclusionLight) inclusionLight.intensity = reviewing ? 0 : 65000;
@@ -681,6 +782,7 @@ export function createGlasswakeEnvironment({
         : (i === 2 ? 175 : i === 0 ? 900 : 650) * caveBlend;
     });
     group.userData.calving = event;
+    group.userData.firstShelf = firstShelf;
     group.userData.caveBlend = caveBlend;
     group.userData.returnBlend = returnBlend;
     group.userData.weather = conditions;
@@ -692,6 +794,7 @@ export function createGlasswakeEnvironment({
     caveBlend,
     returnBlend,
     calving: event,
+    firstShelf,
     metrics,
     weather: weather.snapshot(),
     reducedMotion: Boolean(currentSettings.reducedMotion),

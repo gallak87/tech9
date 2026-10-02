@@ -1,6 +1,7 @@
 import { glasswakeFlightState } from './runtime.js';
 import { surfaceAt } from './surface.js';
 import { sampleCalvingState } from './environment/event.js';
+import { sampleFirstShelf } from './environment/first-shelf.js';
 import { createGlasswakeScreen } from './weather/screen.js';
 
 export function createGlasswakeOverlay({ host, track }) {
@@ -55,12 +56,17 @@ export function createGlasswakeOverlay({ host, track }) {
         state,
         frame.ship?.group?.position,
       );
+      const firstShelf = sampleFirstShelf(flight.openingShelf);
       const calvingCue =
-        calving.phase === 'cracking'
-          ? ' · ICE SHELF FRACTURING'
-          : calving.phase === 'separating'
-            ? ' · SHELF CALVING'
-            : '';
+        firstShelf.phase === 'cracking'
+          ? ' · ICE SHEET CRACKING'
+          : firstShelf.phase === 'falling'
+            ? ' · ICE SHEET FALLING'
+            : calving.phase === 'cracking'
+              ? ' · ICE SHELF FRACTURING'
+              : calving.phase === 'separating'
+                ? ' · SHELF CALVING'
+                : '';
       notice.textContent = text + calvingCue;
       const reviewOpen =
         host.querySelector('#review-toggle')?.getAttribute('aria-expanded') ===
@@ -87,6 +93,7 @@ export function createGlasswakeOverlay({ host, track }) {
           weather: screen.snapshot(),
           surface,
           flightMode: flight.mode,
+          firstShelf,
           calving: sampleCalvingState(
             track,
             state,

@@ -2,18 +2,18 @@ import * as T from 'three';
 /** Absolute, bounded powder released by the authored shelf separation. Its
  * resources belong to the parent environment's single disposal traversal.
  */
-export function createCalvingPowder() {
+export function createCalvingPowder({ count = 160, lowCount = 70 } = {}) {
   const base = new T.PlaneGeometry(1, 1),
     geometry = new T.InstancedBufferGeometry();
   geometry.index = base.index.clone();
   geometry.setAttribute('position', base.attributes.position.clone());
   geometry.setAttribute('uv', base.attributes.uv.clone());
   base.dispose();
-  const seeds = new Float32Array(160 * 4);
+  const seeds = new Float32Array(count * 4);
   for (let i = 0; i < seeds.length; i++)
     seeds[i] = (((Math.sin(i * 42.31 + 7.7) * 43758.5453) % 1) + 1) % 1;
   geometry.setAttribute('powderSeed', new T.InstancedBufferAttribute(seeds, 4));
-  geometry.instanceCount = 160;
+  geometry.instanceCount = count;
   const material = new T.ShaderMaterial({
     transparent: true,
     depthWrite: false,
@@ -39,7 +39,7 @@ export function createCalvingPowder() {
       material.uniforms.separation.value = event.separation;
       material.uniforms.opacity.value =
         Math.sin(event.separation * Math.PI) * 0.24;
-      geometry.instanceCount = settings.quality === 'low' ? 70 : 160;
+      geometry.instanceCount = settings.quality === 'low' ? lowCount : count;
       mesh.visible = event.separation > 0.015 && event.separation < 0.995;
     },
   };

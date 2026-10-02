@@ -241,6 +241,82 @@ test('existing cue voices have an attack, are bounded, and release on end/dispos
   assert.ok(context.nodes.every((node) => node.disconnected));
 });
 
+test('countdown has three distinct beats and a sustained higher GO tone without propulsion, and obeys pause/mute', async () => {
+  const context = new Context();
+  const audio = createAudio({ createContext: () => context });
+  audio.event({ type: 'countdown-beep', payload: { step: 3 } });
+  assert.equal(
+    context.nodes.length,
+    0,
+    'A countdown cannot create audio before a user gesture',
+  );
+  await audio.unlock();
+  const master = context.nodes.find((node) => node.kind === 'gain');
+  const propulsionBus = context.nodes.filter((node) => node.kind === 'gain')[1];
+  audio.update(state, 0.35, false, { countdown: true });
+  assert.equal(master.gain.value, 0.35);
+  assert.equal(
+    propulsionBus.gain.value,
+    0,
+    'Countdown opens cue audio without the engine bed',
+  );
+  const voices = [];
+  for (const step of [3, 2, 1]) {
+    const before = context.nodes.length;
+    audio.event({ type: 'countdown-beep', payload: { step } });
+    const voice = context.nodes[before];
+    voices.push(voice);
+    assert.equal(voice.kind, 'oscillator');
+    assert.ok(voice.stops[0] > context.currentTime + 0.25);
+    assert.ok(
+      voice.stops[0] < context.currentTime + 0.35,
+      'Ready beat leaves clear silence before the next second',
+    );
+    voice.onended();
+  }
+  const beforeGo = context.nodes.length;
+  audio.event({ type: 'countdown-go', payload: {} });
+  const go = context.nodes[beforeGo];
+  const goEnvelope = context.nodes[beforeGo + 1].gain.automation;
+  assert.ok(
+    go.frequency.automation[0].value > voices[0].frequency.automation[0].value,
+  );
+  assert.ok(go.stops[0] > context.currentTime + 0.7);
+  assert.ok(go.stops[0] < context.currentTime + 0.85);
+  assert.ok(
+    goEnvelope.some(
+      (entry) =>
+        entry.type === 'set' &&
+        entry.value > 0 &&
+        entry.time > context.currentTime + 0.5,
+    ),
+    'GO sustains before its smooth release',
+  );
+  assert.equal(goEnvelope.at(-1).value, 0);
+  assert.equal(voices.length, 3);
+  audio.update(state, 0.35, false);
+  assert.equal(master.gain.value, 0);
+  assert.equal(go.disconnected, true, 'Pause immediately releases the GO cue');
+  const pausedCount = context.nodes.length;
+  audio.event({ type: 'countdown-beep', payload: { step: 1 } });
+  assert.equal(context.nodes.length, pausedCount);
+  audio.update(state, 0, false, { countdown: true });
+  audio.event({ type: 'countdown-beep', payload: { step: 1 } });
+  assert.equal(
+    context.nodes.length,
+    pausedCount,
+    'Master mute suppresses cue creation',
+  );
+  audio.update(state, 0.35, true);
+  assert.equal(
+    propulsionBus.gain.value,
+    1,
+    'GO enables the existing propulsion graph',
+  );
+  await audio.dispose();
+  assert.ok(context.nodes.every((node) => node.disconnected));
+});
+
 test('Nacre thunder respects unlock, master mute, pause, reset and baseline isolation', async () => {
   const context = new Context();
   const audio = createAudio({ createContext: () => context, nacre: true });

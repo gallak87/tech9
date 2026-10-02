@@ -1,15 +1,11 @@
 import { createTrack, buildTrackVisual } from './track/index.js';
 import { createEnvironment } from './environment/index.js';
 import { createSky } from './backdrop/index.js';
-import {
-  createMagneticRuntime,
-  hasHalcyonFeatures,
-} from '../../core/session-runtime.js';
 import { legacyPart } from '../legacy.js';
 
-export default function createLevel({ features }) {
+export default function createLevel() {
   return {
-    version: '0.2.2-gate2-pacing',
+    version: '0.3.2-halcyon-gameplay',
     renderer: {
       world: 'halcyon',
       background: '#77899d',
@@ -38,11 +34,9 @@ export default function createLevel({ features }) {
       };
     },
     async createRuntime(context) {
-      return hasHalcyonFeatures(context.track, features)
-        ? (await import('../../pickups/halcyon/index.js')).createHalcyonRuntime(
-            context,
-          )
-        : createMagneticRuntime(context);
+      return (
+        await import('../../pickups/halcyon/index.js')
+      ).createHalcyonRuntime(context);
     },
   };
 }

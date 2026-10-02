@@ -2,7 +2,8 @@ import { Box3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { resourcesFor } from './index.js';
 
-// Inspection assets only. Deliberately separate from playable tuning/replay ids.
+// Rival meshes serve inspection and racing. Circuit race models assign their
+// handling profiles separately from the player-selectable fleet catalog.
 export const RIVAL_SHIPS = Object.freeze([
   Object.freeze({
     id: 'rook',

@@ -110,7 +110,7 @@ export function createCatalog(metadataModules, loaders) {
     list: [...entries.values()]
       .map((entry) => entry.metadata)
       .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id)),
-    async load(requested, { review, features } = {}) {
+    async load(requested, { review } = {}) {
       const id = requested || 'halcyon';
       const entry = entries.get(id);
       if (!entry)
@@ -123,7 +123,7 @@ export function createCatalog(metadataModules, loaders) {
       const module = await entry.load();
       if (typeof module.default !== 'function')
         throw new Error(`Invalid circuit factory: ${id}`);
-      const definition = await module.default({ shape, features });
+      const definition = await module.default({ shape });
       validateDefinition(definition, id);
       return { metadata: entry.metadata, definition, shape };
     },

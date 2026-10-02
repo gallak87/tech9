@@ -44,6 +44,113 @@ export function createUI(
  <footer id="legend"><div><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RESET</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>
  <div id="touch" class="hidden"><div><button data-drive="left" aria-label="Steer left">◀</button><button data-drive="right" aria-label="Steer right">▶</button><button data-drive="brake">BRAKE</button></div><div><button data-drive="airbrake">SLIP</button><button data-drive="boost">BOOST</button><button data-drive="throttle">GO</button></div></div><div class="review-tag"><span></span></div>`;
   const $ = (id) => root.querySelector('#' + id);
+  const escapeLabel = [...root.querySelectorAll('#legend kbd')].find(
+    (key) => key.textContent === 'ESC',
+  ).nextElementSibling;
+  const roster = document.createElement('aside');
+  roster.id = 'race-roster';
+  roster.className = 'hidden';
+  roster.setAttribute('aria-label', 'Race timing and placements');
+  roster.innerHTML = `<div class="roster-heading"><span></span><b></b></div><ol></ol><div class="roster-laps"></div><p class="roster-hint"></p>`;
+  root.append(roster);
+  const lights = document.createElement('section');
+  lights.id = 'start-lights';
+  lights.className = 'hidden';
+  lights.setAttribute('role', 'status');
+  lights.innerHTML =
+    '<span>START SEQUENCE</span><div><i></i><i></i><i></i></div><b>3</b><small>HOLD THROTTLE · LIGHTS OUT TO GO</small>';
+  root.append(lights);
+  let rosterKey = '',
+    currentCompetition = null,
+    retainedResults = null;
+  function updateRoster() {
+    const driving = oldMode === 'racing' || oldMode === 'countdown';
+    const paddock = oldMode === 'title';
+    const data =
+      driving && currentCompetition?.enabled
+        ? (currentCompetition.results ?? currentCompetition)
+        : paddock
+          ? retainedResults
+          : null;
+    roster.classList.toggle('hidden', !data);
+    roster.classList.toggle('in-paddock', paddock);
+    if (!data) return;
+    const rows = data.standings;
+    const finished = paddock || currentCompetition?.playerFinished;
+    const key = JSON.stringify({
+      rows: rows.map(
+        ({
+          id,
+          name,
+          position,
+          lapTimes,
+          totalTime,
+          currentLapTime,
+          finished,
+          valid,
+        }) => ({
+          id,
+          name,
+          position,
+          lapTimes,
+          totalTime,
+          currentLapTime: Math.floor(currentLapTime * 10) / 10,
+          finished,
+          valid,
+        }),
+      ),
+      finished,
+      paddock,
+    });
+    if (key === rosterKey) return;
+    rosterKey = key;
+    roster.querySelector('.roster-heading span').textContent = paddock
+      ? 'LAST SESSION'
+      : finished
+        ? 'TWO LAPS RECORDED'
+        : 'RUNNING ORDER';
+    roster.querySelector('.roster-heading b').textContent = 'HALCYON · 2 LAPS';
+    const entries = rows.map((entry) => {
+      const row = document.createElement('li');
+      row.classList.toggle('is-player', entry.id === 'player');
+      const place = document.createElement('b');
+      place.textContent =
+        entry.position === null ? '—' : String(entry.position).padStart(2, '0');
+      const name = document.createElement('span');
+      name.textContent =
+        entry.id === 'player' ? 'YOU' : entry.name.toUpperCase();
+      const duration = document.createElement('small');
+      duration.textContent = entry.finished
+        ? `${fmt(entry.totalTime)}${entry.valid ? '' : ' *'}`
+        : fmt(
+            entry.lapTimes.reduce((total, lap) => total + lap, 0) +
+              entry.currentLapTime,
+          );
+      row.append(place, name, duration);
+      return row;
+    });
+    roster.querySelector('ol').replaceChildren(...entries);
+    const player = rows.find((entry) => entry.id === 'player');
+    roster.querySelector('.roster-laps').replaceChildren(
+      ...(player?.lapTimes ?? []).map((duration, index) => {
+        const row = document.createElement('div');
+        const label = document.createElement('span');
+        label.textContent = `LAP ${index + 1}`;
+        const value = document.createElement('b');
+        value.textContent = fmt(duration);
+        row.append(label, value);
+        return row;
+      }),
+    );
+    const invalid = rows.some((entry) => entry.finished && !entry.valid);
+    roster.querySelector('.roster-hint').textContent = paddock
+      ? invalid
+        ? '* Untimed: lap invalidated'
+        : 'Recorded at return to paddock'
+      : finished
+        ? 'KEEP DRIVING · ESC TO PADDOCK'
+        : 'Finish two laps to record your times';
+  }
   const pausePanel = $('pause-panel');
   pausePanel.setAttribute('role', 'dialog');
   pausePanel.setAttribute('aria-modal', 'true');
@@ -64,6 +171,23 @@ export function createUI(
   const review = blockout && metadata.review;
   const copy = { ...metadata.ui, ...(blockout ? metadata.ui.shape : {}) };
   const panel = $('title-panel');
+  if (metadata.id === 'halcyon' && !blockout) {
+    const difficulty = document.createElement('label');
+    difficulty.className = 'difficulty-picker';
+    difficulty.textContent = 'DIFFICULTY';
+    const select = document.createElement('select');
+    select.id = 'difficulty';
+    for (const value of ['easy', 'medium', 'hard']) {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value.toUpperCase();
+      select.append(option);
+    }
+    select.value = settings.difficulty;
+    select.onchange = () => actions.difficulty(select.value);
+    difficulty.append(select);
+    panel.insertBefore(difficulty, panel.querySelector('.launch-actions'));
+  }
   root.classList.toggle('has-review', metadata.review);
   root.classList.toggle('compact-paddock', Boolean(copy.compact) && !blockout);
   root.classList.toggle('stacked-review', Boolean(copy.stackedReview));
@@ -129,7 +253,11 @@ export function createUI(
   picker.className = 'circuit-picker';
   picker.setAttribute('aria-label', 'Choose a circuit');
   picker.innerHTML = `<label for="circuit-select">CIRCUIT</label><select id="circuit-select" name="level"></select><button id="circuit-load" type="submit" disabled>LOAD ↗</button>`;
-  panel.insertBefore(picker, panel.querySelector('.launch-actions'));
+  panel.insertBefore(
+    picker,
+    panel.querySelector('.difficulty-picker') ??
+      panel.querySelector('.launch-actions'),
+  );
   for (const circuit of circuits) {
     const option = document.createElement('option');
     option.value = circuit.id;
@@ -148,8 +276,7 @@ export function createUI(
       !circuits.some((circuit) => circuit.id === selected)
     )
       return;
-    // Enter the selected paddock without carrying another circuit's review
-    // scenario or opt-in gameplay features into the new session.
+    // Enter the selected paddock without another circuit's review flags.
     location.assign(circuitURL(location.href, selected));
   };
   const shipPickers = [];
@@ -249,7 +376,7 @@ export function createUI(
   rivalPicker.setAttribute('role', 'tabpanel');
   rivalPicker.setAttribute('aria-labelledby', 'inspection-rivals-tab');
   rivalPicker.innerHTML =
-    '<div class="ship-picker-label" id="rival-ship-label">AI RACERS <span>03 CHASSIS</span></div><div class="ship-picker" role="radiogroup" aria-labelledby="rival-ship-label"></div><p class="ship-summary">PREVIEW ONLY · RACING STATS NOT ASSIGNED</p>';
+    '<div class="ship-picker-label" id="rival-ship-label">AI RACERS <span>03 CHASSIS</span></div><div class="ship-picker" role="radiogroup" aria-labelledby="rival-ship-label"></div><p class="ship-summary">RACING ON HALCYON · INSPECTION ONLY</p>';
   const rivalChoices = rivalPicker.querySelector('.ship-picker');
   RIVAL_SHIPS.forEach((craft, index) => {
     const button = document.createElement('button');
@@ -454,15 +581,24 @@ export function createUI(
     setMode(mode) {
       if (mode === oldMode) return;
       oldMode = mode;
+      updateRoster();
       for (const [id, show] of [
         ['title-panel', mode === 'title' || mode === 'overview'],
         ['inspection-panel', mode === 'inspection'],
         ['pause-panel', mode === 'paused'],
-        ['hud', mode === 'racing'],
+        ['hud', mode === 'racing' || mode === 'countdown'],
         ['touch', mode === 'racing'],
       ])
         $(id).classList.toggle('hidden', !show);
-      root.classList.toggle('driving', mode === 'racing' || mode === 'paused');
+      root.classList.toggle(
+        'driving',
+        ['racing', 'paused', 'countdown'].includes(mode),
+      );
+      lights.classList.toggle(
+        'hidden',
+        mode !== 'countdown' &&
+          !(mode === 'racing' && lights.dataset.step === '0'),
+      );
       root.classList.toggle('paused', mode === 'paused');
       root.classList.toggle('flying', mode === 'fly');
       $('fly-controls')?.classList.toggle('hidden', mode !== 'fly');
@@ -494,7 +630,10 @@ export function createUI(
           ? '−'
           : '+';
       }
-      $('pause-button').classList.toggle('hidden', mode !== 'racing');
+      $('pause-button').classList.toggle(
+        'hidden',
+        mode !== 'racing' && mode !== 'countdown',
+      );
       const f =
         mode === 'title' || mode === 'overview'
           ? 'start'
@@ -508,13 +647,33 @@ export function createUI(
       if (f) $(f).focus({ preventScroll: true });
       else document.activeElement?.blur();
     },
-    update(s, r, motion = null, { practice = false } = {}) {
+    update(
+      s,
+      r,
+      motion = null,
+      { practice = false, competition = null, lastResults = null } = {},
+    ) {
+      currentCompetition = competition;
+      retainedResults = lastResults;
+      escapeLabel.textContent =
+        competition?.enabled && competition.playerFinished
+          ? 'PADDOCK'
+          : 'PAUSE';
+      updateRoster();
+      root.querySelector('.lap > span').textContent = competition?.enabled
+        ? competition.playerFinished
+          ? 'FREE DRIVE'
+          : 'RACE LAP'
+        : 'PRACTICE LAP';
       $('speed').textContent = String(Math.round(s.speed * 3.6)).padStart(
         3,
         '0',
       );
       $('time').textContent = fmt(r.elapsed);
-      $('lap').textContent = String(r.lap).padStart(2, '0');
+      $('lap').textContent =
+        competition?.enabled && !competition.playerFinished
+          ? `${Math.min(r.lap, 2)}/2`
+          : String(r.lap).padStart(2, '0');
       $('energy-label').textContent = `${Math.round(s.energy)}%`;
       $('energy-fill').style.width = `${s.energy}%`;
       $('energy-fill').style.background = s.energy < 25 ? '#ef764e' : '#a9d0c9';
@@ -523,12 +682,18 @@ export function createUI(
           ? 'RECOVERY DELAY'
           : motion?.mode === 'flight'
             ? 'AIRBORNE'
-            : s.boosting
-              ? 'BOOST ENGAGED'
-              : 'MAGNETIC DRIVE';
-      $('boost-status').classList.toggle('active', s.boosting);
-      $('energy-state').textContent =
-        s.energy < 25
+            : motion?.vectorActive
+              ? 'VECTOR DRIVE'
+              : s.boosting
+                ? 'BOOST ENGAGED'
+                : 'MAGNETIC DRIVE';
+      $('boost-status').classList.toggle(
+        'active',
+        s.boosting || motion?.vectorActive,
+      );
+      $('energy-state').textContent = motion?.vectorActive
+        ? 'VECTOR DRIVE · FREE PROPULSION'
+        : s.energy < 25
           ? 'LOW RESERVE · RELEASE BOOST TO RECOVER'
           : 'BOOST DRAWS FROM IMPACT RESERVE';
       $('best').textContent = !r.valid
@@ -568,6 +733,15 @@ export function createUI(
     notice(text) {
       $('notice').textContent = text;
       noticeUntil = performance.now() + 2200;
+    },
+    setCountdown(step) {
+      lights.classList.toggle('hidden', step === null);
+      lights.dataset.step = String(step);
+      lights.classList.toggle('go', step === 0);
+      lights.querySelector('b').textContent = step === 0 ? 'GO' : String(step);
+      [...lights.querySelectorAll('i')].forEach((light, index) =>
+        light.classList.toggle('lit', step > 0 && index < 4 - step),
+      );
     },
     dispose() {
       root.remove();

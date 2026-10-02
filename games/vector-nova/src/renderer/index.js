@@ -5,6 +5,7 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { createLifetime } from '../core/lifecycle.js';
 import { createContactShadow } from './contact-shadow.js';
 
@@ -153,6 +154,39 @@ export async function createRenderer(
       ),
     );
     composer.addPass(bloom);
+    // A short spatial blur conveys racing speed without frame history/ghosting.
+    // Preserve the upcoming road and the lower-centre ship silhouette.
+    const racingBlur = lifetime.own(
+      new ShaderPass({
+        uniforms: { tDiffuse: { value: null }, strength: { value: 0 } },
+        vertexShader: `
+        varying vec2 racingUv;
+        void main() {
+          racingUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.);
+        }`,
+        fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float strength;
+        varying vec2 racingUv;
+        void main() {
+          vec2 radial = racingUv - vec2(.5,.52);
+          float edge = smoothstep(.25,.66,length(radial * vec2(1.15,1.)));
+          float craft = smoothstep(.08,.25,length((racingUv-vec2(.5,.25))*vec2(1.,1.4)));
+          vec2 stride = radial * strength * edge * craft;
+          vec4 sharp = texture2D(tDiffuse,racingUv);
+          vec4 softened = sharp * .4;
+          softened += texture2D(tDiffuse,clamp(racingUv-stride*.25,vec2(0.),vec2(1.))) * .24;
+          softened += texture2D(tDiffuse,clamp(racingUv-stride*.5,vec2(0.),vec2(1.))) * .18;
+          softened += texture2D(tDiffuse,clamp(racingUv-stride*.75,vec2(0.),vec2(1.))) * .12;
+          softened += texture2D(tDiffuse,clamp(racingUv-stride,vec2(0.),vec2(1.))) * .06;
+          gl_FragColor = softened;
+        }`,
+      }),
+    );
+    racingBlur.enabled = false;
+    composer.addPass(racingBlur);
+    let blurTarget = 0;
     const output = lifetime.own(new OutputPass());
     composer.addPass(output);
     const antialias = lifetime.own(new SMAAPass());
@@ -195,6 +229,23 @@ export async function createRenderer(
         Object.assign(frame, update);
         backdrop.setOverview?.(Boolean(update.reviewing));
         updateBackdrop();
+      },
+      setRacingFeedback({
+        mode,
+        speed = 0,
+        boosting = false,
+        enabled = false,
+      }) {
+        const active =
+          enabled && mode === 'racing' && !shape && !settings.reducedMotion;
+        blurTarget = active
+          ? T.MathUtils.smoothstep(speed, 75, 135) * 0.011 +
+            (boosting ? 0.007 : 0)
+          : 0;
+        if (!active) {
+          racingBlur.uniforms.strength.value = 0;
+          racingBlur.enabled = false;
+        }
       },
       getPresentation: () => backdrop?.getPresentation?.() ?? null,
       drainStormEvents: () => backdrop?.drainStormEvents?.() ?? [],
@@ -259,6 +310,13 @@ export async function createRenderer(
         scene.userData.elapsed = elapsed;
         renderer.info.reset();
         renderer.shadowMap.needsUpdate = true;
+        const targetBlur = settings.reducedMotion || shape ? 0 : blurTarget;
+        racingBlur.uniforms.strength.value +=
+          (targetBlur - racingBlur.uniforms.strength.value) *
+          (1 - Math.exp(-dt * 9));
+        racingBlur.enabled =
+          settings.quality === 'high' &&
+          racingBlur.uniforms.strength.value > 0.0001;
         if (settings.quality === 'high') composer.render(dt);
         else renderer.render(scene, camera);
         maxima.calls = Math.max(maxima.calls, renderer.info.render.calls);
@@ -371,6 +429,8 @@ export async function createRenderer(
           pipeline: {
             ambientOcclusion: ao.enabled,
             bloom: bloom.enabled,
+            racingBlur: racingBlur.enabled,
+            racingBlurStrength: racingBlur.uniforms.strength.value,
             tonemapping: 'ACES',
             colourSpace: 'sRGB',
             world: options.world,

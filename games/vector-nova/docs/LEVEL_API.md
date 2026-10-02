@@ -7,7 +7,7 @@ The shared app discovers circuits under `src/levels/<slug>/`. This document defi
 Each level supplies two files:
 
 - `metadata.js`: default-export an asset-free object with `id` matching the folder, `name`, numeric `order`, boolean `shape`/`review`, and `ui` copy. Metadata feeds the paddock picker, briefing and review controls.
-- `index.js`: default-export `createLevel({ shape, features })`, returning the descriptor below. Only the selected implementation is imported. No shared catalog/core edit is required.
+- `index.js`: default-export `createLevel({ shape })`, returning the descriptor below. Only the selected implementation is imported. No shared catalog/core edit is required.
 
 Required `ui` strings: `edition`, `subtitle`, `intro`, `tag`, `tagDetail`. The paddock title comes from `name`, with its first word large and the remainder as a smaller italic subtitle; a single-word name uses the circuit part of `ui.subtitle`. Legacy `heading`, `eyebrow`, `detail` and `start` are accepted but no longer used by the paddock. Optional `ui.shape` overrides copy for shape review. Optional layout flags are `compact`, `stackedReview`, `lowNotice`, `compactLandscape` and `portraitCompactHud`. Use real text, not HTML. The approved level metadata files are small working examples.
 

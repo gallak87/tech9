@@ -1,8 +1,8 @@
 # Session runtime adapter contract
 
-The shared session adapter supports baseline magnetic driving, opt-in Halcyon pickups and Nacre flight. Baseline physics remains version 3 with steering assistance 0.3.
+The shared session adapter supports baseline magnetic driving, Halcyon pickups and Nacre flight. Baseline physics remains version 3 with steering assistance 0.3.
 
-Factory `createHalcyonRuntime({track, scene, ship, host, settings, emit})` is dynamically imported only when `track.id === "halcyon-viaduct-4-compact"` and the exact query `features=halcyon-pickups`. Other tracks ignore the opt-in. The ordinary baseline factory is `createMagneticRuntime`.
+Factory `createHalcyonRuntime({track, scene, ship, host, settings, emit})` is dynamically imported by the Halcyon descriptor for its normal route. Devices require `track.id === "halcyon-viaduct-4-compact"`; no query flag is required. The ordinary baseline factory is `createMagneticRuntime`.
 
 The returned object has:
 
@@ -17,7 +17,7 @@ The returned object has:
 
 Core tick order: save previous vehicle state; log input; `advanceSession` calls adapter advance; emit adapter events; call race step with old/new distance and dt; emit race events; increment tick. Live play and replay call the same routine. `emit` from factory context is for presentation feedback only outside deterministic advance; deterministic events must be returned from advance. Event envelopes add tick and simulation time.
 
-Replay header includes application version, track ID, physics version, runtime `{id,version,rulesId}`, seed, scenario and tick inputs. Mismatch is rejected. Replay resets to deterministic scenario and re-runs the same advance path. Existing manual R recovery invalidates lap and disables clean input-only replay; automatic Nacre recovery does not set that manual reset counter. Race history includes rulesId; no persistence or additional time-trial feature is introduced.
+Replay header includes application version, track ID, physics version, runtime `{id,version,rulesId}`, ship identity/version, seed, scenario, competitive mode, difficulty and tick inputs. Mismatch is rejected. Replay resets to deterministic scenario and re-runs the same advance path, including the competitive field when enabled. Countdown wall time is excluded. Existing manual R recovery invalidates lap and disables clean input-only replay; automatic Nacre recovery does not set that manual reset counter. Race history includes rulesId; no persistence or additional time-trial feature is introduced.
 
 Nacre-specific extension: its adapter holds distance at the exact unwrapped takeoff through flight/recovery, then emits `jump-transfer` with `{id,from,to,outcome:"landed"|"recovered"}`. Core race checks this against only that jump's authored takeoff, landing and apron interval before crediting ordered checkpoints. Recovery delay is included in normal dt, no surcharge, no invalidation. This does not affect Halcyon adapters.
 

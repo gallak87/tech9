@@ -2,18 +2,22 @@ export const defaults = {
   volume: 0.35,
   quality: 'high',
   reducedMotion: false,
+  difficulty: 'easy',
 };
 export function loadSettings() {
   try {
     const saved = JSON.parse(
       localStorage.getItem('vector-nova.settings') || '{}',
     );
-    return Object.fromEntries(
+    const settings = Object.fromEntries(
       Object.entries(defaults).map(([key, value]) => [
         key,
         saved?.[key] ?? value,
       ]),
     );
+    if (!['easy', 'medium', 'hard'].includes(settings.difficulty))
+      settings.difficulty = 'easy';
+    return settings;
   } catch {
     return { ...defaults };
   }

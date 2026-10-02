@@ -2,7 +2,7 @@
 
 ## Current position
 
-Approved and merged: Halcyon Viaduct, Asterion Orbital, Nacre Tempest, Vesper Canopy, the initial Halcyon boost/shield devices, and the four-ship fleet (Kestrel, Shrike, Bastion and Needle) with distinct handling, ion exhaust, shared paddock/inspection selection and stat bars. Completed review history is in Git.
+Approved and merged: Halcyon Speedway, Asterion Orbital, Nacre Tempest, Vesper Canopy, Cindercoil, and the four-ship fleet (Kestrel, Shrike, Bastion and Needle). Halcyon's normal launch includes automatic boost/shield devices, three actual-physics rivals from a 2×2 grid, Easy/Medium/Hard difficulty, two-lap timing/placements and continued driving with a retained paddock roster. Human launches use start lights and an audible countdown; Practice Lap stays solo. Completed review history is in Git.
 
 ## Proposed gameplay phases — remaining
 
@@ -10,7 +10,7 @@ Each phase ends with human review after its scoped independent critic loop. Agre
 
 ### Level polish
 
-- [ ] Add subtle motion blur during boost, keeping the road and HUD readable and respecting reduced motion.
+- [ ] Extend Halcyon's restrained racing blur to other circuits after their gameplay integration.
 - [ ] Emit sparks from the actual side/contact point when scraping rails or other surfaces, and when ship-to-ship bumps become available. Explore short-lived scrape streaks on the contacted road panels/walls, with bounded effects and cleanup.
 - [ ] Halcyon: investigate and fix remaining flicker on the ground, especially white areas and street-lane markings.
 - [ ] Asterion: locate and fix the reported flickering road section; its exact location is not yet known.
@@ -21,13 +21,13 @@ Each phase ends with human review after its scoped independent critic loop. Agre
 
 Consider game-wide boost/refill, protection and recovery aids. The user will choose the systems and iterate through human playtests.
 
-### Gate 5: complete race flow
+### Gate 5: broader race flow
 
-Track select → briefing → grid/countdown → three laps → finish/results → retry or another track. Keep Practice one action away and settings available before racing. Show lap/sector splits, last-lap feedback, total/best/personal times; position waits for real opponents. Prevent pre-GO launch advantage and duplicate finishes. Persist settings/records locally with a working storage-failure fallback, and separate ship/track/rules versions. Target roughly 2–4 minutes without stretching empty road.
+The current Halcyon flow records two laps, keeps all ships driving, and returns to the paddock on Escape after the player completes them. Keep this simple behavior until the user requests a broader flow. Future briefing, sector splits and persistent personal records need separate scope; podiums and finish locks are not part of the current implementation.
 
 ### Gate 6: opponents and competitive Quick Race
 
-Start with three AI rivals on Halcyon, then reach player plus 11 rivals across approved circuits. Use real route lines, braking/boost decisions, overtakes and recoverable mistakes; Rookie/Racer/Ace vary precision and judgment, initially without catch-up assistance. All racers obey the same limits, device and jump rules. Rank by valid lap/checkpoint progress, including meaningful airborne presentation. Add restrained body contact with cooldowns, no sustained rail pinning or repeated damage from one contact. Verify the full-grid start, independent finishes and actual performance.
+Halcyon has three independent rivals with lane, braking and boost decisions using shared physics/devices, and Easy/Medium/Hard pace settings. Next, adapt opponents and devices to other approved circuits, including their flight and local hazards, before increasing to player plus 11 rivals. Add restrained body contact with cooldowns, no sustained rail pinning or repeated damage from one contact. Verify independent finishes and actual performance for each larger field.
 
 ### Gate 7: energy choices and Time Trial
 

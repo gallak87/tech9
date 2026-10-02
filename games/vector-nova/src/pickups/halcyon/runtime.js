@@ -1,8 +1,10 @@
 import { stepVehicle } from '../../physics/index.js';
+import { getShip } from '../../ships/catalog.js';
 import { createHalcyonDevices, HALCYON_TRACK_ID } from './placements.js';
 import { createPickupSimulation } from './simulation.js';
 
-export const HALCYON_RULES_ID = 'halcyon-immediate-v1-142-50-1.25-6-layout1';
+export const HALCYON_RULES_ID =
+  'halcyon-strips-v2-entry16-142-50-aegis6-layout2';
 
 // The browser wrapper supplies presentation. The deterministic adapter remains
 // importable without DOM, CSS, WebAudio or WebGL, including during replay tests.
@@ -20,7 +22,10 @@ export function createHalcyonSimulationRuntime({ track, presentation = null }) {
       {
         label: `${device.type === 'vector' ? 'VECTOR' : 'AEGIS'} · ${device.label} · parked`,
         state: {
-          distance: device.distance - 30,
+          distance:
+            device.type === 'vector'
+              ? device.distance - device.length / 2 - 12
+              : device.distance - 30,
           lateral: device.lateral,
           speed: 0,
           heading: 0,
@@ -33,9 +38,20 @@ export function createHalcyonSimulationRuntime({ track, presentation = null }) {
     state: { distance: 340, lateral: 3, speed: 0, heading: 0 },
   };
   let pending = [];
+  function applyEntryImpulse(events, state) {
+    for (const event of events)
+      if (event.type === 'pickup-activate' && event.payload.kind === 'vector')
+        state.speed = Math.max(
+          state.speed,
+          Math.min(
+            getShip(state.shipId).handling.boostSpeed,
+            state.speed + event.payload.speedGain,
+          ),
+        );
+  }
   return {
     id: 'halcyon-pickups',
-    version: 2,
+    version: 3,
     rulesId: HALCYON_RULES_ID,
     scenarios,
     advance(state, input, dt) {
@@ -45,7 +61,8 @@ export function createHalcyonSimulationRuntime({ track, presentation = null }) {
       const ordered = [];
       for (let tick = 0; tick < steps; tick++) {
         const previous = { ...state };
-        const before = simulation.beforeStep(input, elapsed / steps);
+        const before = simulation.beforeStep(input, elapsed / steps, state);
+        applyEntryImpulse(before.events, state);
         const physics = stepVehicle(
           state,
           input,
@@ -54,6 +71,7 @@ export function createHalcyonSimulationRuntime({ track, presentation = null }) {
           before.modifiers,
         );
         const after = simulation.afterStep(previous, state, input, physics);
+        applyEntryImpulse(after, state);
         ordered.push(...before.events, ...physics, ...after);
       }
       pending.push(...ordered);

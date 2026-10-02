@@ -1866,3 +1866,145 @@ select {
     grid-row: 1;
   }
 }
+/* Compact race timing beside the road, then beside the paddock menu. */
+#race-roster {
+  position: absolute;
+  top: 350px;
+  right: 4vw;
+  width: 248px;
+  padding: 16px;
+  background: rgba(12, 23, 31, 0.72);
+  border: 1px solid rgba(190, 216, 226, 0.28);
+  border-top: 2px solid var(--accent);
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+#race-roster.in-paddock {
+  top: 96px;
+  left: calc(4vw + 440px);
+  right: auto;
+}
+.roster-heading span {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: #a9c4ce;
+  margin-bottom: 6px;
+}
+.roster-heading b {
+  font-size: 12px;
+  letter-spacing: 0.07em;
+}
+#race-roster ol {
+  list-style: none;
+  padding: 10px 0 0;
+  margin: 10px 0 0;
+  border-top: 1px solid #b7cdd533;
+}
+#race-roster li {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 11px;
+}
+#race-roster li > b {
+  color: #93aeb9;
+  font-weight: 400;
+}
+#race-roster li > small {
+  font-size: 10px;
+  color: #b7cbd3;
+}
+#race-roster li.is-player > span {
+  color: #ff9675;
+  font-weight: 700;
+}
+.roster-laps {
+  margin-top: 8px;
+  border-top: 1px solid #b7cdd533;
+}
+.roster-laps:empty {
+  display: none;
+}
+.roster-laps > div {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 10px;
+  font-size: 10px;
+}
+.roster-laps span {
+  color: #a9c4ce;
+}
+.roster-laps b {
+  font-weight: 400;
+}
+.roster-hint {
+  margin: 12px 0 0;
+  font-size: 9px;
+  line-height: 1.6;
+  color: #c2d4db;
+}
+.difficulty-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  margin-top: 12px;
+}
+.difficulty-picker select {
+  width: 132px;
+  font-size: 10px;
+}
+#start-lights {
+  position: absolute;
+  top: 185px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 260px;
+  padding: 16px 20px;
+  text-align: center;
+  background: #0c171fec;
+  border: 1px solid #b7cdd54d;
+  pointer-events: none;
+}
+#start-lights > span {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: #bcced8;
+}
+#start-lights > div {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 14px 0 10px;
+}
+#start-lights i {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #3a2429;
+  border: 2px solid #75414a;
+}
+#start-lights i.lit {
+  background: #ff614e;
+  border-color: #ffb3a6;
+  box-shadow: 0 0 16px #ff614e99;
+}
+#start-lights b {
+  display: block;
+  font-size: 30px;
+  line-height: 1.1;
+}
+#start-lights.go b {
+  color: #8cfff0;
+}
+#start-lights small {
+  display: block;
+  margin-top: 8px;
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  color: #bcced8;
+}

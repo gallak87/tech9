@@ -1,0 +1,22 @@
+{
+  "asset": "rook",
+  "status": "asset-only draft",
+  "blender": "5.1.1",
+  "axes": "+Z forward / +Y up / metres",
+  "bounds": {
+    "min": [-1.9195702075958252, 0.02800000086426735, -3.119999885559082],
+    "max": [1.9195702075958252, 1.2995580434799194, 3.1559998989105225]
+  },
+  "dimensions": [3.8391404151916504, 1.271558042615652, 6.2759997844696045],
+  "triangles": 18916,
+  "meshes": 9,
+  "materials": 9,
+  "sourceComponents": 90,
+  "anchors": {
+    "Exhaust_L": [-0.63, 0.43, -3.1350000000000002],
+    "Exhaust_R": [0.63, 0.43, -3.1350000000000002]
+  },
+  "glbBytes": 3281892,
+  "textureCount": 9,
+  "textures": "Embedded original baked base-color, roughness and tangent normals"
+}

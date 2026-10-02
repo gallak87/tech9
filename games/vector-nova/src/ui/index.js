@@ -1,5 +1,6 @@
 import './style.css';
 import { SHIPS } from '../ships/catalog.js';
+import { RIVAL_SHIPS } from '../ships/rivals.js';
 import { circuitURL } from '../levels/contract.js';
 
 // Compare the actual tuning across the fleet; no separate cosmetic ratings.
@@ -43,7 +44,7 @@ export function createUI(
   host.append(root);
   root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>
  <section id="title-panel" class="panel"><div class="eyebrow"></div><h1><br><em></em></h1><p class="intro"></p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>04</b><span>SHIPS</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="inspect">INSPECT SHIPS <span>↗</span></button></div><p class="small"></p></section>
- <section id="inspection-panel" class="panel hidden"><div class="eyebrow">AERODYNAMICS DIVISION / 07</div><h1 class="inspect-title">KESTREL<span class="dot">.</span></h1><p class="intro">Twin-core magnetic interceptor.<br>Ceramic armour. Exposed titanium propulsion.<br>Built to stay close to the limit.</p><dl><div><dt>DESIGN</dt><dd>Split prow / swept ceramic chassis</dd></div><div><dt>PROPULSION</dt><dd>Dual induction turbines</dd></div><div><dt>CONTROL</dt><dd>Integrated magnetic suspension</dd></div></dl><div class="actions"><button id="inspect-start" class="primary">DRIVE PROTOTYPE <span>↗</span></button><button id="inspect-back">BACK TO PROVING GROUND</button></div><p class="small">Actual in-game asset · Neutral inspection lighting</p></section>
+ <section id="inspection-panel" class="panel hidden"><div class="eyebrow">AERODYNAMICS DIVISION / 07</div><h1 class="inspect-title" aria-live="polite">KESTREL<span class="dot">.</span></h1><p class="intro">Twin-core magnetic interceptor.<br>Ceramic armour. Exposed titanium propulsion.<br>Built to stay close to the limit.</p><dl><div><dt>DESIGN</dt><dd>Split prow / swept ceramic chassis</dd></div><div><dt>PROPULSION</dt><dd>Dual induction turbines</dd></div></dl><div class="actions"><button id="inspect-start" class="primary">DRIVE PROTOTYPE <span>↗</span></button><button id="inspect-back">BACK TO PROVING GROUND</button></div></section>
  <section id="pause-panel" class="modal hidden"><div class="eyebrow">PROVING SESSION</div><h2>TAKE A BREATH.</h2><button id="resume" class="primary">RESUME SESSION ↗</button><button id="restart">RESTART LAP</button><button id="home">RETURN TO PADDOCK</button><label>MASTER VOLUME <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>GRAPHICS <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>REDUCED MOTION <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p class="small">Prototype settings are saved locally when available.</p></section>
  <section id="hud" class="hidden"><div class="top-telemetry"><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>SESSION TIME</span><b id="time">00:00.000</b><small id="best">SET YOUR FIRST CLEAN LAP</small></div><div class="section-name"><span></span><b id="section">PROVING STRAIGHT</b></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST DRAWS FROM IMPACT RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas><div id="notice" role="status"></div></section>
  <footer id="legend"><div><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RESET</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>
@@ -213,7 +214,7 @@ export function createUI(
   ]) {
     const section = document.createElement('section');
     section.className = 'ship-selection';
-    section.innerHTML = `<div class="ship-picker-label" id="${prefix}-ship-label">CHOOSE SHIP <span>04 CHASSIS</span></div><div class="ship-picker" role="radiogroup" aria-labelledby="${prefix}-ship-label"></div><div class="ship-stats" role="group" aria-label="Selected ship performance; bars compare the current fleet"></div><p class="ship-summary" aria-live="polite"></p>`;
+    section.innerHTML = `<div class="ship-picker-label" id="${prefix}-ship-label">CHOOSE SHIP <span>04 CHASSIS</span></div><div class="ship-picker" role="radiogroup" aria-labelledby="${prefix}-ship-label"></div><div class="ship-stats" role="group" aria-label="Selected ship performance; bars compare the current fleet"></div>`;
     const stats = section.querySelector('.ship-stats');
     for (const stat of shipStats) {
       const row = document.createElement('div');
@@ -254,6 +255,81 @@ export function createUI(
     );
     shipPickers.push(section);
   }
+  let inspectionTab = 'fleet';
+  let selectedRival = RIVAL_SHIPS[0];
+  const inspection = $('inspection-panel');
+  const tabs = document.createElement('div');
+  tabs.className = 'inspection-tabs';
+  tabs.setAttribute('role', 'tablist');
+  tabs.setAttribute('aria-label', 'Ship collection');
+  for (const [id, label] of [
+    ['fleet', 'Your ships'],
+    ['rivals', 'AI racers'],
+  ]) {
+    const button = document.createElement('button');
+    button.id = `inspection-${id}-tab`;
+    button.textContent = label;
+    button.setAttribute('role', 'tab');
+    button.setAttribute('aria-controls', `inspection-${id}-picker`);
+    button.onclick = () => actions.selectInspectionTab(id);
+    button.onkeydown = (event) => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key))
+        return;
+      event.preventDefault();
+      event.stopPropagation();
+      const next =
+        event.key === 'Home'
+          ? 'fleet'
+          : event.key === 'End'
+            ? 'rivals'
+            : id === 'fleet'
+              ? 'rivals'
+              : 'fleet';
+      const target = $(`inspection-${next}-tab`);
+      target.focus();
+      target.click();
+    };
+    tabs.append(button);
+  }
+  inspection.prepend(tabs);
+  const fleetPicker = shipPickers[1];
+  fleetPicker.id = 'inspection-fleet-picker';
+  fleetPicker.setAttribute('role', 'tabpanel');
+  fleetPicker.setAttribute('aria-labelledby', 'inspection-fleet-tab');
+  const rivalPicker = document.createElement('section');
+  rivalPicker.className = 'ship-selection rival-selection hidden';
+  rivalPicker.id = 'inspection-rivals-picker';
+  rivalPicker.setAttribute('role', 'tabpanel');
+  rivalPicker.setAttribute('aria-labelledby', 'inspection-rivals-tab');
+  rivalPicker.innerHTML =
+    '<div class="ship-picker-label" id="rival-ship-label">AI RACERS <span>03 CHASSIS</span></div><div class="ship-picker" role="radiogroup" aria-labelledby="rival-ship-label"></div><p class="ship-summary">PREVIEW ONLY · RACING STATS NOT ASSIGNED</p>';
+  const rivalChoices = rivalPicker.querySelector('.ship-picker');
+  RIVAL_SHIPS.forEach((craft, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.rival = craft.id;
+    button.setAttribute('role', 'radio');
+    button.innerHTML = `<b>${craft.name}</b><span>${craft.role}</span><i aria-hidden="true">✓</i>`;
+    button.onclick = () => actions.inspectRival(craft.id);
+    button.onkeydown = (event) => {
+      const direction = ['ArrowRight', 'ArrowDown'].includes(event.key)
+        ? 1
+        : ['ArrowLeft', 'ArrowUp'].includes(event.key)
+          ? -1
+          : 0;
+      if (!direction) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const target =
+        rivalChoices.children[
+          (index + direction + RIVAL_SHIPS.length) % RIVAL_SHIPS.length
+        ];
+      target.focus();
+      target.click();
+    };
+    rivalChoices.append(button);
+  });
+  inspection.insertBefore(rivalPicker, inspection.querySelector('dl'));
   const loadingMessage = document.createElement('p');
   loadingMessage.className = 'ship-load-status';
   loadingMessage.setAttribute('role', 'status');
@@ -266,8 +342,6 @@ export function createUI(
         button.setAttribute('aria-checked', String(chosen));
         button.tabIndex = chosen ? 0 : -1;
       }
-      section.querySelector('.ship-summary').textContent =
-        `${craft.name} · ${craft.role} · Ratings relative to fleet`;
       for (const stat of shipStats) {
         const value = stat.value(craft.handling);
         const fraction = value / stat.maximum;
@@ -285,23 +359,53 @@ export function createUI(
         );
       }
     }
-    const inspection = $('inspection-panel');
-    inspection.querySelector('.eyebrow').textContent =
-      'FLEET / SHIP INSPECTION';
+    if (inspectionTab === 'fleet') setInspectionDetails(craft);
+  }
+  function setInspectionDetails(craft, rival = false) {
+    inspection.querySelector('.eyebrow').textContent = rival
+      ? 'AI RACERS / SHIP INSPECTION'
+      : 'FLEET / SHIP INSPECTION';
     inspection.querySelector('h1').textContent = craft.name.toUpperCase() + '.';
     inspection.querySelector('.intro').textContent = craft.description;
     const details = inspection.querySelectorAll('dd');
     details[0].textContent = craft.design;
-    details[1].textContent =
-      craft.exhausts.length === 1
+    details[1].textContent = rival
+      ? craft.propulsion
+      : craft.exhausts.length === 1
         ? 'Single oversized ion core'
         : 'Twin ion cores';
-    details[2].textContent = craft.role + ' / magnetic suspension';
     $('inspect-start').firstChild.textContent =
       `DRIVE ${craft.name.toUpperCase()} `;
     $('inspect-back').textContent = 'BACK TO PADDOCK';
   }
+  function setInspectedRival(craft) {
+    selectedRival = craft;
+    for (const button of rivalChoices.children) {
+      const chosen = button.dataset.rival === craft.id;
+      button.setAttribute(
+        'aria-checked',
+        String(inspectionTab === 'rivals' && chosen),
+      );
+      button.tabIndex = chosen ? 0 : -1;
+    }
+    if (inspectionTab === 'rivals') setInspectionDetails(craft, true);
+  }
+  function setInspectionTab(tab) {
+    inspectionTab = tab;
+    for (const button of tabs.children) {
+      const chosen = button.id === `inspection-${tab}-tab`;
+      button.setAttribute('aria-selected', String(chosen));
+      button.tabIndex = chosen ? 0 : -1;
+    }
+    fleetPicker.classList.toggle('hidden', tab !== 'fleet');
+    rivalPicker.classList.toggle('hidden', tab !== 'rivals');
+    $('inspect-start').classList.toggle('hidden', tab === 'rivals');
+    root.classList.toggle('inspecting-rivals', tab === 'rivals');
+    setInspectedRival(selectedRival);
+    if (tab === 'fleet') setInspectionDetails(selectedShip);
+  }
   setShip(selectedShip);
+  setInspectionTab('fleet');
   let pickerFocus = null;
   const bind = (id, fn) => ($(id).onclick = fn);
   bind('start', actions.start);
@@ -344,6 +448,14 @@ export function createUI(
   return {
     root,
     setShip,
+    setInspectionTab,
+    setInspectedRival,
+    setRivalLoading(loading) {
+      rivalPicker.setAttribute('aria-busy', String(loading));
+      if (loading) loadingMessage.textContent = 'Preparing AI racer…';
+      else if (loadingMessage.textContent === 'Preparing AI racer…')
+        loadingMessage.textContent = '';
+    },
     setShipLoading(loading) {
       if (loading)
         pickerFocus = document.activeElement?.closest('.ship-picker');
@@ -354,6 +466,7 @@ export function createUI(
       }
       $('start').disabled = loading;
       $('inspect-start').disabled = loading;
+      for (const button of tabs.children) button.disabled = loading;
       if (loading) loadingMessage.textContent = 'Preparing ship…';
       else if (loadingMessage.textContent === 'Preparing ship…')
         loadingMessage.textContent = '';
@@ -376,14 +489,17 @@ export function createUI(
       if (innerWidth > 760 || innerWidth > innerHeight) return null;
       const panel = $('inspection-panel');
       const heading = panel
-        .querySelector('.ship-selection')
+        .querySelector('.ship-selection:not(.hidden)')
         .getBoundingClientRect();
-      const specs = panel.querySelector('dl').getBoundingClientRect();
+      const details = panel.querySelector('dl');
+      const specs = (
+        details.offsetHeight ? details : panel.querySelector('.actions')
+      ).getBoundingClientRect();
       return {
         left: innerWidth * 0.06,
         top: heading.bottom + 14,
         width: innerWidth * 0.88,
-        height: Math.max(100, specs.top - heading.bottom - 28),
+        height: Math.max(24, specs.top - heading.bottom - 28),
       };
     },
     setMode(mode) {
@@ -434,7 +550,9 @@ export function createUI(
         mode === 'title' || mode === 'overview'
           ? 'start'
           : mode === 'inspection'
-            ? 'inspect-start'
+            ? inspectionTab === 'rivals'
+              ? 'inspection-rivals-tab'
+              : 'inspect-start'
             : mode === 'paused'
               ? 'resume'
               : null;

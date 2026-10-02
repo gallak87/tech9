@@ -1,0 +1,23 @@
+{
+  "asset": "mule",
+  "date": "2026-10-01",
+  "status": "inspection-only rival draft; not racing or human-approved",
+  "concept": {
+    "path": "assets/ships/rivals/mule/concept-01.png",
+    "tool": "OpenAI built-in imagegen",
+    "prompt": "assets/ships/rivals/mule/concept-prompt.txt",
+    "sha256": "8357581ab5fdbdb6d1702937ab27eb170bd43a3415936974ec8fac4b22ffeafa",
+    "sourceKind": "Original generated design reference"
+  },
+  "model": {
+    "source": "assets/ships/rivals/mule/mule.blend",
+    "export": "assets/ships/rivals/mule/mule.glb",
+    "generator": "assets/ships/rivals/build_rivals.py",
+    "sharedHelpers": "assets/ships/build_fleet.py",
+    "authorship": "Original Blender geometry authored from its generated reference using project-owned construction helpers; no third-party meshes, fonts or textures.",
+    "materials": "Original procedural matte paint, structural composite and brushed metal baked to embedded base-color, roughness and tangent-normal maps.",
+    "textureSources": "assets/ships/rivals/mule/textures/",
+    "inspectionExport": "public/assets/ships/rivals/mule/mule.glb"
+  },
+  "request": "Three visually distinct, more ordinary rival ships, with no gameplay integration."
+}

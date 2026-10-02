@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { createFleetShip } from '../ships/fleet.js';
+import { RIVAL_SHIPS, createRivalPreview } from '../ships/rivals.js';
 import { loadShipSelection, saveShipSelection } from '../ships/catalog.js';
 import { createRenderer } from '../renderer/index.js';
 import { createVehicleState, STEERING_ASSIST } from '../physics/index.js';
@@ -181,6 +182,15 @@ async function boot() {
     audio = lifetime.own(createAudio(definition.audio)),
     effects = lifetime.own(createEffects(scene, definition.effects));
   let rig = createCameraRig(camera, definition.camera, inspectionBounds);
+  let inspectionTab = 'fleet',
+    inspectedRival = RIVAL_SHIPS[0],
+    rivalPreview = null,
+    rivalLoading = false,
+    rivalRequest = 0;
+  lifetime.defer(() => {
+    rivalRequest++;
+    rivalPreview?.dispose();
+  });
   lifetime.defer(() => {
     active = false;
     cancelAnimationFrame(raf);
@@ -251,11 +261,45 @@ async function boot() {
   race = makeRace();
   resetRuntime('initialize');
   let initial = captureInitial(state, runtime);
+  function fitInspection(group) {
+    inspectionBounds.min.fromArray(group.userData.bounds.min);
+    inspectionBounds.max.fromArray(group.userData.bounds.max);
+    inspectionExtent.radial = Math.hypot(
+      Math.max(
+        Math.abs(inspectionBounds.min.x),
+        Math.abs(inspectionBounds.max.x),
+      ),
+      Math.max(
+        Math.abs(inspectionBounds.min.z),
+        Math.abs(inspectionBounds.max.z),
+      ),
+    );
+    inspectionExtent.vertical = Math.max(
+      Math.abs(inspectionBounds.min.y - 0.55),
+      Math.abs(inspectionBounds.max.y - 0.55),
+    );
+    inspectionTime = 0;
+    inspectionLayout = null;
+  }
+  function restoreFleetInspection() {
+    rivalRequest++;
+    rivalPreview?.dispose();
+    rivalPreview = null;
+    rivalLoading = false;
+    inspectionTab = 'fleet';
+    ship.group.visible = true;
+    fitInspection(ship.group);
+    ui.setInspectionTab('fleet');
+    ui.setRivalLoading(false);
+    ui.shipError('');
+  }
   function sceneShip() {
+    if (inspectionTab !== 'fleet') restoreFleetInspection();
     if (ship.group.parent !== scene) scene.add(ship.group);
   }
   function start() {
-    if (shipLoading) return;
+    if (shipLoading || (mode === 'inspection' && inspectionTab === 'rivals'))
+      return;
     if (mode === 'fly') {
       leaveFly();
       return;
@@ -360,6 +404,7 @@ async function boot() {
     }
     flyCamera?.leave();
     if (preset === 'inspection') {
+      if (mode === 'inspection') return;
       mode = 'inspection';
       inspectionScene.add(ship.group);
       ship.group.position.set(0, 0.1, 0);
@@ -414,27 +459,13 @@ async function boot() {
   async function selectShip(id) {
     if (shipLoading || !['title', 'overview', 'inspection'].includes(mode))
       return false;
+    if (inspectionTab !== 'fleet') return false;
     shipLoading = true;
     input.clear();
     ui.setShipLoading(true);
     try {
       if (!(await ship.select(id)) || !active) return false;
-      inspectionBounds.min.fromArray(ship.group.userData.bounds.min);
-      inspectionBounds.max.fromArray(ship.group.userData.bounds.max);
-      inspectionExtent.radial = Math.hypot(
-        Math.max(
-          Math.abs(inspectionBounds.min.x),
-          Math.abs(inspectionBounds.max.x),
-        ),
-        Math.max(
-          Math.abs(inspectionBounds.min.z),
-          Math.abs(inspectionBounds.max.z),
-        ),
-      );
-      inspectionExtent.vertical = Math.max(
-        Math.abs(inspectionBounds.min.y - 0.55),
-        Math.abs(inspectionBounds.max.y - 0.55),
-      );
+      fitInspection(ship.group);
       rig = createCameraRig(camera, definition.camera, inspectionBounds);
       ship.group.traverse((object) => {
         for (const material of Array.isArray(object.material)
@@ -467,6 +498,66 @@ async function boot() {
       if (active) ui.setShipLoading(false);
     }
   }
+  async function inspectRival(id) {
+    const craft = RIVAL_SHIPS.find((entry) => entry.id === id);
+    if (!craft || mode !== 'inspection' || inspectionTab !== 'rivals')
+      return false;
+    const request = ++rivalRequest;
+    rivalLoading = true;
+    input.clear();
+    ui.shipError('');
+    ui.setRivalLoading(true);
+    let loaded;
+    try {
+      loaded = await createRivalPreview(id);
+      if (!active || request !== rivalRequest || mode !== 'inspection') {
+        loaded.dispose();
+        return false;
+      }
+      // Warm the candidate while hidden; keep the previous preview on failure.
+      await renderer.compileAsync(loaded.group, camera, inspectionScene);
+      if (!active || request !== rivalRequest || mode !== 'inspection') {
+        loaded.dispose();
+        return false;
+      }
+      rivalPreview?.dispose();
+      rivalPreview = loaded;
+      inspectedRival = craft;
+      inspectionScene.add(loaded.group);
+      fitInspection(loaded.group);
+      ui.setInspectedRival(craft);
+      return true;
+    } catch {
+      loaded?.dispose();
+      if (active && request === rivalRequest)
+        ui.shipError(`Could not load ${craft.name}. Choose a racer to retry.`);
+      return false;
+    } finally {
+      if (active && request === rivalRequest) {
+        rivalLoading = false;
+        ui.setRivalLoading(false);
+      }
+    }
+  }
+  function selectInspectionTab(tab) {
+    if (
+      mode !== 'inspection' ||
+      shipLoading ||
+      !['fleet', 'rivals'].includes(tab)
+    )
+      return;
+    if (tab === inspectionTab) return;
+    if (tab === 'fleet') {
+      restoreFleetInspection();
+      return;
+    }
+    inspectionTab = 'rivals';
+    ship.group.visible = false;
+    ui.setInspectionTab(tab);
+    ui.setInspectedRival(inspectedRival);
+    inspectionLayout = null;
+    return inspectRival(inspectedRival.id);
+  }
   const ui = lifetime.own(
     createUI(
       host,
@@ -478,6 +569,8 @@ async function boot() {
         home,
         camera: setCamera,
         selectShip,
+        selectInspectionTab,
+        inspectRival,
         overview,
         fly: toggleFly,
         leaveFly,
@@ -608,9 +701,12 @@ async function boot() {
         : state;
     if (mode === 'inspection') {
       if (!settings.reducedMotion) inspectionTime += dt;
-      ship.group.position.set(0, 0.15, 0);
-      ship.group.rotation.set(0, inspectionTime * 0.12, 0);
-      ship.update({ speed: 0, boost: false, steer: 0, time, energy: 100 });
+      const subject =
+        inspectionTab === 'rivals' ? rivalPreview?.group : ship.group;
+      subject?.position.set(0, 0.15, 0);
+      subject?.rotation.set(0, inspectionTime * 0.12, 0);
+      if (inspectionTab === 'fleet')
+        ship.update({ speed: 0, boost: false, steer: 0, time, energy: 100 });
       camera.position.set(10.4, 6.2, 12.5);
       camera.up.set(0, 1, 0);
       camera.fov = 39;
@@ -751,6 +847,8 @@ async function boot() {
     restart,
     resume,
     selectShip,
+    selectInspectionTab,
+    inspectRival,
     home,
     getReplay() {
       validateReplayInputs(inputLog, tick);
@@ -857,6 +955,12 @@ async function boot() {
           position: frame.position.toArray(),
         },
         vehicle: { ...state },
+        inspection: {
+          tab: inspectionTab,
+          rivalId: rivalPreview?.specification.id ?? null,
+          loading: rivalLoading,
+          bounds: rivalPreview?.group.userData.bounds ?? null,
+        },
         ship: {
           id: ship.selected.id,
           loading: shipLoading,

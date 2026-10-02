@@ -6,7 +6,7 @@ import {
   createOrbitalPlumeMaterial,
 } from './orbital-plume.js';
 
-function resourcesFor(root) {
+export function resourcesFor(root) {
   const geometries = new Set();
   const materials = new Set();
   const textures = new Set();

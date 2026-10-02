@@ -8,10 +8,6 @@ from pathlib import Path
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 ROOT = Path(__file__).resolve().parents[2]
-parser = argparse.ArgumentParser()
-parser.add_argument('--ship', choices=['shrike','bastion','needle','all'], default='all')
-parser.add_argument('--render', action='store_true')
-opts = parser.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
 
 def surface_finish(mat, kind):
     """Editable procedural paint/metal finish; baked to portable PBR on export."""
@@ -544,4 +540,14 @@ def export_ship(id):
             cam.location=C(pos);aim(cam,(0,.4,0));scene.render.filepath=str(review/(name+'.png'))
             bpy.ops.render.render(write_still=True)
 
-for id in (['shrike','bastion','needle'] if opts.ship=='all' else [opts.ship]):export_ship(id)
+def main():
+    global opts
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--ship', choices=['shrike','bastion','needle','all'], default='all')
+    parser.add_argument('--render', action='store_true')
+    opts = parser.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
+    for id in (['shrike','bastion','needle'] if opts.ship=='all' else [opts.ship]):
+        export_ship(id)
+
+if __name__ == '__main__':
+    main()

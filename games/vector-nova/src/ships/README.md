@@ -4,6 +4,8 @@
 
 `createFleetShip` wraps one chassis in a stable root, retaining level feedback attached to that root across changes. It exposes `selected` and async `select(id)`; failed requests leave the old chassis usable, superseded/disposed requests release their new resources. Core owns menu-only switching, fresh simulation state, shader warmup and camera fitting. Paddock/inspection use the same selector and locally saved choice. Replay compatibility checks ship id/version; changing ships resets lap history.
 
+**Inspect Ships → AI racers** loads Rook, Latch and Mule through the separate `rivals.js` preview catalog. These assets have no handling profiles or playable selection. Core owns the selected preview, cancels superseded requests, releases it on tab/scene exit, and preserves the player's chassis and saved choice. Sources and rebuild instructions live in [rival assets](../../assets/ships/rivals/README.md). Both player selectors use a vertical list beside stacked performance bars; rival previews show a preview-only note in place of unassigned stats.
+
 Assets use metres, local +Z forward and +Y up. Twin-engine ships export `Exhaust_L` and `Exhaust_R`; Needle exports only `Exhaust_C`. Exhaust points aft along -Z. `update({speed,boost,steer,time,energy})` animates local emission only. Reserve is normalized to 0–1 for presentation. `group.userData.bounds` contains static local hull bounds without animated exhaust.
 
 Source models/concepts/provenance: `assets/ships/<id>/`. Runtime models: `public/assets/ships/<id>/<id>.glb`. Rebuild the additions from the app directory with:

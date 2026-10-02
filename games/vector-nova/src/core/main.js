@@ -232,10 +232,22 @@ async function boot() {
             ? 'EDGE CATCH · LANDING CONFIRMED'
             : 'LANDING CONFIRMED',
       );
-    if (e.type === 'lap')
-      ui.notice(
-        `${e.payload.valid ? 'LAP COMPLETE' : 'INVALID LAP'} · ${e.payload.duration.toFixed(3)}s`,
+    if (e.type === 'lap') {
+      const previousBest = Math.min(
+        ...race.history
+          .slice(0, -1)
+          .filter((lap) => lap.valid)
+          .map((lap) => lap.duration),
       );
+      ui.lapComplete({
+        lap: race.lap - 1,
+        duration: e.payload.duration,
+        valid: e.payload.valid,
+        delta: Number.isFinite(previousBest)
+          ? e.payload.duration - previousBest
+          : null,
+      });
+    }
   };
   const runtime = lifetime.own(
     await (definition.createRuntime ?? createMagneticRuntime)({

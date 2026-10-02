@@ -3,9 +3,10 @@ import { getShip } from '../ships/catalog.js';
 import { createHalcyonSimulationRuntime } from '../pickups/halcyon/runtime.js';
 import { createHalcyonDevices } from '../pickups/halcyon/placements.js';
 import { createRace } from './index.js';
+import { createRelativeTiming } from './relative-timing.js';
 
 export const HALCYON_RACE_LAPS = 2;
-export const HALCYON_RACERS_VERSION = 2;
+export const HALCYON_RACERS_VERSION = 3;
 export const HALCYON_DIFFICULTIES = Object.freeze(['easy', 'medium', 'hard']);
 export const HALCYON_GRID = Object.freeze({
   player: Object.freeze({ distance: 0, lateral: 4 }),
@@ -181,6 +182,7 @@ export function getRacerControl(
 
 export function createHalcyonRacers({ track }) {
   const devices = createHalcyonDevices(track);
+  const relativeTiming = createRelativeTiming(Object.keys(HALCYON_GRID));
   const opponents = HALCYON_OPPONENTS.map((specification) => ({
     specification,
     state: createVehicleState(specification.shipId),
@@ -209,6 +211,11 @@ export function createHalcyonRacers({ track }) {
     elapsed = 0;
     playerFinish = null;
     boostHistory = { requestedSeconds: 0, engagements: 0, active: false };
+    relativeTiming.reset(
+      Object.fromEntries(
+        Object.entries(HALCYON_GRID).map(([id, pose]) => [id, pose.distance]),
+      ),
+    );
     for (const opponent of opponents) {
       const { specification } = opponent;
       opponent.state = {
@@ -279,6 +286,11 @@ export function createHalcyonRacers({ track }) {
         );
         // CPU adapters have no presentation. Drain pending decorative events.
         opponent.runtime.update({});
+        relativeTiming.update(
+          opponent.specification.id,
+          opponent.state.distance,
+          elapsed,
+        );
         if (!opponent.finish) opponent.finish = finishFrom(opponent.race);
         if (
           opponent.finish &&
@@ -293,6 +305,8 @@ export function createHalcyonRacers({ track }) {
             },
           });
       });
+      if (playerState)
+        relativeTiming.update('player', playerState.distance, elapsed);
     }
     if (!playerFinish && playerRace) {
       playerFinish = finishFrom(playerRace);
@@ -373,6 +387,25 @@ export function createHalcyonRacers({ track }) {
       // An invalid completed run is visible but cannot claim a timed place.
       if (!entry.finished || entry.valid) entry.position = ++position;
     });
+    const playerIndex = standings.findIndex((entry) => entry.id === 'player');
+    const player = standings[playerIndex];
+    const relative = (entry, ahead) =>
+      entry
+        ? {
+            id: entry.id,
+            name: entry.name,
+            position: entry.position,
+            seconds: relativeTiming.gap(
+              ahead ? entry.id : 'player',
+              ahead ? 'player' : entry.id,
+              elapsed,
+            ),
+            lapGap: Math.floor(
+              Math.abs(entry.distance - player.distance) / track.length,
+            ),
+            finished: entry.finished,
+          }
+        : null;
     return {
       enabled,
       difficulty,
@@ -381,6 +414,13 @@ export function createHalcyonRacers({ track }) {
       // Exactly the first two checkpoint-complete laps, valid or invalid.
       playerFinished: !!currentFinish,
       standings: enabled ? standings : [],
+      relative:
+        enabled && player && !currentFinish
+          ? {
+              ahead: relative(standings[playerIndex - 1], true),
+              behind: relative(standings[playerIndex + 1], false),
+            }
+          : null,
       results:
         enabled && currentFinish
           ? {
@@ -399,6 +439,7 @@ export function createHalcyonRacers({ track }) {
     return {
       version: HALCYON_RACERS_VERSION,
       trackId: track.id,
+      relativeTiming: relativeTiming.serialize(),
       enabled,
       difficulty,
       elapsed,
@@ -511,6 +552,7 @@ export function createHalcyonRacers({ track }) {
         validation.dispose();
       }
     }
+    relativeTiming.restore(data.relativeTiming);
     enabled = data.enabled;
     difficulty = data.difficulty;
     elapsed = data.elapsed;

@@ -8,6 +8,8 @@ Exact generation prompt: “Use case: stylized-concept. Asset type: 3D game scen
 
 Approximation: surface porosity is represented by real large openings, mineral seams and layered anatomy rather than dense sculpted microcavities. The burrower uses deterministic world transforms and segment motion rather than a biological simulation. Sandfall surfaces and grains complement fixed geological meshes.
 
+`bake_weathering.mjs` generates the project-authored periodic noise lookup used by bone, sand and armor. Run `node assets/levels/saffron/bake_weathering.mjs` to reproduce `public/assets/levels/saffron/weathering-noise-v1.r8`: a 64³ single-channel unsigned-byte volume (262,144 bytes), uploaded with linear filtering and mipmaps. It replaces repeated shader hash calculations; world-space material scales, geological bands and derivative relief remain authored in the level. No external image or texture is used.
+
 Module origins, exported bounds, polygon counts and source/runtime SHA-256 hashes are in `asset-manifest.json`. All authored files are project-owned; no third-party attribution or license dependency was introduced.
 
 The selected lavender panorama is exported unchanged to `public/assets/levels/saffron/saffron-sky-v2.png`; its prompt and sources remain in [sky provenance](SKY_PROVENANCE.md). Sky projection overlaps the longitude seam and blends the poles, with a single source moon and separately authored scene lighting.

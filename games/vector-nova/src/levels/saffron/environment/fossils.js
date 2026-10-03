@@ -250,7 +250,7 @@ export function createFossils(
   track,
   survey,
   resources,
-  { loadAsset, shape = false } = {},
+  { loadAsset, shape = false, weatheringTexture } = {},
 ) {
   const group = new T.Group();
   group.name = 'Saffron / authored fossil anatomy and displaced dune families';
@@ -359,9 +359,9 @@ export function createFossils(
                 'vertebra_2',
               ].includes(name)
             )
-              applyFossilWeathering(material);
+              applyFossilWeathering(material, weatheringTexture);
             if (['dune', 'dune_1', 'outcrop', 'outcrop_1'].includes(name))
-              applyGeologicalWeathering(material);
+              applyGeologicalWeathering(material, weatheringTexture);
             if (
               name === 'sandfall' &&
               material.name === 'Saffron_mineral_bands'
@@ -389,7 +389,7 @@ export function createFossils(
                 'saffron-irregular-sand-volume-v5';
             }
             if (name === 'burrower') {
-              applyCreatureWeathering(material);
+              applyCreatureWeathering(material, weatheringTexture);
               const finish = material.onBeforeCompile;
               material.onBeforeCompile = (shader) => {
                 finish(shader);
@@ -402,7 +402,7 @@ export function createFossils(
                   );
               };
               material.customProgramCacheKey = () =>
-                'saffron-weathered-armor-flex-v2';
+                'saffron-baked-weathered-armor-flex-v3';
             }
             material.side = T.DoubleSide;
           }

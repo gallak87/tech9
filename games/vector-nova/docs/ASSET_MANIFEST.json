@@ -219,7 +219,8 @@
       "provenanceRecord": "assets/levels/saffron/PROVENANCE.md",
       "runtimeAssets": [
         "public/assets/levels/saffron/leviathan-kit.glb",
-        "public/assets/levels/saffron/saffron-sky-v2.png"
+        "public/assets/levels/saffron/saffron-sky-v2.png",
+        "public/assets/levels/saffron/weathering-noise-v1.r8"
       ]
     }
   ],

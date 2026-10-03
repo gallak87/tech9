@@ -9,17 +9,21 @@ import { createDesertEffects } from './effects.js';
 
 export function createSaffronEnvironment(
   { track, settings = {}, view, road },
-  { shape = false, loadAsset } = {},
+  { shape = false, loadAsset, loadNoise } = {},
 ) {
   const group = new T.Group();
   group.name = shape
     ? 'Saffron / route-clearance terrain study'
     : 'Saffron / archaeological fossil desert';
   const resources = createResources();
-  const materials = createSaffronMaterials(resources, shape);
+  const materials = createSaffronMaterials(resources, shape, { loadNoise });
   const survey = createLandformSurvey(track);
   const terrain = createTerrain(track, survey, materials, resources, shape);
-  const fossils = createFossils(track, survey, resources, { shape, loadAsset });
+  const fossils = createFossils(track, survey, resources, {
+    shape,
+    loadAsset,
+    weatheringTexture: materials.weatheringTexture,
+  });
   const station = createSurveyStation(track, survey, materials, resources);
   const effects = createDesertEffects(
     track,
@@ -56,7 +60,7 @@ export function createSaffronEnvironment(
     ...countResources(group),
     localLights: lights.length,
     modelLoaded: false,
-    ownedTextures: 0,
+    ownedTextures: materials.weatheringTexture ? 1 : 0,
     nearPropCount: terrain.nearPropCount,
     source:
       'Original scene-guided Blender kit with route-aware procedural geological terrain',
@@ -82,8 +86,8 @@ export function createSaffronEnvironment(
     resources.dispose();
     group.clear();
   }
-  const ready = fossils.ready
-    .then((loaded) => {
+  const ready = Promise.all([fossils.ready, materials.ready])
+    .then(([loaded]) => {
       if (disposed) return false;
       road?.anchorToFossils?.(fossils.group);
       Object.assign(metrics, countResources(group), { modelLoaded: loaded });

@@ -29,6 +29,8 @@ export async function createRenderer(
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.autoUpdate = false;
     renderer.shadowMap.type = T.PCFShadowMap;
+    renderer.transmissionResolutionScale =
+      options.transmissionResolutionScale ?? 1;
     renderer.info.autoReset = false;
     host.prepend(renderer.domElement);
     renderer.domElement.id = 'world';

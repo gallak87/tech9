@@ -74,7 +74,7 @@ Backdrop result: `{ group, sunDirection, dispose, ready?, update?, setOverview?,
 
 Backdrop `update` receives the same frame during play. Reflection initialization also calls it with camera/settings/time/mode/reset, before vehicle presentation is available; handle that stationary case. No update occurs inside the regular draw call. Nacre's old multi-hook environment is adapted to a single update in its descriptor.
 
-Descriptor `renderer` supports `world` (diagnostic name), `background`, optional `fog: { color, density }`, `bloomStrength`, `bloomThreshold`, `fillHeight`, `reflectionFar` and `contact` options. The selected factory owns sky/world identity; no Halcyon panorama is silently applied to new levels. High/low and reduced-motion settings remain shared.
+Descriptor `renderer` supports `world` (diagnostic name), `background`, optional `fog: { color, density }`, `bloomStrength`, `bloomThreshold`, `fillHeight`, `reflectionFar`, `transmissionResolutionScale` (default 1) and `contact` options. Transmission scale changes the refraction buffer resolution independently of the main view. The selected factory owns sky/world identity; no Halcyon panorama is silently applied to new levels. High/low and reduced-motion settings remain shared.
 
 Descriptor `camera` optionally sets `preserveFlightView`, `portraitAspect`, `maxPortraitScale`, `chaseHeight` (default 5 metres) and `lookAhead` (default 35 metres before the speed contribution). Saffron uses a higher eye and longer preview through rolling crests. Default chase behavior is unchanged; Nacre explicitly opts into its approved flight/portrait composition. Camera code does not infer behavior from track names.
 

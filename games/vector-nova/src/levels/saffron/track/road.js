@@ -54,8 +54,13 @@ export function createSaffronRoad(
     materials.add(m);
     return m;
   };
-  const smoke = lens(0x967026, 0.16, 3.3);
-  smoke.opacity = shape ? 1 : 0.77;
+  const solidGlass = (color) =>
+    material({
+      color: shape ? 0xb5b3a4 : color,
+      roughness: shape ? 0.75 : 0.29,
+      metalness: shape ? 0.04 : 0.02,
+    });
+  const smoke = solidGlass(0x967026);
   const amber = lens(0xd6ad4e, 0.14, 2.8);
   const glass = lens(0xe8bd61, 0.12, 3.8);
   if (!shape) {
@@ -87,9 +92,7 @@ export function createSaffronRoad(
       mat.customProgramCacheKey = () => 'saffron-internal-gold-glass-v5';
     }
   }
-  const honey = lens(0xc39d55, 0.05, 3.4);
-  honey.opacity = shape ? 1 : 0.9;
-  /* Reinforced amber retains optical depth at the braking decisions. */
+  const honey = solidGlass(0xc39d55);
   const support = material({
     color: shape ? 0xc1bbad : 0xac7835,
     roughness: 0.43,
@@ -457,8 +460,8 @@ export function createSaffronRoad(
     mesh.frustumCulled = false;
     sands.push({ mesh, rows, cols });
   }
-  const opticalMaterials = [smoke, amber, glass, honey];
-  const opticalTransmission = [0.16, 0.14, 0.12, 0.05];
+  const opticalMaterials = [amber, glass];
+  const opticalTransmission = [0.14, 0.12];
   let currentQuality = settings.quality ?? 'high';
   let lastTime = null,
     disposed = false;

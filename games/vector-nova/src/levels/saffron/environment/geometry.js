@@ -26,6 +26,11 @@ export function createResources() {
       else materials.add(value);
       return value;
     },
+    texture(value) {
+      if (disposed) value.dispose();
+      else textures.add(value);
+      return value;
+    },
     collect(group) {
       const lateGeometry = new Set(),
         lateMaterials = new Set(),

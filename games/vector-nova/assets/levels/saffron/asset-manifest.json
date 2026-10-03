@@ -119,6 +119,15 @@
     "assets/levels/saffron/saffron-sky-v2.png": "1ecef87b93df2325b2528105a783807d3fd06b449f3f0a8c2087ddc7b24c07bf",
     "assets/levels/saffron/sky-prompt-v2.txt": "76e616e5f6d3d433762b75b7d324f6febb2e2618f0cd1f2fecdba7116795e544",
     "public/assets/levels/saffron/leviathan-kit.glb": "176afa2e3a95596b3c26efafddfe9b95e430af83b6b51e50bb1aa0bdc5953bfd",
-    "public/assets/levels/saffron/saffron-sky-v2.png": "1ecef87b93df2325b2528105a783807d3fd06b449f3f0a8c2087ddc7b24c07bf"
+    "public/assets/levels/saffron/saffron-sky-v2.png": "1ecef87b93df2325b2528105a783807d3fd06b449f3f0a8c2087ddc7b24c07bf",
+    "assets/levels/saffron/bake_weathering.mjs": "83879b5f1afbe6b64dd8532612a0cd235044f046eb401f6909c28e2d461a1264",
+    "public/assets/levels/saffron/weathering-noise-v1.r8": "4141da2f9dafb3d334f1a6b1199a5099e277f0ae064680e1dc9acb346028f807"
+  },
+  "weatheringVolume": {
+    "runtime": "public/assets/levels/saffron/weathering-noise-v1.r8",
+    "dimensions": [64, 64, 64],
+    "format": "R8",
+    "bytes": 262144,
+    "source": "assets/levels/saffron/bake_weathering.mjs"
   }
 }

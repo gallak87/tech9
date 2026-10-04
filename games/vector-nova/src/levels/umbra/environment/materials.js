@@ -93,8 +93,8 @@ export function finishUmbraMaterial(
       `
           : metal
             ? `
-        float brush=umNoise(up*vec3(48.,.5,.7));
-        brush=mix(.5,brush,1.-smoothstep(.15,1.,length(dFdx(up*vec3(48.,.5,.7)))+length(dFdy(up*vec3(48.,.5,.7)))));
+        float brush=umNoise(up*${kind === 'plate' ? 'vec3(.5,36.,.23)' : 'vec3(48.,.5,.7)'});
+        brush=mix(.5,brush,1.-smoothstep(.15,1.,length(dFdx(up*${kind === 'plate' ? 'vec3(.5,36.,.23)' : 'vec3(48.,.5,.7)'}))+length(dFdy(up*${kind === 'plate' ? 'vec3(.5,36.,.23)' : 'vec3(48.,.5,.7)'}))));
         diffuseColor.rgb*=mix(.82,1.06,macro)*mix(.96,1.02,brush);
         float patina=smoothstep(.55,.72,macro)*umNoise(up*.9);
         diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.79,.78,.72),patina*.32);
@@ -106,7 +106,11 @@ export function finishUmbraMaterial(
           float edgeWear=(1.-smoothstep(.005,.035,arris))*smoothstep(.32,.67,umNoise(up*6.));
           float protectedFinish=1.-smoothstep(.03,.10,arris);
           diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*1.85+vec3(.045),edgeWear*.65);
+          float contact=(1.-smoothstep(.015,.18,.5-abs(umbraRaw.z)))*(1.-smoothstep(.03,.28,.5-abs(umbraRaw.y)));
+          float seamDeposit=protectedFinish*smoothstep(.24,.78,umNoise(up*vec3(.2,3.,.7)));
+          diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.66,.59,.49),contact*.38+seamDeposit*.30);
           diffuseColor.rgb*=1.-protectedFinish*.10;
+          relief+=seamDeposit*.006;
         `
             : ''
         }
@@ -134,7 +138,7 @@ export function finishUmbraMaterial(
         relief=macro*.008+grain*.006+fine*.002*visible;
       `
       }
-      ${surfaceTexture ? `diffuseColor.rgb*=mix(vec3(1.),clamp(authoredSurface/${stone ? 'vec3(.59,.53,.44)' : metal ? 'vec3(.26,.265,.27)' : 'vec3(.085)'},vec3(.68),vec3(1.32)),${kind === 'deck' ? '(.16+dirt*.18+abrasion*.13)' : stone ? '.8' : metal ? '.22' : '.24'});` : ''}
+      ${surfaceTexture ? `diffuseColor.rgb*=mix(vec3(1.),clamp(authoredSurface/${stone ? 'vec3(.59,.53,.44)' : metal ? 'vec3(.26,.265,.27)' : 'vec3(.085)'},vec3(.68),vec3(1.32)),${kind === 'deck' ? '(.16+dirt*.18+abrasion*.13)' : stone ? '.8' : kind === 'plate' ? '.44' : metal ? '.22' : '.24'});` : ''}
       ${surfaceTexture ? `relief=relief*${stone ? '.5' : '.25'}+surfaceTone*${stone ? '.06' : metal ? '.0015' : kind === 'deck' ? '.0011' : '.0012'};` : ''}`,
       )
       .replace(
@@ -144,13 +148,20 @@ export function finishUmbraMaterial(
       .replace(
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
-        roughnessFactor=clamp(roughnessFactor+${surfaceTexture ? (stone ? '(surfaceTone-.35)*.14+' : '(surfaceTone-.35)*.035+') : ''}(macro-.5)*${stone ? '.14' : '.06'}${metal ? `+patina*.24${kind === 'plate' ? '-edgeWear*.13+protectedFinish*.06' : ''}` : kind === 'deck' ? '+dirt*.18-wear*.12-polished*.14-abrasion*.028' : ''},${stone ? '.72' : metal ? '.19' : '.24'},.98);`,
+        roughnessFactor=clamp(roughnessFactor+${surfaceTexture ? (stone ? '(surfaceTone-.35)*.14+' : '(surfaceTone-.35)*.035+') : ''}(macro-.5)*${stone ? '.14' : '.06'}${metal ? `+patina*.24${kind === 'plate' ? '-edgeWear*.13+protectedFinish*.10+contact*.13+seamDeposit*.09' : ''}` : kind === 'deck' ? '+dirt*.18-wear*.12-polished*.14-abrasion*.028' : ''},${stone ? '.72' : metal ? '.19' : '.24'},.98);`,
       )
       .replace(
         '#include <emissivemap_fragment>',
         '#include <emissivemap_fragment>' +
           (bakedLight
-            ? '\ntotalEmissiveRadiance+=diffuseColor.rgb*vec3(1.,.46,.17)*umbraLight*2.6;'
+            ? `
+        // The light bake already includes visibility. Remove the separate
+        // vertex contact occlusion only from this direct receiver contribution.
+        vec3 receiverAlbedo=diffuseColor.rgb;
+        #if defined(USE_COLOR) || defined(USE_COLOR_ALPHA)
+          receiverAlbedo/=max(vColor.rgb,vec3(.31));
+        #endif
+        totalEmissiveRadiance+=receiverAlbedo*vec3(1.,.46,.17)*umbraLight*2.2;`
             : ''),
       )
       .replace(
@@ -159,7 +170,7 @@ export function finishUmbraMaterial(
       );
   };
   material.customProgramCacheKey = () =>
-    `umbra-surface-v6-${kind}-${!!surfaceTexture}-${bakedLight}`;
+    `umbra-surface-v7-${kind}-${!!surfaceTexture}-${bakedLight}`;
   return material;
 }
 

@@ -43,6 +43,17 @@ def box(name,center,size,material,parent,skew=0):
         return wedge(name,x,y-h,z,w*2,h*2,d*2,material,parent)
     v=[(x+sx*w+(sy+1)*skew/2,y+sy*h,z+sz*d) for sy in [-1,1] for sz in [-1,1] for sx in [-1,1]]
     faces=[(0,1,3,2),(4,6,7,5),(0,4,5,1),(2,3,7,6),(0,2,6,4),(1,5,7,3)]
+    cut=None
+    if material in [stone,aged,stone2] and w*2>65 and h*2<=8 and d*2>25 and int(abs(x+y+z+w))%4!=0:
+        # A full-depth shear removes a broad part of the ledge. Fresh exposed
+        # cuts and a fitted steel cradle describe the repair at silhouette scale.
+        notch=math.sin(x*.07+y*.11+w*.013)*w*.36
+        span=w*.14;depth=min(d*.38,8);bevel=min(5,w*.07)
+        outline=[(-w,-d+bevel),(-w+bevel,-d),(w-bevel*.8,-d),(w,-d+bevel),(w,d-bevel*1.3),(w-bevel*1.4,d),(notch+span,d),(notch+span*.35,d-depth),(notch-span*.4,d-depth*.74),(notch-span,d),(-w+bevel,d),(-w,d-bevel)]
+        v=[(x+xx,y+yy,z+zz) for yy in [-h,h] for xx,zz in outline];n=len(outline)
+        faces=[tuple(range(n)),tuple(reversed(range(n,2*n)))]
+        for i in range(n):j=(i+1)%n;faces.append((i,i+n,j+n,j))
+        cut=(notch,span,depth)
     if material==dark and w*2>4 and h*2>4 and d*2<3:
         # Interior light needs samples across the receiver, not only four dark
         # corners. A small planar grid preserves the physical recess silhouette.
@@ -64,12 +75,22 @@ def box(name,center,size,material,parent,skew=0):
                 a=iy*(nx+1)+ix;b=a+nx+1
                 faces.append((a,n+a,n+b,b) if ix==0 else (a,b,n+b,n+a))
     o=mesh(name,v,faces,material,parent)
+    if cut:
+        o.data.materials.append(stone2)
+        for i in [8,9,10]:o.data.polygons[i].material_index=1
+        notch,span,depth=cut
+        beam('exposed-ledge-cradle',(x+notch-span*1.2,y-h-.65,z+d-2),(x+notch+span*1.2,y-h-.65,z+d-2),1.35,metal,parent)
+        for side in [-1,1]:
+            xx=x+notch+side*span*1.15
+            box('ledge-repair-shoe',(xx,y-h-.65,z+d-2),(2.8,2.2,4),graphite,parent)
+            beam('shear-load-transfer',(xx,y-h-.4,z+d-1),(xx-side*span*.28,y-h-4,z+d-depth-2),1.25,metal,parent)
     if material in [stone,aged,stone2] and w*2>65 and h*2<=8 and d*2>25:
         for front in [-1,1]:
             zz=z+front*(d-.8)
             box('recessed-shelf-channel',(x,y-h-.9,zz),(w*2-5,1.5,1.8),graphite,parent)
             for j in range(max(2,int(w*2/17))):
                 xx=x-w+5+j*(w*2-10)/max(1,int(w*2/17)-1)
+                if cut and front>0 and abs(xx-x-cut[0])<cut[1]+5:continue
                 box('shelf-edge-coping',(xx,y+h*.25,zz),(10,h*.65,2.2),material,parent)
                 beam('shelf-load-bracket',(xx,y-h-.7,zz-front*.6),(xx,y-h-4,zz-front*6),1.3,metal,parent)
     if material==amber:

@@ -44,6 +44,12 @@ Pale aged fossil anatomy, saffron dune seas and thick smoked-gold glass sit bene
 
 Use actual orbital/cortical openings with rounded thick lips, fractured anatomical processes and varied rib families. Layer buried remains, stratified eroded shelves and wind-carved dunes through ordinary stretches. Split horizontal ceramic baffles and forked gold supports belong to the glass construction. Transparent shoulders, internal mineral laminae and gas inclusions distinguish glass from migrating granular sand. Sandfall volumes begin at modeled bone shelves and clear at the ground. The living plated burrower raises a moving ridge, breaches beyond the road and settles; dust strengthens that sequence without covering the route. Bone shelters clear peripheral sand traces, and reduced motion removes drifting grains while preserving physical sand and jump cues.
 
+## Umbra Fold
+
+Fractured chalk masonry, graphite deck cassettes and repaired cold-metal ribs sit against a warm luminous accretion ring and fine blue-white stellar depth. Give ordinary connectors layered terraces, deep service portals, unequal piers and thick broken walls. Exposed warm stone and sheltered cool graphite must retain facets, relief and restrained practical lights. Guides remain embedded in actual geometry.
+
+Pale receiving-deck checkers and unequal amber poles introduce the curved gaps before commitment. Repairs connect the road keel to observatory mass; plumb vault ribs provide a world reference during inversion. Keep the lower road and earlier grid legible through the descending fold. The giant intact instrument must have visible mass before stretching into attached strands, separating into structural members and spiralling inward. Reduced motion freezes decorative drift while preserving factual tidal cues and the required event. Retain the original scene, editable Blender source and selected sky provenance.
+
 ## UI and feedback
 
 Warm off-white/graphite, technical numerals, vermilion active accents, generous spacing and real controls. Keep telemetry and notices away from the craft, upcoming road and touch controls. Moderate chase FOV, no default camera shake, and road-local camera clearance.

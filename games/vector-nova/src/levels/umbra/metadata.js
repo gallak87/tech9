@@ -7,6 +7,7 @@ export default {
   ui: {
     compact: true,
     compactLandscape: true,
+    portraitCompactHud: true,
     stackedReview: true,
     lowNotice: true,
     edition: 'UMBRA FOLD',

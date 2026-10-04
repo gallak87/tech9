@@ -222,6 +222,20 @@
         "public/assets/levels/saffron/saffron-sky-v2.png",
         "public/assets/levels/saffron/weathering-noise-v1.r8"
       ]
+    },
+    {
+      "id": "umbra-observatory",
+      "source": "assets/levels/umbra/ and src/levels/umbra/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original scene-guided Blender observatory kit, authored graphite road and deterministic tidal/accretion presentation. The original scene, native selected sky, exact prompts, generator and editable source are retained.",
+      "rights": "Project-authored/generated; no third-party artwork or meshes",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/levels/umbra/umbra-observatory.glb",
+        "public/assets/levels/umbra/umbra-sky-v2.png"
+      ],
+      "provenanceRecord": "assets/levels/umbra/provenance.json",
+      "skyProvenance": "assets/levels/umbra/SKY_PROVENANCE.md"
     }
   ],
   "thirdParty": [

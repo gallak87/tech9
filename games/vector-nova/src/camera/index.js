@@ -177,7 +177,8 @@ export function createCameraRig(
           );
         }
       }
-      // Preserve the actual incoming composition throughout free flight. A
+      // Preserve the incoming composition at takeoff. Opted-in circuits may
+      // gradually return toward forward flight chase. A
       // craft-centred flight goal would still recenter an off-centre road view
       // even after fixing its frame origin. Relatching returns that carried view
       // to ordinary road composition gradually, without a source-change step.

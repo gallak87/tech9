@@ -17,6 +17,9 @@
     "command": "/Applications/Blender.app/Contents/MacOS/Blender --background --python assets/levels/umbra/build_umbra_assets.py",
     "models": [
       "terrace",
+      "gallery",
+      "pier",
+      "wall",
       "lens",
       "vault",
       "instrument",
@@ -29,9 +32,9 @@
   "runtime": {
     "export": "public/assets/levels/umbra/umbra-observatory.glb",
     "conceptServed": false,
-    "geometry": "Authored pale terraces, repair buttresses, nested open lens rings, vault ribs, and instrument tower with three exported stages.",
+    "geometry": "Material-batched fractured terraces, multi-level open galleries, unequal attached piers, thick ashlar portal walls, nested lenses, vault ribs, instrument cassettes and repair joints. Actual structural facets and service decks complement object-space stone/graphite surface relief.",
     "animation": "Runtime deforms the intact instrument's 12 structural groups, separates them and pulls them into the ring. Exported stretched/fragmented forms are editable reference poses. Six distant streams pass from intact instruments to elongated forms to broken structural ribs.",
-    "backdrop": "Code-native localized disk/halo shader and black sphere. Stars and subdued dust surround all views. No rendered-road or screen-space distortion.",
+    "backdrop": "Selected native 1774x887 sRGB umbra-sky-v2.png supplies subdued distant atmosphere with wrap/pole filtering. Fine seeded point stars, localized accretion disk/halo, photon rim and black sphere remain separately authored. No rendered-road or screen-space lensing distortion.",
     "presets": "Low retains all major architecture, disk and stars. Reduced motion canonically freezes decorative ring flow and distant consumption. Required giant-event timing remains unchanged.",
     "rights": "Original generated scene reference and authored Blender/Three.js geometry; no third-party assets.",
     "limitations": [

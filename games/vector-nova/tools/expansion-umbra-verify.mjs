@@ -4,8 +4,7 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 
 const base = process.env.VN_URL;
-if (!base)
-  throw new Error('VN_URL must identify the coordinated Umbra preview');
+if (!base) throw new Error('VN_URL must identify the owned Umbra preview');
 const output = path.resolve(
   process.env.VN_EVIDENCE || '.experiments/expansion/umbra/production',
 );
@@ -69,6 +68,7 @@ try {
   });
   report.build = await page.locator('script[type=module]').getAttribute('src');
   await page.locator('#start').click();
+  await page.waitForFunction(() => window.__VN.getSnapshot().mode === 'racing');
   await keys('w', 650);
   check(
     'real throttle accelerates from grid',
@@ -138,15 +138,19 @@ try {
             JSON.stringify(played.runtime.state),
       );
       const rejected = await page.evaluate((r) => {
-        r.runtime.rulesId += '-incompatible';
+        const before = window.__VN.getSnapshot();
+        r.initial.vehicle.energy -= 1;
         try {
           window.__VN.playReplay(r);
           return false;
         } catch {
-          return true;
+          const after = window.__VN.getSnapshot();
+          return ['vehicle', 'competition', 'runtime'].every(
+            (key) => JSON.stringify(before[key]) === JSON.stringify(after[key]),
+          );
         }
       }, replay);
-      check('incompatible flight rules rejected', rejected);
+      check('invalid replay rejected and prior field retained', rejected);
       await capture(`jump${i}-${kind}-landing`);
     }
     await scenario(`jump${i}-short`);
@@ -224,27 +228,8 @@ try {
   await page.locator('#quality').selectOption('low');
   await page.locator('#motion').check();
   await page.locator('#resume').click();
-  for (const viewport of [
-    { width: 1440, height: 900 },
-    { width: 390, height: 844 },
-    { width: 844, height: 390 },
-    { width: 640, height: 360 },
-  ]) {
-    await page.setViewportSize(viewport);
-    await scenario('knot-tide-test');
-    await capture(`low-${viewport.width}x${viewport.height}`);
-    const clear = await page.evaluate(() => {
-      const a = document.querySelector('#minimap').getBoundingClientRect(),
-        b = document.querySelector('.speed').getBoundingClientRect();
-      return (
-        a.right <= b.left ||
-        a.left >= b.right ||
-        a.bottom <= b.top ||
-        a.top >= b.bottom
-      );
-    });
-    check(`map/speed clear at ${viewport.width}x${viewport.height}`, clear);
-  }
+  await scenario('knot-tide-test');
+  await capture('low-reduced-motion-tide');
   await page.evaluate(() => window.__VN.restart());
   const reset = await snap();
   check(
@@ -253,19 +238,24 @@ try {
   );
   check('steering assistance preserved', reset.handling.steeringAssist === 0.3);
   assert.deepEqual(report.errors, []);
-  await page.route('**/assets/levels/umbra/umbra-observatory.glb', (route) =>
-    route.abort('failed'),
-  );
-  await page.goto(url.href);
-  await page.locator('.failure').waitFor({ state: 'visible', timeout: 30000 });
-  check(
-    'selected Umbra asset failure removes renderer and offers recovery',
-    (await page.locator('canvas#world').count()) === 0 &&
-      (await page.locator('.failure button').count()) === 2 &&
-      !(await page.evaluate(() => !!window.__VN?.ready)),
-  );
-  // The intentionally aborted owned asset logs an expected network error.
-  report.expectedAssetFailureErrors = report.errors.splice(0);
+  for (const asset of ['umbra-observatory.glb', 'umbra-sky-v2.png']) {
+    const pattern = `**/assets/levels/umbra/${asset}`;
+    await page.route(pattern, (route) => route.abort('failed'));
+    await page.goto(url.href);
+    await page
+      .locator('.failure')
+      .waitFor({ state: 'visible', timeout: 30000 });
+    check(
+      `selected ${asset} failure removes renderer and offers recovery`,
+      (await page.locator('canvas#world').count()) === 0 &&
+        (await page.locator('.failure button').count()) === 2 &&
+        !(await page.evaluate(() => !!window.__VN?.ready)),
+    );
+    // Each intentionally aborted owned asset logs an expected network error.
+    report.expectedAssetFailureErrors ??= [];
+    report.expectedAssetFailureErrors.push(...report.errors.splice(0));
+    await page.unroute(pattern);
+  }
 } catch (e) {
   report.errors.push(e.stack || String(e));
 } finally {

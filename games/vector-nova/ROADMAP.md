@@ -12,13 +12,14 @@
 - [x] Glasswake Comet: merge crystal/frost driving, fracture jumps, the crevice corkscrew, shelf collapses and snow presentation.
 - [x] Cindercoil: merge the volcanic circuit, lava surges/spill, furnace roll, vent flight and ash/heat presentation.
 - [x] Saffron Leviathan: merge skull traversal, vertebral flights, migrating sand/glass choices, burrower and sandfall presentation.
+- [x] Umbra Fold: integrate tidal line control, curved flights, continuous accretion, the enormous consumption event and the selected native sky.
 - [x] Gate 5 initial flow: add audible start lights, two-lap timing/results, continued driving and retained paddock results.
 - [x] Gate 6 initial opponents: add Rook/Latch/Mule using actual physics/devices, a 2×2 grid and Easy/Medium/Hard difficulty.
 - [x] Gate 8 fleet: add Kestrel/Shrike/Bastion/Needle, distinct handling, saved selection/stats and fleet/rival inspection.
 - [x] Shared inspection: add free-camera navigation and responsive driving/review controls across circuits.
 - [x] Halcyon feedback: add position/lap timing, full-field relative race gaps, matching rival colors and catapults toward 600 km/h with strong launch blur.
 - [x] Asset layout: normalize Halcyon/Orbital/Nacre folders and base-aware loading; prune obsolete served models and duplicate rival GLBs while retaining sources/provenance.
-- [x] Shared racing graduation: reuse Vector/Aegis, 600 km/h launch feedback, three physical rivals, difficulty, timing/results and replay on Halcyon/Orbital/Nacre/Vesper/Glasswake/Cindercoil/Saffron.
+- [x] Shared racing graduation: reuse Vector/Aegis, 600 km/h launch feedback, three physical rivals, difficulty, timing/results and replay on Halcyon/Orbital/Nacre/Vesper/Glasswake/Cindercoil/Saffron/Umbra.
 - [x] Nacre immersion: blend the entire sound mix underwater and restore it smoothly on exit; add pooled bubbles at actual submerged takeoff, flight and landing.
 
 ## Remaining level expansion
@@ -27,13 +28,14 @@ Continue the existing authored worktrees using the [expansion rules](docs/expans
 
 - [ ] [Zephyr Basilica](docs/expansion/zephyr/HANDOFF.md): cathedral traversal, waterfall jumps and falling architecture.
 - [ ] [Helion Flare](docs/expansion/helion/HANDOFF.md): flare-lane evasion, heat/cooling choices and stellar prominences.
-- [ ] [Umbra Fold](docs/expansion/umbra/HANDOFF.md): tidal zones, curved leaps and debris consumption.
 
 ## Remaining gameplay
 
 Agree each phase's scope before implementation; scoped independent critique ends with human review.
 
 ### Level polish
+
+- [ ] Umbra: vary ordinary observatory mass and repair construction, deepen stone/metal material differentiation, bring the elevated jump preview and first arrival closer to normal chase, and strengthen the Fold’s visible start-grid reference.
 
 - [ ] Saffron: deepen bone erosion and fracture variation, sharpen creature armor response, enrich sandfall volume and ordinary scenery and optimize high-resolution material/postprocessing cost.
 

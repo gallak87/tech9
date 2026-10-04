@@ -192,8 +192,8 @@ export function buildUmbraRoad(
     ? metal
     : makeMaterial({
         color: 0x73838a,
-        anisotropy: 0.62,
-        roughness: 0.38,
+        anisotropy: 0.28,
+        roughness: 0.52,
         metalness: 0.76,
       });
   const pale = makeMaterial({
@@ -321,6 +321,9 @@ export function buildUmbraRoad(
     }
   }
   const box = new THREE.BoxGeometry(1, 1, 1);
+  // Explicit unit tangents keep stretched cassette faces orthonormal. The
+  // UV-derivative fallback shortens one axis on these long, narrow instances.
+  box.computeTangents();
   geometries.add(box);
   // Closed pressed leaves: clipped corners and recessed faces on both sides.
   const profile = [

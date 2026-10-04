@@ -149,6 +149,21 @@ test('shape and production are finite, share true gap boundaries, and release ow
       if (object.isInstancedMesh) watch(object);
       const position = object.geometry.getAttribute('position');
       assert.ok(Array.from(position.array).every(Number.isFinite), object.name);
+      if (object.isInstancedMesh && object.material.anisotropy > 0) {
+        const tangent = object.geometry.getAttribute('tangent');
+        const normal = object.geometry.getAttribute('normal');
+        assert.ok(
+          tangent,
+          'anisotropic housings carry an explicit unit tangent basis',
+        );
+        for (let i = 0; i < tangent.count; i++) {
+          const t = new THREE.Vector3().fromBufferAttribute(tangent, i);
+          const n = new THREE.Vector3().fromBufferAttribute(normal, i);
+          assert.ok(
+            Math.abs(t.length() - 1) < 1e-5 && Math.abs(t.dot(n)) < 1e-5,
+          );
+        }
+      }
       triangles +=
         ((object.geometry.index?.count ?? position.count) / 3) *
         (object.isInstancedMesh ? object.count : 1);

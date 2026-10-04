@@ -114,25 +114,34 @@ def wedge(name,x,y,z,w,h,d,material,parent):
     # Monumental members are bonded courses with staggered, deep open joints.
     # Retain the original envelope and a continuous load-bearing inner core.
     if material in [stone,stone2,aged] and h>33 and w>=7:
-        core=stone_piece(name+'-core',x,y,z,w*.82,h*.93,d*.65,aged,parent)
-        count=max(2,math.ceil(h/26));course=h/count
-        fault=(x+random.uniform(-.2,.2)*w,y,random.uniform(-.17,.17))
-        for j in range(count):
-            bonds=[-.5,-.17 if j%2 else .22,.5] if w>30 else [-.5,.5]
-            bay=w>=16 and count>=3 and j==count//2
-            opening=min(12,w*.32);offset=math.sin(w+h)*w*.08
+        # Three structural histories change the large mass, not merely its
+        # surface marks: intact ashlar, sheared courses and fitted repairs.
+        history=int(abs(x*.71+y*.19+z*.37+w*.43+h*.23))%3
+        core=stone_piece(name+'-core',x,y,z,w*(.68 if history==2 else .82),h*.90,d*.65,aged,parent)
+        count=max(3 if w>=16 and h>=60 else 2,math.ceil(h/(36 if history==0 else 27)))
+        weights=[1+.28*math.sin(j*2.1+x*.07+h*.04) for j in range(count)]
+        courses=[h*weight/sum(weights) for weight in weights]
+        fault=False if history==0 else (x+random.uniform(-.16,.16)*w,y,random.uniform(-.23,.23))
+        base=0
+        for j,course in enumerate(courses):
+            bonds=[-.5,-.21 if j%2 else .17,.5] if w>30 else [-.5,.5]
+            bay=w>=16 and count>=3 and j==(count//2 if history!=2 else 1)
+            opening=min(12,w*(.28 if history==0 else .36));offset=math.sin(w+h)*w*.08
             if bay:bonds=[-.5,(offset-opening/2)/w,(offset+opening/2)/w,.5]
             for k in range(len(bonds)-1):
                 if bay and k==1:continue
                 left,right=bonds[k],bonds[k+1]
                 ww=w*(right-left);xx=x+w*(left+right)/2
-                taper=1-j/count*.11
-                stone_piece(name+'-bonded-course',x+(xx-x)*taper,y+j*course+.22,z,ww*taper-.44,course-.62,d*(.96+random.random()*.04),material if (j+k)%7!=4 else aged,parent,fault)
+                taper=1-j/count*(.05 if history==0 else .14)
+                shoulder=(history==2 and j==count-1)
+                taper*=.82 if shoulder else 1
+                shift=w*.045*(1 if x>=0 else -1) if shoulder else 0
+                stone_piece(name+'-bonded-course',x+(xx-x)*taper+shift,y+base+.22,z,ww*taper-.44,course-.62,d*(.96+random.random()*.04),material if (j+k+history)%7!=4 else aged,parent,fault)
             if bay:
                 # Removing the outer course reveals a sheltered service alcove
                 # in the retained core; hardware sits at its actual back and lip.
                 for front in [-1,1]:
-                    cx=x+offset;cy=y+j*course;back=z+front*(d*.325+.18)
+                    cx=x+offset;cy=y+base;back=z+front*(d*.325+.18)
                     box('alcove-instrument-back',(cx,cy+course*.47,back),(opening*.77,course*.62,.3),dark,parent)
                     box('repaired-alcove-sill',(cx,cy+1,z+front*d*.46),(opening+1.2,1.3,2.2),metal,parent)
                     box('sheltered-alcove-optic',(cx,cy+course*.83,back+front*.7),(opening*.72,.6,.55),amber,parent)
@@ -140,6 +149,16 @@ def wedge(name,x,y,z,w,h,d,material,parent):
                         beam('alcove-jamb-repair',(cx+side*opening*.46,cy+1.8,back+front*.6),(cx+side*opening*.46,cy+course*.88,back+front*.6),.85,metal,parent)
                     for u in [-.25,0,.25]:
                         box('instrument-cooling-fin',(cx+opening*u,cy+course*.45,back+front*.3),(.45,course*.39,.6),graphite,parent)
+            base+=course
+        if history==2:
+            # A fitted steel saddle catches the reduced crown and transfers its
+            # load into the surviving courses, visibly separate from the stone.
+            yy=y+h-courses[-1]+1.2
+            for front in [-1,1]:
+                zz=z+front*(d*.5+.45)
+                beam('crown-repair-saddle',(x-w*.39,yy-3,zz),(x+w*.39,yy+3,zz),1.25,metal,parent)
+                for side in [-1,1]:
+                    box('saddle-anchor',(x+side*w*.32,yy+side*2.5,zz),(2.2,4.2,.7),graphite,parent)
         return core
     return stone_piece(name,x,y,z,w,h,d,material,parent)
 
@@ -148,7 +167,7 @@ def stone_piece(name,x,y,z,w,h,d,material,parent,fault=None):
     # Its fresh break is a separate material, not painted crackle on a trapezoid.
     cols=6;rows=4;verts=[];faces=[]
     top=[1-random.uniform(.008,.13)*min(w,d)/max(h,.1) for _ in range(cols)]
-    damaged=not name.endswith('-core') and (fault is not None or random.random()<.48)
+    damaged=not name.endswith('-core') and fault is not False and (fault is not None or random.random()<.48)
     fault=fault or (x+random.uniform(-.19,.19)*w,y,random.uniform(-.32,.32))
     for back in [False,True]:
         for row in range(rows):

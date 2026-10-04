@@ -91,7 +91,11 @@ try {
     { width: 390, height: 844 },
     { width: 844, height: 390 },
     { width: 640, height: 360 },
-  ]) {
+  ].filter(
+    (viewport) =>
+      !process.env.VN_VIEWPORT ||
+      `${viewport.width}x${viewport.height}` === process.env.VN_VIEWPORT,
+  )) {
     for (const quality of ['high', 'low']) {
       for (const shape of process.env.VN_PRODUCTION_ONLY === '1'
         ? [false]

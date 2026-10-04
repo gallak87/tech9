@@ -13,6 +13,7 @@ export function createUmbraOverlay({ host, track, view }) {
       .umbra-layout #interface.driving #notice { top:176px; bottom:auto; left:calc(50% + 30px); transform:translateX(-50%); width:min(260px,calc(100vw - 440px)); }
     }
     @media(max-height:450px) and (max-width:700px) {
+      .umbra-layout #interface.driving #notice { top:146px; font-size:9px; letter-spacing:.04em; line-height:1.1; }
       .umbra-layout #interface.driving .telemetry { bottom:80px; }
       .umbra-layout #interface.driving .energy-track { margin:6px 0; }
       .umbra-layout #interface.driving .energy small { font-size:7px; }

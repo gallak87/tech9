@@ -162,7 +162,7 @@ export async function createUmbraBackdrop({
     sunColor: '#ffd9b4',
     sunIntensity: 2.7,
     ambientSky: '#a2c2e4',
-    ambientGround: '#202735',
+    ambientGround: '#526579',
     ambientIntensity: 0.9,
     fillColor: '#91c8f1',
     fillIntensity: 0.76,

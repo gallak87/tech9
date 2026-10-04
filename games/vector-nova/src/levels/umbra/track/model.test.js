@@ -195,3 +195,42 @@ test('shape and production are finite, share true gap boundaries, and release ow
       );
   }
 });
+
+test('Umbra practicals light the driving side through inversion and restore by distance', () => {
+  const road = buildUmbraRoad(track);
+  const lights = road.group.children.filter((node) => node.isSpotLight);
+  assert.equal(lights.length, 3);
+  const distance = (track.inversion.holdStart + track.inversion.holdEnd) / 2;
+  const sample = () =>
+    lights
+      .map((light) => ({
+        position: light.position.toArray(),
+        target: light.target.position.toArray(),
+        intensity: light.intensity,
+      }))
+      .sort((a, b) => a.position[0] - b.position[0]);
+  road.update({ state: { distance } });
+  const expected = sample();
+  assert.ok(lights.some((light) => light.intensity > 0));
+  for (const light of lights) {
+    assert.ok(
+      light.target.position.y > light.position.y,
+      'inverted optic aims upward toward the driving surface',
+    );
+  }
+  road.update({ state: { distance }, dt: 0, time: 1000 });
+  assert.deepEqual(
+    sample(),
+    expected,
+    'pause does not change practical light state',
+  );
+  road.update({ state: { distance: 50 } });
+  road.update({ state: { distance } });
+  assert.deepEqual(
+    sample(),
+    expected,
+    'scenario restoration is independent of previous selection',
+  );
+  road.dispose();
+  road.dispose();
+});

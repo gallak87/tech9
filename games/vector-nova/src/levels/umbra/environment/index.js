@@ -308,9 +308,9 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
     for (const [s, color, intensity, height] of [
       [100, '#c5d5df', 14500, 65],
       [1050, '#b5cfdf', 11500, 65],
-      [1750, '#ffd2a0', 26000, 95],
-      [2450, '#a8c4d4', 14000, 48],
-      [3390, '#ffb969', 22000, 70],
+      [1750, '#ffd2a0', 11000, 95],
+      [2700, '#bed1dc', 14000, 48],
+      [3390, '#ffb969', 12000, 70],
       [4500, '#b8cbd9', 14500, 55],
       [5100, '#becfd9', 10000, 45],
       [500, '#deb78b', 13000, 45],
@@ -333,7 +333,7 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
         ),
       );
     const serviceLights = Array.from({ length: 4 }, () => {
-      const light = new T.PointLight('#ffbf81', 0, 32, 2);
+      const light = new T.PointLight('#ffbf81', 0, 45, 2);
       group.add(light);
       return light;
     });
@@ -377,7 +377,7 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
             .sort((a, b) => a.distance - b.distance);
           serviceLights.forEach((light, index) => {
             const entry = nearby[index];
-            light.intensity = entry ? 230 : 0;
+            light.intensity = entry ? 540 : 0;
             if (entry) light.position.copy(entry.point);
           });
         }

@@ -8,6 +8,7 @@ import {
 } from '../../../track/geometry.js';
 import { framePoint } from '../../../track/frames.js';
 import { tidalResponse } from './forces.js';
+import { selectPracticalFixtures } from '../../../track/lighting.js';
 
 function panelGeometry(track) {
   const positions = [];
@@ -173,12 +174,12 @@ export function buildUmbraRoad(
   const panel = makeMaterial({
     color: 0xffffff,
     vertexColors: true,
-    roughness: 0.62,
+    roughness: 0.66,
     metalness: 0.38,
   });
   const metal = makeMaterial({
     color: shape ? 0x91a0a7 : 0x7c929e,
-    roughness: 0.29,
+    roughness: 0.38,
     metalness: 0.7,
   });
   const pale = makeMaterial({
@@ -337,6 +338,7 @@ export function buildUmbraRoad(
   indexedLeaf.dispose();
   leaf.computeVertexNormals();
   geometries.add(leaf);
+  const fixtures = [];
   const instances = new Map();
   const instance = (material, position, quaternion, scale, geometry = box) => {
     const key = geometry.uuid + material.uuid;
@@ -408,6 +410,13 @@ export function buildUmbraRoad(
         const y = shape ? 1.55 : tall ? 3.65 : 2.65;
         const length = Math.min(tall ? 20 : 12, (end - distance) * 1.2);
         const plateMaterial = nearLaunch ? repair : sideMaterial;
+        if (!shape && tall)
+          fixtures.push({
+            distance,
+            position: framePoint(frame, x - side * 0.48, y + height * 0.32),
+            target: framePoint(frame, 0, 0.2, 5),
+            color: nearLaunch ? 0xffd3a1 : 0xc4d8e5,
+          });
         localBox(
           plateMaterial,
           frame,
@@ -486,18 +495,6 @@ export function buildUmbraRoad(
               0.2,
               side * -0.14,
             );
-            for (const dy of [-height * 0.34, height * 0.31])
-              localBox(
-                repair,
-                frame,
-                faceX - side * 0.13,
-                y + dy,
-                z,
-                0.1,
-                0.13,
-                0.15,
-                side * -0.14,
-              );
           }
           if (tall)
             for (const dy of [-height * 0.1, height * 0.08])
@@ -585,6 +582,18 @@ export function buildUmbraRoad(
           1.3,
         );
         for (const side of [-1, 1]) {
+          // Alternating web braces connect each pair of longitudinal spines.
+          // They remain below the existing deck envelope through every roll.
+          for (const z of [-10, 10]) {
+            beam(
+              metal,
+              framePoint(frame, side * 8, -6.2, z),
+              framePoint(frame, side * 12, -3.3, -z),
+              0.38,
+              0.7,
+            );
+            localBox(metal, frame, side * 8, -6.4, z, 2.1, 0.45, 2.8);
+          }
           localBox(
             repair,
             frame,
@@ -925,13 +934,52 @@ export function buildUmbraRoad(
     result.castShadow = true;
     group.add(result);
   }
+  // The three nearest existing leaf optics cast a continuous grazing pool.
+  // Fixture selection fades to zero at handoffs and follows track distance,
+  // including inversion, pause and seeded/replayed scenario restoration.
+  const practicals = shape
+    ? []
+    : Array.from({ length: 3 }, () => {
+        const light = new THREE.SpotLight(0xc4d8e5, 0, 78, 1.12, 0.85, 2);
+        light.name = 'Umbra / recessed roadside optic';
+        group.add(light, light.target);
+        return light;
+      });
+  const assignments = Array(practicals.length).fill(-1);
+  function update({ state } = {}) {
+    if (disposed || !practicals.length || !state) return;
+    const selected = selectPracticalFixtures(
+      fixtures,
+      track.length,
+      state.distance,
+      20,
+    );
+    const retained = new Set(selected.map(({ index }) => index)),
+      claimed = new Set();
+    for (const { index, fixture, weight } of selected) {
+      let slot = assignments.indexOf(index);
+      if (slot < 0)
+        slot = assignments.findIndex(
+          (id, i) => !retained.has(id) && !claimed.has(i),
+        );
+      claimed.add(slot);
+      const light = practicals[slot];
+      if (assignments[slot] !== index) {
+        light.position.copy(fixture.position);
+        light.target.position.copy(fixture.target);
+        light.color.setHex(fixture.color);
+        assignments[slot] = index;
+      }
+      light.intensity = 460 * weight;
+    }
+  }
   group.userData.reviewKind = shape ? 'bare-track' : 'production';
   let disposed = false;
   const dispose = () => {
     if (disposed) return;
     disposed = true;
     group.traverse((object) => {
-      if (object.isInstancedMesh) object.dispose();
+      if (object.isInstancedMesh || object.isLight) object.dispose();
     });
     for (const geometry of geometries) geometry.dispose();
     for (const material of materials) material.dispose();
@@ -943,9 +991,11 @@ export function buildUmbraRoad(
   return {
     group,
     dispose,
+    update,
     setReflection(texture) {
       for (const material of materials) {
         material.envMap = texture;
+        material.envMapIntensity = material === panel ? 0.48 : 0.62;
         material.needsUpdate = true;
       }
     },

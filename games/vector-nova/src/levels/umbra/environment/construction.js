@@ -29,6 +29,8 @@ export function createUmbraConstruction(track, assets, layout) {
     'metal',
   );
   const transforms = [];
+  const seats = [];
+  const seatGeometry = new T.BoxGeometry(1, 1, 1);
   const route = Array.from(
     { length: Math.ceil(track.length / 8) },
     (_, i) => track.sample(i * 8).position,
@@ -87,7 +89,29 @@ export function createUmbraConstruction(track, assets, layout) {
           clear = false;
           break;
         }
-      if (clear) beam(start, end, 1.3, 2.6);
+      if (clear) {
+        beam(start, end, 1.3, 2.6);
+        for (const point of [start, end]) {
+          seats.push(
+            new T.Matrix4().compose(
+              point,
+              frame.quaternion,
+              new T.Vector3(4.2, 1.5, 5.4),
+            ),
+          );
+          for (const side of [-1, 1])
+            seats.push(
+              new T.Matrix4().compose(
+                point
+                  .clone()
+                  .addScaledVector(frame.right, side * 1.55)
+                  .addScaledVector(frame.up, -1.7),
+                frame.quaternion,
+                new T.Vector3(0.55, 3.4, 4.4),
+              ),
+            );
+        }
+      }
     }
   }
   const meshes = [];
@@ -144,6 +168,15 @@ export function createUmbraConstruction(track, assets, layout) {
     group.add(mesh);
     meshes.push(mesh);
   }
+  if (seats.length) {
+    const joints = new T.InstancedMesh(seatGeometry, material, seats.length);
+    seats.forEach((matrix, index) => joints.setMatrixAt(index, matrix));
+    joints.computeBoundingSphere();
+    joints.receiveShadow = true;
+    joints.name = 'Umbra / bearing plates and boxed repair seats';
+    group.add(joints);
+    meshes.push(joints);
+  }
   group.userData.construction = {
     attachedBeams: transforms.length,
     vaults: vaults.length,
@@ -156,6 +189,7 @@ export function createUmbraConstruction(track, assets, layout) {
       disposed = true;
       meshes.forEach((m) => m.dispose());
       box.dispose();
+      seatGeometry.dispose();
       material.dispose();
       group.clear();
     },

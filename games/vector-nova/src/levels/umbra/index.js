@@ -15,8 +15,8 @@ export default function createLevel({ shape = false } = {}) {
       world: shape ? 'umbra-shape' : 'umbra-fold',
       background: '#050912',
       fog: null,
-      bloomStrength: 0.16,
-      bloomThreshold: 1.05,
+      bloomStrength: 0.1,
+      bloomThreshold: 1.6,
       reflectionFar: 2600,
     },
     camera: {

@@ -123,7 +123,7 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
   });
   const metal = makeMaterial({
     color: shape ? 0x91a0a7 : 0x7c929e,
-    roughness: 0.43,
+    roughness: 0.61,
     metalness: 0.7,
   });
   const pale = makeMaterial({
@@ -139,7 +139,7 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
   const guide = makeMaterial({
     color: 0xc9eaf0,
     emissive: 0x729cac,
-    emissiveIntensity: shape ? 0 : 0.95,
+    emissiveIntensity: shape ? 0 : 0.65,
     roughness: 0.45,
     metalness: 0.25,
   });
@@ -165,6 +165,7 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
     const result = new THREE.Mesh(geometry, material);
     result.name = name;
     result.receiveShadow = true;
+    result.castShadow = true;
     group.add(result);
     return result;
   };
@@ -692,6 +693,7 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
     );
     result.computeBoundingSphere();
     result.receiveShadow = true;
+    result.castShadow = true;
     group.add(result);
   }
   group.userData.reviewKind = shape ? 'bare-track' : 'production';

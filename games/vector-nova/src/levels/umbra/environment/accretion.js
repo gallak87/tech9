@@ -45,7 +45,7 @@ export function createUmbraAccretion(assets) {
   const group = new T.Group();
   group.name = 'Umbra / architecture consumption';
   const center = new T.Vector3(...RING_CENTER);
-  const origin = new T.Vector3(-450, 230, -850);
+  const origin = new T.Vector3(-300, 220, -1050);
   const direction = center.clone().sub(origin).normalize();
   const lean = new T.Quaternion().setFromUnitVectors(
     new T.Vector3(0, 1, 0),
@@ -123,7 +123,8 @@ export function createUmbraAccretion(assets) {
       .copy(identity)
       .slerp(lean, stretch * 0.91)
       .premultiply(orbit);
-    const size = 1.6 * (1 - infall * 0.93);
+    event.position.y += stretch * 200 * (1 - infall);
+    const size = (1.6 / (1 + stretch * 0.6)) * (1 - infall * 0.93);
     event.scale.setScalar(size);
     for (let i = 0; i < pieces.length; i++) {
       const { object, center: p } = pieces[i],

@@ -59,7 +59,25 @@ def arc(name,r,width,depth,start,end,material,parent,center=(0,0,0),segments=32)
     return mesh(name,vs,fs,material,parent)
 
 def wedge(name,x,y,z,w,h,d,material,parent):
-    return mesh(name,[(x-w/2,y,z-d/2),(x+w/2,y,z-d/2),(x+w/2,y,z+d/2),(x-w/2,y,z+d/2),(x-w*.27,y+h,z-d*.32),(x+w*.35,y+h*.83,z-d*.32),(x+w*.21,y+h*.92,z+d*.34),(x-w*.36,y+h*1.03,z+d*.35)],[(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)],material,parent)
+    # A broken stone face uses real uneven masonry facets, not a flat trapezoid
+    # covered with noise. The perimeter remains attached to its volume.
+    verts=[(x-w/2,y,z-d/2),(x+w/2,y,z-d/2),(x+w/2,y,z+d/2),(x-w/2,y,z+d/2),(x-w*.27,y+h,z-d*.32),(x+w*.35,y+h*.83,z-d*.32),(x+w*.21,y+h*.92,z+d*.34),(x-w*.36,y+h*1.03,z+d*.35)]
+    faces=[(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(3,0,4,7)]
+    grid=[]
+    for row in range(5):
+        v=row/4
+        left=Vector(verts[3]).lerp(Vector(verts[7]),v)
+        right=Vector(verts[2]).lerp(Vector(verts[6]),v)
+        for col in range(7):
+            u=col/6;ptt=left.lerp(right,u)
+            if row not in [0,4] and col not in [0,6]:
+                ptt.z+=random.uniform(-.055,.04)*min(w,h)
+            grid.append(len(verts));verts.append(tuple(ptt))
+    for row in range(4):
+        for col in range(6):
+            a=grid[row*7+col];b=grid[row*7+col+1];c=grid[(row+1)*7+col];e=grid[(row+1)*7+col+1]
+            faces.extend([(a,b,c),(c,b,e)])
+    return mesh(name,verts,faces,material,parent)
 
 def consolidate(parent):
     # One mesh per material and retained piece parent gives compact runtime draw count.
@@ -201,6 +219,11 @@ def gallery():
     for z in [-21,7,28]:
         arc('damaged-roof-ring',39,5,7,.18,2.42,stone,p,center=(0,37,z),segments=22)
         arc('roof-repair-rib',33,1.2,4,.25,2.65,metal,p,center=(0,37,z),segments=22)
+    # Unequal solid wall bays and broken upper edges vary the arched silhouette.
+    for x,y,z,h in [(-58,-7,24,25),(36,-42,40,32),(-35,27,27,20)]:
+        wedge('broken-gallery-wall-bay',x,y,z,28,h,8,stone,p)
+        box('wall-mortar-joint',(x,y+h*.4,z+4.4),(27,.8,1),graphite,p)
+        beam('attached-wall-repair',(x-12,y+3,z+5),(x+9,y+h-3,z+5),1.4,metal,p)
     for x in [-40,39]:
         beam('roof-foot-brace',(x,27,-28),(x*.73,61,-28),3,graphite,p)
     consolidate(p)

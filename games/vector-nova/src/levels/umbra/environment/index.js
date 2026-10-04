@@ -22,6 +22,31 @@ export function createUmbraSceneryLayout(track) {
   for (let s = 0; s < track.length; s += 14)
     route.push(track.sample(s).position.clone());
   const entries = [];
+  const viewpoints = [1660, 1740, 1820].map((s) =>
+    track
+      .sample(s)
+      .position.clone()
+      .add(new T.Vector3(0, 7, 0)),
+  );
+  const eventSilhouettes = [
+    new T.Vector3(-300, 365, -1050),
+    new T.Vector3(-620, 575, -1100),
+    new T.Vector3(-890, 520, -1200),
+  ];
+  const sightlineBlocked = (position, radius) =>
+    viewpoints.some((eye) =>
+      eventSilhouettes.some((hero) => {
+        const direction = hero.clone().sub(eye);
+        const t =
+          position.clone().sub(eye).dot(direction) / direction.lengthSq();
+        return (
+          t > 0 &&
+          t < 1 &&
+          eye.clone().addScaledVector(direction, t).distanceTo(position) <
+            radius + 70
+        );
+      }),
+    );
   const distance = (position) =>
     Math.sqrt(
       Math.min(...route.map((point) => point.distanceToSquared(position))),
@@ -29,6 +54,11 @@ export function createUmbraSceneryLayout(track) {
   function add(type, position, scale, rotation, role, clearance = 38) {
     const radius = RADII[type] * scale;
     const margin = distance(position) - radius;
+    if (
+      ['connector', 'distant'].includes(role) &&
+      sightlineBlocked(position, radius)
+    )
+      return false;
     if (margin < clearance) return false;
     pose.position.copy(position);
     pose.rotation.set(...rotation);

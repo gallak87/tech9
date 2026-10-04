@@ -9,6 +9,7 @@ export function createCameraRig(
     chaseHeight = 5,
     lookAhead = 35,
     safeFrame,
+    jumpPreview,
   } = {},
   subjectBounds = null,
 ) {
@@ -106,14 +107,39 @@ export function createCameraRig(
               .addScaledVector(f.up, 4.0);
         target = p.clone().addScaledVector(f.tangent, 22);
       } else {
+        const nextJump =
+          jumpPreview &&
+          track.jumps?.find((jump) => {
+            const remaining = jump.takeoff - state.distance;
+            return remaining >= 0 && remaining < jumpPreview.distance;
+          });
+        const preview = nextJump
+          ? T.MathUtils.smoothstep(
+              jumpPreview.distance - (nextJump.takeoff - state.distance),
+              0,
+              jumpPreview.distance * 0.5,
+            )
+          : 0;
+        const height = T.MathUtils.lerp(
+          chaseHeight,
+          jumpPreview?.height ?? chaseHeight,
+          preview,
+        );
+        const backDistance = T.MathUtils.lerp(
+          12.5,
+          jumpPreview?.back ?? 12.5,
+          preview,
+        );
         const ahead = track.sample(
           state.distance + lookAhead + state.speed * 0.18,
         );
-        back = track.sample(state.distance - 12.5 - state.speed * 0.025);
+        back = track.sample(
+          state.distance - backDistance - state.speed * 0.025,
+        );
         eye = back.position
           .clone()
           .addScaledVector(back.right, state.lateral * 0.83)
-          .addScaledVector(back.up, chaseHeight);
+          .addScaledVector(back.up, height);
         target = p.clone().lerp(
           ahead.position
             .clone()
@@ -121,6 +147,13 @@ export function createCameraRig(
             .addScaledVector(ahead.up, 1.6),
           0.55,
         );
+        if (nextJump) {
+          const receiving = track.sample(nextJump.landingStart + 20);
+          target.lerp(
+            receiving.position.clone().addScaledVector(receiving.up, 2),
+            preview * 0.2,
+          );
+        }
       }
       // Preserve the actual incoming composition throughout free flight. A
       // craft-centred flight goal would still recenter an off-centre road view

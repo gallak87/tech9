@@ -104,6 +104,7 @@ export function assetGroup(parts, name) {
   for (const { geometry, material } of parts) {
     const mesh = new T.Mesh(geometry, material);
     mesh.receiveShadow = true;
+    mesh.castShadow = true;
     group.add(mesh);
   }
   return group;
@@ -116,6 +117,7 @@ export function createAssetInstances(parts, matrices, name) {
     const mesh = new T.InstancedMesh(geometry, material, matrices.length);
     matrices.forEach((matrix, index) => mesh.setMatrixAt(index, matrix));
     mesh.receiveShadow = true;
+    mesh.castShadow = true;
     mesh.computeBoundingSphere();
     group.add(mesh);
   }

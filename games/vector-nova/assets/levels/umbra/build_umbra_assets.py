@@ -115,37 +115,42 @@ def wedge(name,x,y,z,w,h,d,material,parent):
     # Retain the original envelope and a continuous load-bearing inner core.
     if material in [stone,stone2,aged] and h>33 and w>=7:
         core=stone_piece(name+'-core',x,y,z,w*.82,h*.93,d*.65,aged,parent)
-        count=max(2,math.ceil(h/21));course=h/count
+        count=max(2,math.ceil(h/26));course=h/count
+        fault=(x+random.uniform(-.2,.2)*w,y,random.uniform(-.17,.17))
         for j in range(count):
-            splits=2 if w>30 and j%3!=1 else 1
-            for k in range(splits):
-                ww=w/splits
-                xx=x-w/2+ww*(k+.5)
+            bonds=[-.5,-.17 if j%2 else .22,.5] if w>30 else [-.5,.5]
+            for k in range(len(bonds)-1):
+                left,right=bonds[k],bonds[k+1]
+                ww=w*(right-left);xx=x+w*(left+right)/2
                 taper=1-j/count*.11
-                stone_piece(name+'-bonded-course',x+(xx-x)*taper,y+j*course+.30,z,ww*taper-.6,course-.8,d*(.91+random.random()*.09),material if (j+k)%5 else aged,parent)
+                stone_piece(name+'-bonded-course',x+(xx-x)*taper,y+j*course+.22,z,ww*taper-.44,course-.62,d*(.96+random.random()*.04),material if (j+k)%7!=4 else aged,parent,fault)
         return core
     return stone_piece(name,x,y,z,w,h,d,material,parent)
 
-def stone_piece(name,x,y,z,w,h,d,material,parent):
+def stone_piece(name,x,y,z,w,h,d,material,parent,fault=None):
     # Irregular sealed ashlar with chipped edges, deep fractures and quiet faces.
     # Its fresh break is a separate material, not painted crackle on a trapezoid.
     cols=6;rows=4;verts=[];faces=[]
     top=[1-random.uniform(.008,.13)*min(w,d)/max(h,.1) for _ in range(cols)]
-    cleft=random.choice([1,2,3]); damaged=random.random()<.67
+    damaged=not name.endswith('-core') and (fault is not None or random.random()<.48)
+    fault=fault or (x+random.uniform(-.19,.19)*w,y,random.uniform(-.32,.32))
     for back in [False,True]:
         for row in range(rows):
             v=row/(rows-1)
             for col in range(cols):
-                u=col/(cols-1)
-                xx=x+(u-.5)*w*(1-v*.13)
                 yy=y+v*h*top[col]
+                split=(fault[0]+(yy-fault[1])*fault[2]-x)/w+.5
+                fractured=damaged and .18<split<.82
+                columns=[0,.08,split-.015,split+.015,.92,1] if fractured else [0,.12,.35,.65,.88,1]
+                u=columns[col]
+                xx=x+(u-.5)*w*(1-v*.09)
                 edge=abs(u-.5)*2
-                chips=(.17 if (col+row)%4==0 else .065)*min(d,w)
+                chips=(.09 if (col+row)%4==0 else .025)*min(d,w)
                 zz=z+(-1 if back else 1)*(d/2-chips*edge)
-                if row not in [0,rows-1]:
-                    # A few broad clefts and a chipped course end cast real shadows.
-                    zz-=(-1 if back else 1)*d*(.25 if damaged and col in [cleft,cleft+1] and row==2 else 0)
-                    zz+=random.uniform(-.035,.025)*min(w,h)
+                # A continuous diagonal fracture exposes two cut planes;
+                # it crosses course ends instead of scooping identical pockets.
+                if fractured and col in [2,3]:zz-=(-1 if back else 1)*d*(.27 if col==2 else .23)
+                if row not in [0,rows-1]:zz+=random.uniform(-.012,.015)*min(w,h)
                 verts.append((xx,yy,zz))
     n=rows*cols
     for back in [0,1]:
@@ -165,7 +170,7 @@ def stone_piece(name,x,y,z,w,h,d,material,parent):
                 else:
                     v=a.lerp(b,col/3)
                     if row not in [0,rows-1]:
-                        v.x-=sign*w*(.12 if damaged and row==2 else random.uniform(.01,.035))
+                        v.x-=sign*w*(.035 if damaged and row==2 else random.uniform(.002,.015))
                     idx=len(verts);verts.append(tuple(v))
                 grid.append(idx)
         for row in range(rows-1):
@@ -179,6 +184,15 @@ def stone_piece(name,x,y,z,w,h,d,material,parent):
     o=mesh(name,verts,faces,material,parent)
     o.data.materials.append(stone2 if material in [stone,aged] else material)
     for poly in list(o.data.polygons)[-cols+1:]:poly.material_index=1
+    if damaged:
+        for back in range(2):
+            for row in range(rows-1):
+                split=(fault[0]+(y+(row+.5)*h/(rows-1)-fault[1])*fault[2]-x)/w+.5
+                if not .18<split<.82:continue
+                for col in [1,3]:
+                    idx=(back*(rows-1)*(cols-1)+row*(cols-1)+col)*2
+                    o.data.polygons[idx].material_index=1
+                    o.data.polygons[idx+1].material_index=1
     return o
 
 def broken_arc(name,r,width,depth,start,end,parent,center=(0,0,0),segments=16):

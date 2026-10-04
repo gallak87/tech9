@@ -91,6 +91,22 @@ export function createUmbraConstruction(track, assets, layout) {
         }
       if (clear) {
         beam(start, end, 1.3, 2.6);
+        const lowerStart = start.clone().addScaledVector(frame.up, -3.8);
+        const lowerEnd = end.clone().addScaledVector(frame.up, -3.8);
+        let webClear = true;
+        for (let t = 0.25; t <= 1; t += 0.05)
+          if (margin(lowerStart.clone().lerp(lowerEnd, t)) < 23)
+            webClear = false;
+        if (webClear) {
+          beam(lowerStart, lowerEnd, 0.8, 1.8);
+          const bays = Math.max(2, Math.ceil(start.distanceTo(end) / 12));
+          for (let bay = 0; bay < bays; bay++) {
+            const a = start.clone().lerp(end, bay / bays),
+              b = lowerStart.clone().lerp(lowerEnd, (bay + 1) / bays);
+            beam(a, b, 0.42, 0.75);
+          }
+        }
+
         for (const point of [start, end]) {
           seats.push(
             new T.Matrix4().compose(

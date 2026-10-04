@@ -182,6 +182,9 @@ export function buildUmbraRoad(
     roughness: 0.38,
     metalness: 0.7,
   });
+  const formedMetal = shape
+    ? metal
+    : makeMaterial({ color: 0x73838a, roughness: 0.38, metalness: 0.76 });
   const pale = makeMaterial({
     color: 0xc5c9b8,
     roughness: 0.8,
@@ -215,6 +218,7 @@ export function buildUmbraRoad(
       finishUmbraMaterial(material, 'graphite', surfaceTexture);
     finishUmbraMaterial(panel, 'deck', surfaceTexture);
     finishUmbraMaterial(metal, 'metal', surfaceTexture);
+    finishUmbraMaterial(formedMetal, 'plate', surfaceTexture);
     finishUmbraMaterial(pale, 'stone', surfaceTexture);
   }
   const mesh = (name, geometry, material) => {
@@ -401,7 +405,7 @@ export function buildUmbraRoad(
       const nearLaunch = track.jumps.some(
         (jump) => distance > jump.takeoff - 180 && distance < jump.takeoff,
       );
-      const sideMaterial = nearLanding ? pale : metal;
+      const sideMaterial = nearLanding ? pale : shape ? metal : formedMetal;
       const outside = frame.curvature > 0 ? -1 : 1;
       for (const side of [-1, 1]) {
         const tall = side === outside;
@@ -905,19 +909,26 @@ export function buildUmbraRoad(
   }
   // Batch identical guide sweeps while retaining their original world geometry.
   // This pays for richer leaf silhouettes without increasing the road draw cap.
-  if (!shape) {
-    const guides = group.children.filter(
-      (node) => node.isMesh && node.material === guide,
-    );
-    const merged = mergeGeometries(guides.map((node) => node.geometry));
-    for (const node of guides) {
-      group.remove(node);
-      geometries.delete(node.geometry);
-      node.geometry.dispose();
+  if (!shape)
+    for (const surface of [guide, metal]) {
+      const guides = group.children.filter(
+        (node) => node.isMesh && node.material === surface,
+      );
+      const merged = mergeGeometries(guides.map((node) => node.geometry));
+      for (const node of guides) {
+        group.remove(node);
+        geometries.delete(node.geometry);
+        node.geometry.dispose();
+      }
+      merged.computeBoundingSphere();
+      mesh(
+        surface === guide
+          ? 'Embedded navigation guides and lit keel lines'
+          : 'Continuous formed metal curbs and bands',
+        merged,
+        surface,
+      );
     }
-    merged.computeBoundingSphere();
-    mesh('Embedded navigation guides and lit keel lines', merged, guide);
-  }
   for (const { material, geometry, transforms } of instances.values()) {
     const result = new THREE.InstancedMesh(
       geometry,

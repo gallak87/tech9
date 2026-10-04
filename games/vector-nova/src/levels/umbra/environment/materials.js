@@ -8,43 +8,46 @@ export function finishUmbraMaterial(
 ) {
   if (surfaceTexture) material.map = surfaceTexture;
   const stone = ['stone', 'fresh', 'aged'].includes(kind);
+  const metal = ['metal', 'plate'].includes(kind);
   material.onBeforeCompile = (shader) => {
     if (surfaceTexture) shader.uniforms.umbraAtlas = { value: surfaceTexture };
     shader.vertexShader = shader.vertexShader
       .replace(
         '#include <common>',
-        `#include <common>\nvarying vec3 umbraSurface; varying vec3 umbraNormal; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'attribute vec2 umbraCassette; varying vec2 umbraPanel;' : ''}`,
+        `#include <common>\nvarying vec3 umbraMember; varying vec3 umbraRaw; varying vec3 umbraSurface; varying vec3 umbraNormal; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'attribute vec2 umbraCassette; varying vec2 umbraPanel;' : ''}`,
       )
       .replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
-        umbraSurface=position; umbraNormal=normal; umbraDeck=position.xz; umbraSeed=0.;
+        umbraRaw=position; umbraMember=position; umbraSurface=position; umbraNormal=normal; umbraDeck=position.xz; umbraSeed=0.;
         ${kind === 'deck' ? 'umbraDeck=uv; umbraPanel=umbraCassette;' : ''}
         #ifdef USE_INSTANCING
           umbraSeed=dot(instanceMatrix[3].xyz,vec3(.013,.021,.037));
+          umbraMember=position*vec3(length(instanceMatrix[0].xyz),length(instanceMatrix[1].xyz),length(instanceMatrix[2].xyz));
           umbraSurface=mat3(instanceMatrix)*position;
           mat3 umBasis=mat3(instanceMatrix);
           umbraNormal=normalize(umBasis*(normal/vec3(dot(umBasis[0],umBasis[0]),dot(umBasis[1],umBasis[1]),dot(umBasis[2],umBasis[2]))));
+          ${kind === 'plate' ? 'umbraNormal=normalize(normal/vec3(length(umBasis[0]),length(umBasis[1]),length(umBasis[2])));' : ''}
         #endif`,
       );
     shader.fragmentShader = shader.fragmentShader
       .replace(
         '#include <common>',
         `#include <common>
-      varying vec3 umbraSurface; varying vec3 umbraNormal; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'varying vec2 umbraPanel;' : ''}
+      varying vec3 umbraMember; varying vec3 umbraRaw; varying vec3 umbraSurface; varying vec3 umbraNormal; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'varying vec2 umbraPanel;' : ''}
       ${
         surfaceTexture
           ? `
       uniform sampler2D umbraAtlas;
       vec3 umTile(vec2 p){
         vec2 q=fract(p)*.988+.006;
-        q.x=(q.x+${stone ? '1.' : kind === 'metal' ? '2.' : '0.'})/3.;
+        q.x=(q.x+${stone ? '1.' : metal ? '2.' : '0.'})/3.;
         return textureGrad(umbraAtlas,q,dFdx(p)*vec2(.988/3.,.988),dFdy(p)*vec2(.988/3.,.988)).rgb;
       }
       vec3 umSurfaceMap(vec3 p){
         vec3 weights=pow(abs(normalize(umbraNormal)),vec3(6.));
         weights/=max(dot(weights,vec3(1.)),.00001);
-        p=p*${stone ? '.10' : kind === 'metal' ? '.30' : '.12'}+vec3(umbraSeed*2.7);
+        p=p*${stone ? '.10' : metal ? '.30' : '.12'}+vec3(umbraSeed*2.7);
         return umTile(p.yz)*weights.x+umTile(p.xz)*weights.y+umTile(p.xy)*weights.z;
       }`
           : ''
@@ -57,7 +60,7 @@ export function finishUmbraMaterial(
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
-      vec3 up=umbraSurface;
+      vec3 up=${kind === 'plate' ? 'umbraMember' : 'umbraSurface'};
       float macro=umFbm(up*.065+vec3(umbraSeed));
       float grain=umNoise(up*2.1);
       float fine=umNoise(up*18.7);
@@ -68,7 +71,7 @@ export function finishUmbraMaterial(
           ? `
         vec3 authoredSurface=${kind === 'deck' ? 'umTile(umbraDeck*vec2(.32,.11))' : 'umSurfaceMap(up)'};
         float surfaceTone=dot(authoredSurface,vec3(.2126,.7152,.0722));
-        diffuseColor.rgb*=mix(vec3(1.),clamp(authoredSurface/${stone ? 'vec3(.59,.53,.44)' : kind === 'metal' ? 'vec3(.26,.265,.27)' : 'vec3(.085)'},vec3(.68),vec3(1.32)),${stone ? '.8' : kind === 'metal' ? '.22' : '.24'});
+
       `
           : ''
       }
@@ -85,7 +88,7 @@ export function finishUmbraMaterial(
         diffuseColor.rgb*=mix(.90,1.07,mineral)*(1.-sparseSplit*.32);
         relief=(smoothstep(.32,.68,mineral)*.24+strata*.036+grain*.043+fine*.010*visible-sparseSplit*.045)*${kind === 'fresh' ? '.6' : '1.'};
       `
-          : kind === 'metal'
+          : metal
             ? `
         float brush=umNoise(up*vec3(48.,.5,.7));
         brush=mix(.5,brush,1.-smoothstep(.15,1.,length(dFdx(up*vec3(48.,.5,.7)))+length(dFdy(up*vec3(48.,.5,.7)))));
@@ -93,16 +96,27 @@ export function finishUmbraMaterial(
         float patina=smoothstep(.55,.72,macro)*umNoise(up*.9);
         diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.79,.78,.72),patina*.32);
         relief=grain*.003+brush*.0012;
+        ${
+          kind === 'plate'
+            ? `
+          float arris=min(.5-abs(umbraRaw.y),.5-abs(umbraRaw.z));
+          float edgeWear=(1.-smoothstep(.005,.035,arris))*smoothstep(.32,.67,umNoise(up*6.));
+          float protectedFinish=1.-smoothstep(.03,.10,arris);
+          diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*1.85+vec3(.045),edgeWear*.65);
+          diffuseColor.rgb*=1.-protectedFinish*.10;
+        `
+            : ''
+        }
       `
             : kind === 'deck'
               ? `
         float longitudinal=umFbm(vec3(umbraDeck.x*.8,umbraDeck.y*.26,1.));
         float panelEdge=min(min(umbraPanel.x,1.-umbraPanel.x),min(umbraPanel.y,1.-umbraPanel.y));
-        float dirt=1.-smoothstep(.012,.12,panelEdge);
+        float dirt=1.-smoothstep(.012,.065,panelEdge);
         float polished=(1.-smoothstep(.004,.015,panelEdge))*smoothstep(.35,.7,longitudinal);
         float wear=exp(-pow((abs(umbraDeck.x)-5.8)/3.3,2.));
         float scuff=umFbm(vec3(umbraDeck.x*1.6,umbraDeck.y*.9,5.));
-        float abrasion=smoothstep(.54,.68,scuff)*(1.-dirt)*(1.-wear*.65);
+        float abrasion=smoothstep(.54,.68,scuff)*(1.-dirt)*smoothstep(.18,.5,wear);
         diffuseColor.rgb*=1.-abrasion*.12;
         float trackGrain=umNoise(vec3(umbraDeck.x*24.,umbraDeck.y*1.7,2.));
         diffuseColor.rgb*=mix(.94,1.035,longitudinal)*(1.-dirt*.20)+wear*.028+polished*.12;
@@ -113,7 +127,8 @@ export function finishUmbraMaterial(
         relief=macro*.008+grain*.006+fine*.002*visible;
       `
       }
-      ${surfaceTexture ? `relief=relief*${stone ? '.5' : '.25'}+surfaceTone*${stone ? '.06' : kind === 'metal' ? '.0015' : kind === 'deck' ? '.0004' : '.0012'};` : ''}`,
+      ${surfaceTexture ? `diffuseColor.rgb*=mix(vec3(1.),clamp(authoredSurface/${stone ? 'vec3(.59,.53,.44)' : metal ? 'vec3(.26,.265,.27)' : 'vec3(.085)'},vec3(.68),vec3(1.32)),${kind === 'deck' ? '(.06+dirt*.24+abrasion*.13)' : stone ? '.8' : metal ? '.22' : '.24'});` : ''}
+      ${surfaceTexture ? `relief=relief*${stone ? '.5' : '.25'}+surfaceTone*${stone ? '.06' : metal ? '.0015' : kind === 'deck' ? '.0004' : '.0012'};` : ''}`,
       )
       .replace(
         '#include <map_fragment>',
@@ -122,7 +137,7 @@ export function finishUmbraMaterial(
       .replace(
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
-        roughnessFactor=clamp(roughnessFactor+${surfaceTexture ? (stone ? '(surfaceTone-.35)*.14+' : '(surfaceTone-.35)*.035+') : ''}(macro-.5)*${stone ? '.14' : '.06'}${kind === 'metal' ? '+patina*.24' : kind === 'deck' ? '+dirt*.18-wear*.14-polished*.14+abrasion*.04' : ''},${stone ? '.72' : kind === 'metal' ? '.19' : '.24'},.98);`,
+        roughnessFactor=clamp(roughnessFactor+${surfaceTexture ? (stone ? '(surfaceTone-.35)*.14+' : '(surfaceTone-.35)*.035+') : ''}(macro-.5)*${stone ? '.14' : '.06'}${metal ? `+patina*.24${kind === 'plate' ? '-edgeWear*.13+protectedFinish*.06' : ''}` : kind === 'deck' ? '+dirt*.18-wear*.14-polished*.14+abrasion*.04' : ''},${stone ? '.72' : metal ? '.19' : '.24'},.98);`,
       )
       .replace(
         '#include <normal_fragment_begin>',
@@ -130,7 +145,7 @@ export function finishUmbraMaterial(
       );
   };
   material.customProgramCacheKey = () =>
-    `umbra-surface-v4-${kind}-${!!surfaceTexture}`;
+    `umbra-surface-v5-${kind}-${!!surfaceTexture}`;
   return material;
 }
 

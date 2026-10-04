@@ -162,7 +162,11 @@ export function buildUmbraRoad(
   const geometries = new Set();
   const materials = new Set();
   const makeMaterial = (parameters) => {
-    const material = new THREE.MeshStandardMaterial(parameters);
+    const Material =
+      'anisotropy' in parameters
+        ? THREE.MeshPhysicalMaterial
+        : THREE.MeshStandardMaterial;
+    const material = new Material(parameters);
     materials.add(material);
     return material;
   };
@@ -174,6 +178,8 @@ export function buildUmbraRoad(
   const panel = makeMaterial({
     color: 0xffffff,
     vertexColors: true,
+    anisotropy: 0.28,
+    anisotropyRotation: Math.PI / 2,
     roughness: 0.66,
     metalness: 0.38,
   });
@@ -184,7 +190,12 @@ export function buildUmbraRoad(
   });
   const formedMetal = shape
     ? metal
-    : makeMaterial({ color: 0x73838a, roughness: 0.38, metalness: 0.76 });
+    : makeMaterial({
+        color: 0x73838a,
+        anisotropy: 0.62,
+        roughness: 0.38,
+        metalness: 0.76,
+      });
   const pale = makeMaterial({
     color: 0xc5c9b8,
     roughness: 0.8,
@@ -348,6 +359,22 @@ export function buildUmbraRoad(
   const leaf = indexedLeaf.toNonIndexed();
   indexedLeaf.dispose();
   leaf.computeVertexNormals();
+  const plateTangents = [];
+  for (let i = 0; i < leaf.attributes.normal.count; i++) {
+    const n = new THREE.Vector3().fromBufferAttribute(
+      leaf.attributes.normal,
+      i,
+    );
+    const t = new THREE.Vector3(0, 0, 1);
+    if (Math.abs(n.z) > 0.95) t.set(1, 0, 0);
+    t.addScaledVector(n, -t.dot(n)).normalize();
+    plateTangents.push(t.x, t.y, t.z, 1);
+  }
+  leaf.setAttribute(
+    'tangent',
+    new THREE.Float32BufferAttribute(plateTangents, 4),
+  );
+
   geometries.add(leaf);
   const fixtures = [];
   const instances = new Map();

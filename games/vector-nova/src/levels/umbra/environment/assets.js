@@ -58,7 +58,7 @@ export function collectUmbraAssets(scene, surfaceTexture = null) {
       );
       // Retain CPU-baked member contact occlusion through material batching.
       for (const key of Object.keys(geometry.attributes))
-        if (!['position', 'normal', 'color'].includes(key))
+        if (!['position', 'normal', 'color', '_umbralight'].includes(key))
           geometry.deleteAttribute(key);
       const list = byMaterial.get(node.material) ?? [];
       list.push(geometry.index ? geometry.toNonIndexed() : geometry);

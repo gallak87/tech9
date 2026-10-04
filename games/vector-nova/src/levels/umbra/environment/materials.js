@@ -5,6 +5,7 @@ export function finishUmbraMaterial(
   material,
   kind = 'stone',
   surfaceTexture = null,
+  bakedLight = false,
 ) {
   if (surfaceTexture) material.map = surfaceTexture;
   const stone = ['stone', 'fresh', 'aged'].includes(kind);
@@ -14,11 +15,12 @@ export function finishUmbraMaterial(
     shader.vertexShader = shader.vertexShader
       .replace(
         '#include <common>',
-        `#include <common>\nvarying vec3 umbraMember; varying vec3 umbraRaw; varying vec3 umbraSurface; varying vec3 umbraNormal; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'attribute vec2 umbraCassette; varying vec2 umbraPanel;' : ''}`,
+        `#include <common>\n${bakedLight ? 'attribute float _umbralight; varying float umbraLight;' : ''} varying vec3 umbraMember; varying vec3 umbraRaw; varying vec3 umbraSurface; varying vec3 umbraNormal; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'attribute vec2 umbraCassette; varying vec2 umbraPanel;' : ''}`,
       )
       .replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
+        ${bakedLight ? 'umbraLight=_umbralight;' : ''}
         umbraRaw=position; umbraMember=position; umbraSurface=position; umbraNormal=normal; umbraDeck=position.xz; umbraSeed=0.;
         ${kind === 'deck' ? 'umbraDeck=uv; umbraPanel=umbraCassette;' : ''}
         #ifdef USE_INSTANCING
@@ -34,6 +36,7 @@ export function finishUmbraMaterial(
       .replace(
         '#include <common>',
         `#include <common>
+      ${bakedLight ? 'varying float umbraLight;' : ''}
       varying vec3 umbraMember; varying vec3 umbraRaw; varying vec3 umbraSurface; varying vec3 umbraNormal; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'varying vec2 umbraPanel;' : ''}
       ${
         surfaceTexture
@@ -131,8 +134,8 @@ export function finishUmbraMaterial(
         relief=macro*.008+grain*.006+fine*.002*visible;
       `
       }
-      ${surfaceTexture ? `diffuseColor.rgb*=mix(vec3(1.),clamp(authoredSurface/${stone ? 'vec3(.59,.53,.44)' : metal ? 'vec3(.26,.265,.27)' : 'vec3(.085)'},vec3(.68),vec3(1.32)),${kind === 'deck' ? '(.06+dirt*.24+abrasion*.13)' : stone ? '.8' : metal ? '.22' : '.24'});` : ''}
-      ${surfaceTexture ? `relief=relief*${stone ? '.5' : '.25'}+surfaceTone*${stone ? '.06' : metal ? '.0015' : kind === 'deck' ? '.0004' : '.0012'};` : ''}`,
+      ${surfaceTexture ? `diffuseColor.rgb*=mix(vec3(1.),clamp(authoredSurface/${stone ? 'vec3(.59,.53,.44)' : metal ? 'vec3(.26,.265,.27)' : 'vec3(.085)'},vec3(.68),vec3(1.32)),${kind === 'deck' ? '(.16+dirt*.18+abrasion*.13)' : stone ? '.8' : metal ? '.22' : '.24'});` : ''}
+      ${surfaceTexture ? `relief=relief*${stone ? '.5' : '.25'}+surfaceTone*${stone ? '.06' : metal ? '.0015' : kind === 'deck' ? '.0011' : '.0012'};` : ''}`,
       )
       .replace(
         '#include <map_fragment>',
@@ -144,12 +147,19 @@ export function finishUmbraMaterial(
         roughnessFactor=clamp(roughnessFactor+${surfaceTexture ? (stone ? '(surfaceTone-.35)*.14+' : '(surfaceTone-.35)*.035+') : ''}(macro-.5)*${stone ? '.14' : '.06'}${metal ? `+patina*.24${kind === 'plate' ? '-edgeWear*.13+protectedFinish*.06' : ''}` : kind === 'deck' ? '+dirt*.18-wear*.12-polished*.14-abrasion*.028' : ''},${stone ? '.72' : metal ? '.19' : '.24'},.98);`,
       )
       .replace(
+        '#include <emissivemap_fragment>',
+        '#include <emissivemap_fragment>' +
+          (bakedLight
+            ? '\ntotalEmissiveRadiance+=diffuseColor.rgb*vec3(1.,.46,.17)*umbraLight*1.35;'
+            : ''),
+      )
+      .replace(
         '#include <normal_fragment_begin>',
         '#include <normal_fragment_begin>\nnormal=umBump(normal,relief);',
       );
   };
   material.customProgramCacheKey = () =>
-    `umbra-surface-v5-${kind}-${!!surfaceTexture}`;
+    `umbra-surface-v6-${kind}-${!!surfaceTexture}-${bakedLight}`;
   return material;
 }
 
@@ -161,14 +171,14 @@ export function finishUmbraAssets(scene, surfaceTexture = null) {
   });
   for (const material of materials) {
     if (/fractures/i.test(material.name))
-      finishUmbraMaterial(material, 'fresh', surfaceTexture);
+      finishUmbraMaterial(material, 'fresh', surfaceTexture, true);
     else if (/aged/i.test(material.name))
-      finishUmbraMaterial(material, 'aged', surfaceTexture);
+      finishUmbraMaterial(material, 'aged', surfaceTexture, true);
     else if (/ivory/i.test(material.name))
-      finishUmbraMaterial(material, 'stone', surfaceTexture);
+      finishUmbraMaterial(material, 'stone', surfaceTexture, true);
     else if (/titanium|instrument/i.test(material.name))
-      finishUmbraMaterial(material, 'metal', surfaceTexture);
+      finishUmbraMaterial(material, 'metal', surfaceTexture, true);
     else if (/graphite/i.test(material.name))
-      finishUmbraMaterial(material, 'graphite', surfaceTexture);
+      finishUmbraMaterial(material, 'graphite', surfaceTexture, true);
   }
 }

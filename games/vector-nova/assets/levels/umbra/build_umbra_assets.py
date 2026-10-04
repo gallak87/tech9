@@ -488,6 +488,7 @@ for root in [o for o in bpy.data.objects if o.type=='EMPTY' and o.parent is None
     warm=[o.matrix_world.translation for o in root.children_recursive if o.type=='EMPTY' and o.name.startswith('practical_warm')]
     for o in obs:
         colors=o.data.color_attributes.new(name='Color',type='FLOAT_COLOR',domain='CORNER')
+        irradiance=o.data.attributes.new(name='_umbraLight',type='FLOAT',domain='CORNER')
         o.data.color_attributes.active_color=colors
         cache={}
         for poly in o.data.polygons:
@@ -505,8 +506,18 @@ for root in [o for o in bpy.data.objects if o.type=='EMPTY' and o.parent is None
                         direction=(n*.63+tangent*math.cos(theta)*.78+bitangent*math.sin(theta)*.78).normalized()
                         hit=tree.ray_cast(origin,direction,14)
                         if hit[0] is not None:occ+=1-hit[3]/20
-                    cache[key]=max(.31,1-occ/8*.81)
-                ao=cache[key]
+                    lighting=0
+                    for light in warm:
+                        direction=light-origin;distance=direction.length
+                        if distance<.1 or distance>18:continue
+                        direction/=distance;facing=max(0,n.dot(direction))
+                        if facing<=0:continue
+                        blocker=tree.ray_cast(origin,direction,max(.1,distance-.75))
+                        if blocker[0] is not None:continue
+                        lighting+=facing*(1-distance/18)**2
+                    cache[key]=(max(.31,1-occ/8*.81),min(1.25,lighting))
+                ao,lighting=cache[key]
+                irradiance.data[li].value=lighting
                 # Restrained broad tint belongs to the weathered member, not noise
                 # painted equally across every exterior and fresh fractured face.
                 tint=.96+.04*math.sin(v.x*.097+v.z*.081)
@@ -517,5 +528,5 @@ bpy.context.scene['provenance']='Authored from selected built-in imagegen scene 
 bpy.context.preferences.filepaths.save_version=0
 bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE))
 OUT.parent.mkdir(parents=True,exist_ok=True)
-bpy.ops.export_scene.gltf(filepath=str(OUT),export_format='GLB',export_yup=True,export_apply=True,export_animations=False,export_vertex_color='ACTIVE')
+bpy.ops.export_scene.gltf(filepath=str(OUT),export_format='GLB',export_yup=True,export_apply=True,export_animations=False,export_vertex_color='ACTIVE',export_attributes=True)
 print('UMBRA_EXPORT',OUT,OUT.stat().st_size)

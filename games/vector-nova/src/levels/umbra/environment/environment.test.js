@@ -106,6 +106,25 @@ test('Blender export has all authored stages and absolute-time replayable deform
     }
     assert.ok(min < max && min > 0, 'contact shading is varied and bounded');
   }
+  let warmMaximum = 0;
+  for (const name of [
+    'terrace',
+    'gallery',
+    'pier',
+    'wall',
+    'wall_solid',
+    'wall_breach',
+  ])
+    for (const { geometry } of assets.templates[name]) {
+      const light = geometry.getAttribute('_umbralight');
+      assert.ok(light, 'authored service irradiance survives GLB and batching');
+      assert.equal(light.count, geometry.attributes.position.count);
+      for (const value of light.array) {
+        assert.ok(Number.isFinite(value) && value >= 0 && value <= 1.25);
+        warmMaximum = Math.max(warmMaximum, value);
+      }
+    }
+  assert.ok(warmMaximum > 0.1, 'service apertures retain nonzero local light');
   assert.equal(assets.eventPieces.length, 12);
   const event = createUmbraAccretion(assets);
   event.update(32);

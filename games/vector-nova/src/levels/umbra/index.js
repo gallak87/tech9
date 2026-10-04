@@ -83,6 +83,6 @@ export default function createLevel({ shape = false } = {}) {
           }
         : createUmbraBackdrop(context),
     createRuntime: createUmbraRuntime,
-    createOverlay: createUmbraOverlay,
+    createOverlay: (context) => createUmbraOverlay({ ...context, shape }),
   };
 }

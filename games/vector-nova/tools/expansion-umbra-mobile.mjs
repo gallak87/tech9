@@ -42,7 +42,8 @@ async function geometry(page) {
       '#touch',
       '#race-roster',
       '.race-devices',
-      '.umbra-field',
+      '.umbra-pull .arrows',
+      '.umbra-pull .pressure',
       '#notice',
       '#shape-controls',
     ]) {
@@ -208,21 +209,36 @@ try {
           await capture(page, item, 'tidal');
           if (!shape) {
             const g = await geometry(page);
-            assert.ok(fits(g['.umbra-field'], g), 'tidal feedback fits');
-            for (const other of [
-              '#minimap',
-              '.speed',
-              '.energy',
-              '.top-telemetry .position',
-              '.top-telemetry .lap',
-              '.top-telemetry .timing',
-              '#touch',
-              '.race-devices',
-            ])
-              assert.ok(
-                !overlaps(g['.umbra-field'], g[other]),
-                `tidal feedback clears ${other}`,
-              );
+            const lens = (await snapshot(page)).environment.umbra.lensing;
+            assert.ok(
+              lens.active && lens.radius > 0,
+              'local gravity lens is visible',
+            );
+            assert.equal(
+              lens.distortion === 0,
+              quality === 'low',
+              'reduced motion removes warping',
+            );
+            for (const cue of [
+              '.umbra-pull .arrows',
+              '.umbra-pull .pressure',
+            ]) {
+              assert.ok(fits(g[cue], g), `${cue} fits`);
+              for (const other of [
+                '#minimap',
+                '.speed',
+                '.energy',
+                '.top-telemetry .position',
+                '.top-telemetry .lap',
+                '.top-telemetry .timing',
+                '#touch',
+                '.race-devices',
+              ])
+                assert.ok(
+                  !overlaps(g[cue], g[other]),
+                  `${cue} clears ${other}`,
+                );
+            }
           }
           const box = await page.locator('[data-drive=throttle]').boundingBox();
           await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);

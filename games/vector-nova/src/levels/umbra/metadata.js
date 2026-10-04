@@ -17,7 +17,7 @@ export default {
     intro:
       'Cross the ruined observatory, climb the parallax stacks and fold beneath a luminous accretion ring.',
     detail:
-      'Amber chevrons mark increasing tidal pull. Countersteer toward the open line, build speed before broken spans, and aim for the lit lower landing. Missed crossings recover after 1.5 seconds; W resumes. R is manual recovery and invalidates the lap.',
+      'An amber lens and curved HUD arc show the side gravity is pulling. Amber road chevrons mark increasing tidal force. Countersteer toward the open line, build speed before broken spans, and aim for the lit lower landing. Missed crossings recover after 1.5 seconds; W resumes. R is manual recovery and invalidates the lap.',
     start: 'ENTER UMBRA CIRCUIT',
     tag: 'UMBRA FOLD',
     tagDetail: '10 / GRAVITY OBSERVATORY',

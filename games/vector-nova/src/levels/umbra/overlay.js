@@ -1,14 +1,19 @@
 import { tidalResponse } from './track/forces.js';
+import { createUmbraLensing, sampleUmbraLens } from './lensing.js';
 
-export function createUmbraOverlay({ host, track, view }) {
+export function createUmbraOverlay({ host, track, view, shape = false }) {
+  const lens = shape ? null : createUmbraLensing(view);
   host.classList.add('umbra-layout');
   const style = document.createElement('style');
   style.textContent = `
-    .umbra-field { position:absolute; left:50%; top:108px; transform:translateX(-50%); z-index:4; pointer-events:none; color:#f0d6a4; background:rgba(10,17,25,.84); border:1px solid #8c744e; border-radius:3px; padding:6px 12px; font:600 10px/1.5 monospace; letter-spacing:.12em; white-space:nowrap; }
-    .umbra-field[hidden] { display:none; }
-    @media(max-width:600px) { .umbra-field { top:370px; font-size:9px; padding:5px 8px; } }
+    .umbra-pull { position:absolute; z-index:4; pointer-events:none; color:#ffe3ac; transform-origin:center; filter:drop-shadow(0 1px 3px #000b); }
+    .umbra-pull[hidden] { display:none; }
+    .umbra-pull svg { display:block; width:100%; height:100%; overflow:visible; }
+    .umbra-pull path { fill:none; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round; }
+    .umbra-pull .orbit { stroke-width:1; opacity:.22; }
+    .umbra-pull .pressure { stroke-width:2.3; }
+    .umbra-pull .arrows { stroke-width:2.4; }
     @media(max-height:450px) {
-      .umbra-field { top:52px; font-size:7px; padding:4px 6px; }
       .umbra-layout #interface.driving .timing small { max-width:none; white-space:nowrap; font-size:7px; }
       .umbra-layout #interface.driving #notice { top:176px; bottom:auto; left:calc(50% + 30px); transform:translateX(-50%); width:min(260px,calc(100vw - 440px)); }
     }
@@ -25,26 +30,50 @@ export function createUmbraOverlay({ host, track, view }) {
     }
   `;
   const field = document.createElement('div');
-  field.className = 'umbra-field';
+  field.className = 'umbra-pull';
+  field.setAttribute('role', 'img');
+  field.innerHTML = `<svg viewBox="0 0 184 184" aria-hidden="true"><path class="orbit" d="M128 27 A74 74 0 0 1 128 157"/><path class="pressure" pathLength="1" d="M128 27 A74 74 0 0 1 128 157"/><path class="arrows" d="m159 84 9 8-9 8m10-16 9 8-9 8"/></svg>`;
+  const pressure = field.querySelector('.pressure');
   field.hidden = true;
   host.append(style, field);
   let current = null;
+  let lensing = { active: false, intensity: 0 };
   return {
-    update({ state, mode, reviewing }) {
-      current = tidalResponse(track, state.distance, state.lateral);
-      field.hidden =
-        reviewing || !['racing', 'paused'].includes(mode) || !current.active;
-      const direction = current.lateralAcceleration >= 0 ? 'LEFT' : 'RIGHT';
-      field.textContent = `PULL ${direction} · COUNTERSTEER ${direction === 'LEFT' ? 'RIGHT' : 'LEFT'} · ${Math.abs(current.lateralAcceleration).toFixed(1)} m/s²`;
+    update(frame) {
+      current = tidalResponse(track, frame.state.distance, frame.state.lateral);
+      const width = innerWidth,
+        height = innerHeight;
+      lensing = shape
+        ? { active: false, intensity: 0 }
+        : sampleUmbraLens(track, frame, width, height);
+      lens?.update(lensing, width, height);
+      field.hidden = !lensing.active;
+      if (!lensing.active) return;
+      const [x, y] = lensing.center;
+      const [dx, dy] = lensing.direction;
+      const size = lensing.radius * 2.35;
+      field.style.left = `${x * width - size / 2}px`;
+      field.style.top = `${(1 - y) * height - size / 2}px`;
+      field.style.width = field.style.height = `${size}px`;
+      field.style.transform = `rotate(${-Math.atan2(dy, dx)}rad)`;
+      field.style.opacity = String(0.25 + lensing.intensity * 0.65);
+      pressure.style.strokeDasharray = `${lensing.intensity} 1`;
+      field.setAttribute(
+        'aria-label',
+        `Gravity pulling ${dx < 0 ? 'left' : 'right'}`,
+      );
     },
     reset() {
       current = null;
       field.hidden = true;
+      lensing = { active: false, intensity: 0 };
+      lens?.reset();
     },
     getPresentation() {
       return {
         umbra: {
           tidal: current,
+          lensing,
           accretion:
             view.scene
               .getObjectByName('umbra-environment')
@@ -53,6 +82,7 @@ export function createUmbraOverlay({ host, track, view }) {
       };
     },
     dispose() {
+      lens?.dispose();
       host.classList.remove('umbra-layout');
       field.remove();
       style.remove();

@@ -189,6 +189,7 @@ export async function createRenderer(
     composer.addPass(racingBlur);
     let blurTarget = 0,
       catapultBlur = false;
+    const worldPasses = new Set();
     const output = lifetime.own(new OutputPass());
     composer.addPass(output);
     const antialias = lifetime.own(new SMAAPass());
@@ -227,6 +228,15 @@ export async function createRenderer(
     return {
       renderer,
       assets: backdrop.assets ?? {},
+      // The level owns its pass; the renderer only borrows it before tone mapping.
+      attachWorldPass(pass) {
+        composer.insertPass(pass, composer.passes.indexOf(output));
+        worldPasses.add(pass);
+        return () => {
+          composer.removePass(pass);
+          worldPasses.delete(pass);
+        };
+      },
       updatePresentation(update) {
         Object.assign(frame, update);
         backdrop.setOverview?.(Boolean(update.reviewing));
@@ -327,7 +337,11 @@ export async function createRenderer(
         racingBlur.enabled =
           (settings.quality === 'high' || catapultBlur) &&
           racingBlur.uniforms.strength.value > 0.0001;
-        if (settings.quality === 'high' || racingBlur.enabled)
+        if (
+          settings.quality === 'high' ||
+          racingBlur.enabled ||
+          [...worldPasses].some((pass) => pass.enabled)
+        )
           composer.render(dt);
         else renderer.render(scene, camera);
         maxima.calls = Math.max(maxima.calls, renderer.info.render.calls);
@@ -344,7 +358,15 @@ export async function createRenderer(
         await renderer.compileAsync(scene, camera);
         renderer.info.reset();
         renderer.shadowMap.needsUpdate = true;
-        composer.render(0);
+        // Compile level passes before readiness so entering a field cannot trigger
+        // their first shader compile. Owners provide an inert initial state.
+        const enabled = [...worldPasses].map((pass) => [pass, pass.enabled]);
+        try {
+          for (const [pass] of enabled) pass.enabled = true;
+          composer.render(0);
+        } finally {
+          for (const [pass, active] of enabled) pass.enabled = active;
+        }
         // Startup-only synchronization: readiness follows actual first-pass work,
         // including shadow, AO and antialias programs, not just submission.
         renderer.getContext().finish();
@@ -440,6 +462,8 @@ export async function createRenderer(
           pipeline: {
             ambientOcclusion: ao.enabled,
             bloom: bloom.enabled,
+            worldEffects: [...worldPasses].filter((pass) => pass.enabled)
+              .length,
             racingBlur: racingBlur.enabled,
             racingBlurStrength: racingBlur.uniforms.strength.value,
             tonemapping: 'ACES',

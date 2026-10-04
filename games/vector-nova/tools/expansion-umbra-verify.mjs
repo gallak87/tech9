@@ -100,6 +100,11 @@ try {
       await page.keyboard.down('w');
       await waitMotion('flight');
       await capture(`jump${i}-${kind}-flight`);
+      const lens = (await snap()).environment.umbra.lensing;
+      check(
+        `jump${i} ${kind} local flight lens`,
+        lens.active && lens.radius > 0 && lens.distortion > 0,
+      );
       if (kind === 'imperfect') {
         await page.keyboard.down('d');
         await page.waitForTimeout(80);
@@ -196,6 +201,16 @@ try {
       `${name} declared tidal feedback`,
       (await snap()).environment.umbra?.tidal?.active,
     );
+    const lens = (await snap()).environment.umbra.lensing;
+    check(
+      `${name} projected directional lens`,
+      lens.active && lens.radius > 0 && lens.direction.every(Number.isFinite),
+    );
+    check(
+      `${name} graphical HUD replaces title bar`,
+      (await page.locator('.umbra-pull').isVisible()) &&
+        (await page.locator('.umbra-field').count()) === 0,
+    );
     check(
       `${name} actual input recorded`,
       (await page.evaluate(() => window.__VN.getReplay().inputs)).some(
@@ -230,6 +245,13 @@ try {
   await page.locator('#resume').click();
   await scenario('knot-tide-test');
   await capture('low-reduced-motion-tide');
+  const quietLens = (await snap()).environment.umbra.lensing;
+  check(
+    'reduced motion retains the direction without distortion or flow',
+    quietLens.active &&
+      quietLens.distortion === 0 &&
+      quietLens.animationTime === 0,
+  );
   await page.evaluate(() => window.__VN.restart());
   const reset = await snap();
   check(

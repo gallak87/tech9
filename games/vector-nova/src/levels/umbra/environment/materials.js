@@ -56,7 +56,9 @@ export function finishUmbraMaterial(material, kind = 'stone') {
         float brush=umNoise(up*vec3(48.,.5,.7));
         brush=mix(.5,brush,1.-smoothstep(.15,1.,length(dFdx(up*vec3(48.,.5,.7)))+length(dFdy(up*vec3(48.,.5,.7)))));
         diffuseColor.rgb*=mix(.82,1.06,macro)*mix(.96,1.02,brush);
-        relief=grain*.002+brush*.0009;
+        float patina=smoothstep(.55,.72,macro)*umNoise(up*.9);
+        diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.79,.78,.72),patina*.32);
+        relief=grain*.003+brush*.0012;
       `
             : kind === 'deck'
               ? `
@@ -78,7 +80,7 @@ export function finishUmbraMaterial(material, kind = 'stone') {
       .replace(
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
-        roughnessFactor=clamp(roughnessFactor+(macro-.5)*${kind === 'metal' ? '.14' : '.10'},${kind === 'metal' ? '.32' : '.55'},.98);`,
+        roughnessFactor=clamp(roughnessFactor+(macro-.5)*${kind === 'metal' ? '.25' : '.14'}${kind === 'metal' ? '+patina*.22' : kind === 'deck' ? '+dirt*.08-wear*.11-polished*.18' : ''},${kind === 'metal' ? '.32' : '.56'},.98);`,
       )
       .replace(
         '#include <normal_fragment_begin>',

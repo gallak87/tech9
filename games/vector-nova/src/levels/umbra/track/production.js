@@ -61,7 +61,7 @@ function panelGeometry(track) {
         const color = new THREE.Color(shade).multiplyScalar(
           0.91 + ((Math.floor(from / 18) + column * 3) % 5) * 0.035,
         );
-        const along = Math.max(1, Math.ceil((to - from) / 4.8));
+        const along = Math.max(1, Math.ceil((to - from) / 6));
         for (let row = 0; row < along; row += 1) {
           const a = THREE.MathUtils.lerp(from + 0.08, to - 0.08, row / along);
           const b = THREE.MathUtils.lerp(
@@ -73,10 +73,10 @@ function panelGeometry(track) {
           const fb = track.sample(b);
           const mid = (x0 + x1) / 2;
           for (const [left, right, leftY, rightY] of [
-            [x0, x0 + 0.14, 0.016, 0.047],
-            [x0 + 0.14, mid, 0.047, 0.065],
-            [mid, x1 - 0.14, 0.065, 0.047],
-            [x1 - 0.14, x1, 0.047, 0.016],
+            [x0, x0 + 0.14, 0.003, 0.06],
+            [x0 + 0.14, mid, 0.06, 0.065],
+            [mid, x1 - 0.14, 0.065, 0.06],
+            [x1 - 0.14, x1, 0.06, 0.003],
           ]) {
             const p = [
               framePoint(fa, left, leftY),
@@ -292,12 +292,47 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
   }
   const box = new THREE.BoxGeometry(1, 1, 1);
   geometries.add(box);
+  // Closed pressed leaves: clipped corners and recessed faces on both sides.
+  const profile = [
+    [-0.5, -0.38],
+    [-0.37, -0.5],
+    [0.34, -0.5],
+    [0.5, -0.38],
+    [0.5, 0.4],
+    [0.36, 0.5],
+    [-0.37, 0.5],
+    [-0.5, 0.38],
+  ];
+  const leafPositions = [],
+    leafIndices = [];
+  for (const side of [-1, 1]) {
+    for (const [y, z] of profile) leafPositions.push(side * 0.5, y, z);
+    leafPositions.push(side * 0.1, 0, 0);
+  }
+  for (let i = 0; i < 8; i++) {
+    const j = (i + 1) % 8;
+    leafIndices.push(8, j, i, 17, 9 + i, 9 + j, i, j, 9 + i, j, 9 + j, 9 + i);
+  }
+  const indexedLeaf = new THREE.BufferGeometry();
+  indexedLeaf.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(leafPositions, 3),
+  );
+  indexedLeaf.setIndex(leafIndices);
+  const leaf = indexedLeaf.toNonIndexed();
+  indexedLeaf.dispose();
+  leaf.computeVertexNormals();
+  geometries.add(leaf);
   const instances = new Map();
-  const instance = (material, position, quaternion, scale) => {
-    if (!instances.has(material)) instances.set(material, []);
+  const instance = (material, position, quaternion, scale, geometry = box) => {
+    const key = geometry.uuid + material.uuid;
+    if (!instances.has(key))
+      instances.set(key, { material, geometry, transforms: [] });
     instances
-      .get(material)
-      .push(new THREE.Matrix4().compose(position, quaternion, scale));
+      .get(key)
+      .transforms.push(
+        new THREE.Matrix4().compose(position, quaternion, scale),
+      );
   };
   const localBox = (
     material,
@@ -309,6 +344,7 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
     height,
     length,
     tilt = 0,
+    geometry = box,
   ) => {
     const q = frame.quaternion
       .clone()
@@ -323,6 +359,7 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
       framePoint(frame, x, y, z),
       q,
       new THREE.Vector3(width, height, length),
+      geometry,
     );
   };
   const beam = (material, a, b, width, depth = width) => {
@@ -356,7 +393,7 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
         const x = side * (half + (tall ? 2.2 : 1.5));
         const y = shape ? 1.55 : tall ? 3.65 : 2.65;
         const length = Math.min(tall ? 20 : 12, (end - distance) * 1.2);
-        const plateMaterial = nearLaunch ? amber : sideMaterial;
+        const plateMaterial = nearLaunch ? repair : sideMaterial;
         localBox(
           plateMaterial,
           frame,
@@ -367,6 +404,7 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
           height,
           length,
           side * -0.14,
+          shape ? box : leaf,
         );
         if (!shape) {
           for (const z of [-length * 0.32, length * 0.32]) {
@@ -386,7 +424,7 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
             );
           }
           localBox(
-            guide,
+            nearLaunch ? amber : guide,
             frame,
             x - side * 0.38,
             y + height * 0.32,
@@ -407,7 +445,7 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
               0,
               0.23,
               0.16,
-              length,
+              length * 0.81,
               side * -0.14,
             );
             localBox(
@@ -483,6 +521,7 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
               height * 0.5,
               length * 0.4,
               side * -0.14,
+              tall ? leaf : box,
             );
           }
           if (Math.floor(distance / 34) % 3 === 0) {
@@ -841,8 +880,27 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
       beam(shape ? pale : metal, a, b, 0.1, 0.07);
     }
   }
-  for (const [material, transforms] of instances) {
-    const result = new THREE.InstancedMesh(box, material, transforms.length);
+  // Batch identical guide sweeps while retaining their original world geometry.
+  // This pays for richer leaf silhouettes without increasing the road draw cap.
+  if (!shape) {
+    const guides = group.children.filter(
+      (node) => node.isMesh && node.material === guide,
+    );
+    const merged = mergeGeometries(guides.map((node) => node.geometry));
+    for (const node of guides) {
+      group.remove(node);
+      geometries.delete(node.geometry);
+      node.geometry.dispose();
+    }
+    merged.computeBoundingSphere();
+    mesh('Embedded navigation guides and lit keel lines', merged, guide);
+  }
+  for (const { material, geometry, transforms } of instances.values()) {
+    const result = new THREE.InstancedMesh(
+      geometry,
+      material,
+      transforms.length,
+    );
     result.name =
       'Umbra structural modules / suspended leaves, offset struts and repair nodes';
     transforms.forEach((transform, index) =>

@@ -67,7 +67,7 @@ def arc(name,r,width,depth,start,end,material,parent,center=(0,0,0),segments=32)
                 zz=cz+(-depth/2 if not front else depth/2)
                 if stony:
                     if j in [0,radial] and i%3==0:rr+=(.22 if j==0 else -.48)
-                    if front and j not in [0,radial]:zz+=random.uniform(-.35,.22)
+                    if j not in [0,radial]:zz+=(1 if front else -1)*random.uniform(-.35,.22)
                     if front and i in [0,segments]:zz-=.38 if j%2 else .15
                 vs.append((cx+math.cos(a)*rr,cy+math.sin(a)*rr,zz))
     row=2*(radial+1)
@@ -88,7 +88,7 @@ def wedge(name,x,y,z,w,h,d,material,parent):
     # Irregular sealed ashlar with chipped edges, deep fractures and quiet faces.
     # Its fresh break is a separate material, not painted crackle on a trapezoid.
     cols=7;rows=5;verts=[];faces=[]
-    top=[random.uniform(.78,1.02) for _ in range(cols)]
+    top=[1-random.uniform(.008,.13)*min(w,d)/max(h,.1) for _ in range(cols)]
     cleft=random.choice([1,2,4,5]); damaged=random.random()<.37
     for back in [False,True]:
         for row in range(rows):

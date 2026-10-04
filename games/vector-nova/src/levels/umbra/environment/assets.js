@@ -26,6 +26,7 @@ export function collectUmbraAssets(scene) {
   const names = [
     'terrace',
     'gallery',
+    'pier',
     'lens',
     'vault',
     'instrument',

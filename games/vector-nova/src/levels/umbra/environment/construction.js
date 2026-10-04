@@ -36,7 +36,9 @@ export function createUmbraConstruction(track, assets, layout) {
     );
   };
   for (const entry of layout.filter(
-    (e) => e.role === 'connector' && e.type === 'terrace',
+    (e) =>
+      (e.role === 'connector' && e.type === 'terrace') ||
+      e.role === 'near-load-node',
   )) {
     const position = new T.Vector3(...entry.position);
     let nearest = 0,

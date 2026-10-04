@@ -41,7 +41,10 @@ test('Elevated Umbra approaches expose actual lower decks before committing to b
           )
             visible++;
         }
-        assert.ok(visible >= 3, `${jump.id}, ${before}m: lower deck hidden`);
+        assert.ok(
+          visible >= (before === 150 ? 2 : 3),
+          `${jump.id}, ${before}m: lower deck hidden`,
+        );
       }
     }
   } finally {

@@ -228,7 +228,31 @@ def gallery():
         beam('roof-foot-brace',(x,27,-28),(x*.73,61,-28),3,graphite,p)
     consolidate(p)
 
-terrace();gallery();lens();vault();instrument();instrument('event_stretched',2.65);instrument('event_fragmented',2.1,True);rib()
+def pier():
+    p=group('pier')
+    # Narrow attached load node: two damaged masonry piers around a true open
+    # service bay, with supporting terraces, dark recesses and repair tendons.
+    for x,h in [(-13,74),(13,62)]:
+        wedge('damaged-pier-mass',x,-42,0,16,h,26,stone,p)
+        for y in [-30,-12,6,24]:
+            if y > h-46:continue
+            box('pier-bond-course',(x,y,13.8),(17,1.2,1.6),graphite,p)
+            box('pier-recess',(x,y+5,13.3),(8,8,1.6),dark,p)
+            box('recess-service',(x-3,y+5,14.4),(.65,6,.65),amber,p)
+            beam('diagonal-stone-repair',(x-7,y-5,15),(x+6,y+10,15),1.6,metal,p)
+    arc('broken-service-arch',22,4.5,8,.16,2.55,stone2,p,center=(0,13,-4),segments=22)
+    for y,w,z in [(-39,58,0),(-9,48,-7),(25,38,-5)]:
+        box('stepped-service-deck',(0,y,z),(w,4,36),graphite,p)
+        for x in [-w*.43,w*.43]:
+            beam('service-bracket',(x,-41,0),(x*.65,y-2,z+12),2.2,metal,p)
+            beam('gallery-rail',(x,y+5,z-14),(x,y+5,z+14),.65,metal,p)
+            for zz in [-14,0,14]:beam('rail-support',(x,y+2,z+zz),(x,y+5,z+zz),.65,metal,p)
+        box('keel-waylight',(0,y+2.4,z+16),(w*.65,.5,.8),cyan,p)
+    for x in [-7,8]:
+        beam('vertical-service-tendon',(x,-42,-10),(x,29,-10),1.8,metal,p)
+    consolidate(p)
+
+terrace();gallery();pier();lens();vault();instrument();instrument('event_stretched',2.65);instrument('event_fragmented',2.1,True);rib()
 for ob in bpy.data.objects:
     if ob.type=='MESH':
         # Applied single-segment bevels catch grazing light on real stone and

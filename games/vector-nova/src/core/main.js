@@ -1217,6 +1217,7 @@ async function boot() {
         },
         camera: {
           position: camera.position.toArray(),
+          quaternion: camera.quaternion.toArray(),
           up: camera.up.toArray(),
           fov: camera.fov,
           playerScreenX: ship.group.position.clone().project(camera).x,

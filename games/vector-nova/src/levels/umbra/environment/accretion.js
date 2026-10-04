@@ -123,7 +123,7 @@ export function createUmbraAccretion(assets) {
       .copy(identity)
       .slerp(lean, stretch * 0.91)
       .premultiply(orbit);
-    event.position.y += stretch * 200 * (1 - infall);
+    event.position.y += (110 * (1 - stretch) + stretch * 200) * (1 - infall);
     const size = (1.6 / (1 + stretch * 0.6)) * (1 - infall * 0.93);
     event.scale.setScalar(size);
     for (let i = 0; i < pieces.length; i++) {

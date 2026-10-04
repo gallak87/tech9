@@ -11,6 +11,7 @@ const RADII = {
   instrument: 203,
   rib: 73,
   gallery: 154,
+  pier: 66,
 };
 const pose = new T.Object3D();
 
@@ -55,7 +56,7 @@ export function createUmbraSceneryLayout(track) {
     const radius = RADII[type] * scale;
     const margin = distance(position) - radius;
     if (
-      ['connector', 'distant'].includes(role) &&
+      ['connector', 'distant', 'near-load-node'].includes(role) &&
       sightlineBlocked(position, radius)
     )
       return false;
@@ -83,6 +84,7 @@ export function createUmbraSceneryLayout(track) {
       'terrace',
       'rib',
       'gallery',
+      'pier',
       'terrace',
       'instrument',
       'vault',
@@ -115,6 +117,38 @@ export function createUmbraSceneryLayout(track) {
           scale,
           [0.08 * Math.sin(index), yaw, 0.08 * Math.cos(index)],
           'connector',
+        )
+      )
+        break;
+    }
+  }
+  for (let index = 0; index < 44; index++) {
+    const s = (track.length * (index + 0.4)) / 44;
+    if (
+      track.jumps.some(
+        (jump) => s > jump.takeoff - 140 && s < jump.landingEnd + 40,
+      )
+    )
+      continue;
+    const frame = track.sample(s),
+      side = index % 2 ? -1 : 1;
+    const lateral = new T.Vector3(frame.tangent.z, 0, -frame.tangent.x)
+      .normalize()
+      .multiplyScalar(side);
+    for (const offset of [86, 110, 146, 190]) {
+      const position = frame.position.clone().addScaledVector(lateral, offset);
+      position.y -= 8 + (index % 3) * 8;
+      if (
+        add(
+          'pier',
+          position,
+          0.6 + (index % 3) * 0.055,
+          [
+            0,
+            Math.atan2(frame.tangent.x, frame.tangent.z) + side * 0.16,
+            index % 2 ? 0.05 : -0.04,
+          ],
+          'near-load-node',
         )
       )
         break;
@@ -193,6 +227,7 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
       'instrument',
       'rib',
       'gallery',
+      'pier',
     ]) {
       for (const distant of [false, true]) {
         const list = layout.filter(
@@ -222,6 +257,8 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
       [2450, '#82b4d7', 14000, -50],
       [3390, '#ffb969', 22000, 70],
       [4500, '#abcde5', 20000, 55],
+      [5100, '#99bedc', 13000, 45],
+      [500, '#deb78b', 13000, 45],
     ]) {
       const frame = track.sample(s);
       const light = new T.PointLight(color, intensity, 310, 2);

@@ -22,7 +22,7 @@ export default function createLevel({ shape = false } = {}) {
       preserveFlightView: true,
       chaseHeight: 6,
       lookAhead: 52,
-      jumpPreview: { distance: 280, height: 38, back: 52 },
+      jumpPreview: { distance: 280, height: 27, back: 36 },
       safeFrame: { left: -0.68, right: 0.68, bottom: -0.66, top: 0.55 },
       portraitAspect: 0.64,
       maxPortraitScale: 1.5,

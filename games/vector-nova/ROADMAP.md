@@ -65,4 +65,6 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 ## Deferred
 
+- [ ] Umbra gravity lens: revisit the arrow cue, which suggests steering toward the gravitational pull even though the player must counter-steer.
+
 Stored/manual-use items, offensive pickups, side attacks, destructive damage/elimination, online systems, upgrade economies, procedural tracks and the industrial energy complex require separate scope. Quality and a complete racing loop take priority over map count.

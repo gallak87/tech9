@@ -12,6 +12,7 @@ const RADII = {
   rib: 73,
   gallery: 154,
   pier: 66,
+  wall: 156,
 };
 const pose = new T.Object3D();
 
@@ -81,14 +82,14 @@ export function createUmbraSceneryLayout(track) {
     const frame = track.sample(s),
       side = index % 2 ? -1 : 1;
     const type = [
-      'terrace',
+      'wall',
       'rib',
       'gallery',
       'pier',
       'terrace',
       'instrument',
       'vault',
-    ][index % 6];
+    ][index % 7];
     const scale =
       type === 'instrument'
         ? 0.48
@@ -228,6 +229,7 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
       'rib',
       'gallery',
       'pier',
+      'wall',
     ]) {
       for (const distant of [false, true]) {
         const list = layout.filter(

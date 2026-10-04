@@ -25,7 +25,8 @@ metal=mat('Cold titanium repair',(.23,.32,.40),.75,.31)
 dark=mat('Recessed instrument',(.025,.048,.075),.7,.43)
 amber=mat('Amber service glass',(.95,.32,.055),.1,.3,3.0)
 cyan=mat('Cold instrument glass',(.13,.62,.88),.1,.3,2.4)
-MATS=[stone,stone2,graphite,metal,dark,amber,cyan]
+aged=mat('Aged slate ivory',(.29,.34,.38),.06,.94)
+MATS=[stone,stone2,graphite,metal,dark,amber,cyan,aged]
 
 def pt(v):return (v[0],-v[2],v[1])
 def group(name):
@@ -252,7 +253,37 @@ def pier():
         beam('vertical-service-tendon',(x,-42,-10),(x,29,-10),1.8,metal,p)
     consolidate(p)
 
-terrace();gallery();pier();lens();vault();instrument();instrument('event_stretched',2.65);instrument('event_fragmented',2.1,True);rib()
+def wall():
+    p=group('wall')
+    # Thick irregular ashlar, open service portals and interrupted upper walls.
+    # Individual courses and their recessed bonds retain real depth in shadow.
+    for k,x in enumerate([-60,-20,20,60]):
+        count=[7,6,8,5][k]
+        for j in range(count):
+            y=-66+j*15
+            wedge('irregular-ashlar-pier',x+random.uniform(-1,1),y,0,20+random.uniform(-2,2),14.5,25,aged if (j+k)%3==0 else stone,p)
+            if j%2==0:
+                box('masonry-repair-anchor',(x+8,y+7,13.7),(2.5,5,2),metal,p)
+                box('recessed-vertical-lamp',(x-6,y+7,14.1),(.7,7,.8),amber,p)
+        wedge('separated-upper-mass',x,-66+count*15,0,21,12+random.random()*12,26,stone2,p)
+    for x in [-40,0,40]:
+        arc('deep-service-portal',20,7,22,.06,3.08,stone,p,center=(x,-10,0),segments=22)
+        for dx in [-18,18]:
+            box('arch-foot',(x+dx,-27,0),(8,33,24),aged,p)
+        box('solid-spandrel',(x,16,0),(40,9,22),stone,p,1)
+        box('spandrel-instrument-recess',(x,16,12),(23,4,1),dark,p)
+        for dx in [-10,0,10]:box('inset-service-grille',(x+dx,16,12.8),(1.3,3,.7),metal,p)
+    for y,w in [(-57,148),(-21,140),(22,127)]:
+        box('thick-observatory-shelf',(0,y,2),(w,5,46),stone if y!=22 else aged,p,2)
+        for x in [-w*.46,w*.46]:
+            beam('gallery-tension-repair',(x,-62,0),(x*.77,y-3,20),3.2,metal,p)
+            beam('manufactured-gallery-rail',(x,y+7,-18),(x,y+7,22),.8,metal,p)
+        box('recessed-cool-service',(0,y+3,24),(w*.72,.6,.8),cyan,p)
+    for x in [-56,16,51]:
+        beam('bonded-front-repair',(x,-52,15),(x+12,29,15),2.5,metal,p)
+    consolidate(p)
+
+terrace();gallery();pier();wall();lens();vault();instrument();instrument('event_stretched',2.65);instrument('event_fragmented',2.1,True);rib()
 for ob in bpy.data.objects:
     if ob.type=='MESH':
         # Applied single-segment bevels catch grazing light on real stone and

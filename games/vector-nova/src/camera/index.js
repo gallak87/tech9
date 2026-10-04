@@ -10,6 +10,7 @@ export function createCameraRig(
     lookAhead = 35,
     safeFrame,
     jumpPreview,
+    flightViewScale = 1,
   } = {},
   subjectBounds = null,
 ) {
@@ -96,9 +97,17 @@ export function createCameraRig(
           .addScaledVector(f.tangent, -46);
         target = p;
       } else if (worldMotion) {
+        if (flightView) flightView.elapsed += dt;
         eye = flightView
           ? flightView.offset
               .clone()
+              .multiplyScalar(
+                T.MathUtils.lerp(
+                  1,
+                  flightViewScale,
+                  T.MathUtils.smoothstep(flightView.elapsed, 0.05, 0.8),
+                ),
+              )
               .applyQuaternion(f.quaternion)
               .add(craftAnchor)
           : p

@@ -95,3 +95,35 @@ test('Jump preview transports continuously and leaves unrelated circuits unchang
   assert.deepEqual(optIn.position.toArray(), ordinary.position.toArray());
   assert.deepEqual(optIn.quaternion.toArray(), ordinary.quaternion.toArray());
 });
+
+test('Flight dolly retains the takeoff pose and smoothly restores craft proximity', () => {
+  const level = createLevel(),
+    track = level.createTrack();
+  const distance = track.jumps[0].takeoff - 1;
+  const frame = track.sample(distance);
+  const pose = {
+    position: frame.position.clone().addScaledVector(frame.up, 0.72),
+    quaternion: frame.quaternion.clone(),
+    grounded: false,
+  };
+  const state = { distance, speed: 100, lateral: 0 };
+  const camera = new T.PerspectiveCamera(61, 1.6, 0.1, 22000);
+  const rig = createCameraRig(camera, {
+    ...level.camera,
+    safeFrame: undefined,
+  });
+  rig.update(track, state, 1, { worldPose: { ...pose, grounded: true } });
+  const incoming = camera.position.clone(),
+    rotation = camera.quaternion.clone();
+  rig.update(track, state, 1 / 60, { worldPose: pose });
+  assert.ok(camera.position.distanceTo(incoming) < 1e-8);
+  assert.ok(camera.quaternion.angleTo(rotation) < 1e-7);
+  const initialDistance = camera.position.distanceTo(pose.position);
+  let previous = camera.position.clone();
+  for (let i = 0; i < 90; i++) {
+    rig.update(track, state, 1 / 60, { worldPose: pose });
+    assert.ok(camera.position.distanceTo(previous) < 1, 'flight camera jumped');
+    previous.copy(camera.position);
+  }
+  assert.ok(camera.position.distanceTo(pose.position) < initialDistance * 0.7);
+});

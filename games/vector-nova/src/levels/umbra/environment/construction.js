@@ -37,7 +37,7 @@ export function createUmbraConstruction(track, assets, layout) {
   };
   for (const entry of layout.filter(
     (e) =>
-      (e.role === 'connector' && e.type === 'terrace') ||
+      (e.role === 'connector' && ['terrace', 'wall'].includes(e.type)) ||
       e.role === 'near-load-node',
   )) {
     const position = new T.Vector3(...entry.position);
@@ -55,10 +55,13 @@ export function createUmbraConstruction(track, assets, layout) {
       Math.sign(position.clone().sub(frame.position).dot(frame.right)) || 1;
     for (const z of [-9, 9]) {
       const start = framePoint(frame, side * 9, -7, z);
-      const end = position
-        .clone()
-        .addScaledVector(frame.tangent, z)
-        .add(new T.Vector3(0, 8, 0));
+      const end = new T.Vector3(
+        0,
+        entry.type === 'wall' ? -21 : entry.type === 'pier' ? -9 : -8,
+        0,
+      )
+        .applyMatrix4(entry.matrix)
+        .addScaledVector(frame.tangent, z);
       // The first portion belongs to the attached keel; later portions must
       // clear every separate crossing and airborne corridor.
       let clear = true;

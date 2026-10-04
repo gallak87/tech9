@@ -27,6 +27,7 @@ export function collectUmbraAssets(scene) {
     'terrace',
     'gallery',
     'pier',
+    'wall',
     'lens',
     'vault',
     'instrument',

@@ -45,7 +45,7 @@ export function createUmbraAccretion(assets) {
   const group = new T.Group();
   group.name = 'Umbra / architecture consumption';
   const center = new T.Vector3(...RING_CENTER);
-  const origin = new T.Vector3(-570, 160, -780);
+  const origin = new T.Vector3(-300, 110, -1100);
   const direction = center.clone().sub(origin).normalize();
   const lean = new T.Quaternion().setFromUnitVectors(
     new T.Vector3(0, 1, 0),
@@ -111,12 +111,12 @@ export function createUmbraAccretion(assets) {
     event.visible = infall < 0.998;
     event.position.copy(origin).lerp(center, infall * 0.96);
     event.quaternion.copy(identity).slerp(lean, stretch * 0.91);
-    const size = 1.48 * (1 - infall * 0.93);
+    const size = 2.25 * (1 - infall * 0.93);
     event.scale.setScalar(size);
     for (let i = 0; i < pieces.length; i++) {
       const { object, center: p } = pieces[i],
         angle = i * 2.399 + infall * 7.3;
-      const separation = fracture * (32 + i * 5) * (1 - infall * 0.72);
+      const separation = fracture * (52 + i * 7) * (1 - infall * 0.72);
       object.position.set(
         p.x / (1 + stretch * 0.56) + Math.cos(angle) * separation,
         p.y * (1 + stretch * 2.5) + Math.sin(angle * 0.7) * separation * 0.44,

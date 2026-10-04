@@ -1,10 +1,12 @@
 import * as T from 'three';
+import { finishUmbraAssets } from './materials.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { UMBRA_ASSET_URL } from './constants.js';
 
 export function collectUmbraAssets(scene) {
   scene.updateMatrixWorld(true);
+  finishUmbraAssets(scene);
   const geometries = new Set(),
     materials = new Set();
   scene.traverse((node) => {

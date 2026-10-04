@@ -88,6 +88,13 @@ def terrace():
     for x in [-66,66]:
         box('suspended-gallery',(x,13,2),(7,4,70),metal,p)
         for z in [-28,0,28]:beam('gallery-stanchion',(x,14,z),(x,36,z),1.2,metal,p)
+    for x in [-53,-27,25,51]:
+        for y in [-44,-22,0]:
+            box('buttress-masonry-joint',(x,y,28),(19,1.1,1.1),graphite,p)
+            box('joint-service-anchor',(x+7,y+3,28.7),(2,4,.8),metal,p)
+    for i in range(16):
+        x=-68+i*8.5
+        wedge('broken-edge-stone',x,5,-39,8,5+(i%4)*3,12,stone,p)
     consolidate(p)
 
 def lens():
@@ -101,6 +108,10 @@ def lens():
             if a>5:continue
             x,y=math.cos(a)*r,math.sin(a)*r
             box('lens-segment-clamp',(x,y,z+7),(5,7,10),graphite,p)
+            for delta in [-.034,.034]:
+                xx,yy=math.cos(a+delta)*r,math.sin(a+delta)*r
+                beam('radial-stone-joint',(xx*.94,yy*.94,z+5),(xx*1.06,yy*1.06,z+5),.45,graphite,p)
+            wedge('chipped-ring-face',x,y,z+5,4.5,3.5,3,stone,p)
     for a in [.3,1.7,3.1,4.5]:
         beam('radial-repair',(math.cos(a)*36,math.sin(a)*36,12),(math.cos(a)*89,math.sin(a)*89,-8),3.2,metal,p)
     wedge('lens-foot',0,-118,-8,92,43,40,stone,p)
@@ -132,6 +143,16 @@ def instrument(name='instrument',stretch=1,fragments=False):
         box('pier-repair',(x+2,82*stretch,z+3),(2,148*stretch,2),metal,q)
         box('pier-lit-flute',(x-4.2,88*stretch,z),(1,125*stretch,1),amber,q)
         wedge('broken-crown',x,157*stretch,z,11,31*stretch,11,stone2,q)
+        # Thick layered wall cassettes and exposed joints distinguish a ruined
+        # instrument cathedral from an empty cage. Gaps reveal inner services.
+        for j,level in enumerate([20,48,77,108,136]):
+            box('pier-masonry-cassette',(x,level*stretch,z),(12,18*stretch,12),stone2 if (i+j)%3==0 else stone,q,1.3)
+            box('recessed-joint',(x,level*stretch-10*stretch,z),(13,1.3*stretch,13),graphite,q)
+            for side in [-1,1]:
+                box('cold-repair-cleat',(x+side*6.5,level*stretch,z),(1.4,5*stretch,5),metal,q)
+        wedge('broad-fractured-buttress',x*1.18,0,z*1.18,20,58*stretch,20,stone,q)
+        bx,bz=math.cos(a+.31)*r,math.sin(a+.31)*r
+        beam('internal-cross-brace',(x,24*stretch,z),(bx,117*stretch,bz),2.6,metal,q)
         consolidate(q)
     for i,y in enumerate([12,47,105,151]):
         q=group('piece_%02d'%(i+8));q.parent=p
@@ -156,6 +177,12 @@ def rib():
 terrace();lens();vault();instrument();instrument('event_stretched',2.65);instrument('event_fragmented',2.1,True);rib()
 for ob in bpy.data.objects:
     if ob.type=='MESH':
+        # Applied single-segment bevels catch grazing light on real stone and
+        # repair edges. Retain broad facets and the fractured silhouette.
+        bpy.context.view_layer.objects.active=ob
+        mod=ob.modifiers.new('Stone and metal edge wear','BEVEL');mod.width=.24;mod.segments=1
+        mod.limit_method='ANGLE';mod.angle_limit=.55
+        bpy.ops.object.modifier_apply(modifier=mod.name)
         for poly in ob.data.polygons:poly.use_smooth=False
 bpy.context.scene['provenance']='Authored from selected built-in imagegen scene umbra-scene-reference.png. Generator seed 1029. No third-party assets.'
 bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE))

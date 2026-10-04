@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { assetURL } from '../../../assets/url.js';
 import { RING_CENTER } from '../environment/constants.js';
 
 const vertex = `varying vec2 vUv; varying vec3 vDirection;
@@ -11,14 +12,24 @@ void main(){
   float bands=.58+.22*sin(r*170.+sin(a*5.-time*.11)*1.8)+.12*sin(r*393.+a*2.-time*.08);
   float streak=.6+.4*pow(.5+.5*sin(a*13.+r*28.-time*.12),3.);
   float asymmetry=.62+.38*sin(a+.5);
-  vec3 hot=mix(vec3(1.,.22,.025),vec3(1.,.82,.43),pow(1.-r,1.6));
+  vec3 hot=mix(vec3(1.,.22,.025),vec3(1.,.82,.43),pow(max(0.,1.-r),1.6));
   gl_FragColor=vec4(hot*(bands+streak*.3)*radiance*asymmetry,mask*.94);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
 
 /** Localized composed lensing: never samples/distorts the rendered road or HUD. */
-export function createUmbraBackdrop({ settings = {} } = {}) {
+export async function createUmbraBackdrop({
+  settings = {},
+  loadTexture = (url) => new T.TextureLoader().loadAsync(url),
+} = {}) {
+  const texture = await loadTexture(
+    assetURL('assets/levels/umbra/umbra-sky-v2.png'),
+  );
+  texture.colorSpace = T.SRGBColorSpace;
+  texture.wrapS = T.RepeatWrapping;
+  texture.wrapT = T.ClampToEdgeWrapping;
+  texture.anisotropy = 4;
   const group = new T.Group();
   group.name = 'umbra-accretion-sky';
   group.userData.spaceBackdrop = true;
@@ -30,13 +41,27 @@ export function createUmbraBackdrop({ settings = {} } = {}) {
     new T.ShaderMaterial({
       side: T.BackSide,
       depthWrite: false,
+      uniforms: { stellarSky: { value: texture } },
       vertexShader: vertex,
-      fragmentShader: `varying vec3 vDirection; void main(){
-        vec3 n=normalize(vDirection);float band=exp(-pow((n.y+.18*n.x-.1)/.16,2.));
-        float dust=.52+.22*sin(n.x*21.+n.z*17.)+.15*sin(n.z*48.-n.y*23.);
-        vec3 color=vec3(.002,.004,.009)+band*dust*vec3(.013,.021,.034);
-        color+=pow(max(0.,dot(n,normalize(vec3(.8,.1,.5)))),16.)*vec3(.009,.014,.026);
-        gl_FragColor=vec4(color,1.);
+      fragmentShader: `varying vec3 vDirection; uniform sampler2D stellarSky;
+      const float PI=3.141592653589793;
+      void main(){
+        vec3 n=normalize(vDirection);
+        float u=fract(atan(n.z,n.x)/(2.*PI)+.29);
+        float v=asin(clamp(n.y,-1.,1.))/PI+.5;
+        float overlap=.035;
+        float mapped=u*(1.-overlap);
+        vec3 dx=dFdx(n),dy=dFdy(n);
+        float ls=(1.-overlap)/(2.*PI*max(dot(n.xz,n.xz),.000001));
+        float vs=1./(PI*sqrt(max(1.-n.y*n.y,.000001)));
+        vec2 gx=vec2((n.x*dx.z-n.z*dx.x)*ls,dx.y*vs);
+        vec2 gy=vec2((n.x*dy.z-n.z*dy.x)*ls,dy.y*vs);
+        vec3 color=textureGrad(stellarSky,vec2(mapped,v),gx,gy).rgb;
+        if(mapped<overlap) color=mix(textureGrad(stellarSky,vec2(mapped+1.-overlap,v),gx,gy).rgb,color,smoothstep(0.,overlap,mapped));
+        float pv=n.y>0. ?.99:.01;
+        vec3 pole=(textureLod(stellarSky,vec2(.125,pv),3.).rgb+textureLod(stellarSky,vec2(.375,pv),3.).rgb+textureLod(stellarSky,vec2(.625,pv),3.).rgb+textureLod(stellarSky,vec2(.875,pv),3.).rgb)*.25;
+        color=mix(color,pole,smoothstep(.965,.998,abs(n.y)));
+        gl_FragColor=vec4(color*.08,1.);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`,
@@ -105,7 +130,7 @@ export function createUmbraBackdrop({ settings = {} } = {}) {
       time: { value: 0 },
       outerRadius: { value: 810 },
       innerRadius: { value: 245 },
-      radiance: { value: 3.3 },
+      radiance: { value: 1.5 },
     },
     vertexShader: vertex,
     fragmentShader: diskFragment,
@@ -114,7 +139,7 @@ export function createUmbraBackdrop({ settings = {} } = {}) {
     depthWrite: false,
   });
   const disk = new T.Mesh(new T.PlaneGeometry(1620, 1620), diskMaterial);
-  disk.rotation.set(1.12, 0.05, -0.22);
+  disk.rotation.set(1.32, 0.05, -0.22);
   disk.name = 'Layered incandescent orbital accretion';
   hole.add(disk);
   // A thin lensed circular halo remains visible above/below the inclined disk.
@@ -130,6 +155,7 @@ export function createUmbraBackdrop({ settings = {} } = {}) {
   lensHalo.position.z = 13;
   hole.add(lensHalo);
   let simulationTime = 0;
+  let disposed = false;
   return {
     group,
     sunDirection: new T.Vector3(-0.66, 0.31, -0.68).normalize(),
@@ -142,7 +168,7 @@ export function createUmbraBackdrop({ settings = {} } = {}) {
     fillIntensity: 0.72,
     environmentIntensity: 0.4,
     far: 22000,
-    ownedTextures: [],
+    ownedTextures: [texture],
     assets: { ringCenter: RING_CENTER },
     update({
       camera,
@@ -159,6 +185,9 @@ export function createUmbraBackdrop({ settings = {} } = {}) {
       starGeometry.setDrawRange(0, current.quality === 'low' ? 850 : 1800);
     },
     dispose() {
+      if (disposed) return;
+      disposed = true;
+      texture.dispose();
       group.traverse((node) => {
         node.geometry?.dispose();
         node.material?.dispose();

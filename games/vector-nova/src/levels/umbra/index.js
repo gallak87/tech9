@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { createDevices } from './devices.js';
 import { createUmbraTrack, buildUmbraRoad } from './track/index.js';
 import { createUmbraRuntime } from './track/runtime.js';
 import { createUmbraEnvironment } from './environment/index.js';
@@ -7,17 +8,21 @@ import { createUmbraOverlay } from './overlay.js';
 
 export default function createLevel({ shape = false } = {}) {
   return {
-    version: '0.4.0-umbra-v1',
+    version: '0.5.0-umbra-racing',
+    racing: { createDevices, createMotion: createUmbraRuntime },
     renderer: {
       world: shape ? 'umbra-shape' : 'umbra-fold',
       background: '#050912',
       fog: null,
-      bloomStrength: 0.25,
+      bloomStrength: 0.16,
       bloomThreshold: 1.05,
       reflectionFar: 2600,
     },
     camera: {
       preserveFlightView: true,
+      chaseHeight: 8,
+      lookAhead: 30,
+      safeFrame: { left: -0.68, right: 0.68, bottom: -0.66, top: 0.55 },
       portraitAspect: 0.64,
       maxPortraitScale: 1.5,
     },
@@ -40,7 +45,7 @@ export default function createLevel({ shape = false } = {}) {
         ['consume', 50],
       ]) {
         track.scenarios[`accretion-${phase}`] = {
-          distance: 1750,
+          distance: 1740,
           speed: 0,
           lateral: 0,
           heading: 0,

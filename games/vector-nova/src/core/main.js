@@ -206,13 +206,16 @@ async function boot() {
       /* Decorative audio must not interrupt physics. */
     }
     if (e.type === 'impact') {
-      ui.notice(
-        e.payload.source === 'nacre-edge-catch'
-          ? 'EDGE CATCH · SMALL SPEED LOSS'
-          : e.payload.shielded
-            ? 'BARRIER CONTACT · SHIELD PROTECTED RESERVE'
-            : 'BARRIER CONTACT · RESERVE LOST',
-      );
+      // Shared devices already own shield/unprotected hit feedback. Keep the
+      // circuit-specific receiving-edge notice, and avoid two hit toasts.
+      if (!racingEnabled || e.payload.source === 'nacre-edge-catch')
+        ui.notice(
+          e.payload.source === 'nacre-edge-catch'
+            ? 'EDGE CATCH · SMALL SPEED LOSS'
+            : e.payload.shielded
+              ? 'BARRIER CONTACT · SHIELD PROTECTED RESERVE'
+              : 'BARRIER CONTACT · RESERVE LOST',
+        );
       effects.impact(
         track.sample(e.payload.distance ?? state.distance),
         e.payload.lateral ??

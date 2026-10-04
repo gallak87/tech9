@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { finishUmbraMaterial } from '../environment/materials.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   sweepGeometry,
@@ -153,6 +154,12 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
     roughness: 0.72,
     metalness: 0.35,
   });
+  if (!shape) {
+    for (const material of [graphite, panel, underside, repair])
+      finishUmbraMaterial(material, 'graphite');
+    finishUmbraMaterial(metal, 'metal');
+    finishUmbraMaterial(pale, 'stone');
+  }
   const mesh = (name, geometry, material) => {
     geometries.add(geometry);
     const result = new THREE.Mesh(geometry, material);
@@ -576,12 +583,21 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
           incoming ? 3.5 : 8,
         );
         if (!shape) {
-          localBox(pale, frame, side * 16.3, 3.7, 0, 1, 7.4, 1);
+          localBox(
+            pale,
+            frame,
+            side * 16.3,
+            incoming ? 3.7 : 9,
+            0,
+            1,
+            incoming ? 7.4 : 18,
+            1,
+          );
           localBox(
             incoming ? amber : guide,
             frame,
             side * 16.3,
-            7.4,
+            incoming ? 7.4 : 18,
             0,
             1.45,
             0.35,

@@ -1,4 +1,5 @@
 import test from 'node:test';
+import * as T from 'three';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -82,8 +83,10 @@ test('Blender export has all authored stages and absolute-time replayable deform
   assets.dispose();
 });
 
-test('Accretion backdrop pauses and replay restores absolute disk time', () => {
-  const backdrop = createUmbraBackdrop();
+test('Accretion backdrop pauses and replay restores absolute disk time', async () => {
+  const backdrop = await createUmbraBackdrop({
+    loadTexture: async () => new T.Texture(),
+  });
   const disk = backdrop.group.getObjectByName(
     'Layered incandescent orbital accretion',
   );

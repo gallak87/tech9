@@ -19,7 +19,7 @@ export function createUmbraOverlay({ host, track, view }) {
       field.hidden =
         reviewing || !['racing', 'paused'].includes(mode) || !current.active;
       const direction = current.lateralAcceleration >= 0 ? 'LEFT' : 'RIGHT';
-      field.textContent = `TIDAL PULL ${direction}  ${Math.abs(current.lateralAcceleration).toFixed(1)} m/s²`;
+      field.textContent = `PULL ${direction} · COUNTERSTEER ${direction === 'LEFT' ? 'RIGHT' : 'LEFT'} · ${Math.abs(current.lateralAcceleration).toFixed(1)} m/s²`;
     },
     reset() {
       current = null;

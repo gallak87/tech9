@@ -1,6 +1,7 @@
 import * as T from 'three';
 import { loadUmbraAssets, createAssetInstances } from './assets.js';
 import { createUmbraAccretion } from './accretion.js';
+import { createUmbraConstruction } from './construction.js';
 import { RING_CENTER } from './constants.js';
 
 const RADII = { terrace: 106, lens: 150, vault: 142, instrument: 203, rib: 73 };
@@ -147,6 +148,8 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
         if (distant) farGroups.push(batch);
       }
     }
+    const construction = createUmbraConstruction(track, assets, layout);
+    group.add(construction.group);
     const accretion = createUmbraAccretion(assets);
     group.add(accretion.group);
     // Motivate cooler navigation shelves and warm ring-facing areas without
@@ -210,6 +213,7 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
         });
       },
       dispose() {
+        construction.dispose();
         accretion.dispose();
         group.traverse((node) => {
           if (node.isInstancedMesh || node.isLight) node.dispose();

@@ -13,6 +13,8 @@ const RADII = {
   gallery: 154,
   pier: 66,
   wall: 156,
+  wall_solid: 156,
+  wall_breach: 156,
 };
 const pose = new T.Object3D();
 
@@ -101,7 +103,7 @@ export function createUmbraSceneryLayout(track) {
     const frame = track.sample(s),
       side = index % 2 ? -1 : 1;
     const type = [
-      'wall',
+      ['wall', 'wall_solid', 'wall_breach'][Math.floor(index / 7) % 3],
       'rib',
       'gallery',
       'pier',
@@ -190,7 +192,7 @@ export function createUmbraSceneryLayout(track) {
       position.y += 24 + (index % 3) * 9;
       if (
         add(
-          'wall',
+          ['wall_solid', 'wall_breach', 'wall'][index % 3],
           position,
           scale,
           [
@@ -279,6 +281,8 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
       'gallery',
       'pier',
       'wall',
+      'wall_solid',
+      'wall_breach',
     ]) {
       for (const distant of [false, true]) {
         const list = layout.filter(

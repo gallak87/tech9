@@ -28,6 +28,8 @@ export function collectUmbraAssets(scene) {
     'gallery',
     'pier',
     'wall',
+    'wall_solid',
+    'wall_breach',
     'lens',
     'vault',
     'instrument',

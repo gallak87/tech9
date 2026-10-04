@@ -38,7 +38,7 @@ export function createUmbraConstruction(track, assets, layout) {
   for (const entry of layout.filter(
     (e) =>
       (['connector', 'route-gallery'].includes(e.role) &&
-        ['terrace', 'wall'].includes(e.type)) ||
+        (e.type === 'terrace' || e.type.startsWith('wall'))) ||
       e.role === 'near-load-node',
   )) {
     const position = new T.Vector3(...entry.position);
@@ -58,7 +58,7 @@ export function createUmbraConstruction(track, assets, layout) {
       const start = framePoint(frame, side * 9, -7, z);
       const end = new T.Vector3(
         0,
-        entry.type === 'wall' ? -21 : entry.type === 'pier' ? -9 : -8,
+        entry.type.startsWith('wall') ? -21 : entry.type === 'pier' ? -9 : -8,
         0,
       )
         .applyMatrix4(entry.matrix)

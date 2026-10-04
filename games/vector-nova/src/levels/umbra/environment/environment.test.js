@@ -61,6 +61,8 @@ test('Blender export has all authored stages and absolute-time replayable deform
     'terrace',
     'gallery',
     'wall',
+    'wall_solid',
+    'wall_breach',
     'lens',
     'vault',
     'instrument',
@@ -73,7 +75,9 @@ test('Blender export has all authored stages and absolute-time replayable deform
     new T.Vector3(-80, -70, -27),
     new T.Vector3(80, 80, 27),
   );
-  for (const { geometry } of assets.templates.wall) {
+  for (const { geometry } of ['wall', 'wall_solid', 'wall_breach'].flatMap(
+    (name) => assets.templates[name],
+  )) {
     for (let i = 0; i < geometry.attributes.position.count; i++) {
       assert.ok(
         bounds.containsPoint(
@@ -84,7 +88,11 @@ test('Blender export has all authored stages and absolute-time replayable deform
     }
   }
   // Runtime batching retains the authored member-local cavity shading.
-  for (const { geometry, material } of assets.templates.wall) {
+  for (const { geometry, material } of [
+    'wall',
+    'wall_solid',
+    'wall_breach',
+  ].flatMap((name) => assets.templates[name])) {
     const color = geometry.attributes.color;
     assert.ok(
       color && material.vertexColors,

@@ -14,7 +14,8 @@ function panelGeometry(track) {
   const normals = [];
   const colors = [];
   const uvs = [];
-  const triangle = (vertices, color, coordinates) => {
+  const cassetteUvs = [];
+  const triangle = (vertices, color, coordinates, panel) => {
     const normal = new THREE.Vector3()
       .crossVectors(
         vertices[1].clone().sub(vertices[0]),
@@ -26,6 +27,7 @@ function panelGeometry(track) {
       normals.push(...normal.toArray());
       colors.push(color.r, color.g, color.b);
       uvs.push(...coordinates[index]);
+      cassetteUvs.push(...panel[index]);
     }
   };
   for (const [start, end] of track.solidRuns) {
@@ -59,7 +61,7 @@ function panelGeometry(track) {
         const color = new THREE.Color(shade).multiplyScalar(
           0.91 + ((Math.floor(from / 18) + column * 3) % 5) * 0.035,
         );
-        const along = Math.max(1, Math.ceil((to - from) / 2.4));
+        const along = Math.max(1, Math.ceil((to - from) / 4.8));
         for (let row = 0; row < along; row += 1) {
           const a = THREE.MathUtils.lerp(from + 0.08, to - 0.08, row / along);
           const b = THREE.MathUtils.lerp(
@@ -84,16 +86,36 @@ function panelGeometry(track) {
             ];
             const edge = left === x0 || right === x1;
             const finish = edge ? color.clone().multiplyScalar(1.16) : color;
-            triangle([p[0], p[1], p[2]], finish, [
-              [left, a],
-              [left, b],
-              [right, a],
-            ]);
-            triangle([p[2], p[1], p[3]], finish, [
-              [right, a],
-              [left, b],
-              [right, b],
-            ]);
+            const U = (x) => (x - x0) / (x1 - x0),
+              V = (z) => (z - from) / (to - from);
+            triangle(
+              [p[0], p[1], p[2]],
+              finish,
+              [
+                [left, a],
+                [left, b],
+                [right, a],
+              ],
+              [
+                [U(left), V(a)],
+                [U(left), V(b)],
+                [U(right), V(a)],
+              ],
+            );
+            triangle(
+              [p[2], p[1], p[3]],
+              finish,
+              [
+                [right, a],
+                [left, b],
+                [right, b],
+              ],
+              [
+                [U(right), V(a)],
+                [U(left), V(b)],
+                [U(right), V(b)],
+              ],
+            );
           }
         }
       }
@@ -107,6 +129,10 @@ function panelGeometry(track) {
   geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setAttribute(
+    'umbraCassette',
+    new THREE.Float32BufferAttribute(cassetteUvs, 2),
+  );
   geometry.computeBoundingSphere();
   return geometry;
 }
@@ -216,6 +242,7 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
       [-half, -0.13],
     ],
     underside,
+    6,
   );
   if (!shape)
     mesh(
@@ -237,13 +264,13 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
       'Recessed continuous luminous guide',
       boxProfile(side * (half - 0.18), 0.12, 0.21, 0.08),
       guide,
-      2,
+      3,
     );
     sweep(
       'Low continuous impact curb',
       boxProfile(side * (half + 0.42), 0.61, 0.7, 1.22),
       metal,
-      2,
+      4,
     );
     if (!shape) {
       const spineProfile = [
@@ -254,12 +281,12 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
         [side * 7.7, -2.9],
       ];
       if (side < 0) spineProfile.reverse();
-      sweep('Paired graphite tension spine', spineProfile, underside, 4);
+      sweep('Paired graphite tension spine', spineProfile, underside, 6);
       sweep(
         'Lit tension line on exposed deck bottom',
         boxProfile(side * 8.6, -7.15, 0.2, 0.13),
         guide,
-        4,
+        6,
       );
     }
   }
@@ -420,6 +447,20 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
                 side * -0.14,
               );
           }
+          if (tall)
+            for (const dy of [-height * 0.1, height * 0.08])
+              for (const z of [-length * 0.24, length * 0.24])
+                localBox(
+                  underside,
+                  frame,
+                  faceX - side * 0.1,
+                  y + dy,
+                  z,
+                  0.08,
+                  0.07,
+                  length * 0.32,
+                  side * -0.14,
+                );
           for (const z of [-length * 0.24, length * 0.24]) {
             localBox(
               underside,

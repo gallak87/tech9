@@ -81,7 +81,8 @@ def wedge(name,x,y,z,w,h,d,material,parent):
     # Irregular sealed ashlar with chipped edges, deep fractures and quiet faces.
     # Its fresh break is a separate material, not painted crackle on a trapezoid.
     cols=7;rows=5;verts=[];faces=[]
-    top=[.83,.94,.87,1.01,.78,.91,.85]
+    top=[random.uniform(.78,1.02) for _ in range(cols)]
+    cleft=random.choice([1,2,4,5]); damaged=random.random()<.37
     for back in [False,True]:
         for row in range(rows):
             v=row/(rows-1)
@@ -94,7 +95,7 @@ def wedge(name,x,y,z,w,h,d,material,parent):
                 zz=z+(-1 if back else 1)*(d/2-chips*edge)
                 if not back and row not in [0,rows-1]:
                     # A few broad clefts and a chipped course end cast real shadows.
-                    zz-=d*(.09 if col in [2,3] and row in [2,3] else 0)
+                    zz-=d*(.09 if damaged and col in [cleft,cleft+1] and row in [2,3] else 0)
                     zz+=random.uniform(-.012,.014)*min(w,h)
                 verts.append((xx,yy,zz))
     n=rows*cols
@@ -332,7 +333,45 @@ def wall():
         beam('bonded-front-repair',(x,-52,15),(x+12,29,15),2.5,metal,p)
     consolidate(p)
 
-terrace();gallery();pier();wall();lens();vault();instrument();instrument('event_stretched',2.65);instrument('event_fragmented',2.1,True);rib()
+def wall_variant(name,breached=False):
+    p=group(name)
+    # Same conservative clearance envelope as the original wall; different
+    # structural histories and large mass distribution, not random debris.
+    if breached:
+        for x,y,w,h in [(-58,-65,33,106),(47,-65,46,126),(-12,-65,27,44)]:
+            wedge('surviving-breached-mass',x,y,0,w,h,24,stone,p)
+        broken_arc('remaining-deep-loggia',31,8,22,.15,2.34,p,(-15,-13,0),17)
+        for y,w,x in [(-58,147,0),(-17,138,1),(24,75,30)]:
+            box('interrupted-breached-shelf',(x,y,0),(w,6,43),aged,p,1)
+            box('shelf-repair-lip',(x,y+3.2,22),(w*.86,.8,1.5),metal,p)
+        for x in [-50,-35,34,58]:
+            beam('exposed-breach-strap',(x,-56,15),(x+8,35,15),1.8,metal,p)
+            for y in [-32,-3,25]:box('bolted-strap-cleat',(x+3,y,16),(5,2,1),graphite,p)
+        beam('diagonal-breach-repair',(-44,-12,16),(33,43,16),2.8,metal,p)
+        for x in [-7,7]:beam('breach-inner-tendon',(x,-50,-8),(x,49,-8),1.8,metal,p)
+    else:
+        for x,y,w,h in [(-46,-65,56,125),(27,-65,51,130),(65,-65,19,99)]:
+            wedge('battered-solid-buttress',x,y,0,w,h,24,aged if x>50 else stone,p)
+        # True narrow service slit between the broad masses.
+        for x in [-16,0]:
+            box('deep-slit-jamb',(x,-7,11),(3,112,5),graphite,p)
+            box('slit-amber-service',(x,-4,14),(.6,83,.6),amber,p)
+        for x in [-48,29]:
+            for y in [-43,-14,17,44]:
+                box('deep-bond-course',(x,y,12.5),(44,1.2,2),graphite,p)
+                box('bond-end-anchor',(x+18,y+3,14),(4,5,1.5),metal,p)
+                box('recessed-instrument-panel',(x,y+10,13),(18,9,1.3),dark,p)
+                for dx in [-6,0,6]:box('service-panel-grille',(x+dx,y+10,14),(1,7,.8),metal,p)
+        broken_arc('single-low-service-portal',19,6,20,.12,2.99,p,(48,-38,0),15)
+        for y,w in [(-59,148),(-22,140),(18,119)]:
+            box('buttress-service-balcony',(0,y,0),(w,5,45),stone,p,1)
+            box('service-balcony-keel',(0,y-3,0),(w-5,2,43),graphite,p)
+    for y in [-55,-18,23]:
+        box('inset-cold-instrument-strip',(12,y+4,24),(81,.4,.7),cyan,p)
+    consolidate(p)
+
+
+terrace();gallery();pier();wall();wall_variant("wall_solid");wall_variant("wall_breach",True);lens();vault();instrument();instrument('event_stretched',2.65);instrument('event_fragmented',2.1,True);rib()
 for ob in bpy.data.objects:
     if ob.type=='MESH':
         # Applied single-segment bevels catch grazing light on real stone and

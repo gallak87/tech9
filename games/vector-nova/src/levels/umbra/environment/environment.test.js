@@ -60,6 +60,7 @@ test('Blender export has all authored stages and absolute-time replayable deform
   for (const name of [
     'terrace',
     'gallery',
+    'wall',
     'lens',
     'vault',
     'instrument',
@@ -68,6 +69,20 @@ test('Blender export has all authored stages and absolute-time replayable deform
     'event_fragmented',
   ])
     assert.ok(assets.templates[name].length > 0, name);
+  const bounds = new T.Box3(
+    new T.Vector3(-80, -70, -27),
+    new T.Vector3(80, 80, 27),
+  );
+  for (const { geometry } of assets.templates.wall) {
+    for (let i = 0; i < geometry.attributes.position.count; i++) {
+      assert.ok(
+        bounds.containsPoint(
+          new T.Vector3().fromBufferAttribute(geometry.attributes.position, i),
+        ),
+        'gallery clearance bounds contain actual masonry',
+      );
+    }
+  }
   assert.equal(assets.eventPieces.length, 12);
   const event = createUmbraAccretion(assets);
   event.update(32);

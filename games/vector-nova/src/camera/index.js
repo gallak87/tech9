@@ -11,6 +11,7 @@ export function createCameraRig(
     safeFrame,
     jumpPreview,
     flightViewScale = 1,
+    flightChaseBlend = 0,
   } = {},
   subjectBounds = null,
 ) {
@@ -115,6 +116,18 @@ export function createCameraRig(
               .addScaledVector(f.tangent, -14 - state.speed * 0.025)
               .addScaledVector(f.up, 4.0);
         target = p.clone().addScaledVector(f.tangent, 22);
+        if (flightView && flightChaseBlend > 0) {
+          const blend =
+            T.MathUtils.clamp(flightChaseBlend, 0, 1) *
+            T.MathUtils.smoothstep(flightView.elapsed, 0.25, 1.25);
+          eye.lerp(
+            p
+              .clone()
+              .addScaledVector(f.tangent, -14 - state.speed * 0.025)
+              .addScaledVector(f.up, 4),
+            blend,
+          );
+        }
       } else {
         const nextJump =
           jumpPreview &&
@@ -218,7 +231,13 @@ export function createCameraRig(
       lookMatrix.lookAt(camera.position, target, f.up);
       desiredRotation.setFromRotationMatrix(lookMatrix);
       if (flightView) {
-        desiredRotation.copy(f.quaternion).multiply(flightView.rotation);
+        const blend =
+          T.MathUtils.clamp(flightChaseBlend, 0, 1) *
+          T.MathUtils.smoothstep(flightView.elapsed, 0.25, 1.25);
+        desiredRotation
+          .copy(f.quaternion)
+          .multiply(flightView.rotation)
+          .slerp(new T.Quaternion().setFromRotationMatrix(lookMatrix), blend);
       } else if (landingView) {
         desiredRotation.copy(
           f.quaternion

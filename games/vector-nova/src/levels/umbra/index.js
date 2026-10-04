@@ -21,6 +21,7 @@ export default function createLevel({ shape = false } = {}) {
     camera: {
       preserveFlightView: true,
       flightViewScale: 0.67,
+      flightChaseBlend: 0.78,
       chaseHeight: 6,
       lookAhead: 52,
       jumpPreview: { distance: 280, height: 27, back: 36 },

@@ -119,6 +119,9 @@ test('Flight dolly retains the takeoff pose and smoothly restores craft proximit
   assert.ok(camera.position.distanceTo(incoming) < 1e-8);
   assert.ok(camera.quaternion.angleTo(rotation) < 1e-7);
   const initialDistance = camera.position.distanceTo(pose.position);
+  const initialForward = new T.Vector3(0, 0, -1)
+    .applyQuaternion(camera.quaternion)
+    .dot(frame.tangent);
   let previous = camera.position.clone();
   for (let i = 0; i < 90; i++) {
     rig.update(track, state, 1 / 60, { worldPose: pose });
@@ -126,4 +129,11 @@ test('Flight dolly retains the takeoff pose and smoothly restores craft proximit
     previous.copy(camera.position);
   }
   assert.ok(camera.position.distanceTo(pose.position) < initialDistance * 0.7);
+  assert.ok(
+    new T.Vector3(0, 0, -1)
+      .applyQuaternion(camera.quaternion)
+      .dot(frame.tangent) >
+      initialForward + 0.02,
+    'late flight returns toward forward chase',
+  );
 });

@@ -55,7 +55,28 @@ export function createUmbraSceneryLayout(track) {
     );
   function add(type, position, scale, rotation, role, clearance = 38) {
     const radius = RADII[type] * scale;
-    const margin = distance(position) - radius;
+    pose.position.copy(position);
+    pose.rotation.set(...rotation);
+    pose.scale.setScalar(scale);
+    pose.updateMatrix();
+    // Long route-parallel walls use their conservative actual local bounds.
+    // A bounding sphere would force their thin front face far outside the view.
+    const inverse = pose.matrix.clone().invert();
+    const wallBounds = new T.Box3(
+      new T.Vector3(-80, -70, -27),
+      new T.Vector3(80, 80, 27),
+    );
+    const margin =
+      role === 'route-gallery'
+        ? Math.min(
+            ...route.map(
+              (point) =>
+                wallBounds.distanceToPoint(
+                  point.clone().applyMatrix4(inverse),
+                ) * scale,
+            ),
+          )
+        : distance(position) - radius;
     if (
       ['connector', 'distant', 'near-load-node', 'route-gallery'].includes(
         role,
@@ -64,10 +85,6 @@ export function createUmbraSceneryLayout(track) {
     )
       return false;
     if (margin < clearance) return false;
-    pose.position.copy(position);
-    pose.rotation.set(...rotation);
-    pose.scale.setScalar(scale);
-    pose.updateMatrix();
     entries.push({
       type,
       matrix: pose.matrix.clone(),
@@ -160,7 +177,7 @@ export function createUmbraSceneryLayout(track) {
   // Road-parallel observatory galleries place actual stone mass above eye level
   // in ordinary chase views. Their portals and service shelves face the route.
   for (const [index, s] of [
-    180, 340, 550, 720, 860, 2050, 2350, 3030, 4090, 4430, 4890, 5200,
+    185, 385, 610, 910, 2150, 2500, 3050, 4220, 4560, 5000, 5230,
   ].entries()) {
     const frame = track.sample(s),
       side = index % 3 === 1 ? -1 : 1;
@@ -168,7 +185,7 @@ export function createUmbraSceneryLayout(track) {
       .normalize()
       .multiplyScalar(side);
     const scale = 0.55 + (index % 3) * 0.065;
-    for (const offset of [132, 164, 210, 270]) {
+    for (const offset of [65, 82, 105, 132, 164, 210, 270]) {
       const position = frame.position.clone().addScaledVector(lateral, offset);
       position.y += 24 + (index % 3) * 9;
       if (

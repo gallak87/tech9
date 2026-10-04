@@ -34,6 +34,8 @@ export function createUmbraOverlay({ host, track, view, shape = false }) {
   field.setAttribute('role', 'img');
   field.innerHTML = `<svg viewBox="0 0 184 184" aria-hidden="true"><path class="orbit" d="M128 27 A74 74 0 0 1 128 157"/><path class="pressure" pathLength="1" d="M128 27 A74 74 0 0 1 128 157"/><path class="arrows" d="m159 84 9 8-9 8m10-16 9 8-9 8"/></svg>`;
   const pressure = field.querySelector('.pressure');
+  const orbit = field.querySelector('.orbit');
+  let compactArc = null;
   field.hidden = true;
   host.append(style, field);
   let current = null;
@@ -49,6 +51,15 @@ export function createUmbraOverlay({ host, track, view, shape = false }) {
       lens?.update(lensing, width, height);
       field.hidden = !lensing.active;
       if (!lensing.active) return;
+      const compact = height <= 450;
+      if (compactArc !== compact) {
+        const path = compact
+          ? 'M153 50 A74 74 0 0 1 153 134'
+          : 'M128 27 A74 74 0 0 1 128 157';
+        orbit.setAttribute('d', path);
+        pressure.setAttribute('d', path);
+        compactArc = compact;
+      }
       const [x, y] = lensing.center;
       const [dx, dy] = lensing.direction;
       const size = lensing.radius * 2.35;

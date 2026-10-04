@@ -35,7 +35,7 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 ### Level polish
 
-- [ ] Umbra: vary ordinary observatory mass and repair construction, deepen stone/metal material differentiation, bring the elevated jump preview and first arrival closer to normal chase, and strengthen the Fold’s visible start-grid reference.
+- [ ] Umbra: distinguish graphite wear and titanium polish/reflections, enrich fractured masonry and layered repair construction, reveal recessed surfaces under local lighting, bring the elevated jump preview and first arrival closer to normal chase, and strengthen the Fold’s visible start-grid reference.
 
 - [ ] Saffron: deepen bone erosion and fracture variation, sharpen creature armor response, enrich sandfall volume and ordinary scenery and optimize high-resolution material/postprocessing cost.
 

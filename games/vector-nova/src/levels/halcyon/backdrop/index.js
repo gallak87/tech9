@@ -1,10 +1,11 @@
+import { assetURL } from '../../../assets/url.js';
 import * as T from 'three';
 
 /** Cloud-only source image on a true sky sphere. World geometry is never part of
  * this texture. The same sky radiance supplies PMREM reflections and lighting. */
 export async function createSky() {
   const texture = await new T.TextureLoader().loadAsync(
-    '/assets/sky/halcyon-clouds-v1.png',
+    assetURL('assets/levels/halcyon/halcyon-clouds-v1.png'),
   );
   texture.colorSpace = T.SRGBColorSpace;
   texture.wrapS = T.RepeatWrapping;

@@ -3,6 +3,7 @@ import * as T from 'three';
 const LATERAL_SEGMENTS = 40;
 const SHEET_OFFSETS = [-9, -3, 0, 3, 9, 22, 38];
 const SPLASH_SLOTS = 3;
+const BUBBLE_SLOTS = 4;
 const SPRAY_POINTS = 160;
 const SPLASH_LIFETIME = 1.65;
 
@@ -210,6 +211,8 @@ function splashSlot(pointsGeometry, rippleGeometry) {
     strength: { value: 1 },
     reducedMotion: { value: 0 },
     wetDirection: { value: 1 },
+    bubbleOnly: { value: 0 },
+    waterCeiling: { value: -0.1 },
   };
   const sprayMaterial = new T.ShaderMaterial({
     name: 'Nacre / swept-craft sea spray and bubbles',
@@ -223,21 +226,25 @@ function splashSlot(pointsGeometry, rippleGeometry) {
       uniform float age;
       uniform float strength;
       uniform float wetDirection;
+      uniform float bubbleOnly;
+      uniform float waterCeiling;
       varying float opacity;
       varying float isBubble;
       void main() {
         float t=max(0.,age-seed*.08);
-        vec3 p=position+velocity*t*strength;
-        p.z*=mix(1.,wetDirection,bubble);
-        p.y-=mix(7.8,0.,bubble)*t*t;
+        float kind=max(bubble,bubbleOnly);
+        vec3 drift=mix(velocity,vec3(velocity.x*.25,1.5+seed*2.5,velocity.z*.25),bubbleOnly);
+        vec3 p=position+drift*t*strength;
+        p.z*=mix(1.,wetDirection,kind);
+        p.y-=mix(7.8,0.,kind)*t*t;
         // Bubbles stay below the real surface rather than flying into the air.
-        p.y=mix(p.y,min(p.y,-.10),bubble);
+        p.y=mix(p.y,min(p.y,waterCeiling),kind);
         vec4 view=modelViewMatrix*vec4(p,1.);
         gl_Position=projectionMatrix*view;
         gl_PointSize=clamp((216.+seed*186.)/max(1.,-view.z),1.2,10.5);
         opacity=smoothstep(0.,.06,t)*(1.-smoothstep(.55,1.65,age))*.84;
-        opacity*=mix(step(-.1,p.y),1.,bubble);
-        isBubble=bubble;
+        opacity*=mix(step(-.1,p.y),1.,kind);
+        isBubble=kind;
       }
     `,
     fragmentShader: `
@@ -314,6 +321,13 @@ export function createNacreWaterCrossingEffects(track) {
     group.add(slot.spray, slot.ripple);
     return slot;
   });
+  const bubbleSlots = Array.from({ length: BUBBLE_SLOTS }, () => {
+    const slot = splashSlot(pointsGeometry, rippleGeometry);
+    slot.uniforms.bubbleOnly.value = 1;
+    slot.spray.name = 'Nacre / actual submerged flight bubbles';
+    group.add(slot.spray, slot.ripple);
+    return slot;
+  });
   const previousPosition = new T.Vector3();
   const origin = new T.Vector3();
   const forward = new T.Vector3();
@@ -321,6 +335,12 @@ export function createNacreWaterCrossingEffects(track) {
   let previousTime = 0,
     previousSpeed = 0,
     initialized = false;
+  let previousMotionMode = 'magnetic';
+  let lastBubbleTime = -Infinity,
+    bubbleIndex = 0,
+    bubbleEventCount = 0,
+    lastBubble = null;
+  let bubbleEvents = { takeoff: 0, flight: 0, landing: 0 };
   let eventCount = 0,
     lastCrossing = null,
     lastEventTime = -Infinity;
@@ -333,27 +353,35 @@ export function createNacreWaterCrossingEffects(track) {
     eventCount = 0;
     lastCrossing = null;
     lastEventTime = -Infinity;
-    for (const slot of slots) {
+    previousMotionMode = 'magnetic';
+    lastBubbleTime = -Infinity;
+    bubbleEventCount = 0;
+    lastBubble = null;
+    bubbleEvents = { takeoff: 0, flight: 0, landing: 0 };
+    for (const slot of [...slots, ...bubbleSlots]) {
       slot.active = false;
       slot.startedAt = -Infinity;
       slot.spray.visible = slot.ripple.visible = false;
     }
   }
-  function remember(position, time, speed) {
+  function remember(position, time, speed, motionMode = 'magnetic') {
     previousPosition.copy(position);
     previousTime = time;
     previousSpeed = speed;
     initialized = true;
+    previousMotionMode = motionMode;
   }
   return {
     group,
     metrics: {
-      meshCount: 1 + SPLASH_SLOTS,
+      meshCount: 1 + SPLASH_SLOTS + BUBBLE_SLOTS,
       triangleCount:
-        waterline.geometry.attributes.position.count / 3 + SPLASH_SLOTS * 2,
+        waterline.geometry.attributes.position.count / 3 +
+        (SPLASH_SLOTS + BUBBLE_SLOTS) * 2,
       splashSlots: SPLASH_SLOTS,
-      splashPointsHigh: SPRAY_POINTS * SPLASH_SLOTS,
-      splashPointsLow: (SPRAY_POINTS / 2) * SPLASH_SLOTS,
+      bubbleSlots: BUBBLE_SLOTS,
+      splashPointsHigh: SPRAY_POINTS * (SPLASH_SLOTS + BUBBLE_SLOTS),
+      splashPointsLow: (SPRAY_POINTS / 2) * (SPLASH_SLOTS + BUBBLE_SLOTS),
       additionalRenderPasses: 0,
       textures: 0,
     },
@@ -365,6 +393,7 @@ export function createNacreWaterCrossingEffects(track) {
       time = 0,
       mode = 'racing',
       reset = false,
+      motion,
     }) {
       if (reset) clear();
       if (mode !== 'racing' && mode !== 'paused') {
@@ -372,7 +401,7 @@ export function createNacreWaterCrossingEffects(track) {
         return;
       }
       if (!initialized || mode === 'paused') {
-        remember(position, time, speed);
+        remember(position, time, speed, motion?.mode);
         return;
       }
       const dt = time - previousTime;
@@ -383,7 +412,7 @@ export function createNacreWaterCrossingEffects(track) {
           2 + Math.max(speed, previousSpeed) * Math.max(dt, 0) * 2.2
       ) {
         clear();
-        remember(position, time, speed);
+        remember(position, time, speed, motion?.mode);
         return;
       }
       if (dt <= 1e-8) return;
@@ -425,7 +454,34 @@ export function createNacreWaterCrossingEffects(track) {
           speed,
         };
       }
-      remember(position, time, speed);
+      const motionMode = motion?.mode ?? 'magnetic';
+      const bubbleKind =
+        motionMode === 'flight' && previousMotionMode === 'magnetic'
+          ? 'takeoff'
+          : motionMode === 'magnetic' && previousMotionMode === 'flight'
+            ? 'landing'
+            : motionMode === 'flight' && time - lastBubbleTime >= 0.16
+              ? 'flight'
+              : null;
+      if (bubbleKind && position.y < waterY - 1 && speed > 10) {
+        const slot = bubbleSlots[bubbleIndex];
+        bubbleIndex = (bubbleIndex + 1) % BUBBLE_SLOTS;
+        forward.set(0, 0, 1).applyQuaternion(quaternion).setY(0).normalize();
+        slot.spray.position.copy(position).addScaledVector(forward, -4);
+        slot.spray.quaternion.setFromAxisAngle(
+          worldUp,
+          Math.atan2(forward.x, forward.z),
+        );
+        slot.uniforms.waterCeiling.value = waterY - slot.spray.position.y - 0.1;
+        slot.uniforms.strength.value = bubbleKind === 'flight' ? 0.75 : 1.25;
+        slot.startedAt = time;
+        slot.active = true;
+        lastBubbleTime = time;
+        bubbleEventCount++;
+        bubbleEvents[bubbleKind]++;
+        lastBubble = { kind: bubbleKind, time, position: position.toArray() };
+      }
+      remember(position, time, speed, motionMode);
     },
     update(time, settingsReducedMotion, settingsQuality) {
       currentTime = time;
@@ -436,13 +492,14 @@ export function createNacreWaterCrossingEffects(track) {
         0,
         quality === 'low' ? SPRAY_POINTS / 2 : SPRAY_POINTS,
       );
-      for (const slot of slots) {
+      for (const slot of [...slots, ...bubbleSlots]) {
         const age = Math.max(0, time - slot.startedAt);
         if (age > SPLASH_LIFETIME) slot.active = false;
         slot.uniforms.age.value = age;
         slot.uniforms.reducedMotion.value = reducedMotion ? 1 : 0;
         slot.spray.visible = slot.active && !reducedMotion;
-        slot.ripple.visible = slot.active;
+        slot.ripple.visible =
+          slot.active && slot.uniforms.bubbleOnly.value === 0;
       }
     },
     getPresentation() {
@@ -458,6 +515,14 @@ export function createNacreWaterCrossingEffects(track) {
         })),
         activeSplashCount: slots.filter((slot) => slot.active).length,
         activeSprayCount: slots.filter((slot) => slot.spray.visible).length,
+        activeBubbleCount: bubbleSlots.filter((slot) => slot.spray.visible)
+          .length,
+        bubblePoolSlots: BUBBLE_SLOTS,
+        bubbleEventCount,
+        bubbleEvents: { ...bubbleEvents },
+        lastBubble: lastBubble
+          ? { ...lastBubble, position: [...lastBubble.position] }
+          : null,
         eventCount,
         lastCrossing: lastCrossing
           ? { ...lastCrossing, position: [...lastCrossing.position] }

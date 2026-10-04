@@ -26,6 +26,7 @@ export const DEFAULT_FLIGHT_RULES = Object.freeze({
   edgeSpeedRetention: 0.95,
   edgeEnergyCost: 2,
   railHeight: {},
+  railOffset: {},
 });
 
 // Shared swept contact and ballistic motion. Authored route, rules, effects,
@@ -38,9 +39,12 @@ export function createFlightModel(overrides = {}) {
     railHeight: {
       ...(overrides.railHeight ?? DEFAULT_FLIGHT_RULES.railHeight),
     },
+    railOffset: {
+      ...(overrides.railOffset ?? DEFAULT_FLIGHT_RULES.railOffset),
+    },
   };
   for (const [name, value] of Object.entries(R)) {
-    if (name === 'railHeight') continue;
+    if (name === 'railHeight' || name === 'railOffset') continue;
     if (name === 'curvedContact') {
       if (typeof value !== 'boolean')
         throw new Error('curvedContact must be boolean.');
@@ -61,12 +65,16 @@ export function createFlightModel(overrides = {}) {
   if (R.step > 1 / 120 || R.edgeOverlap > 1 || R.edgeSpeedRetention > 1)
     throw new Error('Invalid flight step or contact ratio.');
   if (
-    Object.values(R.railHeight).some(
+    [...Object.values(R.railHeight), ...Object.values(R.railOffset)].some(
       (value) => !Number.isFinite(value) || value < 0,
     )
   )
-    throw new Error('Invalid flight rail height.');
+    throw new Error('Invalid flight rail geometry.');
   Object.freeze(R.railHeight);
+  Object.freeze(R.railOffset);
+  // An unused extension must not change existing serialized replay identities.
+  if (!Object.keys(R.railOffset).length)
+    Object.defineProperty(R, 'railOffset', { enumerable: false });
   Object.freeze(R);
   const clamp = THREE.MathUtils.clamp;
   const axis = (q, x, y, z) => new THREE.Vector3(x, y, z).applyQuaternion(q);
@@ -145,14 +153,18 @@ export function createFlightModel(overrides = {}) {
 
   // Sweep the supported portion of the hull against this jump's finite receiving
   // rail envelope. The top AND inside face catch descending and sideways motion;
-  // a wing tip with less than half the hull over the road cannot acquire support.
+  // Half the hull must overlap the authored rail envelope; offsets represent
+  // visible outboard barriers without expanding the road landing surface.
   function sweptRail(track, jump, before, after) {
     if (!track.jumps.includes(jump)) return null;
     const height = R.railHeight[jump.id] ?? 0.9;
+    const offset = R.railOffset[jump.id] ?? 0;
+    const railBoundary = jump.halfWidth + offset;
+    const tolerance = offset > 0 ? 1e-7 : 0;
     let first = null;
     const motion = new THREE.Line3(before.position, after.position);
     const nearest = new THREE.Vector3();
-    const radius = jump.halfWidth + height + 8;
+    const radius = railBoundary + height + 8;
     for (const segment of landingSegments(track, jump)) {
       motion.closestPointToPoint(segment.frame.position, true, nearest);
       if (nearest.distanceToSquared(segment.frame.position) > radius * radius)
@@ -182,20 +194,21 @@ export function createFlightModel(overrides = {}) {
           let enter = 0,
             leave = 1;
           const inequalities = [
-            [side * ax + aw - jump.halfWidth, side * bx + bw - jump.halfWidth],
-            [jump.halfWidth - side * ax, jump.halfWidth - side * bx],
+            [side * ax + aw - railBoundary, side * bx + bw - railBoundary],
+            [railBoundary - side * ax, railBoundary - side * bx],
             [height - ay + ah, height - by + bh],
             [ay, by],
             [az - segment.start, bz - segment.start],
             [segment.end - az, segment.end - bz],
           ];
           for (const [from, to] of inequalities) {
-            if (from < 0 && to < 0) {
+            if (from < -tolerance && to < -tolerance) {
               enter = 2;
               break;
             }
-            if (from < 0) enter = Math.max(enter, -from / (to - from));
-            else if (to < 0) leave = Math.min(leave, from / (from - to));
+            if (from < -tolerance) enter = Math.max(enter, -from / (to - from));
+            else if (to < -tolerance)
+              leave = Math.min(leave, from / (from - to));
           }
           if (enter > leave || enter > 1) {
             contact = null;
@@ -218,14 +231,14 @@ export function createFlightModel(overrides = {}) {
           quaternion,
           frame,
           lateral,
-          jump.halfWidth,
+          railBoundary,
         );
         const extent = bodyExtent(quaternion, frame.tangent);
         const heading = landingHeading(quaternion, frame);
         if (
           heading === null ||
           footprint.overlap < R.edgeOverlap - 1e-8 ||
-          side * lateral + footprint.extent < jump.halfWidth - 1e-6 ||
+          side * lateral + footprint.extent < railBoundary - 1e-6 ||
           distance - extent < jump.landingStart ||
           distance + extent > jump.landingEnd
         )
@@ -478,6 +491,7 @@ export function createFlightModel(overrides = {}) {
     let landingSettle = null;
     let disposed = false;
     let seed = 0;
+    let stepModifiers = {};
     const poseOnRoad = (state) => {
       const f = track.sample(state.distance);
       return {
@@ -668,7 +682,8 @@ export function createFlightModel(overrides = {}) {
           flight.velocity.dot(frame.tangent) * (R.edgeSpeedRetention - 1),
         );
         state.speed *= R.edgeSpeedRetention;
-        state.energy = Math.max(0, state.energy - R.edgeEnergyCost);
+        const energyCost = stepModifiers.shield ? 0 : R.edgeEnergyCost;
+        state.energy = Math.max(0, state.energy - energyCost);
         state.impact = 0.35;
         flight.edgeCaught = true;
         events.push({
@@ -681,7 +696,8 @@ export function createFlightModel(overrides = {}) {
             lateral,
             overlap: contact.overlap,
             speedRetention: R.edgeSpeedRetention,
-            energyCost: R.edgeEnergyCost,
+            energyCost,
+            ...(stepModifiers.shield ? { shielded: true } : {}),
           },
         });
       }
@@ -835,6 +851,7 @@ export function createFlightModel(overrides = {}) {
       // Pure sampled options: a split takeoff can evaluate this more than once.
       const groundOptions = () => ({
         ...options.groundOptions?.({ state, input, dt, track }),
+        ...stepModifiers,
         steeringAssist: settings.steeringAssist ?? STEERING_ASSIST,
       });
       const magneticEvents = stepVehicle(
@@ -893,9 +910,10 @@ export function createFlightModel(overrides = {}) {
       version: options.version,
       rulesId: options.rulesId,
       scenarios,
-      advance(state, input, dt) {
+      advance(state, input, dt, modifiers = {}) {
         const events = [];
         if (disposed || !Number.isFinite(dt) || dt <= 0) return events;
+        stepModifiers = modifiers;
         if (releasePose) {
           currentPose = null;
           previousPose = null;

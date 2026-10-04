@@ -1,0 +1,133 @@
+{
+  "format": 2,
+  "gameAxes": "+X lateral, +Y up, +Z forward",
+  "modules": {
+    "skull": {
+      "origin": "mouth floor center",
+      "boundsGame": {
+        "min": [-144.80865478515625, -73.4598617553711, -9.688300132751465],
+        "max": [144.96058654785156, 123.12466430664062, 311.6225280761719]
+      },
+      "clearHalfWidth": 50,
+      "overheadMinimum": 70
+    },
+    "vertebra": {
+      "origin": "module authoring origin",
+      "boundsGame": {
+        "min": [-99.08536529541016, -42.46656036376953, -33.652732849121094],
+        "max": [98.72428894042969, 114.50664520263672, 31.21830177307129]
+      }
+    },
+    "vertebra_1": {
+      "origin": "module authoring origin",
+      "boundsGame": {
+        "min": [-96.3651123046875, -39.04684829711914, -38.69919204711914],
+        "max": [98.20542907714844, 72.00871276855469, 30.933305740356445]
+      }
+    },
+    "vertebra_2": {
+      "origin": "module authoring origin",
+      "boundsGame": {
+        "min": [-105.30229949951172, -46.921104431152344, -40.718231201171875],
+        "max": [104.26445007324219, 91.79994201660156, 26.096763610839844]
+      }
+    },
+    "rib": {
+      "origin": "module authoring origin",
+      "boundsGame": {
+        "min": [-107.68022155761719, -40.48328399658203, -18.681760787963867],
+        "max": [107.58841705322266, 121.18815612792969, 23.79867172241211]
+      }
+    },
+    "rib_1": {
+      "origin": "module authoring origin",
+      "boundsGame": {
+        "min": [-100.39517974853516, -25.604446411132812, -25.681751251220703],
+        "max": [100.11511993408203, 113.06934356689453, 27.771045684814453]
+      }
+    },
+    "rib_2": {
+      "origin": "module authoring origin",
+      "boundsGame": {
+        "min": [-110.24459075927734, -28.769765853881836, -23.274559020996094],
+        "max": [109.98815155029297, 127.6119155883789, 21.253938674926758]
+      }
+    },
+    "dune": {
+      "origin": "module authoring origin",
+      "boundsGame": {
+        "min": [-150.0, 0.0, -110.0],
+        "max": [150.0, 58.71305465698242, 110.0]
+      }
+    },
+    "dune_1": {
+      "origin": "module authoring origin",
+      "boundsGame": {
+        "min": [-183.0, 0.0, -137.5],
+        "max": [183.0, 33.4664421081543, 137.5]
+      }
+    },
+    "sandfall": {
+      "origin": "top fossil shelf",
+      "boundsGame": {
+        "min": [-51.2729377746582, -80.0, -11.935615539550781],
+        "max": [52.31049346923828, 16.70519256591797, 38.48091125488281]
+      }
+    },
+    "outcrop": {
+      "origin": "module authoring origin",
+      "boundsGame": {
+        "min": [-46.761531829833984, 0.0, -32.796607971191406],
+        "max": [50.280792236328125, 90.0, 28.22869300842285]
+      }
+    },
+    "outcrop_1": {
+      "origin": "module authoring origin",
+      "boundsGame": {
+        "min": [-95.86113739013672, -4.99901008605957, -42.635589599609375],
+        "max": [103.07562255859375, 37.09105682373047, 36.69729995727539]
+      }
+    },
+    "burrower": {
+      "origin": "head root",
+      "boundsGame": {
+        "min": [-37.749542236328125, -148.72677612304688, -61.1503791809082],
+        "max": [38.911128997802734, 55.00586700439453, 207.01930236816406]
+      }
+    }
+  },
+  "polygonCounts": {
+    "skull": 64576,
+    "vertebra": 4553,
+    "vertebra_1": 3820,
+    "vertebra_2": 4416,
+    "rib": 2440,
+    "rib_1": 1773,
+    "rib_2": 1791,
+    "dune": 1728,
+    "dune_1": 1728,
+    "sandfall": 2526,
+    "outcrop": 1142,
+    "outcrop_1": 1142,
+    "burrower": 7951
+  },
+  "runtime": "/assets/levels/saffron/leviathan-kit.glb",
+  "sha256": {
+    "assets/levels/saffron/build_saffron.py": "faeeacd2acf8fa384b3de275828a30539eff8694119c20f1ac7707d5cd7d80e5",
+    "assets/levels/saffron/leviathan-kit.blend": "368d58e7f466cba9e111f0774aa7cbded7e4cc1ee4ceda7db32190cb62d635be",
+    "assets/levels/saffron/scene-reference.png": "cd7a3799d7fe2ac8beaea380fcdae1d317209f86f806cd5d99fd43b421e5abdb",
+    "assets/levels/saffron/saffron-sky-v2.png": "1ecef87b93df2325b2528105a783807d3fd06b449f3f0a8c2087ddc7b24c07bf",
+    "assets/levels/saffron/sky-prompt-v2.txt": "76e616e5f6d3d433762b75b7d324f6febb2e2618f0cd1f2fecdba7116795e544",
+    "public/assets/levels/saffron/leviathan-kit.glb": "176afa2e3a95596b3c26efafddfe9b95e430af83b6b51e50bb1aa0bdc5953bfd",
+    "public/assets/levels/saffron/saffron-sky-v2.png": "1ecef87b93df2325b2528105a783807d3fd06b449f3f0a8c2087ddc7b24c07bf",
+    "assets/levels/saffron/bake_weathering.mjs": "83879b5f1afbe6b64dd8532612a0cd235044f046eb401f6909c28e2d461a1264",
+    "public/assets/levels/saffron/weathering-noise-v1.r8": "4141da2f9dafb3d334f1a6b1199a5099e277f0ae064680e1dc9acb346028f807"
+  },
+  "weatheringVolume": {
+    "runtime": "public/assets/levels/saffron/weathering-noise-v1.r8",
+    "dimensions": [64, 64, 64],
+    "format": "R8",
+    "bytes": 262144,
+    "source": "assets/levels/saffron/bake_weathering.mjs"
+  }
+}

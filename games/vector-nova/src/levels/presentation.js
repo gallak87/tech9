@@ -4,8 +4,8 @@ import { createLifetime } from '../core/lifecycle.js';
 export async function createLevelPresentation(definition, context) {
   const lifetime = createLifetime();
   const parts = [];
-  async function acquire(factory, label) {
-    const part = await factory(context);
+  async function acquire(factory, label, componentContext = context) {
+    const part = await factory(componentContext);
     if (!part || typeof part.dispose !== 'function')
       throw new Error(`Invalid ${label}: dispose is required`);
     lifetime.own(part);
@@ -22,6 +22,7 @@ export async function createLevelPresentation(definition, context) {
     const environment = await acquire(
       definition.createEnvironment,
       'environment',
+      { ...context, road },
     );
     const overlay = definition.createOverlay
       ? lifetime.own(await definition.createOverlay(context))

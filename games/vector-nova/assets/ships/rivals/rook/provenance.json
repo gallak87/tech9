@@ -1,0 +1,21 @@
+{
+  "asset": "rook",
+  "date": "2026-10-01",
+  "concept": {
+    "path": "assets/ships/rivals/rook/concept-01.png",
+    "tool": "OpenAI built-in imagegen",
+    "prompt": "assets/ships/rivals/rook/concept-prompt.txt",
+    "sha256": "7000d9915385368573bcc5273106d4ac30db147e267ad849227ce29201c7b171",
+    "sourceKind": "Original generated design reference"
+  },
+  "model": {
+    "source": "assets/ships/rivals/rook/rook.blend",
+    "export": "public/assets/ships/rivals/rook/rook.glb",
+    "generator": "assets/ships/rivals/build_rivals.py",
+    "sharedHelpers": "assets/ships/build_fleet.py",
+    "authorship": "Original Blender geometry authored from its generated reference using project-owned construction helpers; no third-party meshes, fonts or textures.",
+    "materials": "Original procedural matte paint, structural composite and brushed metal baked to embedded base-color, roughness and tangent-normal maps.",
+    "textureSources": "assets/ships/rivals/rook/textures/",
+    "runtime": "public/assets/ships/rivals/rook/rook.glb"
+  }
+}

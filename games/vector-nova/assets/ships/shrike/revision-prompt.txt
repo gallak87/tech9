@@ -1,0 +1,1 @@
+Use case: text-localization. Change ONLY the title from VESPER / CONCEPT 01 to SHRIKE / CONCEPT 01. Preserve every part of the original spacecraft design and all four views exactly: crescent wings, short single nose, twin engines, teal stripes, low canopy, construction, lighting and backdrop. No geometry, composition or color changes. This is the same concept under a new name.

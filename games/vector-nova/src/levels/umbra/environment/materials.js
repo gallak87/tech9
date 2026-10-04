@@ -115,9 +115,13 @@ export function finishUmbraMaterial(
         float dirt=1.-smoothstep(.012,.065,panelEdge);
         float polished=(1.-smoothstep(.004,.015,panelEdge))*smoothstep(.35,.7,longitudinal);
         float wear=exp(-pow((abs(umbraDeck.x)-5.8)/3.3,2.));
-        float scuff=umFbm(vec3(umbraDeck.x*1.6,umbraDeck.y*.9,5.));
-        float abrasion=smoothstep(.54,.68,scuff)*(1.-dirt)*smoothstep(.18,.5,wear);
-        diffuseColor.rgb*=1.-abrasion*.12;
+        vec2 cell=floor(umbraDeck/vec2(1.7,4.8));
+        float scratchSeed=umHash(vec3(cell,3.));
+        vec2 mark=fract(umbraDeck/vec2(1.7,4.8))-.5;
+        mark.x+=(scratchSeed-.5)*.68+mark.y*(umHash(vec3(cell,7.))-.5)*.18;
+        float scratchWidth=mix(.006,.016,umHash(vec3(cell,9.)));
+        float abrasion=(1.-smoothstep(scratchWidth,scratchWidth+max(fwidth(mark.x)*1.5,.002),abs(mark.x)))*(1.-smoothstep(.17+scratchSeed*.08,.30+scratchSeed*.12,abs(mark.y)))*(1.-dirt)*smoothstep(.18,.5,wear)*step(.58,umHash(vec3(cell,11.)));
+        diffuseColor.rgb*=1.+abrasion*.025;
         float trackGrain=umNoise(vec3(umbraDeck.x*24.,umbraDeck.y*1.7,2.));
         diffuseColor.rgb*=mix(.94,1.035,longitudinal)*(1.-dirt*.20)+wear*.028+polished*.12;
         relief=longitudinal*.0015+trackGrain*.0013*visible;
@@ -137,7 +141,7 @@ export function finishUmbraMaterial(
       .replace(
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
-        roughnessFactor=clamp(roughnessFactor+${surfaceTexture ? (stone ? '(surfaceTone-.35)*.14+' : '(surfaceTone-.35)*.035+') : ''}(macro-.5)*${stone ? '.14' : '.06'}${metal ? `+patina*.24${kind === 'plate' ? '-edgeWear*.13+protectedFinish*.06' : ''}` : kind === 'deck' ? '+dirt*.18-wear*.14-polished*.14+abrasion*.04' : ''},${stone ? '.72' : metal ? '.19' : '.24'},.98);`,
+        roughnessFactor=clamp(roughnessFactor+${surfaceTexture ? (stone ? '(surfaceTone-.35)*.14+' : '(surfaceTone-.35)*.035+') : ''}(macro-.5)*${stone ? '.14' : '.06'}${metal ? `+patina*.24${kind === 'plate' ? '-edgeWear*.13+protectedFinish*.06' : ''}` : kind === 'deck' ? '+dirt*.18-wear*.12-polished*.14-abrasion*.028' : ''},${stone ? '.72' : metal ? '.19' : '.24'},.98);`,
       )
       .replace(
         '#include <normal_fragment_begin>',

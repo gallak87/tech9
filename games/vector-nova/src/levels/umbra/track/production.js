@@ -324,13 +324,20 @@ export function buildUmbraRoad(
   ];
   const leafPositions = [],
     leafIndices = [];
+  // A rolled perimeter, sloped reveal and recessed face replace the broad
+  // triangular bowl. Open vents reveal the independently mounted inner cassettes.
   for (const side of [-1, 1]) {
     for (const [y, z] of profile) leafPositions.push(side * 0.5, y, z);
-    leafPositions.push(side * 0.1, 0, 0);
+    for (const [y, z] of profile)
+      leafPositions.push(side * 0.32, y * 0.76, z * 0.89);
+    leafPositions.push(side * 0.3, 0, 0);
   }
   for (let i = 0; i < 8; i++) {
     const j = (i + 1) % 8;
-    leafIndices.push(8, j, i, 17, 9 + i, 9 + j, i, j, 9 + i, j, 9 + j, 9 + i);
+    leafIndices.push(i, 8 + i, j, j, 8 + i, 8 + j);
+    leafIndices.push(17 + i, 17 + j, 25 + i, 17 + j, 25 + j, 25 + i);
+    leafIndices.push(i, j, 17 + i, j, 17 + j, 17 + i);
+    leafIndices.push(8 + i, 25 + i, 8 + j, 8 + j, 25 + i, 25 + j);
   }
   const indexedLeaf = new THREE.BufferGeometry();
   indexedLeaf.setAttribute(
@@ -414,10 +421,14 @@ export function buildUmbraRoad(
         const y = shape ? 1.55 : tall ? 3.65 : 2.65;
         const length = Math.min(tall ? 20 : 12, (end - distance) * 1.2);
         const plateMaterial = nearLaunch ? repair : sideMaterial;
+        const opticOffset = new THREE.Vector2(
+          -side * 0.38,
+          height * 0.32,
+        ).rotateAround(new THREE.Vector2(), side * -0.14);
         if (!shape && tall)
           fixtures.push({
             distance,
-            position: framePoint(frame, x - side * 0.48, y + height * 0.32),
+            position: framePoint(frame, x + opticOffset.x, y + opticOffset.y),
             target: framePoint(frame, 0, 0.2, 5),
             color: nearLaunch ? 0xffd3a1 : 0xc4d8e5,
           });
@@ -434,6 +445,34 @@ export function buildUmbraRoad(
           shape ? box : leaf,
         );
         if (!shape) {
+          const housingBox = (
+            material,
+            hx,
+            hy,
+            hz,
+            w,
+            h,
+            l,
+            tilt = side * -0.14,
+            geometry = box,
+          ) => {
+            const dx = hx - x,
+              dy = hy - y,
+              c = Math.cos(tilt),
+              s = Math.sin(tilt);
+            localBox(
+              material,
+              frame,
+              x + dx * c - dy * s,
+              y + dx * s + dy * c,
+              hz,
+              w,
+              h,
+              l,
+              tilt,
+              geometry,
+            );
+          };
           for (const z of [-length * 0.32, length * 0.32]) {
             beam(
               underside,
@@ -450,9 +489,8 @@ export function buildUmbraRoad(
               0.35,
             );
           }
-          localBox(
+          housingBox(
             nearLaunch ? amber : guide,
-            frame,
             x - side * 0.38,
             y + height * 0.32,
             0,
@@ -462,11 +500,10 @@ export function buildUmbraRoad(
           );
           // Formed perimeter, recessed cassettes and bolted repair patches make
           // the large leaf a manufactured part at ordinary racing distance.
-          const faceX = x - side * 0.48;
+          const faceX = x - side * 0.29;
           for (const dy of [-height * 0.45, height * 0.44]) {
-            localBox(
+            housingBox(
               underside,
-              frame,
               faceX,
               y + dy,
               0,
@@ -475,9 +512,8 @@ export function buildUmbraRoad(
               length * 0.81,
               side * -0.14,
             );
-            localBox(
+            housingBox(
               metal,
-              frame,
               faceX - side * 0.04,
               y + dy + 0.08,
               0,
@@ -488,9 +524,8 @@ export function buildUmbraRoad(
             );
           }
           for (const z of [-length * 0.47, 0, length * 0.47]) {
-            localBox(
+            housingBox(
               underside,
-              frame,
               faceX,
               y,
               z,
@@ -500,25 +535,10 @@ export function buildUmbraRoad(
               side * -0.14,
             );
           }
-          if (tall)
-            for (const dy of [-height * 0.1, height * 0.08])
-              for (const z of [-length * 0.24, length * 0.24])
-                localBox(
-                  underside,
-                  frame,
-                  faceX - side * 0.1,
-                  y + dy,
-                  z,
-                  0.08,
-                  0.07,
-                  length * 0.32,
-                  side * -0.14,
-                );
           for (const z of [-length * 0.24, length * 0.24]) {
-            localBox(
+            housingBox(
               underside,
-              frame,
-              faceX + side * 0.07,
+              faceX + side * 0.19,
               y,
               z,
               0.12,
@@ -526,23 +546,21 @@ export function buildUmbraRoad(
               length * 0.43,
               side * -0.14,
             );
-            localBox(
+            housingBox(
               plateMaterial,
-              frame,
-              faceX - side * 0.03,
+              faceX + side * 0.09,
               y + 0.04,
               z,
               0.12,
               height * 0.5,
               length * 0.4,
               side * -0.14,
-              tall ? leaf : box,
+              box,
             );
           }
           if (Math.floor(distance / 34) % 3 === 0) {
-            localBox(
+            housingBox(
               repair,
-              frame,
               faceX - side * 0.16,
               y - height * 0.14,
               length * 0.21,
@@ -553,9 +571,8 @@ export function buildUmbraRoad(
             );
             for (const z of [length * 0.15, length * 0.27])
               for (const dy of [-height * 0.25, -height * 0.04])
-                localBox(
+                housingBox(
                   metal,
-                  frame,
                   faceX - side * 0.26,
                   y + dy,
                   z,
@@ -565,16 +582,17 @@ export function buildUmbraRoad(
                   side * -0.14,
                 );
           }
-          localBox(
-            underside,
-            frame,
-            x - side * 0.4,
-            y - height * 0.22,
-            -length * 0.12,
-            0.14,
-            height * 0.23,
-            length * 0.63,
-          );
+          for (const z of [-length * 0.43, length * 0.43])
+            for (const dy of [-height * 0.22, height * 0.22])
+              housingBox(
+                metal,
+                faceX - side * 0.025,
+                y + dy,
+                z,
+                0.18,
+                0.28,
+                0.55,
+              );
         }
       }
       if (!shape) {

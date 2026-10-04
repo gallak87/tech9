@@ -119,11 +119,27 @@ def wedge(name,x,y,z,w,h,d,material,parent):
         fault=(x+random.uniform(-.2,.2)*w,y,random.uniform(-.17,.17))
         for j in range(count):
             bonds=[-.5,-.17 if j%2 else .22,.5] if w>30 else [-.5,.5]
+            bay=w>=16 and count>=3 and j==count//2
+            opening=min(12,w*.32);offset=math.sin(w+h)*w*.08
+            if bay:bonds=[-.5,(offset-opening/2)/w,(offset+opening/2)/w,.5]
             for k in range(len(bonds)-1):
+                if bay and k==1:continue
                 left,right=bonds[k],bonds[k+1]
                 ww=w*(right-left);xx=x+w*(left+right)/2
                 taper=1-j/count*.11
                 stone_piece(name+'-bonded-course',x+(xx-x)*taper,y+j*course+.22,z,ww*taper-.44,course-.62,d*(.96+random.random()*.04),material if (j+k)%7!=4 else aged,parent,fault)
+            if bay:
+                # Removing the outer course reveals a sheltered service alcove
+                # in the retained core; hardware sits at its actual back and lip.
+                for front in [-1,1]:
+                    cx=x+offset;cy=y+j*course;back=z+front*(d*.325+.18)
+                    box('alcove-instrument-back',(cx,cy+course*.47,back),(opening*.77,course*.62,.3),dark,parent)
+                    box('repaired-alcove-sill',(cx,cy+1,z+front*d*.46),(opening+1.2,1.3,2.2),metal,parent)
+                    box('sheltered-alcove-optic',(cx,cy+course*.83,back+front*.7),(opening*.72,.6,.55),amber,parent)
+                    for side in [-1,1]:
+                        beam('alcove-jamb-repair',(cx+side*opening*.46,cy+1.8,back+front*.6),(cx+side*opening*.46,cy+course*.88,back+front*.6),.85,metal,parent)
+                    for u in [-.25,0,.25]:
+                        box('instrument-cooling-fin',(cx+opening*u,cy+course*.45,back+front*.3),(.45,course*.39,.6),graphite,parent)
         return core
     return stone_piece(name,x,y,z,w,h,d,material,parent)
 

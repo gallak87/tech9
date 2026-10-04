@@ -42,7 +42,28 @@ def box(name,center,size,material,parent,skew=0):
     if material in [stone,aged,stone2] and h*2>12 and w*2>=7 and d*2>=7:
         return wedge(name,x,y-h,z,w*2,h*2,d*2,material,parent)
     v=[(x+sx*w+(sy+1)*skew/2,y+sy*h,z+sz*d) for sy in [-1,1] for sz in [-1,1] for sx in [-1,1]]
-    o=mesh(name,v,[(0,1,3,2),(4,6,7,5),(0,4,5,1),(2,3,7,6),(0,2,6,4),(1,5,7,3)],material,parent)
+    faces=[(0,1,3,2),(4,6,7,5),(0,4,5,1),(2,3,7,6),(0,2,6,4),(1,5,7,3)]
+    if material==dark and w*2>4 and h*2>4 and d*2<3:
+        # Interior light needs samples across the receiver, not only four dark
+        # corners. A small planar grid preserves the physical recess silhouette.
+        v=[];faces=[];nx=max(2,math.ceil(w*2/2.5));ny=max(2,math.ceil(h*2/2.5))
+        for front in [-1,1]:
+            offset=len(v)
+            for iy in range(ny+1):
+                for ix in range(nx+1):v.append((x-w+2*w*ix/nx,y-h+2*h*iy/ny,z+front*d))
+            for iy in range(ny):
+                for ix in range(nx):
+                    a=offset+iy*(nx+1)+ix;b=a+1;c=a+nx+1;e=c+1
+                    faces.append((a,b,e,c) if front>0 else (a,c,e,b))
+        n=(nx+1)*(ny+1)
+        for ix in range(nx):
+            faces.append((ix,ix+1,n+ix+1,n+ix));a=ny*(nx+1)+ix
+            faces.append((a,n+a,n+a+1,a+1))
+        for iy in range(ny):
+            for ix in [0,nx]:
+                a=iy*(nx+1)+ix;b=a+nx+1
+                faces.append((a,n+a,n+b,b) if ix==0 else (a,b,n+b,n+a))
+    o=mesh(name,v,faces,material,parent)
     if material in [stone,aged,stone2] and w*2>65 and h*2<=8 and d*2>25:
         for front in [-1,1]:
             zz=z+front*(d-.8)
@@ -53,6 +74,14 @@ def box(name,center,size,material,parent,skew=0):
                 beam('shelf-load-bracket',(xx,y-h-.7,zz-front*.6),(xx,y-h-4,zz-front*6),1.3,metal,parent)
     if material==amber:
         marker=group('practical_warm');marker.parent=parent;marker.location=pt(center)
+        axis=max(range(3),key=lambda i:size[i]);length=size[axis]
+        # Sample long service strips as line emitters for the CPU light field.
+        # The existing real-time fixture anchor remains the centre marker.
+        if length>4:
+            samples=max(2,math.ceil(length/7))
+            for j in range(samples):
+                at=list(center);at[axis]+=(j/(samples-1)-.5)*length*.88
+                sample=group('baked_warm');sample.parent=parent;sample.location=pt(at)
     return o
 
 def beam(name,a,b,width,material,parent):
@@ -504,7 +533,7 @@ for root in [o for o in bpy.data.objects if o.type=='EMPTY' and o.parent is None
         offset=len(vs);vs.extend([o.matrix_world@v.co for v in o.data.vertices])
         fs.extend([tuple(offset+i for i in poly.vertices) for poly in o.data.polygons])
     tree=BVHTree.FromPolygons(vs,fs,all_triangles=False)
-    warm=[o.matrix_world.translation for o in root.children_recursive if o.type=='EMPTY' and o.name.startswith('practical_warm')]
+    warm=[o.matrix_world.translation for o in root.children_recursive if o.type=='EMPTY' and (o.name.startswith('practical_warm') or o.name.startswith('baked_warm'))]
     for o in obs:
         colors=o.data.color_attributes.new(name='Color',type='FLOAT_COLOR',domain='CORNER')
         irradiance=o.data.attributes.new(name='_umbraLight',type='FLOAT',domain='CORNER')

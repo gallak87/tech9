@@ -150,7 +150,7 @@ export function finishUmbraMaterial(
         '#include <emissivemap_fragment>',
         '#include <emissivemap_fragment>' +
           (bakedLight
-            ? '\ntotalEmissiveRadiance+=diffuseColor.rgb*vec3(1.,.46,.17)*umbraLight*1.35;'
+            ? '\ntotalEmissiveRadiance+=diffuseColor.rgb*vec3(1.,.46,.17)*umbraLight*2.6;'
             : ''),
       )
       .replace(

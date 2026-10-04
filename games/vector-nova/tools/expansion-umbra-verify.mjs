@@ -238,7 +238,11 @@ try {
   );
   check('steering assistance preserved', reset.handling.steeringAssist === 0.3);
   assert.deepEqual(report.errors, []);
-  for (const asset of ['umbra-observatory.glb', 'umbra-sky-v2.png']) {
+  for (const asset of [
+    'umbra-observatory.glb',
+    'umbra-sky-v2.png',
+    'umbra-surfaces-v1.png',
+  ]) {
     const pattern = `**/assets/levels/umbra/${asset}`;
     await page.route(pattern, (route) => route.abort('failed'));
     await page.goto(url.href);

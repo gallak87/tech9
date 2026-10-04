@@ -123,7 +123,12 @@ test('both curved gaps have visible lower decks and exactly one ordered transfer
 
 test('shape and production are finite, share true gap boundaries, and release owned GPU resources once', () => {
   for (const shape of [true, false]) {
-    const road = buildUmbraRoad(track, { shape });
+    const surfaceTexture = shape ? null : new THREE.Texture();
+    const reflection = new THREE.Texture();
+    let reflectionReleased = 0;
+    reflection.addEventListener('dispose', () => reflectionReleased++);
+    const road = buildUmbraRoad(track, { shape, surfaceTexture });
+    road.setReflection(reflection);
     const disposed = new Map();
     const watched = new Set();
     const watch = (resource) => {
@@ -133,6 +138,7 @@ test('shape and production are finite, share true gap boundaries, and release ow
         disposed.set(resource, (disposed.get(resource) ?? 0) + 1),
       );
     };
+    if (surfaceTexture) watch(surfaceTexture);
     let triangles = 0;
     let meshes = 0;
     road.group.traverse((object) => {
@@ -179,6 +185,8 @@ test('shape and production are finite, share true gap boundaries, and release ow
     }
     road.dispose();
     road.dispose();
+    assert.equal(reflectionReleased, 0, 'Renderer reflection remains borrowed');
+    reflection.dispose();
     for (const resource of watched)
       assert.equal(
         disposed.get(resource),

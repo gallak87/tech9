@@ -1,29 +1,54 @@
 // Member-space surfaces and CPU-baked contact shading stay attached during
 // stretching. Mineral structure, exposed breaks and machined metal have distinct
 // response; fine detail fades with screen footprint instead of sparkling.
-export function finishUmbraMaterial(material, kind = 'stone') {
+export function finishUmbraMaterial(
+  material,
+  kind = 'stone',
+  surfaceTexture = null,
+) {
+  if (surfaceTexture) material.map = surfaceTexture;
   const stone = ['stone', 'fresh', 'aged'].includes(kind);
   material.onBeforeCompile = (shader) => {
+    if (surfaceTexture) shader.uniforms.umbraAtlas = { value: surfaceTexture };
     shader.vertexShader = shader.vertexShader
       .replace(
         '#include <common>',
-        `#include <common>\nvarying vec3 umbraSurface; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'attribute vec2 umbraCassette; varying vec2 umbraPanel;' : ''}`,
+        `#include <common>\nvarying vec3 umbraSurface; varying vec3 umbraNormal; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'attribute vec2 umbraCassette; varying vec2 umbraPanel;' : ''}`,
       )
       .replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
-        umbraSurface=position; umbraDeck=position.xz; umbraSeed=0.;
+        umbraSurface=position; umbraNormal=normal; umbraDeck=position.xz; umbraSeed=0.;
         ${kind === 'deck' ? 'umbraDeck=uv; umbraPanel=umbraCassette;' : ''}
         #ifdef USE_INSTANCING
           umbraSeed=dot(instanceMatrix[3].xyz,vec3(.013,.021,.037));
           umbraSurface=mat3(instanceMatrix)*position;
+          mat3 umBasis=mat3(instanceMatrix);
+          umbraNormal=normalize(umBasis*(normal/vec3(dot(umBasis[0],umBasis[0]),dot(umBasis[1],umBasis[1]),dot(umBasis[2],umBasis[2]))));
         #endif`,
       );
     shader.fragmentShader = shader.fragmentShader
       .replace(
         '#include <common>',
         `#include <common>
-      varying vec3 umbraSurface; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'varying vec2 umbraPanel;' : ''}
+      varying vec3 umbraSurface; varying vec3 umbraNormal; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'varying vec2 umbraPanel;' : ''}
+      ${
+        surfaceTexture
+          ? `
+      uniform sampler2D umbraAtlas;
+      vec3 umTile(vec2 p){
+        vec2 q=fract(p)*.988+.006;
+        q.x=(q.x+${stone ? '1.' : kind === 'metal' ? '2.' : '0.'})/3.;
+        return textureGrad(umbraAtlas,q,dFdx(p)*vec2(.988/3.,.988),dFdy(p)*vec2(.988/3.,.988)).rgb;
+      }
+      vec3 umSurfaceMap(vec3 p){
+        vec3 weights=pow(abs(normalize(umbraNormal)),vec3(6.));
+        weights/=max(dot(weights,vec3(1.)),.00001);
+        p=p*${stone ? '.10' : kind === 'metal' ? '.30' : '.12'}+vec3(umbraSeed*2.7);
+        return umTile(p.yz)*weights.x+umTile(p.xz)*weights.y+umTile(p.xy)*weights.z;
+      }`
+          : ''
+      }
       float umHash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
       float umNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(umHash(i),umHash(i+vec3(1,0,0)),f.x),mix(umHash(i+vec3(0,1,0)),umHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(umHash(i+vec3(0,0,1)),umHash(i+vec3(1,0,1)),f.x),mix(umHash(i+vec3(0,1,1)),umHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
       float umFbm(vec3 p){return umNoise(p)*.64+umNoise(p*2.17)*.25+umNoise(p*4.31)*.11;}
@@ -38,6 +63,15 @@ export function finishUmbraMaterial(material, kind = 'stone') {
       float fine=umNoise(up*18.7);
       float visible=1.-smoothstep(.10,.65,max(length(dFdx(up)),length(dFdy(up))));
       float relief=0.;
+      ${
+        surfaceTexture
+          ? `
+        vec3 authoredSurface=${kind === 'deck' ? 'umTile(umbraDeck*.12)' : 'umSurfaceMap(up)'};
+        float surfaceTone=dot(authoredSurface,vec3(.2126,.7152,.0722));
+        diffuseColor.rgb*=clamp(authoredSurface/${stone ? 'vec3(.59,.53,.44)' : kind === 'metal' ? 'vec3(.26,.265,.27)' : 'vec3(.085)'},vec3(.45),vec3(1.85));
+      `
+          : ''
+      }
       ${
         stone
           ? `
@@ -75,23 +109,29 @@ export function finishUmbraMaterial(material, kind = 'stone') {
         diffuseColor.rgb*=mix(.89,1.06,macro)*mix(.97,1.015,grain);
         relief=macro*.008+grain*.006+fine*.002*visible;
       `
-      }`,
+      }
+      ${surfaceTexture ? `relief=relief*${stone ? '.22' : '.4'}+surfaceTone*${stone ? '.09' : kind === 'metal' ? '.012' : '.018'};` : ''}`,
+      )
+      .replace(
+        '#include <map_fragment>',
+        surfaceTexture ? '' : '#include <map_fragment>',
       )
       .replace(
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
-        roughnessFactor=clamp(roughnessFactor+(macro-.5)*${kind === 'metal' ? '.25' : '.14'}${kind === 'metal' ? '+patina*.22' : kind === 'deck' ? '+dirt*.08-wear*.11-polished*.18' : ''},${kind === 'metal' ? '.32' : '.56'},.98);`,
+        roughnessFactor=clamp(roughnessFactor+${surfaceTexture ? '(surfaceTone-.35)*.22+' : ''}(macro-.5)*${kind === 'metal' ? '.25' : '.14'}${kind === 'metal' ? '+patina*.22' : kind === 'deck' ? '+dirt*.08-wear*.11-polished*.18' : ''},${kind === 'metal' ? '.32' : '.56'},.98);`,
       )
       .replace(
         '#include <normal_fragment_begin>',
         '#include <normal_fragment_begin>\nnormal=umBump(normal,relief);',
       );
   };
-  material.customProgramCacheKey = () => `umbra-surface-v2-${kind}`;
+  material.customProgramCacheKey = () =>
+    `umbra-surface-v3-${kind}-${!!surfaceTexture}`;
   return material;
 }
 
-export function finishUmbraAssets(scene) {
+export function finishUmbraAssets(scene, surfaceTexture = null) {
   const materials = new Set();
   scene.traverse((node) => {
     for (const material of [node.material].flat().filter(Boolean))
@@ -99,13 +139,14 @@ export function finishUmbraAssets(scene) {
   });
   for (const material of materials) {
     if (/fractures/i.test(material.name))
-      finishUmbraMaterial(material, 'fresh');
-    else if (/aged/i.test(material.name)) finishUmbraMaterial(material, 'aged');
+      finishUmbraMaterial(material, 'fresh', surfaceTexture);
+    else if (/aged/i.test(material.name))
+      finishUmbraMaterial(material, 'aged', surfaceTexture);
     else if (/ivory/i.test(material.name))
-      finishUmbraMaterial(material, 'stone');
+      finishUmbraMaterial(material, 'stone', surfaceTexture);
     else if (/titanium|instrument/i.test(material.name))
-      finishUmbraMaterial(material, 'metal');
+      finishUmbraMaterial(material, 'metal', surfaceTexture);
     else if (/graphite/i.test(material.name))
-      finishUmbraMaterial(material, 'graphite');
+      finishUmbraMaterial(material, 'graphite', surfaceTexture);
   }
 }

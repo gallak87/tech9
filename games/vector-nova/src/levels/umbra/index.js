@@ -5,6 +5,7 @@ import { createUmbraRuntime } from './track/runtime.js';
 import { createUmbraEnvironment } from './environment/index.js';
 import { createUmbraBackdrop } from './backdrop/index.js';
 import { createUmbraOverlay } from './overlay.js';
+import { loadUmbraSurface } from './environment/surfaces.js';
 
 export default function createLevel({ shape = false } = {}) {
   return {
@@ -58,8 +59,16 @@ export default function createLevel({ shape = false } = {}) {
       track.featureZones = track.tidalZones;
       return track;
     },
-    createRoad: ({ track, settings }) =>
-      buildUmbraRoad(track, { shape, settings }),
+    async createRoad({ track, settings }) {
+      if (shape) return buildUmbraRoad(track, { shape, settings });
+      const surfaceTexture = await loadUmbraSurface();
+      try {
+        return buildUmbraRoad(track, { shape, settings, surfaceTexture });
+      } catch (error) {
+        surfaceTexture.dispose();
+        throw error;
+      }
+    },
     createEnvironment: (context) =>
       shape
         ? { group: new T.Group(), dispose() {} }

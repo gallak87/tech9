@@ -2,12 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import createLevel from '../src/levels/umbra/index.js';
+import { buildUmbraRoad } from '../src/levels/umbra/track/index.js';
 import { createCameraRig } from '../src/camera/index.js';
 
 test('Elevated Umbra approaches expose actual lower decks before committing to both gaps', () => {
   const level = createLevel(),
     track = level.createTrack();
-  const road = level.createRoad({ track, settings: {} });
+  const road = buildUmbraRoad(track);
   road.group.updateMatrixWorld(true);
   try {
     for (const jump of track.jumps) {

@@ -43,5 +43,15 @@
       "Lensing is a composed artistic approximation, not a physical astrophysics simulation.",
       "CPU tests do not establish foreground frame pacing, physical-device behavior, or independent visual approval."
     ]
+  },
+  "surfaces": {
+    "path": "umbra-surfaces-v1.png",
+    "runtime": "public/assets/levels/umbra/umbra-surfaces-v1.png",
+    "tool": "image_gen.imagegen",
+    "source": "/Users/g/.codex/generated_images/01a105bc-f277-7a72-be38-6a07c2ab91ed/exec-1d4be3f9-a526-446c-a51c-1c90ba0707a1.png",
+    "prompt": "Use case: texture-asset. Create a premium game environment MATERIAL ATLAS, landscape 3:1 composition divided into exactly three equally sized square tiles arranged horizontally. Each tile is an orthographic, uniformly lit photograph-like flat surface, seamless and tileable within itself, no perspective, no objects, no cast shadows, no baked directional illumination, no letters, no labels, no borders. LEFT THIRD: dark charcoal graphite composite racing deck, tactile matte worn finish, broad irregular scuffed patches, subtle shallow pits and chips, sparse fine abrasions in varied directions, slightly polished wear zones, no repeating lines, no decorative grid or panel seams. MIDDLE THIRD: aged warm ivory limestone, chalky weathered pores, fine granular mineral variation, irregular tiny pits and weathered speckles, broad subdued ochre and grey deposits, restrained old hairline fractures; convincingly old masonry surface with no drawn blocks or mortar lines. RIGHT THIRD: cold muted grey titanium maintenance plating, weathered brushed metal, broad irregular abrasion and repaired finish, sparse fine scuffs, slight muted bronze oxidation at scratches, tactile uneven patina, no panel seams, no bolts. All three are diffuse albedo-like surface images with believable physical wear at ordinary chase-camera scale, carefully controlled contrast and no glossy highlights. Tile color targets: graphite dark neutral grey, limestone warm pale grey, titanium medium cool grey. Rich authored material detail, cinematic science fiction ruined observatory, restrained and mature, no cartoon outlines.",
+    "dimensions": [2172, 724],
+    "sha256": "99dff20d2a79ba18405cd46548cee465571e3b5c10ce1a07bf7ce706ea0f4dc1",
+    "mapping": "Three equal atlas tiles: graphite, limestone, titanium. Physical-scale triplanar sampling uses color-derived microrelief and roughness; this is an albedo atlas, not a measured PBR capture. Native PNG retained unchanged."
   }
 }

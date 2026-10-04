@@ -144,11 +144,18 @@ test('Rejected observatory kit releases loaded geometry and materials', () => {
   const geometry = new T.BoxGeometry();
   const material = new T.MeshStandardMaterial();
   scene.add(new T.Mesh(geometry, material));
+  const surfaceTexture = new T.Texture();
+  let textureReleased = 0;
+  surfaceTexture.addEventListener('dispose', () => textureReleased++);
   let geometryReleased = 0,
     materialReleased = 0;
   geometry.addEventListener('dispose', () => geometryReleased++);
   material.addEventListener('dispose', () => materialReleased++);
-  assert.throws(() => collectUmbraAssets(scene), /missing required terrace/);
+  assert.throws(
+    () => collectUmbraAssets(scene, surfaceTexture),
+    /missing required terrace/,
+  );
   assert.equal(geometryReleased, 1);
   assert.equal(materialReleased, 1);
+  assert.equal(textureReleased, 1);
 });

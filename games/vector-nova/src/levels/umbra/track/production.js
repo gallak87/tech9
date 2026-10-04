@@ -139,7 +139,10 @@ function panelGeometry(track) {
 
 // The deck is an engineered graphite ribbon: continuous curb, broad faceted
 // panels, unequal suspended boundary leaves and two exposed tension spines.
-export function buildUmbraRoad(track, { shape = false } = {}) {
+export function buildUmbraRoad(
+  track,
+  { shape = false, surfaceTexture = null } = {},
+) {
   const group = new THREE.Group();
   group.name = shape
     ? 'Umbra Fold / neutral shape'
@@ -197,10 +200,10 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
   });
   if (!shape) {
     for (const material of [graphite, underside, repair])
-      finishUmbraMaterial(material, 'graphite');
-    finishUmbraMaterial(panel, 'deck');
-    finishUmbraMaterial(metal, 'metal');
-    finishUmbraMaterial(pale, 'stone');
+      finishUmbraMaterial(material, 'graphite', surfaceTexture);
+    finishUmbraMaterial(panel, 'deck', surfaceTexture);
+    finishUmbraMaterial(metal, 'metal', surfaceTexture);
+    finishUmbraMaterial(pale, 'stone', surfaceTexture);
   }
   const mesh = (name, geometry, material) => {
     geometries.add(geometry);
@@ -923,6 +926,7 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
     for (const material of materials) material.dispose();
     geometries.clear();
     materials.clear();
+    surfaceTexture?.dispose();
   };
   group.userData.dispose = dispose;
   return {

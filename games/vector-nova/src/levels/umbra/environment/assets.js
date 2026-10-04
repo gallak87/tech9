@@ -1,12 +1,13 @@
 import * as T from 'three';
 import { finishUmbraAssets } from './materials.js';
+import { loadUmbraSurface } from './surfaces.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { UMBRA_ASSET_URL } from './constants.js';
 
-export function collectUmbraAssets(scene) {
+export function collectUmbraAssets(scene, surfaceTexture = null) {
   scene.updateMatrixWorld(true);
-  finishUmbraAssets(scene);
+  finishUmbraAssets(scene, surfaceTexture);
   const geometries = new Set(),
     materials = new Set();
   scene.traverse((node) => {
@@ -22,6 +23,7 @@ export function collectUmbraAssets(scene) {
     disposed = true;
     geometries.forEach((geometry) => geometry.dispose());
     materials.forEach((material) => material.dispose());
+    surfaceTexture?.dispose();
   };
   const names = [
     'terrace',
@@ -109,7 +111,24 @@ export function collectUmbraAssets(scene) {
 
 export async function loadUmbraAssets() {
   const asset = await new GLTFLoader().loadAsync(UMBRA_ASSET_URL);
-  return collectUmbraAssets(asset.scene);
+  // Collect first so a failed texture request can release the loaded kit.
+  const assets = collectUmbraAssets(asset.scene);
+  try {
+    const surfaceTexture = await loadUmbraSurface();
+    finishUmbraAssets(asset.scene, surfaceTexture);
+    const disposeKit = assets.dispose;
+    let disposed = false;
+    assets.dispose = () => {
+      if (disposed) return;
+      disposed = true;
+      disposeKit();
+      surfaceTexture.dispose();
+    };
+    return assets;
+  } catch (error) {
+    assets.dispose();
+    throw error;
+  }
 }
 
 export function assetGroup(parts, name) {

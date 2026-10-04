@@ -232,7 +232,8 @@
       "runtimeDependencies": ["three"],
       "runtimeAssets": [
         "public/assets/levels/umbra/umbra-observatory.glb",
-        "public/assets/levels/umbra/umbra-sky-v2.png"
+        "public/assets/levels/umbra/umbra-sky-v2.png",
+        "public/assets/levels/umbra/umbra-surfaces-v1.png"
       ],
       "provenanceRecord": "assets/levels/umbra/provenance.json",
       "skyProvenance": "assets/levels/umbra/SKY_PROVENANCE.md"

@@ -43,11 +43,37 @@ def box(name,center,size,material,parent,skew=0):
         return wedge(name,x,y-h,z,w*2,h*2,d*2,material,parent)
     v=[(x+sx*w+(sy+1)*skew/2,y+sy*h,z+sz*d) for sy in [-1,1] for sz in [-1,1] for sx in [-1,1]]
     o=mesh(name,v,[(0,1,3,2),(4,6,7,5),(0,4,5,1),(2,3,7,6),(0,2,6,4),(1,5,7,3)],material,parent)
+    if material in [stone,aged,stone2] and w*2>65 and h*2<=8 and d*2>25:
+        for front in [-1,1]:
+            zz=z+front*(d-.8)
+            box('recessed-shelf-channel',(x,y-h-.9,zz),(w*2-5,1.5,1.8),graphite,parent)
+            for j in range(max(2,int(w*2/17))):
+                xx=x-w+5+j*(w*2-10)/max(1,int(w*2/17)-1)
+                box('shelf-edge-coping',(xx,y+h*.25,zz),(10,h*.65,2.2),material,parent)
+                beam('shelf-load-bracket',(xx,y-h-.7,zz-front*.6),(xx,y-h-4,zz-front*6),1.3,metal,parent)
     if material==amber:
         marker=group('practical_warm');marker.parent=parent;marker.location=pt(center)
     return o
 
 def beam(name,a,b,width,material,parent):
+    # Rolled I sections give repair members flanges, a recessed web and real
+    # attachment collars. Small tendons retain their compact solid section.
+    if material==metal and width>=1.2:
+        av=Vector(a);bv=Vector(b);axis=(bv-av).normalized()
+        side=axis.cross(Vector((0,1,0)) if abs(axis.y)<.9 else Vector((1,0,0))).normalized()
+        face=axis.cross(side).normalized();verts=[];faces=[]
+        section=[(-.5,-.5),(.5,-.5),(.5,-.31),(.11,-.31),(.11,.31),(.5,.31),(.5,.5),(-.5,.5),(-.5,.31),(-.11,.31),(-.11,-.31),(-.5,-.31)]
+        for end in [av,bv]:
+            for x,y in section:verts.append(tuple(end+side*x*width+face*y*width))
+        faces.extend([tuple(reversed(range(12))),tuple(range(12,24))])
+        for i in range(12):j=(i+1)%12;faces.append((i,j,j+12,i+12))
+        o=mesh(name,verts,faces,material,parent)
+        # End shoes do not extend beyond the original beam envelope.
+        for t in [.035,.965]:
+            center=av.lerp(bv,t)
+            vv=[tuple(center+side*x*width+face*y*width+axis*z*min(width,(bv-av).length*.025)) for z in [-.5,.5] for y in [-.5,.5] for x in [-.5,.5]]
+            mesh('bolted-repair-shoe',vv,[(0,1,3,2),(4,6,7,5),(0,4,5,1),(2,3,7,6),(0,2,6,4),(1,5,7,3)],graphite,parent)
+        return o
     av=Vector(pt(a));bv=Vector(pt(b));mid=(av+bv)/2
     bpy.ops.mesh.primitive_cube_add(size=1,location=mid);o=bpy.context.object;o.name=name;o.dimensions=(width,width,(bv-av).length)
     o.rotation_euler=(bv-av).to_track_quat('Z','Y').to_euler();bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
@@ -85,11 +111,27 @@ def arc(name,r,width,depth,start,end,material,parent,center=(0,0,0),segments=32)
     return mesh(name,vs,fs,material,parent)
 
 def wedge(name,x,y,z,w,h,d,material,parent):
+    # Monumental members are bonded courses with staggered, deep open joints.
+    # Retain the original envelope and a continuous load-bearing inner core.
+    if material in [stone,stone2,aged] and h>33 and w>=7:
+        core=stone_piece(name+'-core',x,y,z,w*.82,h*.93,d*.65,aged,parent)
+        count=max(2,math.ceil(h/21));course=h/count
+        for j in range(count):
+            splits=2 if w>30 and j%3!=1 else 1
+            for k in range(splits):
+                ww=w/splits
+                xx=x-w/2+ww*(k+.5)
+                taper=1-j/count*.11
+                stone_piece(name+'-bonded-course',x+(xx-x)*taper,y+j*course+.30,z,ww*taper-.6,course-.8,d*(.91+random.random()*.09),material if (j+k)%5 else aged,parent)
+        return core
+    return stone_piece(name,x,y,z,w,h,d,material,parent)
+
+def stone_piece(name,x,y,z,w,h,d,material,parent):
     # Irregular sealed ashlar with chipped edges, deep fractures and quiet faces.
     # Its fresh break is a separate material, not painted crackle on a trapezoid.
-    cols=7;rows=5;verts=[];faces=[]
+    cols=6;rows=4;verts=[];faces=[]
     top=[1-random.uniform(.008,.13)*min(w,d)/max(h,.1) for _ in range(cols)]
-    cleft=random.choice([1,2,4,5]); damaged=random.random()<.37
+    cleft=random.choice([1,2,3]); damaged=random.random()<.67
     for back in [False,True]:
         for row in range(rows):
             v=row/(rows-1)
@@ -98,12 +140,12 @@ def wedge(name,x,y,z,w,h,d,material,parent):
                 xx=x+(u-.5)*w*(1-v*.13)
                 yy=y+v*h*top[col]
                 edge=abs(u-.5)*2
-                chips=(.10 if (col+row)%4==0 else .035)*d
+                chips=(.17 if (col+row)%4==0 else .065)*min(d,w)
                 zz=z+(-1 if back else 1)*(d/2-chips*edge)
                 if row not in [0,rows-1]:
                     # A few broad clefts and a chipped course end cast real shadows.
-                    zz-=(-1 if back else 1)*d*(.17 if damaged and col in [cleft,cleft+1] and row in [2,3] else 0)
-                    zz+=random.uniform(-.017,.021)*min(w,h)
+                    zz-=(-1 if back else 1)*d*(.25 if damaged and col in [cleft,cleft+1] and row==2 else 0)
+                    zz+=random.uniform(-.035,.025)*min(w,h)
                 verts.append((xx,yy,zz))
     n=rows*cols
     for back in [0,1]:
@@ -123,7 +165,7 @@ def wedge(name,x,y,z,w,h,d,material,parent):
                 else:
                     v=a.lerp(b,col/3)
                     if row not in [0,rows-1]:
-                        v.x-=sign*w*(.065 if damaged and row in [2,3] else random.uniform(.003,.02))
+                        v.x-=sign*w*(.12 if damaged and row==2 else random.uniform(.01,.035))
                     idx=len(verts);verts.append(tuple(v))
                 grid.append(idx)
         for row in range(rows-1):
@@ -400,7 +442,7 @@ for ob in bpy.data.objects:
         # Applied single-segment bevels catch grazing light on real stone and
         # repair edges. Retain broad facets and the fractured silhouette.
         bpy.context.view_layer.objects.active=ob
-        mod=ob.modifiers.new('Stone and metal edge wear','BEVEL');mod.width=.24;mod.segments=1
+        mod=ob.modifiers.new('Stone and metal edge wear','BEVEL');mod.width=.15 if 'titanium' in ob.name.lower() else .32;mod.segments=1
         mod.limit_method='ANGLE';mod.angle_limit=.55
         bpy.ops.object.modifier_apply(modifier=mod.name)
         for poly in ob.data.polygons:poly.use_smooth=False

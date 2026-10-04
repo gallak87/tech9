@@ -3,18 +3,28 @@ import { beamTransform } from '../../../track/geometry.js';
 import { framePoint } from '../../../track/frames.js';
 import { createAssetInstances } from './assets.js';
 import { finishUmbraMaterial } from './materials.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Attached repaired load paths and a genuine enclosing instrument vault. Their
 // clearance is checked against all stacked roads, rather than only their owner.
 export function createUmbraConstruction(track, assets, layout) {
   const group = new T.Group();
   group.name = 'Umbra / attached repair network and inverted vault';
-  const box = new T.BoxGeometry(1, 1, 1);
+  // An I section with end shoes stays inside the original clearance envelope.
+  const sections = [
+    new T.BoxGeometry(0.18, 1, 0.72),
+    new T.BoxGeometry(1, 1, 0.14).translate(0, 0, -0.43),
+    new T.BoxGeometry(1, 1, 0.14).translate(0, 0, 0.43),
+    new T.BoxGeometry(1, 0.025, 1).translate(0, -0.475, 0),
+    new T.BoxGeometry(1, 0.025, 1).translate(0, 0.475, 0),
+  ];
+  const box = mergeGeometries(sections);
+  sections.forEach((section) => section.dispose());
   const material = finishUmbraMaterial(
     new T.MeshStandardMaterial({
       color: '#738692',
       metalness: 0.7,
-      roughness: 0.5,
+      roughness: 0.31,
     }),
     'metal',
   );

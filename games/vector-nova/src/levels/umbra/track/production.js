@@ -15,7 +15,7 @@ function panelGeometry(track) {
   const colors = [];
   const uvs = [];
   const cassetteUvs = [];
-  const triangle = (vertices, color, coordinates, panel) => {
+  const triangle = (vertices, color, coordinates, panel, surfaceNormals) => {
     const normal = new THREE.Vector3()
       .crossVectors(
         vertices[1].clone().sub(vertices[0]),
@@ -24,7 +24,7 @@ function panelGeometry(track) {
       .normalize();
     for (const [index, vertex] of vertices.entries()) {
       positions.push(...vertex.toArray());
-      normals.push(...normal.toArray());
+      normals.push(...(surfaceNormals?.[index] ?? normal).toArray());
       colors.push(color.r, color.g, color.b);
       uvs.push(...coordinates[index]);
       cassetteUvs.push(...panel[index]);
@@ -54,10 +54,10 @@ function panelGeometry(track) {
               : 0xb4b9ab
             : section.id === 'broken-meridian' &&
                 (Math.floor(from / 18) + column) % 7 === 0
-              ? 0x9ea799
+              ? 0x64716e
               : section.id === 'event-fold' && column !== 1
                 ? 0x64757d
-                : [0x46525a, 0x37424b, 0x505b61][column];
+                : [0x3c4649, 0x343c40, 0x434b4b][column];
         const color = new THREE.Color(shade).multiplyScalar(
           0.91 + ((Math.floor(from / 18) + column * 3) % 5) * 0.035,
         );
@@ -84,6 +84,15 @@ function panelGeometry(track) {
               framePoint(fa, right, rightY),
               framePoint(fb, right, rightY),
             ];
+            const slope = (rightY - leftY) / (right - left);
+            const na = fa.up
+              .clone()
+              .addScaledVector(fa.right, -slope)
+              .normalize();
+            const nb = fb.up
+              .clone()
+              .addScaledVector(fb.right, -slope)
+              .normalize();
             const edge = left === x0 || right === x1;
             const finish = edge ? color.clone().multiplyScalar(1.16) : color;
             const U = (x) => (x - x0) / (x1 - x0),
@@ -101,6 +110,7 @@ function panelGeometry(track) {
                 [U(left), V(b)],
                 [U(right), V(a)],
               ],
+              [na, nb, na],
             );
             triangle(
               [p[2], p[1], p[3]],
@@ -115,6 +125,7 @@ function panelGeometry(track) {
                 [U(left), V(b)],
                 [U(right), V(b)],
               ],
+              [na, nb, nb],
             );
           }
         }
@@ -156,18 +167,18 @@ export function buildUmbraRoad(
   };
   const graphite = makeMaterial({
     color: shape ? 0x626f77 : 0x273139,
-    roughness: 0.87,
+    roughness: 0.63,
     metalness: 0.24,
   });
   const panel = makeMaterial({
     color: 0xffffff,
     vertexColors: true,
-    roughness: 0.82,
-    metalness: 0.16,
+    roughness: 0.62,
+    metalness: 0.38,
   });
   const metal = makeMaterial({
     color: shape ? 0x91a0a7 : 0x7c929e,
-    roughness: 0.61,
+    roughness: 0.29,
     metalness: 0.7,
   });
   const pale = makeMaterial({
@@ -177,7 +188,7 @@ export function buildUmbraRoad(
   });
   const underside = makeMaterial({
     color: 0x3d4c5b,
-    roughness: 0.59,
+    roughness: 0.43,
     metalness: 0.54,
   });
   const guide = makeMaterial({
@@ -191,7 +202,7 @@ export function buildUmbraRoad(
     color: 0xedbd70,
     emissive: 0xd78a38,
     emissiveIntensity: shape ? 0 : 0.9,
-    roughness: 0.59,
+    roughness: 0.43,
   });
   const repair = makeMaterial({
     color: 0x746256,

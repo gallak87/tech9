@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
+import { readFile } from 'node:fs/promises';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { createShip } from '../src/ships/index.js';
 import createLevel from '../src/levels/umbra/index.js';
 import { buildUmbraRoad } from '../src/levels/umbra/track/index.js';
 import { createCameraRig } from '../src/camera/index.js';
@@ -137,4 +140,60 @@ test('Flight dolly retains the takeoff pose and smoothly restores craft proximit
       initialForward + 0.02,
     'late flight returns toward forward chase',
   );
+});
+
+test('Stationary Umbra framing stays still across panel widths and uneven frame times', async () => {
+  const bytes = await readFile(
+    new URL('../public/assets/ships/kestrel/kestrel.glb', import.meta.url),
+  );
+  const { scene: model } = await new GLTFLoader().parseAsync(
+    bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+    '',
+  );
+  const ship = await createShip({ model });
+  const bounds = new T.Box3().setFromObject(ship.group);
+  const level = createLevel(),
+    track = level.createTrack();
+  const state = { distance: 0, lateral: 4, speed: 0 };
+  const frame = track.sample(state.distance);
+  ship.group.position
+    .copy(frame.position)
+    .addScaledVector(frame.right, state.lateral)
+    .addScaledVector(frame.up, 0.72);
+  ship.group.quaternion.copy(frame.quaternion);
+  const probe = track.sample(100).position;
+  const intervals = [1 / 120, 1 / 36, 1 / 60, 1 / 50];
+  try {
+    for (const width of [1440, 900, 760, 640, 390]) {
+      const camera = new T.PerspectiveCamera(64, width / 900, 0.2, 22000);
+      const rig = createCameraRig(camera, level.camera, bounds);
+      for (let i = 0; i < 400; i++)
+        rig.update(track, state, intervals[i % intervals.length], {
+          subject: ship.group,
+        });
+      camera.updateMatrixWorld();
+      const reference = probe.clone().project(camera);
+      for (let i = 0; i < 120; i++) {
+        rig.update(track, state, intervals[i % intervals.length], {
+          subject: ship.group,
+        });
+        camera.updateMatrixWorld();
+        const projected = probe.clone().project(camera);
+        const pixels = Math.hypot(
+          ((projected.x - reference.x) * width) / 2,
+          ((projected.y - reference.y) * 900) / 2,
+        );
+        assert.ok(
+          pixels < 0.001,
+          `${width}px window: stationary scene shifted ${pixels}px`,
+        );
+      }
+    }
+  } finally {
+    ship.dispose();
+    model.traverse((node) => {
+      node.geometry?.dispose();
+      node.material?.dispose();
+    });
+  }
 });

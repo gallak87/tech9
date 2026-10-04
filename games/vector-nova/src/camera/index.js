@@ -26,6 +26,7 @@ export function createCameraRig(
   let landingView = null;
   const transport = new T.Quaternion();
   const desiredRotation = new T.Quaternion();
+  const currentRotation = new T.Quaternion();
   const lookMatrix = new T.Matrix4();
   const offset = new T.Vector3();
   const localUp = new T.Vector3(0, 1, 0);
@@ -248,10 +249,6 @@ export function createCameraRig(
         );
         if (landingBlend === 1) landingView = null;
       }
-      camera.quaternion.slerp(
-        desiredRotation,
-        initialized ? 1 - Math.exp(-dt * 12) : 1,
-      );
       const baseFov =
         61 + (reducedMotion ? 0 : Math.min(state.speed / 157, 1) * 7);
       // A level can opt into more vertical room in narrow portrait viewports.
@@ -274,8 +271,20 @@ export function createCameraRig(
       camera.fov +=
         (fov - camera.fov) * (initialized ? 1 - Math.exp(-dt * 4) : 1);
       camera.updateProjectionMatrix();
-      if (fitSubject && subject && mode === 'chase' && !worldMotion)
+      const framing = fitSubject && subject && mode === 'chase' && !worldMotion;
+      if (framing) {
+        // Damp toward an aim that already fits the ship. Correcting only the
+        // output makes damping undo the fit on every frame; coupled pitch/yaw
+        // then oscillate with frame time, even when the ship is stationary.
+        currentRotation.copy(camera.quaternion);
+        camera.quaternion.copy(desiredRotation);
         fitSubject(camera, subject);
+        desiredRotation.copy(camera.quaternion);
+        camera.quaternion.copy(currentRotation);
+      }
+      camera.quaternion.slerp(desiredRotation, k);
+      // Moving subjects can cross the boundary before the damped aim catches up.
+      if (framing) fitSubject(camera, subject);
       camera.up.copy(localUp).applyQuaternion(camera.quaternion);
       initialized = true;
     },

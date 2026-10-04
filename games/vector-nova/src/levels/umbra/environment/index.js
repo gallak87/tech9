@@ -4,7 +4,14 @@ import { createUmbraAccretion } from './accretion.js';
 import { createUmbraConstruction } from './construction.js';
 import { RING_CENTER } from './constants.js';
 
-const RADII = { terrace: 106, lens: 150, vault: 142, instrument: 203, rib: 73 };
+const RADII = {
+  terrace: 106,
+  lens: 150,
+  vault: 142,
+  instrument: 203,
+  rib: 73,
+  gallery: 154,
+};
 const pose = new T.Object3D();
 
 /** Conservative sphere clearance also reserves both real airborne corridors.
@@ -42,10 +49,22 @@ export function createUmbraSceneryLayout(track) {
     const s = (track.length * index) / 43;
     const frame = track.sample(s),
       side = index % 2 ? -1 : 1;
-    const type = ['terrace', 'rib', 'vault', 'terrace', 'instrument', 'rib'][
-      index % 6
-    ];
-    const scale = type === 'instrument' ? 0.48 : 0.6 + (index % 3) * 0.13;
+    const type = [
+      'terrace',
+      'rib',
+      'gallery',
+      'terrace',
+      'instrument',
+      'vault',
+    ][index % 6];
+    const scale =
+      type === 'instrument'
+        ? 0.48
+        : type === 'terrace'
+          ? 0.82 + (index % 3) * 0.1
+          : type === 'gallery'
+            ? 0.74
+            : 0.6 + (index % 3) * 0.13;
     const yaw = Math.atan2(frame.tangent.x, frame.tangent.z) + side * 0.24;
     // World-upright ruins remain a stable spatial reference through inversion.
     const lateral = new T.Vector3(frame.tangent.z, 0, -frame.tangent.x)
@@ -53,7 +72,12 @@ export function createUmbraSceneryLayout(track) {
       .multiplyScalar(side);
     for (const offset of [125, 170, 230, 320, 425]) {
       const position = frame.position.clone().addScaledVector(lateral, offset);
-      position.y -= 55 + (index % 4) * 12;
+      position.y -=
+        type === 'terrace'
+          ? 12
+          : type === 'gallery'
+            ? 28
+            : 55 + (index % 4) * 12;
       if (
         add(
           type,
@@ -132,7 +156,14 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
   try {
     const layout = createUmbraSceneryLayout(track);
     const farGroups = [];
-    for (const type of ['terrace', 'lens', 'vault', 'instrument', 'rib']) {
+    for (const type of [
+      'terrace',
+      'lens',
+      'vault',
+      'instrument',
+      'rib',
+      'gallery',
+    ]) {
       for (const distant of [false, true]) {
         const list = layout.filter(
           (entry) =>

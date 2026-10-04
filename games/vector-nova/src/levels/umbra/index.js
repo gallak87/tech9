@@ -20,8 +20,8 @@ export default function createLevel({ shape = false } = {}) {
     },
     camera: {
       preserveFlightView: true,
-      chaseHeight: 8,
-      lookAhead: 30,
+      chaseHeight: 6,
+      lookAhead: 52,
       safeFrame: { left: -0.68, right: 0.68, bottom: -0.66, top: 0.55 },
       portraitAspect: 0.64,
       maxPortraitScale: 1.5,

@@ -59,6 +59,7 @@ test('Blender export has all authored stages and absolute-time replayable deform
   const assets = collectUmbraAssets(gltf.scene);
   for (const name of [
     'terrace',
+    'gallery',
     'lens',
     'vault',
     'instrument',
@@ -98,4 +99,18 @@ test('Accretion backdrop pauses and replay restores absolute disk time', async (
   backdrop.update({ time: 20, dt: 0, settings: { reducedMotion: true } });
   assert.equal(disk.material.uniforms.time.value, 0);
   backdrop.dispose();
+});
+
+test('Rejected observatory kit releases loaded geometry and materials', () => {
+  const scene = new T.Group();
+  const geometry = new T.BoxGeometry();
+  const material = new T.MeshStandardMaterial();
+  scene.add(new T.Mesh(geometry, material));
+  let geometryReleased = 0,
+    materialReleased = 0;
+  geometry.addEventListener('dispose', () => geometryReleased++);
+  material.addEventListener('dispose', () => materialReleased++);
+  assert.throws(() => collectUmbraAssets(scene), /missing required terrace/);
+  assert.equal(geometryReleased, 1);
+  assert.equal(materialReleased, 1);
 });

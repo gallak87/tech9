@@ -11,8 +11,36 @@ export function collectUmbraAssets(scene) {
     materials = new Set();
   scene.traverse((node) => {
     if (node.geometry) geometries.add(node.geometry);
-    if (node.material) materials.add(node.material);
+    for (const material of Array.isArray(node.material)
+      ? node.material
+      : [node.material])
+      if (material) materials.add(material);
   });
+  let disposed = false;
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    geometries.forEach((geometry) => geometry.dispose());
+    materials.forEach((material) => material.dispose());
+  };
+  const names = [
+    'terrace',
+    'gallery',
+    'lens',
+    'vault',
+    'instrument',
+    'rib',
+    'event_stretched',
+    'event_fragmented',
+  ];
+  // Validate the loaded kit before allocating merged copies. Failed selected
+  // assets belong to this loader and must release their originals as well.
+  for (const name of names) {
+    if (!scene.getObjectByName(name)) {
+      dispose();
+      throw new Error(`Umbra architecture missing required ${name}`);
+    }
+  }
   function flatten(root) {
     const byMaterial = new Map();
     const inverse = root.matrixWorld.clone().invert();
@@ -40,15 +68,7 @@ export function collectUmbraAssets(scene) {
     });
   }
   const templates = {};
-  for (const name of [
-    'terrace',
-    'lens',
-    'vault',
-    'instrument',
-    'rib',
-    'event_stretched',
-    'event_fragmented',
-  ]) {
+  for (const name of names) {
     const root = scene.getObjectByName(name);
     if (!root) throw new Error(`Umbra architecture missing required ${name}`);
     templates[name] = flatten(root);
@@ -69,10 +89,7 @@ export function collectUmbraAssets(scene) {
   return {
     templates,
     eventPieces,
-    dispose() {
-      geometries.forEach((geometry) => geometry.dispose());
-      materials.forEach((material) => material.dispose());
-    },
+    dispose,
   };
 }
 

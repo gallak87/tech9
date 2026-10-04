@@ -139,13 +139,15 @@ def instrument(name='instrument',stretch=1,fragments=False):
         q=group('piece_%02d'%i);q.parent=p
         dx=(i%3-1)*8 if fragments else 0;dz=(i%2-.5)*15 if fragments else 0
         x,z=math.cos(a)*r+dx,math.sin(a)*r+dz
-        box('instrument-fluted-pier',(x,80*stretch,z),(8,160*stretch,8),stone,q,2)
+        height=(160-(i%3)*17)*stretch
+        box('instrument-fluted-pier',(x,height/2,z),(8,height,8),stone,q,2)
         box('pier-repair',(x+2,82*stretch,z+3),(2,148*stretch,2),metal,q)
         box('pier-lit-flute',(x-4.2,88*stretch,z),(1,125*stretch,1),amber,q)
-        wedge('broken-crown',x,157*stretch,z,11,31*stretch,11,stone2,q)
+        wedge('broken-crown',x,height-3*stretch,z,11,(14+(i%4)*5)*stretch,11,stone2,q)
         # Thick layered wall cassettes and exposed joints distinguish a ruined
         # instrument cathedral from an empty cage. Gaps reveal inner services.
         for j,level in enumerate([20,48,77,108,136]):
+            if level*stretch > height-10*stretch:continue
             box('pier-masonry-cassette',(x,level*stretch,z),(12,18*stretch,12),stone2 if (i+j)%3==0 else stone,q,1.3)
             box('recessed-joint',(x,level*stretch-10*stretch,z),(13,1.3*stretch,13),graphite,q)
             for side in [-1,1]:
@@ -158,6 +160,8 @@ def instrument(name='instrument',stretch=1,fragments=False):
         q=group('piece_%02d'%(i+8));q.parent=p
         # horizontal polygon rings are built with beam segments and genuine empty centers.
         for j in range(8):
+            if i==1 and j in [1,2]:continue
+            if i==3 and j in [5]:continue
             a=j*math.tau/8;b=(j+1)*math.tau/8;r=41-i*2
             aa=(math.cos(a)*r,y*stretch,math.sin(a)*r);bb=(math.cos(b)*r,y*stretch,math.sin(b)*r)
             beam('tier-ring',aa,bb,7 if i%2 else 10,graphite if i%2 else stone,q)
@@ -174,7 +178,34 @@ def rib():
         beam('rib-brace',(math.cos(a)*34,math.sin(a)*34,0),(math.cos(a)*49,math.sin(a)*49,0),2,metal,p)
     consolidate(p)
 
-terrace();lens();vault();instrument();instrument('event_stretched',2.65);instrument('event_fragmented',2.1,True);rib()
+def gallery():
+    p=group('gallery')
+    # Two interrupted observatory galleries, real openings and offset load paths.
+    for y,w,d in [(-44,168,104),(-9,144,92),(27,118,74)]:
+        box('pale-gallery-slab',(0,y,0),(w,5,d),stone,p,2)
+        for x in [-w*.4,w*.4]:
+            wedge('attached-broad-pier',x,y-35,-26,14,33,20,stone,p)
+            beam('gallery-tension-spine',(x,y-32,-26),(x*.65,y-1,29),2.8,metal,p)
+        for j in range(5):
+            x=-w*.4+j*w*.2
+            if j==3 and y>0:continue
+            arc('open-arch-portal',13,3,7,.08,3.05,stone2,p,center=(x,y+12,-d*.43),segments=14)
+            for side in [-1,1]:
+                box('portal-pier',(x+side*13,y+5,-d*.43),(4,13,7),stone,p)
+                box('portal-service-light',(x+side*10.7,y+9,-d*.39),(.5,8,.5),amber,p)
+        for x in [-w*.45,w*.45]:
+            box('gallery-side-keel',(x,y+8,0),(3,3,d*.8),graphite,p)
+            for z in [-d*.3,0,d*.3]:
+                beam('handrail-post',(x,y+2,z),(x,y+10,z),.7,metal,p)
+    # A ruptured instrument canopy leans over the terraces, with separated ends.
+    for z in [-21,7,28]:
+        arc('damaged-roof-ring',39,5,7,.18,2.42,stone,p,center=(0,37,z),segments=22)
+        arc('roof-repair-rib',33,1.2,4,.25,2.65,metal,p,center=(0,37,z),segments=22)
+    for x in [-40,39]:
+        beam('roof-foot-brace',(x,27,-28),(x*.73,61,-28),3,graphite,p)
+    consolidate(p)
+
+terrace();gallery();lens();vault();instrument();instrument('event_stretched',2.65);instrument('event_fragmented',2.1,True);rib()
 for ob in bpy.data.objects:
     if ob.type=='MESH':
         # Applied single-segment bevels catch grazing light on real stone and
@@ -185,6 +216,7 @@ for ob in bpy.data.objects:
         bpy.ops.object.modifier_apply(modifier=mod.name)
         for poly in ob.data.polygons:poly.use_smooth=False
 bpy.context.scene['provenance']='Authored from selected built-in imagegen scene umbra-scene-reference.png. Generator seed 1029. No third-party assets.'
+bpy.context.preferences.filepaths.save_version=0
 bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE))
 OUT.parent.mkdir(parents=True,exist_ok=True)
 bpy.ops.export_scene.gltf(filepath=str(OUT),export_format='GLB',export_yup=True,export_apply=True,export_animations=False)

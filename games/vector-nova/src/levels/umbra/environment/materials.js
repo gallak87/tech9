@@ -33,8 +33,8 @@ export function finishUmbraMaterial(material, kind = 'stone') {
       float fineVisibility=1.-smoothstep(.12,.8,max(length(dFdx(up)),length(dFdy(up))));
       float warped=umFbm(up*.39+vec3(macro*1.7));
       float vein=(1.-smoothstep(.008,.031,abs(warped-.48)))*smoothstep(.2,.6,macro);
-      float stoneRelief=macro*.21+grain*.055-vein*.037+fine*.012*fineVisibility;
-      ${kind === 'stone' ? 'diffuseColor.rgb*=mix(.65,1.19,macro)*mix(.91,1.05,grain)*(1.-vein*.40); diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.78,.72,.66),smoothstep(.59,.73,macro)*.25);' : kind === 'metal' ? 'float brush=sin((up.x+up.z)*70.+umNoise(up*.4)*2.)*.5+.5; brush=mix(.5,brush,fineVisibility); diffuseColor.rgb*=mix(.79,1.12,macro)*mix(.91,1.06,brush); stoneRelief=grain*.007+brush*.002;' : 'diffuseColor.rgb*=mix(.76,1.13,macro)*mix(.93,1.03,grain); stoneRelief=macro*.014+grain*.014+fine*.005*fineVisibility;'}
+      float stoneRelief=macro*.13+grain*.025-vein*.022+fine*.006*fineVisibility;
+      ${kind === 'stone' ? 'diffuseColor.rgb*=mix(.74,1.15,macro)*mix(.95,1.025,grain)*(1.-vein*.29); diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.78,.72,.66),smoothstep(.59,.73,macro)*.25);' : kind === 'metal' ? 'float brush=sin((up.x+up.z)*70.+umNoise(up*.4)*2.)*.5+.5; brush=mix(.5,brush,fineVisibility); diffuseColor.rgb*=mix(.79,1.12,macro)*mix(.91,1.06,brush); stoneRelief=grain*.007+brush*.002;' : 'diffuseColor.rgb*=mix(.76,1.13,macro)*mix(.93,1.03,grain); stoneRelief=macro*.014+grain*.014+fine*.005*fineVisibility;'}
       `,
       )
       .replace(

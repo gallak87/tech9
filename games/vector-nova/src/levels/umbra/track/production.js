@@ -396,6 +396,31 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
       }
     }
   }
+  // The original grid remains a recognizable depth landmark below Event Fold.
+  const grid = track.sample(0);
+  for (let row = 0; row < 2; row++)
+    for (let column = 0; column < 8; column++)
+      localBox(
+        (row + column) % 2 ? underside : pale,
+        grid,
+        -10.5 + column * 3,
+        0.14,
+        row * 3 - 1.5,
+        2.9,
+        0.06,
+        2.9,
+      );
+  for (const side of [-1, 1]) {
+    localBox(pale, grid, side * 21, 5.8, 0, 2.6, 11.6, 3.2);
+    localBox(amber, grid, side * 21, 11.9, 0, 3.4, 0.5, 4);
+    beam(
+      metal,
+      framePoint(grid, side * 21, -5),
+      framePoint(grid, side * 9, -6),
+      1.4,
+      2.3,
+    );
+  }
   // Tide instruments use sideways arrows and measured force bars; launch
   // instruments retain their longitudinal runway stripes. The paint follows
   // the actual deck frame, including bank reversals and the inversion exit.

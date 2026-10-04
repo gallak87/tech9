@@ -39,7 +39,7 @@ export function finishUmbraMaterial(material, kind = 'stone') {
       )
       .replace(
         '#include <roughnessmap_fragment>',
-        `#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+(macro-.5)*${kind === 'metal' ? '.20' : '.16'},.26,.98);`,
+        `#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+(macro-.5)*${kind === 'metal' ? '.20' : '.16'},${kind === 'metal' ? '.42' : '.26'},.98);`,
       )
       .replace(
         '#include <normal_fragment_begin>',

@@ -57,7 +57,9 @@ export function createUmbraSceneryLayout(track) {
     const radius = RADII[type] * scale;
     const margin = distance(position) - radius;
     if (
-      ['connector', 'distant', 'near-load-node'].includes(role) &&
+      ['connector', 'distant', 'near-load-node', 'route-gallery'].includes(
+        role,
+      ) &&
       sightlineBlocked(position, radius)
     )
       return false;
@@ -150,6 +152,36 @@ export function createUmbraSceneryLayout(track) {
             index % 2 ? 0.05 : -0.04,
           ],
           'near-load-node',
+        )
+      )
+        break;
+    }
+  }
+  // Road-parallel observatory galleries place actual stone mass above eye level
+  // in ordinary chase views. Their portals and service shelves face the route.
+  for (const [index, s] of [
+    180, 340, 550, 720, 860, 2050, 2350, 3030, 4090, 4430, 4890, 5200,
+  ].entries()) {
+    const frame = track.sample(s),
+      side = index % 3 === 1 ? -1 : 1;
+    const lateral = new T.Vector3(frame.tangent.z, 0, -frame.tangent.x)
+      .normalize()
+      .multiplyScalar(side);
+    const scale = 0.55 + (index % 3) * 0.065;
+    for (const offset of [132, 164, 210, 270]) {
+      const position = frame.position.clone().addScaledVector(lateral, offset);
+      position.y += 24 + (index % 3) * 9;
+      if (
+        add(
+          'wall',
+          position,
+          scale,
+          [
+            0,
+            Math.atan2(frame.tangent.x, frame.tangent.z) + Math.PI / 2,
+            side * 0.055,
+          ],
+          'route-gallery',
         )
       )
         break;

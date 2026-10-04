@@ -83,6 +83,21 @@ test('Blender export has all authored stages and absolute-time replayable deform
       );
     }
   }
+  // Runtime batching retains the authored member-local cavity shading.
+  for (const { geometry, material } of assets.templates.wall) {
+    const color = geometry.attributes.color;
+    assert.ok(
+      color && material.vertexColors,
+      'baked cavities survive flattening',
+    );
+    let min = 1,
+      max = 0;
+    for (let i = 0; i < color.count; i++) {
+      min = Math.min(min, color.getX(i));
+      max = Math.max(max, color.getX(i));
+    }
+    assert.ok(min < max && min > 0, 'contact shading is varied and bounded');
+  }
   assert.equal(assets.eventPieces.length, 12);
   const event = createUmbraAccretion(assets);
   event.update(32);

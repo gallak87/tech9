@@ -5,6 +5,7 @@ CPU modeling/export only. World coordinates are Y-up at export.
 import bpy, math, random
 from pathlib import Path
 from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 random.seed(1029)
 ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / 'public/assets/levels/umbra/umbra-observatory.glb'
@@ -18,14 +19,14 @@ def mat(name, color, metal=0, rough=.7, emission=None):
     if emission:
         p.inputs['Emission Color'].default_value=(*color,1); p.inputs['Emission Strength'].default_value=emission
     return m
-stone=mat('Fractured warm ivory',(.54,.57,.61),.08,.86)
-stone2=mat('Fresh pale fractures',(.78,.79,.76),.06,.9)
+stone=mat('Fractured warm ivory',(.47,.455,.405),.015,.89)
+stone2=mat('Fresh pale fractures',(.69,.665,.59),.01,.94)
 graphite=mat('Layered graphite',(.095,.12,.155),.46,.62)
-metal=mat('Cold titanium repair',(.23,.32,.40),.75,.52)
+metal=mat('Cold titanium repair',(.24,.285,.315),.82,.41)
 dark=mat('Recessed instrument',(.025,.048,.075),.7,.56)
 amber=mat('Amber service glass',(.95,.32,.055),.1,.3,3.0)
 cyan=mat('Cold instrument glass',(.13,.62,.88),.1,.3,2.4)
-aged=mat('Aged slate ivory',(.29,.34,.38),.06,.94)
+aged=mat('Aged slate ivory',(.255,.265,.25),.015,.96)
 MATS=[stone,stone2,graphite,metal,dark,amber,cyan,aged]
 
 def pt(v):return (v[0],-v[2],v[1])
@@ -49,36 +50,83 @@ def beam(name,a,b,width,material,parent):
 
 def arc(name,r,width,depth,start,end,material,parent,center=(0,0,0),segments=32):
     vs=[];fs=[];cx,cy,cz=center
+    stony=material in [stone,stone2,aged]
+    # Uneven radial bands and shallow chipped face relief make actual rough
+    # masonry under grazing light, while manufactured ribs stay machined.
+    radial=4 if stony else 1
     for i in range(segments+1):
         a=start+(end-start)*i/segments
-        for zz in [-depth/2,depth/2]:
-            for rr in [r-width/2,r+width/2]:vs.append((cx+math.cos(a)*rr,cy+math.sin(a)*rr,cz+zz))
+        for front in [False,True]:
+            for j in range(radial+1):
+                rr=r-width/2+width*j/radial
+                zz=cz+(-depth/2 if not front else depth/2)
+                if stony:
+                    if j in [0,radial] and i%3==0:rr+=(.22 if j==0 else -.48)
+                    if front and j not in [0,radial]:zz+=random.uniform(-.35,.22)
+                    if front and i in [0,segments]:zz-=.38 if j%2 else .15
+                vs.append((cx+math.cos(a)*rr,cy+math.sin(a)*rr,zz))
+    row=2*(radial+1)
     for i in range(segments):
-        a=i*4;b=a+4
-        fs.extend([(a,b,b+1,a+1),(a+2,a+3,b+3,b+2),(a,a+2,b+2,b),(a+1,b+1,b+3,a+3)])
-    fs.extend([(0,1,3,2),(segments*4,segments*4+2,segments*4+3,segments*4+1)])
+        a=i*row;b=a+row
+        for j in range(radial):
+            fs.append((a+j,b+j,b+j+1,a+j+1))
+            f=a+radial+1+j;g=b+radial+1+j
+            fs.extend([(f,f+1,g),(f+1,g+1,g)])
+        fs.extend([(a,a+radial+1,b+radial+1,b),(a+radial,b+radial,b+row-1,a+row-1)])
+    for endrow in [0,segments*row]:
+        for j in range(radial):fs.append((endrow+j,endrow+j+1,endrow+radial+2+j,endrow+radial+1+j))
     return mesh(name,vs,fs,material,parent)
 
 def wedge(name,x,y,z,w,h,d,material,parent):
-    # A broken stone face uses real uneven masonry facets, not a flat trapezoid
-    # covered with noise. The perimeter remains attached to its volume.
-    verts=[(x-w/2,y,z-d/2),(x+w/2,y,z-d/2),(x+w/2,y,z+d/2),(x-w/2,y,z+d/2),(x-w*.27,y+h,z-d*.32),(x+w*.35,y+h*.83,z-d*.32),(x+w*.21,y+h*.92,z+d*.34),(x-w*.36,y+h*1.03,z+d*.35)]
-    faces=[(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(3,0,4,7)]
-    grid=[]
-    for row in range(5):
-        v=row/4
-        left=Vector(verts[3]).lerp(Vector(verts[7]),v)
-        right=Vector(verts[2]).lerp(Vector(verts[6]),v)
-        for col in range(7):
-            u=col/6;ptt=left.lerp(right,u)
-            if row not in [0,4] and col not in [0,6]:
-                ptt.z+=random.uniform(-.055,.04)*min(w,h)
-            grid.append(len(verts));verts.append(tuple(ptt))
-    for row in range(4):
-        for col in range(6):
-            a=grid[row*7+col];b=grid[row*7+col+1];c=grid[(row+1)*7+col];e=grid[(row+1)*7+col+1]
-            faces.extend([(a,b,c),(c,b,e)])
-    return mesh(name,verts,faces,material,parent)
+    # Irregular sealed ashlar with chipped edges, deep fractures and quiet faces.
+    # Its fresh break is a separate material, not painted crackle on a trapezoid.
+    cols=7;rows=5;verts=[];faces=[]
+    top=[.83,.94,.87,1.01,.78,.91,.85]
+    for back in [False,True]:
+        for row in range(rows):
+            v=row/(rows-1)
+            for col in range(cols):
+                u=col/(cols-1)
+                xx=x+(u-.5)*w*(1-v*.13)
+                yy=y+v*h*top[col]
+                edge=abs(u-.5)*2
+                chips=(.10 if (col+row)%4==0 else .035)*d
+                zz=z+(-1 if back else 1)*(d/2-chips*edge)
+                if not back and row not in [0,rows-1]:
+                    # A few broad clefts and a chipped course end cast real shadows.
+                    zz-=d*(.09 if col in [2,3] and row in [2,3] else 0)
+                    zz+=random.uniform(-.012,.014)*min(w,h)
+                verts.append((xx,yy,zz))
+    n=rows*cols
+    for back in [0,1]:
+        for row in range(rows-1):
+            for col in range(cols-1):
+                a=back*n+row*cols+col;b=a+1;c=a+cols;e=c+1
+                faces.extend([(a,b,c),(c,b,e)] if back==0 else [(a,c,b),(c,e,b)])
+    for row in range(rows-1):
+        a=row*cols;b=a+cols
+        faces.extend([(a,b,b+n,a+n),(a+cols-1,a+cols-1+n,b+cols-1+n,b+cols-1)])
+    for col in range(cols-1):
+        faces.append((col,col+n,col+1+n,col+1))
+        a=(rows-1)*cols+col
+        faces.append((a,a+1,a+1+n,a+n))
+    o=mesh(name,verts,faces,material,parent)
+    o.data.materials.append(stone2 if material in [stone,aged] else material)
+    for poly in list(o.data.polygons)[-cols+1:]:poly.material_index=1
+    return o
+
+def broken_arc(name,r,width,depth,start,end,parent,center=(0,0,0),segments=16):
+    # Thick individual voussoirs, missing ends and exposed inner service ribs.
+    step=(end-start)/segments
+    for i in range(segments):
+        if i in [segments-2] and segments>12:continue
+        a=start+i*step+.002;b=start+(i+1)*step-.002
+        rr=r+(.7 if i%7==0 else -.3 if i%11==0 else 0)
+        arc(name,rr,width*(.82 if i%5==0 else 1),depth,a,b,aged if i%5==0 else stone,parent,center,2)
+        if i%3==0:
+            mid=(a+b)/2;cx,cy,cz=center
+            x=cx+math.cos(mid)*r;y=cy+math.sin(mid)*r
+            beam('bonded-arch-cleat',(x*.965,y*.965,cz+depth/2+.6),(x*1.035,y*1.035,cz+depth/2+.6),.65,metal,parent)
 
 def consolidate(parent):
     # One mesh per material and retained piece parent gives compact runtime draw count.
@@ -119,7 +167,7 @@ def terrace():
 def lens():
     p=group('lens')
     for j,(r,w,z) in enumerate([(78,9,0),(61,7,6),(44,5,12)]):
-        arc('damaged-lens-ring',r,w,8+j*2,.16,4.95-j*.13,stone2,p,center=(0,0,z),segments=48)
+        broken_arc('damaged-lens-ring',r,w,10+j*2,.16,4.95-j*.13,p,(0,0,z),40)
         arc('cold-support-ring',r+7,2.2,3,-.2,5.6,metal,p,center=(0,0,z-6),segments=48)
         arc('luminous-optic-rim',r-5,.55,.6,.12,5.02,cyan,p,center=(0,0,z+6),segments=48)
         for i in range(12):
@@ -141,7 +189,7 @@ def lens():
 def vault():
     p=group('vault')
     for z in [-42,-14,14,42]:
-        arc('ribbed-vault',82,9,7,.12,2.9,stone,p,center=(0,0,z),segments=22)
+        broken_arc('ribbed-vault',82,9,10,.12,2.9,p,(0,0,z),23)
         arc('inner-repair-spine',70,2.3,6,.15,2.97,metal,p,center=(0,0,z),segments=22)
         for x in [-79,79]:
             wedge('vault-pylon',x,-24,z,18,34,18,stone2,p)
@@ -199,34 +247,35 @@ def rib():
 
 def gallery():
     p=group('gallery')
-    # Two interrupted observatory galleries, real openings and offset load paths.
-    for y,w,d in [(-44,168,104),(-9,144,92),(27,118,74)]:
-        box('pale-gallery-slab',(0,y,0),(w,5,d),stone,p,2)
-        for x in [-w*.4,w*.4]:
-            wedge('attached-broad-pier',x,y-35,-26,14,33,20,stone,p)
-            beam('gallery-tension-spine',(x,y-32,-26),(x*.65,y-1,29),2.8,metal,p)
-        for j in range(5):
-            x=-w*.4+j*w*.2
-            if j==3 and y>0:continue
-            arc('open-arch-portal',13,3,7,.08,3.05,stone2,p,center=(x,y+12,-d*.43),segments=14)
-            for side in [-1,1]:
-                box('portal-pier',(x+side*13,y+5,-d*.43),(4,13,7),stone,p)
-                box('portal-service-light',(x+side*10.7,y+9,-d*.39),(.5,8,.5),amber,p)
-        for x in [-w*.45,w*.45]:
-            box('gallery-side-keel',(x,y+8,0),(3,3,d*.8),graphite,p)
-            for z in [-d*.3,0,d*.3]:
-                beam('handrail-post',(x,y+2,z),(x,y+10,z),.7,metal,p)
-    # A ruptured instrument canopy leans over the terraces, with separated ends.
-    for z in [-21,7,28]:
-        arc('damaged-roof-ring',39,5,7,.18,2.42,stone,p,center=(0,37,z),segments=22)
-        arc('roof-repair-rib',33,1.2,4,.25,2.65,metal,p,center=(0,37,z),segments=22)
-    # Unequal solid wall bays and broken upper edges vary the arched silhouette.
-    for x,y,z,h in [(-58,-7,24,25),(36,-42,40,32),(-35,27,27,20)]:
-        wedge('broken-gallery-wall-bay',x,y,z,28,h,8,stone,p)
-        box('wall-mortar-joint',(x,y+h*.4,z+4.4),(27,.8,1),graphite,p)
-        beam('attached-wall-repair',(x-12,y+3,z+5),(x+9,y+h-3,z+5),1.4,metal,p)
-    for x in [-40,39]:
-        beam('roof-foot-brace',(x,27,-28),(x*.73,61,-28),3,graphite,p)
+    for y,w,d,offset in [(-44,164,100,0),(-9,130,86,-12),(27,96,64,18)]:
+        box('broken-cantilever-shelf',(offset,y,0),(w,5,d),stone,p,1)
+        box('recessed-keel',(offset,y-3,0),(w-8,3,d-10),graphite,p)
+        for x in [offset-w*.38,offset+w*.38]:
+            wedge('battered-gallery-pier',x,y-34,-21,18,35,23,stone,p)
+            beam('repaired-load-path',(x,y-28,-20),(offset,y-1,24),2.5,metal,p)
+        bays=[(-46,18),(1,23),(45,14)] if y<0 else [(-15,18),(26,14)]
+        for k,(xx,r) in enumerate(bays):
+            x=offset+xx*(w/164)
+            if y==27 and k==1:
+                wedge('collapsed-loggia-end',x,y+2,-d*.37,27,23,16,aged,p)
+                beam('exposed-collapse-tendon',(x-11,y+4,-d*.25),(x+7,y+40,-d*.25),1.7,metal,p)
+            else:
+                broken_arc('jointed-deep-portal',r,5,14,.12,3.00,p,(x,y+12,-d*.37),14)
+                for side in [-1,1]:
+                    wedge('portal-mass',x+side*r,y+2,-d*.37,8,14,16,stone,p)
+                    box('inset-amber-service',(x+side*(r-3),y+9,-d*.29),(.5,9,.5),amber,p)
+        for x in [offset-w*.45,offset+w*.45]:
+            beam('gallery-handrail',(x,y+9,-d*.38),(x,y+9,d*.38),.7,metal,p)
+            for z in [-d*.38,0,d*.38]:beam('rail-post',(x,y+2,z),(x,y+9,z),.8,metal,p)
+        box('layered-deck-rim',(offset,y+2.8,d*.43),(w*.78,.7,2),graphite,p)
+        box('instrument-waylight',(offset,y+3.2,d*.43),(w*.56,.4,.4),cyan,p)
+    wedge('large-broken-facade',-42,-8,24,40,67,14,stone,p)
+    for y in [5,24,42]:
+        box('deep-fracture-course',(-42,y,31),(39,1.2,2),graphite,p)
+        beam('facade-repair-strap',(-59,y-7,33),(-28,y+11,33),1.3,metal,p)
+    for z in [-18,19]:
+        broken_arc('ruptured-instrument-canopy',36,6,8,.22,2.51,p,(15,37,z),17)
+        arc('exposed-canopy-rib',29,1.7,4,.16,2.72,metal,p,(15,37,z),24)
     consolidate(p)
 
 def pier():
@@ -267,7 +316,7 @@ def wall():
                 box('recessed-vertical-lamp',(x-6,y+7,14.1),(.7,7,.8),amber,p)
         wedge('separated-upper-mass',x,-66+count*15,0,21,12+random.random()*12,26,stone2,p)
     for x in [-40,0,40]:
-        arc('deep-service-portal',20,7,22,.06,3.08,stone,p,center=(x,-10,0),segments=22)
+        broken_arc('deep-service-portal',20,7,22,.06,3.08,p,(x,-10,0),18)
         for dx in [-18,18]:
             box('arch-foot',(x+dx,-27,0),(8,33,24),aged,p)
         box('solid-spandrel',(x,16,0),(40,9,22),stone,p,1)
@@ -293,9 +342,44 @@ for ob in bpy.data.objects:
         mod.limit_method='ANGLE';mod.angle_limit=.55
         bpy.ops.object.modifier_apply(modifier=mod.name)
         for poly in ob.data.polygons:poly.use_smooth=False
+# Bake local contact occlusion into retained vertex color, on CPU. This travels
+# with each actual member in the giant event and works identically in low/high.
+for root in [o for o in bpy.data.objects if o.type=='EMPTY' and o.parent is None]:
+    obs=[o for o in root.children_recursive if o.type=='MESH']
+    vs=[];fs=[]
+    for o in obs:
+        offset=len(vs);vs.extend([o.matrix_world@v.co for v in o.data.vertices])
+        fs.extend([tuple(offset+i for i in poly.vertices) for poly in o.data.polygons])
+    tree=BVHTree.FromPolygons(vs,fs,all_triangles=False)
+    for o in obs:
+        colors=o.data.color_attributes.new(name='Color',type='FLOAT_COLOR',domain='CORNER')
+        o.data.color_attributes.active_color=colors
+        cache={}
+        for poly in o.data.polygons:
+            n=(o.matrix_world.to_3x3()@poly.normal).normalized()
+            tangent=n.cross(Vector((0,0,1)) if abs(n.z)<.9 else Vector((0,1,0))).normalized()
+            bitangent=n.cross(tangent)
+            for li in poly.loop_indices:
+                loop=o.data.loops[li];v=o.matrix_world@o.data.vertices[loop.vertex_index].co
+                key=tuple(round(c,3) for c in (*v,*n))
+                if key not in cache:
+                    occ=0
+                    origin=v+n*.14
+                    for j in range(8):
+                        theta=(j+.5)*math.tau/8
+                        direction=(n*.63+tangent*math.cos(theta)*.78+bitangent*math.sin(theta)*.78).normalized()
+                        hit=tree.ray_cast(origin,direction,14)
+                        if hit[0] is not None:occ+=1-hit[3]/20
+                    cache[key]=max(.31,1-occ/8*.81)
+                ao=cache[key]
+                # Restrained broad tint belongs to the weathered member, not noise
+                # painted equally across every exterior and fresh fractured face.
+                tint=.96+.04*math.sin(v.x*.097+v.z*.081)
+                colors.data[li].color=(ao*tint,ao*tint,ao*tint,1)
+    print('UMBRA_CPU_CAVITIES',root.name,len(vs))
 bpy.context.scene['provenance']='Authored from selected built-in imagegen scene umbra-scene-reference.png. Generator seed 1029. No third-party assets.'
 bpy.context.preferences.filepaths.save_version=0
 bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE))
 OUT.parent.mkdir(parents=True,exist_ok=True)
-bpy.ops.export_scene.gltf(filepath=str(OUT),export_format='GLB',export_yup=True,export_apply=True,export_animations=False)
+bpy.ops.export_scene.gltf(filepath=str(OUT),export_format='GLB',export_yup=True,export_apply=True,export_animations=False,export_vertex_color='ACTIVE')
 print('UMBRA_EXPORT',OUT,OUT.stat().st_size)

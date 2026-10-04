@@ -52,9 +52,9 @@ export function collectUmbraAssets(scene) {
       geometry.applyMatrix4(
         new T.Matrix4().multiplyMatrices(inverse, node.matrixWorld),
       );
-      // glTF attributes may vary by primitive; geometry here needs only normals/position.
+      // Retain CPU-baked member contact occlusion through material batching.
       for (const key of Object.keys(geometry.attributes))
-        if (!['position', 'normal'].includes(key))
+        if (!['position', 'normal', 'color'].includes(key))
           geometry.deleteAttribute(key);
       const list = byMaterial.get(node.material) ?? [];
       list.push(geometry.index ? geometry.toNonIndexed() : geometry);

@@ -32,7 +32,7 @@
   "runtime": {
     "export": "public/assets/levels/umbra/umbra-observatory.glb",
     "conceptServed": false,
-    "geometry": "Material-batched fractured terraces, multi-level open galleries, unequal attached piers, thick ashlar portal walls, nested lenses, vault ribs, instrument cassettes and repair joints. Actual structural facets and service decks complement object-space stone/graphite surface relief.",
+    "geometry": "Material-batched fractured terraces, asymmetric interrupted galleries, unequal attached piers, thick ashlar portal walls, jointed chipped nested lenses and vault ribs, instrument cassettes and exposed repair joints. CPU ray-cast contact occlusion is exported as member-local vertex color and retained through runtime batching and event deformation. Formed roadside housings, bolted repair inserts and chamfered graphite cassettes use distinct mineral, exposed-break and brushed-metal responses.",
     "animation": "Runtime deforms the intact instrument's 12 structural groups, separates them and pulls them into the ring. Exported stretched/fragmented forms are editable reference poses. Six distant streams pass from intact instruments to elongated forms to broken structural ribs.",
     "backdrop": "Selected native 1774x887 sRGB umbra-sky-v2.png supplies subdued distant atmosphere with wrap/pole filtering. Fine seeded point stars, localized accretion disk/halo, photon rim and black sphere remain separately authored. No rendered-road or screen-space lensing distortion.",
     "presets": "Low retains all major architecture, disk and stars. Reduced motion canonically freezes decorative ring flow and distant consumption. Required giant-event timing remains unchanged.",

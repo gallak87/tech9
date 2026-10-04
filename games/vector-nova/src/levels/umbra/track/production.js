@@ -13,17 +13,19 @@ function panelGeometry(track) {
   const positions = [];
   const normals = [];
   const colors = [];
-  const triangle = (vertices, color) => {
+  const uvs = [];
+  const triangle = (vertices, color, coordinates) => {
     const normal = new THREE.Vector3()
       .crossVectors(
         vertices[1].clone().sub(vertices[0]),
         vertices[2].clone().sub(vertices[0]),
       )
       .normalize();
-    for (const vertex of vertices) {
+    for (const [index, vertex] of vertices.entries()) {
       positions.push(...vertex.toArray());
       normals.push(...normal.toArray());
       colors.push(color.r, color.g, color.b);
+      uvs.push(...coordinates[index]);
     }
   };
   for (const [start, end] of track.solidRuns) {
@@ -69,8 +71,10 @@ function panelGeometry(track) {
           const fb = track.sample(b);
           const mid = (x0 + x1) / 2;
           for (const [left, right, leftY, rightY] of [
-            [x0, mid, 0.025, 0.065],
-            [mid, x1, 0.065, 0.025],
+            [x0, x0 + 0.14, 0.016, 0.047],
+            [x0 + 0.14, mid, 0.047, 0.065],
+            [mid, x1 - 0.14, 0.065, 0.047],
+            [x1 - 0.14, x1, 0.047, 0.016],
           ]) {
             const p = [
               framePoint(fa, left, leftY),
@@ -78,8 +82,18 @@ function panelGeometry(track) {
               framePoint(fa, right, rightY),
               framePoint(fb, right, rightY),
             ];
-            triangle([p[0], p[1], p[2]], color);
-            triangle([p[2], p[1], p[3]], color);
+            const edge = left === x0 || right === x1;
+            const finish = edge ? color.clone().multiplyScalar(1.16) : color;
+            triangle([p[0], p[1], p[2]], finish, [
+              [left, a],
+              [left, b],
+              [right, a],
+            ]);
+            triangle([p[2], p[1], p[3]], finish, [
+              [right, a],
+              [left, b],
+              [right, b],
+            ]);
           }
         }
       }
@@ -92,6 +106,7 @@ function panelGeometry(track) {
   );
   geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   geometry.computeBoundingSphere();
   return geometry;
 }
@@ -118,8 +133,8 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
   const panel = makeMaterial({
     color: 0xffffff,
     vertexColors: true,
-    roughness: 0.73,
-    metalness: 0.24,
+    roughness: 0.82,
+    metalness: 0.16,
   });
   const metal = makeMaterial({
     color: shape ? 0x91a0a7 : 0x7c929e,
@@ -155,8 +170,9 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
     metalness: 0.35,
   });
   if (!shape) {
-    for (const material of [graphite, panel, underside, repair])
+    for (const material of [graphite, underside, repair])
       finishUmbraMaterial(material, 'graphite');
+    finishUmbraMaterial(panel, 'deck');
     finishUmbraMaterial(metal, 'metal');
     finishUmbraMaterial(pale, 'stone');
   }
@@ -352,8 +368,108 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
             0.12,
             length * 0.88,
           );
-          // One inset cold brace and one warm repair insert break the outer leaf
-          // into a recognizable instrument housing, with an open gap next to it.
+          // Formed perimeter, recessed cassettes and bolted repair patches make
+          // the large leaf a manufactured part at ordinary racing distance.
+          const faceX = x - side * 0.48;
+          for (const dy of [-height * 0.45, height * 0.44]) {
+            localBox(
+              underside,
+              frame,
+              faceX,
+              y + dy,
+              0,
+              0.23,
+              0.16,
+              length,
+              side * -0.14,
+            );
+            localBox(
+              metal,
+              frame,
+              faceX - side * 0.04,
+              y + dy + 0.08,
+              0,
+              0.12,
+              0.07,
+              length * 0.98,
+              side * -0.14,
+            );
+          }
+          for (const z of [-length * 0.47, 0, length * 0.47]) {
+            localBox(
+              underside,
+              frame,
+              faceX,
+              y,
+              z,
+              0.24,
+              height * 0.86,
+              0.2,
+              side * -0.14,
+            );
+            for (const dy of [-height * 0.34, height * 0.31])
+              localBox(
+                repair,
+                frame,
+                faceX - side * 0.13,
+                y + dy,
+                z,
+                0.1,
+                0.13,
+                0.15,
+                side * -0.14,
+              );
+          }
+          for (const z of [-length * 0.24, length * 0.24]) {
+            localBox(
+              underside,
+              frame,
+              faceX + side * 0.07,
+              y,
+              z,
+              0.12,
+              height * 0.56,
+              length * 0.43,
+              side * -0.14,
+            );
+            localBox(
+              plateMaterial,
+              frame,
+              faceX - side * 0.03,
+              y + 0.04,
+              z,
+              0.12,
+              height * 0.5,
+              length * 0.4,
+              side * -0.14,
+            );
+          }
+          if (Math.floor(distance / 34) % 3 === 0) {
+            localBox(
+              repair,
+              frame,
+              faceX - side * 0.16,
+              y - height * 0.14,
+              length * 0.21,
+              0.15,
+              height * 0.35,
+              length * 0.16,
+              side * -0.14,
+            );
+            for (const z of [length * 0.15, length * 0.27])
+              for (const dy of [-height * 0.25, -height * 0.04])
+                localBox(
+                  metal,
+                  frame,
+                  faceX - side * 0.26,
+                  y + dy,
+                  z,
+                  0.1,
+                  0.12,
+                  0.12,
+                  side * -0.14,
+                );
+          }
           localBox(
             underside,
             frame,

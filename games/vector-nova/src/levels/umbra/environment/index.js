@@ -306,13 +306,13 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
     // Motivate cooler navigation shelves and warm ring-facing areas without
     // washing every ruin with the same ambient light.
     for (const [s, color, intensity, height] of [
-      [100, '#abcce8', 21000, 65],
-      [1050, '#92c4ed', 16000, 65],
+      [100, '#c5d5df', 14500, 65],
+      [1050, '#b5cfdf', 11500, 65],
       [1750, '#ffd2a0', 26000, 95],
-      [2450, '#82b4d7', 14000, -50],
+      [2450, '#a8c4d4', 10500, -50],
       [3390, '#ffb969', 22000, 70],
-      [4500, '#abcde5', 20000, 55],
-      [5100, '#99bedc', 13000, 45],
+      [4500, '#b8cbd9', 14500, 55],
+      [5100, '#becfd9', 10000, 45],
       [500, '#deb78b', 13000, 45],
     ]) {
       const frame = track.sample(s);
@@ -323,6 +323,20 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
         .addScaledVector(frame.right, 38);
       group.add(light);
     }
+    // Four bounded local lights sit at real inset service lamps. Broad route
+    // lights supply navigation; these warm only nearby stone/repair cavities.
+    const warmPositions = layout
+      .filter((entry) => entry.role !== 'distant')
+      .flatMap((entry) =>
+        assets.practicals[entry.type].map((point) =>
+          point.clone().applyMatrix4(entry.matrix),
+        ),
+      );
+    const serviceLights = Array.from({ length: 4 }, () => {
+      const light = new T.PointLight('#ffb965', 0, 22, 2);
+      group.add(light);
+      return light;
+    });
     let simulationTime = 0,
       currentSettings = settings;
     group.userData.sceneryLayout = layout.map((entry) => ({
@@ -354,6 +368,19 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
           quality: currentSettings.quality,
           reset: frame.reset,
         });
+        if (frame.camera) {
+          const nearby = warmPositions
+            .map((point) => ({
+              point,
+              distance: point.distanceToSquared(frame.camera.position),
+            }))
+            .sort((a, b) => a.distance - b.distance);
+          serviceLights.forEach((light, index) => {
+            const entry = nearby[index];
+            light.intensity = entry ? 85 : 0;
+            if (entry) light.position.copy(entry.point);
+          });
+        }
         // Low retains all large silhouettes. Their material richness and shape
         // are not quality gated; only small distant accretion counts simplify.
         for (const far of farGroups) far.visible = true;

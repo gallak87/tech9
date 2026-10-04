@@ -72,10 +72,19 @@ export function collectUmbraAssets(scene) {
     });
   }
   const templates = {};
+  const practicals = {};
   for (const name of names) {
     const root = scene.getObjectByName(name);
     if (!root) throw new Error(`Umbra architecture missing required ${name}`);
     templates[name] = flatten(root);
+    const inverse = root.matrixWorld.clone().invert();
+    practicals[name] = [];
+    root.traverse((node) => {
+      if (node.name.startsWith('practical_warm'))
+        practicals[name].push(
+          node.getWorldPosition(new T.Vector3()).applyMatrix4(inverse),
+        );
+    });
   }
   const instrument = scene.getObjectByName('instrument');
   const eventPieces = instrument.children.map((piece) => {
@@ -93,6 +102,7 @@ export function collectUmbraAssets(scene) {
   return {
     templates,
     eventPieces,
+    practicals,
     dispose,
   };
 }

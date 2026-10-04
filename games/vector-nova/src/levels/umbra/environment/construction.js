@@ -58,7 +58,13 @@ export function createUmbraConstruction(track, assets, layout) {
       const start = framePoint(frame, side * 9, -7, z);
       const end = new T.Vector3(
         0,
-        entry.type.startsWith('wall') ? -21 : entry.type === 'pier' ? -9 : -8,
+        entry.type === 'wall_breach'
+          ? -58
+          : entry.type.startsWith('wall')
+            ? -21
+            : entry.type === 'pier'
+              ? -9
+              : -8,
         0,
       )
         .applyMatrix4(entry.matrix)

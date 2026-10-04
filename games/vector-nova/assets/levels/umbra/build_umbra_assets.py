@@ -39,8 +39,13 @@ def mesh(name,verts,faces,material,parent):
 
 def box(name,center,size,material,parent,skew=0):
     x,y,z=center;w,h,d=[v/2 for v in size]
+    if material in [stone,aged,stone2] and h*2>12 and w*2>=7 and d*2>=7:
+        return wedge(name,x,y-h,z,w*2,h*2,d*2,material,parent)
     v=[(x+sx*w+(sy+1)*skew/2,y+sy*h,z+sz*d) for sy in [-1,1] for sz in [-1,1] for sx in [-1,1]]
-    return mesh(name,v,[(0,1,3,2),(4,6,7,5),(0,4,5,1),(2,3,7,6),(0,2,6,4),(1,5,7,3)],material,parent)
+    o=mesh(name,v,[(0,1,3,2),(4,6,7,5),(0,4,5,1),(2,3,7,6),(0,2,6,4),(1,5,7,3)],material,parent)
+    if material==amber:
+        marker=group('practical_warm');marker.parent=parent;marker.location=pt(center)
+    return o
 
 def beam(name,a,b,width,material,parent):
     av=Vector(pt(a));bv=Vector(pt(b));mid=(av+bv)/2
@@ -74,7 +79,9 @@ def arc(name,r,width,depth,start,end,material,parent,center=(0,0,0),segments=32)
             fs.extend([(f,f+1,g),(f+1,g+1,g)])
         fs.extend([(a,a+radial+1,b+radial+1,b),(a+radial,b+radial,b+row-1,a+row-1)])
     for endrow in [0,segments*row]:
-        for j in range(radial):fs.append((endrow+j,endrow+j+1,endrow+radial+2+j,endrow+radial+1+j))
+        for j in range(radial):
+            face=(endrow+j,endrow+j+1,endrow+radial+2+j,endrow+radial+1+j)
+            fs.append(face if endrow==0 else tuple(reversed(face)))
     return mesh(name,vs,fs,material,parent)
 
 def wedge(name,x,y,z,w,h,d,material,parent):
@@ -93,10 +100,10 @@ def wedge(name,x,y,z,w,h,d,material,parent):
                 edge=abs(u-.5)*2
                 chips=(.10 if (col+row)%4==0 else .035)*d
                 zz=z+(-1 if back else 1)*(d/2-chips*edge)
-                if not back and row not in [0,rows-1]:
+                if row not in [0,rows-1]:
                     # A few broad clefts and a chipped course end cast real shadows.
-                    zz-=d*(.09 if damaged and col in [cleft,cleft+1] and row in [2,3] else 0)
-                    zz+=random.uniform(-.012,.014)*min(w,h)
+                    zz-=(-1 if back else 1)*d*(.17 if damaged and col in [cleft,cleft+1] and row in [2,3] else 0)
+                    zz+=random.uniform(-.017,.021)*min(w,h)
                 verts.append((xx,yy,zz))
     n=rows*cols
     for back in [0,1]:
@@ -104,9 +111,25 @@ def wedge(name,x,y,z,w,h,d,material,parent):
             for col in range(cols-1):
                 a=back*n+row*cols+col;b=a+1;c=a+cols;e=c+1
                 faces.extend([(a,b,c),(c,b,e)] if back==0 else [(a,c,b),(c,e,b)])
-    for row in range(rows-1):
-        a=row*cols;b=a+cols
-        faces.extend([(a,b,b+n,a+n),(a+cols-1,a+cols-1+n,b+cols-1+n,b+cols-1)])
+    # Real side-face damage uses the same sealed perimeter as both broad faces.
+    # This is important on road-parallel walls viewed from either direction.
+    for side in [0,cols-1]:
+        grid=[];sign=-1 if side==0 else 1
+        for row in range(rows):
+            a=Vector(verts[row*cols+side]);b=Vector(verts[n+row*cols+side])
+            for col in range(4):
+                if col==0:idx=row*cols+side
+                elif col==3:idx=n+row*cols+side
+                else:
+                    v=a.lerp(b,col/3)
+                    if row not in [0,rows-1]:
+                        v.x-=sign*w*(.065 if damaged and row in [2,3] else random.uniform(.003,.02))
+                    idx=len(verts);verts.append(tuple(v))
+                grid.append(idx)
+        for row in range(rows-1):
+            for col in range(3):
+                a=grid[row*4+col];b=grid[row*4+col+1];c=grid[(row+1)*4+col];e=grid[(row+1)*4+col+1]
+                faces.extend([(a,b,c),(c,b,e)] if sign>0 else [(a,c,b),(c,e,b)])
     for col in range(cols-1):
         faces.append((col,col+n,col+1+n,col+1))
         a=(rows-1)*cols+col
@@ -390,6 +413,7 @@ for root in [o for o in bpy.data.objects if o.type=='EMPTY' and o.parent is None
         offset=len(vs);vs.extend([o.matrix_world@v.co for v in o.data.vertices])
         fs.extend([tuple(offset+i for i in poly.vertices) for poly in o.data.polygons])
     tree=BVHTree.FromPolygons(vs,fs,all_triangles=False)
+    warm=[o.matrix_world.translation for o in root.children_recursive if o.type=='EMPTY' and o.name.startswith('practical_warm')]
     for o in obs:
         colors=o.data.color_attributes.new(name='Color',type='FLOAT_COLOR',domain='CORNER')
         o.data.color_attributes.active_color=colors
@@ -414,7 +438,8 @@ for root in [o for o in bpy.data.objects if o.type=='EMPTY' and o.parent is None
                 # Restrained broad tint belongs to the weathered member, not noise
                 # painted equally across every exterior and fresh fractured face.
                 tint=.96+.04*math.sin(v.x*.097+v.z*.081)
-                colors.data[li].color=(ao*tint,ao*tint,ao*tint,1)
+                warmth=max([max(0,1-(v-light).length/7)**2 for light in warm] or [0])*.34
+                colors.data[li].color=(ao*tint,ao*tint*(1-warmth*.24),ao*tint*(1-warmth*.56),1)
     print('UMBRA_CPU_CAVITIES',root.name,len(vs))
 bpy.context.scene['provenance']='Authored from selected built-in imagegen scene umbra-scene-reference.png. Generator seed 1029. No third-party assets.'
 bpy.context.preferences.filepaths.save_version=0

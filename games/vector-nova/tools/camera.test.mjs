@@ -101,3 +101,30 @@ test('camera remains continuous through vertical tangents and fully inverted tra
     previous = camera.quaternion.clone();
   }
 });
+
+test('level camera height and preview remain local through a banked crest', () => {
+  const track = createTrack();
+  const ordinary = new THREE.PerspectiveCamera(64, 16 / 9, 0.2, 14000);
+  const explicit = new THREE.PerspectiveCamera(64, 16 / 9, 0.2, 14000);
+  const raised = new THREE.PerspectiveCamera(64, 16 / 9, 0.2, 14000);
+  const rigs = [
+    createCameraRig(ordinary),
+    createCameraRig(explicit, { chaseHeight: 5, lookAhead: 35 }),
+    createCameraRig(raised, { chaseHeight: 6.5, lookAhead: 47 }),
+  ];
+  const state = { ...track.scenarios.bank, speed: 100, lateral: 0 };
+  for (let i = 0; i < 120; i++) {
+    rigs.forEach((r) => r.update(track, state, 1 / 60));
+    assert.deepEqual(ordinary.position.toArray(), explicit.position.toArray());
+    assert.deepEqual(
+      ordinary.quaternion.toArray(),
+      explicit.quaternion.toArray(),
+    );
+    const back = track.sample(state.distance - 15);
+    assert.ok(
+      raised.position.clone().sub(ordinary.position).dot(back.up) > 1.3,
+    );
+    assert.ok(raised.up.dot(back.up) > 0.8);
+    state.distance += state.speed / 60;
+  }
+});

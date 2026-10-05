@@ -4,24 +4,22 @@ Standalone Three.js/Vite game. Work inside this app; do not import repository fr
 
 ## Read only what the task needs
 
-Start with this file and [current status](docs/STATUS.json).
+Start with this file and the assigned task's brief.
 
-- Runtime/geometry changes: relevant sections of [ARCHITECTURE.md](ARCHITECTURE.md).
+- Runtime/geometry changes: relevant sections of [ARCHITECTURE.md](ARCHITECTURE.md) and the [level API](docs/LEVEL_API.md).
 - Visual work: [art direction](docs/ART_BIBLE.md).
 - Planning: [ROADMAP.md](ROADMAP.md).
-- Assigned level/integration work: that task's current handoff only. Do not preload all level briefs, status files or old transcripts.
 
 ## Working rules
 
 - Preserve approved levels, shared controls and 0.3 steering assistance unless the user requests a change.
-- Use isolated worktrees for parallel implementation, exclusive file ownership and one integrator for shared code. Preserve other agents' edits and servers.
-- Follow the assigned handoff; finished critic loops stay closed.
-- Run checks appropriate to the change: targeted tests, lint/build for code; formatting and links for docs. Existing ESLint/Prettier/Husky package scripts own tooling.
-- Browsers stay hidden/headless. No unsolicited videos or normal-speed automated full laps. Coordinate GPU use and servers with their owner; report only actually verified results.
-- Commit when requested. Human approval cannot be supplied by an agent.
+- Work in the assigned checkout and preserve unrelated edits and servers. Reuse existing helpers; keep world-specific art and tuning local. Verify affected behavior when changing shared code.
+- Follow the user's scope and assigned brief; finished critic loops stay closed. Complete desktop iteration before the final mobile check, and recheck affected mobile cases when layout/input changes.
+- Run targeted tests and a production build when appropriate; check documentation links. Let the pre-commit hook run ESLint/Prettier through lint-staged. Do not repeat manual lint/format passes for routine edits. Ensure generated Husky hooks exist in a new worktree via the existing package prepare script.
+- Run `nvm use 22` once at the start of each shell session, then use its Node/npm without hard-coded runtime paths.
+- Browsers stay hidden/headless. No unsolicited videos or normal-speed automated full laps. Use a free port for your server, close owned verification processes afterward and report only actually verified results.
+- Commit and merge when requested. Human approval cannot be supplied by an agent.
 
 ## Keep documentation small
 
-STATUS.json is a current snapshot, not an event log. Put lasting technical decisions in architecture/source docs, visual direction in the art bible, and future work in the roadmap. Handoffs hold only active execution context. After merge, remove completed handoffs/review histories; Git retains them. Keep asset provenance and licences. Raw captures/reports belong in ignored .experiments/. Do not create separate status, implementation, performance and integration reports that repeat each other.
-
-Keep handoffs stable: describe the assigned work, not temporary cross-task holds or progress. Store shared readiness once in the coordination ledger and link to it; do not copy it into each handoff.
+Keep progress and review findings in the chat. Document enduring technical decisions and actual APIs in architecture/source/tool docs, visual direction in the art bible and future features in the roadmap. Keep asset provenance and licences. Raw captures/reports belong in ignored `.experiments/`. Remove temporary reports and completed execution handoffs; Git retains history. Do not create status files or duplicate implementation/performance/integration reports.

@@ -1,3 +1,4 @@
+import { assetURL } from '../../../assets/url.js';
 import * as T from 'three';
 import { createOrbitalSky } from './sky.js';
 
@@ -114,7 +115,9 @@ export async function createOrbitalBackdrop() {
       'asterion-weather-density-v1.png',
       'asterion-terrain-surround-v1.png',
       'asterion-weather-surround-v1.png',
-    ].map((file) => loader.loadAsync(`/assets/orbital/${file}`)),
+    ].map((file) =>
+      loader.loadAsync(assetURL(`assets/levels/orbital/${file}`)),
+    ),
   );
   surface.colorSpace = T.SRGBColorSpace;
   surfaceDetail.colorSpace = T.SRGBColorSpace;

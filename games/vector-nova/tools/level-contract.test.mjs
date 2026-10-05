@@ -28,6 +28,28 @@ const metadata = {
 const component = () => ({ group: new Group(), dispose() {} });
 const createLevel = () => ({
   version: 'test-v1',
+  racing: {
+    createDevices: () => [
+      {
+        id: 'launch',
+        type: 'vector',
+        distance: 70,
+        lateral: 0,
+        width: 14,
+        length: 54,
+        label: 'Launch',
+      },
+      {
+        id: 'shield',
+        type: 'aegis',
+        distance: 360,
+        lateral: 3,
+        width: 8,
+        length: 8,
+        label: 'Shield',
+      },
+    ],
+  },
   createTrack: loop,
   createRoad: component,
   createEnvironment: component,
@@ -56,6 +78,20 @@ test('shape mismatches and malformed optional metadata are rejected by reusable 
   await assert.rejects(
     assertLevelContract({
       metadata,
+      createLevel: () => ({ ...createLevel(), audio: { immersion: true } }),
+    }),
+    /audio.immersion/,
+  );
+  await assert.rejects(
+    assertLevelContract({
+      metadata,
+      createLevel: () => ({ ...createLevel(), racing: undefined }),
+    }),
+    /require shared racing/,
+  );
+  await assert.rejects(
+    assertLevelContract({
+      metadata,
       createLevel: ({ shape }) => ({
         ...createLevel(),
         createTrack() {
@@ -69,6 +105,7 @@ test('shape mismatches and malformed optional metadata are rejected by reusable 
   );
   for (const ui of [
     { ...metadata.ui, compact: 'yes' },
+    { ...metadata.ui, portraitCompactHud: 'yes' },
     { ...metadata.ui, shape: { intro: 4 } },
     { ...metadata.ui, shape: { heading: ['one'] } },
   ])

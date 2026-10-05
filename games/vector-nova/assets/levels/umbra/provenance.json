@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "world": "Umbra Fold",
+  "date": "2026-09-29",
+  "workflow": "Built-in imagegen scene and surface atlas -> CPU-authored Blender geometry -> in-game materials, lighting and deterministic deformation",
+  "reference": {
+    "path": "umbra-scene-reference.png",
+    "tool": "image_gen.imagegen",
+    "source": "/Users/g/.codex/generated_images/01a0f0bb-b4fb-7151-8662-646c04b6becf/exec-ff112be1-928f-4675-b763-8ea8ec75fd84.png",
+    "prompt": "Use case: stylized-concept. Asset type: scene concept reference for actual low-poly Blender game architecture, NOT a skybox texture. Primary request: Umbra Fold, a ruined gravity observatory race circuit suspended near a immense tilted black hole accretion disk. Wide cinematic scene with a 28 metre wide graphite racetrack in foreground and small angular racing ship for scale. Three clear architectural subjects: left an asymmetrical fractured pale stone observatory landing terrace with broad layered triangular buttresses and cold-metal tension ribs, center a very large tilted open circular optical lens assembly with three nested broken rings and an opaque dark center aperture, right an enormous intact ribbed instrument cathedral tower being pulled into elongated luminous strands, then distinct fragments spiraling toward the ring. Dark graphite, chalk ivory fractured stone, brushed cold silver, fine amber service lights and restrained icy-blue instrument strips. Authored faceted construction and strong silhouettes; monumental architecture with real interior apertures, structural ribs, stepped terraces and readable repair bands. Black hole behind has a luminous orange-gold flat accretion band plus localized thin upper lensed arc around pure black circular void, distant blue stars. Far side away from ring also includes abandoned observatory ribs and designed fragments, not empty space. Motivated warm ring light grazing pale architecture and cool functional lights keeping foreground road visible. Wide 16:9 image, polished game concept render, solid volume and rough materials. No text, no logos, no random cubes, no characters, no HUD, no full-screen distortion."
+  },
+  "blender": {
+    "generator": "build_umbra_assets.py",
+    "source": "umbra-observatory.blend",
+    "version": "5.1.1",
+    "seed": 1029,
+    "command": "/Applications/Blender.app/Contents/MacOS/Blender --background --python assets/levels/umbra/build_umbra_assets.py",
+    "models": [
+      "terrace",
+      "gallery",
+      "pier",
+      "wall",
+      "lens",
+      "vault",
+      "instrument",
+      "event_stretched",
+      "event_fragmented",
+      "rib",
+      "wall_solid",
+      "wall_breach"
+    ],
+    "gpuUsed": false
+  },
+  "runtime": {
+    "export": "public/assets/levels/umbra/umbra-observatory.glb",
+    "conceptServed": false,
+    "geometry": "Material-batched fractured terraces, interrupted galleries, attached unequal piers, slit buttresses, breached loggias, jointed lens rings and instrument cassettes. Large masonry alternates intact, sheared and fitted-repair masses with unequal bonded courses, recessed service bays, reduced crowns and retained structural cores. Broad ledge fractures expose fresh cuts and fitted steel cradles; coping, channels, rolled I sections and attachment shoes connect shelves to the road support network. Open road housings surround independently mounted cassettes. Continuous deck normals and explicit unit cassette tangents retain surface detail through banking within the original road draw and triangle budgets.",
+    "animation": "Runtime deforms the intact instrument's 12 structural groups, separates them and pulls them into the ring. Exported stretched/fragmented forms are editable reference poses. Six distant streams pass from intact instruments to elongated forms to broken structural ribs.",
+    "backdrop": "Selected native 1774x887 sRGB umbra-sky-v2.png supplies subdued distant atmosphere with wrap/pole filtering. Fine seeded point stars, localized accretion disk/halo, photon rim and black sphere remain separately authored. The black-hole backdrop does not distort the rendered scene; the separate force-directed ship lens is owned by the level overlay.",
+    "presets": "Low retains all major architecture, disk and stars. Reduced motion canonically freezes decorative ring flow and distant consumption. Required giant-event timing remains unchanged.",
+    "rights": "Original generated scene reference and authored Blender/Three.js geometry; no third-party assets.",
+    "limitations": [
+      "Lensing is a composed artistic approximation, not a physical astrophysics simulation.",
+      "CPU tests do not establish foreground frame pacing, physical-device behavior, or independent visual approval."
+    ],
+    "materials": "The unchanged native atlas contributes granular limestone and restrained graphite/titanium variation. Physical-scale member-space sampling, route-distance deck UVs, directional graphite abrasion and anisotropic metal separate the surface families. Exposed lips, protected seams and repair contacts govern wear and roughness. CPU contact shading and occlusion-tested service irradiance remain separate attributes through batching and event deformation; interior receiver grids and samples along lamp strips resolve warm local gradients without double-applying contact occlusion. Road and observatory owners release texture resources on disposal and rejected boot; shape review does not load the atlas.",
+    "lighting": "Cool route lighting supports the inverted road and layered crossings; restrained bloom preserves bright receiving decks. Three pooled road spotlights fade between actual housing fixtures, while four nearby service lights complement the member-local baked warm field. Source emitter anchors, geometry and all large silhouettes persist across high/low quality; decorative motion alone freezes under reduced motion."
+  },
+  "surfaces": {
+    "path": "umbra-surfaces-v1.png",
+    "runtime": "public/assets/levels/umbra/umbra-surfaces-v1.png",
+    "tool": "image_gen.imagegen",
+    "source": "/Users/g/.codex/generated_images/01a105bc-f277-7a72-be38-6a07c2ab91ed/exec-1d4be3f9-a526-446c-a51c-1c90ba0707a1.png",
+    "prompt": "Use case: texture-asset. Create a premium game environment MATERIAL ATLAS, landscape 3:1 composition divided into exactly three equally sized square tiles arranged horizontally. Each tile is an orthographic, uniformly lit photograph-like flat surface, seamless and tileable within itself, no perspective, no objects, no cast shadows, no baked directional illumination, no letters, no labels, no borders. LEFT THIRD: dark charcoal graphite composite racing deck, tactile matte worn finish, broad irregular scuffed patches, subtle shallow pits and chips, sparse fine abrasions in varied directions, slightly polished wear zones, no repeating lines, no decorative grid or panel seams. MIDDLE THIRD: aged warm ivory limestone, chalky weathered pores, fine granular mineral variation, irregular tiny pits and weathered speckles, broad subdued ochre and grey deposits, restrained old hairline fractures; convincingly old masonry surface with no drawn blocks or mortar lines. RIGHT THIRD: cold muted grey titanium maintenance plating, weathered brushed metal, broad irregular abrasion and repaired finish, sparse fine scuffs, slight muted bronze oxidation at scratches, tactile uneven patina, no panel seams, no bolts. All three are diffuse albedo-like surface images with believable physical wear at ordinary chase-camera scale, carefully controlled contrast and no glossy highlights. Tile color targets: graphite dark neutral grey, limestone warm pale grey, titanium medium cool grey. Rich authored material detail, cinematic science fiction ruined observatory, restrained and mature, no cartoon outlines.",
+    "dimensions": [2172, 724],
+    "sha256": "99dff20d2a79ba18405cd46548cee465571e3b5c10ce1a07bf7ce706ea0f4dc1",
+    "mapping": "Three equal atlas tiles: graphite, limestone, titanium. Physical-scale triplanar sampling uses color-derived microrelief and roughness; this is an albedo atlas, not a measured PBR capture. Native PNG retained unchanged."
+  }
+}

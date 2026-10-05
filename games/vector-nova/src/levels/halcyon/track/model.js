@@ -298,7 +298,7 @@ export function createTrack() {
     };
   const track = {
     id: 'halcyon-viaduct-4-compact',
-    name: 'Halcyon Viaduct',
+    name: 'Halcyon Speedway',
     length,
     width: WIDTH,
     groundY: GROUND_Y,

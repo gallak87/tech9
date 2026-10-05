@@ -1,0 +1,26 @@
+{
+  "asset": "bastion",
+  "date": "2026-09-30",
+  "concept": {
+    "path": "assets/ships/bastion/concept-02.png",
+    "tool": "OpenAI built-in imagegen",
+    "prompt": "assets/ships/bastion/revision-prompt.txt",
+    "sha256": "7d2929fc972666069d0702c097da84d3e3e7f6874edaaa86470dd6aff2381cd3",
+    "sourceKind": "Original generated design reference",
+    "previousConcept": "concept-01.png"
+  },
+  "model": {
+    "source": "assets/ships/bastion/bastion.blend",
+    "generator": "assets/ships/build_fleet.py",
+    "runtime": "public/assets/ships/bastion/bastion.glb",
+    "authorship": "Original project geometry authored from the generated concept, using shared original construction helpers. No downloaded models, external textures or fonts.",
+    "materials": "Original procedural ceramic grain and brushed-metal shaders, baked in Blender to base-color, roughness and tangent-normal maps; embedded in GLB. Editable procedural shaders remain in the source blend.",
+    "textureSources": "assets/ships/bastion/textures/",
+    "userDirection": "Make the catamaran less fat while keeping it distinct from Kestrel; refine material and mechanical detail.",
+    "approval": {
+      "status": "approved for integration",
+      "date": "2026-10-01",
+      "source": "User approval of the completed fleet in the ship expansion chat"
+    }
+  }
+}

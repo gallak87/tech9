@@ -4,6 +4,10 @@ import {
   validateDefinition,
 } from '../../src/levels/contract.js';
 import { assertTrackContract } from './track-contract.mjs';
+import { createDeviceLayout } from '../../src/pickups/layout.js';
+import { createDeviceRuntime } from '../../src/pickups/runtime.js';
+import { createMagneticRuntime } from '../../src/core/session-runtime.js';
+import { createVehicleState } from '../../src/physics/index.js';
 
 // CPU-only: selected factories and track models must not need world construction.
 export async function assertLevelContract(
@@ -25,6 +29,38 @@ export async function assertLevelContract(
     id: metadata.id,
     production: assertTrackContract(track, options),
   };
+  // Every production circuit reuses the graduated race/device system.
+  assert.ok(production.racing, 'production levels require shared racing');
+  const {
+    createDevices,
+    createMotion = createMagneticRuntime,
+    identity,
+  } = production.racing;
+  const devices = createDeviceLayout(track, createDevices(track));
+  for (const kind of ['vector', 'aegis'])
+    assert.ok(
+      devices.some((device) => device.type === kind),
+      `missing ${kind} layout`,
+    );
+  const runtime = createDeviceRuntime({
+    track,
+    devices,
+    identity,
+    motion: createMotion({ track, settings: {}, presentation: false }),
+  });
+  try {
+    const state = createVehicleState();
+    runtime.reset({ reason: 'initialize', state, seed: 0 });
+    runtime.advance(state, { throttle: 1 }, 1 / 120);
+    assert.ok(
+      state.time > 0 && Number.isFinite(state.distance),
+      'pure racing adapter advances',
+    );
+    runtime.restore(JSON.parse(JSON.stringify(runtime.snapshot())));
+    report.racing = { devices: devices.length, runtime: runtime.id };
+  } finally {
+    runtime.dispose();
+  }
   if (metadata.shape) {
     const definition = validateDefinition(
       await createLevel({ shape: true }),

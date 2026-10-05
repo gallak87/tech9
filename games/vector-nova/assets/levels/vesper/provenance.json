@@ -1,0 +1,77 @@
+{
+  "title": "Vesper Canopy \u2014 original scene, material and sky assets",
+  "date": "2026-09-30",
+  "ownership": "Original geometry, shaders and Blender generator authored for VECTOR//NOVA. Scene concepts generated using the built-in image_gen tool; no third-party meshes or textures.",
+  "workflow": "Original scene concepts \u2192 reproducible CPU Blender geometry \u2192 glTF runtime library. The bark tile is embedded in the GLB. A separate original imagegen panorama supplies only the far sky/horizon and environment reflections; nearby forest remains real world geometry.",
+  "concepts": [
+    {
+      "file": "concepts/hollow-tree-scene.png",
+      "prompt": "Use case: stylized-concept. Asset type: scene concept for a real 3D racing-game Blender asset. Primary request: Vesper Canopy hollow colossal living tree and crown landing branches at night, viewed from a tiny futuristic hovercraft on a broad 28 metre amber cast-resin raceway. A genuine split entrance opens into a dark cavernous living trunk, the road spirals visibly inside then exits through the broken crown onto a branching bridge. Deep furrowed blue-black bark, pale sapwood torn edges, massive braided buttress roots, sparse warm sap lamps. Layered cool teal leaf crowns and ink-blue distant forest. Wide cinematic production-game concept emphasizing real navigable void, branch load paths, readable silhouette, scale and amber deck thickness, physically coherent local warm light and bright crown opening. Three trunks of differing taper/wounds/root collars. Whole tree visible, ample negative space through branches. No text, no panels, no watermark, no asphalt, no generic cylindrical trunk, no road-obscuring foliage."
+    },
+    {
+      "file": "concepts/hanging-flower-scene.png",
+      "prompt": "Use case: stylized-concept. Asset type: game-world scene concept for original Blender geometry. Primary request: an immense suspended nocturnal flower hanging over a 28 metre broad amber resin racing bridge across a dark forest ravine, tiny angular hovercraft for scale. The blossom has layered thick curled ivory-peach petals and dark burgundy back ridges, hanging amber pollen lantern anthers, translucent milky tissue with fine blue veins; 140 metres across, supported by looping living tendrils descending from canopy boughs. Its bottom clears the bridge by many vehicle heights. Distinct approach and departing silhouette, flower offset enough that the road remains visible. Surrounding cool ink-blue night forest with huge veined teal leaves, layered trunks and mist. Warm amber deck is a substantial physical slab with braided root load-bearing arches. Premium stylized-realistic 3D concept, coherent moonlight and local sap glow, luminous flower interior without neon wash. Wide landscape camera beside hovercraft, show whole blossom and ravine depth. No text, no watermark, no asphalt, no city or extra creatures."
+    },
+    {
+      "file": "concepts/canopy-walker-scene.png",
+      "prompt": "Use case: stylized-concept. Asset type: original articulated game creature and canopy scene for Blender modeling. Primary request: a gigantic nocturnal forest creature slowly stepping over an elevated amber resin hover-racing road in the living canopy, bending nearby crowns and dislodging leaves and glowing spores. Original elegant six-legged long-necked quadruped-like forest walker, organic articulated shoulder and knee joints, heavy ribbed chitin bark-blue carapace, pale warm sapwood joints, leaf-shaped antler crest, long small head with two amber eyes, two elongated antenna tendrils, broad deep body with luminous teal freckles. Creature body 160 metres long and standing 145 metres tall, tiny hovercraft on 28 metre road gives honest vast scale. Silhouette must be instantly legible: broad arched torso, six long separated jointed legs with delicate claw feet, head looking forward, no humanoid. Three-quarter whole-body view with dark layered trees behind and road below, reflected warm road glow under belly and cool soft moonlight across carapace, sparse amber leaf fall. Premium stylized realistic 3D production concept, physically coherent, actual geometry detail. No text, no watermark, no dragon wings, no city, no black silhouette hiding form."
+    }
+  ],
+  "source": "blender/vesper-connected-hollow.blend",
+  "generator": "blender/build_connected_hollow.py",
+  "routeEnvelope": "blender/route-envelope.json (sampled from the actual authored track)",
+  "reproduce": "/Applications/Blender.app/Contents/MacOS/Blender --background --python assets/levels/vesper/blender/build_connected_hollow.py",
+  "export": "public/assets/levels/vesper/vesper-canopy.glb",
+  "materials": "Original PBR materials with a packed, UV-mapped imagegen bark/chitin color tile, geometric bark furrows/cambium ribs, per-leaf COLOR_0 variation and irregular pale-gilled fungal shelves. Resin uses restrained physical transmission. Connected broad leaves have cupped surfaces, curved midribs, rolled margins, curled tips, procedural veins, mottling, underside color and roughness variation.",
+  "animation": "The creature and its associated presentation effects are disabled. Its original Blender source and deterministic path/IK implementation remain dormant.",
+  "approximation": "A tapered branched bole encloses the road cavity. Generated bark provides UV surface detail, and a 2:1 LDR sky panorama supplies distant atmosphere and PMREM reflection radiance. Resin transmission uses the Three.js screen-space scene capture.",
+  "authoredFamilies": "Three connected broadleaf tree families with distance variants and rooted understory; colossal hollow with a connected exterior crown; hanging flower, fungal shelves, root supports, station, landing branch and dormant creature library retained.",
+  "materialTextures": [
+    {
+      "file": "textures/ancient-bark-color.png",
+      "tool": "built-in image_gen",
+      "use": "Blender packed image; explicit metre-scale UVs; embedded once as PNG in GLB and shared by bark, cambium and three creature material bindings. Original image retained without edits.",
+      "prompt": "Use case: stylized-concept. Asset type: seamless square PBR diffuse color material tile for a high-quality night forest racing game, to be UV mapped onto original Blender meshes. Primary request: a flat evenly lit scan-like swatch of ancient living tree bark and exposed inner cambium, covering the entire square edge to edge. Organic interlocking irregular bark plates with forked short crevices, elliptical healed knots and torn fibrous edges, subtle dusty lichen and thin warm sap traces. Scale: a 5 metre by 5 metre patch of a colossal tree, readable medium and fine detail, no large objects. Color palette: muted slate charcoal, weathered grey brown, desaturated moss green, sparse pale sapwood hints. Moderate midtone contrast so game lighting supplies shadows. Structure is mostly irregular plates and swirling knots, not uninterrupted vertical stripes, no repeated identical pattern. Orthographic flat surface, no perspective, no cylinder, no scenery, no directional light, no ambient-occlusion shading, no cast shadows, no specular highlight. Truly seamless tile left/right and top/bottom, equal color at edges, no frame, no text, no watermark. Opaque background."
+    }
+  ],
+  "cpuGeometryProbe": "blender/geometry-probe-loader.js exports createVesperGeometryProbeLoader() for Node parseAsync probes. It preserves actual geometry, UV/color attributes and material bindings while substituting Texture objects for bitmap decoding; browser validation still checks pixels/shaders.",
+  "sky": {
+    "file": "public/assets/levels/vesper/vesper-night-sky-v1.png",
+    "tool": "built-in image_gen",
+    "date": "2026-09-30",
+    "dimensions": [1774, 887],
+    "use": "Original unedited 2:1 panorama on a camera-centred sky sphere, with a four-percent runtime UV overlap to close the longitude seam. Distant clouds/forest only; also supplies PMREM environment reflections. Analytic UV derivatives prevent the wrap meridian from selecting incorrect mip levels.",
+    "prompt": "Use case: stylized-concept.\nAsset type: a finished 2:1 equirectangular 360-degree sky panorama texture for a premium 3D forest racing game, 4096 by 2048 if possible.\nPrimary request: a gorgeous dim blue-hour nocturnal forest atmosphere, rich layered clouds and distant ancient treetops, with exceptional cinematic detail and believable soft moonlit illumination. This is the sky and far horizon only.\nComposition: true full-sphere equirectangular projection, smoothly seamless left and right boundaries; calm zenith, cloud banks around the upper hemisphere, level atmospheric horizon at the middle. Very distant colossal forest crowns form a low, varied silhouette near and below the horizon, fading through deep blue and teal mist. Lower hemisphere transitions smoothly into shadowy blue-green atmospheric haze, with no identifiable foreground.\nClouds: luxurious voluminous stratocumulus and delicate high cloud wisps, luminous pearl-blue rims and soft internal shading, subtle breaks of muted indigo sky, spacious breathable areas between dramatic formations. The detail must remain visible in a dim game without being near-black or overexposed. Sparse faint stars only through a few clear gaps.\nMood and palette: majestic, tranquil, mysterious living forest at night; ink blue, muted cyan, smoky teal, silver moonlit cloud edges. A very restrained pale warm-grey glow low on part of the horizon complements amber resin roads that will be separate game geometry. Not a bright daytime sky or fiery sunset.\nStyle: beautiful high-end cinematic environmental matte painting approaching photorealism, natural atmospheric depth, refined organic silhouettes, rich subtle gradients, no visible brush strokes or game UI.\nConstraints: no road, no bridge, no vehicles, no creature, no close trees or trunk interior, no buildings, no text, no borders, no watermark, no visible sun or moon disk. Far treetops only, so real 3D forest geometry remains the foreground. No split panels, no cubemap cross. Opaque image.",
+    "sha256": "259fa927c01f4d438ea5a0276b82ba1f672182493ac10d0ba9279d62ff48162c"
+  },
+  "connectedElder": {
+    "source": "assets/levels/vesper/blender/vesper-connected-elder.blend",
+    "generator": "assets/levels/vesper/blender/build_connected_tree.py",
+    "seed": 290930,
+    "method": "Independent parent-anchored trunk/limb/shoot/leaf geometry, informed by the local landscape build_forest.py approach; no framework imports. Existing Vesper bark and leaf materials reused.",
+    "authoringExport": ".experiments/vesper-authoring/vesper-connected-elder-v1.glb"
+  },
+  "connectedForest": {
+    "asset": "public/assets/levels/vesper/vesper-connected-forest-v1.glb",
+    "source": "assets/levels/vesper/blender/vesper-connected-forest.blend",
+    "generator": "assets/levels/vesper/blender/build_connected_forest.py",
+    "geometryBuilder": "assets/levels/vesper/blender/connected_tree_geometry.py",
+    "approach": "Independent Vesper tree geometry using parent-anchored trunk, branches, shoots and petiolate leaves. Three deterministic variants with connected distance models. No Tech9 engine/module imports. Existing Vesper bark and leaf materials retained.",
+    "terrain": "Root collars and buttresses conform to the actual triangles of the existing floor. Far trees stay inside its footprint."
+  },
+  "connectedHollow": {
+    "source": "assets/levels/vesper/blender/vesper-connected-hollow.blend",
+    "generator": "assets/levels/vesper/blender/build_connected_hollow.py",
+    "geometryBuilder": "assets/levels/vesper/blender/connected_tree_geometry.py",
+    "approach": "Rebuild only exterior boughs/crown. Embed bases in the actual lower/upper shell surfaces; sample every fork and shoot on its parent; attach large leaves by petioles. Whole boughs are omitted around road portals instead of clipping their geometry. No external engine imports."
+  },
+  "baselineLibrary": "blender/vesper-assets.blend, generated by build_vesper.py; editable source for the original asset library.",
+  "inactiveCreature": {
+    "source": "src/levels/vesper/environment/creature.js",
+    "blender": "assets/levels/vesper/blender/vesper-assets.blend",
+    "generator": "assets/levels/vesper/blender/build_vesper.py",
+    "runtimeLibrary": "public/assets/levels/vesper/vesper-canopy.glb",
+    "node": "hero_walker"
+  },
+  "edgeFinish": "Plain resin curb with a thin glowing line, deck-only jump guidance and warm pooled road fill."
+}

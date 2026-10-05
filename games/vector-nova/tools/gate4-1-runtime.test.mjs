@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createMagneticRuntime,
-  hasHalcyonFeatures,
   advanceSession,
   compatibleRuntime,
   runtimeIdentity,
@@ -22,18 +21,6 @@ const inputs = Array.from({ length: 600 }, (_, i) => ({
   boost: i > 180 && i < 400,
   airbrake: i > 430,
 }));
-test('optional runtime exact guard rejects other levels and implicit flags', () => {
-  assert.ok(hasHalcyonFeatures(track, 'halcyon-pickups'));
-  assert.equal(
-    hasHalcyonFeatures({ id: 'asterion-orbital-1' }, 'halcyon-pickups'),
-    false,
-  );
-  assert.equal(
-    hasHalcyonFeatures({ id: 'nacre-tempest-1' }, 'halcyon-pickups'),
-    false,
-  );
-  assert.equal(hasHalcyonFeatures(track, null), false);
-});
 test('default adapter preserves magnetic state and event output exactly', () => {
   const direct = createVehicleState(),
     baseline = createVehicleState();

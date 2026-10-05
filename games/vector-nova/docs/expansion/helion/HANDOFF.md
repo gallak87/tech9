@@ -1,12 +1,28 @@
-# Map 9 — Helion Flare: overnight production handoff
+# Map 9 — Helion Flare: level brief
 
 ## Assignment and authority
 
 **Goal:** Finish a solar-observatory circuit with flare-lane evasion, mandatory heat passages and optional sheltered jumps, a couple of gigantic solar flares and readable exposure/shade transitions.
 
-Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md) and the [level contract](../../EXPANSION_LEVEL_CONTRACT.md) included in your foundation commit. Consult architecture/art sections only as needed; do not preload the full roadmap or other lane briefs. Use the integrator’s verified base/API.
+Own `helion` through the [common execution and completion rules](../README.md). Use `?level=helion` for production and `&review=shape` for route review.
 
-Own the `helion` paths defined in the [common ownership rules](../../EXPANSION_HANDOFF.md#isolation-and-dependency). Use `?level=helion` and `&review=shape`; obtain current ports, URLs and the integrator identity from the live launch ledger linked there.
+## Existing work
+
+Existing worktree: `/Users/g/.codex/worktrees/fzero-helion1/tech9`. Existing branch: `codex/fzero-helion1`.
+
+Read the current primary's game instructions, this brief and the [startup/merge rules](../README.md#worktree-and-completion-ownership) before continuing. The [production loop](../README.md#production-and-critique-loop) owns the fresh eight-round desktop critic allowance and final mobile pass.
+
+### Sources and retained behavior
+
+Sources are in `games/vector-nova/assets/levels/helion/` inside the existing worktree. Preserve `reference/thermal-observatory-scene.png`, `reference/prompt.txt`, `provenance.json`, `blender/thermal-observatory.blend` and `blender/build_helion.py`, their runtime exports and any newer authored versions.
+
+Preserve the observatory kit, heat/contact logic, shared landing/contact fixes and responsive mechanic feedback. Confirm production rendering and real-input flare evasion, mandatory furnace passages, cooling strips and sheltered jumps. Retain useful checks; remove obsolete GPU-grant/queue dependencies when updating them.
+
+### Selected generated sky
+
+Use the [selected reference-guided sky](../../../assets/levels/helion/helion-sky-v2.png), [exact generation prompt](../../../assets/levels/helion/sky-prompt-v2.txt) and [sky provenance](../../../assets/levels/helion/SKY_PROVENANCE.md) brought in from the primary worktree. Match the [original scene drawing](../../../assets/levels/helion/reference/thermal-observatory-scene.png): rich plum-black/burgundy space behind an enormous structured amber-red star and warmly lit copper/ivory infrastructure. Use the refined warm space texture behind the separate star limb, photosphere and gigantic animated prominences. Those scene effects must deliver the reference's stellar scale and surface detail, with readable tile shape and intentional cool shield shade.
+
+Follow the [sky integration checks](../README.md#generated-sky-panoramas), preserve the source image and export a runtime texture under `public/assets/levels/helion/`. Confirm seam/horizon, exposure, loading/disposal and high/low/reduced motion on the actual production build. Nearby scenery and gameplay remain authored 3D content.
 
 ## Defining interactions and spectacle
 
@@ -47,23 +63,31 @@ Start near 5.0 km with a constant 30 m usable width and roughly 200 m of elevati
 
 **Reject these shortcuts:** Reject a featureless overexposed star, crushed black service areas, generic orbital U frames, thin orange highlights on Halcyon panels, shield-wall camera collisions, or hidden solar forces/damage. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
 
-## Future shared pickup/boost locations
+## Finish targets and atmosphere
 
-Mark boost/refill setup areas before mandatory furnace passages, safe recovery points after heat chains and optional jump approaches. Flag where future shared heat protection, repair or energy support would help; implement no pickups, shields, inventory or new boost system. Preserve unavoidable short exposure and report its cost/difficulty without those aids. Record actual built-route coordinates using the [shared placement-note format](../../EXPANSION_HANDOFF.md#future-shared-pickup-and-boost-placement), without implementing those systems or replacing the approved level mechanics.
+Make the shield-wall ride, fast exposed lanes, deliberate shaded braking shelves, mandatory furnace passages and optional shielded jumps feel different in movement, framing and light. A driver must clearly recognize the safe cover, burning lane and cooling surfaces before committing. Stage at least two gigantic prominences with distinct silhouettes/timing so they visibly light and frame the ride.
+
+Finish a structured amber-red photosphere, thick white heat tiles, feathered copper radiators, graphite shields and service hardware with convincing surface detail. Preserve tile bevels/texture at peak exposure and legible cool structure beneath shields. A flat glowing star, generic orange trim or crushed-black service zone cannot meet the selected drawing's art standard.
+
+Use the [weather/atmosphere references](../README.md#atmosphere-and-screen-effects) for bounded local effects, exposure/shelter response and coherent material/light transitions. Author stellar plasma, ember-like hot fragments near actual flare contact and localized thermal shimmer; this is a solar facility with its own thermal effects. Flare-swept road sections need visible moving fire/plasma occupying the declared hazard area and lighting adjacent tiles/shields, with the safe lane still readable. Match visual timing and footprint to heat/contact state.
+
+Add restrained peripheral thermal shimmer or a visor heat cue as actual exposure/heat builds, clearing under physical cover and through cooling strips. Keep the central road, craft, heat warnings and touch HUD sharp; reduced motion removes distortion while retaining factual heat feedback. The critic must witness road fire, evade its lanes and see the prominences affect local lighting, including shaded views after exposure.
 
 ## Presets and resource discipline
 
 High may add slowly evolving prominence detail, restrained radiance and small instrument motions. Low preserves star structure, major flare silhouettes, shield geometry and shaded route fill while reducing fine turbulence and minor hardware. Reduced motion holds stellar surface flow and instruments steady; no rapid flare flashes or camera shake; retain readable heat warnings and all gameplay hazard cues.
 
+Reuse the [shared racing/device system](../README.md#gameplay-and-presentation-boundaries): author placements, supply the level's pure motion adapter for rivals and verify physical two-lap finishes, replay and solo practice.
+
 ## Production and review
 
-Use the [scene-imagegen → Blender workflow](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for major assets: The monumental shields/radiators, shielded jump structures and large flare/plasma shapes are major scene-to-Blender subjects. Use the modeled forms as the basis for layered animated materials/particles where useful; fire and stellar flow need not be literal static meshes. Keep ordinary service hardware reusable.
+Use the [scene-imagegen → Blender workflow](../README.md#asset-workflow-imagegen-to-blender) for major assets: The monumental shields/radiators, shielded jump structures and large flare/plasma shapes are major scene-to-Blender subjects. Use the modeled forms as the basis for layered animated materials/particles where useful; fire and stellar flow need not be literal static meshes. Keep ordinary service hardware reusable.
 
-Use the [shared production/critic loop](../../EXPANSION_HANDOFF.md#production-and-critique-loop) and [common verification/handback rules](../../EXPANSION_HANDOFF.md#verification-and-resource-discipline). The checks below add this level’s specific interactions and lighting; they do not replace the shared checks.
+Apply the [production/critic loop](../README.md#production-and-critique-loop), [critic standard](../README.md#critic-standard) and [verification rules](../README.md#verification-and-resource-discipline). Give the critic the selected drawing and this brief's finish/atmosphere targets; the checks below add level-specific acceptance.
 
 ## Acceptance on the actual production build
 
 1. Drive exposed flare lanes and sheltered detours; verify telegraphing, heat buildup, declared damage or power-loss consequence and cooling-strip recovery.
 2. Traverse mandatory furnace passages, optional shielded jumps and the sunshield wall ride with existing controls/boost; record unsupported heat cost and speed requirements.
 3. Inspect at least two gigantic flare/prominence events and their local illumination at peak brightness and deep shade; verify reset/replay, legible warnings and non-strobing reduced-motion behavior.
-4. Check high/low and bright-to-dark transitions, future boost/protection/recovery coordinates, controlled impacts and reset while heat is active.
+4. Check high/low and bright-to-dark transitions, heat and landing cues, controlled impacts and reset while heat is active.

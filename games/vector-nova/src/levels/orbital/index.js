@@ -1,3 +1,4 @@
+import { createDevices } from './devices.js';
 import * as T from 'three';
 import {
   createLevel2Track,
@@ -10,7 +11,8 @@ import { legacyPart } from '../legacy.js';
 
 export default function createLevel({ shape }) {
   return {
-    version: shape ? '0.3.0-level2-blockout' : '0.3.0-gate3-orbital',
+    version: shape ? '0.3.0-level2-blockout' : '0.3.1-orbital-racing',
+    racing: { createDevices },
     renderer: {
       world: shape ? 'orbital-blockout' : 'asterion-orbital',
       background: '#03070d',

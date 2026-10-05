@@ -59,9 +59,9 @@ try {
     timeout: 90000,
   });
   report.build = await page.locator('script[type=module]').getAttribute('src');
-  report.stylesheet = await page
+  report.stylesheets = await page
     .locator('link[rel=stylesheet]')
-    .getAttribute('href');
+    .evaluateAll((links) => links.map((link) => link.href));
   check(
     'title has no storm flash or underwater grade',
     !(await snap()).environment.storm.stormEnabled &&
@@ -270,7 +270,7 @@ try {
     JSON.stringify(
       {
         build: report.build,
-        stylesheet: report.stylesheet,
+        stylesheets: report.stylesheets,
         passed: report.passed,
         checks: report.checks.length,
         failures: report.checks.filter((c) => !c.pass),

@@ -7,7 +7,8 @@ import { createSaffronTrack } from '../track/model.js';
 import { createSaffronEnvironment } from './index.js';
 import { skullPlacement } from './fossils.js';
 import { createSaffronRoad } from '../track/road.js';
-import { sampleBurrower } from './effects.js';
+import { createDesertEffects, sampleBurrower } from './effects.js';
+import { createResources } from './geometry.js';
 import { createLevelPresentation } from '../../presentation.js';
 import { createLandformSurvey } from './terrain.js';
 import { createGrazerPath, grazerVertexAt } from './grazer-path.js';
@@ -495,6 +496,101 @@ test('actual grazer stays low, implies most length underground and clears every 
   }
 });
 
+test('grazer sends broad sand ripples beyond its body, freezes while paused and settles without shake in reduced motion', () => {
+  const track = createSaffronTrack(),
+    survey = createLandformSurvey(track),
+    path = createGrazerPath(track, survey),
+    resources = createResources();
+  const sand = resources.material(new T.MeshStandardMaterial());
+  const effects = createDesertEffects(
+    track,
+    survey,
+    { sand },
+    resources,
+    new T.Group(),
+  );
+  const ridge = effects.group.getObjectByName(
+    'Saffron / deforming ridge raised by subsurface burrower',
+  );
+  const positions = ridge.geometry.attributes.position;
+  const frame = {
+    time: 3.5,
+    motion: { saffron: { grazer: { startedAt: 0 } } },
+    settings: { quality: 'high' },
+  };
+  const outer = [];
+  for (let i = 0; i < positions.count; i++) {
+    const p = new T.Vector3().fromBufferAttribute(positions, i);
+    const cross = p.clone().sub(path.start).dot(path.right);
+    if (Math.abs(cross) > 150) outer.push({ i, cross, base: p.y });
+  }
+  try {
+    effects.update(frame);
+    const first = positions.array.slice();
+    const raised = outer.filter((p) => positions.getY(p.i) - p.base > 3);
+    assert.ok(
+      raised.length > 20,
+      'sand heaves well beyond the 156 m wide body',
+    );
+    assert.ok(
+      raised.some((p) => p.cross < -180) && raised.some((p) => p.cross > 180),
+      'waves span both sides of the surrounding sand',
+    );
+    ridge.updateMatrixWorld(true);
+    const crest = new T.Vector3().fromBufferAttribute(positions, raised[0].i);
+    const fromAbove = new T.Raycaster(
+      crest.clone().add(new T.Vector3(0, 500, 0)),
+      new T.Vector3(0, -1, 0),
+    );
+    assert.ok(
+      fromAbove.intersectObject(ridge, false).length > 0,
+      'the sand has upward-facing triangles visible to the chase camera',
+    );
+    const version = positions.version;
+    effects.update({ ...frame, mode: 'paused', dt: 0 });
+    assert.equal(
+      positions.version,
+      version,
+      'pause reuses the existing wave geometry',
+    );
+    assert.deepEqual(positions.array, first);
+    effects.update({ ...frame, time: 4 });
+    assert.ok(
+      outer.some((p) => Math.abs(positions.getY(p.i) - first[p.i * 3 + 1]) > 2),
+      'the wide field visibly moves with event time',
+    );
+    effects.update({
+      ...frame,
+      time: 4,
+      settings: { reducedMotion: true, quality: 'low' },
+    });
+    assert.ok(
+      outer.every((p) => positions.getY(p.i) - p.base < 1),
+      'reduced motion removes rolling shake while retaining the close mound',
+    );
+    assert.equal(
+      effects.group.getObjectByName(
+        'Saffron / sand disturbed by the actual breach',
+      ).visible,
+      false,
+    );
+    effects.update(frame);
+    assert.deepEqual(
+      positions.array,
+      first,
+      'restoring the same epoch reproduces the same sand',
+    );
+    effects.update({ ...frame, time: 26 });
+    assert.ok(
+      outer.every((p) => Math.abs(positions.getY(p.i) - p.base) < 0.0001),
+      'the broad field settles back into the terrain',
+    );
+  } finally {
+    effects.dispose();
+    resources.dispose();
+  }
+});
+
 test('the exposed production grazer stays near the forward sightline in wide, square and portrait chase views', async () => {
   const level = createLevel({}),
     track = level.createTrack();
@@ -578,6 +674,15 @@ test('the exposed production grazer stays near the forward sightline in wide, sq
           assert.ok(
             Math.abs(center.x) < 0.6,
             `grazer stays near the forward sightline at ${speed} m/s, aspect ${aspect}, age ${age}`,
+          );
+          const head = path.start
+            .clone()
+            .addScaledVector(path.forward, (path.length * age) / 20);
+          head.y = path.heightAt((path.length * age) / 20) + 30;
+          const next = head.clone().addScaledVector(path.forward, 100);
+          assert.ok(
+            next.project(camera).x < head.project(camera).x - 0.03,
+            'the shovel travels right to left across this view',
           );
         }
       }

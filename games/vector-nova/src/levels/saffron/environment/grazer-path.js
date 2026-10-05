@@ -4,13 +4,16 @@ import { grazerExposure } from '../grazer.js';
 
 export const GRAZER_GROUND_SAMPLES = 96;
 
-/** Fixed distant transect ahead of the Vista approach, beyond the road's bend. */
+/** Distant right-to-left crossing ahead of the Vista approach. */
 export function grazerTransect(track) {
   const approach = horizontalFrame(track, track.landmarks.vistaStart + 320);
-  const start = approach.position.addScaledVector(approach.forward, 1050);
-  const forward = approach.forward;
+  // The route's upright +X basis is screen-left from its +Z chase direction.
+  const forward = approach.right;
+  const start = approach.position
+    .addScaledVector(approach.forward, 1050)
+    .addScaledVector(forward, -300);
   const right = UP.clone().cross(forward).normalize();
-  return { start, forward, right, length: 520 };
+  return { start, forward, right, length: 1000 };
 }
 
 export function createGrazerPath(track, survey) {

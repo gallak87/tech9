@@ -6,6 +6,36 @@ import { sampleBurrower, GRAZER_DURATION } from '../grazer.js';
 import { createGrazerPath } from './grazer-path.js';
 export { sampleBurrower } from '../grazer.js';
 
+const SAND_HALF_WIDTH = 260;
+
+function sandDisplacement(distance, cross, age, travel, breach, motion) {
+  const settling =
+    (age >= 0 ? 1 : 0) * (1 - T.MathUtils.smoothstep(age, 20, GRAZER_DURATION));
+  if (!settling) return 0;
+  const head = Math.exp(-(((distance - travel - 30) / 65) ** 2));
+  const tail = Math.exp(-(((distance - travel + 130) / 190) ** 2)) * 0.55;
+  const core = Math.max(0, 1 - (cross / 100) ** 2) ** 2;
+  const passed =
+    T.MathUtils.smoothstep(travel - distance, 50, 140) *
+    T.MathUtils.smoothstep(distance, -60, 80);
+  const berm = Math.exp(-(((Math.abs(cross) - 110) / 24) ** 2)) * passed * 5;
+  const radius = Math.hypot((distance - travel) * 0.9, cross);
+  const ring =
+    T.MathUtils.smoothstep(radius, 70, 110) *
+    (1 - T.MathUtils.smoothstep(radius, 220, 310));
+  const emergence = Math.exp(-(((age - 3.5) / 1.5) ** 2));
+  const dive = Math.exp(-(((age - 12) / 2) ** 2));
+  const ripple =
+    motion *
+    T.MathUtils.smoothstep(age, 0, 2) *
+    (0.5 + 0.5 * Math.sin(radius * 0.065 - age * 5)) *
+    ring *
+    (4 + emergence * 8 + dive * 6);
+  return (
+    settling * (core * (head + tail) * 19 * (1 - breach * 0.65) + berm + ripple)
+  );
+}
+
 export function createDesertEffects(
   track,
   survey,
@@ -16,13 +46,21 @@ export function createDesertEffects(
   const group = new T.Group();
   group.name = 'Saffron / living moving ridge and bone sandfalls';
   const path = createGrazerPath(track, survey);
-  const ridgeStart = -500;
-  const ridgeEnd = path.length + 160;
-  const rows = 120;
-  const columns = 8;
+  const ridgeStart = -620;
+  const ridgeEnd = path.length + 320;
+  const rows = 160;
+  const columns = 32;
   const ridgeGeometry = resources.geometry(
     new T.PlaneGeometry(1, 1, rows, columns),
   );
+  // Replacing the plane's XY positions with forward/right XZ coordinates
+  // reverses its winding. Keep the displaced surface visible from above.
+  const indices = ridgeGeometry.index;
+  for (let i = 0; i < indices.count; i += 3) {
+    const second = indices.getX(i + 1);
+    indices.setX(i + 1, indices.getX(i + 2));
+    indices.setX(i + 2, second);
+  }
   const ridgeVertices = ridgeGeometry.attributes.position;
   const rest = [];
   for (let j = 0; j <= columns; j++) {
@@ -32,7 +70,7 @@ export function createDesertEffects(
       const p = path.start
         .clone()
         .addScaledVector(path.forward, distance)
-        .addScaledVector(path.right, cross * 90);
+        .addScaledVector(path.right, cross * SAND_HALF_WIDTH);
       p.y = survey.heightAt(p.x, p.z) - 0.7;
       rest.push({ x: p.x, y: p.y, z: p.z, distance, cross });
     }
@@ -129,7 +167,25 @@ export function createDesertEffects(
       transparent: true,
       depthWrite: false,
       uniforms: { clock: { value: 0 }, strength: { value: 0 } },
-      vertexShader: `uniform float clock;uniform float strength;varying float alpha;void main(){float age=fract(position.y+clock*.31);float side=position.x>.5?1.:-1.;float grain=step(.44,position.z);float trail=position.z*180.;vec3 p=vec3(side*(48.+age*25.-trail*.08),sin(age*3.14159)*(3.+position.x*10.),64.-trail-age*26.);vec4 v=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*v;gl_PointSize=mix(clamp(8500./max(1.,-v.z),3.,27.),clamp(1800./max(1.,-v.z),1.,4.),grain);alpha=strength*sin(age*3.14159)*mix(.07,.4,grain);}`,
+      vertexShader: `
+        uniform float clock; uniform float strength; varying float alpha;
+        void main() {
+          float age=fract(position.y+clock*.31);
+          float side=position.x>.5?1.:-1.;
+          float broad=step(.76,position.z);
+          float grain=step(.44,position.z)*(1.-broad);
+          float trail=position.z*180.;
+          vec3 p=vec3(side*(48.+age*25.-trail*.08),sin(age*3.14159)*(3.+position.x*10.),64.-trail-age*26.);
+          float angle=position.x*6.2831853;
+          float radius=100.+age*170.;
+          vec3 ring=vec3(cos(angle)*radius,age*(10.+position.x*8.),sin(angle)*radius-10.);
+          p=mix(p,ring,broad);
+          vec4 v=modelViewMatrix*vec4(p,1.);
+          gl_Position=projectionMatrix*v;
+          float dustSize=mix(clamp(8500./max(1.,-v.z),3.,27.),clamp(15500./max(1.,-v.z),6.,42.),broad);
+          gl_PointSize=mix(dustSize,clamp(1800./max(1.,-v.z),1.,4.),grain);
+          alpha=strength*sin(age*3.14159)*mix(mix(.07,.4,grain),.11,broad);
+        }`,
       fragmentShader: `varying float alpha;void main(){float r=length(gl_PointCoord-.5)*2.;gl_FragColor=vec4(.65,.46,.24,alpha*(1.-smoothstep(.1,1.,r)));}`,
     }),
   );
@@ -139,6 +195,7 @@ export function createDesertEffects(
   group.add(disturbance);
   let lastPresentation = sampleBurrower(-1);
   let lastAge = null;
+  let lastMotion = null;
   let disposed = false;
   function update({
     time = 0,
@@ -158,34 +215,30 @@ export function createDesertEffects(
         : time;
     const event = sampleBurrower(age);
     const travel = path.length * event.traveling;
+    const motionAmount = settings.reducedMotion ? 0 : 1;
     lastPresentation = event;
-    if (age !== lastAge) {
+    if (age !== lastAge || motionAmount !== lastMotion) {
       for (let k = 0; k < rest.length; k++) {
         const p = rest[k];
-        const head = Math.exp(-(((p.distance - travel - 30) / 65) ** 2));
-        const tail =
-          Math.exp(-(((p.distance - travel + 130) / 190) ** 2)) * 0.55;
-        const across = Math.max(0, 1 - p.cross * p.cross) ** 2;
-        const settling =
-          (age >= 0 ? 1 : 0) *
-          (1 - T.MathUtils.smoothstep(age, 20, GRAZER_DURATION));
-        const passed =
-          T.MathUtils.smoothstep(travel - p.distance, 50, 140) *
-          T.MathUtils.smoothstep(p.distance, -60, 80);
-        const berm =
-          Math.exp(-(((Math.abs(p.cross) - 0.64) / 0.17) ** 2)) * passed * 4;
         ridgeVertices.setXYZ(
           k,
           p.x,
           p.y +
-            settling *
-              (across * (head + tail) * 19 * (1 - event.breach * 0.65) + berm),
+            sandDisplacement(
+              p.distance,
+              p.cross * SAND_HALF_WIDTH,
+              age,
+              travel,
+              event.breach,
+              motionAmount,
+            ),
           p.z,
         );
       }
       ridgeVertices.needsUpdate = true;
       ridgeGeometry.computeVertexNormals();
       lastAge = age;
+      lastMotion = motionAmount;
     }
     const groundHeight = path.heightAt(travel);
     burrower.scale.setScalar(1);
@@ -198,7 +251,7 @@ export function createDesertEffects(
       path,
       groundHeight,
       exposure: event.breach,
-      motion: settings.reducedMotion ? 0 : 1,
+      motion: motionAmount,
     });
     burrower.visible = age > 2 && age < 20 && !reviewing;
     disturbance.position.copy(burrower.position);
@@ -238,6 +291,7 @@ export function createDesertEffects(
       position: burrower.position.toArray(),
       eventDuration: GRAZER_DURATION,
       triggerPolicy: 'once-per-lap',
+      disturbanceWidth: SAND_HALF_WIDTH * 2,
       sandfallCount: falls.length,
       pointsHigh: phases.length,
       pointsLow: 430,

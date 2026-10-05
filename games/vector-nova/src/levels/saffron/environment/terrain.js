@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { grazerTransect } from './grazer-path.js';
 import {
   horizontalFrame,
   instanced,
@@ -19,6 +20,7 @@ export function createLandformSurvey(track) {
   const meanY =
     samples.reduce((sum, sample) => sum + sample.position.y, 0) /
     samples.length;
+  const grazer = grazerTransect(track);
   function nearest(x, z) {
     let minimum = Infinity;
     let result = samples[0];
@@ -34,7 +36,7 @@ export function createLandformSurvey(track) {
     }
     return { ...result, distance: Math.sqrt(minimum), clearanceY };
   }
-  function rawHeightAt(x, z) {
+  function unshapedHeightAt(x, z) {
     const local = nearest(x, z);
     const broad =
       Math.sin(x * 0.0027 + z * 0.0016) * 30 +
@@ -102,6 +104,35 @@ export function createLandformSurvey(track) {
         Math.min(carved, local.position.y - 38 + local.distance * 0.035),
         sightline,
       ),
+      local.clearanceY,
+    );
+  }
+  function rawHeightAt(x, z) {
+    const natural = unshapedHeightAt(x, z);
+    const dx = x - grazer.start.x,
+      dz = z - grazer.start.z;
+    const along = dx * grazer.forward.x + dz * grazer.forward.z;
+    const cross = Math.abs(dx * grazer.right.x + dz * grazer.right.z);
+    const corridor =
+      T.MathUtils.smoothstep(along, -450, -250) *
+      (1 -
+        T.MathUtils.smoothstep(
+          along,
+          grazer.length + 180,
+          grazer.length + 360,
+        )) *
+      (1 - T.MathUtils.smoothstep(cross, 100, 220));
+    if (!corridor) return natural;
+    const local = nearest(x, z);
+    const weight = corridor * T.MathUtils.smoothstep(local.distance, 120, 240);
+    // A broad, level cross-section keeps the low body seated on actual sand.
+    // Retain the natural rise along the transect and the road's clearance cap.
+    const centerHeight = unshapedHeightAt(
+      grazer.start.x + grazer.forward.x * along,
+      grazer.start.z + grazer.forward.z * along,
+    );
+    return Math.min(
+      T.MathUtils.lerp(natural, centerHeight, weight),
       local.clearanceY,
     );
   }

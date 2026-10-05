@@ -495,7 +495,7 @@ test('actual grazer stays low, implies most length underground and clears every 
   }
 });
 
-test('the exposed production grazer enters the chase frame after its lap trigger at racing speeds', async () => {
+test('the exposed production grazer stays near the forward sightline in wide, square and portrait chase views', async () => {
   const level = createLevel({}),
     track = level.createTrack();
   const survey = createLandformSurvey(track),
@@ -515,44 +515,72 @@ test('the exposed production grazer enters the chase frame after its lap trigger
     new T.Vector3(2.25, 1.8, 3.7),
   );
   try {
-    for (const speed of [80, 110, 167]) {
-      const camera = new T.PerspectiveCamera(61, 16 / 9, 0.1, 6000);
-      const rig = createCameraRig(camera, level.camera, hull),
-        subject = new T.Object3D();
-      for (let step = 0; step <= 210; step++) {
-        const state = {
-          distance: grazerTrigger(track) + (step / 60) * speed,
-          speed,
-          lateral: 0,
-        };
-        const frame = track.sample(state.distance);
-        subject.position.copy(frame.position).addScaledVector(frame.up, 0.72);
-        subject.quaternion.copy(frame.quaternion);
-        rig.update(track, state, 1 / 60, { subject });
+    for (const aspect of [16 / 9, 1, 9 / 16]) {
+      for (const speed of [80, 110, 167]) {
+        const camera = new T.PerspectiveCamera(61, aspect, 0.1, 6000);
+        const rig = createCameraRig(camera, level.camera, hull),
+          subject = new T.Object3D();
+        for (let step = 0; step <= 270; step++) {
+          const state = {
+            distance: grazerTrigger(track) + (step / 60) * speed,
+            speed,
+            lateral: 0,
+          };
+          const frame = track.sample(state.distance);
+          subject.position.copy(frame.position).addScaledVector(frame.up, 0.72);
+          subject.quaternion.copy(frame.quaternion);
+          rig.update(track, state, 1 / 60, { subject });
+          if (step !== 210 && step !== 270) continue;
+          const age = step / 60;
+          camera.updateMatrixWorld(true);
+          const screen = new T.Box2();
+          let exposed = 0,
+            visible = 0;
+          for (const vertex of vertices) {
+            const p = grazerVertexAt(
+              path,
+              age,
+              (path.length * age) / 20,
+              vertex,
+            );
+            if (p.y <= survey.heightAt(p.x, p.z)) continue;
+            exposed++;
+            const projected = p.clone().project(camera);
+            if (
+              Math.abs(projected.x) >= 1 ||
+              Math.abs(projected.y) >= 1 ||
+              Math.abs(projected.z) >= 1
+            )
+              continue;
+            const steps = Math.ceil(p.distanceTo(camera.position) / 24);
+            let blocked = false;
+            for (let i = 1; i < steps; i++) {
+              const ray = camera.position.clone().lerp(p, i / steps);
+              if (ray.y < survey.heightAt(ray.x, ray.z) + 0.15) {
+                blocked = true;
+                break;
+              }
+            }
+            if (blocked) continue;
+            visible++;
+            screen.expandByPoint(new T.Vector2(projected.x, projected.y));
+          }
+          assert.ok(
+            visible > 100 && visible / exposed > 0.85,
+            `grazer clears the terrain at ${speed} m/s, aspect ${aspect}, age ${age}`,
+          );
+          const size = screen.getSize(new T.Vector2());
+          assert.ok(
+            size.x > 0.07 && size.y > 0.03,
+            `readable distant silhouette at ${speed} m/s, aspect ${aspect}, age ${age}`,
+          );
+          const center = screen.getCenter(new T.Vector2());
+          assert.ok(
+            Math.abs(center.x) < 0.6,
+            `grazer stays near the forward sightline at ${speed} m/s, aspect ${aspect}, age ${age}`,
+          );
+        }
       }
-      camera.updateMatrixWorld(true);
-      const screen = new T.Box2();
-      let exposed = 0,
-        visible = 0;
-      for (const vertex of vertices) {
-        const p = grazerVertexAt(path, 3.5, (path.length * 3.5) / 20, vertex);
-        if (p.y <= survey.heightAt(p.x, p.z)) continue;
-        exposed++;
-        p.project(camera);
-        if (Math.abs(p.x) >= 1 || Math.abs(p.y) >= 1 || Math.abs(p.z) >= 1)
-          continue;
-        visible++;
-        screen.expandByPoint(new T.Vector2(p.x, p.y));
-      }
-      assert.ok(
-        visible > 30 && visible / exposed > 0.1,
-        `grazer visible at ${speed} m/s`,
-      );
-      const size = screen.getSize(new T.Vector2());
-      assert.ok(
-        size.x > 0.035 && size.y > 0.008,
-        `readable silhouette at ${speed} m/s`,
-      );
     }
   } finally {
     disposeFixture(gltf.scene);

@@ -1,7 +1,7 @@
 // Simulation owns the once-per-lap trigger; presentation samples this clock.
 export const GRAZER_DURATION = 26;
 export const GRAZER_SPEED = 38;
-export const grazerTrigger = (track) => track.landmarks.vistaStart - 180;
+export const grazerTrigger = (track) => track.landmarks.vistaStart - 330;
 
 const smooth = (a, b, x) => {
   const t = Math.max(0, Math.min(1, (x - a) / (b - a)));

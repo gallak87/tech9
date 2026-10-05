@@ -32,7 +32,7 @@ export function createSaffronRuntime(context) {
   const runtime = flightModel.createRuntime(context, {
     id: 'saffron-sand-flight',
     version: 4,
-    rulesId: `saffron-v4:${JSON.stringify({ track: track.id, geometry: track.geometryVersion, jumps: track.jumps, rules: flightModel.rules, sand: 'migrating-four-v1-drag3', grazer: 'forward-breach-v1' })}`,
+    rulesId: `saffron-v4:${JSON.stringify({ track: track.id, geometry: track.geometryVersion, jumps: track.jumps, rules: flightModel.rules, sand: 'migrating-four-v1-drag3', grazer: { event: 'forward-breach-v1', trigger: grazerTrigger(track) } })}`,
     edgeSource: 'saffron-baffle-catch',
     scenarios: Object.fromEntries(
       Object.entries(track.scenarios).map(([id, state]) => [

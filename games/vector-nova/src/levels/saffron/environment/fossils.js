@@ -1,3 +1,4 @@
+import { GRAZER_GROUND_SAMPLES } from './grazer-path.js';
 import { assetURL } from '../../../assets/url.js';
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -258,10 +259,29 @@ export function createFossils(
   burrower.name = 'Saffron / one living armored burrower';
   group.add(burrower);
   const placements = buildPlacements(track, survey);
-  const poseUniforms = { time: { value: 0 }, strength: { value: 0 } };
-  burrower.userData.setPose = (time, strength) => {
+  const poseUniforms = {
+    time: { value: 0 },
+    age: { value: -1 },
+    travel: { value: 0 },
+    ground: { value: Array(GRAZER_GROUND_SAMPLES).fill(0) },
+    minimum: { value: -600 },
+    span: { value: 1800 },
+    speed: { value: 38 },
+    headGround: { value: 0 },
+    exposure: { value: 0 },
+    motion: { value: 1 },
+  };
+  burrower.userData.setPose = (time, pose) => {
     poseUniforms.time.value = time;
-    poseUniforms.strength.value = strength;
+    poseUniforms.age.value = pose.age;
+    poseUniforms.travel.value = pose.travel;
+    poseUniforms.ground.value = pose.path.ground;
+    poseUniforms.minimum.value = pose.path.minimum;
+    poseUniforms.span.value = pose.path.span;
+    poseUniforms.speed.value = pose.path.length / 20;
+    poseUniforms.headGround.value = pose.groundHeight;
+    poseUniforms.exposure.value = pose.exposure;
+    poseUniforms.motion.value = pose.motion;
   };
   if (shape) {
     const material = resources.material(
@@ -393,16 +413,42 @@ export function createFossils(
               const finish = material.onBeforeCompile;
               material.onBeforeCompile = (shader) => {
                 finish(shader);
-                shader.uniforms.saffronBurrowerTime = poseUniforms.time;
-                shader.uniforms.saffronBurrowerStrength = poseUniforms.strength;
-                shader.vertexShader =
-                  `uniform float saffronBurrowerTime; uniform float saffronBurrowerStrength;\n${shader.vertexShader}`.replace(
+                for (const [key, uniform] of Object.entries(poseUniforms))
+                  shader.uniforms[`grazer_${key}`] = uniform;
+                const declarations = `
+                  uniform float grazer_age, grazer_travel, grazer_minimum, grazer_span;
+                  uniform float grazer_headGround, grazer_exposure, grazer_motion, grazer_speed;
+                  uniform float grazer_ground[${GRAZER_GROUND_SAMPLES}];
+                  float grazerHeight(float distance) {
+                    float t=clamp((distance-grazer_minimum)/grazer_span,0.,1.)*${GRAZER_GROUND_SAMPLES - 1}.;
+                    int i=min(${GRAZER_GROUND_SAMPLES - 2},int(floor(t)));
+                    return mix(grazer_ground[i],grazer_ground[i+1],t-float(i));
+                  }
+                  float grazerLift(float z) {
+                    float age=grazer_age-max(0.,-z)/grazer_speed;
+                    return 60.*(smoothstep(2.,4.,age)*(1.-smoothstep(10.,14.,age))-grazer_exposure)
+                      -64.*smoothstep(80.,300.,max(0.,-z));
+                  }
+                  float grazerY(float z) { return grazerHeight(grazer_travel+z)-grazer_headGround+grazerLift(z); }
+                  float grazerX(float z) { float lag=max(0.,-z);return sin(lag*.007-grazer_age*.22)*smoothstep(50.,360.,lag)*3.*grazer_motion; }
+                `;
+                shader.vertexShader = `${declarations}\n${shader.vertexShader}`
+                  .replace(
+                    '#include <beginnormal_vertex>',
+                    `#include <beginnormal_vertex>
+                    // Inverse transpose of the continuous longitudinal deformation.
+                    objectNormal.z -= objectNormal.y*(grazerY(position.z+1.)-grazerY(position.z-1.))*.5
+                      +objectNormal.x*(grazerX(position.z+1.)-grazerX(position.z-1.))*.5;`,
+                  )
+                  .replace(
                     '#include <begin_vertex>',
-                    `#include <begin_vertex>\nfloat flex = clamp((position.z + 40.) / 250., 0., 1.); transformed.x += sin(flex*5.-saffronBurrowerTime*.8)*flex*12.*saffronBurrowerStrength; transformed.y += sin(flex*3.8+saffronBurrowerTime*.35)*flex*8.*saffronBurrowerStrength;`,
+                    `#include <begin_vertex>
+                    transformed.y += grazerY(position.z);
+                    transformed.x += grazerX(position.z);`,
                   );
               };
               material.customProgramCacheKey = () =>
-                'saffron-baked-weathered-armor-flex-v3';
+                'saffron-baked-grazer-forward-breach-v4';
             }
             material.side = T.DoubleSide;
           }
@@ -411,6 +457,7 @@ export function createFossils(
           const mesh = new T.Mesh(geometry, object.material);
           mesh.name = `Saffron / living ${object.name}`;
           mesh.receiveShadow = true;
+          mesh.frustumCulled = false;
           burrower.add(mesh);
         } else {
           const mesh = instanced(

@@ -5,6 +5,7 @@ import { createRacers } from '../src/race/racers.js';
 import { createDeviceRuntime } from '../src/pickups/runtime.js';
 import { createVehicleState } from '../src/physics/index.js';
 import { sampleSaffronAtmosphere } from '../src/levels/saffron/atmosphere.js';
+import { grazerTrigger } from '../src/levels/saffron/grazer.js';
 const level = createLevel({});
 const track = level.createTrack();
 const devices = level.racing.createDevices(track);
@@ -120,4 +121,62 @@ test('Saffron atmosphere clears in sheltered skull and follows deterministic san
     sand,
     sampleSaffronAtmosphere(track, track.scenarios['sand-deep']),
   );
+});
+
+test('Saffron grazer triggers once per lap and preserves its epoch through stop, recovery and replay restore', () => {
+  const runtime = createRuntime();
+  const state = {
+    ...createVehicleState(),
+    distance: grazerTrigger(track) - 0.2,
+    speed: 100,
+  };
+  const grazer = () => runtime.snapshot().motion.saffron.grazer;
+  try {
+    runtime.reset({ reason: 'fresh-lap', state });
+    assert.equal(grazer().startedAt, null);
+    runtime.advance(state, {}, 1 / 120);
+    const first = grazer();
+    assert.equal(first.lap, 0);
+    assert.ok(first.startedAt >= 0 && first.startedAt <= state.time);
+    state.speed = 0;
+    const saved = JSON.parse(
+      JSON.stringify({ state, runtime: runtime.snapshot() }),
+    );
+    for (let tick = 0; tick < 240; tick++) runtime.advance(state, {}, 1 / 120);
+    const expected = JSON.parse(
+      JSON.stringify({ state, runtime: runtime.snapshot() }),
+    );
+    assert.ok(
+      state.time > first.startedAt + 1.9,
+      'simulation time continues while the car stops',
+    );
+    assert.deepEqual(grazer(), first);
+    Object.assign(state, saved.state);
+    runtime.restore(saved.runtime);
+    for (let tick = 0; tick < 240; tick++) runtime.advance(state, {}, 1 / 120);
+    assert.deepEqual(
+      JSON.parse(JSON.stringify({ state, runtime: runtime.snapshot() })),
+      expected,
+    );
+    runtime.reset({ reason: 'manual-recover', state });
+    assert.deepEqual(grazer(), first);
+    // Re-entering this lap's trigger after backing up/recovery cannot replay it.
+    state.distance = grazerTrigger(track) - 0.2;
+    state.speed = 100;
+    runtime.advance(state, {}, 1 / 120);
+    assert.deepEqual(grazer(), first);
+    state.distance = track.length + grazerTrigger(track) - 0.2;
+    runtime.advance(state, {}, 1 / 120);
+    assert.equal(grazer().lap, 1);
+    assert.ok(grazer().startedAt > first.startedAt);
+    state.distance = 0;
+    state.time = 0;
+    runtime.reset({ reason: 'fresh-lap', state });
+    assert.deepEqual(grazer(), { lap: -1, startedAt: null });
+    Object.assign(state, track.scenarios['burrower-breach']);
+    runtime.reset({ reason: 'scenario', scenario: 'burrower-breach', state });
+    assert.equal(state.time - grazer().startedAt, 8);
+  } finally {
+    runtime.dispose();
+  }
 });

@@ -7,7 +7,7 @@ import { createSaffronRuntime, createSaffronOverlay } from './runtime.js';
 
 export default function createLevel({ shape = false }) {
   return {
-    version: '0.5.0-saffron-v2',
+    version: '0.5.1-saffron-v3',
     renderer: {
       world: shape ? 'saffron-shape' : 'saffron-leviathan',
       background: '#b7a4a2',

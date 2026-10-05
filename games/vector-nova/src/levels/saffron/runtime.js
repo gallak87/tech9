@@ -1,6 +1,7 @@
 import { createSaffronScreenDust } from './atmosphere.js';
 import { createFlightModel } from '../../physics/flight.js';
 import { sampleSaffronDeposits, saffronSandExposure } from './track/sand.js';
+import { grazerTrigger } from './grazer.js';
 
 export const SAFFRON_RULES = Object.freeze({
   gravity: 26,
@@ -27,10 +28,11 @@ export function createSaffronRuntime(context) {
     sandExposure = 0,
     disposed = false,
     lastEvent = null;
+  let grazer = { lap: -1, startedAt: null };
   const runtime = flightModel.createRuntime(context, {
     id: 'saffron-sand-flight',
-    version: 3,
-    rulesId: `saffron-v3:${JSON.stringify({ track: track.id, geometry: track.geometryVersion, jumps: track.jumps, rules: flightModel.rules, sand: 'migrating-four-v1-drag3' })}`,
+    version: 4,
+    rulesId: `saffron-v4:${JSON.stringify({ track: track.id, geometry: track.geometryVersion, jumps: track.jumps, rules: flightModel.rules, sand: 'migrating-four-v1-drag3', grazer: 'forward-breach-v1' })}`,
     edgeSource: 'saffron-baffle-catch',
     scenarios: Object.fromEntries(
       Object.entries(track.scenarios).map(([id, state]) => [
@@ -52,7 +54,28 @@ export function createSaffronRuntime(context) {
     ...runtime,
     advance(state, input, dt, modifiers) {
       if (disposed) return [];
+      const beforeDistance = state.distance;
+      const beforeTime = state.time;
       const events = runtime.advance(state, input, dt, modifiers);
+      // Crossing time is interpolated within the simulation tick. Stopping,
+      // reversing or leaving the Vista cannot scrub or retrigger the animal.
+      const lap = Math.floor(
+        (state.distance - grazerTrigger(track)) / track.length,
+      );
+      const crossing = grazerTrigger(track) + lap * track.length;
+      if (
+        lap >= 0 &&
+        lap > grazer.lap &&
+        beforeDistance < crossing &&
+        state.distance >= crossing
+      ) {
+        const fraction =
+          (crossing - beforeDistance) / (state.distance - beforeDistance);
+        grazer = {
+          lap,
+          startedAt: beforeTime + (state.time - beforeTime) * fraction,
+        };
+      }
       const grounded = runtime.snapshot().mode === 'magnetic';
       sandExposure = grounded
         ? saffronSandExposure(track, state.distance, state.lateral, state.time)
@@ -83,7 +106,7 @@ export function createSaffronRuntime(context) {
     snapshot() {
       return {
         ...runtime.snapshot(),
-        saffron: { surfaceId, sandExposure, lastEvent },
+        saffron: { surfaceId, sandExposure, lastEvent, grazer: { ...grazer } },
       };
     },
     restore(snapshot) {
@@ -91,12 +114,38 @@ export function createSaffronRuntime(context) {
       surfaceId = snapshot.saffron?.surfaceId ?? null;
       sandExposure = snapshot.saffron?.sandExposure ?? 0;
       lastEvent = snapshot.saffron?.lastEvent ?? null;
+      grazer = {
+        ...(snapshot.saffron?.grazer ?? { lap: -1, startedAt: null }),
+      };
     },
     reset(options) {
       runtime.reset(options);
       surfaceId = null;
       sandExposure = 0;
       lastEvent = null;
+      if (options?.reason !== 'manual-recover') {
+        const state = options?.state ?? { distance: 0, time: 0 };
+        const lap = Math.floor(state.distance / track.length);
+        const distance = state.distance - lap * track.length;
+        const previewAge = { 'burrower-ridge': 1.5, 'burrower-breach': 8 }[
+          options?.scenario
+        ];
+        const inVista =
+          distance >= grazerTrigger(track) &&
+          distance <= track.landmarks.vistaEnd;
+        grazer = {
+          lap:
+            previewAge !== undefined || distance >= grazerTrigger(track)
+              ? lap
+              : lap - 1,
+          startedAt:
+            previewAge !== undefined
+              ? state.time - previewAge
+              : inVista
+                ? state.time
+                : null,
+        };
+      }
     },
     dispose() {
       disposed = true;

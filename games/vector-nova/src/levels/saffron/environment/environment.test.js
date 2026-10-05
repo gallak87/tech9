@@ -9,6 +9,11 @@ import { skullPlacement } from './fossils.js';
 import { createSaffronRoad } from '../track/road.js';
 import { sampleBurrower } from './effects.js';
 import { createLevelPresentation } from '../../presentation.js';
+import { createLandformSurvey } from './terrain.js';
+import { createGrazerPath, grazerVertexAt } from './grazer-path.js';
+import { createCameraRig } from '../../../camera/index.js';
+import createLevel from '../index.js';
+import { grazerTrigger } from '../grazer.js';
 
 // Tests live under src/levels/saffron/environment, four levels below app root.
 const assetPath = new URL(
@@ -78,8 +83,8 @@ test('actual Blender skull clears the descending banked road and camera envelope
   const triangle = new T.Triangle();
   const collisions = [];
   for (
-    let s = track.landmarks.skullStart - 20;
-    s <= track.landmarks.skullEnd + 20;
+    let s = track.landmarks.skullStart - 60;
+    s <= track.landmarks.skullEnd + 40;
     s += 8
   ) {
     const frame = track.sample(s);
@@ -135,7 +140,7 @@ test('production asset loading, deterministic spectacle and repeated ownership d
   assert.ok(environment.group.userData.metrics.triangleCount < 700000);
   assert.ok(environment.group.userData.metrics.meshCount < 80);
   const frame = {
-    time: 32,
+    time: 3,
     settings: { quality: 'high', reducedMotion: false },
   };
   environment.update(frame);
@@ -236,8 +241,9 @@ test('asset failure unwinds the environment and neutral shape remains asset-free
     ),
   );
   shape.dispose();
-  assert.deepEqual(sampleBurrower(32), sampleBurrower(80));
-  assert.equal(sampleBurrower(18).phase, 'moving-ridge');
+  assert.equal(sampleBurrower(32).phase, 'dormant');
+  assert.equal(sampleBurrower(80).phase, 'dormant');
+  assert.equal(sampleBurrower(1.5).phase, 'moving-ridge');
 });
 
 test('cranial shelter attenuates borrowed daylight, preserves warm local bounce and restores on exit/disposal', async () => {
@@ -347,4 +353,208 @@ test('the real presentation loader connects Saffron road anchoring after the fos
     world.dispose();
   }
   assert.equal(scene.children.length, 0);
+});
+
+test('grazer follows its fixed world transect independently of the car and freezes with simulation time', async () => {
+  const track = createSaffronTrack();
+  const environment = createSaffronEnvironment(
+    { track },
+    { loadAsset: loadKit },
+  );
+  await environment.ready;
+  try {
+    const frame = {
+      time: 8,
+      state: { distance: track.landmarks.vistaStart },
+      motion: { motion: { saffron: { grazer: { lap: 0, startedAt: 0 } } } },
+      settings: { quality: 'high' },
+    };
+    environment.update(frame);
+    const first = environment.group.userData.getLeviathanPresentation();
+    assert.equal(first.phase, 'grazing');
+    assert.equal(first.active, true);
+    for (const distance of [0, track.landmarks.vistaEnd, track.length + 300]) {
+      environment.update({
+        ...frame,
+        state: { distance, speed: 0, heading: Math.PI },
+        mode: 'paused',
+        dt: 0,
+      });
+      const next = environment.group.userData.getLeviathanPresentation();
+      assert.deepEqual(next.position, first.position);
+      assert.deepEqual(next.forward, first.forward);
+      assert.equal(next.age, first.age);
+    }
+    environment.reset();
+    environment.update(frame);
+    assert.deepEqual(
+      environment.group.userData.getLeviathanPresentation().position,
+      first.position,
+    );
+    environment.update({ ...frame, time: 12 });
+    const next = environment.group.userData.getLeviathanPresentation();
+    const delta = new T.Vector3()
+      .fromArray(next.position)
+      .sub(new T.Vector3().fromArray(first.position))
+      .setY(0);
+    assert.ok(
+      delta.dot(new T.Vector3().fromArray(first.forward)) > 100,
+      'the modeled +Z shovel travels forward',
+    );
+    assert.equal(next.phase, 'diving');
+    environment.update({ ...frame, time: 32 });
+    assert.equal(
+      environment.group.userData.getLeviathanPresentation().active,
+      false,
+    );
+    assert.equal(
+      environment.group.userData.getLeviathanPresentation().phase,
+      'dormant',
+    );
+    environment.update({
+      ...frame,
+      motion: { motion: { saffron: { grazer: { lap: -1, startedAt: null } } } },
+    });
+    assert.equal(
+      environment.group.userData.getLeviathanPresentation().phase,
+      'dormant',
+    );
+  } finally {
+    environment.dispose();
+  }
+});
+
+test('actual grazer stays low, implies most length underground and clears every route/camera corridor through its breach', async () => {
+  const track = createSaffronTrack(),
+    survey = createLandformSurvey(track);
+  const path = createGrazerPath(track, survey),
+    gltf = await loadKit();
+  const vertices = [];
+  let meshes = 0,
+    triangles = 0;
+  gltf.scene.getObjectByName('burrower').traverse((o) => {
+    if (!o.isMesh) return;
+    meshes++;
+    triangles +=
+      (o.geometry.index?.count ?? o.geometry.attributes.position.count) / 3;
+    assert.ok(o.material.roughness >= 0.9);
+    assert.equal(o.material.metalness, 0);
+    assert.ok(o.geometry.attributes.color, 'baked mineral wear is exported');
+    const color = o.geometry.attributes.color;
+    assert.ok(
+      Array.from({ length: color.count }, (_, i) => color.getX(i)).some(
+        (c) => c < 0.9,
+      ),
+      'mineral wear carries real values rather than a white placeholder',
+    );
+    for (let i = 0; i < o.geometry.attributes.position.count; i++)
+      vertices.push(
+        new T.Vector3().fromBufferAttribute(o.geometry.attributes.position, i),
+      );
+  });
+  assert.equal(meshes, 4);
+  // Extra physical filter/armor detail is offset by a larger skull reduction.
+  assert.ok(triangles < 30000);
+  const bounds = new T.Box3().setFromPoints(vertices);
+  assert.ok(bounds.max.x - bounds.min.x > 140);
+  assert.ok(bounds.max.z > 95 && bounds.min.z < -475);
+  const road = [];
+  for (let s = 0; s < track.length; s += 12)
+    road.push(track.sample(s).position.clone());
+  try {
+    for (const age of [1.5, 4.5, 8, 12, 15, 18, 21]) {
+      const travel = path.length * sampleBurrower(age).traveling;
+      let exposedMin = Infinity,
+        exposedMax = -Infinity,
+        maximumHeight = -Infinity;
+      // The surface deformation includes terrain, head/body lag and burial.
+      for (const vertex of vertices) {
+        const p = grazerVertexAt(path, age, travel, vertex);
+        const height = p.y - survey.heightAt(p.x, p.z);
+        maximumHeight = Math.max(maximumHeight, height);
+        if (height < 0) continue;
+        exposedMin = Math.min(exposedMin, vertex.z);
+        exposedMax = Math.max(exposedMax, vertex.z);
+        for (const center of road)
+          assert.ok(
+            (p.x - center.x) ** 2 + (p.z - center.z) ** 2 > 40 ** 2,
+            `grazer clears road and camera at age ${age}`,
+          );
+      }
+      assert.ok(
+        maximumHeight < 55,
+        `a low crest, never an upright cobra at age ${age}`,
+      );
+      assert.ok(
+        exposedMax - exposedMin < (bounds.max.z - bounds.min.z) * 0.55,
+        'most length remains implied beneath sand',
+      );
+    }
+  } finally {
+    disposeFixture(gltf.scene);
+  }
+});
+
+test('the exposed production grazer enters the chase frame after its lap trigger at racing speeds', async () => {
+  const level = createLevel({}),
+    track = level.createTrack();
+  const survey = createLandformSurvey(track),
+    path = createGrazerPath(track, survey);
+  const gltf = await loadKit(),
+    vertices = [];
+  gltf.scene.getObjectByName('burrower').traverse((o) => {
+    if (!o.isMesh) return;
+    for (let i = 0; i < o.geometry.attributes.position.count; i += 4)
+      vertices.push(
+        new T.Vector3().fromBufferAttribute(o.geometry.attributes.position, i),
+      );
+  });
+  // The conservative shared craft envelope includes every production chassis.
+  const hull = new T.Box3(
+    new T.Vector3(-2.25, -0.12, -3.51),
+    new T.Vector3(2.25, 1.8, 3.7),
+  );
+  try {
+    for (const speed of [80, 110, 167]) {
+      const camera = new T.PerspectiveCamera(61, 16 / 9, 0.1, 6000);
+      const rig = createCameraRig(camera, level.camera, hull),
+        subject = new T.Object3D();
+      for (let step = 0; step <= 210; step++) {
+        const state = {
+          distance: grazerTrigger(track) + (step / 60) * speed,
+          speed,
+          lateral: 0,
+        };
+        const frame = track.sample(state.distance);
+        subject.position.copy(frame.position).addScaledVector(frame.up, 0.72);
+        subject.quaternion.copy(frame.quaternion);
+        rig.update(track, state, 1 / 60, { subject });
+      }
+      camera.updateMatrixWorld(true);
+      const screen = new T.Box2();
+      let exposed = 0,
+        visible = 0;
+      for (const vertex of vertices) {
+        const p = grazerVertexAt(path, 3.5, (path.length * 3.5) / 20, vertex);
+        if (p.y <= survey.heightAt(p.x, p.z)) continue;
+        exposed++;
+        p.project(camera);
+        if (Math.abs(p.x) >= 1 || Math.abs(p.y) >= 1 || Math.abs(p.z) >= 1)
+          continue;
+        visible++;
+        screen.expandByPoint(new T.Vector2(p.x, p.y));
+      }
+      assert.ok(
+        visible > 30 && visible / exposed > 0.1,
+        `grazer visible at ${speed} m/s`,
+      );
+      const size = screen.getSize(new T.Vector2());
+      assert.ok(
+        size.x > 0.035 && size.y > 0.008,
+        `readable silhouette at ${speed} m/s`,
+      );
+    }
+  } finally {
+    disposeFixture(gltf.scene);
+  }
 });

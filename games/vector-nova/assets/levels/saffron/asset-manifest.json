@@ -5,8 +5,8 @@
     "skull": {
       "origin": "mouth floor center",
       "boundsGame": {
-        "min": [-144.80865478515625, -73.4598617553711, -9.688300132751465],
-        "max": [144.96058654785156, 123.12466430664062, 311.6225280761719]
+        "min": [-156.1678009033203, -70.04257202148438, -28.005905151367188],
+        "max": [156.69091796875, 152.8404083251953, 311.6225280761719]
       },
       "clearHalfWidth": 50,
       "overheadMinimum": 70
@@ -14,43 +14,43 @@
     "vertebra": {
       "origin": "module authoring origin",
       "boundsGame": {
-        "min": [-99.08536529541016, -42.46656036376953, -33.652732849121094],
-        "max": [98.72428894042969, 114.50664520263672, 31.21830177307129]
+        "min": [-99.10200500488281, -41.79467010498047, -33.56280517578125],
+        "max": [98.72428894042969, 110.32929229736328, 24.51506996154785]
       }
     },
     "vertebra_1": {
       "origin": "module authoring origin",
       "boundsGame": {
-        "min": [-96.3651123046875, -39.04684829711914, -38.69919204711914],
-        "max": [98.20542907714844, 72.00871276855469, 30.933305740356445]
+        "min": [-96.3651123046875, -39.04668426513672, -38.917152404785156],
+        "max": [98.20542907714844, 72.00871276855469, 29.806182861328125]
       }
     },
     "vertebra_2": {
       "origin": "module authoring origin",
       "boundsGame": {
-        "min": [-105.30229949951172, -46.921104431152344, -40.718231201171875],
-        "max": [104.26445007324219, 91.79994201660156, 26.096763610839844]
+        "min": [-105.30229949951172, -46.921104431152344, -39.16779327392578],
+        "max": [104.26445007324219, 91.79994201660156, 24.6602725982666]
       }
     },
     "rib": {
       "origin": "module authoring origin",
       "boundsGame": {
-        "min": [-107.68022155761719, -40.48328399658203, -18.681760787963867],
-        "max": [107.58841705322266, 121.18815612792969, 23.79867172241211]
+        "min": [-108.11117553710938, -40.40098571777344, -22.75452423095703],
+        "max": [101.88069152832031, 121.27495574951172, 49.12117004394531]
       }
     },
     "rib_1": {
       "origin": "module authoring origin",
       "boundsGame": {
-        "min": [-100.39517974853516, -25.604446411132812, -25.681751251220703],
-        "max": [100.11511993408203, 113.06934356689453, 27.771045684814453]
+        "min": [-108.11117553710938, -40.40098571777344, -28.050331115722656],
+        "max": [101.88069152832031, 119.5461654663086, 48.39419937133789]
       }
     },
     "rib_2": {
       "origin": "module authoring origin",
       "boundsGame": {
-        "min": [-110.24459075927734, -28.769765853881836, -23.274559020996094],
-        "max": [109.98815155029297, 127.6119155883789, 21.253938674926758]
+        "min": [-108.11117553710938, -40.40098571777344, -30.84735870361328],
+        "max": [101.88069152832031, 119.4062271118164, 50.562644958496094]
       }
     },
     "dune": {
@@ -89,39 +89,43 @@
       }
     },
     "burrower": {
-      "origin": "head root",
+      "origin": "shoulder root; head leads +Z, tail follows -Z",
       "boundsGame": {
-        "min": [-37.749542236328125, -148.72677612304688, -61.1503791809082],
-        "max": [38.911128997802734, 55.00586700439453, 207.01930236816406]
-      }
+        "min": [-78.84730529785156, -20.524999618530273, -549.0325927734375],
+        "max": [76.78739929199219, 45.85686492919922, 111.0]
+      },
+      "forward": "+Z",
+      "shieldCount": 9,
+      "reference": "assets/levels/saffron/dune-grazer-approved-concept-v1.png"
     }
   },
   "polygonCounts": {
-    "skull": 64576,
-    "vertebra": 4553,
-    "vertebra_1": 3820,
-    "vertebra_2": 4416,
-    "rib": 2440,
-    "rib_1": 1773,
-    "rib_2": 1791,
+    "skull": 25600,
+    "vertebra": 4197,
+    "vertebra_1": 3331,
+    "vertebra_2": 4001,
+    "rib": 1222,
+    "rib_1": 1066,
+    "rib_2": 1146,
     "dune": 1728,
     "dune_1": 1728,
     "sandfall": 2526,
     "outcrop": 1142,
     "outcrop_1": 1142,
-    "burrower": 7951
+    "burrower": 13031
   },
   "runtime": "/assets/levels/saffron/leviathan-kit.glb",
   "sha256": {
-    "assets/levels/saffron/build_saffron.py": "faeeacd2acf8fa384b3de275828a30539eff8694119c20f1ac7707d5cd7d80e5",
-    "assets/levels/saffron/leviathan-kit.blend": "368d58e7f466cba9e111f0774aa7cbded7e4cc1ee4ceda7db32190cb62d635be",
+    "assets/levels/saffron/build_saffron.py": "179ae8e85f2e142ca474cecf0b2b5c077730e20c4aaa363ed869e8b7ca84a47c",
+    "assets/levels/saffron/leviathan-kit.blend": "7f23fc06613b7886d6f1c406d954e36948d6a0a6e7ac6689b6b20de9747f29ad",
     "assets/levels/saffron/scene-reference.png": "cd7a3799d7fe2ac8beaea380fcdae1d317209f86f806cd5d99fd43b421e5abdb",
     "assets/levels/saffron/saffron-sky-v2.png": "1ecef87b93df2325b2528105a783807d3fd06b449f3f0a8c2087ddc7b24c07bf",
     "assets/levels/saffron/sky-prompt-v2.txt": "76e616e5f6d3d433762b75b7d324f6febb2e2618f0cd1f2fecdba7116795e544",
-    "public/assets/levels/saffron/leviathan-kit.glb": "176afa2e3a95596b3c26efafddfe9b95e430af83b6b51e50bb1aa0bdc5953bfd",
+    "public/assets/levels/saffron/leviathan-kit.glb": "bdd4a33b5cd15da27e1f515e690eb48da5e80363c518e635765e24bdbddffef0",
     "public/assets/levels/saffron/saffron-sky-v2.png": "1ecef87b93df2325b2528105a783807d3fd06b449f3f0a8c2087ddc7b24c07bf",
     "assets/levels/saffron/bake_weathering.mjs": "83879b5f1afbe6b64dd8532612a0cd235044f046eb401f6909c28e2d461a1264",
-    "public/assets/levels/saffron/weathering-noise-v1.r8": "4141da2f9dafb3d334f1a6b1199a5099e277f0ae064680e1dc9acb346028f807"
+    "public/assets/levels/saffron/weathering-noise-v1.r8": "4141da2f9dafb3d334f1a6b1199a5099e277f0ae064680e1dc9acb346028f807",
+    "assets/levels/saffron/dune-grazer-approved-concept-v1.png": "acb77e541a261068c43e79775fb6f65042dee07cd39ed6d7543f3753f4eec398"
   },
   "weatheringVolume": {
     "runtime": "public/assets/levels/saffron/weathering-noise-v1.r8",

@@ -4,15 +4,20 @@ import { grazerExposure } from '../grazer.js';
 
 export const GRAZER_GROUND_SAMPLES = 96;
 
-/** Authored world-space transect through the open dune field beside the Vista. */
-export function createGrazerPath(track, survey) {
-  const a = horizontalFrame(track, track.landmarks.vistaStart + 500);
-  const b = horizontalFrame(track, track.landmarks.vistaEnd + 150);
-  const start = a.position.addScaledVector(a.right, -260);
-  const end = b.position.addScaledVector(b.right, -350);
-  const forward = end.clone().sub(start).setY(0).normalize();
+/** Distant right-to-left crossing ahead of the Vista approach. */
+export function grazerTransect(track) {
+  const approach = horizontalFrame(track, track.landmarks.vistaStart + 320);
+  // The route's upright +X basis is screen-left from its +Z chase direction.
+  const forward = approach.right;
+  const start = approach.position
+    .addScaledVector(approach.forward, 1050)
+    .addScaledVector(forward, -300);
   const right = UP.clone().cross(forward).normalize();
-  const length = end.clone().sub(start).setY(0).length();
+  return { start, forward, right, length: 1000 };
+}
+
+export function createGrazerPath(track, survey) {
+  const { start, forward, right, length } = grazerTransect(track);
   const quaternion = new T.Quaternion().setFromRotationMatrix(
     new T.Matrix4().makeBasis(right, UP, forward),
   );

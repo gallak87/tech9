@@ -237,6 +237,20 @@
       ],
       "provenanceRecord": "assets/levels/umbra/provenance.json",
       "skyProvenance": "assets/levels/umbra/SKY_PROVENANCE.md"
+    },
+    {
+      "id": "helion-observatory",
+      "source": "assets/levels/helion/ and src/levels/helion/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original scene-guided Blender shields, radiators, instrument towers, canopies and prominence meshes; authored road, thermal shaders and contact effects. Original scene, selected sky, exact prompts, generator and editable source are retained.",
+      "rights": "Project-authored/generated; no third-party artwork or meshes",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/levels/helion/thermal-observatory.glb",
+        "public/assets/levels/helion/helion-sky-v2.png"
+      ],
+      "provenanceRecord": "assets/levels/helion/provenance.json",
+      "skyProvenance": "assets/levels/helion/SKY_PROVENANCE.md"
     }
   ],
   "thirdParty": [

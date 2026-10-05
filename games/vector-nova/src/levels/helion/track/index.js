@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { finishThermalMaterial } from '../environment/materials.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   sweepGeometry,
@@ -22,10 +23,37 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
       metalness: shape ? 0 : metalness,
     });
     material.name = name;
+    if (!shape)
+      finishThermalMaterial(
+        material,
+        /copper/i.test(name)
+          ? 'copper'
+          : /graphite|charcoal/i.test(name)
+            ? 'graphite'
+            : 'ceramic',
+      );
     materials.add(material);
     return material;
   };
-  const tile = makeMaterial('Warm ivory thermal ceramic', 0xd2d0bc, 0.78, 0.08);
+  const tile = makeMaterial('Warm ivory thermal ceramic', 0xd2d0bc, 0.58, 0.12);
+  const freshTile = makeMaterial(
+    'Replacement ivory ceramic cassette',
+    0xe0d5bc,
+    0.46,
+    0.12,
+  );
+  const spentTile = makeMaterial(
+    'Heat-cycled ceramic cassette',
+    0x9fa292,
+    0.74,
+    0.12,
+  );
+  const coveredTile = makeMaterial(
+    'Graphite sheltered cassette',
+    0x43525b,
+    0.53,
+    0.3,
+  );
   const bevel = makeMaterial('Warm grey tile bevels', 0x858575, 0.9, 0.04);
   const graphite = makeMaterial(
     'Graphite structural composite',
@@ -36,7 +64,7 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
   const copper = makeMaterial(
     'Oxidized copper heat feathers',
     0x9e593a,
-    0.43,
+    0.28,
     0.74,
   );
   const copperEdge = makeMaterial('Worn copper tips', 0xc99064, 0.35, 0.7);
@@ -90,8 +118,8 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
     tops.push(
       sweep(
         [
-          [range.min, 0],
-          [range.max, 0],
+          [range.min, -0.45],
+          [range.max, -0.45],
         ],
         range,
       ),
@@ -132,6 +160,48 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
     curbParts,
     graphite,
   );
+
+  const cassetteParts = new Map([
+    [tile, []],
+    [freshTile, []],
+    [spentTile, []],
+    [coveredTile, []],
+  ]);
+  for (const range of solidRanges) {
+    for (let start = range.start; start < range.end; start += 14) {
+      const end = Math.min(start + 13.82, range.end);
+      if (end - start < 0.3) continue;
+      for (let x = range.min; x < range.max; x += 5) {
+        const right = Math.min(x + 5, range.max);
+        const index = Math.floor(start / 14) * 7 + Math.floor(x / 5);
+        const covered = track.thermalZones.some(
+          (z) => z.kind === 'shelter' && start >= z.start && start < z.end,
+        );
+        const material =
+          covered && index % 6 < 3
+            ? coveredTile
+            : index % 17 === 0
+              ? freshTile
+              : index % 23 === 0
+                ? spentTile
+                : tile;
+        cassetteParts.get(material).push(
+          sweep(
+            [
+              [x + 0.08, 0.026],
+              [x + 0.2, 0.095],
+              [right - 0.2, 0.095],
+              [right - 0.08, 0.026],
+            ],
+            { start: start + 0.06, end },
+            2,
+          ),
+        );
+      }
+    }
+  }
+  for (const [material, parts] of cassetteParts)
+    merged(`Formed cassettes / ${material.name}`, parts, material);
 
   const seams = [];
   const service = [];
@@ -184,8 +254,8 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
       service.push(
         sweep(
           [
-            [range.min + 0.6, 0.032],
-            [range.max - 0.6, 0.032],
+            [range.min + 0.6, 0.111],
+            [range.max - 0.6, 0.111],
           ],
           { start: s, end: s + 5.5 },
           1.5,
@@ -229,11 +299,11 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
   };
   const featherShape = new THREE.Shape();
   featherShape.moveTo(0, 0);
-  featherShape.lineTo(0.8, 1.4);
-  featherShape.lineTo(2.1, 1.7);
-  featherShape.lineTo(4.5, 3.0);
-  featherShape.lineTo(4.7, 2.35);
-  featherShape.lineTo(2.4, 0.3);
+  featherShape.quadraticCurveTo(0.75, 0.6, 2.2, 0.72);
+  featherShape.quadraticCurveTo(3.5, 0.9, 4.45, 1.75);
+  featherShape.lineTo(4.55, 1.52);
+  featherShape.quadraticCurveTo(3.5, 0.61, 2.25, 0.44);
+  featherShape.quadraticCurveTo(0.8, 0.35, 0, -0.15);
   featherShape.closePath();
   const feather = new THREE.ExtrudeGeometry(featherShape, {
     depth: 8.8,
@@ -242,7 +312,7 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
     bevelSize: 0.1,
     bevelSegments: 1,
     steps: 1,
-    curveSegments: 1,
+    curveSegments: 6,
   });
   feather.translate(0, 0, -4.4);
   geometries.add(feather);
@@ -272,7 +342,7 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
         0.55,
         0,
         1.3,
-        1.3,
+        0.8,
         9.7,
       );
       box(
@@ -280,7 +350,7 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
         copperEdge,
         frame,
         side * 16.1,
-        1.34,
+        1.1,
         -2.8,
         1.9,
         0.3,
@@ -299,6 +369,60 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
   }
   merged('Continuous deep graphite load spines', structural, graphite);
   merged('Copper heat transfer pipes', pipes, copper);
+  const serviceDecks = [],
+    serviceRails = [],
+    serviceMains = [];
+  for (const side of [-1, 1]) {
+    serviceDecks.push(
+      sweep(
+        boxProfile(side * 30, -9.5, 4.4, 0.6),
+        { start: 0, end: track.length },
+        4,
+      ),
+    );
+    for (const edge of [-1, 1])
+      serviceRails.push(
+        sweep(
+          boxProfile(side * 30 + edge * 2, -6.7, 0.25, 0.35),
+          { start: 0, end: track.length },
+          4,
+        ),
+      );
+    serviceMains.push(
+      sweep(
+        boxProfile(side * 26, -11.5, 0.8, 1.3),
+        { start: 0, end: track.length },
+        4,
+      ),
+    );
+  }
+  merged('Connected external ceramic maintenance decks', serviceDecks, blanket);
+  merged('Continuous maintenance handrails', serviceRails, graphite);
+  merged('Bundled observatory service mains', serviceMains, copper);
+  for (let s = 22; s < track.length; s += 28) {
+    const frame = track.sample(s);
+    for (const side of [-1, 1]) {
+      box(
+        'Maintenance handrail stanchions',
+        copper,
+        frame,
+        side * 32,
+        -8,
+        0,
+        0.35,
+        3,
+        0.35,
+      );
+      beam(
+        'Attached lower service cross-truss',
+        graphite,
+        framePoint(frame, side * 11, -6),
+        framePoint(frame, side * 30, -10),
+        0.8,
+        1,
+      );
+    }
+  }
   for (let s = 18; s < track.length; s += 28) {
     const frame = track.sample(s);
     const right = track.gapAt(s) ? -2 : 12;
@@ -377,10 +501,73 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
           5,
         );
     } else {
-      const seat = framePoint(frame, 0, -16);
+      const jumpSpan = track.jumps.some(
+        (jump) => s >= jump.takeoff - 50 && s <= jump.recovery + 70,
+      );
+      const supportX = jumpSpan ? -28 : 0;
+      const seat = framePoint(frame, supportX, -16);
       const foot = seat.clone();
       foot.y = track.groundY;
-      beam('Graphite observatory support pier', graphite, foot, seat, 5.5, 8);
+      const plumbRight = new THREE.Vector3(
+        frame.right.x,
+        0,
+        frame.right.z,
+      ).normalize();
+      const plumbForward = new THREE.Vector3(
+        frame.tangent.x,
+        0,
+        frame.tangent.z,
+      ).normalize();
+      for (const x of [-1, 1])
+        for (const z of [-1, 1]) {
+          const offset = plumbRight
+            .clone()
+            .multiplyScalar(x * 4.5)
+            .addScaledVector(plumbForward, z * 4.5);
+          beam(
+            'Graphite observatory support pier',
+            graphite,
+            foot.clone().add(offset),
+            seat.clone().add(offset),
+            1.5,
+            2.1,
+          );
+        }
+      for (let y = foot.y + 18, index = 0; y < seat.y - 10; y += 24, index++) {
+        const centre = new THREE.Vector3(seat.x, y, seat.z);
+        for (const side of [-1, 1]) {
+          const a = centre
+            .clone()
+            .addScaledVector(plumbRight, side * 4.5)
+            .addScaledVector(plumbForward, -4.5);
+          const b = centre
+            .clone()
+            .addScaledVector(plumbRight, side * 4.5)
+            .addScaledVector(plumbForward, 4.5);
+          a.y += index % 2 ? 0 : 18;
+          b.y += index % 2 ? 18 : 0;
+          beam('Open observatory pier lattice', graphite, a, b, 0.6, 0.8);
+          const c = centre
+            .clone()
+            .addScaledVector(plumbForward, side * 4.5)
+            .addScaledVector(plumbRight, -4.5);
+          const d = centre
+            .clone()
+            .addScaledVector(plumbForward, side * 4.5)
+            .addScaledVector(plumbRight, 4.5);
+          c.y += index % 2 ? 18 : 0;
+          d.y += index % 2 ? 0 : 18;
+          beam('Open observatory pier lattice', graphite, c, d, 0.6, 0.8);
+        }
+        instance(
+          'Pier thermal service collar',
+          unitBox,
+          blanket,
+          centre,
+          new THREE.Quaternion(),
+          new THREE.Vector3(10, 0.9, 10),
+        );
+      }
       for (const side of [-1, 1])
         beam(
           'Copper clad cantilever truss roots',
@@ -394,7 +581,7 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
         'Pale thermal blanket support collar',
         blanket,
         frame,
-        0,
+        supportX,
         -15,
         0,
         10,
@@ -468,8 +655,111 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
       0.24,
       1.8,
     );
+    for (const s of [
+      jump.takeoff - 11,
+      jump.landingStart + 5,
+      jump.recovery + 3,
+    ]) {
+      const marker = track.sample(s);
+      box(
+        'Vault ceramic shoulder marker',
+        blanket,
+        marker,
+        18.4,
+        3.5,
+        0,
+        1.8,
+        7,
+        2.3,
+      );
+      box(
+        'Vault amber marker crown',
+        warning,
+        marker,
+        18.4,
+        7.3,
+        0,
+        2.4,
+        0.9,
+        2.6,
+      );
+    }
+    for (const start of [
+      jump.takeoff - 18,
+      jump.landingStart + 1,
+      jump.recovery + 1,
+    ])
+      for (let row = 0; row < 3; row++)
+        for (let column = 0; column < 5; column++) {
+          const marker = track.sample(start + row * 3.2);
+          box(
+            'Vault left receiving checker',
+            (row + column) % 2 ? shaded : freshTile,
+            marker,
+            1.6 + column * 2.6,
+            0.135,
+            0,
+            2.5,
+            0.07,
+            3.05,
+          );
+        }
     const landing = track.sample(jump.landingStart + 3);
     box('Full-width receiving deck root', blanket, landing, 0, -2, 0, 30, 4, 5);
+  }
+  for (let s = 18, index = 0; s < track.length; s += 28, index++) {
+    const frame = track.sample(s);
+    const gap = track.gapAt(s);
+    for (const side of [-1, 1]) {
+      if (gap && side > 0) continue;
+      for (let leaf = 0; leaf < 3; leaf++) {
+        box(
+          'Open copper feather lamination',
+          copperEdge,
+          frame,
+          side * (17.0 + leaf * 0.8),
+          0.85 + leaf * 0.16,
+          -1.5,
+          0.2,
+          0.18,
+          6.8,
+        );
+      }
+      box(
+        'Graphite side service vent',
+        graphite,
+        frame,
+        side * 14.15,
+        0.118,
+        1,
+        0.65,
+        0.035,
+        4.0,
+      );
+      box(
+        'Inset copper service lock',
+        copperEdge,
+        frame,
+        side * 13.35,
+        0.13,
+        1,
+        0.28,
+        0.08,
+        0.9,
+      );
+    }
+    if (index % 3 === 0 && !gap)
+      box(
+        'Quiet graphite maintenance insert',
+        shaded,
+        frame,
+        index % 2 ? -9 : 9,
+        0.115,
+        0,
+        3.5,
+        0.028,
+        4.2,
+      );
   }
   for (const [name, { geometry, material, matrices }] of buckets) {
     const mesh = new THREE.InstancedMesh(geometry, material, matrices.length);

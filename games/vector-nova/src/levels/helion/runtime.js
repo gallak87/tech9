@@ -80,7 +80,25 @@ export function createHelionRuntime(context, telemetry = {}) {
     );
     if (next && !warning)
       warning = `OPTIONAL LEFT JUMP · ${Math.ceil(next.takeoff - s)} m · ${state.speed < 78 ? 'BUILD SPEED' : 'HOLD LINE'}`;
+    const flight = base.snapshot();
+    const destination =
+      flight.mode === 'recovery'
+        ? track.jumps.find((jump) => jump.id === flight.flight?.id)
+        : null;
+    const target = destination ? track.sample(destination.recovery) : null;
+    const recoveryTarget = target
+      ? target.position.clone().addScaledVector(target.up, 2)
+      : null;
     Object.assign(telemetry, sample, {
+      recoveryTarget: recoveryTarget?.toArray() ?? null,
+      recoveryDistance:
+        recoveryTarget && flight.currentPose
+          ? recoveryTarget.distanceTo({
+              x: flight.currentPose.position[0],
+              y: flight.currentPose.position[1],
+              z: flight.currentPose.position[2],
+            })
+          : 0,
       heat,
       thrustScale: helionThrustScale(heat),
       flightMode,
@@ -92,7 +110,7 @@ export function createHelionRuntime(context, telemetry = {}) {
     version: base.version,
     rulesId,
     scenarios,
-    advance(state, input, dt) {
+    advance(state, input, dt, modifiers) {
       if (disposed || !Number.isFinite(dt) || dt <= 0) return [];
       const elapsed = Math.min(dt, 0.1),
         count = Math.ceil(elapsed * 120 - 1e-10),
@@ -107,7 +125,7 @@ export function createHelionRuntime(context, telemetry = {}) {
           { airborne: flightMode !== 'magnetic' },
         );
         const before = heat;
-        events.push(...base.advance(state, input, step));
+        events.push(...base.advance(state, input, step, modifiers));
         flightMode = base.snapshot().mode;
         heat = integrateHelionHeat(heat, sample, step);
         if (before < 62 !== heat < 62)
@@ -128,7 +146,10 @@ export function createHelionRuntime(context, telemetry = {}) {
       heat = options.scenario === 'heat-hot' ? 78 : 0;
       if (options.state) publish(options.state);
     },
-    snapshot: () => ({ flight: base.snapshot(), heat }),
+    snapshot() {
+      const flight = base.snapshot();
+      return { mode: flight.mode, flight, heat };
+    },
     restore(data) {
       if (
         !data ||
@@ -144,7 +165,7 @@ export function createHelionRuntime(context, telemetry = {}) {
     pose: (alpha) => base.pose(alpha),
     update(frame) {
       base.update?.(frame);
-      publish(frame.state);
+      if (frame.state) publish(frame.state);
     },
     dispose() {
       disposed = true;

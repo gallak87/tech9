@@ -1,3 +1,4 @@
+import * as T from 'three';
 // Local presentation only. The runtime owns all heat and flight state.
 export function createHelionOverlay(host, telemetry) {
   const element = document.createElement('div');
@@ -41,29 +42,77 @@ export function createHelionOverlay(host, telemetry) {
     fontWeight: '500',
   });
   element.append(readout, rail, detail);
-  host.append(element);
+  const visor = document.createElement('div');
+  visor.dataset.helionVisor = '';
+  Object.assign(visor.style, {
+    position: 'absolute',
+    inset: '0',
+    pointerEvents: 'none',
+    zIndex: '0',
+    background:
+      'radial-gradient(ellipse at 50% 54%, transparent 57%, rgba(244,82,19,.13) 83%, rgba(255,133,53,.38) 100%)',
+    opacity: '0',
+  });
+  const destination = document.createElement('div');
+  destination.dataset.helionRecovery = '';
+  Object.assign(destination.style, {
+    position: 'absolute',
+    width: '150px',
+    textAlign: 'center',
+    color: '#ffdaa0',
+    font: '600 10px/1.5 system-ui',
+    letterSpacing: '.04em',
+    textShadow: '0 1px 4px #000',
+    pointerEvents: 'none',
+    zIndex: '5',
+    display: 'none',
+  });
+  const direction = document.createElement('div');
+  direction.textContent = '▲';
+  direction.style.fontSize = '22px';
+  const targetLabel = document.createElement('div');
+  destination.append(direction, targetLabel);
+  host.append(visor, element, destination);
   let presentation = {};
   let layoutKey = '';
-  function place(width, height, short, portrait) {
-    const notice = host.querySelector('#notice');
-    const key = `${width}:${height}:${element.offsetHeight}:${notice?.textContent}:${host.querySelector('#review-toggle')?.getAttribute('aria-expanded')}`;
-    if (key === layoutKey) return;
-    layoutKey = key;
+  let currentLayout = null;
+  // Core updates the shared speed/status text after the level overlay. Measure
+  // its final bounds in the same paint, including the first recovery frame.
+  const hudObserver = new MutationObserver(() => {
+    if (currentLayout) place(...currentLayout);
+  });
+  const speedHud = host.querySelector('.speed');
+  if (speedHud)
+    hudObserver.observe(speedHud, { childList: true, subtree: true });
+  function place(width, height, short, portrait, hull) {
     const own = element.getBoundingClientRect();
     const w = own.width,
       h = own.height;
     const obstacles = [
       ...host.querySelectorAll(
-        '.lap,.timing,.section-name,#minimap,#shape-controls,#notice,.energy,.speed,#touch,#legend,header',
+        '.lap,.timing,.section-name,#minimap,#shape-controls,#notice,.energy,.speed,#touch,#legend,header,[data-helion-recovery]',
       ),
     ]
       .filter((node) => getComputedStyle(node).display !== 'none')
       .map((node) => node.getBoundingClientRect())
       .filter((rect) => rect.width && rect.height);
-    const candidates = [width - w - 18, 18, (width - w) / 2];
+    if (hull) obstacles.push(hull);
+    // Shared HUD text and the projected recovery marker can change after this
+    // overlay updates. Reflow on their next measured bounds as well as the hull.
+    const key = `${width}:${height}:${w}:${h}:${obstacles.map((rect) => [rect.left, rect.top, rect.right, rect.bottom].map((v) => Math.round(v / 4)).join(',')).join(';')}`;
+    if (key === layoutKey) return;
+    layoutKey = key;
+    const candidates = [
+      ...new Set([
+        width - w - 18,
+        18,
+        (width - w) / 2,
+        ...obstacles.flatMap((rect) => [rect.left - w - 8, rect.right + 8]),
+      ]),
+    ].filter((x) => x >= 12 && x + w <= width - 12);
     let best = null;
     for (const x of candidates)
-      for (let y = 110; y < height - h - 85; y += 12) {
+      for (let y = short ? 64 : 110; y < height - h - 65; y += 12) {
         let overlap = 0;
         for (const rect of obstacles)
           overlap +=
@@ -89,17 +138,48 @@ export function createHelionOverlay(host, telemetry) {
     }
   }
   return {
-    update({ mode, reviewing }) {
+    update({ mode, reviewing, settings = {}, time = 0, camera, ship }) {
       const visible = ['racing', 'paused'].includes(mode) && !reviewing;
       element.style.display = visible ? 'block' : 'none';
-      if (!visible) return;
+      const thermalCue =
+        visible && !telemetry.sheltered && telemetry.label !== 'COOLING STRIP'
+          ? Math.max(0, Math.min(1, ((telemetry.heat ?? 0) - 12) / 72))
+          : 0;
+      visor.style.opacity = `${thermalCue * (settings.reducedMotion ? 0.68 : 0.72 + Math.sin(time * 1.7) * 0.08)}`;
+      destination.style.display =
+        visible && telemetry.recoveryTarget ? 'block' : 'none';
+      if (!visible) {
+        currentLayout = null;
+        return;
+      }
       const width = host.clientWidth || globalThis.innerWidth;
       const height = host.clientHeight || globalThis.innerHeight;
       const portrait = width < 600 && height > width;
       const short = height < 560 && width >= height;
+      if (telemetry.recoveryTarget && camera) {
+        const point = new T.Vector3()
+          .fromArray(telemetry.recoveryTarget)
+          .project(camera);
+        const x = T.MathUtils.clamp(
+          (point.x + 1) * width * 0.5,
+          width * 0.3,
+          width * 0.7,
+        );
+        const y = T.MathUtils.clamp(
+          (1 - point.y) * height * 0.5,
+          height * 0.3,
+          height * 0.6,
+        );
+        destination.style.left = `${x - 75}px`;
+        destination.style.top = `${y - 22}px`;
+        direction.style.transform = `rotate(${(Math.atan2(point.x, point.y) * 180) / Math.PI}deg)`;
+        targetLabel.textContent = `AUTO RECOVERY · SHELF ${Math.round(telemetry.recoveryDistance)} m`;
+      }
       element.style.width = short ? '194px' : portrait ? '210px' : '236px';
 
       element.style.padding = short ? '5px 8px' : '10px 12px';
+      element.style.fontSize = short ? '10px' : '11px';
+      element.style.letterSpacing = short ? '.025em' : '.07em';
       const heat = telemetry.heat ?? 0;
       const power = telemetry.thrustScale ?? 1;
       const flight = telemetry.flightMode ?? 'magnetic';
@@ -109,20 +189,55 @@ export function createHelionOverlay(host, telemetry) {
       element.style.borderColor = heat >= 62 ? '#d98c5f' : '#897766';
       detail.textContent =
         flight === 'recovery'
-          ? 'MISSED JUMP · RECOVERING TO SHELF'
+          ? short
+            ? 'JUMP MISSED · RECOVERY'
+            : 'MISSED JUMP · RECOVERING TO SHELF'
           : flight === 'flight'
             ? 'SHELTERED FLIGHT · LIMITED AIR STEER'
             : telemetry.warning || telemetry.label || 'CLEAR DECK';
-      place(width, height, short, portrait);
+      let hull = null;
+      const bounds = ship?.group?.userData.bounds;
+      if (camera && bounds) {
+        camera.updateMatrixWorld();
+        ship.group.updateWorldMatrix(true, false);
+        hull = {
+          left: Infinity,
+          top: Infinity,
+          right: -Infinity,
+          bottom: -Infinity,
+        };
+        const point = new T.Vector3();
+        for (const x of [bounds.min[0], bounds.max[0]])
+          for (const y of [bounds.min[1], bounds.max[1]])
+            for (const z of [bounds.min[2], bounds.max[2]]) {
+              point
+                .set(x, y, z)
+                .applyMatrix4(ship.group.matrixWorld)
+                .project(camera);
+              const sx = (point.x + 1) * width * 0.5,
+                sy = (1 - point.y) * height * 0.5;
+              hull.left = Math.min(hull.left, sx - 14);
+              hull.right = Math.max(hull.right, sx + 14);
+              hull.top = Math.min(hull.top, sy - 14);
+              hull.bottom = Math.max(hull.bottom, sy + 14);
+            }
+      }
+      currentLayout = [width, height, short, portrait, hull];
+      place(...currentLayout);
       presentation = { ...telemetry, text: detail.textContent };
     },
     reset() {
       presentation = {};
       layoutKey = '';
+      currentLayout = null;
     },
     getPresentation: () => ({ helion: { ...presentation } }),
     dispose() {
+      hudObserver.disconnect();
+      currentLayout = null;
       element.remove();
+      visor.remove();
+      destination.remove();
     },
   };
 }

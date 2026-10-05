@@ -14,56 +14,45 @@
     "blender": "5.1.1",
     "execution": "CPU background CLI; no GPU renders or baked images",
     "runtimeExport": "public/assets/levels/helion/thermal-observatory.glb",
-    "sha256": "65a0fa42f689124883bc78cc2640beea3be0a2315d3be3b2390c93b6feb517ed",
-    "bytes": 1530128,
+    "sha256": "17874bcbbbf7a565e0b25005ded2490ed983f2dd6c967d69d789817e93cbb222",
+    "bytes": 7530252,
     "assetRoots": [
       "Sunshield",
       "RadiatorFan",
       "JumpCanopy",
       "InstrumentTower",
+      "ServiceGantry",
       "ProminenceCrown",
       "ProminenceRibbon"
     ],
-    "sourceMeshes": 22,
-    "sourceTriangles": 42640,
-    "runtimeEnvironmentMeshes": 69,
-    "runtimeEnvironmentTriangles": 200170,
-    "sourceOfCounts": "CPU geometry inspection; not renderer measurements",
+    "sourceMeshes": 31,
+    "sourceTriangles": 118424,
+    "runtimeEnvironmentMeshes": 71,
+    "runtimeEnvironmentTriangles": 883526,
+    "sourceOfCounts": "CPU geometry inspection, including retained source geometry; not renderer measurements",
     "airborneCover": [
       {
         "id": "radiator-vault",
         "start": 527.2133896975457,
         "end": 949.2329375451686,
+        "minimumUndersideUp": 34.09,
         "roofModules": 13
       },
       {
         "id": "prominence-vault",
         "start": 2645.5714386912487,
         "end": 3099.8240468575777,
+        "minimumUndersideUp": 34.09,
         "roofModules": 14
       }
     ]
   },
   "authorship": "Original programmatic hard-surface and plasma meshes modeled from the retained scene reference. No third-party geometry or textures. Project-authored original material shaders.",
   "approximations": [
-    "Prominences use modeled thick twisted sheets with slow vertex deformation and layered radiance; no plasma fluid simulation.",
+    "Prominences use bounded ray-integrated density fields derived from retained Blender plume pockets, with sparse modeled cores, simulation-time flow and layered radiance; no plasma fluid simulation.",
     "Photosphere uses procedural cellular radiance, sunspot basins and filaments on an actual sphere; no stellar scientific simulation.",
-    "World static architecture is merged by material and broad district to bound draw calls.",
-    "Distant prominence light uses two unshadowed point lights, motivated service light uses three pooled point lights, and exposure/shade modulates the level sun smoothly."
-  ],
-  "verification": {
-    "cpuTests": "2 passed: GLB roots and geometry budget, cross-preset moving thermal boundary, exact-once resource disposal, reflection calls/backdrop lifecycle",
-    "lint": "assigned environment/backdrop files passed",
-    "gpuStatus": "No GPU/browser usage by environment builder; integrated production review pending",
-    "processes": "Blender CPU process exited cleanly; browser never opened",
-    "canopyCoverage": {
-      "rayCount": 312,
-      "laterals": [3.5, 8, 14],
-      "spacing": 8,
-      "minimumOverheadMetres": 32.69000244140625,
-      "maximumOverheadMetres": 38.596446141984,
-      "flightApexTestedMetres": 24,
-      "coverThrough": "landingEnd+25m checked against exported physical roof geometry"
-    }
-  }
+    "Static architecture retains CPU vertex contact shade and is merged by material and broad district to bound draw calls.",
+    "Two distant prominence lights and two local spill lights are unshadowed; three pooled point lights illuminate physical thermal fixtures. Exposure/shade modulates the level sun smoothly.",
+    "Emitted volume radiance is integrated before tone mapping and added once in both direct and HDR rendering; low reduces depth samples while retaining event geometry, timing and illumination."
+  ]
 }

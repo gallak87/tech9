@@ -122,8 +122,9 @@ export function sampleHelionThermal(
       laneCenter,
       active,
       flareStrength: strength,
-      warning:
-        phase < 3
+      warning: covered
+        ? 'PHYSICAL COVER · COOLING'
+        : phase < 3
           ? `FLARE IN ${(3 - phase).toFixed(1)}s · MOVE RIGHT FOR COVER`
           : active
             ? 'FLARE ACTIVE · EVADE / RIGHT SHELTER'

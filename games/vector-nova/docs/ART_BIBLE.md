@@ -50,6 +50,12 @@ Fractured chalk masonry, graphite deck cassettes and repaired cold-metal ribs si
 
 Pale receiving-deck checkers and unequal amber poles introduce the curved gaps before commitment. Repairs connect the road keel to observatory mass; plumb vault ribs provide a world reference during inversion. Keep the lower road and earlier grid legible through the descending fold. The giant intact instrument must have visible mass before stretching into attached strands, separating into structural members and spiralling inward. Reduced motion freezes decorative drift while preserving factual tidal cues and the required event. Retain the original scene, editable Blender source and selected sky provenance.
 
+## Helion Flare
+
+Rich plum-black/burgundy space surrounds an enormous structured amber-red star. Thick ivory heat tiles, feathered copper radiator edges, dark graphite shields and connected service decks establish a working thermal observatory. Retain recessed shield cassettes, jointed radiator roots, layered canopy hardware and deliberate cool fill beneath cover. The selected original scene and editable Blender kit remain the visual references.
+
+Bright exposure, shaded braking shelves, the sunshield wall and optional sheltered jumps need distinct movement and light. Two differently timed, enormous modeled prominences frame separate approaches and light nearby surfaces without losing road or craft detail. Rising lane plasma and bounded hot fragments occupy the actual declared contact area, leaving the refuge readable. Peripheral heat feedback clears in physical shade and on cooling strips; reduced motion keeps the center, craft and HUD sharp.
+
 ## UI and feedback
 
 Warm off-white/graphite, technical numerals, vermilion active accents, generous spacing and real controls. Keep telemetry and notices away from the craft, upcoming road and touch controls. Moderate chase FOV, no default camera shake, and road-local camera clearance.

@@ -7,3 +7,5 @@ Generated with the built-in imagegen tool using the project's [original scene dr
 Earlier source: [first panorama](helion-sky-v1.png) and [its exact prompt](sky-prompt.txt), generated without reference images.
 
 The PNGs contain bounded image color, not captured HDR radiance. They supply distant atmosphere/space; terrain, architecture, lighting, events and gameplay are authored separately. Preserve native source images when exporting runtime textures.
+
+Runtime export: `public/assets/levels/helion/helion-sky-v2.png`, an exact copy of the selected native PNG. The camera-following spherical shader uses continuous analytic longitude derivatives, a small overlap blend and averaged pole colors, with subdued radiance. A separate modeled sphere supplies the structured stellar photosphere; the star limb and both animated prominence assemblies remain authored 3D effects. The level owns and disposes the sRGB texture.

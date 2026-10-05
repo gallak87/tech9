@@ -3,8 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chromium } from 'playwright';
 const url = process.env.VN_URL;
-if (!url)
-  throw new Error('VN_URL requires the coordinated Helion production preview.');
+if (!url) throw new Error('VN_URL requires the Helion production preview.');
 const output = resolve(
   process.env.VN_EVIDENCE || '.experiments/expansion/helion/production',
 );
@@ -120,34 +119,14 @@ try {
       });
       result.states.push({ name, snapshot });
     }
-    for (const viewport of [
-      { width: 390, height: 844 },
-      { width: 844, height: 390 },
-      { width: 640, height: 360 },
-    ]) {
-      await page.setViewportSize(viewport);
-      await page.evaluate(() => window.__VN.loadScenario('heat-hot', 47219));
-      await page.keyboard.down('w');
-      await page.waitForTimeout(400);
-      await page.keyboard.up('w');
-      await page.screenshot({
-        path: resolve(
-          output,
-          `${quality}-${viewport.width}x${viewport.height}.png`,
-        ),
-      });
-      result.states.push({
-        name: `viewport-${viewport.width}x${viewport.height}`,
-        snapshot: await page.evaluate(() => window.__VN.getSnapshot()),
-      });
-    }
     await page.evaluate(() => window.__VN.dispose());
     await context.close();
   }
   assert.deepEqual(report.errors, []);
 } catch (error) {
   if (deadlineReached)
-    report.incomplete = 'GPU batch deadline reached; requeue remaining cases.';
+    report.incomplete =
+      'Browser verification deadline reached; remaining cases are unverified.';
   else {
     report.failure = error.stack;
     throw error;

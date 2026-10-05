@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { createDevices } from './devices.js';
 import { createHelionTrack, buildHelionRoad } from './track/index.js';
 import { createHelionEnvironment } from './environment/index.js';
 import { createHelionBackdrop } from './backdrop/index.js';
@@ -8,13 +9,14 @@ import { createHelionOverlay } from './overlay.js';
 export default function createLevel({ shape = false } = {}) {
   const telemetry = {};
   return {
-    version: '0.5.1-helion-thermal-v2',
+    version: '0.6.0-helion-racing',
+    racing: { createDevices, createMotion: createHelionRuntime },
     renderer: {
       world: shape ? 'helion-shape' : 'helion-flare',
       background: '#090e19',
       fog: null,
-      bloomStrength: 0.28,
-      bloomThreshold: 1.2,
+      bloomStrength: 0.12,
+      bloomThreshold: 1.4,
       fillHeight: 220,
       reflectionFar: 42000,
       contact: shape ? undefined : { surfaceStep: 4, opacity: 0.46 },

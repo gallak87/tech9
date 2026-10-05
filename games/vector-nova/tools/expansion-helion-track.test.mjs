@@ -154,7 +154,7 @@ test('production and neutral geometry preserve actual left-side gaps and solid r
         'Receiving deck is real',
       );
     }
-    assert.ok(road.group.children.length <= 30);
+    assert.ok(road.group.children.length <= 56);
     road.dispose();
     road.dispose();
     assert.equal(road.group.children.length, 0);

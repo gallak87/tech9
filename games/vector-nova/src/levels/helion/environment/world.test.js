@@ -30,6 +30,7 @@ test('Helion modeled world stays bounded, deterministic across presets, and rele
       'RadiatorFan',
       'JumpCanopy',
       'InstrumentTower',
+      'ServiceGantry',
       'ProminenceCrown',
       'ProminenceRibbon',
     ],
@@ -41,7 +42,7 @@ test('Helion modeled world stays bounded, deterministic across presets, and rele
   );
   assert.ok(world.metrics.meshCount < 130, JSON.stringify(world.metrics));
   assert.ok(world.metrics.triangles < 900000);
-  assert.equal(world.metrics.modelPlacements, 23);
+  assert.equal(world.metrics.modelPlacements, 24);
   world.group.updateMatrixWorld(true);
   const ray = new T.Raycaster();
   ray.near = 0;
@@ -82,7 +83,11 @@ test('Helion modeled world stays bounded, deterministic across presets, and rele
   const disposal = new Map();
   for (const root of [loaded.scene, world.group])
     root.traverse((object) => {
-      for (const resource of [object.geometry, object.material]
+      for (const resource of [
+        object.geometry,
+        object.material,
+        object.material?.uniforms?.density?.value,
+      ]
         .flat()
         .filter(Boolean)) {
         if (disposal.has(resource)) continue;
@@ -128,17 +133,24 @@ test('Helion modeled world stays bounded, deterministic across presets, and rele
     );
 });
 
-test('Helion stellar backdrop accepts stationary reflection calls and reset lifecycle', () => {
-  const backdrop = createHelionBackdrop({ settings: { reducedMotion: true } });
+test('Helion stellar backdrop accepts stationary reflection calls and reset lifecycle', async () => {
+  const texture = new T.DataTexture(new Uint8Array([20, 8, 14, 255]), 1, 1);
+  let releases = 0;
+  texture.addEventListener('dispose', () => releases++);
+  const backdrop = await createHelionBackdrop({
+    settings: { reducedMotion: true },
+    loadTexture: async () => texture,
+  });
   backdrop.update({ camera: new T.PerspectiveCamera(), time: 0, reset: true });
   backdrop.update({
     time: 15,
     settings: { quality: 'low', reducedMotion: true },
   });
-  assert.equal(backdrop.ownedTextures.length, 0);
+  assert.equal(backdrop.ownedTextures[0], texture);
   assert.ok(backdrop.group.children.length >= 3);
   assert.ok(backdrop.sunDirection.length() > 0.999);
   backdrop.dispose();
   backdrop.dispose();
   assert.equal(backdrop.group.children.length, 0);
+  assert.equal(releases, 1);
 });

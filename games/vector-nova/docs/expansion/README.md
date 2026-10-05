@@ -11,7 +11,7 @@ Expansion-specific briefs and process belong only in this folder. Keep progress 
 | 6 — Cindercoil        | `cindercoil` | Merged                     |
 | 7 — Saffron Leviathan | `saffron`    | Merged                     |
 | 8 — Zephyr Basilica   | `zephyr`     | [Brief](zephyr/HANDOFF.md) |
-| 9 — Helion Flare      | `helion`     | [Brief](helion/HANDOFF.md) |
+| 9 — Helion Flare      | `helion`     | Merged                     |
 | 10 — Umbra Fold       | `umbra`      | Merged                     |
 
 ## Execution and authority

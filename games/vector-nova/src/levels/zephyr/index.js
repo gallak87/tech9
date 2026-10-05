@@ -31,7 +31,10 @@ export default function createLevel({ shape = false } = {}) {
       chaseHeight: (track, state) => 5 + 19 * spiralView(track, state),
       chaseDistance: (track, state) => 12.5 + 25.5 * spiralView(track, state),
       lookAhead: (track, state) => 38 + 222 * spiralView(track, state),
-      safeFrame: { left: -0.65, right: 0.65, bottom: -0.8, top: 0.65 },
+      safeFrame: (aspect) =>
+        aspect >= 1.7
+          ? { left: -0.15, right: 0.45, bottom: -0.62, top: 0.45 }
+          : { left: -0.65, right: 0.65, bottom: -0.8, top: 0.65 },
       portraitAspect: 0.64,
       maxPortraitScale: 1.45,
     },

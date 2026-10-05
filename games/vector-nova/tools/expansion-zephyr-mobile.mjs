@@ -95,6 +95,14 @@ async function capture(page, name) {
       overflow: document.documentElement.scrollWidth > innerWidth,
     };
   });
+  await page.screenshot({ path: `${folder}/${name}.png` });
+  report.cases.push({
+    name,
+    state,
+    layout,
+    hull,
+    metrics: await page.evaluate(() => window.__VN.getMetrics()),
+  });
   assert.equal(layout.overflow, false, `${name}: viewport overflow`);
   if (layout.visor) assert.equal(layout.visor.pointerEvents, 'none');
   if (state.mode === 'racing') {
@@ -123,21 +131,17 @@ async function capture(page, name) {
   const drive = await page.locator('#boost-status').innerText();
   if (motion === 'flight') assert.equal(drive, 'AIRBORNE');
   if (motion === 'recovery') assert.equal(drive, 'RECOVERY DELAY');
-  await page.screenshot({ path: `${folder}/${name}.png` });
-  report.cases.push({
-    name,
-    state,
-    layout,
-    hull,
-    metrics: await page.evaluate(() => window.__VN.getMetrics()),
-  });
 }
 try {
   for (const [view, width, height] of [
     ['portrait', 390, 844],
     ['landscape', 844, 390],
     ['compact', 640, 360],
-  ])
+  ].filter(
+    ([name]) =>
+      !process.env.VN_VIEWPORT ||
+      process.env.VN_VIEWPORT.split(',').includes(name),
+  ))
     for (const [quality, reducedMotion] of [
       ['high', false],
       ['high', true],

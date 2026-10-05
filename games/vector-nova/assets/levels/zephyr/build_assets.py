@@ -16,7 +16,7 @@ import random
 import sys
 from collections import defaultdict
 from pathlib import Path
-from mathutils import Vector
+from mathutils import Vector, noise
 from mathutils.bvhtree import BVHTree
 
 
@@ -192,10 +192,12 @@ class Meshes:
             if mat in ("limestone","pale","shadow","slate","bronze","copper"):
                 bpy.context.view_layer.objects.active=obj
                 bevel=obj.modifiers.new("Worn carved arris", "BEVEL")
-                bevel.width=.18
+                bevel.width=.045 if mat=="slate" else .18
                 bevel.segments=2
                 bevel.limit_method="ANGLE"
-                bevel.angle_limit=.55
+                # Rounded ribs/leaves already own their cross-section; bevel
+                # only the sharp masonry arrises, not every tube segment.
+                bevel.angle_limit=1.15
                 bpy.ops.object.modifier_apply(modifier=bevel.name)
                 mesh=obj.data
                 bm=bmesh.new();bm.from_mesh(mesh)
@@ -234,6 +236,15 @@ class Meshes:
                     if tiny:bmesh.ops.delete(bm,geom=tiny,context='FACES_ONLY')
                     bm.normal_update();bm.to_mesh(mesh);bm.free();mesh.update()
                 for poly in mesh.polygons:poly.use_smooth=not self.name.startswith("island-")
+            # Degenerate-face removal can leave loose extrema which glTF omits.
+            # Remove those vertices before measuring the exported asset bounds.
+            bm=bmesh.new();bm.from_mesh(mesh)
+            loose=[v for v in bm.verts if not v.link_faces]
+            if loose:bmesh.ops.delete(bm,geom=loose,context='VERTS')
+            bm.to_mesh(mesh);bm.free();mesh.update()
+            if mat.startswith('rock'):
+                for poly in mesh.polygons:poly.use_smooth=True
+                mesh.set_sharp_from_angle(angle=1.05)
             self.objects.append(obj)
             all_vertices.extend((v.co.x,v.co.z,-v.co.y) for v in mesh.vertices)
             triangles+=sum(len(poly.vertices)-2 for poly in mesh.polygons)
@@ -250,11 +261,15 @@ class Meshes:
             for o in opaque:
                 colors=o.data.color_attributes.new(name='Color',type='FLOAT_COLOR',domain='CORNER')
                 o.data.color_attributes.active_color=colors
+                # Cache the actual exported split normals before color writes;
+                # reading vertex normals during the bake both mixes hard edges
+                # and repeatedly invalidates Blender's normal cache.
+                corner_normals=[n.vector.copy() for n in o.data.corner_normals]
                 cache={}
                 for poly in o.data.polygons:
                     for li in poly.loop_indices:
                         vertex=o.data.vertices[o.data.loops[li].vertex_index]
-                        v=vertex.co;n=vertex.normal if poly.use_smooth else poly.normal
+                        v=vertex.co;n=corner_normals[li]
                         key=tuple(round(c,3) for c in (*v,*n))
                         if key not in cache:
                             tangent=n.cross(Vector((0,0,1)) if abs(n.z)<.9 else Vector((0,1,0))).normalized();bitangent=n.cross(tangent)
@@ -264,7 +279,7 @@ class Meshes:
                                 direction=(n*.6+tangent*math.cos(theta)*.8+bitangent*math.sin(theta)*.8).normalized()
                                 hit=tree.ray_cast(v+n*.12,direction,12)
                                 if hit[0] is not None:occlusion+=1-hit[3]/16
-                            cache[key]=max(.29,1-occlusion/6*.83)
+                            cache[key]=max(.44,1-occlusion/6*.7) if o["surfaceRole"].startswith("rock") else max(.29,1-occlusion/6*.83)
                         ao=cache[key]
                         colors.data[li].color=(ao,ao,ao,1)
         self.root.select_set(True)
@@ -300,7 +315,23 @@ def pier(m,x,z,bottom=-28,top=116,radius=5):
         for side in [-1,1]:
             m.box((x+side*radius*.72,y+3,z-radius*.84),(radius*.22,3.7,.42),"pale")
     for y in [bottom+11,top-9,top-5,top-2]:
-        m.box((x,y,z),(radius*2.5,1.5,radius*2.5),"pale")
+        m.beam((x,y-.7,z),(x,y+.7,z),radius*1.27,"pale",12)
+    m.beam((x,top-10,z),(x,top-3,z),radius*.98,"limestone",12,radius*1.38)
+    m.box((x,top-.5,z),(radius*2.9,2,radius*2.9),"pale")
+    # Deep curled acanthus leaves grow from the neck into the carrying capital.
+    for k in range(8):
+        a=math.tau*k/8
+        points=[]
+        for j in range(9):
+            t=j/8
+            r=radius*(.98+.52*math.sin(t*math.pi*.68))
+            points.append((x+math.cos(a)*r,top-11+t*8,z+math.sin(a)*r))
+        m.path(points,radius*.16,"pale",6)
+        for side in [-1,1]:
+            aa=a+side*.21
+            m.beam(points[3],(x+math.cos(aa)*radius*1.35,top-5,z+math.sin(aa)*radius*1.35),radius*.11,"limestone",5)
+    for y,r in [(bottom+7,radius*1.36),(bottom+10,radius*1.16)]:
+        m.beam((x,y-1,z),(x,y+1,z),r,"pale",12,r*.91)
 
 
 def masonry_wall(m,x,z,width,bottom,top,depth,seed):
@@ -401,6 +432,13 @@ def facade():
         pinnacle(m,side*111,5,9,36,4)
         m.box((x,-34,0),(39,7,39),"shadow")
         m.box((x,-29,0),(37,2,38),"pale")
+    for x in [-38,-18,18,38]:
+        yy=96-abs(x)*.16
+        m.ring(x,yy,-8.5,3.8,4.8,2,"pale",24)
+        for k in range(6):
+            a=k*math.tau/6
+            pts=[(x+math.cos(a+t)*r,yy+math.sin(a+t)*r,-10) for t,r in [(-.3,3.6),(0,1.4),(.3,3.6)]]
+            m.path(pts,.42,"pale",5)
     pinnacle(m,0,143,0,27,2.5)
     return m.finish({"purpose":"Drive-through shattered rose facade", "anchor":"road crosses origin along +Z",
                      "clearEnvelope":{"x":[-32,32],"y":[-18,38],"z":[-22,22]},
@@ -434,21 +472,21 @@ def nave_geometry(m,zmin=-36,zmax=36,roof=True):
             m.box((side*49.7,72,z),(3.2,13,6),"rose_blue" if side>0 else "rose_lilac")
     # Real stone roof volume darkens the interior under coherent game lights.
     if roof:
+        # Individual voussoir slabs follow the vault with real recessed joints.
+        # Stable staggered courses keep the dark soffit architectural at close range.
         N=28
-        vs=[]
-        for z in [zmin,zmax]:
-            for i in range(N+1):
-                x=-58+116*i/N
-                h=vault_height(x)
-                vs.extend([(x,h,z),(x,h+3.5,z)])
-        fs=[]
-        for i in range(N):
-            a=i*2
-            b=(N+1)*2+i*2
-            fs.extend([(a,a+2,b+2,b),(a+1,b+1,b+3,a+3),(a,a+1,a+3,a+2),
-                       (b,b+2,b+3,b+1)])
-        fs.extend([(0,(N+1)*2,(N+1)*2+1,1),(N*2,N*2+1,(N+1)*2+N*2+1,(N+1)*2+N*2)])
-        m.mesh(vs,fs,"slate")
+        rows=max(4,math.ceil((zmax-zmin)/8))
+        for j in range(rows):
+            za=zmin+(zmax-zmin)*j/rows+.018
+            zb=zmin+(zmax-zmin)*(j+1)/rows-.018
+            cuts=[-58]+[-58+116*(i+(j%2)*.5)/N for i in range(1,N)]+[58]
+            for i in range(len(cuts)-1):
+                xa=cuts[i]+.018;xb=cuts[i+1]-.018
+                ya=vault_height(xa);yb=vault_height(xb)
+                vs=[(xa,ya,za),(xb,yb,za),(xb,yb,zb),(xa,ya,zb),
+                    (xa,ya+3.5,za),(xb,yb+3.5,za),(xb,yb+3.5,zb),(xa,ya+3.5,zb)]
+                fs=[(0,1,2,3),(4,7,6,5),(0,4,5,1),(1,5,6,2),(2,6,7,3),(3,7,4,0)]
+                m.mesh(vs,fs,"slate")
     for z in [zmin,zmax]:
         pts=[(-58+116*i/40,vault_height(-58+116*i/40)-2,z) for i in range(41)]
         m.path(pts,2.6,"pale",9)
@@ -539,13 +577,13 @@ def chapel():
 def island(name,rx,rz,depth,seed,terraces=2):
     m=Meshes(name)
     rng=random.Random(seed)
-    n=48
+    n=128
     phase=[rng.uniform(-.019,.019) for _ in range(n)]
     # The three authored families have different bed thickness and skew, rather
     # than the same repeated concentric steps scaled to different sizes.
-    radial=[1+.09*math.sin(k*.39+seed)+.045*math.sin(k*1.31)+rng.uniform(-.035,.035) for k in range(n)]
+    radial=[1+.09*math.sin(math.tau*k/n*3+seed)+.045*math.sin(math.tau*k/n*7+seed*2) for k in range(n)]
     if 'terrace' in name:
-        rings=[(0,.82),(-6,.97),(-depth*.23,.91),(-depth*.27,.65),(-depth*.71,.54),(-depth*.75,.31),(-depth,.035)]
+        rings=[(0,.82),(-6,.97),(-depth*.23,.91),(-depth*.27,.65),(-depth*.63,.59),(-depth*.72,.43),(-depth,.24)]
     elif 'shard' in name:
         rings=[(0,.78),(-7,.95),(-depth*.12,.88),(-depth*.15,.69),(-depth*.61,.47),(-depth*.65,.34),(-depth,.025)]
     else:
@@ -553,18 +591,39 @@ def island(name,rx,rz,depth,seed,terraces=2):
     expanded=[]
     for a,b in zip(rings[:-1],rings[1:]):
         expanded.append(a)
-        if abs(a[0]-b[0])>depth*.18:
-            for t in [.33,.67]:expanded.append((a[0]*(1-t)+b[0]*t,a[1]*(1-t)+b[1]*t))
+        steps=max(1,math.ceil(abs(a[0]-b[0])/5),math.ceil(abs(a[1]-b[1])*max(rx,rz)/5))
+        for j in range(1,steps):
+            t=j/steps
+            profile=t*t*(3-2*t)
+            expanded.append((a[0]*(1-t)+b[0]*t,a[1]*(1-profile)+b[1]*profile))
     rings=expanded+[rings[-1]]
     ringverts=[]
     for ri,(yy,s) in enumerate(rings):
         rr=[]
         for k in range(n):
             t=math.tau*k/n+phase[k]
-            offset=0 if ri==0 else depth*(.031*math.sin(t*2+ri*.28)+.019*math.sin(t*5.3+seed))+rng.uniform(-depth*.006,depth*.006)
-            r=radial[k]*s*(1+.047*math.sin(k*.63+ri*.61)+.025*math.sin(k*2.1+ri*.3))
-            rr.append((math.cos(t)*rx*r+math.sin(ri*.23)*rx*.12,
-                       yy+offset,math.sin(t)*rz*r+math.cos(ri*.33)*rz*.07))
+            q=-yy/depth
+            offset=0 if ri==0 else depth*(.031*math.sin(t*2+q*3)+.019*math.sin(t*5.3+seed))+rng.uniform(-depth*.0015,depth*.0015)
+            # Layered karst erosion: broad asymmetric buttresses, sharp recessed
+            # seams, worn horizontal beds and small chipped facets in real mesh.
+            flutes=abs(math.sin(t*7.5+q*.8+seed))**4
+            beds=math.sin(yy*.44+math.sin(t*3)*1.7)*math.sin(yy*.18+t*2)
+            chips=math.sin(t*37+yy*.51)*math.sin(t*23-yy*.73)
+            erosion=(1-.014*flutes+.018*beds+.01*chips) if ri else 1
+            r=radial[k]*s*erosion*(1+.09*math.sin(t*3+q*3.4)+.035*math.sin(t*7+q*8))
+            lean=(max(0,q-.3)**2)*rx*(.36 if 'grand' in name else -.17)
+            xx=math.cos(t)*rx*r+math.sin(q*2.3)*rx*.12+lean
+            zz=math.sin(t)*rz*r+math.cos(q*3.3)*rz*.07
+            if ri:
+                # World-space erosion changes with depth: broad quiet faces
+                # separate irregular fissures instead of extruded radial flutes.
+                p=Vector((xx*.027+seed,yy*.027,zz*.027))
+                erosion3=noise.noise_vector(p,noise_basis='PERLIN_NEW')
+                fine=noise.noise_vector(p*3.7,noise_basis='PERLIN_NEW')
+                xx+=erosion3.x*7+fine.x*1.2
+                zz+=erosion3.z*7+fine.z*1.2
+                offset+=erosion3.y*5+fine.y*.9
+            rr.append((xx,yy+offset,zz))
         ringverts.append(rr)
     # Dressed broad top supports architecture; natural strata remain faceted.
     top=[(0,0,0)]+ringverts[0]
@@ -581,15 +640,17 @@ def island(name,rx,rz,depth,seed,terraces=2):
     bottom=[(0,-depth,0)]+ringverts[-1]
     m.mesh(bottom,[(0,k+1,(k+1)%n+1) for k in range(n)],"rock")
     # Projecting shelves and architectural roots break the silhouette at all scales.
-    for k in range(18):
-        t=math.tau*k/18+rng.uniform(-.12,.12)
+    for k in range(11):
+        t=math.tau*k/11+rng.uniform(-.19,.19)
         r=rng.uniform(.72,.95)
         x=math.cos(t)*rx*r
         z=math.sin(t)*rz*r
         y=-rng.uniform(6,depth*.25)
-        m.box((x,y,z),(rng.uniform(13,26),rng.uniform(3,7),rng.uniform(10,24)),"rock_light",t)
-        if k%3==0:
-            m.beam((x,y-5,z),(x*.62,y-depth*.44,z*.63),rng.uniform(3,5),"rock_dark",7,.6)
+        # Fractured wedges attach to the bed instead of repeated rectangular
+        # ledges or identical pencil roots.
+        w=rng.uniform(8,17);h=rng.uniform(3,8);d=rng.uniform(9,19)
+        verts=[(x-w,y,z-d),(x+w,y+1,z-d),(x+w*.7,y-h,z+d),(x-w*.8,y-h*1.6,z+d),(x-w*.6,y-h*2,z-d),(x+w*.7,y-h*2,z-d)]
+        m.mesh(verts,[(0,1,2,3),(0,4,5,1),(0,3,4),(1,5,2),(3,2,5,4)],"rock_light")
     # Broken terrace rim defines a construction language without paving the whole island.
     for k in range(24):
         if (k+seed)%7 in [0,1]:
@@ -696,12 +757,12 @@ def water_ribbon(m,center,width,length,thickness,seed,mat="water",bend=0,section
     for j in range(sections+1):
         t=j/sections
         yy=y0-length*t
-        taper=(.90+.13*math.sin(t*4+phase)+.24*t*t)
+        taper=(.88+.18*math.sin(t*9+phase)+.19*math.sin(t*23+phase*.7)*t+.26*t*t)
         for side in [-1,1]:
             for k in range(across+1):
                 u=k/across*2-1
-                ruffle=math.sin(t*19+u*4+phase)*1.4+math.sin(t*43+u*11)*.45
-                xx=x0+u*width*.5*taper+math.sin(t*7+phase)*width*.035
+                ruffle=math.sin(t*19+u*4+phase)*(1.4+t*3)+math.sin(t*43+u*11)*(.45+t*1.5)
+                xx=x0+u*width*.5*taper+math.sin(t*7+phase)*width*(.035+t*.085)
                 zz=z0+bend*t*t+math.sin(t*13+phase)*1.6+ruffle
                 bulge=thickness*(.6+.25*math.sin(t*17+u*5+phase))*(.64+.36*(1-u*u))
                 vs.append((xx,yy+math.sin(u*11+phase)*.7,zz+side*bulge/2))
@@ -749,23 +810,65 @@ def aqueduct():
                      "clearEnvelope":{"x":[-25,25],"y":[-90,-27],"z":[-30,12]}})
 
 
+def foam_mass(m,center,scale,seed):
+    # Closed unequal lobes, attached to the falling body rather than flat cards.
+    n=12;rows=7
+    x,y,z=center;rx,ry,rz=scale
+    verts=[(x,y+ry,z)]
+    for j in range(1,rows+1):
+        theta=math.pi*j/(rows+1)
+        for k in range(n):
+            a=math.tau*k/n
+            r=math.sin(theta)*(1+.16*math.sin(a*3+j*.8+seed)+.08*math.sin(a*7-j))
+            verts.append((x+rx*r*math.cos(a),y+ry*math.cos(theta),z+rz*r*math.sin(a)))
+    bottom=len(verts);verts.append((x,y-ry,z))
+    faces=[(0,1+(k+1)%n,1+k) for k in range(n)]
+    for j in range(rows-1):
+        for k in range(n):
+            a=1+j*n+k;b=1+j*n+(k+1)%n
+            faces.append((a,b,b+n,a+n))
+    faces.extend((bottom,1+(rows-1)*n+k,1+(rows-1)*n+(k+1)%n) for k in range(n))
+    m.mesh(verts,faces,"water_foam")
+
+
 def waterfall():
     m=Meshes("waterfall")
-    water_ribbon(m,(0,0,0),70,360,10,910,"water",22)
-    water_ribbon(m,(-15,-2,-5),27,345,5,23,"water_silver",27,42,8)
-    water_ribbon(m,(15,-1,-5.5),22,328,5.5,241,"water_silver",18,40,8)
-    water_ribbon(m,(1,-5,-6.5),13,351,3,70,"water_shadow",24,42,6)
+    # Overlapping unequal closed flow masses keep the source coherent while
+    # breaking the long plate edges before the falling tower stretches the arc.
+    water_ribbon(m,(0,0,0),68,76,9,910,"water",2,24,16)
+    flow_rng=random.Random(912)
+    for lane,x in enumerate([-22,1,23]):
+        for section,start in enumerate([40,106,187,263]):
+            start+=flow_rng.uniform(-12,12)
+            q=start/360
+            length=min(360-start,flow_rng.uniform(84,121))
+            mat='water_silver' if (lane+section)%3==0 else 'water'
+            water_ribbon(m,(x+flow_rng.uniform(-7,7),-start,22*q*q+flow_rng.uniform(-4,4)),
+                         flow_rng.uniform(18,33),length,flow_rng.uniform(5,10),
+                         940+lane*5+section,mat,22*((start+length)/360)**2-22*q*q,28,8)
+    water_ribbon(m,(1,-12,-6.5),11,174,3,70,"water_shadow",8,30,6)
     # Irregular foamy strands trail at different lengths, leaving depth grooves.
     rng=random.Random(118)
-    for k in range(15):
-        x=-32+k*4.5+rng.uniform(-1,1)
-        length=rng.uniform(290,368)
-        width=rng.uniform(.6,2.2)
-        water_ribbon(m,(x,rng.uniform(-1,-10),-7-rng.uniform(0,2)),width,length,rng.uniform(1,2.5),
-                     880+k,"water_foam" if k%3 else "water_silver",rng.uniform(15,31),36,3)
+    for k in range(23):
+        x=rng.uniform(-32,32)
+        start=rng.uniform(0,230)
+        length=rng.uniform(55,140)
+        width=rng.uniform(1.2,5.8)
+        water_ribbon(m,(x,-start,-8-rng.uniform(0,4)),width,length,rng.uniform(1.5,3.5),
+                     880+k,"water_foam" if k%3 else "water_silver",rng.uniform(8,23),24,5)
+    # Unequal turbulent groups interrupt the sheets at the source, body and
+    # disintegrating foot. The empty intervals preserve deep water grooves.
+    for k in range(30):
+        y=-rng.uniform(12,330)
+        q=-y/360
+        x=rng.uniform(-31,31)*(1+q*.12)
+        z=22*q*q+rng.uniform(-9,5)
+        foam_mass(m,(x,y,z),(rng.uniform(2.2,6.8),rng.uniform(7,22),rng.uniform(2.8,7.5)),k*.7)
+    for k in range(7):
+        foam_mass(m,(-27+k*9,-5-rng.uniform(0,7),-3),(rng.uniform(3,6),rng.uniform(4,9),rng.uniform(3,6)),k)
     # Two side plumes taper and break the parallel rectangular fall silhouette.
     for side in [-1,1]:
-        water_ribbon(m,(side*35,-20,3),9,250,5,67+side,"water_silver",33,30,5)
+        water_ribbon(m,(side*31,-26,3),8,118+side*23,5,67+side,"water_silver",12,26,5)
     return m.finish({"purpose":"Hero modeled waterfall with closed layered volume, grooves and irregular long strands",
                      "anchor":"source lip centered [0,0,0], flow down -Y; wide face in XY",
                      "deformation":"Optional level shader may bend by normalized -Y/370; preserve source lip and phase by simulation time.",

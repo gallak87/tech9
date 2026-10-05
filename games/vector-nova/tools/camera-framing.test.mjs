@@ -111,3 +111,33 @@ test('ordinary in-frame chase and non-chase views retain their exact default cam
     }
   }
 });
+
+test('responsive safe frames follow aspect changes and validate returned bounds', () => {
+  const c = camera();
+  c.position.set(0, 5, -13);
+  const subject = new T.Object3D();
+  subject.position.set(-8, 0.72, 0);
+  const responsive = (aspect) =>
+    aspect > 1.7
+      ? { left: -0.15, right: 0.45, bottom: -0.62, top: 0.45 }
+      : rectangle;
+  assert.doesNotThrow(() => validateDefinition(descriptor(responsive)));
+  const fit = createSafeFrame(responsive, bounds);
+  for (const aspect of [1.6, 2.2, 1.8, 1.6]) {
+    c.aspect = aspect;
+    c.updateProjectionMatrix();
+    c.lookAt(0, 14, 25);
+    fit(c, subject);
+    const target = responsive(aspect);
+    for (const corner of corners) {
+      const p = corner.clone().applyMatrix4(subject.matrixWorld).project(c);
+      assert.ok(p.x >= target.left - 1e-6 && p.x <= target.right + 1e-6);
+      assert.ok(p.y >= target.bottom - 1e-6 && p.y <= target.top + 1e-6);
+    }
+  }
+  assert.throws(
+    () =>
+      createSafeFrame(() => ({ ...rectangle, left: 2 }), bounds)(c, subject),
+    /camera safeFrame/,
+  );
+});

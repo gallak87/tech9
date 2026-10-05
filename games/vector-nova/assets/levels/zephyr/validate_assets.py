@@ -101,7 +101,7 @@ for asset in manifest["assets"]:
     assert triangle_count==asset["triangles"],(path.name,triangle_count,asset["triangles"])
     bounds={"min":[min(v[i] for v in vertices) for i in range(3)],"max":[max(v[i] for v in vertices) for i in range(3)]}
     for key in ["min","max"]:
-        assert max(abs(x-y) for x,y in zip(bounds[key],asset["bounds"][key]))<.001
+        assert max(abs(x-y) for x,y in zip(bounds[key],asset["bounds"][key]))<.001,(path.name,key,bounds[key],asset["bounds"][key])
     assert intersections==0,(path.name,"clear-envelope intersection",intersections)
     assert degenerates==0,(path.name,"degenerate triangle",degenerates)
     tested=bool(clear and "x" in clear)

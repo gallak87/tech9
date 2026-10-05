@@ -5,7 +5,7 @@ import { validateSafeFrame } from './contract.js';
 // widening the lens or changing the normal road/flight camera goals. The rig's
 // existing rotation damping returns toward its ordinary aim when room permits.
 export function createSafeFrame(frame, bounds) {
-  validateSafeFrame(frame);
+  if (typeof frame !== 'function') validateSafeFrame(frame);
   if (
     !bounds?.isBox3 ||
     bounds.isEmpty() ||
@@ -23,14 +23,18 @@ export function createSafeFrame(frame, bounds) {
   const xAxis = new T.Vector3(1, 0, 0);
   const yAxis = new T.Vector3(0, 1, 0);
   return (camera, subject) => {
+    const rectangle =
+      typeof frame === 'function'
+        ? validateSafeFrame(frame(camera.aspect))
+        : frame;
     subject.updateWorldMatrix(true, false);
     for (let i = 0; i < local.length; i += 1)
       world[i].copy(local[i]).applyMatrix4(subject.matrixWorld);
     const tangent = Math.tan(T.MathUtils.degToRad(camera.fov / 2));
-    const left = Math.atan(frame.left * tangent * camera.aspect);
-    const right = Math.atan(frame.right * tangent * camera.aspect);
-    const bottom = Math.atan(frame.bottom * tangent);
-    const top = Math.atan(frame.top * tangent);
+    const left = Math.atan(rectangle.left * tangent * camera.aspect);
+    const right = Math.atan(rectangle.right * tangent * camera.aspect);
+    const bottom = Math.atan(rectangle.bottom * tangent);
+    const top = Math.atan(rectangle.top * tangent);
     // Pitch and yaw couple on off-axis corners. A few bounded refinements keep
     // both constraints satisfied; normal in-frame composition exits immediately.
     for (let iteration = 0; iteration < 6; iteration += 1) {

@@ -5,7 +5,10 @@ import {
   beamTransform,
   sweepGeometry,
 } from '../../../track/geometry.js';
-import { finishZephyrMaterial } from '../environment/materials.js';
+import {
+  finishZephyrMaterial,
+  zephyrNoiseGLSL,
+} from '../environment/materials.js';
 import { framePoint } from '../../../track/frames.js';
 export { createZephyrTrack } from './model.js';
 
@@ -127,7 +130,9 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
   if (!shape) {
     bronze.name = 'Zephyr bridge bronze';
     bronzeDark.name = 'Zephyr bridge bronze shadow';
-    for (const surface of [bronze, bronzeDark]) finishZephyrMaterial(surface);
+    pale.name = 'Zephyr worn bridge limestone';
+    for (const surface of [bronze, bronzeDark, pale])
+      finishZephyrMaterial(surface);
     silk.onBeforeCompile = (shader) => {
       shader.vertexShader =
         'varying vec3 clothPosition;\n' +
@@ -157,6 +162,7 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
           );
         shader.fragmentShader =
           'varying float zephyrRoadS;varying float zephyrRoadU;\n' +
+          zephyrNoiseGLSL +
           shader.fragmentShader
             .replace(
               '#include <color_fragment>',
@@ -184,10 +190,12 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
               `#include <roughnessmap_fragment>
         float zw=0.;
         ${(track.curtains ?? []).map((c) => `zw=max(zw,1.-smoothstep(4.,38.,abs(zephyrRoadS-${c.s.toFixed(3)})));`).join('')}
-        roughnessFactor=mix(roughnessFactor,.22,zw*.82);`,
+        float wear=zephyrNoise(vec3(zephyrRoadU*32.,0.,zephyrRoadS)*.24);
+        roughnessFactor=clamp(roughnessFactor+wear*.14-.02,.3,.88);
+        roughnessFactor=mix(roughnessFactor,.26,zw*.72);`,
             );
       };
-      surface.customProgramCacheKey = () => 'zephyr-local-wet-road-v2';
+      surface.customProgramCacheKey = () => 'zephyr-local-wet-road-v4';
     }
   const buckets = new Map();
   function addGeometry(name, geometry, surface, data = {}) {
@@ -197,11 +205,11 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
     buckets.get(key).geometries.push(geometry);
   }
   const ranges = zephyrSupportedRanges(track);
-  const strip = (name, profile, surface, extra = {}) => {
+  const strip = (name, profile, surface, extra = {}, step = 4.5) => {
     for (const range of ranges)
       addGeometry(
         name,
-        sweepGeometry(track, profile, { ...range, step: 4.5, uvScale: 2.5 }),
+        sweepGeometry(track, profile, { ...range, step, uvScale: 2.5 }),
         surface,
         extra,
       );
@@ -255,11 +263,17 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
     bronze,
   );
   for (const side of [-1, 1]) {
-    strip(
-      'Continuous pale compact curb',
-      boxProfile(side * 16.55, 0.62, 1.1, 1.24),
-      pale,
-    );
+    const curbProfile = [
+      [16, 0],
+      [16, 1.04],
+      [16.18, 1.24],
+      [16.92, 1.24],
+      [17.1, 1.04],
+      [17.1, 0],
+      [16, 0],
+    ].map(([x, y]) => [side * x, y]);
+    if (side < 0) curbProfile.reverse();
+    strip('Continuous pale compact curb', curbProfile, pale, {}, 5.2);
     strip(
       'Bronze curb cap',
       boxProfile(side * 16.55, 1.28, 1.25, 0.24),

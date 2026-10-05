@@ -87,7 +87,10 @@ export function validateDefinition(definition, id = 'circuit') {
       !(Number.isFinite(definition.camera[key]) && definition.camera[key] >= 0)
     )
       throw new Error(`Invalid ${id}.camera.${key}`);
-  if (definition.camera?.safeFrame !== undefined)
+  if (
+    definition.camera?.safeFrame !== undefined &&
+    typeof definition.camera.safeFrame !== 'function'
+  )
     validateSafeFrame(definition.camera.safeFrame);
   if (
     definition.audio?.immersion !== undefined &&

@@ -1,7 +1,7 @@
 import * as T from 'three';
 import { assetURL } from '../../../assets/url.js';
 import { createZephyrDetails } from './details.js';
-import { finishZephyrMaterial } from './materials.js';
+import { finishZephyrMaterial, zephyrNoiseGLSL } from './materials.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   groundFrame,
@@ -28,6 +28,7 @@ function release(group) {
     materials = new Set(),
     textures = new Set();
   group.traverse((o) => {
+    if (o.isInstancedMesh) o.dispose();
     if (o.geometry) geometries.add(o.geometry);
     for (const m of [o.material].flat().filter(Boolean)) {
       materials.add(m);
@@ -99,12 +100,14 @@ export async function createZephyrEnvironment({
       if (/water|foam|silver/i.test(m.name)) {
         m.transparent = true;
         m.opacity = /foam/i.test(m.name)
-          ? 0.84
+          ? 0.64
           : /deep volume|depth grooves/i.test(m.name)
-            ? 0.65
-            : 0.6;
+            ? 0.57
+            : 0.52;
         m.depthWrite = false;
-        m.side = T.DoubleSide;
+        m.roughness = /foam/i.test(m.name) ? 0.76 : 0.29;
+        m.metalness = 0;
+        m.side = T.FrontSide;
         m.userData.time = { value: 0 };
         m.onBeforeCompile = (shader) => {
           shader.uniforms.zephyrTime = m.userData.time;
@@ -116,10 +119,26 @@ export async function createZephyrEnvironment({
             );
           shader.fragmentShader =
             'uniform float zephyrTime; varying vec3 zephyrLocal;\n' +
+            zephyrNoiseGLSL +
             shader.fragmentShader.replace(
               '#include <color_fragment>',
-              '#include <color_fragment>\n float strand=.5+.5*sin(zephyrLocal.x*2.7+sin(zephyrLocal.y*.05-zephyrTime*3.)*.6); float froth=pow(.5+.5*sin(zephyrLocal.y*.8+zephyrLocal.x*1.3+zephyrTime*9.),6.); diffuseColor.rgb=mix(diffuseColor.rgb*(.8+strand*.25),vec3(.92,.97,.95),froth*.35); diffuseColor.a*=(.68+strand*.32)*(1.-smoothstep(260.,367.,-zephyrLocal.y));',
+              '#include <color_fragment>\n vec3 flow=zephyrLocal*vec3(.22,.15,.22)+vec3(0.,zephyrTime*3.,0.); float volume=zephyrNoise(flow*.3); float strand=zephyrNoise(flow+vec3(volume*3.)); float froth=smoothstep(.48,.72,strand)*smoothstep(.35,.7,volume); diffuseColor.rgb=mix(diffuseColor.rgb*(.63+volume*.48),vec3(.92,.97,.95),froth*.8); diffuseColor.a*=(.18+smoothstep(.28,.64,strand)*.82)*(1.-smoothstep(240.,367.,-zephyrLocal.y));',
             );
+        };
+        const flowCompile = m.onBeforeCompile;
+        m.onBeforeCompile = (shader) => {
+          flowCompile(shader);
+          shader.fragmentShader = shader.fragmentShader.replace(
+            '#include <normal_fragment_maps>',
+            `#include <normal_fragment_maps>
+            float ripple=zephyrNoise(zephyrLocal*.22+vec3(0.,zephyrTime*2.,0.))*.13;
+            vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition);
+            vec3 rx=cross(sy,normal),ry=cross(normal,sx);
+            float det=dot(sx,rx);
+            normal=normalize(normal-sign(det)*(dFdx(ripple)*rx+dFdy(ripple)*ry)/max(abs(det),.00001));
+            diffuseColor.a*=.42+.58*smoothstep(.02,.42,abs(dot(normal,normalize(vViewPosition))));
+          `,
+          );
         };
         const waterCompile = m.onBeforeCompile;
         m.onBeforeCompile = (shader) => {
@@ -131,7 +150,7 @@ export async function createZephyrEnvironment({
             );
         };
         m.customProgramCacheKey = () =>
-          `zephyr-flow-v4-${m.userData.crossingCurtain ? 'crossing' : 'deep'}`;
+          `zephyr-flow-v8-${m.userData.crossingCurtain ? 'crossing' : 'deep'}`;
         waterMaterials.add(m);
         o.castShadow = false;
         o.userData.aoExclude = true;
@@ -198,6 +217,7 @@ export async function createZephyrEnvironment({
   towerWater.scale.set(0.5, 1.4, 0.7);
   towerPivot.add(towerWater);
   const trailingMeshes = [];
+  let previousWaterTrail = null;
   towerWater.traverse((object) => {
     if (!object.isMesh) return;
     object.geometry = object.geometry.clone();
@@ -207,16 +227,70 @@ export async function createZephyrEnvironment({
     });
   });
 
+  // Turbulent foam keeps its local volume while its centre follows the arc.
+  // Shearing every vertex down the long trail would stretch these into ribbons.
+  const foamGeometry = new T.SphereGeometry(1, 16, 12);
+  const foamVertices = foamGeometry.attributes.position;
+  for (let i = 0; i < foamVertices.count; i++) {
+    const x = foamVertices.getX(i),
+      y = foamVertices.getY(i),
+      z = foamVertices.getZ(i);
+    const r =
+      1 +
+      0.34 * Math.sin(x * 7 + y * 3) * Math.sin(z * 6 - y * 4) +
+      0.13 * Math.sin(x * 15 - z * 11 + y * 8);
+    foamVertices.setXYZ(i, x * r, y * r, z * r);
+  }
+  foamGeometry.computeVertexNormals();
+  const foamMaterial = new T.MeshStandardMaterial({
+    color: '#d8e5df',
+    roughness: 0.83,
+    metalness: 0,
+    transparent: true,
+    opacity: 0.72,
+    depthWrite: false,
+  });
+  foamMaterial.onBeforeCompile = (shader) => {
+    shader.vertexShader =
+      'varying vec3 foamLocal;\n' +
+      shader.vertexShader.replace(
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\nfoamLocal=position;',
+      );
+    shader.fragmentShader =
+      'varying vec3 foamLocal;\n' +
+      zephyrNoiseGLSL +
+      shader.fragmentShader.replace(
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
+      float breakup=zephyrNoise(foamLocal*5.)*.7+zephyrNoise(foamLocal*13.)*.3;
+      float softEdge=smoothstep(.03,.62,abs(dot(normal,normalize(vViewPosition))));
+      diffuseColor.a*=smoothstep(.24,.64,breakup)*softEdge;
+    `,
+      );
+  };
+  foamMaterial.customProgramCacheKey = () => 'zephyr-porous-foam-v1';
+  const towerFoam = new T.InstancedMesh(foamGeometry, foamMaterial, 40);
+  towerFoam.name = 'Zephyr / turbulent masses retaining volume along the arc';
+  towerFoam.userData.aoExclude = true;
+  towerFoam.frustumCulled = false;
+  towerWater.add(towerFoam);
+  const foamMatrix = new T.Matrix4(),
+    foamPosition = new T.Vector3(),
+    foamScale = new T.Vector3();
+  const foamRotation = new T.Quaternion(),
+    foamAxis = new T.Vector3(0, 0, 1);
+
   const towerMistGeometry = new T.BufferGeometry();
   towerMistGeometry.setAttribute(
     'position',
-    new T.Float32BufferAttribute(new Float32Array(128 * 3), 3),
+    new T.Float32BufferAttribute(new Float32Array(512 * 3), 3),
   );
   const towerMistMaterial = new T.ShaderMaterial({
     transparent: true,
     depthWrite: false,
-    vertexShader: `varying float mistSize;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);mistSize=clamp(-position.y/360.,0.,1.);gl_PointSize=min(120.,(5.+mistSize*12.)*950./max(20.,-mv.z));gl_Position=projectionMatrix*mv;}`,
-    fragmentShader: `varying float mistSize;void main(){float d=length(gl_PointCoord-.5)*2.;float a=(1.-smoothstep(0.,1.,d))*(.035+mistSize*.065);gl_FragColor=vec4(.75,.85,.87,a);
+    vertexShader: `varying float mistSize;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);mistSize=clamp(-position.y/360.,0.,1.);gl_PointSize=min(120.,(8.+mistSize*18.)*950./max(20.,-mv.z));gl_Position=projectionMatrix*mv;}`,
+    fragmentShader: `varying float mistSize;void main(){float d=length(gl_PointCoord-.5)*2.;float a=(1.-smoothstep(0.,1.,d))*(.025+mistSize*.045);gl_FragColor=vec4(.75,.85,.87,a);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
     }`,
@@ -281,7 +355,11 @@ export async function createZephyrEnvironment({
     place(`island-${['grand', 'terrace', 'shard'][i % 3]}`, s, {
       lateral,
       height,
-      scale,
+      scale: [
+        scale * (0.9 + (i % 4) * 0.05),
+        scale * (0.65 + (i % 5) * 0.11),
+        scale * (0.92 + (i % 3) * 0.06),
+      ],
       yaw: i * 0.72,
     });
     if (i % 3 === 0) {
@@ -440,8 +518,8 @@ export async function createZephyrEnvironment({
     shafts.add(m);
     const light = new T.PointLight(
       s % 2 > 1 ? '#e7b8e6' : '#ffe0ab',
-      85,
-      85,
+      680,
+      68,
       1.7,
     );
     light.position.copy(stonePoint(track, s, 23, 25));
@@ -577,20 +655,56 @@ export async function createZephyrEnvironment({
       towerWater.rotation.z = -event.trail * 0.25;
       towerWater.rotation.x = -event.trail * 0.3;
       towerWater.scale.y = 1.4 + event.trail * 0.3;
-      for (const { object, rest } of trailingMeshes) {
-        const positions = object.geometry.attributes.position;
-        for (let i = 0; i < positions.count; i++) {
-          const q = Math.max(0, Math.min(1, -rest[i * 3 + 1] / 360));
-          positions.setXYZ(
-            i,
-            rest[i * 3] + (2 * q - q * q) * 850 * event.trail,
-            rest[i * 3 + 1],
-            rest[i * 3 + 2] - q * q * 180 * event.trail,
-          );
+      if (previousWaterTrail !== event.trail)
+        for (const { object, rest } of trailingMeshes) {
+          const positions = object.geometry.attributes.position;
+          for (let i = 0; i < positions.count; i++) {
+            const q = Math.max(0, Math.min(1, -rest[i * 3 + 1] / 360));
+            // Keep the width transverse to the curved centreline, in scaled
+            // world units; a horizontal shear visually collapses the long fall.
+            const tangentX = 850 * (1 - q) * event.trail;
+            const tangentY = 360 * towerWater.scale.y;
+            const angle =
+              Math.atan2(tangentX, tangentY) *
+              T.MathUtils.smoothstep(q, 0.015, 0.12);
+            const width =
+              rest[i * 3] * (1 + 0.18 * Math.sin(q * 19) * event.trail);
+            positions.setXYZ(
+              i,
+              width * Math.cos(angle) + (2 * q - q * q) * 850 * event.trail,
+              rest[i * 3 + 1] +
+                (width * Math.sin(angle) * 0.5) / towerWater.scale.y,
+              rest[i * 3 + 2] - q * q * 180 * event.trail,
+            );
+          }
+          positions.needsUpdate = true;
+          object.geometry.computeVertexNormals();
+          object.geometry.computeBoundingSphere();
         }
-        positions.needsUpdate = true;
-        object.geometry.computeBoundingSphere();
+      previousWaterTrail = event.trail;
+      towerFoam.count = frame.settings.quality === 'low' ? 24 : 40;
+      towerFoam.visible = event.fall > 0.005;
+      for (let i = 0; i < towerFoam.count; i++) {
+        const q =
+          0.06 +
+          ((Math.floor(i / 3) * 0.61803398875) % 1) * 0.85 +
+          ((i % 3) - 1) * 0.011;
+        const radius = 4 + ((i * 13) % 7);
+        foamPosition.set(
+          (2 * q - q * q) * 850 * event.trail + Math.sin(i * 8.71) * 23,
+          -q * 360,
+          q * q * (22 - 180 * event.trail) + Math.cos(i * 5.1) * 8,
+        );
+        foamScale.set(
+          radius * (1.3 + (i % 3) * 0.3),
+          radius * (0.45 + (i % 4) * 0.09),
+          radius * 1.1,
+        );
+        foamRotation.setFromAxisAngle(foamAxis, i * 1.71);
+        foamMatrix.compose(foamPosition, foamRotation, foamScale);
+        towerFoam.setMatrixAt(i, foamMatrix);
       }
+      towerFoam.instanceMatrix.needsUpdate = true;
       const mist = towerMistGeometry.attributes.position;
       const mistTime = frame.settings.reducedMotion ? 0 : frame.time;
       for (let i = 0; i < mist.count; i++) {
@@ -606,7 +720,7 @@ export async function createZephyrEnvironment({
       towerMist.visible = event.fall > 0.01;
       towerMistGeometry.setDrawRange(
         0,
-        frame.settings.quality === 'low' ? 64 : 128,
+        frame.settings.quality === 'low' ? 256 : 512,
       );
       shipSpray.visible = wetness > 0.02 && !frame.reviewing;
       const droplets = shipSpray.geometry.attributes.position;

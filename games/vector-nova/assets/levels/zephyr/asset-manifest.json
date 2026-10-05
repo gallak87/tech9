@@ -31,12 +31,12 @@
       "file": "/assets/levels/zephyr/cathedral-facade.glb",
       "root": "cathedral-facade",
       "bounds": {
-        "min": [-117.0, -68.0, -21.95],
+        "min": [-117.0, -68.0, -22.406],
         "max": [117.0, 183.0, 24.0]
       },
-      "triangles": 154344,
+      "triangles": 149436,
       "meshCount": 8,
-      "bytes": 14789416
+      "bytes": 14045400
     },
     {
       "purpose": "Reusable rib-vaulted nave bay with clerestories and dark real roof",
@@ -50,12 +50,12 @@
       "file": "/assets/levels/zephyr/nave-bay.glb",
       "root": "nave-bay",
       "bounds": {
-        "min": [-62.045, -17.36, -44.0],
-        "max": [62.045, 80.877, 44.0]
+        "min": [-62.05, -17.36, -44.519],
+        "max": [62.05, 80.896, 44.519]
       },
-      "triangles": 85248,
+      "triangles": 154028,
       "meshCount": 9,
-      "bytes": 8128828
+      "bytes": 14778940
     },
     {
       "purpose": "Open floating chapel with two true portals, nave and transepts",
@@ -68,12 +68,12 @@
       "file": "/assets/levels/zephyr/chapel.glb",
       "root": "chapel",
       "bounds": {
-        "min": [-91.0, -28.0, -77.7],
-        "max": [87.0, 169.0, 77.7]
+        "min": [-91.0, -28.0, -78.502],
+        "max": [87.0, 169.0, 78.502]
       },
-      "triangles": 139816,
+      "triangles": 196268,
       "meshCount": 9,
-      "bytes": 13232808
+      "bytes": 18571624
     },
     {
       "purpose": "Stratified floating island with eroded undersides, terraces and suspension roots",
@@ -82,12 +82,12 @@
       "file": "/assets/levels/zephyr/island-grand.glb",
       "root": "island-grand",
       "bounds": {
-        "min": [-150.111, -225.493, -116.113],
-        "max": [158.478, 29.428, 125.751]
+        "min": [-163.008, -226.207, -139.341],
+        "max": [160.62, 26.838, 120.343]
       },
-      "triangles": 14335,
-      "meshCount": 8,
-      "bytes": 1511556
+      "triangles": 47543,
+      "meshCount": 7,
+      "bytes": 1833824
     },
     {
       "purpose": "Stratified floating island with eroded undersides, terraces and suspension roots",
@@ -96,12 +96,12 @@
       "file": "/assets/levels/zephyr/island-terrace.glb",
       "root": "island-terrace",
       "bounds": {
-        "min": [-113.826, -107.578, -81.224],
-        "max": [113.633, 29.051, 93.333]
+        "min": [-110.243, -110.419, -91.458],
+        "max": [116.004, 29.466, 84.005]
       },
-      "triangles": 15061,
-      "meshCount": 8,
-      "bytes": 1591636
+      "triangles": 28023,
+      "meshCount": 7,
+      "bytes": 1175044
     },
     {
       "purpose": "Stratified floating island with eroded undersides, terraces and suspension roots",
@@ -110,12 +110,12 @@
       "file": "/assets/levels/zephyr/island-shard.glb",
       "root": "island-shard",
       "bounds": {
-        "min": [-63.959, -145.518, -47.584],
-        "max": [66.537, 28.613, 46.564]
+        "min": [-58.142, -145.059, -49.247],
+        "max": [65.556, 28.457, 48.074]
       },
-      "triangles": 13080,
-      "meshCount": 8,
-      "bytes": 1220756
+      "triangles": 26586,
+      "meshCount": 7,
+      "bytes": 1032156
     },
     {
       "purpose": "Massive falling belfry, open bell chamber, weathered copper spire",
@@ -127,9 +127,9 @@
         "min": [-28.5, 0.0, -28.5],
         "max": [28.5, 260.0, 28.5]
       },
-      "triangles": 32864,
+      "triangles": 35648,
       "meshCount": 5,
-      "bytes": 2938500
+      "bytes": 3148936
     },
     {
       "purpose": "Carved reservoir, spill lip and full-height piers attached to a receiving island",
@@ -145,9 +145,9 @@
         "min": [-62.5, -148.0, -28.0],
         "max": [62.5, 23.0, 6.0]
       },
-      "triangles": 20152,
+      "triangles": 22368,
       "meshCount": 7,
-      "bytes": 1774232
+      "bytes": 1906936
     },
     {
       "purpose": "Hero modeled waterfall with closed layered volume, grooves and irregular long strands",
@@ -157,12 +157,12 @@
       "file": "/assets/levels/zephyr/waterfall.glb",
       "root": "waterfall",
       "bounds": {
-        "min": [-46.883, -360.7, -11.739],
-        "max": [41.997, 0.687, 40.268]
+        "min": [-52.721, -360.694, -16.223],
+        "max": [45.289, 2.203, 28.45]
       },
-      "triangles": 17708,
+      "triangles": 36252,
       "meshCount": 4,
-      "bytes": 323792
+      "bytes": 660228
     },
     {
       "purpose": "Readable traversable water curtain, layered thin central veil with deep outer lobes and long foam ropes",
@@ -171,12 +171,12 @@
       "file": "/assets/levels/zephyr/waterfall-curtain.glb",
       "root": "waterfall-curtain",
       "bounds": {
-        "min": [-50.694, -253.0, -9.36],
-        "max": [50.145, 0.7, 20.571]
+        "min": [-53.231, -253.0, -9.451],
+        "max": [57.399, 0.7, 24.95]
       },
       "triangles": 36484,
       "meshCount": 4,
-      "bytes": 662752
+      "bytes": 662748
     },
     {
       "purpose": "Slender eroded Cloudspire needle with separated buttress fins and bronze suspension collars",
@@ -187,9 +187,9 @@
         "min": [-51.829, -4.5, -57.209],
         "max": [53.187, 342.0, 52.16]
       },
-      "triangles": 95180,
+      "triangles": 147750,
       "meshCount": 8,
-      "bytes": 9134764
+      "bytes": 14453432
     },
     {
       "purpose": "Monumental broken stone halo in XY plane with five fractured runs, carved lips and bronze tethers",
@@ -201,14 +201,14 @@
       "file": "/assets/levels/zephyr/broken-halo.glb",
       "root": "broken-halo",
       "bounds": {
-        "min": [-132.534, -133.0, -13.053],
+        "min": [-132.534, -133.0, -13.1],
         "max": [130.37, 132.799, 11.7]
       },
-      "triangles": 36784,
+      "triangles": 30808,
       "meshCount": 4,
-      "bytes": 3147064
+      "bytes": 2589256
     }
   ],
-  "totalExportBytes": 58456104,
-  "uniqueTriangles": 661056
+  "totalExportBytes": 74858524,
+  "uniqueTriangles": 911194
 }

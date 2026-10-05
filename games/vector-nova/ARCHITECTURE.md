@@ -149,7 +149,7 @@ The level owns the bounded hot-fragment buffers, plasma materials and pointer-tr
 
 ## Zephyr cathedral flight and water
 
-Zephyr uses the shared flight/device adapter for both mandatory waterfall transfers, solo practice and three physical rivals. Device modifiers pass through the local adapter; its replay identity includes route/jump geometry, shared flight rules and the tower/water presentation rules. Rival instances do not register the player's exposure ledger. A simulation-time epoch drives the falling belfry and its attached trailing water without moving the supported racing surface.
+Zephyr uses the shared flight/device adapter for both mandatory waterfall transfers, solo practice and three physical rivals. Device modifiers pass through the local adapter; its replay identity includes route/jump geometry, shared flight rules and the tower/water presentation rules. Rival instances do not register the player's exposure ledger. A simulation-time epoch drives the falling belfry and its attached trailing water without moving the supported racing surface. Unequal closed water volumes deform along the arc with updated normals; porous foam instances retain their local volume, and disposal releases their instance buffers.
 
 The reproducible Blender kit retains real rose, nave, chapel and aqueduct apertures. Road-local bridge geometry and world-upright architecture use distinct frames; foundations and bronze struts join the authored island terraces. The CPU clearance tool checks exported triangles against banked road and flight envelopes. The running deck uses shared longitudinal rows and disjoint material bands to avoid overlapping banked surfaces.
 

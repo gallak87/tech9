@@ -14,26 +14,23 @@
 - [x] Saffron Leviathan: merge skull traversal, vertebral flights, migrating sand/glass choices, burrower and sandfall presentation.
 - [x] Helion Flare: integrate flare-lane evasion, furnace/cooling choices, physical shelter, optional covered jumps and two timed stellar prominences.
 - [x] Umbra Fold: integrate tidal line control, curved flights, continuous accretion, the enormous consumption event and the selected native sky.
+- [x] Zephyr Basilica: integrate cathedral traversal, waterfall flights and wetness, falling architecture, cloud ascent and shared racing.
 - [x] Gate 5 initial flow: add audible start lights, two-lap timing/results, continued driving and retained paddock results.
 - [x] Gate 6 initial opponents: add Rook/Latch/Mule using actual physics/devices, a 2×2 grid and Easy/Medium/Hard difficulty.
 - [x] Gate 8 fleet: add Kestrel/Shrike/Bastion/Needle, distinct handling, saved selection/stats and fleet/rival inspection.
 - [x] Shared inspection: add free-camera navigation and responsive driving/review controls across circuits.
 - [x] Halcyon feedback: add position/lap timing, full-field relative race gaps, matching rival colors and catapults toward 600 km/h with strong launch blur.
 - [x] Asset layout: normalize Halcyon/Orbital/Nacre folders and base-aware loading; prune obsolete served models and duplicate rival GLBs while retaining sources/provenance.
-- [x] Shared racing graduation: reuse Vector/Aegis, 600 km/h launch feedback, three physical rivals, difficulty, timing/results and replay on Halcyon/Orbital/Nacre/Vesper/Glasswake/Cindercoil/Saffron/Umbra/Helion.
+- [x] Shared racing graduation: reuse Vector/Aegis, 600 km/h launch feedback, three physical rivals, difficulty, timing/results and replay on Halcyon/Orbital/Nacre/Vesper/Glasswake/Cindercoil/Saffron/Umbra/Helion/Zephyr.
 - [x] Nacre immersion: blend the entire sound mix underwater and restore it smoothly on exit; add pooled bubbles at actual submerged takeoff, flight and landing.
-
-## Remaining level expansion
-
-Continue the existing authored worktrees using the [expansion rules](docs/expansion/README.md). New circuits must use the shared race/device system, with authored placements and their actual motion adapter. Each level owner finishes the level and necessary shared improvements, completes desktop critique, checks mobile last, then commits and merges. Completed review history remains in Git.
-
-- [ ] [Zephyr Basilica](docs/expansion/zephyr/HANDOFF.md): cathedral traversal, waterfall jumps and falling architecture.
 
 ## Remaining gameplay
 
 Agree each phase's scope before implementation; scoped independent critique ends with human review.
 
 ### Level polish
+
+- [ ] Zephyr: refine aerated waterfall flow, vary broad island shelves and openings, and deepen close masonry weathering.
 
 - [ ] Umbra: distinguish graphite wear and titanium polish/reflections, enrich fractured masonry and layered repair construction, reveal recessed surfaces under local lighting, bring the elevated jump preview and first arrival closer to normal chase, and strengthen the Fold’s visible start-grid reference.
 

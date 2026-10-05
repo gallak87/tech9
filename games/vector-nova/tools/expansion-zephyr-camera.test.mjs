@@ -57,42 +57,47 @@ test('Zephyr spiral camera preview is bounded, periodic and continuous without s
   );
 });
 
-test('spiral camera keeps the complete hull framed through a continuous high-speed climb', () => {
-  const bounds = new T.Box3(
-    new T.Vector3(-2.25, -0.12, -3.51),
-    new T.Vector3(2.25, 1.8, 3.7),
-  );
-  const camera = new T.PerspectiveCamera(61, 1.6, 0.1, 12000),
-    subject = new T.Group();
-  const rig = createCameraRig(camera, level.camera, bounds);
-  let previous = null;
-  for (let s = 1800; s < 2850; s += 110 / 120) {
-    const f = track.sample(s),
-      state = { distance: s, speed: 110, lateral: 7 * Math.sin(s * 0.005) };
-    subject.position
-      .copy(f.position)
-      .addScaledVector(f.right, state.lateral)
-      .addScaledVector(f.up, 0.72);
-    subject.quaternion.copy(f.quaternion);
-    subject.updateMatrixWorld(true);
-    rig.update(track, state, 1 / 120, { subject });
-    camera.updateMatrixWorld(true);
-    if (previous)
-      assert.ok(
-        camera.quaternion.angleTo(previous) < 0.12,
-        'abrupt chase rotation',
-      );
-    previous = camera.quaternion.clone();
-    for (const x of [bounds.min.x, bounds.max.x])
-      for (const y of [bounds.min.y, bounds.max.y])
-        for (const z of [bounds.min.z, bounds.max.z]) {
-          const p = new T.Vector3(x, y, z)
-            .applyMatrix4(subject.matrixWorld)
-            .project(camera);
-          assert.ok(
-            p.x >= -0.66 && p.x <= 0.66 && p.y >= -0.81 && p.y <= 0.66,
-            `hull leaves safe frame at ${s}`,
-          );
-        }
-  }
-});
+for (const aspect of [1.6, 844 / 390, 640 / 360])
+  test(`spiral camera keeps the full hull in its HUD-safe frame at aspect ${aspect}`, () => {
+    const bounds = new T.Box3(
+      new T.Vector3(-2.25, -0.12, -3.51),
+      new T.Vector3(2.25, 1.8, 3.7),
+    );
+    const camera = new T.PerspectiveCamera(61, aspect, 0.1, 12000),
+      subject = new T.Group();
+    const rig = createCameraRig(camera, level.camera, bounds);
+    const safe = level.camera.safeFrame(aspect);
+    let previous = null;
+    for (let s = 1800; s < 2850; s += 110 / 120) {
+      const f = track.sample(s),
+        state = { distance: s, speed: 110, lateral: 7 * Math.sin(s * 0.005) };
+      subject.position
+        .copy(f.position)
+        .addScaledVector(f.right, state.lateral)
+        .addScaledVector(f.up, 0.72);
+      subject.quaternion.copy(f.quaternion);
+      subject.updateMatrixWorld(true);
+      rig.update(track, state, 1 / 120, { subject });
+      camera.updateMatrixWorld(true);
+      if (previous)
+        assert.ok(
+          camera.quaternion.angleTo(previous) < 0.12,
+          'abrupt chase rotation',
+        );
+      previous = camera.quaternion.clone();
+      for (const x of [bounds.min.x, bounds.max.x])
+        for (const y of [bounds.min.y, bounds.max.y])
+          for (const z of [bounds.min.z, bounds.max.z]) {
+            const p = new T.Vector3(x, y, z)
+              .applyMatrix4(subject.matrixWorld)
+              .project(camera);
+            assert.ok(
+              p.x >= safe.left - 0.01 &&
+                p.x <= safe.right + 0.01 &&
+                p.y >= safe.bottom - 0.01 &&
+                p.y <= safe.top + 0.01,
+              `hull leaves safe frame at ${s}`,
+            );
+          }
+    }
+  });

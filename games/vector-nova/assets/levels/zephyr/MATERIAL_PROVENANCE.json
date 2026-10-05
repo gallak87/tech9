@@ -1,0 +1,8 @@
+{
+  "asset": "zephyr-limestone-v1.png",
+  "tool": "image_gen__imagegen built-in",
+  "originalOutput": "/Users/g/.codex/generated_images/01a10a7e-212e-76b1-bc64-3f23b1439b0f/exec-997fc0ff-af70-4873-9a5a-fbecb140a487.png",
+  "usage": "Original generated limestone albedo tile. Native source and runtime copy preserved. Local triplanar projection on authored 3D stone surfaces; not a scene background.",
+  "rights": "Generated for this project with no third-party reference artwork.",
+  "prompt": "Use case: photorealistic-natural. Asset type: seamlessly tileable game material albedo, square 1024x1024. Primary request: a close orthographic scan of aged ivory cathedral limestone, 3 metre square physical coverage, uncut continuous natural limestone rather than laid bricks. Fine granular fossil limestone pores, shallow worn tool marks, tiny irregular hairline mineral cracks, sparse dusty ochre mineral stains, muted grey-lilac sediment, occasional very subtle moss-green discoloration. Weathering should be varied on three scales but restrained enough to tile over Gothic carved stone, columns and large eroded floating islands. Flat neutral diffuse lighting, no cast shadows, no directional highlights, no perspective, no horizon, no frame, no words, no architectural objects, no block or brick grid, no large black cracks. Fill the full image edge to edge with believable stone grain. Seamless edges in both directions; medium value warm grey ivory, not white, not yellow. Original surface texture for Vector Nova Zephyr Basilica."
+}

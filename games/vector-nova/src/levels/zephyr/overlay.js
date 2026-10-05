@@ -2,6 +2,7 @@ import { wetnessForFrame, interiorAt } from './environment/atmosphere.js';
 export function createZephyrOverlay({ host, track }) {
   const layer = document.createElement('div');
   layer.setAttribute('aria-hidden', 'true');
+  layer.dataset.zephyrVisor = '';
   Object.assign(layer.style, {
     position: 'absolute',
     inset: '0',
@@ -23,6 +24,19 @@ export function createZephyrOverlay({ host, track }) {
       borderRadius: '50%',
       filter: 'blur(.5px)',
     });
+    const bead = document.createElement('b');
+    Object.assign(bead.style, {
+      position: 'absolute',
+      bottom: '-3px',
+      left: '-2px',
+      width: `${5 + (i % 4)}px`,
+      height: `${7 + (i % 5)}px`,
+      borderRadius: '55% 45% 60% 40%',
+      background:
+        'radial-gradient(ellipse at 30% 25%,#edfaff99, #abcbd222 40%,#6d8c9a33 65%,#e4faff88)',
+      boxShadow: 'inset -1px -1px 2px #edffff66',
+    });
+    drop.append(bead);
     layer.append(drop);
     return drop;
   });

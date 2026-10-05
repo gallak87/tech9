@@ -6,6 +6,15 @@ export function createDeviceLayout(track, plan) {
   const devices = plan.map((device) => ({ ...device }));
   createPickupSimulation({ trackLength: track.length, devices });
   for (const device of devices) {
+    if (
+      device.signalScale !== undefined &&
+      !(
+        Number.isFinite(device.signalScale) &&
+        device.signalScale > 0 &&
+        device.signalScale <= 1
+      )
+    )
+      throw new Error(`Device ${device.id} has invalid signalScale`);
     if (Math.abs(device.lateral) + device.width / 2 > track.width / 2)
       throw new Error(`Device ${device.id} extends beyond the road`);
     for (const jump of track.jumps ?? [])

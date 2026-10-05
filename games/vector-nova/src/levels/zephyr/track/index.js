@@ -5,6 +5,7 @@ import {
   beamTransform,
   sweepGeometry,
 } from '../../../track/geometry.js';
+import { finishZephyrMaterial } from '../environment/materials.js';
 import { framePoint } from '../../../track/frames.js';
 export { createZephyrTrack } from './model.js';
 
@@ -24,13 +25,17 @@ function weaveTexture() {
     for (let x = 0; x < size; x += 1) {
       const cellX = Math.floor(x / 32);
       const cellY = Math.floor(y / 32);
-      const across = (cellX + cellY) % 2 === 0;
-      const along = across ? y % 32 : x % 32;
-      const joint = along < 3 || along > 28;
-      const fibre = along % 5 === 0 ? 6 : 0;
+      // Continuous two-over/two-under twill: the bundles cross and continue
+      // into neighbouring cells, instead of reading as separate paving blocks.
+      const phase = (((cellY - cellX) % 4) + 4) % 4;
+      const warp = phase < 2;
+      const cross = (warp ? x % 32 : y % 32) / 32;
+      const along =
+        ((warp ? phase : phase - 2) + (warp ? y % 32 : x % 32) / 32) / 2;
+      const bundle = Math.pow(Math.max(0, Math.sin(cross * Math.PI)), 0.45);
+      const fibre = Math.sin(cross * 32 * 2.4) * 7;
       const value =
-        (joint ? 84 : 147 + Math.round(22 * Math.sin((along / 32) * Math.PI))) +
-        fibre;
+        109 + bundle * 51 + Math.sin(along * Math.PI) * 15 + fibre * bundle;
       const i = (y * size + x) * 4;
       pixels[i] = value;
       pixels[i + 1] = value + 3;
@@ -42,7 +47,11 @@ function weaveTexture() {
   texture.name = 'Zephyr / broad structural graphite basket weave';
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 4;
+  texture.anisotropy = 8;
+  texture.repeat.set(10, 1.25);
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
   texture.needsUpdate = true;
   return texture;
 }
@@ -77,14 +86,16 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
   if (texture) textures.add(texture);
   const graphite = material({
     color: shape ? 0x52636b : 0x5c6268,
-    roughness: 0.72,
-    metalness: 0.3,
+    roughness: 0.52,
+    metalness: 0.44,
     map: texture,
+    bumpMap: texture,
+    bumpScale: 0.1,
   });
   const induction = material({
     color: shape ? 0x6f858b : 0x667d81,
-    roughness: 0.39,
-    metalness: 0.62,
+    roughness: 0.62,
+    metalness: 0.45,
   });
   const bronze = material({
     color: shape ? 0x7f8c91 : 0x9a7250,
@@ -100,7 +111,6 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
     color: shape ? 0xaab7ba : 0xd2c9b3,
     roughness: 0.86,
     metalness: 0.08,
-    map: texture,
   });
   const silk = material({
     color: shape ? 0x8f9b9f : 0xb9c3b5,
@@ -114,6 +124,71 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
     emissiveIntensity: shape ? 0 : 0.34,
     roughness: 0.68,
   });
+  if (!shape) {
+    bronze.name = 'Zephyr bridge bronze';
+    bronzeDark.name = 'Zephyr bridge bronze shadow';
+    for (const surface of [bronze, bronzeDark]) finishZephyrMaterial(surface);
+    silk.onBeforeCompile = (shader) => {
+      shader.vertexShader =
+        'varying vec3 clothPosition;\n' +
+        shader.vertexShader.replace(
+          '#include <begin_vertex>',
+          '#include <begin_vertex>\nclothPosition=position;',
+        );
+      shader.fragmentShader =
+        'varying vec3 clothPosition;\n' +
+        shader.fragmentShader.replace(
+          '#include <color_fragment>',
+          '#include <color_fragment>\nfloat thread=.5+.5*sin(clothPosition.y*18.);diffuseColor.rgb*=.88+thread*.12;',
+        );
+    };
+    silk.customProgramCacheKey = () => 'zephyr-tension-fabric-v2';
+  }
+  const haloZone = track.sections.find((s) => s.id === 'halo');
+  const ascentZone = track.sections.find((s) => s.id === 'cloudspire');
+  if (!shape)
+    for (const surface of [graphite, induction]) {
+      surface.onBeforeCompile = (shader) => {
+        shader.vertexShader =
+          'varying float zephyrRoadS;varying float zephyrRoadU;\n' +
+          shader.vertexShader.replace(
+            '#include <begin_vertex>',
+            '#include <begin_vertex>\nzephyrRoadS=uv.y*2.5;zephyrRoadU=uv.x;',
+          );
+        shader.fragmentShader =
+          'varying float zephyrRoadS;varying float zephyrRoadU;\n' +
+          shader.fragmentShader
+            .replace(
+              '#include <color_fragment>',
+              `#include <color_fragment>
+ float zx=abs((zephyrRoadU-.5)*32.);
+ float edging=max(1.-smoothstep(.02,.13,abs(zx-3.5)),1.-smoothstep(.02,.13,abs(zx-5.15)));
+ float bay=mod(zephyrRoadS,38.);
+ float outerPanel=smoothstep(5.8,6.,zx)*(1.-smoothstep(12.8,13.,zx))*smoothstep(2.,2.3,bay)*(1.-smoothstep(29.7,30.,bay));
+ float haloDistrict=smoothstep(${haloZone.start.toFixed(3)},${(haloZone.start + 15).toFixed(3)},zephyrRoadS)*(1.-smoothstep(${(haloZone.end - 15).toFixed(3)},${haloZone.end.toFixed(3)},zephyrRoadS));
+ float ascentDistrict=smoothstep(${ascentZone.start.toFixed(3)},${(ascentZone.start + 15).toFixed(3)},zephyrRoadS)*(1.-smoothstep(${(ascentZone.end - 15).toFixed(3)},${ascentZone.end.toFixed(3)},zephyrRoadS));
+ diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(2.0,1.86,1.54),outerPanel*haloDistrict*.55);
+ diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.5,.88,.51),outerPanel*ascentDistrict*.48);
+ float panel=mod(floor(zephyrRoadS/18.)+floor(zx/3.),3.);
+ diffuseColor.rgb*=.95+panel*.035;
+ float rivetS=mod(zephyrRoadS+1.,18.);
+ float rivet=(1.-smoothstep(.08,.14,length(vec2(abs(zx-12.8),min(rivetS,18.-rivetS)))));
+ diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.24,.14,.065),rivet*.75);
+ float joint=1.-smoothstep(.035,.12,min(mod(zephyrRoadS,14.),14.-mod(zephyrRoadS,14.)));
+ diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.19,.105,.045),edging*.75);
+ diffuseColor.rgb*=1.-joint*.16;
+ `,
+            )
+            .replace(
+              '#include <roughnessmap_fragment>',
+              `#include <roughnessmap_fragment>
+        float zw=0.;
+        ${(track.curtains ?? []).map((c) => `zw=max(zw,1.-smoothstep(4.,38.,abs(zephyrRoadS-${c.s.toFixed(3)})));`).join('')}
+        roughnessFactor=mix(roughnessFactor,.22,zw*.82);`,
+            );
+      };
+      surface.customProgramCacheKey = () => 'zephyr-local-wet-road-v2';
+    }
   const buckets = new Map();
   function addGeometry(name, geometry, surface, data = {}) {
     const key = `${name}:${surface.uuid}`;
@@ -126,20 +201,36 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
     for (const range of ranges)
       addGeometry(
         name,
-        sweepGeometry(track, profile, { ...range, step: 3, uvScale: 16 }),
+        sweepGeometry(track, profile, { ...range, step: 4.5, uvScale: 2.5 }),
         surface,
         extra,
       );
   };
-  strip(
-    'Broad woven graphite running plates',
-    [
-      [-16, 0],
-      [16, 0],
-    ],
-    graphite,
-    { drivingSurface: true },
-  );
+  // A single partitioned deck shares every longitudinal row. Induction bands
+  // are part of the surface, so bank transitions cannot expose coplanar stripes.
+  const deckCuts = [-16, -14.4, -14, -5.15, -3.5, 3.5, 5.15, 14, 14.4, 16];
+  for (let i = 0; i < deckCuts.length - 1; i++) {
+    const a = deckCuts[i],
+      b = deckCuts[i + 1];
+    const surface =
+      i === 1 || i === 7 ? pale : i === 3 || i === 5 ? induction : graphite;
+    for (const range of ranges) {
+      const geometry = sweepGeometry(
+        track,
+        [
+          [a, 0],
+          [b, 0],
+        ],
+        { ...range, step: 3, uvScale: 2.5 },
+      );
+      const uv = geometry.attributes.uv;
+      for (let j = 0; j < uv.count; j++)
+        uv.setX(j, (a + 16 + uv.getX(j) * (b - a)) / 32);
+      addGeometry('Woven deck with inset induction bands', geometry, surface, {
+        drivingSurface: true,
+      });
+    }
+  }
   strip(
     'Bronze folded bridge shoulders',
     [
@@ -173,22 +264,6 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
       'Bronze curb cap',
       boxProfile(side * 16.55, 1.28, 1.25, 0.24),
       bronze,
-    );
-    strip(
-      'Smooth central induction bands',
-      [
-        [side * 3.6 - 1.55, 0.018],
-        [side * 3.6 + 1.55, 0.018],
-      ],
-      induction,
-    );
-    strip(
-      'Inlaid landing guidance',
-      [
-        [side * 14.2 - 0.2, 0.032],
-        [side * 14.2 + 0.2, 0.032],
-      ],
-      pale,
     );
   }
   const box = new THREE.BoxGeometry(1, 1, 1);
@@ -244,26 +319,6 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
         );
     }
   }
-  const halo = track.sections.find((section) => section.id === 'halo');
-  for (let s = halo.start + 24; s < halo.end - 44; s += 88) {
-    for (const [a, b] of [
-      [-15.8, -5.5],
-      [5.5, 15.8],
-    ]) {
-      addGeometry(
-        'Halo whole pale tension panels',
-        sweepGeometry(
-          track,
-          [
-            [a, 0.042],
-            [b, 0.042],
-          ],
-          { start: s, end: s + 42, step: 3, uvScale: 16 },
-        ),
-        pale,
-      );
-    }
-  }
   const sailSpacing = settings.quality === 'low' ? 112 : 84;
   const sailEnvelope = [];
   for (let s = 40; s < track.length; s += sailSpacing) {
@@ -282,6 +337,12 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
     )
       continue;
     for (const side of [-1, 1]) {
+      if (
+        side < 0 &&
+        s > track.landmarks.cloudspire.start - 40 &&
+        s < track.landmarks.cloudspire.end + 60
+      )
+        continue;
       const offset = side > 0 ? 0 : 19;
       if (track.isGap(s + offset)) continue;
       const points = [
@@ -292,11 +353,71 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
         [26.5, 4, 11],
         [18.1, 0.3, 11],
       ].map(([x, y, z]) => framePoint(frame, side * x, y, z + offset));
-      if (!shape) {
-        const panel = new THREE.BufferGeometry().setFromPoints(points);
-        panel.setIndex([0, 1, 5, 1, 4, 5, 1, 2, 4, 2, 3, 4]);
+      // Curved stitched gores leave the lower edge and alternate frames open.
+      // Each transverse slice bows outward; no fabric enters the chase tube.
+      const fullPanel = Math.floor(s / sailSpacing) % 3 !== 1;
+      if (!shape && fullPanel) {
+        const vertices = [],
+          indices = [];
+        for (let row = 0; row <= 12; row++) {
+          const t = row / 12;
+          const lower = points[1].clone().lerp(points[5], t);
+          const upper = points[2]
+            .clone()
+            .lerp(points[3], Math.min(1, t * 2))
+            .lerp(points[4], Math.max(0, t * 2 - 1));
+          for (let col = 0; col <= 6; col++) {
+            const u = col / 6;
+            const p = lower
+              .clone()
+              .lerp(upper, u)
+              .addScaledVector(
+                frame.right,
+                side * Math.sin(t * Math.PI) * Math.sin(u * Math.PI) * 1.8,
+              );
+            vertices.push(...p.toArray());
+          }
+        }
+        for (let row = 0; row < 12; row++)
+          for (let col = 0; col < 6; col++) {
+            const i = row * 7 + col;
+            indices.push(i, i + 1, i + 8, i, i + 8, i + 7);
+          }
+        const panel = new THREE.BufferGeometry();
+        panel.setAttribute(
+          'position',
+          new THREE.Float32BufferAttribute(vertices, 3),
+        );
+        panel.setIndex(indices);
         panel.computeVertexNormals();
-        addGeometry('Outward-swept sail tension panels', panel, silk);
+        addGeometry('Curved stitched sailcloth gores', panel, silk);
+        for (const t of [0.25, 0.5, 0.75]) {
+          const a = points[1].clone().lerp(points[5], t),
+            b = points[2]
+              .clone()
+              .lerp(points[3], Math.min(1, t * 2))
+              .lerp(points[4], Math.max(0, t * 2 - 1));
+          let previous = a;
+          for (let i = 1; i <= 3; i++) {
+            const u = i / 3;
+            const p = a
+              .clone()
+              .lerp(b, u)
+              .addScaledVector(
+                frame.right,
+                side * Math.sin(t * Math.PI) * Math.sin(u * Math.PI) * 1.8,
+              );
+            addBeam(
+              'Sewn sailcloth battens',
+              previous,
+              p,
+              0.12,
+              0.16,
+              bronzeDark,
+            );
+            previous = p;
+          }
+        }
       }
       for (const [a, b] of [
         [0, 1],
@@ -305,14 +426,25 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
         [3, 4],
         [4, 5],
       ])
+        addBeam('Bronze sail spars', points[a], points[b], 0.44, 0.55, bronze);
+      for (const [a, b] of [
+        [1, 4],
+        [0, 3],
+        [2, 5],
+      ])
         addBeam(
-          'Solid bronze sail ribs',
+          'Sail tension cables',
           points[a],
           points[b],
-          0.8,
-          0.95,
-          bronze,
+          0.07,
+          0.07,
+          bronzeDark,
         );
+      for (const p of [points[0], points[3], points[5]]) {
+        const collar = new THREE.OctahedronGeometry(0.6, 0);
+        collar.translate(p.x, p.y, p.z);
+        addGeometry('Bronze spar attachment knuckles', collar, bronze);
+      }
       sailEnvelope.push({
         s,
         side,

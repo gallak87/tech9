@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 const shape = process.argv.includes('--shape');
-const output = `.experiments/expansion/zephyr/${shape ? 'shape' : 'production'}-check`;
+const output =
+  process.env.VN_EVIDENCE ||
+  `.experiments/zephyr2/${shape ? 'shape' : 'production'}-check`;
+if (!process.env.VN_URL)
+  throw new Error('Set VN_URL to the Zephyr worktree production preview.');
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({
   headless: true,
@@ -42,7 +46,7 @@ try {
     if (m.type() === 'error') report.errors.push(m.text());
   });
   await page.goto(
-    `${process.env.VN_URL || 'http://127.0.0.1:5210/'}?level=zephyr${shape ? '&review=shape' : ''}`,
+    `${process.env.VN_URL}?level=zephyr${shape ? '&review=shape' : ''}`,
   );
   await page.waitForFunction(
     () => window.__VN?.ready || document.querySelector('.failure'),
@@ -105,7 +109,9 @@ try {
     await page.keyboard.down('w');
     if (name !== 'jump1-short') await page.keyboard.down('Shift');
     await page.waitForFunction(
-      () => window.__VN.getSnapshot().runtime.state.mode === 'flight',
+      () =>
+        (window.__VN.getSnapshot().runtime.state.motion?.mode ??
+          window.__VN.getSnapshot().runtime.state.mode) === 'flight',
       null,
       { timeout: 10000 },
     );
@@ -123,13 +129,22 @@ try {
     const snap = await snapshot();
     assert.ok(snap.events.some((e) => e.type === 'jump-launch'));
     assert.ok(snap.events.some((e) => e.type === 'jump-transfer'));
-    await capture(`${name}-landed`);
+    const transfer = snap.events.find((e) => e.type === 'jump-transfer');
+    assert.equal(
+      transfer.payload.outcome,
+      name === 'jump1-short' ? 'recovered' : 'landed',
+    );
+    await capture(`${name}-${transfer.payload.outcome}`);
     await page.keyboard.press('Escape');
   }
   if (!shape) {
     await scenario('falling-tower');
     await page.keyboard.down('w');
-    await page.waitForTimeout(1200);
+    await page.waitForFunction(
+      () => window.__VN.getSnapshot().environment.water.towerFall > 0.05,
+      null,
+      { timeout: 15000 },
+    );
     await page.keyboard.up('w');
     await page.keyboard.press('Escape');
     const before = await snapshot();
@@ -143,36 +158,38 @@ try {
       replay,
     );
     assert.deepEqual(
-      reproduced.runtime.state.zephyr,
-      paused.runtime.state.zephyr,
+      reproduced.runtime.state.motion?.zephyr ??
+        reproduced.runtime.state.zephyr,
+      paused.runtime.state.motion?.zephyr ?? paused.runtime.state.zephyr,
     );
-    for (const viewport of [
-      { width: 390, height: 844 },
-      { width: 844, height: 390 },
-      { width: 640, height: 360 },
-    ]) {
-      await page.setViewportSize(viewport);
-      await scenario('jump1-approach');
-      await capture(`responsive-${viewport.width}x${viewport.height}`);
-      await page.keyboard.press('Escape');
-    }
   }
   assert.deepEqual(report.errors, []);
+  await page.evaluate(() => window.__VN.dispose());
+  assert.equal(await page.locator('canvas#world').count(), 0);
+  assert.equal(await page.locator('[data-zephyr-visor]').count(), 0);
+  await page.close();
   if (!shape) {
-    const failedPage = await context.newPage();
-    await failedPage.route(
-      '**/assets/levels/zephyr/cathedral-facade.glb',
-      (route) => route.abort('failed'),
-    );
-    await failedPage.goto(
-      `${process.env.VN_URL || 'http://127.0.0.1:5210/'}?level=zephyr`,
-    );
-    await failedPage
-      .locator('.failure')
-      .waitFor({ state: 'visible', timeout: 45000 });
-    assert.equal(await failedPage.locator('canvas#world').count(), 0);
-    report.checks.push({ id: 'zephyr-owned-asset-failure', status: 'pass' });
-    await failedPage.close();
+    for (const asset of [
+      'cathedral-facade.glb',
+      'zephyr-sky-v2.png',
+      'zephyr-limestone-v1.png',
+    ]) {
+      const failedPage = await context.newPage();
+      await failedPage.route(`**/assets/levels/zephyr/${asset}`, (route) =>
+        route.abort('failed'),
+      );
+      await failedPage.goto(`${process.env.VN_URL}?level=zephyr`);
+      await failedPage
+        .locator('.failure')
+        .waitFor({ state: 'visible', timeout: 45000 });
+      assert.equal(await failedPage.locator('canvas#world').count(), 0);
+      assert.equal(await failedPage.locator('[data-zephyr-visor]').count(), 0);
+      report.checks.push({
+        id: `zephyr-owned-failure-${asset}`,
+        status: 'pass',
+      });
+      await failedPage.close();
+    }
   }
   report.status = 'passed';
 } catch (error) {

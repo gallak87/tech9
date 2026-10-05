@@ -251,6 +251,33 @@
       ],
       "provenanceRecord": "assets/levels/helion/provenance.json",
       "skyProvenance": "assets/levels/helion/SKY_PROVENANCE.md"
+    },
+    {
+      "id": "zephyr-basilica",
+      "source": "assets/levels/zephyr/ and src/levels/zephyr/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original reproducible Blender cathedral, chapel, island, reservoir, water, belfry, needle and halo kit; source-native bridge construction and local weather/material shaders. Original scene reference and generated selected panorama retained with exact prompts.",
+      "rights": "Project-authored/generated; no third-party artwork or meshes",
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "assets/levels/zephyr/asset-manifest.json",
+      "skyProvenance": "assets/levels/zephyr/SKY_PROVENANCE.md",
+      "runtimeAssets": [
+        "public/assets/levels/zephyr/aqueduct-source.glb",
+        "public/assets/levels/zephyr/broken-halo.glb",
+        "public/assets/levels/zephyr/cathedral-facade.glb",
+        "public/assets/levels/zephyr/chapel.glb",
+        "public/assets/levels/zephyr/cloudspire-needle.glb",
+        "public/assets/levels/zephyr/falling-tower.glb",
+        "public/assets/levels/zephyr/island-grand.glb",
+        "public/assets/levels/zephyr/island-shard.glb",
+        "public/assets/levels/zephyr/island-terrace.glb",
+        "public/assets/levels/zephyr/nave-bay.glb",
+        "public/assets/levels/zephyr/waterfall-curtain.glb",
+        "public/assets/levels/zephyr/waterfall.glb",
+        "public/assets/levels/zephyr/zephyr-sky-v2.png",
+        "public/assets/levels/zephyr/zephyr-limestone-v1.png"
+      ],
+      "provenanceRecords": ["assets/levels/zephyr/MATERIAL_PROVENANCE.json"]
     }
   ],
   "thirdParty": [

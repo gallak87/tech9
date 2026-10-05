@@ -262,6 +262,7 @@ export function createDeviceGeometry(track, device, projector) {
   const from = distance - length / 2;
   const to = distance + length / 2;
   const vector = device.type === 'vector';
+  const signalScale = device.signalScale ?? 1;
   const materials = {
     case: new THREE.MeshStandardMaterial({
       color: 0x293940,
@@ -534,12 +535,12 @@ export function createDeviceGeometry(track, device, projector) {
       if (!owned.signal) continue;
       owned.signal.emissiveIntensity = available
         ? vector
-          ? 3.3 + pulse * 1.7
+          ? (3.3 + pulse * 1.7) * signalScale
           : 1.15 + pulse * 0.5
         : 0.06;
       owned.white.emissiveIntensity = available
         ? vector
-          ? 1.25 + pulse * 0.65
+          ? (1.25 + pulse * 0.65) * signalScale
           : 0.45
         : 0.02;
     }

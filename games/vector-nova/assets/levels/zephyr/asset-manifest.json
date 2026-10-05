@@ -1,6 +1,6 @@
 {
   "name": "Zephyr Basilica authored scene kit",
-  "version": 1,
+  "version": 2,
   "coordinates": "Runtime glTF uses metres, X lateral, Y up, +Z forward. Blender source converts native coordinates as (X,-Z,Y).",
   "source": "build_assets.py; zephyr-asset-library.blend",
   "concept": {
@@ -11,7 +11,7 @@
     "usage": "Selected scene reference for modeling, not a runtime texture or rendered backdrop.",
     "prompt": "Use case: stylized-concept. Asset type: selected world scene concept reference for editable 3D racing-game assets, Zephyr Basilica. Create one wide cinematic architectural scene at actual driving scale in a floating cathedral archipelago. In foreground a small angular antigravity racing ship on a broad 32 metre woven graphite bridge, warm deep bronze keel and outward swept sail-like side ribs. The route pierces the huge shattered rose window of a weathered limestone cathedral into a deep shadowed rib-vaulted nave, curves up its inside wall and launches through a missing floor toward an adjacent chapel on another floating island. Massive silver waterfalls originate in carved stone catch basins, pour beside and through selected bridge gaps, with broken layered sheets and white foam, tapering hundreds of metres down into pastel cloud bands. At side a separate cathedral tower is slowly falling from its island, pulling a long trailing arc of water into the clouds. Include tall central stone needle behind, a broken stone halo far above, terraced islands with visibly stratified tapered undersides. The next landing shelf must be visibly clear through the backlit water. Lighting: dark violet grey nave interior with rose-window colored light and warm roof shafts contrasting pale peach/aqua exterior atmosphere. Palette: weathered ivory, graphite, bronze, silver water, dusty lilac and apricot clouds. High-end detailed game environment concept with large readable architectural forms, real apertures and convincing scale. Avoid neon strip aesthetics, asphalt, repeated identical rocks, opaque fog, flat water planes, text, logos or UI."
   },
-  "workflow": "Selected scene reference \u2192 CPU Blender mesh/material modeling \u2192 glTF \u2192 in-game lighting and inspection. No baked lighting or image planes.",
+  "workflow": "Selected scene reference \u2192 CPU Blender mesh/material modeling \u2192 glTF \u2192 in-game lighting and inspection. CPU contact occlusion retained as vertex color; live lighting and no image planes.",
   "copyright": "Original procedural geometry authored for this task. No external models, textures, fonts, or third-party source assets.",
   "approximations": [
     "Stone detail and erosion are modeled from deterministic geometry rather than sculpted displacement.",
@@ -34,28 +34,28 @@
         "min": [-117.0, -68.0, -21.95],
         "max": [117.0, 183.0, 24.0]
       },
-      "triangles": 10550,
+      "triangles": 154344,
       "meshCount": 8,
-      "bytes": 521164
+      "bytes": 14789416
     },
     {
       "purpose": "Reusable rib-vaulted nave bay with clerestories and dark real roof",
       "anchor": "road at origin, bay from z=-36 to +36",
       "clearEnvelope": {
-        "x": [-40, 40],
-        "y": [-18, 55],
+        "x": [-28, 28],
+        "y": [-11, 34],
         "z": [-36, 36]
       },
       "placement": "Use overlapping bays in gentle curves; road wall ride remains inside broad clear envelope.",
       "file": "/assets/levels/zephyr/nave-bay.glb",
       "root": "nave-bay",
       "bounds": {
-        "min": [-83.884, -28.0, -44.0],
-        "max": [83.884, 130.5, 44.0]
+        "min": [-62.045, -17.36, -44.0],
+        "max": [62.045, 80.877, 44.0]
       },
-      "triangles": 5924,
-      "meshCount": 8,
-      "bytes": 314872
+      "triangles": 85248,
+      "meshCount": 9,
+      "bytes": 8128828
     },
     {
       "purpose": "Open floating chapel with two true portals, nave and transepts",
@@ -71,9 +71,9 @@
         "min": [-91.0, -28.0, -77.7],
         "max": [87.0, 169.0, 77.7]
       },
-      "triangles": 10532,
-      "meshCount": 8,
-      "bytes": 531964
+      "triangles": 139816,
+      "meshCount": 9,
+      "bytes": 13232808
     },
     {
       "purpose": "Stratified floating island with eroded undersides, terraces and suspension roots",
@@ -82,12 +82,12 @@
       "file": "/assets/levels/zephyr/island-grand.glb",
       "root": "island-grand",
       "bounds": {
-        "min": [-145.997, -220.139, -125.866],
-        "max": [167.782, 29.914, 138.398]
+        "min": [-150.111, -225.493, -116.113],
+        "max": [158.478, 29.428, 125.751]
       },
-      "triangles": 2576,
+      "triangles": 14335,
       "meshCount": 8,
-      "bytes": 156648
+      "bytes": 1511556
     },
     {
       "purpose": "Stratified floating island with eroded undersides, terraces and suspension roots",
@@ -96,12 +96,12 @@
       "file": "/assets/levels/zephyr/island-terrace.glb",
       "root": "island-terrace",
       "bounds": {
-        "min": [-101.601, -154.739, -75.748],
-        "max": [109.835, 27.653, 77.291]
+        "min": [-113.826, -107.578, -81.224],
+        "max": [113.633, 29.051, 93.333]
       },
-      "triangles": 2588,
+      "triangles": 15061,
       "meshCount": 8,
-      "bytes": 157300
+      "bytes": 1591636
     },
     {
       "purpose": "Stratified floating island with eroded undersides, terraces and suspension roots",
@@ -110,12 +110,12 @@
       "file": "/assets/levels/zephyr/island-shard.glb",
       "root": "island-shard",
       "bounds": {
-        "min": [-63.639, -142.438, -45.724],
-        "max": [64.802, 30.203, 47.113]
+        "min": [-63.959, -145.518, -47.584],
+        "max": [66.537, 28.613, 46.564]
       },
-      "triangles": 2588,
+      "triangles": 13080,
       "meshCount": 8,
-      "bytes": 157296
+      "bytes": 1220756
     },
     {
       "purpose": "Massive falling belfry, open bell chamber, weathered copper spire",
@@ -127,9 +127,27 @@
         "min": [-28.5, 0.0, -28.5],
         "max": [28.5, 260.0, 28.5]
       },
-      "triangles": 4408,
+      "triangles": 32864,
       "meshCount": 5,
-      "bytes": 229356
+      "bytes": 2938500
+    },
+    {
+      "purpose": "Carved reservoir, spill lip and full-height piers attached to a receiving island",
+      "anchor": "source water at origin; foundations at y=-148",
+      "clearEnvelope": {
+        "x": [-25, 25],
+        "y": [-90, -27],
+        "z": [-30, 12]
+      },
+      "file": "/assets/levels/zephyr/aqueduct-source.glb",
+      "root": "aqueduct-source",
+      "bounds": {
+        "min": [-62.5, -148.0, -28.0],
+        "max": [62.5, 23.0, 6.0]
+      },
+      "triangles": 20152,
+      "meshCount": 7,
+      "bytes": 1774232
     },
     {
       "purpose": "Hero modeled waterfall with closed layered volume, grooves and irregular long strands",
@@ -147,18 +165,18 @@
       "bytes": 323792
     },
     {
-      "purpose": "Readable traversable water curtain, roughly 45 percent open between modeled water ropes",
+      "purpose": "Readable traversable water curtain, layered thin central veil with deep outer lobes and long foam ropes",
       "anchor": "source at y=0; place source 45\u201360 m above road; road crossing local z=0",
       "collision": "Visual only; actual wet-zone response belongs to level runtime/presentation.",
       "file": "/assets/levels/zephyr/waterfall-curtain.glb",
       "root": "waterfall-curtain",
       "bounds": {
-        "min": [-35.839, -116.697, -4.163],
-        "max": [36.92, 0.699, 8.313]
+        "min": [-50.694, -253.0, -9.36],
+        "max": [50.145, 0.7, 20.571]
       },
-      "triangles": 7820,
-      "meshCount": 3,
-      "bytes": 145016
+      "triangles": 36484,
+      "meshCount": 4,
+      "bytes": 662752
     },
     {
       "purpose": "Slender eroded Cloudspire needle with separated buttress fins and bronze suspension collars",
@@ -169,9 +187,9 @@
         "min": [-51.829, -4.5, -57.209],
         "max": [53.187, 342.0, 52.16]
       },
-      "triangles": 1432,
-      "meshCount": 6,
-      "bytes": 91232
+      "triangles": 95180,
+      "meshCount": 8,
+      "bytes": 9134764
     },
     {
       "purpose": "Monumental broken stone halo in XY plane with five fractured runs, carved lips and bronze tethers",
@@ -183,14 +201,14 @@
       "file": "/assets/levels/zephyr/broken-halo.glb",
       "root": "broken-halo",
       "bounds": {
-        "min": [-132.55, -133.002, -13.1],
-        "max": [130.407, 132.81, 11.7]
+        "min": [-132.534, -133.0, -13.053],
+        "max": [130.37, 132.799, 11.7]
       },
-      "triangles": 7048,
+      "triangles": 36784,
       "meshCount": 4,
-      "bytes": 332088
+      "bytes": 3147064
     }
   ],
-  "totalExportBytes": 2960728,
-  "uniqueTriangles": 73174
+  "totalExportBytes": 58456104,
+  "uniqueTriangles": 661056
 }

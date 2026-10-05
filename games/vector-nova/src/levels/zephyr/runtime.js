@@ -1,24 +1,27 @@
+import { wetnessAt } from './environment/atmosphere.js';
 import { createFlightModel } from '../../physics/flight.js';
 const model = createFlightModel({ gravity: 26 });
 export function createZephyrRuntime(context) {
   const { track } = context;
   const runtime = model.createRuntime(context, {
     id: 'zephyr-flight',
-    version: 2,
-    rulesId: `zephyr-flight-v2:${JSON.stringify({ geometry: track.geometryVersion, rules: model.rules, jumps: track.jumps, tower: 'fall-v1', wet: 'curtain-trail-v1' })}`,
+    version: 3,
+    rulesId: `zephyr-flight-v3:${JSON.stringify({ geometry: track.geometryVersion, rules: model.rules, jumps: track.jumps, tower: 'fall-v7-long-arc', wet: 'physical-curtain-trail-v2' })}`,
     edgeSource: 'zephyr-receiving-shelf',
   });
-  const trigger = track.sections.find((s) => s.id === 'falls').start;
-  const presentation = (track.zephyrPresentation = {
+  const trigger = track.sections.find((s) => s.id === 'falls').start - 60;
+  const presentation = {
     towerStart: null,
     wetStart: null,
+    exposure: 0,
     lastLap: 0,
-  });
+  };
+  if (context.presentation !== false) track.zephyrPresentation = presentation;
   return {
     ...runtime,
-    advance(state, input, dt) {
+    advance(state, input, dt, modifiers) {
       const previousDistance = state.distance;
-      const events = runtime.advance(state, input, dt);
+      const events = runtime.advance(state, input, dt, modifiers);
       for (const curtain of track.curtains ?? []) {
         const at =
           Math.floor(previousDistance / track.length) * track.length +
@@ -30,6 +33,11 @@ export function createZephyrRuntime(context) {
         )
           presentation.wetStart = state.time;
       }
+      presentation.exposure =
+        runtime.snapshot().mode === 'magnetic'
+          ? wetnessAt(track, state.distance)
+          : 0;
+      if (presentation.exposure > 0.02) presentation.wetStart = state.time;
       const lap = Math.floor(state.distance / track.length);
       if (lap !== presentation.lastLap) {
         presentation.towerStart = null;
@@ -48,6 +56,7 @@ export function createZephyrRuntime(context) {
       runtime.reset(options);
       presentation.towerStart = null;
       presentation.wetStart = null;
+      presentation.exposure = 0;
       presentation.lastLap = 0;
     },
     snapshot() {
@@ -63,6 +72,9 @@ export function createZephyrRuntime(context) {
         !(
           data.zephyr.wetStart === null || Number.isFinite(data.zephyr.wetStart)
         ) ||
+        !Number.isFinite(data.zephyr.exposure) ||
+        data.zephyr.exposure < 0 ||
+        data.zephyr.exposure > 1 ||
         !Number.isFinite(data.zephyr.lastLap)
       )
         throw new Error('Invalid Zephyr spectacle state');

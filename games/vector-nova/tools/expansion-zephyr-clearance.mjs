@@ -17,7 +17,11 @@ const track = createLevel().createTrack(),
   scene = new T.Scene();
 scene.environmentIntensity = 0.75;
 scene.add(new T.HemisphereLight());
-const env = await createZephyrEnvironment({ track, view: { scene } });
+const env = await createZephyrEnvironment({
+  track,
+  view: { scene },
+  loadTexture: async () => new T.Texture(),
+});
 env.group.updateMatrixWorld(true);
 const cellSize = 50,
   cells = new Map(),

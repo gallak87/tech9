@@ -1,6 +1,6 @@
 # VECTOR//NOVA
 
-A browser anti-gravity racer built with Three.js and Vite. Choose Kestrel, Shrike, Bastion or Needle and drive nine distinct circuits with banked roads, inversions and real jumps. All nine circuits offer two-lap racing against three rivals; every circuit offers solo practice, manual boost, airbraking, ship inspection and circuit review.
+A browser anti-gravity racer built with Three.js and Vite. Choose Kestrel, Shrike, Bastion or Needle and drive ten distinct circuits with banked roads, inversions and real jumps. All ten circuits offer two-lap racing against three rivals; every circuit offers solo practice, manual boost, airbraking, ship inspection and circuit review.
 
 ## Circuits and features
 
@@ -16,9 +16,10 @@ Choose your ship in the paddock, or inspect the player fleet and AI racers. Choo
 | Cindercoil        | Ceramic volcanic circuit, warned lava surges, a furnace corkscrew and vent flight          | `/?level=cindercoil` |
 | Saffron Leviathan | Fossil-desert circuit, skull traversal, vertebral jumps and migrating sand on gold glass   | `/?level=saffron`    |
 | Umbra Fold        | Ruined gravity observatory, tidal countersteering, curved leaps and continuous accretion   | `/?level=umbra`      |
+| Zephyr Basilica   | Floating Gothic archipelago, rose-window nave, waterfall jumps and a full cloud spiral     | `/?level=zephyr`     |
 | Helion Flare      | Solar observatory, flare-lane evasion, furnace passages and sheltered jumps                | `/?level=helion`     |
 
-All nine circuits share automatic Vector boost strips and Aegis shields, with circuit-owned placements. Vector gives an immediate catapult kick and drives toward 600 km/h during a full strip pass, with strong radial motion blur unless reduced motion is enabled. Leaving early retains only the speed already gained; Aegis protects reserve from impacts for six seconds. **Enter Proving Loop** starts a two-lap session against Rook, Latch and Mule from a 2×2 grid after audible start lights; **Practice Lap** starts solo. Easy uses the baseline rival pace, Medium is faster, and Hard is faster again with more boosting as you boost. Each rival uses its own vehicle physics, reserve and device eligibility. After two laps placements and lap/total times are recorded while driving continues. Escape returns to the paddock with the last roster beside the desktop menu or below the controls on compact screens; unfinished rivals remain in progress and invalid laps are marked untimed.
+All ten circuits share automatic Vector boost strips and Aegis shields, with circuit-owned placements. Vector gives an immediate catapult kick and drives toward 600 km/h during a full strip pass, with circuit-tuned radial motion blur unless reduced motion is enabled. Leaving early retains only the speed already gained; Aegis protects reserve from impacts for six seconds. **Enter Proving Loop** starts a two-lap session against Rook, Latch and Mule from a 2×2 grid after audible start lights; **Practice Lap** starts solo. Easy uses the baseline rival pace, Medium is faster, and Hard is faster again with more boosting as you boost. Each rival uses its own vehicle physics, reserve and device eligibility. After two laps placements and lap/total times are recorded while driving continues. Escape returns to the paddock with the last roster beside the desktop menu or below the controls on compact screens; unfinished rivals remain in progress and invalid laps are marked untimed.
 
 Orbital's bare route review is available at `/?level=orbital&review=shape`. Shape review provides 3D/top/profile overviews. The shared paddock offers full-circuit Practice Lap and ship inspection. Nacre adds storm swells, underwater immersion, two real jumps and one enormous swimming leviathan. Its automatic missed-jump recovery keeps the lap valid while counting the recovery delay; manual R recovery still invalidates it.
 
@@ -31,6 +32,8 @@ Saffron Leviathan descends through an enormous porous skull, banks along its int
 Umbra Fold adds declared tidal pulls, two curved airborne crossings, stacked decks, an inverted vault and a grounded descending fold. Intact distant instruments stretch, fragment and spiral into the ring; one enormous instrument follows a complete timed consumption sequence. Shape review uses `/?level=umbra&review=shape`. Automatic missed-jump recovery retains lap validity and counts its delay. The six automatic devices sit on supported ordinary or recovery shelves; the two flight corridors have no pickups.
 
 Helion Flare adds moving fire lanes, three mandatory furnace passages, physical shield cover and cooling strips. Heat reduces thrust above the declared threshold. Two optional driver-left jumps retain a supported main lane, and the banked sunshield wall leads into a braking shelf. The separate star and two timed prominences sit against the selected burgundy space panorama. Shape review uses `/?level=helion&review=shape`.
+
+Zephyr Basilica crosses a floating Gothic archipelago on woven graphite and bronze bridges. Pass through a shattered rose window, bank along the dark nave, cross two physical waterfall jumps, then climb a full spiral around the Cloudspire needle toward the broken halo. Water contact leaves draining visor beads, a wet ship sheen and local spray. The falling belfry and its trailing water follow simulation time. Shape review uses `/?level=zephyr&review=shape`.
 
 Time Trial, championships, ship-to-ship collision and larger opponent fields are future work.
 

@@ -231,17 +231,10 @@ async function checkCase(slug, quality, viewport, mobile = false) {
         `../src/levels/${slug}/devices.js`
       );
       // The live track is represented by the local pure factory for the plan.
-      const factoryNames = {
-        halcyon: 'createTrack',
-        orbital: 'createLevel2Track',
-        vesper: 'createVesperTrack',
-        glasswake: 'createGlasswakeTrack',
-        cindercoil: 'createCindercoilTrack',
-        nacre: 'createLevel3Track',
-      };
-      const track = (await import(`../src/levels/${slug}/track/model.js`))[
-        factoryNames[slug]
-      ]();
+      const { default: createLevel } = await import(
+        `../src/levels/${slug}/index.js`
+      );
+      const track = createLevel().createTrack();
       const devices = (createDevices ?? createHalcyonDevices)(track);
       await acquire(
         page,

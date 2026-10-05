@@ -68,7 +68,7 @@ test('Zephyr falling geometry uses a bounded slow event and no simulation forces
   for (let age = 0; age < 40; age += 0.1) {
     const e = sampleTowerEvent(age);
     assert.ok(e.fall >= previous);
-    assert.ok(e.tilt <= 1.17 && e.drop <= 165);
+    assert.ok(e.tilt <= 1.17 && e.drop <= 100);
     previous = e.fall;
   }
   const runtime = createZephyrRuntime({ track });

@@ -7,6 +7,7 @@ export function createCameraRig(
     portraitAspect = 0,
     maxPortraitScale = 1.5,
     chaseHeight = 5,
+    chaseDistance = 12.5,
     lookAhead = 35,
     safeFrame,
     jumpPreview,
@@ -143,18 +144,28 @@ export function createCameraRig(
               jumpPreview.distance * 0.5,
             )
           : 0;
+        const resolvedHeight =
+          typeof chaseHeight === 'function'
+            ? chaseHeight(track, state)
+            : chaseHeight;
+        const resolvedDistance =
+          typeof chaseDistance === 'function'
+            ? chaseDistance(track, state)
+            : chaseDistance;
         const height = T.MathUtils.lerp(
-          chaseHeight,
-          jumpPreview?.height ?? chaseHeight,
+          resolvedHeight,
+          jumpPreview?.height ?? resolvedHeight,
           preview,
         );
         const backDistance = T.MathUtils.lerp(
-          12.5,
-          jumpPreview?.back ?? 12.5,
+          resolvedDistance,
+          jumpPreview?.back ?? resolvedDistance,
           preview,
         );
+        const previewDistance =
+          typeof lookAhead === 'function' ? lookAhead(track, state) : lookAhead;
         const ahead = track.sample(
-          state.distance + lookAhead + state.speed * 0.18,
+          state.distance + previewDistance + state.speed * 0.18,
         );
         back = track.sample(
           state.distance - backDistance - state.speed * 0.025,

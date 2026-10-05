@@ -1,5 +1,5 @@
 import * as T from 'three';
-export function createZephyrBackdrop({ shape = false } = {}) {
+function createShapeBackdrop({ shape = false } = {}) {
   const group = new T.Group();
   group.name = 'Zephyr / apricot bands and violet cloud sea';
   const sunDirection = new T.Vector3(-0.65, 0.45, -0.35).normalize();
@@ -45,6 +45,95 @@ export function createZephyrBackdrop({ shape = false } = {}) {
       material.uniforms.clock.value = settings.reducedMotion ? 0 : time;
     },
     dispose() {
+      geometry.dispose();
+      material.dispose();
+      group.clear();
+    },
+  };
+}
+
+import { assetURL } from '../../../assets/url.js';
+export async function createZephyrBackdrop({
+  shape = false,
+  loadTexture = (url) => new T.TextureLoader().loadAsync(url),
+} = {}) {
+  if (shape) return createShapeBackdrop({ shape: true });
+  const texture = await loadTexture(
+    assetURL('assets/levels/zephyr/zephyr-sky-v2.png'),
+  );
+  texture.colorSpace = T.SRGBColorSpace;
+  texture.wrapS = T.RepeatWrapping;
+  texture.wrapT = T.ClampToEdgeWrapping;
+  texture.anisotropy = 4;
+  const group = new T.Group();
+  group.name = 'Zephyr / luminous ivory and violet cloud shelves';
+  group.userData.aoExclude = true;
+  const material = new T.ShaderMaterial({
+    side: T.BackSide,
+    depthWrite: false,
+    uniforms: { stellarSky: { value: texture } },
+    vertexShader:
+      'varying vec3 ray;void main(){ray=position;vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_Position=p.xyww;}',
+    fragmentShader: `varying vec3 ray; uniform sampler2D stellarSky;
+      const float PI=3.141592653589793;
+      void main(){
+        vec3 direction=normalize(ray);
+        float u=fract(atan(direction.z,direction.x)/(2.*PI)+.34);
+        float v=asin(clamp(direction.y,-1.,1.))/PI+.5;
+        // Overlap the panorama ends so imperfect authored edge matches cannot
+        // create a visible meridian. Source pixels remain unchanged.
+        float overlap=.04;
+        float panoramaU=u*(1.-overlap);
+        // Analytic UV derivatives stay continuous across the longitude wrap;
+        // implicit derivatives there select a visibly wrong, tiny mip level.
+        vec3 dx=dFdx(direction),dy=dFdy(direction);
+        float longitudeScale=(1.-overlap)/(2.*PI*max(dot(direction.xz,direction.xz),.000001));
+        float latitudeScale=1./(PI*sqrt(max(1.-direction.y*direction.y,.000001)));
+        vec2 uvDx=vec2((direction.x*dx.z-direction.z*dx.x)*longitudeScale,dx.y*latitudeScale);
+        vec2 uvDy=vec2((direction.x*dy.z-direction.z*dy.x)*longitudeScale,dy.y*latitudeScale);
+        vec3 radiance=textureGrad(stellarSky,vec2(panoramaU,v),uvDx,uvDy).rgb;
+        if(panoramaU<overlap){
+          vec3 opposite=textureGrad(stellarSky,vec2(panoramaU+1.-overlap,v),uvDx,uvDy).rgb;
+          radiance=mix(opposite,radiance,smoothstep(0.,overlap,panoramaU));
+        }
+        // The source pole rows carry longitude detail; blend their mean at the
+        // last few degrees rather than pinching those clouds into a bright star.
+        float poleV=direction.y>0. ? .99 : .01;
+        vec3 poleColor=(textureLod(stellarSky,vec2(.125,poleV),3.).rgb+textureLod(stellarSky,vec2(.375,poleV),3.).rgb+textureLod(stellarSky,vec2(.625,poleV),3.).rgb+textureLod(stellarSky,vec2(.875,poleV),3.).rgb)*.25;
+        radiance=mix(radiance,poleColor,smoothstep(.965,.998,abs(direction.y)));
+        radiance*=.9;
+
+        gl_FragColor=vec4(radiance,1.);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+  });
+  const geometry = new T.SphereGeometry(8000, 48, 32);
+  const mesh = new T.Mesh(geometry, material);
+  mesh.frustumCulled = false;
+  mesh.renderOrder = -1000;
+  group.add(mesh);
+  let disposed = false;
+  return {
+    group,
+    ownedTextures: [texture],
+    sunDirection: new T.Vector3(-0.65, 0.32, -0.35).normalize(),
+    sunColor: '#ffe1bc',
+    sunIntensity: 2.6,
+    ambientSky: '#c4bfdc',
+    ambientGround: '#685465',
+    ambientIntensity: 0.6,
+    fillColor: '#b9c9e9',
+    fillIntensity: 0.32,
+    environmentIntensity: 0.55,
+    far: 12000,
+    update({ camera }) {
+      mesh.position.copy(camera.position);
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      texture.dispose();
       geometry.dispose();
       material.dispose();
       group.clear();

@@ -5,10 +5,11 @@ Run with Blender 4+ in background mode:
 
 The modeling API uses game coordinates: X lateral, Y up, Z forward. Vertices
 are converted to Blender native Z-up when constructed and exported as glTF
-Y-up. No rendering, baking, textures, network, or GPU work is performed.
+Y-up. Contact occlusion is sampled on CPU. No rendering, texture baking, network, or GPU work is performed.
 """
 
 import bpy
+import bmesh
 import json
 import math
 import random
@@ -16,6 +17,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 
 
 REFERENCE = {
@@ -187,15 +189,89 @@ class Meshes:
             if mat.startswith("water"):
                 for poly in mesh.polygons:
                     poly.use_smooth=True
+            if mat in ("limestone","pale","shadow","slate","bronze","copper"):
+                bpy.context.view_layer.objects.active=obj
+                bevel=obj.modifiers.new("Worn carved arris", "BEVEL")
+                bevel.width=.18
+                bevel.segments=2
+                bevel.limit_method="ANGLE"
+                bevel.angle_limit=.55
+                bpy.ops.object.modifier_apply(modifier=bevel.name)
+                mesh=obj.data
+                bm=bmesh.new();bm.from_mesh(mesh)
+                bmesh.ops.triangulate(bm,faces=list(bm.faces))
+                tiny=[f for f in bm.faces if f.calc_area()<.0001]
+                if tiny:bmesh.ops.delete(bm,geom=tiny,context='FACES_ONLY')
+                bm.normal_update();bm.to_mesh(mesh);bm.free();mesh.update()
+            if mat.startswith("rock"):
+                bm=bmesh.new();bm.from_mesh(mesh)
+                bmesh.ops.remove_doubles(bm,verts=list(bm.verts),dist=.001)
+                bm.normal_update();bm.to_mesh(mesh);bm.free();mesh.update()
+                if self.name in ('island-grand','island-terrace') and mat=='rock':
+                    # An actual eroded through-cavern, with a thick load-bearing
+                    # arch remaining below the dressed terrace.
+                    rx,rz,dep=(143,120,215) if self.name=='island-grand' else (110,78,103)
+                    bpy.ops.mesh.primitive_uv_sphere_add(segments=40,ring_count=20,location=(rx*.10,0,-dep*.37))
+                    cutter=bpy.context.object;cutter.scale=(rx*.25,rz*2.8,dep*.16)
+                    bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
+                    # Fractured arch shoulders avoid a perfect punched ellipse.
+                    for v in cutter.data.vertices:
+                        x,y,z=v.co
+                        v.co.x+=3.2*math.sin(z*.19+y*.031)+1.5*math.sin(z*.47)
+                        v.co.z+=2.5*math.sin(x*.23+y*.043)
+                    cutter.data.update()
+                    bpy.context.view_layer.objects.active=obj
+                    opening=obj.modifiers.new('Eroded through-cavern','BOOLEAN');opening.operation='DIFFERENCE';opening.solver='EXACT';opening.object=cutter
+                    bpy.ops.object.modifier_apply(modifier=opening.name)
+                    bpy.data.objects.remove(cutter,do_unlink=True)
+                    mesh=obj.data
+                if self.name.startswith('island-') and mat=='rock':
+                    bpy.context.view_layer.objects.active=obj
+                    edge=obj.modifiers.new('Worn geological breaks','BEVEL');edge.width=.65;edge.segments=2;edge.limit_method='ANGLE';edge.angle_limit=.4
+                    bpy.ops.object.modifier_apply(modifier=edge.name);mesh=obj.data
+                    bm=bmesh.new();bm.from_mesh(mesh);bmesh.ops.triangulate(bm,faces=list(bm.faces))
+                    tiny=[f for f in bm.faces if f.calc_area()<.0001]
+                    if tiny:bmesh.ops.delete(bm,geom=tiny,context='FACES_ONLY')
+                    bm.normal_update();bm.to_mesh(mesh);bm.free();mesh.update()
+                for poly in mesh.polygons:poly.use_smooth=not self.name.startswith("island-")
             self.objects.append(obj)
-            all_vertices.extend(verts)
-            triangles+=sum(len(f)-2 for f in faces)
+            all_vertices.extend((v.co.x,v.co.z,-v.co.y) for v in mesh.vertices)
+            triangles+=sum(len(poly.vertices)-2 for poly in mesh.polygons)
             obj.select_set(True)
+        # CPU contact shade is attached to the actual carved surfaces and moves
+        # with the falling tower. Water stays unbaked and receives live lighting.
+        opaque=[o for o in self.objects if not o['surfaceRole'].startswith('water') and 'rose' not in o['surfaceRole']]
+        vertices=[];faces=[]
+        for o in opaque:
+            offset=len(vertices);vertices.extend([v.co.copy() for v in o.data.vertices])
+            faces.extend([tuple(offset+i for i in poly.vertices) for poly in o.data.polygons])
+        if vertices:
+            tree=BVHTree.FromPolygons(vertices,faces,all_triangles=False)
+            for o in opaque:
+                colors=o.data.color_attributes.new(name='Color',type='FLOAT_COLOR',domain='CORNER')
+                o.data.color_attributes.active_color=colors
+                cache={}
+                for poly in o.data.polygons:
+                    for li in poly.loop_indices:
+                        vertex=o.data.vertices[o.data.loops[li].vertex_index]
+                        v=vertex.co;n=vertex.normal if poly.use_smooth else poly.normal
+                        key=tuple(round(c,3) for c in (*v,*n))
+                        if key not in cache:
+                            tangent=n.cross(Vector((0,0,1)) if abs(n.z)<.9 else Vector((0,1,0))).normalized();bitangent=n.cross(tangent)
+                            occlusion=0
+                            for j in range(6):
+                                theta=(j+.5)*math.tau/6
+                                direction=(n*.6+tangent*math.cos(theta)*.8+bitangent*math.sin(theta)*.8).normalized()
+                                hit=tree.ray_cast(v+n*.12,direction,12)
+                                if hit[0] is not None:occlusion+=1-hit[3]/16
+                            cache[key]=max(.29,1-occlusion/6*.83)
+                        ao=cache[key]
+                        colors.data[li].color=(ao,ao,ao,1)
         self.root.select_set(True)
         path=PUBLIC/(self.name+".glb")
         bpy.ops.export_scene.gltf(filepath=str(path),export_format="GLB",use_selection=True,
                                   export_yup=True,export_materials="EXPORT",export_cameras=False,
-                                  export_lights=False,export_animations=False)
+                                  export_lights=False,export_animations=False,export_vertex_color='ACTIVE')
         info.update({"file":"/assets/levels/zephyr/"+self.name+".glb", "root":self.name,
                      "bounds":{"min":[round(min(p[i] for p in all_vertices),3) for i in range(3)],
                                "max":[round(max(p[i] for p in all_vertices),3) for i in range(3)]},
@@ -219,6 +295,10 @@ def pier(m,x,z,bottom=-28,top=116,radius=5):
         t=math.tau*a/6
         m.beam((x+math.cos(t)*radius,z*0+bottom+8,z+math.sin(t)*radius),
                (x+math.cos(t)*radius,top-6,z+math.sin(t)*radius),radius*.19,"pale",6)
+    for y in range(math.ceil(bottom+13),math.floor(top-12),12):
+        m.beam((x,y,z),(x,y+.5,z),radius*1.055,"shadow",10)
+        for side in [-1,1]:
+            m.box((x+side*radius*.72,y+3,z-radius*.84),(radius*.22,3.7,.42),"pale")
     for y in [bottom+11,top-9,top-5,top-2]:
         m.box((x,y,z),(radius*2.5,1.5,radius*2.5),"pale")
 
@@ -256,27 +336,38 @@ def facade():
         m.beam((math.cos(a)*r,cy+math.sin(a)*r,-10.6),
                (math.cos(a)*(r+3),cy+math.sin(a)*(r+3),-10.6),.8,"pale",5)
     rng=random.Random(806)
-    # Shattered peripheral glazing: the central racing/camera aperture stays empty.
-    for k in range(24):
-        a=math.tau*k/24+.02
-        b=a+math.tau/24*.7
-        if k in (0,11,12,17,18,19,20,21,22):
-            continue
-        inner=53+rng.random()*5
-        r=62.8
-        verts=[(inner*math.cos(a),cy+inner*math.sin(a),-5.5),
-               (r*math.cos(a),cy+r*math.sin(a),-5.5),
-               (r*math.cos(b),cy+r*math.sin(b),-5.5),
-               ((inner+rng.uniform(-2,2))*math.cos(b),cy+(inner+rng.uniform(-1,1))*math.sin(b),-5.5)]
-        m.mesh(verts,[(0,1,2,3)],["rose_blue","rose_amber","rose_lilac"][k%3])
-        m.beam(verts[0],verts[1],.72,"bronze",6)
-        m.beam(verts[1],verts[2],.72,"bronze",6)
-        # Gothic petals form another strong ring visible through the nave.
+    # Deep surviving Gothic petals wrap a clear central flight aperture. Broken
+    # sectors retain mullions, inset glass cells and fractured masonry shoulders.
+    for k in range(20):
+        a=math.tau*k/20+.022
+        b=a+math.tau/20*.84
         mid=(a+b)/2
-        p=[(61*math.cos(a),cy+61*math.sin(a),-6),
-           (55*math.cos(mid),cy+55*math.sin(mid),-6),
-           (61*math.cos(b),cy+61*math.sin(b),-6)]
-        m.path(p,1.05,"pale",6)
+        if k in (10,11,12,13,14,15,16,17,18,19):
+            inner=49
+        else:
+            inner=46
+        if k in (1,8,10,18):inner=57
+        def polar(r,t,z):return (r*math.cos(t),cy+r*math.sin(t),z)
+        outer=63.5
+        curve=[polar(outer,a,-6),polar(inner+3,(a+mid)/2,-8),polar(inner,mid,-9),polar(inner+3,(mid+b)/2,-8),polar(outer,b,-6)]
+        m.path(curve,1.55,"pale",8)
+        m.path([(x,y,z+4) for x,y,z in curve],.8,"limestone",6)
+        for j in range(3):
+            aa=a+(b-a)*j/3;bb=a+(b-a)*(j+1)/3
+            rim=inner+4+4*abs(j-1)
+            verts=[polar(rim,aa,-5.8),polar(62,aa,-5.8),polar(62,bb,-5.8),polar(rim,bb,-5.8)]
+            if (k+j)%7!=0:m.mesh(verts,[(0,1,2,3)],["rose_blue","rose_amber","rose_lilac"][(k+j)%3])
+            m.beam(verts[0],verts[1],.26,"bronze",6)
+        m.ring(*polar(57,mid,-8)[:2],-8,1.5,2.25,1.8,"pale",12)
+        if k%3==0:
+            for j in range(3):
+                r=68+j*2.1
+                m.box(polar(r,mid,-11),(1.5,2.1,2.4),"pale",mid)
+    # Weathered stone fragments remain attached to the broken rose shoulders.
+    for side in [-1,1]:
+        for k in range(9):
+            y=-19+k*9.5;x=side*(77+3*math.sin(k*1.9))
+            m.box((x,y,-13.7),(5+(k%3),2.1,3.5),"limestone",side*.18)
     # Gable sits above the rose, leaving every part of the through-circle open.
     m.mesh([(-66,84,-6),(66,84,-6),(0,142,-6),(-66,84,7),(66,84,7),(0,142,7)],
            [(0,2,1),(3,4,5),(0,3,5,2),(1,2,5,4),(0,1,4,3)],"limestone")
@@ -372,6 +463,27 @@ def nave_geometry(m,zmin=-36,zmax=36,roof=True):
             pts.append((x,vault_height(x)-3.3,z))
         m.path(pts,1.55,"pale",7)
     m.beam((0,126,zmin),(0,126,zmax),1.8,"bronze",8)
+    # Tiered transverse ribs and small open aisle arcades articulate the
+    # otherwise broad vault soffits, with bosses at the intersecting webs.
+    for z in [zmin*.34,zmax*.34]:
+        pts=[(-58+116*i/32,vault_height(-58+116*i/32)-3.8,z) for i in range(33)]
+        m.path(pts,1.05,"limestone",7)
+        for side in [-1,1]:
+            # Each secondary web seats into the continuous aisle cornice.
+            m.beam((side*58,vault_height(58)-3.8,z),(side*60,61,z),1.7,"pale",7)
+    for z in [zmin*.34,0,zmax*.34]:
+        m.beam((0,120,z),(0,124,z),2.8,"bronze",8,1.7)
+        for k in range(6):
+            a=math.tau*k/6
+            m.beam((math.cos(a)*1.5,122,z+math.sin(a)*1.5),(math.cos(a)*4,124,z+math.sin(a)*4),.55,"pale",6)
+    for side in [-1,1]:
+        for z in [zmin+12,(zmin+zmax)/2,zmax-12]:
+            for dz in [-10,10]:
+                pier(m,side*54,z+dz,-18,28,1.7)
+            pts=[(side*54,28+11*math.sin(math.pi*k/20),z-10+20*k/20) for k in range(21)]
+            m.path(pts,1.05,"pale",7)
+            # Recessed low clerestory cells sit behind the structural arcades.
+            m.box((side*61,35,z),(1.3,13,7),"rose_amber" if z<0 else "rose_blue")
     # Suspended aisle balconies stay far outside the full road/camera envelope.
     for side in [-1,1]:
         m.box((side*49,-19,(zmin+zmax)/2),(12,4,zmax-zmin),"limestone")
@@ -383,9 +495,12 @@ def nave_geometry(m,zmin=-36,zmax=36,roof=True):
 def nave():
     m=Meshes("nave-bay")
     nave_geometry(m)
+    # Keep the vault and aisles close enough to read from the banking chase view.
+    for bucket in m.data.values():
+        bucket[0]=[(x*.74,y*.62,z) for x,y,z in bucket[0]]
     return m.finish({"purpose":"Reusable rib-vaulted nave bay with clerestories and dark real roof",
                      "anchor":"road at origin, bay from z=-36 to +36",
-                     "clearEnvelope":{"x":[-40,40],"y":[-18,55],"z":[-36,36]},
+                     "clearEnvelope":{"x":[-28,28],"y":[-11,34],"z":[-36,36]},
                      "placement":"Use overlapping bays in gentle curves; road wall ride remains inside broad clear envelope."})
 
 
@@ -424,33 +539,47 @@ def chapel():
 def island(name,rx,rz,depth,seed,terraces=2):
     m=Meshes(name)
     rng=random.Random(seed)
-    n=44
-    phase=[rng.uniform(-.08,.08) for _ in range(n)]
-    radial=[1+rng.uniform(-.09,.09)+.065*math.sin(k*.91) for k in range(n)]
-    rings=[(0,.89),(-9,1),(-25,.97),(-depth*.23,.85),(-depth*.38,.88),
-           (-depth*.53,.65),(-depth*.72,.49),(-depth*.89,.26),(-depth,0.025)]
+    n=48
+    phase=[rng.uniform(-.019,.019) for _ in range(n)]
+    # The three authored families have different bed thickness and skew, rather
+    # than the same repeated concentric steps scaled to different sizes.
+    radial=[1+.09*math.sin(k*.39+seed)+.045*math.sin(k*1.31)+rng.uniform(-.035,.035) for k in range(n)]
+    if 'terrace' in name:
+        rings=[(0,.82),(-6,.97),(-depth*.23,.91),(-depth*.27,.65),(-depth*.71,.54),(-depth*.75,.31),(-depth,.035)]
+    elif 'shard' in name:
+        rings=[(0,.78),(-7,.95),(-depth*.12,.88),(-depth*.15,.69),(-depth*.61,.47),(-depth*.65,.34),(-depth,.025)]
+    else:
+        rings=[(0,.82),(-8,.97),(-depth*.18,.93),(-depth*.205,.67),(-depth*.57,.60),(-depth*.60,.39),(-depth*.84,.28),(-depth,.035)]
+    expanded=[]
+    for a,b in zip(rings[:-1],rings[1:]):
+        expanded.append(a)
+        if abs(a[0]-b[0])>depth*.18:
+            for t in [.33,.67]:expanded.append((a[0]*(1-t)+b[0]*t,a[1]*(1-t)+b[1]*t))
+    rings=expanded+[rings[-1]]
     ringverts=[]
     for ri,(yy,s) in enumerate(rings):
         rr=[]
         for k in range(n):
             t=math.tau*k/n+phase[k]
-            offset=0 if ri==0 else rng.uniform(-depth*.025,depth*.025)
-            r=radial[k]*s*(1+.055*math.sin(k*1.7+ri*.9))
-            rr.append((math.cos(t)*rx*r+math.sin(ri*.7)*rx*.06,
-                       yy+offset,math.sin(t)*rz*r+math.cos(ri)*rz*.06))
+            offset=0 if ri==0 else depth*(.031*math.sin(t*2+ri*.28)+.019*math.sin(t*5.3+seed))+rng.uniform(-depth*.006,depth*.006)
+            r=radial[k]*s*(1+.047*math.sin(k*.63+ri*.61)+.025*math.sin(k*2.1+ri*.3))
+            rr.append((math.cos(t)*rx*r+math.sin(ri*.23)*rx*.12,
+                       yy+offset,math.sin(t)*rz*r+math.cos(ri*.33)*rz*.07))
         ringverts.append(rr)
     # Dressed broad top supports architecture; natural strata remain faceted.
     top=[(0,0,0)]+ringverts[0]
-    m.mesh(top,[(0,(k+1)%n+1,k+1) for k in range(n)],"rock_light")
+    m.mesh(top,[(0,(k+1)%n+1,k+1) for k in range(n)],"rock")
     for ri in range(len(rings)-1):
         for k in range(n):
             a=ringverts[ri][k]
             b=ringverts[ri][(k+1)%n]
             c=ringverts[ri+1][(k+1)%n]
             d=ringverts[ri+1][k]
-            mat=["rock_light","rock","rock_dark"][(ri//2+(1 if k%9==0 else 0))%3]
+            mat="rock"
             # Triangulate uneven strata with alternating diagonals to reveal relief.
             m.mesh([a,b,c,d],[(0,1,2),(0,2,3)],mat)
+    bottom=[(0,-depth,0)]+ringverts[-1]
+    m.mesh(bottom,[(0,k+1,(k+1)%n+1) for k in range(n)],"rock")
     # Projecting shelves and architectural roots break the silhouette at all scales.
     for k in range(18):
         t=math.tau*k/18+rng.uniform(-.12,.12)
@@ -596,6 +725,30 @@ def water_ribbon(m,center,width,length,thickness,seed,mat="water",bend=0,section
     m.mesh(vs,fs,mat)
 
 
+def aqueduct():
+    m=Meshes("aqueduct-source")
+    m.box((0,-6,-11),(108,12,28),"limestone")
+    m.box((0,1,-24),(108,8,3),"pale")
+    for side in [-1,1]:
+        pier(m,side*48,-11,-143,-6,5.5)
+        for y in [-131,-92,-52,-13]:
+            m.box((side*48,y,-11),(17,3,23),"pale")
+        m.box((side*48,-144,-11),(29,8,34),"rock_dark")
+        m.box((side*52,1,-11),(5,8,27),"pale")
+        m.beam((side*45,-48,-11),(side*16,-11,-11),2.3,"pale",8)
+        m.beam((side*48,-130,-19),(side*48,-12,-19),.85,"bronze",8)
+        pinnacle(m,side*51,5,-17,15,2)
+    m.box((0,-.3,-12),(97,1.2,21),"water")
+    m.box((0,-1.8,0),(98,3,3),"pale")
+    # Incised face courses, projecting cornice and scalloped spill channels.
+    for x in range(-44,45,8):
+        m.box((x,-6,3),(6.6,4,1.8),"shadow")
+        m.box((x,-4.8,4),(6,1.1,1.1),"bronze")
+    return m.finish({"purpose":"Carved reservoir, spill lip and full-height piers attached to a receiving island",
+                     "anchor":"source water at origin; foundations at y=-148",
+                     "clearEnvelope":{"x":[-25,25],"y":[-90,-27],"z":[-30,12]}})
+
+
 def waterfall():
     m=Meshes("waterfall")
     water_ribbon(m,(0,0,0),70,360,10,910,"water",22)
@@ -621,16 +774,19 @@ def waterfall():
 
 def curtain():
     m=Meshes("waterfall-curtain")
-    # For crossings, sparse separated ropes reveal the exit through a broad fall.
-    # Level-local spray/wet-camera effects provide the brief's impact presentation.
+    # A thin flowing veil spans the lane; thick outer lobes carry the mass and
+    # long foam ropes into cloud. The receiving deck remains readable centrally.
+    water_ribbon(m,(0,0,2.5),77,205,2.4,397,"water",10,50,22)
+    for side in [-1,1]:
+        water_ribbon(m,(side*31,0,0),28,245,8,398+side,"water_silver",15,50,10)
+        water_ribbon(m,(side*42,-3,-5),14,224,6,414+side,"water_shadow",13,46,8)
     rng=random.Random(399)
-    for k in range(17):
-        x=-35+k*4.375
-        water_ribbon(m,(x,0,0),rng.uniform(1.25,3.7),110+rng.uniform(-8,8),1.5,
-                     500+k,"water_silver" if k%3 else "water_shadow",5,22,3)
-        if k%3==0:
-            water_ribbon(m,(x+.7,-1,-1),.65,115,1,600+k,"water_foam",4,22,2)
-    return m.finish({"purpose":"Readable traversable water curtain, roughly 45 percent open between modeled water ropes",
+    for k in range(35):
+        x=-46+k*2.7
+        outer=abs(x)>20
+        water_ribbon(m,(x,0,-3),rng.uniform(.35,1.3) if not outer else rng.uniform(.8,2.4),rng.uniform(178,253),1.3,
+                     500+k,"water_foam" if k%3 else "water_silver",rng.uniform(8,16),42,3)
+    return m.finish({"purpose":"Readable traversable water curtain, layered thin central veil with deep outer lobes and long foam ropes",
                      "anchor":"source at y=0; place source 45–60 m above road; road crossing local z=0",
                      "collision":"Visual only; actual wet-zone response belongs to level runtime/presentation."})
 
@@ -668,6 +824,24 @@ def needle():
         if k%2==0:
             m.beam((x*40,68,z*40),(x*22,123,z*22),1.7,"bronze",7)
         m.box((x*44,0,z*44),(15,9,15),"limestone",-a)
+    # Carved, pierced crowns anchor the spiral to a recognizable sacred needle.
+    # Each open gallery follows the shrinking rock; its dark lancets, colonettes
+    # and broken upper pinnacles remain visible through the banked ascent.
+    for yy,r,h in [(72,37,52),(157,25,43),(231,14,32)]:
+        for k in range(8):
+            a=math.tau*k/8
+            x,z=math.cos(a)*r,math.sin(a)*r
+            pier(m,x,z,yy,yy+h,1.65)
+            pinnacle(m,x,yy+h,z,17+k%3*3,1.6)
+            b=a+math.tau/8
+            pts=[]
+            for j in range(17):
+                t=j/16
+                pts.append((r*((1-t)*math.cos(a)+t*math.cos(b)),
+                            yy+h-15+12*math.sin(math.pi*t),
+                            r*((1-t)*math.sin(a)+t*math.sin(b))))
+            m.path(pts,1.2,"pale",7)
+            m.beam((x,yy+5,z),(x*.67,yy+h-5,z*.67),1.1,"bronze",7)
     # High suspended platform and needle top echo the cathedral's bronze saddles.
     for y,r in [(42,41),(137,25),(231,12)]:
         for k in range(8):
@@ -725,9 +899,10 @@ ASSETS.append(facade())
 ASSETS.append(nave())
 ASSETS.append(chapel())
 ASSETS.append(island("island-grand",143,120,215,810))
-ASSETS.append(island("island-terrace",95,72,151,802))
+ASSETS.append(island("island-terrace",110,78,103,802))
 ASSETS.append(island("island-shard",57,41,139,830))
 ASSETS.append(tower())
+ASSETS.append(aqueduct())
 ASSETS.append(waterfall())
 ASSETS.append(curtain())
 ASSETS.append(needle())
@@ -744,11 +919,11 @@ bpy.context.preferences.filepaths.save_version=0
 bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/"zephyr-asset-library.blend"))
 manifest={
     "name":"Zephyr Basilica authored scene kit",
-    "version":1,
+    "version":2,
     "coordinates":"Runtime glTF uses metres, X lateral, Y up, +Z forward. Blender source converts native coordinates as (X,-Z,Y).",
     "source":"build_assets.py; zephyr-asset-library.blend",
     "concept":REFERENCE,
-    "workflow":"Selected scene reference → CPU Blender mesh/material modeling → glTF → in-game lighting and inspection. No baked lighting or image planes.",
+    "workflow":"Selected scene reference → CPU Blender mesh/material modeling → glTF → in-game lighting and inspection. CPU contact occlusion retained as vertex color; live lighting and no image planes.",
     "copyright":"Original procedural geometry authored for this task. No external models, textures, fonts, or third-party source assets.",
     "approximations":["Stone detail and erosion are modeled from deterministic geometry rather than sculpted displacement.",
                       "Stained-glass fragments are colored solid materials; motivated shafts and local light remain level-owned.",

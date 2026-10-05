@@ -7,3 +7,5 @@ Generated with the built-in imagegen tool using the project's [original scene dr
 Earlier source: [first panorama](zephyr-sky-v1.png) and [its exact prompt](sky-prompt.txt), generated without reference images.
 
 The PNGs contain bounded image color, not captured HDR radiance. They supply distant atmosphere/space; terrain, architecture, lighting, events and gameplay are authored separately. Preserve native source images when exporting runtime textures.
+
+Runtime selection: v2, compared with the original scene drawing and the earlier procedural worktree backdrop. Its warm cloud edges and violet shadow depth better match the cathedral palette. The native image is served unchanged at `public/assets/levels/zephyr/zephyr-sky-v2.png`. The level shader uses a four-percent longitude overlap, continuous texture gradients at the seam and blended pole averages; the source remains preserved. Scene key/fill lighting is authored separately because the PNG is not HDR data.

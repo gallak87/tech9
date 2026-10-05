@@ -56,6 +56,12 @@ Rich plum-black/burgundy space surrounds an enormous structured amber-red star. 
 
 Bright exposure, shaded braking shelves, the sunshield wall and optional sheltered jumps need distinct movement and light. Two differently timed, enormous modeled prominences frame separate approaches and light nearby surfaces without losing road or craft detail. Rising lane plasma and bounded hot fragments occupy the actual declared contact area, leaving the refuge readable. Peripheral heat feedback clears in physical shade and on cooling strips; reduced motion keeps the center, craft and HUD sharp.
 
+## Zephyr Basilica
+
+Weathered ivory Gothic architecture, bronze suspension construction and a fine woven graphite raceway float among apricot and dusty-lilac clouds. Keep the shattered rose aperture, dark rib-vaulted nave wall ride, chapel receiving shelf, full climbing spiral and broken halo distinct from ordinary connectors. Surviving tracery, recessed galleries, curved tension cloth, supported terraces and eroded island undersides carry the construction language.
+
+Water begins at carved reservoirs and spill lips, has deep outer masses and broken foam, and trails into the lower cloud bands. Preserve a clear receiving-deck silhouette during both wet crossings. The separate enormous falling belfry and attached water must be legible from the racing view; it never changes the supported road. Wet ship highlights and draining peripheral droplets remain subordinate to craft, road, HUD and touch controls. The original scene reference, Blender source and selected sky provenance remain beside the assets.
+
 ## UI and feedback
 
 Warm off-white/graphite, technical numerals, vermilion active accents, generous spacing and real controls. Keep telemetry and notices away from the craft, upcoming road and touch controls. Moderate chase FOV, no default camera shake, and road-local camera clearance.

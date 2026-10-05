@@ -258,7 +258,7 @@ export async function createRenderer(
         catapultBlur = active && catapulting;
         blurTarget = active
           ? catapulting
-            ? 0.24
+            ? 0.24 * T.MathUtils.clamp(options.catapultBlurScale ?? 1, 0, 1)
             : T.MathUtils.smoothstep(speed, 75, 150) * 0.016 +
               (boosting ? 0.012 : 0)
           : 0;

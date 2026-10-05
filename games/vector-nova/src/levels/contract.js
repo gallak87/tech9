@@ -80,6 +80,13 @@ export function validateDefinition(definition, id = 'circuit') {
       typeof definition[name] !== 'function'
     )
       throw new Error(`Invalid ${id}.${name}`);
+  for (const key of ['lookAhead', 'chaseHeight', 'chaseDistance'])
+    if (
+      definition.camera?.[key] !== undefined &&
+      typeof definition.camera[key] !== 'function' &&
+      !(Number.isFinite(definition.camera[key]) && definition.camera[key] >= 0)
+    )
+      throw new Error(`Invalid ${id}.camera.${key}`);
   if (definition.camera?.safeFrame !== undefined)
     validateSafeFrame(definition.camera.safeFrame);
   if (

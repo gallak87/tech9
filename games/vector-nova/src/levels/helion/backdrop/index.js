@@ -17,7 +17,7 @@ float fbm(vec3 p){return noise3(p)*.55+noise3(p*2.07+8.3)*.27+noise3(p*4.15-3.1)
 `;
 
 /** A scene-fixed photosphere has visible granulation, sunspot basins and filaments.
- * Radiance remains below white clipping; no panorama substitutes for geometry. */
+ * The bright surface and broad additive corona retain visible magnetic structure. */
 export async function createHelionBackdrop({
   settings = {},
   loadTexture = (url) => new T.TextureLoader().loadAsync(url),
@@ -58,7 +58,7 @@ export async function createHelionBackdrop({
       vec3 dark=vec3(.14,.004,.003); vec3 orange=vec3(1.28,.14,.009); vec3 bright=vec3(1.65,.59,.085);
       vec3 radiance=mix(dark,orange,smoothstep(.07,.55,heat)); radiance=mix(radiance,bright,smoothstep(.48,.78,heat));
       float facing=max(dot(normalize(vNormal),normalize(cameraPosition-vWorld)),0.);
-      radiance*=.51+.49*pow(facing,.32);radiance*=.96+activity*.11;
+      radiance*=.51+.49*pow(facing,.32);radiance*=1.5+activity*.24;
       gl_FragColor=vec4(radiance,1.);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
@@ -69,27 +69,38 @@ export async function createHelionBackdrop({
   star.position.copy(STAR_POSITION);
   star.renderOrder = -950;
   group.add(star);
-  const coronaMaterial = new T.ShaderMaterial({
-    name: 'Helion / restrained stellar limb radiance',
-    transparent: true,
-    depthWrite: false,
-    side: T.BackSide,
-    blending: T.AdditiveBlending,
-    uniforms,
-    vertexShader: vertex,
-    fragmentShader: `varying vec3 vWorld; varying vec3 vNormal; uniform float activity;
-    void main(){float edge=pow(1.-abs(dot(normalize(vNormal),normalize(cameraPosition-vWorld))),6.);gl_FragColor=vec4(vec3(.72,.115,.012),edge*(.12+activity*.03));
-    #include <tonemapping_fragment>
-    #include <colorspace_fragment>
-    }`,
+  // Independent HDR shells make the star visibly luminous even on low quality,
+  // while depth testing keeps the corona behind the road and ship.
+  const coronas = [
+    { scale: 1.045, color: [3.4, 0.82, 0.075], opacity: 0.68 },
+    { scale: 1.19, color: [1.5, 0.32, 0.028], opacity: 0.52 },
+  ].map(({ scale, color, opacity }, index) => {
+    const material = new T.ShaderMaterial({
+      name: `Helion / ${index ? 'broad amber corona' : 'hot stellar limb'}`,
+      transparent: true,
+      depthWrite: false,
+      side: T.BackSide,
+      blending: T.AdditiveBlending,
+      uniforms: { ...uniforms, haloColor: { value: new T.Vector3(...color) } },
+      vertexShader: vertex,
+      fragmentShader: `varying vec3 vWorld;varying vec3 vNormal;uniform float activity;uniform vec3 haloColor;
+      void main(){float facing=abs(dot(normalize(vNormal),normalize(cameraPosition-vWorld)));
+      float radius=sqrt(max(0.,1.-facing*facing))*${scale};
+      float falloff=exp(-max(0.,radius-1.)*${index ? 13 : 27}.);
+      float outer=1.-smoothstep(${index ? 1.06 : 1.008},${scale},radius);
+      gl_FragColor=vec4(haloColor,falloff*outer*${opacity}*(.9+activity*.18));
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>}`,
+    });
+    const corona = new T.Mesh(
+      new T.SphereGeometry(12200 * scale, 80, 48),
+      material,
+    );
+    corona.position.copy(STAR_POSITION);
+    corona.renderOrder = -949 + index;
+    group.add(corona);
+    return corona;
   });
-  const corona = new T.Mesh(
-    new T.SphereGeometry(12470, 80, 48),
-    coronaMaterial,
-  );
-  corona.position.copy(STAR_POSITION);
-  corona.renderOrder = -949;
-  group.add(corona);
   const skyMaterial = new T.ShaderMaterial({
     name: 'Helion / selected burgundy stellar space',
     side: T.BackSide,
@@ -188,7 +199,7 @@ export async function createHelionBackdrop({
       if (disposed) return;
       disposed = true;
       texture.dispose();
-      for (const object of [star, corona, sky, distantStars]) {
+      for (const object of [star, ...coronas, sky, distantStars]) {
         object.geometry.dispose();
         object.material.dispose();
       }

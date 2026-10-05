@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { sampleHelionHeatFeedback } from './thermal.js';
 // Local presentation only. The runtime owns all heat and flight state.
 export function createHelionOverlay(host, telemetry) {
   const element = document.createElement('div');
@@ -10,10 +11,8 @@ export function createHelionOverlay(host, telemetry) {
     top: '118px',
     width: '236px',
     boxSizing: 'border-box',
-    padding: '10px 12px',
-    borderRadius: '3px',
-    border: '1px solid #897766',
-    background: 'rgba(12,24,32,.9)',
+    padding: '0',
+    textShadow: '0 1px 4px #000, 0 0 8px #000',
     color: '#f5ede0',
     font: '600 11px/1.5 system-ui',
     letterSpacing: '.07em',
@@ -48,9 +47,9 @@ export function createHelionOverlay(host, telemetry) {
     position: 'absolute',
     inset: '0',
     pointerEvents: 'none',
-    zIndex: '0',
+    zIndex: '18',
     background:
-      'radial-gradient(ellipse at 50% 54%, transparent 57%, rgba(244,82,19,.13) 83%, rgba(255,133,53,.38) 100%)',
+      'radial-gradient(ellipse at 50% 54%, rgba(230,12,18,.20) 0%, rgba(236,15,20,.24) 55%, rgba(245,18,24,.42) 100%)',
     opacity: '0',
   });
   const destination = document.createElement('div');
@@ -141,11 +140,12 @@ export function createHelionOverlay(host, telemetry) {
     update({ mode, reviewing, settings = {}, time = 0, camera, ship }) {
       const visible = ['racing', 'paused'].includes(mode) && !reviewing;
       element.style.display = visible ? 'block' : 'none';
-      const thermalCue =
-        visible && !telemetry.sheltered && telemetry.label !== 'COOLING STRIP'
-          ? Math.max(0, Math.min(1, ((telemetry.heat ?? 0) - 12) / 72))
-          : 0;
-      visor.style.opacity = `${thermalCue * (settings.reducedMotion ? 0.68 : 0.72 + Math.sin(time * 1.7) * 0.08)}`;
+      const feedback = sampleHelionHeatFeedback(telemetry, {
+        time,
+        reducedMotion: settings.reducedMotion,
+      });
+      const visorOpacity = visible ? feedback.severity : 0;
+      visor.style.opacity = `${visorOpacity}`;
       destination.style.display =
         visible && telemetry.recoveryTarget ? 'block' : 'none';
       if (!visible) {
@@ -177,7 +177,7 @@ export function createHelionOverlay(host, telemetry) {
       }
       element.style.width = short ? '194px' : portrait ? '210px' : '236px';
 
-      element.style.padding = short ? '5px 8px' : '10px 12px';
+      element.style.padding = '0';
       element.style.fontSize = short ? '10px' : '11px';
       element.style.letterSpacing = short ? '.025em' : '.07em';
       const heat = telemetry.heat ?? 0;
@@ -185,8 +185,7 @@ export function createHelionOverlay(host, telemetry) {
       const flight = telemetry.flightMode ?? 'magnetic';
       readout.textContent = `HEAT ${Math.round(heat)} / 100 · THRUST ${Math.round(power * 100)}%`;
       fill.style.width = `${heat}%`;
-      fill.style.background = heat >= 62 ? '#f09564' : '#83d6ce';
-      element.style.borderColor = heat >= 62 ? '#d98c5f' : '#897766';
+      fill.style.background = power < 1 ? '#ff8542' : '#83d6ce';
       detail.textContent =
         flight === 'recovery'
           ? short
@@ -224,12 +223,20 @@ export function createHelionOverlay(host, telemetry) {
       }
       currentLayout = [width, height, short, portrait, hull];
       place(...currentLayout);
-      presentation = { ...telemetry, text: detail.textContent };
+      presentation = {
+        ...telemetry,
+        heatStatus: feedback.status,
+        heatPulse: feedback.pulse,
+        heatEnvelope: feedback.envelope,
+        visorOpacity,
+        text: detail.textContent,
+      };
     },
     reset() {
       presentation = {};
       layoutKey = '';
       currentLayout = null;
+      visor.style.opacity = '0';
     },
     getPresentation: () => ({ helion: { ...presentation } }),
     dispose() {

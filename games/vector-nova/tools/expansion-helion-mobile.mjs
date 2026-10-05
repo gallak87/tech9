@@ -156,6 +156,7 @@ try {
     ['landscape', 844, 390],
     ['compact', 640, 360],
   ]) {
+    if (process.env.VN_VIEW && view !== process.env.VN_VIEW) continue;
     for (const [quality, reducedMotion] of [
       ['high', false],
       ['high', true],

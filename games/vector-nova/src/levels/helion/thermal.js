@@ -151,3 +151,26 @@ export function helionThrustScale(heat) {
       )
   );
 }
+
+// Presentation samples factual contact and stored heat without changing physics.
+export function sampleHelionHeatFeedback(thermal = {}) {
+  const heat = clamp(thermal.heat ?? 0, 0, 100);
+  const contact = !thermal.sheltered && (thermal.exposure ?? 0) > 0;
+  const stress = clamp((heat - 28) / 72);
+  const cooling = thermal.sheltered || thermal.label === 'COOLING STRIP';
+  return {
+    contact,
+    smoke: contact ? 0.38 + stress * 0.62 : stress * 0.9,
+    flame: contact ? 0.3 + stress * 0.3 : 0,
+    severity: contact ? Math.max(0.48, heat / 100) : stress,
+    status: contact
+      ? 'ON FIRE'
+      : cooling && heat > 1
+        ? 'COOLING'
+        : heat >= HELION_HEAT_RULES.powerThreshold
+          ? 'OVERHEATING'
+          : heat > 28
+            ? 'HOT · SMOKING'
+            : '',
+  };
+}

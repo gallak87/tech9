@@ -5,6 +5,7 @@ import { createHelionEnvironment } from './environment/index.js';
 import { createHelionBackdrop } from './backdrop/index.js';
 import { createHelionRuntime } from './runtime.js';
 import { createHelionOverlay } from './overlay.js';
+import { withShipHeatEffects } from './ship-heat.js';
 
 export default function createLevel({ shape = false } = {}) {
   const telemetry = {};
@@ -33,10 +34,13 @@ export default function createLevel({ shape = false } = {}) {
     createTrack: createHelionTrack,
     createRoad: ({ track, settings }) =>
       buildHelionRoad(track, { shape, settings }),
-    createEnvironment: (context) =>
-      shape
-        ? { group: new T.Group(), dispose() {} }
-        : createHelionEnvironment(context),
+    createEnvironment: async (context) =>
+      withShipHeatEffects(
+        shape
+          ? { group: new T.Group(), dispose() {} }
+          : await createHelionEnvironment(context),
+        telemetry,
+      ),
     createBackdrop: (context) =>
       shape
         ? {

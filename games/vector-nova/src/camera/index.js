@@ -1,12 +1,22 @@
 import * as T from 'three';
+import { createSafeFrame } from './safe-frame.js';
 export function createCameraRig(
   camera,
   {
     preserveFlightView = false,
     portraitAspect = 0,
     maxPortraitScale = 1.5,
+    chaseHeight = 5,
+    lookAhead = 35,
+    safeFrame,
+    jumpPreview,
+    flightViewScale = 1,
+    flightChaseBlend = 0,
   } = {},
+  subjectBounds = null,
 ) {
+  const fitSubject =
+    safeFrame === undefined ? null : createSafeFrame(safeFrame, subjectBounds);
   let initialized = false;
   const previousAnchor = new T.Vector3();
   const previousFrame = new T.Quaternion();
@@ -16,6 +26,7 @@ export function createCameraRig(
   let landingView = null;
   const transport = new T.Quaternion();
   const desiredRotation = new T.Quaternion();
+  const currentRotation = new T.Quaternion();
   const lookMatrix = new T.Matrix4();
   const offset = new T.Vector3();
   const localUp = new T.Vector3(0, 1, 0);
@@ -29,7 +40,12 @@ export function createCameraRig(
       track,
       state,
       dt,
-      { mode = 'chase', reducedMotion = false, worldPose = null } = {},
+      {
+        mode = 'chase',
+        reducedMotion = false,
+        worldPose = null,
+        subject = null,
+      } = {},
     ) {
       const worldMotion = !!worldPose && !worldPose.grounded;
       const f = worldMotion
@@ -83,9 +99,17 @@ export function createCameraRig(
           .addScaledVector(f.tangent, -46);
         target = p;
       } else if (worldMotion) {
+        if (flightView) flightView.elapsed += dt;
         eye = flightView
           ? flightView.offset
               .clone()
+              .multiplyScalar(
+                T.MathUtils.lerp(
+                  1,
+                  flightViewScale,
+                  T.MathUtils.smoothstep(flightView.elapsed, 0.05, 0.8),
+                ),
+              )
               .applyQuaternion(f.quaternion)
               .add(craftAnchor)
           : p
@@ -93,13 +117,52 @@ export function createCameraRig(
               .addScaledVector(f.tangent, -14 - state.speed * 0.025)
               .addScaledVector(f.up, 4.0);
         target = p.clone().addScaledVector(f.tangent, 22);
+        if (flightView && flightChaseBlend > 0) {
+          const blend =
+            T.MathUtils.clamp(flightChaseBlend, 0, 1) *
+            T.MathUtils.smoothstep(flightView.elapsed, 0.25, 1.25);
+          eye.lerp(
+            p
+              .clone()
+              .addScaledVector(f.tangent, -14 - state.speed * 0.025)
+              .addScaledVector(f.up, 4),
+            blend,
+          );
+        }
       } else {
-        const ahead = track.sample(state.distance + 35 + state.speed * 0.18);
-        back = track.sample(state.distance - 12.5 - state.speed * 0.025);
+        const nextJump =
+          jumpPreview &&
+          track.jumps?.find((jump) => {
+            const remaining = jump.takeoff - state.distance;
+            return remaining >= 0 && remaining < jumpPreview.distance;
+          });
+        const preview = nextJump
+          ? T.MathUtils.smoothstep(
+              jumpPreview.distance - (nextJump.takeoff - state.distance),
+              0,
+              jumpPreview.distance * 0.5,
+            )
+          : 0;
+        const height = T.MathUtils.lerp(
+          chaseHeight,
+          jumpPreview?.height ?? chaseHeight,
+          preview,
+        );
+        const backDistance = T.MathUtils.lerp(
+          12.5,
+          jumpPreview?.back ?? 12.5,
+          preview,
+        );
+        const ahead = track.sample(
+          state.distance + lookAhead + state.speed * 0.18,
+        );
+        back = track.sample(
+          state.distance - backDistance - state.speed * 0.025,
+        );
         eye = back.position
           .clone()
           .addScaledVector(back.right, state.lateral * 0.83)
-          .addScaledVector(back.up, 5.0);
+          .addScaledVector(back.up, height);
         target = p.clone().lerp(
           ahead.position
             .clone()
@@ -107,8 +170,16 @@ export function createCameraRig(
             .addScaledVector(ahead.up, 1.6),
           0.55,
         );
+        if (nextJump) {
+          const receiving = track.sample(nextJump.landingStart + 20);
+          target.lerp(
+            receiving.position.clone().addScaledVector(receiving.up, 2),
+            preview * 0.2,
+          );
+        }
       }
-      // Preserve the actual incoming composition throughout free flight. A
+      // Preserve the incoming composition at takeoff. Opted-in circuits may
+      // gradually return toward forward flight chase. A
       // craft-centred flight goal would still recenter an off-centre road view
       // even after fixing its frame origin. Relatching returns that carried view
       // to ordinary road composition gradually, without a source-change step.
@@ -162,7 +233,13 @@ export function createCameraRig(
       lookMatrix.lookAt(camera.position, target, f.up);
       desiredRotation.setFromRotationMatrix(lookMatrix);
       if (flightView) {
-        desiredRotation.copy(f.quaternion).multiply(flightView.rotation);
+        const blend =
+          T.MathUtils.clamp(flightChaseBlend, 0, 1) *
+          T.MathUtils.smoothstep(flightView.elapsed, 0.25, 1.25);
+        desiredRotation
+          .copy(f.quaternion)
+          .multiply(flightView.rotation)
+          .slerp(new T.Quaternion().setFromRotationMatrix(lookMatrix), blend);
       } else if (landingView) {
         desiredRotation.copy(
           f.quaternion
@@ -172,11 +249,6 @@ export function createCameraRig(
         );
         if (landingBlend === 1) landingView = null;
       }
-      camera.quaternion.slerp(
-        desiredRotation,
-        initialized ? 1 - Math.exp(-dt * 12) : 1,
-      );
-      camera.up.copy(localUp).applyQuaternion(camera.quaternion);
       const baseFov =
         61 + (reducedMotion ? 0 : Math.min(state.speed / 157, 1) * 7);
       // A level can opt into more vertical room in narrow portrait viewports.
@@ -199,6 +271,21 @@ export function createCameraRig(
       camera.fov +=
         (fov - camera.fov) * (initialized ? 1 - Math.exp(-dt * 4) : 1);
       camera.updateProjectionMatrix();
+      const framing = fitSubject && subject && mode === 'chase' && !worldMotion;
+      if (framing) {
+        // Damp toward an aim that already fits the ship. Correcting only the
+        // output makes damping undo the fit on every frame; coupled pitch/yaw
+        // then oscillate with frame time, even when the ship is stationary.
+        currentRotation.copy(camera.quaternion);
+        camera.quaternion.copy(desiredRotation);
+        fitSubject(camera, subject);
+        desiredRotation.copy(camera.quaternion);
+        camera.quaternion.copy(currentRotation);
+      }
+      camera.quaternion.slerp(desiredRotation, k);
+      // Moving subjects can cross the boundary before the damped aim catches up.
+      if (framing) fitSubject(camera, subject);
+      camera.up.copy(localUp).applyQuaternion(camera.quaternion);
       initialized = true;
     },
   };

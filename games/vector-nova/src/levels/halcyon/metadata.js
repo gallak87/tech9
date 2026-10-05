@@ -1,6 +1,6 @@
 export default {
   id: 'halcyon',
-  name: 'Halcyon Viaduct',
+  name: 'Halcyon Speedway',
   order: 1,
   shape: false,
   review: false,
@@ -14,7 +14,7 @@ export default {
     detail:
       'Climb through the skyline. Roll above the city. Dive toward the canal. W / ↑ to accelerate.',
     start: 'ENTER PROVING LOOP',
-    tag: 'HALCYON VIADUCT',
+    tag: 'HALCYON SPEEDWAY',
     tagDetail: '01 / CITY CIRCUIT',
   },
 };

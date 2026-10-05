@@ -27,7 +27,7 @@ const returnPath = createLeviathanReturnPath(track);
 async function loadModel() {
   const bytes = await fs.readFile(
     new URL(
-      '../public/assets/level3/leviathan/nacre-leviathan-v2.glb',
+      '../public/assets/levels/nacre/leviathan/nacre-leviathan-v2.glb',
       import.meta.url,
     ),
   );
@@ -80,7 +80,7 @@ test('Blender GLB has one continuous 280m animal, five materials and no texture 
   assert.ok(radius < NACRE_LEVIATHAN.envelopeRadius);
   const blend = await fs.stat(
     new URL(
-      '../art/level3/leviathan/nacre-leviathan-v2.blend',
+      '../assets/levels/nacre/blender/leviathan/nacre-leviathan-v2.blend',
       import.meta.url,
     ),
   );

@@ -1,3 +1,4 @@
+import { assetURL } from '../../../../assets/url.js';
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
@@ -9,7 +10,9 @@ import {
 
 import { createLeviathanSpray, LEVIATHAN_SPRAY_COUNT } from './spray.js';
 
-const ASSET_URL = '/assets/level3/leviathan/nacre-leviathan-v2.glb';
+const ASSET_URL = assetURL(
+  'assets/levels/nacre/leviathan/nacre-leviathan-v2.glb',
+);
 const POINT_COUNT = LEVIATHAN_SPRAY_COUNT;
 const BODY_STATIONS = Math.ceil(NACRE_LEVIATHAN.length) + 6;
 

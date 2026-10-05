@@ -6,6 +6,315 @@
   background: #111a21;
   --accent: #fa7957;
 }
+
+/* The shared paddock follows the same reading order on every circuit. */
+#title-panel.panel {
+  top: 96px;
+  bottom: auto;
+  max-height: calc(100dvh - 120px);
+  left: 4vw;
+  width: min(420px, 92vw);
+  max-width: none;
+  margin: 0;
+  padding: 24px;
+  background: rgb(12 23 31 / 60%);
+  border: 1px solid #ffffff24;
+  pointer-events: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+#title-panel h1 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  font-size: clamp(36px, 4.4vw, 64px);
+  line-height: 1;
+  margin: 0 0 14px;
+}
+#title-panel h1 em {
+  font-size: 0.44em;
+  font-style: italic;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+#title-panel .intro {
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 18px;
+}
+#title-panel .track-facts {
+  display: flex;
+  gap: 30px;
+  margin: 0 0 18px;
+}
+#title-panel .track-facts b {
+  font-size: 26px;
+}
+#title-panel .circuit-picker {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+#title-panel .actions {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  gap: 7px;
+}
+#title-panel .actions button {
+  min-height: 44px;
+  padding: 12px 16px;
+}
+#title-panel .launch-actions {
+  margin: 16px 0;
+  padding: 14px 0;
+  border-top: 1px solid #ffffff30;
+  border-bottom: 1px solid #ffffff30;
+}
+#title-panel .ship-selection {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(0, 1.35fr);
+  gap: 8px 14px;
+  margin: 0 0 16px;
+}
+#title-panel .ship-picker button {
+  height: var(--ship-row-height);
+  min-height: 0;
+  padding: 7px 9px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+}
+#interface:not(.driving):not(.inspecting) #legend,
+#interface:not(.driving):not(.inspecting) .review-tag {
+  display: none;
+}
+@media (max-height: 850px) {
+  #title-panel.panel {
+    top: 84px;
+    max-height: calc(100dvh - 102px);
+    padding: 16px;
+  }
+  #title-panel h1 {
+    font-size: 40px;
+    margin-bottom: 10px;
+  }
+  #title-panel .intro {
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+  #title-panel .track-facts {
+    margin-bottom: 12px;
+  }
+  #title-panel .track-facts b {
+    font-size: 22px;
+  }
+  #title-panel .launch-actions {
+    margin: 12px 0;
+    padding: 10px 0;
+  }
+  #title-panel .actions button {
+    min-height: 40px;
+    padding: 10px 14px;
+  }
+  #interface #title-panel .ship-selection {
+    --ship-row-height: 30px;
+    margin-bottom: 12px;
+  }
+}
+@media (max-width: 760px) {
+  #title-panel.panel {
+    top: 84px;
+    max-height: calc(100dvh - 84px - max(18px, env(safe-area-inset-bottom)));
+    left: 4vw;
+    padding: 18px;
+  }
+  #title-panel h1 {
+    font-size: clamp(32px, 9.5vw, 44px);
+  }
+  #title-panel .ship-selection {
+    gap: 8px 10px;
+  }
+}
+@media (max-height: 570px) and (orientation: landscape) {
+  #title-panel.panel {
+    top: 68px;
+    max-height: calc(100dvh - 68px - max(14px, env(safe-area-inset-bottom)));
+    width: min(420px, 92vw);
+    padding: 16px;
+  }
+  #title-panel h1 {
+    font-size: 32px;
+  }
+}
+
+/* A single fleet choice follows the player between paddock and inspection. */
+.ship-selection {
+  max-width: 430px;
+  margin: 18px 0;
+}
+.inspection-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.inspection-tabs button {
+  min-height: 36px;
+  padding: 9px 15px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: #10202de0;
+}
+.inspection-tabs button[aria-selected='true'] {
+  border-color: var(--accent);
+  box-shadow: inset 0 -2px var(--accent);
+  color: #fff;
+}
+.rival-selection .ship-picker {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 760px) and (orientation: portrait) {
+  #inspection-panel .inspection-tabs {
+    margin-bottom: 10px;
+  }
+  #inspection-panel .eyebrow {
+    display: none;
+  }
+  #inspection-panel .rival-selection .ship-picker button {
+    padding: 8px 10px;
+  }
+  #inspection-panel .rival-selection .ship-picker button i {
+    display: none;
+  }
+}
+@media (max-height: 570px) and (orientation: landscape) {
+  #inspection-panel .inspection-tabs {
+    margin-bottom: 8px;
+  }
+  #inspection-panel .eyebrow {
+    display: none;
+  }
+  #inspection-panel .inspection-tabs button {
+    min-height: 30px;
+    padding: 7px 12px;
+  }
+}
+.ship-picker-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 9px;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+}
+.ship-picker-label span {
+  color: #a6b7bf;
+}
+.ship-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.ship-picker button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 53px;
+  padding: 11px 32px 11px 13px;
+  background: #10202de0;
+  text-transform: uppercase;
+}
+.ship-picker button b {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+.ship-picker button span {
+  color: #b6c8ce;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+.ship-picker button i {
+  display: none;
+  position: absolute;
+  right: 12px;
+  top: 16px;
+  font-style: normal;
+}
+.ship-picker button[aria-checked='true'] {
+  background: #4a332df0;
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 var(--accent);
+}
+.ship-picker button[aria-checked='true'] i {
+  display: block;
+  color: var(--accent);
+}
+.ship-summary {
+  margin: 9px 0 0;
+  color: #d1dcde;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.ship-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px 14px;
+  margin-top: 12px;
+}
+.ship-stat {
+  min-width: 0;
+}
+.ship-stat-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  color: #b7c7cd;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.ship-stat-label b {
+  color: #edf0e9;
+  font-size: 9px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.ship-stat-track {
+  height: 4px;
+  margin-top: 5px;
+  background: #c4d7dd26;
+  transform: skewX(-20deg);
+}
+.ship-stat-track i {
+  display: block;
+  width: var(--stat-fill, 0%);
+  height: 100%;
+  background: linear-gradient(90deg, #c95e43, var(--accent));
+}
+.ship-load-status {
+  position: absolute;
+  bottom: 24px;
+  left: 6vw;
+  font-size: 12px;
+  color: #fff;
+}
+.ship-load-status:not(:empty) {
+  background: #14222e;
+  padding: 12px 18px;
+}
+.ship-picker button:disabled,
+.actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
 * {
   box-sizing: border-box;
 }
@@ -132,14 +441,6 @@ button.primary:hover {
   top: 25%;
   left: 6vw;
   max-width: 510px;
-}
-#title-panel {
-  top: var(--paddock-top, 25vh);
-  max-height: calc(100dvh - var(--paddock-top, 25vh) - 82px);
-  overflow-y: auto;
-  pointer-events: auto;
-  padding: 6px;
-  margin: -6px;
 }
 .circuit-picker {
   display: grid;
@@ -369,7 +670,8 @@ select {
   color: #cbd9d8;
   display: block;
 }
-.lap b {
+.lap b,
+.position b {
   font-size: 42px;
   line-height: 1.2;
   font-weight: 400;
@@ -383,6 +685,8 @@ select {
   margin-top: 5px;
 }
 .timing small {
+  display: block;
+  margin-top: 4px;
   font-size: 8px;
   letter-spacing: 0.12em;
   color: #ccd8d8;
@@ -529,9 +833,6 @@ select {
     left: 7vw;
     max-width: 85vw;
   }
-  #title-panel {
-    --paddock-top: 21vh;
-  }
   h1 {
     font-size: 60px;
   }
@@ -613,12 +914,17 @@ select {
     gap: 10px;
   }
   #touch > div {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(44px, 1fr));
+    flex: 1;
     gap: 5px;
     align-items: flex-end;
   }
   #touch button {
-    padding: 21px 12px;
+    min-width: 44px;
+    min-height: 54px;
+    padding: 18px 4px;
+    text-align: center;
     font-size: 9px;
     touch-action: none;
     background: #142732b8;
@@ -658,9 +964,6 @@ select {
   }
   .panel {
     top: 20%;
-  }
-  #title-panel {
-    --paddock-top: 20vh;
   }
   .panel h1 {
     font-size: 48px;
@@ -760,29 +1063,9 @@ select {
 #interface.has-review {
   background: none;
 }
-.has-review #title-panel {
-  --paddock-top: 140px;
-  left: 4vw;
-  width: 310px;
-  max-width: 310px;
-}
-.has-review #title-panel h1 {
-  font-size: 47px;
-  line-height: 0.95;
-  margin: 14px 0 20px;
-}
-.has-review #title-panel .intro {
-  font-size: 14px;
-  line-height: 1.6;
-  margin-bottom: 20px;
-}
 .has-review .track-facts {
   margin: 18px 0;
   gap: 20px;
-}
-.has-review #title-panel .small {
-  font-size: 12px;
-  line-height: 1.65;
 }
 #shape-controls {
   position: absolute;
@@ -805,24 +1088,6 @@ select {
   text-align: center;
   letter-spacing: 0.04em;
 }
-.shape-jump {
-  display: grid;
-  gap: 9px;
-}
-.shape-jump label {
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  color: #d3ddd9;
-}
-.shape-jump select {
-  width: 100%;
-  padding: 10px;
-  background: #233440;
-  border: 1px solid #ffffff50;
-  color: #fff;
-  font: inherit;
-  font-size: 12px;
-}
 #shape-controls a {
   display: inline-block;
   font-size: 10px;
@@ -841,18 +1106,6 @@ select {
   top: 390px;
 }
 @media (max-width: 760px), (max-height: 700px) {
-  .has-review #title-panel {
-    --paddock-top: 90px;
-    width: 230px;
-  }
-  .has-review #title-panel h1 {
-    font-size: 32px;
-    margin: 8px 0;
-  }
-  .has-review #title-panel .intro {
-    font-size: 12px;
-  }
-  .has-review #title-panel .small,
   .has-review .track-facts {
     display: none;
   }
@@ -865,32 +1118,20 @@ select {
   .has-review #minimap {
     top: 175px;
   }
-  .has-review.shape-overview #title-panel .intro {
-    display: none;
-  }
-  .has-review #title-panel {
-    --paddock-top: 75px;
-    max-height: calc(100dvh - var(--paddock-top) - 150px);
-  }
   .has-review.driving #shape-controls {
     top: 175px;
     left: 4vw;
     right: auto;
-    width: 190px;
+    width: min(190px, calc(92vw - 120px));
     padding: 8px;
     max-height: calc(100dvh - 195px);
     overflow-y: auto;
   }
-  .has-review.driving .shape-jump,
   .has-review.driving #shape-controls a {
     display: none;
   }
   .has-review.driving .shape-views {
     margin: 0;
-  }
-  .compact-paddock.driving .shape-jump {
-    display: grid;
-    margin-top: 12px;
   }
 }
 
@@ -940,25 +1181,8 @@ select {
 .compact-paddock .actions {
   gap: 8px;
 }
-.compact-paddock #title-panel {
-  --paddock-top: 23vh;
-  width: 330px;
-  max-width: 330px;
-}
-.compact-paddock #title-panel h1 {
-  font-size: 55px;
-}
 .compact-paddock #shape-controls {
   border-color: #e2c5a445;
-}
-@media (max-width: 760px), (max-height: 700px) {
-  .compact-paddock #title-panel {
-    --paddock-top: max(86px, 15vh);
-    width: 230px;
-  }
-  .compact-paddock #title-panel h1 {
-    font-size: 32px;
-  }
 }
 
 .inspecting #legend,
@@ -1024,24 +1248,11 @@ select {
 }
 
 /* Optional stacked review layout keeps controls beside the fitted circuit. */
-.stacked-review.whole-route-view #title-panel {
-  padding: 18px;
-  background: #102732eb;
-  border: 1px solid #bdd4d34d;
-}
-.stacked-review.whole-route-view #title-panel .small {
-  display: none;
-}
 .stacked-review.whole-route-view #shape-controls {
   position: static;
   width: 100%;
   max-height: none;
   margin-top: 18px;
-}
-@media (min-width: 761px) and (min-height: 701px) {
-  .stacked-review.whole-route-view #title-panel {
-    --paddock-top: 110px;
-  }
 }
 
 @media (max-width: 760px) {
@@ -1084,25 +1295,25 @@ select {
   background: #d4eaff;
 }
 
-/* Expansion opt-in: disjoint telemetry, map and review regions at short widths. */
+/* Shared racing and expansion review use disjoint short-landscape HUD regions. */
 @media (max-height: 570px) and (orientation: landscape) {
-  #interface.compact-landscape.driving .top-telemetry {
+  #interface:is(.compact-landscape, .has-racing).driving .top-telemetry {
     top: 74px;
     gap: 22px;
   }
-  #interface.compact-landscape.driving .lap b {
+  #interface:is(.compact-landscape, .has-racing).driving .lap b {
     font-size: 32px;
   }
-  #interface.compact-landscape.driving .timing b {
+  #interface:is(.compact-landscape, .has-racing).driving .timing b {
     font-size: 23px;
   }
-  #interface.compact-landscape.driving .timing small {
+  #interface:is(.compact-landscape, .has-racing).driving .timing small {
     font-size: 8px;
   }
-  #interface.compact-landscape.driving .section-name {
+  #interface:is(.compact-landscape, .has-racing).driving .section-name {
     display: none;
   }
-  #interface.compact-landscape.driving #minimap {
+  #interface:is(.compact-landscape, .has-racing).driving #minimap {
     top: 76px;
     left: auto;
     right: 4vw;
@@ -1110,31 +1321,31 @@ select {
     width: 94px;
     height: 70px;
   }
-  #interface.compact-landscape.driving .telemetry {
+  #interface:is(.compact-landscape, .has-racing).driving .telemetry {
     bottom: 92px;
   }
-  #interface.compact-landscape.driving .energy {
+  #interface:is(.compact-landscape, .has-racing).driving .energy {
     width: 160px;
   }
-  #interface.compact-landscape.driving .energy span {
+  #interface:is(.compact-landscape, .has-racing).driving .energy span {
     font-size: 8px;
     letter-spacing: 0.08em;
   }
-  #interface.compact-landscape.driving .energy small {
+  #interface:is(.compact-landscape, .has-racing).driving .energy small {
     font-size: 8px;
     line-height: 1.2;
   }
-  #interface.compact-landscape.driving .speed strong {
+  #interface:is(.compact-landscape, .has-racing).driving .speed strong {
     font-size: 48px;
   }
-  #interface.compact-landscape.driving .speed {
+  #interface:is(.compact-landscape, .has-racing).driving .speed {
     gap: 6px;
   }
-  #interface.compact-landscape.driving .speed i {
+  #interface:is(.compact-landscape, .has-racing).driving .speed i {
     font-size: 8px;
     bottom: -14px;
   }
-  #interface.compact-landscape.driving #shape-controls {
+  #interface:is(.compact-landscape, .has-racing).driving #shape-controls {
     top: 148px;
     bottom: auto;
     left: 4vw;
@@ -1144,46 +1355,59 @@ select {
     max-height: calc(100dvh - 230px);
     overflow: auto;
   }
-  #interface.compact-landscape.driving
+  #interface:is(.compact-landscape, .has-racing).driving
     #shape-controls:has(#review-toggle[aria-expanded='true']) {
     left: calc(50% - 130px);
     width: 260px;
   }
-  #interface.compact-landscape.driving #review-toggle {
+  #interface:is(.compact-landscape, .has-racing).driving #review-toggle {
     font-size: 10px;
     padding: 5px 2px;
   }
-  #interface.compact-landscape.driving .shape-jump {
-    display: grid;
-    margin-top: 8px;
-  }
-  #interface.compact-landscape.driving .shape-views {
+  #interface:is(.compact-landscape, .has-racing).driving .shape-views {
     margin-bottom: 8px;
   }
-  #interface.compact-landscape.driving #notice {
-    top: auto;
-    bottom: 75px;
+  #interface:is(.compact-landscape, .has-racing).driving #notice {
+    top: 48px;
+    bottom: auto;
     width: min(260px, calc(100vw - 380px));
     font-size: 10px;
     line-height: 1.25;
     padding: 5px 8px;
   }
-  #interface.compact-landscape.driving #touch {
-    bottom: 14px;
+  #interface:is(.compact-landscape, .has-racing).driving #touch {
+    position: absolute;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    left: 3vw;
+    right: 3vw;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
   }
-  #interface.compact-landscape.driving #touch button {
+  #interface:is(.compact-landscape, .has-racing).driving #touch > div {
+    display: flex;
+    gap: 5px;
+    align-items: flex-end;
+  }
+  #interface:is(.compact-landscape, .has-racing).driving #touch button {
+    font-size: 9px;
+    touch-action: none;
+    background: #142732b8;
+    border-color: #9bb3bb66;
     min-width: 44px;
     min-height: 48px;
     padding: 14px 10px;
   }
-  #interface.compact-landscape.driving #legend,
-  #interface.compact-landscape.driving .review-tag {
+  #interface:is(.compact-landscape, .has-racing).driving #legend,
+  #interface:is(.compact-landscape, .has-racing).driving .review-tag {
     display: none;
   }
 }
 
 @media (max-height: 570px) and (orientation: landscape) {
-  #interface.compact-landscape.driving:has(#review-toggle[aria-expanded='true'])
+  #interface:is(.compact-landscape, .has-racing).driving:has(
+      #review-toggle[aria-expanded='true']
+    )
     #notice {
     top: 48px;
     bottom: auto;
@@ -1198,5 +1422,691 @@ select {
     font-size: 11px;
     line-height: 1.25;
     padding: 6px 8px;
+  }
+}
+
+/* Opt-in upper portrait HUD leaves the lower chase craft and touch row clear.
+   Reserve a separate cue/notice band; expanded review uses the next two bands. */
+@media (max-width: 760px) and (min-height: 700px) and (orientation: portrait) {
+  #interface.portrait-compact-hud.driving .telemetry {
+    top: 272px;
+    bottom: auto;
+    align-items: flex-start;
+  }
+  #interface.portrait-compact-hud.driving .energy {
+    font-size: 8px;
+    line-height: 1.2;
+  }
+  #interface.portrait-compact-hud.driving .energy span {
+    font-size: 8px;
+  }
+  #interface.portrait-compact-hud.driving .energy-track {
+    margin: 6px 0;
+  }
+  #interface.portrait-compact-hud.driving .energy small {
+    display: block;
+    font-size: 8px;
+    line-height: 1.2;
+  }
+  #interface.portrait-compact-hud.driving .speed strong {
+    font-size: 34px;
+  }
+  #interface.portrait-compact-hud.driving .speed i {
+    font-size: 8px;
+    bottom: -14px;
+  }
+  #interface.portrait-compact-hud.driving #notice {
+    top: 330px;
+    bottom: auto;
+    width: calc(100vw - 32px);
+    font-size: 11px;
+    line-height: 1.25;
+    padding: 6px 8px;
+  }
+  #interface.portrait-compact-hud.driving:has(
+      #review-toggle[aria-expanded='true']
+    )
+    .telemetry {
+    top: 468px;
+  }
+  #interface.portrait-compact-hud.driving:has(
+      #review-toggle[aria-expanded='true']
+    )
+    #notice {
+    top: 420px;
+  }
+}
+
+/* Expansion review controls occupy their own desktop band above the map. */
+@media (min-width: 761px) and (min-height: 701px) {
+  #interface.compact-landscape.driving .section-name {
+    align-self: flex-start;
+  }
+  #interface.compact-landscape.driving #shape-controls {
+    top: 182px;
+  }
+  #interface.compact-landscape.driving #minimap {
+    top: 428px;
+    height: clamp(80px, calc(100dvh - 625px), 120px);
+    width: calc(clamp(80px, calc(100dvh - 625px), 120px) * 4 / 3);
+  }
+}
+
+/* Free-camera inspection retains the full world with a compact control strip. */
+.fly-camera-active {
+  touch-action: none;
+  cursor: grab;
+}
+.fly-camera-active:active {
+  cursor: grabbing;
+}
+.flying #legend,
+.flying .review-tag {
+  display: none;
+}
+#fly-controls {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(620px, calc(100% - 32px));
+  padding: 16px;
+  background: #14222eeb;
+  border: 1px solid #ffffff30;
+  pointer-events: auto;
+  font-size: 11px;
+}
+.fly-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.fly-heading small {
+  display: block;
+  margin-top: 5px;
+  color: #b1c4c7;
+  font-size: 9px;
+}
+.fly-heading button {
+  padding: 10px;
+  font-size: 10px;
+}
+#fly-controls p {
+  color: #c4d2d4;
+  line-height: 1.6;
+  margin: 12px 0;
+}
+.fly-touch {
+  display: none;
+}
+@media (pointer: coarse) {
+  .fly-touch {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .fly-touch button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 12px 6px;
+    touch-action: none;
+    font-size: 10px;
+  }
+  #fly-return {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  #fly-controls {
+    bottom: 12px;
+    padding: 12px;
+  }
+}
+
+@media (pointer: coarse) {
+  #fly-controls p {
+    display: none;
+  }
+  #fly-controls label {
+    margin-top: 10px;
+  }
+}
+@media (pointer: coarse) and (min-width: 600px) {
+  .fly-touch {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+#inspection-panel .eyebrow {
+  margin-bottom: 10px;
+}
+#inspection-panel .intro {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+#inspection-panel .ship-selection {
+  margin: 12px 0;
+}
+#inspection-panel .actions {
+  gap: 6px;
+}
+#inspection-panel .actions button {
+  min-height: 44px;
+  padding: 12px 16px;
+}
+#inspection-panel .small {
+  margin: 10px 0 0;
+}
+#inspection-panel {
+  top: clamp(96px, 12vh, 140px);
+  bottom: max(18px, env(safe-area-inset-bottom));
+  max-width: 430px;
+}
+#inspection-panel .inspect-title {
+  font-size: clamp(40px, 6vh, 60px);
+  margin-bottom: 12px;
+}
+#inspection-panel dl {
+  margin: 16px 0;
+}
+#inspection-panel dl div {
+  padding: 9px 0;
+}
+@media (min-width: 761px) {
+  .ship-picker {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .ship-picker button {
+    min-height: 46px;
+    padding: 8px 9px;
+  }
+  .ship-picker button b {
+    font-size: 10px;
+  }
+  .ship-picker button span {
+    font-size: 8px;
+  }
+  .ship-picker button i {
+    top: auto;
+    bottom: 7px;
+    right: 6px;
+    font-size: 9px;
+  }
+}
+@media (max-width: 760px) and (max-aspect-ratio: 1/1) {
+  #inspection-panel {
+    top: 84px;
+    max-width: none;
+  }
+  #inspection-panel .inspect-title {
+    font-size: 36px;
+    margin-bottom: 0;
+  }
+  #inspection-panel .ship-selection {
+    max-width: none;
+    margin: 12px 0 0;
+  }
+  #inspection-panel .ship-picker button {
+    min-height: 44px;
+    padding: 8px 30px 8px 11px;
+  }
+  #inspection-panel .ship-summary {
+    font-size: 9px;
+  }
+  #inspection-panel dl {
+    margin-top: auto;
+  }
+  .ship-stats {
+    gap: 8px 10px;
+    margin-top: 9px;
+  }
+}
+@media (max-width: 760px) and (max-height: 740px) and (orientation: portrait) {
+  #inspection-panel dl div {
+    padding: 6px 0;
+  }
+  #inspection-panel .small {
+    margin-top: 6px;
+  }
+}
+@media (max-height: 570px) and (orientation: landscape) {
+  #interface:not(.driving):not(.paused) #legend {
+    display: none;
+  }
+  .ship-stats {
+    gap: 6px 10px;
+    margin-top: 8px;
+  }
+  .ship-stat-label {
+    font-size: 7px;
+    letter-spacing: 0;
+  }
+  .ship-stat-label b {
+    font-size: 8px;
+  }
+  .ship-stat-track {
+    margin-top: 3px;
+    height: 3px;
+  }
+  #interface.has-review:not(.driving):not(.whole-route-view) #shape-controls {
+    top: 68px;
+    bottom: auto;
+    right: 4vw;
+    width: min(300px, 44vw);
+    padding: 10px;
+  }
+  #inspection-panel {
+    top: 68px;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    width: min(430px, 46vw);
+    max-width: none;
+    pointer-events: auto;
+    padding: 6px;
+    margin: -6px;
+  }
+  #inspection-panel .inspect-title {
+    font-size: 30px;
+    margin-bottom: 6px;
+  }
+  #inspection-panel .intro,
+  #inspection-panel dl,
+  #inspection-panel .small {
+    display: none;
+  }
+  #inspection-panel .eyebrow {
+    margin-bottom: 6px;
+  }
+  #inspection-panel .ship-selection {
+    margin: 8px 0;
+  }
+  .ship-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ship-picker button {
+    min-height: 42px;
+    padding: 8px 24px 8px 10px;
+  }
+  #inspection-panel .actions button {
+    min-height: 40px;
+    padding: 10px;
+  }
+}
+
+/* Both menus keep a vertical chassis list beside a vertical performance stack. */
+#inspection-panel .ship-selection {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(0, 1.35fr);
+  gap: 8px 14px;
+}
+.ship-selection .ship-picker-label,
+.ship-selection .ship-summary {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.ship-selection .ship-picker {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+.ship-selection .ship-stats {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 0;
+}
+#inspection-panel .ship-picker button,
+#inspection-panel .rival-selection .ship-picker button {
+  min-height: 34px;
+  padding: 7px 9px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  text-align: left;
+}
+.ship-selection .ship-picker button b {
+  font-size: 10px;
+}
+.ship-selection .ship-picker button span {
+  font-size: 8px;
+  letter-spacing: 0.03em;
+}
+.ship-selection .ship-picker button i {
+  display: none;
+}
+.ship-selection .ship-picker button[aria-checked='true'] i {
+  display: none;
+}
+.rival-selection .ship-summary {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: start;
+  padding: 12px;
+  border-left: 2px solid #fa795766;
+  background: #10202d66;
+  line-height: 1.8;
+}
+@media (max-height: 570px) and (orientation: landscape) {
+  #inspection-panel .ship-picker button {
+    min-height: 30px;
+    padding: 5px 8px;
+  }
+  #inspection-panel .ship-selection {
+    gap: 6px 10px;
+  }
+}
+@media (max-width: 760px) and (max-height: 740px) and (orientation: portrait) {
+  #inspection-panel dl {
+    display: none;
+  }
+  #inspection-panel .actions {
+    margin-top: auto;
+  }
+}
+
+/* Reserve the same space for every chassis, including the AI preview tab. */
+#interface .ship-selection {
+  --ship-row-height: 34px;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  grid-template-rows: 12px calc(4 * var(--ship-row-height) + 12px);
+}
+#interface .ship-selection .ship-picker {
+  grid-auto-rows: var(--ship-row-height);
+  align-content: start;
+}
+#interface #inspection-panel .ship-picker button {
+  min-height: 0;
+  height: var(--ship-row-height);
+}
+.ship-stat-label b {
+  font-variant-numeric: tabular-nums;
+}
+#inspection-panel .inspect-title {
+  white-space: nowrap;
+}
+#inspection-panel .intro {
+  height: 3em;
+  flex-shrink: 0;
+}
+#inspection-panel dl {
+  width: 100%;
+  max-width: none;
+  flex-shrink: 0;
+}
+#inspection-panel dl div {
+  height: 32px;
+  align-items: center;
+}
+#inspection-panel .actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 44px 44px;
+  width: 100%;
+  max-width: none;
+  flex-shrink: 0;
+}
+#inspect-start {
+  grid-row: 1;
+}
+#inspect-back {
+  grid-row: 2;
+}
+@media (min-width: 761px) and (min-height: 571px) {
+  #inspection-panel {
+    width: min(560px, 44vw);
+    max-width: none;
+  }
+}
+@media (min-width: 761px) and (max-width: 1100px) and (min-height: 571px) {
+  #inspection-panel .intro {
+    height: 4.5em;
+  }
+}
+@media (max-height: 570px) and (orientation: landscape) {
+  #interface #inspection-panel .ship-selection {
+    --ship-row-height: 30px;
+  }
+  #inspection-panel .actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: 40px;
+  }
+  #inspect-start {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  #inspect-back {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+/* Compact race timing beside the road, then beside the paddock menu. */
+#race-roster {
+  position: absolute;
+  top: 350px;
+  right: 4vw;
+  width: 210px;
+  padding: 16px;
+  background: rgba(12, 23, 31, 0.72);
+  border: 1px solid rgba(190, 216, 226, 0.28);
+  border-top: 2px solid var(--accent);
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+#race-roster.in-paddock {
+  width: 248px;
+  top: 96px;
+  left: calc(4vw + 440px);
+  right: auto;
+}
+#race-roster:not(.in-paddock) {
+  padding: 12px;
+}
+.roster-heading span {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: #a9c4ce;
+  margin-bottom: 6px;
+}
+.roster-heading b {
+  font-size: 12px;
+  letter-spacing: 0.07em;
+}
+#race-roster:not(.in-paddock) .roster-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+#race-roster:not(.in-paddock) .roster-heading span {
+  margin-bottom: 0;
+}
+#race-roster:not(.in-paddock) .roster-heading b {
+  font-size: 8px;
+  font-weight: 400;
+  color: #a9c4ce;
+}
+#race-roster ol {
+  list-style: none;
+  padding: 10px 0 0;
+  margin: 10px 0 0;
+  border-top: 1px solid #b7cdd533;
+}
+#race-roster li {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 8px 8px;
+  border-left: 3px solid var(--racer-color);
+  margin-bottom: 5px;
+  font-size: 11px;
+}
+#race-roster:not(.in-paddock) li {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+#race-roster li > b {
+  color: #93aeb9;
+  font-weight: 600;
+  font-size: 10px;
+}
+#race-roster li.is-player {
+  background: #fb795914;
+}
+.position small {
+  display: block;
+  margin-top: 4px;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  color: #cbd9d8;
+}
+#race-roster li > small {
+  font-size: 10px;
+  color: #b7cbd3;
+}
+#race-roster li.is-player > span {
+  color: #ff9675;
+  font-weight: 700;
+}
+.roster-laps {
+  margin-top: 8px;
+  border-top: 1px solid #b7cdd533;
+}
+.roster-laps:empty {
+  display: none;
+}
+.roster-laps > div {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 10px;
+  font-size: 10px;
+}
+.roster-laps span {
+  color: #a9c4ce;
+}
+.roster-laps b {
+  font-weight: 400;
+}
+.roster-hint {
+  margin: 12px 0 0;
+  font-size: 9px;
+  line-height: 1.6;
+  color: #c2d4db;
+}
+.difficulty-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  margin-top: 12px;
+}
+.difficulty-picker select {
+  width: 132px;
+  font-size: 10px;
+}
+#start-lights {
+  position: absolute;
+  top: 185px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 260px;
+  padding: 16px 20px;
+  text-align: center;
+  background: #0c171fec;
+  border: 1px solid #b7cdd54d;
+  pointer-events: none;
+}
+#start-lights > span {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: #bcced8;
+}
+#start-lights > div {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 14px 0 10px;
+}
+#start-lights i {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #3a2429;
+  border: 2px solid #75414a;
+}
+#start-lights i.lit {
+  background: #ff614e;
+  border-color: #ffb3a6;
+  box-shadow: 0 0 16px #ff614e99;
+}
+#start-lights b {
+  display: block;
+  font-size: 30px;
+  line-height: 1.1;
+}
+#start-lights.go b {
+  color: #8cfff0;
+}
+#start-lights small {
+  display: block;
+  margin-top: 8px;
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  color: #bcced8;
+}
+
+/* Shared field placement respects the existing compact world HUD options. */
+@media (min-width: 761px) and (min-height: 701px) {
+  #interface.compact-paddock #race-roster:not(.in-paddock) {
+    top: 210px;
+  }
+}
+@media (max-width: 760px), (max-height: 700px) {
+  #race-roster:not(.in-paddock) {
+    width: 150px;
+    padding: 6px;
+  }
+  #race-roster:not(.in-paddock) .roster-heading span,
+  #race-roster:not(.in-paddock) .roster-heading b {
+    font-size: 6px;
+  }
+  #race-roster:not(.in-paddock) ol {
+    margin-top: 4px;
+    padding-top: 4px;
+  }
+  #race-roster:not(.in-paddock) li {
+    grid-template-columns: 14px 1fr auto;
+    gap: 4px;
+    margin-bottom: 2px;
+    padding: 2px 0 2px 4px;
+    line-height: 1.1;
+  }
+  #race-roster:not(.in-paddock) li,
+  #race-roster:not(.in-paddock) li > b,
+  #race-roster:not(.in-paddock) li > small {
+    font-size: 8px;
+  }
+  #interface.has-live-race #notice {
+    width: calc(92vw - 160px);
+    left: 4vw;
+    transform: none;
+  }
+}
+@media (max-width: 760px), (max-height: 570px) {
+  #title-panel #race-roster.in-paddock {
+    position: static;
+    width: 100%;
+    margin-top: 16px;
+    padding: 12px;
+  }
+}
+@media (max-height: 570px) {
+  #race-roster:not(.in-paddock) {
+    top: 152px;
   }
 }

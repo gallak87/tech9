@@ -58,7 +58,11 @@ export function createNacreThunderBuffer(context) {
   return buffer;
 }
 
-export function createNacreThunder(context, destination) {
+export function createNacreThunder(
+  context,
+  destination,
+  { immersionAtOutput = false } = {},
+) {
   let buffer;
   let disposed = false;
   let lastId;
@@ -82,9 +86,10 @@ export function createNacreThunder(context, destination) {
       )
         return false;
       if (!buffer) buffer = createNacreThunderBuffer(context);
-      const submerged = Number.isFinite(event.submerged)
-        ? clamp(event.submerged, 0, 1)
-        : 0;
+      const submerged =
+        !immersionAtOutput && Number.isFinite(event.submerged)
+          ? clamp(event.submerged, 0, 1)
+          : 0;
       const source = context.createBufferSource();
       source.buffer = buffer;
       const filter = context.createBiquadFilter();

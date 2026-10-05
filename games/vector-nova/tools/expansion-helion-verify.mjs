@@ -1,0 +1,149 @@
+import assert from 'node:assert/strict';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { chromium } from 'playwright';
+const url = process.env.VN_URL;
+if (!url) throw new Error('VN_URL requires the Helion production preview.');
+const output = resolve(
+  process.env.VN_EVIDENCE || '.experiments/expansion/helion/production',
+);
+await mkdir(output, { recursive: true });
+const report = {
+  url,
+  cases: [],
+  errors: [],
+  limitations: [
+    'Hidden browser timings only; foreground pacing, listening, physical gamepad/mobile remain unverified.',
+  ],
+};
+let deadlineReached = false;
+const browser = await chromium.launch({
+  headless: true,
+  ...(process.env.VN_BROWSER_PATH
+    ? { executablePath: process.env.VN_BROWSER_PATH }
+    : {}),
+});
+const deadline = setTimeout(
+  async () => {
+    deadlineReached = true;
+    await browser.close();
+  },
+  Math.min(300000, Number(process.env.VN_BATCH_MS) || 300000),
+);
+try {
+  for (const quality of (process.env.VN_QUALITIES || 'high,low').split(',')) {
+    const context = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      deviceScaleFactor: 1,
+    });
+    await context.addInitScript(
+      (settings) =>
+        localStorage.setItem('vector-nova.settings', JSON.stringify(settings)),
+      { quality, reducedMotion: quality === 'low', volume: 0 },
+    );
+    const page = await context.newPage();
+    page.on('pageerror', (e) => report.errors.push(e.message));
+    await page.goto(url + '/?level=helion', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(
+      () => window.__VN?.ready || document.querySelector('.failure'),
+      null,
+      { timeout: 120000 },
+    );
+    assert.equal(
+      await page.locator('.failure').count(),
+      0,
+      await page.locator('.failure').allTextContents(),
+    );
+    const result = { quality, sections: [], states: [] };
+    report.cases.push(result);
+    await page.locator('#start').click();
+    const toggle = page.locator('#review-toggle');
+    if (
+      (await toggle.count()) &&
+      (await toggle.getAttribute('aria-expanded')) === 'true'
+    )
+      await toggle.click();
+    const names = [
+      'dawnshield-showcase',
+      'radiator-showcase',
+      'heliopause-showcase',
+      'umbrae-showcase',
+      'prominence-showcase',
+      'coronal-showcase',
+      'afterglow-showcase',
+    ];
+    for (const name of names) {
+      await page.evaluate(
+        (name) => window.__VN.loadScenario(name, 47219),
+        name,
+      );
+      await page.keyboard.down('w');
+      await page.waitForTimeout(250);
+      await page.keyboard.up('w');
+      await page.waitForTimeout(60);
+      const snapshot = await page.evaluate(() => window.__VN.getSnapshot());
+      assert.ok(snapshot.vehicle.speed > 0);
+      assert.deepEqual(snapshot.errors, []);
+      await page.screenshot({
+        path: resolve(output, `${quality}-${name}.png`),
+      });
+      result.sections.push({
+        name,
+        vehicle: snapshot.vehicle,
+        metrics: await page.evaluate(() => window.__VN.getMetrics()),
+      });
+    }
+    for (const name of [
+      'jump1-success',
+      'jump2-success',
+      'jump1-short',
+      'jump2-detour',
+      'heat-hot',
+      'flare-contact',
+      'wall-entry',
+      'wall-exit',
+      'hardest-turn',
+      'impact',
+    ]) {
+      await page.evaluate(
+        (name) => window.__VN.loadScenario(name, 47219),
+        name,
+      );
+      await page.keyboard.down('w');
+      await page.waitForTimeout(name.includes('jump') ? 2200 : 700);
+      await page.keyboard.up('w');
+      const snapshot = await page.evaluate(() => window.__VN.getSnapshot());
+      assert.deepEqual(snapshot.errors, []);
+      await page.screenshot({
+        path: resolve(output, `${quality}-${name}.png`),
+      });
+      result.states.push({ name, snapshot });
+    }
+    await page.evaluate(() => window.__VN.dispose());
+    await context.close();
+  }
+  assert.deepEqual(report.errors, []);
+} catch (error) {
+  if (deadlineReached)
+    report.incomplete =
+      'Browser verification deadline reached; remaining cases are unverified.';
+  else {
+    report.failure = error.stack;
+    throw error;
+  }
+} finally {
+  clearTimeout(deadline);
+  await browser.close();
+  await writeFile(
+    resolve(output, 'report.json'),
+    JSON.stringify(report, null, 2),
+  );
+  console.log(
+    JSON.stringify({
+      report: resolve(output, 'report.json'),
+      cases: report.cases.length,
+      errors: report.errors,
+      browser: 'CLOSED',
+    }),
+  );
+}

@@ -2,7 +2,7 @@
 <html lang="en">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Kestrel — asset inspection</title>
+  <title>Fleet — asset inspection</title>
   <link rel="icon" href="data:," />
   <style>
     * {
@@ -112,7 +112,11 @@
     const rim = new THREE.DirectionalLight(0xa5cff4, 2.0);
     rim.position.set(-6, 4, -4);
     scene.add(rim);
-    const ship = await createShip();
+    const ship = await createShip({
+      id: new URLSearchParams(location.search).get('ship') ?? 'kestrel',
+    });
+    document.querySelector('h1').textContent =
+      ship.group.userData.shipId.toUpperCase();
     ship.group.position.y = 0.68;
     scene.add(ship.group);
     ship.update({ speed: 0, time: 0 });

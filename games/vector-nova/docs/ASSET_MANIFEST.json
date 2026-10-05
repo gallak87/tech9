@@ -1,5 +1,5 @@
 {
-  "policy": "Original project-owned geometry/materials with an original generated Halcyon sky and four generated orbital regional/surrounding material maps; no copied reference-game artwork.",
+  "policy": "Project-owned geometry/materials and generated sky/material imagery; detailed ownership and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
       "id": "kestrel",
@@ -13,7 +13,7 @@
     },
     {
       "id": "halcyon-circuit",
-      "source": "src/track/",
+      "source": "src/levels/halcyon/track/",
       "creator": "VECTOR//NOVA project contributors",
       "provenance": "Original authored control points, frame-based geometry, procedural surface textures and signage",
       "rights": "Project-authored; no third-party asset restrictions",
@@ -21,7 +21,7 @@
     },
     {
       "id": "halcyon-city",
-      "source": "src/environment/",
+      "source": "src/levels/halcyon/environment/",
       "creator": "VECTOR//NOVA project contributors",
       "provenance": "Original seeded and authored city districts, tapered/setback architecture, facade and occupied-room maps, roof services, lower streets, landscape courts and split-crown landmark",
       "rights": "Project-authored; no third-party asset restrictions",
@@ -45,18 +45,20 @@
     },
     {
       "id": "halcyon-sky",
-      "source": "public/assets/sky/halcyon-clouds-v1.png and src/renderer/",
+      "source": "public/assets/levels/halcyon/halcyon-clouds-v1.png and src/levels/halcyon/backdrop/",
       "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project; renderer shader by project contributors",
-      "provenance": "Original generated sky/cloud panorama, no reference images; final prompt and method in docs/SKY_ASSET.md. Scene geometry is never baked into the panorama. Runtime shader supplies solar radiance; PMREM and static city probe supply approximate reflections.",
+      "provenance": "Original generated cloud panorama without reference images; exact prompt retained beside level provenance. Runtime geometry/lighting and approximate reflections remain authored by the project.",
       "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
       "runtimeDependencies": ["three"],
-      "dimensions": [1774, 887]
+      "dimensions": [1774, 887],
+      "provenanceRecord": "assets/levels/halcyon/SKY_PROVENANCE.md",
+      "runtimeAsset": "public/assets/levels/halcyon/halcyon-clouds-v1.png"
     },
     {
-      "id": "asterion-orbital-blockout",
-      "source": "src/levels/orbital/track/",
+      "id": "shared-road-devices",
+      "source": "src/pickups/ and src/levels/<slug>/devices.js",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original authored orbital route, shared project-owned frame/sweep helpers, neutral road geometry and simple sphere planet for early human shape review; no new external imagery",
+      "provenance": "Original source-native Vector cassette strips, Aegis arches, ship fields and owned shader/WebAudio feedback; no downloaded art, recordings or external fonts.",
       "rights": "Project-authored; no third-party asset restrictions",
       "runtimeDependencies": ["three"]
     },
@@ -78,7 +80,7 @@
     },
     {
       "id": "asterion-planet",
-      "source": "src/levels/orbital/backdrop/ and public/assets/orbital/",
+      "source": "src/levels/orbital/backdrop/ and public/assets/levels/orbital/",
       "creator": "VECTOR//NOVA project contributors",
       "provenance": "Original deterministic global maps plus original imagegen terrain and separate weather-density material maps covering the near region and visible surrounding globe. Real spherical surface/cloud/atmosphere geometry with runtime lighting; no screenshot scenery.",
       "rights": "Project-authored; no third-party asset restrictions",
@@ -87,14 +89,14 @@
       "textureMemoryEstimateMiB": 80,
       "compressedAssetBytes": 16001716,
       "generationMode": "Built-in image_gen tool for regional terrain and grayscale weather; no reference images",
-      "promptRecord": "src/levels/orbital/backdrop/asset-provenance.json",
+      "promptRecord": "assets/levels/orbital/PROVENANCE.json",
       "runtimeMaps": [
-        "public/assets/orbital/asterion-surface.webp",
-        "public/assets/orbital/asterion-clouds.webp",
-        "public/assets/orbital/asterion-terrain-authored-v1.png",
-        "public/assets/orbital/asterion-weather-density-v1.png",
-        "public/assets/orbital/asterion-terrain-surround-v1.png",
-        "public/assets/orbital/asterion-weather-surround-v1.png"
+        "public/assets/levels/orbital/asterion-surface.webp",
+        "public/assets/levels/orbital/asterion-clouds.webp",
+        "public/assets/levels/orbital/asterion-terrain-authored-v1.png",
+        "public/assets/levels/orbital/asterion-weather-density-v1.png",
+        "public/assets/levels/orbital/asterion-terrain-surround-v1.png",
+        "public/assets/levels/orbital/asterion-weather-surround-v1.png"
       ]
     },
     {
@@ -114,6 +116,141 @@
       ],
       "starCount": 17500,
       "starSeed": 41917
+    },
+    {
+      "id": "nacre-tempest",
+      "source": "src/levels/nacre/ and assets/levels/nacre/blender/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original route, marine geometry, analytic ocean/materials, generated storm panorama and Blender-authored leviathan. Editable sources and exact sky prompt retained.",
+      "rights": "Project-authored/generated; no third-party artwork or meshes",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/levels/nacre/nacre-storm-sky-v1.png",
+        "public/assets/levels/nacre/leviathan/nacre-leviathan-v2.glb"
+      ],
+      "provenanceRecord": "assets/levels/nacre/PROVENANCE.json",
+      "skyProvenance": "assets/levels/nacre/SKY_PROVENANCE.json"
+    },
+    {
+      "id": "vesper-canopy",
+      "source": "assets/levels/vesper/ and src/levels/vesper/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original deterministic Blender forest/hollow/flower geometry, procedural resin and leaf shaders, generated bark tile and forest sky. Editable sources and retired creature retained.",
+      "rights": "Project-authored/generated; no third-party reference artwork or meshes",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/levels/vesper/vesper-canopy.glb",
+        "public/assets/levels/vesper/vesper-connected-forest-v1.glb",
+        "public/assets/levels/vesper/vesper-night-sky-v1.png"
+      ],
+      "provenanceRecord": "assets/levels/vesper/provenance.json"
+    },
+    {
+      "id": "cindercoil-caldera",
+      "source": "assets/levels/cindercoil/ and src/levels/cindercoil/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original reproducible Blender caldera/channel/crust/tower/launch kit, procedural ceramic and geology detail, selected reference-guided ash panorama and deterministic local atmosphere.",
+      "rights": "Project-authored/generated; no third-party artwork or meshes",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/levels/cindercoil/cindercoil-hero-kit-v7.glb",
+        "public/assets/levels/cindercoil/cindercoil-sky-v2.png",
+        "public/assets/levels/cindercoil/basalt-albedo-v1.png"
+      ],
+      "provenanceRecord": "assets/levels/cindercoil/PROVENANCE.md"
+    },
+    {
+      "id": "glasswake-comet",
+      "source": "assets/levels/glasswake/ and src/levels/glasswake/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original Blender-authored glacial geometry, crystal roadway, procedural snow and shelf audio; generated original scene reference, aurora panorama and ice detail bitmap. Selected references, exact prompts, generators and editable Blender sources are retained.",
+      "rights": "Project-authored/generated; no third-party reference artwork or meshes",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/levels/glasswake/glasswake-environment-v5.glb",
+        "public/assets/levels/glasswake/aurora-sky-v1.png",
+        "public/assets/levels/glasswake/ice-surface-v1.png"
+      ],
+      "provenanceRecord": "assets/levels/glasswake/PROVENANCE.md"
+    },
+    {
+      "id": "player-fleet-additions",
+      "source": "assets/ships/ and src/ships/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original Shrike, Bastion and Needle Blender chassis, generated design concepts and project-authored baked PBR maps embedded in runtime GLBs.",
+      "rights": "Project-authored/generated; no third-party artwork or meshes",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/ships/shrike/shrike.glb",
+        "public/assets/ships/bastion/bastion.glb",
+        "public/assets/ships/needle/needle.glb"
+      ],
+      "provenanceRecords": [
+        "assets/ships/shrike/provenance.json",
+        "assets/ships/bastion/provenance.json",
+        "assets/ships/needle/provenance.json"
+      ]
+    },
+    {
+      "id": "ai-racers",
+      "source": "assets/ships/rivals/ and src/ships/rivals.js",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original Rook, Latch and Mule Blender chassis, generated design concepts and embedded project-authored PBR maps. Shared by circuit racing and AI-racer inspection.",
+      "rights": "Project-authored/generated; no third-party artwork or meshes",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/ships/rivals/rook/rook.glb",
+        "public/assets/ships/rivals/latch/latch.glb",
+        "public/assets/ships/rivals/mule/mule.glb"
+      ],
+      "provenanceRecords": [
+        "assets/ships/rivals/rook/provenance.json",
+        "assets/ships/rivals/latch/provenance.json",
+        "assets/ships/rivals/mule/provenance.json"
+      ]
+    },
+    {
+      "id": "saffron-leviathan",
+      "source": "assets/levels/saffron/ and src/levels/saffron/",
+      "creator": "VECTOR//NOVA project contributors; built-in imagegen for the retained scene and sky references",
+      "provenance": "Scene-guided editable Blender fossil/burrower/dune kit, original route glass and deterministic local sand presentation. Exact prompts, generator, selected source images and hashes are retained beside the assets.",
+      "rights": "Project-authored and project-generated; no third-party artwork supplied",
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "assets/levels/saffron/PROVENANCE.md",
+      "runtimeAssets": [
+        "public/assets/levels/saffron/leviathan-kit.glb",
+        "public/assets/levels/saffron/saffron-sky-v2.png",
+        "public/assets/levels/saffron/weathering-noise-v1.r8"
+      ]
+    },
+    {
+      "id": "umbra-observatory",
+      "source": "assets/levels/umbra/ and src/levels/umbra/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original scene-guided Blender observatory kit, authored graphite road and deterministic tidal/accretion presentation. The original scene, native selected sky, exact prompts, generator and editable source are retained.",
+      "rights": "Project-authored/generated; no third-party artwork or meshes",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/levels/umbra/umbra-observatory.glb",
+        "public/assets/levels/umbra/umbra-sky-v2.png",
+        "public/assets/levels/umbra/umbra-surfaces-v1.png"
+      ],
+      "provenanceRecord": "assets/levels/umbra/provenance.json",
+      "skyProvenance": "assets/levels/umbra/SKY_PROVENANCE.md"
+    },
+    {
+      "id": "helion-observatory",
+      "source": "assets/levels/helion/ and src/levels/helion/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original scene-guided Blender shields, radiators, instrument towers, canopies and prominence meshes; authored road, thermal shaders and contact effects. Original scene, selected sky, exact prompts, generator and editable source are retained.",
+      "rights": "Project-authored/generated; no third-party artwork or meshes",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/levels/helion/thermal-observatory.glb",
+        "public/assets/levels/helion/helion-sky-v2.png"
+      ],
+      "provenanceRecord": "assets/levels/helion/provenance.json",
+      "skyProvenance": "assets/levels/helion/SKY_PROVENANCE.md"
     }
   ],
   "thirdParty": [

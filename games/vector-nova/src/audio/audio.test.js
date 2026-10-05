@@ -2,12 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAudio } from './index.js';
 import { createPropulsion } from './propulsion.js';
+import { createPickupAudio } from '../pickups/audio.js';
 
 class Param {
   value = 0;
   automation = [];
   cancelAndHoldAtTime(time) {
     this.automation = [{ type: 'hold', time }];
+  }
+  cancelScheduledValues(time) {
+    this.automation = [{ type: 'cancel', time }];
   }
   setTargetAtTime(value, time, response) {
     assert.ok(Number.isFinite(value));
@@ -115,6 +119,64 @@ class Context {
   }
 }
 const state = { speed: 0, time: 0, steer: 0, boosting: false };
+
+test('listener immersion filters the complete propulsion/cue/thunder graph and device bus, then eases back to dry', async () => {
+  const context = new Context();
+  const audio = createAudio({
+    createContext: () => context,
+    nacre: true,
+    immersion: true,
+  });
+  await audio.unlock();
+  audio.update({ ...state, speed: 112, boosting: true }, 0.5, true);
+  audio.setImmersion(1);
+  const wet = audio.getStatus().immersion;
+  assert.equal(wet.cutoff, 560);
+  assert.equal(wet.gain, 0.65);
+  const waterFilter = context.nodes.find(
+    (node) => node.kind === 'filter' && node.frequency.value === 560,
+  );
+  const masterBus = context.nodes.find((node) => node.kind === 'filter');
+  assert.equal(masterBus.destination, waterFilter);
+  audio.event({ type: 'nacre-thunder', id: 'wet', submerged: 1 });
+  audio.event({ type: 'impact' });
+  const thunder = context.nodes.filter((node) => node.kind === 'buffer').at(-1);
+  let destination = thunder.destination;
+  for (let n = 0; n < 10 && destination !== waterFilter; n++)
+    destination = destination.destination;
+  assert.equal(
+    destination,
+    waterFilter,
+    'already-playing thunder shares the output filter',
+  );
+  audio.setImmersion(0.5);
+  assert.ok(audio.getStatus().immersion.cutoff > wet.cutoff);
+  audio.setImmersion(0);
+  assert.ok(audio.getStatus().immersion.cutoff > 3000);
+  assert.equal(waterFilter.frequency.automation.at(-1).response, 0.22);
+  audio.update(state, 0, true);
+  assert.equal(audio.getStatus().audible, false);
+  await audio.dispose();
+  assert.ok(context.nodes.every((node) => node.disconnected));
+
+  const deviceContext = new Context();
+  const devices = createPickupAudio({
+    createContext: () => deviceContext,
+    immersion: true,
+  });
+  await devices.unlock();
+  devices.update({ volume: 0.5 }, true, 1);
+  devices.event({ type: 'pickup-activate', payload: { kind: 'vector' } });
+  assert.deepEqual(devices.getStatus().immersion, wet);
+  const voice = deviceContext.nodes.find((node) => node.kind === 'oscillator');
+  assert.equal(voice.destination.destination.destination.frequency.value, 560);
+  devices.update({ volume: 0.5 }, false, 1);
+  assert.equal(devices.getStatus().shots, 0);
+  devices.update({ volume: 0.5 }, true, 0);
+  assert.equal(devices.getStatus().immersion.gain, 1);
+  await devices.dispose();
+  assert.ok(deviceContext.nodes.every((node) => node.disconnected));
+});
 
 test('unlock is lazy, coalesced, initially silent and cannot reopen after disposal', async () => {
   const context = new Context();
@@ -241,6 +303,82 @@ test('existing cue voices have an attack, are bounded, and release on end/dispos
   assert.ok(context.nodes.every((node) => node.disconnected));
 });
 
+test('countdown has three distinct beats and a sustained higher GO tone without propulsion, and obeys pause/mute', async () => {
+  const context = new Context();
+  const audio = createAudio({ createContext: () => context });
+  audio.event({ type: 'countdown-beep', payload: { step: 3 } });
+  assert.equal(
+    context.nodes.length,
+    0,
+    'A countdown cannot create audio before a user gesture',
+  );
+  await audio.unlock();
+  const master = context.nodes.find((node) => node.kind === 'gain');
+  const propulsionBus = context.nodes.filter((node) => node.kind === 'gain')[1];
+  audio.update(state, 0.35, false, { countdown: true });
+  assert.equal(master.gain.value, 0.35);
+  assert.equal(
+    propulsionBus.gain.value,
+    0,
+    'Countdown opens cue audio without the engine bed',
+  );
+  const voices = [];
+  for (const step of [3, 2, 1]) {
+    const before = context.nodes.length;
+    audio.event({ type: 'countdown-beep', payload: { step } });
+    const voice = context.nodes[before];
+    voices.push(voice);
+    assert.equal(voice.kind, 'oscillator');
+    assert.ok(voice.stops[0] > context.currentTime + 0.25);
+    assert.ok(
+      voice.stops[0] < context.currentTime + 0.35,
+      'Ready beat leaves clear silence before the next second',
+    );
+    voice.onended();
+  }
+  const beforeGo = context.nodes.length;
+  audio.event({ type: 'countdown-go', payload: {} });
+  const go = context.nodes[beforeGo];
+  const goEnvelope = context.nodes[beforeGo + 1].gain.automation;
+  assert.ok(
+    go.frequency.automation[0].value > voices[0].frequency.automation[0].value,
+  );
+  assert.ok(go.stops[0] > context.currentTime + 0.7);
+  assert.ok(go.stops[0] < context.currentTime + 0.85);
+  assert.ok(
+    goEnvelope.some(
+      (entry) =>
+        entry.type === 'set' &&
+        entry.value > 0 &&
+        entry.time > context.currentTime + 0.5,
+    ),
+    'GO sustains before its smooth release',
+  );
+  assert.equal(goEnvelope.at(-1).value, 0);
+  assert.equal(voices.length, 3);
+  audio.update(state, 0.35, false);
+  assert.equal(master.gain.value, 0);
+  assert.equal(go.disconnected, true, 'Pause immediately releases the GO cue');
+  const pausedCount = context.nodes.length;
+  audio.event({ type: 'countdown-beep', payload: { step: 1 } });
+  assert.equal(context.nodes.length, pausedCount);
+  audio.update(state, 0, false, { countdown: true });
+  audio.event({ type: 'countdown-beep', payload: { step: 1 } });
+  assert.equal(
+    context.nodes.length,
+    pausedCount,
+    'Master mute suppresses cue creation',
+  );
+  audio.update(state, 0.35, true);
+  assert.equal(
+    propulsionBus.gain.value,
+    1,
+    'GO enables the existing propulsion graph',
+  );
+  await audio.dispose();
+  assert.ok(context.nodes.every((node) => node.disconnected));
+});
+
 test('Nacre thunder respects unlock, master mute, pause, reset and baseline isolation', async () => {
   const context = new Context();
   const audio = createAudio({ createContext: () => context, nacre: true });
@@ -280,4 +418,68 @@ test('Nacre thunder respects unlock, master mute, pause, reset and baseline isol
   baseline.event(event);
   assert.equal(baseline.getPresentation(), null);
   await baseline.dispose();
+});
+
+test('level-owned shelf sound uses the shared master bus and obeys unlock, mute, pause, reset and disposal', async () => {
+  const { createGlasswakeShelfAudio } =
+    await import('../levels/glasswake/audio.js');
+  const context = new Context();
+  const audio = createAudio({
+    createContext: () => context,
+    environment: createGlasswakeShelfAudio,
+  });
+  const event = { type: 'glasswake-shelf', id: 'opening-sheet' };
+  audio.event(event);
+  assert.equal(context.nodes.length, 0);
+  await audio.unlock();
+  audio.update(state, 0.35, false, { countdown: true });
+  audio.event(event);
+  assert.equal(
+    audio.getPresentation().triggerCount,
+    0,
+    'countdown does not play shelf events',
+  );
+  audio.update(state, 0, true);
+  audio.event(event);
+  assert.equal(audio.getPresentation().triggerCount, 0);
+  audio.update(state, 0.35, true);
+  audio.event(event);
+  audio.event(event);
+  assert.equal(audio.getPresentation().triggerCount, 1);
+  assert.equal(audio.getPresentation().activeVoices, 1);
+  // The same cached crack/snow buffer serves the distant shelf too.
+  const openingVoice = context.nodes.filter((n) => n.kind === 'buffer').at(-1);
+  openingVoice.onended();
+  const secondCue = { type: 'glasswake-shelf', id: 'calving-shelf:0' };
+  audio.event(secondCue);
+  audio.event(secondCue);
+  assert.equal(audio.getPresentation().triggerCount, 2);
+  assert.equal(audio.getPresentation().activeVoices, 1);
+  assert.equal(
+    context.nodes.filter((n) => n.kind === 'buffer').at(-1).buffer,
+    openingVoice.buffer,
+  );
+  audio.event({ type: 'glasswake-shelf', id: 'unrelated' });
+  assert.equal(audio.getPresentation().triggerCount, 2);
+  audio.update(state, 0.35, false);
+  assert.equal(audio.getPresentation().activeVoices, 0);
+  audio.event(event);
+  assert.equal(audio.getPresentation().triggerCount, 2);
+  audio.update(state, 0.35, true);
+  audio.event(event);
+  audio.resetEnvironment();
+  assert.equal(audio.getPresentation().activeVoices, 0);
+  audio.event(event);
+  audio.update(state, 0, true);
+  assert.equal(audio.getPresentation().activeVoices, 0);
+  await audio.dispose();
+  await audio.dispose();
+  assert.equal(context.closes, 1);
+  assert.ok(context.nodes.every((n) => n.disconnected));
+  const ordinary = createAudio({ createContext: () => new Context() });
+  await ordinary.unlock();
+  ordinary.update(state, 1, true);
+  ordinary.event(event);
+  assert.equal(ordinary.getPresentation(), null);
+  await ordinary.dispose();
 });

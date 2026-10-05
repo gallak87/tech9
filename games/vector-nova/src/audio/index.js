@@ -1,5 +1,6 @@
 import { createPropulsion, smooth } from './propulsion.js';
 import { createNacreThunder } from './nacre-thunder.js';
+import { createImmersionMix } from './immersion.js';
 
 const close = (context) => {
   if (context.state === 'closed') return Promise.resolve();
@@ -9,6 +10,8 @@ const close = (context) => {
 export function createAudio({
   createContext = () => new AudioContext(),
   nacre = false,
+  environment,
+  immersion = false,
 } = {}) {
   let resources;
   let unlocking;
@@ -16,15 +19,19 @@ export function createAudio({
   let disposal;
   let active = false;
   let audible = false;
+  let environmentActive = false;
 
   function release(owned) {
     owned.propulsion.dispose();
     owned.thunder?.dispose();
+    owned.environment?.dispose();
     for (const shot of owned.shots) shot.stop();
     owned.shots.clear();
     owned.bus.disconnect();
     owned.compressor.disconnect();
     owned.master.disconnect();
+    owned.propulsionBus.disconnect();
+    owned.immersion?.dispose();
     return close(owned.context);
   }
 
@@ -49,18 +56,29 @@ export function createAudio({
             compressor.release.value = 0.18;
             const master = context.createGain();
             master.gain.value = 0;
-            bus
-              .connect(compressor)
-              .connect(master)
-              .connect(context.destination);
-            const propulsion = createPropulsion(context, bus);
+            const waterMix = immersion
+              ? createImmersionMix(context, compressor)
+              : null;
+            bus.connect(waterMix?.input ?? compressor);
+            compressor.connect(master).connect(context.destination);
+            const propulsionBus = context.createGain();
+            propulsionBus.gain.value = 0;
+            propulsionBus.connect(bus);
+            const propulsion = createPropulsion(context, propulsionBus);
             resources = {
               context,
               bus,
               compressor,
               master,
+              propulsionBus,
               propulsion,
-              thunder: nacre ? createNacreThunder(context, bus) : null,
+              immersion: waterMix,
+              thunder: nacre
+                ? createNacreThunder(context, bus, {
+                    immersionAtOutput: Boolean(waterMix),
+                  })
+                : null,
+              environment: environment?.(context, bus),
               shots: new Set(),
             };
           }
@@ -79,41 +97,67 @@ export function createAudio({
       });
       return unlocking;
     },
-    update(state, volume, running) {
-      active = !!running && !disposed;
+    update(state, volume, running, { countdown = false } = {}) {
+      active = (!!running || countdown) && !disposed;
       if (!resources || disposed) return;
-      const { context, master, propulsion } = resources;
+      const { context, master, propulsion, propulsionBus } = resources;
       const level = Number.isFinite(volume)
         ? Math.max(0, Math.min(1, volume))
         : 0;
       audible = active && level > 0;
+      environmentActive = !!running && audible;
       smooth(
         master.gain,
         active ? level : 0,
         context.currentTime,
         active ? 0.06 : 0.012,
       );
-      propulsion.update(state);
-      if (!active || level === 0) resources.thunder?.stop();
+      smooth(propulsionBus.gain, running ? 1 : 0, context.currentTime, 0.012);
+      if (running) propulsion.update(state);
+      if (!environmentActive) resources.environment?.stop();
+      if (!audible) {
+        resources.thunder?.stop();
+        for (const shot of resources.shots) shot.stop();
+        resources.shots.clear();
+      }
     },
     resetEnvironment() {
       resources?.thunder?.stop();
+      resources?.environment?.stop();
+    },
+    setImmersion(submerged) {
+      resources?.immersion?.update(submerged);
+    },
+    getStatus() {
+      return {
+        active,
+        audible,
+        immersion: resources?.immersion?.getStatus() ?? null,
+      };
     },
     getPresentation() {
-      return resources?.thunder?.getPresentation() ?? null;
+      return (
+        resources?.thunder?.getPresentation() ??
+        resources?.environment?.getPresentation() ??
+        null
+      );
     },
     event(event) {
+      if (resources && !disposed && environmentActive)
+        resources.environment?.trigger(event);
       if (event?.type === 'nacre-thunder') {
         if (resources && !disposed && audible)
           resources.thunder?.trigger(event);
         return;
       }
-      // Retain the existing contact/lap cues; broader effects are a later phase.
+      // Countdown and contact cues share the unlocked, volume-controlled bus.
       if (
         !resources ||
         disposed ||
-        !active ||
-        !['impact', 'lap'].includes(event?.type)
+        !audible ||
+        !['impact', 'lap', 'countdown-beep', 'countdown-go'].includes(
+          event?.type,
+        )
       )
         return;
       const { context, bus, shots } = resources;
@@ -123,7 +167,16 @@ export function createAudio({
       const envelope = context.createGain();
       oscillator.connect(envelope).connect(bus);
       envelope.gain.setValueAtTime(0, time);
-      if (event.type === 'impact') {
+      if (event.type === 'countdown-beep' || event.type === 'countdown-go') {
+        const go = event.type === 'countdown-go';
+        const duration = go ? 0.76 : 0.27;
+        const peak = go ? 0.095 : 0.075;
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(go ? 960 : 480, time);
+        envelope.gain.linearRampToValueAtTime(peak, time + 0.012);
+        envelope.gain.setValueAtTime(peak, time + (go ? 0.54 : 0.16));
+        envelope.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+      } else if (event.type === 'impact') {
         oscillator.type = 'triangle';
         oscillator.frequency.setValueAtTime(92, time);
         oscillator.frequency.exponentialRampToValueAtTime(28, time + 0.2);
@@ -136,11 +189,20 @@ export function createAudio({
         envelope.gain.linearRampToValueAtTime(0.07, time + 0.008);
         envelope.gain.exponentialRampToValueAtTime(0.0001, time + 0.4);
       }
-      envelope.gain.linearRampToValueAtTime(0, time + 0.44);
+      const end =
+        event.type === 'countdown-beep'
+          ? 0.29
+          : event.type === 'countdown-go'
+            ? 0.78
+            : 0.44;
+      envelope.gain.linearRampToValueAtTime(0, time + end);
       oscillator.start();
-      oscillator.stop(time + 0.45);
+      oscillator.stop(time + end + 0.01);
+      let ended = false;
       const shot = {
         stop() {
+          if (ended) return;
+          ended = true;
           oscillator.onended = null;
           oscillator.stop();
           oscillator.disconnect();
@@ -149,6 +211,8 @@ export function createAudio({
       };
       shots.add(shot);
       oscillator.onended = () => {
+        ended = true;
+        oscillator.onended = null;
         shots.delete(shot);
         oscillator.disconnect();
         envelope.disconnect();

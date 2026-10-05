@@ -1,0 +1,26 @@
+{
+  "generator": "build_cindercoil_v5.py",
+  "seed": 61129,
+  "modules": [
+    "rupture_wall",
+    "rupture_left",
+    "rupture_right",
+    "cascade_0",
+    "cascade_1",
+    "cascade_2",
+    "crust_raft",
+    "hollow_tower",
+    "basalt_cluster",
+    "talus_apron",
+    "fractured_ridge",
+    "broken_lava_tube",
+    "ash_pocket",
+    "broken_launch_pylon"
+  ],
+  "triangles": 81852,
+  "meshCount": 46,
+  "runtimeBytes": 3157704,
+  "textures": 0,
+  "sourceReference": "reference/cindercoil-scene-v1.png",
+  "authoringExport": ".experiments/cindercoil-authoring/cindercoil-hero-kit-v5.glb"
+}

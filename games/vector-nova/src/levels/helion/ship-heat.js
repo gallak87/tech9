@@ -86,9 +86,14 @@ export function createShipHeatEffects(telemetry) {
       state = {},
     } = {}) {
       if (disposed) return;
-      const feedback = sampleHelionHeatFeedback(telemetry);
+      const feedback = sampleHelionHeatFeedback(telemetry, {
+        time,
+        reducedMotion: settings.reducedMotion,
+      });
       Object.assign(telemetry, {
         heatStatus: feedback.status,
+        heatPulse: feedback.pulse,
+        heatEnvelope: feedback.envelope,
         shipSmoke: feedback.smoke,
         shipFlame: feedback.flame,
       });
@@ -122,7 +127,7 @@ export function createShipHeatEffects(telemetry) {
         );
         const sign = i % 2 ? 1 : -1;
         const growth = age ** 1.3;
-        const width = 0.42 + growth * 1.75;
+        const width = 0.52 + growth * 2.2;
         offset
           .set(sign * halfWidth * 0.62, smokeY, z)
           .applyMatrix4(ship.group.matrixWorld);
@@ -144,7 +149,7 @@ export function createShipHeatEffects(telemetry) {
         smoke.opacity.setX(
           i,
           feedback.smoke *
-            (settings.quality === 'low' ? 0.9 : 0.58) *
+            (settings.quality === 'low' ? 0.9 : 0.7) *
             T.MathUtils.smoothstep(age, 0, 0.08) *
             (1 - age) ** 0.7,
         );

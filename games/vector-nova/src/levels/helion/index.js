@@ -10,7 +10,7 @@ import { withShipHeatEffects } from './ship-heat.js';
 export default function createLevel({ shape = false } = {}) {
   const telemetry = {};
   return {
-    version: '0.6.0-helion-racing',
+    version: '0.7.0-helion-racing',
     racing: { createDevices, createMotion: createHelionRuntime },
     renderer: {
       world: shape ? 'helion-shape' : 'helion-flare',

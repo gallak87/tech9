@@ -30,7 +30,7 @@ Saffron Leviathan descends through an enormous porous skull, banks along its int
 
 Umbra Fold adds declared tidal pulls, two curved airborne crossings, stacked decks, an inverted vault and a grounded descending fold. Intact distant instruments stretch, fragment and spiral into the ring; one enormous instrument follows a complete timed consumption sequence. Shape review uses `/?level=umbra&review=shape`. Automatic missed-jump recovery retains lap validity and counts its delay. The six automatic devices sit on supported ordinary or recovery shelves; the two flight corridors have no pickups.
 
-Helion Flare adds moving fire lanes, three mandatory furnace passages, physical shield cover and cooling strips. Heat reduces thrust above the declared threshold. Two optional driver-left jumps retain a supported main lane, and the banked sunshield wall leads into a braking shelf. The separate star and two timed prominences sit against the selected burgundy space panorama. Shape review uses `/?level=helion&review=shape`.
+Helion Flare adds moving fire lanes, three mandatory furnace passages, physical shield cover and cooling strips. Heat reduces thrust above the declared threshold, recovering within one second after fire contact; smoke and a red viewport pulse fade over five seconds. Two optional driver-left jumps retain a supported main lane, and the banked sunshield wall leads into a braking shelf. The separate star and two timed prominences sit against the selected burgundy space panorama. Shape review uses `/?level=helion&review=shape`.
 
 Time Trial, championships, ship-to-ship collision and larger opponent fields are future work.
 

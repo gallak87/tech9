@@ -5,6 +5,10 @@ import {
   createHelionRuntime,
   helionRoadBounds,
 } from '../src/levels/helion/runtime.js';
+import {
+  sampleHelionHeatFeedback,
+  helionHeatPulse,
+} from '../src/levels/helion/thermal.js';
 import { createVehicleState } from '../src/physics/index.js';
 import { createRace } from '../src/race/index.js';
 import {
@@ -225,4 +229,101 @@ test('overheated furnace traversal has a measurable declared engine power conseq
   }
   assert.ok(a.speed < b.speed - 5);
   assert.equal(a.energy, b.energy);
+});
+
+test('fire penalty recovers within one second while a cold brief hit stays visible for five', () => {
+  const telemetry = {};
+  const runtime = createHelionRuntime({ track }, telemetry);
+  const furnace = track.thermalZones.find((z) => z.kind === 'furnace');
+  const shelter = track.thermalZones.find((z) => z.kind === 'shelter');
+  const state = { ...createVehicleState(), distance: furnace.start + 15 };
+  runtime.reset({ state });
+  for (let i = 0; i < 24; i++) runtime.advance(state, {}, DT);
+  assert.ok(runtime.snapshot().heat > 4 && runtime.snapshot().heat < 6);
+  state.distance = shelter.start + 15;
+  for (let i = 0; i < 240; i++) runtime.advance(state, {}, DT);
+  runtime.update({ state });
+  assert.equal(telemetry.heat, 0);
+  assert.equal(telemetry.thrustScale, 1);
+  assert.ok(sampleHelionHeatFeedback(telemetry).smoke > 0.25);
+  const saved = structuredClone(runtime.snapshot());
+  runtime.advance(state, {}, 0);
+  runtime.update({ state, mode: 'paused' });
+  assert.deepEqual(runtime.snapshot(), saved);
+  for (let i = 0; i < 370; i++) runtime.advance(state, {}, DT);
+  runtime.update({ state });
+  assert.equal(sampleHelionHeatFeedback(telemetry).smoke, 0);
+  assert.equal(sampleHelionHeatFeedback(telemetry).severity, 0);
+  state.distance = furnace.start + 15;
+  runtime.reset({ state, scenario: 'heat-hot' });
+  for (let i = 0; i < 120; i++) runtime.advance(state, {}, DT);
+  runtime.update({ state });
+  assert.ok(telemetry.thrustScale < 0.8);
+  assert.equal(
+    sampleHelionHeatFeedback(telemetry).pulse,
+    helionHeatPulse(state.time),
+  );
+  state.distance = shelter.start + 15;
+  for (let i = 0; i < 60; i++) runtime.advance(state, {}, DT);
+  runtime.update({ state });
+  assert.ok(telemetry.thrustScale < 1 && telemetry.thrustScale > 0.75);
+  for (let i = 0; i < 65; i++) runtime.advance(state, {}, DT);
+  runtime.update({ state });
+  assert.ok(
+    telemetry.heat > 62,
+    'stored heat does not prolong the gameplay penalty',
+  );
+  assert.equal(telemetry.thrustScale, 1);
+  assert.ok(sampleHelionHeatFeedback(telemetry).smoke > 0.4);
+  runtime.reset({ state: { ...state, distance: 0 }, reason: 'manual-recover' });
+  assert.equal(runtime.snapshot().contactAge, 5);
+  assert.equal(runtime.snapshot().contactHeat, 0);
+  assert.equal(sampleHelionHeatFeedback(telemetry).severity, 0);
+  runtime.dispose();
+});
+
+test('contact timers and pulsing thrust replay exactly, independent of presentation settings', () => {
+  const telemetryA = {},
+    telemetryB = {};
+  const a = createHelionRuntime({ track }, telemetryA);
+  const b = createHelionRuntime(
+    { track, settings: { reducedMotion: true, quality: 'low' } },
+    telemetryB,
+  );
+  const state = {
+    ...createVehicleState(),
+    distance: track.thermalZones.find((z) => z.kind === 'furnace').start + 15,
+  };
+  a.reset({ state, scenario: 'heat-hot' });
+  for (let i = 0; i < 80; i++) a.advance(state, {}, DT);
+  state.distance =
+    track.thermalZones.find((z) => z.kind === 'shelter').start + 15;
+  for (let i = 0; i < 30; i++) a.advance(state, {}, DT);
+  const copy = structuredClone(state);
+  const saved = structuredClone(a.snapshot());
+  b.restore(saved);
+  for (const invalid of [NaN, -1, 5.1]) {
+    assert.throws(
+      () => b.restore({ ...saved, contactAge: invalid }),
+      /Invalid Helion thermal state/,
+    );
+    assert.deepEqual(b.snapshot(), saved);
+  }
+  for (let i = 0; i < 660; i++) {
+    assert.deepEqual(
+      a.advance(state, controls, DT),
+      b.advance(copy, controls, DT),
+    );
+    a.update({ state });
+    b.update({ state: copy });
+    assert.equal(telemetryA.thrustScale, telemetryB.thrustScale);
+    assert.deepEqual(
+      sampleHelionHeatFeedback(telemetryA),
+      sampleHelionHeatFeedback(telemetryB),
+    );
+  }
+  assert.deepEqual(state, copy);
+  assert.deepEqual(a.snapshot(), b.snapshot());
+  a.dispose();
+  b.dispose();
 });

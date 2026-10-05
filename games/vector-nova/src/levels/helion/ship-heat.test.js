@@ -4,25 +4,41 @@ import * as T from 'three';
 import { sampleHelionHeatFeedback } from './thermal.js';
 import { createShipHeatEffects, withShipHeatEffects } from './ship-heat.js';
 
-test('cold fire contact is immediate; stored heat smokes through cooling without false flames', () => {
+test('a brief cold hit leaves smoke, small flames and a synchronized five-second visual tail', () => {
   const contact = sampleHelionHeatFeedback({ heat: 0, exposure: 25 });
   assert.equal(contact.status, 'ON FIRE');
-  assert.ok(contact.smoke > 0);
+  assert.ok(contact.smoke > 0.5);
   assert.ok(contact.flame > 0);
   const cooling = sampleHelionHeatFeedback({
-    heat: 90,
+    heat: 0,
     exposure: 0,
+    contactHeat: 5,
+    contactAge: 2,
     sheltered: true,
   });
   assert.equal(cooling.status, 'COOLING');
-  assert.ok(cooling.smoke > contact.smoke);
-  assert.equal(cooling.flame, 0);
-  assert.equal(sampleHelionHeatFeedback({ heat: 90 }).status, 'OVERHEATING');
-  assert.equal(sampleHelionHeatFeedback({ heat: 40 }).status, 'HOT · SMOKING');
-  assert.equal(sampleHelionHeatFeedback({ heat: 0, sheltered: true }).smoke, 0);
+  assert.ok(cooling.smoke > 0.35);
+  assert.ok(cooling.flame > 0);
+  const peak = sampleHelionHeatFeedback(
+    { contactHeat: 5, contactAge: 3 },
+    { time: 0 },
+  );
+  const trough = sampleHelionHeatFeedback(
+    { contactHeat: 5, contactAge: 3 },
+    { time: 0.6 },
+  );
+  for (const value of ['smoke', 'flame', 'severity']) {
+    assert.ok(Math.abs(trough[value] / peak[value] - trough.pulse) < 1e-10);
+  }
+  assert.equal(
+    sampleHelionHeatFeedback({ heat: 90, contactHeat: 90, contactAge: 5 })
+      .smoke,
+    0,
+  );
+  assert.equal(sampleHelionHeatFeedback({ heat: 90 }).status, '');
 });
 
-test('ship heat presentation freezes with simulation time, respects all modes, and clears at zero heat', () => {
+test('ship heat presentation freezes with simulation time, respects all modes, and clears after the tail', () => {
   const telemetry = { heat: 90, exposure: 25 };
   const effect = createShipHeatEffects(telemetry);
   const ship = { group: new T.Group() };
@@ -62,6 +78,12 @@ test('ship heat presentation freezes with simulation time, respects all modes, a
   assert.equal(effect.group.visible, false);
   telemetry.heat = 0;
   telemetry.exposure = 0;
+  telemetry.contactHeat = 5;
+  telemetry.contactAge = 3;
+  effect.update(frame);
+  assert.ok(effect.group.visible, 'cold hull still smokes after a brief hit');
+  assert.ok(telemetry.shipFlame > 0);
+  telemetry.contactAge = 5;
   effect.update(frame);
   assert.equal(effect.group.visible, false);
   assert.equal(telemetry.shipSmoke, 0);

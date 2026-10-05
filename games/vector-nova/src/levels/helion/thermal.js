@@ -7,6 +7,10 @@ export const HELION_HEAT_RULES = Object.freeze({
   furnaceHeating: 25,
   powerThreshold: 62,
   minimumThrust: 0.56,
+  penaltyRelease: 1,
+  visualRelease: 5,
+  pulsePeriod: 1.2,
+  pulseMinimum: 0.65,
 });
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const smooth = (x) => {
@@ -152,25 +156,54 @@ export function helionThrustScale(heat) {
   );
 }
 
-// Presentation samples factual contact and stored heat without changing physics.
-export function sampleHelionHeatFeedback(thermal = {}) {
-  const heat = clamp(thermal.heat ?? 0, 0, 100);
+// One simulation-time pulse drives power loss, hull effects and the viewport.
+export function helionHeatPulse(time = 0) {
+  return (
+    HELION_HEAT_RULES.pulseMinimum +
+    (1 - HELION_HEAT_RULES.pulseMinimum) *
+      (0.5 +
+        0.5 * Math.cos((time * Math.PI * 2) / HELION_HEAT_RULES.pulsePeriod))
+  );
+}
+export function helionActiveThrustScale(heat, contactAge, time = 0) {
+  const release = 1 - smooth(contactAge / HELION_HEAT_RULES.penaltyRelease);
+  return 1 - (1 - helionThrustScale(heat)) * release * helionHeatPulse(time);
+}
+
+// Contact history belongs to the runtime, so even a cold, brief hit leaves a
+// five-second tail. Presentation never advances timers or extends the penalty.
+export function sampleHelionHeatFeedback(
+  thermal = {},
+  { time = thermal.heatTime ?? 0, reducedMotion = false } = {},
+) {
   const contact = !thermal.sheltered && (thermal.exposure ?? 0) > 0;
-  const stress = clamp((heat - 28) / 72);
+  const age = contact
+    ? 0
+    : (thermal.contactAge ?? HELION_HEAT_RULES.visualRelease);
+  const heat = clamp(
+    contact ? (thermal.heat ?? 0) : (thermal.contactHeat ?? 0),
+    0,
+    100,
+  );
+  const envelope = Math.pow(
+    1 - clamp(age / HELION_HEAT_RULES.visualRelease),
+    0.75,
+  );
+  const pulse = reducedMotion ? 0.85 : helionHeatPulse(time);
   const cooling = thermal.sheltered || thermal.label === 'COOLING STRIP';
   return {
     contact,
-    smoke: contact ? 0.38 + stress * 0.62 : stress * 0.9,
-    flame: contact ? 0.3 + stress * 0.3 : 0,
-    severity: contact ? Math.max(0.48, heat / 100) : stress,
+    envelope,
+    pulse,
+    smoke: (0.85 + (heat / 100) * 0.15) * envelope * pulse,
+    flame: (0.22 + (heat / 100) * 0.2) * Math.pow(envelope, 1.6) * pulse,
+    severity: Math.max(0.75, heat / 100) * envelope * pulse,
     status: contact
       ? 'ON FIRE'
-      : cooling && heat > 1
-        ? 'COOLING'
-        : heat >= HELION_HEAT_RULES.powerThreshold
-          ? 'OVERHEATING'
-          : heat > 28
-            ? 'HOT · SMOKING'
-            : '',
+      : envelope > 0
+        ? cooling
+          ? 'COOLING'
+          : 'SMOKING'
+        : '',
   };
 }

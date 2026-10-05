@@ -11,24 +11,14 @@ export function createHelionOverlay(host, telemetry) {
     top: '118px',
     width: '236px',
     boxSizing: 'border-box',
-    padding: '10px 12px',
-    borderRadius: '3px',
-    border: '1px solid #897766',
-    background: 'rgba(12,24,32,.9)',
+    padding: '0',
+    textShadow: '0 1px 4px #000, 0 0 8px #000',
     color: '#f5ede0',
     font: '600 11px/1.5 system-ui',
     letterSpacing: '.07em',
     pointerEvents: 'none',
     zIndex: '6',
     display: 'none',
-  });
-  const signal = document.createElement('div');
-  signal.dataset.helionHeatStatus = '';
-  Object.assign(signal.style, {
-    fontWeight: '800',
-    letterSpacing: '.08em',
-    color: '#ffd6ac',
-    marginBottom: '4px',
   });
   const readout = document.createElement('div');
   const rail = document.createElement('div');
@@ -50,16 +40,16 @@ export function createHelionOverlay(host, telemetry) {
     letterSpacing: '.025em',
     fontWeight: '500',
   });
-  element.append(signal, readout, rail, detail);
+  element.append(readout, rail, detail);
   const visor = document.createElement('div');
   visor.dataset.helionVisor = '';
   Object.assign(visor.style, {
     position: 'absolute',
     inset: '0',
     pointerEvents: 'none',
-    zIndex: '0',
+    zIndex: '18',
     background:
-      'radial-gradient(ellipse at 50% 54%, transparent 54%, rgba(244,66,13,.22) 78%, rgba(255,105,29,.66) 100%)',
+      'radial-gradient(ellipse at 50% 54%, rgba(230,12,18,.20) 0%, rgba(236,15,20,.24) 55%, rgba(245,18,24,.42) 100%)',
     opacity: '0',
   });
   const destination = document.createElement('div');
@@ -150,21 +140,12 @@ export function createHelionOverlay(host, telemetry) {
     update({ mode, reviewing, settings = {}, time = 0, camera, ship }) {
       const visible = ['racing', 'paused'].includes(mode) && !reviewing;
       element.style.display = visible ? 'block' : 'none';
-      const feedback = sampleHelionHeatFeedback(telemetry);
-      const thermalCue =
-        visible && !telemetry.sheltered && telemetry.label !== 'COOLING STRIP'
-          ? Math.max(
-              0,
-              Math.min(
-                1,
-                Math.max(
-                  feedback.contact ? 44 : 0,
-                  (telemetry.heat ?? 0) - 12,
-                ) / 72,
-              ),
-            )
-          : 0;
-      visor.style.opacity = `${thermalCue * (settings.reducedMotion ? 0.68 : 0.72 + Math.sin(time * 1.7) * 0.08)}`;
+      const feedback = sampleHelionHeatFeedback(telemetry, {
+        time,
+        reducedMotion: settings.reducedMotion,
+      });
+      const visorOpacity = visible ? feedback.severity : 0;
+      visor.style.opacity = `${visorOpacity}`;
       destination.style.display =
         visible && telemetry.recoveryTarget ? 'block' : 'none';
       if (!visible) {
@@ -196,7 +177,7 @@ export function createHelionOverlay(host, telemetry) {
       }
       element.style.width = short ? '194px' : portrait ? '210px' : '236px';
 
-      element.style.padding = short ? '5px 8px' : '10px 12px';
+      element.style.padding = '0';
       element.style.fontSize = short ? '10px' : '11px';
       element.style.letterSpacing = short ? '.025em' : '.07em';
       const heat = telemetry.heat ?? 0;
@@ -204,39 +185,7 @@ export function createHelionOverlay(host, telemetry) {
       const flight = telemetry.flightMode ?? 'magnetic';
       readout.textContent = `HEAT ${Math.round(heat)} / 100 · THRUST ${Math.round(power * 100)}%`;
       fill.style.width = `${heat}%`;
-      const burning = feedback.contact,
-        hot = heat >= 62,
-        cooling = feedback.status === 'COOLING';
-      signal.style.display = feedback.status ? 'block' : 'none';
-      const action = burning
-        ? telemetry.label?.startsWith('FURNACE')
-          ? 'KEEP MOVING'
-          : 'EVADE'
-        : hot && !cooling && !short
-          ? 'THRUST LOSS'
-          : '';
-      signal.textContent = feedback.status
-        ? `${cooling ? '↓' : '▲'} ${feedback.status}${action ? ' · ' + action : ''}`
-        : '';
-      signal.style.fontSize = short ? '10px' : '13px';
-      signal.style.lineHeight = short ? '1.3' : '1.5';
-      signal.style.marginBottom = short ? '2px' : '4px';
-      signal.style.color = cooling ? '#a5ece1' : '#ffe0b6';
-      fill.style.background = burning || hot ? '#ff8542' : '#83d6ce';
-      element.style.borderColor = burning
-        ? '#ff9d59'
-        : hot
-          ? '#e39461'
-          : cooling
-            ? '#83d6ce'
-            : '#897766';
-      element.style.background =
-        burning || hot ? 'rgba(49,19,14,.94)' : 'rgba(12,24,32,.9)';
-      element.style.boxShadow = burning
-        ? 'inset 4px 0 #ff8542, 0 0 22px rgba(255,87,21,.22)'
-        : hot
-          ? 'inset 3px 0 #e39461'
-          : 'none';
+      fill.style.background = power < 1 ? '#ff8542' : '#83d6ce';
       detail.textContent =
         flight === 'recovery'
           ? short
@@ -277,6 +226,9 @@ export function createHelionOverlay(host, telemetry) {
       presentation = {
         ...telemetry,
         heatStatus: feedback.status,
+        heatPulse: feedback.pulse,
+        heatEnvelope: feedback.envelope,
+        visorOpacity,
         text: detail.textContent,
       };
     },
@@ -284,6 +236,7 @@ export function createHelionOverlay(host, telemetry) {
       presentation = {};
       layoutKey = '';
       currentLayout = null;
+      visor.style.opacity = '0';
     },
     getPresentation: () => ({ helion: { ...presentation } }),
     dispose() {

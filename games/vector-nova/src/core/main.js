@@ -15,7 +15,11 @@ import { createFlyCamera } from './fly-camera.js';
 import { createReviewCamera } from './review-camera.js';
 import { createStartCountdown } from './start-countdown.js';
 import { discoverLevels } from '../levels/catalog.js';
-import { validateTrack, circuitURL } from '../levels/contract.js';
+import {
+  validateTrack,
+  validateCollisionWorld,
+  circuitURL,
+} from '../levels/contract.js';
 import { createLevelPresentation } from '../levels/presentation.js';
 import { createLifetime } from './lifecycle.js';
 import {
@@ -65,12 +69,30 @@ async function boot() {
     metadata,
     definition,
     shape: blockout,
-  } = await levelCatalog.load(parameters.get('level'), {
-    review: parameters.get('review'),
-  });
+  } = await levelCatalog.load(
+    parameters.get('level') ||
+      (parameters.get('test') === 'jump' ? 'saffron' : undefined),
+    {
+      review: parameters.get('review'),
+    },
+  );
   const VERSION = definition.version;
   const settings = loadSettings();
   const track = validateTrack(await definition.createTrack());
+  const collisionWorld = definition.createCollisionWorld
+    ? lifetime.own(
+        validateCollisionWorld(
+          await definition.createCollisionWorld({ track }),
+        ),
+      )
+    : null;
+  const dynamics = definition.createDynamics
+    ? lifetime.own(await definition.createDynamics({ track, collisionWorld }))
+    : null;
+  const playtestName = parameters.get('test');
+  const playtest = Object.hasOwn(definition.playtests ?? {}, playtestName)
+    ? definition.playtests[playtestName]
+    : null;
   const view = lifetime.own(
     await createRenderer(host, settings, {
       ...definition.renderer,
@@ -80,7 +102,13 @@ async function boot() {
   );
   const { scene, camera, renderer } = view;
   const world = lifetime.own(
-    await createLevelPresentation(definition, { track, view, host, settings }),
+    await createLevelPresentation(definition, {
+      track,
+      collisionWorld,
+      view,
+      host,
+      settings,
+    }),
   );
   const { road, environment } = world;
   const reviewCamera = metadata.review
@@ -224,6 +252,7 @@ async function boot() {
               ? e.payload.railLateral - e.payload.side * 0.4
               : e.payload.side * (track.width / 2 - 0.4)
             : state.lateral),
+        e.payload.position && e.payload.normal ? e.payload : null,
       );
     }
     if (e.type === 'jump-transfer') prev = { ...state };
@@ -231,9 +260,11 @@ async function boot() {
       ui.notice(
         e.payload.outcome === 'recovered'
           ? `RECOVERED BEYOND LANDING · ${race.valid ? 'LAP VALID' : 'UNTIMED SESSION'} · W TO RESUME`
-          : e.payload.edgeCaught
-            ? 'EDGE CATCH · LANDING CONFIRMED'
-            : 'LANDING CONFIRMED',
+          : e.payload.tractionRestored
+            ? 'PLATFORM CONTACT · TRACTION RESTORED'
+            : e.payload.edgeCaught
+              ? 'EDGE CATCH · LANDING CONFIRMED'
+              : 'LANDING CONFIRMED',
       );
     if (e.type === 'lap') {
       const previousBest = Math.min(
@@ -255,6 +286,9 @@ async function boot() {
   const racingEnabled = Boolean(definition.racing) && !blockout;
   const runtimeContext = {
     track,
+    collisionWorld,
+    dynamics,
+    playtest,
     scene,
     ship,
     host,
@@ -283,13 +317,20 @@ async function boot() {
         racerModule.createRacers({
           track,
           devices,
+          dynamics,
           createRuntime: () =>
             createDeviceRuntime({
               track,
               devices,
               identity: definition.racing.identity,
               motion: (definition.racing.createMotion ?? createMagneticRuntime)(
-                { track, settings, presentation: false },
+                {
+                  track,
+                  collisionWorld,
+                  dynamics,
+                  settings,
+                  presentation: false,
+                },
               ),
             }),
         }),
@@ -310,10 +351,12 @@ async function boot() {
   const makeRace = () =>
     createRace(track, {
       rulesId: `${runtime.rulesId}:ship-${ship.selected.id}-v${ship.selected.version}${competition ? `:difficulty-${raceDifficulty}` : ''}`,
+      untimed: Boolean(playtest),
     });
   const resetRuntime = (reason) => {
     runtime.reset({ reason, state, scenario, seed });
     audio.resetEnvironment();
+    effects.reset();
     world.reset();
   };
   const advance = (control) => {
@@ -324,15 +367,13 @@ async function boot() {
       runtime,
       race,
       emit,
-    });
-    racers?.advance(1 / 120, {
-      playerState: state,
-      playerRace: race,
-      playerInput: control,
+      dynamics,
+      racers,
     });
     return result;
   };
   function resetRacers(enabled = competition) {
+    dynamics?.reset();
     racers?.reset({
       playerState: state,
       playerRace: race,
@@ -343,7 +384,7 @@ async function boot() {
   race = makeRace();
   resetRacers(false);
   resetRuntime('initialize');
-  let initial = captureInitial(state, runtime);
+  let initial = captureInitial(state, runtime, dynamics);
   function fitInspection(group) {
     inspectionBounds.min.fromArray(group.userData.bounds.min);
     inspectionBounds.max.fromArray(group.userData.bounds.max);
@@ -420,6 +461,11 @@ async function boot() {
     sceneShip();
     const newRun =
       mode === 'title' || mode === 'inspection' || mode === 'overview';
+    if (newRun && playtest) {
+      audio.unlock().catch(() => {});
+      repeatPlaytest(true);
+      return;
+    }
     if (newRun) {
       raceDifficulty = settings.difficulty;
       competition = racingEnabled;
@@ -430,7 +476,7 @@ async function boot() {
       race = makeRace();
       resetRacers();
       resetRuntime('fresh-lap');
-      initial = captureInitial(state, runtime);
+      initial = captureInitial(state, runtime, dynamics);
       tick = 0;
       inputLog.length = 0;
       events.length = 0;
@@ -490,7 +536,7 @@ async function boot() {
     race = makeRace();
     resetRacers();
     resetRuntime('fresh-lap');
-    initial = captureInitial(state, runtime);
+    initial = captureInitial(state, runtime, dynamics);
     mode = 'racing';
     cameraMode = 'chase';
     accumulator = 0;
@@ -502,6 +548,11 @@ async function boot() {
     view.resetMetrics();
     ui.notice('');
     ui.setMode(mode);
+    if (withCountdown) armCountdown();
+  }
+  function repeatPlaytest(withCountdown = false) {
+    window.__VN.loadScenario(playtest.scenario, 7);
+    ui.notice('JUMP TEST · UNTIMED · W / SHIFT · A/D TO MISS · R TO REPEAT');
     if (withCountdown) armCountdown();
   }
   function recover() {
@@ -535,7 +586,7 @@ async function boot() {
     race = makeRace();
     resetRacers(false);
     resetRuntime('home');
-    initial = captureInitial(state, runtime);
+    initial = captureInitial(state, runtime, dynamics);
     tick = 0;
     accumulator = 0;
     inputLog.length = 0;
@@ -636,7 +687,7 @@ async function boot() {
       race = makeRace();
       resetRacers(false);
       resetRuntime('ship-change');
-      initial = captureInitial(state, runtime);
+      initial = captureInitial(state, runtime, dynamics);
       tick = 0;
       accumulator = 0;
       inputLog.length = 0;
@@ -722,12 +773,15 @@ async function boot() {
         start,
         practice() {
           if (shipLoading) return;
-          restart(false, true);
+          if (playtest) repeatPlaytest(true);
+          else restart(false, true);
           audio.unlock().catch(() => {});
         },
         pause,
         resume,
-        restart: () => restart(competition, true),
+        restart: () =>
+          playtest ? repeatPlaytest(true) : restart(competition, true),
+        repeatPlaytest: () => repeatPlaytest(),
         home,
         camera: setCamera,
         selectShip,
@@ -757,6 +811,7 @@ async function boot() {
         shape: blockout,
         selectedShip: ship.selected,
         racing: racingEnabled,
+        playtest,
       },
     ),
   );
@@ -773,7 +828,11 @@ async function boot() {
         else if (mode === 'racing' || mode === 'countdown') pause();
         else home();
       }
-      if (command === 'restart') recover();
+      if (command === 'restart') {
+        if (playtest && ['racing', 'paused', 'countdown'].includes(mode))
+          repeatPlaytest();
+        else recover();
+      }
       if (command === 'inspection') setCamera('inspection');
       if (command === 'start') {
         if (mode === 'paused') resume();
@@ -1043,7 +1102,7 @@ async function boot() {
         state.speed = 85;
       }
       resetRuntime('scenario');
-      initial = captureInitial(state, runtime);
+      initial = captureInitial(state, runtime, dynamics);
       prev = { ...state };
       race.placeScenario(state.distance);
       rig.reset();
@@ -1056,7 +1115,7 @@ async function boot() {
     leaveFly,
     start,
     pause,
-    restart: () => restart(),
+    restart: () => (playtest ? repeatPlaytest() : restart()),
     resume,
     selectShip,
     selectInspectionTab,
@@ -1078,6 +1137,7 @@ async function boot() {
         seed,
         scenario,
         competition,
+        untimed: Boolean(playtest),
         difficulty: raceDifficulty,
         inputs: inputLog.map((e) => ({ ...e, input: { ...e.input } })),
       };
@@ -1087,6 +1147,7 @@ async function boot() {
         replay.version !== VERSION ||
         replay.trackId !== track.id ||
         replay.physicsVersion !== 3 ||
+        Boolean(replay.untimed) !== Boolean(playtest) ||
         replay.ship?.id !== ship.selected.id ||
         replay.ship?.version !== ship.selected.version ||
         !compatibleRuntime(runtime, replay.runtime)
@@ -1106,6 +1167,7 @@ async function boot() {
         accumulator,
         initial,
         runtime: runtime.snapshot(),
+        dynamics: dynamics?.snapshot(),
         racers: racers?.serialize(),
         competition,
         lastResults,
@@ -1129,7 +1191,7 @@ async function boot() {
             throw new Error('Replay competition mismatch');
           restart(true);
         }
-        restoreReplayInitial(replay.initial, initial, state, runtime);
+        restoreReplayInitial(replay.initial, initial, state, runtime, dynamics);
       } catch (error) {
         ({
           state,
@@ -1150,6 +1212,7 @@ async function boot() {
         } = retained);
         runtime.restore(retained.runtime);
         if (racers) racers.restore(retained.racers);
+        if (dynamics) dynamics.restore(retained.dynamics);
         countdown.restore(retained.countdown);
         if (mode === 'countdown') ui.setCountdown(retained.countdown.step ?? 3);
         if (mode === 'countdown' && !retained.countdown.running)

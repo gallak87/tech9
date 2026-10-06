@@ -1,13 +1,18 @@
 import { createDevices } from './devices.js';
+import { createSaffronCollisionWorld } from './collision.js';
 import { createSaffronTrack } from './track/model.js';
 import { createSaffronRoad } from './track/road.js';
 import { createSaffronEnvironment } from './environment/index.js';
 import { createSaffronBackdrop } from './backdrop/index.js';
-import { createSaffronRuntime, createSaffronOverlay } from './runtime.js';
+import {
+  createSaffronRuntime,
+  createSaffronOverlay,
+  SAFFRON_RULES,
+} from './runtime.js';
 
 export default function createLevel({ shape = false }) {
   return {
-    version: '0.5.1-saffron-v3',
+    version: '0.5.1-saffron-v7-rapier-traction',
     renderer: {
       world: shape ? 'saffron-shape' : 'saffron-leviathan',
       background: '#b7a4a2',
@@ -29,6 +34,24 @@ export default function createLevel({ shape = false }) {
     practiceSectionsUntimed: true,
     railContactSparks: true,
     createTrack: createSaffronTrack,
+    createCollisionWorld: createSaffronCollisionWorld,
+    createDynamics: async ({ collisionWorld }) => {
+      const { createRapierWorld } =
+        await import('../../physics/rapier-world.js');
+      return createRapierWorld({
+        collisionWorld,
+        gravity: SAFFRON_RULES.gravity,
+      });
+    },
+    playtests: {
+      jump: {
+        scenario: 'jump-playtest',
+        label: 'SECOND VERTEBRA · JUMP CONTACT TEST',
+        automaticRecovery: false,
+        description:
+          'Second vertebra jump · 320 m straight run-up from rest. Hold W and use Shift for boost. Steer with A/D to try border grazes or terrain misses. Falls and contacts continue until R repeats the approach. Untimed solo practice.',
+      },
+    },
     createRoad: (context) => createSaffronRoad(context, { shape }),
     createEnvironment: (context) =>
       createSaffronEnvironment(context, { shape }),

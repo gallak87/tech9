@@ -1,3 +1,4 @@
+import { VEHICLE_HULL, headingExtents } from '../physics/hull.js';
 export const PICKUP_STATE_VERSION = 2;
 export const AEGIS_DURATION = 6;
 export const VECTOR_ENTRY_SPEED_GAIN = 65;
@@ -7,8 +8,7 @@ export const VECTOR_PROPULSION = Object.freeze({
 });
 
 const EPSILON = 1e-9;
-const HALF_WIDTH = 2.25;
-const HALF_LENGTH = 3.5;
+const { halfWidth: HALF_WIDTH, halfLength: HALF_LENGTH } = VEHICLE_HULL;
 const HULL_RADIUS = Math.hypot(HALF_WIDTH, HALF_LENGTH);
 const finite = (value, fallback = 0) =>
   Number.isFinite(value) ? value : fallback;
@@ -16,14 +16,7 @@ const event = (type, kind, deviceId, extra = {}) => ({
   type,
   payload: { kind, deviceId, ...extra },
 });
-const extents = (heading = 0) => ({
-  lateral:
-    Math.abs(Math.cos(heading)) * HALF_WIDTH +
-    Math.abs(Math.sin(heading)) * HALF_LENGTH,
-  longitudinal:
-    Math.abs(Math.cos(heading)) * HALF_LENGTH +
-    Math.abs(Math.sin(heading)) * HALF_WIDTH,
-});
+const extents = headingExtents;
 const supported = (vehicle) =>
   vehicle?.grounded !== false && vehicle?.airborne !== true;
 const movingForward = (vehicle) =>

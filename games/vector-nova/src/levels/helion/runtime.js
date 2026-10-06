@@ -1,3 +1,4 @@
+import { headingExtents } from '../../physics/hull.js';
 import { createFlightModel } from '../../physics/flight.js';
 import {
   HELION_HEAT_RULES,
@@ -23,9 +24,7 @@ export function helionRoadBounds(track, distance) {
     : undefined;
 }
 export function helionShouldLaunch({ state }) {
-  const hull =
-    Math.abs(Math.cos(state.heading)) * 2.25 +
-    Math.abs(Math.sin(state.heading)) * 3.5;
+  const hull = headingExtents(state.heading).lateral;
   return state.lateral >= hull + 0.15;
 }
 export function createHelionRuntime(context, telemetry = {}) {

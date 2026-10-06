@@ -23,6 +23,8 @@
 - [x] Asset layout: normalize Halcyon/Orbital/Nacre folders and base-aware loading; prune obsolete served models and duplicate rival GLBs while retaining sources/provenance.
 - [x] Shared racing graduation: reuse Vector/Aegis, 600 km/h launch feedback, three physical rivals, difficulty, timing/results and replay on Halcyon/Orbital/Nacre/Vesper/Glasswake/Cindercoil/Saffron/Umbra/Helion/Zephyr.
 - [x] Nacre immersion: blend the entire sound mix underwater and restore it smoothly on exit; add pooled bubbles at actual submerged takeoff, flight and landing.
+- [x] Shared world contact: separate swept hull contact from landing acceptance; enable Saffron ramp/terrain/fossil impacts, bounded colliding recovery, deterministic replay and the untimed `?test=jump` scene.
+- [x] Opt-in Rapier flight: stage the player and rivals into one shared engine tick; give Saffron airborne/recovery contact angular response while preserving grounded handling, session replay snapshots and static-only racer filters.
 
 ## Remaining gameplay
 
@@ -36,7 +38,7 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 - [ ] Saffron: deepen bone erosion and fracture variation, sharpen creature armor response, enrich sandfall volume and ordinary scenery and optimize high-resolution material/postprocessing cost.
 
-- [ ] Extend existing rail-local sparks to consistent actual contact points across circuits and other surfaces; add body-contact feedback when available and explore bounded scrape marks.
+- [ ] Author collision worlds for additional circuits and broader static Saffron scenery; propagate actual contact sparks as they opt in and explore bounded scrape marks. Keep racer body contact separate.
 - [ ] Halcyon: fix remaining ground flicker, especially white areas and street-lane markings.
 - [ ] Asterion: locate and fix the reported flickering road section.
 

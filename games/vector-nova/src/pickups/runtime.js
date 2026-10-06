@@ -36,6 +36,7 @@ export function createDeviceRuntime({
   );
   let pending = [];
   let disposed = false;
+  let staged = null;
   const supportedState = (state) => ({
     ...state,
     grounded: motion.pose(1)?.grounded !== false,
@@ -86,10 +87,43 @@ export function createDeviceRuntime({
       pending.push(...ordered);
       return ordered;
     },
+    ...(typeof motion.beginAdvance === 'function' &&
+    typeof motion.finishAdvance === 'function'
+      ? {
+          beginAdvance(state, input, dt) {
+            if (disposed || !Number.isFinite(dt) || dt <= 0) return;
+            if (staged) throw new Error('Device advance is already staged');
+            const previous = supportedState(state);
+            const before = simulation.beforeStep(input, dt, previous);
+            applyEntryImpulse(before.events, state);
+            staged = { state, input, previous, before };
+            motion.beginAdvance(state, input, dt, before.modifiers);
+          },
+          finishAdvance(state) {
+            if (!staged) return [];
+            if (state !== staged.state)
+              throw new Error('Device advance state mismatch');
+            const { input, previous, before } = staged;
+            const physics = motion.finishAdvance(state);
+            const after = simulation.afterStep(
+              previous,
+              supportedState(state),
+              input,
+              physics,
+            );
+            applyEntryImpulse(after, state);
+            const ordered = [...before.events, ...physics, ...after];
+            staged = null;
+            pending.push(...ordered);
+            return ordered;
+          },
+        }
+      : {}),
     reset(context) {
       motion.reset(context);
       simulation.reset(context);
       pending = [];
+      staged = null;
       presentation?.reset();
     },
     snapshot() {
@@ -104,6 +138,7 @@ export function createDeviceRuntime({
       simulation.restore(data);
       motion.restore(data?.motion ?? null);
       pending = [];
+      staged = null;
       presentation?.reset();
     },
     pose: (alpha) => motion.pose(alpha),
@@ -121,6 +156,7 @@ export function createDeviceRuntime({
       if (disposed) return;
       disposed = true;
       pending = [];
+      staged = null;
       presentation?.dispose();
       motion.dispose();
     },

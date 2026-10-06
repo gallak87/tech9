@@ -74,7 +74,12 @@ export function validateDefinition(definition, id = 'circuit') {
   ])
     if (typeof definition?.[name] !== 'function')
       throw new Error(`${id} is missing ${name}`);
-  for (const name of ['createRuntime', 'createOverlay'])
+  for (const name of [
+    'createRuntime',
+    'createOverlay',
+    'createCollisionWorld',
+    'createDynamics',
+  ])
     if (
       definition[name] !== undefined &&
       typeof definition[name] !== 'function'
@@ -111,7 +116,28 @@ export function validateDefinition(definition, id = 'circuit') {
   }
   if (typeof definition.version !== 'string' || !definition.version)
     throw new Error(`${id} is missing a version`);
+  if (definition.playtests !== undefined)
+    for (const [name, playtest] of Object.entries(definition.playtests))
+      if (
+        !slugPattern.test(name) ||
+        !['scenario', 'label', 'description'].every(
+          (key) => typeof playtest?.[key] === 'string' && playtest[key],
+        )
+      )
+        throw new Error(`Invalid ${id}.playtests.${name}`);
   return definition;
+}
+
+export function validateCollisionWorld(world) {
+  if (
+    !world?.id ||
+    !Number.isInteger(world.version) ||
+    !world.rulesId ||
+    typeof world.sweepHull !== 'function' ||
+    typeof world.dispose !== 'function'
+  )
+    throw new Error('Invalid level collision world.');
+  return world;
 }
 
 export function createCatalog(metadataModules, loaders) {

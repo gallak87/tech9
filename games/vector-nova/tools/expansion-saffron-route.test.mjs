@@ -168,7 +168,7 @@ test('real takeoff and swept landing cover cruise envelopes; misses recover afte
   );
 });
 
-test('earlier deck contact wins over a later rail hit at both former Saffron contact holes', () => {
+test('former Saffron contact holes stay supported and the visible low baffle toe has physical contact', () => {
   for (const [index, speed] of [
     [1, 87.4],
     [3, 143.4],
@@ -179,16 +179,20 @@ test('earlier deck contact wins over a later rail hit at both former Saffron con
       'landed',
       `jump ${index} / ${speed} m/s`,
     );
-    assert.ok(
-      !result.transfer.payload.edgeCaught,
-      'deck landing must not inherit a later rail contact',
+    // The new whole-hull world includes the real low toe, inward of the old
+    // simplified rail envelope. Its top is contacted before the deck here.
+    const impact = result.events.find((event) => event.type === 'impact');
+    assert.equal(impact?.payload.contactKind, 'rail');
+    assert.ok(result.transfer.payload.edgeCaught);
+    assert.ok(impact.payload.position.every(Number.isFinite));
+    const frame = track.sample(impact.payload.distance);
+    const point = new THREE.Vector3(...impact.payload.position).sub(
+      frame.position,
     );
-    assert.ok(
-      !result.events.some((event) => event.type === 'impact'),
-      'no spurious rail-impact penalty',
-    );
+    assert.ok(Math.abs(point.dot(frame.up) - 0.555) < 0.01);
+    assert.ok(Math.abs(point.dot(frame.right)) >= 16.13);
     assert.ok(!result.events.some((event) => event.type === 'jump-miss'));
-    assert.equal(result.state.energy, 100);
+    assert.ok(result.state.energy > 97 && result.state.energy < 100);
   }
 });
 

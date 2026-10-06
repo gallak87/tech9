@@ -345,6 +345,9 @@ export function createSaffronTrack() {
         lateral: jump.optional ? 8 : 0,
       };
   }
+  // The second gap has a straight, supported approach on the first receiving
+  // shelf. From rest this leaves 320 m for ordinary throttle, boost and misses.
+  scenarios['jump-playtest'] = parked(jumps[2].takeoff - 320);
   scenarios['skull-descent'] = {
     ...parked(distanceAt(station(8) + 45)),
     speed: 65,

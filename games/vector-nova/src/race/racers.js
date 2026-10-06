@@ -197,7 +197,12 @@ export function getRacerControl(
   );
 }
 
-export function createRacers({ track, devices = [], createRuntime }) {
+export function createRacers({
+  track,
+  devices = [],
+  createRuntime,
+  dynamics = null,
+}) {
   if (typeof createRuntime !== 'function')
     throw new Error('Racers require the circuit simulation factory');
   const relativeTiming = createRelativeTiming(Object.keys(RACE_GRID));
@@ -217,6 +222,14 @@ export function createRacers({ track, devices = [], createRuntime }) {
     disposed = false,
     difficulty = 'easy';
   let boostHistory = { requestedSeconds: 0, engagements: 0, active: false };
+  let staged = null;
+  const sharedDynamics =
+    dynamics &&
+    opponents.every(
+      ({ runtime }) =>
+        typeof runtime.beginAdvance === 'function' &&
+        typeof runtime.finishAdvance === 'function',
+    );
 
   function reset({
     enabled: nextEnabled = true,
@@ -224,6 +237,7 @@ export function createRacers({ track, devices = [], createRuntime }) {
   } = {}) {
     if (!RACE_DIFFICULTIES.includes(nextDifficulty))
       throw new Error('Unknown race difficulty');
+    staged = null;
     enabled = nextEnabled === true;
     difficulty = nextDifficulty;
     elapsed = 0;
@@ -252,80 +266,84 @@ export function createRacers({ track, devices = [], createRuntime }) {
   }
   reset({ enabled: false });
 
-  function advance(dt, { playerState, playerRace, playerInput } = {}) {
-    if (disposed || !enabled || !Number.isFinite(dt) || dt <= 0) return [];
-    // Core advances at 120 Hz. Subdivide verification calls at the same bound.
-    const duration = Math.min(0.1, dt);
-    const steps = Math.ceil(duration * 120 - 1e-10);
-    const events = [];
-    for (let tick = 0; tick < steps; tick++) {
-      const step = duration / steps;
-      elapsed += step;
-      const activeBoost =
-        !!playerInput?.boost && (playerState ? playerState.boosting : true);
-      if (activeBoost) {
-        boostHistory.requestedSeconds += step;
-        if (!boostHistory.active) boostHistory.engagements++;
-        if (difficulty === 'hard')
-          opponents.forEach((opponent) => {
-            opponent.boostCredit = Math.min(8, opponent.boostCredit + step);
-          });
-      }
-      boostHistory.active = activeBoost;
-      const nearby = opponents.map((opponent) => ({ ...opponent.state }));
-      if (playerState) nearby.push({ ...playerState });
-      const controls = opponents.map((opponent, index) =>
-        controlsFor(
-          opponent,
-          track,
-          devices,
-          nearby.filter((_, otherIndex) => otherIndex !== index),
-          difficulty,
-          opponent.boostCredit > 1e-9,
-        ),
-      );
-      opponents.forEach((opponent, index) => {
-        opponent.prev = { ...opponent.state };
-        const vehicleEvents = opponent.runtime.advance(
-          opponent.state,
-          controls[index],
-          step,
-        );
-        if (opponent.state.boosting) {
-          opponent.boostSeconds += step;
-          opponent.boostCredit = Math.max(0, opponent.boostCredit - step);
-        }
-        // Grid positions behind the start line are staging, not a lap crossing.
-        opponent.race.step(
-          Math.max(0, opponent.prev.distance),
-          Math.max(0, opponent.state.distance),
-          step,
-          vehicleEvents,
-        );
-        // CPU adapters have no presentation. Drain pending decorative events.
-        opponent.runtime.update({});
-        relativeTiming.update(
-          opponent.specification.id,
-          opponent.state.distance,
-          elapsed,
-        );
-        if (!opponent.finish) opponent.finish = finishFrom(opponent.race);
-        if (
-          opponent.finish &&
-          opponent.race.history.length === RACE_LAPS &&
-          opponent.race.elapsed === 0
-        )
-          events.push({
-            type: 'racer-complete',
-            payload: {
-              id: opponent.specification.id,
-              ...copy(opponent.finish),
-            },
-          });
-      });
-      if (playerState)
-        relativeTiming.update('player', playerState.distance, elapsed);
+  function prepareTick(
+    step,
+    { playerState, playerRace, playerInput, playerPrevious } = {},
+  ) {
+    elapsed += step;
+    const activeBoost =
+      !!playerInput?.boost && (playerState ? playerState.boosting : true);
+    if (activeBoost) {
+      boostHistory.requestedSeconds += step;
+      if (!boostHistory.active) boostHistory.engagements++;
+      if (difficulty === 'hard')
+        opponents.forEach((opponent) => {
+          opponent.boostCredit = Math.min(8, opponent.boostCredit + step);
+        });
     }
+    boostHistory.active = activeBoost;
+    const nearby = opponents.map((opponent) => ({ ...opponent.state }));
+    if (playerState) nearby.push({ ...(playerPrevious ?? playerState) });
+    const controls = opponents.map((opponent, index) =>
+      controlsFor(
+        opponent,
+        track,
+        devices,
+        nearby.filter((_, otherIndex) => otherIndex !== index),
+        difficulty,
+        opponent.boostCredit > 1e-9,
+      ),
+    );
+    opponents.forEach((opponent) => {
+      opponent.prev = { ...opponent.state };
+    });
+    return { step, controls, playerState, playerRace };
+  }
+
+  function finishTick({ step, controls, playerState }, shared = false) {
+    const events = [];
+    opponents.forEach((opponent, index) => {
+      const vehicleEvents = shared
+        ? opponent.runtime.finishAdvance(opponent.state)
+        : opponent.runtime.advance(opponent.state, controls[index], step);
+      if (opponent.state.boosting) {
+        opponent.boostSeconds += step;
+        opponent.boostCredit = Math.max(0, opponent.boostCredit - step);
+      }
+      // Grid positions behind the start line are staging, not a lap crossing.
+      opponent.race.step(
+        Math.max(0, opponent.prev.distance),
+        Math.max(0, opponent.state.distance),
+        step,
+        vehicleEvents,
+      );
+      // CPU adapters have no presentation. Drain pending decorative events.
+      opponent.runtime.update({});
+      relativeTiming.update(
+        opponent.specification.id,
+        opponent.state.distance,
+        elapsed,
+      );
+      if (!opponent.finish) opponent.finish = finishFrom(opponent.race);
+      if (
+        opponent.finish &&
+        opponent.race.history.length === RACE_LAPS &&
+        opponent.race.elapsed === 0
+      )
+        events.push({
+          type: 'racer-complete',
+          payload: {
+            id: opponent.specification.id,
+            ...copy(opponent.finish),
+          },
+        });
+    });
+    if (playerState)
+      relativeTiming.update('player', playerState.distance, elapsed);
+    return events;
+  }
+
+  function finishPlayerRace(playerRace, events) {
     if (!playerFinish && playerRace) {
       playerFinish = finishFrom(playerRace);
       if (playerFinish)
@@ -335,6 +353,40 @@ export function createRacers({ track, devices = [], createRuntime }) {
         });
     }
     return events;
+  }
+
+  function beginAdvance(dt, context = {}) {
+    if (disposed || !enabled || !Number.isFinite(dt) || dt <= 0) return;
+    if (staged) throw new Error('Racer advance is already staged');
+    staged = prepareTick(dt, context);
+    opponents.forEach((opponent, index) => {
+      opponent.runtime.beginAdvance(opponent.state, staged.controls[index], dt);
+    });
+  }
+
+  function finishAdvance() {
+    if (!staged) return [];
+    const events = finishTick(staged, true);
+    finishPlayerRace(staged.playerRace, events);
+    staged = null;
+    return events;
+  }
+
+  function advance(dt, context = {}) {
+    if (disposed || !enabled || !Number.isFinite(dt) || dt <= 0) return [];
+    // Core advances at 120 Hz. Subdivide verification calls at the same bound.
+    const duration = Math.min(0.1, dt);
+    const steps = Math.ceil(duration * 120 - 1e-10);
+    const events = [];
+    for (let tick = 0; tick < steps; tick++) {
+      const step = duration / steps;
+      if (sharedDynamics) {
+        beginAdvance(step, context);
+        dynamics.step(step);
+        events.push(...finishAdvance());
+      } else events.push(...finishTick(prepareTick(step, context)));
+    }
+    return finishPlayerRace(context.playerRace, events);
   }
 
   function row(id, name, state, race, finish) {
@@ -569,14 +621,18 @@ export function createRacers({ track, devices = [], createRuntime }) {
       )
         throw new Error('Racer checkpoint state mismatch');
       // Validate pickup state before changing the live model.
-      const validation = createRuntime();
+      const engine = dynamics?.snapshot();
+      let validation;
       try {
+        validation = createRuntime();
         validation.restore(saved.runtime);
       } finally {
-        validation.dispose();
+        validation?.dispose();
+        if (dynamics) dynamics.restore(engine);
       }
     }
     relativeTiming.restore(data.relativeTiming);
+    staged = null;
     enabled = data.enabled;
     difficulty = data.difficulty;
     elapsed = data.elapsed;
@@ -601,12 +657,14 @@ export function createRacers({ track, devices = [], createRuntime }) {
     opponents,
     reset,
     advance,
+    ...(sharedDynamics ? { beginAdvance, finishAdvance } : {}),
     snapshot,
     serialize,
     restore,
     dispose() {
       if (disposed) return;
       disposed = true;
+      staged = null;
       opponents.forEach((opponent) => opponent.runtime.dispose());
     },
   };

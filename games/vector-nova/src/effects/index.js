@@ -73,13 +73,16 @@ export function createEffects(scene, { refinedSparks = false } = {}) {
   scene.add(sparks);
   let life = 0;
   return {
-    impact(frame, lateral) {
+    impact(frame, lateral, contact = null) {
       life = 0.5;
+      const up = contact ? new T.Vector3().fromArray(contact.normal) : frame.up;
       for (let i = 0; i < count; i++) {
-        const p = frame.position
-          .clone()
-          .addScaledVector(frame.right, lateral)
-          .addScaledVector(frame.up, 0.6);
+        const p = contact
+          ? new T.Vector3().fromArray(contact.position)
+          : frame.position
+              .clone()
+              .addScaledVector(frame.right, lateral)
+              .addScaledVector(frame.up, 0.6);
         positions.set(p.toArray(), i * 3);
         velocities[i] = frame.tangent
           .clone()
@@ -87,7 +90,7 @@ export function createEffects(scene, { refinedSparks = false } = {}) {
             -15 - (refinedSparks ? variation(i, 0) * 28 : (i % 9) * 3),
           )
           .addScaledVector(
-            frame.up,
+            up,
             3 + (refinedSparks ? variation(i, 1) * 7 : (i % 5) * 1.8),
           )
           .addScaledVector(
@@ -112,6 +115,10 @@ export function createEffects(scene, { refinedSparks = false } = {}) {
       }
       geometry.attributes.position.needsUpdate = true;
       if (refinedSparks) geometry.attributes.sparkVelocity.needsUpdate = true;
+    },
+    reset() {
+      life = 0;
+      material.opacity = 0;
     },
     dispose() {
       geometry.dispose();

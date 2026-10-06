@@ -1,4 +1,7 @@
-export function createRace(track, { rulesId = 'magnetic-v3-assist-0.3' } = {}) {
+export function createRace(
+  track,
+  { rulesId = 'magnetic-v3-assist-0.3', untimed = false } = {},
+) {
   const count = track.checkpoints?.length || 12;
   const positions = Array.from(
     { length: count },
@@ -16,7 +19,7 @@ export function createRace(track, { rulesId = 'magnetic-v3-assist-0.3' } = {}) {
     elapsed: 0,
     lastLap: null,
     best: null,
-    valid: true,
+    valid: !untimed,
     complete: false,
     startDistance: 0,
     history: [],
@@ -27,7 +30,7 @@ export function createRace(track, { rulesId = 'magnetic-v3-assist-0.3' } = {}) {
         (position) => position <= local + epsilon,
       );
       this.startDistance = base + positions[this.checkpoint];
-      this.valid = distance === 0;
+      this.valid = !untimed && distance === 0;
     },
     step(previous, current, dt, vehicleEvents = []) {
       this.elapsed += dt;
@@ -114,7 +117,7 @@ export function createRace(track, { rulesId = 'magnetic-v3-assist-0.3' } = {}) {
             });
             this.lap++;
             this.elapsed = 0;
-            this.valid = true;
+            this.valid = !untimed;
             for (const key of completedTransfers)
               if (+key.split(':')[0] < cycle) completedTransfers.delete(key);
           }

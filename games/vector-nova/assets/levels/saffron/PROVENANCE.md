@@ -17,3 +17,5 @@ Module origins, exported bounds, polygon counts and source/runtime SHA-256 hashe
 The selected lavender panorama is exported unchanged to `public/assets/levels/saffron/saffron-sky-v2.png`; its prompt and sources remain in [sky provenance](SKY_PROVENANCE.md). Sky projection overlaps the longitude seam and blends the poles, with a single source moon and separately authored scene lighting.
 
 The original sand/grain shaders use the project weather module and forest adapter as architectural references for bounded world-space layers, shelter and coordinated exposure. No source code, textures or bootstrap from those references is copied. Road-relative skull cover replaces their static X/Z surface field.
+
+The static jump collision kit is losslessly extracted from `public/assets/levels/saffron/leviathan-kit.glb` by `bake_collision.mjs`, using the same local module transforms and shared runtime placements. Regenerate `src/levels/saffron/collision-kit.json` after re-exporting anatomy; the focused collision tests compare its source hash and decoded positions/indices against the GLB. The moving grazer is excluded.

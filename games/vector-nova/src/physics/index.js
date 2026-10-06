@@ -1,3 +1,4 @@
+import { VEHICLE_HULL, sweptLateralExtent } from './hull.js';
 import { getShip } from '../ships/catalog.js';
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const finite = (value, fallback = 0) =>
@@ -5,8 +6,7 @@ const finite = (value, fallback = 0) =>
 const STEP = 1 / 120;
 const GRAVITY = 9.81;
 const HOLD_SPEED = 0.12;
-const HALF_WIDTH = 2.25;
-const HALF_LENGTH = 3.5;
+const { halfWidth: HALF_WIDTH, halfLength: HALF_LENGTH } = VEHICLE_HULL;
 export const STEERING_ASSIST = 0.3;
 
 function roadYawBetween(frame, next, distance) {
@@ -18,23 +18,6 @@ function roadYawBetween(frame, next, distance) {
     );
   }
   return finite(frame.curvature) * distance;
-}
-
-function sweptHullExtent(before, after) {
-  const extent = (heading) =>
-    Math.abs(Math.cos(heading)) * HALF_WIDTH +
-    Math.abs(Math.sin(heading)) * HALF_LENGTH;
-  const lower = Math.min(before, after);
-  const upper = Math.max(before, after);
-  const peak = Math.atan2(HALF_LENGTH, HALF_WIDTH);
-  // Include the yaw envelope's interior maximum when turning past a diagonal.
-  for (const angle of [peak, -peak])
-    if (
-      Math.ceil((lower - angle) / Math.PI) <=
-      Math.floor((upper - angle) / Math.PI)
-    )
-      return Math.hypot(HALF_WIDTH, HALF_LENGTH);
-  return Math.max(extent(before), extent(after));
 }
 
 export function createVehicleState(shipId = 'kestrel') {
@@ -186,11 +169,11 @@ function integrate(s, controls, track, dt, events) {
     // Sweep the whole step against both rails, including rotated body width.
     const edge = Math.max(
       0,
-      track.width / 2 - sweptHullExtent(previousHeading, s.heading),
+      track.width / 2 - sweptLateralExtent(previousHeading, s.heading),
     );
     // Optional split decks constrain only grounded travel. The authored inner
     // divider is a real rail; a skipped launch cannot drift over absent road.
-    const extent = sweptHullExtent(previousHeading, s.heading);
+    const extent = sweptLateralExtent(previousHeading, s.heading);
     const bounds = controls.roadBounds;
     const lower = bounds ? bounds.min + extent : -edge;
     const upper = bounds ? bounds.max - extent : edge;

@@ -1,3 +1,12 @@
+import {
+  SAFFRON_SOLIDS,
+  roadRuns,
+  toeProfile,
+  createBaffleGeometry,
+  bafflePlacements,
+  receivingBeacons,
+  deckEndGeometry,
+} from './solids.js';
 import * as THREE from 'three';
 import {
   sweepGeometry,
@@ -14,7 +23,7 @@ const SIDES = [-1, 1];
 // Raceway geometry follows the same sampled frames in production and review.
 // Only the two structural breaks remove deck; the dune skip is a chosen line.
 export function createSaffronRoad(
-  { track, settings = {} },
+  { track, settings = {}, collisionWorld = null },
   { shape = false } = {},
 ) {
   const group = new THREE.Group();
@@ -137,13 +146,7 @@ export function createSaffronRoad(
     group.add(mesh);
     return mesh;
   };
-  const runs = [];
-  let start = 0;
-  for (const jump of track.jumps.filter((j) => !j.optional)) {
-    runs.push([start, jump.takeoff]);
-    start = jump.landingStart;
-  }
-  runs.push([start, track.length]);
+  const runs = roadRuns(track);
   const profile = (points, start, end, mat, name) =>
     add(
       name,
@@ -154,16 +157,13 @@ export function createSaffronRoad(
           points[0][0] > points[1][0]
           ? [...points].reverse()
           : points,
-        { start, end, step: 3.2 },
+        { start, end, step: SAFFRON_SOLIDS.step },
       ),
       mat,
     );
   for (const [start, end] of runs) {
     const top = profile(
-      [
-        [-16, 0],
-        [16, 0],
-      ],
+      SAFFRON_SOLIDS.top,
       start,
       end,
       smoke,
@@ -173,16 +173,7 @@ export function createSaffronRoad(
     top.userData.drivingSurface = true;
     top.userData.interval = [start, end];
     profile(
-      [
-        [16, 0],
-        [17.5, -0.75],
-        [17.1, -3.2],
-        [13.2, -3.6],
-        [-13.2, -3.6],
-        [-17.1, -3.2],
-        [-17.5, -0.75],
-        [-16, 0],
-      ],
+      SAFFRON_SOLIDS.underside,
       start,
       end,
       glass,
@@ -200,7 +191,7 @@ export function createSaffronRoad(
         'Translucent lens shoulder',
       );
       profile(
-        boxProfile(side * 16.48, 0.18, 0.68, 0.75),
+        toeProfile(side),
         start,
         end,
         honey,
@@ -235,6 +226,12 @@ export function createSaffronRoad(
       );
     }
   }
+  const ends = add(
+    'Solid fused-glass ramp end faces',
+    deckEndGeometry(track),
+    glass,
+  );
+  ends.material.side = THREE.DoubleSide;
   for (const section of track.sections.filter((s) =>
     ['sandfall', 'return'].includes(s.id),
   ))
@@ -271,32 +268,14 @@ export function createSaffronRoad(
   };
   // Two separated aero vanes are swept along each short baffle, with tapered
   // ends and open shadow slots. Continuous toes keep the boundaries grounded.
-  const vaneGeometry = () => {
-    const shape = new THREE.Shape();
-    shape.moveTo(-6.3, 0);
-    shape.lineTo(-4.6, 0.85);
-    shape.lineTo(4.9, 0.65);
-    shape.lineTo(6.3, 0.12);
-    shape.lineTo(4.7, -0.15);
-    shape.lineTo(-4.8, -0.2);
-    shape.closePath();
-    const geometry = new THREE.ExtrudeGeometry(shape, {
-      depth: 0.75,
-      bevelEnabled: false,
-      curveSegments: 1,
-    });
-    geometry.rotateY(Math.PI / 2);
-    geometry.translate(-0.375, 0, 0);
-    return ownGeometry(geometry);
-  };
-  const vanes = [],
-    clamps = [],
-    panelRims = [],
+  const vaneGeometry = () => ownGeometry(createBaffleGeometry());
+  const { vanes, clamps } = bafflePlacements(track);
+  const panelRims = [],
     lensSills = [],
     laminae = [],
     bubbles = [],
     arrowFittings = [],
-    warning = [],
+    warning = receivingBeacons(track),
     footBeams = [],
     supportRecords = [],
     feet = [];
@@ -312,14 +291,6 @@ export function createSaffronRoad(
     )
       continue;
     for (const side of SIDES) {
-      for (const y of [0.96, 2.1])
-        vanes.push({ s, x: side * 17.65, y, scale: [1, 1, 1] });
-      clamps.push({
-        s: s - 3.8,
-        x: side * 17.2,
-        y: 0.94,
-        scale: [0.48, 1.5, 0.9],
-      });
       if (Math.round(s / 16) % 3 === 0)
         arrowFittings.push({
           s,
@@ -380,15 +351,6 @@ export function createSaffronRoad(
     }
   }
   for (const j of track.jumps) {
-    for (const s of [
-      j.takeoff - 35,
-      j.takeoff - 18,
-      j.takeoff - 3,
-      j.landingStart + 4,
-    ]) {
-      for (const side of SIDES)
-        warning.push({ s, x: side * 17.8, y: 2.3, scale: [0.75, 4.6, 0.75] });
-    }
     const begin = j.optional ? 5 : -14.5,
       end = 14.5;
     for (let x = begin; x < end; x += 3)
@@ -437,6 +399,16 @@ export function createSaffronRoad(
     support,
     feet,
   );
+  const plannedSupportContacts = [];
+  for (const [i, support] of collisionWorld?.supports ?? []) {
+    legMesh.setMatrixAt(i, support.leg);
+    footMesh.setMatrixAt(i, support.shoe);
+    collars.setMatrixAt(i, support.collar);
+    if (support.contact) plannedSupportContacts.push(support.contact);
+  }
+  legMesh.computeBoundingSphere();
+  footMesh.computeBoundingSphere();
+  collars.computeBoundingSphere();
   legMesh.castShadow = footMesh.castShadow = true;
   const sands = [];
   for (const zone of sampleSaffronDeposits(track, 0)) {
@@ -528,8 +500,9 @@ export function createSaffronRoad(
       if (o.isMesh && /authored (skull|vertebra)/.test(o.name)) targets.push(o);
     });
     const ray = new THREE.Raycaster(),
-      contacts = [];
+      contacts = [...plannedSupportContacts];
     supportRecords.forEach(({ s, from, to }, i) => {
+      if (collisionWorld?.supports?.has(i)) return;
       if (
         !(
           s > track.landmarks.skullStart - 30 &&

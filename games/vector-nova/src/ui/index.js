@@ -44,10 +44,12 @@ export function createUI(
     shape: blockout = false,
     selectedShip = SHIPS[0],
     racing = false,
+    playtest = null,
   },
 ) {
   const root = document.createElement('main');
   root.id = 'interface';
+  root.classList.toggle('jump-playtest', Boolean(playtest));
   host.append(root);
   root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>
  <section id="title-panel" class="panel"><h1><span class="circuit-name"></span><em></em></h1><p class="intro"></p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>04</b><span>SHIPS</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions launch-actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="practice">PRACTICE LAP <span>↗</span></button></div><div class="actions inspection-actions"><button id="inspect">INSPECT SHIPS <span>↗</span></button></div></section>
@@ -57,6 +59,15 @@ export function createUI(
  <footer id="legend"><div><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RESET</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>
  <div id="touch" class="hidden"><div><button data-drive="left" aria-label="Steer left">◀</button><button data-drive="right" aria-label="Steer right">▶</button><button data-drive="brake">BRAKE</button></div><div><button data-drive="airbrake">SLIP</button><button data-drive="boost">BOOST</button><button data-drive="throttle">GO</button></div></div><div class="review-tag"><span></span></div>`;
   const $ = (id) => root.querySelector('#' + id);
+  if (playtest) {
+    const repeat = document.createElement('button');
+    repeat.id = 'jump-repeat';
+    repeat.className = 'quiet hidden';
+    repeat.textContent = 'REPEAT JUMP · R';
+    root.querySelector('.masthead').append(repeat);
+    repeat.addEventListener('click', actions.repeatPlaytest);
+    $('restart').textContent = 'REPEAT JUMP APPROACH';
+  }
   const escapeLabel = [...root.querySelectorAll('#legend kbd')].find(
     (key) => key.textContent === 'ESC',
   ).nextElementSibling;
@@ -242,7 +253,11 @@ export function createUI(
     .replace(/the Kestrel/g, 'your ship')
     .replace(/Kestrel/g, 'Your ship');
   $('start').firstChild.textContent =
-    `${blockout ? 'DRIVE FULL CIRCUIT' : 'ENTER PROVING LOOP'} `;
+    `${playtest ? 'START JUMP TEST' : blockout ? 'DRIVE FULL CIRCUIT' : 'ENTER PROVING LOOP'} `;
+  if (playtest) {
+    panel.querySelector('.intro').textContent = playtest.description;
+    $('practice').firstChild.textContent = 'START JUMP TEST ';
+  }
   $('inspect').classList.toggle('hidden', blockout);
   root.querySelector('.section-name > span').textContent =
     metadata.name.toUpperCase();
@@ -625,6 +640,7 @@ export function createUI(
           !(mode === 'racing' && lights.dataset.step === '0'),
       );
       root.classList.toggle('paused', mode === 'paused');
+      $('jump-repeat')?.classList.toggle('hidden', mode !== 'racing');
       root.classList.toggle('flying', mode === 'fly');
       $('fly-controls')?.classList.toggle('hidden', mode !== 'fly');
       root.classList.toggle('inspecting', mode === 'inspection');
@@ -715,7 +731,9 @@ export function createUI(
       $('energy-fill').style.background = s.energy < 25 ? '#ef764e' : '#a9d0c9';
       $('boost-status').textContent =
         motion?.mode === 'recovery'
-          ? 'RECOVERY DELAY'
+          ? motion.flight?.manualRecovery
+            ? 'CONTACT TEST · R TO REPEAT'
+            : 'RECOVERY DELAY'
           : motion?.mode === 'flight'
             ? 'AIRBORNE'
             : motion?.vectorActive

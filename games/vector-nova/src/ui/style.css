@@ -399,6 +399,19 @@ button.primary:hover {
   align-items: center;
   gap: 48px;
 }
+#jump-repeat {
+  position: absolute;
+  top: 24px;
+  right: 86px;
+  padding: 8px 10px;
+  font-size: 10px;
+  pointer-events: auto;
+}
+@media (max-width: 760px) and (min-height: 700px) {
+  #interface.jump-playtest .masthead .edition {
+    display: none;
+  }
+}
 .wordmark {
   font-size: 25px;
   font-weight: 900;
@@ -2108,5 +2121,12 @@ select {
 @media (max-height: 570px) {
   #race-roster:not(.in-paddock) {
     top: 152px;
+  }
+}
+
+@media (max-width: 760px) and (min-height: 700px) and (orientation: portrait) {
+  #interface.jump-playtest.driving #notice {
+    top: 278px;
+    bottom: auto;
   }
 }

@@ -8,7 +8,9 @@ import {
 } from './geometry.js';
 
 /** A CPU-only survey shared by terrain and authored-asset placement. */
+const surveys = new WeakMap();
 export function createLandformSurvey(track) {
+  if (surveys.has(track)) return surveys.get(track);
   const samples = [];
   const bounds = new T.Box3();
   for (let s = 0; s < track.length; s += 13) {
@@ -181,19 +183,46 @@ export function createLandformSurvey(track) {
     }
     return true;
   }
-  return { samples, bounds, center, meanY, nearest, heightAt, clears };
+  const positions = new Float32Array((grid + 1) * (grid + 1) * 3);
+  const indices = [];
+  for (let j = 0; j <= grid; j++)
+    for (let i = 0; i <= grid; i++) {
+      const n = j * (grid + 1) + i;
+      positions.set(
+        [
+          center.x + (i / grid - 0.5) * width,
+          field[n],
+          center.z + (j / grid - 0.5) * depth,
+        ],
+        n * 3,
+      );
+      if (i < grid && j < grid)
+        indices.push(n, n + grid + 1, n + 1, n + grid + 1, n + grid + 2, n + 1);
+    }
+  const survey = {
+    samples,
+    bounds,
+    center,
+    meanY,
+    nearest,
+    heightAt,
+    clears,
+    meshData: { positions, indices },
+  };
+  surveys.set(track, survey);
+  return survey;
 }
 
 export function createTerrain(track, survey, materials, resources, shape) {
   const group = new T.Group();
   group.name =
     'Saffron / stratified desert basin, close scree, and distant dune seas';
-  const size = survey.bounds.getSize(new T.Vector3());
-  const width = Math.max(size.x + 4600, 6200);
-  const depth = Math.max(size.z + 4600, 6200);
-  const geometry = resources.geometry(
-    new T.PlaneGeometry(width, depth, 176, 176).rotateX(-Math.PI / 2),
+  const geometry = resources.geometry(new T.BufferGeometry());
+  geometry.setAttribute(
+    'position',
+    new T.Float32BufferAttribute(survey.meshData.positions, 3),
   );
+  geometry.setIndex(survey.meshData.indices);
   const positions = geometry.attributes.position;
   const colors = new Float32Array(positions.count * 3);
   const ochre = new T.Color(shape ? '#a6a19a' : '#c99a59');
@@ -201,10 +230,8 @@ export function createTerrain(track, survey, materials, resources, shape) {
   const lowSilt = new T.Color(shape ? '#807e79' : '#9c7664');
   const shade = new T.Color();
   for (let i = 0; i < positions.count; i++) {
-    const x = positions.getX(i) + survey.center.x;
-    const z = positions.getZ(i) + survey.center.z;
-    const y = survey.heightAt(x, z);
-    positions.setXYZ(i, x, y, z);
+    const x = positions.getX(i);
+    const z = positions.getZ(i);
     const wave =
       0.5 + 0.5 * Math.sin(x * 0.009 + z * 0.005 + Math.sin(z * 0.003));
     shade

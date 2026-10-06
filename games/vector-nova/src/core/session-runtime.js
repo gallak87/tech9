@@ -29,20 +29,73 @@ export function compatibleRuntime(runtime, identity) {
 }
 // The only simulation advance used by live input and replay. Presentation is
 // deliberately outside this path and can never change the deterministic state.
-export function advanceSession({ state, input, dt, runtime, race, emit }) {
+export function advanceSession({
+  state,
+  input,
+  dt,
+  runtime,
+  race,
+  emit,
+  dynamics = null,
+  racers = null,
+}) {
+  if (dynamics && runtime.beginAdvance && runtime.finishAdvance) {
+    if (!Number.isFinite(dt) || dt <= 0) return [];
+    if (racers?.enabled && !racers.beginAdvance)
+      throw new Error('Shared dynamics require staged racer runtimes');
+    const duration = Math.min(0.1, dt);
+    const steps = Math.ceil(duration * 120 - 1e-10);
+    const events = [];
+    for (let tick = 0; tick < steps; tick++) {
+      const step = duration / steps;
+      const playerPrevious = { ...state };
+      const context = {
+        playerState: state,
+        playerRace: race,
+        playerInput: input,
+        playerPrevious,
+      };
+      runtime.beginAdvance(state, input, step);
+      racers?.beginAdvance?.(step, context);
+      dynamics.step(step);
+      const completed = runtime.finishAdvance(state);
+      completed.forEach(emit);
+      race
+        .step(playerPrevious.distance, state.distance, step, completed)
+        .forEach(emit);
+      racers?.finishAdvance?.();
+      events.push(...completed);
+    }
+    return events;
+  }
   const previous = state.distance;
   const events = runtime.advance(state, input, dt);
   events.forEach(emit);
   race.step(previous, state.distance, dt, events).forEach(emit);
+  racers?.advance(dt, {
+    playerState: state,
+    playerRace: race,
+    playerInput: input,
+  });
   return events;
 }
 
-export function captureInitial(state, runtime) {
+export function captureInitial(state, runtime, dynamics = null) {
   return JSON.parse(
-    JSON.stringify({ vehicle: state, runtime: runtime.snapshot() }),
+    JSON.stringify({
+      vehicle: state,
+      runtime: runtime.snapshot(),
+      ...(dynamics ? { dynamics: dynamics.snapshot() } : {}),
+    }),
   );
 }
-export function restoreReplayInitial(initial, expected, state, runtime) {
+export function restoreReplayInitial(
+  initial,
+  expected,
+  state,
+  runtime,
+  dynamics = null,
+) {
   const finite = (value) => {
     if (typeof value === 'number') return Number.isFinite(value);
     if (Array.isArray(value)) return value.every(finite);
@@ -61,6 +114,7 @@ export function restoreReplayInitial(initial, expected, state, runtime) {
   const copy = JSON.parse(JSON.stringify(initial));
   Object.assign(state, copy.vehicle);
   runtime.restore(copy.runtime);
+  if (dynamics) dynamics.restore(copy.dynamics);
 }
 
 // Refuse partial logs instead of silently replaying their tail from the grid.

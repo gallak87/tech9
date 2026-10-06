@@ -1,13 +1,15 @@
 import * as THREE from 'three';
+import { VEHICLE_HULL, projectedHullExtent, headingExtents } from './hull.js';
+import { COLLISION_RULES } from './collision-world.js';
 import { stepVehicle, STEERING_ASSIST } from './index.js';
 
 export const DEFAULT_FLIGHT_RULES = Object.freeze({
   gravity: 26,
   curvedContact: true,
   contactVersion: 2,
-  hover: 0.72,
-  halfWidth: 2.25,
-  halfLength: 3.5,
+  hover: VEHICLE_HULL.hover,
+  halfWidth: VEHICLE_HULL.halfWidth,
+  halfLength: VEHICLE_HULL.halfLength,
   airAcceleration: 4,
   airYaw: 0.22,
   headingTolerance: 0.44,
@@ -78,10 +80,7 @@ export function createFlightModel(overrides = {}) {
   Object.freeze(R);
   const clamp = THREE.MathUtils.clamp;
   const axis = (q, x, y, z) => new THREE.Vector3(x, y, z).applyQuaternion(q);
-  const bodyExtent = (q, direction) =>
-    Math.abs(axis(q, 1, 0, 0).dot(direction)) * R.halfWidth +
-    Math.abs(axis(q, 0, 1, 0).dot(direction)) * R.hover +
-    Math.abs(axis(q, 0, 0, 1).dot(direction)) * R.halfLength;
+  const bodyExtent = (q, direction) => projectedHullExtent(q, direction, R);
   const encodePose = (pose) =>
     pose
       ? {
@@ -432,9 +431,13 @@ export function createFlightModel(overrides = {}) {
     return first;
   }
 
-  function createRuntime({ track, settings = {} }, options) {
+  function createRuntime(
+    { track, settings = {}, collisionWorld = null, dynamics = null },
+    options,
+  ) {
     if (!options?.id || !Number.isInteger(options.version) || !options.rulesId)
       throw new Error('Flight runtime requires versioned identity.');
+    const automaticRecovery = options.automaticRecovery !== false;
     if (!Array.isArray(track.jumps))
       throw new Error('Flight runtime requires track.jumps (may be empty).');
     if (
@@ -483,6 +486,8 @@ export function createFlightModel(overrides = {}) {
       previousEnd = Math.max(jump.landingEnd, jump.recovery);
       ids.add(jump.id);
     }
+    const actor = dynamics?.createActor({ hull: R });
+    let pending = null;
     let mode = 'magnetic';
     let flight = null;
     let previousPose = null;
@@ -584,6 +589,14 @@ export function createFlightModel(overrides = {}) {
         launchUp: frame.up.clone(),
         failure: null,
         edgeCaught: false,
+        ...(collisionWorld ? { lastImpactAt: -1, contacts: 0 } : {}),
+        ...(dynamics
+          ? {
+              angularVelocity: new THREE.Vector3(),
+              dynamicsStarted: false,
+              hitAt: -1,
+            }
+          : {}),
       };
       mode = 'flight';
       landingSettle = null;
@@ -610,6 +623,7 @@ export function createFlightModel(overrides = {}) {
       contactPose = null,
     ) {
       const from = flight.from;
+      const tractionRestored = mode === 'recovery' && landing && dynamics;
       state.distance =
         flight.lapOffset + (landing ? landing.distance : jump.recovery);
       state.lateral = landing ? landing.lateral : 0;
@@ -658,17 +672,18 @@ export function createFlightModel(overrides = {}) {
           from,
           to: state.distance,
           outcome,
+          ...(tractionRestored ? { tractionRestored: true } : {}),
           ...(flight.edgeCaught ? { edgeCaught: true } : {}),
         },
       });
       flight = null;
+      actor?.reset();
     }
     function catchEdge(state, jump, contact, pose, events) {
       const frame = contact.frame ?? track.sample(contact.distance);
       const extent = Math.max(
         bodyExtent(pose.quaternion, frame.right),
-        R.halfWidth * Math.abs(Math.cos(contact.heading)) +
-          R.halfLength * Math.abs(Math.sin(contact.heading)),
+        headingExtents(contact.heading, R).lateral,
       );
       const lateral = contact.side * (jump.halfWidth - extent - R.edgeInset);
       pose.position.addScaledVector(frame.right, lateral - contact.lateral);
@@ -697,12 +712,424 @@ export function createFlightModel(overrides = {}) {
             overlap: contact.overlap,
             speedRetention: R.edgeSpeedRetention,
             energyCost,
+            ...(contact.point
+              ? {
+                  position: contact.point.toArray(),
+                  normal: contact.normal.toArray(),
+                  collider: contact.shape.id,
+                  contactKind: contact.shape.kind,
+                }
+              : {}),
             ...(stepModifiers.shield ? { shielded: true } : {}),
           },
         });
       }
       return lateral;
     }
+    function beginRecovery(jump, reason, events) {
+      if (mode === 'recovery') return;
+      mode = 'recovery';
+      flight.failure = reason;
+      flight.remaining = automaticRecovery ? R.recoveryDelay : 0;
+      if (!automaticRecovery) flight.manualRecovery = true;
+      events.push({
+        type: 'jump-miss',
+        payload: {
+          id: jump.id,
+          reason,
+          delay: flight.remaining,
+          ...(!automaticRecovery ? { automaticRecovery: false } : {}),
+        },
+      });
+    }
+
+    // Contact geometry never asks whether this is an acceptable racing landing.
+    // Only after the physical query do heading, support and checkpoint bounds
+    // decide whether to relatch the current jump's receiving surface.
+    function supportedContact(jump, hit, incomingVelocity = flight.velocity) {
+      const restoringTraction =
+        dynamics && mode === 'recovery' && hit.shape.kind === 'deck';
+      if (
+        (mode !== 'flight' && !restoringTraction) ||
+        !['deck', 'rail'].includes(hit.shape.kind)
+      )
+        return null;
+      let distance =
+        hit.shape.distance ?? (hit.shape.start + hit.shape.end) / 2;
+      distance = clamp(distance, jump.landingStart, jump.landingEnd);
+      for (let i = 0; i < 8; i++) {
+        const frame = track.sample(distance);
+        distance = clamp(
+          distance +
+            hit.position.clone().sub(frame.position).dot(frame.tangent),
+          jump.landingStart,
+          jump.landingEnd,
+        );
+      }
+      const frame = track.sample(distance);
+      if (
+        Number.isFinite(hit.shape.start) &&
+        (distance < hit.shape.start - 1e-5 || distance > hit.shape.end + 1e-5)
+      )
+        return null;
+      const offset = hit.position.clone().sub(frame.position);
+      const lateral = offset.dot(frame.right);
+      const heading = landingHeading(hit.quaternion, frame);
+      const boundary =
+        jump.halfWidth +
+        (hit.shape.kind === 'rail' ? (R.railOffset[jump.id] ?? 0) : 0);
+      const footprint = edgeFootprint(hit.quaternion, frame, lateral, boundary);
+      const length = bodyExtent(hit.quaternion, frame.tangent);
+      if (
+        heading === null ||
+        footprint.overlap < R.edgeOverlap - 1e-8 ||
+        distance - length < jump.landingStart ||
+        distance + length > jump.landingEnd ||
+        offset.dot(frame.up) < -1e-5
+      )
+        return null;
+      if (
+        hit.shape.kind === 'deck' &&
+        (hit.normal.dot(frame.up) < 0.55 ||
+          (!restoringTraction && incomingVelocity.dot(frame.up) >= -0.01))
+      )
+        return null;
+      // Rails may support only a hull above the deck, never an underside pull.
+      if (
+        hit.shape.kind === 'rail' &&
+        offset.dot(frame.up) - bodyExtent(hit.quaternion, frame.up) < -0.05
+      )
+        return null;
+      return {
+        ...hit,
+        distance,
+        lateral,
+        heading,
+        frame,
+        ...footprint,
+        edgeCatch:
+          hit.shape.kind === 'rail' ||
+          Math.abs(lateral) + footprint.extent > jump.halfWidth,
+      };
+    }
+
+    function advanceWorldContacts(
+      state,
+      jump,
+      before,
+      acceleration,
+      dt,
+      events,
+    ) {
+      let start = before,
+        remaining = dt;
+      let target = clonePose(currentPose);
+      // Recover velocity at the start of the proposed interval.
+      flight.velocity.addScaledVector(acceleration, -dt);
+      for (let i = 0; i < COLLISION_RULES.maxContacts; i++) {
+        const hit = collisionWorld.sweepHull(start, target, R);
+        if (!hit) {
+          currentPose = target;
+          flight.velocity.addScaledVector(acceleration, remaining);
+          return false;
+        }
+        const elapsed = remaining * hit.fraction;
+        flight.velocity.addScaledVector(acceleration, elapsed);
+        remaining -= elapsed;
+        flight.contacts += 1;
+        const contact = supportedContact(jump, hit);
+        if (contact) {
+          const pose = {
+            position: hit.position.clone(),
+            quaternion: hit.quaternion.clone(),
+          };
+          if (contact.edgeCatch) {
+            contact.lateral = catchEdge(state, jump, contact, pose, events);
+            contact.heading = -contact.side * 0.015;
+          }
+          // A supported side hit keeps its ballistic height until deck contact.
+          if (hit.shape.kind === 'deck') {
+            transfer(state, jump, 'landed', events, contact, pose);
+            return true;
+          }
+          start = pose;
+        } else {
+          const kind = hit.shape.kind;
+          const crash =
+            kind === 'terrain' ||
+            kind === 'structure' ||
+            (kind === 'deck' &&
+              Math.abs(hit.normal.dot(hit.surfaceNormal)) > 0.55);
+          const incoming = Math.max(0, -flight.velocity.dot(hit.normal));
+          const restitution = crash
+            ? COLLISION_RULES.crashRestitution
+            : COLLISION_RULES.railRestitution;
+          flight.velocity.addScaledVector(
+            hit.normal,
+            incoming * (1 + restitution),
+          );
+          if (crash && incoming > 2)
+            flight.velocity.multiplyScalar(1 - COLLISION_RULES.crashFriction);
+          // Contact response and separation apply even when Aegis protects cost.
+          if (incoming > 2 && flight.elapsed - flight.lastImpactAt >= 0.12) {
+            flight.lastImpactAt = flight.elapsed;
+            const energyCost = stepModifiers.shield
+              ? 0
+              : crash
+                ? COLLISION_RULES.crashEnergy
+                : R.edgeEnergyCost;
+            state.energy = Math.max(0, state.energy - energyCost);
+            state.impact = Math.max(state.impact, crash ? 0.9 : 0.35);
+            events.push({
+              type: 'impact',
+              payload: {
+                source: `${options.id}-${crash ? 'crash' : 'deflection'}`,
+                severity: clamp(incoming / 55, crash ? 0.45 : 0.18, 1),
+                position: hit.point.toArray(),
+                normal: hit.normal.toArray(),
+                collider: hit.shape.id,
+                contactKind: kind,
+                response: crash ? 'crash' : 'deflection',
+                side:
+                  Math.sign(
+                    hit.point
+                      .clone()
+                      .sub(hit.position)
+                      .dot(axis(hit.quaternion, 1, 0, 0)),
+                  ) || 1,
+                energyCost,
+                ...(stepModifiers.shield ? { shielded: true } : {}),
+              },
+            });
+          }
+          if (crash && incoming > 2) beginRecovery(jump, kind, events);
+          start = {
+            position: hit.position.clone(),
+            quaternion: hit.quaternion.clone(),
+          };
+          start.position.addScaledVector(
+            hit.normal,
+            hit.penetration + COLLISION_RULES.skin,
+          );
+        }
+        currentPose = clonePose(start);
+        if (remaining <= 1e-8) return false;
+        target = {
+          position: start.position
+            .clone()
+            .addScaledVector(flight.velocity, remaining)
+            .addScaledVector(acceleration, remaining * remaining * 0.5),
+          quaternion: target.quaternion.clone(),
+        };
+      }
+      // At a corner/triangle seam, exhaust the bounded solver at the separated
+      // contact pose. Never integrate an unchecked remainder through a solid.
+      return false;
+    }
+    function flightFailure(jump) {
+      const frame = track.sample(jump.landingStart);
+      const offset = currentPose.position.clone().sub(frame.position);
+      const down = offset.dot(frame.up);
+      const along = offset.dot(frame.tangent);
+      const lateral = Math.abs(offset.dot(frame.right));
+      return down < -R.missBelow
+        ? 'short'
+        : along > jump.landingEnd - jump.landingStart + R.missBeyond
+          ? 'long'
+          : lateral > R.missLateral
+            ? 'lateral'
+            : flight.elapsed >= R.timeout
+              ? 'timeout'
+              : null;
+    }
+
+    function prepareDynamicFlight(state, input, dt) {
+      const jump = track.jumps.find((entry) => entry.id === flight.id);
+      state.time += dt;
+      state.impact = Math.max(0, state.impact - dt * 2.4);
+      state.steer = clamp(Number(input?.steer) || 0, -1, 1);
+      state.distance = flight.from;
+      state.boosting = false;
+      state.energy = Math.min(100, state.energy + 5.5 * dt);
+      flight.elapsed += dt;
+      const wasRecovering = mode === 'recovery';
+      if (wasRecovering && automaticRecovery)
+        flight.remaining = Math.max(0, flight.remaining - dt);
+      const acceleration = new THREE.Vector3();
+      let angularVelocity;
+      if (!wasRecovering) {
+        acceleration
+          .copy(flight.launchRight)
+          .multiplyScalar(-state.steer * R.airAcceleration);
+        const extra = options.airAcceleration?.({
+          state,
+          jump,
+          position: currentPose.position.clone(),
+          velocity: flight.velocity.clone(),
+          time: state.time,
+        });
+        if (extra) {
+          if (![extra.x, extra.y, extra.z].every(Number.isFinite))
+            throw new Error('Air acceleration must be a finite world vector.');
+          acceleration.add(extra);
+        }
+        flight.steerAngle +=
+          (-state.steer * R.airYaw - flight.steerAngle) * -Math.expm1(-4 * dt);
+        // Retain the authored ballistic attitude before contact. This controls
+        // angular velocity, never overwrites the engine's quaternion. After an
+        // impact let rotation evolve freely; recovery has no attitude controller.
+        if (flight.hitAt < 0 || flight.elapsed - flight.hitAt > 0.55) {
+          const forward = flight.velocity
+            .clone()
+            .addScaledVector(acceleration, dt * 0.5);
+          forward.y -= R.gravity * dt * 0.5;
+          forward.normalize();
+          const right = flight.launchUp.clone().cross(forward).normalize();
+          const up = forward.clone().cross(right).normalize();
+          const target = new THREE.Quaternion()
+            .setFromRotationMatrix(
+              new THREE.Matrix4().makeBasis(right, up, forward),
+            )
+            .multiply(
+              new THREE.Quaternion().setFromAxisAngle(
+                new THREE.Vector3(0, 0, 1),
+                flight.steerAngle,
+              ),
+            );
+          const error = target
+            .multiply(currentPose.quaternion.clone().invert())
+            .normalize();
+          if (error.w < 0) error.set(-error.x, -error.y, -error.z, -error.w);
+          const angle = 2 * Math.acos(clamp(error.w, -1, 1));
+          angularVelocity = new THREE.Vector3(error.x, error.y, error.z);
+          if (angularVelocity.lengthSq() > 1e-12)
+            angularVelocity.setLength(Math.min(2.5, angle * 8));
+        }
+      }
+      const starting = !flight.dynamicsStarted;
+      actor.stage({
+        active: true,
+        acceleration,
+        fraction: dt / pending.dt,
+        ...(starting
+          ? {
+              pose: currentPose,
+              velocity: flight.velocity,
+              angularVelocity: angularVelocity ?? flight.angularVelocity,
+            }
+          : angularVelocity
+            ? { angularVelocity }
+            : {}),
+      });
+      flight.dynamicsStarted = true;
+      pending.native = {
+        jump,
+        wasRecovering,
+        incomingVelocity: flight.velocity.clone(),
+      };
+    }
+
+    function finishDynamicFlight(state, events) {
+      const { jump, incomingVelocity } = pending.native;
+      const result = actor.read();
+      currentPose = {
+        position: result.position,
+        quaternion: result.quaternion,
+      };
+      flight.velocity.copy(result.velocity);
+      flight.angularVelocity.copy(result.angularVelocity);
+      state.speed = flight.velocity.length();
+      state.lateralSpeed = flight.velocity.dot(flight.launchRight);
+      for (const hit of result.contacts) {
+        flight.contacts += 1;
+        if (hit.incomingSpeed > 2) flight.hitAt = flight.elapsed;
+        const contact = supportedContact(
+          jump,
+          {
+            ...hit,
+            position: currentPose.position,
+            quaternion: currentPose.quaternion,
+          },
+          incomingVelocity,
+        );
+        if (contact && hit.shape.kind === 'deck') {
+          // Supported top contact may relatch; actual rail response remains
+          // engine-owned so a graze can rotate/deflect without a lateral teleport.
+          if (contact.edgeCatch) flight.edgeCaught = true;
+          const contactPose = clonePose(currentPose);
+          if (mode === 'recovery') {
+            // The solver may already have bounced upward this tick. Magnetic
+            // capture cancels that rebound; retain only the small landing FX.
+            const height = contactPose.position
+              .clone()
+              .sub(contact.frame.position)
+              .dot(contact.frame.up);
+            contactPose.position.addScaledVector(
+              contact.frame.up,
+              Math.max(
+                R.hover,
+                bodyExtent(contactPose.quaternion, contact.frame.up),
+              ) - height,
+            );
+          }
+          transfer(state, jump, 'landed', events, contact, contactPose);
+          return;
+        }
+        const crash =
+          hit.shape.kind === 'terrain' ||
+          hit.shape.kind === 'structure' ||
+          (hit.shape.kind === 'deck' &&
+            Math.abs(hit.normal.dot(hit.surfaceNormal)) > 0.55);
+        if (contact && hit.shape.kind === 'rail') flight.edgeCaught = true;
+        if (
+          hit.incomingSpeed > 2 &&
+          flight.elapsed - flight.lastImpactAt >= 0.12
+        ) {
+          flight.lastImpactAt = flight.elapsed;
+          const energyCost = stepModifiers.shield
+            ? 0
+            : crash
+              ? COLLISION_RULES.crashEnergy
+              : R.edgeEnergyCost;
+          state.energy = Math.max(0, state.energy - energyCost);
+          state.impact = Math.max(state.impact, crash ? 0.9 : 0.35);
+          events.push({
+            type: 'impact',
+            payload: {
+              source:
+                contact && hit.shape.kind === 'rail'
+                  ? (options.edgeSource ?? `${options.id}-edge-catch`)
+                  : `${options.id}-${crash ? 'crash' : 'deflection'}`,
+              severity: clamp(hit.incomingSpeed / 55, crash ? 0.45 : 0.18, 1),
+              position: hit.point.toArray(),
+              normal: hit.normal.toArray(),
+              collider: hit.shape.id,
+              contactKind: hit.shape.kind,
+              response: crash ? 'crash' : 'deflection',
+              side:
+                Math.sign(
+                  hit.point
+                    .clone()
+                    .sub(currentPose.position)
+                    .dot(axis(currentPose.quaternion, 1, 0, 0)),
+                ) || 1,
+              energyCost,
+              ...(stepModifiers.shield ? { shielded: true } : {}),
+            },
+          });
+        }
+        if (crash && hit.incomingSpeed > 2)
+          beginRecovery(jump, hit.shape.kind, events);
+      }
+      if (mode === 'recovery') {
+        if (automaticRecovery && flight.remaining <= 1e-8)
+          transfer(state, jump, 'recovered', events);
+      } else {
+        const failure = flightFailure(jump);
+        if (failure) beginRecovery(jump, failure, events);
+      }
+    }
+
     function advanceFlight(state, input, dt, events) {
       const jump = track.jumps.find((entry) => entry.id === flight.id);
       state.time += dt;
@@ -713,10 +1140,21 @@ export function createFlightModel(overrides = {}) {
       state.energy = Math.min(100, state.energy + 5.5 * dt);
       flight.elapsed += dt;
       if (mode === 'recovery') {
-        flight.remaining = Math.max(0, flight.remaining - dt);
-        currentPose.position.addScaledVector(flight.velocity, dt);
-        flight.velocity.y -= R.gravity * dt;
-        if (flight.remaining <= 1e-8)
+        if (automaticRecovery)
+          flight.remaining = Math.max(0, flight.remaining - dt);
+        if (collisionWorld) {
+          const before = clonePose(currentPose);
+          const acceleration = new THREE.Vector3(0, -R.gravity, 0);
+          currentPose.position
+            .addScaledVector(flight.velocity, dt)
+            .addScaledVector(acceleration, dt * dt * 0.5);
+          flight.velocity.addScaledVector(acceleration, dt);
+          advanceWorldContacts(state, jump, before, acceleration, dt, events);
+        } else {
+          currentPose.position.addScaledVector(flight.velocity, dt);
+          flight.velocity.y -= R.gravity * dt;
+        }
+        if (automaticRecovery && flight.remaining <= 1e-8)
           transfer(state, jump, 'recovered', events);
         return;
       }
@@ -758,64 +1196,70 @@ export function createFlightModel(overrides = {}) {
         ),
       );
       currentPose.quaternion.slerp(orientation, -Math.expm1(-8 * dt));
-      let landingBefore = before;
-      const rail = sweptRail(track, jump, before, currentPose);
-      // A lower-hull road hit can precede side contact in the same tick.
-      // Resolving the later rail first would start the road sweep underneath
-      // the deck and incorrectly discard a valid landing.
-      const directLanding = R.curvedContact
-        ? sweptLanding(track, jump, before, currentPose, flight.velocity)
-        : null;
-      const floorFirst =
-        directLanding && (!rail || directLanding.fraction <= rail.fraction);
-      if (rail && !floorFirst) {
-        const contact = {
-          position: rail.position.clone(),
-          quaternion: rail.quaternion.clone(),
-        };
-        // Resolve at the swept hit time, then integrate the remainder with the
-        // reflected velocity. Keep ballistic height; no pull down onto the deck.
-        const remaining = dt * (1 - rail.fraction);
-        flight.velocity.addScaledVector(acceleration, -remaining);
-        catchEdge(state, jump, rail, contact, events);
-        currentPose.position
-          .copy(contact.position)
-          .addScaledVector(flight.velocity, remaining)
-          .addScaledVector(acceleration, remaining * remaining * 0.5);
-        flight.velocity.addScaledVector(acceleration, remaining);
-        landingBefore = contact;
-      }
-      const landing =
-        R.curvedContact && (!rail || floorFirst)
-          ? directLanding
-          : sweptLanding(
-              track,
-              jump,
-              landingBefore,
-              currentPose,
-              flight.velocity,
-            );
-      if (landing) {
-        const contactPose = {
-          position: landingBefore.position
-            .clone()
-            .lerp(currentPose.position, landing.fraction),
-          quaternion: landingBefore.quaternion
-            .clone()
-            .slerp(currentPose.quaternion, landing.fraction),
-        };
-        if (landing.edgeCatch) {
-          landing.lateral = catchEdge(
-            state,
-            jump,
-            landing,
-            contactPose,
-            events,
-          );
-          landing.heading = -landing.side * 0.015;
+      if (collisionWorld) {
+        if (advanceWorldContacts(state, jump, before, acceleration, dt, events))
+          return;
+        if (mode === 'recovery') return;
+      } else {
+        let landingBefore = before;
+        const rail = sweptRail(track, jump, before, currentPose);
+        // A lower-hull road hit can precede side contact in the same tick.
+        // Resolving the later rail first would start the road sweep underneath
+        // the deck and incorrectly discard a valid landing.
+        const directLanding = R.curvedContact
+          ? sweptLanding(track, jump, before, currentPose, flight.velocity)
+          : null;
+        const floorFirst =
+          directLanding && (!rail || directLanding.fraction <= rail.fraction);
+        if (rail && !floorFirst) {
+          const contact = {
+            position: rail.position.clone(),
+            quaternion: rail.quaternion.clone(),
+          };
+          // Resolve at the swept hit time, then integrate the remainder with the
+          // reflected velocity. Keep ballistic height; no pull down onto the deck.
+          const remaining = dt * (1 - rail.fraction);
+          flight.velocity.addScaledVector(acceleration, -remaining);
+          catchEdge(state, jump, rail, contact, events);
+          currentPose.position
+            .copy(contact.position)
+            .addScaledVector(flight.velocity, remaining)
+            .addScaledVector(acceleration, remaining * remaining * 0.5);
+          flight.velocity.addScaledVector(acceleration, remaining);
+          landingBefore = contact;
         }
-        transfer(state, jump, 'landed', events, landing, contactPose);
-        return;
+        const landing =
+          R.curvedContact && (!rail || floorFirst)
+            ? directLanding
+            : sweptLanding(
+                track,
+                jump,
+                landingBefore,
+                currentPose,
+                flight.velocity,
+              );
+        if (landing) {
+          const contactPose = {
+            position: landingBefore.position
+              .clone()
+              .lerp(currentPose.position, landing.fraction),
+            quaternion: landingBefore.quaternion
+              .clone()
+              .slerp(currentPose.quaternion, landing.fraction),
+          };
+          if (landing.edgeCatch) {
+            landing.lateral = catchEdge(
+              state,
+              jump,
+              landing,
+              contactPose,
+              events,
+            );
+            landing.heading = -landing.side * 0.015;
+          }
+          transfer(state, jump, 'landed', events, landing, contactPose);
+          return;
+        }
       }
       const frame = track.sample(jump.landingStart);
       const offset = currentPose.position.clone().sub(frame.position);
@@ -833,18 +1277,13 @@ export function createFlightModel(overrides = {}) {
                 ? 'timeout'
                 : null;
       if (failure) {
-        mode = 'recovery';
-        flight.failure = failure;
-        flight.remaining = R.recoveryDelay;
-        events.push({
-          type: 'jump-miss',
-          payload: { id: jump.id, reason: failure, delay: R.recoveryDelay },
-        });
+        beginRecovery(jump, failure, events);
       }
     }
     function tick(state, input, dt, events, startPose) {
       if (mode !== 'magnetic') {
-        advanceFlight(state, input, dt, events);
+        if (dynamics) prepareDynamicFlight(state, input, dt);
+        else advanceFlight(state, input, dt, events);
         return;
       }
       const before = { ...state };
@@ -895,7 +1334,17 @@ export function createFlightModel(overrides = {}) {
       state.distance = crossed.from;
       beginFlight(state, crossed.jump, crossed.from, events, startPose);
       if (fraction < 1)
-        advanceFlight(state, input, dt * (1 - fraction), events);
+        if (dynamics) prepareDynamicFlight(state, input, dt * (1 - fraction));
+        else advanceFlight(state, input, dt * (1 - fraction), events);
+      else if (dynamics) {
+        actor.stage({
+          active: true,
+          pose: currentPose,
+          velocity: flight.velocity,
+          fraction: 0,
+        });
+        flight.dynamicsStarted = true;
+      }
     }
     const scenarios =
       options.scenarios ??
@@ -905,10 +1354,10 @@ export function createFlightModel(overrides = {}) {
           { label: name.replaceAll('-', ' '), state: { ...state } },
         ]),
       );
-    return {
+    const adapter = {
       id: options.id,
       version: options.version,
-      rulesId: options.rulesId,
+      rulesId: `${collisionWorld ? `${options.rulesId}:collision-${JSON.stringify({ id: collisionWorld.id, version: collisionWorld.version, rulesId: collisionWorld.rulesId })}` : options.rulesId}${dynamics ? `:dynamics-${JSON.stringify({ id: dynamics.id, version: dynamics.version, rulesId: dynamics.rulesId })}:deck-traction-v1` : ''}${automaticRecovery ? '' : ':manual-recovery-v1'}`,
       scenarios,
       advance(state, input, dt, modifiers = {}) {
         const events = [];
@@ -923,8 +1372,13 @@ export function createFlightModel(overrides = {}) {
         previousPose = clonePose(currentPose);
         const elapsed = Math.min(dt, 0.1);
         const count = Math.ceil(elapsed / R.step - 1e-10);
-        for (let i = 0; i < count; i += 1)
-          tick(state, input, elapsed / count, events, startPose);
+        for (let i = 0; i < count; i += 1) {
+          if (dynamics) {
+            adapter.beginAdvance(state, input, elapsed / count, modifiers);
+            dynamics.step(elapsed / count);
+            events.push(...adapter.finishAdvance(state));
+          } else tick(state, input, elapsed / count, events, startPose);
+        }
         return events;
       },
       reset({ seed: nextSeed = 0 } = {}) {
@@ -935,6 +1389,8 @@ export function createFlightModel(overrides = {}) {
         releasePose = false;
         landingSettle = null;
         seed = nextSeed;
+        pending = null;
+        actor?.reset();
       },
       snapshot() {
         return {
@@ -956,6 +1412,9 @@ export function createFlightModel(overrides = {}) {
                 launchQuaternion: flight.launchQuaternion.toArray(),
                 launchRight: flight.launchRight.toArray(),
                 launchUp: flight.launchUp.toArray(),
+                ...(dynamics
+                  ? { angularVelocity: flight.angularVelocity.toArray() }
+                  : {}),
               }
             : null,
         };
@@ -992,8 +1451,28 @@ export function createFlightModel(overrides = {}) {
                 data.flight.launchRight,
               ),
               launchUp: new THREE.Vector3().fromArray(data.flight.launchUp),
+              ...(dynamics
+                ? {
+                    angularVelocity: new THREE.Vector3().fromArray(
+                      data.flight.angularVelocity ?? [0, 0, 0],
+                    ),
+                  }
+                : {}),
             }
           : null;
+        pending = null;
+        if (actor) {
+          actor.reset({
+            ...(flight && currentPose
+              ? {
+                  pose: currentPose,
+                  velocity: flight.velocity,
+                  angularVelocity: flight.angularVelocity,
+                  active: true,
+                }
+              : {}),
+          });
+        }
       },
       pose(alpha = 1) {
         if (!currentPose) return null;
@@ -1017,8 +1496,40 @@ export function createFlightModel(overrides = {}) {
         previousPose = null;
         landingSettle = null;
         releasePose = false;
+        pending = null;
+        actor?.dispose();
       },
     };
+    if (dynamics) {
+      adapter.beginAdvance = (state, input, dt, modifiers = {}) => {
+        if (pending)
+          throw new Error(
+            'Finish the pending flight step before staging another.',
+          );
+        if (disposed || !Number.isFinite(dt) || dt <= 0 || dt > R.step + 1e-10)
+          throw new Error('Dynamics require a live fixed flight step.');
+        stepModifiers = modifiers;
+        if (releasePose) {
+          currentPose = null;
+          previousPose = null;
+          releasePose = false;
+        }
+        const startPose = clonePose(currentPose) ?? poseOnRoad(state);
+        previousPose = clonePose(currentPose);
+        pending = { dt, events: [], native: null };
+        tick(state, input, dt, pending.events, startPose);
+        if (mode === 'magnetic') actor.stage({ active: false });
+      };
+      adapter.finishAdvance = (state) => {
+        if (!pending)
+          throw new Error('Stage the flight step before resolving it.');
+        const events = pending.events;
+        if (pending.native) finishDynamicFlight(state, events);
+        pending = null;
+        return events;
+      };
+    }
+    return adapter;
   }
 
   return { createRuntime, sweptLanding, sweptRail, rules: R };

@@ -18,7 +18,7 @@ Start with this file and the assigned task's brief.
 - For work beyond a simple bug fix, defer all mobile/portrait verification until implementation and desktop iteration are complete and the final code is ready. Do not run mobile/portrait checks between implementation or critic rounds. Run relevant mobile/portrait checks once at the end; repeat only if subsequent changes affect those cases. A simple mobile/portrait bug fix may use targeted checks during the fix.
 - Run targeted tests and a production build when appropriate; check documentation links. Let the pre-commit hook run ESLint/Prettier through lint-staged. Do not repeat manual lint/format passes for routine edits. Ensure generated Husky hooks exist in a new worktree via the existing package prepare script.
 - Run `nvm use 22` once at the start of each shell session, then use its Node/npm without hard-coded runtime paths.
-- Browsers stay hidden/headless. No unsolicited videos or normal-speed automated full laps. Use a free port for your server, close owned verification processes afterward and report only actually verified results.
+- Default to hidden/headless browsers; use headed mode when the user explicitly requests or authorizes it. No unsolicited videos or normal-speed automated full laps. Use a free port for your server, close owned verification processes afterward and report only actually verified results.
 - Commit and merge when requested. Human approval cannot be supplied by an agent.
 
 ## Keep documentation small

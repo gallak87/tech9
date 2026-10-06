@@ -117,7 +117,7 @@ export function validateDefinition(definition, id = 'circuit') {
   if (typeof definition.version !== 'string' || !definition.version)
     throw new Error(`${id} is missing a version`);
   if (definition.playtests !== undefined)
-    for (const [name, playtest] of Object.entries(definition.playtests))
+    for (const [name, playtest] of Object.entries(definition.playtests)) {
       if (
         !slugPattern.test(name) ||
         !['scenario', 'label', 'description'].every(
@@ -125,6 +125,23 @@ export function validateDefinition(definition, id = 'circuit') {
         )
       )
         throw new Error(`Invalid ${id}.playtests.${name}`);
+      if (
+        playtest.cases !== undefined &&
+        (!Array.isArray(playtest.cases) ||
+          !playtest.cases.length ||
+          playtest.cases.some(
+            (entry) =>
+              !slugPattern.test(entry?.id || '') ||
+              !['label', 'scenario'].every(
+                (key) => typeof entry[key] === 'string' && entry[key],
+              ),
+          ) ||
+          new Set(playtest.cases.map((entry) => entry.id)).size !==
+            playtest.cases.length ||
+          !playtest.cases.some((entry) => entry.scenario === playtest.scenario))
+      )
+        throw new Error(`Invalid ${id}.playtests.${name}.cases`);
+    }
   return definition;
 }
 

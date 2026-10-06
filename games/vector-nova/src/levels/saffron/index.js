@@ -48,8 +48,20 @@ export default function createLevel({ shape = false }) {
         scenario: 'jump-playtest',
         label: 'SECOND VERTEBRA · JUMP CONTACT TEST',
         automaticRecovery: false,
+        cases: [
+          {
+            id: 'approach',
+            label: 'Second vertebra approach',
+            scenario: 'jump-playtest',
+          },
+          {
+            id: 'short-fall',
+            label: 'Short launch / terrain contact',
+            scenario: 'jump3-short',
+          },
+        ],
         description:
-          'Second vertebra jump · 320 m straight run-up from rest. Hold W and use Shift for boost. Steer with A/D to try border grazes or terrain misses. Falls and contacts continue until R repeats the approach. Untimed solo practice.',
+          'Choose the second vertebra approach or a short launch into terrain. W / Shift drive; A/D steer. Falls and contacts continue until R repeats the selected case. Untimed solo practice.',
       },
     },
     createRoad: (context) => createSaffronRoad(context, { shape }),

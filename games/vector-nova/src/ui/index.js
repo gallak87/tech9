@@ -45,6 +45,7 @@ export function createUI(
     selectedShip = SHIPS[0],
     racing = false,
     playtest = null,
+    playtestCase = null,
   },
 ) {
   const root = document.createElement('main');
@@ -59,14 +60,36 @@ export function createUI(
  <footer id="legend"><div><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RESET</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>
  <div id="touch" class="hidden"><div><button data-drive="left" aria-label="Steer left">◀</button><button data-drive="right" aria-label="Steer right">▶</button><button data-drive="brake">BRAKE</button></div><div><button data-drive="airbrake">SLIP</button><button data-drive="boost">BOOST</button><button data-drive="throttle">GO</button></div></div><div class="review-tag"><span></span></div>`;
   const $ = (id) => root.querySelector('#' + id);
+  let casePicker = null;
+  if (playtest?.cases?.length > 1) {
+    casePicker = document.createElement('div');
+    casePicker.className = 'circuit-picker';
+    const label = document.createElement('label');
+    label.htmlFor = 'playtest-case';
+    label.textContent = 'CONTACT TEST CASE';
+    const select = document.createElement('select');
+    select.id = 'playtest-case';
+    for (const entry of playtest.cases) {
+      const option = document.createElement('option');
+      option.value = entry.id;
+      option.textContent = entry.label;
+      select.append(option);
+    }
+    select.value = playtestCase;
+    select.addEventListener('change', () =>
+      actions.selectPlaytestCase(select.value),
+    );
+    casePicker.append(label, select);
+    $('title-panel').insertBefore(casePicker, $('start').closest('.actions'));
+  }
   if (playtest) {
     const repeat = document.createElement('button');
     repeat.id = 'jump-repeat';
     repeat.className = 'quiet hidden';
-    repeat.textContent = 'REPEAT JUMP · R';
+    repeat.textContent = 'REPEAT CASE · R';
     root.querySelector('.masthead').append(repeat);
     repeat.addEventListener('click', actions.repeatPlaytest);
-    $('restart').textContent = 'REPEAT JUMP APPROACH';
+    $('restart').textContent = 'REPEAT CONTACT CASE';
   }
   const escapeLabel = [...root.querySelectorAll('#legend kbd')].find(
     (key) => key.textContent === 'ESC',
@@ -618,9 +641,19 @@ export function createUI(
         height: Math.max(24, specs.top - heading.bottom - 28),
       };
     },
+    setPlaytestCase(id) {
+      if (casePicker) $('playtest-case').value = id;
+    },
     setMode(mode) {
       if (mode === oldMode) return;
       oldMode = mode;
+      if (casePicker) {
+        const parent = mode === 'paused' ? $('pause-panel') : $('title-panel');
+        parent.insertBefore(
+          casePicker,
+          mode === 'paused' ? $('resume') : $('start').closest('.actions'),
+        );
+      }
       updateRoster();
       for (const [id, show] of [
         ['title-panel', mode === 'title' || mode === 'overview'],

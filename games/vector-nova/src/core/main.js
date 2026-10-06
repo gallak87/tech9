@@ -93,6 +93,16 @@ async function boot() {
   const playtest = Object.hasOwn(definition.playtests ?? {}, playtestName)
     ? definition.playtests[playtestName]
     : null;
+  const playtestCases = playtest
+    ? (playtest.cases ?? [
+        { id: 'default', label: playtest.label, scenario: playtest.scenario },
+      ])
+    : [];
+  let selectedPlaytestCase = parameters.has('case')
+    ? playtestCases.find((entry) => entry.id === parameters.get('case'))
+    : playtestCases.find((entry) => entry.scenario === playtest?.scenario);
+  if (playtest && !selectedPlaytestCase)
+    throw new Error('Unknown playtest case');
   const view = lifetime.own(
     await createRenderer(host, settings, {
       ...definition.renderer,
@@ -372,6 +382,13 @@ async function boot() {
     });
     return result;
   };
+  function advanceTick(control) {
+    prev = { ...state };
+    inputLog.push({ tick, input: { ...control } });
+    if (inputLog.length > 36000) inputLog.shift();
+    advance(control);
+    tick++;
+  }
   function resetRacers(enabled = competition) {
     dynamics?.reset();
     racers?.reset({
@@ -551,9 +568,34 @@ async function boot() {
     if (withCountdown) armCountdown();
   }
   function repeatPlaytest(withCountdown = false) {
-    window.__VN.loadScenario(playtest.scenario, 7);
-    ui.notice('JUMP TEST · UNTIMED · W / SHIFT · A/D TO MISS · R TO REPEAT');
+    window.__VN.loadScenario(selectedPlaytestCase.scenario, 7);
+    ui.notice(
+      `${selectedPlaytestCase.label.toUpperCase()} · UNTIMED · R TO REPEAT`,
+    );
     if (withCountdown) armCountdown();
+  }
+  function selectPlaytestCase(id) {
+    const selected = playtestCases.find((entry) => entry.id === id);
+    if (
+      !selected ||
+      !(
+        Object.hasOwn(runtime.scenarios ?? {}, selected.scenario) ||
+        Object.hasOwn(track.scenarios ?? {}, selected.scenario)
+      )
+    )
+      throw new Error('Unknown playtest case');
+    selectedPlaytestCase = selected;
+    const url = new URL(location.href);
+    url.searchParams.set('case', id);
+    history.replaceState(history.state, '', url);
+    ui.setPlaytestCase(id);
+  }
+  function resetPlaytestCase(id = selectedPlaytestCase.id) {
+    if (!active || !window.__VN.ready || shipLoading)
+      throw new Error('Wait for the playtest to be ready');
+    selectPlaytestCase(id);
+    repeatPlaytest();
+    pause();
   }
   function recover() {
     if (mode !== 'racing') return;
@@ -782,6 +824,10 @@ async function boot() {
         restart: () =>
           playtest ? repeatPlaytest(true) : restart(competition, true),
         repeatPlaytest: () => repeatPlaytest(),
+        selectPlaytestCase(id) {
+          if (mode === 'paused') resetPlaytestCase(id);
+          else selectPlaytestCase(id);
+        },
         home,
         camera: setCamera,
         selectShip,
@@ -812,6 +858,7 @@ async function boot() {
         selectedShip: ship.selected,
         racing: racingEnabled,
         playtest,
+        playtestCase: selectedPlaytestCase?.id,
       },
     ),
   );
@@ -933,15 +980,11 @@ async function boot() {
       accumulator += dt;
       const control = input.sample();
       while (accumulator >= 1 / 120) {
-        prev = { ...state };
-        inputLog.push({ tick, input: { ...control } });
-        if (inputLog.length > 36000) inputLog.shift();
-        advance(control);
-        tick++;
+        advanceTick(control);
         accumulator -= 1 / 120;
       }
     }
-    const alpha = accumulator * 120;
+    const alpha = mode === 'racing' ? accumulator * 120 : 1;
     const s =
       mode === 'racing'
         ? {
@@ -1083,6 +1126,73 @@ async function boot() {
   window.__VN = {
     ready: false,
     version: VERSION,
+    ...(playtest
+      ? {
+          test: {
+            cases: playtestCases.map((entry) => ({ ...entry })),
+            reset(id) {
+              resetPlaytestCase(id);
+              return this.getState();
+            },
+            step(ticks, controls = {}) {
+              if (
+                !active ||
+                !window.__VN.ready ||
+                shipLoading ||
+                mode !== 'paused' ||
+                pausedCountdown
+              )
+                throw new Error('Reset a playtest case before stepping');
+              if (!Number.isInteger(ticks) || ticks < 1 || ticks > 600)
+                throw new Error('Step requires 1–600 fixed ticks');
+              if (
+                !controls ||
+                typeof controls !== 'object' ||
+                Array.isArray(controls)
+              )
+                throw new Error('Invalid playtest controls');
+              const control = {
+                throttle: controls.throttle ?? 0,
+                brake: controls.brake ?? 0,
+                steer: controls.steer ?? 0,
+                boost: controls.boost ?? false,
+                airbrake: controls.airbrake ?? false,
+              };
+              if (
+                !['throttle', 'brake'].every(
+                  (key) =>
+                    Number.isFinite(control[key]) &&
+                    control[key] >= 0 &&
+                    control[key] <= 1,
+                ) ||
+                !Number.isFinite(control.steer) ||
+                Math.abs(control.steer) > 1 ||
+                typeof control.boost !== 'boolean' ||
+                typeof control.airbrake !== 'boolean'
+              )
+                throw new Error('Invalid playtest controls');
+              for (let i = 0; i < ticks; i++) advanceTick(control);
+              prev = { ...state };
+              pose(state, 1);
+              return this.getState();
+            },
+            getState() {
+              return {
+                version: VERSION,
+                runtime: runtimeIdentity(runtime),
+                case: selectedPlaytestCase.id,
+                scenario,
+                mode,
+                tick,
+                vehicle: { ...state },
+                motion: runtime.snapshot(),
+                events: structuredClone(events),
+                errors: [...errors],
+              };
+            },
+          },
+        }
+      : {}),
     /**
      * Load a deterministic internal verification scenario.
      * @deprecated Remove after all levels are merged. Keep using this API while
@@ -1228,10 +1338,7 @@ async function boot() {
       }
       prev = { ...state };
       for (const entry of replay.inputs) {
-        inputLog.push({ tick: entry.tick, input: { ...entry.input } });
-        prev = { ...state };
-        advance(entry.input);
-        tick++;
+        advanceTick(entry.input);
       }
       pause();
       return this.getSnapshot();

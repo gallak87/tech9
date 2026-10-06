@@ -4,7 +4,11 @@ import { Group, Scene, Texture } from 'three';
 import { assertLevelContract } from './level-checks/level-contract.mjs';
 import { assertTrackContract } from './level-checks/track-contract.mjs';
 import { loop } from './level-checks/fixtures.mjs';
-import { validateMetadata, createCatalog } from '../src/levels/contract.js';
+import {
+  validateMetadata,
+  validateDefinition,
+  createCatalog,
+} from '../src/levels/contract.js';
 import { createLevelPresentation } from '../src/levels/presentation.js';
 
 const metadata = {
@@ -54,6 +58,31 @@ const createLevel = () => ({
   createRoad: component,
   createEnvironment: component,
   createBackdrop: component,
+});
+
+test('named playtest cases require distinct IDs and an available default case', () => {
+  const entry = { id: 'approach', label: 'Approach', scenario: 'jump' };
+  const definition = (cases) => ({
+    ...createLevel(),
+    playtests: {
+      jump: {
+        scenario: 'jump',
+        label: 'Jump',
+        description: 'Contact test',
+        cases,
+      },
+    },
+  });
+  assert.doesNotThrow(() => validateDefinition(definition([entry])));
+  for (const cases of [
+    [],
+    [entry, entry],
+    [{ ...entry, scenario: 'missing-default' }],
+  ])
+    assert.throws(
+      () => validateDefinition(definition(cases)),
+      /playtests.jump.cases/,
+    );
 });
 
 test('a self-contained async module needs no registry, ground height, special scenario or world preset', async () => {

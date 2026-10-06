@@ -480,7 +480,7 @@ async function boot() {
       mode === 'title' || mode === 'inspection' || mode === 'overview';
     if (newRun && playtest) {
       audio.unlock().catch(() => {});
-      repeatPlaytest(true);
+      repeatPlaytest();
       return;
     }
     if (newRun) {
@@ -567,12 +567,11 @@ async function boot() {
     ui.setMode(mode);
     if (withCountdown) armCountdown();
   }
-  function repeatPlaytest(withCountdown = false) {
+  function repeatPlaytest() {
     window.__VN.loadScenario(selectedPlaytestCase.scenario, 7);
     ui.notice(
       `${selectedPlaytestCase.label.toUpperCase()} · UNTIMED · R TO REPEAT`,
     );
-    if (withCountdown) armCountdown();
   }
   function selectPlaytestCase(id) {
     const selected = playtestCases.find((entry) => entry.id === id);
@@ -815,14 +814,14 @@ async function boot() {
         start,
         practice() {
           if (shipLoading) return;
-          if (playtest) repeatPlaytest(true);
+          if (playtest) repeatPlaytest();
           else restart(false, true);
           audio.unlock().catch(() => {});
         },
         pause,
         resume,
         restart: () =>
-          playtest ? repeatPlaytest(true) : restart(competition, true),
+          playtest ? repeatPlaytest() : restart(competition, true),
         repeatPlaytest: () => repeatPlaytest(),
         selectPlaytestCase(id) {
           if (mode === 'paused') resetPlaytestCase(id);

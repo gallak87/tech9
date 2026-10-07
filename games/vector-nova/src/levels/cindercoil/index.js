@@ -1,4 +1,5 @@
 import { createDevices } from './devices.js';
+import { createCindercoilCollisionWorld } from './collision.js';
 import * as T from 'three';
 import { createCindercoilTrack, createCindercoilRoad } from './track/index.js';
 import { createCindercoilEnvironment } from './environment/index.js';
@@ -28,6 +29,50 @@ export default function createLevel({ shape = false }) {
     practiceSectionsUntimed: true,
     railContactSparks: true,
     createTrack: createCindercoilTrack,
+    createCollisionWorld: shape ? undefined : createCindercoilCollisionWorld,
+    createDynamics: shape
+      ? undefined
+      : async ({ collisionWorld }) => {
+          const { createRapierWorld } =
+            await import('../../physics/rapier-world.js');
+          return createRapierWorld({ collisionWorld });
+        },
+    playtests: {
+      jump: {
+        scenario: 'vent-clean',
+        label: 'VENT JUMP · CONTACT TEST',
+        automaticRecovery: false,
+        cases: [
+          {
+            id: 'clean',
+            label: 'Calm aligned landing',
+            scenario: 'vent-clean',
+          },
+          {
+            id: 'short',
+            label: 'Short launch / ramp underside',
+            scenario: 'vent-short',
+          },
+          {
+            id: 'left',
+            label: 'Left barrier catch',
+            scenario: 'vent-edge-left',
+          },
+          {
+            id: 'right',
+            label: 'Right barrier catch',
+            scenario: 'vent-edge-right',
+          },
+          {
+            id: 'erupting',
+            label: 'Erupting vent crossing',
+            scenario: 'vent-erupting',
+          },
+        ],
+        description:
+          'Choose a vent-jump case. W / Shift drive; A/D steer. Falls continue until R repeats the selected case. Untimed solo contact testing.',
+      },
+    },
     createRoad: (context) => createCindercoilRoad({ ...context, shape }),
     async createEnvironment(context) {
       let world;

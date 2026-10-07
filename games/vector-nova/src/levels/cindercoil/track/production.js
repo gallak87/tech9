@@ -33,13 +33,19 @@ const transform = (
 ) => {
   const frame = track.sample(s);
   return {
+    distance: s,
     position: framePoint(frame, x, y, z),
     quaternion: frame.quaternion,
     scale,
   };
 };
 
-export function createCindercoilRoad({ track, shape = false, settings = {} }) {
+export function createCindercoilRoad({
+  track,
+  shape = false,
+  settings = {},
+  collectSolid = null,
+}) {
   const group = new THREE.Group();
   group.name = shape
     ? 'Cindercoil / neutral route'
@@ -52,24 +58,26 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
     materials.add(result);
     return result;
   };
-  const ceramic = shape ? {} : createCeramicTextures();
+  const ceramic = shape || collectSolid ? {} : createCeramicTextures();
   for (const texture of Object.values(ceramic)) textures.add(texture);
-  const bodyFinish = shape
-    ? {}
-    : {
-        map: ceramic.bodyColor,
-        bumpMap: ceramic.bodyHeight,
-        bumpScale: 0.09,
-        roughnessMap: ceramic.roughness,
-      };
-  const plateFinish = shape
-    ? {}
-    : {
-        map: ceramic.plateColor,
-        bumpMap: ceramic.plateHeight,
-        bumpScale: 0.075,
-        roughnessMap: ceramic.roughness,
-      };
+  const bodyFinish =
+    shape || collectSolid
+      ? {}
+      : {
+          map: ceramic.bodyColor,
+          bumpMap: ceramic.bodyHeight,
+          bumpScale: 0.09,
+          roughnessMap: ceramic.roughness,
+        };
+  const plateFinish =
+    shape || collectSolid
+      ? {}
+      : {
+          map: ceramic.plateColor,
+          bumpMap: ceramic.plateHeight,
+          bumpScale: 0.075,
+          roughnessMap: ceramic.roughness,
+        };
   const ivory = material({
     color: shape ? 0xb4bdc0 : 0xd9ceb7,
     roughness: 0.94,
@@ -141,6 +149,7 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
     mesh.receiveShadow = true;
     mesh.castShadow = !drivingSurface;
     mesh.userData.drivingSurface = drivingSurface;
+    collectSolid?.({ name, geometry, drivingSurface });
     group.add(mesh);
     return mesh;
   };
@@ -165,9 +174,19 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
     const mesh = new THREE.InstancedMesh(geometry, surface, placements.length);
     const matrix = new THREE.Matrix4();
     placements.forEach(
-      ({ position, quaternion, scale = new THREE.Vector3(1, 1, 1) }, index) => {
+      (
+        { position, quaternion, scale = new THREE.Vector3(1, 1, 1), distance },
+        index,
+      ) => {
         matrix.compose(position, quaternion, scale);
         mesh.setMatrixAt(index, matrix);
+        collectSolid?.({
+          name,
+          geometry,
+          matrix: matrix.clone(),
+          index,
+          distance,
+        });
       },
     );
     mesh.name = name;
@@ -177,6 +196,16 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
     group.add(mesh);
     return mesh;
   };
+  const keelProfile = [
+    [15, 0],
+    [16.3, -1.1],
+    [15.2, -3.8],
+    [10.8, -7.8],
+    [-10.8, -7.8],
+    [-15.2, -3.8],
+    [-16.3, -1.1],
+    [-15, 0],
+  ];
   const intervals = roadIntervals(track);
   const deckParts = [],
     sideParts = [],
@@ -213,20 +242,7 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
         ),
       );
     sideParts.push(
-      sweepGeometry(
-        track,
-        [
-          [15, 0],
-          [16.3, -1.1],
-          [15.2, -3.8],
-          [10.8, -7.8],
-          [-10.8, -7.8],
-          [-15.2, -3.8],
-          [-16.3, -1.1],
-          [-15, 0],
-        ],
-        { start, end, step: 2.5 },
-      ),
+      sweepGeometry(track, keelProfile, { start, end, step: 2.5 }),
     );
     for (const side of [-1, 1]) {
       for (const segment of spillRoadIntervals(track, side, start, end)) {
@@ -287,6 +303,18 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
             ],
             { start: from, end: to, step: 2 },
           );
+          const route = [];
+          const stations = geometry.attributes.position.count / 2 - 1;
+          for (
+            let index = 0;
+            index < geometry.attributes.position.count;
+            index++
+          )
+            route.push(from + ((to - from) * Math.floor(index / 2)) / stations);
+          geometry.setAttribute(
+            'routeDistance',
+            new THREE.Float32BufferAttribute(route, 1),
+          );
           const uv = geometry.attributes.uv;
           const segments = uv.count / 2 - 1;
           for (let index = 0; index < uv.count; index += 1) {
@@ -335,6 +363,39 @@ export function createCindercoilRoad({ track, shape = false, settings = {} }) {
     merged('Cool polished Blackglass cassettes', glassPlates, blackglass, true);
   }
   merged('Deep beveled ceramic box keel', sideParts, keel);
+  // Seal the visible box keel at each jump lip; the same faces are collected
+  // for physics so a low arrival cannot enter a hollow receiving ramp.
+  const faces = THREE.ShapeUtils.triangulateShape(
+    keelProfile.map(([x, y]) => new THREE.Vector2(x, y)),
+    [],
+  );
+  const endPositions = [];
+  for (const jump of track.jumps)
+    for (const [distance, direction] of [
+      [jump.takeoff, 1],
+      [jump.landingStart, -1],
+    ]) {
+      const frame = track.sample(distance);
+      for (const face of faces) {
+        const points = face.map((index) =>
+          framePoint(frame, ...keelProfile[index]),
+        );
+        const normal = points[1]
+          .clone()
+          .sub(points[0])
+          .cross(points[2].clone().sub(points[0]));
+        if (normal.dot(frame.tangent) * direction < 0)
+          [points[1], points[2]] = [points[2], points[1]];
+        for (const point of points) endPositions.push(...point.toArray());
+      }
+    }
+  const endGeometry = new THREE.BufferGeometry();
+  endGeometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(endPositions, 3),
+  );
+  endGeometry.computeVertexNormals();
+  add('Ceramic takeoff and receiving ramp end faces', endGeometry, keel);
   merged('Low continuous inner ceramic curb', railParts, ivory);
   merged('Warm pale continuous edge cap', edgeParts, edge);
   merged('External cantilever shoulder ledges', shoulders, oxide);

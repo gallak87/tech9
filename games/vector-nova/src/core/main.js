@@ -93,6 +93,7 @@ async function boot() {
   const playtest = Object.hasOwn(definition.playtests ?? {}, playtestName)
     ? definition.playtests[playtestName]
     : null;
+  let testLaunch = null;
   const playtestCases = playtest
     ? (playtest.cases ?? [
         { id: 'default', label: playtest.label, scenario: playtest.scenario },
@@ -544,6 +545,7 @@ async function boot() {
     flyCamera?.leave();
     cancelCountdown();
     scenario = 'staging';
+    testLaunch = null;
     sceneShip();
     competition = racingEnabled && compete;
     if (withCountdown) raceDifficulty = settings.difficulty;
@@ -1129,6 +1131,40 @@ async function boot() {
       ? {
           test: {
             cases: playtestCases.map((entry) => ({ ...entry })),
+            targets: structuredClone(collisionWorld?.targets ?? []),
+            jumps: structuredClone(track.jumps ?? []),
+            frame(distance) {
+              if (!Number.isFinite(distance))
+                throw new Error('Frame distance must be finite');
+              const frame = track.sample(distance);
+              return Object.fromEntries(
+                ['position', 'right', 'up', 'tangent', 'quaternion'].map(
+                  (key) => [key, frame[key].toArray()],
+                ),
+              );
+            },
+            ...(runtime.launch
+              ? {
+                  launch(setup) {
+                    if (
+                      !active ||
+                      !window.__VN.ready ||
+                      shipLoading ||
+                      mode !== 'paused' ||
+                      pausedCountdown ||
+                      tick !== 0
+                    )
+                      throw new Error('Reset a playtest case before launching');
+                    runtime.launch(state, setup);
+                    testLaunch = structuredClone(setup);
+                    initial = captureInitial(state, runtime, dynamics);
+                    prev = { ...state };
+                    rig.reset();
+                    pose(state, 1);
+                    return this.getState();
+                  },
+                }
+              : {}),
             reset(id) {
               resetPlaytestCase(id);
               return this.getState();
@@ -1247,6 +1283,7 @@ async function boot() {
         scenario,
         competition,
         untimed: Boolean(playtest),
+        ...(testLaunch ? { testLaunch: structuredClone(testLaunch) } : {}),
         difficulty: raceDifficulty,
         inputs: inputLog.map((e) => ({ ...e, input: { ...e.input } })),
       };
@@ -1275,6 +1312,7 @@ async function boot() {
         tick,
         accumulator,
         initial,
+        testLaunch,
         runtime: runtime.snapshot(),
         dynamics: dynamics?.snapshot(),
         racers: racers?.serialize(),
@@ -1300,6 +1338,13 @@ async function boot() {
             throw new Error('Replay competition mismatch');
           restart(true);
         }
+        if (replay.testLaunch) {
+          if (!playtest || !runtime.launch || replay.competition)
+            throw new Error('Replay contact launch mismatch');
+          runtime.launch(state, replay.testLaunch);
+          testLaunch = structuredClone(replay.testLaunch);
+          initial = captureInitial(state, runtime, dynamics);
+        }
         restoreReplayInitial(replay.initial, initial, state, runtime, dynamics);
       } catch (error) {
         ({
@@ -1313,6 +1358,7 @@ async function boot() {
           tick,
           accumulator,
           initial,
+          testLaunch,
           competition,
           lastResults,
           raceDifficulty,

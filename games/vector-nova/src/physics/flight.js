@@ -432,12 +432,19 @@ export function createFlightModel(overrides = {}) {
   }
 
   function createRuntime(
-    { track, settings = {}, collisionWorld = null, dynamics = null },
+    {
+      track,
+      settings = {},
+      collisionWorld = null,
+      dynamics = null,
+      playtest = null,
+    },
     options,
   ) {
     if (!options?.id || !Number.isInteger(options.version) || !options.rulesId)
       throw new Error('Flight runtime requires versioned identity.');
-    const automaticRecovery = options.automaticRecovery !== false;
+    const automaticRecovery =
+      !playtest && !options.testLaunch && options.automaticRecovery !== false;
     if (!Array.isArray(track.jumps))
       throw new Error('Flight runtime requires track.jumps (may be empty).');
     if (
@@ -497,27 +504,32 @@ export function createFlightModel(overrides = {}) {
     let disposed = false;
     let seed = 0;
     let stepModifiers = {};
-    const poseOnRoad = (state) => {
+    const poseOnRoad = (state, supported = false) => {
       const f = track.sample(state.distance);
+      const quaternion = f.quaternion
+        .clone()
+        .multiply(
+          new THREE.Quaternion().setFromAxisAngle(
+            new THREE.Vector3(0, 1, 0),
+            state.heading,
+          ),
+        )
+        .multiply(
+          new THREE.Quaternion().setFromAxisAngle(
+            new THREE.Vector3(0, 0, 1),
+            (state.steer ?? 0) * 0.08,
+          ),
+        );
+      const height =
+        supported && options.forgivingContacts
+          ? Math.max(R.hover, bodyExtent(quaternion, f.up))
+          : R.hover;
       return {
         position: f.position
           .clone()
           .addScaledVector(f.right, state.lateral)
-          .addScaledVector(f.up, R.hover),
-        quaternion: f.quaternion
-          .clone()
-          .multiply(
-            new THREE.Quaternion().setFromAxisAngle(
-              new THREE.Vector3(0, 1, 0),
-              state.heading,
-            ),
-          )
-          .multiply(
-            new THREE.Quaternion().setFromAxisAngle(
-              new THREE.Vector3(0, 0, 1),
-              (state.steer ?? 0) * 0.08,
-            ),
-          ),
+          .addScaledVector(f.up, height),
+        quaternion,
       };
     };
     function advanceGroundPose(state, dt) {
@@ -532,7 +544,7 @@ export function createFlightModel(overrides = {}) {
       const t = landingSettle.elapsed / R.landingSettleDuration;
       const blend = t * t * (3 - 2 * t);
       const frame = track.sample(state.distance);
-      const pose = poseOnRoad(state);
+      const pose = poseOnRoad(state, true);
       const baseExtent = bodyExtent(pose.quaternion, frame.up);
       pose.quaternion.multiply(
         landingSettle.orientation.clone().slerp(new THREE.Quaternion(), blend),
@@ -638,7 +650,7 @@ export function createFlightModel(overrides = {}) {
       state.boosting = false;
       state.impact = flight.edgeCaught ? Math.max(state.impact, 0.35) : 0;
       mode = 'magnetic';
-      const roadPose = poseOnRoad(state);
+      const roadPose = poseOnRoad(state, true);
       if (landing) {
         const frame = track.sample(state.distance);
         const support = Math.max(
@@ -746,14 +758,7 @@ export function createFlightModel(overrides = {}) {
     // Contact geometry never asks whether this is an acceptable racing landing.
     // Only after the physical query do heading, support and checkpoint bounds
     // decide whether to relatch the current jump's receiving surface.
-    function supportedContact(jump, hit, incomingVelocity = flight.velocity) {
-      const restoringTraction =
-        dynamics && mode === 'recovery' && hit.shape.kind === 'deck';
-      if (
-        (mode !== 'flight' && !restoringTraction) ||
-        !['deck', 'rail'].includes(hit.shape.kind)
-      )
-        return null;
+    function receivingFrame(jump, hit) {
       let distance =
         hit.shape.distance ?? (hit.shape.start + hit.shape.end) / 2;
       distance = clamp(distance, jump.landingStart, jump.landingEnd);
@@ -767,14 +772,71 @@ export function createFlightModel(overrides = {}) {
         );
       }
       const frame = track.sample(distance);
+      const offset = hit.position.clone().sub(frame.position);
+      return { distance, frame, offset };
+    }
+
+    // Arcade assistance follows the local receiving road only after a real
+    // boundary contact. External supports/undersides never attract the ship.
+    function assistBoundary(jump, hit) {
+      if (!options.forgivingContacts || !hit.shape.roadBoundary) return false;
+      const { distance, frame, offset } = receivingFrame(jump, {
+        ...hit,
+        position: currentPose.position,
+      });
+      const lateral = offset.dot(frame.right),
+        height = offset.dot(frame.up);
+      if (
+        distance < jump.landingStart ||
+        distance > jump.landingEnd ||
+        Math.abs(offset.dot(frame.tangent)) > R.halfLength + 2 ||
+        height < R.hover - 0.05 ||
+        height > 12 ||
+        Math.abs(lateral) > jump.halfWidth + 8
+      )
+        return false;
+      const side = Math.sign(lateral);
+      if (!side) return false;
+      const sideways = flight.velocity.dot(frame.right);
+      const inward = -side * clamp(Math.abs(sideways) * 0.3, 6, 10);
+      flight.velocity.addScaledVector(frame.right, inward - sideways);
+      const rise = flight.velocity.dot(frame.up);
+      if (rise > 2) flight.velocity.addScaledVector(frame.up, 2 - rise);
+      flight.angularVelocity.multiplyScalar(0.25);
+      actor.setVelocity(flight.velocity, flight.angularVelocity);
+      flight.edgeCaught = true;
+      return true;
+    }
+
+    function supportedContact(jump, hit, incomingVelocity = flight.velocity) {
+      const restoringTraction =
+        dynamics && mode === 'recovery' && hit.shape.kind === 'deck';
+      if (
+        (mode !== 'flight' && !restoringTraction) ||
+        !['deck', 'rail'].includes(hit.shape.kind)
+      )
+        return null;
+      const { distance, frame, offset } = receivingFrame(jump, hit);
       if (
         Number.isFinite(hit.shape.start) &&
         (distance < hit.shape.start - 1e-5 || distance > hit.shape.end + 1e-5)
       )
         return null;
-      const offset = hit.position.clone().sub(frame.position);
       const lateral = offset.dot(frame.right);
-      const heading = landingHeading(hit.quaternion, frame);
+      const strictHeading = landingHeading(hit.quaternion, frame);
+      const forgivingDeck =
+        options.forgivingContacts && hit.shape.kind === 'deck';
+      const heading =
+        forgivingDeck && strictHeading === null
+          ? clamp(
+              Math.atan2(
+                incomingVelocity.dot(frame.right),
+                Math.max(0.01, incomingVelocity.dot(frame.tangent)),
+              ),
+              -R.headingTolerance,
+              R.headingTolerance,
+            )
+          : strictHeading;
       const boundary =
         jump.halfWidth +
         (hit.shape.kind === 'rail' ? (R.railOffset[jump.id] ?? 0) : 0);
@@ -791,7 +853,9 @@ export function createFlightModel(overrides = {}) {
       if (
         hit.shape.kind === 'deck' &&
         (hit.normal.dot(frame.up) < 0.55 ||
-          (!restoringTraction && incomingVelocity.dot(frame.up) >= -0.01))
+          (!restoringTraction &&
+            !forgivingDeck &&
+            incomingVelocity.dot(frame.up) >= -0.01))
       )
         return null;
       // Rails may support only a hull above the deck, never an underside pull.
@@ -1057,7 +1121,7 @@ export function createFlightModel(overrides = {}) {
           // engine-owned so a graze can rotate/deflect without a lateral teleport.
           if (contact.edgeCatch) flight.edgeCaught = true;
           const contactPose = clonePose(currentPose);
-          if (mode === 'recovery') {
+          if (mode === 'recovery' || options.forgivingContacts) {
             // The solver may already have bounced upward this tick. Magnetic
             // capture cancels that rebound; retain only the small landing FX.
             const height = contactPose.position
@@ -1075,11 +1139,13 @@ export function createFlightModel(overrides = {}) {
           transfer(state, jump, 'landed', events, contact, contactPose);
           return;
         }
+        const assistedBoundary = assistBoundary(jump, hit);
         const crash =
-          hit.shape.kind === 'terrain' ||
-          hit.shape.kind === 'structure' ||
-          (hit.shape.kind === 'deck' &&
-            Math.abs(hit.normal.dot(hit.surfaceNormal)) > 0.55);
+          !assistedBoundary &&
+          (hit.shape.kind === 'terrain' ||
+            hit.shape.kind === 'structure' ||
+            (hit.shape.kind === 'deck' &&
+              Math.abs(hit.normal.dot(hit.surfaceNormal)) > 0.55));
         if (contact && hit.shape.kind === 'rail') flight.edgeCaught = true;
         if (
           hit.incomingSpeed > 2 &&
@@ -1357,7 +1423,7 @@ export function createFlightModel(overrides = {}) {
     const adapter = {
       id: options.id,
       version: options.version,
-      rulesId: `${collisionWorld ? `${options.rulesId}:collision-${JSON.stringify({ id: collisionWorld.id, version: collisionWorld.version, rulesId: collisionWorld.rulesId })}` : options.rulesId}${dynamics ? `:dynamics-${JSON.stringify({ id: dynamics.id, version: dynamics.version, rulesId: dynamics.rulesId })}:deck-traction-v1` : ''}${automaticRecovery ? '' : ':manual-recovery-v1'}`,
+      rulesId: `${collisionWorld ? `${options.rulesId}:collision-${JSON.stringify({ id: collisionWorld.id, version: collisionWorld.version, rulesId: collisionWorld.rulesId })}` : options.rulesId}${dynamics ? `:dynamics-${JSON.stringify({ id: dynamics.id, version: dynamics.version, rulesId: dynamics.rulesId })}:deck-traction-v1` : ''}${options.forgivingContacts ? ':forgiving-deck-wall-v1' : ''}${automaticRecovery ? '' : ':manual-recovery-v1'}`,
       scenarios,
       advance(state, input, dt, modifiers = {}) {
         const events = [];
@@ -1500,6 +1566,52 @@ export function createFlightModel(overrides = {}) {
         actor?.dispose();
       },
     };
+    // Opt-in setup for contact playtests only. All subsequent ticks still use
+    // the real adapter and shared engine; no trajectory or recovery shortcuts.
+    if (options.testLaunch) {
+      adapter.launch = (state, setup) => {
+        if (disposed || pending)
+          throw new Error('Launch requires an idle live flight runtime.');
+        const jump = track.jumps.find((entry) => entry.id === setup?.jump);
+        const vector = (value, size) =>
+          Array.isArray(value) &&
+          value.length === size &&
+          value.every(Number.isFinite);
+        if (
+          !jump ||
+          !vector(setup.position, 3) ||
+          !vector(setup.velocity, 3) ||
+          (setup.quaternion !== undefined &&
+            (!vector(setup.quaternion, 4) ||
+              Math.abs(Math.hypot(...setup.quaternion) - 1) > 1e-5)) ||
+          (setup.angularVelocity !== undefined &&
+            !vector(setup.angularVelocity, 3))
+        )
+          throw new Error(
+            'Launch requires a known jump, finite world position/velocity and optional unit quaternion/angular velocity.',
+          );
+        adapter.reset({ seed });
+        state.distance = jump.takeoff;
+        state.speed = new THREE.Vector3(...setup.velocity).length();
+        beginFlight(state, jump, jump.takeoff, [], null);
+        currentPose.position.fromArray(setup.position);
+        if (setup.quaternion)
+          currentPose.quaternion.fromArray(setup.quaternion);
+        previousPose = clonePose(currentPose);
+        flight.velocity.fromArray(setup.velocity);
+        flight.launchQuaternion.copy(currentPose.quaternion);
+        if (dynamics) {
+          flight.angularVelocity.fromArray(setup.angularVelocity ?? [0, 0, 0]);
+          flight.dynamicsStarted = true;
+          actor.reset({
+            active: true,
+            pose: currentPose,
+            velocity: flight.velocity,
+            angularVelocity: flight.angularVelocity,
+          });
+        }
+      };
+    }
     if (dynamics) {
       adapter.beginAdvance = (state, input, dt, modifiers = {}) => {
         if (pending)

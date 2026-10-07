@@ -20,8 +20,11 @@ export function createCindercoilRuntime(context) {
   let disposed = false;
   const flight = model.createRuntime(context, {
     id: 'cindercoil-volcanic',
-    version: 1,
+    version: context.dynamics ? 3 : 1,
     rulesId: `cindercoil-v1:${JSON.stringify({ geometry: track.geometryVersion, flight: model.rules, jumps: track.jumps, zones: track.surgeZones, rules: CINDERCOIL_RULES })}`,
+    automaticRecovery: context.playtest?.automaticRecovery !== false,
+    testLaunch: Boolean(context.playtest),
+    forgivingContacts: Boolean(context.dynamics),
     groundOptions: ({ state }) => ({
       surface: {
         drag: surgeAt(track, state)?.contact ? CINDERCOIL_RULES.surgeDrag : 0,
@@ -116,6 +119,27 @@ export function createCindercoilRuntime(context) {
     label: 'Vent · erupting crossing',
     state: { distance: jump.takeoff - 3, speed: 102, time: 3 },
   };
+  let stagedContact = null;
+  function finishContact(state, contact, touching, step, events) {
+    if (touching) {
+      state.energy = Math.max(
+        0,
+        state.energy - CINDERCOIL_RULES.reserveDrain * step,
+      );
+      contactSeconds += step;
+      if (contactId !== contact.zone.id)
+        events.push({
+          type: 'lava-contact',
+          payload: {
+            id: contact.zone.id,
+            drag: CINDERCOIL_RULES.surgeDrag,
+            reserveDrain: CINDERCOIL_RULES.reserveDrain,
+          },
+        });
+      contactId = contact.zone.id;
+    } else contactId = null;
+    return events;
+  }
   return {
     ...flight,
     scenarios,
@@ -130,27 +154,36 @@ export function createCindercoilRuntime(context) {
         const pose = flight.pose(1);
         const touching = (!pose || pose.grounded) && contact?.contact;
         events.push(...flight.advance(state, input, step, modifiers));
-        if (touching) {
-          state.energy = Math.max(
-            0,
-            state.energy - CINDERCOIL_RULES.reserveDrain * step,
-          );
-          contactSeconds += step;
-          if (contactId !== contact.zone.id)
-            events.push({
-              type: 'lava-contact',
-              payload: {
-                id: contact.zone.id,
-                drag: CINDERCOIL_RULES.surgeDrag,
-                reserveDrain: CINDERCOIL_RULES.reserveDrain,
-              },
-            });
-          contactId = contact.zone.id;
-        } else contactId = null;
+        finishContact(state, contact, touching, step, events);
       }
       return events;
     },
+    ...(flight.beginAdvance
+      ? {
+          beginAdvance(state, input, dt, modifiers) {
+            if (stagedContact)
+              throw new Error('Finish the pending Cindercoil step first');
+            const contact = surgeAt(track, state);
+            const pose = flight.pose(1);
+            stagedContact = {
+              contact,
+              touching: (!pose || pose.grounded) && contact?.contact,
+              dt,
+            };
+            flight.beginAdvance(state, input, dt, modifiers);
+          },
+          finishAdvance(state) {
+            if (!stagedContact)
+              throw new Error('Stage the Cindercoil step before resolving it');
+            const { contact, touching, dt } = stagedContact;
+            const events = flight.finishAdvance(state);
+            stagedContact = null;
+            return finishContact(state, contact, touching, dt, events);
+          },
+        }
+      : {}),
     reset(args) {
+      stagedContact = null;
       contactSeconds = 0;
       contactId = null;
       flight.reset(args);
@@ -168,11 +201,13 @@ export function createCindercoilRuntime(context) {
       )
         throw new Error('Invalid Cindercoil hazard snapshot.');
       flight.restore(data.flight);
+      stagedContact = null;
       contactSeconds = data.contactSeconds;
       contactId = data.contactId;
     },
     dispose() {
       disposed = true;
+      stagedContact = null;
       flight.dispose();
     },
   };

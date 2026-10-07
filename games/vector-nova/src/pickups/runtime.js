@@ -60,6 +60,9 @@ export function createDeviceRuntime({
   return {
     ...ownIdentity,
     scenarios: { ...motion.scenarios, ...deviceScenarios, ...scenarios },
+    ...(motion.launch
+      ? { launch: (state, setup) => motion.launch(state, setup) }
+      : {}),
     advance(state, input, dt) {
       if (disposed || !Number.isFinite(dt) || dt <= 0) return [];
       const elapsed = Math.min(dt, 0.1);

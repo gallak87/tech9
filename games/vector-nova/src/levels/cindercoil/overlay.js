@@ -73,7 +73,9 @@ export function createCindercoilOverlay({ host, track, readRuntime }) {
             ? 'AIRBORNE · VENT ACTIVE · HOLD THE RECEIVING LINE'
             : 'AIRBORNE · HOLD LINE FOR THE RECEIVING SHELF';
       else if (flight?.mode === 'recovery')
-        text = `MISSED LANDING · RECOVERY ${flight.flight.remaining.toFixed(1)}s`;
+        text = flight.flight.manualRecovery
+          ? 'CONTACT TEST · R TO REPEAT'
+          : `MISSED LANDING · RECOVERY ${flight.flight.remaining.toFixed(1)}s`;
       else if (local?.contact) text = 'LAVA CONTACT · SPEED + RESERVE LOSS';
       else if (zone?.kind === 'spill')
         text = 'DIAGONAL LAVA FLOW · CROSS BRIEFLY';

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import createLevel from '../src/levels/saffron/index.js';
+import createCindercoilLevel from '../src/levels/cindercoil/index.js';
 import { createVehicleState } from '../src/physics/index.js';
 import { createDeviceRuntime } from '../src/pickups/runtime.js';
 import { createRace } from '../src/race/index.js';
@@ -199,11 +200,11 @@ test('Saffron short launch rotates and keeps physical contacts throughout fallin
   }
 });
 
-test('jump contact playtest keeps falling beyond the racing recovery delay until manual reset', async (t) => {
+test('jump contact playtest defaults to manual recovery without a level-specific flag', async (t) => {
   const { step, state, runtime, dynamics, jump, track } = await fixture(
     t,
     'jump3-short',
-    { automaticRecovery: false },
+    {},
   );
   const events = [];
   for (
@@ -473,7 +474,7 @@ async function tractionFixture(t, kind = 'deck') {
       id: 'traction',
       version: 1,
       rulesId: 'traction-proof-v1',
-      automaticRecovery: false,
+      testLaunch: true,
     },
   );
   const state = { ...createVehicleState(), distance: 99.8, speed: 100 };
@@ -583,6 +584,244 @@ test('falling recovery does not regain road traction from terrain or a deck unde
       );
       assert.equal(runtime.snapshot().mode, 'recovery');
       assert.ok(!events.some(({ type }) => type === 'jump-transfer'));
+    });
+  }
+});
+
+test('Cindercoil production wall rebound uses shared deck traction and stays supported under throttle', async (t) => {
+  const definition = createCindercoilLevel({});
+  const track = definition.createTrack();
+  const collisionWorld = definition.createCollisionWorld({ track });
+  const dynamics = await definition.createDynamics({ track, collisionWorld });
+  const runtime = createDeviceRuntime({
+    track,
+    devices: definition.racing.createDevices(track),
+    motion: definition.createRuntime({
+      track,
+      collisionWorld,
+      dynamics,
+      playtest: definition.playtests.jump,
+      presentation: false,
+    }),
+  });
+  t.after(() => {
+    runtime.dispose();
+    dynamics.dispose();
+    collisionWorld.dispose();
+  });
+  const state = {
+    ...createVehicleState(),
+    ...runtime.scenarios['vent-clean'].state,
+  };
+  runtime.reset({ state, scenario: 'vent-clean' });
+  const jump = track.jumps[0],
+    frame = track.sample(jump.landingStart + 80);
+  runtime.launch(state, {
+    jump: jump.id,
+    position: frame.position
+      .clone()
+      .addScaledVector(frame.right, 12.4)
+      .addScaledVector(frame.up, 2)
+      .toArray(),
+    velocity: frame.right
+      .clone()
+      .multiplyScalar(25)
+      .addScaledVector(frame.up, -5)
+      .addScaledVector(frame.tangent, 18)
+      .toArray(),
+    quaternion: frame.quaternion.toArray(),
+  });
+  const race = createRace(track, { untimed: true });
+  race.placeScenario(state.distance);
+  const events = [];
+  const step = () =>
+    advanceSession({
+      state,
+      runtime,
+      dynamics,
+      race,
+      input: DRIVE,
+      dt: DT,
+      emit: (event) => events.push(event),
+    });
+  for (
+    let i = 0;
+    i < 600 && !events.some(({ type }) => type === 'jump-transfer');
+    i++
+  )
+    step();
+  assert.ok(
+    events.some(
+      ({ type, payload }) =>
+        type === 'impact' && /edge-cap|wall/.test(payload.collider),
+    ),
+  );
+  const transfer = events.find(({ type }) => type === 'jump-transfer');
+  assert.equal(transfer?.payload.outcome, 'landed');
+  assert.equal(transfer.payload.edgeCaught, true);
+  for (let i = 0; i < 100; i++) {
+    step();
+    assert.equal(
+      runtime.snapshot().motion.flight.mode,
+      'magnetic',
+      'rebound must not throw the craft off the supported road again',
+    );
+  }
+  assert.equal(events.filter(({ type }) => type === 'jump-transfer').length, 1);
+});
+
+test('Cindercoil forgiving contacts recover steered barriers and inverted deck landings while rejecting undersides', async (t) => {
+  const definition = createCindercoilLevel({});
+  const track = definition.createTrack();
+  const collisionWorld = definition.createCollisionWorld({ track });
+  const dynamics = await definition.createDynamics({ track, collisionWorld });
+  const runtime = createDeviceRuntime({
+    track,
+    devices: definition.racing.createDevices(track),
+    motion: definition.createRuntime({
+      track,
+      collisionWorld,
+      dynamics,
+      playtest: definition.playtests.jump,
+      presentation: false,
+    }),
+  });
+  t.after(() => {
+    runtime.dispose();
+    dynamics.dispose();
+    collisionWorld.dispose();
+  });
+  const jump = track.jumps[0];
+  const cases = [
+    {
+      id: 'left barrier / mild outward steering',
+      scenario: 'vent-edge-left',
+      steer: 0.35,
+      wall: true,
+    },
+    {
+      id: 'right barrier / mild outward steering',
+      scenario: 'vent-edge-right',
+      steer: -0.35,
+      wall: true,
+    },
+    { id: 'ordinary clean crossing', scenario: 'vent-clean' },
+    {
+      id: 'inverted deck landing',
+      height: 6,
+      velocity: [0, -22, 45],
+      inverted: true,
+    },
+    {
+      id: 'keel underside',
+      height: -13,
+      velocity: [0, 32, 10],
+      underside: true,
+    },
+  ];
+  for (const entry of cases) {
+    await t.test(entry.id, () => {
+      dynamics.reset();
+      const scenario = entry.scenario ?? 'vent-clean';
+      const state = {
+        ...createVehicleState(),
+        ...runtime.scenarios[scenario].state,
+      };
+      runtime.reset({ state, scenario });
+      if (!entry.scenario) {
+        const frame = track.sample(jump.landingStart + 80);
+        const quaternion = frame.quaternion.clone();
+        if (entry.inverted)
+          quaternion.multiply(
+            new T.Quaternion().setFromAxisAngle(
+              new T.Vector3(0, 0, 1),
+              Math.PI,
+            ),
+          );
+        runtime.launch(state, {
+          jump: jump.id,
+          position: frame.position
+            .clone()
+            .addScaledVector(frame.up, entry.height)
+            .toArray(),
+          velocity: frame.right
+            .clone()
+            .multiplyScalar(entry.velocity[0])
+            .addScaledVector(frame.up, entry.velocity[1])
+            .addScaledVector(frame.tangent, entry.velocity[2])
+            .toArray(),
+          quaternion: quaternion.toArray(),
+        });
+      }
+      const race = createRace(track, { untimed: true });
+      race.placeScenario(state.distance);
+      const events = [];
+      const step = (control) =>
+        advanceSession({
+          state,
+          runtime,
+          dynamics,
+          race,
+          input: control,
+          dt: DT,
+          emit: (event) => events.push(event),
+        });
+      for (
+        let i = 0;
+        i < 720 && !events.some(({ type }) => type === 'jump-transfer');
+        i++
+      )
+        step({ ...COAST, steer: entry.steer ?? 0 });
+      if (entry.underside) {
+        assert.ok(
+          events.some(
+            ({ type, payload }) =>
+              type === 'impact' &&
+              payload.collider === 'deep-beveled-ceramic-box-keel',
+          ),
+        );
+        assert.ok(!events.some(({ type }) => type === 'jump-transfer'));
+        assert.equal(runtime.snapshot().motion.flight.mode, 'recovery');
+        return;
+      }
+      const transfer = events.find(({ type }) => type === 'jump-transfer');
+      assert.equal(transfer?.payload.outcome, 'landed');
+      assert.ok(
+        !events.some(({ type }) => type === 'jump-miss'),
+        'supported return should keep driving without a crash/recovery transition',
+      );
+      if (entry.wall) {
+        assert.ok(
+          events.some(
+            ({ type, payload }) =>
+              type === 'impact' &&
+              /edge-cap|wall/.test(payload.collider) &&
+              payload.response === 'deflection',
+          ),
+        );
+        assert.equal(transfer.payload.edgeCaught, true);
+      }
+      const landedDistance = state.distance;
+      for (let i = 0; i < 100; i++) {
+        step(DRIVE);
+        assert.equal(runtime.snapshot().motion.flight.mode, 'magnetic');
+        const pose = runtime.pose();
+        if (pose) {
+          const frame = track.sample(state.distance);
+          const clearance =
+            pose.position.clone().sub(frame.position).dot(frame.up) -
+            projectedHullExtent(pose.quaternion, frame.up);
+          assert.ok(
+            clearance >= -0.001 && clearance <= 0.061,
+            'self-righting keeps the full hull above the real deck',
+          );
+        }
+      }
+      assert.ok(state.distance > landedDistance + 5);
+      assert.equal(
+        events.filter(({ type }) => type === 'jump-transfer').length,
+        1,
+      );
     });
   }
 });

@@ -50,6 +50,16 @@ export default function createLevel({ shape = false }) {
         automaticRecovery: false,
         cases: [
           {
+            id: 'clean-first',
+            label: 'First vertebra clean launch',
+            scenario: 'jump2-success',
+          },
+          {
+            id: 'clean-second',
+            label: 'Second vertebra clean launch',
+            scenario: 'jump3-success',
+          },
+          {
             id: 'approach',
             label: 'Second vertebra approach',
             scenario: 'jump-playtest',

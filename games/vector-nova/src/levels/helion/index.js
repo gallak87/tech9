@@ -1,3 +1,4 @@
+import { createHelionCollisionWorld } from './collision.js';
 import * as T from 'three';
 import { createDevices } from './devices.js';
 import { createHelionTrack, buildHelionRoad } from './track/index.js';
@@ -11,6 +12,15 @@ export default function createLevel({ shape = false } = {}) {
   const telemetry = {};
   return {
     version: '0.7.0-helion-racing',
+    playtests: {
+      jump: {
+        scenario: 'jump1-success',
+        label: 'Jump collision playtest',
+        description: 'Production contacts; reset manually between launches.',
+        automaticRecovery: false,
+      },
+    },
+    createCollisionWorld: shape ? undefined : createHelionCollisionWorld,
     racing: { createDevices, createMotion: createHelionRuntime },
     renderer: {
       world: shape ? 'helion-shape' : 'helion-flare',

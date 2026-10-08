@@ -1,3 +1,4 @@
+import { createUmbraCollisionWorld } from './collision.js';
 import * as T from 'three';
 import { createDevices } from './devices.js';
 import { createUmbraTrack, buildUmbraRoad } from './track/index.js';
@@ -10,6 +11,15 @@ import { loadUmbraSurface } from './environment/surfaces.js';
 export default function createLevel({ shape = false } = {}) {
   return {
     version: '0.5.0-umbra-racing',
+    playtests: {
+      jump: {
+        scenario: 'jump1-success',
+        label: 'Jump collision playtest',
+        description: 'Production contacts; reset manually between launches.',
+        automaticRecovery: false,
+      },
+    },
+    createCollisionWorld: shape ? undefined : createUmbraCollisionWorld,
     racing: { createDevices, createMotion: createUmbraRuntime },
     renderer: {
       world: shape ? 'umbra-shape' : 'umbra-fold',

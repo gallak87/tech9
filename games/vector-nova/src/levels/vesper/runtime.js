@@ -19,6 +19,8 @@ export function vesperGroundOptions(track, state) {
 export function createVesperRuntime(context) {
   const { track } = context;
   const runtime = VESPER_FLIGHT.createRuntime(context, {
+    testLaunch: Boolean(context.playtest),
+    forgivingContacts: Boolean(context.collisionWorld),
     id: 'vesper-forest-flight',
     version: 1,
     rulesId: `vesper-rules-1:${JSON.stringify({ revision: track.revision, rules: VESPER_FLIGHT.rules, jumps: track.jumps, zones: track.sapZones, optionalLane: 5.5 })}`,

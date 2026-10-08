@@ -14,6 +14,8 @@ export const glasswakeFlightState = (track) =>
 export function createGlasswakeRuntime(context) {
   const { track } = context;
   const runtime = flightModel.createRuntime(context, {
+    testLaunch: Boolean(context.playtest),
+    forgivingContacts: Boolean(context.collisionWorld),
     id: 'glasswake-fracture-grip',
     version: 6,
     rulesId: `glasswake-v6:${JSON.stringify({ geometry: track.geometryVersion, jumps: track.jumps, frost: track.gripZones, rules: flightModel.rules, openingShelf: FIRST_SHELF_RULES, calving: CALVING_RULES })}`,

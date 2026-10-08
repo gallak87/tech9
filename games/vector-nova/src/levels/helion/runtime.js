@@ -60,6 +60,8 @@ export function createHelionRuntime(context, telemetry = {}) {
       state: { distance: firstFlare.start + 12, lateral: 0, speed: 0, time: 5 },
     };
   const base = flightModel.createRuntime(context, {
+    testLaunch: Boolean(context.playtest),
+    forgivingContacts: Boolean(context.collisionWorld),
     id: 'helion-thermal-flight',
     version: 3,
     rulesId,
@@ -131,8 +133,9 @@ export function createHelionRuntime(context, telemetry = {}) {
   return {
     id: base.id,
     version: base.version,
-    rulesId,
+    rulesId: base.rulesId,
     scenarios,
+    ...(base.launch ? { launch: base.launch } : {}),
     advance(state, input, dt, modifiers) {
       if (disposed || !Number.isFinite(dt) || dt <= 0) return [];
       const elapsed = Math.min(dt, 0.1),

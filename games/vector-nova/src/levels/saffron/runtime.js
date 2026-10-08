@@ -38,6 +38,8 @@ export function createSaffronRuntime(context) {
   let grazer = { lap: -1, startedAt: null };
   let localStep = null;
   const runtime = flightModel.createRuntime(context, {
+    testLaunch: Boolean(context.playtest),
+    forgivingContacts: Boolean(context.dynamics),
     id: 'saffron-sand-flight',
     version: context.dynamics ? 7 : 5,
     rulesId: `saffron-v${context.dynamics ? 7 : 5}:${JSON.stringify({ track: track.id, geometry: track.geometryVersion, jumps: track.jumps, rules: flightModel.rules, sand: 'migrating-four-v1-drag3', grazer: { event: 'forward-breach-v1', trigger: grazerTrigger(track) } })}`,

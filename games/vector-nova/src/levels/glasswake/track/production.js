@@ -46,7 +46,7 @@ function bladeGeometry(inset = false) {
 
 export function buildGlasswakeRoad(
   track,
-  { shape = false, settings = {} } = {},
+  { shape = false, settings = {}, collisionOnly = false } = {},
 ) {
   const group = new THREE.Group();
   group.name = shape
@@ -602,7 +602,7 @@ export function buildGlasswakeRoad(
   let currentQuality = settings.quality;
   let surfaceTexture = null;
   const ready =
-    shape || typeof document === 'undefined'
+    shape || collisionOnly || typeof document === 'undefined'
       ? Promise.resolve(false)
       : new THREE.TextureLoader()
           .loadAsync(assetURL('assets/levels/glasswake/ice-surface-v1.png'))

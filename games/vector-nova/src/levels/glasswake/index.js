@@ -1,3 +1,4 @@
+import { createGlasswakeCollisionWorld } from './collision.js';
 import { createDevices } from './devices.js';
 import { createGlasswakeTrack, buildGlasswakeRoad } from './track/index.js';
 import { createGlasswakeEnvironment } from './environment/index.js';
@@ -11,6 +12,15 @@ export default function createLevel({ shape = false } = {}) {
   return {
     version: '0.5.1-glasswake-racing',
     audio: { environment: shape ? undefined : createGlasswakeShelfAudio },
+    playtests: {
+      jump: {
+        scenario: 'jump1-success',
+        label: 'Jump collision playtest',
+        description: 'Production contacts; reset manually between launches.',
+        automaticRecovery: false,
+      },
+    },
+    createCollisionWorld: shape ? undefined : createGlasswakeCollisionWorld,
     racing: { createDevices, createMotion: createGlasswakeRuntime },
     renderer: {
       world: shape ? 'glasswake-shape' : 'glasswake-comet',

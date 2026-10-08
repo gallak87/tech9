@@ -56,7 +56,13 @@ export function createSaffronCollisionWorld({ track }) {
         end,
         step: SAFFRON_SOLIDS.step,
       });
-      geometry(data, { id: `road-${start}-${kind}`, kind, start, end });
+      geometry(data, {
+        id: `road-${start}-${kind}`,
+        kind,
+        start,
+        end,
+        ...(kind === 'rail' ? { roadBoundary: true } : {}),
+      });
       data.dispose();
     }
   }
@@ -74,7 +80,12 @@ export function createSaffronCollisionWorld({ track }) {
     for (const [i, item] of entries.entries())
       geometry(
         data,
-        { id: `${family}-${i}`, kind: 'rail', distance: item.s },
+        {
+          id: `${family}-${i}`,
+          kind: 'rail',
+          distance: item.s,
+          roadBoundary: true,
+        },
         fixtureMatrix(track, item),
       );
   vane.dispose();
@@ -137,14 +148,33 @@ export function createSaffronCollisionWorld({ track }) {
   const world = createCollisionWorld({
     id: 'saffron-solids',
     version: 1,
-    geometryId: `${track.geometryVersion}:${SAFFRON_SOLIDS.version}:terrain176-v1:fossils-${kit.sourceHash}:placements-v1:jump-supports-v1`,
+    geometryId: `${track.geometryVersion}:${SAFFRON_SOLIDS.version}:terrain176-v1:fossils-${kit.sourceHash}:placements-v1:jump-supports-v1:road-boundaries-v1`,
     triangles,
   });
+  const boundsById = new Map();
+  for (const triangle of world.triangles) {
+    if (!boundsById.has(triangle.id))
+      boundsById.set(triangle.id, {
+        kind: triangle.kind,
+        bounds: new T.Box3(),
+      });
+    const entry = boundsById.get(triangle.id);
+    for (const point of triangle.points)
+      entry.bounds.expandByPoint(new T.Vector3(...point));
+  }
+  const targets = [...boundsById].map(([id, { kind, bounds }]) => ({
+    id,
+    name: id,
+    kind,
+    min: bounds.min.toArray(),
+    max: bounds.max.toArray(),
+  }));
   // The factory cache belongs to the level/track, while core owns disposal.
   const owner = Object.freeze({
     ...world,
     survey,
     supports,
+    targets: Object.freeze(targets),
     dispose() {
       if (worlds.get(track) === owner) worlds.delete(track);
       world.dispose();

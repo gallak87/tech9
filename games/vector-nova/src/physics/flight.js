@@ -513,17 +513,21 @@ export function createFlightModel(overrides = {}) {
             new THREE.Vector3(0, 1, 0),
             state.heading,
           ),
-        )
-        .multiply(
+        );
+      // Grounded steering bank is cosmetic. Its visual roll must not lift the
+      // magnetic hull or enter the landing/support pose used by the solver.
+      if (!supported || !options.forgivingContacts)
+        quaternion.multiply(
           new THREE.Quaternion().setFromAxisAngle(
             new THREE.Vector3(0, 0, 1),
             (state.steer ?? 0) * 0.08,
           ),
         );
       const height =
-        supported && options.forgivingContacts
-          ? Math.max(R.hover, bodyExtent(quaternion, f.up))
-          : R.hover;
+        R.hover +
+        (supported && options.forgivingContacts
+          ? (options.supportHeight ?? 0)
+          : 0);
       return {
         position: f.position
           .clone()
@@ -534,7 +538,8 @@ export function createFlightModel(overrides = {}) {
     };
     function advanceGroundPose(state, dt) {
       if (!landingSettle) {
-        if (currentPose) currentPose = poseOnRoad(state);
+        if (currentPose || options.forgivingContacts)
+          currentPose = poseOnRoad(state, true);
         return;
       }
       landingSettle.elapsed = Math.min(
@@ -569,7 +574,7 @@ export function createFlightModel(overrides = {}) {
     }
     function beginFlight(state, jump, from, events, startPose) {
       const frame = track.sample(from);
-      const world = poseOnRoad(state);
+      const world = poseOnRoad(state, Boolean(options.forgivingContacts));
       const velocity = frame.tangent
         .clone()
         .multiplyScalar(state.speed * Math.cos(state.heading))
@@ -635,7 +640,10 @@ export function createFlightModel(overrides = {}) {
       contactPose = null,
     ) {
       const from = flight.from;
-      const tractionRestored = mode === 'recovery' && landing && dynamics;
+      const tractionRestored =
+        mode === 'recovery' &&
+        landing &&
+        (dynamics || options.forgivingContacts);
       state.distance =
         flight.lapOffset + (landing ? landing.distance : jump.recovery);
       state.lateral = landing ? landing.lateral : 0;
@@ -802,15 +810,17 @@ export function createFlightModel(overrides = {}) {
       flight.velocity.addScaledVector(frame.right, inward - sideways);
       const rise = flight.velocity.dot(frame.up);
       if (rise > 2) flight.velocity.addScaledVector(frame.up, 2 - rise);
-      flight.angularVelocity.multiplyScalar(0.25);
-      actor.setVelocity(flight.velocity, flight.angularVelocity);
+      flight.angularVelocity?.multiplyScalar(0.25);
+      actor?.setVelocity(flight.velocity, flight.angularVelocity);
       flight.edgeCaught = true;
       return true;
     }
 
     function supportedContact(jump, hit, incomingVelocity = flight.velocity) {
       const restoringTraction =
-        dynamics && mode === 'recovery' && hit.shape.kind === 'deck';
+        (dynamics || options.forgivingContacts) &&
+        mode === 'recovery' &&
+        hit.shape.kind === 'deck';
       if (
         (mode !== 'flight' && !restoringTraction) ||
         !['deck', 'rail'].includes(hit.shape.kind)
@@ -818,8 +828,12 @@ export function createFlightModel(overrides = {}) {
         return null;
       const { distance, frame, offset } = receivingFrame(jump, hit);
       if (
-        Number.isFinite(hit.shape.start) &&
-        (distance < hit.shape.start - 1e-5 || distance > hit.shape.end + 1e-5)
+        (Number.isFinite(hit.shape.start) &&
+          (distance < hit.shape.start - 1e-5 ||
+            distance > hit.shape.end + 1e-5)) ||
+        (Number.isFinite(hit.shape.distance) &&
+          (hit.shape.distance < jump.landingStart - R.halfLength ||
+            hit.shape.distance > jump.landingEnd + R.halfLength))
       )
         return null;
       const lateral = offset.dot(frame.right);
@@ -913,17 +927,34 @@ export function createFlightModel(overrides = {}) {
           }
           // A supported side hit keeps its ballistic height until deck contact.
           if (hit.shape.kind === 'deck') {
+            if (options.forgivingContacts) {
+              const height = pose.position
+                .clone()
+                .sub(contact.frame.position)
+                .dot(contact.frame.up);
+              const clearance =
+                Math.max(
+                  R.hover,
+                  bodyExtent(pose.quaternion, contact.frame.up),
+                ) + (options.supportHeight ?? 0);
+              pose.position.addScaledVector(
+                contact.frame.up,
+                Math.max(0, clearance - height),
+              );
+            }
             transfer(state, jump, 'landed', events, contact, pose);
             return true;
           }
           start = pose;
         } else {
           const kind = hit.shape.kind;
+          const assistedBoundary = assistBoundary(jump, hit);
           const crash =
-            kind === 'terrain' ||
-            kind === 'structure' ||
-            (kind === 'deck' &&
-              Math.abs(hit.normal.dot(hit.surfaceNormal)) > 0.55);
+            !assistedBoundary &&
+            (kind === 'terrain' ||
+              kind === 'structure' ||
+              (kind === 'deck' &&
+                Math.abs(hit.normal.dot(hit.surfaceNormal)) > 0.55));
           const incoming = Math.max(0, -flight.velocity.dot(hit.normal));
           const restitution = crash
             ? COLLISION_RULES.crashRestitution
@@ -1423,7 +1454,7 @@ export function createFlightModel(overrides = {}) {
     const adapter = {
       id: options.id,
       version: options.version,
-      rulesId: `${collisionWorld ? `${options.rulesId}:collision-${JSON.stringify({ id: collisionWorld.id, version: collisionWorld.version, rulesId: collisionWorld.rulesId })}` : options.rulesId}${dynamics ? `:dynamics-${JSON.stringify({ id: dynamics.id, version: dynamics.version, rulesId: dynamics.rulesId })}:deck-traction-v1` : ''}${options.forgivingContacts ? ':forgiving-deck-wall-v1' : ''}${automaticRecovery ? '' : ':manual-recovery-v1'}`,
+      rulesId: `${collisionWorld ? `${options.rulesId}:collision-${JSON.stringify({ id: collisionWorld.id, version: collisionWorld.version, rulesId: collisionWorld.rulesId })}` : options.rulesId}${dynamics ? `:dynamics-${JSON.stringify({ id: dynamics.id, version: dynamics.version, rulesId: dynamics.rulesId })}:deck-traction-v1` : ''}${options.forgivingContacts ? `:forgiving-deck-wall-v4:support-height-${options.supportHeight ?? 0}` : ''}${automaticRecovery ? '' : ':manual-recovery-v1'}`,
       scenarios,
       advance(state, input, dt, modifiers = {}) {
         const events = [];
@@ -1545,6 +1576,9 @@ export function createFlightModel(overrides = {}) {
         const from = previousPose ?? currentPose;
         return {
           grounded: mode === 'magnetic',
+          ...(mode === 'magnetic' && options.forgivingContacts
+            ? { steeringBank: true }
+            : {}),
           position: from.position
             .clone()
             .lerp(currentPose.position, clamp(alpha, 0, 1)),

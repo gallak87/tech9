@@ -1,3 +1,4 @@
+import { createNacreCollisionWorld } from './collision.js';
 import { assetURL } from '../../assets/url.js';
 import * as T from 'three';
 import {
@@ -16,6 +17,15 @@ import { legacyPart } from '../legacy.js';
 export default function createLevel({ shape }) {
   return {
     version: '0.4.2-nacre-racing',
+    playtests: {
+      jump: {
+        scenario: 'jump1-success',
+        label: 'Jump collision playtest',
+        description: 'Production contacts; reset manually between launches.',
+        automaticRecovery: false,
+      },
+    },
+    createCollisionWorld: shape ? undefined : createNacreCollisionWorld,
     racing: { createDevices, createMotion: createNacreRuntime },
     renderer: {
       world: shape ? 'nacre-shape' : 'nacre-tempest',

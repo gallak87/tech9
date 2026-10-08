@@ -339,19 +339,20 @@ export function createVesperRoad({ track, shape = false }) {
       ),
       shape ? smoked : core,
     );
+    thickness.name = 'Thick cast resin sides and underside';
     group.add(thickness);
     for (const sign of [-1, 1]) {
       if (sign === 1 && gap?.optional) continue;
-      group.add(
-        new T.Mesh(
-          sweepGeometry(track, boxProfile(sign * 14.75, 0.6, 1.5, 1.2), {
-            start,
-            end,
-            step: 4,
-          }),
-          shape ? milk : core,
-        ),
+      const curb = new T.Mesh(
+        sweepGeometry(track, boxProfile(sign * 14.75, 0.6, 1.5, 1.2), {
+          start,
+          end,
+          step: 4,
+        }),
+        shape ? milk : core,
       );
+      curb.name = 'Continuous cast resin curb';
+      group.add(curb);
       group.add(
         new T.Mesh(
           sweepGeometry(track, boxProfile(sign * 13.48, 0.07, 0.23, 0.1), {

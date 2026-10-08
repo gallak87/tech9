@@ -1,3 +1,4 @@
+import { createZephyrCollisionWorld } from './collision.js';
 import { createZephyrTrack, createZephyrRoad } from './track/index.js';
 import { createZephyrEnvironment } from './environment/index.js';
 import { createZephyrBackdrop } from './backdrop/index.js';
@@ -16,6 +17,15 @@ function spiralView(track, state) {
 export default function createLevel({ shape = false } = {}) {
   return {
     version: '0.6.0-zephyr-v3',
+    playtests: {
+      jump: {
+        scenario: 'jump1-success',
+        label: 'Jump collision playtest',
+        description: 'Production contacts; reset manually between launches.',
+        automaticRecovery: false,
+      },
+    },
+    createCollisionWorld: shape ? undefined : createZephyrCollisionWorld,
     racing: { createDevices, createMotion: createZephyrRuntime },
     renderer: {
       world: shape ? 'zephyr-shape' : 'zephyr-basilica',

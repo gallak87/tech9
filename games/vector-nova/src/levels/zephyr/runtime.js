@@ -4,6 +4,8 @@ const model = createFlightModel({ gravity: 26 });
 export function createZephyrRuntime(context) {
   const { track } = context;
   const runtime = model.createRuntime(context, {
+    testLaunch: Boolean(context.playtest),
+    forgivingContacts: Boolean(context.collisionWorld),
     id: 'zephyr-flight',
     version: 3,
     rulesId: `zephyr-flight-v3:${JSON.stringify({ geometry: track.geometryVersion, rules: model.rules, jumps: track.jumps, tower: 'fall-v7-long-arc', wet: 'physical-curtain-trail-v2' })}`,

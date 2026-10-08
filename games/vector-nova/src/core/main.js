@@ -931,6 +931,7 @@ async function boot() {
     if (worldPose) {
       ship.group.position.copy(worldPose.position);
       ship.group.quaternion.copy(worldPose.quaternion);
+      if (worldPose.steeringBank) ship.group.quaternion.multiply(localRoll);
     }
     ship.update({
       speed: s.speed,
@@ -1133,6 +1134,45 @@ async function boot() {
             cases: playtestCases.map((entry) => ({ ...entry })),
             targets: structuredClone(collisionWorld?.targets ?? []),
             jumps: structuredClone(track.jumps ?? []),
+            solids() {
+              const solids = [];
+              for (const [owner, group] of [
+                ['road', road],
+                ['environment', environment],
+              ]) {
+                group.updateWorldMatrix(true, true);
+                group.traverse((object) => {
+                  if (!object.isMesh || !object.geometry?.attributes.position)
+                    return;
+                  object.geometry.computeBoundingBox();
+                  const local = object.geometry.boundingBox;
+                  for (
+                    let index = 0;
+                    index < (object.isInstancedMesh ? object.count : 1);
+                    index++
+                  ) {
+                    const matrix = object.matrixWorld.clone();
+                    if (object.isInstancedMesh) {
+                      const instance = new T.Matrix4();
+                      object.getMatrixAt(index, instance);
+                      matrix.multiply(instance);
+                    }
+                    const bounds = local.clone().applyMatrix4(matrix);
+                    const size = bounds.getSize(new T.Vector3());
+                    if (Math.max(...size.toArray()) < 3) continue;
+                    solids.push({
+                      owner,
+                      name: object.name || object.parent?.name || '',
+                      index,
+                      drivingSurface: !!object.userData.drivingSurface,
+                      min: bounds.min.toArray(),
+                      max: bounds.max.toArray(),
+                    });
+                  }
+                });
+              }
+              return solids;
+            },
             frame(distance) {
               if (!Number.isFinite(distance))
                 throw new Error('Frame distance must be finite');

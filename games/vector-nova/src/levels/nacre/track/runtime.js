@@ -37,6 +37,9 @@ export function createNacreRuntime({
   host,
   settings = {},
   presentation = true,
+  collisionWorld = null,
+  dynamics = null,
+  playtest = null,
 }) {
   if (track.id !== 'nacre-tempest-1-shape')
     throw new Error('Nacre flight requires its exact authored track.');
@@ -101,8 +104,11 @@ export function createNacreRuntime({
       };
     }
   const runtime = model.createRuntime(
-    { track, settings },
+    { track, settings, collisionWorld, dynamics, playtest },
     {
+      testLaunch: Boolean(playtest),
+      forgivingContacts: Boolean(collisionWorld),
+      supportHeight: 0.105,
       id: 'nacre-flight',
       version: 5,
       rulesId: `nacre-jumps-v5:${JSON.stringify({ track: track.id, geometry: track.geometryVersion, rules: R, jumps: track.jumps })}`,

@@ -45,6 +45,10 @@ export async function createRacerPresentation({
         if (pose) {
           ship.group.position.copy(pose.position);
           ship.group.quaternion.copy(pose.quaternion);
+          if (pose.steeringBank) {
+            roll.setFromAxisAngle(forward, state.steer * 0.08);
+            ship.group.quaternion.multiply(roll);
+          }
           continue;
         }
         const previous = opponent.prev;

@@ -12,6 +12,9 @@ export const umbraFlight = createFlightModel({
 
 export function createUmbraRuntime(context) {
   const runtime = umbraFlight.createRuntime(context, {
+    testLaunch: Boolean(context.playtest),
+    forgivingContacts: Boolean(context.collisionWorld),
+    supportHeight: 0.067,
     id: 'umbra-tidal-flight',
     version: 1,
     rulesId: `${UMBRA_RULES_ID}:${JSON.stringify({

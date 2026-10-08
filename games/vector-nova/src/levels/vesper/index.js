@@ -1,3 +1,4 @@
+import { createVesperCollisionWorld } from './collision.js';
 import { createDevices } from './devices.js';
 import * as T from 'three';
 import { createVesperTrack } from './track/model.js';
@@ -11,6 +12,15 @@ export default function createLevel({ shape = false } = {}) {
   let activeRuntime;
   return {
     version: '0.5.1-vesper-racing',
+    playtests: {
+      jump: {
+        scenario: 'crown-fast',
+        label: 'Jump collision playtest',
+        description: 'Production contacts; reset manually between launches.',
+        automaticRecovery: false,
+      },
+    },
+    createCollisionWorld: shape ? undefined : createVesperCollisionWorld,
     racing: { createDevices, createMotion: createVesperRuntime },
     renderer: {
       world: shape ? 'vesper-shape' : 'vesper-canopy',

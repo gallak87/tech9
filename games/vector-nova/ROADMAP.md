@@ -38,13 +38,17 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 - [ ] Saffron: deepen bone erosion and fracture variation, sharpen creature armor response, enrich sandfall volume and ordinary scenery and optimize high-resolution material/postprocessing cost.
 
+- [ ] Detached crash camera: prioritize before the lava feedback, soundtracks, podium and menu passes below. When the ship flies off after a missed jump, detach the chase camera and frame the crash from a stable viewpoint so the player can watch the impact and bouncing without the camera inheriting that motion; blend back to normal chase on recovery.
+- [ ] Cindercoil: add the missing lava road flames and HUD/ship smoke when driving over lava, reusing Helion's effects through shared helpers where appropriate.
+- [ ] Gameplay soundtracks: add one complete gameplay music track per level, matching each circuit's identity.
 - [ ] Author collision worlds for additional circuits and broader static Saffron scenery; propagate actual contact sparks as they opt in and explore bounded scrape marks. Keep racer body contact separate.
 - [ ] Halcyon: fix remaining ground flicker, especially white areas and street-lane markings.
 - [ ] Asterion: locate and fix the reported flickering road section.
 
 ### Gate 5: broader race flow
 
-- [ ] Scope briefing, sector splits and persistent personal records separately from the completed shared two-lap flow. Retain continued driving and Escape-to-paddock until the user requests a change.
+- [ ] Scope briefing, sector splits and persistent personal records separately from the completed shared two-lap flow.
+- [ ] Design a podium-style race ending. Decide whether it replaces post-finish free driving immediately or follows a few seconds of driving while slowing toward a minimum of 200 km/h before the podium. Keep the current finish flow until the replacement is designed.
 
 ### Gate 6: opponents and competitive Quick Race
 
@@ -58,7 +62,7 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 ### Gate 8: cups and front end
 
-- [ ] Restructure the menu into **Ship selector → Map selector → Launch**. Retain ship stats, saved choices and Inspect Ships; each step should fit without scrolling.
+- [ ] Give the paddock, level picker and overall menu flow a cohesive game-ready UI pass. Start with mode selection, such as **Championship** versus **Solo**, with level selection inside Solo; design the final mode/ship/circuit/launch flow before implementation. Retain ship stats, saved choices and Inspect Ships; each step should fit without scrolling.
 - [ ] Carry shared ship selection into future race modes and add a Founders Cup over Halcyon/Asterion/Nacre. Proposed 12-place points: 25/20/16/13/11/9/7/5/4/3/2/1; ties by wins, then total time. Save between races with restart/abandon controls.
 - [ ] Connect Quick Race, Cup and Time Trial to working actions; rewards unlock cosmetics rather than stronger stats. Retain completed content in Practice/Quick Race.
 

@@ -102,7 +102,8 @@ export function createEffects(scene, { refinedSparks = false } = {}) {
       geometry.attributes.position.needsUpdate = true;
       if (refinedSparks) geometry.attributes.sparkVelocity.needsUpdate = true;
     },
-    update(dt) {
+    update(dt, { visible = true } = {}) {
+      sparks.visible = visible;
       if (life <= 0) return;
       life -= dt;
       material.opacity = Math.max(0, life * 2);

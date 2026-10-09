@@ -304,6 +304,11 @@ test('rival presentation follows banked/inverted world frames and owns cleanup',
     .addScaledVector(frame.up, 0.72);
   assert.ok(groups[0].position.distanceTo(position) < 1e-10);
   assert.ok(Math.abs(groups[0].quaternion.dot(frame.quaternion)) > 1 - 1e-10);
+  presentation.update({ mode: 'fly' });
+  assert.ok(groups.every((group) => !group.visible));
+  presentation.update({ mode: 'paused' });
+  assert.ok(groups.every((group) => group.visible));
+  assert.ok(groups[0].position.distanceTo(position) < 1e-10);
   presentation.update({ mode: 'inspection' });
   assert.equal(groups[0].visible, false);
   presentation.dispose();

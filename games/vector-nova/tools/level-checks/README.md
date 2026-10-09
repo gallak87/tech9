@@ -2,6 +2,8 @@
 
 These checks use the shipped [level API](../../docs/LEVEL_API.md). They do not select art, prescribe route shape, require flat ground, or load a copied runtime.
 
+Use the bounded [launch collision gauntlet](launch-gauntlet.md) for authored jump/structure contact work. Follow the assigned brief's viewport scope; the [circuit expansion campaign](../../docs/expansion/README.md) excludes all mobile/portrait checks, even at final verification. Select tests accordingly rather than running combined suites that include them.
+
 ```sh
 npm run check:level -- <slug>
 npm run check:level -- <slug> --step .5 --arc-tolerance .01 --max-frame-turn .1

@@ -75,6 +75,13 @@
   border-top: 1px solid #ffffff30;
   border-bottom: 1px solid #ffffff30;
 }
+#title-panel .inspection-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+#title-panel .inspection-actions button {
+  padding-inline: 10px;
+}
 #title-panel .ship-selection {
   display: grid;
   grid-template-columns: minmax(110px, 1fr) minmax(0, 1.35fr);

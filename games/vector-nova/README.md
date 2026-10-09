@@ -59,7 +59,7 @@ WebGL2 is required. Gameplay uses local assets and needs no account or backend. 
 - Space: airbrake. Shift: manual boost using reserve.
 - R: recover at the last checkpoint and invalidate the current timed lap.
 - Escape: pause/settings/restart; after a two-lap run, return to paddock. I: inspect the ship. C: alternate camera.
-- F: free camera on every circuit; drag to look, WASD move, Q/E down/up at 200 m/s. F/Escape returns.
+- F or Free Camera in the paddock/pause menu: explore every circuit with all ships hidden and the session frozen; drag to look, WASD/arrows move, Q/E down/up at a fixed 200 m/s. F/Escape returns.
 - Menus: Tab/Shift-Tab, Enter/Space. Small viewports expose pointer controls.
 - Prototype gamepad: left stick steering, RT throttle, LT brake, A boost, B airbrake.
 

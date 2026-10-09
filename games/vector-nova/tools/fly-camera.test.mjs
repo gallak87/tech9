@@ -65,6 +65,33 @@ test('fly translation stays at 200 m/s across directions, Shift and wheel input'
     f.dispose();
   }
 });
+test('arrow keys match WASD translation and opposite directions cancel', () => {
+  const f = fixture();
+  try {
+    for (const [letter, arrow, opposite] of [
+      ['KeyW', 'ArrowUp', 'ArrowDown'],
+      ['KeyS', 'ArrowDown', 'ArrowUp'],
+      ['KeyA', 'ArrowLeft', 'ArrowRight'],
+      ['KeyD', 'ArrowRight', 'ArrowLeft'],
+    ]) {
+      f.fly.enter();
+      f.press(letter);
+      f.fly.update(0.1);
+      const expected = f.camera.position.clone();
+      f.fly.leave();
+      f.fly.enter();
+      f.press(arrow);
+      f.fly.update(0.1);
+      assert.deepEqual(f.camera.position, expected);
+      f.press(opposite);
+      f.fly.update(0.1);
+      assert.deepEqual(f.camera.position, expected);
+      f.fly.leave();
+    }
+  } finally {
+    f.dispose();
+  }
+});
 test('drag-look supports pointer coordinates, releasing look retains movement, blur clears movement', () => {
   const f = fixture();
   try {

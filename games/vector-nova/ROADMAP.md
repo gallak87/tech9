@@ -32,6 +32,8 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 ### Level polish
 
+- [ ] Complete the [Saffron wider-circuit proof](docs/expansion/saffron.md): a separate 32 → 40 m variant, preserving the original and refitting adjacent scenery. Use the [per-level expansion process](docs/expansion/README.md); desktop-only verification, with mobile/portrait deferred to the user's final pass across all levels.
+
 - [ ] Zephyr: refine aerated waterfall flow, vary broad island shelves and openings, and deepen close masonry weathering.
 
 - [ ] Umbra: distinguish graphite wear and titanium polish/reflections, enrich fractured masonry and layered repair construction, reveal recessed surfaces under local lighting, bring the elevated jump preview and first arrival closer to normal chase, and strengthen the Fold’s visible start-grid reference.

@@ -996,6 +996,8 @@ async function boot() {
             heading: T.MathUtils.lerp(prev.heading, state.heading, alpha),
           }
         : state;
+    ship.group.visible =
+      mode !== 'fly' && (mode !== 'inspection' || inspectionTab === 'fleet');
     if (mode === 'inspection') {
       if (!settings.reducedMotion) inspectionTime += dt;
       const subject =
@@ -1103,7 +1105,7 @@ async function boot() {
     runtime.update?.(frame);
     racerPresentation?.update({
       alpha,
-      mode: mode === 'fly' ? flyReturnMode : mode,
+      mode,
     });
     view.setRacingFeedback?.({
       mode,
@@ -1112,11 +1114,11 @@ async function boot() {
       catapulting: runtime.snapshot()?.vectorActive === true,
       enabled: racingEnabled,
     });
+    effects.update(mode === 'racing' ? dt : 0, { visible: mode !== 'fly' });
     world.update(frame);
     if (mode === 'inspection') view.renderInspection(inspectionScene);
     else view.render(now);
     world.afterRender(frame);
-    effects.update(mode === 'racing' ? dt : 0);
     for (const event of view.drainStormEvents()) audio.event(event);
     ui.update(state, race, runtime.snapshot(), {
       practice: definition.practiceSectionsUntimed && scenario !== 'staging',

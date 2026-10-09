@@ -11,7 +11,7 @@ Each level supplies two files:
 
 Required `ui` strings: `edition`, `subtitle`, `intro`, `tag`, `tagDetail`. The paddock title comes from `name`, with its first word large and the remainder as a smaller italic subtitle; a single-word name uses the circuit part of `ui.subtitle`. Legacy `heading`, `eyebrow`, `detail` and `start` are accepted but no longer used by the paddock. Optional `ui.shape` overrides copy for shape review. Optional layout flags are `compact`, `stackedReview`, `lowNotice`, `compactLandscape` and `portraitCompactHud`. Use real text, not HTML. The approved level metadata files are small working examples.
 
-Every level includes shared environment inspection without a metadata flag: F enters, drag looks, WASD and Q/E move at a fixed 200 m/s, and F/Escape/Return restores the previous view. Session time, vehicle and replay recording are frozen. The controller owns its listeners; no level-specific camera fork is needed.
+Every level includes shared environment inspection without a metadata flag: F or the paddock/pause Free Camera button enters, drag looks, WASD/arrows and Q/E move at a fixed 200 m/s, and F/Escape/the Return button restores the previous view. Session time, vehicles and replay recording are frozen; all ships, the contact shadow and impact particles are hidden. The controller owns its listeners; no level-specific camera fork is needed.
 
 Complete working examples are the [Halcyon descriptor](../src/levels/halcyon/index.js), [Orbital production/shape descriptor](../src/levels/orbital/index.js) and [Nacre custom-runtime descriptor](../src/levels/nacre/index.js). Reuse their factory/ownership pattern, while authoring your own route, assets and presentation.
 

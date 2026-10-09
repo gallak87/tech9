@@ -4,7 +4,7 @@
 
 Improve the assigned level's jump collisions using production physics and the launch helper. Prioritize large reachable structures and forgiving returns to the track.
 
-- Follow [AGENTS.md](../../AGENTS.md) and the [level API](../LEVEL_API.md). Use the assigned checkout; preserve unrelated changes and servers.
+- Follow [AGENTS.md](../../AGENTS.md), the assigned brief, and the [level API](../../docs/LEVEL_API.md). Use the assigned checkout; preserve unrelated changes and servers.
 - Cap the pass at **30 launches total**, including retries. Start with 8–12 representative cases; reserve runs for verification.
 - Keep automatic checkpoint recovery **disabled throughout the gauntlet**. Reset explicitly between cases. Allow genuine supported landings to regain traction.
 - Bound each run by simulation ticks; stop on stable support or sufficient collision evidence. Skip distant scenery and indefinite falls.
@@ -28,4 +28,4 @@ Improve the assigned level's jump collisions using production physics and the la
 
 ## Finish
 
-Run focused regressions, a representative replay, and a production build. Complete desktop iteration before one final relevant mobile check. Stop when representative cases pass or the launch cap is reached. Report launch count, verified outcomes, and remaining failures briefly in chat; keep raw evidence under ignored `.experiments/`.
+Run focused regressions, a representative replay, and a production build. Respect the assigned brief's viewport scope; the [circuit expansion campaign](../../docs/expansion/README.md) is desktop-only and excludes all mobile/portrait checks, including a final pass. Stop when representative cases pass or the launch cap is reached. Report launch count, verified outcomes, and remaining failures briefly in chat; keep raw evidence under ignored `.experiments/`. Reaching the cap does not make unresolved cases pass.

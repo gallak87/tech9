@@ -239,6 +239,7 @@ export async function createRenderer(
       },
       updatePresentation(update) {
         Object.assign(frame, update);
+        contactShadow.mesh.visible = frame.mode !== 'fly';
         backdrop.setOverview?.(Boolean(update.reviewing));
         updateBackdrop();
       },

@@ -34,8 +34,7 @@ export async function createRacerPresentation({
   return {
     update({ alpha = 1, mode = 'title' } = {}) {
       const enabled = racers.enabled;
-      const show =
-        enabled && ['racing', 'paused', 'fly', 'countdown'].includes(mode);
+      const show = enabled && ['racing', 'paused', 'countdown'].includes(mode);
       for (const { ship, opponent, yaw, roll } of ships) {
         ship.group.visible = show;
         if (!show) continue;

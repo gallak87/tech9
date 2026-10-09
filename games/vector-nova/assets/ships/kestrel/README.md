@@ -6,6 +6,8 @@ This original editable Blender model uses the approved lean jet-like Kestrel dir
 
 - `kestrel.blend`: editable named component meshes, modifiers, material definitions, neutral studio and camera. The studio is excluded from game export.
 - `build_kestrel.py`: deterministic source generator, export consolidation and optional neutral review renders.
+- `textures/`: original baked base-color, roughness, tangent-normal and cavity-occlusion source maps, embedded and channel-packed by glTF export.
+- `../surface_finish.py`: shared editable material graphs and portable four-channel bake pipeline.
 - `asset-manifest.json`: measured final exported bounds, triangle/material counts, file size and propulsion anchors.
 - `provenance.json`: design source, request and image-generation provenance.
 - `../../../public/assets/ships/kestrel/kestrel.glb`: runtime asset, one mesh per material, no external textures, fonts or linked files.
@@ -22,4 +24,4 @@ Add `-- --render` for neutral front, top, rear, side and underside stills. Those
 
 Metres, local +Z forward and +Y up; the root runtime owns world pose and adhesion. The lowest induction hardware is near Y=0. Two identity-rotation empties, `Exhaust_L` and `Exhaust_R`, place the rear propulsion origins. Their local aft direction is -Z. Read `asset-manifest.json` for measured positions and hull bounds. `Kestrel_Power` is the active cyan aperture material; `Kestrel_Standby` is the restrained induction accent. Runtime effects are separate from the static model and attach to these anchors.
 
-The craft uses ceramic shells with real intake openings, surface-projected livery, a low smoked canopy, continuous graphite lattice spars with true open bays, compact octagonal exhaust cavities with separate formed titanium heat shields and machined retaining lips, and swept canted fins. Static export meshes share twelve named PBR materials. The approved race palette remains pearl, graphite, titanium, restrained vermilion and cyan active propulsion.
+The craft uses ceramic shells with real intake openings, surface-projected livery, a low smoked canopy, continuous graphite lattice spars with true open bays, compact octagonal exhaust cavities with separate formed titanium heat shields and machined retaining lips, and swept canted fins. Static export meshes share twelve named PBR materials. Four main surface families use embedded maps; short-range AO supports mechanical recesses without painting large environmental shadows into the ship. The approved race palette remains pearl, graphite, titanium, restrained vermilion and cyan active propulsion.

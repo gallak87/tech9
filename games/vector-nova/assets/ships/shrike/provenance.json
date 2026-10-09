@@ -14,13 +14,17 @@
     "generator": "assets/ships/build_fleet.py",
     "runtime": "public/assets/ships/shrike/shrike.glb",
     "authorship": "Original project geometry authored from the generated concept, using shared original construction helpers. No downloaded models, external textures or fonts.",
-    "materials": "Original procedural ceramic grain and brushed-metal shaders, baked in Blender to base-color, roughness and tangent-normal maps; embedded in GLB. Editable procedural shaders remain in the source blend.",
+    "materials": "Original quiet procedural ceramic grain, graphite finish and brushed titanium with localized axial heat tint; baked in Blender to base color, roughness, tangent normals and 18 cm cavity occlusion. glTF packs roughness and occlusion channels, embeds all maps; editable procedural shaders remain in the source blend.",
     "textureSources": "assets/ships/shrike/textures/",
     "userDirection": "Keep the crescent design, rename Vesper to avoid level-name overlap; reduce toy-like appearance with surface and construction detail.",
     "approval": {
       "status": "approved for integration",
       "date": "2026-10-01",
       "source": "User approval of the completed fleet in the ship expansion chat"
+    },
+    "artPass": {
+      "date": "2026-10-09",
+      "direction": "Preserve approved silhouettes, exact hull bounds and propulsion anchors; strengthen formed panel construction, component-specific bevels and canopy seating. Two-layer nozzle cuffs/petals with recessed pressure sleeve, spring keepers and a central emitter carried by three support baffles. Localized straw/blue heat tint, satin service ceramic, saturated painted livery, dielectric canopy, quiet PBR finish and short-range cavity occlusion/roughness. Original authored geometry and procedural textures; no external assets."
     }
   }
 }

@@ -79,7 +79,7 @@ test('every exported chassis fits the shared collision hull and owns its correct
       bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
       '',
     );
-    if (spec.id !== 'kestrel') {
+    {
       assert.ok(parser.json.images?.length >= 8, 'embedded PBR surface maps');
       assert.ok(
         parser.json.images.every(

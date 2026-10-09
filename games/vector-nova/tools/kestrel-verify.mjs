@@ -4,8 +4,6 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 
 const base = process.env.VN_URL || 'http://127.0.0.1:5196';
-const showcase =
-  process.env.VN_SHIP_URL || 'http://127.0.0.1:5195/src/ships/showcase.html';
 const output = path.resolve(
   process.env.VN_EVIDENCE || '.experiments/kestrel-runtime',
 );
@@ -13,7 +11,6 @@ await mkdir(output, { recursive: true });
 const report = {
   created: new Date().toISOString(),
   base,
-  showcase,
   checks: [],
   errors: [],
   samples: [],
@@ -44,56 +41,11 @@ try {
     `${base}/assets/ships/kestrel/kestrel.glb`,
   );
   check(
-    'Production serves the same GLB as the studio',
+    'Production serves the current runtime GLB',
     productionAsset.ok &&
       hash(Buffer.from(await productionAsset.arrayBuffer())) ===
         report.assetSha256,
   );
-  const studio = await browser.newPage({
-    viewport: { width: 1600, height: 1100 },
-  });
-  monitor(studio);
-  await studio.goto(showcase);
-  await studio.waitForFunction(() => window.__KESTREL?.ready, null, {
-    timeout: 60000,
-  });
-  for (const [name, camera, speed, boost, target = [0, 1, 0]] of [
-    ['front', [6.8, 5.5, 8.7], 0, false],
-    ['top', [0, 15, 0.001], 0, false],
-    ['rear', [-8.5, 5, -10.9], 70, false],
-    ['rear-boost', [-10, 6, -14], 100, true, [0, 1, -2.3]],
-    ['rear-detail', [4, 2.3, -6], 100, true],
-    ['side', [13, 2.3, 0], 0, false],
-    ['underside', [8, -3.5, 9], 0, false],
-  ]) {
-    await studio.evaluate(
-      ({ camera, speed, boost, name, target }) => {
-        const scene = window.__KESTREL;
-        scene.orbit.maxPolarAngle = Math.PI;
-        scene.camera.position.set(...camera);
-        scene.orbit.target.set(...target);
-        scene.orbit.update();
-        scene.ship.update({ speed, boost, energy: 1, time: 2 });
-        for (const child of scene.scene.children)
-          if (child.isMesh && child.geometry.type === 'PlaneGeometry')
-            child.visible = name !== 'underside';
-        scene.renderer.render(scene.scene, scene.camera);
-      },
-      { camera, speed, boost, name, target },
-    );
-    await studio.screenshot({ path: path.join(output, `studio-${name}.png`) });
-  }
-  const asset = await studio.evaluate(() => {
-    const { ship, renderer } = window.__KESTREL;
-    return { ...ship.group.userData, rendered: { ...renderer.info.render } };
-  });
-  check(
-    'Blender model loaded in neutral inspection',
-    asset.asset === 'Kestrel / concept 01',
-    asset,
-  );
-  await studio.close();
-
   for (const level of ['halcyon', 'orbital']) {
     for (const quality of ['high', 'low']) {
       const label = `${level}-${quality}`;
@@ -105,7 +57,7 @@ try {
         (quality) =>
           localStorage.setItem(
             'vector-nova.settings',
-            JSON.stringify({ quality, volume: 0, reducedMotion: true }),
+            JSON.stringify({ quality, volume: 0, reducedMotion: false }),
           ),
         quality,
       );
@@ -125,10 +77,40 @@ try {
         fetchedModels.length === 1 && fetchedModels[0] === 200,
         fetchedModels,
       );
-      await page.evaluate(() => window.__VN.loadScenario('inspection', 47219));
+      await page.locator('#inspect').click();
+      const inspection = await page.evaluate(() => window.__VN.getSnapshot());
+      check(
+        `${label}: menu opens the ship viewer`,
+        inspection.mode === 'inspection' &&
+          inspection.ship.id === 'kestrel' &&
+          inspection.inspection.preview.autoRotate,
+        inspection.inspection,
+      );
+      await page.locator('[data-preview="autoRotate"]').click();
+      await page.locator('[data-preview="driving"]').click();
       await page.screenshot({
-        path: path.join(output, `${label}-inspection.png`),
+        path: path.join(output, `${label}-inspection-driving.png`),
       });
+      await page.locator('[data-preview="boost"]').click();
+      const preview = await page.evaluate(() => window.__VN.getSnapshot());
+      check(
+        `${label}: preview controls leave race state unchanged`,
+        !preview.inspection.preview.autoRotate &&
+          preview.inspection.preview.driving &&
+          preview.inspection.preview.boost &&
+          JSON.stringify(preview.vehicle) ===
+            JSON.stringify(inspection.vehicle),
+        preview.inspection,
+      );
+      check(
+        `${label}: heat control respects graphics quality`,
+        (await page.locator('[data-preview="heat"]').isEnabled()) ===
+          (quality === 'high'),
+      );
+      await page.screenshot({
+        path: path.join(output, `${label}-inspection-boost.png`),
+      });
+      await page.locator('#inspect-back').click();
       await page.evaluate(() => {
         window.__VN.loadScenario('staging', 47219);
         window.__VN.setCamera('chase');

@@ -1,5 +1,7 @@
 import * as T from 'three';
 import { createFleetShip } from '../ships/fleet.js';
+import { createInspectionStage } from '../ships/inspection-stage.js';
+import { createInspectionPipeline } from '../ships/inspection-pipeline.js';
 import { RIVAL_SHIPS, createRivalPreview } from '../ships/rivals.js';
 import { loadShipSelection, saveShipSelection } from '../ships/catalog.js';
 import { createRenderer } from '../renderer/index.js';
@@ -166,41 +168,19 @@ async function boot() {
       if (material?.isMeshStandardMaterial) material.envMap = cityReflection;
   });
   world.setReflection(cityReflection);
-  const inspectionScene = new T.Scene();
-  inspectionScene.background = new T.Color('#64747d');
-  inspectionScene.environment = scene.environment;
-  inspectionScene.environmentIntensity = 1.5;
-  inspectionScene.add(new T.HemisphereLight('#eaf5ff', '#74818b', 3.4));
-  const key = new T.DirectionalLight('#fff1d9', 5);
-  key.position.set(-7, 10, 8);
-  inspectionScene.add(key);
-  const rim = new T.DirectionalLight('#b9daff', 4);
-  rim.position.set(7, 4, -6);
-  inspectionScene.add(rim);
-  const floor = new T.Mesh(
-    new T.CylinderGeometry(10, 10, 0.4, 96),
-    new T.MeshStandardMaterial({
-      color: '#667880',
-      roughness: 0.65,
-      metalness: 0.35,
-    }),
+  const inspectionStage = lifetime.own(createInspectionStage(renderer));
+  const inspectionScene = inspectionStage.scene;
+  const inspectionPipeline = lifetime.own(
+    createInspectionPipeline(renderer, inspectionScene, camera),
   );
-  floor.position.y = -0.9;
-  inspectionScene.add(floor);
-  const ring = new T.Mesh(
-    new T.TorusGeometry(7.8, 0.025, 6, 128),
-    new T.MeshBasicMaterial({ color: '#b6c4c4' }),
-  );
-  ring.rotation.x = -Math.PI / 2;
-  ring.position.y = -0.68;
-  inspectionScene.add(ring);
-  lifetime.defer(() => {
-    floor.geometry.dispose();
-    floor.material.dispose();
-    ring.geometry.dispose();
-    ring.material.dispose();
-    inspectionScene.clear();
-  });
+  const inspectionPreview = {
+    autoRotate: true,
+    boost: false,
+    driving: false,
+    heat: true,
+    elevation: 0.365,
+  };
+  let inspectionDrag = null;
   let state = createVehicleState(ship.selected.id),
     prev = { ...state },
     race,
@@ -834,11 +814,17 @@ async function boot() {
         selectShip,
         selectInspectionTab,
         inspectRival,
+        toggleInspectionPreview(key) {
+          if (!['autoRotate', 'boost', 'driving', 'heat'].includes(key)) return;
+          inspectionPreview[key] = !inspectionPreview[key];
+          ui.setInspectionPreview(inspectionPreview);
+        },
         overview,
         leaveFly,
         settings: () => {
           view.apply();
           saveSettings(settings);
+          ui.setInspectionPreview(inspectionPreview);
         },
         difficulty(value) {
           if (
@@ -863,6 +849,68 @@ async function boot() {
       },
     ),
   );
+  ui.setInspectionPreview(inspectionPreview);
+  host.addEventListener(
+    'pointerdown',
+    (event) => {
+      if (
+        mode !== 'inspection' ||
+        event.button !== 0 ||
+        event.target.closest('button,input,select,a,label')
+      )
+        return;
+      const viewport = ui.inspectionViewport();
+      const panel = host
+        .querySelector('#inspection-panel')
+        .getBoundingClientRect();
+      if (
+        viewport
+          ? event.clientY < viewport.top ||
+            event.clientY > viewport.top + viewport.height
+          : event.clientX < panel.right
+      )
+        return;
+      inspectionDrag = {
+        id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+      };
+      inspectionPreview.autoRotate = false;
+      ui.setInspectionPreview(inspectionPreview);
+      host.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    },
+    { signal: listeners.signal },
+  );
+  host.addEventListener(
+    'pointermove',
+    (event) => {
+      if (
+        !inspectionDrag ||
+        inspectionDrag.id !== event.pointerId ||
+        mode !== 'inspection'
+      )
+        return;
+      inspectionTime += (event.clientX - inspectionDrag.x) * 0.065;
+      inspectionPreview.elevation = T.MathUtils.clamp(
+        inspectionPreview.elevation +
+          (event.clientY - inspectionDrag.y) * 0.005,
+        0.12,
+        1.2,
+      );
+      inspectionDrag.x = event.clientX;
+      inspectionDrag.y = event.clientY;
+    },
+    { signal: listeners.signal },
+  );
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'])
+    host.addEventListener(
+      type,
+      () => {
+        inspectionDrag = null;
+      },
+      { signal: listeners.signal },
+    );
   const input = lifetime.own(
     createInput((command) => {
       if (command === 'pause') {
@@ -939,6 +987,7 @@ async function boot() {
       steer: s.steer,
       time: s.time,
       energy: s.energy / 100,
+      reducedMotion: settings.reducedMotion,
     });
     view.follow(ship.group.position);
     view.updateContact(
@@ -999,14 +1048,26 @@ async function boot() {
     ship.group.visible =
       mode !== 'fly' && (mode !== 'inspection' || inspectionTab === 'fleet');
     if (mode === 'inspection') {
-      if (!settings.reducedMotion) inspectionTime += dt;
+      if (inspectionPreview.autoRotate && !settings.reducedMotion)
+        inspectionTime += dt;
       const subject =
         inspectionTab === 'rivals' ? rivalPreview?.group : ship.group;
       subject?.position.set(0, 0.15, 0);
       subject?.rotation.set(0, inspectionTime * 0.12, 0);
       if (inspectionTab === 'fleet')
-        ship.update({ speed: 0, boost: false, steer: 0, time, energy: 100 });
-      camera.position.set(10.4, 6.2, 12.5);
+        ship.update({
+          speed: inspectionPreview.driving ? 400 / 3.6 : 0,
+          boost: inspectionPreview.boost,
+          steer: 0,
+          time,
+          energy: 1,
+          reducedMotion: settings.reducedMotion,
+        });
+      camera.position.setFromSphericalCoords(
+        17.4,
+        Math.PI / 2 - inspectionPreview.elevation,
+        Math.atan2(10.4, 12.5),
+      );
       camera.up.set(0, 1, 0);
       camera.fov = 39;
       camera.aspect = innerWidth / innerHeight;
@@ -1117,7 +1178,13 @@ async function boot() {
     });
     effects.update(mode === 'racing' ? dt : 0, { visible: mode !== 'fly' });
     world.update(frame);
-    if (mode === 'inspection') view.renderInspection(inspectionScene);
+    if (mode === 'inspection')
+      inspectionStage.render(() =>
+        inspectionPipeline.render({
+          heat: inspectionPreview.heat && !settings.reducedMotion,
+          quality: settings.quality,
+        }),
+      );
     else view.render(now);
     world.afterRender(frame);
     for (const event of view.drainStormEvents()) audio.event(event);
@@ -1461,6 +1528,7 @@ async function boot() {
           mode === 'countdown' || pausedCountdown ? countdown.snapshot() : null,
         lastResults,
         inspection: {
+          preview: { ...inspectionPreview },
           tab: inspectionTab,
           rivalId: rivalPreview?.specification.id ?? null,
           loading: rivalLoading,

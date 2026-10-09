@@ -3,6 +3,15 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+// These CPU framing checks need geometry; real image decoding is covered by
+// browser verification. Kestrel now embeds the same PBR maps as the fleet.
+function geometryLoader() {
+  return new GLTFLoader().register(() => ({
+    name: 'CPU_TEXTURES',
+    loadTexture: async () => new T.Texture(),
+  }));
+}
+
 import { createCameraRig } from '../src/camera/index.js';
 import { createVesperTrack } from '../src/levels/vesper/track/model.js';
 import { createVesperRuntime } from '../src/levels/vesper/runtime.js';
@@ -16,7 +25,7 @@ const bytes = await readFile(
   new URL('../public/assets/ships/kestrel/kestrel.glb', import.meta.url),
 );
 const model = (
-  await new GLTFLoader().parseAsync(
+  await geometryLoader().parseAsync(
     bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
     '',
   )

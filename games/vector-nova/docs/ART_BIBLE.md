@@ -12,7 +12,7 @@ High/low presets retain the same world and navigation cues. Reduced motion restr
 
 ## Kestrel
 
-Approved angular futuristic jet silhouette: slender split nose, swept planform, layered ceramic/graphite/titanium construction, dark canopy and restrained vermilion markings. Blue exhaust should feel powerful in cruise and grow under boost without hiding the hull. Use the actual Blender model in gameplay and inspection; the concept image is reference only.
+Approved angular futuristic jet silhouette: slender split nose, swept planform, layered ceramic/graphite/titanium construction, dark canopy and restrained vermilion markings. Blue exhaust should feel powerful in cruise and grow under boost without hiding the hull. Keep a narrow white-blue core, saturated blue gas, restrained compression knots and a fading turbulent tail. A wider transparent heat wake bends the background locally; craft and HUD stay sharp. Preserve clean ceramic panels, dark structural layers and distinct machined/heat-treated nozzle surfaces. Use the actual Blender model in gameplay and inspection; the concept image is reference only.
 
 ## Fleet additions
 

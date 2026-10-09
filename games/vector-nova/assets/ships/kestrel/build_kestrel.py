@@ -8,6 +8,11 @@ from pathlib import Path
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from surface_finish import surface_finish, bake_finish
+from propulsion_chamber import add_emitter_chamber
+
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / 'assets/ships/kestrel'
 OUTPUT = ROOT / 'public/assets/ships/kestrel'
@@ -46,20 +51,22 @@ def material(name, color, metal=0, rough=.3, emission=None):
         bsdf.inputs['Emission Color'].default_value = (*emission[0],1)
         bsdf.inputs['Emission Strength'].default_value = emission[1]
     if name in ('Kestrel_Ceramic','Kestrel_Glass'):
-        bsdf.inputs['Coat Weight'].default_value = .38 if name=='Kestrel_Ceramic' else .72
-        bsdf.inputs['Coat Roughness'].default_value = .2 if name=='Kestrel_Ceramic' else .12
+        bsdf.inputs['Coat Weight'].default_value = .38 if name=='Kestrel_Ceramic' else .68
+        bsdf.inputs['Coat Roughness'].default_value = .2 if name=='Kestrel_Ceramic' else .055
+    if name=='Kestrel_Vermilion':
+        bsdf.inputs['Specular IOR Level'].default_value=.30
     return mat
 M = {
- 'pearl': material('Kestrel_Ceramic',(.69,.72,.72),.16,.275),
- 'pearl2': material('Kestrel_CeramicService',(.52,.56,.57),.36,.30),
- 'carbon': material('Kestrel_Graphite',(.024,.034,.039),.28,.385),
+ 'pearl': material('Kestrel_Ceramic',(.62,.65,.65),.09,.295),
+ 'pearl2': material('Kestrel_CeramicService',(.23,.27,.29),.04,.44),
+ 'carbon': material('Kestrel_Graphite',(.034,.049,.061),.20,.43),
  'edge': material('Kestrel_Edge',(.016,.022,.026),.52,.25),
  'vent': material('Kestrel_Recess',(.007,.011,.014),.2,.36),
- 'metal': material('Kestrel_Titanium',(.40,.355,.294),.91,.30),
+ 'metal': material('Kestrel_Titanium',(.24,.27,.285),.86,.32),
  'darkmetal': material('Kestrel_Mechanism',(.092,.12,.135),.8,.34),
- 'machined': material('Kestrel_MachinedLip',(.56,.535,.48),.95,.205),
- 'glass': material('Kestrel_Glass',(.009,.021,.027),.64,.105),
- 'red': material('Kestrel_Vermilion',(.88,.092,.034),.24,.26),
+ 'machined': material('Kestrel_MachinedLip',(.55,.61,.64),.95,.19),
+ 'glass': material('Kestrel_Glass',(.005,.016,.022),.02,.085),
+ 'red': material('Kestrel_Vermilion',(.48,.022,.009),0,.36),
  'cyan': material('Kestrel_Power',(.02,.20,.24),.28,.23,((.12,.75,.89),2.4)),
  'dimcyan': material('Kestrel_Standby',(.011,.05,.064),.4,.26,((.02,.24,.31),.5)),
 }
@@ -77,7 +84,7 @@ def mesh(name, vertices, faces, mat, bevel=0, smooth=False):
         for poly in data.polygons: poly.use_smooth=True
     if bevel:
         mod = obj.modifiers.new('Machined edge radii','BEVEL')
-        mod.width=bevel; mod.segments=3; mod.affect='EDGES'
+        mod.width=bevel*({'pearl':1.22,'pearl2':1.22,'machined':.72,'metal':.80}.get(mat,1)); mod.segments=3; mod.affect='EDGES'
         mod.limit_method='ANGLE'; mod.angle_limit=.30
         mod.harden_normals=True
         normals=obj.modifiers.new('Area weighted panel normals','WEIGHTED_NORMAL')
@@ -185,9 +192,9 @@ def panel_line(name,coords):
         n=max(2,int(math.dist(a,b)/.026))
         for j in range(n):
             t=j/n;x=a[0]*(1-t)+b[0]*t;z=a[1]*(1-t)+b[1]*t
-            points.append((x,surface_y(x,z)+.001,z))
-    x,z=coords[-1];points.append((x,surface_y(x,z)+.001,z))
-    return line(name,points,.003,'edge')
+            points.append((x,surface_y(x,z)+.004,z))
+    x,z=coords[-1];points.append((x,surface_y(x,z)+.004,z))
+    return line(name,points,.0055,'edge')
 
 def intake_ring(name,outer,inner):
     verts=[]
@@ -220,6 +227,9 @@ for sign,label in ((-1,'L'),(1,'R')):
     panel_line('Forward service boundary '+label,seam)
     seam=[(sign*.53,-.87),(sign*.67,-.89),(sign*1.04,-.94),(sign*1.52,-.86)]
     panel_line('Aft service boundary '+label,seam)
+    # Broad satin ceramic thermal-service zone follows the formed aft shell.
+    paint('Aft ceramic thermal-service finish '+label,[(sign*x,z) for x,z in
+        [(.58,-.99),(.82,-1.02),(1.26,-.94),(1.38,-1.16),(1.23,-1.34),(.62,-1.33)]],'pearl2')
     # Recessed intake pockets sit inside a chamfered frame, with directional louvers.
     pocket=[(sign*.79,.50),(sign*1.125,.43),(sign*1.242,-.61),(sign*.858,-.59)]
     inner=[(sign*.819,.464),(sign*1.094,.41),(sign*1.209,-.575),(sign*.884,-.556)]
@@ -231,11 +241,11 @@ for sign,label in ((-1,'L'),(1,'R')):
     bpy.data.objects.remove(cutter,do_unlink=True)
     intake_ring('Flush intake bezel '+label,pocket,inner)
     solid('Deep intake pocket '+label,[(x,surface_y(x,z)-.104,z) for x,z in pocket],.020,'vent',.005)
-    for i in range(12):
-        z=.365-i*.077
+    for i in range(7):
+        z=.365-i*.138
         offset=(.37-z)*.092
         x0=sign*(.839+offset);x1=sign*(1.083+offset)
-        beam('Intake louver '+label+f' {i:02}',(x0,surface_y(x0,z)-.030,z),(x1,surface_y(x1,z)-.030,z-.018),.026,.030,'darkmetal',.004)
+        beam('Intake louver '+label+f' {i:02}',(x0,surface_y(x0,z)-.030,z),(x1,surface_y(x1,z)-.030,z-.018),.055,.041,'darkmetal',.004)
     # Underwing rails with open triangular bays, visibly below the shell.
     rail=[(sign*.59,.035,2.29),(sign*1.335,.027,-.21),(sign*1.572,.075,-1.30),(sign*1.265,.064,-1.49),(sign*.512,.039,1.90)]
     solid('Floating underwing chassis rail '+label,rail,.046,'carbon',.012)
@@ -305,9 +315,10 @@ def canopy(name,scale,lower,mat):
         for k in range(rings):faces.append((j*r+k,(j+1)*r+k,(j+1)*r+k+1,j*r+k+1))
     faces.append(tuple(list(range(r-1,-1,-1))+[(len(dense)-1)*r+k for k in range(r)]))
     return mesh(name,verts,faces,mat,0,True)
-canopy('Canopy structural seat',1.10,-.022,'edge')
+canopy('Canopy structural seat',1.12,-.025,'edge')
 canopy('Flush smoked canopy',1,0,'glass')
 for sign in (-1,1):
+    line('Canopy elastomer gasket',[(sign*w*1.06,base-.004,z) for z,w,base,peak in dense],.009,'vent')
     line('Canopy thin titanium seal',[(sign*w*1.015,base+.002,z) for z,w,base,peak in dense],.008,'darkmetal')
 # Aft spine cowling flows from canopy into two subtle hot-air cooling slots.
 COLLAR=[(-.95,.335,.66,.744,.43),(-1.28,.40,.67,.795,.43),(-1.70,.34,.64,.735,.33),(-2.24,.24,.49,.57,.24)]
@@ -348,19 +359,31 @@ for sign,label in ((-1,'L'),(1,'R')):
     cx=sign*.955;cy=.448
     duct('Integrated graphite power housing '+label,cx,cy,[(-1.27,.285,.27),(-1.66,.381,.339),(-2.37,.385,.350),(-2.66,.369,.341)],'carbon',True,True,.018)
     duct('Continuous nozzle pressure sleeve '+label,cx,cy,[(-2.34,.373,.342),(-2.62,.393,.350),(-3.16,.346,.312)],'darkmetal',False,False,.006)
-    petal_stations=[(-2.35,.385,.350),(-2.53,.414,.375),(-2.72,.423,.380),(-3.025,.399,.357),(-3.195,.366,.334)]
+    petal_sections=[('Cold mounting cuff',[(-2.35,.385,.350),(-2.53,.414,.375),(-2.70,.421,.379)]),
+        ('Overlapping hot petal',[(-2.755,.423,.380),(-3.025,.399,.357),(-3.195,.366,.334)])]
     for facet in range(8):
         av=Vector(OCT[facet]);bv=Vector(OCT[(facet+1)%8]);mid=(av+bv)*.5
-        left=mid+(av-mid)*.972;right=mid+(bv-mid)*.972
-        pv=[]
-        for z,rx,ry in petal_stations:
-            for uv,radial in ((left,1),(right,1),(right,.954),(left,.954)):
-                pv.append((cx+uv.x*rx*radial,cy+uv.y*ry*radial,z))
-        pf=[(0,1,2,3),tuple(range(16,20))]
-        for j in range(4):
-            for k in range(4):pf.append((j*4+k,j*4+(k+1)%4,(j+1)*4+(k+1)%4,(j+1)*4+k))
-        mesh('Formed titanium thermal petal '+label+str(facet),pv,pf,'metal',.005)
-    oct_annulus('Forward cowl compression band '+label,cx,cy,-2.547,(.422,.383),(.411,.372),'machined',.004,.044)
+        left=mid+(av-mid)*.955;right=mid+(bv-mid)*.955
+        for section,stations in petal_sections:
+            pv=[]
+            for z,rx,ry in stations:
+                for uv,radial in ((left,1),(right,1),(right,.954),(left,.954)):
+                    pv.append((cx+uv.x*rx*radial,cy+uv.y*ry*radial,z))
+            pf=[(0,1,2,3),(8,11,10,9)]
+            for j in range(2):
+                for k in range(4):pf.append((j*4+k,j*4+(k+1)%4,(j+1)*4+(k+1)%4,(j+1)*4+k))
+            mesh(section+' '+label+str(facet),pv,pf,'metal',.0018)
+        if facet in (0,2):
+            left=mid+(av-mid)*.18;right=mid+(bv-mid)*.18
+            pv=[]
+            for z,rx,ry in [(-2.61,.429,.388),(-2.73,.433,.390),(-2.88,.421,.379)]:
+                for uv,radial in ((left,1),(right,1),(right,.975),(left,.975)):
+                    pv.append((cx+uv.x*rx*radial,cy+uv.y*ry*radial,z))
+            pf=[(0,1,2,3),(8,11,10,9)]
+            for j in range(2):
+                for k in range(4):pf.append((j*4+k,j*4+(k+1)%4,(j+1)*4+(k+1)%4,(j+1)*4+k))
+            mesh('Nozzle overlap keeper '+label+str(facet),pv,pf,'darkmetal',.003)
+    oct_annulus('Forward cowl compression band '+label,cx,cy,-2.547,(.422,.383),(.411,.372),'darkmetal',.002,.044)
     oct_annulus('Rear machined retaining lip '+label,cx,cy,-3.211,(.373,.341),(.357,.324),'machined',.003,.053)
     # Four small flush retainers sit in the compression band, not scattered greeble.
     for facet in (0,2,4,6):
@@ -385,8 +408,12 @@ for sign,label in ((-1,'L'),(1,'R')):
     oct_annulus('Recessed power aperture '+label,cx,cy,-3.062,(.278,.255),(.244,.221),'cyan',.003,.025)
     oct_annulus('Internal ceramic nozzle collar '+label,cx,cy,-2.91,(.260,.237),(.221,.198),'darkmetal',.004,.018)
     oct_annulus('Internal standby aperture '+label,cx,cy,-2.749,(.218,.196),(.190,.166),'dimcyan',.002,.016)
+    add_emitter_chamber(duct,oct_annulus,beam,label,cx,cy,-3.22,.370,.339)
     # Long narrow rear deck spine integrates the nacelle rather than hanging it free.
     solid('Power housing service spine '+label,[(cx-.13,.795,-1.60),(cx-.14,.813,-2.31),(cx-.13,.821,-2.58),(cx+.13,.821,-2.58),(cx+.14,.813,-2.31),(cx+.13,.795,-1.60)],.052,'pearl2',.011)
+    for side in (-1,1):
+        line('Service spine lower gasket '+label,[(cx+side*.138,.748,-1.62),
+            (cx+side*.146,.764,-2.31),(cx+side*.136,.770,-2.56)],.008,'edge')
     # Rear fins are thin swept composite laminates with pearl face and vermilion cap.
     base=[(sign*.91,.715,-1.23),(sign*1.137,1.317,-2.16),(sign*1.179,1.342,-2.55),(sign*1.022,.783,-2.47)]
     # Extrusion across X preserves the compact side profile and canted silhouette.
@@ -426,6 +453,9 @@ for sign in (-1,1):
         y=surface_y(sign*x,z)+.004
         bpy.ops.mesh.primitive_cylinder_add(vertices=8,radius=.009,depth=.005,location=C((sign*x,y,z)))
         obj=move_collection(bpy.context.object);obj.name='Flush titanium fastener';obj.data.materials.append(M['darkmetal'])
+
+texture_directory=SOURCE/'textures';texture_directory.mkdir(exist_ok=True)
+finishes={M[kind].name:surface_finish(M[kind],kind,2.35,3.22) for kind in ('pearl','carbon','metal','darkmetal')}
 
 # Metadata and editable source are saved before export-consolidation.
 scene=bpy.context.scene
@@ -496,6 +526,10 @@ for name,objects in groups.items():
     # Explicit triangulation ensures Blender and glTF use identical faces.
     tri=out.modifiers.new('Deterministic triangulation','TRIANGULATE')
     bpy.ops.object.modifier_apply(modifier=tri.name)
+for obj in joined:
+    mat=obj.data.materials[0]
+    if mat.name in finishes:
+        bake_finish(obj,mat,finishes[mat.name],texture_directory,1024 if 'Ceramic' in mat.name else 512)
 for o in anchors:o.name=o.name.replace('_export','')
 bpy.ops.object.select_all(action='DESELECT')
 for obj in joined+anchors:obj.select_set(True)
@@ -505,7 +539,7 @@ bpy.ops.export_scene.gltf(filepath=str(OUTPUT/'kestrel.glb'),export_format='GLB'
 verts=[obj.matrix_world@v.co for obj in joined for v in obj.data.vertices]
 game=[(v.x,v.z,-v.y) for v in verts]
 bounds={'min':[min(v[k] for v in game) for k in range(3)],'max':[max(v[k] for v in game) for k in range(3)]}
-report={'asset':'Kestrel Concept 01','revision':4,'blender':bpy.app.version_string,'axes':'+Z forward, +Y up','bounds':bounds,'dimensions':[bounds['max'][k]-bounds['min'][k] for k in range(3)],'triangles':sum(len(o.data.polygons) for o in joined),'meshes':len(joined),'materials':len(groups),'glbBytes':(OUTPUT/'kestrel.glb').stat().st_size,'anchors':{'Exhaust_L':[-.955,.448,-3.23],'Exhaust_R':[.955,.448,-3.23]},'sourceComponents':len(source_objects),'renderViews':opts.views.split(',') if opts.render else []}
+report={'asset':'Kestrel Concept 01','revision':9,'blender':bpy.app.version_string,'axes':'+Z forward, +Y up','bounds':bounds,'dimensions':[bounds['max'][k]-bounds['min'][k] for k in range(3)],'triangles':sum(len(o.data.polygons) for o in joined),'meshes':len(joined),'materials':len(groups),'glbBytes':(OUTPUT/'kestrel.glb').stat().st_size,'anchors':{'Exhaust_L':[-.955,.448,-3.23],'Exhaust_R':[.955,.448,-3.23]},'sourceComponents':len(source_objects),'textureCount':len(finishes)*4,'textures':'Embedded original base color, roughness, tangent normal and short-range cavity occlusion maps; editable procedural Blender materials','renderViews':opts.views.split(',') if opts.render else []}
 (SOURCE/'asset-manifest.json').write_text(json.dumps(report,indent=2)+'\n')
 print('KESTREL_ASSET_REPORT '+json.dumps(report),flush=True)
 # Export copies render identically; render them and keep original .blend clean.

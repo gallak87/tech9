@@ -395,6 +395,40 @@ export function createUI(
   let inspectionTab = 'fleet';
   let selectedRival = RIVAL_SHIPS[0];
   const inspection = $('inspection-panel');
+  const inspectionTools = document.createElement('div');
+  inspectionTools.id = 'inspection-tools';
+  inspectionTools.setAttribute('role', 'group');
+  inspectionTools.setAttribute('aria-label', 'Ship preview controls');
+  for (const [key, label, pressed] of [
+    ['autoRotate', 'Auto-rotate', true],
+    ['boost', 'Boost', false],
+    ['driving', 'Driving', false],
+    ['heat', 'Heat shimmer', true],
+  ]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.preview = key;
+    button.setAttribute('aria-pressed', String(pressed));
+    button.textContent = label;
+    button.onclick = () => actions.toggleInspectionPreview(key);
+    inspectionTools.append(button);
+  }
+  const previewHint = document.createElement('p');
+  previewHint.textContent = 'Drag to rotate · Preview: stationary';
+  inspectionTools.append(previewHint);
+  inspection.insertBefore(inspectionTools, inspection.querySelector('dl'));
+  function setInspectionPreview(preview) {
+    for (const button of inspectionTools.querySelectorAll('button')) {
+      const key = button.dataset.preview;
+      button.setAttribute('aria-pressed', String(preview[key]));
+      button.disabled =
+        (inspectionTab === 'rivals' && key !== 'autoRotate') ||
+        (key === 'heat' &&
+          (settings.quality === 'low' || settings.reducedMotion));
+    }
+    previewHint.textContent = `Drag to rotate · Preview: ${preview.driving ? 'driving at 400 km/h' : 'stationary'}${settings.quality === 'low' || settings.reducedMotion ? ' · Heat needs High + motion' : ''}`;
+  }
+
   const tabs = document.createElement('div');
   tabs.className = 'inspection-tabs';
   tabs.setAttribute('role', 'tablist');
@@ -538,6 +572,11 @@ export function createUI(
     rivalPicker.classList.toggle('hidden', tab !== 'rivals');
     $('inspect-start').classList.toggle('hidden', tab === 'rivals');
     root.classList.toggle('inspecting-rivals', tab === 'rivals');
+    for (const button of inspectionTools.querySelectorAll('button'))
+      button.disabled =
+        (tab === 'rivals' && button.dataset.preview !== 'autoRotate') ||
+        (button.dataset.preview === 'heat' &&
+          (settings.quality === 'low' || settings.reducedMotion));
     setInspectedRival(selectedRival);
     if (tab === 'fleet') setInspectionDetails(selectedShip);
   }
@@ -626,13 +665,14 @@ export function createUI(
     shipError(message) {
       loadingMessage.textContent = message;
     },
+    setInspectionPreview,
     inspectionViewport() {
       if (innerWidth > 760 || innerWidth > innerHeight) return null;
       const panel = $('inspection-panel');
       const heading = panel
         .querySelector('.ship-selection:not(.hidden)')
         .getBoundingClientRect();
-      const details = panel.querySelector('dl');
+      const details = inspectionTools;
       const specs = (
         details.offsetHeight ? details : panel.querySelector('.actions')
       ).getBoundingClientRect();

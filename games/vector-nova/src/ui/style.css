@@ -2137,3 +2137,57 @@ select {
     bottom: auto;
   }
 }
+
+/* Keep the preview controls near the model without crowding the fleet picker. */
+#inspection-tools {
+  position: fixed;
+  right: 4vw;
+  bottom: 4vh;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+  width: min(520px, 44vw);
+  pointer-events: auto;
+}
+#inspection-tools button {
+  min-height: 36px;
+  padding: 9px 12px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  background: #10232ee8;
+}
+#inspection-tools button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: #fa795726;
+  box-shadow: inset 0 -2px var(--accent);
+}
+#inspection-tools p {
+  width: 100%;
+  margin: 2px 0 0;
+  text-align: center;
+  font-size: 10px;
+  color: #b7c7cd;
+}
+#interface.inspecting {
+  touch-action: none;
+}
+@media (max-width: 760px) and (max-aspect-ratio: 1/1) {
+  #inspection-tools {
+    position: static;
+    width: 100%;
+    margin-top: auto;
+    flex-shrink: 0;
+    gap: 5px;
+  }
+  #inspection-tools button {
+    padding: 8px;
+    font-size: 9px;
+  }
+  #inspection-panel dl {
+    margin-top: 10px;
+  }
+  #inspection-panel .actions {
+    margin-top: 10px;
+  }
+}

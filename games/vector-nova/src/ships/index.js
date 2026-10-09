@@ -1,6 +1,7 @@
 import { assetURL } from '../assets/url.js';
 import * as THREE from 'three';
 import { getShip } from './catalog.js';
+import { createEngineResponse } from './engine-response.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   createOrbitalPlumeGeometry,
@@ -73,6 +74,12 @@ export async function createShip({
   group.add(hull);
   group.updateMatrixWorld(true);
   const resources = resourcesFor(hull);
+  // Oblique armor/louver surfaces need modest anisotropy at chase distance.
+  // These maps are owned clones; renderer environment probes remain borrowed.
+  for (const texture of resources.textures) {
+    texture.anisotropy = 4;
+    texture.needsUpdate = true;
+  }
   const release = () => {
     resources.geometries.forEach((value) => value.dispose());
     resources.materials.forEach((value) => value.dispose());
@@ -113,16 +120,35 @@ export async function createShip({
   const plumes = anchors.map((anchor) => {
     const plume = new THREE.Mesh(plumeGeometry, plumeMaterial);
     plume.name = 'Ion exhaust';
+    plume.userData.aoExclude = true;
+    // The renderer borrows this local source for its depth-aware heat volume.
+    // No extra visible surface or resource is added to the ship asset.
+    plume.userData.exhaustHeat = { pressure: 0, velocity: 0, time: 0 };
     group.worldToLocal(anchor.getWorldPosition(plume.position));
     group.add(plume);
     return plume;
   });
+  const nozzleLights = plumes.map((plume) => {
+    const light = new THREE.PointLight(0x55bfff, 0.2, 1.35, 2);
+    light.name = 'Ion throat / local ceramic and titanium spill';
+    light.position.copy(plume.position);
+    light.position.z += 0.06;
+    group.add(light);
+    return light;
+  });
+  const engineResponse = createEngineResponse();
   const power = [...resources.materials]
     .filter((material) => /power|emission/i.test(material.name))
     .map((material) => ({ material, intensity: material.emissiveIntensity }));
 
   let disposed = false;
-  function update({ speed = 0, boost = false, time = 0, energy = 1 } = {}) {
+  function update({
+    speed = 0,
+    boost = false,
+    time = 0,
+    energy = 1,
+    reducedMotion = false,
+  } = {}) {
     if (disposed) return;
     const velocity = THREE.MathUtils.clamp(
       Number.isFinite(speed) ? speed / 150 : 0,
@@ -136,24 +162,39 @@ export async function createShip({
       1,
     );
     const activeBoost = boost && reserve > 0;
+    const { pressure, flowTime } = engineResponse({
+      time: t,
+      boosting: activeBoost,
+      reducedMotion,
+    });
     for (const { material, intensity } of power)
       material.emissiveIntensity =
-        intensity * (0.8 + velocity * 0.2 + (activeBoost ? 0.35 : 0));
+        intensity * (0.8 + velocity * 0.2 + pressure * 0.35);
     plumeMaterial.uniforms.strength.value =
-      (0.12 + velocity * 0.22 + (activeBoost ? 0.75 : 0)) * plumeExposure;
-    plumeMaterial.uniforms.flowTime.value = t;
-    plumeMaterial.uniforms.boostMix.value = activeBoost ? 1 : 0;
-    plumeMaterial.uniforms.glowColor.value.setHex(
-      activeBoost ? 0x319eff : 0x2589e8,
-    );
+      (0.12 + velocity * 0.22 + pressure * 0.75) * plumeExposure;
+    plumeMaterial.uniforms.flowTime.value = flowTime;
+    plumeMaterial.uniforms.reducedMotion.value = reducedMotion ? 1 : 0;
+    plumeMaterial.uniforms.boostMix.value = pressure;
+    plumeMaterial.uniforms.cruiseMix.value =
+      THREE.MathUtils.smoothstep(velocity, 0.1, 0.7) * (1 - pressure);
+    plumeMaterial.uniforms.glowColor.value.setHex(0x2376ff);
     for (let index = 0; index < plumes.length; index++) {
-      const pulse = 1 + Math.sin(t * 17 + index * 2) * 0.008;
-      const width = (activeBoost ? 1.5 : 0.95 + velocity * 0.42) * pulse;
+      const pulse = reducedMotion
+        ? 1
+        : 1 + Math.sin(flowTime * 17 + index * 2) * 0.008;
+      const width =
+        THREE.MathUtils.lerp(0.95 + velocity * 0.42, 1.5, pressure) * pulse;
       plumes[index].scale.set(
         width * specification.plumeWidth,
         width * specification.plumeWidth,
-        (0.38 + velocity * 1.65 + (activeBoost ? 3.5 : 0)) * pulse,
+        (0.38 + velocity * 1.65 + pressure * 3.5) * pulse,
       );
+      Object.assign(plumes[index].userData.exhaustHeat, {
+        pressure,
+        velocity,
+        time: flowTime,
+      });
+      nozzleLights[index].intensity = 0.2 + velocity * 0.12 + pressure * 0.36;
     }
   }
   function dispose() {

@@ -7,6 +7,7 @@ import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { createLifetime } from '../core/lifecycle.js';
+import { ExhaustHeatPass } from '../ships/exhaust-heat-pass.js';
 import { createContactShadow } from './contact-shadow.js';
 
 export async function createRenderer(
@@ -103,13 +104,18 @@ export async function createRenderer(
     );
     fill.position.set(140, options.fillHeight ?? 110, -100);
     scene.add(fill);
-    const target = new T.WebGLRenderTarget(1, 1, { type: T.HalfFloatType });
+    const target = new T.WebGLRenderTarget(1, 1, {
+      type: T.HalfFloatType,
+      depthTexture: new T.DepthTexture(1, 1, T.UnsignedIntType),
+    });
     // GTAO blended into multisampled HDR targets produced an opaque region on
     // ANGLE Metal. Use a single-sample target and postprocess edge antialiasing.
     target.samples = 0;
     const composer = lifetime.own(new EffectComposer(renderer, target));
     const beauty = lifetime.own(new RenderPass(scene, camera));
     composer.addPass(beauty);
+    const exhaustHeat = lifetime.own(new ExhaustHeatPass(scene, camera));
+    composer.addPass(exhaustHeat);
     const ao = lifetime.own(new GTAOPass(scene, camera, 960, 540));
     lifetime.defer(() => {
       ao.gtaoMaterial.dispose();
@@ -219,6 +225,8 @@ export async function createRenderer(
       );
       ao.enabled = settings.quality === 'high' && !mobile;
       bloom.enabled = settings.quality === 'high' && !shape;
+      exhaustHeat.enabled =
+        settings.quality === 'high' && !shape && !settings.reducedMotion;
       renderer.shadowMap.enabled = true;
     }
     apply();
@@ -331,6 +339,8 @@ export async function createRenderer(
         scene.userData.elapsed = elapsed;
         renderer.info.reset();
         renderer.shadowMap.needsUpdate = true;
+        exhaustHeat.enabled =
+          settings.quality === 'high' && !shape && !settings.reducedMotion;
         const targetBlur = settings.reducedMotion || shape ? 0 : blurTarget;
         racingBlur.uniforms.strength.value +=
           (targetBlur - racingBlur.uniforms.strength.value) *
@@ -410,6 +420,10 @@ export async function createRenderer(
             if (m) for (const v of Object.values(m)) countTexture(v);
         });
         const ratio = renderer.getPixelRatio();
+        // Sampleable depth replaces each composer's existing depth buffer;
+        // only the half-resolution RGBA16F refraction field adds storage.
+        const heatBytes =
+          exhaustHeat.field.width * exhaustHeat.field.height * 8;
         const postBytes =
           innerWidth *
           innerHeight *
@@ -450,6 +464,7 @@ export async function createRenderer(
               textureBytes +
               3072 * 3072 * 4 +
               postBytes +
+              heatBytes +
               (cityReflection ? 12 : 8) * 1024 * 1024) /
             2 ** 20,
           gpuEstimateScope:
@@ -463,6 +478,7 @@ export async function createRenderer(
           pipeline: {
             ambientOcclusion: ao.enabled,
             bloom: bloom.enabled,
+            exhaustHeat: exhaustHeat.enabled,
             worldEffects: [...worldPasses].filter((pass) => pass.enabled)
               .length,
             racingBlur: racingBlur.enabled,

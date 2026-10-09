@@ -8,7 +8,13 @@ import { createShip } from './index.js';
 const bytes = await readFile(
   new URL('../../public/assets/ships/kestrel/kestrel.glb', import.meta.url),
 );
-const { scene: model } = await new GLTFLoader().parseAsync(
+// CPU ownership checks decode geometry; browser verification decodes the maps.
+const loader = new GLTFLoader();
+loader.register(() => ({
+  name: 'CPU_TEXTURES',
+  loadTexture: async () => new THREE.Texture(),
+}));
+const { scene: model } = await loader.parseAsync(
   bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
   '',
 );

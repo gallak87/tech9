@@ -9,73 +9,10 @@ from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 ROOT = Path(__file__).resolve().parents[2]
 
-def surface_finish(mat, kind):
-    """Editable procedural paint/metal finish; baked to portable PBR on export."""
-    nodes=mat.node_tree.nodes; links=mat.node_tree.links
-    bsdf=nodes.get('Principled BSDF')
-    base=tuple(bsdf.inputs['Base Color'].default_value)
-    rough=bsdf.inputs['Roughness'].default_value
-    coords=nodes.new('ShaderNodeNewGeometry')
-    noise=nodes.new('ShaderNodeTexNoise');noise.inputs['Scale'].default_value=4
-    noise.inputs['Detail'].default_value=3;links.new(coords.outputs['Position'],noise.inputs['Vector'])
-    variation=nodes.new('ShaderNodeValToRGB')
-    variation.color_ramp.elements[0].color=(.84,.86,.88,1)
-    variation.color_ramp.elements[1].color=(1,1,1,1)
-    links.new(noise.outputs['Fac'],variation.inputs[0])
-    color=nodes.new('ShaderNodeMixRGB');color.blend_type='MULTIPLY';color.inputs[0].default_value=1
-    color.inputs[1].default_value=base;links.new(variation.outputs['Color'],color.inputs[2])
-    links.new(color.outputs[0],bsdf.inputs['Base Color'])
-    scale=nodes.new('ShaderNodeVectorMath');scale.operation='MULTIPLY'
-    scale.inputs[1].default_value=(1,1,38) if kind in ('metal','darkmetal') else (1,1,1)
-    links.new(coords.outputs['Position'],scale.inputs[0])
-    grain=nodes.new('ShaderNodeTexNoise');grain.inputs['Scale'].default_value=95 if kind=='pearl' else 150
-    grain.inputs['Detail'].default_value=2
-    links.new(scale.outputs['Vector'],grain.inputs['Vector'])
-    roughness=nodes.new('ShaderNodeMapRange');roughness.inputs['From Min'].default_value=0
-    roughness.inputs['From Max'].default_value=1
-    roughness.inputs['To Min'].default_value=max(.1,rough-.10)
-    roughness.inputs['To Max'].default_value=min(.7,rough+.15)
-    links.new(grain.outputs['Fac'],roughness.inputs['Value']);links.new(roughness.outputs[0],bsdf.inputs['Roughness'])
-    bump=nodes.new('ShaderNodeBump');bump.inputs['Strength'].default_value=.13
-    bump.inputs['Distance'].default_value=.007 if kind=='pearl' else .003
-    links.new(grain.outputs['Fac'],bump.inputs['Height']);links.new(bump.outputs['Normal'],bsdf.inputs['Normal'])
-    return {'color':color.outputs[0],'roughness':roughness.outputs[0]}
-
-def bake_finish(obj, material, channels, directory, size=1024):
-    """Bake color, roughness and tangent normals, then wire glTF-supported nodes."""
-    bpy.ops.object.select_all(action='DESELECT');obj.select_set(True);bpy.context.view_layer.objects.active=obj
-    bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT')
-    bpy.ops.uv.smart_project(angle_limit=math.radians(65),island_margin=.015)
-    bpy.ops.object.mode_set(mode='OBJECT')
-    nodes=material.node_tree.nodes;links=material.node_tree.links
-    bsdf=nodes.get('Principled BSDF');output=nodes.get('Material Output')
-    emission=nodes.new('ShaderNodeEmission')
-    baked={}
-    bpy.context.scene.cycles.samples=8
-    bpy.context.scene.render.bake.margin=8
-    for channel in ('color','roughness','normal'):
-        image=bpy.data.images.new(material.name+'_'+channel,width=size,height=size,alpha=False)
-        image.colorspace_settings.name='sRGB' if channel=='color' else 'Non-Color'
-        target=nodes.new('ShaderNodeTexImage');target.image=image;nodes.active=target
-        if channel=='normal':
-            links.new(bsdf.outputs[0],output.inputs['Surface'])
-            bpy.ops.object.bake(type='NORMAL')
-        else:
-            links.new(channels[channel],emission.inputs['Color'])
-            links.new(emission.outputs[0],output.inputs['Surface'])
-            bpy.ops.object.bake(type='EMIT')
-        image.filepath_raw=str(directory/(material.name+'_'+channel+'.png'));image.file_format='PNG';image.save()
-        baked[channel]=image
-    # Simplify export material, leaving procedural source in the saved blend.
-    for node in list(nodes):
-        if node not in (bsdf,output):nodes.remove(node)
-    links.new(bsdf.outputs[0],output.inputs['Surface'])
-    for channel,image in baked.items():
-        texture=nodes.new('ShaderNodeTexImage');texture.image=image
-        if channel=='normal':
-            normal=nodes.new('ShaderNodeNormalMap');links.new(texture.outputs['Color'],normal.inputs['Color'])
-            links.new(normal.outputs[0],bsdf.inputs['Normal'])
-        else:links.new(texture.outputs['Color'],bsdf.inputs['Base Color' if channel=='color' else 'Roughness'])
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from surface_finish import surface_finish, bake_finish
+from propulsion_chamber import add_emitter_chamber
 
 def C(v): return (v[0], -v[2], v[1])
 def material(name, color, metal=0, rough=.3, emission=None):
@@ -88,8 +25,10 @@ def material(name, color, metal=0, rough=.3, emission=None):
         node.inputs['Emission Color'].default_value=(*emission[0],1)
         node.inputs['Emission Strength'].default_value=emission[1]
     if 'Ceramic' in name or 'Glass' in name:
-        node.inputs['Coat Weight'].default_value=.22
-        node.inputs['Coat Roughness'].default_value=.13
+        node.inputs['Coat Weight'].default_value=.68 if 'Glass' in name else .10 if 'Service' in name else .22
+        node.inputs['Coat Roughness'].default_value=.055 if 'Glass' in name else .22 if 'Service' in name else .13
+    if 'accent' in name:
+        node.inputs['Specular IOR Level'].default_value=.30
     return mat
 
 def mesh(name, vertices, faces, mat, bevel=0, smooth=False):
@@ -105,7 +44,7 @@ def mesh(name, vertices, faces, mat, bevel=0, smooth=False):
         for poly in data.polygons: poly.use_smooth=True
     if bevel:
         mod = obj.modifiers.new('Machined edge radii','BEVEL')
-        mod.width=bevel; mod.segments=3; mod.affect='EDGES'
+        mod.width=bevel*(1 if name.startswith('Swept tail wing') else {'pearl':1.28,'pearl2':1.28,'machined':.72,'metal':.80}.get(mat,1)); mod.segments=3; mod.affect='EDGES'
         mod.limit_method='ANGLE'; mod.angle_limit=.30
         mod.harden_normals=True
         normals=obj.modifiers.new('Area weighted panel normals','WEIGHTED_NORMAL')
@@ -209,6 +148,13 @@ def cockpit(length=2.4, width=.33, z=0, height=.52):
     for k in range(len(dense)-1):
         for j in range(segments):faces.append((k*n+j,k*n+j+1,(k+1)*n+j+1,(k+1)*n+j))
     mesh('Low smoked flight canopy',verts,faces,'glass',0,True)
+    # A formed coaming seats the glass into the chassis; retain a dark gasket
+    # between the polished seal and the ceramic rather than a floating bubble.
+    for sign in (-1,1):
+        outline=[(sign*ww*width*1.14,height-.012,z+zz*length/2) for zz,ww,hh in dense]
+        outline += [(sign*ww*width*.985,height-.006,z+zz*length/2) for zz,ww,hh in reversed(dense)]
+        solid('Recessed canopy coaming '+str(sign),outline,.028,'edge',.004)
+        line('Canopy elastomer gasket',[(sign*ww*width*1.06,height-.001,z+zz*length/2) for zz,ww,hh in dense],.012,'vent')
     for sign in (-1,1):
         line('Canopy titanium seal',[(sign*w*width,height+.005,z+zz*length/2) for zz,w,h in stations],.014,'darkmetal')
     # Visible transverse cockpit frame, flush against the aft glass.
@@ -220,23 +166,41 @@ def engine(label,cx,cy,aft,radius):
     ry=radius*.86
     duct('Graphite power housing '+label,cx,cy,[(aft+1.55,radius*.73,ry*.78),
         (aft+1.05,radius,ry),(aft+.35,radius,ry)],'carbon',True,False,.017)
-    # Eight separately formed titanium shroud panels and a true recessed throat.
+    # Cold mounting cuff and hot aft petals overlap a recessed pressure sleeve.
+    # Two axial sections and a dark reveal stay readable in the chase camera.
+    duct('Dark continuous nozzle sleeve '+label,cx,cy,[(aft+.81,radius*.97,ry*.97),
+        (aft+.43,radius*1.055,ry*1.055),(aft+.04,radius*.945,ry*.945)],'darkmetal',False,False,.004)
     for k in range(8):
         a=Vector(OCT[k]); b=Vector(OCT[(k+1)%8]); mid=(a+b)*.5
-        a=mid+(a-mid)*.975; b=mid+(b-mid)*.975
-        points=[]
-        for zz,scale in [(aft+.8,1.04),(aft+.43,1.10),(aft+.06,.98)]:
-            for v,t in [(a,1),(b,1),(b,.94),(a,.94)]:
-                points.append((cx+v.x*radius*scale*t,cy+v.y*ry*scale*t,zz))
-        faces=[(0,1,2,3),(8,11,10,9)]
-        for j in range(2):
-            for q in range(4):faces.append((j*4+q,j*4+(q+1)%4,(j+1)*4+(q+1)%4,(j+1)*4+q))
-        mesh('Titanium thermal petal '+label+str(k),points,faces,'metal',.006)
-    oct_annulus('Retaining band '+label,cx,cy,aft+.46,(radius*1.115,ry*1.115),(radius*1.085,ry*1.085),'machined',.004,.055)
+        a=mid+(a-mid)*.95; b=mid+(b-mid)*.95
+        for section,stations in [('Cold mounting cuff',[(aft+.8,1.02),(aft+.60,1.045),(aft+.45,1.095)]),
+                ('Overlapping hot petal',[(aft+.405,1.10),(aft+.20,1.07),(aft+.06,.98)])]:
+            points=[]
+            for zz,scale in stations:
+                for v,t in [(a,1),(b,1),(b,.94),(a,.94)]:
+                    points.append((cx+v.x*radius*scale*t,cy+v.y*ry*scale*t,zz))
+            faces=[(0,1,2,3),(8,11,10,9)]
+            for j in range(2):
+                for q in range(4):faces.append((j*4+q,j*4+(q+1)%4,(j+1)*4+(q+1)%4,(j+1)*4+q))
+            mesh(section+' '+label+str(k),points,faces,'metal',.0018)
+        if k in (0,2):
+            # Broad, flush spring keepers bridge the real overlap seam.
+            left=mid+(a-mid)*.19; right=mid+(b-mid)*.19
+            points=[]
+            for zz,scale in [(aft+.59,1.087),(aft+.49,1.113),(aft+.34,1.105)]:
+                for v,t in [(left,1),(right,1),(right,.975),(left,.975)]:
+                    points.append((cx+v.x*radius*scale*t,cy+v.y*ry*scale*t,zz))
+            faces=[(0,1,2,3),(8,11,10,9)]
+            for j in range(2):
+                for q in range(4):faces.append((j*4+q,j*4+(q+1)%4,(j+1)*4+(q+1)%4,(j+1)*4+q))
+            mesh('Nozzle overlap keeper '+label+str(k),points,faces,'darkmetal',.003)
+    oct_annulus('Retaining band '+label,cx,cy,aft+.46,(radius*1.115,ry*1.115),(radius*1.085,ry*1.085),'darkmetal',.002,.055)
     oct_annulus('Nozzle rim '+label,cx,cy,aft,(radius,ry),(radius*.81,ry*.81),'machined',.007,.08)
     duct('Recessed ceramic throat '+label,cx,cy,[(aft+.02,radius*.82,ry*.82),(aft+.42,radius*.65,ry*.65)],'vent',False,True,.004)
+    oct_annulus('Shadowed nozzle collar '+label,cx,cy,aft+.245,(radius*.735,ry*.735),(radius*.682,ry*.682),'darkmetal',.004,.050)
     oct_annulus('Ion power aperture '+label,cx,cy,aft+.12,(radius*.79,ry*.79),(radius*.69,ry*.69),'cyan',.004,.035)
     oct_annulus('Inner induction coil '+label,cx,cy,aft+.35,(radius*.66,ry*.66),(radius*.58,ry*.58),'dimcyan',.003,.025)
+    add_emitter_chamber(duct,oct_annulus,beam,label,cx,cy,aft,radius,ry)
     empty=bpy.data.objects.new('Exhaust_'+label,None);ship.objects.link(empty)
     empty.location=C((cx,cy,aft-.015));empty.empty_display_type='ARROWS';empty.empty_display_size=.15
     empty['game_position']=[cx,cy,aft-.015]
@@ -273,7 +237,10 @@ def shrike():
         beam('Wing trailing brace',(sign*.50,.22,-1.30),(sign*1.78,.31,-.86),.08,.08)
         engine('L' if sign<0 else 'R',sign*1.15,.56,-2.94,.36)
         fin(sign,1.21,-1.65,.83,.73)
-        loft('Ceramic nacelle saddle', [(-.62,.22,.73,.78,.63),(-1.11,.34,.90,.96,.64),(-2.12,.30,.91,.95,.68)],'pearl',sign*1.15)
+        loft('Ceramic nacelle saddle', [(-.62,.22,.73,.78,.63),(-1.11,.34,.90,.96,.64),(-2.12,.30,.91,.95,.68)],'pearl2',sign*1.15)
+        for side in (-1,1):
+            line('Nacelle ceramic-seat gasket',[(sign*1.15+side*w,y-.024,z) for z,w,y in
+                [(-.64,.22,.73),(-1.11,.34,.90),(-2.10,.30,.91)]],.009,'edge')
         oct_annulus('Nacelle front intake',sign*1.15,.73,-.595,(.22,.15),(.17,.11),'edge',.006,.07)
         duct('Nacelle intake shadow',sign*1.15,.73,[(-.60,.176,.116),(-.64,.176,.116)],'vent',True,False,.002)
         for j in range(5):
@@ -290,7 +257,7 @@ def bastion():
     loft('Recessed central cockpit bridge',[(1.39,.29,.33,.42,.11),(1.05,.43,.46,.53,.09),
         (-.49,.45,.51,.58,.08),(-1.53,.30,.47,.59,.1),(-2.81,.27,.27,.43,.12)],'carbon')
     mirrored_panel('Cockpit ceramic rim',[(.31,.44,1.36),(.47,.56,.75),(.48,.61,-.71),
-        (.29,.59,-1.73),(.20,.50,-1.92),(.31,.58,-.55),(.34,.55,.72)],.07,'pearl')
+        (.29,.59,-1.73),(.20,.50,-1.92),(.31,.58,-.55),(.34,.55,.72)],.07,'pearl2')
     cockpit(1.99,.33,-.02,.55)
     for sign in (-1,1):
         cx=sign*1.28
@@ -299,7 +266,21 @@ def bastion():
         loft('Long narrow sponson skeleton',stations,'carbon',cx)
         # Individual armor plates expose joints, intake recesses and cross braces.
         loft('Forward chisel armor',[(z,w*.99,y+.10,t+.10,t-.045) for z,w,y,t,b in stations[:3]],'pearl',cx)
-        loft('Aft shoulder armor',[(z,w*1.01,y+.08,t+.08,t-.05) for z,w,y,t,b in stations[3:]],'pearl',cx)
+        armor=[(z,w*1.01,y+.08,t+.08,t-.05) for z,w,y,t,b in stations[3:]]
+        def section_at(z):
+            for a,b in zip(armor,armor[1:]):
+                if a[0]>=z>=b[0]:
+                    t=(a[0]-z)/(a[0]-b[0])
+                    return (z,)+tuple(a[k]*(1-t)+b[k]*t for k in range(1,5))
+            return armor[-1]
+        # Three load-bearing formed plates expose the actual graphite skeleton
+        # in narrow joints. The unchanged envelope retains the slim catamaran.
+        for index,(front,rear) in enumerate([(.91,-.245),(-.285,-1.095),(-1.135,-2.42)]):
+            section=[section_at(front)]+[p for p in armor if front>p[0]>rear]+[section_at(rear)]
+            loft('Stepped sponson shoulder plate '+str(index),section,'pearl2' if index==1 else 'pearl',cx,bevel=.012)
+        for zz in (-.265,-1.115):
+            z,w,y,top,bottom=section_at(zz)
+            beam('Recessed transverse armor cleat',(cx-w*.75,top-.065,zz),(cx+w*.75,top-.065,zz),.031,.020,'darkmetal',.003)
         for edge in (-1,1):
             xx=cx+edge*.31
             solid('Longitudinal armor rail',[(xx-.095,.66,2.0),(xx+.095,.66,2.0),
@@ -309,7 +290,10 @@ def bastion():
             beam('Open channel cross bridge',(sign*.32,.23,zz),(cx,.22,zz-.23),.17,.13,'metal',.014)
             beam('Open channel diagonal',(sign*.31,.19,zz-.50),(cx,.20,zz-.13),.075,.08,'carbon')
         engine('L' if sign<0 else 'R',cx,.51,-3.28,.43)
-        loft('Slim rear engine armor', [(-1.67,.29,.76,.86,.69),(-2.2,.43,.84,.92,.71),(-2.68,.38,.79,.88,.69)],'pearl',cx)
+        loft('Slim rear engine armor', [(-1.67,.29,.76,.86,.69),(-2.2,.43,.84,.92,.71),(-2.68,.38,.79,.88,.69)],'pearl2',cx)
+        for side in (-1,1):
+            line('Rear armor gasket',[(cx+side*w,y-.025,z) for z,w,y in
+                [(-1.69,.29,.76),(-2.2,.43,.84),(-2.66,.38,.79)]],.009,'edge')
         # Brass bands follow the chisel profile and mark the cross bridge.
         solid('Brass forward armor band',[(cx-.41,.68,2.08),(cx+.41,.68,2.08),
             (cx+.42,.70,1.88),(cx-.42,.70,1.88)],.025,'accent',.005)
@@ -347,7 +331,10 @@ def needle():
     cockpit(2.60,.38,.23,.625)
     engine('C',0,.64,-3.49,.61)
     loft('Integrated central engine cowling',[(-1.06,.39,.77,.86,.66),(-1.68,.55,.96,1.08,.78),
-        (-2.59,.54,.97,1.10,.79)],'pearl')
+        (-2.59,.54,.97,1.10,.79)],'pearl2')
+    for side in (-1,1):
+        line('Central cowling-seat gasket',[(side*w,y-.025,z) for z,w,y in
+            [(-1.08,.39,.77),(-1.68,.55,.96),(-2.57,.54,.97)]],.009,'edge')
     vent('Central engine cooling inlet',0,1.112,-1.82,.47,.63)
 
 def export_ship(id):
@@ -356,13 +343,13 @@ def export_ship(id):
     scene=bpy.context.scene
     ship=bpy.data.collections.new(id.upper()+' | editable components');scene.collection.children.link(ship)
     anchors={}
-    accent={'shrike':(.025,.36,.39),'bastion':(.75,.34,.065),'needle':(.39,.08,.72)}[id]
-    palette={'pearl':((.48,.51,.52),.16,.34),'carbon':((.024,.034,.039),.28,.385),
+    accent={'shrike':(.003,.12,.14),'bastion':(.40,.10,.009),'needle':(.16,.012,.33)}[id]
+    palette={'pearl':((.48,.51,.52),.09,.315),'pearl2':((.23,.27,.29),.04,.44),'carbon':((.034,.049,.061),.20,.43),
         'edge':((.016,.022,.026),.52,.25),'vent':((.007,.011,.014),.2,.36),
-        'metal':((.40,.355,.294),.91,.30),'darkmetal':((.092,.12,.135),.8,.34),
-        'machined':((.56,.535,.48),.95,.205),'glass':((.009,.021,.027),.64,.105),
-        'accent':(accent,.30,.27)}
-    M={key:material(id+'_'+('Ceramic' if key=='pearl' else 'Glass' if key=='glass' else key),*args) for key,args in palette.items()}
+        'metal':((.24,.27,.285),.86,.32),'darkmetal':((.092,.12,.135),.8,.34),
+        'machined':((.55,.61,.64),.95,.19),'glass':((.005,.016,.022),.02,.085),
+        'accent':(accent,0,.36)}
+    M={key:material(id+'_'+('Ceramic' if key=='pearl' else 'CeramicService' if key=='pearl2' else 'Glass' if key=='glass' else key),*args) for key,args in palette.items()}
     M['cyan']=material(id+'_Power',(.02,.20,.24),.28,.23,((.12,.75,.89),2.4))
     M['dimcyan']=material(id+'_Standby',(.011,.05,.064),.4,.26,((.02,.24,.31),.5))
     globals()[id]()
@@ -391,7 +378,7 @@ def export_ship(id):
     bpy.context.view_layer.update()
     depsgraph=bpy.context.evaluated_depsgraph_get()
     surfaces=[BVHTree.FromObject(obj,depsgraph) for obj in ship.objects
-        if obj.type=='MESH' and obj.data.materials[0]==M['pearl']]
+        if obj.type=='MESH' and obj.data.materials[0] in (M['pearl'],M['pearl2'])]
     def height(x,z):
         hits=[tree.ray_cast(Vector(C((x,3,z))),Vector((0,0,-1)),4)[0] for tree in surfaces]
         hits=[hit.z for hit in hits if hit is not None]
@@ -472,7 +459,7 @@ def export_ship(id):
     review=ROOT/'.experiments/fleet-blender'/id
     for path in (source,output,review):path.mkdir(parents=True,exist_ok=True)
     texture_directory=source/'textures';texture_directory.mkdir(exist_ok=True)
-    finishes={M[kind].name:surface_finish(M[kind],kind) for kind in ('pearl','carbon','metal','darkmetal')}
+    finishes={M[kind].name:surface_finish(M[kind],kind,{'shrike':2.15,'bastion':2.48,'needle':2.68}[id],{'shrike':2.94,'bastion':3.28,'needle':3.49}[id]) for kind in ('pearl','carbon','metal','darkmetal')}
     # Neutral studio is editable in the blend and excluded from export.
     studio=bpy.data.collections.new('STUDIO | not exported');scene.collection.children.link(studio)
     scene.unit_settings.system='METRIC';scene.unit_settings.scale_length=1
@@ -531,8 +518,8 @@ def export_ship(id):
     report={'asset':id,'blender':bpy.app.version_string,'bounds':bounds,
         'triangles':sum(len(o.data.polygons) for o in joined),'meshes':len(joined),'anchors':anchors,
         'sourceComponents':len(components),'glbBytes':(output/(id+'.glb')).stat().st_size,
-        'textures':'Embedded base color, roughness and tangent normal maps; original procedural Blender materials',
-        'textureCount':len(finishes)*3}
+        'textures':'Embedded original base color, roughness, tangent normal and short-range cavity occlusion maps; editable procedural Blender materials',
+        'textureCount':len(finishes)*4, 'artPassRevision':5}
     (source/'asset-manifest.json').write_text(json.dumps(report,indent=2)+'\n')
     print('FLEET_ASSET '+json.dumps(report),flush=True)
     if opts.render:

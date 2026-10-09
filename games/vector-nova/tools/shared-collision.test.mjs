@@ -116,11 +116,22 @@ const world = createCollisionWorld({
 function flightAt(
   position,
   velocity,
-  { yaw = 0, mode = 'flight', remaining = 0.5, collisionWorld = world } = {},
+  {
+    yaw = 0,
+    mode = 'flight',
+    remaining = 0.5,
+    collisionWorld = world,
+    forgivingContacts = false,
+  } = {},
 ) {
   const runtime = model.createRuntime(
     { track, collisionWorld },
-    { id: 'test-flight', version: 1, rulesId: 'test-flight-v1' },
+    {
+      id: 'test-flight',
+      version: 1,
+      rulesId: 'test-flight-v1',
+      forgivingContacts,
+    },
   );
   const state = { ...createVehicleState(), distance: 99.8, speed: 100 };
   runtime.advance(state, {}, DT);
@@ -238,6 +249,31 @@ test('accepted deck contact relatches; underside/ramp face contacts crash withou
   assert.equal(under.runtime.snapshot().mode, 'recovery');
   assert.ok(under.runtime.snapshot().flight.velocity[1] < 0);
   assert.ok(!events.some((event) => event.type === 'jump-transfer'));
+});
+
+test('recovery deck landing clears flight once and continues driving, including at timeout', () => {
+  for (const remaining of [0.5, DT / 2]) {
+    const { runtime, state } = flightAt([0, 1.1, 300], [0, -90, 80], {
+      mode: 'recovery',
+      remaining,
+      forgivingContacts: true,
+    });
+    const events = runtime.advance(state, {}, DT);
+    const transfers = events.filter((event) => event.type === 'jump-transfer');
+    assert.equal(transfers.length, 1);
+    assert.equal(transfers[0].payload.outcome, 'landed');
+    assert.equal(runtime.snapshot().mode, 'magnetic');
+    assert.equal(runtime.snapshot().flight, null);
+    assert.ok(state.distance >= jump.landingStart);
+    assert.ok(state.distance < jump.landingEnd);
+    const landedDistance = state.distance;
+    const landedTime = state.time;
+    for (let tick = 0; tick < 30; tick++)
+      runtime.advance(state, { throttle: 1 }, DT);
+    assert.ok(state.distance > landedDistance);
+    assert.ok(state.time > landedTime);
+    runtime.dispose();
+  }
 });
 
 test('physical contact with another route interval cannot award the current jump landing', () => {

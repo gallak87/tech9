@@ -1246,7 +1246,11 @@ export function createFlightModel(overrides = {}) {
             .addScaledVector(flight.velocity, dt)
             .addScaledVector(acceleration, dt * dt * 0.5);
           flight.velocity.addScaledVector(acceleration, dt);
-          advanceWorldContacts(state, jump, before, acceleration, dt, events);
+          // A supported landing clears flight and restores magnetic driving.
+          if (
+            advanceWorldContacts(state, jump, before, acceleration, dt, events)
+          )
+            return;
         } else {
           currentPose.position.addScaledVector(flight.velocity, dt);
           flight.velocity.y -= R.gravity * dt;

@@ -148,7 +148,7 @@ export function createSaffronCollisionWorld({ track }) {
   collar.dispose();
   const world = createCollisionWorld({
     id: 'saffron-wide-solids',
-    version: 1,
+    version: 2,
     geometryId: `${track.geometryVersion}:${SAFFRON_SOLIDS.version}:terrain176-v1:fossils-${kit.sourceHash}:placements-v1:jump-supports-v1:road-boundaries-v1`,
     triangles,
   });

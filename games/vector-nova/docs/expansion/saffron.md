@@ -34,6 +34,12 @@ There are no separate art-polish assignments in this proof. Existing roadmap req
 
 ## Human review gates
 
+### Pre-step-3 rough draft
+
+After approving the unchanged copy at gate 2, the user has requested a quick **32 → 40 m width preview** before formal step 3. Widen the complete driving surface and move its rails/baffles and simple road-edge details outward, keeping road/rail collision, grounded bounds, and jump landing widths aligned. Preserve route, ship size, handling, and camera. Keep surrounding assets and their collision unchanged; scenery clipping, imperfect supports, and unfinished visual connections are accepted for this feel test. Do not regenerate assets, refit the environment, or reconcile all gameplay placements yet. Check that the new road width is actually usable, run a short desktop smoke and a build, then return the preview for the user's driving judgment. This draft does not satisfy the full step-3 acceptance gate or authorize steps 4–6. Resume the formal sequence only when the user asks.
+
+### Formal phase gates
+
 Stop after steps **2, 3, and 4**. Finish the current phase's implementation and focused checks, provide original/variant preview links and concise findings, then wait for the user's explicit go-ahead before beginning the next phase. A supporting agent's approval cannot open a gate. These are whole-circuit checkpoints, not section-by-section widening reviews.
 
 | Gate                            | Reviewable result                                                                                                                                                                                                                                                | Decision                                                                                    |

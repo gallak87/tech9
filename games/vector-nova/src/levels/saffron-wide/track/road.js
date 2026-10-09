@@ -182,8 +182,8 @@ export function createSaffronRoad(
     for (const side of SIDES) {
       profile(
         [
-          [side * 12.8, 0.018],
-          [side * 16, 0.018],
+          [side * 16.8, 0.018],
+          [side * 20, 0.018],
         ],
         start,
         end,
@@ -199,8 +199,8 @@ export function createSaffronRoad(
       );
       profile(
         [
-          [side * 15.48, 0.035],
-          [side * 15.78, 0.035],
+          [side * 19.48, 0.035],
+          [side * 19.78, 0.035],
         ],
         start,
         end,
@@ -209,8 +209,8 @@ export function createSaffronRoad(
       );
       profile(
         [
-          [side * 12.72, 0.037],
-          [side * 12.85, 0.037],
+          [side * 16.72, 0.037],
+          [side * 16.85, 0.037],
         ],
         start,
         end,
@@ -237,8 +237,8 @@ export function createSaffronRoad(
   ))
     profile(
       [
-        [-12.5, 0.045],
-        [12.5, 0.045],
+        [-16.5, 0.045],
+        [16.5, 0.045],
       ],
       section.start,
       section.end,
@@ -294,21 +294,21 @@ export function createSaffronRoad(
       if (Math.round(s / 16) % 3 === 0)
         arrowFittings.push({
           s,
-          x: side * 15.05,
+          x: side * 19.05,
           y: 0.12,
           scale: [0.38, 0.18, 3.8],
         });
     }
     // Broad, gently offset lens sections, with narrow dark joins and sparse
     // inclusions sunk visibly under the transparent shoulder material.
-    lensSills.push({ s, x: 0, y: -2.9, scale: [31, 0.32, 0.42] });
-    panelRims.push({ s, x: 0, y: 0.035, scale: [25.6, 0.018, 0.075] });
+    lensSills.push({ s, x: 0, y: -2.9, scale: [39, 0.32, 0.42] });
+    panelRims.push({ s, x: 0, y: 0.035, scale: [33.6, 0.018, 0.075] });
     if (!shape) {
       for (let i = 0; i < 4; i++) {
         const radius = 0.18 + random() * 0.22;
         bubbles.push({
           s: s + random() * 12,
-          x: (random() - 0.5) * 26,
+          x: (random() - 0.5) * 34,
           y: -0.35 - random() * 1.8,
           scale: [radius, radius * 0.5, radius * 1.4],
         });
@@ -316,7 +316,7 @@ export function createSaffronRoad(
       for (const side of [-1, 0, 1]) {
         laminae.push({
           s: s + random() * 4,
-          x: side * (13.4 + random() * 1.7),
+          x: side * (17.4 + random() * 1.7),
           y: -0.7 - random() * 1.0,
           scale: [0.65 + random() * 1.1, 0.07, 2 + random() * 5],
           rotation: (random() - 0.5) * 0.25,
@@ -351,8 +351,8 @@ export function createSaffronRoad(
     }
   }
   for (const j of track.jumps) {
-    const begin = j.optional ? 5 : -14.5,
-      end = 14.5;
+    const begin = j.optional ? 5 : -18.5,
+      end = 18.5;
     for (let x = begin; x < end; x += 3)
       warning.push({ s: j.takeoff - 3, x, y: 0.09, scale: [1.6, 0.12, 1.5] });
   }

@@ -900,6 +900,10 @@ async function boot() {
     }),
   );
   flyCamera.bindControls(ui.root);
+  if (parameters.get('music') === '1') {
+    const { createMusicPlayer } = await import('../audio/player.js');
+    lifetime.own(createMusicPlayer(host, { clearInput: () => input.clear() }));
+  }
   renderer.domElement.addEventListener(
     'webglcontextlost',
     (e) => {

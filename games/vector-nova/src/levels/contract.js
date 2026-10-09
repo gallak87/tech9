@@ -244,6 +244,8 @@ export function circuitURL(currentURL, id) {
   const url = new URL(currentURL);
   url.search = '';
   url.hash = '';
+  if (new URL(currentURL).searchParams.get('music') === '1')
+    url.searchParams.set('music', '1');
   if (id !== 'halcyon') url.searchParams.set('level', id);
   return url;
 }

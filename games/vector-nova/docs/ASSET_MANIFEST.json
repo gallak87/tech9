@@ -28,6 +28,16 @@
       "runtimeDependencies": ["three"]
     },
     {
+      "id": "halcyon-music-preview",
+      "source": "assets/levels/halcyon/audio/",
+      "creator": "VECTOR//NOVA project contributors with Codex",
+      "provenance": "Original Blue Hour composition and seeded PCM synthesis; no external recordings or samples. Draft served only on request by the music=1 audition player.",
+      "rights": "Project-authored; no third-party asset restrictions",
+      "runtimeDependencies": [],
+      "runtimeAsset": "public/assets/levels/halcyon/audio/blue-hour-preview.wav",
+      "provenanceRecord": "assets/levels/halcyon/audio/README.md"
+    },
+    {
       "id": "synth-audio",
       "source": "src/audio/",
       "creator": "VECTOR//NOVA project contributors",

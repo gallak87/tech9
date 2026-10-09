@@ -1,0 +1,117 @@
+.music-player {
+  position: fixed;
+  z-index: 40;
+  top: max(16px, env(safe-area-inset-top));
+  right: calc(4vw + 64px);
+  width: min(320px, calc(100vw - 32px));
+  padding: 12px;
+  color: #edf0e9;
+  background: #101b26f5;
+  border: 1px solid #a9c4d34d;
+  border-top: 2px solid #fa7957;
+  border-radius: 8px;
+  box-shadow: 0 10px 32px #0005;
+  pointer-events: auto;
+  font-size: 12px;
+  color-scheme: dark;
+}
+.music-player.is-collapsed {
+  width: 216px;
+}
+.music-heading,
+.music-options,
+.music-actions,
+.music-options label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.music-heading {
+  justify-content: space-between;
+}
+.music-player button {
+  min-height: 32px;
+  padding: 6px 9px;
+  font: inherit;
+  letter-spacing: 0;
+  color: inherit;
+  border: 1px solid #a9c4d34d;
+  background: #ffffff08;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.music-player button:hover {
+  background: #ffffff18;
+}
+.music-player .music-expand {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  border: 0;
+  padding-left: 0;
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  text-align: left;
+}
+.music-player .music-play {
+  color: #ffc5ae;
+  min-width: 64px;
+}
+.music-title {
+  margin: 12px 0 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.music-timeline input {
+  width: 100%;
+}
+.music-timeline output {
+  display: block;
+  text-align: right;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: #b8cbd0;
+}
+.music-options {
+  justify-content: space-between;
+  margin: 12px 0;
+}
+.music-options input[type='range'] {
+  width: 102px;
+}
+.music-player input {
+  accent-color: #fa7957;
+  cursor: pointer;
+}
+.music-actions {
+  gap: 6px;
+}
+.music-actions button {
+  flex: 1;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.music-status {
+  margin: 10px 0 0;
+  color: #b8cbd0;
+  font-size: 10px;
+  line-height: 1.4;
+}
+.music-player :focus-visible {
+  outline: 2px solid #fa7957;
+  outline-offset: 3px;
+}
+.music-player [hidden] {
+  display: none;
+}
+@media (max-width: 760px), (max-height: 570px) {
+  .music-player {
+    top: max(72px, env(safe-area-inset-top));
+    right: 12px;
+  }
+  .music-player:not(.is-collapsed) {
+    max-height: calc(100dvh - 84px);
+    overflow-y: auto;
+  }
+}

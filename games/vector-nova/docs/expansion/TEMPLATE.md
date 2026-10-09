@@ -21,7 +21,11 @@ Describe how to create the playable copy, retain the exact route, rebuild the en
 
 ## Bounded agents
 
-Assign one geometry/visual inspector and one physics/runtime verifier. The owner edits and integrates; supporting agents report findings and write only ignored evidence. Name their cases/views, finite budgets, and acceptance evidence. Allow one main pass and one focused recheck each, with no nested delegation. Share a frozen build and track aggregate launch budgets. Unresolved failures at the cap remain explicit blockers to acceptance.
+Assign one geometry/visual inspector and one physics/runtime verifier. The owner integrates and either edits or, when requested by the user, delegates the current phase to one implementation subagent as its sole editor. Inspection/verification agents report findings and write only ignored evidence. Name their cases/views, finite budgets, and acceptance evidence. Allow one main pass and one focused recheck each, with no nested delegation. Share a frozen build and track aggregate launch budgets. Unresolved failures at the cap remain explicit blockers to acceptance.
+
+## Human gates
+
+Name the implementation steps requiring human review, the complete reviewable result and checks for each, and what remains unfinished. Stop at each assigned gate until the user explicitly approves continuing; carry the same stop condition into delegated work. Keep these as whole-level phase reviews, not incremental section approvals. Final human driving acceptance remains separate from intermediate gates.
 
 ## Acceptance and verification
 

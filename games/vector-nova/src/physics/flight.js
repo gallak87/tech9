@@ -445,6 +445,9 @@ export function createFlightModel(overrides = {}) {
       throw new Error('Flight runtime requires versioned identity.');
     const automaticRecovery =
       !playtest && !options.testLaunch && options.automaticRecovery !== false;
+    const boundaryRecoveryGrace = Boolean(
+      automaticRecovery && collisionWorld && options.forgivingContacts,
+    );
     if (!Array.isArray(track.jumps))
       throw new Error('Flight runtime requires track.jumps (may be empty).');
     if (
@@ -705,7 +708,14 @@ export function createFlightModel(overrides = {}) {
         bodyExtent(pose.quaternion, frame.right),
         headingExtents(contact.heading, R).lateral,
       );
-      const lateral = contact.side * (jump.halfWidth - extent - R.edgeInset);
+      // Clamp inward only. Repeated contact with a curb must not move an
+      // already inboard hull back out to the same nominal edge each tick.
+      const lateral =
+        contact.side *
+        Math.min(
+          contact.side * contact.lateral,
+          jump.halfWidth - extent - R.edgeInset,
+        );
       pose.position.addScaledVector(frame.right, lateral - contact.lateral);
       const sideSpeed = flight.velocity.dot(frame.right);
       const inwardSpeed =
@@ -786,7 +796,7 @@ export function createFlightModel(overrides = {}) {
 
     // Arcade assistance follows the local receiving road only after a real
     // boundary contact. External supports/undersides never attract the ship.
-    function assistBoundary(jump, hit) {
+    function assistBoundary(jump, hit, incomingSpeed) {
       if (!options.forgivingContacts || !hit.shape.roadBoundary) return false;
       const { distance, frame, offset } = receivingFrame(jump, {
         ...hit,
@@ -813,6 +823,17 @@ export function createFlightModel(overrides = {}) {
       flight.angularVelocity?.multiplyScalar(0.25);
       actor?.setVelocity(flight.velocity, flight.angularVelocity);
       flight.edgeCaught = true;
+      // A real inward rebound gets one fresh landing window, even if the old
+      // timer expired this tick. Persistent rail contacts cannot rearm it.
+      if (
+        boundaryRecoveryGrace &&
+        mode === 'recovery' &&
+        incomingSpeed > 2 &&
+        !flight.boundaryRecoveryUsed
+      ) {
+        flight.remaining = R.recoveryDelay;
+        flight.boundaryRecoveryUsed = true;
+      }
       return true;
     }
 
@@ -945,10 +966,25 @@ export function createFlightModel(overrides = {}) {
             transfer(state, jump, 'landed', events, contact, pose);
             return true;
           }
+          // A supported rail is still a solid. Separate the hull and remove
+          // velocity into it so a top catch can slide toward the deck instead
+          // of consuming every sweep on the same zero-time contact.
+          pose.position.addScaledVector(
+            hit.normal,
+            hit.penetration + COLLISION_RULES.skin,
+          );
+          flight.velocity.addScaledVector(
+            hit.normal,
+            Math.max(0, -flight.velocity.dot(hit.normal)),
+          );
           start = pose;
         } else {
           const kind = hit.shape.kind;
-          const assistedBoundary = assistBoundary(jump, hit);
+          const assistedBoundary = assistBoundary(
+            jump,
+            hit,
+            Math.max(0, -flight.velocity.dot(hit.normal)),
+          );
           const crash =
             !assistedBoundary &&
             (kind === 'terrain' ||
@@ -1170,7 +1206,7 @@ export function createFlightModel(overrides = {}) {
           transfer(state, jump, 'landed', events, contact, contactPose);
           return;
         }
-        const assistedBoundary = assistBoundary(jump, hit);
+        const assistedBoundary = assistBoundary(jump, hit, hit.incomingSpeed);
         const crash =
           !assistedBoundary &&
           (hit.shape.kind === 'terrain' ||
@@ -1458,7 +1494,7 @@ export function createFlightModel(overrides = {}) {
     const adapter = {
       id: options.id,
       version: options.version,
-      rulesId: `${collisionWorld ? `${options.rulesId}:collision-${JSON.stringify({ id: collisionWorld.id, version: collisionWorld.version, rulesId: collisionWorld.rulesId })}` : options.rulesId}${dynamics ? `:dynamics-${JSON.stringify({ id: dynamics.id, version: dynamics.version, rulesId: dynamics.rulesId })}:deck-traction-v1` : ''}${options.forgivingContacts ? `:forgiving-deck-wall-v4:support-height-${options.supportHeight ?? 0}` : ''}${automaticRecovery ? '' : ':manual-recovery-v1'}`,
+      rulesId: `${collisionWorld ? `${options.rulesId}:collision-${JSON.stringify({ id: collisionWorld.id, version: collisionWorld.version, rulesId: collisionWorld.rulesId })}` : options.rulesId}${dynamics ? `:dynamics-${JSON.stringify({ id: dynamics.id, version: dynamics.version, rulesId: dynamics.rulesId })}:deck-traction-v1` : collisionWorld ? ':supported-rail-slide-v1' : ''}${options.forgivingContacts ? `:forgiving-deck-wall-v4:support-height-${options.supportHeight ?? 0}` : ''}${boundaryRecoveryGrace ? ':boundary-recovery-grace-v1' : ''}${automaticRecovery ? '' : ':manual-recovery-v1'}`,
       scenarios,
       advance(state, input, dt, modifiers = {}) {
         const events = [];

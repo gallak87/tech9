@@ -1088,6 +1088,7 @@ async function boot() {
           time,
           worldPose,
           subject: ship.group,
+          paused: mode === 'paused',
         });
     }
     const frame = {

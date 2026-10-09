@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { createSafeFrame } from './safe-frame.js';
+import { createCrashView } from './crash-view.js';
 export function createCameraRig(
   camera,
   {
@@ -25,6 +26,7 @@ export function createCameraRig(
   let previousWorldMotion = false;
   let flightView = null;
   let landingView = null;
+  let crashView = null;
   const transport = new T.Quaternion();
   const desiredRotation = new T.Quaternion();
   const currentRotation = new T.Quaternion();
@@ -36,6 +38,7 @@ export function createCameraRig(
       initialized = false;
       flightView = null;
       landingView = null;
+      crashView = null;
     },
     update(
       track,
@@ -46,8 +49,10 @@ export function createCameraRig(
         reducedMotion = false,
         worldPose = null,
         subject = null,
+        paused = false,
       } = {},
     ) {
+      if (paused && initialized) return;
       const worldMotion = !!worldPose && !worldPose.grounded;
       const f = worldMotion
         ? {
@@ -67,7 +72,24 @@ export function createCameraRig(
             .addScaledVector(f.right, state.lateral)
             .addScaledVector(f.up, 0.72);
       const changedSource = initialized && worldMotion !== previousWorldMotion;
-      if (preserveFlightView && mode === 'chase' && changedSource) {
+      const leavingCrash = !!crashView && !worldPose?.recovering;
+      if (mode === 'chase' && worldMotion && worldPose.recovering) {
+        if (!crashView) {
+          crashView = createCrashView(camera);
+          flightView = null;
+          landingView = null;
+        } else crashView.update(craftAnchor, dt);
+        previousAnchor.copy(f.position);
+        previousFrame.copy(f.quaternion);
+        previousCraftAnchor.copy(craftAnchor);
+        previousWorldMotion = worldMotion;
+        initialized = true;
+        return;
+      }
+      if (
+        mode === 'chase' &&
+        (leavingCrash || (preserveFlightView && changedSource))
+      ) {
         const inverse = f.quaternion.clone().invert();
         const carriedView = {
           offset: camera.position
@@ -76,12 +98,14 @@ export function createCameraRig(
             .applyQuaternion(inverse),
           rotation: inverse.clone().multiply(camera.quaternion),
           elapsed: 0,
+          duration: leavingCrash ? 0.65 : 0.32,
         };
         flightView = worldMotion ? carriedView : null;
         landingView = worldMotion ? null : carriedView;
       } else if (landingView) {
         landingView.elapsed += dt;
       }
+      crashView = null;
       if (mode !== 'chase') {
         flightView = null;
         landingView = null;
@@ -196,7 +220,11 @@ export function createCameraRig(
       // to ordinary road composition gradually, without a source-change step.
       let landingBlend = 1;
       if (landingView) {
-        const t = T.MathUtils.clamp(landingView.elapsed / 0.32, 0, 1);
+        const t = T.MathUtils.clamp(
+          landingView.elapsed / landingView.duration,
+          0,
+          1,
+        );
         landingBlend = t * t * (3 - 2 * t);
         eye = landingView.offset
           .clone()
@@ -208,7 +236,7 @@ export function createCameraRig(
       // Translation alone leaves the eye lagging inside a steep crest/pullout;
       // blending up vectors can collapse when the road turns upside down.
       if (initialized && mode === 'chase') {
-        if (preserveFlightView && changedSource) {
+        if (leavingCrash || (preserveFlightView && changedSource)) {
           // Road frames are anchored on the centerline, flight frames on the
           // craft itself. Compare craft anchors at the handoff: subtracting one
           // frame origin from the other injects the entire lane offset sideways.

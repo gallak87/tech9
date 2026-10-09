@@ -231,12 +231,14 @@ test('glancing border contacts deflect toward and away from the deck without fab
 
 test('accepted deck contact relatches; underside/ramp face contacts crash without racing credit', () => {
   const clean = flightAt([0, 1.1, 300], [0, -90, 80]);
+  assert.equal(clean.runtime.pose().recovering, false);
   const accepted = clean.runtime.advance(clean.state, {}, DT);
   assert.equal(
     accepted.find((event) => event.type === 'jump-transfer')?.payload.outcome,
     'landed',
   );
   assert.equal(clean.runtime.snapshot().mode, 'magnetic');
+  assert.equal(clean.runtime.pose().recovering, false);
   assert.ok(!accepted.some((event) => event.type === 'impact'));
   const under = flightAt([0, -5.1, 300], [0, 90, 80]);
   const events = under.runtime.advance(under.state, {}, DT);
@@ -247,6 +249,7 @@ test('accepted deck contact relatches; underside/ramp face contacts crash withou
     ),
   );
   assert.equal(under.runtime.snapshot().mode, 'recovery');
+  assert.equal(under.runtime.pose().recovering, true);
   assert.ok(under.runtime.snapshot().flight.velocity[1] < 0);
   assert.ok(!events.some((event) => event.type === 'jump-transfer'));
 });
@@ -258,11 +261,13 @@ test('recovery deck landing clears flight once and continues driving, including 
       remaining,
       forgivingContacts: true,
     });
+    assert.equal(runtime.pose().recovering, true);
     const events = runtime.advance(state, {}, DT);
     const transfers = events.filter((event) => event.type === 'jump-transfer');
     assert.equal(transfers.length, 1);
     assert.equal(transfers[0].payload.outcome, 'landed');
     assert.equal(runtime.snapshot().mode, 'magnetic');
+    assert.equal(runtime.pose().recovering, false);
     assert.equal(runtime.snapshot().flight, null);
     assert.ok(state.distance >= jump.landingStart);
     assert.ok(state.distance < jump.landingEnd);
@@ -329,6 +334,7 @@ test('terrain crashes bump in world space; recovery keeps colliding and only the
       output.push(...runtime.advance(state, {}, DT));
       const p = runtime.pose();
       if (runtime.snapshot().mode === 'recovery') {
+        assert.equal(p.recovering, true);
         assert.ok(
           p.position.y -
             projectedHullExtent(p.quaternion, new T.Vector3(0, 1, 0)) >=
@@ -349,6 +355,7 @@ test('terrain crashes bump in world space; recovery keeps colliding and only the
     'recovered',
   );
   assert.equal(state.distance, jump.recovery);
+  assert.notEqual(runtime.pose()?.recovering, true);
   Object.assign(state, saved.vehicle);
   runtime.restore(saved.runtime);
   assert.deepEqual(

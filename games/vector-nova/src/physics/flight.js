@@ -1580,6 +1580,7 @@ export function createFlightModel(overrides = {}) {
         const from = previousPose ?? currentPose;
         return {
           grounded: mode === 'magnetic',
+          recovering: mode === 'recovery',
           ...(mode === 'magnetic' && options.forgivingContacts
             ? { steeringBank: true }
             : {}),

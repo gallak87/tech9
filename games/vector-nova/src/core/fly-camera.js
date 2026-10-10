@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { validateArtView } from './art-pass.js';
 
 const FLY_SPEED = 200;
 
@@ -16,6 +17,8 @@ export function createFlyCamera(
   const forward = new T.Vector3();
   const right = new T.Vector3();
   const worldUp = new T.Vector3(0, 1, 0);
+  const previousTabIndex = canvas.tabIndex;
+  canvas.tabIndex = -1;
   let active = false,
     saved,
     pointer = null,
@@ -67,8 +70,9 @@ export function createFlyCamera(
         if (!event.repeat) settings?.();
         return;
       }
-      if (event.target.closest?.('[data-fly-settings]')) return;
+      // In free cam, movement owns the keys even when a dev control has focus.
       if (
+        !active &&
         event.target.closest?.(
           'input, select, textarea, [contenteditable="true"]',
         )
@@ -88,7 +92,7 @@ export function createFlyCamera(
       } else if (
         ['KeyR', 'KeyI', 'KeyC'].includes(event.code) ||
         (['Enter', 'Space'].includes(event.code) &&
-          !event.target.closest?.('button'))
+          !event.target.closest?.('button, input'))
       ) {
         // Driving shortcuts cannot alter the frozen session during inspection.
         event.preventDefault();
@@ -108,6 +112,7 @@ export function createFlyCamera(
   listen(canvas, 'pointerdown', (event) => {
     if (!active || event.button !== 0 || pointer !== null) return;
     event.preventDefault();
+    canvas.focus({ preventScroll: true });
     pointer = event.pointerId;
     pointerX = event.clientX;
     pointerY = event.clientY;
@@ -155,6 +160,31 @@ export function createFlyCamera(
       camera.clearViewOffset();
       camera.updateProjectionMatrix();
       canvas.classList.add('fly-camera-active');
+    },
+    setView(view) {
+      const { position, target, fov } = validateArtView(view);
+      if (!active) return;
+      clear();
+      if (position) {
+        camera.position.fromArray(position);
+        camera.lookAt(...target);
+        orientation.setFromQuaternion(camera.quaternion, 'YXZ');
+        orientation.z = 0;
+        camera.quaternion.setFromEuler(orientation);
+      }
+      if (fov !== undefined) camera.fov = fov;
+      camera.updateProjectionMatrix();
+    },
+    getView() {
+      return {
+        position: camera.position.toArray(),
+        target: camera
+          .getWorldDirection(new T.Vector3())
+          .multiplyScalar(100)
+          .add(camera.position)
+          .toArray(),
+        fov: camera.fov,
+      };
     },
     leave() {
       if (!active) return;
@@ -206,6 +236,7 @@ export function createFlyCamera(
       this.leave();
       clear();
       abort.abort();
+      canvas.tabIndex = previousTabIndex;
     },
   };
 }

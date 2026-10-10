@@ -14,6 +14,11 @@ import {
 import { vesperGraphicsControls } from '../ui/graphics-settings.js';
 import { createMusicPlayer } from '../audio/player.js';
 import { assetURL } from '../assets/url.js';
+import {
+  artViewParameters,
+  runtimeEntryParameters,
+  readArtView,
+} from '../core/art-pass.js';
 import '../ui/style.css';
 import './style.css';
 
@@ -45,7 +50,9 @@ function picture(route, className = '') {
 export function createFrontend(host) {
   const catalog = discoverLevels().list;
   const parameters = new URLSearchParams(location.search);
+  const artPass = parameters.get('artPass') === '1';
   let special =
+    artPass ||
     parameters.has('review') ||
     parameters.has('test') ||
     parameters.has('capture');
@@ -112,7 +119,7 @@ export function createFrontend(host) {
   const gameHost = host.querySelector('#game-host');
   const shell = host.querySelector('#front-shell');
   const music =
-    parameters.get('music') === '0'
+    artPass || parameters.get('music') === '0'
       ? null
       : createMusicPlayer(host, { clearInput: () => game?.clearInput() });
   const level = () => catalog.find((l) => l.id === selected);
@@ -135,7 +142,11 @@ export function createFrontend(host) {
     const url = new URL(location.href);
     url.searchParams.set('level', selected);
     if (!special)
-      for (const flag of ['review', 'test', 'capture', 'case'])
+      for (const flag of [
+        ...runtimeEntryParameters,
+        'artPass',
+        ...artViewParameters,
+      ])
         url.searchParams.delete(flag);
     history.replaceState(null, '', url);
   }
@@ -502,12 +513,17 @@ export function createFrontend(host) {
       game = null;
       loadedId = null;
       gameHost.replaceChildren();
+      if (special && artPass) readArtView(parameters);
       const { createGame } = await import('../core/game.js');
       signal.throwIfAborted();
       const params = special
         ? new URLSearchParams(parameters)
         : new URLSearchParams();
       params.set('level', id);
+      // An art pass inspects the finished environment, never a route study or
+      // jump-test scene accidentally retained in a copied URL.
+      if (artPass)
+        for (const flag of runtimeEntryParameters) params.delete(flag);
       const created = await createGame({
         host: gameHost,
         parameters: params,
@@ -627,6 +643,7 @@ export function createFrontend(host) {
     controller?.abort();
     error = '';
     progress = '';
+    if (special) leaveReview();
     setScreen(destination);
   }
   function leaveReview() {
@@ -637,6 +654,21 @@ export function createFrontend(host) {
     game?.dispose();
     game = null;
     loadedId = null;
+    remember();
+  }
+  async function launchSpecial() {
+    setScreen('loading');
+    try {
+      const current = await prepare();
+      if (screen !== 'loading') return;
+      setScreen('review');
+      if (artPass) {
+        current.setFlyView(readArtView(parameters));
+        current.openDevTools();
+      }
+    } catch {
+      // prepare owns the loading error and retry UI.
+    }
   }
   function goHome() {
     if (screen === 'loading') {
@@ -696,7 +728,8 @@ export function createFrontend(host) {
     },
     cancel,
     retry() {
-      void launch();
+      if (special) void launchSpecial();
+      else void launch();
     },
     'retry-race'() {
       setScreen('race');
@@ -981,12 +1014,7 @@ export function createFrontend(host) {
     error = `Unknown circuit: ${requested}. Choose another circuit to continue.`;
     setScreen('loading');
   } else if (special) {
-    setScreen('loading');
-    void prepare()
-      .then(() => {
-        if (screen === 'loading') setScreen('review');
-      })
-      .catch(() => {});
+    void launchSpecial();
   } else {
     setScreen('circuits');
   }

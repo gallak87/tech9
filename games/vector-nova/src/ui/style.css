@@ -1625,6 +1625,23 @@ select {
   margin: 14px 0;
   font-variant-numeric: tabular-nums;
 }
+.dev-view-link {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #444;
+}
+.dev-view-link button {
+  padding: 10px;
+  font-size: 11px;
+}
+#art-view-url {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  font-size: 11px;
+  color: #ddd;
+  background: #181818;
+  border: 1px solid #444;
+}
 .dev-metrics div {
   display: flex;
   justify-content: space-between;

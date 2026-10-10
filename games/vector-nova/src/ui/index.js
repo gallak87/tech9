@@ -370,6 +370,24 @@ export function createUI(
   flySettings.setAttribute('aria-label', 'Free camera dev tools');
   flySettings.innerHTML = `<div class="fly-heading"><b>DEV TOOLS</b><button id="fly-settings-close" aria-label="Close dev tools">CLOSE · ESC</button></div><dl class="dev-metrics"><div><dt>FPS</dt><dd id="dev-fps">—</dd></div><div><dt>Frame avg</dt><dd id="dev-frame-ms">—</dd></div><div><dt>Draw calls</dt><dd id="dev-calls">—</dd></div><div><dt>Triangles</dt><dd id="dev-triangles">—</dd></div></dl><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Reduced motion</span><input type="checkbox" data-setting="reducedMotion"></label>${metadata.id === 'vesper' ? vesperGraphicsControls(settings) : ''}<p>Changes apply live and are saved on this device. Frame averages refresh every half second; draw counts include render passes.</p>`;
   root.append(flySettings);
+  const viewLink = document.createElement('div');
+  viewLink.className = 'dev-view-link';
+  viewLink.innerHTML =
+    '<button id="copy-art-view">COPY VIEW LINK</button><p id="art-view-status" role="status">Reopen this camera position in a silent art pass.</p><input id="art-view-url" type="text" readonly aria-label="Art pass view URL" hidden>';
+  flySettings.querySelector('.dev-metrics').after(viewLink);
+  $('copy-art-view').onclick = async () => {
+    const url = actions.artPassURL();
+    $('art-view-url').value = url;
+    try {
+      await navigator.clipboard.writeText(url);
+      $('art-view-status').textContent = 'View link copied.';
+      $('art-view-url').hidden = true;
+    } catch {
+      $('art-view-url').hidden = false;
+      $('art-view-url').select();
+      $('art-view-status').textContent = 'Copy the selected view link.';
+    }
+  };
   if (metadata.id === 'vesper') {
     const comparisons = document.createElement('details');
     comparisons.innerHTML = `<summary>Vesper material settings</summary>${vesperGraphicsControls(settings)}`;
@@ -385,14 +403,17 @@ export function createUI(
     if (open && restoreFocus) flySettingsButton.focus();
     return open;
   }
-  function toggleFlySettings() {
-    if (closeFlySettings()) return;
+  function openFlySettings() {
+    if (!flySettings.classList.contains('hidden')) return;
     flySettings.classList.remove('hidden');
     perfLast = null;
     perfElapsed = perfFrames = 0;
     $('dev-fps').textContent = $('dev-frame-ms').textContent = '—';
     flySettingsButton.setAttribute('aria-expanded', 'true');
     $('fly-settings-close').focus();
+  }
+  function toggleFlySettings() {
+    if (!closeFlySettings()) openFlySettings();
   }
   flySettingsButton.onclick = toggleFlySettings;
   $('fly-settings-close').onclick = () => closeFlySettings();
@@ -740,6 +761,7 @@ export function createUI(
     `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(3).padStart(6, '0')}`;
   return {
     root,
+    openFlySettings,
     toggleFlySettings,
     closeFlySettings,
     updateDevTools(now, info) {

@@ -19,6 +19,7 @@ import {
   subscribeSettings,
 } from '../progression/index.js';
 import { createFlyCamera } from './fly-camera.js';
+import { artPassURL } from './art-pass.js';
 import { createReviewCamera } from './review-camera.js';
 import { createStartCountdown } from './start-countdown.js';
 import { discoverLevels } from '../levels/catalog.js';
@@ -986,6 +987,8 @@ export async function createGame({
           },
           overview,
           leaveFly,
+          artPassURL: () =>
+            artPassURL(location.href, metadata.id, flyCamera.getView()),
           settings: () => {
             saveSettings(settings);
             ui.setInspectionPreview(inspectionPreview);
@@ -1604,6 +1607,17 @@ export async function createGame({
       setCamera,
       overview,
       fly: toggleFly,
+      setFlyView(view = {}) {
+        if (mode !== 'fly') toggleFly();
+        if (mode !== 'fly') return false;
+        flyCamera.setView(view);
+        return true;
+      },
+      getArtPassURL: () =>
+        artPassURL(location.href, metadata.id, flyCamera.getView()),
+      openDevTools() {
+        if (mode === 'fly') ui.openFlySettings();
+      },
       leaveFly,
       start,
       practice: () => {

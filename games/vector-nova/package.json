@@ -10,7 +10,7 @@
     "audio:setup": "python3 tools/setup-audio.py",
     "audio:generate": "python3 assets/levels/halcyon/audio/render.py",
     "preview": "vite preview --host 127.0.0.1 --port 5180 --strictPort",
-    "verify": "node tools/verify.mjs",
+    "verify": "node tools/frontend-verify.mjs",
     "test": "node --test 'tools/**/*.test.mjs' 'src/**/*.test.js'",
     "lint": "eslint . --max-warnings 0 && npm run format:check",
     "lint:fix": "npm run format && eslint . --fix --max-warnings 0",
@@ -18,7 +18,7 @@
     "format:check": "prettier --check .",
     "lint:staged": "lint-staged --cwd .",
     "prepare": "cd ../.. && husky games/vector-nova/.husky",
-    "verify:orbital": "node tools/orbital-verify.mjs",
+    "verify:orbital": "node tools/verify-level.mjs orbital",
     "check:level": "node tools/check-level.mjs",
     "verify:level": "node tools/verify-level.mjs"
   },

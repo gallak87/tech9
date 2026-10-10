@@ -104,7 +104,10 @@ test('every shipped circuit gets finite paint at its actual timing seam without 
     const track = factory();
     const marker = createFinishMarker(track);
     try {
-      const distance = track.checkpoints[0].distance ?? track.checkpoints[0].s;
+      const distance =
+        track.closed === false
+          ? (track.finishDistance ?? track.length)
+          : (track.checkpoints[0].distance ?? track.checkpoints[0].s);
       assert.equal(marker.group.userData.finishDistance, distance, entry.name);
       assert.ok(marker.group.userData.width < track.width, entry.name);
       const geometry = marker.group.children[0].geometry;

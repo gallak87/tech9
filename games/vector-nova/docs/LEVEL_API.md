@@ -15,6 +15,8 @@ Every level includes shared environment inspection without a metadata flag: F or
 
 Complete working examples are the [Halcyon descriptor](../src/levels/halcyon/index.js), [Orbital production/shape descriptor](../src/levels/orbital/index.js) and [Nacre custom-runtime descriptor](../src/levels/nacre/index.js). Reuse their factory/ownership pattern, while authoring your own route, assets and presentation.
 
+Normal `?level=<slug>` links select the circuit in the frontend without constructing its world. `capture=1`, `review=shape` and `test=jump` retain the labelled developer launcher and its existing title/pause selectors for contract tools; these are not the player landing screen. `inspect=1&ship=<id>&level=<slug>` opens the full ship inspector directly and silently. `artPass=1` remains the production-world/free-camera entry, with priority over other tool flags.
+
 Unknown slugs, orphaned modules, invalid metadata and missing required factories produce a recoverable error screen. Query text never becomes an arbitrary import path. The default route remains Halcyon; production uses `?level=<slug>` and shape adds `&review=shape` when supported.
 
 ## Descriptor and owned components

@@ -1,4 +1,4 @@
-import { FileLoader, LoaderUtils, LoadingManager } from 'three';
+import { FileLoader, LoaderUtils, LoadingManager, WebGLRenderer } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 import { assetURL } from '../assets/url.js';
@@ -7,15 +7,9 @@ let current, support;
 const DECODE_TIMEOUT_MS = 30000;
 function state() {
   if (current) return current;
-  let ready;
-  const capability = new Promise((resolve) => {
-    ready = resolve;
-  });
   const owner = {
     abort: new AbortController(),
     manager: new LoadingManager(),
-    capability,
-    ready,
     loader: null,
     blobs: new Set(),
   };
@@ -27,12 +21,10 @@ function state() {
     if (url.startsWith('blob:')) owner.blobs.add(url);
     return url;
   });
-  if (support) ready();
   return (current = owner);
 }
 
-// Preloading can precede any renderer. Wait for a real preview/race renderer;
-// ordinary PNG models never need this gate or the Basis decoder.
+// Prefer an existing preview/race renderer when one is already available.
 export function configureShipTextures(renderer) {
   if (support) return;
   const owner = state();
@@ -41,7 +33,21 @@ export function configureShipTextures(renderer) {
     .setWorkerLimit(2)
     .detectSupport(renderer);
   support = { ...owner.loader.workerConfig };
-  owner.ready();
+}
+
+function ensureTextureSupport() {
+  if (support) return;
+  // Collapsed ship selection has no studio renderer yet. Probe once using an
+  // unattached 1px context, then release it immediately; no world or render loop.
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 1;
+  const probe = new WebGLRenderer({ canvas, antialias: false });
+  try {
+    configureShipTextures(probe);
+  } finally {
+    probe.dispose();
+    probe.forceContextLoss();
+  }
 }
 
 async function decoder(owner) {
@@ -92,19 +98,18 @@ export function loadFleetGLTF(url, onProgress) {
       ),
     );
     const compressed = json.extensionsUsed?.includes('KHR_texture_basisu');
-    if (compressed) {
-      await Promise.race([owner.capability, cancelled]);
-      owner.abort.signal.throwIfAborted();
-      timer = setTimeout(
-        () =>
-          retire(
-            owner,
-            new Error('Ship texture decoder timed out; retry loading'),
-          ),
-        DECODE_TIMEOUT_MS,
-      );
-    }
     try {
+      if (compressed) {
+        ensureTextureSupport();
+        timer = setTimeout(
+          () =>
+            retire(
+              owner,
+              new Error('Ship texture decoder timed out; retry loading'),
+            ),
+          DECODE_TIMEOUT_MS,
+        );
+      }
       const loader = new GLTFLoader(owner.manager);
       if (compressed) loader.setKTX2Loader(await decoder(owner));
       owner.abort.signal.throwIfAborted();

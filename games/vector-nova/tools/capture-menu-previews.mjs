@@ -1,16 +1,22 @@
 import { chromium } from 'playwright';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { menuCatalog } from './menu-catalog.mjs';
+import { execFileSync } from 'node:child_process';
+import {
+  menuCatalog,
+  readPreviewManifest,
+  previewPreset,
+  previewSize,
+} from './menu-catalog.mjs';
 
-// Small runtime assets, not test evidence. Re-run after art/route changes; stale
-// captures are automatically excluded by the dev/build catalog fingerprint.
+// Explicitly refreshed runtime assets. Source changes never hide saved images.
 const root = resolve(import.meta.dirname, '..');
 const output = resolve(root, 'public/assets/menu');
 const base = process.env.VN_URL || 'http://127.0.0.1:5179';
 const args = process.argv.slice(2);
-const force = args.includes('--force');
-const requested = args.filter((arg) => arg !== '--force');
+const missingOnly = args.includes('--missing');
+// --force remains an alias for the previous all-circuit refresh command.
+const requested = args.filter((arg) => !['--force', '--missing'].includes(arg));
 const catalog = await menuCatalog();
 const unknown = requested.filter(
   (id) => !catalog.some((route) => route.id === id),
@@ -20,14 +26,23 @@ const routes = catalog.filter(
   (r) => !requested.length || requested.includes(r.id),
 );
 await mkdir(output, { recursive: true });
-const manifest = JSON.parse(
-  await readFile(resolve(output, 'previews.json'), 'utf8').catch(() => '{}'),
+const manifest = await readPreviewManifest(output);
+const sourceRevision = execFileSync('git', ['rev-parse', 'HEAD'], {
+  cwd: root,
+  encoding: 'utf8',
+}).trim();
+const sourceDirty = Boolean(
+  execFileSync(
+    'git',
+    ['status', '--porcelain', '--', '.', ':!public/assets/menu'],
+    { cwd: root, encoding: 'utf8' },
+  ).trim(),
 );
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
   for (const route of routes) {
-    if (!force && route.preview) {
-      console.log(`Current: ${route.id}`);
+    if (missingOnly && route.preview) {
+      console.log(`Saved: ${route.id}`);
       continue;
     }
     const context = await browser.newContext({
@@ -47,7 +62,9 @@ try {
         ),
       );
       const page = await context.newPage();
-      await page.goto(`${base}/?level=${route.id}&capture=1&music=0`);
+      await page.goto(
+        new URL(`?level=${route.id}&capture=1&music=0`, base).href,
+      );
       await page.waitForFunction(
         () => window.__VN?.ready || window.__VN_FRONTEND?.getState().error,
         null,
@@ -108,16 +125,24 @@ try {
         resolve(output, `${route.id}.webp`),
         Buffer.from(data, 'base64'),
       );
-      manifest[route.id] = route.fingerprint;
+      manifest.images[route.id] = {
+        file: `${route.id}.webp`,
+        ...previewSize,
+        preset: previewPreset,
+        sourceRevision,
+        sourceDirty,
+        routeSignature: route.routeSignature,
+      };
+      // Keep each image and its record paired even when a later capture fails.
+      await writeFile(
+        resolve(output, 'previews.json'),
+        JSON.stringify(manifest, null, 2) + '\n',
+      );
       console.log(`Captured: ${route.id}`);
     } finally {
       await context.close();
     }
   }
 } finally {
-  await writeFile(
-    resolve(output, 'previews.json'),
-    JSON.stringify(manifest, null, 2) + '\n',
-  );
   await browser.close();
 }

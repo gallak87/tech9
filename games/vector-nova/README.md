@@ -1,10 +1,10 @@
 # VECTOR//NOVA
 
-A browser anti-gravity racer built with Three.js and Vite. Choose Kestrel, Shrike, Bastion or Needle and drive ten circuits plus a one-way downhill sprint, with banked roads, inversions and real jumps. The ten circuits offer two-lap racing; Shatterline races from summit to basin. Every course offers three physical rivals, solo practice, manual boost, airbraking, ship inspection and route review.
+A browser anti-gravity racer built with Three.js and Vite. Choose Kestrel, Shrike, Bastion or Needle for circuit racing, solo practice or Shatterline’s one-way downhill sprint. Courses offer physical rivals, manual boost, airbraking, ship inspection and route review.
 
 ## Courses and features
 
-Choose your ship in the paddock, or inspect the player fleet and AI racers. Choose a course in the dropdown and press **Load**, then launch racing or solo practice. During a session, pause and return to the paddock to switch courses.
+The landing screen is race setup: browse circuit cards, choose Quick Race or Practice and difficulty, select a ship, then Start. Wide screens show everything together; narrow screens use Circuit/session and Ship accordion rows. Hover or arrow keys preview; click or Enter commits. During a session, Escape pauses; Circuits keeps that run loaded, and Resume returns to it.
 
 | Course            | Identity                                                                                                   | Availability          |
 | ----------------- | ---------------------------------------------------------------------------------------------------------- | --------------------- |
@@ -20,9 +20,9 @@ Choose your ship in the paddock, or inspect the player fleet and AI racers. Choo
 | Helion Flare      | Solar observatory, flare-lane evasion, furnace passages and sheltered jumps                                | `/?level=helion`      |
 | Shatterline       | Ruined mountain mass driver, twelve jumps and three approximately five-second flights in a downhill sprint | `/?level=shatterline` |
 
-All eleven courses share automatic Vector boost strips and Aegis shields, with course-owned placements. Vector gives an immediate catapult kick and drives toward 600 km/h during a full strip pass, with course-tuned radial motion blur unless reduced motion is enabled. Leaving early retains only the speed already gained; Aegis protects reserve from impacts for six seconds. On the ten circuits, **Enter Proving Loop** starts a two-lap session against Rook, Latch and Mule from a 2×2 grid after audible start lights; **Practice Lap** starts solo. Shatterline offers **Start Downhill Sprint** and **Solo Descent**, each covering the complete one-way course. Easy uses the baseline rival pace, Medium is faster, and Hard is faster again with more boosting as you boost. Each rival uses its own vehicle physics, reserve and device eligibility. On circuits, placements and lap/total times are recorded after two laps while driving continues. A completed sprint records its descent time and brakes the craft along the supported runout. Escape returns to the paddock with the last roster beside the desktop menu or below the controls on compact screens; unfinished rivals remain in progress and invalid laps or sprints are marked untimed.
+Courses share automatic Vector boost strips and Aegis shields, with course-owned placements. Vector supplies an immediate catapult kick toward 600 km/h during a full strip pass; leaving early retains only the speed gained. Aegis protects reserve from impacts for six seconds. **Quick Race** starts two laps against Rook, Latch and Mule after the countdown; **Practice** starts open solo driving. Shatterline offers **Downhill Sprint** and **Solo Descent**. Difficulty changes rival pace and boosting. Valid finishes produce a brief on-track finish beat, then live track-backed results; invalid runs remain explicitly untimed. Race again, Continue driving and Circuits are available from results. Continue then Escape pauses on track; Circuits retains the session for Resume.
 
-Orbital's bare route review is available at `/?level=orbital&review=shape`. Shape review provides 3D/top/profile overviews. The shared paddock offers full-course solo practice and ship inspection. Nacre adds storm swells, underwater immersion, two real jumps and one enormous swimming leviathan. Its automatic missed-jump recovery keeps the lap valid while counting the recovery delay; manual R recovery still invalidates it.
+Orbital's bare route review is available at `/?level=orbital&review=shape`. Shape review provides 3D/top/profile overviews. The main setup offers full-course solo practice. Open `/?inspect=1&ship=kestrel&level=halcyon` for silent ship inspection, or press I during a session. Nacre adds storm swells, underwater immersion, two real jumps and one enormous swimming leviathan. Its automatic missed-jump recovery keeps the lap valid while counting the recovery delay; manual R recovery still invalidates it.
 
 Glasswake Comet combines clear crystal deck panes, low-grip frost, paired fracture jumps and a deep crevice with a full corkscrew. The opening ice sheet breaks once per session; the later shelf collapses at the second jump. Exterior snow and blizzard haze give way to sheltered caverns. Shape review uses `/?level=glasswake&review=shape`.
 
@@ -63,10 +63,10 @@ WebGL2 is required. Gameplay uses local assets and needs no account or backend. 
 - W / Up: accelerate. S / Down: brake. A/D or Left/Right: steer.
 - Space: airbrake. Shift: manual boost using reserve.
 - R: recover at the last checkpoint and mark the current lap or sprint untimed; after a completed sprint, retry the descent.
-- Escape: pause/settings/restart; after a completed two-lap race or sprint, return to paddock. I: inspect the ship. C: alternate camera.
-- F or Free Camera in the paddock/pause menu: explore every course with all ships hidden and the session frozen; drag to look, WASD/arrows move, Q/E down/up at a fixed 200 m/s. F/Escape returns.
+- Escape: pause/resume, including after Continue driving. Circuits preserves the loaded session. I: inspect the ship. C: alternate camera.
+- F or Free Camera in the developer launcher/pause menu: explore every course with all ships hidden and the session frozen; drag to look, WASD/arrows move, Q/E down/up at a fixed 200 m/s. F/Escape returns.
 - Menus: Tab/Shift-Tab, Enter/Space. Small viewports expose pointer controls.
-- Tunes: M plays/pauses music, comma/period select songs, and / expands/collapses the player. Music starts when you launch racing or practice; repeat defaults off.
+- Tunes: M plays/pauses music, comma/period select songs, and / expands/collapses the player. Music starts on a menu-button activation or explicit Play/M; repeat defaults off.
 - Prototype gamepad: left stick steering, RT throttle, LT brake, A boost, B airbrake.
 
 Bend assistance is 0.3; the player steers the remaining turn. Magnetic adhesion follows road pitch/roll and holds a parked craft on slopes. Physical gamepad/mobile use, independent audio listening and foreground frame pacing still need direct verification.
@@ -77,6 +77,6 @@ Levels register through asset-free metadata plus a lazy implementation under `sr
 
 Package `prepare` installs Husky; the pre-commit hook runs ESLint/Prettier through lint-staged. Routine edits rely on that hook. Manual lint/format scripts are available for explicit whole-repository checks or troubleshooting. Use Node/npm from your configured shell or version manager, meeting the Node requirement above.
 
-`npm run verify` and `npm run verify:orbital` use Chrome/Playwright for short real-input checks. Configure `VN_URL`, `VN_BROWSER_CHANNEL`, `VN_BROWSER_PATH` and `VN_EVIDENCE` as needed; verify the intended build and use a free port when starting a server. Review browsers stay hidden/headless, with temporary output in ignored `.experiments/`.
+`VN_URL=<server-url> npm run verify` checks the current menu/loading/race flow in a hidden browser and writes no artifacts. Use `-- --desktop` during iteration and `-- --responsive` for the final narrow-layout pass. `npm run verify:orbital` runs the generic level contract smoke check for Orbital against the same `VN_URL`; `VN_BROWSER_CHANNEL=chrome` or `VN_BROWSER_PATH` selects its browser. Level checks print results; only an explicit `VN_EVIDENCE=<scratch-folder>` saves their JSON report. Historical harnesses are retained pending migration; see [tools](tools/README.md).
 
 Read [architecture](ARCHITECTURE.md) for runtime contracts, [art direction](docs/ART_BIBLE.md) for visual principles, [audio generation](docs/audio/README.md) for the local music workflow and the [roadmap](ROADMAP.md) for planned features. Assets have editable sources and [provenance](docs/ASSET_MANIFEST.json); third-party notices remain in [docs/licenses](docs/licenses/). Historical reviews and completed handoffs are available in Git.

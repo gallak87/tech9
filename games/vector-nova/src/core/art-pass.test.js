@@ -44,7 +44,7 @@ test('copied views round-trip and replace conflicting runtime entry parameters',
   };
   const url = new URL(
     artPassURL(
-      'https://example.org/game/?level=saffron&review=shape&test=jump&case=short-fall&capture=1&music=1&foo=bar#scene',
+      'https://example.org/game/?level=saffron&review=shape&test=jump&case=short-fall&capture=1&inspect=1&ship=shrike&music=1&foo=bar#scene',
       'vesper',
       view,
     ),
@@ -55,7 +55,7 @@ test('copied views round-trip and replace conflicting runtime entry parameters',
   assert.equal(params.get('artPass'), '1');
   assert.equal(params.get('music'), '0');
   assert.equal(params.get('foo'), 'bar');
-  for (const name of ['review', 'test', 'case', 'capture'])
+  for (const name of ['review', 'test', 'case', 'capture', 'inspect', 'ship'])
     assert.equal(params.has(name), false);
   assert.deepEqual(readArtView(params), {
     ...view,

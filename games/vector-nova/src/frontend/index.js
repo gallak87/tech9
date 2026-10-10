@@ -51,8 +51,10 @@ export function createFrontend(host) {
   const catalog = discoverLevels().list;
   const parameters = new URLSearchParams(location.search);
   const artPass = parameters.get('artPass') === '1';
+  const inspectShip = !artPass && parameters.get('inspect') === '1';
   let special =
     artPass ||
+    inspectShip ||
     parameters.has('review') ||
     parameters.has('test') ||
     parameters.has('capture');
@@ -72,7 +74,9 @@ export function createFrontend(host) {
   let screen = 'circuits',
     intent = 'race';
   let previewShipId = null;
-  let shipId = loadShipSelection().id,
+  let shipId =
+      (inspectShip && SHIPS.find((s) => s.id === parameters.get('ship')))?.id ??
+      loadShipSelection().id,
     settings = loadSettings();
   let game = null,
     loadedId = null,
@@ -119,7 +123,7 @@ export function createFrontend(host) {
   const gameHost = host.querySelector('#game-host');
   const shell = host.querySelector('#front-shell');
   const music =
-    artPass || parameters.get('music') === '0'
+    artPass || inspectShip || parameters.get('music') === '0'
       ? null
       : createMusicPlayer(host, { clearInput: () => game?.clearInput() });
   const level = () => catalog.find((l) => l.id === selected);
@@ -171,6 +175,7 @@ export function createFrontend(host) {
     }
     document.body.classList.toggle('reduced-motion', settings.reducedMotion);
     shell.hidden = ['race', 'inspection', 'review'].includes(next);
+    document.body.classList.toggle('developer-entry', special);
     gameHost.inert = !shell.hidden;
     game?.setSuspended(
       !['race', 'inspection', 'review', 'results'].includes(next),
@@ -311,7 +316,7 @@ export function createFrontend(host) {
             ['Shift', 'Boost'],
             ['Space', 'Airbrake'],
             ['Esc', 'Pause / resume'],
-            ['R', 'Restart'],
+            ['R', 'Recover at checkpoint / retry finished sprint'],
             ['C', 'Change camera'],
             ['I', 'Ship inspection'],
           ],
@@ -558,7 +563,7 @@ export function createFrontend(host) {
       params.set('level', id);
       // An art pass inspects the finished environment, never a route study or
       // jump-test scene accidentally retained in a copied URL.
-      if (artPass)
+      if (artPass || inspectShip)
         for (const flag of runtimeEntryParameters) params.delete(flag);
       const created = await createGame({
         host: gameHost,
@@ -580,7 +585,7 @@ export function createFrontend(host) {
             error = info.error.message;
             setScreen('loading');
           } else {
-            if (screen !== 'inspection') leaveReview();
+            if (screen !== 'inspection' || inspectShip) leaveReview();
             setScreen(screen === 'inspection' ? 'setup' : 'circuits');
           }
         },
@@ -592,6 +597,10 @@ export function createFrontend(host) {
         },
         onMode(mode) {
           if (screen === 'loading') return;
+          if (special && ['title', 'overview'].includes(mode)) {
+            setScreen('review');
+            return;
+          }
           if (
             ['racing', 'countdown', 'paused', 'fly', 'inspection'].includes(
               mode,
@@ -686,6 +695,7 @@ export function createFrontend(host) {
     if (!special) return;
     special = false;
     generation++;
+    launchGeneration++;
     controller?.abort();
     game?.dispose();
     game = null;
@@ -693,17 +703,31 @@ export function createFrontend(host) {
     remember();
   }
   async function launchSpecial() {
+    const attempt = ++launchGeneration;
     setScreen('loading');
     try {
       const current = await prepare();
-      if (screen !== 'loading') return;
-      setScreen('review');
-      if (artPass) {
-        current.setFlyView(readArtView(parameters));
-        current.openDevTools();
+      if (attempt !== launchGeneration || screen !== 'loading') return;
+      if (inspectShip) {
+        const loaded =
+          current.getSnapshot().ship.id === shipId ||
+          (await current.selectShip(shipId));
+        if (attempt !== launchGeneration || screen !== 'loading') return;
+        if (!loaded) throw new Error('Ship could not be loaded. Try again.');
+        setScreen('inspection');
+        current.inspect();
+      } else {
+        setScreen('review');
+        if (artPass) {
+          current.setFlyView(readArtView(parameters));
+          current.openDevTools();
+        }
       }
-    } catch {
-      // prepare owns the loading error and retry UI.
+    } catch (cause) {
+      if (attempt === launchGeneration && cause.name !== 'AbortError') {
+        error = cause.message;
+        setScreen('loading');
+      }
     }
   }
   function goHome() {

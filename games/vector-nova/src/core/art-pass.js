@@ -1,6 +1,13 @@
 // World-space camera links for repeatable art inspection, independent of race state.
 export const artViewParameters = ['cam', 'look', 'fov'];
-export const runtimeEntryParameters = ['review', 'test', 'capture', 'case'];
+export const runtimeEntryParameters = [
+  'review',
+  'test',
+  'capture',
+  'case',
+  'inspect',
+  'ship',
+];
 
 export function validateArtView({ position, target, fov } = {}) {
   if (position !== undefined || target !== undefined) {

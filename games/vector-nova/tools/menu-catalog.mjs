@@ -1,57 +1,87 @@
-import { readdir, readFile } from 'node:fs/promises';
+import { access, readdir, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { resolve, relative } from 'node:path';
+import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-const root = resolve(import.meta.dirname, '..');
-async function files(dir) {
-  const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
-  return (
-    await Promise.all(
-      entries.map((e) =>
-        e.isDirectory() ? files(resolve(dir, e.name)) : resolve(dir, e.name),
-      ),
-    )
+const appRoot = resolve(import.meta.dirname, '..');
+export const previewPreset = 'route-overview-v1';
+export const previewSize = { width: 640, height: 400 };
+
+export function webpSize(bytes) {
+  if (
+    bytes.toString('ascii', 0, 4) !== 'RIFF' ||
+    bytes.toString('ascii', 8, 12) !== 'WEBP'
   )
-    .flat()
-    .sort();
-}
-async function digest(paths) {
-  const hash = createHash('sha256');
-  for (const path of paths) {
-    hash.update(relative(root, path));
-    hash.update(await readFile(path));
+    throw new Error('Invalid WebP header');
+  for (let offset = 12; offset + 8 <= bytes.length;) {
+    const kind = bytes.toString('ascii', offset, offset + 4);
+    const length = bytes.readUInt32LE(offset + 4);
+    const data = offset + 8;
+    if (data + length > bytes.length) break;
+    if (kind === 'VP8X' && length >= 10)
+      return {
+        width: bytes.readUIntLE(data + 4, 3) + 1,
+        height: bytes.readUIntLE(data + 7, 3) + 1,
+      };
+    if (
+      kind === 'VP8 ' &&
+      length >= 10 &&
+      bytes.toString('hex', data + 3, data + 6) === '9d012a'
+    )
+      return {
+        width: bytes.readUInt16LE(data + 6) & 0x3fff,
+        height: bytes.readUInt16LE(data + 8) & 0x3fff,
+      };
+    if (kind === 'VP8L' && length >= 5 && bytes[data] === 0x2f) {
+      const bits = bytes.readUInt32LE(data + 1);
+      return {
+        width: (bits & 0x3fff) + 1,
+        height: ((bits >>> 14) & 0x3fff) + 1,
+      };
+    }
+    offset = data + length + (length % 2);
   }
-  return hash.digest('hex').slice(0, 16);
+  throw new Error('Missing WebP dimensions');
+}
+
+export async function readPreviewManifest(directory) {
+  let text;
+  try {
+    text = await readFile(resolve(directory, 'previews.json'), 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return { version: 1, images: {} };
+    throw error;
+  }
+  const manifest = JSON.parse(text);
+  if (
+    manifest.version !== 1 ||
+    !manifest.images ||
+    typeof manifest.images !== 'object' ||
+    Array.isArray(manifest.images)
+  )
+    throw new Error('Invalid menu preview manifest');
+  return manifest;
 }
 // Generated from CPU route models at dev/build time. The menu never imports worlds.
 export async function menuCatalog({
+  root = appRoot,
   loadModule = (path) => import(pathToFileURL(path)),
+  warn = console.warn,
 } = {}) {
-  // Local inspection captures are not rendered inputs and differ by checkout.
-  const shared = (await files(resolve(root, 'src'))).filter(
-    (p) =>
-      !/\/(levels|frontend|audio|ui|evidence)\//.test(p) && !/\.test\./.test(p),
-  );
-  const ships = await files(resolve(root, 'public/assets/ships'));
-  const sharedHash = await digest([
-    ...shared,
-    ...ships,
-    resolve(root, 'tools/capture-menu-previews.mjs'),
-  ]);
-  const manifest = JSON.parse(
-    await readFile(
-      resolve(root, 'public/assets/menu/previews.json'),
-      'utf8',
-    ).catch(() => '{}'),
-  );
-  const previews = new Set(await files(resolve(root, 'public/assets/menu')));
+  const directory = resolve(root, 'public/assets/menu');
+  const manifest = await readPreviewManifest(directory);
   const entries = [];
   for (const folder of await readdir(resolve(root, 'src/levels'), {
     withFileTypes: true,
   })) {
     if (!folder.isDirectory()) continue;
     const dir = resolve(root, 'src/levels', folder.name);
-    if (!(await files(dir)).includes(resolve(dir, 'metadata.js'))) continue;
+    if (
+      !(await access(resolve(dir, 'metadata.js')).then(
+        () => true,
+        () => false,
+      ))
+    )
+      continue;
     const { default: meta } = await loadModule(resolve(dir, 'metadata.js'));
     const model = await loadModule(resolve(dir, 'track/model.js'));
     const factory = Object.entries(model).find(([key]) =>
@@ -73,11 +103,51 @@ export async function menuCatalog({
       +(150 + (p.x - minX - width / 2) * scale).toFixed(1),
       +(95 + (p.z - minZ - height / 2) * scale).toFixed(1),
     ]);
-    const levelFiles = [
-      ...(await files(dir)),
-      ...(await files(resolve(root, 'public/assets/levels', meta.id))),
-    ].filter((p) => !/\/audio\/|\.test\./.test(p));
-    const fingerprint = `${sharedHash}-${await digest(levelFiles)}`;
+    const routeSignature = createHash('sha256')
+      .update(
+        JSON.stringify({
+          length: track.finishDistance ?? track.length,
+          closed: track.closed !== false,
+          xy,
+        }),
+      )
+      .digest('hex')
+      .slice(0, 16);
+    const file = `${meta.id}.webp`;
+    const record = manifest.images[meta.id];
+    if (
+      record &&
+      (record.file !== file ||
+        record.width !== previewSize.width ||
+        record.height !== previewSize.height)
+    )
+      throw new Error(`Invalid menu preview record: ${meta.id}`);
+    let bytes;
+    try {
+      bytes = await readFile(resolve(directory, file));
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+    if (bytes) {
+      const size = webpSize(bytes);
+      if (
+        size.width !== previewSize.width ||
+        size.height !== previewSize.height
+      )
+        throw new Error(
+          `Menu preview ${file} must be 640×400; got ${size.width}×${size.height}`,
+        );
+      if (
+        !record ||
+        record.preset !== previewPreset ||
+        (record.routeSignature && record.routeSignature !== routeSignature)
+      )
+        warn(
+          `Menu preview ${meta.id} may be outdated. Refresh with npm run previews -- ${meta.id}; keeping the saved image.`,
+        );
+    } else if (record) {
+      warn(`Missing menu preview ${file}; using its route outline.`);
+    }
     entries.push({
       id: meta.id,
       name: meta.name,
@@ -87,12 +157,8 @@ export async function menuCatalog({
         xy.map((p, i) => `${i ? 'L' : 'M'}${p.join(',')}`).join(' ') +
         (track.closed === false ? '' : ' Z'),
       start: xy[0],
-      fingerprint,
-      preview:
-        manifest[meta.id] === fingerprint &&
-        previews.has(resolve(root, 'public/assets/menu', `${meta.id}.webp`))
-          ? `assets/menu/${meta.id}.webp`
-          : null,
+      routeSignature,
+      preview: bytes ? `assets/menu/${file}` : null,
     });
   }
   return entries;

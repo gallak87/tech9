@@ -1,6 +1,5 @@
 .experiments/
 evidence/
-src/ships/evidence/
 .husky/
 dist/
 node_modules/

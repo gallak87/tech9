@@ -32,6 +32,12 @@
 
 - [x] Vesper performance/dev tools: remove physical resin transmission while retaining amber shading, reflections and internal detail. Free camera now has live FPS/frame-time/draw-count readouts and material switches; the wider art/performance pass remains open.
 
+## Tooling follow-up
+
+- [ ] Consolidate the labelled compatibility developer launcher (`capture`, shape review and jump tests) into dedicated tool views after migrating its consumers. Preserve `test=jump`, named cases, reset/step/launch APIs, shape views and ship/rival inspection throughout. The direct `inspect=1` link and maintained frontend/level smoke checks cover current entry paths; the compatibility controls remain intentionally available.
+- [ ] Migrate or retire historical browser harnesses (`tools/verify.mjs`, `orbital-verify.mjs`, fleet/rival/racing and Gate scripts) against the current shell/session lifecycle. Preserve useful physics/scenario assertions; do not claim those older scripts certify the new frontend. Supported commands are listed in tools/README.md.
+- [ ] After other level/ship owners finish their work, prune remaining ignored scratch builds/captures under `.experiments/`. Menu-layout artifacts from the frontend pass are removed; do not delete active agents’ authoring or verification work indiscriminately.
+
 ## Remaining gameplay
 
 Agree each phase's scope before implementation; scoped independent critique ends with human review.

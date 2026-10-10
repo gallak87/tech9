@@ -1110,6 +1110,26 @@ body[data-screen='results'] .front-footer {
   background: #eee;
 }
 /* Legacy HUD/inspection remain the gameplay presentation; shell replaces title. */
+.developer-note {
+  display: none;
+}
+.developer-entry .developer-note {
+  display: grid;
+  gap: 6px;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #555;
+  color: #ccc;
+  font-size: 12px;
+}
+.developer-note strong {
+  color: #eee;
+  letter-spacing: 0.12em;
+}
+.developer-note button {
+  justify-self: start;
+  padding: 8px 12px;
+}
 body:not([data-screen='review']) #title-panel {
   display: none !important;
 }

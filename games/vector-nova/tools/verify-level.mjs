@@ -13,10 +13,10 @@ if (!base || process.argv.length !== 3)
     'Usage: VN_URL=http://127.0.0.1:<port> npm run verify:level -- <slug>',
   );
 const { metadata, createLevel } = await loadLevel(slug);
-const output = resolve(
-  process.env.VN_EVIDENCE || `.experiments/level-checks/${slug}`,
-);
-await mkdir(output, { recursive: true });
+const output = process.env.VN_EVIDENCE
+  ? resolve(process.env.VN_EVIDENCE)
+  : null;
+if (output) await mkdir(output, { recursive: true });
 const report = {
   level: slug,
   base,
@@ -263,9 +263,14 @@ try {
   console.error(error.message);
 } finally {
   await browser.close();
-  await writeFile(
-    resolve(output, 'report.json'),
-    JSON.stringify(report, null, 2) + '\n',
+  if (output) {
+    await writeFile(
+      resolve(output, 'report.json'),
+      JSON.stringify(report, null, 2) + '\n',
+    );
+    console.log(`Report: ${resolve(output, 'report.json')}`);
+  }
+  console.log(
+    `${slug}: ${report.cases.filter((entry) => entry.status === 'pass').length}/${report.cases.length} runtime cases passed; ${report.failures.length} failure-recovery checks passed.`,
   );
-  console.log(`Report: ${resolve(output, 'report.json')}`);
 }

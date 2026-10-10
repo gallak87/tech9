@@ -7,7 +7,6 @@ export default defineConfig([
   globalIgnores([
     '.experiments/**',
     'evidence/**',
-    'src/ships/evidence/**',
     'dist/**',
     'public/assets/ships/decoder/**',
     '.husky/**',

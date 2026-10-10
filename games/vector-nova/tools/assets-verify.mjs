@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readPreviewManifest } from './menu-catalog.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const manifest = JSON.parse(
@@ -17,14 +18,16 @@ const listed = new Set(
     .filter((path) => typeof path === 'string'),
 );
 // Menu assets declare a bounded wildcard; resolve it through their existing
-// fingerprint manifest so stale/unlisted files are still rejected below.
+// capture manifest so unlisted files are still rejected below.
 if (manifest.assets.some((asset) => asset.id === 'circuit-menu-previews')) {
-  const previews = JSON.parse(
-    await readFile(resolve(root, 'public/assets/menu/previews.json'), 'utf8'),
+  const previews = await readPreviewManifest(
+    resolve(root, 'public/assets/menu'),
   );
   listed.add('public/assets/menu/previews.json');
-  for (const id of Object.keys(previews))
-    listed.add(`public/assets/menu/${id}.webp`);
+  for (const [id, record] of Object.entries(previews.images)) {
+    assert.equal(record.file, `${id}.webp`, `menu filename: ${id}`);
+    listed.add(`public/assets/menu/${record.file}`);
+  }
 }
 assert.equal(
   new Set(manifest.assets.map((asset) => asset.id)).size,

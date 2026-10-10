@@ -1,15 +1,110 @@
 {
-  "cindercoil": "5e110275f3057649-2a6d4cea05e4d6d9",
-  "glasswake": "5e110275f3057649-116c3ce4e675177c",
-  "halcyon": "5e110275f3057649-8c1280e155132fbc",
-  "helion": "5e110275f3057649-7052dd432781a3bb",
-  "nacre": "5e110275f3057649-a3fec8b784fa6586",
-  "orbital": "5e110275f3057649-2f243d2f50afe6e2",
-  "saffron": "5e110275f3057649-e1085b21b1d432de",
-  "saffron-wide": "5e110275f3057649-2310a457ba90d1d4",
-  "umbra": "5e110275f3057649-30a3a708a0f7acc5",
-  "umbra-wide": "5e110275f3057649-2072cd20d837511d",
-  "vesper": "5e110275f3057649-f30852eaef40a228",
-  "zephyr": "5e110275f3057649-948031b748a9a4a5",
-  "shatterline": "5e110275f3057649-ba4be78e749a84ba"
+  "version": 1,
+  "images": {
+    "cindercoil": {
+      "file": "cindercoil.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": null,
+      "legacyFingerprint": "5e110275f3057649-2a6d4cea05e4d6d9"
+    },
+    "glasswake": {
+      "file": "glasswake.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": null,
+      "legacyFingerprint": "5e110275f3057649-116c3ce4e675177c"
+    },
+    "halcyon": {
+      "file": "halcyon.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "5cd2ba08792876283c334aee16b5a8f81849f7bf",
+      "sourceDirty": true,
+      "routeSignature": "02f71eb4fa1274b5"
+    },
+    "helion": {
+      "file": "helion.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": null,
+      "legacyFingerprint": "5e110275f3057649-7052dd432781a3bb"
+    },
+    "nacre": {
+      "file": "nacre.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": null,
+      "legacyFingerprint": "5e110275f3057649-a3fec8b784fa6586"
+    },
+    "orbital": {
+      "file": "orbital.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": null,
+      "legacyFingerprint": "5e110275f3057649-2f243d2f50afe6e2"
+    },
+    "saffron": {
+      "file": "saffron.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": null,
+      "legacyFingerprint": "5e110275f3057649-e1085b21b1d432de"
+    },
+    "saffron-wide": {
+      "file": "saffron-wide.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": null,
+      "legacyFingerprint": "5e110275f3057649-2310a457ba90d1d4"
+    },
+    "umbra": {
+      "file": "umbra.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": null,
+      "legacyFingerprint": "5e110275f3057649-30a3a708a0f7acc5"
+    },
+    "umbra-wide": {
+      "file": "umbra-wide.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": null,
+      "legacyFingerprint": "5e110275f3057649-2072cd20d837511d"
+    },
+    "vesper": {
+      "file": "vesper.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": null,
+      "legacyFingerprint": "5e110275f3057649-f30852eaef40a228"
+    },
+    "zephyr": {
+      "file": "zephyr.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": null,
+      "legacyFingerprint": "5e110275f3057649-948031b748a9a4a5"
+    },
+    "shatterline": {
+      "file": "shatterline.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": null,
+      "legacyFingerprint": "5e110275f3057649-ba4be78e749a84ba"
+    }
+  }
 }

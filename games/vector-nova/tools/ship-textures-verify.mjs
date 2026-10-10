@@ -87,40 +87,21 @@ try {
       JSON.stringify(png),
     );
   }
-  // Disposal while waiting for capabilities must reject rather than deadlock.
-  await page.evaluate(() => {
-    window.cancelled = window.cache.loadShipModel('kestrel').then(
-      () => false,
-      (e) => e.name === 'AbortError',
-    );
-  });
-  await page.waitForTimeout(300);
-  assert.equal(
-    await page.evaluate(async () => {
-      window.cache.disposeShipCache();
-      return await window.cancelled;
-    }),
-    true,
-  );
-  assert.equal(await page.evaluate(() => window.workerCounts.created), 0);
-  // Compressed preload before renderer must wait and never initialize Basis.
-  await page.evaluate(() => {
-    window.pending = window.cache.loadShipModel('kestrel');
-    window.settled = false;
-    window.pending.finally(() => (window.settled = true));
-  });
-  await page.waitForTimeout(500);
-  assert.equal(await page.evaluate(() => window.settled), false);
-  assert.equal(await page.evaluate(() => window.workerCounts.created), 0);
+  // A cold compressed preload must finish before any visible renderer exists.
+  // Narrow setup keeps its Ship accordion closed during this same operation.
   const cold = await page.evaluate(async () => {
     const start = performance.now();
-    window.startPreview();
-    const model = await window.pending;
-    await window.preview.setShip('kestrel');
+    const model = await window.cache.loadShipModel('kestrel');
     return {
-      gatedPreviewMs: performance.now() - start,
+      preloadMs: performance.now() - start,
       maps: window.mapStats(model),
     };
+  });
+  assert.equal(await page.locator('canvas').count(), 0);
+  assert.ok(await page.evaluate(() => window.workerCounts.created > 0));
+  await page.evaluate(async () => {
+    window.startPreview();
+    await window.preview.setShip('kestrel');
   });
   await page.waitForTimeout(250);
   const gpu = await page.evaluate(() => ({
@@ -239,7 +220,7 @@ try {
     ),
   );
   console.log(
-    'PASS capability gate, actual compressed GPU uploads, warm cache, preview disposal, cancellation, decoder failure/retry and worker timeout',
+    'PASS cold preload without studio, actual compressed GPU uploads, warm cache, preview disposal, cancellation, decoder failure/retry and worker timeout',
     JSON.stringify(hung),
   );
   await page.evaluate(() => {

@@ -308,6 +308,13 @@ export function createUI(
   const review = blockout && metadata.review;
   const copy = { ...metadata.ui, ...(blockout ? metadata.ui.shape : {}) };
   const panel = $('title-panel');
+  // Preserve the selectors used by level tools until those harnesses migrate.
+  const developerNote = document.createElement('div');
+  developerNote.className = 'developer-note';
+  developerNote.innerHTML =
+    '<strong>DEVELOPER LAUNCHER</strong><span>Capture, route review and level-test controls.</span><button type="button">Open race setup →</button>';
+  developerNote.querySelector('button').onclick = actions.home;
+  panel.prepend(developerNote);
   if (racing && !blockout) {
     const difficulty = document.createElement('label');
     difficulty.className = 'difficulty-picker';

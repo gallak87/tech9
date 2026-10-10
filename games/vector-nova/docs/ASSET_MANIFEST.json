@@ -71,7 +71,7 @@
       "id": "circuit-menu-previews",
       "source": "public/assets/menu/",
       "creator": "VECTOR//NOVA runtime via tools/capture-menu-previews.mjs",
-      "provenance": "One 640\u00d7400 WebP ship-free circuit still per circuit, captured from project-owned game assets at Low quality. Regenerate with npm run previews; source fingerprints are stored alongside the images. These files are served menu assets, not verification evidence.",
+      "provenance": "One 640\u00d7400 WebP ship-free circuit still per circuit, captured from project-owned game assets at Low quality. Regenerate with npm run previews; capture provenance is stored alongside the images; freshness warnings never hide saved stills. These files are served menu assets, not verification evidence.",
       "rights": "Derived from this project\u2019s registered level and ship assets; their original provenance and rights apply",
       "runtimeDependencies": [
         "public/assets/menu/*.webp",

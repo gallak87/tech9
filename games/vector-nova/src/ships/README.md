@@ -16,7 +16,7 @@ blender --background --threads 6 --python assets/ships/build_fleet.py
 
 Add `-- --ship needle --render` for optional neutral review renders in ignored `.experiments/fleet-blender/`. The saved blends retain named editable meshes, modifiers, procedural PBR materials and a studio. Exports join by material, unwrap and bake base-color/roughness/tangent-normal/cavity-occlusion maps, embed those images in the GLB, and exclude the studio. Main ceramic armor uses 2048×2048 maps; graphite and metal retain 512×512 maps. The shared `surface_finish.py` authors metre-space tooling, sparse contact scuffs, close-joint dirt and aft-only heat tint; it bakes with padded UV islands. Chosen finish targets and exact generation prompts are recorded in each ship’s provenance. Baked source maps are retained under each ship’s `textures/` directory. No third-party geometry, fonts or textures are used.
 
-The main menu’s **Inspect Ships** displays the runtime models with drag rotation, an initially enabled auto-rotate toggle, and driving/stationary, boost and heat-shimmer controls. Dragging pauses auto-rotation; the menu viewer previews driving at 400 km/h while leaving simulation state unchanged. Heat can be toggled against the same studio background for visual comparison. Reduced motion pauses decorative rotation and refraction; the main inspector also respects Low graphics. A lazily allocated, owned inspection pipeline runs the same depth-aware heat pass used in racing. The main game's **Inspect Ships** screen supplies the shared four-ship picker. With a private server running, `VN_URL=http://127.0.0.1:5237 node tools/fleet-verify.mjs` verifies real input, boost, replay, persistence, asset/storage failure and responsive selection across the installed circuits. `src/ships/fleet.test.js` verifies actual speed/turn/brake/endurance tradeoffs and exported geometry/anchors. Browsers stay hidden; captures belong in ignored `.experiments/`.
+The direct `?inspect=1&ship=kestrel&level=halcyon` inspector (or I during a session) displays the runtime models with drag rotation, an initially enabled auto-rotate toggle, and driving/stationary, boost and heat-shimmer controls. Dragging pauses auto-rotation; the menu viewer previews driving at 400 km/h while leaving simulation state unchanged. Heat can be toggled against the same studio background for visual comparison. Reduced motion pauses decorative rotation and refraction; the main inspector also respects Low graphics. A lazily allocated, owned inspection pipeline runs the same depth-aware heat pass used in racing. The standalone inspector supplies the shared four-ship picker; in-session inspection locks the chassis to preserve the active run. `VN_URL=<server-url> npm run verify` checks the current selection/inspection/session flow without saving artifacts. The historical fleet/rival browser harnesses require migration; see tools/README.md. `src/ships/fleet.test.js` verifies actual speed/turn/brake/endurance tradeoffs and exported geometry/anchors. Browsers stay hidden; temporary captures belong in ignored `.experiments/` and are removed after use.
 
 ## Approved Kestrel baseline
 
@@ -40,9 +40,7 @@ upper-left texture orientation, and records sRGB only for color/emissive maps.
 Tangent normals stay RGB; do not use the encoder's X/alpha normal swizzle.
 Already-compressed input is rejected: rebuild the PNG GLB to change settings.
 
-`texture-loader.js` owns one two-worker KTX2 loader. A real preview or race renderer
-establishes GPU capabilities before compressed parsing; PNG loads bypass that
-gate. Cache disposal/page exit abort requests and releases workers. Failed or
+`texture-loader.js` owns one two-worker KTX2 loader. A live preview/race renderer supplies GPU capabilities when available. Otherwise a temporary unattached 1px renderer detects support and immediately releases its context, so compressed preloading finishes with the Ship accordion closed. PNG loads need neither the probe nor decoder. Cache disposal/page exit abort requests and releases workers. Failed or
 30-second-stalled decoding rejects the model rather than caching missing maps,
 so selection/preload can retry. The matching Three.js 0.186.1 Basis decoder is
 served through `assetURL` under `assets/ships/decoder/` (Apache-2.0).
@@ -50,7 +48,7 @@ served through `assetURL` under `assets/ships/decoder/` (Apache-2.0).
 its total GPU figure remains an estimate excluding driver overhead.
 
 With the dev server running, `VN_URL=http://127.0.0.1:5179 node tools/ship-textures-verify.mjs`
-checks real GPU uploads, capability gating, preview/cache disposal and decoder
+checks renderer-independent cold preload, real GPU uploads, preview/cache disposal and decoder
 failure/timeout/retry. Add `--png-fixture /path/to/lossless.glb` to check ordinary
 PNG loading before any renderer exists. Visual fidelity still requires matching
 studio and chase captures; these checks do not establish art quality.

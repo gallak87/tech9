@@ -632,8 +632,15 @@ button:disabled {
 }
 
 .ship-description {
+  display: grid;
   max-width: 55ch;
   margin: 15px 0 0;
+}
+.ship-description > span {
+  grid-area: 1 / 1;
+}
+.ship-description > [aria-hidden='true'] {
+  visibility: hidden;
 }
 .setup-details {
   border-left: 1px solid #333;

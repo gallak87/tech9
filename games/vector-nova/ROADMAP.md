@@ -74,6 +74,7 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 ### Gate 8: cups and front end
 
+- [ ] Author per-circuit menu previews around each track's standout landmark or event: Nacre's leviathan, Cindercoil's lava, and equivalent signature vistas elsewhere. Save free-camera poses and event timing so the existing ship-free screenshot workflow can reproduce those shots after map changes.
 - [ ] Music startup: attempt playback on initial arrival, then fall back to the first user interaction if autoplay is blocked. Current playback begins with a menu-button activation or explicit Play/M.
 - [ ] Validate Tunes continuity and control responsiveness during the heaviest circuit transitions as part of the deferred M1 performance pass.
 - [ ] Carry shared ship selection into future race modes and add a Founders Cup over Halcyon/Asterion/Nacre. Proposed 12-place points: 25/20/16/13/11/9/7/5/4/3/2/1; ties by wins, then total time. Save between races with restart/abandon controls.

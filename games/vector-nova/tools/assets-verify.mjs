@@ -16,6 +16,16 @@ const listed = new Set(
     ])
     .filter((path) => typeof path === 'string'),
 );
+// Menu assets declare a bounded wildcard; resolve it through their existing
+// fingerprint manifest so stale/unlisted files are still rejected below.
+if (manifest.assets.some((asset) => asset.id === 'circuit-menu-previews')) {
+  const previews = JSON.parse(
+    await readFile(resolve(root, 'public/assets/menu/previews.json'), 'utf8'),
+  );
+  listed.add('public/assets/menu/previews.json');
+  for (const id of Object.keys(previews))
+    listed.add(`public/assets/menu/${id}.webp`);
+}
 assert.equal(
   new Set(manifest.assets.map((asset) => asset.id)).size,
   manifest.assets.length,
@@ -38,7 +48,7 @@ for (const file of runtime) {
   const path = relative(root, file);
   assert.match(
     path,
-    /^public\/assets\/(levels\/[a-z][a-z0-9-]*\/|ships\/(?:rivals\/)?[a-z][a-z0-9-]*\/)/,
+    /^public\/assets\/(levels\/[a-z][a-z0-9-]*\/|ships\/(?:rivals\/)?[a-z][a-z0-9-]*\/|menu\/)/,
     `canonical ownership: ${path}`,
   );
   assert.ok(listed.has(path), `unindexed or obsolete runtime export: ${path}`);

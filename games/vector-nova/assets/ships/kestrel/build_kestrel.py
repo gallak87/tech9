@@ -145,7 +145,7 @@ def deck(x,z):
             return y-.069
     return .5
 
-def shell(name,stations,sign,mat='pearl'):
+def shell_section(name,stations,sign,mat='pearl'):
     verts=[]
     for z,ix,ox,y,bot in stations:
         thick=.045+.12*min(1,max(0,(3.69-z)/3))
@@ -160,6 +160,30 @@ def shell(name,stations,sign,mat='pearl'):
     for j in range(len(stations)-1):
         for k in (4,5,6):obj.data.polygons[2+j*n+k].use_smooth=False
     return obj
+
+
+def shell(name, stations, sign, mat='pearl'):
+    # Four closed formed panels follow the approved shell stations exactly.
+    # Real 18 mm transverse reveals expose the structure without fragile chains
+    # of shallow boolean cuts across a concave monocoque.
+    def at(z):
+        for a,b in zip(stations,stations[1:]):
+            if a[0]>=z>=b[0]:
+                t=(a[0]-z)/(a[0]-b[0])
+                return tuple(a[k]*(1-t)+b[k]*t for k in range(5))
+        return stations[-1]
+    panels=[]
+    for index,(front,rear) in enumerate([(3.69,2.60),(2.582,1.40),(1.382,-.92),(-.938,-2.43)]):
+        section=[at(front)]+[station for station in stations if front>station[0]>rear]+[at(rear)]
+        panel=shell_section(name+' / formed plate '+str(index+1),section,sign,mat)
+        bpy.context.view_layer.objects.active=panel
+        for mod in list(panel.modifiers):bpy.ops.object.modifier_apply(modifier=mod.name)
+        panels.append(panel)
+    bpy.ops.object.select_all(action='DESELECT')
+    for panel in panels:panel.select_set(True)
+    bpy.context.view_layer.objects.active=panels[0];bpy.ops.object.join()
+    panels[0].name=name
+    return panels[0]
 
 
 SURFACES={}
@@ -185,16 +209,6 @@ def paint(name,coords,mat):
     data=bpy.data.meshes.new(name);bm.to_mesh(data);bm.free()
     obj=bpy.data.objects.new(name,data);ship.objects.link(obj);data.materials.append(M[mat])
     return obj
-
-def panel_line(name,coords):
-    points=[]
-    for a,b in zip(coords,coords[1:]):
-        n=max(2,int(math.dist(a,b)/.026))
-        for j in range(n):
-            t=j/n;x=a[0]*(1-t)+b[0]*t;z=a[1]*(1-t)+b[1]*t
-            points.append((x,surface_y(x,z)+.004,z))
-    x,z=coords[-1];points.append((x,surface_y(x,z)+.004,z))
-    return line(name,points,.0055,'edge')
 
 def intake_ring(name,outer,inner):
     verts=[]
@@ -223,10 +237,9 @@ for sign,label in ((-1,'L'),(1,'R')):
     shoulder=[(sign*1.393,-1.03),(sign*1.64,-1.385),(sign*1.50,-1.455),(sign*1.355,-1.29)]
     paint('Vermilion wingtip '+label,shoulder,'red')
     # Authored panel seams, few and deliberate. Fine recessed-dark reveal.
-    seam=[(sign*.36,1.50),(sign*.49,1.41),(sign*.86,1.24),(sign*1.083,1.19)]
-    panel_line('Forward service boundary '+label,seam)
-    seam=[(sign*.53,-.87),(sign*.67,-.89),(sign*1.04,-.94),(sign*1.52,-.86)]
-    panel_line('Aft service boundary '+label,seam)
+    # A removable formed hatch has a physical return, not a painted outline.
+    hatch=[(sign*.52,.89),(sign*.66,.68),(sign*.70,.08),(sign*.57,.12)]
+    solid('Cockpit service hatch '+label,[(x,surface_y(x,z)+.016,z) for x,z in hatch],.022,'pearl',.004)
     # Broad satin ceramic thermal-service zone follows the formed aft shell.
     paint('Aft ceramic thermal-service finish '+label,[(sign*x,z) for x,z in
         [(.58,-.99),(.82,-1.02),(1.26,-.94),(1.38,-1.16),(1.23,-1.34),(.62,-1.33)]],'pearl2')
@@ -372,7 +385,11 @@ for sign,label in ((-1,'L'),(1,'R')):
             pf=[(0,1,2,3),(8,11,10,9)]
             for j in range(2):
                 for k in range(4):pf.append((j*4+k,j*4+(k+1)%4,(j+1)*4+(k+1)%4,(j+1)*4+k))
-            mesh(section+' '+label+str(facet),pv,pf,'metal',.0018)
+            mesh(section+' '+label+str(facet),pv,pf,'metal',.004)
+            if section=='Overlapping hot petal' and facet in (0,2):
+                for edge in (-1,1):
+                    u=mid+(bv-av)*(.32*edge)
+                    line('Petal axial machined return '+label,[(cx+u.x*rx*1.003,cy+u.y*ry*1.003,z) for z,rx,ry in stations],.0045,'darkmetal')
         if facet in (0,2):
             left=mid+(av-mid)*.18;right=mid+(bv-mid)*.18
             pv=[]
@@ -449,13 +466,14 @@ for j,poly in enumerate(zero):marking_polygon('Stencil 0 '+str(j),poly,x0,z0,sw,
 marking_polygon('Stencil 7',[(0,1),(1,1),(1,.83),(.42,0),(.12,0),(.76,.81),(0,.81)],x0+.224,z0,sw,sh)
 # Tiny fastener countersinks on service corners; retain sparse readable hierarchy.
 for sign in (-1,1):
-    for x,z in ((.61,.87),(1.20,-.74),(.60,-.94),(1.18,-1.68),(.985,1.17)):
+    for x,z in ((.28,2.58),(.61,2.49),(.44,1.44),(1.00,1.20),(.61,.87),(.64,.15),(1.20,-.74),(.60,-.94),(1.18,-1.68),(.985,1.17)):
         y=surface_y(sign*x,z)+.004
-        bpy.ops.mesh.primitive_cylinder_add(vertices=8,radius=.009,depth=.005,location=C((sign*x,y,z)))
+        bpy.ops.mesh.primitive_cylinder_add(vertices=8,radius=.022,depth=.006,location=C((sign*x,y,z)))
         obj=move_collection(bpy.context.object);obj.name='Flush titanium fastener';obj.data.materials.append(M['darkmetal'])
 
 texture_directory=SOURCE/'textures';texture_directory.mkdir(exist_ok=True)
-finishes={M[kind].name:surface_finish(M[kind],kind,2.35,3.22) for kind in ('pearl','carbon','metal','darkmetal')}
+scuffs=[(sign*x,z,sign*dx,dz) for sign in (-1,1) for x,z,dx,dz in [( .28,2.90,.025,-.12),(.43,2.57,.03,-.09),(.46,2.53,.019,-.06),(.97,1.30,-.028,.11),(.93,1.33,-.025,.06),(.61,.80,.015,-.10),(1.13,-.70,-.02,-.12),(1.17,-.73,-.018,-.06),(1.38,-1.30,.02,-.06)]]
+finishes={M[kind].name:surface_finish(M[kind],kind,2.35,3.22,scuffs) for kind in ('pearl','carbon','metal','darkmetal')}
 
 # Metadata and editable source are saved before export-consolidation.
 scene=bpy.context.scene
@@ -529,7 +547,7 @@ for name,objects in groups.items():
 for obj in joined:
     mat=obj.data.materials[0]
     if mat.name in finishes:
-        bake_finish(obj,mat,finishes[mat.name],texture_directory,1024 if 'Ceramic' in mat.name else 512)
+        bake_finish(obj,mat,finishes[mat.name],texture_directory,2048 if 'Ceramic' in mat.name else 512)
 for o in anchors:o.name=o.name.replace('_export','')
 bpy.ops.object.select_all(action='DESELECT')
 for obj in joined+anchors:obj.select_set(True)
@@ -539,7 +557,7 @@ bpy.ops.export_scene.gltf(filepath=str(OUTPUT/'kestrel.glb'),export_format='GLB'
 verts=[obj.matrix_world@v.co for obj in joined for v in obj.data.vertices]
 game=[(v.x,v.z,-v.y) for v in verts]
 bounds={'min':[min(v[k] for v in game) for k in range(3)],'max':[max(v[k] for v in game) for k in range(3)]}
-report={'asset':'Kestrel Concept 01','revision':9,'blender':bpy.app.version_string,'axes':'+Z forward, +Y up','bounds':bounds,'dimensions':[bounds['max'][k]-bounds['min'][k] for k in range(3)],'triangles':sum(len(o.data.polygons) for o in joined),'meshes':len(joined),'materials':len(groups),'glbBytes':(OUTPUT/'kestrel.glb').stat().st_size,'anchors':{'Exhaust_L':[-.955,.448,-3.23],'Exhaust_R':[.955,.448,-3.23]},'sourceComponents':len(source_objects),'textureCount':len(finishes)*4,'textures':'Embedded original base color, roughness, tangent normal and short-range cavity occlusion maps; editable procedural Blender materials','renderViews':opts.views.split(',') if opts.render else []}
+report={'asset':'Kestrel Concept 01','revision':10,'blender':bpy.app.version_string,'axes':'+Z forward, +Y up','bounds':bounds,'dimensions':[bounds['max'][k]-bounds['min'][k] for k in range(3)],'triangles':sum(len(o.data.polygons) for o in joined),'meshes':len(joined),'materials':len(groups),'glbBytes':(OUTPUT/'kestrel.glb').stat().st_size,'anchors':{'Exhaust_L':[-.955,.448,-3.23],'Exhaust_R':[.955,.448,-3.23]},'sourceComponents':len(source_objects),'textureCount':len(finishes)*4,'textures':'Embedded original base color, roughness, tangent normal and short-range cavity occlusion maps; editable procedural Blender materials','renderViews':opts.views.split(',') if opts.render else []}
 (SOURCE/'asset-manifest.json').write_text(json.dumps(report,indent=2)+'\n')
 print('KESTREL_ASSET_REPORT '+json.dumps(report),flush=True)
 # Export copies render identically; render them and keep original .blend clean.

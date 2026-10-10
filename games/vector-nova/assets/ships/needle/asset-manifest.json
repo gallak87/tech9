@@ -5,14 +5,14 @@
     "min": [-2.041842460632324, 0.011741666123270988, -3.490000009536743],
     "max": [2.0418426990509033, 1.486806869506836, 3.5]
   },
-  "triangles": 34186,
+  "triangles": 36818,
   "meshes": 12,
   "anchors": {
     "Exhaust_C": [0, 0.64, -3.5050000000000003]
   },
-  "sourceComponents": 131,
-  "glbBytes": 3568152,
+  "sourceComponents": 139,
+  "glbBytes": 7497800,
   "textures": "Embedded original base color, roughness, tangent normal and short-range cavity occlusion maps; editable procedural Blender materials",
-  "textureCount": 16,
-  "artPassRevision": 5
+  "textureCount": 20,
+  "artPassRevision": 8
 }

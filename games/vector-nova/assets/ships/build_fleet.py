@@ -182,7 +182,7 @@ def engine(label,cx,cy,aft,radius):
             faces=[(0,1,2,3),(8,11,10,9)]
             for j in range(2):
                 for q in range(4):faces.append((j*4+q,j*4+(q+1)%4,(j+1)*4+(q+1)%4,(j+1)*4+q))
-            mesh(section+' '+label+str(k),points,faces,'metal',.0018)
+            mesh(section+' '+label+str(k),points,faces,'metal',.004)
         if k in (0,2):
             # Broad, flush spring keepers bridge the real overlap seam.
             left=mid+(a-mid)*.19; right=mid+(b-mid)*.19
@@ -241,11 +241,11 @@ def shrike():
         for side in (-1,1):
             line('Nacelle ceramic-seat gasket',[(sign*1.15+side*w,y-.024,z) for z,w,y in
                 [(-.64,.22,.73),(-1.11,.34,.90),(-2.10,.30,.91)]],.009,'edge')
-        oct_annulus('Nacelle front intake',sign*1.15,.73,-.595,(.22,.15),(.17,.11),'edge',.006,.07)
-        duct('Nacelle intake shadow',sign*1.15,.73,[(-.60,.176,.116),(-.64,.176,.116)],'vent',True,False,.002)
+        oct_annulus('Nacelle front intake',sign*1.15,.73,-.64,(.22,.15),(.194,.126),'darkmetal',.004,-.12)
+        duct('Nacelle intake shadow',sign*1.15,.73,[(-.68,.190,.123),(-.84,.167,.109)],'vent',False,True,.002)
         for j in range(5):
             y=.66+j*.036
-            beam('Front intake protective grille',(sign*1.15-.135,y,-.583),(sign*1.15+.135,y,-.583),.012,.01,'darkmetal',.002)
+            beam('Front intake protective grille',(sign*1.15-.135,y,-.725),(sign*1.15+.135,y,-.725),.012,.01,'darkmetal',.002)
         beam('Wing cyan marker',(sign*1.15,.75,-.67),(sign*1.15,.75,-.66),.21,.014,'dimcyan',.002)
     mirrored_panel('Teal swept wing stripe',[(1.50,.483,.76),(1.61,.468,.87),(1.98,.405,-.07),
         (2.01,.40,-.31),(1.84,.456,-.57),(1.71,.491,-.24)],.009,'accent',.003)
@@ -264,6 +264,7 @@ def bastion():
         stations=[(3.3,.22,.34,.42,.16),(2.91,.35,.42,.53,.11),(2.02,.43,.48,.61,.08),
             (.91,.47,.51,.67,.08),(-.72,.50,.52,.72,.10),(-1.80,.46,.53,.68,.12),(-2.42,.37,.48,.61,.13)]
         loft('Long narrow sponson skeleton',stations,'carbon',cx)
+        line('Sponson upper structural return',[(cx+sign*w*.97,y-.04,z) for z,w,y,t,b in stations],.010,'darkmetal')
         # Individual armor plates expose joints, intake recesses and cross braces.
         loft('Forward chisel armor',[(z,w*.99,y+.10,t+.10,t-.045) for z,w,y,t,b in stations[:3]],'pearl',cx)
         armor=[(z,w*1.01,y+.08,t+.08,t-.05) for z,w,y,t,b in stations[3:]]
@@ -327,7 +328,7 @@ def needle():
             z=.50-j*.21
             beam('Side heat exchanger',(sign*.82,.27,z),(sign*1.01,.49,z-.11),.06,.044,'metal',.006)
         line('Shoulder mechanical conduit',[(sign*.71,.32,.81),(sign*1.00,.36,-.44),(sign*.84,.41,-1.61)],.034,'darkmetal')
-        vent('Shoulder heat rejection cassette',sign*.79,.77,-.11,.28,.53)
+        vent('Shoulder heat rejection cassette',sign*.79,.703,-.11,.28,.53)
     cockpit(2.60,.38,.23,.625)
     engine('C',0,.64,-3.49,.61)
     loft('Integrated central engine cowling',[(-1.06,.39,.77,.86,.66),(-1.68,.55,.96,1.08,.78),
@@ -335,7 +336,7 @@ def needle():
     for side in (-1,1):
         line('Central cowling-seat gasket',[(side*w,y-.025,z) for z,w,y in
             [(-1.08,.39,.77),(-1.68,.55,.96),(-2.57,.54,.97)]],.009,'edge')
-    vent('Central engine cooling inlet',0,1.112,-1.82,.47,.63)
+    vent('Central engine cooling inlet',0,1.028,-1.82,.47,.63)
 
 def export_ship(id):
     global ship,M,anchors
@@ -364,6 +365,15 @@ def export_ship(id):
             modifier=target.modifiers.new('Recessed cooling aperture','BOOLEAN');modifier.operation='DIFFERENCE';modifier.object=cutter
             bpy.context.view_layer.objects.active=target;bpy.ops.object.modifier_apply(modifier=modifier.name)
             bpy.data.objects.remove(cutter,do_unlink=True)
+    if id=='shrike':
+        saddles=[o for o in ship.objects if o.name.startswith('Ceramic nacelle saddle')]
+        for target in saddles:
+            center=sum(v.co.x for v in target.data.vertices)/len(target.data.vertices)
+            cutter=duct('Intake pocket cutter',center,.73,[(-.51,.190,.123),(-.91,.190,.123)],'vent',True,True,0)
+            modifier=target.modifiers.new('Open nacelle intake pocket','BOOLEAN')
+            modifier.operation='DIFFERENCE';modifier.object=cutter
+            bpy.context.view_layer.objects.active=target;bpy.ops.object.modifier_apply(modifier=modifier.name)
+            bpy.data.objects.remove(cutter,do_unlink=True)
     if id=='needle':
         for sign in (-1,1):
             target=next(o for o in ship.objects if o.name.startswith('Broad formed shoulder armor'+str(sign)))
@@ -373,12 +383,30 @@ def export_ship(id):
             modifier=target.modifiers.new('Recessed shoulder cassette','BOOLEAN');modifier.operation='DIFFERENCE';modifier.object=cutter
             bpy.context.view_layer.objects.active=target;bpy.ops.object.modifier_apply(modifier=modifier.name)
             bpy.data.objects.remove(cutter,do_unlink=True)
+    if id=='needle':
+        target=next(o for o in ship.objects if o.name=='Integrated central engine cowling')
+        bpy.ops.mesh.primitive_cube_add(size=1,location=C((0,1.1,-2.135)))
+        cutter=bpy.context.object;cutter.dimensions=(.49,.67,.5)
+        bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
+        modifier=target.modifiers.new('Deep central cooling cassette','BOOLEAN');modifier.operation='DIFFERENCE';modifier.object=cutter
+        bpy.context.view_layer.objects.active=target;bpy.ops.object.modifier_apply(modifier=modifier.name)
+        housing=next(o for o in ship.objects if o.name=='Graphite power housing C')
+        modifier=housing.modifiers.new('Clear central radiator well','BOOLEAN');modifier.operation='DIFFERENCE';modifier.object=cutter
+        bpy.context.view_layer.objects.active=housing;bpy.ops.object.modifier_apply(modifier=modifier.name)
+        bpy.data.objects.remove(cutter,do_unlink=True)
+        # Narrow real metal lips frame the three recesses; louvres sit below.
+        for x,y,z,w,length in [(0,1.104,-1.80,.49,.67)]:
+            for side in (-1,1):
+                beam('Cooling cassette side lip',(x+side*w/2,y,z),(x+side*w/2,y,z-length),.012,.014,'darkmetal',.002)
+            for zz in (z,z-length):
+                beam('Cooling cassette end lip',(x-w/2,y,zz),(x+w/2,y,zz),.012,.014,'darkmetal',.002)
     # Project livery and sparse service seams onto the actual evaluated armor,
     # preserving the faceted surface and avoiding coplanar/floating decals.
     bpy.context.view_layer.update()
     depsgraph=bpy.context.evaluated_depsgraph_get()
-    surfaces=[BVHTree.FromObject(obj,depsgraph) for obj in ship.objects
+    surface_objects=[obj for obj in ship.objects
         if obj.type=='MESH' and obj.data.materials[0] in (M['pearl'],M['pearl2'])]
+    surfaces=[BVHTree.FromObject(obj,depsgraph) for obj in surface_objects]
     def height(x,z):
         hits=[tree.ray_cast(Vector(C((x,3,z))),Vector((0,0,-1)),4)[0] for tree in surfaces]
         hits=[hit.z for hit in hits if hit is not None]
@@ -401,6 +429,21 @@ def export_ship(id):
                 t=j/23;x=x0*(1-t)+x1*t;z=z0*(1-t)+z1*t;h=height(x,z)
                 if h is not None:points.append((x,h+.001,z))
         if len(points)>1:line('Armor service joint',points,.004,'edge')
+    # Formed covers with an actual return and narrow shadow underneath. Their
+    # scale is intentionally larger than the fine finish, for inspection clarity.
+    for sign in (-1,1):
+        x,z,w,length={'shrike':(.625,-.38,.17,.28),'bastion':(1.28,-1.36,.27,.23),'needle':(.69,-1.50,.22,.29)}[id]
+        outline=[(sign*(x+dx),z+dz) for dx,dz in [(-w/2,length/2),(w/2,length/2),(w/2,-length/2),(-w/2,-length/2)]]
+        if all(height(xx,zz) is not None for xx,zz in outline):
+            solid('Formed ceramic maintenance cover',[(xx,height(xx,zz)+.012,zz) for xx,zz in outline],.024,'pearl2',.004)
+    # A pair of seated side access covers articulates the long dark structure.
+    if id=='bastion':
+        for sign in (-1,1):
+            for z in (.30,-.48):
+                x=sign*1.767
+                vertices=[(x,.27,z+.13),(x,.42,z+.13),(x,.42,z-.13),(x,.27,z-.13)]
+                vertices += [(xx+sign*.007,y,zz) for xx,y,zz in vertices]
+                mesh('Sponson graphite access cover',vertices,[(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)],'carbon',.004)
     # Use Blender's built-in vector font, projected onto one continuous panel.
     # Its top points aft (-Z), so it reads correctly from the front inspection
     # view; custom top-to-bottom segment coordinates previously mirrored it.
@@ -425,15 +468,18 @@ def export_ship(id):
             paint('Service access warning',[(sign*(x+u*.09),z-j*.09-v*.04) for u,v in [(0,0),(1,0),(.74,1),(-.26,1)]])
     for sign in (-1,1):
         if id=='shrike':
+            seam([(sign*.94,-1.41),(sign*1.16,-1.43),(sign*1.39,-1.40)])
             paint('Swept teal identity band',[(sign*x,z) for x,z in [(1.65,.68),(1.77,.78),(2.05,.20),(2.0,-.19),(1.85,-.49),(1.72,-.32)]])
             for coords in [[(.51,.87),(.95,.35),(1.39,.22),(1.8,.49)],[(.59,-.9),(1.06,-1.08),(1.55,-.88),(1.91,-.56)],[(1.49,.60),(1.42,-.17),(1.61,-.64)]]:
                 seam([(sign*x,z) for x,z in coords])
         if id=='bastion':
-            for z in [2.69,2.35,.40,-.27,-1.12]:
+            seam([(sign*.98,-2.28),(sign*1.27,-2.30),(sign*1.58,-2.26)])
+            for z in [2.69,2.35,.40]:
                 seam([(sign*.95,z),(sign*1.25,z-.04),(sign*1.59,z-.11)])
             seam([(sign*1.02,.81),(sign*1.0,-.52),(sign*1.09,-1.74)])
             paint('Brass aft service strip',[(sign*x,z) for x,z in [(1.51,-.90),(1.61,-.94),(1.64,-1.65),(1.54,-1.61)]])
         if id=='needle':
+            seam([(sign*.06,-1.58),(sign*.26,-1.61),(sign*.47,-1.59)])
             for coords in [[(.12,2.8),(.23,2.51)],[(.28,1.70),(.43,1.50)],[(.45,.74),(.73,.49)],
                            [(.90,-.62),(1.08,-.77)],[(.49,-1.34),(.77,-1.51),(.96,-1.45)]]:
                 seam([(sign*x,z) for x,z in coords])
@@ -445,7 +491,7 @@ def export_ship(id):
                      'needle':[(.35,.63),(.44,-.51),(.32,1.09)]}[id]):
             x*=sign;h=height(x,z)
             if h is None:continue
-            bpy.ops.mesh.primitive_cylinder_add(vertices=8,radius=.012,depth=.005,location=C((x,h+.004,z)))
+            bpy.ops.mesh.primitive_cylinder_add(vertices=8,radius=.022,depth=.006,location=C((x,h+.004,z)))
             obj=bpy.context.object
             for col in list(obj.users_collection):col.objects.unlink(obj)
             ship.objects.link(obj);obj.name='Flush service fastener';obj.data.materials.append(M['darkmetal'])
@@ -459,7 +505,9 @@ def export_ship(id):
     review=ROOT/'.experiments/fleet-blender'/id
     for path in (source,output,review):path.mkdir(parents=True,exist_ok=True)
     texture_directory=source/'textures';texture_directory.mkdir(exist_ok=True)
-    finishes={M[kind].name:surface_finish(M[kind],kind,{'shrike':2.15,'bastion':2.48,'needle':2.68}[id],{'shrike':2.94,'bastion':3.28,'needle':3.49}[id]) for kind in ('pearl','carbon','metal','darkmetal')}
+    scuff_sites={'shrike':[(1.35,.47,.05,-.12),(1.4,.43,.03,-.07),(.67,.64,.015,-.11),(1.68,-.54,.018,-.09),(1.31,-1.40,.02,-.12)],'bastion':[(1.38,2.69,-.012,-.11),(1.42,2.64,-.02,-.08),(1.62,.42,-.016,-.12),(1.07,-1.08,.025,-.09),(1.45,-2.29,.012,-.11)],'needle':[(.15,2.83,.018,-.14),(.30,1.76,.019,-.09),(.39,.88,.015,-.10),(.93,-.73,-.02,-.12),(.90,-.70,-.022,-.06),(.26,-1.63,.02,-.09)]}[id]
+    scuffs=[(sign*x,z,sign*dx,dz) for sign in (-1,1) for x,z,dx,dz in scuff_sites]
+    finishes={M[kind].name:surface_finish(M[kind],'pearl' if kind=='pearl2' else kind,{'shrike':2.15,'bastion':2.48,'needle':2.68}[id],{'shrike':2.94,'bastion':3.28,'needle':3.49}[id],scuffs,scuff_scale=2.7) for kind in ('pearl','pearl2','carbon','metal','darkmetal')}
     # Neutral studio is editable in the blend and excluded from export.
     studio=bpy.data.collections.new('STUDIO | not exported');scene.collection.children.link(studio)
     scene.unit_settings.system='METRIC';scene.unit_settings.scale_length=1
@@ -506,7 +554,7 @@ def export_ship(id):
     for obj in joined:
         mat=obj.data.materials[0]
         if mat.name in finishes:
-            bake_finish(obj,mat,finishes[mat.name],texture_directory,1024 if 'Ceramic' in mat.name else 512)
+            bake_finish(obj,mat,finishes[mat.name],texture_directory,2048 if mat==M['pearl'] else 512)
     bpy.ops.object.select_all(action='DESELECT')
     for obj in joined+exported_anchors:obj.select_set(True)
     bpy.context.view_layer.objects.active=joined[0]
@@ -519,7 +567,7 @@ def export_ship(id):
         'triangles':sum(len(o.data.polygons) for o in joined),'meshes':len(joined),'anchors':anchors,
         'sourceComponents':len(components),'glbBytes':(output/(id+'.glb')).stat().st_size,
         'textures':'Embedded original base color, roughness, tangent normal and short-range cavity occlusion maps; editable procedural Blender materials',
-        'textureCount':len(finishes)*4, 'artPassRevision':5}
+        'textureCount':len(finishes)*4, 'artPassRevision':8}
     (source/'asset-manifest.json').write_text(json.dumps(report,indent=2)+'\n')
     print('FLEET_ASSET '+json.dumps(report),flush=True)
     if opts.render:

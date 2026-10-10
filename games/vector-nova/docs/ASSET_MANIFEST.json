@@ -65,7 +65,7 @@
       "id": "kestrel",
       "source": "assets/ships/kestrel/ and src/ships/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original Blender-authored jet model, project-generated concept and analytic blue exhaust. Editable source, exporter and exact generation provenance are retained beside the asset.",
+      "provenance": "Original Blender-authored jet model, project-generated concept and analytic blue exhaust. Editable source, exporter and exact generation provenance are retained beside the asset. Finish targets are generated from actual runtime screenshots; exact prompts, dimensions and hashes are retained in the existing provenance records. Formed service joints and recessed intake construction use a shared geometry-aware bake workflow, with 2048px main ceramic maps and 512px secondary maps.",
       "rights": "Project-authored; no third-party asset restrictions",
       "runtimeDependencies": ["three"],
       "runtimeAsset": "public/assets/ships/kestrel/kestrel.glb",
@@ -317,7 +317,7 @@
       "id": "player-fleet-additions",
       "source": "assets/ships/ and src/ships/",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",
-      "provenance": "Original Shrike, Bastion and Needle Blender chassis, generated design concepts and project-authored baked PBR maps embedded in runtime GLBs.",
+      "provenance": "Original Shrike, Bastion and Needle Blender chassis, generated design concepts and project-authored baked PBR maps embedded in runtime GLBs. Finish targets are generated from actual runtime screenshots; exact prompts, dimensions and hashes are retained in the existing provenance records. Formed service joints and recessed intake construction use a shared geometry-aware bake workflow, with 2048px main ceramic maps and 512px secondary maps.",
       "rights": "Project-authored/generated; no third-party artwork or meshes",
       "runtimeDependencies": ["three"],
       "runtimeAssets": [

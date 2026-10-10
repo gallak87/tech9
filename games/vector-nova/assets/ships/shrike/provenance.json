@@ -14,7 +14,7 @@
     "generator": "assets/ships/build_fleet.py",
     "runtime": "public/assets/ships/shrike/shrike.glb",
     "authorship": "Original project geometry authored from the generated concept, using shared original construction helpers. No downloaded models, external textures or fonts.",
-    "materials": "Original quiet procedural ceramic grain, graphite finish and brushed titanium with localized axial heat tint; baked in Blender to base color, roughness, tangent normals and 18 cm cavity occlusion. glTF packs roughness and occlusion channels, embeds all maps; editable procedural shaders remain in the source blend.",
+    "materials": "Original authored metre-space ceramic, graphite and directional metal graphs with sparse contact scuffs, 6.5 cm cavity dirt and aft-localized heat tint; Blender-baked color, roughness, tangent normals and cavity occlusion. Main ceramic maps are 2048px, secondary maps 512px. Color is sRGB; data maps are linear. Original baked PNGs and editable source graphs are retained.",
     "textureSources": "assets/ships/shrike/textures/",
     "userDirection": "Keep the crescent design, rename Vesper to avoid level-name overlap; reduce toy-like appearance with surface and construction detail.",
     "approval": {
@@ -25,6 +25,24 @@
     "artPass": {
       "date": "2026-10-09",
       "direction": "Preserve approved silhouettes, exact hull bounds and propulsion anchors; strengthen formed panel construction, component-specific bevels and canopy seating. Two-layer nozzle cuffs/petals with recessed pressure sleeve, spring keepers and a central emitter carried by three support baffles. Localized straw/blue heat tint, satin service ceramic, saturated painted livery, dielectric canopy, quiet PBR finish and short-range cavity occlusion/roughness. Original authored geometry and procedural textures; no external assets."
+    },
+    "finishPass": {
+      "date": "2026-10-10",
+      "target": "finish-target-01.png",
+      "pipeline": "assets/ships/surface_finish.py",
+      "runtimeTextures": "Embedded lossless PNG, Blender glTF channel packing",
+      "construction": "Approved envelope and exhaust anchors retained; formed panel sections, service fasteners, component bevels and recessed intake construction."
     }
+  },
+  "finishTarget": {
+    "path": "assets/ships/shrike/finish-target-01.png",
+    "tool": "OpenAI built-in imagegen",
+    "date": "2026-10-10",
+    "sha256": "0c86d74dddb2166b4d1b0521f214a21306ce45ff6dd4c5579dcfdaf28f931a48",
+    "dimensions": [1586, 992],
+    "requestedDimensions": [2048, 1280],
+    "role": "Selected material/construction target only; not a UV atlas or runtime asset. Silhouette remains the previously approved chassis.",
+    "input": "Actual Three.js fixed front-three-quarter screenshot of the baseline GLB; saved ship-closeup-v1.png used only for material fidelity.",
+    "prompt": "Use case: precise-object-edit. One selected shrike finish target; request 2048x1280 (2K-class). Input 1 is exact edit target, input 2 ONLY surface-fidelity reference. Upgrade this exact ship's surface finish. Preserve silhouette, proportions, canopy, engine count, markings, camera and background. Show formed ceramic panels, graphite structure, machined metal, restrained edge wear, directional fine scratches and dirt in recesses. Preserve clean areas and readable neutral lighting. No new appendages, dramatic relighting, depth-of-field concealment or redesigned ship. Preserve broad crescent wings, teal markings, 08 and twin engines. Finish must convey narrow panel reveals, small formed bevels, flush captive fasteners, clean plate centers, restrained directional machining and localized contact/recess wear. Never copy the reference ship shape."
   }
 }

@@ -3,15 +3,18 @@ Run: blender --background --threads 6 --python assets/ships/kestrel/build_kestre
 Authoring coordinates below are game metres: +Z nose, +Y up. C() maps into
 Blender Z-up so the standard glTF exporter returns the declared game axes.
 """
-import bpy, bmesh, math, json, sys, argparse
+import bpy, bmesh, math, json, sys, argparse, hashlib, struct, subprocess
 from pathlib import Path
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from surface_finish import surface_finish, bake_finish
+from surface_finish import bake_finish
+from compress_textures import compress
 from propulsion_chamber import add_emitter_chamber
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from finish import crafted_finish
 
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / 'assets/ships/kestrel'
@@ -22,7 +25,16 @@ args = argparse.ArgumentParser()
 args.add_argument('--render', action='store_true')
 args.add_argument('--views', default='front,top,rear,side,underside')
 args.add_argument('--samples', default=40, type=int)
+args.add_argument('--toktx', help='Khronos toktx executable; compress the final GLB and record its hash')
+args.add_argument('--preview', action='store_true', help='Export geometry and scalar materials into .experiments without baking or replacing the runtime asset')
 opts = args.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
+if opts.preview:
+    OUTPUT=ROOT/'.experiments/kestrel-material-preview'
+    OUTPUT.mkdir(parents=True,exist_ok=True)
+if opts.toktx:
+    version=subprocess.check_output([opts.toktx,'--version'],text=True,stderr=subprocess.STDOUT).strip()
+    if version != 'toktx v4.4.2':
+        raise ValueError('Kestrel runtime export requires toktx v4.4.2; found '+version)
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete(use_global=False)
 for collection in list(bpy.data.collections):
@@ -55,18 +67,23 @@ def material(name, color, metal=0, rough=.3, emission=None):
         bsdf.inputs['Coat Roughness'].default_value = .2 if name=='Kestrel_Ceramic' else .055
     if name=='Kestrel_Vermilion':
         bsdf.inputs['Specular IOR Level'].default_value=.30
+        bsdf.inputs['Coat Weight'].default_value=.55
+        bsdf.inputs['Coat Roughness'].default_value=.13
+    if name=='Kestrel_CeramicService':
+        bsdf.inputs['Coat Weight'].default_value=.5
+        bsdf.inputs['Coat Roughness'].default_value=.15
     return mat
 M = {
- 'pearl': material('Kestrel_Ceramic',(.62,.65,.65),.09,.295),
- 'pearl2': material('Kestrel_CeramicService',(.23,.27,.29),.04,.44),
- 'carbon': material('Kestrel_Graphite',(.034,.049,.061),.20,.43),
+ 'pearl': material('Kestrel_Ceramic',(.53,.55,.55),.24,.28),
+ 'pearl2': material('Kestrel_CeramicService',(.21,.23,.24),.02,.29),
+ 'carbon': material('Kestrel_Graphite',(.016,.020,.023),.32,.30),
  'edge': material('Kestrel_Edge',(.016,.022,.026),.52,.25),
  'vent': material('Kestrel_Recess',(.007,.011,.014),.2,.36),
  'metal': material('Kestrel_Titanium',(.24,.27,.285),.86,.32),
  'darkmetal': material('Kestrel_Mechanism',(.092,.12,.135),.8,.34),
  'machined': material('Kestrel_MachinedLip',(.55,.61,.64),.95,.19),
- 'glass': material('Kestrel_Glass',(.005,.016,.022),.02,.085),
- 'red': material('Kestrel_Vermilion',(.48,.022,.009),0,.36),
+ 'glass': material('Kestrel_Glass',(.004,.008,.010),0,.065),
+ 'red': material('Kestrel_Vermilion',(.48,.022,.009),0,.27),
  'cyan': material('Kestrel_Power',(.02,.20,.24),.28,.23,((.12,.75,.89),2.4)),
  'dimcyan': material('Kestrel_Standby',(.011,.05,.064),.4,.26,((.02,.24,.31),.5)),
 }
@@ -84,7 +101,7 @@ def mesh(name, vertices, faces, mat, bevel=0, smooth=False):
         for poly in data.polygons: poly.use_smooth=True
     if bevel:
         mod = obj.modifiers.new('Machined edge radii','BEVEL')
-        mod.width=bevel*({'pearl':1.22,'pearl2':1.22,'machined':.72,'metal':.80}.get(mat,1)); mod.segments=3; mod.affect='EDGES'
+        mod.width=bevel*({'pearl':1.22,'pearl2':1.22,'machined':.72,'metal':.80}.get(mat,1)); mod.segments=3 if mat in ('pearl','pearl2') else 2; mod.affect='EDGES'
         mod.limit_method='ANGLE'; mod.angle_limit=.30
         mod.harden_normals=True
         normals=obj.modifiers.new('Area weighted panel normals','WEIGHTED_NORMAL')
@@ -146,19 +163,44 @@ def deck(x,z):
     return .5
 
 def shell_section(name,stations,sign,mat='pearl'):
-    verts=[]
+    # The original envelope is the composite carrier. Separate thin ceramic
+    # skins leave a visible inner rebate and a rolled dark outer return.
+    carrier=[]
     for z,ix,ox,y,bot in stations:
         thick=.045+.12*min(1,max(0,(3.69-z)/3))
-        for x,h in ((ix,y-.024),(ix+(ox-ix)*.23,y+.028),(ix+(ox-ix)*.7,y+.01),(ox,y-.069),(ox-.018,y-.069-thick),(ix+(ox-ix)*.55,y+.005-thick),(ix,min(bot+.060,y-.024-thick))):
+        for x,h in ((ix,y-.038),(ix+(ox-ix)*.23,y+.002),(ix+(ox-ix)*.7,y-.016),(ox-.006,y-.074),(ox-.018,y-.069-thick),(ix+(ox-ix)*.55,y+.005-thick),(ix,min(bot+.060,y-.024-thick))):
+            carrier.append((sign*x,h,z))
+    n=7; cf=[tuple(range(n)),tuple(range((len(stations)-1)*n,len(stations)*n))]
+    for j in range(len(stations)-1):
+        for k in range(n):cf.append((j*n+k,j*n+(k+1)%n,(j+1)*n+(k+1)%n,(j+1)*n+k))
+    mesh(name+' / composite carrier',carrier,cf,'carbon',.006)
+    verts=[]
+    for z,ix,ox,y,bot in stations:
+        rebate=min(.055,(ox-ix)*.13)
+        thick=.036
+        # Narrow shoulder transitions flank the broad crown. These extra
+        # contour rails give reflections a deliberate roll into the chine,
+        # while retaining the authored inner/outer silhouette and peak height.
+        profile=((ix+rebate,y-.006),
+                 (ix+(ox-ix)*.19,y+.023),
+                 (ix+(ox-ix)*.25,y+.028),
+                 (ix+(ox-ix)*.62,y+.018),
+                 (ix+(ox-ix)*.70,y+.010),
+                 (ix+(ox-ix)*.76,y-.005),
+                 (ox,y-.069),
+                 (ox-.010,y-.069-thick),
+                 (ix+(ox-ix)*.55,y+.005-thick),
+                 (ix+rebate,y-.006-thick))
+        for x,h in profile:
             verts.append((sign*x,h,z))
-    n=7; faces=[tuple(range(n)),tuple(range((len(stations)-1)*n,len(stations)*n))]
+    n=10; faces=[tuple(range(n)),tuple(range((len(stations)-1)*n,len(stations)*n))]
     for j in range(len(stations)-1):
         for k in range(n): faces.append((j*n+k,j*n+(k+1)%n,(j+1)*n+(k+1)%n,(j+1)*n+k))
-    obj=mesh(name,verts,faces,mat,.015)
+    obj=mesh(name,verts,faces,mat,.009)
     # The underside is formed from intentional planar panels. Do not blend
     # their broad normals through the concave keel/outer-chine junction.
     for j in range(len(stations)-1):
-        for k in (4,5,6):obj.data.polygons[2+j*n+k].use_smooth=False
+        for k in (7,8,9):obj.data.polygons[2+j*n+k].use_smooth=False
     return obj
 
 
@@ -175,6 +217,15 @@ def shell(name, stations, sign, mat='pearl'):
     panels=[]
     for index,(front,rear) in enumerate([(3.69,2.60),(2.582,1.40),(1.382,-.92),(-.938,-2.43)]):
         section=[at(front)]+[station for station in stations if front>station[0]>rear]+[at(rear)]
+        # Bilinear lofts need intermediate rails to keep the reflection field
+        # smooth through changing shoulder width. Linear station subdivision
+        # leaves the silhouette exactly on its original boundary segments.
+        refined=[]
+        for a,b in zip(section,section[1:]):
+            for step in range(3):
+                t=step/3
+                refined.append(tuple(a[k]*(1-t)+b[k]*t for k in range(5)))
+        section=refined+[section[-1]]
         panel=shell_section(name+' / formed plate '+str(index+1),section,sign,mat)
         bpy.context.view_layer.objects.active=panel
         for mod in list(panel.modifiers):bpy.ops.object.modifier_apply(modifier=mod.name)
@@ -201,12 +252,15 @@ def paint(name,coords,mat):
     verts=[bm.verts.new(C((x,surface_y(x,z)+.004,z))) for x,z in coords]
     bm.faces.new(verts)
     bmesh.ops.triangulate(bm,faces=list(bm.faces))
-    bmesh.ops.subdivide_edges(bm,edges=list(bm.edges),cuts=7,use_grid_fill=True)
+    bmesh.ops.subdivide_edges(bm,edges=list(bm.edges),cuts=3,use_grid_fill=True)
     for v in bm.verts:v.co.z=surface_y(v.co.x,-v.co.y)+.004
     bm.normal_update()
     for f in bm.faces:
         if f.normal.z<0:f.normal_flip()
     data=bpy.data.meshes.new(name);bm.to_mesh(data);bm.free()
+    # The projected film follows the continuous substrate. Flat triangle
+    # normals would break clearcoat reflections into visible polygon patches.
+    for poly in data.polygons:poly.use_smooth=True
     obj=bpy.data.objects.new(name,data);ship.objects.link(obj);data.materials.append(M[mat])
     return obj
 
@@ -251,6 +305,13 @@ for sign,label in ((-1,'L'),(1,'R')):
     for mod in list(body.modifiers):bpy.ops.object.modifier_apply(modifier=mod.name)
     cut=body.modifiers.new('True recessed intake opening','BOOLEAN');cut.operation='DIFFERENCE';cut.solver='EXACT';cut.object=cutter
     bpy.ops.object.modifier_apply(modifier=cut.name)
+    for carrier in list(ship.objects):
+        if carrier.name.startswith('Ceramic swept monocoque '+label) and 'composite carrier' in carrier.name:
+            bpy.context.view_layer.objects.active=carrier
+            for mod in list(carrier.modifiers):bpy.ops.object.modifier_apply(modifier=mod.name)
+            cut=carrier.modifiers.new('Intake through composite carrier','BOOLEAN')
+            cut.operation='DIFFERENCE';cut.solver='EXACT';cut.object=cutter
+            bpy.ops.object.modifier_apply(modifier=cut.name)
     bpy.data.objects.remove(cutter,do_unlink=True)
     intake_ring('Flush intake bezel '+label,pocket,inner)
     solid('Deep intake pocket '+label,[(x,surface_y(x,z)-.104,z) for x,z in pocket],.020,'vent',.005)
@@ -258,7 +319,17 @@ for sign,label in ((-1,'L'),(1,'R')):
         z=.365-i*.138
         offset=(.37-z)*.092
         x0=sign*(.839+offset);x1=sign*(1.083+offset)
-        beam('Intake louver '+label+f' {i:02}',(x0,surface_y(x0,z)-.030,z),(x1,surface_y(x1,z)-.030,z-.018),.055,.041,'darkmetal',.004)
+        # Folded, thin-section airfoils expose a lit leading lip and a shaded
+        # return into the pocket instead of looking like solid ladder rungs.
+        profile=((.026,.006),(.017,.011),(-.021,-.009),(-.034,-.034),(-.025,-.038),(-.013,-.015),(.017,.002))
+        verts=[]
+        for x,dz in ((x0,0),(x1,-.018)):
+            y=surface_y(x,z)-.040
+            verts.extend((x,y+dy,z+dz+zz) for zz,dy in profile)
+        n=len(profile)
+        faces=[tuple(range(n)),tuple(range(n,2*n))]
+        faces.extend((j,(j+1)%n,(j+1)%n+n,j+n) for j in range(n))
+        mesh('Folded intake louver '+label+f' {i:02}',verts,faces,'darkmetal',.002)
     # Underwing rails with open triangular bays, visibly below the shell.
     rail=[(sign*.59,.035,2.29),(sign*1.335,.027,-.21),(sign*1.572,.075,-1.30),(sign*1.265,.064,-1.49),(sign*.512,.039,1.90)]
     solid('Floating underwing chassis rail '+label,rail,.046,'carbon',.012)
@@ -305,7 +376,8 @@ mesh('Graphite central torsion spine',verts,faces,'carbon',.022)
 
 # Flush elongated canopy, smoothly swept surface across an angular seat.
 CANOPY=[(1.98,.012,.428,.433),(1.80,.124,.455,.529),(1.40,.267,.501,.688),(.87,.362,.551,.861),(.25,.375,.584,.970),(-.33,.330,.601,.982),(-.80,.237,.613,.891),(-1.13,.132,.617,.741),(-1.26,.023,.610,.644)]
-# Catmull-Rom interpolation gives a controlled continuous aerospace canopy.
+# Retain the approved continuous glazing envelope. Real bonded gasket rails
+# define its construction without exposing triangulation in the reflections.
 def catmull(p0,p1,p2,p3,t): return .5*((2*p1)+(-p0+p2)*t+(2*p0-5*p1+4*p2-p3)*t*t+(-p0+3*p1-3*p2+p3)*t*t*t)
 dense=[]
 for j in range(len(CANOPY)-1):
@@ -316,7 +388,7 @@ dense.append(CANOPY[-1])
 dense=[(z,w,base,base+(peak-base)*.69) for z,w,base,peak in dense]
 
 def canopy(name,scale,lower,mat):
-    verts=[]; rings=20
+    verts=[]; rings=16
     for z,w,base,peak in dense:
         for k in range(rings+1):
             u=k/rings; angle=-math.pi/2+math.pi*u
@@ -333,6 +405,15 @@ canopy('Flush smoked canopy',1,0,'glass')
 for sign in (-1,1):
     line('Canopy elastomer gasket',[(sign*w*1.06,base-.004,z) for z,w,base,peak in dense],.009,'vent')
     line('Canopy thin titanium seal',[(sign*w*1.015,base+.002,z) for z,w,base,peak in dense],.008,'darkmetal')
+    line('Canopy glazing longeron',[(sign*w*.866,base+(peak-base)*.595+.004,z) for z,w,base,peak in dense],.008,'edge')
+for z,w,base,peak in (dense[10],dense[30]):
+    frame=[]
+    for k in range(17):
+        a=-math.pi/2+math.pi*k/16
+        frame.append((math.sin(a)*w,base+(peak-base)*max(0,math.cos(a))**.75+.005,z))
+    line('Canopy bonded transverse frame',frame,.011,'edge')
+    for sign in (-1,1):
+        beam('Canopy latch', (sign*w*1.08,base+.010,z+.035), (sign*w*1.08,base+.010,z-.035), .033,.010,'metal',.002)
 # Aft spine cowling flows from canopy into two subtle hot-air cooling slots.
 COLLAR=[(-.95,.335,.66,.744,.43),(-1.28,.40,.67,.795,.43),(-1.70,.34,.64,.735,.33),(-2.24,.24,.49,.57,.24)]
 verts=[]
@@ -464,16 +545,65 @@ x0=.650;z0=1.430;sw=.162;sh=.31
 zero=[[(.16,0),(.78,0),(.90,.11),(.73,.17),(.23,.17),(.17,.24),(0,.18)],[(.90,.11),(1,.83),(.84,1),(.73,.82),(.73,.20)],[(.84,1),(.18,1),(0,.83),(.21,.77),(.27,.83),(.72,.83)],[(0,.83),(0,.18),(.17,.24),(.23,.73),(.21,.77)]]
 for j,poly in enumerate(zero):marking_polygon('Stencil 0 '+str(j),poly,x0,z0,sw,sh)
 marking_polygon('Stencil 7',[(0,1),(1,1),(1,.83),(.42,0),(.12,0),(.76,.81),(0,.81)],x0+.224,z0,sw,sh)
-# Tiny fastener countersinks on service corners; retain sparse readable hierarchy.
+# Flush captive screws: dark countersunk seat, titanium head and a recessed
+# straight drive. Their 40 mm heads provide scale without extra materials.
+def fastener(name,x,z,r=.019):
+    y=surface_y(x,z)+.003
+    count=12;vs=[]
+    for radius,height in ((r*1.26,y),(r,y+.001),(r*.70,y-.003)):
+        for i in range(count):
+            a=2*math.pi*i/count
+            vs.append((x+math.cos(a)*radius,height,z+math.sin(a)*radius))
+    fs=[]
+    for ring in range(2):
+        for i in range(count):fs.append((ring*count+i,ring*count+(i+1)%count,(ring+1)*count+(i+1)%count,(ring+1)*count+i))
+    mesh(name+' / countersink',vs,fs,'edge')
+    # Two head halves surround a genuine recessed slot.
+    for side in (-1,1):
+        coords=[(x-r*.64,y-.001,z+side*r*.13),(x+r*.64,y-.001,z+side*r*.13),
+                (x+r*.48,y-.001,z+side*r*.51),(x-r*.48,y-.001,z+side*r*.51)]
+        solid(name+' / slotted head',coords,.003,'metal',0)
+
 for sign in (-1,1):
-    for x,z in ((.28,2.58),(.61,2.49),(.44,1.44),(1.00,1.20),(.61,.87),(.64,.15),(1.20,-.74),(.60,-.94),(1.18,-1.68),(.985,1.17)):
-        y=surface_y(sign*x,z)+.004
-        bpy.ops.mesh.primitive_cylinder_add(vertices=8,radius=.022,depth=.006,location=C((sign*x,y,z)))
-        obj=move_collection(bpy.context.object);obj.name='Flush titanium fastener';obj.data.materials.append(M['darkmetal'])
+    for x,z in ((.28,2.66),(.59,2.67),(.40,1.49),(.91,1.49),(.61,.80),(.64,.15),
+                (1.38,-.80),(.60,-.84),(1.18,-1.68),(.76,.48),(1.11,.49),(.85,-.66),(1.25,-.67)):
+        fastener('Captive service screw',sign*x,z)
+    # A narrow segmented scuff rail follows the inner shoulder. Exposed metal
+    # appears only where a removable skin actually terminates.
+    for za,zb in ((2.53,1.48),(1.29,.68),(-.08,-.73)):
+        points=[]
+        for k in range(7):
+            z=za+(zb-za)*k/6
+            for a,b in zip(STATIONS,STATIONS[1:]):
+                if a[0]>=z>=b[0]:
+                    t=(a[0]-z)/(a[0]-b[0]);ix=a[1]*(1-t)+b[1]*t
+                    x=sign*(ix+.065);points.append((x,surface_y(x,z)+.001,z));break
+        line('Inner shoulder titanium scuff rail',points,.004,'metal')
+
+# Small original vector lettering, embedded in the consolidated stencil mesh.
+# Glyph outlines use Blender's bundled Bfont; no external font/runtime atlas.
+def label(text,x0,z0,size,along=False):
+    font=bpy.data.curves.new('Service stencil '+text,'FONT');font.body=text
+    font.size=1;font.space_character=1.18;font.resolution_u=2
+    ob=bpy.data.objects.new('Service stencil '+text,font);ship.objects.link(ob)
+    bpy.ops.object.select_all(action='DESELECT');ob.select_set(True);bpy.context.view_layer.objects.active=ob
+    bpy.ops.object.convert(target='MESH')
+    for v in ob.data.vertices:
+        u,vv=v.co.x*size,v.co.y*size
+        x,z=(x0+vv,z0-u) if along else (x0+u,z0+vv)
+        v.co=C((x,surface_y(x,z)+.0035,z))
+    bm=bmesh.new();bm.from_mesh(ob.data);bm.normal_update()
+    for face in bm.faces:
+        if face.normal.z<0:face.normal_flip()
+    bm.to_mesh(ob.data);bm.free()
+    ob.data.materials.append(M['edge'])
+label('VECTOR',-.91,1.29,.108,True)
+label('K E S T R E L',.76,-.76,.037)
+label('NO STEP',-.99,-.81,.032)
 
 texture_directory=SOURCE/'textures';texture_directory.mkdir(exist_ok=True)
 scuffs=[(sign*x,z,sign*dx,dz) for sign in (-1,1) for x,z,dx,dz in [( .28,2.90,.025,-.12),(.43,2.57,.03,-.09),(.46,2.53,.019,-.06),(.97,1.30,-.028,.11),(.93,1.33,-.025,.06),(.61,.80,.015,-.10),(1.13,-.70,-.02,-.12),(1.17,-.73,-.018,-.06),(1.38,-1.30,.02,-.06)]]
-finishes={M[kind].name:surface_finish(M[kind],kind,2.35,3.22,scuffs) for kind in ('pearl','carbon','metal','darkmetal')}
+finishes={M[kind].name:crafted_finish(M[kind],kind,2.35,3.22,scuffs) for kind in ('pearl','carbon','metal','darkmetal')}
 
 # Metadata and editable source are saved before export-consolidation.
 scene=bpy.context.scene
@@ -510,7 +640,8 @@ cam.location=C((8.6,6.5,10.8));aim(cam,(0,.45,.0))
 # Tidy outliner and a useful default editing viewpoint.
 for obj in ship.objects:obj.select_set(False)
 bpy.context.preferences.filepaths.save_version=0
-bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/'kestrel.blend'))
+if not opts.preview:
+    bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/'kestrel.blend'))
 
 # GLB duplicate scene: apply modifiers and join by material for predictable calls.
 source_objects=list(ship.objects)
@@ -547,18 +678,53 @@ for name,objects in groups.items():
 for obj in joined:
     mat=obj.data.materials[0]
     if mat.name in finishes:
-        bake_finish(obj,mat,finishes[mat.name],texture_directory,2048 if 'Ceramic' in mat.name else 512)
+        if opts.preview:
+            # Compare primary material response in seconds before paying the
+            # full bake cost. No source or production asset is overwritten.
+            nodes=mat.node_tree.nodes
+            for node in list(nodes):
+                if node.type not in ('BSDF_PRINCIPLED','OUTPUT_MATERIAL'):
+                    nodes.remove(node)
+        else:
+            bake_finish(obj,mat,finishes[mat.name],texture_directory,2048 if 'Ceramic' in mat.name else 512)
+            # The same baked edge normals shape the resin/paint coat. glTF
+            # references the existing image; no extra texture memory is used.
+            bsdf=mat.node_tree.nodes.get('Principled BSDF')
+            if bsdf.inputs['Coat Weight'].default_value>0:
+                mat.node_tree.links.new(bsdf.inputs['Normal'].links[0].from_socket,bsdf.inputs['Coat Normal'])
 for o in anchors:o.name=o.name.replace('_export','')
 bpy.ops.object.select_all(action='DESELECT')
 for obj in joined+anchors:obj.select_set(True)
 bpy.context.view_layer.objects.active=joined[0]
 bpy.ops.export_scene.gltf(filepath=str(OUTPUT/'kestrel.glb'),export_format='GLB',use_selection=True,export_yup=True,export_apply=True,export_extras=True,export_cameras=False,export_lights=False,export_materials='EXPORT',export_animations=False)
+compression=None
+if opts.toktx and not opts.preview:
+    path=OUTPUT/'kestrel.glb';lossless=path.read_bytes()
+    compress(path,path,opts.toktx)
+    compression={'encoder':'Khronos KTX-Software toktx 4.4.2','tool':'assets/ships/compress_textures.py',
+        'settings':'UASTC quality 3, Zstd 18, full mip chain, upper-left orientation; sRGB color/emissive, linear data; RGB normal normalization without swizzle',
+        'runtimeImages':12,'losslessGlbBytes':len(lossless),'losslessGlbSha256':hashlib.sha256(lossless).hexdigest(),
+        'runtimeGlbSha256':hashlib.sha256(path.read_bytes()).hexdigest()}
 # Read actual evaluated geometry and converted game-frame bounds.
 verts=[obj.matrix_world@v.co for obj in joined for v in obj.data.vertices]
 game=[(v.x,v.z,-v.y) for v in verts]
 bounds={'min':[min(v[k] for v in game) for k in range(3)],'max':[max(v[k] for v in game) for k in range(3)]}
-report={'asset':'Kestrel Concept 01','revision':10,'blender':bpy.app.version_string,'axes':'+Z forward, +Y up','bounds':bounds,'dimensions':[bounds['max'][k]-bounds['min'][k] for k in range(3)],'triangles':sum(len(o.data.polygons) for o in joined),'meshes':len(joined),'materials':len(groups),'glbBytes':(OUTPUT/'kestrel.glb').stat().st_size,'anchors':{'Exhaust_L':[-.955,.448,-3.23],'Exhaust_R':[.955,.448,-3.23]},'sourceComponents':len(source_objects),'textureCount':len(finishes)*4,'textures':'Embedded original base color, roughness, tangent normal and short-range cavity occlusion maps; editable procedural Blender materials','renderViews':opts.views.split(',') if opts.render else []}
-(SOURCE/'asset-manifest.json').write_text(json.dumps(report,indent=2)+'\n')
+report={'asset':'Kestrel Concept 01','revision':11,'blender':bpy.app.version_string,'axes':'+Z forward, +Y up','bounds':bounds,'dimensions':[bounds['max'][k]-bounds['min'][k] for k in range(3)],'triangles':sum(len(o.data.polygons) for o in joined),'meshes':len(joined),'materials':len(groups),'glbBytes':(OUTPUT/'kestrel.glb').stat().st_size,'anchors':{'Exhaust_L':[-.955,.448,-3.23],'Exhaust_R':[.955,.448,-3.23]},'sourceComponents':len(source_objects),'textureCount':len(finishes)*4,'textures':'Embedded original base color, roughness, tangent normal and short-range cavity occlusion maps; editable procedural Blender materials','renderViews':opts.views.split(',') if opts.render else []}
+if compression:
+    report['compression']=compression
+    report['textures']='Embedded mipmapped UASTC KTX2 color, packed roughness/cavity occlusion and RGB tangent normals; original PNG maps and editable Blender materials retained.'
+exported=(OUTPUT/'kestrel.glb').read_bytes()
+gltf=json.loads(exported[20:20+struct.unpack_from('<I',exported,12)[0]])
+report['primitives']=sum(len(item['primitives']) for item in gltf['meshes'])
+assert report['triangles']<=51544, 'Kestrel exceeds its previous triangle budget'
+assert report['primitives']<=13 and report['materials']<=12, 'Kestrel exceeds its submission budget'
+for actual,expected in zip(report['dimensions'],[3.37298,1.38174,6.91671]):
+    assert abs(actual-expected)<.012, 'Kestrel no longer fits its approved envelope'
+report['revision']=12
+if opts.preview:
+    report['textureCount']=0
+    report['textures']='Unbaked scalar-material authoring preview; not the runtime asset.'
+((OUTPUT if opts.preview else SOURCE)/'asset-manifest.json').write_text(json.dumps(report,indent=2)+'\n')
 print('KESTREL_ASSET_REPORT '+json.dumps(report),flush=True)
 # Export copies render identically; render them and keep original .blend clean.
 if opts.render:

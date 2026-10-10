@@ -41,7 +41,7 @@ test('Blender export fits the racing envelope with finite geometry and aft exhau
   assert.ok(bounds.min.y >= -0.12, `hover datum ${bounds.min.y}`);
   assert.ok(bounds.max.y <= 1.8, `height ${bounds.max.y}`);
   const hardware = meshes(model);
-  assert.ok(hardware.length <= 30, `opaque submissions ${hardware.length}`);
+  assert.ok(hardware.length <= 13, `opaque submissions ${hardware.length}`);
   const triangles = hardware.reduce(
     (sum, mesh) =>
       sum +
@@ -49,7 +49,16 @@ test('Blender export fits the racing envelope with finite geometry and aft exhau
         3,
     0,
   );
-  assert.ok(triangles > 1000 && triangles <= 85534, `triangles ${triangles}`);
+  assert.ok(triangles > 1000 && triangles <= 51544, `triangles ${triangles}`);
+  for (const [axis, expected] of [
+    ['x', 3.37298],
+    ['y', 1.38174],
+    ['z', 6.91671],
+  ])
+    assert.ok(
+      Math.abs(size[axis] - expected) < 0.012,
+      `approved ${axis} envelope`,
+    );
   for (const mesh of hardware) {
     for (const attribute of Object.values(mesh.geometry.attributes))
       assert.ok(
@@ -68,6 +77,10 @@ test('Blender export fits the racing envelope with finite geometry and aft exhau
     assert.ok(anchor.z < -2.5 && anchor.z >= bounds.min.z - 0.2);
     assert.ok(anchor.y > bounds.min.y && anchor.y < bounds.max.y);
   }
+  for (const [index, x] of [-0.955, 0.955].entries())
+    assert.ok(
+      anchors[index].distanceTo(new THREE.Vector3(x, 0.448, -3.23)) < 1e-6,
+    );
 });
 
 test('both levels use identical hull geometry and matched nozzle attachment points', async () => {

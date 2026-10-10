@@ -32,6 +32,17 @@
       "pipeline": "assets/ships/surface_finish.py",
       "runtimeTextures": "Mipmapped UASTC KTX2 via KHR_texture_basisu; encoder/version/settings and lossless checkpoint are recorded in asset-manifest.json. Original baked PNGs retained.",
       "construction": "Approved envelope and exhaust anchors retained; formed panel sections, service fasteners, component bevels and recessed intake construction."
+    },
+    "cleanPolishPass": {
+      "date": "2026-10-10",
+      "direction": "Following acceptance of Kestrel's clean-polish pass, the user requested the same finish treatment for the remaining three player ships. Prioritize the complete ship's material response and broad reflections while preserving identity and gameplay integration.",
+      "pipeline": "assets/ships/clean_finish.py crafted_finish, with shared baking helpers in assets/ships/surface_finish.py and export through assets/ships/build_fleet.py.",
+      "finish": "Clean coated off-white ceramic, blue-grey service ceramic, dark resin composite, distinct machined alloy and tinted glazing. The current finish removes the earlier abrasion and dirt masks rather than adding new wear.",
+      "preserved": "Slim chisel-nose sponsons, open cross braces, brass-orange markings, 09, twin engines and named Exhaust_L/Exhaust_R anchors.",
+      "textureBudget": "Existing 2048px main pearl maps and 512px secondary maps; twenty baked source maps and fifteen packed runtime images. Clearcoat reuses existing normal images. Baked PNGs and editable source graphs remain retained.",
+      "presentation": "Shared original procedural studio reflection environment, filtered at 256px PMREM resolution, in setup and inspection. Track lighting remains level-owned.",
+      "authorship": "Original authored Blender geometry and procedural material graphs; no generated texture or external model added. Generated images remain design references only. Visual assessment uses actual Three.js exports.",
+      "measurements": "Final bounds, triangle/material counts, anchors, encoder settings and runtime hashes are recorded in asset-manifest.json."
     }
   },
   "finishTarget": {

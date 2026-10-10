@@ -1,28 +1,23 @@
 import * as THREE from 'three';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { createStudioEnvironment } from './studio-environment.js';
 
 /** Neutral studio reflections are borrowed only while drawing inspection. */
 export function createInspectionStage(renderer) {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#172832');
-  const room = new RoomEnvironment();
-  const generator = new THREE.PMREMGenerator(renderer);
-  const environment = generator.fromScene(room, 0.06);
-  room.dispose();
-  generator.dispose();
+  scene.background = new THREE.Color('#131b23');
+  const environment = createStudioEnvironment(renderer);
   scene.environment = environment.texture;
-  scene.environmentIntensity = 0.58;
-  scene.environmentRotation.set(0, 0.6, 0);
-  scene.add(new THREE.HemisphereLight('#d5e7f5', '#17232e', 0.38));
-  const key = new THREE.DirectionalLight('#fff2de', 2.0);
-  key.position.set(-5, 7, 4);
+  scene.environmentIntensity = 0.9;
+  scene.add(new THREE.HemisphereLight('#e4eaf0', '#222830', 0.16));
+  const key = new THREE.DirectionalLight('#fff5e6', 1.5);
+  key.position.set(-3.8, 7, 5);
   key.castShadow = true;
   key.shadow.mapSize.set(512, 512);
   Object.assign(key.shadow.camera, {
-    left: -7,
-    right: 7,
-    top: 7,
-    bottom: -7,
+    left: -5,
+    right: 5,
+    top: 5,
+    bottom: -5,
     near: 0.1,
     far: 30,
   });
@@ -30,15 +25,17 @@ export function createInspectionStage(renderer) {
   key.shadow.bias = -0.0001;
   key.shadow.radius = 4;
   scene.add(key);
-  const rim = new THREE.DirectionalLight('#bedfff', 1.9);
+  const rim = new THREE.DirectionalLight('#e0edff', 0.8);
   rim.position.set(6, 4, -5);
   scene.add(rim);
   const floor = new THREE.Mesh(
     new THREE.CylinderGeometry(7, 7, 0.4, 96),
     new THREE.MeshStandardMaterial({
-      color: '#17252e',
-      roughness: 0.64,
-      metalness: 0.22,
+      color: '#20272d',
+      roughness: 0.48,
+      metalness: 0.12,
+      envMap: environment.texture,
+      envMapIntensity: 0.15,
     }),
   );
   floor.position.y = -0.7;
@@ -46,7 +43,7 @@ export function createInspectionStage(renderer) {
   scene.add(floor);
   const ring = new THREE.Mesh(
     new THREE.TorusGeometry(6.4, 0.014, 6, 128),
-    new THREE.MeshBasicMaterial({ color: '#566872' }),
+    new THREE.MeshBasicMaterial({ color: '#38434c' }),
   );
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = -0.48;
@@ -59,7 +56,13 @@ export function createInspectionStage(renderer) {
         for (const material of Array.isArray(object.material)
           ? object.material
           : [object.material]) {
-          if (!material?.isMeshStandardMaterial || borrowed.has(material))
+          // This stage owns the floor reflection. Keeping its explicit map
+          // preserves its lower intensity instead of the scene-wide setting.
+          if (
+            material === floor.material ||
+            !material?.isMeshStandardMaterial ||
+            borrowed.has(material)
+          )
             continue;
           borrowed.set(material, material.envMap);
           material.envMap = null;

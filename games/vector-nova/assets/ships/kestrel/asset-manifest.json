@@ -1,6 +1,6 @@
 {
   "asset": "Kestrel Concept 01",
-  "revision": 10,
+  "revision": 12,
   "blender": "5.1.1",
   "axes": "+Z forward, +Y up",
   "bounds": {
@@ -8,15 +8,15 @@
     "max": [1.6864900588989258, 1.3417441844940186, 3.696706533432007]
   },
   "dimensions": [3.3729801177978516, 1.3817441835999489, 6.916706562042236],
-  "triangles": 51544,
+  "triangles": 45868,
   "meshes": 12,
   "materials": 12,
-  "glbBytes": 8080976,
+  "glbBytes": 5682612,
   "anchors": {
     "Exhaust_L": [-0.955, 0.448, -3.23],
     "Exhaust_R": [0.955, 0.448, -3.23]
   },
-  "sourceComponents": 202,
+  "sourceComponents": 285,
   "textureCount": 16,
   "textures": "Embedded mipmapped UASTC KTX2 color, packed roughness/cavity occlusion and RGB tangent normals; original PNG maps and editable Blender materials retained.",
   "renderViews": [],
@@ -25,9 +25,9 @@
     "tool": "assets/ships/compress_textures.py",
     "settings": "UASTC quality 3, Zstd 18, full mip chain, upper-left orientation; sRGB color/emissive, linear data; RGB normal normalization without swizzle",
     "runtimeImages": 12,
-    "losslessCheckpoint": "4db6d0f986544251e3062adfb84cd5b2b014fd5b",
-    "losslessGlbBytes": 8717620,
-    "losslessGlbSha256": "384f9c000e3d4d788c5d3d5d13f2c1d8073c7d26f6c1dfd0d620880c3f260ca1",
-    "runtimeGlbSha256": "0c05a65fd21f4a6fedee3161e9ab7bb43e60957bfd010333a6900de1da2e8929"
-  }
+    "losslessGlbBytes": 5831716,
+    "losslessGlbSha256": "6bbc6ec4648308a65fa6350553866bdef25c6f62cab365ff7219aa425b470336",
+    "runtimeGlbSha256": "045638d88497c0169735eb5d8ff225cfaabb2f90aa48b37dd3430e3f676f9d0a"
+  },
+  "primitives": 13
 }

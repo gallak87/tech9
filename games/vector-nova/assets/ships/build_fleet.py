@@ -1,9 +1,10 @@
 """Original fleet geometry from the generated Shrike/Bastion/Needle concepts.
 Run from the app: blender --background --threads 6 --python assets/ships/build_fleet.py
-Optional: -- --ship shrike --render. Game coordinates: +Z nose, +Y up.
+Optional: -- --ship shrike --preview, or -- --toktx /path/to/toktx.
+Game coordinates: +Z nose, +Y up.
 Mesh/beam/nozzle construction helpers are adapted from our Kestrel exporter.
 """
-import bpy, bmesh, math, json, sys, argparse
+import bpy, bmesh, math, json, sys, argparse, hashlib, struct, subprocess
 from pathlib import Path
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
@@ -11,8 +12,33 @@ ROOT = Path(__file__).resolve().parents[2]
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from surface_finish import surface_finish, bake_finish
+from surface_finish import bake_finish
+from clean_finish import crafted_finish
+from compress_textures import compress
 from propulsion_chamber import add_emitter_chamber
+
+# Accepted gameplay envelopes and propulsion attachment points. Keep these
+# independent of generated manifests so rebuilding cannot ratchet the limits.
+CONTRACTS = {
+    'shrike': {
+        'triangles': 52324,
+        'min': [-2.140000104904175, .011741666123270988, -2.940000057220459],
+        'max': [2.140000104904175, 1.5168068408966064, 3.200000047683716],
+        'anchors': {'Exhaust_L': [-1.15, .56, -2.955], 'Exhaust_R': [1.15, .56, -2.955]},
+    },
+    'bastion': {
+        'triangles': 50960,
+        'min': [-1.8113031387329102, .011741666123270988, -3.2799999713897705],
+        'max': [1.8113031387329102, .9223269820213318, 3.328000068664551],
+        'anchors': {'Exhaust_L': [-1.28, .51, -3.295], 'Exhaust_R': [1.28, .51, -3.295]},
+    },
+    'needle': {
+        'triangles': 36818,
+        'min': [-2.041842460632324, .011741666123270988, -3.490000009536743],
+        'max': [2.0418426990509033, 1.486806869506836, 3.5],
+        'anchors': {'Exhaust_C': [0, .64, -3.5050000000000003]},
+    },
+}
 
 def C(v): return (v[0], -v[2], v[1])
 def material(name, color, metal=0, rough=.3, emission=None):
@@ -25,10 +51,12 @@ def material(name, color, metal=0, rough=.3, emission=None):
         node.inputs['Emission Color'].default_value=(*emission[0],1)
         node.inputs['Emission Strength'].default_value=emission[1]
     if 'Ceramic' in name or 'Glass' in name:
-        node.inputs['Coat Weight'].default_value=.68 if 'Glass' in name else .10 if 'Service' in name else .22
-        node.inputs['Coat Roughness'].default_value=.055 if 'Glass' in name else .22 if 'Service' in name else .13
+        node.inputs['Coat Weight'].default_value=.68 if 'Glass' in name else .5 if 'Service' in name else .72
+        node.inputs['Coat Roughness'].default_value=.055 if 'Glass' in name else .15 if 'Service' in name else .10
     if 'accent' in name:
         node.inputs['Specular IOR Level'].default_value=.30
+        node.inputs['Coat Weight'].default_value=.55
+        node.inputs['Coat Roughness'].default_value=.13
     return mat
 
 def mesh(name, vertices, faces, mat, bevel=0, smooth=False):
@@ -218,7 +246,18 @@ def vent(name,x,y,z,width=.30,length=.7):
         (x+width/2,y,z-length),(x-width/2,y,z-length)],.05,'vent',.008)
     for i in range(7):
         zz=z-.05-i*(length-.12)/6
-        beam(name+' louvre', (x-width*.43,y+.008,zz),(x+width*.43,y+.008,zz-.025),.035,.025,'darkmetal',.003)
+        # Thin folded sections catch a broad sloping highlight and retain an
+        # open dark throat; all points stay inside the former box-bar region.
+        profile=[(-.014,-.004),(-.014,.002),(.011,.018),
+                 (.015,.014),(-.008,-.001),(-.008,-.004)]
+        vertices=[]
+        for xx,shift in ((x-width*.43,0),(x+width*.43,-.025)):
+            vertices.extend((xx,y+dy,zz+shift+dz) for dz,dy in profile)
+        n=len(profile)
+        faces=[tuple(range(n)),tuple(range(n,2*n))]
+        faces.extend((j,(j+1)%n,(j+1)%n+n,j+n) for j in range(n))
+        louvre=mesh(name+' folded louvre',vertices,faces,'darkmetal',.002)
+        louvre.modifiers['Machined edge radii'].segments=2
 
 def shrike():
     loft('Compact graphite monocoque',[(3.2,.03,.20,.23,.14),(2.3,.25,.35,.42,.10),
@@ -348,8 +387,8 @@ def export_ship(id):
     palette={'pearl':((.48,.51,.52),.09,.315),'pearl2':((.23,.27,.29),.04,.44),'carbon':((.034,.049,.061),.20,.43),
         'edge':((.016,.022,.026),.52,.25),'vent':((.007,.011,.014),.2,.36),
         'metal':((.24,.27,.285),.86,.32),'darkmetal':((.092,.12,.135),.8,.34),
-        'machined':((.55,.61,.64),.95,.19),'glass':((.005,.016,.022),.02,.085),
-        'accent':(accent,0,.36)}
+        'machined':((.55,.61,.64),.95,.19),'glass':((.004,.008,.010),0,.065),
+        'accent':(accent,0,.27)}
     M={key:material(id+'_'+('Ceramic' if key=='pearl' else 'CeramicService' if key=='pearl2' else 'Glass' if key=='glass' else key),*args) for key,args in palette.items()}
     M['cyan']=material(id+'_Power',(.02,.20,.24),.28,.23,((.12,.75,.89),2.4))
     M['dimcyan']=material(id+'_Standby',(.011,.05,.064),.4,.26,((.02,.24,.31),.5))
@@ -415,12 +454,13 @@ def export_ship(id):
         if any(height(x,z) is None for x,z in coords):return
         bm=bmesh.new();v=[bm.verts.new(C((x,height(x,z)+.005,z))) for x,z in coords]
         bm.faces.new(v);bmesh.ops.triangulate(bm,faces=list(bm.faces))
-        bmesh.ops.subdivide_edges(bm,edges=list(bm.edges),cuts=8,use_grid_fill=True)
+        bmesh.ops.subdivide_edges(bm,edges=list(bm.edges),cuts=3,use_grid_fill=True)
         for v in bm.verts:
             h=height(v.co.x,-v.co.y)
             if h is not None:v.co.z=h+.005
         bmesh.ops.recalc_face_normals(bm,faces=list(bm.faces))
         data=bpy.data.meshes.new(name);bm.to_mesh(data);bm.free()
+        for polygon in data.polygons:polygon.use_smooth=True
         obj=bpy.data.objects.new(name,data);ship.objects.link(obj);data.materials.append(M[mat])
     def seam(coords):
         points=[]
@@ -461,6 +501,7 @@ def export_ship(id):
         if h is None:raise ValueError('Chassis marking leaves the armor panel')
         v.co=C((x,h+.006,z))
     bmesh.ops.recalc_face_normals(bm,faces=list(bm.faces));bm.to_mesh(label.data);bm.free()
+    for polygon in label.data.polygons:polygon.use_smooth=True
     label.data.materials.append(M['edge'])
     for sign in (-1,1):
         x,z={'shrike':(.68,.59),'bastion':(1.57,2.50),'needle':(.56,.65)}[id]
@@ -501,13 +542,12 @@ def export_ship(id):
         solid('Induction shoe',[(x-.10,.075,1.3),(x+.10,.075,1.3),
             (x+.10,.075,-1.7),(x-.10,.075,-1.7)],.055,'darkmetal')
         line('Induction status bus',[(x,.023,.95),(x,.023,-1.3)],.013,'dimcyan')
-    source=ROOT/'assets/ships'/id; output=ROOT/'public/assets/ships'/id
+    source=ROOT/'assets/ships'/id
+    output=ROOT/('.experiments/fleet-material-preview' if opts.preview else 'public/assets/ships')/id
     review=ROOT/'.experiments/fleet-blender'/id
     for path in (source,output,review):path.mkdir(parents=True,exist_ok=True)
     texture_directory=source/'textures';texture_directory.mkdir(exist_ok=True)
-    scuff_sites={'shrike':[(1.35,.47,.05,-.12),(1.4,.43,.03,-.07),(.67,.64,.015,-.11),(1.68,-.54,.018,-.09),(1.31,-1.40,.02,-.12)],'bastion':[(1.38,2.69,-.012,-.11),(1.42,2.64,-.02,-.08),(1.62,.42,-.016,-.12),(1.07,-1.08,.025,-.09),(1.45,-2.29,.012,-.11)],'needle':[(.15,2.83,.018,-.14),(.30,1.76,.019,-.09),(.39,.88,.015,-.10),(.93,-.73,-.02,-.12),(.90,-.70,-.022,-.06),(.26,-1.63,.02,-.09)]}[id]
-    scuffs=[(sign*x,z,sign*dx,dz) for sign in (-1,1) for x,z,dx,dz in scuff_sites]
-    finishes={M[kind].name:surface_finish(M[kind],'pearl' if kind=='pearl2' else kind,{'shrike':2.15,'bastion':2.48,'needle':2.68}[id],{'shrike':2.94,'bastion':3.28,'needle':3.49}[id],scuffs,scuff_scale=2.7) for kind in ('pearl','pearl2','carbon','metal','darkmetal')}
+    finishes={M[kind].name:crafted_finish(M[kind],kind,{'shrike':2.15,'bastion':2.48,'needle':2.68}[id],{'shrike':2.94,'bastion':3.28,'needle':3.49}[id],()) for kind in ('pearl','pearl2','carbon','metal','darkmetal')}
     # Neutral studio is editable in the blend and excluded from export.
     studio=bpy.data.collections.new('STUDIO | not exported');scene.collection.children.link(studio)
     scene.unit_settings.system='METRIC';scene.unit_settings.scale_length=1
@@ -526,7 +566,8 @@ def export_ship(id):
     data=bpy.data.cameras.new('Studio camera');cam=bpy.data.objects.new('Studio camera',data);studio.objects.link(cam)
     scene.camera=cam;cam.location=C((8,6.5,10.5));data.lens=58;aim(cam,(0,.4,0))
     bpy.context.preferences.filepaths.save_version=0
-    bpy.ops.wm.save_as_mainfile(filepath=str(source/(id+'.blend')))
+    if not opts.preview:
+        bpy.ops.wm.save_as_mainfile(filepath=str(source/(id+'.blend')))
     components=list(ship.objects);exports=[]
     for obj in components:
         dup=obj.copy()
@@ -554,21 +595,54 @@ def export_ship(id):
     for obj in joined:
         mat=obj.data.materials[0]
         if mat.name in finishes:
-            bake_finish(obj,mat,finishes[mat.name],texture_directory,2048 if mat==M['pearl'] else 512)
+            if opts.preview:
+                for node in list(mat.node_tree.nodes):
+                    if node.type not in ('BSDF_PRINCIPLED','OUTPUT_MATERIAL'):
+                        mat.node_tree.nodes.remove(node)
+            else:
+                bake_finish(obj,mat,finishes[mat.name],texture_directory,2048 if mat==M['pearl'] else 512)
+                bsdf=mat.node_tree.nodes.get('Principled BSDF')
+                if bsdf.inputs['Coat Weight'].default_value>0:
+                    mat.node_tree.links.new(bsdf.inputs['Normal'].links[0].from_socket,bsdf.inputs['Coat Normal'])
     bpy.ops.object.select_all(action='DESELECT')
     for obj in joined+exported_anchors:obj.select_set(True)
     bpy.context.view_layer.objects.active=joined[0]
     bpy.ops.export_scene.gltf(filepath=str(output/(id+'.glb')),export_format='GLB',use_selection=True,
         export_yup=True,export_apply=True,export_extras=True,export_cameras=False,export_lights=False,export_animations=False)
+    compression=None
+    if opts.toktx and not opts.preview:
+        path=output/(id+'.glb');lossless=path.read_bytes()
+        compress(path,path,opts.toktx)
+        compression={'encoder':'Khronos KTX-Software toktx 4.4.2','tool':'assets/ships/compress_textures.py',
+            'settings':'UASTC quality 3, Zstd 18, full mip chain, upper-left orientation; sRGB color/emissive, linear data; RGB normal normalization without swizzle',
+            'losslessGlbBytes':len(lossless),'losslessGlbSha256':hashlib.sha256(lossless).hexdigest(),
+            'runtimeGlbSha256':hashlib.sha256(path.read_bytes()).hexdigest()}
     vertices=[o.matrix_world@v.co for o in joined for v in o.data.vertices]
     game=[(v.x,v.z,-v.y) for v in vertices]
     bounds={'min':[min(v[k] for v in game) for k in range(3)],'max':[max(v[k] for v in game) for k in range(3)]}
+    exported=(output/(id+'.glb')).read_bytes()
+    gltf=json.loads(exported[20:20+struct.unpack_from('<I',exported,12)[0]])
     report={'asset':id,'blender':bpy.app.version_string,'bounds':bounds,
-        'triangles':sum(len(o.data.polygons) for o in joined),'meshes':len(joined),'anchors':anchors,
+        'dimensions':[bounds['max'][k]-bounds['min'][k] for k in range(3)],
+        'triangles':sum(len(o.data.polygons) for o in joined),'meshes':len(joined),'materials':len(groups),'anchors':anchors,
+        'primitives':sum(len(item['primitives']) for item in gltf['meshes']),
         'sourceComponents':len(components),'glbBytes':(output/(id+'.glb')).stat().st_size,
         'textures':'Embedded original base color, roughness, tangent normal and short-range cavity occlusion maps; editable procedural Blender materials',
-        'textureCount':len(finishes)*4, 'artPassRevision':8}
-    (source/'asset-manifest.json').write_text(json.dumps(report,indent=2)+'\n')
+        'textureCount':len(finishes)*4, 'artPassRevision':9}
+    if compression:
+        compression['runtimeImages']=len(gltf.get('images',[]))
+        report['compression']=compression
+        report['textures']='Embedded mipmapped UASTC KTX2 color, packed roughness/cavity occlusion and RGB tangent normals; original PNG maps and editable Blender materials retained.'
+    if opts.preview:
+        report['textureCount']=0
+        report['textures']='Unbaked scalar-material authoring preview; not the runtime asset.'
+    contract=CONTRACTS[id]
+    assert report['triangles']<=contract['triangles'], id+' exceeds its previous triangle budget'
+    assert report['meshes']<=12 and report['materials']<=12 and report['primitives']<=12, id+' exceeds its submission budget'
+    for limit in ('min','max'):
+        assert all(abs(a-b)<.00001 for a,b in zip(bounds[limit],contract[limit])), id+' changed its approved hull envelope'
+    assert anchors==contract['anchors'], id+' changed its propulsion anchors'
+    ((output if opts.preview else source)/'asset-manifest.json').write_text(json.dumps(report,indent=2)+'\n')
     print('FLEET_ASSET '+json.dumps(report),flush=True)
     if opts.render:
         for name,pos in [('front',(8,6.5,10.5)),('rear',(7,5,-10)),('top',(0,13,.01))]:
@@ -580,7 +654,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--ship', choices=['shrike','bastion','needle','all'], default='all')
     parser.add_argument('--render', action='store_true')
+    parser.add_argument('--preview', action='store_true', help='Export scalar-material previews without baking or replacing source/runtime assets')
+    parser.add_argument('--toktx', help='Khronos toktx executable; compress final GLBs and record hashes')
     opts = parser.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
+    if opts.toktx:
+        version=subprocess.check_output([opts.toktx,'--version'],text=True,stderr=subprocess.STDOUT).strip()
+        if version!='toktx v4.4.2':
+            raise ValueError('Fleet runtime export requires toktx v4.4.2; found '+version)
     for id in (['shrike','bastion','needle'] if opts.ship=='all' else [opts.ship]):
         export_ship(id)
 

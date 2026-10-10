@@ -5,25 +5,27 @@
     "min": [-1.8113031387329102, 0.011741666123270988, -3.2799999713897705],
     "max": [1.8113031387329102, 0.9223269820213318, 3.328000068664551]
   },
-  "triangles": 50960,
+  "dimensions": [3.6226062774658203, 0.9105853158980608, 6.608000040054321],
+  "triangles": 49676,
   "meshes": 12,
+  "materials": 12,
   "anchors": {
     "Exhaust_L": [-1.28, 0.51, -3.295],
     "Exhaust_R": [1.28, 0.51, -3.295]
   },
+  "primitives": 12,
   "sourceComponents": 183,
-  "glbBytes": 8074432,
+  "glbBytes": 5283480,
   "textures": "Embedded mipmapped UASTC KTX2 color, packed roughness/cavity occlusion and RGB tangent normals; original PNG maps and editable Blender materials retained.",
   "textureCount": 20,
-  "artPassRevision": 8,
+  "artPassRevision": 9,
   "compression": {
     "encoder": "Khronos KTX-Software toktx 4.4.2",
     "tool": "assets/ships/compress_textures.py",
     "settings": "UASTC quality 3, Zstd 18, full mip chain, upper-left orientation; sRGB color/emissive, linear data; RGB normal normalization without swizzle",
-    "runtimeImages": 15,
-    "losslessCheckpoint": "4db6d0f986544251e3062adfb84cd5b2b014fd5b",
-    "losslessGlbBytes": 8727520,
-    "losslessGlbSha256": "7479e78bcb233330f17dd69ab5fd9c02d3d18d58f8218c24cdae1c447e924c80",
-    "runtimeGlbSha256": "6fd1d46945a2b4c2481f7678c976dda1445eaa967a8022b8c7a22ca763b38917"
+    "losslessGlbBytes": 5619660,
+    "losslessGlbSha256": "6f0bf143acfcf2347e5d94bd5f589cf37ea0c7ee9ff6fa5137a95735505079bc",
+    "runtimeGlbSha256": "d52aa7af5e10bc700491fe0967208f18e4873bd1bd4e022ffc2695782e97ece0",
+    "runtimeImages": 15
   }
 }

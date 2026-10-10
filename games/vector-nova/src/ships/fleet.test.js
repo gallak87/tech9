@@ -80,10 +80,17 @@ test('every exported chassis fits the shared collision hull and owns its correct
       '',
     );
     {
-      assert.ok(parser.json.images?.length >= 8, 'embedded PBR surface maps');
+      assert.equal(
+        parser.json.images?.length,
+        spec.id === 'kestrel' ? 12 : 15,
+        spec.id + ' existing PBR image budget',
+      );
       assert.ok(
         parser.json.images.every(
-          (image) => Number.isInteger(image.bufferView) && !image.uri,
+          (image) =>
+            Number.isInteger(image.bufferView) &&
+            !image.uri &&
+            image.mimeType === 'image/ktx2',
         ),
       );
     }
@@ -103,16 +110,30 @@ test('every exported chassis fits the shared collision hull and owns its correct
       spec.id + ' vertical',
     );
     let meshes = 0;
+    let triangles = 0;
     scene.traverse((object) => {
       if (!object.isMesh) return;
       meshes++;
+      triangles +=
+        (object.geometry.index?.count ??
+          object.geometry.attributes.position.count) / 3;
       for (const attribute of Object.values(object.geometry.attributes))
         assert.ok(
           Array.from(attribute.array).every(Number.isFinite),
           spec.id + ' finite geometry',
         );
     });
-    assert.ok(meshes <= 15);
+    assert.ok(meshes <= (spec.id === 'kestrel' ? 13 : 12));
+    const triangleBudget = {
+      kestrel: 51544,
+      shrike: 52324,
+      bastion: 50960,
+      needle: 36818,
+    };
+    assert.ok(
+      triangles <= triangleBudget[spec.id],
+      spec.id + ' existing triangle budget',
+    );
     const craft = await createShip({ id: spec.id, model: scene });
     const plumes = craft.group.children.filter(
       (object) => object.name === 'Ion exhaust',

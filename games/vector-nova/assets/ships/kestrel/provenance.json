@@ -16,7 +16,7 @@
     "tool": "Blender 5.1.1, stock glTF 2.0 exporter",
     "authorship": "Original component geometry authored for this project against the approved concept. No downloaded model, external texture or font asset.",
     "userDirection": "More futuristic jet, less bulky and bubbly; delegated Blender refinement with independent critic target of at least 9/10, bounded to eight formal rounds.",
-    "materials": "Original authored metre-space ceramic, graphite and directional metal graphs with sparse contact scuffs, 6.5 cm cavity dirt and aft-localized heat tint; Blender-baked color, roughness, tangent normals and cavity occlusion. Main ceramic maps are 2048px, secondary maps 512px. Color is sRGB; data maps are linear. Original baked PNGs and editable source graphs are retained.",
+    "materials": "Original clean coated ceramic, resin-composite and directional alloy graphs, with restrained manufacturing variation and fitted-joint cavity occlusion. Blender-baked color, roughness, tangent normals and cavity occlusion retain 2048px main ceramic maps and 512px secondary maps. Clearcoat reuses the existing normal image. Color is sRGB; data maps are linear. Original baked PNGs and editable source graphs are retained; earlier wear-focused passes remain documented below.",
     "textureSources": "assets/ships/kestrel/textures/",
     "artPass": {
       "date": "2026-10-09",
@@ -28,6 +28,38 @@
       "pipeline": "assets/ships/surface_finish.py",
       "runtimeTextures": "Mipmapped UASTC KTX2 via KHR_texture_basisu; encoder/version/settings and lossless checkpoint are recorded in asset-manifest.json. Original baked PNGs retained.",
       "construction": "Approved envelope and exhaust anchors retained; formed panel sections, service fasteners, component bevels and recessed intake construction."
+    },
+    "constructionPass": {
+      "date": "2026-10-10",
+      "references": [
+        {
+          "path": "assets/ships/kestrel/construction-reference.png",
+          "sha256": "663985141c9b70376e38a182c5b5bc168c9f436b0176e5d725127e2276d3701f",
+          "role": "User image 1: finish and construction quality only",
+          "source": "User-supplied reference attachment; never used as runtime imagery or a model texture"
+        },
+        {
+          "path": "assets/ships/kestrel/silhouette-reference.png",
+          "sha256": "f7ab0e825f31caff80ca81153883dbf666d5265976e6ae0274c9ef04fb763cb2",
+          "role": "User image 2: Kestrel shape, proportions and identity",
+          "source": "User-supplied reference attachment; never used as runtime imagery or a model texture"
+        }
+      ],
+      "direction": "Combine image 1 construction/finish quality with image 2 silhouette. Original hull stations, canted fins, split prow, livery, exhaust anchors and gameplay contract retained.",
+      "construction": "Thin formed ceramic skins on separate composite carriers, through-cut recessed intakes, slotted captive fasteners, bonded canopy frames and inset scuff rails. Original editable geometry; small service lettering uses Blender bundled Bfont converted to mesh.",
+      "finish": "Kestrel-local metre-space coating abrasion, shallow normal relief, resin weave and localized axial titanium heat tint. Baked through the existing four-map pipeline; same texture resolutions and twelve materials across thirteen hull submissions.",
+      "pipeline": "assets/ships/kestrel/finish.py; build_kestrel.py --toktx produces the compressed GLB and matching manifest.",
+      "validation": "Actual exported GLB reviewed in Three.js; no generated or Blender-rendered imagery used as implementation evidence."
+    },
+    "cleanPolishPass": {
+      "date": "2026-10-10",
+      "direction": "User requested a bounded pass prioritizing the complete ship's polished physical appearance, broad reflections and material separation rather than individual wear marks. Preserve the approved silhouette, gameplay integration and existing browser/M1 budget.",
+      "construction": "Refined panel contours and component bevels; thin folded intake louvers retain the original recessed openings and overall envelope.",
+      "finish": "Clean dielectric coated off-white ceramic, dark resin composite and distinct machined alloy. Prior abrasion, dirt and pin-wear masks are removed from the current Kestrel finish. Existing color, roughness, normal and cavity map resolutions are retained; clearcoat references the existing normal image without an additional texture image.",
+      "presentation": "Original procedural studio reflection environment, filtered at 256px PMREM resolution, shared by setup and inspection. Track lighting remains level-owned and unchanged.",
+      "previewWorkflow": "build_kestrel.py --preview exports geometry and scalar materials to .experiments/kestrel-material-preview/kestrel.glb, skips texture baking and leaves the production GLB and editable source blend untouched. Final delivery uses the existing full --toktx rebuild.",
+      "authorship": "Original geometry and material graphs authored in Blender; no generated texture or external model added. Visual assessment uses actual Three.js renders.",
+      "pipeline": "assets/ships/clean_finish.py, shared by all four player ships; assets/ships/kestrel/finish.py retains the Kestrel entry point."
     }
   },
   "reviewEvidence": "Ignored .experiments/kestrel-blender; root owns durable formal review record.",

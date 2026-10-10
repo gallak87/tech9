@@ -112,19 +112,10 @@ function deckPatch(surface, x0, x1, s0, s1, offset, shape) {
 export function createVesperRoad({ track, shape = false }) {
   const group = new T.Group();
   group.name = shape ? 'Vesper route study' : 'Cast amber transport ribbon';
-  // Physical transmission samples the real scene behind the ribbon. Keep
-  // opacity/depth writes intact: alpha-blended lap-wide meshes sort poorly at
-  // spiral crossings. The retained internal laminae supply the amber depth.
-  const resinOptics = {
-    transmission: shape ? 0 : 0.18,
-    thickness: 3.6,
-    ior: 1.46,
-    attenuationColor: 0xffd08a,
-    attenuationDistance: 14,
-  };
+  // Opaque amber keeps the sheen and internal parallax without an additional
+  // scene transmission pass, which was costly for little visible benefit.
   const lightScale = shape ? 1 : 1.1;
   const amber = new T.MeshPhysicalMaterial({
-    ...resinOptics,
     color: shape ? 0x88959c : 0xcb781e,
     roughness: 0.19,
     metalness: 0.02,
@@ -146,8 +137,6 @@ export function createVesperRoad({ track, shape = false }) {
     metalness: 0.02,
   });
   const polished = new T.MeshPhysicalMaterial({
-    ...resinOptics,
-    transmission: shape ? 0 : 0.22,
     color: shape ? 0x9faab0 : 0xda8a27,
     roughness: 0.15,
     metalness: 0.02,
@@ -159,8 +148,6 @@ export function createVesperRoad({ track, shape = false }) {
     emissiveIntensity: 0.12 * lightScale,
   });
   const core = new T.MeshPhysicalMaterial({
-    ...resinOptics,
-    transmission: shape ? 0 : 0.16,
     color: shape ? 0x8d969b : 0xd57a1d,
     roughness: 0.3,
     metalness: 0.02,
@@ -248,8 +235,8 @@ export function createVesperRoad({ track, shape = false }) {
         vec3 vesperInterior=vec3(0.);
         if(vVesperResinActive>.5) {
           // Six refracted interior layers give inclusions real view parallax.
-          // The shared probe supplies reflections and physical transmission shows
-          // the scene behind the slab; these inclusions add no further pass.
+          // The shared probe supplies reflections; these local inclusions
+          // sample no background scene and add no further render pass.
           vec3 entryNormal=normalize(vVesperResinNormal);
           vec3 interiorRay=refract(-normalize(vVesperResinView),entryNormal,.68);
           for(int layer=0;layer<6;layer++) {
@@ -286,6 +273,11 @@ export function createVesperRoad({ track, shape = false }) {
     material.customProgramCacheKey = () =>
       flowing ? 'vesper-flow-v5' : 'vesper-lamina-v5';
   }
+  // Keep authored clearcoat values for independent live comparisons.
+  const coats = [amber, polished, core, sap].map((material) => ({
+    material,
+    clearcoat: material.clearcoat,
+  }));
   const slices = [
     0,
     track.length,
@@ -631,7 +623,18 @@ export function createVesperRoad({ track, shape = false }) {
     },
     update({ time, settings }) {
       sapClock.value = settings.reducedMotion ? 0 : time;
-      resinLayers.value = settings.quality === 'low' ? 3 : 6;
+      resinLayers.value =
+        settings.vesperResinDetail === false
+          ? 0
+          : settings.quality === 'low'
+            ? 3
+            : 6;
+      for (const { material, clearcoat } of coats) {
+        const value = settings.vesperClearcoat === false ? 0 : clearcoat;
+        if (material.clearcoat === value) continue;
+        material.clearcoat = value;
+        material.needsUpdate = true;
+      }
     },
     dispose() {
       const gs = new Set(),

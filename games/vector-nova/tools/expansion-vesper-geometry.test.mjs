@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Raycaster, ShaderLib, Texture, Vector3 } from 'three';
+import { ShaderLib, Texture, Vector3 } from 'three';
 import { createVesperTrack } from '../src/levels/vesper/track/model.js';
 import { createVesperRoad } from '../src/levels/vesper/track/road.js';
 import { sampleVesperSurface } from '../src/levels/vesper/surface.js';
@@ -469,7 +469,7 @@ test('plain low curbs retain their boundary and clear the nonlocal ten-metre cam
   }
 });
 
-test('resin transmits through the actual deck stack and retains depth, quality and owned-resource lifecycle', (t) => {
+test('opaque resin avoids transmission while retaining depth, live controls and owned-resource lifecycle', (t) => {
   const road = createVesperRoad({ track, shape: false });
   const study = createVesperRoad({ track, shape: true });
   const probe = new Texture();
@@ -485,31 +485,29 @@ test('resin transmits through the actual deck stack and retains depth, quality a
     );
   }
   try {
+    road.setReflection(probe);
     const resin = [...materials].filter(
-      (material) => material.transmission > 0,
+      (material) => material.envMap === probe,
+    );
+    assert.ok(
+      [...materials].every((material) => !(material.transmission > 0)),
+      'no Vesper road material requests a transmission pass',
     );
     assert.equal(resin.length, 3);
     const shaders = resin.map((material) => {
-      // Feed the production hook the real Three physical shader, preserving
-      // its transmission path alongside the local view-dependent inclusions.
+      // Feed the production hook the real Three physical shader to check the
+      // retained local inclusions, independently of scene transmission.
       const shader = {
         uniforms: {},
         vertexShader: ShaderLib.physical.vertexShader,
         fragmentShader: ShaderLib.physical.fragmentShader,
       };
       material.onBeforeCompile(shader);
-      assert.ok(
-        shader.fragmentShader.includes('#include <transmission_fragment>'),
-      );
       assert.ok(shader.fragmentShader.includes('vec3 interiorRay=refract('));
       assert.equal(material.transparent, false);
       assert.equal(material.opacity, 1);
       assert.equal(material.depthWrite, true);
-      assert.ok(material.transmission >= 0.1 && material.transmission <= 0.25);
-      assert.ok(
-        material.attenuationColor.r > material.attenuationColor.g &&
-          material.attenuationColor.g > material.attenuationColor.b,
-      );
+      assert.equal(material.transmission, 0);
       return shader;
     });
     road.setReflection(probe);
@@ -530,61 +528,30 @@ test('resin transmits through the actual deck stack and retains depth, quality a
       assert.equal(shader.uniforms.vesperResinLayers.value, 6);
       assert.equal(shader.uniforms.vesperSapTime.value, 0);
     }
+    const authored = resin.map((material) => material.clearcoat);
+    road.update({
+      time: 9,
+      settings: {
+        quality: 'high',
+        vesperClearcoat: false,
+        vesperResinDetail: false,
+      },
+    });
+    for (const [index, material] of resin.entries()) {
+      assert.equal(material.transmission, 0);
+      assert.equal(material.clearcoat, 0);
+      assert.equal(shaders[index].uniforms.vesperResinLayers.value, 0);
+    }
+    road.update({ time: 9, settings: { quality: 'high' } });
+    assert.deepEqual(
+      resin.map((material) => material.clearcoat),
+      authored,
+    );
     assert.ok(
       study.group.children.every((mesh) => !(mesh.material.transmission > 0)),
     );
-    road.group.updateMatrixWorld(true);
-    const ray = new Raycaster();
-    let checkedStacks = 0;
-    let checkedLayers = 0;
-    for (let s = 17; s < track.length; s += 37) {
-      if (track.isGap(s, 0)) continue;
-      const frame = track.sample(s);
-      for (const lateral of [0, 5]) {
-        ray.set(
-          frame.position
-            .clone()
-            .addScaledVector(frame.right, lateral)
-            .addScaledVector(frame.up, 3),
-          frame.up.clone().negate(),
-        );
-        ray.far = 8;
-        const hits = ray.intersectObjects(road.group.children, false);
-        const surface = hits.find(
-          ({ object }) => object.userData.drivingSurface,
-        );
-        if (!surface || !(surface.object.material.transmission > 0)) continue;
-        // Opaque guides and sap are intentional. Everywhere else, an opaque
-        // hidden layer would defeat a transmissive top by masking background.
-        if (
-          hits.some(
-            ({ object }) =>
-              object.name === 'Advance jump lane and landing guidance' ||
-              object.userData.sapFilm ||
-              object.name === 'Translucent reinforcement joints',
-          )
-        )
-          continue;
-        assert.ok(hits.length > 0);
-        for (const { object } of hits) {
-          assert.ok(
-            object.material.transmission > 0,
-            `opaque layer under resin at ${s}/${lateral}: ${object.name}`,
-          );
-          assert.ok(
-            object.geometry.attributes.vesperResinActive,
-            'transmitted resin retains its internal depth attributes',
-          );
-          checkedLayers += 1;
-        }
-        checkedStacks += 1;
-      }
-    }
-    assert.ok(checkedStacks > 100 && checkedLayers > checkedStacks);
     t.diagnostic(
       JSON.stringify({
-        checkedStacks,
-        checkedLayers,
         meshes: road.group.children.length,
         resinMaterials: resin.length,
       }),

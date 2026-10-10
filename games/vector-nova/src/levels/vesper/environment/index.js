@@ -14,7 +14,7 @@ import {
   createSceneryClearance,
   consolidateStaticInstances,
 } from './geometry.js';
-import { finishVesperMaterial } from './materials.js';
+import { finishVesperMaterial, setVesperSurfaceDetail } from './materials.js';
 import { vesperGroundHeight } from './terrain.js';
 import { createGroundedTree } from './trees.js';
 
@@ -66,11 +66,13 @@ export function createVesperEnvironment({
     return along > 60 && along < 2200 && across < 55 + along * 0.28 + radius;
   };
   const ownedMaterials = [];
+  const surfaceMaterials = new Set();
   const material = (name, options) => {
     const value = new T.MeshStandardMaterial({ name, ...options });
     if (value.emissive.getHex() !== 0)
       value.emissiveIntensity *= ENVIRONMENT_LIGHT_UPLIFT;
     finishVesperMaterial(value);
+    surfaceMaterials.add(value);
     ownedMaterials.push(value);
     return value;
   };
@@ -442,6 +444,7 @@ export function createVesperEnvironment({
         m.side = T.DoubleSide;
         m.envMapIntensity = 0.32;
         finishVesperMaterial(m);
+        surfaceMaterials.add(m);
       }
     });
     const hollow = get('hero_hollow').clone(true);
@@ -759,6 +762,8 @@ export function createVesperEnvironment({
     setQuality(settings);
   }
   function setQuality(next, camera) {
+    for (const material of surfaceMaterials)
+      setVesperSurfaceDetail(material, next.vesperSurfaceDetail !== false);
     const low = next.quality === 'low';
     highTrees.visible = true;
     lowTrees.visible = true;

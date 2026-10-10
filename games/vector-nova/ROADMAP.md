@@ -30,6 +30,8 @@
 - [x] Loading and assets: preload Kestrel then the fleet, retain parsed models, defer worlds until Start, and place quiet progress beneath the ship/loading hero. Ship previews use real models; ship-free, pulled-back circuit stills have a [repeatable refresh workflow](ARCHITECTURE.md#circuit-preview-refresh). Tunes stays anchored across menus, loading and racing.
 - [x] Race/session polish: green GO lights, a shared checker finish line, finish camera beat and sound, live track-backed results, retry/continue actions, and pause → Circuits → Resume without discarding the active run. Shared settings stay synchronized. See [architecture](ARCHITECTURE.md#front-end-and-world-ownership).
 
+- [x] Vesper performance/dev tools: remove physical resin transmission while retaining amber shading, reflections and internal detail. Free camera now has live FPS/frame-time/draw-count readouts and material switches; the wider art/performance pass remains open.
+
 ## Remaining gameplay
 
 Agree each phase's scope before implementation; scoped independent critique ends with human review.

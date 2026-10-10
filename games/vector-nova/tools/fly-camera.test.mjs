@@ -10,16 +10,19 @@ function fixture() {
   const canvas = new EventTarget(),
     capture = new Set();
   canvas.classList = { add() {}, remove() {} };
+  canvas.focus = () => {};
   canvas.hasPointerCapture = (id) => capture.has(id);
   canvas.setPointerCapture = (id) => capture.add(id);
   canvas.releasePointerCapture = (id) => capture.delete(id);
   const camera = new PerspectiveCamera();
   camera.position.set(3, 6, 9);
   let toggles = 0,
-    exits = 0;
+    exits = 0,
+    settings = 0;
   const fly = createFlyCamera(camera, canvas, {
     toggle: () => toggles++,
     exit: () => exits++,
+    settings: () => settings++,
   });
   const fire = (target, type, fields = {}) => {
     const event = new Event(type, { cancelable: true });
@@ -32,6 +35,7 @@ function fixture() {
     fly,
     fire,
     commands: () => [toggles, exits],
+    settingsOpened: () => settings,
     press: (code) => fire(window, 'keydown', { code }),
     release: (code) => fire(window, 'keyup', { code }),
     dispose() {
@@ -61,6 +65,84 @@ test('fly translation stays at 200 m/s across directions, Shift and wheel input'
     const afterWheel = f.camera.position.clone();
     for (let i = 0; i < 120; i++) f.fly.update(1 / 120);
     assert.ok(Math.abs(f.camera.position.distanceTo(afterWheel) - 200) < 1e-8);
+  } finally {
+    f.dispose();
+  }
+});
+test('applying a view preserves the look direction on first drag and restores the session camera', () => {
+  const f = fixture();
+  try {
+    const original = f.camera.clone();
+    f.fly.enter();
+    f.fly.setView({
+      position: [100, 200, -300],
+      target: [0, 40, 100],
+      fov: 55,
+    });
+    assert.deepEqual(f.camera.position.toArray(), [100, 200, -300]);
+    assert.equal(f.camera.fov, 55);
+    const facing = f.camera.quaternion.clone();
+    f.fire(f.canvas, 'pointerdown', {
+      button: 0,
+      pointerId: 2,
+      clientX: 10,
+      clientY: 10,
+    });
+    f.fire(f.canvas, 'pointermove', { pointerId: 2, clientX: 10, clientY: 10 });
+    assert.ok(f.camera.quaternion.angleTo(facing) < 1e-7);
+    const view = f.fly.getView();
+    f.fly.setView(view);
+    assert.ok(f.camera.quaternion.angleTo(facing) < 1e-7);
+    f.fly.leave();
+    assert.deepEqual(f.camera.position, original.position);
+    assert.deepEqual(
+      f.camera.quaternion.toArray(),
+      original.quaternion.toArray(),
+    );
+    assert.equal(f.camera.fov, original.fov);
+  } finally {
+    f.dispose();
+  }
+});
+test('dev-panel focus does not capture movement keys', () => {
+  const f = fixture();
+  try {
+    // EventTarget supplies the key event target in this DOM-free fixture.
+    window.closest = () => null;
+    f.fly.enter();
+    window.closest = (selector) =>
+      selector === '[data-music-player]' ? null : {};
+    const before = f.camera.position.clone();
+    f.press('KeyW');
+    f.fly.update(0.1);
+    assert.ok(f.camera.position.distanceTo(before) > 19);
+    f.release('KeyW');
+    f.press('ArrowRight');
+    f.fly.update(0.1);
+    assert.ok(f.camera.position.x > before.x);
+  } finally {
+    f.dispose();
+  }
+});
+test('dev-tools shortcut preserves the camera and clears held movement', () => {
+  const f = fixture();
+  try {
+    f.press('KeyP');
+    assert.equal(f.settingsOpened(), 0);
+    f.fly.enter();
+    f.press('KeyW');
+    f.fly.update(0.1);
+    const position = f.camera.position.clone();
+    f.press('KeyP');
+    f.fly.update(0.1);
+    assert.equal(f.settingsOpened(), 1);
+    assert.deepEqual(f.camera.position, position);
+    assert.equal(f.fly.active, true);
+    f.fire(window, 'keydown', { code: 'KeyP', repeat: true });
+    assert.equal(f.settingsOpened(), 1);
+    f.fly.dispose();
+    f.press('KeyP');
+    assert.equal(f.settingsOpened(), 1);
   } finally {
     f.dispose();
   }

@@ -25,6 +25,7 @@ import {
   subscribeSettings,
 } from '../progression/index.js';
 import { createFlyCamera } from './fly-camera.js';
+import { artPassURL } from './art-pass.js';
 import { createReviewCamera } from './review-camera.js';
 import { createStartCountdown } from './start-countdown.js';
 import { discoverLevels } from '../levels/catalog.js';
@@ -999,6 +1000,8 @@ export async function createGame({
           },
           overview,
           leaveFly,
+          artPassURL: () =>
+            artPassURL(location.href, metadata.id, flyCamera.getView()),
           settings: () => {
             saveSettings(settings);
             ui.setInspectionPreview(inspectionPreview);
@@ -1111,7 +1114,7 @@ export async function createGame({
       );
     const input = lifetime.own(
       createInput((command) => {
-        if (suspended || mode === 'results') return;
+        if (suspended || mode === 'results' || mode === 'fly') return;
         if (finishAt !== null && !resultsDismissed && command !== 'pause')
           return;
         if (command === 'pause') {
@@ -1140,7 +1143,10 @@ export async function createGame({
     const flyCamera = lifetime.own(
       createFlyCamera(camera, renderer.domElement, {
         toggle: toggleFly,
-        exit: leaveFly,
+        exit: () => {
+          if (!ui.closeFlySettings()) leaveFly();
+        },
+        settings: () => ui.toggleFlySettings(),
       }),
     );
     flyCamera.bindControls(ui.root);
@@ -1400,6 +1406,7 @@ export async function createGame({
           }),
         );
       else view.render(now);
+      ui.updateDevTools(now, renderer.info.render);
       world.afterRender(frame);
       for (const event of view.drainStormEvents()) audio.event(event);
       ui.update(state, race, runtime.snapshot(), {
@@ -1621,6 +1628,17 @@ export async function createGame({
       setCamera,
       overview,
       fly: toggleFly,
+      setFlyView(view = {}) {
+        if (mode !== 'fly') toggleFly();
+        if (mode !== 'fly') return false;
+        flyCamera.setView(view);
+        return true;
+      },
+      getArtPassURL: () =>
+        artPassURL(location.href, metadata.id, flyCamera.getView()),
+      openDevTools() {
+        if (mode === 'fly') ui.openFlySettings();
+      },
       leaveFly,
       start,
       practice: () => {

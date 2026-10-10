@@ -21,6 +21,7 @@ Start with this file and the assigned task's brief.
 - Run targeted tests and a production build when appropriate; check documentation links. Let the pre-commit hook run ESLint/Prettier through lint-staged. Do not repeat manual lint/format passes for routine edits. Ensure generated Husky hooks exist in a new worktree via the existing package prepare script.
 - Run `nvm use 22` once at the start of each shell session, then use its Node/npm without hard-coded runtime paths.
 - Default to hidden/headless browsers for autonomous verification. When the user asks to watch a test, replay, or browser interaction, use headed mode without requesting confirmation again. Avoid normal-speed automated full laps unless requested by the user results.
+- For visual inspection use `?artPass=1&level=<id>`: direct production level, no Tunes, free camera and Dev tools open. Copy view link or `__VN.getArtPassURL()` preserves a camera pose for the next pass; URL/API details and comparison limits are in [architecture](ARCHITECTURE.md#lifecycle-and-verification).
 - Use a free port for your server, close owned verification processes afterward.
 - No unsolicited videos.
 - Commit and merge when requested. Human approval cannot be supplied by an agent.

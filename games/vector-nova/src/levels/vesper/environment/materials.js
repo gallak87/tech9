@@ -6,9 +6,11 @@ export function finishVesperMaterial(material) {
   const fungus = /fungal moon/.test(name);
   const walker = /walker/.test(name);
   if (!bark && !leaf && !fungus && !walker) return;
+  material.userData.vesperSurfaceDetail = true;
   material.roughness = bark ? 0.9 : leaf ? 0.58 : walker ? 0.76 : 0.88;
   material.envMapIntensity = bark ? 0.18 : leaf ? 0.36 : 0.22;
   material.onBeforeCompile = (shader) => {
+    if (!material.userData.vesperSurfaceDetail) return;
     shader.vertexShader = shader.vertexShader
       .replace(
         '#include <common>',
@@ -122,5 +124,15 @@ ${treatment}`,
       );
   };
   material.customProgramCacheKey = () =>
-    `vesper-organic-r6-${bark ? 'bark' : leaf ? 'leaf' : walker ? 'walker' : 'fungus'}`;
+    `vesper-organic-r6-${bark ? 'bark' : leaf ? 'leaf' : walker ? 'walker' : 'fungus'}-${material.userData.vesperSurfaceDetail}`;
+}
+
+export function setVesperSurfaceDetail(material, enabled) {
+  if (
+    !Object.hasOwn(material.userData, 'vesperSurfaceDetail') ||
+    material.userData.vesperSurfaceDetail === enabled
+  )
+    return;
+  material.userData.vesperSurfaceDetail = enabled;
+  material.needsUpdate = true;
 }

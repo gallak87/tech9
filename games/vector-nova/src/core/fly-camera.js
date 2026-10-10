@@ -1,9 +1,14 @@
 import * as T from 'three';
+import { validateArtView } from './art-pass.js';
 
 const FLY_SPEED = 200;
 
 /** Shared inspection controls. Simulation ownership stays in core/main. */
-export function createFlyCamera(camera, canvas, { toggle, exit } = {}) {
+export function createFlyCamera(
+  camera,
+  canvas,
+  { toggle, exit, settings } = {},
+) {
   const abort = new AbortController();
   const keys = new Set();
   const touches = new Map();
@@ -12,6 +17,8 @@ export function createFlyCamera(camera, canvas, { toggle, exit } = {}) {
   const forward = new T.Vector3();
   const right = new T.Vector3();
   const worldUp = new T.Vector3(0, 1, 0);
+  const previousTabIndex = canvas.tabIndex;
+  canvas.tabIndex = -1;
   let active = false,
     saved,
     pointer = null,
@@ -49,19 +56,28 @@ export function createFlyCamera(camera, canvas, { toggle, exit } = {}) {
     'keydown',
     (event) => {
       if (event.target.closest?.('[data-music-player]')) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (active && event.code === 'Escape') {
         event.preventDefault();
         event.stopPropagation();
         if (!event.repeat) exit?.();
         return;
       }
+      if (active && event.code === 'KeyP') {
+        event.preventDefault();
+        event.stopPropagation();
+        clear();
+        if (!event.repeat) settings?.();
+        return;
+      }
+      // In free cam, movement owns the keys even when a dev control has focus.
       if (
+        !active &&
         event.target.closest?.(
           'input, select, textarea, [contenteditable="true"]',
         )
       )
         return;
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.code === 'KeyF') {
         event.preventDefault();
         event.stopPropagation();
@@ -76,7 +92,7 @@ export function createFlyCamera(camera, canvas, { toggle, exit } = {}) {
       } else if (
         ['KeyR', 'KeyI', 'KeyC'].includes(event.code) ||
         (['Enter', 'Space'].includes(event.code) &&
-          !event.target.closest?.('button'))
+          !event.target.closest?.('button, input'))
       ) {
         // Driving shortcuts cannot alter the frozen session during inspection.
         event.preventDefault();
@@ -87,12 +103,16 @@ export function createFlyCamera(camera, canvas, { toggle, exit } = {}) {
   );
   listen(window, 'keyup', (event) => keys.delete(event.code));
   listen(window, 'blur', clear);
+  listen(document, 'focusin', (event) => {
+    if (event.target.closest?.('[data-fly-settings]')) clear();
+  });
   listen(document, 'visibilitychange', () => {
     if (document.hidden) clear();
   });
   listen(canvas, 'pointerdown', (event) => {
     if (!active || event.button !== 0 || pointer !== null) return;
     event.preventDefault();
+    canvas.focus({ preventScroll: true });
     pointer = event.pointerId;
     pointerX = event.clientX;
     pointerY = event.clientY;
@@ -140,6 +160,31 @@ export function createFlyCamera(camera, canvas, { toggle, exit } = {}) {
       camera.clearViewOffset();
       camera.updateProjectionMatrix();
       canvas.classList.add('fly-camera-active');
+    },
+    setView(view) {
+      const { position, target, fov } = validateArtView(view);
+      if (!active) return;
+      clear();
+      if (position) {
+        camera.position.fromArray(position);
+        camera.lookAt(...target);
+        orientation.setFromQuaternion(camera.quaternion, 'YXZ');
+        orientation.z = 0;
+        camera.quaternion.setFromEuler(orientation);
+      }
+      if (fov !== undefined) camera.fov = fov;
+      camera.updateProjectionMatrix();
+    },
+    getView() {
+      return {
+        position: camera.position.toArray(),
+        target: camera
+          .getWorldDirection(new T.Vector3())
+          .multiplyScalar(100)
+          .add(camera.position)
+          .toArray(),
+        fov: camera.fov,
+      };
     },
     leave() {
       if (!active) return;
@@ -191,6 +236,7 @@ export function createFlyCamera(camera, canvas, { toggle, exit } = {}) {
       this.leave();
       clear();
       abort.abort();
+      canvas.tabIndex = previousTabIndex;
     },
   };
 }

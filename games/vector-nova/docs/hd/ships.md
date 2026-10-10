@@ -1,0 +1,30 @@
+# Ship finish gauntlet
+
+Agent task: improve the four player ships' modeled construction and baked materials for Blender → Three.js. Start with **Kestrel**, establish the finish, then apply it to Shrike, Bastion and Needle. Validate the art with the existing PNG-in-GLB pipeline, then attempt the bounded KTX2 stage below in the same run. Rivals, level art and engine migration are out of scope.
+
+Read [AGENTS](../../AGENTS.md), [ship API/export workflow](../../src/ships/README.md), [art direction](../ART_BIBLE.md) and relevant [architecture](../../ARCHITECTURE.md). Use one implementation owner and independent, read-only visual and performance/regression critics.
+
+## Loop
+
+1. **Capture the actual baseline first.** Screenshot each loaded GLB in the neutral inspection studio: front three-quarter, rear and side; also check normal chase distance in Halcyon and Vesper. Fix camera, viewport, lighting and animation state for comparisons. Use the ship selector/inspection API; ordinary free camera hides ships. Record warmed runtime frame times, draw calls, triangles, texture-memory estimate and asset bytes. An idle, on-demand menu renderer is not an FPS benchmark.
+2. **Generate the finish target.** Read the available imagegen skill and inspect the local inputs. Use the current three-quarter screenshot as the edit target and the saved [close-up](../levels/art-revamp-reference/ship-closeup-v1.png) or [paddock](../levels/art-revamp-reference/ship-paddock-v1.png) only as a material-fidelity reference. Generate one chosen concept per chassis with the built-in image tool; request 2K-class output and check its returned dimensions. Prompt:
+
+   > Upgrade this exact ship's surface finish. Preserve silhouette, proportions, canopy, engine count, markings, camera and background. Show formed ceramic panels, graphite structure, machined metal, restrained edge wear, directional fine scratches and dirt in recesses. Preserve clean areas and readable neutral lighting. No new appendages, dramatic relighting, depth-of-field concealment or redesigned ship.
+
+3. **Build the real asset.** Treat the generated image as a target, never a UV atlas, normal map or runtime ship replacement. Extend `assets/ships/surface_finish.py` and the existing Kestrel/fleet exporters. Improve small bevels, panel thickness and intake depth within approved bounds. Unwrap with low distortion, useful pixel allocation and seam padding. Author spatially coherent Blender materials/masks, then bake color, roughness, tangent normals and cavity occlusion. Trial **2048×2048 on the main hull**, retaining smaller maps where sufficient; current ceramic/other finishes use 1024/512. Export valid glTF materials/color spaces and inspect the actual Three.js result. Avoid baked directional light/specular highlights, uniform dirt noise and enlarged-but-unchanged textures.
+4. **Critique → fix → recapture.** Critics inspect matching before/after views and runtime measurements independently. Prioritize the three most visible defects each round. Check seams, grazing highlights, rear/nozzle construction, readability at speed and distinct chassis identities. Keep shared lighting changes minimal; avoid per-panel materials/draw calls. Use sharing, appropriately sized maps or simpler detail where measurements justify them. Allow up to three refinement rounds per chassis; report remaining gaps honestly at the cap.
+
+## KTX2 final stage
+
+1. **Checkpoint the art.** Validate and commit the finished lossless-texture version first. Retain the original baked maps; KTX2 conversion happens after baking and must not require reauthoring the artwork.
+2. **Prepare the pipeline.** Install the encoder if needed; record its version and a reproducible conversion command. Wire one shared `KTX2Loader` into ship loading, serve its matching JS/WASM decoder through the app's base URL, and own worker cleanup. Resolve renderer capability detection before preloading compressed ships: fleet preload can currently start before any renderer exists. Preserve caching, retries, disposal and ordinary PNG GLB support.
+3. **Prove Kestrel first.** Compare matching lossless/compressed views for color, normal and roughness fidelity, seams and mipmaps. Verify menu preview, inspection, racing, cold/warm loading and repeated selection/disposal. Check the actual GPU compressed format and format-aware texture-memory estimates; smaller GLB bytes alone do not prove GPU savings. Compare load times and warmed frame times too.
+4. **Roll out or retain the checkpoint.** Convert the other three ships only after Kestrel passes visual and runtime review. Allow at most two compression-setting revisions. If tooling, fidelity or regressions remain unresolved, revert only the KTX2 stage, ship the validated PNG version and report the blocker. Do not spend the art pass repairing compression indefinitely or retain duplicate runtime asset sets.
+
+## Acceptance and handoff
+
+- Preserve silhouette, scale/bounds, exhaust anchors, collision/handling/replay behavior, ship accents and propulsion. No copying Kestrel's shape onto the fleet.
+- Compare warmed High/Low at identical settings with one browser workload. Use repeated measurements; investigate/revert a sustained frame-time regression above 10%. Check loading and repeated selection/disposal for growing memory. Headless FPS does not certify M1 performance.
+- Run relevant fleet/propulsion/asset tests, focused runtime checks and production build. Follow AGENTS for final responsive verification. Refresh all affected menu previews after shared ship changes.
+- Retain editable Blender sources, reproducible exporters, required baked maps/GLBs and only chosen concepts with prompts/provenance in existing asset records. Reuse [the manifest](../ASSET_MANIFEST.json). Keep temporary screenshots/tests under `.experiments/hd/` and remove your evidence at completion. No extra reports or JSON bundles.
+- Commit successful KTX2 integration separately from the art checkpoint. Summarize visual gains, measured costs, tests and compression outcome/remaining gaps in chat; do not merge or start Vesper automatically.

@@ -9,9 +9,16 @@ import {
   loadSettings,
   saveSettings,
   subscribeSettings,
+  vesperGraphicsDefaults,
 } from '../progression/index.js';
+import { vesperGraphicsControls } from '../ui/graphics-settings.js';
 import { createMusicPlayer } from '../audio/player.js';
 import { assetURL } from '../assets/url.js';
+import {
+  artViewParameters,
+  runtimeEntryParameters,
+  readArtView,
+} from '../core/art-pass.js';
 import '../ui/style.css';
 import './style.css';
 
@@ -43,7 +50,9 @@ function picture(route, className = '') {
 export function createFrontend(host) {
   const catalog = discoverLevels().list;
   const parameters = new URLSearchParams(location.search);
+  const artPass = parameters.get('artPass') === '1';
   let special =
+    artPass ||
     parameters.has('review') ||
     parameters.has('test') ||
     parameters.has('capture');
@@ -110,7 +119,7 @@ export function createFrontend(host) {
   const gameHost = host.querySelector('#game-host');
   const shell = host.querySelector('#front-shell');
   const music =
-    parameters.get('music') === '0'
+    artPass || parameters.get('music') === '0'
       ? null
       : createMusicPlayer(host, { clearInput: () => game?.clearInput() });
   const level = () => catalog.find((l) => l.id === selected);
@@ -144,7 +153,11 @@ export function createFrontend(host) {
     const url = new URL(location.href);
     url.searchParams.set('level', selected);
     if (!special)
-      for (const flag of ['review', 'test', 'capture', 'case'])
+      for (const flag of [
+        ...runtimeEntryParameters,
+        'artPass',
+        ...artViewParameters,
+      ])
         url.searchParams.delete(flag);
     history.replaceState(null, '', url);
   }
@@ -272,7 +285,7 @@ export function createFrontend(host) {
     } else if (screen === 'loading') {
       content.innerHTML = `<section class="loading-copy"><div class="loading-card">${picture(route())}${routeArt(route())}</div><div class="transfer-slot loading-transfer"></div>${heading('LOADING CIRCUIT', escape(level().name))}<div class="session-facts">${facts()}</div><div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
     } else if (screen === 'settings') {
-      content.innerHTML = `${heading('PREFERENCES', 'Set your pace.')}<div class="settings-layout"><section class="settings-form"><label><span>Graphics <small>High adds shadows and postprocessing. Low reduces GPU load.</small></span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume <small>Tunes has its own volume control.</small></span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion <small>Reduces decorative motion and distortion.</small></span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p>Saved on this device.</p></section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
+      content.innerHTML = `${heading('PREFERENCES', 'Set your pace.')}<div class="settings-layout"><section class="settings-form"><label><span>Graphics <small>High adds ambient occlusion and postprocessing. Low reduces GPU load.</small></span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume <small>Tunes has its own volume control.</small></span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion <small>Reduces decorative motion and distortion.</small></span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p>Saved on this device.</p></section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
         [
           'Menus',
           [
@@ -304,6 +317,17 @@ export function createFrontend(host) {
           ],
         ],
         [
+          'Free camera',
+          [
+            ['F', 'Enter / leave free camera'],
+            ['WASD / Arrows', 'Move'],
+            ['Q / E', 'Move down / up'],
+            ['Drag', 'Look around'],
+            ['P', 'Toggle live dev tools / FPS'],
+            ['Esc', 'Close dev tools, then leave free camera'],
+          ],
+        ],
+        [
           'Tunes',
           [
             ['M', 'Play / pause'],
@@ -320,6 +344,11 @@ export function createFrontend(host) {
           '',
         )}</section></div><div class="front-actions">${button('settings-back', '← Back')}</div>`;
       content.querySelector('select').value = settings.quality;
+      content
+        .querySelector('.settings-form')
+        .insertAdjacentHTML('beforeend', vesperGraphicsControls(settings));
+      content.querySelector('[data-graphics-reset]').onclick = () =>
+        saveSettings(vesperGraphicsDefaults);
     } else if (screen === 'results') {
       const sprint = isSprint(loadedId);
       const player = lastResults?.standings.find(
@@ -520,12 +549,17 @@ export function createFrontend(host) {
       game = null;
       loadedId = null;
       gameHost.replaceChildren();
+      if (special && artPass) readArtView(parameters);
       const { createGame } = await import('../core/game.js');
       signal.throwIfAborted();
       const params = special
         ? new URLSearchParams(parameters)
         : new URLSearchParams();
       params.set('level', id);
+      // An art pass inspects the finished environment, never a route study or
+      // jump-test scene accidentally retained in a copied URL.
+      if (artPass)
+        for (const flag of runtimeEntryParameters) params.delete(flag);
       const created = await createGame({
         host: gameHost,
         parameters: params,
@@ -645,6 +679,7 @@ export function createFrontend(host) {
     controller?.abort();
     error = '';
     progress = '';
+    if (special) leaveReview();
     setScreen(destination);
   }
   function leaveReview() {
@@ -655,6 +690,21 @@ export function createFrontend(host) {
     game?.dispose();
     game = null;
     loadedId = null;
+    remember();
+  }
+  async function launchSpecial() {
+    setScreen('loading');
+    try {
+      const current = await prepare();
+      if (screen !== 'loading') return;
+      setScreen('review');
+      if (artPass) {
+        current.setFlyView(readArtView(parameters));
+        current.openDevTools();
+      }
+    } catch {
+      // prepare owns the loading error and retry UI.
+    }
   }
   function goHome() {
     if (screen === 'loading') {
@@ -714,7 +764,8 @@ export function createFrontend(host) {
     },
     cancel,
     retry() {
-      void launch();
+      if (special) void launchSpecial();
+      else void launch();
     },
     'retry-race'() {
       setScreen('race');
@@ -999,12 +1050,7 @@ export function createFrontend(host) {
     error = `Unknown circuit: ${requested}. Choose another circuit to continue.`;
     setScreen('loading');
   } else if (special) {
-    setScreen('loading');
-    void prepare()
-      .then(() => {
-        if (screen === 'loading') setScreen('review');
-      })
-      .catch(() => {});
+    void launchSpecial();
   } else {
     setScreen('circuits');
   }

@@ -861,11 +861,8 @@ export function createFrontend(host) {
       !e.relatedTarget?.closest?.('[data-level]')
     )
       showDetail(selected);
-    if (
-      e.target.closest('button[data-ship]') &&
-      !e.relatedTarget?.closest?.('button[data-ship]')
-    )
-      showShip(shipId);
+    const shipList = e.target.closest('.ship-list');
+    if (shipList && !shipList.contains(e.relatedTarget)) showShip(shipId);
   }
   shell.addEventListener('focusout', restoreSelection, { signal: life.signal });
   shell.addEventListener('pointerout', restoreSelection, {

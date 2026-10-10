@@ -1224,12 +1224,14 @@ body[data-screen='results'] #interface {
 }
 .workbench-layout .ship-list {
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 5px;
+  gap: 0;
+  border: 1px solid #373737;
 }
 .workbench-layout .ship-list button {
   justify-content: center;
   min-width: 0;
   padding: 12px 3px;
+  border: 0;
 }
 .workbench-layout .ship-list button > span,
 .workbench-layout .ship-list small {
@@ -1240,8 +1242,11 @@ body[data-screen='results'] #interface {
   letter-spacing: 0;
 }
 .workbench-layout .ship-list button.selected {
-  border-left-width: 1px;
+  border: 0;
   box-shadow: inset 0 -2px #b91b1b;
+}
+.workbench-layout .ship-list button:not(:first-child) {
+  border-left: 1px solid #373737;
 }
 .workbench-layout .ship-details h2 {
   font-size: clamp(28px, 2.6vw, 40px);

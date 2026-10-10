@@ -27,8 +27,10 @@ async function digest(paths) {
 export async function menuCatalog({
   loadModule = (path) => import(pathToFileURL(path)),
 } = {}) {
+  // Local inspection captures are not rendered inputs and differ by checkout.
   const shared = (await files(resolve(root, 'src'))).filter(
-    (p) => !/\/(levels|frontend|audio|ui)\//.test(p) && !/\.test\./.test(p),
+    (p) =>
+      !/\/(levels|frontend|audio|ui|evidence)\//.test(p) && !/\.test\./.test(p),
   );
   const ships = await files(resolve(root, 'public/assets/ships'));
   const sharedHash = await digest([

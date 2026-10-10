@@ -863,10 +863,8 @@ export function createFrontend(host) {
     { signal: life.signal },
   );
   function restoreSelection(e) {
-    if (
-      e.target.closest('[data-level]') &&
-      !e.relatedTarget?.closest?.('[data-level]')
-    )
+    const circuitList = e.target.closest('.circuit-grid');
+    if (circuitList && !circuitList.contains(e.relatedTarget))
       showDetail(selected);
     const shipList = e.target.closest('.ship-list');
     if (shipList && !shipList.contains(e.relatedTarget)) showShip(shipId);

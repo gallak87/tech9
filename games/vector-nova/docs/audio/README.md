@@ -1,35 +1,51 @@
 # Gameplay music
 
-Finish one Halcyon track, then use the process for the remaining circuits. **Codex composes, renders and revises; the user listens and gives musical feedback.** Keep one current source and preview per track. Overwrite the preview and update the brief in place; no numbered renders, comparison copies or iteration logs.
+Build music we want to race to: deep, futuristic and immersive, with enough drive to stay engaging. The direction is sustained synth harmony, fluid bass and evolving texture; big EDM drops are welcome. Avoid cheesy piano/plinky leads, busy note patterns, monotonous percussion and long quiet intros. Vary groove, harmony and BPM across a pool that can grow toward roughly 16 tracks.
 
-- [Halcyon brief](halcyon.md)
-- [Circuit directions and reusable brief](circuit-briefs.md)
-- [Roadmap](../../ROADMAP.md), [art direction](../ART_BIBLE.md)
+**Codex writes prompts and runs generation; the user listens and makes the musical decisions.** Blue Hour anchors Halcyon; `mix` tracks explore the wider soundtrack. Keep one current prompt and WAV per song. Overwrite revisions and delete rejected songs, including their catalog entries; no numbered takes, evidence folders or iteration reports.
 
-## In-game audition
+## Setup
 
-Open `?music=1` (or `?level=halcyon&music=1`) for Music Lab. It offers play/pause, seeking, restart, volume, looping, **Reload sketch** and **Open audio** for a local file. No upload is involved. Music starts when you press Play, continues through game pause/restarts, and pauses when the tab is hidden. Its independent volume bypasses the effects/underwater mix for composition auditions. Its controls do not drive the ship. Circuit selection preserves `music=1`; ordinary URLs do not load the player or request its WAV.
+From `games/vector-nova`, on native Apple Silicon macOS, install Python 3, Git, curl, Xcode command-line tools (`xcode-select --install`) and CMake (`brew install cmake` if using Homebrew), then:
 
-Run `node assets/levels/halcyon/audio/render.mjs` from the game directory after editing the score or instruments, then click **Reload sketch**. The renderer overwrites `public/assets/levels/halcyon/audio/blue-hour-preview.wav`. Automatic race playback comes after the composition works.
+```sh
+npm run audio:setup
+npm run audio:generate -- --check
+```
+
+Setup pins the native runtime, ggml submodule and approximately 4.1 GiB of model weights using [the lock file](../../tools/audio-models.json). It builds Metal/Accelerate binaries and verifies SHA-256 checksums. Everything downloaded or built stays in gitignored `.audio-model/acestep.cpp/`, including `models/` and licence files. Rerunning reuses verified files and resumes partial downloads. Other platforms are not scripted yet.
+
+To reuse downloads from an existing installation, add `--models-from /path/to/acestep.cpp/models` to `npm run audio:setup --`. Generation uses the local cache by default; `ACESTEP_ROOT` can point to another prepared runtime. The Q8 Turbo / 0.6B planner and 256-frame VAE tiles target roughly 8 GB of working memory, leaving room for other apps on a 16 GB Mac. Run one generation at a time.
+
+## Generate
+
+Edit a [current prompt](../../assets/levels/halcyon/audio/README.md), then match its tempo/key and destination:
+
+```sh
+npm run audio:generate -- \
+  --prompt assets/levels/halcyon/audio/ionwake.txt \
+  --output public/assets/levels/halcyon/audio/ionwake.wav \
+  --bpm 134 --key "D minor"
+```
+
+Defaults regenerate Blue Hour at 128 BPM / F♯ minor. Length defaults to 120 seconds; use `--duration 30` for a short sketch (1–120 seconds supported). Existing songs use seed 70931, 4/4 and 8 diffusion steps. The planner preserves the supplied caption and metadata; instructions about arrangement are requests, not guarantees.
+
+A successful render atomically replaces the selected WAV: stereo 48 kHz / 16-bit, peak −1.5 dBFS, 5 ms edge fades. Native duration may vary by up to one second. Requests and intermediate float audio are temporary and cleaned automatically. The game needs only the WAVs, not Python or models.
 
 ## Process
 
-1. **Brief.** Set the intended feeling, groove, instrument roles and space needed for gameplay sounds.
-2. **Sketch.** Render about 30 seconds with the core groove and motif. The user listens; translate their feedback into concrete musical changes and overwrite the preview. Reactions such as “too frantic,” “cheesy keys” or “I like 0:12” are enough.
-3. **Arrange.** Once the direction works, develop it into a roughly two-minute loop with an early identity, variation and a natural return. Musical sections need not align with corners or a fixed lap time.
-4. **Mix in gameplay.** Refine timbre and balance against propulsion, boost, devices and race cues. Add stems only when they help solve a mixing problem.
-5. **Finish.** Resolve listening feedback, verify the delivered loop and playback lifecycle, then start the next circuit using the same brief format.
+1. Pick a feeling, BPM/key, groove and instrument roles. Distinguish songs through rhythm and harmony as well as timbre.
+2. Ask for an established groove immediately: e.g. “cold open, kick/snare/bass/chords together on the first downbeat.” Give the two-minute piece contrast, drops and a changing return. Do not spend a quarter of it waiting for the music to begin.
+3. Render sequentially, listen in Tunes, translate feedback into one concrete prompt change and overwrite. Technical checks can catch silence/clipping; they cannot judge whether a groove feels good.
+4. For a new song, add its prompt/WAV, title/BPM/`tags` in [tracks.js](../../src/audio/tracks.js), its row in the source README and an entry in [ASSET_MANIFEST.json](../ASSET_MANIFEST.json). Blue Hour uses `['halcyon']`; general auditions use `['mix']`.
+5. Finish gameplay balance and the audible loop transition with the user before treating a song as a finished circuit soundtrack. [Circuit briefs](circuit-briefs.md) provide starting directions; a reusable generation Skill is [roadmapped](../../ROADMAP.md).
 
-The user judges groove, timbre, world fit and fatigue. Codex checks clipping, silence, timing and loop boundaries; these checks do not establish whether the music sounds good. Keep feedback in chat and current decisions in the brief.
+## In-game audition
+
+Tunes is enabled on every circuit by default; `?music=0` disables it for development. Music starts with race/practice start; a manual pause is respected on subsequent starts in that page session. **M** plays/pauses, **,** and **.** change songs, and **/** expands/collapses. Repeat is off initially: songs advance through the list, and Shuffle changes that order. Repeat loops the current song when enabled. Song, volume, repeat, shuffle and collapsed state are saved locally. Refresh or switch away/back after replacing a WAV.
+
+The audition mix is independent of game pause/restarts and environment effects; hiding the tab pauses it. Keep browser/player testing manual for this iteration; this pass is desktop-only.
 
 ## Authoring approach
 
-The [Halcyon source](../../assets/levels/halcyon/audio/README.md) separates editable notes from original synthesized instruments. A Node.js renderer writes stereo PCM directly to WAV, wrapping note/effect tails into a circular buffer. It needs no additional packages. Investigate other tools only if sound quality or editing becomes a bottleneck.
-
-- Editable score, instruments, render instructions and provenance: `assets/levels/<slug>/audio/`.
-- Current playable export: `public/assets/levels/<slug>/audio/`.
-- Keep tempo, sample rate, loop boundaries and any sample origins/licences with the source. Choose delivery compression when integrating the finished track.
-
-## Completion
-
-The user accepts the complete track after repeated listening and a gameplay audition. The delivered asset has no clipping, unexplained silence or audible seam, and essential game cues remain clear. Integrated music needs independent volume, gesture unlock, defined pause/restart behavior and cleanup on level exit; asset failure must leave racing usable. Relevant lifecycle checks and a production build accompany integration. This audio pass is desktop-only; defer mobile/portrait verification unless requested.
+Prompts and source/licence notes live in `assets/levels/<slug>/audio/`; playable exports live in `public/assets/levels/<slug>/audio/`. The current pool shares the Halcyon folder, while metadata tags express circuit assignment. See the [Halcyon brief](halcyon.md) and [source catalog](../../assets/levels/halcyon/audio/README.md). Choose delivery compression and final race lifecycle behavior when integrating the finished soundtrack.

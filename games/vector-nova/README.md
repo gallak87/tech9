@@ -61,6 +61,7 @@ WebGL2 is required. Gameplay uses local assets and needs no account or backend. 
 - Escape: pause/settings/restart; after a two-lap run, return to paddock. I: inspect the ship. C: alternate camera.
 - F: free camera on every circuit; drag to look, WASD move, Q/E down/up at 200 m/s. F/Escape returns.
 - Menus: Tab/Shift-Tab, Enter/Space. Small viewports expose pointer controls.
+- Tunes: M plays/pauses music, comma/period select songs, and / expands/collapses the player. Music starts when you launch racing or practice; repeat defaults off.
 - Prototype gamepad: left stick steering, RT throttle, LT brake, A boost, B airbrake.
 
 Bend assistance is 0.3; the player steers the remaining turn. Magnetic adhesion follows road pitch/roll and holds a parked craft on slopes. Physical gamepad/mobile use, independent audio listening and foreground frame pacing still need direct verification.
@@ -73,4 +74,4 @@ Package `prepare` installs Husky; the pre-commit hook runs ESLint/Prettier throu
 
 `npm run verify` and `npm run verify:orbital` use Chrome/Playwright for short real-input checks. Configure `VN_URL`, `VN_BROWSER_CHANNEL`, `VN_BROWSER_PATH` and `VN_EVIDENCE` as needed; verify the intended build and use a free port when starting a server. Review browsers stay hidden/headless, with temporary output in ignored `.experiments/`.
 
-Read [architecture](ARCHITECTURE.md) for runtime contracts, [art direction](docs/ART_BIBLE.md) for visual principles and the [roadmap](ROADMAP.md) for planned features. Assets have editable sources and [provenance](docs/ASSET_MANIFEST.json); third-party notices remain in [docs/licenses](docs/licenses/). Historical reviews and completed handoffs are available in Git.
+Read [architecture](ARCHITECTURE.md) for runtime contracts, [art direction](docs/ART_BIBLE.md) for visual principles, [audio generation](docs/audio/README.md) for the local music workflow and the [roadmap](ROADMAP.md) for planned features. Assets have editable sources and [provenance](docs/ASSET_MANIFEST.json); third-party notices remain in [docs/licenses](docs/licenses/). Historical reviews and completed handoffs are available in Git.

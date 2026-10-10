@@ -40,7 +40,8 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 - [ ] Detached crash camera: prioritize before the lava feedback, soundtracks, podium and menu passes below. When the ship flies off after a missed jump, detach the chase camera and frame the crash from a stable viewpoint so the player can watch the impact and bouncing without the camera inheriting that motion; blend back to normal chase on recovery.
 - [ ] Cindercoil: add the missing lava road flames and HUD/ship smoke when driving over lava, reusing Helion's effects through shared helpers where appropriate.
-- [ ] Gameplay soundtracks: add one complete gameplay music track per level, matching each circuit's identity. Start with the [Halcyon pilot and audio process](docs/audio/README.md), then expand using the proven workflow.
+- [ ] Gameplay soundtracks: grow the audition pool toward roughly 16 distinct songs, then finish one gameplay track per circuit, including mix/loop delivery and race playback. Use the [audio guide and Halcyon direction](docs/audio/README.md).
+- [ ] Audio generation Skill: package the proven prompt → sequential local render → Tunes audition → human feedback workflow. Reference the audio guide and scripts; carry the musical motivations, metadata/provenance updates and one-current-take cleanup rules without duplicating docs or collecting iteration evidence.
 - [ ] Author collision worlds for additional circuits and broader static Saffron scenery; propagate actual contact sparks as they opt in and explore bounded scrape marks. Keep racer body contact separate.
 - [ ] Halcyon: fix remaining ground flicker, especially white areas and street-lane markings.
 - [ ] Asterion: locate and fix the reported flickering road section.

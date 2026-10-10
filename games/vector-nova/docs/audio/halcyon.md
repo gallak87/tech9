@@ -1,28 +1,11 @@
-# Halcyon Speedway — Blue Hour
+# Halcyon — Blue Hour
 
-[Current preview](../../public/assets/levels/halcyon/audio/blue-hour-preview.wav) · [Editable source and render instructions](../../assets/levels/halcyon/audio/README.md)
+[Current WAV](../../public/assets/levels/halcyon/audio/blue-hour-preview.wav) · [Prompt](../../assets/levels/halcyon/audio/prompt.txt) · [Generation guide](README.md)
 
-## World and feeling
+Halcyon is the warmup city circuit: blue-hour steel and sky, a warm horizon, skyline ascent, corkscrew and canal plunge. The music should feel focused, fluid, energizing and futuristic. See its [metadata](../../src/levels/halcyon/metadata.js), [route](../../src/levels/halcyon/track/model.js) and [art direction](../ART_BIBLE.md).
 
-Halcyon is the introductory elevated city circuit: blue-hour steel and sky, a warm horizon, amber guidance and canal courts. Its 5 km route includes a skyline ascent, sustained corkscrew and canal plunge. The music should make the warmup feel focused, fluid and quietly futuristic. References: [metadata](../../src/levels/halcyon/metadata.js), [route](../../src/levels/halcyon/track/model.js), [devices](../../src/levels/halcyon/devices.js) and [art direction](../ART_BIBLE.md).
+Blue Hour's accepted direction is 128 BPM / F♯ minor / 4/4: rolling sub-bass, sustained synth chords, evolving filters and strong EDM drops. Keep melody sparse and avoid piano, bouncy lead riffs and busy arpeggios. The two-minute arc asks for immediate groove, tension, a large drop, a spacious breakdown, a changed second drop and rhythmic outro. Specific keywords have not been isolated as causes of the result.
 
-## Musical direction
+The user has approved the musical direction; gameplay balance and the repeat seam still need listening feedback. Other `mix` songs can explore different BPMs, harmonies and rhythms without being assigned to Halcyon.
 
-| Role          | Current direction                                                                                |
-| ------------- | ------------------------------------------------------------------------------------------------ |
-| Feel          | Cyberpunk / futuristic deep trance; immersive focus music with steady forward motion             |
-| Tempo / meter | 128 BPM, 4/4; 16 bars make the 30-second sketch                                                  |
-| Harmony       | F♯ minor, extended voicings changing every four bars                                             |
-| Melody        | Sparse lower-register phrases, sustained filtered synth, rounded attacks and slight pitch glide  |
-| Bass          | Rounded offbeat pulse, mostly roots, with room around the kick and propulsion                    |
-| Texture       | Slow detuned pads, restrained stereo echoes and gentle filter movement                           |
-| Percussion    | Consistent four-beat kick, subdued clap and light offbeat hats                                   |
-| Avoid         | Piano/key-like attacks, bright bouncing arpeggios, busy hooks, constant fills and dramatic drops |
-
-The listening decision is whether this palette feels deep and absorbing without becoming dull or distracting. Revise the current source and preview directly from feedback.
-
-## Arrangement and game context
-
-Develop the sketch into a roughly two-minute loop only after the direction works. Introduce the groove early, vary texture and phrasing, and keep momentum through the return. Drivers complete the two-lap race at different speeds, so sections do not synchronize to route locations.
-
-Music Lab is an independent audition player. For eventual race integration, begin on GO, retain musical position through lap crossings and recovery, pause with gameplay, restart for a fresh race, and release playback on level exit. Use independent Music volume under overall volume. Check propulsion, boost, Vector/Aegis and countdown/lap cues together with the music before accepting the mix.
+For eventual full integration, decide how music follows race pause/restart, recovery and level exit; retain position across laps and protect essential race cues. Tunes currently starts from the launch interaction and otherwise remains an independent audition player. Musical sections need not align with corners or a fixed lap time.

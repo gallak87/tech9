@@ -1,24 +1,20 @@
-# Halcyon — Blue Hour
+# Current audio sources
 
-Original deep-trance sketch: 16 bars, 128 BPM, 4/4, F♯ minor, 30 seconds. Audition through the opt-in `?music=1` player.
+Blue Hour is the Halcyon direction; the other songs are tagged `mix`. These are roughly two-minute instrumental auditions, with gameplay balance and loop transitions still subject to listening feedback.
 
-- `score.mjs`: editable harmony, melody, tempo and deterministic seed.
-- `synthesize.mjs`: PCM instruments, rhythmic arrangement and mix.
-- `render.mjs`: offline render and stereo 16-bit WAV export.
+| Song          | Tempo / key        | Current prompt                         | Playable WAV            |
+| ------------- | ------------------ | -------------------------------------- | ----------------------- |
+| Blue Hour     | 128 BPM / F♯ minor | [prompt.txt](prompt.txt)               | `blue-hour-preview.wav` |
+| Phase Shift   | 132 BPM / E minor  | [phase-shift.txt](phase-shift.txt)     | `phase-shift.wav`       |
+| Nightshift    | 122 BPM / F♯ minor | [nightshift.txt](nightshift.txt)       | `nightshift.wav`        |
+| Undertow      | 128 BPM / F♯ minor | [undertow.txt](undertow.txt)           | `undertow.wav`          |
+| Ionwake       | 134 BPM / D minor  | [ionwake.txt](ionwake.txt)             | `ionwake.wav`           |
+| Event Horizon | 138 BPM / G minor  | [event-horizon.txt](event-horizon.txt) | `event-horizon.wav`     |
+| Slipstream    | 128 BPM / D minor  | [slipstream.txt](slipstream.txt)       | `slipstream.wav`        |
+| Mirage        | 124 BPM / B minor  | [mirage.txt](mirage.txt)               | `mirage.wav`            |
 
-From `games/vector-nova`:
+Current prompts are linked above; WAVs are in `public/assets/levels/halcyon/audio/`. [tracks.js](../../../../src/audio/tracks.js) owns title, BPM, tags and the fixed picker order, with Blue Hour first. See the [audio guide](../../../../docs/audio/README.md) for setup, generation commands, settings and iteration rules, and the [Halcyon brief](../../../../docs/audio/halcyon.md) for its world direction.
 
-```sh
-nvm use 22
-node assets/levels/halcyon/audio/render.mjs
-```
+## Source and licence
 
-Requires only Node.js. Each render overwrites `public/assets/levels/halcyon/audio/blue-hour-preview.wav`; click **Reload sketch** in Music Lab. Technical checks print to the console without saving reports or comparison copies.
-
-Note tails, stereo echoes and room reflections wrap into a circular buffer. The loop is samples `[0, 1323000)` at 44,100 Hz, stereo, lasting 30 seconds. Peak normalization targets −1.5 dBFS; this is not a LUFS measurement.
-
-## Provenance
-
-Composed and synthesized for VECTOR//NOVA by Codex. All notes, synthesis patches, percussion noise and room reflections come from the accompanying source. No external samples, recordings, soundfonts or music-generation service are used.
-
-See the [current brief](../../../../docs/audio/halcyon.md) for musical direction. The user is the listening critic.
+Generated locally from project-authored prompts without reference audio using [ACE-Step 1.5](https://github.com/ace-step/ACE-Step-1.5), [acestep.cpp](https://github.com/ServeurpersoCom/acestep.cpp) and the [published GGUF weights](https://huggingface.co/Serveurperso/ACE-Step-1.5-GGUF). Their MIT licence files remain with the installed source/models. [Pinned revisions and model checksums](../../../../tools/audio-models.json) define the local setup. The game ships generated WAVs only.

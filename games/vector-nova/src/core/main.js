@@ -220,6 +220,7 @@ async function boot() {
     events = [],
     audio = lifetime.own(createAudio(definition.audio)),
     effects = lifetime.own(createEffects(scene, definition.effects));
+  let musicPlayer = null;
   let rig = createCameraRig(camera, definition.camera, inspectionBounds);
   let inspectionTab = 'fleet',
     inspectedRival = RIVAL_SHIPS[0],
@@ -479,6 +480,7 @@ async function boot() {
     sceneShip();
     const newRun =
       mode === 'title' || mode === 'inspection' || mode === 'overview';
+    if (newRun) musicPlayer?.startWithGame();
     if (newRun && playtest) {
       audio.unlock().catch(() => {});
       repeatPlaytest();
@@ -528,6 +530,7 @@ async function boot() {
     ui.setMode(mode);
   }
   function resume() {
+    musicPlayer?.startWithGame();
     flyCamera?.leave();
     if (pausedCountdown) {
       armCountdown(true);
@@ -542,6 +545,7 @@ async function boot() {
   }
   function restart(compete = competition, withCountdown = false) {
     if (shipLoading) return;
+    if (withCountdown) musicPlayer?.startWithGame();
     flyCamera?.leave();
     cancelCountdown();
     scenario = 'staging';
@@ -570,6 +574,7 @@ async function boot() {
     if (withCountdown) armCountdown();
   }
   function repeatPlaytest() {
+    musicPlayer?.startWithGame();
     window.__VN.loadScenario(selectedPlaytestCase.scenario, 7);
     ui.notice(
       `${selectedPlaytestCase.label.toUpperCase()} · UNTIMED · R TO REPEAT`,
@@ -900,9 +905,12 @@ async function boot() {
     }),
   );
   flyCamera.bindControls(ui.root);
-  if (parameters.get('music') === '1') {
+  if (parameters.get('music') !== '0') {
     const { createMusicPlayer } = await import('../audio/player.js');
-    lifetime.own(createMusicPlayer(host, { clearInput: () => input.clear() }));
+    musicPlayer = lifetime.own(
+      createMusicPlayer(host, { clearInput: () => input.clear() }),
+    );
+    if (['racing', 'countdown'].includes(mode)) musicPlayer.startWithGame();
   }
   renderer.domElement.addEventListener(
     'webglcontextlost',

@@ -63,6 +63,7 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 ### Gate 8: cups and front end
 
+- [ ] Loading screens: design two variants, one for initial startup and one for transitions between levels. Presentation and content TBD; consider keeping Tunes visible and music uninterrupted during level transitions.
 - [ ] Give the paddock, level picker and overall menu flow a cohesive game-ready UI pass. Start with mode selection, such as **Championship** versus **Solo**, with level selection inside Solo; design the final mode/ship/circuit/launch flow before implementation. Retain ship stats, saved choices and Inspect Ships; each step should fit without scrolling.
 - [ ] Carry shared ship selection into future race modes and add a Founders Cup over Halcyon/Asterion/Nacre. Proposed 12-place points: 25/20/16/13/11/9/7/5/4/3/2/1; ties by wins, then total time. Save between races with restart/abandon controls.
 - [ ] Connect Quick Race, Cup and Time Trial to working actions; rewards unlock cosmetics rather than stronger stats. Retain completed content in Practice/Quick Race.

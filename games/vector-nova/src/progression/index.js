@@ -1,13 +1,25 @@
+export const vesperGraphicsDefaults = {
+  vesperClearcoat: true,
+  vesperResinDetail: true,
+  vesperSurfaceDetail: true,
+};
 export const defaults = {
   volume: 0.35,
   quality: 'high',
   reducedMotion: false,
   difficulty: 'easy',
+  ...vesperGraphicsDefaults,
 };
 let current;
 const listeners = new Set();
 function normalize(saved = {}) {
   return {
+    ...Object.fromEntries(
+      Object.entries(vesperGraphicsDefaults).map(([key, fallback]) => [
+        key,
+        typeof saved[key] === 'boolean' ? saved[key] : fallback,
+      ]),
+    ),
     volume: Number.isFinite(saved.volume)
       ? Math.max(0, Math.min(1, saved.volume))
       : defaults.volume,

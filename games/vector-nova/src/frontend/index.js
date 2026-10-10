@@ -9,7 +9,9 @@ import {
   loadSettings,
   saveSettings,
   subscribeSettings,
+  vesperGraphicsDefaults,
 } from '../progression/index.js';
+import { vesperGraphicsControls } from '../ui/graphics-settings.js';
 import { createMusicPlayer } from '../audio/player.js';
 import { assetURL } from '../assets/url.js';
 import '../ui/style.css';
@@ -255,7 +257,7 @@ export function createFrontend(host) {
     } else if (screen === 'loading') {
       content.innerHTML = `<section class="loading-copy"><div class="loading-card">${picture(route())}${routeArt(route())}</div><div class="transfer-slot loading-transfer"></div>${heading('LOADING CIRCUIT', escape(level().name))}<div class="session-facts">${facts()}</div><div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
     } else if (screen === 'settings') {
-      content.innerHTML = `${heading('PREFERENCES', 'Set your pace.')}<div class="settings-layout"><section class="settings-form"><label><span>Graphics <small>High adds shadows and postprocessing. Low reduces GPU load.</small></span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume <small>Tunes has its own volume control.</small></span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion <small>Reduces decorative motion and distortion.</small></span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p>Saved on this device.</p></section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
+      content.innerHTML = `${heading('PREFERENCES', 'Set your pace.')}<div class="settings-layout"><section class="settings-form"><label><span>Graphics <small>High adds ambient occlusion and postprocessing. Low reduces GPU load.</small></span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume <small>Tunes has its own volume control.</small></span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion <small>Reduces decorative motion and distortion.</small></span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p>Saved on this device.</p></section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
         [
           'Menus',
           [
@@ -287,6 +289,17 @@ export function createFrontend(host) {
           ],
         ],
         [
+          'Free camera',
+          [
+            ['F', 'Enter / leave free camera'],
+            ['WASD / Arrows', 'Move'],
+            ['Q / E', 'Move down / up'],
+            ['Drag', 'Look around'],
+            ['P', 'Toggle live dev tools / FPS'],
+            ['Esc', 'Close dev tools, then leave free camera'],
+          ],
+        ],
+        [
           'Tunes',
           [
             ['M', 'Play / pause'],
@@ -303,6 +316,11 @@ export function createFrontend(host) {
           '',
         )}</section></div><div class="front-actions">${button('settings-back', '← Back')}</div>`;
       content.querySelector('select').value = settings.quality;
+      content
+        .querySelector('.settings-form')
+        .insertAdjacentHTML('beforeend', vesperGraphicsControls(settings));
+      content.querySelector('[data-graphics-reset]').onclick = () =>
+        saveSettings(vesperGraphicsDefaults);
     } else if (screen === 'results') {
       const player = lastResults?.standings.find(
         (entry) => entry.id === 'player',

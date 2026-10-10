@@ -3,7 +3,11 @@ import * as T from 'three';
 const FLY_SPEED = 200;
 
 /** Shared inspection controls. Simulation ownership stays in core/main. */
-export function createFlyCamera(camera, canvas, { toggle, exit } = {}) {
+export function createFlyCamera(
+  camera,
+  canvas,
+  { toggle, exit, settings } = {},
+) {
   const abort = new AbortController();
   const keys = new Set();
   const touches = new Map();
@@ -49,19 +53,27 @@ export function createFlyCamera(camera, canvas, { toggle, exit } = {}) {
     'keydown',
     (event) => {
       if (event.target.closest?.('[data-music-player]')) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (active && event.code === 'Escape') {
         event.preventDefault();
         event.stopPropagation();
         if (!event.repeat) exit?.();
         return;
       }
+      if (active && event.code === 'KeyP') {
+        event.preventDefault();
+        event.stopPropagation();
+        clear();
+        if (!event.repeat) settings?.();
+        return;
+      }
+      if (event.target.closest?.('[data-fly-settings]')) return;
       if (
         event.target.closest?.(
           'input, select, textarea, [contenteditable="true"]',
         )
       )
         return;
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.code === 'KeyF') {
         event.preventDefault();
         event.stopPropagation();
@@ -87,6 +99,9 @@ export function createFlyCamera(camera, canvas, { toggle, exit } = {}) {
   );
   listen(window, 'keyup', (event) => keys.delete(event.code));
   listen(window, 'blur', clear);
+  listen(document, 'focusin', (event) => {
+    if (event.target.closest?.('[data-fly-settings]')) clear();
+  });
   listen(document, 'visibilitychange', () => {
     if (document.hidden) clear();
   });

@@ -1098,7 +1098,7 @@ export async function createGame({
       );
     const input = lifetime.own(
       createInput((command) => {
-        if (suspended || mode === 'results') return;
+        if (suspended || mode === 'results' || mode === 'fly') return;
         if (finishAt !== null && !resultsDismissed && command !== 'pause')
           return;
         if (command === 'pause') {
@@ -1127,7 +1127,10 @@ export async function createGame({
     const flyCamera = lifetime.own(
       createFlyCamera(camera, renderer.domElement, {
         toggle: toggleFly,
-        exit: leaveFly,
+        exit: () => {
+          if (!ui.closeFlySettings()) leaveFly();
+        },
+        settings: () => ui.toggleFlySettings(),
       }),
     );
     flyCamera.bindControls(ui.root);
@@ -1384,6 +1387,7 @@ export async function createGame({
           }),
         );
       else view.render(now);
+      ui.updateDevTools(now, renderer.info.render);
       world.afterRender(frame);
       for (const event of view.drainStormEvents()) audio.event(event);
       ui.update(state, race, runtime.snapshot(), {

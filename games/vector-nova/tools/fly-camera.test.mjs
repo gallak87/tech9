@@ -16,10 +16,12 @@ function fixture() {
   const camera = new PerspectiveCamera();
   camera.position.set(3, 6, 9);
   let toggles = 0,
-    exits = 0;
+    exits = 0,
+    settings = 0;
   const fly = createFlyCamera(camera, canvas, {
     toggle: () => toggles++,
     exit: () => exits++,
+    settings: () => settings++,
   });
   const fire = (target, type, fields = {}) => {
     const event = new Event(type, { cancelable: true });
@@ -32,6 +34,7 @@ function fixture() {
     fly,
     fire,
     commands: () => [toggles, exits],
+    settingsOpened: () => settings,
     press: (code) => fire(window, 'keydown', { code }),
     release: (code) => fire(window, 'keyup', { code }),
     dispose() {
@@ -61,6 +64,29 @@ test('fly translation stays at 200 m/s across directions, Shift and wheel input'
     const afterWheel = f.camera.position.clone();
     for (let i = 0; i < 120; i++) f.fly.update(1 / 120);
     assert.ok(Math.abs(f.camera.position.distanceTo(afterWheel) - 200) < 1e-8);
+  } finally {
+    f.dispose();
+  }
+});
+test('dev-tools shortcut preserves the camera and clears held movement', () => {
+  const f = fixture();
+  try {
+    f.press('KeyP');
+    assert.equal(f.settingsOpened(), 0);
+    f.fly.enter();
+    f.press('KeyW');
+    f.fly.update(0.1);
+    const position = f.camera.position.clone();
+    f.press('KeyP');
+    f.fly.update(0.1);
+    assert.equal(f.settingsOpened(), 1);
+    assert.deepEqual(f.camera.position, position);
+    assert.equal(f.fly.active, true);
+    f.fire(window, 'keydown', { code: 'KeyP', repeat: true });
+    assert.equal(f.settingsOpened(), 1);
+    f.fly.dispose();
+    f.press('KeyP');
+    assert.equal(f.settingsOpened(), 1);
   } finally {
     f.dispose();
   }

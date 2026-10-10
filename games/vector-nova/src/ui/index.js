@@ -2,6 +2,8 @@ import './style.css';
 import { SHIPS } from '../ships/catalog.js';
 import { RIVAL_SHIPS } from '../ships/rivals.js';
 import { circuitURL } from '../levels/contract.js';
+import { vesperGraphicsDefaults } from '../progression/index.js';
+import { vesperGraphicsControls } from './graphics-settings.js';
 
 const racerColors = Object.freeze({
   player: '#fb7959',
@@ -353,6 +355,69 @@ export function createUI(
   flyControls.innerHTML = `<div class="fly-heading"><b>FREE CAMERA <small>SESSION PAUSED</small></b><button id="fly-return">RETURN · F / ESC</button></div><p>Drag to look · WASD / arrows move · Q / E down / up</p><div class="fly-touch"><button data-fly="KeyA" aria-label="Fly left">←</button><button data-fly="KeyW" aria-label="Fly forward">FORWARD</button><button data-fly="KeyD" aria-label="Fly right">→</button><button data-fly="KeyQ" aria-label="Fly down">DOWN</button><button data-fly="KeyS" aria-label="Fly backward">BACK</button><button data-fly="KeyE" aria-label="Fly up">UP</button></div>`;
   root.append(flyControls);
   $('fly-return').onclick = actions.leaveFly;
+  const flySettingsButton = document.createElement('button');
+  flySettingsButton.id = 'fly-settings-toggle';
+  flySettingsButton.textContent = 'DEV TOOLS · P';
+  flySettingsButton.setAttribute('aria-expanded', 'false');
+  flySettingsButton.setAttribute('aria-controls', 'fly-settings');
+  flyControls
+    .querySelector('.fly-heading')
+    .insertBefore(flySettingsButton, $('fly-return'));
+  const flySettings = document.createElement('section');
+  flySettings.id = 'fly-settings';
+  flySettings.className = 'hidden';
+  flySettings.dataset.flySettings = '';
+  flySettings.setAttribute('aria-label', 'Free camera dev tools');
+  flySettings.innerHTML = `<div class="fly-heading"><b>DEV TOOLS</b><button id="fly-settings-close" aria-label="Close dev tools">CLOSE · ESC</button></div><dl class="dev-metrics"><div><dt>FPS</dt><dd id="dev-fps">—</dd></div><div><dt>Frame avg</dt><dd id="dev-frame-ms">—</dd></div><div><dt>Draw calls</dt><dd id="dev-calls">—</dd></div><div><dt>Triangles</dt><dd id="dev-triangles">—</dd></div></dl><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Reduced motion</span><input type="checkbox" data-setting="reducedMotion"></label>${metadata.id === 'vesper' ? vesperGraphicsControls(settings) : ''}<p>Changes apply live and are saved on this device. Frame averages refresh every half second; draw counts include render passes.</p>`;
+  root.append(flySettings);
+  if (metadata.id === 'vesper') {
+    const comparisons = document.createElement('details');
+    comparisons.innerHTML = `<summary>Vesper material settings</summary>${vesperGraphicsControls(settings)}`;
+    $('pause-panel').append(comparisons);
+  }
+  let perfLast = null,
+    perfElapsed = 0,
+    perfFrames = 0;
+  function closeFlySettings(restoreFocus = true) {
+    const open = !flySettings.classList.contains('hidden');
+    flySettings.classList.add('hidden');
+    flySettingsButton.setAttribute('aria-expanded', 'false');
+    if (open && restoreFocus) flySettingsButton.focus();
+    return open;
+  }
+  function toggleFlySettings() {
+    if (closeFlySettings()) return;
+    flySettings.classList.remove('hidden');
+    perfLast = null;
+    perfElapsed = perfFrames = 0;
+    $('dev-fps').textContent = $('dev-frame-ms').textContent = '—';
+    flySettingsButton.setAttribute('aria-expanded', 'true');
+    $('fly-settings-close').focus();
+  }
+  flySettingsButton.onclick = toggleFlySettings;
+  $('fly-settings-close').onclick = () => closeFlySettings();
+  root.addEventListener(
+    'change',
+    (event) => {
+      const key = event.target.dataset.setting;
+      if (!key) return;
+      settings[key] =
+        event.target.type === 'checkbox'
+          ? event.target.checked
+          : event.target.value;
+      actions.settings();
+    },
+    { signal: listeners.signal },
+  );
+  root.addEventListener(
+    'click',
+    (event) => {
+      if (!event.target.closest('[data-graphics-reset]')) return;
+      Object.assign(settings, vesperGraphicsDefaults);
+      actions.settings();
+    },
+    { signal: listeners.signal },
+  );
   const currentCircuit = metadata.id;
   const picker = document.createElement('form');
   picker.className = 'circuit-picker';
@@ -675,6 +740,27 @@ export function createUI(
     `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(3).padStart(6, '0')}`;
   return {
     root,
+    toggleFlySettings,
+    closeFlySettings,
+    updateDevTools(now, info) {
+      if (flySettings.classList.contains('hidden') || document.hidden) {
+        perfLast = null;
+        perfElapsed = perfFrames = 0;
+        return;
+      }
+      if (perfLast !== null) {
+        perfElapsed += now - perfLast;
+        perfFrames++;
+      }
+      perfLast = now;
+      if (perfElapsed < 500) return;
+      $('dev-fps').textContent = ((1000 * perfFrames) / perfElapsed).toFixed(1);
+      $('dev-frame-ms').textContent =
+        `${(perfElapsed / perfFrames).toFixed(1)} ms`;
+      $('dev-calls').textContent = info.calls.toLocaleString();
+      $('dev-triangles').textContent = info.triangles.toLocaleString();
+      perfElapsed = perfFrames = 0;
+    },
     setSuspended(value) {
       suspended = !!value;
       syncPauseOwnership();
@@ -683,6 +769,11 @@ export function createUI(
       $('volume').value = next.volume;
       $('quality').value = next.quality;
       $('motion').checked = next.reducedMotion;
+      for (const control of root.querySelectorAll('[data-setting]')) {
+        const value = next[control.dataset.setting];
+        if (control.type === 'checkbox') control.checked = value;
+        else control.value = value;
+      }
     },
     setResultsAvailable(available) {
       $('pause-results').classList.toggle('hidden', !available);
@@ -808,6 +899,7 @@ export function createUI(
       root.classList.toggle('paused', mode === 'paused');
       $('jump-repeat')?.classList.toggle('hidden', mode !== 'racing');
       root.classList.toggle('flying', mode === 'fly');
+      if (mode !== 'fly') closeFlySettings(false);
       $('fly-controls')?.classList.toggle('hidden', mode !== 'fly');
       root.classList.toggle('inspecting', mode === 'inspection');
       root.querySelector('.masthead').inert = mode === 'paused';

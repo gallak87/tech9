@@ -26,7 +26,7 @@ Keep the ceramic/graphite/titanium family but distinct silhouettes. **Shrike** u
 
 ## Vesper Canopy
 
-Colossal enclosed living trees, connected oversized foliage and an amber resin road with restrained transmission and a thin glowing orange curb. Keep the giant hollow complete around genuine route portals and preserve dark-to-lit contrast against a cloudy forest sky. Broad leaves need curved silhouettes and vein detail at fly-camera distance as well as canopy mass from the road. The retired creature remains source-only; raised petals, roadside bulbs/stalks and jump-edge beacons stay removed. Asset construction details remain in [Vesper provenance](../assets/levels/vesper/provenance.json).
+Colossal enclosed living trees, connected oversized foliage and an opaque polished amber resin road with internal inclusions and a thin glowing orange curb. Keep the giant hollow complete around genuine route portals and preserve dark-to-lit contrast against a cloudy forest sky. Broad leaves need curved silhouettes and vein detail at fly-camera distance as well as canopy mass from the road. The retired creature remains source-only; raised petals, roadside bulbs/stalks and jump-edge beacons stay removed. Asset construction details remain in [Vesper provenance](../assets/levels/vesper/provenance.json).
 
 ## Glasswake Comet
 

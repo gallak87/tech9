@@ -22,6 +22,23 @@ test('settings stay synchronized between menu/runtime and survive unavailable st
     assert.equal(menu.volume, 0.25);
     assert.equal(runtime.quality, 'low');
     assert.equal(
+      runtime.vesperSurfaceDetail,
+      true,
+      'old saves retain authored graphics',
+    );
+    saveSettings({ vesperSurfaceDetail: false, vesperResinDetail: false });
+    assert.equal(menu.vesperSurfaceDetail, false);
+    assert.equal(runtime.vesperResinDetail, false);
+    assert.equal(
+      runtime.vesperClearcoat,
+      true,
+      'material switches are independent',
+    );
+    assert.equal(
+      JSON.parse(storage.get('vector-nova.settings')).vesperSurfaceDetail,
+      false,
+    );
+    assert.equal(
       JSON.parse(storage.get('vector-nova.settings')).quality,
       'low',
     );
@@ -38,7 +55,16 @@ test('settings stay synchronized between menu/runtime and survive unavailable st
     assert.equal(loadSettings().reducedMotion, true);
     unsubscribeMenu();
     unsubscribeRuntime();
-    saveSettings({ volume: -5, difficulty: 'invalid' });
+    saveSettings({
+      volume: -5,
+      difficulty: 'invalid',
+      vesperSurfaceDetail: 'false',
+    });
+    assert.equal(
+      loadSettings().vesperSurfaceDetail,
+      true,
+      'invalid material flags use defaults',
+    );
     assert.equal(loadSettings().volume, 0);
     assert.equal(loadSettings().difficulty, 'easy');
     assert.equal(menu.volume, 0.7, 'disposed consumers receive no updates');

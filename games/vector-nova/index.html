@@ -6,16 +6,33 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#111a21" />
+    <meta name="theme-color" content="#090909" />
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23121f29%27/%3E%3Cpath d=%27M6 7l10 19L26 7h-6l-4 9-4-9z%27 fill=%27%23fa7957%27/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23090909%27/%3E%3Cpath d=%27M6 7l10 19L26 7h-6l-4 9-4-9z%27 fill=%27%23b81010%27/%3E%3C/svg%3E"
     />
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #090909;
+        color: #e8e8e8;
+        font-family: Arial, sans-serif;
+      }
+      #loading {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        letter-spacing: 0.15em;
+      }
+    </style>
     <title>VECTOR//NOVA — Proving Ground</title>
   </head>
   <body>
     <div id="app">
-      <div id="loading">VECTOR//NOVA · Preparing proving ground…</div>
+      <div id="loading">VECTOR//NOVA · Starting…</div>
     </div>
     <script type="module" src="/src/core/main.js"></script>
   </body>

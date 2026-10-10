@@ -24,6 +24,8 @@ export async function createRenderer(
       }),
     );
     lifetime.defer(() => renderer.domElement.remove());
+    // In-page circuit changes must release the old WebGL context as well as objects.
+    lifetime.defer(() => renderer.forceContextLoss());
     renderer.outputColorSpace = T.SRGBColorSpace;
     renderer.toneMapping = T.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;

@@ -49,13 +49,14 @@ export function createUI(
   },
 ) {
   const root = document.createElement('main');
+  const listeners = new AbortController();
   root.id = 'interface';
   root.classList.toggle('jump-playtest', Boolean(playtest));
   host.append(root);
   root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>
  <section id="title-panel" class="panel"><h1><span class="circuit-name"></span><em></em></h1><p class="intro"></p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>04</b><span>SHIPS</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions launch-actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="practice">PRACTICE LAP <span>↗</span></button></div><div class="actions inspection-actions"><button id="inspect">INSPECT SHIPS <span>↗</span></button><button id="explore">FREE CAMERA <span>F</span></button></div></section>
  <section id="inspection-panel" class="panel hidden"><div class="eyebrow">AERODYNAMICS DIVISION / 07</div><h1 class="inspect-title" aria-live="polite">KESTREL<span class="dot">.</span></h1><p class="intro">Twin-core magnetic interceptor.<br>Ceramic armour. Exposed titanium propulsion.<br>Built to stay close to the limit.</p><dl><div><dt>DESIGN</dt><dd>Split prow / swept ceramic chassis</dd></div><div><dt>PROPULSION</dt><dd>Dual induction turbines</dd></div></dl><div class="actions"><button id="inspect-start" class="primary">DRIVE PROTOTYPE <span>↗</span></button><button id="inspect-back">BACK TO PROVING GROUND</button></div></section>
- <section id="pause-panel" class="modal hidden"><div class="eyebrow">PROVING SESSION</div><h2>TAKE A BREATH.</h2><button id="resume" class="primary">RESUME SESSION ↗</button><button id="pause-explore">FREE CAMERA · F</button><button id="restart">RESTART LAP</button><button id="home">RETURN TO PADDOCK</button><label>MASTER VOLUME <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>GRAPHICS <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>REDUCED MOTION <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p class="small">Prototype settings are saved locally when available.</p></section>
+ <section id="pause-panel" class="modal hidden"><div class="eyebrow">SESSION PAUSED</div><h2>TAKE A BREATH.</h2><button id="resume" class="primary">RESUME SESSION ↗</button><button id="pause-results" class="hidden">RESULTS</button><button id="pause-explore">FREE CAMERA · F</button><button id="restart">RESTART RACE</button><button id="home">CIRCUITS</button><label>EFFECTS VOLUME <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>GRAPHICS <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>REDUCED MOTION <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p class="small">Settings are saved locally. Tunes stays available while paused.</p></section>
  <section id="hud" class="hidden"><div class="top-telemetry"><div class="position hidden"><span>POSITION</span><b id="position">1 / 4</b><small id="position-state"></small></div><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>LAP TIME</span><b id="time">00:00.000</b><small id="last">LAST —</small><small id="best">SET YOUR FIRST CLEAN LAP</small></div><div class="section-name"><span></span><b id="section">PROVING STRAIGHT</b></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST DRAWS FROM IMPACT RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas><div id="notice" role="status"></div></section>
  <footer id="legend"><div><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RESET</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>
  <div id="touch" class="hidden"><div><button data-drive="left" aria-label="Steer left">◀</button><button data-drive="right" aria-label="Steer right">▶</button><button data-drive="brake">BRAKE</button></div><div><button data-drive="airbrake">SLIP</button><button data-drive="boost">BOOST</button><button data-drive="throttle">GO</button></div></div><div class="review-tag"><span></span></div>`;
@@ -105,8 +106,14 @@ export function createUI(
   lights.className = 'hidden';
   lights.setAttribute('role', 'status');
   lights.innerHTML =
-    '<span>START SEQUENCE</span><div><i></i><i></i><i></i></div><b>3</b><small>HOLD THROTTLE · LIGHTS OUT TO GO</small>';
+    '<span>START SEQUENCE</span><div aria-hidden="true"><i></i><i></i><i></i></div><b>3</b><small>HOLD THROTTLE · GREEN TO GO</small>';
   root.append(lights);
+  const finish = document.createElement('section');
+  finish.id = 'race-finish';
+  finish.className = 'hidden';
+  finish.setAttribute('role', 'status');
+  finish.innerHTML = '<span>FINISH</span><strong></strong><small></small>';
+  root.append(finish);
   let rosterKey = '',
     currentCompetition = null,
     retainedResults = null;
@@ -213,19 +220,54 @@ export function createUI(
   pausePanel.setAttribute('role', 'dialog');
   pausePanel.setAttribute('aria-modal', 'true');
   pausePanel.setAttribute('aria-label', 'Session paused');
-  pausePanel.onkeydown = (event) => {
-    if (event.key !== 'Tab') return;
-    const controls = [...pausePanel.querySelectorAll('button, input, select')];
-    const first = controls[0],
-      last = controls.at(-1);
-    if (event.shiftKey && document.activeElement === first) {
+  let suspended = false;
+  function syncPauseOwnership() {
+    const player = document.querySelector('[data-music-player]');
+    if (oldMode === 'paused' && !suspended && player) {
+      player.id ||= 'vn-tunes';
+      pausePanel.setAttribute('aria-owns', player.id);
+    } else pausePanel.removeAttribute('aria-owns');
+  }
+  // The player stays in its original DOM location so music playback survives
+  // every menu transition. aria-owns includes it in the paused dialog instead.
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      if (
+        oldMode !== 'paused' ||
+        suspended ||
+        pausePanel.closest('[inert]') ||
+        event.key !== 'Tab'
+      )
+        return;
+      const player = document.querySelector('[data-music-player]');
+      const controls = [pausePanel, player]
+        .filter(Boolean)
+        .flatMap((panel) =>
+          [
+            ...panel.querySelectorAll('button, input, select, [tabindex]'),
+          ].filter(
+            (control) =>
+              !control.disabled &&
+              control.tabIndex >= 0 &&
+              control.getClientRects().length &&
+              !control.closest('[hidden], .hidden, [inert]'),
+          ),
+        );
+      if (!controls.length) return;
       event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  };
+      const current = controls.indexOf(document.activeElement);
+      const next =
+        current < 0
+          ? event.shiftKey
+            ? controls.length - 1
+            : 0
+          : (current + (event.shiftKey ? -1 : 1) + controls.length) %
+            controls.length;
+      controls[next].focus();
+    },
+    { capture: true, signal: listeners.signal },
+  );
   const review = blockout && metadata.review;
   const copy = { ...metadata.ui, ...(blockout ? metadata.ui.shape : {}) };
   const panel = $('title-panel');
@@ -340,7 +382,8 @@ export function createUI(
     )
       return;
     // Enter the selected paddock without another circuit's review flags.
-    location.assign(circuitURL(location.href, selected));
+    if (actions.circuit) actions.circuit(selected);
+    else location.assign(circuitURL(location.href, selected));
   };
   const shipPickers = [];
   for (const [panelId, prefix] of [
@@ -392,7 +435,9 @@ export function createUI(
     );
     shipPickers.push(section);
   }
-  let inspectionTab = 'fleet';
+  let inspectionTab = 'fleet',
+    inspectionSession = false,
+    fleetLoading = false;
   let selectedRival = RIVAL_SHIPS[0];
   const inspection = $('inspection-panel');
   const inspectionTools = document.createElement('div');
@@ -545,9 +590,12 @@ export function createUI(
       : craft.exhausts.length === 1
         ? 'Single oversized ion core'
         : 'Twin ion cores';
-    $('inspect-start').firstChild.textContent =
-      `DRIVE ${craft.name.toUpperCase()} `;
-    $('inspect-back').textContent = 'BACK TO PADDOCK';
+    $('inspect-start').firstChild.textContent = inspectionSession
+      ? 'RETURN TO SESSION '
+      : `DRIVE ${craft.name.toUpperCase()} `;
+    $('inspect-back').textContent = inspectionSession
+      ? 'RETURN TO SESSION'
+      : 'CIRCUITS';
   }
   function setInspectedRival(craft) {
     selectedRival = craft;
@@ -590,8 +638,9 @@ export function createUI(
   bind('inspect', () => actions.camera('inspection'));
   bind('explore', () => actions.camera('fly'));
   bind('pause-explore', () => actions.camera('fly'));
-  bind('inspect-back', actions.home);
+  bind('inspect-back', actions.exitInspection ?? actions.home);
   bind('resume', actions.resume);
+  bind('pause-results', actions.results);
   bind('restart', actions.restart);
   bind('home', actions.home);
   bind('pause-button', actions.pause);
@@ -626,6 +675,46 @@ export function createUI(
     `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(3).padStart(6, '0')}`;
   return {
     root,
+    setSuspended(value) {
+      suspended = !!value;
+      syncPauseOwnership();
+    },
+    syncSettings(next) {
+      $('volume').value = next.volume;
+      $('quality').value = next.quality;
+      $('motion').checked = next.reducedMotion;
+    },
+    setResultsAvailable(available) {
+      $('pause-results').classList.toggle('hidden', !available);
+    },
+    setFinish(result) {
+      finish.classList.toggle('hidden', !result);
+      if (!result) return;
+      const player = result.standings?.find((entry) => entry.id === 'player');
+      const valid = result.playerValid ?? player?.valid;
+      const position = player?.position;
+      finish.querySelector('strong').textContent = !valid
+        ? 'UNTIMED FINISH'
+        : position === 1
+          ? 'VICTORY'
+          : position
+            ? `P${position} · FINISH`
+            : 'RACE COMPLETE';
+      finish.querySelector('small').textContent = valid
+        ? `${fmt(result.playerTotalTime)} · ${metadata.name}`
+        : 'LAP INVALIDATED · SESSION RECORDED';
+      $('pause-results').classList.remove('hidden');
+    },
+    setInspectionSession(active) {
+      inspectionSession = !!active;
+      for (const section of shipPickers)
+        for (const button of section.querySelectorAll('[data-ship]'))
+          button.disabled = fleetLoading || inspectionSession;
+      setInspectionDetails(
+        inspectionTab === 'rivals' ? selectedRival : selectedShip,
+        inspectionTab === 'rivals',
+      );
+    },
     setShip,
     setInspectionTab,
     setInspectedRival,
@@ -636,12 +725,13 @@ export function createUI(
         loadingMessage.textContent = '';
     },
     setShipLoading(loading) {
+      fleetLoading = loading;
       if (loading)
         pickerFocus = document.activeElement?.closest('.ship-picker');
       for (const section of shipPickers) {
         section.setAttribute('aria-busy', String(loading));
         for (const button of section.querySelectorAll('button'))
-          button.disabled = loading;
+          button.disabled = loading || inspectionSession;
       }
       $('start').disabled = loading;
       $('practice').disabled = loading;
@@ -689,6 +779,7 @@ export function createUI(
     setMode(mode) {
       if (mode === oldMode) return;
       oldMode = mode;
+      syncPauseOwnership();
       if (casePicker) {
         const parent = mode === 'paused' ? $('pause-panel') : $('title-panel');
         parent.insertBefore(
@@ -771,10 +862,11 @@ export function createUI(
     ) {
       currentCompetition = competition;
       retainedResults = lastResults;
-      escapeLabel.textContent =
-        competition?.enabled && competition.playerFinished
-          ? 'PADDOCK'
-          : 'PAUSE';
+      escapeLabel.textContent = 'PAUSE';
+      if (!playtest)
+        $('restart').textContent = competition?.enabled
+          ? 'RESTART RACE'
+          : 'RESTART PRACTICE';
       updateRoster();
       const player = competition?.standings.find(
         (entry) => entry.id === 'player',
@@ -785,7 +877,7 @@ export function createUI(
       $('position').textContent =
         `${player?.position ?? '—'} / ${competition?.standings.length ?? 4}`;
       $('position-state').textContent = competition?.playerFinished
-        ? 'ESC · PADDOCK'
+        ? 'ESC · PAUSE'
         : '';
       root.querySelector('.lap > span').textContent = competition?.enabled
         ? competition.playerFinished
@@ -881,7 +973,7 @@ export function createUI(
       );
       if (performance.now() > noticeUntil) $('notice').textContent = '';
     },
-    lapComplete({ lap, duration, valid, delta }) {
+    lapComplete({ lap, duration, valid, delta, finalLap = false }) {
       const comparison =
         delta === null || !valid
           ? ''
@@ -889,7 +981,7 @@ export function createUI(
             ? ' · MATCHED BEST'
             : ` · ${Math.abs(delta).toFixed(3)}s ${delta < 0 ? 'FASTER' : 'SLOWER'} THAN BEST`;
       this.notice(
-        `${valid ? `LAP ${lap}` : 'INVALID LAP'} · ${fmt(duration)}${comparison}`,
+        `${finalLap ? 'FINAL LAP · ' : ''}${valid ? `LAP ${lap}` : 'INVALID LAP'} · ${fmt(duration)}${comparison}`,
       );
     },
     notice(text) {
@@ -901,11 +993,18 @@ export function createUI(
       lights.dataset.step = String(step);
       lights.classList.toggle('go', step === 0);
       lights.querySelector('b').textContent = step === 0 ? 'GO' : String(step);
+      lights.querySelector('small').textContent =
+        step === 0 ? 'GREEN · GO' : 'HOLD THROTTLE · GREEN TO GO';
       [...lights.querySelectorAll('i')].forEach((light, index) =>
-        light.classList.toggle('lit', step > 0 && index < 4 - step),
+        light.classList.toggle(
+          'lit',
+          step === 0 || (step > 0 && index < 4 - step),
+        ),
       );
     },
     dispose() {
+      listeners.abort();
+      pausePanel.removeAttribute('aria-owns');
       root.remove();
     },
   };

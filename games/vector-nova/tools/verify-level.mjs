@@ -41,6 +41,7 @@ function urlFor({ shape = false, id = slug } = {}) {
   url.search = '';
   url.hash = '';
   url.searchParams.set('level', id);
+  url.searchParams.set('capture', '1');
   if (shape) url.searchParams.set('review', 'shape');
   return url.href;
 }
@@ -108,14 +109,16 @@ try {
         page.on('request', (request) => requests.push(request.url()));
         await page.goto(urlFor({ shape }), { waitUntil: 'domcontentloaded' });
         await page.waitForFunction(
-          () => window.__VN?.ready || document.querySelector('.failure'),
+          () =>
+            window.__VN?.ready ||
+            document.querySelector('.transfer-status.failed'),
           null,
           { timeout: 120000 },
         );
         assert.equal(
-          await page.locator('.failure').count(),
+          await page.locator('.transfer-status.failed').count(),
           0,
-          `level boot failed: ${await page.locator('.failure').allTextContents()}`,
+          `level boot failed: ${await page.locator('.transfer-status.failed').allTextContents()}`,
         );
         const initial = await snapshot(page);
         finitePose(initial);
@@ -236,10 +239,13 @@ try {
         { waitUntil: 'domcontentloaded' },
       );
       await page
-        .locator('.failure')
+        .locator('.transfer-status.failed')
         .waitFor({ state: 'visible', timeout: 120000 });
-      assert.ok(await page.locator('.failure p').textContent());
-      assert.equal(await page.locator('.failure button').count(), 2);
+      assert.ok(await page.locator('.transfer-status.failed').textContent());
+      assert.equal(
+        await page.locator('.loading-copy .front-actions button').count(),
+        2,
+      );
       assert.equal(
         await page.locator('canvas#world').count(),
         0,

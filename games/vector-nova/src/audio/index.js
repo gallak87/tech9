@@ -20,6 +20,7 @@ export function createAudio({
   let active = false;
   let audible = false;
   let environmentActive = false;
+  let resultsActive = false;
 
   function release(owned) {
     owned.propulsion.dispose();
@@ -31,6 +32,7 @@ export function createAudio({
     owned.compressor.disconnect();
     owned.master.disconnect();
     owned.propulsionBus.disconnect();
+    owned.cueBus.disconnect();
     owned.immersion?.dispose();
     return close(owned.context);
   }
@@ -65,6 +67,11 @@ export function createAudio({
             propulsionBus.gain.value = 0;
             propulsionBus.connect(bus);
             const propulsion = createPropulsion(context, propulsionBus);
+            // Race announcements stay clear of the world's immersion filter;
+            // they still obey the common effects volume and output limiter.
+            const cueBus = context.createGain();
+            cueBus.gain.value = 1;
+            cueBus.connect(compressor);
             resources = {
               context,
               bus,
@@ -72,6 +79,7 @@ export function createAudio({
               master,
               propulsionBus,
               propulsion,
+              cueBus,
               immersion: waterMix,
               thunder: nacre
                 ? createNacreThunder(context, bus, {
@@ -97,8 +105,14 @@ export function createAudio({
       });
       return unlocking;
     },
-    update(state, volume, running, { countdown = false } = {}) {
-      active = (!!running || countdown) && !disposed;
+    update(
+      state,
+      volume,
+      running,
+      { countdown = false, results = false } = {},
+    ) {
+      resultsActive = results;
+      active = (!!running || countdown || results) && !disposed;
       if (!resources || disposed) return;
       const { context, master, propulsion, propulsionBus } = resources;
       const level = Number.isFinite(volume)
@@ -114,16 +128,25 @@ export function createAudio({
       );
       smooth(propulsionBus.gain, running ? 1 : 0, context.currentTime, 0.012);
       if (running) propulsion.update(state);
-      if (!environmentActive) resources.environment?.stop();
-      if (!audible) {
+      if (!environmentActive) {
+        resources.environment?.stop();
         resources.thunder?.stop();
-        for (const shot of resources.shots) shot.stop();
-        resources.shots.clear();
       }
+      for (const shot of resources.shots)
+        if (!audible || (results && !shot.finish)) {
+          shot.stop();
+          resources.shots.delete(shot);
+        }
     },
     resetEnvironment() {
       resources?.thunder?.stop();
       resources?.environment?.stop();
+      if (resources)
+        for (const shot of resources.shots)
+          if (shot.finish) {
+            shot.stop();
+            resources.shots.delete(shot);
+          }
     },
     setImmersion(submerged) {
       resources?.immersion?.update(submerged);
@@ -146,7 +169,7 @@ export function createAudio({
       if (resources && !disposed && environmentActive)
         resources.environment?.trigger(event);
       if (event?.type === 'nacre-thunder') {
-        if (resources && !disposed && audible)
+        if (resources && !disposed && environmentActive)
           resources.thunder?.trigger(event);
         return;
       }
@@ -155,19 +178,62 @@ export function createAudio({
         !resources ||
         disposed ||
         !audible ||
-        !['impact', 'lap', 'countdown-beep', 'countdown-go'].includes(
-          event?.type,
-        )
+        resultsActive ||
+        ![
+          'impact',
+          'lap',
+          'countdown-beep',
+          'countdown-go',
+          'final-lap',
+          'player-race-complete',
+        ].includes(event?.type)
       )
         return;
-      const { context, bus, shots } = resources;
+      const { context, bus, cueBus, shots } = resources;
+      const finish = event.type === 'player-race-complete';
+      const finalLap = event.type === 'final-lap';
+      if (finish || finalLap)
+        for (const shot of shots)
+          if (!shot.finish) {
+            shot.stop();
+            shots.delete(shot);
+          }
       if (shots.size >= 4) return;
       const time = context.currentTime;
       const oscillator = context.createOscillator();
       const envelope = context.createGain();
-      oscillator.connect(envelope).connect(bus);
+      oscillator.connect(envelope).connect(finish || finalLap ? cueBus : bus);
       envelope.gain.setValueAtTime(0, time);
-      if (event.type === 'countdown-beep' || event.type === 'countdown-go') {
+      let end;
+      if (finish || finalLap) {
+        const winner =
+          event.payload?.valid !== false && event.payload?.position === 1;
+        const notes = finalLap
+          ? [660, 880]
+          : event.payload?.valid === false
+            ? [440, 349.23]
+            : winner
+              ? [523.25, 659.25, 783.99, 1046.5]
+              : [587.33, 783.99];
+        const gap = finalLap ? 0.19 : 0.17;
+        end = finalLap ? 0.55 : winner ? 2.05 : 1.7;
+        oscillator.type = 'sine';
+        notes.forEach((frequency, index) => {
+          const start = time + gap * index;
+          const release =
+            index === notes.length - 1 ? time + end - 0.03 : start + gap - 0.02;
+          oscillator.frequency.setValueAtTime(frequency, start);
+          envelope.gain.setValueAtTime(0.0001, start);
+          envelope.gain.linearRampToValueAtTime(
+            finalLap ? 0.065 : 0.09,
+            start + 0.012,
+          );
+          envelope.gain.exponentialRampToValueAtTime(0.0001, release);
+        });
+      } else if (
+        event.type === 'countdown-beep' ||
+        event.type === 'countdown-go'
+      ) {
         const go = event.type === 'countdown-go';
         const duration = go ? 0.76 : 0.27;
         const peak = go ? 0.095 : 0.075;
@@ -189,7 +255,7 @@ export function createAudio({
         envelope.gain.linearRampToValueAtTime(0.07, time + 0.008);
         envelope.gain.exponentialRampToValueAtTime(0.0001, time + 0.4);
       }
-      const end =
+      end ??=
         event.type === 'countdown-beep'
           ? 0.29
           : event.type === 'countdown-go'
@@ -200,6 +266,7 @@ export function createAudio({
       oscillator.stop(time + end + 0.01);
       let ended = false;
       const shot = {
+        finish,
         stop() {
           if (ended) return;
           ended = true;

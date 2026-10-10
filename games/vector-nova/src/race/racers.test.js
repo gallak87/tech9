@@ -82,6 +82,17 @@ test('each opponent owns device eligibility, shield timers and reserve independe
   racers.dispose();
 });
 
+test('open practice never becomes a finished race after two laps', () => {
+  const racers = createHalcyonRacers({ track });
+  const context = playerWithTwoLaps();
+  racers.reset({ enabled: false, ...context });
+  const snapshot = racers.snapshot(context);
+  assert.equal(snapshot.playerFinished, false);
+  assert.equal(snapshot.results, null);
+  assert.deepEqual(snapshot.standings, []);
+  racers.dispose();
+});
+
 test('live relative timing covers the full field and keeps its order and gaps through rollback', () => {
   const racers = createHalcyonRacers({ track });
   const playerState = { ...createVehicleState(), ...RACE_GRID.player };

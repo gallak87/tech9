@@ -63,7 +63,9 @@ export function advanceSession({
       race
         .step(playerPrevious.distance, state.distance, step, completed)
         .forEach(emit);
-      racers?.finishAdvance?.();
+      // Race completion belongs to the same event stream as laps/devices, so
+      // recorded finishes can drive the HUD and audio in both motion paths.
+      racers?.finishAdvance?.()?.forEach(emit);
       events.push(...completed);
     }
     return events;
@@ -72,11 +74,13 @@ export function advanceSession({
   const events = runtime.advance(state, input, dt);
   events.forEach(emit);
   race.step(previous, state.distance, dt, events).forEach(emit);
-  racers?.advance(dt, {
-    playerState: state,
-    playerRace: race,
-    playerInput: input,
-  });
+  racers
+    ?.advance(dt, {
+      playerState: state,
+      playerRace: race,
+      playerInput: input,
+    })
+    ?.forEach(emit);
   return events;
 }
 

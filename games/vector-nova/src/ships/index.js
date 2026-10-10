@@ -1,8 +1,7 @@
-import { assetURL } from '../assets/url.js';
 import * as THREE from 'three';
 import { getShip } from './catalog.js';
+import { loadShipModel } from './model-cache.js';
 import { createEngineResponse } from './engine-response.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   createOrbitalPlumeGeometry,
   createOrbitalPlumeMaterial,
@@ -66,9 +65,7 @@ export async function createShip({
   model,
 } = {}) {
   const specification = getShip(id);
-  const hull = model
-    ? cloneModel(model)
-    : (await new GLTFLoader().loadAsync(assetURL(specification.asset))).scene;
+  const hull = cloneModel(model ?? (await loadShipModel(specification.id)));
   const group = new THREE.Group();
   group.name = `${specification.name} / racing chassis`;
   group.add(hull);

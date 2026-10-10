@@ -64,7 +64,7 @@ Water begins at carved reservoirs and spill lips, has deep outer masses and brok
 
 ## UI and feedback
 
-Warm off-white/graphite, technical numerals, vermilion active accents, generous spacing and real controls. Keep telemetry and notices away from the craft, upcoming road and touch controls. Moderate chase FOV, no default camera shake, and road-local camera clearance.
+Neutral near-black/graphite menus (`#090909`, `#171717`, `#262626`), neutral white (`#E8E8E8`) and restrained straight-red accents (`#A81010`, `#D01818`). No blue-grey, orange/coral or maroon tint. Use technical numerals, generous spacing and real controls. The [saved circuit wall](levels/art-revamp-reference/circuit-wall-v1.png) is a layout/art reference; runtime previews use actual game imagery. Keep telemetry and notices away from the craft, upcoming road and touch controls. Moderate chase FOV, no default camera shake, and road-local camera clearance.
 
 Shared immediate devices use manufactured amber-white Vector strips and symbol-marked teal Aegis hardware. Show collection, active effect, hit and expiry with form/timing as well as color. Ship feedback stays subordinate to the silhouette.
 

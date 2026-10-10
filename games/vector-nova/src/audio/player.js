@@ -24,6 +24,7 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
   let shuffled = preferences.shuffle === true;
   let queue = musicTracks;
   let wantsPlayback = true;
+  let driving = false;
   const root = document.createElement('aside');
   root.className = 'music-player';
   root.dataset.musicPlayer = '';
@@ -56,7 +57,11 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
       </div>
     </div>`;
   const audio = document.createElement('audio');
-  audio.preload = 'metadata';
+  audio.preload = 'auto';
+  const progress = document.createElement('div');
+  progress.className = 'music-progress';
+  progress.setAttribute('aria-hidden', 'true');
+  root.append(progress);
   audio.loop = preferences.repeat === true;
   audio.volume = Number.isFinite(preferences.volume)
     ? Math.min(1, Math.max(0, preferences.volume))
@@ -143,6 +148,10 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
       `${stamp(audio.currentTime)} of ${stamp(duration)}`,
     );
     fill(seek, duration ? audio.currentTime / duration : 0);
+    progress.style.setProperty(
+      '--progress',
+      `${duration ? (100 * audio.currentTime) / duration : 0}%`,
+    );
     elapsed.textContent = stamp(audio.currentTime);
     durationOutput.textContent = duration ? stamp(duration) : '—:—';
   }
@@ -167,7 +176,7 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
     loadId++;
     audio.pause();
     setStatus('Loading');
-    audio.src = `${assetURL(selected.path)}?v=${Date.now()}`;
+    audio.src = assetURL(selected.path);
     audio.load();
     update();
     if (resume) void start();
@@ -214,7 +223,7 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
     if (collapsed && controls.contains(document.activeElement)) expand.focus();
   }
   listen(expand, 'click', () => {
-    collapse(!controls.hidden);
+    if (!driving) collapse(!controls.hidden);
     save();
   });
   listen(play, 'click', togglePlayback);
@@ -298,7 +307,7 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
       if (step) switchSong(step);
       else if (event.code === 'KeyM') togglePlayback();
       else {
-        collapse(!controls.hidden);
+        if (!driving) collapse(!controls.hidden);
         save();
       }
     },
@@ -312,10 +321,15 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
   listen(document, 'visibilitychange', () => {
     if (document.hidden && !audio.paused) audio.pause();
   });
-  collapse(preferences.collapsed === true);
+  collapse(true);
   updateVolume();
   loadSong();
   return {
+    setDriving(value) {
+      driving = value;
+      if (value) collapse(true);
+      expand.disabled = value;
+    },
     startWithGame() {
       if (!disposed && wantsPlayback && audio.paused) void start();
     },

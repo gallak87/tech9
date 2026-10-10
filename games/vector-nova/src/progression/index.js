@@ -4,29 +4,51 @@ export const defaults = {
   reducedMotion: false,
   difficulty: 'easy',
 };
+let current;
+const listeners = new Set();
+function normalize(saved = {}) {
+  return {
+    volume: Number.isFinite(saved.volume)
+      ? Math.max(0, Math.min(1, saved.volume))
+      : defaults.volume,
+    quality: ['low', 'high'].includes(saved.quality)
+      ? saved.quality
+      : defaults.quality,
+    reducedMotion:
+      typeof saved.reducedMotion === 'boolean'
+        ? saved.reducedMotion
+        : defaults.reducedMotion,
+    difficulty: ['easy', 'medium', 'hard'].includes(saved.difficulty)
+      ? saved.difficulty
+      : defaults.difficulty,
+  };
+}
 export function loadSettings() {
+  if (current) return { ...current };
   try {
-    const saved = JSON.parse(
-      localStorage.getItem('vector-nova.settings') || '{}',
+    current = normalize(
+      JSON.parse(localStorage.getItem('vector-nova.settings') || '{}') ?? {},
     );
-    const settings = Object.fromEntries(
-      Object.entries(defaults).map(([key, value]) => [
-        key,
-        saved?.[key] ?? value,
-      ]),
-    );
-    if (!['easy', 'medium', 'hard'].includes(settings.difficulty))
-      settings.difficulty = 'easy';
-    return settings;
   } catch {
-    return { ...defaults };
+    current = { ...defaults };
   }
+  return { ...current };
 }
 export function saveSettings(s) {
+  current = normalize({ ...loadSettings(), ...s });
+  // The menu and loaded runtime share one live preference source, even when
+  // browser storage is unavailable. Subscribers receive independent snapshots.
+  for (const listener of listeners) listener({ ...current });
   try {
-    localStorage.setItem('vector-nova.settings', JSON.stringify(s));
+    localStorage.setItem('vector-nova.settings', JSON.stringify(current));
     return true;
   } catch {
     return false;
   }
+}
+
+export function subscribeSettings(listener) {
+  listeners.add(listener);
+  listener(loadSettings());
+  return () => listeners.delete(listener);
 }

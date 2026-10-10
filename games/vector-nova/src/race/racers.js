@@ -483,7 +483,7 @@ export function createRacers({
       laps: RACE_LAPS,
       elapsed,
       // Exactly the first two checkpoint-complete laps, valid or invalid.
-      playerFinished: !!currentFinish,
+      playerFinished: enabled && !!currentFinish,
       standings: enabled ? standings : [],
       relative:
         enabled && player && !currentFinish

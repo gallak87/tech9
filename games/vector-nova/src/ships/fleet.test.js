@@ -72,7 +72,7 @@ test('every exported chassis fits the shared collision hull and owns its correct
     // Geometry/ownership tests do not need a DOM image decoder. Real texture
     // decoding is exercised by the hidden-browser fleet verification.
     loader.register(() => ({
-      name: 'CPU_TEXTURES',
+      name: 'KHR_texture_basisu',
       loadTexture: async () => new Texture(),
     }));
     const { scene, parser } = await loader.parseAsync(

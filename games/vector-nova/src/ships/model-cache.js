@@ -1,4 +1,4 @@
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { loadFleetGLTF, disposeShipTextures } from './texture-loader.js';
 import { assetURL } from '../assets/url.js';
 import { SHIPS, getShip } from './catalog.js';
 
@@ -65,13 +65,12 @@ export function loadShipModel(id) {
     promise: null,
   };
   entries.set(specification.id, entry);
-  entry.promise = new GLTFLoader()
-    .loadAsync(assetURL(specification.asset), (event) => {
-      if (token !== generation || !event.total) return;
-      // Reserve the last part for GLTF parsing, after the transfer has finished.
-      entry.fraction = Math.min(0.9, (event.loaded / event.total) * 0.9);
-      notify();
-    })
+  entry.promise = loadFleetGLTF(assetURL(specification.asset), (event) => {
+    if (token !== generation || !event.total) return;
+    // Reserve the last part for GLTF parsing, after the transfer has finished.
+    entry.fraction = Math.min(0.9, (event.loaded / event.total) * 0.9);
+    notify();
+  })
     .then(({ scene }) => {
       if (token !== generation) {
         release(scene);
@@ -107,7 +106,12 @@ export async function preloadShips() {
 }
 export function disposeShipCache() {
   generation++;
+  disposeShipTextures();
   for (const entry of entries.values()) if (entry.model) release(entry.model);
   entries.clear();
   listeners.clear();
 }
+
+// Direct test/art-pass launches also own a cache, without frontend preload.
+if (typeof window !== 'undefined')
+  window.addEventListener('pagehide', disposeShipCache);

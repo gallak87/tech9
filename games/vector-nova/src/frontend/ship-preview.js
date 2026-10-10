@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { createShip } from '../ships/index.js';
+import { configureShipTextures } from '../ships/texture-loader.js';
 import { getShip } from '../ships/catalog.js';
 
 // A small, on-demand studio owns only the selected chassis. It never loads a
@@ -14,6 +15,7 @@ export function createShipPreview() {
   const status = element.querySelector('.ship-preview-status');
   const life = new AbortController();
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  configureShipTextures(renderer);
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.25));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.15;

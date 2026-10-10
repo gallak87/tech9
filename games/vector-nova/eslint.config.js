@@ -9,6 +9,7 @@ export default defineConfig([
     'evidence/**',
     'src/ships/evidence/**',
     'dist/**',
+    'public/assets/ships/decoder/**',
     '.husky/**',
   ]),
   js.configs.recommended,

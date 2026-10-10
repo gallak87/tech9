@@ -11,13 +11,23 @@
   "triangles": 51544,
   "meshes": 12,
   "materials": 12,
-  "glbBytes": 8717620,
+  "glbBytes": 8080976,
   "anchors": {
     "Exhaust_L": [-0.955, 0.448, -3.23],
     "Exhaust_R": [0.955, 0.448, -3.23]
   },
   "sourceComponents": 202,
   "textureCount": 16,
-  "textures": "Embedded original base color, roughness, tangent normal and short-range cavity occlusion maps; editable procedural Blender materials",
-  "renderViews": []
+  "textures": "Embedded mipmapped UASTC KTX2 color, packed roughness/cavity occlusion and RGB tangent normals; original PNG maps and editable Blender materials retained.",
+  "renderViews": [],
+  "compression": {
+    "encoder": "Khronos KTX-Software toktx 4.4.2",
+    "tool": "assets/ships/compress_textures.py",
+    "settings": "UASTC quality 3, Zstd 18, full mip chain, upper-left orientation; sRGB color/emissive, linear data; RGB normal normalization without swizzle",
+    "runtimeImages": 12,
+    "losslessCheckpoint": "4db6d0f986544251e3062adfb84cd5b2b014fd5b",
+    "losslessGlbBytes": 8717620,
+    "losslessGlbSha256": "384f9c000e3d4d788c5d3d5d13f2c1d8073c7d26f6c1dfd0d620880c3f260ca1",
+    "runtimeGlbSha256": "0c05a65fd21f4a6fedee3161e9ab7bb43e60957bfd010333a6900de1da2e8929"
+  }
 }

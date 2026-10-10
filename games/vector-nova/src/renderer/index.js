@@ -8,6 +8,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { createLifetime } from '../core/lifecycle.js';
 import { ExhaustHeatPass } from '../ships/exhaust-heat-pass.js';
+import { configureShipTextures } from '../ships/texture-loader.js';
+import { textureMemory } from './texture-memory.js';
 import { createContactShadow } from './contact-shadow.js';
 
 export async function createRenderer(
@@ -23,6 +25,7 @@ export async function createRenderer(
         powerPreference: 'high-performance',
       }),
     );
+    configureShipTextures(renderer);
     lifetime.defer(() => renderer.domElement.remove());
     // In-page circuit changes must release the old WebGL context as well as objects.
     lifetime.defer(() => renderer.forceContextLoss());
@@ -398,16 +401,18 @@ export async function createRenderer(
           ext = gl.getExtension('WEBGL_debug_renderer_info');
         let geometryBytes = 0,
           textureBytes = 0;
+        const textureFormats = {};
+        let compressedTextureBytes = 0;
         const gs = new Set(),
           ts = new Set();
         const countTexture = (texture) => {
           if (!texture?.isTexture || ts.has(texture)) return;
           ts.add(texture);
-          textureBytes +=
-            (texture.image?.width || 256) *
-            (texture.image?.height || 256) *
-            4 *
-            1.34;
+          const memory = textureMemory(texture);
+          textureBytes += memory.bytes;
+          if (memory.compressed) compressedTextureBytes += memory.bytes;
+          textureFormats[memory.format] =
+            (textureFormats[memory.format] || 0) + 1;
         };
         for (const texture of backdrop?.ownedTextures ?? [])
           countTexture(texture);
@@ -461,6 +466,9 @@ export async function createRenderer(
           maxima,
           geometries: renderer.info.memory.geometries,
           textures: renderer.info.memory.textures,
+          textureMiB: textureBytes / 2 ** 20,
+          compressedTextureMiB: compressedTextureBytes / 2 ** 20,
+          textureFormats,
           estimatedGpuMiB:
             (geometryBytes +
               textureBytes +

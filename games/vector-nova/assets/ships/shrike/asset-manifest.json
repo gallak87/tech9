@@ -12,8 +12,18 @@
     "Exhaust_R": [1.15, 0.56, -2.955]
   },
   "sourceComponents": 169,
-  "glbBytes": 7795468,
-  "textures": "Embedded original base color, roughness, tangent normal and short-range cavity occlusion maps; editable procedural Blender materials",
+  "glbBytes": 7191668,
+  "textures": "Embedded mipmapped UASTC KTX2 color, packed roughness/cavity occlusion and RGB tangent normals; original PNG maps and editable Blender materials retained.",
   "textureCount": 20,
-  "artPassRevision": 8
+  "artPassRevision": 8,
+  "compression": {
+    "encoder": "Khronos KTX-Software toktx 4.4.2",
+    "tool": "assets/ships/compress_textures.py",
+    "settings": "UASTC quality 3, Zstd 18, full mip chain, upper-left orientation; sRGB color/emissive, linear data; RGB normal normalization without swizzle",
+    "runtimeImages": 15,
+    "losslessCheckpoint": "4db6d0f986544251e3062adfb84cd5b2b014fd5b",
+    "losslessGlbBytes": 7795468,
+    "losslessGlbSha256": "10624a89de686e0d63ca9dd72dfd90900b987286de31b61e461ed2df579d602d",
+    "runtimeGlbSha256": "58afef601eee764c6bebcae7f5fe262b48f8eb446eeee3bfd175f627a32ce62d"
+  }
 }

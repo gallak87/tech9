@@ -23,3 +23,34 @@ The main menu’s **Inspect Ships** displays the runtime models with drag rotati
 Kestrel retains its approved silhouette, bounds, attachment points and handling; its ceramic, graphite and titanium finish uses the same baked PBR workflow as the fleet. Its source/exporter/provenance are in `assets/ships/kestrel/`. The human approved its integration on 2026-09-29; completed review history is in Git (`1dfff691`). The existing `tools/kestrel-verify.mjs` and propulsion ownership tests remain available. The user approved the expanded fleet and requested integration on 2026-10-01.
 
 The renderer borrows each plume’s `userData.exhaustHeat` field for a depth-aware refraction pass on High. High-speed cruise sustains the full heat wake even where the blue flame is faint; boost adds 12% width, 18% length and stronger refraction. Authored hull bounds protect the craft, and the pass rejects foreground depth at original and displaced sample positions. Low and reduced motion disable distortion; reduced motion also freezes decorative emission flow. Pressure follows simulation time, so pausing holds the effect and resetting or seeking restores the requested boost state. Inspection uses an owned neutral studio environment and restores borrowed race reflections after each draw.
+
+## GPU-compressed ship maps
+
+Player GLBs use `KHR_texture_basisu` with mipmapped UASTC textures. The original
+baked PNGs remain the editable lossless source. After a Blender rebuild, convert
+the PNG GLB in place with Khronos KTX-Software **4.4.2**:
+
+```sh
+python3 assets/ships/compress_textures.py public/assets/ships/kestrel/kestrel.glb public/assets/ships/kestrel/kestrel.glb --toktx /path/to/toktx
+```
+
+Repeat for the other chassis. The converter preserves geometry and material
+factors, uses UASTC quality 3 with Zstd level 18, makes full mip chains, writes
+upper-left texture orientation, and records sRGB only for color/emissive maps.
+Tangent normals stay RGB; do not use the encoder's X/alpha normal swizzle.
+Already-compressed input is rejected: rebuild the PNG GLB to change settings.
+
+`texture-loader.js` owns one two-worker KTX2 loader. A real preview or race renderer
+establishes GPU capabilities before compressed parsing; PNG loads bypass that
+gate. Cache disposal/page exit abort requests and releases workers. Failed or
+30-second-stalled decoding rejects the model rather than caching missing maps,
+so selection/preload can retry. The matching Three.js 0.186.1 Basis decoder is
+served through `assetURL` under `assets/ships/decoder/` (Apache-2.0).
+`getMetrics()` reports actual transcoded mip payload bytes and format counts;
+its total GPU figure remains an estimate excluding driver overhead.
+
+With the dev server running, `VN_URL=http://127.0.0.1:5179 node tools/ship-textures-verify.mjs`
+checks real GPU uploads, capability gating, preview/cache disposal and decoder
+failure/timeout/retry. Add `--png-fixture /path/to/lossless.glb` to check ordinary
+PNG loading before any renderer exists. Visual fidelity still requires matching
+studio and chase captures; these checks do not establish art quality.

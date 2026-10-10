@@ -26,7 +26,7 @@
       "date": "2026-10-10",
       "target": "finish-target-01.png",
       "pipeline": "assets/ships/surface_finish.py",
-      "runtimeTextures": "Embedded lossless PNG, Blender glTF channel packing",
+      "runtimeTextures": "Mipmapped UASTC KTX2 via KHR_texture_basisu; encoder/version/settings and lossless checkpoint are recorded in asset-manifest.json. Original baked PNGs retained.",
       "construction": "Approved envelope and exhaust anchors retained; formed panel sections, service fasteners, component bevels and recessed intake construction."
     }
   },

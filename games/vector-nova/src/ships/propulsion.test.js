@@ -11,7 +11,7 @@ const bytes = await readFile(
 // CPU ownership checks decode geometry; browser verification decodes the maps.
 const loader = new GLTFLoader();
 loader.register(() => ({
-  name: 'CPU_TEXTURES',
+  name: 'KHR_texture_basisu',
   loadTexture: async () => new THREE.Texture(),
 }));
 const { scene: model } = await loader.parseAsync(

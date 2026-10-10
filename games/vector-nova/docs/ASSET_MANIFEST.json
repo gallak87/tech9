@@ -27,7 +27,25 @@
       "provenance": "Original Blender accelerator, service structures and fractured geology; editable source, deterministic exporter and matching collision geometry retained. Procedural road and terrain are project-authored.",
       "rights": "Project-authored; no third-party model inputs",
       "runtimeDependencies": ["three"],
-      "runtimeAsset": "public/assets/levels/shatterline/",
+      "runtimeAssets": [
+        "public/assets/levels/shatterline/crown-broken.glb",
+        "public/assets/levels/shatterline/crown-hero.glb",
+        "public/assets/levels/shatterline/crown-severed.glb",
+        "public/assets/levels/shatterline/crown-terminal.glb",
+        "public/assets/levels/shatterline/fractured-cassette.glb",
+        "public/assets/levels/shatterline/geology-bedded-ridge.glb",
+        "public/assets/levels/shatterline/geology-distant-range.glb",
+        "public/assets/levels/shatterline/geology-eroded-bluff.glb",
+        "public/assets/levels/shatterline/load-foundation.glb",
+        "public/assets/levels/shatterline/receiver-command.glb",
+        "public/assets/levels/shatterline/receiver-condenser.glb",
+        "public/assets/levels/shatterline/receiver-primary.glb",
+        "public/assets/levels/shatterline/receiver-process-hall.glb",
+        "public/assets/levels/shatterline/receiving-tower.glb",
+        "public/assets/levels/shatterline/service-gallery.glb",
+        "public/assets/levels/shatterline/service-shelter.glb",
+        "public/assets/levels/shatterline/collision-kit.json"
+      ],
       "provenanceRecord": "assets/levels/shatterline/model-provenance.json"
     },
     {
@@ -65,7 +83,7 @@
       "id": "kestrel",
       "source": "assets/ships/kestrel/ and src/ships/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original Blender-authored jet model, project-generated concept and analytic blue exhaust. Editable source, exporter and exact generation provenance are retained beside the asset. Finish targets are generated from actual runtime screenshots; exact prompts, dimensions and hashes are retained in the existing provenance records. Formed service joints and recessed intake construction use a shared geometry-aware bake workflow, with 2048px main ceramic maps and 512px secondary maps.",
+      "provenance": "Original Blender-authored jet model, project-generated concept and analytic blue exhaust. Editable source, exporter and exact generation provenance are retained beside the asset. Finish targets are generated from actual runtime screenshots; exact prompts, dimensions and hashes are retained in the existing provenance records. Formed service joints and recessed intake construction use a shared geometry-aware bake workflow, with 2048px main ceramic maps and 512px secondary maps. Runtime maps are mipmapped UASTC KTX2; original baked PNGs remain in source control. Matching shared Basis decoder has its own licence entry.",
       "rights": "Project-authored; no third-party asset restrictions",
       "runtimeDependencies": ["three"],
       "runtimeAsset": "public/assets/ships/kestrel/kestrel.glb",
@@ -317,7 +335,7 @@
       "id": "player-fleet-additions",
       "source": "assets/ships/ and src/ships/",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",
-      "provenance": "Original Shrike, Bastion and Needle Blender chassis, generated design concepts and project-authored baked PBR maps embedded in runtime GLBs. Finish targets are generated from actual runtime screenshots; exact prompts, dimensions and hashes are retained in the existing provenance records. Formed service joints and recessed intake construction use a shared geometry-aware bake workflow, with 2048px main ceramic maps and 512px secondary maps.",
+      "provenance": "Original Shrike, Bastion and Needle Blender chassis, generated design concepts and project-authored baked PBR maps embedded in runtime GLBs. Finish targets are generated from actual runtime screenshots; exact prompts, dimensions and hashes are retained in the existing provenance records. Formed service joints and recessed intake construction use a shared geometry-aware bake workflow, with 2048px main ceramic maps and 512px secondary maps. Runtime maps are mipmapped UASTC KTX2; original baked PNGs remain in source control. Matching shared Basis decoder has its own licence entry.",
       "rights": "Project-authored/generated; no third-party artwork or meshes",
       "runtimeDependencies": ["three"],
       "runtimeAssets": [
@@ -418,6 +436,19 @@
         "public/assets/levels/zephyr/zephyr-limestone-v1.png"
       ],
       "provenanceRecords": ["assets/levels/zephyr/MATERIAL_PROVENANCE.json"]
+    },
+    {
+      "id": "ship-basis-decoder",
+      "source": "three@0.186.1/examples/jsm/libs/basis/",
+      "creator": "Binomial LLC / Basis Universal contributors",
+      "provenance": "Unmodified matching JS/WASM Basis decoder shipped with the installed Three.js release. One shared KTX2Loader transcodes player-ship UASTC textures using renderer-detected GPU support.",
+      "rights": "Apache-2.0; see docs/licenses/BASIS-LICENSE.txt",
+      "runtimeAssets": [
+        "public/assets/ships/decoder/basis_transcoder.js",
+        "public/assets/ships/decoder/basis_transcoder.wasm"
+      ],
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "docs/licenses/BASIS-LICENSE.txt"
     }
   ],
   "thirdParty": [

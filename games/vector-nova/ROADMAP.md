@@ -26,6 +26,10 @@
 - [x] Shared world contact: separate swept hull contact from landing acceptance; enable Saffron ramp/terrain/fossil impacts, bounded colliding recovery, deterministic replay and the untimed `?test=jump` scene.
 - [x] Opt-in Rapier flight: stage the player and rivals into one shared engine tick; give Saffron airborne/recovery contact angular response while preserving grounded handling, session replay snapshots and static-only racer filters.
 
+- [x] Front end: neutral graphite/red palette; one desktop setup screen for scrolling circuit cards, race mode/difficulty, inline ship preview and vertical stats; stacked accordion on narrower screens. Hover/arrows preview, click/Enter selects; settings includes keyboard controls.
+- [x] Loading and assets: preload Kestrel then the fleet, retain parsed models, defer worlds until Start, and place quiet progress beneath the ship/loading hero. Ship previews use real models; ship-free, pulled-back circuit stills have a [repeatable refresh workflow](ARCHITECTURE.md#circuit-preview-refresh). Tunes stays anchored across menus, loading and racing.
+- [x] Race/session polish: green GO lights, a shared checker finish line, finish camera beat and sound, live track-backed results, retry/continue actions, and pause → Circuits → Resume without discarding the active run. Shared settings stay synchronized. See [architecture](ARCHITECTURE.md#front-end-and-world-ownership).
+
 ## Remaining gameplay
 
 Agree each phase's scope before implementation; scoped independent critique ends with human review.
@@ -38,6 +42,11 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 ### Level polish
 
+- [ ] Halcyon art pass: explore closer buildings and street-canyon scale using the [saved circuit concept](docs/levels/art-revamp-reference/circuit-wall-v1.png); preserve the approved route.
+- [ ] Nacre art pass: strengthen wave scale, crests, foam and water lighting using the [saved concept](docs/levels/art-revamp-reference/circuit-wall-v1.png); preserve road/jump readability and approved water/flight behavior.
+- [ ] Profile intermittent High-preset freezes on Apple M1 across the heaviest circuits and transitions before increasing art cost; distinguish CPU, shader/upload and GPU limits.
+- [ ] Kestrel Blender/Three.js art pass: explore sharper construction and materials from the saved [paddock](docs/levels/art-revamp-reference/ship-paddock-v1.png) and [close-up](docs/levels/art-revamp-reference/ship-closeup-v1.png), preserving silhouette/handling and measured runtime budgets.
+
 - [ ] Complete the [Saffron wider-circuit proof](docs/expansion/saffron.md): a separate 32 → 40 m variant, preserving the original and refitting adjacent scenery. Use the [per-level expansion process](docs/expansion/README.md); desktop-only verification, with mobile/portrait deferred to the user's final pass across all levels.
 
 - [ ] Zephyr: refine aerated waterfall flow, vary broad island shelves and openings, and deepen close masonry weathering.
@@ -48,7 +57,8 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 - [x] Detached crash camera: confirmed misses/crashes freeze the camera position and gently pan toward the ship, then blend back to chase on landing/recovery. No trailing or zoom; existing recovery timing is preserved.
 - [ ] Cindercoil: add the missing lava road flames and HUD/ship smoke when driving over lava, reusing Helion's effects through shared helpers where appropriate.
-- [ ] Gameplay soundtracks: add one complete gameplay music track per level, matching each circuit's identity.
+- [ ] Gameplay soundtracks: grow the audition pool toward roughly 16 distinct songs, then finish one gameplay track per circuit, including mix/loop delivery and race playback. Use the [audio guide and Halcyon direction](docs/audio/README.md).
+- [ ] Audio generation Skill: package the proven prompt → sequential local render → Tunes audition → human feedback workflow. Reference the audio guide and scripts; carry the musical motivations, metadata/provenance updates and one-current-take cleanup rules without duplicating docs or collecting iteration evidence.
 - [ ] Author collision worlds for additional circuits and broader static Saffron scenery; propagate actual contact sparks as they opt in and explore bounded scrape marks. Keep racer body contact separate.
 - [ ] Halcyon: fix remaining ground flicker, especially white areas and street-lane markings.
 - [ ] Asterion: locate and fix the reported flickering road section.
@@ -56,7 +66,7 @@ Agree each phase's scope before implementation; scoped independent critique ends
 ### Gate 5: broader race flow
 
 - [ ] Scope briefing, sector splits and persistent personal records separately from the completed shared two-lap flow.
-- [ ] Design a podium-style race ending. Decide whether it replaces post-finish free driving immediately or follows a few seconds of driving while slowing toward a minimum of 200 km/h before the podium. Keep the current finish flow until the replacement is designed.
+- [ ] Explore a podium presentation after the current automatic results screen.
 
 ### Gate 6: opponents and competitive Quick Race
 
@@ -70,9 +80,11 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 ### Gate 8: cups and front end
 
-- [ ] Give the paddock, level picker and overall menu flow a cohesive game-ready UI pass. Start with mode selection, such as **Championship** versus **Solo**, with level selection inside Solo; design the final mode/ship/circuit/launch flow before implementation. Retain ship stats, saved choices and Inspect Ships; each step should fit without scrolling.
+- [ ] Author per-circuit menu previews around each track's standout landmark or event: Nacre's leviathan, Cindercoil's lava, and equivalent signature vistas elsewhere. Save free-camera poses and event timing so the existing ship-free screenshot workflow can reproduce those shots after map changes.
+- [ ] Music startup: attempt playback on initial arrival, then fall back to the first user interaction if autoplay is blocked. Current playback begins with a menu-button activation or explicit Play/M.
+- [ ] Validate Tunes continuity and control responsiveness during the heaviest circuit transitions as part of the deferred M1 performance pass.
 - [ ] Carry shared ship selection into future race modes and add a Founders Cup over Halcyon/Asterion/Nacre. Proposed 12-place points: 25/20/16/13/11/9/7/5/4/3/2/1; ties by wins, then total time. Save between races with restart/abandon controls.
-- [ ] Connect Quick Race, Cup and Time Trial to working actions; rewards unlock cosmetics rather than stronger stats. Retain completed content in Practice/Quick Race.
+- [ ] Connect future Cup and Time Trial modes; rewards unlock cosmetics rather than stronger stats. Retain completed content in Practice/Quick Race.
 
 ## Deferred
 

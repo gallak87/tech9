@@ -2,7 +2,8 @@ export function createInput(onCommand, onBlur) {
   const keys = new Set(),
     touch = new Map(),
     abort = new AbortController();
-  let gamepadPresent = false;
+  let gamepadPresent = false,
+    enabled = true;
   const codes = [
     'ArrowUp',
     'ArrowDown',
@@ -23,6 +24,7 @@ export function createInput(onCommand, onBlur) {
   window.addEventListener(
     'keydown',
     (e) => {
+      if (!enabled) return;
       if (e.target.matches('input,select')) return;
       if (e.code === 'Space' && e.target.matches('button')) return;
       if (codes.includes(e.code)) {
@@ -70,6 +72,10 @@ export function createInput(onCommand, onBlur) {
   const down = (...k) => k.some((v) => keys.has(v));
   return {
     clear,
+    setEnabled(value) {
+      enabled = value;
+      if (!value) clear();
+    },
     get gamepadPresent() {
       return gamepadPresent;
     },

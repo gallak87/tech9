@@ -561,15 +561,6 @@ export function buildGlasswakeRoad(
     strut,
     braces,
   );
-  const grid = [];
-  for (let x = -14; x < 15; x += 2)
-    grid.push({ distance: 2, x, y: 0.045, scale: [1, 0.065, 1.4] });
-  instance(
-    'Aurora berth starting grid',
-    new THREE.BoxGeometry(1, 1, 1),
-    edge,
-    grid,
-  );
   group.userData.kind = shape ? 'glasswake-shape' : 'glasswake-production';
   group.userData.reviewKind = shape ? 'bare-track' : 'production';
   group.userData.deckThickness = 1.15;

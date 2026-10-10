@@ -6,18 +6,18 @@ A browser anti-gravity racer built with Three.js and Vite. Choose Kestrel, Shrik
 
 Choose your ship in the paddock, or inspect the player fleet and AI racers. Choose a course in the dropdown and press **Load**, then launch racing or solo practice. During a session, pause and return to the paddock to switch courses.
 
-| Course            | Identity                                                                                   | Availability         |
-| ----------------- | ------------------------------------------------------------------------------------------ | -------------------- |
-| Halcyon Speedway  | 5 km metropolitan expressway with a skyline corkscrew, inverted hold and plunge            | Default route `/`    |
-| Asterion Orbital  | 4.5 km shipyard above a planet, open lattice spans, neon decks and tall containment frames | `/?level=orbital`    |
-| Nacre Tempest     | Ocean/storm world, submerged racing and two airborne jumps                                 | `/?level=nacre`      |
-| Vesper Canopy     | Colossal hollow trees, amber resin, crown jumps and sap lines                              | `/?level=vesper`     |
-| Glasswake Comet   | Transparent ice, paired fracture jumps, a crevice corkscrew and collapsing shelves         | `/?level=glasswake`  |
-| Cindercoil        | Ceramic volcanic circuit, warned lava surges, a furnace corkscrew and vent flight          | `/?level=cindercoil` |
-| Saffron Leviathan | Fossil-desert circuit, skull traversal, vertebral jumps and migrating sand on gold glass   | `/?level=saffron`    |
-| Umbra Fold        | Ruined gravity observatory, tidal countersteering, curved leaps and continuous accretion   | `/?level=umbra`      |
-| Zephyr Basilica   | Floating Gothic archipelago, rose-window nave, waterfall jumps and a full cloud spiral     | `/?level=zephyr`     |
-| Helion Flare      | Solar observatory, flare-lane evasion, furnace passages and sheltered jumps                | `/?level=helion`     |
+| Course            | Identity                                                                                                   | Availability          |
+| ----------------- | ---------------------------------------------------------------------------------------------------------- | --------------------- |
+| Halcyon Speedway  | 5 km metropolitan expressway with a skyline corkscrew, inverted hold and plunge                            | Default route `/`     |
+| Asterion Orbital  | 4.5 km shipyard above a planet, open lattice spans, neon decks and tall containment frames                 | `/?level=orbital`     |
+| Nacre Tempest     | Ocean/storm world, submerged racing and two airborne jumps                                                 | `/?level=nacre`       |
+| Vesper Canopy     | Colossal hollow trees, amber resin, crown jumps and sap lines                                              | `/?level=vesper`      |
+| Glasswake Comet   | Transparent ice, paired fracture jumps, a crevice corkscrew and collapsing shelves                         | `/?level=glasswake`   |
+| Cindercoil        | Ceramic volcanic circuit, warned lava surges, a furnace corkscrew and vent flight                          | `/?level=cindercoil`  |
+| Saffron Leviathan | Fossil-desert circuit, skull traversal, vertebral jumps and migrating sand on gold glass                   | `/?level=saffron`     |
+| Umbra Fold        | Ruined gravity observatory, tidal countersteering, curved leaps and continuous accretion                   | `/?level=umbra`       |
+| Zephyr Basilica   | Floating Gothic archipelago, rose-window nave, waterfall jumps and a full cloud spiral                     | `/?level=zephyr`      |
+| Helion Flare      | Solar observatory, flare-lane evasion, furnace passages and sheltered jumps                                | `/?level=helion`      |
 | Shatterline       | Ruined mountain mass driver, twelve jumps and three approximately five-second flights in a downhill sprint | `/?level=shatterline` |
 
 All eleven courses share automatic Vector boost strips and Aegis shields, with course-owned placements. Vector gives an immediate catapult kick and drives toward 600 km/h during a full strip pass, with course-tuned radial motion blur unless reduced motion is enabled. Leaving early retains only the speed already gained; Aegis protects reserve from impacts for six seconds. On the ten circuits, **Enter Proving Loop** starts a two-lap session against Rook, Latch and Mule from a 2×2 grid after audible start lights; **Practice Lap** starts solo. Shatterline offers **Start Downhill Sprint** and **Solo Descent**, each covering the complete one-way course. Easy uses the baseline rival pace, Medium is faster, and Hard is faster again with more boosting as you boost. Each rival uses its own vehicle physics, reserve and device eligibility. On circuits, placements and lap/total times are recorded after two laps while driving continues. A completed sprint records its descent time and brakes the craft along the supported runout. Escape returns to the paddock with the last roster beside the desktop menu or below the controls on compact screens; unfinished rivals remain in progress and invalid laps or sprints are marked untimed.
@@ -66,6 +66,7 @@ WebGL2 is required. Gameplay uses local assets and needs no account or backend. 
 - Escape: pause/settings/restart; after a completed two-lap race or sprint, return to paddock. I: inspect the ship. C: alternate camera.
 - F or Free Camera in the paddock/pause menu: explore every course with all ships hidden and the session frozen; drag to look, WASD/arrows move, Q/E down/up at a fixed 200 m/s. F/Escape returns.
 - Menus: Tab/Shift-Tab, Enter/Space. Small viewports expose pointer controls.
+- Tunes: M plays/pauses music, comma/period select songs, and / expands/collapses the player. Music starts when you launch racing or practice; repeat defaults off.
 - Prototype gamepad: left stick steering, RT throttle, LT brake, A boost, B airbrake.
 
 Bend assistance is 0.3; the player steers the remaining turn. Magnetic adhesion follows road pitch/roll and holds a parked craft on slopes. Physical gamepad/mobile use, independent audio listening and foreground frame pacing still need direct verification.
@@ -78,4 +79,4 @@ Package `prepare` installs Husky; the pre-commit hook runs ESLint/Prettier throu
 
 `npm run verify` and `npm run verify:orbital` use Chrome/Playwright for short real-input checks. Configure `VN_URL`, `VN_BROWSER_CHANNEL`, `VN_BROWSER_PATH` and `VN_EVIDENCE` as needed; verify the intended build and use a free port when starting a server. Review browsers stay hidden/headless, with temporary output in ignored `.experiments/`.
 
-Read [architecture](ARCHITECTURE.md) for runtime contracts, [art direction](docs/ART_BIBLE.md) for visual principles and the [roadmap](ROADMAP.md) for planned features. Assets have editable sources and [provenance](docs/ASSET_MANIFEST.json); third-party notices remain in [docs/licenses](docs/licenses/). Historical reviews and completed handoffs are available in Git.
+Read [architecture](ARCHITECTURE.md) for runtime contracts, [art direction](docs/ART_BIBLE.md) for visual principles, [audio generation](docs/audio/README.md) for the local music workflow and the [roadmap](ROADMAP.md) for planned features. Assets have editable sources and [provenance](docs/ASSET_MANIFEST.json); third-party notices remain in [docs/licenses](docs/licenses/). Historical reviews and completed handoffs are available in Git.

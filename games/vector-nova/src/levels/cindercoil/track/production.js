@@ -667,14 +667,6 @@ export function createCindercoilRoad({
     oxide,
     warningTabs,
   );
-  const grid = [];
-  for (const x of [-12, -6, 0, 6, 12]) grid.push(transform(track, 22, x, 0.13));
-  instanced(
-    'Ashgate timing stripe',
-    new THREE.BoxGeometry(3, 0.06, 1.2),
-    white,
-    grid,
-  );
   group.userData.roadIntervals = intervals;
   group.userData.surfaceConstruction =
     'Single tessellation / staggered 6 x 12 m ceramic cassettes / no coplanar overlay';

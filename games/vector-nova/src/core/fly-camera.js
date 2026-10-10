@@ -48,6 +48,7 @@ export function createFlyCamera(camera, canvas, { toggle, exit } = {}) {
     window,
     'keydown',
     (event) => {
+      if (event.target.closest?.('[data-music-player]')) return;
       if (active && event.code === 'Escape') {
         event.preventDefault();
         event.stopPropagation();

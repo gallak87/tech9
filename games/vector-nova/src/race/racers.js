@@ -527,7 +527,7 @@ export function createRacers({
       courseFormat: course.format,
       elapsed,
       // First completed sprint, or the first two circuit laps, valid or invalid.
-      playerFinished: !!currentFinish,
+      playerFinished: (enabled || sprint) && !!currentFinish,
       standings: enabled
         ? standings
         : sprint

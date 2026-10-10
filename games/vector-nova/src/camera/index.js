@@ -50,6 +50,7 @@ export function createCameraRig(
         worldPose = null,
         subject = null,
         paused = false,
+        finish = 0,
       } = {},
     ) {
       if (paused && initialized) return;
@@ -176,18 +177,25 @@ export function createCameraRig(
           typeof chaseDistance === 'function'
             ? chaseDistance(track, state)
             : chaseDistance;
-        const height = T.MathUtils.lerp(
-          resolvedHeight,
-          typeof jumpPreview?.height === 'function'
-            ? jumpPreview.height(track, state, nextJump)
-            : (jumpPreview?.height ?? resolvedHeight),
-          preview,
-        );
-        const backDistance = T.MathUtils.lerp(
-          resolvedDistance,
-          jumpPreview?.back ?? resolvedDistance,
-          preview,
-        );
+        // A restrained finish pullback reuses the route-following chase view.
+        // Flight/recovery cameras and reduced-motion composition stay intact.
+        const finishBlend = reducedMotion ? 0 : T.MathUtils.clamp(finish, 0, 1);
+        const height =
+          T.MathUtils.lerp(
+            resolvedHeight,
+            typeof jumpPreview?.height === 'function'
+              ? jumpPreview.height(track, state, nextJump)
+              : (jumpPreview?.height ?? resolvedHeight),
+            preview,
+          ) +
+          finishBlend * 1.2;
+        const backDistance =
+          T.MathUtils.lerp(
+            resolvedDistance,
+            jumpPreview?.back ?? resolvedDistance,
+            preview,
+          ) +
+          finishBlend * 3;
         const previewDistance =
           typeof lookAhead === 'function' ? lookAhead(track, state) : lookAhead;
         const ahead = track.sample(

@@ -4,6 +4,7 @@ import {
   signTexture,
 } from './textures.js';
 import * as THREE from 'three';
+import { RACE_GRID } from '../../../race/racers.js';
 import { createTrack } from './model.js';
 import { framePoint } from '../../../track/frames.js';
 import {
@@ -975,25 +976,14 @@ export function buildTrackVisual(track) {
     [localTransform(gantryS, 0, 11.38, 1.1)],
     true,
   );
-  const timingStripe = [];
-  for (let x = -13.5; x < 14; x += 1)
-    for (let row = 0; row < 2; row += 1)
-      if ((Math.round(x + 13.5) + row) % 2 === 0)
-        timingStripe.push(localTransform(gantryS, x, 0.035, row - 0.5));
-  addInstances(
-    'Physical start timing stripe',
-    new THREE.BoxGeometry(1, 0.016, 1),
-    stripe,
-    timingStripe,
-  );
+  // The shared race marker owns checkpoint-zero paint; this gantry is scenery.
   const grid = [],
     gridSide = [];
-  for (let row = 0; row < 4; row += 1)
-    for (const side of [-1, 1]) {
-      grid.push(localTransform(8 + row * 10, side * 4.7, 0.026));
-      gridSide.push(localTransform(10 + row * 10, side * 4.7 - 1.75, 0.026));
-      gridSide.push(localTransform(10 + row * 10, side * 4.7 + 1.75, 0.026));
-    }
+  for (const { distance, lateral } of Object.values(RACE_GRID)) {
+    grid.push(localTransform(distance - 3, lateral, 0.026));
+    gridSide.push(localTransform(distance - 1, lateral - 1.75, 0.026));
+    gridSide.push(localTransform(distance - 1, lateral + 1.75, 0.026));
+  }
   addInstances(
     'Grid stall end paint',
     new THREE.BoxGeometry(3.6, 0.015, 0.16),

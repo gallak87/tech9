@@ -67,7 +67,8 @@ export function advanceSession({
           grounded: runtime.pose(1)?.grounded !== false,
         })
         .forEach(emit);
-      racers?.finishAdvance?.({ playerPose: runtime.pose(1) });
+      // Forward finish events with the same grounded sprint pose.
+      racers?.finishAdvance?.({ playerPose: runtime.pose(1) })?.forEach(emit);
       events.push(...completed);
     }
     return events;
@@ -81,12 +82,14 @@ export function advanceSession({
       grounded: runtime.pose(1)?.grounded !== false,
     })
     .forEach(emit);
-  racers?.advance(dt, {
-    playerState: state,
-    playerRace: race,
-    playerInput: controls,
-    playerPose: runtime.pose(1),
-  });
+  racers
+    ?.advance(dt, {
+      playerState: state,
+      playerRace: race,
+      playerInput: controls,
+      playerPose: runtime.pose(1),
+    })
+    ?.forEach(emit);
   return events;
 }
 

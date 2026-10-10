@@ -875,15 +875,6 @@ export function buildNacreTrack(track) {
     amber,
     beacons,
   );
-  const startMarks = [];
-  for (let x = -13; x <= 13; x += 2)
-    startMarks.push({ distance: 1.5, x, y: 0.11, scale: [1, 0.06, 1.3] });
-  instance(
-    'Tide observatory starting line',
-    new THREE.BoxGeometry(1, 1, 1),
-    edge,
-    startMarks,
-  );
   group.userData.surfaceCoverage = track.surfaceCoverage;
   group.userData.openSpans = track.jumps.map(
     ({ id, takeoff, landingStart }) => ({

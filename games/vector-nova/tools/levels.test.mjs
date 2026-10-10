@@ -135,6 +135,23 @@ test('circuit navigation retains deployment path and clears level-specific flags
     circuitURL('https://example.test/game/?level=nacre', 'halcyon').href,
     'https://example.test/game/',
   );
+  assert.equal(
+    circuitURL('https://example.test/game/?music=1&review=shape', 'nacre').href,
+    'https://example.test/game/?music=1&level=nacre',
+  );
+  assert.equal(
+    circuitURL('https://example.test/game/?level=nacre&music=1', 'halcyon')
+      .href,
+    'https://example.test/game/?music=1',
+  );
+  assert.equal(
+    circuitURL('https://example.test/game/?music=0&review=shape', 'nacre').href,
+    'https://example.test/game/?music=0&level=nacre',
+  );
+  assert.equal(
+    circuitURL('https://example.test/game/?music=invalid', 'halcyon').href,
+    'https://example.test/game/',
+  );
   assert.throws(
     () => circuitURL('https://example.test/', '../private'),
     /Invalid circuit id/,

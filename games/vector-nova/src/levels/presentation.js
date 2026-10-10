@@ -5,6 +5,7 @@ export async function createLevelPresentation(definition, context) {
   const lifetime = createLifetime();
   const parts = [];
   async function acquire(factory, label, componentContext = context) {
+    await context.checkpoint?.(`Building ${label}`);
     const part = await factory(componentContext);
     if (!part || typeof part.dispose !== 'function')
       throw new Error(`Invalid ${label}: dispose is required`);

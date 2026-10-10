@@ -256,8 +256,10 @@ export function validateTrack(track) {
 export function circuitURL(currentURL, id) {
   if (!slugPattern.test(id)) throw new Error('Invalid circuit id');
   const url = new URL(currentURL);
+  const music = url.searchParams.get('music');
   url.search = '';
   url.hash = '';
+  if (music === '0' || music === '1') url.searchParams.set('music', music);
   if (id !== 'halcyon') url.searchParams.set('level', id);
   return url;
 }

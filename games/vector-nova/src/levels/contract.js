@@ -218,6 +218,20 @@ export function validateTrack(track) {
     throw new Error(
       'Invalid circuit track: identity, dimensions, sections, checkpoints and scenarios are required',
     );
+  if (track.closed !== undefined && typeof track.closed !== 'boolean')
+    throw new Error('Track closed must be a boolean');
+  if (
+    track.closed === false &&
+    (!Number.isFinite(track.finishDistance) ||
+      track.finishDistance <= 0 ||
+      track.finishDistance >= track.length ||
+      (track.checkpoints[0].distance ?? track.checkpoints[0].s) !== 0 ||
+      (track.checkpoints.at(-1).distance ?? track.checkpoints.at(-1).s) !==
+        track.finishDistance)
+  )
+    throw new Error(
+      'Open track needs a start, terminal checkpoint and supported runout',
+    );
   for (const distance of [0, track.length / 2, track.length]) {
     const frame = track.sample(distance);
     for (const key of ['position', 'tangent', 'right', 'up'])

@@ -7,6 +7,7 @@ import { loadShipSelection, saveShipSelection } from '../ships/catalog.js';
 import { createRenderer } from '../renderer/index.js';
 import { createVehicleState, STEERING_ASSIST } from '../physics/index.js';
 import { createRace } from '../race/index.js';
+import { courseIdentity } from '../race/course.js';
 import { createInput } from '../input/index.js';
 import { createCameraRig } from '../camera/index.js';
 import { createAudio } from '../audio/index.js';
@@ -250,12 +251,16 @@ async function boot() {
     if (e.type === 'jump-transfer')
       ui.notice(
         e.payload.outcome === 'recovered'
-          ? `RECOVERED BEYOND LANDING · ${race.valid ? 'LAP VALID' : 'UNTIMED SESSION'} · W TO RESUME`
+          ? `RECOVERED BEYOND LANDING · ${race.valid ? (track.closed === false ? 'RUN VALID' : 'LAP VALID') : 'UNTIMED SESSION'} · W TO RESUME`
           : e.payload.tractionRestored
             ? 'PLATFORM CONTACT · TRACTION RESTORED'
             : e.payload.edgeCaught
               ? 'EDGE CATCH · LANDING CONFIRMED'
               : 'LANDING CONFIRMED',
+      );
+    if (e.type === 'sprint-complete')
+      ui.notice(
+        e.payload.valid ? 'FINISH · DESCENT RECORDED' : 'FINISH · UNTIMED RUN',
       );
     if (e.type === 'lap') {
       const previousBest = Math.min(
@@ -522,6 +527,14 @@ async function boot() {
   }
   function restart(compete = competition, withCountdown = false) {
     if (shipLoading) return;
+    if (track.closed === false && race?.complete) {
+      const results = racers?.snapshot({
+        playerState: state,
+        playerRace: race,
+        playerPose: runtime.pose(1),
+      }).results;
+      if (results) lastResults = structuredClone(results);
+    }
     flyCamera?.leave();
     cancelCountdown();
     scenario = 'staging';
@@ -580,6 +593,8 @@ async function boot() {
   }
   function recover() {
     if (mode !== 'racing') return;
+    if (track.closed === false && race.complete)
+      return restart(competition, true);
     state.distance = race.recover();
     state.lateral = 0;
     state.heading = 0;
@@ -591,12 +606,17 @@ async function boot() {
     prev = { ...state };
     rig.reset();
     emit({ type: 'recover', payload: { penalty: 'current lap invalid' } });
-    ui.notice('RECOVERED AT CHECKPOINT · LAP INVALID');
+    ui.notice(
+      track.closed === false
+        ? 'RECOVERED AT CHECKPOINT · RUN UNTIMED'
+        : 'RECOVERED AT CHECKPOINT · LAP INVALID',
+    );
   }
   function home() {
     const results = racers?.snapshot({
       playerState: state,
       playerRace: race,
+      playerPose: runtime.pose(1),
     }).results;
     if (results) lastResults = structuredClone(results);
     cancelCountdown();
@@ -916,8 +936,11 @@ async function boot() {
       if (command === 'pause') {
         if (
           ['racing', 'paused'].includes(mode) &&
-          racers?.snapshot({ playerState: state, playerRace: race })
-            .playerFinished
+          racers?.snapshot({
+            playerState: state,
+            playerRace: race,
+            playerPose: runtime.pose(1),
+          }).playerFinished
         )
           home();
         else if (mode === 'paused') resume();
@@ -1190,7 +1213,11 @@ async function boot() {
     for (const event of view.drainStormEvents()) audio.event(event);
     ui.update(state, race, runtime.snapshot(), {
       practice: definition.practiceSectionsUntimed && scenario !== 'staging',
-      competition: racers?.snapshot({ playerState: state, playerRace: race }),
+      competition: racers?.snapshot({
+        playerState: state,
+        playerRace: race,
+        playerPose: runtime.pose(1),
+      }),
       lastResults,
     });
     raf = requestAnimationFrame(render);
@@ -1386,6 +1413,7 @@ async function boot() {
         version: VERSION,
         trackId: track.id,
         physicsVersion: 3,
+        ...(track.closed === false ? { course: courseIdentity(track) } : {}),
         ship: { id: ship.selected.id, version: ship.selected.version },
         runtime: runtimeIdentity(runtime),
         initial: JSON.parse(JSON.stringify(initial)),
@@ -1403,6 +1431,9 @@ async function boot() {
         replay.version !== VERSION ||
         replay.trackId !== track.id ||
         replay.physicsVersion !== 3 ||
+        (track.closed === false &&
+          JSON.stringify(replay.course) !==
+            JSON.stringify(courseIdentity(track))) ||
         Boolean(replay.untimed) !== Boolean(playtest) ||
         replay.ship?.id !== ship.selected.id ||
         replay.ship?.version !== ship.selected.version ||
@@ -1523,7 +1554,11 @@ async function boot() {
         },
         vehicle: { ...state },
         competition:
-          racers?.snapshot({ playerState: state, playerRace: race }) ?? null,
+          racers?.snapshot({
+            playerState: state,
+            playerRace: race,
+            playerPose: runtime.pose(1),
+          }) ?? null,
         countdown:
           mode === 'countdown' || pausedCountdown ? countdown.snapshot() : null,
         lastResults,
@@ -1554,6 +1589,8 @@ async function boot() {
             .project(camera).x,
         },
         lap: {
+          complete: race.complete,
+          course: race.course,
           lap: race.lap,
           checkpoint: race.checkpoint,
           elapsed: race.elapsed,
@@ -1568,6 +1605,8 @@ async function boot() {
           name: track.name,
           review: track.review,
           length: track.length,
+          closed: track.closed !== false,
+          finishDistance: track.finishDistance,
           width: track.width,
           sections: track.sections,
           signature: track.signature,

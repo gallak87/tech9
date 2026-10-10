@@ -93,20 +93,63 @@ export function assertTrackContract(
     };
   }
 
-  // Check negative distances and multiple laps, not just sample(length) == 0.
-  for (const distance of [
-    0,
-    track.length * 0.371,
-    track.length - spacing / 2,
-  ]) {
-    const reference = read(distance);
-    for (const lap of [-2, -1, 1, 2]) {
-      const wrapped = read(distance + lap * track.length);
+  if (track.closed === false) {
+    const start = read(0);
+    const end = read(track.length);
+    assert.ok(
+      start.position.distanceTo(end.position) > 1,
+      'Open endpoints must be distinct',
+    );
+    for (const distance of [track.length + 1, track.length * 2]) {
+      const beyond = read(distance);
       assert.ok(
-        reference.position.distanceTo(wrapped.position) < EPSILON &&
-          reference.quaternion.angleTo(wrapped.quaternion) < EPSILON,
-        at(distance) + ': position/orientation must wrap across laps',
+        end.position.distanceTo(beyond.position) < EPSILON &&
+          end.quaternion.angleTo(beyond.quaternion) < EPSILON,
+        'Open lookahead must clamp at the endpoint',
       );
+    }
+    // The rear grid may use an explicit supported staging extension. It must
+    // remain near the start, never sample the distant finish as a wrapped lap.
+    for (const distance of [-1, -12]) {
+      const staging = read(distance);
+      assert.ok(
+        start.position.distanceTo(staging.position) <=
+          Math.abs(distance) + EPSILON,
+        'Negative staging must remain at the start',
+      );
+    }
+    assert.ok(
+      Number.isFinite(track.finishDistance) &&
+        track.finishDistance > 0 &&
+        track.finishDistance < track.length,
+      'Sprint finish needs supported runout',
+    );
+    assert.equal(
+      track.checkpoints[0].distance ?? track.checkpoints[0].s,
+      0,
+      'Sprint starts at checkpoint zero',
+    );
+    assert.equal(
+      track.checkpoints.at(-1).distance ?? track.checkpoints.at(-1).s,
+      track.finishDistance,
+      'Sprint ends at the final checkpoint',
+    );
+  } else {
+    // Check negative distances and multiple laps, not just sample(length) == 0.
+    for (const distance of [
+      0,
+      track.length * 0.371,
+      track.length - spacing / 2,
+    ]) {
+      const reference = read(distance);
+      for (const lap of [-2, -1, 1, 2]) {
+        const wrapped = read(distance + lap * track.length);
+        assert.ok(
+          reference.position.distanceTo(wrapped.position) < EPSILON &&
+            reference.quaternion.angleTo(wrapped.quaternion) < EPSILON,
+          at(distance) + ': position/orientation must wrap across laps',
+        );
+      }
     }
   }
 

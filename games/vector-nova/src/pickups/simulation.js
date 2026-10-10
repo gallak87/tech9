@@ -24,7 +24,13 @@ const movingForward = (vehicle) =>
 
 // Aegis arches retain a swept centre-plane trigger. The lateral hull envelope
 // is interpolated at that plane so fast crossings cannot miss the charge.
-export function sweptDeviceCrossings(previous, vehicle, devices, trackLength) {
+export function sweptDeviceCrossings(
+  previous,
+  vehicle,
+  devices,
+  trackLength,
+  closed = true,
+) {
   const start = previous.distance,
     end = vehicle.distance;
   if (
@@ -39,7 +45,11 @@ export function sweptDeviceCrossings(previous, vehicle, devices, trackLength) {
   for (const device of devices) {
     const first = Math.floor((start - device.distance) / trackLength) + 1;
     const last = Math.floor((end - device.distance) / trackLength);
-    for (let traversal = first; traversal <= last; traversal++) {
+    for (
+      let traversal = closed ? first : Math.max(0, first);
+      traversal <= (closed ? last : Math.min(0, last));
+      traversal++
+    ) {
       const distance = device.distance + traversal * trackLength;
       const fraction = (distance - start) / (end - start);
       const lateral =
@@ -92,7 +102,13 @@ function overlaps(device, traversal, vehicle, trackLength) {
 // Vector is an authored rectangle, not a timer granted at its centre. Sweeping
 // both route distance and lateral position also admits a late lane entry while
 // the nose is already over the strip. No support means no ground catapult.
-export function sweptVectorContacts(previous, vehicle, devices, trackLength) {
+export function sweptVectorContacts(
+  previous,
+  vehicle,
+  devices,
+  trackLength,
+  closed = true,
+) {
   if (
     !supported(previous) ||
     !supported(vehicle) ||
@@ -117,7 +133,11 @@ export function sweptVectorContacts(previous, vehicle, devices, trackLength) {
       (vehicle.distance - device.distance + device.length / 2 + longitudinal) /
         trackLength,
     );
-    for (let traversal = first; traversal <= last; traversal++) {
+    for (
+      let traversal = closed ? first : Math.max(0, first);
+      traversal <= (closed ? last : Math.min(0, last));
+      traversal++
+    ) {
       const center = device.distance + traversal * trackLength;
       const along = interval(
         previous.distance,
@@ -145,6 +165,7 @@ export function sweptVectorContacts(previous, vehicle, devices, trackLength) {
 
 export function createPickupSimulation({
   trackLength,
+  closed = true,
   devices,
   vehicle = { distance: 0 },
 }) {
@@ -175,6 +196,7 @@ export function createPickupSimulation({
   const aegises = layout.filter((device) => device.type === 'aegis');
   const layoutKey = JSON.stringify([
     trackLength,
+    ...(closed === false ? ['sprint-v1'] : []),
     ...layout.map(({ id, type, distance, lateral, width, length }) => [
       id,
       type,
@@ -213,7 +235,11 @@ export function createPickupSimulation({
           ? -(device.length / 2 + HULL_RADIUS)
           : device.length / 2 + HULL_RADIUS
         : 0;
-    return Math.floor((distance - device.distance - offset) / trackLength);
+    return closed === false
+      ? distance >= device.distance + offset
+        ? 0
+        : -1
+      : Math.floor((distance - device.distance - offset) / trackLength);
   }
   function markPassed(distance, leading = false) {
     for (const device of layout)
@@ -315,6 +341,7 @@ export function createPickupSimulation({
         currentVehicle,
         vectors,
         trackLength,
+        closed,
       ))
         activateVector(contact, input, events);
     const modifiers = {};
@@ -346,9 +373,9 @@ export function createPickupSimulation({
     }
     const contacts = [
       ...(movingForward(current)
-        ? sweptVectorContacts(previous, current, vectors, trackLength)
+        ? sweptVectorContacts(previous, current, vectors, trackLength, closed)
         : []),
-      ...sweptDeviceCrossings(previous, current, aegises, trackLength),
+      ...sweptDeviceCrossings(previous, current, aegises, trackLength, closed),
     ].sort(
       (a, b) =>
         a.fraction - b.fraction || a.device.id.localeCompare(b.device.id),

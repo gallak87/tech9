@@ -30,6 +30,12 @@
 
 Agree each phase's scope before implementation; scoped independent critique ends with human review.
 
+### New level
+
+- [ ] Build [Shatterline](docs/levels/shatterline.md): a jump-heavy downhill sprint through a ruined planetary accelerator, with three approximately five-second flights, substantial receiving decks, and explicit point-to-point race support. Desktop implementation and independent critique are in progress; the approved direction includes a wider roadway, a double descending corkscrew, a sustained upside-down stretch, Avalanche Sweep and the Scissor Dive underpass, with mobile/portrait deferred to human review.
+
+- [ ] Shatterline follow-up: add a fully enclosed, freely drivable 360° tunnel, including its own handling, collision and camera pass. The current downhill build already includes the Service Corkscrew and Overturn inversion.
+
 ### Level polish
 
 - [ ] Complete the [Saffron wider-circuit proof](docs/expansion/saffron.md): a separate 32 → 40 m variant, preserving the original and refitting adjacent scenery. Use the [per-level expansion process](docs/expansion/README.md); desktop-only verification, with mobile/portrait deferred to the user's final pass across all levels.

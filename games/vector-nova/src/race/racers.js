@@ -2,6 +2,12 @@ import { createVehicleState, STEERING_ASSIST } from '../physics/index.js';
 import { getShip } from '../ships/catalog.js';
 import { runtimeIdentity } from '../core/session-runtime.js';
 import { createRace } from './index.js';
+import {
+  courseIdentity,
+  distanceAhead,
+  presentationDistance,
+  sprintRunoutControl,
+} from './course.js';
 import { createRelativeTiming } from './relative-timing.js';
 
 export const RACE_LAPS = 2;
@@ -49,13 +55,15 @@ const raceFields = [
   'complete',
   'startDistance',
   'history',
+  'completedTransfers',
 ];
 const captureRace = (race) =>
   Object.fromEntries(raceFields.map((key) => [key, copy(race[key])]));
 
 function finishFrom(race) {
-  if (race.history.length < RACE_LAPS) return null;
-  const laps = race.history.slice(0, RACE_LAPS);
+  const lapsRequired = race.course.format === 'sprint' ? 1 : RACE_LAPS;
+  if (race.history.length < lapsRequired) return null;
+  const laps = race.history.slice(0, lapsRequired);
   return {
     lapTimes: laps.map((lap) => lap.duration),
     lapValidity: laps.map((lap) => lap.valid),
@@ -75,6 +83,8 @@ function controlsFor(
   boostRequested = false,
 ) {
   const state = opponent.state;
+  if (track.closed === false && opponent.finish)
+    return sprintRunoutControl(track, state);
   if (opponent.runtime?.pose(1)?.grounded === false)
     return { throttle: 1, brake: 0, steer: 0, boost: false, airbrake: false };
   const handling = getShip(state.shipId).handling;
@@ -110,12 +120,10 @@ function controlsFor(
   );
   let targetLane = opponent.specification.lane;
   // Readable lane changes toward the next shield; boosts already span broad
-  // driving lines. Distances wrap so the same authored devices work each lap.
+  // driving lines. Only closed circuits wrap to the next lap.
   const upcoming = devices.find((device) => {
-    const ahead =
-      (((device.distance - state.distance) % track.length) + track.length) %
-      track.length;
-    return device.type === 'aegis' && ahead < 150;
+    const ahead = distanceAhead(track, state.distance, device.distance);
+    return device.type === 'aegis' && ahead >= 0 && ahead < 150;
   });
   if (upcoming) targetLane = upcoming.lateral;
   for (const other of nearby) {
@@ -129,10 +137,8 @@ function controlsFor(
     }
   }
   const jump = (track.jumps ?? []).find((entry) => {
-    const ahead =
-      (((entry.takeoff - state.distance) % track.length) + track.length) %
-      track.length;
-    return !entry.optional && ahead < 260;
+    const ahead = distanceAhead(track, state.distance, entry.takeoff);
+    return !entry.optional && ahead >= 0 && ahead < 260;
   });
   if (jump) {
     // Earn takeoff speed with the selected ship's own boost/reserve. Optional
@@ -147,7 +153,7 @@ function controlsFor(
   const sidewaysLoad =
     -frame.curvature * speed * speed * 0.75 - 9.81 * frame.right.y;
   const targetSideways = clamp((targetLane - state.lateral) * 1.5, -9, 9);
-  const desiredHeading = clamp(
+  let desiredHeading = clamp(
     Math.asin(
       clamp(
         (targetSideways - sidewaysLoad / (7.2 * handling.grip)) / speed,
@@ -158,6 +164,22 @@ function controlsFor(
     -0.24,
     0.24,
   );
+  if (Number.isFinite(jump?.launchAlignment) && jump.launchAlignment > 0) {
+    // A long declared flight needs a settled launch vector more than one final
+    // lane correction. Ease out centering over the first third of the straight,
+    // then use grounded steering to cancel residual launch-side velocity.
+    const ahead = distanceAhead(track, state.distance, jump.takeoff);
+    const blend = clamp(
+      (jump.launchAlignment - ahead) / (jump.launchAlignment * 0.35),
+      0,
+      1,
+    );
+    const weight = blend * blend * (3 - 2 * blend);
+    const aligned = Math.asin(
+      clamp((-state.lateralSpeed * 0.15) / speed, -0.2, 0.2),
+    );
+    desiredHeading += (aligned - desiredHeading) * weight;
+  }
   const authority = (1 - STEERING_ASSIST) * 1.5 * handling.turn;
   const feedforward = (-frame.curvature * state.speed) / (1.5 * handling.turn);
   const steer = clamp(
@@ -205,6 +227,10 @@ export function createRacers({
 }) {
   if (typeof createRuntime !== 'function')
     throw new Error('Racers require the circuit simulation factory');
+  const sprint = track.closed === false;
+  const lapsRequired = sprint ? 1 : RACE_LAPS;
+  const course = courseIdentity(track);
+  const version = sprint ? 5 : RACERS_VERSION;
   const relativeTiming = createRelativeTiming(Object.keys(RACE_GRID));
   const opponents = RACE_OPPONENTS.map((specification) => ({
     specification,
@@ -256,7 +282,7 @@ export function createRacers({
       };
       opponent.prev = { ...opponent.state };
       opponent.race = createRace(track, {
-        rulesId: `${opponent.runtime.rulesId}:ai-v${RACERS_VERSION}:${specification.id}`,
+        rulesId: `${opponent.runtime.rulesId}:ai-v${version}:${specification.id}`,
       });
       opponent.finish = null;
       opponent.boostCredit = 0;
@@ -268,7 +294,7 @@ export function createRacers({
 
   function prepareTick(
     step,
-    { playerState, playerRace, playerInput, playerPrevious } = {},
+    { playerState, playerRace, playerInput, playerPrevious, playerPose } = {},
   ) {
     elapsed += step;
     const activeBoost =
@@ -297,10 +323,13 @@ export function createRacers({
     opponents.forEach((opponent) => {
       opponent.prev = { ...opponent.state };
     });
-    return { step, controls, playerState, playerRace };
+    return { step, controls, playerState, playerRace, playerPose };
   }
 
-  function finishTick({ step, controls, playerState }, shared = false) {
+  function finishTick(
+    { step, controls, playerState, playerPose },
+    shared = false,
+  ) {
     const events = [];
     opponents.forEach((opponent, index) => {
       const vehicleEvents = shared
@@ -316,20 +345,18 @@ export function createRacers({
         Math.max(0, opponent.state.distance),
         step,
         vehicleEvents,
+        { grounded: opponent.runtime.pose(1)?.grounded !== false },
       );
       // CPU adapters have no presentation. Drain pending decorative events.
       opponent.runtime.update({});
       relativeTiming.update(
         opponent.specification.id,
-        opponent.state.distance,
+        presentationDistance(track, opponent.state, opponent.runtime.pose(1)),
         elapsed,
       );
+      const wasFinished = !!opponent.finish;
       if (!opponent.finish) opponent.finish = finishFrom(opponent.race);
-      if (
-        opponent.finish &&
-        opponent.race.history.length === RACE_LAPS &&
-        opponent.race.elapsed === 0
-      )
+      if (opponent.finish && !wasFinished)
         events.push({
           type: 'racer-complete',
           payload: {
@@ -339,7 +366,11 @@ export function createRacers({
         });
     });
     if (playerState)
-      relativeTiming.update('player', playerState.distance, elapsed);
+      relativeTiming.update(
+        'player',
+        presentationDistance(track, playerState, playerPose),
+        elapsed,
+      );
     return events;
   }
 
@@ -364,8 +395,9 @@ export function createRacers({
     });
   }
 
-  function finishAdvance() {
+  function finishAdvance({ playerPose } = {}) {
     if (!staged) return [];
+    if (playerPose !== undefined) staged.playerPose = playerPose;
     const events = finishTick(staged, true);
     finishPlayerRace(staged.playerRace, events);
     staged = null;
@@ -389,24 +421,31 @@ export function createRacers({
     return finishPlayerRace(context.playerRace, events);
   }
 
-  function row(id, name, state, race, finish) {
-    const completedLaps = Math.min(RACE_LAPS, race.history.length);
+  function row(id, name, state, race, finish, pose) {
+    const completedLaps = Math.min(lapsRequired, race.history.length);
+    const displayDistance = presentationDistance(track, state, pose);
     return {
       id,
       name,
       position: null,
-      distance: state.distance,
+      distance: displayDistance,
+      checkpointDistance: state.distance,
       lateral: state.lateral,
       speed: state.speed,
-      lap: Math.min(RACE_LAPS, completedLaps + 1),
+      lap: Math.min(lapsRequired, completedLaps + 1),
       completedLaps,
-      progress: clamp(state.distance / (RACE_LAPS * track.length), 0, 1),
+      progress: clamp(
+        displayDistance /
+          (sprint ? track.finishDistance : RACE_LAPS * track.length),
+        0,
+        1,
+      ),
       lapTimes: finish
         ? [...finish.lapTimes]
-        : race.history.slice(0, RACE_LAPS).map((lap) => lap.duration),
+        : race.history.slice(0, lapsRequired).map((lap) => lap.duration),
       lapValidity: finish
         ? [...finish.lapValidity]
-        : race.history.slice(0, RACE_LAPS).map((lap) => lap.valid),
+        : race.history.slice(0, lapsRequired).map((lap) => lap.valid),
       currentLapTime: race.elapsed,
       totalTime: finish?.totalTime ?? null,
       finished: !!finish,
@@ -414,7 +453,7 @@ export function createRacers({
     };
   }
 
-  function snapshot({ playerState, playerRace } = {}) {
+  function snapshot({ playerState, playerRace, playerPose } = {}) {
     const standings = opponents.map((opponent) =>
       row(
         opponent.specification.id,
@@ -422,6 +461,7 @@ export function createRacers({
         opponent.state,
         opponent.race,
         opponent.finish,
+        opponent.runtime.pose(1),
       ),
     );
     const currentFinish =
@@ -434,6 +474,7 @@ export function createRacers({
           playerState,
           playerRace,
           currentFinish,
+          playerPose,
         ),
       );
     standings.sort((a, b) => {
@@ -471,20 +512,27 @@ export function createRacers({
                     ahead ? 'player' : entry.id,
                     elapsed,
                   ),
-            lapGap: Math.floor(
-              Math.abs(entry.distance - player.distance) / track.length,
-            ),
+            lapGap: sprint
+              ? 0
+              : Math.floor(
+                  Math.abs(entry.distance - player.distance) / track.length,
+                ),
             finished: entry.finished,
           }
         : null;
     return {
       enabled,
       difficulty,
-      laps: RACE_LAPS,
+      laps: lapsRequired,
+      courseFormat: course.format,
       elapsed,
-      // Exactly the first two checkpoint-complete laps, valid or invalid.
+      // First completed sprint, or the first two circuit laps, valid or invalid.
       playerFinished: !!currentFinish,
-      standings: enabled ? standings : [],
+      standings: enabled
+        ? standings
+        : sprint
+          ? standings.filter((entry) => entry.id === 'player')
+          : [],
       relative:
         enabled && player && !currentFinish
           ? {
@@ -496,11 +544,16 @@ export function createRacers({
             }
           : null,
       results:
-        enabled && currentFinish
+        (enabled || sprint) && currentFinish
           ? {
-              laps: RACE_LAPS,
+              laps: lapsRequired,
+              courseFormat: course.format,
               difficulty,
-              standings: copy(standings),
+              standings: copy(
+                enabled
+                  ? standings
+                  : standings.filter((entry) => entry.id === 'player'),
+              ),
               playerLapTimes: [...currentFinish.lapTimes],
               playerTotalTime: currentFinish.totalTime,
               playerValid: currentFinish.valid,
@@ -511,7 +564,8 @@ export function createRacers({
 
   function serialize() {
     return {
-      version: RACERS_VERSION,
+      version,
+      course: copy(course),
       trackId: track.id,
       relativeTiming: relativeTiming.serialize(),
       enabled,
@@ -536,7 +590,8 @@ export function createRacers({
   function restore(data) {
     if (
       !data ||
-      data.version !== RACERS_VERSION ||
+      data.version !== version ||
+      JSON.stringify(data.course) !== JSON.stringify(course) ||
       data.trackId !== track.id ||
       typeof data.enabled !== 'boolean' ||
       !RACE_DIFFICULTIES.includes(data.difficulty) ||
@@ -562,12 +617,12 @@ export function createRacers({
       finish === null ||
       (!!finish &&
         Array.isArray(finish.lapTimes) &&
-        finish.lapTimes.length === RACE_LAPS &&
+        finish.lapTimes.length === lapsRequired &&
         finish.lapTimes.every(
           (duration) => Number.isFinite(duration) && duration > 0,
         ) &&
         Array.isArray(finish.lapValidity) &&
-        finish.lapValidity.length === RACE_LAPS &&
+        finish.lapValidity.length === lapsRequired &&
         finish.lapValidity.every((valid) => typeof valid === 'boolean') &&
         Number.isFinite(finish.totalTime) &&
         finish.totalTime > 0 &&
@@ -584,6 +639,11 @@ export function createRacers({
         !saved.prev ||
         !saved.race ||
         !Array.isArray(saved.race.history) ||
+        !Array.isArray(saved.race.completedTransfers) ||
+        !saved.race.completedTransfers.every(
+          (key) => typeof key === 'string' && /^-?\d+:.+$/.test(key),
+        ) ||
+        typeof saved.race.complete !== 'boolean' ||
         !raceFields.every((key) => key in saved.race) ||
         !Number.isFinite(saved.boostCredit) ||
         saved.boostCredit < 0 ||

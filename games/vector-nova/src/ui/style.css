@@ -2191,3 +2191,16 @@ select {
     margin-top: 10px;
   }
 }
+
+/* Sprint results stay in-world while the remaining field completes its run. */
+#sprint-finish-actions {
+  position: absolute;
+  bottom: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  white-space: nowrap;
+}
+#sprint-finish-actions button {
+  background: rgba(15, 24, 31, 0.92);
+}

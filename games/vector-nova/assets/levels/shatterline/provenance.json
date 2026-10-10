@@ -1,0 +1,16 @@
+{
+  "id": "shatterline-selected-scene",
+  "role": "Selected visual direction for a planned level; not runtime scenery or an exact track layout",
+  "generatedDate": "2026-10-09",
+  "dateTimezone": "America/Los_Angeles",
+  "generator": "Built-in image_gen.imagegen",
+  "sourceImage": "reference/shatterline-scene-v1.png",
+  "promptRecord": "reference/scene-prompt.txt",
+  "sourceImageSha256": "e0e928dcc61e70bcf8b85d780c06a823aaf562748f6cecc0e6c7beaecd3677c4",
+  "promptRecordSha256": "db3cb90ff8050529b872b0ed432779ce84f42933ec652d9fabb143737941e088",
+  "originalOutput": "/Users/g/.codex/generated_images/01a12359-eb2e-7451-9b8a-8474be55364a/exec-e47f80fe-3193-41ce-868d-05311f04e0eb.png",
+  "referenceImages": [],
+  "selection": "User selected Shatterline from the generated proposals in this conversation and requested its level brief. Final level geometry will be designed separately, including three approximately five-second jumps.",
+  "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
+  "runtimeAssets": []
+}

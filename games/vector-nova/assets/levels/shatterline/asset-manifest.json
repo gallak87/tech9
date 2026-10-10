@@ -1,0 +1,364 @@
+{
+  "crown-severed": {
+    "triangles": 19100,
+    "bounds": {
+      "min": [
+        -179.99676000972,
+        -87.99676000971999,
+        -32.0
+      ],
+      "max": [
+        179.9986882224978,
+        271.9881941171975,
+        32.0
+      ]
+    },
+    "materials": [
+      "graphite",
+      "metal",
+      "edge",
+      "ceramic",
+      "light",
+      "coil",
+      "oxide"
+    ]
+  },
+  "crown-broken": {
+    "triangles": 14176,
+    "bounds": {
+      "min": [
+        -146.99550789128372,
+        -92.34,
+        -32.0
+      ],
+      "max": [
+        146.9662574927011,
+        205.53024005367124,
+        32.0
+      ]
+    },
+    "materials": [
+      "graphite",
+      "metal",
+      "edge",
+      "ceramic",
+      "light",
+      "coil",
+      "oxide"
+    ]
+  },
+  "crown-hero": {
+    "triangles": 18740,
+    "bounds": {
+      "min": [
+        -194.99999741551645,
+        -104.99927512696595,
+        -32.0
+      ],
+      "max": [
+        194.94802567821495,
+        284.99831042513165,
+        32.0
+      ]
+    },
+    "materials": [
+      "graphite",
+      "metal",
+      "edge",
+      "ceramic",
+      "light",
+      "coil",
+      "oxide"
+    ]
+  },
+  "crown-terminal": {
+    "triangles": 19348,
+    "bounds": {
+      "min": [
+        -159.9865028312625,
+        -76.75,
+        -32.0
+      ],
+      "max": [
+        159.9865028312625,
+        248.99712000864,
+        32.0
+      ]
+    },
+    "materials": [
+      "graphite",
+      "metal",
+      "edge",
+      "ceramic",
+      "light",
+      "coil",
+      "oxide"
+    ]
+  },
+  "service-gallery": {
+    "triangles": 1304,
+    "bounds": {
+      "min": [
+        -15.5,
+        -38.0,
+        -36.0
+      ],
+      "max": [
+        15.5,
+        8.25,
+        50.15
+      ]
+    },
+    "materials": [
+      "graphite",
+      "metal",
+      "oxide",
+      "ceramic",
+      "edge",
+      "amber"
+    ]
+  },
+  "load-foundation": {
+    "triangles": 660,
+    "bounds": {
+      "min": [
+        -36.0,
+        -170.5,
+        -44.0
+      ],
+      "max": [
+        36.0,
+        3.25,
+        44.0
+      ]
+    },
+    "materials": [
+      "ceramic",
+      "metal",
+      "oxide",
+      "graphite",
+      "edge"
+    ]
+  },
+  "service-shelter": {
+    "triangles": 532,
+    "bounds": {
+      "min": [
+        -62.5,
+        -15.5,
+        -49.0
+      ],
+      "max": [
+        62.5,
+        54.5,
+        43.5
+      ]
+    },
+    "materials": [
+      "ceramic",
+      "graphite",
+      "metal",
+      "amber",
+      "oxide",
+      "edge"
+    ]
+  },
+  "receiving-tower": {
+    "triangles": 288,
+    "bounds": {
+      "min": [
+        -36.0,
+        -15.0,
+        -40.0
+      ],
+      "max": [
+        36.0,
+        140.5,
+        40.0
+      ]
+    },
+    "materials": [
+      "ceramic",
+      "graphite",
+      "metal",
+      "oxide",
+      "edge",
+      "light"
+    ]
+  },
+  "fractured-cassette": {
+    "triangles": 240,
+    "bounds": {
+      "min": [
+        -14.0,
+        -6.5,
+        -23.40801239013672
+      ],
+      "max": [
+        14.622273033999384,
+        12.527259826660156,
+        18.5
+      ]
+    },
+    "materials": [
+      "graphite",
+      "ceramic",
+      "edge",
+      "coil",
+      "metal",
+      "oxide"
+    ]
+  },
+  "geology-bedded-ridge": {
+    "triangles": 15296,
+    "bounds": {
+      "min": [
+        -406.88188593062023,
+        -766.3410070267331,
+        -800.0
+      ],
+      "max": [
+        1421.7267687785393,
+        592.6479571832158,
+        800.0
+      ]
+    },
+    "materials": [
+      "rock",
+      "rockDark",
+      "rockLight",
+      "rockFacet"
+    ]
+  },
+  "geology-eroded-bluff": {
+    "triangles": 15296,
+    "bounds": {
+      "min": [
+        -416.10727641935614,
+        -668.4041710123615,
+        -630.0
+      ],
+      "max": [
+        1172.7372147137996,
+        545.7475401098488,
+        630.0
+      ]
+    },
+    "materials": [
+      "rock",
+      "rockDark",
+      "rockLight",
+      "rockFacet"
+    ]
+  },
+  "geology-distant-range": {
+    "triangles": 20112,
+    "bounds": {
+      "min": [
+        -527.0,
+        -1190,
+        -2300.0
+      ],
+      "max": [
+        2573.0,
+        1722.1015151066058,
+        2300.0
+      ]
+    },
+    "materials": [
+      "rock",
+      "rockDark"
+    ]
+  },
+  "receiver-process-hall": {
+    "triangles": 2560,
+    "bounds": {
+      "min": [
+        -65.0,
+        -16.0,
+        -111.5
+      ],
+      "max": [
+        65.0,
+        73.5,
+        102.0
+      ]
+    },
+    "materials": [
+      "graphite",
+      "ceramic",
+      "metal",
+      "edge",
+      "amber",
+      "oxide"
+    ]
+  },
+  "receiver-command": {
+    "triangles": 348,
+    "bounds": {
+      "min": [
+        -90.0,
+        -20.0,
+        -69.5
+      ],
+      "max": [
+        90.0,
+        116.0,
+        69.5
+      ]
+    },
+    "materials": [
+      "ceramic",
+      "graphite",
+      "metal",
+      "light",
+      "edge",
+      "oxide"
+    ]
+  },
+  "receiver-primary": {
+    "triangles": 5124,
+    "bounds": {
+      "min": [
+        -160.5,
+        -36.5,
+        -197.5
+      ],
+      "max": [
+        160.5,
+        248.0,
+        266.0
+      ]
+    },
+    "materials": [
+      "graphite",
+      "ceramic",
+      "edge",
+      "oxide",
+      "metal",
+      "coil",
+      "light"
+    ]
+  },
+  "receiver-condenser": {
+    "triangles": 624,
+    "bounds": {
+      "min": [
+        -78.5,
+        -19.0,
+        -74.0
+      ],
+      "max": [
+        78.5,
+        68.0,
+        74.0
+      ]
+    },
+    "materials": [
+      "graphite",
+      "metal",
+      "ceramic",
+      "edge"
+    ]
+  }
+}

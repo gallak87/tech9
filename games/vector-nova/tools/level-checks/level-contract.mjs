@@ -74,6 +74,16 @@ export async function assertLevelContract(
       'shape and production must share route length',
     );
     assert.equal(
+      bare.closed,
+      track.closed,
+      'shape and production must share course format',
+    );
+    assert.equal(
+      bare.finishDistance,
+      track.finishDistance,
+      'shape and production must share the finish line',
+    );
+    assert.equal(
       bare.width,
       track.width,
       'shape and production must share route width',

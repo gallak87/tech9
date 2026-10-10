@@ -1,0 +1,9 @@
+{
+  "tool": "image_gen__imagegen (built-in tool, no CLI)",
+  "generatedDate": "2026-10-09",
+  "sourceOutput": "/Users/g/.codex/generated_images/01a12376-bb07-7452-ae70-9331f9ccfc9b/exec-658ddba3-db25-43ec-8c0b-9cbef7e216ab.png",
+  "exactPrompt": "sky/prompt-v1.txt",
+  "source": "sky/shatterline-sky-v1.png",
+  "runtime": "public/assets/levels/shatterline/shatterline-sky-v1.png",
+  "usage": "Sky and distant clouds only. Terrain and built forms are actual geometry. Runtime overlap and pole averaging remove panorama seam; original pixels preserved."
+}

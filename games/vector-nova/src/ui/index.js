@@ -2,6 +2,7 @@ import './style.css';
 import { SHIPS } from '../ships/catalog.js';
 import { RIVAL_SHIPS } from '../ships/rivals.js';
 import { circuitURL } from '../levels/contract.js';
+import { presentationDistance } from '../race/course.js';
 
 const racerColors = Object.freeze({
   player: '#fb7959',
@@ -48,6 +49,7 @@ export function createUI(
     playtestCase = null,
   },
 ) {
+  const sprint = track.closed === false;
   const root = document.createElement('main');
   root.id = 'interface';
   root.classList.toggle('jump-playtest', Boolean(playtest));
@@ -60,6 +62,27 @@ export function createUI(
  <footer id="legend"><div><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RESET</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>
  <div id="touch" class="hidden"><div><button data-drive="left" aria-label="Steer left">◀</button><button data-drive="right" aria-label="Steer right">▶</button><button data-drive="brake">BRAKE</button></div><div><button data-drive="airbrake">SLIP</button><button data-drive="boost">BOOST</button><button data-drive="throttle">GO</button></div></div><div class="review-tag"><span></span></div>`;
   const $ = (id) => root.querySelector('#' + id);
+  if (sprint) {
+    root.classList.add('sprint-course');
+    const facts = root.querySelectorAll('.track-facts > div');
+    facts[0].querySelector('b').textContent = (
+      track.finishDistance / 1000
+    ).toFixed(2);
+    facts[0].querySelector('span').textContent = 'KM DOWNHILL';
+    facts[2].querySelector('b').textContent = '01';
+    facts[2].querySelector('span').textContent = 'SUMMIT TO BASIN';
+    $('practice').firstChild.textContent = 'SOLO DESCENT ';
+    $('restart').textContent = 'RESTART SPRINT';
+    root.querySelector('.timing > span').textContent = 'ELAPSED';
+    const finishActions = document.createElement('div');
+    finishActions.id = 'sprint-finish-actions';
+    finishActions.className = 'actions hidden';
+    finishActions.innerHTML =
+      `<button id="sprint-retry">R · ${playtest ? 'REPEAT CASE' : 'RETRY DESCENT'}</button><button id="sprint-home">ESC · PADDOCK</button>`;
+    root.append(finishActions);
+    $('sprint-retry').onclick = actions.restart;
+    $('sprint-home').onclick = actions.home;
+  }
   let casePicker = null;
   if (playtest?.cases?.length > 1) {
     casePicker = document.createElement('div');
@@ -113,13 +136,17 @@ export function createUI(
   function updateRoster() {
     const driving = oldMode === 'racing' || oldMode === 'countdown';
     const paddock = oldMode === 'title';
+    const finished = sprint && driving && currentCompetition?.playerFinished;
+    const showingResults = paddock || finished;
     const data = paddock
       ? retainedResults
-      : driving &&
-          currentCompetition?.enabled &&
-          !currentCompetition.playerFinished
-        ? currentCompetition
-        : null;
+      : finished
+        ? currentCompetition.results
+        : driving &&
+            currentCompetition?.enabled &&
+            !currentCompetition.playerFinished
+          ? currentCompetition
+          : null;
     roster.classList.toggle('hidden', !data);
     roster.classList.toggle('in-paddock', paddock);
     root.classList.toggle('has-live-race', Boolean(data) && !paddock);
@@ -129,7 +156,7 @@ export function createUI(
         : root;
     if (roster.parentElement !== rosterParent) rosterParent.append(roster);
     if (!data) return;
-    const rows = paddock ? data.standings : (data.relative?.field ?? []);
+    const rows = showingResults ? data.standings : (data.relative?.field ?? []);
     const gapText = (entry) => {
       if (entry.direction === 'self') return '0.0s';
       const sign = entry.direction === 'ahead' ? '−' : '+';
@@ -143,6 +170,7 @@ export function createUI(
     };
     const key = JSON.stringify({
       paddock,
+      finished,
       rows: rows.map((entry) => ({
         ...entry,
         seconds: entry.seconds == null ? null : entry.seconds.toFixed(1),
@@ -154,12 +182,14 @@ export function createUI(
     });
     if (key === rosterKey) return;
     rosterKey = key;
-    roster.querySelector('.roster-heading span').textContent = paddock
-      ? 'LAST SESSION'
-      : 'RACE ORDER';
+    roster.querySelector('.roster-heading span').textContent = finished
+      ? 'SPRINT COMPLETE'
+      : paddock
+        ? 'LAST SESSION'
+        : 'RACE ORDER';
     const heading = roster.querySelector('.roster-heading b');
-    heading.textContent = paddock
-      ? `${metadata.name.toUpperCase()} · 2 LAPS`
+    heading.textContent = showingResults
+      ? `${metadata.name.toUpperCase()} · ${sprint ? 'SPRINT' : '2 LAPS'}`
       : 'GAP TO YOU';
     const entries = rows.map((entry) => {
       const row = document.createElement('li');
@@ -173,12 +203,12 @@ export function createUI(
       name.textContent =
         entry.id === 'player' ? 'YOU' : entry.name.toUpperCase();
       const duration = document.createElement('small');
-      duration.textContent = paddock
+      duration.textContent = showingResults
         ? entry.finished
           ? `${fmt(entry.totalTime)}${entry.valid ? '' : ' *'}`
           : 'IN PROGRESS'
         : gapText(entry);
-      if (!paddock)
+      if (!showingResults)
         duration.setAttribute(
           'aria-label',
           entry.direction === 'self'
@@ -189,12 +219,14 @@ export function createUI(
       return row;
     });
     roster.querySelector('ol').replaceChildren(...entries);
-    const player = paddock ? rows.find((entry) => entry.id === 'player') : null;
+    const player = showingResults
+      ? rows.find((entry) => entry.id === 'player')
+      : null;
     roster.querySelector('.roster-laps').replaceChildren(
       ...(player?.lapTimes ?? []).map((duration, index) => {
         const row = document.createElement('div');
         const label = document.createElement('span');
-        label.textContent = `LAP ${index + 1}`;
+        label.textContent = sprint ? 'DESCENT TIME' : `LAP ${index + 1}`;
         const value = document.createElement('b');
         value.textContent = fmt(duration);
         row.append(label, value);
@@ -202,12 +234,16 @@ export function createUI(
       }),
     );
     const hint = roster.querySelector('.roster-hint');
-    hint.textContent = paddock
+    hint.textContent = showingResults
       ? rows.some((entry) => entry.finished && !entry.valid)
-        ? '* Untimed: lap invalidated'
-        : 'Recorded at return to paddock'
+        ? `* Untimed: ${sprint ? 'run' : 'lap'} invalidated`
+        : finished
+          ? currentCompetition.enabled
+            ? 'Field remains live until each rival finishes'
+            : 'Solo descent recorded'
+          : 'Recorded at return to paddock'
       : '';
-    hint.classList.toggle('hidden', !paddock);
+    hint.classList.toggle('hidden', !showingResults);
   }
   const pausePanel = $('pause-panel');
   pausePanel.setAttribute('role', 'dialog');
@@ -276,7 +312,7 @@ export function createUI(
     .replace(/the Kestrel/g, 'your ship')
     .replace(/Kestrel/g, 'Your ship');
   $('start').firstChild.textContent =
-    `${playtest ? 'START JUMP TEST' : blockout ? 'DRIVE FULL CIRCUIT' : 'ENTER PROVING LOOP'} `;
+    `${playtest ? 'START JUMP TEST' : sprint ? 'START DOWNHILL SPRINT' : blockout ? 'DRIVE FULL CIRCUIT' : 'ENTER PROVING LOOP'} `;
   if (playtest) {
     panel.querySelector('.intro').textContent = playtest.description;
     $('practice').firstChild.textContent = 'START JUMP TEST ';
@@ -610,7 +646,8 @@ export function createUI(
   const ctx = $('minimap').getContext('2d');
   const points = [];
   for (let s = 0; s < track.length; s += track.length / 180)
-    points.push(track.sample(s).position);
+    points.push(track.sample(s).position.clone());
+  if (sprint) points.push(track.sample(track.length).position.clone());
   const xs = points.map((p) => p.x),
     zs = points.map((p) => p.z),
     minX = Math.min(...xs),
@@ -619,7 +656,12 @@ export function createUI(
       170 / (Math.max(...xs) - minX),
       120 / (Math.max(...zs) - minZ),
     );
-  const coord = (p) => [15 + (p.x - minX) * scale, 15 + (p.z - minZ) * scale];
+  const mapLeft = sprint ? (200 - (Math.max(...xs) - minX) * scale) / 2 : 15;
+  const mapTop = sprint ? (150 - (Math.max(...zs) - minZ) * scale) / 2 : 15;
+  const coord = (p) => [
+    mapLeft + (p.x - minX) * scale,
+    mapTop + (p.z - minZ) * scale,
+  ];
   let oldMode = '',
     noticeUntil = 0;
   const fmt = (t) =>
@@ -716,6 +758,10 @@ export function createUI(
       );
       root.classList.toggle('paused', mode === 'paused');
       $('jump-repeat')?.classList.toggle('hidden', mode !== 'racing');
+      $('sprint-finish-actions')?.classList.toggle(
+        'hidden',
+        mode !== 'racing' || !currentCompetition?.playerFinished,
+      );
       root.classList.toggle('flying', mode === 'fly');
       $('fly-controls')?.classList.toggle('hidden', mode !== 'fly');
       root.classList.toggle('inspecting', mode === 'inspection');
@@ -771,14 +817,23 @@ export function createUI(
     ) {
       currentCompetition = competition;
       retainedResults = lastResults;
-      escapeLabel.textContent =
-        competition?.enabled && competition.playerFinished
-          ? 'PADDOCK'
-          : 'PAUSE';
+      escapeLabel.textContent = competition?.playerFinished
+        ? 'PADDOCK'
+        : 'PAUSE';
       updateRoster();
+      $('sprint-finish-actions')?.classList.toggle(
+        'hidden',
+        oldMode !== 'racing' || !r.complete,
+      );
       const player = competition?.standings.find(
         (entry) => entry.id === 'player',
       );
+      const courseDistance = sprint
+        ? presentationDistance(track, s, {
+            ...motion?.currentPose,
+            grounded: motion?.mode !== 'flight',
+          })
+        : s.distance;
       root
         .querySelector('.position')
         .classList.toggle('hidden', !competition?.enabled);
@@ -787,18 +842,23 @@ export function createUI(
       $('position-state').textContent = competition?.playerFinished
         ? 'ESC · PADDOCK'
         : '';
-      root.querySelector('.lap > span').textContent = competition?.enabled
-        ? competition.playerFinished
-          ? 'FREE DRIVE'
-          : 'RACE LAP'
-        : 'PRACTICE LAP';
+      root.querySelector('.lap > span').textContent = sprint
+        ? r.complete
+          ? 'FINISHED'
+          : 'COURSE'
+        : competition?.enabled
+          ? competition.playerFinished
+            ? 'FREE DRIVE'
+            : 'RACE LAP'
+          : 'PRACTICE LAP';
       $('speed').textContent = String(Math.round(s.speed * 3.6)).padStart(
         3,
         '0',
       );
       $('time').textContent = fmt(r.elapsed);
-      $('lap').textContent =
-        competition?.enabled && !competition.playerFinished
+      $('lap').textContent = sprint
+        ? `${Math.min(r.complete ? 100 : 99, Math.max(0, Math.floor((100 * courseDistance) / track.finishDistance)))}%`
+        : competition?.enabled && !competition.playerFinished
           ? `${Math.min(r.lap, 2)}/2`
           : String(r.lap).padStart(2, '0');
       $('energy-label').textContent = `${Math.round(s.energy)}%`;
@@ -825,15 +885,31 @@ export function createUI(
         : s.energy < 25
           ? 'LOW RESERVE · RELEASE BOOST TO RECOVER'
           : 'BOOST DRAWS FROM IMPACT RESERVE';
-      $('last').textContent = r.lastLap ? `LAST ${fmt(r.lastLap)}` : 'LAST —';
-      $('best').textContent = !r.valid
-        ? practice && s.resetCount === 0
-          ? 'PRACTICE SECTION'
-          : 'LAP INVALIDATED · RESET'
-        : r.best
-          ? `BEST ${fmt(r.best)}`
-          : 'SET YOUR FIRST CLEAN LAP';
-      const pos = ((s.distance % track.length) + track.length) % track.length;
+      $('last').textContent = sprint
+        ? r.complete
+          ? 'DESCENT COMPLETE'
+          : `${Math.max(0, (track.finishDistance - courseDistance) / 1000).toFixed(2)} KM TO FINISH`
+        : r.lastLap
+          ? `LAST ${fmt(r.lastLap)}`
+          : 'LAST —';
+      $('best').textContent = sprint
+        ? r.complete
+          ? r.valid
+            ? 'RESULT RECORDED · R TO RETRY'
+            : 'UNTIMED RESULT · R TO RETRY'
+          : r.valid
+            ? 'SUMMIT → RECEIVING ARRAY'
+            : 'UNTIMED RUN'
+        : !r.valid
+          ? practice && s.resetCount === 0
+            ? 'PRACTICE SECTION'
+            : 'LAP INVALIDATED · RESET'
+          : r.best
+            ? `BEST ${fmt(r.best)}`
+            : 'SET YOUR FIRST CLEAN LAP';
+      const pos = sprint
+        ? Math.max(0, Math.min(track.length, s.distance))
+        : ((s.distance % track.length) + track.length) % track.length;
       const section = track.sections?.find(
         (a) => pos >= a.start && pos < a.end,
       );
@@ -846,7 +922,7 @@ export function createUI(
         const [x, y] = coord(p);
         i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
       });
-      ctx.closePath();
+      if (!sprint) ctx.closePath();
       ctx.stroke();
       const dot = (position, color, radius, player = false) => {
         const [x, y] = coord(position);
@@ -858,6 +934,22 @@ export function createUI(
         ctx.fill();
         ctx.stroke();
       };
+      if (sprint) {
+        const marker = (distance, label, color) => {
+          const point = track.sample(distance).position;
+          const [x, y] = coord(point);
+          ctx.fillStyle = color;
+          ctx.fillRect(x - 3, y - 3, 6, 6);
+          ctx.font = 'bold 9px sans-serif';
+          ctx.fillText(
+            label,
+            x < 155 ? x + 7 : x - 39,
+            Math.min(146, Math.max(10, y + 3)),
+          );
+        };
+        marker(0, 'START', '#8adcc9');
+        marker(track.finishDistance, 'FINISH', '#ffca84');
+      }
       if (competition?.enabled) {
         for (const rival of competition.standings.filter(
           (entry) => entry.id !== 'player',

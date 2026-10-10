@@ -1,7 +1,11 @@
+import { courseIdentity, sprintRunoutControl } from './course.js';
+
 export function createRace(
   track,
   { rulesId = 'magnetic-v3-assist-0.3', untimed = false } = {},
 ) {
+  const sprint = track.closed === false;
+  const course = courseIdentity(track);
   const count = track.checkpoints?.length || 12;
   const positions = Array.from(
     { length: count },
@@ -10,10 +14,29 @@ export function createRace(
       track.checkpoints?.[index]?.s ??
       (index * track.length) / count,
   );
-  const completedTransfers = new Set();
+  if (
+    sprint &&
+    (!Number.isFinite(track.finishDistance) ||
+      track.finishDistance <= 0 ||
+      track.finishDistance >= track.length ||
+      positions[0] !== 0 ||
+      positions.at(-1) !== track.finishDistance)
+  )
+    throw new Error(
+      'Sprint needs start, terminal checkpoint and supported runout',
+    );
   const epsilon = 1e-5;
   return {
-    rulesId,
+    rulesId: sprint
+      ? `${rulesId}:sprint-v${course.version}:${track.finishDistance}:${track.length}`
+      : rulesId,
+    course,
+    completedTransfers: [],
+    runoutControl(state, input) {
+      return sprint && this.complete
+        ? sprintRunoutControl(track, state)
+        : input;
+    },
     lap: 1,
     checkpoint: 0,
     elapsed: 0,
@@ -24,15 +47,20 @@ export function createRace(
     startDistance: 0,
     history: [],
     placeScenario(distance) {
-      const base = Math.floor(distance / track.length) * track.length;
+      const base = sprint
+        ? 0
+        : Math.floor(distance / track.length) * track.length;
       const local = distance - base;
-      this.checkpoint = positions.findLastIndex(
-        (position) => position <= local + epsilon,
+      this.checkpoint = Math.max(
+        0,
+        positions.findLastIndex((position) => position <= local + epsilon),
       );
       this.startDistance = base + positions[this.checkpoint];
       this.valid = !untimed && distance === 0;
     },
-    step(previous, current, dt, vehicleEvents = []) {
+    step(previous, current, dt, vehicleEvents = [], { grounded = true } = {}) {
+      if (sprint && this.complete) return [];
+      const beforeTime = this.elapsed;
       this.elapsed += dt;
       const events = [];
       if (current <= previous) return events;
@@ -40,8 +68,8 @@ export function createRace(
       // Holding distance in flight ensures missing a road never awards its CP.
       for (const jump of track.jumps || []) {
         for (
-          let cycle = Math.floor(previous / track.length);
-          cycle <= Math.floor(current / track.length);
+          let cycle = sprint ? 0 : Math.floor(previous / track.length);
+          cycle <= (sprint ? 0 : Math.floor(current / track.length));
           cycle++
         ) {
           const base = cycle * track.length;
@@ -62,7 +90,7 @@ export function createRace(
             Math.abs(previous - takeoff) < epsilon &&
             Math.abs(transfer.from - previous) < epsilon &&
             Math.abs(transfer.to - current) < epsilon &&
-            !completedTransfers.has(key) &&
+            !this.completedTransfers.includes(key) &&
             ((transfer.outcome === 'landed' &&
               target >= jump.landingStart - epsilon &&
               target <= jump.landingEnd + epsilon) ||
@@ -83,16 +111,20 @@ export function createRace(
             this.valid = false;
             return events;
           }
-          completedTransfers.add(key);
+          this.completedTransfers.push(key);
         }
       }
-      const firstCycle = Math.floor(previous / track.length);
-      const finalCycle = Math.floor(current / track.length);
+      const firstCycle = sprint ? 0 : Math.floor(previous / track.length);
+      const finalCycle = sprint ? 0 : Math.floor(current / track.length);
       for (let cycle = firstCycle; cycle <= finalCycle; cycle++) {
         for (let index = 0; index < count; index++) {
           const crossing = cycle * track.length + positions[index];
           if (crossing <= previous || crossing > current) continue;
           if (index !== (this.checkpoint + 1) % count) {
+            this.valid = false;
+            continue;
+          }
+          if (sprint && index === count - 1 && !grounded) {
             this.valid = false;
             continue;
           }
@@ -102,6 +134,21 @@ export function createRace(
             type: 'checkpoint',
             payload: { index, lapTime: this.elapsed },
           });
+          if (sprint && index === count - 1) {
+            this.elapsed =
+              beforeTime + (dt * (crossing - previous)) / (current - previous);
+            this.complete = true;
+            this.lastLap = this.elapsed;
+            if (this.valid) this.best = this.elapsed;
+            const result = {
+              duration: this.elapsed,
+              valid: this.valid,
+              rulesId: this.rulesId,
+            };
+            this.history.push(result);
+            events.push({ type: 'sprint-complete', payload: { ...result } });
+            return events;
+          }
           if (index === 0) {
             this.lastLap = this.elapsed;
             this.history.push({
@@ -118,8 +165,9 @@ export function createRace(
             this.lap++;
             this.elapsed = 0;
             this.valid = !untimed;
-            for (const key of completedTransfers)
-              if (+key.split(':')[0] < cycle) completedTransfers.delete(key);
+            this.completedTransfers = this.completedTransfers.filter(
+              (key) => +key.split(':')[0] >= cycle,
+            );
           }
         }
       }

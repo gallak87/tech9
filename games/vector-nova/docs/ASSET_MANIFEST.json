@@ -2,6 +2,45 @@
   "policy": "Project-owned geometry/materials and generated sky/material imagery; detailed ownership and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "shatterline-limestone",
+      "source": "assets/levels/shatterline/limestone-v1.png",
+      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
+      "provenance": "Generated limestone material for world-space rock shading. Geology silhouettes and erosion are authored geometry; exact prompt and original output are retained.",
+      "rights": "Generated for this project with built-in imagegen",
+      "runtimeDependencies": ["three"],
+      "runtimeAsset": "public/assets/levels/shatterline/limestone-v1.png",
+      "provenanceRecord": "assets/levels/shatterline/rock-provenance-v1.json"
+    },
+    {
+      "id": "shatterline-selected-scene",
+      "source": "assets/levels/shatterline/reference/",
+      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
+      "provenance": "Selected original scene concept for Shatterline. Visual direction only; playable geometry is independently authored. Exact prompt and image hash retained with the source.",
+      "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/levels/shatterline/provenance.json"
+    },
+    {
+      "id": "shatterline-environment",
+      "source": "assets/levels/shatterline/ and src/levels/shatterline/",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original Blender accelerator, service structures and fractured geology; editable source, deterministic exporter and matching collision geometry retained. Procedural road and terrain are project-authored.",
+      "rights": "Project-authored; no third-party model inputs",
+      "runtimeDependencies": ["three"],
+      "runtimeAsset": "public/assets/levels/shatterline/",
+      "provenanceRecord": "assets/levels/shatterline/model-provenance.json"
+    },
+    {
+      "id": "shatterline-sky",
+      "source": "assets/levels/shatterline/sky/",
+      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
+      "provenance": "Generated distant sky and cloud panorama. Nearby terrain and structures are geometry. Original output and exact prompt retained.",
+      "rights": "Generated for this project with built-in imagegen",
+      "runtimeDependencies": ["three"],
+      "runtimeAsset": "public/assets/levels/shatterline/shatterline-sky-v1.png",
+      "provenanceRecord": "assets/levels/shatterline/sky/provenance-v1.json"
+    },
+    {
       "id": "kestrel",
       "source": "assets/ships/kestrel/ and src/ships/",
       "creator": "VECTOR//NOVA project contributors",

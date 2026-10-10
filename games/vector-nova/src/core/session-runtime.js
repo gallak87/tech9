@@ -49,33 +49,43 @@ export function advanceSession({
     for (let tick = 0; tick < steps; tick++) {
       const step = duration / steps;
       const playerPrevious = { ...state };
+      const controls = race.runoutControl(state, input);
       const context = {
         playerState: state,
         playerRace: race,
-        playerInput: input,
+        playerInput: controls,
+        playerPose: runtime.pose(1),
         playerPrevious,
       };
-      runtime.beginAdvance(state, input, step);
+      runtime.beginAdvance(state, controls, step);
       racers?.beginAdvance?.(step, context);
       dynamics.step(step);
       const completed = runtime.finishAdvance(state);
       completed.forEach(emit);
       race
-        .step(playerPrevious.distance, state.distance, step, completed)
+        .step(playerPrevious.distance, state.distance, step, completed, {
+          grounded: runtime.pose(1)?.grounded !== false,
+        })
         .forEach(emit);
-      racers?.finishAdvance?.();
+      racers?.finishAdvance?.({ playerPose: runtime.pose(1) });
       events.push(...completed);
     }
     return events;
   }
   const previous = state.distance;
-  const events = runtime.advance(state, input, dt);
+  const controls = race.runoutControl(state, input);
+  const events = runtime.advance(state, controls, dt);
   events.forEach(emit);
-  race.step(previous, state.distance, dt, events).forEach(emit);
+  race
+    .step(previous, state.distance, dt, events, {
+      grounded: runtime.pose(1)?.grounded !== false,
+    })
+    .forEach(emit);
   racers?.advance(dt, {
     playerState: state,
     playerRace: race,
-    playerInput: input,
+    playerInput: controls,
+    playerPose: runtime.pose(1),
   });
   return events;
 }

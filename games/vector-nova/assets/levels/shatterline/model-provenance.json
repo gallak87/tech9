@@ -1,0 +1,26 @@
+{
+  "author": "Codex original procedural Blender modeling",
+  "source": "build_assets.py",
+  "editable": "shatterline-environment.blend",
+  "runtime": "public/assets/levels/shatterline/*.glb",
+  "licence": "Project-owned original geometry; no third-party model inputs",
+  "reference": "reference/shatterline-scene-v1.png",
+  "assets": [
+    "crown-severed",
+    "crown-broken",
+    "crown-hero",
+    "crown-terminal",
+    "service-gallery",
+    "load-foundation",
+    "service-shelter",
+    "receiving-tower",
+    "fractured-cassette",
+    "geology-bedded-ridge",
+    "geology-eroded-bluff",
+    "geology-distant-range",
+    "receiver-process-hall",
+    "receiver-command",
+    "receiver-primary",
+    "receiver-condenser"
+  ]
+}

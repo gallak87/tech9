@@ -178,7 +178,9 @@ export function createCameraRig(
             : chaseDistance;
         const height = T.MathUtils.lerp(
           resolvedHeight,
-          jumpPreview?.height ?? resolvedHeight,
+          typeof jumpPreview?.height === 'function'
+            ? jumpPreview.height(track, state, nextJump)
+            : (jumpPreview?.height ?? resolvedHeight),
           preview,
         );
         const backDistance = T.MathUtils.lerp(

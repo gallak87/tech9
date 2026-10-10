@@ -16,6 +16,7 @@ export function createDeviceRuntime({
 }) {
   const simulation = createPickupSimulation({
     trackLength: track.length,
+    closed: track.closed !== false,
     devices,
   });
   const deviceScenarios = Object.fromEntries(

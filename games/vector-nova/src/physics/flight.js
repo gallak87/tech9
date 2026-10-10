@@ -1439,9 +1439,14 @@ export function createFlightModel(overrides = {}) {
       );
       let crossed = null;
       for (const jump of track.jumps) {
-        const lap = Math.floor((before.distance - jump.takeoff) / track.length);
+        const lap = track.closed === false
+          ? 0
+          : Math.floor((before.distance - jump.takeoff) / track.length);
         let from = jump.takeoff + lap * track.length;
-        if (from < before.distance - 1e-7) from += track.length;
+        if (from < before.distance - 1e-7) {
+          if (track.closed === false) continue;
+          from += track.length;
+        }
         if (before.distance <= from && state.distance > from) {
           if (
             jump.optional &&

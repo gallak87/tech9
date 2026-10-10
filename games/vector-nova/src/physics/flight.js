@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { VEHICLE_HULL, projectedHullExtent, headingExtents } from './hull.js';
 import { COLLISION_RULES } from './collision-world.js';
-import { stepVehicle, STEERING_ASSIST } from './index.js';
+import { stepVehicle, STEERING_ASSIST, surfaceHullClearance } from './index.js';
 
 export const DEFAULT_FLIGHT_RULES = Object.freeze({
   gravity: 26,
@@ -507,8 +507,12 @@ export function createFlightModel(overrides = {}) {
     let disposed = false;
     let seed = 0;
     let stepModifiers = {};
+    const surfaceFrame = (state) =>
+      track.sampleSurface?.(state.distance, state.lateral) ??
+      track.sample(state.distance);
     const poseOnRoad = (state, supported = false) => {
-      const f = track.sample(state.distance);
+      const surface = track.sampleSurface?.(state.distance, state.lateral);
+      const f = surface ?? track.sample(state.distance);
       const quaternion = f.quaternion
         .clone()
         .multiply(
@@ -528,13 +532,14 @@ export function createFlightModel(overrides = {}) {
         );
       const height =
         R.hover +
+        surfaceHullClearance(surface, state.heading) +
         (supported && options.forgivingContacts
           ? (options.supportHeight ?? 0)
           : 0);
       return {
         position: f.position
           .clone()
-          .addScaledVector(f.right, state.lateral)
+          .addScaledVector(f.right, surface ? 0 : state.lateral)
           .addScaledVector(f.up, height),
         quaternion,
       };
@@ -551,7 +556,7 @@ export function createFlightModel(overrides = {}) {
       );
       const t = landingSettle.elapsed / R.landingSettleDuration;
       const blend = t * t * (3 - 2 * t);
-      const frame = track.sample(state.distance);
+      const frame = surfaceFrame(state);
       const pose = poseOnRoad(state, true);
       const baseExtent = bodyExtent(pose.quaternion, frame.up);
       pose.quaternion.multiply(
@@ -576,7 +581,8 @@ export function createFlightModel(overrides = {}) {
       }
     }
     function beginFlight(state, jump, from, events, startPose) {
-      const frame = track.sample(from);
+      const frame =
+        track.sampleSurface?.(from, state.lateral) ?? track.sample(from);
       const world = poseOnRoad(state, Boolean(options.forgivingContacts));
       const velocity = frame.tangent
         .clone()
@@ -1439,9 +1445,10 @@ export function createFlightModel(overrides = {}) {
       );
       let crossed = null;
       for (const jump of track.jumps) {
-        const lap = track.closed === false
-          ? 0
-          : Math.floor((before.distance - jump.takeoff) / track.length);
+        const lap =
+          track.closed === false
+            ? 0
+            : Math.floor((before.distance - jump.takeoff) / track.length);
         let from = jump.takeoff + lap * track.length;
         if (from < before.distance - 1e-7) {
           if (track.closed === false) continue;

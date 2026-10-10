@@ -20,6 +20,7 @@ for (const staged of [false, true]) {
     const runtime = staged
       ? { beginAdvance() {}, finishAdvance: motion }
       : { advance: motion };
+    runtime.pose = () => ({ grounded: true });
     const racers = staged
       ? { enabled: true, beginAdvance() {}, finishAdvance: () => finishEvents }
       : { advance: () => finishEvents };
@@ -31,6 +32,7 @@ for (const staged of [false, true]) {
       racers,
       dynamics: staged ? { step() {} } : null,
       race: {
+        runoutControl: (_state, input) => input,
         step: (before, after) => {
           assert.equal(before, 0);
           assert.equal(after, 5);

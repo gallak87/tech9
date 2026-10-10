@@ -1,3 +1,4 @@
+import { interpolateSurfaceLateral } from '../track/surface.js';
 import * as T from 'three';
 import { createFleetShip } from '../ships/fleet.js';
 import { createInspectionStage } from '../ships/inspection-stage.js';
@@ -5,7 +6,11 @@ import { createInspectionPipeline } from '../ships/inspection-pipeline.js';
 import { RIVAL_SHIPS, createRivalPreview } from '../ships/rivals.js';
 import { loadShipSelection, saveShipSelection } from '../ships/catalog.js';
 import { createRenderer } from '../renderer/index.js';
-import { createVehicleState, STEERING_ASSIST } from '../physics/index.js';
+import {
+  createVehicleState,
+  STEERING_ASSIST,
+  surfaceHullClearance,
+} from '../physics/index.js';
 import { createRace } from '../race/index.js';
 import { courseIdentity } from '../race/course.js';
 import { createFinishMarker } from '../race/finish-marker.js';
@@ -288,14 +293,21 @@ export async function createGame({
                 ? 'BARRIER CONTACT · SHIELD PROTECTED RESERVE'
                 : 'BARRIER CONTACT · RESERVE LOST',
           );
-        effects.impact(
-          track.sample(e.payload.distance ?? state.distance),
+        const impactDistance = e.payload.distance ?? state.distance;
+        const impactLateral =
           e.payload.lateral ??
-            (definition.railContactSparks
-              ? Number.isFinite(e.payload.railLateral)
-                ? e.payload.railLateral - e.payload.side * 0.4
-                : e.payload.side * (track.width / 2 - 0.4)
-              : state.lateral),
+          (definition.railContactSparks
+            ? Number.isFinite(e.payload.railLateral)
+              ? e.payload.railLateral - e.payload.side * 0.4
+              : e.payload.side * (track.width / 2 - 0.4)
+            : state.lateral);
+        const impactSurface = track.sampleSurface?.(
+          impactDistance,
+          impactLateral,
+        );
+        effects.impact(
+          impactSurface || track.sample(impactDistance),
+          impactSurface ? 0 : impactLateral,
           e.payload.position && e.payload.normal ? e.payload : null,
         );
       }
@@ -1151,11 +1163,12 @@ export async function createGame({
       forwardAxis = new T.Vector3(0, 0, 1);
     function pose(s, alpha = 1) {
       const worldPose = runtime.pose?.(alpha);
-      const f = track.sample(s.distance);
+      const surface = track.sampleSurface?.(s.distance, s.lateral);
+      const f = surface || track.sample(s.distance);
       ship.group.position
         .copy(f.position)
-        .addScaledVector(f.right, s.lateral)
-        .addScaledVector(f.up, 0.72);
+        .addScaledVector(f.right, surface ? 0 : s.lateral)
+        .addScaledVector(f.up, 0.72 + surfaceHullClearance(surface, s.heading));
       ship.group.quaternion.copy(f.quaternion);
       localYaw.setFromAxisAngle(upAxis, s.heading);
       localRoll.setFromAxisAngle(forwardAxis, s.steer * 0.08);
@@ -1235,7 +1248,9 @@ export async function createGame({
           ? {
               ...state,
               distance: T.MathUtils.lerp(prev.distance, state.distance, alpha),
-              lateral: T.MathUtils.lerp(prev.lateral, state.lateral, alpha),
+              lateral: track.sampleSurface
+                ? interpolateSurfaceLateral(track, prev, state, alpha)
+                : T.MathUtils.lerp(prev.lateral, state.lateral, alpha),
               heading: T.MathUtils.lerp(prev.heading, state.heading, alpha),
             }
           : state;
@@ -1475,10 +1490,15 @@ export async function createGame({
                 }
                 return solids;
               },
-              frame(distance) {
+              frame(distance, lateral) {
                 if (!Number.isFinite(distance))
                   throw new Error('Frame distance must be finite');
-                const frame = track.sample(distance);
+                if (lateral !== undefined && !Number.isFinite(lateral))
+                  throw new Error('Frame lateral must be finite');
+                const frame =
+                  (lateral !== undefined &&
+                    track.sampleSurface?.(distance, lateral)) ||
+                  track.sample(distance);
                 return Object.fromEntries(
                   ['position', 'right', 'up', 'tangent', 'quaternion'].map(
                     (key) => [key, frame[key].toArray()],
@@ -1799,7 +1819,8 @@ export async function createGame({
         return this.getSnapshot();
       },
       getSnapshot() {
-        const frame = track.sample(state.distance);
+        const surface = track.sampleSurface?.(state.distance, state.lateral);
+        const frame = surface || track.sample(state.distance);
         return {
           version: VERSION,
           mode,
@@ -1814,6 +1835,14 @@ export async function createGame({
           },
           runtime: { ...runtimeIdentity(runtime), state: runtime.snapshot() },
           trackFrame: {
+            surface: surface
+              ? {
+                  id: surface.id,
+                  kind: surface.kind,
+                  period: surface.period,
+                  bounds: surface.bounds,
+                }
+              : null,
             bank: frame.bank,
             roll: frame.roll ?? frame.bank,
             grade: frame.tangent.y,

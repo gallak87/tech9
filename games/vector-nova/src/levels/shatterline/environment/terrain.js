@@ -214,15 +214,14 @@ export function shatterlineGroundHeight(track, x, z) {
     ax < 62 ? Math.min(y, f.position.y - 195) : y,
   );
 }
-/** Continuous lower geology with broad eroded relief and three independently cut valleys. */
-export function createShatterlineTerrainGeometry(
-  track,
-  { collision = false } = {},
-) {
-  const positions = [],
-    colors = [],
-    indices = [],
-    count = Math.ceil(track.length / 36);
+const terrainLayouts = new WeakMap();
+function terrainLayout(track, collision) {
+  let layouts = terrainLayouts.get(track);
+  if (!layouts) {
+    layouts = new Map();
+    terrainLayouts.set(track, layouts);
+  }
+  if (layouts.has(collision)) return layouts.get(collision);
   const offsets = [
     -7200, -5600, -4400, -3350, -2540, -1860, -1280, -850, -550, -330, -180,
     -100, -62, -28, 0, 28, 62, 100, 180, 330, 550, 850, 1280, 1860, 2540, 3350,
@@ -243,6 +242,7 @@ export function createShatterlineTerrainGeometry(
     );
   }
   const rows = [];
+  const count = Math.ceil(track.length / 36);
   if (!collision)
     for (let z = -4000; z < 0; z += 160)
       rows.push({ position: new T.Vector3(track.sample(0).position.x, 0, z) });
@@ -258,6 +258,77 @@ export function createShatterlineTerrainGeometry(
       rows.push({
         position: new T.Vector3(track.sample(track.length).position.x, 0, z),
       });
+  const layout = { rows, offsets, vertices: new Map() };
+  layouts.set(collision, layout);
+  return layout;
+}
+
+// Debris attaches to the same finite triangles that are rendered, including
+// their Float32 packing. The analytic mountain alone can differ on broad cells.
+export function shatterlineTerrainSurface(track, x, z) {
+  const { rows, offsets, vertices } = terrainLayout(track, false);
+  const cellAt = (array, value, read = (v) => v) => {
+    let low = 0,
+      high = array.length - 1;
+    while (low + 1 < high) {
+      const mid = (low + high) >> 1;
+      if (read(array[mid]) <= value) low = mid;
+      else high = mid;
+    }
+    return low;
+  };
+  const row = cellAt(rows, z, (f) => f.position.z);
+  const before = rows[row].position,
+    after = rows[row + 1].position;
+  const mix = T.MathUtils.clamp((z - before.z) / (after.z - before.z), 0, 1);
+  const column = cellAt(offsets, x - T.MathUtils.lerp(before.x, after.x, mix));
+  const vertex = (r, c) => {
+    const key = r * offsets.length + c;
+    if (!vertices.has(key)) {
+      const f = rows[r],
+        px = f.position.x + offsets[c],
+        pz = f.position.z;
+      vertices.set(
+        key,
+        new T.Vector3(
+          Math.fround(px),
+          Math.fround(shatterlineGroundHeight(track, px, pz)),
+          Math.fround(pz),
+        ),
+      );
+    }
+    return vertices.get(key);
+  };
+  const a = vertex(row, column),
+    b = vertex(row, column + 1),
+    c = vertex(row + 1, column),
+    d = vertex(row + 1, column + 1);
+  for (const [p, q, r] of [
+    [a, c, b],
+    [b, c, d],
+  ]) {
+    const divisor = (q.z - r.z) * (p.x - r.x) + (r.x - q.x) * (p.z - r.z);
+    const u = ((q.z - r.z) * (x - r.x) + (r.x - q.x) * (z - r.z)) / divisor;
+    const v = ((r.z - p.z) * (x - r.x) + (p.x - r.x) * (z - r.z)) / divisor;
+    const w = 1 - u - v;
+    if (Math.min(u, v, w) < -1e-5) continue;
+    return {
+      position: new T.Vector3(x, u * p.y + v * q.y + w * r.y, z),
+      normal: new T.Triangle(p, q, r).getNormal(new T.Vector3()),
+    };
+  }
+  throw new RangeError('Shatterline terrain attachment lies outside its mesh');
+}
+
+/** Continuous lower geology with broad eroded relief and three independently cut valleys. */
+export function createShatterlineTerrainGeometry(
+  track,
+  { collision = false } = {},
+) {
+  const positions = [],
+    colors = [],
+    indices = [];
+  const { rows, offsets } = terrainLayout(track, collision);
   for (const f of rows) {
     for (const lateral of offsets) {
       const x = f.position.x + lateral,

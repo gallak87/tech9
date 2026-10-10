@@ -2,7 +2,10 @@ import * as T from 'three';
 import collisionKit from '../../../../assets/levels/shatterline/collision-kit.json' with { type: 'json' };
 import { createReceivingCampusTriangles } from './receiver.js';
 import { createShatterlineCradleGeometry } from './cradles.js';
-import { shatterlineGroundHeight } from './terrain.js';
+import {
+  shatterlineGroundHeight,
+  shatterlineTerrainSurface,
+} from './terrain.js';
 import { createShatterlineDescentTriangles } from './descents.js';
 import { groundFrame } from '../../../environment/placement.js';
 
@@ -61,6 +64,42 @@ export function shatterlinePlacements(track) {
           15) /
           170,
       );
+    if (asset === 'fractured-cassette') {
+      // These are fallen accelerator fragments, not suspended road fixtures.
+      // Their graphite underside rests on real bedrock instead of inheriting
+      // a fixed altitude offset from the elevated route.
+      const terrain = shatterlineTerrainSurface(track, position.x, position.z);
+      const forward = new T.Vector3(0, 0, 1).applyQuaternion(quaternion);
+      forward
+        .addScaledVector(terrain.normal, -forward.dot(terrain.normal))
+        .normalize();
+      const right = terrain.normal.clone().cross(forward).normalize();
+      quaternion.setFromRotationMatrix(
+        new T.Matrix4().makeBasis(right, terrain.normal, forward),
+      );
+      position
+        .copy(terrain.position)
+        .addScaledVector(terrain.normal, 6.5 * size.y);
+      let rise = -Infinity;
+      for (const [x, z] of [
+        [0, 0],
+        [-14, -17.5],
+        [-14, 17.5],
+        [14, -17.5],
+        [14, 17.5],
+      ]) {
+        const bottom = new T.Vector3(x * size.x, -6.5 * size.y, z * size.z)
+          .applyQuaternion(quaternion)
+          .add(position);
+        rise = Math.max(
+          rise,
+          shatterlineTerrainSurface(track, bottom.x, bottom.z).position.y -
+            bottom.y,
+        );
+      }
+      // A shallow bed of rubble buries the contact edge without concealing the asset.
+      position.y += rise - 0.4;
+    }
     const matrix = new T.Matrix4().compose(position, quaternion, size);
     // A world-Z shear keeps each broad bedding mass on the same falling mountain
     // face, including opposing and rotated ranges; roofs and machinery stay plumb.
@@ -222,14 +261,41 @@ export function shatterlinePlacements(track) {
       );
     }
   }
-  // Stretched inversion districts have their own physical-scale canyon walls.
-  for (const section of track.inversions ?? [])
+  // Tube bends share a canyon wall in world space. Following an individual
+  // bend's right vector swings a kilometre-long ridge across the next exit.
+  for (const section of track.inversions ?? []) {
+    let tubeWallX = null;
+    if (section.kind === 'tube') {
+      const bounds = new T.Box3();
+      for (let s = section.start - 100; s <= section.end + 100; s += 8)
+        bounds.expandByPoint(track.sample(s).position);
+      const boreEnvelope = Math.max(
+        track.width / 2,
+        ...track.tubes.map((tube) => tube.radius * 2),
+      );
+      tubeWallX = bounds.max.x + boreEnvelope + 650;
+    }
     for (const t of [0.35, 0.78]) {
       const s = T.MathUtils.lerp(section.start, section.end, t);
-      add('geology-bedded-ridge', s, 650, -135, [1.1, 0.95, 0.78], 0.025);
+      if (tubeWallX !== null) {
+        const frame = groundFrame(track, s);
+        add(
+          'geology-bedded-ridge',
+          s,
+          0,
+          -135,
+          [1.1, 0.95, 0.78],
+          0.025 - Math.atan2(frame.tangent.x, frame.tangent.z),
+          frame.position.z,
+          tubeWallX,
+        );
+      } else {
+        add('geology-bedded-ridge', s, 650, -135, [1.1, 0.95, 0.78], 0.025);
+      }
       if (section.kind === 'inversion')
         add('geology-eroded-bluff', s, -820, -210, [0.82, 0.84, 0.77], Math.PI);
     }
+  }
   // Lower opposing spurs and broad far ranges form three depth bands.
   for (const [z, lateral, y, scale] of [
     [700, -1100, -440, 1.2],
@@ -254,8 +320,35 @@ export function shatterlinePlacements(track) {
     [4720, -4700, 3.3, 2.1],
     [8020, -4000, 3.05, 1.8],
     [10900, 3000, 0, 1.5],
-  ])
-    add('geology-distant-range', at(z), lateral, -580, [scale, 1.1, 1.45], yaw);
+  ]) {
+    if (z === 7590 && track.variations?.length) {
+      // This mountain belongs outside the folded district. Following its local
+      // road-right vector swings the whole range across the finish/runout.
+      const frame = groundFrame(track, at(z));
+      const outerEdge = Math.max(
+        ...track.variations.map((section) => section.bounds.max.x),
+      );
+      add(
+        'geology-distant-range',
+        at(z),
+        0,
+        -580,
+        [scale, 1.1, 1.45],
+        yaw - Math.atan2(frame.tangent.x, frame.tangent.z),
+        frame.position.z,
+        outerEdge + 2500,
+      );
+    } else {
+      add(
+        'geology-distant-range',
+        at(z),
+        lateral,
+        -580,
+        [scale, 1.1, 1.45],
+        yaw,
+      );
+    }
+  }
   // Three distant blue-grey ranges close the basin beyond the race terminus.
   for (const [z, x, y, scale, yaw] of [
     [18400, 1000, -470, [1.7, 1.3, 1.5], 1.52],

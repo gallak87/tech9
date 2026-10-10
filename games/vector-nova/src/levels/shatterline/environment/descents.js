@@ -95,6 +95,8 @@ export function createShatterlineDescentInfrastructure(
           ? 260
           : 180;
     for (let s = section.start + 85; s < section.end - 55; s += step) {
+      if (track.tubes.some((tube) => s > tube.start - 40 && s < tube.end + 40))
+        continue;
       if (
         track.jumps.some((j) => s > j.takeoff - 85 && s < j.landingStart + 85)
       )

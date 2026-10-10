@@ -59,19 +59,52 @@ export function createShatterlinePoleLights(track, { lights = true } = {}) {
       distance < section.end - 20;
       distance += SPACING
     ) {
+      if (
+        track.tubes.some(
+          (tube) => distance > tube.start - 14 && distance < tube.end + 14,
+        )
+      )
+        continue;
       const frame = track.sample(distance);
       const side = index++ % 2 ? 1 : -1;
       // The full road and hull envelope stay clear. The foot bolts into its
       // existing outboard keel; the whole fixture is outside the containment.
       addBox('metal', frame, side * (halfWidth + 5.8), -2.8, 0, 5.4, 1.3, 5.2);
-      addBox('ceramic', frame, side * (halfWidth + 7.2), -0.3, 0, 3.2, 3.8, 3.6);
+      addBox(
+        'ceramic',
+        frame,
+        side * (halfWidth + 7.2),
+        -0.3,
+        0,
+        3.2,
+        3.8,
+        3.6,
+      );
       addBox('metal', frame, side * (halfWidth + 7.2), 4.6, 0, 1.3, 11.6, 1.9);
       addBox('dark', frame, side * (halfWidth + 7.95), 4.5, 0, 0.3, 9.4, 0.8);
       for (const y of [1.5, 6.1, 9.7])
         addBox('ceramic', frame, side * (halfWidth + 7.2), y, 0, 2.1, 0.8, 2.8);
       addBox('metal', frame, side * (halfWidth + 5.7), 10.3, 0, 4.5, 1.1, 2.1);
-      addBox('dark', frame, side * (halfWidth + 4.5), POLE_HEIGHT - 0.6, 1.1, 4.8, 1.2, 6.6);
-      addBox('metal', frame, side * (halfWidth + 4.5), POLE_HEIGHT - 0.2, 1.1, 5.2, 0.4, 7);
+      addBox(
+        'dark',
+        frame,
+        side * (halfWidth + 4.5),
+        POLE_HEIGHT - 0.6,
+        1.1,
+        4.8,
+        1.2,
+        6.6,
+      );
+      addBox(
+        'metal',
+        frame,
+        side * (halfWidth + 4.5),
+        POLE_HEIGHT - 0.2,
+        1.1,
+        5.2,
+        0.4,
+        7,
+      );
       // One broad diffuse face avoids specular/HDR strip scintillation. Its top
       // clears the opaque head and mounting arm; no bright face overlaps either.
       addBox('lens', frame, side * (halfWidth + 4.5), 9.6, 1.1, 4.1, 0.24, 5.8);

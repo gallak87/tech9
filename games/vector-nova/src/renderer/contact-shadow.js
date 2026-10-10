@@ -81,9 +81,12 @@ export function createContactShadow({ surfaceStep = 0, opacity = 1 } = {}) {
   return {
     mesh,
     update(track, state, coverageAt) {
-      material.uniforms.roadHalfWidth.value = surfaceStep
-        ? track.width / 2
-        : 1e6;
+      const runningSurface = track.sampleSurface?.(
+        state.distance,
+        state.lateral,
+      );
+      material.uniforms.roadHalfWidth.value =
+        surfaceStep && !runningSurface ? track.width / 2 : 1e6;
       const c = Math.cos(state.heading),
         s = Math.sin(state.heading);
       const frames = new Map();
@@ -99,7 +102,15 @@ export function createContactShadow({ surfaceStep = 0, opacity = 1 } = {}) {
         // planet. The road owns which parts of its visual surface are solid.
         surfaceCoverage.setX(i, coverageAt ? coverageAt(distance, lateral) : 1);
         let p;
-        if (surfaceStep) {
+        const surface = track.sampleSurface?.(distance, lateral);
+        if (surface) {
+          p = surface.position.clone().addScaledVector(surface.up, 0.08);
+          if (
+            !surface.period &&
+            (lateral < surface.bounds.min || lateral > surface.bounds.max)
+          )
+            surfaceCoverage.setX(i, 0);
+        } else if (surfaceStep) {
           // Match the actual two triangles of each swept road span. Sampling
           // only the smooth centreline lets the decal cut into the coarser
           // rendered deck at crests and roll changes, exposing hard patches.

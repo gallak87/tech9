@@ -1,16 +1,34 @@
 import * as T from 'three';
 import { sweepGeometry, boxProfile } from '../../../track/geometry.js';
 import { framePoint } from '../../../track/frames.js';
+import { createShatterlineTube } from './tube.js';
+import { quadTriangles } from './tube-tessellation.js';
+export { roadIntervals } from './road-runs.js';
 
-export function roadIntervals(track) {
-  const result = [];
-  let start = -50;
-  for (const jump of track.jumps) {
-    result.push({ start, end: jump.takeoff });
-    start = jump.landingStart;
+// Use the same complete-run row phase and Float32 vertices as finite-hull
+// support. Exposed half-rolls cannot be supported by a separately sampled spline.
+function roadDeckGeometry(track, run) {
+  const positions = [],
+    uv = [],
+    indices = [];
+  for (const s of run.stations) {
+    for (const side of [-1, 1]) {
+      positions.push(...track.tubeMesh.roadVertex(s, side).toArray());
+      uv.push(side === -1 ? 0 : 1, s / 32);
+    }
   }
-  result.push({ start, end: track.length });
-  return result;
+  for (let row = 0; row < run.stations.length - 1; row++) {
+    const a = row * 2;
+    for (const face of quadTriangles(a, a + 1, a + 2, a + 3))
+      indices.push(...face);
+  }
+  const geometry = new T.BufferGeometry();
+  geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+  return geometry;
 }
 
 /** The first visible turn ahead, measured in the driver's current road frame. */
@@ -19,11 +37,20 @@ export function shatterlineTurnCue(track, distance, lookAhead = 240) {
   const frame = track.sample(distance);
   for (let ahead = 24; ahead <= lookAhead; ahead += 12) {
     const targetDistance = distance + ahead;
-    if (targetDistance >= track.finishDistance || track.isGap(targetDistance)) break;
+    if (targetDistance >= track.finishDistance || track.isGap(targetDistance))
+      break;
     const target = track.sample(targetDistance);
-    const yaw = Math.atan2(target.tangent.dot(frame.right), target.tangent.dot(frame.tangent));
+    const yaw = Math.atan2(
+      target.tangent.dot(frame.right),
+      target.tangent.dot(frame.tangent),
+    );
     if (Math.abs(yaw) > 0.045)
-      return { distance, turnDistance: targetDistance, direction: Math.sign(yaw), yaw };
+      return {
+        distance,
+        turnDistance: targetDistance,
+        direction: Math.sign(yaw),
+        yaw,
+      };
   }
   return null;
 }
@@ -153,22 +180,14 @@ export function createShatterlineRoad({
     if (collectSolid && info) collectSolid({ name, geometry: g, ...info });
     return o;
   };
-  const intervals = roadIntervals(track);
-  for (const [index, { start, end }] of intervals.entries()) {
+  const intervals = track.tubeMesh.roadRuns;
+  for (const [index, run] of intervals.entries()) {
+    const { start, end } = run;
     const route = { start: Math.max(0, start), end };
-    mesh(
-      `Deck ${index}`,
-      sweepGeometry(
-        track,
-        [
-          [-halfWidth, 0],
-          [halfWidth, 0],
-        ],
-        { start, end, step: 3, uvScale: 32 },
-      ),
-      graphite,
-      { kind: 'deck', ...route },
-    );
+    mesh(`Deck ${index}`, roadDeckGeometry(track, run), graphite, {
+      kind: 'deck',
+      ...route,
+    });
     mesh(
       `Spine ${index}`,
       sweepGeometry(
@@ -189,21 +208,29 @@ export function createShatterlineRoad({
     for (const side of [-1, 1]) {
       mesh(
         `Containment ${side} ${index}`,
-        sweepGeometry(track, boxProfile(side * (halfWidth + 0.8), 0.6, 1.6, 1.2), {
-          start,
-          end,
-          step: 4,
-        }),
+        sweepGeometry(
+          track,
+          boxProfile(side * (halfWidth + 0.8), 0.6, 1.6, 1.2),
+          {
+            start,
+            end,
+            step: 4,
+          },
+        ),
         ceramic,
         { kind: 'rail', roadBoundary: true, ...route },
       );
       mesh(
         `Outboard lamination ${side} ${index}`,
-        sweepGeometry(track, boxProfile(side * (halfWidth + 2.6), -1.6, 1.2, 1.2), {
-          start,
-          end,
-          step: 6,
-        }),
+        sweepGeometry(
+          track,
+          boxProfile(side * (halfWidth + 2.6), -1.6, 1.2, 1.2),
+          {
+            start,
+            end,
+            step: 6,
+          },
+        ),
         titanium,
         { kind: 'structure', ...route },
       );
@@ -220,6 +247,12 @@ export function createShatterlineRoad({
     }
     // End faces are solid; open jump apertures have no invisible connecting road.
     for (const s of [start, end]) {
+      if (
+        track.tubes.some((tube) =>
+          [tube.start, tube.end].some((edge) => Math.abs(s - edge) < 0.001),
+        )
+      )
+        continue;
       const frame = track.sample(s),
         g = new T.PlaneGeometry(track.width, 6);
       const matrix = new T.Matrix4().compose(
@@ -281,7 +314,16 @@ export function createShatterlineRoad({
     }
     for (let s = start + 12; s < end - 6; s += 30) {
       for (const side of [-1, 1]) {
-        addBox('Lane light', amber, s, side * (halfWidth - 0.25), 0.22, 0.22, 0.12, 7);
+        addBox(
+          'Lane light',
+          amber,
+          s,
+          side * (halfWidth - 0.25),
+          0.22,
+          0.22,
+          0.12,
+          7,
+        );
         addBox(
           'Recessed coil window',
           blue,
@@ -329,7 +371,17 @@ export function createShatterlineRoad({
         [jump.takeoff - 8, 1],
         [jump.landingStart + 10, 1.35],
       ]) {
-        addBox('Jump marker foot', keel, s, side * (halfWidth + 4), 1, 3, 2, 5, true);
+        addBox(
+          'Jump marker foot',
+          keel,
+          s,
+          side * (halfWidth + 4),
+          1,
+          3,
+          2,
+          5,
+          true,
+        );
         addBox(
           'Jump marker blade',
           ceramic,
@@ -376,7 +428,7 @@ export function createShatterlineRoad({
             'Receiving deck checkers',
             ceramic,
             jump.landingStart + 8 + row * 3.5,
-            -halfWidth + (col + 0.5) * track.width / 10,
+            -halfWidth + ((col + 0.5) * track.width) / 10,
             0.042,
             track.width / 10 - 0.4,
             0.018,
@@ -392,8 +444,15 @@ export function createShatterlineRoad({
       cueDistances.push(track.jumps[i].landingEnd - before);
   }
   for (const variation of track.variations ?? [])
-    for (let distance = variation.start + 30; distance < variation.end - 80; distance += 180)
-      if (!cueDistances.some(candidate => Math.abs(candidate - distance) < 35)) cueDistances.push(distance);
+    for (
+      let distance = variation.start + 30;
+      distance < variation.end - 80;
+      distance += 180
+    )
+      if (
+        !cueDistances.some((candidate) => Math.abs(candidate - distance) < 35)
+      )
+        cueDistances.push(distance);
   for (const distance of cueDistances) {
     const cue = shatterlineTurnCue(track, distance);
     if (!cue) continue;
@@ -437,7 +496,7 @@ export function createShatterlineRoad({
             'Timing line',
             ceramic,
             distance + row * 2.4,
-            -halfWidth + (col + 0.5) * track.width / 16,
+            -halfWidth + ((col + 0.5) * track.width) / 16,
             0.05,
             track.width / 16 - 0.1,
             0.025,
@@ -464,9 +523,14 @@ export function createShatterlineRoad({
     o.computeBoundingSphere();
     group.add(o);
   }
+  const tube = track.tubes.length
+    ? createShatterlineTube({ track, shape, collectSolid })
+    : null;
+  if (tube) group.add(tube.group);
   return {
     group,
     setReflection(texture) {
+      tube?.setReflection(texture);
       for (const m of materials) {
         m.envMap = texture;
         m.envMapIntensity = 0.45;
@@ -474,6 +538,7 @@ export function createShatterlineRoad({
       }
     },
     dispose() {
+      tube?.dispose();
       for (const g of geometries) g.dispose();
       for (const m of materials) m.dispose();
       for (const t of textures) t.dispose();

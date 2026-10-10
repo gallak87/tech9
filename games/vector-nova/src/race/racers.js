@@ -1,4 +1,8 @@
-import { createVehicleState, STEERING_ASSIST } from '../physics/index.js';
+import {
+  createVehicleState,
+  getVehiclePace,
+  STEERING_ASSIST,
+} from '../physics/index.js';
 import { getShip } from '../ships/catalog.js';
 import { runtimeIdentity } from '../core/session-runtime.js';
 import { createRace } from './index.js';
@@ -88,10 +92,21 @@ function controlsFor(
   if (opponent.runtime?.pose(1)?.grounded === false)
     return { throttle: 1, brake: 0, steer: 0, boost: false, airbrake: false };
   const handling = getShip(state.shipId).handling;
-  const frame = track.sample(state.distance);
-  const lookahead = track.sample(
-    state.distance + Math.max(45, state.speed * 0.65),
-  );
+  const coursePace = getVehiclePace(state.shipId, track.pace);
+  const speedProfile = coursePace ?? handling;
+  const surface = track.sampleSurface?.(state.distance, state.lateral);
+  const frame = surface ?? track.sample(state.distance);
+  const aheadDistance = state.distance + Math.max(45, state.speed * 0.65);
+  const lookahead =
+    track.sampleSurface?.(aheadDistance, state.lateral) ??
+    track.sample(aheadDistance);
+  const laneDelta = (from, to) =>
+    surface?.period > 0
+      ? ((((to - from + surface.period / 2) % surface.period) +
+          surface.period) %
+          surface.period) -
+        surface.period / 2
+      : to - from;
   const curvature = Math.max(
     Math.abs(frame.curvature),
     Math.abs(lookahead.curvature),
@@ -99,9 +114,9 @@ function controlsFor(
   const cornerLoad =
     difficulty === 'easy' ? 17 : difficulty === 'medium' ? 32 : 38;
   const cornerSpeed = clamp(
-    Math.sqrt(cornerLoad / Math.max(curvature, 0.0008)),
+    Math.sqrt(cornerLoad / Math.max(curvature, coursePace ? 0.000001 : 0.0008)),
     63,
-    handling.boostSpeed,
+    speedProfile.boostSpeed,
   );
   let wantsBoost =
     (curvature < 0.0014 && state.speed > 60 && state.energy > 38) ||
@@ -114,8 +129,8 @@ function controlsFor(
     (difficulty === 'easy' ? 0 : difficulty === 'medium' ? 0.12 : 0.16);
   let targetSpeed = Math.min(
     wantsBoost && difficulty !== 'easy'
-      ? handling.boostSpeed
-      : handling.cruiseSpeed * pace,
+      ? speedProfile.boostSpeed
+      : speedProfile.cruiseSpeed * pace,
     cornerSpeed,
   );
   let targetLane = opponent.specification.lane;
@@ -129,10 +144,18 @@ function controlsFor(
   for (const other of nearby) {
     if (other === state) continue;
     const gap = other.distance - state.distance;
-    if (gap > -12 && gap < 34 && Math.abs(other.lateral - targetLane) < 4.8) {
+    if (
+      gap > -12 &&
+      gap < 34 &&
+      Math.abs(laneDelta(targetLane, other.lateral)) < 4.8
+    ) {
       const alternative = other.lateral > 0 ? -5.7 : 5.7;
       targetLane = alternative;
-      if (gap > 0 && gap < 20 && Math.abs(other.lateral - state.lateral) < 4.8)
+      if (
+        gap > 0 &&
+        gap < 20 &&
+        Math.abs(laneDelta(state.lateral, other.lateral)) < 4.8
+      )
         targetSpeed = Math.min(targetSpeed, Math.max(40, other.speed - 6));
     }
   }
@@ -143,16 +166,30 @@ function controlsFor(
   if (jump) {
     // Earn takeoff speed with the selected ship's own boost/reserve. Optional
     // branches remain ordinary route choices rather than forced AI transfers.
-    const launchSpeed = Math.min(handling.boostSpeed, jump.targetSpeed ?? 112);
+    const launchSpeed = Math.min(
+      speedProfile.boostSpeed,
+      jump.targetSpeed ?? 112,
+    );
     targetSpeed = Math.max(targetSpeed, launchSpeed);
     targetLane = 0;
     wantsBoost = state.energy > 3 && state.speed < launchSpeed - 1;
   }
-  targetLane = clamp(targetLane, -track.width / 2 + 4.5, track.width / 2 - 4.5);
+  targetLane =
+    surface?.period > 0
+      ? laneDelta(0, targetLane)
+      : clamp(
+          targetLane,
+          (surface?.bounds?.min ?? -track.width / 2) + 4.5,
+          (surface?.bounds?.max ?? track.width / 2) - 4.5,
+        );
   const speed = Math.max(18, state.speed);
   const sidewaysLoad =
     -frame.curvature * speed * speed * 0.75 - 9.81 * frame.right.y;
-  const targetSideways = clamp((targetLane - state.lateral) * 1.5, -9, 9);
+  const targetSideways = clamp(
+    laneDelta(state.lateral, targetLane) * 1.5,
+    -9,
+    9,
+  );
   let desiredHeading = clamp(
     Math.asin(
       clamp(

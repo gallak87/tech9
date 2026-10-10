@@ -17,7 +17,7 @@ export default function createLevel({ shape = false } = {}) {
     ['horizon-transfer', 'Horizon Transfer'],
   ];
   return {
-    version: '0.6.0-shatterline-sprint-v5',
+    version: '0.7.2-shatterline-exit-nudge',
     renderer: {
       world: 'shatterline',
       background: '#b5c5cb',
@@ -95,7 +95,7 @@ export default function createLevel({ shape = false } = {}) {
           ...[
             ['summit-chute', 'Summit Chute'],
             ['service-corkscrew', 'Service Corkscrew'],
-            ['overturn-descent', 'Overturn Descent'],
+            ['overturn-descent', 'Overturn Weave'],
             ['avalanche-sweep', 'Avalanche Sweep'],
             ['scissor-dive', 'Scissor Dive'],
           ].flatMap(([id, label]) => [
@@ -125,6 +125,20 @@ export default function createLevel({ shape = false } = {}) {
             label: 'Scissor Transfer · medium flight',
             scenario: 'last-relay-approach',
           },
+          ...[
+            ['tube-entry', 'Overturn Weave · full sequence'],
+            ['tube-1-entry', 'Left tube · entry'],
+            ['tube-1-mid', 'Left tube · free 360° drive'],
+            ['tube-1-exit', 'Left tube · guided exit'],
+            ['tube-weave', 'Overturn Weave · exposed corkscrew'],
+            ['tube-2-entry', 'Right tube · entry'],
+            ['tube-2-mid', 'Right tube · free 360° drive'],
+            ['tube-2-exit', 'Right tube · guided exit'],
+            ['tube-mid', 'Left tube · free 360° drive'],
+            ['tube-ceiling', 'Left tube · ceiling drive'],
+            ['tube-exit', 'Overturn Weave · final guided exit'],
+            ['tube-collector-wall', 'Left tube · wall-side collector'],
+          ].map(([id, label]) => ({ id, label, scenario: id })),
           {
             id: 'finish',
             label: 'Finish and runout',

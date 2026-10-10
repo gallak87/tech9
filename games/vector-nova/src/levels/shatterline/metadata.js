@@ -13,7 +13,7 @@ export default {
     intro:
       'A mountain-long descent. Twelve breaks. Three enormous flights. Dive, corkscrew and race upside down through the ruined launch array.',
     detail:
-      'Plunge through the double Service Corkscrew, bank around Avalanche Sweep and fold beneath the road in Scissor Dive. Race Rook, Latch and Mule to the basin.',
+      'Plunge through the Service Corkscrew, weave through two clear tubes and an exposed reverse roll, then sweep and dive beneath the road. Race Rook, Latch and Mule to the basin.',
     tag: 'SHATTERLINE',
     tagDetail: '11 / PLANETARY LAUNCH ARRAY',
     shape: {

@@ -62,13 +62,17 @@ export function shatterlineRouteSpace(track) {
       }
     }
   }
+  const terminal = track.sample(track.length);
+  const exitDirection = new T.Vector2(
+    terminal.tangent.x,
+    terminal.tangent.z,
+  ).normalize();
   let clearance;
   const space = {
     excavate(x, z, height) {
       const candidates = excavation.get(
         `${Math.floor(x / CELL)}:${Math.floor(z / CELL)}`,
       );
-      if (!candidates) return height;
       let floor = height;
       for (const {
         a,
@@ -81,7 +85,7 @@ export function shatterlineRouteSpace(track) {
         depth,
         grade,
         inner,
-      } of candidates) {
+      } of candidates ?? []) {
         const projection = ((x - a.x) * dx + (z - a.z) * dz) / denominator;
         // Do not pull the floor down to a much later, lower segment merely
         // because it falls inside the lateral valley radius. At a crossing both
@@ -96,6 +100,28 @@ export function shatterlineRouteSpace(track) {
           Math.max(0, distance - flat) * grade;
         const influence = 1 - T.MathUtils.smoothstep(distance, inner, radius);
         floor = Math.min(floor, T.MathUtils.lerp(height, ceiling, influence));
+      }
+      // The physical runout ends before the monotonic accelerator spine. Keep
+      // the receiving valley open beyond it, rather than exposing that earlier,
+      // much higher mountainside as an abrupt wall at the excavation boundary.
+      // This continuation starts strictly beyond the final playable station.
+      const dx = x - terminal.position.x;
+      const dz = z - terminal.position.z;
+      const forward = dx * exitDirection.x + dz * exitDirection.y;
+      if (forward > 0 && forward < 5000) {
+        const lateral = Math.abs(dx * exitDirection.y - dz * exitDirection.x);
+        const inner = 900 + forward * 0.22;
+        const radius = 1500 + forward * 0.3;
+        const influence =
+          T.MathUtils.smoothstep(forward, 0, 50) *
+          (1 - T.MathUtils.smoothstep(forward, 2200, 5000)) *
+          (1 - T.MathUtils.smoothstep(lateral, inner, radius));
+        const basin =
+          terminal.position.y -
+          250 -
+          forward * 0.026 +
+          Math.max(0, lateral - 700 - forward * 0.12) * 0.1;
+        floor = Math.min(floor, T.MathUtils.lerp(height, basin, influence));
       }
       return floor;
     },

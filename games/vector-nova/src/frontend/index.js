@@ -117,8 +117,19 @@ export function createFrontend(host) {
   const route = (id = selected) => routes.find((r) => r.id === id);
   const selectedShip = () => SHIPS.find((s) => s.id === shipId);
   const ship = () => SHIPS.find((s) => s.id === (previewShipId ?? shipId));
+  const isSprint = (id = selected) => route(id)?.closed === false;
+  const sessionName = (id = selected, practice = intent === 'practice') =>
+    isSprint(id)
+      ? practice
+        ? 'Solo Descent'
+        : 'Downhill Sprint'
+      : practice
+        ? 'Practice'
+        : 'Quick Race';
   const sessionLabel = () =>
-    intent === 'practice' ? 'Practice' : `Quick Race · ${settings.difficulty}`;
+    intent === 'practice'
+      ? sessionName()
+      : `${sessionName()} · ${settings.difficulty}`;
   const loadedLevel = () => catalog.find((l) => l.id === loadedId) ?? level();
   const difficultyControls = () =>
     `<fieldset class="race-difficulty"><legend>Race difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${settings.difficulty === d}" tabindex="${settings.difficulty === d ? 0 : -1}">${d}</button>`).join('')}</fieldset>`;
@@ -172,7 +183,7 @@ export function createFrontend(host) {
     return `<button data-action="${action}" aria-pressed="${active}" class="session-mode ${active ? 'selected' : ''}">${label}<span>${detail}${wideMenu.matches ? '' : ' →'}</span></button>`;
   }
   const circuitPanel = () =>
-    `<div class="circuit-layout"><section class="circuit-library"><div class="circuit-grid" aria-label="Circuits">${catalog.map((l, i) => `<button class="circuit-card ${l.id === selected ? 'selected' : ''}" data-level="${l.id}" tabindex="${l.id === selected ? 0 : -1}" aria-pressed="${l.id === selected}">${picture(route(l.id))}<span class="card-number">${String(i + 1).padStart(2, '0')}</span>${routeArt(route(l.id))}<span class="card-name">${escape(l.name)}</span><small>${route(l.id) ? (route(l.id).length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'} <i>/</i> ${route(l.id)?.closed === false ? 'SPRINT' : 'CIRCUIT'}</small></button>`).join('')}</div><span class="library-hint">${catalog.length} CIRCUITS <i>↓</i> SCROLL TO EXPLORE</span></section><aside class="circuit-detail"><div class="circuit-hero"></div><div class="mode-actions" aria-label="Choose session"><div class="quick-race-option">${difficultyControls()}${modeButton('quick', 'Quick Race', '2 laps · 3 rivals', intent === 'race')}</div><div class="practice-option">${modeButton('practice', 'Practice', 'Solo · open laps', intent === 'practice')}</div></div></aside></div>`;
+    `<div class="circuit-layout"><section class="circuit-library"><div class="circuit-grid" aria-label="Circuits">${catalog.map((l, i) => `<button class="circuit-card ${l.id === selected ? 'selected' : ''}" data-level="${l.id}" tabindex="${l.id === selected ? 0 : -1}" aria-pressed="${l.id === selected}">${picture(route(l.id))}<span class="card-number">${String(i + 1).padStart(2, '0')}</span>${routeArt(route(l.id))}<span class="card-name">${escape(l.name)}</span><small>${route(l.id) ? (route(l.id).length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'} <i>/</i> ${route(l.id)?.closed === false ? 'SPRINT' : 'CIRCUIT'}</small></button>`).join('')}</div><span class="library-hint">${catalog.length} CIRCUITS <i>↓</i> SCROLL TO EXPLORE</span></section><aside class="circuit-detail"><div class="circuit-hero"></div><div class="mode-actions" aria-label="Choose session"><div class="quick-race-option">${difficultyControls()}${modeButton('quick', sessionName(selected, false), isSprint() ? 'One descent · 3 rivals' : '2 laps · 3 rivals', intent === 'race')}</div><div class="practice-option">${modeButton('practice', sessionName(selected, true), isSprint() ? 'Solo · summit to finish' : 'Solo · open laps', intent === 'practice')}</div></div></aside></div>`;
   const shipPanel = () =>
     `<div class="setup-layout"><section class="ship-list" aria-label="Choose ship">${SHIPS.map((s, i) => `<button data-ship="${s.id}" aria-pressed="${s.id === shipId}" tabindex="${s.id === shipId ? 0 : -1}" class="${s.id === shipId ? 'selected' : ''}"><span>0${i + 1}</span><div><strong>${s.name}</strong><small>${s.role}</small></div></button>`).join('')}</section><section class="ship-details"><span class="kicker">${escape(ship().design)}</span><h2>${ship().name}<small>${previewShipId ? 'PREVIEW' : 'SELECTED SHIP'}</small></h2><div class="ship-preview-slot"><p role="status">Loading ship preview…</p></div><div class="transfer-slot ship-transfer"></div><p class="ship-description">${ship().description}</p></section><aside class="setup-details"><span class="kicker">PERFORMANCE / ${ship().role.toUpperCase()}</span><div class="ship-metrics">${[
       [
@@ -213,8 +224,14 @@ export function createFrontend(host) {
       .join(
         '',
       )}</div><p class="stat-note">Handling and braking are relative ratings.</p></aside></div>`;
+  const launchLabel = () =>
+    isSprint()
+      ? 'Start descent →'
+      : intent === 'practice'
+        ? 'Start practice →'
+        : 'Start race →';
   const launchControls = () =>
-    `<div class="front-actions setup-actions"><span class="launch-summary">${escape(level().name)} <i>/</i> ${escape(sessionLabel())}</span>${button('launch', intent === 'practice' ? 'Start practice →' : 'Start race →', true)}</div>`;
+    `<div class="front-actions setup-actions"><span class="launch-summary">${escape(level().name)} <i>/</i> ${escape(sessionLabel())}</span>${button('launch', launchLabel(), true)}</div>`;
   function render() {
     if (shell.hidden) return;
     const libraryScroll = shell.querySelector('.circuit-grid')?.scrollTop;
@@ -225,7 +242,7 @@ export function createFrontend(host) {
       settings: 'SETTINGS',
       results: 'SESSION COMPLETE',
     }[screen];
-    shell.innerHTML = `<header class="front-header"><button class="front-brand" data-action="home" aria-label="Vector Nova circuits">VECTOR<span>//</span>NOVA</button><span class="header-label">${title}</span>${screen !== 'loading' ? button('settings', 'Settings') : ''}</header><main class="front-content" data-page="${screen}"></main><footer class="front-footer"><span>${screen === 'circuits' ? 'ARROWS · BROWSE <i>/</i> ENTER · SELECT <i>/</i> TAB · CONTROLS' : `${screen !== 'results' && intent === 'practice' ? 'PRACTICE' : 'QUICK RACE'} <i>/</i> ${escape((screen === 'results' ? loadedLevel() : level()).name.toUpperCase())}`}</span></footer>`;
+    shell.innerHTML = `<header class="front-header"><button class="front-brand" data-action="home" aria-label="Vector Nova circuits">VECTOR<span>//</span>NOVA</button><span class="header-label">${title}</span>${screen !== 'loading' ? button('settings', 'Settings') : ''}</header><main class="front-content" data-page="${screen}"></main><footer class="front-footer"><span>${screen === 'circuits' ? 'ARROWS · BROWSE <i>/</i> ENTER · SELECT <i>/</i> TAB · CONTROLS' : `${sessionName(screen === 'results' ? loadedId : selected, screen !== 'results' && intent === 'practice').toUpperCase()} <i>/</i> ${escape((screen === 'results' ? loadedLevel() : level()).name.toUpperCase())}`}</span></footer>`;
     const main = shell.querySelector('.front-content');
     let content = main;
     if (choosingSession()) {
@@ -304,6 +321,7 @@ export function createFrontend(host) {
         )}</section></div><div class="front-actions">${button('settings-back', '← Back')}</div>`;
       content.querySelector('select').value = settings.quality;
     } else if (screen === 'results') {
+      const sprint = isSprint(loadedId);
       const player = lastResults?.standings.find(
         (entry) => entry.id === 'player',
       );
@@ -312,7 +330,7 @@ export function createFrontend(host) {
         : player?.position === 1
           ? 'Winner.'
           : 'Race finished.';
-      content.innerHTML = `<section class="result-panel">${heading('FINISH / ' + escape(loadedLevel().name.toUpperCase()), title)}<div class="results-layout"><section class="result-personal"><span class="kicker">${lastResults?.playerValid ? 'RACE TIME' : 'UNRANKED RUN'}</span><strong>${stamp(lastResults?.playerTotalTime)}</strong><p>${lastResults?.playerValid ? `${lastResults.laps ?? 2} laps · ${escape(lastResults.difficulty ?? settings.difficulty)}` : 'A lap was invalidated. This run does not count toward classification.'}</p><div class="lap-splits">${(lastResults?.playerLapTimes ?? []).map((t, i) => `<span>LAP ${i + 1}<b>${stamp(t)}</b></span>`).join('')}</div></section><section><ol class="results-list" aria-label="Race classification"></ol><p class="results-note" role="status"></p></section></div><div class="front-actions results-actions">${button('retry-race', 'Race again →', true)}${button('continue', 'Continue driving')}${button('change', 'Circuits')}</div></section>`;
+      content.innerHTML = `<section class="result-panel">${heading('FINISH / ' + escape(loadedLevel().name.toUpperCase()), title)}<div class="results-layout"><section class="result-personal"><span class="kicker">${lastResults?.playerValid ? 'RACE TIME' : 'UNRANKED RUN'}</span><strong>${stamp(lastResults?.playerTotalTime)}</strong><p>${lastResults?.playerValid ? `${sprint ? 'One descent' : `${lastResults.laps ?? 2} laps`} · ${escape(lastResults.difficulty ?? settings.difficulty)}` : `${sprint ? 'This descent' : 'A lap'} was invalidated. This run does not count toward classification.`}</p><div class="lap-splits">${(lastResults?.playerLapTimes ?? []).map((t, i) => `<span>${sprint ? 'DESCENT' : `LAP ${i + 1}`}<b>${stamp(t)}</b></span>`).join('')}</div></section><section><ol class="results-list" aria-label="Race classification"></ol><p class="results-note" role="status"></p></section></div><div class="front-actions results-actions">${button('retry-race', 'Race again →', true)}${button('continue', 'Continue driving')}${button('change', 'Circuits')}</div></section>`;
       updateResults(lastResults);
     }
     if (choosingSession() && game?.hasSession()) {
@@ -403,6 +421,24 @@ export function createFrontend(host) {
     if (summary) summary.textContent = `${level().name} / ${sessionLabel()}`;
   }
   function updateLaunchSummary() {
+    for (const [action, practice, detail] of [
+      [
+        'quick',
+        false,
+        isSprint() ? 'One descent · 3 rivals' : '2 laps · 3 rivals',
+      ],
+      [
+        'practice',
+        true,
+        isSprint() ? 'Solo · summit to finish' : 'Solo · open laps',
+      ],
+    ]) {
+      const mode = shell.querySelector(`[data-action="${action}"]`);
+      if (mode)
+        mode.innerHTML = `${sessionName(selected, practice)}<span>${detail}${wideMenu.matches ? '' : ' →'}</span>`;
+    }
+    const launch = shell.querySelector('[data-action="launch"]');
+    if (launch) launch.textContent = launchLabel();
     const summary = shell.querySelector('.launch-summary');
     if (summary)
       summary.textContent = `${level().name} / ${sessionLabel()} / ${selectedShip().name}`;

@@ -44,8 +44,8 @@ export function createShatterlineCollisionWorld({ track }) {
     for (const triangle of group) triangles.push(triangle);
   const world = createCollisionWorld({
     id: 'shatterline-production-solids',
-    version: 6,
-    geometryId: `${track.geometryVersion}:road-v3:environment-v7`,
+    version: 10,
+    geometryId: `${track.geometryVersion}:road-v5:environment-v10`,
     triangles,
   });
   const owner = {

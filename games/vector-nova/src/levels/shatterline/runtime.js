@@ -1,4 +1,5 @@
 import { createFlightModel } from '../../physics/flight.js';
+import { SHATTERLINE_PACE } from './pace.js';
 
 export const SHATTERLINE_RULES = Object.freeze({
   gravity: 26,
@@ -10,13 +11,33 @@ export const SHATTERLINE_RULES = Object.freeze({
   airYaw: 0.16,
   pitchTolerance: 1.05,
 });
+const EXIT_RECOVERY = Object.freeze({
+  inwardSpeed: 75,
+  speedRetention: 0.88,
+  duration: 0.9,
+  yawRate: 3.5,
+  energyScale: 0.25,
+});
 const model = createFlightModel(SHATTERLINE_RULES);
 const runtimes = new WeakMap();
 export function createShatterlineRuntime(context) {
+  const pace = context.track.pace ?? SHATTERLINE_PACE;
   const runtime = model.createRuntime(context, {
     id: 'shatterline-ballistic-sprint',
-    version: 1,
-    rulesId: `shatterline-v1:${JSON.stringify({ geometry: context.track.geometryVersion, rules: model.rules, jumps: context.track.jumps })}`,
+    version: 4,
+    rulesId: `shatterline-v4:surface-metric-v1:${JSON.stringify({ geometry: context.track.geometryVersion, pace, exitRecovery: EXIT_RECOVERY, rules: model.rules, jumps: context.track.jumps })}`,
+    groundOptions: ({ state, track }) => {
+      const tube = track.tubeAt?.(state.distance);
+      return {
+        pace,
+        supportHeight: 0.04,
+        ...(tube &&
+        state.distance >= tube.guidanceStart &&
+        state.distance <= tube.guidanceEnd
+          ? { railRecovery: { id: tube.id, ...EXIT_RECOVERY } }
+          : {}),
+      };
+    },
     testLaunch: Boolean(context.playtest),
     forgivingContacts: true,
     // Keep the hovering hull clear of the lip while its tail crosses the

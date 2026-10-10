@@ -24,6 +24,7 @@ export function createCameraRig(
   const previousFrame = new T.Quaternion();
   const previousCraftAnchor = new T.Vector3();
   let previousWorldMotion = false;
+  let previousSurface = false;
   let flightView = null;
   let landingView = null;
   let crashView = null;
@@ -55,6 +56,8 @@ export function createCameraRig(
     ) {
       if (paused && initialized) return;
       const worldMotion = !!worldPose && !worldPose.grounded;
+      const surface =
+        !worldMotion && track.sampleSurface?.(state.distance, state.lateral);
       const f = worldMotion
         ? {
             position: worldPose.position.clone(),
@@ -65,14 +68,15 @@ export function createCameraRig(
               worldPose.quaternion,
             ),
           }
-        : track.sample(state.distance);
+        : surface || track.sample(state.distance);
       const craftAnchor = worldPose
         ? worldPose.position
         : f.position
             .clone()
-            .addScaledVector(f.right, state.lateral)
+            .addScaledVector(f.right, surface ? 0 : state.lateral)
             .addScaledVector(f.up, 0.72);
       const changedSource = initialized && worldMotion !== previousWorldMotion;
+      const changedSurface = initialized && !!surface !== previousSurface;
       const leavingCrash = !!crashView && !worldPose?.recovering;
       if (mode === 'chase' && worldMotion && worldPose.recovering) {
         if (!crashView) {
@@ -84,6 +88,7 @@ export function createCameraRig(
         previousFrame.copy(f.quaternion);
         previousCraftAnchor.copy(craftAnchor);
         previousWorldMotion = worldMotion;
+        previousSurface = !!surface;
         initialized = true;
         return;
       }
@@ -113,7 +118,7 @@ export function createCameraRig(
       }
       const p = f.position
         .clone()
-        .addScaledVector(f.right, worldMotion ? 0 : state.lateral)
+        .addScaledVector(f.right, worldMotion || surface ? 0 : state.lateral)
         .addScaledVector(f.up, 1.15);
       let target, eye, back;
       if (mode === 'inspection') return;
@@ -198,23 +203,41 @@ export function createCameraRig(
           finishBlend * 3;
         const previewDistance =
           typeof lookAhead === 'function' ? lookAhead(track, state) : lookAhead;
-        const ahead = track.sample(
+        // A cylindrical surface uses lateral arclength, not a world-right
+        // offset. Follow the same circumference on the look-ahead/back samples;
+        // the authored transition blends ordinary road composition into it.
+        const aimFrame = (distance, lateralScale) => {
+          const running = track.sampleSurface?.(distance, state.lateral);
+          if (running) {
+            const scale = T.MathUtils.lerp(
+              lateralScale,
+              1,
+              running.viewBlend ?? 1,
+            );
+            return scale === 1
+              ? running
+              : track.sampleSurface(distance, state.lateral * scale);
+          }
+          const frame = track.sample(distance);
+          return {
+            ...frame,
+            position: frame.position
+              .clone()
+              .addScaledVector(frame.right, state.lateral * lateralScale),
+          };
+        };
+        const ahead = aimFrame(
           state.distance + previewDistance + state.speed * 0.18,
+          0.25,
         );
-        back = track.sample(
+        back = aimFrame(
           state.distance - backDistance - state.speed * 0.025,
+          0.83,
         );
-        eye = back.position
+        eye = back.position.clone().addScaledVector(back.up, height);
+        target = p
           .clone()
-          .addScaledVector(back.right, state.lateral * 0.83)
-          .addScaledVector(back.up, height);
-        target = p.clone().lerp(
-          ahead.position
-            .clone()
-            .addScaledVector(ahead.right, state.lateral * 0.25)
-            .addScaledVector(ahead.up, 1.6),
-          0.55,
-        );
+          .lerp(ahead.position.clone().addScaledVector(ahead.up, 1.6), 0.55);
         if (nextJump) {
           const receiving = track.sample(nextJump.landingStart + 20);
           target.lerp(
@@ -246,7 +269,11 @@ export function createCameraRig(
       // Translation alone leaves the eye lagging inside a steep crest/pullout;
       // blending up vectors can collapse when the road turns upside down.
       if (initialized && mode === 'chase') {
-        if (leavingCrash || (preserveFlightView && changedSource)) {
+        if (
+          changedSurface ||
+          leavingCrash ||
+          (preserveFlightView && changedSource)
+        ) {
           // Road frames are anchored on the centerline, flight frames on the
           // craft itself. Compare craft anchors at the handoff: subtracting one
           // frame origin from the other injects the entire lane offset sideways.
@@ -269,6 +296,7 @@ export function createCameraRig(
       previousFrame.copy(f.quaternion);
       previousCraftAnchor.copy(craftAnchor);
       previousWorldMotion = worldMotion;
+      previousSurface = !!surface;
       const k = initialized ? 1 - Math.exp(-dt * 12) : 1;
       camera.position.lerp(eye, k);
       if (back) {

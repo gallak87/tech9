@@ -42,10 +42,10 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 ### Level polish
 
-- [ ] Halcyon art pass: explore closer buildings and street-canyon scale using the [saved circuit concept](docs/levels/art-revamp-reference/circuit-wall-v1.png); preserve the approved route.
-- [ ] Nacre art pass: strengthen wave scale, crests, foam and water lighting using the [saved concept](docs/levels/art-revamp-reference/circuit-wall-v1.png); preserve road/jump readability and approved water/flight behavior.
-- [ ] Profile intermittent High-preset freezes on Apple M1 across the heaviest circuits and transitions before increasing art cost; distinguish CPU, shader/upload and GPU limits.
-- [ ] Kestrel Blender/Three.js art pass: explore sharper construction and materials from the saved [paddock](docs/levels/art-revamp-reference/ship-paddock-v1.png) and [close-up](docs/levels/art-revamp-reference/ship-closeup-v1.png), preserving silhouette/handling and measured runtime budgets.
+- [ ] Halcyon art revamp: explore sections threading between close buildings, with stronger street-canyon scale, architectural depth and grounded city infrastructure, using the [saved circuit concept](docs/levels/art-revamp-reference/circuit-wall-v1.png). This is a later world-art pass; retain the approved route until a route change is separately scoped.
+- [ ] Nacre art revamp: develop the [concept's storm-ocean direction](docs/levels/art-revamp-reference/circuit-wall-v1.png) with more convincing wave scale, layered crests, foam and water lighting. Preserve readable road/jump approaches, submerged racing and the approved water/flight behavior.
+- [ ] Profile intermittent High-preset freezes reported on an Apple M1 Mac before increasing art cost. Identify affected circuits and distinguish sustained GPU load from CPU, shader-compilation and asset-upload spikes; compare High/Low at the same viewport and route, measure frame-time outliers, then set practical budgets for world detail, water and ship shading. Existing High postprocessing and pixel ratio are candidates to measure, not a diagnosed cause.
+- [ ] Explore a later Kestrel Blender/Three.js art pass from the saved [paddock view](docs/levels/art-revamp-reference/ship-paddock-v1.png) and [close-up](docs/levels/art-revamp-reference/ship-closeup-v1.png): sharper formed panels, ceramic/graphite/titanium separation, canopy and intake depth, and deliberate lighting. Preserve the approved silhouette and handling; target measured runtime cost as well as appearance.
 
 - [ ] Complete the [Saffron wider-circuit proof](docs/expansion/saffron.md): a separate 32 → 40 m variant, preserving the original and refitting adjacent scenery. Use the [per-level expansion process](docs/expansion/README.md); desktop-only verification, with mobile/portrait deferred to the user's final pass across all levels.
 

@@ -6,3 +6,6 @@ evidence/frames/
 evidence/
 src/ships/evidence/
 .husky/_/
+
+# Local music runtime, build and downloaded model weights.
+.audio-model/

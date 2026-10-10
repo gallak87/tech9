@@ -28,6 +28,86 @@
       "runtimeDependencies": ["three"]
     },
     {
+      "id": "halcyon-music-preview",
+      "source": "assets/levels/halcyon/audio/",
+      "creator": "VECTOR//NOVA project contributors with Codex",
+      "provenance": "Generated locally with ACE-Step 1.5 Turbo and its 0.6B music planner through acestep.cpp (Q8 GGUF, Metal) from the project-authored prompt; no reference audio supplied. Current soundtrack draft played by Tunes on every circuit.",
+      "rights": "AI-generated output; ACE-Step source and model weights distributed under MIT. See provenanceRecord.",
+      "runtimeDependencies": [],
+      "runtimeAsset": "public/assets/levels/halcyon/audio/blue-hour-preview.wav",
+      "provenanceRecord": "assets/levels/halcyon/audio/README.md"
+    },
+    {
+      "id": "halcyon-music-slipstream",
+      "source": "assets/levels/halcyon/audio/slipstream.txt",
+      "creator": "VECTOR//NOVA project contributors with Codex",
+      "provenance": "Generated locally with ACE-Step 1.5 Turbo and its 0.6B music planner through acestep.cpp (Q8 GGUF, Metal) from the project-authored prompt; no reference audio supplied. Current soundtrack draft played by Tunes on every circuit.",
+      "rights": "AI-generated output; ACE-Step source and model weights distributed under MIT. See provenanceRecord.",
+      "runtimeDependencies": [],
+      "runtimeAsset": "public/assets/levels/halcyon/audio/slipstream.wav",
+      "provenanceRecord": "assets/levels/halcyon/audio/README.md"
+    },
+    {
+      "id": "halcyon-music-undertow",
+      "source": "assets/levels/halcyon/audio/undertow.txt",
+      "creator": "VECTOR//NOVA project contributors with Codex",
+      "provenance": "Generated locally with ACE-Step 1.5 Turbo and its 0.6B music planner through acestep.cpp (Q8 GGUF, Metal) from the project-authored prompt; no reference audio supplied. Current soundtrack draft played by Tunes on every circuit.",
+      "rights": "AI-generated output; ACE-Step source and model weights distributed under MIT. See provenanceRecord.",
+      "runtimeDependencies": [],
+      "runtimeAsset": "public/assets/levels/halcyon/audio/undertow.wav",
+      "provenanceRecord": "assets/levels/halcyon/audio/README.md"
+    },
+    {
+      "id": "halcyon-music-nightshift",
+      "source": "assets/levels/halcyon/audio/nightshift.txt",
+      "creator": "VECTOR//NOVA project contributors with Codex",
+      "provenance": "Generated locally with ACE-Step 1.5 Turbo and its 0.6B music planner through acestep.cpp (Q8 GGUF, Metal) from the project-authored prompt; no reference audio supplied. Current soundtrack draft played by Tunes on every circuit.",
+      "rights": "AI-generated output; ACE-Step source and model weights distributed under MIT. See provenanceRecord.",
+      "runtimeDependencies": [],
+      "runtimeAsset": "public/assets/levels/halcyon/audio/nightshift.wav",
+      "provenanceRecord": "assets/levels/halcyon/audio/README.md"
+    },
+    {
+      "id": "halcyon-music-ionwake",
+      "source": "assets/levels/halcyon/audio/ionwake.txt",
+      "creator": "VECTOR//NOVA project contributors with Codex",
+      "provenance": "Generated locally with ACE-Step 1.5 Turbo and its 0.6B music planner through acestep.cpp (Q8 GGUF, Metal) from the project-authored prompt; no reference audio supplied. Current soundtrack draft played by Tunes on every circuit.",
+      "rights": "AI-generated output; ACE-Step source and model weights distributed under MIT. See provenanceRecord.",
+      "runtimeDependencies": [],
+      "runtimeAsset": "public/assets/levels/halcyon/audio/ionwake.wav",
+      "provenanceRecord": "assets/levels/halcyon/audio/README.md"
+    },
+    {
+      "id": "halcyon-music-mirage",
+      "source": "assets/levels/halcyon/audio/mirage.txt",
+      "creator": "VECTOR//NOVA project contributors with Codex",
+      "provenance": "Generated locally with ACE-Step 1.5 Turbo and its 0.6B music planner through acestep.cpp (Q8 GGUF, Metal) from the project-authored prompt; no reference audio supplied. Current soundtrack draft played by Tunes on every circuit.",
+      "rights": "AI-generated output; ACE-Step source and model weights distributed under MIT. See provenanceRecord.",
+      "runtimeDependencies": [],
+      "runtimeAsset": "public/assets/levels/halcyon/audio/mirage.wav",
+      "provenanceRecord": "assets/levels/halcyon/audio/README.md"
+    },
+    {
+      "id": "halcyon-music-phase-shift",
+      "source": "assets/levels/halcyon/audio/phase-shift.txt",
+      "creator": "VECTOR//NOVA project contributors with Codex",
+      "provenance": "Generated locally with ACE-Step 1.5 Turbo and its 0.6B music planner through acestep.cpp (Q8 GGUF, Metal) from the project-authored prompt; no reference audio supplied. Current soundtrack draft played by Tunes on every circuit.",
+      "rights": "AI-generated output; ACE-Step source and model weights distributed under MIT. See provenanceRecord.",
+      "runtimeDependencies": [],
+      "runtimeAsset": "public/assets/levels/halcyon/audio/phase-shift.wav",
+      "provenanceRecord": "assets/levels/halcyon/audio/README.md"
+    },
+    {
+      "id": "halcyon-music-event-horizon",
+      "source": "assets/levels/halcyon/audio/event-horizon.txt",
+      "creator": "VECTOR//NOVA project contributors with Codex",
+      "provenance": "Generated locally with ACE-Step 1.5 Turbo and its 0.6B music planner through acestep.cpp (Q8 GGUF, Metal) from the project-authored prompt; no reference audio supplied. Current soundtrack draft played by Tunes on every circuit.",
+      "rights": "AI-generated output; ACE-Step source and model weights distributed under MIT. See provenanceRecord.",
+      "runtimeDependencies": [],
+      "runtimeAsset": "public/assets/levels/halcyon/audio/event-horizon.wav",
+      "provenanceRecord": "assets/levels/halcyon/audio/README.md"
+    },
+    {
       "id": "synth-audio",
       "source": "src/audio/",
       "creator": "VECTOR//NOVA project contributors",

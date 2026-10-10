@@ -1,0 +1,28 @@
+{
+  "runtimeRepo": "https://github.com/ServeurpersoCom/acestep.cpp.git",
+  "runtimeRevision": "d881ad2c080bac65cc73cb3bbcc831f79462b98b",
+  "modelRepo": "Serveurperso/ACE-Step-1.5-GGUF",
+  "modelRevision": "666ac70204440867d8c01ba4b119cc79c95b370a",
+  "files": {
+    "acestep-5Hz-lm-0.6B-Q8_0.gguf": {
+      "bytes": 709846656,
+      "sha256": "bdaf9e292d4470f31c19cafeaca1b74936a114667e3a85e5d33b65247e9908ec"
+    },
+    "Qwen3-Embedding-0.6B-Q8_0.gguf": {
+      "bytes": 784144960,
+      "sha256": "972f23255e46adfe744a0eb9a0039f3c63988f65753b0968d776e8b27168c321"
+    },
+    "acestep-v15-turbo-Q8_0.gguf": {
+      "bytes": 2549528000,
+      "sha256": "288f708a61cfc241013a98a62f98ba331f83fe34d0d3559acdd9b0f6a2f7cd6b"
+    },
+    "vae-BF16.gguf": {
+      "bytes": 337420928,
+      "sha256": "0599862ac5d15cd308e1d2e368373aea6c02e25ebd1737ad4a4562a0901b0ef8"
+    },
+    "LICENSE": {
+      "bytes": 1064,
+      "sha256": "05a6bce42a62636d2cfb24139cc008b6b899754e244175814bb5dd2f4a485357"
+    }
+  }
+}

@@ -42,7 +42,8 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 - [x] Detached crash camera: confirmed misses/crashes freeze the camera position and gently pan toward the ship, then blend back to chase on landing/recovery. No trailing or zoom; existing recovery timing is preserved.
 - [ ] Cindercoil: add the missing lava road flames and HUD/ship smoke when driving over lava, reusing Helion's effects through shared helpers where appropriate.
-- [ ] Gameplay soundtracks: add one complete gameplay music track per level, matching each circuit's identity.
+- [ ] Gameplay soundtracks: grow the audition pool toward roughly 16 distinct songs, then finish one gameplay track per circuit, including mix/loop delivery and race playback. Use the [audio guide and Halcyon direction](docs/audio/README.md).
+- [ ] Audio generation Skill: package the proven prompt → sequential local render → Tunes audition → human feedback workflow. Reference the audio guide and scripts; carry the musical motivations, metadata/provenance updates and one-current-take cleanup rules without duplicating docs or collecting iteration evidence.
 - [ ] Author collision worlds for additional circuits and broader static Saffron scenery; propagate actual contact sparks as they opt in and explore bounded scrape marks. Keep racer body contact separate.
 - [ ] Halcyon: fix remaining ground flicker, especially white areas and street-lane markings.
 - [ ] Asterion: locate and fix the reported flickering road section.
@@ -64,6 +65,7 @@ Agree each phase's scope before implementation; scoped independent critique ends
 
 ### Gate 8: cups and front end
 
+- [ ] Loading screens: design two variants, one for initial startup and one for transitions between levels. Presentation and content TBD; consider keeping Tunes visible and music uninterrupted during level transitions.
 - [ ] Give the paddock, level picker and overall menu flow a cohesive game-ready UI pass. Start with mode selection, such as **Championship** versus **Solo**, with level selection inside Solo; design the final mode/ship/circuit/launch flow before implementation. Retain ship stats, saved choices and Inspect Ships; each step should fit without scrolling.
 - [ ] Carry shared ship selection into future race modes and add a Founders Cup over Halcyon/Asterion/Nacre. Proposed 12-place points: 25/20/16/13/11/9/7/5/4/3/2/1; ties by wins, then total time. Save between races with restart/abandon controls.
 - [ ] Connect Quick Race, Cup and Time Trial to working actions; rewards unlock cosmetics rather than stronger stats. Retain completed content in Practice/Quick Race.

@@ -42,8 +42,8 @@ export default function createLevel({ shape = false } = {}) {
     railContactSparks: !shape,
     practiceSectionsUntimed: true,
     createTrack: createHelionTrack,
-    createRoad: ({ track, settings }) =>
-      buildHelionRoad(track, { shape, settings }),
+    createRoad: ({ track, settings, view }) =>
+      buildHelionRoad(track, { shape, settings, renderer: view?.renderer }),
     createEnvironment: async (context) =>
       withShipHeatEffects(
         shape

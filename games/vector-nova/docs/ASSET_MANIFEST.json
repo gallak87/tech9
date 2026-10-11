@@ -430,8 +430,8 @@
       "id": "helion-observatory",
       "source": "assets/levels/helion/ and src/levels/helion/",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",
-      "provenance": "Original scene-guided Blender shields, radiators, instrument towers, canopies and prominence meshes; authored road, thermal shaders and contact effects. Original scene, selected sky, exact prompts, generator and editable source are retained.",
-      "rights": "Project-authored/generated; no third-party artwork or meshes",
+      "provenance": "Original scene-guided Blender shields, radiators, instrument towers, canopies and prominence meshes; authored road, thermal shaders and contact effects. Original scene, selected sky, exact prompts, generator and editable source are retained. Road finish maps are separately registered as helion-heat-ceramic.",
+      "rights": "Project-authored/generated kit and sky; third-party road finish rights are recorded separately",
       "runtimeDependencies": ["three"],
       "runtimeAssets": [
         "public/assets/levels/helion/thermal-observatory.glb",
@@ -493,6 +493,20 @@
         "public/assets/levels/halcyon/asphalt/arm.ktx2"
       ],
       "provenanceRecord": "assets/levels/halcyon/asphalt/provenance.json"
+    },
+    {
+      "id": "helion-heat-ceramic",
+      "source": "assets/levels/helion/ceramic/",
+      "creator": "Lennart Demes / ambientCG; VECTOR//NOVA material adaptation",
+      "provenance": "Concrete034 CC0 approximation, adapted to dense heat ceramic with retained color, OpenGL normal and roughness sources. Metric 4.4 × 2.2 m repeat preserves source aspect. Reproducible UASTC KTX2 maps shared by fresh, heat-cycled and graphite-covered road cassettes; architecture and thermal effects keep their existing finish.",
+      "rights": "CC0-1.0 — https://docs.ambientcg.com/license/",
+      "runtimeDependencies": ["three", "public/assets/ships/decoder/"],
+      "runtimeAssets": [
+        "public/assets/levels/helion/ceramic/color.ktx2",
+        "public/assets/levels/helion/ceramic/normal.ktx2",
+        "public/assets/levels/helion/ceramic/arm.ktx2"
+      ],
+      "provenanceRecord": "assets/levels/helion/ceramic/provenance.json"
     }
   ],
   "thirdParty": [

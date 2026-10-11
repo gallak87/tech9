@@ -1,0 +1,52 @@
+{
+  "title": "Helion dense mineral heat ceramic",
+  "source": "https://ambientcg.com/view?id=Concrete034",
+  "sourceDownload": "https://ambientcg.com/get?file=Concrete034_2K-PNG.zip",
+  "creator": "Lennart Demes / ambientCG",
+  "license": "CC0-1.0",
+  "licenseURL": "https://docs.ambientcg.com/license/",
+  "sourceTechnique": "Approximation, as described by ambientCG; not a photogrammetric scan",
+  "sourceRepeatMetres": [1.1, 0.55],
+  "runtimeRepeatMetres": [4.4, 2.2],
+  "adaptation": "Source albedo lifted 25% toward white. OpenGL normal retained. Roughness remapped to .28–.70. Fine mineral relief becomes the substrate for ivory heat ceramics and graphite-covered cassettes; material parameters distinguish new, heat-cycled and sheltered panels. Geometry supplies all joints. The source aspect ratio is preserved in metric road coordinates.",
+  "channels": {
+    "color": "sRGB",
+    "normal": "linear OpenGL +Y",
+    "arm": "linear R=1 AO, G=roughness, B=0 metalness"
+  },
+  "sources": [
+    {
+      "file": "source/Concrete034_2K-PNG_Color.png",
+      "sha256": "cfad2c674b48894c7544ee43484a9568daeced29434064f78393a0a943ea38ea"
+    },
+    {
+      "file": "source/Concrete034_2K-PNG_NormalGL.png",
+      "sha256": "dcac6ceeb207a34af8c5892097f6c3199a597100f6bfc94d8c3752db8019853e"
+    },
+    {
+      "file": "source/Concrete034_2K-PNG_Roughness.png",
+      "sha256": "31ccb3bf4eabbffeb0d953b78f2f7812943c586dbc4344051c18ad0e21761e0a"
+    }
+  ],
+  "runtime": [
+    {
+      "file": "color.ktx2",
+      "dimensions": [2048, 1024],
+      "bytes": 1461658,
+      "sha256": "5686d50b9b9acf15f212bb8efe240ac76d807501c5b09aeefb3abc3f0d8bc61f"
+    },
+    {
+      "file": "normal.ktx2",
+      "dimensions": [2048, 1024],
+      "bytes": 2273750,
+      "sha256": "888eb7f8e68177960e33cd82cad6079b59b63dc08a298d23262bf6a8f9b2c20c"
+    },
+    {
+      "file": "arm.ktx2",
+      "dimensions": [1024, 512],
+      "bytes": 223754,
+      "sha256": "0ad0a398bc27eec686dbca4768b8f0bf21c08a7ec72b2a8e3983c9135b87181a"
+    }
+  ],
+  "encoder": "toktx v4.4.2"
+}

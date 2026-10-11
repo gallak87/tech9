@@ -58,6 +58,8 @@ Pale receiving-deck checkers and unequal amber poles introduce the curved gaps b
 
 Rich plum-black/burgundy space surrounds an enormous structured amber-red star. Thick ivory heat tiles, feathered copper radiator edges, dark graphite shields and connected service decks establish a working thermal observatory. Retain recessed shield cassettes, jointed radiator roots, layered canopy hardware and deliberate cool fill beneath cover. The selected original scene and editable Blender kit remain the visual references.
 
+Road ceramics use a fine mineral substrate beneath a restrained satin glaze. Replacement tiles are cleaner and smoother; heat-cycled tiles are rougher; graphite-covered cassettes remain dark. Keep the physical texture scale consistent across panels and banks, and keep reflected highlights distinct from active thermal contact.
+
 Bright exposure, shaded braking shelves, the sunshield wall and optional sheltered jumps need distinct movement and light. Two differently timed, enormous modeled prominences frame separate approaches and light nearby surfaces without losing road or craft detail. Rising lane plasma and bounded hot fragments occupy the actual declared contact area, leaving the refuge readable. A broad amber corona and bright stellar limb make the structured star visibly luminous. Fire contact adds restrained aft hull flames, substantial soft charcoal smoke and a red wash across the entire viewport. Hull effects and screen intensity pulse together, then fade over five seconds after exit, including in shade and on cooling strips. Keep the heat/thrust readout compact and unboxed. Reduced motion holds the pulse steady while preserving the fade and a sharp craft/HUD.
 
 ## Zephyr Basilica

@@ -1,4 +1,8 @@
 import * as THREE from 'three';
+import {
+  createHelionCeramicMaps,
+  setCeramicCoordinates,
+} from './ceramic-maps.js';
 import { finishThermalMaterial } from '../environment/materials.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
@@ -11,19 +15,34 @@ export { createHelionTrack } from './model.js';
 
 // Authored construction geometry is shared by production and neutral review.
 // Environment owns the large modeled shields, canopies and thermal markings.
-export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
+export function buildHelionRoad(
+  track,
+  { shape = false, settings = {}, renderer = null } = {},
+) {
   const group = new THREE.Group();
   group.name = 'Helion / heat-tile decks and copper radiator edges';
   const geometries = new Set();
   const materials = new Set();
-  const makeMaterial = (name, color, roughness, metalness = 0) => {
-    const material = new THREE.MeshStandardMaterial({
+  const ceramicMaterials = new Set();
+  const makeMaterial = (
+    name,
+    color,
+    roughness,
+    metalness = 0,
+    ceramic = false,
+  ) => {
+    const Material =
+      ceramic && !shape
+        ? THREE.MeshPhysicalMaterial
+        : THREE.MeshStandardMaterial;
+    const material = new Material({
       color: shape ? 0x929c9f : color,
       roughness,
       metalness: shape ? 0 : metalness,
     });
     material.name = name;
-    if (!shape)
+    if (ceramic) ceramicMaterials.add(material);
+    if (!shape && !ceramic)
       finishThermalMaterial(
         material,
         /copper/i.test(name)
@@ -35,25 +54,51 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
     materials.add(material);
     return material;
   };
-  const tile = makeMaterial('Warm ivory thermal ceramic', 0xd2d0bc, 0.58, 0.12);
+  const tile = makeMaterial(
+    'Warm ivory thermal ceramic',
+    0xd2d0bc,
+    1,
+    0.02,
+    true,
+  );
   const freshTile = makeMaterial(
     'Replacement ivory ceramic cassette',
     0xe0d5bc,
-    0.46,
-    0.12,
+    0.78,
+    0.02,
+    true,
   );
   const spentTile = makeMaterial(
     'Heat-cycled ceramic cassette',
     0x9fa292,
-    0.74,
-    0.12,
+    1.25,
+    0.02,
+    true,
   );
   const coveredTile = makeMaterial(
     'Graphite sheltered cassette',
     0x43525b,
-    0.53,
-    0.3,
+    0.9,
+    0.22,
+    true,
   );
+  if (!shape) {
+    for (const material of ceramicMaterials) {
+      material.clearcoat = 0.28;
+      material.clearcoatRoughness = 0.36;
+      material.normalScale.set(0.6, 0.6);
+      material.clearcoatNormalScale.set(0.28, 0.28);
+    }
+    freshTile.clearcoat = 0.42;
+    freshTile.clearcoatRoughness = 0.3;
+    spentTile.clearcoat = 0.12;
+    spentTile.normalScale.set(0.7, 0.7);
+    coveredTile.clearcoat = 0.2;
+    coveredTile.normalScale.set(0.18, 0.18);
+  }
+  const ceramicMaps = !shape
+    ? createHelionCeramicMaps(renderer, ceramicMaterials)
+    : null;
   const bevel = makeMaterial('Warm grey tile bevels', 0x858575, 0.9, 0.04);
   const graphite = makeMaterial(
     'Graphite structural composite',
@@ -78,6 +123,8 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
   const shaded = makeMaterial('Charcoal service panels', 0x454b4d, 0.84, 0.17);
   const add = (name, geometry, material) => {
     geometries.add(geometry);
+    if (!shape && ceramicMaterials.has(material))
+      setCeramicCoordinates(geometry);
     const mesh = new THREE.Mesh(geometry, material);
     mesh.name = name;
     mesh.receiveShadow = true;
@@ -786,6 +833,7 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
   const dispose = () => {
     if (disposed) return;
     disposed = true;
+    ceramicMaps?.dispose();
     group.traverse((object) => {
       if (object.isInstancedMesh) object.dispose();
     });
@@ -800,6 +848,7 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
   group.userData.surfaceRanges = solidRanges;
   return {
     group,
+    ready: ceramicMaps?.ready,
     dispose,
     setReflection(texture) {
       for (const material of materials) {

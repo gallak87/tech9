@@ -54,5 +54,12 @@
     "Static architecture retains CPU vertex contact shade and is merged by material and broad district to bound draw calls.",
     "Two distant prominence lights and two local spill lights are unshadowed; three pooled point lights illuminate physical thermal fixtures. Exposure/shade modulates the level sun smoothly.",
     "Emitted volume radiance is integrated before tone mapping and added once in both direct and HDR rendering; low reduces depth samples while retaining event geometry, timing and illumination."
-  ]
+  ],
+  "roadFinish": {
+    "source": "ceramic/source/",
+    "build": "ceramic/build.py",
+    "provenance": "ceramic/provenance.json",
+    "license": "CC0-1.0",
+    "runtime": "public/assets/levels/helion/ceramic/"
+  }
 }

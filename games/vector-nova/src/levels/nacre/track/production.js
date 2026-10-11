@@ -7,6 +7,7 @@ import {
 } from '../../../track/geometry.js';
 import { nacreSeabedHeight } from '../environment/seabed.js';
 import { applyNacreSurfaceFinish } from './surface-finish.js';
+import { createCeramicMaps } from './ceramic-maps.js';
 
 const point = (frame, x, y, z = 0) =>
   frame.position
@@ -338,7 +339,7 @@ function sculptedGill(height, breadth) {
   return geometry;
 }
 
-export function buildNacreTrack(track) {
+export function buildNacreTrack(track, renderer) {
   const group = new THREE.Group();
   group.name = 'Nacre Tempest / pressure ceramic causeway';
   const geometries = new Set(),
@@ -456,6 +457,7 @@ export function buildNacreTrack(track) {
     },
     true,
   );
+  const ceramicMaps = createCeramicMaps(renderer, ceramic);
   applyNacreSurfaceFinish(ceramic, 'ceramic');
   applyNacreSurfaceFinish(pressureGlass, 'glaze');
   applyNacreSurfaceFinish(membraneMaterial, 'membrane');
@@ -935,8 +937,13 @@ export function buildNacreTrack(track) {
     group.userData.sourceBudgets.parts += object.count ?? 1;
   });
   group.userData.provenance =
-    'Original source-authored ceramic geometry, coated Physical pearl, metric fitted rims, filtered ceramic grain and growth tint, gill fins, pressure windows, support engineering and one deterministic 128px gill normal map; convex sculpted shell gills, stepped pressure-joint reveals and broad smoked-glass running bays. Road finish uses source-authored shaders and the borrowed district reflection; no new image assets.';
+    'Original source-authored ceramic geometry, coated Physical pearl, metric fitted rims, CC0 ambientCG mineral-composite PBR maps and growth tint, gill fins, pressure windows, support engineering and one deterministic 128px gill normal map; convex sculpted shell gills, stepped pressure-joint reveals and broad smoked-glass running bays. Road finish combines source-authored shaders, licensed Terrazzo019S maps and the borrowed district reflection; provenance is retained in assets/levels/nacre/ceramic.';
+  group.userData.ready = ceramicMaps.ready.then(() => {
+    group.userData.sourceBudgets.textures += ceramicMaps.count;
+    group.userData.sourceBudgets.textureBytes += ceramicMaps.bytes;
+  });
   group.userData.dispose = () => {
+    ceramicMaps.dispose();
     geometries.forEach((geometry) => geometry.dispose());
     materials.forEach((mat) => mat.dispose());
     textures.forEach((texture) => texture.dispose());

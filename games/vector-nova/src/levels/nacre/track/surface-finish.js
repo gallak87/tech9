@@ -1,7 +1,7 @@
 // Metric finish on the existing ceramic/glazing panels. No displacement: the
 // approved collision triangles and gap lips remain exactly where they are.
-// A smooth top coat covers fine, distance-filtered ceramic grain; fitted
-// perimeter relief follows the existing panel dimensions in metres.
+// A smooth top coat covers the ceramic PBR maps; fitted perimeter relief
+// follows the existing panel dimensions in metres. Glazing stays distinct.
 export function applyNacreSurfaceFinish(material, kind) {
   const compile = material.onBeforeCompile;
   const key = material.customProgramCacheKey();
@@ -14,16 +14,6 @@ export function applyNacreSurfaceFinish(material, kind) {
       );
     shader.fragmentShader = `
       varying vec4 vNacrePanel;
-      float nacreFinishHash(vec2 p) {
-        vec3 q = fract(vec3(p.xyx) * .1031);
-        q += dot(q, q.yzx + 33.33);
-        return fract((q.x + q.y) * q.z);
-      }
-      float nacreFinishNoise(vec2 p) {
-        vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
-        return mix(mix(nacreFinishHash(i), nacreFinishHash(i+vec2(1,0)), f.x),
-                   mix(nacreFinishHash(i+vec2(0,1)), nacreFinishHash(i+vec2(1,1)), f.x), f.y);
-      }
       vec3 nacreFinishNormal(vec3 surfaceNormal, vec3 surfacePosition, float height, float faceSign) {
         vec3 dx = dFdx(surfacePosition), dy = dFdy(surfacePosition);
         vec3 rx = cross(dy, surfaceNormal), ry = cross(surfaceNormal, dx);
@@ -40,25 +30,21 @@ export function applyNacreSurfaceFinish(material, kind) {
       float edgePixel = max(fwidth(panelEdge), .001);
       float panelRim = 1. - smoothstep(.018, .095 + edgePixel, panelEdge);
       float registerLine = 1. - smoothstep(.004, .004 + edgePixel, abs(panelEdge - .19));
-      // Local rim relief and submillimetre grain avoid broad correlated lobes.
+      // Local rim relief stays separate from the ceramic PBR normal map.
       // Evaluate continuously per fragment, never at triangle vertices.
       float rimHeight = .012 * smoothstep(0., .07 + edgePixel, panelEdge);
-      vec2 finishMetres = vNacrePanel.xy;
-      float grainFilter = 1. - smoothstep(.4, 1.5, length(fwidth(finishMetres * 145.)));
-      float ceramicGrain = (nacreFinishNoise(finishMetres * 145.) - .5) * grainFilter;
-      diffuseColor.rgb *= (1. - .24 * panelRim - .14 * registerLine)
-        * (1. + ceramicGrain * ${kind === 'ceramic' ? '.035' : '.012'});`,
+      diffuseColor.rgb *= (1. - .24 * panelRim - .14 * registerLine);`,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>
-      roughnessFactor = mix(roughnessFactor + ceramicGrain * .045, .27, panelRim);`,
+      roughnessFactor = mix(roughnessFactor, .27, panelRim);`,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <normal_fragment_maps>',
       `#include <normal_fragment_maps>
       normal = nacreFinishNormal(normal, -vViewPosition,
-        rimHeight ${kind === 'ceramic' ? '+ .00045 * ceramicGrain' : ''}, faceDirection);
+        rimHeight, faceDirection);
       ${
         kind === 'ceramic'
           ? ''

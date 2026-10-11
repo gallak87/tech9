@@ -1047,13 +1047,13 @@ test('nacre growth shading is continuous fragment response rather than diagonal 
   group.userData.dispose();
 });
 
-test('running pearl avoids coarse physical map modulation beneath its continuous top coat', () => {
+test('CPU pearl construction defers texture maps and retains a continuous top coat', () => {
   const group = buildNacreTrack(track);
   const ceramic = group.children.find(
     (entry) => entry.name === 'Pearlescent scalloped ceramic running scales',
   ).material;
-  // In rendered A/B captures, either coarse map alone retained angular bands;
-  // removing both cleared them while keeping genuine Physical highlights.
+  // Collision/CPU construction has no renderer or asynchronous texture fetches.
+  // The production loader supplies fine mineral maps beneath a smooth coat.
   assert.equal(ceramic.normalMap, null);
   assert.equal(ceramic.roughnessMap, null);
   assert.equal(ceramic.clearcoatMap, null);

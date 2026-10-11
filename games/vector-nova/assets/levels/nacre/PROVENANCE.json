@@ -2,7 +2,14 @@
   "level": "Nacre Tempest",
   "version": "nacre-world-human-leviathan-crossing",
   "source": "Original source-native geometry and shader code authored for VECTOR//NOVA; one original generated storm radiance image supplied as an optional production sky texture",
-  "externalAssets": [],
+  "externalAssets": [
+    {
+      "asset": "Terrazzo019S",
+      "source": "https://ambientcg.com/view?id=Terrazzo019S",
+      "license": "CC0-1.0",
+      "provenance": "assets/levels/nacre/ceramic/provenance.json"
+    }
+  ],
   "generatedImageAssets": [
     {
       "id": "nacre-storm-sky-v1",
@@ -112,11 +119,12 @@
     {
       "id": "pressure-causeway-finish",
       "source": "src/levels/nacre/track/production.js, src/levels/nacre/track/surface-finish.js",
-      "method": "Original panel-local metric rim relief and inset seals, derivative-filtered submillimetre ceramic grain under a continuous physical clearcoat, and clearer pressure-insert centres with denser grazing edges. Ceramic and exposed glazing borrow the existing static district probe; membranes retain backdrop response. Positions, contact coordinates, gap lips and landing geometry are unchanged.",
-      "newTextures": 0,
+      "method": "Original panel-local rim relief and inset seals with licensed ambientCG Terrazzo019S mineral-composite PBR maps beneath a continuous physical clearcoat. Clearer pressure-insert centres retain denser grazing edges. Ceramic and exposed glazing borrow the district probe; membranes retain backdrop response. Positions, contact coordinates, gap lips and landing geometry are unchanged.",
+      "newTextures": 3,
       "newRenderPasses": 0,
       "newDraws": 0,
-      "ownership": "Road owns panel attributes and materials; the existing district reflection is borrowed and never disposed by the road."
+      "ownership": "Road owns panel attributes, materials and the three asynchronously loaded ceramic maps. The district reflection is borrowed and never disposed by the road.",
+      "textureProvenance": "assets/levels/nacre/ceramic/provenance.json"
     }
   ],
   "limitations": [

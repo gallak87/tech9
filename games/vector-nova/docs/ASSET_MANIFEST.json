@@ -295,8 +295,8 @@
       "id": "nacre-tempest",
       "source": "src/levels/nacre/ and assets/levels/nacre/blender/",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",
-      "provenance": "Original route, marine geometry, analytic ocean/materials, generated storm panorama and Blender-authored leviathan. Editable sources and exact sky prompt retained. Road finish is original source-authored metric rim/seal shading, filtered ceramic grain and coated pearl, borrowing the district probe without new image maps.",
-      "rights": "Project-authored/generated; no third-party artwork or meshes",
+      "provenance": "Original route, marine geometry, analytic ocean/materials, generated storm panorama and Blender-authored leviathan. Editable sources and exact sky prompt retained. Road finish combines original metric rim/seal shading and coated pearl with the separately registered nacre-ceramic material, borrowing the existing district probe.",
+      "rights": "Project-authored/generated world; ceramic surface maps separately registered as nacre-ceramic",
       "runtimeDependencies": ["three"],
       "runtimeAssets": [
         "public/assets/levels/nacre/nacre-storm-sky-v1.png",
@@ -304,6 +304,20 @@
       ],
       "provenanceRecord": "assets/levels/nacre/PROVENANCE.json",
       "skyProvenance": "assets/levels/nacre/SKY_PROVENANCE.json"
+    },
+    {
+      "id": "nacre-ceramic",
+      "source": "assets/levels/nacre/ceramic/",
+      "creator": "Lennart Demes / ambientCG; pearl grading and runtime integration by VECTOR//NOVA contributors",
+      "rights": "CC0-1.0; see https://docs.ambientcg.com/license/",
+      "provenance": "Terrazzo019S color, OpenGL normal and roughness from ambientCG. Original 2K PNGs, exact source URL, hashes and deterministic KTX2 builder retained. Desaturated/lightened albedo keeps panel tints; bounded relief sits below a smooth coating. Mipmapped metric repeat, no geometry displacement.",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/levels/nacre/ceramic/color.ktx2",
+        "public/assets/levels/nacre/ceramic/normal.ktx2",
+        "public/assets/levels/nacre/ceramic/arm.ktx2"
+      ],
+      "provenanceRecord": "assets/levels/nacre/ceramic/provenance.json"
     },
     {
       "id": "vesper-canopy",

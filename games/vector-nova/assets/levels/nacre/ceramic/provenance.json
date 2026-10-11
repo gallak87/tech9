@@ -1,0 +1,52 @@
+{
+  "title": "Nacre pearl mineral-composite ceramic",
+  "source": "https://ambientcg.com/view?id=Terrazzo019S",
+  "sourceDownload": "https://ambientcg.com/get?file=Terrazzo019S_2K-PNG.zip",
+  "creator": "Lennart Demes / ambientCG",
+  "license": "CC0-1.0",
+  "licenseURL": "https://docs.ambientcg.com/license/",
+  "sourceTechnique": "Approximation (as described by ambientCG); not claimed as a photogrammetric scan",
+  "sourceRepeatMetres": 0.4,
+  "runtimeRepeatMetres": 1.2,
+  "adaptation": "Source albedo desaturated 75% and lifted 40% toward white to retain the existing pearl panel tints. Unchanged OpenGL normal. Linear roughness remapped to .24–.70 and packed with neutral AO and zero metalness. Larger mineral scale supports racing-distance readability. Geometry and glazing unchanged.",
+  "channels": {
+    "color": "sRGB",
+    "normal": "linear OpenGL +Y",
+    "arm": "linear R=1 AO, G=roughness, B=0 metalness"
+  },
+  "sources": [
+    {
+      "file": "source/Terrazzo019S_2K-PNG_Color.png",
+      "sha256": "5df0ef5ef31332b95d88caa78cfab3b73359ba41028bcfe21de8fe29a56f0364"
+    },
+    {
+      "file": "source/Terrazzo019S_2K-PNG_NormalGL.png",
+      "sha256": "1a14e7aa9a4b0c690e20cf0867e3013f448ee5a231e0aa13356508e4695fef87"
+    },
+    {
+      "file": "source/Terrazzo019S_2K-PNG_Roughness.png",
+      "sha256": "858b59f1425ed7ba0d04e2c05d2eb665d4e41c8b82153ddc8ec4a02430955758"
+    }
+  ],
+  "runtime": [
+    {
+      "file": "color.ktx2",
+      "dimensions": [2048, 2048],
+      "bytes": 3957002,
+      "sha256": "8fa99daa2c3ed4994cce814a5ac2052186e3b98716b6d712d49c7ccc0a670348"
+    },
+    {
+      "file": "normal.ktx2",
+      "dimensions": [2048, 2048],
+      "bytes": 3042497,
+      "sha256": "6586bac62f168f436e44357064730587a94bb376baa507878539e66e55324127"
+    },
+    {
+      "file": "arm.ktx2",
+      "dimensions": [1024, 1024],
+      "bytes": 600872,
+      "sha256": "0208a0e5d61ceb220df7a81caf4e94e1bc349e03ef0ebdbc4c8d0c2a6b59957a"
+    }
+  ],
+  "encoder": "toktx v4.4.2"
+}

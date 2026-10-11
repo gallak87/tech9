@@ -4,7 +4,7 @@ Use the [road workflow](README.md). Target `nacre`; preserve the ocean and fligh
 
 ## Starting point
 
-The [production road](../../../src/levels/nacre/track/production.js) builds real beveled ceramic plates, glazed areas and submerged pressure membranes. The local [finish shader](../../../src/levels/nacre/track/surface-finish.js) adds metric fitted rims, distance-filtered fine grain beneath physical clearcoat/iridescence, filtered growth tint and denser pressure-insert edges. Ceramic/glazing borrow the static district probe; the small procedural normal map belongs to the gills. Source comments record a prior failure: correlated broad normal/roughness patterns produced repeated angular sheen at chase distance.
+The [production road](../../../src/levels/nacre/track/production.js) builds real beveled ceramic plates, glazed areas and submerged pressure membranes. The local [finish shader](../../../src/levels/nacre/track/surface-finish.js) adds metric fitted rims, licensed mineral-composite PBR maps beneath physical clearcoat/iridescence, filtered growth tint and denser pressure-insert edges. The [ceramic source and build](../../../assets/levels/nacre/ceramic/provenance.json) retain ambientCG Terrazzo019S under CC0, graded toward pearl and tiled in metres. Ceramic/glazing borrow the static district probe; the small procedural normal map belongs to the gills. Source comments record a prior failure: correlated broad normal/roughness patterns produced repeated angular sheen at chase distance.
 
 ## Investigate
 

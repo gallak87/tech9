@@ -55,8 +55,12 @@ export default function createLevel({ shape }) {
         };
       return track;
     },
-    createRoad: ({ track }) =>
-      legacyPart(shape ? buildLevel3Blockout(track) : buildNacreTrack(track)),
+    createRoad: ({ track, view }) =>
+      legacyPart(
+        shape
+          ? buildLevel3Blockout(track)
+          : buildNacreTrack(track, view?.renderer),
+      ),
     createEnvironment({ track, view }) {
       const group = createNacreEnvironment(track, {
         blockout: shape,

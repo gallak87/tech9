@@ -730,6 +730,20 @@ test('production track preserves the two authored holes and its ceramic/fin iden
         if (value?.isTexture) resources.texture.add(value);
     }
   });
+  // The level owns its district probe; replacing or disposing the road must
+  // never release a probe still shared by scenery and other materials.
+  const borrowed = [new THREE.Texture(), new THREE.Texture()];
+  let borrowedDisposals = 0;
+  for (const probe of borrowed) {
+    probe.addEventListener('dispose', () => {
+      borrowedDisposals += 1;
+    });
+    group.userData.setReflection(probe);
+    assert.equal(
+      [...resources.material].filter((mat) => mat.envMap === probe).length,
+      2,
+    );
+  }
   const disposed = { geometry: 0, material: 0, texture: 0 };
   for (const kind of Object.keys(resources))
     for (const resource of resources[kind])
@@ -746,6 +760,12 @@ test('production track preserves the two authored holes and its ceramic/fin iden
       resources[kind].size,
       'disposal is idempotent',
     );
+  assert.equal(
+    borrowedDisposals,
+    0,
+    'borrowed probes survive replacement and road disposal',
+  );
+  borrowed.forEach((probe) => probe.dispose());
 });
 
 // Verification-only feedback control. These normalized controls go through the
@@ -1027,7 +1047,7 @@ test('nacre growth shading is continuous fragment response rather than diagonal 
   group.userData.dispose();
 });
 
-test('running pearl avoids coarse physical map modulation and preserves a satin pearl response', () => {
+test('running pearl avoids coarse physical map modulation beneath its continuous top coat', () => {
   const group = buildNacreTrack(track);
   const ceramic = group.children.find(
     (entry) => entry.name === 'Pearlescent scalloped ceramic running scales',
@@ -1039,7 +1059,10 @@ test('running pearl avoids coarse physical map modulation and preserves a satin 
   assert.equal(ceramic.clearcoatMap, null);
   assert.equal(ceramic.clearcoatRoughnessMap, null);
   assert.ok(ceramic.roughness >= 0.45 && ceramic.roughness <= 0.7);
-  assert.ok(ceramic.clearcoatRoughness >= 0.35);
+  // The smoother coat stays spatially uniform; only its fitted rim bends.
+  assert.ok(
+    ceramic.clearcoatRoughness >= 0.15 && ceramic.clearcoatRoughness <= 0.5,
+  );
   assert.ok(ceramic.isMeshPhysicalMaterial);
   assert.ok(ceramic.clearcoat > 0 && ceramic.iridescence > 0);
   assert.ok(ceramic.specularIntensity > 0);

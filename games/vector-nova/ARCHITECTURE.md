@@ -142,6 +142,8 @@ Load only selected-level assets. The [common level checks](tools/level-checks/RE
 
 ## Nacre flight, water and moving scenery
 
+The road retains its original ceramic, glazing and membrane triangles and road-contact coordinates. `track/surface-finish.js` uses panel-local metre coordinates for fitted rim relief and inset seals; submillimetre ceramic grain filters out at distance beneath a smooth clearcoat. Transparent centres and denser grazing/edge response preserve the pressure inserts. Ceramic and exposed glazing borrow the existing static district probe; submerged membranes retain the backdrop response. No new textures or reflection passes are allocated. The extra panel attribute adds about 2.5 MiB of geometry storage. Broad correlated normal/roughness maps remain excluded because they exposed repeated angular highlights.
+
 The Nacre runtime owns ballistic flight, bounded air control and swept receiving-road/rail contact. Landing coverage is derived from the accepted 70%-through-boost launch envelope, including long receiving straights. Sweep the hull between ticks to prevent tunnelling; accept only the authored road and orientation. A forgiving half-width rail catch deflects the craft inward with one small penalty. Automatic recovery credits only its validated jump interval; ordinary manual recovery stays invalidating.
 
 Keep craft, road and camera origins consistent at takeoff and landing. Transport the previous camera relative to the craft anchor, not between mismatched road-centre/world-pose origins; otherwise off-centre launches visibly jump sideways. Preserve the actual contact pose, then settle height/attitude smoothly. Both live input and replay consume the same advance routine and rules identity.

@@ -39,8 +39,9 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": null,
-      "legacyFingerprint": "5e110275f3057649-a3fec8b784fa6586"
+      "sourceRevision": "87847dd3bbdcaa2742032144a48d0741a534b03c",
+      "sourceDirty": true,
+      "routeSignature": "32fbf71d94ca4d04"
     },
     "orbital": {
       "file": "orbital.webp",

@@ -108,6 +108,15 @@
       "sprayPointsHigh": 960,
       "sprayPointsLow": 480,
       "appearancesPerLap": 2
+    },
+    {
+      "id": "pressure-causeway-finish",
+      "source": "src/levels/nacre/track/production.js, src/levels/nacre/track/surface-finish.js",
+      "method": "Original panel-local metric rim relief and inset seals, derivative-filtered submillimetre ceramic grain under a continuous physical clearcoat, and clearer pressure-insert centres with denser grazing edges. Ceramic and exposed glazing borrow the existing static district probe; membranes retain backdrop response. Positions, contact coordinates, gap lips and landing geometry are unchanged.",
+      "newTextures": 0,
+      "newRenderPasses": 0,
+      "newDraws": 0,
+      "ownership": "Road owns panel attributes and materials; the existing district reflection is borrowed and never disposed by the road."
     }
   ],
   "limitations": [

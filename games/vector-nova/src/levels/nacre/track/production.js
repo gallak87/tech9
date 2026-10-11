@@ -6,6 +6,7 @@ import {
   beamTransform,
 } from '../../../track/geometry.js';
 import { nacreSeabedHeight } from '../environment/seabed.js';
+import { applyNacreSurfaceFinish } from './surface-finish.js';
 
 const point = (frame, x, y, z = 0) =>
   frame.position
@@ -57,7 +58,14 @@ function ceramicPanels(track, runs) {
   const channels = Object.fromEntries(
     ['ceramic', 'membrane', 'glaze', 'reveal'].map((name) => [
       name,
-      { positions: [], normals: [], colors: [], uv: [], roadCoord: [] },
+      {
+        positions: [],
+        normals: [],
+        colors: [],
+        uv: [],
+        roadCoord: [],
+        panel: [],
+      },
     ]),
   );
   const addTriangle = (channel, vertices, color) => {
@@ -68,6 +76,7 @@ function ceramicPanels(track, runs) {
       output.colors.push(color.r, color.g, color.b);
       output.uv.push(vertex.x / 9, vertex.distance / 18);
       output.roadCoord.push(vertex.distance, vertex.x);
+      output.panel.push(...vertex.panel);
     }
   };
   // Large dry shell plates become broad pressure membranes beneath the water.
@@ -163,6 +172,7 @@ function ceramicPanels(track, runs) {
               up: frame.up,
               x,
               distance: clipped,
+              panel: [(u / across) * (x1 - x0), fv * (b - a), x1 - x0, b - a],
             });
           }
         for (let v = 0; v < along; v += 1)
@@ -232,11 +242,16 @@ function ceramicPanels(track, runs) {
         new THREE.Float32BufferAttribute(data.colors, 3),
       );
       geometry.setAttribute('uv', new THREE.Float32BufferAttribute(data.uv, 2));
-      if (name !== 'reveal')
+      if (name !== 'reveal') {
+        geometry.setAttribute(
+          'nacrePanel',
+          new THREE.Float32BufferAttribute(data.panel, 4),
+        );
         geometry.setAttribute(
           'roadCoord',
           new THREE.Float32BufferAttribute(data.roadCoord, 2),
         );
+      }
       geometry.computeBoundingSphere();
       return [name, geometry];
     }),
@@ -342,13 +357,13 @@ export function buildNacreTrack(track) {
     {
       color: 0xffffff,
       vertexColors: true,
-      metalness: 0.12,
-      specularIntensity: 0.6,
-      roughness: 0.57,
-      clearcoat: 0.62,
+      metalness: 0.06,
+      specularIntensity: 1,
+      roughness: 0.48,
+      clearcoat: 1,
       envMapIntensity: 1.3,
       // A continuous top coat avoids a second correlated near-mirror lobe.
-      clearcoatRoughness: 0.46,
+      clearcoatRoughness: 0.22,
       iridescence: 0.36,
       iridescenceIOR: 1.3,
       iridescenceThicknessRange: [240, 360],
@@ -385,8 +400,8 @@ export function buildNacreTrack(track) {
   const membraneMaterial = material({
     color: 0xffffff,
     vertexColors: true,
-    metalness: 0.38,
-    roughness: 0.12,
+    metalness: 0.1,
+    roughness: 0.22,
     transparent: true,
     opacity: 0.55,
     depthWrite: false,
@@ -427,20 +442,32 @@ export function buildNacreTrack(track) {
     {
       color: 0xffffff,
       vertexColors: true,
-      metalness: 0.32,
-      roughness: 0.085,
+      metalness: 0.08,
+      roughness: 0.16,
       transparent: true,
-      opacity: 0.66,
+      opacity: 0.58,
       depthWrite: false,
       side: THREE.DoubleSide,
       envMapIntensity: 1.5,
       clearcoat: 1,
-      clearcoatRoughness: 0.06,
+      clearcoatRoughness: 0.1,
       iridescence: 0.24,
       iridescenceIOR: 1.42,
     },
     true,
   );
+  applyNacreSurfaceFinish(ceramic, 'ceramic');
+  applyNacreSurfaceFinish(pressureGlass, 'glaze');
+  applyNacreSurfaceFinish(membraneMaterial, 'membrane');
+  // Borrow the existing above-water district capture for exposed coated panels.
+  // Submerged membranes keep the backdrop response; no reflected dry dock there.
+  group.userData.setReflection = (texture) => {
+    for (const surface of [ceramic, pressureGlass]) {
+      surface.envMap = texture;
+      surface.envMapIntensity = surface === ceramic ? 1.5 : 1.1;
+      surface.needsUpdate = true;
+    }
+  };
   const gillShell = material(
     {
       color: 0xffffff,
@@ -908,7 +935,7 @@ export function buildNacreTrack(track) {
     group.userData.sourceBudgets.parts += object.count ?? 1;
   });
   group.userData.provenance =
-    'Original source-authored ceramic geometry, smooth Physical pearl and filtered albedo tint, gill fins, pressure windows, support engineering and one deterministic 128px gill normal map; convex sculpted shell gills, stepped pressure-joint reveals and broad smoked-glass running bays. No external images or assets.';
+    'Original source-authored ceramic geometry, coated Physical pearl, metric fitted rims, filtered ceramic grain and growth tint, gill fins, pressure windows, support engineering and one deterministic 128px gill normal map; convex sculpted shell gills, stepped pressure-joint reveals and broad smoked-glass running bays. Road finish uses source-authored shaders and the borrowed district reflection; no new image assets.';
   group.userData.dispose = () => {
     geometries.forEach((geometry) => geometry.dispose());
     materials.forEach((mat) => mat.dispose());

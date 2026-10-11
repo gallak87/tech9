@@ -4,7 +4,6 @@ evidence/*.webm
 evidence/frames/
 .experiments/
 evidence/
-src/ships/evidence/
 .husky/_/
 
 # Local music runtime, build and downloaded model weights.

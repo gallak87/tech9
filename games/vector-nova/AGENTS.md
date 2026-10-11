@@ -8,6 +8,7 @@ Start with this file and the assigned task's brief.
 
 - Runtime/geometry changes: relevant sections of [ARCHITECTURE.md](ARCHITECTURE.md) and the [level API](docs/LEVEL_API.md).
 - Visual work: [art direction](docs/ART_BIBLE.md).
+- Ship model/material improvement: read the [ship visual improvement workflow](assets/ships/README.md#visual-improvement-workflow) before editing or starting a critique loop. Establish a visible improvement on one representative assembly before full baking or fleet rollout; reassess a plateau instead of repeating small tweaks.
 - Planning: [ROADMAP.md](ROADMAP.md).
 
 ## Working rules

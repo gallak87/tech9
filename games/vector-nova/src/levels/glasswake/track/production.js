@@ -63,28 +63,28 @@ export function buildGlasswakeRoad(
   };
   const crystalHigh = material(
     {
-      color: 0x8fc3df,
-      roughness: 0.34,
+      color: 0xa5c8dc,
+      roughness: 0.24,
       metalness: 0.04,
-      specularIntensity: 0.4,
+      specularIntensity: 0.65,
       transparent: true,
-      opacity: 0.52,
+      opacity: 0.43,
       depthWrite: false,
       side: THREE.DoubleSide,
-      transmission: 0.1,
+      transmission: 0.2,
       thickness: 1.2,
-      ior: 1.34,
+      ior: 1.31,
       emissive: 0x16354b,
       emissiveIntensity: 0.3,
     },
     true,
   );
   const crystalLow = material({
-    color: 0x85b9d8,
-    roughness: 0.29,
+    color: 0x9dc2d8,
+    roughness: 0.24,
     metalness: 0.12,
     transparent: true,
-    opacity: 0.62,
+    opacity: 0.5,
     depthWrite: false,
     side: THREE.DoubleSide,
     emissive: 0x16354b,
@@ -696,7 +696,7 @@ export function buildGlasswakeRoad(
       if (disposed) return;
       for (const mat of [crystalHigh, crystalLow]) {
         mat.envMap = texture;
-        mat.envMapIntensity = 0.48;
+        mat.envMapIntensity = 0.62;
         mat.needsUpdate = true;
       }
     },

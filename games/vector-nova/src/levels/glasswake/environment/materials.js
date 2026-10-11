@@ -154,18 +154,35 @@ export function finishCrystalPane(material, texture) {
       float paneCloud=smoothstep(.17,.43,luma);
       float paneVein=smoothstep(.33,.57,luma);
       float paneAir=paneBubbles(panePoint.yz)*pw.x+paneBubbles(panePoint.xz)*pw.y+paneBubbles(panePoint.xy)*pw.z;
-      float veil=.04+paneCloud*.18+paneVein*.14+paneAir*.3;
+      float veil=.035+paneCloud*.12+paneVein*.11+paneAir*.24;
+      vec3 eye=normalize(cameraPosition-panePoint);
+      float grazing=pow(1.-clamp(abs(dot(normalize(paneAxis),eye)),0.,1.),3.);
+      // Subsurface clouds remain visible while the exposed face gains a
+      // shallow frozen relief. Grain is independent of the metre-scale veins.
+      vec3 fineIce=texture2D(paneIceMap,panePoint.yz*1.8).rgb*pw.x
+        +texture2D(paneIceMap,panePoint.xz*1.8).rgb*pw.y
+        +texture2D(paneIceMap,panePoint.xy*1.8).rgb*pw.z;
+      float iceGrain=dot(fineIce,vec3(.2126,.7152,.0722));
       diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.76,.9,.95),min(.6,veil));
-      diffuseColor.a=min(.82,diffuseColor.a+.015+paneCloud*.1+paneVein*.05+paneAir*.075);
+      diffuseColor.a=min(.82,diffuseColor.a+.015+paneCloud*.10+paneVein*.065+paneAir*.075+grazing*.20);
     `,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <roughnessmap_fragment>',
       `
       #include <roughnessmap_fragment>
-      roughnessFactor=clamp(roughnessFactor+paneCloud*.08+paneVein*.1+paneAir*.08,.2,.65);
+      roughnessFactor=clamp(roughnessFactor+paneCloud*.14+paneVein*.17+paneAir*.08+(iceGrain-.35)*.06,.19,.68);
     `,
     );
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <normal_fragment_maps>',
+      `#include <normal_fragment_maps>
+      float paneRelief = luma*.018 + paneVein*.008 + iceGrain*.002;
+      vec3 dx=dFdx(-vViewPosition),dy=dFdy(-vViewPosition);
+      vec3 rx=cross(dy,normal),ry=cross(normal,dx);
+      float det=dot(dx,rx)*faceDirection;
+      normal=normalize(abs(det)*normal-sign(det)*(dFdx(paneRelief)*rx+dFdy(paneRelief)*ry));`,
+    );
   };
-  material.customProgramCacheKey = () => 'glasswake-clear-pane-veil-v2';
+  material.customProgramCacheKey = () => 'glasswake-clear-pane-relief-v3';
 }

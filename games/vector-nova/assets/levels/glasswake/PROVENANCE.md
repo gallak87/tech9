@@ -15,7 +15,7 @@ The rebuild chain requires the original [generate-environment.py](generate-envir
 
 ## Runtime construction and presentation
 
-The kit supplies stratified cliffs, eroded vaults/curtains, fractured crevice walls, an ice-encased inclusion, crystal arches, landing shelves, dock hardware and layered calving pieces. Runtime consolidates opaque template primitives while preserving geometric faults, normals and vertex material attributes; emissive, ceramic and metal parts remain separate. Clear road panes retain visible ribs/canyon beneath local clouds, veins and trapped-air detail.
+The kit supplies stratified cliffs, eroded vaults/curtains, fractured crevice walls, an ice-encased inclusion, crystal arches, landing shelves, dock hardware and layered calving pieces. Runtime consolidates opaque template primitives while preserving geometric faults, normals and vertex material attributes; emissive, ceramic and metal parts remain separate. Clear road panes retain visible ribs/canyon beneath local clouds, veins and trapped-air detail. Their existing ice tile also supplies shallow metre-scaled relief and fine grain, with rougher inclusions and stronger grazing reflection; frost and scenery retain their separate finishes. No additional road texture is allocated.
 
 Support placement probes closed geological triangles during readiness, embeds shoes in verified contact and excludes moving skins and detached fragments. Local cavern illumination, aperture light and Thawlight Return tint derive from saved scene lighting and restore borrowed values on reset/disposal. Scenery and moving events retain route/flight/camera clearance checks.
 

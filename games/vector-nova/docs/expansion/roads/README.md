@@ -14,15 +14,15 @@ These are briefs for future assignment, not an instruction to start every level.
 | Vesper Canopy     | Deferred from this initial set; preserve its existing resin finish |
 | Glasswake Comet   | [Crystal and frost](glasswake.md)                                  |
 | Cindercoil        | [Fired ceramic and glazed panels](cindercoil.md)                   |
-| Saffron Leviathan | [Smoked gold glass and deposited sand](saffron.md)                 |
+| Saffron Leviathan | Deprecated original; skip this road pass                           |
 | Saffron Wide      | [Width-specific companion](saffron-wide.md)                        |
-| Umbra Fold        | [Graphite cassettes and repaired metal](umbra.md)                  |
+| Umbra Fold        | Deprecated original; skip this road pass                           |
 | Umbra Wide        | [Width-specific companion](umbra-wide.md)                          |
 | Helion Flare      | [Thermal tiles, graphite and copper](helion.md)                    |
 | Zephyr Basilica   | [Woven graphite and local wetness](zephyr.md)                      |
 | Shatterline       | [Induction decks and clear running tubes](shatterline.md)          |
 
-The briefs' starting points come from source inspection. Their questions are hypotheses to investigate, not claims that a fresh visual audit has already found those defects. Recheck the current implementation when assigned. Original/wide pairs need coordinated asset ownership and separate visual verification; they are not interchangeable geometry.
+The briefs' starting points come from source inspection. Their questions are hypotheses to investigate, not claims that a fresh visual audit has already found those defects. Recheck the current implementation when assigned. The original Saffron and Umbra are being deprecated; finish work targets only their wide variants. Preserve borrowed asset ownership and keep changes local where possible.
 
 ## What worked on Halcyon
 

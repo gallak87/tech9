@@ -3,6 +3,7 @@ import { sweepGeometry, boxProfile } from '../../../track/geometry.js';
 import { framePoint } from '../../../track/frames.js';
 import { createShatterlineTube } from './tube.js';
 import { quadTriangles } from './tube-tessellation.js';
+import { createAsphalt } from '../../halcyon/track/asphalt.js';
 export { roadIntervals } from './road-runs.js';
 
 // Use the same complete-run row phase and Float32 vertices as finite-hull
@@ -60,63 +61,10 @@ export function shatterlineTurnCue(track, distance, lookAhead = 240) {
   }
   return null;
 }
-function surfaceMaps() {
-  const w = 1024,
-    h = 512,
-    albedo = new Uint8Array(w * h * 4),
-    relief = new Uint8Array(w * h * 4),
-    rough = new Uint8Array(w * h * 4);
-  const hash = (x, y) => {
-    let v = Math.imul(x + 811, 374761393) + Math.imul(y + 913, 668265263);
-    v = Math.imul(v ^ (v >>> 13), 1274126177);
-    return ((v ^ (v >>> 16)) >>> 0) / 4294967295;
-  };
-  for (let y = 0; y < h; y++)
-    for (let x = 0; x < w; x++) {
-      const u = x / w,
-        v = y / h,
-        col = Math.floor(u * 5),
-        row = Math.floor(v * 4),
-        lx = (u * 5) % 1,
-        ly = (v * 4) % 1;
-      const edge = Math.min(lx, 1 - lx, ly, 1 - ly),
-        seal = edge < 0.007 ? 0.36 : edge < 0.018 ? 0.81 : 1;
-      const grain = hash(x, y),
-        brushed = Math.sin(x * 0.41 + y * 0.009) * 1.2;
-      const panel = hash(col, row) * 15,
-        wear = Math.sin(lx * 9 + ly * 3) * 2;
-      const stud =
-        (Math.abs(lx - 0.035) < 0.008 || Math.abs(lx - 0.965) < 0.008) &&
-        (Math.abs(ly - 0.065) < 0.013 || Math.abs(ly - 0.935) < 0.013);
-      const stripe = (u > 0.08 && u < 0.087) || (u > 0.913 && u < 0.92);
-      const scratch = grain > 0.997 ? 17 : 0;
-      let base =
-        (75 + panel + (grain - 0.5) * 7 + brushed + wear + scratch) * seal;
-      let c = [base * 0.97, base, base * 1.06];
-      if (stud) c = [120, 125, 130];
-      if (stripe) c = [177, 152, 104].map((q) => q * (0.87 + grain * 0.13));
-      const i = (y * w + x) * 4;
-      albedo.set([...c.map((q) => Math.round(q)), 255], i);
-      const b = seal < 1 ? 40 : 145 + grain * 6;
-      relief.set([b, b, b, 255], i);
-      const r = 160 + hash(col, row) * 25 + grain * 10;
-      rough.set([r, r, r, 255], i);
-    }
-  return [albedo, relief, rough].map((data, i) => {
-    const t = new T.DataTexture(data, w, h);
-    t.wrapS = t.wrapT = T.RepeatWrapping;
-    t.magFilter = T.LinearFilter;
-    t.minFilter = T.LinearMipmapLinearFilter;
-    t.generateMipmaps = true;
-    t.anisotropy = 8;
-    t.needsUpdate = true;
-    if (i === 0) t.colorSpace = T.SRGBColorSpace;
-    return t;
-  });
-}
 export function createShatterlineRoad({
   track,
   shape = false,
+  view,
   collectSolid = null,
 }) {
   const halfWidth = track.width / 2;
@@ -124,25 +72,62 @@ export function createShatterlineRoad({
   group.name = 'Shatterline / reinforced induction raceway';
   const geometries = new Set(),
     materials = new Set();
-  const textures = !shape && !collectSolid ? surfaceMaps() : [];
+  // The topping borrows Halcyon's licensed scan, not its climate or road UVs.
+  // CPU collision/shape construction does not load rendering assets.
+  const asphalt =
+    !shape && !collectSolid && view?.renderer
+      ? createAsphalt(view.renderer, track.width, {
+          uvLength: 32,
+          label: 'Shatterline',
+          moisture: 0.34,
+        })
+      : null;
   const material = (name, options) => {
     const m = new T.MeshStandardMaterial({ name, ...options });
     materials.add(m);
     return m;
   };
-  const graphite = material('Graphite induction cassettes', {
-    color: shape ? '#8e979d' : '#f1efea',
-    roughness: 0.76,
-    metalness: 0.3,
-    ...(textures.length
-      ? {
-          map: textures[0],
-          bumpMap: textures[1],
-          bumpScale: 0.045,
-          roughnessMap: textures[2],
-        }
-      : {}),
-  });
+  const graphite =
+    asphalt?.material ??
+    material('Graphite induction cassettes', {
+      color: shape ? '#8e979d' : '#50565b',
+      roughness: 0.76,
+      metalness: 0.3,
+    });
+  if (asphalt) {
+    graphite.name = 'Shatterline / aggregate-topped induction cassettes';
+    graphite.color.set(0xaebfd1);
+    graphite.normalScale.set(1.6, 1.6);
+    graphite.envMapIntensity = 0.8;
+    const compileAsphalt = graphite.onBeforeCompile;
+    graphite.onBeforeCompile = (shader) => {
+      compileAsphalt(shader);
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+        // Large cassette joints and guidance stay independent of aggregate.
+        vec2 baySize=vec2(${(track.width / 5).toFixed(3)},8.);
+        vec2 bay=mod(roadMetres,baySize);
+        vec2 edge=min(bay,baySize-bay);
+        vec2 aa=max(fwidth(roadMetres),vec2(.008));
+        vec2 seal=1.-smoothstep(vec2(.025),vec2(.065)+aa,edge);
+        float joint=max(seal.x,seal.y);
+        diffuseColor.rgb*=1.-joint*.55;
+        vec2 fitting=edge-vec2(.35,.52);
+        float radius=length(fitting);
+        float capAA=max(fwidth(radius),.012);
+        float seat=1.-smoothstep(.11,.11+capAA,radius);
+        float cap=1.-smoothstep(.065,.065+capAA,radius);
+        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.025),seat*.7);
+        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.28,.3,.32),cap*.8);
+        float margin=min(abs(roadMetres.x-${(track.width * 0.0835).toFixed(3)}),abs(roadMetres.x-${(track.width * 0.9165).toFixed(3)}));
+        float paint=1.-smoothstep(.14,.19+aa.x,margin);
+        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.44,.33,.17),paint*.82);`,
+      );
+    };
+    graphite.customProgramCacheKey = () =>
+      `shatterline-aggregate-cassettes-v1-${track.width}`;
+  }
   const keel = material('Deep graphite structural spine', {
     color: '#252c32',
     roughness: 0.82,
@@ -534,9 +519,16 @@ export function createShatterlineRoad({
     ? createShatterlineTube({ track, shape, collectSolid })
     : null;
   if (tube) group.add(tube.group);
+  let disposed = false;
   return {
     group,
+    ready: asphalt?.ready,
     setReflection(texture) {
+      if (disposed) return;
+      if (asphalt) {
+        graphite.envMap = texture;
+        graphite.needsUpdate = true;
+      }
       tube?.setReflection(texture);
       for (const m of materials) {
         m.envMap = texture;
@@ -545,10 +537,12 @@ export function createShatterlineRoad({
       }
     },
     dispose() {
+      if (disposed) return;
+      disposed = true;
+      asphalt?.dispose();
       tube?.dispose();
       for (const g of geometries) g.dispose();
       for (const m of materials) m.dispose();
-      for (const t of textures) t.dispose();
       group.clear();
     },
   };

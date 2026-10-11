@@ -4,7 +4,7 @@ Use the [road workflow](README.md). Target `zephyr`; preserve woven graphite, br
 
 ## Starting point
 
-The [road](../../../src/levels/zephyr/track/index.js) uses a 256-square procedural twill map for color and bump, with its own repetition and road-space finish shader. Separate induction bands and bronze structure share longitudinal construction rows. Roughness changes near declared curtain crossings; [runtime exposure](../../../src/levels/zephyr/runtime.js) also drives ship/water feedback.
+The [road](../../../src/levels/zephyr/track/index.js) uses separate 512-square authored twill color, normal and roughness maps, a 0.64 m square repeat and a road-space finish shader. Graphite and induction bands borrow the existing reflection probe. Separate induction bands and bronze structure share longitudinal construction rows. Roughness changes near declared curtain crossings; [runtime exposure](../../../src/levels/zephyr/runtime.js) also drives ship/water feedback.
 
 ## Investigate
 

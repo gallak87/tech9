@@ -10,6 +10,7 @@ import {
   zephyrNoiseGLSL,
 } from '../environment/materials.js';
 import { framePoint } from '../../../track/frames.js';
+import { createZephyrWeave } from './weave.js';
 export { createZephyrTrack } from './model.js';
 
 export const ZEPHYR_ROAD_CLEARANCE = Object.freeze({
@@ -20,44 +21,6 @@ export const ZEPHYR_ROAD_CLEARANCE = Object.freeze({
   cameraHalfWidth: 18,
   supportTop: -2.2,
 });
-
-function weaveTexture() {
-  const size = 256;
-  const pixels = new Uint8Array(size * size * 4);
-  for (let y = 0; y < size; y += 1) {
-    for (let x = 0; x < size; x += 1) {
-      const cellX = Math.floor(x / 32);
-      const cellY = Math.floor(y / 32);
-      // Continuous two-over/two-under twill: the bundles cross and continue
-      // into neighbouring cells, instead of reading as separate paving blocks.
-      const phase = (((cellY - cellX) % 4) + 4) % 4;
-      const warp = phase < 2;
-      const cross = (warp ? x % 32 : y % 32) / 32;
-      const along =
-        ((warp ? phase : phase - 2) + (warp ? y % 32 : x % 32) / 32) / 2;
-      const bundle = Math.pow(Math.max(0, Math.sin(cross * Math.PI)), 0.45);
-      const fibre = Math.sin(cross * 32 * 2.4) * 7;
-      const value =
-        109 + bundle * 51 + Math.sin(along * Math.PI) * 15 + fibre * bundle;
-      const i = (y * size + x) * 4;
-      pixels[i] = value;
-      pixels[i + 1] = value + 3;
-      pixels[i + 2] = value + 6;
-      pixels[i + 3] = 255;
-    }
-  }
-  const texture = new THREE.DataTexture(pixels, size, size, THREE.RGBAFormat);
-  texture.name = 'Zephyr / broad structural graphite basket weave';
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 8;
-  texture.repeat.set(10, 1.25);
-  texture.generateMipmaps = true;
-  texture.minFilter = THREE.LinearMipmapLinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.needsUpdate = true;
-  return texture;
-}
 
 export function zephyrSupportedRanges(track) {
   const ranges = [];
@@ -85,15 +48,17 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
     materials.add(result);
     return result;
   };
-  const texture = shape ? null : weaveTexture();
-  if (texture) textures.add(texture);
+  const maps = shape ? [] : createZephyrWeave();
+  maps.forEach((texture) => textures.add(texture));
   const graphite = material({
-    color: shape ? 0x52636b : 0x5c6268,
-    roughness: 0.52,
-    metalness: 0.44,
-    map: texture,
-    bumpMap: texture,
-    bumpScale: 0.1,
+    name: 'Zephyr / coated structural graphite twill',
+    color: shape ? 0x52636b : 0x859198,
+    roughness: shape ? 0.52 : 0.5,
+    metalness: shape ? 0.44 : 0.22,
+    map: maps[0] ?? null,
+    normalMap: maps[1] ?? null,
+    roughnessMap: maps[2] ?? null,
+    envMapIntensity: 0.8,
   });
   const induction = material({
     color: shape ? 0x6f858b : 0x667d81,
@@ -191,11 +156,12 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
         float zw=0.;
         ${(track.curtains ?? []).map((c) => `zw=max(zw,1.-smoothstep(4.,38.,abs(zephyrRoadS-${c.s.toFixed(3)})));`).join('')}
         float wear=zephyrNoise(vec3(zephyrRoadU*32.,0.,zephyrRoadS)*.24);
-        roughnessFactor=clamp(roughnessFactor+wear*.14-.02,.3,.88);
-        roughnessFactor=mix(roughnessFactor,.26,zw*.72);`,
+        roughnessFactor=clamp(roughnessFactor+wear*.12-.025,.28,.86);
+        // Local water film fills the shallow weave; the dry circuit stays satin.
+        roughnessFactor=mix(roughnessFactor,.16,zw*.9);`,
             );
       };
-      surface.customProgramCacheKey = () => 'zephyr-local-wet-road-v4';
+      surface.customProgramCacheKey = () => 'zephyr-metric-twill-wet-road-v5';
     }
   const buckets = new Map();
   function addGeometry(name, geometry, surface, data = {}) {
@@ -552,6 +518,14 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
   let disposed = false;
   return {
     group,
+    setReflection(texture) {
+      if (disposed || shape) return;
+      for (const surface of [graphite, induction]) {
+        surface.envMap = texture;
+        surface.envMapIntensity = 0.8;
+        surface.needsUpdate = true;
+      }
+    },
     dispose() {
       if (disposed) return;
       disposed = true;

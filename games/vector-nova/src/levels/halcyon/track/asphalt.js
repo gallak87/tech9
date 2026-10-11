@@ -5,7 +5,11 @@ import { assetURL } from '../../../assets/url.js';
 // Poly Haven Asphalt 03, CC0. Source files, authors and the deterministic KTX2
 // build live in assets/levels/halcyon/asphalt. One repeat is 2.05 metres square.
 const REPEAT_METRES = 2.05;
-export function createAsphalt(renderer, width) {
+export function createAsphalt(
+  renderer,
+  width,
+  { uvLength = 16, label = 'Halcyon', moisture: initialMoisture = 0.8 } = {},
+) {
   const manager = new THREE.LoadingManager();
   const loader = new KTX2Loader(manager)
     .setTranscoderPath(assetURL('assets/ships/decoder/'))
@@ -13,9 +17,9 @@ export function createAsphalt(renderer, width) {
     .detectSupport(renderer);
   const textures = new Set();
   let disposed = false;
-  const moisture = { value: 0.8 };
+  const moisture = { value: initialMoisture };
   const material = new THREE.MeshStandardMaterial({
-    name: 'Halcyon fine asphalt / metre-scaled aggregate',
+    name: `${label} fine asphalt / metre-scaled aggregate`,
     color: 0xffffff,
     metalness: 0.02,
     roughness: 1,
@@ -29,7 +33,7 @@ export function createAsphalt(renderer, width) {
       'varying vec2 roadMetres;\n' +
       shader.vertexShader.replace(
         '#include <uv_vertex>',
-        `#include <uv_vertex>\nroadMetres = uv * vec2(${width.toFixed(1)}, 16.0);`,
+        `#include <uv_vertex>\nroadMetres = uv * vec2(${width.toFixed(1)}, ${uvLength.toFixed(1)});`,
       );
     shader.fragmentShader =
       `varying vec2 roadMetres;
@@ -61,7 +65,8 @@ export function createAsphalt(renderer, width) {
       roughnessFactor = clamp(mix(.5,.035,asphaltWet) + (roughnessFactor-.8)*.5,.07,.85);`,
     );
   };
-  material.customProgramCacheKey = () => 'halcyon-asphalt-metres-v1';
+  material.customProgramCacheKey = () =>
+    `asphalt-metres-v1-${width}-${uvLength}`;
   const ready = Promise.allSettled(
     ['color', 'normal', 'arm'].map(async (name) => {
       const texture = await loader.loadAsync(
@@ -71,9 +76,9 @@ export function createAsphalt(renderer, width) {
         texture.dispose();
         return null;
       }
-      texture.name = `Halcyon asphalt / ${name}`;
+      texture.name = `${label} asphalt / ${name}`;
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-      texture.repeat.set(width / REPEAT_METRES, 16 / REPEAT_METRES);
+      texture.repeat.set(width / REPEAT_METRES, uvLength / REPEAT_METRES);
       texture.anisotropy = Math.min(
         8,
         renderer.capabilities.getMaxAnisotropy(),
@@ -87,7 +92,7 @@ export function createAsphalt(renderer, width) {
     .then((results) => {
       const failure = results.find((result) => result.status === 'rejected');
       if (failure)
-        throw new Error('Halcyon asphalt failed to load', {
+        throw new Error(`${label} asphalt failed to load`, {
           cause: failure.reason,
         });
       if (disposed) return;

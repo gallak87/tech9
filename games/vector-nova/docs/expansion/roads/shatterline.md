@@ -4,7 +4,7 @@ Use the [road workflow](README.md). Target `shatterline`; cover both opaque deck
 
 ## Starting point
 
-The [road builder](../../../src/levels/shatterline/track/road.js) generates 1024×512 color, bump and roughness maps for graphite induction cassettes. The broad deck derives its visible rows from the same geometry used by physical support. [Tube rendering](../../../src/levels/shatterline/track/tube.js) supplies a separate physical clear-polymer finish; [tube surface definitions](../../../src/levels/shatterline/track/tube-surface.js) encode the actual running surface and transitions.
+The [road builder](../../../src/levels/shatterline/track/road.js) reuses Halcyon’s licensed asphalt color, normal and packed material maps as a graphite-tinted aggregate topping, with local moisture and independent cassette joints/fasteners. It uses the original 2.05 m scan scale through its own UV mapping. The broad deck derives its visible rows from the same geometry used by physical support. [Tube rendering](../../../src/levels/shatterline/track/tube.js) supplies a separate physical clear-polymer finish; [tube surface definitions](../../../src/levels/shatterline/track/tube-surface.js) encode the actual running surface and transitions.
 
 ## Investigate
 

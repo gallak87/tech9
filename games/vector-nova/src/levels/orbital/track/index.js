@@ -41,6 +41,7 @@ export function buildLevel2Blockout(track) {
     road,
   );
   surface.userData.drivingSurface = true;
+  surface.userData.roadSurface = true;
   add(
     'Visible slab sides and underside',
     sweepGeometry(

@@ -5,6 +5,7 @@ import {
   createShipFeedback,
   disposeGroup,
 } from './geometry.js';
+import { collectRoadSurfaces, roadDeviceMountHeight } from './device-mount.js';
 import { createPickupAudio } from './audio.js';
 import { AEGIS_DURATION } from './simulation.js';
 import './style.css';
@@ -54,13 +55,13 @@ export function createPickupPresentation({
   devices = [],
   audioImmersion,
 }) {
+  const surfaces = collectRoadSurfaces(road);
   const root = new THREE.Group();
   root.name = 'Circuit / immediate road devices';
   scene.add(root);
   const projector = createRoadProjector(track);
   const hardware = devices.map((device) => {
-    const mountHeight =
-      road?.userData.deviceMountHeight?.(device, projector) ?? 0;
+    const mountHeight = roadDeviceMountHeight(surfaces, device, projector);
     const visual = createDeviceGeometry(track, device, projector, {
       mountHeight,
     });

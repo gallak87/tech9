@@ -10,11 +10,13 @@ export { roadIntervals } from './road-runs.js';
 function roadDeckGeometry(track, run) {
   const positions = [],
     uv = [],
+    roadCoord = [],
     indices = [];
   for (const s of run.stations) {
     for (const side of [-1, 1]) {
       positions.push(...track.tubeMesh.roadVertex(s, side).toArray());
       uv.push(side === -1 ? 0 : 1, s / 32);
+      roadCoord.push(s, (side * track.width) / 2);
     }
   }
   for (let row = 0; row < run.stations.length - 1; row++) {
@@ -25,6 +27,10 @@ function roadDeckGeometry(track, run) {
   const geometry = new T.BufferGeometry();
   geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
   geometry.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+  geometry.setAttribute(
+    'roadCoord',
+    new T.Float32BufferAttribute(roadCoord, 2),
+  );
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
@@ -174,6 +180,7 @@ export function createShatterlineRoad({
     const o = new T.Mesh(g, m);
     o.name = name;
     o.userData.drivingSurface = info?.kind === 'deck';
+    o.userData.roadSurface = info?.kind === 'deck';
     o.receiveShadow = true;
     o.castShadow = m !== graphite;
     group.add(o);

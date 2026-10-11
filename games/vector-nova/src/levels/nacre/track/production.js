@@ -8,7 +8,6 @@ import {
 import { nacreSeabedHeight } from '../environment/seabed.js';
 import { applyNacreSurfaceFinish } from './surface-finish.js';
 import { createCeramicMaps } from './ceramic-maps.js';
-import { roadDeviceMountHeight } from '../../../pickups/device-mount.js';
 
 const point = (frame, x, y, z = 0) =>
   frame.position
@@ -518,30 +517,27 @@ export function buildNacreTrack(track, renderer) {
   );
   base.userData.substrate = true;
   const panels = ceramicPanels(track, runs);
-  group.userData.deviceMountHeight = (device, projector) =>
-    roadDeviceMountHeight(
-      [panels.ceramic, panels.glaze, panels.membrane],
-      device,
-      projector,
-    );
   const scales = add(
     'Pearlescent scalloped ceramic running scales',
     panels.ceramic,
     ceramic,
   );
   scales.userData.drivingSurface = true;
+  scales.userData.roadSurface = true;
   const membraneSurface = add(
     'Broad submerged luminous pressure membrane',
     panels.membrane,
     membraneMaterial,
   );
   membraneSurface.userData.drivingSurface = true;
+  membraneSurface.userData.roadSurface = true;
   const glassSurface = add(
     'Broad smoked-glass pressure bays',
     panels.glaze,
     pressureGlass,
   );
   glassSurface.userData.drivingSurface = true;
+  glassSurface.userData.roadSurface = true;
   add(
     'Layered nacre lap joints and pressure reveal walls',
     panels.reveal,

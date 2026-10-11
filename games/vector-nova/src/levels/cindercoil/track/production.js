@@ -149,6 +149,7 @@ export function createCindercoilRoad({
     mesh.receiveShadow = true;
     mesh.castShadow = !drivingSurface;
     mesh.userData.drivingSurface = drivingSurface;
+    mesh.userData.roadSurface = drivingSurface;
     collectSolid?.({ name, geometry, drivingSurface });
     group.add(mesh);
     return mesh;

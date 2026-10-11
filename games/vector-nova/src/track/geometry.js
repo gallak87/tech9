@@ -49,6 +49,7 @@ export function sweepGeometry(
     );
   const positions = [];
   const uv = [];
+  const roadCoord = [];
   const indices = [];
   const frames = Array.from({ length: count + 1 }, (_, index) => {
     const distance = start + ((end - start) * index) / count;
@@ -72,7 +73,9 @@ export function sweepGeometry(
       ]) {
         const point = framePoint(frames[index], x, y);
         positions.push(point.x, point.y, point.z);
-        uv.push(u, (start + ((end - start) * index) / count) / uvScale);
+        const distance = start + ((end - start) * index) / count;
+        uv.push(u, distance / uvScale);
+        roadCoord.push(distance, x);
       }
       if (index < count) {
         const n = vertexStart + index * 2;
@@ -86,6 +89,10 @@ export function sweepGeometry(
     new THREE.Float32BufferAttribute(positions, 3),
   );
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geometry.setAttribute(
+    'roadCoord',
+    new THREE.Float32BufferAttribute(roadCoord, 2),
+  );
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();

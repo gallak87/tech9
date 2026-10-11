@@ -116,7 +116,8 @@ function clip(polygon, boundary) {
 export function latticeRunningGeometry(track, base, layout) {
   const positions = [],
     normals = [],
-    uv = [];
+    uv = [],
+    roadCoord = [];
   const position = base.getAttribute('position'),
     normal = base.getAttribute('normal');
   const segments = position.count / 2 - 1;
@@ -126,6 +127,7 @@ export function latticeRunningGeometry(track, base, layout) {
         positions.push(...vertex.point.toArray());
         normals.push(...vertex.normal.toArray());
         uv.push(vertex.u, ((segment + vertex.v) * layout.step) / 12);
+        roadCoord.push((segment + vertex.v) * layout.step, vertex.u * 28 - 14);
       }
   };
   for (let segment = 0; segment < segments; segment += 1) {
@@ -202,6 +204,10 @@ export function latticeRunningGeometry(track, base, layout) {
   );
   geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geometry.setAttribute(
+    'roadCoord',
+    new THREE.Float32BufferAttribute(roadCoord, 2),
+  );
   geometry.computeBoundingSphere();
   return geometry;
 }

@@ -15,6 +15,7 @@ function panelGeometry(track) {
   const normals = [];
   const colors = [];
   const uvs = [];
+  const roadCoord = [];
   const cassetteUvs = [];
   const triangle = (vertices, color, coordinates, panel, surfaceNormals) => {
     const normal = new THREE.Vector3()
@@ -28,6 +29,7 @@ function panelGeometry(track) {
       normals.push(...(surfaceNormals?.[index] ?? normal).toArray());
       colors.push(color.r, color.g, color.b);
       uvs.push(...coordinates[index]);
+      roadCoord.push(coordinates[index][1], coordinates[index][0]);
       cassetteUvs.push(...panel[index]);
     }
   };
@@ -142,6 +144,10 @@ function panelGeometry(track) {
   geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setAttribute(
+    'roadCoord',
+    new THREE.Float32BufferAttribute(roadCoord, 2),
+  );
   geometry.setAttribute(
     'umbraCassette',
     new THREE.Float32BufferAttribute(cassetteUvs, 2),
@@ -261,6 +267,7 @@ export function buildUmbraRoad(
     2,
   );
   road.userData.drivingSurface = true;
+  road.userData.roadSurface = true;
   road.userData.solidRuns = track.solidRuns.map((range) => [...range]);
   sweep(
     'Deep faceted deck sides and bottom',
@@ -275,12 +282,15 @@ export function buildUmbraRoad(
     underside,
     6,
   );
-  if (!shape)
-    mesh(
+  if (!shape) {
+    const panels = mesh(
       'Broad segmented graphite facets and pale landing patches',
       panelGeometry(track),
       panel,
-    ).userData.drivingSurface = true;
+    );
+    panels.userData.drivingSurface = true;
+    panels.userData.roadSurface = true;
+  }
   for (const side of [-1, 1]) {
     sweep(
       'Cold metal edge band',

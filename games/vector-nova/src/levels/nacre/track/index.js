@@ -64,6 +64,7 @@ export function buildLevel3Blockout(track) {
       road,
     );
     surface.userData.drivingSurface = true;
+    surface.userData.roadSurface = true;
     surface.userData.interval = [start, end];
     add(
       'Disconnected slab and underside',

@@ -262,6 +262,7 @@ export function buildGlasswakeRoad(
     shape ? neutral : settings.quality === 'low' ? crystalLow : crystalHigh,
     {
       drivingSurface: true,
+      roadSurface: true,
       intervals: track.supportedRuns,
       materialRegions: cassetteIntervals.filter(
         (entry) => entry.kind === 'crystal',
@@ -270,6 +271,7 @@ export function buildGlasswakeRoad(
   );
   merge('Bounded frosted travel bands / reduced grip', tops.frost, frost, {
     drivingSurface: true,
+    roadSurface: true,
     grip: 0.25,
     zones: track.gripZones,
   });
@@ -277,7 +279,7 @@ export function buildGlasswakeRoad(
     'Occasional opaque cobalt reinforcement cassettes',
     tops.reinforcement,
     cobalt,
-    { drivingSurface: true, intervals: track.supportedRuns },
+    { drivingSurface: true, roadSurface: true, intervals: track.supportedRuns },
   );
   merge('Lit one-metre crystal cassette reveal walls', walls, strut);
   for (const side of [-1, 1]) {

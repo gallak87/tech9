@@ -177,6 +177,7 @@ export function buildTrackVisual(track, settings, renderer) {
     ],
     road,
   );
+  runningSurface.userData.roadSurface = true;
   sweep(
     'Precast segmented box girder / complete underside',
     [

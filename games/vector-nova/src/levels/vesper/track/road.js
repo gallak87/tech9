@@ -313,6 +313,7 @@ export function createVesperRoad({ track, shape = false }) {
     );
     surface.name = 'Cast resin driving surface';
     surface.userData.drivingSurface = true;
+    surface.userData.roadSurface = true;
     surface.userData.rightEdge = right;
     surface.receiveShadow = true;
     group.add(surface);

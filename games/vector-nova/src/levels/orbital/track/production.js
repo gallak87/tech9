@@ -280,6 +280,7 @@ export function buildOrbitalTrack(track, renderer = null) {
     12,
   );
   runningSurface.userData.drivingSurface = true;
+  runningSurface.userData.roadSurface = true;
   add(
     'Folded alloy deck shell / solid districts only',
     maskedSweepGeometry(

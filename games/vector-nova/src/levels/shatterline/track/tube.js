@@ -11,6 +11,7 @@ function sheetGeometry(track, chunk, outward = 0, reverse = false) {
   const positions = [],
     normals = [],
     uv = [],
+    roadCoord = [],
     indices = [];
   for (const s of chunk.stations) {
     for (let column = 0; column <= MESH_STEPS.columns; column++) {
@@ -27,6 +28,7 @@ function sheetGeometry(track, chunk, outward = 0, reverse = false) {
           .toArray(),
       );
       uv.push(lateral / 18, s / 52);
+      roadCoord.push(s, lateral);
     }
   }
   const stride = MESH_STEPS.columns + 1;
@@ -43,6 +45,10 @@ function sheetGeometry(track, chunk, outward = 0, reverse = false) {
   geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
   geometry.setAttribute('normal', new T.Float32BufferAttribute(normals, 3));
   geometry.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+  geometry.setAttribute(
+    'roadCoord',
+    new T.Float32BufferAttribute(roadCoord, 2),
+  );
   geometry.setIndex(indices);
   geometry.computeBoundingSphere();
   return geometry;
@@ -180,6 +186,7 @@ export function createShatterlineTube({
     const mesh = new T.Mesh(geometry, material);
     mesh.name = name;
     mesh.userData.drivingSurface = info?.kind === 'deck';
+    mesh.userData.roadSurface = info?.kind === 'deck';
     mesh.receiveShadow = !material.transparent;
     mesh.castShadow = !material.transparent;
     group.add(mesh);

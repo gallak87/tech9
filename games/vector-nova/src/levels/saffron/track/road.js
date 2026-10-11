@@ -171,6 +171,7 @@ export function createSaffronRoad(
     );
     top.renderOrder = 2;
     top.userData.drivingSurface = true;
+    top.userData.roadSurface = true;
     top.userData.interval = [start, end];
     profile(
       SAFFRON_SOLIDS.underside,

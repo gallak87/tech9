@@ -236,6 +236,7 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
         uv.setX(j, (a + 16 + uv.getX(j) * (b - a)) / 32);
       addGeometry('Woven deck with inset induction bands', geometry, surface, {
         drivingSurface: true,
+        roadSurface: true,
       });
     }
   }

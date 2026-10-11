@@ -1,0 +1,33 @@
+{
+  "title": "Asterion sealed induction cassette / coated alloy",
+  "creator": "VECTOR//NOVA project contributors",
+  "rights": "Project-authored; no third-party asset restrictions",
+  "source": "build.py: deterministic analytic relief and original surface design; no imagegen, external images or baked illumination",
+  "physicalTileMetres": [4.666666666666667, 6.0],
+  "channels": {
+    "color": "sRGB albedo",
+    "normal": "OpenGL tangent-space +Y",
+    "arm": "linear R ambient occlusion, G roughness, B metalness"
+  },
+  "encoder": "toktx v4.4.2",
+  "runtime": [
+    {
+      "file": "color.ktx2",
+      "dimensions": [2048, 2048],
+      "bytes": 323742,
+      "sha256": "e374a0aff96207b43c857c0322740979c89ba7a67c0a6758233c7c506ee5eb80"
+    },
+    {
+      "file": "normal.ktx2",
+      "dimensions": [2048, 2048],
+      "bytes": 342159,
+      "sha256": "5e6164f1fe445832037f7ccf526ef6683b2d1aa34c563692f843664a4630beda"
+    },
+    {
+      "file": "arm.ktx2",
+      "dimensions": [1024, 1024],
+      "bytes": 413023,
+      "sha256": "10b007ec6999350b4a4234962c9467bc60c35b291650cf4da34a9c496a726b0f"
+    }
+  ]
+}

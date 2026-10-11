@@ -229,6 +229,22 @@
       "runtimeDependencies": ["three"]
     },
     {
+      "id": "asterion-deck-finish",
+      "source": "assets/levels/orbital/deck/build.py",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original deterministic coated-alloy cassettes: separate albedo, metric bevel/gasket/fastener relief, and packed AO/roughness/metalness. No downloaded imagery, imagegen or baked directional illumination.",
+      "rights": "Project-authored; no third-party asset restrictions",
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "assets/levels/orbital/deck/provenance.json",
+      "textureMemoryEstimateMiB": 12,
+      "compressedAssetBytes": 1078924,
+      "runtimeMaps": [
+        "public/assets/levels/orbital/deck/color.ktx2",
+        "public/assets/levels/orbital/deck/normal.ktx2",
+        "public/assets/levels/orbital/deck/arm.ktx2"
+      ]
+    },
+    {
       "id": "asterion-shipyard",
       "source": "src/levels/orbital/environment/",
       "creator": "VECTOR//NOVA project contributors",

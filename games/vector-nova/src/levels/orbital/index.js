@@ -34,10 +34,10 @@ export default function createLevel({ shape }) {
       }
       return track;
     },
-    createRoad({ track }) {
+    createRoad({ track, view }) {
       const group = shape
         ? buildLevel2Blockout(track)
-        : buildOrbitalTrack(track);
+        : buildOrbitalTrack(track, view?.renderer);
       return legacyPart(group, ({ state }) =>
         group.userData.update?.(state.distance),
       );

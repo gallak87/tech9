@@ -7,7 +7,6 @@ import {
 } from '../../../track/geometry.js';
 import { selectPracticalFixtures } from '../../../track/lighting.js';
 import {
-  orbitalSurfaceTexture,
   orbitalSignsTexture,
   orbitalGuidanceTexture,
   roadNeonSections,
@@ -22,8 +21,9 @@ import {
   latticeApertureWalls,
 } from './lattice.js';
 import { containmentGeometry } from './containment.js';
+import { createDeckFinish } from './deck-finish.js';
 
-export function buildOrbitalTrack(track) {
+export function buildOrbitalTrack(track, renderer = null) {
   const group = new THREE.Group();
   group.name = 'Asterion Orbital / engineered transit circuit';
   const geometries = new Set();
@@ -42,15 +42,11 @@ export function buildOrbitalTrack(track) {
     textures.add(value);
     return value;
   };
-  const deckMap = texture(orbitalSurfaceTexture());
-  const graphite = material({
-    color: 0x9bb8c7,
-    map: deckMap,
-    bumpMap: deckMap,
-    bumpScale: 0.006,
-    roughness: 0.61,
-    metalness: 0.28,
-  });
+  const deckFinish = createDeckFinish(renderer);
+  const graphite = material({});
+  deckFinish.bind(graphite);
+  group.userData.ready = deckFinish.ready;
+  group.userData.setReflection = deckFinish.setReflection;
   const ivory = material({ color: 0x9eafb7, roughness: 0.59, metalness: 0.2 });
   const portalFinish = new THREE.MeshPhysicalMaterial({
     color: 0xcbd0c8,
@@ -131,6 +127,7 @@ export function buildOrbitalTrack(track) {
     let coating = neonMaterials.get(surface);
     if (!coating) {
       coating = fullRoadNeonMaterial(surface);
+      if (surface === graphite) deckFinish.bind(coating);
       neonMaterials.set(surface, coating);
       materials.add(coating);
     }
@@ -1059,6 +1056,7 @@ export function buildOrbitalTrack(track) {
   group.userData.dispose = () => {
     if (disposed) return;
     disposed = true;
+    deckFinish.dispose();
     for (const geometry of geometries) geometry.dispose();
     for (const surface of materials) surface.dispose();
     for (const map of textures) map.dispose();

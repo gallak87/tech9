@@ -35,6 +35,7 @@ export function applyRoadNeon(geometry, sections, uvScale = 16) {
 
 export function fullRoadNeonMaterial(base) {
   const material = base.clone();
+  const deck = base.userData.orbitalDeck === true;
   material.name = `${base.name || 'Orbital alloy'} / full-color magnetic coating`;
   material.onBeforeCompile = (shader) => {
     shader.vertexShader =
@@ -48,24 +49,25 @@ export function fullRoadNeonMaterial(base) {
         `#include <color_fragment>
         float cassetteFinish = 1.0;
         #ifdef USE_MAP
-          cassetteFinish = clamp(sampledDiffuseColor.r * 3.3, 0.18, 1.0);
+          cassetteFinish = clamp(sampledDiffuseColor.r * ${deck ? '4.8' : '3.3'}, ${deck ? '0.03' : '0.18'}, 1.0);
         #endif
         diffuseColor.rgb = mix(diffuseColor.rgb, vRoadNeon.rgb * cassetteFinish, vRoadNeon.a);`,
       )
       .replace(
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
-        roughnessFactor = mix(roughnessFactor, 0.48, vRoadNeon.a);`,
+        ${deck ? '// Preserve the authored gasket, coating and metal roughness.' : 'roughnessFactor = mix(roughnessFactor, 0.48, vRoadNeon.a);'}`,
       )
       .replace(
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
         // Broad saturated light-emitting coating, kept below the white bloom
         // threshold. Directional PBR shading still describes its real framing.
-        totalEmissiveRadiance = mix(totalEmissiveRadiance, vRoadNeon.rgb * 1.65 * cassetteFinish, vRoadNeon.a);`,
+        totalEmissiveRadiance = mix(totalEmissiveRadiance, vRoadNeon.rgb * ${deck ? '0.48' : '1.65'} * cassetteFinish, vRoadNeon.a);`,
       );
   };
-  material.customProgramCacheKey = () => 'orbital-induction-cassette-neon-v2';
+  material.customProgramCacheKey = () =>
+    `orbital-induction-cassette-neon-v3-${deck ? 'pbr-deck' : 'structure'}`;
   return material;
 }
 
@@ -87,52 +89,6 @@ function canvasTexture(width, height, paint) {
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 8;
-  return texture;
-}
-
-export function orbitalSurfaceTexture() {
-  const texture = canvasTexture(1024, 512, (context, width, height) => {
-    // Smooth removable induction cassettes, with etched terminals and sealed
-    // joints. No grit, aggregate, streak noise or tire-wear bands.
-    context.fillStyle = '#152c3b';
-    context.fillRect(0, 0, width, height);
-    const palette = ['#94b0be', '#9bb7c4', '#83a1b0'];
-    for (let row = 0; row < 2; row += 1)
-      for (let column = 0; column < 6; column += 1) {
-        const x = (column * width) / 6 + 2;
-        const y = (row * height) / 2 + 2;
-        const w = width / 6 - 4,
-          h = height / 2 - 4,
-          cut = 10;
-        context.beginPath();
-        context.moveTo(x + cut, y);
-        context.lineTo(x + w - cut, y);
-        context.lineTo(x + w, y + cut);
-        context.lineTo(x + w, y + h - cut);
-        context.lineTo(x + w - cut, y + h);
-        context.lineTo(x + cut, y + h);
-        context.lineTo(x, y + h - cut);
-        context.lineTo(x, y + cut);
-        context.closePath();
-        context.fillStyle = palette[(column + row) % palette.length];
-        context.fill();
-        context.strokeStyle = '#c0d1d9';
-        context.lineWidth = 1;
-        context.stroke();
-        context.strokeStyle = '#4f7489';
-        context.lineWidth = 2;
-        context.strokeRect(x + 16, y + 20, w - 32, h - 40);
-        for (const end of [0, 1]) {
-          const terminalY = y + 31 + end * (h - 65);
-          context.fillStyle = '#395e76';
-          context.fillRect(x + w / 2 - 19, terminalY, 38, 4);
-          context.fillStyle = '#c4dce5';
-          for (let pin = 0; pin < 4; pin += 1)
-            context.fillRect(x + w / 2 - 14 + pin * 8, terminalY + 1, 3, 2);
-        }
-      }
-  });
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   return texture;
 }
 

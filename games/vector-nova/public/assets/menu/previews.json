@@ -47,8 +47,9 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": null,
-      "legacyFingerprint": "5e110275f3057649-2f243d2f50afe6e2"
+      "sourceRevision": "c416840c473f636e2a96770d72fa6ef988ae3e77",
+      "sourceDirty": true,
+      "routeSignature": "bbe77454a0908a64"
     },
     "saffron": {
       "file": "saffron.webp",

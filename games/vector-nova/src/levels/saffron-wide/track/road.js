@@ -63,22 +63,33 @@ export function createSaffronRoad(
     materials.add(m);
     return m;
   };
-  const solidGlass = (color) =>
-    material({
+  const solidGlass = (color) => {
+    const m = new THREE.MeshPhysicalMaterial({
       color: shape ? 0xb5b3a4 : color,
-      roughness: shape ? 0.75 : 0.29,
+      roughness: shape ? 0.75 : 0.22,
       metalness: shape ? 0.04 : 0.02,
+      clearcoat: shape ? 0 : 0.42,
+      clearcoatRoughness: 0.2,
+      ior: 1.46,
     });
+    materials.add(m);
+    return m;
+  };
   const smoke = solidGlass(0x967026);
   const amber = lens(0xd6ad4e, 0.14, 2.8);
   const glass = lens(0xe8bd61, 0.12, 3.8);
+  const honey = solidGlass(0xc39d55);
   if (!shape) {
-    for (const mat of [smoke, amber, glass]) {
+    for (const mat of [smoke, amber, glass, honey]) {
       mat.onBeforeCompile = (shader) => {
         shader.vertexShader =
           `varying vec3 vGlassPoint;\n${shader.vertexShader}`.replace(
             '#include <begin_vertex>',
-            '#include <begin_vertex>\nvGlassPoint=position;',
+            `#include <begin_vertex>
+vGlassPoint=position;
+#ifdef USE_INSTANCING
+vGlassPoint=(instanceMatrix*vec4(position,1.)).xyz;
+#endif`,
           );
         shader.fragmentShader = `varying vec3 vGlassPoint;
           float gHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
@@ -90,18 +101,34 @@ export function createSaffronRoad(
           float mineral=gNoise(vGlassPoint*vec3(.13,.015,.018));
           float warped=gNoise(vGlassPoint*.034);
           float vein=pow(1.-abs(sin(vGlassPoint.x*.17+vGlassPoint.z*.025+warped*4.)),18.);
-          diffuseColor.rgb*=.82+mineral*.32;
-          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.61,.40,.13),vein*.14);`,
+          float folded=gNoise(vGlassPoint*.42+vec3(warped*2.));
+          float skin=gNoise(vGlassPoint*5.8);
+          float footprint=max(length(dFdx(vGlassPoint)),length(dFdy(vGlassPoint)));
+          float grainVisible=1.-smoothstep(.018,.11,footprint);
+          float etching=gNoise(vGlassPoint*34.);
+          float haze=smoothstep(.42,.76,folded);
+          diffuseColor.rgb*=.76+mineral*.34;
+          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.61,.40,.13),vein*.22);
+          diffuseColor.rgb*=1.-haze*.075;`,
           )
           .replace(
             '#include <roughnessmap_fragment>',
-            '#include <roughnessmap_fragment>\nroughnessFactor+=mineral*.035+vein*.025;',
+            `#include <roughnessmap_fragment>
+roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
           );
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <normal_fragment_maps>',
+          `#include <normal_fragment_maps>
+          float glassRelief=folded*.018+skin*.005+etching*.0018*grainVisible;
+          vec3 dx=dFdx(-vViewPosition),dy=dFdy(-vViewPosition);
+          vec3 rx=cross(dy,normal),ry=cross(normal,dx);
+          float det=dot(dx,rx)*faceDirection;
+          normal=normalize(abs(det)*normal-sign(det)*(dFdx(glassRelief)*rx+dFdy(glassRelief)*ry));`,
+        );
       };
-      mat.customProgramCacheKey = () => 'saffron-internal-gold-glass-v5';
+      mat.customProgramCacheKey = () => 'saffron-wide-fused-glass-v6';
     }
   }
-  const honey = solidGlass(0xc39d55);
   const support = material({
     color: shape ? 0xc1bbad : 0xac7835,
     roughness: 0.43,
@@ -124,21 +151,42 @@ export function createSaffronRoad(
     roughness: 0.97,
     metalness: 0,
   });
-  if (!shape)
+  if (!shape) {
     sand.onBeforeCompile = (shader) => {
       shader.vertexShader =
         `varying vec3 vSandPoint;\n${shader.vertexShader}`.replace(
           '#include <begin_vertex>',
           '#include <begin_vertex>\nvSandPoint=position;',
         );
-      shader.fragmentShader =
-        `varying vec3 vSandPoint;\n${shader.fragmentShader}`.replace(
+      shader.fragmentShader = `varying vec3 vSandPoint;
+        float sandHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
+        float sandNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(sandHash(i),sandHash(i+vec3(1,0,0)),f.x),mix(sandHash(i+vec3(0,1,0)),sandHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(sandHash(i+vec3(0,0,1)),sandHash(i+vec3(1,0,1)),f.x),mix(sandHash(i+vec3(0,1,1)),sandHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
+        ${shader.fragmentShader}`
+        .replace(
           '#include <color_fragment>',
           `#include <color_fragment>
-      float ripples=sin(vSandPoint.x*1.5+vSandPoint.z*.8+sin(vSandPoint.z*.025)*3.);
-      diffuseColor.rgb*=.90+ripples*.045;`,
+          float ripplePhase=vSandPoint.x*5.2+vSandPoint.z*2.8+sin(vSandPoint.z*.18)*1.2;
+          float rippleVisible=1.-smoothstep(.4,2.,fwidth(ripplePhase));
+          float ripples=sin(ripplePhase)*.5+.5;
+          float depositPatch=sandNoise(vSandPoint*.8);
+          float grain=sandNoise(vSandPoint*38.);
+          float grainVisible=1.-smoothstep(.018,.09,max(length(dFdx(vSandPoint)),length(dFdy(vSandPoint))));
+          diffuseColor.rgb*=.82+depositPatch*.19+(ripples-.5)*.10*rippleVisible+(grain-.5)*.22*grainVisible;
+        `,
+        )
+        .replace(
+          '#include <normal_fragment_maps>',
+          `#include <normal_fragment_maps>
+          float relief=ripples*.027*rippleVisible+depositPatch*.007+grain*.0025*grainVisible;
+          vec3 dx=dFdx(-vViewPosition),dy=dFdy(-vViewPosition);
+          vec3 rx=cross(dy,normal),ry=cross(normal,dx);
+          float det=dot(dx,rx)*faceDirection;
+          normal=normalize(abs(det)*normal-sign(det)*(dFdx(relief)*rx+dFdy(relief)*ry));
+        `,
         );
     };
+    sand.customProgramCacheKey = () => 'saffron-wide-deposit-grain-v2';
+  }
   const add = (name, geometry, mat) => {
     const mesh = new THREE.Mesh(ownGeometry(geometry), mat);
     mesh.name = name;

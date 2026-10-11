@@ -57,7 +57,7 @@ For direct contact probes, a shared flight adapter can opt into `testLaunch: Boo
 
 ## Session adapters and replay
 
-Core calls `createRuntime({ track, collisionWorld, dynamics, scene, ship, host, settings, emit })`, or the ordinary `createMagneticRuntime` when omitted. Core composes shared devices around the returned adapter when `racing` is declared; flight/hazard motion remains level-owned. Preserve physics version 3 and steering assistance 0.3.
+Core calls `createRuntime({ track, road, collisionWorld, dynamics, scene, ship, host, settings, emit })`, or the ordinary `createMagneticRuntime` when omitted. Core composes shared devices around the returned adapter when `racing` is declared; flight/hazard motion remains level-owned. Preserve physics version 3 and steering assistance 0.3.
 
 The returned adapter supplies:
 
@@ -80,7 +80,7 @@ Flight adapters hold unwrapped distance at takeoff and emit `jump-transfer` with
 
 New production levels declare `racing: { createDevices, createMotion? }` on the descriptor. `createDevices(track)` returns a stable layout of `{ id, type: 'vector' | 'aegis', distance, lateral, width, length, label }`. Keep authored metres/labels in the level's `devices.js`; use `src/pickups/layout.js` to validate bounds and keep hardware out of jump/recovery corridors. Shape review disables devices and racing. An optional presentation-only `signalScale` in `(0, 1]` attenuates Vector emitters in bright or enclosed circuits; it does not change contacts, speed or replay physics.
 
-`createMotion({ track, collisionWorld, dynamics, settings, presentation: false })` creates a fresh CPU-only adapter for each rival. Omit it for ordinary magnetic motion; flight/hazard levels use the same pure motion factory as the player. Forward `advance`'s fourth modifiers argument. Avoid meshes, DOM, audio, shared mutable state or replacing the player's presentation lookup from CPU factories. The player retains the descriptor's original adapter/overlay references; core wraps that adapter with shared owned device presentation.
+`createMotion({ track, collisionWorld, dynamics, settings, presentation: false })` creates a fresh CPU-only adapter for each rival. Omit it for ordinary magnetic motion; flight/hazard levels use the same pure motion factory as the player. Forward `advance`'s fourth modifiers argument. Avoid meshes, DOM, audio, shared mutable state or replacing the player's presentation lookup from CPU factories. The player retains the descriptor's original adapter/overlay references; core wraps that adapter with shared owned device presentation. The borrowed road group may expose `userData.deviceMountHeight(device, projector)`, returning a nonnegative visual mounting offset in metres for raised road skins. It never changes device contacts, rules or replay identity; the casing skirt remains seated at road level.
 
 Core uses `src/pickups/runtime.js` for deterministic device composition and `src/race/racers.js` for the field, grid, input decisions, difficulty, relative gaps, two-lap classification and serialization. Each racer owns separate motion, device, reserve and lap state. Rival meshes consume `runtime.pose(alpha)` during true flight. Shared countdown/HUD/results and renderer launch feedback require no circuit-specific reimplementation.
 

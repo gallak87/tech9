@@ -6,23 +6,25 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": null,
-      "legacyFingerprint": "5e110275f3057649-2a6d4cea05e4d6d9"
+      "sourceRevision": "1f14b0e72cde665a18e6f55fd7f6ab0c61f936f9",
+      "sourceDirty": true,
+      "routeSignature": "170fc0b6a95991a0"
     },
     "glasswake": {
       "file": "glasswake.webp",
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": null,
-      "legacyFingerprint": "5e110275f3057649-116c3ce4e675177c"
+      "sourceRevision": "1f14b0e72cde665a18e6f55fd7f6ab0c61f936f9",
+      "sourceDirty": true,
+      "routeSignature": "732cb17d56e49422"
     },
     "halcyon": {
       "file": "halcyon.webp",
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "596698eda25e2bcf24ad11350bf6ca3a32e7ad61",
+      "sourceRevision": "1f14b0e72cde665a18e6f55fd7f6ab0c61f936f9",
       "sourceDirty": true,
       "routeSignature": "02f71eb4fa1274b5"
     },
@@ -31,15 +33,16 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": null,
-      "legacyFingerprint": "5e110275f3057649-7052dd432781a3bb"
+      "sourceRevision": "1f14b0e72cde665a18e6f55fd7f6ab0c61f936f9",
+      "sourceDirty": true,
+      "routeSignature": "718653a5c9f7ca2a"
     },
     "nacre": {
       "file": "nacre.webp",
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "e265ce2bab4812c705dead7eddaddb9590cb159e",
+      "sourceRevision": "1f14b0e72cde665a18e6f55fd7f6ab0c61f936f9",
       "sourceDirty": true,
       "routeSignature": "32fbf71d94ca4d04"
     },
@@ -48,7 +51,7 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "c416840c473f636e2a96770d72fa6ef988ae3e77",
+      "sourceRevision": "1f14b0e72cde665a18e6f55fd7f6ab0c61f936f9",
       "sourceDirty": true,
       "routeSignature": "bbe77454a0908a64"
     },
@@ -57,56 +60,63 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": null,
-      "legacyFingerprint": "5e110275f3057649-e1085b21b1d432de"
+      "sourceRevision": "1f14b0e72cde665a18e6f55fd7f6ab0c61f936f9",
+      "sourceDirty": true,
+      "routeSignature": "745e0ccba1b1d203"
     },
     "saffron-wide": {
       "file": "saffron-wide.webp",
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": null,
-      "legacyFingerprint": "5e110275f3057649-2310a457ba90d1d4"
+      "sourceRevision": "1f14b0e72cde665a18e6f55fd7f6ab0c61f936f9",
+      "sourceDirty": true,
+      "routeSignature": "745e0ccba1b1d203"
     },
     "umbra": {
       "file": "umbra.webp",
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": null,
-      "legacyFingerprint": "5e110275f3057649-30a3a708a0f7acc5"
+      "sourceRevision": "1f14b0e72cde665a18e6f55fd7f6ab0c61f936f9",
+      "sourceDirty": true,
+      "routeSignature": "5cab1f1f99b9673d"
     },
     "umbra-wide": {
       "file": "umbra-wide.webp",
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": null,
-      "legacyFingerprint": "5e110275f3057649-2072cd20d837511d"
+      "sourceRevision": "1f14b0e72cde665a18e6f55fd7f6ab0c61f936f9",
+      "sourceDirty": true,
+      "routeSignature": "5cab1f1f99b9673d"
     },
     "vesper": {
       "file": "vesper.webp",
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": null,
-      "legacyFingerprint": "5e110275f3057649-f30852eaef40a228"
+      "sourceRevision": "1f14b0e72cde665a18e6f55fd7f6ab0c61f936f9",
+      "sourceDirty": true,
+      "routeSignature": "02902760b129186a"
     },
     "zephyr": {
       "file": "zephyr.webp",
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": null,
-      "legacyFingerprint": "5e110275f3057649-948031b748a9a4a5"
+      "sourceRevision": "1f14b0e72cde665a18e6f55fd7f6ab0c61f936f9",
+      "sourceDirty": true,
+      "routeSignature": "2b24c8e6df9e6d60"
     },
     "shatterline": {
       "file": "shatterline.webp",
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": null,
-      "legacyFingerprint": "5e110275f3057649-ba4be78e749a84ba"
+      "sourceRevision": "1f14b0e72cde665a18e6f55fd7f6ab0c61f936f9",
+      "sourceDirty": true,
+      "routeSignature": "44541eaf58d01ee4"
     }
   }
 }

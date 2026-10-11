@@ -46,6 +46,7 @@ export function pickupEventLabel(event) {
 
 export function createPickupPresentation({
   track,
+  road,
   scene,
   ship,
   host,
@@ -58,7 +59,11 @@ export function createPickupPresentation({
   scene.add(root);
   const projector = createRoadProjector(track);
   const hardware = devices.map((device) => {
-    const visual = createDeviceGeometry(track, device, projector);
+    const mountHeight =
+      road?.userData.deviceMountHeight?.(device, projector) ?? 0;
+    const visual = createDeviceGeometry(track, device, projector, {
+      mountHeight,
+    });
     root.add(visual.group);
     return { ...visual, device };
   });

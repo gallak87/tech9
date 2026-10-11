@@ -351,6 +351,7 @@ export async function createGame({
     const racingEnabled = Boolean(definition.racing) && !blockout;
     const runtimeContext = {
       track,
+      road,
       collisionWorld,
       dynamics,
       playtest,
@@ -1668,8 +1669,9 @@ export async function createGame({
       setSuspended(value) {
         suspended = value;
         ui.setSuspended(value);
+        // Disabling input clears it. Reannouncing an active game at green must
+        // preserve controls held through the countdown (Shift has no repeat).
         input.setEnabled(!value);
-        input.clear();
         if (value) audio.update(state, 0, false);
       },
       configure(next) {

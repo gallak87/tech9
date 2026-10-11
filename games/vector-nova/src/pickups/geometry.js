@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { sweepGeometry } from '../track/geometry.js';
+import { createVectorDeckMaterial } from './vector-deck.js';
 
 const mix = THREE.MathUtils.lerp;
 const cross = (a, b, p) =>
@@ -250,7 +251,12 @@ export function archVisibility(cameraPosition, shipPosition, bounds) {
   return Math.min(proximity, THREE.MathUtils.smoothstep(high, 1.8, 4));
 }
 
-export function createDeviceGeometry(track, device, projector) {
+export function createDeviceGeometry(
+  track,
+  device,
+  projector,
+  { mountHeight = 0 } = {},
+) {
   const group = new THREE.Group();
   group.name = `${device.type === 'vector' ? 'Vector propulsion strip' : 'Aegis reserve shield'} / ${device.id}`;
   const x0 = device.lateral - device.width / 2;
@@ -321,6 +327,9 @@ export function createDeviceGeometry(track, device, projector) {
     };
     materials.signal.customProgramCacheKey = () => 'vector-road-wave-v1';
   }
+  const deck = vector
+    ? createVectorDeckMaterial(materials, pulseUniforms, { ...device, length })
+    : null;
   const bins = new Map();
   const archBins = new Map();
   const arch = new THREE.Group();
@@ -333,8 +342,11 @@ export function createDeviceGeometry(track, device, projector) {
     if (!bins.has(key)) bins.set(key, []);
     bins.get(key).push(geometry);
   }
-  const road = (key, shapes, offset, skirt) =>
-    add(key, projector.geometry(shapes, offset, skirt));
+  const road = (key, shapes, offset, skirt, mounted = true) =>
+    add(
+      key,
+      projector.geometry(shapes, offset + (mounted ? mountHeight : 0), skirt),
+    );
   road(
     'case',
     [rectangle(x0 - 0.35, x1 + 0.35, from - 0.35, to + 0.35)],
@@ -361,29 +373,9 @@ export function createDeviceGeometry(track, device, projector) {
   }
   road('ceramic', pads, 0.076);
   if (vector) {
-    const chevrons = [];
-    const white = [];
-    for (let s = from + 1.8; s < to - 1; s += 3.3) {
-      for (const side of [-1, 1]) {
-        const outside = centre + side * width * 0.39;
-        chevrons.push([
-          [outside, s - 1.1],
-          [centre, s + 0.75],
-          [centre, s + 2],
-          [outside, s + 0.15],
-        ]);
-        white.push([
-          [outside, s + 0.24],
-          [centre, s + 2.1],
-          [centre, s + 2.45],
-          [outside, s + 0.59],
-        ]);
-      }
-    }
     // The full-width luminous threshold marks the exact leading edge; the
     // travelling chevrons then guide the driver through the entire live strip.
     road('signal', [rectangle(x0, x1, from, from + 0.8)], 0.082);
-    road('signal', chevrons, 0.082);
     road(
       'signal',
       [
@@ -392,7 +384,6 @@ export function createDeviceGeometry(track, device, projector) {
       ],
       0.084,
     );
-    road('white', white, 0.086);
     const markers = [];
     for (const before of [12, 24, 38]) {
       for (const side of [-1, 1]) {
@@ -404,7 +395,7 @@ export function createDeviceGeometry(track, device, projector) {
         ]);
       }
     }
-    road('signal', markers, 0.021);
+    road('signal', markers, 0.021, null, false);
   } else {
     // An open, segmented arch leaves the racing sightline completely clear.
     const frame = track.sample(distance);
@@ -544,6 +535,10 @@ export function createDeviceGeometry(track, device, projector) {
           : 0.45
         : 0.02;
     }
+    deck?.intensity.set(
+      materials.signal.emissiveIntensity,
+      materials.white.emissiveIntensity,
+    );
   }
   signalBrightness();
   return {

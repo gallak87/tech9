@@ -144,6 +144,80 @@ try {
       },
     );
     await check(
+      'held countdown controls survive green and release normally',
+      async (page) => {
+        for (const [level, boostKey] of [
+          ['halcyon', 'ShiftLeft'],
+          ['nacre', 'ShiftRight'],
+        ]) {
+          await page.goto(url(`level=${level}&music=0`));
+          await page.locator('[data-action="launch"]').click();
+          await booted(page);
+          await page.waitForFunction(
+            () => window.__VN.getSnapshot().mode === 'countdown',
+          );
+          await page.keyboard.down('w');
+          await page.keyboard.down(boostKey);
+          const waiting = await snapshot(page);
+          assert.equal(waiting.input.throttle, 1);
+          assert.equal(waiting.input.boost, true);
+          assert.equal(
+            waiting.vehicle.time,
+            0,
+            'countdown must not advance driving',
+          );
+          assert.equal(
+            waiting.vehicle.energy,
+            100,
+            'countdown must not spend reserve',
+          );
+          await page.waitForFunction(
+            () => window.__VN.getSnapshot().mode === 'racing',
+          );
+          const green = await snapshot(page);
+          assert.equal(
+            green.input.throttle,
+            1,
+            `${level}: held throttle lost at green`,
+          );
+          assert.equal(
+            green.input.boost,
+            true,
+            `${level}: held Shift lost at green`,
+          );
+          await page.waitForFunction(
+            () => window.__VN.getSnapshot().vehicle.boosting,
+            null,
+            { timeout: 4000 },
+          );
+          assert.ok((await snapshot(page)).vehicle.energy < 100);
+          await page.keyboard.up(boostKey);
+          await page.waitForFunction(
+            () => !window.__VN.getSnapshot().vehicle.boosting,
+          );
+          assert.equal((await snapshot(page)).input.boost, false);
+          await page.keyboard.down(boostKey);
+          await page.keyboard.press('Escape');
+          const paused = await snapshot(page);
+          assert.equal(paused.mode, 'paused');
+          assert.equal(paused.input.throttle, 0);
+          assert.equal(paused.input.boost, false);
+          await page.keyboard.up(boostKey);
+          await page.keyboard.up('w');
+          await page.locator('#resume').click();
+          await page.keyboard.down('w');
+          await page.keyboard.down(boostKey);
+          await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+          const blurred = await snapshot(page);
+          assert.equal(blurred.mode, 'paused');
+          assert.equal(blurred.input.throttle, 0);
+          assert.equal(blurred.input.boost, false);
+          await page.keyboard.up(boostKey);
+          await page.keyboard.up('w');
+        }
+      },
+    );
+    await check(
       'race lights, retained session, inspection, finish and continue/pause',
       async (page) => {
         await page.goto(url('level=halcyon&music=0'));
@@ -157,14 +231,12 @@ try {
           null,
           { timeout: 15000 },
         );
-        const lights = await page
-          .locator('.go i')
-          .evaluateAll((nodes) =>
-            nodes.map((node) => ({
-              lit: node.classList.contains('lit'),
-              color: getComputedStyle(node).backgroundColor,
-            })),
-          );
+        const lights = await page.locator('.go i').evaluateAll((nodes) =>
+          nodes.map((node) => ({
+            lit: node.classList.contains('lit'),
+            color: getComputedStyle(node).backgroundColor,
+          })),
+        );
         assert.equal(lights.length, 3);
         assert.ok(
           lights.every(

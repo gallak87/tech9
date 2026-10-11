@@ -8,6 +8,7 @@ import {
 import { nacreSeabedHeight } from '../environment/seabed.js';
 import { applyNacreSurfaceFinish } from './surface-finish.js';
 import { createCeramicMaps } from './ceramic-maps.js';
+import { nacreDeviceMountHeight } from './device-mount.js';
 
 const point = (frame, x, y, z = 0) =>
   frame.position
@@ -517,6 +518,12 @@ export function buildNacreTrack(track, renderer) {
   );
   base.userData.substrate = true;
   const panels = ceramicPanels(track, runs);
+  group.userData.deviceMountHeight = (device, projector) =>
+    nacreDeviceMountHeight(
+      [panels.ceramic, panels.glaze, panels.membrane],
+      device,
+      projector,
+    );
   const scales = add(
     'Pearlescent scalloped ceramic running scales',
     panels.ceramic,

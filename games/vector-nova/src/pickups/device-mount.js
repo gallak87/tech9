@@ -1,9 +1,9 @@
 import { Vector3 } from 'three';
 
-// Nacre's raised lamellae sit above the ideal swept road used by pickups.
+// Raised road skins can sit above the ideal swept road used by pickups.
 // Fit the cassette casing above the real panel envelope; its skirt still seats
 // into the road. This is presentation only, never the pickup contact footprint.
-export function nacreDeviceMountHeight(surfaces, device, projector) {
+export function roadDeviceMountHeight(surfaces, device, projector) {
   if (device.type !== 'vector') return 0;
   const from = device.distance - device.length / 2;
   const to = device.distance + device.length / 2;
@@ -15,9 +15,14 @@ export function nacreDeviceMountHeight(surfaces, device, projector) {
   for (const geometry of surfaces) {
     const coordinates = geometry.getAttribute('roadCoord');
     const positions = geometry.getAttribute('position');
-    for (let i = 0; i < coordinates.count; i += 3) {
-      const distances = [0, 1, 2].map((j) => coordinates.getX(i + j));
-      const laterals = [0, 1, 2].map((j) => coordinates.getY(i + j));
+    const index = geometry.getIndex();
+    const count = index?.count ?? coordinates.count;
+    for (let i = 0; i < count; i += 3) {
+      const vertices = [0, 1, 2].map((j) =>
+        index ? index.getX(i + j) : i + j,
+      );
+      const distances = vertices.map((j) => coordinates.getX(j));
+      const laterals = vertices.map((j) => coordinates.getY(j));
       if (
         Math.max(...distances) < from - 0.35 ||
         Math.min(...distances) > to + 0.35 ||
@@ -32,9 +37,13 @@ export function nacreDeviceMountHeight(surfaces, device, projector) {
       const at = projected.getAttribute('roadCoord');
       const base = projected.getAttribute('position');
       const up = projected.getAttribute('normal');
-      const a = new Vector3().fromBufferAttribute(positions, i);
-      const ab = new Vector3().fromBufferAttribute(positions, i + 1).sub(a);
-      const ac = new Vector3().fromBufferAttribute(positions, i + 2).sub(a);
+      const a = new Vector3().fromBufferAttribute(positions, vertices[0]);
+      const ab = new Vector3()
+        .fromBufferAttribute(positions, vertices[1])
+        .sub(a);
+      const ac = new Vector3()
+        .fromBufferAttribute(positions, vertices[2])
+        .sub(a);
       const bx = laterals[1] - laterals[0],
         bs = distances[1] - distances[0];
       const cx = laterals[2] - laterals[0],

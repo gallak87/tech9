@@ -7,6 +7,7 @@ import {
   beamTransform,
 } from '../../../track/geometry.js';
 import { framePoint } from '../../../track/frames.js';
+import { roadDeviceMountHeight } from '../../../pickups/device-mount.js';
 export { createHelionTrack } from './model.js';
 
 // Authored construction geometry is shared by production and neutral review.
@@ -111,6 +112,30 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
   solidRanges.push({ start: cursor, end: track.length, min: -half, max: half });
   const sweep = (profile, range, step = 3) =>
     sweepGeometry(track, profile, { start: range.start, end: range.end, step });
+  // Keep the actual raised skins in track space for device seating. Coordinates
+  // follow sweepGeometry's face/row ordering; UV.y stores distance / 16.
+  const mountSurfaces = [];
+  const mountSweep = (profile, range, step) => {
+    const geometry = sweep(profile, range, step);
+    const uv = geometry.getAttribute('uv');
+    const perFace = uv.count / (profile.length - 1);
+    const coordinates = new Float32Array(uv.count * 2);
+    for (let i = 0; i < uv.count; i++) {
+      coordinates[i * 2] = uv.getY(i) * 16;
+      coordinates[i * 2 + 1] = profile[Math.floor(i / perFace) + (i % 2)][0];
+    }
+    geometry.setAttribute(
+      'roadCoord',
+      new THREE.BufferAttribute(coordinates, 2),
+    );
+    return geometry;
+  };
+  const mountSurface = (name, parts, material) => {
+    const mesh = merged(name, parts, material);
+    if (mesh) mountSurfaces.push(mesh.geometry);
+  };
+  group.userData.deviceMountHeight = (device, projector) =>
+    roadDeviceMountHeight(mountSurfaces, device, projector);
   const tops = [];
   const sides = [];
   const curbParts = [];
@@ -186,7 +211,7 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
                 ? spentTile
                 : tile;
         cassetteParts.get(material).push(
-          sweep(
+          mountSweep(
             [
               [x + 0.08, 0.026],
               [x + 0.2, 0.095],
@@ -201,7 +226,7 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
     }
   }
   for (const [material, parts] of cassetteParts)
-    merged(`Formed cassettes / ${material.name}`, parts, material);
+    mountSurface(`Formed cassettes / ${material.name}`, parts, material);
 
   const seams = [];
   const service = [];
@@ -252,7 +277,7 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
       s += 126
     ) {
       service.push(
-        sweep(
+        mountSweep(
           [
             [range.min + 0.6, 0.111],
             [range.max - 0.6, 0.111],
@@ -264,7 +289,7 @@ export function buildHelionRoad(track, { shape = false, settings = {} } = {}) {
     }
   }
   merged('Large tile joints / warm bevel lines', seams, bevel);
-  merged('Broad graphite reinforcement plates', service, shaded);
+  mountSurface('Broad graphite reinforcement plates', service, shaded);
   merged('Copper edge service caps', edgeCaps, copperEdge);
 
   const unitBox = new THREE.BoxGeometry(1, 1, 1);

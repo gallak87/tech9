@@ -500,9 +500,17 @@ export function createUI(
             : vesperGraphicsDefaults,
         );
         actions.settings();
+      } else if (event.target.closest('[data-halcyon-original]')) {
+        Object.assign(settings, {
+          halcyonRoadSurface: 'original',
+          halcyonRoadSheen: 0,
+          halcyonRoadReflections: false,
+        });
+        actions.settings();
       } else if (event.target.closest('[data-halcyon-trial]')) {
         Object.assign(settings, {
-          halcyonRoadSheen: 0.6,
+          halcyonRoadSurface: 'asphalt',
+          halcyonRoadSheen: 0.8,
           halcyonRoadReflections: true,
         });
         actions.settings();

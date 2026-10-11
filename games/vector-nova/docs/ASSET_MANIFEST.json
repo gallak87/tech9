@@ -1,5 +1,5 @@
 {
-  "policy": "Project-owned geometry/materials and generated sky/material imagery; detailed ownership and prompts retained in per-asset provenance. No copied reference-game artwork.",
+  "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
       "id": "shatterline-limestone",
@@ -71,8 +71,8 @@
       "id": "circuit-menu-previews",
       "source": "public/assets/menu/",
       "creator": "VECTOR//NOVA runtime via tools/capture-menu-previews.mjs",
-      "provenance": "One 640\u00d7400 WebP ship-free circuit still per circuit, captured from project-owned game assets at Low quality. Regenerate with npm run previews; capture provenance is stored alongside the images; freshness warnings never hide saved stills. These files are served menu assets, not verification evidence.",
-      "rights": "Derived from this project\u2019s registered level and ship assets; their original provenance and rights apply",
+      "provenance": "One 640×400 WebP ship-free circuit still per circuit, captured from project-owned game assets at Low quality. Regenerate with npm run previews; capture provenance is stored alongside the images; freshness warnings never hide saved stills. These files are served menu assets, not verification evidence.",
+      "rights": "Derived from this project’s registered level and ship assets; their original provenance and rights apply",
       "runtimeDependencies": [
         "public/assets/menu/*.webp",
         "public/assets/menu/previews.json"
@@ -93,7 +93,7 @@
       "id": "halcyon-circuit",
       "source": "src/levels/halcyon/track/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original authored control points, frame-based geometry, procedural surface textures and signage",
+      "provenance": "Original authored control points, frame-based geometry, procedural construction materials and signage. The running surface uses the separately registered halcyon-asphalt CC0 scan.",
       "rights": "Project-authored; no third-party asset restrictions",
       "runtimeDependencies": ["three"]
     },
@@ -449,6 +449,20 @@
       ],
       "runtimeDependencies": ["three"],
       "provenanceRecord": "docs/licenses/BASIS-LICENSE.txt"
+    },
+    {
+      "id": "halcyon-asphalt",
+      "source": "assets/levels/halcyon/asphalt/",
+      "creator": "Charlotte Baglioni (photography), Dario Barresi (processing) / Poly Haven",
+      "provenance": "Poly Haven Asphalt 03 scan, 2.05 m square. Retained source maps: 2K color and OpenGL normal, 1K packed AO/roughness/metalness. build.py encodes mipmapped UASTC KTX2; shader moisture varies independently over metres. Source URLs, hashes, authors and runtime hashes are retained. No source lighting or reflection imagery added.",
+      "rights": "CC0-1.0 — https://polyhaven.com/license",
+      "runtimeDependencies": ["three", "public/assets/ships/decoder/"],
+      "runtimeAssets": [
+        "public/assets/levels/halcyon/asphalt/color.ktx2",
+        "public/assets/levels/halcyon/asphalt/normal.ktx2",
+        "public/assets/levels/halcyon/asphalt/arm.ktx2"
+      ],
+      "provenanceRecord": "assets/levels/halcyon/asphalt/provenance.json"
     }
   ],
   "thirdParty": [

@@ -26,8 +26,8 @@ export default function createLevel() {
       reflectionFar: 6000,
     },
     createTrack,
-    createRoad({ track, settings }) {
-      const group = buildTrackVisual(track, settings);
+    createRoad({ track, settings, view }) {
+      const group = buildTrackVisual(track, settings, view?.renderer);
       return legacyPart(group, ({ state, settings: next }) => {
         group.userData.updateFinish(next);
         group.userData.update(state.distance);

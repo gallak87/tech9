@@ -1,3 +1,4 @@
+import { createAsphalt } from './asphalt.js';
 import {
   surfaceTexture,
   roadRoughnessTexture,
@@ -20,7 +21,7 @@ export { createTrack };
 
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
 
-export function buildTrackVisual(track, settings = {}) {
+export function buildTrackVisual(track, settings = {}, renderer = null) {
   const group = new THREE.Group();
   group.name = 'Halcyon Viaduct / complete authored circuit';
   const geometries = new Set();
@@ -47,6 +48,8 @@ export function buildTrackVisual(track, settings = {}) {
     metalness: 0.07,
   });
   road.name = 'Halcyon composite road';
+  const asphalt = renderer ? createAsphalt(renderer, track.width) : null;
+  let runningSurface;
   // A material-only comparison: retain the original maps, geometry and lights.
   // The district probe is already owned/baked by the renderer; never dispose it here.
   let districtReflection = null;
@@ -57,10 +60,18 @@ export function buildTrackVisual(track, settings = {}) {
       ? THREE.MathUtils.clamp(next.halcyonRoadSheen, 0, 1)
       : 0;
     road.roughness = THREE.MathUtils.lerp(0.9, 0.22, sheen);
+    asphalt?.update(sheen);
+    if (runningSurface)
+      runningSurface.material =
+        asphalt && next.halcyonRoadSurface !== 'original'
+          ? asphalt.material
+          : road;
     const reflection = next.halcyonRoadReflections ? districtReflection : null;
-    if (road.envMap !== reflection) {
-      road.envMap = reflection;
-      road.needsUpdate = true;
+    for (const surface of asphalt ? [road, asphalt.material] : [road]) {
+      if (surface.envMap !== reflection) {
+        surface.envMap = reflection;
+        surface.needsUpdate = true;
+      }
     }
   }
   updateFinish();
@@ -183,7 +194,7 @@ export function buildTrackVisual(track, settings = {}) {
     );
   }
 
-  const runningSurface = sweep(
+  runningSurface = sweep(
     'Composite running surface / 28 metres',
     [
       [-14, 0],
@@ -1224,6 +1235,7 @@ export function buildTrackVisual(track, settings = {}) {
     representativeSection: { start: 0, end: track.length },
     groundY: track.groundY,
     sectionShowcases: track.showcases,
+    ready: asphalt?.ready,
     update,
     updateFinish,
     setReflection(texture) {
@@ -1233,6 +1245,7 @@ export function buildTrackVisual(track, settings = {}) {
     dispose() {
       if (disposed) return;
       disposed = true;
+      asphalt?.dispose();
       for (const geometry of geometries) geometry.dispose();
       for (const surface of materials) surface.dispose();
       for (const texture of textures) texture.dispose();
@@ -1245,6 +1258,7 @@ export function buildTrackVisual(track, settings = {}) {
       object.matrixAutoUpdate = false;
     }
   });
+  updateFinish();
   update(0);
   return group;
 }

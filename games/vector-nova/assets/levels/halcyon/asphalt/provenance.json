@@ -1,0 +1,48 @@
+{
+  "source": "https://polyhaven.com/a/asphalt_03",
+  "license": "CC0-1.0",
+  "licenseURL": "https://polyhaven.com/license",
+  "authors": {
+    "Charlotte Baglioni": "photography",
+    "Dario Barresi": "processing"
+  },
+  "physicalRepeatMetres": 2.05,
+  "maps": [
+    {
+      "map": "color",
+      "sourceURL": "https://dl.polyhaven.org/file/ph-assets/Textures/png/2k/asphalt_03/asphalt_03_diff_2k.png",
+      "sourceMD5": "fe8b3d96d3784aa7225cc3012ff314af",
+      "sha256": "acb2fa9219e539ea14e4b53368b17b99d964b775bfc358b3e08e530b78924a74"
+    },
+    {
+      "map": "normal",
+      "sourceURL": "https://dl.polyhaven.org/file/ph-assets/Textures/png/2k/asphalt_03/asphalt_03_nor_gl_2k.png",
+      "sourceMD5": "69300de87fa39c4d6f4008f69fda5c3a",
+      "sha256": "dd79099053896af558c3e99568b34a4677f613764c9da8676ae412d66c8ef01c"
+    },
+    {
+      "map": "arm",
+      "sourceURL": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/asphalt_03/asphalt_03_arm_1k.png",
+      "sourceMD5": "56105176c679149df5eb84d7a22b9a66",
+      "sha256": "33bcfe8fc1ef0afec27c52f63b84eb26b90f1f5c540680290da482219fe36cea"
+    }
+  ],
+  "runtime": [
+    {
+      "file": "color.ktx2",
+      "bytes": 4275928,
+      "sha256": "18ae788c20b5546a8ab87a001233d2256e7dc1e306b640ead99bcf6c5aede301"
+    },
+    {
+      "file": "normal.ktx2",
+      "bytes": 4608361,
+      "sha256": "3efd1f46448250c5ddd2598f90e12d831efa101addfda6c5a44275aae527abec"
+    },
+    {
+      "file": "arm.ktx2",
+      "bytes": 1101494,
+      "sha256": "c42fa9fddfb5af5992c415969ea9bfb7ea2c1e40e02f44f9384da078b7784d04"
+    }
+  ],
+  "encoder": "toktx v4.4.2"
+}

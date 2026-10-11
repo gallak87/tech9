@@ -3,17 +3,29 @@ export const vesperGraphicsDefaults = {
   vesperResinDetail: true,
   vesperSurfaceDetail: true,
 };
+export const halcyonGraphicsDefaults = {
+  halcyonRoadSheen: 0,
+  halcyonRoadReflections: false,
+};
 export const defaults = {
   volume: 0.35,
   quality: 'high',
   reducedMotion: false,
   difficulty: 'easy',
   ...vesperGraphicsDefaults,
+  ...halcyonGraphicsDefaults,
 };
 let current;
 const listeners = new Set();
 function normalize(saved = {}) {
   return {
+    halcyonRoadSheen: Number.isFinite(saved.halcyonRoadSheen)
+      ? Math.max(0, Math.min(1, saved.halcyonRoadSheen))
+      : halcyonGraphicsDefaults.halcyonRoadSheen,
+    halcyonRoadReflections:
+      typeof saved.halcyonRoadReflections === 'boolean'
+        ? saved.halcyonRoadReflections
+        : halcyonGraphicsDefaults.halcyonRoadReflections,
     ...Object.fromEntries(
       Object.entries(vesperGraphicsDefaults).map(([key, fallback]) => [
         key,

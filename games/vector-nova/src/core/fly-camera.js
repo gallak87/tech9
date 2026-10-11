@@ -70,7 +70,14 @@ export function createFlyCamera(
         if (!event.repeat) settings?.();
         return;
       }
-      // In free cam, movement owns the keys even when a dev control has focus.
+      // Sliders keep native arrow-key adjustment; WASD still moves the camera.
+      if (
+        active &&
+        event.target.type === 'range' &&
+        event.code.startsWith('Arrow')
+      )
+        return;
+      // Other free-cam movement keys work even when a dev control has focus.
       if (
         !active &&
         event.target.closest?.(

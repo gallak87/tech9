@@ -3,8 +3,14 @@ import { SHIPS } from '../ships/catalog.js';
 import { RIVAL_SHIPS } from '../ships/rivals.js';
 import { circuitURL } from '../levels/contract.js';
 import { presentationDistance } from '../race/course.js';
-import { vesperGraphicsDefaults } from '../progression/index.js';
-import { vesperGraphicsControls } from './graphics-settings.js';
+import {
+  halcyonGraphicsDefaults,
+  vesperGraphicsDefaults,
+} from '../progression/index.js';
+import {
+  halcyonGraphicsControls,
+  vesperGraphicsControls,
+} from './graphics-settings.js';
 
 const racerColors = Object.freeze({
   player: '#fb7959',
@@ -410,7 +416,7 @@ export function createUI(
   flySettings.className = 'hidden';
   flySettings.dataset.flySettings = '';
   flySettings.setAttribute('aria-label', 'Free camera dev tools');
-  flySettings.innerHTML = `<div class="fly-heading"><b>DEV TOOLS</b><button id="fly-settings-close" aria-label="Close dev tools">CLOSE · ESC</button></div><dl class="dev-metrics"><div><dt>FPS</dt><dd id="dev-fps">—</dd></div><div><dt>Frame avg</dt><dd id="dev-frame-ms">—</dd></div><div><dt>Draw calls</dt><dd id="dev-calls">—</dd></div><div><dt>Triangles</dt><dd id="dev-triangles">—</dd></div></dl><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Reduced motion</span><input type="checkbox" data-setting="reducedMotion"></label>${metadata.id === 'vesper' ? vesperGraphicsControls(settings) : ''}<p>Changes apply live and are saved on this device. Frame averages refresh every half second; draw counts include render passes.</p>`;
+  flySettings.innerHTML = `<div class="fly-heading"><b>DEV TOOLS</b><button id="fly-settings-close" aria-label="Close dev tools">CLOSE · ESC</button></div><dl class="dev-metrics"><div><dt>FPS</dt><dd id="dev-fps">—</dd></div><div><dt>Frame avg</dt><dd id="dev-frame-ms">—</dd></div><div><dt>Draw calls</dt><dd id="dev-calls">—</dd></div><div><dt>Triangles</dt><dd id="dev-triangles">—</dd></div></dl><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Reduced motion</span><input type="checkbox" data-setting="reducedMotion"></label>${metadata.id === 'vesper' ? vesperGraphicsControls(settings) : metadata.id === 'halcyon' ? halcyonGraphicsControls(settings) : ''}<p>Changes apply live and are saved on this device. Frame averages refresh every half second; draw counts include render passes.</p>`;
   root.append(flySettings);
   const viewLink = document.createElement('div');
   viewLink.className = 'dev-view-link';
@@ -430,9 +436,12 @@ export function createUI(
       $('art-view-status').textContent = 'Copy the selected view link.';
     }
   };
-  if (metadata.id === 'vesper') {
+  if (['vesper', 'halcyon'].includes(metadata.id)) {
     const comparisons = document.createElement('details');
-    comparisons.innerHTML = `<summary>Vesper material settings</summary>${vesperGraphicsControls(settings)}`;
+    comparisons.innerHTML =
+      metadata.id === 'halcyon'
+        ? `<summary>Halcyon road finish</summary>${halcyonGraphicsControls(settings)}`
+        : `<summary>Vesper material settings</summary>${vesperGraphicsControls(settings)}`;
     $('pause-panel').append(comparisons);
   }
   let perfLast = null,
@@ -459,25 +468,45 @@ export function createUI(
   }
   flySettingsButton.onclick = toggleFlySettings;
   $('fly-settings-close').onclick = () => closeFlySettings();
+  function updateSetting(event) {
+    const control = event.target;
+    const key = control.dataset.setting;
+    if (!key) return;
+    settings[key] =
+      control.type === 'checkbox'
+        ? control.checked
+        : control.type === 'range'
+          ? control.valueAsNumber
+          : control.value;
+    actions.settings();
+  }
+  root.addEventListener('change', updateSetting, { signal: listeners.signal });
   root.addEventListener(
-    'change',
+    'input',
     (event) => {
-      const key = event.target.dataset.setting;
-      if (!key) return;
-      settings[key] =
-        event.target.type === 'checkbox'
-          ? event.target.checked
-          : event.target.value;
-      actions.settings();
+      if (event.target.type === 'range') updateSetting(event);
     },
     { signal: listeners.signal },
   );
   root.addEventListener(
     'click',
     (event) => {
-      if (!event.target.closest('[data-graphics-reset]')) return;
-      Object.assign(settings, vesperGraphicsDefaults);
-      actions.settings();
+      const reset = event.target.closest('[data-graphics-reset]');
+      if (reset) {
+        Object.assign(
+          settings,
+          reset.dataset.graphicsReset === 'halcyon'
+            ? halcyonGraphicsDefaults
+            : vesperGraphicsDefaults,
+        );
+        actions.settings();
+      } else if (event.target.closest('[data-halcyon-trial]')) {
+        Object.assign(settings, {
+          halcyonRoadSheen: 0.6,
+          halcyonRoadReflections: true,
+        });
+        actions.settings();
+      }
     },
     { signal: listeners.signal },
   );
@@ -843,6 +872,9 @@ export function createUI(
         const value = next[control.dataset.setting];
         if (control.type === 'checkbox') control.checked = value;
         else control.value = value;
+      }
+      for (const output of root.querySelectorAll('[data-setting-output]')) {
+        output.value = `${Math.round(next[output.dataset.settingOutput] * 100)}%`;
       }
     },
     setResultsAvailable(available) {

@@ -26,11 +26,12 @@ export default function createLevel() {
       reflectionFar: 6000,
     },
     createTrack,
-    createRoad({ track }) {
-      const group = buildTrackVisual(track);
-      return legacyPart(group, ({ state }) =>
-        group.userData.update?.(state.distance),
-      );
+    createRoad({ track, settings }) {
+      const group = buildTrackVisual(track, settings);
+      return legacyPart(group, ({ state, settings: next }) => {
+        group.userData.updateFinish(next);
+        group.userData.update(state.distance);
+      });
     },
     createEnvironment: ({ track }) => legacyPart(createEnvironment(track)),
     async createBackdrop() {

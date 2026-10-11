@@ -20,7 +20,7 @@ export { createTrack };
 
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
 
-export function buildTrackVisual(track) {
+export function buildTrackVisual(track, settings = {}) {
   const group = new THREE.Group();
   group.name = 'Halcyon Viaduct / complete authored circuit';
   const geometries = new Set();
@@ -46,6 +46,24 @@ export function buildTrackVisual(track) {
     roughness: 0.9,
     metalness: 0.07,
   });
+  road.name = 'Halcyon composite road';
+  // A material-only comparison: retain the original maps, geometry and lights.
+  // The district probe is already owned/baked by the renderer; never dispose it here.
+  let districtReflection = null;
+  let finishSettings = settings;
+  function updateFinish(next = finishSettings) {
+    finishSettings = next;
+    const sheen = Number.isFinite(next.halcyonRoadSheen)
+      ? THREE.MathUtils.clamp(next.halcyonRoadSheen, 0, 1)
+      : 0;
+    road.roughness = THREE.MathUtils.lerp(0.9, 0.22, sheen);
+    const reflection = next.halcyonRoadReflections ? districtReflection : null;
+    if (road.envMap !== reflection) {
+      road.envMap = reflection;
+      road.needsUpdate = true;
+    }
+  }
+  updateFinish();
   const concrete = material({
     color: 0xd8d6cc,
     map: concreteMap,
@@ -1207,6 +1225,11 @@ export function buildTrackVisual(track) {
     groundY: track.groundY,
     sectionShowcases: track.showcases,
     update,
+    updateFinish,
+    setReflection(texture) {
+      districtReflection = texture;
+      updateFinish();
+    },
     dispose() {
       if (disposed) return;
       disposed = true;

@@ -1,4 +1,8 @@
 // Shared by the front end, pause menu and live free-camera panel.
+export function halcyonGraphicsControls(settings) {
+  return `<fieldset class="graphics-options"><legend>Halcyon road finish</legend><label class="graphics-slider"><span>Road sheen <output data-setting-output="halcyonRoadSheen">${Math.round(settings.halcyonRoadSheen * 100)}%</output><small>0% original matte · 100% glossy</small></span><input aria-label="Road sheen" type="range" min="0" max="1" step=".05" data-setting="halcyonRoadSheen" value="${settings.halcyonRoadSheen}"></label><label><span>Nearby reflections<small>Reflect the surrounding city</small></span><input type="checkbox" data-setting="halcyonRoadReflections" ${settings.halcyonRoadReflections ? 'checked' : ''}></label><p>Compare the existing road under the same lighting.</p><button type="button" data-halcyon-trial>Try sealed finish</button> <button type="button" data-graphics-reset="halcyon">Restore road defaults</button></fieldset>`;
+}
+
 export function vesperGraphicsControls(settings) {
   return `<fieldset class="graphics-options"><legend>Vesper materials</legend><p>Compare effects live in Vesper Canopy.</p>${[
     ['vesperClearcoat', 'Resin clearcoat', 'Polished surface highlights'],

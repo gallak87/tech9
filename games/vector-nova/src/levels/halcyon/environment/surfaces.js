@@ -428,6 +428,12 @@ export function createSurfaces() {
       map: groundTexture(),
       roughness: 0.91,
       metalness: 0.05,
+      // This 19 km underlay sits centimetres below streets and planting.
+      // Keep its depth behind those overlays at distant/grazing race cameras;
+      // moving geometry or changing the shared camera clip planes is unnecessary.
+      polygonOffset: true,
+      polygonOffsetFactor: 4,
+      polygonOffsetUnits: 8,
     }),
     paint: own({ color: '#b8b7a7', roughness: 0.85 }),
     vegetation: own({ color: '#394b44', roughness: 0.96 }),

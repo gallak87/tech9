@@ -131,10 +131,10 @@ test('Cindercoil road keeps the vent open, supports outside the camera corridor,
       ((geometry.index?.count ?? geometry.attributes.position.count) / 3) *
       (object.count ?? 1);
     if (!object.userData.drivingSurface) return;
-    assert.ok(
-      object.material.map &&
-        object.material.bumpMap &&
-        object.material.roughnessMap,
+    assert.equal(
+      object.material.map,
+      null,
+      'CPU construction does not load texture assets',
     );
     const position = geometry.attributes.position;
     const a = new THREE.Vector3(),
@@ -171,14 +171,7 @@ test('Cindercoil road keeps the vent open, supports outside the camera corridor,
     surfaceArea > referenceArea * 0.98 && surfaceArea < referenceArea * 1.025,
     'Single ceramic tessellation must neither duplicate nor omit the running surface',
   );
-  assert.equal(ownedTexture.size, 5);
-  assert.ok(
-    [...ownedTexture].reduce(
-      (bytes, texture) => bytes + texture.image.data.byteLength,
-      0,
-    ) <=
-      11 * 1024 * 1024,
-  );
+  assert.equal(ownedTexture.size, 0);
   assert.ok(road.group.userData.supportCounts.piers >= 30);
   assert.ok(road.group.userData.supportCounts.coilArms >= 3);
   const frames = [];

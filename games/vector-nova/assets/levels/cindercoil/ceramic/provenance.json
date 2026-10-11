@@ -1,0 +1,51 @@
+{
+  "title": "Cindercoil fired mineral ceramic",
+  "source": "https://ambientcg.com/view?id=Concrete030",
+  "sourceDownload": "https://ambientcg.com/get?file=Concrete030_2K-PNG.zip",
+  "creator": "Lennart Demes / ambientCG",
+  "license": "CC0-1.0",
+  "licenseURL": "https://docs.ambientcg.com/license/",
+  "sourceTechnique": "Procedural, as described by ambientCG; not a photogrammetric scan",
+  "runtimeRepeatMetres": [3, 3],
+  "adaptation": "Neutral albedo centered at .88 with retained mineral variation. OpenGL normal retained. Roughness remapped to .42–.95. One compressed set serves matte fired bodies, oxide repair cassettes and a separate dark Crown glaze. Metric coordinates keep grain square; analytical fitted seams follow original 6 × 12 m cassette UVs without moving contact geometry. No baked lighting or lava color.",
+  "channels": {
+    "color": "sRGB",
+    "normal": "linear OpenGL +Y",
+    "arm": "linear R=1 AO, G=roughness, B=0 metalness"
+  },
+  "sources": [
+    {
+      "file": "source/Concrete030_2K-PNG_Color.png",
+      "sha256": "6763a18e60cfd742f9e1d828cb86303057c17e94143a96779db7f58463c42c5f"
+    },
+    {
+      "file": "source/Concrete030_2K-PNG_NormalGL.png",
+      "sha256": "06e8da7d6af734939c11e49ed060531b9e8c90f0d860fb4094543305ecf82080"
+    },
+    {
+      "file": "source/Concrete030_2K-PNG_Roughness.png",
+      "sha256": "8c35ae7c6a6d8f177574c638e6f6c1959a49783dc381138c693f004cf43fbe9a"
+    }
+  ],
+  "runtime": [
+    {
+      "file": "color.ktx2",
+      "dimensions": [2048, 2048],
+      "bytes": 3588201,
+      "sha256": "b947f6f56469bfac17d176ccfaecc6d0becc3b4d6c248352d3530b7ae61fb7e5"
+    },
+    {
+      "file": "normal.ktx2",
+      "dimensions": [2048, 2048],
+      "bytes": 4991069,
+      "sha256": "f0af020796a027f45e86a5e167946f1462274b084c6d70e3ecd844ac0f5fa2cf"
+    },
+    {
+      "file": "arm.ktx2",
+      "dimensions": [1024, 1024],
+      "bytes": 806594,
+      "sha256": "5da67146f5f7e1f1a0286850d5b626985ebe8d9f7e93e9e8a5e610c0644f7b82"
+    }
+  ],
+  "encoder": "toktx v4.4.2"
+}

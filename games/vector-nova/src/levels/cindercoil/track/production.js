@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import { beveledBoxGeometry } from './beveled-box.js';
-import { createCeramicTextures } from './ceramic-textures.js';
+import { createCindercoilCeramicMaps } from './ceramic-maps.js';
+import {
+  setCeramicCoordinates,
+  applyCeramicPanelFinish,
+} from './surface-finish.js';
 import { applyCindercoilAssetMaterials } from '../environment/materials.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { framePoint } from '../../../track/frames.js';
@@ -45,6 +49,7 @@ export function createCindercoilRoad({
   shape = false,
   settings = {},
   collectSolid = null,
+  view,
 }) {
   const group = new THREE.Group();
   group.name = shape
@@ -52,32 +57,13 @@ export function createCindercoilRoad({
     : 'Cindercoil / interlocking ceramic raceway';
   const geometries = new Set();
   const materials = new Set();
-  const textures = new Set();
   const material = (parameters) => {
     const result = new THREE.MeshStandardMaterial(parameters);
     materials.add(result);
     return result;
   };
-  const ceramic = shape || collectSolid ? {} : createCeramicTextures();
-  for (const texture of Object.values(ceramic)) textures.add(texture);
-  const bodyFinish =
-    shape || collectSolid
-      ? {}
-      : {
-          map: ceramic.bodyColor,
-          bumpMap: ceramic.bodyHeight,
-          bumpScale: 0.09,
-          roughnessMap: ceramic.roughness,
-        };
-  const plateFinish =
-    shape || collectSolid
-      ? {}
-      : {
-          map: ceramic.plateColor,
-          bumpMap: ceramic.plateHeight,
-          bumpScale: 0.075,
-          roughnessMap: ceramic.roughness,
-        };
+  const bodyFinish = { normalScale: new THREE.Vector2(0.38, 0.38) };
+  const plateFinish = { normalScale: new THREE.Vector2(0.7, 0.7) };
   const ivory = material({
     color: shape ? 0xb4bdc0 : 0xd9ceb7,
     roughness: 0.94,
@@ -114,12 +100,16 @@ export function createCindercoilRoad({
     metalness: 0.055,
     ...plateFinish,
   });
-  const blackglass = material({
+  const blackglass = new THREE.MeshPhysicalMaterial({
     color: 0x37484f,
-    roughness: 0.53,
-    metalness: 0.24,
-    ...plateFinish,
+    roughness: 0.76,
+    metalness: 0.06,
+    normalScale: new THREE.Vector2(0.48, 0.48),
+    clearcoat: 0.22,
+    clearcoatRoughness: 0.42,
+    clearcoatNormalScale: new THREE.Vector2(0.2, 0.2),
   });
+  materials.add(blackglass);
   const keel = material({
     color: shape ? 0x77878e : 0x343b3e,
     roughness: 0.95,
@@ -142,7 +132,27 @@ export function createCindercoilRoad({
     emissiveIntensity: 0.2,
   });
   const white = material({ color: 0xf5e6c5, roughness: 0.85 });
+  const ceramics = [
+    ivory,
+    charcoal,
+    oxide,
+    palePlate,
+    darkPlate,
+    redPlate,
+    blackglass,
+    keel,
+    edge,
+  ];
+  const panels = [palePlate, darkPlate, redPlate, blackglass];
+  const textured = !shape && !collectSolid;
+  if (textured) panels.forEach(applyCeramicPanelFinish);
+  const ceramicMaps = createCindercoilCeramicMaps(
+    textured ? view?.renderer : null,
+    ceramics,
+  );
   const add = (name, geometry, surface, drivingSurface = false) => {
+    if (textured && ceramics.includes(surface))
+      setCeramicCoordinates(geometry, panels.includes(surface));
     geometries.add(geometry);
     const mesh = new THREE.Mesh(geometry, surface);
     mesh.name = name;
@@ -171,6 +181,7 @@ export function createCindercoilRoad({
       geometry.dispose();
       return null;
     }
+    if (textured && ceramics.includes(surface)) setCeramicCoordinates(geometry);
     geometries.add(geometry);
     const mesh = new THREE.InstancedMesh(geometry, surface, placements.length);
     const matrix = new THREE.Matrix4();
@@ -271,7 +282,7 @@ export function createCindercoilRoad({
       }
     }
     // One tessellated running surface: adjacent cassettes meet on identical
-    // 2 m stations. Joint/bevel maps replace coplanar overlays, preventing the
+    // 2 m stations. Filtered joint relief replaces coplanar overlays, preventing the
     // near-field cracks and z-fighting previously visible through the roll.
     if (!shape) {
       const edges = [-15, -9, -3, 3, 9, 15];
@@ -671,7 +682,6 @@ export function createCindercoilRoad({
   group.userData.roadIntervals = intervals;
   group.userData.surfaceConstruction =
     'Single tessellation / staggered 6 x 12 m ceramic cassettes / no coplanar overlay';
-  group.userData.ownedTextures = [...textures];
   group.userData.supportBounds = supportBounds;
   group.userData.supportSegments = supportSegments;
   group.userData.supportCounts = {
@@ -686,14 +696,26 @@ export function createCindercoilRoad({
     disposed = true;
     for (const geometry of geometries) geometry.dispose();
     for (const surface of materials) surface.dispose();
-    for (const texture of textures) texture.dispose();
+    ceramicMaps.dispose();
   };
   if (!shape) applyCindercoilAssetMaterials(group);
   group.traverse((object) => {
     object.updateMatrix();
     object.matrixAutoUpdate = false;
   });
-  return { group, dispose };
+  return {
+    group,
+    ready: ceramicMaps.ready,
+    setReflection(texture) {
+      if (disposed || !textured) return;
+      for (const surface of ceramics) {
+        surface.envMap = texture;
+        surface.envMapIntensity = surface === blackglass ? 0.72 : 0.55;
+        surface.needsUpdate = true;
+      }
+    },
+    dispose,
+  };
 }
 
 function naturalPlinthGeometry() {

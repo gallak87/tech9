@@ -337,7 +337,7 @@
       "id": "cindercoil-caldera",
       "source": "assets/levels/cindercoil/ and src/levels/cindercoil/",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",
-      "provenance": "Original reproducible Blender caldera/channel/crust/tower/launch kit, procedural ceramic and geology detail, selected reference-guided ash panorama and deterministic local atmosphere.",
+      "provenance": "Original reproducible Blender caldera/channel/crust/tower/launch kit, authored ceramic construction and geology detail, selected reference-guided ash panorama and deterministic local atmosphere. Road mineral maps are separately registered as cindercoil-fired-ceramic.",
       "rights": "Project-authored/generated; no third-party artwork or meshes",
       "runtimeDependencies": ["three"],
       "runtimeAssets": [
@@ -507,6 +507,20 @@
         "public/assets/levels/helion/ceramic/arm.ktx2"
       ],
       "provenanceRecord": "assets/levels/helion/ceramic/provenance.json"
+    },
+    {
+      "id": "cindercoil-fired-ceramic",
+      "source": "assets/levels/cindercoil/ceramic/",
+      "creator": "Lennart Demes / ambientCG; VECTOR//NOVA material adaptation",
+      "provenance": "Concrete030 CC0 procedural PBR source adapted to neutral fired mineral ceramic; retained color, OpenGL normal and roughness inputs, reproducible mipmapped UASTC KTX2 build. One 3 × 3 m repeat serves ceramic road bodies and cassettes. Original cassette-scale seam relief is independent of grain; the Crown uses a restrained dark glaze and the existing borrowed district reflection probe. No collision displacement or baked lava light.",
+      "rights": "CC0-1.0 — https://docs.ambientcg.com/license/",
+      "runtimeDependencies": ["three", "public/assets/ships/decoder/"],
+      "runtimeAssets": [
+        "public/assets/levels/cindercoil/ceramic/color.ktx2",
+        "public/assets/levels/cindercoil/ceramic/normal.ktx2",
+        "public/assets/levels/cindercoil/ceramic/arm.ktx2"
+      ],
+      "provenanceRecord": "assets/levels/cindercoil/ceramic/provenance.json"
     }
   ],
   "thirdParty": [

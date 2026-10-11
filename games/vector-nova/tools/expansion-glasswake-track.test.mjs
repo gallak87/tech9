@@ -144,6 +144,16 @@ test('Glasswake high/low road retains topology, finite geometry and idempotent r
     (mesh) => mesh.name === 'Optically clear crystal deck cassettes',
   );
   const high = glass.material;
+  assert.equal(
+    high.transmission,
+    0,
+    'crystal ice must not request a scene transmission pass',
+  );
+  assert.equal(high.transparent, true);
+  assert.ok(
+    high.opacity > 0 && high.opacity < 1,
+    'alpha retains visibility through the ice',
+  );
   const geometry = glass.geometry;
   road.update({ settings: { quality: 'low', reducedMotion: true } });
   assert.notEqual(glass.material, high);

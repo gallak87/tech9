@@ -71,8 +71,7 @@ export function buildGlasswakeRoad(
       opacity: 0.43,
       depthWrite: false,
       side: THREE.DoubleSide,
-      transmission: 0.2,
-      thickness: 1.2,
+      // Alpha preserves the canyon/ribs without a scene transmission pass.
       ior: 1.31,
       emissive: 0x16354b,
       emissiveIntensity: 0.3,

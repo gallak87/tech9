@@ -15,7 +15,7 @@ test('Zephyr weave stays metric across banks and owns its maps without owning th
   const released = [0, 0, 0];
   maps.forEach((m, i) => {
     m.addEventListener('dispose', () => released[i]++);
-    assert.deepEqual(m.repeat.toArray(), [32 / 0.64, 2.5 / 0.64]);
+    assert.deepEqual(m.repeat.toArray(), [32 / 3.2, 2.5 / 3.2]);
     assert.equal(m.generateMipmaps, true);
     assert.equal(
       m.colorSpace,

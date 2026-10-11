@@ -66,7 +66,7 @@ Bright exposure, shaded braking shelves, the sunshield wall and optional shelter
 
 Weathered ivory Gothic architecture, bronze suspension construction and a fine woven graphite raceway float among apricot and dusty-lilac clouds. Keep the shattered rose aperture, dark rib-vaulted nave wall ride, chapel receiving shelf, full climbing spiral and broken halo distinct from ordinary connectors. Surviving tracery, recessed galleries, curved tension cloth, supported terraces and eroded island undersides carry the construction language.
 
-The structural twill stays fine and square through banks, with shallow relief under a satin coating and stronger grazing highlights around curtain crossings. Keep the bridge graphite distinct from the bronze frame and induction bands.
+The broad structural twill stays readable at racing distance and square through banks, with shallow relief under a satin coating and stronger grazing highlights around curtain crossings. Keep the bridge graphite distinct from the bronze frame and induction bands.
 
 Water begins at carved reservoirs and spill lips, has deep outer masses and broken foam, and trails into the lower cloud bands. Preserve a clear receiving-deck silhouette during both wet crossings. The separate enormous falling belfry and attached water must be legible from the racing view; it never changes the supported road. Wet ship highlights and draining peripheral droplets remain subordinate to craft, road, HUD and touch controls. The original scene reference, Blender source and selected sky provenance remain beside the assets.
 

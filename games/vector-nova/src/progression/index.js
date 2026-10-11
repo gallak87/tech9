@@ -4,7 +4,6 @@ export const vesperGraphicsDefaults = {
   vesperSurfaceDetail: true,
 };
 export const halcyonGraphicsDefaults = {
-  halcyonRoadSurface: 'asphalt',
   halcyonRoadSheen: 0.8,
   halcyonRoadReflections: true,
 };
@@ -20,11 +19,6 @@ let current;
 const listeners = new Set();
 function normalize(saved = {}) {
   return {
-    halcyonRoadSurface: ['original', 'asphalt'].includes(
-      saved.halcyonRoadSurface,
-    )
-      ? saved.halcyonRoadSurface
-      : halcyonGraphicsDefaults.halcyonRoadSurface,
     halcyonRoadSheen: Number.isFinite(saved.halcyonRoadSheen)
       ? Math.max(0, Math.min(1, saved.halcyonRoadSheen))
       : halcyonGraphicsDefaults.halcyonRoadSheen,

@@ -1,9 +1,5 @@
 import { createAsphalt } from './asphalt.js';
-import {
-  surfaceTexture,
-  roadRoughnessTexture,
-  signTexture,
-} from './textures.js';
+import { concreteTexture, signTexture } from './textures.js';
 import * as THREE from 'three';
 import { RACE_GRID } from '../../../race/racers.js';
 import { createTrack } from './model.js';
@@ -21,7 +17,7 @@ export { createTrack };
 
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
 
-export function buildTrackVisual(track, settings = {}, renderer = null) {
+export function buildTrackVisual(track, settings, renderer) {
   const group = new THREE.Group();
   group.name = 'Halcyon Viaduct / complete authored circuit';
   const geometries = new Set();
@@ -36,45 +32,24 @@ export function buildTrackVisual(track, settings = {}, renderer = null) {
     materials.add(result);
     return result;
   };
-  const roadMap = ownTexture(surfaceTexture('road'));
-  const concreteMap = ownTexture(surfaceTexture('concrete'));
-  const road = material({
-    color: 0xd2d7d7,
-    map: roadMap,
-    bumpMap: roadMap,
-    bumpScale: 0.004,
-    roughnessMap: ownTexture(roadRoughnessTexture()),
-    roughness: 0.9,
-    metalness: 0.07,
-  });
-  road.name = 'Halcyon composite road';
-  const asphalt = renderer ? createAsphalt(renderer, track.width) : null;
-  let runningSurface;
-  // A material-only comparison: retain the original maps, geometry and lights.
-  // The district probe is already owned/baked by the renderer; never dispose it here.
+  const concreteMap = ownTexture(concreteTexture());
+  const asphalt = createAsphalt(renderer, track.width);
+  const road = asphalt.material;
+  // The district probe is owned/baked by the renderer; never dispose it here.
   let districtReflection = null;
   let finishSettings = settings;
   function updateFinish(next = finishSettings) {
     finishSettings = next;
     const sheen = Number.isFinite(next.halcyonRoadSheen)
       ? THREE.MathUtils.clamp(next.halcyonRoadSheen, 0, 1)
-      : 0;
-    road.roughness = THREE.MathUtils.lerp(0.9, 0.22, sheen);
-    asphalt?.update(sheen);
-    if (runningSurface)
-      runningSurface.material =
-        asphalt && next.halcyonRoadSurface !== 'original'
-          ? asphalt.material
-          : road;
+      : 0.8;
+    asphalt.update(sheen);
     const reflection = next.halcyonRoadReflections ? districtReflection : null;
-    for (const surface of asphalt ? [road, asphalt.material] : [road]) {
-      if (surface.envMap !== reflection) {
-        surface.envMap = reflection;
-        surface.needsUpdate = true;
-      }
+    if (road.envMap !== reflection) {
+      road.envMap = reflection;
+      road.needsUpdate = true;
     }
   }
-  updateFinish();
   const concrete = material({
     color: 0xd8d6cc,
     map: concreteMap,
@@ -194,8 +169,8 @@ export function buildTrackVisual(track, settings = {}, renderer = null) {
     );
   }
 
-  runningSurface = sweep(
-    'Composite running surface / 28 metres',
+  const runningSurface = sweep(
+    'Asphalt running surface / 28 metres',
     [
       [-14, 0],
       [14, 0],
@@ -1231,11 +1206,11 @@ export function buildTrackVisual(track, settings = {}, renderer = null) {
     }
   }
   group.userData = {
-    asset: 'original authored Halcyon circuit / editable procedural source',
+    asset: 'authored Halcyon circuit / CC0 asphalt',
     representativeSection: { start: 0, end: track.length },
     groundY: track.groundY,
     sectionShowcases: track.showcases,
-    ready: asphalt?.ready,
+    ready: asphalt.ready,
     update,
     updateFinish,
     setReflection(texture) {
@@ -1245,7 +1220,7 @@ export function buildTrackVisual(track, settings = {}, renderer = null) {
     dispose() {
       if (disposed) return;
       disposed = true;
-      asphalt?.dispose();
+      asphalt.dispose();
       for (const geometry of geometries) geometry.dispose();
       for (const surface of materials) surface.dispose();
       for (const texture of textures) texture.dispose();

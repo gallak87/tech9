@@ -27,7 +27,7 @@ export default function createLevel() {
     },
     createTrack,
     createRoad({ track, settings, view }) {
-      const group = buildTrackVisual(track, settings, view?.renderer);
+      const group = buildTrackVisual(track, settings, view.renderer);
       return legacyPart(group, ({ state, settings: next }) => {
         group.userData.updateFinish(next);
         group.userData.update(state.distance);

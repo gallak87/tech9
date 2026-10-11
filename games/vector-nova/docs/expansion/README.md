@@ -2,6 +2,10 @@
 
 Widen complete existing circuits and refit their immediate surroundings while preserving their route, identity, assets, and accumulated polish. Work case by case, with one owner chat per level brief. The original expansion levels are already merged; their completed briefs remain in Git.
 
+## Road finish briefs
+
+The separate [road finish set](roads/README.md) documents the Halcyon process and per-level starting points for improving existing surfaces. It preserves each circuit's material identity, leaves Vesper deferred, and includes companion briefs for the wide variants. Its workflow is independent of the widening sequence and human gates below; these briefs do not start or approve widening work.
+
 ## Active brief
 
 | Brief                           | Original  | Experimental variant          | Target                        |

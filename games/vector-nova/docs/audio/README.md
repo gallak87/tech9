@@ -54,7 +54,7 @@ The encoder reads [tracks.js](../../src/audio/tracks.js), derives each master by
 
 ## In-game audition
 
-Tunes is enabled on every circuit by default; `?music=0` disables it for development. Music starts with race/practice start; a manual pause is respected on subsequent starts in that page session. **M** plays/pauses, **,** and **.** change songs, and **/** expands/collapses. Repeat is off initially: songs advance through the list, and Shuffle changes that order. Repeat loops the current song when enabled. Song, volume, repeat, shuffle and collapsed state are saved locally. Refresh or switch away/back after replacing an MP3.
+Tunes is enabled on every circuit by default; `?music=0` disables it for development. Browsing circuits, choosing a ship and opening settings do not start music. Start race/practice starts music if it is not already playing; a manual pause is respected on subsequent starts in that page session, and restarting a race never starts music. Already-playing music continues through launch without restarting. **M** plays/pauses, **,** and **.** change songs, and **/** expands/collapses. Repeat is off initially: songs advance through the list, and Shuffle changes that order. Repeat loops the current song when enabled. Song, volume, repeat, shuffle and collapsed state are saved locally. Refresh or switch away/back after replacing an MP3.
 
 The audition mix is independent of game pause/restarts and environment effects; hiding the tab pauses it. Keep browser/player testing manual for this iteration; this pass is desktop-only.
 

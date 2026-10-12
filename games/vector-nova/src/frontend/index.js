@@ -800,7 +800,6 @@ export function createFrontend(host) {
     },
     'retry-race'() {
       setScreen('race');
-      music?.startWithGame();
       game.restartRace();
     },
     change() {
@@ -817,7 +816,6 @@ export function createFrontend(host) {
     (e) => {
       const el = e.target.closest('button');
       if (!el || el.disabled) return;
-      music?.startWithGame();
       if (el.dataset.level) {
         selectCircuit(el.dataset.level);
       } else if (el.dataset.ship) {

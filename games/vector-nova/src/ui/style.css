@@ -588,6 +588,9 @@ h1 em {
   align-items: center;
   gap: 4px;
 }
+#legend .legend-movement {
+  display: none;
+}
 #legend span {
   font-size: 8px;
   letter-spacing: 0.12em;
@@ -1031,13 +1034,37 @@ select {
 
 @media (min-width: 761px) {
   #legend {
-    gap: 22px;
+    gap: clamp(12px, 1.5vw, 22px);
   }
-  #legend span,
   kbd,
   .timing small,
   .energy small {
     font-size: 13px;
+  }
+  #legend span,
+  #legend kbd {
+    font-size: 11px;
+  }
+  #legend .legend-movement {
+    display: flex;
+  }
+  #legend .legend-direction {
+    display: none;
+  }
+  #legend .legend-or {
+    margin: 0 2px;
+    color: #999;
+  }
+  #legend .legend-boost {
+    order: -1;
+  }
+  #legend .legend-boost kbd {
+    border-color: #d01818;
+    color: #fff;
+  }
+  #legend .legend-boost span {
+    color: #fff;
+    font-weight: 700;
   }
   kbd {
     min-width: 24px;

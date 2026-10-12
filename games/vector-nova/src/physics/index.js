@@ -90,6 +90,20 @@ export function createVehicleState(shipId = 'kestrel') {
   };
 }
 
+// Ground and flight share reserve hysteresis, brake cancellation and feedback.
+export function updateBoostState(state, input, events) {
+  const boost =
+    !!input?.boost &&
+    finite(input?.throttle) > 0 &&
+    state.energy > (state.boosting ? 0 : 12) &&
+    state.speed > 20 &&
+    finite(input?.brake) < 0.1;
+  if (boost !== state.boosting)
+    events.push({ type: 'boost', payload: { active: boost } });
+  state.boosting = boost;
+  return boost;
+}
+
 function integrate(s, controls, track, dt, events) {
   const { throttle, brake, steer, airbrake, steeringAssist } = controls;
   const handling = getShip(s.shipId).handling;
@@ -112,15 +126,7 @@ function integrate(s, controls, track, dt, events) {
 
   // A depleted reserve must recharge before starting again: held boost cannot
   // toggle every other tick. Once engaged it may spend the remaining reserve.
-  const boost =
-    controls.boost &&
-    throttle > 0 &&
-    s.energy > (s.boosting ? 0 : 12) &&
-    s.speed > 20 &&
-    brake < 0.1;
-  if (boost !== s.boosting)
-    events.push({ type: 'boost', payload: { active: boost } });
-  s.boosting = boost;
+  const boost = updateBoostState(s, controls, events);
 
   // Input +1 is the driver's right. A +Z-facing chase view sees geometric +X
   // on its left, so yaw/lateral commands have the opposite sign to input.

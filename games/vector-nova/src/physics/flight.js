@@ -1,7 +1,13 @@
 import * as THREE from 'three';
 import { VEHICLE_HULL, projectedHullExtent, headingExtents } from './hull.js';
 import { COLLISION_RULES } from './collision-world.js';
-import { stepVehicle, STEERING_ASSIST, surfaceHullClearance } from './index.js';
+import {
+  stepVehicle,
+  STEERING_ASSIST,
+  surfaceHullClearance,
+  updateBoostState,
+} from './index.js';
+import { getShip } from '../ships/catalog.js';
 
 export const DEFAULT_FLIGHT_RULES = Object.freeze({
   gravity: 26,
@@ -632,9 +638,6 @@ export function createFlightModel(overrides = {}) {
       // tick, not at the lip partway through that interval.
       previousPose ??= clonePose(startPose);
       state.distance = from;
-      if (state.boosting)
-        events.push({ type: 'boost', payload: { active: false } });
-      state.boosting = false;
       events.push({
         type: 'jump-launch',
         payload: { id: jump.id, speed: state.speed, heading: state.heading },
@@ -664,7 +667,6 @@ export function createFlightModel(overrides = {}) {
       state.speed = landing
         ? Math.max(0, flight.velocity.dot(track.sample(state.distance).tangent))
         : 0;
-      state.boosting = false;
       state.impact = flight.edgeCaught ? Math.max(state.impact, 0.35) : 0;
       mode = 'magnetic';
       const roadPose = poseOnRoad(state, true);
@@ -1080,24 +1082,45 @@ export function createFlightModel(overrides = {}) {
               : null;
     }
 
-    function prepareDynamicFlight(state, input, dt) {
+    function airPropulsion(state, input, dt, events) {
+      const handling = getShip(state.shipId).handling;
+      state.speed = flight.velocity.length();
+      const boost = updateBoostState(
+        state,
+        mode === 'flight' ? input : null,
+        events,
+      );
+      state.energy = clamp(
+        state.energy + (boost ? -handling.boostDrain : handling.recharge) * dt,
+        0,
+        100,
+      );
+      // Apply the ship's extra boost thrust along its actual flight direction.
+      // Gravity and contacts still decide the trajectory; no boost means the
+      // original ballistic arc, with no aiming force or airborne speed clamp.
+      return flight.velocity
+        .clone()
+        .normalize()
+        .multiplyScalar(boost ? handling.boostThrust - handling.thrust : 0);
+    }
+
+    function prepareDynamicFlight(state, input, dt, events) {
       const jump = track.jumps.find((entry) => entry.id === flight.id);
       state.time += dt;
       state.impact = Math.max(0, state.impact - dt * 2.4);
       state.steer = clamp(Number(input?.steer) || 0, -1, 1);
       state.distance = flight.from;
-      state.boosting = false;
-      state.energy = Math.min(100, state.energy + 5.5 * dt);
       flight.elapsed += dt;
       const wasRecovering = mode === 'recovery';
       if (wasRecovering && automaticRecovery)
         flight.remaining = Math.max(0, flight.remaining - dt);
-      const acceleration = new THREE.Vector3();
+      const acceleration = airPropulsion(state, input, dt, events);
       let angularVelocity;
       if (!wasRecovering) {
-        acceleration
-          .copy(flight.launchRight)
-          .multiplyScalar(-state.steer * R.airAcceleration);
+        acceleration.addScaledVector(
+          flight.launchRight,
+          -state.steer * R.airAcceleration,
+        );
         const extra = options.airAcceleration?.({
           state,
           jump,
@@ -1296,15 +1319,14 @@ export function createFlightModel(overrides = {}) {
       state.impact = Math.max(0, state.impact - dt * 2.4);
       state.steer = clamp(Number(input?.steer) || 0, -1, 1);
       state.distance = flight.from;
-      state.boosting = false;
-      state.energy = Math.min(100, state.energy + 5.5 * dt);
+      const acceleration = airPropulsion(state, input, dt, events);
+      acceleration.y -= R.gravity;
       flight.elapsed += dt;
       if (mode === 'recovery') {
         if (automaticRecovery)
           flight.remaining = Math.max(0, flight.remaining - dt);
         if (collisionWorld) {
           const before = clonePose(currentPose);
-          const acceleration = new THREE.Vector3(0, -R.gravity, 0);
           currentPose.position
             .addScaledVector(flight.velocity, dt)
             .addScaledVector(acceleration, dt * dt * 0.5);
@@ -1323,10 +1345,10 @@ export function createFlightModel(overrides = {}) {
         return;
       }
       const before = clonePose(currentPose);
-      const acceleration = flight.launchRight
-        .clone()
-        .multiplyScalar(-state.steer * R.airAcceleration);
-      acceleration.y -= R.gravity;
+      acceleration.addScaledVector(
+        flight.launchRight,
+        -state.steer * R.airAcceleration,
+      );
       const extra = options.airAcceleration?.({
         state,
         jump,
@@ -1446,7 +1468,7 @@ export function createFlightModel(overrides = {}) {
     }
     function tick(state, input, dt, events, startPose) {
       if (mode !== 'magnetic') {
-        if (dynamics) prepareDynamicFlight(state, input, dt);
+        if (dynamics) prepareDynamicFlight(state, input, dt, events);
         else advanceFlight(state, input, dt, events);
         return;
       }
@@ -1504,7 +1526,8 @@ export function createFlightModel(overrides = {}) {
       state.distance = crossed.from;
       beginFlight(state, crossed.jump, crossed.from, events, startPose);
       if (fraction < 1)
-        if (dynamics) prepareDynamicFlight(state, input, dt * (1 - fraction));
+        if (dynamics)
+          prepareDynamicFlight(state, input, dt * (1 - fraction), events);
         else advanceFlight(state, input, dt * (1 - fraction), events);
       else if (dynamics) {
         actor.stage({
@@ -1549,6 +1572,7 @@ export function createFlightModel(overrides = {}) {
             events.push(...adapter.finishAdvance(state));
           } else tick(state, input, elapsed / count, events, startPose);
         }
+        if (flight) state.speed = flight.velocity.length();
         return events;
       },
       reset({ seed: nextSeed = 0 } = {}) {

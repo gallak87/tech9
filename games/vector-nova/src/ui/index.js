@@ -1124,7 +1124,9 @@ export function createUI(
             ? 'CONTACT TEST · R TO REPEAT'
             : 'RECOVERY DELAY'
           : motion?.mode === 'flight'
-            ? 'AIRBORNE'
+            ? s.boosting
+              ? 'AIR BOOST'
+              : 'AIRBORNE'
             : motion?.vectorActive
               ? 'VECTOR DRIVE'
               : s.boosting

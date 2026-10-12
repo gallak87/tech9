@@ -36,7 +36,9 @@ function runJump(name, { input = empty, lap = 0, initial = {}, dt = DT } = {}) {
   const adapter = runtime();
   const events = [];
   for (let i = 0; i < 1400; i += 1) {
-    const next = adapter.advance(state, input, dt);
+    const controls =
+      typeof input === 'function' ? input(adapter.snapshot()) : input;
+    const next = adapter.advance(state, controls, dt);
     events.push(...next.map((event) => ({ ...event, time: state.time })));
     if (next.some((event) => event.type === 'jump-transfer')) break;
   }
@@ -427,7 +429,7 @@ test('normal and full-boost launches land while genuinely slow and sideways laun
     }
 });
 
-test('both jumps accept the entire 70% cruise through full-boost envelope with alignment margin', () => {
+test('both jumps accept the entire 70% cruise through full-boost launch envelope while coasting in flight', () => {
   // Normal flat-road cruise is 112 m/s; full boost is 157 m/s. Include extra
   // downhill margin to 165, and test a dense range, not just a tuned sweet spot.
   for (let i = 1; i <= 2; i += 1)
@@ -438,7 +440,13 @@ test('both jumps accept the entire 70% cruise through full-boost envelope with a
         [0.01, 3],
       ]) {
         const result = runJump(`jump${i}-success`, {
-          input: { ...empty, throttle: 1, boost: true },
+          // Isolate the launch-speed envelope: manual air boost now extends
+          // the trajectory and can deliberately overshoot a receiving deck.
+          input: (motion) => ({
+            ...empty,
+            throttle: 1,
+            boost: motion.mode === 'magnetic',
+          }),
           initial: { speed, heading, lateral },
         });
         assert.equal(

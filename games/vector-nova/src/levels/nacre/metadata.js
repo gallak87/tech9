@@ -7,7 +7,6 @@ export default {
   ui: {
     compact: true,
     stackedReview: true,
-    lowNotice: true,
     edition: 'NACRE TEMPEST',
     subtitle: 'OCEAN CIRCUIT / 03',
     eyebrow: 'NACRE TEMPEST · OCEAN RUN',

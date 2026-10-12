@@ -9,7 +9,6 @@ export default {
     compactLandscape: true,
     portraitCompactHud: true,
     stackedReview: true,
-    lowNotice: true,
     edition: 'ZEPHYR BASILICA',
     subtitle: 'CLOUD ARCHIPELAGO / 08',
     eyebrow: 'FLOATING CATHEDRALS · FREE PRACTICE',

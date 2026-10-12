@@ -34,13 +34,7 @@ export function createHelionOverlay(host, telemetry) {
     width: '0%',
   });
   rail.append(fill);
-  const detail = document.createElement('div');
-  Object.assign(detail.style, {
-    fontSize: '10px',
-    letterSpacing: '.025em',
-    fontWeight: '500',
-  });
-  element.append(readout, rail, detail);
+  element.append(readout, rail);
   const visor = document.createElement('div');
   visor.dataset.helionVisor = '';
   Object.assign(visor.style, {
@@ -52,26 +46,7 @@ export function createHelionOverlay(host, telemetry) {
       'radial-gradient(ellipse at 50% 54%, rgba(230,12,18,.20) 0%, rgba(236,15,20,.24) 55%, rgba(245,18,24,.42) 100%)',
     opacity: '0',
   });
-  const destination = document.createElement('div');
-  destination.dataset.helionRecovery = '';
-  Object.assign(destination.style, {
-    position: 'absolute',
-    width: '150px',
-    textAlign: 'center',
-    color: '#ffdaa0',
-    font: '600 10px/1.5 system-ui',
-    letterSpacing: '.04em',
-    textShadow: '0 1px 4px #000',
-    pointerEvents: 'none',
-    zIndex: '5',
-    display: 'none',
-  });
-  const direction = document.createElement('div');
-  direction.textContent = '▲';
-  direction.style.fontSize = '22px';
-  const targetLabel = document.createElement('div');
-  destination.append(direction, targetLabel);
-  host.append(visor, element, destination);
+  host.append(visor, element);
   let presentation = {};
   let layoutKey = '';
   let currentLayout = null;
@@ -89,14 +64,14 @@ export function createHelionOverlay(host, telemetry) {
       h = own.height;
     const obstacles = [
       ...host.querySelectorAll(
-        '.lap,.timing,.section-name,#minimap,#shape-controls,#notice,.energy,.speed,#touch,#legend,header,[data-helion-recovery]',
+        '.lap,.timing,#minimap,#shape-controls,.energy,.speed,#touch,#legend,header',
       ),
     ]
       .filter((node) => getComputedStyle(node).display !== 'none')
       .map((node) => node.getBoundingClientRect())
       .filter((rect) => rect.width && rect.height);
     if (hull) obstacles.push(hull);
-    // Shared HUD text and the projected recovery marker can change after this
+    // Shared HUD text can change after this
     // overlay updates. Reflow on their next measured bounds as well as the hull.
     const key = `${width}:${height}:${w}:${h}:${obstacles.map((rect) => [rect.left, rect.top, rect.right, rect.bottom].map((v) => Math.round(v / 4)).join(',')).join(';')}`;
     if (key === layoutKey) return;
@@ -146,8 +121,6 @@ export function createHelionOverlay(host, telemetry) {
       });
       const visorOpacity = visible ? feedback.severity : 0;
       visor.style.opacity = `${visorOpacity}`;
-      destination.style.display =
-        visible && telemetry.recoveryTarget ? 'block' : 'none';
       if (!visible) {
         currentLayout = null;
         return;
@@ -156,25 +129,6 @@ export function createHelionOverlay(host, telemetry) {
       const height = host.clientHeight || globalThis.innerHeight;
       const portrait = width < 600 && height > width;
       const short = height < 560 && width >= height;
-      if (telemetry.recoveryTarget && camera) {
-        const point = new T.Vector3()
-          .fromArray(telemetry.recoveryTarget)
-          .project(camera);
-        const x = T.MathUtils.clamp(
-          (point.x + 1) * width * 0.5,
-          width * 0.3,
-          width * 0.7,
-        );
-        const y = T.MathUtils.clamp(
-          (1 - point.y) * height * 0.5,
-          height * 0.3,
-          height * 0.6,
-        );
-        destination.style.left = `${x - 75}px`;
-        destination.style.top = `${y - 22}px`;
-        direction.style.transform = `rotate(${(Math.atan2(point.x, point.y) * 180) / Math.PI}deg)`;
-        targetLabel.textContent = `AUTO RECOVERY · SHELF ${Math.round(telemetry.recoveryDistance)} m`;
-      }
       element.style.width = short ? '194px' : portrait ? '210px' : '236px';
 
       element.style.padding = '0';
@@ -182,18 +136,9 @@ export function createHelionOverlay(host, telemetry) {
       element.style.letterSpacing = short ? '.025em' : '.07em';
       const heat = telemetry.heat ?? 0;
       const power = telemetry.thrustScale ?? 1;
-      const flight = telemetry.flightMode ?? 'magnetic';
       readout.textContent = `HEAT ${Math.round(heat)} / 100 · THRUST ${Math.round(power * 100)}%`;
       fill.style.width = `${heat}%`;
       fill.style.background = power < 1 ? '#ff8542' : '#83d6ce';
-      detail.textContent =
-        flight === 'recovery'
-          ? short
-            ? 'JUMP MISSED · RECOVERY'
-            : 'MISSED JUMP · RECOVERING TO SHELF'
-          : flight === 'flight'
-            ? 'SHELTERED FLIGHT · LIMITED AIR STEER'
-            : telemetry.warning || telemetry.label || 'CLEAR DECK';
       let hull = null;
       const bounds = ship?.group?.userData.bounds;
       if (camera && bounds) {
@@ -229,7 +174,6 @@ export function createHelionOverlay(host, telemetry) {
         heatPulse: feedback.pulse,
         heatEnvelope: feedback.envelope,
         visorOpacity,
-        text: detail.textContent,
       };
     },
     reset() {
@@ -244,7 +188,6 @@ export function createHelionOverlay(host, telemetry) {
       currentLayout = null;
       element.remove();
       visor.remove();
-      destination.remove();
     },
   };
 }

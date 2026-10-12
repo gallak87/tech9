@@ -38,7 +38,7 @@ Colossal enclosed living trees, connected oversized foliage and an opaque polish
 
 Pale fractured glacial ice, dark buried meteor, cobalt crevices and aurora above a supported transparent crystal raceway. Preserve the approved see-through floor: a light cloudy vein texture gives it an ice feel without hiding the ribs or canyon. Opaque ice carries cloud layers, granular frost and fine fractures, with readable broad forms and restrained warm fittings.
 
-The paired fracture jumps lead to a deep fissure plunge, complete corkscrew and steep climb. Show the height of the surrounding rim from the actual chase view. The calving shelf cracks, sheds independent pieces and exposes the layered cavity; powder and notices support its visible geometry. Exterior gusting snow gives way to shelter in the caverns. Keep snow adhesion and frost at the screen edges, clear of the road, craft, map, telemetry and controls.
+The paired fracture jumps lead to a deep fissure plunge, complete corkscrew and steep climb. Show the height of the surrounding rim from the actual chase view. The calving shelf cracks, sheds independent pieces and exposes the layered cavity; powder supports its visible geometry. Exterior gusting snow gives way to shelter in the caverns. Keep snow adhesion and frost at the screen edges, clear of the road, craft, map, telemetry and controls.
 
 ## Cindercoil
 
@@ -88,7 +88,7 @@ The preferred circuit picker is the [six-card Circuit wall](levels/art-revamp-re
 
 Tunes uses a compact top-right header slot with the same anchor and footprint through selection, loading, race and results. Use a neutral dark surface, quiet white controls and a thin straight-red progress/selection accent. Show previous, play/pause, next and a bounded track title; avoid scrolling titles, visualizers and an oversized play button. Volume and queue expand downward in menus or pause. Keep the mini-player collapsed during driving, leave separate Back/Pause space, and keep the loading overlay and racing HUD clear of its reserved slot. Smaller widths compress the player at the same corner rather than moving it between states.
 
-Keep technical numerals and telemetry/notices away from the craft, upcoming road and touch controls. Moderate chase FOV, no default camera shake, and road-local camera clearance. World, ship and gameplay-signal colors retain their own identities; the neutral/red menu palette does not recolor them.
+Keep technical numerals and telemetry away from the craft, upcoming road and touch controls. Do not add mid-screen jump, landing/recovery, surface/hazard or section-name text callouts; communicate those states through the world, sound and retained HUD gauges. Moderate chase FOV, no default camera shake, and road-local camera clearance. World, ship and gameplay-signal colors retain their own identities; the neutral/red menu palette does not recolor them.
 
 Shared immediate devices use manufactured amber-white Vector strips and symbol-marked teal Aegis hardware. Show collection, active effect, hit and expiry with form/timing as well as color. Ship feedback stays subordinate to the silhouette.
 

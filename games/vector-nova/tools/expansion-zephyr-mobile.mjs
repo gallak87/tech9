@@ -64,7 +64,6 @@ async function capture(page, name) {
       '.speed',
       '.energy',
       '.race-devices',
-      '#notice',
       '#touch button',
     ];
     const rects = selectors.flatMap((selector) =>

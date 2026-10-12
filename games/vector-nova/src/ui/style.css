@@ -711,16 +711,6 @@ select {
   letter-spacing: 0.12em;
   color: #d5d5d5;
 }
-.section-name {
-  margin-left: auto;
-  text-align: right;
-}
-.section-name b {
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  display: block;
-  margin-top: 9px;
-}
 .telemetry {
   position: absolute;
   bottom: 105px;
@@ -795,20 +785,6 @@ select {
   background: #171717b3;
   border: 1px solid #e3e3e32e;
   border-radius: 8px;
-}
-#notice {
-  position: absolute;
-  top: 30%;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 12px;
-  letter-spacing: 0.15em;
-  text-align: center;
-  background: #222222bc;
-  padding: 10px 18px;
-}
-#notice:empty {
-  display: none;
 }
 #loading {
   position: absolute;
@@ -903,9 +879,6 @@ select {
   .top-telemetry {
     top: 90px;
     gap: 22px;
-  }
-  .section-name {
-    display: none;
   }
   .telemetry {
     bottom: 155px;
@@ -1284,17 +1257,6 @@ select {
   }
 }
 
-/* Opt-in notice placement below the timing row in short landscapes. */
-@media (max-height: 570px) and (orientation: landscape) {
-  .low-notice #notice {
-    top: max(148px, 30%);
-    width: min(300px, calc(100vw - 280px));
-    padding: 5px 8px;
-    font-size: 11px;
-    line-height: 1.25;
-  }
-}
-
 /* Nacre water absorption includes the world, craft and interface. */
 .nacre-immersion {
   position: fixed;
@@ -1329,9 +1291,6 @@ select {
   }
   #interface:is(.compact-landscape, .has-racing).driving .timing small {
     font-size: 8px;
-  }
-  #interface:is(.compact-landscape, .has-racing).driving .section-name {
-    display: none;
   }
   #interface:is(.compact-landscape, .has-racing).driving #minimap {
     top: 76px;
@@ -1387,14 +1346,6 @@ select {
   #interface:is(.compact-landscape, .has-racing).driving .shape-views {
     margin-bottom: 8px;
   }
-  #interface:is(.compact-landscape, .has-racing).driving #notice {
-    top: 48px;
-    bottom: auto;
-    width: min(260px, calc(100vw - 380px));
-    font-size: 10px;
-    line-height: 1.25;
-    padding: 5px 8px;
-  }
   #interface:is(.compact-landscape, .has-racing).driving #touch {
     position: absolute;
     bottom: max(14px, env(safe-area-inset-bottom));
@@ -1424,29 +1375,7 @@ select {
   }
 }
 
-@media (max-height: 570px) and (orientation: landscape) {
-  #interface:is(.compact-landscape, .has-racing).driving:has(
-      #review-toggle[aria-expanded='true']
-    )
-    #notice {
-    top: 48px;
-    bottom: auto;
-  }
-}
-
-@media (max-width: 760px) and (min-height: 700px) and (orientation: portrait) {
-  #interface.compact-landscape.driving #notice {
-    top: auto;
-    bottom: 235px;
-    width: calc(100vw - 32px);
-    font-size: 11px;
-    line-height: 1.25;
-    padding: 6px 8px;
-  }
-}
-
-/* Opt-in upper portrait HUD leaves the lower chase craft and touch row clear.
-   Reserve a separate cue/notice band; expanded review uses the next two bands. */
+/* Opt-in upper portrait HUD leaves the lower chase craft and touch row clear. */
 @media (max-width: 760px) and (min-height: 700px) and (orientation: portrait) {
   #interface.portrait-compact-hud.driving .telemetry {
     top: 272px;
@@ -1475,33 +1404,16 @@ select {
     font-size: 8px;
     bottom: -14px;
   }
-  #interface.portrait-compact-hud.driving #notice {
-    top: 330px;
-    bottom: auto;
-    width: calc(100vw - 32px);
-    font-size: 11px;
-    line-height: 1.25;
-    padding: 6px 8px;
-  }
   #interface.portrait-compact-hud.driving:has(
       #review-toggle[aria-expanded='true']
     )
     .telemetry {
     top: 468px;
   }
-  #interface.portrait-compact-hud.driving:has(
-      #review-toggle[aria-expanded='true']
-    )
-    #notice {
-    top: 420px;
-  }
 }
 
 /* Expansion review controls occupy their own desktop band above the map. */
 @media (min-width: 761px) and (min-height: 701px) {
-  #interface.compact-landscape.driving .section-name {
-    align-self: flex-start;
-  }
   #interface.compact-landscape.driving #shape-controls {
     top: 182px;
   }
@@ -2275,11 +2187,6 @@ select {
   #race-roster:not(.in-paddock) li > small {
     font-size: 8px;
   }
-  #interface.has-live-race #notice {
-    width: calc(92vw - 160px);
-    left: 4vw;
-    transform: none;
-  }
 }
 @media (max-width: 760px), (max-height: 570px) {
   #title-panel #race-roster.in-paddock {
@@ -2292,13 +2199,6 @@ select {
 @media (max-height: 570px) {
   #race-roster:not(.in-paddock) {
     top: 152px;
-  }
-}
-
-@media (max-width: 760px) and (min-height: 700px) and (orientation: portrait) {
-  #interface.jump-playtest.driving #notice {
-    top: 278px;
-    bottom: auto;
   }
 }
 

@@ -95,39 +95,13 @@ export function createHelionRuntime(context, telemetry = {}) {
       state.time,
       { airborne: flightMode !== 'magnetic' },
     );
-    let warning = sample.warning;
-    const s = wrapped(state.distance, track.length);
-    const next = track.jumps.find(
-      (jump) => jump.takeoff - s > 0 && jump.takeoff - s < 150,
-    );
-    if (next && !warning)
-      warning = `OPTIONAL LEFT JUMP · ${Math.ceil(next.takeoff - s)} m · ${state.speed < 78 ? 'BUILD SPEED' : 'HOLD LINE'}`;
-    const flight = base.snapshot();
-    const destination =
-      flight.mode === 'recovery'
-        ? track.jumps.find((jump) => jump.id === flight.flight?.id)
-        : null;
-    const target = destination ? track.sample(destination.recovery) : null;
-    const recoveryTarget = target
-      ? target.position.clone().addScaledVector(target.up, 2)
-      : null;
     Object.assign(telemetry, sample, {
-      recoveryTarget: recoveryTarget?.toArray() ?? null,
-      recoveryDistance:
-        recoveryTarget && flight.currentPose
-          ? recoveryTarget.distanceTo({
-              x: flight.currentPose.position[0],
-              y: flight.currentPose.position[1],
-              z: flight.currentPose.position[2],
-            })
-          : 0,
       heat,
       thrustScale: thrustScale(state),
       contactAge: sample.exposure > 0 ? 0 : contactAge,
       contactHeat,
       heatTime: state.time,
       flightMode,
-      warning,
     });
   }
   return {

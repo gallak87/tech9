@@ -9,7 +9,6 @@ export default {
     compactLandscape: true,
     portraitCompactHud: true,
     stackedReview: true,
-    lowNotice: true,
     edition: 'UMBRA WIDE / ROUGH DRAFT',
     subtitle: 'EXPERIMENTAL GRAVITY CIRCUIT',
     eyebrow: 'UMBRA WIDE · 35 M WIDTH PREVIEW',

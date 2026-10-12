@@ -34,32 +34,9 @@ const capture = async (page, name) => {
     state.camera.up,
   ])
     assert.ok(values.every(Number.isFinite));
-  const layout = await page.evaluate(() => {
-    const notice = document.querySelector('.cindercoil-notice');
-    if (!notice || getComputedStyle(notice).display === 'none')
-      return { visible: false, conflicts: [] };
-    const own = notice.getBoundingClientRect();
-    const conflicts = [
-      ...document.querySelectorAll(
-        '.lap,.timing,#minimap,.speed,.energy,#shape-controls,#touch button,#notice',
-      ),
-    ]
-      .filter((element) => {
-        const r = element.getBoundingClientRect();
-        return (
-          r.width > 0 &&
-          r.height > 0 &&
-          Math.min(own.right, r.right) - Math.max(own.left, r.left) > 0.5 &&
-          Math.min(own.bottom, r.bottom) - Math.max(own.top, r.top) > 0.5
-        );
-      })
-      .map((element) => element.id || element.className || element.textContent);
-    return { visible: true, conflicts };
-  });
-  assert.deepEqual(layout.conflicts, [], `Cindercoil notice overlaps ${name}`);
   await page.screenshot({ path: `${folder}/${name}.png` });
   const metrics = await page.evaluate(() => window.__VN.getMetrics());
-  report.cases.push({ name, state, metrics, layout });
+  report.cases.push({ name, state, metrics });
   return state;
 };
 try {

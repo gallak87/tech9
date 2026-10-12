@@ -8,7 +8,6 @@ export default {
     compact: true,
     compactLandscape: true,
     stackedReview: true,
-    lowNotice: true,
     edition: 'SAFFRON SURVEY / 07',
     subtitle: 'FOSSIL DESERT CIRCUIT',
     eyebrow: 'THE LEVIATHAN EXCAVATION',

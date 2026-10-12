@@ -8,7 +8,6 @@ export default {
     compact: true,
     compactLandscape: true,
     stackedReview: true,
-    lowNotice: true,
     edition: 'GLASSWAKE / COMET EXPEDITION',
     subtitle: 'CRYSTAL CIRCUIT / 05',
     eyebrow: 'COBALT CAVITIES · FRACTURE REACH',

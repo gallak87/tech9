@@ -8,7 +8,6 @@ export default {
     compact: true,
     compactLandscape: true,
     stackedReview: true,
-    lowNotice: true,
     edition: 'CINDERCOIL',
     subtitle: 'CALDERA CIRCUIT / 06',
     eyebrow: 'CINDERCOIL · CERAMIC / BASALT / FIRE',

@@ -42,7 +42,7 @@ async function capture(page, name) {
     const conflicts = visible
       ? [
           ...document.querySelectorAll(
-            '.lap,.timing,#minimap,.speed,.energy,#shape-controls,#touch button,#notice,[data-helion-recovery]',
+            '.lap,.timing,#minimap,.speed,.energy,#shape-controls,#touch button',
           ),
         ]
           .filter((n) => {
@@ -318,9 +318,7 @@ try {
         await page.evaluate(() => window.__VN.dispose());
         assert.equal(
           await page
-            .locator(
-              '[data-helion-visor],[data-helion-recovery],[data-helion-thermal]',
-            )
+            .locator('[data-helion-visor],[data-helion-thermal]')
             .count(),
           0,
         );

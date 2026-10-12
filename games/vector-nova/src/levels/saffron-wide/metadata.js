@@ -8,7 +8,6 @@ export default {
     compact: true,
     compactLandscape: true,
     stackedReview: true,
-    lowNotice: true,
     edition: 'SAFFRON WIDE / ROUGH DRAFT',
     subtitle: 'EXPERIMENTAL FOSSIL CIRCUIT',
     eyebrow: 'THE LEVIATHAN EXPANSION',

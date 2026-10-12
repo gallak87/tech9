@@ -9,7 +9,6 @@ import { createCindercoilCues } from './cues.js';
 import { createCindercoilOverlay } from './overlay.js';
 
 export default function createLevel({ shape = false }) {
-  let runtime;
   return {
     version: '0.5.1-cindercoil-racing',
     racing: { createDevices, createMotion: createCindercoilRuntime },
@@ -112,14 +111,7 @@ export default function createLevel({ shape = false }) {
     },
     createBackdrop: ({ settings }) =>
       createCindercoilBackdrop({ shape, settings }),
-    createRuntime(context) {
-      runtime = createCindercoilRuntime(context);
-      return runtime;
-    },
-    createOverlay: (context) =>
-      createCindercoilOverlay({
-        ...context,
-        readRuntime: () => runtime?.snapshot(),
-      }),
+    createRuntime: createCindercoilRuntime,
+    createOverlay: createCindercoilOverlay,
   };
 }

@@ -157,7 +157,7 @@ export function createGlasswakeScreen({ host, track }) {
         // clearRect calls also handle overlapping regions without even-odd holes.
         const hostRect = host.getBoundingClientRect();
         for (const node of host.querySelectorAll(
-          '#minimap, .top-telemetry, .telemetry, #touch, .controls, #shape-controls, [data-glasswake-notice]',
+          '#minimap, .top-telemetry, .telemetry, #touch, .controls, #shape-controls',
         )) {
           if (node.closest('.hidden')) continue;
           const r = node.getBoundingClientRect();

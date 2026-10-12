@@ -284,16 +284,6 @@ export async function createGame({
         /* Decorative audio must not interrupt physics. */
       }
       if (e.type === 'impact') {
-        // Shared devices already own shield/unprotected hit feedback. Keep the
-        // circuit-specific receiving-edge notice, and avoid two hit toasts.
-        if (!racingEnabled || e.payload.source === 'nacre-edge-catch')
-          ui.notice(
-            e.payload.source === 'nacre-edge-catch'
-              ? 'EDGE CATCH · SMALL SPEED LOSS'
-              : e.payload.shielded
-                ? 'BARRIER CONTACT · SHIELD PROTECTED RESERVE'
-                : 'BARRIER CONTACT · RESERVE LOST',
-          );
         const impactDistance = e.payload.distance ?? state.distance;
         const impactLateral =
           e.payload.lateral ??
@@ -313,40 +303,6 @@ export async function createGame({
         );
       }
       if (e.type === 'jump-transfer') prev = { ...state };
-      if (e.type === 'jump-transfer')
-        ui.notice(
-          e.payload.outcome === 'recovered'
-            ? `RECOVERED BEYOND LANDING · ${race.valid ? (track.closed === false ? 'RUN VALID' : 'LAP VALID') : 'UNTIMED SESSION'} · W TO RESUME`
-            : e.payload.tractionRestored
-              ? 'PLATFORM CONTACT · TRACTION RESTORED'
-              : e.payload.edgeCaught
-                ? 'EDGE CATCH · LANDING CONFIRMED'
-                : 'LANDING CONFIRMED',
-        );
-      if (e.type === 'sprint-complete')
-        ui.notice(
-          e.payload.valid
-            ? 'FINISH · DESCENT RECORDED'
-            : 'FINISH · UNTIMED RUN',
-        );
-      if (e.type === 'lap') {
-        if (competition && race.history.length >= racerModule.RACE_LAPS) return;
-        const previousBest = Math.min(
-          ...race.history
-            .slice(0, -1)
-            .filter((lap) => lap.valid)
-            .map((lap) => lap.duration),
-        );
-        ui.lapComplete({
-          finalLap: competition && race.history.length === 1,
-          lap: race.lap - 1,
-          duration: e.payload.duration,
-          valid: e.payload.valid,
-          delta: Number.isFinite(previousBest)
-            ? e.payload.duration - previousBest
-            : null,
-        });
-      }
     };
     const racingEnabled = Boolean(definition.racing) && !blockout;
     const runtimeContext = {
@@ -585,7 +541,6 @@ export async function createGame({
       // Normal launch and fresh-lap actions retain the complete circuit.
       if (newRun && signatureReview && track.scenarios['signature-entry']) {
         window.__VN.loadScenario('signature-entry', 47219);
-        ui.notice('SIGNATURE PLAYTEST · LAP UNTIMED');
       }
     }
     function pause() {
@@ -653,15 +608,11 @@ export async function createGame({
       events.length = 0;
       rig.reset();
       view.resetMetrics();
-      ui.notice('');
       ui.setMode(mode);
       if (withCountdown) armCountdown();
     }
     function repeatPlaytest() {
       window.__VN.loadScenario(selectedPlaytestCase.scenario, 7);
-      ui.notice(
-        `${selectedPlaytestCase.label.toUpperCase()} · UNTIMED · R TO REPEAT`,
-      );
     }
     function selectPlaytestCase(id) {
       const selected = playtestCases.find((entry) => entry.id === id);
@@ -701,11 +652,6 @@ export async function createGame({
       prev = { ...state };
       rig.reset();
       emit({ type: 'recover', payload: { penalty: 'current lap invalid' } });
-      ui.notice(
-        track.closed === false
-          ? 'RECOVERED AT CHECKPOINT · RUN UNTIMED'
-          : 'RECOVERED AT CHECKPOINT · LAP INVALID',
-      );
     }
     function home() {
       if (mode === 'inspection' && inspectionReturnMode) exitInspection();

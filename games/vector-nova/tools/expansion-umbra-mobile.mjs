@@ -44,7 +44,6 @@ async function geometry(page) {
       '.race-devices',
       '.umbra-pull .arrows',
       '.umbra-pull .pressure',
-      '#notice',
       '#shape-controls',
     ]) {
       const node = document.querySelector(selector);
@@ -307,14 +306,7 @@ try {
               null,
               { timeout: 12000 },
             );
-            await capture(page, item, 'recovery-notice');
-            const g = await geometry(page);
-            assert.ok(fits(g['#notice'], g), 'actual recovery notice fits');
-            for (const other of ['#minimap', '.speed', '.energy', '#touch'])
-              assert.ok(
-                !overlaps(g['#notice'], g[other]),
-                `recovery notice clears ${other}`,
-              );
+            await capture(page, item, 'recovered');
           }
           const s = await snapshot(page);
           assert.ok(

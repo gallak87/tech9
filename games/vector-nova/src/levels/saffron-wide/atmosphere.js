@@ -122,7 +122,7 @@ export function createSaffronScreenDust(track, host) {
         ctx.stroke();
       }
       for (const node of host.querySelectorAll(
-        '.top-telemetry,.telemetry,#minimap,.race-devices,#race-roster,#touch,#shape-controls,#notice,[data-saffron-status]',
+        '.top-telemetry,.telemetry,#minimap,.race-devices,#race-roster,#touch,#shape-controls',
       )) {
         if (!node.checkVisibility()) continue;
         const r = node.getBoundingClientRect();

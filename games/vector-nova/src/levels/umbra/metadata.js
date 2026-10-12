@@ -9,7 +9,6 @@ export default {
     compactLandscape: true,
     portraitCompactHud: true,
     stackedReview: true,
-    lowNotice: true,
     edition: 'UMBRA FOLD',
     subtitle: 'GRAVITY OBSERVATORY / 10',
     eyebrow: 'UMBRA FOLD · TIDAL CIRCUIT',

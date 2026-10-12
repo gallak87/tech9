@@ -199,9 +199,7 @@ try {
       }
       await page.evaluate(() => window.__VN.dispose());
       assert.equal(
-        await page
-          .locator('.race-devices,[data-nacre-flight],.nacre-immersion')
-          .count(),
+        await page.locator('.race-devices,.nacre-immersion').count(),
         0,
       );
       assert.deepEqual(faults, []);

@@ -67,7 +67,7 @@ export function createUI(
  <section id="title-panel" class="panel"><h1><span class="circuit-name"></span><em></em></h1><p class="intro"></p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>04</b><span>SHIPS</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions launch-actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="practice">PRACTICE LAP <span>↗</span></button></div><div class="actions inspection-actions"><button id="inspect">INSPECT SHIPS <span>↗</span></button><button id="explore">FREE CAMERA <span>F</span></button></div></section>
  <section id="inspection-panel" class="panel hidden"><div class="eyebrow">AERODYNAMICS DIVISION / 07</div><h1 class="inspect-title" aria-live="polite">KESTREL<span class="dot">.</span></h1><p class="intro">Twin-core magnetic interceptor.<br>Ceramic armour. Exposed titanium propulsion.<br>Built to stay close to the limit.</p><dl><div><dt>DESIGN</dt><dd>Split prow / swept ceramic chassis</dd></div><div><dt>PROPULSION</dt><dd>Dual induction turbines</dd></div></dl><div class="actions"><button id="inspect-start" class="primary">DRIVE PROTOTYPE <span>↗</span></button><button id="inspect-back">BACK TO PROVING GROUND</button></div></section>
  <section id="pause-panel" class="modal hidden"><div class="eyebrow">SESSION PAUSED</div><h2>TAKE A BREATH.</h2><button id="resume" class="primary">RESUME SESSION ↗</button><button id="pause-results" class="hidden">RESULTS</button><button id="pause-explore">FREE CAMERA · F</button><button id="restart">RESTART RACE</button><button id="home">CIRCUITS</button><label>EFFECTS VOLUME <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>GRAPHICS <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>REDUCED MOTION <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p class="small">Settings are saved locally. Tunes stays available while paused.</p></section>
- <section id="hud" class="hidden"><div class="top-telemetry"><div class="position hidden"><span>POSITION</span><b id="position">1 / 4</b><small id="position-state"></small></div><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>LAP TIME</span><b id="time">00:00.000</b><small id="last">LAST —</small><small id="best">SET YOUR FIRST CLEAN LAP</small></div><div class="section-name"><span></span><b id="section">PROVING STRAIGHT</b></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST DRAWS FROM IMPACT RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas><div id="notice" role="status"></div></section>
+ <section id="hud" class="hidden"><div class="top-telemetry"><div class="position hidden"><span>POSITION</span><b id="position">1 / 4</b><small id="position-state"></small></div><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>LAP TIME</span><b id="time">00:00.000</b><small id="last">LAST —</small><small id="best">SET YOUR FIRST CLEAN LAP</small></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST DRAWS FROM IMPACT RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas></section>
  <footer id="legend"><div><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RESET</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>
  <div id="touch" class="hidden"><div><button data-drive="left" aria-label="Steer left">◀</button><button data-drive="right" aria-label="Steer right">▶</button><button data-drive="brake">BRAKE</button></div><div><button data-drive="airbrake">SLIP</button><button data-drive="boost">BOOST</button><button data-drive="throttle">GO</button></div></div><div class="review-tag"><span></span></div>`;
   const $ = (id) => root.querySelector('#' + id);
@@ -361,7 +361,6 @@ export function createUI(
   root.classList.toggle('has-racing', racing);
   root.classList.toggle('compact-paddock', Boolean(copy.compact) && !blockout);
   root.classList.toggle('stacked-review', Boolean(copy.stackedReview));
-  root.classList.toggle('low-notice', Boolean(copy.lowNotice));
   root.classList.toggle('compact-landscape', Boolean(copy.compactLandscape));
   root.classList.toggle(
     'portrait-compact-hud',
@@ -393,8 +392,6 @@ export function createUI(
     $('practice').firstChild.textContent = 'START JUMP TEST ';
   }
   $('inspect').classList.toggle('hidden', blockout);
-  root.querySelector('.section-name > span').textContent =
-    metadata.name.toUpperCase();
   const tagDetail = document.createElement('span');
   tagDetail.textContent = blockout ? 'ROUTE STUDY' : copy.tagDetail;
   root
@@ -845,8 +842,7 @@ export function createUI(
     mapLeft + (p.x - minX) * scale,
     mapTop + (p.z - minZ) * scale,
   ];
-  let oldMode = '',
-    noticeUntil = 0;
+  let oldMode = '';
   const fmt = (t) =>
     `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(3).padStart(6, '0')}`;
   return {
@@ -1173,13 +1169,6 @@ export function createUI(
           : r.best
             ? `BEST ${fmt(r.best)}`
             : 'SET YOUR FIRST CLEAN LAP';
-      const pos = sprint
-        ? Math.max(0, Math.min(track.length, s.distance))
-        : ((s.distance % track.length) + track.length) % track.length;
-      const section = track.sections?.find(
-        (a) => pos >= a.start && pos < a.end,
-      );
-      $('section').textContent = section?.name || 'PROVING LOOP';
       ctx.clearRect(0, 0, 200, 150);
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = '#dbe8e1cc';
@@ -1237,22 +1226,6 @@ export function createUI(
         4,
         true,
       );
-      if (performance.now() > noticeUntil) $('notice').textContent = '';
-    },
-    lapComplete({ lap, duration, valid, delta, finalLap = false }) {
-      const comparison =
-        delta === null || !valid
-          ? ''
-          : delta === 0
-            ? ' · MATCHED BEST'
-            : ` · ${Math.abs(delta).toFixed(3)}s ${delta < 0 ? 'FASTER' : 'SLOWER'} THAN BEST`;
-      this.notice(
-        `${finalLap ? 'FINAL LAP · ' : ''}${valid ? `LAP ${lap}` : 'INVALID LAP'} · ${fmt(duration)}${comparison}`,
-      );
-    },
-    notice(text) {
-      $('notice').textContent = text;
-      noticeUntil = performance.now() + 2200;
     },
     setCountdown(step) {
       lights.classList.toggle('hidden', step === null);

@@ -29,10 +29,7 @@ try {
         .waitFor({ state: 'visible', timeout: 120000 });
       await page.waitForTimeout(100);
       assert.equal(await page.locator('canvas#world').count(), 0);
-      assert.equal(
-        await page.locator('.cindercoil-notice,.cindercoil-exposure').count(),
-        0,
-      );
+      assert.equal(await page.locator('.cindercoil-exposure').count(), 0);
       report.push({
         asset,
         status: 'pass',

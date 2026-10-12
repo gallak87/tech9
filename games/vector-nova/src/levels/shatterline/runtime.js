@@ -19,10 +19,9 @@ const EXIT_RECOVERY = Object.freeze({
   energyScale: 0.25,
 });
 const model = createFlightModel(SHATTERLINE_RULES);
-const runtimes = new WeakMap();
 export function createShatterlineRuntime(context) {
   const pace = context.track.pace ?? SHATTERLINE_PACE;
-  const runtime = model.createRuntime(context, {
+  return model.createRuntime(context, {
     id: 'shatterline-ballistic-sprint',
     version: 4,
     rulesId: `shatterline-v4:surface-metric-v1:${JSON.stringify({ geometry: context.track.geometryVersion, pace, exitRecovery: EXIT_RECOVERY, rules: model.rules, jumps: context.track.jumps })}`,
@@ -51,50 +50,4 @@ export function createShatterlineRuntime(context) {
       ]),
     ),
   });
-  if (context.presentation !== false) runtimes.set(context.track, runtime);
-  return runtime;
-}
-export function createShatterlineOverlay({ track, host }) {
-  if (typeof document === 'undefined' || !host?.appendChild)
-    return { dispose() {} };
-  const element = document.createElement('div');
-  Object.assign(element.style, {
-    position: 'absolute',
-    left: '50%',
-    top: '19%',
-    transform: 'translateX(-50%)',
-    color: '#f1e8d6',
-    font: '600 11px system-ui',
-    letterSpacing: '.13em',
-    textAlign: 'center',
-    pointerEvents: 'none',
-    textShadow: '0 2px 5px #000',
-    zIndex: '4',
-  });
-  host.append(element);
-  return {
-    update({ state, mode }) {
-      if (!state || mode !== 'racing') {
-        element.textContent = '';
-        return;
-      }
-      const motion = runtimes.get(track)?.snapshot();
-      const jump = motion?.flight
-        ? track.jumps.find((j) => j.id === motion.flight.id)
-        : track.jumps.find(
-            (j) =>
-              j.takeoff > state.distance && j.takeoff - state.distance < 230,
-          );
-      if (motion?.mode === 'flight')
-        element.textContent = `${jump?.label?.toUpperCase() ?? 'FLIGHT'}  /  ${motion.flight.elapsed.toFixed(1)} S AIRBORNE`;
-      else if (motion?.mode === 'recovery')
-        element.textContent = 'RECOVERING · TIME CONTINUES';
-      else if (jump)
-        element.textContent = `${jump.hero ? 'LONG FLIGHT · ' : ''}${jump.label.toUpperCase()}  /  ${Math.ceil((jump.takeoff - state.distance) / 10) * 10} M`;
-      else element.textContent = '';
-    },
-    dispose() {
-      element.remove();
-    },
-  };
 }

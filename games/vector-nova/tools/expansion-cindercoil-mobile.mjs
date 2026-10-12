@@ -27,27 +27,6 @@ async function capture(page, name) {
     `craft outside horizontal framing: ${name}`,
   );
   const layout = await page.evaluate(() => {
-    const notice = document.querySelector('.cindercoil-notice');
-    const own = notice.getBoundingClientRect();
-    const visible = notice.checkVisibility();
-    const conflicts = visible
-      ? [
-          ...document.querySelectorAll(
-            '.lap,.timing,#minimap,.speed,.energy,#shape-controls,#touch button,#notice',
-          ),
-        ]
-          .filter((n) => {
-            if (!n.checkVisibility()) return false;
-            const r = n.getBoundingClientRect();
-            return (
-              r.width &&
-              r.height &&
-              Math.min(own.right, r.right) - Math.max(own.left, r.left) > 0.5 &&
-              Math.min(own.bottom, r.bottom) - Math.max(own.top, r.top) > 0.5
-            );
-          })
-          .map((n) => n.id || n.className || n.textContent)
-      : [];
     const buttons = [...document.querySelectorAll('#touch button')]
       .filter((n) => n.checkVisibility())
       .map((n) => {
@@ -60,9 +39,8 @@ async function capture(page, name) {
           height: r.height,
         };
       });
-    return { visible, conflicts, buttons };
+    return { buttons };
   });
-  assert.deepEqual(layout.conflicts, [], `notice overlap: ${name}`);
   for (const b of layout.buttons)
     assert.ok(
       b.x >= 0 &&

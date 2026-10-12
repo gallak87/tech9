@@ -6,10 +6,8 @@ import { createVesperRoad } from './track/road.js';
 import { createVesperEnvironment } from './environment/index.js';
 import { createVesperBackdrop } from './backdrop/index.js';
 import { createVesperRuntime } from './runtime.js';
-import { createVesperOverlay } from './overlay.js';
 
 export default function createLevel({ shape = false } = {}) {
-  let activeRuntime;
   return {
     version: '0.5.1-vesper-racing',
     playtests: {
@@ -56,14 +54,6 @@ export default function createLevel({ shape = false } = {}) {
             dispose() {},
           }
         : createVesperBackdrop(context),
-    createRuntime: (context) => {
-      activeRuntime = createVesperRuntime(context);
-      return activeRuntime;
-    },
-    createOverlay: (context) =>
-      createVesperOverlay({
-        ...context,
-        getMotion: () => activeRuntime?.snapshot().mode,
-      }),
+    createRuntime: createVesperRuntime,
   };
 }

@@ -213,9 +213,7 @@ try {
       });
       check(
         `${quality} own HUD disposed`,
-        (await page
-          .locator('[data-glasswake-notice], [data-glasswake-weather-glass]')
-          .count()) === 0,
+        (await page.locator('[data-glasswake-weather-glass]').count()) === 0,
       );
     } finally {
       await context.close();

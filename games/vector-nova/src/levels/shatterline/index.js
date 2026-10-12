@@ -1,11 +1,7 @@
 import { createShatterlineTrack } from './track/model.js';
 import { createShatterlineRoad } from './track/road.js';
 import { createShatterlineCollisionWorld } from './collision.js';
-import {
-  createShatterlineRuntime,
-  createShatterlineOverlay,
-  SHATTERLINE_RULES,
-} from './runtime.js';
+import { createShatterlineRuntime, SHATTERLINE_RULES } from './runtime.js';
 import { createDevices } from './devices.js';
 import { createShatterlineEnvironment } from './environment/index.js';
 import { createShatterlineBackdrop } from './backdrop/index.js';
@@ -58,7 +54,6 @@ export default function createLevel({ shape = false } = {}) {
       });
     },
     createRuntime: createShatterlineRuntime,
-    createOverlay: createShatterlineOverlay,
     racing: { createDevices, createMotion: createShatterlineRuntime },
     railContactSparks: true,
     practiceSectionsUntimed: true,

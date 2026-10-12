@@ -31,7 +31,6 @@ export function validateMetadata(metadata, id = metadata?.id) {
   for (const flag of [
     'compact',
     'stackedReview',
-    'lowNotice',
     'compactLandscape',
     'portraitCompactHud',
   ])

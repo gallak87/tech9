@@ -96,11 +96,6 @@ try {
         landed.events.filter((e) => e.type === 'impact').length === 1 &&
           !landed.events.some((e) => e.type === 'jump-miss'),
       );
-      check(
-        `${name} feedback explains edge catch`,
-        (await page.locator('#notice').innerText()) ===
-          'EDGE CATCH · LANDING CONFIRMED',
-      );
       const replay = await page.evaluate(() => window.__VN.getReplay());
       const replayed = await page.evaluate(
         (r) => window.__VN.playReplay(r),

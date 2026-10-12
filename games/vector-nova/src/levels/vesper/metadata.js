@@ -20,7 +20,6 @@ export default {
     compactLandscape: true,
     portraitCompactHud: true,
     stackedReview: true,
-    lowNotice: true,
     shape: {
       edition: 'ROUTE STUDY',
       intro:

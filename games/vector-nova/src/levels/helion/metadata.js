@@ -8,7 +8,6 @@ export default {
     compact: true,
     compactLandscape: true,
     stackedReview: true,
-    lowNotice: true,
     edition: 'HELION OBSERVATORY',
     subtitle: 'THERMAL CIRCUIT / 09',
     eyebrow: 'AT THE EDGE OF A STAR',

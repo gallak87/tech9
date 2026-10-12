@@ -7,7 +7,6 @@ export default {
   ui: {
     compact: true,
     stackedReview: true,
-    lowNotice: true,
     edition: 'SHATTERLINE / 11',
     subtitle: 'DOWNHILL MASS DRIVER',
     intro:

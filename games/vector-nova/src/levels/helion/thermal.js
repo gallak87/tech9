@@ -50,11 +50,9 @@ export function sampleHelionThermal(
   );
   const result = {
     zone: zone?.id ?? null,
-    label: zone?.label ?? 'CLEAR DECK',
     exposure: 0,
     cooling: HELION_HEAT_RULES.passiveCooling,
     sheltered: false,
-    warning: '',
     flareStrength: 0,
     laneCenter: 0,
     laneHalfWidth: 5.3,
@@ -63,42 +61,27 @@ export function sampleHelionThermal(
   if (airborne)
     return {
       ...result,
-      label: 'SHIELDED FLIGHT',
       sheltered: true,
       cooling: HELION_HEAT_RULES.shelteredCooling,
     };
-  if (!zone) {
-    const approaching = (track.thermalZones ?? []).find(
-      (entry) =>
-        ['furnace', 'flare'].includes(entry.kind) &&
-        entry.start - s > 0 &&
-        entry.start - s < 130,
-    );
-    if (approaching)
-      result.warning = `${approaching.kind === 'furnace' ? 'FURNACE' : 'FLARE LANES'} · ${Math.ceil(approaching.start - s)} m`;
-    return result;
-  }
+  if (!zone) return result;
   if (zone.kind === 'cooling')
     return {
       ...result,
-      label: 'COOLING STRIP',
       cooling: HELION_HEAT_RULES.stripCooling,
     };
   if (zone.kind === 'shelter')
     return {
       ...result,
-      label: 'SHIELD SHADE',
       sheltered: true,
       cooling: HELION_HEAT_RULES.shelteredCooling,
     };
   if (zone.kind === 'furnace')
     return {
       ...result,
-      label: 'FURNACE · KEEP MOVING',
       active: true,
       exposure: HELION_HEAT_RULES.furnaceHeating,
       cooling: 0,
-      warning: 'MANDATORY HEAT PASSAGE',
       flareStrength: 0.8,
     };
   if (zone.kind === 'flare') {
@@ -115,7 +98,6 @@ export function sampleHelionThermal(
       Math.abs(lateral - laneCenter) < result.laneHalfWidth;
     return {
       ...result,
-      label: covered ? 'SHELTERED DETOUR' : 'FLARE-SWEPT DECK',
       sheltered: covered,
       cooling: covered
         ? HELION_HEAT_RULES.shelteredCooling
@@ -126,13 +108,6 @@ export function sampleHelionThermal(
       laneCenter,
       active,
       flareStrength: strength,
-      warning: covered
-        ? 'PHYSICAL COVER · COOLING'
-        : phase < 3
-          ? `FLARE IN ${(3 - phase).toFixed(1)}s · MOVE RIGHT FOR COVER`
-          : active
-            ? 'FLARE ACTIVE · EVADE / RIGHT SHELTER'
-            : 'FLARE CLEAR',
     };
   }
   return result;
@@ -190,7 +165,8 @@ export function sampleHelionHeatFeedback(
     0.75,
   );
   const pulse = reducedMotion ? 0.85 : helionHeatPulse(time);
-  const cooling = thermal.sheltered || thermal.label === 'COOLING STRIP';
+  const cooling =
+    thermal.sheltered || thermal.cooling === HELION_HEAT_RULES.stripCooling;
   return {
     contact,
     envelope,

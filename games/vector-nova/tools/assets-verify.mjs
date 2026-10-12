@@ -3,6 +3,7 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import { resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readPreviewManifest } from './menu-catalog.mjs';
+import { musicTracks } from '../src/audio/tracks.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const manifest = JSON.parse(
@@ -80,6 +81,14 @@ for (const path of listed)
     (await stat(resolve(root, path))).isFile(),
     `missing indexed export: ${path}`,
   );
+for (const track of musicTracks) {
+  assert.match(track.path, /\.mp3$/, `music delivery format: ${track.id}`);
+  assert.ok(listed.has(`public/${track.path}`), `unindexed song: ${track.id}`);
+  assert.ok(
+    (await stat(resolve(root, track.path.replace(/\.mp3$/, '.wav')))).isFile(),
+    `missing WAV master: ${track.id}`,
+  );
+}
 for (const asset of manifest.assets) {
   for (const path of [
     asset.provenanceRecord,

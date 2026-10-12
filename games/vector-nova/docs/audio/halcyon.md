@@ -1,6 +1,6 @@
 # Halcyon — Blue Hour
 
-[Current WAV](../../public/assets/levels/halcyon/audio/blue-hour-preview.wav) · [Prompt](../../assets/levels/halcyon/audio/prompt.txt) · [Generation guide](README.md)
+[Playable MP3](../../public/assets/levels/halcyon/audio/blue-hour-preview.mp3) · [WAV master](../../assets/levels/halcyon/audio/blue-hour-preview.wav) · [Prompt](../../assets/levels/halcyon/audio/prompt.txt) · [Generation guide](README.md)
 
 Halcyon is the warmup city circuit: blue-hour steel and sky, a warm horizon, skyline ascent, corkscrew and canal plunge. The music should feel focused, fluid, energizing and futuristic. See its [metadata](../../src/levels/halcyon/metadata.js), [route](../../src/levels/halcyon/track/model.js) and [art direction](../ART_BIBLE.md).
 

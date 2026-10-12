@@ -15,7 +15,7 @@ import wave
 SOURCE = Path(__file__).resolve().parent
 GAME = SOURCE.parents[3]
 ACE_ROOT = Path(os.environ.get("ACESTEP_ROOT", str(GAME / ".audio-model/acestep.cpp"))).expanduser().resolve()
-OUTPUT = GAME / "public/assets/levels/halcyon/audio/blue-hour-preview.wav"
+OUTPUT = SOURCE / "blue-hour-preview.wav"
 SEED = 70931
 DURATION = 120
 
@@ -65,12 +65,12 @@ def replace_preview(rendered: Path, output: Path, duration: int = DURATION) -> N
 
 
 def main() -> None:
-    """Generate one take, retaining only the selected in-game song."""
+    """Generate one WAV master; audio:encode produces the playable MP3."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--prompt", type=Path, default=SOURCE / "prompt.txt",
                         help="Text prompt file (default: current Halcyon prompt)")
     parser.add_argument("--output", type=Path, default=OUTPUT,
-                        help="Destination WAV (default: current Halcyon preview)")
+                        help="Destination WAV master (default: beside the Halcyon prompt)")
     parser.add_argument("--bpm", type=int, default=128,
                         help="Tempo in BPM (default: 128)")
     parser.add_argument("--key", default="F# minor",
@@ -122,6 +122,7 @@ def main() -> None:
             "--request", str(folder / "request0.json"), "--vae-chunk", "256",
         ], check=True, cwd=ACE_ROOT)
         replace_preview(folder / "request00.wav", args.output, args.duration)
+    print("Run npm run audio:encode to refresh the catalog's playable MP3s.", flush=True)
 
 
 if __name__ == "__main__":

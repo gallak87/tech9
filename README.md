@@ -10,13 +10,15 @@ You give it a game idea. It builds the game.
 
 | Game | Status | Play |
 |------|--------|------|
+| [Vector Nova](games/vector-nova/) | alpha | [▶ play](https://gallak87.github.io/tech9/vector-nova/) |
+| [Chronforge Echo](games/chronoforge-echo/) | alpha | [▶ play](https://gallak87.github.io/tech9/chronoforge-echo/) |
 | [🦊vulpine](games/vulpine/) | alpha | [▶ play](https://gallak87.github.io/tech9/) |
 | [🧑‍🚀gravelrun](games/gravelrun/) | alpha | [▶ play](https://gallak87.github.io/tech9/gravelrun/) |
 | [🐍snake](games/snake/) | shipped | [▶ play](https://gallak87.github.io/tech9/snake/) |
 | [🛩️skyrift](games/skyrift/) | alpha | [▶ play](https://gallak87.github.io/tech9/skyrift/) |
 | [🛰️void-sentinel](games/void-sentinel/) | alpha | [▶ play](https://gallak87.github.io/tech9/void-sentinel/) |
 | [⚔️chronoforge](games/chronoforge/) | alpha | [▶ play](https://gallak87.github.io/tech9/chronoforge/) |
-| [Chronforge Echo](games/chronoforge-echo/) | alpha | [▶ play](https://gallak87.github.io/tech9/chronoforge-echo/) |
+
 
 ---
 

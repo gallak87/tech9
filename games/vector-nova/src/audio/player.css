@@ -21,6 +21,9 @@
   align-items: flex-start;
   gap: 10px;
 }
+.music-player .music-compact-toggle {
+  display: none;
+}
 .music-transport {
   display: flex;
   align-items: flex-start;

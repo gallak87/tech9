@@ -25,11 +25,14 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
   let queue = musicTracks;
   let wantsPlayback = true;
   let driving = false;
+  const compact = matchMedia('(max-width: 760px)');
   const root = document.createElement('aside');
   root.className = 'music-player';
   root.dataset.musicPlayer = '';
   root.setAttribute('aria-label', 'Music player');
   root.innerHTML = `
+    <button type="button" class="music-compact-toggle" aria-expanded="false" aria-controls="music-panel" aria-label="Expand Tunes">TUNES</button>
+    <div id="music-panel">
     <header class="music-heading">
       <div class="music-transport">
         <div class="music-keyed"><button type="button" class="music-previous" aria-label="Previous song" aria-keyshortcuts="," title="Previous song · ,">${icon('<path d="m14 6-6 6 6 6"/>')}</button><kbd aria-hidden="true">,</kbd></div>
@@ -55,6 +58,7 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
         <button type="button" class="music-loop" aria-label="Repeat song" aria-pressed="false" title="Repeat song">${icon('<path d="m17 2 4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4m14-1v2a3 3 0 0 1-3 3H3"/>')}</button>
         </div>
       </div>
+    </div>
     </div>`;
   const audio = document.createElement('audio');
   audio.preload = 'auto';
@@ -76,6 +80,8 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
     });
   const play = root.querySelector('.music-play');
   const expand = root.querySelector('.music-expand');
+  const compactToggle = root.querySelector('.music-compact-toggle');
+  const panel = root.querySelector('#music-panel');
   const controls = root.querySelector('#music-controls');
   const picker = root.querySelector('.music-song');
   const status = root.querySelector('.music-status');
@@ -220,11 +226,36 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
       collapsed ? 'Expand music player' : 'Collapse music player',
     );
     expand.title = collapsed ? 'Expand · /' : 'Collapse · /';
-    if (collapsed && controls.contains(document.activeElement)) expand.focus();
+    compactToggle.setAttribute('aria-expanded', String(!collapsed));
+    compactToggle.setAttribute(
+      'aria-label',
+      collapsed ? 'Expand Tunes' : 'Collapse Tunes',
+    );
+    const hiddenContent = compact.matches ? panel : controls;
+    if (collapsed && hiddenContent.contains(document.activeElement))
+      (compact.matches ? compactToggle : expand).focus();
   }
-  listen(expand, 'click', () => {
-    if (!driving) collapse(!controls.hidden);
+  function toggleExpanded() {
+    if (!driving || compact.matches) collapse(!controls.hidden);
     save();
+  }
+  listen(expand, 'click', toggleExpanded);
+  listen(compactToggle, 'click', toggleExpanded);
+  listen(compact, 'change', () => {
+    const focused = root.contains(document.activeElement);
+    collapse(true);
+    expand.disabled = driving && !compact.matches;
+    if (focused)
+      (compact.matches
+        ? compactToggle
+        : expand.disabled
+          ? play
+          : expand
+      ).focus();
+  });
+  listen(document, 'pointerdown', (event) => {
+    if (compact.matches && !controls.hidden && !root.contains(event.target))
+      collapse(true);
   });
   listen(play, 'click', togglePlayback);
   listen(root.querySelector('.music-previous'), 'click', () => switchSong(-1));
@@ -286,6 +317,12 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
     window,
     'keydown',
     (event) => {
+      if (event.code === 'Escape' && compact.matches && !controls.hidden) {
+        event.preventDefault();
+        event.stopPropagation();
+        collapse(true);
+        return;
+      }
       const step =
         event.code === 'Comma' ? -1 : event.code === 'Period' ? 1 : 0;
       if (
@@ -306,10 +343,7 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
       event.stopPropagation();
       if (step) switchSong(step);
       else if (event.code === 'KeyM') togglePlayback();
-      else {
-        if (!driving) collapse(!controls.hidden);
-        save();
-      }
+      else toggleExpanded();
     },
     { capture: true },
   );
@@ -328,7 +362,7 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
     setDriving(value) {
       driving = value;
       if (value) collapse(true);
-      expand.disabled = value;
+      expand.disabled = value && !compact.matches;
     },
     startWithGame() {
       if (!disposed && wantsPlayback && audio.paused) void start();

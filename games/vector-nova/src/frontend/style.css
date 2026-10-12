@@ -1428,20 +1428,11 @@ body[data-screen='results'] #interface {
     line-height: 1.5;
   }
 
-  .front-header {
-    height: 106px;
-    padding: 0 4vw 47px;
-  }
   .front-brand {
     font-size: 21px;
   }
   .front-header > button[data-action='settings'] {
     padding: 8px 12px;
-  }
-  .music-player {
-    top: 58px;
-    right: 4vw;
-    width: min(310px, 92vw);
   }
   .front-content {
     padding: 16px 4vw;
@@ -1563,4 +1554,57 @@ body[data-screen='results'] #interface {
 }
 .music-player :focus-visible {
   outline-color: #e8e8e8;
+}
+@media (max-width: 760px) {
+  .front-header,
+  #interface .masthead {
+    height: 64px;
+    padding: 0 calc(4vw + 76px) 0 4vw;
+    gap: 10px;
+  }
+  .front-header > button[data-action='settings'] {
+    padding: 8px;
+  }
+  #interface .wordmark {
+    white-space: nowrap;
+  }
+  #interface #pause-button {
+    margin-left: auto;
+  }
+  .music-player {
+    top: 16px;
+    right: 4vw;
+    width: 64px;
+    padding: 0;
+  }
+  .music-player .music-compact-toggle {
+    display: flex;
+    width: 100%;
+    height: 30px;
+    color: #eee;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+  .music-player #music-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: -1px;
+    width: min(310px, 92vw);
+    max-height: calc(100dvh - 64px);
+    overflow-y: auto;
+    padding: 7px 8px;
+    background: #151515f5;
+    border: 1px solid #393939;
+  }
+  .music-player.is-collapsed #music-panel,
+  .music-player .music-progress {
+    display: none;
+  }
+}
+@media (max-width: 380px) {
+  .front-brand,
+  #interface .wordmark {
+    font-size: 18px;
+  }
 }

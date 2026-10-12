@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Group, Scene } from 'three';
+import { Group, Scene, Vector3 } from 'three';
+import { createDeviceRuntime } from '../pickups/runtime.js';
 import { createTrack } from '../levels/halcyon/track/model.js';
 import { createVehicleState, STEERING_ASSIST } from '../physics/index.js';
 import { createHalcyonSimulationRuntime } from '../levels/halcyon/device-runtime.js';
@@ -255,7 +256,7 @@ test('actual-physics opponents complete two valid laps and keep driving after ti
     assert.equal(entry.finished, true);
     assert.equal(entry.valid, true);
     assert.equal(entry.lapTimes.length, 2);
-    assert.ok(entry.totalTime > 100 && entry.totalTime < 128);
+    assert.ok(entry.totalTime > 75 && entry.totalTime < 110);
   });
   assert.equal(
     completes.filter((event) => event.type === 'racer-complete').length,
@@ -357,81 +358,182 @@ test('a rejected rival asset releases already loaded racing meshes', async () =>
   racers.dispose();
 });
 
-function timedDifficulty(difficulty, frequentBoost = false) {
+function timedDifficulty(difficulty) {
   const racers = createHalcyonRacers({ track });
-  const playerState = { ...createVehicleState(), ...RACE_GRID.player };
-  const playerRace = createRace(track);
-  const runtime = createHalcyonSimulationRuntime({ track });
-  runtime.reset({ state: playerState });
   racers.reset({ enabled: true, difficulty });
-  for (let tick = 0; tick < 120 * 128; tick++) {
-    const playerInput = getRacerControl(playerState, track);
-    playerInput.boost = frequentBoost && tick % 2400 < 480;
-    const previous = playerState.distance;
-    const events = runtime.advance(playerState, playerInput, dt);
-    runtime.update({});
-    playerRace.step(previous, playerState.distance, dt, events);
-    racers.advance(dt, { playerState, playerRace, playerInput });
+  for (let tick = 0; tick < 120 * 140; tick++) {
+    racers.advance(dt);
+    if (racers.opponents.every((opponent) => opponent.finish)) break;
   }
   const saved = racers.serialize();
-  const snapshot = racers.snapshot({ playerState, playerRace });
-  runtime.dispose();
   racers.dispose();
-  return { saved, snapshot };
+  return saved;
 }
 
-test('medium is materially faster than easy and hard answers actual player boost cadence using physical reserve', () => {
+// Physical clean-driving reference: the same Kestrel, reserve and strip rules,
+// steering on the centre line, full throttle/boost, and no braking or recovery.
+function cleanKestrelTime() {
+  const state = { ...createVehicleState(), ...RACE_GRID.player };
+  const runtime = createHalcyonSimulationRuntime({ track });
+  const race = createRace(track);
+  runtime.reset({ state });
+  let impacts = 0;
+  for (let tick = 0; tick < 120 * 140 && race.history.length < 2; tick++) {
+    const input = {
+      ...getRacerControl(state, track, {
+        difficulty: 'hard',
+        devices: createHalcyonDevices(track),
+      }),
+      throttle: 1,
+      brake: 0,
+      boost: true,
+    };
+    const previous = state.distance;
+    const events = runtime.advance(state, input, dt);
+    impacts += events.filter((event) => event.type === 'impact').length;
+    runtime.update({});
+    race.step(previous, state.distance, dt, events);
+  }
+  runtime.dispose();
+  assert.equal(impacts, 0, 'the calibration reference must be clean');
+  assert.equal(race.history.length, 2);
+  assert.ok(race.history.every((lap) => lap.valid));
+  return race.history.reduce((sum, lap) => sum + lap.duration, 0);
+}
+
+test('difficulty ladder is faster throughout and hard stays close to a clean boosted Kestrel', () => {
   const easy = timedDifficulty('easy');
   const medium = timedDifficulty('medium');
   const hard = timedDifficulty('hard');
-  const boosted = timedDifficulty('hard', true);
   for (let index = 0; index < 3; index++) {
-    const gentle = easy.saved.opponents[index];
-    const quick = medium.saved.opponents[index];
-    const fastest = hard.saved.opponents[index];
-    const boostedRival = boosted.saved.opponents[index];
-    assert.equal(quick.finish.valid, true);
-    assert.equal(boostedRival.finish.valid, true);
+    const gentle = easy.opponents[index];
+    const quick = medium.opponents[index];
+    const fastest = hard.opponents[index];
+    for (const opponent of [gentle, quick, fastest]) {
+      assert.equal(opponent.finish?.valid, true);
+      assert.ok(opponent.state.energy >= 0 && opponent.state.energy <= 100);
+    }
     assert.ok(
-      quick.finish.totalTime < gentle.finish.totalTime * 0.9,
-      `${quick.id} medium must improve2lap time by more than10%`,
+      gentle.finish.totalTime < 105,
+      'easy must improve on the old 116–119s field',
     );
-    assert.ok(fastest.finish.totalTime < quick.finish.totalTime);
     assert.ok(
-      boostedRival.boostSeconds > fastest.boostSeconds + 3,
-      `${quick.id} must actually spend more boost time when the player uses boost`,
+      quick.finish.totalTime < gentle.finish.totalTime * 0.92,
+      `${quick.id}: medium must be meaningfully faster`,
     );
-    assert.ok(boostedRival.finish.totalTime < fastest.finish.totalTime);
     assert.ok(
-      boostedRival.state.energy >= 0 && boostedRival.state.energy <= 100,
-      'hard does not fabricate reserve',
+      fastest.finish.totalTime < quick.finish.totalTime,
+      `${quick.id}: hard must be faster again`,
     );
   }
-  assert.equal(boosted.snapshot.difficulty, 'hard');
-  assert.ok(boosted.saved.boostHistory.requestedSeconds > 8);
-  assert.ok(boosted.saved.boostHistory.engagements >= 4);
-  assert.equal(hard.saved.boostHistory.requestedSeconds, 0);
+  const clean = cleanKestrelTime();
+  const winner = Math.min(
+    ...hard.opponents.map((opponent) => opponent.finish.totalTime),
+  );
+  assert.ok(winner > clean, 'a clean Kestrel run can still win');
+  assert.ok(
+    winner < clean * 1.04,
+    'hard leaves less than 4% margin for mistakes',
+  );
 });
 
-test('difficulty and queued boost cadence survive exact rollback', () => {
+test('hard spends its own reserve regardless of player boost input and rolls back exactly', () => {
   const racers = createHalcyonRacers({ track });
   racers.reset({ enabled: true, difficulty: 'hard' });
-  const context = { playerInput: { boost: true } };
-  step(racers, 12, context);
-  const saved = racers.serialize();
-  step(racers, 6, context);
+  step(racers, 24, { playerInput: { boost: false } });
+  const independent = racers.serialize();
+  assert.ok(
+    independent.opponents.every((opponent) => opponent.boostSeconds > 2),
+  );
+  racers.reset({ enabled: true, difficulty: 'hard' });
+  step(racers, 24, { playerInput: { boost: true } });
+  assert.deepEqual(
+    racers.serialize(),
+    independent,
+    'player boost input cannot grant or withhold rival performance',
+  );
+  step(racers, 6);
   const expected = racers.serialize();
-  racers.restore(saved);
-  step(racers, 6, context);
+  racers.restore(independent);
+  step(racers, 6);
   assert.deepEqual(racers.serialize(), expected);
   for (const changes of [
     { difficulty: 'other' },
-    { boostHistory: { requestedSeconds: NaN } },
+    { version: independent.version - 1 },
   ]) {
-    assert.throws(() => racers.restore({ ...saved, ...changes }), /mismatch/);
+    assert.throws(
+      () => racers.restore({ ...independent, ...changes }),
+      /mismatch/,
+    );
     assert.deepEqual(racers.serialize(), expected);
   }
   assert.throws(() => racers.reset({ difficulty: 'other' }), /difficulty/);
-  assert.deepEqual(racers.serialize(), expected);
   racers.dispose();
 });
+
+for (const difficulty of ['easy', 'medium', 'hard']) {
+  test(`${difficulty} AI receives and retains the same full strip boost as a player`, () => {
+    const straight = {
+      id: 'vector-parity',
+      length: 1000,
+      width: 24,
+      sample: (distance) => ({
+        position: new Vector3(0, 0, distance),
+        tangent: new Vector3(0, 0, 1),
+        right: new Vector3(1, 0, 0),
+        up: new Vector3(0, 1, 0),
+        curvature: 0,
+        bank: 0,
+      }),
+    };
+    const devices = [
+      {
+        id: 'strip',
+        type: 'vector',
+        distance: 70,
+        lateral: 0,
+        length: 54,
+        width: 14,
+      },
+    ];
+    const run = (ai) => {
+      const runtime = createDeviceRuntime({ track: straight, devices });
+      const state = { ...createVehicleState(), speed: 95, energy: 0 };
+      runtime.reset({ state });
+      let activations = 0,
+        cancelled = 0,
+        peak = 0;
+      const speeds = [];
+      while (state.distance < 150) {
+        const input = ai
+          ? getRacerControl(state, straight, { devices, difficulty, runtime })
+          : { throttle: 1 };
+        const events = runtime.advance(state, input, dt);
+        runtime.update({});
+        activations += events.filter(
+          (event) => event.type === 'pickup-activate',
+        ).length;
+        cancelled += events.filter(
+          (event) => event.type === 'pickup-cancel',
+        ).length;
+        peak = Math.max(peak, state.speed);
+        speeds.push(state.speed);
+      }
+      runtime.dispose();
+      return { speeds, peak, activations, cancelled };
+    };
+    const player = run(false),
+      rival = run(true);
+    assert.equal(rival.activations, 1);
+    assert.equal(rival.cancelled, 0);
+    assert.ok(
+      rival.peak * 3.6 > 599,
+      'AI reaches the full 600 km/h catapult target',
+    );
+    assert.deepEqual(
+      rival.speeds,
+      player.speeds,
+      'AI controls never cancel or brake away the strip benefit',
+    );
+  });
+}

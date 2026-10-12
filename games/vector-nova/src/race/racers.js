@@ -13,9 +13,13 @@ import {
   sprintRunoutControl,
 } from './course.js';
 import { createRelativeTiming } from './relative-timing.js';
+import {
+  sweptVectorContacts,
+  VECTOR_PROPULSION,
+} from '../pickups/simulation.js';
 
 export const RACE_LAPS = 2;
-export const RACERS_VERSION = 4;
+export const RACERS_VERSION = 6;
 export const RACE_DIFFICULTIES = Object.freeze(['easy', 'medium', 'hard']);
 export const RACE_GRID = Object.freeze({
   player: Object.freeze({ distance: 0, lateral: 4 }),
@@ -46,6 +50,30 @@ export const RACE_OPPONENTS = Object.freeze([
     pace: 0.94,
   }),
 ]);
+
+const DRIVER_PROFILES = Object.freeze({
+  easy: {
+    cornerLoad: 28,
+    pace: 0.04,
+    boostCurvature: 0.0018,
+    boostReserve: 60,
+    boostFloor: 35,
+  },
+  medium: {
+    cornerLoad: 48,
+    pace: 0.12,
+    boostCurvature: 0.0046,
+    boostReserve: 40,
+    boostFloor: 16,
+  },
+  hard: {
+    cornerLoad: 80,
+    pace: 0.16,
+    boostCurvature: 0.008,
+    boostReserve: 14,
+    boostFloor: 0,
+  },
+});
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const copy = (value) => JSON.parse(JSON.stringify(value));
@@ -78,15 +106,9 @@ function finishFrom(race) {
 
 // A driver, not a route-position animation: inputs pass through the same
 // magnetic physics and independent automatic-device simulation as the player.
-function controlsFor(
-  opponent,
-  track,
-  devices,
-  nearby,
-  difficulty = 'easy',
-  boostRequested = false,
-) {
+function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
   const state = opponent.state;
+  const profile = DRIVER_PROFILES[difficulty];
   if (track.closed === false && opponent.finish)
     return sprintRunoutControl(track, state);
   if (opponent.runtime?.pose(1)?.grounded === false)
@@ -111,28 +133,26 @@ function controlsFor(
     Math.abs(frame.curvature),
     Math.abs(lookahead.curvature),
   );
-  const cornerLoad =
-    difficulty === 'easy' ? 17 : difficulty === 'medium' ? 32 : 38;
   const cornerSpeed = clamp(
-    Math.sqrt(cornerLoad / Math.max(curvature, coursePace ? 0.000001 : 0.0008)),
+    Math.sqrt(profile.cornerLoad / Math.max(curvature, 0.000001)),
     63,
-    speedProfile.boostSpeed,
+    Math.max(speedProfile.boostSpeed, VECTOR_PROPULSION.cruiseSpeed),
   );
+  // Plan boost from the road and the ship's own reserve. Hard must race at
+  // full intent even when the player never presses boost.
   let wantsBoost =
-    (curvature < 0.0014 && state.speed > 60 && state.energy > 38) ||
-    (difficulty === 'hard' &&
-      boostRequested &&
-      curvature < 0.0046 &&
-      state.speed < cornerSpeed - 3);
-  const pace =
-    opponent.specification.pace +
-    (difficulty === 'easy' ? 0 : difficulty === 'medium' ? 0.12 : 0.16);
+    curvature < profile.boostCurvature &&
+    state.speed > 35 &&
+    state.speed < cornerSpeed - 3 &&
+    state.energy > (state.boosting ? profile.boostFloor : profile.boostReserve);
+  const pace = opponent.specification.pace + profile.pace;
   let targetSpeed = Math.min(
-    wantsBoost && difficulty !== 'easy'
-      ? speedProfile.boostSpeed
-      : speedProfile.cruiseSpeed * pace,
+    wantsBoost ? speedProfile.boostSpeed : speedProfile.cruiseSpeed * pace,
     cornerSpeed,
   );
+  // Braking is for a corner or traffic, not for throwing away earned strip
+  // momentum merely because it exceeds the driver's preferred cruise pace.
+  let brakeSpeed = cornerSpeed;
   let targetLane = opponent.specification.lane;
   // Readable lane changes toward the next shield; boosts already span broad
   // driving lines. Only closed circuits wrap to the next lap.
@@ -155,8 +175,10 @@ function controlsFor(
         gap > 0 &&
         gap < 20 &&
         Math.abs(laneDelta(state.lateral, other.lateral)) < 4.8
-      )
-        targetSpeed = Math.min(targetSpeed, Math.max(40, other.speed - 6));
+      ) {
+        brakeSpeed = Math.min(brakeSpeed, Math.max(40, other.speed - 6));
+        targetSpeed = Math.min(targetSpeed, brakeSpeed);
+      }
     }
   }
   const jump = (track.jumps ?? []).find((entry) => {
@@ -170,7 +192,10 @@ function controlsFor(
       speedProfile.boostSpeed,
       jump.targetSpeed ?? 112,
     );
-    targetSpeed = Math.max(targetSpeed, launchSpeed);
+    // Arrive at the authored launch speed; carrying extra strip momentum into
+    // a gap can overshoot the receiving deck even with a clean launch line.
+    targetSpeed = launchSpeed;
+    brakeSpeed = launchSpeed;
     targetLane = 0;
     wantsBoost = state.energy > 3 && state.speed < launchSpeed - 1;
   }
@@ -224,11 +249,29 @@ function controlsFor(
     -1,
     1,
   );
+  // Use the same swept hull/strip contact as device physics, including the
+  // next tick's leading-edge entry. Braking here would cancel the catapult.
+  const onVector =
+    sweptVectorContacts(
+      state,
+      { ...state, distance: state.distance + Math.max(2, state.speed / 120) },
+      devices.filter((device) => device.type === 'vector'),
+      track.length,
+      track.closed !== false,
+    ).length > 0;
   return {
-    throttle: state.speed > targetSpeed + 3 ? 0.35 : 1,
-    brake: clamp((state.speed - targetSpeed - 8) / 28, 0, 0.65),
+    throttle:
+      onVector ||
+      state.speed <= targetSpeed + 3 ||
+      (state.speed > speedProfile.cruiseSpeed + 3 &&
+        state.speed <= brakeSpeed + 3)
+        ? 1
+        : 0.35,
+    brake: onVector
+      ? 0
+      : clamp((state.speed - brakeSpeed - (jump ? 1 : 8)) / 28, 0, 0.65),
     steer,
-    boost: wantsBoost,
+    boost: wantsBoost && !onVector,
     airbrake: false,
   };
 }
@@ -241,7 +284,6 @@ export function getRacerControl(
     pace = 1,
     nearby = [],
     difficulty = 'easy',
-    boostRequested = false,
     devices = [],
     runtime = null,
   } = {},
@@ -252,7 +294,6 @@ export function getRacerControl(
     devices,
     nearby,
     difficulty,
-    boostRequested,
   );
 }
 
@@ -267,7 +308,7 @@ export function createRacers({
   const sprint = track.closed === false;
   const lapsRequired = sprint ? 1 : RACE_LAPS;
   const course = courseIdentity(track);
-  const version = sprint ? 5 : RACERS_VERSION;
+  const version = RACERS_VERSION;
   const relativeTiming = createRelativeTiming(Object.keys(RACE_GRID));
   const opponents = RACE_OPPONENTS.map((specification) => ({
     specification,
@@ -276,7 +317,6 @@ export function createRacers({
     race: null,
     runtime: createRuntime(),
     finish: null,
-    boostCredit: 0,
     boostSeconds: 0,
   }));
   let enabled = false,
@@ -284,7 +324,6 @@ export function createRacers({
     playerFinish = null,
     disposed = false,
     difficulty = 'easy';
-  let boostHistory = { requestedSeconds: 0, engagements: 0, active: false };
   let staged = null;
   const sharedDynamics =
     dynamics &&
@@ -305,7 +344,6 @@ export function createRacers({
     difficulty = nextDifficulty;
     elapsed = 0;
     playerFinish = null;
-    boostHistory = { requestedSeconds: 0, engagements: 0, active: false };
     relativeTiming.reset(
       Object.fromEntries(
         Object.entries(RACE_GRID).map(([id, pose]) => [id, pose.distance]),
@@ -322,7 +360,6 @@ export function createRacers({
         rulesId: `${opponent.runtime.rulesId}:ai-v${version}:${specification.id}`,
       });
       opponent.finish = null;
-      opponent.boostCredit = 0;
       opponent.boostSeconds = 0;
       opponent.runtime.reset({ reason: 'restart', state: opponent.state });
     }
@@ -331,20 +368,9 @@ export function createRacers({
 
   function prepareTick(
     step,
-    { playerState, playerRace, playerInput, playerPrevious, playerPose } = {},
+    { playerState, playerRace, playerPrevious, playerPose } = {},
   ) {
     elapsed += step;
-    const activeBoost =
-      !!playerInput?.boost && (playerState ? playerState.boosting : true);
-    if (activeBoost) {
-      boostHistory.requestedSeconds += step;
-      if (!boostHistory.active) boostHistory.engagements++;
-      if (difficulty === 'hard')
-        opponents.forEach((opponent) => {
-          opponent.boostCredit = Math.min(8, opponent.boostCredit + step);
-        });
-    }
-    boostHistory.active = activeBoost;
     const nearby = opponents.map((opponent) => ({ ...opponent.state }));
     if (playerState) nearby.push({ ...(playerPrevious ?? playerState) });
     const controls = opponents.map((opponent, index) =>
@@ -354,7 +380,6 @@ export function createRacers({
         devices,
         nearby.filter((_, otherIndex) => otherIndex !== index),
         difficulty,
-        opponent.boostCredit > 1e-9,
       ),
     );
     opponents.forEach((opponent) => {
@@ -372,10 +397,7 @@ export function createRacers({
       const vehicleEvents = shared
         ? opponent.runtime.finishAdvance(opponent.state)
         : opponent.runtime.advance(opponent.state, controls[index], step);
-      if (opponent.state.boosting) {
-        opponent.boostSeconds += step;
-        opponent.boostCredit = Math.max(0, opponent.boostCredit - step);
-      }
+      if (opponent.state.boosting) opponent.boostSeconds += step;
       // Grid positions behind the start line are staging, not a lap crossing.
       opponent.race.step(
         Math.max(0, opponent.prev.distance),
@@ -609,7 +631,6 @@ export function createRacers({
       difficulty,
       elapsed,
       playerFinish: copy(playerFinish),
-      boostHistory: copy(boostHistory),
       opponents: opponents.map((opponent) => ({
         id: opponent.specification.id,
         state: copy(opponent.state),
@@ -618,7 +639,6 @@ export function createRacers({
         runtimeIdentity: runtimeIdentity(opponent.runtime),
         runtime: opponent.runtime.snapshot(),
         finish: copy(opponent.finish),
-        boostCredit: opponent.boostCredit,
         boostSeconds: opponent.boostSeconds,
       })),
     };
@@ -634,13 +654,7 @@ export function createRacers({
       !RACE_DIFFICULTIES.includes(data.difficulty) ||
       !Number.isFinite(data.elapsed) ||
       data.elapsed < 0 ||
-      data.opponents?.length !== opponents.length ||
-      !data.boostHistory ||
-      !Number.isFinite(data.boostHistory.requestedSeconds) ||
-      data.boostHistory.requestedSeconds < 0 ||
-      !Number.isSafeInteger(data.boostHistory.engagements) ||
-      data.boostHistory.engagements < 0 ||
-      typeof data.boostHistory.active !== 'boolean'
+      data.opponents?.length !== opponents.length
     )
       throw new Error('Racer state mismatch');
     const finiteTree = (value) =>
@@ -682,9 +696,6 @@ export function createRacers({
         ) ||
         typeof saved.race.complete !== 'boolean' ||
         !raceFields.every((key) => key in saved.race) ||
-        !Number.isFinite(saved.boostCredit) ||
-        saved.boostCredit < 0 ||
-        saved.boostCredit > 8 ||
         !Number.isFinite(saved.boostSeconds) ||
         saved.boostSeconds < 0
       )
@@ -734,7 +745,6 @@ export function createRacers({
     difficulty = data.difficulty;
     elapsed = data.elapsed;
     playerFinish = copy(data.playerFinish);
-    boostHistory = copy(data.boostHistory);
     opponents.forEach((opponent, index) => {
       const saved = data.opponents[index];
       opponent.state = copy(saved.state);
@@ -742,7 +752,6 @@ export function createRacers({
       Object.assign(opponent.race, copy(saved.race));
       opponent.runtime.restore(copy(saved.runtime));
       opponent.finish = copy(saved.finish);
-      opponent.boostCredit = saved.boostCredit;
       opponent.boostSeconds = saved.boostSeconds;
     });
   }

@@ -172,6 +172,24 @@ button:disabled {
   padding-top: 14px;
   padding-bottom: 14px;
 }
+.flow-accordion > .setup-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  margin-top: 0;
+  padding: 0 0 4px;
+}
+.flow-accordion .launch-summary {
+  grid-column: 1 / -1;
+  max-width: none;
+}
+.flow-accordion [data-action='launch'] {
+  grid-column: 2;
+}
+.flow-accordion .session-return {
+  min-width: 0;
+  padding: 0;
+}
 .flow-step {
   display: flex;
   flex-direction: column;

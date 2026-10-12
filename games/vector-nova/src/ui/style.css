@@ -1498,10 +1498,6 @@ select {
   font-size: 12px;
   letter-spacing: 0;
 }
-.settings-form .graphics-options label {
-  padding: 14px 0;
-  font-size: 14px;
-}
 .graphics-options {
   border: 0;
   border-top: 1px solid #444;

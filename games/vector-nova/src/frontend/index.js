@@ -9,9 +9,7 @@ import {
   loadSettings,
   saveSettings,
   subscribeSettings,
-  vesperGraphicsDefaults,
 } from '../progression/index.js';
-import { vesperGraphicsControls } from '../ui/graphics-settings.js';
 import { createMusicPlayer } from '../audio/player.js';
 import { assetURL } from '../assets/url.js';
 import {
@@ -284,21 +282,21 @@ export function createFrontend(host) {
         main.innerHTML = `<div class="workbench-layout">${circuitPanel()}<section class="ship-pane" aria-label="Ship selection">${shipPanel()}</section></div>${launchControls()}`;
       } else {
         main.classList.add('flow-accordion');
-        main.innerHTML = ['circuits', 'setup']
-          .map((step, i) => {
-            const open = screen === step;
-            const summary =
-              step === 'circuits'
-                ? `${level().name} / ${sessionLabel()}`
-                : `${selectedShip().name} / ${selectedShip().role}`;
-            return `<section class="flow-step ${open ? 'open' : ''}" data-step="${step}"><h2 class="step-heading"><button class="step-toggle" data-action="${step === 'circuits' ? 'circuits' : 'ship-step'}" aria-expanded="${open}" aria-controls="${step}-panel"><span class="step-number">0${i + 1}</span><strong>${step === 'circuits' ? 'Circuit & session' : 'Ship'}</strong><span class="step-summary">${escape(summary)}</span><b aria-hidden="true">${open ? '−' : '+'}</b></button></h2><div id="${step}-panel" class="step-panel" ${open ? '' : 'hidden'}></div>${step === 'setup' && !open ? '<div class="transfer-slot collapsed-transfer"></div>' : ''}</section>`;
-          })
-          .join('');
+        main.innerHTML =
+          launchControls() +
+          ['circuits', 'setup']
+            .map((step, i) => {
+              const open = screen === step;
+              const summary =
+                step === 'circuits'
+                  ? `${level().name} / ${sessionLabel()}`
+                  : `${selectedShip().name} / ${selectedShip().role}`;
+              return `<section class="flow-step ${open ? 'open' : ''}" data-step="${step}"><h2 class="step-heading"><button class="step-toggle" data-action="${step === 'circuits' ? 'circuits' : 'ship-step'}" aria-expanded="${open}" aria-controls="${step}-panel"><span class="step-number">0${i + 1}</span><strong>${step === 'circuits' ? 'Circuit & session' : 'Ship'}</strong><span class="step-summary">${escape(summary)}</span><b aria-hidden="true">${open ? '−' : '+'}</b></button></h2><div id="${step}-panel" class="step-panel" ${open ? '' : 'hidden'}></div>${step === 'setup' && !open ? '<div class="transfer-slot collapsed-transfer"></div>' : ''}</section>`;
+            })
+            .join('');
         content = main.querySelector(`#${screen}-panel`);
         content.innerHTML =
-          screen === 'circuits'
-            ? circuitPanel()
-            : shipPanel() + launchControls();
+          screen === 'circuits' ? circuitPanel() : shipPanel();
       }
       showDetail(selected);
       if (showingShip()) mountShipPreview();
@@ -364,11 +362,6 @@ export function createFrontend(host) {
           '',
         )}</section></div><div class="front-actions">${button('settings-back', '← Back')}</div>`;
       content.querySelector('select').value = settings.quality;
-      content
-        .querySelector('.settings-form')
-        .insertAdjacentHTML('beforeend', vesperGraphicsControls(settings));
-      content.querySelector('[data-graphics-reset]').onclick = () =>
-        saveSettings(vesperGraphicsDefaults);
     } else if (screen === 'results') {
       const sprint = isSprint(loadedId);
       const player = lastResults?.standings.find(
@@ -384,11 +377,9 @@ export function createFrontend(host) {
     }
     if (choosingSession() && game?.hasSession()) {
       const sessionReturn = `<aside class="session-return"><span>SESSION ON HOLD <b>${escape(loadedLevel().name)}</b></span>${button('resume-session', 'Resume →')}</aside>`;
-      if (wideMenu.matches)
-        main
-          .querySelector('[data-action="launch"]')
-          .insertAdjacentHTML('beforebegin', sessionReturn);
-      else main.insertAdjacentHTML('afterbegin', sessionReturn);
+      main
+        .querySelector('[data-action="launch"]')
+        .insertAdjacentHTML('beforebegin', sessionReturn);
     }
     const statusSlot = shell.querySelector('.transfer-slot');
     if (statusSlot) statusSlot.append(transfer);

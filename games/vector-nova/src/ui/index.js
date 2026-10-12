@@ -452,14 +452,6 @@ export function createUI(
       $('art-view-status').textContent = 'Copy the selected view link.';
     }
   };
-  if (['vesper', 'halcyon'].includes(metadata.id)) {
-    const comparisons = document.createElement('details');
-    comparisons.innerHTML =
-      metadata.id === 'halcyon'
-        ? `<summary>Halcyon road finish</summary>${halcyonGraphicsControls(settings)}`
-        : `<summary>Vesper material settings</summary>${vesperGraphicsControls(settings)}`;
-    $('pause-panel').append(comparisons);
-  }
   let perfLast = null,
     perfElapsed = 0,
     perfFrames = 0;

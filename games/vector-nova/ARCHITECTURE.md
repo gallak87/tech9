@@ -49,6 +49,8 @@ The version-1 manifest records each filename, dimensions, capture preset, source
 
 ## Route, coordinates and handling
 
+`src/input/touch.js` supplies two independently captured pointer controls to the shared input sampler: left/right analog steering with a downward airbrake zone, and a right-hand Boost/Go/Neutral/Brake rail. Boost also holds throttle. Each pad retains one pointer through out-of-bounds drags; release/cancel/lost capture resets only that pad. Input clear, pause, suspension, focus loss and viewport resize reset both pads and their indicators. Touch feeds the existing normalized input and physics; keyboard and gamepad mappings remain unchanged. Narrow, short-landscape and coarse-pointer viewports expose the pads, with telemetry kept clear of them.
+
 - Metres/seconds/radians. World +Y up; ship local +Z forward, +Y up.
 - `sample(distance)` wraps arc-length metres and returns `{position, tangent, right, up, quaternion, curvature, bank}`, optionally `roll`. Road, ship, camera and physics consume the same frame.
 - The legacy `frame.right` is geometric +X, which appears driver-left when facing +Z. Positive input steer means driver-right: negative geometric heading/lateral displacement. Do not reverse this when adding levels.

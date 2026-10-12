@@ -1,9 +1,11 @@
+import { createTouchControls } from './touch.js';
+
 export function createInput(onCommand, onBlur) {
   const keys = new Set(),
-    touch = new Map(),
     abort = new AbortController();
   let gamepadPresent = false,
     enabled = true;
+  const touch = createTouchControls(abort.signal, () => enabled);
   const codes = [
     'ArrowUp',
     'ArrowDown',
@@ -51,6 +53,9 @@ export function createInput(onCommand, onBlur) {
   window.addEventListener('keyup', (e) => keys.delete(e.code), {
     signal: abort.signal,
   });
+  window.addEventListener('resize', () => touch.clear(), {
+    signal: abort.signal,
+  });
   window.addEventListener(
     'blur',
     () => {
@@ -80,16 +85,15 @@ export function createInput(onCommand, onBlur) {
       return gamepadPresent;
     },
     sample() {
-      const t = [...touch.values()];
-      const has = (a) => t.includes(a);
+      const t = touch.sample();
       let i = {
-        throttle: down('ArrowUp', 'KeyW') || has('throttle') ? 1 : 0,
-        brake: down('ArrowDown', 'KeyS') || has('brake') ? 1 : 0,
+        throttle: down('ArrowUp', 'KeyW') ? 1 : t.throttle,
+        brake: down('ArrowDown', 'KeyS') ? 1 : t.brake,
         steer:
-          (down('ArrowRight', 'KeyD') || has('right') ? 1 : 0) -
-          (down('ArrowLeft', 'KeyA') || has('left') ? 1 : 0),
-        boost: down('ShiftLeft', 'ShiftRight') || has('boost'),
-        airbrake: down('Space') || has('airbrake'),
+          Number(down('ArrowRight', 'KeyD')) -
+            Number(down('ArrowLeft', 'KeyA')) || t.steer,
+        boost: down('ShiftLeft', 'ShiftRight') || t.boost,
+        airbrake: down('Space') || t.airbrake,
       };
       let pad;
       try {
@@ -110,21 +114,7 @@ export function createInput(onCommand, onBlur) {
       return i;
     },
     bindTouch(root) {
-      root.querySelectorAll('[data-drive]').forEach((b) => {
-        b.addEventListener(
-          'pointerdown',
-          (e) => {
-            e.preventDefault();
-            b.setPointerCapture(e.pointerId);
-            touch.set(e.pointerId, b.dataset.drive);
-          },
-          { signal: abort.signal },
-        );
-        for (const kind of ['pointerup', 'pointercancel', 'lostpointercapture'])
-          b.addEventListener(kind, (e) => touch.delete(e.pointerId), {
-            signal: abort.signal,
-          });
-      });
+      touch.bind(root);
     },
     dispose() {
       clear();

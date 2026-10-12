@@ -65,7 +65,8 @@ WebGL2 is required. Gameplay uses local assets and needs no account or backend. 
 - R: recover at the last checkpoint and mark the current lap or sprint untimed; after a completed sprint, retry the descent.
 - Escape: pause/resume, including after Continue driving. Circuits preserves the loaded session. I: inspect the ship. C: alternate camera.
 - F or Free Camera in the developer launcher/pause menu: explore every course with all ships hidden and the session frozen; drag to look, WASD/arrows move, Q/E down/up at a fixed 200 m/s. F/Escape returns.
-- Menus: Tab/Shift-Tab, Enter/Space. Small viewports expose pointer controls.
+- Touch: left thumb steers proportionally left/right; pull down on the same pad for airbrake. Right thumb slides through Boost (+ Go), Go, Neutral and Brake. Both controls spring to neutral on release.
+- Menus: Tab/Shift-Tab, Enter/Space.
 - Tunes: M plays/pauses music, comma/period select songs, and / expands/collapses the player. Music starts on a menu-button activation or explicit Play/M; repeat defaults off.
 - Prototype gamepad: left stick steering, RT throttle, LT brake, A boost, B airbrake.
 

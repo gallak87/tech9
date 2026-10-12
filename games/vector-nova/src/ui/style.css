@@ -811,6 +811,130 @@ select {
 }
 #touch {
   display: none;
+  position: absolute;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: max(3vw, env(safe-area-inset-left));
+  right: max(3vw, env(safe-area-inset-right));
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+[data-touch-control] {
+  position: relative;
+  flex-shrink: 0;
+  border: 1px solid #aeaeae66;
+  background: #1b1b1bd9;
+  color: #e8e8e8;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  touch-action: none;
+  pointer-events: auto;
+  -webkit-touch-callout: none;
+}
+[data-touch-control] > * {
+  pointer-events: none;
+}
+[data-touch-control][data-active='true'] {
+  border-color: #e8e8e8;
+}
+.touch-steer {
+  width: clamp(132px, 38vw, 168px);
+  height: 132px;
+}
+.touch-label,
+.touch-airbrake {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+}
+.touch-label {
+  top: 10px;
+}
+.touch-airbrake {
+  bottom: 10px;
+  font-size: 9px;
+  color: #bcbcbc;
+}
+.touch-directions {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 42%;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 19px;
+  font-weight: 400;
+}
+.touch-steer::before {
+  content: '';
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  top: 42%;
+  border-top: 1px solid #aeaeae66;
+}
+.touch-thumb {
+  position: absolute;
+  left: var(--touch-x, 50%);
+  top: var(--touch-y, 42%);
+  width: 32px;
+  height: 32px;
+  transform: translate(-50%, -50%);
+  border: 2px solid #e8e8e8;
+  border-radius: 50%;
+  background: #444;
+}
+.touch-steer[data-airbrake='true'] .touch-airbrake {
+  color: #fff;
+}
+.touch-steer[data-airbrake='true'] .touch-thumb {
+  background: var(--accent);
+}
+.touch-power {
+  width: 108px;
+  height: 176px;
+  display: grid;
+  grid-template-rows: repeat(4, 1fr);
+}
+.touch-power > span {
+  display: flex;
+  align-items: center;
+  padding-left: 31px;
+  gap: 4px;
+  border-bottom: 1px solid #aeaeae33;
+}
+.touch-power > span:last-of-type {
+  border-bottom: 0;
+}
+.touch-power small {
+  font-size: 7px;
+  letter-spacing: 0;
+}
+.touch-power > [data-power-zone='boost'] {
+  color: #fff;
+  background: #a810102e;
+}
+.touch-power[data-power='boost'] > [data-power-zone='boost'],
+.touch-power[data-power='go'] > [data-power-zone='go'],
+.touch-power[data-power='brake'] > [data-power-zone='brake'] {
+  background: var(--accent);
+  color: #fff;
+}
+.touch-power .touch-thumb {
+  left: 15px;
+  top: var(--touch-y, 62.5%);
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+}
+.touch-power[data-active='true'] .touch-thumb {
+  background: #e8e8e8;
 }
 @media (max-width: 760px) {
   .masthead {
@@ -899,32 +1023,6 @@ select {
     top: 90px;
     width: 110px;
     height: 85px;
-  }
-  #touch {
-    position: absolute;
-    bottom: max(26px, env(safe-area-inset-bottom));
-    left: 3vw;
-    right: 3vw;
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-  }
-  #touch > div {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(44px, 1fr));
-    flex: 1;
-    gap: 5px;
-    align-items: flex-end;
-  }
-  #touch button {
-    min-width: 44px;
-    min-height: 54px;
-    padding: 18px 4px;
-    text-align: center;
-    font-size: 9px;
-    touch-action: none;
-    background: #242424b8;
-    border-color: #aeaeae66;
   }
   .driving #legend {
     display: none;
@@ -1372,29 +1470,6 @@ select {
   }
   #interface:is(.compact-landscape, .has-racing).driving .shape-views {
     margin-bottom: 8px;
-  }
-  #interface:is(.compact-landscape, .has-racing).driving #touch {
-    position: absolute;
-    bottom: max(14px, env(safe-area-inset-bottom));
-    left: 3vw;
-    right: 3vw;
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-  }
-  #interface:is(.compact-landscape, .has-racing).driving #touch > div {
-    display: flex;
-    gap: 5px;
-    align-items: flex-end;
-  }
-  #interface:is(.compact-landscape, .has-racing).driving #touch button {
-    font-size: 9px;
-    touch-action: none;
-    background: #242424b8;
-    border-color: #aeaeae66;
-    min-width: 44px;
-    min-height: 48px;
-    padding: 14px 10px;
   }
   #interface:is(.compact-landscape, .has-racing).driving #legend,
   #interface:is(.compact-landscape, .has-racing).driving .review-tag {
@@ -2290,4 +2365,47 @@ select {
 }
 #sprint-finish-actions button {
   background: rgba(15, 24, 31, 0.92);
+}
+
+/* Two independent thumbs: steering/airbrake on the left, power on the right. */
+@media (max-width: 760px),
+  (pointer: coarse),
+  (max-height: 570px) and (orientation: landscape) {
+  #interface.driving #touch {
+    display: flex;
+  }
+  #interface.driving #legend {
+    display: none;
+  }
+  #interface.driving:not(.portrait-compact-hud) .telemetry {
+    bottom: calc(max(16px, env(safe-area-inset-bottom)) + 200px);
+  }
+}
+@media (max-height: 570px) and (orientation: landscape) {
+  .touch-steer {
+    width: 144px;
+    height: 116px;
+  }
+  .touch-power {
+    width: 100px;
+    height: 144px;
+    font-size: 9px;
+  }
+  #interface.driving:not(.portrait-compact-hud) .telemetry {
+    left: calc(max(3vw, env(safe-area-inset-left)) + 160px);
+    right: calc(max(3vw, env(safe-area-inset-right)) + 116px);
+    bottom: calc(max(16px, env(safe-area-inset-bottom)) + 20px);
+  }
+  #interface.driving:not(.portrait-compact-hud) .energy {
+    width: clamp(90px, 16vw, 150px);
+  }
+  #interface.driving:not(.portrait-compact-hud) .energy small {
+    display: none;
+  }
+  #interface.driving:not(.portrait-compact-hud) .speed strong {
+    font-size: 40px;
+  }
+  #interface.driving #race-roster:not(.in-paddock) {
+    right: calc(max(3vw, env(safe-area-inset-right)) + 124px);
+  }
 }

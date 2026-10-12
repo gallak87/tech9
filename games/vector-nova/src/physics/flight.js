@@ -21,7 +21,7 @@ export const DEFAULT_FLIGHT_RULES = Object.freeze({
   missBeyond: 18,
   missLateral: 55,
   step: 1 / 120,
-  landingSettleDuration: 0.32,
+  landingSettleDuration: 0.16,
   landingBounce: 0.06,
   edgeOverlap: 0.5,
   edgeInset: 0.3,
@@ -1190,6 +1190,27 @@ export function createFlightModel(overrides = {}) {
           incomingVelocity,
         );
         if (contact && hit.shape.kind === 'deck') {
+          // Magnetic capture absorbs the downward impact without applying
+          // tyre-like deck friction to forward hover speed. Rapier still owns
+          // wall/rail hits, edge catches and all recovery contact response.
+          if (
+            mode === 'flight' &&
+            !contact.edgeCatch &&
+            !flight.edgeCaught &&
+            incomingVelocity.dot(contact.frame.up) < 0 &&
+            result.contacts.every(
+              (entry) =>
+                entry.shape.kind === 'deck' &&
+                entry.normal.dot(contact.frame.up) > 0.55,
+            )
+          ) {
+            const forward = contact.frame.tangent;
+            flight.velocity.addScaledVector(
+              forward,
+              Math.max(0, incomingVelocity.dot(forward)) -
+                flight.velocity.dot(forward),
+            );
+          }
           // Supported top contact may relatch; actual rail response remains
           // engine-owned so a graze can rotate/deflect without a lateral teleport.
           if (contact.edgeCatch) flight.edgeCaught = true;

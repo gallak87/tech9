@@ -322,21 +322,40 @@ export function createUI(
   developerNote.querySelector('button').onclick = actions.home;
   panel.prepend(developerNote);
   if (racing && !blockout) {
-    const difficulty = document.createElement('label');
-    difficulty.className = 'difficulty-picker';
-    difficulty.textContent = 'DIFFICULTY';
-    const select = document.createElement('select');
-    select.id = 'difficulty';
-    for (const value of ['easy', 'medium', 'hard']) {
-      const option = document.createElement('option');
-      option.value = value;
-      option.textContent = value.toUpperCase();
-      select.append(option);
+    const difficultyPicker = (id) => {
+      const label = document.createElement('label');
+      label.className = 'difficulty-picker';
+      label.textContent = 'RACE DIFFICULTY';
+      const select = document.createElement('select');
+      select.id = id;
+      for (const value of ['easy', 'medium', 'hard']) {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value.toUpperCase();
+        select.append(option);
+      }
+      select.value = settings.difficulty;
+      select.onchange = () => actions.difficulty(select.value);
+      label.append(select);
+      return label;
+    };
+    panel.insertBefore(
+      difficultyPicker('difficulty'),
+      panel.querySelector('.launch-actions'),
+    );
+    if (!playtest) {
+      const pausedDifficulty = document.createElement('div');
+      pausedDifficulty.id = 'pause-race-settings';
+      pausedDifficulty.className = 'hidden';
+      const hint = document.createElement('p');
+      hint.id = 'pause-difficulty-hint';
+      hint.className = 'small';
+      hint.textContent =
+        'Restart to apply. Resume keeps the current race difficulty.';
+      pausedDifficulty.append(difficultyPicker('pause-difficulty'), hint);
+      $('pause-panel').insertBefore(pausedDifficulty, $('restart'));
+      $('pause-difficulty').setAttribute('aria-describedby', hint.id);
     }
-    select.value = settings.difficulty;
-    select.onchange = () => actions.difficulty(select.value);
-    difficulty.append(select);
-    panel.insertBefore(difficulty, panel.querySelector('.launch-actions'));
   }
   root.classList.toggle('has-review', metadata.review);
   root.classList.toggle('has-racing', racing);
@@ -862,6 +881,8 @@ export function createUI(
       $('volume').value = next.volume;
       $('quality').value = next.quality;
       $('motion').checked = next.reducedMotion;
+      for (const control of root.querySelectorAll('.difficulty-picker select'))
+        control.value = next.difficulty;
       for (const control of root.querySelectorAll('[data-setting]')) {
         const value = next[control.dataset.setting];
         if (control.type === 'checkbox') control.checked = value;
@@ -1054,6 +1075,10 @@ export function createUI(
     ) {
       currentCompetition = competition;
       retainedResults = lastResults;
+      $('pause-race-settings')?.classList.toggle(
+        'hidden',
+        !competition?.enabled,
+      );
       escapeLabel.textContent = 'PAUSE';
       if (!playtest)
         $('restart').textContent = sprint

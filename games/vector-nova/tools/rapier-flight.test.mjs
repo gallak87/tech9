@@ -505,6 +505,34 @@ async function tractionFixture(t, kind = 'deck') {
   return { runtime, state, place };
 }
 
+test('clean high-speed deck capture preserves forward momentum and settles promptly', async (t) => {
+  const { runtime, state, place } = await tractionFixture(t);
+  place([0, 2.2, 300], [0, -90, 190]);
+  let transfer;
+  for (let tick = 0; tick < 30 && !transfer; tick++) {
+    transfer = runtime
+      .advance(state, { throttle: 1 }, DT)
+      .find(({ type }) => type === 'jump-transfer');
+  }
+  assert.equal(transfer?.payload.outcome, 'landed');
+  assert.ok(
+    Math.abs(state.speed - 190) < 0.1,
+    'absorbing downward impact must not scrub forward hover speed',
+  );
+  const landedAt = state.time;
+  for (let tick = 0; tick < 120; tick++) {
+    const previousDistance = state.distance;
+    runtime.advance(state, { throttle: 1 }, DT);
+    assert.equal(runtime.snapshot().mode, 'magnetic');
+    assert.ok(
+      state.distance > previousDistance,
+      'driving continues while settling',
+    );
+    if (state.time - landedAt >= 0.17)
+      assert.equal(runtime.snapshot().landingSettle, null);
+  }
+});
+
 test('wall rebound onto the receiving deck restores traction and stays grounded under throttle', async (t) => {
   const { runtime, state, place } = await tractionFixture(t);
   place([0, 3, 242], [0, 0, 30]);

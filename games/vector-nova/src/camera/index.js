@@ -104,7 +104,7 @@ export function createCameraRig(
             .applyQuaternion(inverse),
           rotation: inverse.clone().multiply(camera.quaternion),
           elapsed: 0,
-          duration: leavingCrash ? 0.65 : 0.32,
+          duration: leavingCrash ? 0.65 : 0.16,
         };
         flightView = worldMotion ? carriedView : null;
         landingView = worldMotion ? null : carriedView;

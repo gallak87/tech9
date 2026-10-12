@@ -1206,7 +1206,8 @@ test('successful landing keeps the swept contact pose and settles vertically wit
         assert.ok(delta.dot(frame.up) >= NACRE_FLIGHT_RULES.hover - 1e-8);
         assert.ok(delta.dot(frame.up) <= contactHeight + 0.061);
         if (previous)
-          assert.ok(displayed.quaternion.angleTo(previous.quaternion) < 0.035);
+          // The 0.16 s settle stays below four degrees per physics tick.
+          assert.ok(displayed.quaternion.angleTo(previous.quaternion) < 0.07);
         if (!pose) settled = true;
       }
       assert.ok(

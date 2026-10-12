@@ -13,7 +13,7 @@ export const NACRE_FLIGHT_RULES = Object.freeze({
   recoveryDelay: 1.5,
   timeout: 6,
   step: 1 / 120,
-  landingSettleDuration: 0.32,
+  landingSettleDuration: 0.16,
   landingBounce: 0.06,
   edgeOverlap: 0.5,
   edgeInset: 0.3,
@@ -23,8 +23,8 @@ export const NACRE_FLIGHT_RULES = Object.freeze({
 });
 const R = NACRE_FLIGHT_RULES;
 
-// Preserve the approved version-5 contact/replay domain exactly. New expansion
-// rules opt into refined curved contact through the shared model defaults.
+// Preserve Nacre's approved contact solver. New expansion rules opt into
+// refined curved contact through the shared model defaults.
 const model = createFlightModel({
   ...NACRE_FLIGHT_RULES,
   curvedContact: false,

@@ -49,6 +49,10 @@ function picture(route, className = '') {
 
 export function createFrontend(host) {
   const catalog = discoverLevels().list;
+  // Keep the original routes available to direct links and developer tools.
+  const circuits = catalog.filter(
+    ({ id }) => id !== 'umbra' && id !== 'saffron',
+  );
   const parameters = new URLSearchParams(location.search);
   const artPass = parameters.get('artPass') === '1';
   const inspectShip = !artPass && parameters.get('inspect') === '1';
@@ -66,6 +70,8 @@ export function createFrontend(host) {
   if (!selected) {
     try {
       selected = localStorage.getItem('vector-nova.circuit');
+      if (selected === 'umbra' || selected === 'saffron')
+        selected = `${selected}-wide`;
     } catch {
       /* Optional storage. */
     }
@@ -127,6 +133,8 @@ export function createFrontend(host) {
       ? null
       : createMusicPlayer(host, { clearInput: () => game?.clearInput() });
   const level = () => catalog.find((l) => l.id === selected);
+  const focusedCircuit = () =>
+    circuits.find((l) => l.id === selected)?.id ?? circuits[0].id;
   const route = (id = selected) => routes.find((r) => r.id === id);
   const selectedShip = () => SHIPS.find((s) => s.id === shipId);
   const ship = () => SHIPS.find((s) => s.id === (previewShipId ?? shipId));
@@ -201,7 +209,7 @@ export function createFrontend(host) {
     return `<button data-action="${action}" aria-pressed="${active}" class="session-mode ${active ? 'selected' : ''}">${label}<span>${detail}${wideMenu.matches ? '' : ' →'}</span></button>`;
   }
   const circuitPanel = () =>
-    `<div class="circuit-layout"><section class="circuit-library"><div class="circuit-grid" aria-label="Circuits">${catalog.map((l, i) => `<button class="circuit-card ${l.id === selected ? 'selected' : ''}" data-level="${l.id}" tabindex="${l.id === selected ? 0 : -1}" aria-pressed="${l.id === selected}">${picture(route(l.id))}<span class="card-number">${String(i + 1).padStart(2, '0')}</span>${routeArt(route(l.id))}<span class="card-name">${escape(l.name)}</span><small>${route(l.id) ? (route(l.id).length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'} <i>/</i> ${route(l.id)?.closed === false ? 'SPRINT' : 'CIRCUIT'}</small></button>`).join('')}</div><span class="library-hint">${catalog.length} CIRCUITS <i>↓</i> SCROLL TO EXPLORE</span></section><aside class="circuit-detail"><div class="circuit-hero"></div><div class="mode-actions" aria-label="Choose session"><div class="quick-race-option">${difficultyControls()}${modeButton('quick', sessionName(selected, false), isSprint() ? 'One descent · 3 rivals' : '2 laps · 3 rivals', intent === 'race')}</div><div class="practice-option">${modeButton('practice', sessionName(selected, true), isSprint() ? 'Solo · summit to finish' : 'Solo · open laps', intent === 'practice')}</div></div></aside></div>`;
+    `<div class="circuit-layout"><section class="circuit-library"><div class="circuit-grid" aria-label="Circuits">${circuits.map((l, i) => `<button class="circuit-card ${l.id === selected ? 'selected' : ''}" data-level="${l.id}" tabindex="${l.id === focusedCircuit() ? 0 : -1}" aria-pressed="${l.id === selected}">${picture(route(l.id))}<span class="card-number">${String(i + 1).padStart(2, '0')}</span>${routeArt(route(l.id))}<span class="card-name">${escape(l.name)}</span><small>${route(l.id) ? (route(l.id).length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'} <i>/</i> ${route(l.id)?.closed === false ? 'SPRINT' : 'CIRCUIT'}</small></button>`).join('')}</div><span class="library-hint">${circuits.length} CIRCUITS <i>↓</i> SCROLL TO EXPLORE</span></section><aside class="circuit-detail"><div class="circuit-hero"></div><div class="mode-actions" aria-label="Choose session"><div class="quick-race-option">${difficultyControls()}${modeButton('quick', sessionName(selected, false), isSprint() ? 'One descent · 3 rivals' : '2 laps · 3 rivals', intent === 'race')}</div><div class="practice-option">${modeButton('practice', sessionName(selected, true), isSprint() ? 'Solo · summit to finish' : 'Solo · open laps', intent === 'practice')}</div></div></aside></div>`;
   // Share one intrinsic text area: the longest wrapped description reserves
   // space for every ship without fixed heights, clipping or resize handlers.
   const shipDescription = () =>

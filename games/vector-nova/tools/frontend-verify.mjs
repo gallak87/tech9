@@ -93,9 +93,12 @@ try {
           () => window.__VN_FRONTEND.getState().preview?.selected === 'kestrel',
         );
         const routes = await page.evaluate(() => window.__VN_FRONTEND.routes);
+        const circuits = routes.filter(
+          ({ id }) => id !== 'umbra' && id !== 'saffron',
+        );
         assert.equal(
           await page.locator('.circuit-card').count(),
-          routes.length,
+          circuits.length,
         );
         await page.waitForFunction(() =>
           [...document.querySelectorAll('.circuit-card img')].every(
@@ -104,7 +107,7 @@ try {
         );
         assert.equal(
           await page.locator('.circuit-card img').count(),
-          routes.filter((route) => route.preview).length,
+          circuits.filter((route) => route.preview).length,
         );
         await page.locator('[data-level="vesper"]').hover();
         assert.equal((await front(page)).selected, 'halcyon');

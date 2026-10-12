@@ -1009,7 +1009,7 @@ export async function createGame({
           },
           difficulty(value) {
             if (
-              !['title', 'overview'].includes(mode) ||
+              !['title', 'overview', 'paused'].includes(mode) ||
               !['easy', 'medium', 'hard'].includes(value)
             )
               return;

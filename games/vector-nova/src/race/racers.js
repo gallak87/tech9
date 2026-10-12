@@ -4,7 +4,6 @@ import {
   STEERING_ASSIST,
 } from '../physics/index.js';
 import { getShip } from '../ships/catalog.js';
-import { runtimeIdentity } from '../core/session-runtime.js';
 import { createRace } from './index.js';
 import {
   courseIdentity,
@@ -19,7 +18,6 @@ import {
 } from '../pickups/simulation.js';
 
 export const RACE_LAPS = 2;
-export const RACERS_VERSION = 6;
 export const RACE_DIFFICULTIES = Object.freeze(['easy', 'medium', 'hard']);
 export const RACE_GRID = Object.freeze({
   player: Object.freeze({ distance: 0, lateral: 4 }),
@@ -308,7 +306,6 @@ export function createRacers({
   const sprint = track.closed === false;
   const lapsRequired = sprint ? 1 : RACE_LAPS;
   const course = courseIdentity(track);
-  const version = RACERS_VERSION;
   const relativeTiming = createRelativeTiming(Object.keys(RACE_GRID));
   const opponents = RACE_OPPONENTS.map((specification) => ({
     specification,
@@ -357,7 +354,7 @@ export function createRacers({
       };
       opponent.prev = { ...opponent.state };
       opponent.race = createRace(track, {
-        rulesId: `${opponent.runtime.rulesId}:ai-v${version}:${specification.id}`,
+        rulesId: `${opponent.runtime.rulesId}:ai:${specification.id}`,
       });
       opponent.finish = null;
       opponent.boostSeconds = 0;
@@ -623,7 +620,6 @@ export function createRacers({
 
   function serialize() {
     return {
-      version,
       course: copy(course),
       trackId: track.id,
       relativeTiming: relativeTiming.serialize(),
@@ -636,7 +632,6 @@ export function createRacers({
         state: copy(opponent.state),
         prev: copy(opponent.prev),
         race: captureRace(opponent.race),
-        runtimeIdentity: runtimeIdentity(opponent.runtime),
         runtime: opponent.runtime.snapshot(),
         finish: copy(opponent.finish),
         boostSeconds: opponent.boostSeconds,
@@ -647,7 +642,6 @@ export function createRacers({
   function restore(data) {
     if (
       !data ||
-      data.version !== version ||
       JSON.stringify(data.course) !== JSON.stringify(course) ||
       data.trackId !== track.id ||
       typeof data.enabled !== 'boolean' ||
@@ -683,8 +677,6 @@ export function createRacers({
     for (const [index, saved] of data.opponents.entries()) {
       const opponent = opponents[index];
       if (
-        JSON.stringify(saved.runtimeIdentity) !==
-          JSON.stringify(runtimeIdentity(opponent.runtime)) ||
         saved.id !== opponent.specification.id ||
         saved.state?.shipId !== opponent.specification.shipId ||
         !saved.prev ||

@@ -457,16 +457,11 @@ test('hard spends its own reserve regardless of player boost input and rolls bac
   racers.restore(independent);
   step(racers, 6);
   assert.deepEqual(racers.serialize(), expected);
-  for (const changes of [
-    { difficulty: 'other' },
-    { version: independent.version - 1 },
-  ]) {
-    assert.throws(
-      () => racers.restore({ ...independent, ...changes }),
-      /mismatch/,
-    );
-    assert.deepEqual(racers.serialize(), expected);
-  }
+  assert.throws(
+    () => racers.restore({ ...independent, difficulty: 'other' }),
+    /mismatch/,
+  );
+  assert.deepEqual(racers.serialize(), expected);
   assert.throws(() => racers.reset({ difficulty: 'other' }), /difficulty/);
   racers.dispose();
 });

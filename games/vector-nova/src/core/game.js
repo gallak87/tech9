@@ -1707,7 +1707,6 @@ export async function createGame({
           seed,
           scenario,
           competition,
-          ...(competition ? { racersVersion: racerModule.RACERS_VERSION } : {}),
           untimed: Boolean(playtest),
           ...(testLaunch ? { testLaunch: structuredClone(testLaunch) } : {}),
           difficulty: raceDifficulty,
@@ -1719,8 +1718,6 @@ export async function createGame({
           replay.version !== VERSION ||
           replay.trackId !== track.id ||
           replay.physicsVersion !== 3 ||
-          (replay.competition &&
-            replay.racersVersion !== racerModule?.RACERS_VERSION) ||
           (track.closed === false &&
             JSON.stringify(replay.course) !==
               JSON.stringify(courseIdentity(track))) ||

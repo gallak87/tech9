@@ -38,29 +38,6 @@ function roadDeckGeometry(track, run) {
   return geometry;
 }
 
-/** The first visible turn ahead, measured in the driver's current road frame. */
-export function shatterlineTurnCue(track, distance, lookAhead = 240) {
-  if (track.isGap(distance)) return null;
-  const frame = track.sample(distance);
-  for (let ahead = 24; ahead <= lookAhead; ahead += 12) {
-    const targetDistance = distance + ahead;
-    if (targetDistance >= track.finishDistance || track.isGap(targetDistance))
-      break;
-    const target = track.sample(targetDistance);
-    const yaw = Math.atan2(
-      target.tangent.dot(frame.right),
-      target.tangent.dot(frame.tangent),
-    );
-    if (Math.abs(yaw) > 0.045)
-      return {
-        distance,
-        turnDistance: targetDistance,
-        direction: Math.sign(yaw),
-        yaw,
-      };
-  }
-  return null;
-}
 export function createShatterlineRoad({
   track,
   shape = false,
@@ -427,59 +404,6 @@ export function createShatterlineRoad({
             3.2,
           );
   }
-  // Mark the approaching bend rather than a later endpoint's world-X offset.
-  // Geometric +right is driver-left; all cue geometry uses that same road frame.
-  const turnPaint = [];
-  const cueDistances = [];
-  for (let i = 0; i < track.jumps.length - 1; i++) {
-    for (const before of [125, 80, 35])
-      cueDistances.push(track.jumps[i].landingEnd - before);
-  }
-  for (const variation of track.variations ?? [])
-    for (
-      let distance = variation.start + 30;
-      distance < variation.end - 80;
-      distance += 180
-    )
-      if (
-        !cueDistances.some((candidate) => Math.abs(candidate - distance) < 35)
-      )
-        cueDistances.push(distance);
-  for (const distance of cueDistances) {
-    const cue = shatterlineTurnCue(track, distance);
-    if (!cue) continue;
-    const outline = [
-      [-6, -1.3],
-      [1, -1.3],
-      [1, -4.5],
-      [6, 0],
-      [1, 4.5],
-      [1, 1.3],
-      [-6, 1.3],
-    ].map(([x, z]) => new T.Vector2(x * cue.direction, z));
-    const faces = T.ShapeUtils.triangulateShape(outline, []);
-    const frame = track.sample(distance);
-    for (const face of faces) {
-      const points = face.map((n) =>
-        framePoint(frame, outline[n].x, 0.065, outline[n].y),
-      );
-      // Both turn directions retain the same upward-facing winding.
-      const normal = points[1]
-        .clone()
-        .sub(points[0])
-        .cross(points[2].clone().sub(points[0]));
-      if (normal.dot(frame.up) < 0)
-        [points[1], points[2]] = [points[2], points[1]];
-      for (const point of points) turnPaint.push(...point.toArray());
-    }
-  }
-  const turnGeometry = new T.BufferGeometry();
-  turnGeometry.setAttribute(
-    'position',
-    new T.Float32BufferAttribute(turnPaint, 3),
-  );
-  turnGeometry.computeVertexNormals();
-  mesh('Advance direction arrows', turnGeometry, amber);
   for (const distance of [0, track.finishDistance])
     for (let row = 0; row < 3; row++)
       for (let col = 0; col < 16; col++)

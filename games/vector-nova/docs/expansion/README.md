@@ -6,13 +6,14 @@ Widen complete existing circuits and refit their immediate surroundings while pr
 
 The separate [road finish set](roads/README.md) documents the Halcyon process and per-level starting points for improving existing surfaces. It preserves each circuit's material identity, leaves Vesper deferred, and includes companion briefs for the wide variants. Its workflow is independent of the widening sequence and human gates below; these briefs do not start or approve widening work.
 
-## Active brief
+## Width previews and remaining scope
 
-| Brief                           | Original  | Experimental variant          | Target                        |
-| ------------------------------- | --------- | ----------------------------- | ----------------------------- |
-| [Saffron Leviathan](saffron.md) | `saffron` | `saffron-wide` / Saffron Wide | 32 m → 40 m (+25%) throughout |
+| Brief / scope                     | Original  | Implemented variant           | Remaining work                                 |
+| --------------------------------- | --------- | ----------------------------- | ---------------------------------------------- |
+| [Saffron Leviathan](saffron.md)   | `saffron` | `saffron-wide` / 40 m roadway | Adjacent-world refit and driving review        |
+| Umbra follow-up, not yet assigned | `umbra`   | `umbra-wide` / 35 m roadway   | Scope scenery/support refit and driving review |
 
-Prove the approach on Saffron before starting other levels. Umbra is a possible second proof, not an active assignment. Add other briefs from [TEMPLATE.md](TEMPLATE.md) as their scope is agreed; do not create empty briefs for the whole set.
+Both width previews already exist. Their original circuits remain available through direct links for testing and are hidden only from the selector; the wide variants appear in the menu. Metadata still identifies their nearby scenery/construction as unfinished. Do not recreate the copies or assume a road-material pass completed the surrounding-world refit. The Saffron brief retains the remaining review process; Umbra's existence is not an active assignment to finish it. Add further scope from [TEMPLATE.md](TEMPLATE.md) only when requested.
 
 ## Process
 

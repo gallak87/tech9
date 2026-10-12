@@ -2,27 +2,29 @@
 
 Bring each raceway toward Halcyon's approved level of material quality while keeping its own identity. The target is a convincing, crisp surface in the actual racing view: appropriate scale, believable light response, readable construction and stable detail in motion. More wear, more gloss or larger textures are not acceptance criteria.
 
-These are briefs for future assignment, not an instruction to start every level. Read the assigned brief and [AGENTS.md](../../../AGENTS.md). This is a surface-quality effort, separate from the parent folder's widening campaign: no new playable variants or widening phase gates are required. Coordinate with any active level owner before touching the same files; a road pass does not advance or approve their widening work.
+These are retained briefs and starting points, not an instruction to start or repeat every level. Read the current disposition below, the assigned brief and [AGENTS.md](../../../AGENTS.md). This is a surface-quality effort, separate from the parent folder's widening campaign: no new playable variants or widening phase gates are required. Coordinate with any active level owner before touching the same files; a road pass does not advance or approve their widening work.
 
-## Scope
+## Scope and implementation status
 
-| Circuit           | Brief / disposition                                                |
-| ----------------- | ------------------------------------------------------------------ |
-| Halcyon Speedway  | Completed reference; preserve the approved asphalt                 |
-| Asterion Orbital  | [Induction cassettes and alloy](orbital.md)                        |
-| Nacre Tempest     | [Pearl ceramic and pressure membranes](nacre.md)                   |
-| Vesper Canopy     | Deferred from this initial set; preserve its existing resin finish |
-| Glasswake Comet   | [Crystal and frost](glasswake.md)                                  |
-| Cindercoil        | [Fired ceramic and glazed panels](cindercoil.md)                   |
-| Saffron Leviathan | Deprecated original; skip this road pass                           |
-| Saffron Wide      | [Width-specific companion](saffron-wide.md)                        |
-| Umbra Fold        | Deprecated original; skip this road pass                           |
-| Umbra Wide        | [Width-specific companion](umbra-wide.md)                          |
-| Helion Flare      | [Thermal tiles, graphite and copper](helion.md)                    |
-| Zephyr Basilica   | [Woven graphite and local wetness](zephyr.md)                      |
-| Shatterline       | [Induction decks and clear running tubes](shatterline.md)          |
+Reviewed against main on 2026-10-11. A shipped pass is not a new visual acceptance claim; recheck the current game before assigning further work from an older brief.
 
-The briefs' starting points come from source inspection. Their questions are hypotheses to investigate, not claims that a fresh visual audit has already found those defects. Recheck the current implementation when assigned. The original Saffron and Umbra are being deprecated; finish work targets only their wide variants. Preserve borrowed asset ownership and keep changes local where possible.
+| Circuit           | Brief / disposition                                                                           |
+| ----------------- | --------------------------------------------------------------------------------------------- |
+| Halcyon Speedway  | Completed reference; preserve the approved asphalt                                            |
+| Asterion Orbital  | Authored alloy PBR pass shipped; [retained brief](orbital.md)                                 |
+| Nacre Tempest     | Mineral ceramic finish shipped; [retained brief](nacre.md)                                    |
+| Vesper Canopy     | Deferred from this initial set; preserve its existing resin finish                            |
+| Glasswake Comet   | Relief/grazing-response pass and transmission removal shipped; [retained brief](glasswake.md) |
+| Cindercoil        | Fired ceramic surface pass shipped; [retained brief](cindercoil.md)                           |
+| Saffron Leviathan | Original retained for testing, hidden from selector; skip new finish work                     |
+| Saffron Wide      | Fused glass/sand finish shipped; [retained brief](saffron-wide.md)                            |
+| Umbra Fold        | Original retained for testing, hidden from selector; skip new finish work                     |
+| Umbra Wide        | [Road finish brief](umbra-wide.md) still available for assignment                             |
+| Helion Flare      | Metric PBR ceramic pass shipped; [retained brief](helion.md)                                  |
+| Zephyr Basilica   | Weave refinements shipped; reassess the [retained brief](zephyr.md) before further work       |
+| Shatterline       | Asphalt decks shipped; reassess the [deck/tube brief](shatterline.md) before further work     |
+
+The briefs' starting points come from source inspection and may predate the passes above. Their questions are hypotheses to investigate, not claims that a fresh visual audit has already found those defects. Recheck the current implementation when assigned. New Saffron/Umbra finish work targets their wide variants; preserve the hidden originals for testing. Preserve borrowed asset ownership and keep changes local where possible.
 
 ## What worked on Halcyon
 

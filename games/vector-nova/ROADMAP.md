@@ -1,101 +1,66 @@
 # VECTOR//NOVA roadmap
 
-## Completed
+Reviewed against `main` and the current source on **2026-10-11**. Implemented means the feature is in the game; it does not imply a new visual review or physical-device test. Open items are a backlog for future assignment, not instructions to restart completed art or critic campaigns.
 
-- [x] Gate 1: establish the Kestrel silhouette and playable anti-gravity prototype.
-- [x] Gate 2: finish Halcyon Speedway, correct steering/slope handling and retain 0.3 bend assistance.
-- [x] Gate 3: finish Asterion Orbital, its open lattice raceway, shipyard and planet/stellar backdrop.
-- [x] Gate 4.1: integrate Nacre Tempest, submerged racing, two real jumps, timed recovery and the leviathan.
-- [x] Gate 4.2: integrate Halcyon's automatic Vector catapults and Aegis shields, feedback and deterministic replay rules.
-- [x] Shared level foundation: add the circuit picker, lazy discovery, owned lifecycle, geometry helpers and common verification.
-- [x] Vesper Canopy: merge the hollow-tree/resin circuit, crown jumps, sap surfaces and connected forest.
-- [x] Glasswake Comet: merge crystal/frost driving, fracture jumps, the crevice corkscrew, shelf collapses and snow presentation.
-- [x] Cindercoil: merge the volcanic circuit, lava surges/spill, furnace roll, vent flight and ash/heat presentation.
-- [x] Saffron Leviathan: merge skull traversal, vertebral flights, migrating sand/glass choices, burrower and sandfall presentation.
-- [x] Helion Flare: integrate flare-lane evasion, furnace/cooling choices, physical shelter, optional covered jumps and two timed stellar prominences.
-- [x] Umbra Fold: integrate tidal line control, curved flights, continuous accretion, the enormous consumption event and the selected native sky.
-- [x] Zephyr Basilica: integrate cathedral traversal, waterfall flights and wetness, falling architecture, cloud ascent and shared racing.
-- [x] Gate 5 initial flow: add audible start lights, two-lap timing/results, continued driving and retained paddock results.
-- [x] Gate 6 initial opponents: add Rook/Latch/Mule using actual physics/devices, a 2×2 grid and Easy/Medium/Hard difficulty.
-- [x] Gate 8 fleet: add Kestrel/Shrike/Bastion/Needle, distinct handling, saved selection/stats and fleet/rival inspection.
-- [x] Shared inspection: add free-camera navigation and responsive driving/review controls across circuits.
-- [x] Halcyon feedback: add position/lap timing, full-field relative race gaps, matching rival colors and catapults toward 600 km/h with strong launch blur.
-- [x] Asset layout: normalize Halcyon/Orbital/Nacre folders and base-aware loading; prune obsolete served models and duplicate rival GLBs while retaining sources/provenance.
-- [x] Shared racing graduation: reuse Vector/Aegis, 600 km/h launch feedback, three physical rivals, difficulty, timing/results and replay on Halcyon/Orbital/Nacre/Vesper/Glasswake/Cindercoil/Saffron/Umbra/Helion/Zephyr.
-- [x] Nacre immersion: blend the entire sound mix underwater and restore it smoothly on exit; add pooled bubbles at actual submerged takeoff, flight and landing.
-- [x] Shared world contact: separate swept hull contact from landing acceptance; enable Saffron ramp/terrain/fossil impacts, bounded colliding recovery, deterministic replay and the untimed `?test=jump` scene.
-- [x] Opt-in Rapier flight: stage the player and rivals into one shared engine tick; give Saffron airborne/recovery contact angular response while preserving grounded handling, session replay snapshots and static-only racer filters.
+## Implemented
 
-- [x] Front end: neutral graphite/red palette; one desktop setup screen for scrolling circuit cards, race mode/difficulty, inline ship preview and vertical stats; stacked accordion on narrower screens. Hover/arrows preview, click/Enter selects; settings includes keyboard controls.
-- [x] Loading and assets: preload Kestrel then the fleet, retain parsed models, defer worlds until Start, and place quiet progress beneath the ship/loading hero. Ship previews use real models; ship-free, pulled-back circuit stills have a [repeatable refresh workflow](ARCHITECTURE.md#circuit-preview-refresh). Tunes stays anchored across menus, loading and racing.
-- [x] Race/session polish: green GO lights, a shared checker finish line, finish camera beat and sound, live track-backed results, retry/continue actions, and pause → Circuits → Resume without discarding the active run. Shared settings stay synchronized. See [architecture](ARCHITECTURE.md#front-end-and-world-ownership).
+- [x] Eleven worlds: Halcyon Speedway, Asterion Orbital, Nacre Tempest, Vesper Canopy, Glasswake Comet, Cindercoil, Saffron Leviathan, Umbra Fold, Helion Flare, Zephyr Basilica and Shatterline, with their course-owned scenery, surfaces, hazards and events.
+- [x] Shared racing: the player plus Rook/Latch/Mule, physical rival motion, Vector boost strips, Aegis shields, countdown, two-lap races or solo practice, relative gaps, finish beat/results, retry and continued driving. Easy/Medium/Hard have been made faster; all difficulties receive the full strip boost. Difficulty can be changed from pause for the next restart.
+- [x] Shatterline: a 21.1 km point-to-point sprint with twelve jumps, three approximately five-second flights, a double Service Corkscrew, Avalanche Sweep and Scissor Dive. Overturn Weave includes two freely drivable 360° tubes with real surface handling, collision, camera support and forgiving exits. The old level/tunnel construction tasks are complete.
+- [x] Width previews: Saffron Wide has a 40 m roadway; Umbra Wide has a 35 m roadway. Both appear in the circuit selector. Original Saffron/Umbra remain available through direct links for testing and are hidden only from the selector. Adjacent-world refitting is still open below.
+- [x] Fleet: Kestrel, Shrike, Bastion and Needle, distinct handling, selection/stats, real-model preview and inspection. Fitted construction, clean ceramic/composite/metal finishes, studio lighting and managed KTX2 textures are implemented; further photorealism is a separate deferred pass.
+- [x] Shared flight/contact: real airborne motion, swept hull contacts, bounded recovery and detached crash camera. Rapier is used by Saffron/Saffron Wide, Cindercoil and Shatterline. Landing transitions now carry speed without the old settling slowdown; manual boost also works in flight and consumes reserve.
+- [x] Front end: desktop race setup and narrow-screen accordions, cached circuit stills, fleet preloading, deferred world loading, progress UI, live results and retained Circuits → Resume sessions. Start stays beside Resume above narrow-screen accordions.
+- [x] HUD/input polish: remove mid-screen gameplay callouts across all circuits; keep art controls in Dev tools; lead the desktop legend with Shift Boost. Mobile Tunes collapses to a logo-aligned button. Two-thumb touch controls combine steering/airbrake on the left and Boost + Go/Go/Neutral/Brake on the right, with release/pause/focus cleanup.
+- [x] Music and publishing: local generation/audition workflow, eight playable songs, 192 kbps MP3 delivery and GitHub Actions/Pages deployment. Start race/practice starts music unless manually paused; ordinary menu clicks do not. Initial-arrival/first-click autoplay is no longer planned.
+- [x] Surface passes: Halcyon asphalt, Asterion alloy, Nacre ceramic, Glasswake crystal relief, Cindercoil fired ceramic, Helion tiles, Saffron Wide fused glass/sand, Zephyr weave refinements and Shatterline asphalt decks. See the [road finish index](docs/expansion/roads/README.md) before reusing an older brief.
+- [x] Targeted performance/render fixes: Vesper/Glasswake physical-transmission removal, fleet texture compression, live Dev tools metrics/material switches, and Halcyon's ground-underlay depth fix. These do not close the broader M1 profiling task.
+- [x] Level/tooling foundation: lazy discovery, owned world/resource lifecycle, shared geometry helpers, normalized asset folders/provenance, reproducible menu captures and maintained frontend/level checks. Developer replay/scenario tooling remains; the separate AI `racersVersion` stamp was removed.
 
-- [x] Vesper performance/dev tools: remove physical resin transmission while retaining amber shading, reflections and internal detail. Free camera now has live FPS/frame-time/draw-count readouts and material switches; the wider art/performance pass remains open.
+## Performance and device validation
+
+- [ ] Finish hands-on phone/tablet and physical-gamepad driving checks, including long flights, two-thumb ergonomics and responsive HUD/camera behavior across circuits. Shared touch behavior has browser-emulation coverage; that is not a full device or per-level driving pass. The user's separate mobile review of the widening campaign remains outstanding.
+
+## Level work
+
+- [ ] Finish the [Saffron Wide surroundings/refit](docs/expansion/saffron.md) and driving review. The separate copy and 40 m roadway already exist; do not restart those phases. Preserve the hidden original for comparison and keep the campaign's remaining human review gates.
+- [ ] Scope Umbra Wide's adjacent scenery/support/observatory refit and driving review. The 35 m width preview already exists; its metadata still identifies surrounding construction as unfinished. Preserve the original; no new widening assignment is implied by its presence in the picker.
+- [ ] Cindercoil: add player-facing lava-contact flames and lingering ship/HUD smoke or heat feedback. The existing crater-spill glow and road-contact smoke are already implemented; reuse Helion's effects where appropriate.
+- [ ] Reproduce any remaining Halcyon white-ground/lane-marking flicker and Asterion road flicker on the current build before changing them. Halcyon's underlay depth fix and both circuits' subsequent road finishes have shipped; the older reports are not confirmed current defects.
+- [ ] Broaden static collision coverage where driving exposes missing contacts, especially scenery outside the existing deck/jump corridors. Many circuits already have collision worlds; this is not a from-scratch all-level rollout. Add contact sparks with actual contacts and consider bounded scrape marks. Racer body contact is separate below.
+
+## Further art passes
+
+- [ ] Halcyon: explore closer buildings, street-canyon scale and grounded city infrastructure using the [saved circuit concept](docs/levels/art-revamp-reference/circuit-wall-v1.png). The asphalt pass is complete; a world/route change needs its own scope.
+- [ ] Nacre: improve storm-ocean wave scale, layered crests, foam and water lighting using the [saved concept](docs/levels/art-revamp-reference/circuit-wall-v1.png). Preserve road/jump readability, underwater racing and approved flight behavior; the ceramic road finish is already implemented.
+- [ ] Vesper: the broader [HD environment proof](docs/hd/vesper.md) remains unimplemented. Start with one representative hollow/connector and measured runtime cost. Preserve opaque resin; the earlier transmission removal and Dev tools work are complete.
+- [ ] Umbra Wide: the dedicated [road finish brief](docs/expansion/roads/umbra-wide.md) remains available for assignment. Reassess older requests for graphite/metal separation, masonry repairs, recessed lighting, closer jump/arrival framing and the Fold's start-grid reference against the current source before defining another pass; previous Umbra construction/material/lighting passes already exist.
+- [ ] Reassess older optional polish notes against current visuals: Zephyr's aerated waterfalls, varied island shelves/openings and close masonry; Saffron Wide's bone erosion, creature armor, sandfall volume and ordinary scenery. These are retained art directions, not freshly verified defects or permission to resume completed critique loops.
+- [ ] Author landmark-focused circuit menu stills: Nacre's leviathan, Cindercoil's lava and equivalent signature vistas. Save camera poses and event timing for the existing [capture workflow](ARCHITECTURE.md#circuit-preview-refresh); ordinary ship-free previews already exist.
+
+## Music
+
+- [ ] Continue from the existing eight-song pool if more variety is wanted; the earlier target was roughly 16. Choose/finalize circuit assignments, race mix and audible loop transitions with the user. Blue Hour is tagged for Halcyon; the other seven tracks remain general `mix` auditions. Playback, encoding and deployment already work. See the [audio guide](docs/audio/README.md).
+- [ ] Optionally package the proven prompt → sequential render → Tunes audition → human-feedback process as an audio-generation Skill. Reuse the guide/scripts, provenance and one-current-take rules; do not create a second workflow or evidence archive.
+
+## Future race modes and systems
+
+- [ ] Scope briefings, sector splits and persistent personal records separately from the completed race/results flow. A podium presentation is optional follow-up.
+- [ ] Expand toward player plus 11 rivals, measuring actual performance and independent finishes.
+- [ ] Add restrained ship-to-ship contact with cooldowns, without sustained rail pinning or repeated damage from one contact.
+- [ ] Prototype two recharge stretches and two immediate 25-point cells on Halcyon, capped at 100 reserve. Put recharge on slower/wider lines, retain passive regeneration while tuning, and reset eligibility per racer/lap with forward-crossing anti-farming rules. Expand only after review.
+- [ ] Add a deterministic three-lap solo Time Trial: local non-colliding ghost, sector deltas and instant retry; fixed initial state, manual boost/regeneration and disabled road devices. Separate records by circuit/ship/rules. Automatic failed-jump recovery remains valid with elapsed-time loss. Existing developer input logs are not a player-facing ghost mode.
+- [ ] Add a Founders Cup over Halcyon/Asterion/Nacre, carrying ship selection between races and saving progress with restart/abandon controls. The earlier 12-racer proposal uses points 25/20/16/13/11/9/7/5/4/3/2/1, with ties broken by wins then total time; revisit that scoring if the field stays at four.
+- [ ] Connect Cup/Time Trial to the frontend when implemented. Rewards would unlock cosmetics rather than stronger stats; retain current content in Practice/Quick Race.
 
 ## Tooling follow-up
 
-- [ ] Consolidate the labelled compatibility developer launcher (`capture`, shape review and jump tests) into dedicated tool views after migrating its consumers. Preserve `test=jump`, named cases, reset/step/launch APIs, shape views and ship/rival inspection throughout. The direct `inspect=1` link and maintained frontend/level smoke checks cover current entry paths; the compatibility controls remain intentionally available.
-- [ ] Migrate or retire historical browser harnesses (`tools/verify.mjs`, `orbital-verify.mjs`, fleet/rival/racing and Gate scripts) against the current shell/session lifecycle. Preserve useful physics/scenario assertions; do not claim those older scripts certify the new frontend. Supported commands are listed in tools/README.md.
-- [ ] After other level/ship owners finish their work, prune remaining ignored scratch builds/captures under `.experiments/`. Menu-layout artifacts from the frontend pass are removed; do not delete active agents’ authoring or verification work indiscriminately.
-
-## Remaining gameplay
-
-Agree each phase's scope before implementation; scoped independent critique ends with human review.
-
-### New level
-
-- [ ] Build [Shatterline](docs/levels/shatterline.md): a jump-heavy downhill sprint through a ruined planetary accelerator, with three approximately five-second flights, substantial receiving decks, and explicit point-to-point race support. Desktop implementation and independent critique are in progress; the approved direction includes a wider roadway, a double descending corkscrew, a sustained upside-down stretch, Avalanche Sweep and the Scissor Dive underpass, with mobile/portrait deferred to human review.
-
-- [ ] Shatterline follow-up: add a fully enclosed, freely drivable 360° tunnel, including its own handling, collision and camera pass. The current downhill build already includes the Service Corkscrew and Overturn inversion.
-
-### Level polish
-
-- [ ] Halcyon art revamp: explore sections threading between close buildings, with stronger street-canyon scale, architectural depth and grounded city infrastructure, using the [saved circuit concept](docs/levels/art-revamp-reference/circuit-wall-v1.png). This is a later world-art pass; retain the approved route until a route change is separately scoped.
-- [ ] Nacre art revamp: develop the [concept's storm-ocean direction](docs/levels/art-revamp-reference/circuit-wall-v1.png) with more convincing wave scale, layered crests, foam and water lighting. Preserve readable road/jump approaches, submerged racing and the approved water/flight behavior.
-- [ ] Profile intermittent High-preset freezes reported on an Apple M1 Mac before increasing art cost. Identify affected circuits and distinguish sustained GPU load from CPU, shader-compilation and asset-upload spikes; compare High/Low at the same viewport and route, measure frame-time outliers, then set practical budgets for world detail, water and ship shading. Existing High postprocessing and pixel ratio are candidates to measure, not a diagnosed cause.
-- [ ] Explore a later Kestrel Blender/Three.js art pass from the saved [paddock view](docs/levels/art-revamp-reference/ship-paddock-v1.png) and [close-up](docs/levels/art-revamp-reference/ship-closeup-v1.png): sharper formed panels, ceramic/graphite/titanium separation, canopy and intake depth, and deliberate lighting. Preserve the approved silhouette and handling; target measured runtime cost as well as appearance.
-
-- [ ] Complete the [Saffron wider-circuit proof](docs/expansion/saffron.md): a separate 32 → 40 m variant, preserving the original and refitting adjacent scenery. Use the [per-level expansion process](docs/expansion/README.md); desktop-only verification, with mobile/portrait deferred to the user's final pass across all levels.
-
-- [ ] Zephyr: refine aerated waterfall flow, vary broad island shelves and openings, and deepen close masonry weathering.
-
-- [ ] Umbra: distinguish graphite wear and titanium polish/reflections, enrich fractured masonry and layered repair construction, reveal recessed surfaces under local lighting, bring the elevated jump preview and first arrival closer to normal chase, and strengthen the Fold’s visible start-grid reference.
-
-- [ ] Saffron: deepen bone erosion and fracture variation, sharpen creature armor response, enrich sandfall volume and ordinary scenery and optimize high-resolution material/postprocessing cost.
-
-- [x] Detached crash camera: confirmed misses/crashes freeze the camera position and gently pan toward the ship, then blend back to chase on landing/recovery. No trailing or zoom; existing recovery timing is preserved.
-- [ ] Cindercoil: add the missing lava road flames and HUD/ship smoke when driving over lava, reusing Helion's effects through shared helpers where appropriate.
-- [ ] Gameplay soundtracks: grow the audition pool toward roughly 16 distinct songs, then finish one gameplay track per circuit, including mix/loop delivery and race playback. Use the [audio guide and Halcyon direction](docs/audio/README.md).
-- [ ] Audio generation Skill: package the proven prompt → sequential local render → Tunes audition → human feedback workflow. Reference the audio guide and scripts; carry the musical motivations, metadata/provenance updates and one-current-take cleanup rules without duplicating docs or collecting iteration evidence.
-- [ ] Author collision worlds for additional circuits and broader static Saffron scenery; propagate actual contact sparks as they opt in and explore bounded scrape marks. Keep racer body contact separate.
-- [ ] Halcyon: fix remaining ground flicker, especially white areas and street-lane markings.
-- [ ] Asterion: locate and fix the reported flickering road section.
-
-### Gate 5: broader race flow
-
-- [ ] Scope briefing, sector splits and persistent personal records separately from the completed shared two-lap flow.
-- [ ] Explore a podium presentation after the current automatic results screen.
-
-### Gate 6: opponents and competitive Quick Race
-
-- [ ] Expand toward player plus 11 rivals; verify independent finishes and actual performance.
-- [ ] Add restrained body contact with cooldowns, without sustained rail pinning or repeated damage from one contact.
-
-### Gate 7: energy choices and Time Trial
-
-- [ ] Try two recharge stretches and two immediate 25-point cells on Halcyon, capped at 100 reserve. Place recharge on slower/wider lines; retain passive regeneration while tuning. Reset eligibility per racer/lap using forward crossings and anti-farming; expand only after review.
-- [ ] Add a deterministic three-lap solo Time Trial with a local non-colliding ghost, sector deltas and instant retry. Use fixed initial state, manual boost/regeneration and disabled road devices; separate circuit/ship/rules records and reject incompatible ghosts. Automatic failed-jump recovery remains valid with elapsed-time loss.
-
-### Gate 8: cups and front end
-
-- [ ] Author per-circuit menu previews around each track's standout landmark or event: Nacre's leviathan, Cindercoil's lava, and equivalent signature vistas elsewhere. Save free-camera poses and event timing so the existing ship-free screenshot workflow can reproduce those shots after map changes.
-- [ ] Music startup: attempt playback on initial arrival, then fall back to the first user interaction if autoplay is blocked. Current playback begins with a menu-button activation or explicit Play/M.
-- [ ] Validate Tunes continuity and control responsiveness during the heaviest circuit transitions as part of the deferred M1 performance pass.
-- [ ] Carry shared ship selection into future race modes and add a Founders Cup over Halcyon/Asterion/Nacre. Proposed 12-place points: 25/20/16/13/11/9/7/5/4/3/2/1; ties by wins, then total time. Save between races with restart/abandon controls.
-- [ ] Connect future Cup and Time Trial modes; rewards unlock cosmetics rather than stronger stats. Retain completed content in Practice/Quick Race.
+- [ ] Consolidate the compatibility developer launcher into dedicated tool views after migrating its consumers. Preserve jump-test cases/reset/step/launch, shape review and ship/rival inspection. Direct art-pass/inspection links and maintained frontend/level checks already exist.
+- [ ] Migrate or retire historical browser harnesses against the current shell/session lifecycle, including old mobile scripts that still target the removed driving-button row. Preserve useful physics/scenario assertions; use the supported commands in [tools/README.md](tools/README.md). Temporary scratch cleanup is routine ownership work under AGENTS.md, not a new product milestone.
 
 ## Deferred
 
-- [ ] Umbra gravity lens: revisit the arrow cue, which suggests steering toward the gravitational pull even though the player must counter-steer.
+- [ ] Kestrel photorealism comparison and further authoring: paused while publishing/gameplay took priority. Start with matched Blender/Three.js baselines, then prove a visible improvement on one assembly before full baking or fleet rollout. Follow the [ship visual improvement workflow](assets/ships/README.md#visual-improvement-workflow); the shipped fleet finish is not evidence of photorealism or browser export degradation.
+- [ ] Umbra gravity-lens cue: revisit the arrow that can imply steering toward the pull even though the player must counter-steer.
 
 Stored/manual-use items, offensive pickups, side attacks, destructive damage/elimination, online systems, upgrade economies, procedural tracks and the industrial energy complex require separate scope. Quality and a complete racing loop take priority over map count.

@@ -6,19 +6,23 @@ A browser anti-gravity racer built with Three.js and Vite. Choose Kestrel, Shrik
 
 The landing screen is race setup: browse circuit cards, choose Quick Race or Practice and difficulty, select a ship, then Start. Wide screens show everything together; narrow screens use Circuit/session and Ship accordion rows. Hover or arrow keys preview; click or Enter commits. During a session, Escape pauses; Circuits keeps that run loaded, and Resume returns to it.
 
-| Course            | Identity                                                                                                   | Availability          |
-| ----------------- | ---------------------------------------------------------------------------------------------------------- | --------------------- |
-| Halcyon Speedway  | 5 km metropolitan expressway with a skyline corkscrew, inverted hold and plunge                            | Default route `/`     |
-| Asterion Orbital  | 4.5 km shipyard above a planet, open lattice spans, neon decks and tall containment frames                 | `/?level=orbital`     |
-| Nacre Tempest     | Ocean/storm world, submerged racing and two airborne jumps                                                 | `/?level=nacre`       |
-| Vesper Canopy     | Colossal hollow trees, amber resin, crown jumps and sap lines                                              | `/?level=vesper`      |
-| Glasswake Comet   | Transparent ice, paired fracture jumps, a crevice corkscrew and collapsing shelves                         | `/?level=glasswake`   |
-| Cindercoil        | Ceramic volcanic circuit, warned lava surges, a furnace corkscrew and vent flight                          | `/?level=cindercoil`  |
-| Saffron Leviathan | Fossil-desert circuit, skull traversal, vertebral jumps and migrating sand on gold glass                   | `/?level=saffron`     |
-| Umbra Fold        | Ruined gravity observatory, tidal countersteering, curved leaps and continuous accretion                   | `/?level=umbra`       |
-| Zephyr Basilica   | Floating Gothic archipelago, rose-window nave, waterfall jumps and a full cloud spiral                     | `/?level=zephyr`      |
-| Helion Flare      | Solar observatory, flare-lane evasion, furnace passages and sheltered jumps                                | `/?level=helion`      |
-| Shatterline       | Ruined mountain mass driver, twelve jumps and three approximately five-second flights in a downhill sprint | `/?level=shatterline` |
+| Course            | Identity                                                                                                   | Availability           |
+| ----------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------- |
+| Halcyon Speedway  | 5 km metropolitan expressway with a skyline corkscrew, inverted hold and plunge                            | Default route `/`      |
+| Asterion Orbital  | 4.5 km shipyard above a planet, open lattice spans, neon decks and tall containment frames                 | `/?level=orbital`      |
+| Nacre Tempest     | Ocean/storm world, submerged racing and two airborne jumps                                                 | `/?level=nacre`        |
+| Vesper Canopy     | Colossal hollow trees, amber resin, crown jumps and sap lines                                              | `/?level=vesper`       |
+| Glasswake Comet   | Transparent ice, paired fracture jumps, a crevice corkscrew and collapsing shelves                         | `/?level=glasswake`    |
+| Cindercoil        | Ceramic volcanic circuit, warned lava surges, a furnace corkscrew and vent flight                          | `/?level=cindercoil`   |
+| Saffron Leviathan | Fossil-desert circuit, skull traversal, vertebral jumps and migrating sand on gold glass                   | `/?level=saffron`      |
+| Saffron Wide      | 40 m road-width preview; surrounding fossil scenery still needs refitting                                  | `/?level=saffron-wide` |
+| Umbra Fold        | Ruined gravity observatory, tidal countersteering, curved leaps and continuous accretion                   | `/?level=umbra`        |
+| Umbra Wide        | 35 m road-width preview; surrounding observatory construction still needs refitting                        | `/?level=umbra-wide`   |
+| Zephyr Basilica   | Floating Gothic archipelago, rose-window nave, waterfall jumps and a full cloud spiral                     | `/?level=zephyr`       |
+| Helion Flare      | Solar observatory, flare-lane evasion, furnace passages and sheltered jumps                                | `/?level=helion`       |
+| Shatterline       | Ruined mountain mass driver, twelve jumps and three approximately five-second flights in a downhill sprint | `/?level=shatterline`  |
+
+The circuit selector shows the wide Saffron/Umbra variants. Their originals remain available through the direct links above for testing; only their menu cards are hidden.
 
 Courses share automatic Vector boost strips and Aegis shields, with course-owned placements. Vector supplies an immediate catapult kick toward 600 km/h during a full strip pass; leaving early retains only the speed gained. Aegis protects reserve from impacts for six seconds. **Quick Race** starts two laps against Rook, Latch and Mule after the countdown; **Practice** starts open solo driving. Shatterline offers **Downhill Sprint** and **Solo Descent**. Difficulty changes rival pace and boosting. Valid finishes produce a brief on-track finish beat, then live track-backed results; invalid runs remain explicitly untimed. Race again, Continue driving and Circuits are available from results. Continue then Escape pauses on track; Circuits retains the session for Resume.
 
@@ -61,13 +65,13 @@ WebGL2 is required. Gameplay uses local assets and needs no account or backend. 
 ## Controls
 
 - W / Up: accelerate. S / Down: brake. A/D or Left/Right: steer.
-- Space: airbrake. Shift: manual boost using reserve.
+- Space: airbrake. Shift: manual boost using reserve, on the road or in midair.
 - R: recover at the last checkpoint and mark the current lap or sprint untimed; after a completed sprint, retry the descent.
 - Escape: pause/resume, including after Continue driving. Circuits preserves the loaded session. I: inspect the ship. C: alternate camera.
 - F or Free Camera in the developer launcher/pause menu: explore every course with all ships hidden and the session frozen; drag to look, WASD/arrows move, Q/E down/up at a fixed 200 m/s. F/Escape returns.
 - Touch: left thumb steers proportionally left/right; pull down on the same pad for airbrake. Right thumb slides through Boost (+ Go), Go, Neutral and Brake. Both controls spring to neutral on release.
 - Menus: Tab/Shift-Tab, Enter/Space.
-- Tunes: M plays/pauses music, comma/period select songs, and / expands/collapses the player. Music starts on a menu-button activation or explicit Play/M; repeat defaults off.
+- Tunes: M plays/pauses music, comma/period select songs, and / expands/collapses the player. Start race/practice starts music unless manually paused; ordinary menu clicks and race restarts do not. Explicit Play/M always controls playback. Repeat defaults off.
 - Prototype gamepad: left stick steering, RT throttle, LT brake, A boost, B airbrake.
 
 Bend assistance is 0.3; the player steers the remaining turn. Magnetic adhesion follows road pitch/roll and holds a parked craft on slopes. Physical gamepad/mobile use, independent audio listening and foreground frame pacing still need direct verification.

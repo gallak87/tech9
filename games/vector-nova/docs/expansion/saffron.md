@@ -1,5 +1,7 @@
 # Saffron Leviathan — wider circuit proof
 
+**Current state, reviewed 2026-10-11:** the separate `saffron-wide` copy and 40 m roadway are implemented, with a subsequent glass/sand material pass. Adjacent scenery refitting and final driving review remain open. The original is retained through `?level=saffron` for testing and hidden only from the selector; only the wide variant has a menu card. Continue from the remaining scope when assigned, rather than restarting the copy/road-width phases below.
+
 Implement this brief in one owner chat using the [campaign process](README.md) and [AGENTS.md](../../AGENTS.md). Deliver the full experimental circuit for human driving review. This brief authorizes the implementation and bounded supporting agents when assigned; it does not authorize work on other levels.
 
 ## Outcome
@@ -71,7 +73,7 @@ Stop a supporting agent when its assigned pass/recheck is complete or its cap is
 
 **Desktop only throughout this brief. No mobile, portrait, touch-emulation, or mobile-landscape tests, including final verification and CPU camera tests with portrait aspects. The user will do a separate pass after all levels.** This overrides the usual final mobile requirement. Preserve responsive code without expanding this assignment into responsive testing.
 
-- Original `?level=saffron` and experimental `?level=saffron-wide` both boot and remain independently selectable. The original remains 32 m; the variant's full supported road is 40 m in production, shape, grounded physics, and receiving-road bounds.
+- Original `?level=saffron` and experimental `?level=saffron-wide` both boot through direct links; only the wide variant appears in the circuit selector. The original remains 32 m; the variant's full supported road is 40 m in production, shape, grounded physics, and receiving-road bounds.
 - Numerical route comparison confirms the retained centerline/frames, length, elevations, banking, checkpoints, and longitudinal jump intervals. Width-related metadata differs intentionally. Geometry checks cover every supported run and tight bends; rendered boundaries and real collision agree. Metadata alone is insufficient evidence.
 - All named sections retain their intended art/construction. Skull and ribs clear the new road; supports meet the road/fossils/terrain; moved scenery has matching colliders; no obsolete road, floating fixtures, conspicuous texture stretching, or newly exposed unfinished surfaces remain. Free-camera review covers enclosed passages, jump approaches/receivers, and undersides as well as chase views.
 - The optional dune skip remains optional; both mandatory vertebral jumps support normal launch/landing and honest misses. Supported contacts restore driving with useful throttle/steering; underside/scenery hits do not become false road landings. Verify the real Rapier-backed production path, not just a simplified motion adapter.

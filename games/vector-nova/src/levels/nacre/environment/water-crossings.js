@@ -6,6 +6,8 @@ const SPLASH_SLOTS = 3;
 const BUBBLE_SLOTS = 4;
 const SPRAY_POINTS = 160;
 const SPLASH_LIFETIME = 1.65;
+const LANDING_BUBBLE_LIFETIME = 2.35;
+const LANDING_BUBBLE_DRAG = 0.8;
 
 function surfacePoint(track, distance, lateral) {
   const frame = track.sample(distance);
@@ -174,8 +176,11 @@ function sprayGeometry() {
   const velocities = new Float32Array(SPRAY_POINTS * 3);
   const seeds = new Float32Array(SPRAY_POINTS);
   const kinds = new Float32Array(SPRAY_POINTS);
-  const random = (n) =>
-    ((Math.imul(n + 413, 1664525) + 1013904223) >>> 0) / 4294967296;
+  const random = (n) => {
+    let value = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b);
+    value = Math.imul(value ^ (value >>> 13), 0xc2b2ae35);
+    return ((value ^ (value >>> 16)) >>> 0) / 4294967296;
+  };
   for (let i = 0; i < SPRAY_POINTS; i++) {
     const a = random(i * 193 + 11),
       b = random(i * 337 + 29),
@@ -213,6 +218,9 @@ function splashSlot(pointsGeometry, rippleGeometry) {
     wetDirection: { value: 1 },
     bubbleOnly: { value: 0 },
     waterCeiling: { value: -0.1 },
+    landingBurst: { value: 0 },
+    lifetime: { value: SPLASH_LIFETIME },
+    deckSlope: { value: new T.Vector2() },
   };
   const sprayMaterial = new T.ShaderMaterial({
     name: 'Nacre / swept-craft sea spray and bubbles',
@@ -228,21 +236,34 @@ function splashSlot(pointsGeometry, rippleGeometry) {
       uniform float wetDirection;
       uniform float bubbleOnly;
       uniform float waterCeiling;
+      uniform float landingBurst;
+      uniform float lifetime;
+      uniform vec2 deckSlope;
       varying float opacity;
       varying float isBubble;
       void main() {
-        float t=max(0.,age-seed*.08);
+        float t=max(0.,age-seed*mix(.08,.012,landingBurst));
         float kind=max(bubble,bubbleOnly);
         vec3 drift=mix(velocity,vec3(velocity.x*.25,1.5+seed*2.5,velocity.z*.25),bubbleOnly);
-        vec3 p=position+drift*t*strength;
+        // Landing squeezes a broad collar of bubbles out beside the hull.
+        // Start above the actual banked deck, not below it like a trail seed.
+        vec3 initial=position;
+        if(landingBurst>.5) {
+          initial.x=sign(position.x)*(2.6+abs(position.x)*1.15);
+          initial.z*=.72;
+          initial.y=dot(initial.xz,deckSlope)+.4+seed*.9;
+          drift=vec3(sign(initial.x)*(1.3+abs(velocity.x)*.24),2.8+seed*3.4,velocity.z*.12);
+        }
+        vec3 p=initial+drift*t*strength;
         p.z*=mix(1.,wetDirection,kind);
         p.y-=mix(7.8,0.,kind)*t*t;
         // Bubbles stay below the real surface rather than flying into the air.
         p.y=mix(p.y,min(p.y,waterCeiling),kind);
         vec4 view=modelViewMatrix*vec4(p,1.);
         gl_Position=projectionMatrix*view;
-        gl_PointSize=clamp((216.+seed*186.)/max(1.,-view.z),1.2,10.5);
-        opacity=smoothstep(0.,.06,t)*(1.-smoothstep(.55,1.65,age))*.84;
+        gl_PointSize=clamp(mix(216.+seed*186.,75.+seed*seed*340.,landingBurst)/max(1.,-view.z),1.2,mix(10.5,12.,landingBurst));
+        float appear=mix(smoothstep(0.,.06,t),.35+.65*smoothstep(0.,.025,t),landingBurst);
+        opacity=appear*(1.-smoothstep(lifetime*.34,lifetime,age))*mix(.84,.42+seed*.24,landingBurst);
         opacity*=mix(step(-.1,p.y),1.,kind);
         isBubble=kind;
       }
@@ -250,12 +271,19 @@ function splashSlot(pointsGeometry, rippleGeometry) {
     fragmentShader: `
       varying float opacity;
       varying float isBubble;
+      uniform float landingBurst;
       void main() {
         float radius=length(gl_PointCoord-.5);
         float drop=1.-smoothstep(.14,.5,radius);
         float bubbleRing=(1.-smoothstep(.41,.5,radius))*smoothstep(.22,.36,radius);
+        float thinRim=exp(-pow((radius-.36)/.045,2.));
+        thinRim*=.25+.6*smoothstep(-.3,.3,gl_PointCoord.y-gl_PointCoord.x);
+        bubbleRing=mix(bubbleRing,thinRim,landingBurst);
+        float glint=exp(-dot(gl_PointCoord-vec2(.34,.32),gl_PointCoord-vec2(.34,.32))*160.);
+        bubbleRing=clamp(bubbleRing+glint*.6,0.,1.);
         float alpha=mix(drop,bubbleRing,isBubble)*opacity;
-        gl_FragColor=vec4(mix(vec3(.74,.90,.92),vec3(.30,.74,.80),isBubble),alpha);
+        vec3 bubbleColor=mix(vec3(.30,.74,.80),vec3(.53,.83,.86),landingBurst);
+        gl_FragColor=vec4(mix(vec3(.74,.90,.92),bubbleColor,isBubble),alpha);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }
@@ -304,7 +332,15 @@ function splashSlot(pointsGeometry, rippleGeometry) {
   ripple.renderOrder = 4;
   ripple.userData.aoExclude = true;
   spray.visible = ripple.visible = false;
-  return { spray, ripple, uniforms, startedAt: -Infinity, active: false };
+  return {
+    spray,
+    ripple,
+    uniforms,
+    startedAt: -Infinity,
+    active: false,
+    landingOrigin: new T.Vector3(),
+    landingVelocity: new T.Vector3(),
+  };
 }
 
 export function createNacreWaterCrossingEffects(track) {
@@ -332,6 +368,8 @@ export function createNacreWaterCrossingEffects(track) {
   const origin = new T.Vector3();
   const forward = new T.Vector3();
   const worldUp = new T.Vector3(0, 1, 0);
+  const deckNormal = new T.Vector3();
+  const inverseYaw = new T.Quaternion();
   let previousTime = 0,
     previousSpeed = 0,
     initialized = false;
@@ -390,6 +428,7 @@ export function createNacreWaterCrossingEffects(track) {
       position,
       quaternion,
       speed = 0,
+      distance = null,
       time = 0,
       mode = 'racing',
       reset = false,
@@ -458,28 +497,67 @@ export function createNacreWaterCrossingEffects(track) {
       const bubbleKind =
         motionMode === 'flight' && previousMotionMode === 'magnetic'
           ? 'takeoff'
-          : motionMode === 'magnetic' && previousMotionMode === 'flight'
+          : motionMode === 'magnetic' &&
+              previousMotionMode !== 'magnetic' &&
+              motion?.landingSettle
             ? 'landing'
             : motionMode === 'flight' && time - lastBubbleTime >= 0.16
               ? 'flight'
               : null;
-      if (bubbleKind && position.y < waterY - 1 && speed > 10) {
+      if (
+        bubbleKind &&
+        position.y < waterY - 1 &&
+        (speed > 10 || bubbleKind === 'landing')
+      ) {
         const slot = bubbleSlots[bubbleIndex];
         bubbleIndex = (bubbleIndex + 1) % BUBBLE_SLOTS;
         forward.set(0, 0, 1).applyQuaternion(quaternion).setY(0).normalize();
-        slot.spray.position.copy(position).addScaledVector(forward, -4);
+        const landing = bubbleKind === 'landing';
+        slot.spray.position
+          .copy(position)
+          .addScaledVector(forward, landing ? -0.8 : -4);
         slot.spray.quaternion.setFromAxisAngle(
           worldUp,
           Math.atan2(forward.x, forward.z),
         );
         slot.uniforms.waterCeiling.value = waterY - slot.spray.position.y - 0.1;
         slot.uniforms.strength.value = bubbleKind === 'flight' ? 0.75 : 1.25;
+        slot.uniforms.landingBurst.value = landing ? 1 : 0;
+        slot.uniforms.lifetime.value = landing
+          ? LANDING_BUBBLE_LIFETIME
+          : SPLASH_LIFETIME;
+        if (landing) {
+          const landingFrame = Number.isFinite(distance)
+            ? track.sample(distance)
+            : null;
+          // Entrained water initially carries the hull's forward momentum.
+          // It slows in world space; it never follows the craft after contact.
+          // Project along the receiving deck: the nose can still be pitched
+          // into its landing settle, which would push the wake below the road.
+          slot.landingOrigin.copy(slot.spray.position);
+          if (landingFrame) slot.landingVelocity.copy(landingFrame.tangent);
+          else slot.landingVelocity.copy(forward);
+          slot.landingVelocity.multiplyScalar(T.MathUtils.clamp(speed, 0, 200));
+          inverseYaw.copy(slot.spray.quaternion).invert();
+          if (landingFrame) deckNormal.copy(landingFrame.up);
+          else deckNormal.copy(worldUp);
+          deckNormal.applyQuaternion(inverseYaw);
+          slot.uniforms.deckSlope.value.set(
+            -deckNormal.x / Math.max(0.2, deckNormal.y),
+            -deckNormal.z / Math.max(0.2, deckNormal.y),
+          );
+        }
         slot.startedAt = time;
         slot.active = true;
         lastBubbleTime = time;
         bubbleEventCount++;
         bubbleEvents[bubbleKind]++;
-        lastBubble = { kind: bubbleKind, time, position: position.toArray() };
+        lastBubble = {
+          kind: bubbleKind,
+          time,
+          position: position.toArray(),
+          lifetime: slot.uniforms.lifetime.value,
+        };
       }
       remember(position, time, speed, motionMode);
     },
@@ -494,7 +572,16 @@ export function createNacreWaterCrossingEffects(track) {
       );
       for (const slot of [...slots, ...bubbleSlots]) {
         const age = Math.max(0, time - slot.startedAt);
-        if (age > SPLASH_LIFETIME) slot.active = false;
+        if (age > slot.uniforms.lifetime.value) slot.active = false;
+        if (slot.active && slot.uniforms.landingBurst.value === 1) {
+          const travel =
+            (1 - Math.exp(-LANDING_BUBBLE_DRAG * age)) / LANDING_BUBBLE_DRAG;
+          slot.spray.position
+            .copy(slot.landingOrigin)
+            .addScaledVector(slot.landingVelocity, travel);
+          slot.uniforms.waterCeiling.value =
+            waterY - slot.spray.position.y - 0.1;
+        }
         slot.uniforms.age.value = age;
         slot.uniforms.reducedMotion.value = reducedMotion ? 1 : 0;
         slot.spray.visible = slot.active && !reducedMotion;
@@ -517,6 +604,10 @@ export function createNacreWaterCrossingEffects(track) {
         activeSprayCount: slots.filter((slot) => slot.spray.visible).length,
         activeBubbleCount: bubbleSlots.filter((slot) => slot.spray.visible)
           .length,
+        activeLandingBubbleCount: bubbleSlots.filter(
+          (slot) =>
+            slot.spray.visible && slot.uniforms.landingBurst.value === 1,
+        ).length,
         bubblePoolSlots: BUBBLE_SLOTS,
         bubbleEventCount,
         bubbleEvents: { ...bubbleEvents },

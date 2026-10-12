@@ -11,6 +11,7 @@ import { createNacreEnvironment } from './environment/index.js';
 import { createNacreBackdrop } from './backdrop/index.js';
 import { createNacreImmersion } from './overlay.js';
 import { sampleNacreWater } from './environment/atmosphere.js';
+import { createNacreOceanClock } from './environment/ocean-clock.js';
 import { createDevices } from './devices.js';
 import { legacyPart } from '../legacy.js';
 
@@ -66,6 +67,7 @@ export default function createLevel({ shape }) {
         blockout: shape,
         skyTexture: view.assets.skyTexture,
       });
+      const oceanClock = createNacreOceanClock();
       return legacyPart(group, (frame) => {
         group.userData.setOverview?.(frame.reviewing);
         group.userData.updateVehicle?.({
@@ -83,6 +85,7 @@ export default function createLevel({ shape }) {
           frame.camera.position,
           frame.time,
           frame.settings,
+          oceanClock(frame),
         );
       });
     },

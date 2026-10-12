@@ -87,7 +87,7 @@ test('Blender GLB has one continuous 280m animal, five materials and no texture 
   assert.ok(blend.size > 200000, 'Editable native Blender source is delivered');
 });
 
-test('full conservative animal envelope clears banked road, flight corridors and existing world placements', () => {
+test('full conservative animal envelope clears banked road, flight corridors and existing world placements', async () => {
   const clearance = createNacreClearance(track);
   const world = createNacreWorld(
     track,
@@ -96,16 +96,42 @@ test('full conservative animal envelope clears banked road, flight corridors and
     seededRandom(),
     nacreSeabedBaseY(track),
   );
-  const radius = NACRE_LEVIATHAN.envelopeRadius;
+  const gltf = await loadModel();
+  const bounds = new T.Box3().setFromObject(gltf.scene);
+  const halfHeight = Math.max(Math.abs(bounds.min.y), Math.abs(bounds.max.y));
+  const halfWidth = Math.max(Math.abs(bounds.min.z), Math.abs(bounds.max.z));
+  gltf.scene.traverse((object) => {
+    if (!object.isMesh) return;
+    object.geometry.dispose();
+    object.material.dispose();
+  });
   for (const route of [path, returnPath]) {
     for (let arc = route.startArc - 286; arc <= route.endArc; arc += 0.5) {
-      const p = route.sample(arc).position;
+      const frame = route.sample(arc);
+      const p = frame.position;
+      // The level return stays upright. Bound its actual cross-section plus
+      // one metre, rather than reserving the breach's 48 m sphere everywhere.
+      const radius =
+        route === returnPath
+          ? Math.hypot(frame.up.x, frame.up.z) * halfHeight +
+            Math.hypot(frame.side.x, frame.side.z) * halfWidth +
+            1
+          : NACRE_LEVIATHAN.envelopeRadius;
+      const vertical =
+        route === returnPath
+          ? Math.abs(frame.up.y) * halfHeight +
+            Math.abs(frame.side.y) * halfWidth +
+            1
+          : radius;
       assert.ok(
-        clearance.clears(p.x, p.z, radius, p.y - radius, p.y + radius),
+        clearance.clears(p.x, p.z, radius, p.y - vertical, p.y + vertical),
         `${route.encounter}: route obstruction at ${arc}`,
       );
       for (const placement of world.placements) {
-        if (p.y - radius >= placement.maxY || p.y + radius <= placement.minY)
+        if (
+          p.y - vertical >= placement.maxY ||
+          p.y + vertical <= placement.minY
+        )
           continue;
         assert.ok(
           Math.hypot(p.x - placement.x, p.z - placement.z) >

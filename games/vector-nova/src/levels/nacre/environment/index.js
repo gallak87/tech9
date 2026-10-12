@@ -18,6 +18,7 @@ import { createNacreWorld } from './world.js';
 import { createNacreWater, createNacreParticles } from './water.js';
 import { createNacreWaterCrossingEffects } from './water-crossings.js';
 import { createNacreLeviathan } from './leviathan/index.js';
+import { createNacreMarineWeather } from './marine-weather.js';
 
 export function createNacreEnvironment(
   track,
@@ -40,6 +41,7 @@ export function createNacreEnvironment(
   water.position.x = center.x;
   water.position.z = center.z;
   const world = createNacreWorld(track, materials, clearance, random, seabedY);
+  const weather = createNacreMarineWeather(track, world.placements);
   const particles = createNacreParticles(track, random);
   const waterCrossings = createNacreWaterCrossingEffects(track);
   const leviathan = createNacreLeviathan(track);
@@ -83,6 +85,7 @@ export function createNacreEnvironment(
     water,
     seabed,
     world.group,
+    weather.group,
     particles,
     waterCrossings.group,
     leviathan.group,
@@ -93,7 +96,7 @@ export function createNacreEnvironment(
   let reducedMotion = false;
   let quality = 'high';
   let ownedScene, previousFog, previousBackground;
-  const fog = new T.FogExp2(NACRE_AIR_COLOR, 0.00026);
+  const fog = new T.FogExp2(NACRE_AIR_COLOR, 0.00034);
   const background = NACRE_AIR_COLOR.clone();
   group.userData.waterY = waterY;
   group.userData.seabedY = seabedY;
@@ -114,6 +117,7 @@ export function createNacreEnvironment(
       water,
       seabed,
       world.group,
+      weather.group,
       particles,
       waterCrossings.group,
       leviathan.group,
@@ -131,14 +135,16 @@ export function createNacreEnvironment(
   group.userData.getLeviathanPresentation = () => leviathan.getPresentation();
   group.userData.getWaterPresentation = () => waterCrossings.getPresentation();
   group.userData.getOceanPresentation = () => water.userData.getPresentation();
-  group.userData.update = (cameraPosition, time = 0) => {
+  group.userData.getWeatherPresentation = () => weather.getPresentation();
+  group.userData.update = (cameraPosition, time = 0, oceanTime = time) => {
     if (disposed) return;
     waterCrossings.update(time, reducedMotion, quality);
     leviathan.update(time, { reducedMotion, quality, overview });
+    weather.update(cameraPosition, time, { reducedMotion, quality, overview });
     const state = sampleNacreWater(cameraPosition.y, waterY);
     const motionTime = reducedMotion ? 0 : time;
     timeUniform.value = motionTime;
-    water.material.uniforms.time.value = motionTime;
+    water.material.uniforms.time.value = reducedMotion ? 0 : oceanTime;
     water.material.uniforms.wetness.value = state.submerged;
     water.material.uniforms.nearSurface.value = nacreWaterCrossingBlend(
       cameraPosition.y,
@@ -172,6 +178,7 @@ export function createNacreEnvironment(
     cameraPosition,
     time = 0,
     settings = {},
+    oceanTime = time,
   ) => {
     if (!ownedScene) {
       ownedScene = scene;
@@ -183,7 +190,7 @@ export function createNacreEnvironment(
     reducedMotion = Boolean(settings.reducedMotion);
     quality = settings.quality === 'low' ? 'low' : 'high';
     water.userData.setQuality(quality);
-    group.userData.update(cameraPosition, time);
+    group.userData.update(cameraPosition, time, oceanTime);
     const state = group.userData.waterState;
     background
       .copy(NACRE_AIR_COLOR)
@@ -198,12 +205,14 @@ export function createNacreEnvironment(
       world.group.userData.metrics.meshCount +
       2 +
       waterCrossings.metrics.meshCount +
+      weather.metrics.meshCount +
       leviathan.metrics.meshCount,
     triangleCount:
       world.group.userData.metrics.triangleCount +
       groundGeometry.index.count / 3 +
       water.userData.getPresentation().highTriangles +
       waterCrossings.metrics.triangleCount +
+      weather.metrics.triangleCount +
       leviathan.metrics.triangleCount,
     points:
       1600 +
@@ -225,19 +234,24 @@ export function createNacreEnvironment(
       800 +
       waterCrossings.metrics.splashPointsLow +
       leviathan.metrics.sprayPointsLow,
-    textures: 0,
+    weatherDraws: weather.metrics.meshCount,
+    weatherTrianglesHigh: weather.metrics.triangleCount,
+    weatherTrianglesLow: weather.metrics.lowTriangleCount,
+    textures: 1,
     borrowedSkyTextures: skyTexture ? 1 : 0,
-    additionalRenderPasses: 0,
+    additionalRenderPasses: 1,
     waterPasses: 1,
-    reflectionPasses: 0,
+    reflectionPasses: 1,
     stage: 'production',
     rendering:
-      'Instanced geometry, single two-sided ocean draw, material caustics, no screen-space water or new shadow lights',
+      'Instanced scenery, two-sided ocean, bounded high-quality planar reflection, local sea mist and sparse rain, no new shadow lights',
   };
   group.userData.dispose = () => {
     if (disposed) return;
     disposed = true;
     waterCrossings.clear();
+    weather.clear();
+    water.userData.dispose?.();
     leviathan.dispose();
     if (ownedScene?.fog === fog) ownedScene.fog = previousFog;
     if (ownedScene?.background === background)

@@ -146,7 +146,8 @@ export function createLeviathanReturnPath(track) {
   const anchorDistance = 2360;
   const speed = 180;
   const frame = track.sample(anchorDistance);
-  const center = frame.position.clone().setY((track.waterY ?? 0) - 27);
+  // Give the submerged return more room beneath the storm swells.
+  const center = frame.position.clone().setY((track.waterY ?? 0) - 35);
   // Track +right is screen-left. Keep a fixed world-space crossing direction;
   // following successive road frames made the animal turn along the bend.
   const forward = frame.tangent.clone().setY(0).normalize();

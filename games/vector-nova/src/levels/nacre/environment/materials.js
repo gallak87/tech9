@@ -9,10 +9,20 @@ const organicNoise = `
     vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
     return mix(mix(mix(nacreHash(i),nacreHash(i+vec3(1,0,0)),f.x),mix(nacreHash(i+vec3(0,1,0)),nacreHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(nacreHash(i+vec3(0,0,1)),nacreHash(i+vec3(1,0,1)),f.x),mix(nacreHash(i+vec3(0,1,1)),nacreHash(i+vec3(1,1,1)),f.x),f.y),f.z);
   }
+  vec3 nacreReliefNormal(vec3 surfaceNormal, vec3 surfacePosition, float height, float faceSign) {
+    vec3 dx=dFdx(surfacePosition),dy=dFdy(surfacePosition);
+    vec3 rx=cross(dy,surfaceNormal),ry=cross(surfaceNormal,dx);
+    float det=dot(dx,rx)*faceSign;
+    return normalize(max(abs(det),.0000001)*surfaceNormal
+      -sign(det)*(dFdx(height)*rx+dFdy(height)*ry));
+  }
 `;
 
 export function createNacreMaterials(timeUniform, waterY) {
   function surface(name, options) {
+    const rock = name === 'stratified basalt';
+    const marineShell =
+      name === 'observatory nacre shell' || name === 'marine titanium';
     const material = new T.MeshStandardMaterial({
       roughness: 0.8,
       ...options,
@@ -37,7 +47,7 @@ export function createNacreMaterials(timeUniform, waterY) {
         'varying vec3 nacreWorld; uniform float nacreTime; uniform float nacreWaterY;\n' +
         organicNoise +
         shader.fragmentShader;
-      if (name === 'stratified basalt')
+      if (rock) {
         shader.fragmentShader = shader.fragmentShader.replace(
           '#include <color_fragment>',
           `
@@ -46,10 +56,51 @@ export function createNacreMaterials(timeUniform, waterY) {
         float mineral=nacreNoise(nacreWorld*.19+vec3(broad*2.,0.,broad));
         float footprint=length(fwidth(nacreWorld));
         float mineralFade=1.-smoothstep(1.5,7.,footprint);
+        // A broad, broken splash zone gives the rock an actual ocean contact.
+        // It stays at the mean sea level rather than flickering with each swell.
+        float shoreVariation=nacreNoise(vec3(nacreWorld.x*.027,0.,nacreWorld.z*.027));
+        float shoreHeight=nacreWorld.y-nacreWaterY+(shoreVariation-.5)*12.;
+        float splashWet=1.-smoothstep(-2.,15.,shoreHeight);
+        float deepWater=1.-smoothstep(-32.,-6.,shoreHeight);
+        float saltDeposit=smoothstep(7.,13.,shoreHeight)
+          *(1.-smoothstep(20.,29.,shoreHeight))*smoothstep(.58,.8,mineral);
         diffuseColor.rgb*=.66+broad*.34;
         diffuseColor.rgb+=vec3(.012,.018,.016)*smoothstep(.48,.78,mineral)*mineralFade;
+        diffuseColor.rgb*=mix(1.,.53,splashWet);
+        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.24,.28,.25),saltDeposit*.13);
+        float rockRelief=(mineral-.5)*.19*mineralFade;
       `,
         );
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <roughnessmap_fragment>',
+          `#include <roughnessmap_fragment>
+        // Rain gives exposed stone a satin response; fresh splash is smoother.
+        // Deep reef stone retains a broad response under the underwater light.
+        roughnessFactor=mix(.72+.14*mineral,.31+.11*mineral,splashWet);
+        roughnessFactor=mix(roughnessFactor,.54,deepWater);
+        roughnessFactor=mix(roughnessFactor,.87,saltDeposit*.35);`,
+        );
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <normal_fragment_maps>',
+          `#include <normal_fragment_maps>
+        normal=nacreReliefNormal(normal,-vViewPosition,rockRelief,faceDirection);`,
+        );
+      }
+      if (marineShell) {
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <color_fragment>',
+          `#include <color_fragment>
+        // Thin rain/spray film preserves the clean pearl and titanium finishes.
+        float shellVariation=nacreNoise(nacreWorld*vec3(.065,.12,.065));
+        float shellSplash=1.-smoothstep(2.,17.,nacreWorld.y-nacreWaterY+(shellVariation-.5)*6.);
+        diffuseColor.rgb*=mix(.97,.89,shellSplash);`,
+        );
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <roughnessmap_fragment>',
+          `#include <roughnessmap_fragment>
+        roughnessFactor=clamp(roughnessFactor+(shellVariation-.5)*.045-shellSplash*.055,.2,.42);`,
+        );
+      }
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <opaque_fragment>',
         `
@@ -64,7 +115,7 @@ export function createNacreMaterials(timeUniform, waterY) {
       `,
       );
     };
-    material.customProgramCacheKey = () => 'nacre-organic-v3-' + name;
+    material.customProgramCacheKey = () => 'nacre-organic-wet-v4-' + name;
     return material;
   }
   return {
@@ -121,13 +172,13 @@ export function createNacreMaterials(timeUniform, waterY) {
     }),
     pearl: surface('observatory nacre shell', {
       color: '#d0d9ce',
-      roughness: 0.34,
-      metalness: 0.18,
+      roughness: 0.3,
+      metalness: 0.1,
     }),
     alloy: surface('marine titanium', {
       color: '#587e87',
       metalness: 0.68,
-      roughness: 0.35,
+      roughness: 0.29,
     }),
     glass: surface('deep glazed pressure lens', {
       color: '#15444d',

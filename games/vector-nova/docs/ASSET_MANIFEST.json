@@ -303,15 +303,22 @@
       "id": "nacre-tempest",
       "source": "src/levels/nacre/ and assets/levels/nacre/blender/",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",
-      "provenance": "Original route, marine geometry, analytic ocean/materials, generated storm panorama and Blender-authored leviathan. Editable sources and exact sky prompt retained. Road finish combines original metric rim/seal shading and coated pearl with the separately registered nacre-ceramic material, borrowing the existing district probe.",
-      "rights": "Project-authored/generated world; ceramic surface maps separately registered as nacre-ceramic",
+      "provenance": "Original route, marine geometry, analytic ocean/materials, generated storm panorama and Blender-authored leviathan. Editable sources and exact sky prompt retained. Road finish combines original metric rim/seal shading and coated pearl with the separately registered nacre-ceramic material, borrowing the existing district probe. Ocean now uses grouped Gerstner swells, compression-selected whitecaps, procedural wind ripples adapted from Tech9 island-ocean, locally owned marine weather and a High-quality planar reflection adapted from Three.js Water via Tech9 pond-water.",
+      "rights": "Project-authored/generated world; ceramic surface maps separately registered as nacre-ceramic; reflection camera adaptation MIT (src/levels/nacre/environment/THREE-LICENSE.txt)",
       "runtimeDependencies": ["three"],
       "runtimeAssets": [
         "public/assets/levels/nacre/nacre-storm-sky-v1.png",
         "public/assets/levels/nacre/leviathan/nacre-leviathan-v2.glb"
       ],
       "provenanceRecord": "assets/levels/nacre/PROVENANCE.json",
-      "skyProvenance": "assets/levels/nacre/SKY_PROVENANCE.json"
+      "skyProvenance": "assets/levels/nacre/SKY_PROVENANCE.json",
+      "runtimeGeneratedMaps": [
+        {
+          "kind": "mipmapped procedural wind ripple normals",
+          "dimensions": [256, 256],
+          "textureMemoryEstimateMiB": 0.3334
+        }
+      ]
     },
     {
       "id": "nacre-ceramic",

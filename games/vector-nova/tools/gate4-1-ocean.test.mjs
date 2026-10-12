@@ -79,8 +79,8 @@ test('Nacre assemblies and their actual instance bounds clear road and both flig
     }
   });
   assert.ok(environment.userData.metrics.meshCount < 60);
-  assert.ok(environment.userData.metrics.triangleCount < 300000);
-  assert.equal(environment.userData.metrics.textures, 0);
+  assert.ok(environment.userData.metrics.triangleCount < 650000);
+  assert.equal(environment.userData.metrics.textures, 1);
   environment.userData.dispose();
 });
 
@@ -201,20 +201,21 @@ test('Nacre geology, reef shelves and observatory have actual geometry embedded 
   environment.userData.dispose();
 });
 
-test('Nacre crossing protects the craft and visible road at the critic camera heights without hiding distant/deep water', () => {
-  for (const cameraY of [5.89, -1.15, 0, 15, -15]) {
+test('Nacre crossing protects the nearby craft while keeping surrounding storm water visible', () => {
+  for (const cameraY of [5.89, -1.15, 0, -5.89]) {
     assert.equal(nacreWaterLocalVisibility(cameraY, 20), 0);
-    assert.equal(nacreWaterLocalVisibility(cameraY, 120), 0);
-    assert.ok(nacreWaterLocalVisibility(cameraY, 220) < 0.06);
-    assert.equal(nacreWaterLocalVisibility(cameraY, 800), 1);
+    assert.ok(nacreWaterLocalVisibility(cameraY, 75) > 0.5);
+    assert.equal(nacreWaterLocalVisibility(cameraY, 110), 1);
   }
-  assert.equal(nacreWaterLocalVisibility(-82, 90), 1);
-  assert.equal(nacreWaterLocalVisibility(68, 90), 1);
-  for (let y = -45; y < 45; y += 0.05) {
-    const a = nacreWaterLocalVisibility(y, 100),
-      b = nacreWaterLocalVisibility(y + 0.05, 100);
-    assert.ok(Math.abs(a - b) < 0.003);
-  }
+  for (const cameraY of [-82, -18, 18, 68])
+    assert.equal(nacreWaterLocalVisibility(cameraY, 20), 1);
+  for (const distance of [20, 75, 110, 800])
+    for (let y = -45; y < 45; y += 0.05) {
+      const a = nacreWaterLocalVisibility(y, distance),
+        b = nacreWaterLocalVisibility(y + 0.05, distance);
+      assert.ok(a >= 0 && a <= 1);
+      assert.ok(Math.abs(a - b) < 0.007);
+    }
 });
 
 test('Nacre reefs have three distinct organic growth forms without repeated mushroom caps', () => {
@@ -469,7 +470,7 @@ test('Nacre foundation height matches actual benthic mesh triangle interiors, no
   environment.userData.dispose();
 });
 
-test('Nacre ocean borrows the aligned sky map without allocating or releasing another texture', () => {
+test('Nacre ocean borrows the aligned sky map and owns its procedural ripples separately', () => {
   const texture = new T.Texture({ width: 1774, height: 887 });
   let releases = 0;
   texture.addEventListener('dispose', () => releases++);
@@ -478,14 +479,19 @@ test('Nacre ocean borrows the aligned sky map without allocating or releasing an
   const water = environment.children.find(
     (object) => object.material?.name === 'Nacre / living two-sided ocean',
   );
+  let rippleReleases = 0;
+  water.material.uniforms.rippleTexture.value.addEventListener(
+    'dispose',
+    () => rippleReleases++,
+  );
   assert.equal(water.material.uniforms.stormSky.value, texture);
   assert.equal(
     water.material.uniforms.skyYaw.value,
     sky.group.children[0].material.uniforms.skyYaw.value,
   );
-  assert.equal(environment.userData.metrics.textures, 0);
+  assert.equal(environment.userData.metrics.textures, 1);
   assert.equal(environment.userData.metrics.borrowedSkyTextures, 1);
-  assert.equal(environment.userData.metrics.additionalRenderPasses, 0);
+  assert.equal(environment.userData.metrics.additionalRenderPasses, 1);
   assert.equal(water.material.defines.NACRE_SKY_REFLECTION, 1);
   const scene = new T.Scene();
   const camera = new T.Vector3(200, 70, 150);
@@ -502,6 +508,7 @@ test('Nacre ocean borrows the aligned sky map without allocating or releasing an
   assert.equal(water.material.uniforms.stormSky.value, texture);
   environment.userData.dispose();
   environment.userData.dispose();
+  assert.equal(rippleReleases, 1, 'Owned ripple map releases exactly once');
   assert.equal(releases, 0, 'Environment must never release the borrowed map');
   sky.dispose();
   sky.dispose();

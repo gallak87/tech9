@@ -1,5 +1,9 @@
 import * as T from 'three';
-import { sampleNacreWater, NACRE_SKY_YAW } from '../environment/atmosphere.js';
+import {
+  sampleNacreWater,
+  NACRE_SKY_YAW,
+  NACRE_HORIZON_COLOR,
+} from '../environment/atmosphere.js';
 import { createNacreBackdrop as createShapeBackdrop } from './shape.js';
 
 import { NACRE_STORM_RULES, sampleNacreLightning } from './storm.js';
@@ -34,6 +38,7 @@ export function createNacreBackdrop({
       sunDirection: { value: sunDirection },
       stormSky: { value: skyTexture },
       skyYaw: { value: skyYaw },
+      seaHaze: { value: NACRE_HORIZON_COLOR },
       wetness: { value: 0 },
       time: { value: 0 },
       lightning: { value: 0 },
@@ -52,6 +57,7 @@ export function createNacreBackdrop({
       uniform vec3 sunDirection;
       uniform sampler2D stormSky;
       uniform float skyYaw;
+      uniform vec3 seaHaze;
       uniform float wetness;
       uniform float time;
       uniform float lightning;
@@ -125,6 +131,9 @@ export function createNacreBackdrop({
         sky+=vec3(.056,.069,.066)*silverEdge*(.25+alignment*.75);
 
         #endif
+        // Low salt haze joins the finite ocean to the distant panorama, hiding
+        // its hard photographed horizon without obscuring the towering clouds.
+        sky=mix(sky,seaHaze,(1.-smoothstep(-.025,.075,ray.y))*.82);
         float delta=atan(sin(azimuth-boltAzimuth),cos(azimuth-boltAzimuth));
         float boltDistance=branchedBolt(vec2(delta,ray.y));
         float boltCore=1.-smoothstep(.0014,.0038,boltDistance);

@@ -1,6 +1,6 @@
 {
   "level": "Nacre Tempest",
-  "version": "nacre-world-human-leviathan-crossing",
+  "version": "nacre-stormfront-v4",
   "source": "Original source-native geometry and shader code authored for VECTOR//NOVA; one original generated storm radiance image supplied as an optional production sky texture",
   "externalAssets": [
     {
@@ -25,23 +25,37 @@
       "ownership": "Backdrop owns and releases the supplied texture exactly once"
     }
   ],
-  "runtimeMaps": 1,
+  "runtimeMaps": 2,
   "assets": [
     {
       "id": "ocean",
-      "source": "src/levels/nacre/environment/water.js, src/levels/nacre/environment/ocean-waves.js, src/levels/nacre/environment/ocean-profile.json",
-      "method": "Original shared wave profile authored as an editable Blender shape study and animated live in a Three.js vertex shader; layered 178m/103m/61m storm swells, sharper crests, analytic normals, fragmented crest foam and shared sky reflectance. High/low static mesh topology preserves calm water on the road and at the two first-jump leviathan contact pools. Mean sea level still controls driving immersion/craft splashes. Simulation time and reduced-motion freezing are retained.",
+      "source": "src/levels/nacre/environment/water.js, ocean-waves.js, ocean-profile.json, ocean-normals.js, ocean-reflection.js",
+      "method": "Twelve wind-biased grouped Gerstner waves spanning 60–251 metres with horizontal displacement and exact sheltered normals. The full field remains active around both sides of the circuit; distance band limits preserve resolvable long swells at the horizon. Narrow protection follows actual banked deck clearance and local leviathan contacts. A shared profile drives the live Three.js shader and editable Blender study. Compression and crest activation select ragged whitecaps; directional chop and mipmapped procedural wind ripples separate small highlights from geometric swells. Ocean-only pre-race phase carries into simulation-time animation at green, preserving creature/event timing; manual pause and reduced motion freeze the waves.",
       "passes": 1,
       "borrowedMaps": 1,
-      "newMapAllocations": 0,
+      "newMapAllocations": 1,
       "sharedYawSource": "src/levels/nacre/environment/atmosphere.js:NACRE_SKY_YAW",
       "blenderSource": "assets/levels/nacre/blender/ocean/storm-swells-v1.blend",
       "blenderGenerator": "assets/levels/nacre/blender/ocean/build_ocean.py",
-      "sourceTrianglesHigh": 79608,
-      "sourceTrianglesLow": 25440,
+      "sourceTrianglesHigh": 425536,
+      "sourceTrianglesLow": 279240,
       "draws": 1,
-      "newTextures": 0,
-      "newRenderPasses": 0
+      "newTextures": 1,
+      "newRenderPasses": 1,
+      "reflection": {
+        "type": "bounded mean-plane scene reflection above water on High; sky-only on Low",
+        "size": 512,
+        "stride": 3,
+        "renderTargets": 1,
+        "license": "MIT",
+        "licenseFile": "src/levels/nacre/environment/THREE-LICENSE.txt",
+        "source": "Three.js Water camera math via Tech9 pond-water, adapted for local ownership, state restoration and quality gates"
+      },
+      "normalMap": {
+        "dimensions": [256, 256],
+        "mipmapped": true,
+        "source": "Locally owned adaptation of _tech9/modules/island-ocean/src/oceanNormals.js; original procedural project code"
+      }
     },
     {
       "id": "archipelago-and-reef",
@@ -51,7 +65,7 @@
     {
       "id": "material-caustics",
       "source": "src/levels/nacre/environment/materials.js",
-      "method": "Subtle derivative-filtered stochastic caustic patches and mineral mottling on submerged source geometry; no periodic grid, extra pass or projected texture"
+      "method": "Subtle derivative-filtered stochastic caustic patches and mineral mottling on submerged source geometry; no periodic grid, extra pass or projected texture. Irregular dark splash zones, restrained mineral residue, filtered basalt relief and damp pearl/titanium roughness share the existing mean sea level."
     },
     {
       "id": "marine-snow",
@@ -76,7 +90,7 @@
     {
       "id": "water-crossing-presentation",
       "source": "src/levels/nacre/environment/water-crossings.js",
-      "method": "Solve the actual banked road/sea-level intersection independently across the full road width, then draw a translucent animated horizontal waterline sheet and narrow foam edge. A deterministic swept craft-center crossing emits pooled spray, submerged bubbles and a fading surface ripple from the actual world-space crossing point. Uses simulation time; pause freezes; reset/navigation/teleport/time discontinuities suppress stale effects. Low halves particles; reduced motion freezes the sheet, hides spray and retains a fade-only ripple.",
+      "method": "Solve the actual banked road/sea-level intersection independently across the full road width, then draw a translucent animated horizontal waterline sheet and narrow foam edge. A deterministic swept craft-center crossing emits pooled spray, submerged bubbles and a fading surface ripple from the actual world-space crossing point. Uses simulation time; pause freezes; reset/navigation/teleport/time discontinuities suppress stale effects. Low halves particles; reduced motion freezes the sheet, hides spray and retains a fade-only ripple. Actual submerged landing contact emits a wider 2.35-second bubble collar from beside the hull above the receiving deck, with decaying forward momentum, reusing the existing pool; ordinary mode changes and recoveries do not trigger it.",
       "textures": 0,
       "standingDraws": 1,
       "maxActiveSplashDraws": 6,
@@ -125,10 +139,18 @@
       "newDraws": 0,
       "ownership": "Road owns panel attributes, materials and the three asynchronously loaded ceramic maps. The district reflection is borrowed and never disposed by the road.",
       "textureProvenance": "assets/levels/nacre/ceramic/provenance.json"
+    },
+    {
+      "id": "marine-weather",
+      "source": "src/levels/nacre/environment/marine-weather.js",
+      "method": "Locally authored bounded GPU rain, low landmark mist and intermittent support-contact spindrift, using Tech9 weather design ideas. Uses simulation time, high/low density, underwater suppression and reduced-motion gating. No new maps; three bounded draws.",
+      "draws": 3,
+      "newTextures": 0,
+      "newRenderPasses": 0
     }
   ],
   "limitations": [
-    "Water reflects the shared static storm panorama and uses real vertex-displaced analytic waves, with mean-level calm road/contact corridors. It does not simulate fluid forces, curling breakers, scene reflection or screen-space refraction. Underwater sky transmission is an approximation.",
+    "Water combines the aligned storm panorama with a softened, throttled 512px planar reflection of nearby structures on High. The reflection is a mean-plane approximation and fades out over distance. It does not simulate fluid forces, curling breakers or screen-space refraction. Narrow crossing and contact protection preserves gameplay; underwater transmission is approximate.",
     "Caustic lighting is a material approximation and does not simulate water-volume light transport.",
     "Storm radiance represents distant atmosphere on a camera-centered sky sphere; the volcanic islands, reef and observatory are world-space geometry.",
     "The generated sky is LDR radiance; the image does not supply HDR sun values or volumetric storm geometry.",
@@ -136,15 +158,17 @@
     "Source counts are not actual rendered performance certification; browser and foreground hardware evidence must be recorded separately."
   ],
   "runtimeMapConditions": {
-    "productionWithSkyTexture": 1,
-    "proceduralFallback": 0,
+    "productionWithSkyTexture": 2,
+    "proceduralFallback": 1,
     "shapeReview": 0,
-    "environmentGeometry": 0,
-    "waterBorrowedFromBackdrop": 1
+    "environmentGeometry": 1,
+    "waterBorrowedFromBackdrop": 1,
+    "reflectionTargetsHigh": 1,
+    "reflectionTargetsLowActive": 0
   },
   "sourceMetrics": {
-    "environmentMeshes": 43,
-    "environmentTriangles": 267192,
+    "environmentMeshes": 50,
+    "environmentTriangles": 615678,
     "environmentPrimitives": 2414,
     "skyMeshes": 1,
     "skyTriangles": 960,
@@ -152,9 +176,9 @@
     "marineSnowLow": 800,
     "localLights": 3,
     "newShadowPasses": 0,
-    "newRenderPasses": 0,
+    "newRenderPasses": 1,
     "livingReefCanopies": 14,
-    "crossingTriangles": 966,
+    "crossingTriangles": 974,
     "crossingWaterlineDraws": 1,
     "splashPoolSlots": 3,
     "splashPoolPointsHigh": 480,
@@ -162,6 +186,9 @@
     "leviathanCount": 1,
     "leviathanModelTriangles": 35772,
     "leviathanSprayHigh": 960,
-    "leviathanSprayLow": 480
+    "leviathanSprayLow": 480,
+    "weatherDraws": 3,
+    "weatherTrianglesHigh": 2550,
+    "weatherTrianglesLow": 1134
   }
 }

@@ -1,39 +1,212 @@
 {
-  "version": "nacre-storm-swells-v1",
-  "description": "Original layered storm swell study; lengths, amplitudes and speeds in metres/seconds. The same profile drives Blender and the live GPU ocean.",
+  "version": "nacre-stormfront-v4",
+  "description": "Full-ocean stormfront: twelve wind-biased 60\u2013251 m swells with persistent medium-wave energy, narrow clearance-aware crossing protection, and distance band limits instead of a calm offshore cutoff.",
   "waves": [
     {
-      "direction": [0.94, 0.342],
-      "wavelength": 178,
-      "amplitude": 11.0,
-      "speed": 13.8,
+      "direction": [0.943, 0.333],
+      "wavelength": 251,
+      "amplitude": 15,
+      "speed": 19.8,
       "phase": 0.6,
-      "sharpness": 0.24
+      "sharpness": 0.085,
+      "steepness": 0.117,
+      "group": {
+        "direction": [0.74, 0.67],
+        "wavelength": 777,
+        "speed": 7.1,
+        "phase": 0.7,
+        "depth": 0.28
+      }
     },
     {
-      "direction": [0.78, -0.626],
-      "wavelength": 103,
-      "amplitude": 5.2,
-      "speed": 10.7,
+      "direction": [0.974, 0.226],
+      "wavelength": 179,
+      "amplitude": 10,
+      "speed": 16.72,
       "phase": 2.1,
-      "sharpness": 0.2
+      "sharpness": 0.085,
+      "steepness": 0.108,
+      "group": {
+        "direction": [0.91, -0.41],
+        "wavelength": 594,
+        "speed": 5.8,
+        "phase": 2.7,
+        "depth": 0.28
+      }
     },
     {
-      "direction": [0.31, 0.951],
-      "wavelength": 61,
-      "amplitude": 2.1,
-      "speed": 8.2,
+      "direction": [0.861, 0.509],
+      "wavelength": 151,
+      "amplitude": 7,
+      "speed": 15.35,
       "phase": 4.0,
-      "sharpness": 0.16
+      "sharpness": 0.085,
+      "steepness": 0.099,
+      "group": {
+        "direction": [0.48, 0.88],
+        "wavelength": 495,
+        "speed": 6.3,
+        "phase": 4.3,
+        "depth": 0.28
+      }
+    },
+    {
+      "direction": [0.998, -0.061],
+      "wavelength": 127,
+      "amplitude": 5.2,
+      "speed": 14.08,
+      "phase": 1.3,
+      "sharpness": 0.055,
+      "steepness": 0.0936,
+      "group": {
+        "direction": [0.96, 0.28],
+        "wavelength": 390,
+        "speed": 4.7,
+        "phase": 1.4,
+        "depth": 0.38
+      }
+    },
+    {
+      "direction": [0.707, 0.707],
+      "wavelength": 109,
+      "amplitude": 4.2,
+      "speed": 13.05,
+      "phase": 5.1,
+      "sharpness": 0.055,
+      "steepness": 0.09,
+      "group": {
+        "direction": [0.65, -0.76],
+        "wavelength": 345,
+        "speed": 4.3,
+        "phase": 3.2,
+        "depth": 0.38
+      }
+    },
+    {
+      "direction": [0.819, -0.574],
+      "wavelength": 97,
+      "amplitude": 3.5,
+      "speed": 12.31,
+      "phase": 3.4,
+      "sharpness": 0.055,
+      "steepness": 0.09,
+      "group": {
+        "direction": [0.88, 0.47],
+        "wavelength": 294,
+        "speed": 3.9,
+        "phase": 5.6,
+        "depth": 0.38
+      }
+    },
+    {
+      "direction": [0.985, 0.174],
+      "wavelength": 117,
+      "amplitude": 3.8,
+      "speed": 13.52,
+      "phase": 0.85,
+      "sharpness": 0.055,
+      "steepness": 0.09,
+      "group": {
+        "direction": [0.62, 0.78],
+        "wavelength": 311,
+        "speed": 4.1,
+        "phase": 2.3,
+        "depth": 0.38
+      }
+    },
+    {
+      "direction": [0.799, 0.602],
+      "wavelength": 89,
+      "amplitude": 3.1,
+      "speed": 11.79,
+      "phase": 2.8,
+      "sharpness": 0.055,
+      "steepness": 0.09,
+      "group": {
+        "direction": [0.95, -0.31],
+        "wavelength": 278,
+        "speed": 3.8,
+        "phase": 5.4,
+        "depth": 0.38
+      }
+    },
+    {
+      "direction": [0.97, -0.242],
+      "wavelength": 79,
+      "amplitude": 2.7,
+      "speed": 11.11,
+      "phase": 5.7,
+      "sharpness": 0.055,
+      "steepness": 0.0864,
+      "group": {
+        "direction": [0.45, 0.89],
+        "wavelength": 246,
+        "speed": 3.4,
+        "phase": 0.3,
+        "depth": 0.38
+      }
+    },
+    {
+      "direction": [0.616, 0.788],
+      "wavelength": 71,
+      "amplitude": 2.25,
+      "speed": 10.53,
+      "phase": 1.9,
+      "sharpness": 0.055,
+      "steepness": 0.0864,
+      "group": {
+        "direction": [0.83, 0.56],
+        "wavelength": 225,
+        "speed": 3.1,
+        "phase": 4.1,
+        "depth": 0.38
+      }
+    },
+    {
+      "direction": [0.921, 0.391],
+      "wavelength": 65,
+      "amplitude": 1.9,
+      "speed": 10.07,
+      "phase": 4.5,
+      "sharpness": 0.055,
+      "steepness": 0.081,
+      "group": {
+        "direction": [0.77, -0.64],
+        "wavelength": 210,
+        "speed": 3.0,
+        "phase": 1.7,
+        "depth": 0.38
+      }
+    },
+    {
+      "direction": [0.996, -0.087],
+      "wavelength": 60,
+      "amplitude": 1.6,
+      "speed": 9.68,
+      "phase": 3.1,
+      "sharpness": 0.055,
+      "steepness": 0.081,
+      "group": {
+        "direction": [0.58, 0.81],
+        "wavelength": 191,
+        "speed": 2.8,
+        "phase": 3.5,
+        "depth": 0.38
+      }
     }
   ],
   "mesh": {
-    "highSpacing": 18,
-    "lowSpacing": 36,
-    "detailedMargin": 720
+    "highSpacing": 8,
+    "lowSpacing": 12,
+    "detailedMargin": 320,
+    "farSpacing": 60
   },
   "roadShelter": {
-    "flatRadius": 96,
-    "fullRadius": 200
+    "sampleStep": 4,
+    "deckMargin": 4,
+    "meshGuard": 24,
+    "recoveryWidth": 21,
+    "contactFlatRadius": 18,
+    "contactFullRadius": 42
   }
 }

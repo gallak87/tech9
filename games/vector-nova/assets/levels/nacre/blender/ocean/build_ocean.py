@@ -1,20 +1,24 @@
 """Editable Blender wave study; the game consumes this same JSON profile on GPU.
 
 Run from anywhere with Blender --background --factory-startup --python this_file.
+Append -- --save-only to refresh the editable source without rendering evidence.
 No baked simulation or runtime mesh sequence is required.
 """
 from pathlib import Path
 import bpy
 import json
 import math
+import sys
 from mathutils import Vector
 
 ROOT=Path(__file__).resolve().parents[5]
 PROFILE=json.loads((ROOT/'src/levels/nacre/environment/ocean-profile.json').read_text())
 OUT=ROOT/'assets/levels/nacre/blender/ocean'
 EVIDENCE=ROOT/'.experiments/gate4-1/ocean-swells'
+SAVE_ONLY='--save-only' in sys.argv
 OUT.mkdir(parents=True,exist_ok=True)
-EVIDENCE.mkdir(parents=True,exist_ok=True)
+if not SAVE_ONLY:
+    EVIDENCE.mkdir(parents=True,exist_ok=True)
 
 # This script is intended for a fresh isolated background process only.
 if bpy.data.filepath:
@@ -23,15 +27,39 @@ bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete(use_global=False)
 
 def sample(x,y,time=5.5):
-    height=0
+    displacement=Vector((0,0,0))
+    horizontal_x=Vector((0,0))
+    horizontal_y=Vector((0,0))
     crest=0
+    amplitude_sum=sum(wave['amplitude'] for wave in PROFILE['waves'])
     for wave in PROFILE['waves']:
         dx,dy=wave['direction']
         length=math.hypot(dx,dy)
-        phase=math.tau/wave['wavelength']*((dx*x+dy*y)/length-wave['speed']*time)+wave['phase']
-        height+=wave['amplitude']*(math.sin(phase)-wave['sharpness']*math.cos(2*phase))
-        crest+=max(0,math.sin(phase))**8*wave['amplitude']/18.3
-    return height,crest
+        dx,dy=dx/length,dy/length
+        k=math.tau/wave['wavelength']
+        phase=k*(dx*x+dy*y-wave['speed']*time)+wave['phase']
+        group=wave['group']
+        gx,gy=group['direction']
+        length=math.hypot(gx,gy)
+        gx,gy=gx/length,gy/length
+        group_k=math.tau/group['wavelength']
+        group_phase=group_k*(gx*x+gy*y-group['speed']*time)+group['phase']
+        half_depth=group['depth']*.5
+        envelope=1-half_depth+half_depth*math.sin(group_phase)
+        envelope_slope=half_depth*group_k*math.cos(group_phase)
+        ex,ey=envelope_slope*gx,envelope_slope*gy
+        s,c=math.sin(phase),math.cos(phase)
+        height=wave['amplitude']*(s-wave['sharpness']*math.cos(2*phase))
+        horizontal=wave['amplitude']*wave['steepness']
+        displacement+=Vector((envelope*horizontal*c*dx,envelope*horizontal*c*dy,envelope*height))
+        hx=horizontal*(ex*c-envelope*k*s*dx)
+        hy=horizontal*(ey*c-envelope*k*s*dy)
+        horizontal_x+=Vector((hx*dx,hx*dy))
+        horizontal_y+=Vector((hy*dx,hy*dy))
+        crest+=envelope*max(0,s)**5*wave['amplitude']/amplitude_sum
+    jacobian=(1+horizontal_x.x)*(1+horizontal_y.y)-horizontal_x.y*horizontal_y.x
+    compression=max(0,min(1,1-jacobian))
+    return displacement,crest,compression
 
 count=221
 extent=1100
@@ -42,9 +70,9 @@ for row in range(count):
     for col in range(count):
         x=-extent/2+col*extent/(count-1)
         y=-extent/2+row*extent/(count-1)
-        height,crest=sample(x,y)
-        verts.append((x,y,height))
-        foam.append(max(0,min(1,(crest-.46)/.30)))
+        displacement,crest,compression=sample(x,y)
+        verts.append((x+displacement.x,y+displacement.y,displacement.z))
+        foam.append(max(0,min(1,(crest-.35)/.20))*max(0,min(1,(compression-.12)/.08)))
 for row in range(count-1):
     for col in range(count-1):
         a=row*count+col
@@ -62,7 +90,7 @@ for i,f in enumerate(foam):
 obj['profile_source']='src/levels/nacre/environment/ocean-profile.json'
 obj['profile_json']=json.dumps(PROFILE)
 obj['sample_time_seconds']=5.5
-obj['runtime']='Live Three.js vertex displacement and foam; this is the editable shape study, not a fluid simulation bake.'
+obj['runtime']='Live grouped Gerstner displacement and selective crest foam; this is the editable shape study, not a fluid simulation bake.'
 
 mat=bpy.data.materials.new('Deep storm teal / pearl foam')
 mat.use_nodes=True
@@ -137,5 +165,6 @@ scene.view_settings.view_transform='AgX'
 scene.render.filepath=str(EVIDENCE/'blender-wave-study.png')
 bpy.context.preferences.filepaths.save_version=0
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'storm-swells-v1.blend'))
-bpy.ops.render.render(write_still=True)
-(EVIDENCE/'blender-study.json').write_text(json.dumps({'profile':PROFILE,'vertices':len(verts),'quads':len(faces),'editable_source':str(OUT/'storm-swells-v1.blend'),'render':scene.render.filepath,'runtime_mesh_export':False},indent=2)+'\n')
+if not SAVE_ONLY:
+    bpy.ops.render.render(write_still=True)
+    (EVIDENCE/'blender-study.json').write_text(json.dumps({'profile':PROFILE,'vertices':len(verts),'quads':len(faces),'editable_source':str(OUT/'storm-swells-v1.blend'),'render':scene.render.filepath,'runtime_mesh_export':False},indent=2)+'\n')

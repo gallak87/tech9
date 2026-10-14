@@ -14,7 +14,8 @@ import {
 } from '../src/physics/collision-world.js';
 import { createRapierWorld } from '../src/physics/rapier-world.js';
 import { createFlightModel } from '../src/physics/flight.js';
-import { projectedHullExtent } from '../src/physics/hull.js';
+import { projectedHullExtent, VEHICLE_HULL } from '../src/physics/hull.js';
+import { getCollisionHull } from '../src/ships/collision-hulls.js';
 
 const DT = 1 / 120;
 const input = (throttle) => ({
@@ -27,6 +28,31 @@ const input = (throttle) => ({
 const DRIVE = input(1);
 const COAST = input(0);
 const copy = (value) => JSON.parse(JSON.stringify(value));
+// A physical capture may lift the centre while a tilted hull rotates clear of
+// the deck. Its maximum transient clearance follows the hull's bounding radius;
+// after the constraint settles it must return to ordinary hovering clearance.
+const captureClearance =
+  Math.hypot(
+    VEHICLE_HULL.halfWidth,
+    VEHICLE_HULL.halfLength,
+    VEHICLE_HULL.hover,
+  ) -
+  VEHICLE_HULL.hover +
+  0.05;
+const captureTicks = 30;
+const testHull = {
+  id: 'abstract-traction-cuboid',
+  hullSha256: 'abstract-traction-cuboid-v1',
+  vertices: [-1, 1].flatMap((x) =>
+    [-1, 1].flatMap((y) =>
+      [-1, 1].flatMap((z) => [
+        x * VEHICLE_HULL.halfWidth,
+        y * VEHICLE_HULL.hover,
+        z * VEHICLE_HULL.halfLength,
+      ]),
+    ),
+  ),
+};
 
 async function fixture(t, scenario, playtest = null) {
   const level = createLevel({});
@@ -343,8 +369,16 @@ test('simultaneous player and rival flight shares one engine tick and exact sess
   racers.reset({ enabled: true });
   runtime.reset({ state });
   race.placeScenario(start.distance);
-  for (const opponent of racers.opponents) {
-    Object.assign(opponent.state, start);
+  // The field now interacts physically: start in a real two-wide grid instead
+  // of placing every hull at the same point, as the old ghost-racer test did.
+  state.lateral = 4;
+  runtime.reset({ state });
+  for (const [index, opponent] of racers.opponents.entries()) {
+    const slot = index + 1;
+    Object.assign(opponent.state, start, {
+      distance: start.distance - Math.floor(slot / 2) * 12,
+      lateral: slot % 2 === 0 ? 4 : -4,
+    });
     opponent.prev = { ...opponent.state };
     opponent.runtime.reset({ state: opponent.state });
     opponent.race.placeScenario(start.distance);
@@ -363,6 +397,15 @@ test('simultaneous player and rival flight shares one engine tick and exact sess
   advance();
   assert.equal(stepCalls, 1);
   assert.equal(runtime.snapshot().mode, 'flight');
+  for (
+    let tick = 0;
+    tick < 90 &&
+    racers.opponents.some(
+      (opponent) => opponent.runtime.snapshot().mode !== 'flight',
+    );
+    tick++
+  )
+    advance();
   assert.ok(
     racers.opponents.every(
       (opponent) => opponent.runtime.snapshot().mode === 'flight',
@@ -370,17 +413,20 @@ test('simultaneous player and rival flight shares one engine tick and exact sess
   );
   assert.equal(
     dynamics.snapshot().actors.filter((actor) => actor.active).length,
-    4,
+    racers.opponents.length + 1,
   );
+  const launchTicks = stepCalls;
   advance();
-  assert.equal(stepCalls, 2);
+  assert.equal(stepCalls, launchTicks + 1);
   for (const vehicle of [
     state,
     ...racers.opponents.map((opponent) => opponent.state),
   ])
-    assert.ok(Math.abs(vehicle.time - 2 * DT) < 1e-12);
-  assert.equal(race.elapsed, 2 * DT);
-  assert.equal(racers.serialize().elapsed, 2 * DT);
+    assert.ok(Math.abs(vehicle.time - (launchTicks + 1) * DT) < 1e-12);
+  assert.ok(Math.abs(race.elapsed - (launchTicks + 1) * DT) < 1e-12);
+  assert.ok(
+    Math.abs(racers.serialize().elapsed - (launchTicks + 1) * DT) < 1e-12,
+  );
 
   const snapshot = () =>
     copy({
@@ -399,7 +445,7 @@ test('simultaneous player and rival flight shares one engine tick and exact sess
   racers.restore(retained.racers);
   dynamics.restore(retained.dynamics);
   advance();
-  assert.equal(stepCalls, 4);
+  assert.equal(stepCalls, launchTicks + 3);
   assert.deepEqual(snapshot(), expected);
 });
 
@@ -468,8 +514,16 @@ async function tractionFixture(t, kind = 'deck') {
     ],
   });
   const dynamics = await createRapierWorld({ collisionWorld: source });
+  let actor;
   const runtime = createFlightModel().createRuntime(
-    { track, collisionWorld: source, dynamics },
+    {
+      track,
+      collisionWorld: source,
+      dynamics: {
+        ...dynamics,
+        createActor: (options) => (actor = dynamics.createActor(options)),
+      },
+    },
     {
       id: 'traction',
       version: 1,
@@ -501,9 +555,153 @@ async function tractionFixture(t, kind = 'deck') {
       ...(mode === 'recovery' ? { manualRecovery: true } : {}),
     });
     runtime.restore(snapshot);
+    // These local contact fixtures exercise an explicit abstract cuboid. The
+    // production cases below separately exercise each rendered chassis proxy.
+    actor.setContactShape(testHull);
   };
-  return { runtime, state, place };
+  return { runtime, state, place, dynamics, actor };
 }
+
+test('simultaneous deck and racer capture retains solver momentum and one impact across relatching and restore', async (t) => {
+  const { runtime, state, place, dynamics, actor } = await tractionFixture(t);
+  place([0, 1.1, 300], [35, -90, 90]);
+  const rival = dynamics.createActor();
+  rival.reset({
+    pose: {
+      position: new T.Vector3(4.4, 0.72, 301),
+      quaternion: new T.Quaternion(),
+    },
+    velocity: new T.Vector3(-10, 0, 90),
+    support: {
+      position: new T.Vector3(0, 0.72, 0),
+      quaternion: new T.Quaternion(),
+    },
+    active: true,
+  });
+  runtime.beginAdvance(state, COAST, DT);
+  dynamics.step(DT);
+  const solved = actor.read();
+  assert.ok(solved.contacts.some(({ shape }) => shape.kind === 'deck'));
+  assert.ok(solved.contacts.some(({ shape }) => shape.kind === 'racer'));
+  const peak = (kind) =>
+    Math.max(
+      ...solved.contacts
+        .filter(({ shape }) => shape.kind === kind)
+        .map(({ incomingSpeed }) => incomingSpeed),
+    );
+  assert.ok(
+    peak('deck') > peak('racer'),
+    'the stronger deck impact cannot hide the rival hit, regardless of substep order',
+  );
+  const events = runtime.finishAdvance(state);
+  const impacts = events.filter(({ type }) => type === 'impact');
+  assert.equal(
+    impacts.length,
+    1,
+    'all manifold points from the rival emit one event before capture',
+  );
+  assert.equal(impacts[0].payload.contactKind, 'racer');
+  assert.equal(
+    events.find(({ type }) => type === 'jump-transfer')?.payload.outcome,
+    'landed',
+  );
+  assert.deepEqual(
+    actor.read().velocity,
+    solved.velocity,
+    'landing retains every component of the contact impulse',
+  );
+  assert.deepEqual(
+    actor.read().angularVelocity,
+    solved.angularVelocity,
+    'capture retains contact spin',
+  );
+  assert.ok(state.impact > 0, 'landing does not clear the impact effect');
+  const checkpoint = copy({
+    state,
+    runtime: runtime.snapshot(),
+    dynamics: dynamics.snapshot(),
+  });
+  const continueCapture = () => {
+    const emitted = [];
+    for (let tick = 0; tick < 8; tick++)
+      emitted.push(...runtime.advance(state, COAST, DT));
+    return copy({ events: emitted, state, runtime: runtime.snapshot() });
+  };
+  const expected = continueCapture();
+  assert.ok(
+    !expected.events.some(
+      ({ type, payload }) =>
+        type === 'impact' && payload.contactKind === 'racer',
+    ),
+    'relatching cannot charge the same collision again',
+  );
+  Object.assign(state, checkpoint.state);
+  runtime.restore(checkpoint.runtime);
+  dynamics.restore(checkpoint.dynamics);
+  assert.deepEqual(continueCapture(), expected);
+});
+
+test('an airborne pile-up reports each rival once and spends only one shield', async (t) => {
+  const { runtime, state, place, dynamics } = await tractionFixture(t);
+  place([0, 10, 300], [0, 0, 90]);
+  for (const sign of [-1, 1]) {
+    const rival = dynamics.createActor();
+    rival.reset({
+      pose: {
+        position: new T.Vector3(sign * 4.4, 10, 301),
+        quaternion: new T.Quaternion(),
+      },
+      velocity: new T.Vector3(-sign * 35, 0, 90),
+      active: true,
+    });
+  }
+  const events = runtime.advance(state, COAST, DT, { shield: true });
+  const impacts = events.filter(({ type }) => type === 'impact');
+  assert.equal(impacts.length, 2);
+  assert.equal(new Set(impacts.map(({ payload }) => payload.collider)).size, 2);
+  assert.equal(impacts.filter(({ payload }) => payload.shielded).length, 1);
+  assert.equal(
+    impacts.filter(({ payload }) => payload.energyCost > 0).length,
+    1,
+  );
+  assert.ok(impacts.every(({ payload }) => payload.source === 'racer-contact'));
+  const continuing = [];
+  for (let tick = 0; tick < 8; tick++)
+    continuing.push(...runtime.advance(state, COAST, DT));
+  assert.ok(
+    !continuing.some(({ type }) => type === 'impact'),
+    'sustained contact cannot repeat the reserve charge',
+  );
+});
+
+test('airborne impact spin remains physical and attitude torque resumes after the brief recovery delay', async (t) => {
+  const { runtime, state, place, actor } = await tractionFixture(t);
+  place([0, 20, 300], [0, 0, 90]);
+  const snapshot = runtime.snapshot();
+  snapshot.flight.hitAt = snapshot.flight.elapsed;
+  snapshot.flight.angularVelocity = [0, 4, 0];
+  runtime.restore(snapshot);
+  let previous = actor.read().quaternion;
+  for (let tick = 0; tick < 50; tick++) {
+    runtime.advance(state, COAST, DT);
+    const body = actor.read();
+    assert.ok(
+      previous.angleTo(body.quaternion) < 0.05,
+      'recovery never snaps heading',
+    );
+    if (tick === 17)
+      assert.ok(
+        body.angularVelocity.y > 3.2,
+        'the initial impact spin retains its natural damping before recovery torque',
+      );
+    previous = body.quaternion;
+  }
+  assert.equal(runtime.snapshot().mode, 'flight');
+  assert.ok(
+    actor.read().angularVelocity.y < 0,
+    'active torque is already counter-steering the spin before half a second',
+  );
+});
 
 test('clean high-speed deck capture preserves forward momentum and settles promptly', async (t) => {
   const { runtime, state, place } = await tractionFixture(t);
@@ -562,7 +760,6 @@ test('wall rebound onto the receiving deck restores traction and stays grounded 
   );
   assert.equal(runtime.snapshot().mode, 'magnetic');
   assert.equal(runtime.snapshot().flight, null);
-  const landedDistance = state.distance;
   for (let tick = 0; tick < 240; tick++) {
     const emitted = runtime.advance(state, { throttle: 1 }, DT);
     assert.ok(
@@ -578,14 +775,23 @@ test('wall rebound onto the receiving deck restores traction and stays grounded 
         pose.position.y -
         projectedHullExtent(pose.quaternion, new T.Vector3(0, 1, 0));
       assert.ok(
-        clearance >= -1e-5 && clearance <= 0.061,
-        'the tilted hull stays supported with at most the 6 cm cosmetic bounce',
+        clearance >= -0.02 &&
+          clearance <= (tick < captureTicks ? captureClearance : 0.061),
+        `physical capture clears the deck and settles back to hover (tick ${tick}, clearance ${clearance})`,
       );
     }
   }
+  const resting = runtime.pose();
+  const front =
+    resting.position.z +
+    projectedHullExtent(resting.quaternion, new T.Vector3(0, 0, 1));
   assert.ok(
-    state.distance > landedDistance + 10,
-    'throttle drives back along the deck',
+    front >= 249.8 && front <= 249.92,
+    `throttle returns to the solid wall without crossing it (front ${front})`,
+  );
+  assert.ok(
+    Math.abs(state.speed) < 1,
+    'the grounded hull remains blocked by the wall',
   );
 });
 
@@ -830,19 +1036,41 @@ test('Cindercoil forgiving contacts recover steered barriers and inverted deck l
         assert.equal(transfer.payload.edgeCaught, true);
       }
       const landedDistance = state.distance;
+      const collisionHull = getCollisionHull(state.chassisId ?? state.shipId);
+      const settledClearance = VEHICLE_HULL.hover + collisionHull.bounds.min[1];
       for (let i = 0; i < 100; i++) {
         step(DRIVE);
         assert.equal(runtime.snapshot().motion.flight.mode, 'magnetic');
         const pose = runtime.pose();
         if (pose) {
           const frame = track.sample(state.distance);
-          const clearance =
-            pose.position.clone().sub(frame.position).dot(frame.up) -
-            projectedHullExtent(pose.quaternion, frame.up);
+          let clearance = Infinity;
+          for (
+            let vertex = 0;
+            vertex < collisionHull.vertices.length;
+            vertex += 3
+          ) {
+            const point = new T.Vector3()
+              .fromArray(collisionHull.vertices, vertex)
+              .applyQuaternion(pose.quaternion)
+              .add(pose.position);
+            clearance = Math.min(
+              clearance,
+              point.sub(frame.position).dot(frame.up),
+            );
+          }
           assert.ok(
-            clearance >= -0.001 && clearance <= 0.061,
-            'self-righting keeps the full hull above the real deck',
+            clearance >= -0.02 &&
+              clearance <=
+                settledClearance +
+                  (i < captureTicks ? captureClearance : 0.061),
+            `actual chassis clears the deck and settles back to hover (tick ${i}, clearance ${clearance})`,
           );
+          if (i >= captureTicks)
+            assert.ok(
+              clearance >= settledClearance - 0.061,
+              'the chassis returns to its authored hover clearance',
+            );
         }
       }
       assert.ok(state.distance > landedDistance + 5);

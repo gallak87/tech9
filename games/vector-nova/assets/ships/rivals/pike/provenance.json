@@ -1,0 +1,23 @@
+{
+  "asset": "pike",
+  "date": "2026-10-13",
+  "design": {
+    "sourceKind": "Original authored geometry; no generated or third-party reference asset",
+    "brief": "Long violet-slate spearhead with a narrow forward hull, aft cockpit, swept stabilisers, seated shoulder intakes and one recessed circular ion engine.",
+    "direction": "Clean coated production racer, graphite structure, machined retaining lips, tinted glazing and restrained ion lighting. Distinct large forms within the established rival hull envelope."
+  },
+  "model": {
+    "source": "assets/ships/rivals/pike/pike.blend",
+    "export": "public/assets/ships/rivals/pike/pike.glb",
+    "generator": "assets/ships/rivals/build_rivals.py",
+    "sharedHelpers": [
+      "assets/ships/build_fleet.py",
+      "assets/ships/clean_finish.py",
+      "assets/ships/surface_finish.py"
+    ],
+    "authorship": "Original Blender geometry authored with project-owned construction helpers; no third-party meshes, fonts or textures.",
+    "materials": "Original clean procedural coated paint, resin composite and machined metal baked to embedded base-color, roughness, tangent-normal and short-range cavity-occlusion maps.",
+    "textureSources": "assets/ships/rivals/pike/textures/",
+    "runtime": "public/assets/ships/rivals/pike/pike.glb"
+  }
+}

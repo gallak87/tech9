@@ -1,7 +1,55 @@
 import { stepVehicle } from '../physics/index.js';
+import {
+  createMagneticBody,
+  MAGNETIC_BODY_RULES,
+} from '../physics/magnetic-body.js';
 
 export const BASELINE_RULES = 'magnetic-v3-assist-0.3';
-export function createMagneticRuntime({ track }) {
+export function createMagneticRuntime({
+  track,
+  dynamics = null,
+  settings = {},
+}) {
+  if (dynamics) {
+    const actor = dynamics.createActor();
+    const body = createMagneticBody({ track, dynamics, actor });
+    return {
+      id: 'magnetic',
+      version: 2,
+      rulesId: `${BASELINE_RULES}:${MAGNETIC_BODY_RULES}:${dynamics.rulesId}`,
+      scenarios: {},
+      beginAdvance(state, input, dt, modifiers) {
+        body.stage(state, input, dt, {
+          steeringAssist: settings.steeringAssist,
+          ...modifiers,
+        });
+      },
+      finishAdvance: (state) => body.finish(state),
+      advance(state, input, dt, modifiers) {
+        if (!Number.isFinite(dt) || dt <= 0) return [];
+        const duration = Math.min(dt, 0.1),
+          count = Math.ceil(duration * 120 - 1e-10),
+          events = [];
+        for (let i = 0; i < count; i++) {
+          this.beginAdvance(state, input, duration / count, modifiers);
+          dynamics.step(duration / count);
+          events.push(...this.finishAdvance(state));
+        }
+        return events;
+      },
+      reset({ state } = {}) {
+        actor.reset();
+        body.reset(state);
+      },
+      snapshot: () => body.snapshot(),
+      restore: (data) => body.restore(data),
+      pose: (alpha) => body.pose(alpha),
+      update() {},
+      dispose() {
+        actor.dispose();
+      },
+    };
+  }
   return {
     id: 'magnetic',
     version: 1,

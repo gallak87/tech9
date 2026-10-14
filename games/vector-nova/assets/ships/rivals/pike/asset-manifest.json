@@ -1,0 +1,21 @@
+{
+  "asset": "pike",
+  "blender": "5.1.1",
+  "axes": "+Z forward / +Y up / metres",
+  "bounds": {
+    "min": [-1.8600000143051147, 0.038205768913030624, -3.200000047683716],
+    "max": [1.8600000143051147, 1.1476000547409058, 3.380000114440918]
+  },
+  "dimensions": [3.7200000286102295, 1.1093942858278751, 6.580000162124634],
+  "triangles": 6860,
+  "meshes": 9,
+  "materials": 9,
+  "sourceComponents": 37,
+  "anchors": {
+    "Exhaust_C": [0, 0.61, -3.2150000000000003]
+  },
+  "glbBytes": 1620760,
+  "sha256": "2036ad53de41e10005077591f5470b11b086fac8ff6f51fcad2f4b7cc6c3e24f",
+  "textureCount": 12,
+  "textures": "Embedded original baked base-color, roughness, tangent normals and cavity occlusion"
+}

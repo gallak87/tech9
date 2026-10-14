@@ -52,12 +52,11 @@ export function createGlasswakeRuntime(context) {
   });
   let openingShelf = null;
   let calvingSoundLap = -1;
+  let staged = null;
   const calvingSoundAt = calvingSeparationDistance(track);
   const { advance, reset, snapshot, restore } = runtime;
-  runtime.advance = (state, input, dt, modifiers) => {
-    const beforeDistance = state.distance;
-    const beforeTime = state.time;
-    const events = advance(state, input, dt, modifiers);
+  const owner = { ...runtime };
+  function finishLocal(state, events, beforeDistance, beforeTime) {
     const elapsed = state.time - beforeTime;
     if (!(elapsed > 0)) return events;
     if (openingShelf !== null) {
@@ -98,8 +97,34 @@ export function createGlasswakeRuntime(context) {
       calvingSoundLap = lap;
     }
     return events;
+  }
+  owner.advance = (state, input, dt, modifiers) => {
+    const beforeDistance = state.distance;
+    const beforeTime = state.time;
+    return finishLocal(
+      state,
+      advance(state, input, dt, modifiers),
+      beforeDistance,
+      beforeTime,
+    );
   };
-  runtime.reset = (args = {}) => {
+  if (runtime.beginAdvance) {
+    owner.beginAdvance = (state, input, dt, modifiers) => {
+      if (staged) throw new Error('Finish the pending Glasswake step first');
+      staged = { distance: state.distance, time: state.time };
+      runtime.beginAdvance(state, input, dt, modifiers);
+    };
+    owner.finishAdvance = (state) => {
+      if (!staged)
+        throw new Error('Stage the Glasswake step before resolving it');
+      const before = staged;
+      const events = runtime.finishAdvance(state);
+      staged = null;
+      return finishLocal(state, events, before.distance, before.time);
+    };
+  }
+  owner.reset = (args = {}) => {
+    staged = null;
     reset(args);
     if (args.reason === 'manual-recover') return;
     openingShelf = null;
@@ -120,8 +145,8 @@ export function createGlasswakeRuntime(context) {
           : null);
     }
   };
-  runtime.snapshot = () => ({ ...snapshot(), openingShelf, calvingSoundLap });
-  runtime.restore = (data) => {
+  owner.snapshot = () => ({ ...snapshot(), openingShelf, calvingSoundLap });
+  owner.restore = (data) => {
     if (
       data?.openingShelf !== null &&
       (!Number.isFinite(data?.openingShelf) ||
@@ -132,14 +157,16 @@ export function createGlasswakeRuntime(context) {
     if (!Number.isInteger(data?.calvingSoundLap) || data.calvingSoundLap < -1)
       throw new Error('Invalid Glasswake calving sound ledger.');
     restore(data);
+    staged = null;
     openingShelf = data.openingShelf;
     calvingSoundLap = data.calvingSoundLap;
   };
-  if (context.presentation !== false) runtimes.set(track, runtime);
+  if (context.presentation !== false) runtimes.set(track, owner);
   const dispose = runtime.dispose;
-  runtime.dispose = () => {
-    if (runtimes.get(track) === runtime) runtimes.delete(track);
+  owner.dispose = () => {
+    staged = null;
+    if (runtimes.get(track) === owner) runtimes.delete(track);
     dispose();
   };
-  return runtime;
+  return owner;
 }

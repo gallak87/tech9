@@ -1,7 +1,7 @@
-"""Three original AI racer chassis, separate from the player-selectable fleet.
+"""Nine original AI racer chassis, separate from the player-selectable fleet.
 
 Run: blender --background --threads 6 --python assets/ships/rivals/build_rivals.py
-Optional arguments after --: --ship rook|latch|mule|all --render
+Optional arguments after --: --ship <id>|all|additions --render --preview
 Editable sources stay beside this script; each GLB exports directly to public.
 """
 import argparse
@@ -21,12 +21,20 @@ ROOT = HERE.parents[2]
 sys.path.insert(0, str(HERE.parent))
 sys.dont_write_bytecode = True
 import build_fleet as F
+from surface_finish import surface_finish
 
 PALETTES = {
     'rook': ((.185, .205, .16), (.54, .51, .40)),
     'latch': ((.135, .205, .25), (.49, .54, .53)),
     'mule': ((.27, .235, .185), (.43, .31, .13)),
+    'pike': ((.18, .20, .29), (.58, .46, .70)),
+    'tern': ((.47, .46, .40), (.66, .22, .07)),
+    'manta': ((.11, .25, .24), (.40, .62, .53)),
+    'vise': ((.34, .11, .08), (.63, .49, .28)),
+    'kite': ((.11, .14, .24), (.43, .53, .72)),
+    'gannet': ((.31, .36, .39), (.68, .43, .09)),
 }
+ADDITIONS = ('pike', 'tern', 'manta', 'vise', 'kite', 'gannet')
 
 
 def anchor(label, x, y, z, aperture):
@@ -288,6 +296,164 @@ def mule():
     return shell
 
 
+def wing(name, sections, mat='pearl'):
+    """A formed aerofoil, from root to tip, with closed thickness and crown."""
+    result = []
+    for sign in (-1, 1):
+        vertices = []
+        for x, front, rear, y, thickness in sections:
+            vertices.extend([(sign*x, y, front), (sign*x, y+thickness, front*.60+rear*.40),
+                             (sign*x, y, rear), (sign*x, y-thickness*.35, front*.45+rear*.55)])
+        faces = [(3, 2, 1, 0), tuple(range((len(sections)-1)*4, len(sections)*4))]
+        for i in range(len(sections)-1):
+            for j in range(4):
+                faces.append((i*4+j, i*4+(j+1)%4, (i+1)*4+(j+1)%4, (i+1)*4+j))
+        result.append(F.mesh(name + (' port' if sign < 0 else ' starboard'), vertices, faces, mat, .018))
+    return result
+
+
+def round_engine(label, x, y, z=-3.16, radius=.43):
+    """Layered cold cowling, metal lip, dark throat and recessed active face."""
+    round_duct('Engine structural pressure sleeve ' + label, x, y,
+               [(z+.98, radius*.91), (z+.32, radius), (z+.04, radius*.94)], 'carbon')
+    round_duct('Cold engine forward bulkhead ' + label, x, y,
+               [(z+.96, radius*.90), (z+.98, radius*.90)], 'carbon', True)
+    round_duct('Formed engine mounting cuff ' + label, x, y,
+               [(z+1.04, radius*.93), (z+.83, radius*1.12), (z+.48, radius*1.12)], 'pearl')
+    round_ring('Machined throat lip ' + label, x, y, z, radius, radius*.79, 'metal', .09)
+    round_duct('Recessed graphite throat ' + label, x, y,
+               [(z+.016, radius*.786), (z+.24, radius*.66)], 'vent')
+    round_ring('Ion aperture ' + label, x, y, z+.16, radius*.70, radius*.57, 'cyan', .018)
+    round_duct('Central ion emitter ' + label, x, y,
+               [(z+.22, radius*.34), (z+.25, radius*.34)], 'cyan', True)
+    for sign in (-1, 1):
+        F.beam('Engine retention keeper ' + label, (x+sign*radius*.92, y, z+.70),
+               (x+sign*radius*.92, y, z+.13), .055, .07, 'metal', .006)
+    anchor(label, x, y, z-.015, [radius*2, radius*2])
+
+
+def body(name, stations):
+    F.loft(name + ' graphite keel', stations, 'carbon', bevel=.024)
+    return F.loft(name + ' formed bodywork',
+                  [(z, w*.98, shoulder+.12, crown+.12, shoulder+.018)
+                   for z, w, shoulder, crown, bottom in stations], 'pearl', bevel=.027)
+
+
+def shoe(x, front=1.75, rear=-2.15):
+    F.beam('Replaceable induction runner', (x, .10, front), (x, .10, rear), .17, .11, 'edge', .012)
+    F.line('Runner recessed status light', [(x, .046, front-.3), (x, .046, rear+.3)], .009, 'dimcyan')
+
+
+def pike():
+    shell = body('Long spearhead', [(3.38, .10, .23, .26, .12), (2.30, .36, .34, .42, .08),
+                 (.70, .56, .47, .58, .08), (-.85, .76, .54, .65, .10),
+                 (-2.30, .66, .48, .60, .12), (-2.77, .48, .43, .52, .16)])
+    canopy(1.96, .35, -.20, .72, .38)
+    wing('Swept aft stabiliser', [(.58, -.57, -2.37, .40, .14),
+         (1.17, -1.42, -2.57, .32, .10), (1.86, -2.52, -2.77, .25, .04)])
+    for sign in (-1, 1):
+        F.beam('Aft wing painted band', (sign*1.38, .345, -1.94), (sign*1.59, .29, -2.43), .15, .025, 'accent', .005)
+        F.duct('Shoulder inlet surround', sign*.53, .79, [(-.63, .18, .14), (-1.10, .18, .14)], 'carbon', False)
+        F.oct_annulus('Shoulder inlet seated rim', sign*.53, .79, -.62, (.18, .14), (.13, .09), 'metal', .004)
+        F.duct('Recessed inlet backing', sign*.53, .79, [(-.77, .13, .09), (-1.09, .10, .07)], 'vent', False, True)
+        shoe(sign*.32, 1.69)
+    service_panel(shell, 'Long forward service cap', [(-.12, 2.75), (.12, 2.75), (.25, 1.19), (-.25, 1.19)], 'accent')
+    round_engine('C', 0, .61, -3.20, .48)
+    return shell
+
+
+def tern():
+    shell = body('Suspended cockpit capsule', [(2.18, .22, .31, .39, .11),
+                 (.96, .53, .51, .66, .12), (-.75, .52, .53, .65, .13), (-2.02, .29, .39, .48, .17)])
+    canopy(2.01, .36, .32, .77, .35)
+    for sign in (-1, 1):
+        x = sign*1.38
+        stations = [(3.24, .13, .21, .25, .10), (2.23, .29, .33, .41, .08),
+                    (.56, .32, .41, .54, .08), (-1.76, .35, .44, .53, .10), (-2.82, .31, .38, .46, .13)]
+        F.loft('Separated longitudinal boom skeleton', stations, 'carbon', x, .025)
+        boom = F.loft('Replaceable boom cowling', [(z,w,y+.09,t+.10,y+.03) for z,w,y,t,b in stations], 'pearl', x, .025)
+        for z in (.88, -1.40):
+            F.beam('Exposed wing-box cross member', (sign*.32, .30, z), (x, .30, z-.13), .30, .18, 'metal', .016)
+        F.beam('Boom livery inlay', (x, .535, 1.62), (x, .646, .64), .17, .025, 'accent', .004)
+        F.vent('Boom cooling cassette', x, .64, -1.33, .33, .59)
+        slot_engine('L' if sign < 0 else 'R', x, .41, -3.10, .35, .245)
+        shoe(x, 2.12)
+    wing('Cranked transom aerofoil', [(.32, -1.54, -1.99, .42, .07),
+         (1.38, -1.90, -2.39, .54, .07), (1.97, -2.49, -2.69, .41, .025)], 'accent')
+    return shell
+
+
+def manta():
+    shell = body('Low wide wing centre', [(2.87, .28, .29, .34, .10),
+                 (1.61, .67, .41, .51, .08), (.13, .87, .50, .62, .10),
+                 (-1.48, 1.04, .46, .56, .12), (-2.74, .74, .36, .48, .17)])
+    canopy(1.89, .43, .39, .72, .34)
+    wings = wing('Broad continuous swept wing', [(.58, 1.19, -2.34, .40, .18),
+         (1.12, .81, -2.38, .36, .18), (1.74, -.12, -2.18, .25, .13),
+         (2.17, -1.43, -1.93, .18, .035)])
+    for sign, skin in zip((-1, 1), wings):
+        service_panel(skin, 'Seated replaceable wing insert',
+                      [(sign*1.22,-.35),(sign*1.46,-.55),
+                       (sign*1.82,-1.54),(sign*1.57,-1.58)], 'accent', .016)
+        F.vent('Inboard wing heat exchanger', sign*.77, .70, -.77, .27, .78)
+        slot_engine('L' if sign < 0 else 'R', sign*.57, .41, -3.02, .43, .235)
+        shoe(sign*.68)
+    service_panel(shell, 'Central nose livery insert', [(-.15, 2.31), (.15, 2.31), (.27, 1.68), (-.27, 1.68)], 'accent')
+    return shell
+
+
+def vise():
+    shell = body('Hammerhead centre tub', [(2.56, .30, .27, .37, .09),
+                 (1.70, .48, .39, .52, .08), (.14, .56, .47, .62, .09),
+                 (-1.65, .61, .50, .64, .13), (-2.70, .44, .41, .52, .17)])
+    canopy(1.95, .39, -.75, .74, .40)
+    wing('Broad hammerhead forward canard', [(.31, 2.76, 1.49, .35, .15),
+         (1.20, 2.71, 1.21, .34, .14), (2.10, 2.42, 1.62, .30, .055)])
+    for sign in (-1, 1):
+        F.loft('Outboard canard crash shoe', [(2.54,.15,.25,.46,.11), (1.53,.16,.28,.46,.11)], 'carbon', sign*1.92, .025)
+        F.beam('Hammerhead service band', (sign*1.45, .435, 2.48), (sign*1.53, .445, 1.56), .23, .024, 'accent', .006)
+        F.beam('Triangulated aft engine carrier', (sign*.42, .26, -.51), (sign*1.20, .30, -2.63), .26, .16, 'metal', .019)
+        F.loft('Compact outboard engine saddle', [(-1.50,.31,.42,.68,.20), (-2.59,.34,.44,.69,.18)], 'pearl', sign*1.16, .030)
+        round_engine('L' if sign < 0 else 'R', sign*1.16, .56, -3.16, .38)
+        shoe(sign*.34, 1.29)
+    F.vent('Centre feed radiator', 0, .742, .48, .56, .63)
+    return shell
+
+
+def kite():
+    shell = body('Compact diamond monocoque', [(3.10,.13,.24,.31,.11), (1.65,.92,.37,.48,.09),
+                 (-.04,1.94,.38,.63,.08), (-1.57,1.40,.41,.62,.11), (-2.91,.48,.35,.46,.17)])
+    canopy(1.79, .40, .57, .72, .31)
+    for sign in (-1, 1):
+        service_panel(shell, 'Diamond inset shoulder panel',
+                      [(sign*.71,.57),(sign*1.47,.09),(sign*.97,-1.17),(sign*.58,-1.11)], 'accent')
+        cut_vent(shell, sign*.67, -1.28, .32, .70)
+        F.solid('Canted aft control vane', [(sign*.49,.55,-1.69),(sign*.90,1.20,-2.51),
+                (sign*.76,1.21,-2.82),(sign*.36,.53,-2.65)], .07, 'pearl', .013)
+        shoe(sign*.69, 1.40)
+    slot_engine('C', 0, .43, -3.18, .52, .29)
+    return shell
+
+
+def gannet():
+    shell = body('Raised gull fuselage', [(3.26,.14,.28,.37,.13), (2.11,.32,.47,.62,.18),
+                 (.71,.50,.68,.82,.23), (-1.07,.56,.66,.82,.25), (-2.67,.36,.45,.58,.18)])
+    canopy(2.15, .35, .46, .91, .39)
+    wing('Descending gull wing structure', [(.43,.67,-1.34,.56,.13),
+         (.97,.03,-1.77,.41,.14), (1.56,-.52,-2.34,.23,.12),
+         (2.06,-1.59,-2.39,.19,.03)], 'carbon')
+    wing('Seated gull shoulder skin', [(.52,.56,-1.13,.71,.10),
+         (.96,-.03,-1.55,.57,.10), (1.50,-.57,-2.18,.39,.07)])
+    for sign in (-1, 1):
+        F.loft('Low swept engine outrigger', [(.04,.17,.24,.32,.09), (-.81,.29,.34,.48,.09),
+                   (-2.73,.29,.35,.48,.10)], 'pearl', sign*1.43, .027)
+        F.beam('Ouigger painted shoulder', (sign*1.43,.542,-.91), (sign*1.43,.575,-1.71), .25, .025, 'accent', .004)
+        slot_engine('L' if sign < 0 else 'R', sign*1.43, .37, -3.09, .32, .23)
+        shoe(sign*1.43, -.1, -2.33)
+    service_panel(shell, 'Raised spine forward inlay', [(-.11,2.58),(.11,2.58),(.19,1.66),(-.19,1.66)], 'accent')
+    return shell
+
+
 def details(id):
     bpy.context.view_layer.update()
     deps = bpy.context.evaluated_depsgraph_get()
@@ -410,7 +576,7 @@ def studio(scene):
     return camera, aim
 
 
-def build(id, render=False):
+def build(id, render=False, preview=False):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     F.ship = bpy.data.collections.new(id.upper() + ' | editable rival components')
@@ -421,26 +587,46 @@ def build(id, render=False):
                'metal': ((.25, .27, .26), .85, .34), 'edge': ((.075, .088, .088), .66, .36),
                'vent': ((.008, .012, .014), .18, .49), 'glass': ((.011, .020, .024), .55, .17),
                'accent': (accent, .18, .49)}
+    if id in ADDITIONS:
+        palette.update({'pearl': (paint, .025, .22),
+                        'carbon': ((.017, .021, .024), .12, .32),
+                        'metal': ((.34, .365, .385), .95, .225),
+                        'glass': ((.011, .020, .024), .04, .14),
+                        'accent': (accent, .02, .27)})
     F.M = {name: F.material(id + '_' + ('Ceramic' if name == 'pearl' else name), *values)
            for name, values in palette.items()}
     F.M['darkmetal'] = F.M['edge']
     F.M['cyan'] = F.material(id + '_Ion', (.014, .09, .11), .25, .30, ((.10, .55, .72), 2.0))
     F.M['dimcyan'] = F.material(id + '_Induction', (.01, .04, .05), .25, .34, ((.035, .27, .37), .7))
     globals()[id]()
-    details(id)
-    directory = HERE / id
+    if id not in ADDITIONS:
+        details(id)
+    directory = (ROOT / '.experiments/rival-material-preview' / id) if preview else HERE / id
     directory.mkdir(parents=True, exist_ok=True)
     textures = directory / 'textures'
     textures.mkdir(exist_ok=True)
-    finishes = {F.M[kind].name: F.surface_finish(F.M[kind], kind) for kind in ('pearl', 'carbon', 'metal')}
+    finishes = {}
+    if not preview:
+        for kind in ('pearl', 'carbon', 'metal'):
+            mat = F.M[kind]
+            channels = F.crafted_finish(mat, kind) if id in ADDITIONS else surface_finish(mat, kind)
+            if kind == 'pearl' and id in ADDITIONS:
+                # Retain each production team's paint in the shared clean coating.
+                color = (*paint, 1)
+                channels['color'].node.inputs[1].default_value = color
+                channels['color'].node.inputs[2].default_value = color
+                mat.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value = color
+                mat.diffuse_color = color
+            finishes[mat.name] = channels
     camera, aim = studio(scene)
     scene.unit_settings.system = 'METRIC'
     scene['asset'] = id
-    scene['design_reference'] = 'concept-01.png'
+    scene['design_reference'] = 'Original authored geometry brief in provenance.json' if id in ADDITIONS else 'concept-01.png'
     scene['coordinate_contract'] = 'metres; exported +Z forward, +Y up; exhaust aft -Z'
     scene['integration'] = 'AI racer chassis; separate from the player-selectable fleet'
     bpy.context.preferences.filepaths.save_version = 0
-    bpy.ops.wm.save_as_mainfile(filepath=str(directory / (id + '.blend')))
+    if not preview:
+        bpy.ops.wm.save_as_mainfile(filepath=str(directory / (id + '.blend')))
     components = list(F.ship.objects)
     copies = []
     for obj in components:
@@ -490,7 +676,7 @@ def build(id, render=False):
     for obj in joined + empties:
         obj.select_set(True)
     bpy.context.view_layer.objects.active = joined[0]
-    output = ROOT / 'public/assets/ships/rivals' / id / (id + '.glb')
+    output = directory / (id + '.glb') if preview else ROOT / 'public/assets/ships/rivals' / id / (id + '.glb')
     output.parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.export_scene.gltf(filepath=str(output), export_format='GLB', use_selection=True,
                               export_yup=True, export_apply=True, export_extras=True,
@@ -505,8 +691,8 @@ def build(id, render=False):
               'triangles': sum(len(obj.data.polygons) for obj in joined),
               'meshes': len(joined), 'materials': len(joined), 'sourceComponents': len(components),
               'anchors': F.anchors, 'glbBytes': output.stat().st_size,
-              'sha256': hashlib.sha256(output.read_bytes()).hexdigest(), 'textureCount': len(finishes) * 3,
-              'textures': 'Embedded original baked base-color, roughness and tangent normals'}
+              'sha256': hashlib.sha256(output.read_bytes()).hexdigest(), 'textureCount': len(finishes) * 4,
+              'textures': 'Scalar-material geometry preview' if preview else 'Embedded original baked base-color, roughness, tangent normals and cavity occlusion'}
     (directory / 'asset-manifest.json').write_text(json.dumps(report, indent=2) + '\n')
     print('RIVAL_ASSET ' + json.dumps(report), flush=True)
     if render:
@@ -521,8 +707,9 @@ def build(id, render=False):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--ship', choices=['rook', 'latch', 'mule', 'all'], default='all')
+    parser.add_argument('--ship', choices=[*PALETTES, 'all', 'additions'], default='all')
     parser.add_argument('--render', action='store_true')
+    parser.add_argument('--preview', action='store_true', help='Export scalar materials to .experiments without baking or overwriting production assets')
     options = parser.parse_args(sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else [])
-    for ship_id in (['rook', 'latch', 'mule'] if options.ship == 'all' else [options.ship]):
-        build(ship_id, options.render)
+    for ship_id in (list(PALETTES) if options.ship == 'all' else ADDITIONS if options.ship == 'additions' else [options.ship]):
+        build(ship_id, options.render, options.preview)

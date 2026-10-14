@@ -1,0 +1,22 @@
+{
+  "asset": "tern",
+  "blender": "5.1.1",
+  "axes": "+Z forward / +Y up / metres",
+  "bounds": {
+    "min": [-1.9700000286102295, 0.038205768913030624, -3.0999999046325684],
+    "max": [1.9700000286102295, 1.1593973636627197, 3.240000009536743]
+  },
+  "dimensions": [3.940000057220459, 1.121191594749689, 6.3399999141693115],
+  "triangles": 12788,
+  "meshes": 9,
+  "materials": 9,
+  "sourceComponents": 56,
+  "anchors": {
+    "Exhaust_L": [-1.38, 0.41, -3.115],
+    "Exhaust_R": [1.38, 0.41, -3.115]
+  },
+  "glbBytes": 1755384,
+  "sha256": "5edc79e3274339b4222cdb50c29fd0080bb81aa83f12941d9e60213f6a7201ee",
+  "textureCount": 12,
+  "textures": "Embedded original baked base-color, roughness, tangent normals and cavity occlusion"
+}

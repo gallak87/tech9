@@ -4,7 +4,7 @@
 
 `createFleetShip` wraps one chassis in a stable root, retaining level feedback attached to that root across changes. It exposes `selected` and async `select(id)`; failed requests leave the old chassis usable, superseded/disposed requests release their new resources. Core owns menu-only switching, fresh simulation state, shader warmup and camera fitting. Paddock/inspection use the same selector and locally saved choice. Replay compatibility checks ship id/version; changing ships resets lap history.
 
-**Inspect Ships → AI racers** loads Rook, Latch and Mule through the separate `rivals.js` mesh catalog. They race on competitive circuits using Kestrel, Shrike and Bastion handling respectively, assigned by the circuit race model; they are not player-selectable. Core owns the selected inspection preview, cancels superseded requests, releases it on tab/scene exit, and preserves the player's chassis and saved choice. Sources and rebuild instructions live in [rival assets](../../assets/ships/rivals/README.md). Both player selectors use a vertical list beside stacked performance bars.
+**Inspect Ships → AI racers** loads Rook, Latch, Mule, Pike, Tern, Manta, Vise, Kite and Gannet through the separate `rivals.js` mesh catalog. They race on competitive circuits using the fleet handling profiles assigned in `src/race/roster.js`; they are not player-selectable. Core owns the selected inspection preview, cancels superseded requests, releases it on tab/scene exit, and preserves the player's chassis and saved choice. Sources and rebuild instructions live in [rival assets](../../assets/ships/rivals/README.md). Both player selectors use a vertical list beside stacked performance bars.
 
 Assets use metres, local +Z forward and +Y up. Twin-engine ships export `Exhaust_L` and `Exhaust_R`; Needle exports only `Exhaust_C`. Exhaust points aft along -Z. `update({speed,boost,steer,time,energy,reducedMotion})` animates local emission, pressure response and short-range nozzle light only. Reserve is normalized to 0–1 for presentation. `group.userData.bounds` contains static local hull bounds without animated exhaust.
 
@@ -54,3 +54,15 @@ checks renderer-independent cold preload, real GPU uploads, preview/cache dispos
 failure/timeout/retry. Add `--png-fixture /path/to/lossless.glb` to check ordinary
 PNG loading before any renderer exists. Visual fidelity still requires matching
 studio and chase captures; these checks do not establish art quality.
+
+`collision-hulls.js` is generated from the shipped GLBs and their structural source assemblies. It supplies CPU-only contact proxies for all player/rival chassis; visual shape identity is separate from handling identity. Contacts use 4–14 convex parts per chassis, retaining the air between bodies, wings, engine pods and real cross braces. Small fittings belong to their nearest structural assembly. Aggregate `vertices`/`bounds` remain an outer envelope for support queries. The shared conservative hover/landing envelope is not the racer contact shape.
+
+After changing a ship's editable source or exported GLB, run from the app root:
+
+```sh
+blender --background --python tools/extract-ship-collision-assemblies.py
+node tools/generate-ship-collision-hulls.mjs
+node --test tools/ship-collision-hulls.test.mjs
+```
+
+The extractor reads the unchanged Blender components and records their provenance, source hashes and reduced geometry in `assets/ships/collision-assemblies.json`. It does not rebuild visual assets. CPU generation clips each assembly's exact bounding box with source supporting planes, reducing dense bevel geometry while enclosing its complete source. Every resulting point is within 10 mm of the original convex assembly; exact outer bounds and open channels remain intact. This bound is checked after runtime coordinate rounding. Generation also checks that every exported GLB triangle is enclosed by a structural part and derives the replay shape identity from all contact geometry. The reducer uses the existing Three.js dependency. Normal generation/verification uses the checked-in intermediate without requiring Blender; Blender is needed only to refresh that intermediate after source/export changes.

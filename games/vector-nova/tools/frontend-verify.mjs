@@ -1,9 +1,21 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
-import { createTrack } from '../src/levels/halcyon/track/model.js';
+import createHalcyonLevel from '../src/levels/halcyon/index.js';
 import { createVehicleState } from '../src/physics/index.js';
-import { RACE_GRID, getRacerControl } from '../src/race/racers.js';
-import { createHalcyonSimulationRuntime } from '../src/levels/halcyon/device-runtime.js';
+import {
+  RACE_GRID,
+  createRacers,
+  getRacerControl,
+} from '../src/race/racers.js';
+import { RACE_FIELD_SIZE, RACE_OPPONENTS } from '../src/race/roster.js';
+import { createRapierWorld } from '../src/physics/rapier-world.js';
+import { withMagneticBoundaries } from '../src/physics/magnetic-boundaries.js';
+import { createDeviceRuntime } from '../src/pickups/runtime.js';
+import { createRace } from '../src/race/index.js';
+import {
+  createMagneticRuntime,
+  advanceSession,
+} from '../src/core/session-runtime.js';
 
 // Maintained player-flow check. Requires an existing server; writes no artifacts.
 const base = process.env.VN_URL;
@@ -59,22 +71,74 @@ async function check(name, fn, viewport = { width: 1440, height: 900 }) {
     await context.close();
   }
 }
-function finishInputs() {
-  const track = createTrack();
+async function finishInputs(difficulty) {
+  const definition = createHalcyonLevel({ shape: false });
+  const track = definition.createTrack();
+  const collisionWorld = await definition.createCollisionWorld?.({ track });
+  const physicalWorld = withMagneticBoundaries(track, collisionWorld);
+  const dynamics = await (definition.createDynamics ?? createRapierWorld)({
+    track,
+    collisionWorld: physicalWorld,
+  });
+  const devices = definition.racing.createDevices(track);
+  const createRuntime = () =>
+    createDeviceRuntime({
+      track,
+      devices,
+      identity: definition.racing.identity,
+      motion: (definition.racing.createMotion ?? createMagneticRuntime)({
+        track,
+        collisionWorld,
+        dynamics,
+        presentation: false,
+      }),
+    });
   const vehicle = { ...createVehicleState(), ...RACE_GRID.player };
-  const runtime = createHalcyonSimulationRuntime({ track });
+  const runtime = createRuntime();
+  const racers = createRacers({ track, devices, dynamics, createRuntime });
+  const race = createRace(track, { rulesId: runtime.rulesId });
   const inputs = [];
   try {
+    dynamics.reset();
     runtime.reset({ reason: 'fresh-lap', state: vehicle });
-    while (vehicle.time < 125) {
-      const input = getRacerControl(vehicle, track);
-      runtime.advance(vehicle, input, 1 / 120);
+    racers.reset({ enabled: true, difficulty });
+    // Generate real inputs against the same ten dynamic bodies as the browser.
+    // Legacy ghost-racer trajectories no longer predict contact or finish time.
+    while (
+      vehicle.time < 180 &&
+      (race.history.length < 2 ||
+        racers.opponents.some((opponent) => !opponent.finish))
+    ) {
+      const input = getRacerControl(vehicle, track, {
+        difficulty,
+        devices,
+        runtime,
+        nearby: racers.opponents.map((opponent) => opponent.state),
+      });
+      advanceSession({
+        state: vehicle,
+        input,
+        dt: 1 / 120,
+        runtime,
+        race,
+        racers,
+        dynamics,
+        emit() {},
+      });
       runtime.update({});
       inputs.push({ tick: inputs.length, input });
     }
+    assert.ok(
+      race.history.length >= 2 &&
+        racers.opponents.every((opponent) => opponent.finish),
+      'physical input fixture must finish the full field within three minutes',
+    );
     return inputs;
   } finally {
+    racers.dispose();
     runtime.dispose();
+    dynamics.dispose();
+    collisionWorld?.dispose();
   }
 }
 try {
@@ -84,6 +148,10 @@ try {
       async (page) => {
         await page.goto(url('level=halcyon'));
         await fleetReady(page);
+        assert.match(
+          await page.locator('.quick-race-option').textContent(),
+          /9 rivals/,
+        );
         assert.equal(
           await page.evaluate(() => !!window.__VN),
           false,
@@ -246,6 +314,14 @@ try {
             (light) => light.lit && light.color === 'rgb(59, 191, 105)',
           ),
         );
+        assert.equal(
+          (await snapshot(page)).competition.standings.length,
+          RACE_FIELD_SIZE,
+        );
+        assert.equal(
+          await page.locator('#race-roster li').count(),
+          RACE_FIELD_SIZE,
+        );
         await page.keyboard.press('Escape');
         assert.equal((await snapshot(page)).mode, 'paused');
         await page.evaluate(() => {
@@ -265,9 +341,38 @@ try {
           window.__VN.pause();
           return window.__VN.getReplay();
         });
+        assert.equal(replay.field.opponents.length, RACE_OPPONENTS.length);
+        for (const legacy of [
+          { ...replay, field: undefined },
+          {
+            ...replay,
+            field: {
+              ...replay.field,
+              opponents: replay.field.opponents.slice(0, 3),
+            },
+          },
+        ]) {
+          const rejection = await page.evaluate((recording) => {
+            const before = window.__VN.getSnapshot();
+            let message;
+            try {
+              window.__VN.playReplay(recording);
+            } catch (error) {
+              message = error.message;
+            }
+            return {
+              message,
+              unchanged:
+                JSON.stringify(before) ===
+                JSON.stringify(window.__VN.getSnapshot()),
+            };
+          }, legacy);
+          assert.match(rejection.message, /Replay version mismatch/);
+          assert.equal(rejection.unchanged, true);
+        }
         const finished = await page.evaluate(
           (recording) => window.__VN.playReplay(recording),
-          { ...replay, inputs: finishInputs() },
+          { ...replay, inputs: await finishInputs(replay.difficulty) },
         );
         assert.ok(finished.competition.playerFinished);
         await page.evaluate(() => window.__VN.resume());
@@ -277,8 +382,13 @@ try {
           { timeout: 15000 },
         );
         assert.equal(
-          await page.locator('.result-panel h1').textContent(),
-          'Winner.',
+          await page.locator('.results-list li').count(),
+          RACE_FIELD_SIZE,
+        );
+        assert.ok(
+          finished.competition.results.standings.every(
+            (racer) => racer.finished && racer.valid,
+          ),
         );
         assert.equal(await page.locator('canvas#world').isVisible(), true);
         await page.locator('[data-action="continue"]').click();
@@ -286,6 +396,73 @@ try {
         assert.equal((await front(page)).screen, 'race');
         assert.equal((await snapshot(page)).mode, 'paused');
       },
+    );
+    await check(
+      'ten-pilot HUD and full AI inspector stay clear on desktop',
+      async (page) => {
+        await page.goto(url('level=halcyon&music=0'));
+        await page.locator('[data-action="launch"]').click();
+        await booted(page);
+        await page.waitForFunction(
+          () => window.__VN.getSnapshot().mode === 'racing',
+        );
+        const layout = await page.evaluate(() => {
+          const rect = (selector) =>
+            document.querySelector(selector).getBoundingClientRect().toJSON();
+          return {
+            roster: rect('#race-roster'),
+            map: rect('#minimap'),
+            speed: rect('.telemetry .speed'),
+            rows: [...document.querySelectorAll('#race-roster li')].map(
+              (row) => ({
+                id: row.dataset.racer,
+                color: getComputedStyle(row).getPropertyValue('--racer-color'),
+              }),
+            ),
+          };
+        });
+        assert.equal(layout.rows.length, RACE_FIELD_SIZE);
+        assert.equal(
+          new Set(layout.rows.map(({ color }) => color)).size,
+          RACE_FIELD_SIZE,
+        );
+        assert.ok(layout.map.bottom < layout.roster.top);
+        assert.ok(layout.roster.bottom < layout.speed.top);
+        assert.ok(
+          layout.roster.left > 1280 * 0.7,
+          'field stays away from the chase craft',
+        );
+        await page.keyboard.press('Escape');
+        await page.locator('#home').click();
+        await page.goto(url('inspect=1&ship=kestrel&level=halcyon'));
+        await booted(page);
+        await page.getByRole('tab', { name: 'AI racers' }).click();
+        assert.equal(
+          await page.locator('[data-rival]').count(),
+          RACE_OPPONENTS.length,
+        );
+        const last = RACE_OPPONENTS.at(-1).id;
+        await page.locator('[data-rival="rook"]').focus();
+        await page.keyboard.press('End');
+        await page.waitForFunction(
+          (id) => window.__VN.getSnapshot().inspection.rivalId === id,
+          last,
+        );
+        assert.equal(
+          await page
+            .locator(`[data-rival="${last}"]`)
+            .getAttribute('aria-checked'),
+          'true',
+        );
+        const picker = await page
+          .locator('#inspection-rivals-picker')
+          .boundingBox();
+        const back = await page.locator('#inspect-back').boundingBox();
+        assert.ok(picker.y + picker.height < back.y);
+        assert.ok(back.y + back.height <= 720);
+        assert.equal((await snapshot(page)).ship.id, 'kestrel');
+      },
+      { width: 1280, height: 720 },
     );
     await check(
       'direct inspector, developer launcher and jump-test contract',

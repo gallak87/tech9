@@ -19,42 +19,62 @@ export function createZephyrRuntime(context) {
     lastLap: 0,
   };
   if (context.presentation !== false) track.zephyrPresentation = presentation;
+  let staged = null;
+  function finishLocal(state, events, previousDistance) {
+    for (const curtain of track.curtains ?? []) {
+      const at =
+        Math.floor(previousDistance / track.length) * track.length + curtain.s;
+      if (
+        previousDistance < at &&
+        state.distance >= at &&
+        state.distance - previousDistance < 60
+      )
+        presentation.wetStart = state.time;
+    }
+    presentation.exposure =
+      runtime.snapshot().mode === 'magnetic'
+        ? wetnessAt(track, state.distance)
+        : 0;
+    if (presentation.exposure > 0.02) presentation.wetStart = state.time;
+    const lap = Math.floor(state.distance / track.length);
+    if (lap !== presentation.lastLap) {
+      presentation.towerStart = null;
+      presentation.lastLap = lap;
+    }
+    const s = ((state.distance % track.length) + track.length) % track.length;
+    if (presentation.towerStart === null && s >= trigger && s < trigger + 1100)
+      presentation.towerStart = state.time;
+    return events;
+  }
   return {
     ...runtime,
     advance(state, input, dt, modifiers) {
       const previousDistance = state.distance;
-      const events = runtime.advance(state, input, dt, modifiers);
-      for (const curtain of track.curtains ?? []) {
-        const at =
-          Math.floor(previousDistance / track.length) * track.length +
-          curtain.s;
-        if (
-          previousDistance < at &&
-          state.distance >= at &&
-          state.distance - previousDistance < 60
-        )
-          presentation.wetStart = state.time;
-      }
-      presentation.exposure =
-        runtime.snapshot().mode === 'magnetic'
-          ? wetnessAt(track, state.distance)
-          : 0;
-      if (presentation.exposure > 0.02) presentation.wetStart = state.time;
-      const lap = Math.floor(state.distance / track.length);
-      if (lap !== presentation.lastLap) {
-        presentation.towerStart = null;
-        presentation.lastLap = lap;
-      }
-      const s = ((state.distance % track.length) + track.length) % track.length;
-      if (
-        presentation.towerStart === null &&
-        s >= trigger &&
-        s < trigger + 1100
-      )
-        presentation.towerStart = state.time;
-      return events;
+      return finishLocal(
+        state,
+        runtime.advance(state, input, dt, modifiers),
+        previousDistance,
+      );
     },
+    ...(runtime.beginAdvance
+      ? {
+          beginAdvance(state, input, dt, modifiers) {
+            if (staged) throw new Error('Finish the pending Zephyr step first');
+            staged = { distance: state.distance };
+            runtime.beginAdvance(state, input, dt, modifiers);
+          },
+          finishAdvance(state) {
+            if (!staged)
+              throw new Error('Stage the Zephyr step before resolving it');
+            const before = staged;
+            const events = runtime.finishAdvance(state);
+            staged = null;
+            return finishLocal(state, events, before.distance);
+          },
+        }
+      : {}),
     reset(options) {
+      staged = null;
       runtime.reset(options);
       presentation.towerStart = null;
       presentation.wetStart = null;
@@ -81,7 +101,12 @@ export function createZephyrRuntime(context) {
       )
         throw new Error('Invalid Zephyr spectacle state');
       runtime.restore(data);
+      staged = null;
       Object.assign(presentation, data.zephyr);
+    },
+    dispose() {
+      staged = null;
+      runtime.dispose();
     },
   };
 }

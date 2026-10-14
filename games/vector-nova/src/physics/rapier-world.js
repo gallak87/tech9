@@ -4,32 +4,33 @@ import { COLLISION_RULES } from './collision-world.js';
 import { VEHICLE_HULL } from './hull.js';
 
 export const RAPIER_RULES = Object.freeze({
-  version: 1,
+  version: 2,
   packageVersion: '0.21.0',
-  maxAngularSpeed: 4,
   angularDamping: 1.2,
   maxCcdSubsteps: 6,
-  solverIterations: 6,
+  // Sloped contact hulls and magnetic joints must converge in the same solve.
+  // Lower iteration counts can inject energy while the two constraints fight.
+  solverIterations: 32,
+  simulationHz: 480,
   friction: 0.55,
   railFriction: 0.18,
-  deckFriction: 0.48,
+  // Hovering contact transfers deck-normal impulses without tyre-like grip.
+  deckFriction: 0,
   terrainFriction: 0.65,
   structureFriction: 0.42,
+  racerRestitution: 0.25,
 });
 // Membership in the high 16 bits, accepted membership in the low 16 bits.
-// Ships accept static geometry only: actor/actor contact is deliberately absent.
 const STATIC_GROUPS = (1 << 16) | 2;
-const ACTOR_GROUPS = (2 << 16) | 1;
+const ACTOR_GROUPS = (2 << 16) | 3;
+const SUPPORT_AXES =
+  RAPIER.JointAxesMask.LinY |
+  RAPIER.JointAxesMask.AngX |
+  RAPIER.JointAxesMask.AngZ;
 let initialization;
 const vector = (v) => new T.Vector3(v.x, v.y, v.z);
 const rotation = (q) => new T.Quaternion(q.x, q.y, q.z, q.w);
 const zero = () => new T.Vector3();
-function boundedSpin(v) {
-  const result = vector(v);
-  if (result.length() > RAPIER_RULES.maxAngularSpeed)
-    result.setLength(RAPIER_RULES.maxAngularSpeed);
-  return result;
-}
 function finiteVector(value, name) {
   if (!value || !['x', 'y', 'z'].every((axis) => Number.isFinite(value[axis])))
     throw new Error(`Rapier requires a finite ${name}.`);
@@ -45,6 +46,19 @@ function finitePose(pose) {
     throw new Error('Rapier requires a nonzero quaternion.');
   return { position, quaternion: quaternion.normalize() };
 }
+function finiteSupport(support) {
+  const pose = finitePose(support);
+  const bodyFrame =
+    support.bodyFrame === undefined
+      ? new T.Quaternion()
+      : finitePose({ position: zero(), quaternion: support.bodyFrame })
+          .quaternion;
+  return { ...pose, bodyFrame };
+}
+const encodeRotation = (quaternion) =>
+  Object.fromEntries(
+    ['x', 'y', 'z', 'w'].map((axis) => [axis, quaternion[axis]]),
+  );
 function encode(bytes) {
   let binary = '';
   for (let offset = 0; offset < bytes.length; offset += 8192)
@@ -65,25 +79,30 @@ function copyContact(contact) {
 
 // Renderer/DOM-independent shared dynamics. Every adapter stages its actor,
 // session advances this world once, then adapters consume the solved bodies.
-export async function createRapierWorld({ collisionWorld, gravity = 26 }) {
-  if (!collisionWorld?.triangles || !Number.isFinite(gravity) || gravity < 0)
+export async function createRapierWorld({
+  collisionWorld = null,
+  gravity = 26,
+} = {}) {
+  if (
+    (collisionWorld && !collisionWorld.triangles) ||
+    !Number.isFinite(gravity) ||
+    gravity < 0
+  )
     throw new Error('Rapier requires authored static triangles and gravity.');
   initialization ??= RAPIER.init();
   await initialization;
-  const rulesId = `${collisionWorld.rulesId}:rapier:${JSON.stringify({
-    ...RAPIER_RULES,
-    gravity,
-  })}`;
-  const identity = `${collisionWorld.id}:${collisionWorld.version}:${rulesId}`;
+  const rulesId = `${collisionWorld?.rulesId ?? 'no-static-geometry'}:rapier:${JSON.stringify(
+    {
+      ...RAPIER_RULES,
+      gravity,
+    },
+  )}`;
+  const identity = `${collisionWorld?.id ?? 'racer-world'}:${collisionWorld?.version ?? 1}:${rulesId}`;
   const batches = new Map();
-  for (const triangle of collisionWorld.triangles) {
-    const key = JSON.stringify([
-      triangle.id,
-      triangle.kind,
-      triangle.start,
-      triangle.end,
-      triangle.distance,
-    ]);
+  for (const triangle of collisionWorld?.triangles ?? []) {
+    // Per-face metadata is retained in the batch and recovered by manifold
+    // subshape index. Route stations do not need separate broad-phase bodies.
+    const key = JSON.stringify([triangle.id, triangle.kind]);
     if (!batches.has(key)) batches.set(key, []);
     batches.get(key).push(triangle);
   }
@@ -94,6 +113,46 @@ export async function createRapierWorld({ collisionWorld, gravity = 26 }) {
   const alive = () => {
     if (disposed) throw new Error('Rapier world has been disposed.');
   };
+  function createActorColliders(actor, body) {
+    const parts = actor.contactShape
+      ? (actor.contactShape.parts ?? [actor.contactShape])
+      : null;
+    const descriptions = parts
+      ? parts.map((part) =>
+          RAPIER.ColliderDesc.convexHull(Float32Array.from(part.vertices)),
+        )
+      : [
+          RAPIER.ColliderDesc.cuboid(
+            actor.hull.halfWidth,
+            actor.hull.hover,
+            actor.hull.halfLength,
+          ),
+        ];
+    if (descriptions.some((shape) => !shape))
+      throw new Error('Racer contact hull must enclose a volume.');
+    const colliders = descriptions.map((shape) =>
+      engine.createCollider(
+        shape
+          .setDensity(1)
+          .setCollisionGroups(ACTOR_GROUPS)
+          .setSolverGroups(ACTOR_GROUPS)
+          .setFriction(actor.support ? 0 : RAPIER_RULES.friction)
+          .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min)
+          .setRestitution(RAPIER_RULES.racerRestitution)
+          .setRestitutionCombineRule(RAPIER.CoefficientCombineRule.Max),
+        body,
+      ),
+    );
+    const volumeMass = colliders.reduce(
+      (sum, collider) => sum + collider.mass(),
+      0,
+    );
+    for (const collider of colliders)
+      collider.setMass((actor.mass * collider.mass()) / volumeMass);
+    actor.colliderHandles = colliders.map((collider) => collider.handle);
+    actor.colliderHandle = actor.colliderHandles[0];
+    body.recomputeMassPropertiesFromColliders();
+  }
   function createBody(actor) {
     const body = engine.createRigidBody(
       RAPIER.RigidBodyDesc.dynamic()
@@ -102,26 +161,16 @@ export async function createRapierWorld({ collisionWorld, gravity = 26 }) {
         .setAngularDamping(RAPIER_RULES.angularDamping)
         .setEnabled(false),
     );
-    const collider = engine.createCollider(
-      RAPIER.ColliderDesc.cuboid(
-        actor.hull.halfWidth,
-        actor.hull.hover,
-        actor.hull.halfLength,
-      )
-        .setMass(1)
-        .setCollisionGroups(ACTOR_GROUPS)
-        .setSolverGroups(ACTOR_GROUPS)
-        .setFriction(RAPIER_RULES.friction)
-        .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min)
-        .setRestitution(0)
-        .setRestitutionCombineRule(RAPIER.CoefficientCombineRule.Max),
-      body,
-    );
     actor.bodyHandle = body.handle;
-    actor.colliderHandle = collider.handle;
+    createActorColliders(actor, body);
+    actor.anchorHandle = engine.createRigidBody(
+      RAPIER.RigidBodyDesc.fixed(),
+    ).handle;
+    actor.jointHandle = null;
+    actor.support = null;
     actor.active = false;
-    actor.fraction = 1;
     actor.acceleration = zero();
+    actor.angularAcceleration = zero();
     actor.contacts = [];
   }
   function rebuild() {
@@ -168,67 +217,159 @@ export async function createRapierWorld({ collisionWorld, gravity = 26 }) {
       throw new Error('Rapier actor has been disposed.');
     return engine.getRigidBody(actor.bodyHandle);
   };
-  function contactsFor(actor, before, dt, fraction) {
-    const contacts = [];
-    const collider = engine.getCollider(actor.colliderHandle);
-    engine.contactPairsWith(collider, (other) => {
-      const triangles = staticShapes.get(other.handle);
-      if (!triangles) return;
-      engine.contactPair(collider, other, (manifold, flipped) => {
-        const normal = vector(manifold.normal()).multiplyScalar(
-          flipped ? 1 : -1,
+  function setSupport(actor, support) {
+    const colliders = actor.colliderHandles.map((handle) =>
+      engine.getCollider(handle),
+    );
+    if (support === null) {
+      if (actor.jointHandle !== null)
+        engine.removeImpulseJoint(
+          engine.getImpulseJoint(actor.jointHandle),
+          true,
         );
-        const triangle =
-          triangles[flipped ? manifold.subshape1() : manifold.subshape2()];
-        if (!triangle) return;
-        const { points, ...shape } = triangle;
-        const surfaceNormal = new T.Vector3(...points[1])
-          .sub(new T.Vector3(...points[0]))
-          .cross(new T.Vector3(...points[2]).sub(new T.Vector3(...points[0])))
-          .normalize();
-        // CCD can finish the tick after a bounce, leaving the actual geometric
-        // manifold but no final solver contacts. Its static witness remains a
-        // valid impact point. Static trimeshes use world vertices at identity.
-        const solver = manifold.numSolverContacts() > 0;
-        const count = solver
-          ? manifold.numSolverContacts()
-          : manifold.numContacts();
-        for (let index = 0; index < count; index++) {
-          const rawPoint = solver
-            ? manifold.solverContactPoint(index)
-            : flipped
-              ? manifold.localContactPoint1(index)
-              : manifold.localContactPoint2(index);
-          const separation = solver
-            ? manifold.solverContactDist(index)
-            : manifold.contactDist(index);
-          if (!rawPoint || separation > 0.025) continue;
-          const point = vector(rawPoint);
-          // Use pre-solver physical point velocity, never the already reflected
-          // result. Acceleration is integrated over this actor's active tick.
-          const incoming = before.velocity
-            .clone()
-            .addScaledVector(before.acceleration, dt * fraction)
-            .add(
-              before.angularVelocity
-                .clone()
-                .cross(point.clone().sub(before.position)),
+      actor.jointHandle = null;
+      actor.support = null;
+      colliders.forEach((collider) =>
+        collider.setFriction(RAPIER_RULES.friction),
+      );
+      return;
+    }
+    const pose = finiteSupport(support);
+    let joint =
+      actor.jointHandle === null
+        ? null
+        : engine.getImpulseJoint(actor.jointHandle);
+    if (!joint) {
+      joint = engine.createImpulseJoint(
+        RAPIER.JointData.generic(
+          pose.position,
+          zero(),
+          { x: 1, y: 0, z: 0 },
+          SUPPORT_AXES,
+        ),
+        engine.getRigidBody(actor.anchorHandle),
+        bodyOf(actor),
+        true,
+      );
+      actor.jointHandle = joint.handle;
+    }
+    // This is a local tangent-plane constraint, not an imposed vehicle pose.
+    // Its three free axes retain the solver's forward/sideways motion and yaw.
+    // Sampling a new frame changes the magnetic support surface only.
+    joint.setLocalFrame1(pose.position, pose.quaternion);
+    joint.setLocalFrame2(zero(), pose.bodyFrame);
+    actor.support = pose;
+    // Magnetic support has no tire friction. Contact normals still produce
+    // impulses and off-centre yaw; airborne contacts retain their own friction.
+    colliders.forEach((collider) => collider.setFriction(0));
+  }
+  function pointVelocity(before, point, dt) {
+    return before.velocity
+      .clone()
+      .addScaledVector(before.acceleration, dt)
+      .add(
+        before.angularVelocity
+          .clone()
+          .addScaledVector(before.angularAcceleration, dt)
+          .cross(point.clone().sub(before.position)),
+      );
+  }
+  function contactsFor(actor, before, dt, beforeByActor) {
+    const contacts = [];
+    for (const handle of actor.colliderHandles) {
+      const collider = engine.getCollider(handle);
+      engine.contactPairsWith(collider, (other) => {
+        const triangles = staticShapes.get(other.handle);
+        const otherActor = triangles
+          ? null
+          : [...actors.values()].find((entry) =>
+              entry.colliderHandles.includes(other.handle),
             );
-          contacts.push({
-            point,
-            normal: normal.clone(),
-            surfaceNormal: surfaceNormal.clone(),
-            shape,
-            incomingSpeed: Math.max(0, -incoming.dot(normal)),
-            impulse:
-              index < manifold.numContacts()
-                ? manifold.contactImpulse(index) / fraction
-                : 0,
-            penetration: Math.max(0, -separation),
-          });
-        }
+        if (!triangles && !otherActor) return;
+        engine.contactPair(collider, other, (manifold, flipped) => {
+          const normal = vector(manifold.normal()).multiplyScalar(
+            flipped ? 1 : -1,
+          );
+          const triangle =
+            triangles?.[flipped ? manifold.subshape1() : manifold.subshape2()];
+          if (triangles && !triangle) return;
+          let shape, surfaceNormal;
+          if (triangle) {
+            const { points, ...metadata } = triangle;
+            shape = metadata;
+            surfaceNormal = new T.Vector3(...points[1])
+              .sub(new T.Vector3(...points[0]))
+              .cross(
+                new T.Vector3(...points[2]).sub(new T.Vector3(...points[0])),
+              )
+              .normalize();
+          } else {
+            shape = {
+              kind: 'racer',
+              id: `racer-${otherActor.id}`,
+              actorId: otherActor.id,
+              order: otherActor.id,
+            };
+            surfaceNormal = normal.clone();
+          }
+          // CCD can finish the tick after a bounce, leaving the actual geometric
+          // manifold but no final solver contacts. Its static witness remains a
+          // valid impact point. Static trimeshes use world vertices at identity.
+          const solver = manifold.numSolverContacts() > 0;
+          const count = solver
+            ? manifold.numSolverContacts()
+            : manifold.numContacts();
+          for (let index = 0; index < count; index++) {
+            const rawPoint = solver
+              ? manifold.solverContactPoint(index)
+              : flipped
+                ? manifold.localContactPoint1(index)
+                : manifold.localContactPoint2(index);
+            let separation = solver
+              ? manifold.solverContactDist(index)
+              : manifold.contactDist(index);
+            if (!rawPoint) continue;
+            const point = vector(rawPoint);
+            if (!solver) {
+              // CCD may leave the manifold's cached distance at its pre-impact
+              // value even after a bounce. Transform both local witnesses with
+              // the solved collider poses before deciding whether they touch.
+              point
+                .applyQuaternion(rotation(other.rotation()))
+                .add(vector(other.translation()));
+              const localActorPoint = flipped
+                ? manifold.localContactPoint2(index)
+                : manifold.localContactPoint1(index);
+              if (!localActorPoint) continue;
+              const actorPoint = vector(localActorPoint)
+                .applyQuaternion(rotation(collider.rotation()))
+                .add(vector(collider.translation()));
+              separation = actorPoint.sub(point).dot(normal);
+            }
+            if (separation > 0.025) continue;
+            // Use pre-solver physical point velocity, never the already reflected
+            // result. Acceleration is integrated over this actor's active tick.
+            const incoming = pointVelocity(before, point, dt);
+            if (otherActor && beforeByActor.has(otherActor.id))
+              incoming.sub(
+                pointVelocity(beforeByActor.get(otherActor.id), point, dt),
+              );
+            contacts.push({
+              point,
+              normal: normal.clone(),
+              surfaceNormal: surfaceNormal.clone(),
+              shape,
+              incomingSpeed: Math.max(0, -incoming.dot(normal)),
+              impulse:
+                index < manifold.numContacts()
+                  ? manifold.contactImpulse(index)
+                  : 0,
+              penetration: Math.max(0, -separation),
+            });
+          }
+        });
       });
-    });
+    }
     contacts.sort(
       (a, b) =>
         b.incomingSpeed - a.incomingSpeed || a.shape.order - b.shape.order,
@@ -240,7 +381,8 @@ export async function createRapierWorld({ collisionWorld, gravity = 26 }) {
     version: RAPIER_RULES.version,
     rulesId,
     identity,
-    createActor({ hull = VEHICLE_HULL } = {}) {
+    gravity,
+    createActor({ hull = VEHICLE_HULL, mass = 1 } = {}) {
       alive();
       if (
         !['halfWidth', 'halfLength', 'hover'].every(
@@ -248,9 +390,11 @@ export async function createRapierWorld({ collisionWorld, gravity = 26 }) {
         )
       )
         throw new Error('Rapier requires positive whole-hull dimensions.');
+      if (!Number.isFinite(mass) || mass <= 0)
+        throw new Error('Rapier requires a positive actor mass.');
       let id = 0;
       while (actors.has(id)) id++;
-      const actor = { id, hull: { ...hull } };
+      const actor = { id, hull: { ...hull }, mass };
       actors.set(id, actor);
       createBody(actor);
       function setPose(pose) {
@@ -265,41 +409,80 @@ export async function createRapierWorld({ collisionWorld, gravity = 26 }) {
         body.setLinvel(finiteVector(velocity, 'velocity'), true);
         if (angularVelocity !== undefined)
           body.setAngvel(
-            boundedSpin(finiteVector(angularVelocity, 'angular velocity')),
+            finiteVector(angularVelocity, 'angular velocity'),
             true,
           );
       }
+      function setContactShape(shape) {
+        if (
+          !shape?.id ||
+          !shape.hullSha256 ||
+          !Array.isArray(shape.vertices) ||
+          shape.vertices.length < 12 ||
+          shape.vertices.length % 3 ||
+          !shape.vertices.every(Number.isFinite)
+        )
+          throw new Error(
+            'Racer contact hull requires finite model vertices and identity.',
+          );
+        if (actor.contactShape?.hullSha256 === shape.hullSha256) return;
+        if (
+          shape.parts &&
+          (!Array.isArray(shape.parts) ||
+            !shape.parts.length ||
+            shape.parts.some(
+              (part) =>
+                !Array.isArray(part.vertices) ||
+                part.vertices.length < 12 ||
+                part.vertices.length % 3 ||
+                !part.vertices.every(Number.isFinite),
+            ))
+        )
+          throw new Error('Racer compound hull requires valid convex parts.');
+        const body = bodyOf(actor);
+        for (const handle of actor.colliderHandles)
+          engine.removeCollider(engine.getCollider(handle), true);
+        actor.contactShape = shape;
+        createActorColliders(actor, body);
+      }
       const adapter = {
         id,
+        setContactShape,
         stage({
           pose,
           velocity,
           angularVelocity,
           active,
           acceleration,
+          angularAcceleration,
+          support,
           fraction = 1,
         } = {}) {
+          if (fraction !== 1)
+            throw new Error(
+              'Interacting Rapier actors must share the complete world step.',
+            );
           const body = bodyOf(actor);
           if (pose) setPose(pose);
           if (velocity !== undefined) setVelocity(velocity, angularVelocity);
           else if (angularVelocity !== undefined)
             body.setAngvel(
-              boundedSpin(finiteVector(angularVelocity, 'angular velocity')),
+              finiteVector(angularVelocity, 'angular velocity'),
               true,
             );
           if (active !== undefined) {
             actor.active = Boolean(active);
             body.setEnabled(actor.active);
           }
-          if (!Number.isFinite(fraction) || fraction < 0 || fraction > 1)
-            throw new Error(
-              'Rapier actor fraction must be between zero and one.',
-            );
-          actor.fraction = fraction;
+          if (support !== undefined) setSupport(actor, support);
           actor.acceleration =
             acceleration === undefined
               ? zero()
               : finiteVector(acceleration, 'acceleration');
+          actor.angularAcceleration =
+            angularAcceleration === undefined
+              ? zero()
+              : finiteVector(angularAcceleration, 'angular acceleration');
           if (!actor.active) actor.contacts = [];
         },
         read() {
@@ -309,13 +492,22 @@ export async function createRapierWorld({ collisionWorld, gravity = 26 }) {
             quaternion: rotation(body.rotation()),
             velocity: vector(body.linvel()),
             angularVelocity: vector(body.angvel()),
+            mass: actor.mass,
+            contactShape: actor.contactShape ?? null,
             active: actor.active,
+            support: actor.support && finiteSupport(actor.support),
             contacts: actor.contacts.map(copyContact),
           };
         },
         setPose,
         setVelocity,
-        reset({ pose, velocity, angularVelocity, active = false } = {}) {
+        reset({
+          pose,
+          velocity,
+          angularVelocity,
+          active = false,
+          support = null,
+        } = {}) {
           const body = bodyOf(actor);
           setPose(pose ?? { position: zero(), quaternion: new T.Quaternion() });
           setVelocity(velocity ?? zero(), angularVelocity ?? zero());
@@ -324,13 +516,15 @@ export async function createRapierWorld({ collisionWorld, gravity = 26 }) {
           body.setGravityScale(1, false);
           body.setAngularDamping(RAPIER_RULES.angularDamping);
           actor.active = Boolean(active);
-          actor.fraction = 1;
           actor.acceleration = zero();
+          actor.angularAcceleration = zero();
           actor.contacts = [];
+          setSupport(actor, support);
           body.setEnabled(actor.active);
         },
         dispose() {
           if (disposed || actors.get(id) !== actor) return;
+          engine.removeRigidBody(engine.getRigidBody(actor.anchorHandle));
           engine.removeRigidBody(bodyOf(actor));
           actors.delete(id);
         },
@@ -341,60 +535,64 @@ export async function createRapierWorld({ collisionWorld, gravity = 26 }) {
       alive();
       if (!Number.isFinite(dt) || dt <= 0 || dt > 0.1)
         throw new Error('Rapier requires a finite fixed-step duration.');
-      engine.timestep = dt;
-      const pending = [];
-      for (const actor of actors.values()) {
-        actor.contacts = [];
-        if (!actor.active) continue;
-        const body = bodyOf(actor),
-          fraction = actor.fraction;
-        if (!fraction) {
-          body.setEnabled(false);
-          pending.push({ actor, body, fraction });
-          continue;
-        }
-        const before = {
-          position: vector(body.translation()),
-          velocity: vector(body.linvel()),
-          angularVelocity: boundedSpin(body.angvel()),
-          acceleration: actor.acceleration
-            .clone()
-            .add(new T.Vector3(0, -gravity, 0)),
-        };
-        // Because actors cannot interact, v'=f*v, w'=f*w and a'=f²*a
-        // integrate an independent first-launch duration f*dt in one shared tick.
-        // Divide solved velocity/impulses by f afterward; full-tick actors keep f=1.
-        body.setLinvel(before.velocity.clone().multiplyScalar(fraction), true);
-        body.setAngvel(
-          before.angularVelocity.clone().multiplyScalar(fraction),
-          true,
-        );
-        body.setGravityScale(fraction * fraction, false);
-        body.setAngularDamping(RAPIER_RULES.angularDamping * fraction);
-        body.resetForces(false);
-        body.addForce(
-          actor.acceleration
-            .clone()
-            .multiplyScalar(body.mass() * fraction * fraction),
-          true,
-        );
-        pending.push({ actor, body, before, fraction });
-      }
-      engine.step();
-      for (const { actor, body, before, fraction } of pending) {
-        if (fraction) {
-          actor.contacts = contactsFor(actor, before, dt, fraction);
-          body.setLinvel(vector(body.linvel()).divideScalar(fraction), false);
-          body.setAngvel(
-            boundedSpin(vector(body.angvel()).divideScalar(fraction)),
-            false,
-          );
+      const steps = Math.ceil(dt * RAPIER_RULES.simulationHz - 1e-10);
+      const step = dt / steps;
+      engine.timestep = step;
+      for (const actor of actors.values()) actor.contacts = [];
+      // Every racer shares each native substep. Pilot forces persist for the
+      // control tick; collision manifolds from earlier substeps stay available
+      // for feedback and landing acceptance even after the bodies separate.
+      for (let tick = 0; tick < steps; tick++) {
+        const beforeByActor = new Map();
+        for (const actor of actors.values()) {
+          if (!actor.active) continue;
+          const body = bodyOf(actor);
+          const before = {
+            position: vector(body.worldCom()),
+            velocity: vector(body.linvel()),
+            angularVelocity: vector(body.angvel()),
+            angularAcceleration: actor.angularAcceleration.clone(),
+            acceleration: actor.acceleration
+              .clone()
+              .add(new T.Vector3(0, -gravity, 0)),
+          };
           body.resetForces(false);
-          body.setGravityScale(1, false);
-          body.setAngularDamping(RAPIER_RULES.angularDamping);
-        } else body.setEnabled(true);
-        actor.fraction = 1;
+          body.resetTorques(false);
+          body.addForce(
+            actor.acceleration.clone().multiplyScalar(body.mass()),
+            true,
+          );
+          const principalFrame = rotation(body.rotation()).multiply(
+            rotation(body.principalInertiaLocalFrame()),
+          );
+          const torque = actor.angularAcceleration
+            .clone()
+            .applyQuaternion(principalFrame.clone().invert())
+            .multiply(vector(body.principalInertia()))
+            .applyQuaternion(principalFrame);
+          body.addTorque(torque, true);
+          beforeByActor.set(actor.id, before);
+        }
+        engine.step();
+        for (const actor of actors.values()) {
+          if (!actor.active) continue;
+          actor.contacts.push(
+            ...contactsFor(
+              actor,
+              beforeByActor.get(actor.id),
+              step,
+              beforeByActor,
+            ),
+          );
+        }
+      }
+      for (const actor of actors.values()) {
+        if (!actor.active) continue;
+        const body = bodyOf(actor);
+        body.resetForces(false);
+        body.resetTorques(false);
         actor.acceleration = zero();
+        actor.angularAcceleration = zero();
       }
     },
     snapshot() {
@@ -407,11 +605,21 @@ export async function createRapierWorld({ collisionWorld, gravity = 26 }) {
           .map((actor) => ({
             id: actor.id,
             hull: { ...actor.hull },
+            mass: actor.mass,
+            contactShape: actor.contactShape ?? null,
             bodyHandle: actor.bodyHandle,
             colliderHandle: actor.colliderHandle,
+            colliderHandles: [...actor.colliderHandles],
+            anchorHandle: actor.anchorHandle,
+            jointHandle: actor.jointHandle,
+            support: actor.support && {
+              position: { ...actor.support.position },
+              quaternion: encodeRotation(actor.support.quaternion),
+              bodyFrame: encodeRotation(actor.support.bodyFrame),
+            },
             active: actor.active,
-            fraction: actor.fraction,
             acceleration: { ...actor.acceleration },
+            angularAcceleration: { ...actor.angularAcceleration },
             contacts: actor.contacts.map(copyContact),
           })),
       };
@@ -425,6 +633,7 @@ export async function createRapierWorld({ collisionWorld, gravity = 26 }) {
         data.actors.some(
           (entry) =>
             !actors.has(entry.id) ||
+            actors.get(entry.id).mass !== entry.mass ||
             JSON.stringify(actors.get(entry.id).hull) !==
               JSON.stringify(entry.hull),
         )
@@ -436,7 +645,15 @@ export async function createRapierWorld({ collisionWorld, gravity = 26 }) {
         data.actors.some(
           (entry) =>
             !restored.getRigidBody(entry.bodyHandle) ||
-            !restored.getCollider(entry.colliderHandle),
+            !Array.isArray(entry.colliderHandles) ||
+            !entry.colliderHandles.length ||
+            entry.colliderHandles.some(
+              (handle) => !restored.getCollider(handle),
+            ) ||
+            !restored.getRigidBody(entry.anchorHandle) ||
+            (entry.jointHandle !== null &&
+              !restored.getImpulseJoint(entry.jointHandle)) ||
+            Boolean(entry.support) !== (entry.jointHandle !== null),
         )
       ) {
         restored?.free();
@@ -448,7 +665,9 @@ export async function createRapierWorld({ collisionWorld, gravity = 26 }) {
         const actor = actors.get(entry.id);
         Object.assign(actor, entry, {
           hull: { ...entry.hull },
+          support: entry.support && finiteSupport(entry.support),
           acceleration: vector(entry.acceleration),
+          angularAcceleration: vector(entry.angularAcceleration),
           contacts: entry.contacts.map(copyContact),
         });
       }

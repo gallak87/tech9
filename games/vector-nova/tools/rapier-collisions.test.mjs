@@ -252,35 +252,63 @@ test('repeated recovery contacts with ground and a thin edge keep a tumbling hul
   );
 });
 
-test('overlapping and crossing ship actors match isolated motion because racer filters exclude each other', async (t) => {
+test('opposing racers exchange real contact impulses instead of crossing through each other', async (t) => {
   const pairedWorld = await fixture(t, []);
   const isolatedWorld = await fixture(t, []);
   const first = launch(pairedWorld, [-4, 3, 0], [40, 0, 0]);
   const second = launch(pairedWorld, [4, 3, 0], [-40, 0, 0]);
   const isolated = launch(isolatedWorld, [-4, 3, 0], [40, 0, 0]);
-  let overlapFrames = 0;
+  const contacts = [];
   for (let tick = 0; tick < 48; tick++) {
     pairedWorld.step(DT);
     isolatedWorld.step(DT);
     const a = first.read();
     const b = second.read();
-    if (Math.abs(a.position.x - b.position.x) < VEHICLE_HULL.halfWidth * 2)
-      overlapFrames++;
-    assert.deepEqual(
-      values(first),
-      values(isolated),
-      'another racer has no influence on physical motion',
+    finiteState(a);
+    finiteState(b);
+    contacts.push(...a.contacts, ...b.contacts);
+    assert.ok(
+      b.position.x - a.position.x >=
+        VEHICLE_HULL.halfWidth * 2 - 80 * DT - 0.01,
+      'contact overlap is bounded by one fixed step, not passage through the hull',
     );
-    assert.equal(a.contacts.length + b.contacts.length, 0);
+    assert.ok(
+      Math.abs(a.velocity.x + b.velocity.x) < 1e-4,
+      'equal and opposite contact impulses preserve total momentum',
+    );
     assert.ok(
       Math.abs(a.position.x + b.position.x) < 1e-5,
-      'both bodies keep symmetric free motion',
+      'both bodies keep symmetric physical contact response',
     );
   }
-  assert.ok(overlapFrames > 0, 'the hulls overlap while moving');
   assert.ok(
-    first.read().position.x > second.read().position.x,
-    'the ships pass through each other',
+    contacts.some(
+      (hit) => hit.shape.actorId === first.id && hit.incomingSpeed > 75,
+    ),
+  );
+  assert.ok(
+    contacts.some(
+      (hit) => hit.shape.actorId === second.id && hit.incomingSpeed > 75,
+    ),
+  );
+  assert.ok(
+    first.read().position.x < second.read().position.x,
+    'the ships cannot pass through each other',
+  );
+  assert.ok(
+    isolated.read().position.x > first.read().position.x + 10,
+    'only the contacting craft is impeded',
+  );
+  assert.ok(
+    first.read().velocity.x <= 0 && second.read().velocity.x >= 0,
+    'neither craft continues through the other after contact',
+  );
+  // Finite-step penetration stabilization can add a small separating speed.
+  // The rebound must remain near the material's 0.25 restitution (10 m/s each).
+  assert.ok(
+    Math.abs(first.read().velocity.x + 10) < 1 &&
+      Math.abs(second.read().velocity.x - 10) < 1,
+    `the centred pair has a bounded material rebound: ${first.read().velocity.x} / ${second.read().velocity.x}`,
   );
 });
 

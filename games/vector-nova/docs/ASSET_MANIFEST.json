@@ -2,6 +2,15 @@
   "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "sprint-concepts-2026-10-13",
+      "source": "assets/levels/sprint-concepts/2026-10-13/",
+      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
+      "provenance": "Five initial sprint world proposals plus user-proposed Worldspire. Focus is now Worldspire and Nightweir, pending paragraph review before briefs. Visual direction only; route dimensions are unvalidated targets. Exact prompts and image hashes retained.",
+      "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/levels/sprint-concepts/2026-10-13/provenance.json"
+    },
+    {
       "id": "shatterline-limestone",
       "source": "assets/levels/shatterline/limestone-v1.png",
       "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
@@ -398,18 +407,30 @@
       "id": "ai-racers",
       "source": "assets/ships/rivals/ and src/ships/rivals.js",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",
-      "provenance": "Original Rook, Latch and Mule Blender chassis, generated design concepts and embedded project-authored PBR maps. Shared by circuit racing and AI-racer inspection.",
+      "provenance": "Nine original Blender chassis with embedded project-authored PBR maps, shared by circuit racing and AI-racer inspection. Rook, Latch and Mule retain their generated design concepts; Pike, Tern, Manta, Vise, Kite and Gannet are original authored models without external reference assets.",
       "rights": "Project-authored/generated; no third-party artwork or meshes",
       "runtimeDependencies": ["three"],
       "runtimeAssets": [
         "public/assets/ships/rivals/rook/rook.glb",
         "public/assets/ships/rivals/latch/latch.glb",
-        "public/assets/ships/rivals/mule/mule.glb"
+        "public/assets/ships/rivals/mule/mule.glb",
+        "public/assets/ships/rivals/pike/pike.glb",
+        "public/assets/ships/rivals/tern/tern.glb",
+        "public/assets/ships/rivals/manta/manta.glb",
+        "public/assets/ships/rivals/vise/vise.glb",
+        "public/assets/ships/rivals/kite/kite.glb",
+        "public/assets/ships/rivals/gannet/gannet.glb"
       ],
       "provenanceRecords": [
         "assets/ships/rivals/rook/provenance.json",
         "assets/ships/rivals/latch/provenance.json",
-        "assets/ships/rivals/mule/provenance.json"
+        "assets/ships/rivals/mule/provenance.json",
+        "assets/ships/rivals/pike/provenance.json",
+        "assets/ships/rivals/tern/provenance.json",
+        "assets/ships/rivals/manta/provenance.json",
+        "assets/ships/rivals/vise/provenance.json",
+        "assets/ships/rivals/kite/provenance.json",
+        "assets/ships/rivals/gannet/provenance.json"
       ]
     },
     {

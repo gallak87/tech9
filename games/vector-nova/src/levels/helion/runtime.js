@@ -32,7 +32,8 @@ export function createHelionRuntime(context, telemetry = {}) {
   let heat = 0,
     contactAge = HELION_HEAT_RULES.visualRelease,
     contactHeat = 0,
-    disposed = false;
+    disposed = false,
+    staged = null;
   const rulesId = `helion-thermal-flight-v3:${JSON.stringify({ geometry: track.geometryVersion, heat: HELION_HEAT_RULES, flight: flightModel.rules, jumps: track.jumps, zones: track.thermalZones })}`;
   const scenarios = Object.fromEntries(
     Object.entries(track.scenarios).map(([name, state]) => [
@@ -104,6 +105,37 @@ export function createHelionRuntime(context, telemetry = {}) {
       flightMode,
     });
   }
+  function prepareStep(state, dt) {
+    return {
+      sample: sampleHelionThermal(
+        track,
+        state.distance,
+        state.lateral,
+        state.time,
+        {
+          airborne: flightMode !== 'magnetic',
+        },
+      ),
+      before: thrustScale(state),
+      dt,
+    };
+  }
+  function finishStep(state, { sample, before, dt }, events) {
+    flightMode = base.snapshot().mode;
+    heat = integrateHelionHeat(heat, sample, dt);
+    if (sample.exposure > 0 && !sample.sheltered) {
+      contactAge = 0;
+      contactHeat = heat;
+    } else
+      contactAge = Math.min(HELION_HEAT_RULES.visualRelease, contactAge + dt);
+    const power = thrustScale(state);
+    if (before < 1 !== power < 1)
+      events.push({
+        type: 'helion-power',
+        payload: { heat, thrustScale: power, limited: power < 1 },
+      });
+    return events;
+  }
   return {
     id: base.id,
     version: base.version,
@@ -117,40 +149,36 @@ export function createHelionRuntime(context, telemetry = {}) {
         step = elapsed / count;
       const events = [];
       for (let i = 0; i < count; i++) {
-        const sample = sampleHelionThermal(
-          track,
-          state.distance,
-          state.lateral,
-          state.time,
-          { airborne: flightMode !== 'magnetic' },
+        const sample = prepareStep(state, step);
+        events.push(
+          ...finishStep(
+            state,
+            sample,
+            base.advance(state, input, step, modifiers),
+          ),
         );
-        const before = thrustScale(state);
-        events.push(...base.advance(state, input, step, modifiers));
-        flightMode = base.snapshot().mode;
-        heat = integrateHelionHeat(heat, sample, step);
-        if (sample.exposure > 0 && !sample.sheltered) {
-          contactAge = 0;
-          contactHeat = heat;
-        } else {
-          contactAge = Math.min(
-            HELION_HEAT_RULES.visualRelease,
-            contactAge + step,
-          );
-        }
-        const power = thrustScale(state);
-        if (before < 1 !== power < 1)
-          events.push({
-            type: 'helion-power',
-            payload: {
-              heat,
-              thrustScale: power,
-              limited: power < 1,
-            },
-          });
       }
       return events;
     },
+    ...(base.beginAdvance
+      ? {
+          beginAdvance(state, input, dt, modifiers) {
+            if (staged) throw new Error('Finish the pending Helion step first');
+            staged = prepareStep(state, dt);
+            base.beginAdvance(state, input, dt, modifiers);
+          },
+          finishAdvance(state) {
+            if (!staged)
+              throw new Error('Stage the Helion step before resolving it');
+            const sample = staged;
+            const events = base.finishAdvance(state);
+            staged = null;
+            return finishStep(state, sample, events);
+          },
+        }
+      : {}),
     reset(options = {}) {
+      staged = null;
       base.reset(options);
       flightMode = 'magnetic';
       heat = options.scenario === 'heat-hot' ? 78 : 0;
@@ -177,6 +205,7 @@ export function createHelionRuntime(context, telemetry = {}) {
       )
         throw new Error('Invalid Helion thermal state.');
       base.restore(data.flight);
+      staged = null;
       heat = data.heat;
       contactAge = data.contactAge;
       contactHeat = data.contactHeat;
@@ -189,6 +218,7 @@ export function createHelionRuntime(context, telemetry = {}) {
     },
     dispose() {
       disposed = true;
+      staged = null;
       base.dispose();
     },
   };

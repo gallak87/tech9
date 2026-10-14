@@ -12,6 +12,8 @@ import {
   sprintRunoutControl,
 } from './course.js';
 import { createRelativeTiming } from './relative-timing.js';
+import { RACE_GRID, RACE_OPPONENTS } from './roster.js';
+export { RACE_GRID, RACE_OPPONENTS } from './roster.js';
 import {
   sweptVectorContacts,
   VECTOR_PROPULSION,
@@ -19,36 +21,6 @@ import {
 
 export const RACE_LAPS = 2;
 export const RACE_DIFFICULTIES = Object.freeze(['easy', 'medium', 'hard']);
-export const RACE_GRID = Object.freeze({
-  player: Object.freeze({ distance: 0, lateral: 4 }),
-  rook: Object.freeze({ distance: 0, lateral: -4 }),
-  latch: Object.freeze({ distance: -12, lateral: 4 }),
-  mule: Object.freeze({ distance: -12, lateral: -4 }),
-});
-export const RACE_OPPONENTS = Object.freeze([
-  Object.freeze({
-    id: 'rook',
-    name: 'Rook',
-    shipId: 'kestrel',
-    lane: -4,
-    pace: 0.96,
-  }),
-  Object.freeze({
-    id: 'latch',
-    name: 'Latch',
-    shipId: 'shrike',
-    lane: 4,
-    pace: 0.99,
-  }),
-  Object.freeze({
-    id: 'mule',
-    name: 'Mule',
-    shipId: 'bastion',
-    lane: -4,
-    pace: 0.94,
-  }),
-]);
-
 const DRIVER_PROFILES = Object.freeze({
   easy: {
     cornerLoad: 28,
@@ -72,6 +44,7 @@ const DRIVER_PROFILES = Object.freeze({
     boostFloor: 0,
   },
 });
+const REORIENT = Object.freeze({ belowSpeed: 14, heading: Math.PI / 3 });
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const copy = (value) => JSON.parse(JSON.stringify(value));
@@ -132,7 +105,14 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
     Math.abs(lookahead.curvature),
   );
   const cornerSpeed = clamp(
-    Math.sqrt(profile.cornerLoad / Math.max(curvature, 0.000001)),
+    // Difficulty chooses the target load; weaker steering also limits the
+    // maximum this chassis can follow without spending its reserve on rails.
+    Math.sqrt(
+      Math.min(
+        profile.cornerLoad,
+        DRIVER_PROFILES.hard.cornerLoad * handling.turn,
+      ) / Math.max(curvature, 0.000001),
+    ),
     63,
     Math.max(speedProfile.boostSpeed, VECTOR_PROPULSION.cruiseSpeed),
   );
@@ -242,11 +222,11 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
   }
   const authority = (1 - STEERING_ASSIST) * 1.5 * handling.turn;
   const feedforward = (-frame.curvature * state.speed) / (1.5 * handling.turn);
-  const steer = clamp(
-    feedforward - ((desiredHeading - state.heading) * 4.4) / authority,
-    -1,
-    1,
+  const headingError = Math.atan2(
+    Math.sin(desiredHeading - state.heading),
+    Math.cos(desiredHeading - state.heading),
   );
+  const steer = clamp(feedforward - (headingError * 4.4) / authority, -1, 1);
   // Use the same swept hull/strip contact as device physics, including the
   // next tick's leading-edge entry. Braking here would cancel the catapult.
   const onVector =
@@ -257,19 +237,26 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
       track.length,
       track.closed !== false,
     ).length > 0;
+  // A physical spin can leave the nose pressing into a wall. Let the yaw
+  // thrusters turn the hull away before feeding forward thrust into contact.
+  const reorient =
+    Math.abs(state.speed) < REORIENT.belowSpeed &&
+    Math.abs(headingError) > REORIENT.heading;
   return {
-    throttle:
-      onVector ||
-      state.speed <= targetSpeed + 3 ||
-      (state.speed > speedProfile.cruiseSpeed + 3 &&
-        state.speed <= brakeSpeed + 3)
+    throttle: reorient
+      ? 0
+      : onVector ||
+          state.speed <= targetSpeed + 3 ||
+          (state.speed > speedProfile.cruiseSpeed + 3 &&
+            state.speed <= brakeSpeed + 3)
         ? 1
         : 0.35,
-    brake: onVector
-      ? 0
-      : clamp((state.speed - brakeSpeed - (jump ? 1 : 8)) / 28, 0, 0.65),
+    brake:
+      onVector || reorient
+        ? 0
+        : clamp((state.speed - brakeSpeed - (jump ? 1 : 8)) / 28, 0, 0.65),
     steer,
-    boost: wantsBoost && !onVector,
+    boost: wantsBoost && !onVector && !reorient,
     airbrake: false,
   };
 }
@@ -309,13 +296,39 @@ export function createRacers({
   const relativeTiming = createRelativeTiming(Object.keys(RACE_GRID));
   const opponents = RACE_OPPONENTS.map((specification) => ({
     specification,
-    state: createVehicleState(specification.shipId),
+    state: {
+      ...createVehicleState(specification.shipId),
+      chassisId: specification.id,
+    },
     prev: null,
     race: null,
     runtime: createRuntime(),
     finish: null,
     boostSeconds: 0,
   }));
+  // Record the actual field configuration instead of a second version stamp.
+  // Visual names/colors are deliberately absent from deterministic identity.
+  const identity = {
+    grid: RACE_GRID,
+    drivers: DRIVER_PROFILES,
+    reorient: REORIENT,
+    opponents: opponents.map(({ specification, runtime }) => ({
+      id: specification.id,
+      ship: {
+        id: specification.shipId,
+        version: getShip(specification.shipId).version,
+      },
+      lane: specification.lane,
+      pace: specification.pace,
+      runtime: {
+        id: runtime.id,
+        version: runtime.version,
+        rulesId: runtime.rulesId,
+      },
+    })),
+  };
+  const identityJSON = JSON.stringify(identity);
+  const nearby = new Array(opponents.length + 1);
   let enabled = false,
     elapsed = 0,
     playerFinish = null,
@@ -350,6 +363,7 @@ export function createRacers({
       const { specification } = opponent;
       opponent.state = {
         ...createVehicleState(specification.shipId),
+        chassisId: specification.id,
         ...RACE_GRID[specification.id],
       };
       opponent.prev = { ...opponent.state };
@@ -368,16 +382,15 @@ export function createRacers({
     { playerState, playerRace, playerPrevious, playerPose } = {},
   ) {
     elapsed += step;
-    const nearby = opponents.map((opponent) => ({ ...opponent.state }));
-    if (playerState) nearby.push({ ...(playerPrevious ?? playerState) });
-    const controls = opponents.map((opponent, index) =>
-      controlsFor(
-        opponent,
-        track,
-        devices,
-        nearby.filter((_, otherIndex) => otherIndex !== index),
-        difficulty,
-      ),
+    // All controls are sampled before anyone advances, so this one bounded
+    // field view needs neither per-driver copies nor per-driver filter arrays.
+    nearby.length = opponents.length + (playerState ? 1 : 0);
+    opponents.forEach((opponent, index) => {
+      nearby[index] = opponent.state;
+    });
+    if (playerState) nearby[opponents.length] = playerPrevious ?? playerState;
+    const controls = opponents.map((opponent) =>
+      controlsFor(opponent, track, devices, nearby, difficulty),
     );
     opponents.forEach((opponent) => {
       opponent.prev = { ...opponent.state };
@@ -620,6 +633,7 @@ export function createRacers({
 
   function serialize() {
     return {
+      field: copy(identity),
       course: copy(course),
       trackId: track.id,
       relativeTiming: relativeTiming.serialize(),
@@ -642,6 +656,7 @@ export function createRacers({
   function restore(data) {
     if (
       !data ||
+      JSON.stringify(data.field) !== identityJSON ||
       JSON.stringify(data.course) !== JSON.stringify(course) ||
       data.trackId !== track.id ||
       typeof data.enabled !== 'boolean' ||
@@ -698,7 +713,8 @@ export function createRacers({
           !Object.entries(defaults).every(
             ([key, value]) => typeof state[key] === typeof value,
           ) ||
-          state.shipId !== opponent.specification.shipId
+          state.shipId !== opponent.specification.shipId ||
+          state.chassisId !== opponent.specification.id
         )
           throw new Error('Racer vehicle state mismatch');
       if (
@@ -749,6 +765,9 @@ export function createRacers({
   }
 
   return {
+    get identity() {
+      return copy(identity);
+    },
     get enabled() {
       return enabled;
     },

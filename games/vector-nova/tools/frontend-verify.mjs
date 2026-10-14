@@ -15,6 +15,7 @@ import { createRace } from '../src/race/index.js';
 import {
   createMagneticRuntime,
   advanceSession,
+  captureInitial,
 } from '../src/core/session-runtime.js';
 
 // Maintained player-flow check. Requires an existing server; writes no artifacts.
@@ -71,9 +72,14 @@ async function check(name, fn, viewport = { width: 1440, height: 900 }) {
     await context.close();
   }
 }
-async function finishInputs(difficulty) {
+async function finishInputs(difficulty, initial) {
   const definition = createHalcyonLevel({ shape: false });
   const track = definition.createTrack();
+  // V8's platform math differs below a nanometre in the sampled route length.
+  // Use the browser's recorded scalar for identities, after checking the route.
+  const recordedLength = JSON.parse(initial.runtime.layoutKey)[0];
+  assert.ok(Math.abs(track.length - recordedLength) < 1e-7);
+  track.length = recordedLength;
   const collisionWorld = await definition.createCollisionWorld?.({ track });
   const physicalWorld = withMagneticBoundaries(track, collisionWorld);
   const dynamics = await (definition.createDynamics ?? createRapierWorld)({
@@ -99,9 +105,46 @@ async function finishInputs(difficulty) {
   const race = createRace(track, { rulesId: runtime.rulesId });
   const inputs = [];
   try {
+    // Production binds every chassis before its fresh-session world rebuild.
+    // Replacing a default player box after that rebuild changes collider
+    // allocation order and therefore crowded-field contact resolution.
+    runtime.reset({ reason: 'initialize', state: vehicle });
     dynamics.reset();
-    runtime.reset({ reason: 'fresh-lap', state: vehicle });
     racers.reset({ enabled: true, difficulty });
+    runtime.reset({ reason: 'fresh-lap', state: vehicle });
+    const actualInitial = captureInitial(vehicle, runtime, dynamics);
+    const differences = [];
+    const compareInitial = (actual, expected, path = 'initial') => {
+      if (Object.is(actual, expected)) return;
+      if (
+        actual &&
+        expected &&
+        typeof actual === 'object' &&
+        typeof expected === 'object'
+      ) {
+        for (const key of new Set([
+          ...Object.keys(actual),
+          ...Object.keys(expected),
+        ]))
+          compareInitial(actual[key], expected[key], `${path}.${key}`);
+      } else {
+        const brief = (value) =>
+          typeof value === 'string' && value.length > 1000
+            ? `${value.length} characters`
+            : value;
+        differences.push({
+          path,
+          actual: brief(actual),
+          expected: brief(expected),
+        });
+      }
+    };
+    compareInitial(actualInitial, initial);
+    assert.deepEqual(
+      differences,
+      [],
+      'physical input fixture must start from the exact browser body state',
+    );
     // Generate real inputs against the same ten dynamic bodies as the browser.
     // Legacy ghost-racer trajectories no longer predict contact or finish time.
     while (
@@ -372,7 +415,10 @@ try {
         }
         const finished = await page.evaluate(
           (recording) => window.__VN.playReplay(recording),
-          { ...replay, inputs: await finishInputs(replay.difficulty) },
+          {
+            ...replay,
+            inputs: await finishInputs(replay.difficulty, replay.initial),
+          },
         );
         assert.ok(finished.competition.playerFinished);
         await page.evaluate(() => window.__VN.resume());
@@ -389,6 +435,7 @@ try {
           finished.competition.results.standings.every(
             (racer) => racer.finished && racer.valid,
           ),
+          JSON.stringify(finished.competition.results.standings),
         );
         assert.equal(await page.locator('canvas#world').isVisible(), true);
         await page.locator('[data-action="continue"]').click();

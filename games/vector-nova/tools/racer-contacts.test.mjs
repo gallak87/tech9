@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
-import { createMagneticRuntime } from '../src/core/session-runtime.js';
+import {
+  captureInitial,
+  createMagneticRuntime,
+  restoreReplayInitial,
+} from '../src/core/session-runtime.js';
 import { createVehicleState } from '../src/physics/index.js';
 import { createRapierWorld } from '../src/physics/rapier-world.js';
 import { withMagneticBoundaries } from '../src/physics/magnetic-boundaries.js';
@@ -57,6 +61,48 @@ async function fixture(
     },
   };
 }
+
+test('restarting after physical driving recreates the exact validated replay initial state', async (t) => {
+  const f = await fixture(t);
+  const starts = f.racers.map(({ state }) => ({ ...state }));
+  // The frontend binds each selected chassis while initializing the session,
+  // before its first competitive reset and replay capture.
+  f.racers.forEach(({ runtime, state }) => runtime.reset({ state }));
+  const reset = () => {
+    f.dynamics.reset();
+    f.racers.forEach(({ runtime, state }, index) => {
+      Object.assign(state, starts[index]);
+      runtime.reset({ state });
+    });
+  };
+  const capture = () =>
+    f.racers.map(({ state, runtime }, index) =>
+      captureInitial(state, runtime, index === 0 ? f.dynamics : null),
+    );
+  reset();
+  const expected = capture();
+  for (let tick = 0; tick < 60; tick++) f.step({ throttle: 1 });
+  assert.ok(
+    f.racers.some(({ state }, index) => state.speed !== starts[index].speed),
+  );
+  reset();
+  const actual = capture();
+  assert.deepEqual(
+    actual,
+    expected,
+    'pilot history and native handles cannot leak into a fresh run',
+  );
+  const player = f.racers[0];
+  assert.doesNotThrow(() =>
+    restoreReplayInitial(
+      expected[0],
+      actual[0],
+      player.state,
+      player.runtime,
+      f.dynamics,
+    ),
+  );
+});
 
 test('rear contact transfers speed and yaw through driving ticks without repeated manifold damage', async (t) => {
   const f = await fixture(t);

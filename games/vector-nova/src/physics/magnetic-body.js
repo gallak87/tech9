@@ -398,6 +398,7 @@ export function createMagneticBody({
           getCollisionHull(state.chassisId ?? state.shipId),
         );
       initialized = false;
+      lastSpeed = 0;
       current = previous = pending = capture = null;
       contactFeedback.reset();
     },

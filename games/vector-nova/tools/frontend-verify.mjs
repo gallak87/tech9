@@ -147,11 +147,10 @@ async function finishInputs(difficulty, initial) {
     );
     // Generate real inputs against the same ten dynamic bodies as the browser.
     // Legacy ghost-racer trajectories no longer predict contact or finish time.
-    while (
-      vehicle.time < 180 &&
-      (race.history.length < 2 ||
-        racers.opponents.some((opponent) => !opponent.finish))
-    ) {
+    // Allow a short runout for platform math to change crowded contact timing;
+    // the browser must still prove that all ten finish with valid laps.
+    let fieldFinishedAt = Infinity;
+    while (vehicle.time < Math.min(180, fieldFinishedAt + 5)) {
       const input = getRacerControl(vehicle, track, {
         difficulty,
         devices,
@@ -170,6 +169,12 @@ async function finishInputs(difficulty, initial) {
       });
       runtime.update({});
       inputs.push({ tick: inputs.length, input });
+      if (
+        fieldFinishedAt === Infinity &&
+        race.history.length >= 2 &&
+        racers.opponents.every((opponent) => opponent.finish)
+      )
+        fieldFinishedAt = vehicle.time;
     }
     assert.ok(
       race.history.length >= 2 &&

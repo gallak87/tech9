@@ -373,6 +373,7 @@ export async function createGame({
       lastResults = null,
       raceDifficulty = settings.difficulty,
       countdownRequest = 0,
+      countdownReady = false,
       pausedCountdown = false,
       goUntil = 0;
     const countdown = createStartCountdown();
@@ -463,6 +464,7 @@ export async function createGame({
     }
     function armCountdown(resuming = false) {
       const request = ++countdownRequest;
+      countdownReady = false;
       mode = 'countdown';
       pausedCountdown = false;
       accumulator = 0;
@@ -476,11 +478,13 @@ export async function createGame({
         .finally(() => {
           if (!active || request !== countdownRequest || mode !== 'countdown')
             return;
-          countdown.resume();
+          // The clock starts only after the first driving frame is rendered.
+          countdownReady = true;
         });
     }
     function cancelCountdown() {
       countdownRequest++;
+      countdownReady = false;
       countdown.cancel();
       pausedCountdown = false;
       goUntil = 0;
@@ -1394,6 +1398,10 @@ export async function createGame({
           onResults(lastResults);
         }
       }
+      if (mode === 'countdown' && countdownReady) {
+        countdownReady = false;
+        countdown.resume();
+      }
       raf = requestAnimationFrame(render);
     }
     api = window.__VN = {
@@ -1613,6 +1621,10 @@ export async function createGame({
         ui.setMode(mode);
       },
       setSuspended(value) {
+        if (value && mode === 'countdown' && countdown.snapshot().running) {
+          countdown.pause();
+          countdownReady = true;
+        }
         suspended = value;
         ui.setSuspended(value);
         // Disabling input clears it. Reannouncing an active game at green must

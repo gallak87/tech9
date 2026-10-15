@@ -26,3 +26,29 @@ test('start lights count real time, freeze on pause and emit GO once', () => {
   time += 5000;
   assert.equal(countdown.advance(), null);
 });
+
+test('slow initial presentation and late frames retain all three countdown beats', () => {
+  let time = 0;
+  const countdown = createStartCountdown({ now: () => time });
+  countdown.begin();
+  time = 5000;
+  countdown.pause();
+  assert.equal(countdown.snapshot().remaining, 3);
+  time = 10000;
+  countdown.resume();
+  time = 15000;
+  assert.equal(countdown.advance(), 3);
+  time += 999;
+  assert.equal(countdown.advance(), null);
+  time += 4001;
+  assert.equal(countdown.advance(), 2, 'a late frame cannot jump to GO');
+  time += 999;
+  assert.equal(countdown.advance(), null);
+  time += 1;
+  assert.equal(countdown.advance(), 1);
+  time += 999;
+  assert.equal(countdown.advance(), null);
+  time += 1;
+  assert.equal(countdown.advance(), 0);
+  assert.equal(countdown.advance(), null);
+});

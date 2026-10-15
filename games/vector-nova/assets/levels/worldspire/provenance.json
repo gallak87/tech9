@@ -1,0 +1,49 @@
+{
+  "id": "worldspire-sprint",
+  "createdDate": "2026-10-13",
+  "dateTimezone": "America/Los_Angeles",
+  "generator": "Built-in image_gen.imagegen for imagery; Blender 5.1.1 for original geometry",
+  "rights": "Generated or authored for this project; no third-party reference art supplied",
+  "reference": {
+    "image": "reference/worldspire-v1.png",
+    "sha256": "05cef3f2053706c4634ccebc08730bef856183d9605979d4cdc619a9c9ae210c",
+    "prompt": "reference/worldspire-v1-prompt.txt",
+    "promptSha256": "93b070255188b842224629caddcad3fa04708b6561b1a2500d8fb27e5fb54dd5"
+  },
+  "selection": "User-selected monolith; approved opening extended into the full crown-to-root sprint, pending full-course human driving review",
+  "images": [
+    {
+      "id": "sky",
+      "sourceImage": "sky-v1.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-7f975351-699d-47c9-92a2-aafba5a0a2f9.png",
+      "promptRecord": "sky-prompt-v1.txt",
+      "imageSha256": "70e61e2f0007cea378f44aa927a18643925461a0b66ca15c1822e868580ab91e",
+      "promptSha256": "e0fb90db90f4022d49782be0c84a568061531694f27c9c14e3781c491cba079c",
+      "dimensions": [1774, 887]
+    },
+    {
+      "id": "mineral",
+      "sourceImage": "mineral-v1.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-650126fd-cee2-4731-8041-41f2af0168ce.png",
+      "promptRecord": "mineral-prompt-v1.txt",
+      "imageSha256": "a0eca6baab405111fc752238206765771df26ef561cbb3fc134da1e8408c34b1",
+      "promptSha256": "1d9e964cc4c14262828729f036b3e8eb19ffe9c40b9f1eeab7b4f51d36146ced",
+      "dimensions": [1254, 1254]
+    }
+  ],
+  "geometry": {
+    "source": "worldspire-environment.blend",
+    "build": "build_assets.py",
+    "routeExport": "export-route.mjs",
+    "routeSource": "route-source.json",
+    "collisionSource": "collision-kit.json",
+    "runtime": "public/assets/levels/worldspire/worldspire-environment.glb",
+    "runtimeSha256": "a3822eb53e7a24f3e7a4e230eac7bc9650069af0d424d673b2b8653637bcbbde",
+    "routeRevision": "worldspire-sprint-v3"
+  },
+  "runtimeAssets": [
+    "public/assets/levels/worldspire/worldspire-environment.glb",
+    "public/assets/levels/worldspire/mineral-v1.png",
+    "public/assets/levels/worldspire/sky-v1.png"
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "id": "nightweir-sprint",
+  "createdDate": "2026-10-13",
+  "dateTimezone": "America/Los_Angeles",
+  "generator": "Built-in image_gen.imagegen for imagery; Blender 5.1.1 for original geometry",
+  "rights": "Project-authored geometry and generated sky; borrowed surface materials are separately registered CC0 assets.",
+  "reference": {
+    "image": "reference/nightweir-v1.png",
+    "sha256": "4468371cadf9ef0f622a1e6d998387e3928d423a4342d865bcf6e92fe42760cc",
+    "prompt": "reference/nightweir-v1-prompt.txt",
+    "promptSha256": "de846f492e12b81fed3aba7b5ada911ef91ecec39af123dbd86c9fd159138bea"
+  },
+  "selection": "User-selected occupied stormwater sprint; independent Nightweir art pass.",
+  "runtimeAssets": [
+    {
+      "file": "public/assets/levels/nightweir/nightweir-city.glb.gz",
+      "bytes": 26488605,
+      "sha256": "6ce7ae120337947a5daf3228254af31f24684571a72e5a33ffdea91f7bdb6ea3"
+    },
+    {
+      "file": "public/assets/levels/nightweir/sky-v1.png",
+      "bytes": 1771787,
+      "sha256": "3bd978010905bf76009269e8f79922e6aafefb3e50f269fd469ca2a22ec63483"
+    }
+  ],
+  "updatedDate": "2026-10-14",
+  "authoring": {
+    "seed": 773,
+    "routeGeometry": "nightweir-sprint-v2",
+    "collisionGeometry": "nightweir-sprint-v2:blender-v2",
+    "runtimeRules": "nightweir-v3",
+    "editableScene": "nightweir-city.blend",
+    "generator": "build_assets.py",
+    "routeExporter": "export-route.mjs",
+    "geometryRecord": "model-provenance.json"
+  },
+  "sky": {
+    "source": "sky-v1.png",
+    "prompt": "sky-prompt-v1.txt",
+    "generator": "Built-in image_gen.imagegen",
+    "originalOutput": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-53268b7e-996d-4252-8b01-72ffad49adfc.png",
+    "sourceSha256": "3bd978010905bf76009269e8f79922e6aafefb3e50f269fd469ca2a22ec63483",
+    "promptSha256": "130fd713cde6616c1d5634c2269e048fd4f782a4343c1edcd1649b8670685983",
+    "usage": "Distant panorama and borrowed environment reflection; nearby city and water are geometry."
+  },
+  "borrowedMaterials": [
+    {
+      "id": "halcyon-asphalt",
+      "source": "https://polyhaven.com/a/asphalt_03",
+      "authors": ["Charlotte Baglioni", "Dario Barresi"],
+      "license": "CC0-1.0",
+      "physicalRepeatMetres": [2.05, 2.05],
+      "provenance": "assets/levels/halcyon/asphalt/provenance.json",
+      "runtimeDirectory": "public/assets/levels/halcyon/asphalt/",
+      "usage": "Municipal asphalt with local moisture and lighting."
+    },
+    {
+      "id": "helion-heat-ceramic",
+      "source": "https://ambientcg.com/view?id=Concrete034",
+      "author": "Lennart Demes / ambientCG",
+      "license": "CC0-1.0",
+      "technique": "Approximation; not photogrammetry",
+      "physicalRepeatMetres": [4.4, 2.2],
+      "provenance": "assets/levels/helion/ceramic/provenance.json",
+      "runtimeDirectory": "public/assets/levels/helion/ceramic/",
+      "usage": "Concrete and masonry substrate with local formwork, rain and waterline staining."
+    }
+  ],
+  "authoringFiles": [
+    {
+      "file": "assets/levels/nightweir/nightweir-city.blend",
+      "bytes": 36023399,
+      "sha256": "7614dc4c0c519827f6b49c5e949830d9c58bdbb8b4e73c7efc3aa42beb59338d"
+    },
+    {
+      "file": "assets/levels/nightweir/build_assets.py",
+      "bytes": 27350,
+      "sha256": "bec341c3f3db142dbe5fc4fb055ea269eb41a2dc7a5a2561ddd10da96551ea9e"
+    },
+    {
+      "file": "assets/levels/nightweir/export-route.mjs",
+      "bytes": 671,
+      "sha256": "36a8f9e26ae1363278ecb81d11a2f1c34d5b53a469ea5b0d73de7546af0c0a2a"
+    },
+    {
+      "file": "assets/levels/nightweir/route-source.json",
+      "bytes": 315505,
+      "sha256": "ad1535a286a9f22b4285be2e9099e03191f4b7244d1449536107aeb611492e5a"
+    },
+    {
+      "file": "assets/levels/nightweir/collision-kit.json",
+      "bytes": 32781086,
+      "sha256": "887373cb4540685fab9a2364b51a8fa73b180659edb14705b81ea0f8a8906ef3"
+    },
+    {
+      "file": "assets/levels/nightweir/water-kit.json",
+      "bytes": 48284,
+      "sha256": "43ec9ae125324095fc14355a28ec7ef11692bce5d967bb94122927fbff9836c1"
+    }
+  ]
+}

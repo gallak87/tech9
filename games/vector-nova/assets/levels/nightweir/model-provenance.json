@@ -1,0 +1,16 @@
+{
+  "generator": "Blender 5.1.1 project-authored deterministic build",
+  "seed": 773,
+  "source": "nightweir-city.blend",
+  "runtime": "nightweir-city.glb.gz",
+  "triangles": 1928900,
+  "districts": 14,
+  "solidTriangles": 667556,
+  "inhabitedTerraces": 72,
+  "waterfalls": 41,
+  "geometry": "Occupied terraces with deep returning facades, open gallery arches, service entries, hydraulic gate frames, bridge foundations, sawtooth receiving halls and a working barge harbor",
+  "encoding": {
+    "compression": "gzip",
+    "decompressedSha256": "d649b324c4e6791e24f55acebd0676261783b50ca1d88a0fa8b4dfc59222f1ec"
+  }
+}

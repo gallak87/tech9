@@ -147,6 +147,105 @@ try {
       },
     );
     await check(
+      'cold start retains every light and warms Nightweir driving shaders',
+      async (page) => {
+        await page.addInitScript(() => {
+          const nativeFrame = window.requestAnimationFrame;
+          window.__countdownCheck = { stalled: false, lights: [] };
+          window.requestAnimationFrame = (callback) =>
+            nativeFrame((time) => {
+              const check = window.__countdownCheck;
+              if (
+                !check.stalled &&
+                window.__VN?.getSnapshot().mode === 'countdown'
+              ) {
+                check.stalled = true;
+                // Reproduce a driver/upload stall longer than the old timer.
+                const until = performance.now() + 3500;
+                while (performance.now() < until) {
+                  // Deliberate main-thread stall.
+                }
+              }
+              callback(time);
+            });
+          let previous = null;
+          function observe() {
+            const light = document.querySelector('#start-lights');
+            const step =
+              light && !light.classList.contains('hidden')
+                ? Number(light.dataset.step)
+                : null;
+            if (step !== null && step !== previous) {
+              window.__countdownCheck.lights.push({
+                step,
+                at: performance.now(),
+                raceTime: window.__VN.getSnapshot().vehicle.time,
+              });
+            }
+            previous = step;
+            nativeFrame(observe);
+          }
+          nativeFrame(observe);
+        });
+        await page.goto(url('level=nightweir&music=0'));
+        await page.locator('[data-action="launch"]').click();
+        await booted(page);
+        await page.waitForFunction(
+          () => window.__countdownCheck.lights.some(({ step }) => step === 0),
+          null,
+          { timeout: 20000 },
+        );
+        const { stalled, lights } = await page.evaluate(
+          () => window.__countdownCheck,
+        );
+        assert.equal(stalled, true);
+        assert.deepEqual(
+          lights.map(({ step }) => step),
+          [3, 2, 1, 0],
+        );
+        for (let i = 0; i < 3; i++) {
+          assert.equal(lights[i].raceTime, 0, 'race must wait for green');
+          assert.ok(
+            lights[i + 1].at - lights[i].at >= 950,
+            'each light gets its full beat',
+          );
+        }
+        const materialPrograms = () =>
+          page.evaluate(() =>
+            window.__VN
+              .getScene()
+              .renderer.info.programs.filter(({ type }) =>
+                ['MeshStandardMaterial', 'MeshPhysicalMaterial'].includes(type),
+              )
+              .map(({ cacheKey }) => cacheKey),
+          );
+        const warmed = new Set(await materialPrograms());
+        await page.keyboard.down('w');
+        await page.waitForFunction(
+          () => window.__VN.getSnapshot().vehicle.distance >= 500,
+          null,
+          { timeout: 20000 },
+        );
+        await page.keyboard.up('w');
+        await page.evaluate(() => window.__VN.pause());
+        assert.ok(
+          (await materialPrograms()).every((key) => warmed.has(key)),
+          'the opening district must reuse warmed material shaders',
+        );
+        await page.evaluate(() =>
+          window.__VN.loadScenario('market-cut-launch', 7),
+        );
+        await page.keyboard.down('w');
+        await page.waitForFunction(() => window.__VN.getSnapshot().tick >= 480);
+        await page.keyboard.up('w');
+        await page.evaluate(() => window.__VN.pause());
+        assert.ok(
+          (await materialPrograms()).every((key) => warmed.has(key)),
+          'the jump around 49% must reuse warmed material shaders',
+        );
+      },
+    );
+    await check(
       'held countdown controls survive green and release normally',
       async (page) => {
         for (const [level, boostKey] of [

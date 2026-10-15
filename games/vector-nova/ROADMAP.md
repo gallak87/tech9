@@ -23,6 +23,8 @@ Reviewed against `main` and the current source on **2026-10-11**. Implemented me
 
 ## Level work
 
+- [ ] Human driving review of [Worldspire](docs/levels/worldspire.md) and [Nightweir](docs/levels/nightweir.md): compact 13.1 km and 12.4 km races, nine/eight jumps, three corkscrews each, distinct textured edges and distance-linked Awakening/Floodgates events. Both include a 650 m braking runout and are authorized for production completion.
+
 - [ ] Finish the [Saffron Wide surroundings/refit](docs/expansion/saffron.md) and driving review. The separate copy and 40 m roadway already exist; do not restart those phases. Preserve the hidden original for comparison and keep the campaign's remaining human review gates.
 - [ ] Scope Umbra Wide's adjacent scenery/support/observatory refit and driving review. The 35 m width preview already exists; its metadata still identifies surrounding construction as unfinished. Preserve the original; no new widening assignment is implied by its presence in the picker.
 - [ ] Cindercoil: add player-facing lava-contact flames and lingering ship/HUD smoke or heat feedback. The existing crater-spill glow and road-contact smoke are already implemented; reuse Helion's effects where appropriate.

@@ -52,7 +52,12 @@ function encode(bytes) {
   return btoa(binary);
 }
 function decode(binary) {
-  return Uint8Array.from(atob(binary), (character) => character.charCodeAt(0));
+  // String iteration creates an intermediate element per byte. Large authored
+  // worlds can exhaust the browser heap before Rapier restores the snapshot.
+  const decoded = atob(binary);
+  const bytes = new Uint8Array(decoded.length);
+  for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i);
+  return bytes;
 }
 function copyContact(contact) {
   return {

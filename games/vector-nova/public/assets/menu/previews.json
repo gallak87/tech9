@@ -117,6 +117,24 @@
       "sourceRevision": "f83358f6a5d9815015dbbfe1f8a9a80becf08cd0",
       "sourceDirty": true,
       "routeSignature": "44541eaf58d01ee4"
+    },
+    "worldspire": {
+      "file": "worldspire.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "1786ffaabe7172a6ab63a7b560c9cad914feac9b",
+      "sourceDirty": true,
+      "routeSignature": "bc4bb20ca8e68ba4"
+    },
+    "nightweir": {
+      "file": "nightweir.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "1786ffaabe7172a6ab63a7b560c9cad914feac9b",
+      "sourceDirty": true,
+      "routeSignature": "feb48d3bc1d3d0ac"
     }
   }
 }

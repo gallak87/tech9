@@ -372,6 +372,15 @@ export async function createRenderer(
       },
       async warm() {
         await renderer.compileAsync(scene, camera);
+        // Postprocessing uses linear HDR shaders, distinct from direct output.
+        // Compile off-camera materials too, before a rival or district enters view.
+        const retainedTarget = renderer.getRenderTarget();
+        try {
+          renderer.setRenderTarget(composer.readBuffer);
+          await renderer.compileAsync(scene, camera);
+        } finally {
+          renderer.setRenderTarget(retainedTarget);
+        }
         renderer.info.reset();
         renderer.shadowMap.needsUpdate = true;
         // Compile level passes before readiness so entering a field cannot trigger

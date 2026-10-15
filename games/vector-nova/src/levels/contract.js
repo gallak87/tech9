@@ -4,6 +4,7 @@ const slugPattern = /^[a-z][a-z0-9-]*$/;
 
 const textFields = ['edition', 'subtitle', 'intro', 'tag', 'tagDetail'];
 const legacyTextFields = ['eyebrow', 'detail', 'start'];
+const optionalTextFields = [...legacyTextFields, 'courseLabel'];
 export function validateMetadata(metadata, id = metadata?.id) {
   if (
     !slugPattern.test(id || '') ||
@@ -22,7 +23,7 @@ export function validateMetadata(metadata, id = metadata?.id) {
         )))
   )
     throw new Error(`Invalid circuit metadata: ${id}`);
-  for (const field of [...textFields, ...legacyTextFields])
+  for (const field of [...textFields, ...optionalTextFields])
     if (
       (textFields.includes(field) || metadata.ui[field] !== undefined) &&
       typeof metadata.ui[field] !== 'string'
@@ -48,7 +49,7 @@ export function validateMetadata(metadata, id = metadata?.id) {
       throw new Error(`Invalid circuit shape text: ${id}`);
     for (const [key, value] of Object.entries(metadata.ui.shape)) {
       if (
-        [...textFields, ...legacyTextFields].includes(key) &&
+        [...textFields, ...optionalTextFields].includes(key) &&
         typeof value !== 'string'
       )
         throw new Error(`Invalid circuit shape text: ${id}.${key}`);

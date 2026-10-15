@@ -61,6 +61,7 @@ export function createUI(
   const root = document.createElement('main');
   const listeners = new AbortController();
   root.id = 'interface';
+  root.dataset.level = metadata.id;
   root.classList.toggle('jump-playtest', Boolean(playtest));
   host.append(root);
   root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>
@@ -86,7 +87,8 @@ export function createUI(
     ).toFixed(2);
     facts[0].querySelector('span').textContent = 'KM DOWNHILL';
     facts[2].querySelector('b').textContent = '01';
-    facts[2].querySelector('span').textContent = 'SUMMIT TO BASIN';
+    facts[2].querySelector('span').textContent =
+      metadata.ui.courseLabel ?? 'SUMMIT TO BASIN';
     $('practice').firstChild.textContent = 'SOLO DESCENT ';
     $('restart').textContent = 'RESTART SPRINT';
     root.querySelector('.timing > span').textContent = 'ELAPSED';
@@ -1161,7 +1163,7 @@ export function createUI(
             ? 'RESULT RECORDED · R TO RETRY'
             : 'UNTIMED RESULT · R TO RETRY'
           : r.valid
-            ? 'SUMMIT → RECEIVING ARRAY'
+            ? (copy.courseLabel ?? 'SUMMIT → RECEIVING ARRAY')
             : 'UNTIMED RUN'
         : !r.valid
           ? practice && s.resetCount === 0

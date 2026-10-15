@@ -106,6 +106,27 @@ try {
         camera.up.set(0, 1, 0);
         camera.fov = 58;
         camera.clearViewOffset();
+        // Frame the crown and exposed road, rather than aiming through the
+        // monolith toward the route's interior-weighted average.
+        if (id === 'worldspire') {
+          camera.position.set(1800, 10800, -2500);
+          target.set(0, 8800, 0);
+        }
+        if (id === 'nightweir') {
+          const station = track.curtains[2].s - 190;
+          const frame = track.sample(station);
+          camera.position
+            .copy(frame.position)
+            .addScaledVector(frame.tangent, -35)
+            .addScaledVector(frame.up, 16);
+          target
+            .copy(track.sample(station + 130).position)
+            .addScaledVector(frame.up, 18);
+          camera.fov = 60;
+          scene.getObjectByName(
+            'Nightweir / the floodgates',
+          ).userData.phaseOverride = 1;
+        }
         camera.lookAt(target);
         camera.updateProjectionMatrix();
         // Let ordinary world updates relocate sky/weather around the free
@@ -114,7 +135,8 @@ try {
           requestAnimationFrame(() => requestAnimationFrame(done)),
         );
         game.setSuspended(true);
-        renderer.render(scene, camera);
+        // Nightweir composes transparent water in linear HDR on both presets.
+        if (id !== 'nightweir') renderer.render(scene, camera);
         const canvas = document.createElement('canvas');
         canvas.width = 640;
         canvas.height = 400;

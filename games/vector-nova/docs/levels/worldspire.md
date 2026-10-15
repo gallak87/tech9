@@ -1,0 +1,9 @@
+# Worldspire — Crown to Root Gate
+
+The [selected monolith concept](../../assets/levels/worldspire/reference/worldspire-v1.png) establishes scale and atmosphere; playable geometry is authored independently. The user approved the revised turning premise and authorized production completion and an independent art gauntlet.
+
+The compact route races 13.1 km, drops 5.4 km and ends with a 650 m supported braking runout (13.8 km total). Nine physical jumps, three complete corkscrews and two twisting through-spire passages alternate with descending switchbacks and steep chutes. Launch and receiving windows supply the few straight reaches. The mineral Heart contrasts with the amber Echo chamber; fitted Root Gate arches mark the grounded destination.
+
+Sealed ivory mineral plates use the licensed Helion concrete substrate at its recorded physical scale, shallow staggered joints and varied coating response. Bronze carriers hold an outboard obsidian cleft with seated jade inclusions. The Awakening is a deterministic descent-linked event: paired mineral leaves separate to expose recessed amber cores, with a staggered opening visible from the ordinary approach camera. It changes architecture and lighting, not the collision road or race rules. Reduced motion removes no navigation information.
+
+Preserve shared fleet handling and 0.3 steering assistance. Sources, editable Blender geometry, build scripts and image prompts live under `assets/levels/worldspire/`; runtime exports under `public/assets/levels/worldspire/`. Refresh the saved menu still after art changes. Validate with `npm run check:level -- worldspire`, `node --test tools/worldspire-sprint.test.mjs` and the maintained production level smoke check. Direct contact probes are bounded to 30 launches per pass with automatic recovery disabled.

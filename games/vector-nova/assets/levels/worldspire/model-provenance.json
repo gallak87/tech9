@@ -1,0 +1,9 @@
+{
+  "generator": "Blender 5.1.1 / project-authored deterministic script",
+  "source": "worldspire-environment.blend",
+  "runtime": "worldspire-environment.glb",
+  "triangles": 62122,
+  "geometry": "Full monolith with two open twisting passages, a vertical Echo chamber, rooted slalom buttresses and Root Gate terrace; matching exported collision triangles",
+  "materials": "Original geometry/materials, contact-occlusion vertex colors, fitted Root Gate masonry and hidden editable resonance valve source; generated mineral-v2 texture recorded separately",
+  "seed": 401
+}

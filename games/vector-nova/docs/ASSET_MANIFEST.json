@@ -2,6 +2,37 @@
   "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "worldspire-sprint",
+      "source": "assets/levels/worldspire/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "User-selected Worldspire concept; original editable Blender monolith with two twisting through-passages, a vertical Echo chamber, rooted slalom buttresses and Root Gate terrace with matching collision geometry. Generated mineral texture and distant sky accompany the full 28.5 km sprint.",
+      "rights": "Original project geometry and imagery generated for this project; no third-party art supplied",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/levels/worldspire/worldspire-environment.glb",
+        "public/assets/levels/worldspire/mineral-v1.png",
+        "public/assets/levels/worldspire/sky-v1.png"
+      ],
+      "provenanceRecord": "assets/levels/worldspire/provenance.json"
+    },
+    {
+      "id": "nightweir-sprint",
+      "source": "assets/levels/nightweir/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original editable Blender stormwater city and matching collision geometry, source-fed water, moving sluice gates and generated distant sky. Municipal road borrows the separately registered Halcyon CC0 asphalt; masonry borrows the Helion CC0 Concrete034 substrate. Full race 12.4 km plus 650 m receiving quay.",
+      "rights": "Original project geometry and generated imagery; borrowed textures retain their registered CC0 provenance.",
+      "runtimeDependencies": [
+        "three",
+        "halcyon-asphalt",
+        "helion-heat-ceramic"
+      ],
+      "provenanceRecord": "assets/levels/nightweir/provenance.json",
+      "runtimeAssets": [
+        "public/assets/levels/nightweir/nightweir-city.glb.gz",
+        "public/assets/levels/nightweir/sky-v1.png"
+      ]
+    },
+    {
       "id": "shatterline-limestone",
       "source": "assets/levels/shatterline/limestone-v1.png",
       "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
@@ -71,8 +102,8 @@
       "id": "circuit-menu-previews",
       "source": "public/assets/menu/",
       "creator": "VECTOR//NOVA runtime via tools/capture-menu-previews.mjs",
-      "provenance": "One 640×400 WebP ship-free circuit still per circuit, captured from project-owned game assets at Low quality. Regenerate with npm run previews; capture provenance is stored alongside the images; freshness warnings never hide saved stills. These files are served menu assets, not verification evidence.",
-      "rights": "Derived from this project’s registered level and ship assets; their original provenance and rights apply",
+      "provenance": "One 640\u00d7400 WebP ship-free circuit still per circuit, captured from project-owned game assets at Low quality. Regenerate with npm run previews; capture provenance is stored alongside the images; freshness warnings never hide saved stills. These files are served menu assets, not verification evidence.",
+      "rights": "Derived from this project\u2019s registered level and ship assets; their original provenance and rights apply",
       "runtimeDependencies": [
         "public/assets/menu/*.webp",
         "public/assets/menu/previews.json"
@@ -500,7 +531,7 @@
       "source": "assets/levels/halcyon/asphalt/",
       "creator": "Charlotte Baglioni (photography), Dario Barresi (processing) / Poly Haven",
       "provenance": "Poly Haven Asphalt 03 scan, 2.05 m square. Retained source maps: 2K color and OpenGL normal, 1K packed AO/roughness/metalness. build.py encodes mipmapped UASTC KTX2; shader moisture varies independently over metres. Source URLs, hashes, authors and runtime hashes are retained. No source lighting or reflection imagery added. Shatterline reuses the same runtime maps for aggregate-topped induction cassettes with independent moisture, tint and construction joints; no duplicate source or runtime images.",
-      "rights": "CC0-1.0 — https://polyhaven.com/license",
+      "rights": "CC0-1.0 \u2014 https://polyhaven.com/license",
       "runtimeDependencies": ["three", "public/assets/ships/decoder/"],
       "runtimeAssets": [
         "public/assets/levels/halcyon/asphalt/color.ktx2",
@@ -513,8 +544,8 @@
       "id": "helion-heat-ceramic",
       "source": "assets/levels/helion/ceramic/",
       "creator": "Lennart Demes / ambientCG; VECTOR//NOVA material adaptation",
-      "provenance": "Concrete034 CC0 approximation, adapted to dense heat ceramic with retained color, OpenGL normal and roughness sources. Metric 4.4 × 2.2 m repeat preserves source aspect. Reproducible UASTC KTX2 maps shared by fresh, heat-cycled and graphite-covered road cassettes; architecture and thermal effects keep their existing finish.",
-      "rights": "CC0-1.0 — https://docs.ambientcg.com/license/",
+      "provenance": "Concrete034 CC0 approximation, adapted to dense heat ceramic with retained color, OpenGL normal and roughness sources. Metric 4.4 \u00d7 2.2 m repeat preserves source aspect. Reproducible UASTC KTX2 maps shared by fresh, heat-cycled and graphite-covered road cassettes; architecture and thermal effects keep their existing finish.",
+      "rights": "CC0-1.0 \u2014 https://docs.ambientcg.com/license/",
       "runtimeDependencies": ["three", "public/assets/ships/decoder/"],
       "runtimeAssets": [
         "public/assets/levels/helion/ceramic/color.ktx2",
@@ -527,8 +558,8 @@
       "id": "cindercoil-fired-ceramic",
       "source": "assets/levels/cindercoil/ceramic/",
       "creator": "Lennart Demes / ambientCG; VECTOR//NOVA material adaptation",
-      "provenance": "Concrete030 CC0 procedural PBR source adapted to neutral fired mineral ceramic; retained color, OpenGL normal and roughness inputs, reproducible mipmapped UASTC KTX2 build. One 3 × 3 m repeat serves ceramic road bodies and cassettes. Original cassette-scale seam relief is independent of grain; the Crown uses a restrained dark glaze and the existing borrowed district reflection probe. No collision displacement or baked lava light.",
-      "rights": "CC0-1.0 — https://docs.ambientcg.com/license/",
+      "provenance": "Concrete030 CC0 procedural PBR source adapted to neutral fired mineral ceramic; retained color, OpenGL normal and roughness inputs, reproducible mipmapped UASTC KTX2 build. One 3 \u00d7 3 m repeat serves ceramic road bodies and cassettes. Original cassette-scale seam relief is independent of grain; the Crown uses a restrained dark glaze and the existing borrowed district reflection probe. No collision displacement or baked lava light.",
+      "rights": "CC0-1.0 \u2014 https://docs.ambientcg.com/license/",
       "runtimeDependencies": ["three", "public/assets/ships/decoder/"],
       "runtimeAssets": [
         "public/assets/levels/cindercoil/ceramic/color.ktx2",

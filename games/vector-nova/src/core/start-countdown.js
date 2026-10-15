@@ -14,10 +14,15 @@ export function createStartCountdown({ now = () => performance.now() } = {}) {
     },
     advance() {
       if (!active || !running) return null;
-      remaining = Math.max(0, (until - now()) / 1000);
-      const next = Math.ceil(remaining);
+      const time = now();
+      remaining = Math.max(0, (until - time) / 1000);
+      // The first observable beat owns its full second, even if graphics or
+      // audio readiness delayed this call. Later stalls never skip a light.
+      const next = step === null ? 3 : Math.max(step - 1, Math.ceil(remaining));
       if (next === step) return null;
       step = next;
+      remaining = next;
+      until = time + remaining * 1000;
       if (next === 0) {
         active = false;
         running = false;
@@ -25,7 +30,8 @@ export function createStartCountdown({ now = () => performance.now() } = {}) {
       return next;
     },
     pause() {
-      if (running) remaining = Math.max(0, (until - now()) / 1000);
+      if (running && step !== null)
+        remaining = Math.max(0, (until - now()) / 1000);
       running = false;
     },
     resume() {

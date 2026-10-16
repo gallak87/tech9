@@ -71,91 +71,89 @@ export function createWorldspireTrack() {
     [740, 1460],
     [410, 1610],
     [140, 1510],
-  ].map(([x, z]) => new T.Vector3(x * 0.7, 0, z * 0.7));
+  ].map(([x, z]) => new T.Vector3(x * 0.68, 0, z * 0.68));
   const curve = new T.CatmullRomCurve3(points, false, 'centripetal');
   curve.arcLengthDivisions = 64000;
   curve.updateArcLengths();
-  const sourceLength = curve.getLength();
-  const at = (fraction) => sourceLength * fraction;
+  const cityLength = curve.getLength();
+  // A real terminal reach accommodates the long Root Gate flight without
+  // consuming its supported finish and 650 m braking runout.
+  const sourceLength = cityLength + 900;
+  const at = (fraction) => cityLength * fraction;
   const curveTangent = (h) =>
-    curve.getTangentAt(clamp(h / sourceLength, 0, 1)).normalize();
+    curve.getTangentAt(clamp(h / cityLength, 0, 1)).normalize();
+  const guidePoint = (h) =>
+    curve
+      .getPointAt(clamp(h / cityLength, 0, 1))
+      .addScaledVector(curveTangent(cityLength), Math.max(0, h - cityLength));
   const definitions = [
     {
       id: 'crown-break',
       label: 'Crown Break',
       h: at(0.045),
-      gap: 40,
-      drop: 8,
-      receiving: 180,
+      gap: 90,
+      drop: 35,
+      receiving: 340,
     },
     {
       id: 'buttress-cut',
       label: 'Buttress Cut',
       h: at(0.192),
-      gap: 55,
-      drop: 14,
-      receiving: 220,
+      gap: 130,
+      drop: 55,
+      receiving: 440,
     },
     {
       id: 'heart-chasm',
       label: 'Heart Chasm',
       h: at(0.283),
-      gap: 110,
-      drop: 50,
-      receiving: 410,
+      gap: 440,
+      drop: 300,
+      receiving: 940,
       hero: true,
-    },
-    {
-      id: 'daylight-leap',
-      label: 'Daylight Leap',
-      h: at(0.346),
-      gap: 60,
-      drop: 16,
-      receiving: 240,
     },
     {
       id: 'mantle-shear',
       label: 'Mantle Shear',
       h: at(0.52),
-      gap: 65,
-      drop: 18,
-      receiving: 250,
+      gap: 150,
+      drop: 65,
+      receiving: 470,
     },
     {
       id: 'vault-entry',
       label: 'Vault Threshold',
       h: at(0.625),
-      gap: 45,
-      drop: 12,
-      receiving: 210,
+      gap: 100,
+      drop: 40,
+      receiving: 400,
     },
     {
       id: 'echo-chasm',
       label: 'Echo Chasm',
       h: at(0.686),
-      gap: 135,
-      drop: 65,
-      receiving: 470,
+      gap: 360,
+      drop: 210,
+      receiving: 810,
       hero: true,
-    },
-    {
-      id: 'vault-exit',
-      label: 'Vault Breakout',
-      h: at(0.774),
-      gap: 60,
-      drop: 18,
-      receiving: 250,
     },
     {
       id: 'root-gate',
       label: 'Root Gate',
-      h: at(0.887),
-      gap: 100,
-      drop: 35,
-      receiving: 350,
+      h: at(0.88),
+      gap: 440,
+      drop: 300,
+      receiving: 940,
       hero: true,
     },
   ];
+  // Receiver-to-launch connectors alternate around the spire instead of
+  // steering straight back toward a distant old guide after a long flight.
+  const connectorWeaves = definitions.slice(0, -1).map((jump, index) => ({
+    start: jump.h + jump.gap + jump.receiving + 65,
+    end: definitions[index + 1].h - 140,
+    angle: [1.05, 0.85, 1.15, 0.95, 0.7, 1.1][index],
+  }));
   const alignment = (h, j) => {
     const q = h - j.h;
     return (
@@ -178,15 +176,32 @@ export function createWorldspireTrack() {
     if (jump && jump !== heldJump) heldHeading = heading;
     const tangent = curveTangent(h);
     // Follow the authored lobe after each receiver without position snapping.
-    const guide = curve.getPointAt(clamp((h + 75) / sourceLength, 0, 1));
+    const guide = guidePoint(h + 75);
     const toward = guide.sub(horizontal[i - 1]).normalize();
     tangent.lerp(toward, 0.9).normalize();
-    const target = jump ? heldHeading : Math.atan2(tangent.z, tangent.x);
+    let weave = 0;
+    for (const connector of connectorWeaves) {
+      const u = clamp(
+        (h - connector.start) / (connector.end - connector.start),
+        0,
+        1,
+      );
+      weave +=
+        connector.angle *
+        Math.sin(4 * Math.PI * u) *
+        Math.sin(Math.PI * u) ** 2;
+    }
+    const target = jump
+      ? heldHeading
+      : Math.atan2(tangent.z, tangent.x) + weave;
     const difference = Math.atan2(
       Math.sin(target - heading),
       Math.cos(target - heading),
     );
-    heading += clamp(difference * 0.018, -0.008, 0.008) * routeStep;
+    // Blend the final turn into a tangent braking runway.
+    const runoutAlignment = 1 - smooth((h - sourceLength + 950) / 300);
+    heading +=
+      clamp(difference * 0.018, -0.008, 0.008) * routeStep * runoutAlignment;
     horizontal.push(
       horizontal[i - 1]
         .clone()
@@ -203,15 +218,36 @@ export function createWorldspireTrack() {
   const horizontalPoint = (h) => {
     const f = clamp(h, 0, sourceLength) / routeStep,
       i = Math.floor(f);
-    return horizontal[i]
+    const point = horizontal[i]
       .clone()
       .lerp(horizontal[Math.min(horizontal.length - 1, i + 1)], f - i);
+    for (const jump of definitions) {
+      const u = clamp((h - jump.h - jump.gap) / jump.receiving, 0, 1);
+      if (u <= 0 || u >= 1) continue;
+      // A broad receiving fan curves under the common ballistic corridor.
+      // Its small lateral sweep preserves every landing line while making
+      // ordinary grounded arrivals follow real alternating downhill bends.
+      const index = Math.floor(jump.h / routeStep);
+      const forward = horizontal[index + 1]
+        .clone()
+        .sub(horizontal[index])
+        .normalize();
+      const right = new T.Vector3(forward.z, 0, -forward.x);
+      const fan =
+        (jump.hero ? 10 : 5) *
+        Math.sin((jump.hero ? 4 : 2) * Math.PI * u) *
+        Math.sin(Math.PI * u) ** 2;
+      point.addScaledVector(right, fan);
+    }
+    return point;
   };
   const chutes = [
     [0.074, 0.102],
+    [0.108, 0.139],
     [0.166, 0.188],
     [0.227, 0.25],
     [0.375, 0.402],
+    [0.408, 0.438],
     [0.49, 0.516],
     [0.56, 0.593],
     [0.653, 0.675],
@@ -367,14 +403,14 @@ export function createWorldspireTrack() {
     ['coil', 'Sunward Corkscrew', at(0.09)],
     ['buttress', 'Mineral Buttress Slalom', at(0.166)],
     ['heart', 'Twisting Mineral Heart', at(0.253)],
-    ['daybreak', 'Daylight Leap', at(0.336)],
-    ['mantle', 'Broken Mantle', at(0.378)],
+    ['daybreak', 'The Daybreak Descent', at(0.397)],
+    ['mantle', 'Broken Mantle', at(0.41)],
     ['reverse-coil', 'Reverse Mantle Corkscrew', at(0.42)],
     ['copper', 'Copper Falls', at(0.49)],
     ['shards', 'The Shard Stair', at(0.56)],
     ['vault', 'The Split Vault', at(0.636)],
     ['echo', 'Echo Chasm', at(0.675)],
-    ['breakout', 'The Low Breakout', at(0.758)],
+    ['breakout', 'The Low Breakout', at(0.785)],
     ['root-coil', 'Root Corkscrew', at(0.808)],
     ['root-slalom', 'The Woven Roots', at(0.86)],
     ['gate', 'The Root Gate', at(0.881)],
@@ -432,7 +468,7 @@ export function createWorldspireTrack() {
   return {
     id: 'worldspire-sprint',
     name: 'Worldspire',
-    geometryVersion: 'worldspire-sprint-v4',
+    geometryVersion: 'worldspire-sprint-v5',
     closed: false,
     width: WIDTH,
     length,
@@ -453,10 +489,10 @@ export function createWorldspireTrack() {
     pointAtSource: rawPoint,
     interior: {
       start: distanceAt(at(0.235)),
-      end: distanceAt(at(0.362)),
+      end: distanceAt(at(0.402)),
     },
     interiors: [
-      { id: 'heart', start: distanceAt(at(0.235)), end: distanceAt(at(0.362)) },
+      { id: 'heart', start: distanceAt(at(0.235)), end: distanceAt(at(0.402)) },
       { id: 'vault', start: distanceAt(at(0.626)), end: distanceAt(at(0.785)) },
     ],
     inversion: { start: distanceAt(rollStart), end: distanceAt(rollEnd) },
@@ -476,7 +512,7 @@ export function createWorldspireTrack() {
     review: {
       kind: 'bare-track',
       description:
-        'Concentrated descent: nine jumps, three corkscrews, two through-spire passages and the Root Gate finish.',
+        'Concentrated descent: three immense flights, four medium jumps, three corkscrews, two through-spire passages and the Root Gate finish.',
     },
   };
 }

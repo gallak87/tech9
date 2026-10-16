@@ -10,7 +10,7 @@
     "prompt": "reference/worldspire-v1-prompt.txt",
     "promptSha256": "93b070255188b842224629caddcad3fa04708b6561b1a2500d8fb27e5fb54dd5"
   },
-  "selection": "User-selected monolith; approved opening extended into the full crown-to-root sprint, pending full-course human driving review",
+  "selection": "User-approved monolith premise; Cloudfall rework enlarges three hero flights and rebuilds the connected spire, pending human driving review.",
   "images": [
     {
       "id": "sky",
@@ -29,6 +29,23 @@
       "imageSha256": "a0eca6baab405111fc752238206765771df26ef561cbb3fc134da1e8408c34b1",
       "promptSha256": "1d9e964cc4c14262828729f036b3e8eb19ffe9c40b9f1eeab7b4f51d36146ced",
       "dimensions": [1254, 1254]
+    },
+    {
+      "id": "mineral-v2",
+      "sourceImage": "mineral-v2.png",
+      "promptRecord": "mineral-prompt-v2.txt",
+      "imageSha256": "ddb442f41f4fe4ba41563619a40b46fb8d11bc7e0ed2f7155a55a22e7b851d8d",
+      "promptSha256": "27ab67153acc744524a6db76ae15cb514c3bdeb2e88d20ccbaeb2d169c4b6d8d",
+      "dimensions": [1254, 1254]
+    },
+    {
+      "id": "fractured-obsidian",
+      "sourceImage": "fractured-obsidian-v1.png",
+      "promptRecord": "fractured-obsidian-prompt-v1.txt",
+      "imageSha256": "7586ba5756cede4d52c5d6b6b685a2c4d41032c9dc7c9c52d9b789826d27acfe",
+      "promptSha256": "561c4d136a3bc6d393521518bfe9bb6b63248ebe87fc0c3eec1966d03b76ce15",
+      "dimensions": [1254, 1254],
+      "originalOutput": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-bec6beaf-4d51-4d6d-a53c-59157cf30bb9.png"
     }
   ],
   "geometry": {
@@ -38,12 +55,34 @@
     "routeSource": "route-source.json",
     "collisionSource": "collision-kit.json",
     "runtime": "public/assets/levels/worldspire/worldspire-environment.glb",
-    "runtimeSha256": "a3822eb53e7a24f3e7a4e230eac7bc9650069af0d424d673b2b8653637bcbbde",
-    "routeRevision": "worldspire-sprint-v3"
+    "runtimeSha256": "611c3d3fa59d3147b1d1e75d7371a02c44533450b7fa54e6ea4acfa7b09562ad",
+    "routeRevision": "worldspire-sprint-v5",
+    "routeSha256": "047fa195124a66ae143bcdffefa61803bdb6801e8348f7a16d96e759227aedc6",
+    "collisionSha256": "44c8f256890f01dbf92d68ee75a55a65838e4a0fd458b872eceefb760f187aff",
+    "resonanceSource": "resonance-kit.json",
+    "resonanceSha256": "f77be3af4628c2386e41cf60a6222395911e9c8198c952012b2aa2cafbccb79c",
+    "geometryHelpers": [
+      "cloudfall_geometry.py",
+      "cloudfall_chambers.py",
+      "cloudfall_crown.py",
+      "cloudfall_exteriors.py",
+      "cloudfall_anchors.py",
+      "cloudfall_roots.py",
+      "cloudfall_lower_roots.py"
+    ],
+    "geometryDigest": "5a5d97014713d291"
   },
   "runtimeAssets": [
     "public/assets/levels/worldspire/worldspire-environment.glb",
-    "public/assets/levels/worldspire/mineral-v1.png",
+    "public/assets/levels/worldspire/mineral-v2.png",
+    "public/assets/levels/worldspire/fractured-obsidian-v1.png",
     "public/assets/levels/worldspire/sky-v1.png"
+  ],
+  "updatedDate": "2026-10-16",
+  "borrowedMaterials": [
+    {
+      "manifestId": "helion-heat-ceramic",
+      "usage": "Sealed ivory race deck uses licensed Concrete034 substrate at recorded metric scale."
+    }
   ]
 }

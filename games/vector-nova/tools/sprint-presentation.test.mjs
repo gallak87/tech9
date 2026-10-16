@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import * as T from 'three';
 import { createWorldspireTrack } from '../src/levels/worldspire/track/model.js';
 import { createAwakening } from '../src/levels/worldspire/environment/awakening.js';
+import worldspireSeats from '../assets/levels/worldspire/resonance-kit.json' with { type: 'json' };
 import { createWorldspireEnvironment } from '../src/levels/worldspire/environment/index.js';
+import { createWorldspireBackdrop } from '../src/levels/worldspire/backdrop/index.js';
 import { createNightweirTrack } from '../src/levels/nightweir/track/model.js';
 import { createNightweirWater } from '../src/levels/nightweir/environment/water.js';
 import nightweirKit from '../assets/levels/nightweir/water-kit.json' with { type: 'json' };
@@ -16,6 +18,19 @@ test('Awakening rewinds exactly and reduced motion preserves the navigation stat
     'Worldspire / paired grown valve leaves',
   );
   const quiet = Array.from(plates.instanceMatrix.array);
+  const seatIndex = worldspireSeats.anchors.findIndex((a) => a.hero);
+  assert.ok(seatIndex >= 0);
+  a.update({
+    state: { distance: worldspireSeats.anchors[seatIndex].distance - 300 },
+  });
+  assert.notDeepEqual(
+    Array.from(
+      plates.instanceMatrix.array.slice(seatIndex * 32, seatIndex * 32 + 32),
+    ),
+    quiet.slice(seatIndex * 32, seatIndex * 32 + 32),
+    'the hero mineral leaves open on the driving approach, before reaching their authored station',
+  );
+
   a.update({ state: { distance: 7000 } });
   const opening = Array.from(plates.instanceMatrix.array);
   assert.notDeepEqual(opening, quiet);
@@ -23,6 +38,45 @@ test('Awakening rewinds exactly and reduced motion preserves the navigation stat
   assert.deepEqual(Array.from(plates.instanceMatrix.array), opening);
   a.update({ state: { distance: 0 } });
   assert.deepEqual(Array.from(plates.instanceMatrix.array), quiet);
+  const lights = a.group.children.filter((o) => o.isLight);
+  assert.equal(lights.length, 2);
+  assert.ok(lights.every((l) => l.isRectAreaLight));
+  const ltc = T.UniformsLib.LTC_FLOAT_1;
+  const seat = worldspireSeats.anchors.find((anchor) => anchor.hero);
+  const camera = {
+    position: new T.Vector3(...seat.center).add(new T.Vector3(0, 0, 100)),
+  };
+  a.update({ state: { distance: seat.distance }, camera });
+  const illuminated = lights.filter((l) => l.intensity > 0);
+  assert.ok(illuminated.length > 0);
+  for (const l of illuminated) {
+    assert.ok(l.height > l.width * 6, 'core emits from a long seam');
+    const station = worldspireSeats.anchors.reduce(
+      (nearest, anchor) => {
+        const position = new T.Vector3(...anchor.center).addScaledVector(
+          new T.Vector3(...anchor.normal),
+          10,
+        );
+        return position.distanceToSquared(l.position) < nearest.distance
+          ? { anchor, distance: position.distanceToSquared(l.position) }
+          : nearest;
+      },
+      { distance: Infinity },
+    ).anchor;
+    const direction = new T.Vector3(0, 0, -1).applyQuaternion(l.quaternion);
+    assert.ok(
+      direction.dot(new T.Vector3(...station.normal)) > 0.999,
+      'emission faces outward from the actual fitted core',
+    );
+  }
+  a.update({ state: { distance: 0 }, camera });
+  assert.ok(lights.every((l) => l.intensity === 0));
+  assert.deepEqual(
+    a.group.children.filter((o) => o.isLight),
+    lights,
+    'rewind retains the warmed light slots',
+  );
+  assert.equal(T.UniformsLib.LTC_FLOAT_1, ltc);
   const gs = new Set(),
     ms = new Set();
   a.group.traverse((o) => {
@@ -47,9 +101,184 @@ test('failed Worldspire model loading releases the concurrently acquired texture
       },
       loadTexture: async () => texture,
     }),
-    /model unavailable/,
+    (error) =>
+      /Worldspire monolith could not load/.test(error.message) &&
+      error.cause.message === 'model unavailable',
   );
   assert.equal(released, 1);
+});
+
+test('Worldspire image-loader events reject with retry messages and release acquired scenery', async () => {
+  const cause = new Event('error'),
+    geometry = new T.BoxGeometry(),
+    material = new T.MeshStandardMaterial(),
+    mineral = new T.Texture();
+  const root = new T.Group();
+  root.add(new T.Mesh(geometry, material));
+  const disposed = new Map();
+  for (const resource of [geometry, material, mineral])
+    resource.addEventListener('dispose', () =>
+      disposed.set(resource, (disposed.get(resource) ?? 0) + 1),
+    );
+  await assert.rejects(
+    createWorldspireEnvironment({
+      track: createWorldspireTrack(),
+      loadAsset: async () => ({ scene: root }),
+      loadTexture: async (url) => {
+        if (url.includes('fractured-obsidian')) throw cause;
+        return mineral;
+      },
+    }),
+    (error) =>
+      error instanceof Error &&
+      /Worldspire mineral grain could not load/.test(error.message) &&
+      error.cause === cause,
+  );
+  assert.equal(root.children.length, 0);
+  for (const resource of [geometry, material, mineral])
+    assert.equal(disposed.get(resource), 1);
+  await assert.rejects(
+    createWorldspireBackdrop({
+      loadTexture: async () => {
+        throw cause;
+      },
+    }),
+    (error) =>
+      error instanceof Error &&
+      /Worldspire sky could not load/.test(error.message) &&
+      error.cause === cause,
+  );
+});
+
+test('Worldspire detaches clouds once and releases owned presentation resources while retaining borrowed depth and reflection', (t) => {
+  let now = 0;
+  t.mock.method(performance, 'now', () => now);
+  return (async () => {
+    const geometry = new T.BoxGeometry(),
+      material = new T.MeshStandardMaterial({
+        name: 'Worldspire / obsidian outer face',
+      });
+    const root = new T.Group();
+    root.add(new T.Mesh(geometry, material));
+    const mineral = new T.Texture(),
+      substrate = new T.Texture(),
+      reflection = new T.Texture(),
+      depth = new T.DepthTexture(4, 4);
+    const camera = new T.PerspectiveCamera(55, 1.6, 0.1, 26000);
+    let attached = 0,
+      detached = 0,
+      pass;
+    const environment = await createWorldspireEnvironment({
+      track: createWorldspireTrack(),
+      settings: { quality: 'low' },
+      loadAsset: async () => ({ scene: root }),
+      loadTexture: async (url) =>
+        url.includes('fractured-obsidian') ? substrate : mineral,
+      view: {
+        camera,
+        attachWorldPass(value) {
+          attached++;
+          pass = value;
+          return () => detached++;
+        },
+      },
+    });
+    const resources = new Set([
+      geometry,
+      material,
+      mineral,
+      substrate,
+      pass.target,
+      pass.volume,
+      pass.composite,
+      pass.uniforms.weather.value,
+      pass.uniforms.bodyField.value,
+      pass.uniforms.rootBodyField.value,
+      pass.uniforms.clearance.value,
+    ]);
+    environment.group.traverse((object) => {
+      if (object.geometry) resources.add(object.geometry);
+      for (const m of [object.material].flat().filter(Boolean))
+        resources.add(m);
+    });
+    const disposals = new Map();
+    for (const resource of [...resources, depth, reflection])
+      resource.addEventListener('dispose', () =>
+        disposals.set(resource, (disposals.get(resource) ?? 0) + 1),
+      );
+    try {
+      environment.setReflection(reflection);
+      pass.setSceneDepth(depth);
+      assert.equal(attached, 1);
+      assert.equal(pass.needsSwap, true);
+      assert.equal(pass.enabled, true);
+      assert.equal(material.envMap, reflection);
+      assert.equal(pass.uniforms.steps.value, 16);
+      const frame = {
+        camera,
+        state: { distance: 0 },
+        time: 0,
+        mode: 'title',
+        settings: { quality: 'low' },
+      };
+      environment.update(frame);
+      now = 80;
+      environment.update(frame);
+      const clouds = environment.group.getObjectByName(
+        'Worldspire / broken cloud strata',
+      );
+      assert.equal(clouds.userData.cloudTime, 0.08);
+      now = 9000;
+      environment.update({ ...frame, mode: 'paused' });
+      assert.equal(clouds.userData.cloudTime, 0.08);
+      const steadyLights = environment.group.children.filter(
+        (object) => object.isPointLight,
+      );
+      assert.equal(steadyLights.length, 4);
+      for (const fixture of worldspireSeats.fixtures) {
+        camera.position.fromArray(fixture.position);
+        environment.update({ ...frame, mode: 'paused' });
+        assert.ok(
+          steadyLights.some((light) => light.intensity > 0),
+          'each authored chamber station receives practical light',
+        );
+        assert.ok(
+          steadyLights.every(
+            (light) =>
+              Number.isFinite(light.intensity) &&
+              light.position.toArray().every(Number.isFinite),
+          ),
+        );
+      }
+      camera.position.set(50000, 50000, 50000);
+      environment.update({ ...frame, mode: 'paused' });
+      assert.ok(
+        steadyLights.every((light) => light.intensity === 0),
+        'distant practicals extinguish',
+      );
+      assert.deepEqual(
+        environment.group.children.filter((object) => object.isPointLight),
+        steadyLights,
+        'moving through chambers retains the warmed light pool',
+      );
+      environment.dispose();
+      environment.dispose();
+      assert.equal(detached, 1);
+      assert.equal(environment.group.children.length, 0);
+      for (const resource of resources)
+        assert.equal(
+          disposals.get(resource),
+          1,
+          resource.name || resource.type || 'owned resource',
+        );
+      assert.equal(disposals.get(depth), undefined);
+      assert.equal(disposals.get(reflection), undefined);
+    } finally {
+      environment.dispose();
+      depth.dispose();
+      reflection.dispose();
+    }
+  })();
 });
 
 test('Floodgates open on approach, rewind exactly, freeze flow under reduced motion and dispose once', () => {

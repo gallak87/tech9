@@ -11,6 +11,7 @@ import { ExhaustHeatPass } from '../ships/exhaust-heat-pass.js';
 import { configureShipTextures } from '../ships/texture-loader.js';
 import { textureMemory } from './texture-memory.js';
 import { createContactShadow } from './contact-shadow.js';
+import { attachWorldPass } from './world-pass.js';
 
 export async function createRenderer(
   host,
@@ -91,16 +92,17 @@ export async function createRenderer(
     );
     sun.castShadow = true;
     sun.shadow.mapSize.set(3072, 3072);
+    const sunShadowExtent = options.sunShadowExtent ?? 155;
     Object.assign(sun.shadow.camera, {
-      left: -155,
-      right: 155,
-      top: 155,
-      bottom: -155,
+      left: -sunShadowExtent,
+      right: sunShadowExtent,
+      top: sunShadowExtent,
+      bottom: -sunShadowExtent,
       near: 1,
       far: 1400,
     });
-    sun.shadow.bias = -0.00007;
-    sun.shadow.normalBias = 0.025;
+    sun.shadow.bias = options.sunShadowBias ?? -0.00007;
+    sun.shadow.normalBias = options.sunShadowNormalBias ?? 0.025;
     scene.add(sun, sun.target);
     // Soft cool back light is a sky contribution, deliberately below the sunset key.
     const fill = new T.DirectionalLight(
@@ -243,10 +245,10 @@ export async function createRenderer(
       assets: backdrop.assets ?? {},
       // The level owns its pass; the renderer only borrows it before tone mapping.
       attachWorldPass(pass) {
-        composer.insertPass(pass, composer.passes.indexOf(output));
+        const detach = attachWorldPass(composer, pass, { beauty, output });
         worldPasses.add(pass);
         return () => {
-          composer.removePass(pass);
+          detach();
           worldPasses.delete(pass);
         };
       },
@@ -357,9 +359,9 @@ export async function createRenderer(
           settings.quality === 'high' ||
           racingBlur.enabled ||
           [...worldPasses].some((pass) => pass.enabled)
-        )
+        ) {
           composer.render(dt);
-        else renderer.render(scene, camera);
+        } else renderer.render(scene, camera);
         maxima.calls = Math.max(maxima.calls, renderer.info.render.calls);
         maxima.triangles = Math.max(
           maxima.triangles,

@@ -13,9 +13,9 @@ const model = createFlightModel(WORLDSPIRE_RULES);
 export function createWorldspireRuntime(context) {
   return model.createRuntime(context, {
     id: 'worldspire-sprint-flight',
-    version: 1,
+    version: 2,
     rulesId:
-      'worldspire-v4:' +
+      'worldspire-v5:' +
       JSON.stringify({
         geometry: context.track.geometryVersion,
         pace: context.track.pace,

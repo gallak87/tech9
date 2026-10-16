@@ -2,8 +2,305 @@
   "generator": "Blender 5.1.1 / project-authored deterministic script",
   "source": "worldspire-environment.blend",
   "runtime": "worldspire-environment.glb",
-  "triangles": 62122,
-  "geometry": "Full monolith with two open twisting passages, a vertical Echo chamber, rooted slalom buttresses and Root Gate terrace; matching exported collision triangles",
-  "materials": "Original geometry/materials, contact-occlusion vertex colors, fitted Root Gate masonry and hidden editable resonance valve source; generated mineral-v2 texture recorded separately",
-  "seed": 401
+  "triangles": 219533,
+  "geometry": "Connected crystalline primary/satellite slabs with staggered sectional breaks, thick interlocking exterior shoulders with uneven split-column crowns and deep clefts, selectively consolidated interior planes, retained broken fracture lips and through-going unequal faults shared by the core and its inclined return, plus three broad oblique mineral ranges and unequal through-going clefts shared continuously by the lower root bed and its receiving shoulders; open ordinary sky-clefts, a stepped daylight Heart chamber and tall offset Echo vault whose unequal leaning mineral folds continue across core walls, crown haunches and buttresses, cut from actual all-hull ballistic columns, and an incoming-facing split Root crown grown continuously from two unequal folded mineral roots with grounded feet and open off-center clefts.",
+  "materials": "Metric mineral UVs, shared physical substrate and global contact occlusion; directional light remains entirely runtime.",
+  "seed": 401,
+  "geometryVersion": "worldspire-sprint-v5",
+  "routeSha256": "047fa195124a66ae143bcdffefa61803bdb6801e8348f7a16d96e759227aedc6",
+  "collisionTriangles": 219245,
+  "chunks": 46,
+  "anchors": 25,
+  "fixtures": 8,
+  "clearance": {
+    "roadSamples": 3081,
+    "flightSamples": 2430,
+    "roadMin": 39.5745849609375,
+    "flightMin": 20.53091812133789,
+    "failures": []
+  },
+  "geometryDigest": "5a5d97014713d291",
+  "chamberVolumes": [
+    {
+      "hero": "heart-chasm",
+      "object": "Heart chamber / interlocking descending mineral crown",
+      "origin": [-173.0766143798828, 0.0, 63.33510208129883],
+      "forward": [0.9439502358436584, 0.0, -0.3300877809524536],
+      "right": [-0.3300877809524536, 0.0, -0.9439502358436584],
+      "sections": [
+        {
+          "along": -180,
+          "ceiling": 5080.032998826424,
+          "halfWidth": 610.0
+        },
+        {
+          "along": -100.0,
+          "ceiling": 5056.832998826424,
+          "halfWidth": 597.3481481481482
+        },
+        {
+          "along": -70,
+          "ceiling": 5048.132998826424,
+          "halfWidth": 592.6037037037037
+        },
+        {
+          "along": -45.0,
+          "ceiling": 5027.832998826424,
+          "halfWidth": 588.65
+        },
+        {
+          "along": 10.0,
+          "ceiling": 5027.832998826424,
+          "halfWidth": 579.9518518518519
+        },
+        {
+          "along": 65.0,
+          "ceiling": 5027.832998826424,
+          "halfWidth": 571.2537037037036
+        },
+        {
+          "along": 100,
+          "ceiling": 5016.593773999558,
+          "halfWidth": 565.7185185185185
+        },
+        {
+          "along": 120.0,
+          "ceiling": 5010.563375143376,
+          "halfWidth": 562.5555555555555
+        },
+        {
+          "along": 175.0,
+          "ceiling": 4991.440338803837,
+          "halfWidth": 553.8574074074074
+        },
+        {
+          "along": 230.0,
+          "ceiling": 4970.765027595694,
+          "halfWidth": 545.1592592592592
+        },
+        {
+          "along": 285.0,
+          "ceiling": 4948.534637354726,
+          "halfWidth": 536.4611111111111
+        },
+        {
+          "along": 300,
+          "ceiling": 4948.534637354726,
+          "halfWidth": 534.0888888888888
+        },
+        {
+          "along": 340.0,
+          "ceiling": 4932.852608008585,
+          "halfWidth": 527.762962962963
+        },
+        {
+          "along": 395.0,
+          "ceiling": 4908.037023374075,
+          "halfWidth": 519.0648148148148
+        },
+        {
+          "along": 450.0,
+          "ceiling": 4881.666586032636,
+          "halfWidth": 510.3666666666667
+        },
+        {
+          "along": 500,
+          "ceiling": 4863.223730008251,
+          "halfWidth": 502.4592592592593
+        },
+        {
+          "along": 505.0,
+          "ceiling": 4853.743647496697,
+          "halfWidth": 501.6685185185185
+        },
+        {
+          "along": 560.0,
+          "ceiling": 4834.267445233351,
+          "halfWidth": 492.9703703703703
+        },
+        {
+          "along": 615.0,
+          "ceiling": 4803.757387505466,
+          "halfWidth": 484.2722222222222
+        },
+        {
+          "along": 670.0,
+          "ceiling": 4771.693748829137,
+          "halfWidth": 475.574074074074
+        },
+        {
+          "along": 725.0,
+          "ceiling": 4738.078261998229,
+          "halfWidth": 466.8759259259259
+        },
+        {
+          "along": 760,
+          "ceiling": 4726.52836929345,
+          "halfWidth": 461.3407407407407
+        },
+        {
+          "along": 780.0,
+          "ceiling": 4714.807041773214,
+          "halfWidth": 458.17777777777775
+        },
+        {
+          "along": 835.0,
+          "ceiling": 4678.602702956493,
+          "halfWidth": 449.47962962962964
+        },
+        {
+          "along": 840,
+          "ceiling": 4678.602702956493,
+          "halfWidth": 448.68888888888887
+        },
+        {
+          "along": 900,
+          "ceiling": 4640.846515985193,
+          "halfWidth": 439.2
+        }
+      ],
+      "depth": 360,
+      "recesses": 0,
+      "ribs": [
+        "Heart chamber / broken daylight shoulder",
+        "Heart chamber / receding eastern fracture shoulder"
+      ],
+      "daylightCleft": true
+    },
+    {
+      "hero": "echo-chasm",
+      "object": "Echo chamber / interlocking descending mineral crown",
+      "origin": [-546.76025390625, 0.0, -223.82374572753906],
+      "forward": [0.9998302459716797, 0.0, 0.018423711881041527],
+      "right": [0.018423711881041527, 0.0, -0.9998302459716797],
+      "sections": [
+        {
+          "along": -180,
+          "ceiling": 2661.6103968398706,
+          "halfWidth": 675.0
+        },
+        {
+          "along": -100.0,
+          "ceiling": 2638.410396839871,
+          "halfWidth": 658.741935483871
+        },
+        {
+          "along": -70,
+          "ceiling": 2629.710396839871,
+          "halfWidth": 652.6451612903226
+        },
+        {
+          "along": -45.0,
+          "ceiling": 2609.410396839871,
+          "halfWidth": 647.5645161290322
+        },
+        {
+          "along": 10.0,
+          "ceiling": 2609.410396839871,
+          "halfWidth": 636.3870967741935
+        },
+        {
+          "along": 65.0,
+          "ceiling": 2609.410396839871,
+          "halfWidth": 625.2096774193549
+        },
+        {
+          "along": 100,
+          "ceiling": 2598.171168036284,
+          "halfWidth": 618.0967741935484
+        },
+        {
+          "along": 120.0,
+          "ceiling": 2592.1407671174275,
+          "halfWidth": 614.0322580645161
+        },
+        {
+          "along": 175.0,
+          "ceiling": 2573.017724531132,
+          "halfWidth": 602.8548387096774
+        },
+        {
+          "along": 230.0,
+          "ceiling": 2552.342407004483,
+          "halfWidth": 591.6774193548388
+        },
+        {
+          "along": 285.0,
+          "ceiling": 2537.693719627642,
+          "halfWidth": 580.5
+        },
+        {
+          "along": 300,
+          "ceiling": 2530.11201035261,
+          "halfWidth": 577.4516129032259
+        },
+        {
+          "along": 340.0,
+          "ceiling": 2514.4299766792847,
+          "halfWidth": 569.3225806451613
+        },
+        {
+          "along": 395.0,
+          "ceiling": 2489.6143854921693,
+          "halfWidth": 558.1451612903226
+        },
+        {
+          "along": 450.0,
+          "ceiling": 2463.243941541806,
+          "halfWidth": 546.9677419354839
+        },
+        {
+          "along": 500,
+          "ceiling": 2444.801081038717,
+          "halfWidth": 536.8064516129032
+        },
+        {
+          "along": 505.0,
+          "ceiling": 2444.801081038717,
+          "halfWidth": 535.7903225806451
+        },
+        {
+          "along": 560.0,
+          "ceiling": 2415.8447894895394,
+          "halfWidth": 524.6129032258065
+        },
+        {
+          "along": 610,
+          "ceiling": 2385.334724942282,
+          "halfWidth": 514.4516129032257
+        },
+        {
+          "along": 615.0,
+          "ceiling": 2385.334724942282,
+          "halfWidth": 513.4354838709677
+        },
+        {
+          "along": 670.0,
+          "ceiling": 2353.2710793275255,
+          "halfWidth": 502.2580645161291
+        },
+        {
+          "along": 690,
+          "ceiling": 2342.239686221748,
+          "halfWidth": 498.19354838709677
+        },
+        {
+          "along": 750,
+          "ceiling": 2308.1056904259603,
+          "halfWidth": 486.0
+        }
+      ],
+      "depth": 460,
+      "recesses": 2,
+      "ribs": [
+        "Echo chamber / rooted offset west buttress",
+        "Echo chamber / rooted offset east buttress",
+        "Echo chamber / seated vertical split column 0",
+        "Echo chamber / seated vertical split column 1",
+        "Echo chamber / seated vertical split column 2",
+        "Echo chamber / seated vertical split column 3"
+      ],
+      "daylightCleft": false
+    }
+  ]
 }

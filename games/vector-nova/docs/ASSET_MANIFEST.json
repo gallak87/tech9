@@ -5,12 +5,13 @@
       "id": "worldspire-sprint",
       "source": "assets/levels/worldspire/",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",
-      "provenance": "User-selected Worldspire concept; original editable Blender monolith with two twisting through-passages, a vertical Echo chamber, rooted slalom buttresses and Root Gate terrace with matching collision geometry. Generated mineral texture and distant sky accompany the full 28.5 km sprint.",
-      "rights": "Original project geometry and imagery generated for this project; no third-party art supplied",
-      "runtimeDependencies": ["three"],
+      "provenance": "Original editable Blender mineral spire with connected ridges, two through-passages and chambers, unequal inclined lower mineral ranges, continuous folded finish roots and a fitted split crown. Matching physical collision is cut around exported hull and camera flight volumes. Generated mineral substrates and distant sky accompany a 14.01 km race plus 650 m runout. Three locally authored depth-aware volumetric cloud strata establish altitude; the road borrows separately registered Helion CC0 Concrete034 at its physical scale.",
+      "rights": "Project-authored geometry and shaders; imagery generated for this project; borrowed CC0 concrete separately registered.",
+      "runtimeDependencies": ["three", "helion-heat-ceramic"],
       "runtimeAssets": [
         "public/assets/levels/worldspire/worldspire-environment.glb",
-        "public/assets/levels/worldspire/mineral-v1.png",
+        "public/assets/levels/worldspire/mineral-v2.png",
+        "public/assets/levels/worldspire/fractured-obsidian-v1.png",
         "public/assets/levels/worldspire/sky-v1.png"
       ],
       "provenanceRecord": "assets/levels/worldspire/provenance.json"

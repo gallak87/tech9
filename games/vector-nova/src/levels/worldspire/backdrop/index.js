@@ -4,9 +4,16 @@ export async function createWorldspireBackdrop({
   shape = false,
   loadTexture = (u) => new T.TextureLoader().loadAsync(u),
 } = {}) {
-  const texture = shape
-    ? new T.DataTexture(new Uint8Array([160, 180, 198, 255]), 1, 1)
-    : await loadTexture(assetURL('assets/levels/worldspire/sky-v1.png'));
+  let texture;
+  try {
+    texture = shape
+      ? new T.DataTexture(new Uint8Array([160, 180, 198, 255]), 1, 1)
+      : await loadTexture(assetURL('assets/levels/worldspire/sky-v1.png'));
+  } catch (cause) {
+    throw new Error('The Worldspire sky could not load. Reload to try again.', {
+      cause,
+    });
+  }
   texture.colorSpace = T.SRGBColorSpace;
   texture.wrapS = T.RepeatWrapping;
   texture.wrapT = T.ClampToEdgeWrapping;

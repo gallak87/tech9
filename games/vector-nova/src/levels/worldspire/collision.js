@@ -31,23 +31,43 @@ export function createWorldspireCollisionWorld({ track }) {
     },
   });
   road.dispose();
-  triangles.push(
-    ...indexedTriangles(mineral.positions.flat(), mineral.indices, {
+  // Keep large exported worlds below JavaScript's argument-count ceiling.
+  for (const triangle of indexedTriangles(
+    mineral.positions.flat(),
+    mineral.indices,
+    {
       id: mineral.id,
       kind: 'structure',
-    }),
-  );
+    },
+  ))
+    triangles.push(triangle);
+  const bounds =
+    mineral.bounds ??
+    mineral.positions.reduce(
+      (b, p) => {
+        for (let axis = 0; axis < 3; axis++) {
+          b.min[axis] = Math.min(b.min[axis], p[axis]);
+          b.max[axis] = Math.max(b.max[axis], p[axis]);
+        }
+        return b;
+      },
+      {
+        min: [Infinity, Infinity, Infinity],
+        max: [-Infinity, -Infinity, -Infinity],
+      },
+    );
   targets.push({
     id: mineral.id,
     name: 'Worldspire / monolith, twin passages and Root Gate',
     kind: 'structure',
-    min: [-2800, -300, -2800],
-    max: [2800, track.spireHeight + 1600, 2800],
+    min: bounds.min,
+    max: bounds.max,
   });
   const world = createCollisionWorld({
     id: 'worldspire-sprint-solids',
     version: 1,
-    geometryId: track.geometryVersion + ':blender-v4',
+    geometryId:
+      track.geometryVersion + ':blender-' + (mineral.geometryDigest ?? 'v5'),
     triangles,
   });
   const owner = {

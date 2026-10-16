@@ -34,7 +34,12 @@ export function createWorldspireFinish(renderer, ceramic, mineral) {
             }
           })
       : Promise.resolve(),
-  ]);
+  ]).catch((cause) => {
+    throw new Error(
+      'The Worldspire road finish could not load. Reload to try again.',
+      { cause },
+    );
+  });
   return {
     ready,
     dispose() {

@@ -123,9 +123,9 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "1786ffaabe7172a6ab63a7b560c9cad914feac9b",
+      "sourceRevision": "4595ab65938ae5292969e7610dd1339bd737a2c3",
       "sourceDirty": true,
-      "routeSignature": "bc4bb20ca8e68ba4"
+      "routeSignature": "eb64e2a517948914"
     },
     "nightweir": {
       "file": "nightweir.webp",

@@ -15,13 +15,13 @@ export default {
     intro:
       'Dive around an alien monolith, roll above the clouds, then race through its mineral heart.',
     detail:
-      '13.1 km from crown to root. Nine jumps, three corkscrews and two passages through the spire.',
+      '14.0 km from crown to root. Three immense flights, four medium jumps, three corkscrews and two passages through the spire.',
     tag: 'WORLDSPIRE',
     tagDetail: 'SPRINT / THE AWAKENING',
     shape: {
       intro:
         'The complete crown-to-root descent and both through-spire crossings.',
-      detail: 'Nine jumps, three corkscrews and the Root Gate finish.',
+      detail: 'Seven jumps, three corkscrews and the Root Gate finish.',
     },
   },
 };

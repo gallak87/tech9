@@ -109,8 +109,8 @@ try {
         // Frame the crown and exposed road, rather than aiming through the
         // monolith toward the route's interior-weighted average.
         if (id === 'worldspire') {
-          camera.position.set(1800, 10800, -2500);
-          target.set(0, 8800, 0);
+          camera.position.set(1400, track.spireHeight + 650, -2200);
+          target.set(0, track.spireHeight - 1450, 0);
         }
         if (id === 'nightweir') {
           const station = track.curtains[2].s - 190;
@@ -135,8 +135,9 @@ try {
           requestAnimationFrame(() => requestAnimationFrame(done)),
         );
         game.setSuspended(true);
-        // Nightweir composes transparent water in linear HDR on both presets.
-        if (id !== 'nightweir') renderer.render(scene, camera);
+        // Preserve the ordinary composer result for owned water/cloud passes.
+        if (!['nightweir', 'worldspire'].includes(id))
+          renderer.render(scene, camera);
         const canvas = document.createElement('canvas');
         canvas.width = 640;
         canvas.height = 400;

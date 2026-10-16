@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import valve from '../../../../assets/levels/worldspire/resonance-kit.json' with { type: 'json' };
 
 // A deterministic presentation mutation. The wave travels down the mineral body;
@@ -7,6 +8,9 @@ export function awakeningPhase(track, distance) {
   return T.MathUtils.smoothstep(distance / track.finishDistance, 0.12, 0.92);
 }
 export function createAwakening(track, texture) {
+  // LTC lookup textures belong to Three's shared lighting uniforms. Reuse them
+  // across level lifecycles instead of allocating another set on every reset.
+  if (!T.UniformsLib.LTC_FLOAT_1) RectAreaLightUniformsLib.init();
   const group = new T.Group();
   group.name = 'Worldspire / the awakening';
   const skin = new T.MeshPhysicalMaterial({
@@ -22,12 +26,14 @@ export function createAwakening(track, texture) {
   });
   const inner = new T.MeshStandardMaterial({
     name: 'Worldspire / resonant amber mineral core',
-    color: '#8d4825',
+    map: texture,
+    emissiveMap: texture,
+    color: '#df8245',
     roughness: 0.5,
     metalness: 0.12,
     vertexColors: true,
     emissive: '#ff792a',
-    emissiveIntensity: 0.75,
+    emissiveIntensity: 5.2,
   });
   inner.onBeforeCompile = (shader) => {
     shader.vertexShader =
@@ -62,88 +68,29 @@ export function createAwakening(track, texture) {
   );
   geometry.setAttribute('uv', new T.Float32BufferAttribute(valve.uv, 2));
   geometry.computeVertexNormals();
-  const stations = [];
-  for (let row = 0; row < 11; row++) {
-    const y = track.spireHeight - 700 - (row * (track.spireHeight - 1600)) / 10;
-    for (let col = 0; col < 7; col++) {
-      const angle = (col * Math.PI * 2) / 7 + row * 0.11;
-      const radial = new T.Vector3(Math.cos(angle), 0, Math.sin(angle));
-      const base = track.spireRadius(y);
-      const r =
-        base *
-          (1 +
-            0.065 * Math.cos(angle * 13 + 0.00007 * y) +
-            0.035 * Math.cos(angle * 29 - 0.00011 * y)) +
-        12 * Math.sin(y * 0.003 + angle * 5) +
-        7 * Math.sin(y * 0.009 + angle * 9) +
-        22;
-      const center = radial.clone().multiplyScalar(r);
-      center.y = y;
-      // Decorative moving plates live far from every drivable/camera corridor.
-      let near = false;
-      for (let s = 0; s < track.length; s += 40) {
-        const p = track.sample(s).position;
-        if (p.distanceToSquared(center) < 230 * 230) {
-          near = true;
-          break;
-        }
-      }
-      if (near) continue;
-      const right = new T.Vector3(0, 1, 0).cross(radial);
-      const q = new T.Quaternion().setFromRotationMatrix(
-        new T.Matrix4().makeBasis(right, new T.Vector3(0, 1, 0), radial),
-      );
-      stations.push({
-        center,
-        right,
-        radial,
-        q,
-        y,
-        scale: 0.8 + 0.25 * Math.sin(row * 1.4 + col * 0.7),
-      });
-    }
-  }
-  // Hero openings are seated on measured exposed mineral faces seen from the
-  // ordinary approach cameras. Their clearance was checked against the route.
-  const anchors = [
-    {
-      point: [-58.7281, 4703.2347, 314.4407],
-      normal: [0.072317, 0.16696, 0.983308],
-      scale: 0.62,
-    },
-    {
-      point: [-52.70598, 2860.73523, 522.56579],
-      normal: [0.0429906, 0.2068387, 0.9774301],
-      scale: 0.52,
-    },
-    {
-      point: [-130.7194, 2784.1425, 562.2952],
-      normal: [-0.192264, 0.201958, 0.960337],
-      scale: 0.82,
-    },
-    {
-      point: [856.1993, 626.3446, 322.1035],
-      normal: [0.802228, 0.134762, -0.58161],
-      scale: 0.95,
-    },
-  ];
-  for (const a of anchors) {
-    const radial = new T.Vector3(...a.normal).normalize(),
-      right = new T.Vector3(0, 1, 0).cross(radial).normalize(),
-      up = radial.clone().cross(right).normalize(),
-      center = new T.Vector3(...a.point).addScaledVector(radial, 22);
-    stations.push({
-      center,
-      right,
+  // Blender exports seats on the actual fractured surface. Analytic cone
+  // positions cannot stay attached after the silhouette or passages change.
+  const heart = track.jumps.find((jump) => jump.id === 'heart-chasm');
+  const stations = (valve.anchors ?? []).map((anchor) => {
+    const radial = new T.Vector3(...anchor.normal).normalize();
+    const right = new T.Vector3(0, 1, 0).cross(radial).normalize();
+    const up = radial.clone().cross(right).normalize();
+    return {
+      center: new T.Vector3(...anchor.center),
       radial,
+      right,
       q: new T.Quaternion().setFromRotationMatrix(
         new T.Matrix4().makeBasis(right, up, radial),
       ),
-      y: center.y,
-      scale: a.scale,
-      hero: true,
-    });
-  }
+      scale: anchor.scale,
+      y: anchor.y,
+      distance: anchor.distance,
+      hero: Boolean(anchor.hero),
+      // The Heart's warm cores stay local so daylight can describe the cleft.
+      lightStrength:
+        heart && Math.abs(anchor.distance - heart.takeoff) < 1 ? 0.18 : 1,
+    };
+  });
   const plates = new T.InstancedMesh(geometry, skin, stations.length * 2);
   const coreGeometry = geometry.clone();
   coreGeometry.scale(0.65, 0.82, 0.6);
@@ -167,14 +114,21 @@ export function createAwakening(track, texture) {
     group.add(m);
     m.userData.decorative = true;
   }
+  // Two fixed slots keep the warmed shader layout stable. Their rectangular
+  // emission follows the exposed core, avoiding a point hotspot on its face.
+  const emissionRotation = new T.Quaternion().setFromAxisAngle(
+    new T.Vector3(0, 1, 0),
+    Math.PI,
+  );
   const lights = Array.from({ length: 2 }, () => {
-    const l = new T.PointLight('#ffc48a', 0, 600, 2);
+    const l = new T.RectAreaLight('#ffc48a', 0, 28, 220);
     group.add(l);
     return l;
   });
   const matrix = new T.Matrix4(),
     color = new T.Color(),
     scale = new T.Vector3();
+  group.userData.anchorCount = stations.length;
   let last = -1;
   const update = ({
     state = { distance: 0 },
@@ -186,13 +140,18 @@ export function createAwakening(track, texture) {
       override === null
         ? awakeningPhase(track, state.distance)
         : T.MathUtils.clamp(override, 0, 1);
-    if (phase !== last) {
-      const front = T.MathUtils.lerp(track.spireHeight + 650, -1600, phase);
+    // Surface seats carry route distance: a height-only wave can trail behind
+    // a steep drop or open the wrong turn when several roads share an altitude.
+    const front =
+      override === null
+        ? state.distance
+        : T.MathUtils.lerp(-1200, track.finishDistance + 1200, phase);
+    if (front !== last) {
       stations.forEach((v, i) => {
         const open = T.MathUtils.smoothstep(
-          v.y - front,
-          v.hero ? -140 : -350,
-          v.hero ? 140 : 350,
+          front,
+          v.distance - (v.hero ? 720 : 520),
+          v.distance - (v.hero ? 260 : 120),
         );
         v.open = open;
         for (const [j, side] of [-1, 1].entries()) {
@@ -226,9 +185,9 @@ export function createAwakening(track, texture) {
         cores.instanceMatrix.needsUpdate =
         roots.instanceMatrix.needsUpdate =
           true;
-      cores.instanceColor.needsUpdate = true;
+      if (cores.instanceColor) cores.instanceColor.needsUpdate = true;
       for (const m of [plates, cores, roots]) m.computeBoundingSphere();
-      last = phase;
+      last = front;
       group.userData.phase = phase;
     }
     if (camera) {
@@ -238,10 +197,17 @@ export function createAwakening(track, texture) {
         .sort((a, b) => a.d - b.d);
       lights.forEach((l, i) => {
         const v = near[i];
-        l.visible = !!v && v.d < 600 * 600;
+        l.intensity = v
+          ? 8 *
+            v.open *
+            v.lightStrength *
+            (1 - T.MathUtils.smoothstep(v.d, 460 * 460, 600 * 600))
+          : 0;
         if (v) {
-          l.position.copy(v.center).addScaledVector(v.radial, 24);
-          l.intensity = 11000 * v.open;
+          l.position.copy(v.center).addScaledVector(v.radial, 10);
+          l.width = 28 * v.scale;
+          l.height = 220 * v.scale;
+          l.quaternion.copy(v.q).multiply(emissionRotation);
         }
       });
     }

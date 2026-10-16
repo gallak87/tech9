@@ -75,10 +75,17 @@ export function createNightweirTrack() {
   const curve = new T.CatmullRomCurve3(points, false, 'centripetal');
   curve.arcLengthDivisions = 64000;
   curve.updateArcLengths();
-  const sourceLength = curve.getLength();
-  const at = (fraction) => sourceLength * fraction;
+  const cityLength = curve.getLength();
+  // The terminal basin needs a true hero receiver and the unchanged 650 m
+  // braking runout. This extension is real route, not stretched progress.
+  const sourceLength = cityLength + 850;
+  const at = (fraction) => cityLength * fraction;
   const curveTangent = (h) =>
-    curve.getTangentAt(clamp(h / sourceLength, 0, 1)).normalize();
+    curve.getTangentAt(clamp(h / cityLength, 0, 1)).normalize();
+  const guidePoint = (h) =>
+    curve
+      .getPointAt(clamp(h / cityLength, 0, 1))
+      .addScaledVector(curveTangent(cityLength), Math.max(0, h - cityLength));
   const definitions = [
     {
       id: 'upper-lock',
@@ -100,15 +107,15 @@ export function createNightweirTrack() {
       id: 'spillway-leap',
       label: 'Great Spillway',
       h: at(0.309),
-      gap: 110,
-      drop: 50,
-      receiving: 410,
+      gap: 440,
+      drop: 300,
+      receiving: 940,
       hero: true,
     },
     {
       id: 'market-cut',
       label: 'Market Cut',
-      h: at(0.434),
+      h: at(0.45),
       gap: 45,
       drop: 12,
       receiving: 210,
@@ -117,9 +124,9 @@ export function createNightweirTrack() {
       id: 'turbine-leap',
       label: 'Turbine Leap',
       h: at(0.565),
-      gap: 90,
-      drop: 38,
-      receiving: 350,
+      gap: 300,
+      drop: 150,
+      receiving: 640,
       hero: true,
     },
     {
@@ -142,9 +149,9 @@ export function createNightweirTrack() {
       id: 'harbor-leap',
       label: 'Harbor Leap',
       h: at(0.881),
-      gap: 105,
-      drop: 45,
-      receiving: 400,
+      gap: 440,
+      drop: 300,
+      receiving: 940,
       hero: true,
     },
   ];
@@ -170,10 +177,22 @@ export function createNightweirTrack() {
     if (jump && jump !== heldJump) heldHeading = heading;
     const tangent = curveTangent(h);
     // Follow the authored lobe after each receiver without position snapping.
-    const guide = curve.getPointAt(clamp((h + 75) / sourceLength, 0, 1));
+    const guide = guidePoint(h + 75);
     const toward = guide.sub(horizontal[i - 1]).normalize();
     tangent.lerp(toward, 0.9).normalize();
-    const target = jump ? heldHeading : Math.atan2(tangent.z, tangent.x);
+    // Two clear city connectors weave between terraces after the long
+    // straight receivers. Their bounded heading swings preserve racing lines.
+    let weave = 0;
+    for (const [start, end, angle] of [
+      [at(0.228), at(0.297), 0.65],
+      [at(0.698), at(0.77), 1.05],
+    ]) {
+      const u = clamp((h - start) / (end - start), 0, 1);
+      weave += angle * Math.sin(4 * Math.PI * u) * Math.sin(Math.PI * u) ** 2;
+    }
+    const target = jump
+      ? heldHeading
+      : Math.atan2(tangent.z, tangent.x) + weave;
     const difference = Math.atan2(
       Math.sin(target - heading),
       Math.cos(target - heading),
@@ -206,10 +225,13 @@ export function createNightweirTrack() {
     [0.074, 0.102],
     [0.166, 0.188],
     [0.227, 0.25],
+    [0.27, 0.298],
     [0.375, 0.402],
     [0.49, 0.516],
     [0.56, 0.593],
     [0.653, 0.675],
+    [0.708, 0.738],
+    [0.747, 0.775],
     [0.812, 0.837],
     [0.941, 0.966],
   ].map(([a, b]) => [at(a), at(b)]);
@@ -362,10 +384,10 @@ export function createNightweirTrack() {
     ['aqueduct', 'Aqueduct Corkscrew', at(0.1)],
     ['terraces', 'The Inhabited Terraces', at(0.175)],
     ['spillway', 'Great Spillway', at(0.27)],
-    ['market', 'Sluice Market', at(0.36)],
+    ['market', 'Sluice Market', at(0.425)],
     ['turbine', 'Turbine Corkscrew', at(0.478)],
     ['pumphouse', 'The Pump House', at(0.55)],
-    ['canals', 'Canal Switchbacks', at(0.623)],
+    ['canals', 'Canal Switchbacks', at(0.65)],
     ['low-weir', 'The Lower Weirs', at(0.73)],
     ['harbor-coil', 'Harbor Corkscrew', at(0.81)],
     ['harbor', 'Harbor Leap', at(0.86)],
@@ -422,7 +444,7 @@ export function createNightweirTrack() {
   return {
     id: 'nightweir-sprint',
     name: 'Nightweir',
-    geometryVersion: 'nightweir-sprint-v2',
+    geometryVersion: 'nightweir-sprint-v3',
     closed: false,
     width: WIDTH,
     length,
@@ -442,7 +464,7 @@ export function createNightweirTrack() {
     distanceAt,
     pointAtSource: rawPoint,
     interiors: [],
-    curtains: [0.027, 0.242, 0.394, 0.616, 0.719, 0.913].map((v, i) => ({
+    curtains: [0.027, 0.242, 0.394, 0.616, 0.719, 0.957].map((v, i) => ({
       id: 'curtain-' + i,
       s: distanceAt(at(v)),
     })),
@@ -460,7 +482,7 @@ export function createNightweirTrack() {
     review: {
       kind: 'bare-track',
       description:
-        'Stormwater descent: eight jumps, three corkscrews, wet spillway crossings and the receiving harbor quay.',
+        'Blackstart descent: eight jumps, three corkscrews, hydroelectric districts and the receiving harbor quay.',
     },
   };
 }

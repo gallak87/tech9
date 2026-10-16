@@ -1,11 +1,14 @@
 import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { finishNightweirMetal } from './materials.js';
+import { createNacreOceanNormals } from '../../nacre/environment/ocean-normals.js';
+import { createNacreOceanClock } from '../../nacre/environment/ocean-clock.js';
+import { createFallingWaterMaterial } from './falling-water.js';
+import { createTurbineWater } from './turbine-water.js';
 import { NACRE_WAVE_GLSL } from '../../nacre/environment/ocean-waves.js';
-import { wetnessAt } from '../../zephyr/environment/atmosphere.js';
 import kit from '../../../../assets/levels/nightweir/water-kit.json' with { type: 'json' };
-const bed = (z) =>
-  Math.max(-45, Math.floor((2750 - 0.55 * (z + 350)) / 360) * 360);
+const basins = kit.basins;
+const bed = (z) => (basins.find((b) => z < b.end) ?? basins.at(-1)).y;
 export const floodgatePhase = (track, distance) =>
   T.MathUtils.clamp(distance / track.finishDistance, 0, 1);
 export function createNightweirWater(track) {
@@ -13,41 +16,44 @@ export function createNightweirWater(track) {
   group.name = 'Nightweir / the floodgates';
   const geometries = new Set(),
     materials = new Set();
+  const rippleTexture = createNacreOceanNormals();
+  const flowClock = createNacreOceanClock();
   const clock = { value: 0 },
     opening = { value: 0 };
+  const turbineWater = createTurbineWater(
+    kit.turbineWater ?? [],
+    clock,
+    rippleTexture,
+  );
+  group.add(turbineWater.group);
   // Reuse Nacre's analytic wave field at a sheltered harbor amplitude. This is
   // presentation water; it never substitutes a wave mesh for the solid road.
   const basinPieces = [];
-  let beginning = -1300,
-    level = bed(beginning);
-  for (let z = -1295; z <= 6500; z += 5) {
-    const next = bed(z);
-    if (next !== level || z === 6500) {
-      const length = z - beginning,
-        g = new T.PlaneGeometry(
-          1840,
-          length,
-          46,
-          Math.max(2, Math.ceil(length / 40)),
-        );
-      g.rotateX(-Math.PI / 2);
-      g.translate(0, level + 4, (beginning + z) / 2);
-      basinPieces.push(g);
-      beginning = z;
-      level = next;
-    }
+  for (const { start, end, y, left, right } of basins) {
+    const width = right - left,
+      length = end - start;
+    const g = new T.PlaneGeometry(
+      width,
+      length,
+      Math.ceil(width / 40),
+      Math.max(2, Math.ceil(length / 40)),
+    );
+    g.rotateX(-Math.PI / 2);
+    g.translate((left + right) / 2, y + 4, (start + end) / 2);
+    basinPieces.push(g);
   }
   const riverGeometry = mergeGeometries(basinPieces);
   basinPieces.forEach((g) => g.dispose());
   geometries.add(riverGeometry);
   const river = new T.MeshStandardMaterial({
     name: 'Nightweir / sheltered flowing basin',
-    color: '#284653',
-    roughness: 0.26,
-    metalness: 0.18,
+    color: '#29484b',
+    roughness: 0.22,
+    metalness: 0.12,
   });
   river.onBeforeCompile = (shader) => {
     shader.uniforms.waterTime = clock;
+    shader.uniforms.basinRipples = { value: rippleTexture };
     shader.vertexShader =
       'uniform float waterTime;varying vec3 waterPoint;\n' +
       NACRE_WAVE_GLSL +
@@ -62,33 +68,39 @@ export function createNightweirWater(track) {
           '#include <beginnormal_vertex>\nNacreOcean wn=nacreOcean(position.xz,waterTime,vec3(.055,0.,0.),vec3(50.,0.,0.));objectNormal=normalize(normal+(wn.normal-vec3(0.,1.,0.))*.35);',
         );
     shader.fragmentShader =
-      'varying vec3 waterPoint;uniform float waterTime;\n' +
-      shader.fragmentShader.replace(
-        '#include <roughnessmap_fragment>',
-        '#include <roughnessmap_fragment>\nfloat ripple=sin(waterPoint.x*.07+sin(waterPoint.z*.11)*2.-waterTime*.4)*sin(waterPoint.z*.06+waterTime*.3);roughnessFactor=.27+.045*ripple;',
-      );
+      'varying vec3 waterPoint;uniform float waterTime;uniform sampler2D basinRipples;\n' +
+      shader.fragmentShader
+        .replace(
+          '#include <roughnessmap_fragment>',
+          `#include <roughnessmap_fragment>
+        vec2 current=vec2(waterTime*.00025,waterTime*.0007);
+        vec2 broad=texture2D(basinRipples,waterPoint.xz*.004+current).rg*2.-1.;
+        vec2 fine=texture2D(basinRipples,waterPoint.xz*.045-current*4.).rg*2.-1.;
+        float nearRipple=1.-smoothstep(400.,2400.,length(vViewPosition));
+        vec2 slope=broad*.48+fine*.22*nearRipple;
+        roughnessFactor=.21+min(.10,length(broad)*.22);
+      `,
+        )
+        .replace(
+          '#include <normal_fragment_maps>',
+          `#include <normal_fragment_maps>
+        // Mipmapped wind/current ripples break the reflected sky at basin scale;
+        // the coarse analytic wave mesh still supplies the underlying normal.
+        normal=normalize(normal+mat3(viewMatrix)*vec3(slope.x,0.,slope.y));
+      `,
+        );
   };
-  river.customProgramCacheKey = () => 'nightweir-nacre-basin-v1';
+  river.customProgramCacheKey = () => 'nightweir-nacre-basin-v2';
   materials.add(river);
   const basin = new T.Mesh(riverGeometry, river);
   basin.name = 'Nightweir / falling river and lower basin';
   basin.userData.aoExclude = true;
   group.add(basin);
-  const waterMaterial = new T.ShaderMaterial({
-    name: 'Nightweir / source-fed spillway sheets',
-    side: T.DoubleSide,
-    transparent: true,
-    depthWrite: false,
-    forceSinglePass: true,
-    uniforms: { waterTime: clock, flood: opening },
-    vertexShader: `attribute float sourcePhase;attribute float crossed;attribute float releaseAt;attribute float sheetWidth;varying float vWidth;varying float vGate;varying vec2 vFlow;varying float vPhase;varying float vCross;varying vec3 vWorld;void main(){vWidth=sheetWidth;vGate=releaseAt;vFlow=uv;vPhase=sourcePhase;vCross=crossed;vec4 world=modelMatrix*vec4(position,1.);vWorld=world.xyz;gl_Position=projectionMatrix*viewMatrix*world;}`,
-    fragmentShader: `uniform float waterTime;uniform float flood;varying float vWidth;varying float vGate;varying vec2 vFlow;varying float vPhase;varying float vCross;varying vec3 vWorld;
- float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
- void main(){float fall=vFlow.y-waterTime*(15.+vPhase*2.);float strands=noise(vec2(vFlow.x*.42,fall*.045))+noise(vec2(vFlow.x*1.8,fall*.13))*.3;float edge=smoothstep(0.,2.5,vFlow.x)*(1.-smoothstep(vWidth-2.5,vWidth,vFlow.x));float foam=smoothstep(.66,.95,strands);float released=mix(smoothstep(fract(vPhase*.618)*.65,fract(vPhase*.618)*.65+.35,flood),smoothstep(vGate-.0242,vGate-.00646,flood),vCross);float open=.3+.7*released;float opacity=mix(.68,.25,vCross)*(.32+strands*.6)*edge*open;vec3 color=mix(vec3(.13,.27,.32),vec3(.76,.84,.84),foam*.85+strands*.23);gl_FragColor=vec4(color,opacity);
- #include <tonemapping_fragment>
- #include <colorspace_fragment>
- }`,
-  });
+  const waterMaterial = createFallingWaterMaterial(
+    clock,
+    opening,
+    rippleTexture,
+  );
   materials.add(waterMaterial);
   const pos = [],
     uv = [],
@@ -96,6 +108,8 @@ export function createNightweirWater(track) {
     cross = [],
     releases = [],
     widths = [],
+    heights = [],
+    rights = [],
     indices = [];
   const foamCenters = [],
     impactFrames = [];
@@ -110,27 +124,45 @@ export function createNightweirWater(track) {
     const top = new T.Vector3(...fall.top),
       right = new T.Vector3(...fall.right),
       outward = new T.Vector3(right.z, 0, -right.x),
-      n = 16,
+      n = 32,
+      columns = Math.max(4, Math.ceil(fall.width / 8)),
       offset = pos.length / 3;
     // Dams spill toward +Z. The default curtain normal points upstream and
     // bowed five metres into a wall only four metres behind the spill mouth.
     if (fall.kind === 'dam') outward.negate();
     for (let i = 0; i <= n; i++) {
-      const down = (fall.height * i) / n;
-      for (const side of [-1, 1]) {
-        const p = top.clone().addScaledVector(right, (side * fall.width) / 2);
+      const fraction = (i / n) ** 2,
+        down = fall.height * fraction,
+        belly = Math.sin(fraction * Math.PI);
+      for (let j = 0; j <= columns; j++) {
+        const x = (j / columns) * fall.width,
+          p = top.clone().addScaledVector(right, x - fall.width / 2),
+          rope =
+            Math.sin(x * 0.21 + fall.seed) * 0.7 +
+            Math.sin(x * 0.49 + fall.seed * 3) * 0.3;
         p.y -= down;
-        p.addScaledVector(outward, Math.sin((i / n) * Math.PI) * 5);
+        // Corrugated surface relief catches the borrowed city reflection. Its
+        // entire envelope stays downstream, with fixed lip/impact attachments.
+        p.addScaledVector(outward, belly * (5 + rope * 1.4));
         pos.push(...p.toArray());
-        uv.push(side < 0 ? 0 : fall.width, down);
+        uv.push(x, down);
         seeds.push(fall.seed);
         cross.push(fall.kind === 'crossing' ? 1 : 0);
         releases.push((fall.distance ?? 0) / track.finishDistance);
         widths.push(fall.width);
-      }
-      if (i < n) {
-        let k = offset + i * 2;
-        indices.push(k, k + 2, k + 1, k + 1, k + 2, k + 3);
+        heights.push(fall.height);
+        rights.push(...right.toArray());
+        if (i < n && j < columns) {
+          const k = offset + i * (columns + 1) + j;
+          indices.push(
+            k,
+            k + columns + 1,
+            k + 1,
+            k + 1,
+            k + columns + 1,
+            k + columns + 2,
+          );
+        }
       }
     }
     impactFrames.push({
@@ -154,7 +186,10 @@ export function createNightweirWater(track) {
   g.setAttribute('crossed', new T.Float32BufferAttribute(cross, 1));
   g.setAttribute('releaseAt', new T.Float32BufferAttribute(releases, 1));
   g.setAttribute('sheetWidth', new T.Float32BufferAttribute(widths, 1));
+  g.setAttribute('sheetHeight', new T.Float32BufferAttribute(heights, 1));
+  g.setAttribute('flowRight', new T.Float32BufferAttribute(rights, 3));
   g.setIndex(indices);
+  g.computeVertexNormals();
   g.computeBoundingSphere();
   geometries.add(g);
   const sheets = new T.Mesh(g, waterMaterial);
@@ -182,7 +217,7 @@ export function createNightweirWater(track) {
     transparent: true,
     depthWrite: false,
     uniforms: { waterTime: clock },
-    vertexShader: `uniform float waterTime;attribute vec2 seedSize;varying float fade;void main(){float phase=fract(waterTime*.19+seedSize.x);vec3 p=position+vec3(sin(seedSize.x*7.)*phase*9.,phase*14.,cos(seedSize.x*11.)*phase*9.);vec4 v=modelViewMatrix*vec4(p,1.);gl_PointSize=min(100.,seedSize.y*500./max(8.,-v.z));fade=sin(phase*3.14159)*.13;gl_Position=projectionMatrix*v;}`,
+    vertexShader: `uniform float waterTime;attribute vec2 seedSize;varying float fade;void main(){float phase=fract(waterTime*.19+seedSize.x);vec3 p=position+vec3(sin(seedSize.x*7.)*phase*9.,phase*28.,cos(seedSize.x*11.)*phase*9.);vec4 v=modelViewMatrix*vec4(p,1.);gl_PointSize=min(100.,seedSize.y*500./max(8.,-v.z));fade=sin(phase*3.14159)*.11;gl_Position=projectionMatrix*v;}`,
     fragmentShader:
       `varying float fade;void main(){float a=(1.-smoothstep(.1,.5,length(gl_PointCoord-.5)))*fade;gl_FragColor=vec4(.65,.78,.81,a);#include <tonemapping_fragment>\n#include <colorspace_fragment>}`.replace(
         'a);#include',
@@ -208,7 +243,7 @@ export function createNightweirWater(track) {
     vertexShader: `varying vec2 poolUV;varying vec3 poolWorld;void main(){poolUV=uv;vec4 w=modelMatrix*instanceMatrix*vec4(position,1.);poolWorld=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`,
     fragmentShader: `uniform float waterTime;varying vec2 poolUV;varying vec3 poolWorld;
  float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
- void main(){vec2 p=poolWorld.xz;float n=noise(p*.16+vec2(waterTime*.2,waterTime*.8));float fine=noise(p*.7+vec2(n*2.,waterTime));float edge=smoothstep(0.,.05,poolUV.x)*(1.-smoothstep(.95,1.,poolUV.x));float shape=1.-smoothstep(.16,.5,abs(poolUV.y-.5)+n*.15);float a=edge*shape*smoothstep(.26,.76,n+fine*.25)*.5;gl_FragColor=vec4(vec3(.49,.64,.66),a);
+ void main(){vec2 p=poolWorld.xz;float n=noise(p*.16+vec2(waterTime*.2,waterTime*.8));float fine=noise(p*.7+vec2(n*2.,waterTime));float edge=smoothstep(0.,.05,poolUV.x)*(1.-smoothstep(.95,1.,poolUV.x));float spread=abs(poolUV.y-.5)*2.;float shape=1.-smoothstep(.12,.96,spread+n*.18);float a=edge*shape*smoothstep(.20,.74,n+fine*.3)*.64;gl_FragColor=vec4(vec3(.55,.65,.66),a);
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
  }`,
@@ -257,10 +292,13 @@ export function createNightweirWater(track) {
   }
   gateGeometry.setAttribute('color', new T.Float32BufferAttribute(colors, 3));
   gateMaterial.vertexColors = true;
+  const portalSources = (
+    kit.gates ?? track.curtains.map((_, sourceIndex) => ({ sourceIndex }))
+  ).map(({ sourceIndex }) => track.curtains[sourceIndex]);
   const gates = new T.InstancedMesh(
     gateGeometry,
     gateMaterial,
-    track.curtains.length,
+    portalSources.length,
   );
   gates.name = 'Nightweir / rising sluice leaves';
   group.add(gates);
@@ -278,18 +316,18 @@ export function createNightweirWater(track) {
   const hoists = new T.InstancedMesh(
       hoistGeometry,
       hoistMaterial,
-      track.curtains.length * 2,
+      portalSources.length * 2,
     ),
     weights = new T.InstancedMesh(
       hoistGeometry,
       hoistMaterial,
-      track.curtains.length * 2,
+      portalSources.length * 2,
     );
   hoists.name = 'Nightweir / gate lifting stems';
   weights.name = 'Nightweir / descending counterweights';
   group.add(hoists, weights);
 
-  for (const material of [waterMaterial, sprayMaterial, impactMaterial]) {
+  for (const material of [sprayMaterial, impactMaterial]) {
     material.fog = true;
     Object.assign(material.uniforms, T.UniformsUtils.clone(T.UniformsLib.fog));
     material.vertexShader =
@@ -315,21 +353,29 @@ export function createNightweirWater(track) {
   return {
     group,
     setReflection(texture) {
+      turbineWater.setReflection(texture);
+      waterMaterial.envMap = texture;
+      waterMaterial.needsUpdate = true;
       river.envMap = texture;
-      river.envMapIntensity = 0.65;
+      river.envMapIntensity = 1.0;
       river.needsUpdate = true;
     },
-    update({ state = { distance: 0 }, time = 0, settings = {} } = {}) {
+    update(frame = {}) {
       if (disposed) return;
-      clock.value = settings.reducedMotion ? 0 : time;
+      const { state = { distance: 0 }, settings = {} } = frame;
+      // Water runs while waiting for green, then carries that phase into the
+      // simulation. Pressure gates still follow the driver's actual position.
+      const flowTime = flowClock(frame);
+      clock.value = settings.reducedMotion ? 0 : flowTime;
       group.userData.flowTime = clock.value;
+      turbineWater.update();
       const phase =
         group.userData.phaseOverride ?? floodgatePhase(track, state.distance);
       opening.value = phase;
       group.userData.phase = phase;
-      group.userData.wetness = wetnessAt(track, state.distance);
+      group.userData.wetness = 0;
       if (last !== phase) {
-        track.curtains.forEach((c, i) => {
+        portalSources.forEach((c, i) => {
           const open =
             group.userData.phaseOverride ??
             T.MathUtils.smoothstep(state.distance, c.s - 300, c.s - 80);
@@ -376,6 +422,8 @@ export function createNightweirWater(track) {
       if (disposed) return;
       disposed = true;
       for (const mesh of [gates, hoists, weights, impacts]) mesh.dispose();
+      turbineWater.dispose();
+      rippleTexture.dispose();
       geometries.forEach((g) => g.dispose());
       materials.forEach((m) => m.dispose());
       group.clear();

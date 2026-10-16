@@ -3,14 +3,28 @@
   "seed": 773,
   "source": "nightweir-city.blend",
   "runtime": "nightweir-city.glb.gz",
-  "triangles": 1928900,
-  "districts": 14,
-  "solidTriangles": 667556,
-  "inhabitedTerraces": 72,
-  "waterfalls": 41,
-  "geometry": "Occupied terraces with deep returning facades, open gallery arches, service entries, hydraulic gate frames, bridge foundations, sawtooth receiving halls and a working barge harbor",
   "encoding": {
     "compression": "gzip",
-    "decompressedSha256": "d649b324c4e6791e24f55acebd0676261783b50ca1d88a0fa8b4dfc59222f1ec"
-  }
+    "decompressedSha256": "c3316110c0fb676b45d8eee23bef9a30d08a1d33b0b92ff84c3a966629b43200"
+  },
+  "triangles": 1733312,
+  "districts": 17,
+  "solidTriangles": 286448,
+  "inhabitedTerraces": 187,
+  "connectedWards": {
+    "Reservoir Ward": 26,
+    "Crescent Ward": 24,
+    "Terrace Ward": 23,
+    "Market Ward": 24,
+    "Canal Works": 13,
+    "Lower Ward": 62,
+    "Canal far-bank pressure exchange": 1,
+    "Lower Market service street": 4,
+    "Lower pressure works": 1
+  },
+  "waterfalls": 25,
+  "activeTurbines": 2,
+  "hydraulicCircuits": 2,
+  "flightCorridors": 8,
+  "geometry": "Blackstart hydroelectric gorge: unequal human-scale occupied courts, municipal frontage, high-bay generating halls, pressure penstocks, route-derived impoundments, rooted upper city and working harbor"
 }

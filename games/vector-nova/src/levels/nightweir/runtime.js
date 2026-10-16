@@ -1,4 +1,3 @@
-import { wetnessAt } from '../zephyr/environment/atmosphere.js';
 import { createFlightModel } from '../../physics/flight.js';
 export const NIGHTWEIR_RULES = Object.freeze({
   gravity: 26,
@@ -14,23 +13,21 @@ const model = createFlightModel(NIGHTWEIR_RULES);
 export function createNightweirRuntime(context) {
   return model.createRuntime(context, {
     id: 'nightweir-sprint-flight',
-    version: 3,
+    version: 4,
     rulesId:
-      'nightweir-v3:' +
+      'nightweir-v4:' +
       JSON.stringify({
         geometry: context.track.geometryVersion,
         pace: context.track.pace,
         jumps: context.track.jumps,
         rules: model.rules,
         curtains: context.track.curtains,
-        waterSurface: { gripReduction: 0.14, drag: 0.8 },
+        waterSurface: { crossings: false },
       }),
-    groundOptions: ({ state }) => {
-      const wet = wetnessAt(context.track, state.distance);
+    groundOptions: () => {
       return {
         pace: context.track.pace,
         supportHeight: 0.04,
-        surface: { grip: 1 - 0.14 * wet, drag: 0.8 * wet },
       };
     },
     supportHeight: 0.04,

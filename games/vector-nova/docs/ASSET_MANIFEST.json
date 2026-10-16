@@ -19,17 +19,22 @@
       "id": "nightweir-sprint",
       "source": "assets/levels/nightweir/",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",
-      "provenance": "Original editable Blender stormwater city and matching collision geometry, source-fed water, moving sluice gates and generated distant sky. Municipal road borrows the separately registered Halcyon CC0 asphalt; masonry borrows the Helion CC0 Concrete034 substrate. Full race 12.4 km plus 650 m receiving quay.",
-      "rights": "Original project geometry and generated imagery; borrowed textures retain their registered CC0 provenance.",
+      "provenance": "Original editable Blender stormwater city and matching collision geometry, source-fed water, moving sluice gates and generated distant sky. Municipal road borrows the separately registered Halcyon CC0 asphalt; masonry borrows the Helion CC0 Concrete034 substrate. Waterfalls reuse Nacre\u2019s Tech9-derived procedural mipmapped ripple normals with locally authored gravity-based flow and aeration, borrowing the existing city probe. Blackstart restores district windows and turbines ahead of the driver. Authored hydraulic anchors connect turbine feeds, discharges and contained tailraces; runtime jets, foam and lit spray reuse the water clock and fixed work-light pool. Rooted gorge ledges use a project-generated fractured strata texture with separately registered Shatterline limestone as fine detail. Full race 13.58 km plus 650 m receiving quay.",
+      "rights": "Project-authored geometry and generated sky, brick, gorge, zinc and scree textures; borrowed materials separately registered.",
       "runtimeDependencies": [
         "three",
         "halcyon-asphalt",
-        "helion-heat-ceramic"
+        "helion-heat-ceramic",
+        "shatterline-limestone"
       ],
       "provenanceRecord": "assets/levels/nightweir/provenance.json",
       "runtimeAssets": [
         "public/assets/levels/nightweir/nightweir-city.glb.gz",
-        "public/assets/levels/nightweir/sky-v1.png"
+        "public/assets/levels/nightweir/sky-v1.png",
+        "public/assets/levels/nightweir/fired-brick-v1.png",
+        "public/assets/levels/nightweir/gorge-strata-v1.png",
+        "public/assets/levels/nightweir/zinc-roof-v1.png",
+        "public/assets/levels/nightweir/damp-scree-v1.png"
       ]
     },
     {

@@ -383,9 +383,13 @@ export async function createRenderer(
         }
         renderer.info.reset();
         renderer.shadowMap.needsUpdate = true;
-        // Compile level passes before readiness so entering a field cannot trigger
-        // their first shader compile. Owners provide an inert initial state.
-        const enabled = [...worldPasses].map((pass) => [pass, pass.enabled]);
+        // Compile deferred passes before readiness. The speed blur starts at
+        // zero strength, but still needs its shader before the first acceleration.
+        // Level pass owners likewise provide an inert initial state.
+        const enabled = [racingBlur, ...worldPasses].map((pass) => [
+          pass,
+          pass.enabled,
+        ]);
         try {
           for (const [pass] of enabled) pass.enabled = true;
           composer.render(0);

@@ -3,7 +3,7 @@
   "createdDate": "2026-10-13",
   "dateTimezone": "America/Los_Angeles",
   "generator": "Built-in image_gen.imagegen for imagery; Blender 5.1.1 for original geometry",
-  "rights": "Project-authored geometry and generated sky; borrowed surface materials are separately registered CC0 assets.",
+  "rights": "Project-authored geometry and generated sky, brick, gorge, zinc and scree textures; borrowed surface materials are separately registered.",
   "reference": {
     "image": "reference/nightweir-v1.png",
     "sha256": "4468371cadf9ef0f622a1e6d998387e3928d423a4342d865bcf6e92fe42760cc",
@@ -14,25 +14,55 @@
   "runtimeAssets": [
     {
       "file": "public/assets/levels/nightweir/nightweir-city.glb.gz",
-      "bytes": 26488605,
-      "sha256": "6ce7ae120337947a5daf3228254af31f24684571a72e5a33ffdea91f7bdb6ea3"
+      "bytes": 28340762,
+      "sha256": "175261f4961e6a451ac7b2b3eade826d2d298680ecc813f07c5546e9ac3f0d11"
     },
     {
       "file": "public/assets/levels/nightweir/sky-v1.png",
       "bytes": 1771787,
       "sha256": "3bd978010905bf76009269e8f79922e6aafefb3e50f269fd469ca2a22ec63483"
+    },
+    {
+      "file": "public/assets/levels/nightweir/fired-brick-v1.png",
+      "bytes": 3893913,
+      "sha256": "60edeb890577586a5eb9e0fb4f256ad8362790a8cb0430ff56aacb6838493343"
+    },
+    {
+      "file": "public/assets/levels/nightweir/gorge-strata-v1.png",
+      "bytes": 4074857,
+      "sha256": "21d7e9c651750520209a3d8ea63e83c88ce27ec781f9dc4793b328fbb9244675"
+    },
+    {
+      "file": "public/assets/levels/nightweir/zinc-roof-v1.png",
+      "bytes": 3017096,
+      "sha256": "0c34f0e58957a7434e15fa3e967e6e4f0ea7836efd6d0a621343e65a400d2a5e"
+    },
+    {
+      "file": "public/assets/levels/nightweir/damp-scree-v1.png",
+      "bytes": 4104367,
+      "sha256": "dabbcda1836edb06be359f5a197e02af8b499d666852fc67166f4e49e8ebdc0c"
     }
   ],
-  "updatedDate": "2026-10-14",
+  "updatedDate": "2026-10-15",
   "authoring": {
     "seed": 773,
-    "routeGeometry": "nightweir-sprint-v2",
-    "collisionGeometry": "nightweir-sprint-v2:blender-v2",
-    "runtimeRules": "nightweir-v3",
+    "routeGeometry": "nightweir-sprint-v3",
+    "collisionGeometry": "nightweir-sprint-v3:blender-v3",
+    "runtimeRules": "nightweir-v4",
     "editableScene": "nightweir-city.blend",
     "generator": "build_assets.py",
     "routeExporter": "export-route.mjs",
-    "geometryRecord": "model-provenance.json"
+    "geometryRecord": "model-provenance.json",
+    "helpers": [
+      "blackstart_canal.py",
+      "blackstart_cliffs.py",
+      "blackstart_harbor.py",
+      "blackstart_lower_works.py",
+      "blackstart_market.py",
+      "blackstart_quarter_street.py",
+      "blackstart_spillway.py",
+      "blackstart_turbine.py"
+    ]
   },
   "sky": {
     "source": "sky-v1.png",
@@ -64,38 +94,146 @@
       "provenance": "assets/levels/helion/ceramic/provenance.json",
       "runtimeDirectory": "public/assets/levels/helion/ceramic/",
       "usage": "Concrete and masonry substrate with local formwork, rain and waterline staining."
+    },
+    {
+      "id": "shatterline-limestone",
+      "generator": "Built-in image_gen.imagegen",
+      "provenance": "assets/levels/shatterline/rock-provenance-v1.json",
+      "runtimeAsset": "public/assets/levels/shatterline/limestone-v1.png",
+      "usage": "Fine triplanar mineral detail beneath the original Nightweir gorge strata."
     }
   ],
   "authoringFiles": [
     {
       "file": "assets/levels/nightweir/nightweir-city.blend",
-      "bytes": 36023399,
-      "sha256": "7614dc4c0c519827f6b49c5e949830d9c58bdbb8b4e73c7efc3aa42beb59338d"
+      "bytes": 41108792,
+      "sha256": "a86bd51e66049fd786148b658fcbfd9b86e32013e4a28dd34d01e95d59a221ec"
     },
     {
       "file": "assets/levels/nightweir/build_assets.py",
-      "bytes": 27350,
-      "sha256": "bec341c3f3db142dbe5fc4fb055ea269eb41a2dc7a5a2561ddd10da96551ea9e"
+      "bytes": 143891,
+      "sha256": "8d7a92c46e6166257d193302162e3d93ce7925665bbd8056fe20d2c67c1d88ce"
     },
     {
       "file": "assets/levels/nightweir/export-route.mjs",
-      "bytes": 671,
-      "sha256": "36a8f9e26ae1363278ecb81d11a2f1c34d5b53a469ea5b0d73de7546af0c0a2a"
+      "bytes": 4011,
+      "sha256": "2a5df757d00042486348599f2b959ab64802474b7f57200d773bcfa8fc5a8ca2"
     },
     {
       "file": "assets/levels/nightweir/route-source.json",
-      "bytes": 315505,
-      "sha256": "ad1535a286a9f22b4285be2e9099e03191f4b7244d1449536107aeb611492e5a"
+      "bytes": 1008584,
+      "sha256": "6f583683fd0dca56b54c8e0b0e36c5500ddfac0547b50aba793d163d09d59106"
     },
     {
       "file": "assets/levels/nightweir/collision-kit.json",
-      "bytes": 32781086,
-      "sha256": "887373cb4540685fab9a2364b51a8fa73b180659edb14705b81ea0f8a8906ef3"
+      "bytes": 17204878,
+      "sha256": "aef6fa9b2380c65cd399b93b0710a4dcde8f50df14ddd2681f767af837cfb300"
     },
     {
       "file": "assets/levels/nightweir/water-kit.json",
-      "bytes": 48284,
-      "sha256": "43ec9ae125324095fc14355a28ec7ef11692bce5d967bb94122927fbff9836c1"
+      "bytes": 49288,
+      "sha256": "c86a64a199ab45ae6e32fdcef685b3530ad040f2a6415d6301a6529c7198acba"
+    },
+    {
+      "file": "assets/levels/nightweir/model-provenance.json",
+      "bytes": 993,
+      "sha256": "cf7207f3ab510bf69b193c42e5ba92960dd8eb9ad952040452d32534de49ed97"
+    },
+    {
+      "file": "assets/levels/nightweir/blackstart_canal.py",
+      "bytes": 10718,
+      "sha256": "53ee4e27c99c61220d31ce8c31b866d26d06a8f6d069add6c8701abcfcbfc879"
+    },
+    {
+      "file": "assets/levels/nightweir/blackstart_cliffs.py",
+      "bytes": 47130,
+      "sha256": "61366ade0c0235095c89c0383410ea43a88d9eb13262494f6e33538252ba5406"
+    },
+    {
+      "file": "assets/levels/nightweir/blackstart_harbor.py",
+      "bytes": 28878,
+      "sha256": "72f27f6919e465343a5fcb532a15e493ae539e1357f5d8073a26caf1a6e15e10"
+    },
+    {
+      "file": "assets/levels/nightweir/blackstart_lower_works.py",
+      "bytes": 24276,
+      "sha256": "d0a9aac75369be2938a294f028ceca401240af01a30d0ec774b497762f8f57c3"
+    },
+    {
+      "file": "assets/levels/nightweir/blackstart_market.py",
+      "bytes": 11449,
+      "sha256": "6b8bb1d438abdc36df0ad258a93a56430d07572f92fc1edc4ae634ae3c3faf14"
+    },
+    {
+      "file": "assets/levels/nightweir/blackstart_quarter_street.py",
+      "bytes": 13827,
+      "sha256": "7feb3800cb269e2abdfa4812afe201e792bf5fb1c4518f720542858e6641b68f"
+    },
+    {
+      "file": "assets/levels/nightweir/blackstart_spillway.py",
+      "bytes": 9566,
+      "sha256": "5cc01cc1486ccdad45c6d9ecc767b58bc05293242998322c80be71f983bd0d8b"
+    },
+    {
+      "file": "assets/levels/nightweir/blackstart_turbine.py",
+      "bytes": 29399,
+      "sha256": "39d1e56e33bbbf1ee6477ee767d40443f1fbfa286040c403dbc014cc41783474"
     }
-  ]
+  ],
+  "proceduralWater": {
+    "normals": "src/levels/nacre/environment/ocean-normals.js",
+    "originalSource": "_tech9/modules/island-ocean/src/oceanNormals.js",
+    "adaptation": "Reuses Nacre’s locally owned Tech9-derived 256-square mipmapped normal texture. Nightweir owns the generated texture, gravity-based falling flow, corrugated curtain geometry and aeration shader.",
+    "reflection": "Borrows the existing renderer-owned city PMREM probe through a Three.js physical material; no planar reflection camera or new render pass.",
+    "turbines": {
+      "source": "src/levels/nightweir/environment/turbine-water.js",
+      "anchors": "assets/levels/nightweir/water-kit.json",
+      "construction": "Static connected penstocks, open draft tubes and supported receiving pools are authored in blackstart_turbine.py. Runtime closed discharge meshes, circulating pool foam, downstream ribbons and light-responsive GPU spray share the existing presentation clock, ripple texture and reflection probe. Existing point-light slots illuminate the impacts; no fluid solver or additional reflection pass."
+    }
+  },
+  "masonry": {
+    "source": "public/assets/levels/nightweir/fired-brick-v1.png",
+    "prompt": "assets/levels/nightweir/fired-brick-prompt-v1.txt",
+    "generator": "Built-in image_gen.imagegen",
+    "originalOutput": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-967def76-9983-4a44-a1ad-802c98be3af7.png",
+    "physicalRepeatMetres": [1.25, 1.25],
+    "usage": "Fired-clay occupied and generating facades. Native base color; local derivative relief and rain weathering. No facade or lighting painted into the texture.",
+    "sourceSha256": "60edeb890577586a5eb9e0fb4f256ad8362790a8cb0430ff56aacb6838493343",
+    "promptSha256": "c90c12085698b7fb68364a4291536e16ddc776153b2e00f5db82822cc192aea2"
+  },
+  "gorge": {
+    "source": "public/assets/levels/nightweir/gorge-strata-v1.png",
+    "prompt": "assets/levels/nightweir/gorge-strata-prompt-v1.txt",
+    "generator": "Built-in image_gen.imagegen",
+    "originalOutput": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-cedb34cd-308e-4872-bcf4-81df932f62be.png",
+    "physicalRepeatMetres": [40, 40],
+    "usage": "Fractured gorge base color over rooted geological ledges and continuous banks, with borrowed limestone as fine detail. World-space triplanar mapping and local damp weathering.",
+    "sourceSha256": "21d7e9c651750520209a3d8ea63e83c88ce27ec781f9dc4793b328fbb9244675",
+    "promptSha256": "69e0345ca632609686761cbab5dc213b9df184ff52658fdb15a6d008129abbb7",
+    "shapeStudy": {
+      "source": "https://lgrbwissen.lgrb-bw.de/ingenieurgeologie/massenbewegungen/hangrutschungen-rutschen/hangrutschungen-im-grenzbereich-des-mitteljuras-zum-oberjura-am-albtrauf/bergrutsch-moessingen",
+      "publisher": "Landesamt für Geologie, Rohstoffe und Bergbau Baden-Württemberg",
+      "usage": "Visual study of steep fractured walls, unequal clefts and connected talus; no reference pixels or source geometry included."
+    }
+  },
+  "roofing": {
+    "source": "public/assets/levels/nightweir/zinc-roof-v1.png",
+    "prompt": "assets/levels/nightweir/zinc-roof-prompt-v1.txt",
+    "generator": "Built-in image_gen.imagegen",
+    "originalOutput": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-ae120af2-3e43-48b2-a7cc-30fabc03cb0a.png",
+    "physicalRepeatMetres": [8, 8],
+    "usage": "Weathered zinc sheet albedo on authored pitched industrial roofs; metre-scale pans and overlaps, derivative relief and local age.",
+    "sourceSha256": "0c34f0e58957a7434e15fa3e967e6e4f0ea7836efd6d0a621343e65a400d2a5e",
+    "promptSha256": "fcb5e7296203d0e0949831238f8341e0236e7fac751468ee009f2399af6aab6a"
+  },
+  "ground": {
+    "source": "public/assets/levels/nightweir/damp-scree-v1.png",
+    "prompt": "assets/levels/nightweir/damp-scree-prompt-v1.txt",
+    "generator": "Built-in image_gen.imagegen",
+    "originalOutput": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-962ffa0c-ea04-46f5-8cf4-9781b75264b7.png",
+    "physicalRepeatMetres": [6, 6],
+    "usage": "Damp slate scree, mineral soil and restrained moss on gentler geological faces. Geometric slope and broad deposition variation preserve exposed cliff faces. Native base color with mipmapping.",
+    "sourceSha256": "dabbcda1836edb06be359f5a197e02af8b499d666852fc67166f4e49e8ebdc0c",
+    "promptSha256": "8732b4ffae1984eae96d1fccf0aa325f5e040383d5977ab0c52c5de2bf4ad563"
+  }
 }

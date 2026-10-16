@@ -1,0 +1,6 @@
+Use case: photorealistic-natural
+Asset type: seamless square base-color texture for the damp ledges and scree slopes of Nightweir, a realistic hydroelectric gorge city in a racing game.
+Primary request: create a photogrammetry-quality material swatch of damp fractured gray slate scree embedded in brown mineral soil with irregular low olive moss patches. Viewed exactly straight downward, orthographic, filling the entire image. The swatch represents 6 by 6 meters; angular slate chips mostly 2–15 cm with a few 30 cm fragments, compact gritty soil, thin irregular moss growth in sheltered patches. About 65% weathered slate/soil and 35% subdued moss, organically interwoven rather than a center island.
+Lighting: perfectly even neutral diffuse illumination for a PBR base-color map, no directional light, no cast shadows, no perspective, no horizon, no baked ambient occlusion, no specular highlights.
+Color: natural restrained dark gray stone, muted mineral brown, dull olive green; no cyan, no bright grass.
+Constraints: seamlessly tileable on all four edges, consistent detail density and brightness across the square, crisp photographic detail. No buildings, water, large boulders, grass blades, leaves, objects, text, labels, borders or watermark.

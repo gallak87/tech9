@@ -40,17 +40,30 @@ export function createNightweirCollisionWorld({ track }) {
     },
   ))
     triangles.push(triangle);
+  const bounds = mineral.positions.reduce(
+    (b, p) => {
+      for (let i = 0; i < 3; i++) {
+        b.min[i] = Math.min(b.min[i], p[i]);
+        b.max[i] = Math.max(b.max[i], p[i]);
+      }
+      return b;
+    },
+    {
+      min: [Infinity, Infinity, Infinity],
+      max: [-Infinity, -Infinity, -Infinity],
+    },
+  );
   targets.push({
     id: mineral.id,
     name: 'Nightweir / inhabited stormwater city and gates',
     kind: 'structure',
-    min: [-1800, -300, -1200],
-    max: [1800, 4200, 6500],
+    min: bounds.min,
+    max: bounds.max,
   });
   const world = createCollisionWorld({
     id: 'nightweir-sprint-solids',
-    version: 2,
-    geometryId: track.geometryVersion + ':blender-v2',
+    version: 3,
+    geometryId: track.geometryVersion + ':blender-v3',
     triangles,
   });
   const owner = {

@@ -2,14 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createNightweirTrack } from '../src/levels/nightweir/track/model.js';
 import { createNightweirRuntime } from '../src/levels/nightweir/runtime.js';
-import { inspectJump } from './shatterline-inspect.mjs';
+import { inspectJump, COAST } from './shatterline-inspect.mjs';
+import { getVehiclePace } from '../src/physics/index.js';
 import createLevel from '../src/levels/nightweir/index.js';
 import { createCollisionWorld } from '../src/physics/collision-world.js';
 const track = createNightweirTrack();
 test('full sprint stays downhill from reservoir to harbor with a safe finish', () => {
   assert.ok(track.finishDistance > 12000 && track.length <= 15000);
   assert.equal(track.closed, false);
-  assert.ok(track.length - track.finishDistance >= 600);
+  assert.ok(track.length - track.finishDistance >= 650);
   let down = 0,
     supported = 0;
   for (let s = 10; s < track.finishDistance; s += 5) {
@@ -28,6 +29,10 @@ test('full sprint stays downhill from reservoir to harbor with a safe finish', (
     assert.ok(mid.up.y < -0.45, 'each full corkscrew drives upside down');
   }
   assert.equal(track.curtains.length, 6);
+  assert.ok(
+    track.curtains.every(({ s }) => !track.isGap(s)),
+    'gate stations stand on supported roads',
+  );
   assert.ok(track.sample(track.length).position.y > 0);
   assert.ok(track.finishDistance - track.jumps.at(-1).landingEnd > 300);
 });
@@ -43,10 +48,13 @@ test('eight real gaps have downhill receivers and sustained recovery', () => {
     );
   }
 });
-test('all player hulls make each transfer at launch pace and fast downhill pace', () => {
-  for (const shipId of ['kestrel', 'shrike', 'bastion', 'needle'])
-    for (const jump of track.jumps)
-      for (const speed of [jump.targetSpeed, 255]) {
+test('every hull crosses each gap without boost and retains the fast landing envelope', () => {
+  for (const shipId of ['kestrel', 'shrike', 'bastion', 'needle']) {
+    const pace = getVehiclePace(shipId, track.pace);
+    for (const jump of track.jumps) {
+      // Neutral flight uses no reserve: even the slowest hull at its ordinary
+      // cruise pace crosses without a pickup or a midair boost requirement.
+      for (const speed of [pace.cruiseSpeed, jump.targetSpeed, 255]) {
         const result = inspectJump({
           track,
           jump,
@@ -55,7 +63,66 @@ test('all player hulls make each transfer at launch pace and fast downhill pace'
           runtime: createNightweirRuntime({ track, presentation: false }),
         });
         assert.equal(result.outcome, 'landed', JSON.stringify(result));
+        if (jump.hero) {
+          const window = jump.id === 'turbine-leap' ? [3.2, 3.7] : [4.5, 5.1];
+          assert.ok(
+            result.airtime >= window[0] && result.airtime <= window[1],
+            JSON.stringify(result),
+          );
+          assert.ok(
+            result.landingRemainder >= 80,
+            'fast arrivals retain supported road to settle',
+          );
+        }
       }
+      if (!jump.hero) continue;
+      const boosted = inspectJump({
+        track,
+        jump,
+        shipId,
+        speed: pace.boostSpeed,
+        input: { ...COAST, throttle: 1, boost: true },
+        runtime: createNightweirRuntime({ track, presentation: false }),
+      });
+      assert.equal(boosted.outcome, 'landed', JSON.stringify(boosted));
+    }
+  }
+});
+
+test('hero flights remain real broad voids with legible separated receiving decks', () => {
+  for (const jump of track.jumps.filter((entry) => entry.hero)) {
+    const from = track.sample(jump.takeoff).position;
+    const to = track.sample(jump.landingStart).position;
+    const horizontal = Math.hypot(to.x - from.x, to.z - from.z);
+    assert.ok(horizontal >= (jump.id === 'turbine-leap' ? 299 : 439));
+    assert.ok(
+      jump.landingEnd - jump.landingStart >=
+        (jump.id === 'turbine-leap' ? 640 : 940),
+    );
+    const next = track.jumps.find((entry) => entry.takeoff > jump.takeoff);
+    assert.ok(
+      (next?.takeoff ?? track.finishDistance) - jump.landingEnd > 300,
+      'a long landing is followed by grounded racing before the next commitment',
+    );
+  }
+});
+
+test('hero receiving decks catch reasonable off-center approaches at slow and fast pace', () => {
+  for (const jump of track.jumps.filter((entry) => entry.hero)) {
+    for (const speed of [121.2, 255]) {
+      for (const side of [-1, 1]) {
+        const result = inspectJump({
+          track,
+          jump,
+          speed,
+          lateral: side * 8,
+          heading: side * 0.008,
+          runtime: createNightweirRuntime({ track, presentation: false }),
+        });
+        assert.equal(result.outcome, 'landed', JSON.stringify(result));
+      }
+    }
+  }
 });
 
 test('full descent sustains alternating corners and distinct steep chutes', () => {

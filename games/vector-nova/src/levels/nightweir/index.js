@@ -5,13 +5,30 @@ import { createDevices } from './devices.js';
 import { createNightweirEnvironment } from './environment/index.js';
 import { createNightweirBackdrop } from './backdrop/index.js';
 import { createNightweirCollisionWorld } from './collision.js';
+// The receiving shelves sit hundreds of metres below their lips. Keep the
+// ordinary forward aim while pulling back gently: targeting the distant shelf
+// during the approach pitches the camera into the road and hides the city.
+function jumpApproach(track, state, ordinary, hero, minor) {
+  const jump = track.jumps.find((candidate) => {
+    const remaining = candidate.takeoff - state.distance;
+    return remaining >= 0 && remaining < 230;
+  });
+  if (!jump) return ordinary;
+  const t = Math.max(
+    0,
+    Math.min(1, (230 - (jump.takeoff - state.distance)) / 115),
+  );
+  const blend = t * t * (3 - 2 * t);
+  return ordinary + ((jump.hero ? hero : minor) - ordinary) * blend;
+}
+
 export default function createLevel({ shape = false } = {}) {
   return {
     version: '0.2.0-nightweir',
     renderer: {
       world: 'nightweir',
       background: '#243a4a',
-      fog: { color: '#243a4a', density: 0.0002 },
+      fog: { color: '#657682', density: 0.00038 },
       bloomStrength: 0.07,
       bloomThreshold: 1.15,
       reflectionFar: 22000,
@@ -20,14 +37,9 @@ export default function createLevel({ shape = false } = {}) {
     },
     camera: {
       preserveFlightView: true,
-      chaseHeight: 7.5,
-      chaseDistance: 17,
+      chaseHeight: (track, state) => jumpApproach(track, state, 7.5, 11, 10),
+      chaseDistance: (track, state) => jumpApproach(track, state, 17, 24, 22),
       lookAhead: 65,
-      jumpPreview: {
-        distance: 230,
-        height: (_t, _s, j) => (j?.hero ? 27 : 17),
-        back: 17,
-      },
       flightViewScale: 0.82,
       flightChaseBlend: 0.65,
       portraitAspect: 0.64,

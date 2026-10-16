@@ -36,7 +36,7 @@ export function createNightweirRoad({
       ? createAsphalt(renderer, track.width, {
           uvLength: 12,
           label: 'Nightweir',
-          moisture: 0.67,
+          moisture: 0.32,
         })
       : null;
   const deck =
@@ -45,6 +45,57 @@ export function createNightweirRoad({
       color: '#455057',
       roughness: 0.75,
     });
+  if (asphalt) {
+    deck.color.set('#d7e1e5');
+    deck.normalScale.set(1.6, 1.6);
+    // Rain-darkened mineral aggregate stays readable under the low storm sun.
+    // The inherited maps remain metre-scaled; only this city's damp finish is
+    // lifted above mirror-like puddle roughness.
+    const finish = deck.onBeforeCompile;
+    deck.onBeforeCompile = (shader) => {
+      finish(shader);
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          'float asphaltWet = clamp(roadMoisture * (.38 + .85 * smoothstep(.25,.75,asphaltMacro)),0.,1.);',
+          `float edgeDistance=min(roadMetres.x,${track.width.toFixed(1)}-roadMetres.x);
+         float drainage=(1.-smoothstep(1.2,4.8,edgeDistance))
+           *smoothstep(.34,.72,asphaltNoise(roadMetres*vec2(.7,.045)));
+         float asphaltWet=max(smoothstep(.62,.83,asphaltMacro)*.78,drainage*.94)
+           *clamp(roadMoisture*2.5,0.,1.);`,
+        )
+        .replace(
+          '#include <color_fragment>',
+          `#include <color_fragment>
+        // Unequal resurfaced strips give metre-scale construction to the
+        // municipal road while retaining the licensed fine aggregate below.
+        vec2 repairCell=floor(roadMetres/vec2(5.5,67.));
+        float repairSeed=asphaltHash(repairCell+vec2(31.,7.));
+        vec2 repairLocal=mod(roadMetres,vec2(5.5,67.));
+        float repairStart=8.+repairSeed*14.;
+        float repairEnd=repairStart+22.+asphaltHash(repairCell+19.)*19.;
+        float repairEdge=min(min(repairLocal.x-.35,5.15-repairLocal.x),min(repairLocal.y-repairStart,repairEnd-repairLocal.y));
+        repairEdge+=(asphaltNoise(roadMetres*2.7)-.5)*.13;
+        float footprint=max(fwidth(repairEdge),.015);
+        float repair=smoothstep(-footprint,footprint,repairEdge)*step(.58,repairSeed);
+        float seal=(1.-smoothstep(.06,.13+footprint,abs(repairEdge)))*step(-.3,repairEdge)*step(.58,repairSeed);
+        diffuseColor.rgb*=1.-repair*.055-seal*.055;
+        float laneSpacing=${((track.width - 4) / 8).toFixed(2)};
+        float laneEdge=abs(mod(roadMetres.x-2.+laneSpacing*.5,laneSpacing)-laneSpacing*.5);
+        float laneDash=abs(mod(roadMetres.y,14.)-7.);
+        float lanePaint=(1.-smoothstep(.075,.075+fwidth(laneEdge),laneEdge))
+          *(1.-smoothstep(1.9,2.0+fwidth(laneDash),laneDash));
+        lanePaint*=step(2.+laneSpacing*.5,roadMetres.x)*step(roadMetres.x,${(track.width - 2).toFixed(1)}-laneSpacing*.5);
+        lanePaint*=mix(.28,.62,smoothstep(.2,.7,asphaltMacro));
+        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.46,.47,.43),lanePaint);`,
+        )
+        .replace(
+          '#include <metalnessmap_fragment>',
+          '#include <metalnessmap_fragment>\nroughnessFactor=max(roughnessFactor,mix(.88,.30,asphaltWet));roughnessFactor=clamp(roughnessFactor+repair*.035-seal*.025,.28,.88);roughnessFactor=mix(roughnessFactor,.82,lanePaint);',
+        );
+    };
+    deck.customProgramCacheKey = () => 'nightweir-damp-asphalt-v6';
+  }
+
   const concrete = mat('Nightweir / damp precast curb', {
     color: '#87908c',
     roughness: 0.82,
@@ -312,7 +363,7 @@ export function createNightweirRoad({
       );
   }
   const lamps = Array.from({ length: 6 }, () => {
-    const l = new T.PointLight('#ffc68c', 0, 90, 2);
+    const l = new T.PointLight('#ffe1b7', 0, 90, 2);
     group.add(l);
     return l;
   });
@@ -323,7 +374,7 @@ export function createNightweirRoad({
     setReflection(texture) {
       for (const m of [deck, concrete, iron, rust, drainWater]) {
         m.envMap = texture;
-        m.envMapIntensity = m === deck ? 1.15 : 0.9;
+        m.envMapIntensity = 0.75;
         m.needsUpdate = true;
       }
     },
@@ -335,7 +386,7 @@ export function createNightweirRoad({
       lamps.forEach((l, i) => {
         const f = near[i];
         // Preserve the warmed shader's light count as fixtures enter/leave range.
-        l.intensity = f && f.d < 180 * 180 ? 480 : 0;
+        l.intensity = f && f.d < 180 * 180 ? 300 : 0;
         if (f) l.position.copy(f.p);
       });
     },

@@ -31,21 +31,29 @@ const fleetReady = (page) =>
     null,
     { timeout: 60000 },
   );
-async function check(name, fn, viewport = { width: 1440, height: 900 }) {
+async function check(
+  name,
+  fn,
+  viewport = { width: 1440, height: 900 },
+  settings = {},
+) {
   if (process.env.VN_CHECK && !new RegExp(process.env.VN_CHECK).test(name))
     return;
   const context = await browser.newContext({ viewport });
   try {
-    await context.addInitScript(() =>
-      localStorage.setItem(
-        'vector-nova.settings',
-        JSON.stringify({
-          quality: 'low',
-          volume: 0,
-          reducedMotion: true,
-          difficulty: 'easy',
-        }),
-      ),
+    await context.addInitScript(
+      (settings) =>
+        localStorage.setItem(
+          'vector-nova.settings',
+          JSON.stringify({
+            quality: 'low',
+            volume: 0,
+            reducedMotion: true,
+            difficulty: 'easy',
+            ...settings,
+          }),
+        ),
+      settings,
     );
     const page = await context.newPage();
     const faults = [];
@@ -147,7 +155,7 @@ try {
       },
     );
     await check(
-      'cold start retains every light and warms Nightweir driving shaders',
+      'cold start retains every light, runs Nightweir water and warms driving shaders',
       async (page) => {
         await page.addInitScript(() => {
           const nativeFrame = window.requestAnimationFrame;
@@ -180,6 +188,10 @@ try {
                 step,
                 at: performance.now(),
                 raceTime: window.__VN.getSnapshot().vehicle.time,
+                flowTime: window.__VN
+                  .getScene()
+                  .scene.getObjectByName('Nightweir / the floodgates').userData
+                  .flowTime,
               });
             }
             previous = step;
@@ -190,6 +202,9 @@ try {
         await page.goto(url('level=nightweir&music=0'));
         await page.locator('[data-action="launch"]').click();
         await booted(page);
+        await page.evaluate(() =>
+          window.__VN.configure({ reducedMotion: false }),
+        );
         await page.waitForFunction(
           () => window.__countdownCheck.lights.some(({ step }) => step === 0),
           null,
@@ -210,16 +225,19 @@ try {
             'each light gets its full beat',
           );
         }
-        const materialPrograms = () =>
+        assert.ok(lights[1].flowTime > 0, 'water runs before green');
+        for (let i = 1; i < 3; i++)
+          assert.ok(
+            lights[i + 1].flowTime >= lights[i].flowTime,
+            'water keeps flowing through countdown and green',
+          );
+        const drivingPrograms = () =>
           page.evaluate(() =>
             window.__VN
               .getScene()
-              .renderer.info.programs.filter(({ type }) =>
-                ['MeshStandardMaterial', 'MeshPhysicalMaterial'].includes(type),
-              )
-              .map(({ cacheKey }) => cacheKey),
+              .renderer.info.programs.map(({ cacheKey }) => cacheKey),
           );
-        const warmed = new Set(await materialPrograms());
+        const warmed = new Set(await drivingPrograms());
         await page.keyboard.down('w');
         await page.waitForFunction(
           () => window.__VN.getSnapshot().vehicle.distance >= 500,
@@ -229,8 +247,8 @@ try {
         await page.keyboard.up('w');
         await page.evaluate(() => window.__VN.pause());
         assert.ok(
-          (await materialPrograms()).every((key) => warmed.has(key)),
-          'the opening district must reuse warmed material shaders',
+          (await drivingPrograms()).every((key) => warmed.has(key)),
+          'the opening district must reuse warmed geometry and postprocess shaders',
         );
         await page.evaluate(() =>
           window.__VN.loadScenario('market-cut-launch', 7),
@@ -240,10 +258,12 @@ try {
         await page.keyboard.up('w');
         await page.evaluate(() => window.__VN.pause());
         assert.ok(
-          (await materialPrograms()).every((key) => warmed.has(key)),
-          'the jump around 49% must reuse warmed material shaders',
+          (await drivingPrograms()).every((key) => warmed.has(key)),
+          'the jump around 49% must reuse warmed geometry and postprocess shaders',
         );
       },
+      undefined,
+      { quality: 'high', reducedMotion: false },
     );
     await check(
       'held countdown controls survive green and release normally',

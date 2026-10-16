@@ -19,15 +19,19 @@ export async function createNightweirBackdrop({
     name: 'Nightweir / distant sky radiance',
     side: T.BackSide,
     depthWrite: false,
-    uniforms: { panorama: { value: texture } },
+    uniforms: {
+      panorama: { value: texture },
+      valleyHaze: { value: new T.Color('#657682') },
+    },
     vertexShader:
       'varying vec3 ray; void main(){ray=position;vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_Position=p.xyww;}',
-    fragmentShader: `varying vec3 ray;uniform sampler2D panorama;
+    fragmentShader: `varying vec3 ray;uniform sampler2D panorama;uniform vec3 valleyHaze;
       void main(){vec3 d=normalize(ray);float u=fract(atan(d.z,d.x)/6.2831853+.15);float v=asin(clamp(d.y,-1.,1.))/3.14159265+.5;
       vec3 color=texture2D(panorama,vec2(u*.96,v)).rgb;
       if(u<.042)color=mix(texture2D(panorama,vec2(.96+u*.96,v)).rgb,color,smoothstep(0.,.042,u));
       vec3 pole=vec3(.015,.025,.045);if(d.y<0.)pole=vec3(.025,.045,.065);
       color=mix(color,pole,smoothstep(.95,1.,abs(d.y)));
+      color=mix(color,valleyHaze,(1.-smoothstep(-.24,.025,d.y))*.94);
       gl_FragColor=vec4(color,1.);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
@@ -42,14 +46,14 @@ export async function createNightweirBackdrop({
   return {
     group,
     ownedTextures: [texture],
-    sunDirection: new T.Vector3(-0.65, 0.5, 0.6).normalize(),
-    sunColor: '#a6c7dc',
-    sunIntensity: 1.35,
-    ambientSky: '#93acc1',
-    ambientGround: '#263b47',
-    ambientIntensity: 0.8,
-    fillColor: '#89acbd',
-    fillIntensity: 0.35,
+    sunDirection: new T.Vector3(-0.65, 0.42, -0.6).normalize(),
+    sunColor: '#c9d8e1',
+    sunIntensity: 2.2,
+    ambientSky: '#a7c2d0',
+    ambientGround: '#52666d',
+    ambientIntensity: 1.04,
+    fillColor: '#85a5bb',
+    fillIntensity: 0.5,
     environmentIntensity: 0.8,
     far: 26000,
     update({ camera } = {}) {

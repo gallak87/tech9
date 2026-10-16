@@ -90,11 +90,11 @@ Worldspire's road is sealed ivory mineral: metric substrate, restrained staggere
 
 ## Nightweir
 
-An inhabited blue-hour stormwater gorge descends to a working harbor. Layer occupied galleries, retaining piers, balconies, oxide machinery and falling water. Wet municipal asphalt uses the same physical scan discipline as Halcyon; retain aggregate and patchy moisture without a uniform mirror sheen. Open gutters and real cast-iron grates belong to this world. Concrete needs cast-panel joints, rain staining and readable structural depth. Warm windows and shielded lanterns punctuate cool exterior light without bleaching the road.
+Blackstart is an inhabited blue-hour hydroelectric gorge descending to a working harbor. The overall city leads the composition: connected street fronts, setback courts, occupied galleries and rooted retaining terraces establish near, middle and distant layers from the driving camera. Human-scale floors and windows explain the monumental infrastructure. Avoid detached repeated towers on enormous display plinths. Spillway inspection galleries, turbine generating halls and broad working quays give the three major flights different destinations.
 
-Service entries, open gallery arches and sawtooth harbor halls give the city inhabited depth. Frame the moving gates with connected hoists, replaceable enamel panels, dark stiffeners and restrained worn contacts. Water reaches stepped basins with aerated impacts; preserve its opacity and route contrast at both quality presets.
+Wet municipal asphalt follows Halcyon’s physical scan discipline. Retain aggregate and patchy moisture without a uniform mirror sheen. Open gutters and cast-iron grates belong to this world. Concrete needs cast-panel joints, rain staining and readable structural depth; gorge rock uses triplanar mineral texture and a matte damp finish. Warm occupied rooms and shielded lanterns punctuate cool exterior light without bleaching the road. Valley haze separates distant ridges and neighborhoods.
 
-The Floodgates lift on approach and release stronger curtains; keep the receiving route visible through spray. Basin waves and waterfall motion are subordinate to racing lines. Reduced motion retains the same gate state and navigation contrast. The 12.4 km race has eight jumps, three rolls, sustained downhill reversals and a safe 650 m quay runout.
+Blackstart restores district lighting ahead of the driver and spools heavy hydroelectric rotors. Gate hoists and pressure machinery remain connected to actual infrastructure. Off-road spillways feed stepped basins with aerated flow and plunge foam; falling curtains no longer cross the racing line. Water motion remains subordinate to route visibility at both quality presets. The 13.58 km race has eight jumps, three rolls, sustained downhill reversals and a safe 650 m quay runout. The two 440 m hero gaps and the 300 m turbine gap need clear receivers and genuinely open airspace.
 
 ## UI and feedback
 

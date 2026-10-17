@@ -318,7 +318,8 @@ export async function createGame({
           e.payload.position && e.payload.normal ? e.payload : null,
         );
       }
-      if (e.type === 'jump-transfer') prev = { ...state };
+      if (e.type === 'jump-transfer' || e.type === 'road-recovery')
+        prev = { ...state };
     };
     const racingEnabled = Boolean(definition.racing) && !blockout;
     const runtimeContext = {

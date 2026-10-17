@@ -34,7 +34,7 @@ function track(bank = 0) {
   };
 }
 
-test('a hull dropped across a road boundary lifts clear and returns inward without teleporting', async (t) => {
+test('a hull stranded across a boundary loses support and recovers without gaining progress', async (t) => {
   for (const bank of [0, Math.PI / 2, Math.PI]) {
     const course = track(bank);
     const dynamics = await createRapierWorld({
@@ -48,7 +48,6 @@ test('a hull dropped across a road boundary lifts clear and returns inward witho
     body.stage(state, {}, DT);
     dynamics.step(DT);
     body.finish(state);
-    // Reproduce a hop settling across the lip, with the wing on its far side.
     actor.setPose({
       position: frame.position
         .clone()
@@ -59,67 +58,118 @@ test('a hull dropped across a road boundary lifts clear and returns inward witho
     actor.setVelocity(new T.Vector3());
     body.adopt(state);
     let contacts = 0,
-      escaped = false,
+      departure,
+      recovered,
       checkpoint;
     const advance = () => {
-      const before = actor.read().position;
       body.stage(state, { throttle: 1 }, DT);
       dynamics.step(DT);
-      body.finish(state);
-      const solved = actor.read();
-      assert.ok(
-        solved.position.distanceTo(before) < 1,
-        'recovery moves through the solver, never a pose snap',
-      );
-      contacts += solved.contacts.filter(
-        (hit) => hit.shape.roadBoundary,
-      ).length;
-      escaped ||= Boolean(body.snapshot().edgeEscape);
+      const events = body.finish(state);
+      contacts += actor
+        .read()
+        .contacts.filter((hit) => hit.shape.roadBoundary).length;
+      departure ??= events.find(({ type }) => type === 'road-departure');
+      recovered ??= events.find(({ type }) => type === 'road-recovery');
+      if (body.pose().recovering) {
+        assert.equal(
+          actor.read().support,
+          null,
+          'no magnetic plane outside the road',
+        );
+        assert.equal(body.pose().grounded, false);
+        assert.equal(
+          state.distance,
+          departure.payload.distance,
+          'falling cannot advance the course',
+        );
+      }
       return {
         state: { ...state },
         motion: body.snapshot(),
         pose: body.pose(),
+        events,
       };
     };
-    for (let tick = 0; tick < 300; tick++) {
+    for (let tick = 0; tick < 480 && !recovered; tick++) {
       advance();
-      if (!checkpoint && body.snapshot().edgeEscape) {
+      if (!checkpoint && body.pose().recovering)
         checkpoint = {
           state: { ...state },
           motion: body.snapshot(),
           dynamics: dynamics.snapshot(),
         };
-      }
     }
     assert.ok(
-      contacts > 0 && escaped,
-      'the actual barrier traps the hull and activates the narrow edge release',
+      contacts > 0 && departure,
+      'the physical rail traps the actual hull',
     );
+    assert.ok(recovered, `bank ${bank} recovers within four seconds`);
+    assert.equal(state.distance, departure.payload.distance);
+    assert.equal(state.lateral, 0);
+    assert.equal(state.speed, 0);
+    assert.equal(body.snapshot().roadRecovery, null);
+    for (let tick = 0; tick < 120; tick++) advance();
     assert.ok(
-      state.lateral < 10 && state.lateral > -10,
-      'whole hull returns inside the road',
+      state.speed > 20 && state.distance > departure.payload.distance + 10,
+      'throttle drives away after recovery',
     );
-    assert.ok(
-      state.speed > 20 && state.distance > 110,
-      'throttle drives away after the release',
-    );
-    assert.equal(
-      body.snapshot().edgeEscape,
-      null,
-      'temporary lift settles back to ordinary support',
-    );
-    Object.assign(state, checkpoint.state);
-    body.restore(checkpoint.motion);
-    dynamics.restore(checkpoint.dynamics);
-    const expected = Array.from({ length: 20 }, advance);
-    Object.assign(state, checkpoint.state);
-    body.restore(checkpoint.motion);
-    dynamics.restore(checkpoint.dynamics);
+    const restore = () => {
+      Object.assign(state, checkpoint.state);
+      body.restore(checkpoint.motion);
+      dynamics.restore(checkpoint.dynamics);
+    };
+    restore();
+    const expected = Array.from({ length: 200 }, advance);
+    restore();
     assert.deepEqual(
-      Array.from({ length: 20 }, advance),
+      Array.from({ length: 200 }, advance),
       expected,
-      'edge-release state restores deterministically',
+      'fall and recovery restore deterministically',
     );
+  }
+});
+
+test('an unsupported stationary ship falls under gravity, even without pilot input', async (t) => {
+  for (const automaticRecovery of [true, false]) {
+    const course = track();
+    const dynamics = await createRapierWorld({
+      collisionWorld: withMagneticBoundaries(course),
+    });
+    t.after(() => dynamics.dispose());
+    const actor = dynamics.createActor();
+    const body = createMagneticBody({
+      track: course,
+      dynamics,
+      actor,
+      automaticRecovery,
+    });
+    const state = { ...createVehicleState(), distance: 100, lateral: 25 };
+    let startY, recovery;
+    for (let tick = 0; tick < 240; tick++) {
+      body.stage(state, {}, DT);
+      startY ??= actor.read().position.y;
+      dynamics.step(DT);
+      const events = body.finish(state);
+      recovery ??= events.find(({ type }) => type === 'road-recovery');
+      assert.equal(state.distance, 100, 'no free route progress');
+      if (tick === 59) {
+        assert.equal(actor.read().support, null);
+        assert.equal(body.pose().grounded, false);
+        assert.ok(
+          actor.read().position.y < startY - 2,
+          'gravity moves the hull down',
+        );
+        assert.ok(actor.read().velocity.y < -10);
+      }
+    }
+    assert.equal(Boolean(recovery), automaticRecovery);
+    assert.equal(body.pose().recovering, !automaticRecovery);
+    if (automaticRecovery) assert.equal(state.lateral, 0);
+    else
+      assert.ok(
+        actor.read().position.y < startY - 40,
+        'manual playtests keep falling',
+      );
   }
 });
 async function fixture(
@@ -381,9 +431,9 @@ test('physical road bounds resist a sustained outward input without route-coordi
     const { state, runtime } = f.racers[0];
     assert.ok(Number.isFinite(state.speed));
     assert.equal(
-      runtime.snapshot().edgeEscape,
+      runtime.snapshot().roadRecovery,
       null,
-      'ordinary wall pressure does not activate edge release',
+      'ordinary wall pressure does not count as a stranded hull',
     );
     const pose = runtime.pose();
     const vertices = getCollisionHull(state.shipId).vertices;

@@ -5,6 +5,9 @@ import { withMagneticBoundaries } from '../src/physics/magnetic-boundaries.js';
 import { createShatterlineTrack } from '../src/levels/shatterline/track/model.js';
 import { createShatterlineTube } from '../src/levels/shatterline/track/tube.js';
 import { indexedTriangles } from '../src/physics/collision-world.js';
+import { createRapierWorld } from '../src/physics/rapier-world.js';
+import { createMagneticBody } from '../src/physics/magnetic-body.js';
+import { createVehicleState } from '../src/physics/index.js';
 
 const generated = (world) =>
   world.triangles.filter((triangle) =>
@@ -178,4 +181,39 @@ test('partial one-sided authored coverage never suppresses another side or the w
         triangle.id === 'magnetic-edge-1' && overlaps(triangle, 0, 8),
     ),
   );
+});
+
+test('finite support preserves Shatterline closed tube seams and widened collector lanes', async (t) => {
+  const track = createShatterlineTrack();
+  const dynamics = await createRapierWorld();
+  t.after(() => dynamics.dispose());
+  const actor = dynamics.createActor();
+  const body = createMagneticBody({ track, dynamics, actor });
+  for (const tube of track.tubes) {
+    for (const [distance, seam] of [
+      [(tube.entryEnd + tube.exitStart) / 2, true],
+      [tube.exitStart + 2, false],
+    ]) {
+      const surface = track.sampleSurface(distance, 0);
+      assert.equal(surface.period > 0, seam);
+      const lateral = seam ? surface.period / 2 + 3 : surface.bounds.max - 5;
+      assert.ok(
+        Math.abs(lateral) > track.width / 2,
+        'probe is outside the ordinary road width',
+      );
+      const state = { ...createVehicleState(), distance, lateral, speed: 40 };
+      body.reset(state);
+      for (let tick = 0; tick < 12; tick++) {
+        body.stage(state, { throttle: 1 }, 1 / 120);
+        dynamics.step(1 / 120);
+        const events = body.finish(state);
+        assert.equal(
+          events.some(({ type }) => type === 'road-departure'),
+          false,
+        );
+        assert.equal(body.pose().grounded, true);
+        assert.ok(actor.read().support);
+      }
+    }
+  }
 });

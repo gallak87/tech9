@@ -357,6 +357,8 @@ export function createPickupSimulation({
       !Number.isFinite(current.distance)
     )
       throw new Error('Pickup vehicle distance must be finite');
+    if (physicsEvents.some(({ type }) => type === 'road-recovery'))
+      return reset({ reason: 'recover', state: current });
     if (Math.abs(previous.distance - state.lastDistance) > EPSILON)
       return reset({ reason: 'recover', state: current });
     if (state.aegisRemaining > 0) {

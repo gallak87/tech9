@@ -508,7 +508,15 @@ export function createFlightModel(overrides = {}) {
     const contactFeedback = createContactFeedback();
     const magneticBody =
       actor &&
-      createMagneticBody({ track, dynamics, actor, hull: R, contactFeedback });
+      createMagneticBody({
+        track,
+        dynamics,
+        actor,
+        hull: R,
+        contactFeedback,
+        automaticRecovery,
+        recoveryDelay: R.recoveryDelay,
+      });
     let pending = null;
     let mode = 'magnetic';
     let flight = null;
@@ -1817,6 +1825,10 @@ export function createFlightModel(overrides = {}) {
             landingSettle.elapsed += pending.dt;
             if (landingSettle.elapsed >= R.landingSettleDuration)
               landingSettle = null;
+          }
+          if (magneticBody.pose(1)?.recovering) {
+            pending = null;
+            return events;
           }
           // All interacting bodies share one clock. A lip crossing releases
           // the magnetic constraint at this solved fixed-tick boundary.

@@ -290,6 +290,29 @@ test('shield impact and expiry resolve before acquiring a new shield in the same
   }
 });
 
+test('automatic road recovery clears effects without renewing a device at the same station', () => {
+  const sim = simulation([
+    device('strip', 'vector', 100),
+    device('shield', 'aegis', 90),
+  ]);
+  cross(sim, 0, 95);
+  assert.equal(sim.snapshot().vectorActive, true);
+  assert.ok(sim.snapshot().aegisRemaining > 0);
+  const spent = { ...sim.snapshot().used };
+  const events = cross(
+    sim,
+    vehicle(95, { grounded: false }),
+    vehicle(95, { speed: 0 }),
+    idle,
+    [{ type: 'road-recovery', payload: { distance: 95 } }],
+  );
+  assert.equal(events.filter(({ type }) => type === 'pickup-cancel').length, 2);
+  assert.equal(sim.snapshot().vectorActive, false);
+  assert.equal(sim.snapshot().aegisRemaining, 0);
+  assert.deepEqual(sim.snapshot().used, spent);
+  assert.deepEqual(sim.beforeStep(idle, dt, vehicle(95)).modifiers, {});
+});
+
 test('manual recovery and unannounced teleport clear effects without renewing spent devices', () => {
   const sim = simulation([
     device('shield', 'aegis', 90),

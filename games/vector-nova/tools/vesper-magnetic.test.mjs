@@ -2,7 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createVesperTrack } from '../src/levels/vesper/track/model.js';
 import { createVesperRuntime } from '../src/levels/vesper/runtime.js';
-import { getRacerControl } from '../src/race/racers.js';
+import {
+  getRacerControl,
+  createRacers,
+  RACE_GRID,
+} from '../src/race/racers.js';
+import createVesperLevel from '../src/levels/vesper/index.js';
+import { createDeviceRuntime } from '../src/pickups/runtime.js';
+import { createRace } from '../src/race/index.js';
+import { advanceSession } from '../src/core/session-runtime.js';
 import { createVesperCollisionWorld } from '../src/levels/vesper/collision.js';
 import { createMagneticBody } from '../src/physics/magnetic-body.js';
 import { createRapierWorld } from '../src/physics/rapier-world.js';
@@ -100,7 +108,7 @@ test('both Vesper transfers retain forward momentum through physical landing and
   }
 });
 
-test('Vesper tree-side hull straddles recover through the physical barrier instead of hanging', async (t) => {
+test('Vesper tree-side hull straddles recover at their departure station instead of hanging', async (t) => {
   const track = createVesperTrack();
   const collision = createVesperCollisionWorld({ track });
   const dynamics = await createRapierWorld({
@@ -118,25 +126,132 @@ test('Vesper tree-side hull straddles recover through the physical barrier inste
   ]) {
     const state = { ...createVehicleState(), distance, lateral };
     body.reset(state);
-    let released = false;
-    for (let tick = 0; tick < 240; tick++) {
+    let departure, recovered;
+    for (let tick = 0; tick < 480 && !recovered; tick++) {
       body.stage(
         state,
         { throttle: 1, steer: Math.sign(lateral) * 0.5 },
         1 / 120,
       );
       dynamics.step(1 / 120);
-      body.finish(state);
-      released ||= Boolean(body.snapshot().edgeEscape);
+      const events = body.finish(state);
+      departure ??= events.find(({ type }) => type === 'road-departure');
+      recovered ??= events.find(({ type }) => type === 'road-recovery');
+      if (body.pose().recovering) {
+        assert.equal(actor.read().support, null);
+        assert.equal(state.distance, departure.payload.distance);
+      }
     }
     assert.ok(
-      released,
-      'straddling the production rail activates edge release',
+      departure && recovered,
+      'straddling the production rail starts bounded recovery',
     );
-    assert.ok(Math.abs(state.lateral) < 11, 'actual hull clears the wall');
-    assert.ok(
-      state.speed > 25 && state.distance > distance + 10,
-      'racer drives away from the formerly pinned tree turn',
-    );
+    assert.equal(state.lateral, 0);
+    assert.equal(state.distance, departure.payload.distance);
+    assert.equal(state.speed, 0);
+    assert.equal(body.pose().grounded, true);
+  }
+});
+
+// User reproduction: Quick Race, nine opponents, hold Up without steering or boost.
+// This previously kept the ship magnetized over the empty inside of the first bend.
+test('Vesper full-field Up-only starts cannot hover across empty space on any difficulty', async () => {
+  const definition = createVesperLevel();
+  const track = definition.createTrack();
+  const collisionWorld = definition.createCollisionWorld({ track });
+  try {
+    for (const difficulty of ['easy', 'medium', 'hard']) {
+      const native = await createRapierWorld({
+        collisionWorld: withMagneticBoundaries(track, collisionWorld),
+      });
+      const actors = [];
+      const dynamics = {
+        ...native,
+        createActor(...args) {
+          const actor = native.createActor(...args);
+          actors.push(actor);
+          return actor;
+        },
+      };
+      const devices = definition.racing.createDevices(track);
+      const createRuntime = () =>
+        createDeviceRuntime({
+          track,
+          devices,
+          identity: definition.racing.identity,
+          motion: definition.racing.createMotion({
+            track,
+            collisionWorld,
+            dynamics,
+            presentation: false,
+          }),
+        });
+      const state = { ...createVehicleState(), ...RACE_GRID.player };
+      const runtime = createRuntime();
+      const racers = createRacers({ track, devices, dynamics, createRuntime });
+      const race = createRace(track, { rulesId: runtime.rulesId });
+      try {
+        runtime.reset({ reason: 'initialize', state });
+        dynamics.reset();
+        racers.reset({ enabled: true, difficulty });
+        runtime.reset({ reason: 'fresh-lap', state });
+        let departure,
+          recovered,
+          unsupportedTicks = 0;
+        for (let tick = 0; tick < 960; tick++) {
+          const events = advanceSession({
+            state,
+            input: { throttle: 1, steer: 0, boost: false },
+            dt: 1 / 120,
+            runtime,
+            race,
+            dynamics,
+            racers,
+            emit() {},
+          });
+          const leaving = events.find(({ type }) => type === 'road-departure');
+          if (leaving) departure = { ...leaving.payload, time: state.time };
+          const recovery = events.find(({ type }) => type === 'road-recovery');
+          if (recovery) {
+            recovered = recovery;
+            assert.ok(
+              Math.abs(state.time - departure.time - 1.5) < 1 / 120 + 1e-7,
+            );
+            assert.equal(state.distance, departure.distance);
+            assert.equal(state.lateral, 0);
+            assert.equal(state.speed, 0);
+          }
+          if (runtime.pose(1)?.recovering) {
+            unsupportedTicks++;
+            assert.equal(
+              actors[0].read().support,
+              null,
+              'off-road ship has no support joint',
+            );
+            assert.equal(runtime.pose(1).grounded, false);
+            assert.equal(
+              state.distance,
+              departure.distance,
+              'flight across the bend earns no progress',
+            );
+          } else {
+            assert.ok(
+              Math.abs(state.lateral) <= track.width / 2 + 0.15,
+              'magnetic support is finite',
+            );
+          }
+        }
+        assert.ok(
+          departure && recovered && unsupportedTicks >= 175,
+          `${difficulty} must exercise the reported departure and recovery`,
+        );
+      } finally {
+        racers.dispose();
+        runtime.dispose();
+        dynamics.dispose();
+      }
+    }
+  } finally {
+    collisionWorld.dispose();
   }
 });

@@ -13,7 +13,7 @@ import {
 import { VEHICLE_HULL, projectedHullExtent, hullAxes } from './hull.js';
 import { createContactFeedback, racerImpact } from './contact-feedback.js';
 
-export const MAGNETIC_BODY_RULES = `magnetic-constraint-v3-edge-release-yaw-0.85-120-grip80:${COLLISION_HULLS_ID}`;
+export const MAGNETIC_BODY_RULES = `magnetic-constraint-v4-bounded-support-yaw-0.85-120-grip80:${COLLISION_HULLS_ID}`;
 const clamp = T.MathUtils.clamp;
 const axisY = new T.Vector3(0, 1, 0);
 const axisZ = new T.Vector3(0, 0, 1);
@@ -63,6 +63,8 @@ export function createMagneticBody({
   actor,
   hull = VEHICLE_HULL,
   contactFeedback = createContactFeedback(),
+  automaticRecovery = true,
+  recoveryDelay = 1.5,
 }) {
   let initialized = false,
     current = null,
@@ -71,11 +73,28 @@ export function createMagneticBody({
   let pending = null,
     capture = null;
   let edgeStall = 0,
-    edgeEscape = null;
+    roadRecovery = null;
 
-  function updateEdgeEscape(state, input, dt, frame, body) {
+  function outsideRoad(frame, lateral) {
+    if (frame.period > 0) return false;
+    const bounds = frame.bounds ?? {
+      min: -track.width / 2,
+      max: track.width / 2,
+    };
+    return lateral < bounds.min - 0.15 || lateral > bounds.max + 0.15;
+  }
+  function leaveRoad(state, distance, reason, events) {
+    roadRecovery = { elapsed: 0, distance, reason };
+    edgeStall = 0;
+    capture = null;
+    state.distance = distance;
+    state.boosting = false;
+    actor.stage({ support: null });
+    events.push({ type: 'road-departure', payload: { distance, reason } });
+  }
+  function strandedAtEdge(state, input, dt, frame, body) {
     const boundaries = body.contacts.filter((hit) => hit.shape.boundaryPoints);
-    if (!boundaries.length && !edgeEscape) {
+    if (!boundaries.length) {
       edgeStall = 0;
       return null;
     }
@@ -85,7 +104,6 @@ export function createMagneticBody({
     };
     if (frame.period > 0) {
       edgeStall = 0;
-      edgeEscape = null;
       return null;
     }
     const vertices = getCollisionHull(state.chassisId ?? state.shipId).vertices;
@@ -128,33 +146,9 @@ export function createMagneticBody({
     const driving =
       finite(input?.throttle) > 0.2 || Math.abs(finite(input?.steer)) > 0.2;
     edgeStall = crossedBoundary && driving ? edgeStall + dt : 0;
-    if (!edgeEscape && edgeStall >= 0.6) {
-      let height = 0;
-      for (const hit of boundaries)
-        for (const point of hit.shape.boundaryPoints)
-          height = Math.max(
-            height,
-            vertex.fromArray(point).sub(frame.position).dot(frame.up),
-          );
-      // Lift clear of the actual contacted lip, then draw the hull inward
-      // through forces. Never teleport it through the wall or advance route s.
-      if (height >= 0 && height < 8)
-        edgeEscape = {
-          side,
-          height:
-            height + projectedHullExtent(body.quaternion, frame.up, hull) + 0.2,
-        };
-      edgeStall = 0;
-    }
-    if (!edgeEscape) return null;
-    const clear = min > bounds.min + 0.35 && max < bounds.max - 0.35;
-    if (clear) {
-      edgeEscape.height = Math.max(0, edgeEscape.height - 12 * dt);
-      if (!edgeEscape.height) edgeEscape = null;
-      return null;
-    }
-    return edgeEscape.side;
+    return edgeStall >= 0.6;
   }
+
   function support(state, options = {}, dt = 0) {
     const f = magneticFrame(track, state.distance, state.lateral);
     const solved = initialized ? actor.read() : null;
@@ -240,7 +234,6 @@ export function createMagneticBody({
       }
     }
     height += finite(options.supportHeight);
-    if (edgeEscape) height = Math.max(height, edgeEscape.height);
     return {
       position: f.position.clone().addScaledVector(f.up, height),
       quaternion: f.quaternion.clone(),
@@ -277,7 +270,38 @@ export function createMagneticBody({
       }
       previous = poseCopy(body);
       const f = magneticFrame(track, state.distance, state.lateral);
-      const edgeSide = updateEdgeEscape(state, input, dt, f, body);
+      const events = [];
+      if (!roadRecovery) {
+        if (outsideRoad(f, state.lateral))
+          leaveRoad(state, state.distance, 'off-road', events);
+        else if (strandedAtEdge(state, input, dt, f, body))
+          leaveRoad(state, state.distance, 'stranded-edge', events);
+      }
+      if (roadRecovery) {
+        roadRecovery.elapsed += dt;
+        state.time += dt;
+        state.impact = Math.max(0, state.impact - dt * 2.4);
+        state.energy = Math.min(
+          100,
+          state.energy + getShip(state.shipId).handling.recharge * dt,
+        );
+        state.boosting = false;
+        pending = {
+          events,
+          shield: options.shield === true,
+          supportHeight: options.supportHeight,
+          beforeDistance: state.distance,
+        };
+        // Once unsupported, neither propulsion nor the magnetic plane may
+        // carry this body across empty space. Native gravity/contacts continue.
+        actor.stage({
+          active: true,
+          support: null,
+          acceleration: new T.Vector3(),
+          angularAcceleration: new T.Vector3(),
+        });
+        return;
+      }
       // Vector entry is an explicit propulsion impulse applied by the device
       // adapter between ticks. Preserve it without replacing contact velocity.
       const deviceImpulse = state.speed - lastSpeed;
@@ -285,7 +309,6 @@ export function createMagneticBody({
         body.velocity.addScaledVector(f.tangent, deviceImpulse);
         actor.setVelocity(body.velocity);
       }
-      const events = [];
       const handling = getShip(state.shipId).handling;
       const throttle = clamp(finite(input?.throttle), 0, 1);
       const brake = clamp(finite(input?.brake), 0, 1);
@@ -369,17 +392,6 @@ export function createMagneticBody({
         f.tangent,
         finite(surface.forwardAcceleration),
       );
-      if (edgeSide) {
-        const inward = clamp(
-          (-edgeSide * 6 - body.velocity.dot(f.right)) * 14,
-          -90,
-          90,
-        );
-        acceleration.addScaledVector(
-          f.right,
-          inward - acceleration.dot(f.right),
-        );
-      }
       // The approved on-road gravity is 9.81; flight retains level gravity.
       const worldGravity = new T.Vector3(0, -9.81, 0);
       acceleration
@@ -425,7 +437,12 @@ export function createMagneticBody({
         0,
         100,
       );
-      pending = { events, shield: options.shield === true };
+      pending = {
+        events,
+        shield: options.shield === true,
+        supportHeight: options.supportHeight,
+        beforeDistance: state.distance,
+      };
       actor.stage({
         active: true,
         support: support(state, options, dt),
@@ -435,22 +452,32 @@ export function createMagneticBody({
     },
     finish(state) {
       const body = actor.read();
-      const projected = projectMagneticBody(
-        track,
-        body.position,
-        state.distance,
-        state.lateral,
-      );
-      const f = projected.frame;
+      const events = pending?.events ?? [];
+      const projected = roadRecovery
+        ? null
+        : projectMagneticBody(
+            track,
+            body.position,
+            state.distance,
+            state.lateral,
+          );
+      if (projected && outsideRoad(projected.frame, projected.lateral))
+        leaveRoad(state, pending.beforeDistance, 'off-road', events);
+      const f = roadRecovery
+        ? magneticFrame(track, state.distance, state.lateral)
+        : projected.frame;
       const forward = axisZ.clone().applyQuaternion(body.quaternion);
-      state.distance = projected.distance;
-      state.lateral = projected.lateral;
+      if (!roadRecovery) {
+        state.distance = projected.distance;
+        state.lateral = projected.lateral;
+      }
       state.heading = Math.atan2(forward.dot(f.right), forward.dot(f.tangent));
-      state.speed = body.velocity.dot(forward);
+      state.speed = roadRecovery
+        ? body.velocity.length()
+        : body.velocity.dot(forward);
       state.lateralSpeed = body.velocity.dot(f.right);
       lastSpeed = state.speed;
       current = poseCopy(body);
-      const events = pending?.events ?? [];
       for (const hit of contactFeedback.collect(body.contacts, state.time)) {
         const key = hit.shape.id;
         const impact = racerImpact(hit.incomingSpeed);
@@ -476,13 +503,37 @@ export function createMagneticBody({
           },
         });
       }
+      if (
+        roadRecovery &&
+        automaticRecovery &&
+        roadRecovery.elapsed >= recoveryDelay - 1e-8
+      ) {
+        const { distance, reason } = roadRecovery;
+        // A recovery is an explicit relocation after the fall, never a raised
+        // hover path. Returning to the departure station cannot skip a corner.
+        Object.assign(state, {
+          distance,
+          lateral: 0,
+          heading: 0,
+          steeringHeading: 0,
+          lateralSpeed: 0,
+          speed: 0,
+          steer: 0,
+          boosting: false,
+        });
+        roadRecovery = null;
+        edgeStall = 0;
+        initialized = false;
+        initialize(state, { supportHeight: pending?.supportHeight });
+        events.push({ type: 'road-recovery', payload: { distance, reason } });
+      }
       pending = null;
       return events;
     },
     adopt(state) {
       initialized = true;
       edgeStall = 0;
-      edgeEscape = null;
+      roadRecovery = null;
       lastSpeed = state.speed;
       current = poseCopy(actor.read());
       previous = poseCopy(current);
@@ -501,15 +552,16 @@ export function createMagneticBody({
       lastSpeed = 0;
       current = previous = pending = capture = null;
       edgeStall = 0;
-      edgeEscape = null;
+      roadRecovery = null;
       contactFeedback.reset();
     },
     pose(alpha = 1) {
       if (!current) return null;
       const before = previous ?? current;
       return {
-        grounded: true,
-        steeringBank: true,
+        grounded: !roadRecovery,
+        recovering: Boolean(roadRecovery),
+        steeringBank: !roadRecovery,
         position: before.position
           .clone()
           .lerp(current.position, clamp(alpha, 0, 1)),
@@ -523,7 +575,7 @@ export function createMagneticBody({
         initialized,
         lastSpeed,
         edgeStall,
-        edgeEscape: edgeEscape && { ...edgeEscape },
+        roadRecovery: roadRecovery && { ...roadRecovery },
         ...contactFeedback.snapshot(),
         capture: capture && {
           elapsed: capture.elapsed,
@@ -546,10 +598,11 @@ export function createMagneticBody({
         !Number.isFinite(data.lastSpeed) ||
         !Number.isFinite(data.edgeStall ?? 0) ||
         (data.edgeStall ?? 0) < 0 ||
-        (data.edgeEscape &&
-          (![-1, 1].includes(data.edgeEscape.side) ||
-            !Number.isFinite(data.edgeEscape.height) ||
-            data.edgeEscape.height < 0))
+        (data.roadRecovery &&
+          (!Number.isFinite(data.roadRecovery.elapsed) ||
+            data.roadRecovery.elapsed < 0 ||
+            !Number.isFinite(data.roadRecovery.distance) ||
+            !['off-road', 'stranded-edge'].includes(data.roadRecovery.reason)))
       )
         throw new Error('Invalid magnetic body state');
       const decode = (p) =>
@@ -560,7 +613,7 @@ export function createMagneticBody({
       initialized = data.initialized;
       lastSpeed = data.lastSpeed;
       edgeStall = data.edgeStall ?? 0;
-      edgeEscape = data.edgeEscape && { ...data.edgeEscape };
+      roadRecovery = data.roadRecovery && { ...data.roadRecovery };
       contactFeedback.restore(data);
       current = decode(data.current);
       previous = decode(data.previous);

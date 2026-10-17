@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 
-// Eight 40 cm structural bands per repeat preserve Zephyr's broad woven grid
+// Eight 10 cm structural bands per repeat preserve Zephyr's broad woven grid
 // at race distance. Relief and satin-coating roughness remain independent maps.
-const REPEAT_METRES = 3.2;
+const REPEAT_METRES = 0.8;
 export function createZephyrWeave() {
   const size = 512,
     cell = size / 8;
@@ -22,10 +22,10 @@ export function createZephyrWeave() {
       const crossing = Math.sin(along * Math.PI);
       const fibre = Math.sin(cross * Math.PI * 24);
       const i = (y * size + x) * 4;
-      const value = 88 + crown * 46 + crossing * 17 + fibre * crown * 3;
+      const value = 102 + crown * 23 + crossing * 9 + fibre * crown * 2;
       color.set([value, value + 2, value + 3, 255], i);
       height[y * size + x] =
-        crown * 0.0055 + crossing * 0.0028 + fibre * crown * 0.0001;
+        crown * 0.0009 + crossing * 0.00045 + fibre * crown * 0.000025;
       const r = 233 - crown * 30 - crossing * 14 + fibre * 4;
       roughness.set([r, r, r, 255], i);
     }

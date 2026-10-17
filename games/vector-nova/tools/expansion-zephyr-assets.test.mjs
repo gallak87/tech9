@@ -86,7 +86,7 @@ test('Zephyr failed stone load releases every fulfilled mesh; failed mesh releas
       }),
       /missing/,
     );
-    assert.equal(releasedGeometry, failure === 'mesh' ? 11 : 12);
+    assert.equal(releasedGeometry, failure === 'mesh' ? 12 : 13);
     assert.equal(releasedMaterials, releasedGeometry);
     assert.equal(releasedTexture, failure === 'mesh' ? 1 : 0);
   }

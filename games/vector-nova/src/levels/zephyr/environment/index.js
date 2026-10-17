@@ -1,5 +1,9 @@
 import * as T from 'three';
 import { assetURL } from '../../../assets/url.js';
+import { createZephyrInfrastructure } from './infrastructure.js';
+import { createZephyrPracticals } from './practicals.js';
+import { createZephyrWater } from './water.js';
+import { createFallSpray, createImpactFoam } from './fall-spray.js';
 import { createZephyrDetails } from './details.js';
 import { finishZephyrMaterial, zephyrNoiseGLSL } from './materials.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -22,6 +26,7 @@ const FILES = [
   'waterfall-curtain',
   'cloudspire-needle',
   'broken-halo',
+  'abbey-quarter',
 ];
 function release(group) {
   const geometries = new Set(),
@@ -32,7 +37,8 @@ function release(group) {
     if (o.geometry) geometries.add(o.geometry);
     for (const m of [o.material].flat().filter(Boolean)) {
       materials.add(m);
-      for (const v of Object.values(m)) if (v?.isTexture) textures.add(v);
+      for (const [key, v] of Object.entries(m))
+        if (v?.isTexture && key !== 'envMap') textures.add(v);
     }
   });
   geometries.forEach((g) => g.dispose());
@@ -89,74 +95,20 @@ export async function createZephyrEnvironment({
     for (const m of [o.material].flat().filter(Boolean))
       m.userData.crossingCurtain = true;
   });
-  const waterMaterials = new Set();
+  const water = createZephyrWater(track, stoneTexture);
+  const replacedMaterials = new Set();
   owners.traverse((o) => {
     if (!o.isMesh) return;
     o.castShadow = true;
     o.receiveShadow = true;
-    const materials = [o.material].flat();
-    for (const m of materials) {
-      finishZephyrMaterial(m, { stoneTexture });
-      if (/water|foam|silver/i.test(m.name)) {
-        m.transparent = true;
-        m.opacity = /foam/i.test(m.name)
-          ? 0.64
-          : /deep volume|depth grooves/i.test(m.name)
-            ? 0.57
-            : 0.52;
-        m.depthWrite = false;
-        m.roughness = /foam/i.test(m.name) ? 0.76 : 0.29;
-        m.metalness = 0;
-        m.side = T.FrontSide;
-        m.userData.time = { value: 0 };
-        m.onBeforeCompile = (shader) => {
-          shader.uniforms.zephyrTime = m.userData.time;
-          shader.vertexShader =
-            'uniform float zephyrTime; varying vec3 zephyrLocal;\n' +
-            shader.vertexShader.replace(
-              '#include <begin_vertex>',
-              '#include <begin_vertex>\n zephyrLocal=position; transformed.x+=sin(position.y*.075+position.x*.35+zephyrTime*1.1)*.65; transformed.z+=sin(position.y*.12+zephyrTime*1.6)*.55;',
-            );
-          shader.fragmentShader =
-            'uniform float zephyrTime; varying vec3 zephyrLocal;\n' +
-            zephyrNoiseGLSL +
-            shader.fragmentShader.replace(
-              '#include <color_fragment>',
-              '#include <color_fragment>\n vec3 flow=zephyrLocal*vec3(.22,.15,.22)+vec3(0.,zephyrTime*3.,0.); float volume=zephyrNoise(flow*.3); float strand=zephyrNoise(flow+vec3(volume*3.)); float froth=smoothstep(.48,.72,strand)*smoothstep(.35,.7,volume); diffuseColor.rgb=mix(diffuseColor.rgb*(.63+volume*.48),vec3(.92,.97,.95),froth*.8); diffuseColor.a*=(.18+smoothstep(.28,.64,strand)*.82)*(1.-smoothstep(240.,367.,-zephyrLocal.y));',
-            );
-        };
-        const flowCompile = m.onBeforeCompile;
-        m.onBeforeCompile = (shader) => {
-          flowCompile(shader);
-          shader.fragmentShader = shader.fragmentShader.replace(
-            '#include <normal_fragment_maps>',
-            `#include <normal_fragment_maps>
-            float ripple=zephyrNoise(zephyrLocal*.22+vec3(0.,zephyrTime*2.,0.))*.13;
-            vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition);
-            vec3 rx=cross(sy,normal),ry=cross(normal,sx);
-            float det=dot(sx,rx);
-            normal=normalize(normal-sign(det)*(dFdx(ripple)*rx+dFdy(ripple)*ry)/max(abs(det),.00001));
-            diffuseColor.a*=.42+.58*smoothstep(.02,.42,abs(dot(normal,normalize(vViewPosition))));
-          `,
-          );
-        };
-        const waterCompile = m.onBeforeCompile;
-        m.onBeforeCompile = (shader) => {
-          waterCompile(shader);
-          if (m.userData.crossingCurtain)
-            shader.fragmentShader = shader.fragmentShader.replace(
-              '#include <color_fragment>',
-              '#include <color_fragment>\ndiffuseColor.a*=mix(.045,1.,smoothstep(12.,29.,abs(zephyrLocal.x)));',
-            );
-        };
-        m.customProgramCacheKey = () =>
-          `zephyr-flow-v8-${m.userData.crossingCurtain ? 'crossing' : 'deep'}`;
-        waterMaterials.add(m);
-        o.castShadow = false;
-        o.userData.aoExclude = true;
-      }
-    }
+    const m = o.material;
+    if (/water|foam|silver/i.test(m.name)) {
+      replacedMaterials.add(m);
+      water.finishMesh(o, !!m.userData.crossingCurtain);
+    } else finishZephyrMaterial(m, { stoneTexture });
   });
+  replacedMaterials.forEach((m) => m.dispose());
+  group.add(water.group);
   const placed = [];
   function place(
     name,
@@ -164,6 +116,7 @@ export async function createZephyrEnvironment({
     { lateral = 0, height = 0, scale = 1, yaw = 0, position = null } = {},
   ) {
     const object = library[name].clone(true);
+    if (name === 'waterfall') object.add(createFallSpray(water.clock));
     const f = groundFrame(track, s);
     object.position.copy(
       position
@@ -212,15 +165,26 @@ export async function createZephyrEnvironment({
     position: towerAnchor.toArray(),
     scale: 0.9,
   });
-  const towerWater = library.waterfall.clone(true);
+  // A pair of broad irregular overlapping streams carries the falling wake;
+  // distant narrow strands otherwise collapse into parallel wire silhouettes.
+  const towerWater = new T.Group();
+  const wakeSource = new T.MeshStandardMaterial({
+    name: 'Zephyr water deep volume',
+  });
+  const wakeMesh = new T.Mesh(
+    new T.BoxGeometry(68, 360, 2).translate(0, -180, 0),
+    wakeSource,
+  );
+  water.finishMesh(wakeMesh, false, { wake: true });
+  wakeSource.dispose();
+  towerWater.add(wakeMesh);
   towerWater.position.set(38, 270, 5);
   towerWater.scale.set(0.5, 1.4, 0.7);
   towerPivot.add(towerWater);
   const trailingMeshes = [];
   let previousWaterTrail = null;
   towerWater.traverse((object) => {
-    if (!object.isMesh) return;
-    object.geometry = object.geometry.clone();
+    if (!object.isMesh || !object.visible) return;
     trailingMeshes.push({
       object,
       rest: object.geometry.attributes.position.array.slice(),
@@ -379,15 +343,15 @@ export async function createZephyrEnvironment({
   // Taller midground groups meet their own terraces and stay outside every
   // banked route span. Their staggered elevations make the ascent legible.
   for (const [s, side, scale, height, kind] of [
-    [360, -1, 0.58, 38, 'chapel'],
-    [620, 1, 0.66, 45, 'cathedral-facade'],
+    // Low cloister leaves the collapsing belfry readable above its roof.
+    [620, 1, 0.48, -26, 'abbey-quarter'],
     [2060, -1, 0.68, 15, 'falling-tower'],
     [2310, 1, 0.54, -10, 'chapel'],
-    [2530, -1, 0.72, 20, 'cathedral-facade'],
+    [2530, -1, 1.15, 20, 'abbey-quarter'],
     [2890, 1, 0.61, 36, 'chapel'],
     [3290, -1, 0.65, -4, 'falling-tower'],
-    [3690, -1, 0.63, 12, 'chapel'],
-    [4180, 1, 0.58, 28, 'cathedral-facade'],
+    [3690, -1, 0.95, 12, 'abbey-quarter'],
+    [4180, 1, 1.0, 28, 'abbey-quarter'],
     [4640, -1, 0.7, 15, 'chapel'],
   ]) {
     for (const offset of [165, 205, 260, 320]) {
@@ -405,7 +369,12 @@ export async function createZephyrEnvironment({
         )
       )
         continue;
-      const base = kind === 'falling-tower' ? 0 : kind === 'chapel' ? -28 : -34;
+      const base =
+        kind === 'falling-tower' || kind === 'abbey-quarter'
+          ? 0
+          : kind === 'chapel'
+            ? -28
+            : -34;
       place(kind, s, { lateral, height, scale, yaw: side * 0.34 });
       place('island-grand', s, {
         lateral,
@@ -444,7 +413,12 @@ export async function createZephyrEnvironment({
       )
     )
       continue;
-    const base = kind === 'falling-tower' ? 0 : kind === 'chapel' ? -28 : -34;
+    const base =
+      kind === 'falling-tower' || kind === 'abbey-quarter'
+        ? 0
+        : kind === 'chapel'
+          ? -28
+          : -34;
     const pos = [x, y, z];
     place(kind, track.landmarks.cloudspire.s, {
       position: pos,
@@ -460,29 +434,75 @@ export async function createZephyrEnvironment({
       scale: scale * 0.8,
     });
   }
+  // Skyline districts give the upper ring and return a constructed destination.
+  // Each district is a single deep abbey composition on a broad rooted terrace.
+  for (const [x, y, z, scale, yaw] of [
+    [-760, 120, 1150, 1.45, 0.65],
+    [-580, 80, -650, 1.65, -0.18],
+    [780, -100, -820, 2.0, 0.4],
+    [820, 115, 610, 1.9, -0.9],
+    [420, 180, 1120, 2.2, 0.3],
+    [-1200, -160, 0, 1.8, 0.85],
+  ]) {
+    if (
+      !clearance.clears(
+        x,
+        z,
+        310 * scale,
+        310 * scale,
+        y + 175 * scale,
+        yaw,
+        y - 245 * scale,
+      )
+    )
+      continue;
+    place('abbey-quarter', 0, { position: [x, y, z], scale, yaw });
+    place('island-grand', 0, {
+      position: [x, y - 22 * scale, z],
+      scale: [scale * 1.1, scale * 1.1, scale * 1.15],
+      yaw,
+    });
+    place('waterfall', 0, {
+      position: [x + 105 * scale, y - 26 * scale, z + 35 * scale],
+      scale: [scale * 0.55, scale * 1.35, scale * 0.6],
+      yaw,
+    });
+  }
   function basin(s, height, lateral = 0) {
     place('aqueduct-source', s, { height, lateral });
     place('island-terrace', s, { height: height - 148, lateral, scale: 0.9 });
   }
   const curtains = [];
   for (const curtain of track.curtains) {
-    const water = place('waterfall-curtain', curtain.s, {
+    const curtainMesh = place('waterfall-curtain', curtain.s, {
       height: 62,
       scale: 1,
     });
-    curtains.push(water);
+    curtains.push(curtainMesh);
     basin(curtain.s, 62);
     const sourceSide = curtain.id === 'falls-curtain' ? -210 : 135;
     basin(curtain.s - 55, 165, sourceSide);
+    const impactSpray = createFallSpray(water.clock);
+    impactSpray.position.copy(
+      stonePoint(track, curtain.s - 55, sourceSide, 165),
+    );
+    const sourceFrame = groundFrame(track, curtain.s - 55);
+    impactSpray.rotation.y = Math.atan2(
+      sourceFrame.tangent.x,
+      sourceFrame.tangent.z,
+    );
+    impactSpray.scale.set(1.1, 0.43, 1.3);
+    group.add(impactSpray);
+    const contactFoam = createImpactFoam(water.clock);
+    contactFoam.position
+      .copy(stonePoint(track, curtain.s - 55, sourceSide, 25.6))
+      .addScaledVector(sourceFrame.tangent, 25);
+    contactFoam.rotation.y = impactSpray.rotation.y;
+    group.add(contactFoam);
     place('island-terrace', curtain.s, {
       lateral: -124,
       height: 62,
       scale: 0.72,
-    });
-    place('waterfall', curtain.s - 55, {
-      lateral: sourceSide,
-      height: 165,
-      scale: 1.2,
     });
   }
   // Light shafts and rose pools are narrow local volumes; they never obscure a landing.
@@ -525,6 +545,7 @@ export async function createZephyrEnvironment({
     light.position.copy(stonePoint(track, s, 23, 25));
     group.add(light);
   }
+  group.add(createZephyrPracticals(track));
   const roseLight = new T.PointLight('#b6d8ff', 180, 100, 1.8);
   roseLight.position.copy(stonePoint(track, rose + 15, 0, 34));
   group.add(roseLight);
@@ -536,7 +557,7 @@ export async function createZephyrEnvironment({
       r = 440 + (i % 13) * 80;
     cloudPositions.push(
       Math.cos(a) * r,
-      -210 - (i % 7) * 23,
+      -145 - (i % 7) * 26,
       320 + Math.sin(a) * r,
     );
   }
@@ -548,9 +569,11 @@ export async function createZephyrEnvironment({
     transparent: true,
     depthWrite: false,
     uniforms: { clock: { value: 0 } },
-    vertexShader: `varying float seed;void main(){seed=position.x*.031;vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=min(460.,150000./max(50.,-mv.z));gl_Position=projectionMatrix*mv;}`,
+    vertexShader: `varying float seed;void main(){seed=position.x*.031;vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=min(650.,235000./max(50.,-mv.z));gl_Position=projectionMatrix*mv;}`,
     fragmentShader: `varying float seed;uniform float clock;
-    void main(){vec2 p=gl_PointCoord*2.-1.;float r=length(p*vec2(.85,1.6));float n=.75+.25*sin(p.x*11.+seed)*sin(p.y*13.+seed);float a=(1.-smoothstep(.1,1.,r))*n*.26;gl_FragColor=vec4(mix(vec3(.45,.38,.56),vec3(.86,.72,.68),gl_PointCoord.y),a);
+    float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+    float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
+    void main(){vec2 p=gl_PointCoord*2.-1.;vec2 q=p*3.+seed;float n=noise(q)*.55+noise(q*2.1)*.27+noise(q*4.3)*.12+noise(q*8.7)*.06;float r=length(p*vec2(.9,1.45));float a=smoothstep(.25,.75,n)*(1.-smoothstep(.15,.96,r))*.56;vec3 shade=mix(vec3(.34,.38,.50),vec3(.78,.69,.65),smoothstep(-.6,.8,-p.y+n*.4));gl_FragColor=vec4(shade,a);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
     }`,
@@ -587,6 +610,7 @@ export async function createZephyrEnvironment({
   const shipMaterials = new Map();
   const detail = createZephyrDetails({ track, stoneTexture });
   group.add(detail.group);
+  group.add(createZephyrInfrastructure(track, stoneTexture));
   const sceneLights = [];
   view.scene.traverse((o) => {
     if (o.isLight && !group.getObjectById(o.id))
@@ -611,12 +635,15 @@ export async function createZephyrEnvironment({
     wetness,
     interior,
     towerFall: event.fall,
+    flowTime: water.clock.value,
   });
   return {
     group,
+    setReflection: water.setReflection,
     update(frame) {
       if (disposed) return;
-      detail.update(frame);
+      water.update(frame);
+      detail.update({ ...frame, waterTime: water.clock.value });
       interior = frame.reviewing ? 0 : interiorAt(track, frame.state.distance);
       for (const entry of sceneLights)
         entry.light.intensity =
@@ -642,10 +669,6 @@ export async function createZephyrEnvironment({
           m.roughness = roughness;
           shipMaterials.delete(m);
         }
-      for (const material of waterMaterials)
-        material.userData.time.value = frame.settings.reducedMotion
-          ? 0
-          : frame.time;
       const start = track.zephyrPresentation?.towerStart;
       event = sampleTowerEvent(start == null ? -1 : frame.time - start);
       towerPivot.rotation.z = event.tilt * 0.42;
@@ -686,10 +709,8 @@ export async function createZephyrEnvironment({
       towerFoam.visible = event.fall > 0.005;
       for (let i = 0; i < towerFoam.count; i++) {
         const q =
-          0.06 +
-          ((Math.floor(i / 3) * 0.61803398875) % 1) * 0.85 +
-          ((i % 3) - 1) * 0.011;
-        const radius = 4 + ((i * 13) % 7);
+          0.035 + ((i * 0.61803398875 + water.clock.value * 0.085) % 1) * 0.91;
+        const radius = (5 + ((i * 13) % 9)) * Math.sin(q * Math.PI);
         foamPosition.set(
           (2 * q - q * q) * 850 * event.trail + Math.sin(i * 8.71) * 23,
           -q * 360,
@@ -748,6 +769,17 @@ export async function createZephyrEnvironment({
       shipMaterials.clear();
       for (const e of sceneLights) e.light.intensity = e.intensity;
       view.scene.environmentIntensity = initialEnvironment;
+      group.remove(water.group);
+      water.dispose();
+      // Water owns its replacement materials; remove them from the generic owner.
+      owners.traverse((o) => {
+        if (o.isMesh && /gravity accelerated/.test(o.material.name))
+          o.material = [];
+      });
+      group.traverse((o) => {
+        if (o.isMesh && /gravity accelerated/.test(o.material?.name))
+          o.material = [];
+      });
       group.add(owners);
       release(group);
     },

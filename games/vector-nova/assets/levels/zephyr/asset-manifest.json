@@ -32,11 +32,11 @@
       "root": "cathedral-facade",
       "bounds": {
         "min": [-117.0, -68.0, -22.406],
-        "max": [117.0, 183.0, 24.0]
+        "max": [117.0, 183.0, 47.0]
       },
-      "triangles": 149436,
+      "triangles": 151572,
       "meshCount": 8,
-      "bytes": 14045400
+      "bytes": 14241960
     },
     {
       "purpose": "Reusable rib-vaulted nave bay with clerestories and dark real roof",
@@ -50,12 +50,12 @@
       "file": "/assets/levels/zephyr/nave-bay.glb",
       "root": "nave-bay",
       "bounds": {
-        "min": [-62.05, -17.36, -44.519],
-        "max": [62.05, 80.896, 44.519]
+        "min": [-62.053, -17.36, -44.519],
+        "max": [62.053, 80.896, 44.519]
       },
-      "triangles": 154028,
+      "triangles": 160880,
       "meshCount": 9,
-      "bytes": 14778940
+      "bytes": 15431964
     },
     {
       "purpose": "Open floating chapel with two true portals, nave and transepts",
@@ -71,9 +71,9 @@
         "min": [-91.0, -28.0, -78.502],
         "max": [87.0, 169.0, 78.502]
       },
-      "triangles": 196268,
+      "triangles": 201416,
       "meshCount": 9,
-      "bytes": 18571624
+      "bytes": 19031168
     },
     {
       "purpose": "Stratified floating island with eroded undersides, terraces and suspension roots",
@@ -82,12 +82,12 @@
       "file": "/assets/levels/zephyr/island-grand.glb",
       "root": "island-grand",
       "bounds": {
-        "min": [-163.008, -226.207, -139.341],
-        "max": [160.62, 26.838, 120.343]
+        "min": [-168.666, -226.294, -138.187],
+        "max": [159.119, 26.937, 119.908]
       },
-      "triangles": 47543,
+      "triangles": 58758,
       "meshCount": 7,
-      "bytes": 1833824
+      "bytes": 2388108
     },
     {
       "purpose": "Stratified floating island with eroded undersides, terraces and suspension roots",
@@ -96,12 +96,12 @@
       "file": "/assets/levels/zephyr/island-terrace.glb",
       "root": "island-terrace",
       "bounds": {
-        "min": [-110.243, -110.419, -91.458],
-        "max": [116.004, 29.466, 84.005]
+        "min": [-120.346, -107.682, -79.017],
+        "max": [113.983, 29.241, 79.581]
       },
-      "triangles": 28023,
+      "triangles": 33416,
       "meshCount": 7,
-      "bytes": 1175044
+      "bytes": 1473772
     },
     {
       "purpose": "Stratified floating island with eroded undersides, terraces and suspension roots",
@@ -110,12 +110,12 @@
       "file": "/assets/levels/zephyr/island-shard.glb",
       "root": "island-shard",
       "bounds": {
-        "min": [-58.142, -145.059, -49.247],
-        "max": [65.556, 28.457, 48.074]
+        "min": [-60.073, -142.129, -43.328],
+        "max": [64.966, 28.457, 48.074]
       },
-      "triangles": 26586,
+      "triangles": 36808,
       "meshCount": 7,
-      "bytes": 1032156
+      "bytes": 1395372
     },
     {
       "purpose": "Massive falling belfry, open bell chamber, weathered copper spire",
@@ -207,8 +207,21 @@
       "triangles": 30808,
       "meshCount": 4,
       "bytes": 2589256
+    },
+    {
+      "purpose": "Deep asymmetric abbey district with roofed wings, occupied galleries, courtyard arcade and rooted buttresses",
+      "anchor": "terrace at y=0; whole district remains outside racing envelope",
+      "file": "/assets/levels/zephyr/abbey-quarter.glb",
+      "root": "abbey-quarter",
+      "bounds": {
+        "min": [-74.377, -21.0, -82.5],
+        "max": [73.834, 172.0, 84.113]
+      },
+      "triangles": 93234,
+      "meshCount": 6,
+      "bytes": 8459172
     }
   ],
-  "totalExportBytes": 74858524,
-  "uniqueTriangles": 911194
+  "totalExportBytes": 85843052,
+  "uniqueTriangles": 1045394
 }

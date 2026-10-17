@@ -124,7 +124,7 @@ export function createZephyrDetails({ track, stoneTexture }) {
           ((i * 19) % 15) - 7,
         ).toArray(),
       );
-      seeds.push(i * 0.618, foot ? 10 : 1.9);
+      seeds.push(i * 0.618, foot ? 8 : 0.7);
     }
   const sprayGeometry = new T.BufferGeometry();
   sprayGeometry.setAttribute(
@@ -141,7 +141,7 @@ export function createZephyrDetails({ track, stoneTexture }) {
     depthWrite: false,
     uniforms: { clock },
     vertexShader: `attribute vec2 seedSize;uniform float clock;varying float alpha;
- void main(){float phase=fract(clock*.27+seedSize.x);vec3 p=position+vec3(sin(seedSize.x*11.+phase*3.)*2.,phase*5.,cos(seedSize.x*7.+phase*2.)*2.);vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=min(170.,seedSize.y*950./max(5.,-mv.z));alpha=sin(phase*3.14159)*.19;gl_Position=projectionMatrix*mv;}`,
+ void main(){float phase=fract(clock*.27+seedSize.x);vec3 p=position+vec3(sin(seedSize.x*11.+phase*3.)*2.,phase*5.,cos(seedSize.x*7.+phase*2.)*2.);vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=min(170.,seedSize.y*950./max(5.,-mv.z));alpha=sin(phase*3.14159)*.1;gl_Position=projectionMatrix*mv;}`,
     fragmentShader: `varying float alpha;void main(){float r=length(gl_PointCoord-.5)*2.;float a=(1.-smoothstep(.05,1.,r))*alpha;gl_FragColor=vec4(.76,.85,.87,a);
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
@@ -154,7 +154,8 @@ export function createZephyrDetails({ track, stoneTexture }) {
   return {
     group,
     update(frame) {
-      clock.value = frame.settings.reducedMotion ? 0 : frame.time;
+      clock.value =
+        frame.waterTime ?? (frame.settings.reducedMotion ? 0 : frame.time);
       sprayGeometry.setDrawRange(
         0,
         frame.settings.quality === 'low' ? 160 : 256,

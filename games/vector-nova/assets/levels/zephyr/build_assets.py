@@ -399,6 +399,14 @@ def facade():
         for k in range(9):
             y=-19+k*9.5;x=side*(77+3*math.sin(k*1.9))
             m.box((x,y,-13.7),(5+(k%3),2.1,3.5),"limestone",side*.18)
+    # Tower returns and stepped shoulders tie the rose into a deep building.
+    for side in [-1,1]:
+        m.box((side*88,41,25),(31,150,35),"limestone")
+        for yy in [0,43,87,126]:
+            m.box((side*88,yy,26),(35,3.5,38),"pale")
+        for zz in [15,32,43]:
+            m.box((side*104.2,50,zz),(1.2,48,8),"shadow")
+            m.beam((side*106,23,zz),(side*106,79,zz),.8,"pale",6)
     # Gable sits above the rose, leaving every part of the through-circle open.
     m.mesh([(-66,84,-6),(66,84,-6),(0,142,-6),(-66,84,7),(66,84,7),(0,142,7)],
            [(0,2,1),(3,4,5),(0,3,5,2),(1,2,5,4),(0,1,4,3)],"limestone")
@@ -466,6 +474,23 @@ def nave_geometry(m,zmin=-36,zmax=36,roof=True):
             m.beam((side*61,-17,z),(side*61,58,z),1.15,"pale",7)
             for dz in [-5,5]:
                 m.beam((side*61,17,z+dz),(side*61,54,z),.72,"bronze",6)
+        # Deep masonry side aisles: tall narrow lancets occupy real recesses.
+        # The central route aperture is unchanged; these walls sit beyond x=58.
+        length=zmax-zmin
+        m.box((side*66,-6,(zmin+zmax)/2),(12,28,length),"limestone")
+        m.box((side*66,55,(zmin+zmax)/2),(12,17,length),"limestone")
+        for k in range(4):
+            zz=zmin+length*k/3
+            m.box((side*66,26,zz),(12,48,7),"limestone")
+        for k in range(3):
+            zz=zmin+length*(k+.5)/3
+            m.box((side*71,27,zz),(1.8,37,length/3-8),"shadow")
+            m.box((side*70,29,zz),(1.3,31,length/3-11),"rose_amber" if side<0 else "rose_blue")
+            for d in [-1,1]:
+                m.beam((side*59,8,zz+d*(length/6-5)),(side*59,39,zz+d*(length/6-5)),.7,"pale",6)
+            arch=[(side*59,38+11*(1-abs(2*j/16-1)**1.4),zz+(j/16-.5)*(length/3-10)) for j in range(17)]
+            m.path(arch,.9,"pale",7)
+            m.beam((side*59,9,zz),(side*59,46,zz),.55,"bronze",6)
         # High clerestory above the outer aisles.
         for z in [zmin+10,zmax-10]:
             m.box((side*50,72,z),(3,18,11),"shadow")
@@ -583,11 +608,11 @@ def island(name,rx,rz,depth,seed,terraces=2):
     # than the same repeated concentric steps scaled to different sizes.
     radial=[1+.09*math.sin(math.tau*k/n*3+seed)+.045*math.sin(math.tau*k/n*7+seed*2) for k in range(n)]
     if 'terrace' in name:
-        rings=[(0,.82),(-6,.97),(-depth*.23,.91),(-depth*.27,.65),(-depth*.63,.59),(-depth*.72,.43),(-depth,.24)]
+        rings=[(0,.82),(-6,.97),(-depth*.2,.91),(-depth*.38,.72),(-depth*.57,.60),(-depth*.78,.40),(-depth,.24)]
     elif 'shard' in name:
         rings=[(0,.78),(-7,.95),(-depth*.12,.88),(-depth*.15,.69),(-depth*.61,.47),(-depth*.65,.34),(-depth,.025)]
     else:
-        rings=[(0,.82),(-8,.97),(-depth*.18,.93),(-depth*.205,.67),(-depth*.57,.60),(-depth*.60,.39),(-depth*.84,.28),(-depth,.035)]
+        rings=[(0,.82),(-8,.97),(-depth*.15,.91),(-depth*.31,.72),(-depth*.48,.64),(-depth*.67,.43),(-depth*.84,.28),(-depth,.035)]
     expanded=[]
     for a,b in zip(rings[:-1],rings[1:]):
         expanded.append(a)
@@ -609,7 +634,11 @@ def island(name,rx,rz,depth,seed,terraces=2):
             flutes=abs(math.sin(t*7.5+q*.8+seed))**4
             beds=math.sin(yy*.44+math.sin(t*3)*1.7)*math.sin(yy*.18+t*2)
             chips=math.sin(t*37+yy*.51)*math.sin(t*23-yy*.73)
-            erosion=(1-.014*flutes+.018*beds+.01*chips) if ri else 1
+            # Vertical dissolution gullies cut across bedding and merge into the
+            # underside, rather than stacked rings with the same flat silhouette.
+            gully=abs(math.sin(t*5.5+seed+q*.6))**18
+            split=abs(math.sin(t*13+q*2.2))**24
+            erosion=(1-.15*gully*math.sin(q*math.pi)-.055*split+.028*beds+.022*chips) if ri else 1
             r=radial[k]*s*erosion*(1+.09*math.sin(t*3+q*3.4)+.035*math.sin(t*7+q*8))
             lean=(max(0,q-.3)**2)*rx*(.36 if 'grand' in name else -.17)
             xx=math.cos(t)*rx*r+math.sin(q*2.3)*rx*.12+lean
@@ -620,9 +649,9 @@ def island(name,rx,rz,depth,seed,terraces=2):
                 p=Vector((xx*.027+seed,yy*.027,zz*.027))
                 erosion3=noise.noise_vector(p,noise_basis='PERLIN_NEW')
                 fine=noise.noise_vector(p*3.7,noise_basis='PERLIN_NEW')
-                xx+=erosion3.x*7+fine.x*1.2
-                zz+=erosion3.z*7+fine.z*1.2
-                offset+=erosion3.y*5+fine.y*.9
+                xx+=erosion3.x*9+fine.x*2.7
+                zz+=erosion3.z*9+fine.z*2.7
+                offset+=erosion3.y*6+fine.y*1.8
             rr.append((xx,yy+offset,zz))
         ringverts.append(rr)
     # Dressed broad top supports architecture; natural strata remain faceted.
@@ -997,6 +1026,56 @@ def halo():
                      "placement":"Rotate full group to frame a road vista or off-axis world composition."})
 
 
+def abbey_quarter():
+    m=Meshes("abbey-quarter")
+    # An unequal inhabited cloister, roofed scriptorium and buttressed water tower.
+    for x,z,w,h,d in [(-38,0,50,72,150),(38,29,49,49,96),(0,66,110,35,27)]:
+        m.box((x,h*.5,z),(w,h,d),"limestone")
+        m.box((x,3,z),(w+6,6,d+6),"shadow")
+        for y in [16,40,h]:
+            if y>h:continue
+            m.box((x,y,z),(w+3,2,d+3),"pale")
+        # Pitched weathered copper roofs with substantial stone end walls.
+        vs=[(x-w*.55,h,z-d*.55),(x+w*.55,h,z-d*.55),(x,h+18,z-d*.55),
+            (x-w*.55,h,z+d*.55),(x+w*.55,h,z+d*.55),(x,h+18,z+d*.55)]
+        m.mesh(vs,[(0,2,5,3),(1,4,5,2)],"copper")
+        m.mesh(vs,[(0,1,2),(3,5,4)],"limestone")
+        for side in [-1,1]:
+            xx=x+side*(w*.5+.7)
+            for zz in range(int(z-d*.5+8),int(z+d*.5-5),14):
+                for yy in [24,52]:
+                    if yy+9>h:continue
+                    m.box((xx,yy,zz),(1.2,18,7),"shadow")
+                    m.box((xx+side*.8,yy+1,zz),(1.1,13,3),"rose_amber")
+                    m.box((xx+side*1.3,yy-10,zz),(2.4,1.6,10),"pale")
+                m.box((xx+side*2,h*.36,zz),(5,h*.72,5),"limestone")
+                m.beam((xx+side*9,2,zz),(xx+side*2,h*.6,zz),2,"pale",6)
+    for x,z,h in [(-42,-61,128),(43,66,91)]:
+        m.box((x,h*.5,z),(25,h,27),"limestone")
+        for yy in [8,43,79,h-6]:
+            if yy>h:continue
+            m.box((x,yy,z),(30,3,32),"pale")
+        for side in [-1,1]:
+            m.box((x+side*12.8,h-25,z),(1,23,13),"shadow")
+        for dx in [-14,14]:
+            for dz in [-15,15]:
+                pier(m,x+dx,z+dz,0,h+3,1.9)
+                pinnacle(m,x+dx,h+3,z+dz,18,1.8)
+        # Open octagonal roof lanterns replace repeated broad pyramid caps.
+        m.box((x,h+3,z),(30,6,32),"shadow")
+        for k in range(8):
+            a=math.tau*k/8;xx=x+math.cos(a)*10;zz=z+math.sin(a)*10
+            m.beam((xx,h+5,zz),(xx,h+23,zz),1.1,"pale",7)
+        m.box((x,h+24,z),(24,3,25),"bronze")
+        pinnacle(m,x,h+26,z,15,8)
+    # Public arcade links the wings below a continuous bronze-edged terrace.
+    for z in range(-60,61,24):
+        m.portal(0,1,z,17,3,16,4,"pale")
+    m.box((0,38,0),(39,4,140),"limestone")
+    for x in [-20,20]:m.beam((x,41,-71),(x,41,71),.7,"bronze",6)
+    return m.finish({"purpose":"Deep asymmetric abbey district with roofed wings, occupied galleries, courtyard arcade and rooted buttresses", "anchor":"terrace at y=0; whole district remains outside racing envelope"})
+
+
 ASSETS=[]
 ASSETS.append(facade())
 ASSETS.append(nave())
@@ -1010,6 +1089,7 @@ ASSETS.append(waterfall())
 ASSETS.append(curtain())
 ASSETS.append(needle())
 ASSETS.append(halo())
+ASSETS.append(abbey_quarter())
 
 # Blender source preserves each asset in a named collection, at export origin.
 # Select a collection and isolate it to edit; regeneration intentionally replaces

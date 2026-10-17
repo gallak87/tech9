@@ -101,7 +101,7 @@ export async function createZephyrBackdrop({
         float poleV=direction.y>0. ? .99 : .01;
         vec3 poleColor=(textureLod(stellarSky,vec2(.125,poleV),3.).rgb+textureLod(stellarSky,vec2(.375,poleV),3.).rgb+textureLod(stellarSky,vec2(.625,poleV),3.).rgb+textureLod(stellarSky,vec2(.875,poleV),3.).rgb)*.25;
         radiance=mix(radiance,poleColor,smoothstep(.965,.998,abs(direction.y)));
-        radiance*=.9;
+        radiance=mix(radiance,vec3(dot(radiance,vec3(.2126,.7152,.0722))),.19)*.82;
 
         gl_FragColor=vec4(radiance,1.);
         #include <tonemapping_fragment>
@@ -119,13 +119,13 @@ export async function createZephyrBackdrop({
     ownedTextures: [texture],
     sunDirection: new T.Vector3(-0.65, 0.32, -0.35).normalize(),
     sunColor: '#ffe1bc',
-    sunIntensity: 2.6,
-    ambientSky: '#c4bfdc',
-    ambientGround: '#685465',
-    ambientIntensity: 0.6,
+    sunIntensity: 3.1,
+    ambientSky: '#9eafd1',
+    ambientGround: '#3a3547',
+    ambientIntensity: 0.42,
     fillColor: '#b9c9e9',
-    fillIntensity: 0.32,
-    environmentIntensity: 0.55,
+    fillIntensity: 0.22,
+    environmentIntensity: 0.48,
     far: 12000,
     update({ camera }) {
       mesh.position.copy(camera.position);

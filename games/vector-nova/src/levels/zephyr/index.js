@@ -30,7 +30,7 @@ export default function createLevel({ shape = false } = {}) {
     renderer: {
       world: shape ? 'zephyr-shape' : 'zephyr-basilica',
       background: '#a18eac',
-      fog: shape ? null : { color: '#b7a8b6', density: 0.00016 },
+      fog: shape ? null : { color: '#a9b0c6', density: 0.00046 },
       bloomStrength: 0.045,
       catapultBlurScale: 0.2,
       bloomThreshold: 1.65,

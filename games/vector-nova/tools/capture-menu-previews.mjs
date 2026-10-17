@@ -91,11 +91,13 @@ try {
         for (let i = 0; i < samples; i++)
           center.add(track.sample((i * track.length) / samples).position);
         center.multiplyScalar(1 / samples);
-        // Halcyon's elevated loop climbs 500m: clear its tall bridge columns.
+        // Clear Halcyon’s tall bridge columns and Zephyr’s deep cathedral roofs.
         const framing =
           id === 'halcyon'
             ? { side: -6, lift: 18, back: -9, toward: 0.8 }
-            : { side: -4.5, lift: 3.5, back: -5.5, toward: 0.55 };
+            : id === 'zephyr'
+              ? { side: -14, lift: 13, back: -16, toward: 0.4 }
+              : { side: -4.5, lift: 3.5, back: -5.5, toward: 0.55 };
         const target = start.position.clone().lerp(center, framing.toward);
         const scale = Math.max(24, track.width);
         camera.position

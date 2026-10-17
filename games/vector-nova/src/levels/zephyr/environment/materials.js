@@ -30,17 +30,25 @@ export function finishZephyrMaterial(material, { stoneTexture } = {}) {
           `#include <color_fragment>
       vec3 zp=zephyrSurface;
       float broad=zephyrNoise(zp*.17);
-      float grain=zephyrNoise(zp*3.2);
+      float detailVisibility=1.-smoothstep(.12,.65,max(length(dFdx(zp)),length(dFdy(zp))));
+      float grain=mix(.5,zephyrNoise(zp*3.2),detailVisibility);
       float pore=pow(zephyrNoise(zp*11.),4.);
       float sediment=zephyrNoise(vec3(zp.x*.14,zp.y*.9,zp.z*.14));
       float wash=zephyrNoise(zp*${rock ? 'vec3(.07,.065,.07)' : 'vec3(.31,.028,.31)'});
       float age=zephyrNoise(zp*.036);
+      vec2 masonryUV=abs(zephyrLocalNormal.x)>abs(zephyrLocalNormal.z)?zp.zy:zp.xy;
+      float course=floor(masonryUV.y/1.15);
+      vec2 stoneCell=vec2(masonryUV.x+mod(course,2.)*1.35,masonryUV.y)/vec2(2.7,1.15);
+      vec2 seamDistance=min(fract(stoneCell),1.-fract(stoneCell))*vec2(2.7,1.15);
+      float mortar=(1.-smoothstep(.018,.045,min(seamDistance.x,seamDistance.y)))*(1.-abs(normalize(zephyrLocalNormal).y));
+      float blockShade=zephyrHash(vec3(floor(stoneCell),7.));
       float damp=smoothstep(.48,.72,wash)*(1.-smoothstep(-25.,25.,zp.y));
       ${
         bronze
           ? `float patina=smoothstep(.48,.78,broad)*.55;
       diffuseColor.rgb=mix(diffuseColor.rgb*(.64+grain*.5),vec3(.075,.14,.125),patina);`
-          : `diffuseColor.rgb*=.65+broad*.28+grain*.14-pore*.12;
+          : `diffuseColor.rgb*=.74+broad*.18+grain*.10-pore*.07;
+      ${rock ? '' : 'diffuseColor.rgb*=mix(.91,1.06,blockShade)*(1.-mortar*.24);'}
       diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.44,.50,.41),damp*.46);
       diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.43,.51,.43),smoothstep(.53,.73,wash)*smoothstep(.36,.7,age)*.58);
       diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.18,1.12,1.0),smoothstep(.6,.83,age)*.45);
@@ -62,7 +70,8 @@ export function finishZephyrMaterial(material, { stoneTexture } = {}) {
         .replace(
           '#include <normal_fragment_maps>',
           `#include <normal_fragment_maps>
-      float relief=zephyrNoise(zephyrSurface*1.7)*.07+zephyrNoise(zephyrSurface*8.)*.018;
+      float relief=(zephyrNoise(zephyrSurface*1.7)*.045+zephyrNoise(zephyrSurface*8.)*.009)*detailVisibility;
+      ${!bronze && !rock ? 'relief-=mortar*.018;' : ''}
       ${rock ? 'relief+=zephyrNoise(zephyrSurface*.25)*.35+zephyrNoise(vec3(zephyrSurface.x*.28,zephyrSurface.y*1.1,zephyrSurface.z*.28))*.12;' : ''}
       vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition);
       vec3 rx=cross(sy,normal),ry=cross(normal,sx);
@@ -77,5 +86,5 @@ export function finishZephyrMaterial(material, { stoneTexture } = {}) {
         );
   };
   material.customProgramCacheKey = () =>
-    `zephyr-weathered-v8-${bronze}-${rock}-${!!material.map}`;
+    `zephyr-weathered-v9-${bronze}-${rock}-${!!material.map}`;
 }

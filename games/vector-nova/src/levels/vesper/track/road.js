@@ -344,6 +344,15 @@ export function createVesperRoad({ track, shape = false }) {
       ),
       shape ? smoked : core,
     );
+    // This open lower profile runs left to right, opposite the outer shell.
+    // Flip winding without changing its vertices or banked quad diagonals.
+    const undersideIndices = thickness.geometry.index;
+    for (let j = 0; j < undersideIndices.count; j += 3) {
+      const b = undersideIndices.getX(j + 1);
+      undersideIndices.setX(j + 1, undersideIndices.getX(j + 2));
+      undersideIndices.setX(j + 2, b);
+    }
+    thickness.geometry.computeVertexNormals();
     thickness.name = 'Thick cast resin sides and underside';
     group.add(thickness);
     for (const sign of [-1, 1]) {

@@ -1,11 +1,130 @@
+/** Secondary geometry borrows the primary library's single PBR material set. */
+export function shareForestMaterials(library, forest) {
+  const shared = new Map();
+  library.traverse((o) => {
+    for (const m of [o.material].flat()) if (m?.name) shared.set(m.name, m);
+  });
+  const retired = new Set();
+  forest.traverse((o) => {
+    if (!o.isMesh) return;
+    const replace = (m) => {
+      const source = shared.get(m.name);
+      if (!source || source === m) return m;
+      retired.add(m);
+      return source;
+    };
+    o.material = Array.isArray(o.material)
+      ? o.material.map(replace)
+      : replace(o.material);
+  });
+  // The secondary export intentionally has no images; shared textures remain
+  // owned by the combined environment until its deduplicated disposal.
+  for (const material of retired) material.dispose();
+}
+
+/** Baked surface maps retain UV growth direction and eliminate per-pixel noise stacks. */
+function finishBakedForestMaterial(material, leaf) {
+  material.userData.vesperSurfaceDetail = true;
+  material.roughness = 1;
+  material.envMapIntensity = leaf ? 0.42 : 0.46;
+  for (const map of [material.map, material.normalMap, material.roughnessMap])
+    if (map) map.anisotropy = 8;
+  material.onBeforeCompile = (shader) => {
+    if (!material.userData.vesperSurfaceDetail) {
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <normal_fragment_maps>', '')
+        .replace('#include <roughnessmap_fragment>', '');
+      return;
+    }
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        '#include <common>',
+        '#include <common>\nvarying vec3 vForestLocal;',
+      )
+      .replace(
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\nvForestLocal=position;',
+      );
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <common>',
+      '#include <common>\nvarying vec3 vForestLocal;',
+    );
+    if (leaf)
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          '#include <roughnessmap_fragment>',
+          '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+.1,.62,.92);',
+        )
+        .replace(
+          '#include <lights_fragment_end>',
+          `#include <lights_fragment_end>
+      // The waxy cuticle keeps a soft glint rather than a silver mirror lobe.
+      reflectedLight.directSpecular*=.55;
+      reflectedLight.indirectSpecular*=.55;
+      #if NUM_DIR_LIGHTS > 0
+        float transmittedMoon=pow(max(dot(-normal,directionalLights[0].direction),0.),1.5);
+        reflectedLight.indirectDiffuse+=diffuseColor.rgb*directionalLights[0].color*transmittedMoon*.19;
+      #endif
+    `,
+        );
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <map_fragment>',
+      `#include <map_fragment>
+      float growth=.5+.5*sin(vForestLocal.y*.027+sin(vForestLocal.x*.035)*1.8+cos(vForestLocal.z*.041));
+      diffuseColor.rgb*=mix(.82,1.12,growth);
+      ${leaf ? 'diffuseColor.rgb*=gl_FrontFacing?vec3(1.55,2.05,2.0):vec3(1.8,2.35,2.1);' : ''}`,
+    );
+    if (material.userData.vesperBarkProjection) {
+      // The enormous branch collars span several UV charts. Blend the same
+      // reusable color map in object space so their junctions retain density.
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          '#include <common>',
+          '#include <common>\nvarying vec3 vForestLocalNormal;',
+        )
+        .replace(
+          '#include <begin_vertex>',
+          '#include <begin_vertex>\nvForestLocalNormal=normal;',
+        );
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <common>',
+        '#include <common>\nvarying vec3 vForestLocalNormal;',
+      );
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <map_fragment>',
+        `
+        vec3 barkWeights=pow(abs(normalize(vForestLocalNormal)),vec3(4.));
+        barkWeights/=max(dot(barkWeights,vec3(1.)),.0001);
+        vec3 barkProjection=texture2D(map,vForestLocal.zy/vec2(56.,72.)).rgb*barkWeights.x
+          +texture2D(map,vForestLocal.xz/vec2(56.,72.)).rgb*barkWeights.y
+          +texture2D(map,vForestLocal.xy/vec2(56.,72.)).rgb*barkWeights.z;
+        diffuseColor.rgb*=barkProjection;
+      `,
+      );
+    }
+  };
+  material.customProgramCacheKey = () =>
+    `vesper-baked-forest-v4-${leaf}-${material.userData.vesperBarkProjection ?? false}-${material.userData.vesperSurfaceDetail}`;
+}
+
 /** Original 3D material grain. Local-position noise survives instancing and cell batching. */
 export function finishVesperMaterial(material) {
   const name = material.name.toLowerCase();
-  const bark = /bark|cambium|structural living root/.test(name);
+  const bark = /bark|cambium|structural living root|exposed ivory sapwood/.test(
+    name,
+  );
   const leaf = /blue teal leaves/.test(name);
-  const fungus = /fungal moon/.test(name);
+  const fungus = /fungal moon|fungal pore/.test(name);
+  const flower = /flower .*tissue|flower plum backs/.test(name);
   const walker = /walker/.test(name);
-  if (!bark && !leaf && !fungus && !walker) return;
+  if (!bark && !leaf && !fungus && !flower && !walker) return;
+  if (
+    (bark || leaf || fungus || flower || /fungal pore/.test(name)) &&
+    material.normalMap
+  ) {
+    finishBakedForestMaterial(material, leaf);
+    return;
+  }
   material.userData.vesperSurfaceDetail = true;
   material.roughness = bark ? 0.9 : leaf ? 0.58 : walker ? 0.76 : 0.88;
   material.envMapIntensity = bark ? 0.18 : leaf ? 0.36 : 0.22;

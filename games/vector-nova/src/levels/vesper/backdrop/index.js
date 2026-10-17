@@ -20,7 +20,7 @@ export async function createVesperBackdrop() {
   texture.anisotropy = 4;
   const group = new T.Group();
   group.name = 'Vesper / moonlit clouds and distant forest';
-  const sunDirection = new T.Vector3(-0.4, 0.63, -0.48).normalize();
+  const sunDirection = new T.Vector3(-0.55, 0.46, 0.68).normalize();
   const material = new T.ShaderMaterial({
     name: 'Vesper / forest sky radiance',
     side: T.BackSide,
@@ -49,7 +49,7 @@ export async function createVesperBackdrop() {
           vec3 opposite=textureGrad(forestSky,vec2(panoramaU+1.-overlap,v),uvDx,uvDy).rgb;
           radiance=mix(opposite,radiance,smoothstep(0.,overlap,panoramaU));
         }
-        radiance*=.82;
+        radiance=mix(radiance,vec3(dot(radiance,vec3(.2126,.7152,.0722))),.22)*.32;
         gl_FragColor=vec4(radiance,1.);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -64,14 +64,14 @@ export async function createVesperBackdrop() {
   return {
     group,
     sunDirection,
-    sunColor: '#bddeed',
-    // Human-requested restrained ten percent lift across the existing rig.
+    sunColor: '#bdd8e0',
+    // Cool moon key shapes the wood; low fill and thin-leaf scatter preserve canopy detail.
     sunIntensity: 1.35 * 1.1,
-    ambientSky: '#70959e',
-    ambientGround: '#1c252b',
-    ambientIntensity: 0.58 * 1.1,
+    ambientSky: '#899eaa',
+    ambientGround: '#657462',
+    ambientIntensity: 0.77 * 1.1,
     fillColor: '#82aaa9',
-    fillIntensity: 0.25 * 1.1,
+    fillIntensity: 0.56 * 1.1,
     environmentIntensity: 0.68 * 1.1,
     far: 6500,
     ownedTextures: [texture],

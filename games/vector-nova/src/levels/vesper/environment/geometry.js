@@ -39,17 +39,40 @@ export function disposeResources(roots, extraMaterials = []) {
 }
 
 export function tube(points, radius = 1, segments = 32, sides = 7) {
-  return new T.TubeGeometry(
-    new T.CatmullRomCurve3(
-      points.map((point) =>
-        point.isVector3 ? point : new T.Vector3(...point),
-      ),
-    ),
+  const curve = new T.CatmullRomCurve3(
+    points.map((p) => (p.isVector3 ? p : new T.Vector3(...p))),
+  );
+  const variable = Array.isArray(radius);
+  const geometry = new T.TubeGeometry(
+    curve,
     segments,
-    radius,
+    variable ? 1 : radius,
     sides,
     false,
   );
+  const uv = geometry.attributes.uv,
+    position = geometry.attributes.position;
+  const length = curve.getLength();
+  for (let i = 0; i < position.count; i++) {
+    const along = uv.getX(i),
+      around = uv.getY(i);
+    let width = radius;
+    if (variable) {
+      const u = along * (radius.length - 1),
+        j = Math.min(radius.length - 2, Math.floor(u));
+      width = T.MathUtils.lerp(radius[j], radius[j + 1], u - j);
+      const center = curve.getPointAt(along);
+      const point = new T.Vector3()
+        .fromBufferAttribute(position, i)
+        .sub(center)
+        .multiplyScalar(width)
+        .add(center);
+      position.setXYZ(i, point.x, point.y, point.z);
+    }
+    uv.setXY(i, (around * Math.PI * 2 * width) / 16, (along * length) / 16);
+  }
+  if (variable) geometry.computeVertexNormals();
+  return geometry;
 }
 
 export function instanceTemplate(
@@ -140,6 +163,7 @@ export function createSceneryClearance(track) {
 // silhouettes while avoiding a separate draw for every template/material pair.
 export function consolidateStaticInstances(group) {
   const bins = new Map();
+  const cellSize = group.userData.forestCellSize ?? 500;
   const matrix = new T.Matrix4();
   const position = new T.Vector3();
   group.updateMatrixWorld(true);
@@ -151,9 +175,11 @@ export function consolidateStaticInstances(group) {
       position.copy(mesh.position);
       mesh.traverse((part) => {
         if (!part.isMesh) return;
-        const key = `${part.material.uuid}/false/${Math.floor(position.x / 500)}/${Math.floor(position.z / 500)}`;
+        const shadow =
+          mesh.userData.batchForestShadows === true && part.castShadow;
+        const key = `${part.material.uuid}/${shadow}/${Math.floor(position.x / cellSize)}/${Math.floor(position.z / cellSize)}`;
         if (!bins.has(key))
-          bins.set(key, { parts: [], material: part.material, shadow: false });
+          bins.set(key, { parts: [], material: part.material, shadow });
         matrix.multiplyMatrices(inverseGroup, part.matrixWorld);
         bins.get(key).parts.push(part.geometry.clone().applyMatrix4(matrix));
         if (part.geometry.userData.terrainFitted) part.geometry.dispose();
@@ -165,7 +191,7 @@ export function consolidateStaticInstances(group) {
     for (let i = 0; i < mesh.count; i++) {
       mesh.getMatrixAt(i, matrix);
       position.setFromMatrixPosition(matrix);
-      const key = `${mesh.material.uuid}/${mesh.castShadow}/${Math.floor(position.x / 500)}/${Math.floor(position.z / 500)}`;
+      const key = `${mesh.material.uuid}/${mesh.castShadow}/${Math.floor(position.x / cellSize)}/${Math.floor(position.z / cellSize)}`;
       if (!bins.has(key))
         bins.set(key, {
           parts: [],

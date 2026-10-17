@@ -1,7 +1,7 @@
-"""Replace only the giant hollow's exterior boughs/crown in the original library.
+"""Rebuild the giant hollow and UV-mapped floral modules from the original library.
 
-Reuses the exact route-cut shell, interior, roots and materials from build_vesper;
-all other original objects are loaded unchanged from vesper-assets.blend. The
+Uses the route-cut shell, interior and grounded roots from build_vesper.
+Landing and dormant assets are loaded unchanged from vesper-assets.blend. The
 connected-tree builder supplies parent-sampled forks, shoots and petiolate leaves.
 Run after build_vesper.py; the separate connected-forest asset is never rewritten.
 """
@@ -56,6 +56,12 @@ preserved = {obj.name: mesh_signature(obj) for obj in hero.children}
 anchors = []
 rejected = []
 
+def shell_attachment(point):
+    angle=math.atan2(point.z,point.x)
+    if point.y <= H:q=ring(max(0,point.y/H),angle)
+    else:q=upper_ring(max(0,min(.98,(point.y-ring(1,angle).y)/480)),angle)
+    return q, (angle*namespace['R']/56,q.y/72)
+
 def layout(tube, along, leafy_shoot):
     rng = random.Random(300930)
     for k in range(26):
@@ -65,11 +71,12 @@ def layout(tube, along, leafy_shoot):
         surface = ring(t, a) if lower else upper_ring(t, a)
         radial = Vector((math.cos(a), 0, math.sin(a)))
         side = Vector((-math.sin(a), 0, math.cos(a)))
-        # Embed the branch root into the actual bark, not an assumed cylinder.
-        base = surface - radial * 3
+        # Seat the open branch root at the actual bark. Its flared sides enter
+        # the shell without a deep end cap protruding into the living cavity.
+        base = surface + radial * 1
         length = (104 + 24 * math.sin(k * 1.7)) if lower else (145 + 23 * math.sin(k * 1.3))
         rise = (62 + 15 * (k % 3)) if lower else (88 + 12 * (k % 3))
-        radius = (13 if lower else 15) * (1 - .30 * t)
+        radius = (22 if lower else 24) * (1 - .30 * t)
         points = [base + radial * (length * f) + side * (math.sin(f * 2.0) * 13 * math.sin(k)) + Vector((0, rise * f + 13 * math.sin(f * math.pi), 0)) for f in [j / 18 for j in range(19)]]
         radii = [radius * (1 - j / 18) ** 1.1 + .9 for j in range(19)]
         # Omit a whole bough where it would obstruct an entrance or crown exit.
@@ -78,8 +85,8 @@ def layout(tube, along, leafy_shoot):
             rejected.append(k)
             continue
         name = 'limb-hollow-' + str(k)
-        tube(name, points, radii, 12)
-        anchors.append({'id': name, 'surface': list(surface), 'base': list(base), 'shell': 'lower' if lower else 'upper', 't': t, 'angle': a, 'embeddedMetres': 3})
+        tube(name, points, radii, 16, root_surface=shell_attachment)
+        anchors.append({'id': name, 'surface': list(surface), 'base': list(base), 'shell': 'lower' if lower else 'upper', 't': t, 'angle': a, 'embeddedMetres': -1})
         for n, f in enumerate([.49, .81]):
             socket = along(points, f)
             for sign in [-1, 1]:
@@ -104,12 +111,16 @@ def layout(tube, along, leafy_shoot):
         anchors.append({'id': name, 'surface': list(surface), 'base': list(base), 'shell': 'upper', 't': .94 + (k % 3) * .018, 'angle': a, 'embeddedMetres': 1.5})
 
 full = make_connected_tree(300930, forest_budget=False, layout=layout, foliage_scale=3.0)
-for kind, data in full['parts'].items():
+saved_anchors, saved_rejected=list(anchors),list(rejected)
+low=make_connected_tree(300930,forest_budget=False,layout=layout,foliage_scale=3.0,leaf_detail=(6,3))
+anchors[:]=saved_anchors;rejected[:]=saved_rejected
+parts={**full['parts'],'leaves low':low['parts']['leaves']}
+for kind, data in parts.items():
     mesh = bpy.data.meshes.new('Connected hollow ' + kind)
     mesh.from_pydata(data['v'], [], data['f'])
     mesh.update()
     uv = mesh.uv_layers.new(name='Living bark metres' if kind == 'wood' else 'Broad leaf UV')
-    colors = mesh.color_attributes.new(name='COLOR_0', type='FLOAT_COLOR', domain='CORNER') if kind == 'leaves' else None
+    colors = mesh.color_attributes.new(name='COLOR_0', type='FLOAT_COLOR', domain='CORNER') if kind.startswith('leaves') else None
     for poly in mesh.polygons:
         poly.use_smooth = True
         for loop in poly.loop_indices:
@@ -120,6 +131,7 @@ for kind, data in full['parts'].items():
     obj = bpy.data.objects.new('Connected hollow ' + kind, mesh)
     bpy.context.collection.objects.link(obj)
     obj.parent = hero
+    if kind.startswith('leaves'):obj['foliageQuality']='low' if kind.endswith('low') else 'high'
     obj.data.materials.append(namespace['bark' if kind == 'wood' else 'leafmat'])
 
 # Validate attachments against the actual parent polyline, not just stored sockets.
@@ -136,6 +148,17 @@ new_objects = [obj for obj in hero.children if obj.name.startswith('Connected ho
 for obj in new_objects: obj.parent = None
 namespace['merge_materials'](hero)
 for obj in new_objects: obj.parent = hero
+# Refresh only the two floral modules with explicit tissue UVs. The route's
+# landing bough and all retired assets remain exactly as in the source library.
+for name in ['hero_flower','fungal_fan']:
+    old=bpy.data.objects.get(name)
+    for obj in list(old.children_recursive)+[old]:bpy.data.objects.remove(obj,do_unlink=True)
+for key,label in {'ivory':'flower milky inner tissue','petalback':'flower plum backs','amber':'amber sap lantern','fungus':'fungal moon tissue'}.items():
+    namespace[key]=bpy.data.materials['Vesper | '+label]
+pores=bpy.data.materials['Vesper | fungal moon tissue'].copy();pores.name='Vesper | fungal pore tissue';namespace['pores']=pores
+exec(compile(source[source.index("root=empty('fungal_fan')"):source.index('# Original six-legged')], 'living-tissue-modules', 'exec'), namespace)
+from forest_materials import apply_forest_materials
+apply_forest_materials()
 bpy.context.preferences.filepaths.save_version = 0
 bpy.ops.wm.save_as_mainfile(filepath=str(ROOT / 'vesper-connected-hollow.blend'), compress=True)
 bpy.ops.export_scene.gltf(filepath=str(DEST / 'vesper-canopy.glb'), export_format='GLB', export_yup=True, export_apply=True, export_animations=False, export_extras=True)

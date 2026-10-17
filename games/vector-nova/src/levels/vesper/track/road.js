@@ -117,11 +117,11 @@ export function createVesperRoad({ track, shape = false }) {
   const lightScale = shape ? 1 : 1.1;
   const amber = new T.MeshPhysicalMaterial({
     color: shape ? 0x88959c : 0xcb781e,
-    roughness: 0.19,
+    roughness: 0.26,
     metalness: 0.02,
-    clearcoat: 0.82,
-    clearcoatRoughness: 0.17,
-    specularIntensity: 0.42,
+    clearcoat: 0.22,
+    clearcoatRoughness: 0.33,
+    specularIntensity: 0.26,
     specularColor: 0xffd8a0,
     emissive: shape ? 0 : 0x512503,
     emissiveIntensity: 0.13 * lightScale,
@@ -140,9 +140,9 @@ export function createVesperRoad({ track, shape = false }) {
     color: shape ? 0x9faab0 : 0xda8a27,
     roughness: 0.15,
     metalness: 0.02,
-    clearcoat: 0.9,
-    clearcoatRoughness: 0.16,
-    specularIntensity: 0.45,
+    clearcoat: 0.3,
+    clearcoatRoughness: 0.32,
+    specularIntensity: 0.28,
     specularColor: 0xffd8a0,
     emissive: shape ? 0 : 0x592503,
     emissiveIntensity: 0.12 * lightScale,
@@ -151,9 +151,9 @@ export function createVesperRoad({ track, shape = false }) {
     color: shape ? 0x8d969b : 0xd57a1d,
     roughness: 0.3,
     metalness: 0.02,
-    clearcoat: 0.35,
+    clearcoat: 0.2,
     clearcoatRoughness: 0.3,
-    specularIntensity: 0.4,
+    specularIntensity: 0.27,
     specularColor: 0xffd39a,
     emissive: shape ? 0 : 0x9d4103,
     emissiveIntensity: shape ? 0 : 0.22 * lightScale,
@@ -214,6 +214,10 @@ export function createVesperRoad({ track, shape = false }) {
         uniform float vesperSapTime, vesperResinLayers;
         varying vec3 vVesperResinCoord, vVesperResinView, vVesperResinNormal;
         varying float vVesperResinActive;
+        // Resin reflects the moon without an HDR lobe bleaching the driving lane.
+        vec3 resinReflectionShoulder(vec3 radiance, float limit) {
+          return radiance/(1.+max(max(radiance.r,radiance.g),radiance.b)/limit);
+        }
         float resinHash(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
         float resinNoise(vec2 p) {
           vec2 i=floor(p),f=fract(p); f=f*f*(3.-2.*f);
@@ -262,6 +266,14 @@ export function createVesperRoad({ track, shape = false }) {
       `,
           )
           .replace(
+            'vec3 totalSpecular = reflectedLight.directSpecular + reflectedLight.indirectSpecular;',
+            'vec3 totalSpecular = resinReflectionShoulder(reflectedLight.directSpecular + reflectedLight.indirectSpecular, .85);',
+          )
+          .replace(
+            '( clearcoatSpecularDirect + clearcoatSpecularIndirect ) * material.clearcoat',
+            'resinReflectionShoulder((clearcoatSpecularDirect + clearcoatSpecularIndirect) * material.clearcoat, .45)',
+          )
+          .replace(
             '#include <roughnessmap_fragment>',
             '#include <roughnessmap_fragment>\n roughnessFactor*=.78+.4*cloud;',
           )
@@ -271,7 +283,7 @@ export function createVesperRoad({ track, shape = false }) {
           );
     };
     material.customProgramCacheKey = () =>
-      flowing ? 'vesper-flow-v5' : 'vesper-lamina-v5';
+      flowing ? 'vesper-flow-v6' : 'vesper-lamina-v6';
   }
   // Keep authored clearcoat values for independent live comparisons.
   const coats = [amber, polished, core, sap].map((material) => ({
@@ -618,7 +630,7 @@ export function createVesperRoad({ track, shape = false }) {
       for (const material of [amber, polished, core]) {
         // Borrow the shared scene probe; renderer lifetime owns this texture.
         material.envMap = texture;
-        material.envMapIntensity = 0.8;
+        material.envMapIntensity = 0.58;
         material.needsUpdate = true;
       }
     },

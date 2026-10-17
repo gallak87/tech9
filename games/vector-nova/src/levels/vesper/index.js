@@ -23,7 +23,7 @@ export default function createLevel({ shape = false } = {}) {
     renderer: {
       world: shape ? 'vesper-shape' : 'vesper-canopy',
       background: shape ? '#19242e' : '#081722',
-      fog: shape ? null : { color: '#102b36', density: 0.00072 },
+      fog: shape ? null : { color: '#20383f', density: 0.00085 },
       bloomStrength: 0.18,
       bloomThreshold: 1.1,
       fillHeight: 10,

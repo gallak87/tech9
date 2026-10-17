@@ -38,6 +38,7 @@ creatureshell=mat('Vesper | walker layered carapace',(.115,.23,.26),.73,.04)
 creatureunder=mat('Vesper | walker ivory joints',(.46,.40,.27),.84)
 creatureridge=mat('Vesper | walker weathered plate margins',(.23,.35,.31),.8)
 metal=mat('Vesper | maintenance bronze',(.28,.20,.11),.35,.58)
+pores=mat('Vesper | fungal pore tissue',(.48,.56,.42),.78)
 fungus=mat('Vesper | fungal moon tissue',(.22,.32,.19),.88,glow=(.04,.12,.08),strength=.13)
 # One original imagegen material tile, embedded in the GLB and packed in Blender.
 # Explicit UVs below survive mesh joining, distance simplification and instancing.
@@ -59,25 +60,28 @@ def empty(name,parent=None,loc=(0,0,0)):
     if parent:o.parent=parent
     return o
 
-def mesh(name, verts, faces, material, parent=None, smooth=True):
+def mesh(name, verts, faces, material, parent=None, smooth=True, uvs=None):
     d=bpy.data.meshes.new(name); d.from_pydata([B(v) for v in verts],[],faces); d.update()
     o=bpy.data.objects.new(name,d); bpy.context.collection.objects.link(o); o.data.materials.append(material)
     if parent:o.parent=parent
     for p in d.polygons:p.use_smooth=smooth
-    if material in [bark,inner,creatureshell,creatureunder,creatureridge]:
+    if material in [bark,inner,sapwood,creatureshell,creatureunder,creatureridge]:
         uv=d.uv_layers.new(name='Living bark metres')
         for face in d.polygons:
             coords=[]
             for loop in face.loop_indices:
                 v=d.vertices[d.loops[loop].vertex_index].co
                 if name.startswith(('Sinuous hollow','Continuous upper trunk')):
-                    coords.append((math.atan2(-v.y,v.x)*R/22,v.z/22))
+                    coords.append((math.atan2(-v.y,v.x)*R/56,v.z/72))
                 else:
                     normal=face.normal;axis=max(range(3),key=lambda a:abs(normal[a]))
                     coords.append(((v.y if axis==0 else v.x)/18,(v.y if axis==2 else v.z)/18))
-            if name.startswith(('Sinuous hollow','Continuous upper trunk')) and max(u for u,v in coords)-min(u for u,v in coords)>math.pi*R/22:
-                coords=[(u+math.tau*R/22 if u<0 else u,v) for u,v in coords]
+            if name.startswith(('Sinuous hollow','Continuous upper trunk')) and max(u for u,v in coords)-min(u for u,v in coords)>math.pi*R/56:
+                coords=[(u+math.tau*R/56 if u<0 else u,v) for u,v in coords]
             for loop,coord in zip(face.loop_indices,coords):uv.data[loop].uv=coord
+    if uvs is not None:
+        uv=d.uv_layers.new(name='Living tissue UV')
+        for loop in d.loops:uv.data[loop.index].uv=uvs[loop.vertex_index]
     if material==leafmat:
         ca=d.color_attributes.new(name='COLOR_0',type='FLOAT_COLOR',domain='CORNER')
         for c in ca.data:c.color=(1,1,1,1)
@@ -162,6 +166,12 @@ def ring(t,a,inside=False):
     radius+=1.9*math.sin(a*11+t*29)*math.sin(t*17-a*5)**2
     radius+=3.2*math.sin(a*5+t*4)+2.1*math.sin(a*3-t*5)
     if inside:radius-=13+1.7*math.sin(a*13+t*9)
+    else:
+        # Old load-bearing ridges wind up from unequal buttresses; subordinate
+        # corrugation stays in the bark maps, not a smooth swollen silhouette.
+        growth=a+.055*math.sin(t*5+a*2)
+        radius+=max(0,math.sin(growth*5+t*.35))**4*(38+18*math.sin(a*3+1)**2)*(1-.22*t)
+        radius+=max(0,math.sin(growth*9-t*.4))**6*14
     y=t*H
     if t>.9:y+=(t-.9)*10*(8+18*math.sin(a*7)**2+6*math.sin(a*13))
     return Vector((math.cos(a)*radius,y,math.sin(a)*radius))
@@ -193,18 +203,37 @@ for insidewall,material in [(0,bark),(1,inner)]:
     o=mesh('Sinuous hollow '+('cambium' if insidewall else 'bark'),verts[insidewall],faces[insidewall],material,hero)
     bm=bmesh.new();bm.from_mesh(o.data);bmesh.ops.remove_doubles(bm,verts=bm.verts,dist=.015);bm.to_mesh(o.data);bm.free()
 mesh('Rounded pale aperture scar tissue',rimverts,rimfaces,sapwood,hero)
+# Grounded basal flare continues the enclosed tree beneath its former source
+# origin; roots end below the actual ravine floor instead of hovering above it.
+skirt_vertices=[];skirt_faces=[]
+for row in range(7):
+    depth=row/6
+    for j in range(n+1):
+        q=ring(0,j/n*math.tau)
+        q.x*=1+.18*depth;q.z*=1+.18*depth;q.y=-76*depth
+        skirt_vertices.append(q)
+for row in range(6):
+    for j in range(n):
+        a=row*(n+1)+j;b=a+n+1
+        skirt_faces.append((a,a+1,b+1,b))
+mesh('Ancient grounded basal flare',skirt_vertices,skirt_faces,bark,hero)
+
 # Complete living upper trunk: the cavity continues upward before closing inside
 # a tapering, branching bole. No roof cap is pasted across the raceway opening.
 def upper_ring(t,a,inside=False):
     bottom=ring(1,a,inside)
     if t==0:return bottom
-    rr=(R*.90-7)*(1-t)**.82+7+3*math.sin(a*7+t*8)*math.sin(math.pi*t)
+    outer_bottom=ring(1,a,False)
+    base_radius=math.hypot(outer_bottom.x,outer_bottom.z)
+    rr=(base_radius-7)*(1-t**1.25)**1.05+7
+    rr+=22*math.sin(a*5+t*2)*math.sin(math.pi*t)*(1-t)
+    rr+=5*max(0,math.sin(a*11-t*3))**3*math.sin(math.pi*t)
     if inside:rr=max(0,rr-13)*(max(0,1-t/.62))**.55
-    return Vector((math.cos(a)*rr+24*math.sin(t*2.1),bottom.y+t*330,math.sin(a)*rr+18*math.sin(t*3.2)))
+    return Vector((math.cos(a)*rr+49*math.sin(t*2.1),bottom.y+t*480,math.sin(a)*rr+31*math.sin(t*3.2)))
 # Clip the upper continuation against the same actual road/camera envelope so
 # the existing crown exit remains a genuine portal through the continuous bole.
 for insidewall,material in [(False,bark),(True,inner)]:
-    uv=[];uf=[];upper_levels=10
+    uv=[];uf=[];upper_levels=40
     for i in range(upper_levels):
         for j in range(n):
             corners=[(i/upper_levels,j*math.tau/n),(i/upper_levels,(j+1)*math.tau/n),((i+1)/upper_levels,(j+1)*math.tau/n),((i+1)/upper_levels,j*math.tau/n)]
@@ -235,7 +264,7 @@ for j in range(50):
     if len(run)>3:tube('Cambium sinew',run,[1.1]*len(run),inner,hero,6)
 for i in range(13):
     a=i*math.tau/13
-    pts=[(math.cos(a+v*.08)*(R+v*110),25*(1-v)**2,math.sin(a+v*.08)*(R+v*110)) for v in [0,.2,.5,.75,1]]
+    pts=[(math.cos(a+v*.08)*(R+v*110),25*(1-v)**2-65*v,math.sin(a+v*.08)*(R+v*110)) for v in [0,.2,.5,.75,1]]
     if any(kdt.find(Vector(p))[2]<38 for p in pts):continue
     tube('Great buttress root',pts,[18,17,12,7,1],bark,hero,10)
     tube('Root pale ridge',[(p[0],p[1]+6,p[2]) for p in pts],[3,3.5,2.5,1,.2],sapwood,hero,6)
@@ -368,11 +397,11 @@ for j,(height,rad,bx,bz,dome) in enumerate([(17,15,-5,-4,3),(29,11,5,3,7),(41,16
     for i in range(rings-1):
         for k in range(sides):
             a=i*sides+k;b=i*sides+(k+1)%sides;faces.append((a,b,b+sides,a+sides))
-    mesh('Asymmetric curled fungal shelf',verts,faces,fungus,root)
+    mesh('Asymmetric curled fungal shelf',verts,faces,fungus,root,uvs=[((x-bx)/rad*.5+.5,(z-bz)/rad*.5+.5) for x,y,z in verts])
     lower=[(x,y-1.1,z) for x,y,z in verts]
     lowerfaces=[tuple(reversed(f)) for f in faces]
     # Ivory underside, fleshy edge thickness and cool gills carry separate shading.
-    mesh('Pale fungal underside',lower,lowerfaces,sapwood,root)
+    mesh('Pale fungal underside',lower,lowerfaces,pores,root,uvs=[((x-bx)/rad*.5+.5,(z-bz)/rad*.5+.5) for x,y,z in lower])
     rim=[cap(1,k*math.tau/32) for k in range(33)]
     tube('Steady luminous fungal lip',rim,[.22]*len(rim),vein,root,4)
     edge=[];edgefaces=[]
@@ -400,7 +429,7 @@ for layer,count in [(0,8),(1,6)]:
         for i in range(nu):
             for k in range(nv):
                 p=i*(nv+1)+k;faces.append((p+nv+1,p+nv+2,p+1,p))
-        o=mesh('Curled flower petal',verts,faces,ivory,flower);o.data.materials.append(petalback)
+        o=mesh('Curled flower petal',verts,faces,ivory,flower,uvs=[(i/nu,k/nv) for i in range(nu+1) for k in range(nv+1)]);o.data.materials.append(petalback)
         sol=o.modifiers.new('Thick living tissue','SOLIDIFY');sol.thickness=1.8;sol.material_offset=1;sol.material_offset_rim=1
         bpy.context.view_layer.objects.active=o;bpy.ops.object.modifier_apply(modifier=sol.name)
         tube('Petal structural rib',[petal(k/16,0) for k in range(17)],[.58*(1-k/18) for k in range(17)],sapwood,flower,5)

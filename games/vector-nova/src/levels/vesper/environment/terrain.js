@@ -4,8 +4,9 @@ export function vesperGroundHeight(x, z, ground = -100) {
   return (
     ground -
     8 +
-    Math.sin(localX * 0.011) * Math.cos(z * 0.009) * 12 +
-    Math.sin((localX + z) * 0.021) * 4
+    Math.sin(localX * 0.011) * Math.cos(z * 0.009) * 29 +
+    Math.sin((localX + z) * 0.021) * 8 +
+    Math.sin(x * 0.004 + z * 0.003) * 12
   );
 }
 

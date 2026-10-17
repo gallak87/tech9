@@ -6,10 +6,15 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // These CPU framing checks need geometry; real image decoding is covered by
 // browser verification. Kestrel now embeds the same PBR maps as the fleet.
 function geometryLoader() {
-  return new GLTFLoader().register(() => ({
-    name: 'CPU_TEXTURES',
-    loadTexture: async () => new T.Texture(),
-  }));
+  return new GLTFLoader()
+    .register(() => ({
+      name: 'KHR_texture_basisu',
+      loadTexture: async () => new T.Texture(),
+    }))
+    .register(() => ({
+      name: 'CPU_TEXTURES',
+      loadTexture: async () => new T.Texture(),
+    }));
 }
 
 import { createCameraRig } from '../src/camera/index.js';

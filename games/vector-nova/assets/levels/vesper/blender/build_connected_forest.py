@@ -1,7 +1,8 @@
 """Regenerate Vesper secondary trees only. The colossal hollow library is read-only.
 
-High trees retain the approved pilot construction. Distance trees preserve a
-parent-anchored skeleton and attached broadleaf sprays at a much lower budget.
+Tree families use unequal parent-anchored leaders, with a retained showcase
+pilot. Middle and distance variants preserve connected skeletons and attached
+broadleaf sprays; union bounds cover every representation.
 """
 import bpy
 import json
@@ -47,7 +48,7 @@ def closest(point, points):
     return min(candidates,key=lambda p:(p-point).length_squared)
 
 
-def make_distance_tree(full):
+def make_distance_tree(full, middle=False):
     parts={kind:{'v':[],'f':[],'uv':[],'c':[]} for kind in MATERIALS}
     paths={}
     attachments=[]
@@ -79,10 +80,10 @@ def make_distance_tree(full):
     def spray(base,direction,seed):
         forward=direction.normalized()
         across=forward.cross(Vector((0,1,0))).normalized()
-        for i in range(4):
-            side=(i-1.5)*.72
+        for i in range(7 if middle else 3):
+            side=(i-(3 if middle else 1))*(.36 if middle else .85)
             out=(forward+across*side+Vector((0,.12+.18*math.sin(seed+i),0))).normalized()
-            data=broadleaf_surface(base,out,(16+(seed%4))*1.45,5.3*1.65,.85+.1*math.sin(seed+i),rows=3)
+            data=broadleaf_surface(base,out,(16+(seed%4))*1.45,5.3*1.65,.85+.1*math.sin(seed+i),rows=7 if middle else 5,columns=3)
             ids=[vertex('leaves',p,uv,color[0]) for p,uv,color in zip(data['v'],data['uv'],data['c'])]
             parts['leaves']['f'].extend(tuple(ids[i] for i in face) for face in data['f'])
 
@@ -92,7 +93,7 @@ def make_distance_tree(full):
         if '-shoot-' in name or '-petiole-' in name or '-leader' in name or name.startswith('apical-'):
             continue
         source=full['paths'][name]
-        count=17 if name=='trunk' else 3 if name.startswith('buttress') else 4 if '-fork-' not in name else 2
+        count=(25 if middle else 17) if name=='trunk' else 4 if name.startswith('buttress') else 6 if middle and '-fork-' not in name else 4 if '-fork-' not in name else 3 if middle else 2
         points=[sample(source,i/(count-1)) for i in range(count)]
         parent=part['parent']
         if parent:
@@ -105,7 +106,7 @@ def make_distance_tree(full):
         for i in range(count):
             u=i/(count-1)*(len(profile)-1);a=min(len(profile)-2,int(u))
             radii.append(profile[a]+(profile[a+1]-profile[a])*(u-a))
-        sides=6 if name=='trunk' else 3 if '-fork-' in name or name.startswith('buttress') else 4
+        sides=(10 if middle else 6) if name=='trunk' else (5 if middle else 3) if '-fork-' in name or name.startswith('buttress') else 6 if middle else 4
         tube(name,points,radii,sides)
         if name.startswith('limb-'):
             spray(points[-1],points[-1]-points[-2],len(paths))
@@ -148,14 +149,18 @@ for variant,seed in enumerate([290927,290930,290934]):
         assert gap<1e-4
         maximum_gap=max(maximum_gap,gap)
     lod=make_distance_tree(full)
-    points=[v for d in full['parts'].values() for v in d['v']]
+    mid=make_distance_tree(full,middle=True)
+    # Clearance covers every quality/distance representation, including leaf sprays.
+    points=[v for representation in [full,lod,mid] for d in representation['parts'].values() for v in d['v']]
     radius=max(math.hypot(v[0],v[1]) for v in points)
     top=max(v[2] for v in points)
     scale=tuple(v*TREE_SCALE for v in BASE_SCALES[variant])
     high=mesh_objects('connected_tree_'+str(variant),full,scale)
     low=mesh_objects('connected_tree_lod_'+str(variant),lod,scale)
-    for root in [high,low]:
+    middle=mesh_objects('connected_tree_mid_'+str(variant),mid,scale)
+    for root in [high,low,middle]:
         root['clearanceSize']=[2*radius*scale[0],top*scale[1],2*radius*scale[2]]
+        root['clearanceBottom']=min(v[2] for v in points)*scale[1]
         root['connectedTreeFamily']=variant
         root['seed']=seed
         root['rooted']=True
@@ -164,8 +169,23 @@ for variant,seed in enumerate([290927,290930,290934]):
         pilot=mesh_objects('pilot_connected_elder',make_connected_tree(seed),(TREE_SCALE,TREE_SCALE,TREE_SCALE))
         pilot['approvedPilot']=True
     counts=lambda root:sum(len(p.vertices)-2 for o in root.children for p in o.data.polygons)
-    report['families'].append({'variant':variant,'seed':seed,'highTriangles':counts(high),'distanceTriangles':counts(low),'leafCount':full['leafCount'],'attachmentCount':len(full['structure'])-1,'maxAttachmentGapMetres':maximum_gap,'distanceAttachments':lod['attachmentCount'],'distanceMaxAttachmentGapMetres':lod['maxAttachmentGapMetres'],'scale':list(scale)})
+    report['families'].append({'variant':variant,'seed':seed,'highTriangles':counts(high),'distanceTriangles':counts(low),'middleTriangles':counts(middle),'leafCount':full['leafCount'],'attachmentCount':len(full['structure'])-1,'maxAttachmentGapMetres':maximum_gap,'distanceAttachments':lod['attachmentCount'],'distanceMaxAttachmentGapMetres':lod['maxAttachmentGapMetres'],'scale':list(scale)})
 
+# Low, connected rosettes cover the forest floor without another tree-shaped
+# silhouette. One reusable mesh is spatially batched by the runtime.
+for quality, rows, columns in [('high',7,5),('low',5,3)]:
+    rosette={'parts':{kind:{'v':[],'f':[],'uv':[],'c':[]} for kind in MATERIALS}}
+    for k in range(11):
+        angle=k*2.399; length=8+4*math.sin(k*1.7)**2
+        direction=Vector((math.cos(angle),.22+.3*(k%3)/2,math.sin(angle)))
+        leaf=broadleaf_surface(Vector((0,-1,0)),direction,length,2.0+(k%3)*.6,.8+.12*(k%4),rows=rows,columns=columns)
+        d=rosette['parts']['leaves'];start=len(d['v'])
+        d['v'].extend((p.x,-p.z,p.y) for p in leaf['v']);d['uv'].extend(leaf['uv']);d['c'].extend(leaf['c'])
+        d['f'].extend(tuple(start+i for i in f) for f in leaf['f'])
+    mesh_objects('ground_broadleaf_rosette_'+quality,rosette,(1,1,1))
+
+from forest_materials import apply_forest_materials
+apply_forest_materials(embed=False)
 bpy.data.orphans_purge(do_recursive=True)
 bpy.context.preferences.filepaths.save_version=0
 bpy.ops.wm.save_as_mainfile(filepath=str(ROOT/'vesper-connected-forest.blend'),compress=True)

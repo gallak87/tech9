@@ -14,8 +14,12 @@ import {
   createSceneryClearance,
   consolidateStaticInstances,
 } from './geometry.js';
-import { finishVesperMaterial, setVesperSurfaceDetail } from './materials.js';
-import { vesperGroundHeight } from './terrain.js';
+import {
+  finishVesperMaterial,
+  setVesperSurfaceDetail,
+  shareForestMaterials,
+} from './materials.js';
+import { vesperGroundHeight, vesperTerrainHeight } from './terrain.js';
 import { createGroundedTree } from './trees.js';
 
 const ASSET_URL = assetURL('assets/levels/vesper/vesper-canopy.glb');
@@ -90,12 +94,13 @@ export function createVesperEnvironment({
     metalness: 0.5,
   });
   const floorMaterial = material('Vesper / forest floor terraces', {
-    color: '#14252a',
+    color: '#4b5a50',
     roughness: 0.96,
   });
   let disposed = false;
   let assetScene;
   const treeLods = [];
+  const qualityFoliage = [];
   const metrics = {
     assetUrl: ASSET_URL,
     authoredTemplates: 24,
@@ -133,11 +138,27 @@ export function createVesperEnvironment({
     -Math.PI / 2,
   );
   const vertices = floorGeometry.attributes.position;
+  const floorColors = new Float32Array(vertices.count * 3);
+  const earth = new T.Color();
   for (let i = 0; i < vertices.count; i++) {
     const x = vertices.getX(i),
       z = vertices.getZ(i);
     vertices.setY(i, vesperGroundHeight(x + 300, z, ground));
+    floorGeometry.attributes.uv.setXY(i, (x + 300) / 36, z / 36);
+    const mottling =
+      0.5 +
+      0.5 *
+        Math.sin(x * 0.018 + Math.cos(z * 0.011) * 2) *
+        Math.sin(z * 0.024 + x * 0.008);
+    earth
+      .setRGB(
+        0.55 + 0.35 * mottling,
+        0.62 + 0.32 * mottling,
+        0.49 + 0.27 * mottling,
+      )
+      .toArray(floorColors, i * 3);
   }
+  floorGeometry.setAttribute('color', new T.BufferAttribute(floorColors, 3));
   floorGeometry.computeVertexNormals();
   const floor = new T.Mesh(floorGeometry, floorMaterial);
   floor.position.set(300, 0, 0);
@@ -234,7 +255,7 @@ export function createVesperEnvironment({
       if (!accepted)
         for (const offset of [10, 35, 65, 100, -35, -65]) {
           const foot = socket.clone().addScaledVector(f.right, side * offset);
-          foot.y = ground - 14;
+          foot.y = vesperTerrainHeight(foot.x, foot.z, ground) - 4;
           const knee = socket
             .clone()
             .lerp(foot, 0.44)
@@ -249,7 +270,9 @@ export function createVesperEnvironment({
         group.userData.anchorClearance.omitted.push({ s, side });
         continue;
       }
-      anchorParts.push(tube(accepted, 3.6, 18, 7));
+      anchorParts.push(
+        tube(accepted, grounded ? [3.6, 4.2, 7] : [3.6, 4.2, 5], 18, 9),
+      );
       if (grounded)
         collars.push({
           position: accepted[2].clone().add(new T.Vector3(0, 3, 0)),
@@ -298,7 +321,7 @@ export function createVesperEnvironment({
   const practicalLights = Array.from({ length: 7 }, () => {
     const light = new T.PointLight(
       '#ffc878',
-      110 * ENVIRONMENT_LIGHT_UPLIFT,
+      85 * ENVIRONMENT_LIGHT_UPLIFT,
       60,
       2,
     );
@@ -311,27 +334,49 @@ export function createVesperEnvironment({
   const vault = track.sections.find((section) => section.id === 'vault');
   if (rootfall) {
     const ribs = [];
-    for (let s = rootfall.start + 24; s < rootfall.end; s += 38) {
+    for (let s = rootfall.start + 24, k = 0; s < rootfall.end; s += 52, k++) {
       const f = track.sample(s);
       const points = [];
+      const sweep = 8 * Math.sin(k * 2.4);
       for (let j = 0; j <= 16; j++) {
         const a = (j / 16) * Math.PI;
-        points.push(
-          f.position
-            .clone()
-            .addScaledVector(f.right, Math.cos(a) * 37)
-            .addScaledVector(f.up, Math.sin(a) * 39 - 9),
-        );
+        const p = f.position
+          .clone()
+          .addScaledVector(f.right, Math.cos(a) * (54 + 5 * Math.sin(k)))
+          .addScaledVector(
+            f.up,
+            Math.sin(a) * (57 + 5 * Math.cos(k * 1.7)) - 12,
+          )
+          .addScaledVector(f.tangent, sweep + Math.sin(a * 2) * 13);
+        if (j === 0 || j === 16)
+          p.y = vesperTerrainHeight(p.x, p.z, ground) - 3;
+        points.push(p);
       }
-      ribs.push(tube(points, 3.2, 24, 8));
+      if (!clearsSupport(points, 6.5)) continue;
+      ribs.push(tube(points, [7, 5.4, 3.8, 5.2, 8], 42, 9));
+      for (const side of [-1, 1]) {
+        const base = points[side < 0 ? 0 : 16];
+        const reach = base
+          .clone()
+          .addScaledVector(f.tangent, 33 + 9 * Math.sin(k));
+        reach.y = vesperTerrainHeight(reach.x, reach.z, ground) - 1;
+        const knee = base
+          .clone()
+          .lerp(reach, 0.35)
+          .add(new T.Vector3(0, 10, 0));
+        if (clearsSupport([base, knee, reach], 6))
+          ribs.push(tube([base, knee, reach], [7, 4, 0.6], 15, 8));
+      }
     }
-    const geometry = mergeGeometries(ribs);
-    for (const rib of ribs) rib.dispose();
-    const mesh = new T.Mesh(geometry, bark);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    mesh.name = 'Vesper / open exposed-root descent ribs';
-    group.add(mesh);
+    if (ribs.length) {
+      const geometry = mergeGeometries(ribs);
+      ribs.forEach((rib) => rib.dispose());
+      const mesh = new T.Mesh(geometry, bark);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.name = 'Vesper / open exposed-root descent ribs';
+      group.add(mesh);
+    }
   }
   if (vault) {
     for (let s = vault.start + 26; s < vault.end; s += 76) {
@@ -342,7 +387,8 @@ export function createVesperEnvironment({
           poolMaterial,
         );
         pool.position.copy(f.position).addScaledVector(f.right, side * 64);
-        pool.position.y -= 25;
+        pool.position.y =
+          vesperTerrainHeight(pool.position.x, pool.position.z, ground) - 2;
         pool.scale.set(1, 1, 0.63);
         pool.name = 'Vesper / shallow mycelium pool';
         group.add(pool);
@@ -447,6 +493,35 @@ export function createVesperEnvironment({
         surfaceMaterials.add(m);
       }
     });
+    const livingBark = [...finishedMaterials].find((m) =>
+      /ridged indigo bark/.test(m.name),
+    );
+    if (livingBark) {
+      for (const key of ['map', 'normalMap', 'roughnessMap'])
+        bark[key] = livingBark[key];
+      bark.color.set('#a2afa4');
+      bark.normalScale.copy(livingBark.normalScale);
+      finishVesperMaterial(bark);
+      bark.needsUpdate = true;
+      sapwood.map = livingBark.map;
+      sapwood.normalMap = livingBark.normalMap;
+      sapwood.normalScale.copy(livingBark.normalScale);
+      sapwood.color.set('#65715d');
+      sapwood.needsUpdate = true;
+    }
+    const groundSurface = assetScene.getObjectByName('forest_floor_surface');
+    if (groundSurface?.material) {
+      floor.material = groundSurface.material;
+      floor.material.vertexColors = true;
+      floor.material.envMapIntensity = 0.3;
+      for (const map of [
+        floor.material.map,
+        floor.material.normalMap,
+        floor.material.roughnessMap,
+      ])
+        if (map) map.anisotropy = 8;
+      floor.material.needsUpdate = true;
+    }
     const hollow = get('hero_hollow').clone(true);
     hollow.position.set(
       track.landmarks.hollow.center[0],
@@ -455,13 +530,29 @@ export function createVesperEnvironment({
     );
     hollow.name =
       'Vesper / colossal living hollow with route-cut entry and crown';
+    const hollowBarkMaterials = new Map();
     hollow.traverse((object) => {
       if (object.isMesh) {
-        object.castShadow = true;
+        const source = object.material;
+        if (source?.normalMap && /bark|cambium/.test(source.name)) {
+          if (!hollowBarkMaterials.has(source)) {
+            const material = source.clone();
+            material.userData.vesperBarkProjection = true;
+            material.normalScale.set(0.12, 0.12);
+            finishVesperMaterial(material);
+            surfaceMaterials.add(material);
+            hollowBarkMaterials.set(source, material);
+          }
+          object.material = hollowBarkMaterials.get(source);
+        }
+        object.castShadow = !/leaves/.test(object.material?.name ?? '');
         object.receiveShadow = true;
       }
     });
     group.add(hollow);
+    hollow.traverse((object) => {
+      if (object.userData.foliageQuality) qualityFoliage.push(object);
+    });
     const flowerFrame = groundFrame(track, track.landmarks.flower.s);
     const flower = get('hero_flower').clone(true);
     flower.position
@@ -478,8 +569,8 @@ export function createVesperEnvironment({
     });
     group.add(flower);
     const flowerLight = new T.PointLight(
-      '#ffcc8a',
-      2400 * ENVIRONMENT_LIGHT_UPLIFT,
+      '#ffe2ba',
+      1250 * ENVIRONMENT_LIGHT_UPLIFT,
       160,
       2,
     );
@@ -515,7 +606,9 @@ export function createVesperEnvironment({
     group.add(branch);
 
     const templateBounds = [0, 1, 2].map((i) =>
-      new T.Vector3().fromArray(get(`tree_${i}`).userData.clearanceSize),
+      new T.Vector3().fromArray(
+        get(`connected_tree_${i}`).userData.clearanceSize,
+      ),
     );
     // Near/mid/far layers are authored geometry instances with clearance in every district.
     const near = [[], [], []],
@@ -535,7 +628,7 @@ export function createVesperEnvironment({
         p.y = ground;
         const height = templateBounds[variant].y * scale;
         const footprint =
-          Math.hypot(templateBounds[variant].x, templateBounds[variant].z) *
+          Math.max(templateBounds[variant].x, templateBounds[variant].z) *
             scale +
           8;
         if (
@@ -609,9 +702,9 @@ export function createVesperEnvironment({
         !clearance.clears(
           p.x,
           p.z,
-          Math.hypot(templateBounds[variant].x, templateBounds[variant].z) *
+          Math.max(templateBounds[variant].x, templateBounds[variant].z) *
             scale,
-          Math.hypot(templateBounds[variant].x, templateBounds[variant].z) *
+          Math.max(templateBounds[variant].x, templateBounds[variant].z) *
             scale,
           ground + 240 * scale,
           0,
@@ -655,12 +748,14 @@ export function createVesperEnvironment({
       target.add(tree);
       return tree;
     };
-    const addTreeLod = (variant, placement, target, range = 300) => {
-      const detailed = addTree(
-        get(`connected_tree_${variant}`),
-        placement,
-        target,
-      );
+    const addTreeLod = (
+      variant,
+      placement,
+      target,
+      range = 300,
+      family = 'connected_tree',
+    ) => {
+      const detailed = addTree(get(`${family}_${variant}`), placement, target);
       const simple = addTree(
         get(`connected_tree_lod_${variant}`),
         placement,
@@ -675,6 +770,14 @@ export function createVesperEnvironment({
       metrics.connectedTrees++;
       return detailed;
     };
+    const understoryLayers = new Map(
+      ['high', 'low'].map((quality) => {
+        const layer = new T.Group();
+        layer.userData.foliageQuality = quality;
+        layer.userData.forestCellSize = 250;
+        return [quality, layer];
+      }),
+    );
     for (let i = 0; i < 3; i++) {
       for (const placement of near[i]) addTreeLod(i, placement, highTrees);
       for (const placement of distant[i]) {
@@ -684,23 +787,215 @@ export function createVesperEnvironment({
       }
       for (const placement of foliage[i]) {
         // Former floating leaf islands become small rooted understory trees.
-        const tree = addTree(
-          get(`connected_tree_lod_${i}`),
-          { ...placement, scale: [0.25, 0.25, 0.25] },
-          group,
-        );
-        tree.userData.batchForest = true;
-        metrics.rootedUnderstory++;
+        const [x, , z] = placement.position;
+        const y = vesperTerrainHeight(x, z, ground);
+        const size =
+          Math.max(templateBounds[i].x, templateBounds[i].z) * 0.46 + 8;
+        if (
+          !clearance.clears(
+            x,
+            z,
+            size,
+            size,
+            y + templateBounds[i].y * 0.72,
+            0,
+            y - 8,
+          )
+        )
+          continue;
+        for (const [quality, layer] of understoryLayers) {
+          const tree = addTree(
+            get(`connected_tree_${quality === 'high' ? 'mid' : 'lod'}_${i}`),
+            { ...placement, scale: [0.46, 0.72, 0.46] },
+            layer,
+          );
+          tree.userData.batchForest = true;
+          tree.userData.batchForestShadows = true;
+        }
         metrics.connectedTrees++;
+        metrics.rootedUnderstory++;
       }
       metrics.closeTrees += near[i].length;
       metrics.distantTrees += distant[i].length;
       metrics.foliageClusters += foliage[i].length;
     }
+    for (const layer of understoryLayers.values()) {
+      consolidateStaticInstances(layer);
+      group.add(layer);
+      qualityFoliage.push(layer);
+    }
+    const rosette = assetScene.getObjectByName('ground_broadleaf_rosette_high');
+    if (rosette) {
+      const cover = [];
+      for (const district of [...near.flat(), ...foliage.flat()]) {
+        const patchAngle = random() * Math.PI * 2;
+        for (let k = 0; k < 6; k++) {
+          const angle = patchAngle + Math.floor(k / 3) * 2.1,
+            radius = 20 + Math.floor(k / 3) * 23;
+          const x =
+            district.position[0] +
+            Math.cos(angle) * radius +
+            (random() - 0.5) * 18;
+          const z =
+            district.position[2] +
+            Math.sin(angle) * radius +
+            (random() - 0.5) * 18;
+          const y = vesperTerrainHeight(x, z, ground) - 0.5;
+          if (!clearance.clears(x, z, 25, 25, y + 12, 0, y - 2)) continue;
+          const scale = 0.7 + random() * 1.1;
+          cover.push({
+            position: [x, y, z],
+            yaw: angle,
+            scale: [scale, scale, scale],
+          });
+        }
+      }
+      for (const quality of ['high', 'low']) {
+        const layer = new T.Group();
+        layer.userData.foliageQuality = quality;
+        instanceTemplate(
+          get(`ground_broadleaf_rosette_${quality}`),
+          cover,
+          layer,
+        );
+        consolidateStaticInstances(layer);
+        group.add(layer);
+        qualityFoliage.push(layer);
+      }
+    }
     for (let i = 0; i < 2; i++)
       instanceTemplate(get(`root_${i}`), roots[i], group, { shadow: true });
     instanceTemplate(get('fungal_fan'), fans, group);
+    // The elevated fungal shelves grow from old root stocks connected to the
+    // ravine floor; their stems no longer terminate in empty air.
+    const fungalRoots = [];
+    for (const placement of fans) {
+      const crown = new T.Vector3(...placement.position);
+      crown.y -= 1;
+      const axis = new T.Vector3(
+        Math.cos(placement.yaw),
+        0,
+        Math.sin(placement.yaw),
+      );
+      for (const side of [-1, 1]) {
+        const foot = crown.clone().addScaledVector(axis, side * 28);
+        foot.y = vesperTerrainHeight(foot.x, foot.z, ground) - 4;
+        const knee = foot
+          .clone()
+          .lerp(crown, 0.55)
+          .addScaledVector(axis, side * 4);
+        const points = [foot, knee, crown];
+        if (clearsSupport(points, 14))
+          fungalRoots.push(tube(points, [14, 10, 8], 14, 9));
+      }
+    }
+    if (fungalRoots.length) {
+      const rootStock = new T.Mesh(mergeGeometries(fungalRoots), bark);
+      fungalRoots.forEach((geometry) => geometry.dispose());
+      rootStock.name = 'Vesper / terrain-rooted fungal nursery';
+      rootStock.castShadow = true;
+      rootStock.receiveShadow = true;
+      group.add(rootStock);
+    }
     metrics.fungusClusters = fans.length;
+
+    // Large roots continue from existing mature tree bases down the exposed
+    // Rootfall/Vault banks. Compose the visible slope as connected growth,
+    // rather than isolated saplings scattered across an empty ground plane.
+    const bankFrames = [];
+    for (const section of [rootfall, vault].filter(Boolean))
+      for (let s = section.start; s < section.end; s += 40)
+        bankFrames.push(groundFrame(track, s));
+    const bankRoots = [];
+    for (const placement of [...near.flat(), ...distant.flat()]) {
+      const origin = new T.Vector3(...placement.position);
+      const frame = bankFrames.reduce((best, f) => {
+        const d =
+          (f.position.x - origin.x) ** 2 + (f.position.z - origin.z) ** 2;
+        return !best || d < best.distance ? { frame: f, distance: d } : best;
+      }, null);
+      if (!frame || frame.distance > 250 ** 2 || frame.distance < 70 ** 2)
+        continue;
+      const f = frame.frame;
+      const side = Math.sign(origin.clone().sub(f.position).dot(f.right)) || 1;
+      origin.y = vesperTerrainHeight(origin.x, origin.z, ground) + 24;
+      for (const fan of [-1, 0, 1]) {
+        const end = f.position
+          .clone()
+          .addScaledVector(f.right, side * (46 + Math.abs(fan) * 15))
+          .addScaledVector(f.tangent, fan * 52);
+        end.y = vesperTerrainHeight(end.x, end.z, ground) - 4;
+        const shoulder = origin
+          .clone()
+          .lerp(end, 0.35)
+          .addScaledVector(f.tangent, fan * 10);
+        shoulder.y = vesperTerrainHeight(shoulder.x, shoulder.z, ground) + 24;
+        const knee = origin.clone().lerp(end, 0.73);
+        knee.y = vesperTerrainHeight(knee.x, knee.z, ground) + 12;
+        const points = [origin, shoulder, knee, end];
+        if (!clearsSupport(points, 20)) continue;
+        bankRoots.push(tube(points, [13, 18, 9, 0.7], 26, 10));
+        const fork = knee
+          .clone()
+          .addScaledVector(f.tangent, 26 + fan * 9)
+          .addScaledVector(f.right, side * 13);
+        fork.y = vesperTerrainHeight(fork.x, fork.z, ground) - 2;
+        const elbow = knee.clone().lerp(fork, 0.5);
+        elbow.y += 4;
+        if (clearsSupport([knee, elbow, fork], 6))
+          bankRoots.push(tube([knee, elbow, fork], [6, 4, 0.5], 12, 7));
+      }
+    }
+    if (bankRoots.length) {
+      const mesh = new T.Mesh(mergeGeometries(bankRoots), bark);
+      bankRoots.forEach((geometry) => geometry.dispose());
+      mesh.name = 'Vesper / mature roots across exposed forest banks';
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      group.add(mesh);
+    }
+
+    // Exposed old roots break the empty banks into connected growth. Their
+    // centres follow the same terrain triangles as the living tree feet.
+    const fallen = [];
+    for (const section of track.sections.filter((s) =>
+      ['rootfall', 'vault', 'dawnscar'].includes(s.id),
+    )) {
+      for (let s = section.start + 25; s < section.end; s += 127) {
+        const f = groundFrame(track, s);
+        for (const side of [-1, 1]) {
+          const origin = f.position
+            .clone()
+            .addScaledVector(f.right, side * (56 + random() * 40));
+          const points = [0, 0.25, 0.62, 1].map((u, i) => {
+            const p = origin
+              .clone()
+              .addScaledVector(f.tangent, u * (125 + 25 * Math.sin(s)))
+              .addScaledVector(f.right, side * Math.sin(u * 3.5) * 20);
+            p.y = vesperTerrainHeight(p.x, p.z, ground) + [-5, 25, 12, -4][i];
+            return p;
+          });
+          if (!clearsSupport(points, 12)) continue;
+          fallen.push(tube(points, [11, 12, 6, 0.5], 24, 10));
+          const end = points[2]
+            .clone()
+            .addScaledVector(f.right, side * 30)
+            .addScaledVector(f.tangent, 12);
+          end.y = vesperTerrainHeight(end.x, end.z, ground) - 3;
+          const mid = points[2].clone().lerp(end, 0.5);
+          mid.y = vesperTerrainHeight(mid.x, mid.z, ground) + 2;
+          fallen.push(tube([points[2], mid, end], [4, 2, 0.3], 9, 6));
+        }
+      }
+    }
+    if (fallen.length) {
+      const mesh = new T.Mesh(mergeGeometries(fallen), bark);
+      fallen.forEach((g) => g.dispose());
+      mesh.name = 'Vesper / terrain-rooted old-growth deadfall';
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      group.add(mesh);
+    }
 
     // Three connected gateway trees retain distinct heights and branching.
     const pillar = track.sections.find((section) => section.id === 'pillar');
@@ -730,6 +1025,17 @@ export function createVesperEnvironment({
           tree.name = `Vesper / three-trunk gate ${i + 1}`;
           if (pilot) {
             tree.userData.pilot = true;
+            const simple = addTree(
+              get('connected_tree_lod_1'),
+              placement,
+              group,
+            );
+            treeLods.push({
+              detailed: tree,
+              simple,
+              center: tree.position.clone().add(new T.Vector3(0, 100, 0)),
+              range: 850,
+            });
             metrics.connectedTreePilots = 1;
             metrics.connectedTrees++;
           }
@@ -765,6 +1071,8 @@ export function createVesperEnvironment({
     for (const material of surfaceMaterials)
       setVesperSurfaceDetail(material, next.vesperSurfaceDetail !== false);
     const low = next.quality === 'low';
+    for (const mesh of qualityFoliage)
+      mesh.visible = mesh.userData.foliageQuality === (low ? 'low' : 'high');
     highTrees.visible = true;
     lowTrees.visible = true;
     for (const { detailed, simple, center, range } of treeLods) {
@@ -784,6 +1092,7 @@ export function createVesperEnvironment({
             const library = await load(ASSET_URL);
             try {
               const forest = await load(FOREST_ASSET_URL);
+              shareForestMaterials(library.scene, forest.scene);
               library.scene.add(forest.scene);
               return library;
             } catch (error) {
@@ -817,7 +1126,7 @@ export function createVesperEnvironment({
           resinLightSites.length;
         light.position.copy(resinLightSites[index].position);
         light.intensity =
-          next.quality === 'low' && i > 3 ? 0 : 110 * ENVIRONMENT_LIGHT_UPLIFT;
+          next.quality === 'low' && i > 3 ? 0 : 85 * ENVIRONMENT_LIGHT_UPLIFT;
       });
     },
     reset() {},

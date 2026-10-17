@@ -99,3 +99,26 @@ test('disposing while the secondary forest is loading releases both late librari
   assert.deepEqual(second.counts, [1, 1, 1]);
   assert.equal(environment.group.children.length, 0);
 });
+
+test('the secondary forest shares named primary PBR materials without disposing their textures early', async () => {
+  const { shareForestMaterials } =
+    await import('../src/levels/vesper/environment/materials.js');
+  const { disposeResources } =
+    await import('../src/levels/vesper/environment/geometry.js');
+  const primary = watchedAsset(),
+    secondary = watchedAsset();
+  const source = primary.scene.children[0].material;
+  const placeholder = secondary.scene.children[0].material;
+  source.name = placeholder.name = 'Vesper | ridged indigo bark';
+  // Match the texture-free secondary export contract.
+  placeholder.map.dispose();
+  placeholder.map = null;
+  shareForestMaterials(primary.scene, secondary.scene);
+  shareForestMaterials(primary.scene, secondary.scene);
+  assert.equal(secondary.scene.children[0].material, source);
+  assert.deepEqual(primary.counts, [0, 0, 0]);
+  assert.deepEqual(secondary.counts, [0, 1, 1]);
+  disposeResources([primary.scene, secondary.scene]);
+  assert.deepEqual(primary.counts, [1, 1, 1]);
+  assert.deepEqual(secondary.counts, [1, 1, 1]);
+});

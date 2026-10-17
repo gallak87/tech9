@@ -108,6 +108,11 @@ try {
         camera.clearViewOffset();
         // Frame the crown and exposed road, rather than aiming through the
         // monolith toward the route's interior-weighted average.
+        if (id === 'vesper') {
+          // Keep the road overview above the foreground support boughs.
+          camera.position.y += 145;
+          target.y += 30;
+        }
         if (id === 'worldspire') {
           camera.position.set(1400, track.spireHeight + 650, -2200);
           target.set(0, track.spireHeight - 1450, 0);

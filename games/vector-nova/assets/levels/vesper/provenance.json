@@ -1,8 +1,8 @@
 {
   "title": "Vesper Canopy \u2014 original scene, material and sky assets",
-  "date": "2026-09-30",
+  "date": "2026-10-16",
   "ownership": "Original geometry, shaders and Blender generator authored for VECTOR//NOVA. Scene concepts generated using the built-in image_gen tool; no third-party meshes or textures.",
-  "workflow": "Original scene concepts \u2192 reproducible CPU Blender geometry \u2192 glTF runtime library. The bark tile is embedded in the GLB. A separate original imagegen panorama supplies only the far sky/horizon and environment reflections; nearby forest remains real world geometry.",
+  "workflow": "Original scene concepts and albedo textures \u2192 reproducible Blender geometry and PBR companion-map bakes \u2192 glTF runtime libraries. A single primary material library supplies all forest textures; the secondary forest contains geometry and named texture-free material bindings. The generated panorama supplies only the far sky/horizon and environment radiance.",
   "concepts": [
     {
       "file": "concepts/hollow-tree-scene.png",
@@ -22,16 +22,46 @@
   "routeEnvelope": "blender/route-envelope.json (sampled from the actual authored track)",
   "reproduce": "/Applications/Blender.app/Contents/MacOS/Blender --background --python assets/levels/vesper/blender/build_connected_hollow.py",
   "export": "public/assets/levels/vesper/vesper-canopy.glb",
-  "materials": "Original PBR materials with a packed, UV-mapped imagegen bark/chitin color tile, geometric bark furrows/cambium ribs, per-leaf COLOR_0 variation and irregular pale-gilled fungal shelves. Resin uses restrained physical transmission. Connected broad leaves have cupped surfaces, curved midribs, rolled margins, curled tips, procedural veins, mottling, underside color and roughness variation.",
+  "materials": "Original PBR materials combine the retained bark albedo with Blender-baked normal/roughness relief, generated broadleaf, leaf-litter and petal-tissue color sources, and corresponding baked companion maps. Hollow bark uses object-space color projection across broad branch junctions; smaller wood uses growth-aligned metric UVs. Broad leaves retain individual color variation. Resin is permanently opaque, with internal parallax inclusions, polished lanes, restrained clearcoat and a local reflection shoulder; no transmission or extra scene capture.",
   "animation": "The creature and its associated presentation effects are disabled. Its original Blender source and deterministic path/IK implementation remain dormant.",
-  "approximation": "A tapered branched bole encloses the road cavity. Generated bark provides UV surface detail, and a 2:1 LDR sky panorama supplies distant atmosphere and PMREM reflection radiance. Resin transmission uses the Three.js screen-space scene capture.",
-  "authoredFamilies": "Three connected broadleaf tree families with distance variants and rooted understory; colossal hollow with a connected exterior crown; hanging flower, fungal shelves, root supports, station, landing branch and dormant creature library retained.",
+  "approximation": "A tapered branched bole encloses the road cavity. Bark maps and geometry provide complementary scales of surface detail; a 2:1 LDR panorama supplies distant atmosphere and PMREM reflection radiance. The secondary forest borrows the primary library materials and embeds no duplicate texture payload. All resin depth is an opaque surface approximation.",
+  "authoredFamilies": "Three connected broadleaf tree families with unequal leaning leaders, High/Middle/Low representations and terrain-seated root buttresses; tiered understory and rosettes; colossal route-cut hollow with continuous upper taper, embedded branch collars and quality-specific crown foliage. Existing hanging flower and fungal shelves have explicit tissue UVs and PBR maps. Station, landing branch and dormant creature remain in the library.",
   "materialTextures": [
     {
       "file": "textures/ancient-bark-color.png",
       "tool": "built-in image_gen",
       "use": "Blender packed image; explicit metre-scale UVs; embedded once as PNG in GLB and shared by bark, cambium and three creature material bindings. Original image retained without edits.",
       "prompt": "Use case: stylized-concept. Asset type: seamless square PBR diffuse color material tile for a high-quality night forest racing game, to be UV mapped onto original Blender meshes. Primary request: a flat evenly lit scan-like swatch of ancient living tree bark and exposed inner cambium, covering the entire square edge to edge. Organic interlocking irregular bark plates with forked short crevices, elliptical healed knots and torn fibrous edges, subtle dusty lichen and thin warm sap traces. Scale: a 5 metre by 5 metre patch of a colossal tree, readable medium and fine detail, no large objects. Color palette: muted slate charcoal, weathered grey brown, desaturated moss green, sparse pale sapwood hints. Moderate midtone contrast so game lighting supplies shadows. Structure is mostly irregular plates and swirling knots, not uninterrupted vertical stripes, no repeated identical pattern. Orthographic flat surface, no perspective, no cylinder, no scenery, no directional light, no ambient-occlusion shading, no cast shadows, no specular highlight. Truly seamless tile left/right and top/bottom, equal color at edges, no frame, no text, no watermark. Opaque background."
+    },
+    {
+      "file": "textures/broadleaf-color-v1.png",
+      "tool": "built-in image_gen",
+      "date": "2026-10-16",
+      "requestedSize": [2048, 2048],
+      "actualSize": [1254, 1254],
+      "promptFile": "textures/broadleaf-v1.prompt.txt",
+      "sha256": "068d32522df4f2185f319367a0d51144f2da3a6cebc68c4628a735b8734265a4",
+      "use": "Original generated albedo retained unchanged. Packed into the primary GLB; normal and roughness companions are baked reproducibly in Blender from this source and restrained procedural relief."
+    },
+    {
+      "file": "textures/forest-floor-color-v1.png",
+      "tool": "built-in image_gen",
+      "date": "2026-10-16",
+      "requestedSize": [2048, 2048],
+      "actualSize": [1254, 1254],
+      "promptFile": "textures/forest-floor-v1.prompt.txt",
+      "sha256": "e2187535702fd2f6a40b547b32fcd82085b8cac9df8be14d6c07af10a55e105a",
+      "use": "Original generated albedo retained unchanged. Packed into the primary GLB; normal and roughness companions are baked reproducibly in Blender from this source and restrained procedural relief."
+    },
+    {
+      "file": "textures/petal-tissue-color-v1.png",
+      "tool": "built-in image_gen",
+      "date": "2026-10-16",
+      "requestedSize": [2048, 2048],
+      "actualSize": [1254, 1254],
+      "promptFile": "textures/petal-tissue-v1.prompt.txt",
+      "sha256": "d934bc5a921975f7b8984435a4408819ffec69bd6b4e8959c4b585017f15475c",
+      "use": "Original generated albedo retained unchanged. Packed into the primary GLB; normal and roughness companions are baked reproducibly in Blender from this source and restrained procedural relief."
     }
   ],
   "cpuGeometryProbe": "blender/geometry-probe-loader.js exports createVesperGeometryProbeLoader() for Node parseAsync probes. It preserves actual geometry, UV/color attributes and material bindings while substituting Texture objects for bitmap decoding; browser validation still checks pixels/shaders.",
@@ -56,14 +86,14 @@
     "source": "assets/levels/vesper/blender/vesper-connected-forest.blend",
     "generator": "assets/levels/vesper/blender/build_connected_forest.py",
     "geometryBuilder": "assets/levels/vesper/blender/connected_tree_geometry.py",
-    "approach": "Independent Vesper tree geometry using parent-anchored trunk, branches, shoots and petiolate leaves. Three deterministic variants with connected distance models. No Tech9 engine/module imports. Existing Vesper bark and leaf materials retained.",
-    "terrain": "Root collars and buttresses conform to the actual triangles of the existing floor. Far trees stay inside its footprint."
+    "approach": "Parent-anchored trunk, unequal leaders, branches, shoots and petiolate leaves. Three deterministic variants have High/Middle/Low representations with union clearance bounds. The original showcase pilot retains its main-trunk crown construction. Secondary GLB embeds no textures and borrows named PBR materials from the primary library. No Tech9 engine imports.",
+    "terrain": "Tree bases follow the actual floor triangles, including basal root deformation. Connected mature root banks and fallen boughs bridge exposed Rootfall and Vault slopes. Fungal shelves grow from grounded root stocks. Mid-height growth and rosettes form spatially batched quality layers; far trees remain inside the floor footprint."
   },
   "connectedHollow": {
     "source": "assets/levels/vesper/blender/vesper-connected-hollow.blend",
     "generator": "assets/levels/vesper/blender/build_connected_hollow.py",
     "geometryBuilder": "assets/levels/vesper/blender/connected_tree_geometry.py",
-    "approach": "Rebuild only exterior boughs/crown. Embed bases in the actual lower/upper shell surfaces; sample every fork and shoot on its parent; attach large leaves by petioles. Whole boughs are omitted around road portals instead of clipping their geometry. No external engine imports."
+    "approach": "Rebuild the route-cut shell from build_vesper.py with unequal basal growth ridges, grounded flare and continuous taller upper taper. Blend open branch roots into the actual shell over nine eased rings; forks and shoots are sampled on their parents, and leaves attach by petioles. Whole boughs are omitted near the route envelope. Refresh existing flower and fungus modules with tissue UVs while retaining landing geometry and dormant assets."
   },
   "baselineLibrary": "blender/vesper-assets.blend, generated by build_vesper.py; editable source for the original asset library.",
   "inactiveCreature": {
@@ -73,5 +103,37 @@
     "runtimeLibrary": "public/assets/levels/vesper/vesper-canopy.glb",
     "node": "hero_walker"
   },
-  "edgeFinish": "Plain resin curb with a thin glowing line, deck-only jump guidance and warm pooled road fill."
+  "edgeFinish": "Plain resin curb with a thin glowing line, deck-only jump guidance and warm pooled road fill.",
+  "forestHD": {
+    "concept": "concepts/forest-hd-target-v1.png",
+    "prompt": "concepts/forest-hd-target-v1.prompt.txt",
+    "tool": "built-in image_gen",
+    "requestedSize": "2048 x 1280 or nearest supported landscape size",
+    "actualSize": [1586, 992],
+    "conceptUse": "Reference only, edited from actual Saplight production capture with saved circuit-wall Vesper card as style reference; not used as scenery or a texture atlas.",
+    "materialGenerator": "blender/bake_forest_materials.py",
+    "materialSource": "blender/vesper-forest-materials.blend",
+    "materialBinding": "blender/forest_materials.py",
+    "textureSources": [
+      "textures/ancient-bark-normal-v1.png",
+      "textures/ancient-bark-roughness-v1.png",
+      "textures/broadleaf-color-v1.png",
+      "textures/broadleaf-normal-v1.png",
+      "textures/broadleaf-roughness-v1.png",
+      "textures/forest-floor-color-v1.png",
+      "textures/forest-floor-normal-v1.png",
+      "textures/forest-floor-roughness-v1.png",
+      "textures/petal-tissue-color-v1.png",
+      "textures/petal-tissue-normal-v1.png",
+      "textures/petal-tissue-roughness-v1.png"
+    ],
+    "rebuildOrder": [
+      "bake_forest_materials.py",
+      "build_connected_hollow.py",
+      "build_connected_forest.py",
+      "../bake_collision.mjs"
+    ],
+    "ownership": "The primary canopy GLB embeds each PBR image once. Secondary forest materials borrow these maps; hollow projection variants clone materials while sharing their textures. Environment disposal deduplicates geometries, materials, textures and decoded bitmaps. High/Low crown foliage, middle canopy models and rosettes share textures.",
+    "lighting": "Cool directional moon key, subdued cloud radiance and restrained hemisphere/fill balance. Local amber pollen/resin lighting provides warm contrast. No new scene rendering passes or transmission."
+  }
 }

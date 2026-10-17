@@ -97,7 +97,7 @@ for (const [slug, trackName, motionName] of circuits) {
             );
             assert.ok(
               records[index].landings >= 2,
-              'AI earns physical landings',
+              `${opponent.specification.id} earns physical landings`,
             );
             for (const jump of track.jumps.filter((jump) => !jump.optional))
               assert.ok(

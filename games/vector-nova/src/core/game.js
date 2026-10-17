@@ -122,9 +122,25 @@ export async function createGame({
           ),
         )
       : null;
-    const dynamics = definition.createDynamics
-      ? lifetime.own(await definition.createDynamics({ track, collisionWorld }))
-      : null;
+    let dynamics = null;
+    if (!blockout && definition.racing) {
+      const { withMagneticBoundaries } =
+        await import('../physics/magnetic-boundaries.js');
+      const physicalWorld = withMagneticBoundaries(track, collisionWorld);
+      const { createRapierWorld } = await import('../physics/rapier-world.js');
+      dynamics = lifetime.own(
+        definition.createDynamics
+          ? await definition.createDynamics({
+              track,
+              collisionWorld: physicalWorld,
+            })
+          : await createRapierWorld({ collisionWorld: physicalWorld }),
+      );
+    } else if (definition.createDynamics) {
+      dynamics = lifetime.own(
+        await definition.createDynamics({ track, collisionWorld }),
+      );
+    }
     const playtestName = parameters.get('test');
     const playtest = Object.hasOwn(definition.playtests ?? {}, playtestName)
       ? definition.playtests[playtestName]
@@ -1666,6 +1682,7 @@ export async function createGame({
           scenario,
           competition,
           untimed: Boolean(playtest),
+          ...(competition ? { field: racers.identity } : {}),
           ...(testLaunch ? { testLaunch: structuredClone(testLaunch) } : {}),
           difficulty: raceDifficulty,
           inputs: inputLog.map((e) => ({ ...e, input: { ...e.input } })),
@@ -1676,6 +1693,9 @@ export async function createGame({
           replay.version !== VERSION ||
           replay.trackId !== track.id ||
           replay.physicsVersion !== 3 ||
+          (replay.competition &&
+            JSON.stringify(replay.field) !==
+              JSON.stringify(racers?.identity)) ||
           (track.closed === false &&
             JSON.stringify(replay.course) !==
               JSON.stringify(courseIdentity(track))) ||

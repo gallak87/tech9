@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { Quaternion, Vector3 } from 'three';
 import { createRace } from './index.js';
 import { createRacers, getRacerControl } from './racers.js';
+import { RACE_OPPONENTS } from './roster.js';
 import { presentationDistance, distanceAhead } from './course.js';
 import { createVehicleState } from '../physics/index.js';
 import { SHIPS } from '../ships/catalog.js';
@@ -286,7 +287,7 @@ for (const difficulty of ['easy', 'medium', 'hard'])
     const events = advance();
     assert.equal(
       events.filter((entry) => entry.type === 'racer-complete').length,
-      3,
+      RACE_OPPONENTS.length,
     );
     const results = racers.snapshot(context);
     assert.ok(

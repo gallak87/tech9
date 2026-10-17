@@ -1,0 +1,22 @@
+{
+  "asset": "gannet",
+  "blender": "5.1.1",
+  "axes": "+Z forward / +Y up / metres",
+  "bounds": {
+    "min": [-2.059999942779541, 0.038205768913030624, -3.0899999141693115],
+    "max": [2.059999942779541, 1.3392146825790405, 3.259999990463257]
+  },
+  "dimensions": [4.119999885559082, 1.30100891366601, 6.349999904632568],
+  "triangles": 8844,
+  "meshes": 9,
+  "materials": 9,
+  "sourceComponents": 37,
+  "anchors": {
+    "Exhaust_L": [-1.43, 0.37, -3.105],
+    "Exhaust_R": [1.43, 0.37, -3.105]
+  },
+  "glbBytes": 1551992,
+  "sha256": "630b6678919897393326fcf345459c6ef43d1cd6e5c1ccce57b0611daf4dbc96",
+  "textureCount": 12,
+  "textures": "Embedded original baked base-color, roughness, tangent normals and cavity occlusion"
+}

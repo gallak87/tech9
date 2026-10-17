@@ -1,0 +1,22 @@
+{
+  "asset": "vise",
+  "blender": "5.1.1",
+  "axes": "+Z forward / +Y up / metres",
+  "bounds": {
+    "min": [-2.0999999046325684, 0.038205768913030624, -3.1600000858306885],
+    "max": [2.0999999046325684, 1.1793441772460938, 2.7441320419311523]
+  },
+  "dimensions": [4.199999809265137, 1.1411384083330631, 5.904132127761841],
+  "triangles": 8388,
+  "meshes": 9,
+  "materials": 9,
+  "sourceComponents": 54,
+  "anchors": {
+    "Exhaust_L": [-1.16, 0.56, -3.1750000000000003],
+    "Exhaust_R": [1.16, 0.56, -3.1750000000000003]
+  },
+  "glbBytes": 1830572,
+  "sha256": "7d502994566bd54471593d27964d33f76f2560461f4724be5d8357112b6926c0",
+  "textureCount": 12,
+  "textures": "Embedded original baked base-color, roughness, tangent normals and cavity occlusion"
+}

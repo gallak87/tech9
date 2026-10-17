@@ -1,0 +1,60 @@
+{
+  "id": "sprint-concepts-2026-10-13",
+  "generatedDate": "2026-10-13",
+  "dateTimezone": "America/Los_Angeles",
+  "generator": "Built-in image_gen.imagegen",
+  "role": "Concept selection imagery only; not production assets or validated track geometry",
+  "referenceImages": [],
+  "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
+  "runtimeAssets": [],
+  "images": [
+    {
+      "id": "riftwake",
+      "original": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-4170e2d6-e54c-4efa-9474-7022153639a4.png",
+      "promptRecord": "riftwake-v1-prompt.txt",
+      "image": "riftwake-v1.png",
+      "sourceImageSha256": "4a3842ecd2b087ac5543cac49c2a2fd96da2335336d67563a9cccb82bd7f6ee3",
+      "promptRecordSha256": "77ef0c7c31e7fcbbe001eafe5894bc2f5bfcc0201dc4dfe93eeee5082749ef95"
+    },
+    {
+      "id": "stormspine",
+      "original": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-02d08d62-38a8-4144-8580-e0f2f1009d4a.png",
+      "promptRecord": "stormspine-v1-prompt.txt",
+      "image": "stormspine-v1.png",
+      "sourceImageSha256": "2a50811971ef16ad28ff0ea69fdaba980a34d3d87e79df83691e65dd7894d1fe",
+      "promptRecordSha256": "973d659aa0e58f97fd77a2ae2e691822a2e4e42c231acfac205ae1e2d9d87cbe"
+    },
+    {
+      "id": "redshift-graveyard",
+      "original": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-0c892659-836d-4b77-9bd5-813308a00241.png",
+      "promptRecord": "redshift-graveyard-v1-prompt.txt",
+      "image": "redshift-graveyard-v1.png",
+      "sourceImageSha256": "c93e7726c0b89a336c1ee897facbb52005882faeac4b9b5d1465bba3aba3cef5",
+      "promptRecordSha256": "b18728b787246152c8b31e7792b67bde4252ecfaa7a908fe0b3bf14688ba6aa6"
+    },
+    {
+      "id": "prismfall",
+      "original": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-26a37e7a-ee0b-4c7d-9111-5c9f0cf45709.png",
+      "promptRecord": "prismfall-v1-prompt.txt",
+      "image": "prismfall-v1.png",
+      "sourceImageSha256": "4c8159b633ec5dbd4f5580495b4ac89d1f0e025f3148f586e7ad468fdf772829",
+      "promptRecordSha256": "33da644973be0ed6b9f28ae789d65bf28de4947c27461ed4e08e58b1cef87f20"
+    },
+    {
+      "id": "nightweir",
+      "original": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-2246e568-1e6f-4c7c-926b-4351a3089959.png",
+      "promptRecord": "nightweir-v1-prompt.txt",
+      "image": "nightweir-v1.png",
+      "sourceImageSha256": "4468371cadf9ef0f622a1e6d998387e3928d423a4342d865bcf6e92fe42760cc",
+      "promptRecordSha256": "de846f492e12b81fed3aba7b5ada911ef91ecec39af123dbd86c9fd159138bea"
+    },
+    {
+      "id": "worldspire",
+      "original": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-02dd97f9-95dc-452d-ab4a-47e3e0d89130.png",
+      "promptRecord": "worldspire-v1-prompt.txt",
+      "image": "worldspire-v1.png",
+      "sourceImageSha256": "05cef3f2053706c4634ccebc08730bef856183d9605979d4cdc619a9c9ae210c",
+      "promptRecordSha256": "93b070255188b842224629caddcad3fa04708b6561b1a2500d8fb27e5fb54dd5"
+    }
+  ]
+}

@@ -29,28 +29,37 @@ export function createVesperRuntime(context) {
     edgeSource: 'vesper-branch-edge',
   });
   let surface = { id: 'resin', zone: null, drag: 0 };
+  function finishSurface(state, events) {
+    const motion = runtime.snapshot();
+    const next =
+      motion.mode === 'magnetic'
+        ? sampleVesperSurface(track, state)
+        : { id: 'air', zone: null, drag: 0 };
+    if (next.id !== surface.id || next.zone !== surface.zone)
+      events.push({
+        type: 'surface-change',
+        payload: {
+          from: surface.id,
+          to: next.id,
+          zone: next.zone,
+          drag: next.drag,
+        },
+      });
+    surface = next;
+    return events;
+  }
   return {
     ...runtime,
     advance(state, input, dt, modifiers) {
-      const events = runtime.advance(state, input, dt, modifiers);
-      const motion = runtime.snapshot();
-      const next =
-        motion.mode === 'magnetic'
-          ? sampleVesperSurface(track, state)
-          : { id: 'air', zone: null, drag: 0 };
-      if (next.id !== surface.id || next.zone !== surface.zone)
-        events.push({
-          type: 'surface-change',
-          payload: {
-            from: surface.id,
-            to: next.id,
-            zone: next.zone,
-            drag: next.drag,
-          },
-        });
-      surface = next;
-      return events;
+      return finishSurface(state, runtime.advance(state, input, dt, modifiers));
     },
+    ...(runtime.finishAdvance
+      ? {
+          finishAdvance(state) {
+            return finishSurface(state, runtime.finishAdvance(state));
+          },
+        }
+      : {}),
     reset(args) {
       runtime.reset(args);
       surface = sampleVesperSurface(track, args.state);

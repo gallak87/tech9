@@ -1,0 +1,21 @@
+{
+  "asset": "kite",
+  "blender": "5.1.1",
+  "axes": "+Z forward / +Y up / metres",
+  "bounds": {
+    "min": [-1.9219154119491577, 0.038205768913030624, -3.180000066757202],
+    "max": [1.9219154119491577, 1.199989914894104, 3.0999999046325684]
+  },
+  "dimensions": [3.8438308238983154, 1.1617841459810734, 6.2799999713897705],
+  "triangles": 8648,
+  "meshes": 9,
+  "materials": 9,
+  "sourceComponents": 42,
+  "anchors": {
+    "Exhaust_C": [0, 0.43, -3.1950000000000003]
+  },
+  "glbBytes": 1572384,
+  "sha256": "7f549edc30847f95d612c471fb382bae6c9a2b0a446cd449fe9e47b4a202fb0a",
+  "textureCount": 12,
+  "textures": "Embedded original baked base-color, roughness, tangent normals and cavity occlusion"
+}

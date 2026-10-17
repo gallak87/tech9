@@ -1923,6 +1923,22 @@ select {
   background: #1e1e1e66;
   line-height: 1.8;
 }
+#inspection-panel .rival-selection {
+  grid-template-columns: minmax(0, 1fr);
+}
+#inspection-panel .rival-selection .ship-picker {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+#inspection-panel .rival-selection .ship-picker button {
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 46px;
+}
+#inspection-panel .rival-selection .ship-summary {
+  grid-column: 1;
+  grid-row: auto;
+  padding: 6px 10px;
+}
 @media (max-height: 570px) and (orientation: landscape) {
   #inspection-panel .ship-picker button {
     min-height: 30px;
@@ -2258,6 +2274,22 @@ select {
 @media (min-width: 761px) and (min-height: 701px) {
   #interface.compact-paddock #race-roster:not(.in-paddock) {
     top: 210px;
+  }
+}
+/* The full ten-pilot field shares one narrow column with its map. */
+@media (min-width: 761px) and (min-height: 571px) {
+  #interface.has-live-race #minimap {
+    top: 88px;
+    width: 130px;
+    height: 98px;
+  }
+  #interface.has-live-race #race-roster:not(.in-paddock) {
+    top: 200px;
+  }
+  #race-roster:not(.in-paddock) li {
+    padding-top: 3px;
+    padding-bottom: 3px;
+    margin-bottom: 2px;
   }
 }
 @media (max-width: 760px), (max-height: 700px) {

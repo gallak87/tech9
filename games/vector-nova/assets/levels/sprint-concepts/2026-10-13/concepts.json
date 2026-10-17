@@ -1,0 +1,114 @@
+{
+  "id": "sprint-concepts-2026-10-13",
+  "status": "Focus narrowed to Worldspire and Nightweir; awaiting concept review before writing briefs",
+  "createdDate": "2026-10-13",
+  "dateTimezone": "America/Los_Angeles",
+  "sourceReference": "../../shatterline/reference/shatterline-scene-v1.png",
+  "basis": "Reviewed Shatterline design reference, current 21.1 km sprint summary, art bible and previous jump-level image prompts. Existing artwork was inspected for project context; no reference images were passed to imagegen.",
+  "sharedDirection": {
+    "minRouteLengthKm": 15,
+    "connectorPreference": "Mostly downhill, including receiving and recovery reaches. Brief climbs may shape a launch or corkscrew; no long flat padding or return leg.",
+    "routeWidthTargetM": 50,
+    "pacing": "Many varied jumps plus repeated full corkscrews and inversions distributed through the whole route; long grounded recovery, overtaking and acceleration reaches between transfers.",
+    "heroFlights": "Target three separated long flights near five seconds. All counts, lengths, descents and flight times are design targets, to be tuned and physically verified after selection.",
+    "implementation": "Independently author playable routes. Generated images establish world, scale, mood and materials, not exact track geometry."
+  },
+  "reviewSequence": [
+    "Review the two short concept paragraphs and new Worldspire image with the user before writing briefs.",
+    "After concept acceptance, prepare briefs and work on one selected sprint at a time, with early human driving feedback before full production and the bounded gauntlet."
+  ],
+  "imageReview": "Five images visually inspected. Worlds, materials and airborne-transfer cues are useful for selection. Several drawn roads read as banked helices or rising ramps rather than complete descending inversions; exact rolling geometry, continuous downhill pacing and clear jump envelopes must be independently designed and tested. Worldspire was generated separately in portrait framing and inspected for one monumental exterior spire, repeated spiral turns, a gap and an inversion; it remains visual direction rather than validated track geometry.",
+  "concepts": [
+    {
+      "id": "riftwake",
+      "name": "Riftwake",
+      "paragraph": "Start on the rim of an ocean that has vanished into a planetary fault, then race 22 km down its exposed seabed toward the last strip of deep-blue water. Enormous stranded ocean liners hang between white limestone shelves; red kelp forests cling to dry cliff faces, and abandoned tidal machinery gives the road its oxidized teal skin. The course dives along former shipping channels, corkscrews around four colossal anchor pylons, and fires across sixteen fractures—including three long flights through the open ribs of grounded ships. Broad banked seabed viaducts keep accelerating between launches, with the final jump clearing a waterfall into the surviving trench before landing at a low tidal station. The draw is an ocean world seen from an impossible new angle: bright salt, dark water, and ships towering overhead.",
+      "targets": {
+        "lengthKm": 22,
+        "netDescentKm": 5.2,
+        "jumps": 16,
+        "fullCorkscrews": 4,
+        "heroFlights": 3
+      },
+      "image": "riftwake-v1.png",
+      "promptRecord": "riftwake-v1-prompt.txt",
+      "status": "Set aside"
+    },
+    {
+      "id": "stormspine",
+      "name": "Stormspine",
+      "paragraph": "A 24 km plunge from a weather-control station above the clouds to a green monsoon valley seven kilometres below. Huge white storm vanes and copper lightning collectors march down a serrated black mountain; the road follows their maintenance spine through alternating hard sunlight, rain curtains, and open cloud windows. Five descending corkscrews wrap separate collector masts, while eighteen jumps cross broken ridge saddles and the open mouths of vast stationary wind scoops. Three hero launches reveal progressively lower climate bands, with the final flight breaking out beneath the storm into warm daylight. The inbetweens are steep banked chutes and sweeping cliff traverses, so even the recovery stretches feel like falling down a mountain.",
+      "targets": {
+        "lengthKm": 24,
+        "netDescentKm": 7.1,
+        "jumps": 18,
+        "fullCorkscrews": 5,
+        "heroFlights": 3
+      },
+      "image": "stormspine-v1.png",
+      "promptRecord": "stormspine-v1-prompt.txt",
+      "status": "Set aside"
+    },
+    {
+      "id": "redshift-graveyard",
+      "name": "Redshift Graveyard",
+      "paragraph": "Race 21 km down the torn-open body of a colony starship that crash-landed nose-first across a red planetary escarpment. Start on its elevated tail, descend across outer armor and through cavernous cargo decks, then burst back into daylight beside engines the size of districts. Four corkscrews use exposed coolant trunks and magnetic service conduits; fifteen jumps transfer between broken hull sections, with long grounded runs through ribbed hangars and over sloping heat shields. The biggest flight clears the missing reactor section and lands on the ship’s forward spine, where the distant buried bridge becomes the finish. Rust-red desert, pale armor, shadowy machinery, and cold blue emergency power give the whole route one legible object to travel through.",
+      "targets": {
+        "lengthKm": 21,
+        "netDescentKm": 5.8,
+        "jumps": 15,
+        "fullCorkscrews": 4,
+        "heroFlights": 3
+      },
+      "image": "redshift-graveyard-v1.png",
+      "promptRecord": "redshift-graveyard-v1-prompt.txt",
+      "status": "Set aside"
+    },
+    {
+      "id": "prismfall",
+      "name": "Prismfall",
+      "paragraph": "An 18 km descent through an open crystal quarry whose terraces expose translucent mineral blades hundreds of metres tall. Begin on the violet uplands, dive through chalky cut faces and mirrored extraction halls, then finish beside a cobalt brine lake at the bottom of the excavation. Seventeen jumps clear quarry cuts and broken mineral bridges; four corkscrews wind around immense crystal columns, switching between open sunlight and vividly colored transmitted light. Three longer flights pass through genuinely open fractures, with broad dark receiving roads always separated from the glittering scenery. Long diagonal descents and banked haul-road sweeps connect the spectacle, making this a fast, bright mineral world rather than a maze of delicate glass platforms.",
+      "targets": {
+        "lengthKm": 18,
+        "netDescentKm": 4.8,
+        "jumps": 17,
+        "fullCorkscrews": 4,
+        "heroFlights": 3
+      },
+      "image": "prismfall-v1.png",
+      "promptRecord": "prismfall-v1-prompt.txt",
+      "status": "Set aside"
+    },
+    {
+      "id": "nightweir",
+      "name": "Nightweir",
+      "paragraph": "A 20 km downhill sprint through a vertical city built around a roaring stormwater gorge. Jump between spillways, corkscrew around pressure towers, and skim flooded terraces on the way to the harbor. Water shapes the whole journey: curtain crossings, surging channels, spray and wet landings, building on Nacre's water systems and Zephyr's waterfall/wetness effects.",
+      "targets": {
+        "lengthKm": 20,
+        "netDescentKm": 5.6,
+        "jumps": 19,
+        "fullCorkscrews": 5,
+        "heroFlights": 3
+      },
+      "image": "nightweir-v1.png",
+      "promptRecord": "nightweir-v1-prompt.txt",
+      "status": "Shortlisted by user; paragraph pending review"
+    },
+    {
+      "id": "worldspire",
+      "name": "Worldspire",
+      "status": "User-proposed concept; new image and paragraph pending review",
+      "paragraph": "A roughly 28 km plunge around the outside of a solitary, ten-kilometre-tall alien spire. The road winds downward through successive cloud layers, peeling away for huge gap jumps and full corkscrews before returning to the monolith. Long, steep banked arcs keep speed building between stunts, with earlier turns hanging impossibly far overhead and the finish emerging deep below.",
+      "targets": {
+        "lengthKm": 28,
+        "spireHeightKm": 10,
+        "minRouteLengthKm": 15
+      },
+      "image": "worldspire-v1.png",
+      "promptRecord": "worldspire-v1-prompt.txt"
+    }
+  ],
+  "shortlist": ["worldspire", "nightweir"],
+  "selection": "User liked Nightweir's water and requested a hugely different exterior spiral around one colossal spire. Other initial concepts are retained as unselected source artwork only.",
+  "waterReuseNote": "Read Zephyr runtime/wetness and inspected existing Nacre water module locations. These provide waves, water crossings, waterfalls and wetness presentation to assess for reuse; this is not a claim of a general fluid-current simulation or implemented new water handling."
+}

@@ -7,6 +7,8 @@ import { createVehicleState, STEERING_ASSIST } from '../physics/index.js';
 import { createHalcyonSimulationRuntime } from '../levels/halcyon/device-runtime.js';
 import { createHalcyonDevices } from '../levels/halcyon/devices.js';
 import { createRace } from './index.js';
+import { RACE_FIELD_SIZE, RACE_OPPONENTS, RACER_COLORS } from './roster.js';
+import { VEHICLE_HULL as HULL } from '../physics/hull.js';
 import {
   createRacers,
   createRacerPresentation,
@@ -28,6 +30,36 @@ const step = (racers, seconds, context) => {
     events.push(...racers.advance(dt, context));
   return events;
 };
+
+test('ten-pilot grid has five separated rows and independent simulation owners', () => {
+  const racers = createHalcyonRacers({ track });
+  try {
+    assert.equal(RACE_FIELD_SIZE, 10);
+    assert.equal(racers.opponents.length, 9);
+    assert.equal(
+      new Set(racers.opponents.map(({ runtime }) => runtime)).size,
+      9,
+    );
+    assert.equal(new Set(racers.opponents.map(({ state }) => state)).size, 9);
+    assert.equal(new Set(racers.opponents.map(({ race }) => race)).size, 9);
+    assert.deepEqual(
+      new Set(RACE_OPPONENTS.map(({ shipId }) => shipId)),
+      new Set(['kestrel', 'shrike', 'bastion', 'needle']),
+    );
+    assert.equal(new Set(Object.values(RACER_COLORS)).size, 10);
+    const grid = Object.values(RACE_GRID);
+    assert.equal(new Set(grid.map(({ distance }) => distance)).size, 5);
+    for (let i = 0; i < grid.length; i++)
+      for (let j = i + 1; j < grid.length; j++)
+        assert.ok(
+          Math.abs(grid[i].distance - grid[j].distance) > HULL.halfLength * 2 ||
+            Math.abs(grid[i].lateral - grid[j].lateral) > HULL.halfWidth * 2,
+          `grid hulls ${i}/${j} are separate`,
+        );
+  } finally {
+    racers.dispose();
+  }
+});
 function playerWithTwoLaps({ valid = true } = {}) {
   const playerState = createVehicleState();
   const playerRace = createRace(track);
@@ -37,6 +69,34 @@ function playerWithTwoLaps({ valid = true } = {}) {
   playerState.distance = track.length * 2;
   return { playerState, playerRace };
 }
+
+test('a stopped spun rival releases thrust and takes the shortest steering turn', () => {
+  const straight = {
+    length: 1000,
+    width: 24,
+    sample: () => ({ curvature: 0, right: new Vector3(1, 0, 0) }),
+  };
+  for (const heading of [Math.PI / 2, -Math.PI / 2, Math.PI + 0.1]) {
+    const state = { ...createVehicleState(), heading, speed: 1 };
+    const before = { ...state };
+    const input = getRacerControl(state, straight);
+    assert.equal(input.throttle, 0);
+    assert.equal(input.boost, false);
+    assert.equal(input.brake, 0);
+    assert.equal(
+      Math.sign(input.steer),
+      Math.sign(Math.atan2(Math.sin(heading), Math.cos(heading))),
+    );
+    assert.deepEqual(state, before, 'driver only supplies inputs');
+  }
+  assert.equal(
+    getRacerControl(
+      { ...createVehicleState(), heading: 0.1, speed: 1 },
+      straight,
+    ).throttle,
+    1,
+  );
+});
 
 test('staggered grid, pause and solo never award the rear grid a partial lap', () => {
   const racers = createHalcyonRacers({ track });
@@ -69,17 +129,20 @@ test('staggered grid, pause and solo never award the rear grid a partial lap', (
 test('each opponent owns device eligibility, shield timers and reserve independently', () => {
   const racers = createHalcyonRacers({ track });
   racers.reset({ enabled: true });
-  const [rook, latch, mule] = racers.opponents;
+  const [rook, ...others] = racers.opponents;
   Object.assign(rook.state, { distance: 359.7, lateral: 3, speed: 80 });
   rook.runtime.reset({ reason: 'scenario', state: rook.state });
   racers.advance(dt);
   assert.equal(rook.runtime.snapshot().aegisRemaining, 6);
-  assert.equal(latch.runtime.snapshot().aegisRemaining, 0);
-  assert.equal(mule.runtime.snapshot().aegisRemaining, 0);
+  others.forEach(({ runtime }) =>
+    assert.equal(runtime.snapshot().aegisRemaining, 0),
+  );
   const borrowed = rook.runtime.snapshot();
   borrowed.used['aegis-crown'] = 999;
   assert.equal(rook.runtime.snapshot().used['aegis-crown'], 0);
-  assert.ok(latch.runtime.snapshot().used['aegis-crown'] < 0);
+  others.forEach(({ runtime }) =>
+    assert.ok(runtime.snapshot().used['aegis-crown'] < 0),
+  );
   racers.dispose();
 });
 
@@ -114,7 +177,7 @@ test('live relative timing covers the full field and keeps its order and gaps th
     racers.advance(dt, context);
   }
   const { standings, relative } = racers.snapshot(context);
-  assert.equal(relative.field.length, 4);
+  assert.equal(relative.field.length, RACE_FIELD_SIZE);
   assert.deepEqual(
     relative.field.map(({ id, position }) => ({ id, position })),
     standings.map(({ id, position }) => ({ id, position })),
@@ -163,6 +226,46 @@ test('racer rollback reproduces all controls, clocks, checkpoint and device stat
     'a refused rollback must not partially change live opponents',
   );
   racers.dispose();
+});
+
+test('field restore rejects old rosters and changed handling, grid or driver configuration atomically', () => {
+  const racers = createHalcyonRacers({ track });
+  try {
+    racers.reset({ enabled: true });
+    step(racers, 1);
+    const saved = racers.serialize();
+    const alterations = [
+      (data) => {
+        delete data.field;
+      },
+      (data) => {
+        data.opponents.length = 3;
+      },
+      (data) => {
+        data.field.opponents[3].ship.version++;
+      },
+      (data) => {
+        data.field.grid.gannet.distance -= 12;
+      },
+      (data) => {
+        data.field.drivers.hard.cornerLoad++;
+      },
+      (data) => {
+        data.opponents[8].id = 'rook';
+      },
+    ];
+    for (const alter of alterations) {
+      const invalid = structuredClone(saved);
+      alter(invalid);
+      assert.throws(() => racers.restore(invalid), /mismatch/);
+      assert.deepEqual(racers.serialize(), saved);
+    }
+    const identity = racers.identity;
+    identity.grid.player.lateral = 100;
+    assert.equal(racers.identity.grid.player.lateral, RACE_GRID.player.lateral);
+  } finally {
+    racers.dispose();
+  }
 });
 
 test('player completion keeps unfinished rivals honest and returns defensive results', () => {
@@ -247,10 +350,10 @@ test('actual-physics opponents complete two valid laps and keep driving after ti
     'verification driver must follow the real route without rail farming',
   );
   assert.equal(first.playerFinished, true);
-  assert.equal(first.standings.length, 4);
+  assert.equal(first.standings.length, RACE_FIELD_SIZE);
   assert.deepEqual(
     first.standings.map((entry) => entry.position),
-    [1, 2, 3, 4],
+    Array.from({ length: RACE_FIELD_SIZE }, (_, i) => i + 1),
   );
   first.standings.forEach((entry) => {
     assert.equal(entry.finished, true);
@@ -260,7 +363,7 @@ test('actual-physics opponents complete two valid laps and keep driving after ti
   });
   assert.equal(
     completes.filter((event) => event.type === 'racer-complete').length,
-    3,
+    RACE_OPPONENTS.length,
   );
   const latched = first.standings.map(({ id, totalTime }) => ({
     id,
@@ -325,7 +428,7 @@ test('rival presentation follows banked/inverted world frames and owns cleanup',
   assert.equal(groups[0].visible, false);
   presentation.dispose();
   presentation.dispose();
-  assert.equal(disposals, 3);
+  assert.equal(disposals, RACE_OPPONENTS.length);
   assert.equal(scene.children.length, 0);
   racers.dispose();
 });
@@ -401,11 +504,11 @@ function cleanKestrelTime() {
   return race.history.reduce((sum, lap) => sum + lap.duration, 0);
 }
 
-test('difficulty ladder is faster throughout and hard stays close to a clean boosted Kestrel', () => {
+test('all nine difficulty ladders improve and hard Rook stays close to a clean boosted Kestrel', () => {
   const easy = timedDifficulty('easy');
   const medium = timedDifficulty('medium');
   const hard = timedDifficulty('hard');
-  for (let index = 0; index < 3; index++) {
+  for (let index = 0; index < RACE_OPPONENTS.length; index++) {
     const gentle = easy.opponents[index];
     const quick = medium.opponents[index];
     const fastest = hard.opponents[index];
@@ -427,12 +530,10 @@ test('difficulty ladder is faster throughout and hard stays close to a clean boo
     );
   }
   const clean = cleanKestrelTime();
-  const winner = Math.min(
-    ...hard.opponents.map((opponent) => opponent.finish.totalTime),
-  );
-  assert.ok(winner > clean, 'a clean Kestrel run can still win');
+  const rook = hard.opponents.find(({ id }) => id === 'rook').finish.totalTime;
+  assert.ok(rook > clean, 'a clean Kestrel run beats the same-profile rival');
   assert.ok(
-    winner < clean * 1.04,
+    rook < clean * 1.04,
     'hard leaves less than 4% margin for mistakes',
   );
 });

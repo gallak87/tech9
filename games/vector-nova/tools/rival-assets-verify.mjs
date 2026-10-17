@@ -5,10 +5,13 @@ import { readFile } from 'node:fs/promises';
 import { Box3, Raycaster, Texture, Vector3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { SHIPS } from '../src/ships/catalog.js';
+import { RIVAL_SHIPS } from '../src/ships/rivals.js';
 
 const directory = new URL('../assets/ships/rivals/', import.meta.url);
 const results = [];
-for (const id of ['rook', 'latch', 'mule']) {
+assert.equal(RIVAL_SHIPS.length, 9, 'Nine distinct AI chassis');
+assert.equal(new Set(RIVAL_SHIPS.map(({ id }) => id)).size, 9);
+for (const { id } of RIVAL_SHIPS) {
   assert.ok(
     !SHIPS.some((ship) => ship.id === id),
     'Rivals must remain outside the player catalog',
@@ -47,7 +50,12 @@ for (const id of ['rook', 'latch', 'mule']) {
     bounds.min.y >= 0 && bounds.max.y <= 1.8,
     `${id}: hover datum / height`,
   );
-  const expected = id === 'mule' ? ['Exhaust_C'] : ['Exhaust_L', 'Exhaust_R'];
+  const expected = Object.keys(manifest.anchors).sort();
+  assert.ok(
+    JSON.stringify(expected) === JSON.stringify(['Exhaust_C']) ||
+      JSON.stringify(expected) === JSON.stringify(['Exhaust_L', 'Exhaust_R']),
+    `${id}: single or paired authored nozzle contract`,
+  );
   const anchors = [];
   let meshes = 0,
     triangles = 0;
@@ -129,5 +137,5 @@ for (const id of ['rook', 'latch', 'mule']) {
 }
 console.log(JSON.stringify(results, null, 2));
 console.log(
-  'Three rival inspection assets passed; none registered in the playable fleet.',
+  'Nine rival inspection assets passed; none registered in the playable fleet.',
 );

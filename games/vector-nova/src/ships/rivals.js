@@ -33,6 +33,60 @@ export const RIVAL_SHIPS = Object.freeze([
     design: 'Rounded tub / raised service spine',
     propulsion: 'Single letterbox ion outlet',
   }),
+  Object.freeze({
+    id: 'pike',
+    name: 'Pike',
+    role: 'Interceptor',
+    description:
+      'A slender spearhead with a rear cockpit, swept stabilisers and one recessed turbine.',
+    design: 'Long spearhead / swept aft wing',
+    propulsion: 'Single round ion turbine',
+  }),
+  Object.freeze({
+    id: 'tern',
+    name: 'Tern',
+    role: 'Twin boom',
+    description:
+      'An ivory cockpit capsule suspended between two long booms, with open cross members and orange inlays.',
+    design: 'Separated twin booms / cranked transom wing',
+    propulsion: 'Paired rectangular ion outlets',
+  }),
+  Object.freeze({
+    id: 'manta',
+    name: 'Manta',
+    role: 'Flying wing',
+    description:
+      'A low teal body blends into a broad swept wing with seated outer skins and sheltered exhausts.',
+    design: 'Broad continuous swept wing',
+    propulsion: 'Paired rectangular ion outlets',
+  }),
+  Object.freeze({
+    id: 'vise',
+    name: 'Vise',
+    role: 'Hammerhead',
+    description:
+      'A broad rust-red forward canard leads a narrow cockpit tub and two outboard turbine carriers.',
+    design: 'Hammerhead bow / separate aft engines',
+    propulsion: 'Paired round ion turbines',
+  }),
+  Object.freeze({
+    id: 'kite',
+    name: 'Kite',
+    role: 'Diamond',
+    description:
+      'A compact indigo diamond body with inset shoulder panels, canted fins and one central exhaust.',
+    design: 'Diamond monocoque / canted aft vanes',
+    propulsion: 'Single rectangular ion outlet',
+  }),
+  Object.freeze({
+    id: 'gannet',
+    name: 'Gannet',
+    role: 'Gull wing',
+    description:
+      'A raised grey cockpit descends through formed gull wings to low engine outriggers with ochre markings.',
+    design: 'Raised fuselage / descending gull wings',
+    propulsion: 'Paired rectangular ion outlets',
+  }),
 ]);
 
 export async function createRivalPreview(

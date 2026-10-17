@@ -59,6 +59,81 @@ test('Vesper tree turns and descending road preserve momentum between genuine co
   }
 });
 
+test('the Bloomspan corkscrew carries native hulls through a complete inversion without launches or false braking', async (t) => {
+  const track = createVesperTrack();
+  const collisionWorld = createVesperCollisionWorld({ track });
+  const dynamics = await createRapierWorld({
+    collisionWorld: withMagneticBoundaries(track, collisionWorld),
+  });
+  const runtime = createVesperRuntime({
+    track,
+    collisionWorld,
+    dynamics,
+    presentation: false,
+  });
+  t.after(() => {
+    runtime.dispose();
+    dynamics.dispose();
+    collisionWorld.dispose();
+  });
+  const { start, end } = track.inversions[0];
+  for (const lateral of [-8, 0, 8]) {
+    for (const speed of [112, 160]) {
+      dynamics.reset();
+      const state = {
+        ...createVehicleState(),
+        distance: start - 40,
+        lateral,
+        speed,
+      };
+      runtime.reset({ state });
+      let inverted = false;
+      for (let tick = 0; tick < 1400 && state.distance < end + 40; tick++) {
+        const before = state.speed;
+        const events = runtime.advance(
+          state,
+          {
+            ...getRacerControl(state, track, {
+              runtime,
+              difficulty: 'hard',
+              lane: lateral,
+            }),
+            throttle: 1,
+            brake: 0,
+            boost: speed === 160,
+          },
+          1 / 120,
+        );
+        assert.equal(
+          runtime.pose(1)?.grounded,
+          true,
+          `road lost at ${state.distance}`,
+        );
+        assert.equal(
+          events.some(({ type }) =>
+            ['road-departure', 'road-recovery', 'impact'].includes(type),
+          ),
+          false,
+          `unexpected contact at ${state.distance}`,
+        );
+        assert.ok(
+          before - state.speed < 1.3,
+          `false braking at ${state.distance}: ${before} -> ${state.speed}`,
+        );
+        inverted ||= track.sample(state.distance).up.y < -0.95;
+        assert.ok(
+          Math.abs(state.lateral) < 11.5,
+          `lane lost at ${state.distance}: ${state.lateral}`,
+        );
+      }
+      assert.ok(
+        state.distance > end + 39 && inverted,
+        `incomplete inversion ${lateral}/${speed}`,
+      );
+    }
+  }
+});
+
 test('the Vesper crown transfer retains forward momentum through physical landing and magnetic capture', async (t) => {
   const track = createVesperTrack();
   const collisionWorld = createVesperCollisionWorld({ track });

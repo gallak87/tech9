@@ -4,8 +4,9 @@ import { COLLISION_RULES } from './collision-world.js';
 import { VEHICLE_HULL } from './hull.js';
 
 export const RAPIER_RULES = Object.freeze({
-  version: 5,
+  version: 6,
   packageVersion: '0.21.0',
+  staticCellSize: 96,
   angularDamping: 1.2,
   maxCcdSubsteps: 6,
   // Preserve 32 constraint sweeps, with four PGS refinements per temporal
@@ -120,14 +121,56 @@ export async function createRapierWorld({
     },
   )}`;
   const identity = `${collisionWorld?.id ?? 'racer-world'}:${collisionWorld?.version ?? 1}:${rulesId}`;
-  const batches = new Map();
+  const sources = new Map();
   for (const triangle of collisionWorld?.triangles ?? []) {
-    // Per-face metadata is retained in the batch and recovered by manifold
-    // subshape index. Route stations do not need separate broad-phase bodies.
     const key = JSON.stringify([triangle.id, triangle.kind]);
-    if (!batches.has(key)) batches.set(key, []);
-    batches.get(key).push(triangle);
+    if (!sources.has(key)) sources.set(key, []);
+    sources.get(key).push(triangle);
   }
+  const batches = [];
+  for (const triangles of sources.values()) {
+    // Only dense, extensive meshes benefit from partitioning. Keep primitive
+    // boxes and large coarse faces intact, including their edge topology.
+    const bounds = new T.Box3();
+    let largestFace = 0;
+    for (const triangle of triangles) {
+      const face = new T.Box3();
+      for (const point of triangle.points)
+        face.expandByPoint(new T.Vector3(...point));
+      bounds.union(face);
+      largestFace = Math.max(
+        largestFace,
+        ...face.getSize(new T.Vector3()).toArray(),
+      );
+    }
+    const size = RAPIER_RULES.staticCellSize;
+    if (
+      triangles.length < 128 ||
+      largestFace > size ||
+      Math.max(...bounds.getSize(new T.Vector3()).toArray()) <= size * 2
+    ) {
+      batches.push(triangles);
+      continue;
+    }
+    // A circuit-wide collider keeps distant geometry in every racer's CCD
+    // queries. Spatial cells bound candidates while retaining each authored
+    // face and its source metadata; nothing is clipped, simplified or omitted.
+    const cells = new Map();
+    for (const triangle of triangles) {
+      const key = [0, 1, 2]
+        .map((axis) =>
+          Math.floor(
+            triangle.points.reduce((sum, point) => sum + point[axis], 0) /
+              (3 * size),
+          ),
+        )
+        .join(',');
+      if (!cells.has(key)) cells.set(key, []);
+      cells.get(key).push(triangle);
+    }
+    batches.push(...cells.values());
+  }
+  sources.clear();
   const actors = new Map();
   let engine,
     staticShapes,
@@ -210,7 +253,7 @@ export async function createRapierWorld({
       RAPIER_RULES.internalPgsIterations;
     engine.timestep = 1 / 120;
     staticShapes = new Map();
-    for (const triangles of batches.values()) {
+    for (const triangles of batches) {
       const vertices = new Float32Array(triangles.length * 9);
       const indices = new Uint32Array(triangles.length * 3);
       for (const [index, triangle] of triangles.entries()) {
@@ -918,7 +961,7 @@ export async function createRapierWorld({
       engine.free();
       actors.clear();
       staticShapes.clear();
-      batches.clear();
+      batches.length = 0;
       disposed = true;
     },
   };

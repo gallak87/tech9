@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
+import RAPIER from '@dimforge/rapier3d-compat';
 import {
   createCollisionWorld,
   indexedTriangles,
@@ -350,4 +351,78 @@ test('JSON engine snapshot restore reproduces a contact continuation through the
     expected,
     'restoring engine state reproduces every pose, velocity, spin and contact',
   );
+});
+
+// The source mesh spans hundreds of metres; it must not become one enormous
+// broad-phase candidate. Every face still exists and tile seams are drivable.
+test('spatial collision batches preserve source faces and permit smooth high-speed seam crossings', async (t) => {
+  const triangles = [];
+  for (let z = 0; z < 480; z += 4) {
+    const points = [
+      [-15, 0, z],
+      [-15, 0, z + 4],
+      [15, 0, z],
+      [15, 0, z + 4],
+    ];
+    for (const indices of [
+      [0, 1, 2],
+      [2, 1, 3],
+    ])
+      triangles.push({
+        id: 'long-deck',
+        kind: 'deck',
+        distance: z + 2,
+        start: 0,
+        end: 480,
+        points: indices.map((i) => points[i]),
+      });
+  }
+  const world = await fixture(t, triangles, 26);
+  const native = RAPIER.World.restoreSnapshot(
+    Uint8Array.from(Buffer.from(world.snapshot().engine, 'base64')),
+  );
+  try {
+    let faces = 0,
+      cells = 0;
+    native.colliders.forEach((collider) => {
+      const vertices = collider.vertices();
+      let min = Infinity,
+        max = -Infinity;
+      for (let i = 2; i < vertices.length; i += 3) {
+        min = Math.min(min, vertices[i]);
+        max = Math.max(max, vertices[i]);
+      }
+      assert.ok(max - min <= 100, 'native broad-phase shape stays local');
+      faces += collider.indices().length / 3;
+      cells++;
+    });
+    assert.equal(
+      faces,
+      triangles.length,
+      'partition retains every source face',
+    );
+    assert.ok(cells >= 5);
+  } finally {
+    native.free();
+  }
+  const actor = launch(world, [0, 2, 80], [0, -8, 150]);
+  let contacts = 0;
+  for (let tick = 0; tick < 240; tick++) {
+    world.step(DT);
+    const state = actor.read();
+    assert.ok(state.velocity.z > 149, 'seam must not brake the sliding hull');
+    assert.ok(state.position.y > 0.65, 'no tunnelling through the seam');
+    for (const contact of state.contacts) {
+      contacts++;
+      assert.equal(contact.shape.id, 'long-deck');
+      assert.equal(contact.shape.kind, 'deck');
+      // A cached manifold may advance one CCD substep beyond the 4m face.
+      assert.ok(
+        Math.abs(contact.point.z - contact.shape.distance) <= 2.4,
+        `face mismatch: ${contact.point.z} vs ${contact.shape.distance}`,
+      );
+      assert.ok(contact.normal.y > 0.99, 'face normal survives partitioning');
+    }
+  }
+  assert.ok(actor.read().position.z > 370 && contacts > 0);
 });

@@ -50,12 +50,19 @@ test('Vesper wraps metre frames continuously and the hollow has a rising full tu
   );
 });
 
-test('the whole Vesper road is level across its width with gradual monotone grades', () => {
+test('ordinary Vesper road stays level across its width with gradual monotone grades', () => {
   for (let s = 0; s < track.length; s += 1) {
     const frame = track.sample(s),
       before = track.sample(s - 0.5),
       after = track.sample(s + 0.5);
-    assert.ok(Math.abs(frame.right.y) < 1e-12, `banked cross-section at ${s}`);
+    const rolling = track.inversions.some(
+      ({ start, end }) => s >= start - 1 && s <= end + 1,
+    );
+    if (!rolling)
+      assert.ok(
+        Math.abs(frame.right.y) < 1e-12,
+        `banked ordinary cross-section at ${s}`,
+      );
     assert.ok(Math.abs(frame.tangent.y) < 0.21, `steep grade at ${s}`);
     assert.ok(
       Math.abs(after.tangent.y - before.tangent.y) < 0.0036,
@@ -67,7 +74,10 @@ test('the whole Vesper road is level across its width with gradual monotone grad
         lateral * after.right.y -
         before.position.y -
         lateral * before.right.y;
-      assert.ok(Math.abs(rise) < 0.21, `lane hump at ${s}/${lateral}`);
+      assert.ok(
+        Math.abs(rise) < (rolling ? 0.46 : 0.21),
+        `lane hump at ${s}/${lateral}`,
+      );
     }
   }
   const bloom = track.sections.find(({ id }) => id === 'bloom');
@@ -78,6 +88,35 @@ test('the whole Vesper road is level across its width with gradual monotone grad
     assert.ok(height <= previous, `unwanted descent hump at ${s}`);
     previous = height;
   }
+});
+
+test('Bloomspan has one broad, smoothly entered descending full corkscrew', () => {
+  assert.equal(track.inversions.length, 1);
+  const { start, end } = track.inversions[0];
+  assert.ok(end - start > 400);
+  assert.ok(track.sample(start).position.y - track.sample(end).position.y > 30);
+  assert.ok(
+    track.sample((start + end) / 2).up.y < -0.98,
+    'fully inverted at the centre',
+  );
+  assert.ok(
+    Math.abs(track.sample(end).roll - track.sample(start).roll - Math.PI * 2) <
+      1e-8,
+  );
+  for (let s = start - 5; s < end + 5; s += 0.5) {
+    const a = track.sample(s),
+      b = track.sample(s + 0.5);
+    assert.ok(a.quaternion.angleTo(b.quaternion) < 0.016, `sharp roll at ${s}`);
+    assert.equal(
+      track.isGap(s),
+      false,
+      'continuous supported road through inversion',
+    );
+  }
+  for (const s of [start, end])
+    assert.ok(
+      Math.abs(track.sample(s + 0.5).roll - track.sample(s - 0.5).roll) < 1e-6,
+    );
 });
 
 test('nonadjacent roadway envelopes and hollow crossing headroom stay separated', (t) => {

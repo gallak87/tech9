@@ -216,6 +216,13 @@ test('Vesper keeps the real Kestrel bounds framed smoothly through impact, hollo
     { scenario: 'impact', seconds: 1.3, impact: true },
     { scenario: 'impact', seconds: 1.3, impact: true, reducedMotion: true },
     { scenario: 'trunk-entry', seconds: 5 },
+    { scenario: 'bloom-corkscrew', seconds: 6.5, target: 112 },
+    {
+      scenario: 'bloom-corkscrew',
+      seconds: 6.5,
+      target: 112,
+      reducedMotion: true,
+    },
     { scenario: 'root-descent', seconds: 9, target: 48, lateral: 4.5 },
   ]) {
     const result = await simulate(probe);

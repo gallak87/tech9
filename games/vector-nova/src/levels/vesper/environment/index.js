@@ -260,6 +260,26 @@ export function createVesperEnvironment({
           }
         }
       }
+      // During the deliberate inversion, the local "down" socket can sit
+      // above the road. Grow out around its world-space side before descending
+      // to earth; a local-right search at quarter-roll points straight down
+      // through the driving corridor and leaves the socket unconnected.
+      if (track.inversions?.some(({ start, end }) => s >= start && s <= end)) {
+        const outward = socket.clone().sub(f.position).setY(0).normalize();
+        for (const offset of [40, 65, 100]) {
+          const foot = socket.clone().addScaledVector(outward, offset);
+          foot.y = vesperTerrainHeight(foot.x, foot.z, ground) - 4;
+          const knee = socket
+            .clone()
+            .lerp(foot, 0.44)
+            .addScaledVector(outward, 20);
+          if (clearsSupport([socket, knee, foot])) {
+            accepted = [socket, knee, foot];
+            grounded = true;
+            break;
+          }
+        }
+      }
       if (!accepted)
         for (const offset of [10, 35, 65, 100, -35, -65]) {
           const foot = socket.clone().addScaledVector(f.right, side * offset);

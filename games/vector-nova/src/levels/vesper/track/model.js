@@ -1,7 +1,7 @@
 import * as T from 'three';
 import { cacheClosedCatmullRom } from '../../../track/cached-curve.js';
 
-export const VESPER_REVISION = 'vesper-route-3-level-deck';
+export const VESPER_REVISION = 'vesper-route-4-bloom-corkscrew';
 const wrap = (s, length) => ((s % length) + length) % length;
 const PLAN = [
   [-280, -300],
@@ -138,12 +138,30 @@ export function createVesperTrack() {
     positionAt(s + 0.25)
       .sub(positionAt(s - 0.25))
       .normalize();
+  // One deliberate, broad 360-degree roll on the open descending span. Keep
+  // the tightly winding hollow and ordinary road level across their width.
+  const inversion = {
+    id: 'bloom-corkscrew',
+    name: 'Bloomspan Corkscrew',
+    start: nodeS(21) + 20,
+    end: nodeS(24) - 20,
+  };
+  const rollAt = (s) => {
+    const t = T.MathUtils.clamp(
+      (s - inversion.start) / (inversion.end - inversion.start),
+      0,
+      1,
+    );
+    // Cosine velocity eases both ends to zero without a pitch/roll shoulder.
+    return Math.PI * 2 * (t - Math.sin(Math.PI * 2 * t) / (Math.PI * 2));
+  };
   function sample(s) {
     const distance = wrap(s, length);
     const tangent = tangentAt(distance);
-    // Level across the deck: rapid banking reversals made the outer racing
-    // lanes rise and fall far more sharply than the centreline in the hollow.
-    const right = new T.Vector3(tangent.z, 0, -tangent.x).normalize();
+    const roll = rollAt(distance);
+    const right = new T.Vector3(tangent.z, 0, -tangent.x)
+      .normalize()
+      .applyAxisAngle(tangent, roll);
     const up = new T.Vector3().crossVectors(tangent, right).normalize();
     const quaternion = new T.Quaternion().setFromRotationMatrix(
       new T.Matrix4().makeBasis(right, up, tangent),
@@ -158,8 +176,8 @@ export function createVesperTrack() {
       up,
       quaternion,
       curvature,
-      bank: 0,
-      roll: 0,
+      bank: Math.atan2(Math.sin(roll), Math.cos(roll)),
+      roll,
     };
   }
   const crownTakeoff = nodeS(15) - 8;
@@ -251,6 +269,7 @@ export function createVesperTrack() {
     'sap-compare': { distance: nodeS(22) - 75, speed: 85, lateral: 2 },
     'resin-compare': { distance: nodeS(22) - 75, speed: 85, lateral: -5 },
     'bloom-runup': { distance: nodeS(22) - 48, speed: 95, lateral: 8.5 },
+    'bloom-corkscrew': { distance: inversion.start - 70, speed: 112 },
     'root-descent': { distance: nodeS(25) - 40, speed: 70 },
     'slope-rest': { distance: nodeS(26), speed: 0 },
     'support-crown-setup': {
@@ -296,8 +315,10 @@ export function createVesperTrack() {
     checkpoints,
     scenarios,
     jumps,
+    inversions: [inversion],
     sapZones,
     revision: VESPER_REVISION,
+    geometryVersion: VESPER_REVISION,
     sourceScale: scale,
     review: { kind: 'vesper-production', phase: 'expansion' },
     showcases: sections.map(({ id, name, showcase }) => ({

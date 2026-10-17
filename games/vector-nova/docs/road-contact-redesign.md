@@ -2,6 +2,8 @@
 
 Fix shared road and rail contact so continuous roads preserve momentum, bumps and scrapes feel snappy, and jumps and crashes remain physical. Use the four circuit families below to develop and verify the solution. Preserve current track shapes and art; further flattening is a separate user decision. The implementation is open.
 
+Zephyr's environment improvements are assigned separately in the [art improvement brief](levels/zephyr-art-improvement.md). Keep this contact work independent of that visual pass and preserve its scenery and materials.
+
 ## Starting point
 
 Start from audited main `8b70db16`. No blanket rollback: these failures also reproduce with the pre-optimization physics from `af49f312` on the same tracks. Preserve Vesper's smoother elevations, Crown leap and corkscrew, prevention of racer-induced launches, and finite off-road support/recovery. Superseded support logic can be replaced. Retain the recent performance improvement where compatible with correct contacts.

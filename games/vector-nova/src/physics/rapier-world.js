@@ -380,7 +380,10 @@ export async function createRapierWorld({
           let shape, surfaceNormal;
           if (triangle) {
             const { points, ...metadata } = triangle;
-            shape = metadata;
+            shape = {
+              ...metadata,
+              ...(triangle.roadBoundary ? { boundaryPoints: points } : {}),
+            };
             surfaceNormal = new T.Vector3(...points[1])
               .sub(new T.Vector3(...points[0]))
               .cross(

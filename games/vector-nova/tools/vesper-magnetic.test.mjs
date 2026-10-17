@@ -99,3 +99,44 @@ test('both Vesper transfers retain forward momentum through physical landing and
     }
   }
 });
+
+test('Vesper tree-side hull straddles recover through the physical barrier instead of hanging', async (t) => {
+  const track = createVesperTrack();
+  const collision = createVesperCollisionWorld({ track });
+  const dynamics = await createRapierWorld({
+    collisionWorld: withMagneticBoundaries(track, collision),
+  });
+  t.after(() => {
+    dynamics.dispose();
+    collision.dispose();
+  });
+  const actor = dynamics.createActor();
+  const body = createMagneticBody({ track, dynamics, actor });
+  for (const [distance, lateral] of [
+    [760, -13.5],
+    [1100, 13.5],
+  ]) {
+    const state = { ...createVehicleState(), distance, lateral };
+    body.reset(state);
+    let released = false;
+    for (let tick = 0; tick < 240; tick++) {
+      body.stage(
+        state,
+        { throttle: 1, steer: Math.sign(lateral) * 0.5 },
+        1 / 120,
+      );
+      dynamics.step(1 / 120);
+      body.finish(state);
+      released ||= Boolean(body.snapshot().edgeEscape);
+    }
+    assert.ok(
+      released,
+      'straddling the production rail activates edge release',
+    );
+    assert.ok(Math.abs(state.lateral) < 11, 'actual hull clears the wall');
+    assert.ok(
+      state.speed > 25 && state.distance > distance + 10,
+      'racer drives away from the formerly pinned tree turn',
+    );
+  }
+});

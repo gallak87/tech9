@@ -13,7 +13,7 @@ import {
 import { VEHICLE_HULL, projectedHullExtent, hullAxes } from './hull.js';
 import { createContactFeedback, racerImpact } from './contact-feedback.js';
 
-export const MAGNETIC_BODY_RULES = `magnetic-constraint-v2-yaw-0.85-120-grip80:${COLLISION_HULLS_ID}`;
+export const MAGNETIC_BODY_RULES = `magnetic-constraint-v3-edge-release-yaw-0.85-120-grip80:${COLLISION_HULLS_ID}`;
 const clamp = T.MathUtils.clamp;
 const axisY = new T.Vector3(0, 1, 0);
 const axisZ = new T.Vector3(0, 0, 1);
@@ -70,6 +70,91 @@ export function createMagneticBody({
     lastSpeed = 0;
   let pending = null,
     capture = null;
+  let edgeStall = 0,
+    edgeEscape = null;
+
+  function updateEdgeEscape(state, input, dt, frame, body) {
+    const boundaries = body.contacts.filter((hit) => hit.shape.boundaryPoints);
+    if (!boundaries.length && !edgeEscape) {
+      edgeStall = 0;
+      return null;
+    }
+    const bounds = frame.bounds ?? {
+      min: -track.width / 2,
+      max: track.width / 2,
+    };
+    if (frame.period > 0) {
+      edgeStall = 0;
+      edgeEscape = null;
+      return null;
+    }
+    const vertices = getCollisionHull(state.chassisId ?? state.shipId).vertices;
+    let min = Infinity,
+      max = -Infinity;
+    const vertex = new T.Vector3();
+    for (let i = 0; i < vertices.length; i += 3) {
+      vertex.fromArray(vertices, i).applyQuaternion(body.quaternion);
+      const lateral = state.lateral + vertex.dot(frame.right);
+      min = Math.min(min, lateral);
+      max = Math.max(max, lateral);
+    }
+    // A normal scrape has only contact tolerance outside the boundary. A
+    // stranded compound hull has a wing/nose on each side of the wall.
+    const side = min < bounds.min - 0.35 ? -1 : max > bounds.max + 0.35 ? 1 : 0;
+    const crossedBoundary =
+      side &&
+      boundaries.some((hit) => {
+        const [a, b, c] = hit.shape.boundaryPoints.map(
+          (point) => new T.Vector3(...point),
+        );
+        const outward = b.sub(a).cross(c.sub(a)).normalize();
+        const alignment = outward.dot(frame.right);
+        if (Math.abs(alignment) < 0.5) return false;
+        if (alignment * side < 0) outward.negate();
+        // Use the real wall plane, not only the route tangent approximation:
+        // ordinary contact on a tight bend must never count as a straddle.
+        for (let i = 0; i < vertices.length; i += 3)
+          if (
+            vertex
+              .fromArray(vertices, i)
+              .applyQuaternion(body.quaternion)
+              .add(body.position)
+              .sub(a)
+              .dot(outward) > 0.35
+          )
+            return true;
+        return false;
+      });
+    const driving =
+      finite(input?.throttle) > 0.2 || Math.abs(finite(input?.steer)) > 0.2;
+    edgeStall = crossedBoundary && driving ? edgeStall + dt : 0;
+    if (!edgeEscape && edgeStall >= 0.6) {
+      let height = 0;
+      for (const hit of boundaries)
+        for (const point of hit.shape.boundaryPoints)
+          height = Math.max(
+            height,
+            vertex.fromArray(point).sub(frame.position).dot(frame.up),
+          );
+      // Lift clear of the actual contacted lip, then draw the hull inward
+      // through forces. Never teleport it through the wall or advance route s.
+      if (height >= 0 && height < 8)
+        edgeEscape = {
+          side,
+          height:
+            height + projectedHullExtent(body.quaternion, frame.up, hull) + 0.2,
+        };
+      edgeStall = 0;
+    }
+    if (!edgeEscape) return null;
+    const clear = min > bounds.min + 0.35 && max < bounds.max - 0.35;
+    if (clear) {
+      edgeEscape.height = Math.max(0, edgeEscape.height - 12 * dt);
+      if (!edgeEscape.height) edgeEscape = null;
+      return null;
+    }
+    return edgeEscape.side;
+  }
   function support(state, options = {}, dt = 0) {
     const f = magneticFrame(track, state.distance, state.lateral);
     const solved = initialized ? actor.read() : null;
@@ -155,6 +240,7 @@ export function createMagneticBody({
       }
     }
     height += finite(options.supportHeight);
+    if (edgeEscape) height = Math.max(height, edgeEscape.height);
     return {
       position: f.position.clone().addScaledVector(f.up, height),
       quaternion: f.quaternion.clone(),
@@ -191,6 +277,7 @@ export function createMagneticBody({
       }
       previous = poseCopy(body);
       const f = magneticFrame(track, state.distance, state.lateral);
+      const edgeSide = updateEdgeEscape(state, input, dt, f, body);
       // Vector entry is an explicit propulsion impulse applied by the device
       // adapter between ticks. Preserve it without replacing contact velocity.
       const deviceImpulse = state.speed - lastSpeed;
@@ -282,6 +369,17 @@ export function createMagneticBody({
         f.tangent,
         finite(surface.forwardAcceleration),
       );
+      if (edgeSide) {
+        const inward = clamp(
+          (-edgeSide * 6 - body.velocity.dot(f.right)) * 14,
+          -90,
+          90,
+        );
+        acceleration.addScaledVector(
+          f.right,
+          inward - acceleration.dot(f.right),
+        );
+      }
       // The approved on-road gravity is 9.81; flight retains level gravity.
       const worldGravity = new T.Vector3(0, -9.81, 0);
       acceleration
@@ -383,6 +481,8 @@ export function createMagneticBody({
     },
     adopt(state) {
       initialized = true;
+      edgeStall = 0;
+      edgeEscape = null;
       lastSpeed = state.speed;
       current = poseCopy(actor.read());
       previous = poseCopy(current);
@@ -400,6 +500,8 @@ export function createMagneticBody({
       initialized = false;
       lastSpeed = 0;
       current = previous = pending = capture = null;
+      edgeStall = 0;
+      edgeEscape = null;
       contactFeedback.reset();
     },
     pose(alpha = 1) {
@@ -420,6 +522,8 @@ export function createMagneticBody({
       return {
         initialized,
         lastSpeed,
+        edgeStall,
+        edgeEscape: edgeEscape && { ...edgeEscape },
         ...contactFeedback.snapshot(),
         capture: capture && {
           elapsed: capture.elapsed,
@@ -439,7 +543,13 @@ export function createMagneticBody({
       if (
         !data ||
         typeof data.initialized !== 'boolean' ||
-        !Number.isFinite(data.lastSpeed)
+        !Number.isFinite(data.lastSpeed) ||
+        !Number.isFinite(data.edgeStall ?? 0) ||
+        (data.edgeStall ?? 0) < 0 ||
+        (data.edgeEscape &&
+          (![-1, 1].includes(data.edgeEscape.side) ||
+            !Number.isFinite(data.edgeEscape.height) ||
+            data.edgeEscape.height < 0))
       )
         throw new Error('Invalid magnetic body state');
       const decode = (p) =>
@@ -449,6 +559,8 @@ export function createMagneticBody({
         };
       initialized = data.initialized;
       lastSpeed = data.lastSpeed;
+      edgeStall = data.edgeStall ?? 0;
+      edgeEscape = data.edgeEscape && { ...data.edgeEscape };
       contactFeedback.restore(data);
       current = decode(data.current);
       previous = decode(data.previous);

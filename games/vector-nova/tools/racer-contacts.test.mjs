@@ -10,6 +10,7 @@ import { createVehicleState } from '../src/physics/index.js';
 import { createRapierWorld } from '../src/physics/rapier-world.js';
 import { withMagneticBoundaries } from '../src/physics/magnetic-boundaries.js';
 import { getCollisionHull } from '../src/ships/collision-hulls.js';
+import { createMagneticBody } from '../src/physics/magnetic-body.js';
 
 const DT = 1 / 120;
 function track(bank = 0) {
@@ -32,6 +33,95 @@ function track(bank = 0) {
     }),
   };
 }
+
+test('a hull dropped across a road boundary lifts clear and returns inward without teleporting', async (t) => {
+  for (const bank of [0, Math.PI / 2, Math.PI]) {
+    const course = track(bank);
+    const dynamics = await createRapierWorld({
+      collisionWorld: withMagneticBoundaries(course),
+    });
+    t.after(() => dynamics.dispose());
+    const actor = dynamics.createActor();
+    const body = createMagneticBody({ track: course, dynamics, actor });
+    const state = { ...createVehicleState(), distance: 100, lateral: 11.5 };
+    const frame = course.sample(state.distance);
+    body.stage(state, {}, DT);
+    dynamics.step(DT);
+    body.finish(state);
+    // Reproduce a hop settling across the lip, with the wing on its far side.
+    actor.setPose({
+      position: frame.position
+        .clone()
+        .addScaledVector(frame.right, 11.5)
+        .addScaledVector(frame.up, 5),
+      quaternion: frame.quaternion,
+    });
+    actor.setVelocity(new T.Vector3());
+    body.adopt(state);
+    let contacts = 0,
+      escaped = false,
+      checkpoint;
+    const advance = () => {
+      const before = actor.read().position;
+      body.stage(state, { throttle: 1 }, DT);
+      dynamics.step(DT);
+      body.finish(state);
+      const solved = actor.read();
+      assert.ok(
+        solved.position.distanceTo(before) < 1,
+        'recovery moves through the solver, never a pose snap',
+      );
+      contacts += solved.contacts.filter(
+        (hit) => hit.shape.roadBoundary,
+      ).length;
+      escaped ||= Boolean(body.snapshot().edgeEscape);
+      return {
+        state: { ...state },
+        motion: body.snapshot(),
+        pose: body.pose(),
+      };
+    };
+    for (let tick = 0; tick < 300; tick++) {
+      advance();
+      if (!checkpoint && body.snapshot().edgeEscape) {
+        checkpoint = {
+          state: { ...state },
+          motion: body.snapshot(),
+          dynamics: dynamics.snapshot(),
+        };
+      }
+    }
+    assert.ok(
+      contacts > 0 && escaped,
+      'the actual barrier traps the hull and activates the narrow edge release',
+    );
+    assert.ok(
+      state.lateral < 10 && state.lateral > -10,
+      'whole hull returns inside the road',
+    );
+    assert.ok(
+      state.speed > 20 && state.distance > 110,
+      'throttle drives away after the release',
+    );
+    assert.equal(
+      body.snapshot().edgeEscape,
+      null,
+      'temporary lift settles back to ordinary support',
+    );
+    Object.assign(state, checkpoint.state);
+    body.restore(checkpoint.motion);
+    dynamics.restore(checkpoint.dynamics);
+    const expected = Array.from({ length: 20 }, advance);
+    Object.assign(state, checkpoint.state);
+    body.restore(checkpoint.motion);
+    dynamics.restore(checkpoint.dynamics);
+    assert.deepEqual(
+      Array.from({ length: 20 }, advance),
+      expected,
+      'edge-release state restores deterministically',
+    );
+  }
+});
 async function fixture(
   t,
   course = track(),
@@ -290,6 +380,11 @@ test('physical road bounds resist a sustained outward input without route-coordi
       .filter((e) => e.payload?.contactKind === 'rail').length;
     const { state, runtime } = f.racers[0];
     assert.ok(Number.isFinite(state.speed));
+    assert.equal(
+      runtime.snapshot().edgeEscape,
+      null,
+      'ordinary wall pressure does not activate edge release',
+    );
     const pose = runtime.pose();
     const vertices = getCollisionHull(state.shipId).vertices;
     for (let vertex = 0; vertex < vertices.length; vertex += 3) {

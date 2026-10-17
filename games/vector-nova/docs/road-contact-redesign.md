@@ -1,6 +1,6 @@
 # Shared road and rail contact redesign
 
-Prototype a global contact redesign that preserves momentum on continuous roads, makes bumps and scrapes feel snappy, and keeps jumps and crashes physical. Prove it on the four circuit families below. Preserve current track shapes and art; further flattening is a separate user decision. The implementation is open.
+Fix shared road and rail contact so continuous roads preserve momentum, bumps and scrapes feel snappy, and jumps and crashes remain physical. Use the four circuit families below to develop and verify the solution. Preserve current track shapes and art; further flattening is a separate user decision. The implementation is open.
 
 ## Starting point
 
@@ -30,12 +30,12 @@ Distances and lateral offsets are metres in track coordinates; speeds are metres
 | Worldspire, Echo Chasm approach, ~66%              | 9255                 | -21                              | 160           | Repeatable 69–73 m/s losses.                                                         |
 | Zephyr, Falls Between / Choir Archipelago, ~25–29% | 1222 / 1415          | +12 / -12 respectively           | 112 and 160   | Severe catches at both transitions, including cruise speed.                          |
 
-The temporary audit harness was removed; reconstruct it with production runtimes and the fixture patterns in [vesper-magnetic.test.mjs](../tools/vesper-magnetic.test.mjs). Start fresh Kestrels at the listed coordinates, heading/lateral speed zero. Run 60 shared ticks at `1/120` second with hard AI lane steering, throttle 1, brake 0, boost only at 160 m/s. This deliberately maintains approach speed. Compare solo with a second Kestrel at the same station/speed, seven metres laterally toward centre. Stage both before stepping the world. Record per-tick speed loss, contacts, support and lane position.
+The temporary audit harness was removed; reconstruct it with production runtimes and the fixture patterns in [vesper-magnetic.test.mjs](../tools/vesper-magnetic.test.mjs). Start fresh Kestrels at the listed coordinates, heading/lateral speed zero. Run 60 shared ticks at `1/120` second with hard AI lane steering, throttle 1, brake 0, boost only at 160 m/s. This deliberately maintains approach speed. Compare solo with a second Kestrel at the same station/speed, seven metres laterally toward centre. Stage both before stepping the world. Inspect per-tick speed loss, contacts, support and lane position transiently for your own diagnosis.
 
 Keep real runtime options, including support height. Test-only deck removal eliminated Saffron, Worldspire and Zephyr's ~29% failures. Nightweir retained some high-speed catches until other road solids were removed too. These comparisons isolate the problem, not a production fix. Some large slowdowns emitted no impact event; measure velocity too.
 
-## Completion evidence
+## Verification and delivery
 
-Show before/after probes and desktop driving with opponents. Verify genuine impacts, landings, edge departure/recovery, Vesper's corkscrew and Shatterline's tubes, replay/reset and crowded-race performance. Add focused regressions and run the maintained desktop checks/build under the project's desktop-only scope.
+First confirm the probes exercise the real failures, then use before/after comparisons internally to verify the fix. Check desktop driving with opponents, genuine impacts, landings, edge departure/recovery, Vesper's corkscrew and Shatterline's tubes, replay/reset and crowded-race performance. Keep useful regression tests and run the maintained desktop checks/build under the project's desktop-only scope.
 
-Report the cause, chosen model, measured behavior/cost and limitations. Leave Umbra, Glasswake and Nacre geometry-smoothing decisions for the user.
+The user wants the problem fixed, with no saved or presented evidence reports. Do not persist probe datasets, run logs, before/after reports, captures or evidence bundles, or include those results in chat or commit descriptions. Remove temporary probe scripts and artifacts after verification; reusable regression test code is welcome. Finish with a brief statement of what was fixed and any unresolved issue. Leave Umbra, Glasswake and Nacre geometry-smoothing decisions for the user.

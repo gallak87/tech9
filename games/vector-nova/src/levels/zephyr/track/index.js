@@ -11,6 +11,7 @@ import {
 } from '../environment/materials.js';
 import { framePoint } from '../../../track/frames.js';
 import { createZephyrWeave } from './weave.js';
+import { finishZephyrLighting } from '../environment/lighting.js';
 export { createZephyrTrack } from './model.js';
 
 export const ZEPHYR_ROAD_CLEARANCE = Object.freeze({
@@ -515,6 +516,7 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
   group.userData.sailEnvelope = sailEnvelope;
   group.userData.roadIdentity =
     'graphite structural weave / bronze keel / outward sails';
+  finishZephyrLighting(group);
   let disposed = false;
   return {
     group,

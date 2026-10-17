@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { assetURL } from '../../../assets/url.js';
+import { finishZephyrLighting } from './lighting.js';
 import { createZephyrInfrastructure } from './infrastructure.js';
 import { createZephyrPracticals } from './practicals.js';
 import { createZephyrWater } from './water.js';
@@ -637,6 +638,7 @@ export async function createZephyrEnvironment({
     towerFall: event.fall,
     flowTime: water.clock.value,
   });
+  finishZephyrLighting(group);
   return {
     group,
     setReflection: water.setReflection,

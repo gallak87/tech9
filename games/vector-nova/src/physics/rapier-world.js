@@ -1,10 +1,11 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import * as T from 'three';
 import { COLLISION_RULES } from './collision-world.js';
+import { createRoadSurface, roadTop } from './road-surface.js';
 import { VEHICLE_HULL } from './hull.js';
 
 export const RAPIER_RULES = Object.freeze({
-  version: 6,
+  version: 7,
   packageVersion: '0.21.0',
   staticCellSize: 96,
   angularDamping: 1.2,
@@ -60,7 +61,21 @@ function finitePose(pose) {
     throw new Error('Rapier requires a nonzero quaternion.');
   return { position, quaternion: quaternion.normalize() };
 }
+function validRoad(road) {
+  return (
+    !road ||
+    (Number.isFinite(road.distance) &&
+      Number.isFinite(road.length) &&
+      road.length >= 0 &&
+      Number.isFinite(road.reach) &&
+      road.reach >= 0 &&
+      Array.isArray(road.owners) &&
+      road.owners.every((id) => typeof id === 'string'))
+  );
+}
 function finiteSupport(support) {
+  if (!validRoad(support?.road))
+    throw new Error('Rapier requires finite road support ownership.');
   const pose = finitePose(support);
   const bodyFrame =
     support.bodyFrame === undefined
@@ -71,6 +86,9 @@ function finiteSupport(support) {
     ...pose,
     bodyFrame,
     normalCompliance: support.normalCompliance === true,
+    ...(support.road
+      ? { road: { ...support.road, owners: [...support.road.owners] } }
+      : {}),
   };
 }
 const encodeRotation = (quaternion) =>
@@ -114,6 +132,9 @@ export async function createRapierWorld({
     throw new Error('Rapier requires authored static triangles and gravity.');
   initialization ??= RAPIER.init();
   await initialization;
+  // Rapier invokes contact filters only on its event-enabled step path.
+  const eventQueue = new RAPIER.EventQueue(true);
+  const roadSurface = createRoadSurface(collisionWorld?.triangles ?? []);
   const rulesId = `${collisionWorld?.rulesId ?? 'no-static-geometry'}:rapier:${JSON.stringify(
     {
       ...RAPIER_RULES,
@@ -123,7 +144,15 @@ export async function createRapierWorld({
   const identity = `${collisionWorld?.id ?? 'racer-world'}:${collisionWorld?.version ?? 1}:${rulesId}`;
   const sources = new Map();
   for (const triangle of collisionWorld?.triangles ?? []) {
-    const key = JSON.stringify([triangle.id, triangle.kind]);
+    const coords = triangle.roadCoordinates;
+    const top = roadTop(triangle);
+    const key = JSON.stringify([
+      triangle.id,
+      triangle.kind,
+      top
+        ? Math.floor(Math.min(...coords.map((point) => point[0])) / 64)
+        : null,
+    ]);
     if (!sources.has(key)) sources.set(key, []);
     sources.get(key).push(triangle);
   }
@@ -172,8 +201,10 @@ export async function createRapierWorld({
   }
   sources.clear();
   const actors = new Map();
+  const bodyActors = new Map();
   let engine,
     staticShapes,
+    roadShapes,
     disposed = false;
   const alive = () => {
     if (disposed) throw new Error('Rapier world has been disposed.');
@@ -230,6 +261,7 @@ export async function createRapierWorld({
         .setEnabled(false),
     );
     actor.bodyHandle = body.handle;
+    bodyActors.set(body.handle, actor);
     createActorColliders(actor, body);
     actor.anchorHandle = engine.createRigidBody(
       RAPIER.RigidBodyDesc.fixed(),
@@ -253,6 +285,8 @@ export async function createRapierWorld({
       RAPIER_RULES.internalPgsIterations;
     engine.timestep = 1 / 120;
     staticShapes = new Map();
+    roadShapes = new Map();
+    bodyActors.clear();
     for (const triangles of batches) {
       const vertices = new Float32Array(triangles.length * 9);
       const indices = new Uint32Array(triangles.length * 3);
@@ -261,12 +295,14 @@ export async function createRapierWorld({
         indices.set([index * 3, index * 3 + 1, index * 3 + 2], index * 3);
       }
       const kind = triangles[0].kind;
+      const top = roadTop(triangles[0]);
       const collider = engine.createCollider(
         RAPIER.ColliderDesc.trimesh(
           vertices,
           indices,
           RAPIER.TriMeshFlags.FIX_INTERNAL_EDGES_TWO_SIDED,
         )
+          .setActiveHooks(top ? RAPIER.ActiveHooks.FILTER_CONTACT_PAIRS : 0)
           .setCollisionGroups(STATIC_GROUPS)
           .setSolverGroups(STATIC_GROUPS)
           .setFriction(RAPIER_RULES[`${kind}Friction`])
@@ -279,6 +315,16 @@ export async function createRapierWorld({
           .setRestitutionCombineRule(RAPIER.CoefficientCombineRule.Max),
       );
       staticShapes.set(collider.handle, triangles);
+      if (top) {
+        const distances = triangles.flatMap((triangle) =>
+          triangle.roadCoordinates.map((point) => point[0]),
+        );
+        roadShapes.set(collider.handle, {
+          id: triangles[0].id,
+          start: Math.min(...distances),
+          end: Math.max(...distances),
+        });
+      }
     }
     for (const actor of [...actors.values()].sort((a, b) => a.id - b.id))
       createBody(actor);
@@ -411,6 +457,33 @@ export async function createRapierWorld({
     // impulses and off-centre yaw; airborne contacts retain their own friction.
     colliders.forEach((collider) => collider.setFriction(0));
   }
+  // The magnetic constraint already owns these exact supporting top pieces.
+  // Keep native contacts for every other layer, wall, underside and free hull.
+  const contactHooks = {
+    filterContactPair(collider1, collider2, body1, body2) {
+      const road = roadShapes.get(collider1) ?? roadShapes.get(collider2);
+      if (road) {
+        const actor = bodyActors.get(body1) ?? bodyActors.get(body2);
+        const support = actor?.support?.road;
+        if (support?.owners.includes(road.id)) {
+          for (const distance of [
+            support.distance,
+            support.distance - support.length,
+            support.distance + support.length,
+          ])
+            if (
+              distance + support.reach >= road.start &&
+              distance - support.reach <= road.end
+            )
+              return null;
+        }
+      }
+      return RAPIER.SolverFlags.COMPUTE_IMPULSE;
+    },
+    filterIntersectionPair() {
+      return true;
+    },
+  };
   function pointVelocity(before, point, dt) {
     return before.velocity
       .clone()
@@ -528,6 +601,10 @@ export async function createRapierWorld({
     return contacts;
   }
   const api = {
+    sampleRoadSurface: (...args) => {
+      alive();
+      return roadSurface(...args);
+    },
     id: 'rapier-world',
     version: RAPIER_RULES.version,
     rulesId,
@@ -681,6 +758,7 @@ export async function createRapierWorld({
           if (disposed || actors.get(id) !== actor) return;
           engine.removeRigidBody(engine.getRigidBody(actor.anchorHandle));
           engine.removeRigidBody(bodyOf(actor));
+          bodyActors.delete(actor.bodyHandle);
           actors.delete(id);
         },
       };
@@ -835,7 +913,7 @@ export async function createRapierWorld({
           body.addTorque(torque, true);
           beforeByActor.set(actor.id, before);
         }
-        engine.step();
+        engine.step(eventQueue, contactHooks);
         for (const actor of actors.values()) {
           if (!actor.active) continue;
           actor.contacts.push(
@@ -880,12 +958,28 @@ export async function createRapierWorld({
               quaternion: encodeRotation(actor.support.quaternion),
               bodyFrame: encodeRotation(actor.support.bodyFrame),
               normalCompliance: actor.support.normalCompliance,
+              ...(actor.support.road
+                ? {
+                    road: {
+                      ...actor.support.road,
+                      owners: [...actor.support.road.owners],
+                    },
+                  }
+                : {}),
             },
             supportFrom: actor.supportFrom && {
               position: { ...actor.supportFrom.position },
               quaternion: encodeRotation(actor.supportFrom.quaternion),
               bodyFrame: encodeRotation(actor.supportFrom.bodyFrame),
               normalCompliance: actor.supportFrom.normalCompliance,
+              ...(actor.supportFrom.road
+                ? {
+                    road: {
+                      ...actor.supportFrom.road,
+                      owners: [...actor.supportFrom.road.owners],
+                    },
+                  }
+                : {}),
             },
             compliantSupport: actor.compliantSupport,
             supportContactTime: actor.supportContactTime,
@@ -905,6 +999,8 @@ export async function createRapierWorld({
         data.actors.some(
           (entry) =>
             !actors.has(entry.id) ||
+            !validRoad(entry.support?.road) ||
+            !validRoad(entry.supportFrom?.road) ||
             (entry.support &&
               typeof entry.support.normalCompliance !== 'boolean') ||
             (entry.supportFrom &&
@@ -940,6 +1036,7 @@ export async function createRapierWorld({
       }
       engine.free();
       engine = restored;
+      bodyActors.clear();
       for (const entry of data.actors) {
         const actor = actors.get(entry.id);
         Object.assign(actor, entry, {
@@ -950,6 +1047,7 @@ export async function createRapierWorld({
           angularAcceleration: vector(entry.angularAcceleration),
           contacts: entry.contacts.map(copyContact),
         });
+        bodyActors.set(actor.bodyHandle, actor);
       }
     },
     reset() {
@@ -959,7 +1057,11 @@ export async function createRapierWorld({
     dispose() {
       if (disposed) return;
       engine.free();
+      eventQueue.free();
+      roadSurface.dispose();
+      roadShapes.clear();
       actors.clear();
+      bodyActors.clear();
       staticShapes.clear();
       batches.length = 0;
       disposed = true;

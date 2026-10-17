@@ -103,6 +103,7 @@ export function collectProductionSolids({
           indices,
           { id: solidId, ...info },
           matrix,
+          object.isInstancedMesh ? null : geometry.attributes.roadCoord,
         );
         const kept = [];
         for (const [i, triangle] of source.entries()) {

@@ -153,6 +153,16 @@ export function createCollisionWorld({ id, version, geometryId, triangles }) {
         !Number.isFinite(triangle.distance))
     )
       throw new Error('Invalid collision surface metadata.');
+    if (
+      triangle.roadCoordinates &&
+      (!Array.isArray(triangle.roadCoordinates) ||
+        triangle.roadCoordinates.length !== 3 ||
+        triangle.roadCoordinates.some(
+          (p) =>
+            !Array.isArray(p) || p.length !== 2 || !p.every(Number.isFinite),
+        ))
+    )
+      throw new Error('Invalid collision road coordinates.');
     const points = triangle.points.map((point) => new T.Vector3(...point));
     if (
       points.length !== 3 ||
@@ -236,7 +246,13 @@ export function createCollisionWorld({ id, version, geometryId, triangles }) {
   });
 }
 
-export function indexedTriangles(positions, indices, info, matrix = null) {
+export function indexedTriangles(
+  positions,
+  indices,
+  info,
+  matrix = null,
+  roadCoord = null,
+) {
   const points = [];
   for (let i = 0; i < positions.length; i += 3) {
     const point = new T.Vector3().fromArray(positions, i);
@@ -245,6 +261,19 @@ export function indexedTriangles(positions, indices, info, matrix = null) {
   }
   return Array.from({ length: indices.length / 3 }, (_, i) => ({
     ...info,
+    ...(roadCoord
+      ? {
+          roadCoordinates: [0, 1, 2].map((n) => [
+            roadCoord.getX(indices[i * 3 + n]),
+            roadCoord.getY(indices[i * 3 + n]),
+          ]),
+          distance:
+            [0, 1, 2].reduce(
+              (sum, n) => sum + roadCoord.getX(indices[i * 3 + n]),
+              0,
+            ) / 3,
+        }
+      : {}),
     points: [
       points[indices[i * 3]],
       points[indices[i * 3 + 1]],

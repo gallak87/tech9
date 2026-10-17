@@ -43,7 +43,15 @@ export function createSaffronCollisionWorld({ track }) {
     const indices =
       data.index?.array ??
       Array.from({ length: positions.length / 3 }, (_, i) => i);
-    triangles.push(...indexedTriangles(positions, indices, info, matrix));
+    triangles.push(
+      ...indexedTriangles(
+        positions,
+        indices,
+        info,
+        matrix,
+        data.attributes.roadCoord,
+      ),
+    );
   }
   for (const [start, end] of roadRuns(track)) {
     for (const [kind, profile] of [

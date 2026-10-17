@@ -13,7 +13,7 @@ import {
 import { VEHICLE_HULL, projectedHullExtent, hullAxes } from './hull.js';
 import { createContactFeedback, racerImpact } from './contact-feedback.js';
 
-export const MAGNETIC_BODY_RULES = `magnetic-constraint-v5-road-adhesion-yaw-0.85-120-grip80:${COLLISION_HULLS_ID}`;
+export const MAGNETIC_BODY_RULES = `magnetic-constraint-v6-authored-skin-yaw-0.85-120-grip80:${COLLISION_HULLS_ID}`;
 const clamp = T.MathUtils.clamp;
 const axisY = new T.Vector3(0, 1, 0);
 const axisZ = new T.Vector3(0, 0, 1);
@@ -22,8 +22,17 @@ const finite = (value, fallback = 0) =>
 const poseCopy = (p) =>
   p && { position: p.position.clone(), quaternion: p.quaternion.clone() };
 
-export function magneticFrame(track, distance, lateral) {
-  const surface = track.sampleSurface?.(distance, lateral);
+export function magneticFrame(track, distance, lateral, sampleRoad) {
+  let surface = track.sampleSurface?.(distance, lateral);
+  if (sampleRoad && !surface?.period) {
+    const reference = surface ?? track.sample(distance);
+    const wrapped =
+      track.closed === false
+        ? distance
+        : T.MathUtils.euclideanModulo(distance, track.length);
+    const actual = sampleRoad(wrapped, lateral, reference);
+    if (actual) surface = { ...reference, ...actual };
+  }
   const frame = surface ?? track.sample(distance);
   return {
     ...frame,
@@ -36,9 +45,15 @@ export function magneticFrame(track, distance, lateral) {
 
 // Local Newton projection preserves route ownership at overpasses. Coordinates
 // describe the solved body; they never move it back to an expected route pose.
-export function projectMagneticBody(track, position, distance, lateral) {
+export function projectMagneticBody(
+  track,
+  position,
+  distance,
+  lateral,
+  sampleRoad,
+) {
   for (let i = 0; i < 8; i++) {
-    const f = magneticFrame(track, distance, lateral);
+    const f = magneticFrame(track, distance, lateral, sampleRoad);
     const residual = position.clone().sub(f.position);
     const along = residual.dot(f.tangent) / (f.longitudinalMetric ?? 1);
     const across =
@@ -48,12 +63,14 @@ export function projectMagneticBody(track, position, distance, lateral) {
     lateral += clamp(across, -8, 8);
     if (Math.abs(along) + Math.abs(across) < 1e-6) break;
   }
-  const f = magneticFrame(track, distance, lateral);
-  if (f.period > 0)
+  let f = magneticFrame(track, distance, lateral, sampleRoad);
+  if (f.period > 0) {
     lateral =
       T.MathUtils.euclideanModulo(lateral + f.period / 2, f.period) -
       f.period / 2;
-  return { distance, lateral, frame: magneticFrame(track, distance, lateral) };
+    f = magneticFrame(track, distance, lateral, sampleRoad);
+  }
+  return { distance, lateral, frame: f };
 }
 
 /** Forces drive the free road-plane axes; Rapier owns pose and contact response. */
@@ -66,6 +83,7 @@ export function createMagneticBody({
   automaticRecovery = true,
   recoveryDelay = 1.5,
 }) {
+  const sampleRoad = dynamics.sampleRoadSurface;
   let initialized = false,
     current = null,
     previous = null,
@@ -150,7 +168,7 @@ export function createMagneticBody({
   }
 
   function support(state, options = {}, dt = 0) {
-    const f = magneticFrame(track, state.distance, state.lateral);
+    const f = magneticFrame(track, state.distance, state.lateral, sampleRoad);
     const solved = initialized ? actor.read() : null;
     const actual = solved?.quaternion ?? f.quaternion;
     const aligned = f.quaternion
@@ -197,6 +215,7 @@ export function createMagneticBody({
     // Cover the whole advancing hull, not just the route point underneath its
     // centre. On a rising ramp an unaccounted nose/deck contact creates yaw.
     const axes = hullAxes(capture ? actual : aligned);
+    const roadOwners = new Set(f.surface?.roadOwners ?? []);
     const travel =
       solved?.velocity.clone().multiplyScalar(dt) ?? new T.Vector3();
     for (const x of [-hull.halfWidth, hull.halfWidth]) {
@@ -226,7 +245,9 @@ export function createMagneticBody({
           state.lateral +
           (offset.dot(f.right) - (f.longitudinalShear ?? 0) * along) /
             (f.lateralMetric ?? 1);
-        const road = magneticFrame(track, distance, lateral);
+        const road = magneticFrame(track, distance, lateral, sampleRoad);
+        for (const owner of road.surface?.roadOwners ?? [])
+          roadOwners.add(owner);
         height = Math.max(
           height,
           road.position.sub(f.position).sub(offset).dot(f.up),
@@ -237,6 +258,16 @@ export function createMagneticBody({
     return {
       position: f.position.clone().addScaledVector(f.up, height),
       quaternion: f.quaternion.clone(),
+      road: {
+        distance:
+          track.closed === false
+            ? state.distance
+            : T.MathUtils.euclideanModulo(state.distance, track.length),
+        length: track.closed === false ? 0 : track.length,
+        reach:
+          Math.hypot(hull.halfWidth, hull.halfLength) + travel.length() + 2,
+        owners: [...roadOwners],
+      },
       // Only a real touchdown gets a damped normal capture. Ordinary racer
       // contacts retain normal adhesion and can yield in pitch/roll only.
       ...(bodyFrame ? { bodyFrame, normalCompliance: true } : {}),
@@ -244,7 +275,12 @@ export function createMagneticBody({
   }
   function initialize(state, options) {
     actor.setContactShape(getCollisionHull(state.chassisId ?? state.shipId));
-    const frame = magneticFrame(track, state.distance, state.lateral);
+    const frame = magneticFrame(
+      track,
+      state.distance,
+      state.lateral,
+      sampleRoad,
+    );
     const pose = support(state, options);
     pose.quaternion.multiply(
       new T.Quaternion().setFromAxisAngle(axisY, state.heading),
@@ -271,7 +307,7 @@ export function createMagneticBody({
         if (capture.elapsed > 0.18 + dt) capture = null;
       }
       previous = poseCopy(body);
-      const f = magneticFrame(track, state.distance, state.lateral);
+      const f = magneticFrame(track, state.distance, state.lateral, sampleRoad);
       const events = [];
       if (!roadRecovery) {
         if (outsideRoad(f, state.lateral))
@@ -462,11 +498,12 @@ export function createMagneticBody({
             body.position,
             state.distance,
             state.lateral,
+            sampleRoad,
           );
       if (projected && outsideRoad(projected.frame, projected.lateral))
         leaveRoad(state, pending.beforeDistance, 'off-road', events);
       const f = roadRecovery
-        ? magneticFrame(track, state.distance, state.lateral)
+        ? magneticFrame(track, state.distance, state.lateral, sampleRoad)
         : projected.frame;
       const forward = axisZ.clone().applyQuaternion(body.quaternion);
       if (!roadRecovery) {
@@ -539,7 +576,7 @@ export function createMagneticBody({
       lastSpeed = state.speed;
       current = poseCopy(actor.read());
       previous = poseCopy(current);
-      const f = magneticFrame(track, state.distance, state.lateral);
+      const f = magneticFrame(track, state.distance, state.lateral, sampleRoad);
       capture = {
         elapsed: 0,
         orientation: current.quaternion.clone().invert().multiply(f.quaternion),

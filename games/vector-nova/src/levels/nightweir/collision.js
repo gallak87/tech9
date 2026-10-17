@@ -18,7 +18,13 @@ export function createNightweirCollisionWorld({ track }) {
           Array.from({ length: positions.length / 3 }, (_, i) => i);
       const id = 'nightweir-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       triangles.push(
-        ...indexedTriangles(positions, indices, { id, ...info }, matrix),
+        ...indexedTriangles(
+          positions,
+          indices,
+          { id, ...info },
+          matrix,
+          geometry.attributes.roadCoord,
+        ),
       );
       geometry.computeBoundingBox();
       targets.push({

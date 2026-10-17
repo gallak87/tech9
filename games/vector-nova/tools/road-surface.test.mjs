@@ -1,0 +1,176 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { Vector3, Quaternion } from 'three';
+import { createRoadSurface } from '../src/physics/road-surface.js';
+import { createRapierWorld } from '../src/physics/rapier-world.js';
+
+function deck(id, y, station = 0, reverse = false) {
+  const points = [
+    [-10, y, 0],
+    [-10, y, 40],
+    [10, y, 0],
+    [10, y, 40],
+  ];
+  const coords = [
+    [station, -10],
+    [station + 40, -10],
+    [station, 10],
+    [station + 40, 10],
+  ];
+  return [
+    [0, 1, 2],
+    [2, 1, 3],
+  ].map((indices) => {
+    if (reverse) indices.reverse();
+    return {
+      id,
+      kind: 'deck',
+      start: station,
+      end: station + 40,
+      points: indices.map((i) => points[i]),
+      roadCoordinates: indices.map((i) => coords[i]),
+    };
+  });
+}
+const reference = { position: new Vector3(0, 0, 20), up: new Vector3(0, 1, 0) };
+const DT = 1 / 120;
+
+test('road sampling selects the local top surface, leaves gaps empty, and keeps crossed roads separate', () => {
+  const sample = createRoadSurface([
+    ...deck('road', 0),
+    ...deck('other-layer', 1.5),
+    ...deck('underside', -0.5, 0, true),
+    ...deck('crossed-road', 0.8, 100),
+  ]);
+  const road = sample(20, 0, reference);
+  assert.equal(road.position.y, 0);
+  assert.deepEqual(road.roadOwners, ['road']);
+  assert.equal(sample(50, 0, reference), null);
+  assert.equal(sample(20, 11, reference), null);
+  assert.equal(sample(120, 0, reference).position.y, 0.8);
+});
+
+test('native road ownership releases on takeoff; other decks and undersides remain solid across restore', async (t) => {
+  const world = await createRapierWorld({
+    collisionWorld: {
+      id: 'ownership-fixture',
+      version: 1,
+      rulesId: 'ownership-fixture',
+      triangles: [...deck('road', 0), ...deck('other-road', 1.5, 100)],
+    },
+  });
+  t.after(() => world.dispose());
+  const actor = world.createActor();
+  const support = {
+    position: new Vector3(0, 0.6, 10),
+    quaternion: new Quaternion(),
+    road: { distance: 10, length: 0, reach: 5, owners: ['road'] },
+  };
+  actor.reset({ pose: support, support, active: true });
+  actor.stage({ acceleration: new Vector3(0, 26, 0), support });
+  world.step(DT);
+  assert.ok(!actor.read().contacts.some(({ shape }) => shape.id === 'road'));
+  // A second supported layer is still a genuine overhead collider.
+  actor.reset({
+    pose: { position: new Vector3(0, 1.05, 10), quaternion: new Quaternion() },
+    support,
+    active: true,
+  });
+  actor.stage({ support, acceleration: new Vector3(0, 26, 0) });
+  world.step(DT);
+  assert.ok(
+    actor.read().contacts.some(({ shape }) => shape.id === 'other-road'),
+  );
+  // Flight restores both sides of the original deck, even below its top face.
+  actor.reset({
+    pose: { position: new Vector3(0, -2, 10), quaternion: new Quaternion() },
+    velocity: new Vector3(0, 30, 0),
+    active: true,
+  });
+  const saved = JSON.parse(JSON.stringify(world.snapshot()));
+  const run = () => {
+    const contacts = [];
+    for (let i = 0; i < 16; i++) {
+      world.step(DT);
+      contacts.push(...actor.read().contacts);
+    }
+    assert.ok(contacts.some(({ shape }) => shape.id === 'road'));
+    assert.ok(
+      actor.read().position.y < 0,
+      'the hull cannot pass through the deck underside',
+    );
+    return {
+      position: actor.read().position.toArray(),
+      velocity: actor.read().velocity.toArray(),
+    };
+  };
+  const expected = run();
+  world.restore(saved);
+  assert.deepEqual(run(), expected);
+});
+
+test('authored height stays exact while orientation remains continuous over a tessellation diagonal', () => {
+  const triangles = deck('twisted-road', 0);
+  triangles[1].points[2] = [10, 2, 40];
+  const sample = createRoadSurface(triangles);
+  const left = sample(20, -0.001, reference);
+  const right = sample(20, 0.001, reference);
+  assert.equal(left.position.y, 0, 'do not round or flatten the rendered face');
+  assert.ok(Math.abs(sample(30, 0, reference).position.y - 0.5) < 1e-9);
+  assert.ok(
+    left.up.distanceTo(right.up) < 1e-4,
+    'a diagonal must not create an abrupt support rotation',
+  );
+  sample.dispose();
+});
+
+test('grounded road ownership survives snapshots and rejects invalid ownership before changing the world', async (t) => {
+  const world = await createRapierWorld({
+    collisionWorld: {
+      id: 'grounded-ownership',
+      version: 1,
+      rulesId: 'grounded-ownership',
+      triangles: deck('road', 0),
+    },
+  });
+  t.after(() => world.dispose());
+  const actor = world.createActor();
+  const support = {
+    position: new Vector3(0, 0.6, 10),
+    quaternion: new Quaternion(),
+    road: { distance: 10, length: 0, reach: 5, owners: ['road'] },
+  };
+  actor.reset({
+    pose: support,
+    velocity: new Vector3(0, 0, 5),
+    support,
+    active: true,
+  });
+  world.step(DT);
+  const saved = JSON.parse(JSON.stringify(world.snapshot()));
+  const invalid = structuredClone(saved);
+  invalid.actors[0].support.road.distance = NaN;
+  const before = actor.read();
+  assert.throws(() => world.restore(invalid), /snapshot identity or actors/);
+  assert.deepEqual(actor.read(), before);
+  const run = () => {
+    for (let i = 0; i < 12; i++) {
+      actor.stage({ support, acceleration: new Vector3(0, 26, 0) });
+      world.step(DT);
+      assert.equal(
+        actor.read().contacts.length,
+        0,
+        'restored support still owns its floor',
+      );
+    }
+    const body = actor.read();
+    return {
+      position: body.position.toArray(),
+      velocity: body.velocity.toArray(),
+    };
+  };
+  const expected = run();
+  world.restore(saved);
+  assert.deepEqual(actor.read().support.road, support.road);
+  assert.deepEqual(run(), expected);
+});

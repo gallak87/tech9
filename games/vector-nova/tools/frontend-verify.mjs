@@ -667,7 +667,7 @@ try {
       },
     );
     await check(
-      'Vesper Up-only race falls off-road and recovers without shortcut progress',
+      'Vesper Up-only race keeps ordinary bumps on the road',
       async (page) => {
         await page.goto(url('level=vesper&music=0'));
         await page.locator('[data-action="launch"]').click();
@@ -679,40 +679,27 @@ try {
         );
         await page.keyboard.down('ArrowUp');
         await page.waitForFunction(
-          () =>
-            window.__VN.getSnapshot().runtime.state.motion.magnetic
-              .roadRecovery,
+          () => window.__VN.getSnapshot().vehicle.time >= 8,
           null,
           { timeout: 30000 },
         );
-        const falling = await snapshot(page);
-        assert.equal(falling.competition.standings.length, RACE_FIELD_SIZE);
-        const departure = falling.runtime.state.motion.magnetic.roadRecovery;
-        await page.waitForFunction(
-          () =>
-            window.__VN
-              .getSnapshot()
-              .events.some(({ type }) => type === 'road-recovery'),
-          null,
-          { timeout: 15000 },
-        );
         await page.keyboard.up('ArrowUp');
         await page.evaluate(() => window.__VN.pause());
-        const recovered = await snapshot(page);
-        const event = recovered.events.find(
-          ({ type }) => type === 'road-recovery',
-        );
-        assert.equal(event.payload.distance, departure.distance);
+        const driven = await snapshot(page);
+        assert.equal(driven.competition.standings.length, RACE_FIELD_SIZE);
+        assert.equal(driven.runtime.state.motion.magnetic.roadRecovery, null);
         assert.equal(
-          recovered.runtime.state.motion.magnetic.roadRecovery,
-          null,
+          driven.events.some(
+            ({ type }) => type === 'road-departure' || type === 'road-recovery',
+          ),
+          false,
         );
         assert.ok(
-          recovered.vehicle.distance < departure.distance + 2,
-          'recovery returns to the departure station',
+          driven.vehicle.distance > 300,
+          'ordinary contact preserves forward progress',
         );
-        assert.ok(Math.abs(recovered.vehicle.lateral) < 1);
-        assert.deepEqual(recovered.errors, []);
+        assert.ok(Math.abs(driven.vehicle.lateral) < 14);
+        assert.deepEqual(driven.errors, []);
       },
     );
     await check('Vesper art-pass and return from free camera', async (page) => {

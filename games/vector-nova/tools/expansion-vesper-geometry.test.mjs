@@ -9,6 +9,7 @@ import {
   stepVehicle,
   STEERING_ASSIST,
 } from '../src/physics/index.js';
+import { getRacerControl } from '../src/race/racers.js';
 import { assertTrackContract } from './level-checks/track-contract.mjs';
 
 const track = createVesperTrack();
@@ -47,6 +48,36 @@ test('Vesper wraps metre frames continuously and the hollow has a rising full tu
   t.diagnostic(
     JSON.stringify({ ...result, spiralTurns: winding / (2 * Math.PI), climb }),
   );
+});
+
+test('the whole Vesper road is level across its width with gradual monotone grades', () => {
+  for (let s = 0; s < track.length; s += 1) {
+    const frame = track.sample(s),
+      before = track.sample(s - 0.5),
+      after = track.sample(s + 0.5);
+    assert.ok(Math.abs(frame.right.y) < 1e-12, `banked cross-section at ${s}`);
+    assert.ok(Math.abs(frame.tangent.y) < 0.21, `steep grade at ${s}`);
+    assert.ok(
+      Math.abs(after.tangent.y - before.tangent.y) < 0.0036,
+      `abrupt pitch at ${s}`,
+    );
+    for (const lateral of [-12, 0, 12]) {
+      const rise =
+        after.position.y +
+        lateral * after.right.y -
+        before.position.y -
+        lateral * before.right.y;
+      assert.ok(Math.abs(rise) < 0.21, `lane hump at ${s}/${lateral}`);
+    }
+  }
+  const bloom = track.sections.find(({ id }) => id === 'bloom');
+  const rootfall = track.sections.find(({ id }) => id === 'rootfall');
+  let previous = Infinity;
+  for (let s = bloom.start; s <= rootfall.end; s += 1) {
+    const height = track.sample(s).position.y;
+    assert.ok(height <= previous, `unwanted descent hump at ${s}`);
+    previous = height;
+  }
 });
 
 test('nonadjacent roadway envelopes and hollow crossing headroom stay separated', (t) => {
@@ -108,7 +139,6 @@ test('rendered driving triangles preserve 28m width and leave actual jump apertu
     );
     assert.ok(surfaces.length > 7);
     let fullRows = 0;
-    let branchRows = 0;
     let measuredLength = 0;
     for (const mesh of surfaces) {
       const p = mesh.geometry.attributes.position;
@@ -123,15 +153,8 @@ test('rendered driving triangles preserve 28m width and leave actual jump apertu
         assert.ok(Math.abs(a.dot(f.up)) < 0.001);
         assert.ok(Math.abs(b.dot(f.up)) < 0.001);
         assert.ok(Math.abs(a.dot(f.right) + 14) < 0.001);
-        // Inspect the actual endpoints, including open edges at the takeoff
-        // and receiving seams; nearby full-width strips share those seams.
-        if (Math.abs(width - 19.5) < 0.001) {
-          assert.ok(Math.abs(b.dot(f.right) - 5.5) < 0.001);
-          branchRows += 1;
-        } else {
-          assert.ok(Math.abs(width - 28) < 0.001, `width ${width} at ${s}`);
-          fullRows += 1;
-        }
+        assert.ok(Math.abs(width - 28) < 0.001, `width ${width} at ${s}`);
+        fullRows += 1;
       }
       const indices = mesh.geometry.index;
       for (let i = 0; i < indices.count; i += 3) {
@@ -166,8 +189,8 @@ test('rendered driving triangles preserve 28m width and leave actual jump apertu
       Math.abs(measuredLength - (track.length - requiredGap)) < 0.01,
       'surface spans cover the grounded lap exactly once',
     );
-    assert.ok(fullRows > 1400 && branchRows > 10);
-    t.diagnostic(JSON.stringify({ fullRows, branchRows, measuredLength }));
+    assert.ok(fullRows > 1400);
+    t.diagnostic(JSON.stringify({ fullRows, measuredLength }));
   } finally {
     road.dispose();
     assert.equal(road.group.children.length, 0);
@@ -299,25 +322,7 @@ test('bounded steering inputs traverse hollow and Rootfall under the unmodified 
     let ticks = 0;
     let impacts = 0;
     while (state.distance < end && ticks < 5000) {
-      const frame = track.sample(state.distance);
-      const desiredHeading =
-        Math.asin(
-          Math.max(
-            -0.5,
-            Math.min(0.5, (frame.curvature * state.speed * 0.75) / 7.2),
-          ),
-        ) -
-        state.lateral * 0.02;
-      const steer = Math.max(
-        -1,
-        Math.min(
-          1,
-          -(
-            frame.curvature * state.speed * 0.7 +
-            (desiredHeading - state.heading) * 2.5
-          ) / 1.05,
-        ),
-      );
+      const { steer } = getRacerControl(state, track, { difficulty: 'hard' });
       const events = stepVehicle(
         state,
         {
@@ -335,7 +340,7 @@ test('bounded steering inputs traverse hollow and Rootfall under the unmodified 
     }
     assert.ok(state.distance >= end, `${name} failed to complete`);
     assert.equal(impacts, 0);
-    assert.ok(maxLateral < 2);
+    assert.ok(maxLateral < track.width / 6, `${name} lane error ${maxLateral}`);
     t.diagnostic(
       JSON.stringify({ name, seconds: ticks * DT, maxLateral, impacts }),
     );

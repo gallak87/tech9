@@ -11,6 +11,7 @@ import {
   stepVehicle,
   STEERING_ASSIST,
 } from '../src/physics/index.js';
+import { getRacerControl } from '../src/race/racers.js';
 import { createRace } from '../src/race/index.js';
 import {
   advanceSession,
@@ -64,12 +65,9 @@ function runJump(jump, speed, initial = {}) {
 
 // This checks real swept contacts, including nearby speeds that previously
 // exposed isolated false-negative landings on the curved receiving deck.
-test('centered crown and branch flight cover contiguous sampled launch windows', (t) => {
+test('the crown flight covers its contiguous sampled launch window', (t) => {
   const failures = [];
-  for (const [index, low, high] of [
-    [0, 105, 160],
-    [1, 65, 160],
-  ]) {
+  for (const [index, low, high] of [[0, 105, 160]]) {
     const jump = track.jumps[index];
     const landed = [];
     for (let speed = low; speed <= high; speed += 1) {
@@ -112,7 +110,6 @@ test('centered crown and branch flight cover contiguous sampled launch windows',
 test('short and misaligned launches recover once after elapsed simulation time', () => {
   for (const [jump, speed, initial] of [
     [track.jumps[0], 65, {}],
-    [track.jumps[1], 50, {}],
     [track.jumps[0], 112, { lateral: 8.5, heading: 0.08 }],
   ]) {
     const result = runJump(jump, speed, initial);
@@ -142,58 +139,28 @@ test('short and misaligned launches recover once after elapsed simulation time',
   }
 });
 
-test('optional branch selection and late steering obey the visible split-deck divider', () => {
-  const jump = track.jumps.find(({ optional }) => optional);
-  for (const lateral of [-5, 0, 5.5, 5.5001, 8.5]) {
-    const state = jumpState(jump, 90, {
-      distance: jump.takeoff - 0.01,
-      lateral,
-    });
-    const adapter = runtime();
-    try {
-      const events = adapter.advance(state, idle, DT);
-      assert.equal(
-        events.some(({ type }) => type === 'jump-launch'),
-        lateral > 5.5,
-      );
-    } finally {
-      adapter.dispose();
-    }
-  }
-  const state = {
-    ...createVehicleState(),
-    distance: jump.takeoff + 3,
-    speed: 75,
-    lateral: 1,
-  };
+test('Bloomspan is continuous full-width road throughout the former optional hop', () => {
+  const start = track.scenarios['bloom-runup'].distance;
+  for (let s = start; s < start + 350; s += 1)
+    for (const lateral of [-11, 0, 8.5, 11])
+      assert.equal(track.isGap(s, lateral), false);
+  assert.equal(track.jumps.length, 1);
+  const state = { ...createVehicleState(), distance: start, speed: 160 };
   const adapter = runtime();
-  const events = [];
-  let samples = 0;
   try {
-    while (state.distance < jump.landingStart && samples < 300) {
-      events.push(
-        ...adapter.advance(state, { ...idle, throttle: 1, steer: -1 }, DT),
+    adapter.reset({ state });
+    while (state.distance < start + 350) {
+      const input = getRacerControl(state, track, {
+        runtime: adapter,
+        difficulty: 'hard',
+      });
+      const events = adapter.advance(state, input, DT);
+      assert.equal(
+        events.some(({ type }) => type.startsWith('jump-')),
+        false,
       );
       assert.equal(adapter.snapshot().mode, 'magnetic');
-      const halfHull =
-        Math.abs(Math.cos(state.heading)) * 2.25 +
-        Math.abs(Math.sin(state.heading)) * 3.5;
-      assert.ok(
-        state.lateral + halfHull <= 5.5 + 1e-8,
-        `ship entered missing deck at ${state.distance}/${state.lateral}`,
-      );
-      samples += 1;
     }
-    assert.ok(state.distance >= jump.landingStart);
-    assert.ok(
-      events.some(
-        (event) => event.type === 'impact' && event.payload.railLateral === 5.5,
-      ),
-    );
-    assert.equal(
-      events.some(({ type }) => type === 'jump-launch'),
-      false,
-    );
   } finally {
     adapter.dispose();
   }
@@ -339,7 +306,7 @@ test('flight, recovery, landing settle and sap snapshots replay deterministicall
     },
     {
       name: 'settle',
-      state: jumpState(track.jumps[1], 95),
+      state: jumpState(track.jumps[0], 112),
       until: (snapshot) => !!snapshot.landingSettle,
     },
     {
@@ -430,25 +397,10 @@ test('bounded 0.3-assistance input traverses the ordered lap with either landed 
         tick < 20000 && !events.some(({ type }) => type === 'lap');
         tick += 1
       ) {
-        const frame = track.sample(state.distance);
-        const desiredHeading =
-          Math.asin(
-            Math.max(
-              -0.5,
-              Math.min(0.5, (frame.curvature * state.speed * 0.75) / 7.2),
-            ),
-          ) -
-          state.lateral * 0.02;
-        const steer = Math.max(
-          -1,
-          Math.min(
-            1,
-            -(
-              frame.curvature * state.speed * 0.7 +
-              (desiredHeading - state.heading) * 2.5
-            ) / 1.05,
-          ),
-        );
+        const { steer } = getRacerControl(state, track, {
+          runtime: adapter,
+          difficulty: 'hard',
+        });
         const fast =
           fastCrown &&
           state.distance > track.jumps[0].takeoff - 220 &&
@@ -475,7 +427,10 @@ test('bounded 0.3-assistance input traverses the ordered lap with either landed 
       assert.ok(lap?.payload.valid);
       assert.equal(lap.payload.rulesId, adapter.rulesId);
       assert.equal(events.filter(({ type }) => type === 'impact').length, 0);
-      assert.ok(maximumLateral < 2);
+      assert.ok(
+        maximumLateral < track.width / 6,
+        `lane error ${maximumLateral}`,
+      );
       assert.deepEqual(
         events
           .filter(({ type }) => type === 'checkpoint')
@@ -486,7 +441,7 @@ test('bounded 0.3-assistance input traverses the ordered lap with either landed 
       assert.equal(
         transfers.length,
         1,
-        'the resin main line stays grounded at the optional branch',
+        'the crown is the only flight on the lap',
       );
       assert.equal(
         transfers[0].payload.outcome,

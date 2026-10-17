@@ -4,7 +4,7 @@ import { COLLISION_RULES } from './collision-world.js';
 import { VEHICLE_HULL } from './hull.js';
 
 export const RAPIER_RULES = Object.freeze({
-  version: 4,
+  version: 5,
   packageVersion: '0.21.0',
   angularDamping: 1.2,
   maxCcdSubsteps: 6,
@@ -35,11 +35,7 @@ export const RAPIER_RULES = Object.freeze({
 // Membership in the high 16 bits, accepted membership in the low 16 bits.
 const STATIC_GROUPS = (1 << 16) | 2;
 const ACTOR_GROUPS = (2 << 16) | 3;
-const SUPPORT_AXES = [
-  RAPIER.JointAxis.LinY,
-  RAPIER.JointAxis.AngX,
-  RAPIER.JointAxis.AngZ,
-];
+const COMPLIANT_ANGULAR_AXES = [RAPIER.JointAxis.AngX, RAPIER.JointAxis.AngZ];
 const LOCKED_SUPPORT_AXES =
   RAPIER.JointAxesMask.LinY |
   RAPIER.JointAxesMask.AngX |
@@ -70,7 +66,11 @@ function finiteSupport(support) {
       ? new T.Quaternion()
       : finitePose({ position: zero(), quaternion: support.bodyFrame })
           .quaternion;
-  return { ...pose, bodyFrame };
+  return {
+    ...pose,
+    bodyFrame,
+    normalCompliance: support.normalCompliance === true,
+  };
 }
 const encodeRotation = (quaternion) =>
   Object.fromEntries(
@@ -248,7 +248,12 @@ export async function createRapierWorld({
     return engine.getRigidBody(actor.bodyHandle);
   };
   function configureSupportMotors(actor) {
-    if (!actor.compliantSupport || actor.jointHandle === null) return;
+    if (actor.jointHandle === null) return;
+    const axes = [
+      ...(actor.compliantSupport ? COMPLIANT_ANGULAR_AXES : []),
+      ...(actor.support?.normalCompliance ? [RAPIER.JointAxis.LinY] : []),
+    ];
+    if (axes.length === 0) return;
     const raw = engine.impulseJoints.raw;
     const body = bodyOf(actor);
     const release =
@@ -261,7 +266,7 @@ export async function createRapierWorld({
     );
     const acceleration = RAPIER_RULES.supportAcceleration;
     const inertia = body.principalInertia();
-    for (const axis of SUPPORT_AXES) {
+    for (const axis of axes) {
       raw.jointConfigureMotorModel(
         actor.jointHandle,
         axis,
@@ -313,26 +318,43 @@ export async function createRapierWorld({
       position: vector(body.translation()),
       quaternion: rotation(body.rotation()).multiply(pose.bodyFrame),
       bodyFrame: pose.bodyFrame.clone(),
+      normalCompliance: false,
     };
+    if (
+      actor.support?.normalCompliance !== pose.normalCompliance &&
+      actor.jointHandle !== null
+    ) {
+      engine.removeImpulseJoint(
+        engine.getImpulseJoint(actor.jointHandle),
+        true,
+      );
+      actor.jointHandle = null;
+    }
+    actor.support = pose;
     let joint =
       actor.jointHandle === null
         ? null
         : engine.getImpulseJoint(actor.jointHandle);
     if (!joint) {
+      let locked = actor.compliantSupport
+        ? RAPIER.JointAxesMask.LinY
+        : LOCKED_SUPPORT_AXES;
+      if (pose.normalCompliance) locked &= ~RAPIER.JointAxesMask.LinY;
       joint = engine.createImpulseJoint(
         RAPIER.JointData.generic(
           pose.position,
           zero(),
           { x: 1, y: 0, z: 0 },
-          actor.compliantSupport ? 0 : LOCKED_SUPPORT_AXES,
+          locked,
         ),
         engine.getRigidBody(actor.anchorHandle),
         bodyOf(actor),
         true,
       );
       actor.jointHandle = joint.handle;
-      // Finite suspension lets overlapping sloped hulls separate vertically
-      // instead of wedging two immovable hover planes against each other.
+      // Let touching sloped hulls yield in pitch/roll while the magnets retain
+      // normal adhesion. Freeing normal translation as well let a small bump
+      // launch a supported ship over the railing.
       // Rapier's generic-joint facade omits motors; its public raw bindings
       // expose the same implicit motor solver used by the typed joints.
       configureSupportMotors(actor);
@@ -342,7 +364,6 @@ export async function createRapierWorld({
     // Sampling a new frame changes the magnetic support surface only.
     joint.setLocalFrame1(pose.position, pose.quaternion);
     joint.setLocalFrame2(zero(), pose.bodyFrame);
-    actor.support = pose;
     // Magnetic support has no tire friction. Contact normals still produce
     // impulses and off-centre yaw; airborne contacts retain their own friction.
     colliders.forEach((collider) => collider.setFriction(0));
@@ -728,11 +749,16 @@ export async function createRapierWorld({
             // Bound only normal-plane correction, allowing it to settle over
             // several ticks instead of clipping tangential momentum at the
             // engine's velocity cap. Free-axis position is never corrected.
-            const limit = RAPIER_RULES.supportCorrectionSpeed * step;
-            position.addScaledVector(
-              normal,
-              T.MathUtils.clamp(error, -limit, limit) - error,
-            );
+            // A landing motor already limits force and damps normal velocity.
+            // It must pull toward the real receiving plane; the error limiter
+            // is only for a rigid joint's position-correction bias.
+            if (!actor.support.normalCompliance) {
+              const limit = RAPIER_RULES.supportCorrectionSpeed * step;
+              position.addScaledVector(
+                normal,
+                T.MathUtils.clamp(error, -limit, limit) - error,
+              );
+            }
             const joint = engine.getImpulseJoint(actor.jointHandle);
             joint.setLocalFrame1(position, quaternion);
             joint.setLocalFrame2(
@@ -810,11 +836,13 @@ export async function createRapierWorld({
               position: { ...actor.support.position },
               quaternion: encodeRotation(actor.support.quaternion),
               bodyFrame: encodeRotation(actor.support.bodyFrame),
+              normalCompliance: actor.support.normalCompliance,
             },
             supportFrom: actor.supportFrom && {
               position: { ...actor.supportFrom.position },
               quaternion: encodeRotation(actor.supportFrom.quaternion),
               bodyFrame: encodeRotation(actor.supportFrom.bodyFrame),
+              normalCompliance: actor.supportFrom.normalCompliance,
             },
             compliantSupport: actor.compliantSupport,
             supportContactTime: actor.supportContactTime,
@@ -834,6 +862,10 @@ export async function createRapierWorld({
         data.actors.some(
           (entry) =>
             !actors.has(entry.id) ||
+            (entry.support &&
+              typeof entry.support.normalCompliance !== 'boolean') ||
+            (entry.supportFrom &&
+              typeof entry.supportFrom.normalCompliance !== 'boolean') ||
             typeof entry.compliantSupport !== 'boolean' ||
             !Number.isFinite(entry.supportContactTime) ||
             entry.supportContactTime < 0 ||

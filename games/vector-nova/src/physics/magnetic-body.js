@@ -13,7 +13,7 @@ import {
 import { VEHICLE_HULL, projectedHullExtent, hullAxes } from './hull.js';
 import { createContactFeedback, racerImpact } from './contact-feedback.js';
 
-export const MAGNETIC_BODY_RULES = `magnetic-constraint-v4-bounded-support-yaw-0.85-120-grip80:${COLLISION_HULLS_ID}`;
+export const MAGNETIC_BODY_RULES = `magnetic-constraint-v5-road-adhesion-yaw-0.85-120-grip80:${COLLISION_HULLS_ID}`;
 const clamp = T.MathUtils.clamp;
 const axisY = new T.Vector3(0, 1, 0);
 const axisZ = new T.Vector3(0, 0, 1);
@@ -237,7 +237,9 @@ export function createMagneticBody({
     return {
       position: f.position.clone().addScaledVector(f.up, height),
       quaternion: f.quaternion.clone(),
-      ...(bodyFrame ? { bodyFrame } : {}),
+      // Only a real touchdown gets a damped normal capture. Ordinary racer
+      // contacts retain normal adhesion and can yield in pitch/roll only.
+      ...(bodyFrame ? { bodyFrame, normalCompliance: true } : {}),
     };
   }
   function initialize(state, options) {

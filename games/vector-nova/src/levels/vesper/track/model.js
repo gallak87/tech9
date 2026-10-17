@@ -1,99 +1,149 @@
 import * as T from 'three';
-import { createReferenceFrames } from '../../../track/frames.js';
 import { cacheClosedCatmullRom } from '../../../track/cached-curve.js';
 
-export const VESPER_REVISION = 'vesper-route-2';
+export const VESPER_REVISION = 'vesper-route-3-level-deck';
 const wrap = (s, length) => ((s % length) + length) % length;
-const SOURCE = [
-  [-280, 25, -300],
-  [-280, 32, -140],
-  [-190, 50, -20],
-  [-300, 60, 100],
-  [-200, 68, 225],
-  [-60, 70, 245],
-  [-50, 85, 320],
-  [0, 105, 425],
-  [125, 125, 420],
-  [170, 145, 315],
-  [105, 165, 235],
-  [0, 185, 250],
-  [-50, 200, 335],
-  [10, 207, 420],
-  [150, 214, 450],
-  [340, 232, 450],
-  [550, 205, 450],
-  [720, 205, 450],
-  [890, 190, 470],
-  [1070, 180, 330],
-  [1100, 170, 120],
-  [930, 158, 30],
-  [760, 180, 20],
-  [590, 125, 20],
-  [380, 118, 20],
-  [270, 65, -70],
-  [330, 25, -220],
-  [430, 4, -310],
-  [360, 0, -450],
-  [175, 10, -475],
-  [30, 20, -350],
-  [-120, 35, -490],
-  [-280, 32, -450],
+const PLAN = [
+  [-280, -300],
+  [-280, -140],
+  [-190, -20],
+  [-300, 100],
+  [-200, 225],
+  [-60, 245],
+  [-50, 320],
+  [0, 425],
+  [125, 420],
+  [170, 315],
+  [105, 235],
+  [0, 250],
+  [-50, 335],
+  [10, 420],
+  [150, 450],
+  [340, 450],
+  [550, 450],
+  [720, 450],
+  [890, 470],
+  [1070, 330],
+  [1100, 120],
+  [930, 30],
+  [760, 20],
+  [590, 20],
+  [380, 20],
+  [270, -70],
+  [330, -220],
+  [430, -310],
+  [360, -450],
+  [175, -475],
+  [30, -350],
+  [-120, -490],
+  [-280, -450],
+];
+// Heights are sparse grade anchors, not a hump at every plan control point.
+const ELEVATIONS = [
+  [0, 25],
+  [4, 65],
+  [13, 207],
+  [14, 220],
+  [15, 232],
+  [16, 205],
+  [17, 200],
+  [19, 180],
+  [24, 110],
+  [28, 12],
+  [31, 25],
+  [32, 25],
 ];
 
 /** Independent authored forest route. Physical arc metres are the only runtime parameter. */
 export function createVesperTrack() {
-  let scale = 1;
-  let curve;
-  for (let pass = 0; pass < 7; pass++) {
-    curve = new T.CatmullRomCurve3(
-      SOURCE.map(([x, y, z]) => new T.Vector3(x * scale, y * 0.82, z * scale)),
-      true,
-      'centripetal',
+  // Plan curvature and vertical grade are authored independently. Interpolating
+  // all three coordinates through the tight tree knots compressed the climbs
+  // into short pitches precisely where the racer was already turning hardest.
+  const plan = new T.CatmullRomCurve3(
+    PLAN.map(([x, z]) => new T.Vector3(x, 0, z)),
+    true,
+    'centripetal',
+  );
+  plan.arcLengthDivisions = 48000;
+  const planArcs = plan.getLengths(48000);
+  const planLength = planArcs.at(-1);
+  const planAt = cacheClosedCatmullRom(plan);
+  const nodeU = (node) => {
+    const f = (node / PLAN.length) * 48000;
+    const i = Math.floor(f);
+    return (
+      T.MathUtils.lerp(planArcs[i], planArcs[Math.min(i + 1, 48000)], f - i) /
+      planLength
     );
-    curve.arcLengthDivisions = 48000;
+  };
+  // Keep the crown's deliberate launch/receiving drop; Bloomspan and
+  // Rootfall are continuous broad descents with no optional launch hump.
+  const grades = ELEVATIONS.map(([node, height]) => ({
+    u: nodeU(node),
+    y: height * 0.82,
+  }));
+  grades.push({ u: 1, y: grades[0].y });
+  const secants = grades
+    .slice(0, -1)
+    .map((a, i) => (grades[i + 1].y - a.y) / (grades[i + 1].u - a.u));
+  const slopes = grades.map((_, i) => {
+    if (i === 0 || i === grades.length - 1) return 0;
+    const a = secants[i - 1],
+      b = secants[i];
+    if (a * b <= 0) return 0;
+    const before = grades[i].u - grades[i - 1].u,
+      after = grades[i + 1].u - grades[i].u;
+    const w1 = 2 * after + before,
+      w2 = after + 2 * before;
+    return (w1 + w2) / (w1 / a + w2 / b);
+  });
+  const elevationAt = (u) => {
+    const i = Math.min(
+      grades.length - 2,
+      grades.findIndex((grade) => grade.u > u) - 1,
+    );
+    const index = i < 0 ? grades.length - 2 : i;
+    const a = grades[index],
+      b = grades[index + 1],
+      span = b.u - a.u;
+    const t = (u - a.u) / span;
+    return (
+      (2 * t ** 3 - 3 * t ** 2 + 1) * a.y +
+      (t ** 3 - 2 * t ** 2 + t) * span * slopes[index] +
+      (-2 * t ** 3 + 3 * t ** 2) * b.y +
+      (t ** 3 - t ** 2) * span * slopes[index + 1]
+    );
+  };
+  let scale = 1;
+  const curve = new T.Curve();
+  curve.getPoint = (u) => {
+    const point = planAt(u).multiplyScalar(scale);
+    point.y = elevationAt(u);
+    return point;
+  };
+  curve.arcLengthDivisions = 48000;
+  for (let pass = 0; pass < 7; pass++) {
     curve.updateArcLengths();
     if (pass < 6) scale *= 4600 / curve.getLength();
   }
   const length = curve.getLength();
   const arcs = curve.getLengths(48000);
   const nodeS = (node) => {
-    const f = (node / SOURCE.length) * 48000;
+    const f = nodeU(node) * 48000;
     const i = Math.floor(f);
-    return T.MathUtils.lerp(arcs[i], arcs[i + 1], f - i);
+    return T.MathUtils.lerp(arcs[i], arcs[Math.min(i + 1, 48000)], f - i);
   };
-  const cachedPointAt = cacheClosedCatmullRom(curve);
-  const positionAt = (s) => cachedPointAt(wrap(s, length) / length);
+  const positionAt = (s) => curve.getPointAt(wrap(s, length) / length);
   const tangentAt = (s) =>
     positionAt(s + 0.25)
       .sub(positionAt(s - 0.25))
       .normalize();
-  const n = Math.ceil(length * 2);
-  const step = length / n;
-  const tangents = Array.from({ length: n + 1 }, (_, i) => tangentAt(i * step));
-  const frames = createReferenceFrames(tangents, step);
-  const bankAt = (s) => {
-    const tangent = tangentAt(s);
-    const horizontalRight = new T.Vector3(tangent.z, 0, -tangent.x).normalize();
-    const curvature =
-      tangentAt(s + 12)
-        .sub(tangentAt(s - 12))
-        .dot(horizontalRight) / 24;
-    return -T.MathUtils.clamp(curvature * 36, -0.38, 0.38);
-  };
   function sample(s) {
     const distance = wrap(s, length);
-    const f = distance / step;
-    const i = Math.floor(f);
     const tangent = tangentAt(distance);
-    const bank = bankAt(distance);
-    const rotation = frames[i]
-      .clone()
-      .slerp(frames[i + 1], f - i)
-      .multiply(
-        new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 0, 1), bank),
-      );
-    const right = new T.Vector3(1, 0, 0).applyQuaternion(rotation);
-    right.addScaledVector(tangent, -right.dot(tangent)).normalize();
+    // Level across the deck: rapid banking reversals made the outer racing
+    // lanes rise and fall far more sharply than the centreline in the hollow.
+    const right = new T.Vector3(tangent.z, 0, -tangent.x).normalize();
     const up = new T.Vector3().crossVectors(tangent, right).normalize();
     const quaternion = new T.Quaternion().setFromRotationMatrix(
       new T.Matrix4().makeBasis(right, up, tangent),
@@ -108,12 +158,11 @@ export function createVesperTrack() {
       up,
       quaternion,
       curvature,
-      bank,
-      roll: bank,
+      bank: 0,
+      roll: 0,
     };
   }
   const crownTakeoff = nodeS(15) - 8;
-  const branchTakeoff = nodeS(22) - 8;
   const jumps = [
     {
       id: 'crown-leap',
@@ -123,16 +172,6 @@ export function createVesperTrack() {
       landingEnd: nodeS(17) - 12,
       recovery: nodeS(17) - 8,
       halfWidth: 14,
-    },
-    {
-      id: 'branch-bypass',
-      name: 'Bloomspan branch bypass',
-      takeoff: branchTakeoff,
-      landingStart: branchTakeoff + 44,
-      landingEnd: branchTakeoff + 300,
-      recovery: branchTakeoff + 310,
-      halfWidth: 14,
-      optional: true,
     },
   ];
   const definitions = [
@@ -157,7 +196,7 @@ export function createVesperTrack() {
     nodeS(10),
     jumps[0].landingStart,
     nodeS(19),
-    jumps[1].landingStart,
+    nodeS(22),
     nodeS(25),
     nodeS(28),
     nodeS(31),
@@ -211,7 +250,7 @@ export function createVesperTrack() {
     },
     'sap-compare': { distance: nodeS(22) - 75, speed: 85, lateral: 2 },
     'resin-compare': { distance: nodeS(22) - 75, speed: 85, lateral: -5 },
-    'branch-runup': { distance: branchTakeoff - 40, speed: 95, lateral: 8.5 },
+    'bloom-runup': { distance: nodeS(22) - 48, speed: 95, lateral: 8.5 },
     'root-descent': { distance: nodeS(25) - 40, speed: 70 },
     'slope-rest': { distance: nodeS(26), speed: 0 },
     'support-crown-setup': {
@@ -225,8 +264,8 @@ export function createVesperTrack() {
       lateral: -5,
       speed: 0,
     },
-    'support-branch-setup': {
-      distance: branchTakeoff - 60,
+    'support-bloom-setup': {
+      distance: nodeS(22) - 68,
       lateral: 8.5,
       speed: 0,
     },
@@ -281,12 +320,9 @@ export function createVesperTrack() {
       creature: { s: nodeS(20) },
       station: { s: 0 },
     },
-    isGap(s, lateral = 0) {
+    isGap(s) {
       const d = wrap(s, length);
-      return jumps.some(
-        (j) =>
-          d > j.takeoff && d < j.landingStart && (!j.optional || lateral > 5.5),
-      );
+      return jumps.some((j) => d > j.takeoff && d < j.landingStart);
     },
   };
 }

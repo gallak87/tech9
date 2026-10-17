@@ -69,7 +69,7 @@ test('authored tube collectors and fading rims receive no invisible raised safet
   }
 });
 
-for (const level of ['vesper', 'helion']) {
+for (const level of ['helion']) {
   test(`${level} optional split uses its real divider without an outer rail over the missing branch`, async () => {
     const definition = (
       await import(`../src/levels/${level}/index.js`)

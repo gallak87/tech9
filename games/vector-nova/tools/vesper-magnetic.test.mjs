@@ -7,6 +7,7 @@ import {
   createRacers,
   RACE_GRID,
 } from '../src/race/racers.js';
+import createNacreLevel from '../src/levels/nacre/index.js';
 import createVesperLevel from '../src/levels/vesper/index.js';
 import { createDeviceRuntime } from '../src/pickups/runtime.js';
 import { createRace } from '../src/race/index.js';
@@ -58,7 +59,7 @@ test('Vesper tree turns and descending road preserve momentum between genuine co
   }
 });
 
-test('both Vesper transfers retain forward momentum through physical landing and magnetic capture', async (t) => {
+test('the Vesper crown transfer retains forward momentum through physical landing and magnetic capture', async (t) => {
   const track = createVesperTrack();
   const collisionWorld = createVesperCollisionWorld({ track });
   const dynamics = await createRapierWorld({
@@ -75,7 +76,7 @@ test('both Vesper transfers retain forward momentum through physical landing and
     dynamics.dispose();
     collisionWorld.dispose();
   });
-  for (const scenario of ['crown-fast', 'branch-runup']) {
+  for (const scenario of ['crown-fast']) {
     dynamics.reset();
     const state = { ...createVehicleState(), ...track.scenarios[scenario] };
     runtime.reset({ state });
@@ -83,7 +84,7 @@ test('both Vesper transfers retain forward momentum through physical landing and
       getRacerControl(state, track, {
         runtime,
         difficulty: 'hard',
-        lane: scenario === 'branch-runup' ? 8.5 : 0,
+        lane: 0,
       });
     let flight = false,
       transfer;
@@ -153,105 +154,210 @@ test('Vesper tree-side hull straddles recover at their departure station instead
   }
 });
 
-// User reproduction: Quick Race, nine opponents, hold Up without steering or boost.
-// This previously kept the ship magnetized over the empty inside of the first bend.
-test('Vesper full-field Up-only starts cannot hover across empty space on any difficulty', async () => {
-  const definition = createVesperLevel();
-  const track = definition.createTrack();
-  const collisionWorld = definition.createCollisionWorld({ track });
-  try {
-    for (const difficulty of ['easy', 'medium', 'hard']) {
-      const native = await createRapierWorld({
-        collisionWorld: withMagneticBoundaries(track, collisionWorld),
-      });
-      const actors = [];
-      const dynamics = {
-        ...native,
-        createActor(...args) {
-          const actor = native.createActor(...args);
-          actors.push(actor);
-          return actor;
-        },
-      };
-      const devices = definition.racing.createDevices(track);
-      const createRuntime = () =>
-        createDeviceRuntime({
+// User reproduction: Quick Race, nine opponents, hold Up without boost.
+// Check both the regraded course and an unchanged course that also showed hops.
+for (const [level, createLevel] of [
+  ['vesper', createVesperLevel],
+  ['nacre', createNacreLevel],
+]) {
+  test(`${level} full-field starts retain magnetic adhesion through ordinary bumps`, async () => {
+    const definition = createLevel({ shape: false });
+    const track = definition.createTrack();
+    const collisionWorld = definition.createCollisionWorld({ track });
+    try {
+      let contacts = 0;
+      for (const difficulty of ['easy', 'medium', 'hard']) {
+        const native = await createRapierWorld({
+          collisionWorld: withMagneticBoundaries(track, collisionWorld),
+        });
+        const actors = [];
+        const dynamics = {
+          ...native,
+          createActor(...args) {
+            const actor = native.createActor(...args);
+            actors.push(actor);
+            return actor;
+          },
+        };
+        const devices = definition.racing.createDevices(track);
+        const createRuntime = () =>
+          createDeviceRuntime({
+            track,
+            devices,
+            identity: definition.racing.identity,
+            motion: definition.racing.createMotion({
+              track,
+              collisionWorld,
+              dynamics,
+              presentation: false,
+            }),
+          });
+        const state = { ...createVehicleState(), ...RACE_GRID.player };
+        const runtime = createRuntime();
+        const racers = createRacers({
           track,
           devices,
-          identity: definition.racing.identity,
-          motion: definition.racing.createMotion({
-            track,
-            collisionWorld,
-            dynamics,
-            presentation: false,
-          }),
+          dynamics,
+          createRuntime,
         });
-      const state = { ...createVehicleState(), ...RACE_GRID.player };
-      const runtime = createRuntime();
-      const racers = createRacers({ track, devices, dynamics, createRuntime });
-      const race = createRace(track, { rulesId: runtime.rulesId });
-      try {
-        runtime.reset({ reason: 'initialize', state });
-        dynamics.reset();
-        racers.reset({ enabled: true, difficulty });
-        runtime.reset({ reason: 'fresh-lap', state });
-        let departure,
-          recovered,
-          unsupportedTicks = 0;
-        for (let tick = 0; tick < 960; tick++) {
-          const events = advanceSession({
-            state,
-            input: { throttle: 1, steer: 0, boost: false },
-            dt: 1 / 120,
-            runtime,
-            race,
-            dynamics,
-            racers,
-            emit() {},
-          });
-          const leaving = events.find(({ type }) => type === 'road-departure');
-          if (leaving) departure = { ...leaving.payload, time: state.time };
-          const recovery = events.find(({ type }) => type === 'road-recovery');
-          if (recovery) {
-            recovered = recovery;
-            assert.ok(
-              Math.abs(state.time - departure.time - 1.5) < 1 / 120 + 1e-7,
-            );
-            assert.equal(state.distance, departure.distance);
-            assert.equal(state.lateral, 0);
-            assert.equal(state.speed, 0);
-          }
-          if (runtime.pose(1)?.recovering) {
-            unsupportedTicks++;
+        const race = createRace(track, { rulesId: runtime.rulesId });
+        try {
+          runtime.reset({ reason: 'initialize', state });
+          dynamics.reset();
+          racers.reset({ enabled: true, difficulty });
+          runtime.reset({ reason: 'fresh-lap', state });
+          for (let tick = 0; tick < 960; tick++) {
+            const events = advanceSession({
+              state,
+              input: { throttle: 1, steer: 0, boost: false },
+              dt: 1 / 120,
+              runtime,
+              race,
+              dynamics,
+              racers,
+              emit() {},
+            });
             assert.equal(
-              actors[0].read().support,
-              null,
-              'off-road ship has no support joint',
+              events.some(
+                ({ type }) =>
+                  type === 'road-departure' || type === 'road-recovery',
+              ),
+              false,
+              `${level}/${difficulty} departed at ${state.distance}m`,
             );
-            assert.equal(runtime.pose(1).grounded, false);
-            assert.equal(
-              state.distance,
-              departure.distance,
-              'flight across the bend earns no progress',
-            );
-          } else {
+            assert.equal(runtime.pose(1)?.grounded, true);
+            const actor = actors[0].read();
+            assert.ok(actor.support);
+            const up = track.sample(state.distance).up;
+            const heightError = actor.position
+              .clone()
+              .sub(actor.support.position)
+              .dot(up);
             assert.ok(
-              Math.abs(state.lateral) <= track.width / 2 + 0.15,
-              'magnetic support is finite',
+              Math.abs(heightError) < 0.04,
+              `${level}/${difficulty} hover error ${heightError}m at ${state.distance}m`,
             );
+            contacts += actor.contacts.filter(
+              ({ shape }) => shape.kind === 'racer',
+            ).length;
+            assert.ok(Math.abs(state.lateral) <= track.width / 2 + 0.15);
           }
+          assert.ok(
+            state.distance > 300,
+            'ordinary bumps cannot strand the player',
+          );
+        } finally {
+          racers.dispose();
+          runtime.dispose();
+          dynamics.dispose();
         }
-        assert.ok(
-          departure && recovered && unsupportedTicks >= 175,
-          `${difficulty} must exercise the reported departure and recovery`,
-        );
-      } finally {
-        racers.dispose();
-        runtime.dispose();
-        dynamics.dispose();
       }
+      assert.ok(
+        contacts > 0,
+        'the race set must include real player/racer contacts',
+      );
+    } finally {
+      collisionWorld.dispose();
     }
-  } finally {
+  });
+}
+
+// The first crowded crown landing used to lose 48 m/s in a single tick even
+// with zero contact impulse: a rigid clearance correction saturated the solve.
+test('crowded Vesper touchdown absorbs normal motion without false forward braking', async (t) => {
+  const definition = createVesperLevel({ shape: false });
+  const track = definition.createTrack();
+  const collisionWorld = definition.createCollisionWorld({ track });
+  const native = await createRapierWorld({
+    collisionWorld: withMagneticBoundaries(track, collisionWorld),
+  });
+  const actors = [];
+  const dynamics = {
+    ...native,
+    createActor(...args) {
+      const actor = native.createActor(...args);
+      actors.push(actor);
+      return actor;
+    },
+  };
+  const devices = definition.racing.createDevices(track);
+  const createRuntime = () =>
+    createDeviceRuntime({
+      track,
+      devices,
+      motion: definition.racing.createMotion({
+        track,
+        collisionWorld,
+        dynamics,
+        presentation: false,
+      }),
+    });
+  const state = { ...createVehicleState(), ...RACE_GRID.player };
+  const runtime = createRuntime();
+  const racers = createRacers({ track, devices, dynamics, createRuntime });
+  const race = createRace(track, { rulesId: runtime.rulesId });
+  t.after(() => {
+    racers.dispose();
+    runtime.dispose();
+    dynamics.dispose();
     collisionWorld.dispose();
+  });
+  runtime.reset({ reason: 'initialize', state });
+  dynamics.reset();
+  racers.reset({ enabled: true, difficulty: 'hard' });
+  runtime.reset({ reason: 'fresh-lap', state });
+  let landed = false,
+    settledTicks = 0,
+    captureTicks = 0,
+    nearbyTicks = 0;
+  for (let tick = 0; tick < 4200 && settledTicks < 35; tick++) {
+    const input = getRacerControl(state, track, {
+      runtime,
+      devices,
+      difficulty: 'hard',
+      nearby: racers.opponents.map(({ state }) => state),
+    });
+    const events = advanceSession({
+      state,
+      input,
+      dt: 1 / 120,
+      runtime,
+      race,
+      dynamics,
+      racers,
+      emit() {},
+    });
+    const transfer = events.find(({ type }) => type === 'jump-transfer');
+    if (transfer) {
+      assert.equal(transfer.payload.outcome, 'landed');
+      landed = true;
+    }
+    if (!landed) continue;
+    settledTicks++;
+    const actor = actors[0].read();
+    captureTicks += Number(actor.support?.normalCompliance === true);
+    nearbyTicks += Number(
+      actors
+        .slice(1)
+        .some((other) => other.read().position.distanceTo(actor.position) < 12),
+    );
+    assert.ok(
+      state.speed > 90,
+      `false landing braking at ${state.distance}m: ${state.speed}m/s`,
+    );
+    assert.equal(
+      events.some(({ type }) => type === 'road-departure'),
+      false,
+    );
   }
+  assert.ok(landed && settledTicks === 35);
+  assert.ok(
+    captureTicks > 0 && nearbyTicks > 0,
+    'touchdown settling happens beside the real race field',
+  );
+  assert.equal(
+    actors[0].read().support.normalCompliance,
+    false,
+    'ordinary road adhesion returns after capture',
+  );
 });

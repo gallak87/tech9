@@ -3,18 +3,11 @@ import { sampleVesperSurface } from './surface.js';
 
 export const VESPER_FLIGHT = createFlightModel({
   gravity: 26,
-  railHeight: { 'crown-leap': 1.2, 'branch-bypass': 1.2 },
+  railHeight: { 'crown-leap': 1.2 },
 });
 export function vesperGroundOptions(track, state) {
   const surface = sampleVesperSurface(track, state);
-  const s = ((state.distance % track.length) + track.length) % track.length;
-  const split = track.jumps.find(
-    (j) => j.optional && s >= j.takeoff && s < j.landingStart,
-  );
-  return {
-    surface: { drag: surface.drag },
-    ...(split ? { roadBounds: { min: -14, max: 5.5 } } : {}),
-  };
+  return { surface: { drag: surface.drag } };
 }
 export function createVesperRuntime(context) {
   const { track } = context;
@@ -22,11 +15,9 @@ export function createVesperRuntime(context) {
     testLaunch: Boolean(context.playtest),
     forgivingContacts: Boolean(context.collisionWorld),
     id: 'vesper-forest-flight',
-    version: 1,
-    rulesId: `vesper-rules-1:${JSON.stringify({ revision: track.revision, rules: VESPER_FLIGHT.rules, jumps: track.jumps, zones: track.sapZones, optionalLane: 5.5 })}`,
+    version: 2,
+    rulesId: `vesper-rules-2:${JSON.stringify({ revision: track.revision, rules: VESPER_FLIGHT.rules, jumps: track.jumps, zones: track.sapZones })}`,
     groundOptions: ({ state }) => vesperGroundOptions(track, state),
-    shouldLaunch: ({ state }) => state.lateral > 5.5,
-    edgeSource: 'vesper-branch-edge',
   });
   let surface = { id: 'resin', zone: null, drag: 0 };
   function finishSurface(state, events) {

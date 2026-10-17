@@ -155,6 +155,13 @@ test('fixed magnetic constraints do not inject collision energy into real chassi
       let energy = 0;
       for (const [index, actor] of racers.entries()) {
         const body = actor.read();
+        // Sloped compound parts may tilt and shove one another, but must not
+        // turn a supported bump into a vertical launch over the containment.
+        near(
+          body.position.dot(new T.Vector3(0, 1, 0).applyQuaternion(frame)),
+          0.72,
+          0.003,
+        );
         contacts += body.contacts.filter(
           ({ shape }) => shape.kind === 'racer',
         ).length;
@@ -333,6 +340,7 @@ test('capture can change the joint body frame without imposing orientation and r
   const support = {
     ...pose(new T.Vector3(0, 3, 0)),
     bodyFrame: inverted.clone().invert(),
+    normalCompliance: true,
   };
   actor.reset({
     pose: pose(support.position, inverted),

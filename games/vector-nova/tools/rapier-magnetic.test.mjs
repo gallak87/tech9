@@ -433,3 +433,56 @@ test('CCD resolves a high-speed dynamic pair and unequal per-actor time fraction
     /share the complete world step/,
   );
 });
+
+test('centimetre hover-plane corrections preserve free forward momentum at race speed', async (t) => {
+  const world = await createRapierWorld({ gravity: 0 });
+  t.after(() => world.dispose());
+  const actor = world.createActor();
+  actor.setContactShape(getCollisionHull('kestrel'));
+  for (const bank of [0, 0.38, Math.PI / 2, Math.PI]) {
+    const rotation = new T.Quaternion().setFromEuler(
+      new T.Euler(0.12, 0.6, bank),
+    );
+    const up = new T.Vector3(0, 1, 0).applyQuaternion(rotation);
+    const forward = new T.Vector3(0, 0, 1).applyQuaternion(rotation);
+    for (const speed of [80, 160]) {
+      const initial = pose(new T.Vector3(300, 60, -200), rotation);
+      actor.reset({
+        pose: initial,
+        velocity: forward.clone().multiplyScalar(speed),
+        support: initial,
+        active: true,
+      });
+      world.step(DT);
+      const target = {
+        ...initial,
+        position: initial.position.clone().addScaledVector(up, 0.2),
+      };
+      actor.stage({ support: target });
+      // Pending interpolation is simulation state too, including a save made
+      // after input staging but before the shared native solve.
+      const saved = JSON.parse(JSON.stringify(world.snapshot()));
+      world.step(DT);
+      const result = actor.read();
+      near(result.velocity.dot(forward), speed, 0.03);
+      world.restore(saved);
+      world.step(DT);
+      const restored = actor.read();
+      for (const key of [
+        'position',
+        'quaternion',
+        'velocity',
+        'angularVelocity',
+      ])
+        assert.deepEqual(restored[key], result[key]);
+      world.step(DT);
+      world.step(DT);
+      near(actor.read().velocity.dot(forward), speed, 0.03);
+      near(
+        actor.read().position.clone().sub(target.position).dot(up),
+        0,
+        0.003,
+      );
+    }
+  }
+});

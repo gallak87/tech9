@@ -4,14 +4,21 @@ import { COLLISION_RULES } from './collision-world.js';
 import { VEHICLE_HULL } from './hull.js';
 
 export const RAPIER_RULES = Object.freeze({
-  version: 2,
+  version: 3,
   packageVersion: '0.21.0',
   angularDamping: 1.2,
   maxCcdSubsteps: 6,
-  // Sloped contact hulls and magnetic joints must converge in the same solve.
-  // Lower iteration counts can inject energy while the two constraints fight.
-  solverIterations: 32,
+  // Preserve 32 constraint sweeps, with four PGS refinements per temporal
+  // iteration. Thirty-two temporal iterations both waste work and magnify
+  // hover-plane correction velocities enough to trigger Rapier's speed cap.
+  solverIterations: 8,
+  internalPgsIterations: 4,
+  airborneSolverIterations: 32,
   simulationHz: 480,
+  supportedSimulationHz: 240,
+  fastPairDistance: 32,
+  fastPairClosingSpeed: 120,
+  supportCorrectionSpeed: 15,
   friction: 0.55,
   railFriction: 0.18,
   // Hovering contact transfers deck-normal impulses without tyre-like grip.
@@ -161,6 +168,9 @@ export async function createRapierWorld({
   function createBody(actor) {
     const body = engine.createRigidBody(
       RAPIER.RigidBodyDesc.dynamic()
+        .setAdditionalSolverIterations(
+          RAPIER_RULES.airborneSolverIterations - RAPIER_RULES.solverIterations,
+        )
         .setCcdEnabled(true)
         .setCanSleep(false)
         .setAngularDamping(RAPIER_RULES.angularDamping)
@@ -173,6 +183,7 @@ export async function createRapierWorld({
     ).handle;
     actor.jointHandle = null;
     actor.support = null;
+    actor.supportFrom = null;
     actor.active = false;
     actor.acceleration = zero();
     actor.angularAcceleration = zero();
@@ -183,6 +194,8 @@ export async function createRapierWorld({
     engine = new RAPIER.World({ x: 0, y: -gravity, z: 0 });
     engine.maxCcdSubsteps = RAPIER_RULES.maxCcdSubsteps;
     engine.numSolverIterations = RAPIER_RULES.solverIterations;
+    engine.integrationParameters.numInternalPgsIterations =
+      RAPIER_RULES.internalPgsIterations;
     engine.timestep = 1 / 120;
     staticShapes = new Map();
     for (const triangles of batches.values()) {
@@ -226,6 +239,11 @@ export async function createRapierWorld({
     const colliders = actor.colliderHandles.map((handle) =>
       engine.getCollider(handle),
     );
+    bodyOf(actor).setAdditionalSolverIterations(
+      support === null
+        ? RAPIER_RULES.airborneSolverIterations - RAPIER_RULES.solverIterations
+        : 0,
+    );
     if (support === null) {
       if (actor.jointHandle !== null)
         engine.removeImpulseJoint(
@@ -234,12 +252,19 @@ export async function createRapierWorld({
         );
       actor.jointHandle = null;
       actor.support = null;
+      actor.supportFrom = null;
       colliders.forEach((collider) =>
         collider.setFriction(RAPIER_RULES.friction),
       );
       return;
     }
     const pose = finiteSupport(support);
+    const body = bodyOf(actor);
+    actor.supportFrom ??= actor.support ?? {
+      position: vector(body.translation()),
+      quaternion: rotation(body.rotation()).multiply(pose.bodyFrame),
+      bodyFrame: pose.bodyFrame.clone(),
+    };
     let joint =
       actor.jointHandle === null
         ? null
@@ -524,6 +549,8 @@ export async function createRapierWorld({
           actor.acceleration = zero();
           actor.angularAcceleration = zero();
           actor.contacts = [];
+          actor.supportFrom = null;
+          actor.support = null;
           setSupport(actor, support);
           body.setEnabled(actor.active);
         },
@@ -540,7 +567,39 @@ export async function createRapierWorld({
       alive();
       if (!Number.isFinite(dt) || dt <= 0 || dt > 0.1)
         throw new Error('Rapier requires a finite fixed-step duration.');
-      const steps = Math.ceil(dt * RAPIER_RULES.simulationHz - 1e-10);
+      // A constrained racer needs two native solves per control tick. Keep
+      // the finer original CCD cadence whenever a hull is in free flight;
+      // thin-wall impacts and landing captures depend on that resolution.
+      const active = [...actors.values()].filter((actor) => actor.active);
+      let supported = active.every((actor) => actor.support !== null);
+      if (supported) {
+        const moving = active.map((actor) => {
+          const body = bodyOf(actor);
+          return {
+            position: vector(body.translation()),
+            velocity: vector(body.linvel()),
+          };
+        });
+        // Fast opposing/rear impacts need the finer cadence too. Ordinary
+        // racers moving together can use the cheaper constrained solve.
+        for (let i = 0; i < moving.length && supported; i++) {
+          for (let j = i + 1; j < moving.length; j++) {
+            if (
+              moving[i].position.distanceToSquared(moving[j].position) <
+                RAPIER_RULES.fastPairDistance ** 2 &&
+              moving[i].velocity.distanceToSquared(moving[j].velocity) >
+                RAPIER_RULES.fastPairClosingSpeed ** 2
+            ) {
+              supported = false;
+              break;
+            }
+          }
+        }
+      }
+      const frequency = supported
+        ? RAPIER_RULES.supportedSimulationHz
+        : RAPIER_RULES.simulationHz;
+      const steps = Math.ceil(dt * frequency - 1e-10);
       const step = dt / steps;
       engine.timestep = step;
       for (const actor of actors.values()) actor.contacts = [];
@@ -552,6 +611,40 @@ export async function createRapierWorld({
         for (const actor of actors.values()) {
           if (!actor.active) continue;
           const body = bodyOf(actor);
+          if (actor.support) {
+            // Feed the changing hover plane through native substeps. A sudden
+            // height correction creates a large bias velocity in the stiff
+            // joint; Rapier's speed cap then also clips the free road-plane
+            // velocity. Interpolating the constraint avoids that false braking
+            // without replacing the solved pose or collision momentum.
+            const fraction = (tick + 1) / steps;
+            const from = actor.supportFrom ?? actor.support,
+              to = actor.support;
+            const position = from.position.clone().lerp(to.position, fraction);
+            const quaternion = from.quaternion
+              .clone()
+              .slerp(to.quaternion, fraction);
+            const normal = new T.Vector3(0, 1, 0).applyQuaternion(quaternion);
+            const error = position
+              .clone()
+              .sub(vector(body.translation()))
+              .dot(normal);
+            // Landing can request nearly a metre of extra hull clearance.
+            // Bound only normal-plane correction, allowing it to settle over
+            // several ticks instead of clipping tangential momentum at the
+            // engine's velocity cap. Free-axis position is never corrected.
+            const limit = RAPIER_RULES.supportCorrectionSpeed * step;
+            position.addScaledVector(
+              normal,
+              T.MathUtils.clamp(error, -limit, limit) - error,
+            );
+            const joint = engine.getImpulseJoint(actor.jointHandle);
+            joint.setLocalFrame1(position, quaternion);
+            joint.setLocalFrame2(
+              zero(),
+              from.bodyFrame.clone().slerp(to.bodyFrame, fraction),
+            );
+          }
           const before = {
             position: vector(body.worldCom()),
             velocity: vector(body.linvel()),
@@ -598,6 +691,7 @@ export async function createRapierWorld({
         body.resetTorques(false);
         actor.acceleration = zero();
         actor.angularAcceleration = zero();
+        actor.supportFrom = null;
       }
     },
     snapshot() {
@@ -621,6 +715,11 @@ export async function createRapierWorld({
               position: { ...actor.support.position },
               quaternion: encodeRotation(actor.support.quaternion),
               bodyFrame: encodeRotation(actor.support.bodyFrame),
+            },
+            supportFrom: actor.supportFrom && {
+              position: { ...actor.supportFrom.position },
+              quaternion: encodeRotation(actor.supportFrom.quaternion),
+              bodyFrame: encodeRotation(actor.supportFrom.bodyFrame),
             },
             active: actor.active,
             acceleration: { ...actor.acceleration },
@@ -671,6 +770,7 @@ export async function createRapierWorld({
         Object.assign(actor, entry, {
           hull: { ...entry.hull },
           support: entry.support && finiteSupport(entry.support),
+          supportFrom: entry.supportFrom && finiteSupport(entry.supportFrom),
           acceleration: vector(entry.acceleration),
           angularAcceleration: vector(entry.angularAcceleration),
           contacts: entry.contacts.map(copyContact),

@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { createReferenceFrames } from '../../../track/frames.js';
+import { cacheClosedCatmullRom } from '../../../track/cached-curve.js';
 
 export const VESPER_REVISION = 'vesper-route-2';
 const wrap = (s, length) => ((s % length) + length) % length;
@@ -60,7 +61,8 @@ export function createVesperTrack() {
     const i = Math.floor(f);
     return T.MathUtils.lerp(arcs[i], arcs[i + 1], f - i);
   };
-  const positionAt = (s) => curve.getPointAt(wrap(s, length) / length);
+  const cachedPointAt = cacheClosedCatmullRom(curve);
+  const positionAt = (s) => cachedPointAt(wrap(s, length) / length);
   const tangentAt = (s) =>
     positionAt(s + 0.25)
       .sub(positionAt(s - 0.25))

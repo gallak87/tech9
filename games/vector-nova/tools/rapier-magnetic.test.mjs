@@ -169,7 +169,7 @@ test('fixed magnetic constraints do not inject collision energy into real chassi
       }
       assert.ok(
         energy <= initialEnergy * 1.01,
-        `${entry.ids.join('/')} at ${entry.speed - (entry.secondSpeed ?? 0)} m/s closing, gap ${entry.gap ?? 12}, lateral ${entry.lateral ?? 0}: ${energy} J exceeds ${initialEnergy} J input`,
+        `${entry.ids.join('/')} at ${entry.speed - (entry.secondSpeed ?? 0)} m/s closing, gap ${entry.gap ?? 12}, lateral ${entry.lateral ?? 0}, tick ${tick}: ${energy} J exceeds ${initialEnergy} J input`,
       );
     }
     assert.ok(
@@ -484,5 +484,133 @@ test('centimetre hover-plane corrections preserve free forward momentum at race 
         0.003,
       );
     }
+  }
+});
+
+// A gentle overtake on changing banking used to wedge Rook's sloped wing
+// against Kestrel's rigid hover constraint: a 1.34 m/s contact produced a
+// 1,045 Ns impulse and reversed Kestrel. Keep the actual chassis/frames.
+test('sloped racer contact yields through the suspension without reversing race momentum', async (t) => {
+  const entries = [
+    {
+      chassis: 'kestrel',
+      pose: [
+        [-37.631687164, 71.235801697, 280.537689209],
+        [-0.097780392, 0.101856545, -0.079418905, 0.986791253],
+      ],
+      velocity: [13.952111244, 14.572119713, 76.586669922],
+      angularVelocity: [-0.066201009, -0.46849677, 0.101200856],
+      support: [
+        [-37.621996564, 71.312983429, 280.521457311],
+        [-0.093911467, 0.130479902, -0.0744057, 0.984184649],
+      ],
+      previousSupport: [
+        [-37.749526692, 71.115089826, 279.90175366],
+        [-0.095464789, 0.130087532, -0.082187827, 0.983467777],
+      ],
+      acceleration: [30.870291394, 29.103480264, 33.186731255],
+      angularAcceleration: [0.895335897, 7.130990034, -1.499700783],
+    },
+    {
+      chassis: 'rook',
+      pose: [
+        [-35.061183929, 72.173660278, 284.149749756],
+        [-0.086517207, 0.079912066, -0.022690678, 0.992780924],
+      ],
+      velocity: [12.362453461, 13.787231445, 79.54234314],
+      angularVelocity: [-0.005663715, -0.178474918, 0.031815659],
+      support: [
+        [-35.062020374, 72.108256199, 284.161004443],
+        [-0.083471214, 0.134118836, -0.017721727, 0.987284475],
+      ],
+      previousSupport: [
+        [-35.170661126, 72.05957786, 283.490339885],
+        [-0.085164881, 0.133434312, -0.027331975, 0.987013268],
+      ],
+      acceleration: [12.439586667, 32.07515791, 36.228916924],
+      angularAcceleration: [0.050487775, 3.94778329, -0.679331761],
+    },
+  ];
+  for (const bank of [0, Math.PI / 2, Math.PI]) {
+    const world = await createRapierWorld({ gravity: 0 });
+    t.after(() => world.dispose());
+    const rotation = new T.Quaternion().setFromAxisAngle(
+      new T.Vector3(0, 0, 1),
+      bank,
+    );
+    const vector = (values) =>
+      new T.Vector3(...values).applyQuaternion(rotation);
+    const frame = ([position, quaternion]) => ({
+      position: vector(position),
+      quaternion: rotation.clone().multiply(new T.Quaternion(...quaternion)),
+    });
+    const racers = entries.map((entry) => {
+      const actor = world.createActor();
+      actor.setContactShape(getCollisionHull(entry.chassis));
+      actor.reset({
+        active: true,
+        pose: frame(entry.pose),
+        velocity: vector(entry.velocity),
+        angularVelocity: vector(entry.angularVelocity),
+        support: frame(entry.previousSupport),
+      });
+      // The captured acceleration includes the ordinary gravity cancellation.
+      const acceleration = [...entry.acceleration];
+      acceleration[1] -= 26;
+      actor.stage({
+        support: frame(entry.support),
+        acceleration: vector(acceleration),
+        angularAcceleration: vector(entry.angularAcceleration),
+      });
+      return actor;
+    });
+    const before = racers.map((actor) => actor.read());
+    world.step(DT);
+    const after = racers.map((actor) => actor.read());
+    assert.ok(
+      after[0].contacts.some((contact) => contact.shape.kind === 'racer'),
+      'real model hulls must touch',
+    );
+    for (let i = 0; i < racers.length; i++) {
+      const direction = before[i].velocity.clone().normalize();
+      assert.ok(
+        Math.abs(
+          after[i].velocity.dot(direction) - before[i].velocity.length(),
+        ) < 2,
+        'a glancing hit preserves forward pace',
+      );
+      assert.ok(
+        after[i].velocity.distanceTo(before[i].velocity) < 4,
+        'no explosive contact impulse',
+      );
+      assert.ok(after[i].angularVelocity.length() < 4, 'no induced spinout');
+    }
+    const saved = world.snapshot();
+    assert.ok(saved.actors.every((actor) => actor.compliantSupport));
+    world.step(DT);
+    const solved = () =>
+      racers.map((actor) => {
+        const { position, quaternion, velocity, angularVelocity, contacts } =
+          actor.read();
+        return { position, quaternion, velocity, angularVelocity, contacts };
+      });
+    const expected = solved();
+    world.restore(saved);
+    world.step(DT);
+    assert.deepEqual(
+      solved(),
+      expected,
+      'contact compliance restores deterministically',
+    );
+    // Separating the pair must restore ordinary support, not leave soft
+    // suspension enabled for the rest of the lap.
+    racers[1].setPose({
+      position: vector([1000, 0, 0]),
+      quaternion: new T.Quaternion(),
+    });
+    for (let tick = 0; tick < 30; tick++) world.step(DT);
+    assert.ok(
+      world.snapshot().actors.every((actor) => !actor.compliantSupport),
+    );
   }
 });

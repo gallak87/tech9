@@ -4,7 +4,7 @@ import { COLLISION_RULES } from './collision-world.js';
 import { VEHICLE_HULL } from './hull.js';
 
 export const RAPIER_RULES = Object.freeze({
-  version: 3,
+  version: 4,
   packageVersion: '0.21.0',
   angularDamping: 1.2,
   maxCcdSubsteps: 6,
@@ -19,6 +19,11 @@ export const RAPIER_RULES = Object.freeze({
   fastPairDistance: 32,
   fastPairClosingSpeed: 120,
   supportCorrectionSpeed: 15,
+  supportFrequency: 120,
+  supportRecoveryFrequency: 240,
+  supportAcceleration: 1200,
+  supportContactDistance: 12,
+  supportContactRelease: 0.2,
   friction: 0.55,
   railFriction: 0.18,
   // Hovering contact transfers deck-normal impulses without tyre-like grip.
@@ -30,7 +35,12 @@ export const RAPIER_RULES = Object.freeze({
 // Membership in the high 16 bits, accepted membership in the low 16 bits.
 const STATIC_GROUPS = (1 << 16) | 2;
 const ACTOR_GROUPS = (2 << 16) | 3;
-const SUPPORT_AXES =
+const SUPPORT_AXES = [
+  RAPIER.JointAxis.LinY,
+  RAPIER.JointAxis.AngX,
+  RAPIER.JointAxis.AngZ,
+];
+const LOCKED_SUPPORT_AXES =
   RAPIER.JointAxesMask.LinY |
   RAPIER.JointAxesMask.AngX |
   RAPIER.JointAxesMask.AngZ;
@@ -184,6 +194,8 @@ export async function createRapierWorld({
     actor.jointHandle = null;
     actor.support = null;
     actor.supportFrom = null;
+    actor.compliantSupport = false;
+    actor.supportContactTime = 0;
     actor.active = false;
     actor.acceleration = zero();
     actor.angularAcceleration = zero();
@@ -235,6 +247,43 @@ export async function createRapierWorld({
       throw new Error('Rapier actor has been disposed.');
     return engine.getRigidBody(actor.bodyHandle);
   };
+  function configureSupportMotors(actor) {
+    if (!actor.compliantSupport || actor.jointHandle === null) return;
+    const raw = engine.impulseJoints.raw;
+    const body = bodyOf(actor);
+    const release =
+      1 - actor.supportContactTime / RAPIER_RULES.supportContactRelease;
+    const blend = T.MathUtils.smoothstep(release, 0, 1);
+    const frequency = T.MathUtils.lerp(
+      RAPIER_RULES.supportFrequency,
+      RAPIER_RULES.supportRecoveryFrequency,
+      blend,
+    );
+    const acceleration = RAPIER_RULES.supportAcceleration;
+    const inertia = body.principalInertia();
+    for (const axis of SUPPORT_AXES) {
+      raw.jointConfigureMotorModel(
+        actor.jointHandle,
+        axis,
+        RAPIER.MotorModel.AccelerationBased,
+      );
+      raw.jointConfigureMotorPosition(
+        actor.jointHandle,
+        axis,
+        0,
+        frequency ** 2,
+        2 * frequency,
+      );
+      raw.jointSetMotorMaxForce(
+        actor.jointHandle,
+        axis,
+        acceleration *
+          (axis === RAPIER.JointAxis.LinY
+            ? body.mass()
+            : Math.max(inertia.x, inertia.y, inertia.z)),
+      );
+    }
+  }
   function setSupport(actor, support) {
     const colliders = actor.colliderHandles.map((handle) =>
       engine.getCollider(handle),
@@ -275,15 +324,20 @@ export async function createRapierWorld({
           pose.position,
           zero(),
           { x: 1, y: 0, z: 0 },
-          SUPPORT_AXES,
+          actor.compliantSupport ? 0 : LOCKED_SUPPORT_AXES,
         ),
         engine.getRigidBody(actor.anchorHandle),
         bodyOf(actor),
         true,
       );
       actor.jointHandle = joint.handle;
+      // Finite suspension lets overlapping sloped hulls separate vertically
+      // instead of wedging two immovable hover planes against each other.
+      // Rapier's generic-joint facade omits motors; its public raw bindings
+      // expose the same implicit motor solver used by the typed joints.
+      configureSupportMotors(actor);
     }
-    // This is a local tangent-plane constraint, not an imposed vehicle pose.
+    // This is local magnetic suspension, not an imposed vehicle pose.
     // Its three free axes retain the solver's forward/sideways motion and yaw.
     // Sampling a new frame changes the magnetic support surface only.
     joint.setLocalFrame1(pose.position, pose.quaternion);
@@ -549,8 +603,10 @@ export async function createRapierWorld({
           actor.acceleration = zero();
           actor.angularAcceleration = zero();
           actor.contacts = [];
+          setSupport(actor, null);
           actor.supportFrom = null;
-          actor.support = null;
+          actor.compliantSupport = false;
+          actor.supportContactTime = 0;
           setSupport(actor, support);
           body.setEnabled(actor.active);
         },
@@ -571,6 +627,42 @@ export async function createRapierWorld({
       // the finer original CCD cadence whenever a hull is in free flight;
       // thin-wall impacts and landing captures depend on that resolution.
       const active = [...actors.values()].filter((actor) => actor.active);
+      // Begin compliance before narrow-phase contact, including a slight
+      // approach margin. Hold it briefly after separation so a glancing hit
+      // cannot alternate between a spring and an immovable support plane.
+      for (const actor of active)
+        actor.supportContactTime = Math.max(0, actor.supportContactTime - dt);
+      const positions = active.map((actor) =>
+        vector(bodyOf(actor).translation()),
+      );
+      for (let i = 0; i < active.length; i++) {
+        if (!active[i].support) continue;
+        for (let j = i + 1; j < active.length; j++) {
+          if (!active[j].support) continue;
+          if (
+            positions[i].distanceToSquared(positions[j]) <
+            RAPIER_RULES.supportContactDistance ** 2
+          ) {
+            active[i].supportContactTime = RAPIER_RULES.supportContactRelease;
+            active[j].supportContactTime = RAPIER_RULES.supportContactRelease;
+          }
+        }
+      }
+      for (const actor of active) {
+        const compliant = actor.supportContactTime > 0;
+        if (compliant !== actor.compliantSupport) {
+          actor.compliantSupport = compliant;
+          if (actor.support) {
+            engine.removeImpulseJoint(
+              engine.getImpulseJoint(actor.jointHandle),
+              true,
+            );
+            actor.jointHandle = null;
+            setSupport(actor, actor.support);
+          }
+        }
+        configureSupportMotors(actor);
+      }
       let supported = active.every((actor) => actor.support !== null);
       if (supported) {
         const moving = active.map((actor) => {
@@ -721,6 +813,8 @@ export async function createRapierWorld({
               quaternion: encodeRotation(actor.supportFrom.quaternion),
               bodyFrame: encodeRotation(actor.supportFrom.bodyFrame),
             },
+            compliantSupport: actor.compliantSupport,
+            supportContactTime: actor.supportContactTime,
             active: actor.active,
             acceleration: { ...actor.acceleration },
             angularAcceleration: { ...actor.angularAcceleration },
@@ -737,6 +831,9 @@ export async function createRapierWorld({
         data.actors.some(
           (entry) =>
             !actors.has(entry.id) ||
+            typeof entry.compliantSupport !== 'boolean' ||
+            !Number.isFinite(entry.supportContactTime) ||
+            entry.supportContactTime < 0 ||
             actors.get(entry.id).mass !== entry.mass ||
             JSON.stringify(actors.get(entry.id).hull) !==
               JSON.stringify(entry.hull),

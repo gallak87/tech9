@@ -84,7 +84,10 @@ export function withMagneticBoundaries(track, collisionWorld = null) {
       .filter((jump) => jump.optional)
       .map((jump) => ({ start: jump.takeoff, end: jump.landingStart })),
   ];
-  const covered = authoredCoverage(track, triangles, authoredRanges);
+  // Authored curbs also cover ordinary roads and mandatory jump receivers.
+  // Adding a taller wall there can catch an airborne hull above the visible
+  // curb and pin it between duplicate boundaries instead of letting it land.
+  const covered = authoredCoverage(track, triangles, [{ start: from, end }]);
   const frameAt = (distance, side) => {
     const centre = magneticFrame(track, distance, 0);
     if (centre.period > 0) return null;
@@ -117,11 +120,8 @@ export function withMagneticBoundaries(track, collisionWorld = null) {
     const distance = stations[index],
       next = stations[index + 1];
     if (gap(distance, next)) continue;
-    const authoredSpan = authoredRanges.some(
-      (range) => distance >= range.start && next <= range.end,
-    );
     for (const side of [-1, 1]) {
-      if (authoredSpan && covered(side, distance, next)) continue;
+      if (covered(side, distance, next)) continue;
       const a = frameAt(distance, side),
         b = frameAt(next, side);
       if (!a || !b) continue;
@@ -148,8 +148,8 @@ export function withMagneticBoundaries(track, collisionWorld = null) {
   }
   return {
     id: `${collisionWorld?.id ?? track.id}-magnetic-edges`,
-    version: 2,
-    rulesId: `${collisionWorld?.rulesId ?? track.id}:road-bounds-4m-v2-authored-spans:${JSON.stringify({ geometry: track.geometryVersion, length: track.length, width: track.width, closed: track.closed !== false, jumps: track.jumps })}`,
+    version: 3,
+    rulesId: `${collisionWorld?.rulesId ?? track.id}:road-bounds-4m-v3-authored-coverage:${JSON.stringify({ geometry: track.geometryVersion, length: track.length, width: track.width, closed: track.closed !== false, jumps: track.jumps })}`,
     triangles,
   };
 }

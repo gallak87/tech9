@@ -1,5 +1,9 @@
 import { Matrix4, Quaternion, Vector3 } from 'three';
 
+// Thin backing beneath a rendered panel belongs to the same support skin.
+// Keep separate road storeys and overhead surfaces as native obstacles.
+const BACKING_DEPTH = 0.35;
+
 // Route coordinates identify a deck even where different roads cross in space.
 // Retain its actual planar triangles rather than a second analytic road skin.
 export function roadTop(triangle) {
@@ -90,7 +94,9 @@ export function createRoadSurface(triangles) {
   vertices.clear();
   const sample = (distance, lateral, reference) => {
     let result = null,
-      nearest = Infinity;
+      nearest = Infinity,
+      selectedElevation = 0;
+    const candidates = [];
     for (const f of cells.get(Math.floor(distance / 16)) ?? []) {
       const s = distance - f.a[0],
         x = lateral - f.a[1];
@@ -105,7 +111,11 @@ export function createRoadSurface(triangles) {
         .clone()
         .sub(reference.position)
         .dot(reference.up);
-      if (Math.abs(elevation) > 2 || Math.abs(elevation) > nearest) continue;
+      if (Math.abs(elevation) > 2) continue;
+      const normal = f.along.clone().cross(f.across).normalize();
+      if (normal.dot(reference.up) < 0.5) continue;
+      candidates.push({ owners: f.owners, elevation, normal });
+      if (Math.abs(elevation) > nearest) continue;
       // Interpolated shared-vertex derivatives keep orientation continuous
       // across tessellation diagonals; height still comes from the real face.
       const along = f.smooth[0].along
@@ -127,6 +137,7 @@ export function createRoadSurface(triangles) {
       // Crossed decks and back faces cannot become the current support skin.
       if (up.dot(reference.up) < 0.5) continue;
       nearest = Math.abs(elevation);
+      selectedElevation = elevation;
       result = {
         roadOwners: f.owners,
         position,
@@ -140,6 +151,19 @@ export function createRoadSurface(triangles) {
         lateralMetric: across.length(),
         longitudinalShear,
       };
+    }
+    if (result) {
+      const owners = new Set(result.roadOwners);
+      for (const candidate of candidates) {
+        const depth = selectedElevation - candidate.elevation;
+        if (
+          depth >= -1e-5 &&
+          depth <= BACKING_DEPTH &&
+          candidate.normal.dot(result.up) > 0.95
+        )
+          for (const owner of candidate.owners) owners.add(owner);
+      }
+      result.roadOwners = [...owners];
     }
     return result;
   };

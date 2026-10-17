@@ -5,7 +5,7 @@ import { createRoadSurface, roadTop } from './road-surface.js';
 import { VEHICLE_HULL } from './hull.js';
 
 export const RAPIER_RULES = Object.freeze({
-  version: 7,
+  version: 8,
   packageVersion: '0.21.0',
   staticCellSize: 96,
   angularDamping: 1.2,
@@ -116,6 +116,28 @@ function copyContact(contact) {
     normal: vector(contact.normal),
     surfaceNormal: vector(contact.surfaceNormal),
   };
+}
+
+// This service owns rigid bodies only. Rapier's World.step also scans every
+// collider/body to discover fragments created by soft-body tearing. There are
+// no native-created fragments here; the normal create/remove APIs keep wrappers
+// registered. Use the same public physics pipeline without that discovery scan.
+export function stepRigidWorld(world, eventQueue, hooks) {
+  world.physicsPipeline.step(
+    world.gravity,
+    world.integrationParameters,
+    world.islands,
+    world.broadPhase,
+    world.narrowPhase,
+    world.bodies,
+    world.colliders,
+    world.softBodies,
+    world.impulseJoints,
+    world.multibodyJoints,
+    world.ccdSolver,
+    eventQueue,
+    hooks,
+  );
 }
 
 // Renderer/DOM-independent shared dynamics. Every adapter stages its actor,
@@ -382,11 +404,14 @@ export async function createRapierWorld({
     const colliders = actor.colliderHandles.map((handle) =>
       engine.getCollider(handle),
     );
-    bodyOf(actor).setAdditionalSolverIterations(
-      support === null
-        ? RAPIER_RULES.airborneSolverIterations - RAPIER_RULES.solverIterations
-        : 0,
-    );
+    const wasSupported = Boolean(actor.support);
+    if (wasSupported !== Boolean(support))
+      bodyOf(actor).setAdditionalSolverIterations(
+        support === null
+          ? RAPIER_RULES.airborneSolverIterations -
+              RAPIER_RULES.solverIterations
+          : 0,
+      );
     if (support === null) {
       if (actor.jointHandle !== null)
         engine.removeImpulseJoint(
@@ -396,9 +421,10 @@ export async function createRapierWorld({
       actor.jointHandle = null;
       actor.support = null;
       actor.supportFrom = null;
-      colliders.forEach((collider) =>
-        collider.setFriction(RAPIER_RULES.friction),
-      );
+      if (wasSupported)
+        colliders.forEach((collider) =>
+          collider.setFriction(RAPIER_RULES.friction),
+        );
       return;
     }
     const pose = finiteSupport(support);
@@ -455,7 +481,7 @@ export async function createRapierWorld({
     joint.setLocalFrame2(zero(), pose.bodyFrame);
     // Magnetic support has no tire friction. Contact normals still produce
     // impulses and off-centre yaw; airborne contacts retain their own friction.
-    colliders.forEach((collider) => collider.setFriction(0));
+    if (!wasSupported) colliders.forEach((collider) => collider.setFriction(0));
   }
   // The magnetic constraint already owns these exact supporting top pieces.
   // Keep native contacts for every other layer, wall, underside and free hull.
@@ -503,11 +529,15 @@ export async function createRapierWorld({
         const triangles = staticShapes.get(other.handle);
         const otherActor = triangles
           ? null
-          : [...actors.values()].find((entry) =>
-              entry.colliderHandles.includes(other.handle),
-            );
+          : bodyActors.get(other.parent()?.handle);
         if (!triangles && !otherActor) return;
         engine.contactPair(collider, other, (manifold, flipped) => {
+          const solverCount = manifold.numSolverContacts();
+          const count = solverCount || manifold.numContacts();
+          // Nearby trimesh faces may leave empty cached manifolds. They have
+          // no impact witness, so avoid allocating normals and metadata.
+          if (count === 0) return;
+          const solver = solverCount > 0;
           const normal = vector(manifold.normal()).multiplyScalar(
             flipped ? 1 : -1,
           );
@@ -539,10 +569,6 @@ export async function createRapierWorld({
           // CCD can finish the tick after a bounce, leaving the actual geometric
           // manifold but no final solver contacts. Its static witness remains a
           // valid impact point. Static trimeshes use world vertices at identity.
-          const solver = manifold.numSolverContacts() > 0;
-          const count = solver
-            ? manifold.numSolverContacts()
-            : manifold.numContacts();
           for (let index = 0; index < count; index++) {
             const rawPoint = solver
               ? manifold.solverContactPoint(index)
@@ -752,6 +778,18 @@ export async function createRapierWorld({
           actor.compliantSupport = false;
           actor.supportContactTime = 0;
           setSupport(actor, support);
+          // Reset establishes the same native change flags regardless of the
+          // previous support state, so fresh replay snapshots remain exact.
+          body.setAdditionalSolverIterations(
+            support
+              ? 0
+              : RAPIER_RULES.airborneSolverIterations -
+                  RAPIER_RULES.solverIterations,
+          );
+          for (const handle of actor.colliderHandles)
+            engine
+              .getCollider(handle)
+              .setFriction(support ? 0 : RAPIER_RULES.friction);
           body.setEnabled(actor.active);
         },
         dispose() {
@@ -913,7 +951,7 @@ export async function createRapierWorld({
           body.addTorque(torque, true);
           beforeByActor.set(actor.id, before);
         }
-        engine.step(eventQueue, contactHooks);
+        stepRigidWorld(engine, eventQueue, contactHooks);
         for (const actor of actors.values()) {
           if (!actor.active) continue;
           actor.contacts.push(

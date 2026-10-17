@@ -7,7 +7,10 @@ import {
   indexedTriangles,
 } from '../src/physics/collision-world.js';
 import { VEHICLE_HULL } from '../src/physics/hull.js';
-import { createRapierWorld } from '../src/physics/rapier-world.js';
+import {
+  createRapierWorld,
+  stepRigidWorld,
+} from '../src/physics/rapier-world.js';
 
 const DT = 1 / 120;
 const vector = (values) => new T.Vector3(...values);
@@ -425,4 +428,88 @@ test('spatial collision batches preserve source faces and permit smooth high-spe
     }
   }
   assert.ok(actor.read().position.z > 370 && contacts > 0);
+});
+
+test('rigid pipeline matches World.step through impacts and explicit body creation/removal', async (t) => {
+  await RAPIER.init();
+  const worlds = [0, 1].map(() => {
+    const world = new RAPIER.World({ x: 0, y: -26, z: 0 });
+    world.timestep = 1 / 240;
+    world.createCollider(RAPIER.ColliderDesc.cuboid(30, 0.1, 30));
+    world.createCollider(
+      RAPIER.ColliderDesc.cuboid(10, 10, 0.025).setTranslation(0, 5, 12),
+    );
+    const body = world.createRigidBody(
+      RAPIER.RigidBodyDesc.dynamic()
+        .setTranslation(0, 3, 0)
+        .setLinvel(0, -3, 130)
+        .setCcdEnabled(true),
+    );
+    for (const x of [-1, 1])
+      world.createCollider(
+        RAPIER.ColliderDesc.cuboid(0.6, 0.5, 1.2).setTranslation(x, 0, 0),
+        body,
+      );
+    return { world, queue: new RAPIER.EventQueue(true) };
+  });
+  t.after(() => {
+    for (const { world, queue } of worlds) {
+      world.free();
+      queue.free();
+    }
+  });
+  let impacts = 0;
+  for (let tick = 0; tick < 180; tick++) {
+    if (tick === 40)
+      for (const { world } of worlds) {
+        const added = world.createRigidBody(
+          RAPIER.RigidBodyDesc.dynamic().setTranslation(0, 6, 10),
+        );
+        world.createCollider(RAPIER.ColliderDesc.ball(1), added);
+      }
+    if (tick === 100)
+      for (const { world } of worlds) {
+        let last;
+        world.bodies.forEach((body) => {
+          last = body;
+        });
+        world.removeRigidBody(last);
+      }
+    worlds[0].world.step(worlds[0].queue);
+    stepRigidWorld(worlds[1].world, worlds[1].queue);
+    const states = worlds.map(({ world }) => {
+      const bodies = [],
+        contacts = [];
+      world.bodies.forEach((body) =>
+        bodies.push([
+          body.handle,
+          body.translation(),
+          body.rotation(),
+          body.linvel(),
+          body.angvel(),
+        ]),
+      );
+      world.colliders.forEach((collider) =>
+        world.contactPairsWith(collider, (other) => {
+          world.contactPair(collider, other, (manifold) => {
+            if (manifold.numSolverContacts())
+              contacts.push([
+                collider.handle,
+                other.handle,
+                manifold.normal(),
+                manifold.numSolverContacts(),
+              ]);
+          });
+        }),
+      );
+      return { bodies, contacts };
+    });
+    impacts += states[0].contacts.length;
+    assert.deepEqual(
+      states[1],
+      states[0],
+      `identical native result at tick ${tick}`,
+    );
+  }
+  assert.ok(impacts > 0, 'comparison includes genuine collisions');
 });

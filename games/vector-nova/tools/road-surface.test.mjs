@@ -174,3 +174,55 @@ test('grounded road ownership survives snapshots and rejects invalid ownership b
   assert.deepEqual(actor.read().support.road, support.road);
   assert.deepEqual(run(), expected);
 });
+
+test('panel support owns its thin backing without claiming other road layers', () => {
+  const sample = createRoadSurface([
+    ...deck('backing', -0.12),
+    ...deck('panel', 0.06),
+    ...deck('lower-road', -1),
+    ...deck('overhead', 0.4),
+    ...deck('underside', -0.18, 0, true),
+    ...deck('crossing', 0, 100),
+  ]);
+  const skin = sample(20, 0, reference);
+  assert.equal(skin.position.y, 0.06);
+  assert.deepEqual(new Set(skin.roadOwners), new Set(['panel', 'backing']));
+  sample.dispose();
+});
+
+test('backing produces no redundant grounded contacts and becomes solid again in flight', async (t) => {
+  const world = await createRapierWorld({
+    collisionWorld: {
+      id: 'layered-road',
+      version: 1,
+      rulesId: 'layered-road',
+      triangles: [...deck('panel', 0.06), ...deck('backing', -0.12)],
+    },
+  });
+  t.after(() => world.dispose());
+  const actor = world.createActor();
+  const skin = world.sampleRoadSurface(10, 0, reference);
+  const support = {
+    position: new Vector3(0, 0.5, 10),
+    quaternion: new Quaternion(),
+    road: { distance: 10, length: 0, reach: 5, owners: skin.roadOwners },
+  };
+  actor.reset({ pose: support, support, active: true });
+  for (let i = 0; i < 12; i++) {
+    actor.stage({ support, acceleration: new Vector3(0, 26, 0) });
+    world.step(DT);
+    assert.equal(actor.read().contacts.length, 0);
+  }
+  actor.reset({
+    pose: { position: new Vector3(0, -2, 10), quaternion: new Quaternion() },
+    velocity: new Vector3(0, 30, 0),
+    active: true,
+  });
+  const hits = [];
+  for (let i = 0; i < 16; i++) {
+    world.step(DT);
+    hits.push(...actor.read().contacts);
+  }
+  assert.ok(hits.some(({ shape }) => shape.id === 'backing'));
+  assert.ok(actor.read().position.y < -0.12);
+});

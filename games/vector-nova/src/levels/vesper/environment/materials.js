@@ -27,6 +27,10 @@ function finishBakedForestMaterial(material, leaf) {
   material.userData.vesperSurfaceDetail = true;
   material.roughness = 1;
   material.envMapIntensity = leaf ? 0.42 : 0.46;
+  if (/ridged indigo bark/.test(material.name))
+    material.color.setRGB(0.8, 0.86, 0.82);
+  if (/fungal moon/.test(material.name)) material.color.setRGB(0.42, 0.6, 0.47);
+  if (/fungal pore/.test(material.name)) material.color.setRGB(0.7, 0.8, 0.67);
   for (const map of [material.map, material.normalMap, material.roughnessMap])
     if (map) map.anisotropy = 8;
   material.onBeforeCompile = (shader) => {
@@ -72,7 +76,13 @@ function finishBakedForestMaterial(material, leaf) {
       `#include <map_fragment>
       float growth=.5+.5*sin(vForestLocal.y*.027+sin(vForestLocal.x*.035)*1.8+cos(vForestLocal.z*.041));
       diffuseColor.rgb*=mix(.82,1.12,growth);
-      ${leaf ? 'diffuseColor.rgb*=gl_FrontFacing?vec3(1.55,2.05,2.0):vec3(1.8,2.35,2.1);' : ''}`,
+      ${
+        leaf
+          ? `diffuseColor.rgb*=gl_FrontFacing?vec3(1.55,2.05,2.0):vec3(1.8,2.35,2.1);
+      float leafLuma=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));
+      diffuseColor.rgb=mix(diffuseColor.rgb,leafLuma*vec3(.78,1.08,1.13),.42);`
+          : ''
+      }`,
     );
     if (material.userData.vesperBarkProjection) {
       // The enormous branch collars span several UV charts. Blend the same
@@ -104,7 +114,7 @@ function finishBakedForestMaterial(material, leaf) {
     }
   };
   material.customProgramCacheKey = () =>
-    `vesper-baked-forest-v4-${leaf}-${material.userData.vesperBarkProjection ?? false}-${material.userData.vesperSurfaceDetail}`;
+    `vesper-baked-forest-v5-${leaf}-${material.userData.vesperBarkProjection ?? false}-${material.userData.vesperSurfaceDetail}`;
 }
 
 /** Original 3D material grain. Local-position noise survives instancing and cell batching. */

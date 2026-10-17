@@ -1,8 +1,8 @@
 """Regenerate Vesper secondary trees only. The colossal hollow library is read-only.
 
-Tree families use unequal parent-anchored leaders, with a retained showcase
-pilot. Middle and distance variants preserve connected skeletons and attached
-broadleaf sprays; union bounds cover every representation.
+Three mature growth habits use voxel-united wood and overlapping crown masses,
+with a retained showcase pilot. Middle and distance variants preserve attached
+broadleaf placements; union bounds cover every representation.
 """
 import bpy
 import json
@@ -14,7 +14,7 @@ from mathutils import Vector
 ROOT = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(ROOT))
-from connected_tree_geometry import broadleaf_surface, make_connected_tree, LEAF_LENGTH_SCALE, LEAF_WIDTH_SCALE, BRANCH_REACH_SCALE, BRANCH_RADIUS_SCALE
+from connected_tree_geometry import broadleaf_surface, make_connected_tree
 
 DEST = ROOT.parents[3] / 'public/assets/levels/vesper'
 bpy.ops.wm.open_mainfile(filepath=str(ROOT / 'vesper-assets.blend'))
@@ -27,92 +27,6 @@ MATERIALS = {
 # Keep authored metre scales stable: refitting enlarged crowns to the previous
 # bounds would silently cancel the requested growth.
 TREE_SCALE = 1.12
-BASE_SCALES = [(0.8899411351875766,0.7837743848951181,0.8899411351875766),
-               (1.0059162811908304,0.8990763613492714,1.0059162811908304),
-               (1.0062208464490618,0.6348278746856992,1.0062208464490618)]
-
-
-
-def sample(points, fraction):
-    u=max(0,min(1,fraction))*(len(points)-1)
-    index=min(len(points)-2,int(u))
-    return points[index].lerp(points[index+1],u-index)
-
-
-def closest(point, points):
-    candidates=[]
-    for a,b in zip(points,points[1:]):
-        delta=b-a
-        t=max(0,min(1,(point-a).dot(delta)/delta.length_squared))
-        candidates.append(a+delta*t)
-    return min(candidates,key=lambda p:(p-point).length_squared)
-
-
-def make_distance_tree(full, middle=False):
-    parts={kind:{'v':[],'f':[],'uv':[],'c':[]} for kind in MATERIALS}
-    paths={}
-    attachments=[]
-
-    def vertex(kind,point,uv=(0,0),shade=1):
-        d=parts[kind]
-        d['v'].append((point.x,-point.z,point.y))
-        d['uv'].append(uv)
-        d['c'].append((shade,shade*.97,shade*.88,1))
-        return len(d['v'])-1
-
-    def tube(name, points, radii, sides):
-        rings=[]
-        length=0
-        for i,p in enumerate(points):
-            tangent=(points[min(i+1,len(points)-1)]-points[max(0,i-1)]).normalized()
-            side=tangent.cross(Vector((0,1,0)))
-            if side.length<.01:side=tangent.cross(Vector((0,0,1)))
-            side.normalize();up=tangent.cross(side).normalized()
-            if i:length+=(p-points[i-1]).length
-            rings.append([vertex('wood',p+(side*math.cos(j/sides*math.tau)+up*math.sin(j/sides*math.tau))*radii[i],(j/sides*max(1,radii[0]*math.tau/16),length/16)) for j in range(sides+1)])
-        for i in range(len(rings)-1):
-            for j in range(sides):
-                parts['wood']['f'].append((rings[i][j],rings[i][j+1],rings[i+1][j+1],rings[i+1][j]))
-        parts['wood']['f'].append(tuple(reversed(rings[0][:-1])))
-        parts['wood']['f'].append(tuple(rings[-1][:-1]))
-        paths[name]=points
-
-    def spray(base,direction,seed):
-        forward=direction.normalized()
-        across=forward.cross(Vector((0,1,0))).normalized()
-        for i in range(7 if middle else 3):
-            side=(i-(3 if middle else 1))*(.36 if middle else .85)
-            out=(forward+across*side+Vector((0,.12+.18*math.sin(seed+i),0))).normalized()
-            data=broadleaf_surface(base,out,(16+(seed%4))*1.45,5.3*1.65,.85+.1*math.sin(seed+i),rows=7 if middle else 5,columns=3)
-            ids=[vertex('leaves',p,uv,color[0]) for p,uv,color in zip(data['v'],data['uv'],data['c'])]
-            parts['leaves']['f'].extend(tuple(ids[i] for i in face) for face in data['f'])
-
-    for part in full['structure']:
-        name=part['id']
-        # Fine terminal shoots and petioles are represented by attached sprays.
-        if '-shoot-' in name or '-petiole-' in name or '-leader' in name or name.startswith('apical-'):
-            continue
-        source=full['paths'][name]
-        count=(25 if middle else 17) if name=='trunk' else 4 if name.startswith('buttress') else 6 if middle and '-fork-' not in name else 4 if '-fork-' not in name else 3 if middle else 2
-        points=[sample(source,i/(count-1)) for i in range(count)]
-        parent=part['parent']
-        if parent:
-            socket=closest(points[0],paths[parent])
-            delta=socket-points[0]
-            points=[p+delta for p in points]
-            attachments.append((name,parent,(points[0]-closest(points[0],paths[parent])).length))
-        profile=full['profiles'][name]
-        radii=[]
-        for i in range(count):
-            u=i/(count-1)*(len(profile)-1);a=min(len(profile)-2,int(u))
-            radii.append(profile[a]+(profile[a+1]-profile[a])*(u-a))
-        sides=(10 if middle else 6) if name=='trunk' else (5 if middle else 3) if '-fork-' in name or name.startswith('buttress') else 6 if middle else 4
-        tube(name,points,radii,sides)
-        if name.startswith('limb-'):
-            spray(points[-1],points[-1]-points[-2],len(paths))
-    spray(paths['trunk'][-1],Vector((.15,1,.2)),71)
-    assert all(gap<1e-4 for _,_,gap in attachments)
-    return {'parts':parts,'attachmentCount':len(attachments),'maxAttachmentGapMetres':max(x[2] for x in attachments)}
 
 
 def mesh_objects(name,data,scale):
@@ -139,37 +53,31 @@ def mesh_objects(name,data,scale):
     return root
 
 
-report={'asset':'vesper-connected-forest-v1.glb','families':[],'colossalHollowUnchanged':True,'growth':{'treeScale':TREE_SCALE,'branchReach':BRANCH_REACH_SCALE,'branchRadius':BRANCH_RADIUS_SCALE,'leafLength':LEAF_LENGTH_SCALE,'leafWidth':LEAF_WIDTH_SCALE}}
+from mature_grove_geometry import make_mature_grove, weld_grove_wood
+report={'asset':'vesper-connected-forest-v1.glb','families':[],'colossalHollowUnchanged':True}
 for variant,seed in enumerate([290927,290930,290934]):
-    full=make_connected_tree(seed,forest_budget=True)
-    maximum_gap=0
-    for part in full['structure']:
-        if not part['parent']:continue
-        gap=(Vector(part['base'])-closest(Vector(part['base']),full['paths'][part['parent']])).length
-        assert gap<1e-4
-        maximum_gap=max(maximum_gap,gap)
-    lod=make_distance_tree(full)
-    mid=make_distance_tree(full,middle=True)
-    # Clearance covers every quality/distance representation, including leaf sprays.
-    points=[v for representation in [full,lod,mid] for d in representation['parts'].values() for v in d['v']]
+    representations={q:make_mature_grove(seed,quality=q) for q in ['high','mid','low']}
+    points=[v for data in representations.values() for d in data['parts'].values() for v in d['v']]
     radius=max(math.hypot(v[0],v[1]) for v in points)
     top=max(v[2] for v in points)
-    scale=tuple(v*TREE_SCALE for v in BASE_SCALES[variant])
-    high=mesh_objects('connected_tree_'+str(variant),full,scale)
-    low=mesh_objects('connected_tree_lod_'+str(variant),lod,scale)
-    middle=mesh_objects('connected_tree_mid_'+str(variant),mid,scale)
-    for root in [high,low,middle]:
+    scale=(.85,.92,.85)
+    roots=[]
+    for quality,data in representations.items():
+        name='connected_tree_'+('' if quality=='high' else 'mid_' if quality=='mid' else 'lod_')+str(variant)
+        root=mesh_objects(name,data,scale)
+        weld_grove_wood(root,quality=quality)
         root['clearanceSize']=[2*radius*scale[0],top*scale[1],2*radius*scale[2]]
         root['clearanceBottom']=min(v[2] for v in points)*scale[1]
         root['connectedTreeFamily']=variant
         root['seed']=seed
         root['rooted']=True
+        root['volumetricCrown']=True
+        roots.append(root)
     if variant==1:
-        # Retain full-detail pilot construction with the same requested growth.
         pilot=mesh_objects('pilot_connected_elder',make_connected_tree(seed),(TREE_SCALE,TREE_SCALE,TREE_SCALE))
         pilot['approvedPilot']=True
     counts=lambda root:sum(len(p.vertices)-2 for o in root.children for p in o.data.polygons)
-    report['families'].append({'variant':variant,'seed':seed,'highTriangles':counts(high),'distanceTriangles':counts(low),'middleTriangles':counts(middle),'leafCount':full['leafCount'],'attachmentCount':len(full['structure'])-1,'maxAttachmentGapMetres':maximum_gap,'distanceAttachments':lod['attachmentCount'],'distanceMaxAttachmentGapMetres':lod['maxAttachmentGapMetres'],'scale':list(scale)})
+    report['families'].append({'variant':variant,'seed':seed,'highTriangles':counts(roots[0]),'middleTriangles':counts(roots[1]),'distanceTriangles':counts(roots[2]),'leafCount':representations['high']['leafCount'],'scale':list(scale)})
 
 # Low, connected rosettes cover the forest floor without another tree-shaped
 # silhouette. One reusable mesh is spatially batched by the runtime.
@@ -183,6 +91,15 @@ for quality, rows, columns in [('high',7,5),('low',5,3)]:
         d['v'].extend((p.x,-p.z,p.y) for p in leaf['v']);d['uv'].extend(leaf['uv']);d['c'].extend(leaf['c'])
         d['f'].extend(tuple(start+i for i in f) for f in leaf['f'])
     mesh_objects('ground_broadleaf_rosette_'+quality,rosette,(1,1,1))
+
+# Composed mature groves use a different silhouette and physically united wood.
+for quality in ['high','low']:
+    data=make_mature_grove(low=quality=='low')
+    root=mesh_objects('mature_grove_'+quality,data,(1,1,1))
+    # Preserve the near grove's curved foliage on Low, with cheaper wood.
+    weld_grove_wood(root,low=quality=='low',triangle_budget=2000 if quality=='low' else None)
+    root['rooted']=True
+    root['volumetricCrown']=True
 
 from forest_materials import apply_forest_materials
 apply_forest_materials(embed=False)

@@ -167,11 +167,11 @@ def ring(t,a,inside=False):
     radius+=3.2*math.sin(a*5+t*4)+2.1*math.sin(a*3-t*5)
     if inside:radius-=13+1.7*math.sin(a*13+t*9)
     else:
-        # Old load-bearing ridges wind up from unequal buttresses; subordinate
-        # corrugation stays in the bark maps, not a smooth swollen silhouette.
+        # Restrained growth ridges retain age without inflating broad buttress
+        # fins between the upper branches. Fine relief belongs to the bark maps.
         growth=a+.055*math.sin(t*5+a*2)
-        radius+=max(0,math.sin(growth*5+t*.35))**4*(38+18*math.sin(a*3+1)**2)*(1-.22*t)
-        radius+=max(0,math.sin(growth*9-t*.4))**6*14
+        radius+=max(0,math.sin(growth*5+t*.35))**4*(10+5*math.sin(a*3+1)**2)*(1-.22*t)
+        radius+=max(0,math.sin(growth*9-t*.4))**6*6
     y=t*H
     if t>.9:y+=(t-.9)*10*(8+18*math.sin(a*7)**2+6*math.sin(a*13))
     return Vector((math.cos(a)*radius,y,math.sin(a)*radius))
@@ -226,7 +226,7 @@ def upper_ring(t,a,inside=False):
     outer_bottom=ring(1,a,False)
     base_radius=math.hypot(outer_bottom.x,outer_bottom.z)
     rr=(base_radius-7)*(1-t**1.25)**1.05+7
-    rr+=22*math.sin(a*5+t*2)*math.sin(math.pi*t)*(1-t)
+    rr+=8*math.sin(a*5+t*2)*math.sin(math.pi*t)*(1-t)
     rr+=5*max(0,math.sin(a*11-t*3))**3*math.sin(math.pi*t)
     if inside:rr=max(0,rr-13)*(max(0,1-t/.62))**.55
     return Vector((math.cos(a)*rr+49*math.sin(t*2.1),bottom.y+t*480,math.sin(a)*rr+31*math.sin(t*3.2)))
@@ -381,38 +381,44 @@ for variant in range(2):
     for side in [-1,1]:tube('Pale twisted rib',[(p[0]+side*4*math.sin(i*.8),p[1]+4,p[2]) for i,p in enumerate(points)],[2.5*(1-j/10) for j in range(9)],sapwood,root,6)
     merge_materials(root)
 root=empty('fungal_fan')
-# Four unequal bracket forms spread around a root, not a concentric umbrella tower.
-for j,(height,rad,bx,bz,dome) in enumerate([(17,15,-5,-4,3),(29,11,5,3,7),(41,16,-4,5,-1),(49,9,4,-5,4)]):
-    angle=j*1.7;base=(bx,0,bz)
-    tube('Gnarled fungal stalk',[base,(bx+3,height*.48,bz-2),(bx,height+dome,bz)],[2.2,1.6,1.1],sapwood,root,7)
-    verts=[];faces=[];rings=6;sides=24
+# Overlapping bracket colonies share one gnarled root stock. A shelf grows out
+# from its attachment; it is not a complete umbrella on a separate thin pole.
+spine=[(3*math.sin(t*3),t*46,2*math.sin(t*5)) for t in [i/10 for i in range(11)]]
+tube('Living fungal root stock',spine,[5.5*(1-i/14)+.8 for i in range(11)],bark,root,12)
+for j,(height,rad,dome) in enumerate([(12,18,3),(21,15,5),(30,20,-2),(39,12,4)]):
+    angle=j*2.05+.3
+    bx=3*math.sin(height/46*3);bz=2*math.sin(height/46*5)
+    verts=[];faces=[];rings=7;sides=24
     def cap(t,a):
-        outline=(.77+.23*math.cos(a-angle))*(1+.075*math.sin(a*3+j)+.035*math.sin(a*7-j))
+        outline=1+.065*math.sin(a*3+j)+.035*math.sin(a*7-j)
         rr=rad*t*outline
-        curl=(1.2*math.sin(a*3+j)+1.0*math.cos(a*2-j))*t**3
-        y=height+dome*(1-t*t)+curl+t*.9*math.sin(a+j)
+        curl=(.8*math.sin(a*3+j)+.6*math.cos(a*2-j))*t**3
+        y=height+dome*(1-t*t)+curl
         return (bx+math.cos(a)*rr,y,bz+math.sin(a)*rr)
-    for i in range(rings):
-        for k in range(sides):verts.append(cap(i/(rings-1),k*math.tau/sides))
-    for i in range(rings-1):
+    verts.append(cap(0,angle))
+    for i in range(1,rings):
+        for k in range(sides+1):verts.append(cap(i/(rings-1),angle-1.5+3*k/sides))
+    for k in range(sides):faces.append((0,1+k,2+k))
+    for i in range(rings-2):
         for k in range(sides):
-            a=i*sides+k;b=i*sides+(k+1)%sides;faces.append((a,b,b+sides,a+sides))
-    mesh('Asymmetric curled fungal shelf',verts,faces,fungus,root,uvs=[((x-bx)/rad*.5+.5,(z-bz)/rad*.5+.5) for x,y,z in verts])
-    lower=[(x,y-1.1,z) for x,y,z in verts]
-    lowerfaces=[tuple(reversed(f)) for f in faces]
-    # Ivory underside, fleshy edge thickness and cool gills carry separate shading.
-    mesh('Pale fungal underside',lower,lowerfaces,pores,root,uvs=[((x-bx)/rad*.5+.5,(z-bz)/rad*.5+.5) for x,y,z in lower])
-    rim=[cap(1,k*math.tau/32) for k in range(33)]
-    tube('Steady luminous fungal lip',rim,[.22]*len(rim),vein,root,4)
+            a=1+i*(sides+1)+k;b=a+1;faces.append((a,b,b+sides+1,a+sides+1))
+    uvs=[((x-bx)/rad*.5+.5,(z-bz)/rad*.5+.5) for x,y,z in verts]
+    mesh('Layered fungal bracket',verts,faces,fungus,root,uvs=uvs)
+    thickness=[2.6]+[2.6-1.9*i/(rings-1) for i in range(1,rings) for k in range(sides+1)]
+    lower=[(x,y-thickness[i],z) for i,(x,y,z) in enumerate(verts)]
+    mesh('Fleshy porous shelf underside',lower,[tuple(reversed(f)) for f in faces],pores,root,uvs=uvs)
+    perimeter=[0]+[1+i*(sides+1) for i in range(rings-1)]+[1+(rings-2)*(sides+1)+k for k in range(1,sides+1)]+[1+i*(sides+1)+sides for i in reversed(range(rings-2))]
     edge=[];edgefaces=[]
-    for k in range(sides):
-        top=cap(1,k*math.tau/sides);edge.extend([top,(top[0],top[1]-1.1,top[2])])
-        edgefaces.append((k*2,k*2+1,((k+1)%sides)*2+1,((k+1)%sides)*2))
-    mesh('Fleshy torn fungal edge',edge,edgefaces,fungus,root)
-    for k in range(8):
-        a=k*math.tau/8+j*.13
-        pts=[cap(t,a+.08*t) for t in [.06,.5,.94]]
-        tube('Underside radial gill',[(x,y-1.28,z) for x,y,z in pts],[.25,.22,.08],fungus,root,4)
+    for k,vi in enumerate(perimeter):
+        edge.extend([verts[vi],lower[vi]])
+        edgefaces.append((k*2,k*2+1,((k+1)%len(perimeter))*2+1,((k+1)%len(perimeter))*2))
+    mesh('Irregular bracket margin',edge,edgefaces,fungus,root)
+    rim=[cap(1,angle-1.5+3*k/24) for k in range(25)]
+    tube('Quiet fungal growth edge',rim,[.13]*len(rim),vein,root,4)
+    for k in range(9):
+        a=angle-1.4+k*2.8/8
+        pts=[cap(t,a+.04*t) for t in [.08,.45,.92]]
+        tube('Underside radial gill',[(x,y-(2.6-1.9*t)-.15,z) for (x,y,z),t in zip(pts,[.08,.45,.92])],[.32,.24,.09],pores,root,4)
 merge_materials(root)
 
 # Flower: thick curled double-layer petals, ribbed backs, actual hanging anthers.

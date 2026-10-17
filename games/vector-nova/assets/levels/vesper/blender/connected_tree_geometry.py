@@ -78,15 +78,15 @@ def make_connected_tree(seed=290930, forest_budget=False, layout=None, foliage_s
                 a=j/sides*math.tau
                 r=radii[i]*(1+.16*math.sin(a*5+i*.06)+.055*math.sin(a*9-i*.13))
                 if parent and i < 3: r *= 1 + .32 * (1-i/3)**2
-                if root_surface and i < 9: r *= 1 + .22 * (1-i/9)**2
+                if root_surface and i < 4: r *= 1 + .08 * (1-i/4)**2
                 point=p+(axis*math.cos(a)+other*math.sin(a))*r
                 uv=(j/sides*max(1,radii[0]*math.tau/16),length/16)
                 if root_surface:
                     surface, attachment_uv=root_surface(point)
-                    if i < 9:
-                        # A long, eased growth collar follows the trunk without
-                        # the broad flat flange of a heavily inflated root ring.
-                        blend=(.5+.5*math.cos(math.pi*i/9))**2
+                    if i < 4:
+                        # A short eased socket leaves the bough free to taper;
+                        # pulling half its length onto the bole creates broad fins.
+                        blend=(.5+.5*math.cos(math.pi*i/4))**2
                         inward=Vector((surface.x,0,surface.z)).normalized()*4.5
                         point=point.lerp(surface-inward,blend)
                     if i == 0: root_uvs.append(attachment_uv)

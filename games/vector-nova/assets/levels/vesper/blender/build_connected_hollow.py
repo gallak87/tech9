@@ -85,7 +85,7 @@ def layout(tube, along, leafy_shoot):
             rejected.append(k)
             continue
         name = 'limb-hollow-' + str(k)
-        tube(name, points, radii, 16, root_surface=shell_attachment)
+        tube(name, points, radii, 24, root_surface=shell_attachment)
         anchors.append({'id': name, 'surface': list(surface), 'base': list(base), 'shell': 'lower' if lower else 'upper', 't': t, 'angle': a, 'embeddedMetres': -1})
         for n, f in enumerate([.49, .81]):
             socket = along(points, f)

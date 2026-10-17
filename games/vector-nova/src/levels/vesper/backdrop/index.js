@@ -49,7 +49,7 @@ export async function createVesperBackdrop() {
           vec3 opposite=textureGrad(forestSky,vec2(panoramaU+1.-overlap,v),uvDx,uvDy).rgb;
           radiance=mix(opposite,radiance,smoothstep(0.,overlap,panoramaU));
         }
-        radiance=mix(radiance,vec3(dot(radiance,vec3(.2126,.7152,.0722))),.22)*.32;
+        radiance=mix(radiance,vec3(dot(radiance,vec3(.2126,.7152,.0722))),.36)*.24;
         gl_FragColor=vec4(radiance,1.);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -64,14 +64,14 @@ export async function createVesperBackdrop() {
   return {
     group,
     sunDirection,
-    sunColor: '#bdd8e0',
-    // Cool moon key shapes the wood; low fill and thin-leaf scatter preserve canopy detail.
-    sunIntensity: 1.35 * 1.1,
-    ambientSky: '#899eaa',
-    ambientGround: '#657462',
-    ambientIntensity: 0.77 * 1.1,
-    fillColor: '#82aaa9',
-    fillIntensity: 0.56 * 1.1,
+    sunColor: '#c6ddf0',
+    // Moon key and opposing cool fill separate crown masses from the quieter sky.
+    sunIntensity: 1.8 * 1.1,
+    ambientSky: '#99b5c1',
+    ambientGround: '#7b9085',
+    ambientIntensity: 1.12 * 1.1,
+    fillColor: '#a5c6d4',
+    fillIntensity: 1.25 * 1.1,
     environmentIntensity: 0.68 * 1.1,
     far: 6500,
     ownedTextures: [texture],

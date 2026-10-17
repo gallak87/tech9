@@ -117,7 +117,7 @@ export function createVesperRoad({ track, shape = false }) {
   const lightScale = shape ? 1 : 1.1;
   const amber = new T.MeshPhysicalMaterial({
     color: shape ? 0x88959c : 0xcb781e,
-    roughness: 0.26,
+    roughness: 0.3,
     metalness: 0.02,
     clearcoat: 0.22,
     clearcoatRoughness: 0.33,
@@ -138,7 +138,7 @@ export function createVesperRoad({ track, shape = false }) {
   });
   const polished = new T.MeshPhysicalMaterial({
     color: shape ? 0x9faab0 : 0xda8a27,
-    roughness: 0.15,
+    roughness: 0.18,
     metalness: 0.02,
     clearcoat: 0.3,
     clearcoatRoughness: 0.32,
@@ -267,11 +267,11 @@ export function createVesperRoad({ track, shape = false }) {
           )
           .replace(
             'vec3 totalSpecular = reflectedLight.directSpecular + reflectedLight.indirectSpecular;',
-            'vec3 totalSpecular = resinReflectionShoulder(reflectedLight.directSpecular + reflectedLight.indirectSpecular, .85);',
+            'vec3 totalSpecular = resinReflectionShoulder(reflectedLight.directSpecular + reflectedLight.indirectSpecular, .24);',
           )
           .replace(
             '( clearcoatSpecularDirect + clearcoatSpecularIndirect ) * material.clearcoat',
-            'resinReflectionShoulder((clearcoatSpecularDirect + clearcoatSpecularIndirect) * material.clearcoat, .45)',
+            'resinReflectionShoulder((clearcoatSpecularDirect + clearcoatSpecularIndirect) * material.clearcoat, .12)',
           )
           .replace(
             '#include <roughnessmap_fragment>',
@@ -283,7 +283,7 @@ export function createVesperRoad({ track, shape = false }) {
           );
     };
     material.customProgramCacheKey = () =>
-      flowing ? 'vesper-flow-v6' : 'vesper-lamina-v6';
+      flowing ? 'vesper-flow-v7' : 'vesper-lamina-v7';
   }
   // Keep authored clearcoat values for independent live comparisons.
   const coats = [amber, polished, core, sap].map((material) => ({

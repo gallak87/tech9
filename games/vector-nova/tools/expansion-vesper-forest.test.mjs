@@ -35,9 +35,20 @@ test('tree seating samples the rendered terrain triangles rather than the analyt
       'Vesper / continuous ravine floor and root terraces',
     );
     const ray = new Raycaster();
-    for (let i = 0; i < 64; i++) {
-      const x = -1580 + ((i * 977) % 3750);
-      const z = -1650 + ((i * 631) % 3280);
+    const samples = Array.from({ length: 64 }, (_, i) => [
+      -1580 + ((i * 977) % 3750),
+      -1650 + ((i * 631) % 3280),
+    ]);
+    // The composed bank crosses coarse/dense grid boundaries and rooted groves.
+    samples.push(
+      [330, -490],
+      [670, -40],
+      [485.173, -257.453],
+      [580.324, -349.492],
+      [448.615, -179.264],
+      [500, -265],
+    );
+    for (const [x, z] of samples) {
       ray.set(new Vector3(x, 50, z), new Vector3(0, -1, 0));
       const hit = ray.intersectObject(floor)[0];
       assert.ok(hit);

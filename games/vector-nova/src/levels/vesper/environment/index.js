@@ -19,7 +19,13 @@ import {
   setVesperSurfaceDetail,
   shareForestMaterials,
 } from './materials.js';
-import { vesperGroundHeight, vesperTerrainHeight } from './terrain.js';
+import {
+  vesperGroundHeight,
+  vesperTerrainHeight,
+  VESPER_TERRAIN_X,
+  VESPER_TERRAIN_Z,
+  VESPER_TERRAIN_SEGMENTS,
+} from './terrain.js';
 import { createGroundedTree } from './trees.js';
 
 const ASSET_URL = assetURL('assets/levels/vesper/vesper-canopy.glb');
@@ -134,16 +140,18 @@ export function createVesperEnvironment({
   };
 
   // Uneven three-dimensional floor remains well below the lowest usable deck.
-  const floorGeometry = new T.PlaneGeometry(4200, 3700, 86, 74).rotateX(
-    -Math.PI / 2,
-  );
+  const floorGeometry = new T.PlaneGeometry(
+    4200,
+    3700,
+    ...VESPER_TERRAIN_SEGMENTS,
+  ).rotateX(-Math.PI / 2);
   const vertices = floorGeometry.attributes.position;
   const floorColors = new Float32Array(vertices.count * 3);
   const earth = new T.Color();
   for (let i = 0; i < vertices.count; i++) {
-    const x = vertices.getX(i),
-      z = vertices.getZ(i);
-    vertices.setY(i, vesperGroundHeight(x + 300, z, ground));
+    const x = VESPER_TERRAIN_X[i % VESPER_TERRAIN_X.length] - 300,
+      z = VESPER_TERRAIN_Z[Math.floor(i / VESPER_TERRAIN_X.length)];
+    vertices.setXYZ(i, x, vesperGroundHeight(x + 300, z, ground), z);
     floorGeometry.attributes.uv.setXY(i, (x + 300) / 36, z / 36);
     const mottling =
       0.5 +
@@ -719,30 +727,52 @@ export function createVesperEnvironment({
         yaw: random() * Math.PI * 2,
       });
     }
-    if (vault)
-      for (let s = vault.start; s < vault.end + 30; s += 48) {
+    if (vault) {
+      // Unequal colonies share a rooted bank; open stretches separate them.
+      // Young shelves sit below the larger stocks rather than repeating a row.
+      for (const [fraction, side, juveniles] of [
+        [0.08, -1, 1],
+        [0.27, 1, 0],
+        [0.45, -1, 2],
+        [0.69, 1, 1],
+        [0.91, -1, 0],
+      ]) {
+        const s = vault.start + (vault.end - vault.start) * fraction;
         const f = groundFrame(track, s);
-        for (const side of [-1, 1]) {
-          for (const offset of [63, 82, 101]) {
-            const p = f.position
-              .clone()
-              .addScaledVector(f.right, side * offset);
-            p.y -= 23;
-            if (!clearance.clears(p.x, p.z, 51, 51, p.y + 64, 0, p.y)) continue;
-            fans.push({
-              position: p.toArray(),
-              yaw: random() * Math.PI * 2,
-              // Vary proportions at the existing sockets without expanding clearance.
-              scale: [
-                0.82 + 0.16 * Math.abs(Math.sin(s * 0.037 + side)),
-                0.68 + 0.3 * Math.abs(Math.cos(s * 0.021)),
-                0.78 + 0.2 * Math.abs(Math.sin(s * 0.029)),
-              ],
-            });
-            break;
-          }
+        for (let age = 0; age <= juveniles; age++) {
+          const focal = fraction === 0.45;
+          const scale = focal
+            ? age
+              ? 0.44 + age * 0.18
+              : 1.15
+            : age
+              ? 0.38 + age * 0.14
+              : 0.82 + fraction * 0.14;
+          const p = f.position
+            .clone()
+            .addScaledVector(f.right, side * ((focal ? 84 : 72) + age * 12))
+            .addScaledVector(f.tangent, age * 16 - (focal ? 0 : juveniles * 5));
+          p.y += focal ? 12 - age * 6 : -25 - age * 10;
+          if (
+            !clearance.clears(
+              p.x,
+              p.z,
+              51 * scale,
+              51 * scale,
+              p.y + 50 * scale,
+              0,
+              p.y,
+            )
+          )
+            continue;
+          fans.push({
+            position: p.toArray(),
+            yaw: s * 0.027 + side,
+            scale: [scale, scale, scale],
+          });
         }
       }
+    }
     const addTree = (template, placement, target) => {
       const tree = createGroundedTree(template, placement, ground);
       target.add(tree);
@@ -778,7 +808,14 @@ export function createVesperEnvironment({
         return [quality, layer];
       }),
     );
+    const inMatureGrove = (placement) => {
+      const [x, , z] = placement.position;
+      return ((x - 500) / 175) ** 2 + ((z + 265) / 200) ** 2 < 1;
+    };
     for (let i = 0; i < 3; i++) {
+      near[i] = near[i].filter((placement) => !inMatureGrove(placement));
+      distant[i] = distant[i].filter((placement) => !inMatureGrove(placement));
+      foliage[i] = foliage[i].filter((placement) => !inMatureGrove(placement));
       for (const placement of near[i]) addTreeLod(i, placement, highTrees);
       for (const placement of distant[i]) {
         const tree = addTree(get(`connected_tree_lod_${i}`), placement, group);
@@ -824,6 +861,39 @@ export function createVesperEnvironment({
       group.add(layer);
       qualityFoliage.push(layer);
     }
+    // A composed grove frames Rootfall's bank with unequal mature crowns.
+    // Narrow lower trunks keep the driving corridor open; the connected crown
+    // lives above it. Both presets preserve the same leaf placements.
+    if (rootfall) {
+      const frame = groundFrame(track, rootfall.showcase);
+      for (const quality of ['high', 'low']) {
+        const grove = new T.Group();
+        grove.name = `Vesper / Rootfall mature grove ${quality}`;
+        grove.userData.foliageQuality = quality;
+        for (const [forward, side, scale, yaw] of [
+          [170, -125, 0.7, 0.7],
+          [300, -150, 0.77, 2.9],
+          [85, -140, 0.48, 4.5],
+        ]) {
+          const position = frame.position
+            .clone()
+            .addScaledVector(frame.tangent, forward)
+            .addScaledVector(frame.right, side);
+          const tree = addTree(
+            get(`mature_grove_${quality}`),
+            {
+              position: position.toArray(),
+              scale: [scale, scale, scale],
+              yaw,
+            },
+            grove,
+          );
+          tree.name = `Vesper / rooted mature grove tree ${forward}`;
+        }
+        group.add(grove);
+        qualityFoliage.push(grove);
+      }
+    }
     const rosette = assetScene.getObjectByName('ground_broadleaf_rosette_high');
     if (rosette) {
       const cover = [];
@@ -849,6 +919,36 @@ export function createVesperEnvironment({
             scale: [scale, scale, scale],
           });
         }
+      }
+      // Broad ground growth follows the raised grove shoulder, with open soil
+      // at the roots and a few overlapping masses instead of an even scatter.
+      for (const [x, z, scale, yaw] of [
+        [421, -190, 2.6, 0.2],
+        [444, -209, 1.9, 1.5],
+        [474, -224, 2.3, 3.2],
+        [512, -283, 2.4, 0.8],
+        [532, -315, 2.0, 2.4],
+        [573, -368, 2.2, 4.4],
+        [466, -160, 2.7, 1.2],
+        [535, -192, 2.5, 5.1],
+      ]) {
+        const y = vesperTerrainHeight(x, z, ground) - 0.8;
+        if (
+          clearance.clears(
+            x,
+            z,
+            scale * 28,
+            scale * 28,
+            y + scale * 12,
+            0,
+            y - 3,
+          )
+        )
+          cover.push({
+            position: [x, y, z],
+            scale: [scale, scale, scale],
+            yaw,
+          });
       }
       for (const quality of ['high', 'low']) {
         const layer = new T.Group();
@@ -1076,8 +1176,9 @@ export function createVesperEnvironment({
     highTrees.visible = true;
     lowTrees.visible = true;
     for (const { detailed, simple, center, range } of treeLods) {
-      detailed.visible =
-        !low && Boolean(camera) && center.distanceTo(camera.position) < range;
+      const close =
+        Boolean(camera) && center.distanceTo(camera.position) < range;
+      detailed.visible = !low && close;
       simple.visible = !detailed.visible;
     }
     details.visible = !low;

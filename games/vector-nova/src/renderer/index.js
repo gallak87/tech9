@@ -12,6 +12,7 @@ import { configureShipTextures } from '../ships/texture-loader.js';
 import { textureMemory } from './texture-memory.js';
 import { createContactShadow } from './contact-shadow.js';
 import { attachWorldPass } from './world-pass.js';
+import { drawUnculledScene } from './warm-scene.js';
 
 export async function createRenderer(
   host,
@@ -392,12 +393,24 @@ export async function createRenderer(
           pass,
           pass.enabled,
         ]);
+        const renderToScreen = composer.renderToScreen;
         try {
           for (const [pass] of enabled) pass.enabled = true;
-          composer.render(0);
+          composer.renderToScreen = false;
+          drawUnculledScene(scene, () => {
+            // Exercise both direct (Low) and HDR (High/world-effect) draws.
+            // compileAsync alone leaves some first-use driver work until racing.
+            renderer.setRenderTarget(null);
+            renderer.render(scene, camera);
+            composer.render(0);
+          });
         } finally {
+          composer.renderToScreen = renderToScreen;
+          renderer.setRenderTarget(retainedTarget);
           for (const [pass, active] of enabled) pass.enabled = active;
         }
+        // Replace the temporary all-visible draw before loading can disappear.
+        composer.render(0);
         // Startup-only synchronization: readiness follows actual first-pass work,
         // including shadow, AO and antialias programs, not just submission.
         renderer.getContext().finish();

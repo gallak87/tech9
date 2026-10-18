@@ -23,6 +23,8 @@ Reviewed against `main` and the current source on **2026-10-11**. Implemented me
 
 ## Level work
 
+- [ ] Resolve small on-road vertical bob on Nightweir’s broad banked panels. The two-triangle cross-sections introduce physical diagonal ridges; revisit tessellation together with road seals, pickup projection and other two-vertex-row consumers. A shared solution must preserve collision-query performance. Do not add map-specific hover offsets or smooth the ship through solid road. Countdown/reset placement is handled separately by the shared controller.
+
 - [ ] Investigate the extra turn-assistance feel reported in Zephyr on 2026-10-17: the early right bend beneath the stone cross-span, approaching the boost strip before the first waterfall jump (reference HUD: lap 1, 00:07.300, 396 km/h). The shared 0.3 curvature assistance is present; additional bend-specific behavior is unconfirmed. Compare neutral-input yaw, road banking/support transport and camera motion before proposing a handling change. Deferred from the query-controller/FPS pass; preserve the approved assistance until reviewed with the user.
 
 - [ ] Human driving review of [Worldspire](docs/levels/worldspire.md) and [Nightweir](docs/levels/nightweir.md): compact 13.1 km and 12.4 km races, nine/eight jumps, three corkscrews each, distinct textured edges and distance-linked Awakening/Floodgates events. Both include a 650 m braking runout and are authorized for production completion.

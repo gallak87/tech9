@@ -755,7 +755,9 @@ export function createFlightModel(overrides = {}) {
         });
       } else {
         actor?.reset();
-        magneticBody?.reset(state);
+        magneticBody?.reset(state, {
+          supportHeight: options.supportHeight ?? 0,
+        });
       }
       flight = null;
     }
@@ -1605,7 +1607,10 @@ export function createFlightModel(overrides = {}) {
           previousPose = null;
           releasePose = false;
         }
-        const startPose = clonePose(currentPose) ?? poseOnRoad(state);
+        const startPose =
+          clonePose(currentPose) ??
+          clonePose(magneticBody?.pose(1)) ??
+          poseOnRoad(state);
         previousPose = clonePose(currentPose);
         const elapsed = Math.min(dt, 0.1);
         const count = Math.ceil(elapsed / R.step - 1e-10);
@@ -1629,7 +1634,9 @@ export function createFlightModel(overrides = {}) {
         seed = nextSeed;
         pending = null;
         actor?.reset();
-        magneticBody?.reset(state);
+        magneticBody?.reset(state, {
+          supportHeight: options.supportHeight ?? 0,
+        });
       },
       snapshot() {
         return {
@@ -1807,7 +1814,10 @@ export function createFlightModel(overrides = {}) {
           previousPose = null;
           releasePose = false;
         }
-        const startPose = clonePose(currentPose) ?? poseOnRoad(state);
+        const startPose =
+          clonePose(currentPose) ??
+          clonePose(magneticBody?.pose(1)) ??
+          poseOnRoad(state);
         previousPose = clonePose(currentPose);
         pending = { dt, events: [], native: null };
         if (mode === 'magnetic') {

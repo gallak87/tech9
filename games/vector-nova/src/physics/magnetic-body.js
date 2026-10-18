@@ -13,7 +13,7 @@ import {
 import { VEHICLE_HULL, projectedHullExtent, hullAxes } from './hull.js';
 import { createContactFeedback, racerImpact } from './contact-feedback.js';
 
-export const MAGNETIC_BODY_RULES = `magnetic-query-v9-visual-landing160-yaw-0.85-120-grip:${COLLISION_HULLS_ID}`;
+export const MAGNETIC_BODY_RULES = `magnetic-query-v10-supported-reset-visual-landing160-yaw-0.85-120-grip:${COLLISION_HULLS_ID}`;
 const clamp = T.MathUtils.clamp;
 const axisY = new T.Vector3(0, 1, 0);
 const axisZ = new T.Vector3(0, 0, 1);
@@ -301,6 +301,13 @@ export function createMagneticBody({
       },
     };
   }
+  function supportedPose(state, options) {
+    const pose = support(state, options);
+    pose.quaternion.multiply(
+      new T.Quaternion().setFromAxisAngle(axisY, state.heading),
+    );
+    return pose;
+  }
   function initialize(state, options) {
     actor.setContactShape(getCollisionHull(state.chassisId ?? state.shipId));
     const frame = magneticFrame(
@@ -309,10 +316,7 @@ export function createMagneticBody({
       state.lateral,
       sampleRoad,
     );
-    const pose = support(state, options);
-    pose.quaternion.multiply(
-      new T.Quaternion().setFromAxisAngle(axisY, state.heading),
-    );
+    const pose = supportedPose(state, options);
     actor.reset({
       active: true,
       pose,
@@ -654,7 +658,7 @@ export function createMagneticBody({
         orientation: upright.clone().invert().multiply(body.quaternion),
       };
     },
-    reset(state) {
+    reset(state, options = {}) {
       if (state)
         actor.setContactShape(
           getCollisionHull(state.chassisId ?? state.shipId),
@@ -665,6 +669,13 @@ export function createMagneticBody({
       edgeStall = 0;
       roadRecovery = null;
       contactFeedback.reset();
+      if (state) {
+        // Countdown, recovery and scenario placement use the same authored skin
+        // and whole-hull clearance as driving. Keep the actor inactive until it
+        // is staged, so disabled rivals cannot collide with a practice session.
+        current = supportedPose(state, options);
+        previous = poseCopy(current);
+      }
     },
     pose(alpha = 1) {
       if (!current) return null;

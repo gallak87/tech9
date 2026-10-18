@@ -179,3 +179,53 @@ test('contact smoke and glow reproduce the clock, freeze in reduced motion and r
   cues.dispose();
   for (const resource of resources) assert.equal(disposals.get(resource), 1);
 });
+
+test('surge surfaces retain their complete vertex layout from loading through activation', () => {
+  const cues = createCindercoilCues(track);
+  try {
+    const surges = [];
+    cues.group.traverse((mesh) => {
+      if (
+        mesh.isMesh &&
+        mesh.geometry.attributes.cinderEdge &&
+        !mesh.geometry.attributes.cinderAlong
+      )
+        surges.push(mesh);
+    });
+    assert.equal(
+      surges.length,
+      track.surgeZones.filter((entry) => entry.kind !== 'spill').length,
+    );
+    const initial = surges.map((mesh) => {
+      const { position, normal } = mesh.geometry.attributes;
+      assert.ok(
+        normal,
+        'normals must exist before the initially hidden surge is warmed',
+      );
+      assert.equal(normal.count, position.count);
+      return {
+        mesh,
+        position,
+        normal,
+        attributes: Object.keys(mesh.geometry.attributes),
+      };
+    });
+    const activated = new Set();
+    for (const time of [0, 2, 4, 6, 10, 13, 17]) {
+      cues.update({ time });
+      for (const { mesh, position, normal, attributes } of initial) {
+        assert.equal(mesh.geometry.attributes.position, position);
+        assert.equal(mesh.geometry.attributes.normal, normal);
+        assert.deepEqual(Object.keys(mesh.geometry.attributes), attributes);
+        assert.ok(Array.from(normal.array).every(Number.isFinite));
+        if (mesh.visible) {
+          activated.add(mesh);
+          assert.ok(normal.array.some((value) => Math.abs(value) > 0.1));
+        }
+      }
+    }
+    assert.equal(activated.size, surges.length);
+  } finally {
+    cues.dispose();
+  }
+});

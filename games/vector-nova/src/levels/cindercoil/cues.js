@@ -177,6 +177,9 @@ export function createCindercoilCues(track, shape = false) {
       new T.Float32BufferAttribute(positions, 3),
     );
     geometry.setIndex(indices);
+    // Keep the vertex layout complete while the surge is hidden. Adding normals
+    // on first activation would require a new shader after loading's warmup.
+    geometry.computeVertexNormals();
     geometry.setAttribute(
       'cinderEdge',
       new T.Float32BufferAttribute(

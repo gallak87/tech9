@@ -96,6 +96,9 @@ export function createFrontend(host) {
     launchBack = 'home',
     launchTarget = 'race',
     inspectionBack = null;
+  let inspector = null,
+    inspectorController = null,
+    inspectorPending = null;
   let cacheModule, unsubscribeCache, unsubscribeSettings;
   let preload = {
     ready: 0,
@@ -127,6 +130,8 @@ export function createFrontend(host) {
   const transfer = host.querySelector('.transfer-status');
   const gameHost = host.querySelector('#game-host');
   const shell = host.querySelector('#front-shell');
+  const inspectorHost = document.createElement('div');
+  inspectorHost.id = 'inspector-host';
   const music =
     artPass || inspectShip || parameters.get('music') === '0'
       ? null
@@ -182,9 +187,10 @@ export function createFrontend(host) {
     document.body.classList.toggle('reduced-motion', settings.reducedMotion);
     shell.hidden = ['race', 'inspection', 'review'].includes(next);
     document.body.classList.toggle('developer-entry', special);
-    gameHost.inert = !shell.hidden;
+    gameHost.inert = !shell.hidden || !!inspector;
     game?.setSuspended(
-      !['race', 'inspection', 'review', 'results'].includes(next),
+      !!inspector ||
+        !['race', 'inspection', 'review', 'results'].includes(next),
     );
     document.body.dataset.screen = next;
     music?.setDriving(next === 'race');
@@ -332,11 +338,13 @@ export function createFrontend(host) {
         ? `<h1 class="header-label">${title}</h1>`
         : `<span class="header-label">${title}</span>`;
     shell.innerHTML = `<header class="front-header"><button class="front-brand" data-action="home" aria-label="Vector Nova circuits">VECTOR<span>//</span>NOVA</button>${headerLabel}${headerAction}</header><main class="front-content" data-page="${screen}"></main><footer class="front-footer"><span>${screen === 'circuits' ? 'ARROWS · BROWSE <i>/</i> ENTER · SELECT <i>/</i> TAB · CONTROLS' : `${sessionName(screen === 'results' ? loadedId : selected, screen !== 'results' && intent === 'practice').toUpperCase()} <i>/</i> ${escape((screen === 'results' ? loadedLevel() : level()).name.toUpperCase())}`}</span></footer>`;
+    if (screen === 'loading' && launchTarget === 'inspection')
+      shell.querySelector('.front-footer span').textContent = 'SHIP INSPECTOR';
     const main = shell.querySelector('.front-content');
     let content = main;
     if (screen === 'loading') {
       const inspecting = launchTarget === 'inspection';
-      content.innerHTML = `<section class="loading-copy"><div class="loading-card">${picture(route())}${routeArt(route())}</div><div class="transfer-slot loading-transfer"></div>${heading(inspecting ? 'PREPARING STUDIO' : 'LOADING CIRCUIT', inspecting ? 'Ship inspector' : escape(level().name))}${inspecting ? '' : `<div class="session-facts">${facts()}</div>`}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
+      content.innerHTML = `<section class="loading-copy">${inspecting ? '' : `<div class="loading-card">${picture(route())}${routeArt(route())}</div>`}<div class="transfer-slot loading-transfer"></div>${heading(inspecting ? 'PREPARING STUDIO' : 'LOADING CIRCUIT', inspecting ? 'Ship inspector' : escape(level().name))}${inspecting ? '' : `<div class="session-facts">${facts()}</div>`}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
     } else if (screen === 'settings') {
       content.innerHTML = `<div class="settings-layout"><section class="settings-form"><label><span>Graphics <small>High adds ambient occlusion and postprocessing. Low reduces GPU load.</small></span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume <small>Tunes has its own volume control.</small></span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion <small>Reduces decorative motion and distortion.</small></span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p>Saved on this device.</p></section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
         [
@@ -483,10 +491,18 @@ export function createFrontend(host) {
   function updateStatus() {
     const loading = screen === 'loading';
     const label = loading
-      ? error || `${level().name} · ${progress || 'Preparing session'}`
+      ? error ||
+        `${launchTarget === 'inspection' ? 'Ship inspector' : level().name} · ${progress || 'Preparing session'}`
       : preload.label;
     const fraction = loading
-      ? loadStep / (loadStages.length - 1)
+      ? launchTarget === 'inspection'
+        ? [
+            'Preparing studio',
+            'Preparing ships',
+            'Warming studio',
+            'Ready',
+          ].indexOf(progress) / 3
+        : loadStep / (loadStages.length - 1)
       : preload.fraction;
     transfer.hidden = !(
       loading ||
@@ -678,9 +694,7 @@ export function createFrontend(host) {
     loadStep = 0;
     setScreen('loading');
     try {
-      // Inspection borrows a retained world without replacing its active run,
-      // even when the menu is currently browsing a different track.
-      const current = target === 'inspection' && game ? game : await prepare();
+      const current = await prepare();
       if (attempt !== launchGeneration || screen !== 'loading') return;
       current.configure(settings);
       if (target === 'race') current.prepareSession();
@@ -701,14 +715,80 @@ export function createFrontend(host) {
       if (attempt === launchGeneration) launching = false;
     }
   }
-  function openInspector() {
-    return loadView('inspection', (current) => {
+  function closeInspector() {
+    const destination = inspectionBack ?? launchBack;
+    if (inspector) shipId = inspector.getSnapshot().ship.id;
+    inspectorController?.abort();
+    inspector?.dispose();
+    inspector = null;
+    inspectionBack = null;
+    inspectorHost.remove();
+    host.prepend(gameHost);
+    if (special) leaveReview();
+    setScreen(destination);
+    shell
+      .querySelector('[data-action="inspect"]')
+      ?.focus({ preventScroll: true });
+  }
+  async function openInspector() {
+    if (launching) return;
+    if (choosingSession()) launchBack = screen;
+    launching = true;
+    launchTarget = 'inspection';
+    const attempt = ++launchGeneration;
+    const previous = inspectorPending;
+    inspectorController?.abort();
+    inspectorController = new AbortController();
+    const signal = inspectorController.signal;
+    error = '';
+    progress = 'Preparing studio';
+    setScreen('loading');
+    // Keep a retained race suspended and detached while the independent studio
+    // owns the visible UI. It is restored, unchanged, when the studio closes.
+    gameHost.remove();
+    host.prepend(inspectorHost);
+    inspectorHost.inert = true;
+    const promise = (async () => {
+      await previous?.catch(() => {});
+      signal.throwIfAborted();
+      const { createInspector } = await import('../ships/inspector.js');
+      signal.throwIfAborted();
+      return createInspector({
+        host: inspectorHost,
+        shipId,
+        settings,
+        signal,
+        onProgress(stage) {
+          if (attempt !== launchGeneration) return;
+          progress = stage;
+          updateStatus();
+        },
+        onBack: closeInspector,
+      });
+    })();
+    inspectorPending = promise;
+    try {
+      const current = await promise;
+      if (attempt !== launchGeneration || screen !== 'loading') {
+        current.dispose();
+        return;
+      }
+      inspector = current;
       inspectionBack = launchBack;
-      // Enter the studio while still suspended: menu inspection never exposes
-      // the world or shares a callback with Race/Practice, including on retry.
-      current.inspect({ fromMenu: true });
+      inspectorHost.inert = false;
       setScreen('inspection');
-    });
+      inspectorHost
+        .querySelector('#inspect-back')
+        ?.focus({ preventScroll: true });
+    } catch (cause) {
+      if (attempt === launchGeneration && cause.name !== 'AbortError') {
+        error = cause.message;
+        updateStatus();
+      }
+    } finally {
+      if (inspectorPending === promise) inspectorPending = null;
+      if (attempt === launchGeneration) launching = false;
+    }
   }
   function launch() {
     return loadView('race', (current) => {
@@ -722,6 +802,9 @@ export function createFrontend(host) {
     launchGeneration++;
     launching = false;
     controller?.abort();
+    inspectorController?.abort();
+    inspectorHost.remove();
+    host.prepend(gameHost);
     error = '';
     progress = '';
     if (special) leaveReview();
@@ -739,25 +822,16 @@ export function createFrontend(host) {
     remember();
   }
   async function launchSpecial() {
+    if (inspectShip) return openInspector();
     const attempt = ++launchGeneration;
     setScreen('loading');
     try {
       const current = await prepare();
       if (attempt !== launchGeneration || screen !== 'loading') return;
-      if (inspectShip) {
-        const loaded =
-          current.getSnapshot().ship.id === shipId ||
-          (await current.selectShip(shipId));
-        if (attempt !== launchGeneration || screen !== 'loading') return;
-        if (!loaded) throw new Error('Ship could not be loaded. Try again.');
-        setScreen('inspection');
-        current.inspect();
-      } else {
-        setScreen('review');
-        if (artPass) {
-          current.setFlyView(readArtView(parameters));
-          current.openDevTools();
-        }
+      setScreen('review');
+      if (artPass) {
+        current.setFlyView(readArtView(parameters));
+        current.openDevTools();
       }
     } catch (cause) {
       if (attempt === launchGeneration && cause.name !== 'AbortError') {
@@ -1041,6 +1115,8 @@ export function createFrontend(host) {
     () => {
       controller?.abort();
       game?.dispose();
+      inspectorController?.abort();
+      inspector?.dispose();
       music?.dispose();
       shipPreview?.dispose();
       unsubscribeCache?.();
@@ -1052,6 +1128,7 @@ export function createFrontend(host) {
   );
   unsubscribeSettings = subscribeSettings((next) => {
     settings = { ...next };
+    inspector?.configure(settings);
     document.body.classList.toggle('reduced-motion', settings.reducedMotion);
     for (const control of shell.querySelectorAll('[data-setting]')) {
       const value = settings[control.dataset.setting];
@@ -1079,7 +1156,8 @@ export function createFrontend(host) {
       selected,
       previewLevelId,
       loadedId,
-      loading: !!pending,
+      loading: !!pending || !!inspectorPending,
+      inspector: inspector?.getSnapshot() ?? null,
       error,
       intent,
       shipId,

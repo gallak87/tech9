@@ -35,9 +35,22 @@ const browser = await chromium.launch({
 });
 const url = (query = '') => new URL(`?${query}`, base).href;
 const front = (page) => page.evaluate(() => window.__VN_FRONTEND.getState());
-const snapshot = (page) => page.evaluate(() => window.__VN.getSnapshot());
+const snapshot = (page) =>
+  page.evaluate(() => (window.__VN_INSPECTOR ?? window.__VN).getSnapshot());
+const inspectorReady = (page) =>
+  page.waitForFunction(
+    () =>
+      window.__VN_INSPECTOR?.ready &&
+      window.__VN_FRONTEND.getState().screen === 'inspection',
+    null,
+    { timeout: 60000 },
+  );
 const booted = (page) =>
-  page.waitForFunction(() => window.__VN?.ready, null, { timeout: 90000 });
+  page.waitForFunction(
+    () => window.__VN?.ready || window.__VN_INSPECTOR?.ready,
+    null,
+    { timeout: 90000 },
+  );
 const fleetReady = (page) =>
   page.waitForFunction(
     () => window.__VN_FRONTEND?.getState().preload.ready === 4,
@@ -938,7 +951,7 @@ try {
         await page.locator('[data-rival="rook"]').focus();
         await page.keyboard.press('End');
         await page.waitForFunction(
-          (id) => window.__VN.getSnapshot().inspection.rivalId === id,
+          (id) => window.__VN_INSPECTOR.getSnapshot().inspection.rivalId === id,
           last,
         );
         assert.equal(
@@ -1006,8 +1019,19 @@ try {
       },
     );
     await check(
-      'ship inspector opens a selected sprint without starting a race',
+      'ship inspector loads no track resources and opens a selected sprint',
       async (page) => {
+        const trackRequests = [];
+        page.on('request', (request) => {
+          const path = new URL(request.url()).pathname;
+          if (
+            /\/src\/core\/game\.js|\/src\/physics\/|\/src\/levels\/[^/]+\/(?!metadata\.js)|\/assets\/game-[^/]+\.js|\/assets\/levels\//.test(
+              path,
+            ) &&
+            !/\/audio\/.*\.(?:mp3|ogg)$/.test(path)
+          )
+            trackRequests.push(path);
+        });
         await page.goto(url('level=halcyon'));
         await page.locator('[data-level="worldspire"]').click();
         await page.evaluate(() => {
@@ -1021,7 +1045,9 @@ try {
         });
         await page.locator('[data-action="inspect"]').click();
         await page.waitForFunction(
-          () => window.__VN?.getSnapshot().mode === 'inspection',
+          () =>
+            window.__VN_INSPECTOR?.ready &&
+            window.__VN_FRONTEND.getState().screen === 'inspection',
           null,
           { timeout: 90000 },
         );
@@ -1034,8 +1060,17 @@ try {
         await page.keyboard.press('Enter');
         const inspected = await snapshot(page);
         assert.equal(inspected.mode, 'inspection');
-        assert.equal(inspected.sessionActive, false);
-        assert.equal(inspected.tick, 0);
+        assert.deepEqual(
+          trackRequests,
+          [],
+          'no track implementation, physics, or level assets loaded',
+        );
+        assert.equal(
+          await page.evaluate(() => !!window.__VN),
+          false,
+          'inspector never creates a race runtime',
+        );
+        assert.equal((await front(page)).loadedId, null);
         assert.equal(
           await page.evaluate(() => window.enteredScreens.includes('race')),
           false,
@@ -1057,12 +1092,14 @@ try {
         });
         await page.locator('[data-action="inspect"]').click();
         await page.waitForFunction(
-          () => window.__VN?.getSnapshot().mode === 'inspection',
+          () =>
+            window.__VN_INSPECTOR?.ready &&
+            window.__VN_FRONTEND.getState().screen === 'inspection',
           null,
           { timeout: 90000 },
         );
-        assert.equal((await snapshot(page)).sessionActive, false);
-        assert.equal((await snapshot(page)).tick, 0);
+        assert.equal(await page.evaluate(() => !!window.__VN), false);
+        assert.equal((await front(page)).loadedId, null);
         assert.equal(await page.locator('[data-preview="heat"]').count(), 0);
         assert.equal(await page.locator('#inspect-start').isVisible(), false);
         assert.match(
@@ -1081,7 +1118,7 @@ try {
           .locator('#inspection-fleet-picker [data-ship="shrike"]')
           .click();
         await page.waitForFunction(
-          () => window.__VN.getSnapshot().ship.id === 'shrike',
+          () => window.__VN_INSPECTOR.getSnapshot().ship.id === 'shrike',
         );
         await page.locator('#inspect-back').click();
         assert.equal((await front(page)).screen, 'home');
@@ -1093,6 +1130,7 @@ try {
           true,
         );
         await page.locator('[data-action="practice"]').click();
+        await booted(page);
         await page.waitForFunction(
           () => window.__VN.getSnapshot().mode === 'racing',
         );
@@ -1106,12 +1144,20 @@ try {
         });
         await page.locator('[data-level="worldspire"]').click();
         await page.locator('[data-action="inspect"]').click();
+        await inspectorReady(page);
         assert.equal((await snapshot(page)).mode, 'inspection');
         assert.equal(
           await page.evaluate(() => window.retainedRuntime === window.__VN),
           true,
         );
+        await page
+          .locator('#inspection-fleet-picker [data-ship="needle"]')
+          .click();
+        await page.waitForFunction(
+          () => window.__VN_INSPECTOR.getSnapshot().ship.id === 'needle',
+        );
         await page.keyboard.press('Escape');
+        assert.equal((await front(page)).shipId, 'needle');
         assert.equal((await front(page)).screen, 'home');
         assert.equal((await front(page)).selected, 'worldspire');
         assert.equal((await front(page)).loadedId, 'halcyon');
@@ -1124,11 +1170,37 @@ try {
       },
     );
     await check(
+      'standalone inspector retries failed ship loading',
+      async (page) => {
+        await page.route('**/assets/ships/needle/needle.glb', (route) =>
+          route.abort(),
+        );
+        await page.goto(url('inspect=1&ship=needle'));
+        await page.locator('.transfer-status.failed').waitFor();
+        assert.equal(await page.evaluate(() => !!window.__VN), false);
+        assert.equal(await page.locator('canvas#world').count(), 0);
+        assert.equal(await page.locator('.loading-card').count(), 0);
+        assert.doesNotMatch(
+          await page.locator('.transfer-status').textContent(),
+          /Halcyon|circuit|road/i,
+        );
+        await page.unrouteAll({ behavior: 'wait' });
+        await page.locator('[data-action="retry"]').click();
+        await inspectorReady(page);
+        assert.equal((await snapshot(page)).ship.id, 'needle');
+        await page.locator('#inspect-back').click();
+        assert.equal((await front(page)).screen, 'home');
+        assert.equal(await page.locator('canvas#world').count(), 0);
+      },
+    );
+    await check(
       'direct inspector, developer launcher and jump-test contract',
       async (page) => {
         await page.goto(url('inspect=1&ship=shrike&level=halcyon'));
         await page.waitForFunction(
-          () => window.__VN?.getSnapshot().mode === 'inspection',
+          () =>
+            window.__VN_INSPECTOR?.ready &&
+            window.__VN_FRONTEND.getState().screen === 'inspection',
           null,
           { timeout: 90000 },
         );
@@ -1219,7 +1291,7 @@ try {
         release = resolve;
       });
       await page.route(
-        /\/(?:src\/core\/game\.js|assets\/game-[^/]+\.js)(?:\?|$)/,
+        /\/(?:src\/(?:core\/game|ships\/inspector)\.js|assets\/(?:game|inspector)-[^/]+\.js)(?:\?|$)/,
         async (route) => {
           await gate;
           await route.continue().catch(() => {});
@@ -1291,6 +1363,57 @@ try {
     );
   }
   if (!flags.includes('--desktop')) {
+    for (const viewport of [
+      { width: 390, height: 844 },
+      { width: 768, height: 768 },
+    ]) {
+      await check(
+        `standalone inspector touch ${viewport.width}×${viewport.height}`,
+        async (page) => {
+          const loads = [];
+          page.on('request', (request) => {
+            const path = new URL(request.url()).pathname;
+            if (
+              /\/src\/core\/game\.js|\/assets\/game-[^/]+\.js|\/assets\/levels\/(?!halcyon\/audio\/)/.test(
+                path,
+              )
+            )
+              loads.push(path);
+          });
+          await page.goto(url('level=shatterline'));
+          const entry = page.locator('[data-action="inspect"]');
+          if (viewport.width < 760) await entry.tap();
+          else await entry.click();
+          await inspectorReady(page);
+          assert.equal(await page.evaluate(() => !!window.__VN), false);
+          assert.equal((await front(page)).loadedId, null);
+          assert.deepEqual(loads, []);
+          await page.locator('[data-ship="bastion"]').click();
+          await page.waitForFunction(
+            () => window.__VN_INSPECTOR.getSnapshot().ship.id === 'bastion',
+          );
+          await page.getByRole('tab', { name: 'AI racers' }).click();
+          await page.locator('[data-rival="kite"]').click();
+          await page.waitForFunction(
+            () =>
+              window.__VN_INSPECTOR.getSnapshot().inspection.rivalId === 'kite',
+          );
+          const back = await page.locator('#inspect-back').boundingBox();
+          assert.ok(back.y >= 0 && back.y + back.height <= viewport.height);
+          assert.equal(
+            await page.evaluate(
+              () => document.documentElement.scrollWidth > innerWidth,
+            ),
+            false,
+          );
+          await page.locator('#inspect-back').click();
+          assert.equal((await front(page)).shipId, 'bastion');
+          assert.equal((await front(page)).selected, 'shatterline');
+          assert.equal(await page.locator('canvas#world').count(), 0);
+        },
+        viewport,
+      );
+    }
     for (const viewport of [
       { width: 768, height: 768 },
       { width: 390, height: 844 },

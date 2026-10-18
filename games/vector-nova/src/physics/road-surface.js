@@ -52,13 +52,16 @@ export function createRoadSurface(triangles) {
         vertices.set(key, {
           along: new Vector3(),
           across: new Vector3(),
-          count: 0,
+          weight: 0,
           owners: new Set(),
         });
       const vertex = vertices.get(key);
-      vertex.along.add(along);
-      vertex.across.add(across);
-      vertex.count++;
+      // Weight by route-space area: a narrow bevel must not tilt an entire
+      // broad driving panel as much as its flat faces do. This is baked once;
+      // sampling retains the exact triangle height and query ownership.
+      vertex.along.addScaledVector(along, determinant);
+      vertex.across.addScaledVector(across, determinant);
+      vertex.weight += determinant;
       vertex.owners.add(source.id);
       return vertex;
     });
@@ -84,8 +87,8 @@ export function createRoadSurface(triangles) {
     }
   }
   for (const vertex of vertices.values()) {
-    vertex.along.divideScalar(vertex.count);
-    vertex.across.divideScalar(vertex.count);
+    vertex.along.divideScalar(vertex.weight);
+    vertex.across.divideScalar(vertex.weight);
   }
   for (const face of faces)
     face.owners = Object.freeze([

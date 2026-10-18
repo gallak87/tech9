@@ -5,7 +5,7 @@ import { createRoadSurface, roadTop } from './road-surface.js';
 import { VEHICLE_HULL } from './hull.js';
 
 export const RAPIER_RULES = Object.freeze({
-  version: 10,
+  version: 11,
   packageVersion: '0.21.0',
   controller: 'query-hover-v3',
   staticCellSize: 96,

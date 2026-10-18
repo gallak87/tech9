@@ -226,3 +226,51 @@ test('backing produces no redundant grounded contacts and becomes solid again in
   assert.ok(hits.some(({ shape }) => shape.id === 'backing'));
   assert.ok(actor.read().position.y < -0.12);
 });
+
+test('a narrow bevel cannot impose its steep normal across a broad flat driving panel', () => {
+  const triangles = [];
+  for (const [left, right, leftY, rightY] of [
+    [0, 0.14, 0, 0.06],
+    [0.14, 5, 0.06, 0.06],
+  ]) {
+    const points = [
+      [left, leftY, 0],
+      [left, leftY, 40],
+      [right, rightY, 0],
+      [right, rightY, 40],
+    ];
+    const coordinates = [
+      [0, left],
+      [40, left],
+      [0, right],
+      [40, right],
+    ];
+    for (const indices of [
+      [0, 1, 2],
+      [2, 1, 3],
+    ])
+      triangles.push({
+        id: 'bevelled-panel',
+        kind: 'deck',
+        points: indices.map((i) => points[i]),
+        roadCoordinates: indices.map((i) => coordinates[i]),
+      });
+  }
+  const sample = createRoadSurface(triangles);
+  for (const distance of [1, 10, 20, 30, 39]) {
+    const road = sample(distance, 2, {
+      position: new Vector3(2, 0, distance),
+      up: reference.up,
+    });
+    assert.ok(
+      road.up.angleTo(reference.up) < Math.PI / 180,
+      'tiny edge faces cannot induce multi-degree rolling over the flat panel',
+    );
+    assert.ok(
+      Math.abs(road.position.y - 0.06) < 1e-9,
+      'height still follows the actual mesh',
+    );
+    assert.deepEqual(road.roadOwners, ['bevelled-panel']);
+  }
+  sample.dispose();
+});

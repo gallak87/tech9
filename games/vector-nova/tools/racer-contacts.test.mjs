@@ -56,7 +56,7 @@ test('a hull stranded across a boundary loses support and recovers without gaini
       quaternion: frame.quaternion,
     });
     actor.setVelocity(new T.Vector3());
-    body.adopt(state);
+    body.adopt(state, { duration: 0.16 });
     let contacts = 0,
       departure,
       recovered,

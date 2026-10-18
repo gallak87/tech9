@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
-import { createRapierWorld } from '../src/physics/rapier-world.js';
+import {
+  createRapierWorld,
+  RAPIER_RULES,
+} from '../src/physics/rapier-world.js';
 import {
   COLLISION_HULLS,
   getCollisionHull,
@@ -316,53 +319,41 @@ test('a changing local support normal follows a closed tube without setting the 
   );
 });
 
-test('capture can change the joint body frame without imposing orientation and restores that target exactly', async (t) => {
+test('new magnetic support absorbs tumble in one swept tick while preserving heading and yaw', async (t) => {
   const world = await createRapierWorld({ gravity: 0 });
   t.after(() => world.dispose());
   const actor = world.createActor();
-  const inverted = new T.Quaternion().setFromAxisAngle(
-    new T.Vector3(0, 0, 1),
-    Math.PI,
+  const orientation = new T.Quaternion().setFromEuler(
+    new T.Euler(0.4, 0.7, -0.3),
   );
-  const support = {
-    ...pose(new T.Vector3(0, 3, 0)),
-    bodyFrame: inverted.clone().invert(),
-    normalCompliance: true,
-  };
+  const support = pose(new T.Vector3(0, 3, 0));
   actor.reset({
-    pose: pose(support.position, inverted),
+    pose: pose(support.position, orientation),
+    velocity: new T.Vector3(8, -30, 100),
+    angularVelocity: new T.Vector3(6, 1.2, -8),
     support,
     active: true,
   });
-  world.step(DT);
-  assert.ok(
-    new T.Vector3(0, 1, 0).applyQuaternion(actor.read().quaternion).y < -0.999,
-    'the initial support matches the actual inverted attitude',
-  );
   const saved = JSON.parse(JSON.stringify(world.snapshot()));
-  const capture = () => {
-    for (let tick = 1; tick <= 30; tick++) {
-      actor.stage({
-        support: {
-          ...support,
-          bodyFrame: inverted
-            .clone()
-            .invert()
-            .slerp(identity(), Math.min(1, tick / 20)),
-        },
-      });
-      world.step(DT);
-    }
-    return actor.read();
-  };
-  const expected = capture();
+  world.step(DT);
+  const expected = actor.read();
+  const normal = new T.Vector3(0, 1, 0);
+  const upright = new T.Quaternion()
+    .setFromUnitVectors(normal.clone().applyQuaternion(orientation), normal)
+    .multiply(orientation);
+  const yaw = 1.2 * Math.exp(-RAPIER_RULES.angularDamping * DT);
+  const turned = new T.Quaternion()
+    .setFromAxisAngle(normal, yaw * DT)
+    .multiply(upright);
   assert.ok(
-    new T.Vector3(0, 1, 0).applyQuaternion(expected.quaternion).y > 0.999,
-    'accepted movement follows the evolving capture target',
+    expected.quaternion.angleTo(turned) < 1e-7,
+    'alignment transports the existing heading and immediately applies yaw',
   );
+  assert.deepEqual(expected.angularVelocity.toArray(), [0, yaw, 0]);
+  assert.deepEqual(expected.velocity.toArray(), [8, 0, 100]);
   world.restore(saved);
-  assert.ok(actor.read().support.bodyFrame.angleTo(support.bodyFrame) < 1e-8);
-  assert.deepEqual(capture(), expected);
+  world.step(DT);
+  assert.deepEqual(actor.read(), expected);
 });
 
 test('ten interacting racers restore their joint/contact state and repeat the same solve', async (t) => {

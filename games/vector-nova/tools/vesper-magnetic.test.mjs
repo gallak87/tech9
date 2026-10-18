@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import * as T from 'three';
 import { createVesperTrack } from '../src/levels/vesper/track/model.js';
 import { createVesperRuntime } from '../src/levels/vesper/runtime.js';
 import {
@@ -403,7 +404,7 @@ test('crowded Vesper touchdown absorbs normal motion without false forward braki
   }
   let landed = false,
     settledTicks = 0,
-    captureTicks = 0,
+    supportedTicks = 0,
     nearbyTicks = 0;
   for (let tick = 0; tick < 4200 && settledTicks < 35; tick++) {
     const input = getRacerControl(state, track, {
@@ -430,7 +431,21 @@ test('crowded Vesper touchdown absorbs normal motion without false forward braki
     if (!landed) continue;
     settledTicks++;
     const actor = actors[0].read();
-    captureTicks += Number(actor.support?.normalCompliance === true);
+    if (actor.support) {
+      supportedTicks++;
+      const normal = new T.Vector3(0, 1, 0).applyQuaternion(
+        actor.support.quaternion,
+      );
+      assert.ok(
+        new T.Vector3(0, 1, 0).applyQuaternion(actor.quaternion).dot(normal) >
+          0.9999,
+        'crowded touchdown retains road alignment',
+      );
+      assert.ok(
+        Math.abs(actor.velocity.dot(normal)) < 1e-6,
+        'magnetic support absorbs normal bounce immediately',
+      );
+    }
     nearbyTicks += Number(
       actors
         .slice(1)
@@ -447,12 +462,7 @@ test('crowded Vesper touchdown absorbs normal motion without false forward braki
   }
   assert.ok(landed && settledTicks === 35);
   assert.ok(
-    captureTicks > 0 && nearbyTicks > 0,
-    'touchdown settling happens beside the real race field',
-  );
-  assert.equal(
-    actors[0].read().support.normalCompliance,
-    false,
-    'ordinary road adhesion returns after capture',
+    supportedTicks === settledTicks - 1 && nearbyTicks > 0,
+    'support returns on the first tick after touchdown beside the real race field',
   );
 });

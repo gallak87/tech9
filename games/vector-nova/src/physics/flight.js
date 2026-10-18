@@ -711,16 +711,20 @@ export function createFlightModel(overrides = {}) {
           bodyExtent(contactPose.quaternion, frame.up) -
             bodyExtent(roadPose.quaternion, frame.up),
         );
-        landingSettle = {
-          elapsed: 0,
-          orientation: roadPose.quaternion
-            .clone()
-            .invert()
-            .multiply(contactPose.quaternion),
-          heightResidual:
-            contactPose.position.clone().sub(roadPose.position).dot(frame.up) -
-            support,
-        };
+        landingSettle = magneticBody
+          ? null
+          : {
+              elapsed: 0,
+              orientation: roadPose.quaternion
+                .clone()
+                .invert()
+                .multiply(contactPose.quaternion),
+              heightResidual:
+                contactPose.position
+                  .clone()
+                  .sub(roadPose.position)
+                  .dot(frame.up) - support,
+            };
         currentPose = contactPose;
       } else {
         // Recovery intentionally relocates to the authored apron without a
@@ -742,10 +746,13 @@ export function createFlightModel(overrides = {}) {
         },
       });
       if (magneticBody && landing) {
-        // Reattach through the constraint on the next shared step. Keep the
-        // solver's pose and tangential momentum; never snap a contacted body.
+        // The next shared sweep restores ordinary magnetic support. Keep the
+        // accepted contact pose and momentum; landing smoothing is visual only.
         currentPose = clonePose(actor.read());
-        magneticBody.adopt(state);
+        magneticBody.adopt(state, {
+          duration: R.landingSettleDuration,
+          supportHeight: options.supportHeight ?? 0,
+        });
       } else {
         actor?.reset();
         magneticBody?.reset(state);
@@ -1821,11 +1828,6 @@ export function createFlightModel(overrides = {}) {
           const { before, input, startPose } = pending.grounded;
           events.push(...magneticBody.finish(state));
           currentPose = clonePose(actor.read());
-          if (landingSettle) {
-            landingSettle.elapsed += pending.dt;
-            if (landingSettle.elapsed >= R.landingSettleDuration)
-              landingSettle = null;
-          }
           if (magneticBody.pose(1)?.recovering) {
             pending = null;
             return events;

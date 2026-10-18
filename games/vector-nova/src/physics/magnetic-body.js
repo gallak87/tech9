@@ -13,7 +13,7 @@ import {
 import { VEHICLE_HULL, projectedHullExtent, hullAxes } from './hull.js';
 import { createContactFeedback, racerImpact } from './contact-feedback.js';
 
-export const MAGNETIC_BODY_RULES = `magnetic-query-v8-authored-skin-proposal-yaw-0.85-120-grip:${COLLISION_HULLS_ID}`;
+export const MAGNETIC_BODY_RULES = `magnetic-query-v9-visual-landing160-yaw-0.85-120-grip:${COLLISION_HULLS_ID}`;
 const clamp = T.MathUtils.clamp;
 const axisY = new T.Vector3(0, 1, 0);
 const axisZ = new T.Vector3(0, 0, 1);
@@ -167,6 +167,49 @@ export function createMagneticBody({
     return edgeStall >= 0.6;
   }
 
+  function modelClearance(quaternion, up, vertices, includeArcade = false) {
+    const direction = up.clone().applyQuaternion(quaternion.clone().invert());
+    let extent = hull.hover;
+    for (let i = 0; i < vertices.length; i += 3)
+      extent = Math.max(
+        extent,
+        -vertices[i] * direction.x -
+          vertices[i + 1] * direction.y -
+          vertices[i + 2] * direction.z,
+      );
+    return includeArcade
+      ? Math.max(extent, projectedHullExtent(quaternion, up, hull))
+      : extent;
+  }
+  function landingPresentation(body, frame, state, baseHeight) {
+    const t = clamp(capture.elapsed / capture.duration, 0, 1),
+      blend = t * t * (3 - 2 * t);
+    const upright = new T.Quaternion()
+      .setFromUnitVectors(
+        axisY.clone().applyQuaternion(body.quaternion),
+        frame.up,
+      )
+      .multiply(body.quaternion);
+    const quaternion = upright.multiply(
+      capture.orientation.clone().slerp(new T.Quaternion(), blend),
+    );
+    const vertices =
+      body.contactShape?.vertices ??
+      getCollisionHull(state.chassisId ?? state.shipId).vertices;
+    const clearance =
+      modelClearance(quaternion, frame.up, vertices) +
+      surfaceHullClearance(frame.surface, state.heading) +
+      capture.supportHeight;
+    const height =
+      Math.max(baseHeight, clearance) + capture.heightResidual * (1 - blend);
+    const position = body.position
+      .clone()
+      .addScaledVector(
+        frame.up,
+        height - body.position.clone().sub(frame.position).dot(frame.up),
+      );
+    return { position, quaternion };
+  }
   function support(state, options = {}, dt = 0) {
     const f = magneticFrame(track, state.distance, state.lateral, sampleRoad);
     const solved = initialized ? actor.read() : null;
@@ -174,47 +217,13 @@ export function createMagneticBody({
     const aligned = f.quaternion
       .clone()
       .multiply(new T.Quaternion().setFromAxisAngle(axisY, state.heading));
-    // Ordinary support follows the road target. Lifting that target in response
-    // to every contact-induced tilt would make the magnets pump energy into a
-    // pair of touching hulls. Only landing capture needs swept attitude clearance.
-    let bodyHeight = hull.hover;
-    const vertices = getCollisionHull(state.chassisId ?? state.shipId).vertices;
-    const modelClearance = (quaternion) => {
-      const direction = f.up
-        .clone()
-        .applyQuaternion(quaternion.clone().invert());
-      let extent = 0;
-      for (let i = 0; i < vertices.length; i += 3)
-        extent = Math.max(
-          extent,
-          -vertices[i] * direction.x -
-            vertices[i + 1] * direction.y -
-            vertices[i + 2] * direction.z,
-        );
-      return Math.max(projectedHullExtent(quaternion, f.up, hull), extent);
-    };
-    let bodyFrame;
-    if (capture) {
-      bodyHeight = modelClearance(actual);
-      const t = clamp(capture.elapsed / 0.18, 0, 1);
-      bodyFrame = capture.orientation
-        .clone()
-        .slerp(new T.Quaternion(), t * t * (3 - 2 * t));
-      const target = f.quaternion.clone().multiply(bodyFrame.clone().invert());
-      // Reserve the swept corner height while the controller rights a landed
-      // hull. It changes the proposed path, never the accepted pose.
-      for (let i = 1; i <= 8; i++)
-        bodyHeight = Math.max(
-          bodyHeight,
-          modelClearance(actual.clone().slerp(target, i / 8)),
-        );
-    }
-    let height =
-      Math.max(hull.hover, bodyHeight) +
-      surfaceHullClearance(f.surface, state.heading);
-    // Cover the whole advancing hull, not just the route point underneath its
-    // centre. On a rising ramp an unaccounted nose/deck contact creates yaw.
-    const axes = hullAxes(capture ? actual : aligned);
+    const vertices =
+      solved?.contactShape?.vertices ??
+      getCollisionHull(state.chassisId ?? state.shipId).vertices;
+    let height = hull.hover + surfaceHullClearance(f.surface, state.heading);
+    // Whole-hull road clearance belongs to ordinary support, independent of
+    // the decorative landing animation.
+    const axes = hullAxes(aligned);
     const roadOwners = new Set(f.surface?.roadOwners ?? []);
     const travel =
       solved?.velocity.clone().multiplyScalar(dt) ?? new T.Vector3();
@@ -255,9 +264,28 @@ export function createMagneticBody({
       }
     }
     height += finite(options.supportHeight);
+    const presentationHeight = height;
+    // Align a newly landed physical hull in one swept move. Reserve clearance
+    // for its turning corners only while it is actually tilted, never for the
+    // duration of a presentation animation. Queries can still clip this move.
+    if (capture?.aligning) {
+      const upright = new T.Quaternion()
+        .setFromUnitVectors(axisY.clone().applyQuaternion(actual), f.up)
+        .multiply(actual);
+      for (let i = 0; i <= 8; i++) {
+        const q = actual.clone().slerp(upright, i / 8);
+        height = Math.max(
+          height,
+          modelClearance(q, f.up, vertices, true) +
+            surfaceHullClearance(f.surface, state.heading) +
+            finite(options.supportHeight),
+        );
+      }
+    }
     return {
       position: f.position.clone().addScaledVector(f.up, height),
       quaternion: f.quaternion.clone(),
+      presentationHeight,
       road: {
         distance:
           track.closed === false
@@ -268,9 +296,6 @@ export function createMagneticBody({
           Math.hypot(hull.halfWidth, hull.halfLength) + travel.length() + 2,
         owners: [...roadOwners],
       },
-      // Only a real touchdown gets an orientation capture. Ordinary racer
-      // contacts retain road adhesion and exchange lateral motion and yaw.
-      ...(bodyFrame ? { bodyFrame, normalCompliance: true } : {}),
     };
   }
   function initialize(state, options) {
@@ -304,9 +329,9 @@ export function createMagneticBody({
       const body = actor.read();
       if (capture) {
         capture.elapsed += dt;
-        if (capture.elapsed > 0.18 + dt) capture = null;
+        if (capture.elapsed >= capture.duration - 1e-9) capture = null;
       }
-      previous = poseCopy(body);
+      previous = poseCopy(current ?? body);
       const f = magneticFrame(track, state.distance, state.lateral, sampleRoad);
       const events = [];
       if (!roadRecovery) {
@@ -494,6 +519,7 @@ export function createMagneticBody({
         lateral: state.lateral + across,
       };
       const targetSupport = support(destination, options);
+      pending.presentationHeight = targetSupport.presentationHeight;
       targetSupport.destination = targetSupport.position.clone();
       actor.stage({
         active: true,
@@ -530,7 +556,17 @@ export function createMagneticBody({
         : body.velocity.dot(forward);
       state.lateralSpeed = body.velocity.dot(f.right);
       lastSpeed = state.speed;
-      current = poseCopy(body);
+      if (
+        capture?.aligning &&
+        axisY.clone().applyQuaternion(body.quaternion).dot(f.up) > 1 - 1e-8
+      )
+        capture.aligning = false;
+      // A solid may block the alignment sweep. Show the accepted pose until
+      // that obstruction clears; presentation must not hide a physical snag.
+      current =
+        capture && !capture.aligning
+          ? landingPresentation(body, f, state, pending.presentationHeight)
+          : poseCopy(body);
       for (const hit of contactFeedback.collect(body.contacts, state.time)) {
         const key = hit.shape.id;
         const impact = racerImpact(hit.incomingSpeed);
@@ -583,7 +619,7 @@ export function createMagneticBody({
       pending = null;
       return events;
     },
-    adopt(state) {
+    adopt(state, { duration, supportHeight = 0 }) {
       initialized = true;
       edgeStall = 0;
       roadRecovery = null;
@@ -591,9 +627,28 @@ export function createMagneticBody({
       current = poseCopy(actor.read());
       previous = poseCopy(current);
       const f = magneticFrame(track, state.distance, state.lateral, sampleRoad);
+      const body = actor.read();
+      const upright = new T.Quaternion()
+        .setFromUnitVectors(
+          axisY.clone().applyQuaternion(body.quaternion),
+          f.up,
+        )
+        .multiply(body.quaternion);
+      const vertices =
+        body.contactShape?.vertices ??
+        getCollisionHull(state.chassisId ?? state.shipId).vertices;
+      const height =
+        modelClearance(body.quaternion, f.up, vertices) +
+        surfaceHullClearance(f.surface, state.heading) +
+        supportHeight;
       capture = {
         elapsed: 0,
-        orientation: current.quaternion.clone().invert().multiply(f.quaternion),
+        duration,
+        aligning: true,
+        supportHeight,
+        heightResidual:
+          body.position.clone().sub(f.position).dot(f.up) - height,
+        orientation: upright.clone().invert().multiply(body.quaternion),
       };
     },
     reset(state) {
@@ -631,7 +686,7 @@ export function createMagneticBody({
         roadRecovery: roadRecovery && { ...roadRecovery },
         ...contactFeedback.snapshot(),
         capture: capture && {
-          elapsed: capture.elapsed,
+          ...capture,
           orientation: capture.orientation.toArray(),
         },
         current: current && {
@@ -649,6 +704,19 @@ export function createMagneticBody({
         !data ||
         typeof data.initialized !== 'boolean' ||
         !Number.isFinite(data.lastSpeed) ||
+        (data.capture &&
+          (!Number.isFinite(data.capture.elapsed) ||
+            data.capture.elapsed < 0 ||
+            !Number.isFinite(data.capture.duration) ||
+            data.capture.duration <= 0 ||
+            data.capture.elapsed >= data.capture.duration ||
+            typeof data.capture.aligning !== 'boolean' ||
+            !Number.isFinite(data.capture.heightResidual) ||
+            !Number.isFinite(data.capture.supportHeight) ||
+            !Array.isArray(data.capture.orientation) ||
+            data.capture.orientation.length !== 4 ||
+            !data.capture.orientation.every(Number.isFinite) ||
+            Math.abs(Math.hypot(...data.capture.orientation) - 1) > 1e-6)) ||
         !Number.isFinite(data.edgeStall ?? 0) ||
         (data.edgeStall ?? 0) < 0 ||
         (data.roadRecovery &&
@@ -672,7 +740,7 @@ export function createMagneticBody({
       previous = decode(data.previous);
       pending = null;
       capture = data.capture && {
-        elapsed: data.capture.elapsed,
+        ...data.capture,
         orientation: new T.Quaternion().fromArray(data.capture.orientation),
       };
     },

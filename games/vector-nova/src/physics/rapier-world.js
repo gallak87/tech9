@@ -5,9 +5,9 @@ import { createRoadSurface, roadTop } from './road-surface.js';
 import { VEHICLE_HULL } from './hull.js';
 
 export const RAPIER_RULES = Object.freeze({
-  version: 9,
+  version: 10,
   packageVersion: '0.21.0',
-  controller: 'query-hover-v2',
+  controller: 'query-hover-v3',
   staticCellSize: 96,
   simulationHz: 120,
   skin: 0.004,
@@ -61,11 +61,6 @@ function finiteSupport(support) {
   if (!validRoad(support?.road))
     throw new Error('Rapier requires finite road support ownership.');
   const pose = finitePose(support);
-  const bodyFrame =
-    support.bodyFrame === undefined
-      ? new T.Quaternion()
-      : finitePose({ position: zero(), quaternion: support.bodyFrame })
-          .quaternion;
   return {
     ...pose,
     ...(support.destination
@@ -73,8 +68,6 @@ function finiteSupport(support) {
           destination: finiteVector(support.destination, 'support destination'),
         }
       : {}),
-    bodyFrame,
-    normalCompliance: support.normalCompliance === true,
     ...(support.road
       ? { road: { ...support.road, owners: [...support.road.owners] } }
       : {}),
@@ -341,6 +334,18 @@ export async function createRapierWorld({
   }
   function plan(a, dt) {
     a.motion = a.velocity.clone().add(a.guide ?? zero());
+    let baseRotation = a.quaternion;
+    if (a.support) {
+      const n = UP.clone().applyQuaternion(a.support.quaternion);
+      // Magnetic adhesion absorbs pitch/roll spin immediately. Transport the
+      // existing heading onto the road, then apply only the accepted yaw.
+      a.angularVelocity.copy(
+        n.clone().multiplyScalar(a.angularVelocity.dot(n)),
+      );
+      baseRotation = new T.Quaternion()
+        .setFromUnitVectors(UP.clone().applyQuaternion(a.quaternion), n)
+        .multiply(a.quaternion);
+    }
     const omega = a.angularVelocity.length();
     a.endRotation =
       omega > 1e-10
@@ -349,18 +354,10 @@ export async function createRapierWorld({
               a.angularVelocity.clone().divideScalar(omega),
               omega * dt,
             )
-            .multiply(a.quaternion)
-        : a.quaternion.clone();
+            .multiply(baseRotation)
+        : baseRotation.clone();
     if (a.support) {
       const n = UP.clone().applyQuaternion(a.support.quaternion);
-      // Parallel transport preserves heading when a support plane banks.
-      const oldUp = UP.clone().applyQuaternion(a.quaternion);
-      const transport = new T.Quaternion().setFromUnitVectors(oldUp, n);
-      a.endRotation.premultiply(transport);
-      if (a.support.normalCompliance)
-        a.endRotation
-          .copy(a.support.quaternion)
-          .multiply(a.support.bodyFrame.clone().invert());
       a.motion.addScaledVector(n, -a.motion.dot(n));
       a.motion.addScaledVector(
         n,
@@ -894,7 +891,6 @@ export async function createRapierWorld({
             support: a.support && {
               ...a.support,
               quaternion: encodeQ(a.support.quaternion),
-              bodyFrame: encodeQ(a.support.bodyFrame),
             },
             acceleration: a.acceleration,
             angularAcceleration: a.angularAcceleration,

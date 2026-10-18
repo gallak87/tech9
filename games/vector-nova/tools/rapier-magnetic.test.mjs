@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
-import RAPIER from '@dimforge/rapier3d-compat';
 import { createRapierWorld } from '../src/physics/rapier-world.js';
 import {
   COLLISION_HULLS,
@@ -41,7 +40,7 @@ test('staged forces cover the entire shared tick exactly once and clear before t
   }
 });
 
-test('fixed magnetic constraints do not inject collision energy into real chassis or unequal masses', async (t) => {
+test('magnetic contact response does not inject collision energy into real chassis or unequal masses', async (t) => {
   const cases = [
     ...Object.keys(COLLISION_HULLS).flatMap((id) =>
       [40, 160].map((speed) => ({ ids: [id, id], masses: [1, 1], speed })),
@@ -114,37 +113,25 @@ test('fixed magnetic constraints do not inject collision energy into real chassi
       });
       return actor;
     });
-    // Read the engine's actual compound inertia once; total energy includes
-    // contact-induced rotation as well as centre-of-mass translation.
-    const snapshot = world.snapshot();
-    for (const body of snapshot.actors) {
-      assert.ok(
-        body.contactShape.parts.length > 1,
-        'the regression uses structural compound parts, not an enclosing convex hull',
-      );
-      assert.equal(body.colliderHandles.length, body.contactShape.parts.length);
-    }
-    const inspection = RAPIER.World.restoreSnapshot(
-      Uint8Array.from(atob(snapshot.engine), (character) =>
-        character.charCodeAt(0),
-      ),
-    );
-    const inertia = snapshot.actors.map(({ bodyHandle }) => {
-      const body = inspection.getRigidBody(bodyHandle);
-      assert.ok(
-        Math.abs(
-          body.mass() -
-            snapshot.actors.find((entry) => entry.bodyHandle === bodyHandle)
-              .mass,
-        ) < 1e-5,
-        'component masses sum to the requested racer mass',
-      );
+    // The controller uses a box inertia from each chassis' measured bounds.
+    // Include spin in the energy check, independently of contact impulses.
+    const inertia = racers.map((actor) => {
+      const state = actor.read(),
+        vertices = state.contactShape.vertices,
+        bounds = new T.Box3();
+      for (let i = 0; i < vertices.length; i += 3)
+        bounds.expandByPoint(new T.Vector3().fromArray(vertices, i));
+      const e = bounds.getSize(new T.Vector3()).multiplyScalar(0.5),
+        m = state.mass / 3;
       return {
-        principal: new T.Vector3().copy(body.principalInertia()),
-        frame: new T.Quaternion().copy(body.principalInertiaLocalFrame()),
+        principal: new T.Vector3(
+          m * (e.y * e.y + e.z * e.z),
+          m * (e.x * e.x + e.z * e.z),
+          m * (e.x * e.x + e.y * e.y),
+        ),
+        frame: new T.Quaternion(),
       };
     });
-    inspection.free();
     const initialEnergy =
       (entry.masses[0] * entry.speed ** 2 +
         entry.masses[1] * (entry.secondSpeed ?? 0) ** 2) /
@@ -155,8 +142,8 @@ test('fixed magnetic constraints do not inject collision energy into real chassi
       let energy = 0;
       for (const [index, actor] of racers.entries()) {
         const body = actor.read();
-        // Sloped compound parts may tilt and shove one another, but must not
-        // turn a supported bump into a vertical launch over the containment.
+        // Sloped hull faces may shove one another, but must not turn a
+        // supported bump into a vertical launch over the containment.
         near(
           body.position.dot(new T.Vector3(0, 1, 0).applyQuaternion(frame)),
           0.72,
@@ -181,7 +168,7 @@ test('fixed magnetic constraints do not inject collision energy into real chassi
     }
     assert.ok(
       contacts > 0,
-      'the real chassis collide under their fixed support constraints',
+      'the real chassis collide while retaining road support',
     );
   }
 });
@@ -322,7 +309,7 @@ test('a changing local support normal follows a closed tube without setting the 
         0.999,
     );
   }
-  assert.ok(maxRadiusError < 0.03, `tube constraint error ${maxRadiusError}`);
+  assert.ok(maxRadiusError < 0.03, `tube support error ${maxRadiusError}`);
   assert.ok(
     actor.read().position.x < -50,
     'travels past the inverted half of the tube',
@@ -350,7 +337,7 @@ test('capture can change the joint body frame without imposing orientation and r
   world.step(DT);
   assert.ok(
     new T.Vector3(0, 1, 0).applyQuaternion(actor.read().quaternion).y < -0.999,
-    'the initial constraint matches the actual inverted attitude',
+    'the initial support matches the actual inverted attitude',
   );
   const saved = JSON.parse(JSON.stringify(world.snapshot()));
   const capture = () => {
@@ -371,7 +358,7 @@ test('capture can change the joint body frame without imposing orientation and r
   const expected = capture();
   assert.ok(
     new T.Vector3(0, 1, 0).applyQuaternion(expected.quaternion).y > 0.999,
-    'the solver follows the evolving capture target',
+    'accepted movement follows the evolving capture target',
   );
   world.restore(saved);
   assert.ok(actor.read().support.bodyFrame.angleTo(support.bodyFrame) < 1e-8);
@@ -468,7 +455,7 @@ test('centimetre hover-plane corrections preserve free forward momentum at race 
       };
       actor.stage({ support: target });
       // Pending interpolation is simulation state too, including a save made
-      // after input staging but before the shared native solve.
+      // after input staging but before shared movement queries.
       const saved = JSON.parse(JSON.stringify(world.snapshot()));
       world.step(DT);
       const result = actor.read();
@@ -594,7 +581,7 @@ test('sloped racer contact yields through the suspension without reversing race 
       assert.ok(after[i].angularVelocity.length() < 4, 'no induced spinout');
     }
     const saved = world.snapshot();
-    assert.ok(saved.actors.every((actor) => actor.compliantSupport));
+    assert.ok(saved.actors.every((actor) => actor.support));
     world.step(DT);
     const solved = () =>
       racers.map((actor) => {
@@ -617,8 +604,26 @@ test('sloped racer contact yields through the suspension without reversing race 
       quaternion: new T.Quaternion(),
     });
     for (let tick = 0; tick < 30; tick++) world.step(DT);
-    assert.ok(
-      world.snapshot().actors.every((actor) => !actor.compliantSupport),
-    );
+    assert.ok(world.snapshot().actors.every((actor) => actor.support));
   }
+});
+
+test('a mismatched collision shape cannot partially overwrite a live snapshot', async (t) => {
+  const world = await createRapierWorld({ gravity: 0 });
+  t.after(() => world.dispose());
+  for (const id of ['kestrel', 'shrike']) {
+    const actor = world.createActor();
+    actor.setContactShape(getCollisionHull(id));
+    actor.reset({ pose: pose(new T.Vector3(0, 4, 0)), active: true });
+  }
+  const saved = world.snapshot(),
+    invalid = structuredClone(saved);
+  invalid.actors[0].position.x = 99;
+  invalid.actors[1].contactShape.vertices[0] += 1;
+  assert.throws(() => world.restore(invalid), /identity|geometry/);
+  assert.deepEqual(
+    world.snapshot(),
+    saved,
+    'invalid replay data leaves every live actor unchanged',
+  );
 });

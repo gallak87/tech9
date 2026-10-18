@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import * as T from 'three';
 import { createFlightModel } from '../src/physics/flight.js';
 import { createVehicleState } from '../src/physics/index.js';
+import { getCollisionHull } from '../src/ships/collision-hulls.js';
+import { VEHICLE_HULL } from '../src/physics/hull.js';
 import {
   createCollisionWorld,
   indexedTriangles,
@@ -99,8 +101,18 @@ async function fixture(t, engine, { boundary = true, manual = false } = {}) {
   runtime.advance(state, {}, DT);
   const snapshot = runtime.snapshot();
   snapshot.mode = 'recovery';
+  // Place the actual collider 6 cm from the inner rail face. The old fixed
+  // coordinate assumed the wider arcade box and never reached the rail with
+  // Kestrel's production hull before the timer expired.
+  const halfWidth = dynamics
+    ? Math.max(
+        ...getCollisionHull('kestrel').vertices.filter(
+          (_, index) => index % 3 === 0,
+        ),
+      )
+    : VEHICLE_HULL.halfWidth;
   snapshot.currentPose = snapshot.previousPose = {
-    position: [7.44, 2, 300],
+    position: [9.7 - halfWidth - 0.06, 2, 300],
     quaternion: [0, 0, 0, 1],
   };
   Object.assign(snapshot.flight, {

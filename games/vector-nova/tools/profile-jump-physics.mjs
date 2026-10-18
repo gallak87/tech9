@@ -47,8 +47,22 @@ let dynamics;
 const racers = [],
   bins = new Map(),
   events = new Map();
-let native = {};
-const stepPipeline = RAPIER.PhysicsPipeline.prototype.step;
+let queries = {};
+const probes = [
+  [RAPIER.World.prototype, 'castShape', 'sceneCastMs', 'sceneCasts'],
+  [
+    RAPIER.Collider.prototype,
+    'contactCollider',
+    'proximityMs',
+    'proximityQueries',
+  ],
+].map(([prototype, method, timing, count]) => ({
+  prototype,
+  method,
+  timing,
+  count,
+  original: prototype[method],
+}));
 try {
   dynamics = await (level.createDynamics ?? createRapierWorld)({
     track,
@@ -75,27 +89,31 @@ try {
       distance: jump.takeoff - approach + RACE_GRID[spec.id].distance,
       speed: 130,
     };
-    racers.push({ spec, runtime, state });
+    racers.push({
+      spec,
+      runtime,
+      state,
+      outcomes: { landed: 0, recovered: 0, misses: 0, departures: 0 },
+    });
     runtime.reset({ state });
   }
-  // The pinned binding exposes these profiler counters on the native pipeline.
-  // World.step and the rigid-only service both pass through this public method.
-  RAPIER.PhysicsPipeline.prototype.step = function (...args) {
-    this.raw.set_profiler_enabled(true);
-    const start = performance.now();
-    const result = stepPipeline.apply(this, args);
-    native.nativeMs = (native.nativeMs ?? 0) + performance.now() - start;
-    native.solves = (native.solves ?? 0) + 1;
-    for (const [key, method] of Object.entries({
-      narrowMs: 'timing_narrow_phase',
-      solverMs: 'timing_solver',
-      ccdQueryMs: 'timing_ccd_toi_computation',
-    }))
-      native[key] = (native[key] ?? 0) + this.raw[method]();
-    return result;
-  };
+  // Instrument public query boundaries only in this probe. Production ticks
+  // have no profiling overhead or diagnostic logging.
+  for (const probe of probes)
+    probe.prototype[probe.method] = function (...args) {
+      const start = performance.now();
+      const result = probe.original.apply(this, args);
+      queries[probe.timing] += performance.now() - start;
+      queries[probe.count]++;
+      return result;
+    };
   for (let tick = 0; tick < ticks; tick++) {
-    native = {};
+    queries = Object.fromEntries(
+      probes.flatMap(({ timing, count }) => [
+        [timing, 0],
+        [count, 0],
+      ]),
+    );
     const start = performance.now(),
       nearby = racers.map((r) => r.state);
     const inputs = racers.map(({ spec, runtime, state }) =>
@@ -118,13 +136,18 @@ try {
     dynamics.step(1 / 120);
     const worldMs = performance.now() - worldStart,
       finishStart = performance.now();
-    for (const { runtime, state } of racers) {
-      for (const event of runtime.finishAdvance(state))
+    for (const { runtime, state, outcomes } of racers) {
+      for (const event of runtime.finishAdvance(state)) {
         events.set(event.type, (events.get(event.type) ?? 0) + 1);
+        if (event.type === 'jump-transfer' && event.payload.id === jump.id)
+          outcomes[event.payload.outcome]++;
+        if (event.type === 'jump-miss') outcomes.misses++;
+        if (event.type === 'road-departure') outcomes.departures++;
+      }
       runtime.update({});
     }
     const row = {
-      ...native,
+      ...queries,
       aiMs,
       stageMs,
       worldMs,
@@ -144,7 +167,7 @@ try {
         jump: jump.id,
         racers: count,
         ticks,
-        note: 'Milliseconds per 120 Hz control tick; CPU only. Native/CCD counters overlap, so do not sum columns.',
+        note: 'Milliseconds per 120 Hz control tick; CPU only. Query timers are included in world/total time, so do not sum columns.',
         sections: [...bins].map(([metresFromTakeoff, rows]) => {
           const result = { metresFromTakeoff, ticks: rows.length };
           for (const key of Object.keys(rows[0]))
@@ -157,13 +180,19 @@ try {
           return result;
         }),
         events: Object.fromEntries(events),
+        field: racers.map(({ spec, state, outcomes }) => ({
+          id: spec.id,
+          metresFromTakeoff: state.distance - jump.takeoff,
+          speed: state.speed,
+          ...outcomes,
+        })),
       },
       null,
       2,
     ),
   );
 } finally {
-  RAPIER.PhysicsPipeline.prototype.step = stepPipeline;
+  for (const probe of probes) probe.prototype[probe.method] = probe.original;
   racers.forEach(({ runtime }) => runtime.dispose());
   dynamics?.dispose();
   collisionWorld.dispose();

@@ -184,7 +184,7 @@ test('the Vesper crown transfer retains forward momentum through physical landin
   }
 });
 
-test('Vesper tree-side hull straddles recover at their departure station instead of hanging', async (t) => {
+test('Vesper tree-side hull straddles separate or recover instead of hanging', async (t) => {
   const track = createVesperTrack();
   const collision = createVesperCollisionWorld({ track });
   const dynamics = await createRapierWorld({
@@ -202,8 +202,8 @@ test('Vesper tree-side hull straddles recover at their departure station instead
   ]) {
     const state = { ...createVehicleState(), distance, lateral };
     body.reset(state);
-    let departure, recovered;
-    for (let tick = 0; tick < 480 && !recovered; tick++) {
+    let departure, recovered, freed;
+    for (let tick = 0; tick < 480 && !recovered && !freed; tick++) {
       body.stage(
         state,
         { throttle: 1, steer: Math.sign(lateral) * 0.5 },
@@ -213,11 +213,19 @@ test('Vesper tree-side hull straddles recover at their departure station instead
       const events = body.finish(state);
       departure ??= events.find(({ type }) => type === 'road-departure');
       recovered ??= events.find(({ type }) => type === 'road-recovery');
+      freed ||=
+        !departure &&
+        state.distance > distance + 20 &&
+        state.speed > 20 &&
+        Math.abs(state.lateral) < track.width / 2 - 1;
       if (body.pose().recovering) {
         assert.equal(actor.read().support, null);
         assert.equal(state.distance, departure.payload.distance);
       }
     }
+    // A convex controller can push clear immediately; recovery is needed only
+    // if the hull remains trapped. Both paths must leave the racer driveable.
+    if (freed) continue;
     assert.ok(
       departure && recovered,
       'straddling the production rail starts bounded recovery',
@@ -381,6 +389,18 @@ test('crowded Vesper touchdown absorbs normal motion without false forward braki
   dynamics.reset();
   racers.reset({ enabled: true, difficulty: 'hard' });
   runtime.reset({ reason: 'fresh-lap', state });
+  // Start a packed field on the approach. Contact tuning may change the order
+  // over a whole lap; this regression must still exercise a crowded landing.
+  const approach = track.jumps[0].takeoff - 80;
+  Object.assign(state, { distance: approach, speed: 130 });
+  runtime.reset({ state });
+  for (const opponent of racers.opponents) {
+    opponent.state.distance =
+      approach + RACE_GRID[opponent.specification.id].distance;
+    opponent.state.speed = 130;
+    Object.assign(opponent.prev, opponent.state);
+    opponent.runtime.reset({ state: opponent.state });
+  }
   let landed = false,
     settledTicks = 0,
     captureTicks = 0,

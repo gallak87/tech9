@@ -13,7 +13,7 @@ import {
 import { VEHICLE_HULL, projectedHullExtent, hullAxes } from './hull.js';
 import { createContactFeedback, racerImpact } from './contact-feedback.js';
 
-export const MAGNETIC_BODY_RULES = `magnetic-constraint-v6-authored-skin-yaw-0.85-120-grip80:${COLLISION_HULLS_ID}`;
+export const MAGNETIC_BODY_RULES = `magnetic-query-v8-authored-skin-proposal-yaw-0.85-120-grip:${COLLISION_HULLS_ID}`;
 const clamp = T.MathUtils.clamp;
 const axisY = new T.Vector3(0, 1, 0);
 const axisZ = new T.Vector3(0, 0, 1);
@@ -73,7 +73,7 @@ export function projectMagneticBody(
   return { distance, lateral, frame: f };
 }
 
-/** Forces drive the free road-plane axes; Rapier owns pose and contact response. */
+/** Handling proposes road movement; shared queries accept and resolve it. */
 export function createMagneticBody({
   track,
   dynamics,
@@ -135,7 +135,7 @@ export function createMagneticBody({
       max = Math.max(max, lateral);
     }
     // A normal scrape has only contact tolerance outside the boundary. A
-    // stranded compound hull has a wing/nose on each side of the wall.
+    // stranded hull has a wing/nose on each side of the wall.
     const side = min < bounds.min - 0.35 ? -1 : max > bounds.max + 0.35 ? 1 : 0;
     const crossedBoundary =
       side &&
@@ -201,8 +201,8 @@ export function createMagneticBody({
         .clone()
         .slerp(new T.Quaternion(), t * t * (3 - 2 * t));
       const target = f.quaternion.clone().multiply(bodyFrame.clone().invert());
-      // Reserve the swept corner height while the constraint rights a landed
-      // hull. It changes the magnet target, never the body's solved pose.
+      // Reserve the swept corner height while the controller rights a landed
+      // hull. It changes the proposed path, never the accepted pose.
       for (let i = 1; i <= 8; i++)
         bodyHeight = Math.max(
           bodyHeight,
@@ -268,8 +268,8 @@ export function createMagneticBody({
           Math.hypot(hull.halfWidth, hull.halfLength) + travel.length() + 2,
         owners: [...roadOwners],
       },
-      // Only a real touchdown gets a damped normal capture. Ordinary racer
-      // contacts retain normal adhesion and can yield in pitch/roll only.
+      // Only a real touchdown gets an orientation capture. Ordinary racer
+      // contacts retain road adhesion and exchange lateral motion and yaw.
       ...(bodyFrame ? { bodyFrame, normalCompliance: true } : {}),
     };
   }
@@ -331,7 +331,7 @@ export function createMagneticBody({
           beforeDistance: state.distance,
         };
         // Once unsupported, neither propulsion nor the magnetic plane may
-        // carry this body across empty space. Native gravity/contacts continue.
+        // carry this body across empty space. World gravity and contact queries continue.
         actor.stage({
           active: true,
           support: null,
@@ -407,15 +407,11 @@ export function createMagneticBody({
         (parking ? 24 : airbrake ? 4.5 : 7.2) *
         handling.grip *
         clamp(finite(surface.grip, 1), 0.05, 4);
-      // The lateral thrusters have a finite force budget. Unbounded slip
-      // damping can overpower yaw control after a shove, keeping a hull
-      // pressed sideways into whatever it touched while the pilot steers away.
-      const lateralLimit = 80 * handling.turn;
-      const lateralAcceleration = clamp(
-        (-slip * -Math.expm1(-grip * dt)) / dt,
-        -lateralLimit,
-        lateralLimit,
-      );
+      // Grip keeps the approved response time at every speed. A fixed force
+      // ceiling made boosted steering lose authority as speed increased. This
+      // exponential damping preserves bump momentum and cannot reverse slip;
+      // collision queries independently stop movement into a wall.
+      const lateralAcceleration = (-slip * -Math.expm1(-grip * dt)) / dt;
       const acceleration = forward
         .clone()
         .multiplyScalar(drive - deceleration)
@@ -481,9 +477,27 @@ export function createMagneticBody({
         supportHeight: options.supportHeight,
         beforeDistance: state.distance,
       };
+      // Propose one movement along the actual road skin. A tangent-plane
+      // Euler step drifts sideways while an inverted road twists beneath it.
+      // The query controller may clip this displacement; finish() projects only
+      // the accepted result, so this cannot tow a ship through a wall.
+      const travel = body.velocity.clone().addScaledVector(acceleration, dt);
+      travel.y -= (dynamics.gravity ?? 26) * dt;
+      travel.multiplyScalar(dt);
+      const along = travel.dot(f.tangent) / (f.longitudinalMetric ?? 1);
+      const across =
+        (travel.dot(f.right) - (f.longitudinalShear ?? 0) * along) /
+        (f.lateralMetric ?? 1);
+      const destination = {
+        ...state,
+        distance: state.distance + along,
+        lateral: state.lateral + across,
+      };
+      const targetSupport = support(destination, options);
+      targetSupport.destination = targetSupport.position.clone();
       actor.stage({
         active: true,
-        support: support(state, options, dt),
+        support: targetSupport,
         acceleration,
         angularAcceleration,
       });

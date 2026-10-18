@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
+import RAPIER from '@dimforge/rapier3d-compat';
+import { getCollisionHull } from '../src/ships/collision-hulls.js';
 import {
   createCollisionWorld,
   indexedTriangles,
@@ -461,5 +463,39 @@ test('disposing an old actor twice preserves a replacement that reused its id', 
   assert.ok(
     Math.abs(replacement.read().position.z - 0.1) < 1e-6,
     'old cleanup must not remove the live actor',
+  );
+});
+
+test('model hull sweeps and contact separation reuse native convex geometry', async (t) => {
+  const world = await fixture(t, box([0, 4, 0], [0.03, 20, 60], 'cached-wall'));
+  const original = RAPIER.ConvexPolyhedron.prototype.intoRaw;
+  let allocations = 0;
+  RAPIER.ConvexPolyhedron.prototype.intoRaw = function (...args) {
+    allocations++;
+    return original.apply(this, args);
+  };
+  t.after(() => {
+    RAPIER.ConvexPolyhedron.prototype.intoRaw = original;
+  });
+  const actor = launch(world, [-8, 4, 0], [600 / 3.6, 0, 0], { yaw: 0.5 });
+  actor.setContactShape(getCollisionHull('kestrel'));
+  assert.ok(allocations > 0, 'the model hull is built when installed');
+  allocations = 0;
+  let contacts = 0;
+  for (let tick = 0; tick < 60; tick++) {
+    world.step(DT);
+    const state = actor.read();
+    finiteState(state);
+    contacts += state.contacts.length;
+    assert.ok(
+      state.position.x < 0,
+      'the whole hull stays on the incoming side',
+    );
+  }
+  assert.ok(contacts > 0, 'real wall impact and separation are exercised');
+  assert.equal(
+    allocations,
+    0,
+    'fixed ticks must not rebuild a native convex mesh',
   );
 });

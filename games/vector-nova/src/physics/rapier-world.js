@@ -5,7 +5,7 @@ import { createRoadSurface, roadTop } from './road-surface.js';
 import { VEHICLE_HULL } from './hull.js';
 
 export const RAPIER_RULES = Object.freeze({
-  version: 11,
+  version: 12,
   packageVersion: '0.21.0',
   controller: 'query-hover-v3',
   staticCellSize: 96,
@@ -450,51 +450,49 @@ export async function createRapierWorld({
     // interval. It must never turn a query budget into permission to tunnel.
     return safeHit;
   }
+  function staticCandidates(a, delta) {
+    // A swept enclosing sphere includes the full rotating hull. The immutable
+    // scene index rejects distant solids without rebuilding a native shape.
+    const center = a.position.clone().addScaledVector(delta, 0.5);
+    const extent = new T.Vector3(
+      Math.abs(delta.x),
+      Math.abs(delta.y),
+      Math.abs(delta.z),
+    )
+      .multiplyScalar(0.5)
+      .addScalar(a.radius + RAPIER_RULES.skin);
+    const candidates = [];
+    engine.collidersWithAabbIntersectingAabb(center, extent, (collider) => {
+      const entry = statics.get(collider.handle);
+      if (entry && !ownsRoad(a, entry)) candidates.push(entry);
+      return true;
+    });
+    return candidates.sort((a, b) => a.collider.handle - b.collider.handle);
+  }
   function staticHit(a, dt) {
-    // Rapier's scene BVH rejects distant mesh faces before running distance
-    // queries. Only an angular-only move needs a stationary volume query.
     let best = null;
-    if (a.motion.lengthSq() < 1e-10) {
-      const extent = new T.Vector3().setScalar(a.radius + 0.02);
-      const candidates = [];
-      engine.collidersWithAabbIntersectingAabb(
-        a.position,
-        extent,
-        (collider) => {
-          candidates.push(collider);
-          return true;
-        },
-      );
-      for (const collider of candidates) {
-        const entry = statics.get(collider.handle);
-        if (entry && !ownsRoad(a, entry)) {
-          const hit = refine(a, null, entry, dt);
-          if (hit && (!best || hit.time < best.time)) best = hit;
-        }
-      }
-      return best;
-    }
-    const tested = new Set();
-    while (tested.size < statics.size) {
-      const hit = engine.castShape(
-        a.position,
-        a.quaternion,
-        a.motion,
-        a.shape,
-        RAPIER_RULES.skin + a.radius * a.angle,
-        best?.time ?? dt,
-        true,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        (c) => !tested.has(c.handle) && !ownsRoad(a, statics.get(c.handle)),
-      );
-      if (!hit) break;
-      const entry = statics.get(hit.collider.handle),
-        exact = refine(a, null, entry, dt);
+    for (const entry of staticCandidates(
+      a,
+      a.motion.clone().multiplyScalar(dt),
+    )) {
+      // Collider casts reuse both cached native shapes. World.castShape would
+      // reconstruct the convex mesh on every racer sweep and contact retry.
+      a.proxy.setTranslation(a.position);
+      a.proxy.setRotation(a.quaternion);
+      if (
+        a.motion.lengthSq() >= 1e-10 &&
+        !a.proxy.castCollider(
+          a.motion,
+          entry.collider,
+          zero(),
+          RAPIER_RULES.skin + a.radius * a.angle,
+          best?.time ?? dt,
+          true,
+        )
+      )
+        continue;
+      const exact = refine(a, null, entry, dt);
       if (exact && (!best || exact.time < best.time)) best = exact;
-      tested.add(hit.collider.handle);
     }
     return best;
   }
@@ -513,20 +511,21 @@ export async function createRapierWorld({
   }
   function shift(a, delta) {
     if (delta.lengthSq() < 1e-14) return;
-    const hit = engine.castShape(
-      a.position,
-      a.quaternion,
-      delta,
-      a.shape,
-      0,
-      1,
-      false,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      (c) => !ownsRoad(a, statics.get(c.handle)),
-    );
+    let hit = null;
+    a.proxy.setTranslation(a.position);
+    a.proxy.setRotation(a.quaternion);
+    for (const entry of staticCandidates(a, delta)) {
+      const candidate = a.proxy.castCollider(
+        delta,
+        entry.collider,
+        zero(),
+        0,
+        hit?.time_of_impact ?? 1,
+        false,
+      );
+      if (candidate && (!hit || candidate.time_of_impact < hit.time_of_impact))
+        hit = candidate;
+    }
     a.position.addScaledVector(
       delta,
       hit

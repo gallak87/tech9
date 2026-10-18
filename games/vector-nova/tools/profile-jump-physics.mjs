@@ -16,12 +16,16 @@ const { values, positionals } = parseArgs({
     ticks: { type: 'string', default: '1000' },
     racers: { type: 'string', default: '10' },
     approach: { type: 'string', default: '300' },
+    start: { type: 'string' },
+    speed: { type: 'string', default: '130' },
   },
 });
 const jumpIndex = Number(values.jump) - 1;
 const ticks = Number(values.ticks),
   count = Number(values.racers);
 const approach = Number(values.approach);
+const startDistance = values.start === undefined ? null : Number(values.start);
+const startSpeed = Number(values.speed);
 if (
   positionals.length !== 1 ||
   !Number.isInteger(jumpIndex) ||
@@ -32,10 +36,13 @@ if (
   !Number.isInteger(count) ||
   count < 1 ||
   count > 10 ||
-  !Number.isFinite(approach)
+  !Number.isFinite(approach) ||
+  (startDistance !== null && !Number.isFinite(startDistance)) ||
+  !Number.isFinite(startSpeed) ||
+  startSpeed < 0
 )
   throw new Error(
-    'Usage: node tools/profile-jump-physics.mjs <slug> [--jump 1] [--ticks 1000] [--racers 10] [--approach 300]',
+    'Usage: node tools/profile-jump-physics.mjs <slug> [--jump 1] [--ticks 1000] [--racers 10] [--approach 300] [--start metres] [--speed 130]',
   );
 const { createLevel } = await loadLevel(positionals[0]);
 const level = await createLevel({}),
@@ -49,7 +56,13 @@ const racers = [],
   events = new Map();
 let queries = {};
 const probes = [
-  [RAPIER.World.prototype, 'castShape', 'sceneCastMs', 'sceneCasts'],
+  [
+    RAPIER.World.prototype,
+    'collidersWithAabbIntersectingAabb',
+    'broadPhaseMs',
+    'broadPhaseQueries',
+  ],
+  [RAPIER.Collider.prototype, 'castCollider', 'sweepMs', 'sweeps'],
   [
     RAPIER.Collider.prototype,
     'contactCollider',
@@ -86,8 +99,10 @@ try {
       ...createVehicleState(spec.shipId),
       chassisId: spec.id === 'player' ? 'kestrel' : spec.id,
       ...RACE_GRID[spec.id],
-      distance: jump.takeoff - approach + RACE_GRID[spec.id].distance,
-      speed: 130,
+      distance:
+        (startDistance ?? jump.takeoff - approach) +
+        RACE_GRID[spec.id].distance,
+      speed: startSpeed,
     };
     racers.push({
       spec,
@@ -165,6 +180,8 @@ try {
       {
         level: positionals[0],
         jump: jump.id,
+        startDistance: startDistance ?? jump.takeoff - approach,
+        startSpeed,
         racers: count,
         ticks,
         note: 'Milliseconds per 120 Hz control tick; CPU only. Query timers are included in world/total time, so do not sum columns.',

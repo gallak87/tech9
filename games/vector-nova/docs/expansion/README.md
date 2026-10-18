@@ -4,16 +4,11 @@ Widen complete existing circuits and refit their immediate surroundings while pr
 
 ## Road finish briefs
 
-The separate [road finish set](roads/README.md) documents the Halcyon process and per-level starting points for improving existing surfaces. It preserves each circuit's material identity, leaves Vesper deferred, and includes companion briefs for the wide variants. Its workflow is independent of the widening sequence and human gates below; these briefs do not start or approve widening work.
+The separate [road finish set](roads/README.md) documents the Halcyon process and per-level starting points for improving existing surfaces. It preserves each circuit's material identity, leaves Vesper deferred. Its workflow is independent of the widening sequence and human gates below; these briefs do not start or approve widening work.
 
-## Width previews and remaining scope
+## Current circuits and remaining scope
 
-| Brief / scope                     | Original  | Implemented variant           | Remaining work                                 |
-| --------------------------------- | --------- | ----------------------------- | ---------------------------------------------- |
-| [Saffron Leviathan](saffron.md)   | `saffron` | `saffron-wide` / 40 m roadway | Adjacent-world refit and driving review        |
-| Umbra follow-up, not yet assigned | `umbra`   | `umbra-wide` / 35 m roadway   | Scope scenery/support refit and driving review |
-
-Both width previews already exist. Their original circuits remain available through direct links for testing and are hidden only from the selector; the wide variants appear in the menu. Metadata still identifies their nearby scenery/construction as unfinished. Do not recreate the copies or assume a road-material pass completed the surrounding-world refit. The Saffron brief retains the remaining review process; Umbra's existence is not an active assignment to finish it. Add further scope from [TEMPLATE.md](TEMPLATE.md) only when requested.
+Saffron Leviathan (`saffron`) has a 40 m roadway; Umbra Fold (`umbra`) has a 35 m roadway. These are the canonical courses. Surrounding-world review remains separate from road finish work: see the [Saffron refit brief](saffron.md) and the [roadmap](../../ROADMAP.md) for future assignments.
 
 ## Process
 
@@ -25,8 +20,6 @@ Both width previews already exist. Their original circuits remain available thro
 6. Run bounded desktop inspection and focused verification, repair concrete findings, then hand the complete variant to the user for driving review. Technical checks do not substitute for human acceptance.
 
 Keep ship size and handling unchanged. Start with the existing camera; adjust local framing only where the revised geometry demonstrably requires it. Avoid a universal deformation framework, wholesale asset regeneration, and unrelated roadmap polish. Any extra level changes must be named in its brief.
-
-Saffron has explicit human gates after its implementation steps 2 (independent unchanged copy), 3 (complete wider roadway), and 4 (surroundings refitted). Finish and verify the current phase, then wait for the user's go-ahead. Its [brief](saffron.md#human-review-gates) defines the evidence and remaining work at each gate; final driving acceptance follows the gameplay and verification phases.
 
 ## Inspection and verification agents
 

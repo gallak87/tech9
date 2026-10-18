@@ -1,6 +1,6 @@
 # Umbra Fold — road finish
 
-Use the [road workflow](README.md). Target `umbra`; coordinate shared assets with the [wide companion](umbra-wide.md).
+Use the [road workflow](README.md). Target `umbra`. Preserve the 35 m roadway.
 
 ## Starting point
 
@@ -12,4 +12,4 @@ Determine what limits the existing work before layering more detail onto it. Loo
 
 ## Keep and check
 
-Compare a normal connector, a lamp-lit repair, the descending/inverted fold and a pale receiving deck. Protect normal/tangent continuity, guidance contrast and the view of the earlier grid. Preserve tidal zones, curved jump envelopes, physical fixtures and collision geometry. Avoid accidentally changing all masonry through the shared finish helper. A change to `umbra-surfaces-v1.png` affects the wide variant too; verify both slugs and refresh all affected menu stills.
+Compare a normal connector, a lamp-lit repair, the descending/inverted fold and a pale receiving deck. Protect normal/tangent continuity, guidance contrast and the view of the earlier grid. Preserve tidal zones, curved jump envelopes, physical fixtures and collision geometry. Avoid accidentally changing all masonry through the shared finish helper. Check physical feature scale across the broad cassettes and refresh the menu still after visual changes.

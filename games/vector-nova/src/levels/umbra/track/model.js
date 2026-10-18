@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createReferenceFrames } from '../../../track/frames.js';
 
-const WIDTH = 28;
+const WIDTH = 35;
 const TARGET_LENGTH = 5400;
 const wrap = (value, length) => ((value % length) + length) % length;
 const smooth = (value) => {
@@ -438,7 +438,7 @@ export function createUmbraTrack() {
   return {
     id: 'umbra-fold-v1',
     name: 'Umbra Fold',
-    geometryVersion: 'umbra-fold-route-v1',
+    geometryVersion: 'umbra-fold-route-v1-width35',
     length,
     width: WIDTH,
     groundY: -400,
@@ -475,7 +475,7 @@ export function createUmbraTrack() {
       kind: 'bare-track',
       phase: 'production-review',
       summary:
-        '5.4 km · 28 m · two curved leaps · extended inversion · descending grounded fold',
+        '5.4 km · 35 m · two curved leaps · extended inversion · descending grounded fold',
     },
   };
 }

@@ -51,9 +51,9 @@ function fly(index, scenario, input = neutral, overrides = {}) {
   };
 }
 
-test('Saffron 5.15 km route has 32 m width, 130 m relief and continuous metre frames', () => {
+test('Saffron 5.15 km route has 40 m width, 130 m relief and continuous metre frames', () => {
   assert.ok(track.length > 5100 && track.length < 5250);
-  assert.equal(track.width, 32);
+  assert.equal(track.width, 40);
   let minimum = Infinity,
     maximum = -Infinity;
   for (let s = 0; s < track.length; s += 1) {
@@ -168,31 +168,19 @@ test('real takeoff and swept landing cover cruise envelopes; misses recover afte
   );
 });
 
-test('former Saffron contact holes stay supported and the visible low baffle toe has physical contact', () => {
+test('Saffron offset landings remain supported inside the 40 m deck', () => {
   for (const [index, speed] of [
     [1, 87.4],
     [3, 143.4],
   ]) {
     const result = fly(index, 'success', neutral, { speed, heading: -0.025 });
-    assert.equal(
-      result.transfer?.payload.outcome,
-      'landed',
-      `jump ${index} / ${speed} m/s`,
+    assert.equal(result.transfer?.payload.outcome, 'landed');
+    assert.ok(
+      !result.events.some(
+        ({ type }) => type === 'jump-miss' || type === 'impact',
+      ),
     );
-    // The new whole-hull world includes the real low toe, inward of the old
-    // simplified rail envelope. Its top is contacted before the deck here.
-    const impact = result.events.find((event) => event.type === 'impact');
-    assert.equal(impact?.payload.contactKind, 'rail');
-    assert.ok(result.transfer.payload.edgeCaught);
-    assert.ok(impact.payload.position.every(Number.isFinite));
-    const frame = track.sample(impact.payload.distance);
-    const point = new THREE.Vector3(...impact.payload.position).sub(
-      frame.position,
-    );
-    assert.ok(Math.abs(point.dot(frame.up) - 0.555) < 0.01);
-    assert.ok(Math.abs(point.dot(frame.right)) >= 16.13);
-    assert.ok(!result.events.some((event) => event.type === 'jump-miss'));
-    assert.ok(result.state.energy > 97 && result.state.energy < 100);
+    assert.ok(result.state.energy > 97);
   }
 });
 

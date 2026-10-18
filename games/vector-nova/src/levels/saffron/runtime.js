@@ -24,7 +24,9 @@ const flightModel = createFlightModel(SAFFRON_RULES);
 export function createSaffronRuntime(context) {
   const { track } = context;
   if (track.id !== 'saffron-leviathan')
-    throw new Error('Saffron runtime requires its authored fossil route.');
+    throw new Error(
+      'Saffron Leviathan runtime requires its authored fossil route.',
+    );
   // Headless callers use the same per-track factory; live core supplies it once.
   context = {
     ...context,
@@ -41,7 +43,7 @@ export function createSaffronRuntime(context) {
     forgivingContacts: Boolean(context.dynamics),
     id: 'saffron-sand-flight',
     version: context.dynamics ? 7 : 5,
-    rulesId: `saffron-v${context.dynamics ? 7 : 5}:${JSON.stringify({ track: track.id, geometry: track.geometryVersion, jumps: track.jumps, rules: flightModel.rules, sand: 'migrating-four-v1-drag3', grazer: { event: 'forward-breach-v1', trigger: grazerTrigger(track) } })}`,
+    rulesId: `saffron-width40-v${context.dynamics ? 7 : 5}:${JSON.stringify({ track: track.id, geometry: track.geometryVersion, jumps: track.jumps, rules: flightModel.rules, sand: 'migrating-four-v1-drag3', grazer: { event: 'forward-breach-v1', trigger: grazerTrigger(track) } })}`,
     edgeSource: 'saffron-baffle-catch',
     automaticRecovery: context.playtest?.automaticRecovery !== false,
     scenarios: Object.fromEntries(

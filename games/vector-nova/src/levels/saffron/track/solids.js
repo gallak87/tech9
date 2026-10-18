@@ -3,21 +3,21 @@ import { boxProfile } from '../../../track/geometry.js';
 
 // Shared authored dimensions and tessellation for rendering and physical contact.
 export const SAFFRON_SOLIDS = Object.freeze({
-  version: 'saffron-solids-v1',
+  version: 'saffron-solids-v2-width40',
   step: 3.2,
   top: [
-    [-16, 0],
-    [16, 0],
+    [-20, 0],
+    [20, 0],
   ],
   underside: [
-    [16, 0],
-    [17.5, -0.75],
-    [17.1, -3.2],
-    [13.2, -3.6],
-    [-13.2, -3.6],
-    [-17.1, -3.2],
-    [-17.5, -0.75],
-    [-16, 0],
+    [20, 0],
+    [21.5, -0.75],
+    [21.1, -3.2],
+    [17.2, -3.6],
+    [-17.2, -3.6],
+    [-21.1, -3.2],
+    [-21.5, -0.75],
+    [-20, 0],
   ],
   vane: [
     [-6.3, 0],
@@ -38,7 +38,7 @@ export function roadRuns(track) {
   runs.push([start, track.length]);
   return runs;
 }
-export const toeProfile = (side) => boxProfile(side * 16.48, 0.18, 0.68, 0.75);
+export const toeProfile = (side) => boxProfile(side * 20.48, 0.18, 0.68, 0.75);
 export function createBaffleGeometry() {
   const shape = new T.Shape();
   for (const [i, [x, y]] of SAFFRON_SOLIDS.vane.entries())
@@ -68,10 +68,10 @@ export function bafflePlacements(track) {
       continue;
     for (const side of [-1, 1]) {
       for (const y of [0.96, 2.1])
-        vanes.push({ s, x: side * 17.65, y, scale: [1, 1, 1] });
+        vanes.push({ s, x: side * 21.65, y, scale: [1, 1, 1] });
       clamps.push({
         s: s - 3.8,
-        x: side * 17.2,
+        x: side * 21.2,
         y: 0.94,
         scale: [0.48, 1.5, 0.9],
       });
@@ -85,7 +85,7 @@ export function receivingBeacons(track) {
       (s) =>
         [-1, 1].map((side) => ({
           s,
-          x: side * 17.8,
+          x: side * 21.8,
           y: 2.3,
           scale: [0.75, 4.6, 0.75],
         })),

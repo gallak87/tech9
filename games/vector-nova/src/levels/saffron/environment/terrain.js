@@ -178,8 +178,9 @@ export function createLandformSurvey(track) {
         continue;
       const dx = position.x - sample.position.x;
       const dz = position.z - sample.position.z;
-      if (dx * dx + dz * dz < (track.width / 2 + 22 + horizontalRadius) ** 2)
-        return false;
+      // This rough width preview keeps the original scenery distribution.
+      // Refit clearance deliberately with the environment, not via road width.
+      if (dx * dx + dz * dz < (16 + 22 + horizontalRadius) ** 2) return false;
     }
     return true;
   }

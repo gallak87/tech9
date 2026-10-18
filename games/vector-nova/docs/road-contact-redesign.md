@@ -25,12 +25,12 @@ Preserve shared handling and steering assistance `0.3`. Prefer a consistent cont
 
 Distances and lateral offsets are metres in track coordinates; speeds are metres per second. Percentages are approximate race progress.
 
-| Circuit and location                               | Probe start distance | Lateral offset                   | Initial speed | Audit observation                                                                    |
-| -------------------------------------------------- | -------------------- | -------------------------------- | ------------- | ------------------------------------------------------------------------------------ |
-| Saffron / Saffron Wide, Amber Crest, ~82%          | 4195                 | Original: -12; Wide: -16 and -10 | 112 and 160   | Wide lost about 50 m/s in one tick at cruise; both variants snagged at higher speed. |
-| Nightweir, Harbor Corkscrew, ~80%                  | 10892                | +18; also +10 at high speed      | 112 and 160   | Outer lane lost about 50 m/s at cruise and up to 120 m/s at higher speed.            |
-| Worldspire, Echo Chasm approach, ~66%              | 9255                 | -21                              | 160           | Repeatable 69–73 m/s losses.                                                         |
-| Zephyr, Falls Between / Choir Archipelago, ~25–29% | 1222 / 1415          | +12 / -12 respectively           | 112 and 160   | Severe catches at both transitions, including cruise speed.                          |
+| Circuit and location                               | Probe start distance | Lateral offset              | Initial speed | Audit observation                                                                    |
+| -------------------------------------------------- | -------------------- | --------------------------- | ------------- | ------------------------------------------------------------------------------------ |
+| Saffron Leviathan, Amber Crest, ~82%               | 4195                 | -12, -16 and -10            | 112 and 160   | The 40 m course lost about 50 m/s in one tick at cruise and snagged at higher speed. |
+| Nightweir, Harbor Corkscrew, ~80%                  | 10892                | +18; also +10 at high speed | 112 and 160   | Outer lane lost about 50 m/s at cruise and up to 120 m/s at higher speed.            |
+| Worldspire, Echo Chasm approach, ~66%              | 9255                 | -21                         | 160           | Repeatable 69–73 m/s losses.                                                         |
+| Zephyr, Falls Between / Choir Archipelago, ~25–29% | 1222 / 1415          | +12 / -12 respectively      | 112 and 160   | Severe catches at both transitions, including cruise speed.                          |
 
 The temporary audit harness was removed; reconstruct it with production runtimes and the fixture patterns in [vesper-magnetic.test.mjs](../tools/vesper-magnetic.test.mjs). Start fresh Kestrels at the listed coordinates, heading/lateral speed zero. Run 60 shared ticks at `1/120` second with hard AI lane steering, throttle 1, brake 0, boost only at 160 m/s. This deliberately maintains approach speed. Compare solo with a second Kestrel at the same station/speed, seven metres laterally toward centre. Stage both before stepping the world. Inspect per-tick speed loss, contacts, support and lane position transiently for your own diagnosis.
 

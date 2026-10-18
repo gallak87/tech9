@@ -16,15 +16,13 @@ Reviewed against main on 2026-10-11. A shipped pass is not a new visual acceptan
 | Vesper Canopy     | Deferred from this initial set; preserve its existing resin finish                            |
 | Glasswake Comet   | Relief/grazing-response pass and transmission removal shipped; [retained brief](glasswake.md) |
 | Cindercoil        | Fired ceramic surface pass shipped; [retained brief](cindercoil.md)                           |
-| Saffron Leviathan | Original retained for testing, hidden from selector; skip new finish work                     |
-| Saffron Wide      | Fused glass/sand finish shipped; [retained brief](saffron-wide.md)                            |
-| Umbra Fold        | Original retained for testing, hidden from selector; skip new finish work                     |
-| Umbra Wide        | [Road finish brief](umbra-wide.md) still available for assignment                             |
+| Saffron Leviathan | Fused glass/sand finish shipped; [retained brief](saffron.md)                                 |
+| Umbra Fold        | [Road finish brief](umbra.md) still available for assignment                                  |
 | Helion Flare      | Metric PBR ceramic pass shipped; [retained brief](helion.md)                                  |
 | Zephyr Basilica   | Weave refinements shipped; reassess the [retained brief](zephyr.md) before further work       |
 | Shatterline       | Asphalt decks shipped; reassess the [deck/tube brief](shatterline.md) before further work     |
 
-The briefs' starting points come from source inspection and may predate the passes above. Their questions are hypotheses to investigate, not claims that a fresh visual audit has already found those defects. Recheck the current implementation when assigned. New Saffron/Umbra finish work targets their wide variants; preserve the hidden originals for testing. Preserve borrowed asset ownership and keep changes local where possible.
+The briefs' starting points come from source inspection and may predate the passes above. Their questions are hypotheses to investigate, not claims that a fresh visual audit has already found those defects. Recheck the current implementation when assigned. Preserve borrowed asset ownership and keep changes local where possible.
 
 ## What worked on Halcyon
 
@@ -48,7 +46,7 @@ Measure cost on the same device, view and preset before/after: frame intervals a
 
 Follow the [level lifecycle](../../LEVEL_API.md): await new assets, report failures, support retry and dispose owned resources without disposing borrowed probes/assets. Register new or replaced resources in the [asset manifest](../../ASSET_MANIFEST.json). Confirm base-color/data color spaces and normal convention; a single lit photograph is not a complete PBR material.
 
-Run a production build and the relevant [level checks](../../../tools/level-checks/README.md), including `VN_URL=<preview-url> npm run verify:level -- <slug>`. Add only focused checks warranted by the change and the brief. Check affected shared-asset consumers too. Use the [menu preview workflow](../../../ARCHITECTURE.md#circuit-preview-refresh) for every affected circuit, including wide variants. Existing screenshots or neutral shape review are not proof of the new production finish.
+Run a production build and the relevant [level checks](../../../tools/level-checks/README.md), including `VN_URL=<preview-url> npm run verify:level -- <slug>`. Add only focused checks warranted by the change and the brief. Check affected shared-asset consumers too. Use the [menu preview workflow](../../../ARCHITECTURE.md#circuit-preview-refresh) for every affected circuit. Existing screenshots or neutral shape review are not proof of the new production finish.
 
 This set follows the expansion folder's **desktop-only** scope: no mobile, portrait, touch-emulation or mobile-landscape cases, including embedded cases in combined CPU/browser suites. Inspect runners before invoking them and report that coverage as deferred. Keep autonomous browser checks hidden, bounded and free of unsolicited videos or normal-speed full laps. These briefs do not require delegation; if requested, give agents finite scopes against the same build.
 

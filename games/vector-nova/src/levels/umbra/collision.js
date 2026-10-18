@@ -5,7 +5,7 @@ export function createUmbraCollisionWorld({ track }) {
   return collectProductionSolids({
     track,
     id: 'umbra-jump-solids',
-    geometryId: 'production-corridors-v1',
+    geometryId: 'umbra-production-corridors-v1-width35',
     road: buildUmbraRoad(track),
     uvScale: 16,
     select(object) {

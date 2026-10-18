@@ -60,16 +60,7 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "2e04f367e3888c531a9f2d3ab1eb69aded349cb1",
-      "sourceDirty": true,
-      "routeSignature": "745e0ccba1b1d203"
-    },
-    "saffron-wide": {
-      "file": "saffron-wide.webp",
-      "width": 640,
-      "height": 400,
-      "preset": "route-overview-v1",
-      "sourceRevision": "4fbb5a0fd20611bb6b33e38d09136fb8b54279ea",
+      "sourceRevision": "16d745d40242eadacf405d86143aae7b984708bd",
       "sourceDirty": true,
       "routeSignature": "745e0ccba1b1d203"
     },
@@ -78,16 +69,7 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "2e04f367e3888c531a9f2d3ab1eb69aded349cb1",
-      "sourceDirty": true,
-      "routeSignature": "5cab1f1f99b9673d"
-    },
-    "umbra-wide": {
-      "file": "umbra-wide.webp",
-      "width": 640,
-      "height": 400,
-      "preset": "route-overview-v1",
-      "sourceRevision": "2e04f367e3888c531a9f2d3ab1eb69aded349cb1",
+      "sourceRevision": "16d745d40242eadacf405d86143aae7b984708bd",
       "sourceDirty": true,
       "routeSignature": "5cab1f1f99b9673d"
     },

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createReferenceFrames } from '../../../track/frames.js';
 
-const WIDTH = 32;
+const WIDTH = 40;
 const HORIZONTAL_LENGTH = 5120;
 const wrap = (s, length) => ((s % length) + length) % length;
 const smooth = (value) => {
@@ -411,7 +411,7 @@ export function createSaffronTrack() {
   return {
     id: 'saffron-leviathan',
     name: 'Saffron Leviathan',
-    geometryVersion: 'saffron-fossil-route-v2',
+    geometryVersion: 'saffron-fossil-route-v2-width40',
     length,
     width: WIDTH,
     groundY: -52,

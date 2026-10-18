@@ -12,7 +12,7 @@ import {
 
 export default function createLevel({ shape = false }) {
   return {
-    version: '0.5.1-saffron-v7-rapier-traction',
+    version: '0.5.1-saffron-v3',
     renderer: {
       world: shape ? 'saffron-shape' : 'saffron-leviathan',
       background: '#b7a4a2',

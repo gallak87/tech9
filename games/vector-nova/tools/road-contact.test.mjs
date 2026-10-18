@@ -7,8 +7,8 @@ import { getRacerControl } from '../src/race/racers.js';
 
 const DT = 1 / 120;
 const cases = {
-  saffron: [[4195, -12]],
-  'saffron-wide': [
+  saffron: [
+    [4195, -12],
     [4195, -16],
     [4195, -10],
   ],

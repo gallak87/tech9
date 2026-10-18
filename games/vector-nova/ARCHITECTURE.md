@@ -42,7 +42,7 @@ After final visual changes, from this app directory:
 
 1. Use Node 22 and an existing dev server, or start one on a free port: `npm run dev -- --port 5197`. Preserve servers owned by other sessions.
 2. Refresh named circuits explicitly: `VN_URL=http://127.0.0.1:5197 npm run previews -- halcyon nacre`. Named circuits are always recaptured. No IDs refreshes all circuits; `--missing` only fills missing stills. The old `--force` spelling remains accepted.
-3. Refresh consumers of borrowed/shared art too, including wide variants. Shared visual changes need an all-circuit refresh. Unrelated code or formatting changes do not require recapture.
+3. Refresh consumers of borrowed/shared art too. Shared visual changes need an all-circuit refresh. Unrelated code or formatting changes do not require recapture.
 4. Inspect the changed images, build, and commit each WebP with `public/assets/menu/previews.json`. Close your own server/browser. Do not keep parallel captures, reports or audit JSON.
 
 The version-1 manifest records each filename, dimensions, capture preset, source revision/dirty flag and CPU route signature. Migrated images retain their old fingerprint as provenance with `sourceRevision: null` because the original exact revision was not recorded; no new capture is implied. The tool updates each record immediately after its image is saved. Source revision is provenance, not an automatic freshness test. Capture uses `?level=<id>&capture=1&music=0`; the compatibility launcher is intentional here. The shipped stills and user-requested art concepts remain registered in [the asset manifest](docs/ASSET_MANIFEST.json).

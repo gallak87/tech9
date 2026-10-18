@@ -45,8 +45,9 @@ function panelGeometry(track) {
       const launch = track.jumps.some(
         (jump) => from > jump.takeoff - 85 && from < jump.takeoff,
       );
-      const bounds =
-        section.id === 'event-fold' ? [-14, -8, 8, 14] : [-14, -5.7, 5.7, 14];
+      const bounds = (
+        section.id === 'event-fold' ? [-14, -8, 8, 14] : [-14, -5.7, 5.7, 14]
+      ).map((x) => x * (track.width / 28));
       for (let column = 0; column < bounds.length - 1; column += 1) {
         const x0 = bounds[column] + 0.085;
         const x1 = bounds[column + 1] - 0.085;
@@ -758,7 +759,7 @@ export function buildUmbraRoad(
       });
       for (const side of [-1, 1]) {
         for (let bar = 0; bar < bars; bar += 1) {
-          const x = side * 11;
+          const x = side * (half - 3);
           const z = (bar - (bars - 1) / 2) * 2.25;
           const tail = x - direction * 0.77;
           const tip = x + direction * 0.77;
@@ -766,7 +767,7 @@ export function buildUmbraRoad(
           paintStroke(distance, [tail, z + 0.83], [tip, z]);
         }
         if (!shape) {
-          const x = side * 16.2;
+          const x = side * (half + 2.2);
           // A graphite instrument badge sits wholly beyond the usable road;
           // its head-on face makes the lateral arrow readable from chase view.
           localBox(underside, frame, x, 3.9, 0, 2.6, 3.1, 0.32);
@@ -815,7 +816,7 @@ export function buildUmbraRoad(
           localBox(
             entering ? amber : guide,
             frame,
-            side * 15.5 + offset,
+            side * (half + 1.5) + offset,
             2.7,
             0,
             0.22,
@@ -825,7 +826,7 @@ export function buildUmbraRoad(
         localBox(
           entering ? amber : guide,
           frame,
-          side * 15.5,
+          side * (half + 1.5),
           entering ? 0.55 : 4.85,
           0,
           1.06,
@@ -870,7 +871,7 @@ export function buildUmbraRoad(
         localBox(
           incoming ? amber : guide,
           frame,
-          side * 11.6,
+          side * (half - 2.4),
           0.14,
           0,
           1.1,
@@ -881,7 +882,7 @@ export function buildUmbraRoad(
           localBox(
             pale,
             frame,
-            side * 16.3,
+            side * (half + 2.3),
             incoming ? 3.7 : 9,
             0,
             1,
@@ -891,7 +892,7 @@ export function buildUmbraRoad(
           localBox(
             incoming ? amber : guide,
             frame,
-            side * 16.3,
+            side * (half + 2.3),
             incoming ? 7.4 : 18,
             0,
             1.45,
@@ -927,7 +928,7 @@ export function buildUmbraRoad(
         for (const side of [-1, 1]) {
           const position = centre
             .clone()
-            .addScaledVector(right, side * 19.5)
+            .addScaledVector(right, side * (half + 5.5))
             .addScaledVector(up, -2.5);
           instance(
             metal,

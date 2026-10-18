@@ -1,7 +1,7 @@
 import { createFlightModel } from '../../../physics/flight.js';
 import { tidalResponse, airborneGravity } from './forces.js';
 
-export const UMBRA_RULES_ID = 'umbra-tides-flight-v1-assist-0.3';
+export const UMBRA_RULES_ID = 'umbra-tides-flight-v1-width35-assist-0.3';
 export const umbraFlight = createFlightModel({
   gravity: 26,
   timeout: 7,
@@ -11,6 +11,8 @@ export const umbraFlight = createFlightModel({
 });
 
 export function createUmbraRuntime(context) {
+  if (context.track.id !== 'umbra-fold-v1')
+    throw new Error('Umbra Fold runtime requires its authored route.');
   const runtime = umbraFlight.createRuntime(context, {
     testLaunch: Boolean(context.playtest),
     forgivingContacts: Boolean(context.collisionWorld),

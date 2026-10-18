@@ -217,9 +217,7 @@ try {
           () => window.__VN_FRONTEND.getState().preview?.selected === 'kestrel',
         );
         const routes = await page.evaluate(() => window.__VN_FRONTEND.routes);
-        const circuits = routes.filter(
-          ({ id }) => id !== 'umbra' && id !== 'saffron',
-        );
+        const circuits = routes;
         assert.equal(
           await page.locator('.circuit-card').count(),
           circuits.length,

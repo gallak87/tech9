@@ -10,7 +10,7 @@ import { loadUmbraSurface } from './environment/surfaces.js';
 
 export default function createLevel({ shape = false } = {}) {
   return {
-    version: '0.5.0-umbra-racing',
+    version: '0.5.1-umbra-v2',
     playtests: {
       jump: {
         scenario: 'jump1-success',

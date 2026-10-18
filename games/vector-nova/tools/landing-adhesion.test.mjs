@@ -13,8 +13,8 @@ const up = new T.Vector3(0, 1, 0);
 
 // Real tilted touchdown on Umbra's authored first receiving road, including
 // its tidal force. Steering starts on the tick immediately after touchdown.
-test('Umbra Wide landing restores traction immediately and smooths only presentation', async (t) => {
-  const { createLevel } = await loadLevel('umbra-wide');
+test('Umbra Fold landing restores traction immediately and smooths only presentation', async (t) => {
+  const { createLevel } = await loadLevel('umbra');
   const level = await createLevel({}),
     track = level.createTrack();
   const collisionWorld = level.createCollisionWorld({ track });

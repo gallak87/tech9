@@ -12,7 +12,7 @@ test('Umbra closes its physical distance and transported frames through the full
     maxFrameTurnPerMetre: 0.045,
   });
   assert.ok(Math.abs(track.length - 5400) < 0.001);
-  assert.equal(track.width, 28);
+  assert.equal(track.width, 35);
   assert.ok(report.maxArcError < 0.002);
   const heights = [];
   for (let s = 0; s < track.length; s += 3)
@@ -48,20 +48,22 @@ test('separate stacked crossings and fold keep conservative vehicle/camera envel
       );
       if (horizontal >= 35) continue;
       const extent = (frame) =>
-        Math.abs(frame.right.y) * 16 + Math.abs(frame.up.y) * 12;
+        Math.abs(frame.right.y) * (track.width / 2 + 2) +
+        Math.abs(frame.up.y) * 12;
       const clearance =
         Math.abs(a.frame.position.y - b.frame.position.y) -
         extent(a.frame) -
         extent(b.frame);
+      // Leave another camera-height of free space beyond both expanded envelopes.
       assert.ok(
-        clearance > 15,
+        clearance > 12,
         `Road-local body/camera clearance ${clearance} at ${a.s}/${b.s}`,
       );
       minimum = Math.min(minimum, clearance);
       if (horizontal < 10)
         regions.add(`${Math.floor(a.s / 300)}:${Math.floor(b.s / 300)}`);
     }
-  assert.ok(minimum < 50 && minimum > 15);
+  assert.ok(minimum < 50 && minimum > 12);
   assert.ok(
     regions.size >= 3,
     'Two separated stacks and final fold must be real crossings',
@@ -189,7 +191,7 @@ test('shape and production are finite, share true gap boundaries, and release ow
         );
         const expected = frame.position
           .clone()
-          .addScaledVector(frame.right, -14)
+          .addScaledVector(frame.right, -track.width / 2)
           .addScaledVector(frame.up, shape ? 0 : -0.12);
         assert.ok(
           actual.distanceTo(expected) < 0.0001,

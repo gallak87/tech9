@@ -37,7 +37,7 @@ The three geometric representations serve different purposes:
 | Route and road-surface data | Describe local forward/up/side directions, race progress and valid support. |
 | Collision geometry          | Tell the physics engine which physical shapes may touch.                    |
 
-They need to agree about the road and ship, but need not have identical detail. The recent road-contact work makes support use the authored running skin and filters contact with the skin it already owns, including aligned backing immediately underneath. That removed a substantial source of redundant contact work on Umbra Wide.
+They need to agree about the road and ship, but need not have identical detail. The recent road-contact work makes support use the authored running skin and filters contact with the skin it already owns, including aligned backing immediately underneath. That removed a substantial source of redundant contact work on Umbra Fold.
 
 The production path does **not** run the legacy custom hull-sweep response and Rapier response simultaneously. The custom path remains for callers without dynamics; the CPU geometry also supplies static geometry and landing information.
 
@@ -103,7 +103,7 @@ The handoff spans a boundary: the physics world solves contacts, gameplay recogn
 
 ## What the measurements establish
 
-At the restored `91c61984` baseline, the ten-ship CPU jump probes averaged roughly **4.9 ms of physics per 120 Hz tick on Zephyr** and **5.1 ms on Umbra Wide**. At 60 FPS, two such ticks consume roughly 10 ms of the 16.7 ms frame budget before other simulation, rendering submission and GPU work. These are CPU probe measurements, not measured foreground FPS or a complete GPU profile.
+At the restored `91c61984` baseline, the ten-ship CPU jump probes averaged roughly **4.9 ms of physics per 120 Hz tick on Zephyr** and **5.1 ms on Umbra Fold**. At 60 FPS, two such ticks consume roughly 10 ms of the 16.7 ms frame budget before other simulation, rendering submission and GPU work. These are CPU probe measurements, not measured foreground FPS or a complete GPU profile.
 
 The remaining cost is concentrated in native collision work, particularly CCD. Joint solving was much smaller in the counters inspected. Some counters overlap, so they must not be added as independent costs.
 

@@ -48,10 +48,7 @@ function picture(route, className = '') {
 
 export function createFrontend(host) {
   const catalog = discoverLevels().list;
-  // Keep the original routes available to direct links and developer tools.
-  const circuits = catalog.filter(
-    ({ id }) => id !== 'umbra' && id !== 'saffron',
-  );
+  const circuits = catalog;
   const parameters = new URLSearchParams(location.search);
   const artPass = parameters.get('artPass') === '1';
   const inspectShip = !artPass && parameters.get('inspect') === '1';
@@ -69,8 +66,6 @@ export function createFrontend(host) {
   if (!selected) {
     try {
       selected = localStorage.getItem('vector-nova.circuit');
-      if (selected === 'umbra' || selected === 'saffron')
-        selected = `${selected}-wide`;
     } catch {
       /* Optional storage. */
     }

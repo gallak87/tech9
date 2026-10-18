@@ -1,7 +1,7 @@
 import * as T from 'three';
 import { cacheClosedCatmullRom } from '../../../track/cached-curve.js';
 
-export const VESPER_REVISION = 'vesper-route-4-bloom-corkscrew';
+export const VESPER_REVISION = 'vesper-route-5-canopy-verticals';
 const wrap = (s, length) => ((s % length) + length) % length;
 const PLAN = [
   [-280, -300],
@@ -48,7 +48,9 @@ const ELEVATIONS = [
   [16, 205],
   [17, 200],
   [19, 180],
-  [24, 110],
+  [21, -25],
+  [24, 270],
+  [25, 270],
   [28, 12],
   [31, 25],
   [32, 25],
@@ -76,8 +78,8 @@ export function createVesperTrack() {
       planLength
     );
   };
-  // Keep the crown's deliberate launch/receiving drop; Bloomspan and
-  // Rootfall are continuous broad descents with no optional launch hump.
+  // The crown landing stays intact. Beyond it, three sustained grades drop
+  // into the canopy, climb through Bloomspan, then dive into Rootfall.
   const grades = ELEVATIONS.map(([node, height]) => ({
     u: nodeU(node),
     y: height * 0.82,
@@ -114,7 +116,9 @@ export function createVesperTrack() {
       (t ** 3 - t ** 2) * span * slopes[index + 1]
     );
   };
-  let scale = 1;
+  // Fixed forest footprint: changing altitude must not move the fitted hollow
+  // portals or rescale every tree and crossing in the world.
+  const scale = 0.8672943791072507;
   const curve = new T.Curve();
   curve.getPoint = (u) => {
     const point = planAt(u).multiplyScalar(scale);
@@ -122,10 +126,7 @@ export function createVesperTrack() {
     return point;
   };
   curve.arcLengthDivisions = 48000;
-  for (let pass = 0; pass < 7; pass++) {
-    curve.updateArcLengths();
-    if (pass < 6) scale *= 4600 / curve.getLength();
-  }
+  curve.updateArcLengths();
   const length = curve.getLength();
   const arcs = curve.getLengths(48000);
   const nodeS = (node) => {
@@ -138,7 +139,7 @@ export function createVesperTrack() {
     positionAt(s + 0.25)
       .sub(positionAt(s - 0.25))
       .normalize();
-  // One deliberate, broad 360-degree roll on the open descending span. Keep
+  // One deliberate, broad 360-degree roll on the open climbing span. Keep
   // the tightly winding hollow and ordinary road level across their width.
   const inversion = {
     id: 'bloom-corkscrew',
@@ -180,6 +181,26 @@ export function createVesperTrack() {
       roll,
     };
   }
+  const verticals = [
+    {
+      id: 'canopy-plunge',
+      name: 'Canopy Plunge',
+      start: nodeS(19),
+      end: nodeS(21),
+    },
+    {
+      id: 'bloom-ascent',
+      name: 'Bloomspan Ascent',
+      start: nodeS(21),
+      end: nodeS(24),
+    },
+    {
+      id: 'rootfall-dive',
+      name: 'Rootfall Dive',
+      start: nodeS(25),
+      end: nodeS(28),
+    },
+  ];
   const crownTakeoff = nodeS(15) - 8;
   const jumps = [
     {
@@ -299,6 +320,8 @@ export function createVesperTrack() {
       speed: 58,
     },
   };
+  for (const vertical of verticals)
+    scenarios[vertical.id] = { distance: vertical.start - 30, speed: 90 };
   for (const section of sections)
     scenarios[`${section.id}-showcase`] = {
       distance: section.showcase,
@@ -316,6 +339,7 @@ export function createVesperTrack() {
     scenarios,
     jumps,
     inversions: [inversion],
+    verticals,
     sapZones,
     revision: VESPER_REVISION,
     geometryVersion: VESPER_REVISION,

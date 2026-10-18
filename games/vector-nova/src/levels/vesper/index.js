@@ -9,7 +9,7 @@ import { createVesperRuntime } from './runtime.js';
 
 export default function createLevel({ shape = false } = {}) {
   return {
-    version: '0.5.1-vesper-racing',
+    version: '0.5.2-vesper-verticals',
     playtests: {
       jump: {
         scenario: 'crown-fast',

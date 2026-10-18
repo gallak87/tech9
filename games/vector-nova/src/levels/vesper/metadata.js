@@ -10,7 +10,7 @@ export default {
     eyebrow: 'NOCTURNAL TRANSPORT GUILD · 004',
     heading: ['BENEATH THE', 'LIVING CROWN.'],
     intro:
-      'Climb inside a colossal tree. Leap across the lantern crown, then corkscrew down glowing amber resin into the moonlit forest.',
+      'Climb inside a colossal tree. Leap across the lantern crown, plunge beneath the canopy, then spiral skyward before the Rootfall dive.',
     detail:
       '28 m magnetic deck · hollow ascent · crown flight · sap and resin lines. Manual boost is available.',
     start: 'ENTER THE CANOPY',

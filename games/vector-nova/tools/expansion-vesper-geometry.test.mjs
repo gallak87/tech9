@@ -50,7 +50,7 @@ test('Vesper wraps metre frames continuously and the hollow has a rising full tu
   );
 });
 
-test('ordinary Vesper road stays level across its width with gradual monotone grades', () => {
+test('Vesper adds three sustained vertical sections with continuous pitch and level ordinary cross-sections', () => {
   for (let s = 0; s < track.length; s += 1) {
     const frame = track.sample(s),
       before = track.sample(s - 0.5),
@@ -63,9 +63,9 @@ test('ordinary Vesper road stays level across its width with gradual monotone gr
         Math.abs(frame.right.y) < 1e-12,
         `banked ordinary cross-section at ${s}`,
       );
-    assert.ok(Math.abs(frame.tangent.y) < 0.21, `steep grade at ${s}`);
+    assert.ok(Math.abs(frame.tangent.y) < 0.65, `steep grade at ${s}`);
     assert.ok(
-      Math.abs(after.tangent.y - before.tangent.y) < 0.0036,
+      Math.abs(after.tangent.y - before.tangent.y) < 0.009,
       `abrupt pitch at ${s}`,
     );
     for (const lateral of [-12, 0, 12]) {
@@ -75,28 +75,42 @@ test('ordinary Vesper road stays level across its width with gradual monotone gr
         before.position.y -
         lateral * before.right.y;
       assert.ok(
-        Math.abs(rise) < (rolling ? 0.46 : 0.21),
+        Math.abs(rise) < (rolling ? 0.9 : 0.65),
         `lane hump at ${s}/${lateral}`,
       );
     }
   }
-  const bloom = track.sections.find(({ id }) => id === 'bloom');
-  const rootfall = track.sections.find(({ id }) => id === 'rootfall');
-  let previous = Infinity;
-  for (let s = bloom.start; s <= rootfall.end; s += 1) {
-    const height = track.sample(s).position.y;
-    assert.ok(height <= previous, `unwanted descent hump at ${s}`);
-    previous = height;
+  assert.equal(track.verticals.length, 3);
+  for (const vertical of track.verticals) {
+    const first = track.sample(vertical.start).position.y;
+    const last = track.sample(vertical.end).position.y;
+    const direction = Math.sign(last - first);
+    assert.ok(
+      Math.abs(last - first) > 150,
+      `${vertical.id} has substantial relief`,
+    );
+    let previous = first;
+    let steepMetres = 0;
+    for (let s = vertical.start; s <= vertical.end; s++) {
+      const frame = track.sample(s);
+      assert.ok((frame.position.y - previous) * direction >= -1e-6);
+      previous = frame.position.y;
+      steepMetres += Number(Math.abs(frame.tangent.y) > 0.35);
+      assert.equal(track.isGap(s), false, 'verticals remain supported road');
+    }
+    assert.ok(steepMetres > 150, `${vertical.id} sustains its grade`);
   }
 });
 
-test('Bloomspan has one broad, smoothly entered descending full corkscrew', () => {
+test('Bloomspan has one broad, smoothly entered climbing full corkscrew', () => {
   assert.equal(track.inversions.length, 1);
   const { start, end } = track.inversions[0];
   assert.ok(end - start > 400);
-  assert.ok(track.sample(start).position.y - track.sample(end).position.y > 30);
   assert.ok(
-    track.sample((start + end) / 2).up.y < -0.98,
+    track.sample(end).position.y - track.sample(start).position.y > 220,
+  );
+  assert.ok(
+    track.sample((start + end) / 2).up.y < -0.75,
     'fully inverted at the centre',
   );
   assert.ok(

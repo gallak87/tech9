@@ -78,9 +78,9 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "af49f31247554872078a8238f32a6b8a08646ea0",
+      "sourceRevision": "3e627bcf60948a9d542073f4eb3997f09630c939",
       "sourceDirty": true,
-      "routeSignature": "5358f26ffb9f25c1"
+      "routeSignature": "aeaddc8f8f101feb"
     },
     "zephyr": {
       "file": "zephyr.webp",

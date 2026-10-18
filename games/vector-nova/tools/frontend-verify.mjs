@@ -248,6 +248,131 @@ async function finishInputs(difficulty, initial) {
 try {
   if (!flags.includes('--responsive')) {
     await check(
+      'keyboard-only menu navigation and focus return',
+      async (page) => {
+        const focused = async (selector) =>
+          assert.equal(
+            await page
+              .locator(selector)
+              .evaluate((el) => el === document.activeElement),
+            true,
+            `focus should be on ${selector}`,
+          );
+        const press = async (key, selector) => {
+          await page.keyboard.press(key);
+          if (selector) await focused(selector);
+        };
+        await page.goto(url('level=halcyon'));
+        await fleetReady(page);
+        await focused('[data-action="launch"]');
+        await press('ArrowUp', '.menu-selection[data-action="ship-step"]');
+        await press('ArrowUp', '.menu-selection[data-action="circuits"]');
+        await press('Enter', '[data-level="halcyon"]');
+        await press('ArrowRight', '[data-level="orbital"]');
+        assert.equal((await front(page)).selected, 'halcyon');
+        assert.match(
+          await page.locator('.circuit-hero h2').textContent(),
+          /Asterion/,
+        );
+        await press('Space', '[data-level="orbital"]');
+        assert.equal((await front(page)).selected, 'orbital');
+        await press('End', '[data-level="umbra"]');
+        await press('Home', '[data-level="halcyon"]');
+        await press('ArrowUp', '.picker-tabs [data-action="circuits"]');
+        await press('ArrowRight', '.picker-tabs [data-action="ship-step"]');
+        await press('ArrowDown', 'button[data-ship="kestrel"]');
+        await press('ArrowRight', 'button[data-ship="shrike"]');
+        assert.equal((await front(page)).shipId, 'kestrel');
+        await press('Space', 'button[data-ship="shrike"]');
+        assert.equal((await front(page)).shipId, 'shrike');
+        await page.waitForFunction(
+          () => window.__VN_FRONTEND.getState().preview?.selected === 'shrike',
+        );
+        await press('Tab', '.ship-preview canvas');
+        await press('ArrowLeft', '.ship-preview canvas');
+        await press('Escape', '.menu-selection[data-action="ship-step"]');
+        await press('ArrowDown', '[data-action="launch"]');
+        await press('ArrowDown', '[data-difficulty="easy"]');
+        await press('ArrowRight', '[data-difficulty="medium"]');
+        assert.equal(
+          await page
+            .locator('[data-difficulty="medium"]')
+            .getAttribute('aria-pressed'),
+          'true',
+        );
+        for (const align of await page
+          .locator('[data-difficulty]')
+          .evaluateAll((items) =>
+            items.map((item) => getComputedStyle(item).textAlign),
+          ))
+          assert.equal(align, 'center');
+        await press('ArrowDown', '[data-action="practice"]');
+        await press('ArrowDown', '[data-action="inspect"]');
+        await press('Enter');
+        await inspectorReady(page);
+        await press('Escape', '[data-action="inspect"]');
+        await press('ArrowDown', '[data-action="settings"]');
+        await press('Enter', '[data-action="settings-back"]');
+        await press('Tab', '[data-setting="quality"]');
+        // Native select typeahead also works in headless macOS Chrome.
+        await press('h');
+        assert.equal(
+          await page.locator('[data-setting="quality"]').inputValue(),
+          'high',
+        );
+        await press('Tab', '[data-setting="volume"]');
+        await press('ArrowRight');
+        assert.equal(
+          await page.locator('[data-setting="volume"]').inputValue(),
+          '0.05',
+        );
+        await press('Tab', '[data-setting="reducedMotion"]');
+        await press('Space');
+        assert.equal(
+          await page.locator('[data-setting="reducedMotion"]').isChecked(),
+          false,
+        );
+        await press('Escape', '[data-action="settings"]');
+        await press('Home', '.menu-selection[data-action="circuits"]');
+        await press('ArrowRight', '[data-level="orbital"]');
+        await press('End', '[data-level="umbra"]');
+        await press('s', '[data-action="settings-back"]');
+        await press('Escape', '[data-level="umbra"]');
+        assert.equal((await front(page)).selected, 'orbital');
+        await press('Tab', '.music-previous');
+        await press('Tab', '.music-play');
+        await press('Shift+Tab', '.music-previous');
+        await press('Shift+Tab', '[data-level="umbra"]');
+        await press('Escape', '.menu-selection[data-action="circuits"]');
+        await press('ArrowDown', '.menu-selection[data-action="ship-step"]');
+        await press('ArrowDown', '[data-action="launch"]');
+        assert.equal(await page.evaluate(() => !!window.__VN), false);
+        let release;
+        const gate = new Promise((resolve) => {
+          release = resolve;
+        });
+        await page.route(
+          /\/(?:src\/core\/game\.js|assets\/game-[^/]+\.js)(?:\?|$)/,
+          async (route) => {
+            await gate;
+            await route.continue().catch(() => {});
+          },
+        );
+        try {
+          await press('Enter', '[data-action="cancel"]');
+          assert.equal((await front(page)).screen, 'loading');
+          await press('Enter', '[data-action="launch"]');
+          await press('ArrowDown');
+          await press('ArrowDown', '[data-action="practice"]');
+          await press('Enter', '[data-action="cancel"]');
+          await press('Escape', '[data-action="practice"]');
+        } finally {
+          release();
+          await page.unrouteAll({ behavior: 'wait' });
+        }
+      },
+    );
+    await check(
       'setup, hover/keyboard selection, settings and fleet cache',
       async (page) => {
         await page.goto(url('level=halcyon'));
@@ -940,7 +1065,7 @@ try {
         );
         await page.keyboard.press('Escape');
         await page.locator('#home').click();
-        await page.goto(url('inspect=1&ship=kestrel&level=halcyon'));
+        await page.goto(url('inspect=1&ship=kestrel&level=halcyon&dev=1'));
         await booted(page);
         await page.getByRole('tab', { name: 'AI racers' }).click();
         assert.equal(
@@ -970,6 +1095,29 @@ try {
       },
       { width: 1280, height: 720 },
     );
+    await check('AI inspector tab requires dev=1', async (page) => {
+      for (const query of ['', '&dev=0', '&dev=true', '&dev=1']) {
+        await page.goto(url(`inspect=1&ship=kestrel${query}`));
+        await inspectorReady(page);
+        const enabled = query === '&dev=1';
+        assert.equal(
+          await page.getByRole('tab', { name: 'AI racers' }).count(),
+          enabled ? 1 : 0,
+        );
+        await page.getByRole('tab', { name: 'Your ships' }).focus();
+        for (const key of ['End', 'Home', 'ArrowLeft', 'ArrowRight']) {
+          await page.keyboard.press(key);
+          const expected =
+            enabled && ['End', 'ArrowLeft'].includes(key) ? 'rivals' : 'fleet';
+          assert.equal((await snapshot(page)).inspection.tab, expected);
+          assert.equal(
+            await page.locator('#inspection-rivals-picker').isVisible(),
+            expected === 'rivals',
+          );
+        }
+        assert.equal(await page.evaluate(() => !!window.__VN), false);
+      }
+    });
     await check(
       'ship selectors after track selection never launch a session',
       async (page) => {
@@ -1364,6 +1512,54 @@ try {
   }
   if (!flags.includes('--desktop')) {
     for (const viewport of [
+      { width: 800, height: 900 },
+      { width: 390, height: 844 },
+    ]) {
+      await check(
+        `compact keyboard menu ${viewport.width}×${viewport.height}`,
+        async (page) => {
+          const press = async (key, selector) => {
+            await page.keyboard.press(key);
+            if (selector)
+              assert.equal(
+                await page
+                  .locator(selector)
+                  .evaluate((el) => el === document.activeElement),
+                true,
+                `focus after ${key} should be on ${selector}`,
+              );
+          };
+          await page.goto(url('level=halcyon'));
+          await fleetReady(page);
+          await press('Home', '.menu-selection[data-action="circuits"]');
+          await press('Enter', '[data-level="halcyon"]');
+          await press('End', '[data-level="umbra"]');
+          await press('Space', '[data-level="umbra"]');
+          assert.equal((await front(page)).selected, 'umbra');
+          await press('Escape', '.menu-selection[data-action="circuits"]');
+          await press('ArrowDown', '.menu-selection[data-action="ship-step"]');
+          await press('Enter', 'button[data-ship="kestrel"]');
+          await press('End', 'button[data-ship="needle"]');
+          await press('Enter', 'button[data-ship="needle"]');
+          assert.equal((await front(page)).shipId, 'needle');
+          await press('Escape', '.menu-selection[data-action="ship-step"]');
+          await press('ArrowDown', '[data-action="launch"]');
+          await press('ArrowDown', '[data-difficulty="easy"]');
+          await press('ArrowRight', '[data-difficulty="medium"]');
+          await press('ArrowDown', '[data-action="practice"]');
+          await press('ArrowDown', '[data-action="inspect"]');
+          await press('ArrowDown', '[data-action="settings"]');
+          await press('Space', '[data-action="settings-back"]');
+          await press('Tab', '[data-setting="quality"]');
+          await press('Escape', '[data-action="settings"]');
+          await press('Tab', '.music-previous');
+          await press('Shift+Tab', '[data-action="settings"]');
+          assert.equal(await page.evaluate(() => !!window.__VN), false);
+        },
+        viewport,
+      );
+    }
+    for (const viewport of [
       { width: 390, height: 844 },
       { width: 768, height: 768 },
     ]) {
@@ -1380,7 +1576,7 @@ try {
             )
               loads.push(path);
           });
-          await page.goto(url('level=shatterline'));
+          await page.goto(url('level=shatterline&dev=1'));
           const entry = page.locator('[data-action="inspect"]');
           if (viewport.width < 760) await entry.tap();
           else await entry.click();

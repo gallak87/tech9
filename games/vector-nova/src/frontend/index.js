@@ -93,7 +93,9 @@ export function createFrontend(host) {
     resultsKey = '',
     lastResults = null;
   let settingsBack = 'home',
+    settingsFocus = null,
     launchBack = 'home',
+    launchFocus = null,
     launchTarget = 'race',
     inspectionBack = null;
   let inspector = null,
@@ -174,6 +176,45 @@ export function createFrontend(host) {
         url.searchParams.delete(flag);
     history.replaceState(null, '', url);
   }
+  function focusSelector(element = document.activeElement) {
+    if (!shell.contains(element)) return null;
+    for (const key of ['level', 'ship', 'difficulty', 'action']) {
+      if (!element.dataset[key]) continue;
+      const scope = element.closest(
+        '.menu-selection, .picker-tabs, .picker-header',
+      );
+      const prefix = scope?.classList.contains('menu-selection')
+        ? '.race-menu '
+        : scope?.classList.contains('picker-tabs')
+          ? '.picker-tabs '
+          : scope
+            ? '.picker-header '
+            : '';
+      return `${prefix}button[data-${key}="${element.dataset[key]}"]`;
+    }
+    return element.matches('.ship-preview canvas')
+      ? '.ship-preview canvas'
+      : null;
+  }
+  function focusMenu(target) {
+    const element =
+      typeof target === 'string' ? shell.querySelector(target) : target;
+    if (!element || element.disabled) return;
+    element.focus({ preventScroll: true });
+    element.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+  function focusPicker() {
+    focusMenu(
+      showingShip()
+        ? `button[data-ship="${shipId}"]`
+        : `[data-level="${selected}"]`,
+    );
+  }
+  function focusPickerHeader() {
+    focusMenu(
+      '.picker-tabs [aria-pressed="true"], .picker-header button:last-child',
+    );
+  }
   function setScreen(next) {
     const navigating = screen !== next;
     screen = next;
@@ -205,7 +246,9 @@ export function createFrontend(host) {
             ? '[data-action="launch"]'
             : next === 'settings'
               ? '[data-action="settings-back"]'
-              : 'h1';
+              : next === 'loading'
+                ? '[data-action="cancel"]'
+                : 'h1';
     shell.querySelector(focus)?.focus({ preventScroll: true });
     if (next === 'circuits')
       shell.querySelector(focus)?.scrollIntoView({ block: 'nearest' });
@@ -362,7 +405,8 @@ export function createFrontend(host) {
           'Menus',
           [
             ['Tab / Shift Tab', 'Move between controls'],
-            ['Arrows', 'Preview circuits/ships; change difficulty'],
+            ['↑ / ↓', 'Move through menu actions and track rows'],
+            ['← / →', 'Browse tracks/ships; change difficulty or setup tab'],
             ['Home / End', 'First / last item in a list'],
             ['Enter / Space', 'Select or activate'],
             ['Esc', 'Back / cancel loading'],
@@ -684,7 +728,10 @@ export function createFrontend(host) {
   async function loadView(target, enter) {
     if (launching) return;
     // A retry from Loading keeps the original menu view as its destination.
-    if (choosingSession()) launchBack = screen;
+    if (choosingSession()) {
+      launchBack = screen;
+      launchFocus = focusSelector();
+    }
     launching = true;
     launchTarget = target;
     const attempt = ++launchGeneration;
@@ -732,7 +779,10 @@ export function createFrontend(host) {
   }
   async function openInspector() {
     if (launching) return;
-    if (choosingSession()) launchBack = screen;
+    if (choosingSession()) {
+      launchBack = screen;
+      launchFocus = focusSelector();
+    }
     launching = true;
     launchTarget = 'inspection';
     const attempt = ++launchGeneration;
@@ -809,6 +859,7 @@ export function createFrontend(host) {
     progress = '';
     if (special) leaveReview();
     setScreen(destination);
+    focusMenu(launchFocus);
   }
   function leaveReview() {
     if (!special) return;
@@ -841,6 +892,7 @@ export function createFrontend(host) {
     }
   }
   function goHome() {
+    const previous = screen;
     if (screen === 'loading') {
       cancel('home');
       return;
@@ -848,6 +900,10 @@ export function createFrontend(host) {
     if (game) game.returnToSetup();
     else leaveReview();
     setScreen('home');
+    if (previous === 'circuits' || previous === 'setup')
+      focusMenu(
+        `.menu-selection[data-action="${previous === 'setup' ? 'ship-step' : 'circuits'}"]`,
+      );
   }
   const actions = {
     home: goHome,
@@ -871,11 +927,13 @@ export function createFrontend(host) {
     settings() {
       if (screen === 'settings') return;
       settingsBack = screen;
+      settingsFocus = focusSelector();
       setScreen('settings');
     },
     'settings-back'() {
       const destination = settingsBack;
       setScreen(destination);
+      focusMenu(settingsFocus);
       if (destination === 'results') game?.showResults();
     },
     launch() {
@@ -987,6 +1045,72 @@ export function createFrontend(host) {
   shell.addEventListener(
     'keydown',
     (e) => {
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+      const control = e.target.closest('button');
+      const vertical = ['ArrowUp', 'ArrowDown'].includes(e.code);
+      const edge = ['Home', 'End'].includes(e.code);
+      const horizontal = ['ArrowLeft', 'ArrowRight'].includes(e.code);
+      if (!control || (!vertical && !edge && !horizontal)) return;
+
+      const menu = control.closest(
+        '.race-menu, .picker-race-actions, .front-actions',
+      );
+      if (menu && (vertical || (edge && !control.dataset.difficulty))) {
+        e.preventDefault();
+        const items = [...menu.querySelectorAll('button')].filter(
+          (item) =>
+            !item.disabled &&
+            item.tabIndex >= 0 &&
+            item.getClientRects().length,
+        );
+        const index =
+          e.code === 'Home'
+            ? 0
+            : e.code === 'End'
+              ? items.length - 1
+              : Math.max(
+                  0,
+                  Math.min(
+                    items.length - 1,
+                    items.indexOf(control) + (e.code === 'ArrowDown' ? 1 : -1),
+                  ),
+                );
+        focusMenu(items[index]);
+        return;
+      }
+      if (
+        control.closest('.race-menu') &&
+        e.code === 'ArrowRight' &&
+        !control.dataset.difficulty &&
+        wideMenu.matches
+      ) {
+        e.preventDefault();
+        focusPicker();
+        return;
+      }
+      if (control.closest('.picker-tabs')) {
+        e.preventDefault();
+        if (vertical) {
+          if (e.code === 'ArrowDown') focusPicker();
+          else
+            focusMenu(
+              `.menu-selection[data-action="${showingShip() ? 'ship-step' : 'circuits'}"]`,
+            );
+        } else {
+          const action = ['ArrowLeft', 'Home'].includes(e.code)
+            ? 'circuits'
+            : 'ship-step';
+          actions[action]();
+          focusMenu(`.picker-tabs [data-action="${action}"]`);
+        }
+        return;
+      }
+      if (control.closest('.picker-header') && vertical) {
+        e.preventDefault();
+        if (e.code === 'ArrowDown') focusPicker();
+        else focusMenu('.picker-header button:last-child');
+        return;
+      }
       const card = e.target.closest(
         'button[data-level], button[data-ship], button[data-difficulty]',
       );
@@ -1046,10 +1170,31 @@ export function createFrontend(host) {
                 Math.abs(b.bounds.left - current.left),
           );
         next = candidates[0]?.item ?? card;
+        if (next === card && e.code === 'ArrowUp') {
+          focusPickerHeader();
+          return;
+        }
+      }
+      if (card.dataset.ship && vertical) {
+        if (e.code === 'ArrowUp') focusPickerHeader();
+        else focusMenu('.ship-preview canvas');
+        return;
+      }
+      if (card.dataset.level && e.code === 'ArrowLeft' && wideMenu.matches) {
+        const bounds = card.getBoundingClientRect();
+        const firstInRow = !items.some((item) => {
+          const other = item.getBoundingClientRect();
+          return (
+            Math.abs(other.top - bounds.top) < 1 && other.left < bounds.left - 1
+          );
+        });
+        if (firstInRow) {
+          focusMenu('.menu-selection[data-action="circuits"]');
+          return;
+        }
       }
       if (next.dataset.level || next.dataset.ship) {
-        next.focus({ preventScroll: true });
-        next.scrollIntoView({ block: 'nearest' });
+        focusMenu(next);
       } else {
         next.click();
         shell
@@ -1082,8 +1227,9 @@ export function createFrontend(host) {
         e.preventDefault();
         if (screen === 'loading') cancel();
         else if (screen === 'settings') actions['settings-back']();
-        else if (screen === 'setup') setScreen('circuits');
-        else if (screen === 'circuits') setScreen('home');
+        else if (screen === 'setup' || screen === 'circuits') goHome();
+        else if (screen === 'home' && e.target.closest('.menu-picker'))
+          focusMenu('.menu-selection[data-action="circuits"]');
       }
     },
     { signal: life.signal },
@@ -1093,20 +1239,11 @@ export function createFrontend(host) {
     () => {
       if (!choosingSession()) return;
       const focused = document.activeElement;
-      const selector = focused?.dataset.ship
-        ? `button[data-ship="${focused.dataset.ship}"]`
-        : focused?.dataset.level
-          ? `[data-level="${focused.dataset.level}"]`
-          : focused?.dataset.difficulty
-            ? `[data-difficulty="${focused.dataset.difficulty}"]`
-            : focused?.dataset.action
-              ? `[data-action="${focused.dataset.action}"]`
-              : focused?.matches('.ship-preview canvas')
-                ? '.ship-preview canvas'
-                : null;
+      const selector = focusSelector(focused);
       setScreen(screen);
-      if (selector)
-        shell.querySelector(selector)?.focus({ preventScroll: true });
+      if (selector) focusMenu(selector);
+      else if (focused !== document.body && focused.isConnected)
+        focused.focus({ preventScroll: true });
     },
     { signal: life.signal },
   );

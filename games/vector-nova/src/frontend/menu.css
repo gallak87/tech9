@@ -593,6 +593,7 @@
   font-size: 11px;
   text-transform: capitalize;
   color: #bbb;
+  text-align: center;
 }
 .front-content .race-difficulty button[aria-pressed='true'] {
   border-color: #d01818;

@@ -120,10 +120,13 @@ export function createShipControls(root, actions, selectedShip = SHIPS[0]) {
   tabs.className = 'inspection-tabs';
   tabs.setAttribute('role', 'tablist');
   tabs.setAttribute('aria-label', 'Ship collection');
-  for (const [id, label] of [
+  const collections = [
     ['fleet', 'Your ships'],
-    ['rivals', 'AI racers'],
-  ]) {
+    ...(new URLSearchParams(location.search).get('dev') === '1'
+      ? [['rivals', 'AI racers']]
+      : []),
+  ];
+  for (const [index, [id, label]] of collections.entries()) {
     const button = document.createElement('button');
     button.id = `inspection-${id}-tab`;
     button.textContent = label;
@@ -135,14 +138,16 @@ export function createShipControls(root, actions, selectedShip = SHIPS[0]) {
         return;
       event.preventDefault();
       event.stopPropagation();
-      const next =
+      const nextIndex =
         event.key === 'Home'
-          ? 'fleet'
+          ? 0
           : event.key === 'End'
-            ? 'rivals'
-            : id === 'fleet'
-              ? 'rivals'
-              : 'fleet';
+            ? collections.length - 1
+            : (index +
+                (event.key === 'ArrowRight' ? 1 : -1) +
+                collections.length) %
+              collections.length;
+      const [next] = collections[nextIndex];
       const target = $(`inspection-${next}-tab`);
       target.focus();
       target.click();

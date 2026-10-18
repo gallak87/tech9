@@ -1,6 +1,34 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+test('phone defaults use Low in either orientation and preserve saved choices', async () => {
+  let index = 0;
+  for (const [coarse, fine, saved, blocked, expected] of [
+    [true, false, {}, false, 'low'],
+    [true, false, {}, true, 'low'],
+    [true, false, { quality: 'high' }, false, 'high'],
+    [false, true, {}, false, 'high'],
+    [true, true, {}, false, 'high'],
+  ]) {
+    globalThis.matchMedia = (query) => ({
+      matches: query === '(pointer: coarse)' ? coarse : fine,
+    });
+    globalThis.localStorage = {
+      getItem: () => {
+        if (blocked) throw new Error('Storage blocked');
+        return JSON.stringify(saved);
+      },
+    };
+    try {
+      const { loadSettings } = await import(`./index.js?device=${index++}`);
+      assert.equal(loadSettings().quality, expected);
+    } finally {
+      delete globalThis.matchMedia;
+      delete globalThis.localStorage;
+    }
+  }
+});
+
 test('settings stay synchronized between menu/runtime and survive unavailable storage', async () => {
   const storage = new Map();
   globalThis.localStorage = {

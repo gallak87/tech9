@@ -1,3 +1,5 @@
+import { mobileGraphics } from '../renderer/device.js';
+
 export const vesperGraphicsDefaults = {
   vesperClearcoat: true,
   vesperResinDetail: true,
@@ -37,7 +39,9 @@ function normalize(saved = {}) {
       : defaults.volume,
     quality: ['low', 'high'].includes(saved.quality)
       ? saved.quality
-      : defaults.quality,
+      : mobileGraphics()
+        ? 'low'
+        : defaults.quality,
     reducedMotion:
       typeof saved.reducedMotion === 'boolean'
         ? saved.reducedMotion
@@ -54,7 +58,7 @@ export function loadSettings() {
       JSON.parse(localStorage.getItem('vector-nova.settings') || '{}') ?? {},
     );
   } catch {
-    current = { ...defaults };
+    current = normalize();
   }
   return { ...current };
 }

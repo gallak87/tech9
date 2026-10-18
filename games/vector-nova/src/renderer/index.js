@@ -13,13 +13,16 @@ import { textureMemory } from './texture-memory.js';
 import { createContactShadow } from './contact-shadow.js';
 import { attachWorldPass } from './world-pass.js';
 import { drawUnculledScene } from './warm-scene.js';
+import { mobileGraphics } from './device.js';
+import { createGraphicsContext } from './graphics-context.js';
 
 export async function createRenderer(
   host,
   settings,
-  { shape = false, createBackdrop, ...options },
+  { shape = false, createBackdrop, signal, ...options },
 ) {
   const lifetime = createLifetime();
+  let graphics;
   try {
     const renderer = lifetime.own(
       new T.WebGLRenderer({
@@ -31,6 +34,7 @@ export async function createRenderer(
     lifetime.defer(() => renderer.domElement.remove());
     // In-page circuit changes must release the old WebGL context as well as objects.
     lifetime.defer(() => renderer.forceContextLoss());
+    graphics = lifetime.own(createGraphicsContext(renderer, signal));
     renderer.outputColorSpace = T.SRGBColorSpace;
     renderer.toneMapping = T.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;
@@ -53,6 +57,7 @@ export async function createRenderer(
         'Invalid circuit backdrop: group and sunDirection are required',
       );
     await backdrop.ready;
+    graphics.check();
     const far = backdrop.far ?? 14000;
     const camera = new T.PerspectiveCamera(64, 1, 0.2, far);
     const backgroundGroup = backdrop.group;
@@ -77,10 +82,15 @@ export async function createRenderer(
     });
     environmentScene.add(environmentSky);
     const pmrem = new T.PMREMGenerator(renderer);
-    const env = lifetime.own(pmrem.fromScene(environmentScene, 0.04, 0.1, far));
+    let env;
+    try {
+      env = lifetime.own(pmrem.fromScene(environmentScene, 0.04, 0.1, far));
+    } finally {
+      pmrem.dispose();
+    }
     scene.environment = env.texture;
     scene.environmentIntensity = backdrop?.environmentIntensity ?? 1.12;
-    pmrem.dispose();
+    graphics.check();
     const hemi = new T.HemisphereLight(
       backdrop?.ambientSky ?? (shape ? '#e2ebf3' : '#a9c8f6'),
       backdrop?.ambientGround ?? '#243244',
@@ -216,7 +226,7 @@ export async function createRenderer(
     lifetime.defer(() => cityReflection?.dispose());
     lifetime.defer(() => sun.shadow.map?.dispose());
     function apply() {
-      const mobile = innerWidth < 760;
+      const mobile = mobileGraphics() || innerWidth < 760;
       const ratio = Math.min(
         devicePixelRatio,
         settings.quality === 'low' || mobile ? 1 : 1.25,
@@ -243,6 +253,7 @@ export async function createRenderer(
     const sunOffset = backdrop.sunDirection.clone().multiplyScalar(700);
     return {
       renderer,
+      graphics,
       assets: backdrop.assets ?? {},
       // The level owns its pass; the renderer only borrows it before tone mapping.
       attachWorldPass(pass) {
@@ -291,6 +302,7 @@ export async function createRenderer(
       sun,
       apply,
       bakeCityReflection(position, excluded) {
+        graphics.check();
         const generator = new T.PMREMGenerator(renderer);
         const shadows = renderer.shadowMap.enabled;
         const hidden = [...excluded];
@@ -318,6 +330,7 @@ export async function createRenderer(
               position,
             },
           );
+          graphics.check();
           return cityReflection.texture;
         } finally {
           generator.dispose();
@@ -374,13 +387,30 @@ export async function createRenderer(
         renderer.render(otherScene, camera);
       },
       async warm() {
-        await renderer.compileAsync(scene, camera);
+        graphics.check();
+        if (mobileGraphics()) {
+          // Full-scene warmup forces every hidden/off-camera mesh onto the GPU
+          // in one burst. On phones, warm only the actual starting view and its
+          // active pipeline; let other resources upload as they enter view.
+          renderer.shadowMap.needsUpdate = true;
+          if (
+            settings.quality === 'high' ||
+            [...worldPasses].some((pass) => pass.enabled)
+          )
+            composer.render(0);
+          else renderer.render(scene, camera);
+          await new Promise((resolve) => setTimeout(resolve, 0));
+          graphics.check();
+          renderer.info.reset();
+          return;
+        }
+        await graphics.compile(scene, camera);
         // Postprocessing uses linear HDR shaders, distinct from direct output.
         // Compile off-camera materials too, before a rival or district enters view.
         const retainedTarget = renderer.getRenderTarget();
         try {
           renderer.setRenderTarget(composer.readBuffer);
-          await renderer.compileAsync(scene, camera);
+          await graphics.compile(scene, camera);
         } finally {
           renderer.setRenderTarget(retainedTarget);
         }
@@ -414,6 +444,7 @@ export async function createRenderer(
         // Startup-only synchronization: readiness follows actual first-pass work,
         // including shadow, AO and antialias programs, not just submission.
         renderer.getContext().finish();
+        graphics.check();
         renderer.info.reset();
       },
       resetMetrics() {
@@ -532,11 +563,12 @@ export async function createRenderer(
       dispose: () => lifetime.dispose(),
     };
   } catch (error) {
+    const failure = graphics?.normalize(error) ?? error;
     try {
       lifetime.dispose();
     } catch (cleanupError) {
-      error.cause = cleanupError;
+      failure.cause = cleanupError;
     }
-    throw error;
+    throw failure;
   }
 }

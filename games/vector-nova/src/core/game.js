@@ -6,6 +6,7 @@ import { createInspectionPipeline } from '../ships/inspection-pipeline.js';
 import { RIVAL_SHIPS, createRivalPreview } from '../ships/rivals.js';
 import { loadShipSelection, saveShipSelection } from '../ships/catalog.js';
 import { createRenderer } from '../renderer/index.js';
+import { mobileGraphics } from '../renderer/device.js';
 import {
   createVehicleState,
   STEERING_ASSIST,
@@ -55,13 +56,15 @@ export async function createGame({
   onResults,
   onCircuit,
 } = {}) {
-  let api;
+  let api, graphics;
   let suspended = false;
   async function checkpoint(label) {
     signal?.throwIfAborted();
+    graphics?.check();
     onProgress(label);
     await new Promise((resolve) => setTimeout(resolve, 0));
     signal?.throwIfAborted();
+    graphics?.check();
   }
   const errors = [];
   const lifetime = createLifetime();
@@ -162,9 +165,11 @@ export async function createGame({
         ...definition.renderer,
         shape: blockout,
         createBackdrop: definition.createBackdrop,
+        signal,
       }),
     );
     const { scene, camera, renderer } = view;
+    graphics = view.graphics;
     await checkpoint('Building world');
     const world = lifetime.own(
       await createLevelPresentation(definition, {
@@ -389,7 +394,6 @@ export async function createGame({
     let competition = false,
       lastResults = null,
       raceDifficulty = settings.difficulty,
-      countdownRequest = 0,
       countdownReady = false,
       pausedCountdown = false,
       goUntil = 0;
@@ -480,7 +484,6 @@ export async function createGame({
       if (ship.group.parent !== scene) scene.add(ship.group);
     }
     function armCountdown(resuming = false) {
-      const request = ++countdownRequest;
       countdownReady = false;
       mode = 'countdown';
       pausedCountdown = false;
@@ -489,18 +492,13 @@ export async function createGame({
       countdown.pause();
       ui.setMode(mode);
       ui.setCountdown(countdown.snapshot().step ?? 3);
-      audio
-        .unlock()
-        .catch(() => {})
-        .finally(() => {
-          if (!active || request !== countdownRequest || mode !== 'countdown')
-            return;
-          // The clock starts only after the first driving frame is rendered.
-          countdownReady = true;
-        });
+      void audio.unlock().catch(() => {});
+      // Safari may leave resume() pending until another user gesture after a
+      // long load/retry. Sound must not gate driving. The first rendered frame
+      // still starts the clock, preserving every countdown light's full beat.
+      countdownReady = true;
     }
     function cancelCountdown() {
-      countdownRequest++;
       countdownReady = false;
       countdown.cancel();
       pausedCountdown = false;
@@ -570,7 +568,6 @@ export async function createGame({
       pausedCountdown = mode === 'countdown';
       if (pausedCountdown) {
         countdown.pause();
-        countdownRequest++;
       }
       mode = 'paused';
       ui.setFinish(null);
@@ -769,7 +766,6 @@ export async function createGame({
         inspectionReturnMode = sessionActive ? mode : null;
         if (mode === 'countdown') {
           countdown.pause();
-          countdownRequest++;
         }
         ui.setInspectionSession(sessionActive);
         mode = 'inspection';
@@ -816,7 +812,6 @@ export async function createGame({
       flyReturnMode = mode;
       if (mode === 'countdown') {
         countdown.pause();
-        countdownRequest++;
       }
       sceneShip();
       flyCamera.enter();
@@ -870,7 +865,7 @@ export async function createGame({
         inspectionLayout = null;
         ui.setShip(ship.selected);
         saveShipSelection(ship.selected.id);
-        await renderer.compileAsync(ship.group.parent ?? scene, camera);
+        await graphics.compile(ship.group.parent ?? scene, camera);
         return true;
       } catch (error) {
         ui.shipError(`Could not load ship. ${error.message}`);
@@ -897,7 +892,7 @@ export async function createGame({
           return false;
         }
         // Warm the candidate while hidden; keep the previous preview on failure.
-        await renderer.compileAsync(loaded.group, camera, inspectionScene);
+        await graphics.compile(loaded.group, camera, inspectionScene);
         if (!active || request !== rivalRequest || mode !== 'inspection') {
           loaded.dispose();
           return false;
@@ -1116,6 +1111,14 @@ export async function createGame({
       }, pause),
     );
     input.bindTouch(ui.root);
+    const unlockDrivingAudio = () => {
+      if (!suspended && ['racing', 'countdown'].includes(mode))
+        void audio.unlock().catch(() => {});
+    };
+    for (const type of ['pointerdown', 'keydown'])
+      window.addEventListener(type, unlockDrivingAudio, {
+        signal: listeners.signal,
+      });
     const flyCamera = lifetime.own(
       createFlyCamera(camera, renderer.domElement, {
         toggle: toggleFly,
@@ -1130,6 +1133,8 @@ export async function createGame({
       'webglcontextlost',
       (e) => {
         e.preventDefault();
+        // Boot failures unwind through createGame so the shell can retry.
+        if (!api?.ready) return;
         pause();
         fail(
           new Error(
@@ -1977,7 +1982,7 @@ export async function createGame({
     });
     await checkpoint('Warming graphics');
     await view.warm();
-    await renderer.compileAsync(inspectionScene, camera);
+    if (!mobileGraphics()) await graphics.compile(inspectionScene, camera);
     await checkpoint('Ready');
     host.querySelector('#loading')?.remove();
     api.ready = true;
@@ -1986,11 +1991,12 @@ export async function createGame({
     return api;
   }
   return boot().catch((error) => {
+    const failure = graphics?.normalize(error) ?? error;
     try {
       lifetime.dispose();
     } catch (cleanupError) {
       errors.push(String(cleanupError));
     }
-    throw error;
+    throw failure;
   });
 }

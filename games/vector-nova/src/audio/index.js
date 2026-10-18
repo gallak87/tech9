@@ -40,7 +40,13 @@ export function createAudio({
   return {
     unlock() {
       if (disposed) return Promise.resolve(false);
-      if (unlocking) return unlocking;
+      if (unlocking) {
+        // A blocked Safari resume promise can remain pending until a gesture.
+        // Retry resume inside that gesture instead of only returning the promise.
+        if (resources?.context.state === 'suspended')
+          void resources.context.resume().catch(() => {});
+        return unlocking;
+      }
       unlocking = (async () => {
         let context;
         try {

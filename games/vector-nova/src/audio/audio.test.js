@@ -120,6 +120,27 @@ class Context {
 }
 const state = { speed: 0, time: 0, steer: 0, boosting: false };
 
+test('a later gesture retries Safari audio while the first resume stays pending', async () => {
+  const context = new Context();
+  let unblock;
+  context.resume = () => {
+    if (++context.resumes === 1)
+      return new Promise((resolve) => {
+        unblock = resolve;
+      });
+    context.state = 'running';
+    unblock();
+    return Promise.resolve();
+  };
+  const audio = createAudio({ createContext: () => context });
+  const pending = audio.unlock();
+  const nextGesture = audio.unlock();
+  assert.equal(pending, nextGesture, 'reuse one graph and its pending unlock');
+  assert.equal(await nextGesture, true);
+  assert.equal(context.resumes, 2);
+  await audio.dispose();
+});
+
 test('listener immersion filters the complete propulsion/cue/thunder graph and device bus, then eases back to dry', async () => {
   const context = new Context();
   const audio = createAudio({

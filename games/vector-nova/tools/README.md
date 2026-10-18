@@ -1,5 +1,7 @@
 # Verification tools
 
+`VN_URL=<preview-url> node tools/mobile-graphics-verify.mjs` checks fresh phone Low defaults in portrait/landscape, race startup and driving-pad input in headless WebKit. It injects `WEBGL_lose_context` during real shader creation to verify one High-to-Low retry and a recoverable Low failure. Install the Playwright WebKit browser first; set `VN_BROWSER=chrome` for a Chrome regression or `VN_CHECK=<regex>` to select cases. It writes no artifacts. Emulation does not reproduce an iPhone's hardware memory limit; physical Safari verification remains separate.
+
 Run `npm test` for all circuits' numerical checks: magnetic handling, Nacre flight, devices, camera composition, track frames/clearance, replay, catalog loading and resource lifecycle. `npm run lint` checks source and formatting; `npm run build` produces the shared application.
 
 Run `npm run check:level -- <slug>` for the reusable CPU module/track/racing contract (all production levels must declare shared racing) and `VN_URL=<preview-url> npm run verify:level -- <slug>` for the generic short hidden runtime smoke check. See [level-checks](level-checks/README.md) for options, scope and limitations.

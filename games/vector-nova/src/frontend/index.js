@@ -632,7 +632,7 @@ export function createFrontend(host) {
       // jump-test scene accidentally retained in a copied URL.
       if (artPass || inspectShip)
         for (const flag of runtimeEntryParameters) params.delete(flag);
-      const created = await createGame({
+      const gameOptions = {
         host: gameHost,
         parameters: params,
         signal,
@@ -699,7 +699,28 @@ export function createFrontend(host) {
           if (screen === 'race' || screen === 'review') setScreen('results');
           else if (screen === 'results') updateResults(data);
         },
-      });
+      };
+      let created;
+      const startedHigh = settings.quality === 'high';
+      try {
+        created = await createGame(gameOptions);
+      } catch (failure) {
+        // Failed factories have finished releasing their world/context here.
+        // Retry only once, and never turn a cancelled load into another race.
+        if (
+          failure.name !== 'GraphicsContextLostError' ||
+          !startedHigh ||
+          signal.aborted ||
+          token !== generation
+        )
+          throw failure;
+        saveSettings({ quality: 'low' });
+        progress = 'Retrying with Low graphics';
+        updateStatus();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        signal.throwIfAborted();
+        created = await createGame(gameOptions);
+      }
       if (signal.aborted || token !== generation) {
         created.dispose();
         throw new DOMException('Cancelled', 'AbortError');

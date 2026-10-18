@@ -24,8 +24,9 @@ const poseCopy = (p) =>
 
 export function magneticFrame(track, distance, lateral, sampleRoad) {
   let surface = track.sampleSurface?.(distance, lateral);
+  let reference = surface;
   if (sampleRoad && !surface?.period) {
-    const reference = surface ?? track.sample(distance);
+    reference ??= track.sample(distance);
     const wrapped =
       track.closed === false
         ? distance
@@ -33,7 +34,9 @@ export function magneticFrame(track, distance, lateral, sampleRoad) {
     const actual = sampleRoad(wrapped, lateral, reference);
     if (actual) surface = { ...reference, ...actual };
   }
-  const frame = surface ?? track.sample(distance);
+  // Reuse the reference when no authored skin covers this station. Sampling
+  // it again repeats route, curvature and banking work for every hull corner.
+  const frame = surface ?? reference ?? track.sample(distance);
   return {
     ...frame,
     position: frame.position

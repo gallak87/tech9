@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { Vector3, Quaternion } from 'three';
 import { createRoadSurface } from '../src/physics/road-surface.js';
 import { createRapierWorld } from '../src/physics/rapier-world.js';
+import { magneticFrame } from '../src/physics/magnetic-body.js';
 
 function deck(id, y, station = 0, reverse = false) {
   const points = [
@@ -273,4 +274,46 @@ test('a narrow bevel cannot impose its steep normal across a broad flat driving 
     assert.deepEqual(road.roadOwners, ['bevelled-panel']);
   }
   sample.dispose();
+});
+
+test('magnetic fallback reuses its route sample when no authored skin covers the station', () => {
+  let samples = 0;
+  const route = {
+    position: new Vector3(0, 5, 20),
+    up: new Vector3(0, 1, 0),
+    right: new Vector3(1, 0, 0),
+    tangent: new Vector3(0, 0, 1),
+    quaternion: new Quaternion(),
+    curvature: 0.02,
+  };
+  const track = {
+    length: 100,
+    sample(distance) {
+      samples++;
+      assert.equal(distance, 20);
+      return route;
+    },
+  };
+  let skinQueries = 0;
+  const frame = magneticFrame(track, 20, 4, (distance, lateral, reference) => {
+    skinQueries++;
+    assert.equal(distance, 20);
+    assert.equal(lateral, 4);
+    assert.equal(reference, route);
+    return null;
+  });
+  assert.equal(
+    samples,
+    1,
+    'one route calculation serves both the skin query and fallback',
+  );
+  assert.equal(skinQueries, 1);
+  assert.deepEqual(frame.position.toArray(), [4, 5, 20]);
+  assert.deepEqual(
+    route.position.toArray(),
+    [0, 5, 20],
+    'lateral placement must not mutate the reference',
+  );
+  assert.equal(frame.curvature, route.curvature);
+  assert.equal(frame.surface, undefined);
 });

@@ -52,7 +52,10 @@ async function check(
 ) {
   if (process.env.VN_CHECK && !new RegExp(process.env.VN_CHECK).test(name))
     return;
-  const context = await browser.newContext({ viewport });
+  const context = await browser.newContext({
+    viewport,
+    hasTouch: viewport.width < 760,
+  });
   try {
     await context.addInitScript(
       (settings) =>
@@ -79,6 +82,38 @@ async function check(
   } finally {
     await context.close();
   }
+}
+async function menuFits(page) {
+  const layout = await page.evaluate(() => {
+    const shell = document.querySelector('#front-shell');
+    const visible = [
+      ...shell.querySelectorAll('button, .ship-metrics > div'),
+    ].filter((el) => el.getBoundingClientRect().height > 0);
+    return {
+      vertical: shell.scrollHeight - shell.clientHeight,
+      horizontal: shell.scrollWidth - shell.clientWidth,
+      outside: visible
+        .filter((el) => {
+          const r = el.getBoundingClientRect();
+          return (
+            r.top < 0 ||
+            r.bottom > innerHeight + 1 ||
+            r.left < 0 ||
+            r.right > innerWidth + 1
+          );
+        })
+        .map((el) => el.textContent),
+    };
+  });
+  assert.ok(
+    layout.vertical <= 1,
+    `menu overflows vertically by ${layout.vertical}px`,
+  );
+  assert.ok(
+    layout.horizontal <= 1,
+    `menu overflows horizontally by ${layout.horizontal}px`,
+  );
+  assert.deepEqual(layout.outside, [], 'menu controls must remain in view');
 }
 async function finishInputs(difficulty, initial) {
   const definition = createHalcyonLevel({ shape: false });
@@ -205,7 +240,7 @@ try {
         await page.goto(url('level=halcyon'));
         await fleetReady(page);
         assert.match(
-          await page.locator('.quick-race-option').textContent(),
+          await page.locator('[data-action="launch"]').textContent(),
           /9 rivals/,
         );
         assert.equal(
@@ -213,9 +248,14 @@ try {
           false,
           'landing loaded a world',
         );
-        await page.waitForFunction(
-          () => window.__VN_FRONTEND.getState().preview?.selected === 'kestrel',
+        assert.equal(
+          (await front(page)).preview,
+          null,
+          'Tracks does not create the ship studio',
         );
+        await page.evaluate(() => {
+          window.retainedPlayer = document.querySelector('[data-music-player]');
+        });
         const routes = await page.evaluate(() => window.__VN_FRONTEND.routes);
         const circuits = routes;
         assert.equal(
@@ -231,11 +271,47 @@ try {
           await page.locator('.circuit-card img').count(),
           circuits.filter((route) => route.preview).length,
         );
+        for (const [from, key, to] of [
+          ['worldspire', 'ArrowDown', 'helion'],
+          ['nightweir', 'ArrowDown', 'umbra'],
+          ['zephyr', 'ArrowDown', 'nightweir'],
+          ['helion', 'ArrowUp', 'worldspire'],
+        ]) {
+          await page.locator(`[data-level="${from}"]`).focus();
+          await page.keyboard.press(key);
+          assert.equal(
+            await page.evaluate(() => document.activeElement.dataset.level),
+            to,
+          );
+        }
         await page.locator('[data-level="vesper"]').hover();
         assert.equal((await front(page)).selected, 'halcyon');
         assert.equal(
           await page.locator('.circuit-hero h2').textContent(),
           'Vesper Canopy',
+        );
+        await page.locator('[data-level="vesper"]').focus();
+        await page.keyboard.press('Enter');
+        assert.equal((await front(page)).screen, 'home');
+        assert.equal((await front(page)).selected, 'vesper');
+        assert.equal(
+          await page
+            .locator('[data-level="vesper"]')
+            .getAttribute('aria-pressed'),
+          'true',
+        );
+        assert.match(
+          await page
+            .locator('.menu-selection[data-action="circuits"]')
+            .textContent(),
+          /Vesper Canopy/,
+        );
+        await page.locator('.picker-tabs [data-action="ship-step"]').click();
+        assert.equal(await page.locator('.ship-metrics > div').count(), 5);
+        assert.equal(
+          await page.evaluate(() => !!window.__VN),
+          false,
+          'track selection must not construct a world',
         );
         await page.locator('button[data-ship="shrike"]').hover();
         await page.waitForFunction(
@@ -258,14 +334,156 @@ try {
           /Keyboard/,
         );
         await page.keyboard.press('Escape');
+        assert.equal((await front(page)).screen, 'setup');
         assert.equal((await front(page)).shipId, 'bastion');
         assert.equal(await page.locator('[data-music-player]').count(), 1);
+        assert.equal(
+          await page.evaluate(
+            () =>
+              window.retainedPlayer ===
+              document.querySelector('[data-music-player]'),
+          ),
+          true,
+        );
+        await page.locator('.picker-tabs [data-action="circuits"]').click();
+        assert.equal(await page.locator('.circuit-card').count(), 13);
+        assert.equal(await page.locator('.sprint-badge').count(), 3);
+        assert.equal(await page.locator('.track-group').count(), 0);
+        assert.match(
+          await page
+            .locator('[data-level="halcyon"] .card-challenge')
+            .textContent(),
+          /Warm-up/,
+        );
+        assert.match(
+          await page
+            .locator('[data-level="worldspire"] .card-challenge')
+            .textContent(),
+          /Medium · Sprint/,
+        );
+        await page.locator('[data-level="shatterline"]').hover();
+        assert.equal((await front(page)).selected, 'vesper');
+        await page.locator('[data-level="shatterline"]').click();
+        assert.equal((await front(page)).screen, 'circuits');
+        assert.equal(
+          await page
+            .locator('[data-level="shatterline"]')
+            .getAttribute('aria-pressed'),
+          'true',
+        );
+        assert.match(
+          await page.locator('[data-action="launch"]').textContent(),
+          /Sprint/,
+        );
+        assert.match(
+          await page.locator('[data-action="practice"]').textContent(),
+          /Solo descent/,
+        );
         assert.equal(
           await page.evaluate(
             () => document.documentElement.scrollWidth > innerWidth,
           ),
           false,
         );
+      },
+    );
+    for (const viewport of [
+      { width: 1035, height: 730 },
+      { width: 900, height: 700 },
+      { width: 1100, height: 575 },
+    ]) {
+      await check(
+        `compact desktop menu ${viewport.width}×${viewport.height}`,
+        async (page) => {
+          await page.goto(url('level=zephyr'));
+          await fleetReady(page);
+          assert.equal(await page.locator('.circuit-card').count(), 13);
+          assert.ok(
+            await page
+              .locator('.circuit-hero')
+              .evaluate((el) => el.clientHeight >= 180),
+          );
+          assert.equal(
+            await page
+              .locator('.menu-wordmark')
+              .evaluate((el) => getComputedStyle(el).fontSize),
+            '32px',
+          );
+          await menuFits(page);
+          await page.locator('[data-level="worldspire"]').click();
+          assert.equal((await front(page)).screen, 'home');
+          await page.locator('.picker-tabs [data-action="ship-step"]').click();
+          await page.waitForFunction(
+            () =>
+              window.__VN_FRONTEND.getState().preview?.selected === 'kestrel',
+          );
+          assert.equal(await page.locator('.ship-metrics > div').count(), 5);
+          await menuFits(page);
+          await page.locator('[data-difficulty="hard"]').click();
+          assert.match(
+            await page
+              .locator('[data-action="launch"]')
+              .getAttribute('aria-label'),
+            /hard opponents/,
+          );
+          await menuFits(page);
+        },
+        viewport,
+      );
+    }
+    await check(
+      'menu race/practice launch, retained session and music transport',
+      async (page) => {
+        await page.goto(url('level=halcyon'));
+        await fleetReady(page);
+        await page.locator('.picker-tabs [data-action="ship-step"]').click();
+        await page.locator('[data-ship="needle"]').click();
+        await page.evaluate(() => {
+          window.retainedAudio = document.querySelector('audio');
+          window.retainedPlayer = document.querySelector('[data-music-player]');
+        });
+        await page.locator('[data-action="launch"]').click();
+        await booted(page);
+        await page.waitForFunction(
+          () => window.__VN.getSnapshot().mode === 'racing',
+          null,
+          { timeout: 20000 },
+        );
+        assert.equal(await page.locator('#front-shell').isVisible(), false);
+        assert.equal((await snapshot(page)).ship.id, 'needle');
+        assert.equal(
+          (await snapshot(page)).competition.standings.length,
+          RACE_FIELD_SIZE,
+        );
+        await page.keyboard.press('Escape');
+        await page.locator('#home').click();
+        assert.equal((await front(page)).screen, 'home');
+        await page.evaluate(() => {
+          window.retainedRuntime = window.__VN;
+        });
+        await page.locator('[data-action="resume-session"]').click();
+        assert.equal(
+          await page.evaluate(() => window.retainedRuntime === window.__VN),
+          true,
+        );
+        await page.keyboard.press('Escape');
+        await page.locator('#home').click();
+        await page.locator('[data-action="practice"]').click();
+        await page.waitForFunction(
+          () => window.__VN_FRONTEND.getState().screen === 'race',
+        );
+        assert.equal((await front(page)).intent, 'practice');
+        assert.equal((await snapshot(page)).ship.id, 'needle');
+        assert.equal(
+          await page.evaluate(
+            () =>
+              window.retainedAudio === document.querySelector('audio') &&
+              window.retainedPlayer ===
+                document.querySelector('[data-music-player]'),
+          ),
+          true,
+        );
+        await page.keyboard.press('Escape');
       },
     );
     await check(
@@ -493,7 +711,7 @@ try {
           window.retainedRuntime = window.__VN;
         });
         await page.locator('#home').click();
-        assert.equal((await front(page)).screen, 'circuits');
+        assert.equal((await front(page)).screen, 'home');
         await page.locator('[data-action="resume-session"]').click();
         assert.ok(
           await page.evaluate(() => window.__VN === window.retainedRuntime),
@@ -645,13 +863,13 @@ try {
         assert.equal((await snapshot(page)).ship.id, 'shrike');
         assert.equal(await page.locator('#title-panel').isVisible(), false);
         await page.locator('#inspect-back').click();
-        assert.equal((await front(page)).screen, 'circuits');
+        assert.equal((await front(page)).screen, 'home');
         assert.equal(new URL(page.url()).searchParams.has('inspect'), false);
         await page.goto(url('level=halcyon&capture=1&music=0'));
         await booted(page);
         assert.equal(await page.locator('.developer-note').isVisible(), true);
         await page.locator('.developer-note button').click();
-        assert.equal((await front(page)).screen, 'circuits');
+        assert.equal((await front(page)).screen, 'home');
         assert.equal(new URL(page.url()).searchParams.has('capture'), false);
         await page.goto(url('level=saffron&test=jump&case=approach&music=0'));
         await booted(page);
@@ -721,7 +939,7 @@ try {
       await page.goto(url('level=does-not-exist'));
       await page.locator('.transfer-status.failed').waitFor();
       await page.locator('[data-action="cancel"]').click();
-      assert.equal((await front(page)).screen, 'circuits');
+      assert.equal((await front(page)).screen, 'home');
       await page.locator('[data-level="halcyon"]').click();
       // Hold the lazy runtime import in dev or built output, then release it after cancel.
       let release;
@@ -736,9 +954,34 @@ try {
         },
       );
       try {
-        await page.locator('[data-action="launch"]').click();
-        await page.locator('[data-action="cancel"]').click();
-        assert.ok(['setup', 'circuits'].includes((await front(page)).screen));
+        for (const [view, action, escape] of [
+          ['home', 'launch', false],
+          ['setup', 'launch', true],
+          ['circuits', 'launch', false],
+          ['setup', 'practice', false],
+          ['circuits', 'practice', true],
+        ]) {
+          if (view !== 'home')
+            await page
+              .locator(
+                `.picker-tabs [data-action="${view === 'setup' ? 'ship-step' : 'circuits'}"]`,
+              )
+              .click();
+          await page.locator(`[data-action="${action}"]`).click();
+          assert.equal((await front(page)).screen, 'loading');
+          if (escape) await page.keyboard.press('Escape');
+          else await page.locator('[data-action="cancel"]').click();
+          assert.equal((await front(page)).screen, view);
+          assert.equal((await front(page)).selected, 'halcyon');
+          assert.equal(
+            await page
+              .locator(
+                `.picker-tabs [data-action="${view === 'setup' ? 'ship-step' : 'circuits'}"]`,
+              )
+              .getAttribute('aria-pressed'),
+            'true',
+          );
+        }
       } finally {
         release();
         await page.unrouteAll({ behavior: 'wait' });
@@ -764,6 +1007,7 @@ try {
         await page.unrouteAll({ behavior: 'wait' });
         await page.locator('.retry-fleet').click();
         await fleetReady(page);
+        await page.locator('[data-action="ship-step"]').first().click();
         const retry = page.locator('.ship-preview-status button');
         if (await retry.isVisible()) await retry.click();
         await page.waitForFunction(
@@ -774,13 +1018,14 @@ try {
   }
   if (!flags.includes('--desktop')) {
     for (const viewport of [
-      { width: 1024, height: 768 },
+      { width: 768, height: 768 },
       { width: 390, height: 844 },
+      { width: 320, height: 700 },
     ]) {
       await check(
-        `collapsed fleet preload and accordion ${viewport.width}×${viewport.height}`,
+        `separate pickers and persistent Tunes ${viewport.width}×${viewport.height}`,
         async (page) => {
-          await page.goto(url('level=halcyon&music=0'));
+          await page.goto(url('level=halcyon'));
           await fleetReady(page);
           assert.equal(
             (await front(page)).preview,
@@ -788,6 +1033,16 @@ try {
             'preload should not require opening Ship',
           );
           assert.equal(await page.evaluate(() => !!window.__VN), false);
+          assert.equal((await front(page)).screen, 'home');
+          await menuFits(page);
+          assert.equal(
+            await page
+              .locator('.menu-wordmark')
+              .evaluate((el) => getComputedStyle(el).fontSize),
+            '32px',
+          );
+          assert.equal(await page.locator('.menu-picker').count(), 0);
+          assert.equal(await page.locator('.music-heading').isVisible(), true);
           await page.locator('[data-action="ship-step"]').click();
           await page.waitForFunction(
             () =>
@@ -803,12 +1058,49 @@ try {
               document.querySelector('.transfer-status').parentElement
                 .className,
           }));
-          assert.ok(layout.height >= 150 && layout.height < viewport.height);
+          assert.ok(layout.height >= 70 && layout.height < viewport.height);
           assert.equal(layout.overflow, false);
           assert.equal(layout.columns, 1);
           assert.match(layout.status, /ship-transfer/);
+          assert.equal(await page.locator('.ship-metrics > div').count(), 5);
+          assert.equal(
+            await page.evaluate(() =>
+              [...document.querySelectorAll('#front-shell *')].some(
+                (e) =>
+                  e.clientHeight > 0 &&
+                  ['auto', 'scroll'].includes(getComputedStyle(e).overflowY) &&
+                  e.scrollHeight > e.clientHeight + 1,
+              ),
+            ),
+            false,
+            'no nested menu scrollers',
+          );
+          await menuFits(page);
           await page.locator('[data-action="circuits"]').click();
           assert.equal((await front(page)).screen, 'circuits');
+          await menuFits(page);
+          if (viewport.width < 760)
+            await page.locator('[data-level="glasswake"]').tap();
+          else await page.locator('[data-level="glasswake"]').click();
+          assert.equal((await front(page)).screen, 'circuits');
+          assert.equal((await front(page)).selected, 'glasswake');
+          assert.equal(
+            await page
+              .locator('[data-level="glasswake"]')
+              .getAttribute('aria-pressed'),
+            'true',
+          );
+          assert.equal(
+            await page.locator('#front-shell').evaluate((el) => el.scrollTop),
+            0,
+            'new picker starts at the top',
+          );
+          await page.locator('[data-action="home"]').first().click();
+          assert.equal((await front(page)).screen, 'home');
+          assert.match(
+            await page.locator('[data-action="circuits"]').textContent(),
+            /Glasswake Comet/,
+          );
         },
         viewport,
       );

@@ -1,0 +1,827 @@
+/* Previews yield height to controls. No picker has its own scroller. */
+#front-shell.cinematic-menu:not([hidden]) {
+  isolation: isolate;
+  display: block;
+  background: #090909;
+}
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.menu-backdrop img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 65% center;
+  filter: blur(1px) saturate(0.8);
+}
+.menu-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      #090909f5 0%,
+      #090909dc 28%,
+      #09090990 62%,
+      #090909bd
+    ),
+    linear-gradient(0deg, #090909e8, transparent);
+}
+.front-content.menu-layout {
+  width: min(1600px, 100%);
+  min-height: 100%;
+  margin: auto;
+  padding: 88px clamp(24px, 4vw, 64px) 24px;
+  display: block;
+}
+.menu-layout h1,
+.menu-layout h2,
+.menu-layout h3,
+.menu-layout p {
+  margin: 0;
+}
+.menu-layout button {
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+.menu-layout button:not(.primary) {
+  background: transparent;
+  border: 0;
+}
+.menu-layout button:not(.primary):hover {
+  background: #ffffff09;
+}
+.front-content.menu-wide {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.85fr) minmax(0, 1.3fr);
+  align-items: start;
+  gap: clamp(24px, 4vw, 64px);
+}
+.race-menu {
+  padding-top: clamp(12px, 4dvh, 40px);
+  max-width: 450px;
+}
+.menu-wordmark {
+  white-space: nowrap;
+  font-size: 32px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.055em;
+  line-height: 1;
+  margin: 0 0 28px !important;
+}
+.menu-wordmark span {
+  color: #d01818;
+}
+.menu-layout .menu-selection {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: min(100%, 370px);
+  padding: 16px 0;
+  border-bottom: 1px solid #ffffff30;
+  text-align: left;
+}
+.menu-selection > span {
+  width: 38px;
+  color: #aaa;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+.menu-selection > div {
+  flex: 1;
+  min-width: 0;
+}
+.menu-selection strong {
+  display: block;
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.menu-selection small {
+  display: block;
+  margin-top: 6px;
+  color: #aaa;
+  font-size: 11px;
+}
+.menu-selection > b {
+  font-size: 22px;
+  font-weight: 400;
+}
+.race-actions {
+  width: min(100%, 370px);
+  display: grid;
+  gap: 8px;
+  margin-top: 25px;
+}
+.race-actions > button {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  min-height: 52px;
+}
+.race-actions button strong {
+  font-size: 15px;
+  font-weight: 500;
+}
+.race-actions button.primary strong {
+  font-size: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-style: italic;
+}
+.race-actions button small {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 400;
+}
+.race-actions button:not(.primary) {
+  border: 1px solid #ffffff35;
+}
+.race-actions button:not(.primary) small {
+  color: #aaa;
+}
+.menu-links {
+  display: flex;
+  gap: 24px;
+  margin-top: 14px;
+}
+.menu-links button {
+  min-height: 40px;
+  padding: 0;
+  color: #bbb;
+  font-size: 12px;
+}
+.menu-layout .session-return {
+  margin-top: 16px;
+}
+.menu-layout .session-return button {
+  font-size: 12px;
+  padding: 12px 0;
+  color: #ccc;
+}
+.menu-transfer {
+  max-width: 370px;
+}
+.menu-picker {
+  min-width: 0;
+}
+.menu-wide .menu-picker {
+  height: calc(100dvh - 112px);
+  display: flex;
+  flex-direction: column;
+}
+.picker-tabs {
+  display: flex;
+  gap: 25px;
+  border-bottom: 1px solid #ffffff30;
+  margin-bottom: 14px;
+  flex: none;
+}
+.menu-layout .picker-tabs button {
+  color: #aaa;
+  font-size: 19px;
+  padding: 0 0 13px;
+  min-height: 43px;
+  border-bottom: 2px solid transparent;
+}
+.menu-layout .picker-tabs button[aria-pressed='true'] {
+  border-bottom-color: #d01818;
+  color: #e8e8e8;
+}
+.circuit-picker-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.circuit-hero {
+  flex: 1 1 280px;
+  min-height: 140px;
+  max-height: 340px;
+}
+.detail-image {
+  height: 100%;
+  position: relative;
+  background: #171717;
+}
+.detail-image > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.detail-image > svg {
+  position: absolute;
+  width: 100px;
+  height: 65px;
+  right: 13px;
+  bottom: 13px;
+  padding: 5px;
+  background: #090909b0;
+  z-index: 1;
+}
+.track-caption {
+  position: absolute;
+  inset: auto 0 0;
+  background: linear-gradient(transparent, #090909ef);
+  padding: 42px 122px 17px 18px;
+}
+.track-caption h2 {
+  font-size: clamp(20px, 1.7vw, 28px);
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.track-caption p {
+  color: #ccc;
+  font-size: 11px;
+  margin-top: 7px;
+}
+.circuit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px 10px;
+  margin-top: 12px;
+  flex: none;
+}
+.menu-layout .circuit-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 6px;
+  border-left: 2px solid transparent;
+  text-align: left;
+  min-height: 44px;
+}
+.circuit-card.starts-row {
+  grid-column: 1;
+}
+.menu-layout .circuit-card.selected {
+  border-left-color: #d01818;
+  background: #ffffff0a;
+}
+.track-icon {
+  position: relative;
+  width: 40px;
+  height: 30px;
+  flex-shrink: 0;
+  background: #171717;
+}
+.track-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.45;
+}
+.track-icon svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.card-name {
+  font-size: 12px;
+  line-height: 1.35;
+  flex: 1;
+  min-width: 0;
+  color: #ddd;
+}
+.card-title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-challenge {
+  display: block;
+  margin-top: 3px;
+  font-size: 9px;
+  color: #aaa;
+}
+.track-selected {
+  width: 10px;
+  flex-shrink: 0;
+  font-size: 11px;
+}
+.menu-layout .picker-hint {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 12px;
+  flex: none;
+}
+.setup-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+.ship-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.menu-layout .ship-list button {
+  display: block;
+  text-align: center;
+  padding: 12px 4px;
+  border-bottom: 2px solid #ffffff20;
+}
+.menu-layout .ship-list button.selected {
+  border-bottom-color: #d01818;
+  background: #ffffff08;
+}
+.ship-list button > span,
+.ship-list small {
+  display: none;
+}
+.ship-list strong {
+  font-size: 13px;
+}
+.ship-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ship-details > .kicker {
+  display: none;
+}
+.ship-details h2 {
+  font-size: 29px;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+.ship-details h2 small {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  font-weight: 400;
+  color: #aaa;
+}
+.ship-preview-slot {
+  order: -1;
+  height: clamp(100px, calc(100dvh - 560px), 340px);
+  min-height: 0;
+}
+.ship-preview {
+  background: radial-gradient(ellipse at 50% 55%, #20202090, transparent 72%);
+}
+.ship-preview-hint {
+  font-size: 9px;
+  color: #aaa;
+}
+.menu-layout .ship-description {
+  font-size: 12px;
+  margin-top: 8px;
+  max-width: none;
+}
+.setup-details {
+  border-top: 1px solid #ffffff25;
+  padding-top: 12px;
+}
+.setup-details > .kicker {
+  font-size: 10px;
+}
+.ship-metrics {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin-top: 12px;
+  gap: 9px;
+}
+.ship-metrics > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+}
+.ship-metrics b {
+  font-size: 14px;
+  font-weight: 400;
+}
+.ship-metrics small {
+  font-size: 10px;
+  color: #aaa;
+}
+.ship-metrics i {
+  grid-column: 1 / -1;
+  height: 3px;
+  background: linear-gradient(to right, #b71818 var(--stat), #333 var(--stat));
+}
+.menu-layout .stat-note {
+  font-size: 10px;
+  margin-top: 13px;
+}
+.picker-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex: none;
+}
+.picker-header .front-brand {
+  padding: 0;
+  min-height: 38px;
+  font-size: 32px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+.menu-layout .picker-header > button:last-child {
+  padding: 9px 14px;
+  min-height: 40px;
+  border: 1px solid #ffffff50;
+  background: #171717e8;
+  font-size: 12px;
+}
+.menu-layout .picker-header > button:last-child:hover {
+  border-color: #aaa;
+  background: #262626;
+}
+.front-content.menu-narrow:has(.picker-header) {
+  padding-top: 16px;
+}
+.menu-narrow > .race-menu {
+  padding-top: 25px;
+}
+.menu-narrow .menu-picker {
+  max-width: 850px;
+  margin: auto;
+}
+.menu-narrow .menu-track-picker {
+  height: calc(100dvh - 40px);
+  display: flex;
+  flex-direction: column;
+}
+.menu-narrow .setup-layout {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 18px 24px;
+}
+.menu-narrow .ship-list {
+  grid-column: 1 / -1;
+}
+.menu-narrow .ship-details {
+  grid-column: 1;
+  grid-row: 2 / 4;
+}
+.menu-narrow .setup-details {
+  grid-column: 2;
+  border: 0;
+  padding-top: 0;
+}
+.menu-narrow .ship-preview-slot {
+  height: clamp(180px, calc(100dvh - 320px), 400px);
+}
+.picker-race-actions {
+  grid-column: 2;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+.picker-race-actions .race-actions {
+  margin: 0;
+  width: 100%;
+}
+.menu-layout .change-track {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  min-height: 30px;
+  text-align: left;
+  font-size: 12px;
+  color: #ccc;
+}
+.race-difficulty {
+  display: flex;
+  gap: 6px;
+  border: 0;
+  margin: 0 0 4px;
+  padding: 0;
+  min-width: 0;
+}
+.race-difficulty legend {
+  color: #aaa;
+  font-size: 10px;
+  margin-bottom: 5px;
+  padding: 0;
+}
+.race-difficulty button {
+  flex: 1;
+  padding: 6px 4px;
+  min-height: 32px;
+  font-size: 11px;
+  text-transform: capitalize;
+  color: #bbb;
+}
+.front-content .race-difficulty button[aria-pressed='true'] {
+  border-color: #d01818;
+  color: #eee;
+  background: #ffffff08;
+}
+/* Compact spacing and side-by-side ship details preserve previews in short windows. */
+@media (min-width: 900px) and (max-height: 800px) {
+  .menu-wide .circuit-hero {
+    min-height: 180px;
+  }
+  .menu-wide .circuit-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 3px 8px;
+    margin-top: 12px;
+  }
+  .menu-wide .picker-hint {
+    display: none;
+  }
+  .menu-wide .circuit-card {
+    min-height: 40px;
+    padding: 3px 4px;
+    gap: 7px;
+  }
+  .menu-wide .track-icon {
+    width: 32px;
+    height: 28px;
+  }
+  .menu-wide .card-name {
+    font-size: 10.5px;
+  }
+  .menu-wide .track-selected {
+    width: 7px;
+    font-size: 9px;
+  }
+  .menu-wide .setup-layout {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    column-gap: 20px;
+  }
+  .menu-wide .ship-list {
+    grid-column: 1 / -1;
+  }
+  .menu-wide .ship-preview-slot {
+    height: clamp(180px, calc(100dvh - 350px), 340px);
+  }
+  .menu-wide .setup-details {
+    border: 0;
+    padding-top: 10px;
+  }
+  .menu-wide .ship-details h2 {
+    font-size: 25px;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+  }
+  .race-menu {
+    padding-top: 12px;
+  }
+}
+@media (min-width: 900px) and (max-height: 640px) {
+  .front-content.menu-wide {
+    padding-top: 76px;
+    padding-bottom: 16px;
+  }
+  .menu-wide .menu-picker {
+    height: calc(100dvh - 92px);
+  }
+  .menu-wide .menu-selection {
+    padding-block: 12px;
+  }
+  .menu-wide .menu-wordmark {
+    margin-bottom: 20px !important;
+  }
+  .menu-wide .race-actions {
+    margin-top: 18px;
+  }
+  .menu-wide .menu-links {
+    margin-top: 8px;
+  }
+  .menu-wide .picker-tabs {
+    margin-bottom: 10px;
+  }
+  .menu-wide .ship-list button {
+    padding-block: 8px;
+  }
+  .menu-wide .ship-metrics {
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .menu-wide .setup-layout {
+    gap: 8px;
+  }
+  .menu-wide .ship-details h2 {
+    font-size: 25px;
+    margin-top: 6px;
+  }
+}
+@media (max-width: 760px) {
+  .music-player:not(.is-compact) {
+    width: min(310px, calc(100% - 32px));
+    right: 16px;
+  }
+  .front-header {
+    height: auto;
+    min-height: 150px;
+    padding: 88px 22px 20px;
+    flex-wrap: wrap;
+  }
+  .front-header .header-label {
+    display: none;
+  }
+  .front-content {
+    padding: 22px;
+    flex: none;
+  }
+  .settings-layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .keyboard-guide dl > div {
+    grid-template-columns: 110px 1fr;
+  }
+  .settings-form label {
+    gap: 16px;
+  }
+  .settings-form input[type='range'] {
+    width: 100px;
+    flex-shrink: 0;
+  }
+  .front-content.menu-layout {
+    padding: 88px 24px 16px;
+  }
+  .track-caption {
+    padding: 32px 14px 12px;
+  }
+  .track-caption h2 {
+    font-size: 21px;
+    max-width: 80%;
+  }
+  .detail-image > svg {
+    width: 68px;
+    height: 45px;
+    top: 10px;
+    right: 10px;
+    bottom: auto;
+  }
+  .circuit-grid {
+    column-gap: 12px;
+  }
+  .menu-narrow .menu-track-picker {
+    height: calc(100dvh - 32px);
+  }
+  .menu-layout .circuit-card {
+    gap: 7px;
+    padding: 4px;
+  }
+  .track-icon {
+    width: 42px;
+    height: 30px;
+  }
+  .card-name {
+    font-size: 11px;
+  }
+  .track-selected {
+    display: none;
+  }
+  .result-panel .results-list {
+    max-height: none;
+    overflow: visible;
+  }
+}
+@media (max-width: 599px) {
+  .front-content.menu-layout {
+    padding-inline: 18px;
+  }
+  .picker-header {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .menu-narrow .setup-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .menu-narrow .ship-preview-slot {
+    height: clamp(70px, calc(100dvh - 660px), 190px);
+  }
+  .menu-narrow .ship-details h2 {
+    font-size: 24px;
+    margin-top: 6px;
+  }
+  .menu-layout .ship-description {
+    font-size: 11px;
+    line-height: 1.4;
+    margin-top: 5px;
+  }
+  .menu-layout .ship-list button {
+    padding: 9px 4px;
+    min-height: 36px;
+  }
+  .ship-preview-hint {
+    font-size: 7px;
+    letter-spacing: 0.04em;
+  }
+  .ship-metrics {
+    margin-top: 8px;
+    gap: 6px;
+  }
+  .ship-metrics > div {
+    font-size: 11px;
+    gap: 4px;
+  }
+  .ship-metrics b {
+    font-size: 12px;
+  }
+  .menu-layout .stat-note {
+    margin-top: 6px;
+    font-size: 9px;
+  }
+  .picker-race-actions {
+    gap: 5px;
+  }
+  .picker-race-actions .race-actions {
+    grid-template-columns: 1.2fr 1fr;
+    gap: 7px;
+  }
+  .picker-race-actions .race-actions > button {
+    padding: 9px 10px;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 48px;
+  }
+  .picker-race-actions .race-actions > button small {
+    margin-left: 0;
+    width: 100%;
+    font-size: 9px;
+  }
+  .picker-race-actions .race-actions > button > span {
+    display: none;
+  }
+  .picker-race-actions [data-action='practice'] {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .picker-race-actions .race-difficulty {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .circuit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 10px;
+    margin-top: 12px;
+  }
+  .menu-layout .picker-hint {
+    font-size: 10px;
+    margin-top: 8px;
+  }
+}
+@media (min-width: 500px) and (max-width: 599px) {
+  body:has(.picker-header) .music-player:not(.is-compact) {
+    width: min(310px, calc(100% - 270px));
+  }
+}
+@media (max-width: 499px) {
+  /* Stack only when the fixed-size title and visible transport cannot fit. */
+  .front-content.menu-narrow:has(.picker-header) {
+    padding-top: 80px;
+  }
+  .menu-narrow .menu-track-picker {
+    height: calc(100dvh - 96px);
+  }
+}
+@media (max-width: 599px) and (max-height: 740px) {
+  .menu-layout .ship-description {
+    display: none;
+  }
+  .track-icon {
+    width: 32px;
+    height: 26px;
+  }
+  .menu-layout .circuit-card {
+    min-height: 40px;
+    padding: 3px;
+    gap: 5px;
+  }
+  .menu-layout .picker-hint {
+    max-width: 30ch;
+  }
+}
+@media (max-width: 700px) {
+  #interface #minimap {
+    top: 185px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-card {
+    animation: none;
+  }
+}

@@ -13,6 +13,7 @@ import {
 } from '../progression/index.js';
 import { createMusicPlayer } from '../audio/player.js';
 import { assetURL } from '../assets/url.js';
+import { TRACK_CHALLENGES, trackChallenge } from './track-challenge.js';
 import {
   artViewParameters,
   runtimeEntryParameters,
@@ -20,6 +21,7 @@ import {
 } from '../core/art-pass.js';
 import '../ui/style.css';
 import './style.css';
+import './menu.css';
 
 const escape = (text) =>
   String(text).replace(
@@ -71,8 +73,9 @@ export function createFrontend(host) {
     }
   }
   if (!catalog.some((level) => level.id === selected)) selected = catalog[0].id;
-  let screen = 'circuits',
+  let screen = 'home',
     intent = 'race';
+  let previewLevelId = selected;
   let previewShipId = null;
   let shipId =
       (inspectShip && SHIPS.find((s) => s.id === parameters.get('ship')))?.id ??
@@ -89,7 +92,8 @@ export function createFrontend(host) {
     launchGeneration = 0,
     resultsKey = '',
     lastResults = null;
-  let settingsBack = 'circuits';
+  let settingsBack = 'home',
+    launchBack = 'home';
   let cacheModule, unsubscribeCache, unsubscribeSettings;
   let preload = {
     ready: 0,
@@ -112,11 +116,10 @@ export function createFrontend(host) {
   let shipPreview = null,
     previewGeneration = 0;
   const life = new AbortController();
-  // Match the CSS workbench breakpoint; both layouts reuse the same controls.
-  const wideMenu = matchMedia('(min-width: 1200px)');
-  const choosingSession = () => ['circuits', 'setup'].includes(screen);
-  const showingShip = () =>
-    screen === 'setup' || (screen === 'circuits' && wideMenu.matches);
+  // Match CSS: one picker at a time beside the menu, separate pages below.
+  const wideMenu = matchMedia('(min-width: 900px)');
+  const choosingSession = () => ['home', 'circuits', 'setup'].includes(screen);
+  const showingShip = () => screen === 'setup';
   host.innerHTML =
     '<div id="game-host"></div><div id="front-shell"></div><aside class="transfer-status" aria-label="Loading status"><span role="status"></span><progress max="1" value="0"></progress><button type="button" class="retry-fleet" hidden>Retry fleet preload</button></aside>';
   const transfer = host.querySelector('.transfer-status');
@@ -125,10 +128,11 @@ export function createFrontend(host) {
   const music =
     artPass || inspectShip || parameters.get('music') === '0'
       ? null
-      : createMusicPlayer(host, { clearInput: () => game?.clearInput() });
+      : createMusicPlayer(host, {
+          clearInput: () => game?.clearInput(),
+          isMenuVisible: () => !shell.hidden,
+        });
   const level = () => catalog.find((l) => l.id === selected);
-  const focusedCircuit = () =>
-    circuits.find((l) => l.id === selected)?.id ?? circuits[0].id;
   const route = (id = selected) => routes.find((r) => r.id === id);
   const selectedShip = () => SHIPS.find((s) => s.id === shipId);
   const ship = () => SHIPS.find((s) => s.id === (previewShipId ?? shipId));
@@ -141,13 +145,9 @@ export function createFrontend(host) {
       : practice
         ? 'Practice'
         : 'Quick Race';
-  const sessionLabel = () =>
-    intent === 'practice'
-      ? sessionName()
-      : `${sessionName()} · ${settings.difficulty}`;
   const loadedLevel = () => catalog.find((l) => l.id === loadedId) ?? level();
   const difficultyControls = () =>
-    `<fieldset class="race-difficulty"><legend>Race difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${settings.difficulty === d}" tabindex="${settings.difficulty === d ? 0 : -1}">${d}</button>`).join('')}</fieldset>`;
+    `<fieldset class="race-difficulty"><legend>Opponent difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${settings.difficulty === d}" tabindex="${settings.difficulty === d ? 0 : -1}">${d}</button>`).join('')}</fieldset>`;
   const facts = () =>
     `<span>${route() ? (route().length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'}</span><span>${route()?.closed === false ? 'POINT TO POINT' : intent === 'practice' ? 'OPEN PRACTICE' : '2 LAPS'}</span><span>${intent === 'practice' ? 'SOLO' : `${RACE_FIELD_SIZE} PILOTS`}</span>`;
   function remember() {
@@ -168,8 +168,10 @@ export function createFrontend(host) {
     history.replaceState(null, '', url);
   }
   function setScreen(next) {
+    const navigating = screen !== next;
     screen = next;
     previewShipId = null;
+    previewLevelId = selected;
     if (!showingShip()) {
       previewGeneration++;
       shipPreview?.dispose();
@@ -185,12 +187,15 @@ export function createFrontend(host) {
     document.body.dataset.screen = next;
     music?.setDriving(next === 'race');
     render();
+    if (navigating) shell.scrollTop = 0;
     const focus =
       next === 'circuits'
         ? `[data-level="${selected}"]`
         : next === 'setup'
           ? `button[data-ship="${shipId}"]`
-          : 'h1';
+          : next === 'home'
+            ? '[data-action="launch"]'
+            : 'h1';
     shell.querySelector(focus)?.focus({ preventScroll: true });
     if (next === 'circuits')
       shell.querySelector(focus)?.scrollIntoView({ block: 'nearest' });
@@ -199,11 +204,25 @@ export function createFrontend(host) {
   function heading(kicker, title) {
     return `<div class="front-heading"><span class="kicker">${kicker}</span><h1 tabindex="-1">${title}</h1></div>`;
   }
-  function modeButton(action, label, detail, active) {
-    return `<button data-action="${action}" aria-pressed="${active}" class="session-mode ${active ? 'selected' : ''}">${label}<span>${detail}${wideMenu.matches ? '' : ' →'}</span></button>`;
-  }
+  const trackCard = (l, index, tracks) => {
+    const challenge = trackChallenge(l.id);
+    const startsRow =
+      index > 0 &&
+      ['Medium', 'Hard'].includes(challenge) &&
+      trackChallenge(tracks[index - 1].id) !== challenge;
+    return `<button class="circuit-card ${startsRow ? 'starts-row ' : ''}${l.id === selected ? 'selected' : ''}" data-level="${l.id}" tabindex="${l.id === selected ? 0 : -1}" aria-pressed="${l.id === selected}" title="${escape(l.name)}" aria-label="${escape(l.name)}, ${challenge}${isSprint(l.id) ? ', downhill sprint' : ''}. Select track."><span class="track-icon">${picture(route(l.id))}${routeArt(route(l.id))}</span><span class="card-name"><span class="card-title">${escape(l.name)}</span><small class="card-challenge">${challenge}${isSprint(l.id) ? '<span class="sprint-badge"> · Sprint</span>' : ''}</small></span><span class="track-selected" aria-hidden="true">${l.id === selected ? '✓' : ''}</span></button>`;
+  };
   const circuitPanel = () =>
-    `<div class="circuit-layout"><section class="circuit-library"><div class="circuit-grid" aria-label="Circuits">${circuits.map((l, i) => `<button class="circuit-card ${l.id === selected ? 'selected' : ''}" data-level="${l.id}" tabindex="${l.id === focusedCircuit() ? 0 : -1}" aria-pressed="${l.id === selected}">${picture(route(l.id))}<span class="card-number">${String(i + 1).padStart(2, '0')}</span>${routeArt(route(l.id))}<span class="card-name">${escape(l.name)}</span><small>${route(l.id) ? (route(l.id).length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'} <i>/</i> ${route(l.id)?.closed === false ? 'SPRINT' : 'CIRCUIT'}</small></button>`).join('')}</div><span class="library-hint">${circuits.length} CIRCUITS <i>↓</i> SCROLL TO EXPLORE</span></section><aside class="circuit-detail"><div class="circuit-hero"></div><div class="mode-actions" aria-label="Choose session"><div class="quick-race-option">${difficultyControls()}${modeButton('quick', sessionName(selected, false), isSprint() ? `One descent · ${RACE_OPPONENTS.length} rivals` : `2 laps · ${RACE_OPPONENTS.length} rivals`, intent === 'race')}</div><div class="practice-option">${modeButton('practice', sessionName(selected, true), isSprint() ? 'Solo · summit to finish' : 'Solo · open laps', intent === 'practice')}</div></div></aside></div>`;
+    `<section class="circuit-picker-panel" aria-label="Choose a track"><div class="circuit-hero" aria-live="polite"></div><div class="circuit-grid" aria-label="Tracks">${circuits
+      .toSorted(
+        (a, b) =>
+          TRACK_CHALLENGES.indexOf(trackChallenge(a.id)) -
+          TRACK_CHALLENGES.indexOf(trackChallenge(b.id)),
+      )
+      .map(trackCard)
+      .join(
+        '',
+      )}</div><p class="picker-hint">Sprints are downhill, point to point.</p><div class="transfer-slot track-transfer"></div></section>`;
   // Share one intrinsic text area: the longest wrapped description reserves
   // space for every ship without fixed heights, clipping or resize handlers.
   const shipDescription = () =>
@@ -211,7 +230,7 @@ export function createFrontend(host) {
       (s) =>
         `<span${s.id === ship().id ? '' : ' aria-hidden="true"'}>${escape(s.description)}</span>`,
     ).join('')}</p>`;
-  const shipPanel = () =>
+  const shipPanel = (withActions = false) =>
     `<div class="setup-layout"><section class="ship-list" aria-label="Choose ship">${SHIPS.map((s, i) => `<button data-ship="${s.id}" aria-pressed="${s.id === shipId}" tabindex="${s.id === shipId ? 0 : -1}" class="${s.id === shipId ? 'selected' : ''}"><span>0${i + 1}</span><div><strong>${s.name}</strong><small>${s.role}</small></div></button>`).join('')}</section><section class="ship-details"><span class="kicker">${escape(ship().design)}</span><h2>${ship().name}<small>${previewShipId ? 'PREVIEW' : 'SELECTED SHIP'}</small></h2><div class="ship-preview-slot"><p role="status">Loading ship preview…</p></div><div class="transfer-slot ship-transfer"></div>${shipDescription()}</section><aside class="setup-details"><span class="kicker">PERFORMANCE / ${ship().role.toUpperCase()}</span><div class="ship-metrics">${[
       [
         'Cruise',
@@ -250,18 +269,36 @@ export function createFrontend(host) {
       )
       .join(
         '',
-      )}</div><p class="stat-note">Handling and braking are relative ratings.</p></aside></div>`;
-  const launchLabel = () =>
-    isSprint()
-      ? 'Start descent →'
-      : intent === 'practice'
-        ? 'Start practice →'
-        : 'Start race →';
-  const launchControls = () =>
-    `<div class="front-actions setup-actions"><span class="launch-summary">${escape(level().name)} <i>/</i> ${escape(sessionLabel())}</span>${button('launch', launchLabel(), true)}</div>`;
+      )}</div><p class="stat-note">Handling and braking are relative ratings.</p></aside>${withActions ? pickerRaceActions() : ''}</div>`;
+  const launchLabel = () => (isSprint() ? 'Start descent →' : 'Start race →');
+  const raceActions = () =>
+    `<div class="race-actions"><button class="primary" data-action="launch"><strong>${isSprint() ? 'Sprint' : 'Race'}</strong><small>${isSprint() ? 'One descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals</small><span aria-hidden="true">→</span></button>${difficultyControls()}<button data-action="practice"><strong>${isSprint() ? 'Solo descent' : 'Practice'}</strong><small>${isSprint() ? 'Summit to finish' : 'Solo · open laps'}</small></button></div>`;
+  function pickerRaceActions() {
+    return `<div class="picker-race-actions"><button class="change-track" data-action="circuits">${escape(level().name)} · ${trackChallenge(selected)} <span aria-hidden="true">↗</span></button>${raceActions()}</div>`;
+  }
+  const homeMenu = () =>
+    `<section class="race-menu" aria-label="Race setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1><button class="menu-selection" data-action="circuits"><span>Track</span><div><strong>${escape(level().name)}</strong><small>${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedShip().name}</strong><small>${selectedShip().role}</small></div><b aria-hidden="true">›</b></button>${raceActions()}<nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${game?.hasSession() ? `<aside class="session-return">${button('resume-session', `↶ Resume ${escape(loadedLevel().name)}`)}</aside>` : ''}</section>`;
+  function renderMenu() {
+    const wide = wideMenu.matches;
+    const picking = wide || screen !== 'home';
+    const setup = screen === 'setup';
+    shell.className = 'cinematic-menu';
+    shell.innerHTML = `<div class="menu-backdrop" aria-hidden="true">${picture(route())}</div><main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${setup ? 'menu-ship-picker' : 'menu-track-picker'}" aria-label="${setup ? 'Ship' : 'Track'} selection">${wide ? `<nav class="picker-tabs" aria-label="Setup view"><button data-action="circuits" aria-pressed="${!setup}">Tracks</button><button data-action="ship-step" aria-pressed="${setup}">Ship</button></nav>` : `<header class="picker-header"><button class="front-brand" data-action="home">VECTOR<span>//</span>NOVA</button>${button('home', '← Back to race')}</header>`}${setup ? shipPanel(!wide) : circuitPanel()}</section>` : ''}</main>`;
+    if (!setup && picking) showDetail(selected);
+    if (showingShip()) mountShipPreview();
+    shell
+      .querySelector('.ship-transfer, .menu-transfer, .track-transfer')
+      ?.append(transfer);
+    updateLaunchSummary();
+    updateStatus();
+  }
   function render() {
     if (shell.hidden) return;
-    const libraryScroll = shell.querySelector('.circuit-grid')?.scrollTop;
+    if (choosingSession()) {
+      renderMenu();
+      return;
+    }
+    shell.className = '';
     const title = {
       circuits: wideMenu.matches ? 'RACE SETUP' : 'SELECT CIRCUIT',
       setup: wideMenu.matches ? 'RACE SETUP' : 'CHOOSE SHIP',
@@ -272,31 +309,7 @@ export function createFrontend(host) {
     shell.innerHTML = `<header class="front-header"><button class="front-brand" data-action="home" aria-label="Vector Nova circuits">VECTOR<span>//</span>NOVA</button><span class="header-label">${title}</span>${screen !== 'loading' ? button('settings', 'Settings') : ''}</header><main class="front-content" data-page="${screen}"></main><footer class="front-footer"><span>${screen === 'circuits' ? 'ARROWS · BROWSE <i>/</i> ENTER · SELECT <i>/</i> TAB · CONTROLS' : `${sessionName(screen === 'results' ? loadedId : selected, screen !== 'results' && intent === 'practice').toUpperCase()} <i>/</i> ${escape((screen === 'results' ? loadedLevel() : level()).name.toUpperCase())}`}</span></footer>`;
     const main = shell.querySelector('.front-content');
     let content = main;
-    if (choosingSession()) {
-      if (wideMenu.matches) {
-        main.classList.add('flow-workbench');
-        main.innerHTML = `<div class="workbench-layout">${circuitPanel()}<section class="ship-pane" aria-label="Ship selection">${shipPanel()}</section></div>${launchControls()}`;
-      } else {
-        main.classList.add('flow-accordion');
-        main.innerHTML =
-          launchControls() +
-          ['circuits', 'setup']
-            .map((step, i) => {
-              const open = screen === step;
-              const summary =
-                step === 'circuits'
-                  ? `${level().name} / ${sessionLabel()}`
-                  : `${selectedShip().name} / ${selectedShip().role}`;
-              return `<section class="flow-step ${open ? 'open' : ''}" data-step="${step}"><h2 class="step-heading"><button class="step-toggle" data-action="${step === 'circuits' ? 'circuits' : 'ship-step'}" aria-expanded="${open}" aria-controls="${step}-panel"><span class="step-number">0${i + 1}</span><strong>${step === 'circuits' ? 'Circuit & session' : 'Ship'}</strong><span class="step-summary">${escape(summary)}</span><b aria-hidden="true">${open ? '−' : '+'}</b></button></h2><div id="${step}-panel" class="step-panel" ${open ? '' : 'hidden'}></div>${step === 'setup' && !open ? '<div class="transfer-slot collapsed-transfer"></div>' : ''}</section>`;
-            })
-            .join('');
-        content = main.querySelector(`#${screen}-panel`);
-        content.innerHTML =
-          screen === 'circuits' ? circuitPanel() : shipPanel();
-      }
-      showDetail(selected);
-      if (showingShip()) mountShipPreview();
-    } else if (screen === 'loading') {
+    if (screen === 'loading') {
       content.innerHTML = `<section class="loading-copy"><div class="loading-card">${picture(route())}${routeArt(route())}</div><div class="transfer-slot loading-transfer"></div>${heading('LOADING CIRCUIT', escape(level().name))}<div class="session-facts">${facts()}</div><div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
     } else if (screen === 'settings') {
       content.innerHTML = `${heading('PREFERENCES', 'Set your pace.')}<div class="settings-layout"><section class="settings-form"><label><span>Graphics <small>High adds ambient occlusion and postprocessing. Low reduces GPU load.</small></span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume <small>Tunes has its own volume control.</small></span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion <small>Reduces decorative motion and distortion.</small></span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p>Saved on this device.</p></section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
@@ -371,16 +384,8 @@ export function createFrontend(host) {
       content.innerHTML = `<section class="result-panel">${heading('FINISH / ' + escape(loadedLevel().name.toUpperCase()), title)}<div class="results-layout"><section class="result-personal"><span class="kicker">${lastResults?.playerValid ? 'RACE TIME' : 'UNRANKED RUN'}</span><strong>${stamp(lastResults?.playerTotalTime)}</strong><p>${lastResults?.playerValid ? `${sprint ? 'One descent' : `${lastResults.laps ?? 2} laps`} · ${escape(lastResults.difficulty ?? settings.difficulty)}` : `${sprint ? 'This descent' : 'A lap'} was invalidated. This run does not count toward classification.`}</p><div class="lap-splits">${(lastResults?.playerLapTimes ?? []).map((t, i) => `<span>${sprint ? 'DESCENT' : `LAP ${i + 1}`}<b>${stamp(t)}</b></span>`).join('')}</div></section><section><ol class="results-list" aria-label="Race classification" tabindex="0"></ol><p class="results-note" role="status"></p></section></div><div class="front-actions results-actions">${button('retry-race', 'Race again →', true)}${button('continue', 'Continue driving')}${button('change', 'Circuits')}</div></section>`;
       updateResults(lastResults);
     }
-    if (choosingSession() && game?.hasSession()) {
-      const sessionReturn = `<aside class="session-return"><span>SESSION ON HOLD <b>${escape(loadedLevel().name)}</b></span>${button('resume-session', 'Resume →')}</aside>`;
-      main
-        .querySelector('[data-action="launch"]')
-        .insertAdjacentHTML('beforebegin', sessionReturn);
-    }
     const statusSlot = shell.querySelector('.transfer-slot');
     if (statusSlot) statusSlot.append(transfer);
-    const library = shell.querySelector('.circuit-grid');
-    if (library && libraryScroll != null) library.scrollTop = libraryScroll;
     updateLaunchSummary();
     updateStatus();
   }
@@ -439,47 +444,25 @@ export function createFrontend(host) {
       r = route(id),
       node = shell.querySelector('.circuit-hero');
     if (!node) return;
-    node.innerHTML = `<div class="detail-image">${picture(r)}${routeArt(r)}<span>${id === selected ? 'SELECTED CIRCUIT' : 'PREVIEW'}</span></div><span class="kicker">${escape(l.ui.subtitle)}</span><h2>${escape(l.name)}</h2><p>${escape(l.ui.intro.replace(/the Kestrel/g, 'your ship'))}</p><div class="detail-facts"><span>${r ? (r.length / 1000).toFixed(2) + ' KM' : '—'}</span><span>${r?.closed === false ? 'SPRINT' : 'CIRCUIT'}</span></div>`;
+    previewLevelId = id;
+    node.innerHTML = `<div class="detail-image">${picture(r)}${routeArt(r)}<div class="track-caption"><h2>${escape(l.name)}</h2><p>${trackChallenge(id)} · ${r ? (r.length / 1000).toFixed(2) + ' km' : '—'} · ${r?.closed === false ? 'Downhill sprint' : 'Circuit'}</p></div></div>`;
   }
   function selectCircuit(id) {
     invalidLevel = false;
     selected = id;
     remember();
-    for (const card of shell.querySelectorAll('[data-level]')) {
-      const active = card.dataset.level === selected;
-      card.classList.toggle('selected', active);
-      card.setAttribute('aria-pressed', active);
-      card.tabIndex = active ? 0 : -1;
-    }
-    showDetail(id);
-    updateLaunchSummary();
-    const summary = shell.querySelector('[data-step="circuits"] .step-summary');
-    if (summary) summary.textContent = `${level().name} / ${sessionLabel()}`;
+    render();
+    shell
+      .querySelector(`[data-level="${selected}"]`)
+      ?.focus({ preventScroll: true });
   }
   function updateLaunchSummary() {
-    for (const [action, practice, detail] of [
-      [
-        'quick',
-        false,
-        isSprint()
-          ? `One descent · ${RACE_OPPONENTS.length} rivals`
-          : `2 laps · ${RACE_OPPONENTS.length} rivals`,
-      ],
-      [
-        'practice',
-        true,
-        isSprint() ? 'Solo · summit to finish' : 'Solo · open laps',
-      ],
-    ]) {
-      const mode = shell.querySelector(`[data-action="${action}"]`);
-      if (mode)
-        mode.innerHTML = `${sessionName(selected, practice)}<span>${detail}${wideMenu.matches ? '' : ' →'}</span>`;
-    }
     const launch = shell.querySelector('[data-action="launch"]');
-    if (launch) launch.textContent = launchLabel();
-    const summary = shell.querySelector('.launch-summary');
-    if (summary)
-      summary.textContent = `${level().name} / ${sessionLabel()} / ${selectedShip().name}`;
+    if (launch)
+      launch.setAttribute(
+        'aria-label',
+        `${launchLabel()} ${level().name}, ${selectedShip().name}, ${settings.difficulty} opponents`,
+      );
   }
   function updateStatus() {
     const loading = screen === 'loading';
@@ -489,7 +472,11 @@ export function createFrontend(host) {
     const fraction = loading
       ? loadStep / (loadStages.length - 1)
       : preload.fraction;
-    transfer.hidden = !(choosingSession() || loading);
+    transfer.hidden = !(
+      loading ||
+      (choosingSession() &&
+        (preload.ready < preload.total || preload.failed?.length))
+    );
     transfer.querySelector('span').textContent = label;
     const meter = transfer.querySelector('progress');
     meter.value = fraction;
@@ -590,7 +577,7 @@ export function createFrontend(host) {
             setScreen('loading');
           } else {
             if (screen !== 'inspection' || inspectShip) leaveReview();
-            setScreen(screen === 'inspection' ? 'setup' : 'circuits');
+            setScreen(screen === 'inspection' ? 'setup' : 'home');
           }
         },
         onCircuit(next) {
@@ -654,6 +641,8 @@ export function createFrontend(host) {
   }
   async function launch() {
     if (launching) return;
+    // A retry from Loading keeps the original menu view as its destination.
+    if (choosingSession()) launchBack = screen;
     launching = true;
     const attempt = ++launchGeneration;
     music?.startWithGame();
@@ -685,7 +674,7 @@ export function createFrontend(host) {
       if (attempt === launchGeneration) launching = false;
     }
   }
-  function cancel(destination = invalidLevel ? 'circuits' : 'setup') {
+  function cancel(destination = invalidLevel ? 'home' : launchBack) {
     generation++;
     launchGeneration++;
     launching = false;
@@ -736,20 +725,12 @@ export function createFrontend(host) {
   }
   function goHome() {
     if (screen === 'loading') {
-      cancel('circuits');
+      cancel('home');
       return;
     }
     if (game) game.returnToSetup();
     else leaveReview();
-    setScreen('circuits');
-  }
-  function selectMode(action) {
-    if (wideMenu.matches) {
-      render();
-      shell
-        .querySelector(`[data-action="${action}"]`)
-        ?.focus({ preventScroll: true });
-    } else setScreen('setup');
+    setScreen('home');
   }
   const actions = {
     home: goHome,
@@ -758,15 +739,10 @@ export function createFrontend(host) {
       setScreen('race');
       game.resumeSession();
     },
-    quick() {
-      intent = 'race';
-      remember();
-      selectMode('quick');
-    },
     practice() {
       intent = 'practice';
       remember();
-      selectMode('practice');
+      void launch();
     },
     circuits() {
       setScreen('circuits');
@@ -781,10 +757,13 @@ export function createFrontend(host) {
       setScreen('settings');
     },
     'settings-back'() {
-      setScreen(settingsBack);
-      if (settingsBack === 'results') game?.showResults();
+      const destination = settingsBack;
+      setScreen(destination);
+      if (destination === 'results') game?.showResults();
     },
     launch() {
+      intent = 'race';
+      remember();
       void launch();
     },
     'retry-preview'() {
@@ -836,9 +815,9 @@ export function createFrontend(host) {
     'pointerover',
     (e) => {
       const card = e.target.closest('[data-level]');
-      if (card) showDetail(card.dataset.level);
+      if (card && e.pointerType !== 'touch') showDetail(card.dataset.level);
       const chassis = e.target.closest('button[data-ship]');
-      if (chassis) showShip(chassis.dataset.ship);
+      if (chassis && e.pointerType !== 'touch') showShip(chassis.dataset.ship);
     },
     { signal: life.signal },
   );
@@ -887,22 +866,6 @@ export function createFrontend(host) {
   shell.addEventListener(
     'keydown',
     (e) => {
-      const toggle = e.target.closest('.step-toggle');
-      if (toggle && ['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.code)) {
-        const headers = [...shell.querySelectorAll('.step-toggle')];
-        e.preventDefault();
-        const index =
-          e.code === 'Home'
-            ? 0
-            : e.code === 'End'
-              ? headers.length - 1
-              : (headers.indexOf(toggle) +
-                  (e.code === 'ArrowUp' ? -1 : 1) +
-                  headers.length) %
-                headers.length;
-        headers[index].focus();
-        return;
-      }
       const card = e.target.closest(
         'button[data-level], button[data-ship], button[data-difficulty]',
       );
@@ -947,7 +910,22 @@ export function createFrontend(host) {
                 Math.min(items.length - 1, items.indexOf(card) + step),
               );
       e.preventDefault();
-      const next = items[index];
+      let next = items[index];
+      if (card.dataset.level && ['ArrowUp', 'ArrowDown'].includes(e.code)) {
+        // Difficulty row breaks leave empty cells; follow the visible rows.
+        const current = card.getBoundingClientRect();
+        const direction = e.code === 'ArrowDown' ? 1 : -1;
+        const candidates = items
+          .map((item) => ({ item, bounds: item.getBoundingClientRect() }))
+          .filter(({ bounds }) => (bounds.top - current.top) * direction > 1)
+          .sort(
+            (a, b) =>
+              (a.bounds.top - b.bounds.top) * direction ||
+              Math.abs(a.bounds.left - current.left) -
+                Math.abs(b.bounds.left - current.left),
+          );
+        next = candidates[0]?.item ?? card;
+      }
       if (next.dataset.level || next.dataset.ship) {
         next.focus({ preventScroll: true });
         next.scrollIntoView({ block: 'nearest' });
@@ -984,6 +962,7 @@ export function createFrontend(host) {
         if (screen === 'loading') cancel();
         else if (screen === 'settings') actions['settings-back']();
         else if (screen === 'setup') setScreen('circuits');
+        else if (screen === 'circuits') setScreen('home');
       }
     },
     { signal: life.signal },
@@ -993,7 +972,6 @@ export function createFrontend(host) {
     () => {
       if (!choosingSession()) return;
       const focused = document.activeElement;
-      const onShip = focused?.closest('.ship-pane');
       const selector = focused?.dataset.ship
         ? `button[data-ship="${focused.dataset.ship}"]`
         : focused?.dataset.level
@@ -1005,9 +983,6 @@ export function createFrontend(host) {
               : focused?.matches('.ship-preview canvas')
                 ? '.ship-preview canvas'
                 : null;
-      if (!wideMenu.matches)
-        screen =
-          onShip || focused?.dataset.action === 'launch' ? 'setup' : 'circuits';
       setScreen(screen);
       if (selector)
         shell.querySelector(selector)?.focus({ preventScroll: true });
@@ -1041,8 +1016,6 @@ export function createFrontend(host) {
       control.setAttribute('aria-pressed', active);
       control.tabIndex = active ? 0 : -1;
     }
-    const summary = shell.querySelector('[data-step="circuits"] .step-summary');
-    if (summary) summary.textContent = `${level().name} / ${sessionLabel()}`;
     updateLaunchSummary();
   });
   transfer.querySelector('.retry-fleet').addEventListener(
@@ -1057,6 +1030,7 @@ export function createFrontend(host) {
     getState: () => ({
       screen,
       selected,
+      previewLevelId,
       loadedId,
       loading: !!pending,
       error,
@@ -1073,7 +1047,7 @@ export function createFrontend(host) {
   } else if (special) {
     void launchSpecial();
   } else {
-    setScreen('circuits');
+    setScreen('home');
   }
   if (!special) {
     // Let the lightweight circuit picker paint before parsing the first model.

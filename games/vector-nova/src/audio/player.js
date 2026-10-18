@@ -11,7 +11,10 @@ const playIcon = icon(
 const pauseIcon = icon('<path d="M8 5v14M16 5v14" stroke-width="4"/>');
 
 // Shared music transport. Independent of race time and the effects mix.
-export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
+export function createMusicPlayer(
+  host,
+  { clearInput = () => {}, isMenuVisible = () => false } = {},
+) {
   let preferences = {};
   try {
     preferences = JSON.parse(localStorage.getItem(preferenceKey)) || {};
@@ -26,6 +29,7 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
   let wantsPlayback = true;
   let driving = false;
   const compact = matchMedia('(max-width: 760px)');
+  const isCompact = () => compact.matches && (driving || !isMenuVisible());
   const root = document.createElement('aside');
   root.className = 'music-player';
   root.dataset.musicPlayer = '';
@@ -218,6 +222,7 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
     save();
   }
   function collapse(collapsed) {
+    root.classList.toggle('is-compact', isCompact());
     controls.hidden = collapsed;
     root.classList.toggle('is-collapsed', collapsed);
     expand.setAttribute('aria-expanded', String(!collapsed));
@@ -231,12 +236,12 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
       'aria-label',
       collapsed ? 'Expand Tunes' : 'Collapse Tunes',
     );
-    const hiddenContent = compact.matches ? panel : controls;
+    const hiddenContent = isCompact() ? panel : controls;
     if (collapsed && hiddenContent.contains(document.activeElement))
-      (compact.matches ? compactToggle : expand).focus();
+      (isCompact() ? compactToggle : expand).focus();
   }
   function toggleExpanded() {
-    if (!driving || compact.matches) collapse(!controls.hidden);
+    if (!driving || isCompact()) collapse(!controls.hidden);
     save();
   }
   listen(expand, 'click', toggleExpanded);
@@ -244,17 +249,12 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
   listen(compact, 'change', () => {
     const focused = root.contains(document.activeElement);
     collapse(true);
-    expand.disabled = driving && !compact.matches;
+    expand.disabled = driving && !isCompact();
     if (focused)
-      (compact.matches
-        ? compactToggle
-        : expand.disabled
-          ? play
-          : expand
-      ).focus();
+      (isCompact() ? compactToggle : expand.disabled ? play : expand).focus();
   });
   listen(document, 'pointerdown', (event) => {
-    if (compact.matches && !controls.hidden && !root.contains(event.target))
+    if (isCompact() && !controls.hidden && !root.contains(event.target))
       collapse(true);
   });
   listen(play, 'click', togglePlayback);
@@ -317,7 +317,7 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
     window,
     'keydown',
     (event) => {
-      if (event.code === 'Escape' && compact.matches && !controls.hidden) {
+      if (event.code === 'Escape' && isCompact() && !controls.hidden) {
         event.preventDefault();
         event.stopPropagation();
         collapse(true);
@@ -361,8 +361,9 @@ export function createMusicPlayer(host, { clearInput = () => {} } = {}) {
   return {
     setDriving(value) {
       driving = value;
+      root.classList.toggle('is-compact', isCompact());
       if (value) collapse(true);
-      expand.disabled = value && !compact.matches;
+      expand.disabled = value && !isCompact();
     },
     startWithGame() {
       if (!disposed && wantsPlayback && audio.paused) void start();

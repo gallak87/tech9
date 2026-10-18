@@ -2595,21 +2595,27 @@ select {
   }
 }
 
-/* Nightweir retains its upper portrait HUD, but short landscape telemetry must
+/* Nightweir and Halcyon retain their upper portrait HUD, but landscape telemetry must
    sit between the two touch pads instead of inheriting the portrait opt-out. */
 @media (max-height: 570px) and (orientation: landscape) {
-  #interface[data-level='nightweir'].driving .telemetry {
+  #interface:is([data-level='nightweir'], [data-level='halcyon']).driving
+    .telemetry {
     left: calc(max(3vw, env(safe-area-inset-left)) + 160px);
     right: calc(max(3vw, env(safe-area-inset-right)) + 116px);
     bottom: calc(max(16px, env(safe-area-inset-bottom)) + 20px);
   }
-  #interface[data-level='nightweir'].driving .energy {
+  #interface:is([data-level='nightweir'], [data-level='halcyon']).driving
+    .energy {
     width: clamp(90px, 16vw, 150px);
   }
-  #interface[data-level='nightweir'].driving .energy small {
+  #interface:is([data-level='nightweir'], [data-level='halcyon']).driving
+    .energy
+    small {
     display: none;
   }
-  #interface[data-level='nightweir'].driving .speed strong {
+  #interface:is([data-level='nightweir'], [data-level='halcyon']).driving
+    .speed
+    strong {
     font-size: 40px;
   }
 }

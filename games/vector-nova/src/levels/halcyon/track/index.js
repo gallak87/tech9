@@ -1,3 +1,6 @@
+import { createPortalTrusses } from './portal-detail.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { createArchitectureMaps } from '../environment/architectural-finish.js';
 import { createAsphalt } from './asphalt.js';
 import { concreteTexture, signTexture } from './textures.js';
 import * as THREE from 'three';
@@ -35,6 +38,19 @@ export function buildTrackVisual(track, settings, renderer) {
   const concreteMap = ownTexture(concreteTexture());
   const asphalt = createAsphalt(renderer, track.width);
   const road = asphalt.material;
+  road.envMapIntensity = 0.9;
+  const asphaltFinish = road.onBeforeCompile;
+  const asphaltKey = road.customProgramCacheKey();
+  road.onBeforeCompile = (shader, renderer) => {
+    asphaltFinish(shader, renderer);
+    // Limit the low sun's direct highlight on this damp coated aggregate;
+    // keep the broad sky/building reflections and scan's normal response.
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <lights_fragment_end>',
+      '#include <lights_fragment_end>\nreflectedLight.directSpecular *= .3;',
+    );
+  };
+  road.customProgramCacheKey = () => asphaltKey + '-halcyon-damp-solar-v1';
   // The district probe is owned/baked by the renderer; never dispose it here.
   let districtReflection = null;
   let finishSettings = settings;
@@ -43,7 +59,8 @@ export function buildTrackVisual(track, settings, renderer) {
     const sheen = Number.isFinite(next.halcyonRoadSheen)
       ? THREE.MathUtils.clamp(next.halcyonRoadSheen, 0, 1)
       : 0.8;
-    asphalt.update(sheen);
+    // Halcyon is damp, with broad broken reflections rather than mirror puddles.
+    asphalt.update(sheen * 0.72);
     const reflection = next.halcyonRoadReflections ? districtReflection : null;
     if (road.envMap !== reflection) {
       road.envMap = reflection;
@@ -62,6 +79,10 @@ export function buildTrackVisual(track, settings, renderer) {
     map: concreteMap,
     roughness: 0.83,
   });
+  const vaultConcrete = material({ color: 0x9babae, roughness: 0.9 });
+  const architecture = createArchitectureMaps(renderer, {
+    concrete: [concrete, edgeConcrete, vaultConcrete],
+  });
   const steel = material({ color: 0x9caeb5, roughness: 0.34, metalness: 0.76 });
   const darkSteel = material({
     color: 0x30424c,
@@ -69,7 +90,7 @@ export function buildTrackVisual(track, settings, renderer) {
     metalness: 0.7,
   });
   const tunnelCladding = material({
-    color: 0xc1c6c2,
+    color: 0xaab9b7,
     map: concreteMap,
     bumpMap: concreteMap,
     bumpScale: 0.002,
@@ -106,7 +127,7 @@ export function buildTrackVisual(track, settings, renderer) {
   const lamp = material({
     color: 0xffead1,
     emissive: 0xffcc8e,
-    emissiveIntensity: 3.2,
+    emissiveIntensity: 2.3,
     roughness: 0.32,
   });
   const blueLamp = material({
@@ -459,6 +480,11 @@ export function buildTrackVisual(track, settings, renderer) {
     lampFaces,
   );
 
+  const portalRoof = material({
+    color: 0x687b83,
+    roughness: 0.65,
+    metalness: 0.4,
+  });
   const ribBeams = [],
     tunnelFixtures = [],
     tunnelLampBodies = [],
@@ -490,6 +516,13 @@ export function buildTrackVisual(track, settings, renderer) {
     [-16.5, 9],
     [-16.5, 0],
   ];
+  const vaultParts = new Map();
+  function vaultDetail(name, profile, surface, options, shadows = false) {
+    const key = surface.uuid + shadows;
+    const entry = vaultParts.get(key) ?? { name, surface, shadows, parts: [] };
+    entry.parts.push(sweepGeometry(track, profile, options));
+    vaultParts.set(key, entry);
+  }
   // Daylight slots separate finished precast bays. Their interiors expose
   // cladding, extraction equipment, fixings and shielded optical cassettes.
   for (let s = tunnelStart; s < tunnelEnd; s += 48) {
@@ -507,7 +540,7 @@ export function buildTrackVisual(track, settings, renderer) {
         [17.35, 0],
         [16.5, 0],
       ],
-      concrete,
+      vaultConcrete,
       { start: s, end: bayEnd, step: 4, uvScale: 6 },
       true,
     );
@@ -531,6 +564,48 @@ export function buildTrackVisual(track, settings, renderer) {
       sweep(
         'Vault bronze service datum',
         boxProfile(side * 16.05, 2.87, 0.11, 0.17),
+        tunnelBronze,
+        { start: s, end: bayEnd, step: 4 },
+      );
+      // Suspended metal ceiling cassettes sit below the structural shell, with
+      // dark reveal gaps and returned edges. They remain well above the racers.
+      for (const along of [3, 25]) {
+        const end = Math.min(s + along + 18, bayEnd - 1);
+        if (end <= s + along) continue;
+        const x0 = side * 2.2,
+          x1 = side * 11.8;
+        const ceiling = [
+          [x0, 16.12],
+          [x1, 13.84],
+          [x1, 13.54],
+          [x0, 15.82],
+        ];
+        vaultDetail(
+          'Vault suspended zinc ceiling cassette',
+          ceiling,
+          portalRoof,
+          { start: s + along, end, step: 4 },
+          true,
+        );
+        vaultDetail(
+          'Vault cassette recessed backing',
+          [
+            [x0, 16.21],
+            [x1, 13.93],
+          ],
+          darkSteel,
+          { start: s + along - 0.4, end: Math.min(end + 0.4, bayEnd), step: 4 },
+        );
+      }
+      vaultDetail(
+        'Vault upper service trunk',
+        boxProfile(side * 13.5, 12.75, 0.42, 0.52),
+        darkSteel,
+        { start: s, end: bayEnd, step: 4 },
+      );
+      vaultDetail(
+        'Vault upper copper conduit',
+        boxProfile(side * 13.1, 12.45, 0.13, 0.15),
         tunnelBronze,
         { start: s, end: bayEnd, step: 4 },
       );
@@ -580,6 +655,11 @@ export function buildTrackVisual(track, settings, renderer) {
       }
     }
   }
+  for (const { name, surface, shadows, parts } of vaultParts.values()) {
+    const geometry = mergeGeometries(parts);
+    parts.forEach((g) => g.dispose());
+    addMesh(name, geometry, surface, shadows);
+  }
   for (let s = tunnelStart; s <= tunnelEnd; s += 24) {
     const frame = track.sample(s);
     for (let i = 0; i < vault.length - 1; i += 1)
@@ -587,8 +667,8 @@ export function buildTrackVisual(track, settings, renderer) {
         beamTransform(
           framePoint(frame, ...vault[i]),
           framePoint(frame, ...vault[i + 1]),
-          0.35,
-          0.62,
+          0.65,
+          1.1,
         ),
       );
     for (const side of [-1, 1]) {
@@ -620,9 +700,16 @@ export function buildTrackVisual(track, settings, renderer) {
       { start: tunnelStart, end: tunnelEnd, step: 4 },
     );
   }
+  const ribParts = [
+    new THREE.BoxGeometry(1, 1, 0.18).translate(0, 0, -0.41),
+    new THREE.BoxGeometry(1, 1, 0.18).translate(0, 0, 0.41),
+    new THREE.BoxGeometry(0.22, 1, 0.64),
+  ];
+  const ribSection = mergeGeometries(ribParts);
+  ribParts.forEach((g) => g.dispose());
   addInstances(
-    'Transit vault structural ribs',
-    new THREE.BoxGeometry(1, 1, 1),
+    'Transit vault built-up structural ribs',
+    ribSection,
     darkSteel,
     ribBeams,
     true,
@@ -806,15 +893,97 @@ export function buildTrackVisual(track, settings, renderer) {
 
   // Outside portals carry the rolled deck without a pier passing through its
   // racing face. Every complete leg/crosshead/stay passed the 3D clearance test.
+  // Built-up open sections stay within the existing tested/collidable envelope.
+  // Separate flanges, recessed webs and splice collars reveal actual structural depth.
+  const portalParts = [
+    new THREE.BoxGeometry(0.18, 1, 1).translate(-0.41, 0, 0),
+    new THREE.BoxGeometry(0.18, 1, 1).translate(0.41, 0, 0),
+    new THREE.BoxGeometry(0.64, 1, 0.19),
+  ];
+  const portalSection = mergeGeometries(portalParts);
+  portalParts.forEach((g) => g.dispose());
+  const portalSteel = material({
+    color: 0x71888d,
+    roughness: 0.56,
+    metalness: 0.5,
+  });
   addInstances(
-    'Skyline outside suspension portals',
-    new THREE.BoxGeometry(1, 1, 1),
-    steel,
+    'Skyline built-up portal flanges and recessed webs',
+    portalSection,
+    portalSteel,
     supportLayout.portals.map(({ from, to, width, depth }) =>
       beamTransform(from, to, width, depth),
     ),
     true,
   );
+  const collars = [],
+    plates = [],
+    markers = [];
+  for (const { from, to, width, depth } of supportLayout.portals) {
+    const length = from.distanceTo(to),
+      axis = to.clone().sub(from).normalize();
+    for (let along = 2; along < length - 1; along += 28) {
+      const p = from.clone().addScaledVector(axis, along);
+      collars.push(
+        beamTransform(
+          p.clone().addScaledVector(axis, -0.22),
+          p.clone().addScaledVector(axis, 0.22),
+          width,
+          depth,
+        ),
+      );
+    }
+    if (Math.abs(axis.y) > 0.9) {
+      for (const sign of [-1, 1]) {
+        const a = from.clone().addScaledVector(axis, 3);
+        a.z += sign * (depth * 0.5 - 0.06);
+        const b = to.clone().addScaledVector(axis, -2);
+        b.z += sign * (depth * 0.5 - 0.06);
+        plates.push(beamTransform(a, b, width * 0.19, 0.1));
+        for (let along = 6; along < length - 4; along += 56) {
+          const p = from.clone().addScaledVector(axis, along);
+          p.z += sign * (depth * 0.5 - 0.05);
+          markers.push({
+            position: p,
+            scale: new THREE.Vector3(width * 0.7, 0.6, 0.08),
+          });
+        }
+      }
+    }
+  }
+  addInstances(
+    'Portal bolted splice collars',
+    new THREE.BoxGeometry(1, 1, 1),
+    darkSteel,
+    collars,
+    true,
+  );
+  addInstances(
+    'Portal recessed service panels',
+    new THREE.BoxGeometry(1, 1, 1),
+    tunnelBronze,
+    plates,
+  );
+  addInstances(
+    'Portal maintenance datum markers',
+    new THREE.BoxGeometry(1, 1, 1),
+    amber,
+    markers,
+  );
+  const trusses = createPortalTrusses(track, supportLayout);
+  for (const [name, parts, surface] of [
+    ['Portal deep lower chord', trusses.chords, portalSteel],
+    ['Portal triangular load-transfer webs', trusses.diagonals, darkSteel],
+  ])
+    addInstances(
+      name,
+      new THREE.BoxGeometry(1, 1, 1),
+      surface,
+      parts.map(({ from, to, width, depth }) =>
+        beamTransform(from, to, width, depth),
+      ),
+      true,
+    );
   addInstances(
     'Skyline clear suspension stays',
     new THREE.BoxGeometry(1, 1, 1),
@@ -1211,7 +1380,7 @@ export function buildTrackVisual(track, settings, renderer) {
     representativeSection: { start: 0, end: track.length },
     groundY: track.groundY,
     sectionShowcases: track.showcases,
-    ready: asphalt.ready,
+    ready: Promise.all([asphalt.ready, architecture.ready]),
     update,
     updateFinish,
     setReflection(texture) {
@@ -1222,6 +1391,7 @@ export function buildTrackVisual(track, settings, renderer) {
       if (disposed) return;
       disposed = true;
       asphalt.dispose();
+      architecture.dispose();
       for (const geometry of geometries) geometry.dispose();
       for (const surface of materials) surface.dispose();
       for (const texture of textures) texture.dispose();

@@ -595,6 +595,21 @@
         "public/assets/levels/cindercoil/ceramic/arm.ktx2"
       ],
       "provenanceRecord": "assets/levels/cindercoil/ceramic/provenance.json"
+    },
+    {
+      "id": "halcyon-metropolitan-architecture",
+      "source": "src/levels/halcyon/environment/ and src/levels/halcyon/track/",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original source-native connected city blocks, recessed civic/loft facades, upper skyline, built-up portal/truss sections and layered transit-vault cassettes. Reuses the project-generated Nightweir fired-brick-v1.png and zinc-roof-v1.png at physical scale, and the separately registered Helion CC0 Concrete034 maps. No new downloaded or generated imagery.",
+      "rights": "Project-authored geometry and procedural facades; borrowed project imagery and CC0 concrete retain their existing provenance.",
+      "runtimeDependencies": ["three"],
+      "borrowedAssets": [
+        "public/assets/levels/nightweir/fired-brick-v1.png",
+        "public/assets/levels/nightweir/zinc-roof-v1.png",
+        "public/assets/levels/helion/ceramic/color.ktx2",
+        "public/assets/levels/helion/ceramic/normal.ktx2",
+        "public/assets/levels/helion/ceramic/arm.ktx2"
+      ]
     }
   ],
   "thirdParty": [

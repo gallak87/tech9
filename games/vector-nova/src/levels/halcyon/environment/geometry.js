@@ -202,6 +202,9 @@ export function createBatches(group, surfaces) {
           'road',
           'ground',
           'heroGlass',
+          'roomDark',
+          'roomWarm',
+          'roomCool',
         ].includes(bucket.material) && !bucket.horizon;
       mesh.receiveShadow = !bucket.horizon;
       mesh.matrixAutoUpdate = false;

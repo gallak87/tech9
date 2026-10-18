@@ -1,3 +1,6 @@
+import { buildOuterBoroughs } from './boroughs.js';
+import { skylineSites, buildSkyline } from './skyline.js';
+import { roadsideSites, buildRoadsideArchitecture } from './roadside.js';
 import * as THREE from 'three';
 import {
   createBatches,
@@ -12,12 +15,18 @@ import {
   createRouteClearance,
 } from '../../../environment/placement.js';
 
-export function createEnvironment(track) {
+export function createEnvironment(track, renderer) {
   const group = new THREE.Group();
   group.name = 'Halcyon / inhabited metropolitan infrastructure';
   const groundY = track.groundY ?? -78;
   const random = randomSource(93017);
-  const { surfaces, textures, update: updateSurfaces } = createSurfaces();
+  const {
+    surfaces,
+    textures,
+    ready,
+    dispose: disposeMaps,
+    update: updateSurfaces,
+  } = createSurfaces(renderer);
   const batch = createBatches(group, surfaces);
   const box = (...args) => batch.primitive('box', ...args);
   const cylinder = (...args) => batch.primitive('cylinder', ...args);
@@ -53,7 +62,13 @@ export function createEnvironment(track) {
     !clearsRoute(landmark.x, landmark.z, 142, 104, groundY + 540, landmarkYaw)
   )
     landmark.addScaledVector(first.tangent, 40);
-  const reserved = [{ x: landmark.x, z: landmark.z, radius: 130 }];
+  const authoredSites = roadsideSites(track, clearsRoute);
+  const skyline = skylineSites(track, clearsRoute);
+  const reserved = [
+    { x: landmark.x, z: landmark.z, radius: 130 },
+    ...authoredSites,
+    ...skyline,
+  ];
   const concourseFrame = groundFrame(track, precinct.layout.concourseDistance);
   const concourseSite = concourseFrame.position
     .clone()
@@ -162,7 +177,7 @@ export function createEnvironment(track) {
     const roof = roofGeometry(width * taper, depth * taper);
     batch.add(
       roof,
-      'dark',
+      'roof',
       x,
       base + height,
       z,
@@ -258,7 +273,7 @@ export function createEnvironment(track) {
     }
   }
   function terraces(x, y, z, width, depth, yaw, detail) {
-    localBox('concrete', x, y + 0.25, z, width, 0.5, depth, yaw);
+    localBox('roof', x, y + 0.25, z, width, 0.5, depth, yaw);
     for (const side of [-1, 1]) {
       localBox(
         'stone',
@@ -417,113 +432,58 @@ export function createEnvironment(track) {
   }
 
   function urbanBlock(x, z, district, detailed) {
-    const floorSurface =
-      district === 'utility'
-        ? 'industrial'
-        : district === 'residential'
-          ? 'ceramicWindows'
-          : 'ribbonGlass';
-    const tone = district === 'residential' ? '#cbbdac' : '#abb9b6';
-    const lowHeight = district === 'utility' ? 12 : 8.5;
-    box('pavement', x, groundY + 0.14, z, 103, 0.28, 115);
-    const complete = clearsRoute(x, z, 104, 116, Infinity);
-    if (complete) {
-      // Street walls form a city block; a sunken courtyard owns its centre.
-      for (const side of [-1, 1])
-        shell(
-          floorSurface,
-          x + side * 37,
-          groundY + 0.3,
-          z,
-          28,
-          112,
-          lowHeight,
-          0,
-          1,
-          tone,
-        );
+    const parcel = Math.abs(
+      Math.round(x / 126) * 17 + Math.round(z / 138) * 31,
+    );
+    const type = parcel % 5;
+    const tone = district === 'residential' ? '#d2bc9c' : '#b2bec1';
+    box('pavement', x, groundY + 0.14, z, 110, 0.28, 120);
+    const complete = clearsRoute(x, z, 112, 122, Infinity);
+    const wing = (dx, dz, w, d, h) => {
+      if (!clearsRoute(x + dx, z + dz, w + 3, d + 3, groundY + h + 3)) return;
       shell(
-        floorSurface,
-        x,
+        district === 'utility'
+          ? 'industrial'
+          : type === 2
+            ? 'ribbonGlass'
+            : 'stoneWindows',
+        x + dx,
         groundY + 0.3,
-        z + 41,
-        47,
-        30,
-        lowHeight,
+        z + dz,
+        w,
+        d,
+        h,
         0,
         1,
         tone,
       );
-      box('vegetation', x, groundY + 0.45, z - 33, 42, 0.4, 28);
-      box('pavement', x, groundY + 0.75, z - 33, 3.5, 0.14, 32);
-      if (detailed) {
-        for (const side of [-1, 1]) {
-          box(
-            'steel',
-            x + side * 37,
-            groundY + lowHeight + 0.6,
-            z - 17,
-            17,
-            0.7,
-            38,
-            0,
-            true,
-          );
-          box(
-            'dark',
-            x + side * 37,
-            groundY + lowHeight + 1,
-            z - 17,
-            15,
-            0.12,
-            35,
-            0,
-            true,
-          );
-          box(
-            'warm',
-            x + side * 21.5,
-            groundY + 5.2,
-            z - 16,
-            0.17,
-            0.15,
-            28,
-            0,
-            true,
-          );
-        }
+      // A separate masonry socle gives the inhabited street wall a grounded base.
+      box('brick', x + dx, groundY + 2.3, z + dz, w + 0.5, 4, d + 0.5);
+      terraces(x + dx, groundY + h + 0.4, z + dz, w, d, 0, detailed);
+      if (detailed && h > 14)
+        finishFacadeBays(x + dx, z + dz, w, d, h, groundY, 0, 'mineral');
+    };
+    if (complete) {
+      const height = 12.6 + (parcel % 4) * 4.2;
+      wing(-40, type === 1 ? -14 : 0, 24, type === 1 ? 86 : 112, height);
+      if (type !== 3) wing(40, 12, 24, 88, height + (type === 2 ? 12.6 : 0));
+      if (type === 0 || type === 4) wing(0, 44, 56, 24, height - 4.2);
+      if (type === 1 || type === 2) wing(3, -45, 65, 21, height + 4.2);
+      box('landscape', x + 7, groundY + 0.46, z + 8, 34, 0.3, 48);
+      box('path', x + 7, groundY + 0.66, z + 8, 5, 0.16, 54);
+      if (type === 3) {
+        wing(25, 18, 42, 68, 8.4);
+        for (const dx of [-9, 9])
+          box('roof', x + 25 + dx, groundY + 10, z + 18, 14, 2.8, 63);
       }
     } else {
-      // A viaduct cutting a parcel produces service yards, not a vanished city block.
-      for (const dx of [-28, 28])
-        for (const dz of [-32, 32]) {
-          if (clearsRoute(x + dx, z + dz, 40, 45, Infinity)) {
-            shell(
-              'industrial',
-              x + dx,
-              groundY + 0.3,
-              z + dz,
-              38,
-              43,
-              lowHeight * 0.76,
-              0,
-              1,
-              '#abb8b3',
-            );
-            box(
-              'steel',
-              x + dx,
-              groundY + lowHeight * 0.76 + 0.65,
-              z + dz,
-              26,
-              0.7,
-              17,
-              0,
-              detailed,
-            );
-          } else {
-            box('vegetation', x + dx, groundY + 0.35, z + dz, 27, 0.3, 32);
-            box('pavement', x + dx, groundY + 0.55, z + dz, 3, 0.12, 33);
+      for (const dx of [-32, 32])
+        for (const dz of [-34, 34]) {
+          if (clearsRoute(x + dx, z + dz, 40, 43, groundY + 16))
+            wing(dx, dz, 36, 39, 8.4 + (parcel % 2) * 4.2);
+          else {
+            box('landscape', x + dx, groundY + 0.3, z + dz, 29, 0.3, 34);
+            box('path', x + dx, groundY + 0.5, z + dz, 3, 0.12, 35);
           }
         }
     }
@@ -1281,6 +1241,13 @@ export function createEnvironment(track) {
         0,
         1 - Math.hypot((x - centre.x) / 1500, (z - centre.z) / 1500),
       );
+      // Whole low-rise blocks interrupt the high-rise field instead of repeating
+      // a tower in every courtyard. The distribution is fixed to city parcels.
+      if (
+        Math.abs(Math.round(x / 126) * 17 + Math.round(z / 138) * 31) % 5 ===
+        3
+      )
+        continue;
       const height =
         district === 'utility'
           ? 26 + random() ** 1.8 * 120
@@ -1406,6 +1373,13 @@ export function createEnvironment(track) {
           );
         }
     }
+  buildOuterBoroughs(
+    batch,
+    { minX: cityMinX, maxX: cityMaxX, minZ: cityMinZ, maxZ: cityMaxZ },
+    centre,
+    groundY,
+    randomSource(37191),
+  );
   // Complete outer borough geometry, with shaped roofs and deliberately varied height.
   for (let ring = 0; ring < 3; ring += 1) {
     const count = 96 + ring * 24;
@@ -1417,6 +1391,20 @@ export function createEnvironment(track) {
       const z =
         centre.z +
         Math.sin(angle) * (cityDepth * 0.58 + ring * 480 + random() * 250);
+      // Ground each outer skyline cluster in an inhabited borough, not empty blue space.
+      shell(
+        i % 3 === 0 ? 'stoneWindows' : 'ribbonGlass',
+        x,
+        groundY,
+        z,
+        145 + random() * 100,
+        125 + random() * 90,
+        24 + random() * 32,
+        angle,
+        1,
+        '#b1bab8',
+        true,
+      );
       const width = 55 + random() * 80,
         depth = 48 + random() * 64;
       const height = 70 + random() ** 1.4 * (ring === 2 ? 380 : 220),
@@ -1713,9 +1701,12 @@ export function createEnvironment(track) {
         localBox('steel', p.x, groundY + 3, p.z, 106, 1.7, 2.6, yaw, 0, offset);
     }
   }
+  buildRoadsideArchitecture(track, batch, authoredSites);
+  buildSkyline(track, batch, skyline);
   const geometry = batch.finish();
   let disposed = false;
   group.userData = {
+    ready,
     update: (_cameraPosition, time) => updateSurfaces(time),
     asset:
       'Original authored Halcyon city geometry and procedural surface sources',
@@ -1740,6 +1731,8 @@ export function createEnvironment(track) {
       localVertical: routeClearance.localVertical,
       longitudinalHalfLength: routeClearance.longitudinalHalfLength,
     },
+    skyline,
+    authoredSites,
     placedBuildings,
     rejectedBuildings,
     triangleCount: geometry.triangleCount,
@@ -1748,6 +1741,7 @@ export function createEnvironment(track) {
       if (disposed) return;
       disposed = true;
       geometry.dispose();
+      disposeMaps();
       for (const material of Object.values(surfaces)) material.dispose();
       for (const texture of textures) texture.dispose();
     },

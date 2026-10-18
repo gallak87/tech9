@@ -103,9 +103,8 @@ try {
         preview.inspection,
       );
       check(
-        `${label}: heat control respects graphics quality`,
-        (await page.locator('[data-preview="heat"]').isEnabled()) ===
-          (quality === 'high'),
+        `${label}: experimental heat toggle is absent`,
+        (await page.locator('[data-preview="heat"]').count()) === 0,
       );
       await page.screenshot({
         path: path.join(output, `${label}-inspection-boost.png`),

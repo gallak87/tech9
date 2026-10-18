@@ -62,12 +62,38 @@ button:disabled {
   color: #d01818;
   margin: 0 2px;
 }
-.front-header > button[data-action='settings'] {
+.front-header > button[data-action='settings'],
+.front-header > button[data-action='settings-back'] {
   margin-left: auto;
   font-size: 11px;
   padding: 10px 15px;
   background: #141414;
   border: 1px solid #333;
+}
+.settings-page {
+  scroll-padding-top: 90px;
+}
+.settings-page .front-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #090909;
+}
+.settings-page .front-brand {
+  font-size: 23px;
+}
+.settings-page .header-label {
+  margin: 0;
+  font-weight: 400;
+}
+.front-header > button[data-action='settings-back'] {
+  margin-left: 0;
+  min-height: 40px;
+  border-color: #ffffff50;
+}
+.front-header > button[data-action='settings-back']:hover {
+  border-color: #aaa;
+  background: #262626;
 }
 .header-label,
 .kicker,
@@ -390,7 +416,10 @@ button:disabled {
 }
 .settings-form {
   width: min(750px, 100%);
-  margin: 15px 0;
+  margin: 0;
+}
+.settings-form label:first-child {
+  padding-top: 0;
 }
 .settings-form label {
   border-bottom: 1px solid #333;

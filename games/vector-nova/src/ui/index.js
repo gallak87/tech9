@@ -64,7 +64,7 @@ export function createUI(
   root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>
  <section id="title-panel" class="panel"><h1><span class="circuit-name"></span><em></em></h1><p class="intro"></p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>04</b><span>SHIPS</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions launch-actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="practice">PRACTICE LAP <span>↗</span></button></div><div class="actions inspection-actions"><button id="inspect">INSPECT SHIPS <span>↗</span></button><button id="explore">FREE CAMERA <span>F</span></button></div></section>
  <section id="inspection-panel" class="panel hidden"><div class="eyebrow">AERODYNAMICS DIVISION / 07</div><h1 class="inspect-title" aria-live="polite">KESTREL<span class="dot">.</span></h1><p class="intro">Twin-core magnetic interceptor.<br>Ceramic armour. Exposed titanium propulsion.<br>Built to stay close to the limit.</p><dl><div><dt>DESIGN</dt><dd>Split prow / swept ceramic chassis</dd></div><div><dt>PROPULSION</dt><dd>Dual induction turbines</dd></div></dl><div class="actions"><button id="inspect-start" class="primary">DRIVE PROTOTYPE <span>↗</span></button><button id="inspect-back">BACK TO PROVING GROUND</button></div></section>
- <section id="pause-panel" class="modal hidden"><div class="eyebrow">SESSION PAUSED</div><h2>TAKE A BREATH.</h2><button id="resume" class="primary">RESUME SESSION ↗</button><button id="pause-results" class="hidden">RESULTS</button><button id="pause-explore">FREE CAMERA · F</button><button id="restart">RESTART RACE</button><button id="home">CIRCUITS</button><label>EFFECTS VOLUME <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>GRAPHICS <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>REDUCED MOTION <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p class="small">Settings are saved locally. Tunes stays available while paused.</p></section>
+ <section id="pause-panel" class="modal hidden"><h2>Paused</h2><button id="resume" class="primary">Resume <span aria-hidden="true">→</span></button><button id="pause-results" class="hidden">Results</button><section class="pause-quick-settings" aria-label="Quick settings"><label>Graphics <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>Effects volume <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>Reduced motion <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label></section><div class="pause-restart"><button id="restart">Restart race</button></div><nav class="pause-secondary" aria-label="Session options"><button id="home">Race setup</button><button id="pause-explore">Free camera <kbd>F</kbd></button></nav><p class="pause-saved">Saved on this device. Tunes has its own volume control.</p></section>
  <section id="hud" class="hidden"><div class="top-telemetry"><div class="position hidden"><span>POSITION</span><b id="position">1 / ${RACE_FIELD_SIZE}</b><small id="position-state"></small></div><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>LAP TIME</span><b id="time">00:00.000</b><small id="last">LAST —</small><small id="best">SET YOUR FIRST CLEAN LAP</small></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST DRAWS FROM IMPACT RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas></section>
  <footer id="legend"><div class="legend-movement"><kbd>WASD</kbd><span class="legend-or" aria-hidden="true">/</span><kbd aria-label="Arrow keys">↑←↓→</kbd><span>MOVEMENT</span></div><div class="legend-direction"><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div class="legend-direction"><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div class="legend-direction"><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div class="legend-boost"><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RESET</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>
  <div id="touch" class="hidden" role="group" aria-label="Touch driving controls">
@@ -87,7 +87,7 @@ export function createUI(
     facts[2].querySelector('span').textContent =
       metadata.ui.courseLabel ?? 'SUMMIT TO BASIN';
     $('practice').firstChild.textContent = 'SOLO DESCENT ';
-    $('restart').textContent = 'RESTART SPRINT';
+    $('restart').textContent = 'Restart sprint';
     root.querySelector('.timing > span').textContent = 'ELAPSED';
     const finishActions = document.createElement('div');
     finishActions.id = 'sprint-finish-actions';
@@ -331,13 +331,13 @@ export function createUI(
     const difficultyPicker = (id) => {
       const label = document.createElement('label');
       label.className = 'difficulty-picker';
-      label.textContent = 'RACE DIFFICULTY';
+      label.textContent = 'Opponent difficulty';
       const select = document.createElement('select');
       select.id = id;
       for (const value of ['easy', 'medium', 'hard']) {
         const option = document.createElement('option');
         option.value = value;
-        option.textContent = value.toUpperCase();
+        option.textContent = value[0].toUpperCase() + value.slice(1);
         select.append(option);
       }
       select.value = settings.difficulty;
@@ -357,9 +357,9 @@ export function createUI(
       hint.id = 'pause-difficulty-hint';
       hint.className = 'small';
       hint.textContent =
-        'Restart to apply. Resume keeps the current race difficulty.';
+        'Applies on restart. Resume keeps the current difficulty.';
       pausedDifficulty.append(difficultyPicker('pause-difficulty'), hint);
-      $('pause-panel').insertBefore(pausedDifficulty, $('restart'));
+      $('restart').before(pausedDifficulty);
       $('pause-difficulty').setAttribute('aria-describedby', hint.id);
     }
   }
@@ -602,6 +602,7 @@ export function createUI(
   }
   let inspectionTab = 'fleet',
     inspectionSession = false,
+    inspectionMenu = false,
     fleetLoading = false;
   let selectedRival = RIVAL_SHIPS[0];
   const inspection = $('inspection-panel');
@@ -613,7 +614,6 @@ export function createUI(
     ['autoRotate', 'Auto-rotate', true],
     ['boost', 'Boost', false],
     ['driving', 'Driving', false],
-    ['heat', 'Heat shimmer', true],
   ]) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -631,12 +631,9 @@ export function createUI(
     for (const button of inspectionTools.querySelectorAll('button')) {
       const key = button.dataset.preview;
       button.setAttribute('aria-pressed', String(preview[key]));
-      button.disabled =
-        (inspectionTab === 'rivals' && key !== 'autoRotate') ||
-        (key === 'heat' &&
-          (settings.quality === 'low' || settings.reducedMotion));
+      button.disabled = inspectionTab === 'rivals' && key !== 'autoRotate';
     }
-    previewHint.textContent = `Drag to rotate · Preview: ${preview.driving ? 'driving at 400 km/h' : 'stationary'}${settings.quality === 'low' || settings.reducedMotion ? ' · Heat needs High + motion' : ''}`;
+    previewHint.textContent = `Drag to rotate · Preview: ${preview.driving ? 'driving at 400 km/h' : 'stationary'}`;
   }
 
   const tabs = document.createElement('div');
@@ -762,9 +759,11 @@ export function createUI(
     $('inspect-start').firstChild.textContent = inspectionSession
       ? 'RETURN TO SESSION '
       : `DRIVE ${craft.name.toUpperCase()} `;
-    $('inspect-back').textContent = inspectionSession
-      ? 'RETURN TO SESSION'
-      : 'CIRCUITS';
+    $('inspect-back').textContent = inspectionMenu
+      ? '← Back to race setup'
+      : inspectionSession
+        ? 'RETURN TO SESSION'
+        : 'CIRCUITS';
   }
   function setInspectedRival(craft) {
     selectedRival = craft;
@@ -787,13 +786,14 @@ export function createUI(
     }
     fleetPicker.classList.toggle('hidden', tab !== 'fleet');
     rivalPicker.classList.toggle('hidden', tab !== 'rivals');
-    $('inspect-start').classList.toggle('hidden', tab === 'rivals');
+    $('inspect-start').classList.toggle(
+      'hidden',
+      inspectionMenu || tab === 'rivals',
+    );
     root.classList.toggle('inspecting-rivals', tab === 'rivals');
     for (const button of inspectionTools.querySelectorAll('button'))
       button.disabled =
-        (tab === 'rivals' && button.dataset.preview !== 'autoRotate') ||
-        (button.dataset.preview === 'heat' &&
-          (settings.quality === 'low' || settings.reducedMotion));
+        tab === 'rivals' && button.dataset.preview !== 'autoRotate';
     setInspectedRival(selectedRival);
     if (tab === 'fleet') setInspectionDetails(selectedShip);
   }
@@ -807,7 +807,7 @@ export function createUI(
   bind('inspect', () => actions.camera('inspection'));
   bind('explore', () => actions.camera('fly'));
   bind('pause-explore', () => actions.camera('fly'));
-  bind('inspect-back', actions.exitInspection ?? actions.home);
+  bind('inspect-back', () => (actions.exitInspection ?? actions.home)());
   bind('resume', actions.resume);
   bind('pause-results', actions.results);
   bind('restart', actions.restart);
@@ -916,6 +916,17 @@ export function createUI(
       for (const section of shipPickers)
         for (const button of section.querySelectorAll('[data-ship]'))
           button.disabled = fleetLoading || inspectionSession;
+      setInspectionDetails(
+        inspectionTab === 'rivals' ? selectedRival : selectedShip,
+        inspectionTab === 'rivals',
+      );
+    },
+    setInspectionMenu(active) {
+      inspectionMenu = active;
+      $('inspect-start').classList.toggle(
+        'hidden',
+        active || inspectionTab === 'rivals',
+      );
       setInspectionDetails(
         inspectionTab === 'rivals' ? selectedRival : selectedShip,
         inspectionTab === 'rivals',
@@ -1056,9 +1067,11 @@ export function createUI(
         mode === 'title' || mode === 'overview'
           ? 'start'
           : mode === 'inspection'
-            ? inspectionTab === 'rivals'
-              ? 'inspection-rivals-tab'
-              : 'inspect-start'
+            ? inspectionMenu
+              ? 'inspect-back'
+              : inspectionTab === 'rivals'
+                ? 'inspection-rivals-tab'
+                : 'inspect-start'
             : mode === 'paused'
               ? 'resume'
               : null;
@@ -1080,10 +1093,10 @@ export function createUI(
       escapeLabel.textContent = 'PAUSE';
       if (!playtest)
         $('restart').textContent = sprint
-          ? 'RESTART SPRINT'
+          ? 'Restart sprint'
           : competition?.enabled
-            ? 'RESTART RACE'
-            : 'RESTART PRACTICE';
+            ? 'Restart race'
+            : 'Restart practice';
       updateRoster();
       $('sprint-finish-actions')?.classList.toggle(
         'hidden',

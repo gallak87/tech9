@@ -93,7 +93,9 @@ export function createFrontend(host) {
     resultsKey = '',
     lastResults = null;
   let settingsBack = 'home',
-    launchBack = 'home';
+    launchBack = 'home',
+    launchTarget = 'race',
+    inspectionBack = null;
   let cacheModule, unsubscribeCache, unsubscribeSettings;
   let preload = {
     ready: 0,
@@ -195,7 +197,9 @@ export function createFrontend(host) {
           ? `button[data-ship="${shipId}"]`
           : next === 'home'
             ? '[data-action="launch"]'
-            : 'h1';
+            : next === 'settings'
+              ? '[data-action="settings-back"]'
+              : 'h1';
     shell.querySelector(focus)?.focus({ preventScroll: true });
     if (next === 'circuits')
       shell.querySelector(focus)?.scrollIntoView({ block: 'nearest' });
@@ -204,25 +208,35 @@ export function createFrontend(host) {
   function heading(kicker, title) {
     return `<div class="front-heading"><span class="kicker">${kicker}</span><h1 tabindex="-1">${title}</h1></div>`;
   }
-  const trackCard = (l, index, tracks) => {
+  const trackBadge = (id) =>
+    `<span class="track-type-badge" data-type="${isSprint(id) ? 'sprint' : 'circuit'}">${isSprint(id) ? 'Sprint' : 'Circuit'}</span>`;
+  const trackCard = (l) => {
     const challenge = trackChallenge(l.id);
-    const startsRow =
-      index > 0 &&
-      ['Medium', 'Hard'].includes(challenge) &&
-      trackChallenge(tracks[index - 1].id) !== challenge;
-    return `<button class="circuit-card ${startsRow ? 'starts-row ' : ''}${l.id === selected ? 'selected' : ''}" data-level="${l.id}" tabindex="${l.id === selected ? 0 : -1}" aria-pressed="${l.id === selected}" title="${escape(l.name)}" aria-label="${escape(l.name)}, ${challenge}${isSprint(l.id) ? ', downhill sprint' : ''}. Select track."><span class="track-icon">${picture(route(l.id))}${routeArt(route(l.id))}</span><span class="card-name"><span class="card-title">${escape(l.name)}</span><small class="card-challenge">${challenge}${isSprint(l.id) ? '<span class="sprint-badge"> · Sprint</span>' : ''}</small></span><span class="track-selected" aria-hidden="true">${l.id === selected ? '✓' : ''}</span></button>`;
+    return `<button class="circuit-card ${l.id === selected ? 'selected' : ''}" data-level="${l.id}" tabindex="${l.id === selected ? 0 : -1}" aria-pressed="${l.id === selected}" title="${escape(l.name)}" aria-label="${escape(l.name)}, ${challenge}, ${isSprint(l.id) ? 'downhill sprint' : 'circuit'}. Select track."><span class="track-icon">${picture(route(l.id))}${routeArt(route(l.id))}</span><span class="card-name"><span class="card-title">${escape(l.name)}</span></span>${trackBadge(l.id)}<span class="track-selected" aria-hidden="true">${l.id === selected ? '✓' : ''}</span></button>`;
   };
-  const circuitPanel = () =>
-    `<section class="circuit-picker-panel" aria-label="Choose a track"><div class="circuit-hero" aria-live="polite"></div><div class="circuit-grid" aria-label="Tracks">${circuits
-      .toSorted(
-        (a, b) =>
-          TRACK_CHALLENGES.indexOf(trackChallenge(a.id)) -
-          TRACK_CHALLENGES.indexOf(trackChallenge(b.id)),
+  const circuitPanel = () => {
+    const groups = new Map();
+    for (const track of circuits.toSorted(
+      (a, b) =>
+        TRACK_CHALLENGES.indexOf(trackChallenge(a.id)) -
+        TRACK_CHALLENGES.indexOf(trackChallenge(b.id)),
+    )) {
+      const challenge = trackChallenge(track.id);
+      const group = challenge === 'Warm-up' ? 'Easy' : challenge;
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group).push(track);
+    }
+    return `<section class="circuit-picker-panel" aria-label="Choose a track"><div class="circuit-hero" aria-live="polite"></div><div class="circuit-grid" role="group" aria-label="Tracks">${[
+      ...groups,
+    ]
+      .map(
+        ([challenge, tracks]) =>
+          `<div class="track-group" data-challenge="${challenge.toLowerCase()}" role="group" aria-label="${challenge === 'Easy' ? 'Warm-up and Easy' : challenge} tracks"><span class="track-group-label" aria-hidden="true">${challenge}</span>${tracks.map(trackCard).join('')}</div>`,
       )
-      .map(trackCard)
       .join(
         '',
       )}</div><p class="picker-hint">Sprints are downhill, point to point.</p><div class="transfer-slot track-transfer"></div></section>`;
+  };
   // Share one intrinsic text area: the longest wrapped description reserves
   // space for every ship without fixed heights, clipping or resize handlers.
   const shipDescription = () =>
@@ -277,7 +291,7 @@ export function createFrontend(host) {
     return `<div class="picker-race-actions"><button class="change-track" data-action="circuits">${escape(level().name)} · ${trackChallenge(selected)} <span aria-hidden="true">↗</span></button>${raceActions()}</div>`;
   }
   const homeMenu = () =>
-    `<section class="race-menu" aria-label="Race setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1><button class="menu-selection" data-action="circuits"><span>Track</span><div><strong>${escape(level().name)}</strong><small>${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedShip().name}</strong><small>${selectedShip().role}</small></div><b aria-hidden="true">›</b></button>${raceActions()}<nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${game?.hasSession() ? `<aside class="session-return">${button('resume-session', `↶ Resume ${escape(loadedLevel().name)}`)}</aside>` : ''}</section>`;
+    `<section class="race-menu" aria-label="Race setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1><button class="menu-selection" data-action="circuits"><span>Track</span><div><strong>${escape(level().name)}</strong><small>${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedShip().name}</strong><small>${selectedShip().role}</small></div><b aria-hidden="true">›</b></button>${raceActions()}<div class="menu-extras">${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${game?.hasSession() ? `<aside class="session-return">${button('resume-session', `↶ Resume ${escape(loadedLevel().name)}`)}</aside>` : ''}</section>`;
   function renderMenu() {
     const wide = wideMenu.matches;
     const picking = wide || screen !== 'home';
@@ -298,39 +312,33 @@ export function createFrontend(host) {
       renderMenu();
       return;
     }
-    shell.className = '';
+    shell.className = screen === 'settings' ? 'settings-page' : '';
     const title = {
       circuits: wideMenu.matches ? 'RACE SETUP' : 'SELECT CIRCUIT',
       setup: wideMenu.matches ? 'RACE SETUP' : 'CHOOSE SHIP',
-      loading: 'PREPARING SESSION',
+      loading:
+        launchTarget === 'inspection' ? 'SHIP INSPECTOR' : 'PREPARING SESSION',
       settings: 'SETTINGS',
       results: 'SESSION COMPLETE',
     }[screen];
-    shell.innerHTML = `<header class="front-header"><button class="front-brand" data-action="home" aria-label="Vector Nova circuits">VECTOR<span>//</span>NOVA</button><span class="header-label">${title}</span>${screen !== 'loading' ? button('settings', 'Settings') : ''}</header><main class="front-content" data-page="${screen}"></main><footer class="front-footer"><span>${screen === 'circuits' ? 'ARROWS · BROWSE <i>/</i> ENTER · SELECT <i>/</i> TAB · CONTROLS' : `${sessionName(screen === 'results' ? loadedId : selected, screen !== 'results' && intent === 'practice').toUpperCase()} <i>/</i> ${escape((screen === 'results' ? loadedLevel() : level()).name.toUpperCase())}`}</span></footer>`;
+    const headerAction =
+      screen === 'settings'
+        ? button('settings-back', '← Back')
+        : screen !== 'loading'
+          ? button('settings', 'Settings')
+          : '';
+    const headerLabel =
+      screen === 'settings'
+        ? `<h1 class="header-label">${title}</h1>`
+        : `<span class="header-label">${title}</span>`;
+    shell.innerHTML = `<header class="front-header"><button class="front-brand" data-action="home" aria-label="Vector Nova circuits">VECTOR<span>//</span>NOVA</button>${headerLabel}${headerAction}</header><main class="front-content" data-page="${screen}"></main><footer class="front-footer"><span>${screen === 'circuits' ? 'ARROWS · BROWSE <i>/</i> ENTER · SELECT <i>/</i> TAB · CONTROLS' : `${sessionName(screen === 'results' ? loadedId : selected, screen !== 'results' && intent === 'practice').toUpperCase()} <i>/</i> ${escape((screen === 'results' ? loadedLevel() : level()).name.toUpperCase())}`}</span></footer>`;
     const main = shell.querySelector('.front-content');
     let content = main;
     if (screen === 'loading') {
-      content.innerHTML = `<section class="loading-copy"><div class="loading-card">${picture(route())}${routeArt(route())}</div><div class="transfer-slot loading-transfer"></div>${heading('LOADING CIRCUIT', escape(level().name))}<div class="session-facts">${facts()}</div><div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
+      const inspecting = launchTarget === 'inspection';
+      content.innerHTML = `<section class="loading-copy"><div class="loading-card">${picture(route())}${routeArt(route())}</div><div class="transfer-slot loading-transfer"></div>${heading(inspecting ? 'PREPARING STUDIO' : 'LOADING CIRCUIT', inspecting ? 'Ship inspector' : escape(level().name))}${inspecting ? '' : `<div class="session-facts">${facts()}</div>`}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
     } else if (screen === 'settings') {
-      content.innerHTML = `${heading('PREFERENCES', 'Set your pace.')}<div class="settings-layout"><section class="settings-form"><label><span>Graphics <small>High adds ambient occlusion and postprocessing. Low reduces GPU load.</small></span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume <small>Tunes has its own volume control.</small></span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion <small>Reduces decorative motion and distortion.</small></span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p>Saved on this device.</p></section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
-        [
-          'Menus',
-          [
-            ['Tab / Shift Tab', 'Move between controls'],
-            ['Arrows', 'Preview circuits/ships; change difficulty'],
-            ['Home / End', 'First / last item in a list'],
-            ['Enter / Space', 'Select or activate'],
-            ['Esc', 'Back / cancel loading'],
-            ['S', 'Open settings'],
-          ],
-        ],
-        [
-          'Ship preview',
-          [
-            ['Arrows / drag', 'Rotate the focused ship'],
-            ['Home', 'Reset the view'],
-          ],
-        ],
+      content.innerHTML = `<div class="settings-layout"><section class="settings-form"><label><span>Graphics <small>High adds ambient occlusion and postprocessing. Low reduces GPU load.</small></span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume <small>Tunes has its own volume control.</small></span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion <small>Reduces decorative motion and distortion.</small></span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p>Saved on this device.</p></section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
         [
           'Driving',
           [
@@ -340,7 +348,17 @@ export function createFrontend(host) {
             ['Esc', 'Pause / resume'],
             ['R', 'Recover at checkpoint / retry finished sprint'],
             ['C', 'Change camera'],
-            ['I', 'Ship inspection'],
+          ],
+        ],
+        [
+          'Menus',
+          [
+            ['Tab / Shift Tab', 'Move between controls'],
+            ['Arrows', 'Preview circuits/ships; change difficulty'],
+            ['Home / End', 'First / last item in a list'],
+            ['Enter / Space', 'Select or activate'],
+            ['Esc', 'Back / cancel loading'],
+            ['S', 'Open settings'],
           ],
         ],
         [
@@ -367,9 +385,7 @@ export function createFrontend(host) {
           ([title, rows]) =>
             `<h3>${title}</h3><dl>${rows.map(([key, label]) => `<div><dt><kbd>${key}</kbd></dt><dd>${label}</dd></div>`).join('')}</dl>`,
         )
-        .join(
-          '',
-        )}</section></div><div class="front-actions">${button('settings-back', '← Back')}</div>`;
+        .join('')}</section></div>`;
       content.querySelector('select').value = settings.quality;
     } else if (screen === 'results') {
       const sprint = isSprint(loadedId);
@@ -445,7 +461,7 @@ export function createFrontend(host) {
       node = shell.querySelector('.circuit-hero');
     if (!node) return;
     previewLevelId = id;
-    node.innerHTML = `<div class="detail-image">${picture(r)}${routeArt(r)}<div class="track-caption"><h2>${escape(l.name)}</h2><p>${trackChallenge(id)} · ${r ? (r.length / 1000).toFixed(2) + ' km' : '—'} · ${r?.closed === false ? 'Downhill sprint' : 'Circuit'}</p></div></div>`;
+    node.innerHTML = `<div class="detail-image">${picture(r)}${routeArt(r)}${trackBadge(id)}<div class="track-caption"><h2>${escape(l.name)}</h2><p>${trackChallenge(id)} · ${r ? (r.length / 1000).toFixed(2) + ' km' : '—'}</p></div></div>`;
   }
   function selectCircuit(id) {
     invalidLevel = false;
@@ -576,8 +592,18 @@ export function createFrontend(host) {
             error = info.error.message;
             setScreen('loading');
           } else {
+            const destination =
+              inspectionBack ?? (screen === 'inspection' ? 'setup' : 'home');
+            const fromInspector = inspectionBack !== null;
+            inspectionBack = null;
+            if (fromInspector && game && !game.hasSession())
+              shipId = game.getSnapshot().ship.id;
             if (screen !== 'inspection' || inspectShip) leaveReview();
-            setScreen(screen === 'inspection' ? 'setup' : 'home');
+            setScreen(destination);
+            if (fromInspector)
+              shell
+                .querySelector('[data-action="inspect"]')
+                ?.focus({ preventScroll: true });
           }
         },
         onCircuit(next) {
@@ -639,32 +665,33 @@ export function createFrontend(host) {
     pending = { id, promise, signal, token };
     return promise;
   }
-  async function launch() {
+  async function loadView(target, enter) {
     if (launching) return;
     // A retry from Loading keeps the original menu view as its destination.
     if (choosingSession()) launchBack = screen;
     launching = true;
+    launchTarget = target;
     const attempt = ++launchGeneration;
-    music?.startWithGame();
+    if (target === 'race') music?.startWithGame();
     error = '';
     progress = 'Reading circuit';
     loadStep = 0;
     setScreen('loading');
     try {
-      const current = await prepare();
+      // Inspection borrows a retained world without replacing its active run,
+      // even when the menu is currently browsing a different track.
+      const current = target === 'inspection' && game ? game : await prepare();
       if (attempt !== launchGeneration || screen !== 'loading') return;
       current.configure(settings);
-      current.prepareSession();
+      if (target === 'race') current.prepareSession();
       if (
+        !current.hasSession() &&
         current.getSnapshot().ship.id !== shipId &&
         !(await current.selectShip(shipId))
       )
         throw new Error('Ship could not be loaded. Try again.');
       if (attempt !== launchGeneration || screen !== 'loading') return;
-      current.setSuspended(false);
-      setScreen('race');
-      if (intent === 'practice') current.practice();
-      else current.start();
+      enter(current);
     } catch (e) {
       if (attempt === launchGeneration && e.name !== 'AbortError') {
         error = e.message;
@@ -673,6 +700,22 @@ export function createFrontend(host) {
     } finally {
       if (attempt === launchGeneration) launching = false;
     }
+  }
+  function openInspector() {
+    return loadView('inspection', (current) => {
+      inspectionBack = launchBack;
+      // Enter the studio while still suspended: menu inspection never exposes
+      // the world or shares a callback with Race/Practice, including on retry.
+      current.inspect({ fromMenu: true });
+      setScreen('inspection');
+    });
+  }
+  function launch() {
+    return loadView('race', (current) => {
+      setScreen('race');
+      if (intent === 'practice') current.practice();
+      else current.start();
+    });
   }
   function cancel(destination = invalidLevel ? 'home' : launchBack) {
     generation++;
@@ -766,12 +809,16 @@ export function createFrontend(host) {
       remember();
       void launch();
     },
+    inspect() {
+      void openInspector();
+    },
     'retry-preview'() {
       mountShipPreview();
     },
     cancel,
     retry() {
       if (special) void launchSpecial();
+      else if (launchTarget === 'inspection') void openInspector();
       else void launch();
     },
     'retry-race'() {

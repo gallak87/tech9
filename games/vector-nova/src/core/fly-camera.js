@@ -97,7 +97,7 @@ export function createFlyCamera(
         event.stopPropagation();
         keys.add(event.code);
       } else if (
-        ['KeyR', 'KeyI', 'KeyC'].includes(event.code) ||
+        ['KeyR', 'KeyC'].includes(event.code) ||
         (['Enter', 'Space'].includes(event.code) &&
           !event.target.closest?.('button, input'))
       ) {

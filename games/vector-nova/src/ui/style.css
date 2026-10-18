@@ -673,6 +673,159 @@ dd {
   width: 140px;
   accent-color: var(--accent);
 }
+/* Keep quick adjustments beside the live session, with Resume easy to reach. */
+#pause-panel {
+  top: calc(50% + 28px);
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100dvh - 96px);
+  padding: 24px;
+  gap: 12px;
+  background: #171717f2;
+  color: #e8e8e8;
+}
+#pause-panel h2 {
+  margin: 0 0 2px;
+  font-size: 26px;
+  line-height: 1.1;
+}
+#pause-panel button {
+  min-height: 40px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+#pause-panel #resume {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  font-size: 17px;
+  font-weight: 700;
+}
+#pause-panel .pause-quick-settings {
+  border-block: 1px solid #ffffff25;
+  padding-block: 4px;
+}
+#pause-panel label {
+  min-height: 40px;
+  margin: 0;
+  gap: 12px;
+  font-size: 12px;
+  letter-spacing: 0;
+}
+#pause-panel select {
+  min-height: 34px;
+  width: 132px;
+  padding: 6px 10px;
+  font-size: 12px;
+  background: #262626;
+  border-color: #ffffff45;
+}
+#pause-panel input[type='range'] {
+  width: 132px;
+  flex-shrink: 0;
+}
+#pause-panel input[type='checkbox'] {
+  accent-color: var(--accent);
+}
+#pause-panel .pause-restart {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px 12px;
+}
+#pause-panel #pause-race-settings {
+  display: contents;
+}
+#pause-panel .difficulty-picker {
+  grid-column: 1;
+  grid-row: 1;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  font-size: 11px;
+}
+#pause-panel .difficulty-picker select {
+  width: 100%;
+  min-height: 40px;
+}
+#pause-panel #restart {
+  grid-column: 2;
+  grid-row: 1;
+}
+#pause-panel
+  .pause-restart:not(:has(#pause-race-settings:not(.hidden)))
+  #restart {
+  grid-column: 1 / -1;
+}
+#pause-panel #pause-difficulty-hint {
+  display: block;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin: 0;
+  color: #aaa;
+  font-size: 10px;
+  line-height: 1.4;
+}
+#pause-panel .pause-secondary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+#pause-panel .pause-secondary button {
+  background: transparent;
+  border-color: #ffffff30;
+  color: #ccc;
+}
+#pause-panel .pause-secondary button:hover {
+  background: #ffffff09;
+  border-color: #aaa;
+}
+#pause-panel .pause-secondary kbd {
+  margin-left: 4px;
+  font: inherit;
+  font-size: 10px;
+  color: #999;
+}
+#pause-panel .pause-saved {
+  margin: 0;
+  color: #999;
+  font-size: 10px;
+  line-height: 1.4;
+}
+@media (min-width: 600px) and (max-height: 570px) {
+  #interface:not(.jump-playtest) #pause-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    width: min(680px, calc(100vw - 32px));
+    padding: 18px;
+    gap: 10px 22px;
+    align-items: center;
+  }
+  #pause-panel .pause-quick-settings {
+    grid-column: 1;
+    grid-row: 2 / 4;
+  }
+  #pause-panel .pause-restart,
+  #pause-panel .pause-secondary {
+    grid-column: 2;
+  }
+  #pause-panel .pause-saved,
+  #pause-panel #pause-results:not(.hidden) {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 499px) {
+  #pause-panel {
+    padding: 18px;
+  }
+  #pause-panel input[type='range'],
+  #pause-panel select {
+    width: 112px;
+  }
+}
 select {
   background: #333333;
   color: #fff;

@@ -239,7 +239,6 @@ export async function createGame({
       autoRotate: true,
       boost: false,
       driving: false,
-      heat: true,
       elevation: 0.365,
     };
     let inspectionDrag = null;
@@ -384,6 +383,7 @@ export async function createGame({
       : null;
     let sessionActive = false,
       inspectionReturnMode = null,
+      inspectionFromMenu = false,
       finishAt = null,
       resultsDismissed = false;
     let competition = false,
@@ -508,6 +508,7 @@ export async function createGame({
       ui.setCountdown(null);
     }
     function start() {
+      if (mode === 'inspection' && inspectionFromMenu) return;
       if (mode === 'inspection' && inspectionReturnMode) {
         exitInspection();
         return;
@@ -604,6 +605,8 @@ export async function createGame({
       flyCamera?.leave();
       inspectionReturnMode = null;
       sessionActive = true;
+      inspectionFromMenu = false;
+      ui.setInspectionMenu(false);
       ui.setInspectionSession(false);
       ui.setFinish(null);
       ui.setResultsAvailable(false);
@@ -675,7 +678,7 @@ export async function createGame({
       emit({ type: 'recover', payload: { penalty: 'current lap invalid' } });
     }
     function home() {
-      if (mode === 'inspection' && inspectionReturnMode) exitInspection();
+      if (mode === 'inspection' && inspectionReturnMode) exitInspection(false);
       if (mode === 'fly') leaveFly();
       if (sessionActive) {
         pause();
@@ -698,7 +701,9 @@ export async function createGame({
       cancelCountdown();
       flyCamera?.leave();
       inspectionReturnMode = null;
+      inspectionFromMenu = false;
       sessionActive = false;
+      ui.setInspectionMenu(false);
       ui.setInspectionSession(false);
       ui.setFinish(null);
       ui.setResultsAvailable(false);
@@ -721,7 +726,9 @@ export async function createGame({
       rig.reset();
       ui.setMode(mode);
     }
-    function exitInspection() {
+    function exitInspection(returnToMenu = inspectionFromMenu) {
+      inspectionFromMenu = false;
+      ui.setInspectionMenu(false);
       if (mode !== 'inspection' || !inspectionReturnMode) {
         home();
         return;
@@ -735,6 +742,7 @@ export async function createGame({
       rig.reset();
       ui.setMode(mode);
       if (mode === 'countdown') armCountdown(true);
+      if (returnToMenu) home();
     }
     function showResults() {
       if (!lastResults) return;
@@ -747,7 +755,7 @@ export async function createGame({
       ui.setMode(mode);
       onResults?.(lastResults);
     }
-    function setCamera(preset) {
+    function setCamera(preset, { fromMenu = false } = {}) {
       if (preset === 'fly') {
         toggleFly();
         return;
@@ -755,7 +763,9 @@ export async function createGame({
       flyCamera?.leave();
       if (preset === 'inspection') {
         if (mode === 'inspection') return;
-        if (mode === 'results') return;
+        if (mode === 'results' && !fromMenu) return;
+        inspectionFromMenu = fromMenu;
+        ui.setInspectionMenu(fromMenu);
         inspectionReturnMode = sessionActive ? mode : null;
         if (mode === 'countdown') {
           countdown.pause();
@@ -961,8 +971,7 @@ export async function createGame({
           selectInspectionTab,
           inspectRival,
           toggleInspectionPreview(key) {
-            if (!['autoRotate', 'boost', 'driving', 'heat'].includes(key))
-              return;
+            if (!['autoRotate', 'boost', 'driving'].includes(key)) return;
             inspectionPreview[key] = !inspectionPreview[key];
             ui.setInspectionPreview(inspectionPreview);
           },
@@ -1096,7 +1105,6 @@ export async function createGame({
             repeatPlaytest();
           else recover();
         }
-        if (command === 'inspection') setCamera('inspection');
         if (command === 'start') {
           if (mode === 'paused') resume();
           else if (mode !== 'racing') start();
@@ -1369,7 +1377,7 @@ export async function createGame({
       if (mode === 'inspection')
         inspectionStage.render(() =>
           inspectionPipeline.render({
-            heat: inspectionPreview.heat && !settings.reducedMotion,
+            heat: !settings.reducedMotion,
             quality: settings.quality,
           }),
         );
@@ -1653,7 +1661,7 @@ export async function createGame({
         saveSettings(next);
       },
       clearInput: () => input.clear(),
-      inspect: () => setCamera('inspection'),
+      inspect: (options) => setCamera('inspection', options),
       restartRace() {
         restart(competition, true);
       },

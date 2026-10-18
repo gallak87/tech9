@@ -37,7 +37,6 @@ export function createInput(onCommand, onBlur) {
         const commands = {
           Escape: 'pause',
           KeyR: 'restart',
-          KeyI: 'inspection',
           Enter: 'start',
           KeyC: 'camera',
         };

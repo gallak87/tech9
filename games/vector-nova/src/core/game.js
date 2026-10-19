@@ -1,3 +1,4 @@
+import { CUP_FINISH_GRACE } from '../race/cup.js';
 import { interpolateSurfaceLateral } from '../track/surface.js';
 import * as T from 'three';
 import { createFleetShip } from '../ships/fleet.js';
@@ -56,6 +57,7 @@ export async function createGame({
   onMode = () => {},
   onHome,
   onResults,
+  onCupRetry,
   onCircuit,
 } = {}) {
   let api, graphics;
@@ -394,6 +396,8 @@ export async function createGame({
       finishAt = null,
       resultsDismissed = false;
     const ghost = lifetime.own(createPersonalGhost(scene));
+    let cupRace = null,
+      cupFinalResult = null;
     let timeTrial = false,
       trial = null;
     let competition = false,
@@ -412,6 +416,7 @@ export async function createGame({
     const resetRuntime = (reason) => {
       if (reason !== 'manual-recover') {
         finishAt = null;
+        cupFinalResult = null;
         resultsDismissed = false;
         lastResults = null;
       }
@@ -646,6 +651,7 @@ export async function createGame({
       trialMode = timeTrial,
     ) {
       if (shipLoading) return;
+      if (cupRace) onCupRetry?.();
       if (track.closed === false && race?.complete) {
         const results = racers?.snapshot({
           playerState: state,
@@ -667,9 +673,10 @@ export async function createGame({
       testLaunch = null;
       sceneShip();
       timeTrial = Boolean(trialMode);
-      if (timeTrial) seed = 7;
+      if (timeTrial || cupRace) seed = 7;
       competition = !timeTrial && racingEnabled && compete;
-      if (withCountdown) raceDifficulty = settings.difficulty;
+      if (withCountdown)
+        raceDifficulty = cupRace?.difficulty ?? settings.difficulty;
       state = createVehicleState(ship.selected.id);
       if (competition) Object.assign(state, racerModule.RACE_GRID.player);
       prev = { ...state };
@@ -766,6 +773,7 @@ export async function createGame({
       scenario = 'staging';
       state = createVehicleState(ship.selected.id);
       competition = false;
+      cupRace = null;
       timeTrial = false;
       race = makeRace();
       resetRacers(false);
@@ -1285,7 +1293,11 @@ export async function createGame({
         ui.setCountdown(null);
         goUntil = 0;
       }
-      if ((mode === 'racing' || mode === 'results') && !trial?.result) {
+      if (
+        (mode === 'racing' || mode === 'results') &&
+        !trial?.result &&
+        !cupFinalResult
+      ) {
         accumulator += dt;
         const control =
           mode === 'results' || finishing
@@ -1471,6 +1483,7 @@ export async function createGame({
         }),
         lastResults,
         trial: trial?.snapshot(),
+        cup: cupRace,
       });
       const standings = racers?.snapshot({
         playerState: state,
@@ -1498,7 +1511,29 @@ export async function createGame({
           ui.setMode(mode);
         }
         if (mode === 'results') {
-          lastResults = structuredClone(standings.results);
+          if (cupRace) {
+            const remaining = Math.max(
+              0,
+              CUP_FINISH_GRACE - (state.time - finishAt),
+            );
+            if (
+              !cupFinalResult &&
+              (remaining <= 0 ||
+                standings.standings.every((row) => row.finished))
+            )
+              cupFinalResult = {
+                ...structuredClone(standings.results),
+                mode: 'cup',
+                final: true,
+                remaining: 0,
+              };
+            lastResults = cupFinalResult ?? {
+              ...structuredClone(standings.results),
+              mode: 'cup',
+              final: false,
+              remaining: Math.ceil(remaining),
+            };
+          } else lastResults = structuredClone(standings.results);
           onResults(lastResults);
         }
       }
@@ -1700,6 +1735,11 @@ export async function createGame({
       },
       leaveFly,
       start,
+      startCup(options) {
+        cupRace = { ...options };
+        restart(true, true, false);
+        audio.unlock().catch(() => {});
+      },
       timeTrial: () => {
         restart(false, true, true);
         audio.unlock().catch(() => {});
@@ -1923,6 +1963,7 @@ export async function createGame({
           scenario,
           sessionActive,
           timeTrial: trial?.snapshot() ?? null,
+          cup: cupRace ? { ...cupRace, final: !!cupFinalResult } : null,
           seed,
           tick,
           settings: { ...settings },

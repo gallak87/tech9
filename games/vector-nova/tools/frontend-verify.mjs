@@ -317,6 +317,7 @@ try {
           assert.equal(align, 'center');
         await press('ArrowDown', '[data-action="practice"]');
         await press('ArrowDown', '[data-action="time-trial"]');
+        await press('ArrowDown', '[data-action="cup-hub"]');
         await press('ArrowDown', '[data-action="inspect"]');
         await press('Enter');
         await inspectorReady(page);
@@ -1558,6 +1559,7 @@ try {
           await press('ArrowRight', '[data-difficulty="medium"]');
           await press('ArrowDown', '[data-action="practice"]');
           await press('ArrowDown', '[data-action="time-trial"]');
+          await press('ArrowDown', '[data-action="cup-hub"]');
           await press('ArrowDown', '[data-action="inspect"]');
           await press('ArrowDown', '[data-action="settings"]');
           await press('Space', '[data-action="settings-back"]');

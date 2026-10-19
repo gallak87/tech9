@@ -733,13 +733,14 @@ export function createUI(
         competition = null,
         lastResults = null,
         trial = null,
+        cup = null,
       } = {},
     ) {
       currentCompetition = competition;
       retainedResults = lastResults;
       $('pause-race-settings')?.classList.toggle(
         'hidden',
-        !competition?.enabled,
+        !competition?.enabled || !!cup,
       );
       escapeLabel.textContent = 'PAUSE';
       if (!playtest)
@@ -837,6 +838,12 @@ export function createUI(
           : r.best
             ? `BEST ${fmt(r.best)}`
             : 'SET YOUR FIRST CLEAN LAP';
+      $('home').textContent = cup ? 'Cup hub · progress kept' : 'Race setup';
+      if (cup) {
+        $('restart').textContent = 'Retry cup race · earlier scores kept';
+        root.querySelector('.lap > span').textContent =
+          `CUP ${cup.eventIndex + 1}/${cup.eventCount}`;
+      }
       if (trial) {
         $('restart').textContent = 'Retry Time Trial';
         root.querySelector('.lap > span').textContent = 'TIME TRIAL';

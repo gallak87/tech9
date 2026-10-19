@@ -1,3 +1,5 @@
+import { createCupStore, cupDefinition } from '../race/cup.js';
+import { cupView, cupWaitingView } from './cup.js';
 import { formatTime, formatDelta } from '../race/timing.js';
 import { discoverLevels } from '../levels/catalog.js';
 import routes from 'virtual:menu-catalog';
@@ -49,6 +51,10 @@ function picture(route, className = '') {
 export function createFrontend(host) {
   const catalog = discoverLevels().list;
   const circuits = catalog;
+  const cupStore = createCupStore();
+  let sessionCup = false,
+    cupConfirm = null,
+    cupResultsKey = null;
   const parameters = new URLSearchParams(location.search);
   const artPass = parameters.get('artPass') === '1';
   const inspectShip = !artPass && parameters.get('inspect') === '1';
@@ -151,18 +157,20 @@ export function createFrontend(host) {
         : intent === 'time-trial'
     )
       ? 'Time Trial'
-      : isSprint(id)
-        ? practice
-          ? 'Solo Descent'
-          : 'Downhill Sprint'
-        : practice
-          ? 'Practice'
-          : 'Quick Race';
+      : intent === 'cup'
+        ? 'Founders Cup'
+        : isSprint(id)
+          ? practice
+            ? 'Solo Descent'
+            : 'Downhill Sprint'
+          : practice
+            ? 'Practice'
+            : 'Quick Race';
   const loadedLevel = () => catalog.find((l) => l.id === loadedId) ?? level();
   const difficultyControls = () =>
     `<fieldset class="race-difficulty"><legend>Opponent difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${settings.difficulty === d}" tabindex="${settings.difficulty === d ? 0 : -1}">${d}</button>`).join('')}</fieldset>`;
   const facts = () =>
-    `<span>${route() ? (route().length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'}</span><span>${route()?.closed === false ? 'POINT TO POINT' : intent === 'practice' ? 'OPEN PRACTICE' : intent === 'time-trial' ? '3 LAPS' : '2 LAPS'}</span><span>${intent !== 'race' ? 'SOLO' : `${RACE_FIELD_SIZE} PILOTS`}</span>`;
+    `<span>${route() ? (route().length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'}</span><span>${route()?.closed === false ? 'POINT TO POINT' : intent === 'practice' ? 'OPEN PRACTICE' : intent === 'time-trial' ? '3 LAPS' : '2 LAPS'}</span><span>${!['race', 'cup'].includes(intent) ? 'SOLO' : `${RACE_FIELD_SIZE} PILOTS`}</span>`;
   function remember() {
     try {
       localStorage.setItem('vector-nova.circuit', selected);
@@ -344,7 +352,7 @@ export function createFrontend(host) {
     return `<div class="picker-race-actions"><button class="change-track" data-action="circuits">${escape(level().name)} · ${trackChallenge(selected)} <span aria-hidden="true">↗</span></button>${raceActions()}</div>`;
   }
   const homeMenu = () =>
-    `<section class="race-menu" aria-label="Race setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1><button class="menu-selection" data-action="circuits"><span>Track</span><div><strong>${escape(level().name)}</strong><small>${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedShip().name}</strong><small>${selectedShip().role}</small></div><b aria-hidden="true">›</b></button>${raceActions()}<div class="menu-extras">${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${game?.hasSession() ? `<aside class="session-return">${button('resume-session', `↶ Resume ${escape(loadedLevel().name)}`)}</aside>` : ''}</section>`;
+    `<section class="race-menu" aria-label="Race setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1><button class="menu-selection" data-action="circuits"><span>Track</span><div><strong>${escape(level().name)}</strong><small>${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedShip().name}</strong><small>${selectedShip().role}</small></div><b aria-hidden="true">›</b></button>${raceActions()}<div class="menu-extras">${button('cup-hub', 'Founders Cup')}${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${game?.hasSession() && !sessionCup ? `<aside class="session-return">${button('resume-session', `↶ Resume ${escape(loadedLevel().name)}`)}</aside>` : ''}</section>`;
   function renderMenu() {
     const wide = wideMenu.matches;
     const picking = wide || screen !== 'home';
@@ -373,6 +381,7 @@ export function createFrontend(host) {
         launchTarget === 'inspection' ? 'SHIP INSPECTOR' : 'PREPARING SESSION',
       settings: 'SETTINGS',
       results: 'SESSION COMPLETE',
+      cup: 'CHAMPIONSHIP',
     }[screen];
     const headerAction =
       screen === 'settings'
@@ -443,6 +452,23 @@ export function createFrontend(host) {
         )
         .join('')}</section></div>`;
       content.querySelector('select').value = settings.quality;
+    } else if (
+      screen === 'cup' ||
+      (screen === 'results' && lastResults?.mode === 'cup')
+    ) {
+      content.innerHTML =
+        screen === 'results' && !lastResults.final
+          ? cupWaitingView(lastResults)
+          : cupView({
+              ...cupStore.snapshot(),
+              catalog,
+              shipId,
+              difficulty: settings.difficulty,
+              live: sessionCup && game?.hasSession(),
+              confirm: cupConfirm,
+            });
+      shell.querySelector('.front-footer span').textContent =
+        'FOUNDERS CUP · HALCYON → ASTERION → NACRE';
     } else if (screen === 'results') {
       const sprint = isSprint(loadedId);
       const trial = lastResults?.mode === 'time-trial';
@@ -602,6 +628,29 @@ export function createFrontend(host) {
     if (!data) return;
     lastResults = data;
     if (data.mode === 'time-trial') return;
+    if (data.mode === 'cup') {
+      const key = JSON.stringify([
+        data.final,
+        data.remaining,
+        data.standings.map((r) => [
+          r.id,
+          r.position,
+          r.finished,
+          r.valid,
+          r.totalTime,
+        ]),
+      ]);
+      if (key !== cupResultsKey) {
+        const focused = focusSelector();
+        const wasWaiting = !!shell.querySelector('.results-note');
+        cupResultsKey = key;
+        render();
+        if (data.final && wasWaiting)
+          shell.querySelector('h1')?.focus({ preventScroll: true });
+        else focusMenu(focused);
+      }
+      return;
+    }
     const key = JSON.stringify(
       data.standings.map((e) => [
         e.id,
@@ -647,6 +696,7 @@ export function createFrontend(host) {
       signal.throwIfAborted();
       game?.dispose();
       game = null;
+      sessionCup = false;
       loadedId = null;
       gameHost.replaceChildren();
       if (special && artPass) readArtView(parameters);
@@ -681,7 +731,8 @@ export function createFrontend(host) {
             setScreen('loading');
           } else {
             const destination =
-              inspectionBack ?? (screen === 'inspection' ? 'setup' : 'home');
+              inspectionBack ??
+              (screen === 'inspection' ? 'setup' : sessionCup ? 'cup' : 'home');
             const fromInspector = inspectionBack !== null;
             inspectionBack = null;
             if (fromInspector && game && !game.hasSession())
@@ -722,7 +773,12 @@ export function createFrontend(host) {
             }
           }
         },
+        onCupRetry() {
+          if (sessionCup) cupStore.retry();
+        },
         onResults(data) {
+          if (data.mode === 'cup' && sessionCup && data.final)
+            cupStore.finish(data);
           lastResults = data;
           if (screen === 'race' || screen === 'review') setScreen('results');
           else if (screen === 'results') updateResults(data);
@@ -777,8 +833,8 @@ export function createFrontend(host) {
   async function loadView(target, enter) {
     if (launching) return;
     // A retry from Loading keeps the original menu view as its destination.
-    if (choosingSession()) {
-      launchBack = screen;
+    if (choosingSession() || screen === 'cup' || screen === 'results') {
+      launchBack = intent === 'cup' ? 'cup' : screen;
       launchFocus = focusSelector();
     }
     launching = true;
@@ -793,7 +849,10 @@ export function createFrontend(host) {
       const current = await prepare();
       if (attempt !== launchGeneration || screen !== 'loading') return;
       current.configure(settings);
-      if (target === 'race') current.prepareSession();
+      if (target === 'race') {
+        sessionCup = false;
+        current.prepareSession();
+      }
       if (
         !current.hasSession() &&
         current.getSnapshot().ship.id !== shipId &&
@@ -892,7 +951,16 @@ export function createFrontend(host) {
   function launch() {
     return loadView('race', (current) => {
       setScreen('race');
-      if (intent === 'time-trial') current.timeTrial();
+      if (intent === 'cup') {
+        const state = cupStore.snapshot().state;
+        const cup = cupDefinition(state.cupId);
+        sessionCup = true;
+        current.startCup({
+          difficulty: state.difficulty,
+          eventIndex: state.eventIndex,
+          eventCount: cup.tracks.length,
+        });
+      } else if (intent === 'time-trial') current.timeTrial();
       else if (intent === 'practice') current.practice();
       else current.start();
     });
@@ -955,8 +1023,79 @@ export function createFrontend(host) {
         `.menu-selection[data-action="${previous === 'setup' ? 'ship-step' : 'circuits'}"]`,
       );
   }
+  function openCup() {
+    if (game?.hasSession()) game.returnToSetup();
+    cupConfirm = null;
+    setScreen('cup');
+  }
+  function launchCup() {
+    const state = cupStore.snapshot().state;
+    if (!state) return;
+    selected = cupDefinition(state.cupId).tracks[state.eventIndex];
+    shipId = state.shipId;
+    intent = 'cup';
+    remember();
+    void launch();
+  }
+  function clearCupSession() {
+    if (sessionCup) {
+      sessionCup = false;
+      game?.prepareSession();
+    }
+  }
   const actions = {
     home: goHome,
+    'cup-hub': openCup,
+    'cup-start'() {
+      if (cupStore.snapshot().state) return;
+      cupStore.start('founders', shipId, settings.difficulty);
+      launchCup();
+    },
+    'cup-resume'() {
+      if (sessionCup && game?.hasSession()) {
+        setScreen('race');
+        game.resumeSession();
+      } else launchCup();
+    },
+    'cup-next'() {
+      if (!cupStore.next()) return;
+      clearCupSession();
+      launchCup();
+    },
+    'cup-retry'() {
+      if (!cupStore.retry()) return;
+      clearCupSession();
+      launchCup();
+    },
+    'cup-restart'() {
+      cupConfirm = 'restart';
+      render();
+      focusMenu('[data-action="cup-cancel"]');
+    },
+    'cup-abandon'() {
+      cupConfirm = 'abandon';
+      render();
+      focusMenu('[data-action="cup-cancel"]');
+    },
+    'cup-cancel'() {
+      cupConfirm = null;
+      render();
+      focusMenu('[data-action="cup-restart"]');
+    },
+    'cup-confirm'() {
+      const state = cupStore.snapshot().state;
+      if (!state || !cupConfirm) return;
+      const action = cupConfirm;
+      cupConfirm = null;
+      clearCupSession();
+      if (action === 'restart') {
+        cupStore.start(state.cupId, state.shipId, state.difficulty);
+        launchCup();
+      } else {
+        cupStore.abandon();
+        setScreen('cup');
+      }
+    },
     'resume-session'() {
       if (!game?.hasSession()) return;
       setScreen('race');
@@ -1291,7 +1430,13 @@ export function createFrontend(host) {
         e.preventDefault();
         if (screen === 'loading') cancel();
         else if (screen === 'settings') actions['settings-back']();
-        else if (screen === 'setup' || screen === 'circuits') goHome();
+        else if (cupConfirm) actions['cup-cancel']();
+        else if (
+          screen === 'cup' ||
+          screen === 'setup' ||
+          screen === 'circuits'
+        )
+          goHome();
         else if (screen === 'home' && e.target.closest('.menu-picker'))
           focusMenu('.menu-selection[data-action="circuits"]');
       }
@@ -1361,6 +1506,8 @@ export function createFrontend(host) {
       inspector: inspector?.getSnapshot() ?? null,
       error,
       intent,
+      cup: cupStore.snapshot(),
+      sessionCup,
       shipId,
       preview: shipPreview?.getState() ?? null,
       preload,

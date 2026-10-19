@@ -90,6 +90,8 @@ try {
     valid: true,
     totalTime: i === 0 ? 100 : null,
   }));
+  const snapshot = await page.evaluate(() => window.__VN.getSnapshot());
+  const laps = snapshot.track.closed ? 2 : 1;
   const waiting = {
     mode: 'cup',
     final: false,
@@ -97,11 +99,16 @@ try {
     standings: rows,
     playerValid: true,
     playerTotalTime: 100,
-    playerLapTimes: [50, 50],
-    laps: 2,
+    courseFormat: snapshot.competition.courseFormat,
+    playerLapTimes: Array(laps).fill(100 / laps),
+    laps,
     difficulty: 'easy',
   };
   await page.evaluate((data) => window.__VN.verifyCupResults(data), waiting);
+  assert.equal(
+    await page.locator('.result-panel .kicker').textContent(),
+    snapshot.track.closed ? 'CUP / RACE FINISH' : 'CUP / SPRINT FINISH',
+  );
   await page.locator('[data-action="cup-hub"]').focus();
   await page.evaluate((data) => window.__VN.verifyCupResults(data), {
     ...waiting,

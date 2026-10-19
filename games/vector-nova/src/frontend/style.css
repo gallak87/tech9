@@ -865,7 +865,7 @@ body[data-screen='results'] #interface {
 }
 .cup-route {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--cup-events, 3), minmax(0, 1fr));
   gap: 8px;
   list-style: none;
   padding: 0;

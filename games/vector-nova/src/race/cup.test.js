@@ -32,32 +32,48 @@ for (const cup of CUPS)
     const storage = memory();
     let store = createCupStore(() => storage);
     store.start(cup.id, 'shrike', 'hard');
-    store.finish(result());
-    assert.equal(store.finish(result(ids.toReversed())), false);
-    store = createCupStore(() => storage);
-    assert.equal(store.snapshot().state.phase, 'results');
-    assert.equal(store.snapshot().state.cupId, cup.id);
-    assert.equal(store.next(), true);
-    assert.equal(store.next(), false);
-    store = createCupStore(() => storage);
-    assert.equal(store.snapshot().state.eventIndex, 1);
-    assert.equal(store.snapshot().state.shipId, 'shrike');
-    assert.equal(store.snapshot().state.difficulty, 'hard');
-    store.finish(result());
-    store.retry();
-    assert.equal(store.snapshot().state.results.length, 1);
-    store.finish(result(ids.toReversed()));
-    store.next();
-    store.finish(result());
+    for (let event = 0; event < cup.tracks.length; event++) {
+      store = createCupStore(() => storage);
+      const before = store.snapshot().state;
+      assert.equal(before.phase, 'racing');
+      assert.equal(before.cupId, cup.id);
+      assert.equal(before.eventIndex, event);
+      assert.equal(before.shipId, 'shrike');
+      assert.equal(before.difficulty, 'hard');
+      assert.equal(before.results.length, event);
+      store.finish(result());
+      assert.equal(store.finish(result(ids.toReversed())), false);
+      store = createCupStore(() => storage);
+      assert.equal(store.snapshot().state.phase, 'results');
+      assert.deepEqual(
+        store.snapshot().state.results.slice(0, event),
+        before.results,
+      );
+      assert.equal(
+        cupComplete(store.snapshot().state),
+        event === cup.tracks.length - 1,
+      );
+      store.retry();
+      store = createCupStore(() => storage);
+      assert.deepEqual(store.snapshot().state, before);
+      assert.equal(cupComplete(store.snapshot().state), false);
+      store.finish(result(ids.toReversed()));
+      store = createCupStore(() => storage);
+      assert.deepEqual(
+        store.snapshot().state.results.slice(0, event),
+        before.results,
+      );
+      assert.equal(
+        cupStandings(store.snapshot().state).find((r) => r.id === 'player')
+          .points,
+        CUP_POINTS.at(-1) * (event + 1),
+      );
+      assert.equal(store.next(), event < cup.tracks.length - 1);
+      assert.equal(store.next(), false);
+    }
     assert.equal(cupComplete(store.snapshot().state), true);
-    assert.equal(store.next(), false);
-    assert.equal(
-      cupStandings(store.snapshot().state).find((r) => r.id === 'player')
-        .points,
-      51,
-    );
     store.retry();
-    assert.equal(store.snapshot().state.results.length, 2);
+    assert.equal(store.snapshot().state.results.length, cup.tracks.length - 1);
     store.abandon();
     assert.equal(createCupStore(() => storage).snapshot().state, null);
     assert.equal(createCupStore(() => storage).snapshot().notice, '');

@@ -56,7 +56,7 @@ export function cupView({
   const title = complete
     ? `${tied ? 'Joint ' : ''}${player.position === 1 ? 'Cup champion.' : `Cup complete · ${player.position}/10`}`
     : cup.name;
-  const route = `<ol class="cup-route">${cup.tracks.map((id, i) => `<li ${state?.eventIndex === i ? 'aria-current="step"' : ''}><span>${i + 1}</span><strong>${esc(trackName(id))}</strong><small>${eventFormat(id)} · ${state?.results[i] ? 'Scored' : state?.eventIndex === i ? 'Current race' : state ? 'Up next' : trackChallenge(id)}</small></li>`).join('')}</ol>`;
+  const route = `<ol class="cup-route" style="--cup-events:${cup.tracks.length}">${cup.tracks.map((id, i) => `<li ${state?.eventIndex === i ? 'aria-current="step"' : ''}><span>${i + 1}</span><strong>${esc(trackName(id))}</strong><small>${eventFormat(id)} · ${state?.results[i] ? 'Scored' : state?.eventIndex === i ? 'Current race' : state ? 'Up next' : trackChallenge(id)}</small></li>`).join('')}</ol>`;
   let actions;
   if (confirm) {
     actions = `<div class="cup-confirm" role="group" aria-label="Confirm ${confirm}"><p>${confirm === 'abandon' ? (complete ? 'Clear these final results and choose another cup? All saved scores for this cup will be deleted.' : 'Abandon this cup to choose another? All its saved scores and progress will be deleted.') : 'Restart this cup from race 1? All its scores will be cleared. Ship and difficulty stay the same.'}</p><div class="front-actions">${button('cup-confirm', confirm === 'abandon' ? 'Delete cup progress' : 'Clear scores and restart', true)}${button('cup-cancel', 'Keep this cup')}</div></div>`;

@@ -2,7 +2,7 @@ import { courseIdentity, sprintRunoutControl } from './course.js';
 
 export function createRace(
   track,
-  { rulesId = 'magnetic-v3-assist-0.3', untimed = false } = {},
+  { rulesId = 'magnetic-v3-assist-0.3', untimed = false, laps = Infinity } = {},
 ) {
   const sprint = track.closed === false;
   const course = courseIdentity(track);
@@ -46,6 +46,13 @@ export function createRace(
     complete: false,
     startDistance: 0,
     history: [],
+    splits: [],
+    get totalElapsed() {
+      return (
+        this.history.reduce((sum, lap) => sum + lap.duration, 0) +
+        (this.complete ? 0 : this.elapsed)
+      );
+    },
     placeScenario(distance) {
       const base = sprint
         ? 0
@@ -59,8 +66,10 @@ export function createRace(
       this.valid = !untimed && distance === 0;
     },
     step(previous, current, dt, vehicleEvents = [], { grounded = true } = {}) {
-      if (sprint && this.complete) return [];
+      if (this.complete) return [];
       const beforeTime = this.elapsed;
+      const beforeTotal = this.totalElapsed;
+      let lastCrossingTime = 0;
       this.elapsed += dt;
       const events = [];
       if (current <= previous) return events;
@@ -120,6 +129,17 @@ export function createRace(
         for (let index = 0; index < count; index++) {
           const crossing = cycle * track.length + positions[index];
           if (crossing <= previous || crossing > current) continue;
+          // A parked physical hull can settle just behind checkpoint zero.
+          // Its first forward start-line crossing is not a completed lap or
+          // skipped checkpoint. The trial clock still includes this wait.
+          if (
+            Number.isFinite(laps) &&
+            cycle === 0 &&
+            index === 0 &&
+            this.checkpoint === 0 &&
+            this.history.length === 0
+          )
+            continue;
           if (index !== (this.checkpoint + 1) % count) {
             this.valid = false;
             continue;
@@ -128,6 +148,10 @@ export function createRace(
             this.valid = false;
             continue;
           }
+          const crossingTime =
+            (dt * (crossing - previous)) / (current - previous);
+          if (Number.isFinite(laps))
+            this.splits.push(beforeTotal + crossingTime);
           this.checkpoint = index;
           this.startDistance = crossing;
           events.push({
@@ -150,6 +174,11 @@ export function createRace(
             return events;
           }
           if (index === 0) {
+            if (Number.isFinite(laps))
+              this.elapsed =
+                (lastCrossingTime ? 0 : beforeTime) +
+                crossingTime -
+                lastCrossingTime;
             this.lastLap = this.elapsed;
             this.history.push({
               duration: this.elapsed,
@@ -163,7 +192,13 @@ export function createRace(
               payload: { duration: this.elapsed, valid: this.valid, rulesId },
             });
             this.lap++;
-            this.elapsed = 0;
+            this.elapsed = Number.isFinite(laps) ? dt - crossingTime : 0;
+            lastCrossingTime = crossingTime;
+            if (this.history.length >= laps) {
+              this.complete = true;
+              this.elapsed = 0;
+              return events;
+            }
             this.valid = !untimed;
             this.completedTransfers = this.completedTransfers.filter(
               (key) => +key.split(':')[0] >= cycle,

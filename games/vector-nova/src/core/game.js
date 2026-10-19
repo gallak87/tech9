@@ -13,6 +13,8 @@ import {
   surfaceHullClearance,
 } from '../physics/index.js';
 import { createRace } from '../race/index.js';
+import { createTimeTrial, trialIdentity } from '../race/time-trial.js';
+import { createPersonalGhost } from '../race/ghost.js';
 import { courseIdentity } from '../race/course.js';
 import { createFinishMarker } from '../race/finish-marker.js';
 import { createInput } from '../input/index.js';
@@ -391,6 +393,9 @@ export async function createGame({
       inspectionFromMenu = false,
       finishAt = null,
       resultsDismissed = false;
+    const ghost = lifetime.own(createPersonalGhost(scene));
+    let timeTrial = false,
+      trial = null;
     let competition = false,
       lastResults = null,
       raceDifficulty = settings.difficulty,
@@ -402,6 +407,7 @@ export async function createGame({
       createRace(track, {
         rulesId: `${runtime.rulesId}:ship-${ship.selected.id}-v${ship.selected.version}${competition ? `:difficulty-${raceDifficulty}` : ''}`,
         untimed: Boolean(playtest),
+        laps: timeTrial ? (track.closed === false ? 1 : 3) : Infinity,
       });
     const resetRuntime = (reason) => {
       if (reason !== 'manual-recover') {
@@ -409,7 +415,23 @@ export async function createGame({
         resultsDismissed = false;
         lastResults = null;
       }
+      runtime.setEnabled?.(!timeTrial);
       runtime.reset({ reason, state, scenario, seed });
+      if (reason !== 'manual-recover') {
+        trial = timeTrial
+          ? createTimeTrial({
+              identity: trialIdentity({
+                track,
+                ship: ship.selected,
+                version: VERSION,
+                runtime: runtimeIdentity(runtime),
+              }),
+              race,
+            })
+          : null;
+        ghost.reset(ship.group, trial?.best?.samples);
+        trial?.capture(trialPose());
+      }
       audio.resetEnvironment();
       effects.reset();
       world.reset();
@@ -427,12 +449,40 @@ export async function createGame({
       });
       return result;
     };
+    function trialPose() {
+      const physical = runtime.pose(1);
+      if (physical) return physical;
+      const frame = track.sample(state.distance);
+      return {
+        position: frame.position
+          .clone()
+          .addScaledVector(frame.right, state.lateral)
+          .addScaledVector(frame.up, 0.72),
+        quaternion: frame.quaternion
+          .clone()
+          .multiply(
+            new T.Quaternion().setFromAxisAngle(
+              new T.Vector3(0, 1, 0),
+              state.heading,
+            ),
+          ),
+      };
+    }
     function advanceTick(control) {
+      if (trial?.result) return;
       prev = { ...state };
       inputLog.push({ tick, input: { ...control } });
       if (inputLog.length > 36000) inputLog.shift();
       advance(control);
       tick++;
+      if (trial?.capture(trialPose())) {
+        lastResults = trial.result;
+        input.clear();
+        mode = 'results';
+        ui.setResultsAvailable(true);
+        ui.setMode(mode);
+        onResults?.(lastResults);
+      }
     }
     function resetRacers(enabled = competition) {
       dynamics?.reset();
@@ -535,6 +585,7 @@ export async function createGame({
         ui.setFinish(null);
         ui.setResultsAvailable(false);
         raceDifficulty = settings.difficulty;
+        timeTrial = false;
         competition = racingEnabled;
         scenario = 'staging';
         state = createVehicleState(ship.selected.id);
@@ -589,7 +640,11 @@ export async function createGame({
       if (finishAt !== null && !resultsDismissed) ui.setFinish(lastResults);
       audio.unlock().catch(() => {});
     }
-    function restart(compete = competition, withCountdown = false) {
+    function restart(
+      compete = competition,
+      withCountdown = false,
+      trialMode = timeTrial,
+    ) {
       if (shipLoading) return;
       if (track.closed === false && race?.complete) {
         const results = racers?.snapshot({
@@ -611,7 +666,9 @@ export async function createGame({
       scenario = 'staging';
       testLaunch = null;
       sceneShip();
-      competition = racingEnabled && compete;
+      timeTrial = Boolean(trialMode);
+      if (timeTrial) seed = 7;
+      competition = !timeTrial && racingEnabled && compete;
       if (withCountdown) raceDifficulty = settings.difficulty;
       state = createVehicleState(ship.selected.id);
       if (competition) Object.assign(state, racerModule.RACE_GRID.player);
@@ -709,6 +766,7 @@ export async function createGame({
       scenario = 'staging';
       state = createVehicleState(ship.selected.id);
       competition = false;
+      timeTrial = false;
       race = makeRace();
       resetRacers(false);
       resetRuntime('home');
@@ -945,7 +1003,7 @@ export async function createGame({
           practice() {
             if (shipLoading) return;
             if (playtest) repeatPlaytest();
-            else restart(false, true);
+            else restart(false, true, false);
             audio.unlock().catch(() => {});
           },
           pause,
@@ -1086,6 +1144,15 @@ export async function createGame({
       );
     const input = lifetime.own(
       createInput((command) => {
+        if (
+          !suspended &&
+          timeTrial &&
+          command === 'restart' &&
+          !['fly', 'results'].includes(mode)
+        ) {
+          restart(false, true, true);
+          return;
+        }
         if (suspended || mode === 'results' || mode === 'fly') return;
         if (finishAt !== null && !resultsDismissed && command !== 'pause')
           return;
@@ -1218,7 +1285,7 @@ export async function createGame({
         ui.setCountdown(null);
         goUntil = 0;
       }
-      if (mode === 'racing' || mode === 'results') {
+      if ((mode === 'racing' || mode === 'results') && !trial?.result) {
         accumulator += dt;
         const control =
           mode === 'results' || finishing
@@ -1378,6 +1445,11 @@ export async function createGame({
         enabled: racingEnabled,
       });
       effects.update(mode === 'racing' ? dt : 0, { visible: mode !== 'fly' });
+      ghost.update(
+        trial?.snapshot().elapsed ?? 0,
+        timeTrial && ['racing', 'paused', 'countdown'].includes(mode),
+        ship.group.position,
+      );
       world.update(frame);
       if (mode === 'inspection')
         inspectionStage.render(() =>
@@ -1398,6 +1470,7 @@ export async function createGame({
           playerPose: runtime.pose(1),
         }),
         lastResults,
+        trial: trial?.snapshot(),
       });
       const standings = racers?.snapshot({
         playerState: state,
@@ -1406,6 +1479,7 @@ export async function createGame({
       });
       if (
         onResults &&
+        !timeTrial &&
         !playtest &&
         !resultsDismissed &&
         (competition || track.closed === false) &&
@@ -1591,7 +1665,7 @@ export async function createGame({
        */
       loadScenario(name = 'staging', newSeed = 7) {
         if (shipLoading) throw new Error('Wait for ship loading to finish');
-        restart(false);
+        restart(false, false, false);
         scenario = name;
         seed = newSeed;
         const source =
@@ -1626,8 +1700,12 @@ export async function createGame({
       },
       leaveFly,
       start,
+      timeTrial: () => {
+        restart(false, true, true);
+        audio.unlock().catch(() => {});
+      },
       practice: () => {
-        restart(false, false);
+        restart(false, false, false);
         audio.unlock().catch(() => {});
       },
       pause,
@@ -1679,6 +1757,10 @@ export async function createGame({
       inspectRival,
       home,
       getReplay() {
+        if (timeTrial)
+          throw new Error(
+            'Time Trial ghosts use the player record format, not developer replays',
+          );
         validateReplayInputs(inputLog, tick);
         if (state.resetCount)
           throw new Error(
@@ -1703,6 +1785,8 @@ export async function createGame({
         };
       },
       playReplay(replay) {
+        if (timeTrial)
+          throw new Error('Leave Time Trials before playing developer replays');
         if (
           replay.version !== VERSION ||
           replay.trackId !== track.id ||
@@ -1838,6 +1922,7 @@ export async function createGame({
           mode,
           scenario,
           sessionActive,
+          timeTrial: trial?.snapshot() ?? null,
           seed,
           tick,
           settings: { ...settings },

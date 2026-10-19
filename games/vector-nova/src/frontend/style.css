@@ -824,3 +824,34 @@ body[data-screen='results'] #interface {
     font-size: 18px;
   }
 }
+
+.trial-best {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.trial-splits {
+  list-style: none;
+  padding: 0;
+  font-variant-numeric: tabular-nums;
+}
+.trial-splits li {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid #ffffff20;
+}
+.trial-splits li > :last-child {
+  text-align: right;
+}
+
+.trial-split-title {
+  font-size: 14px;
+  margin: 18px 0 6px;
+}
+.trial-split-key {
+  font-size: 11px;
+  color: #aaa;
+  line-height: 1.5;
+}

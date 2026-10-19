@@ -134,6 +134,7 @@ export function createPickupPresentation({
     hud,
     update({
       state,
+      enabled = true,
       vehicle = state,
       effects = {},
       events = [],
@@ -143,6 +144,12 @@ export function createPickupPresentation({
       settings: nextSettings = currentSettings,
     }) {
       if (disposed) return;
+      if (!enabled) {
+        root.visible = feedback.group.visible = false;
+        hud.hidden = true;
+        silence();
+        return;
+      }
       currentSettings = nextSettings;
       const racing = mode === 'racing' && !document.hidden;
       const driving = racing || mode === 'paused';

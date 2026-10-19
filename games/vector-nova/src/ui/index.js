@@ -1,4 +1,5 @@
 import './style.css';
+import { formatTime, formatDelta } from '../race/timing.js';
 import { SHIPS } from '../ships/catalog.js';
 import { createShipControls, inspectionPanel } from './ship-controls.js';
 import { circuitURL } from '../levels/contract.js';
@@ -573,8 +574,7 @@ export function createUI(
     mapTop + (p.z - minZ) * scale,
   ];
   let oldMode = '';
-  const fmt = (t) =>
-    `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(3).padStart(6, '0')}`;
+  const fmt = (t) => formatTime(t, 2);
   return {
     root,
     openFlySettings,
@@ -728,7 +728,12 @@ export function createUI(
       s,
       r,
       motion = null,
-      { practice = false, competition = null, lastResults = null } = {},
+      {
+        practice = false,
+        competition = null,
+        lastResults = null,
+        trial = null,
+      } = {},
     ) {
       currentCompetition = competition;
       retainedResults = lastResults;
@@ -832,6 +837,29 @@ export function createUI(
           : r.best
             ? `BEST ${fmt(r.best)}`
             : 'SET YOUR FIRST CLEAN LAP';
+      if (trial) {
+        $('restart').textContent = 'Retry Time Trial';
+        root.querySelector('.lap > span').textContent = 'TIME TRIAL';
+        root.querySelector('.timing > span').textContent = 'TOTAL TIME';
+        if (!sprint) $('lap').textContent = `${Math.min(r.lap, 3)}/3`;
+        $('time').textContent = fmt(trial.elapsed);
+        $('last').textContent =
+          trial.delta == null
+            ? trial.ghost
+              ? 'PERSONAL GHOST'
+              : trial.best
+                ? 'BEST TIME · NO GHOST'
+                : 'SET YOUR FIRST BEST'
+            : `S${((trial.sector - 1) % 3) + 1} Δ ${formatDelta(trial.delta)}`;
+        $('best').textContent = !trial.valid
+          ? 'UNRANKED · R TO RETRY'
+          : trial.best
+            ? `BEST ${fmt(trial.best)} · R RETRY`
+            : 'NO DEVICES · R RETRY';
+      } else
+        root.querySelector('.timing > span').textContent = sprint
+          ? 'ELAPSED'
+          : 'LAP TIME';
       ctx.clearRect(0, 0, 200, 150);
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = '#dbe8e1cc';

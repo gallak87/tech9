@@ -172,6 +172,15 @@ async function finishInputs(difficulty, initial) {
     const differences = [];
     const compareInitial = (actual, expected, path = 'initial') => {
       if (Object.is(actual, expected)) return;
+      // Node and browser trig can differ by a few ULPs in an otherwise
+      // identical pose. Keep identity/allocation checks exact, allowing only
+      // sub-picometre numeric roundoff in this cross-engine fixture check.
+      if (
+        typeof actual === 'number' &&
+        typeof expected === 'number' &&
+        Math.abs(actual - expected) <= 1e-12
+      )
+        return;
       if (
         actual &&
         expected &&
@@ -199,7 +208,7 @@ async function finishInputs(difficulty, initial) {
     assert.deepEqual(
       differences,
       [],
-      'physical input fixture must start from the exact browser body state',
+      'physical input fixture must match browser body state within numeric roundoff',
     );
     // Generate real inputs against the same ten dynamic bodies as the browser.
     // Legacy ghost-racer trajectories no longer predict contact or finish time.
@@ -307,6 +316,7 @@ try {
           ))
           assert.equal(align, 'center');
         await press('ArrowDown', '[data-action="practice"]');
+        await press('ArrowDown', '[data-action="time-trial"]');
         await press('ArrowDown', '[data-action="inspect"]');
         await press('Enter');
         await inspectorReady(page);
@@ -1547,6 +1557,7 @@ try {
           await press('ArrowDown', '[data-difficulty="easy"]');
           await press('ArrowRight', '[data-difficulty="medium"]');
           await press('ArrowDown', '[data-action="practice"]');
+          await press('ArrowDown', '[data-action="time-trial"]');
           await press('ArrowDown', '[data-action="inspect"]');
           await press('ArrowDown', '[data-action="settings"]');
           await press('Space', '[data-action="settings-back"]');

@@ -953,3 +953,62 @@
     animation: none;
   }
 }
+
+/* Keep both solo modes reachable beside the established race controls. */
+.race-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.race-actions > .primary,
+.race-actions > .race-difficulty {
+  grid-column: 1 / -1;
+}
+.race-actions > .solo-action {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 12px;
+}
+.race-actions > .solo-action small {
+  margin-left: 0;
+  text-align: left;
+}
+.trial-rule {
+  color: #aaa;
+  font-size: 10px;
+  text-align: left;
+}
+@media (min-width: 900px) and (max-height: 640px) {
+  .menu-wide .menu-selection {
+    padding-block: 8px;
+  }
+  .menu-wide .menu-wordmark {
+    margin-bottom: 12px !important;
+  }
+  .menu-wide .race-actions {
+    margin-top: 12px;
+  }
+  .menu-wide .menu-extras {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+}
+
+@media (max-width: 599px) {
+  .picker-race-actions .race-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .picker-race-actions .race-actions > .primary {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .picker-race-actions .race-actions > [data-action='time-trial'] {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .picker-race-actions .race-actions > .solo-action strong {
+    font-size: 13px;
+  }
+  .picker-race-actions .race-actions > button {
+    padding-inline: 7px;
+  }
+}

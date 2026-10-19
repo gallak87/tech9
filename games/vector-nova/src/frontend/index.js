@@ -1,3 +1,4 @@
+import { formatTime, formatDelta } from '../race/timing.js';
 import { discoverLevels } from '../levels/catalog.js';
 import routes from 'virtual:menu-catalog';
 import { RACE_FIELD_SIZE, RACE_OPPONENTS } from '../race/roster.js';
@@ -31,10 +32,7 @@ const escape = (text) =>
         c
       ],
   );
-const stamp = (seconds) =>
-  seconds == null
-    ? '—'
-    : `${Math.floor(seconds / 60)}:${(seconds % 60).toFixed(3).padStart(6, '0')}`;
+const stamp = formatTime;
 const button = (action, label, primary = false) =>
   `<button data-action="${action}" class="${primary ? 'primary' : ''}">${label}</button>`;
 function routeArt(route) {
@@ -147,18 +145,24 @@ export function createFrontend(host) {
   const ship = () => SHIPS.find((s) => s.id === (previewShipId ?? shipId));
   const isSprint = (id = selected) => route(id)?.closed === false;
   const sessionName = (id = selected, practice = intent === 'practice') =>
-    isSprint(id)
-      ? practice
-        ? 'Solo Descent'
-        : 'Downhill Sprint'
-      : practice
-        ? 'Practice'
-        : 'Quick Race';
+    (
+      screen === 'results'
+        ? lastResults?.mode === 'time-trial'
+        : intent === 'time-trial'
+    )
+      ? 'Time Trial'
+      : isSprint(id)
+        ? practice
+          ? 'Solo Descent'
+          : 'Downhill Sprint'
+        : practice
+          ? 'Practice'
+          : 'Quick Race';
   const loadedLevel = () => catalog.find((l) => l.id === loadedId) ?? level();
   const difficultyControls = () =>
     `<fieldset class="race-difficulty"><legend>Opponent difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${settings.difficulty === d}" tabindex="${settings.difficulty === d ? 0 : -1}">${d}</button>`).join('')}</fieldset>`;
   const facts = () =>
-    `<span>${route() ? (route().length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'}</span><span>${route()?.closed === false ? 'POINT TO POINT' : intent === 'practice' ? 'OPEN PRACTICE' : '2 LAPS'}</span><span>${intent === 'practice' ? 'SOLO' : `${RACE_FIELD_SIZE} PILOTS`}</span>`;
+    `<span>${route() ? (route().length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'}</span><span>${route()?.closed === false ? 'POINT TO POINT' : intent === 'practice' ? 'OPEN PRACTICE' : intent === 'time-trial' ? '3 LAPS' : '2 LAPS'}</span><span>${intent !== 'race' ? 'SOLO' : `${RACE_FIELD_SIZE} PILOTS`}</span>`;
   function remember() {
     try {
       localStorage.setItem('vector-nova.circuit', selected);
@@ -335,7 +339,7 @@ export function createFrontend(host) {
       )}</div><p class="stat-note">Handling and braking are relative ratings.</p></aside>${withActions ? pickerRaceActions() : ''}</div>`;
   const launchLabel = () => (isSprint() ? 'Start descent →' : 'Start race →');
   const raceActions = () =>
-    `<div class="race-actions"><button class="primary" data-action="launch"><strong>${isSprint() ? 'Sprint' : 'Race'}</strong><small>${isSprint() ? 'One descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals</small><span aria-hidden="true">→</span></button>${difficultyControls()}<button data-action="practice"><strong>${isSprint() ? 'Solo descent' : 'Practice'}</strong><small>${isSprint() ? 'Summit to finish' : 'Solo · open laps'}</small></button></div>`;
+    `<div class="race-actions"><button class="primary" data-action="launch"><strong>${isSprint() ? 'Sprint' : 'Race'}</strong><small>${isSprint() ? 'One descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals</small><span aria-hidden="true">→</span></button>${difficultyControls()}<button class="solo-action" data-action="practice"><strong>${isSprint() ? 'Solo descent' : 'Practice'}</strong><small>${isSprint() ? 'Summit to finish' : 'Solo · open laps'}</small></button><button class="solo-action" data-action="time-trial"><strong>Time Trial</strong><small>${isSprint() ? '1 descent' : '3 laps'} · personal ghost</small><span class="trial-rule">Manual boost · no devices</span></button></div>`;
   function pickerRaceActions() {
     return `<div class="picker-race-actions"><button class="change-track" data-action="circuits">${escape(level().name)} · ${trackChallenge(selected)} <span aria-hidden="true">↗</span></button>${raceActions()}</div>`;
   }
@@ -441,16 +445,39 @@ export function createFrontend(host) {
       content.querySelector('select').value = settings.quality;
     } else if (screen === 'results') {
       const sprint = isSprint(loadedId);
+      const trial = lastResults?.mode === 'time-trial';
       const player = lastResults?.standings.find(
         (entry) => entry.id === 'player',
       );
-      const title = !lastResults?.playerValid
-        ? 'Finish · untimed'
-        : player?.position === 1
-          ? 'Winner.'
-          : 'Race finished.';
+      const title = trial
+        ? !lastResults.playerValid
+          ? 'Trial complete · unranked'
+          : lastResults.improved
+            ? lastResults.previousBest == null
+              ? 'First personal best.'
+              : 'New personal best.'
+            : 'Time Trial complete.'
+        : !lastResults?.playerValid
+          ? 'Finish · untimed'
+          : player?.position === 1
+            ? 'Winner.'
+            : 'Race finished.';
       content.innerHTML = `<section class="result-panel">${heading('FINISH / ' + escape(loadedLevel().name.toUpperCase()), title)}<div class="results-layout"><section class="result-personal"><span class="kicker">${lastResults?.playerValid ? 'RACE TIME' : 'UNRANKED RUN'}</span><strong>${stamp(lastResults?.playerTotalTime)}</strong><p>${lastResults?.playerValid ? `${sprint ? 'One descent' : `${lastResults.laps ?? 2} laps`} · ${escape(lastResults.difficulty ?? settings.difficulty)}` : `${sprint ? 'This descent' : 'A lap'} was invalidated. This run does not count toward classification.`}</p><div class="lap-splits">${(lastResults?.playerLapTimes ?? []).map((t, i) => `<span>${sprint ? 'DESCENT' : `LAP ${i + 1}`}<b>${stamp(t)}</b></span>`).join('')}</div></section><section><ol class="results-list" aria-label="Race classification" tabindex="0"></ol><p class="results-note" role="status"></p></section></div><div class="front-actions results-actions">${button('retry-race', 'Race again →', true)}${button('continue', 'Continue driving')}${button('change', 'Circuits')}</div></section>`;
-      updateResults(lastResults);
+      if (trial) {
+        const r = lastResults;
+        const signed = formatDelta;
+        content.querySelector('.result-personal .kicker').textContent =
+          r.playerValid ? 'TOTAL TIME' : 'UNRANKED RUN';
+        content.querySelector('.result-personal > p').textContent =
+          r.playerValid
+            ? `${escape(SHIPS.find((ship) => ship.id === r.shipId)?.name ?? 'Selected ship')} · ${sprint ? 'One descent' : 'Three laps'} · ${r.delta == null ? 'First completed trial' : `${signed(r.delta)} against previous best`}`
+            : 'A checkpoint or manual recovery invalidated this run. Retry for a ranked time.';
+        const detail = content.querySelector('.results-list').parentElement;
+        detail.innerHTML = `<p class="trial-best">PERSONAL BEST <b>${stamp(r.bestTime)}</b></p><h2 class="trial-split-title">Cumulative splits</h2><p class="trial-split-key">Elapsed time at each sector · − ahead / + behind previous best</p><ol class="trial-splits" aria-label="Cumulative splits against previous best">${r.splits.map((t, i) => `<li><span>${sprint ? '' : `L${Math.floor(i / 3) + 1} · `}S${(i % 3) + 1}</span><b>${stamp(t)}</b><span>${signed(r.splitDeltas[i])}</span></li>`).join('')}</ol><p class="results-note" role="status">${!r.playerValid ? 'Best and ghost unchanged.' : r.improved ? (r.saved.saved ? (r.saved.ghostSaved ? 'Best and personal ghost saved on this device.' : 'Best saved. Ghost could not be saved; storage may be full or the run exceeded 20 minutes.') : 'Storage unavailable. Best and ghost are kept for this page session only.') : r.ghostAvailable ? 'Personal best unchanged. Retry to race your ghost.' : 'Personal best unchanged. No compatible ghost is saved for this best.'}</p>`;
+        const retry = content.querySelector('[data-action="retry-race"]');
+        retry.textContent = 'Retry Time Trial →';
+        content.querySelector('[data-action="continue"]').remove();
+      } else updateResults(lastResults);
     }
     const statusSlot = shell.querySelector('.transfer-slot');
     if (statusSlot) statusSlot.append(transfer);
@@ -574,6 +601,7 @@ export function createFrontend(host) {
   function updateResults(data) {
     if (!data) return;
     lastResults = data;
+    if (data.mode === 'time-trial') return;
     const key = JSON.stringify(
       data.standings.map((e) => [
         e.id,
@@ -864,7 +892,8 @@ export function createFrontend(host) {
   function launch() {
     return loadView('race', (current) => {
       setScreen('race');
-      if (intent === 'practice') current.practice();
+      if (intent === 'time-trial') current.timeTrial();
+      else if (intent === 'practice') current.practice();
       else current.start();
     });
   }
@@ -932,6 +961,11 @@ export function createFrontend(host) {
       if (!game?.hasSession()) return;
       setScreen('race');
       game.resumeSession();
+    },
+    'time-trial'() {
+      intent = 'time-trial';
+      remember();
+      void launch();
     },
     practice() {
       intent = 'practice';
@@ -1237,6 +1271,15 @@ export function createFrontend(host) {
         e.altKey
       )
         return;
+      if (
+        e.code === 'KeyR' &&
+        screen === 'results' &&
+        lastResults?.mode === 'time-trial'
+      ) {
+        e.preventDefault();
+        actions['retry-race']();
+        return;
+      }
       if (
         e.code === 'KeyS' &&
         screen !== 'loading' &&

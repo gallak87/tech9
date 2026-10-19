@@ -311,6 +311,12 @@ try {
         assert.equal(await page.locator('[data-cup]').count(), 4);
         await page.locator('[data-action="cup-hub"]').focus();
         await page.keyboard.press('ArrowDown');
+        await page.keyboard.press('ArrowDown');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.action),
+          'circuits',
+        );
+        await page.keyboard.press('ArrowRight');
         assert.equal(
           await page.evaluate(() => document.activeElement.dataset.cup),
           'founders',
@@ -322,6 +328,80 @@ try {
         assert.equal(await page.evaluate(() => !!window.__VN), false);
       },
     );
+
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 1280, height: 720 },
+      { width: 1024, height: 768 },
+    ]) {
+      await check(
+        `mode switches preserve the cinematic menu at ${viewport.width}×${viewport.height}`,
+        async (page) => {
+          await page.goto(url('level=halcyon&music=0'));
+          const anchors = () =>
+            page.evaluate(() => ({
+              backdrop: document
+                .querySelector('.menu-backdrop img')
+                ?.getAttribute('src'),
+              bounds: [
+                '.menu-wordmark',
+                '.mode-picker',
+                '.menu-selection[data-action="circuits"]',
+                '.menu-selection[data-action="ship-step"]',
+                '.race-actions > .primary',
+                '.picker-tabs',
+              ].map((selector) => {
+                const { x, y, width, height } = document
+                  .querySelector(selector)
+                  .getBoundingClientRect();
+                return { selector, x, y, width, height };
+              }),
+            }));
+          const original = await anchors();
+          for (const action of [
+            'cup-hub',
+            'time-trial',
+            'practice',
+            'quick-race',
+            'cup-hub',
+          ]) {
+            await page.locator(`[data-action="${action}"]`).click();
+            assert.deepEqual(
+              await anchors(),
+              original,
+              `${action} moved the shared menu`,
+            );
+            await menuFits(page);
+          }
+          await page.locator('[data-cup="apex"]').click();
+          assert.deepEqual(
+            await anchors(),
+            original,
+            'cup selection moved the shared menu',
+          );
+          assert.equal(await page.locator('.cup-route li').count(), 4);
+          await page.locator('.race-menu [data-action="ship-step"]').click();
+          await page.locator('[data-ship="shrike"]').click();
+          assert.equal((await front(page)).intent, 'cup');
+          assert.deepEqual(
+            await anchors(),
+            original,
+            'cup ship selection moved the shared menu',
+          );
+          await page.locator('.picker-tabs [data-action="circuits"]').click();
+          assert.equal(
+            await page
+              .locator('[data-cup="apex"]')
+              .getAttribute('aria-pressed'),
+            'true',
+          );
+          assert.equal((await front(page)).shipId, 'shrike');
+          assert.equal((await front(page)).loadedId, null);
+          assert.equal(await page.evaluate(() => !!window.__VN), false);
+        },
+        viewport,
+      );
+    }
 
     await check(
       'keyboard-only menu navigation and focus return',
@@ -1596,6 +1676,64 @@ try {
     );
   }
   if (!flags.includes('--desktop')) {
+    for (const viewport of [
+      { width: 390, height: 844 },
+      { width: 844, height: 390 },
+    ]) {
+      await check(
+        `championship uses the same compact menu ${viewport.width}×${viewport.height}`,
+        async (page) => {
+          await page.goto(url('level=halcyon&music=0'));
+          const navigation = () => page.locator('.mode-picker').boundingBox();
+          const original = await navigation();
+          for (const action of [
+            'cup-hub',
+            'time-trial',
+            'practice',
+            'quick-race',
+            'cup-hub',
+          ]) {
+            await page.locator(`[data-action="${action}"]`).click();
+            assert.equal((await front(page)).screen, 'home');
+            assert.deepEqual(await navigation(), original);
+          }
+          await page.locator('.menu-selection[data-action="circuits"]').click();
+          await page.locator('[data-cup="apex"]').click();
+          assert.equal(await page.locator('.cup-route li').count(), 4);
+          await page
+            .locator('.picker-header [data-action="home"]')
+            .last()
+            .click();
+          assert.equal((await front(page)).intent, 'cup');
+          assert.match(
+            await page
+              .locator('.menu-selection[data-action="circuits"]')
+              .textContent(),
+            /Apex Cup/,
+          );
+          await page.locator('[data-action="ship-step"]').click();
+          await page.locator('[data-ship="shrike"]').click();
+          assert.equal(
+            await page.locator('[data-action="cup-start"]').count(),
+            1,
+          );
+          await page
+            .locator('.picker-header [data-action="home"]')
+            .last()
+            .click();
+          assert.equal((await front(page)).intent, 'cup');
+          assert.equal((await front(page)).shipId, 'shrike');
+          assert.equal(
+            await page.evaluate(
+              () => document.documentElement.scrollWidth > innerWidth,
+            ),
+            false,
+          );
+          assert.equal(await page.evaluate(() => !!window.__VN), false);
+        },
+        viewport,
+      );
+    }
     for (const viewport of [
       { width: 800, height: 900 },
       { width: 390, height: 844 },

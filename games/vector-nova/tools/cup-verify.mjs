@@ -180,9 +180,12 @@ try {
   }
   await page.goto(base + '?music=0');
   await click('cup-hub');
+  if (touch) await click('circuits');
   await page.locator(`[data-cup="${cup.id}"]`)[touch ? 'tap' : 'click']();
-  assert.equal(await page.locator('.cup-panel h1').textContent(), cup.name);
+  assert.equal(await page.locator('.cup-title').textContent(), cup.name);
   await fits();
+  if (touch) await click('home');
+  await click('ship-step');
   await page.locator('[data-ship="shrike"]')[touch ? 'tap' : 'click']();
   await click('cup-start');
   await ready(cup.tracks[0]);
@@ -228,6 +231,7 @@ try {
   const first = (await state()).cup.state.results[0];
   await page.reload();
   await click('cup-hub');
+  if (touch) await click('circuits');
   assert.equal((await state()).cup.state.phase, 'results');
   assert.deepEqual((await state()).cup.state.results[0], first);
   for (let event = 1; event < cup.tracks.length; event++) {
@@ -237,6 +241,7 @@ try {
     // An unfinished circuit or sprint restarts after reload with prior scores intact.
     await page.reload();
     await click('cup-hub');
+    if (touch) await click('circuits');
     assert.equal((await state()).cup.state.eventIndex, event);
     assert.deepEqual((await state()).cup.state.results, prior);
     await click('cup-resume');
@@ -251,6 +256,8 @@ try {
   await page.getByText('Final cup standings', { exact: true }).waitFor();
   await page.reload();
   await click('cup-hub');
+  if (touch) await click('circuits');
+  await page.locator('.cup-scores > summary').click();
   await page.getByText('Final cup standings', { exact: true }).waitFor();
   assert.equal(
     await page.evaluate(

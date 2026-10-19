@@ -53,7 +53,7 @@ try {
     await page.evaluate(() => document.activeElement.dataset.cup),
     lastCup.id,
   );
-  assert.equal(await page.locator('.cup-panel h1').textContent(), lastCup.name);
+  assert.equal(await page.locator('.cup-title').textContent(), lastCup.name);
   assert.deepEqual(
     await page.locator('.cup-route strong').allTextContents(),
     lastCupNames,
@@ -137,8 +137,22 @@ try {
   assert.equal(saved.cupId, cup.id);
   await page.reload();
   await page.locator('[data-action="cup-hub"]').click();
-  assert.equal(await page.locator('.cup-panel h1').textContent(), cup.name);
+  assert.equal(await page.locator('.cup-title').textContent(), cup.name);
   assert.equal(await page.locator('[data-cup]').count(), 0);
+  assert.equal(
+    await page.locator('#front-shell').getAttribute('class'),
+    'cinematic-menu',
+  );
+  assert.equal(
+    await page.locator('.race-menu [data-action="ship-step"]').isDisabled(),
+    true,
+  );
+  assert.equal(await page.locator('[data-difficulty]').count(), 0);
+  await page.locator('.cup-scores > summary').click();
+  assert.equal(await page.locator('.cup-standings').isVisible(), true);
+  await page.locator('.cup-scores > summary').click();
+  await page.locator('[data-action="time-trial"]').click();
+  await page.locator('[data-action="cup-hub"]').click();
   assert.deepEqual(
     await page.evaluate(() => window.__VN_FRONTEND.getState().cup.state),
     saved,

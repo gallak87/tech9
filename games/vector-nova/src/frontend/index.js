@@ -1,5 +1,5 @@
 import { CUPS, createCupStore, cupDefinition } from '../race/cup.js';
-import { cupView, cupWaitingView } from './cup.js';
+import { cupView, cupWaitingView, cupLaunch } from './cup.js';
 import { recordsView } from './records.js';
 import { readTrialRecords } from '../race/time-trial.js';
 import { formatTime, formatDelta } from '../race/timing.js';
@@ -139,8 +139,10 @@ export function createFrontend(host) {
   const life = new AbortController();
   // Match CSS: one picker at a time beside the menu, separate pages below.
   const wideMenu = matchMedia('(min-width: 900px)');
-  const choosingSession = () => ['home', 'circuits', 'setup'].includes(screen);
+  const choosingSession = () =>
+    ['home', 'circuits', 'setup', 'cup'].includes(screen);
   const showingShip = () => screen === 'setup';
+  const lockedCup = () => (intent === 'cup' ? cupStore.snapshot().state : null);
   host.innerHTML =
     '<div id="game-host"></div><div id="front-shell"></div><aside class="transfer-status" aria-label="Loading status"><span role="status"></span><progress max="1" value="0"></progress><button type="button" class="retry-fleet" hidden>Retry fleet preload</button></aside>';
   const transfer = host.querySelector('.transfer-status');
@@ -231,7 +233,9 @@ export function createFrontend(host) {
     focusMenu(
       showingShip()
         ? `button[data-ship="${shipId}"]`
-        : `[data-level="${selected}"]`,
+        : intent === 'cup'
+          ? '.cup-picker [aria-pressed="true"], .cup-rules summary'
+          : `[data-level="${selected}"]`,
     );
   }
   function focusPickerHeader() {
@@ -266,8 +270,8 @@ export function createFrontend(host) {
         ? `[data-level="${selected}"]`
         : next === 'setup'
           ? `button[data-ship="${shipId}"]`
-          : next === 'home'
-            ? '[data-action="launch"]'
+          : next === 'home' || next === 'cup'
+            ? '.cup-picker [aria-pressed="true"], .race-actions > .primary'
             : next === 'settings'
               ? '[data-action="settings-back"]'
               : next === 'loading'
@@ -390,22 +394,67 @@ export function createFrontend(host) {
       : intent === 'practice'
         ? `${isSprint() ? 'One solo descent' : 'Open solo laps'} to learn the course. No opponents.`
         : `${isSprint() ? 'One descent' : 'Two laps'} against nine rivals. Choose your opponent difficulty.`;
-  const raceActions = () =>
-    `<div class="race-actions"><button class="primary" data-action="launch"><strong>${launchLabel()}</strong><small>${intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : '3 laps'}</small></button>${intent === 'race' ? difficultyControls() : ''}<p class="mode-description">${modeDescription()}</p></div>`;
+  const raceActions = () => {
+    if (intent === 'cup') {
+      const state = cupStore.snapshot().state;
+      const cup = currentCup();
+      const next = cupLaunch(
+        state,
+        selectedCup,
+        sessionCup && game?.hasSession(),
+      );
+      const event = state
+        ? cup.tracks[
+            Math.min(
+              state.eventIndex + (state.phase === 'results' ? 1 : 0),
+              cup.tracks.length - 1,
+            )
+          ]
+        : null;
+      return `<div class="race-actions"><button class="primary" data-action="${next.action}" ${cupConfirm ? 'disabled' : ''}><strong>${next.label}</strong><small>${next.detail}</small></button>${state ? '' : difficultyControls()}<p class="mode-description">${state ? `${escape(catalog.find((entry) => entry.id === event).name)} · ${state.difficulty} opponents. Your cup progress is saved.` : `${cup.tracks.length} races against nine rivals. Ship and difficulty stay fixed throughout the cup.`}</p></div>`;
+    }
+    return `<div class="race-actions"><button class="primary" data-action="launch"><strong>${launchLabel()}</strong><small>${intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : '3 laps'}</small></button>${intent === 'race' ? difficultyControls() : ''}<p class="mode-description">${modeDescription()}</p></div>`;
+  };
   function pickerRaceActions() {
-    return `<div class="picker-race-actions"><button class="change-track" data-action="circuits">${escape(level().name)} · ${modeName()} <span aria-hidden="true">↗</span></button>${raceActions()}</div>`;
+    return `<div class="picker-race-actions"><button class="change-track" data-action="circuits">${escape(intent === 'cup' ? currentCup().name : level().name)} · ${modeName()} <span aria-hidden="true">↗</span></button>${raceActions()}</div>`;
   }
   const homeMenu = () => {
     const savedCup = cupStore.snapshot().state;
-    return `<section class="race-menu" aria-label="Session setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1>${modePicker()}<button class="menu-selection" data-action="circuits"><span>Track</span><div><strong>${escape(level().name)}</strong><small>${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedShip().name}</strong><small>${selectedShip().role}</small></div><b aria-hidden="true">›</b></button>${raceActions()}<div class="menu-extras">${button('records', 'Time Trial records')}${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${game?.hasSession() && !sessionCup ? `<aside class="session-return">${button('resume-session', `↶ Resume ${sessionIntent === 'time-trial' ? 'Time Trial' : sessionIntent === 'practice' ? 'Practice' : 'Quick Race'} · ${escape(loadedLevel().name)}`)}</aside>` : ''}${savedCup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    const cup = intent === 'cup' ? currentCup() : null;
+    const selectedCraft = lockedCup()
+      ? SHIPS.find((entry) => entry.id === savedCup.shipId)
+      : selectedShip();
+    return `<section class="race-menu" aria-label="Session setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1>${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step" ${lockedCup() ? 'disabled' : ''}><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras">${button('records', 'Time Trial records')}${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${game?.hasSession() && !sessionCup ? `<aside class="session-return">${button('resume-session', `↶ Resume ${sessionIntent === 'time-trial' ? 'Time Trial' : sessionIntent === 'practice' ? 'Practice' : 'Quick Race'} · ${escape(loadedLevel().name)}`)}</aside>` : ''}${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
   };
+  function cupPanel(withActions) {
+    const state = cupStore.snapshot().state;
+    const cup = currentCup();
+    const event = cup.tracks[state?.eventIndex ?? 0];
+    return cupView({
+      ...cupStore.snapshot(),
+      routes,
+      catalog,
+      cupId: selectedCup,
+      shipId,
+      difficulty: settings.difficulty,
+      live: sessionCup && game?.hasSession(),
+      confirm: cupConfirm,
+      menu: {
+        eventArt: (id) => picture(route(id)) + routeArt(route(id)),
+        hero: (title) =>
+          `<div class="circuit-hero cup-hero"><div class="detail-image">${picture(route(event))}${routeArt(route(event))}<span class="track-type-badge">${cup.tracks.length} races</span><div class="track-caption"><h2 class="cup-title">${title}</h2><p>${state ? `Race ${state.eventIndex + 1}` : 'Opening race'} · ${escape(catalog.find((entry) => entry.id === event).name)}</p></div></div></div>`,
+        actions: withActions ? raceActions() : '',
+      },
+    });
+  }
   function renderMenu() {
     const wide = wideMenu.matches;
     const picking = wide || screen !== 'home';
-    const setup = screen === 'setup';
+    const setup = showingShip();
+    const cup = intent === 'cup';
     shell.className = 'cinematic-menu';
-    shell.innerHTML = `<div class="menu-backdrop" aria-hidden="true">${picture(route())}</div><main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${setup ? 'menu-ship-picker' : 'menu-track-picker'}" aria-label="${setup ? 'Ship' : 'Track'} selection">${wide ? `<nav class="picker-tabs" aria-label="Setup view"><button data-action="circuits" aria-pressed="${!setup}">Tracks</button><button data-action="ship-step" aria-pressed="${setup}">Ship</button></nav>` : `<header class="picker-header"><button class="front-brand" data-action="home">VECTOR<span>//</span>NOVA</button>${button('home', '← Back to setup')}</header>`}${setup ? shipPanel(!wide) : circuitPanel()}</section>` : ''}</main>`;
-    if (!setup && picking) showDetail(selected);
+    shell.innerHTML = `<div class="menu-backdrop" aria-hidden="true">${picture(route())}</div><main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${setup ? 'menu-ship-picker' : cup ? 'menu-cup-picker' : 'menu-track-picker'}" aria-label="${setup ? 'Ship' : cup ? 'Championship' : 'Track'} selection">${wide ? `<nav class="picker-tabs" aria-label="Setup view"><button data-action="circuits" aria-pressed="${!setup}">${cup ? 'Cups' : 'Tracks'}</button><button data-action="ship-step" aria-pressed="${setup}" ${lockedCup() ? 'disabled' : ''}>Ship</button></nav>` : `<header class="picker-header"><button class="front-brand" data-action="home">VECTOR<span>//</span>NOVA</button>${button('home', '← Back to setup')}</header>`}${setup ? shipPanel(!wide) : cup ? cupPanel(!wide) : circuitPanel()}</section>` : ''}</main>`;
+    if (!setup && !cup && picking) showDetail(selected);
     if (showingShip()) mountShipPreview();
     shell
       .querySelector('.ship-transfer, .menu-transfer, .track-transfer')
@@ -512,13 +561,9 @@ export function createFrontend(host) {
         )
         .join('')}</section></div>`;
       content.querySelector('select').value = settings.quality;
-    } else if (
-      screen === 'cup' ||
-      (screen === 'results' && lastResults?.mode === 'cup')
-    ) {
+    } else if (screen === 'results' && lastResults?.mode === 'cup') {
       content.innerHTML =
-        (screen === 'cup' ? modePicker() : '') +
-        (screen === 'results' && !lastResults.final
+        screen === 'results' && !lastResults.final
           ? cupWaitingView(lastResults)
           : cupView({
               ...cupStore.snapshot(),
@@ -529,7 +574,7 @@ export function createFrontend(host) {
               difficulty: settings.difficulty,
               live: sessionCup && game?.hasSession(),
               confirm: cupConfirm,
-            }));
+            });
       shell.querySelector('.front-footer span').textContent =
         `${currentCup().name} · ${currentCup()
           .tracks.map((id) => catalog.find((entry) => entry.id === id).name)
@@ -1078,7 +1123,6 @@ export function createFrontend(host) {
     }
   }
   function goHome() {
-    if (intent === 'cup') intent = 'race';
     const previous = screen;
     if (screen === 'loading') {
       cancel('home');
@@ -1087,7 +1131,7 @@ export function createFrontend(host) {
     if (game) game.returnToSetup();
     else leaveReview();
     setScreen('home');
-    if (previous === 'circuits' || previous === 'setup')
+    if (['circuits', 'setup', 'cup'].includes(previous))
       focusMenu(
         `.menu-selection[data-action="${previous === 'setup' ? 'ship-step' : 'circuits'}"]`,
       );
@@ -1096,7 +1140,8 @@ export function createFrontend(host) {
     intent = 'cup';
     if (game?.hasSession()) game.returnToSetup();
     cupConfirm = null;
-    setScreen('cup');
+    setScreen(wideMenu.matches ? 'cup' : 'home');
+    focusMenu('[data-action="cup-hub"]');
   }
   function launchCup() {
     const state = cupStore.snapshot().state;
@@ -1209,9 +1254,11 @@ export function createFrontend(host) {
       chooseMode('practice');
     },
     circuits() {
-      setScreen('circuits');
+      setScreen(intent === 'cup' ? 'cup' : 'circuits');
+      if (intent === 'cup') focusPicker();
     },
     'ship-step'() {
+      if (lockedCup()) return;
       remember();
       setScreen('setup');
     },
@@ -1279,12 +1326,14 @@ export function createFrontend(host) {
       } else if (el.dataset.level) {
         selectCircuit(el.dataset.level);
       } else if (el.dataset.ship) {
+        if (lockedCup()) return;
         previewShipId = null;
         shipId = el.dataset.ship;
         saveShipSelection(shipId);
         render();
         shell.querySelector(`[data-ship="${shipId}"]`)?.focus();
       } else if (el.dataset.difficulty) {
+        if (lockedCup()) return;
         settings.difficulty = el.dataset.difficulty;
         saveSettings(settings);
         render();
@@ -1377,11 +1426,7 @@ export function createFrontend(host) {
           e.code === 'ArrowDown' &&
           items.indexOf(control) + columns >= items.length
         ) {
-          focusMenu(
-            screen === 'cup'
-              ? '.cup-picker [aria-pressed="true"], .cup-actions .primary, .cup-confirm button:last-child'
-              : '.menu-selection[data-action="circuits"]',
-          );
+          focusMenu('.menu-selection[data-action="circuits"]');
           return;
         }
         const step = vertical

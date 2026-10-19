@@ -2,6 +2,17 @@
 
 Reviewed against `main` and the current source on **2026-10-11**. Implemented means the feature is in the game; it does not imply a new visual review or physical-device test. Open items are a backlog for future assignment, not instructions to restart completed art or critic campaigns.
 
+## Next work, in order
+
+Prioritize these milestones ahead of the remaining backlog. Build enough UI to play and verify each mode as it lands; use that experience to guide the full UI revamp in step 6. The four cups below cover all thirteen current tracks once, with sprints introduced in the later cups.
+
+1. [ ] **Time Trials, ghost and saved bests.** Build the proposed deterministic three-lap solo circuit mode with a local non-colliding personal ghost, sector deltas, persistent best times and instant retry. Use a fixed initial state, manual boost/regeneration and disabled road devices; automatic failed-jump recovery remains valid with elapsed-time loss. Separate records by track, ship and rules, and define compatible ghost storage/playback rather than treating developer input logs as a finished player feature. Define corresponding point-to-point rules for downhill sprints. Make completed runs and improvements clear before moving on.
+2. [ ] **Cup, clear results and easy retries.** Build one complete Founders Cup over Halcyon → Asterion → Nacre, carrying ship selection between races and saving progress. Define scoring for the current ten-racer field; retain wins then total time as the proposed tie-break order. Show race results, cumulative standings and a clear final cup result. Provide predictable continue, retry/restart, resume and abandon controls with explicit effects on standings and saved progress. Reuse the timing/results foundation from Time Trials and validate one complete cup before adding more.
+3. [ ] **Frontier Cup.** Add Vesper Canopy → Glasswake Comet → Cindercoil: a second three-race circuit cup moving from easier routes into a medium course. Reuse the proven cup scoring, saved progress, results and retry flow.
+4. [ ] **Horizon Cup.** Add Saffron Leviathan → Zephyr Basilica → Shatterline (sprint): two medium circuits followed by the first downhill finale. Verify the transition from lap races to a single descent, keeping placement points consistent across event formats.
+5. [ ] **Apex Cup.** Add Worldspire (sprint) → Helion Flare → Nightweir (sprint) → Umbra Fold: a longer four-event finale alternating descents with the harder circuits. Reuse the same cup rules and validate resume/retry across both formats.
+6. [ ] **UI revamp around the working modes.** Once Time Trials and all four cups are playable, design the menu, setup, records and results flows around their actual needs. Make mode selection and return/retry paths consistent while retaining Quick Race and Practice. Preserve keyboard and touch navigation. Choose the final layout after using both modes; avoid committing to a speculative menu design first.
+
 ## Implemented
 
 - [x] Eleven worlds: Halcyon Speedway, Asterion Orbital, Nacre Tempest, Vesper Canopy, Glasswake Comet, Cindercoil, Saffron Leviathan, Umbra Fold, Helion Flare, Zephyr Basilica and Shatterline, with their course-owned scenery, surfaces, hazards and events.
@@ -51,13 +62,11 @@ Reviewed against `main` and the current source on **2026-10-11**. Implemented me
 
 ## Future race modes and systems
 
-- [ ] Scope briefings, sector splits and persistent personal records separately from the completed race/results flow. A podium presentation is optional follow-up.
+- [ ] Consider briefings and a podium presentation after the prioritized modes and results flows are complete.
 - [ ] Consider expansion beyond the delivered ten-racer field only after measuring performance and independent finishes.
 - [x] Add shared physical ship contact, strong magnetic attachment, yaw response and contact feedback cooldowns.
 - [ ] Prototype two recharge stretches and two immediate 25-point cells on Halcyon, capped at 100 reserve. Put recharge on slower/wider lines, retain passive regeneration while tuning, and reset eligibility per racer/lap with forward-crossing anti-farming rules. Expand only after review.
-- [ ] Add a deterministic three-lap solo Time Trial: local non-colliding ghost, sector deltas and instant retry; fixed initial state, manual boost/regeneration and disabled road devices. Separate records by circuit/ship/rules. Automatic failed-jump recovery remains valid with elapsed-time loss. Existing developer input logs are not a player-facing ghost mode.
-- [ ] Add a Founders Cup over Halcyon/Asterion/Nacre, carrying ship selection between races and saving progress with restart/abandon controls. The earlier 12-racer proposal uses points 25/20/16/13/11/9/7/5/4/3/2/1, with ties broken by wins then total time; revisit that scoring for the current ten-racer field.
-- [ ] Connect Cup/Time Trial to the frontend when implemented. Rewards would unlock cosmetics rather than stronger stats; retain current content in Practice/Quick Race.
+- [ ] Consider cosmetic rewards after the core mode flows are complete; rewards would not unlock stronger stats, and current content remains available in Practice/Quick Race.
 
 ## Tooling follow-up
 

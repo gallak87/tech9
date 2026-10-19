@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
-import { cupDefinition } from '../src/race/cup.js';
+import {
+  cupDefinition,
+  cupRaceRows,
+  cupStandings,
+  CUP_POINTS,
+} from '../src/race/cup.js';
 const cup = cupDefinition(process.env.VN_CUP_ID ?? 'founders');
 assert.ok(cup, 'VN_CUP_ID must name an available cup');
 const base = process.env.VN_URL;
@@ -84,6 +89,14 @@ try {
     assert.equal(snap.ship.id, 'shrike');
     assert.equal(snap.competition.difficulty, 'easy');
     assert.ok(snap.cup);
+    assert.equal(
+      snap.competition.courseFormat,
+      snap.track.closed ? 'circuit' : 'sprint',
+    );
+    assert.equal(snap.competition.laps, snap.track.closed ? 2 : 1);
+    assert.equal(snap.competition.standings.length, 10);
+    assert.equal(snap.lap.history.length, 0);
+    assert.equal(snap.vehicle.energy, 100);
     assert.equal((await state()).cup.state.cupId, cup.id);
   }
   async function finish() {
@@ -99,10 +112,64 @@ try {
     assert.equal(
       s.cup.state.phase,
       'results',
-      JSON.stringify(await page.evaluate(() => window.__VN.getSnapshot().race)),
+      JSON.stringify(await page.evaluate(() => window.__VN.getSnapshot().lap)),
     );
     assert.equal(s.cup.state.results.at(-1).length, 10);
-    assert.ok(s.cup.state.results.at(-1).some((r) => r.status === 'finished'));
+    const snapshot = await page.evaluate(() => window.__VN.getSnapshot());
+    const result = snapshot.competition.results;
+    const laps = snapshot.track.closed ? 2 : 1;
+    assert.equal(result.laps, laps);
+    assert.equal(result.playerLapTimes.length, laps);
+    assert.equal(
+      result.playerValid,
+      true,
+      'the player completes a valid course',
+    );
+    assert.equal(snapshot.lap.history.length, laps);
+    assert.equal(
+      s.cup.state.results.at(-1).find((r) => r.id === 'player').status,
+      'finished',
+    );
+    const scored = cupRaceRows(s.cup.state.results.at(-1));
+    assert.equal(scored[0].points, 25);
+    for (const row of scored)
+      assert.equal(
+        row.points,
+        row.status === 'finished' ? CUP_POINTS[row.position - 1] : 0,
+      );
+    assert.equal(
+      scored.find((r) => r.id === 'player').timeMs,
+      Math.round(result.playerTotalTime * 1000),
+    );
+    const formats = await page.locator('.cup-route small').allTextContents();
+    assert.match(
+      formats[s.cup.state.eventIndex],
+      snapshot.track.closed
+        ? /Circuit · 2 laps · Scored/
+        : /Sprint · 1 descent · Scored/,
+    );
+    const expected = cupStandings(s.cup.state);
+    assert.deepEqual(
+      await page
+        .locator('.cup-standings tbody tr td:nth-of-type(2)')
+        .allTextContents(),
+      expected.map((r) => String(r.points)),
+    );
+    if (!snapshot.track.closed) {
+      assert.equal(snapshot.lap.complete, true);
+      const saved = s.cup.state;
+      await page.evaluate(() => window.__VN.verifyCupStep(1200));
+      assert.deepEqual(
+        (await state()).cup.state,
+        saved,
+        'the sprint is scored only once',
+      );
+      assert.equal(
+        (await page.evaluate(() => window.__VN.getSnapshot())).competition
+          .results.playerTotalTime,
+        result.playerTotalTime,
+      );
+    }
     assert.equal(await page.locator('.cup-standings tbody tr').count(), 10);
     await fits();
     console.log(
@@ -163,22 +230,24 @@ try {
   await click('cup-hub');
   assert.equal((await state()).cup.state.phase, 'results');
   assert.deepEqual((await state()).cup.state.results[0], first);
-  await click('cup-next');
-  await ready(cup.tracks[1]);
-  await page.reload();
-  await click('cup-hub');
-  assert.equal((await state()).cup.state.eventIndex, 1);
-  await click('cup-resume');
-  await ready(cup.tracks[1]);
-  await finish();
-  await click('cup-retry');
-  await ready(cup.tracks[1]);
-  assert.deepEqual((await state()).cup.state.results, [first]);
-  await finish();
-  await click('cup-next');
-  await ready(cup.tracks[2]);
-  await finish();
-  assert.equal((await state()).cup.state.results.length, 3);
+  for (let event = 1; event < cup.tracks.length; event++) {
+    const prior = (await state()).cup.state.results;
+    await click('cup-next');
+    await ready(cup.tracks[event]);
+    // An unfinished circuit or sprint restarts after reload with prior scores intact.
+    await page.reload();
+    await click('cup-hub');
+    assert.equal((await state()).cup.state.eventIndex, event);
+    assert.deepEqual((await state()).cup.state.results, prior);
+    await click('cup-resume');
+    await ready(cup.tracks[event]);
+    await finish();
+    await click('cup-retry');
+    await ready(cup.tracks[event]);
+    assert.deepEqual((await state()).cup.state.results, prior);
+    await finish();
+  }
+  assert.equal((await state()).cup.state.results.length, cup.tracks.length);
   await page.getByText('Final cup standings', { exact: true }).waitFor();
   await page.reload();
   await click('cup-hub');
@@ -191,7 +260,7 @@ try {
   );
   await click('cup-restart');
   await click('cup-cancel');
-  assert.equal((await state()).cup.state.results.length, 3);
+  assert.equal((await state()).cup.state.results.length, cup.tracks.length);
   await click('cup-restart');
   await click('cup-confirm');
   await ready(cup.tracks[0]);

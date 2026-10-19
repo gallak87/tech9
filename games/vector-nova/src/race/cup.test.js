@@ -187,3 +187,42 @@ test('damaged saves and unknown versions are ignored; impossible results rejecte
   race.standings[0] = race.standings[1];
   assert.throws(() => classifyCupRace(race));
 });
+
+test('Horizon retains circuit scores when its sprint finale is resumed and retried', () => {
+  const storage = memory();
+  let store = createCupStore(() => storage);
+  store.start('horizon', 'needle', 'medium');
+  for (let event = 0; event < 2; event++) {
+    store.finish({ ...result(), courseFormat: 'circuit', laps: 2 });
+    store.next();
+  }
+  store = createCupStore(() => storage);
+  const circuits = store.snapshot().state.results;
+  assert.equal(store.snapshot().state.eventIndex, 2);
+  assert.equal(store.snapshot().state.phase, 'racing');
+  store.finish({ ...result(), courseFormat: 'sprint', laps: 1 });
+  assert.deepEqual(
+    cupRaceRows(store.snapshot().state.results[2]).map((r) => r.points),
+    CUP_POINTS,
+  );
+  assert.equal(cupComplete(store.snapshot().state), true);
+  store = createCupStore(() => storage);
+  store.retry();
+  assert.deepEqual(store.snapshot().state.results, circuits);
+  assert.equal(cupComplete(store.snapshot().state), false);
+  const sprint = result(ids.toReversed());
+  sprint.standings.find((r) => r.id === 'rook').valid = false;
+  store.finish({ ...sprint, courseFormat: 'sprint', laps: 1 });
+  assert.deepEqual(store.snapshot().state.results.slice(0, 2), circuits);
+  assert.equal(
+    cupStandings(store.snapshot().state).find((r) => r.id === 'player').points,
+    52,
+  );
+  assert.equal(
+    cupRaceRows(store.snapshot().state.results[2]).find((r) => r.id === 'rook')
+      .points,
+    0,
+  );
+  assert.equal(store.finish(result()), false);
+  assert.equal(store.next(), false);
+});

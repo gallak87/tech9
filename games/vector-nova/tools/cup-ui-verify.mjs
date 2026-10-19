@@ -1,9 +1,16 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { RACE_OPPONENTS } from '../src/race/roster.js';
-import { cupDefinition } from '../src/race/cup.js';
+import { CUPS, cupDefinition } from '../src/race/cup.js';
 const cup = cupDefinition(process.env.VN_CUP_ID ?? 'founders');
 assert.ok(cup, 'VN_CUP_ID must name an available cup');
+const lastCup = CUPS.at(-1);
+const lastCupNames = await Promise.all(
+  lastCup.tracks.map(
+    async (id) =>
+      (await import(`../src/levels/${id}/metadata.js`)).default.name,
+  ),
+);
 const base = process.env.VN_URL;
 if (!base) throw Error('Set VN_URL to a dev server');
 const browser = await chromium.launch({ headless: true, channel: 'chrome' });
@@ -37,23 +44,19 @@ try {
   await page.locator('[data-cup="founders"]').focus();
   await page.keyboard.press('End');
   assert.equal(
-    await page.locator('[data-cup="frontier"]').getAttribute('aria-pressed'),
+    await page
+      .locator(`[data-cup="${lastCup.id}"]`)
+      .getAttribute('aria-pressed'),
     'true',
   );
   assert.equal(
     await page.evaluate(() => document.activeElement.dataset.cup),
-    'frontier',
+    lastCup.id,
   );
-  assert.equal(
-    await page.locator('.cup-panel h1').textContent(),
-    'Frontier Cup',
-  );
-  assert.equal(
-    await page
-      .locator('.cup-route strong')
-      .allTextContents()
-      .then((names) => names.join(' → ')),
-    'Vesper Canopy → Glasswake Comet → Cindercoil',
+  assert.equal(await page.locator('.cup-panel h1').textContent(), lastCup.name);
+  assert.deepEqual(
+    await page.locator('.cup-route strong').allTextContents(),
+    lastCupNames,
   );
   assert.equal(
     (await page.evaluate(() => window.__VN_FRONTEND.getState())).loadedId,
@@ -64,7 +67,7 @@ try {
   await page.keyboard.press('Escape');
   assert.equal(
     await page.evaluate(() => document.activeElement.dataset.cup),
-    'frontier',
+    lastCup.id,
   );
   await page.keyboard.press('Home');
   assert.equal(

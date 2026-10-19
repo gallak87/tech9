@@ -12,6 +12,11 @@ export const CUPS = Object.freeze([
     name: 'Frontier Cup',
     tracks: ['vesper', 'glasswake', 'cindercoil'],
   }),
+  Object.freeze({
+    id: 'horizon',
+    name: 'Horizon Cup',
+    tracks: ['saffron', 'zephyr', 'shatterline'],
+  }),
 ]);
 export const CUP_POINTS = Object.freeze([25, 18, 15, 12, 10, 8, 6, 4, 2, 1]);
 export const CUP_FINISH_GRACE = 30;

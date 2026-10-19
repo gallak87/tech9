@@ -464,6 +464,7 @@ export function createFrontend(host) {
           ? cupWaitingView(lastResults)
           : cupView({
               ...cupStore.snapshot(),
+              routes,
               catalog,
               cupId: selectedCup,
               shipId,

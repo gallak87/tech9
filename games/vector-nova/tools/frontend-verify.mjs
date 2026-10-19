@@ -372,6 +372,29 @@ try {
               `${action} moved the shared menu`,
             );
             await menuFits(page);
+            const origin = (await front(page)).screen;
+            await page.locator('[data-action="records"]').click();
+            assert.deepEqual(
+              await anchors(),
+              original,
+              'records moved the shared menu',
+            );
+            await menuFits(page);
+            // Reopening the active view must not overwrite its Back destination.
+            await page.locator('[data-action="records"]').click();
+            await page
+              .locator('[data-record-filter="ship"]')
+              .selectOption('needle');
+            await page.locator('[data-action="settings"]').click();
+            await page.keyboard.press('Escape');
+            assert.equal((await front(page)).screen, 'records');
+            await page.locator('[data-action="records-back"]').click();
+            assert.equal((await front(page)).screen, origin);
+            assert.deepEqual(
+              await anchors(),
+              original,
+              'returning from records moved the menu',
+            );
           }
           await page.locator('[data-cup="apex"]').click();
           assert.deepEqual(
@@ -1675,6 +1698,94 @@ try {
       },
     );
   }
+  const recordsViewports = [
+    ...(!flags.includes('--responsive') ? [{ width: 1024, height: 768 }] : []),
+    ...(!flags.includes('--desktop')
+      ? [
+          { width: 390, height: 844 },
+          { width: 320, height: 700 },
+        ]
+      : []),
+  ];
+  for (const viewport of recordsViewports) {
+    await check(
+      `record rows filter and set up trials without loading worlds ${viewport.width}×${viewport.height}`,
+      async (page) => {
+        await page.goto(url('level=halcyon&music=0'));
+        // Valid saved-record fixtures exercise a long list without running twelve races.
+        await page.evaluate((trackId) => {
+          for (let i = 0; i < 12; i++) {
+            const identity = {
+              track: trackId,
+              ship: { id: i % 2 ? 'shrike' : 'needle', version: 'fixture' },
+              version: `fixture-${i}`,
+              physics: 3,
+              rules: 'menu fixture',
+              format: 'circuit',
+              laps: 3,
+            };
+            let hash = 2166136261;
+            for (const c of JSON.stringify(identity))
+              hash = Math.imul(hash ^ c.charCodeAt(0), 16777619);
+            const duration = 180 + i;
+            localStorage.setItem(
+              `vector-nova.trial.v1.${(hash >>> 0).toString(16)}`,
+              JSON.stringify({
+                version: 1,
+                identity,
+                duration,
+                laps: Array(3).fill(duration / 3),
+                splits: Array.from(
+                  { length: 9 },
+                  (_, n) => (duration * (n + 1)) / 9,
+                ),
+              }),
+            );
+          }
+        }, createHalcyonLevel().createTrack().id);
+        await page.locator('[data-action="records"]').click();
+        assert.equal(await page.locator('.records-list li').count(), 12);
+        assert.equal(await page.locator('.record-course img').count(), 12);
+        assert.equal(
+          await page.evaluate(
+            () =>
+              document.querySelector('.records-panel').scrollHeight >
+              document.querySelector('.records-panel').clientHeight + 1,
+          ),
+          false,
+          'records must use outer-page scrolling',
+        );
+        assert.equal(
+          await page.evaluate(
+            () =>
+              document.querySelector('#front-shell').scrollWidth > innerWidth,
+          ),
+          false,
+        );
+        await page
+          .locator('[data-record-filter="ship"]')
+          .selectOption('needle');
+        assert.equal(await page.locator('.records-list li').count(), 6);
+        await page
+          .locator('[data-record-filter="track"]')
+          .selectOption('orbital');
+        assert.match(
+          await page.locator('.records-empty').textContent(),
+          /No records match/,
+        );
+        await page
+          .locator('[data-record-filter="track"]')
+          .selectOption('halcyon');
+        await page.locator('[data-record-key]').last().click();
+        assert.equal((await front(page)).intent, 'time-trial');
+        assert.equal((await front(page)).selected, 'halcyon');
+        assert.equal((await front(page)).shipId, 'needle');
+        assert.equal((await front(page)).loadedId, null);
+        assert.equal(await page.evaluate(() => !!window.__VN), false);
+      },
+      viewport,
+    );
+  }
   if (!flags.includes('--desktop')) {
     for (const viewport of [
       { width: 390, height: 844 },
@@ -1770,6 +1881,16 @@ try {
           await press('ArrowDown', '[data-difficulty="easy"]');
           await press('ArrowRight', '[data-difficulty="medium"]');
           await press('ArrowDown', '[data-action="records"]');
+          await press('Enter', '[data-record-filter="track"]');
+          assert.equal(
+            await page.locator('#front-shell').getAttribute('class'),
+            'cinematic-menu',
+          );
+          assert.equal(await page.locator('.menu-backdrop img').count(), 1);
+          await page
+            .locator('[data-record-filter="ship"]')
+            .selectOption('shrike');
+          await press('Escape', '[data-action="records"]');
           await press('ArrowDown', '[data-action="inspect"]');
           await press('ArrowDown', '[data-action="settings"]');
           await press('Space', '[data-action="settings-back"]');

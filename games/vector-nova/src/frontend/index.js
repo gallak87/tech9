@@ -140,7 +140,7 @@ export function createFrontend(host) {
   // Match CSS: one picker at a time beside the menu, separate pages below.
   const wideMenu = matchMedia('(min-width: 900px)');
   const choosingSession = () =>
-    ['home', 'circuits', 'setup', 'cup'].includes(screen);
+    ['home', 'circuits', 'setup', 'cup', 'records'].includes(screen);
   const showingShip = () => screen === 'setup';
   const lockedCup = () => (intent === 'cup' ? cupStore.snapshot().state : null);
   host.innerHTML =
@@ -202,6 +202,8 @@ export function createFrontend(host) {
   }
   function focusSelector(element = document.activeElement) {
     if (!shell.contains(element)) return null;
+    if (element.dataset.recordFilter)
+      return `[data-record-filter="${element.dataset.recordFilter}"]`;
     if (element.dataset.recordKey)
       return `[data-record-key="${element.dataset.recordKey}"]`;
     for (const key of ['level', 'ship', 'difficulty', 'cup', 'action']) {
@@ -231,11 +233,13 @@ export function createFrontend(host) {
   }
   function focusPicker() {
     focusMenu(
-      showingShip()
-        ? `button[data-ship="${shipId}"]`
-        : intent === 'cup'
-          ? '.cup-picker [aria-pressed="true"], .cup-rules summary'
-          : `[data-level="${selected}"]`,
+      screen === 'records'
+        ? '[data-record-filter="track"]'
+        : showingShip()
+          ? `button[data-ship="${shipId}"]`
+          : intent === 'cup'
+            ? '.cup-picker [aria-pressed="true"], .cup-rules summary'
+            : `[data-level="${selected}"]`,
     );
   }
   function focusPickerHeader() {
@@ -266,17 +270,19 @@ export function createFrontend(host) {
     render();
     if (navigating) shell.scrollTop = 0;
     const focus =
-      next === 'circuits'
-        ? `[data-level="${selected}"]`
-        : next === 'setup'
-          ? `button[data-ship="${shipId}"]`
-          : next === 'home' || next === 'cup'
-            ? '.cup-picker [aria-pressed="true"], .race-actions > .primary'
-            : next === 'settings'
-              ? '[data-action="settings-back"]'
-              : next === 'loading'
-                ? '[data-action="cancel"]'
-                : 'h1';
+      next === 'records'
+        ? '[data-record-filter="track"]'
+        : next === 'circuits'
+          ? `[data-level="${selected}"]`
+          : next === 'setup'
+            ? `button[data-ship="${shipId}"]`
+            : next === 'home' || next === 'cup'
+              ? '.cup-picker [aria-pressed="true"], .race-actions > .primary'
+              : next === 'settings'
+                ? '[data-action="settings-back"]'
+                : next === 'loading'
+                  ? '[data-action="cancel"]'
+                  : 'h1';
     shell.querySelector(focus)?.focus({ preventScroll: true });
     if (next === 'circuits')
       shell.querySelector(focus)?.scrollIntoView({ block: 'nearest' });
@@ -424,7 +430,7 @@ export function createFrontend(host) {
     const selectedCraft = lockedCup()
       ? SHIPS.find((entry) => entry.id === savedCup.shipId)
       : selectedShip();
-    return `<section class="race-menu" aria-label="Session setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1>${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step" ${lockedCup() ? 'disabled' : ''}><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras">${button('records', 'Time Trial records')}${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${game?.hasSession() && !sessionCup ? `<aside class="session-return">${button('resume-session', `↶ Resume ${sessionIntent === 'time-trial' ? 'Time Trial' : sessionIntent === 'practice' ? 'Practice' : 'Quick Race'} · ${escape(loadedLevel().name)}`)}</aside>` : ''}${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    return `<section class="race-menu" aria-label="Session setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1>${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step" ${lockedCup() ? 'disabled' : ''}><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${game?.hasSession() && !sessionCup ? `<aside class="session-return">${button('resume-session', `↶ Resume ${sessionIntent === 'time-trial' ? 'Time Trial' : sessionIntent === 'practice' ? 'Practice' : 'Quick Race'} · ${escape(loadedLevel().name)}`)}</aside>` : ''}${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
   };
   function cupPanel(withActions) {
     const state = cupStore.snapshot().state;
@@ -452,12 +458,40 @@ export function createFrontend(host) {
     const picking = wide || screen !== 'home';
     const setup = showingShip();
     const cup = intent === 'cup';
+    const records = screen === 'records';
+    const backAction = records ? 'records-back' : 'home';
+    const backLabel =
+      records && recordsBack === 'results'
+        ? '← Back to results'
+        : '← Back to setup';
+    const pickerHeader = wide
+      ? `<nav class="picker-tabs" aria-label="Setup view"><button data-action="circuits" aria-pressed="${!setup && !records}">${cup ? 'Cups' : 'Tracks'}</button><button data-action="ship-step" aria-pressed="${setup}" ${lockedCup() ? 'disabled' : ''}>Ship</button>${records ? `<h2 class="records-heading">Records</h2>${button('records-back', recordsBack === 'results' ? '← Results' : '← Back')}` : ''}</nav>`
+      : `<header class="picker-header"><button class="front-brand" data-action="home">VECTOR<span>//</span>NOVA</button>${button(backAction, backLabel)}</header>`;
+    const pickerContent = !picking
+      ? ''
+      : records
+        ? recordsView({
+            records: readTrialRecords(),
+            catalog,
+            routes,
+            shipId: recordShip,
+            trackId: recordTrack,
+            heading: !wide,
+            trackArt: (id) => picture(route(id)) + routeArt(route(id)),
+          })
+        : setup
+          ? shipPanel(!wide)
+          : cup
+            ? cupPanel(!wide)
+            : circuitPanel();
     shell.className = 'cinematic-menu';
-    shell.innerHTML = `<div class="menu-backdrop" aria-hidden="true">${picture(route())}</div><main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${setup ? 'menu-ship-picker' : cup ? 'menu-cup-picker' : 'menu-track-picker'}" aria-label="${setup ? 'Ship' : cup ? 'Championship' : 'Track'} selection">${wide ? `<nav class="picker-tabs" aria-label="Setup view"><button data-action="circuits" aria-pressed="${!setup}">${cup ? 'Cups' : 'Tracks'}</button><button data-action="ship-step" aria-pressed="${setup}" ${lockedCup() ? 'disabled' : ''}>Ship</button></nav>` : `<header class="picker-header"><button class="front-brand" data-action="home">VECTOR<span>//</span>NOVA</button>${button('home', '← Back to setup')}</header>`}${setup ? shipPanel(!wide) : cup ? cupPanel(!wide) : circuitPanel()}</section>` : ''}</main>`;
-    if (!setup && !cup && picking) showDetail(selected);
+    shell.innerHTML = `<div class="menu-backdrop" aria-hidden="true">${picture(route())}</div><main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${records ? 'menu-records-picker' : setup ? 'menu-ship-picker' : cup ? 'menu-cup-picker' : 'menu-track-picker'}" aria-label="${records ? 'Time Trial records' : setup ? 'Ship selection' : cup ? 'Championship selection' : 'Track selection'}">${pickerHeader}${pickerContent}</section>` : ''}</main>`;
+    if (!setup && !cup && !records && picking) showDetail(selected);
     if (showingShip()) mountShipPreview();
     shell
-      .querySelector('.ship-transfer, .menu-transfer, .track-transfer')
+      .querySelector(
+        '.ship-transfer, .menu-transfer, .track-transfer, .records-transfer',
+      )
       ?.append(transfer);
     updateLaunchSummary();
     updateStatus();
@@ -497,16 +531,6 @@ export function createFrontend(host) {
     if (screen === 'loading') {
       const inspecting = launchTarget === 'inspection';
       content.innerHTML = `<section class="loading-copy">${inspecting ? '' : `<div class="loading-card">${picture(route())}${routeArt(route())}</div>`}<div class="transfer-slot loading-transfer"></div>${heading(inspecting ? 'PREPARING STUDIO' : 'LOADING CIRCUIT', inspecting ? 'Ship inspector' : escape(level().name))}${inspecting ? '' : `<div class="session-facts">${facts()}</div>`}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
-    } else if (screen === 'records') {
-      content.innerHTML = recordsView({
-        records: readTrialRecords(),
-        catalog,
-        routes,
-        shipId: recordShip,
-        trackId: recordTrack,
-      });
-      shell.querySelector('.front-footer span').textContent =
-        'TIME TRIALS / SAVED ON THIS DEVICE';
     } else if (screen === 'settings') {
       content.innerHTML = `<div class="settings-layout"><section class="settings-form"><label><span>Graphics <small>High adds ambient occlusion and postprocessing. Low reduces GPU load.</small></span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume <small>Tunes has its own volume control.</small></span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion <small>Reduces decorative motion and distortion.</small></span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p>Saved on this device.</p></section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
         [
@@ -1170,6 +1194,10 @@ export function createFrontend(host) {
       chooseMode('race');
     },
     records() {
+      if (screen === 'records') {
+        focusPicker();
+        return;
+      }
       recordsBack = screen;
       recordsFocus = focusSelector();
       setScreen('records');
@@ -1482,6 +1510,14 @@ export function createFrontend(host) {
       ) {
         e.preventDefault();
         focusPicker();
+        return;
+      }
+      if (control.dataset.action === 'records-back') {
+        if (vertical) {
+          e.preventDefault();
+          if (e.code === 'ArrowDown') focusPicker();
+          else focusMenu('.race-menu [data-action="records"]');
+        }
         return;
       }
       if (control.closest('.picker-tabs')) {

@@ -1199,3 +1199,178 @@
     height: 180px;
   }
 }
+
+/* Records are another view of the same menu, with normal page scrolling. */
+.menu-wide .menu-records-picker {
+  height: auto;
+}
+.menu-layout .picker-tabs .records-heading {
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 1.2;
+  padding: 0 0 13px;
+  min-height: 43px;
+  display: flex;
+  align-items: center;
+  border-bottom: 2px solid #d01818;
+}
+.menu-layout .picker-tabs [data-action='records-back'] {
+  margin-left: auto;
+  font-size: 12px;
+}
+.menu-layout .menu-extras [aria-pressed='true'] {
+  border-color: #d01818;
+  background: #ffffff09;
+}
+.records-panel {
+  min-width: 0;
+}
+.records-panel > .records-heading {
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+.menu-layout .records-intro {
+  display: grid;
+  gap: 6px;
+  font-size: 17px;
+  margin: 8px 0 22px;
+}
+.records-intro span {
+  font-size: 12px;
+  color: #aaa;
+}
+.records-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.records-toolbar label {
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+  min-width: 0;
+}
+.records-toolbar select {
+  min-height: 44px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #ffffff35;
+  background: #171717;
+  color: #e8e8e8;
+  width: 100%;
+  font: inherit;
+}
+.menu-layout .records-count {
+  margin: 18px 0;
+  color: #aaa;
+  font-size: 11px;
+}
+.records-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.records-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px 16px;
+  border-top: 1px solid #ffffff30;
+  padding: 18px 0;
+}
+.record-description {
+  grid-row: span 2;
+  min-width: 0;
+}
+.record-course {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.record-course .track-icon {
+  flex: none;
+}
+.records-list h3 {
+  font-size: 14px;
+  line-height: 1.4;
+}
+.menu-layout .record-course p {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #bbb;
+}
+.records-list small {
+  color: #aaa;
+  font-size: 11px;
+}
+.records-list strong {
+  font-size: 25px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  text-align: right;
+}
+.menu-layout .records-list button,
+.menu-layout .records-empty button {
+  border: 1px solid #ffffff40;
+  min-height: 40px;
+  padding: 10px 12px;
+  font-size: 12px;
+}
+.records-list button {
+  align-self: start;
+}
+.records-list details {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #aaa;
+  overflow-wrap: anywhere;
+}
+.records-list summary {
+  cursor: pointer;
+  padding-block: 6px;
+}
+.records-list details p {
+  line-height: 1.6;
+}
+.records-empty {
+  padding: 28px 0;
+  border-top: 1px solid #ffffff30;
+  border-bottom: 1px solid #ffffff30;
+}
+.records-empty h3 {
+  font-size: 23px;
+  font-weight: 600;
+}
+.menu-layout .records-empty p {
+  font-size: 13px;
+  line-height: 1.65;
+  color: #bbb;
+  max-width: 52ch;
+  margin: 14px 0 20px;
+}
+.menu-layout .records-help {
+  color: #aaa;
+  font-size: 11px;
+  line-height: 1.6;
+  margin-top: 20px;
+  max-width: 64ch;
+}
+@media (max-width: 599px) {
+  .records-list li {
+    gap: 10px;
+  }
+  .records-list strong {
+    font-size: 21px;
+  }
+  .record-description {
+    grid-row: 1;
+  }
+  .records-list button {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .records-toolbar {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+}

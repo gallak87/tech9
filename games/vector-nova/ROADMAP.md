@@ -11,7 +11,7 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 3. [x] **Frontier Cup.** Add Vesper Canopy → Glasswake Comet → Cindercoil: a second three-race circuit cup moving from easier routes into a medium course. Reuse the proven cup scoring, saved progress, results and retry flow.
 4. [x] **Horizon Cup.** Add Saffron Leviathan → Zephyr Basilica → Shatterline (sprint): two medium circuits followed by the first downhill finale. Verify the transition from lap races to a single descent, keeping placement points consistent across event formats.
 5. [x] **Apex Cup.** Add Worldspire (sprint) → Helion Flare → Nightweir (sprint) → Umbra Fold: a longer four-event finale alternating descents with the harder circuits. Reuse the same cup rules and validate resume/retry across both formats.
-6. [ ] **UI revamp around the working modes.** Once Time Trials and all four cups are playable, design the menu, setup, records and results flows around their actual needs. Make mode selection and return/retry paths consistent while retaining Quick Race and Practice. Preserve keyboard and touch navigation. Choose the final layout after using both modes; avoid committing to a speculative menu design first.
+6. [x] **UI revamp around the working modes.** Once Time Trials and all four cups are playable, design the menu, setup, records and results flows around their actual needs. Make mode selection and return/retry paths consistent while retaining Quick Race and Practice. Preserve keyboard and touch navigation. Choose the final layout after using both modes; avoid committing to a speculative menu design first.
 
 ## Implemented
 

@@ -53,6 +53,7 @@ try {
     .locator('[data-action="time-trial"]')
     .first()
     [touch ? 'tap' : 'click']();
+  await page.locator('[data-action="launch"]')[touch ? 'tap' : 'click']();
   await page.waitForFunction(() => window.__VN?.ready, null, {
     timeout: 120000,
   });
@@ -78,6 +79,30 @@ try {
   await page.getByRole('heading', { name: 'First personal best.' }).waitFor();
   assert.equal(await page.locator('.trial-splits li').count(), sprint ? 3 : 9);
   const first = snap.timeTrial.result.playerTotalTime;
+  await page.locator('[data-action="records"]').click();
+  assert.equal(await page.locator('.records-list li').count(), 1);
+  assert.match(
+    await page.locator('.records-list').textContent(),
+    /Personal ghost saved/,
+  );
+  await page.locator('[data-record-key]').focus();
+  await page.keyboard.press('KeyS');
+  await page.keyboard.press('Escape');
+  assert.equal(
+    await page
+      .locator('[data-record-key]')
+      .evaluate((el) => el === document.activeElement),
+    true,
+  );
+  await page.locator('[data-record-filter="ship"]').selectOption('needle');
+  assert.equal(await page.locator('.records-list li').count(), 0);
+  await page.locator('[data-record-filter="ship"]').selectOption('all');
+  await page.keyboard.press('Escape');
+  assert.equal(
+    await page.evaluate(() => window.__VN_FRONTEND.getState().screen),
+    'results',
+  );
+
   assert.equal(
     await page.evaluate(
       () => document.documentElement.scrollWidth > innerWidth,
@@ -107,6 +132,7 @@ try {
   if (!(await page.locator('[data-action="practice"]').count()))
     await page.locator('[data-action="home"]').first().click();
   await page.locator('[data-action="practice"]').first().click();
+  await page.locator('[data-action="launch"]').click();
   await page.waitForFunction(
     () => window.__VN?.getSnapshot().timeTrial === null,
   );
@@ -117,6 +143,7 @@ try {
   );
   await page.reload();
   await page.locator('[data-action="time-trial"]').first().click();
+  await page.locator('[data-action="launch"]').click();
   await page.waitForFunction(() => window.__VN?.ready, null, {
     timeout: 120000,
   });
@@ -139,6 +166,7 @@ try {
   });
   await page.reload();
   await page.locator('[data-action="time-trial"]').first().click();
+  await page.locator('[data-action="launch"]').click();
   await page.waitForFunction(() => window.__VN?.ready, null, {
     timeout: 120000,
   });

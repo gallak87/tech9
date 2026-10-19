@@ -1,5 +1,7 @@
 import { CUPS, createCupStore, cupDefinition } from '../race/cup.js';
 import { cupView, cupWaitingView } from './cup.js';
+import { recordsView } from './records.js';
+import { readTrialRecords } from '../race/time-trial.js';
 import { formatTime, formatDelta } from '../race/timing.js';
 import { discoverLevels } from '../levels/catalog.js';
 import routes from 'virtual:menu-catalog';
@@ -82,6 +84,11 @@ export function createFrontend(host) {
   if (!catalog.some((level) => level.id === selected)) selected = catalog[0].id;
   let screen = 'home',
     intent = 'race';
+  let sessionIntent = 'race',
+    recordsBack = 'home',
+    recordsFocus = null;
+  let recordShip = 'all',
+    recordTrack = 'all';
   let previewLevelId = selected;
   let previewShipId = null;
   let shipId =
@@ -193,6 +200,8 @@ export function createFrontend(host) {
   }
   function focusSelector(element = document.activeElement) {
     if (!shell.contains(element)) return null;
+    if (element.dataset.recordKey)
+      return `[data-record-key="${element.dataset.recordKey}"]`;
     for (const key of ['level', 'ship', 'difficulty', 'cup', 'action']) {
       if (!element.dataset[key]) continue;
       const scope = element.closest(
@@ -348,20 +357,54 @@ export function createFrontend(host) {
       .join(
         '',
       )}</div><p class="stat-note">Handling and braking are relative ratings.</p></aside>${withActions ? pickerRaceActions() : ''}</div>`;
-  const launchLabel = () => (isSprint() ? 'Start descent →' : 'Start race →');
+  const modeName = () =>
+    ({
+      race: 'Quick Race',
+      practice: 'Practice',
+      'time-trial': 'Time Trial',
+      cup: 'Championships',
+    })[intent];
+  const modePicker = () =>
+    `<nav class="mode-picker" aria-label="Game mode">${[
+      ['quick-race', 'race', 'Quick Race'],
+      ['cup-hub', 'cup', 'Championships'],
+      ['time-trial', 'time-trial', 'Time Trial'],
+      ['practice', 'practice', 'Practice'],
+    ]
+      .map(
+        ([action, mode, label]) =>
+          `<button data-action="${action}" aria-pressed="${intent === mode}">${label}</button>`,
+      )
+      .join('')}</nav>`;
+  const launchLabel = () =>
+    intent === 'time-trial'
+      ? 'Start Time Trial →'
+      : intent === 'practice'
+        ? 'Start Practice →'
+        : isSprint()
+          ? 'Start Sprint →'
+          : 'Start race →';
+  const modeDescription = () =>
+    intent === 'time-trial'
+      ? `${isSprint() ? 'One descent' : 'Three laps'} against your personal ghost. Manual boost, no road devices.`
+      : intent === 'practice'
+        ? `${isSprint() ? 'One solo descent' : 'Open solo laps'} to learn the course. No opponents.`
+        : `${isSprint() ? 'One descent' : 'Two laps'} against nine rivals. Choose your opponent difficulty.`;
   const raceActions = () =>
-    `<div class="race-actions"><button class="primary" data-action="launch"><strong>${isSprint() ? 'Sprint' : 'Race'}</strong><small>${isSprint() ? 'One descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals</small><span aria-hidden="true">→</span></button>${difficultyControls()}<button class="solo-action" data-action="practice"><strong>${isSprint() ? 'Solo descent' : 'Practice'}</strong><small>${isSprint() ? 'Summit to finish' : 'Solo · open laps'}</small></button><button class="solo-action" data-action="time-trial"><strong>Time Trial</strong><small>${isSprint() ? '1 descent' : '3 laps'} · personal ghost</small><span class="trial-rule">Manual boost · no devices</span></button></div>`;
+    `<div class="race-actions"><button class="primary" data-action="launch"><strong>${launchLabel()}</strong><small>${intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : '3 laps'}</small></button>${intent === 'race' ? difficultyControls() : ''}<p class="mode-description">${modeDescription()}</p></div>`;
   function pickerRaceActions() {
-    return `<div class="picker-race-actions"><button class="change-track" data-action="circuits">${escape(level().name)} · ${trackChallenge(selected)} <span aria-hidden="true">↗</span></button>${raceActions()}</div>`;
+    return `<div class="picker-race-actions"><button class="change-track" data-action="circuits">${escape(level().name)} · ${modeName()} <span aria-hidden="true">↗</span></button>${raceActions()}</div>`;
   }
-  const homeMenu = () =>
-    `<section class="race-menu" aria-label="Race setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1><button class="menu-selection" data-action="circuits"><span>Track</span><div><strong>${escape(level().name)}</strong><small>${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedShip().name}</strong><small>${selectedShip().role}</small></div><b aria-hidden="true">›</b></button>${raceActions()}<div class="menu-extras">${button('cup-hub', 'Championships')}${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${game?.hasSession() && !sessionCup ? `<aside class="session-return">${button('resume-session', `↶ Resume ${escape(loadedLevel().name)}`)}</aside>` : ''}</section>`;
+  const homeMenu = () => {
+    const savedCup = cupStore.snapshot().state;
+    return `<section class="race-menu" aria-label="Session setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1>${modePicker()}<button class="menu-selection" data-action="circuits"><span>Track</span><div><strong>${escape(level().name)}</strong><small>${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedShip().name}</strong><small>${selectedShip().role}</small></div><b aria-hidden="true">›</b></button>${raceActions()}<div class="menu-extras">${button('records', 'Time Trial records')}${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${game?.hasSession() && !sessionCup ? `<aside class="session-return">${button('resume-session', `↶ Resume ${sessionIntent === 'time-trial' ? 'Time Trial' : sessionIntent === 'practice' ? 'Practice' : 'Quick Race'} · ${escape(loadedLevel().name)}`)}</aside>` : ''}${savedCup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+  };
   function renderMenu() {
     const wide = wideMenu.matches;
     const picking = wide || screen !== 'home';
     const setup = screen === 'setup';
     shell.className = 'cinematic-menu';
-    shell.innerHTML = `<div class="menu-backdrop" aria-hidden="true">${picture(route())}</div><main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${setup ? 'menu-ship-picker' : 'menu-track-picker'}" aria-label="${setup ? 'Ship' : 'Track'} selection">${wide ? `<nav class="picker-tabs" aria-label="Setup view"><button data-action="circuits" aria-pressed="${!setup}">Tracks</button><button data-action="ship-step" aria-pressed="${setup}">Ship</button></nav>` : `<header class="picker-header"><button class="front-brand" data-action="home">VECTOR<span>//</span>NOVA</button>${button('home', '← Back to race')}</header>`}${setup ? shipPanel(!wide) : circuitPanel()}</section>` : ''}</main>`;
+    shell.innerHTML = `<div class="menu-backdrop" aria-hidden="true">${picture(route())}</div><main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${setup ? 'menu-ship-picker' : 'menu-track-picker'}" aria-label="${setup ? 'Ship' : 'Track'} selection">${wide ? `<nav class="picker-tabs" aria-label="Setup view"><button data-action="circuits" aria-pressed="${!setup}">Tracks</button><button data-action="ship-step" aria-pressed="${setup}">Ship</button></nav>` : `<header class="picker-header"><button class="front-brand" data-action="home">VECTOR<span>//</span>NOVA</button>${button('home', '← Back to setup')}</header>`}${setup ? shipPanel(!wide) : circuitPanel()}</section>` : ''}</main>`;
     if (!setup && picking) showDetail(selected);
     if (showingShip()) mountShipPreview();
     shell
@@ -385,6 +428,7 @@ export function createFrontend(host) {
       settings: 'SETTINGS',
       results: 'SESSION COMPLETE',
       cup: 'CHAMPIONSHIP',
+      records: 'TIME TRIAL RECORDS',
     }[screen];
     const headerAction =
       screen === 'settings'
@@ -396,7 +440,7 @@ export function createFrontend(host) {
       screen === 'settings'
         ? `<h1 class="header-label">${title}</h1>`
         : `<span class="header-label">${title}</span>`;
-    shell.innerHTML = `<header class="front-header"><button class="front-brand" data-action="home" aria-label="Vector Nova circuits">VECTOR<span>//</span>NOVA</button>${headerLabel}${headerAction}</header><main class="front-content" data-page="${screen}"></main><footer class="front-footer"><span>${screen === 'circuits' ? 'ARROWS · BROWSE <i>/</i> ENTER · SELECT <i>/</i> TAB · CONTROLS' : `${sessionName(screen === 'results' ? loadedId : selected, screen !== 'results' && intent === 'practice').toUpperCase()} <i>/</i> ${escape((screen === 'results' ? loadedLevel() : level()).name.toUpperCase())}`}</span></footer>`;
+    shell.innerHTML = `<header class="front-header"><button class="front-brand" data-action="home" aria-label="Vector Nova setup">VECTOR<span>//</span>NOVA</button>${headerLabel}${headerAction}</header><main class="front-content" data-page="${screen}"></main><footer class="front-footer"><span>${screen === 'circuits' ? 'ARROWS · BROWSE <i>/</i> ENTER · SELECT <i>/</i> TAB · CONTROLS' : `${sessionName(screen === 'results' ? loadedId : selected, screen !== 'results' && intent === 'practice').toUpperCase()} <i>/</i> ${escape((screen === 'results' ? loadedLevel() : level()).name.toUpperCase())}`}</span></footer>`;
     if (screen === 'loading' && launchTarget === 'inspection')
       shell.querySelector('.front-footer span').textContent = 'SHIP INSPECTOR';
     const main = shell.querySelector('.front-content');
@@ -404,6 +448,16 @@ export function createFrontend(host) {
     if (screen === 'loading') {
       const inspecting = launchTarget === 'inspection';
       content.innerHTML = `<section class="loading-copy">${inspecting ? '' : `<div class="loading-card">${picture(route())}${routeArt(route())}</div>`}<div class="transfer-slot loading-transfer"></div>${heading(inspecting ? 'PREPARING STUDIO' : 'LOADING CIRCUIT', inspecting ? 'Ship inspector' : escape(level().name))}${inspecting ? '' : `<div class="session-facts">${facts()}</div>`}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
+    } else if (screen === 'records') {
+      content.innerHTML = recordsView({
+        records: readTrialRecords(),
+        catalog,
+        routes,
+        shipId: recordShip,
+        trackId: recordTrack,
+      });
+      shell.querySelector('.front-footer span').textContent =
+        'TIME TRIALS / SAVED ON THIS DEVICE';
     } else if (screen === 'settings') {
       content.innerHTML = `<div class="settings-layout"><section class="settings-form"><label><span>Graphics <small>High adds ambient occlusion and postprocessing. Low reduces GPU load.</small></span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume <small>Tunes has its own volume control.</small></span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion <small>Reduces decorative motion and distortion.</small></span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p>Saved on this device.</p></section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
         [
@@ -422,7 +476,10 @@ export function createFrontend(host) {
           [
             ['Tab / Shift Tab', 'Move between controls'],
             ['↑ / ↓', 'Move through menu actions and track rows'],
-            ['← / →', 'Browse tracks/ships; change difficulty or setup tab'],
+            [
+              '← / →',
+              'Browse modes/tracks/ships; change difficulty or setup tab',
+            ],
             ['Home / End', 'First / last item in a list'],
             ['Enter / Space', 'Select or activate'],
             ['Esc', 'Back / cancel loading'],
@@ -460,7 +517,8 @@ export function createFrontend(host) {
       (screen === 'results' && lastResults?.mode === 'cup')
     ) {
       content.innerHTML =
-        screen === 'results' && !lastResults.final
+        (screen === 'cup' ? modePicker() : '') +
+        (screen === 'results' && !lastResults.final
           ? cupWaitingView(lastResults)
           : cupView({
               ...cupStore.snapshot(),
@@ -471,7 +529,7 @@ export function createFrontend(host) {
               difficulty: settings.difficulty,
               live: sessionCup && game?.hasSession(),
               confirm: cupConfirm,
-            });
+            }));
       shell.querySelector('.front-footer span').textContent =
         `${currentCup().name} · ${currentCup()
           .tracks.map((id) => catalog.find((entry) => entry.id === id).name)
@@ -495,7 +553,7 @@ export function createFrontend(host) {
           : player?.position === 1
             ? 'Winner.'
             : 'Race finished.';
-      content.innerHTML = `<section class="result-panel">${heading('FINISH / ' + escape(loadedLevel().name.toUpperCase()), title)}<div class="results-layout"><section class="result-personal"><span class="kicker">${lastResults?.playerValid ? 'RACE TIME' : 'UNRANKED RUN'}</span><strong>${stamp(lastResults?.playerTotalTime)}</strong><p>${lastResults?.playerValid ? `${sprint ? 'One descent' : `${lastResults.laps ?? 2} laps`} · ${escape(lastResults.difficulty ?? settings.difficulty)}` : `${sprint ? 'This descent' : 'A lap'} was invalidated. This run does not count toward classification.`}</p><div class="lap-splits">${(lastResults?.playerLapTimes ?? []).map((t, i) => `<span>${sprint ? 'DESCENT' : `LAP ${i + 1}`}<b>${stamp(t)}</b></span>`).join('')}</div></section><section><ol class="results-list" aria-label="Race classification" tabindex="0"></ol><p class="results-note" role="status"></p></section></div><div class="front-actions results-actions">${button('retry-race', 'Race again →', true)}${button('continue', 'Continue driving')}${button('change', 'Circuits')}</div></section>`;
+      content.innerHTML = `<section class="result-panel">${heading('FINISH / ' + escape(loadedLevel().name.toUpperCase()), title)}<div class="results-layout"><section class="result-personal"><span class="kicker">${lastResults?.playerValid ? 'RACE TIME' : 'UNRANKED RUN'}</span><strong>${stamp(lastResults?.playerTotalTime)}</strong><p>${lastResults?.playerValid ? `${sprint ? 'One descent' : `${lastResults.laps ?? 2} laps`} · ${escape(lastResults.difficulty ?? settings.difficulty)}` : `${sprint ? 'This descent' : 'A lap'} was invalidated. This run does not count toward classification.`}</p><div class="lap-splits">${(lastResults?.playerLapTimes ?? []).map((t, i) => `<span>${sprint ? 'DESCENT' : `LAP ${i + 1}`}<b>${stamp(t)}</b></span>`).join('')}</div></section><section><ol class="results-list" aria-label="Race classification" tabindex="0"></ol><p class="results-note" role="status"></p></section></div><div class="front-actions results-actions">${button('retry-race', 'Retry Quick Race →', true)}${button('continue', 'Continue driving')}${button('change', 'Back to setup')}</div></section>`;
       if (trial) {
         const r = lastResults;
         const signed = formatDelta;
@@ -509,7 +567,9 @@ export function createFrontend(host) {
         detail.innerHTML = `<p class="trial-best">PERSONAL BEST <b>${stamp(r.bestTime)}</b></p><h2 class="trial-split-title">Cumulative splits</h2><p class="trial-split-key">Elapsed time at each sector · − ahead / + behind previous best</p><ol class="trial-splits" aria-label="Cumulative splits against previous best">${r.splits.map((t, i) => `<li><span>${sprint ? '' : `L${Math.floor(i / 3) + 1} · `}S${(i % 3) + 1}</span><b>${stamp(t)}</b><span>${signed(r.splitDeltas[i])}</span></li>`).join('')}</ol><p class="results-note" role="status">${!r.playerValid ? 'Best and ghost unchanged.' : r.improved ? (r.saved.saved ? (r.saved.ghostSaved ? 'Best and personal ghost saved on this device.' : 'Best saved. Ghost could not be saved; storage may be full or the run exceeded 20 minutes.') : 'Storage unavailable. Best and ghost are kept for this page session only.') : r.ghostAvailable ? 'Personal best unchanged. Retry to race your ghost.' : 'Personal best unchanged. No compatible ghost is saved for this best.'}</p>`;
         const retry = content.querySelector('[data-action="retry-race"]');
         retry.textContent = 'Retry Time Trial →';
-        content.querySelector('[data-action="continue"]').remove();
+        const records = content.querySelector('[data-action="continue"]');
+        records.dataset.action = 'records';
+        records.textContent = 'Time Trial records';
       } else updateResults(lastResults);
     }
     const statusSlot = shell.querySelector('.transfer-slot');
@@ -589,7 +649,7 @@ export function createFrontend(host) {
     if (launch)
       launch.setAttribute(
         'aria-label',
-        `${launchLabel()} ${level().name}, ${selectedShip().name}, ${settings.difficulty} opponents`,
+        `${launchLabel()} ${level().name}, ${selectedShip().name}${intent === 'race' ? `, ${settings.difficulty} opponents` : ''}`,
       );
   }
   function updateStatus() {
@@ -957,6 +1017,7 @@ export function createFrontend(host) {
   }
   function launch() {
     return loadView('race', (current) => {
+      sessionIntent = intent;
       setScreen('race');
       if (intent === 'cup') {
         const state = cupStore.snapshot().state;
@@ -1017,6 +1078,7 @@ export function createFrontend(host) {
     }
   }
   function goHome() {
+    if (intent === 'cup') intent = 'race';
     const previous = screen;
     if (screen === 'loading') {
       cancel('home');
@@ -1031,6 +1093,7 @@ export function createFrontend(host) {
       );
   }
   function openCup() {
+    intent = 'cup';
     if (game?.hasSession()) game.returnToSetup();
     cupConfirm = null;
     setScreen('cup');
@@ -1050,9 +1113,38 @@ export function createFrontend(host) {
       game?.prepareSession();
     }
   }
+  function chooseMode(mode) {
+    intent = mode;
+    cupConfirm = null;
+    if (!choosingSession()) game?.returnToSetup();
+    setScreen('home');
+    focusMenu(`[data-action="${mode === 'race' ? 'quick-race' : mode}"]`);
+  }
   const actions = {
+    'quick-race'() {
+      chooseMode('race');
+    },
+    records() {
+      recordsBack = screen;
+      recordsFocus = focusSelector();
+      setScreen('records');
+    },
+    'record-trial'() {
+      if (recordTrack !== 'all') selected = recordTrack;
+      if (recordShip !== 'all') shipId = recordShip;
+      saveShipSelection(shipId);
+      remember();
+      chooseMode('time-trial');
+      focusMenu('[data-action="launch"]');
+    },
+    'records-back'() {
+      setScreen(recordsBack);
+      focusMenu(recordsFocus);
+      if (recordsBack === 'results') game?.showResults();
+    },
     home: goHome,
     'cup-hub': openCup,
+    'saved-cup': openCup,
     'cup-start'() {
       if (cupStore.snapshot().state) return;
       cupStore.start(selectedCup, shipId, settings.difficulty);
@@ -1106,18 +1198,15 @@ export function createFrontend(host) {
     },
     'resume-session'() {
       if (!game?.hasSession()) return;
+      intent = sessionIntent;
       setScreen('race');
       game.resumeSession();
     },
     'time-trial'() {
-      intent = 'time-trial';
-      remember();
-      void launch();
+      chooseMode('time-trial');
     },
     practice() {
-      intent = 'practice';
-      remember();
-      void launch();
+      chooseMode('practice');
     },
     circuits() {
       setScreen('circuits');
@@ -1139,7 +1228,6 @@ export function createFrontend(host) {
       if (destination === 'results') game?.showResults();
     },
     launch() {
-      intent = 'race';
       remember();
       void launch();
     },
@@ -1160,8 +1248,11 @@ export function createFrontend(host) {
       game.restartRace();
     },
     change() {
+      intent = sessionIntent;
+      selected = loadedId;
+      shipId = game.getSnapshot().ship.id;
       game?.returnToSetup();
-      setScreen('circuits');
+      setScreen('home');
     },
     continue() {
       setScreen('race');
@@ -1173,7 +1264,14 @@ export function createFrontend(host) {
     (e) => {
       const el = e.target.closest('button');
       if (!el || el.disabled) return;
-      if (el.dataset.cup) {
+      if (el.dataset.recordTrack) {
+        selected = el.dataset.recordTrack;
+        shipId = el.dataset.recordShip;
+        saveShipSelection(shipId);
+        remember();
+        chooseMode('time-trial');
+        focusMenu('[data-action="launch"]');
+      } else if (el.dataset.cup) {
         if (cupStore.snapshot().state || !cupDefinition(el.dataset.cup)) return;
         selectedCup = el.dataset.cup;
         render();
@@ -1236,6 +1334,14 @@ export function createFrontend(host) {
   shell.addEventListener(
     'change',
     (e) => {
+      if (e.target.dataset.recordFilter) {
+        const key = e.target.dataset.recordFilter;
+        if (key === 'ship') recordShip = e.target.value;
+        else recordTrack = e.target.value;
+        render();
+        shell.querySelector(`[data-record-filter="${key}"]`).focus();
+        return;
+      }
       const key = e.target.dataset.setting;
       if (!key) return;
       settings[key] =
@@ -1259,6 +1365,44 @@ export function createFrontend(host) {
       const horizontal = ['ArrowLeft', 'ArrowRight'].includes(e.code);
       if (!control || (!vertical && !edge && !horizontal)) return;
 
+      if (control.closest('.mode-picker')) {
+        e.preventDefault();
+        const items = [
+          ...control.closest('.mode-picker').querySelectorAll('button'),
+        ];
+        const columns = getComputedStyle(
+          control.closest('.mode-picker'),
+        ).gridTemplateColumns.split(' ').length;
+        if (
+          e.code === 'ArrowDown' &&
+          items.indexOf(control) + columns >= items.length
+        ) {
+          focusMenu(
+            screen === 'cup'
+              ? '.cup-picker [aria-pressed="true"], .cup-actions .primary, .cup-confirm button:last-child'
+              : '.menu-selection[data-action="circuits"]',
+          );
+          return;
+        }
+        const step = vertical
+          ? e.code === 'ArrowDown'
+            ? columns
+            : -columns
+          : e.code === 'ArrowRight'
+            ? 1
+            : -1;
+        const index =
+          e.code === 'Home'
+            ? 0
+            : e.code === 'End'
+              ? items.length - 1
+              : Math.max(
+                  0,
+                  Math.min(items.length - 1, items.indexOf(control) + step),
+                );
+        focusMenu(items[index]);
+        return;
+      }
       const menu = control.closest(
         '.race-menu, .picker-race-actions, .front-actions',
       );
@@ -1445,7 +1589,11 @@ export function createFrontend(host) {
         e.preventDefault();
         if (screen === 'loading') cancel();
         else if (screen === 'settings') actions['settings-back']();
-        else if (cupConfirm) actions['cup-cancel']();
+        else if (screen === 'records') actions['records-back']();
+        else if (screen === 'results') {
+          if (lastResults?.mode === 'cup') openCup();
+          else actions.change();
+        } else if (cupConfirm) actions['cup-cancel']();
         else if (
           screen === 'cup' ||
           screen === 'setup' ||

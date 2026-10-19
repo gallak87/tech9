@@ -257,6 +257,73 @@ async function finishInputs(difficulty, initial) {
 try {
   if (!flags.includes('--responsive')) {
     await check(
+      'explicit modes, records and setup without loading worlds',
+      async (page) => {
+        await page.goto(url('level=halcyon&music=0'));
+        await page.locator('[data-action="quick-race"]').focus();
+        await page.keyboard.press('ArrowDown');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.action),
+          'time-trial',
+        );
+        await page.keyboard.press('ArrowDown');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.action),
+          'circuits',
+        );
+        await page.locator('[data-action="time-trial"]').click();
+        assert.equal((await front(page)).intent, 'time-trial');
+        assert.equal(await page.locator('[data-difficulty]').count(), 0);
+        assert.match(
+          await page.locator('[data-action="launch"]').textContent(),
+          /Time Trial/,
+        );
+        await page.locator('[data-action="records"]').click();
+        assert.match(
+          await page.locator('.records-empty').textContent(),
+          /first best/,
+        );
+        await page
+          .locator('[data-record-filter="ship"]')
+          .selectOption('needle');
+        await page.keyboard.press('Escape');
+        assert.equal((await front(page)).intent, 'time-trial');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.action),
+          'records',
+        );
+        await page.locator('[data-action="records"]').click();
+        await page
+          .locator('[data-record-filter="track"]')
+          .selectOption('orbital');
+        await page.locator('[data-action="record-trial"]').click();
+        assert.equal((await front(page)).selected, 'orbital');
+        assert.equal((await front(page)).shipId, 'needle');
+        assert.equal((await front(page)).intent, 'time-trial');
+        await page.locator('[data-action="practice"]').click();
+        assert.match(
+          await page.locator('[data-action="launch"]').textContent(),
+          /Practice/,
+        );
+        assert.equal(await page.locator('[data-difficulty]').count(), 0);
+        await page.locator('[data-action="cup-hub"]').click();
+        assert.equal((await front(page)).intent, 'cup');
+        assert.equal(await page.locator('[data-cup]').count(), 4);
+        await page.locator('[data-action="cup-hub"]').focus();
+        await page.keyboard.press('ArrowDown');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.cup),
+          'founders',
+        );
+        await page.locator('[data-action="quick-race"]').click();
+        assert.equal((await front(page)).intent, 'race');
+        assert.equal(await page.locator('[data-difficulty]').count(), 3);
+        assert.equal((await front(page)).loadedId, null);
+        assert.equal(await page.evaluate(() => !!window.__VN), false);
+      },
+    );
+
+    await check(
       'keyboard-only menu navigation and focus return',
       async (page) => {
         const focused = async (selector) =>
@@ -315,9 +382,7 @@ try {
             items.map((item) => getComputedStyle(item).textAlign),
           ))
           assert.equal(align, 'center');
-        await press('ArrowDown', '[data-action="practice"]');
-        await press('ArrowDown', '[data-action="time-trial"]');
-        await press('ArrowDown', '[data-action="cup-hub"]');
+        await press('ArrowDown', '[data-action="records"]');
         await press('ArrowDown', '[data-action="inspect"]');
         await press('Enter');
         await inspectorReady(page);
@@ -344,7 +409,7 @@ try {
           false,
         );
         await press('Escape', '[data-action="settings"]');
-        await press('Home', '.menu-selection[data-action="circuits"]');
+        await page.locator('.menu-selection[data-action="circuits"]').focus();
         await press('ArrowRight', '[data-level="orbital"]');
         await press('End', '[data-level="umbra"]');
         await press('s', '[data-action="settings-back"]');
@@ -373,10 +438,10 @@ try {
           await press('Enter', '[data-action="cancel"]');
           assert.equal((await front(page)).screen, 'loading');
           await press('Enter', '[data-action="launch"]');
-          await press('ArrowDown');
-          await press('ArrowDown', '[data-action="practice"]');
+          await page.locator('[data-action="practice"]').click();
+          await page.locator('[data-action="launch"]').focus();
           await press('Enter', '[data-action="cancel"]');
-          await press('Escape', '[data-action="practice"]');
+          await press('Escape', '[data-action="launch"]');
         } finally {
           release();
           await page.unrouteAll({ behavior: 'wait' });
@@ -563,7 +628,7 @@ try {
         );
         assert.match(
           await page.locator('[data-action="practice"]').textContent(),
-          /Solo descent/,
+          /Practice/,
         );
         assert.equal(
           await page.evaluate(
@@ -722,6 +787,7 @@ try {
         assert.equal(await page.locator('#motion').isChecked(), true);
         await page.locator('#home').click();
         await page.locator('[data-action="practice"]').click();
+        await page.locator('[data-action="launch"]').click();
         await page.waitForFunction(
           () => window.__VN_FRONTEND.getState().screen === 'race',
         );
@@ -1149,6 +1215,7 @@ try {
         }
         await page.locator('[data-level="halcyon"]').click();
         await page.locator('[data-action="practice"]').click();
+        await page.locator('[data-action="launch"]').click();
         await page.waitForFunction(
           () => window.__VN?.getSnapshot().mode === 'racing',
           null,
@@ -1289,6 +1356,7 @@ try {
           true,
         );
         await page.locator('[data-action="practice"]').click();
+        await page.locator('[data-action="launch"]').click();
         await booted(page);
         await page.waitForFunction(
           () => window.__VN.getSnapshot().mode === 'racing',
@@ -1466,13 +1534,19 @@ try {
           ['circuits', 'inspect', false],
           ['setup', 'inspect', true],
         ]) {
+          if (action === 'practice')
+            await page.locator('[data-action="practice"]').click();
           if (view !== 'home')
             await page
               .locator(
                 `.picker-tabs [data-action="${view === 'setup' ? 'ship-step' : 'circuits'}"]`,
               )
               .click();
-          await page.locator(`[data-action="${action}"]`).click();
+          await page
+            .locator(
+              `[data-action="${action === 'practice' ? 'launch' : action}"]`,
+            )
+            .click();
           assert.equal((await front(page)).screen, 'loading');
           if (escape) await page.keyboard.press('Escape');
           else await page.locator('[data-action="cancel"]').click();
@@ -1542,7 +1616,7 @@ try {
           };
           await page.goto(url('level=halcyon'));
           await fleetReady(page);
-          await press('Home', '.menu-selection[data-action="circuits"]');
+          await page.locator('.menu-selection[data-action="circuits"]').focus();
           await press('Enter', '[data-level="halcyon"]');
           await press('End', '[data-level="umbra"]');
           await press('Space', '[data-level="umbra"]');
@@ -1557,9 +1631,7 @@ try {
           await press('ArrowDown', '[data-action="launch"]');
           await press('ArrowDown', '[data-difficulty="easy"]');
           await press('ArrowRight', '[data-difficulty="medium"]');
-          await press('ArrowDown', '[data-action="practice"]');
-          await press('ArrowDown', '[data-action="time-trial"]');
-          await press('ArrowDown', '[data-action="cup-hub"]');
+          await press('ArrowDown', '[data-action="records"]');
           await press('ArrowDown', '[data-action="inspect"]');
           await press('ArrowDown', '[data-action="settings"]');
           await press('Space', '[data-action="settings-back"]');

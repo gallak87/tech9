@@ -128,6 +128,62 @@ export function readTrialBest(identity, store = storage()) {
     return null;
   return { ...copy(data), samples: decodeGhost(data.ghost, data.duration) };
 }
+// Browsing records must not build tracks/worlds. Keep every exact rules profile
+// separate; only the race runtime can confirm full compatibility at launch.
+export function readTrialRecords(store = storage()) {
+  const entries = new Map();
+  try {
+    for (let i = 0; i < store?.length; i++) {
+      const key = store.key(i);
+      if (!key?.startsWith('vector-nova.trial.v1.')) continue;
+      try {
+        entries.set(key, JSON.parse(store.getItem(key)));
+      } catch {
+        /* Skip corrupt entries. */
+      }
+    }
+  } catch {
+    /* Disabled storage still permits page-session records. */
+  }
+  for (const [key, record] of memory) entries.set(key, record);
+  const records = [];
+  for (const [key, data] of entries) {
+    const id = data?.identity;
+    if (
+      !id ||
+      typeof id.track !== 'string' ||
+      typeof id.ship?.id !== 'string' ||
+      typeof id.rules !== 'string' ||
+      !['sprint', 'circuit'].includes(id.format) ||
+      id.laps !== (id.format === 'sprint' ? 1 : 3) ||
+      keyFor(id) !== key
+    )
+      continue;
+    const best = readTrialBest(id, store);
+    if (!best) continue;
+    let persisted = null;
+    try {
+      persisted = JSON.parse(store?.getItem(key) ?? 'null');
+    } catch {
+      /* Optional storage. */
+    }
+    const saved =
+      persisted?.duration === best.duration &&
+      JSON.stringify(persisted?.identity) === JSON.stringify(id);
+    records.push({
+      key,
+      identity: copy(id),
+      duration: best.duration,
+      laps: best.laps,
+      ghost: Boolean(best.samples),
+      saved,
+      ghostSaved:
+        saved && Boolean(decodeGhost(persisted?.ghost, best.duration)),
+    });
+  }
+  return records;
+}
+
 function saveBest(record, store) {
   const key = keyFor(record.identity);
   memory.set(key, copy(record));

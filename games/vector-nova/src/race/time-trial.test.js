@@ -15,6 +15,7 @@ import {
   trialIdentity,
   createTimeTrial,
   readTrialBest,
+  readTrialRecords,
   decodeGhost,
   encodeGhost,
 } from './time-trial.js';
@@ -42,6 +43,10 @@ const store = () => {
     getItem: (k) => data.get(k),
     setItem: (k, v) => data.set(k, v),
     data,
+    get length() {
+      return data.size;
+    },
+    key: (i) => [...data.keys()][i],
   };
 };
 function run(id, storage, speed = 100, invalid = false) {
@@ -277,4 +282,47 @@ test('waiting at the grid cannot invalidate a trial when hull settling crosses z
   assert.ok(race.history.every((lap) => lap.valid));
   assert.equal(race.splits.length, 9);
   assert.ok(Math.abs(race.totalElapsed - 3.7) < 1e-10);
+});
+
+test('record browser preserves distinct rules profiles, ignores corrupt storage and reports session-only bests', () => {
+  const storage = store();
+  run('browser-record', storage);
+  const original = [...storage.data.entries()][0];
+  const record = JSON.parse(original[1]);
+  // Clear the memory association by browsing a different exact identity.
+  record.identity.version = 'older-course';
+  const text = JSON.stringify(record.identity);
+  let hash = 2166136261;
+  for (const c of text) hash = Math.imul(hash ^ c.charCodeAt(0), 16777619);
+  storage.setItem(
+    `vector-nova.trial.v1.${(hash >>> 0).toString(16)}`,
+    JSON.stringify(record),
+  );
+  storage.setItem('vector-nova.trial.v1.corrupt', '{');
+  storage.setItem(
+    'vector-nova.trial.v1.malformed',
+    JSON.stringify({ identity: { ship: null } }),
+  );
+  const rows = readTrialRecords(storage).filter(
+    (r) => r.identity.track === 'browser-record',
+  );
+  assert.equal(rows.length, 2);
+  assert.ok(rows.every((r) => r.saved && r.ghostSaved && r.ghost));
+  assert.notEqual(rows[0].identity.version, rows[1].identity.version);
+  assert.ok(rows.every((r) => !('samples' in r)));
+  run('browser-session', null);
+  const disabled = {
+    get length() {
+      throw Error('blocked');
+    },
+    getItem() {
+      throw Error('blocked');
+    },
+  };
+  const session = readTrialRecords(disabled).find(
+    (r) => r.identity.track === 'browser-session',
+  );
+  assert.equal(session.saved, false);
+  assert.equal(session.ghostSaved, false);
+  assert.equal(session.ghost, true);
 });

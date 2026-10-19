@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  CUPS,
   createCupStore,
   CUP_STORAGE_KEY,
   CUP_POINTS,
@@ -26,38 +27,41 @@ function memory() {
     setItem: (k, v) => data.set(k, v),
   };
 }
-test('three events persist at every boundary; retry replaces only current scores', () => {
-  const storage = memory();
-  let store = createCupStore(() => storage);
-  store.start('founders', 'shrike', 'hard');
-  store.finish(result());
-  assert.equal(store.finish(result(ids.toReversed())), false);
-  store = createCupStore(() => storage);
-  assert.equal(store.snapshot().state.phase, 'results');
-  assert.equal(store.next(), true);
-  assert.equal(store.next(), false);
-  store = createCupStore(() => storage);
-  assert.equal(store.snapshot().state.eventIndex, 1);
-  assert.equal(store.snapshot().state.shipId, 'shrike');
-  assert.equal(store.snapshot().state.difficulty, 'hard');
-  store.finish(result());
-  store.retry();
-  assert.equal(store.snapshot().state.results.length, 1);
-  store.finish(result(ids.toReversed()));
-  store.next();
-  store.finish(result());
-  assert.equal(cupComplete(store.snapshot().state), true);
-  assert.equal(store.next(), false);
-  assert.equal(
-    cupStandings(store.snapshot().state).find((r) => r.id === 'player').points,
-    51,
-  );
-  store.retry();
-  assert.equal(store.snapshot().state.results.length, 2);
-  store.abandon();
-  assert.equal(createCupStore(() => storage).snapshot().state, null);
-  assert.equal(createCupStore(() => storage).snapshot().notice, '');
-});
+for (const cup of CUPS)
+  test(`${cup.name}: events persist at every boundary; retry replaces only current scores`, () => {
+    const storage = memory();
+    let store = createCupStore(() => storage);
+    store.start(cup.id, 'shrike', 'hard');
+    store.finish(result());
+    assert.equal(store.finish(result(ids.toReversed())), false);
+    store = createCupStore(() => storage);
+    assert.equal(store.snapshot().state.phase, 'results');
+    assert.equal(store.snapshot().state.cupId, cup.id);
+    assert.equal(store.next(), true);
+    assert.equal(store.next(), false);
+    store = createCupStore(() => storage);
+    assert.equal(store.snapshot().state.eventIndex, 1);
+    assert.equal(store.snapshot().state.shipId, 'shrike');
+    assert.equal(store.snapshot().state.difficulty, 'hard');
+    store.finish(result());
+    store.retry();
+    assert.equal(store.snapshot().state.results.length, 1);
+    store.finish(result(ids.toReversed()));
+    store.next();
+    store.finish(result());
+    assert.equal(cupComplete(store.snapshot().state), true);
+    assert.equal(store.next(), false);
+    assert.equal(
+      cupStandings(store.snapshot().state).find((r) => r.id === 'player')
+        .points,
+      51,
+    );
+    store.retry();
+    assert.equal(store.snapshot().state.results.length, 2);
+    store.abandon();
+    assert.equal(createCupStore(() => storage).snapshot().state, null);
+    assert.equal(createCupStore(() => storage).snapshot().notice, '');
+  });
 test('ten places score once; invalid and missing finishes never score', () => {
   assert.deepEqual(
     cupRaceRows(classifyCupRace(result())).map((r) => r.points),

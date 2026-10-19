@@ -1,4 +1,4 @@
-import { createCupStore, cupDefinition } from '../race/cup.js';
+import { CUPS, createCupStore, cupDefinition } from '../race/cup.js';
 import { cupView, cupWaitingView } from './cup.js';
 import { formatTime, formatDelta } from '../race/timing.js';
 import { discoverLevels } from '../levels/catalog.js';
@@ -52,6 +52,9 @@ export function createFrontend(host) {
   const catalog = discoverLevels().list;
   const circuits = catalog;
   const cupStore = createCupStore();
+  let selectedCup = cupStore.snapshot().state?.cupId ?? CUPS[0].id;
+  const currentCup = () =>
+    cupDefinition(cupStore.snapshot().state?.cupId ?? selectedCup);
   let sessionCup = false,
     cupConfirm = null,
     cupResultsKey = null;
@@ -158,7 +161,7 @@ export function createFrontend(host) {
     )
       ? 'Time Trial'
       : intent === 'cup'
-        ? 'Founders Cup'
+        ? currentCup().name
         : isSprint(id)
           ? practice
             ? 'Solo Descent'
@@ -190,7 +193,7 @@ export function createFrontend(host) {
   }
   function focusSelector(element = document.activeElement) {
     if (!shell.contains(element)) return null;
-    for (const key of ['level', 'ship', 'difficulty', 'action']) {
+    for (const key of ['level', 'ship', 'difficulty', 'cup', 'action']) {
       if (!element.dataset[key]) continue;
       const scope = element.closest(
         '.menu-selection, .picker-tabs, .picker-header',
@@ -352,7 +355,7 @@ export function createFrontend(host) {
     return `<div class="picker-race-actions"><button class="change-track" data-action="circuits">${escape(level().name)} · ${trackChallenge(selected)} <span aria-hidden="true">↗</span></button>${raceActions()}</div>`;
   }
   const homeMenu = () =>
-    `<section class="race-menu" aria-label="Race setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1><button class="menu-selection" data-action="circuits"><span>Track</span><div><strong>${escape(level().name)}</strong><small>${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedShip().name}</strong><small>${selectedShip().role}</small></div><b aria-hidden="true">›</b></button>${raceActions()}<div class="menu-extras">${button('cup-hub', 'Founders Cup')}${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${game?.hasSession() && !sessionCup ? `<aside class="session-return">${button('resume-session', `↶ Resume ${escape(loadedLevel().name)}`)}</aside>` : ''}</section>`;
+    `<section class="race-menu" aria-label="Race setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1><button class="menu-selection" data-action="circuits"><span>Track</span><div><strong>${escape(level().name)}</strong><small>${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedShip().name}</strong><small>${selectedShip().role}</small></div><b aria-hidden="true">›</b></button>${raceActions()}<div class="menu-extras">${button('cup-hub', 'Championships')}${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${game?.hasSession() && !sessionCup ? `<aside class="session-return">${button('resume-session', `↶ Resume ${escape(loadedLevel().name)}`)}</aside>` : ''}</section>`;
   function renderMenu() {
     const wide = wideMenu.matches;
     const picking = wide || screen !== 'home';
@@ -462,13 +465,16 @@ export function createFrontend(host) {
           : cupView({
               ...cupStore.snapshot(),
               catalog,
+              cupId: selectedCup,
               shipId,
               difficulty: settings.difficulty,
               live: sessionCup && game?.hasSession(),
               confirm: cupConfirm,
             });
       shell.querySelector('.front-footer span').textContent =
-        'FOUNDERS CUP · HALCYON → ASTERION → NACRE';
+        `${currentCup().name} · ${currentCup()
+          .tracks.map((id) => catalog.find((entry) => entry.id === id).name)
+          .join(' → ')}`;
     } else if (screen === 'results') {
       const sprint = isSprint(loadedId);
       const trial = lastResults?.mode === 'time-trial';
@@ -1048,7 +1054,7 @@ export function createFrontend(host) {
     'cup-hub': openCup,
     'cup-start'() {
       if (cupStore.snapshot().state) return;
-      cupStore.start('founders', shipId, settings.difficulty);
+      cupStore.start(selectedCup, shipId, settings.difficulty);
       launchCup();
     },
     'cup-resume'() {
@@ -1092,6 +1098,7 @@ export function createFrontend(host) {
         cupStore.start(state.cupId, state.shipId, state.difficulty);
         launchCup();
       } else {
+        selectedCup = state.cupId;
         cupStore.abandon();
         setScreen('cup');
       }
@@ -1165,7 +1172,12 @@ export function createFrontend(host) {
     (e) => {
       const el = e.target.closest('button');
       if (!el || el.disabled) return;
-      if (el.dataset.level) {
+      if (el.dataset.cup) {
+        if (cupStore.snapshot().state || !cupDefinition(el.dataset.cup)) return;
+        selectedCup = el.dataset.cup;
+        render();
+        focusMenu(`[data-cup="${selectedCup}"]`);
+      } else if (el.dataset.level) {
         selectCircuit(el.dataset.level);
       } else if (el.dataset.ship) {
         previewShipId = null;
@@ -1306,7 +1318,7 @@ export function createFrontend(host) {
         return;
       }
       const card = e.target.closest(
-        'button[data-level], button[data-ship], button[data-difficulty]',
+        'button[data-level], button[data-ship], button[data-difficulty], button[data-cup]',
       );
       if (
         !card ||
@@ -1324,7 +1336,9 @@ export function createFrontend(host) {
         ? '[data-level]'
         : card.dataset.ship
           ? 'button[data-ship]'
-          : '[data-difficulty]';
+          : card.dataset.cup
+            ? '[data-cup]'
+            : '[data-difficulty]';
       const items = [...shell.querySelectorAll(selector)];
       const columns =
         card.dataset.level || card.dataset.ship
@@ -1507,6 +1521,7 @@ export function createFrontend(host) {
       error,
       intent,
       cup: cupStore.snapshot(),
+      selectedCup,
       sessionCup,
       shipId,
       preview: shipPreview?.getState() ?? null,

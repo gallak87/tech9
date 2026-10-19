@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { RACE_OPPONENTS } from '../src/race/roster.js';
+import { cupDefinition } from '../src/race/cup.js';
+const cup = cupDefinition(process.env.VN_CUP_ID ?? 'founders');
+assert.ok(cup, 'VN_CUP_ID must name an available cup');
 const base = process.env.VN_URL;
 if (!base) throw Error('Set VN_URL to a dev server');
 const browser = await chromium.launch({ headless: true, channel: 'chrome' });
@@ -31,6 +34,44 @@ try {
   page.on('pageerror', (e) => faults.push(e.message));
   await page.goto(base + '?music=0');
   await page.locator('[data-action="cup-hub"]').click();
+  await page.locator('[data-cup="founders"]').focus();
+  await page.keyboard.press('End');
+  assert.equal(
+    await page.locator('[data-cup="frontier"]').getAttribute('aria-pressed'),
+    'true',
+  );
+  assert.equal(
+    await page.evaluate(() => document.activeElement.dataset.cup),
+    'frontier',
+  );
+  assert.equal(
+    await page.locator('.cup-panel h1').textContent(),
+    'Frontier Cup',
+  );
+  assert.equal(
+    await page
+      .locator('.cup-route strong')
+      .allTextContents()
+      .then((names) => names.join(' → ')),
+    'Vesper Canopy → Glasswake Comet → Cindercoil',
+  );
+  assert.equal(
+    (await page.evaluate(() => window.__VN_FRONTEND.getState())).loadedId,
+    null,
+  );
+  await page.keyboard.press('KeyS');
+  await page.locator('[data-action="settings-back"]').waitFor();
+  await page.keyboard.press('Escape');
+  assert.equal(
+    await page.evaluate(() => document.activeElement.dataset.cup),
+    'frontier',
+  );
+  await page.keyboard.press('Home');
+  assert.equal(
+    await page.locator('[data-cup="founders"]').getAttribute('aria-pressed'),
+    'true',
+  );
+  await page.locator(`[data-cup="${cup.id}"]`).click();
   await page.locator('[data-action="cup-start"]').click();
   await page.waitForFunction(
     () => window.__VN?.ready && window.__VN.getSnapshot().cup,
@@ -80,9 +121,50 @@ try {
   await page.evaluate((data) => window.__VN.verifyCupResults(data), final);
   assert.equal(await page.evaluate(() => document.activeElement.tagName), 'H1');
   assert.equal(await page.locator('.cup-standings tbody tr').count(), 10);
+  const saved = await page.evaluate(
+    () => window.__VN_FRONTEND.getState().cup.state,
+  );
+  assert.equal(saved.cupId, cup.id);
+  await page.reload();
+  await page.locator('[data-action="cup-hub"]').click();
+  assert.equal(await page.locator('.cup-panel h1').textContent(), cup.name);
+  assert.equal(await page.locator('[data-cup]').count(), 0);
+  assert.deepEqual(
+    await page.evaluate(() => window.__VN_FRONTEND.getState().cup.state),
+    saved,
+  );
+  await page.locator('[data-action="cup-abandon"]').click();
+  await page.locator('[data-action="cup-cancel"]').click();
+  assert.deepEqual(
+    await page.evaluate(() => window.__VN_FRONTEND.getState().cup.state),
+    saved,
+  );
+  await page.locator('[data-action="cup-abandon"]').click();
+  await page.locator('[data-action="cup-confirm"]').click();
+  const otherCup = cup.id === 'founders' ? 'frontier' : 'founders';
+  await page.locator(`[data-cup="${otherCup}"]`).click();
+  await page.locator('[data-action="cup-start"]').click();
+  await page.waitForFunction(
+    (id) =>
+      window.__VN?.ready &&
+      window.__VN_FRONTEND.getState().screen === 'race' &&
+      window.__VN_FRONTEND.getState().loadedId === id,
+    cupDefinition(otherCup).tracks[0],
+    { timeout: 120000 },
+  );
+  assert.equal(
+    await page.evaluate(() => window.__VN_FRONTEND.getState().cup.state.cupId),
+    otherCup,
+  );
+  assert.deepEqual(
+    await page.evaluate(
+      () => window.__VN_FRONTEND.getState().cup.state.results,
+    ),
+    [],
+  );
   assert.deepEqual(faults, []);
   console.log(
-    'PASS cup live result keyboard focus and final classification focus',
+    `PASS ${cup.name}: cup selection, keyboard focus, saved identity and switching cups after confirmed abandon`,
   );
 } finally {
   await context.close();

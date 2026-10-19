@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import { cupDefinition } from '../src/race/cup.js';
+const cup = cupDefinition(process.env.VN_CUP_ID ?? 'founders');
+assert.ok(cup, 'VN_CUP_ID must name an available cup');
 const base = process.env.VN_URL;
 if (!base) throw Error('Set VN_URL to a dev server');
 const [width, height] = (process.env.VN_CUP_VIEWPORT ?? '1440x900')
@@ -81,6 +84,7 @@ try {
     assert.equal(snap.ship.id, 'shrike');
     assert.equal(snap.competition.difficulty, 'easy');
     assert.ok(snap.cup);
+    assert.equal((await state()).cup.state.cupId, cup.id);
   }
   async function finish() {
     for (
@@ -109,10 +113,12 @@ try {
   }
   await page.goto(base + '?music=0');
   await click('cup-hub');
+  await page.locator(`[data-cup="${cup.id}"]`)[touch ? 'tap' : 'click']();
+  assert.equal(await page.locator('.cup-panel h1').textContent(), cup.name);
   await fits();
   await page.locator('[data-ship="shrike"]')[touch ? 'tap' : 'click']();
   await click('cup-start');
-  await ready('halcyon');
+  await ready(cup.tracks[0]);
   if (touch) {
     await page.locator('#resume').tap();
     await page.waitForFunction(
@@ -144,7 +150,7 @@ try {
       (await page.evaluate(() => window.__VN.getSnapshot())).vehicle.energy,
       100,
     );
-    await ready('halcyon');
+    await ready(cup.tracks[0]);
     await session.detach();
   }
   await page.locator('#home')[touch ? 'tap' : 'click']();
@@ -158,19 +164,19 @@ try {
   assert.equal((await state()).cup.state.phase, 'results');
   assert.deepEqual((await state()).cup.state.results[0], first);
   await click('cup-next');
-  await ready('orbital');
+  await ready(cup.tracks[1]);
   await page.reload();
   await click('cup-hub');
   assert.equal((await state()).cup.state.eventIndex, 1);
   await click('cup-resume');
-  await ready('orbital');
+  await ready(cup.tracks[1]);
   await finish();
   await click('cup-retry');
-  await ready('orbital');
+  await ready(cup.tracks[1]);
   assert.deepEqual((await state()).cup.state.results, [first]);
   await finish();
   await click('cup-next');
-  await ready('nacre');
+  await ready(cup.tracks[2]);
   await finish();
   assert.equal((await state()).cup.state.results.length, 3);
   await page.getByText('Final cup standings', { exact: true }).waitFor();
@@ -188,7 +194,7 @@ try {
   assert.equal((await state()).cup.state.results.length, 3);
   await click('cup-restart');
   await click('cup-confirm');
-  await ready('halcyon');
+  await ready(cup.tracks[0]);
   assert.equal((await state()).cup.state.results.length, 0);
   await page.locator('#home')[touch ? 'tap' : 'click']();
   await click('cup-abandon');
@@ -198,7 +204,7 @@ try {
   assert.equal((await state()).cup.state, null);
   assert.deepEqual(faults, []);
   console.log(
-    `PASS Founders Cup ${width}x${height}: full real-physics cup, ship lock, reload, retry, final results, restart and abandon`,
+    `PASS ${cup.name} ${width}x${height}: full real-physics cup, ship lock, reload, retry, final results, restart and abandon`,
   );
 } finally {
   await context.close();

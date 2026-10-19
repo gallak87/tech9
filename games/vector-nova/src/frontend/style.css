@@ -888,17 +888,21 @@ body[data-screen='results'] #interface {
 .cup-panel .cup-save {
   color: #d4b4a8;
 }
+.cup-picker,
 .cup-setup fieldset {
   border: 0;
   padding: 12px 0;
 }
+.cup-picker legend,
 .cup-setup legend {
   font-size: 13px;
 }
+.cup-picker button,
 .cup-setup button {
   min-height: 44px;
   margin: 4px;
 }
+.cup-picker [aria-pressed='true'],
 .cup-setup [aria-pressed='true'] {
   outline: 2px solid #e8e8e8;
 }

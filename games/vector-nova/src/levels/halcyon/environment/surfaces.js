@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createArchitectureMaps } from './architectural-finish.js';
 
 export function randomSource(initialSeed) {
   let seed = initialSeed >>> 0;
@@ -43,7 +44,8 @@ function facadeTextures(kind, seed) {
       const y = floor * 32;
       const inset = kind === 'stone' ? 8 : 2;
       const sill = kind === 'stone' ? 9 : 6;
-      const warm = random() < (kind === 'stone' ? 0.25 : 0.17);
+      const occupiedWing = (floor + Math.floor(bay / 4) * 3) % 11 < 3;
+      const warm = random() < (occupiedWing ? 0.52 : 0.035);
       const shade = Math.floor(random() * 13);
       context.fillStyle = `rgb(${23 + shade},${40 + shade},${51 + shade})`;
       context.fillRect(x + inset, y + 2, 32 - inset * 2, 32 - sill);
@@ -175,7 +177,9 @@ function districtTextures(kind, seed) {
           ceramic ? 12 : 31,
           ceramic ? 27 : 20,
         );
-      if (random() < 0.19) {
+      if (
+        random() < ((floor + Math.floor(bay / 4) * 3) % 13 < 3 ? 0.48 : 0.035)
+      ) {
         light.fillStyle = random() < 0.75 ? '#c1a16f' : '#859ca0';
         light.globalAlpha = 0.3 + random() * 0.5;
         light.fillRect(
@@ -306,7 +310,7 @@ function bankTexture() {
   return canvasTexture(canvas);
 }
 
-export function createSurfaces() {
+export function createSurfaces(renderer) {
   const textures = new Set();
   const own = (parameters) => {
     for (const value of Object.values(parameters))
@@ -322,12 +326,12 @@ export function createSurfaces() {
   const ripples = waveNormals();
   textures.add(ripples);
   const surfaces = {
-    roomDark: own({ color: '#344854', roughness: 0.94, metalness: 0.02 }),
+    roomDark: own({ color: '#263d49', roughness: 0.48, metalness: 0.28 }),
     roomWarm: own({
       color: '#9d987f',
       roughness: 0.92,
       emissive: '#d4bb84',
-      emissiveIntensity: 0.2,
+      emissiveIntensity: 0.32,
     }),
     roomCool: own({
       color: '#879a9e',
@@ -391,6 +395,8 @@ export function createSurfaces() {
       emissive: '#ffffff',
       emissiveIntensity: 0.35,
     }),
+    brick: own({ color: '#c2a494', roughness: 0.88, metalness: 0 }),
+    roof: own({ color: '#9ba8a9', roughness: 0.7, metalness: 0.25 }),
     concrete: own({ color: '#afb5b1', roughness: 0.86, metalness: 0.04 }),
     stone: own({ color: '#b5b3a6', roughness: 0.8, metalness: 0.06 }),
     steel: own({ color: '#708087', roughness: 0.46, metalness: 0.65 }),
@@ -417,6 +423,8 @@ export function createSurfaces() {
     stoneWindows: own({
       color: '#ded7c7',
       ...residential,
+      bumpMap: residential.roughnessMap,
+      bumpScale: 0.08,
       roughness: 0.88,
       metalness: 0.2,
       emissive: '#ffffff',
@@ -464,7 +472,38 @@ export function createSurfaces() {
       envMapIntensity: 1.45,
     }),
   };
+  // Quiet room-scale gradients/blinds supply depth without more geometry/maps.
+  for (const [name, surface] of Object.entries(surfaces)) {
+    if (!name.startsWith('room')) continue;
+    surface.onBeforeCompile = (shader) => {
+      shader.vertexShader =
+        'varying vec2 roomUV;\n' +
+        shader.vertexShader.replace(
+          '#include <begin_vertex>',
+          '#include <begin_vertex>\nroomUV=uv;',
+        );
+      shader.fragmentShader =
+        'varying vec2 roomUV;\n' +
+        shader.fragmentShader.replace(
+          '#include <color_fragment>',
+          `#include <color_fragment>
+        float ceiling=smoothstep(.0,.8,roomUV.y);
+        float blind=.5+.5*cos(roomUV.y*94.25);
+        float detail=1.-smoothstep(.015,.06,length(fwidth(roomUV)));
+        diffuseColor.rgb*=mix(.56,1.,ceiling)*(1.-blind*.1*detail);
+      `,
+        );
+    };
+    surface.customProgramCacheKey = () => `halcyon-recessed-room-v1-${name}`;
+  }
+  const architecture = createArchitectureMaps(renderer, {
+    concrete: [surfaces.concrete, surfaces.stone, surfaces.bankStone],
+    brick: [surfaces.brick],
+    roof: [surfaces.roof],
+  });
   return {
+    ready: architecture.ready,
+    dispose: () => architecture.dispose(),
     surfaces,
     textures,
     update(time) {

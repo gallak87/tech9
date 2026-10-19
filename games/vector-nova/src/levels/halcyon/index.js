@@ -25,6 +25,16 @@ export default function createLevel() {
       fillHeight: 200,
       reflectionFar: 6000,
     },
+    camera: {
+      portraitAspect: 0.64,
+      maxPortraitScale: 1.4,
+      safeFrame: (aspect) => ({
+        left: -0.86,
+        right: 0.86,
+        bottom: aspect < 1 ? -0.48 : -0.6,
+        top: 0.8,
+      }),
+    },
     createTrack,
     createRoad({ track, settings, view }) {
       const group = buildTrackVisual(track, settings, view.renderer);
@@ -33,12 +43,16 @@ export default function createLevel() {
         group.userData.update(state.distance);
       });
     },
-    createEnvironment: ({ track }) => legacyPart(createEnvironment(track)),
+    createEnvironment: ({ track, view }) =>
+      legacyPart(createEnvironment(track, view.renderer)),
     async createBackdrop() {
       const sky = await createSky();
       return {
         group: sky.mesh,
         sunDirection: sky.sunDirection,
+        sunIntensity: 2.35,
+        ambientIntensity: 1.05,
+        fillIntensity: 0.45,
         ownedTextures: [sky.texture],
         update: ({ camera }) => sky.mesh.position.copy(camera.position),
         dispose: () => sky.dispose(),

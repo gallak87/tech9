@@ -5,6 +5,7 @@ export default {
   shape: false,
   review: false,
   ui: {
+    portraitCompactHud: true,
     edition: 'PROVING GROUND',
     subtitle: 'CITY CIRCUIT / 01',
     eyebrow: 'HALCYON INFRASTRUCTURE AUTHORITY · TEST 001',

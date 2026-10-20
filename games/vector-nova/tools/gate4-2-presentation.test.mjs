@@ -142,15 +142,33 @@ class Param {
     this.automation.push({ type: 'exponential', value, time });
   }
   cancelScheduledValues() {}
+  cancelAndHoldAtTime() {}
 }
 class Context {
   state = 'suspended';
+  sampleRate = 48000;
   currentTime = 1;
   destination = {};
   nodes = [];
   fail = false;
   createGain() {
     return this.node('gain');
+  }
+  createBuffer(channels, length) {
+    const data = Array.from(
+      { length: channels },
+      () => new Float32Array(length),
+    );
+    return { getChannelData: (channel) => data[channel] };
+  }
+  createBufferSource() {
+    return this.node('buffer');
+  }
+  createBiquadFilter() {
+    return this.node('filter');
+  }
+  createDynamicsCompressor() {
+    return this.node('compressor');
   }
   createOscillator() {
     return this.node('oscillator');
@@ -160,6 +178,12 @@ class Context {
       kind,
       gain: new Param(),
       frequency: new Param(),
+      Q: new Param(),
+      threshold: new Param(),
+      knee: new Param(),
+      ratio: new Param(),
+      attack: new Param(),
+      release: new Param(),
       stopped: false,
       stopTimes: [],
       disconnected: false,
@@ -251,6 +275,7 @@ test('acquisition signatures are distinct, finite and release every layered voic
   const audio = createPickupAudio({ createContext: () => context });
   await audio.unlock();
   audio.update({ volume: 0.5 }, true);
+  const busNodeCount = context.nodes.length;
   const signatures = [];
   for (const [type, kind] of [
     ['pickup-activate', 'vector'],
@@ -261,7 +286,7 @@ test('acquisition signatures are distinct, finite and release every layered voic
     audio.event({ type, payload: { kind } });
     const voices = context.nodes
       .slice(first)
-      .filter((node) => node.kind === 'oscillator');
+      .filter((node) => node.kind === 'oscillator' || node.kind === 'buffer');
     const envelopes = context.nodes
       .slice(first)
       .filter((node) => node.kind === 'gain');
@@ -300,7 +325,9 @@ test('acquisition signatures are distinct, finite and release every layered voic
   audio.event({ type: 'pickup-activate', payload: { kind: 'aegis' } });
   audio.silence();
   assert.equal(audio.getStatus().shots, 0);
-  assert.ok(context.nodes.slice(1).every((node) => node.disconnected));
+  assert.ok(
+    context.nodes.slice(busNodeCount).every((node) => node.disconnected),
+  );
   await audio.dispose();
 });
 
@@ -575,4 +602,71 @@ test('all Aegis arches clear the whole chase corridor through pickup, braking an
     disposeGroup(visual.group);
   }
   projector.dispose();
+});
+
+test('device voice priority preserves hits, fades stolen voices and owns sustained beds', async () => {
+  const context = new Context();
+  const audio = createPickupAudio({ createContext: () => context });
+  await audio.unlock();
+  audio.update({ volume: 0.8 }, true);
+  const bedGains = context.nodes
+    .filter((node) => node.kind === 'gain')
+    .slice(1);
+  audio.setEffects({ vector: true, ion: true });
+  assert.deepEqual(
+    bedGains.map((node) => node.gain.value),
+    [0.09, 0.07],
+  );
+  const first = context.nodes.length;
+  const fire = { type: 'combat-fire', payload: { kind: 'arc' } };
+  audio.event(fire);
+  const firstVoices = context.nodes
+    .slice(first)
+    .filter((node) => node.kind === 'oscillator' || node.kind === 'buffer');
+  const firstGains = context.nodes
+    .slice(first)
+    .filter((node) => node.kind === 'gain');
+  for (let i = 0; i < 3; i++) audio.event(fire);
+  const fullCount = context.nodes.length;
+  audio.event({ type: 'combat-hit', payload: { kind: 'arc', shielded: true } });
+  audio.event({ type: 'pickup-unavailable', payload: { kind: 'arc' } });
+  assert.equal(
+    context.nodes.length,
+    fullCount,
+    'Empty/lower-priority cues cannot evict an attack',
+  );
+  assert.ok(firstVoices.every((node) => node.stopTimes.length === 1));
+  audio.event({ type: 'shield-hit', payload: { kind: 'aegis' } });
+  assert.equal(audio.getStatus().shots, 4);
+  for (const gain of firstGains)
+    assert.deepEqual(gain.gain.automation.at(-1), {
+      type: 'linear',
+      value: 0,
+      time: context.currentTime + 0.008,
+    });
+  for (const voice of firstVoices) {
+    assert.equal(voice.stopTimes.at(-1), context.currentTime + 0.01);
+    assert.equal(
+      voice.disconnected,
+      false,
+      'Tail remains connected through its release',
+    );
+  }
+  audio.update({ volume: 0.8 }, false);
+  assert.deepEqual(
+    bedGains.map((node) => node.gain.value),
+    [0, 0],
+  );
+  assert.ok(
+    context.nodes.slice(first).every((node) => node.disconnected),
+    'Pause releases active and retiring voices',
+  );
+  audio.setEffects({ vector: true, ion: true });
+  assert.deepEqual(
+    bedGains.map((node) => node.gain.value),
+    [0, 0],
+    'Effect updates cannot restart paused sound',
+  );
+  await audio.dispose();
+  assert.ok(context.nodes.every((node) => node.disconnected));
 });

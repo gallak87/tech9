@@ -188,6 +188,19 @@ export function createCombatSimulation({
         .toArray(),
       quaternion: pose.quaternion.toArray(),
     });
+    state.flashes.push({
+      id: state.sequence++,
+      kind: 'arc',
+      type: 'muzzle',
+      source: id,
+      position: pose.position
+        .clone()
+        .addScaledVector(forward.clone().applyQuaternion(pose.quaternion), 4)
+        .toArray(),
+      quaternion: pose.quaternion.toArray(),
+      age: 0,
+      radius: 1.5,
+    });
     notify(id, 'combat-fire', { kind: 'arc' });
   }
   function resetActor(id, all = false) {

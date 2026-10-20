@@ -140,9 +140,12 @@ export function createPickupPresentation({
   const anchor = new THREE.Vector3();
   let lastCombatIcon = null;
   let acquisitionTime = 0;
+  let acquisitionDuration = 0.4;
+  let acquisitionKind = 0;
   let combatNotice = null;
   let combatNoticeValue = '';
   let combatNoticeTime = 0;
+  let combatNoticePriority = 0;
   let currentSettings = settings;
   let disposed = false;
   let noticeTime = 0;
@@ -169,7 +172,7 @@ export function createPickupPresentation({
     hud.hidden = true;
     for (const visual of hardware) visual.reset?.();
     combatNotice = null;
-    combatNoticeTime = 0;
+    combatNoticeTime = combatNoticePriority = 0;
     combatRow.hidden = true;
     message.textContent = '';
     feedback.shield.visible = feedback.drive.visible = false;
@@ -237,7 +240,16 @@ export function createPickupPresentation({
         if (!label || !racing) continue;
         message.textContent = label;
         if (event.type === 'pickup-activate') {
-          acquisitionTime = 0.6;
+          acquisitionKind = [
+            'vector',
+            'aegis',
+            'repulsor',
+            'arc',
+            'ion',
+          ].indexOf(event.payload.kind);
+          acquisitionDuration = acquisitionKind === 1 ? 0.5 : 0.3;
+          acquisitionTime = acquisitionDuration;
+          feedback.acquisition.material.uniforms.kind.value = acquisitionKind;
           feedback.acquisition.material.uniforms.color.value.setHex(
             DEVICE_COLORS[event.payload.kind],
           );
@@ -245,7 +257,16 @@ export function createPickupPresentation({
             .find((visual) => visual.device.id === event.payload.deviceId)
             ?.activate?.(flowTime);
         }
-        if (isCombatDevice(event.payload?.kind)) {
+        const priority = /hit|confirm/.test(event.type)
+          ? 3
+          : event.type === 'pickup-unavailable'
+            ? 1
+            : 2;
+        if (
+          isCombatDevice(event.payload?.kind) &&
+          (!combatNoticeTime || priority >= combatNoticePriority)
+        ) {
+          combatNoticePriority = priority;
           combatNotice = event.payload.kind;
           combatNoticeValue =
             event.type === 'combat-confirm'
@@ -316,8 +337,11 @@ export function createPickupPresentation({
         aegis / AEGIS_DURATION,
       );
       const emitter = combat?.view().emitters.player;
+      audio.setEffects({ vector, ion: emitter?.kind === 'ion' });
+      const displayedEmitter =
+        combatNoticeTime > 0 && combatNoticePriority >= 3 ? null : emitter;
       const combatKind =
-        emitter?.kind ?? (combatNoticeTime > 0 ? combatNotice : null);
+        displayedEmitter?.kind ?? (combatNoticeTime > 0 ? combatNotice : null);
       combatRow.hidden = !combatKind;
       hud.classList.toggle('has-combat', !!combatKind);
       if (combatKind) {
@@ -330,7 +354,7 @@ export function createPickupPresentation({
           combatIcon.innerHTML = icon(combatKind);
           lastCombatIcon = combatKind;
         }
-        combatRow.classList.toggle('is-active', !!emitter);
+        combatRow.classList.toggle('is-active', !!displayedEmitter);
         combatName.textContent = COMBAT_NAMES[combatKind];
         const duration =
           combatKind === 'repulsor'
@@ -338,18 +362,20 @@ export function createPickupPresentation({
             : combatKind === 'ion'
               ? COMBAT_RULES.wakeDuration
               : 0.75;
-        const remaining = emitter ? Math.max(0, duration - emitter.elapsed) : 0;
-        combatValue.textContent = emitter
+        const remaining = displayedEmitter
+          ? Math.max(0, duration - displayedEmitter.elapsed)
+          : 0;
+        combatValue.textContent = displayedEmitter
           ? combatKind === 'arc'
-            ? 3 - emitter.shots + '/3'
+            ? 3 - displayedEmitter.shots + '/3'
             : remaining.toFixed(1) + 's'
           : combatNoticeValue;
-        const fraction = !emitter
+        const fraction = !displayedEmitter
           ? 0
           : combatKind === 'repulsor'
-            ? emitter.elapsed / duration
+            ? displayedEmitter.elapsed / duration
             : combatKind === 'arc'
-              ? (3 - emitter.shots) / 3
+              ? (3 - displayedEmitter.shots) / 3
               : remaining / duration;
         combatFill.style.transform = 'scaleX(' + clamp(fraction) + ')';
       }
@@ -369,18 +395,42 @@ export function createPickupPresentation({
         const height = window.innerHeight;
         const x = (anchor.x * 0.5 + 0.5) * width;
         const y = (-anchor.y * 0.5 + 0.5) * height - 12;
-        hud.style.left = Math.max(88, Math.min(width - 88, x)) + 'px';
+        let left = Math.max(88, Math.min(width - 88, x));
+        // Portrait timing occupies the right side of the hull's projected path.
+        // Slide only overlapping readouts into the adjacent clear space.
+        if (width < 600 && height > width) {
+          const roster = host
+            .querySelector?.('#race-roster')
+            ?.getBoundingClientRect?.();
+          if (
+            roster?.width > 0 &&
+            left + 71 > roster.left - 8 &&
+            y > roster.top &&
+            y - hud.offsetHeight < roster.bottom
+          )
+            left = Math.max(80, roster.left - 79);
+        }
+        hud.style.left = left + 'px';
         hud.style.top = Math.max(110, Math.min(height - 70, y)) + 'px';
         hud.hidden = anchor.z < -1 || anchor.z > 1;
       }
       const acquisition = feedback.acquisition;
       acquisition.visible = driving && acquisitionTime > 0;
-      const age = 1 - acquisitionTime / 0.6;
+      const age = 1 - acquisitionTime / acquisitionDuration;
       acquisition.material.uniforms.age.value = age;
       acquisition.material.uniforms.reducedMotion.value =
         currentSettings.reducedMotion ? 1 : 0;
-      acquisition.scale.setScalar(
-        currentSettings.reducedMotion ? 3.4 : 2.5 + age * 4,
+      acquisition.position.z = acquisitionKind === 4 ? -3 : 0;
+      const size =
+        acquisitionKind === 1
+          ? 2.8 + age * 0.4
+          : acquisitionKind === 2
+            ? 4
+            : 3.2;
+      acquisition.scale.set(
+        size,
+        1,
+        acquisitionKind === 0 || acquisitionKind === 4 ? 6 : size,
       );
       feedback.shield.visible =
         driving && (aegis > 0 || hitTime > 0 || expiryTime > 0);

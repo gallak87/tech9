@@ -190,7 +190,17 @@ test('listener immersion filters the complete propulsion/cue/thunder graph and d
   devices.event({ type: 'pickup-activate', payload: { kind: 'vector' } });
   assert.deepEqual(devices.getStatus().immersion, wet);
   const voice = deviceContext.nodes.find((node) => node.kind === 'oscillator');
-  assert.equal(voice.destination.destination.destination.frequency.value, 560);
+  const deviceWaterFilter = deviceContext.nodes.find(
+    (node) => node.kind === 'filter' && node.frequency.value === 560,
+  );
+  let deviceOutput = voice.destination;
+  for (let n = 0; n < 10 && deviceOutput !== deviceWaterFilter; n++)
+    deviceOutput = deviceOutput.destination;
+  assert.equal(
+    deviceOutput,
+    deviceWaterFilter,
+    'device cues share the underwater output after local compression',
+  );
   devices.update({ volume: 0.5 }, false, 1);
   assert.equal(devices.getStatus().shots, 0);
   devices.update({ volume: 0.5 }, true, 0);

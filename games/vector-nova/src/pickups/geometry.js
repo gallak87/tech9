@@ -723,14 +723,14 @@ export function createShipFeedback() {
         float moving = 1. - reducedMotion;
         float surge = pow(.5+.5*sin(fieldUv.y*15.-flowTime*5.), 5.) * moving;
         float side = smoothstep(.18,.8, hitSide > 0. ? fieldUv.x : 1.-fieldUv.x);
-        float contact = side * exp(-pow((fieldUv.y-.3)/.45,2.)) * hit;
+        float contact = side * exp(-pow((fieldUv.y-.3)/.22,2.)) * hit * (1.-step(.5,layer));
         // Keep the hull readable: energy lives on edges and a sparse lattice,
         // with two low-opacity shells rippling outward in alternating phases.
         float alpha = grazingRim*.09 + sideRim*.24 + endRim*.26;
         alpha += seam*.025 + ribs*.012 + surge*(grazingRim*.025+seam*.035);
         if (layer > .5) alpha = max(sideRim,endRim)*.42 * pow(1.-pulse,2.) * smoothstep(0.,.09,pulse);
         float departing = exp(-pow((fieldUv.y-release)/.095,2.)) * step(.001,release);
-        alpha = (alpha + contact*.18 + departing*seam*.075) * strength;
+        alpha = (alpha + contact*(grazingRim*.18+seam*.32+ribs*.22) + departing*seam*.075) * strength;
         vec3 fieldColor = mix(color * 3., vec3(3.2), min(1.,contact*.9+surge*.14));
         // Concentrate HDR energy on the narrow boundary core, never on the
         // transparent shell faces, so bloom reads as a field around the craft.

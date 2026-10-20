@@ -67,9 +67,9 @@ export function createVectorDeckMaterial(materials, pulseUniforms, device) {
       float chevron = 1. - lateral / deckLayout.y;
       float station = pickupCoord.y - deckLayout.z;
       float gold = deckStripe(station - chevron * 1.85, -1.1, 1.25) * sideCoverage;
-      float white = deckStripe(station - chevron * 1.86, .24, .35) * sideCoverage;
+      float white = deckStripe(station - chevron * 1.86, .24, .15) * sideCoverage;
       float paint = clamp(gold + white, 0., 1.);
-      diffuseColor.rgb = diffuseColor.rgb * (1. - paint) + deckGold * gold + deckWhite * white;
+      diffuseColor.rgb = diffuseColor.rgb * (1. - paint) + deckGold * gold * .65 + deckWhite * white * .8;
     `,
       )
       .replace(
@@ -88,8 +88,8 @@ export function createVectorDeckMaterial(materials, pulseUniforms, device) {
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
       float chase = pow(.5 + .5 * sin(pickupCoord.y * .72 - pickupTime * 6.4), 4.);
-      totalEmissiveRadiance += deckGoldEmission * deckIntensity.x * gold * mix(1., .66 + chase * 1.25, pickupMotion)
-        + deckWhiteEmission * deckIntensity.y * white;
+      totalEmissiveRadiance += deckGoldEmission * deckIntensity.x * gold * .18 * mix(1., .66 + chase * 1.25, pickupMotion)
+        + deckWhiteEmission * deckIntensity.y * white * .32;
     `,
       );
   };

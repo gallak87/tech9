@@ -3,63 +3,7 @@ import { createImmersionMix } from '../audio/immersion.js';
 const clamp = (value) =>
   Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
 
-// Short acquisition signatures sit above the existing propulsion/boost bed.
-// Aegis has a rising harmonic ring; Vector has a quick accelerating sweep.
-function cueFor(event) {
-  const kind = event.payload?.kind;
-  if (event.type === 'combat-fire')
-    return kind === 'repulsor'
-      ? [
-          ['triangle', 130, 36, 0.4, 0.14],
-          ['sine', 620, 90, 0.28, 0.055],
-        ]
-      : [
-          ['sawtooth', 1100, 280, 0.14, 0.045],
-          ['sine', 1700, 680, 0.12, 0.025],
-        ];
-  if (event.type === 'combat-hit' && !event.payload?.shielded)
-    return [['triangle', 180, 55, 0.22, 0.09]];
-  if (event.type === 'combat-confirm') return [['sine', 880, 1320, 0.11, 0.03]];
-  if (
-    event.type === 'pickup-activate' &&
-    ['repulsor', 'arc', 'ion'].includes(kind)
-  )
-    return kind === 'repulsor'
-      ? [['sine', 150, 650, 0.48, 0.075]]
-      : kind === 'ion'
-        ? [
-            ['triangle', 220, 660, 0.5, 0.065],
-            ['sine', 330, 990, 0.4, 0.03],
-          ]
-        : [['sine', 740, 1480, 0.16, 0.05]];
-  const aegis = event.payload?.kind === 'aegis';
-  if (event.type === 'pickup-activate')
-    return aegis
-      ? [
-          ['sine', 396, 528, 0.45, 0.085],
-          ['sine', 594, 792, 0.6, 0.038, 0.035],
-          ['sine', 792, 1056, 0.65, 0.025, 0.06],
-        ]
-      : [
-          ['triangle', 210, 640, 0.45, 0.12],
-          ['sine', 420, 1280, 0.29, 0.035, 0.025],
-        ];
-  if (event.type === 'shield-hit')
-    return [
-      ['triangle', 180, 50, 0.3, 0.11],
-      ['sine', 990, 220, 0.32, 0.06],
-    ];
-  if (event.type === 'pickup-expire' && aegis)
-    return [
-      ['sine', 792, 396, 0.28, 0.035],
-      ['sine', 528, 264, 0.34, 0.025],
-    ];
-  if (event.type === 'pickup-unavailable')
-    return [['sine', 280, 250, 0.08, 0.02]];
-  if (event.type === 'pickup-cancel')
-    return [['triangle', 190, 95, 0.14, 0.03]];
-  return [];
-}
+import { deviceCue, createDeviceNoise } from './sound-design.js';
 
 // This bus owns only immediate road-device cues. It never writes vehicle state.
 export function createPickupAudio({
@@ -68,19 +12,28 @@ export function createPickupAudio({
 } = {}) {
   let context;
   let master;
+  let compressor;
+  let noise;
+  let beds = [];
   let waterMix;
   let pending;
   let disposed = false;
   let running = false;
   let volume = 0;
   const shots = new Set();
+  const tails = new Set();
   const stopShots = () => {
-    for (const shot of shots) shot.stop();
+    for (const shot of [...shots, ...tails]) shot.stop();
     shots.clear();
+    tails.clear();
   };
   function silence() {
     running = false;
     stopShots();
+    for (const bed of beds) {
+      bed.gain.gain.cancelScheduledValues(context.currentTime);
+      bed.gain.gain.setValueAtTime(0, context.currentTime);
+    }
     if (master) {
       master.gain.cancelScheduledValues(context.currentTime);
       master.gain.setValueAtTime(0, context.currentTime);
@@ -99,12 +52,44 @@ export function createPickupAudio({
             waterMix = immersion
               ? createImmersionMix(context, context.destination)
               : null;
-            master.connect(waterMix?.input ?? context.destination);
+            compressor = context.createDynamicsCompressor();
+            compressor.threshold.value = -10;
+            compressor.knee.value = 8;
+            compressor.ratio.value = 4;
+            compressor.attack.value = 0.002;
+            compressor.release.value = 0.16;
+            master
+              .connect(compressor)
+              .connect(waterMix?.input ?? context.destination);
+            noise = createDeviceNoise(context);
+            beds = ['vector', 'ion'].map((kind) => {
+              const source = context.createBufferSource();
+              source.buffer = noise;
+              source.loop = true;
+              source.loopStart = 0.025;
+              const filter = context.createBiquadFilter();
+              filter.type = 'bandpass';
+              filter.Q.value = 0.65;
+              filter.frequency.value = kind === 'vector' ? 2400 : 780;
+              const gain = context.createGain();
+              gain.gain.value = 0;
+              source.connect(filter).connect(gain).connect(master);
+              source.start();
+              return { kind, source, filter, gain };
+            });
           }
           await context.resume();
           return !disposed && context.state === 'running';
         } catch {
           // Unsupported/blocked audio is optional; the complete visual cue remains.
+          for (const bed of beds) {
+            bed.source.stop();
+            bed.source.disconnect();
+            bed.filter.disconnect();
+            bed.gain.disconnect();
+          }
+          beds = [];
+          compressor?.disconnect();
           master?.disconnect();
           waterMix?.dispose();
           waterMix = undefined;
@@ -130,58 +115,107 @@ export function createPickupAudio({
       }
       if (!master) return;
       master.gain.cancelScheduledValues(context.currentTime);
-      master.gain.setTargetAtTime(volume * 0.7, context.currentTime, 0.025);
+      master.gain.setTargetAtTime(volume * 0.95, context.currentTime, 0.025);
+    },
+    setEffects(effects = {}) {
+      if (!context) return;
+      for (const bed of beds) {
+        bed.gain.gain.cancelScheduledValues(context.currentTime);
+        bed.gain.gain.setTargetAtTime(
+          running && effects[bed.kind] ? (bed.kind === 'ion' ? 0.07 : 0.09) : 0,
+          context.currentTime,
+          0.045,
+        );
+      }
     },
     event(event) {
-      if (
-        !running ||
-        disposed ||
-        !context ||
-        context.state !== 'running' ||
-        shots.size >= 4
-      )
+      if (!running || disposed || !context || context.state !== 'running')
         return;
-      const notes = cueFor(event);
+      const notes = deviceCue(event);
       if (!notes.length) return;
+      const priority = /hit|fire/.test(event.type)
+        ? 3
+        : event.type === 'pickup-activate'
+          ? 2
+          : 1;
+      if (shots.size >= 4) {
+        const victim = [...shots].sort((a, b) => a.priority - b.priority)[0];
+        if (victim.priority > priority) return;
+        victim.stop(true);
+      }
       const now = context.currentTime;
       const voices = [];
       const shot = {
-        stop() {
+        priority,
+        stop(soft = false) {
+          if (soft && tails.size >= 4) tails.values().next().value.stop();
           for (const voice of voices) {
             if (voice.ended) continue;
+            if (soft) {
+              voice.envelope.gain.cancelAndHoldAtTime(context.currentTime);
+              voice.envelope.gain.linearRampToValueAtTime(
+                0,
+                context.currentTime + 0.008,
+              );
+              voice.oscillator.stop(context.currentTime + 0.01);
+              continue;
+            }
             voice.ended = true;
             voice.oscillator.onended = null;
             voice.oscillator.stop();
             voice.oscillator.disconnect();
             voice.envelope.disconnect();
+            voice.filter?.disconnect();
           }
           shots.delete(shot);
+          if (soft) tails.add(shot);
+          else tails.delete(shot);
         },
       };
       shots.add(shot);
-      for (const [type, from, to, duration, gain, delay = 0] of notes) {
+      for (const [
+        type,
+        from,
+        to,
+        duration,
+        gain,
+        delay = 0,
+        attack = 0.008,
+      ] of notes) {
         const start = now + delay;
-        const oscillator = context.createOscillator();
+        const oscillator =
+          type === 'noise'
+            ? context.createBufferSource()
+            : context.createOscillator();
+        const filter = type === 'noise' ? context.createBiquadFilter() : null;
         const envelope = context.createGain();
-        const voice = { oscillator, envelope, ended: false };
+        const voice = { oscillator, envelope, filter, ended: false };
         voices.push(voice);
-        oscillator.type = type;
-        oscillator.frequency.setValueAtTime(from, start);
-        oscillator.frequency.exponentialRampToValueAtTime(
-          to,
-          start + duration * 0.8,
-        );
+        if (filter) {
+          oscillator.buffer = noise;
+          filter.type = 'bandpass';
+          filter.Q.value = 0.65;
+        } else oscillator.type = type;
+        const frequency = filter?.frequency ?? oscillator.frequency;
+        frequency.setValueAtTime(from, start);
+        frequency.exponentialRampToValueAtTime(to, start + duration * 0.8);
         envelope.gain.setValueAtTime(0, now);
         envelope.gain.setValueAtTime(0, start);
-        envelope.gain.linearRampToValueAtTime(gain, start + 0.012);
+        envelope.gain.linearRampToValueAtTime(gain, start + attack);
         envelope.gain.exponentialRampToValueAtTime(0.0001, start + duration);
         envelope.gain.linearRampToValueAtTime(0, start + duration + 0.02);
-        oscillator.connect(envelope).connect(master);
+        if (filter) oscillator.connect(filter).connect(envelope);
+        else oscillator.connect(envelope);
+        envelope.connect(master);
         oscillator.onended = () => {
           voice.ended = true;
           oscillator.disconnect();
           envelope.disconnect();
-          if (voices.every((entry) => entry.ended)) shots.delete(shot);
+          filter?.disconnect();
+          if (voices.every((entry) => entry.ended)) {
+            shots.delete(shot);
+            tails.delete(shot);
+          }
         };
         oscillator.start(start);
         oscillator.stop(start + duration + 0.025);
@@ -203,6 +237,14 @@ export function createPickupAudio({
       disposed = true;
       silence();
       await pending;
+      for (const bed of beds) {
+        bed.source.stop();
+        bed.source.disconnect();
+        bed.filter.disconnect();
+        bed.gain.disconnect();
+      }
+      beds = [];
+      compressor?.disconnect();
       master?.disconnect();
       waterMix?.dispose();
       if (context && context.state !== 'closed')

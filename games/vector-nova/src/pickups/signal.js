@@ -91,6 +91,7 @@ export function createAcquisitionFlash() {
     uniforms: {
       color: { value: new THREE.Color() },
       age: { value: 1 },
+      kind: { value: 0 },
       reducedMotion: { value: 0 },
     },
     vertexShader: `
@@ -102,14 +103,27 @@ export function createAcquisitionFlash() {
     fragmentShader: `
       varying vec2 coord;
       uniform vec3 color;
-      uniform float age, reducedMotion;
+      uniform float age, reducedMotion, kind;
       void main() {
         float radius = length(coord);
-        float ring = exp(-pow((radius - .78) / .025, 2.));
-        float glow = exp(-pow((radius - .78) / .14, 2.)) * .2;
-        float spokes = pow(abs(cos(atan(coord.y, coord.x) * 6.)), 24.);
-        spokes *= smoothstep(.8, .84, radius) * (1. - smoothstep(.9, 1., radius));
-        float alpha = (ring + glow + spokes * .6) * (1.-age) * mix(.8,.3,reducedMotion);
+        float theta=atan(coord.y,coord.x), pattern=0.;
+        if(kind<.5) {
+          float x=abs(abs(coord.x)-.55);
+          pattern=exp(-x*60.)*(1.-smoothstep(.2,.95,coord.y))*smoothstep(-1.,-.7,coord.y);
+        } else if(kind<1.5) {
+          float hex=radius*cos(mod(theta+3.14159/6.,3.14159/3.)-3.14159/6.);
+          pattern=exp(-pow((hex-.75)/.02,2.))*.65;
+        } else if(kind<2.5) {
+          float target=.85-age*.55;
+          pattern=exp(-pow((radius-target)/.04,2.))*pow(.5+.5*cos(theta*3.),4.);
+        } else if(kind<3.5) {
+          float x=abs(abs(coord.x)-.6-.03*sin(coord.y*25.));
+          pattern=exp(-x*90.)*smoothstep(-.7,-.3,coord.y)*(1.-smoothstep(.6,1.,coord.y));
+        } else {
+          float x=abs(abs(coord.x)-.35-.18*(1.-coord.y));
+          pattern=exp(-x*45.)*smoothstep(-1.,-.7,coord.y)*(1.-smoothstep(.2,.7,coord.y));
+        }
+        float alpha=pattern*pow(1.-age,1.5)*mix(.8,.3,reducedMotion);
         if (alpha < .002) discard;
         gl_FragColor = vec4(color * 2., alpha);
       }`,
@@ -119,7 +133,7 @@ export function createAcquisitionFlash() {
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.y = 0.2;
   mesh.visible = false;
-  mesh.name = 'Device collection / colored ignition ring';
+  mesh.name = 'Device collection / shaped energy transfer';
   mesh.userData.aoExclude = mesh.userData.reflectionExclude = true;
   return mesh;
 }

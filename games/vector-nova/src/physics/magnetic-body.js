@@ -331,6 +331,25 @@ export function createMagneticBody({
     lastSpeed = state.speed;
   }
   return {
+    applyImpulse(state, impulse) {
+      if (!initialized || roadRecovery) return;
+      const body = actor.read();
+      const frame = magneticFrame(
+        track,
+        state.distance,
+        state.lateral,
+        sampleRoad,
+      );
+      const planar = impulse
+        .clone()
+        .addScaledVector(frame.up, -impulse.dot(frame.up));
+      body.velocity.add(planar);
+      actor.setVelocity(body.velocity, body.angularVelocity);
+      const forward = new T.Vector3(0, 0, 1).applyQuaternion(body.quaternion);
+      state.speed = body.velocity.dot(forward);
+      state.lateralSpeed = body.velocity.dot(frame.right);
+      lastSpeed = state.speed;
+    },
     stage(state, input, dt, options = {}) {
       if (!initialized) initialize(state, options);
       const body = actor.read();

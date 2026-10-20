@@ -97,7 +97,7 @@ test('device geometry is finite, bounded and entirely owned for disposal', () =>
     });
     assert.equal(
       draws,
-      type === 'vector' ? 4 : 8,
+      type === 'vector' ? 5 : 9,
       'Raised arch is owned separately from solid road panels',
     );
     const bounds = new THREE.Box3().setFromObject(visual.group);
@@ -116,8 +116,8 @@ test('device geometry is finite, bounded and entirely owned for disposal', () =>
     object.material?.addEventListener('dispose', () => disposedMaterials++);
   });
   disposeGroup(group);
-  assert.equal(disposedGeometries, 14);
-  assert.equal(disposedMaterials, 14);
+  assert.equal(disposedGeometries, 17);
+  assert.equal(disposedMaterials, 17);
   projector.dispose();
 });
 
@@ -330,17 +330,8 @@ test('later unprotected contact replaces protection feedback immediately; pause 
   const source = (await readFile(sourceUrl, 'utf8'))
     .replace("import './style.css';", '')
     .replace("'three'", JSON.stringify(import.meta.resolve('three')))
-    .replace(
-      "'./geometry.js'",
-      JSON.stringify(new URL('./geometry.js', sourceUrl).href),
-    )
-    .replace(
-      "'./audio.js'",
-      JSON.stringify(new URL('./audio.js', sourceUrl).href),
-    )
-    .replace(
-      "'./simulation.js'",
-      JSON.stringify(new URL('./simulation.js', sourceUrl).href),
+    .replace(/'(\.\/[^']+\.js)'/g, (_, path) =>
+      JSON.stringify(new URL(path, sourceUrl).href),
     );
   const { createPickupPresentation } = await import(
     `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`
@@ -383,8 +374,18 @@ test('later unprotected contact replaces protection feedback immediately; pause 
   globalThis.window = { addEventListener() {}, removeEventListener() {} };
   const ship = new THREE.Group();
   const scene = new THREE.Scene();
+  const track = createTrack();
+  const road = new THREE.Mesh(
+    sweepGeometry(track, [
+      [-14, 0],
+      [14, 0],
+    ]),
+    new THREE.MeshBasicMaterial(),
+  );
+  road.userData.roadSurface = true;
   const view = createPickupPresentation({
-    track: createTrack(),
+    track,
+    road,
     scene,
     ship,
     host: new Element(),
@@ -418,7 +419,7 @@ test('later unprotected contact replaces protection feedback immediately; pause 
     );
     assert.equal(
       vectorRow.querySelector('[data-value]').textContent,
-      'ON STRIP · ACCELERATING',
+      'CATAPULT',
     );
     assert.equal(drive.visible, true);
     assert.equal(
@@ -443,10 +444,7 @@ test('later unprotected contact replaces protection feedback immediately; pause 
       false,
       'Strip exit stops force feedback immediately',
     );
-    assert.equal(
-      vectorRow.querySelector('[data-value]').textContent,
-      'DRIVE OVER STRIP',
-    );
+    assert.equal(vectorRow.querySelector('[data-value]').textContent, 'CARRY');
     assert.match(notice.textContent, /SPEED CARRIED/);
     view.update({ ...frame, dt: 1.2 });
     assert.equal(vectorRow.classes.has('is-acquired'), false);
@@ -498,6 +496,8 @@ test('later unprotected contact replaces protection feedback immediately; pause 
     assert.equal(vectorRow.classes.has('is-acquired'), false);
   } finally {
     view.dispose();
+    road.geometry.dispose();
+    road.material.dispose();
     assert.equal(scene.children.length, 0);
     assert.equal(ship.children.length, 0);
     assert.equal(view.hud.removed, true);
@@ -506,7 +506,7 @@ test('later unprotected contact replaces protection feedback immediately; pause 
   }
 });
 
-test('both Aegis arches clear the whole chase corridor through pickup, braking and stop without fading the road', () => {
+test('all Aegis arches clear the whole chase corridor through pickup, braking and stop without fading the road', () => {
   const track = createTrack();
   const projector = createRoadProjector(track);
   const aegis = createHalcyonDevices(track).filter(
@@ -516,7 +516,9 @@ test('both Aegis arches clear the whole chase corridor through pickup, braking a
   aegis.push({ ...aegis[0], id: 'inverted-check', distance: 2210 });
   for (const device of aegis) {
     const visual = createDeviceGeometry(track, device, projector);
-    const roadMeshes = visual.group.children.filter((object) => object.isMesh);
+    const roadMeshes = visual.group.children.filter(
+      (object) => object.isMesh && !object.userData.aoExclude,
+    );
     for (const [width, height] of [
       [1600, 900],
       [390, 844],

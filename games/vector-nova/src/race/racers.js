@@ -136,9 +136,21 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
   // driving lines. Only closed circuits wrap to the next lap.
   const upcoming = devices.find((device) => {
     const ahead = distanceAhead(track, state.distance, device.distance);
-    return device.type === 'aegis' && ahead >= 0 && ahead < 150;
+    if (ahead < 0 || ahead >= 150) return false;
+    if (device.type === 'aegis') return true;
+    const gaps = nearby
+      .filter((other) => other !== state)
+      .map((other) => other.distance - state.distance);
+    if (device.type === 'repulsor')
+      return gaps.some((gap) => Math.abs(gap) < 50);
+    if (device.type === 'arc') return gaps.some((gap) => gap > 12 && gap < 320);
+    if (device.type === 'ion')
+      return gaps.some((gap) => gap < -8 && gap > -400);
+    return false;
   });
   if (upcoming) targetLane = upcoming.lateral;
+  const hazardLane = opponent.runtime?.avoidance?.();
+  if (Number.isFinite(hazardLane)) targetLane = hazardLane;
   for (const other of nearby) {
     if (other === state) continue;
     const gap = other.distance - state.distance;
@@ -302,7 +314,7 @@ export function createRacers({
     },
     prev: null,
     race: null,
-    runtime: createRuntime(),
+    runtime: createRuntime(specification),
     finish: null,
     boostSeconds: 0,
   }));

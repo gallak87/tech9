@@ -25,6 +25,7 @@ export function createMagneticRuntime({
         });
       },
       finishAdvance: (state) => body.finish(state),
+      applyImpulse: (state, impulse) => body.applyImpulse(state, impulse),
       advance(state, input, dt, modifiers) {
         if (!Number.isFinite(dt) || dt <= 0) return [];
         const duration = Math.min(dt, 0.1),
@@ -117,7 +118,9 @@ export function advanceSession({
         .forEach(emit);
       // Forward finish events with the same grounded sprint pose.
       racers?.finishAdvance?.({ playerPose: runtime.pose(1) })?.forEach(emit);
-      events.push(...completed);
+      const interactions = runtime.advanceInteractions?.(step) ?? [];
+      interactions.forEach(emit);
+      events.push(...completed, ...interactions);
     }
     return events;
   }
@@ -138,6 +141,9 @@ export function advanceSession({
       playerPose: runtime.pose(1),
     })
     ?.forEach(emit);
+  const interactions = runtime.advanceInteractions?.(dt) ?? [];
+  interactions.forEach(emit);
+  events.push(...interactions);
   return events;
 }
 

@@ -68,5 +68,66 @@ const PLAN = [
 
 export function createHalcyonDevices(track) {
   if (track?.id !== HALCYON_TRACK_ID) return [];
-  return PLAN.map((device) => ({ ...device }));
+  return [...PLAN, ...COMBAT_PLAN]
+    .map((device) => ({ ...device }))
+    .sort((a, b) => a.distance - b.distance);
 }
+
+// First combat experiment: short-range opening, a lingering pursuit hazard,
+// then a forward burst on the transit approach. Existing hardware stays put.
+const COMBAT_PLAN = [
+  {
+    id: 'aegis-launch',
+    type: 'aegis',
+    distance: 125,
+    lateral: 6,
+    width: 5,
+    length: 8,
+    label: 'Opening protection',
+    rationale: 'Driver-left defensive line before the first repulsor.',
+  },
+  {
+    id: 'repulsor-crown',
+    type: 'repulsor',
+    distance: 195,
+    lateral: -6,
+    width: 5,
+    length: 10,
+    label: 'Crown repulsor',
+    rationale:
+      'Opening pack after launch, with room to recover before the crown.',
+  },
+  {
+    id: 'ion-cascade',
+    type: 'ion',
+    distance: 640,
+    lateral: -6,
+    width: 5,
+    length: 10,
+    label: 'Cascade ion wake',
+    rationale:
+      'A lasting trail into the descent catches followers several seconds back.',
+  },
+  {
+    id: 'arc-transit',
+    type: 'arc',
+    distance: 1130,
+    lateral: 6,
+    width: 5,
+    length: 10,
+    label: 'Transit arc burst',
+    rationale:
+      'Forward sightline toward the next racer and the transit boost strip.',
+  },
+  {
+    id: 'arc-sky-sweep',
+    type: 'arc',
+    distance: 3010,
+    lateral: -6,
+    width: 5,
+    length: 10,
+    label: 'Sky sweep arc burst',
+    rationale:
+      'A second chance to reach a separated rival after the sky-exit catapult.',
+  },
+];

@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import { isCombatDevice, COMBAT_RULES } from './combat.js';
+import { createCombatDeviceGeometry, COMBAT_NAMES } from './combat-geometry.js';
+import { createCombatPresentation } from './combat-presentation.js';
 import {
   createRoadProjector,
   createDeviceGeometry,
@@ -7,17 +10,39 @@ import {
 } from './geometry.js';
 import { collectRoadSurfaces, roadDeviceMountHeight } from './device-mount.js';
 import { createPickupAudio } from './audio.js';
+import { DEVICE_COLORS, deviceCSSColor } from './theme.js';
 import { AEGIS_DURATION } from './simulation.js';
 import './style.css';
 
 const clamp = (value) => Math.max(0, Math.min(1, value));
 const TOAST_DURATION = 1.1;
-const icon = (type) =>
-  type === 'vector'
-    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16 8-7 8 7M4 9l8-7 8 7"/></svg>'
-    : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 3 8-2 8 2-1 12-7 7-7-7Z"/><path d="M12 5v11M8 10h8"/></svg>';
+const ICONS = {
+  vector: 'm4 16 8-7 8 7M4 9l8-7 8 7',
+  aegis: 'm4 3 8-2 8 2-1 12-7 7-7-7ZM12 5v11M8 10h8',
+  repulsor: 'M12 1v6m0 10v6M1 12h6m10 0h6M5 5l4 4m6 6 4 4M5 19l4-4m6-6 4-4',
+  arc: 'm13 1-8 12h7l-1 10 8-14h-7Z',
+  ion: 'M5 2c8 6-8 12 0 20M12 2c8 6-8 12 0 20M19 2c8 6-8 12 0 20',
+};
+const icon = (kind) =>
+  `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[kind]}"/></svg>`;
 
 export function pickupEventLabel(event) {
+  const kind = event.payload?.kind;
+  if (isCombatDevice(kind)) {
+    const name = COMBAT_NAMES[kind];
+    if (event.type === 'pickup-activate') return name + ' · AUTOMATIC';
+    if (event.type === 'combat-fire') return name + ' · FIRED';
+    if (event.type === 'combat-hit')
+      return event.payload.shielded
+        ? 'AEGIS · ATTACK BLOCKED'
+        : name + ' · HIT';
+    if (event.type === 'combat-confirm')
+      return event.payload.shielded
+        ? 'RIVAL SHIELD BLOCKED HIT'
+        : name + ' · HIT CONFIRMED';
+    if (event.type === 'pickup-unavailable') return name + ' · RECHARGING';
+    return '';
+  }
   const name = event.payload?.kind === 'vector' ? 'VECTOR' : 'AEGIS';
   if (event.type === 'pickup-activate')
     return name === 'VECTOR'
@@ -25,7 +50,10 @@ export function pickupEventLabel(event) {
       : 'AEGIS · ONE IMPACT PROTECTED';
   if (event.type === 'pickup-exit' && event.payload?.kind === 'vector')
     return 'BOOST STRIP · SPEED CARRIED';
-  if (event.type === 'shield-hit') return 'AEGIS HIT · RESERVE PROTECTED';
+  if (event.type === 'shield-hit')
+    return event.payload?.combat
+      ? 'AEGIS · ATTACK BLOCKED'
+      : 'AEGIS HIT · RESERVE PROTECTED';
   if (event.type === 'impact' && !event.payload?.shielded)
     return 'UNPROTECTED HIT · RESERVE LOST';
   if (event.type === 'pickup-expire' && name === 'AEGIS')
@@ -54,6 +82,7 @@ export function createPickupPresentation({
   settings = {},
   devices = [],
   audioImmersion,
+  combat = null,
 }) {
   const surfaces = collectRoadSurfaces(road);
   const root = new THREE.Group();
@@ -62,13 +91,17 @@ export function createPickupPresentation({
   const projector = createRoadProjector(track);
   const hardware = devices.map((device) => {
     const mountHeight = roadDeviceMountHeight(surfaces, device, projector);
-    const visual = createDeviceGeometry(track, device, projector, {
+    const createGeometry = isCombatDevice(device.type)
+      ? createCombatDeviceGeometry
+      : createDeviceGeometry;
+    const visual = createGeometry(track, device, projector, {
       mountHeight,
     });
     root.add(visual.group);
     return { ...visual, device };
   });
   projector.dispose();
+  const combatVisual = combat ? createCombatPresentation(scene, combat) : null;
   const feedback = createShipFeedback();
   (ship.group || ship).add(feedback.group);
   const audio = createPickupAudio({ immersion: Boolean(audioImmersion) });
@@ -77,14 +110,16 @@ export function createPickupPresentation({
   hud.setAttribute('aria-label', 'Automatic road devices');
   hud.hidden = true;
   hud.innerHTML = `<div class="race-device-states">
-    <div class="race-device-state" data-kind="vector">${icon('vector')}<div><b>BOOST STRIP <small data-toast aria-hidden="true"></small></b><span data-value>DRIVE OVER STRIP</span></div></div>
-    <div class="race-device-state" data-kind="aegis">${icon('aegis')}<div><b>AEGIS <small data-toast aria-hidden="true"></small></b><span data-value>DRIVE THROUGH ARCH</span><i><em></em></i></div></div>
+    <div class="race-device-state" data-kind="vector" hidden>${icon('vector')}<div><b>VECTOR <span data-value></span></b><i aria-hidden="true"><em></em></i><small data-toast hidden></small></div></div>
+    <div class="race-device-state" data-kind="aegis" hidden>${icon('aegis')}<div><b>AEGIS <span data-value></span></b><i aria-hidden="true"><em></em></i><small data-toast hidden></small></div></div>
+    <div class="race-device-state" data-kind="combat" hidden><div data-combat-icon></div><div><b><strong data-combat-name></strong><span data-combat-value></span></b><i aria-hidden="true"><em></em></i></div></div>
     </div><p class="race-device-message" role="status" aria-live="polite" aria-atomic="true"></p>`;
   host.append(hud);
   const message = hud.querySelector('.race-device-message');
   const nodes = Object.fromEntries(
     ['vector', 'aegis'].map((kind) => {
       const row = hud.querySelector(`[data-kind="${kind}"]`);
+      row.style.setProperty('--device-color', deviceCSSColor(kind));
       return [
         kind,
         {
@@ -97,6 +132,17 @@ export function createPickupPresentation({
       ];
     }),
   );
+  const combatRow = hud.querySelector('[data-kind="combat"]');
+  const combatName = combatRow.querySelector('[data-combat-name]');
+  const combatValue = combatRow.querySelector('[data-combat-value]');
+  const combatFill = combatRow.querySelector('em');
+  const combatIcon = combatRow.querySelector('[data-combat-icon]');
+  const anchor = new THREE.Vector3();
+  let lastCombatIcon = null;
+  let acquisitionTime = 0;
+  let combatNotice = null;
+  let combatNoticeValue = '';
+  let combatNoticeTime = 0;
   let currentSettings = settings;
   let disposed = false;
   let noticeTime = 0;
@@ -118,11 +164,18 @@ export function createPickupPresentation({
   window.addEventListener('blur', silence);
   document.addEventListener('visibilitychange', visibility);
   function reset() {
-    noticeTime = hitTime = expiryTime = flowTime = 0;
+    noticeTime = hitTime = expiryTime = flowTime = acquisitionTime = 0;
+    feedback.acquisition.visible = false;
+    hud.hidden = true;
+    for (const visual of hardware) visual.reset?.();
+    combatNotice = null;
+    combatNoticeTime = 0;
+    combatRow.hidden = true;
     message.textContent = '';
     feedback.shield.visible = feedback.drive.visible = false;
     for (const node of Object.values(nodes)) {
       node.toastTime = 0;
+      node.row.hidden = true;
       node.toast.textContent = '';
       node.row.classList.toggle('is-acquired', false);
       node.row.style.setProperty('--device-pop', 0);
@@ -144,6 +197,7 @@ export function createPickupPresentation({
       settings: nextSettings = currentSettings,
     }) {
       if (disposed) return;
+      combatVisual?.update({ mode, enabled, settings: nextSettings });
       if (!enabled) {
         root.visible = feedback.group.visible = false;
         hud.hidden = true;
@@ -169,17 +223,44 @@ export function createPickupPresentation({
       );
       if (racing) {
         noticeTime = Math.max(0, noticeTime - dt);
+        combatNoticeTime = Math.max(0, combatNoticeTime - dt);
         hitTime = Math.max(0, hitTime - dt);
         expiryTime = Math.max(0, expiryTime - dt);
         for (const node of Object.values(nodes))
           node.toastTime = Math.max(0, node.toastTime - dt);
-        if (!currentSettings.reducedMotion) flowTime += dt;
+        acquisitionTime = Math.max(0, acquisitionTime - dt);
+        flowTime += dt;
       }
       if (!noticeTime) message.textContent = '';
       for (const event of events) {
         const label = pickupEventLabel(event);
         if (!label || !racing) continue;
         message.textContent = label;
+        if (event.type === 'pickup-activate') {
+          acquisitionTime = 0.6;
+          feedback.acquisition.material.uniforms.color.value.setHex(
+            DEVICE_COLORS[event.payload.kind],
+          );
+          hardware
+            .find((visual) => visual.device.id === event.payload.deviceId)
+            ?.activate?.(flowTime);
+        }
+        if (isCombatDevice(event.payload?.kind)) {
+          combatNotice = event.payload.kind;
+          combatNoticeValue =
+            event.type === 'combat-confirm'
+              ? event.payload.shielded
+                ? 'BLOCKED'
+                : 'HIT CONFIRMED'
+              : event.type === 'combat-hit'
+                ? event.payload.shielded
+                  ? 'BLOCKED'
+                  : 'HIT'
+                : event.type === 'pickup-unavailable'
+                  ? 'RECHARGING'
+                  : 'FIRED';
+          combatNoticeTime = 1.3;
+        }
         message.dataset.kind = event.payload?.kind || 'aegis';
         noticeTime = event.type === 'shield-hit' ? 2.4 : 1.8;
         if (event.type === 'pickup-activate' && nodes[event.payload?.kind]) {
@@ -193,7 +274,7 @@ export function createPickupPresentation({
           hitSide = event.payload?.side || 1;
           expiryTime = 0;
           nodes.aegis.toastTime = TOAST_DURATION;
-          nodes.aegis.toast.textContent = 'IMPACT ABSORBED';
+          nodes.aegis.toast.textContent = 'BLOCKED';
         }
         if (event.type === 'pickup-expire' && event.payload?.kind === 'aegis')
           expiryTime = 0.5;
@@ -211,6 +292,7 @@ export function createPickupPresentation({
       hud.classList.toggle('has-aegis', aegis > 0);
       const updateState = (kind, active, value, fraction = null) => {
         const node = nodes[kind];
+        node.row.hidden = !active && node.toastTime <= 0;
         node.row.classList.toggle('is-active', active);
         node.row.classList.toggle('is-acquired', node.toastTime > 0);
         node.row.style.setProperty(
@@ -226,20 +308,79 @@ export function createPickupPresentation({
           `${kind.toUpperCase()}: ${node.value.textContent}`,
         );
       };
-      updateState(
-        'vector',
-        vector,
-        vector ? 'ON STRIP · ACCELERATING' : 'DRIVE OVER STRIP',
-      );
+      updateState('vector', vector, vector ? 'CATAPULT' : 'CARRY');
       updateState(
         'aegis',
         aegis > 0,
-        aegis > 0
-          ? `1 HIT · ${aegis.toFixed(1)}s`
-          : hitTime
-            ? 'HIT ABSORBED · 0 HITS'
-            : 'DRIVE THROUGH ARCH',
+        aegis > 0 ? `${aegis.toFixed(1)}s` : hitTime ? 'BLOCKED' : 'CLEAR',
         aegis / AEGIS_DURATION,
+      );
+      const emitter = combat?.view().emitters.player;
+      const combatKind =
+        emitter?.kind ?? (combatNoticeTime > 0 ? combatNotice : null);
+      combatRow.hidden = !combatKind;
+      hud.classList.toggle('has-combat', !!combatKind);
+      if (combatKind) {
+        combatRow.dataset.effect = combatKind;
+        combatRow.style.setProperty(
+          '--device-color',
+          deviceCSSColor(combatKind),
+        );
+        if (lastCombatIcon !== combatKind) {
+          combatIcon.innerHTML = icon(combatKind);
+          lastCombatIcon = combatKind;
+        }
+        combatRow.classList.toggle('is-active', !!emitter);
+        combatName.textContent = COMBAT_NAMES[combatKind];
+        const duration =
+          combatKind === 'repulsor'
+            ? COMBAT_RULES.pulseDelay
+            : combatKind === 'ion'
+              ? COMBAT_RULES.wakeDuration
+              : 0.75;
+        const remaining = emitter ? Math.max(0, duration - emitter.elapsed) : 0;
+        combatValue.textContent = emitter
+          ? combatKind === 'arc'
+            ? 3 - emitter.shots + '/3'
+            : remaining.toFixed(1) + 's'
+          : combatNoticeValue;
+        const fraction = !emitter
+          ? 0
+          : combatKind === 'repulsor'
+            ? emitter.elapsed / duration
+            : combatKind === 'arc'
+              ? (3 - emitter.shots) / 3
+              : remaining / duration;
+        combatFill.style.transform = 'scaleX(' + clamp(fraction) + ')';
+      }
+      // Anchor above the rendered hull, including banking and flight. Only
+      // active effects occupy space; idle driving has no device HUD at all.
+      const hasReadout =
+        !nodes.vector.row.hidden ||
+        !nodes.aegis.row.hidden ||
+        !combatRow.hidden;
+      hud.hidden = !racing;
+      if (camera && racing && hasReadout) {
+        (ship.group || ship).updateWorldMatrix(true, false);
+        anchor.set(0, 1.6, 0);
+        (ship.group || ship).localToWorld(anchor);
+        anchor.project(camera);
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const x = (anchor.x * 0.5 + 0.5) * width;
+        const y = (-anchor.y * 0.5 + 0.5) * height - 12;
+        hud.style.left = Math.max(88, Math.min(width - 88, x)) + 'px';
+        hud.style.top = Math.max(110, Math.min(height - 70, y)) + 'px';
+        hud.hidden = anchor.z < -1 || anchor.z > 1;
+      }
+      const acquisition = feedback.acquisition;
+      acquisition.visible = driving && acquisitionTime > 0;
+      const age = 1 - acquisitionTime / 0.6;
+      acquisition.material.uniforms.age.value = age;
+      acquisition.material.uniforms.reducedMotion.value =
+        currentSettings.reducedMotion ? 1 : 0;
+      acquisition.scale.setScalar(
+        currentSettings.reducedMotion ? 3.4 : 2.5 + age * 4,
       );
       feedback.shield.visible =
         driving && (aegis > 0 || hitTime > 0 || expiryTime > 0);
@@ -270,10 +411,13 @@ export function createPickupPresentation({
         visual.updateCamera(camera, (ship.group || ship).position);
         const lap = Math.floor((vehicle?.distance || 0) / track.length);
         visual.setAvailable(
-          (effects.used?.[visual.device.id] ?? -Infinity) < lap ||
-            (visual.device.type === 'vector' &&
-              vector &&
-              effects.vectorDevice === visual.device.id),
+          (isCombatDevice(visual.device.type)
+            ? combat?.available(visual.device.id) !== false
+            : true) &&
+            ((effects.used?.[visual.device.id] ?? -Infinity) < lap ||
+              (visual.device.type === 'vector' &&
+                vector &&
+                effects.vectorDevice === visual.device.id)),
         );
         visual.update?.({
           time: flowTime,
@@ -292,6 +436,7 @@ export function createPickupPresentation({
       window.removeEventListener('blur', silence);
       document.removeEventListener('visibilitychange', visibility);
       hud.remove();
+      combatVisual?.dispose();
       disposeGroup(root);
       disposeGroup(feedback.group);
       void audio.dispose();

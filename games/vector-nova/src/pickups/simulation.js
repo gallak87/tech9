@@ -1,3 +1,4 @@
+import { isCombatDevice } from './combat.js';
 import { VEHICLE_HULL, headingExtents } from '../physics/hull.js';
 export const PICKUP_STATE_VERSION = 2;
 export const AEGIS_DURATION = 6;
@@ -177,7 +178,8 @@ export function createPickupSimulation({
       typeof device.id !== 'string' ||
       !device.id ||
       ids.has(device.id) ||
-      !['vector', 'aegis'].includes(device.type) ||
+      (!['vector', 'aegis'].includes(device.type) &&
+        !isCombatDevice(device.type)) ||
       !Number.isFinite(device.distance) ||
       device.distance < 0 ||
       device.distance >= trackLength ||
@@ -194,6 +196,7 @@ export function createPickupSimulation({
   });
   const vectors = layout.filter((device) => device.type === 'vector');
   const aegises = layout.filter((device) => device.type === 'aegis');
+  const gates = layout.filter((device) => device.type !== 'vector');
   const layoutKey = JSON.stringify([
     trackLength,
     ...(closed === false ? ['sprint-v1'] : []),
@@ -377,7 +380,7 @@ export function createPickupSimulation({
       ...(movingForward(current)
         ? sweptVectorContacts(previous, current, vectors, trackLength, closed)
         : []),
-      ...sweptDeviceCrossings(previous, current, aegises, trackLength, closed),
+      ...sweptDeviceCrossings(previous, current, gates, trackLength, closed),
     ].sort(
       (a, b) =>
         a.fraction - b.fraction || a.device.id.localeCompare(b.device.id),
@@ -391,6 +394,14 @@ export function createPickupSimulation({
       if (traversal <= state.used[device.id]) continue;
       state.used[device.id] = traversal;
       if (!contact.overlap) continue;
+      if (isCombatDevice(device.type)) {
+        events.push(
+          event('pickup-activate', device.type, device.id, {
+            fraction: contact.fraction,
+          }),
+        );
+        continue;
+      }
       if (state.aegisRemaining > 0)
         events.push(
           event('pickup-unavailable', 'aegis', device.id, { reason: 'active' }),
@@ -469,6 +480,9 @@ export function createPickupSimulation({
     };
   }
   return {
+    consumeShield(extra = {}) {
+      return clearAegis('shield-hit', { ...extra, combat: true });
+    },
     beforeStep,
     afterStep,
     reset,

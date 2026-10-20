@@ -58,6 +58,8 @@ npm test
 
 WebGL2 is required. Gameplay uses local assets and needs no account or backend. Keep npm optional dependencies enabled for Vite's native package.
 
+The Halcyon experiment includes automatic **Repulsor** pads (pink, radial shove after a short charge), **Arc burst** pads (blue, three road-following shots aimed by steering), and **Ion wake** pads (violet, a lingering trail that disrupts followers). Driving across a pad activates it immediately; there is no item inventory or extra action button. Aegis blocks an offensive hit. These devices are available in races and practice and remain disabled in Time Trial.
+
 ## Controls
 
 - W / Up: accelerate. S / Down: brake. A/D or Left/Right: steer.

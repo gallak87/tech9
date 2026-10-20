@@ -711,6 +711,22 @@ export async function createRapierWorld({
     rulesId,
     identity,
     gravity,
+    occlusionFraction(start, end) {
+      alive();
+      const direction = end.clone().sub(start);
+      if (direction.lengthSq() < 1e-12) return 1;
+      const hit = engine.castRay(
+        new RAPIER.Ray(start, direction),
+        1,
+        true,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        (collider) => statics.has(collider.handle),
+      );
+      return hit?.timeOfImpact ?? 1;
+    },
     sampleRoadSurface: (...args) => {
       alive();
       return roadSurface(...args);

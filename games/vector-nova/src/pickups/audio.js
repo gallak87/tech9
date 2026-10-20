@@ -6,6 +6,32 @@ const clamp = (value) =>
 // Short acquisition signatures sit above the existing propulsion/boost bed.
 // Aegis has a rising harmonic ring; Vector has a quick accelerating sweep.
 function cueFor(event) {
+  const kind = event.payload?.kind;
+  if (event.type === 'combat-fire')
+    return kind === 'repulsor'
+      ? [
+          ['triangle', 130, 36, 0.4, 0.14],
+          ['sine', 620, 90, 0.28, 0.055],
+        ]
+      : [
+          ['sawtooth', 1100, 280, 0.14, 0.045],
+          ['sine', 1700, 680, 0.12, 0.025],
+        ];
+  if (event.type === 'combat-hit' && !event.payload?.shielded)
+    return [['triangle', 180, 55, 0.22, 0.09]];
+  if (event.type === 'combat-confirm') return [['sine', 880, 1320, 0.11, 0.03]];
+  if (
+    event.type === 'pickup-activate' &&
+    ['repulsor', 'arc', 'ion'].includes(kind)
+  )
+    return kind === 'repulsor'
+      ? [['sine', 150, 650, 0.48, 0.075]]
+      : kind === 'ion'
+        ? [
+            ['triangle', 220, 660, 0.5, 0.065],
+            ['sine', 330, 990, 0.4, 0.03],
+          ]
+        : [['sine', 740, 1480, 0.16, 0.05]];
   const aegis = event.payload?.kind === 'aegis';
   if (event.type === 'pickup-activate')
     return aegis

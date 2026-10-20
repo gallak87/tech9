@@ -2,6 +2,7 @@ import {
   createMagneticRuntime,
   runtimeIdentity,
 } from '../core/session-runtime.js';
+import { isCombatDevice, COMBAT_RULES } from './combat.js';
 import { createPickupSimulation, VECTOR_PROPULSION } from './simulation.js';
 
 // Compose devices around a circuit's actual simulation. Player and rivals use
@@ -13,6 +14,8 @@ export function createDeviceRuntime({
   identity,
   presentation = null,
   scenarios = {},
+  combat = null,
+  combatId = 'player',
 }) {
   const simulation = createPickupSimulation({
     trackLength: track.length,
@@ -23,7 +26,7 @@ export function createDeviceRuntime({
     devices.map((device) => [
       device.id,
       {
-        label: `${device.type === 'vector' ? 'VECTOR' : 'AEGIS'} · ${device.label} · parked`,
+        label: `${device.type.toUpperCase()} · ${device.label} · parked`,
         state: {
           distance:
             device.distance -
@@ -43,7 +46,44 @@ export function createDeviceRuntime({
     ...state,
     grounded: motion.pose(1)?.grounded !== false,
   });
+  function bindCombat(state) {
+    if (!combat || !enabled) return;
+    combat.bind(combatId, {
+      state,
+      pose: () => motion.pose(1),
+      notify: (event) => pending.push(event),
+      hit({ source, kind, impulse, cost }) {
+        const shield = simulation.consumeShield({ source, attack: kind });
+        if (shield) {
+          pending.push(shield);
+          return true;
+        }
+        motion.applyImpulse?.(state, impulse);
+        state.energy = Math.max(0, state.energy - cost);
+        state.impact = Math.max(state.impact, 0.65);
+        return false;
+      },
+    });
+  }
   function applyEntryImpulse(events, state) {
+    if (
+      events.some(
+        (event) =>
+          event.type === 'pickup-cancel' && event.payload.reason === 'recover',
+      )
+    )
+      combat?.resetActor(combatId);
+    for (let index = events.length - 1; index >= 0; index--) {
+      const entry = events[index];
+      if (
+        entry.type === 'pickup-activate' &&
+        isCombatDevice(entry.payload.kind) &&
+        combat
+      ) {
+        combat.request(combatId, entry);
+        events.splice(index, 1);
+      }
+    }
     for (const event of events)
       if (event.type === 'pickup-activate' && event.payload.kind === 'vector')
         state.speed = Math.max(
@@ -61,11 +101,29 @@ export function createDeviceRuntime({
   };
   return {
     ...ownIdentity,
+    ...(combat
+      ? {
+          rulesId:
+            ownIdentity.rulesId + ':combat:' + JSON.stringify(COMBAT_RULES),
+        }
+      : {}),
+    ...(combat && combatId === 'player'
+      ? {
+          advanceInteractions(dt) {
+            if (!enabled) return [];
+            const start = pending.length;
+            combat.step(dt);
+            return pending.slice(start);
+          },
+        }
+      : {}),
+    avoidance: () => combat?.avoidance(combatId) ?? null,
     scenarios: { ...motion.scenarios, ...deviceScenarios, ...scenarios },
     setEnabled(value) {
       if (enabled === Boolean(value)) return;
       enabled = Boolean(value);
       simulation.reset();
+      combat?.resetActor(combatId, combatId === 'player');
       pending = [];
       presentation?.reset();
     },
@@ -75,6 +133,7 @@ export function createDeviceRuntime({
     advance(state, input, dt) {
       if (disposed || !Number.isFinite(dt) || dt <= 0) return [];
       if (!enabled) return motion.advance(state, input, dt);
+      bindCombat(state);
       const elapsed = Math.min(dt, 0.1);
       const steps = Math.ceil(elapsed * 120 - 1e-10);
       const ordered = [];
@@ -106,6 +165,7 @@ export function createDeviceRuntime({
           beginAdvance(state, input, dt) {
             if (disposed || !Number.isFinite(dt) || dt <= 0) return;
             if (staged) throw new Error('Device advance is already staged');
+            bindCombat(state);
             const previous = supportedState(state);
             const before = enabled
               ? simulation.beforeStep(input, dt, previous)
@@ -120,6 +180,8 @@ export function createDeviceRuntime({
               throw new Error('Device advance state mismatch');
             const { input, previous, before } = staged;
             const physics = motion.finishAdvance(state);
+            if (physics.some((event) => event.type === 'road-recovery'))
+              combat?.resetActor(combatId);
             const after = enabled
               ? simulation.afterStep(
                   previous,
@@ -139,6 +201,11 @@ export function createDeviceRuntime({
     reset(context) {
       motion.reset(context);
       simulation.reset(context);
+      combat?.resetActor(
+        combatId,
+        combatId === 'player' &&
+          !['recover', 'manual-recover'].includes(context?.reason),
+      );
       pending = [];
       staged = null;
       presentation?.reset();
@@ -148,11 +215,15 @@ export function createDeviceRuntime({
       return {
         ...movement,
         ...simulation.snapshot(),
+        ...(combat && combatId === 'player'
+          ? { combat: combat.snapshot() }
+          : {}),
         ...(movement === null ? {} : { motion: movement }),
       };
     },
     restore(data) {
       simulation.restore(data);
+      if (combat && combatId === 'player') combat.restore(data.combat);
       motion.restore(data?.motion ?? null);
       pending = [];
       staged = null;
@@ -175,6 +246,7 @@ export function createDeviceRuntime({
       disposed = true;
       pending = [];
       staged = null;
+      combat?.resetActor(combatId, combatId === 'player');
       presentation?.dispose();
       motion.dispose();
     },

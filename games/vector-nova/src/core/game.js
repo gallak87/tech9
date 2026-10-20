@@ -347,6 +347,16 @@ export async function createGame({
       runtimeContext,
     );
     const devices = racingEnabled ? definition.racing.createDevices(track) : [];
+    const combat = devices.some((device) =>
+      ['repulsor', 'arc', 'ion'].includes(device.type),
+    )
+      ? (await import('../pickups/combat.js')).createCombatSimulation({
+          track,
+          collisionWorld,
+          dynamics,
+        })
+      : null;
+    runtimeContext.combat = combat;
     const runtime = lifetime.own(
       racingEnabled
         ? (await import('../pickups/index.js')).createCircuitDeviceRuntime(
@@ -367,8 +377,10 @@ export async function createGame({
             track,
             devices,
             dynamics,
-            createRuntime: () =>
+            createRuntime: (specification) =>
               createDeviceRuntime({
+                combat,
+                combatId: specification.id,
                 track,
                 devices,
                 identity: definition.racing.identity,

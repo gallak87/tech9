@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { sweepGeometry } from '../track/geometry.js';
+import { DEVICE_COLORS } from './theme.js';
+import { createDeviceSignal, createAcquisitionFlash } from './signal.js';
 import { createVectorDeckMaterial } from './vector-deck.js';
 
 const mix = THREE.MathUtils.lerp;
@@ -281,8 +283,8 @@ export function createDeviceGeometry(
       roughness: 0.4,
     }),
     signal: new THREE.MeshStandardMaterial({
-      color: vector ? 0xf4b24b : 0x39bdac,
-      emissive: vector ? 0xe4932f : 0x249e93,
+      color: DEVICE_COLORS[device.type],
+      emissive: DEVICE_COLORS[device.type],
       emissiveIntensity: 0.8,
       metalness: 0.22,
       roughness: 0.37,
@@ -517,6 +519,12 @@ export function createDeviceGeometry(
   if (arch.children.length) group.add(arch);
   const archBounds = new THREE.Box3().setFromObject(arch);
   group.userData.deviceId = device.id;
+  const edgeLight = createDeviceSignal(
+    { ...device, length },
+    projector,
+    mountHeight,
+  );
+  group.add(edgeLight.mesh);
   let available = true;
   let pulseTime = 0;
   let motion = 1;
@@ -526,12 +534,12 @@ export function createDeviceGeometry(
       if (!owned.signal) continue;
       owned.signal.emissiveIntensity = available
         ? vector
-          ? (3.3 + pulse * 1.7) * signalScale
-          : 1.15 + pulse * 0.5
+          ? (2.3 + pulse * 0.9) * signalScale
+          : 1.8 + pulse * 0.6
         : 0.06;
       owned.white.emissiveIntensity = available
         ? vector
-          ? (1.25 + pulse * 0.65) * signalScale
+          ? (0.75 + pulse * 0.35) * signalScale
           : 0.45
         : 0.02;
     }
@@ -546,6 +554,8 @@ export function createDeviceGeometry(
     materials,
     arch,
     archMaterials,
+    activate: edgeLight.activate,
+    reset: edgeLight.reset,
     updateCamera(camera, shipPosition) {
       if (!arch.children.length) return;
       const opacity = archVisibility(
@@ -566,13 +576,14 @@ export function createDeviceGeometry(
       pulseUniforms.pickupTime.value = pulseTime;
       pulseUniforms.pickupMotion.value = motion;
       signalBrightness();
+      edgeLight.update({ time, reducedMotion, available });
     },
     setAvailable(nextAvailable) {
       available = nextAvailable;
       for (const owned of [materials, archMaterials]) {
         if (!owned.signal) continue;
         owned.signal.color.setHex(
-          available ? (vector ? 0xf4b24b : 0x39bdac) : 0x586368,
+          available ? DEVICE_COLORS[device.type] : 0x586368,
         );
       }
       signalBrightness();
@@ -655,6 +666,7 @@ export function createShipFeedback() {
     blending: THREE.AdditiveBlending,
     toneMapped: false,
     uniforms: {
+      color: { value: new THREE.Color(DEVICE_COLORS.aegis) },
       strength: { value: 1 },
       hit: { value: 0 },
       hitSide: { value: 1 },
@@ -688,6 +700,7 @@ export function createShipFeedback() {
         gl_Position = projectionMatrix * p;
       }`,
     fragmentShader: `
+      uniform vec3 color;
       uniform float strength;
       uniform float hit;
       uniform float hitSide;
@@ -718,13 +731,13 @@ export function createShipFeedback() {
         if (layer > .5) alpha = max(sideRim,endRim)*.42 * pow(1.-pulse,2.) * smoothstep(0.,.09,pulse);
         float departing = exp(-pow((fieldUv.y-release)/.095,2.)) * step(.001,release);
         alpha = (alpha + contact*.18 + departing*seam*.075) * strength;
-        vec3 color = mix(vec3(.12,2.7,2.05),vec3(2.5,3.5,3.05),min(1.,contact*.9+surge*.14));
+        vec3 fieldColor = mix(color * 3., vec3(3.2), min(1.,contact*.9+surge*.14));
         // Concentrate HDR energy on the narrow boundary core, never on the
         // transparent shell faces, so bloom reads as a field around the craft.
         float rimCore = smoothstep(.92,1.,max(sideRim,endRim));
-        color *= 1. + rimCore * 2.;
+        fieldColor *= 1. + rimCore * 2.;
         if(alpha < .002) discard;
-        gl_FragColor = vec4(color,min(alpha,.5));
+        gl_FragColor = vec4(fieldColor,min(alpha,.5));
       }`,
   });
   const shield = new THREE.Mesh(shieldHullGeometry(), shieldMaterial);
@@ -737,7 +750,11 @@ export function createShipFeedback() {
     transparent: true,
     depthWrite: false,
     toneMapped: false,
-    uniforms: { strength: { value: 1 }, flowTime: { value: 0 } },
+    uniforms: {
+      color: { value: new THREE.Color(DEVICE_COLORS.vector) },
+      strength: { value: 1 },
+      flowTime: { value: 0 },
+    },
     vertexShader: `
       varying vec3 localPosition;
       varying vec3 localEye;
@@ -750,6 +767,7 @@ export function createShipFeedback() {
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.);
       }`,
     fragmentShader: `
+      uniform vec3 color;
       uniform float strength;
       uniform float flowTime;
       varying vec3 localPosition;
@@ -760,7 +778,7 @@ export function createShipFeedback() {
         vec3 proxy = localPosition-vec3(nozzle*1.08,.5,-3.28);
         vec3 ray = normalize(proxy-eye);
         vec3 safeRay = (step(vec3(0.),ray)*2.-1.)*max(abs(ray),vec3(.00001));
-        vec3 a = (vec3(-.34,-.34,-3.4)-eye)/safeRay;
+        vec3 a = (vec3(-.34,-.34,-5.2)-eye)/safeRay;
         vec3 b = (vec3(.34,.34,0.)-eye)/safeRay;
         vec3 nearBox=min(a,b),farBox=max(a,b);
         float start=max(0.,max(nearBox.x,max(nearBox.y,nearBox.z)));
@@ -770,7 +788,7 @@ export function createShipFeedback() {
         float core=0.;
         for(int i=0;i<18;i++) {
           vec3 p=eye+ray*(start+(float(i)+.5)*stride);
-          float aft=clamp(-p.z/3.4,0.,1.);
+          float aft=clamp(-p.z/5.2,0.,1.);
           float radius=.24*(1.-aft*.78)*(1.-smoothstep(.75,1.,aft));
           float radial=length(p.xy)/max(.005,radius);
           float edge=1.-smoothstep(.65,1.15,radial);
@@ -781,13 +799,13 @@ export function createShipFeedback() {
         }
         float opacity=(1.-exp(-density*strength*2.5));
         if(opacity<.001) discard;
-        vec3 color=mix(vec3(1.,.61,.2),vec3(1.,.96,.79),clamp(core/max(density,.001),0.,1.));
-        gl_FragColor=vec4(color,opacity);
+        vec3 driveColor=mix(color * 2.,vec3(2.2,2.1,1.8),clamp(core/max(density,.001),0.,1.));
+        gl_FragColor=vec4(driveColor,opacity);
       }`,
   });
   const volumes = [-1, 1].map((side) => {
-    const geometry = new THREE.BoxGeometry(0.68, 0.68, 3.4);
-    geometry.translate(side * 1.08, 0.5, -4.98);
+    const geometry = new THREE.BoxGeometry(0.68, 0.68, 5.2);
+    geometry.translate(side * 1.08, 0.5, -5.88);
     return geometry;
   });
   const drive = new THREE.Mesh(joined(volumes), driveMaterial);
@@ -796,7 +814,9 @@ export function createShipFeedback() {
   drive.userData.reflectionExclude = true;
   group.add(drive);
   shield.visible = drive.visible = false;
-  return { group, shield, shieldMaterial, drive, driveMaterial };
+  const acquisition = createAcquisitionFlash();
+  group.add(acquisition);
+  return { group, shield, shieldMaterial, drive, driveMaterial, acquisition };
 }
 
 export function disposeGroup(group) {

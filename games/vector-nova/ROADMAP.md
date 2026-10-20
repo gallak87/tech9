@@ -62,6 +62,9 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 
 ## Future race modes and systems
 
+- [x] Halcyon combat experiment in the actions worktree: automatic Repulsor, Arc burst and Ion wake gates; opening Aegis counterplay, rival collection/avoidance, shared recharge, bounded knockback and replay support.
+- [ ] Human driving/tuning review of the Halcyon combat experiment before placing offensive devices on other circuits. Built-in ship abilities and upgrade systems remain deferred.
+
 - [ ] Consider briefings and a podium presentation after the prioritized modes and results flows are complete.
 - [ ] Consider expansion beyond the delivered ten-racer field only after measuring performance and independent finishes.
 - [x] Add shared physical ship contact, strong magnetic attachment, yaw response and contact feedback cooldowns.
@@ -78,4 +81,4 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 - [ ] Kestrel photorealism comparison and further authoring: paused while publishing/gameplay took priority. Start with matched Blender/Three.js baselines, then prove a visible improvement on one assembly before full baking or fleet rollout. Follow the [ship visual improvement workflow](assets/ships/README.md#visual-improvement-workflow); the shipped fleet finish is not evidence of photorealism or browser export degradation.
 - [ ] Umbra gravity-lens cue: revisit the arrow that can imply steering toward the pull even though the player must counter-steer.
 
-Stored/manual-use items, offensive pickups, side attacks, destructive damage/elimination, online systems, upgrade economies, procedural tracks and the industrial energy complex require separate scope. Quality and a complete racing loop take priority over map count.
+Stored/manual-use items, further offensive-device rollout, side attacks, destructive damage/elimination, online systems, upgrade economies, procedural tracks and the industrial energy complex require separate scope. Quality and a complete racing loop take priority over map count.

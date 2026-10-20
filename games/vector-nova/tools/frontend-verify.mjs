@@ -10,6 +10,7 @@ import {
 import { RACE_FIELD_SIZE, RACE_OPPONENTS } from '../src/race/roster.js';
 import { createRapierWorld } from '../src/physics/rapier-world.js';
 import { withMagneticBoundaries } from '../src/physics/magnetic-boundaries.js';
+import { createCombatSimulation } from '../src/pickups/combat.js';
 import { createDeviceRuntime } from '../src/pickups/runtime.js';
 import { createRace } from '../src/race/index.js';
 import {
@@ -143,8 +144,11 @@ async function finishInputs(difficulty, initial) {
     collisionWorld: physicalWorld,
   });
   const devices = definition.racing.createDevices(track);
-  const createRuntime = () =>
+  const combat = createCombatSimulation({ track, collisionWorld, dynamics });
+  const createRuntime = (specification = { id: 'player' }) =>
     createDeviceRuntime({
+      combat,
+      combatId: specification.id,
       track,
       devices,
       identity: definition.racing.identity,

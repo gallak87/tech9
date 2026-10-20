@@ -49,12 +49,12 @@ const acquireShield = () => {
   return sim;
 };
 
-test('four exact-Halcyon strips span54m and two arches retain authored positions', () => {
+test('Halcyon retains four 54m strips and adds opening protection plus combat gates', () => {
   const track = createTrack(),
     devices = createHalcyonDevices(track);
   assert.equal(track.id, HALCYON_TRACK_ID);
   assert.equal(devices.filter((entry) => entry.type === 'vector').length, 4);
-  assert.equal(devices.filter((entry) => entry.type === 'aegis').length, 2);
+  assert.equal(devices.filter((entry) => entry.type === 'aegis').length, 3);
   for (const entry of devices) {
     assert.ok(Math.abs(entry.lateral) + entry.width / 2 < track.width / 2 - 1);
     if (entry.type === 'vector') assert.equal(entry.length, 54);

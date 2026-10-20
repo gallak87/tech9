@@ -193,7 +193,7 @@ export async function createInspector({
       ui.setRivalLoading(true);
       let loaded;
       try {
-        loaded = await createRivalPreview(id);
+        loaded = await createRivalPreview(id, { settings });
         if (disposed || token !== request) {
           loaded.dispose();
           return false;
@@ -260,6 +260,15 @@ export async function createInspector({
           steer: 0,
           time,
           energy: 1,
+          reducedMotion: settings.reducedMotion,
+        });
+      else
+        rival?.update({
+          speed: preview.driving ? 400 / 3.6 : 0,
+          boost: preview.boost,
+          time,
+          energy: 1,
+          quality: settings.quality,
           reducedMotion: settings.reducedMotion,
         });
       pickupTools?.update(dt);

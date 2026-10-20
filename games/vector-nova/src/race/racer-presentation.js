@@ -18,7 +18,7 @@ export async function createRacerPresentation({
   const ships = [];
   try {
     for (const opponent of racers.opponents) {
-      const ship = await loadRival(opponent.specification.id);
+      const ship = await loadRival(opponent.specification.id, { settings });
       ship.group.name = `${opponent.specification.name} / racing`;
       ship.group.visible = false;
       scene.add(ship.group);
@@ -58,11 +58,26 @@ export async function createRacerPresentation({
             flash.kind === 'aegis',
         );
         if (!show) {
+          ship.update?.({ quality: settings.quality, visible: false });
           hitFeedback?.update(undefined, settings);
           continue;
         }
         const blend = mode === 'racing' ? MathUtils.clamp(alpha, 0, 1) : 1;
         const state = opponent.state;
+        ship.update?.({
+          speed: MathUtils.lerp(
+            opponent.prev?.speed ?? state.speed,
+            state.speed,
+            blend,
+          ),
+          boost: state.boosting,
+          catapulting: opponent.runtime.snapshot?.().vectorActive === true,
+          time: state.time,
+          energy: state.energy / 100,
+          quality: settings.quality,
+          reducedMotion: settings.reducedMotion,
+          visible: true,
+        });
         const pose = opponent.runtime.pose(blend);
         if (pose) {
           ship.group.position.copy(pose.position);

@@ -15,7 +15,7 @@ export async function createPickupInspector({
 }) {
   let target, targetError;
   try {
-    target = await createRivalPreview('rook');
+    target = await createRivalPreview('rook', { settings: getSettings() });
   } catch {
     targetError = 'Rook target unavailable. Reload to retry.';
   }
@@ -88,6 +88,7 @@ export async function createPickupInspector({
     },
     configure() {
       preview.configure();
+      target?.update({ quality: getSettings().quality });
       engine.update();
     },
     previewChanged: () => {

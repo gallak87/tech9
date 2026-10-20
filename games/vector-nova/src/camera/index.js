@@ -34,12 +34,18 @@ export function createCameraRig(
   const lookMatrix = new T.Matrix4();
   const offset = new T.Vector3();
   const localUp = new T.Vector3(0, 1, 0);
+  const cleanPosition = new T.Vector3();
+  const cleanRotation = new T.Quaternion();
+  const feedbackRotation = new T.Quaternion();
+  const feedbackEuler = new T.Euler();
+  let feedbackApplied = false;
   return {
     reset() {
       initialized = false;
       flightView = null;
       landingView = null;
       crashView = null;
+      feedbackApplied = false;
     },
     update(
       track,
@@ -52,9 +58,15 @@ export function createCameraRig(
         subject = null,
         paused = false,
         finish = 0,
+        feedback = null,
       } = {},
     ) {
       if (paused && initialized) return;
+      if (feedbackApplied) {
+        camera.position.copy(cleanPosition);
+        camera.quaternion.copy(cleanRotation);
+        feedbackApplied = false;
+      }
       const worldMotion = !!worldPose && !worldPose.grounded;
       const surface =
         !worldMotion && track.sampleSurface?.(state.distance, state.lateral);
@@ -327,7 +339,10 @@ export function createCameraRig(
         if (landingBlend === 1) landingView = null;
       }
       const baseFov =
-        61 + (reducedMotion ? 0 : Math.min(state.speed / 157, 1) * 7);
+        61 +
+        (reducedMotion
+          ? 0
+          : Math.min(state.speed / 157, 1) * 7 + (feedback?.fov ?? 0));
       // A level can opt into more vertical room in narrow portrait viewports.
       const portraitScale =
         portraitAspect > 0
@@ -362,6 +377,18 @@ export function createCameraRig(
       camera.quaternion.slerp(desiredRotation, k);
       // Moving subjects can cross the boundary before the damped aim catches up.
       if (framing) fitSubject(camera, subject);
+      if (feedback && !reducedMotion && mode === 'chase') {
+        cleanPosition.copy(camera.position);
+        cleanRotation.copy(camera.quaternion);
+        camera.position.add(
+          offset.fromArray(feedback.position).applyQuaternion(cleanRotation),
+        );
+        feedbackEuler.set(...feedback.rotation);
+        camera.quaternion.multiply(
+          feedbackRotation.setFromEuler(feedbackEuler),
+        );
+        feedbackApplied = true;
+      }
       camera.up.copy(localUp).applyQuaternion(camera.quaternion);
       initialized = true;
     },

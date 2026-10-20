@@ -11,6 +11,60 @@ import {
 } from 'three';
 import { createRacerPresentation } from './racer-presentation.js';
 
+test('rivals follow their own speed, boost/Vector, simulation clock and live graphics tier', async () => {
+  const frames = [];
+  let vectorActive = false;
+  const state = { steer: 0, speed: 120, time: 8, boosting: true, energy: 50 };
+  const racer = {
+    specification: { id: 'rook', name: 'Rook' },
+    state,
+    prev: { speed: 100 },
+    runtime: {
+      snapshot: () => ({ vectorActive }),
+      pose: () => ({ position: new Vector3(), quaternion: new Quaternion() }),
+    },
+  };
+  const presentation = await createRacerPresentation({
+    racers: { enabled: true, opponents: [racer] },
+    scene: new Scene(),
+    settings: { quality: 'low' },
+    loadRival: async (_id, { settings }) => {
+      assert.equal(settings.quality, 'low');
+      return {
+        group: new Group(),
+        update: (frame) => frames.push(frame),
+        dispose() {},
+      };
+    },
+  });
+  try {
+    presentation.update({
+      alpha: 0.5,
+      mode: 'racing',
+      settings: { quality: 'low' },
+    });
+    assert.equal(frames.at(-1).speed, 110);
+    assert.equal(frames.at(-1).boost, true);
+    assert.equal(frames.at(-1).catapulting, false);
+    assert.equal(frames.at(-1).energy, 0.5);
+    state.boosting = false;
+    vectorActive = true;
+    presentation.update({
+      mode: 'paused',
+      settings: { quality: 'high', reducedMotion: true },
+    });
+    assert.equal(frames.at(-1).boost, false);
+    assert.equal(frames.at(-1).catapulting, true);
+    assert.equal(frames.at(-1).time, 8);
+    assert.equal(frames.at(-1).quality, 'high');
+    assert.equal(frames.at(-1).reducedMotion, true);
+    presentation.update({ mode: 'title', settings: { quality: 'low' } });
+    assert.equal(frames.at(-1).visible, false);
+  } finally {
+    presentation.dispose();
+  }
+});
+
 test('racing applies the shared Arc glow to the struck rival, preserves pause, and clears it on exit', async () => {
   const scene = new Scene();
   const groups = [];

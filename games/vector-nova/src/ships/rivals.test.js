@@ -27,6 +27,10 @@ test('rival preview releases shared asset resources exactly once, retaining borr
     roughnessMap: texture,
   });
   group.add(new Mesh(geometry, material), new Mesh(geometry, material));
+  const nozzle = new Group();
+  nozzle.name = 'Exhaust_C';
+  nozzle.position.z = -3;
+  group.add(nozzle);
   const disposed = new Map();
   for (const resource of [geometry, texture, material, reflection])
     resource.addEventListener('dispose', () =>

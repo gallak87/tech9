@@ -10,6 +10,8 @@ Readability order: upcoming road/corner, craft/propulsion, gameplay feedback, de
 
 High/low presets retain the same world and navigation cues. Reduced motion restrains flashes and environmental movement. Use generated imagery only for appropriate asset/material roles, with exact provenance; preserve editable sources and licences.
 
+Racing speed should read through peripheral travel and a widening view, with the upcoming road and player silhouette kept clear. Cruise feels fast, boost adds blue edge streaks and stronger rush, and Vector remains the strongest surge. Rivals carry visible nozzle-mounted blue thrust that grows under boost; Low keeps a simple fading silhouette. Pickups and outgoing shots give small kicks, received hits and collisions carry more weight, and heat adds a fine tremor. Responses settle quickly rather than sustaining heavy screen shake; reduced motion removes the added camera movement and speed lens.
+
 ## Kestrel
 
 Judge realism by convincing manufactured forms and material response at normal viewing size: formed panel profiles, purposeful transitions, seated fittings and readable intake depth. Extra seams, microscopic scratches and uniformly noisy roughness cannot substitute for those qualities. Establish one coherent assembly before spreading a treatment across the hull; follow the [ship visual improvement workflow](../assets/ships/README.md#visual-improvement-workflow) to avoid repeating a stalled critique-and-bake loop.

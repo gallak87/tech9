@@ -63,7 +63,7 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 
 ## Future race modes and systems
 
-- [x] Halcyon combat experiment in the actions worktree: automatic Repulsor, Arc burst and Ion wake gates; opening Aegis counterplay, rival collection/avoidance, shared recharge, bounded knockback and replay support.
+- [x] Halcyon combat experiment in the actions worktree: automatic Repulsor, Arc burst and Ion wake gates; opening Aegis counterplay, independent per-racer collection, rival avoidance, bounded knockback and replay support.
 - [ ] Human driving/tuning review of the Halcyon combat experiment before placing offensive devices on other circuits. Built-in ship abilities and upgrade systems remain deferred.
 
 - [ ] Consider briefings and a podium presentation after the prioritized modes and results flows are complete.

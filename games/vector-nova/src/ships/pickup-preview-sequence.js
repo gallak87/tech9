@@ -1,10 +1,13 @@
 import { COMBAT_RULES } from '../pickups/combat.js';
+import { Vector3 } from 'three';
+import { sampleIonContact } from '../pickups/ion-contact.js';
 import {
   AEGIS_DURATION,
   AEGIS_BREAK_DURATION,
   ARC_SHOT_HEIGHT,
   ARC_MUZZLE_HEIGHT,
   ARC_TARGET_HALF_LENGTH,
+  ION_WAKE_RADIUS,
 } from '../pickups/rules.js';
 
 // Leave room to read the traveling effects and the target's full silhouette.
@@ -16,13 +19,14 @@ export const PICKUP_PREVIEWS = [
   { id: 'aegis-hit', label: 'Aegis · absorb + break' },
   { id: 'repulsor', label: 'Repulsor · charge + pulse' },
   { id: 'arc', label: 'Arc · activate + burst' },
-  { id: 'ion', label: 'Ion · wake' },
+  { id: 'ion', label: 'Ion · incoming wake' },
 ];
 
 const quaternion = [0, 0, 0, 1];
 const event = (type, kind) => ({ type, payload: { kind } });
 const vectorContact = 2.5;
 const speed = 400 / 3.6;
+const playerPosition = new Vector3();
 
 // Samples of presentation state, never a race, collision world or vehicle
 // simulation. Combat timings/speeds come directly from the game's rules.
@@ -137,13 +141,15 @@ export function pickupPreviewFrame(
     end = last + travelTime + (target ? 0.55 : 0);
   } else if (kind === 'ion') {
     const { wakeDuration, wakeLifetime, wakeInterval } = COMBAT_RULES;
+    const origin = target ? PREVIEW_TARGET_DISTANCE : 0;
+    const source = target ? 'rook' : 'player';
     const count = Math.floor(Math.min(time, wakeDuration) / wakeInterval);
     if (time < wakeDuration)
-      combat.emitters.player = {
+      combat.emitters[source] = {
         kind,
         elapsed: time,
         burst: 0,
-        tail: [0, 0, -5 - (time - count * wakeInterval) * speed],
+        tail: [0, 0, origin - 5 - (time - count * wakeInterval) * speed],
       };
     for (let index = 1; index <= count; index++) {
       const age = time - index * wakeInterval;
@@ -151,10 +157,47 @@ export function pickupPreviewFrame(
       combat.wakes.push({
         age,
         burst: 0,
+        source,
         quaternion,
-        a: [0, 0, -5 - (age + wakeInterval) * speed],
-        b: [0, 0, -5 - age * speed],
+        a: [0, 0, origin - 5 - (age + wakeInterval) * speed],
+        b: [0, 0, origin - 5 - age * speed],
       });
+    }
+    if (target) {
+      // First contact with the leading hull, at the real preview speed.
+      // A wake burst can hit each racer only once, even after a shield breaks.
+      const hitAt = Math.max(
+        wakeInterval,
+        (origin - 5 - ION_WAKE_RADIUS) / speed,
+      );
+      effects.aegisRemaining = shielded && time < hitAt ? AEGIS_DURATION : 0;
+      if (crossed(hitAt)) {
+        events.push({
+          type: 'combat-hit',
+          payload: {
+            kind,
+            source,
+            target: 'player',
+            shielded,
+            position: [0, 0, ION_WAKE_RADIUS],
+          },
+        });
+        if (shielded)
+          events.push({
+            type: 'shield-hit',
+            payload: { kind: 'aegis', combat: true },
+          });
+      }
+      const age = time - hitAt;
+      if (age >= 0 && age < 0.55)
+        combat.flashes.push({
+          kind: shielded ? 'aegis' : kind,
+          target: 'player',
+          position: [0, 0, ION_WAKE_RADIUS],
+          quaternion,
+          age,
+          radius: 4,
+        });
     }
     if (crossed(wakeDuration)) events.push(event('pickup-expire', kind));
     end = wakeDuration + wakeLifetime;
@@ -164,9 +207,23 @@ export function pickupPreviewFrame(
     effects,
     combat,
     end,
+    ionContact:
+      !effects.aegisRemaining &&
+      !combat.flashes.some(
+        (flash) => flash.target === 'player' && flash.kind === 'aegis',
+      )
+        ? sampleIonContact(
+            combat.wakes,
+            playerPosition,
+            'player',
+            COMBAT_RULES.wakeLifetime,
+          )
+        : 0,
     beds: {
       vector: !!effects.vectorActive,
-      ion: !!combat.emitters.player && kind === 'ion',
+      ion: Object.values(combat.emitters).some(
+        (emitter) => emitter.kind === 'ion',
+      ),
     },
   };
 }

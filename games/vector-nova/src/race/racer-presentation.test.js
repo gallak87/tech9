@@ -14,7 +14,8 @@ import { createRacerPresentation } from './racer-presentation.js';
 test('racing applies the shared Arc glow to the struck rival, preserves pause, and clears it on exit', async () => {
   const scene = new Scene();
   const groups = [];
-  const state = { flashes: [] };
+  const state = { flashes: [], time: 1 };
+  let exposure = 0;
   const racers = {
     enabled: true,
     opponents: ['rook', 'latch'].map((id) => ({
@@ -28,7 +29,10 @@ test('racing applies the shared Arc glow to the struck rival, preserves pause, a
   const presentation = await createRacerPresentation({
     racers,
     scene,
-    combat: { view: () => state },
+    combat: {
+      view: () => state,
+      ionContact: (id) => (id === 'rook' ? exposure : 0),
+    },
     loadRival: async () => {
       const group = new Group();
       const geometry = new BoxGeometry();
@@ -81,6 +85,19 @@ test('racing applies the shared Arc glow to the struck rival, preserves pause, a
     'Repulsor hits tint the whole target rose',
   );
   assert.equal(response.strength.value, 1);
+  state.flashes = [];
+  exposure = 1;
+  presentation.update({ mode: 'racing' });
+  assert.equal(response.interference.value, 1);
+  assert.equal(response.strength.value, 0.38);
+  assert.equal(effects[1].visible, false, 'only the exposed rival glows');
+  presentation.update({ mode: 'paused' });
+  assert.equal(response.time.value, 1);
+  assert.equal(response.strength.value, 0.38);
+  state.flashes = [{ target: 'rook', kind: 'aegis', age: 0.1 }];
+  presentation.update({ mode: 'racing' });
+  assert.equal(effects[0].visible, false, 'shield fracture takes priority');
+  exposure = 0;
   state.flashes = [{ target: 'rook', kind: 'arc', age: 0.08 }];
   presentation.update({ mode: 'title' });
   assert.ok(effects.every((effect) => !effect.visible));

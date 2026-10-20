@@ -42,20 +42,24 @@ export async function createRacerPresentation({
       if (disposed) return;
       const enabled = racers.enabled;
       const show = enabled && ['racing', 'paused', 'countdown'].includes(mode);
-      const flashes = combat?.view().flashes ?? [];
+      const combatState = combat?.view();
+      const flashes = combatState?.flashes ?? [];
       for (const { ship, opponent, yaw, roll, hitFeedback } of ships) {
         ship.group.visible = show;
         const contact = flashes.findLast(
           (flash) =>
             flash.target === opponent.specification.id &&
-            ['arc', 'repulsor'].includes(flash.kind),
+            ['arc', 'repulsor', 'ion'].includes(flash.kind),
         );
-        hitFeedback?.update(
-          show ? contact?.age : undefined,
-          settings,
-          contact?.kind,
+        const blocking = flashes.some(
+          (flash) =>
+            flash.target === opponent.specification.id &&
+            flash.kind === 'aegis',
         );
-        if (!show) continue;
+        if (!show) {
+          hitFeedback?.update();
+          continue;
+        }
         const blend = mode === 'racing' ? MathUtils.clamp(alpha, 0, 1) : 1;
         const state = opponent.state;
         const pose = opponent.runtime.pose(blend);
@@ -66,27 +70,42 @@ export async function createRacerPresentation({
             roll.setFromAxisAngle(forward, state.steer * 0.08);
             ship.group.quaternion.multiply(roll);
           }
-          continue;
+        } else {
+          const previous = opponent.prev;
+          const distance = MathUtils.lerp(
+            previous.distance,
+            state.distance,
+            blend,
+          );
+          const lateral = MathUtils.lerp(
+            previous.lateral,
+            state.lateral,
+            blend,
+          );
+          const heading = MathUtils.lerp(
+            previous.heading,
+            state.heading,
+            blend,
+          );
+          const frame = track.sample(distance);
+          ship.group.position
+            .copy(frame.position)
+            .addScaledVector(frame.right, lateral)
+            .addScaledVector(frame.up, 0.72);
+          yaw.setFromAxisAngle(up, heading);
+          roll.setFromAxisAngle(forward, state.steer * 0.08);
+          ship.group.quaternion
+            .copy(frame.quaternion)
+            .multiply(yaw)
+            .multiply(roll);
         }
-        const previous = opponent.prev;
-        const distance = MathUtils.lerp(
-          previous.distance,
-          state.distance,
-          blend,
-        );
-        const lateral = MathUtils.lerp(previous.lateral, state.lateral, blend);
-        const heading = MathUtils.lerp(previous.heading, state.heading, blend);
-        const frame = track.sample(distance);
-        ship.group.position
-          .copy(frame.position)
-          .addScaledVector(frame.right, lateral)
-          .addScaledVector(frame.up, 0.72);
-        yaw.setFromAxisAngle(up, heading);
-        roll.setFromAxisAngle(forward, state.steer * 0.08);
-        ship.group.quaternion
-          .copy(frame.quaternion)
-          .multiply(yaw)
-          .multiply(roll);
+        // Hull-space interference must use this frame's rendered transform.
+        hitFeedback?.update(contact?.age, settings, contact?.kind, {
+          ionContact: !blocking
+            ? (combat?.ionContact?.(opponent.specification.id) ?? 0)
+            : 0,
+          time: combatState?.time,
+        });
       }
     },
     dispose() {

@@ -32,9 +32,14 @@ export function createCombatPresentation(scene, combat) {
     shell.name = 'Repulsor / compressed charge shell';
     shell.position.y = -0.1;
     group.add(shell);
+    const ionVeil = energyPlane('ion', 2.4, 9);
+    ionVeil.name = 'Ion / aft luminous veil';
+    ionVeil.rotation.z = Math.PI / 2;
+    ionVeil.position.set(0, 0.2, -3.7);
+    group.add(ionVeil);
     root.add(group);
     group.visible = false;
-    return { group, fields, shell };
+    return { group, fields, shell, ionVeil };
   });
   const flashes = Array.from({ length: 32 }, () => {
     const group = new T.Group();
@@ -87,10 +92,12 @@ export function createCombatPresentation(scene, combat) {
         .forEach(([id, emitter], index) => {
           const pose = combat.pose(id);
           if (!pose) return;
-          const { group, fields, shell } = charges[index];
+          const { group, fields, shell, ionVeil } = charges[index];
           group.visible = true;
           group.position.copy(pose.position);
           group.quaternion.copy(pose.quaternion);
+          ionVeil.visible = emitter.kind === 'ion';
+          tune(ionVeil, 'ion', settings.reducedMotion ? 0.2 : 0.45);
           const compression = T.MathUtils.clamp(
             emitter.elapsed / COMBAT_RULES.pulseDelay,
             0,
@@ -144,8 +151,9 @@ export function createCombatPresentation(scene, combat) {
         const pulse = flash.kind === 'repulsor' && flash.radius > 10;
         const arcHit = flash.kind === 'arc' && !!flash.target;
         const repulsorHit = flash.kind === 'repulsor' && !!flash.target;
-        crown.visible = pressure.visible = pulse || repulsorHit;
-        impact.visible = upright.visible = !pulse && !repulsorHit;
+        const ionHit = flash.kind === 'ion' && !!flash.target;
+        crown.visible = pressure.visible = pulse || repulsorHit || ionHit;
+        impact.visible = upright.visible = !pulse && !repulsorHit && !ionHit;
         const fade =
           (arcHit ? 0.35 : 1) *
           Math.pow(Math.max(0, 1 - flash.age / (muzzle ? 0.12 : 0.55)), 1.5);
@@ -155,9 +163,11 @@ export function createCombatPresentation(scene, combat) {
             ? 2.2
             : arcHit
               ? 1.2 + flash.age * 2
-              : repulsorHit
-                ? 2 + flash.age * 4
-                : 2.5 + flash.age * 9;
+              : ionHit
+                ? 1.6 + flash.age * 2
+                : repulsorHit
+                  ? 2 + flash.age * 4
+                  : 2.5 + flash.age * 9;
         crown.scale.set(
           radius,
           Math.max(0.1, (repulsorHit ? 1.1 : 1.7) * (1 - flash.age / 0.55)),
@@ -196,6 +206,7 @@ export function createCombatPresentation(scene, combat) {
       ribbon.update(state, combat, settings.reducedMotion);
     },
     dispose() {
+      ribbon.dispose();
       disposeGroup(root);
     },
   };

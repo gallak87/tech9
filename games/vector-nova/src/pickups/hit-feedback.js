@@ -26,23 +26,30 @@ export function createHitFeedback(ship) {
       color: { value: new Color(DEVICE_COLORS.arc) },
       strength: { value: 0 },
       expansion: { value: 0.055 },
+      interference: { value: 0 },
+      time: { value: 0 },
+      worldToHull: { value: new Matrix4() },
     },
     vertexShader: `
-      varying vec3 vNormal, vView;
+      varying vec3 vNormal, vView, vHull;
       uniform float expansion;
+      uniform mat4 worldToHull;
       void main() {
         vec4 p = modelViewMatrix * vec4(position + normal * expansion, 1.);
         vNormal = normalize(normalMatrix * normal);
         vView = -p.xyz;
+        vHull = (worldToHull * modelMatrix * vec4(position, 1.)).xyz;
         gl_Position = projectionMatrix * p;
       }`,
     fragmentShader: `
-      varying vec3 vNormal, vView;
+      varying vec3 vNormal, vView, vHull;
       uniform vec3 color;
-      uniform float strength;
+      uniform float strength, interference, time;
       void main() {
         float rim = pow(1. - abs(dot(normalize(vNormal), normalize(vView))), 2.);
         float opacity = gl_FrontFacing ? .18 + rim * .3 : .75;
+        float band = pow(.5 + .5 * sin(vHull.z * 1.5 + vHull.x * .55 - time * 4.), 3.);
+        opacity *= mix(1., .3 + band * .7, interference);
         gl_FragColor = vec4(color, opacity * strength);
       }`,
   });
@@ -53,12 +60,13 @@ export function createHitFeedback(ship) {
   glow.uniforms.expansion.value = 0.2;
   glow.uniforms.color.value.multiplyScalar(1.8);
   glow.fragmentShader = `
-    varying vec3 vNormal, vView;
+    varying vec3 vNormal, vView, vHull;
     uniform vec3 color;
-    uniform float strength;
+    uniform float strength, interference, time;
     void main() {
       float rim = pow(1. - abs(dot(normalize(vNormal), normalize(vView))), 2.);
-      gl_FragColor = vec4(color, rim * .32 * strength);
+      float band = pow(.5 + .5 * sin(vHull.z * 1.5 + vHull.x * .55 - time * 4.), 3.);
+      gl_FragColor = vec4(color, rim * .32 * strength * mix(1., .3 + band * .7, interference));
     }`;
   const parts = [];
   ship.traverse((object) => {
@@ -86,31 +94,49 @@ export function createHitFeedback(ship) {
   let disposed = false;
   return {
     group,
-    update(age, { reducedMotion = false } = {}, kind = 'arc') {
+    update(
+      age,
+      { reducedMotion = false } = {},
+      kind = 'arc',
+      { ionContact = 0, time = 0 } = {},
+    ) {
       if (disposed) return;
-      group.visible =
-        ['arc', 'repulsor'].includes(kind) &&
+      const hit =
+        ['arc', 'repulsor', 'ion'].includes(kind) &&
         Number.isFinite(age) &&
         age >= 0 &&
         age < 0.55;
+      const exposure = Number.isFinite(ionContact)
+        ? Math.max(0, Math.min(1, ionContact))
+        : 0;
+      group.visible = hit || exposure > 0.001;
       if (!group.visible) {
         material.uniforms.strength.value = 0;
         glow.uniforms.strength.value = 0;
         return;
       }
+      if (!hit) kind = 'ion';
+      for (const surface of [material, glow]) {
+        surface.uniforms.interference.value = hit ? 0 : 1;
+        surface.uniforms.time.value = reducedMotion ? 0 : time;
+      }
       material.uniforms.color.value.setHex(DEVICE_COLORS[kind]);
       glow.uniforms.color.value
         .setHex(DEVICE_COLORS[kind])
-        .multiplyScalar(kind === 'repulsor' ? 2 : 1.8);
-      glow.uniforms.expansion.value = kind === 'repulsor' ? 0.28 : 0.2;
+        .multiplyScalar(kind === 'arc' ? 1.8 : 2);
+      glow.uniforms.expansion.value =
+        kind === 'repulsor' ? 0.28 : kind === 'ion' ? 0.24 : 0.2;
       const smooth = (value) => value * value * (3 - 2 * value);
-      const attack = smooth(Math.min(1, age / 0.08));
-      const release = 1 - smooth(Math.max(0, (age - 0.08) / 0.47));
-      material.uniforms.strength.value =
-        attack * release * (reducedMotion ? 0.45 : 1);
+      const attack = hit ? smooth(Math.min(1, age / 0.08)) : 0;
+      const release = hit ? 1 - smooth(Math.max(0, (age - 0.08) / 0.47)) : 0;
+      material.uniforms.strength.value = hit
+        ? attack * release * (reducedMotion ? 0.45 : 1)
+        : exposure * (reducedMotion ? 0.18 : 0.38);
       glow.uniforms.strength.value = material.uniforms.strength.value;
       ship.updateWorldMatrix(true, true);
       inverse.copy(ship.matrixWorld).invert();
+      material.uniforms.worldToHull.value.copy(inverse);
+      glow.uniforms.worldToHull.value.copy(inverse);
       for (const { source, mesh } of parts) {
         mesh.visible = source.visible;
         mesh.matrix.multiplyMatrices(inverse, source.matrixWorld);

@@ -67,6 +67,66 @@ test('Aegis, Repulsor and Ion follow their authored lifetime and retain visible 
   assert.equal(ended.combat.wakes.length, 0);
 });
 
+test('incoming Ion emits from Rook and consumes the player shield only once per burst', () => {
+  for (const shielded of [false, true]) {
+    const start = pickupPreviewFrame('ion', 0, -1, true, shielded);
+    assert.equal(start.combat.emitters.player, undefined);
+    assert.equal(start.combat.emitters.rook.kind, 'ion');
+    assert.equal(start.beds.ion, true);
+    assert.equal(start.ionContact, 0);
+    assert.equal(start.effects.aegisRemaining > 0, shielded);
+    const events = [];
+    for (let time = 0.01; time < 8; time += 0.01) {
+      const frame = pickupPreviewFrame(
+        'ion',
+        time,
+        time - 0.01,
+        true,
+        shielded,
+      );
+      events.push(...frame.events);
+      const hit = frame.events.find((event) => event.type === 'combat-hit');
+      if (hit) {
+        assert.equal(hit.payload.source, 'rook');
+        assert.equal(hit.payload.target, 'player');
+        assert.equal(hit.payload.shielded, shielded);
+        assert.equal(frame.effects.aegisRemaining, 0);
+        assert.equal(frame.combat.flashes[0].kind, shielded ? 'aegis' : 'ion');
+        assert.ok(
+          frame.combat.wakes.some(
+            (wake) =>
+              wake.a[2] <= ARC_TARGET_HALF_LENGTH &&
+              wake.b[2] >= ARC_TARGET_HALF_LENGTH,
+          ),
+          'contact follows the arriving wake',
+        );
+      }
+    }
+    assert.equal(
+      events.filter((event) => event.type === 'combat-hit').length,
+      1,
+    );
+    assert.equal(
+      events.filter((event) => event.type === 'shield-hit').length,
+      shielded ? 1 : 0,
+    );
+    const ongoing = pickupPreviewFrame('ion', 1.5, 1.49, true, shielded);
+    assert.ok(
+      ongoing.ionContact > 0,
+      'the passing wake still produces visual exposure',
+    );
+    assert.deepEqual(
+      ongoing.events,
+      [],
+      'continued contact has no extra hit or audio events',
+    );
+    assert.equal(
+      pickupPreviewFrame('ion', 7.7, 7.69, true, shielded).ionContact,
+      0,
+    );
+  }
+});
+
 test('shared hull effects preserve paused timers, impact clearing and reduced-motion feedback', () => {
   const feedback = createShipFeedbackPresentation();
   const shield = feedback.group.children.find(
@@ -330,6 +390,51 @@ test('the target stays visible between auditions, follows ship changes and detac
   assert.equal(target.parent, replacement);
   h.preview.dispose();
   assert.equal(replacement.children.length, 0);
+});
+
+test('Ion routes its shield and hit glow to the player and clears both on Stop', async () => {
+  const target = new Group();
+  const h = previewHarness(target);
+  const fieldName = 'Aegis / hull field and outward pulses';
+  await h.preview.trigger('ion', { shielded: true });
+  const root = h.ship.children[0];
+  const playerShield = root.getObjectByName(fieldName);
+  const enemyShield = target.getObjectByName(fieldName);
+  assert.equal(playerShield.visible, true);
+  assert.equal(enemyShield.visible, false);
+  h.preview.update(0.25);
+  assert.equal(
+    h.events.filter((event) => event.type === 'shield-hit').length,
+    1,
+  );
+  const playerGlow = root.getObjectByName('Combat / hull hit outline');
+  assert.equal(
+    playerGlow.visible,
+    false,
+    'blocked hits do not tint the hull violet',
+  );
+  h.preview.update(0.75);
+  assert.equal(
+    playerGlow.visible,
+    true,
+    'later deposits leave light interference after the shield break',
+  );
+  assert.equal(
+    h.events.filter((event) => event.type === 'combat-hit').length,
+    1,
+  );
+  await h.preview.trigger('ion');
+  assert.equal(playerShield.visible, false);
+  h.preview.update(0.25);
+  assert.equal(playerGlow.visible, true);
+  assert.equal(
+    target.getObjectByName('Combat / hull hit outline').visible,
+    false,
+  );
+  h.preview.stop();
+  assert.equal(playerGlow.visible, false);
+  assert.equal(playerShield.visible, false);
+  h.preview.dispose();
 });
 
 test('audio preparation gates both sound and VFX; Stop and changing ship cancel late starts', async () => {

@@ -21,15 +21,25 @@ export async function createPickupInspector({
   const element = document.createElement('section');
   element.className = 'inspection-pickups';
   element.setAttribute('aria-label', 'Powerup sound and effects preview');
-  element.innerHTML = `<label for="inspection-pickup">Powerups</label><div class="inspection-pickup-controls"><select id="inspection-pickup">${PICKUP_PREVIEWS.map(({ id, label }) => `<option value="${id}">${label}</option>`).join('')}</select><button type="button" data-trigger>Trigger</button><button type="button" data-stop>Stop</button></div><label class="inspection-engine"><input type="checkbox" data-engine>Engine sound <span>Driving / Boost</span></label><label class="inspection-engine"><input type="checkbox" data-shield>Shield target <span>Arc / Repulsor</span></label><p role="status">Ready · Rook target ahead</p>`;
-  const select = element.querySelector('select');
+  element.innerHTML = `<label for="inspection-pickup">Powerups</label><div class="inspection-pickup-controls"><select id="inspection-pickup">${PICKUP_PREVIEWS.map(({ id, label }) => `<option value="${id}">${label}</option>`).join('')}</select><button type="button" data-trigger>Trigger</button><button type="button" data-stop>Stop</button></div><label class="inspection-engine"><input type="checkbox" data-engine>Engine sound <span>Driving / Boost</span></label><label class="inspection-engine"><input type="checkbox" data-shield><span data-shield-label>Shield target</span></label><p role="status">Ready · Rook target ahead</p>`;
+  const select = element.querySelector('#inspection-pickup');
   const trigger = element.querySelector('[data-trigger]');
   const stop = element.querySelector('[data-stop]');
   const status = element.querySelector('[role="status"]');
   const engineToggle = element.querySelector('[data-engine]');
   const shieldToggle = element.querySelector('[data-shield]');
+  const shieldLabel = element.querySelector('[data-shield-label]');
   const engine = createEnginePreview({ getState: getDriving, getSettings });
-  select.value = 'aegis-hit';
+  select.value = 'ion';
+  const updateShieldLabel = () => {
+    shieldLabel.textContent =
+      select.value === 'ion'
+        ? 'Shield your ship · Ion'
+        : 'Shield target · Arc / Repulsor';
+    shieldToggle.disabled =
+      !ship || !['arc', 'repulsor', 'ion'].includes(select.value);
+  };
+  updateShieldLabel();
   const preview = createPickupPreview({
     ship,
     target: target?.group,
@@ -45,11 +55,15 @@ export async function createPickupInspector({
   trigger.onclick = () => {
     void preview.trigger(select.value, {
       shielded:
-        shieldToggle.checked && ['arc', 'repulsor'].includes(select.value),
+        shieldToggle.checked &&
+        ['arc', 'repulsor', 'ion'].includes(select.value),
     });
   };
   stop.onclick = () => preview.stop();
-  select.onchange = () => preview.stop();
+  select.onchange = () => {
+    preview.stop();
+    updateShieldLabel();
+  };
   shieldToggle.onchange = () => preview.stop();
   const life = new AbortController();
   const syncForeground = () => {
@@ -101,12 +115,13 @@ export async function createPickupInspector({
     },
     setShip(next) {
       preview.setShip(next);
+      ship = next;
       select.disabled =
         trigger.disabled =
         stop.disabled =
         engineToggle.disabled =
-        shieldToggle.disabled =
           !next;
+      updateShieldLabel();
       void engine.changed();
       if (!next) status.textContent = 'Loading ship…';
     },

@@ -57,11 +57,11 @@ export function energyMaterial(style) {
                 : style === 'ion'
                   ? `
           float t=(p.y+1.)*.5;
-          float x=p.x-.012*sin(p.y*12.+time*4.*motion);
+          float x=p.x-.022*sin(p.y*8.+time*3.*motion);
           float rail=min(abs(x),abs(abs(x)-.4286));
           float tail=smoothstep(0.,.25,t)*(1.-smoothstep(.72,1.,t));
-          light=(exp(-rail*62.)+exp(-rail*13.)*.22)*tail;
-          core=exp(-rail*120.)*tail*.2;
+          light=(exp(-rail*30.)*1.1+exp(-rail*8.)*.3)*tail;
+          core=exp(-rail*90.)*tail*.45;
         `
                   : style === 'bolt'
                     ? `

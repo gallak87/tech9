@@ -889,7 +889,6 @@ try {
           await page.evaluate(() => window.retainedRuntime === window.__VN),
           true,
         );
-        await page.keyboard.press('Escape');
         assert.equal(await page.locator('#quality').inputValue(), 'low');
         assert.equal(await page.locator('#motion').isChecked(), true);
         await page.locator('#home').click();
@@ -1142,6 +1141,8 @@ try {
         assert.ok(
           await page.evaluate(() => window.__VN === window.retainedRuntime),
         );
+        assert.equal((await snapshot(page)).mode, 'paused');
+        await page.locator('#resume').click();
         await page.keyboard.press('i');
         assert.equal((await snapshot(page)).mode, 'racing');
         await page.evaluate(() => window.__VN.inspect());
@@ -1500,6 +1501,9 @@ try {
         assert.equal(restored.tick, paused.tick);
         assert.deepEqual(restored.vehicle, paused.vehicle);
         await page.locator('[data-action="resume-session"]').click();
+        assert.equal((await snapshot(page)).mode, 'paused');
+        assert.equal((await snapshot(page)).tick, paused.tick);
+        await page.locator('#resume').click();
         assert.equal((await snapshot(page)).mode, 'racing');
       },
     );

@@ -1783,8 +1783,15 @@ export async function createGame({
         suspended = false;
         input.setEnabled(true);
         if (mode === 'results') showResults();
-        else if (mode === 'inspection') exitInspection();
-        else resume();
+        else {
+          if (mode === 'inspection') exitInspection(false);
+          if (mode === 'fly') leaveFly();
+          pause();
+          input.clear();
+          // Menu return restores the scene, with an explicit Resume still
+          // required in the pause panel before its simulation advances.
+          ui.setMode(mode);
+        }
       },
       showResults,
       continueDriving() {

@@ -5,6 +5,68 @@ import { COMBAT_RULES } from './combat.js';
 import { createCombatPresentation } from './combat-presentation.js';
 import { createShipFeedbackPresentation } from './ship-feedback.js';
 import { pickupPreviewFrame } from '../ships/pickup-preview-sequence.js';
+import { createIonRibbon } from './ion-ribbon.js';
+import { disposeGroup } from './geometry.js';
+
+test('Ion deposits distinct glow nodes at wake endpoints, with joined depth and bounded lifetime', () => {
+  const root = new T.Group();
+  const ribbon = createIonRibbon(root);
+  const state = {
+    time: 1,
+    emitters: {},
+    wakes: [
+      {
+        a: [0, 2, -20],
+        b: [0, 2, -10],
+        quaternion: [0, 0, 0, 1],
+        age: 0.2,
+        burst: 1,
+      },
+      {
+        a: [0, 2, -10],
+        b: [2, 2, 0],
+        quaternion: [0, 0, 0, 1],
+        age: 0.1,
+        burst: 1,
+      },
+    ],
+  };
+  ribbon.update(state, {}, false);
+  const [mesh, nodes] = root.children;
+  assert.equal(nodes.count, 2);
+  assert.equal(mesh.geometry.drawRange.count, 24);
+  const matrix = new T.Matrix4(),
+    position = new T.Vector3();
+  nodes.getMatrixAt(1, matrix);
+  assert.deepEqual(
+    position.setFromMatrixPosition(matrix).toArray(),
+    state.wakes[1].b,
+  );
+  const vertices = mesh.geometry.getAttribute('position');
+  const at = (index) => new T.Vector3().fromBufferAttribute(vertices, index);
+  assert.ok(
+    at(1).distanceTo(at(12)) < 1e-6,
+    'horizontal faces share bend corners',
+  );
+  assert.ok(
+    at(7).distanceTo(at(18)) < 1e-6,
+    'vertical glow shares the bend too',
+  );
+  assert.ok([...vertices.array].every(Number.isFinite));
+  const initialLife = nodes.geometry.getAttribute('pulseLife').getX(0);
+  ribbon.update(state, {}, true);
+  assert.ok(nodes.geometry.getAttribute('pulseLife').getX(0) < initialLife);
+  assert.equal(mesh.material.uniforms.time.value, 0);
+  state.wakes = [];
+  ribbon.update(state, {}, false);
+  assert.equal(nodes.count, 0);
+  assert.equal(mesh.geometry.drawRange.count, 0);
+  let released = 0;
+  nodes.addEventListener('dispose', () => released++);
+  ribbon.dispose();
+  disposeGroup(root);
+  assert.equal(released, 1);
+});
 
 test('Arc streaks grow forward from beneath the hull, including rotated ship frames', () => {
   const scene = new T.Group();

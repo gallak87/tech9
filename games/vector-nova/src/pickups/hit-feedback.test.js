@@ -110,6 +110,9 @@ test('Repulsor uses the same borrowed hull with a broader rose halo, and switchi
   );
   assert.equal(body.material.uniforms.strength.value, 1);
   const expanded = halo.material.uniforms.expansion.value;
+  feedback.update(0.08, {}, 'ion');
+  assert.equal(feedback.group.visible, true);
+  assert.equal(body.material.uniforms.color.value.getHex(), DEVICE_COLORS.ion);
   feedback.update(0.08, { reducedMotion: true }, 'repulsor');
   assert.equal(body.material.uniforms.strength.value, 0.45);
   feedback.update(0.08, {}, 'arc');
@@ -118,6 +121,48 @@ test('Repulsor uses the same borrowed hull with a broader rose halo, and switchi
   feedback.update(0.08, {}, 'aegis');
   assert.equal(feedback.group.visible, false);
   assert.equal(body.material.uniforms.strength.value, 0);
+  feedback.dispose();
+  geometry.dispose();
+  original.dispose();
+});
+
+test('ongoing Ion contact rolls softly over the hull and yields to the first strong hit', () => {
+  const ship = new Group();
+  const geometry = new BoxGeometry();
+  const original = new MeshBasicMaterial();
+  ship.add(new Mesh(geometry, original));
+  ship.position.set(20, 4, -12);
+  ship.rotation.y = 0.6;
+  const feedback = createHitFeedback(ship);
+  const uniforms = feedback.group.children[0].material.uniforms;
+  const exposure = { ionContact: 1, time: 2 };
+  feedback.update(undefined, {}, 'ion', exposure);
+  assert.equal(feedback.group.visible, true);
+  assert.equal(uniforms.interference.value, 1);
+  assert.equal(uniforms.strength.value, 0.38);
+  assert.equal(uniforms.time.value, 2);
+  assert.equal(uniforms.color.value.getHex(), DEVICE_COLORS.ion);
+  assert.ok(
+    ship
+      .getWorldPosition(new Vector3())
+      .applyMatrix4(uniforms.worldToHull.value)
+      .length() < 1e-10,
+    'flow is anchored to the hull rather than the track',
+  );
+  feedback.update(0.08, {}, 'ion', exposure);
+  assert.equal(uniforms.strength.value, 1);
+  assert.equal(uniforms.interference.value, 0);
+  feedback.update(0.55, {}, 'ion', exposure);
+  assert.equal(uniforms.strength.value, 0.38);
+  feedback.update(undefined, { reducedMotion: true }, 'ion', exposure);
+  assert.equal(uniforms.time.value, 0);
+  assert.equal(uniforms.strength.value, 0.18);
+  feedback.update();
+  assert.equal(
+    feedback.group.visible,
+    false,
+    'leaving the wake or resetting clears the wash',
+  );
   feedback.dispose();
   geometry.dispose();
   original.dispose();

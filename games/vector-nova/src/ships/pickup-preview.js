@@ -24,8 +24,22 @@ export function createPickupPreview({
   const feedback = createFeedback();
   root.add(feedback.group);
   const pose = { position: new Vector3(), quaternion: new Quaternion() };
+  const targetPose = {
+    position: new Vector3(0, 0, PREVIEW_TARGET_DISTANCE),
+    quaternion: new Quaternion(),
+  };
   let state = pickupPreviewFrame('arc', 0).combat;
-  const combat = createCombat(root, { view: () => state, pose: () => pose });
+  const combat = createCombat(root, {
+    view: () => state,
+    pose: (id) => (id === 'rook' ? targetPose : pose),
+  });
+  let playerFeedback;
+  function attachPlayer(next) {
+    playerFeedback?.dispose();
+    playerFeedback = next ? createHitFeedback(next) : null;
+    if (playerFeedback) root.add(playerFeedback.group);
+  }
+  attachPlayer(ship);
   const audio = createAudio();
   const targetFeedback = target ? createHitFeedback(target) : null;
   const targetShield = target ? createFeedback() : null;
@@ -46,6 +60,7 @@ export function createPickupPreview({
     audio.stop();
     feedback.reset();
     targetFeedback?.update();
+    playerFeedback?.update();
     targetShield?.reset();
     root.visible = false;
     onStatus(status);
@@ -69,9 +84,15 @@ export function createPickupPreview({
         current.time + (audio.duration?.(event) ?? 0),
       );
     }
+    const incoming = current.kind === 'ion' && !!target;
+    const sourceEvents = incoming
+      ? next.events.filter(
+          (event) => !['pickup-activate', 'pickup-expire'].includes(event.type),
+        )
+      : next.events;
     feedback.update({
       effects: next.effects,
-      events: next.events,
+      events: sourceEvents,
       time: current.time,
       dt,
       speed: getDriving().driving ? 400 / 3.6 : 0,
@@ -83,15 +104,29 @@ export function createPickupPreview({
         flash.target === 'rook' && ['arc', 'repulsor'].includes(flash.kind),
     );
     targetFeedback?.update(hit?.age, settings, hit?.kind);
+    const playerHit = state.flashes.findLast(
+      (flash) => flash.target === 'player' && flash.kind === 'ion',
+    );
+    playerFeedback?.update(playerHit?.age, settings, 'ion', {
+      ionContact: next.ionContact,
+      time: current.time,
+    });
     const shieldHit = next.events.some(
       (event) => event.type === 'combat-confirm' && event.payload.shielded,
     );
     if (shieldHit) current.shieldConsumed = true;
     targetShield?.update({
       effects: {
-        aegisRemaining: current.shielded && !current.shieldConsumed ? 1 : 0,
+        aegisRemaining:
+          !incoming && current.shielded && !current.shieldConsumed ? 1 : 0,
       },
-      events: shieldHit ? [{ type: 'shield-hit' }] : [],
+      events: incoming
+        ? next.events.filter((event) =>
+            ['pickup-activate', 'pickup-expire'].includes(event.type),
+          )
+        : shieldHit
+          ? [{ type: 'shield-hit' }]
+          : [],
       dt,
       time: current.time,
       settings,
@@ -118,7 +153,13 @@ export function createPickupPreview({
         root.visible = true;
         render(-1);
         onStatus(
-          `Playing${target ? ` · Rook ${shielded ? 'shielded' : 'target'}` : ''}`,
+          `Playing${
+            target
+              ? kind === 'ion'
+                ? ` · Rook → ${shielded ? 'your shield' : 'your ship'}`
+                : ` · Rook ${shielded ? 'shielded' : 'target'}`
+              : ''
+          }`,
         );
         return true;
       } catch (error) {
@@ -139,8 +180,9 @@ export function createPickupPreview({
     setShip(next) {
       stop();
       root.removeFromParent();
-      next?.add(root);
       target?.removeFromParent();
+      attachPlayer(next);
+      next?.add(root);
       if (target) next?.add(target);
     },
     stop,
@@ -151,6 +193,7 @@ export function createPickupPreview({
       audio.dispose();
       feedback.dispose();
       combat.dispose();
+      playerFeedback?.dispose();
       targetFeedback?.dispose();
       targetShield?.dispose();
       targetShield?.group.removeFromParent();

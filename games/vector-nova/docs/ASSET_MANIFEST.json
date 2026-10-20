@@ -340,7 +340,7 @@
       "id": "shared-road-devices",
       "source": "src/pickups/ and src/levels/<slug>/devices.js",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original source-native Vector cassette strips, Aegis arches, luminous fracturing hull fields and dim moving trails, branching Arc discharge, traveling pulses, layered Repulsor pressure rings and hull-shaped blue/rose hit outlines and halos, with owned shader/WebAudio feedback; no downloaded art, recordings or external fonts.",
+      "provenance": "Original source-native Vector cassette strips, Aegis arches, luminous fracturing hull fields and dim moving trails, branching Arc discharge, traveling pulses, layered Repulsor pressure rings, braided Ion wake filaments and plasma pulses, hull-shaped blue/rose/violet hit outlines and halos, and soft Ion contact interference, with owned shader/WebAudio feedback; no downloaded art, recordings or external fonts.",
       "rights": "Project-authored; no third-party asset restrictions",
       "runtimeDependencies": ["three"]
     },

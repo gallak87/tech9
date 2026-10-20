@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { ionWakeContact, sampleIonContact } from './ion-contact.js';
 import {
   ARC_SHOT_HEIGHT,
   ARC_MUZZLE_HEIGHT,
@@ -6,8 +7,7 @@ import {
 } from './rules.js';
 
 export const COMBAT_RULES = Object.freeze({
-  version: 1,
-  recharge: 1.4,
+  version: 2,
   pulseDelay: 0.5,
   pulseRadius: 36,
   arcDelay: 0.15,
@@ -60,7 +60,6 @@ export function createCombatSimulation({
     version: COMBAT_RULES.version,
     time: 0,
     sequence: 0,
-    cooldowns: {},
     emitters: {},
     grace: {},
     positions: {},
@@ -242,15 +241,12 @@ export function createCombatSimulation({
       requests.push({ id, event });
     },
     resetActor,
-    available(deviceId) {
-      return (state.cooldowns[deviceId] ?? 0) <= state.time;
-    },
     step(dt) {
       if (!Number.isFinite(dt) || dt <= 0) return;
       state.time += dt;
       for (const flash of state.flashes) flash.age += dt;
       state.flashes = state.flashes.filter((flash) => flash.age < 0.55);
-      // Earliest swept crossing wins, independent of player/AI update order.
+      // Preserve crossing order without making racers compete for a gate.
       requests.sort(
         (a, b) =>
           (a.event.payload.fraction ?? 0) - (b.event.payload.fraction ?? 0) ||
@@ -259,16 +255,13 @@ export function createCombatSimulation({
       for (const { id, event } of requests) {
         if (!eligible(id)) continue;
         const { kind, deviceId } = event.payload;
-        const busy =
-          (state.cooldowns[deviceId] ?? 0) > state.time || state.emitters[id];
-        if (busy)
+        if (state.emitters[id])
           notify(id, 'pickup-unavailable', {
             kind,
             deviceId,
-            reason: 'recharging',
+            reason: 'active',
           });
         else {
-          state.cooldowns[deviceId] = state.time + COMBAT_RULES.recharge;
           state.emitters[id] = {
             kind,
             deviceId,
@@ -443,9 +436,6 @@ export function createCombatSimulation({
       for (const wake of state.wakes) {
         wake.age += dt;
         if (wake.age > COMBAT_RULES.wakeLifetime) continue;
-        const a = vector(wake.a),
-          b = vector(wake.b);
-        const line = new T.Line3(a, b);
         for (const [id] of actors) {
           const other = eligible(id);
           const exposure = state.wakeHits[wake.burst];
@@ -456,17 +446,9 @@ export function createCombatSimulation({
             !nearCourse(wake.distance, other.actor.state.distance, 45)
           )
             continue;
-          const nearest = line.closestPointToPoint(
-            other.pose.position,
-            true,
-            new T.Vector3(),
-          );
+          const nearest = new T.Vector3();
+          if (ionWakeContact(wake, other.pose.position, nearest) < 0) continue;
           const delta = other.pose.position.clone().sub(nearest);
-          const normal = up
-            .clone()
-            .applyQuaternion(new T.Quaternion().fromArray(wake.quaternion));
-          if (Math.abs(delta.dot(normal)) > 2.5 || delta.length() > 4.3)
-            continue;
           const right = new T.Vector3(1, 0, 0).applyQuaternion(
             other.pose.quaternion,
           );
@@ -520,6 +502,24 @@ export function createCombatSimulation({
     pose(id) {
       return actors.get(id)?.pose() ?? null;
     },
+    ionContact(id) {
+      const actor = actors.get(id);
+      const pose = actor?.pose();
+      if (
+        !state.positions[id] ||
+        !pose ||
+        pose.grounded === false ||
+        pose.recovering
+      )
+        return 0;
+      return sampleIonContact(
+        state.wakes,
+        pose.position,
+        id,
+        COMBAT_RULES.wakeLifetime,
+        (wake) => nearCourse(wake.distance, actor.state.distance, 45),
+      );
+    },
     view() {
       return state;
     },
@@ -551,7 +551,6 @@ export function createCombatSimulation({
         !Array.isArray(data.flashes) ||
         data.flashes.length > 32 ||
         !data.emitters ||
-        !data.cooldowns ||
         !data.grace ||
         !data.positions ||
         !data.wakeHits

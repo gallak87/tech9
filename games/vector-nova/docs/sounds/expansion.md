@@ -57,6 +57,8 @@ Review it in the complete device sequence, including impact and block.
 
 **Shield block:** a thick warp collapse with rounded bass and audible midrange body, shared by both devices. A gentle high shelf softens its raspy upper edge. Current [prompt](../../assets/audio/sfx/shield-block.json). Retain the shield's mint visual identity.
 
+**Ion:** retain its existing activation, bed, hit, ending and unavailable cues, with the shared Aegis block. Violet plasma pulses and a rolling hull glow show ongoing wake contact; the inspector auditions incoming hits on the player.
+
 ## Aegis coverage
 
 Aegis forms with a broad warp surge and collapses with a resonant magnetic pulse. Keep the middle silent: propulsion already fills that space. Its bright mint shell and dim moving trail remain visible while active; a hit spreads fractures through the shell before it dissolves. Natural expiry fades without fractures.

@@ -4,6 +4,8 @@ import * as T from 'three';
 import { createCombatSimulation, COMBAT_RULES } from './combat.js';
 import { createPickupSimulation } from './simulation.js';
 import { createCollisionWorld } from '../physics/collision-world.js';
+import { ionWakeContact, sampleIonContact } from './ion-contact.js';
+import { ION_WAKE_RADIUS } from './rules.js';
 
 const track = {
   id: 'combat-test',
@@ -88,18 +90,56 @@ test('repulsor charges, pushes locally, respects decks/flight and has bounded re
   h.step(61);
   assert.equal(near.hits.length, 1);
 });
-test('the earliest crossing wins a shared device, independently of runtime order', () => {
+test('every racer can collect the same combat gate together or close behind', () => {
+  for (const kind of ['repulsor', 'arc', 'ion']) {
+    const h = harness();
+    for (const id of ['player', 'rival', 'follower']) h.add(id, 100);
+    h.collect('player', kind, 'shared', 0.8);
+    h.collect('rival', kind, 'shared', 0.2);
+    h.step();
+    assert.equal(h.combat.view().emitters.rival.kind, kind);
+    assert.equal(h.combat.view().emitters.player.kind, kind);
+    h.step(12);
+    h.collect('follower', kind, 'shared');
+    h.step();
+    assert.equal(h.combat.view().emitters.follower.kind, kind);
+    assert.equal(
+      h.events.filter((e) => e.type === 'pickup-activate').length,
+      3,
+    );
+    assert.equal(
+      h.events.filter((e) => e.type === 'pickup-unavailable').length,
+      0,
+    );
+  }
+});
+test('a racer cannot stack active weapons, without denying another racer', () => {
   const h = harness();
   h.add('player', 100);
   h.add('rival', 108);
-  h.collect('player', 'repulsor', 'shared', 0.8);
-  h.collect('rival', 'repulsor', 'shared', 0.2);
+  h.collect('player', 'ion', 'wake');
   h.step();
-  assert.ok(h.combat.view().emitters.rival);
-  assert.equal(h.combat.view().emitters.player, undefined);
-  assert.equal(h.combat.available('shared'), false);
-  h.step(170);
-  assert.equal(h.combat.available('shared'), true);
+  const burst = h.combat.view().emitters.player.burst;
+  h.collect('player', 'arc', 'shared');
+  h.collect('rival', 'arc', 'shared');
+  h.step();
+  assert.equal(h.combat.view().emitters.player.kind, 'ion');
+  assert.equal(h.combat.view().emitters.player.burst, burst);
+  assert.equal(h.combat.view().emitters.rival.kind, 'arc');
+  assert.deepEqual(
+    h.events.filter((e) => e.type === 'pickup-unavailable'),
+    [
+      {
+        id: 'player',
+        type: 'pickup-unavailable',
+        payload: {
+          kind: 'arc',
+          deviceId: 'shared',
+          reason: 'active',
+        },
+      },
+    ],
+  );
 });
 test('arc fires exactly three swept bolts and reaches a separated rival', () => {
   const h = harness();
@@ -199,6 +239,86 @@ test('ion wake persists long enough to hit a follower two seconds behind', () =>
   h.step(470);
   assert.equal(h.combat.view().wakes.length, 0);
 });
+
+test('Ion visual exposure survives the one-hit limit without spending more shield or reserve', () => {
+  for (const shield of [false, true]) {
+    const h = harness();
+    h.add('player', 300, 0, 100);
+    const follower = h.add('follower', 100, 0, 100, shield);
+    h.collect('player', 'ion');
+    h.step(300);
+    assert.equal(follower.hits.length, 1);
+    assert.equal(follower.hits[0].shielded, shield);
+    assert.ok(h.combat.ionContact('follower') > 0);
+    assert.equal(h.combat.ionContact('player'), 0, 'own wake stays harmless');
+    const saved = h.combat.snapshot();
+    const savedDistance = follower.state.distance;
+    const events = h.events.length;
+    for (let n = 0; n < 20; n++) h.combat.ionContact('follower');
+    assert.deepEqual(
+      h.combat.snapshot(),
+      saved,
+      'presentation reads never mutate the replay',
+    );
+    assert.equal(
+      h.events.length,
+      events,
+      'no extra hit sounds or confirmations',
+    );
+    follower.state.lateral = 12;
+    assert.equal(h.combat.ionContact('follower'), 0);
+    follower.state.lateral = 0;
+    follower.grounded = false;
+    assert.equal(h.combat.ionContact('follower'), 0);
+    follower.grounded = true;
+    h.step(200);
+    assert.equal(
+      follower.hits.length,
+      1,
+      'later deposits do not add another impulse',
+    );
+    h.combat.restore(saved);
+    follower.state.distance = savedDistance;
+    assert.ok(
+      h.combat.ionContact('follower') > 0,
+      'restoring wake geometry restores exposure',
+    );
+    h.combat.resetActor('follower');
+    assert.equal(h.combat.ionContact('follower'), 0);
+  }
+});
+
+test('Ion contact respects the banked wake volume, lifetime and source exclusion', () => {
+  const wake = {
+    a: [0, 0, 0],
+    b: [0, 0, 10],
+    source: 'rook',
+    age: 0,
+    quaternion: new T.Quaternion()
+      .setFromAxisAngle(new T.Vector3(0, 0, 1), Math.PI / 2)
+      .toArray(),
+  };
+  const point = new T.Vector3(0, 0, 5);
+  const nearest = new T.Vector3();
+  assert.equal(ionWakeContact(wake, point, nearest), 1);
+  assert.deepEqual(nearest.toArray(), point.toArray());
+  assert.ok(
+    ionWakeContact(wake, new T.Vector3(2.6, 0, 5)) < 0,
+    'banked vertical clearance',
+  );
+  assert.ok(ionWakeContact(wake, new T.Vector3(0, 3, 5)) > 0);
+  assert.equal(ionWakeContact(wake, new T.Vector3(0, ION_WAKE_RADIUS, 5)), 0);
+  assert.ok(
+    ionWakeContact(wake, new T.Vector3(0, ION_WAKE_RADIUS + 0.01, 5)) < 0,
+  );
+  assert.equal(sampleIonContact([wake], point, 'rook', 3.2), 0);
+  assert.equal(
+    sampleIonContact([wake], point, 'player', 3.2, () => false),
+    0,
+  );
+  wake.age = 3.2;
+  assert.equal(sampleIonContact([wake], point, 'player', 3.2), 0);
+});
 test('shield results are forwarded and grace limits successive hits', () => {
   const h = harness();
   h.add('player', 0);
@@ -235,6 +355,7 @@ test('snapshot restores a charging effect deterministically and recovery removes
   assert.equal(h.combat.view().wakes.length, 0);
   assert.equal(h.combat.view().emitters.player, undefined);
   assert.throws(() => h.combat.restore({ ...saved, time: NaN }), /mismatch/);
+  assert.throws(() => h.combat.restore({ ...saved, version: 1 }), /mismatch/);
 });
 test('offensive gates use forward swept crossing and retain the per-lap anti-farming ledger', () => {
   const device = {
@@ -262,6 +383,14 @@ test('offensive gates use forward swept crossing and retain the per-lap anti-far
   assert.equal(events.filter((e) => e.type === 'pickup-activate').length, 1);
   sim.reset({ reason: 'manual-recover', state: vehicle(90) });
   assert.equal(sim.afterStep(vehicle(90), vehicle(110), {}).length, 0);
+  sim.afterStep(vehicle(110), vehicle(590), {});
+  assert.equal(
+    sim
+      .afterStep(vehicle(590), vehicle(610), {})
+      .filter((e) => e.type === 'pickup-activate').length,
+    1,
+    'the next lap makes the gate available again',
+  );
   sim.reset({ state: vehicle(90) });
   assert.equal(
     sim.afterStep(vehicle(90, false), vehicle(110, false), {}).length,

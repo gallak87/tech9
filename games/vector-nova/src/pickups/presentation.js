@@ -12,6 +12,7 @@ import { createPickupAudio } from './audio.js';
 import { deviceCSSColor } from './theme.js';
 import { createShipFeedbackPresentation } from './ship-feedback.js';
 import { AEGIS_DURATION } from './rules.js';
+import { createHitFeedback } from './hit-feedback.js';
 import './style.css';
 
 const clamp = (value) => Math.max(0, Math.min(1, value));
@@ -40,7 +41,7 @@ export function pickupEventLabel(event) {
       return event.payload.shielded
         ? 'RIVAL SHIELD BLOCKED HIT'
         : name + ' · HIT CONFIRMED';
-    if (event.type === 'pickup-unavailable') return name + ' · RECHARGING';
+    if (event.type === 'pickup-unavailable') return 'WEAPON ALREADY ACTIVE';
     return '';
   }
   const name = event.payload?.kind === 'vector' ? 'VECTOR' : 'AEGIS';
@@ -102,6 +103,7 @@ export function createPickupPresentation({
   });
   projector.dispose();
   const combatVisual = combat ? createCombatPresentation(scene, combat) : null;
+  const ionHit = combat ? createHitFeedback(ship.group || ship) : null;
   const feedback = createShipFeedbackPresentation();
   (ship.group || ship).add(feedback.group);
   const audio = createPickupAudio({ immersion: Boolean(audioImmersion) });
@@ -163,6 +165,7 @@ export function createPickupPresentation({
   function reset() {
     noticeTime = flowTime = 0;
     feedback.reset();
+    ionHit?.update();
     hud.hidden = true;
     for (const visual of hardware) visual.reset?.();
     combatNotice = null;
@@ -195,6 +198,7 @@ export function createPickupPresentation({
       if (disposed) return;
       combatVisual?.update({ mode, enabled, settings: nextSettings });
       if (!enabled) {
+        ionHit?.update();
         root.visible = feedback.group.visible = false;
         hud.hidden = true;
         silence();
@@ -203,6 +207,22 @@ export function createPickupPresentation({
       currentSettings = nextSettings;
       const racing = mode === 'racing' && !document.hidden;
       const driving = racing || mode === 'paused';
+      const combatState = combat?.view();
+      const flash = driving
+        ? combatState?.flashes.findLast(
+            (entry) => entry.target === 'player' && entry.kind === 'ion',
+          )
+        : null;
+      const blocking =
+        effects.aegisRemaining > 0 ||
+        combatState?.flashes.some(
+          (entry) => entry.target === 'player' && entry.kind === 'aegis',
+        );
+      ionHit?.update(flash?.age, nextSettings, 'ion', {
+        ionContact:
+          driving && !blocking ? (combat?.ionContact?.('player') ?? 0) : 0,
+        time: combatState?.time,
+      });
       hud.hidden = !racing;
       root.visible = mode !== 'inspection';
       feedback.group.visible = driving;
@@ -256,7 +276,7 @@ export function createPickupPresentation({
                   ? 'BLOCKED'
                   : 'HIT'
                 : event.type === 'pickup-unavailable'
-                  ? 'RECHARGING'
+                  ? 'WEAPON ACTIVE'
                   : 'FIRED';
           combatNoticeTime = 1.3;
         }
@@ -398,13 +418,10 @@ export function createPickupPresentation({
         visual.updateCamera(camera, (ship.group || ship).position);
         const lap = Math.floor((vehicle?.distance || 0) / track.length);
         visual.setAvailable(
-          (isCombatDevice(visual.device.type)
-            ? combat?.available(visual.device.id) !== false
-            : true) &&
-            ((effects.used?.[visual.device.id] ?? -Infinity) < lap ||
-              (visual.device.type === 'vector' &&
-                vector &&
-                effects.vectorDevice === visual.device.id)),
+          (effects.used?.[visual.device.id] ?? -Infinity) < lap ||
+            (visual.device.type === 'vector' &&
+              vector &&
+              effects.vectorDevice === visual.device.id),
         );
         visual.update?.({
           time: flowTime,
@@ -424,6 +441,7 @@ export function createPickupPresentation({
       document.removeEventListener('visibilitychange', visibility);
       hud.remove();
       combatVisual?.dispose();
+      ionHit?.dispose();
       disposeGroup(root);
       feedback.dispose();
       void audio.dispose();

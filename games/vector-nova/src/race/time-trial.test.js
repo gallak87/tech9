@@ -49,8 +49,8 @@ const store = () => {
     key: (i) => [...data.keys()][i],
   };
 };
-function run(id, storage, speed = 100, invalid = false) {
-  const race = createRace(track, { laps: 3 });
+function session(id, storage) {
+  const race = createRace(track, { continuous: true });
   const trial = createTimeTrial({
     identity: identity(id),
     race,
@@ -58,21 +58,116 @@ function run(id, storage, speed = 100, invalid = false) {
   });
   trial.capture(pose());
   let distance = 0;
-  for (let i = 0; !race.complete && i < 10000; i++) {
-    if (invalid && i === 5) race.recover();
-    race.step(distance, distance + speed / 120, 1 / 120);
-    distance += speed / 120;
-    trial.capture(pose(distance));
-  }
-  return { race, trial, result: trial.result };
+  return {
+    race,
+    trial,
+    step(speed = 100, dt = 1 / 120) {
+      race.step(distance, distance + speed * dt, dt);
+      distance += speed * dt;
+      trial.capture(pose(distance), dt);
+    },
+    lap(speed = 100, invalid = false) {
+      const next = race.lap + 1;
+      if (invalid) race.recover();
+      for (let i = 0; race.lap < next && i < 10000; i++) this.step(speed);
+      assert.equal(race.lap, next);
+      return trial.snapshot().lastLap;
+    },
+  };
 }
-test('three laps have exact interpolated total, nine sector boundaries, and a frozen finish', () => {
-  const { race, result } = run('timing', store());
-  assert.ok(Math.abs(result.playerTotalTime - 2.7) < 1e-10);
-  assert.equal(result.splits.length, 9);
-  assert.ok(result.playerLapTimes.every((t) => Math.abs(t - 0.9) < 1e-10));
-  race.step(300, 400, 1);
-  assert.ok(Math.abs(race.totalElapsed - 2.7) < 1e-10);
+function run(id, storage, speed = 100, invalid = false) {
+  const s = session(id, storage);
+  return { ...s, result: s.lap(speed, invalid) };
+}
+test('circuits save each lap immediately, replay the first ghost on lap two, and never finish at three laps', () => {
+  const storage = store(),
+    s = session('timing', storage);
+  const first = s.lap(103);
+  assert.ok(Math.abs(first.playerTotalTime - 90 / 103) < 1e-10);
+  assert.equal(first.splits.length, 3);
+  assert.equal(first.improved, true);
+  assert.equal(first.start, 'standing');
+  assert.equal(s.trial.snapshot().ghost, true);
+  assert.equal(s.trial.snapshot().ghostStart, 'standing');
+  assert.equal(
+    s.trial.snapshot().best,
+    null,
+    'standing best is separate from flying PB',
+  );
+  const standing = readTrialBest(identity('timing'), storage);
+  assert.ok(
+    Math.abs(standing.samples.at(-1)[1] - 90) < 1e-5,
+    'finish pose is interpolated at crossing',
+  );
+  const second = s.lap(97);
+  assert.equal(second.start, 'flying');
+  assert.equal(
+    second.improved,
+    true,
+    'first flying best may be slower than standing best',
+  );
+  assert.equal(second.previousBest, null);
+  assert.equal(s.trial.snapshot().ghostStart, 'flying');
+  const flying = readTrialBest(
+    { ...identity('timing'), start: 'flying' },
+    storage,
+  );
+  assert.ok(
+    Math.abs(flying.samples[0][1] - 90) < 1e-5,
+    'next ghost starts exactly at the previous finish pose',
+  );
+  assert.ok(Math.abs(flying.samples.at(-1)[1] - 180) < 1e-5);
+  assert.ok(flying.splits.every((v, i) => v > (flying.splits[i - 1] ?? 0)));
+  const oldReference = s.trial.reference;
+  const third = s.lap(120);
+  assert.equal(third.improved, true);
+  assert.notEqual(
+    s.trial.reference,
+    oldReference,
+    'new best is replayed immediately',
+  );
+  assert.equal(s.trial.reference.duration, third.playerTotalTime);
+  s.lap(80);
+  assert.equal(s.race.lap, 5);
+  assert.equal(s.race.complete, false);
+  assert.equal(s.trial.result, null);
+  assert.equal(s.race.history.length, 1, 'continuous history stays bounded');
+  assert.ok(s.race.splits.length < 3);
+  assert.ok(s.trial.snapshot().elapsed < 1 / 120);
+  assert.ok(
+    Math.abs(
+      s.race.totalElapsed -
+        (first.playerTotalTime +
+          second.playerTotalTime +
+          third.playerTotalTime +
+          s.race.lastLap +
+          s.race.elapsed),
+    ) < 1e-10,
+  );
+  assert.equal(storage.length, 2);
+});
+test('invalid laps do not replace a best or contaminate the next lap; splits restart at each line crossing', () => {
+  const storage = store(),
+    s = session('clean-laps', storage);
+  s.lap();
+  s.lap();
+  const reference = s.trial.reference;
+  assert.equal(s.lap(150, true).improved, false);
+  assert.equal(s.trial.reference, reference);
+  assert.equal(s.trial.snapshot().valid, true);
+  assert.equal(s.trial.snapshot().sector, 0);
+  assert.equal(s.trial.snapshot().delta, null);
+  while (s.race.checkpoint === 0) s.step(120);
+  const snap = s.trial.snapshot();
+  assert.equal(snap.sector, 1);
+  assert.ok(
+    snap.delta < 0,
+    'delta compares this lap to flying best, not session total',
+  );
+  s.race.recover();
+  s.step();
+  assert.equal(s.trial.snapshot().valid, false);
+  assert.equal(s.trial.snapshot().delta, null);
 });
 test('best improves only on a clean faster run; retries and identities isolate records', () => {
   const storage = store();
@@ -129,6 +224,68 @@ test('sprint uses one supported finish and automatic jump recovery retains elaps
   assert.ok(race.totalElapsed > 5);
   assert.equal(race.splits.length, 3);
   assert.ok(Math.abs(race.splits.at(-1) - race.totalElapsed) < 1e-10);
+});
+test('sprint records retain their identity, finish once, and replay on the next attempt', () => {
+  const course = {
+    ...track,
+    id: 'recorded-sprint',
+    closed: false,
+    length: 120,
+    finishDistance: 90,
+    checkpoints: [0, 30, 60, 90].map((distance) => ({ distance })),
+  };
+  const id = trialIdentity({
+    track: course,
+    ship: { id: 'kestrel', version: 1 },
+    version: 1,
+    runtime: {},
+  });
+  assert.equal(id.start, undefined);
+  assert.match(id.rules, /^time-trial-v1:/);
+  const storage = store();
+  const race = createRace(course, { laps: 1 });
+  const trial = createTimeTrial({ identity: id, race, store: storage });
+  trial.capture(pose());
+  let distance = 0;
+  while (!race.complete) {
+    const next = distance + 103 / 120;
+    race.step(distance, next, 1 / 120);
+    trial.capture(pose(next), 1 / 120);
+    distance = next;
+  }
+  const result = trial.result;
+  assert.equal(result.playerValid, true);
+  assert.equal(result.saved.ghostSaved, true);
+  assert.ok(Math.abs(result.playerTotalTime - 90 / 103) < 1e-10);
+  const saved = readTrialBest(id, storage);
+  assert.ok(Math.abs(saved.samples.at(-1)[1] - 90) < 1e-5);
+  race.step(distance, distance + 10, 1);
+  assert.equal(trial.capture(pose(distance + 10), 1), result);
+  const retry = createTimeTrial({
+    identity: id,
+    race: createRace(course, { laps: 1 }),
+    store: storage,
+  });
+  assert.equal(retry.snapshot().ghost, true);
+  assert.equal(retry.snapshot().best, result.playerTotalTime);
+});
+test('capture limits apply per lap and an invalid opening lap cannot supply a ghost', () => {
+  const storage = store(),
+    s = session('capture-limit', storage);
+  s.lap(100, true);
+  assert.equal(storage.length, 0);
+  assert.equal(s.trial.snapshot().ghost, false);
+  // A stationary wait exceeds the capture limit. The time still saves, then
+  // the next clean lap gets a fresh, complete trajectory rather than a tail.
+  for (let i = 0; i < 12001; i++) s.step(0, 0.1);
+  const long = s.lap();
+  assert.equal(long.improved, true);
+  assert.equal(long.saved.saved, true);
+  assert.equal(long.ghostAvailable, false);
+  const short = s.lap();
+  assert.equal(short.improved, true);
+  assert.equal(short.saved.ghostSaved, true);
+  assert.equal(s.trial.snapshot().ghost, true);
 });
 test('ghost decoder rejects incompatible, incomplete, non-finite and malformed trajectories', () => {
   const samples = [
@@ -261,28 +418,32 @@ test('shared timing formatting carries rounded milliseconds through minute bound
 
 test('PB decisions and displayed deltas use the same rounded millisecond totals', () => {
   const storage = store();
-  run('rounded-tie', storage, 270 / 1.00049);
-  const tie = run('rounded-tie', storage, 270 / 0.99989).result;
+  run('rounded-tie', storage, 90 / 1.00049);
+  const tie = run('rounded-tie', storage, 90 / 0.99989).result;
   assert.equal(tie.improved, false);
   assert.equal(tie.delta, 0);
-  run('rounded-pb', storage, 270 / 1.00051);
-  const pb = run('rounded-pb', storage, 270 / 1.00049).result;
+  run('rounded-pb', storage, 90 / 1.00051);
+  const pb = run('rounded-pb', storage, 90 / 1.00049).result;
   assert.equal(pb.improved, true);
   assert.equal(pb.delta, -0.001);
 });
 
-test('waiting at the grid cannot invalidate a trial when hull settling crosses zero', () => {
-  const race = createRace(track, { laps: 3 });
-  race.step(0, -0.02, 0.5);
-  race.step(-0.02, 0, 0.5);
-  assert.equal(race.valid, true);
-  assert.equal(race.splits.length, 0);
-  for (let distance = 0; distance < 270; distance++)
-    race.step(distance, distance + 1, 0.01);
-  assert.ok(race.history.every((lap) => lap.valid));
-  assert.equal(race.splits.length, 9);
-  assert.ok(Math.abs(race.totalElapsed - 3.7) < 1e-10);
-});
+for (const continuous of [false, true])
+  test(`waiting at the grid cannot invalidate ${continuous ? 'continuous' : 'bounded'} timing`, () => {
+    const race = createRace(
+      track,
+      continuous ? { continuous: true } : { laps: 3 },
+    );
+    race.step(0, -0.02, 0.5);
+    race.step(-0.02, 0, 0.5);
+    assert.equal(race.valid, true);
+    assert.equal(race.splits.length, 0);
+    for (let distance = 0; distance < 270; distance++)
+      race.step(distance, distance + 1, 0.01);
+    assert.ok(race.history.every((lap) => lap.valid));
+    assert.equal(race.splits.length, continuous ? 0 : 9);
+    assert.ok(Math.abs(race.totalElapsed - 3.7) < 1e-10);
+  });
 
 test('record browser preserves distinct rules profiles, ignores corrupt storage and reports session-only bests', () => {
   const storage = store();
@@ -325,4 +486,40 @@ test('record browser preserves distinct rules profiles, ignores corrupt storage 
   assert.equal(session.saved, false);
   assert.equal(session.ghostSaved, false);
   assert.equal(session.ghost, true);
+});
+
+test('legacy three-lap records remain browsable but never become lap references', () => {
+  const storage = store();
+  const current = identity('legacy-record');
+  const legacy = {
+    ...current,
+    rules: current.rules.replace(
+      'time-trial-v2:continuous-laps:',
+      'time-trial-v1:',
+    ),
+    laps: 3,
+  };
+  delete legacy.start;
+  const record = {
+    version: 1,
+    identity: legacy,
+    duration: 9,
+    laps: [3, 3, 3],
+    splits: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    ghost: null,
+  };
+  let hash = 2166136261;
+  for (const c of JSON.stringify(legacy))
+    hash = Math.imul(hash ^ c.charCodeAt(0), 16777619);
+  storage.setItem(
+    `vector-nova.trial.v1.${(hash >>> 0).toString(16)}`,
+    JSON.stringify(record),
+  );
+  assert.equal(
+    readTrialRecords(storage).filter((r) => r.identity.track === current.track)
+      .length,
+    1,
+  );
+  assert.equal(readTrialBest(current, storage), null);
+  assert.equal(session(current.track, storage).trial.snapshot().ghost, false);
 });

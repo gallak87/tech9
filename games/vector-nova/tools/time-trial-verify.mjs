@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
-// Hidden, accelerated real-physics trial flow. Test-only instrumentation is
-// supplied by the browser route; production exposes no completion shortcuts.
+// Browser-only instrumentation accelerates real physics. Production has no
+// finish shortcuts; both the runtime and rendered ghost are exercised here.
 const base = process.env.VN_URL;
 const level = process.env.VN_TRIAL_LEVEL ?? 'halcyon';
 const sprint = level === 'shatterline';
@@ -32,14 +32,18 @@ try {
       body: source.replace(
         '      getSnapshot() {',
         `
-      verifyTrialStep(ticks, idle = false) {
+      verifyTrialStep(ticks, idle = false, untilLap = Infinity) {
         cancelCountdown();
         mode = 'racing';
-        for (let i = 0; i < ticks && !trial?.result; i++) {
+        for (let i = 0; i < ticks && !trial?.result && race.lap < untilLap; i++) {
           advanceTick(idle ? { throttle: 0, brake: 0, steer: 0, boost: false, airbrake: false } : racerModule.getRacerControl(state, track, { runtime, difficulty: 'easy' }));
         }
         if (!trial?.result) pause();
         return this.getSnapshot();
+      },
+      verifyTrialGhost() {
+        const root = scene.getObjectByName('Personal best ghost / non-colliding');
+        return { visible: root.visible, meshes: root.children.length, position: root.position.toArray(), samples: ghostSamples?.length ?? 0 };
       },
       getSnapshot() {`,
       ),
@@ -48,49 +52,129 @@ try {
   const page = await context.newPage();
   const faults = [];
   page.on('pageerror', (e) => faults.push(e.message));
+  let snap;
+  const activate = (locator) => locator[touch ? 'tap' : 'click']();
+  async function start() {
+    await activate(page.locator('[data-action="time-trial"]').first());
+    await activate(page.locator('[data-action="launch"]'));
+    await page.waitForFunction(() => window.__VN?.ready, null, {
+      timeout: 120000,
+    });
+    snap = await page.evaluate(() => {
+      window.__VN.restartRace();
+      window.__VN.pause();
+      return window.__VN.getSnapshot();
+    });
+  }
+  async function finishLap() {
+    const untilLap = sprint ? null : snap.lap.lap + 1;
+    for (
+      let batch = 0;
+      batch < 35 && (sprint ? !snap.timeTrial.result : snap.lap.lap < untilLap);
+      batch++
+    ) {
+      snap = await page.evaluate(
+        (end) => window.__VN.verifyTrialStep(1200, false, end ?? Infinity),
+        untilLap,
+      );
+    }
+    const result = sprint ? snap.timeTrial.result : snap.timeTrial.lastLap;
+    assert.ok(
+      result?.playerValid,
+      JSON.stringify({ lap: snap.lap, vehicle: snap.vehicle }),
+    );
+    assert.equal(result.laps, 1);
+    assert.equal(result.splits.length, 3);
+    assert.ok(!snap.events.some((e) => e.type === 'pickup-activate'));
+    return result;
+  }
+  async function setup() {
+    if (sprint) await activate(page.locator('[data-action="change"]'));
+    else await activate(page.locator('#home'));
+    await page.locator('[data-action="records"]').waitFor();
+  }
+  async function retry() {
+    if (sprint) await activate(page.locator('[data-action="retry-race"]'));
+    else await activate(page.locator('#restart'));
+    snap = await page.evaluate(() => {
+      window.__VN.pause();
+      return window.__VN.getSnapshot();
+    });
+    assert.equal(snap.timeTrial.elapsed, 0);
+    assert.equal(snap.vehicle.energy, 100);
+  }
   await page.goto(base + `?level=${level}&music=0`);
-  await page
-    .locator('[data-action="time-trial"]')
-    .first()
-    [touch ? 'tap' : 'click']();
-  await page.locator('[data-action="launch"]')[touch ? 'tap' : 'click']();
-  await page.waitForFunction(() => window.__VN?.ready, null, {
-    timeout: 120000,
-  });
-  let snap = await page.evaluate(() => {
-    window.__VN.restartRace();
-    window.__VN.pause();
-    return window.__VN.getSnapshot();
-  });
+  await start();
   assert.equal(snap.timeTrial.best, null);
   assert.equal(snap.competition.enabled, false);
   assert.equal(snap.vehicle.energy, 100);
   assert.equal(snap.vehicle.distance, 0);
-  for (let batch = 0; batch < 35 && !snap.timeTrial.result; batch++) {
-    snap = await page.evaluate(() => window.__VN.verifyTrialStep(1200));
+  const first = await finishLap();
+  assert.equal(first.saved.ghostSaved, true);
+  assert.equal(first.improved, true);
+  if (sprint) {
+    await page.getByRole('heading', { name: 'First personal best.' }).waitFor();
+    assert.equal(await page.locator('.trial-splits li').count(), 3);
+  } else {
+    assert.equal(snap.timeTrial.ghost, true);
+    assert.equal(snap.timeTrial.ghostStart, 'standing');
+    assert.equal(snap.timeTrial.best, null);
+    assert.equal(snap.lap.lap, 2);
+    await page.waitForFunction(
+      () => document.querySelector('#lap').textContent === '2',
+    );
+    assert.equal(
+      await page.locator('.timing > span').textContent(),
+      'LAP TIME',
+    );
+    assert.match(
+      await page.locator('#last').textContent(),
+      /NEW STANDING BEST/,
+    );
+    await page.waitForFunction(() => window.__VN.verifyTrialGhost().visible);
+    assert.ok(
+      (await page.evaluate(() => window.__VN.verifyTrialGhost())).meshes > 0,
+    );
+    // A new flying best replaces the standing fallback without ending play.
+    const second = await finishLap();
+    assert.equal(second.start, 'flying');
+    assert.equal(second.improved, true);
+    assert.equal(snap.timeTrial.ghostStart, 'flying');
+    await page.evaluate(() => window.__VN.verifyTrialStep(240));
+    await page.waitForFunction(() => window.__VN.verifyTrialGhost().visible);
+    const ghost = await page.evaluate(() => window.__VN.verifyTrialGhost());
+    assert.ok(ghost.samples > 2);
+    assert.ok(ghost.position.every(Number.isFinite));
+    await finishLap();
+    await finishLap();
+    assert.equal(
+      snap.lap.lap,
+      5,
+      'driving continues past the old three-lap cap',
+    );
+    assert.equal(snap.lap.complete, false);
+    assert.equal(snap.timeTrial.result, null);
+    assert.equal(
+      await page.evaluate(() => window.__VN_FRONTEND.getState().screen),
+      'race',
+    );
+    await setup();
   }
-  assert.ok(
-    snap.timeTrial.result?.playerValid,
-    JSON.stringify({ race: snap.race, vehicle: snap.vehicle }),
-  );
-  assert.equal(snap.timeTrial.result.laps, sprint ? 1 : 3);
-  assert.equal(snap.timeTrial.result.saved.ghostSaved, true);
-  assert.ok(!snap.events.some((e) => e.type === 'pickup-activate'));
-  await page.getByRole('heading', { name: 'First personal best.' }).waitFor();
-  assert.equal(await page.locator('.trial-splits li').count(), sprint ? 3 : 9);
-  const first = snap.timeTrial.result.playerTotalTime;
-  await page.locator('[data-action="records"]').click();
-  assert.equal(await page.locator('.records-list li').count(), 1);
-  assert.match(
-    await page.locator('.records-list').textContent(),
-    /Personal ghost saved/,
-  );
-  await page.locator('[data-record-key]').focus();
+  await activate(page.locator('[data-action="records"]'));
+  assert.equal(await page.locator('.records-list li').count(), sprint ? 1 : 2);
+  const recordsText = await page.locator('.records-list').textContent();
+  assert.match(recordsText, /Personal ghost saved/);
+  if (!sprint) {
+    assert.match(recordsText, /Standing lap/);
+    assert.match(recordsText, /Flying lap/);
+  }
+  await page.locator('[data-record-key]').first().focus();
   await page.keyboard.press('KeyS');
   await page.keyboard.press('Escape');
   assert.equal(
     await page
       .locator('[data-record-key]')
+      .first()
       .evaluate((el) => el === document.activeElement),
     true,
   );
@@ -99,40 +183,33 @@ try {
   await page.locator('[data-record-filter="ship"]').selectOption('all');
   await page.keyboard.press('Escape');
   assert.equal(
-    await page.evaluate(() => window.__VN_FRONTEND.getState().screen),
-    'results',
-  );
-
-  assert.equal(
     await page.evaluate(
       () => document.documentElement.scrollWidth > innerWidth,
     ),
     false,
   );
-  if (touch) await page.locator('[data-action="retry-race"]').tap();
-  else await page.keyboard.press('r');
-  await page.waitForFunction(
-    () => window.__VN_FRONTEND.getState().screen === 'race',
-  );
-  snap = await page.evaluate(() => {
-    window.__VN.pause();
-    return window.__VN.getSnapshot();
-  });
-  assert.equal(snap.timeTrial.best, first);
+  if (!sprint) {
+    await activate(page.locator('[data-action="resume-session"]'));
+    await page.evaluate(() => window.__VN.pause());
+  }
+  await retry();
+  assert.equal(snap.timeTrial.best, first.playerTotalTime);
   assert.equal(snap.timeTrial.ghost, true);
-  assert.equal(snap.timeTrial.elapsed, 0);
-  for (let batch = 0; batch < 35 && !snap.timeTrial.result; batch++)
-    snap = await page.evaluate(() => window.__VN.verifyTrialStep(1200));
+  const repeated = await finishLap();
   assert.ok(
-    Math.abs(snap.timeTrial.result.playerTotalTime - first) < 1e-8,
-    'identical input produces identical total',
+    Math.abs(repeated.playerTotalTime - first.playerTotalTime) < 1e-8,
+    'identical input reproduces standing lap/descent',
   );
-  assert.equal(snap.timeTrial.result.improved, false);
-  await page.locator('[data-action="change"]').click();
-  if (!(await page.locator('[data-action="practice"]').count()))
-    await page.locator('[data-action="home"]').first().click();
-  await page.locator('[data-action="practice"]').first().click();
-  await page.locator('[data-action="launch"]').click();
+  assert.equal(repeated.improved, false);
+  if (!sprint)
+    assert.equal(
+      snap.timeTrial.ghostStart,
+      'flying',
+      'retry picks saved flying ghost on lap two',
+    );
+  await setup();
+  await activate(page.locator('[data-action="practice"]').first());
+  await activate(page.locator('[data-action="launch"]'));
   await page.waitForFunction(
     () => window.__VN?.getSnapshot().timeTrial === null,
   );
@@ -142,19 +219,10 @@ try {
     sprint ? 'ELAPSED' : 'LAP TIME',
   );
   await page.reload();
-  await page.locator('[data-action="time-trial"]').first().click();
-  await page.locator('[data-action="launch"]').click();
-  await page.waitForFunction(() => window.__VN?.ready, null, {
-    timeout: 120000,
-  });
-  snap = await page.evaluate(() => {
-    window.__VN.pause();
-    return window.__VN.getSnapshot();
-  });
-  assert.equal(snap.timeTrial.best, first);
+  await start();
+  assert.equal(snap.timeTrial.best, first.playerTotalTime);
   assert.equal(snap.timeTrial.ghost, true);
-  // Simulate a persisted time-only quota fallback, then verify the next
-  // slower completed run never promises a ghost that is absent after reload.
+  // Time-only quota fallback must never promise a missing ghost on reload.
   await page.evaluate(() => {
     for (const key of Object.keys(localStorage).filter((key) =>
       key.startsWith('vector-nova.trial.'),
@@ -165,44 +233,33 @@ try {
     }
   });
   await page.reload();
-  await page.locator('[data-action="time-trial"]').first().click();
-  await page.locator('[data-action="launch"]').click();
-  await page.waitForFunction(() => window.__VN?.ready, null, {
-    timeout: 120000,
-  });
-  snap = await page.evaluate(() => {
-    window.__VN.restartRace();
-    return window.__VN.verifyTrialStep(120, true);
-  });
+  await start();
+  snap = await page.evaluate(() => window.__VN.verifyTrialStep(120, true));
   assert.equal(snap.timeTrial.ghost, false);
-  assert.equal(snap.timeTrial.best, first);
-  assert.equal(
-    await page.locator('#last').textContent(),
-    'BEST TIME · NO GHOST',
+  assert.equal(snap.timeTrial.best, first.playerTotalTime);
+  await page.waitForFunction(
+    () =>
+      document.querySelector('#last').textContent === 'BEST TIME · NO GHOST',
   );
-  for (let batch = 0; batch < 35 && !snap.timeTrial.result; batch++)
-    snap = await page.evaluate(() => window.__VN.verifyTrialStep(1200));
-  assert.equal(snap.timeTrial.result.improved, false);
-  assert.equal(
-    snap.timeTrial.result.playerValid,
-    true,
-    JSON.stringify(snap.timeTrial.result),
-  );
-  assert.equal(snap.timeTrial.result.ghostAvailable, false);
-  assert.equal(
-    await page.locator('.results-note').textContent(),
-    'Personal best unchanged. No compatible ghost is saved for this best.',
-  );
+  const slower = await finishLap();
+  assert.equal(slower.improved, false);
+  assert.equal(slower.ghostAvailable, false);
+  if (sprint)
+    assert.equal(
+      await page.locator('.results-note').textContent(),
+      'Personal best unchanged. No compatible ghost is saved for this best.',
+    );
   if (touch) {
-    await page.locator('[data-action="retry-race"]').tap();
+    await retry();
+    await page.evaluate(() => window.__VN.resume());
     await page.waitForFunction(
       () => window.__VN.getSnapshot().mode === 'racing',
     );
     const pad = page.locator('[data-touch-control="power"]');
     assert.equal(await pad.isVisible(), true);
     const b = await pad.boundingBox();
-    const session = await context.newCDPSession(page);
-    await session.send('Input.dispatchTouchEvent', {
+    const cdp = await context.newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', {
       type: 'touchStart',
       touchPoints: [{ x: b.x + b.width / 2, y: b.y + b.height * 0.12 }],
     });
@@ -210,21 +267,21 @@ try {
       () => window.__VN.getSnapshot().vehicle.speed > 5,
     );
     assert.equal(await pad.getAttribute('data-power'), 'boost');
-    await session.send('Input.dispatchTouchEvent', {
+    await cdp.send('Input.dispatchTouchEvent', {
       type: 'touchEnd',
       touchPoints: [],
     });
     assert.equal(await pad.getAttribute('data-active'), 'false');
     await page.evaluate(() => window.__VN.pause());
-    await page.locator('#restart').tap();
+    await activate(page.locator('#restart'));
     snap = await page.evaluate(() => window.__VN.getSnapshot());
     assert.equal(snap.timeTrial.elapsed, 0);
     assert.equal(snap.vehicle.energy, 100);
-    await session.detach();
+    await cdp.detach();
   }
   assert.deepEqual(faults, []);
   console.log(
-    `PASS Time Trial ${level}: real-physics finish (${first.toFixed(3)} s), deterministic retry, ghost, records after reload, practice transition`,
+    `PASS Time Trial ${level}: ${sprint ? 'descent' : 'unlimited laps and immediate ghosts'}, deterministic retry (${first.playerTotalTime.toFixed(3)} s), records/reload, practice transition${touch ? ', touch controls' : ''}`,
   );
 } finally {
   await context.close();

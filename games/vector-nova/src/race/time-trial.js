@@ -2,6 +2,8 @@
 // the rules or physics identity starts a separate record and ghost namespace.
 export const TRIAL_RULES =
   'time-trial-v1:rest-center-seed7:boost-regen:no-devices:assist0.3';
+export const LAP_TRIAL_RULES =
+  'time-trial-v2:continuous-laps:rest-center-seed7:boost-regen:no-devices:assist0.3';
 export const GHOST_VERSION = 1;
 const MAX_SECONDS = 1200;
 const MAX_SAMPLES = MAX_SECONDS * 10 + 2;
@@ -25,7 +27,7 @@ function storage() {
 }
 export function trialIdentity({ track, ship, version, runtime }) {
   return {
-    rules: TRIAL_RULES,
+    rules: track.closed === false ? TRIAL_RULES : LAP_TRIAL_RULES,
     track: track.id,
     version,
     geometry: track.geometryVersion ?? null,
@@ -35,8 +37,9 @@ export function trialIdentity({ track, ship, version, runtime }) {
     runtime,
     format: track.closed === false ? 'sprint' : 'circuit',
     finish: track.closed === false ? track.finishDistance : track.length,
-    laps: track.closed === false ? 1 : 3,
+    laps: 1,
     physics: 3,
+    ...(track.closed === false ? {} : { start: 'standing' }),
   };
 }
 export function encodeGhost(source) {
@@ -155,7 +158,10 @@ export function readTrialRecords(store = storage()) {
       typeof id.ship?.id !== 'string' ||
       typeof id.rules !== 'string' ||
       !['sprint', 'circuit'].includes(id.format) ||
-      id.laps !== (id.format === 'sprint' ? 1 : 3) ||
+      !(id.format === 'sprint'
+        ? id.laps === 1
+        : (id.laps === 3 && !id.start) ||
+          (id.laps === 1 && ['standing', 'flying'].includes(id.start))) ||
       keyFor(id) !== key
     )
       continue;
@@ -202,95 +208,162 @@ function saveBest(record, store) {
   }
 }
 export function createTimeTrial({ identity, race, store = storage() }) {
-  const best = readTrialBest(identity, store);
-  const samples = [];
-  const perLap =
-    identity.checkpoints.length - (identity.format === 'sprint' ? 1 : 0);
+  const sprint = identity.format === 'sprint';
+  const identities = sprint
+    ? { sprint: identity }
+    : { standing: identity, flying: { ...identity, start: 'flying' } };
+  const bests = Object.fromEntries(
+    Object.entries(identities).map(([start, id]) => [
+      start,
+      readTrialBest(id, store),
+    ]),
+  );
+  let start = sprint ? 'sprint' : 'standing';
+  let best = bests[start];
+  // A fresh driver's first completed lap supplies lap two's ghost. Once a
+  // flying best exists, only that category is used for flying comparisons.
+  let reference = best;
+  let samples = [],
+    overflow = false,
+    result = null,
+    lastLap = null;
+  let lap = race.lap,
+    previous = null,
+    persistence = null;
+  const perLap = identity.checkpoints.length - (sprint ? 1 : 0);
   const gates = [
     Math.max(1, Math.floor(perLap / 3)),
     Math.max(2, Math.floor((perLap * 2) / 3)),
     perLap,
   ];
-  const splitIndices = Array.from({ length: identity.laps }, (_, lap) =>
-    gates.map((gate) => lap * perLap + gate - 1),
-  ).flat();
-  let overflow = false,
-    result = null;
-  const splits = () =>
-    splitIndices
-      .filter((i) => i < race.splits.length)
-      .map((i) => race.splits[i]);
+  const sectors = (splits) =>
+    gates.filter((n) => n <= splits.length).map((n) => splits[n - 1]);
+  function captureSample(pose, t, force = false) {
+    if (t > MAX_SECONDS || samples.length >= MAX_SAMPLES) overflow = true;
+    if (
+      !overflow &&
+      pose &&
+      (!samples.length || t - samples.at(-1)[0] >= 0.1 - 1e-6 || force) &&
+      (!samples.length || t > samples.at(-1)[0])
+    ) {
+      samples.push([
+        t,
+        ...pose.position.toArray(),
+        ...pose.quaternion.toArray(),
+      ]);
+    }
+  }
+  function finish(duration, valid, splits) {
+    const improved = valid && (!best || delta(duration, best.duration) < 0);
+    const record = {
+      version: 1,
+      identity: identities[start],
+      duration,
+      laps: [duration],
+      splits: sectors(splits),
+      ghost:
+        improved && !overflow && samples.length >= 2
+          ? encodeGhost(samples)
+          : null,
+    };
+    const saved = improved ? saveBest(record, store) : null;
+    const completed = {
+      mode: 'time-trial',
+      shipId: identity.ship.id,
+      laps: 1,
+      format: identity.format,
+      start,
+      lap,
+      playerValid: valid,
+      playerTotalTime: duration,
+      playerLapTimes: record.laps,
+      standings: [],
+      splits: record.splits,
+      previousBest: best?.duration ?? null,
+      bestTime: improved ? duration : (best?.duration ?? null),
+      splitDeltas: record.splits.map((v, i) =>
+        best ? delta(v, best.splits[i]) : null,
+      ),
+      delta: best ? delta(duration, best.duration) : null,
+      improved,
+      saved,
+      ghostAvailable: improved ? Boolean(record.ghost) : Boolean(best?.samples),
+    };
+    if (improved) {
+      bests[start] = {
+        ...record,
+        samples: decodeGhost(record.ghost, duration),
+      };
+      persistence = saved;
+    }
+    return completed;
+  }
+  // Pose sampling straddles a fixed physics step. Split that step at the
+  // same interpolated crossing as the timer, sharing its pose at t=0 of the
+  // next lap, so neither trajectory includes an extra frame past the line.
+  function crossingPose(pose, duration, dt) {
+    if (!previous || !dt) return pose;
+    const alpha = Math.max(0, Math.min(1, (duration - previous.elapsed) / dt));
+    return {
+      position: previous.position.clone().lerp(pose.position, alpha),
+      quaternion: previous.quaternion.clone().slerp(pose.quaternion, alpha),
+    };
+  }
   return {
-    best,
+    get best() {
+      return best;
+    },
+    get reference() {
+      return reference;
+    },
     get result() {
       return result;
     },
-    capture(pose) {
+    capture(pose, dt = 0) {
       if (result) return result;
-      const t = race.totalElapsed;
-      if (t > MAX_SECONDS || samples.length >= MAX_SAMPLES) overflow = true;
-      if (
-        !overflow &&
-        pose &&
-        (!samples.length ||
-          t - samples.at(-1)[0] >= 0.1 - 1e-6 ||
-          race.complete)
-      ) {
-        if (!samples.length || t > samples.at(-1)[0])
-          samples.push([
-            t,
-            ...pose.position.toArray(),
-            ...pose.quaternion.toArray(),
-          ]);
+      if (sprint && race.complete) {
+        captureSample(crossingPose(pose, race.elapsed, dt), race.elapsed, true);
+        result = finish(race.elapsed, race.valid, race.splits);
+        return result;
       }
-      if (!race.complete) return null;
-      const valid = race.history.every((lap) => lap.valid);
-      const improved = valid && (!best || delta(t, best.duration) < 0);
-      const record = {
-        version: 1,
-        identity,
-        duration: t,
-        laps: race.history.map((lap) => lap.duration),
-        splits: splits(),
-        ghost: !overflow && samples.length >= 2 ? encodeGhost(samples) : null,
+      if (!sprint && race.lap !== lap) {
+        const completed = race.history.at(-1);
+        const boundary = crossingPose(pose, completed.duration, dt);
+        captureSample(boundary, completed.duration, true);
+        lastLap = finish(completed.duration, completed.valid, completed.splits);
+        lap = race.lap;
+        start = 'flying';
+        best = bests.flying;
+        reference = best ?? bests.standing;
+        samples = [];
+        overflow = false;
+        captureSample(boundary, 0);
+      }
+      captureSample(pose, race.elapsed);
+      previous = {
+        elapsed: race.elapsed,
+        position: pose.position.clone(),
+        quaternion: pose.quaternion.clone(),
       };
-      const saved = improved ? saveBest(record, store) : null;
-      result = {
-        mode: 'time-trial',
-        shipId: identity.ship.id,
-        laps: identity.laps,
-        format: identity.format,
-        playerValid: valid,
-        playerTotalTime: t,
-        playerLapTimes: record.laps,
-        standings: [],
-        splits: record.splits,
-        previousBest: best?.duration ?? null,
-        bestTime: improved ? t : (best?.duration ?? null),
-        splitDeltas: record.splits.map((v, i) =>
-          best ? delta(v, best.splits[i]) : null,
-        ),
-        delta: best ? delta(t, best.duration) : null,
-        improved,
-        saved,
-        ghostAvailable: improved
-          ? Boolean(record.ghost)
-          : Boolean(best?.samples),
-      };
-      return result;
+      return null;
     },
     snapshot() {
-      const current = splits();
+      const current = sectors(race.splits);
       return {
-        elapsed: race.totalElapsed,
-        valid: race.valid && race.history.every((lap) => lap.valid),
+        elapsed: race.elapsed,
+        valid: race.valid,
+        lap,
+        start,
         best: best?.duration ?? null,
-        ghost: Boolean(best?.samples),
+        ghost: Boolean(reference?.samples),
+        ghostStart: reference?.identity.start ?? null,
         sector: current.length,
         delta:
-          current.length && best
+          race.valid && current.length && best
             ? delta(current.at(-1), best.splits[current.length - 1])
             : null,
+        lastLap,
+        persistence,
         result,
       };
     },

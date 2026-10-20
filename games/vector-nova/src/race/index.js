@@ -2,9 +2,15 @@ import { courseIdentity, sprintRunoutControl } from './course.js';
 
 export function createRace(
   track,
-  { rulesId = 'magnetic-v3-assist-0.3', untimed = false, laps = Infinity } = {},
+  {
+    rulesId = 'magnetic-v3-assist-0.3',
+    untimed = false,
+    laps = Infinity,
+    continuous = false,
+  } = {},
 ) {
   const sprint = track.closed === false;
+  const precise = continuous || Number.isFinite(laps);
   const course = courseIdentity(track);
   const count = track.checkpoints?.length || 12;
   const positions = Array.from(
@@ -47,9 +53,12 @@ export function createRace(
     startDistance: 0,
     history: [],
     splits: [],
+    completedTime: 0,
     get totalElapsed() {
       return (
-        this.history.reduce((sum, lap) => sum + lap.duration, 0) +
+        (continuous
+          ? this.completedTime
+          : this.history.reduce((sum, lap) => sum + lap.duration, 0)) +
         (this.complete ? 0 : this.elapsed)
       );
     },
@@ -133,7 +142,7 @@ export function createRace(
           // Its first forward start-line crossing is not a completed lap or
           // skipped checkpoint. The trial clock still includes this wait.
           if (
-            Number.isFinite(laps) &&
+            precise &&
             cycle === 0 &&
             index === 0 &&
             this.checkpoint === 0 &&
@@ -150,8 +159,14 @@ export function createRace(
           }
           const crossingTime =
             (dt * (crossing - previous)) / (current - previous);
-          if (Number.isFinite(laps))
-            this.splits.push(beforeTotal + crossingTime);
+          if (precise)
+            this.splits.push(
+              continuous
+                ? (lastCrossingTime ? 0 : beforeTime) +
+                    crossingTime -
+                    lastCrossingTime
+                : beforeTotal + crossingTime,
+            );
           this.checkpoint = index;
           this.startDistance = crossing;
           events.push({
@@ -174,7 +189,7 @@ export function createRace(
             return events;
           }
           if (index === 0) {
-            if (Number.isFinite(laps))
+            if (precise)
               this.elapsed =
                 (lastCrossingTime ? 0 : beforeTime) +
                 crossingTime -
@@ -184,7 +199,13 @@ export function createRace(
               duration: this.elapsed,
               valid: this.valid,
               rulesId,
+              ...(continuous ? { splits: this.splits.slice() } : {}),
             });
+            if (continuous) {
+              this.completedTime += this.elapsed;
+              this.history.splice(0, this.history.length - 1);
+              this.splits.length = 0;
+            }
             if (this.valid && (!this.best || this.elapsed < this.best))
               this.best = this.elapsed;
             events.push({
@@ -192,9 +213,9 @@ export function createRace(
               payload: { duration: this.elapsed, valid: this.valid, rulesId },
             });
             this.lap++;
-            this.elapsed = Number.isFinite(laps) ? dt - crossingTime : 0;
+            this.elapsed = precise ? dt - crossingTime : 0;
             lastCrossingTime = crossingTime;
-            if (this.history.length >= laps) {
+            if (this.lap > laps) {
               this.complete = true;
               this.elapsed = 0;
               return events;

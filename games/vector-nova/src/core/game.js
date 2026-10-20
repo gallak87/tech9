@@ -399,7 +399,8 @@ export async function createGame({
     let cupRace = null,
       cupFinalResult = null;
     let timeTrial = false,
-      trial = null;
+      trial = null,
+      ghostSamples = null;
     let competition = false,
       lastResults = null,
       raceDifficulty = settings.difficulty,
@@ -411,7 +412,8 @@ export async function createGame({
       createRace(track, {
         rulesId: `${runtime.rulesId}:ship-${ship.selected.id}-v${ship.selected.version}${competition ? `:difficulty-${raceDifficulty}` : ''}`,
         untimed: Boolean(playtest),
-        laps: timeTrial ? (track.closed === false ? 1 : 3) : Infinity,
+        laps: timeTrial && track.closed === false ? 1 : Infinity,
+        continuous: timeTrial && track.closed !== false,
       });
     const resetRuntime = (reason) => {
       if (reason !== 'manual-recover') {
@@ -434,7 +436,8 @@ export async function createGame({
               race,
             })
           : null;
-        ghost.reset(ship.group, trial?.best?.samples);
+        ghostSamples = trial?.reference?.samples;
+        ghost.reset(ship.group, ghostSamples);
         trial?.capture(trialPose());
       }
       audio.resetEnvironment();
@@ -480,7 +483,12 @@ export async function createGame({
       if (inputLog.length > 36000) inputLog.shift();
       advance(control);
       tick++;
-      if (trial?.capture(trialPose())) {
+      const trialResult = trial?.capture(trialPose(), 1 / 120);
+      if (ghostSamples !== trial?.reference?.samples) {
+        ghostSamples = trial?.reference?.samples;
+        ghost.reset(ship.group, ghostSamples);
+      }
+      if (trialResult) {
         lastResults = trial.result;
         input.clear();
         mode = 'results';

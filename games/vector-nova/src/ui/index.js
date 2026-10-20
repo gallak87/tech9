@@ -847,22 +847,44 @@ export function createUI(
       if (trial) {
         $('restart').textContent = 'Retry Time Trial';
         root.querySelector('.lap > span').textContent = 'TIME TRIAL';
-        root.querySelector('.timing > span').textContent = 'TOTAL TIME';
-        if (!sprint) $('lap').textContent = `${Math.min(r.lap, 3)}/3`;
+        root.querySelector('.timing > span').textContent = sprint
+          ? 'ELAPSED'
+          : trial.start === 'standing'
+            ? 'STANDING LAP'
+            : 'LAP TIME';
+        if (!sprint) $('lap').textContent = String(r.lap);
         $('time').textContent = fmt(trial.elapsed);
+        const last = trial.lastLap;
         $('last').textContent =
-          trial.delta == null
-            ? trial.ghost
-              ? 'PERSONAL GHOST'
-              : trial.best
-                ? 'BEST TIME · NO GHOST'
-                : 'SET YOUR FIRST BEST'
-            : `S${((trial.sector - 1) % 3) + 1} Δ ${formatDelta(trial.delta)}`;
+          last && trial.elapsed < 6
+            ? !last.playerValid
+              ? 'LAST LAP INVALID'
+              : `${last.improved ? `NEW ${last.start.toUpperCase()} BEST` : 'LAST LAP'} ${fmt(last.playerTotalTime)}`
+            : trial.delta != null
+              ? `S${trial.sector} Δ ${formatDelta(trial.delta)}`
+              : trial.ghost
+                ? trial.ghostStart === 'standing' && trial.start === 'flying'
+                  ? 'STANDING GHOST · SET A FLYING BEST'
+                  : 'PERSONAL GHOST'
+                : trial.best
+                  ? 'BEST TIME · NO GHOST'
+                  : 'SET YOUR FIRST BEST';
+        const storageNote =
+          trial.persistence?.saved === false
+            ? ' · NOT SAVED'
+            : trial.persistence?.ghostSaved === false
+              ? ' · GHOST NOT SAVED'
+              : '';
         $('best').textContent = !trial.valid
-          ? 'UNRANKED · R TO RETRY'
-          : trial.best
-            ? `BEST ${fmt(trial.best)} · R RETRY`
-            : 'NO DEVICES · R RETRY';
+          ? sprint
+            ? 'UNRANKED · R TO RETRY'
+            : 'LAP INVALID · NEXT LAP COUNTS'
+          : (trial.best
+              ? `${sprint ? '' : trial.start.toUpperCase() + ' '}BEST ${fmt(trial.best)}`
+              : sprint
+                ? 'NO DEVICES'
+                : `SET A ${trial.start.toUpperCase()} BEST`) +
+            (storageNote || ' · R RETRY');
       } else
         root.querySelector('.timing > span').textContent = sprint
           ? 'ELAPSED'

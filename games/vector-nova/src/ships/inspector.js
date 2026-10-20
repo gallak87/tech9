@@ -8,8 +8,12 @@ import { configureShipTextures } from './texture-loader.js';
 import { createInspectionStage } from './inspection-stage.js';
 import { createInspectionPipeline } from './inspection-pipeline.js';
 
+const START_ROTATION = -Math.PI * 0.6;
+const START_ELEVATION = 0.38;
+
 // A standalone studio: ships, lighting and preview controls only. Never import
 // the game factory, a level implementation, physics, or race audio here.
+// Dev pickup auditions are lazy-loaded and own their presentation/audio.
 export async function createInspector({
   host,
   shipId,
@@ -24,6 +28,7 @@ export async function createInspector({
     frame = 0,
     fleet,
     rival,
+    pickupTools,
     ui,
     api;
   let tab = 'fleet',
@@ -31,17 +36,20 @@ export async function createInspector({
     request = 0;
   let loading = false,
     rivalLoading = false,
-    rotation = 0,
+    rotation = START_ROTATION,
     time = 0,
     drag = null;
   const preview = {
-    autoRotate: true,
+    autoRotate: false,
     boost: false,
     driving: false,
-    elevation: 0.38,
+    elevation: START_ELEVATION,
   };
   const extent = { radial: 1, vertical: 1 };
+  const framingCenter = new T.Vector3();
+  const focusOffset = new T.Vector3();
   let layout = null;
+  let pairedPreview = false;
   const dispose = () => {
     if (disposed) return;
     disposed = true;
@@ -49,6 +57,7 @@ export async function createInspector({
     request++;
     cancelAnimationFrame(frame);
     listeners.abort();
+    pickupTools?.dispose();
     rival?.dispose();
     fleet?.dispose();
     if (window.__VN_INSPECTOR === api) delete window.__VN_INSPECTOR;
@@ -112,6 +121,7 @@ export async function createInspector({
           if (tab === 'rivals' && key !== 'autoRotate') return;
           preview[key] = !preview[key];
           ui.setInspectionPreview(preview);
+          pickupTools?.previewChanged();
         },
       },
       getShip(shipId),
@@ -120,21 +130,35 @@ export async function createInspector({
     ui.setInspectionPreview(preview);
 
     function fit(group) {
-      const bounds = group.userData.bounds;
+      const devBounds = pickupTools?.framing(group.userData.bounds);
+      pairedPreview = !!devBounds;
+      const bounds = devBounds ?? group.userData.bounds;
+      framingCenter.set(
+        devBounds ? (bounds.min[0] + bounds.max[0]) / 2 : 0,
+        0,
+        devBounds ? (bounds.min[2] + bounds.max[2]) / 2 : 0,
+      );
       extent.radial = Math.hypot(
-        Math.max(Math.abs(bounds.min[0]), Math.abs(bounds.max[0])),
-        Math.max(Math.abs(bounds.min[2]), Math.abs(bounds.max[2])),
+        Math.max(
+          Math.abs(bounds.min[0] - framingCenter.x),
+          Math.abs(bounds.max[0] - framingCenter.x),
+        ),
+        Math.max(
+          Math.abs(bounds.min[2] - framingCenter.z),
+          Math.abs(bounds.max[2] - framingCenter.z),
+        ),
       );
       extent.vertical = Math.max(
         Math.abs(bounds.min[1] - 0.55),
         Math.abs(bounds.max[1] - 0.55),
       );
-      rotation = 0;
+      rotation = START_ROTATION;
       layout = null;
     }
     async function selectShip(id) {
       if (disposed || loading || tab !== 'fleet') return false;
       loading = true;
+      pickupTools?.setShip(null);
       ui.shipError('');
       ui.setShipLoading(true);
       try {
@@ -149,7 +173,10 @@ export async function createInspector({
         return false;
       } finally {
         loading = false;
-        if (!disposed) ui.setShipLoading(false);
+        if (!disposed) {
+          ui.setShipLoading(false);
+          pickupTools?.setShip(fleet.group);
+        }
       }
     }
     async function inspectRival(id) {
@@ -157,6 +184,7 @@ export async function createInspector({
       if (disposed || tab !== 'rivals' || !craft) return false;
       const token = ++request;
       rivalLoading = true;
+      pickupTools?.setShip(null);
       ui.shipError('');
       ui.setRivalLoading(true);
       let loaded;
@@ -189,6 +217,7 @@ export async function createInspector({
         if (!disposed && token === request) {
           rivalLoading = false;
           ui.setRivalLoading(false);
+          pickupTools?.setShip(rival?.group);
         }
       }
     }
@@ -204,9 +233,11 @@ export async function createInspector({
       request++;
       rivalLoading = false;
       ui.setRivalLoading(false);
+      pickupTools?.setShip(null);
       rival?.dispose();
       rival = null;
       fleet.group.visible = tab === 'fleet';
+      pickupTools?.setShip(tab === 'fleet' ? fleet.group : null);
       ui.setInspectionTab(tab);
       layout = null;
       if (tab === 'fleet') fit(fleet.group);
@@ -227,13 +258,31 @@ export async function createInspector({
           energy: 1,
           reducedMotion: settings.reducedMotion,
         });
+      pickupTools?.update(dt);
       const size = `${innerWidth}x${innerHeight}@${settings.quality}`;
       if (layout?.size !== size) {
         renderer.setPixelRatio(
           Math.min(devicePixelRatio, settings.quality === 'low' ? 1 : 1.5),
         );
         renderer.setSize(innerWidth, innerHeight);
-        layout = { size, viewport: ui.inspectionViewport() };
+        let viewport = ui.inspectionViewport();
+        if (!viewport && pairedPreview) {
+          const panel = root
+            .querySelector('#inspection-panel')
+            .getBoundingClientRect();
+          const tools = root
+            .querySelector('#inspection-tools')
+            .getBoundingClientRect();
+          const left = Math.max(panel.right + 16, innerWidth * 0.5);
+          const top = innerHeight * 0.2;
+          viewport = {
+            left,
+            top,
+            width: Math.max(120, innerWidth - left - innerWidth * 0.04),
+            height: Math.max(120, tools.top - top - 20),
+          };
+        }
+        layout = { size, viewport };
       }
       const viewport = layout.viewport;
       camera.position.setFromSphericalCoords(
@@ -242,7 +291,9 @@ export async function createInspector({
         Math.atan2(10.4, 12.5),
       );
       camera.aspect = innerWidth / innerHeight;
-      const target = new T.Vector3(0, viewport ? 0.7 : 0.3, 0);
+      focusOffset.copy(framingCenter);
+      if (subject) focusOffset.applyQuaternion(subject.quaternion);
+      const target = new T.Vector3(0, viewport ? 0.7 : 0.3, 0).add(focusOffset);
       if (viewport) {
         camera.position.normalize();
         const sinPitch = camera.position.y;
@@ -256,8 +307,10 @@ export async function createInspector({
           1.08 *
             projection *
             Math.max(extent.radial / viewport.width, height / viewport.height);
-        camera.position.multiplyScalar(distance).add(target);
-      }
+        camera.position
+          .multiplyScalar(distance * (pairedPreview ? 0.8 : 1))
+          .add(target);
+      } else camera.position.add(focusOffset);
       camera.setViewOffset(
         innerWidth,
         innerHeight,
@@ -286,6 +339,26 @@ export async function createInspector({
     fleet = loaded;
     stage.scene.add(fleet.group);
     fit(fleet.group);
+    if (new URLSearchParams(location.search).get('dev') === '1') {
+      const { createPickupInspector } = await import('./pickup-inspector.js');
+      check();
+      const tools = await createPickupInspector({
+        host: root.querySelector('#inspection-tools'),
+        ship: fleet.group,
+        getSettings: () => settings,
+        getDriving: () => ({
+          ...preview,
+          time,
+          available: tab === 'fleet' && !loading && !disposed,
+        }),
+      });
+      if (disposed || signal.aborted) {
+        tools.dispose();
+        check();
+      }
+      pickupTools = tools;
+      fit(fleet.group);
+    }
     await progress('Warming studio');
     draw(0);
     await renderer.compileAsync(stage.scene, camera);
@@ -368,8 +441,8 @@ export async function createInspector({
         event.preventDefault();
         preview.autoRotate = false;
         if (event.code === 'Home') {
-          rotation = 0;
-          preview.elevation = 0.38;
+          rotation = START_ROTATION;
+          preview.elevation = START_ELEVATION;
         } else if (event.code === 'ArrowLeft') rotation -= 0.15;
         else if (event.code === 'ArrowRight') rotation += 0.15;
         else
@@ -386,6 +459,7 @@ export async function createInspector({
       ready: true,
       configure(next) {
         settings = { ...next };
+        pickupTools?.configure();
       },
       getSnapshot: () => ({
         mode: 'inspection',

@@ -120,6 +120,27 @@ class Context {
 }
 const state = { speed: 0, time: 0, steer: 0, boosting: false };
 
+test('cue-only audio omits the engine graph but keeps the actual race cues and cleanup', async () => {
+  const context = new Context();
+  const audio = createAudio({ createContext: () => context, engine: false });
+  await audio.unlock();
+  assert.equal(
+    context.nodes.filter((node) => node.kind === 'oscillator').length,
+    0,
+  );
+  assert.equal(
+    context.nodes.filter((node) => node.kind === 'buffer').length,
+    0,
+  );
+  audio.update(state, 0.35, true);
+  audio.event({ type: 'countdown-beep', payload: { step: 3 } });
+  const oscillator = context.nodes.find((node) => node.kind === 'oscillator');
+  assert.equal(oscillator.frequency.value, 480);
+  await audio.dispose();
+  assert.equal(oscillator.disconnected, true);
+  assert.equal(context.closes, 1);
+});
+
 test('a later gesture retries Safari audio while the first resume stays pending', async () => {
   const context = new Context();
   let unblock;

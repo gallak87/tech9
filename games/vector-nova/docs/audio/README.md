@@ -1,5 +1,7 @@
 # Gameplay music
 
+For pickups, ship feedback and other effects, use the [SFX setup and generation guide](sfx.md) and [current sound inventory](sounds.md).
+
 Build music we want to race to: deep, futuristic and immersive, with enough drive to stay engaging. The direction is sustained synth harmony, fluid bass and evolving texture; big EDM drops are welcome. Avoid cheesy piano/plinky leads, busy note patterns, monotonous percussion and long quiet intros. Vary groove, harmony and BPM across a pool that can grow toward roughly 16 tracks.
 
 **Codex writes prompts and runs generation; the user listens and makes the musical decisions.** Blue Hour anchors Halcyon; `mix` tracks explore the wider soundtrack. Keep one current prompt, WAV master and MP3 export per song. Overwrite revisions and delete rejected songs, including their catalog entries; no numbered takes, evidence folders or iteration reports.

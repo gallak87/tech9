@@ -111,6 +111,26 @@ test('arc fires exactly three swept bolts and reaches a separated rival', () => 
   assert.ok(target.hits.length >= 1);
   assert.equal(h.combat.view().shots.length, 0);
 });
+test('every Arc contact flashes the target while damage grace still allows only one impulse', () => {
+  const h = harness();
+  h.add('player', 0);
+  const target = h.add('target', 14);
+  h.collect('player', 'arc');
+  const contacts = new Set();
+  for (let tick = 0; tick < 160; tick++) {
+    h.step();
+    for (const flash of h.combat.view().flashes)
+      if (flash.target === 'target' && flash.kind === 'arc')
+        contacts.add(flash.id);
+  }
+  assert.equal(contacts.size, 3);
+  assert.equal(target.hits.length, 1);
+  assert.equal(
+    h.events.filter((event) => event.type === 'combat-confirm').length,
+    1,
+  );
+  assert.equal(h.combat.view().flashes.length, 0, 'all visual contacts expire');
+});
 test('arc stops at authored walls and cannot shoot through them', () => {
   const wall = createCollisionWorld({
     id: 'wall',

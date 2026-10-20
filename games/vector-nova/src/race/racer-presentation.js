@@ -1,5 +1,6 @@
 import { Quaternion, Vector3, MathUtils } from 'three';
 import { createRivalPreview } from '../ships/rivals.js';
+import { createArcHitFeedback } from '../pickups/arc-hit-feedback.js';
 
 const up = new Vector3(0, 1, 0);
 const forward = new Vector3(0, 0, 1);
@@ -10,6 +11,7 @@ export async function createRacerPresentation({
   racers,
   scene,
   track,
+  combat = null,
   loadRival = createRivalPreview,
 }) {
   const ships = [];
@@ -22,21 +24,37 @@ export async function createRacerPresentation({
       ships.push({
         ship,
         opponent,
+        hitFeedback: combat ? createArcHitFeedback(ship.group) : null,
         yaw: new Quaternion(),
         roll: new Quaternion(),
       });
     }
   } catch (error) {
-    ships.forEach(({ ship }) => ship.dispose());
+    ships.forEach(({ ship, hitFeedback }) => {
+      hitFeedback?.dispose();
+      ship.dispose();
+    });
     throw error;
   }
   let disposed = false;
   return {
-    update({ alpha = 1, mode = 'title' } = {}) {
+    update({ alpha = 1, mode = 'title', settings = {} } = {}) {
+      if (disposed) return;
       const enabled = racers.enabled;
       const show = enabled && ['racing', 'paused', 'countdown'].includes(mode);
-      for (const { ship, opponent, yaw, roll } of ships) {
+      const flashes = combat?.view().flashes ?? [];
+      for (const { ship, opponent, yaw, roll, hitFeedback } of ships) {
         ship.group.visible = show;
+        hitFeedback?.update(
+          show
+            ? flashes.findLast(
+                (flash) =>
+                  flash.target === opponent.specification.id &&
+                  flash.kind === 'arc',
+              )?.age
+            : undefined,
+          settings,
+        );
         if (!show) continue;
         const blend = mode === 'racing' ? MathUtils.clamp(alpha, 0, 1) : 1;
         const state = opponent.state;
@@ -74,7 +92,10 @@ export async function createRacerPresentation({
     dispose() {
       if (disposed) return;
       disposed = true;
-      ships.forEach(({ ship }) => ship.dispose());
+      ships.forEach(({ ship, hitFeedback }) => {
+        hitFeedback?.dispose();
+        ship.dispose();
+      });
     },
   };
 }

@@ -1,0 +1,120 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as T from 'three';
+import { COMBAT_RULES } from './combat.js';
+import { createCombatPresentation } from './combat-presentation.js';
+import { createShipFeedbackPresentation } from './ship-feedback.js';
+import { pickupPreviewFrame } from '../ships/pickup-preview-sequence.js';
+
+test('Arc streaks grow forward from beneath the hull, including rotated ship frames', () => {
+  const scene = new T.Group();
+  const pose = {
+    position: new T.Vector3(20, 30, 40),
+    quaternion: new T.Quaternion().setFromEuler(new T.Euler(0.3, 1.1, -0.6)),
+  };
+  let state;
+  const combat = createCombatPresentation(scene, {
+    pose: () => pose,
+    view: () => state,
+  });
+  const transform = (point) =>
+    new T.Vector3(...point).applyQuaternion(pose.quaternion).add(pose.position);
+  for (const age of [0, 0.005, 0.02, 0.15]) {
+    state = pickupPreviewFrame('arc', COMBAT_RULES.arcDelay + age).combat;
+    for (const shot of state.shots) {
+      shot.position = transform(shot.position).toArray();
+      shot.quaternion = pose.quaternion.toArray();
+    }
+    combat.update({ mode: 'racing' });
+    scene.updateMatrixWorld(true);
+    const pulse = scene.children[0].children.find(
+      (object) => object.name === 'Arc / traveling pulse' && object.visible,
+    );
+    const localBounds = new T.Box3();
+    for (const plane of pulse.children) {
+      const vertices = plane.geometry.getAttribute('position');
+      for (let index = 0; index < vertices.count; index++) {
+        const point = plane.localToWorld(
+          new T.Vector3().fromBufferAttribute(vertices, index),
+        );
+        point
+          .sub(pose.position)
+          .applyQuaternion(pose.quaternion.clone().invert());
+        localBounds.expandByPoint(point);
+      }
+    }
+    assert.ok(
+      localBounds.min.z >= -1e-5,
+      'no streak can extend aft of its launch point',
+    );
+    assert.ok(Math.abs(localBounds.max.z - age * COMBAT_RULES.arcSpeed) < 1e-5);
+    assert.ok(Math.abs(localBounds.getCenter(new T.Vector3()).y + 0.15) < 1e-5);
+    assert.ok(localBounds.max.z - localBounds.min.z <= 16.00001);
+    if (state.flashes.length) {
+      const flash = scene.children[0].children.find(
+        (object) => object.visible && object.children.length === 4,
+      );
+      assert.ok(flash.position.distanceTo(transform([0, -0.15, 0])) < 1e-9);
+    }
+  }
+  combat.dispose();
+  assert.equal(scene.children.length, 0);
+});
+
+test('Arc hull forks follow activation and every shot, with a short paused-safe decay', () => {
+  const feedback = createShipFeedbackPresentation();
+  const arc = feedback.group.getObjectByName('Arc / branching hull discharge');
+  const strength = () => arc.material.uniforms.strength.value;
+  const event = (type) => ({ type, payload: { kind: 'arc' } });
+  assert.equal(arc.visible, false);
+  feedback.update({ events: [event('pickup-activate')] });
+  const acquisition = strength();
+  assert.ok(acquisition > 0);
+  feedback.update({ dt: 0.15 });
+  assert.ok(strength() < acquisition);
+  feedback.update({ events: [event('combat-fire')] });
+  const fired = strength();
+  assert.ok(
+    fired > acquisition,
+    'the audible shot has the brightest discharge',
+  );
+  feedback.update({ racing: false, driving: true, dt: 10 });
+  assert.equal(strength(), fired, 'pause must not consume a visual tail');
+  feedback.update({ dt: 0.3 });
+  assert.ok(
+    arc.visible && strength() < fired / 4,
+    'only faint residual charge remains',
+  );
+  feedback.update({ events: [event('combat-fire')] });
+  assert.equal(
+    strength(),
+    fired,
+    'successive shot events retrigger the same envelope',
+  );
+  feedback.update({ dt: 0.7 });
+  assert.equal(arc.visible, false);
+  feedback.update({
+    events: [event('combat-fire')],
+    settings: { reducedMotion: true },
+  });
+  const reduced = strength();
+  feedback.update({
+    events: [event('pickup-activate')],
+    settings: { reducedMotion: true },
+  });
+  assert.equal(
+    strength(),
+    reduced,
+    'reduced motion avoids the bright firing peak',
+  );
+  assert.ok(reduced < acquisition / 2);
+  feedback.reset();
+  assert.equal(arc.visible, false);
+  let geometryDisposed = 0,
+    materialDisposed = 0;
+  arc.geometry.addEventListener('dispose', () => geometryDisposed++);
+  arc.material.addEventListener('dispose', () => materialDisposed++);
+  feedback.dispose();
+  assert.equal(geometryDisposed, 1);
+  assert.equal(materialDisposed, 1);
+});

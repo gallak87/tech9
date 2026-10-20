@@ -1,0 +1,34 @@
+{
+  "runtimeRepo": "https://github.com/Stability-AI/stable-audio-3.git",
+  "runtimeRevision": "77e0398c26f7d22d801ec1bb036307e8b231f741",
+  "python": "3.11.16",
+  "modelRepo": "stabilityai/stable-audio-3-optimized",
+  "modelRevision": "08b17423649b5714b22eab20f96bf00751f2358a",
+  "files": {
+    "LICENSE.md": {
+      "path": "model-licenses/LICENSE.md",
+      "bytes": 11852,
+      "sha256": "d6f6b1a4dce5c852bd6d7d9482d002baf0ccdb71e662250b73be9eec8764ee8d"
+    },
+    "LICENSE_GEMMA.md": {
+      "path": "model-licenses/LICENSE_GEMMA.md",
+      "bytes": 10541,
+      "sha256": "e77acc0d3163bb7534675045c584b4d04b387b529239fc4b3647da0a01ba4745"
+    },
+    "MLX/dit_sm-sfx_f16.npz": {
+      "path": "optimized/mlx/models/mlx/dit_sm-sfx_f16.npz",
+      "bytes": 919193814,
+      "sha256": "7e702d2640699a57fe436ca975fda16832040ba568c1e092c2ae826987558118"
+    },
+    "MLX/same_s_decoder_f32.npz": {
+      "path": "optimized/mlx/models/mlx/same_s_decoder_f32.npz",
+      "bytes": 218090820,
+      "sha256": "909928a8e6937c1ebe6ac4b729f0462bd3773704a11ea18278e42671dc69bfe4"
+    },
+    "MLX/t5gemma_f16.npz": {
+      "path": "optimized/mlx/models/mlx/t5gemma_f16.npz",
+      "bytes": 567443068,
+      "sha256": "8deb20489f36d9aec539f26c9c67321f99bc5fe300d470435ed6e76be4f16bbd"
+    }
+  }
+}

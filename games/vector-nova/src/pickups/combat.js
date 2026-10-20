@@ -1,10 +1,16 @@
 import * as T from 'three';
+import {
+  ARC_SHOT_HEIGHT,
+  ARC_MUZZLE_HEIGHT,
+  ARC_TARGET_HALF_LENGTH,
+} from './rules.js';
 
 export const COMBAT_RULES = Object.freeze({
   version: 1,
   recharge: 1.4,
   pulseDelay: 0.5,
   pulseRadius: 36,
+  arcDelay: 0.15,
   arcInterval: 0.3,
   arcSpeed: 460,
   arcLifetime: 0.8,
@@ -110,6 +116,7 @@ export function createCombatSimulation({
     notify(source, 'combat-confirm', payload);
     state.flashes.push({
       id: state.sequence++,
+      target,
       kind: shielded ? 'aegis' : kind,
       position: payload.position,
       quaternion: targetActor.pose.quaternion.toArray(),
@@ -172,7 +179,7 @@ export function createCombatSimulation({
         .clone()
         .sub(frame.position)
         .addScaledVector(frame.right, -actor.state.lateral)
-        .dot(frame.up) + 0.3;
+        .dot(frame.up) + ARC_SHOT_HEIGHT;
     state.shots.push({
       id: state.sequence++,
       source: id,
@@ -182,7 +189,10 @@ export function createCombatSimulation({
       heading,
       height,
       speed: COMBAT_RULES.arcSpeed + Math.max(0, actor.state.speed),
-      position: pose.position.clone().addScaledVector(frame.up, 0.3).toArray(),
+      position: pose.position
+        .clone()
+        .addScaledVector(frame.up, ARC_SHOT_HEIGHT)
+        .toArray(),
       velocity: direction
         .multiplyScalar(COMBAT_RULES.arcSpeed + Math.max(0, actor.state.speed))
         .toArray(),
@@ -195,7 +205,10 @@ export function createCombatSimulation({
       source: id,
       position: pose.position
         .clone()
-        .addScaledVector(forward.clone().applyQuaternion(pose.quaternion), 4)
+        .addScaledVector(
+          up.clone().applyQuaternion(pose.quaternion),
+          ARC_MUZZLE_HEIGHT,
+        )
         .toArray(),
       quaternion: pose.quaternion.toArray(),
       age: 0,
@@ -296,7 +309,8 @@ export function createCombatSimulation({
         if (emitter.kind === 'arc') {
           if (
             emitter.shots < 3 &&
-            emitter.elapsed >= 0.15 + emitter.shots * COMBAT_RULES.arcInterval
+            emitter.elapsed >=
+              COMBAT_RULES.arcDelay + emitter.shots * COMBAT_RULES.arcInterval
           ) {
             shoot(id, actor, pose);
             emitter.shots++;
@@ -377,7 +391,7 @@ export function createCombatSimulation({
           const fraction = segmentBoxFraction(
             a.clone().sub(previous).applyQuaternion(inverse),
             b.clone().sub(other.pose.position).applyQuaternion(inverse),
-            { x: 2.5, y: 1.8, z: 4.5 },
+            { x: 2.5, y: 1.8, z: ARC_TARGET_HALF_LENGTH },
           );
           if (fraction !== null && fraction < first) {
             first = fraction;
@@ -391,7 +405,7 @@ export function createCombatSimulation({
           );
           const side =
             a.clone().sub(other.pose.position).dot(right) >= 0 ? -1 : 1;
-          hit(
+          const applied = hit(
             shot.source,
             target,
             'arc',
@@ -401,6 +415,17 @@ export function createCombatSimulation({
             8,
             a.clone().lerp(b, first),
           );
+          // Damage grace suppresses repeated impulses, not visible contact.
+          if (!applied)
+            state.flashes.push({
+              id: state.sequence++,
+              target,
+              kind: 'arc',
+              position: a.clone().lerp(b, first).toArray(),
+              quaternion: other.pose.quaternion.toArray(),
+              age: 0,
+              radius: 4,
+            });
         }
         if (target || first < 1) return false;
         shot.position = b.toArray();

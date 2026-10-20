@@ -240,6 +240,16 @@
       "provenanceRecord": "assets/levels/halcyon/audio/README.md"
     },
     {
+      "id": "sfx-arc-activate",
+      "source": "assets/audio/sfx/arc-activate.wav",
+      "promptRecord": "assets/audio/sfx/arc-activate.json",
+      "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
+      "provenance": "Current activation candidate in the dev-only Ship inspector Powerups audition; gameplay still uses procedural Arc audio. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM; generated 2 seconds, retained source 0.00–1.28 seconds after trimming quiet padding at -70 dBFS RMS with 40 ms margins. No gain or fades applied.",
+      "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
+      "runtimeDependencies": [],
+      "provenanceRecord": "docs/audio/sfx.md"
+    },
+    {
       "id": "synth-audio",
       "source": "src/audio/",
       "creator": "VECTOR//NOVA project contributors",
@@ -270,7 +280,7 @@
       "id": "shared-road-devices",
       "source": "src/pickups/ and src/levels/<slug>/devices.js",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original source-native Vector cassette strips, Aegis arches, ship fields and owned shader/WebAudio feedback; no downloaded art, recordings or external fonts.",
+      "provenance": "Original source-native Vector cassette strips, Aegis arches, ship fields, branching Arc discharge, traveling pulses and hull-shaped blue hit outline/halo, with owned shader/WebAudio feedback; no downloaded art, recordings or external fonts.",
       "rights": "Project-authored; no third-party asset restrictions",
       "runtimeDependencies": ["three"]
     },

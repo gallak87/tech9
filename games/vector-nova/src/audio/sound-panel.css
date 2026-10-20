@@ -1,0 +1,66 @@
+.sound-panel {
+  position: fixed;
+  z-index: 40;
+  top: 16px;
+  right: calc(2.5vw + 340px);
+  width: 280px;
+  padding: 7px 8px;
+  color: #eee;
+  background: #151515f5;
+  border: 1px solid #393939;
+  pointer-events: auto;
+  color-scheme: dark;
+  font:
+    12px/1.4 system-ui,
+    sans-serif;
+}
+body:not(:has([data-music-player])) .sound-panel {
+  right: 2.5vw;
+}
+.sound-panel-heading,
+.sound-panel-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sound-panel-heading {
+  justify-content: space-between;
+  color: #999;
+  font-size: 9px;
+}
+.sound-panel-heading label {
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+.sound-panel select {
+  flex: 1;
+  min-width: 0;
+  height: 29px;
+  padding: 0;
+  color: #eee;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font: inherit;
+}
+.sound-panel option,
+.sound-panel optgroup {
+  background: #191919;
+}
+.sound-panel button {
+  height: 29px;
+  padding: 0 8px;
+  color: #eee;
+  background: #292929;
+  border: 1px solid #444;
+  border-radius: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.sound-panel button:hover {
+  background: #393939;
+}
+.sound-panel :focus-visible {
+  outline: 2px solid #eee;
+  outline-offset: 2px;
+}

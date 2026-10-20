@@ -91,7 +91,7 @@ export function createShipControls(root, actions, selectedShip = SHIPS[0]) {
   inspectionTools.setAttribute('role', 'group');
   inspectionTools.setAttribute('aria-label', 'Ship preview controls');
   for (const [key, label, pressed] of [
-    ['autoRotate', 'Auto-rotate', true],
+    ['autoRotate', 'Auto-rotate', false],
     ['boost', 'Boost', false],
     ['driving', 'Driving', false],
   ]) {
@@ -108,7 +108,7 @@ export function createShipControls(root, actions, selectedShip = SHIPS[0]) {
   inspectionTools.append(previewHint);
   inspection.insertBefore(inspectionTools, inspection.querySelector('dl'));
   function setInspectionPreview(preview) {
-    for (const button of inspectionTools.querySelectorAll('button')) {
+    for (const button of inspectionTools.querySelectorAll('[data-preview]')) {
       const key = button.dataset.preview;
       button.setAttribute('aria-pressed', String(preview[key]));
       button.disabled = inspectionTab === 'rivals' && key !== 'autoRotate';
@@ -276,7 +276,7 @@ export function createShipControls(root, actions, selectedShip = SHIPS[0]) {
       inspectionMenu || tab === 'rivals',
     );
     root.classList.toggle('inspecting-rivals', tab === 'rivals');
-    for (const button of inspectionTools.querySelectorAll('button'))
+    for (const button of inspectionTools.querySelectorAll('[data-preview]'))
       button.disabled =
         tab === 'rivals' && button.dataset.preview !== 'autoRotate';
     setInspectedRival(selectedRival);

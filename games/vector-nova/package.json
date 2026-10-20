@@ -10,6 +10,8 @@
     "audio:setup": "python3 tools/setup-audio.py",
     "audio:generate": "python3 assets/levels/halcyon/audio/render.py",
     "audio:encode": "node tools/encode-audio.mjs",
+    "sfx:setup": "python3 tools/sfx.py setup",
+    "sfx:generate": "python3 tools/sfx.py generate",
     "preview": "vite preview --host 127.0.0.1 --port 5180 --strictPort",
     "verify": "node tools/frontend-verify.mjs",
     "test": "node --test 'tools/**/*.test.mjs' 'src/**/*.test.js'",

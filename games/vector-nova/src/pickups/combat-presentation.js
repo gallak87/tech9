@@ -3,7 +3,11 @@ import { DEVICE_COLORS } from './theme.js';
 import { createIonRibbon } from './ion-ribbon.js';
 import { energyMaterial, energyPlane } from './energy-material.js';
 import { COMBAT_RULES } from './combat.js';
+import { ARC_SHOT_HEIGHT, ARC_MUZZLE_HEIGHT } from './rules.js';
 import { disposeGroup } from './geometry.js';
+
+const BOLT_LENGTH = 16;
+const BOLT_WIDTH = 2.8;
 
 export function createCombatPresentation(scene, combat) {
   const root = new T.Group();
@@ -47,8 +51,13 @@ export function createCombatPresentation(scene, combat) {
   });
   const shots = Array.from({ length: 30 }, () => {
     const group = new T.Group();
-    const flat = energyPlane('bolt', 1.5, 16);
-    const cross = energyPlane('bolt', 1.5, 16);
+    group.name = 'Arc / traveling pulse';
+    const flat = energyPlane('bolt', BOLT_WIDTH, BOLT_LENGTH);
+    const cross = energyPlane('bolt', BOLT_WIDTH, BOLT_LENGTH);
+    // The simulation point is the leading end. Growing its trailing streak
+    // from zero prevents a newborn pulse extending behind the firing ship.
+    flat.geometry.translate(0, 0, -BOLT_LENGTH / 2);
+    cross.geometry.translate(0, 0, -BOLT_LENGTH / 2);
     cross.rotation.z = Math.PI / 2;
     group.add(flat, cross);
     group.visible = false;
@@ -56,6 +65,7 @@ export function createCombatPresentation(scene, combat) {
     return group;
   });
   const ribbon = createIonRibbon(root);
+  const visualOffset = new T.Vector3();
   return {
     update({ mode, enabled = true, settings = {} }) {
       root.visible = enabled && ['racing', 'paused'].includes(mode);
@@ -108,24 +118,26 @@ export function createCombatPresentation(scene, combat) {
           const pose = combat.pose(flash.source);
           if (pose) {
             group.position
-              .set(0, 0.4, 4)
+              .set(0, ARC_MUZZLE_HEIGHT, 0)
               .applyQuaternion(pose.quaternion)
               .add(pose.position);
             group.quaternion.copy(pose.quaternion);
           }
         }
         const pulse = flash.kind === 'repulsor' && flash.radius > 10;
+        const arcHit = flash.kind === 'arc' && !!flash.target;
         crown.visible = pressure.visible = pulse;
         impact.visible = upright.visible = !pulse;
-        const fade = Math.pow(
-          Math.max(0, 1 - flash.age / (muzzle ? 0.12 : 0.55)),
-          1.5,
-        );
+        const fade =
+          (arcHit ? 0.35 : 1) *
+          Math.pow(Math.max(0, 1 - flash.age / (muzzle ? 0.12 : 0.55)), 1.5);
         const radius = pulse
           ? Math.max(1, flash.radius * Math.min(1, flash.age / 0.3))
           : muzzle
             ? 2.2
-            : 2.5 + flash.age * 9;
+            : arcHit
+              ? 1.2 + flash.age * 2
+              : 2.5 + flash.age * 9;
         crown.scale.set(
           radius,
           Math.max(0.1, 1.4 * (1 - flash.age / 0.55)),
@@ -145,7 +157,17 @@ export function createCombatPresentation(scene, combat) {
         if (!shot) return;
         mesh.position.fromArray(shot.position);
         mesh.quaternion.fromArray(shot.quaternion);
-        for (const plane of mesh.children) tune(plane, 'arc', 0.85, shot.age);
+        mesh.position.add(
+          visualOffset
+            .set(0, ARC_MUZZLE_HEIGHT - ARC_SHOT_HEIGHT, 0)
+            .applyQuaternion(mesh.quaternion),
+        );
+        mesh.scale.z = Math.min(
+          1,
+          Math.max(0, (shot.age * COMBAT_RULES.arcSpeed) / BOLT_LENGTH),
+        );
+        for (const plane of mesh.children)
+          tune(plane, 'arc', settings.reducedMotion ? 0.8 : 1.15, shot.age);
       });
       ribbon.update(state, combat, settings.reducedMotion);
     },

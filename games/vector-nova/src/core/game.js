@@ -399,7 +399,12 @@ export async function createGame({
       : null;
     const racerPresentation = racers
       ? lifetime.own(
-          await racerModule.createRacerPresentation({ racers, scene, track }),
+          await racerModule.createRacerPresentation({
+            racers,
+            scene,
+            track,
+            combat,
+          }),
         )
       : null;
     let sessionActive = false,
@@ -1468,6 +1473,7 @@ export async function createGame({
       racerPresentation?.update({
         alpha,
         mode,
+        settings,
       });
       view.setRacingFeedback?.({
         mode,

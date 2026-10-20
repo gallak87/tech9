@@ -6,5 +6,5 @@ evidence/frames/
 evidence/
 .husky/_/
 
-# Local music runtime, build and downloaded model weights.
+# Local music/SFX runtimes, environments, caches and downloaded model weights.
 .audio-model/

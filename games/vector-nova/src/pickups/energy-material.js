@@ -56,12 +56,12 @@ export function energyMaterial(style) {
                   ? `
           float along=smoothstep(0.,.16,vUv.y)*(1.-smoothstep(.78,1.,vUv.y));
           float jag=sin(p.y*21.+time*39.*motion)*sin(p.y*8.-time*13.*motion)*.045;
-          float width=.075+.1*(1.-vUv.y);
+          float width=.16+.14*(1.-vUv.y);
           float x=abs(p.x-jag);
-          core=exp(-pow(x/width,2.)*9.)*along;
-          light=(exp(-pow(x/width,2.)*1.4)+exp(-x*4.)*.2)*along;
-          float branch=abs(p.x-jag-.15*sin(p.y*11.+time*20.*motion));
-          light+=exp(-branch*95.)*along*.23;
+          core=exp(-pow(x/width,2.)*6.)*along;
+          light=(exp(-pow(x/width,2.)*1.1)*1.25+exp(-x*3.5)*.32)*along;
+          float branch=abs(p.x-jag-.24*sin(p.y*11.+time*20.*motion));
+          light+=exp(-branch*70.)*along*.38;
         `
                   : style === 'crown'
                     ? `

@@ -5,13 +5,13 @@ import { createCombatPresentation } from './combat-presentation.js';
 import {
   createRoadProjector,
   createDeviceGeometry,
-  createShipFeedback,
   disposeGroup,
 } from './geometry.js';
 import { collectRoadSurfaces, roadDeviceMountHeight } from './device-mount.js';
 import { createPickupAudio } from './audio.js';
-import { DEVICE_COLORS, deviceCSSColor } from './theme.js';
-import { AEGIS_DURATION } from './simulation.js';
+import { deviceCSSColor } from './theme.js';
+import { createShipFeedbackPresentation } from './ship-feedback.js';
+import { AEGIS_DURATION } from './rules.js';
 import './style.css';
 
 const clamp = (value) => Math.max(0, Math.min(1, value));
@@ -102,7 +102,7 @@ export function createPickupPresentation({
   });
   projector.dispose();
   const combatVisual = combat ? createCombatPresentation(scene, combat) : null;
-  const feedback = createShipFeedback();
+  const feedback = createShipFeedbackPresentation();
   (ship.group || ship).add(feedback.group);
   const audio = createPickupAudio({ immersion: Boolean(audioImmersion) });
   const hud = document.createElement('aside');
@@ -139,9 +139,6 @@ export function createPickupPresentation({
   const combatIcon = combatRow.querySelector('[data-combat-icon]');
   const anchor = new THREE.Vector3();
   let lastCombatIcon = null;
-  let acquisitionTime = 0;
-  let acquisitionDuration = 0.4;
-  let acquisitionKind = 0;
   let combatNotice = null;
   let combatNoticeValue = '';
   let combatNoticeTime = 0;
@@ -149,10 +146,7 @@ export function createPickupPresentation({
   let currentSettings = settings;
   let disposed = false;
   let noticeTime = 0;
-  let hitTime = 0;
-  let expiryTime = 0;
   let flowTime = 0;
-  let hitSide = 1;
   let lastMode = '';
   const unlock = () => {
     if (!currentSettings.muted && currentSettings.volume > 0)
@@ -167,15 +161,14 @@ export function createPickupPresentation({
   window.addEventListener('blur', silence);
   document.addEventListener('visibilitychange', visibility);
   function reset() {
-    noticeTime = hitTime = expiryTime = flowTime = acquisitionTime = 0;
-    feedback.acquisition.visible = false;
+    noticeTime = flowTime = 0;
+    feedback.reset();
     hud.hidden = true;
     for (const visual of hardware) visual.reset?.();
     combatNotice = null;
     combatNoticeTime = combatNoticePriority = 0;
     combatRow.hidden = true;
     message.textContent = '';
-    feedback.shield.visible = feedback.drive.visible = false;
     for (const node of Object.values(nodes)) {
       node.toastTime = 0;
       node.row.hidden = true;
@@ -227,11 +220,8 @@ export function createPickupPresentation({
       if (racing) {
         noticeTime = Math.max(0, noticeTime - dt);
         combatNoticeTime = Math.max(0, combatNoticeTime - dt);
-        hitTime = Math.max(0, hitTime - dt);
-        expiryTime = Math.max(0, expiryTime - dt);
         for (const node of Object.values(nodes))
           node.toastTime = Math.max(0, node.toastTime - dt);
-        acquisitionTime = Math.max(0, acquisitionTime - dt);
         flowTime += dt;
       }
       if (!noticeTime) message.textContent = '';
@@ -240,19 +230,6 @@ export function createPickupPresentation({
         if (!label || !racing) continue;
         message.textContent = label;
         if (event.type === 'pickup-activate') {
-          acquisitionKind = [
-            'vector',
-            'aegis',
-            'repulsor',
-            'arc',
-            'ion',
-          ].indexOf(event.payload.kind);
-          acquisitionDuration = acquisitionKind === 1 ? 0.5 : 0.3;
-          acquisitionTime = acquisitionDuration;
-          feedback.acquisition.material.uniforms.kind.value = acquisitionKind;
-          feedback.acquisition.material.uniforms.color.value.setHex(
-            DEVICE_COLORS[event.payload.kind],
-          );
           hardware
             .find((visual) => visual.device.id === event.payload.deviceId)
             ?.activate?.(flowTime);
@@ -291,22 +268,20 @@ export function createPickupPresentation({
             event.payload.kind === 'vector' ? 'CATAPULT' : 'SHIELD ACQUIRED';
         }
         if (event.type === 'shield-hit') {
-          hitTime = 0.42;
-          hitSide = event.payload?.side || 1;
-          expiryTime = 0;
           nodes.aegis.toastTime = TOAST_DURATION;
           nodes.aegis.toast.textContent = 'BLOCKED';
         }
-        if (event.type === 'pickup-expire' && event.payload?.kind === 'aegis')
-          expiryTime = 0.5;
-        if (event.type === 'impact' && !event.payload?.shielded) {
-          // A later contact is a new result, never evidence of earlier protection.
-          hitTime = expiryTime = 0;
-        }
-        if (event.type === 'pickup-cancel' && event.payload?.kind === 'aegis')
-          hitTime = expiryTime = 0;
         audio.event(event);
       }
+      feedback.update({
+        effects,
+        events,
+        racing,
+        driving,
+        dt,
+        time: flowTime,
+        settings: currentSettings,
+      });
       const vector = effects.vectorActive === true;
       const aegis = Math.max(0, effects.aegisRemaining || 0);
       hud.classList.toggle('has-vector', vector);
@@ -333,7 +308,11 @@ export function createPickupPresentation({
       updateState(
         'aegis',
         aegis > 0,
-        aegis > 0 ? `${aegis.toFixed(1)}s` : hitTime ? 'BLOCKED' : 'CLEAR',
+        aegis > 0
+          ? `${aegis.toFixed(1)}s`
+          : feedback.hitActive
+            ? 'BLOCKED'
+            : 'CLEAR',
         aegis / AEGIS_DURATION,
       );
       const emitter = combat?.view().emitters.player;
@@ -414,49 +393,6 @@ export function createPickupPresentation({
         hud.style.top = Math.max(110, Math.min(height - 70, y)) + 'px';
         hud.hidden = anchor.z < -1 || anchor.z > 1;
       }
-      const acquisition = feedback.acquisition;
-      acquisition.visible = driving && acquisitionTime > 0;
-      const age = 1 - acquisitionTime / acquisitionDuration;
-      acquisition.material.uniforms.age.value = age;
-      acquisition.material.uniforms.reducedMotion.value =
-        currentSettings.reducedMotion ? 1 : 0;
-      acquisition.position.z = acquisitionKind === 4 ? -3 : 0;
-      const size =
-        acquisitionKind === 1
-          ? 2.8 + age * 0.4
-          : acquisitionKind === 2
-            ? 4
-            : 3.2;
-      acquisition.scale.set(
-        size,
-        1,
-        acquisitionKind === 0 || acquisitionKind === 4 ? 6 : size,
-      );
-      feedback.shield.visible =
-        driving && (aegis > 0 || hitTime > 0 || expiryTime > 0);
-      const field = feedback.shieldMaterial.uniforms;
-      field.strength.value =
-        aegis > 0
-          ? 1
-          : hitTime > 0
-            ? clamp(hitTime / 0.42)
-            : clamp(expiryTime / 0.5);
-      field.hit.value =
-        clamp(hitTime / 0.42) * (currentSettings.reducedMotion ? 0.55 : 1);
-      field.hitSide.value = hitSide;
-      field.release.value =
-        expiryTime && !currentSettings.reducedMotion ? 1 - expiryTime / 0.5 : 0;
-      if (field.flowTime) field.flowTime.value = flowTime;
-      if (field.reducedMotion)
-        field.reducedMotion.value = currentSettings.reducedMotion ? 1 : 0;
-      feedback.drive.visible = driving && vector;
-      feedback.driveMaterial.uniforms.strength.value = vector
-        ? currentSettings.reducedMotion
-          ? 0.85
-          : 1
-        : 0;
-      feedback.driveMaterial.uniforms.flowTime.value =
-        currentSettings.reducedMotion ? 0 : flowTime;
       for (const visual of hardware) {
         visual.updateCamera(camera, (ship.group || ship).position);
         const lap = Math.floor((vehicle?.distance || 0) / track.length);
@@ -488,7 +424,7 @@ export function createPickupPresentation({
       hud.remove();
       combatVisual?.dispose();
       disposeGroup(root);
-      disposeGroup(feedback.group);
+      feedback.dispose();
       void audio.dispose();
     },
   };

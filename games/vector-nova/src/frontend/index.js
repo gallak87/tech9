@@ -157,6 +157,15 @@ export function createFrontend(host) {
           clearInput: () => game?.clearInput(),
           isMenuVisible: () => !shell.hidden,
         });
+  let sounds = null;
+  if (parameters.get('dev') === '1')
+    void import('../audio/sound-panel.js').then(({ createSoundPanel }) => {
+      if (life.signal.aborted) return;
+      sounds = createSoundPanel(host, {
+        clearInput: () => game?.clearInput(),
+        getSettings: () => settings,
+      });
+    });
   const level = () => catalog.find((l) => l.id === selected);
   const route = (id = selected) => routes.find((r) => r.id === id);
   const selectedShip = () => SHIPS.find((s) => s.id === shipId);
@@ -1657,6 +1666,7 @@ export function createFrontend(host) {
         shell.hidden ||
         e.defaultPrevented ||
         e.target.closest('[data-music-player]') ||
+        e.target.closest('[data-sound-panel]') ||
         e.ctrlKey ||
         e.metaKey ||
         e.altKey
@@ -1720,6 +1730,7 @@ export function createFrontend(host) {
       inspectorController?.abort();
       inspector?.dispose();
       music?.dispose();
+      sounds?.dispose();
       shipPreview?.dispose();
       unsubscribeCache?.();
       unsubscribeSettings?.();
@@ -1730,6 +1741,7 @@ export function createFrontend(host) {
   );
   unsubscribeSettings = subscribeSettings((next) => {
     settings = { ...next };
+    sounds?.configure();
     inspector?.configure(settings);
     document.body.classList.toggle('reduced-motion', settings.reducedMotion);
     for (const control of shell.querySelectorAll('[data-setting]')) {

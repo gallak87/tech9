@@ -1,7 +1,8 @@
 import { isCombatDevice } from './combat.js';
 import { VEHICLE_HULL, headingExtents } from '../physics/hull.js';
+import { AEGIS_DURATION } from './rules.js';
+export { AEGIS_DURATION } from './rules.js';
 export const PICKUP_STATE_VERSION = 2;
-export const AEGIS_DURATION = 6;
 export const VECTOR_ENTRY_SPEED_GAIN = 65;
 export const VECTOR_PROPULSION = Object.freeze({
   cruiseSpeed: 600 / 3.6,

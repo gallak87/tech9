@@ -12,6 +12,7 @@ export function createAudio({
   nacre = false,
   environment,
   immersion = false,
+  engine = true,
 } = {}) {
   let resources;
   let unlocking;
@@ -23,7 +24,7 @@ export function createAudio({
   let resultsActive = false;
 
   function release(owned) {
-    owned.propulsion.dispose();
+    owned.propulsion?.dispose();
     owned.thunder?.dispose();
     owned.environment?.dispose();
     for (const shot of owned.shots) shot.stop();
@@ -72,7 +73,9 @@ export function createAudio({
             const propulsionBus = context.createGain();
             propulsionBus.gain.value = 0;
             propulsionBus.connect(bus);
-            const propulsion = createPropulsion(context, propulsionBus);
+            const propulsion = engine
+              ? createPropulsion(context, propulsionBus)
+              : null;
             // Race announcements stay clear of the world's immersion filter;
             // they still obey the common effects volume and output limiter.
             const cueBus = context.createGain();
@@ -133,7 +136,7 @@ export function createAudio({
         active ? 0.06 : 0.012,
       );
       smooth(propulsionBus.gain, running ? 1 : 0, context.currentTime, 0.012);
-      if (running) propulsion.update(state);
+      if (running) propulsion?.update(state);
       if (!environmentActive) {
         resources.environment?.stop();
         resources.thunder?.stop();

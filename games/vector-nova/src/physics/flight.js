@@ -10,11 +10,12 @@ import {
 import { getShip } from '../ships/catalog.js';
 import { createMagneticBody, MAGNETIC_BODY_RULES } from './magnetic-body.js';
 import { createContactFeedback, racerImpact } from './contact-feedback.js';
+import { landingZoneEnd } from './landing-zone.js';
 
 export const DEFAULT_FLIGHT_RULES = Object.freeze({
   gravity: 26,
   curvedContact: true,
-  contactVersion: 2,
+  contactVersion: 3,
   hover: VEHICLE_HULL.hover,
   halfWidth: VEHICLE_HULL.halfWidth,
   halfLength: VEHICLE_HULL.halfLength,
@@ -116,8 +117,9 @@ export function createFlightModel(overrides = {}) {
     if (!surfaces) landingSurfaces.set(track, (surfaces = new Map()));
     if (!surfaces.has(jump)) {
       const segments = [];
-      for (let start = jump.landingStart; start < jump.landingEnd; start += 4) {
-        const end = Math.min(start + 4, jump.landingEnd);
+      const receivingEnd = landingZoneEnd(track, jump);
+      for (let start = jump.landingStart; start < receivingEnd; start += 4) {
+        const end = Math.min(start + 4, receivingEnd);
         const distance = (start + end) / 2;
         segments.push({ start, end, distance, frame: track.sample(distance) });
       }
@@ -164,6 +166,7 @@ export function createFlightModel(overrides = {}) {
   // visible outboard barriers without expanding the road landing surface.
   function sweptRail(track, jump, before, after) {
     if (!track.jumps.includes(jump)) return null;
+    const receivingEnd = landingZoneEnd(track, jump);
     const height = R.railHeight[jump.id] ?? 0.9;
     const offset = R.railOffset[jump.id] ?? 0;
     const railBoundary = jump.halfWidth + offset;
@@ -247,7 +250,7 @@ export function createFlightModel(overrides = {}) {
           footprint.overlap < R.edgeOverlap - 1e-8 ||
           side * lateral + footprint.extent < railBoundary - 1e-6 ||
           distance - extent < jump.landingStart ||
-          distance + extent > jump.landingEnd
+          distance + extent > receivingEnd
         )
           continue;
         if (!first || contact.fraction < first.fraction)
@@ -270,6 +273,7 @@ export function createFlightModel(overrides = {}) {
   // Only top-down, forward, upright contacts on the current jump can relatch.
   function sweptLanding(track, jump, before, after, velocity) {
     if (!track.jumps.includes(jump)) return null;
+    const receivingEnd = landingZoneEnd(track, jump);
     const motion = new THREE.Line3(before.position, after.position);
     const nearest = new THREE.Vector3();
     const radius = jump.halfWidth + Math.hypot(R.halfLength, R.hover) + 4;
@@ -329,7 +333,7 @@ export function createFlightModel(overrides = {}) {
         yaw === null ||
         footprint.overlap < R.edgeOverlap - 1e-8 ||
         distance - longitudinalExtent < jump.landingStart ||
-        distance + longitudinalExtent > jump.landingEnd
+        distance + longitudinalExtent > receivingEnd
       )
         continue;
       if (!first || fraction < first.fraction)
@@ -355,6 +359,7 @@ export function createFlightModel(overrides = {}) {
   // surface: project both endpoints independently, then bracket the support
   // crossing. Never accept a craft already beneath the deck or moving upward.
   function refinedLanding(track, jump, before, after, velocity) {
+    const receivingEnd = landingZoneEnd(track, jump);
     const motion = new THREE.Line3(before.position, after.position);
     const nearest = new THREE.Vector3();
     const radius = jump.halfWidth + Math.hypot(R.halfLength, R.hover) + 4;
@@ -367,7 +372,7 @@ export function createFlightModel(overrides = {}) {
           .clone()
           .sub(frame.position)
           .dot(frame.tangent);
-        distance = clamp(distance + along, jump.landingStart, jump.landingEnd);
+        distance = clamp(distance + along, jump.landingStart, receivingEnd);
         if (Math.abs(along) < 1e-8) break;
       }
       const frame = track.sample(distance);
@@ -423,7 +428,7 @@ export function createFlightModel(overrides = {}) {
         yaw === null ||
         footprint.overlap < R.edgeOverlap - 1e-8 ||
         distance - extent < jump.landingStart ||
-        distance + extent > jump.landingEnd
+        distance + extent > receivingEnd
       )
         continue;
       if (!first || fraction < first.fraction)
@@ -838,14 +843,15 @@ export function createFlightModel(overrides = {}) {
     function receivingFrame(jump, hit) {
       let distance =
         hit.shape.distance ?? (hit.shape.start + hit.shape.end) / 2;
-      distance = clamp(distance, jump.landingStart, jump.landingEnd);
+      const receivingEnd = landingZoneEnd(track, jump);
+      distance = clamp(distance, jump.landingStart, receivingEnd);
       for (let i = 0; i < 8; i++) {
         const frame = track.sample(distance);
         distance = clamp(
           distance +
             hit.position.clone().sub(frame.position).dot(frame.tangent),
           jump.landingStart,
-          jump.landingEnd,
+          receivingEnd,
         );
       }
       const frame = track.sample(distance);
@@ -865,7 +871,7 @@ export function createFlightModel(overrides = {}) {
         height = offset.dot(frame.up);
       if (
         distance < jump.landingStart ||
-        distance > jump.landingEnd ||
+        distance > landingZoneEnd(track, jump) ||
         Math.abs(offset.dot(frame.tangent)) > R.halfLength + 2 ||
         height < R.hover - 0.05 ||
         height > 12 ||
@@ -897,6 +903,7 @@ export function createFlightModel(overrides = {}) {
     }
 
     function supportedContact(jump, hit, incomingVelocity = flight.velocity) {
+      const receivingEnd = landingZoneEnd(track, jump);
       const restoringTraction =
         (dynamics || options.forgivingContacts) &&
         mode === 'recovery' &&
@@ -913,7 +920,7 @@ export function createFlightModel(overrides = {}) {
             distance > hit.shape.end + 1e-5)) ||
         (Number.isFinite(hit.shape.distance) &&
           (hit.shape.distance < jump.landingStart - R.halfLength ||
-            hit.shape.distance > jump.landingEnd + R.halfLength))
+            hit.shape.distance > receivingEnd + R.halfLength))
       )
         return null;
       const lateral = offset.dot(frame.right);
@@ -940,7 +947,7 @@ export function createFlightModel(overrides = {}) {
         heading === null ||
         footprint.overlap < R.edgeOverlap - 1e-8 ||
         distance - length < jump.landingStart ||
-        distance + length > jump.landingEnd ||
+        distance + length > receivingEnd ||
         offset.dot(frame.up) < -1e-5
       )
         return null;
@@ -1124,7 +1131,7 @@ export function createFlightModel(overrides = {}) {
       const lateral = Math.abs(offset.dot(frame.right));
       return down < -R.missBelow
         ? 'short'
-        : along > jump.landingEnd - jump.landingStart + R.missBeyond
+        : along > landingZoneEnd(track, jump) - jump.landingStart + R.missBeyond
           ? 'long'
           : lateral > R.missLateral
             ? 'lateral'
@@ -1505,21 +1512,7 @@ export function createFlightModel(overrides = {}) {
           return;
         }
       }
-      const frame = track.sample(jump.landingStart);
-      const offset = currentPose.position.clone().sub(frame.position);
-      const down = offset.dot(frame.up);
-      const along = offset.dot(frame.tangent);
-      const lateral = Math.abs(offset.dot(frame.right));
-      const failure =
-        down < -R.missBelow
-          ? 'short'
-          : along > jump.landingEnd - jump.landingStart + R.missBeyond
-            ? 'long'
-            : lateral > R.missLateral
-              ? 'lateral'
-              : flight.elapsed >= R.timeout
-                ? 'timeout'
-                : null;
+      const failure = flightFailure(jump);
       if (failure) {
         beginRecovery(jump, failure, events);
       }

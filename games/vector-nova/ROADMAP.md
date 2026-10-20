@@ -30,6 +30,7 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 
 ## Performance and device validation
 
+- [ ] Introduce a substantially cheaper mobile graphics tier; consider renaming today's Low to Medium and adding a genuinely bare Low. Reduce whole-scene geometry, texture memory, shader complexity, render targets and decorative effects, beyond pickup FX alone. Investigate the reported iPhone 13 graphics-context loss after Halcyon's countdown on a physical device; the error alone does not establish the cause. Validate loading, countdown and sustained racing with a full field before choosing the mobile default.
 - [ ] Finish hands-on phone/tablet and physical-gamepad driving checks, including long flights, two-thumb ergonomics and responsive HUD/camera behavior across circuits. Shared touch behavior has browser-emulation coverage; that is not a full device or per-level driving pass. The user's separate mobile review of the widening campaign remains outstanding.
 
 ## Level work

@@ -74,12 +74,8 @@ test('clean and erupting vent flights land with real world motion and one ordere
   );
 });
 
-test('slow and excessive eruption approaches recover with time cost and correct order', () => {
-  for (const [speed, time, reason] of [
-    [45, 7, 'short'],
-    [150, 7, 'long'],
-    [130, 3, 'long'],
-  ]) {
+test('a short vent approach still recovers with time cost and correct order', () => {
+  for (const [speed, time, reason] of [[45, 7, 'short']]) {
     const result = cross(speed, time);
     assert.equal(result.transfer?.payload.outcome, 'recovered');
     assert.equal(
@@ -89,6 +85,19 @@ test('slow and excessive eruption approaches recover with time cost and correct 
     assert.equal(result.state.distance, track.jumps[0].recovery);
     assert.ok(result.state.time - time >= 1.5);
     assert.ok(result.race.valid);
+  }
+});
+
+test('faster vent approaches can land beyond the authored apron', () => {
+  for (const [speed, time] of [
+    [150, 7],
+    [130, 3],
+  ]) {
+    const result = cross(speed, time);
+    assert.equal(result.transfer?.payload.outcome, 'landed');
+    assert.ok(result.state.distance > track.jumps[0].landingEnd);
+    assert.ok(result.race.valid);
+    assert.ok(!result.events.some(({ type }) => type === 'jump-miss'));
   }
 });
 

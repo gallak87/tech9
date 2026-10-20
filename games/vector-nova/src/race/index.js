@@ -1,4 +1,5 @@
 import { courseIdentity, sprintRunoutControl } from './course.js';
+import { landingZoneEnd } from '../physics/landing-zone.js';
 
 export function createRace(
   track,
@@ -111,7 +112,7 @@ export function createRace(
             !this.completedTransfers.includes(key) &&
             ((transfer.outcome === 'landed' &&
               target >= jump.landingStart - epsilon &&
-              target <= jump.landingEnd + epsilon) ||
+              target <= landingZoneEnd(track, jump) + epsilon) ||
               (transfer.outcome === 'recovered' &&
                 Math.abs(target - jump.recovery) < epsilon));
           if (!allowed) {
@@ -123,7 +124,7 @@ export function createRace(
               position > jump.takeoff && position <= target + epsilon,
           );
           if (
-            credited.length !== 1 ||
+            credited.length === 0 ||
             Math.abs(credited[0] - jump.landingStart) > epsilon
           ) {
             this.valid = false;

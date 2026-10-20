@@ -28,6 +28,12 @@ const input = (throttle) => ({
 const DRIVE = input(1);
 const COAST = input(0);
 const copy = (value) => JSON.parse(JSON.stringify(value));
+function restoreRace(race, snapshot) {
+  // totalElapsed is derived by a getter; restore only owned writable state.
+  for (const [key, value] of Object.entries(snapshot))
+    if (Object.getOwnPropertyDescriptor(race, key)?.writable) race[key] = value;
+  return race;
+}
 // A physical capture may lift the centre while a tilted hull rotates clear of
 // the deck. Its maximum transient clearance follows the hull's bounding radius;
 // after the constraint settles it must return to ordinary hovering clearance.
@@ -311,7 +317,7 @@ test('Saffron vehicle, device runtime and engine snapshots repeat recovery conta
   Object.assign(state, saved.vehicle);
   runtime.restore(saved.runtime);
   dynamics.restore(saved.dynamics);
-  context.race = Object.assign(
+  context.race = restoreRace(
     createRace(context.track, { rulesId: runtime.rulesId, untimed: true }),
     saved.race,
   );
@@ -440,7 +446,7 @@ test('simultaneous player and rival flight shares one engine tick and exact sess
   advance();
   const expected = snapshot();
   Object.assign(state, retained.vehicle);
-  Object.assign(race, retained.race);
+  restoreRace(race, retained.race);
   runtime.restore(retained.runtime);
   racers.restore(retained.racers);
   dynamics.restore(retained.dynamics);

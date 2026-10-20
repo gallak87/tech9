@@ -174,13 +174,58 @@
   color: #bbb;
   font-size: 12px;
 }
+/* A retained session is the first action, with its own quiet gold accent. */
 .menu-layout .session-return {
-  margin-top: 16px;
+  width: min(100%, 370px);
+  margin-bottom: 16px;
 }
 .menu-layout .session-return button {
-  font-size: 12px;
-  padding: 12px 0;
-  color: #ccc;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 54px;
+  padding: 10px 12px;
+  border: 1px solid #b69a4e9c;
+  background: #d6b65c10;
+  color: #f3d783;
+  text-align: left;
+}
+.menu-layout .session-return button:hover {
+  border-color: #d6b65c;
+  background: #d6b65c20;
+}
+.menu-layout .session-return button:focus-visible {
+  outline: 2px solid #f3d783;
+  outline-offset: 3px;
+}
+.session-return svg {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.session-return button > span {
+  min-width: 0;
+}
+.session-return strong,
+.session-return small {
+  display: block;
+}
+.session-return strong {
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+.session-return small {
+  margin-top: 3px;
+  color: #c6bfa9;
+  font-size: 11px;
+  line-height: 1.35;
 }
 .menu-transfer {
   max-width: 370px;

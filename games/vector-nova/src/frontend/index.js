@@ -426,13 +426,23 @@ export function createFrontend(host) {
   function pickerRaceActions() {
     return `<div class="picker-race-actions"><button class="change-track" data-action="circuits">${escape(intent === 'cup' ? currentCup().name : level().name)} · ${modeName()} <span aria-hidden="true">↗</span></button>${raceActions()}</div>`;
   }
+  const sessionReturn = () => {
+    if (!game?.hasSession() || sessionCup) return '';
+    const name =
+      sessionIntent === 'time-trial'
+        ? 'Time Trial'
+        : sessionIntent === 'practice'
+          ? 'Practice'
+          : 'Quick Race';
+    return `<aside class="session-return"><button data-action="resume-session"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4-5 5 5 5M4 9h10a6 6 0 0 1 0 12h-2"/></svg><span><strong>Resume ${name}</strong><small>${escape(loadedLevel().name)}</small></span></button></aside>`;
+  };
   const homeMenu = () => {
     const savedCup = cupStore.snapshot().state;
     const cup = intent === 'cup' ? currentCup() : null;
     const selectedCraft = lockedCup()
       ? SHIPS.find((entry) => entry.id === savedCup.shipId)
       : selectedShip();
-    return `<section class="race-menu" aria-label="Session setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1>${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step" ${lockedCup() ? 'disabled' : ''}><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${game?.hasSession() && !sessionCup ? `<aside class="session-return">${button('resume-session', `↶ Resume ${sessionIntent === 'time-trial' ? 'Time Trial' : sessionIntent === 'practice' ? 'Practice' : 'Quick Race'} · ${escape(loadedLevel().name)}`)}</aside>` : ''}${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    return `<section class="race-menu" aria-label="Session setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1>${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step" ${lockedCup() ? 'disabled' : ''}><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
   };
   function cupPanel(withActions) {
     const state = cupStore.snapshot().state;

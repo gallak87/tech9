@@ -46,7 +46,7 @@ test('racing applies the shared Arc glow to the struck rival, preserves pause, a
     },
   });
   const effects = groups.map((group) =>
-    group.getObjectByName('Arc / hull hit outline'),
+    group.getObjectByName('Combat / hull hit outline'),
   );
   state.flashes = [{ target: 'latch', kind: 'arc', age: 0.08 }];
   presentation.update({ mode: 'racing' });
@@ -71,6 +71,16 @@ test('racing applies the shared Arc glow to the struck rival, preserves pause, a
     effects.every((effect) => !effect.visible),
     'shield blocks do not pretend to hit bare hull',
   );
+  state.flashes = [{ target: 'rook', kind: 'repulsor', age: 0.08 }];
+  presentation.update({ mode: 'racing' });
+  assert.equal(effects[0].visible, true);
+  assert.equal(effects[1].visible, false);
+  const response = effects[0].children[0].material.uniforms;
+  assert.ok(
+    response.color.value.r > response.color.value.b,
+    'Repulsor hits tint the whole target rose',
+  );
+  assert.equal(response.strength.value, 1);
   state.flashes = [{ target: 'rook', kind: 'arc', age: 0.08 }];
   presentation.update({ mode: 'title' });
   assert.ok(effects.every((effect) => !effect.visible));

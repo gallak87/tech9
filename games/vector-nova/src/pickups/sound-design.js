@@ -2,6 +2,9 @@
 // [wave, start Hz, end Hz, duration, gain, delay, attack]
 export function deviceCue(event) {
   const kind = event.payload?.kind;
+  // These devices finish in the discharge/last-shot tail; no extra end chime.
+  if (event.type === 'pickup-expire' && ['arc', 'repulsor'].includes(kind))
+    return [];
   if (event.type === 'combat-fire')
     return kind === 'repulsor'
       ? [
@@ -30,7 +33,7 @@ export function deviceCue(event) {
           ['sine', 130, 42, 0.3, 0.22, 0, 0.003],
           ['triangle', 410, 80, 0.13, 0.06, 0.006, 0.002],
         ];
-  if (event.type === 'combat-confirm')
+  if (event.type === 'combat-confirm' || event.type === 'combat-contact')
     return [
       ['noise', 2300, 1500, 0.065, 0.05, 0, 0.002],
       [

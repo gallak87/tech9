@@ -1,7 +1,7 @@
 import * as T from 'three';
 import { DEVICE_COLORS } from './theme.js';
 import { createIonRibbon } from './ion-ribbon.js';
-import { energyMaterial, energyPlane } from './energy-material.js';
+import { energyCylinder, energyPlane } from './energy-material.js';
 import { COMBAT_RULES } from './combat.js';
 import { ARC_SHOT_HEIGHT, ARC_MUZZLE_HEIGHT } from './rules.js';
 import { disposeGroup } from './geometry.js';
@@ -28,22 +28,22 @@ export function createCombatPresentation(scene, combat) {
         return [kind, mesh];
       }),
     );
+    const shell = energyCylinder('repulsor-shell');
+    shell.name = 'Repulsor / compressed charge shell';
+    shell.position.y = -0.1;
+    group.add(shell);
     root.add(group);
     group.visible = false;
-    return { group, fields };
+    return { group, fields, shell };
   });
   const flashes = Array.from({ length: 32 }, () => {
     const group = new T.Group();
+    group.name = 'Combat / contact or pressure pulse';
     const impact = energyPlane('impact', 2, 2);
     const upright = energyPlane('impact', 2, 2);
     upright.rotation.x = Math.PI / 2;
     const pressure = energyPlane('pressure', 2, 2);
-    const crown = new T.Mesh(
-      new T.CylinderGeometry(1, 1, 1, 64, 1, true),
-      energyMaterial('crown'),
-    );
-    crown.geometry.translate(0, 0.5, 0);
-    crown.userData.aoExclude = crown.userData.reflectionExclude = true;
+    const crown = energyCylinder('crown');
     group.add(impact, upright, crown, pressure);
     root.add(group);
     group.visible = false;
@@ -87,10 +87,27 @@ export function createCombatPresentation(scene, combat) {
         .forEach(([id, emitter], index) => {
           const pose = combat.pose(id);
           if (!pose) return;
-          const { group, fields } = charges[index];
+          const { group, fields, shell } = charges[index];
           group.visible = true;
           group.position.copy(pose.position);
           group.quaternion.copy(pose.quaternion);
+          const compression = T.MathUtils.clamp(
+            emitter.elapsed / COMBAT_RULES.pulseDelay,
+            0,
+            1,
+          );
+          shell.visible = emitter.kind === 'repulsor';
+          shell.scale.set(
+            4.4 - compression * 0.85,
+            1.15,
+            4.9 - compression * 0.65,
+          );
+          tune(
+            shell,
+            'repulsor',
+            settings.reducedMotion ? 0.35 : 0.75,
+            compression,
+          );
           for (const [kind, mesh] of Object.entries(fields)) {
             mesh.visible = kind === emitter.kind;
             tune(
@@ -126,21 +143,24 @@ export function createCombatPresentation(scene, combat) {
         }
         const pulse = flash.kind === 'repulsor' && flash.radius > 10;
         const arcHit = flash.kind === 'arc' && !!flash.target;
-        crown.visible = pressure.visible = pulse;
-        impact.visible = upright.visible = !pulse;
+        const repulsorHit = flash.kind === 'repulsor' && !!flash.target;
+        crown.visible = pressure.visible = pulse || repulsorHit;
+        impact.visible = upright.visible = !pulse && !repulsorHit;
         const fade =
           (arcHit ? 0.35 : 1) *
           Math.pow(Math.max(0, 1 - flash.age / (muzzle ? 0.12 : 0.55)), 1.5);
         const radius = pulse
-          ? Math.max(1, flash.radius * Math.min(1, flash.age / 0.3))
+          ? Math.max(3.6, flash.radius * Math.min(1, flash.age / 0.3))
           : muzzle
             ? 2.2
             : arcHit
               ? 1.2 + flash.age * 2
-              : 2.5 + flash.age * 9;
+              : repulsorHit
+                ? 2 + flash.age * 4
+                : 2.5 + flash.age * 9;
         crown.scale.set(
           radius,
-          Math.max(0.1, 1.4 * (1 - flash.age / 0.55)),
+          Math.max(0.1, (repulsorHit ? 1.1 : 1.7) * (1 - flash.age / 0.55)),
           radius,
         );
         impact.scale.setScalar(radius);
@@ -149,7 +169,11 @@ export function createCombatPresentation(scene, combat) {
         tune(crown, flash.kind, fade * (settings.reducedMotion ? 0.3 : 0.8));
         tune(impact, flash.kind, fade * (settings.reducedMotion ? 0.25 : 0.5));
         tune(upright, flash.kind, fade * (settings.reducedMotion ? 0.4 : 1));
-        tune(pressure, flash.kind, fade * (settings.reducedMotion ? 0.1 : 0.3));
+        tune(
+          pressure,
+          flash.kind,
+          fade * (settings.reducedMotion ? 0.2 : 0.65),
+        );
       });
       shots.forEach((mesh, index) => {
         const shot = state.shots[index];

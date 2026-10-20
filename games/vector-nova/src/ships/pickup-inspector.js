@@ -1,5 +1,4 @@
 import { Box3, Vector3 } from 'three';
-import arcActivationURL from '../../assets/audio/sfx/arc-activate.wav?url';
 import { createPickupPreview } from './pickup-preview.js';
 import { PICKUP_PREVIEWS } from './pickup-preview-sequence.js';
 import { createRivalPreview } from './rivals.js';
@@ -22,18 +21,18 @@ export async function createPickupInspector({
   const element = document.createElement('section');
   element.className = 'inspection-pickups';
   element.setAttribute('aria-label', 'Powerup sound and effects preview');
-  element.innerHTML = `<label for="inspection-pickup">Powerups</label><div class="inspection-pickup-controls"><select id="inspection-pickup">${PICKUP_PREVIEWS.map(({ id, label }) => `<option value="${id}">${label}</option>`).join('')}</select><button type="button" data-trigger>Trigger</button><button type="button" data-stop>Stop</button></div><label class="inspection-engine"><input type="checkbox">Engine sound <span>Driving / Boost</span></label><p role="status">Ready · Rook target ahead</p>`;
+  element.innerHTML = `<label for="inspection-pickup">Powerups</label><div class="inspection-pickup-controls"><select id="inspection-pickup">${PICKUP_PREVIEWS.map(({ id, label }) => `<option value="${id}">${label}</option>`).join('')}</select><button type="button" data-trigger>Trigger</button><button type="button" data-stop>Stop</button></div><label class="inspection-engine"><input type="checkbox" data-engine>Engine sound <span>Driving / Boost</span></label><label class="inspection-engine"><input type="checkbox" data-shield>Shield target <span>Arc / Repulsor</span></label><p role="status">Ready · Rook target ahead</p>`;
   const select = element.querySelector('select');
   const trigger = element.querySelector('[data-trigger]');
   const stop = element.querySelector('[data-stop]');
   const status = element.querySelector('[role="status"]');
-  const engineToggle = element.querySelector('input');
+  const engineToggle = element.querySelector('[data-engine]');
+  const shieldToggle = element.querySelector('[data-shield]');
   const engine = createEnginePreview({ getState: getDriving, getSettings });
-  select.value = 'arc';
+  select.value = 'repulsor';
   const preview = createPickupPreview({
     ship,
     target: target?.group,
-    candidateURL: arcActivationURL,
     getSettings,
     onStatus: (text) => {
       status.textContent = text;
@@ -43,10 +42,14 @@ export async function createPickupInspector({
   if (targetError) status.textContent = targetError;
   engineToggle.onchange = () => engine.setEnabled(engineToggle.checked);
   trigger.onclick = () => {
-    void preview.trigger(select.value);
+    void preview.trigger(select.value, {
+      shielded:
+        shieldToggle.checked && ['arc', 'repulsor'].includes(select.value),
+    });
   };
   stop.onclick = () => preview.stop();
   select.onchange = () => preview.stop();
+  shieldToggle.onchange = () => preview.stop();
   const life = new AbortController();
   const syncForeground = () => {
     const foreground = !document.hidden && document.hasFocus();
@@ -95,6 +98,7 @@ export async function createPickupInspector({
         trigger.disabled =
         stop.disabled =
         engineToggle.disabled =
+        shieldToggle.disabled =
           !next;
       void engine.changed();
       if (!next) status.textContent = 'Loading ship…';

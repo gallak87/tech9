@@ -129,6 +129,14 @@ test('every Arc contact flashes the target while damage grace still allows only 
     h.events.filter((event) => event.type === 'combat-confirm').length,
     1,
   );
+  for (const id of ['player', 'target'])
+    assert.equal(
+      h.events.filter(
+        (event) => event.type === 'combat-contact' && event.id === id,
+      ).length,
+      2,
+      'later contacts are audible to both racers without extra damage',
+    );
   assert.equal(h.combat.view().flashes.length, 0, 'all visual contacts expire');
 });
 test('arc stops at authored walls and cannot shoot through them', () => {

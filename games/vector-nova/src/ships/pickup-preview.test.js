@@ -176,6 +176,10 @@ test('the dev target stops Arc pellets at its hull and uses the gameplay hit gra
     1,
     'later shots land during the same hit grace',
   );
+  assert.equal(
+    all.filter((event) => event.type === 'combat-contact').length,
+    2,
+  );
   for (let index = 0; index < 3; index++) {
     const at = impact + index * COMBAT_RULES.arcInterval + 0.001;
     const contact = pickupPreviewFrame('arc', at, at - 0.002, true);
@@ -199,6 +203,36 @@ test('the dev target stops Arc pellets at its hull and uses the gameplay hit gra
   assert.equal(repulsor.events.at(-1).type, 'combat-confirm');
 });
 
+test('a shielded target blocks the first hit; later Arc contacts remain grace-only', () => {
+  for (const kind of ['arc', 'repulsor']) {
+    const at =
+      kind === 'arc'
+        ? COMBAT_RULES.arcDelay +
+          (PREVIEW_TARGET_DISTANCE - ARC_TARGET_HALF_LENGTH) /
+            COMBAT_RULES.arcSpeed
+        : COMBAT_RULES.pulseDelay;
+    const frame = pickupPreviewFrame(kind, at + 0.001, 0, true, true);
+    assert.equal(
+      frame.events.find((event) => event.type === 'combat-confirm').payload
+        .shielded,
+      true,
+    );
+    assert.equal(
+      frame.combat.flashes.find((flash) => flash.target === 'rook').kind,
+      'aegis',
+    );
+  }
+  const arc = pickupPreviewFrame('arc', 1, -1, true, true);
+  assert.equal(
+    arc.events.filter((event) => event.type === 'combat-confirm').length,
+    1,
+  );
+  assert.equal(
+    arc.events.filter((event) => event.type === 'combat-contact').length,
+    2,
+  );
+});
+
 test('the target stays visible between auditions, follows ship changes and detaches on teardown', async () => {
   const target = new Group();
   const h = previewHarness(target);
@@ -207,7 +241,8 @@ test('the target stays visible between auditions, follows ship changes and detac
   await h.preview.trigger('arc');
   h.preview.update(0.2);
   const flashes = h.ship.children[0].children[1].children.filter(
-    (object) => object.visible && object.children.length === 4,
+    (object) =>
+      object.visible && object.name === 'Combat / contact or pressure pulse',
   );
   assert.ok(
     flashes.some(
@@ -275,89 +310,59 @@ test('Arc candidate plays beyond the shorter burst; retrigger, mute and disposal
   assert.equal(await h.preview.trigger('arc'), false);
 });
 
-test('candidate audio replaces only Arc activation, caches decoding, and follows effects volume', async () => {
-  const cues = [];
-  const sources = [];
-  const gains = [];
-  let fetches = 0,
-    decodes = 0,
-    disposals = 0;
-  const context = {
-    currentTime: 0,
-    destination: {},
-    createGain() {
-      const node = {
-        gain: {
-          value: 1,
-          setTargetAtTime(value) {
-            this.value = value;
-          },
-        },
-        connect() {},
-        disconnect() {},
-      };
-      gains.push(node);
-      return node;
-    },
-    createBufferSource() {
-      const source = {
-        starts: 0,
-        stops: 0,
-        connect() {},
-        disconnect() {},
-        start() {
-          this.starts++;
-        },
-        stop() {
-          this.stops++;
-        },
-      };
-      sources.push(source);
-      return source;
-    },
-    async decodeAudioData() {
-      decodes++;
-      return { duration: 2.34 };
-    },
-  };
+test('Repulsor keeps its candidate tail alive after the pressure pulse finishes', async () => {
+  const h = previewHarness();
+  h.audio.prepare = async () => 0;
+  h.audio.duration = (event) => (event.type === 'combat-fire' ? 1.42 : 0);
+  await h.preview.trigger('repulsor');
+  assert.equal(
+    h.events.some((event) => event.type === 'combat-fire'),
+    false,
+  );
+  h.preview.update(COMBAT_RULES.pulseDelay - 0.01);
+  assert.equal(
+    h.events.some((event) => event.type === 'combat-fire'),
+    false,
+  );
+  h.preview.update(0.02);
+  assert.equal(
+    h.events.filter((event) => event.type === 'combat-fire').length,
+    1,
+  );
+  h.preview.update(0.6);
+  assert.equal(h.ship.children[0].visible, true);
+  h.preview.update(0.81);
+  assert.equal(
+    h.ship.children[0].visible,
+    true,
+    'tail extends from the actual discharge event',
+  );
+  h.preview.update(0.02);
+  assert.equal(h.ship.children[0].visible, false);
+  assert.equal(h.statuses.at(-1), 'Ready');
+  h.preview.dispose();
+});
+
+test('inspector delegates the full sound set and cleanup to the shared gameplay bus', async () => {
+  const events = [];
+  let stopped = 0,
+    disposed = 0;
   const audio = createPickupPreviewAudio({
-    candidateURL: '/candidate.wav',
-    createContext: () => context,
-    createAudio: ({ createContext }) => ({
-      async unlock() {
-        createContext();
-        return true;
-      },
-      update() {},
-      setEffects() {},
-      silence() {},
-      event: (cue) => cues.push(cue),
-      dispose() {
-        disposals++;
-      },
+    createAudio: () => ({
+      unlock: async () => true,
+      event: (event) => events.push(event),
+      duration: () => 1.42,
+      silence: () => stopped++,
+      dispose: async () => disposed++,
     }),
-    async fetchAudio() {
-      fetches++;
-      return { ok: true, arrayBuffer: async () => new ArrayBuffer(0) };
-    },
   });
-  assert.equal(await audio.prepare('arc'), 2.34);
-  assert.equal(gains[0].gain.value, 0);
-  audio.update({ volume: 0.2 }, true);
-  audio.event({ type: 'pickup-activate', payload: { kind: 'arc' } });
-  audio.event({ type: 'combat-fire', payload: { kind: 'arc' } });
-  assert.equal(sources[0].starts, 1);
-  assert.equal(cues.length, 1);
-  assert.equal(cues[0].type, 'combat-fire');
-  assert.equal(gains[0].gain.value, 0.2);
-  audio.update({ volume: 0.2, muted: true }, true);
-  assert.equal(gains[0].gain.value, 0);
+  assert.equal(await audio.prepare('repulsor'), 0);
+  const event = { type: 'combat-fire', payload: { kind: 'repulsor' } };
+  audio.event(event);
+  assert.deepEqual(events, [event]);
+  assert.equal(audio.duration(event), 1.42);
   audio.stop();
-  assert.equal(sources[0].stops, 1);
-  await audio.prepare('arc');
-  assert.equal(fetches, 1);
-  assert.equal(decodes, 1);
   audio.dispose();
-  audio.dispose();
-  assert.equal(disposals, 1);
+  assert.equal(stopped, 1);
+  assert.equal(disposed, 1);
 });

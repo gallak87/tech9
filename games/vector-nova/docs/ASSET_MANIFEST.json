@@ -244,7 +244,57 @@
       "source": "assets/audio/sfx/arc-activate.wav",
       "promptRecord": "assets/audio/sfx/arc-activate.json",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "Current activation candidate in the dev-only Ship inspector Powerups audition; gameplay still uses procedural Arc audio. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM; generated 2 seconds, retained source 0.00–1.28 seconds after trimming quiet padding at -70 dBFS RMS with 40 ms margins. No gain or fades applied.",
+      "provenance": "Current Arc activation shared by gameplay, Sounds and the dev Ship inspector; tuned synthesized pellet firing is retained. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM; generated 2 seconds, retained source 0.00–1.28 seconds after trimming quiet padding at -70 dBFS RMS with 40 ms margins. No gain or fades applied.",
+      "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
+      "runtimeDependencies": [],
+      "provenanceRecord": "docs/audio/sfx.md"
+    },
+    {
+      "id": "sfx-repulsor-fire",
+      "source": "assets/audio/sfx/repulsor-fire.wav",
+      "promptRecord": "assets/audio/sfx/repulsor-fire.json",
+      "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
+      "provenance": "Current sound shared by gameplay, Sounds and the dev Ship inspector; reviewed with the Arc/Repulsor sound and VFX set. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 2 seconds; retained source 0.10–1.52 seconds (1.42 seconds), applied -6.83 dB gain to -8 dBFS peak and 3 ms/6 ms edge fades.",
+      "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
+      "runtimeDependencies": [],
+      "provenanceRecord": "docs/audio/sfx.md"
+    },
+    {
+      "id": "sfx-repulsor-charge",
+      "source": "assets/audio/sfx/repulsor-charge.wav",
+      "promptRecord": "assets/audio/sfx/repulsor-charge.json",
+      "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
+      "provenance": "Current sound shared by gameplay, Sounds and the dev Ship inspector; reviewed with the Arc/Repulsor sound and VFX set. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 1 second; retained source 0.00–0.64 seconds, linearly resampled to 0.48 seconds to fit the half-second charge, applied -7.86 dB gain to -16 dBFS peak and 8 ms/18 ms edge fades.",
+      "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
+      "runtimeDependencies": [],
+      "provenanceRecord": "docs/audio/sfx.md"
+    },
+    {
+      "id": "sfx-repulsor-hit",
+      "source": "assets/audio/sfx/repulsor-hit.wav",
+      "promptRecord": "assets/audio/sfx/repulsor-hit.json",
+      "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
+      "provenance": "Current sound shared by gameplay, Sounds and the dev Ship inspector; reviewed with the Arc/Repulsor sound and VFX set. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 1 second; retained source 0.00–0.79 seconds, applied -2.41 dB gain to -10 dBFS peak and 2 ms/10 ms edge fades.",
+      "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
+      "runtimeDependencies": [],
+      "provenanceRecord": "docs/audio/sfx.md"
+    },
+    {
+      "id": "sfx-arc-hit",
+      "source": "assets/audio/sfx/arc-hit.wav",
+      "promptRecord": "assets/audio/sfx/arc-hit.json",
+      "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
+      "provenance": "Current sound shared by gameplay, Sounds and the dev Ship inspector; reviewed with the Arc/Repulsor sound and VFX set. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 1 second; retained source 0.43–0.84 seconds (0.41 seconds) to isolate the main attack, applied -5.90 dB gain to -11 dBFS peak and 2 ms/10 ms edge fades.",
+      "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
+      "runtimeDependencies": [],
+      "provenanceRecord": "docs/audio/sfx.md"
+    },
+    {
+      "id": "sfx-shield-block",
+      "source": "assets/audio/sfx/shield-block.wav",
+      "promptRecord": "assets/audio/sfx/shield-block.json",
+      "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
+      "provenance": "Current sound shared by gameplay, Sounds and the dev Ship inspector; reviewed with the Arc/Repulsor sound and VFX set. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 1 second; retained source 0.00–0.79 seconds, applied -7.97 dB gain to -11 dBFS peak and 1 ms/10 ms edge fades.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
       "runtimeDependencies": [],
       "provenanceRecord": "docs/audio/sfx.md"
@@ -280,7 +330,7 @@
       "id": "shared-road-devices",
       "source": "src/pickups/ and src/levels/<slug>/devices.js",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original source-native Vector cassette strips, Aegis arches, ship fields, branching Arc discharge, traveling pulses and hull-shaped blue hit outline/halo, with owned shader/WebAudio feedback; no downloaded art, recordings or external fonts.",
+      "provenance": "Original source-native Vector cassette strips, Aegis arches, ship fields, branching Arc discharge, traveling pulses, layered Repulsor pressure rings and hull-shaped blue/rose hit outlines and halos, with owned shader/WebAudio feedback; no downloaded art, recordings or external fonts.",
       "rights": "Project-authored; no third-party asset restrictions",
       "runtimeDependencies": ["three"]
     },

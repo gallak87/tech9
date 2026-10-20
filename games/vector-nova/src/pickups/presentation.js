@@ -226,6 +226,7 @@ export function createPickupPresentation({
       }
       if (!noticeTime) message.textContent = '';
       for (const event of events) {
+        if (racing) audio.event(event);
         const label = pickupEventLabel(event);
         if (!label || !racing) continue;
         message.textContent = label;
@@ -271,7 +272,6 @@ export function createPickupPresentation({
           nodes.aegis.toastTime = TOAST_DURATION;
           nodes.aegis.toast.textContent = 'BLOCKED';
         }
-        audio.event(event);
       }
       feedback.update({
         effects,

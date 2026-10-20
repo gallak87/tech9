@@ -1,6 +1,6 @@
 import { Quaternion, Vector3, MathUtils } from 'three';
 import { createRivalPreview } from '../ships/rivals.js';
-import { createArcHitFeedback } from '../pickups/arc-hit-feedback.js';
+import { createHitFeedback } from '../pickups/hit-feedback.js';
 
 const up = new Vector3(0, 1, 0);
 const forward = new Vector3(0, 0, 1);
@@ -24,7 +24,7 @@ export async function createRacerPresentation({
       ships.push({
         ship,
         opponent,
-        hitFeedback: combat ? createArcHitFeedback(ship.group) : null,
+        hitFeedback: combat ? createHitFeedback(ship.group) : null,
         yaw: new Quaternion(),
         roll: new Quaternion(),
       });
@@ -45,15 +45,15 @@ export async function createRacerPresentation({
       const flashes = combat?.view().flashes ?? [];
       for (const { ship, opponent, yaw, roll, hitFeedback } of ships) {
         ship.group.visible = show;
+        const contact = flashes.findLast(
+          (flash) =>
+            flash.target === opponent.specification.id &&
+            ['arc', 'repulsor'].includes(flash.kind),
+        );
         hitFeedback?.update(
-          show
-            ? flashes.findLast(
-                (flash) =>
-                  flash.target === opponent.specification.id &&
-                  flash.kind === 'arc',
-              )?.age
-            : undefined,
+          show ? contact?.age : undefined,
           settings,
+          contact?.kind,
         );
         if (!show) continue;
         const blend = mode === 'racing' ? MathUtils.clamp(alpha, 0, 1) : 1;

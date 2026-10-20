@@ -1,77 +1,58 @@
 # Sound expansion
 
-The current Arc candidate is available in the dev Ship inspector's Powerups audition, with its ship VFX. Review the combined result before changing gameplay audio.
+VECTOR//NOVA needs satisfying, recognizable hardware sounds for fast anti-gravity racing. Aim for physical weight, electrical detail and immediate feedback over propulsion and deep trance/EDM. The owner listens and judges; generation quality alone does not establish the right style.
 
-## Direction
+Give each device an identity: Vector surges, Aegis encloses, Repulsor compresses and releases, Arc energizes and cracks, Ion streams. Avoid turning everything into the same bass impact, melodic notification or cinematic swell.
 
-VECTOR//NOVA needs satisfying, recognizable hardware sounds for its fast anti-gravity racing. The current effects feel puny and synthetic to the owner. Aim for physical weight, electrical detail and immediate feedback: crisp attacks, substantial low-mid body and controlled tails. Keep enough midrange presence to read over propulsion and the deep trance/EDM soundtrack at ordinary listening volume.
+## Work by complete device
 
-Give each device an identity: Vector surges, Aegis encloses, Repulsor compresses and releases, Arc energizes and cracks, Ion streams. Preserve those relationships across activation, use and expiry. Avoid turning every event into the same bass impact, melodic notification or long cinematic swell.
+Before rendering, map the entire device: acquisition/charge, each use, contact heard by the attacker, impact heard by the victim, shield block, ending, cancellation and unavailable state. Explicitly mark shared cues, retained sounds and intentional silence. A generated activation alone is not a finished device.
 
-Start with **Arc · activate**, then apply what survives listening to the other pickups. Ship propulsion, collisions and environment sounds follow separately. The [sound inventory](../audio/sounds.md) remains the full list; the [generation guide](../audio/sfx.md) owns setup and commands.
+Generate one action per cue; code schedules the sequence from gameplay events. Prompt timing is approximate. Trim the actual attack to the event, fit charge inside its gameplay window and keep enough natural tail. Preserve sounds the owner already likes. Keep one current JSON/WAV per generated cue, replace revisions in place, and keep listening notes in chat.
 
-Keep sound and VFX tied to the same gameplay events: activation, each shot, impact and expiry. Generate one action per cue; code schedules the sequence. Prompts describe character and progression, but cannot guarantee exact visual timing. Match the audible attack to the visible impulse and let quiet electrical texture accompany the branching corona. Arc firing pairs an electrical snap with a deep descending body; each cue stays tied to its individual shot.
+Audition the whole sequence against the inspector target, then with **Shield target** checked and **Engine sound** on. Check incoming impacts separately in Sounds. The inspector, Sounds picker and gameplay use the same sound set and mix. Finish only after the owner likes the complete set, including repeated triggers and the mix with Tunes. Register source/config and edits in [ASSET_MANIFEST.json](../ASSET_MANIFEST.json). Setup and commands live in the [generation guide](../audio/sfx.md); the [inventory](../audio/sounds.md) lists isolated cues.
 
-## Reusable implementation prompt
+## Arc and Repulsor coverage
 
-```text
-Create one replacement sound for VECTOR//NOVA, a fast futuristic
-anti-gravity racer with a deep, driving electronic soundtrack.
+Arc and Repulsor have completed the owner’s combined sound/VFX review. Retain their current character when extending the set.
 
-Cue: [picker name and exact gameplay event]
-Player meaning: [what the driver should immediately understand]
-Source: [imagined physical mechanism/material]
-Shape: [attack] → [body/evolution] → [tail]
-Feel and pacing: [how the action should unfold and leave the player feeling]
+| Stage                        | Arc                                                                                 | Repulsor                                                              |
+| ---------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Activation / charge          | Generated smooth electrical whip, retained                                          | Generated compressed electromagnetic rise, fitted to the 0.5 s charge |
+| Use                          | Retained deep synthesized pellet shots the owner liked; three separate events       | Generated rounded pressure discharge at 0.5 s                         |
+| Target contact               | Generated electric armor impact at lower gain                                       | Generated cushioned pressure impact at lower gain                     |
+| Incoming hit                 | Same impact at full cue gain                                                        | Same impact at full cue gain                                          |
+| Shielded hit                 | Shared generated glassy field block; no duplicate hull impact                       | Same shared shield block                                              |
+| Contacts during damage grace | Quieter physical impacts for the remaining pellets; no extra damage or confirmation | No repeated pulse contacts                                            |
+| Finish                       | Last shot/activation tails; no extra expiry chime                                   | Discharge tail; no extra expiry chime                                 |
+| Unavailable / cancellation   | Shared quiet unavailable tick; reset cancels owned voices                           | Same shared behavior                                                  |
 
-Model prompt:
-"One isolated [source/action]. [Attack description], [body description],
-[tail description]. [Desired weight and intensity] futuristic machinery. Close, dry
-sound effect with a clean ending. No music, speech or repeated sequence."
+The attacker's contact sound replaces the old confirmation beep. A victim's shield hit owns the block cue; the shielded damage notification remains silent. Range, damage grace and event timing stay unchanged.
 
-Let the sound develop a convincing body and natural finish; choose render
-length to capture that action. Use the local Stable Audio 3 Small-SFX
-workflow. Keep one current config
-and WAV, replacing iterations in place. Generate one candidate, trim
-unused silence and let the owner listen before integration.
-
-After acceptance, replace only this cue in gameplay and the existing
-Sounds picker. Preserve event timing, effects volume, mute and resource
-cleanup. Balance it with Tunes and propulsion; check repeated triggering.
-Register the accepted asset and provenance. The owner judges sound quality.
-```
-
-## Arc activation — filled implementation prompt
+## Reusable cue prompt
 
 ```text
-Create the Arc · activate replacement for VECTOR//NOVA.
-
-Cue: pickup-activate with payload.kind = "arc".
-Player meaning: the ship's electrical emitter has energized and is ready.
-Source: compact high-voltage coils feeding the ship's twin electrical rails.
-Shape: a smooth electrical whip → a brief warm coil pulse →
-fine airy crackles that fade gently away.
-Feel and pacing: sleek, controlled electrical hardware. Keep the tactile
-sweep of the activation with a rounded attack and restrained weight.
-The ending should settle softly. Leave space for the three crisp firing
-cues, each already synchronized to its shot. Far-reaching branching hull arcs
-echo those impulses and carry the remaining electrical texture.
+Device: [name and physical identity]
+Cue: [exact gameplay event and perspective]
+Meaning: [what the driver should immediately understand]
+Shape: [attack] → [body] → [tail]
+Timing: [event anchor, usable charge window or repeated-use spacing]
+Mix: [relative weight beside the device's other cues and propulsion]
 
 Model prompt:
-"A single sleek sci-fi weapon activation. A smooth electrical whip with
-a rounded, moderate attack, a brief warm coil pulse, and fine airy
-crackles fading gently to silence. Compact, controlled and tactile,
-close and dry. No music, voices, gunfire, heavy slam or dramatic final burst."
+"One isolated [source/action]. [Attack], [body], [tail].
+[Desired weight] futuristic machinery, dry and close.
+No music, voices or repeated sequence."
 
-Use the local Small-SFX workflow. Choose enough render length for the
-complete energizing action and its tail. Keep
-assets/audio/sfx/arc-activate.json and its WAV as the single current
-candidate. Trim unused silence while retaining the sound's character
-and natural finish. Present the candidate for listening.
-
-After acceptance, replace only Arc activation in gameplay and Sounds.
-Retain Arc firing and all other cues. Preserve effects volume, mute,
-pause/disposal and gameplay timing; register the accepted asset.
+Generate through local Small-SFX. Keep its current JSON/WAV, trim unused
+padding, balance the cue, and connect it to the shared device audio bus.
+Review it in the complete device sequence, including impact and block.
 ```
 
-Listen for an immediate, satisfying **energize** sensation, controlled weight and a gentle finish that fits the residual electrical effects. The three shots should stay distinct and pleasant over repeated pickups. Revise from the owner's feedback before expanding the set; keep iteration discussion in chat.
+## Current direction
+
+**Arc:** a controlled electrical whip into the existing deep pellet launches; target impacts combine a compact crack and rounded armor body. The branching hull corona follows activation and each shot, while blue target outlines/glow follow contacts. Keep the ending gentle. Current prompts: [activation](../../assets/audio/sfx/arc-activate.json), [impact](../../assets/audio/sfx/arc-hit.json).
+
+**Repulsor:** compressed air and magnetic tension gather around the ship, then release as a rounded bass pressure punch. The rose charge shell, layered pulse and short source afterglow follow that shape; the struck hull gives a cushioned, weighty impact. Current prompts: [charge](../../assets/audio/sfx/repulsor-charge.json), [discharge](../../assets/audio/sfx/repulsor-fire.json), [impact](../../assets/audio/sfx/repulsor-hit.json).
+
+**Shield block:** a soft glassy snap and dense protective field thud, shared by both devices. Current [prompt](../../assets/audio/sfx/shield-block.json). Retain the shield's mint visual identity.

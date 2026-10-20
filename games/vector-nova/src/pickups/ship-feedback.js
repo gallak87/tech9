@@ -1,10 +1,12 @@
 import { createShipFeedback, disposeGroup } from './geometry.js';
 import { DEVICE_COLORS } from './theme.js';
 import { createArcFeedback } from './arc-feedback.js';
+import { energyCylinder, energyPlane } from './energy-material.js';
 
 const clamp = (value) => Math.max(0, Math.min(1, value));
 const kinds = ['vector', 'aegis', 'repulsor', 'arc', 'ion'];
 const ARC_TAIL = 0.65;
+const REPULSOR_TAIL = 0.42;
 
 // The exact hull feedback used in races and the dev inspector. No world, HUD
 // or audio owner is needed to draw an acquisition, shield or drive effect.
@@ -12,6 +14,16 @@ export function createShipFeedbackPresentation() {
   const feedback = createShipFeedback();
   const arc = createArcFeedback();
   feedback.group.add(arc);
+  const pressure = energyPlane('pressure', 2, 2);
+  const pressureShell = energyCylinder('crown');
+  pressure.name = 'Repulsor / hull discharge halo';
+  pressureShell.name = 'Repulsor / hull discharge shell';
+  pressure.position.y = 0.18;
+  pressureShell.position.y = -0.1;
+  feedback.group.add(pressure, pressureShell);
+  for (const mesh of [pressure, pressureShell])
+    mesh.material.uniforms.color.value.setHex(DEVICE_COLORS.repulsor);
+  let repulsorTime = 0;
   let arcTime = 0;
   let arcPeak = 0;
   let acquisitionTime = 0;
@@ -21,8 +33,9 @@ export function createShipFeedbackPresentation() {
   let expiryTime = 0;
   let hitSide = 1;
   function reset() {
-    acquisitionTime = hitTime = expiryTime = arcTime = 0;
+    acquisitionTime = hitTime = expiryTime = arcTime = repulsorTime = 0;
     arc.visible = false;
+    pressure.visible = pressureShell.visible = false;
     feedback.acquisition.visible = false;
     feedback.shield.visible = feedback.drive.visible = false;
   }
@@ -41,8 +54,11 @@ export function createShipFeedbackPresentation() {
       hitTime = Math.max(0, hitTime - dt);
       expiryTime = Math.max(0, expiryTime - dt);
       arcTime = Math.max(0, arcTime - dt);
+      repulsorTime = Math.max(0, repulsorTime - dt);
       for (const event of events) {
         const kind = event.payload?.kind;
+        if (kind === 'repulsor' && event.type === 'combat-fire')
+          repulsorTime = REPULSOR_TAIL;
         if (
           kind === 'arc' &&
           (event.type === 'pickup-activate' || event.type === 'combat-fire')
@@ -80,6 +96,19 @@ export function createShipFeedbackPresentation() {
       : arcPeak *
         (0.2 * arcDecay * arcDecay +
           0.8 * Math.exp(-(ARC_TAIL - arcTime) * 26));
+    // The traveling pressure front leaves the source quickly. A contained
+    // hull-sized afterglow keeps the discharge connected to the firing ship.
+    const pressureDecay = clamp(repulsorTime / REPULSOR_TAIL);
+    const pressureRadius =
+      3.6 + (currentSettings.reducedMotion ? 0 : (1 - pressureDecay) * 1.8);
+    pressure.visible = pressureShell.visible = driving && repulsorTime > 0;
+    pressure.scale.setScalar(pressureRadius);
+    pressureShell.scale.set(pressureRadius, 0.9, pressureRadius * 1.1);
+    for (const mesh of [pressure, pressureShell])
+      mesh.material.uniforms.strength.value =
+        pressureDecay *
+        pressureDecay *
+        (currentSettings.reducedMotion ? 0.25 : 0.75);
     const vector = effects.vectorActive === true;
     const aegis = Math.max(0, effects.aegisRemaining || 0);
     const acquisition = feedback.acquisition;

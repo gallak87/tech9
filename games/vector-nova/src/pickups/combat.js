@@ -416,7 +416,15 @@ export function createCombatSimulation({
             a.clone().lerp(b, first),
           );
           // Damage grace suppresses repeated impulses, not visible contact.
-          if (!applied)
+          if (!applied) {
+            const payload = {
+              source: shot.source,
+              target,
+              kind: 'arc',
+              position: a.clone().lerp(b, first).toArray(),
+            };
+            notify(shot.source, 'combat-contact', payload);
+            notify(target, 'combat-contact', payload);
             state.flashes.push({
               id: state.sequence++,
               target,
@@ -426,6 +434,7 @@ export function createCombatSimulation({
               age: 0,
               radius: 4,
             });
+          }
         }
         if (target || first < 1) return false;
         shot.position = b.toArray();

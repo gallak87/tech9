@@ -215,7 +215,10 @@ class Context {
 
 test('pickup audio is silent before gestures, while paused/muted and after disposal', async () => {
   const context = new Context();
-  const audio = createPickupAudio({ createContext: () => context });
+  const audio = createPickupAudio({
+    createContext: () => context,
+    samples: {},
+  });
   const event = { type: 'pickup-activate', payload: { kind: 'vector' } };
   audio.update({ volume: 0.35 }, true);
   audio.event(event);
@@ -261,7 +264,10 @@ test('blocked and absent AudioContext cannot prevent visual gameplay', async () 
   await unavailable.dispose();
   const context = new Context();
   context.fail = true;
-  const blocked = createPickupAudio({ createContext: () => context });
+  const blocked = createPickupAudio({
+    createContext: () => context,
+    samples: {},
+  });
   assert.equal(await blocked.unlock(), false);
   blocked.update({ volume: 1 }, true);
   blocked.event({ type: 'shield-hit' });
@@ -272,7 +278,10 @@ test('blocked and absent AudioContext cannot prevent visual gameplay', async () 
 
 test('acquisition signatures are distinct, finite and release every layered voice', async () => {
   const context = new Context();
-  const audio = createPickupAudio({ createContext: () => context });
+  const audio = createPickupAudio({
+    createContext: () => context,
+    samples: {},
+  });
   await audio.unlock();
   audio.update({ volume: 0.5 }, true);
   const busNodeCount = context.nodes.length;
@@ -337,6 +346,7 @@ test('failed audio unlock releases its graph and a later gesture can recover', a
   const recovered = new Context();
   let attempts = 0;
   const audio = createPickupAudio({
+    samples: {},
     createContext: () => (attempts++ ? recovered : failed),
   });
   assert.equal(await audio.unlock(), false);
@@ -606,7 +616,10 @@ test('all Aegis arches clear the whole chase corridor through pickup, braking an
 
 test('device voice priority preserves hits, fades stolen voices and owns sustained beds', async () => {
   const context = new Context();
-  const audio = createPickupAudio({ createContext: () => context });
+  const audio = createPickupAudio({
+    createContext: () => context,
+    samples: {},
+  });
   await audio.unlock();
   audio.update({ volume: 0.8 }, true);
   const bedGains = context.nodes

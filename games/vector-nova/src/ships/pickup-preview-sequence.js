@@ -6,7 +6,8 @@ import {
   ARC_TARGET_HALF_LENGTH,
 } from '../pickups/rules.js';
 
-export const PREVIEW_TARGET_DISTANCE = 14;
+// Leave room to read the traveling effects and the target's full silhouette.
+export const PREVIEW_TARGET_DISTANCE = 27.5;
 
 export const PICKUP_PREVIEWS = [
   { id: 'vector', label: 'Vector · catapult' },
@@ -24,27 +25,34 @@ const speed = 400 / 3.6;
 // Samples of presentation state, never a race, collision world or vehicle
 // simulation. Combat timings/speeds come directly from the game's rules.
 // The ship stays on its plinth; Ion's wake travels through its local frame.
-export function pickupPreviewFrame(kind, time, previous = -1, target = false) {
+export function pickupPreviewFrame(
+  kind,
+  time,
+  previous = -1,
+  target = false,
+  shielded = false,
+) {
   const events = [];
   const effects = {};
   const combat = { time, emitters: {}, shots: [], flashes: [], wakes: [] };
   const crossed = (at) => previous < at && time >= at;
   function targetHit(at, position, confirmed = true) {
-    if (confirmed && crossed(at))
+    const blocked = confirmed && shielded;
+    if (crossed(at))
       events.push({
-        type: 'combat-confirm',
+        type: confirmed ? 'combat-confirm' : 'combat-contact',
         payload: {
           kind,
           source: 'player',
           target: 'rook',
-          shielded: false,
+          shielded: blocked,
           position,
         },
       });
     const age = time - at;
     if (age >= 0 && age < 0.55)
       combat.flashes.push({
-        kind,
+        kind: blocked ? 'aegis' : kind,
         target: 'rook',
         position,
         quaternion,

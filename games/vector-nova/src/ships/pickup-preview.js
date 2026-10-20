@@ -1,7 +1,7 @@
 import { Group, Quaternion, Vector3 } from 'three';
 import { createShipFeedbackPresentation } from '../pickups/ship-feedback.js';
 import { createCombatPresentation } from '../pickups/combat-presentation.js';
-import { createArcHitFeedback } from '../pickups/arc-hit-feedback.js';
+import { createHitFeedback } from '../pickups/hit-feedback.js';
 import { createPickupPreviewAudio } from './pickup-preview-audio.js';
 import {
   PICKUP_PREVIEWS,
@@ -12,7 +12,6 @@ import {
 export function createPickupPreview({
   ship,
   target,
-  candidateURL,
   getSettings,
   onStatus = () => {},
   createAudio = createPickupPreviewAudio,
@@ -26,8 +25,10 @@ export function createPickupPreview({
   const pose = { position: new Vector3(), quaternion: new Quaternion() };
   let state = pickupPreviewFrame('arc', 0).combat;
   const combat = createCombat(root, { view: () => state, pose: () => pose });
-  const audio = createAudio({ candidateURL });
-  const targetFeedback = target ? createArcHitFeedback(target) : null;
+  const audio = createAudio();
+  const targetFeedback = target ? createHitFeedback(target) : null;
+  const targetShield = target ? createFeedback() : null;
+  if (targetShield) target.add(targetShield.group);
   let current = null,
     request = 0,
     disposed = false;
@@ -44,6 +45,7 @@ export function createPickupPreview({
     audio.stop();
     feedback.reset();
     targetFeedback?.update();
+    targetShield?.reset();
     root.visible = false;
     onStatus(status);
   }
@@ -53,12 +55,19 @@ export function createPickupPreview({
       current.time,
       previous,
       !!target,
+      current.shielded,
     );
     state = next.combat;
     const settings = getSettings();
     audio.update(settings, true);
     audio.setEffects(next.beds);
-    for (const event of next.events) audio.event(event);
+    for (const event of next.events) {
+      audio.event(event);
+      current.audioDuration = Math.max(
+        current.audioDuration,
+        current.time + (audio.duration?.(event) ?? 0),
+      );
+    }
     feedback.update({
       effects: next.effects,
       events: next.events,
@@ -67,16 +76,28 @@ export function createPickupPreview({
       settings,
     });
     combat.update({ mode: 'racing', settings });
-    targetFeedback?.update(
-      state.flashes.findLast(
-        (flash) => flash.target === 'rook' && flash.kind === 'arc',
-      )?.age,
-      settings,
+    const hit = state.flashes.findLast(
+      (flash) =>
+        flash.target === 'rook' && ['arc', 'repulsor'].includes(flash.kind),
     );
+    targetFeedback?.update(hit?.age, settings, hit?.kind);
+    const shieldHit = next.events.some(
+      (event) => event.type === 'combat-confirm' && event.payload.shielded,
+    );
+    if (shieldHit) current.shieldConsumed = true;
+    targetShield?.update({
+      effects: {
+        aegisRemaining: current.shielded && !current.shieldConsumed ? 1 : 0,
+      },
+      events: shieldHit ? [{ type: 'shield-hit' }] : [],
+      dt,
+      time: current.time,
+      settings,
+    });
     current.end = Math.max(next.end, current.audioDuration);
   }
   return {
-    async trigger(kind) {
+    async trigger(kind, { shielded = false } = {}) {
       if (disposed || !PICKUP_PREVIEWS.some((entry) => entry.id === kind))
         return false;
       stop('Preparing…');
@@ -84,13 +105,17 @@ export function createPickupPreview({
       try {
         const audioDuration = await audio.prepare(kind);
         if (disposed || token !== request) return false;
-        current = { kind, time: 0, audioDuration };
+        current = {
+          kind,
+          time: 0,
+          audioDuration,
+          shielded,
+          shieldConsumed: false,
+        };
         root.visible = true;
         render(-1);
         onStatus(
-          kind === 'arc'
-            ? `Arc · candidate activation + live FX${target ? ' · Rook target' : ''}`
-            : 'Playing',
+          `Playing${target ? ` · Rook ${shielded ? 'shielded' : 'target'}` : ''}`,
         );
         return true;
       } catch (error) {
@@ -124,6 +149,8 @@ export function createPickupPreview({
       feedback.dispose();
       combat.dispose();
       targetFeedback?.dispose();
+      targetShield?.dispose();
+      targetShield?.group.removeFromParent();
       root.removeFromParent();
       target?.removeFromParent();
     },

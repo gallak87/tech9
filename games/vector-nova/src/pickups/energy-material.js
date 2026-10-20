@@ -27,15 +27,26 @@ export function energyMaterial(style) {
         ${
           style === 'repulsor'
             ? `
-          float target=mix(.92,.32,age);
-          float arcs=pow(.5+.5*cos(angle*3.+time*8.*motion),5.);
-          float line=exp(-pow((radius-target)/.028,2.));
-          light=(line+exp(-pow((radius-target)/.095,2.))*.2)*(.25+.75*arcs);
-          light+=exp(-pow((radius-target-.13)/.015,2.))*.22;
-          core=line*arcs*.25;
+          float target=mix(.9,.72,clamp(age,0.,1.));
+          float lobes=.5+.5*pow(.5+.5*cos(angle*3.+time*3.*motion),3.);
+          float ring=exp(-pow((radius-target)/.05,2.));
+          float body=exp(-pow((radius-target+.09)/.13,2.));
+          light=(ring*.8+body*.38)*lobes;
+          light+=exp(-pow((radius-target-.09)/.014,2.))*.35;
+          core=ring*lobes*.32;
         `
-            : style === 'arc'
+            : style === 'repulsor-shell'
               ? `
+          float height=vUv.y;
+          float lobes=.48+.52*pow(.5+.5*cos(vUv.x*18.84956+time*3.*motion),3.);
+          float lower=exp(-pow((height-.2)/.085,2.));
+          float upper=exp(-pow((height-.73)/.065,2.));
+          float body=sin(height*3.14159)*.1;
+          light=(lower*.65+upper*.3+body)*lobes;
+          core=(lower+upper*.4)*lobes*.22;
+        `
+              : style === 'arc'
+                ? `
           float rail=abs(abs(p.x)-.55-sin(p.y*30.+time*25.*motion)*.012);
           float along=smoothstep(-.92,-.65,p.y)*(1.-smoothstep(.6,.95,p.y));
           light=(exp(-rail*100.)+exp(-rail*22.)*.2)*along;
@@ -43,8 +54,8 @@ export function energyMaterial(style) {
           light+=exp(-rail*35.)*cells*.65;
           core=exp(-rail*190.)*along*.35;
         `
-              : style === 'ion'
-                ? `
+                : style === 'ion'
+                  ? `
           float t=(p.y+1.)*.5;
           float x=p.x-.012*sin(p.y*12.+time*4.*motion);
           float rail=min(abs(x),abs(abs(x)-.4286));
@@ -52,8 +63,8 @@ export function energyMaterial(style) {
           light=(exp(-rail*62.)+exp(-rail*13.)*.22)*tail;
           core=exp(-rail*120.)*tail*.2;
         `
-                : style === 'bolt'
-                  ? `
+                  : style === 'bolt'
+                    ? `
           float along=smoothstep(0.,.16,vUv.y)*(1.-smoothstep(.78,1.,vUv.y));
           float jag=sin(p.y*21.+time*39.*motion)*sin(p.y*8.-time*13.*motion)*.045;
           float width=.16+.14*(1.-vUv.y);
@@ -63,20 +74,24 @@ export function energyMaterial(style) {
           float branch=abs(p.x-jag-.24*sin(p.y*11.+time*20.*motion));
           light+=exp(-branch*70.)*along*.38;
         `
-                  : style === 'crown'
-                    ? `
-          float height=vUv.y;
-          float fingers=pow(.5+.5*sin(vUv.x*94.+sin(vUv.x*31.)*2.),8.);
-          float front=exp(-pow((height-.1)/.024,2.));
-          light=front*.8+exp(-height*12.)*.08+fingers*pow(1.-height,6.)*.1;
-          core=front*.22;
-        `
-                    : style === 'pressure'
+                    : style === 'crown'
                       ? `
-          float arms=pow(max(0.,cos(angle*13.+sin(angle*5.))),40.);
-          light=arms*exp(-pow((radius-.72)/.21,2.));
+          float height=vUv.y;
+          float front=exp(-pow((height-.18)/.075,2.));
+          float roll=exp(-pow((height-.36)/.2,2.));
+          float edge=exp(-pow((height-.68)/.035,2.));
+          light=front*.85+roll*.28+edge*.17;
+          core=front*.24;
         `
-                      : `
+                      : style === 'pressure'
+                        ? `
+          float front=exp(-pow((radius-.87)/.026,2.));
+          float body=exp(-pow((radius-.79)/.085,2.));
+          float echo=exp(-pow((radius-.6)/.022,2.));
+          light=front*.8+body*.35+echo*.2;
+          core=front*.28;
+        `
+                        : `
           float arms=pow(abs(cos(angle*4.+.3)),22.);
           float shards=arms*exp(-radius*3.8)*smoothstep(.03,.12,radius);
           core=exp(-radius*radius*170.);
@@ -95,6 +110,14 @@ export function energyMaterial(style) {
 export function energyPlane(style, width, length) {
   const geometry = new T.PlaneGeometry(width, length);
   geometry.rotateX(-Math.PI / 2);
+  const mesh = new T.Mesh(geometry, energyMaterial(style));
+  mesh.userData.aoExclude = mesh.userData.reflectionExclude = true;
+  return mesh;
+}
+
+export function energyCylinder(style) {
+  const geometry = new T.CylinderGeometry(1, 1, 1, 64, 1, true);
+  geometry.translate(0, 0.5, 0);
   const mesh = new T.Mesh(geometry, energyMaterial(style));
   mesh.userData.aoExclude = mesh.userData.reflectionExclude = true;
   return mesh;

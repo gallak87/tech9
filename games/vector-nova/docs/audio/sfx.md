@@ -1,6 +1,6 @@
 # Sound effects
 
-Give pickups and ship feedback more weight, a recognizable identity and a clear attack without covering the music or other race cues. Start with one sound chosen by the user from the [current sound inventory](sounds.md). Codex handles prompting and generation; the user judges whether it sounds good. Keep one current prompt/settings file and WAV per effect, replacing revisions in place.
+Give pickups and ship feedback more weight, a recognizable identity and a clear attack without covering the music or other race cues. Work on a complete device sound set using the [expansion brief](../sounds/expansion.md), with individual cues from the [sound inventory](sounds.md). Codex handles prompting and generation; the user judges whether it sounds good. Keep one current prompt/settings file and WAV per effect, replacing revisions in place.
 
 ## Local setup
 
@@ -51,11 +51,11 @@ Open the game with `?dev=1` to compare the existing cues using its dropdown and 
 
 Check **Engine sound** to hear propulsion while the existing **Driving** and **Boost** buttons are pressed. It starts unchecked, follows effects volume/mute and goes silent when the window loses focus or the inspector closes. Powerup auditions can play over it.
 
-A Rook target sits ahead in the dev studio. Arc pellets stop at its hull and each contact pulses the same blue outline/glow used in gameplay; Repulsor also previews its contact flash. Damage grace still limits hit confirmations. The view starts from behind at a three-quarter angle, with auto-rotate off; drag to turn it. Without `dev=1`, the inspector has only its normal controls and no target or audition audio.
+A Rook target sits ahead in the dev studio. Arc pellets stop at its hull and each contact pulses the same blue outline/glow used in gameplay; Repulsor lights the struck hull rose. Check **Shield target** to audition the first hit against Aegis, with its mint block effect and shared block sound. Damage grace still limits hit confirmations. The view starts from behind at a three-quarter angle, with auto-rotate off; drag to turn it. Without `dev=1`, the inspector has only its normal controls and no target or audition audio.
 
-The inspector uses the current generated Arc activation candidate from `assets/audio/sfx/arc-activate.wav`; its shots and the other devices use their existing sounds. The candidate has not replaced gameplay activation audio. Listen to new WAVs directly first, then try promising candidates with the ship's actual effects. For engine layers, audition sustained texture separately from ignition and release; for pickups, judge the first instant, body and tail independently.
+Gameplay, Sounds and the inspector share generated Arc activation/impact, Repulsor charge/discharge/impact and shield-block samples from `assets/audio/sfx/`. Arc keeps its tuned synthesized shots. Attacker contacts are quieter than incoming hits; later Arc contacts during damage grace remain audible without extra damage. Arc/Repulsor end with their existing tails, with no extra expiry chime. Listen to complete sequences with propulsion and Tunes before considering a device finished. For engine layers, audition sustained texture separately from ignition and release; for pickups, judge the first instant, body and tail independently.
 
-After approval, trim and balance the sound against gameplay, decide stereo/mono and delivery format, and register its config/master/export and generation provenance in [ASSET_MANIFEST.json](../ASSET_MANIFEST.json). Loops need an audible seam check. Loudness, spatialization and event timing remain game integration work; louder generation alone does not establish a better pickup.
+Trim and balance each candidate against gameplay, decide stereo/mono and delivery format, and register its config/master/export and generation provenance in [ASSET_MANIFEST.json](../ASSET_MANIFEST.json). Loops need an audible seam check. The shared device bus decodes samples on unlock, caches them for its lifetime and sends them through the same voice budget, compressor, effects volume and underwater mix as synthesis. Failed loads retain procedural cues. Stop, pause, mute and disposal stop all owned voices. Loudness and spatialization still need listening; louder generation alone does not establish a better pickup.
 
 ## Source and licences
 

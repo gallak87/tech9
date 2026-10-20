@@ -8,7 +8,8 @@ import {
   MeshBasicMaterial,
   Vector3,
 } from 'three';
-import { createArcHitFeedback } from './arc-hit-feedback.js';
+import { createHitFeedback } from './hit-feedback.js';
+import { DEVICE_COLORS } from './theme.js';
 
 test('Arc response follows the complete hull, with a blue halo and a soft bounded envelope', () => {
   const ship = new Group();
@@ -26,7 +27,7 @@ test('Arc response follows the complete hull, with a blue halo and a soft bounde
   wing.add(tip);
   ship.add(body, wing, plume);
   const color = original.color.clone();
-  const feedback = createArcHitFeedback(ship);
+  const feedback = createHitFeedback(ship);
   assert.equal(
     feedback.group.children.length,
     4,
@@ -92,4 +93,32 @@ test('Arc response follows the complete hull, with a blue halo and a soft bounde
   geometry.dispose();
   original.dispose();
   plume.material.dispose();
+});
+
+test('Repulsor uses the same borrowed hull with a broader rose halo, and switching back restores Arc', () => {
+  const ship = new Group();
+  const geometry = new BoxGeometry();
+  const original = new MeshBasicMaterial();
+  ship.add(new Mesh(geometry, original));
+  const feedback = createHitFeedback(ship);
+  const [body, halo] = feedback.group.children;
+  feedback.update(0.08, {}, 'repulsor');
+  assert.equal(feedback.group.visible, true);
+  assert.equal(
+    body.material.uniforms.color.value.getHex(),
+    DEVICE_COLORS.repulsor,
+  );
+  assert.equal(body.material.uniforms.strength.value, 1);
+  const expanded = halo.material.uniforms.expansion.value;
+  feedback.update(0.08, { reducedMotion: true }, 'repulsor');
+  assert.equal(body.material.uniforms.strength.value, 0.45);
+  feedback.update(0.08, {}, 'arc');
+  assert.equal(body.material.uniforms.color.value.getHex(), DEVICE_COLORS.arc);
+  assert.ok(halo.material.uniforms.expansion.value < expanded);
+  feedback.update(0.08, {}, 'aegis');
+  assert.equal(feedback.group.visible, false);
+  assert.equal(body.material.uniforms.strength.value, 0);
+  feedback.dispose();
+  geometry.dispose();
+  original.dispose();
 });

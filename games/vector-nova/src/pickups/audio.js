@@ -4,11 +4,14 @@ const clamp = (value) =>
   Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
 
 import { deviceCue, createDeviceNoise } from './sound-design.js';
+import { DEVICE_SAMPLES, deviceSample } from './sample-cues.js';
 
 // This bus owns only immediate road-device cues. It never writes vehicle state.
 export function createPickupAudio({
   createContext = () => new AudioContext(),
   immersion = false,
+  samples = DEVICE_SAMPLES,
+  fetchAudio = (url, options) => fetch(url, options),
 } = {}) {
   let context;
   let master;
@@ -20,6 +23,8 @@ export function createPickupAudio({
   let disposed = false;
   let running = false;
   let volume = 0;
+  const buffers = new Map();
+  const requests = new AbortController();
   const shots = new Set();
   const tails = new Set();
   const stopShots = () => {
@@ -79,6 +84,24 @@ export function createPickupAudio({
             });
           }
           await context.resume();
+          if (!disposed && context.state === 'running')
+            await Promise.all(
+              Object.entries(samples).map(async ([id, url]) => {
+                if (buffers.has(id)) return;
+                try {
+                  const response = await fetchAudio(url, {
+                    signal: requests.signal,
+                  });
+                  if (!response.ok) return;
+                  const bytes = await response.arrayBuffer();
+                  if (disposed) return;
+                  const buffer = await context.decodeAudioData(bytes);
+                  if (!disposed) buffers.set(id, buffer);
+                } catch {
+                  // A missing sample retains the original procedural cue.
+                }
+              }),
+            );
           return !disposed && context.state === 'running';
         } catch {
           // Unsupported/blocked audio is optional; the complete visual cue remains.
@@ -132,8 +155,10 @@ export function createPickupAudio({
       if (!running || disposed || !context || context.state !== 'running')
         return;
       const notes = deviceCue(event);
-      if (!notes.length) return;
-      const priority = /hit|fire/.test(event.type)
+      const sample = deviceSample(event);
+      const buffer = sample && buffers.get(sample.id);
+      if (!notes.length && !buffer) return;
+      const priority = /hit|fire|confirm|contact/.test(event.type)
         ? 3
         : event.type === 'pickup-activate'
           ? 2
@@ -173,6 +198,24 @@ export function createPickupAudio({
         },
       };
       shots.add(shot);
+      if (buffer) {
+        const oscillator = context.createBufferSource();
+        const envelope = context.createGain();
+        oscillator.buffer = buffer;
+        envelope.gain.value = sample.gain;
+        const voice = { oscillator, envelope, ended: false };
+        voices.push(voice);
+        oscillator.connect(envelope).connect(master);
+        oscillator.onended = () => {
+          voice.ended = true;
+          oscillator.disconnect();
+          envelope.disconnect();
+          shots.delete(shot);
+          tails.delete(shot);
+        };
+        oscillator.start(now);
+        return;
+      }
       for (const [
         type,
         from,
@@ -222,6 +265,15 @@ export function createPickupAudio({
       }
     },
     silence,
+    duration(event) {
+      const sample = deviceSample(event);
+      const buffer = sample && buffers.get(sample.id);
+      if (buffer) return buffer.duration;
+      return Math.max(
+        0,
+        ...deviceCue(event).map((note) => note[3] + (note[5] ?? 0) + 0.025),
+      );
+    },
     getStatus() {
       return {
         unlocked: context?.state === 'running',
@@ -235,6 +287,7 @@ export function createPickupAudio({
     async dispose() {
       if (disposed) return;
       disposed = true;
+      requests.abort();
       silence();
       await pending;
       for (const bed of beds) {
@@ -247,6 +300,7 @@ export function createPickupAudio({
       compressor?.disconnect();
       master?.disconnect();
       waterMix?.dispose();
+      buffers.clear();
       if (context && context.state !== 'closed')
         await context.close().catch(() => {});
     },

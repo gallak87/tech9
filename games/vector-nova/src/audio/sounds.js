@@ -1,4 +1,4 @@
-// Audition entries use the same events and synthesis as gameplay. Shared cues
+// Audition entries use the same event sounds as gameplay. Shared cues
 // appear once; continuous engine/effect beds have short representative previews.
 const device = (id, label, type, payload = {}, seconds = 0.7) => ({
   id,
@@ -27,17 +27,61 @@ export const soundEffects = [
   device('repulsor-activate', 'Repulsor · charge', 'pickup-activate', {
     kind: 'repulsor',
   }),
-  device('arc-activate', 'Arc · activate', 'pickup-activate', {
-    kind: 'arc',
-  }),
+  device(
+    'arc-activate',
+    'Arc · activate',
+    'pickup-activate',
+    {
+      kind: 'arc',
+    },
+    1.4,
+  ),
   device('ion-activate', 'Ion · activate', 'pickup-activate', {
     kind: 'ion',
   }),
-  device('repulsor-fire', 'Repulsor · fire', 'combat-fire', {
-    kind: 'repulsor',
-  }),
+  device(
+    'repulsor-fire',
+    'Repulsor · fire',
+    'combat-fire',
+    {
+      kind: 'repulsor',
+    },
+    1.6,
+  ),
   device('arc-fire', 'Arc · fire', 'combat-fire', { kind: 'arc' }),
-  device('shield-hit', 'Aegis · absorb hit', 'shield-hit'),
+  device('arc-hit', 'Arc · hull impact', 'combat-hit', { kind: 'arc' }),
+  device(
+    'repulsor-hit',
+    'Repulsor · hull impact',
+    'combat-hit',
+    { kind: 'repulsor' },
+    1,
+  ),
+  device('arc-confirm', 'Arc · target contact', 'combat-confirm', {
+    kind: 'arc',
+  }),
+  device(
+    'repulsor-confirm',
+    'Repulsor · target contact',
+    'combat-confirm',
+    { kind: 'repulsor' },
+    1,
+  ),
+  device(
+    'arc-block',
+    'Arc · shield blocked',
+    'combat-confirm',
+    { kind: 'arc', shielded: true },
+    1,
+  ),
+  device(
+    'repulsor-block',
+    'Repulsor · shield blocked',
+    'combat-confirm',
+    { kind: 'repulsor', shielded: true },
+    1,
+  ),
+  device('shield-hit', 'Aegis · absorb hit', 'shield-hit', {}, 1),
   device('combat-hit', 'Combat · unshielded hit', 'combat-hit', {
     shielded: false,
   }),

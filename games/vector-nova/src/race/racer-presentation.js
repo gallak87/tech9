@@ -12,6 +12,7 @@ export async function createRacerPresentation({
   scene,
   track,
   combat = null,
+  settings = {},
   loadRival = createRivalPreview,
 }) {
   const ships = [];
@@ -24,7 +25,7 @@ export async function createRacerPresentation({
       ships.push({
         ship,
         opponent,
-        hitFeedback: combat ? createHitFeedback(ship.group) : null,
+        hitFeedback: combat ? createHitFeedback(ship.group, settings) : null,
         yaw: new Quaternion(),
         roll: new Quaternion(),
       });
@@ -57,7 +58,7 @@ export async function createRacerPresentation({
             flash.kind === 'aegis',
         );
         if (!show) {
-          hitFeedback?.update();
+          hitFeedback?.update(undefined, settings);
           continue;
         }
         const blend = mode === 'racing' ? MathUtils.clamp(alpha, 0, 1) : 1;

@@ -12,6 +12,7 @@ import {
   STEERING_ASSIST,
 } from '../src/physics/index.js';
 import { getRacerControl } from '../src/race/racers.js';
+import { SHIPS } from '../src/ships/catalog.js';
 import { createRace } from '../src/race/index.js';
 import {
   advanceSession,
@@ -67,7 +68,7 @@ function runJump(jump, speed, initial = {}) {
 // exposed isolated false-negative landings on the curved receiving deck.
 test('the crown flight covers its contiguous sampled launch window', (t) => {
   const failures = [];
-  for (const [index, low, high] of [[0, 105, 160]]) {
+  for (const [index, low, high] of [[0, 95, 173]]) {
     const jump = track.jumps[index];
     const landed = [];
     for (let speed = low; speed <= high; speed += 1) {
@@ -105,6 +106,54 @@ test('the crown flight covers its contiguous sampled launch window', (t) => {
     [],
     'a centered ballistic landing cannot disappear at isolated interior speeds',
   );
+});
+
+test('every chassis has cruise landing margin and retains the fast crown approach', () => {
+  for (const ship of SHIPS) {
+    for (const speed of [
+      95,
+      100,
+      103,
+      105,
+      ship.handling.cruiseSpeed,
+      600 / 3.6,
+    ]) {
+      const result = runJump(track.jumps[0], speed, {
+        shipId: ship.id,
+        lateral: 2,
+      });
+      try {
+        assert.equal(
+          result.transfer?.payload.outcome,
+          'landed',
+          `${ship.id} at ${speed} m/s`,
+        );
+        assert.ok(result.state.distance < track.jumps[0].landingEnd - 25);
+        assert.equal(result.state.resetCount, 0);
+      } finally {
+        result.adapter.dispose();
+      }
+    }
+    for (const speed of [95, 105]) {
+      for (const side of [-1, 1]) {
+        const result = runJump(track.jumps[0], speed, {
+          shipId: ship.id,
+          lateral: side * 5,
+          heading: side * 0.04,
+        });
+        try {
+          assert.equal(
+            result.transfer?.payload.outcome,
+            'landed',
+            `${ship.id} at ${speed} m/s, lane ${side * 5}, heading ${side * 0.04}`,
+          );
+          assert.equal(result.state.resetCount, 0);
+        } finally {
+          result.adapter.dispose();
+        }
+      }
+    }
+  }
 });
 
 test('short and misaligned launches recover once after elapsed simulation time', () => {

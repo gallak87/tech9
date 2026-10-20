@@ -2,7 +2,7 @@ import { createDeviceRuntime } from '../../pickups/runtime.js';
 import { createHalcyonDevices, HALCYON_TRACK_ID } from './devices.js';
 
 export const HALCYON_RULES_ID =
-  'halcyon-strips-v3-entry65-600kph-1800-aegis6-combat-layout1';
+  'halcyon-strips-v3-entry65-600kph-1800-aegis6-combat-layout2';
 export const HALCYON_DEVICE_IDENTITY = Object.freeze({
   id: 'halcyon-pickups',
   version: 5,

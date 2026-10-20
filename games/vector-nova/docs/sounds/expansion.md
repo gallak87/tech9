@@ -12,23 +12,6 @@ Generate one action per cue; code schedules the sequence from gameplay events. P
 
 Audition the whole sequence against the inspector target, then with **Shield target** checked and **Engine sound** on. Check incoming impacts separately in Sounds. The inspector, Sounds picker and gameplay use the same sound set and mix. Finish only after the owner likes the complete set, including repeated triggers and the mix with Tunes. Register source/config and edits in [ASSET_MANIFEST.json](../ASSET_MANIFEST.json). Setup and commands live in the [generation guide](../audio/sfx.md); the [inventory](../audio/sounds.md) lists isolated cues.
 
-## Arc and Repulsor coverage
-
-Arc, Aegis and Repulsor are approved. Preserve their character and shared event routing.
-
-| Stage                        | Arc                                                                                 | Repulsor                                                              |
-| ---------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Activation / charge          | Generated smooth electrical whip, retained                                          | Generated compressed electromagnetic rise, fitted to the 0.5 s charge |
-| Use                          | Retained deep synthesized pellet shots the owner liked; three separate events       | Generated rounded pressure discharge at 0.5 s                         |
-| Target contact               | Generated electric armor impact at lower gain                                       | Generated cushioned pressure impact at lower gain                     |
-| Incoming hit                 | Same impact at full cue gain                                                        | Same impact at full cue gain                                          |
-| Shielded hit                 | Shared generated warp collapse; no duplicate hull impact                            | Same shared shield block                                              |
-| Contacts during damage grace | Quieter physical impacts for the remaining pellets; no extra damage or confirmation | No repeated pulse contacts                                            |
-| Finish                       | Last shot/activation tails; no extra expiry chime                                   | Discharge tail; no extra expiry chime                                 |
-| Unavailable / cancellation   | Unavailable is silent; reset cancels owned voices                                   | Same shared behavior                                                  |
-
-The attacker's contact sound replaces the old confirmation beep. A victim's shield hit owns the block cue; the shielded damage notification remains silent. Range, damage grace and event timing stay unchanged.
-
 ## Reusable cue prompt
 
 ```text
@@ -49,30 +32,11 @@ padding, balance the cue, and connect it to the shared device audio bus.
 Review it in the complete device sequence, including impact and block.
 ```
 
-## Current direction
+## Accepted character
 
-**Arc:** a controlled electrical whip into the existing deep pellet launches; target impacts combine a compact crack and rounded armor body. The branching hull corona follows activation and each shot, while blue target outlines/glow follow contacts. Keep the ending gentle. Current prompts: [activation](../../assets/audio/sfx/arc-activate.json), [impact](../../assets/audio/sfx/arc-hit.json).
+- **Arc:** smooth electrical whip, deep pellet launches and compact rounded armor impacts. Keep the existing synthesized shots; generated activation and impacts share the actual shot/contact events.
+- **Repulsor:** magnetic compression into a bass pressure punch, with a cushioned target impact. Keep the upper shelf and presence band soft.
+- **Aegis:** broad warp start and rounded warp collapse. No sustained hum; propulsion fills that space. Avoid raspy, shrill or brittle glass textures. One shared collapse serves blocks, expiry and cancellation, with event-specific gain.
+- **Ion and Vector:** retain their current synthesis. Ion fades its bed on expiry; unavailable pickups and Vector cancellation are intentionally silent.
 
-**Repulsor:** compressed air and magnetic tension gather around the ship, then release as a rounded bass pressure punch. The rose charge shell, layered pulse and short source afterglow follow that shape; the struck hull gives a cushioned, weighty impact. All three current samples soften the upper shelf and presence band while retaining their low body and event timing. Current prompts: [charge](../../assets/audio/sfx/repulsor-charge.json), [discharge](../../assets/audio/sfx/repulsor-fire.json), [impact](../../assets/audio/sfx/repulsor-hit.json).
-
-**Shield block:** a thick warp collapse with rounded bass and audible midrange body, shared by both devices. Aegis start and collapse cut the raspy midrange and upper frequencies, soften their attacks and control peaks without makeup gain or longer tails. Current [prompt](../../assets/audio/sfx/shield-block.json). Retain the shield's mint visual identity.
-
-**Ion:** retain its existing activation, bed and hit cues, with the shared Aegis block. Fade the bed when emission ends; no expiry chime or unavailable tick. Violet plasma pulses and a rolling hull glow show ongoing wake contact; the inspector auditions incoming hits on the player.
-
-## Aegis coverage
-
-Aegis forms with a broad warp surge and collapses with a resonant magnetic pulse. Keep the middle silent: propulsion already fills that space. Its bright mint shell and dim moving trail remain visible while active; a hit spreads fractures through the shell before it dissolves. Natural expiry fades without fractures.
-
-| Stage                          | Sound                                                                                                  |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| Activation                     | Generated [warp start](../../assets/audio/sfx/aegis-activate.json)                                     |
-| Protected / driving            | Intentional silence; no sustained hum                                                                  |
-| Incoming hit / shield consumed | Generated [warp collapse](../../assets/audio/sfx/shield-block.json), with no duplicate hull-impact cue |
-| Attacker hears blocked hit     | Same collapse at lower gain                                                                            |
-| Natural expiry                 | Same collapse, slightly softer                                                                         |
-| Cancellation                   | Same collapse, quieter still; reset/Stop cancels owned voices                                          |
-| Unavailable                    | Intentional silence; HUD feedback remains                                                              |
-
-Review **Aegis · absorb + break** for the hit sequence and **Aegis · shield** for its full duration and natural expiry. Toggle Driving for the trail and Engine sound for the mix.
-
-The current sound set is graduated: sample-backed cues have no alternate synthesis or fallback. Keep one implementation per cue across gameplay and both previews. Arc firing, Ion, Vector and propulsion retain their intended synthesis; race announcements remain queued in the roadmap.
+The [inventory](../audio/sounds.md) is the cue reference; current JSON prompts and WAV masters live in `assets/audio/sfx/`. Gameplay and both previews use the same cue routing and samples, with no procedural fallback for replaced sounds. Attacker contacts are quieter than incoming hits; shield blocks do not also play a hull impact. Race announcements remain in the roadmap.

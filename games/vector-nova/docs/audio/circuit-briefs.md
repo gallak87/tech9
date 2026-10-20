@@ -1,6 +1,6 @@
 # Circuit music directions
 
-These are provisional seeds derived from the current level metadata and [art direction](../ART_BIBLE.md). Finish the [Halcyon pilot](halcyon.md) before turning them into individual production briefs. Circuit numbers follow the actual picker order; `orbital` is Asterion's implementation slug.
+These are provisional seeds derived from the current level metadata and [art direction](../ART_BIBLE.md). Use [Blue Hour](halcyon.md) as the accepted starting point; create a short current brief when a circuit enters production. Circuit numbers follow the actual picker order; `orbital` is Asterion's implementation slug.
 
 Shared family: forward motion, deliberate electronic sound design, a distinct short motif for each world and room for gameplay feedback. Differentiate tracks through rhythm, harmony and arrangement as well as instrument color. Difficulty does not require monotonically increasing BPM.
 
@@ -16,6 +16,9 @@ Shared family: forward motion, deliberate electronic sound design, a distinct sh
 | 08 Zephyr Basilica / `zephyr`    | Floating cathedrals and waterfall transfers; soaring breadth                      | Bell-like tones, airy harmonic layers and a buoyant broken beat                                  | Waterfall passages and nave turns; keep long tails from blurring rhythmic detail                     |
 | 09 Helion Flare / `helion`       | Solar observatory, white heat and shelter; exposure and relief                    | Tight driving pulse, bright harmonic tension and alternating dense/open phrases                  | Heat/cooling feedback and flare evasion; avoid making every phrase an alarm                          |
 | 10 Umbra Fold / `umbra`          | Ruined observatory and tidal gravity; controlled unease                           | Displaced accents over a dependable pulse, descending bass shapes and slow harmonic drift        | Gravity guidance and curved flights; disorientation belongs in color, not loss of rhythmic footing   |
+| 11 Shatterline / `shatterline`   | Ruined mountain mass driver; accelerating descent                                 | Industrial syncopation, rounded bass, rising harmonic pressure                                   | Long flights and landing cues; clear changes without brittle highs                                   |
+| 12 Worldspire / `worldspire`     | Mineral megastructure and cloud seas; scale and discovery                         | Wide sustained chords, weighty broken beats, contrasting open passages                           | Keep propulsion and long-flight cues readable                                                        |
+| 13 Nightweir / `nightweir`       | Flooded midnight city; momentum and tension                                       | Deep rolling bass, restrained metallic rhythm, submerged textures                                | Establish the groove immediately; leave room for water and contact sounds                            |
 
 Instrument words describe design ideas; they do not imply a sample library or generated asset has been selected. Listen to the whole set at comparable loudness before fixing final delivery levels. Revisit Nacre's treatment explicitly: its current full-mix underwater behavior is an established feature, and any different policy for music needs a deliberate decision.
 

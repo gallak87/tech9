@@ -3,6 +3,19 @@ import { DEVICE_COLORS } from './theme.js';
 import { createArcFeedback } from './arc-feedback.js';
 import { energyCylinder, energyPlane } from './energy-material.js';
 import { AEGIS_BREAK_DURATION } from './rules.js';
+import { createQualityPresentation } from './quality.js';
+import { createLowShipFeedback } from './low-feedback.js';
+
+export function createShipFeedbackPresentation(settings = {}) {
+  return createQualityPresentation(
+    settings,
+    (quality) =>
+      quality === 'low'
+        ? createLowShipFeedback()
+        : createDetailedShipFeedback(),
+    (frame) => frame?.settings,
+  );
+}
 
 const clamp = (value) => Math.max(0, Math.min(1, value));
 const kinds = ['vector', 'aegis', 'repulsor', 'arc', 'ion'];
@@ -11,7 +24,7 @@ const REPULSOR_TAIL = 0.42;
 
 // The exact hull feedback used in races and the dev inspector. No world, HUD
 // or audio owner is needed to draw an acquisition, shield or drive effect.
-export function createShipFeedbackPresentation() {
+function createDetailedShipFeedback() {
   const feedback = createShipFeedback();
   const arc = createArcFeedback();
   feedback.group.add(arc);

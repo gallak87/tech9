@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { DEVICE_COLORS } from './theme.js';
 
 // Projected edge light keeps the running surface readable on banks and rolls.
-// A shader supplies soft spill even with bloom disabled in the Low preset.
+// High's shader supplies soft spill; Low uses plain projected markings.
 export function createDeviceSignal(device, projector, mountHeight) {
   const width = device.width / 2;
   const length = device.length / 2;

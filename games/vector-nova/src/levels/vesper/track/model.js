@@ -1,7 +1,7 @@
 import * as T from 'three';
 import { cacheClosedCatmullRom } from '../../../track/cached-curve.js';
 
-export const VESPER_REVISION = 'vesper-route-5-canopy-verticals';
+export const VESPER_REVISION = 'vesper-route-6-crown-receiver';
 const wrap = (s, length) => ((s % length) + length) % length;
 const PLAN = [
   [-280, -300],
@@ -45,8 +45,10 @@ const ELEVATIONS = [
   [13, 207],
   [14, 220],
   [15, 232],
-  [16, 205],
-  [17, 200],
+  // Lower the receiving span smoothly: its front lip is 2.25 m lower,
+  // giving ordinary cruise launches margin without altering the takeoff.
+  [16, 193],
+  [17, 188],
   [19, 180],
   [21, -25],
   [24, 270],
@@ -78,8 +80,8 @@ export function createVesperTrack() {
       planLength
     );
   };
-  // The crown landing stays intact. Beyond it, three sustained grades drop
-  // into the canopy, climb through Bloomspan, then dive into Rootfall.
+  // Beyond the lowered crown receiver, three sustained grades drop into the
+  // canopy, climb through Bloomspan, then dive into Rootfall.
   const grades = ELEVATIONS.map(([node, height]) => ({
     u: nodeU(node),
     y: height * 0.82,

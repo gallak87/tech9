@@ -19,6 +19,7 @@ export function createDevices(track) {
   }));
   const shields = [
     ['ribshadow', 540, 3],
+    ['vista', track.landmarks.vistaStart - 45, -3],
     ['marrow', track.landmarks.skullStart - 80, -3],
     ['return', track.sections.find((s) => s.id === 'return').start + 80, 3],
   ].map(([id, distance, lateral]) => ({
@@ -30,5 +31,25 @@ export function createDevices(track) {
     length: 8,
     label: `${id} Aegis`,
   }));
-  return createDeviceLayout(track, [...vectors, ...shields]);
+  // Wide, shallow approach/Vista sightlines suit Arc. Ion starts well before
+  // the skull descent; the Marrow shield offers counterplay before the spine.
+  // Both vertebral catches stay clear: the pack pulse waits for Amber's shelf.
+  const combat = [
+    ['anchorage-arc', 'arc', 200, -6],
+    ['vista-arc', 'arc', 1600, 6],
+    ['vista-ion', 'ion', 2000, -6],
+    ['amber-repulsor', 'repulsor', 4400, 6],
+  ].map(([id, type, distance, lateral]) => ({
+    id,
+    type,
+    distance,
+    lateral,
+    width: 5,
+    length: 10,
+    label: id.replaceAll('-', ' '),
+  }));
+  return createDeviceLayout(
+    track,
+    [...vectors, ...shields, ...combat].sort((a, b) => a.distance - b.distance),
+  );
 }

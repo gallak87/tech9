@@ -8,4 +8,4 @@ Blue Hour's accepted direction is 128 BPM / F♯ minor / 4/4: rolling sub-bass, 
 
 The user has approved the musical direction; gameplay balance and the repeat seam still need listening feedback. Other `mix` songs can explore different BPMs, harmonies and rhythms without being assigned to Halcyon.
 
-For eventual full integration, decide how music follows race pause/restart, recovery and level exit; retain position across laps and protect essential race cues. Tunes currently starts from the launch interaction and otherwise remains an independent audition player. Musical sections need not align with corners or a fixed lap time.
+Tunes uses the shared playback behavior in the [audio guide](README.md#in-game-audition). Musical sections need not align with corners or a fixed lap time.

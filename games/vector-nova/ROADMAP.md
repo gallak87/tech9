@@ -41,6 +41,7 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 - [ ] Human driving review of [Worldspire](docs/levels/worldspire.md) and [Nightweir](docs/levels/nightweir.md): compact 13.1 km and 12.4 km races, nine/eight jumps, three corkscrews each, distinct textured edges and distance-linked Awakening/Floodgates events. Both include a 650 m braking runout and are authorized for production completion.
 
 - [ ] Review [Saffron surroundings](docs/expansion/saffron.md) against the canonical 40 m roadway and address confirmed clearance issues.
+- [ ] Investigate Vesper's existing Bloomspan inversion regression at lateral −8 m and 112 m/s in `tools/vesper-magnetic.test.mjs`. It reports an incomplete traversal on both the original and lowered Crown-receiver routes; distinguish a traversal problem from the test's time budget. Crown landing and full rival races pass separately.
 - [ ] Scope Umbra Fold’s adjacent scenery/support/observatory refit against the canonical 35 m roadway.
 - [ ] Cindercoil: add player-facing lava-contact flames and lingering ship/HUD smoke or heat feedback. The existing crater-spill glow and road-contact smoke are already implemented; reuse Helion's effects where appropriate.
 - [ ] Reproduce any remaining Halcyon white-ground/lane-marking flicker and Asterion road flicker on the current build before changing them. Halcyon's underlay depth fix and both circuits' subsequent road finishes have shipped; the older reports are not confirmed current defects.
@@ -64,8 +65,8 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 
 ## Future race modes and systems
 
-- [x] Halcyon combat experiment in the actions worktree: automatic Repulsor, Arc burst and Ion wake gates; opening Aegis counterplay, independent per-racer collection, rival avoidance, bounded knockback and replay support.
-- [ ] Human driving/tuning review of the Halcyon combat experiment before placing offensive devices on other circuits. Built-in ship abilities and upgrade systems remain deferred.
+- [x] Full pickup coverage across all thirteen production maps: Vector, Aegis, Repulsor, Arc and Ion, with circuit-owned optional lanes, shield counterplay and jump/recovery clearance. Preserve independent per-racer collection, rival avoidance and deterministic combat/replay.
+- [ ] Human race-balance pass on the full pickup layouts: tune weapon frequency and shield availability against real pack spacing, especially on long sprints. Built-in ship abilities and upgrade systems remain deferred.
 
 - [ ] Consider briefings and a podium presentation after the prioritized modes and results flows are complete.
 - [ ] Consider expansion beyond the delivered ten-racer field only after measuring performance and independent finishes.

@@ -404,6 +404,7 @@ export async function createGame({
             scene,
             track,
             combat,
+            settings,
           }),
         )
       : null;

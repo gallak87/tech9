@@ -12,9 +12,27 @@ export function createDevices(track) {
   const shields = [
     ['shield-wall', zone('wall-shade').start - 20, -4],
     ['exchange', midpoint('cooling-umbrae'), 4],
+    ['coronal', zone('prominence-sweep').start - 40, 4],
     ['afterglow', zone('afterglow-sweep').end + 45, -4],
   ];
-  return createDeviceLayout(track, [
+  // Keep both vaults and the changing wall-ride bank free of attack gates.
+  // Ion starts after the Prominence sweep on the long Coronal chase, with
+  // shields before it and at Afterglow. The following Arc waits out that wake.
+  const combat = [
+    ['dock-arc', 'arc', 180, -6],
+    ['exchange-repulsor', 'repulsor', 2280, 6],
+    ['coronal-ion', 'ion', 3550, -6],
+    ['afterglow-arc', 'arc', 4400, 6],
+  ].map(([id, type, distance, lateral]) => ({
+    id,
+    type,
+    distance,
+    lateral,
+    width: 5,
+    length: 10,
+    label: id.replaceAll('-', ' '),
+  }));
+  const plan = [
     ...vectors.map(([id, distance]) => ({
       id: `${id}-vector`,
       type: 'vector',
@@ -33,5 +51,10 @@ export function createDevices(track) {
       length: 8,
       label: `${id} Aegis`,
     })),
-  ]);
+    ...combat,
+  ];
+  return createDeviceLayout(
+    track,
+    plan.sort((a, b) => a.distance - b.distance),
+  );
 }

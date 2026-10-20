@@ -11,9 +11,28 @@ export function createDevices(track) {
   const shields = [
     ['lensward', 875, 3],
     ['knot', 3035, -3],
+    ['fold', 4290, -3],
     ['return', 4860, 3],
   ];
-  return createDeviceLayout(track, [
+  // The Stacks pulse starts before the tide warning. Arc uses the settled
+  // Lensward recovery and lower Fold shelf, never a curved launch or inversion.
+  // Ion waits until the return tide has ended, leaving a full grounded chase
+  // through the start before the next offensive gate.
+  const combat = [
+    ['stacks-repulsor', 'repulsor', 850, -6],
+    ['lens-recovery-arc', 'arc', 1800, 6],
+    ['fold-arc', 'arc', 4500, -6],
+    ['meridian-ion', 'ion', 5200, 6],
+  ].map(([id, type, distance, lateral]) => ({
+    id,
+    type,
+    distance,
+    lateral,
+    width: 5,
+    length: 10,
+    label: id.replaceAll('-', ' '),
+  }));
+  const plan = [
     ...vectors.map(([id, distance]) => ({
       id: `${id}-vector`,
       type: 'vector',
@@ -32,5 +51,10 @@ export function createDevices(track) {
       length: 8,
       label: `${id} Aegis`,
     })),
-  ]);
+    ...combat,
+  ];
+  return createDeviceLayout(
+    track,
+    plan.sort((a, b) => a.distance - b.distance),
+  );
 }

@@ -5,11 +5,24 @@ import { energyCylinder, energyPlane } from './energy-material.js';
 import { COMBAT_RULES } from './combat.js';
 import { ARC_SHOT_HEIGHT, ARC_MUZZLE_HEIGHT } from './rules.js';
 import { disposeGroup } from './geometry.js';
+import { createQualityPresentation } from './quality.js';
+import { createLowCombatPresentation } from './low-combat.js';
 
 const BOLT_LENGTH = 16;
 const BOLT_WIDTH = 2.8;
 
-export function createCombatPresentation(scene, combat) {
+export function createCombatPresentation(scene, combat, settings = {}) {
+  return createQualityPresentation(
+    settings,
+    (quality) =>
+      quality === 'low'
+        ? createLowCombatPresentation(scene, combat)
+        : createDetailedCombatPresentation(scene, combat),
+    (frame) => frame?.settings,
+  );
+}
+
+function createDetailedCombatPresentation(scene, combat) {
   const root = new T.Group();
   root.name = 'Automatic combat / pulses, bolts and wakes';
   scene.add(root);
@@ -72,6 +85,7 @@ export function createCombatPresentation(scene, combat) {
   const ribbon = createIonRibbon(root);
   const visualOffset = new T.Vector3();
   return {
+    group: root,
     update({ mode, enabled = true, settings = {} }) {
       root.visible = enabled && ['racing', 'paused'].includes(mode);
       if (!root.visible) return;

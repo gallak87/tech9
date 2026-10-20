@@ -13,6 +13,8 @@ import { deviceCSSColor } from './theme.js';
 import { createShipFeedbackPresentation } from './ship-feedback.js';
 import { AEGIS_DURATION } from './rules.js';
 import { createHitFeedback } from './hit-feedback.js';
+import { pickupQuality } from './quality.js';
+import { createLowDeviceGeometry } from './low-geometry.js';
 import './style.css';
 
 const clamp = (value) => Math.max(0, Math.min(1, value));
@@ -89,22 +91,33 @@ export function createPickupPresentation({
   const root = new THREE.Group();
   root.name = 'Circuit / immediate road devices';
   scene.add(root);
-  const projector = createRoadProjector(track);
-  const hardware = devices.map((device) => {
-    const mountHeight = roadDeviceMountHeight(surfaces, device, projector);
-    const createGeometry = isCombatDevice(device.type)
-      ? createCombatDeviceGeometry
-      : createDeviceGeometry;
-    const visual = createGeometry(track, device, projector, {
-      mountHeight,
+  let quality = pickupQuality(settings);
+  let hardware = [];
+  function buildHardware() {
+    for (const visual of hardware) disposeGroup(visual.group);
+    const projector = createRoadProjector(track);
+    hardware = devices.map((device) => {
+      const mountHeight = roadDeviceMountHeight(surfaces, device, projector);
+      const createGeometry =
+        quality === 'low'
+          ? createLowDeviceGeometry
+          : isCombatDevice(device.type)
+            ? createCombatDeviceGeometry
+            : createDeviceGeometry;
+      const visual = createGeometry(track, device, projector, { mountHeight });
+      root.add(visual.group);
+      return { ...visual, device };
     });
-    root.add(visual.group);
-    return { ...visual, device };
-  });
-  projector.dispose();
-  const combatVisual = combat ? createCombatPresentation(scene, combat) : null;
-  const ionHit = combat ? createHitFeedback(ship.group || ship) : null;
-  const feedback = createShipFeedbackPresentation();
+    projector.dispose();
+  }
+  buildHardware();
+  const combatVisual = combat
+    ? createCombatPresentation(scene, combat, settings)
+    : null;
+  const ionHit = combat
+    ? createHitFeedback(ship.group || ship, settings)
+    : null;
+  const feedback = createShipFeedbackPresentation(settings);
   (ship.group || ship).add(feedback.group);
   const audio = createPickupAudio({ immersion: Boolean(audioImmersion) });
   const hud = document.createElement('aside');
@@ -196,9 +209,18 @@ export function createPickupPresentation({
       settings: nextSettings = currentSettings,
     }) {
       if (disposed) return;
+      if (quality !== pickupQuality(nextSettings)) {
+        quality = pickupQuality(nextSettings);
+        buildHardware();
+      }
       combatVisual?.update({ mode, enabled, settings: nextSettings });
       if (!enabled) {
-        ionHit?.update();
+        ionHit?.update(undefined, nextSettings);
+        feedback.update({
+          racing: false,
+          driving: false,
+          settings: nextSettings,
+        });
         root.visible = feedback.group.visible = false;
         hud.hidden = true;
         silence();

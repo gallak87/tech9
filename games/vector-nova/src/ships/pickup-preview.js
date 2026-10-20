@@ -21,7 +21,7 @@ export function createPickupPreview({
 }) {
   const root = new Group();
   root.name = 'Inspector / isolated pickup audition';
-  const feedback = createFeedback();
+  const feedback = createFeedback(getSettings());
   root.add(feedback.group);
   const pose = { position: new Vector3(), quaternion: new Quaternion() };
   const targetPose = {
@@ -29,20 +29,26 @@ export function createPickupPreview({
     quaternion: new Quaternion(),
   };
   let state = pickupPreviewFrame('arc', 0).combat;
-  const combat = createCombat(root, {
-    view: () => state,
-    pose: (id) => (id === 'rook' ? targetPose : pose),
-  });
+  const combat = createCombat(
+    root,
+    {
+      view: () => state,
+      pose: (id) => (id === 'rook' ? targetPose : pose),
+    },
+    getSettings(),
+  );
   let playerFeedback;
   function attachPlayer(next) {
     playerFeedback?.dispose();
-    playerFeedback = next ? createHitFeedback(next) : null;
+    playerFeedback = next ? createHitFeedback(next, getSettings()) : null;
     if (playerFeedback) root.add(playerFeedback.group);
   }
   attachPlayer(ship);
   const audio = createAudio();
-  const targetFeedback = target ? createHitFeedback(target) : null;
-  const targetShield = target ? createFeedback() : null;
+  const targetFeedback = target
+    ? createHitFeedback(target, getSettings())
+    : null;
+  const targetShield = target ? createFeedback(getSettings()) : null;
   if (targetShield) target.add(targetShield.group);
   let current = null,
     request = 0,

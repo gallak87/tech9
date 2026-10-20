@@ -3,6 +3,7 @@ import { createDeviceLayout } from '../../pickups/layout.js';
 // Long visible setup shelves give the two mandatory leaps earned launch speed.
 // The nave receives protection rather than an acceleration impulse on its wall.
 export function createDevices(track) {
+  const section = (id) => track.sections.find((item) => item.id === id);
   return createDeviceLayout(track, [
     ...[
       ['mooring', 65, 42],
@@ -34,5 +35,21 @@ export function createDevices(track) {
       width: 8,
       label: `${id} Aegis`,
     })),
-  ]);
+    // The sailcourt's broad bank and the later terraces give combat a visible
+    // racing line. Leave the falls, nave wall and chapel recovery to driving.
+    ...[
+      ['sailcourt', 'arc', section('sailcourt').start + 175, -7],
+      ['halo', 'repulsor', section('halo').start + 235, 7],
+      ['halo-exit', 'ion', section('halo').end - 150, -7],
+      ['bronzewake', 'arc', track.landmarks.return.s + 140, 7],
+    ].map(([id, type, distance, lateral]) => ({
+      id: `${id}-${type}`,
+      type,
+      distance,
+      lateral,
+      length: 10,
+      width: 5,
+      label: `${id} ${type}`,
+    })),
+  ]).sort((a, b) => a.distance - b.distance);
 }

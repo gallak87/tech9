@@ -8,10 +8,38 @@ import {
   ShaderMaterial,
 } from 'three';
 import { DEVICE_COLORS } from './theme.js';
+import { createQualityPresentation } from './quality.js';
+import { createLowHitFeedback } from './low-feedback.js';
+
+export function createHitFeedback(ship, settings = {}) {
+  // Capture hull parts before attaching feedback or the inspector's dev target.
+  // A quality change must not accidentally include those later descendants.
+  const hull = [];
+  ship.traverse((object) => {
+    if (
+      !object.isMesh ||
+      object.userData.exhaustHeat ||
+      object.userData.aoExclude
+    )
+      return;
+    const materials = Array.isArray(object.material)
+      ? object.material
+      : [object.material];
+    if (!materials.every((material) => material.transparent)) hull.push(object);
+  });
+  return createQualityPresentation(
+    settings,
+    (quality) =>
+      quality === 'low'
+        ? createLowHitFeedback(ship, hull)
+        : createDetailedHitFeedback(ship, hull),
+    (_age, nextSettings) => nextSettings,
+  );
+}
 
 // Borrow the actual hull geometry so the response covers every chassis part.
 // Device-colored envelopes preserve the chassis detail and its own materials.
-export function createHitFeedback(ship) {
+function createDetailedHitFeedback(ship, hull) {
   const group = new Group();
   group.name = 'Combat / hull hit outline';
   group.visible = false;
@@ -53,7 +81,7 @@ export function createHitFeedback(ship) {
         gl_FragColor = vec4(color, opacity * strength);
       }`,
   });
-  // A wider additive rim stays visible at Low quality without a bloom pass.
+  // A wider additive rim complements the detailed hull outline.
   const glow = material.clone();
   glow.name = 'Combat / hit halo';
   glow.blending = AdditiveBlending;
@@ -69,17 +97,7 @@ export function createHitFeedback(ship) {
       gl_FragColor = vec4(color, rim * .32 * strength * mix(1., .3 + band * .7, interference));
     }`;
   const parts = [];
-  ship.traverse((object) => {
-    if (
-      !object.isMesh ||
-      object.userData.exhaustHeat ||
-      object.userData.aoExclude
-    )
-      return;
-    const materials = Array.isArray(object.material)
-      ? object.material
-      : [object.material];
-    if (materials.every((entry) => entry.transparent)) return;
+  for (const object of hull) {
     for (const surface of [material, glow]) {
       const mesh = new Mesh(object.geometry, surface);
       mesh.name = 'Combat hit / ' + object.name;
@@ -88,7 +106,7 @@ export function createHitFeedback(ship) {
       group.add(mesh);
       parts.push({ source: object, mesh });
     }
-  });
+  }
   ship.add(group);
   const inverse = new Matrix4();
   let disposed = false;

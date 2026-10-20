@@ -1,3 +1,5 @@
+import { createDeviceLayout } from '../../pickups/layout.js';
+
 export const HALCYON_TRACK_ID = 'halcyon-viaduct-4-compact';
 
 // Authored metres on the existing 5 km route. Lateral follows track.sample's
@@ -68,13 +70,14 @@ const PLAN = [
 
 export function createHalcyonDevices(track) {
   if (track?.id !== HALCYON_TRACK_ID) return [];
-  return [...PLAN, ...COMBAT_PLAN]
-    .map((device) => ({ ...device }))
-    .sort((a, b) => a.distance - b.distance);
+  return createDeviceLayout(
+    track,
+    [...PLAN, ...COMBAT_PLAN].sort((a, b) => a.distance - b.distance),
+  );
 }
 
-// First combat experiment: short-range opening, a lingering pursuit hazard,
-// then a forward burst on the transit approach. Existing hardware stays put.
+// A short-range opening, a pursuit wake, then separated forward bursts.
+// Optional side lanes and fresh protection keep the warm-up circuit forgiving.
 const COMBAT_PLAN = [
   {
     id: 'aegis-launch',
@@ -111,13 +114,24 @@ const COMBAT_PLAN = [
   {
     id: 'arc-transit',
     type: 'arc',
-    distance: 1130,
+    distance: 1450,
     lateral: 6,
     width: 5,
     length: 10,
-    label: 'Transit arc burst',
+    label: 'Gallery arc burst',
     rationale:
-      'Forward sightline toward the next racer and the transit boost strip.',
+      'Beyond the transit strip, leaving enough distance for the earlier Ion to finish.',
+  },
+  {
+    id: 'aegis-sky-exit',
+    type: 'aegis',
+    distance: 2820,
+    lateral: 6,
+    width: 5,
+    length: 8,
+    label: 'Sky exit protection',
+    rationale:
+      'Fresh protection after the roll, before the sky-exit boost and second Arc.',
   },
   {
     id: 'arc-sky-sweep',

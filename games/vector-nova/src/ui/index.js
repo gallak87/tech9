@@ -1,4 +1,5 @@
 import './style.css';
+import { formatTime, formatDelta } from '../race/timing.js';
 import { SHIPS } from '../ships/catalog.js';
 import { createShipControls, inspectionPanel } from './ship-controls.js';
 import { circuitURL } from '../levels/contract.js';
@@ -573,8 +574,7 @@ export function createUI(
     mapTop + (p.z - minZ) * scale,
   ];
   let oldMode = '';
-  const fmt = (t) =>
-    `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(3).padStart(6, '0')}`;
+  const fmt = (t) => formatTime(t, 2);
   return {
     root,
     openFlySettings,
@@ -728,13 +728,19 @@ export function createUI(
       s,
       r,
       motion = null,
-      { practice = false, competition = null, lastResults = null } = {},
+      {
+        practice = false,
+        competition = null,
+        lastResults = null,
+        trial = null,
+        cup = null,
+      } = {},
     ) {
       currentCompetition = competition;
       retainedResults = lastResults;
       $('pause-race-settings')?.classList.toggle(
         'hidden',
-        !competition?.enabled,
+        !competition?.enabled || !!cup,
       );
       escapeLabel.textContent = 'PAUSE';
       if (!playtest)
@@ -832,6 +838,58 @@ export function createUI(
           : r.best
             ? `BEST ${fmt(r.best)}`
             : 'SET YOUR FIRST CLEAN LAP';
+      $('home').textContent = cup ? 'Cup hub · progress kept' : 'Race setup';
+      if (cup) {
+        $('restart').textContent = 'Retry cup race · earlier scores kept';
+        root.querySelector('.lap > span').textContent =
+          `CUP ${cup.eventIndex + 1}/${cup.eventCount}`;
+      }
+      if (trial) {
+        $('restart').textContent = 'Retry Time Trial';
+        root.querySelector('.lap > span').textContent = 'TIME TRIAL';
+        root.querySelector('.timing > span').textContent = sprint
+          ? 'ELAPSED'
+          : trial.start === 'standing'
+            ? 'STANDING LAP'
+            : 'LAP TIME';
+        if (!sprint) $('lap').textContent = String(r.lap);
+        $('time').textContent = fmt(trial.elapsed);
+        const storageNote =
+          trial.persistence?.saved === false
+            ? 'BEST NOT SAVED'
+            : trial.persistence?.ghostSaved === false
+              ? 'GHOST NOT SAVED'
+              : '';
+        if (!sprint) {
+          // Keep both records in fixed rows, including while the other lap
+          // category is active. Status belongs above the running clock.
+          const caption = root.querySelector('.timing > span');
+          if (!trial.valid) caption.textContent = 'LAP INVALID';
+          else if (storageNote) caption.textContent = storageNote;
+          else if (trial.delta != null)
+            caption.textContent = `S${trial.sector} Δ ${formatDelta(trial.delta)}`;
+          $('last').textContent =
+            `STANDING BEST: ${trial.standingBest == null ? 'PENDING' : fmt(trial.standingBest)}`;
+          $('best').textContent =
+            `FLYING BEST: ${trial.flyingBest == null ? 'PENDING' : fmt(trial.flyingBest)}`;
+        } else {
+          $('last').textContent =
+            trial.delta != null
+              ? `S${trial.sector} Δ ${formatDelta(trial.delta)}`
+              : trial.ghost
+                ? 'PERSONAL GHOST'
+                : trial.best
+                  ? 'BEST TIME · NO GHOST'
+                  : 'SET YOUR FIRST BEST';
+          $('best').textContent = !trial.valid
+            ? 'UNRANKED · R TO RETRY'
+            : (trial.best ? `BEST ${fmt(trial.best)}` : 'NO DEVICES') +
+              (storageNote ? ` · ${storageNote}` : ' · R RETRY');
+        }
+      } else
+        root.querySelector('.timing > span').textContent = sprint
+          ? 'ELAPSED'
+          : 'LAP TIME';
       ctx.clearRect(0, 0, 200, 150);
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = '#dbe8e1cc';

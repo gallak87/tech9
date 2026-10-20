@@ -172,6 +172,15 @@ async function finishInputs(difficulty, initial) {
     const differences = [];
     const compareInitial = (actual, expected, path = 'initial') => {
       if (Object.is(actual, expected)) return;
+      // Node and browser trig can differ by a few ULPs in an otherwise
+      // identical pose. Keep identity/allocation checks exact, allowing only
+      // sub-picometre numeric roundoff in this cross-engine fixture check.
+      if (
+        typeof actual === 'number' &&
+        typeof expected === 'number' &&
+        Math.abs(actual - expected) <= 1e-12
+      )
+        return;
       if (
         actual &&
         expected &&
@@ -199,7 +208,7 @@ async function finishInputs(difficulty, initial) {
     assert.deepEqual(
       differences,
       [],
-      'physical input fixture must start from the exact browser body state',
+      'physical input fixture must match browser body state within numeric roundoff',
     );
     // Generate real inputs against the same ten dynamic bodies as the browser.
     // Legacy ghost-racer trajectories no longer predict contact or finish time.
@@ -247,6 +256,176 @@ async function finishInputs(difficulty, initial) {
 }
 try {
   if (!flags.includes('--responsive')) {
+    await check(
+      'explicit modes, records and setup without loading worlds',
+      async (page) => {
+        await page.goto(url('level=halcyon&music=0'));
+        await page.locator('[data-action="quick-race"]').focus();
+        await page.keyboard.press('ArrowDown');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.action),
+          'time-trial',
+        );
+        await page.keyboard.press('ArrowDown');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.action),
+          'circuits',
+        );
+        await page.locator('[data-action="time-trial"]').click();
+        assert.equal((await front(page)).intent, 'time-trial');
+        assert.equal(await page.locator('[data-difficulty]').count(), 0);
+        assert.match(
+          await page.locator('[data-action="launch"]').textContent(),
+          /Time Trial/,
+        );
+        await page.locator('[data-action="records"]').click();
+        assert.match(
+          await page.locator('.records-empty').textContent(),
+          /first best/,
+        );
+        await page
+          .locator('[data-record-filter="ship"]')
+          .selectOption('needle');
+        await page.keyboard.press('Escape');
+        assert.equal((await front(page)).intent, 'time-trial');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.action),
+          'records',
+        );
+        await page.locator('[data-action="records"]').click();
+        await page
+          .locator('[data-record-filter="track"]')
+          .selectOption('orbital');
+        await page.locator('[data-action="record-trial"]').click();
+        assert.equal((await front(page)).selected, 'orbital');
+        assert.equal((await front(page)).shipId, 'needle');
+        assert.equal((await front(page)).intent, 'time-trial');
+        await page.locator('[data-action="practice"]').click();
+        assert.match(
+          await page.locator('[data-action="launch"]').textContent(),
+          /Practice/,
+        );
+        assert.equal(await page.locator('[data-difficulty]').count(), 0);
+        await page.locator('[data-action="cup-hub"]').click();
+        assert.equal((await front(page)).intent, 'cup');
+        assert.equal(await page.locator('[data-cup]').count(), 4);
+        await page.locator('[data-action="cup-hub"]').focus();
+        await page.keyboard.press('ArrowDown');
+        await page.keyboard.press('ArrowDown');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.action),
+          'circuits',
+        );
+        await page.keyboard.press('ArrowRight');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.cup),
+          'founders',
+        );
+        await page.locator('[data-action="quick-race"]').click();
+        assert.equal((await front(page)).intent, 'race');
+        assert.equal(await page.locator('[data-difficulty]').count(), 3);
+        assert.equal((await front(page)).loadedId, null);
+        assert.equal(await page.evaluate(() => !!window.__VN), false);
+      },
+    );
+
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 1280, height: 720 },
+      { width: 1024, height: 768 },
+    ]) {
+      await check(
+        `mode switches preserve the cinematic menu at ${viewport.width}×${viewport.height}`,
+        async (page) => {
+          await page.goto(url('level=halcyon&music=0'));
+          const anchors = () =>
+            page.evaluate(() => ({
+              backdrop: document
+                .querySelector('.menu-backdrop img')
+                ?.getAttribute('src'),
+              bounds: [
+                '.menu-wordmark',
+                '.mode-picker',
+                '.menu-selection[data-action="circuits"]',
+                '.menu-selection[data-action="ship-step"]',
+                '.race-actions > .primary',
+                '.picker-tabs',
+              ].map((selector) => {
+                const { x, y, width, height } = document
+                  .querySelector(selector)
+                  .getBoundingClientRect();
+                return { selector, x, y, width, height };
+              }),
+            }));
+          const original = await anchors();
+          for (const action of [
+            'cup-hub',
+            'time-trial',
+            'practice',
+            'quick-race',
+            'cup-hub',
+          ]) {
+            await page.locator(`[data-action="${action}"]`).click();
+            assert.deepEqual(
+              await anchors(),
+              original,
+              `${action} moved the shared menu`,
+            );
+            await menuFits(page);
+            const origin = (await front(page)).screen;
+            await page.locator('[data-action="records"]').click();
+            assert.deepEqual(
+              await anchors(),
+              original,
+              'records moved the shared menu',
+            );
+            await menuFits(page);
+            // Reopening the active view must not overwrite its Back destination.
+            await page.locator('[data-action="records"]').click();
+            await page
+              .locator('[data-record-filter="ship"]')
+              .selectOption('needle');
+            await page.locator('[data-action="settings"]').click();
+            await page.keyboard.press('Escape');
+            assert.equal((await front(page)).screen, 'records');
+            await page.locator('[data-action="records-back"]').click();
+            assert.equal((await front(page)).screen, origin);
+            assert.deepEqual(
+              await anchors(),
+              original,
+              'returning from records moved the menu',
+            );
+          }
+          await page.locator('[data-cup="apex"]').click();
+          assert.deepEqual(
+            await anchors(),
+            original,
+            'cup selection moved the shared menu',
+          );
+          assert.equal(await page.locator('.cup-route li').count(), 4);
+          await page.locator('.race-menu [data-action="ship-step"]').click();
+          await page.locator('[data-ship="shrike"]').click();
+          assert.equal((await front(page)).intent, 'cup');
+          assert.deepEqual(
+            await anchors(),
+            original,
+            'cup ship selection moved the shared menu',
+          );
+          await page.locator('.picker-tabs [data-action="circuits"]').click();
+          assert.equal(
+            await page
+              .locator('[data-cup="apex"]')
+              .getAttribute('aria-pressed'),
+            'true',
+          );
+          assert.equal((await front(page)).shipId, 'shrike');
+          assert.equal((await front(page)).loadedId, null);
+          assert.equal(await page.evaluate(() => !!window.__VN), false);
+        },
+        viewport,
+      );
+    }
+
     await check(
       'keyboard-only menu navigation and focus return',
       async (page) => {
@@ -306,7 +485,7 @@ try {
             items.map((item) => getComputedStyle(item).textAlign),
           ))
           assert.equal(align, 'center');
-        await press('ArrowDown', '[data-action="practice"]');
+        await press('ArrowDown', '[data-action="records"]');
         await press('ArrowDown', '[data-action="inspect"]');
         await press('Enter');
         await inspectorReady(page);
@@ -333,7 +512,7 @@ try {
           false,
         );
         await press('Escape', '[data-action="settings"]');
-        await press('Home', '.menu-selection[data-action="circuits"]');
+        await page.locator('.menu-selection[data-action="circuits"]').focus();
         await press('ArrowRight', '[data-level="orbital"]');
         await press('End', '[data-level="umbra"]');
         await press('s', '[data-action="settings-back"]');
@@ -362,10 +541,10 @@ try {
           await press('Enter', '[data-action="cancel"]');
           assert.equal((await front(page)).screen, 'loading');
           await press('Enter', '[data-action="launch"]');
-          await press('ArrowDown');
-          await press('ArrowDown', '[data-action="practice"]');
+          await page.locator('[data-action="practice"]').click();
+          await page.locator('[data-action="launch"]').focus();
           await press('Enter', '[data-action="cancel"]');
-          await press('Escape', '[data-action="practice"]');
+          await press('Escape', '[data-action="launch"]');
         } finally {
           release();
           await page.unrouteAll({ behavior: 'wait' });
@@ -552,7 +731,7 @@ try {
         );
         assert.match(
           await page.locator('[data-action="practice"]').textContent(),
-          /Solo descent/,
+          /Practice/,
         );
         assert.equal(
           await page.evaluate(
@@ -711,6 +890,7 @@ try {
         assert.equal(await page.locator('#motion').isChecked(), true);
         await page.locator('#home').click();
         await page.locator('[data-action="practice"]').click();
+        await page.locator('[data-action="launch"]').click();
         await page.waitForFunction(
           () => window.__VN_FRONTEND.getState().screen === 'race',
         );
@@ -1138,6 +1318,7 @@ try {
         }
         await page.locator('[data-level="halcyon"]').click();
         await page.locator('[data-action="practice"]').click();
+        await page.locator('[data-action="launch"]').click();
         await page.waitForFunction(
           () => window.__VN?.getSnapshot().mode === 'racing',
           null,
@@ -1278,6 +1459,7 @@ try {
           true,
         );
         await page.locator('[data-action="practice"]').click();
+        await page.locator('[data-action="launch"]').click();
         await booted(page);
         await page.waitForFunction(
           () => window.__VN.getSnapshot().mode === 'racing',
@@ -1455,13 +1637,19 @@ try {
           ['circuits', 'inspect', false],
           ['setup', 'inspect', true],
         ]) {
+          if (action === 'practice')
+            await page.locator('[data-action="practice"]').click();
           if (view !== 'home')
             await page
               .locator(
                 `.picker-tabs [data-action="${view === 'setup' ? 'ship-step' : 'circuits'}"]`,
               )
               .click();
-          await page.locator(`[data-action="${action}"]`).click();
+          await page
+            .locator(
+              `[data-action="${action === 'practice' ? 'launch' : action}"]`,
+            )
+            .click();
           assert.equal((await front(page)).screen, 'loading');
           if (escape) await page.keyboard.press('Escape');
           else await page.locator('[data-action="cancel"]').click();
@@ -1510,7 +1698,153 @@ try {
       },
     );
   }
+  const recordsViewports = [
+    ...(!flags.includes('--responsive') ? [{ width: 1024, height: 768 }] : []),
+    ...(!flags.includes('--desktop')
+      ? [
+          { width: 390, height: 844 },
+          { width: 320, height: 700 },
+        ]
+      : []),
+  ];
+  for (const viewport of recordsViewports) {
+    await check(
+      `record rows filter and set up trials without loading worlds ${viewport.width}×${viewport.height}`,
+      async (page) => {
+        await page.goto(url('level=halcyon&music=0'));
+        // Valid saved-record fixtures exercise a long list without running twelve races.
+        await page.evaluate((trackId) => {
+          for (let i = 0; i < 12; i++) {
+            const identity = {
+              track: trackId,
+              ship: { id: i % 2 ? 'shrike' : 'needle', version: 'fixture' },
+              version: `fixture-${i}`,
+              physics: 3,
+              rules: 'menu fixture',
+              format: 'circuit',
+              laps: 3,
+            };
+            let hash = 2166136261;
+            for (const c of JSON.stringify(identity))
+              hash = Math.imul(hash ^ c.charCodeAt(0), 16777619);
+            const duration = 180 + i;
+            localStorage.setItem(
+              `vector-nova.trial.v1.${(hash >>> 0).toString(16)}`,
+              JSON.stringify({
+                version: 1,
+                identity,
+                duration,
+                laps: Array(3).fill(duration / 3),
+                splits: Array.from(
+                  { length: 9 },
+                  (_, n) => (duration * (n + 1)) / 9,
+                ),
+              }),
+            );
+          }
+        }, createHalcyonLevel().createTrack().id);
+        await page.locator('[data-action="records"]').click();
+        assert.equal(await page.locator('.records-list li').count(), 12);
+        assert.equal(await page.locator('.record-course img').count(), 12);
+        assert.equal(
+          await page.evaluate(
+            () =>
+              document.querySelector('.records-panel').scrollHeight >
+              document.querySelector('.records-panel').clientHeight + 1,
+          ),
+          false,
+          'records must use outer-page scrolling',
+        );
+        assert.equal(
+          await page.evaluate(
+            () =>
+              document.querySelector('#front-shell').scrollWidth > innerWidth,
+          ),
+          false,
+        );
+        await page
+          .locator('[data-record-filter="ship"]')
+          .selectOption('needle');
+        assert.equal(await page.locator('.records-list li').count(), 6);
+        await page
+          .locator('[data-record-filter="track"]')
+          .selectOption('orbital');
+        assert.match(
+          await page.locator('.records-empty').textContent(),
+          /No records match/,
+        );
+        await page
+          .locator('[data-record-filter="track"]')
+          .selectOption('halcyon');
+        await page.locator('[data-record-key]').last().click();
+        assert.equal((await front(page)).intent, 'time-trial');
+        assert.equal((await front(page)).selected, 'halcyon');
+        assert.equal((await front(page)).shipId, 'needle');
+        assert.equal((await front(page)).loadedId, null);
+        assert.equal(await page.evaluate(() => !!window.__VN), false);
+      },
+      viewport,
+    );
+  }
   if (!flags.includes('--desktop')) {
+    for (const viewport of [
+      { width: 390, height: 844 },
+      { width: 844, height: 390 },
+    ]) {
+      await check(
+        `championship uses the same compact menu ${viewport.width}×${viewport.height}`,
+        async (page) => {
+          await page.goto(url('level=halcyon&music=0'));
+          const navigation = () => page.locator('.mode-picker').boundingBox();
+          const original = await navigation();
+          for (const action of [
+            'cup-hub',
+            'time-trial',
+            'practice',
+            'quick-race',
+            'cup-hub',
+          ]) {
+            await page.locator(`[data-action="${action}"]`).click();
+            assert.equal((await front(page)).screen, 'home');
+            assert.deepEqual(await navigation(), original);
+          }
+          await page.locator('.menu-selection[data-action="circuits"]').click();
+          await page.locator('[data-cup="apex"]').click();
+          assert.equal(await page.locator('.cup-route li').count(), 4);
+          await page
+            .locator('.picker-header [data-action="home"]')
+            .last()
+            .click();
+          assert.equal((await front(page)).intent, 'cup');
+          assert.match(
+            await page
+              .locator('.menu-selection[data-action="circuits"]')
+              .textContent(),
+            /Apex Cup/,
+          );
+          await page.locator('[data-action="ship-step"]').click();
+          await page.locator('[data-ship="shrike"]').click();
+          assert.equal(
+            await page.locator('[data-action="cup-start"]').count(),
+            1,
+          );
+          await page
+            .locator('.picker-header [data-action="home"]')
+            .last()
+            .click();
+          assert.equal((await front(page)).intent, 'cup');
+          assert.equal((await front(page)).shipId, 'shrike');
+          assert.equal(
+            await page.evaluate(
+              () => document.documentElement.scrollWidth > innerWidth,
+            ),
+            false,
+          );
+          assert.equal(await page.evaluate(() => !!window.__VN), false);
+        },
+        viewport,
+      );
+    }
     for (const viewport of [
       { width: 800, height: 900 },
       { width: 390, height: 844 },
@@ -1531,7 +1865,7 @@ try {
           };
           await page.goto(url('level=halcyon'));
           await fleetReady(page);
-          await press('Home', '.menu-selection[data-action="circuits"]');
+          await page.locator('.menu-selection[data-action="circuits"]').focus();
           await press('Enter', '[data-level="halcyon"]');
           await press('End', '[data-level="umbra"]');
           await press('Space', '[data-level="umbra"]');
@@ -1546,7 +1880,17 @@ try {
           await press('ArrowDown', '[data-action="launch"]');
           await press('ArrowDown', '[data-difficulty="easy"]');
           await press('ArrowRight', '[data-difficulty="medium"]');
-          await press('ArrowDown', '[data-action="practice"]');
+          await press('ArrowDown', '[data-action="records"]');
+          await press('Enter', '[data-record-filter="track"]');
+          assert.equal(
+            await page.locator('#front-shell').getAttribute('class'),
+            'cinematic-menu',
+          );
+          assert.equal(await page.locator('.menu-backdrop img').count(), 1);
+          await page
+            .locator('[data-record-filter="ship"]')
+            .selectOption('shrike');
+          await press('Escape', '[data-action="records"]');
           await press('ArrowDown', '[data-action="inspect"]');
           await press('ArrowDown', '[data-action="settings"]');
           await press('Space', '[data-action="settings-back"]');

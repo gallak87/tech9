@@ -150,6 +150,7 @@ export async function menuCatalog({
     }
     entries.push({
       id: meta.id,
+      trackId: track.id,
       name: meta.name,
       length: track.finishDistance ?? track.length,
       closed: track.closed !== false,

@@ -270,9 +270,15 @@ button:disabled {
   visibility: hidden;
 }
 .session-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
   padding: 12px 0;
   border-block: 1px solid #333;
   line-height: 1.5;
+}
+.session-facts > span {
+  white-space: nowrap;
 }
 .transfer-status {
   width: 100%;
@@ -823,4 +829,180 @@ body[data-screen='results'] #interface {
   #interface .wordmark {
     font-size: 18px;
   }
+}
+
+.trial-best {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.trial-splits {
+  list-style: none;
+  padding: 0;
+  font-variant-numeric: tabular-nums;
+}
+.trial-splits li {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid #ffffff20;
+}
+.trial-splits li > :last-child {
+  text-align: right;
+}
+
+.trial-split-title {
+  font-size: 14px;
+  margin: 18px 0 6px;
+}
+.trial-split-key {
+  font-size: 11px;
+  color: #aaa;
+  line-height: 1.5;
+}
+
+.cup-panel {
+  width: min(1100px, 100%);
+  margin-inline: auto;
+  padding: 24px;
+  background: #0c0c0cf2;
+  border-top: 2px solid #a81010;
+}
+.cup-route {
+  display: grid;
+  grid-template-columns: repeat(var(--cup-events, 3), minmax(0, 1fr));
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+}
+.cup-route li {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid #333;
+  font-size: 13px;
+}
+.cup-route [aria-current] {
+  border-color: #cc5555;
+}
+.cup-route small {
+  grid-column: 2;
+  color: #aaa;
+}
+.cup-panel .cup-save {
+  color: #d4b4a8;
+}
+.cup-picker,
+.cup-setup fieldset {
+  border: 0;
+  padding: 12px 0;
+}
+.cup-picker legend,
+.cup-setup legend {
+  font-size: 13px;
+}
+.cup-picker button,
+.cup-setup button {
+  min-height: 44px;
+  margin: 4px;
+}
+.cup-picker [aria-pressed='true'],
+.cup-setup [aria-pressed='true'] {
+  outline: 2px solid #e8e8e8;
+}
+.cup-panel .front-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin: 0;
+  padding-top: 8px;
+}
+.cup-panel .front-actions button {
+  min-width: 0;
+  min-height: 44px;
+}
+.cup-results-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 30px;
+  margin-block: 24px;
+}
+.cup-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.cup-table caption {
+  text-align: left;
+  font-size: 17px;
+  padding: 12px 0;
+}
+.cup-table th,
+.cup-table td {
+  text-align: left;
+  border-bottom: 1px solid #333;
+  padding: 9px 6px;
+}
+.cup-table th {
+  font-weight: 400;
+}
+.cup-table thead {
+  color: #aaa;
+}
+.cup-table .you {
+  background: #391c1c;
+}
+.cup-panel summary {
+  cursor: pointer;
+  padding: 14px 0;
+  font-size: 13px;
+}
+.cup-confirm {
+  border: 1px solid #995555;
+  padding: 12px;
+}
+.cup-rules {
+  border-top: 1px solid #444;
+}
+@media (max-width: 700px) {
+  .cup-panel {
+    padding: 16px 8px;
+  }
+  .cup-route {
+    grid-template-columns: 1fr;
+  }
+  .cup-route li {
+    grid-template-columns: 20px 1fr auto;
+  }
+  .cup-route small {
+    grid-column: 3;
+  }
+  .cup-results-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .cup-panel .front-actions button {
+    flex: 1 1 140px;
+    padding-inline: 8px;
+  }
+  .cup-table {
+    font-size: 11px;
+  }
+  .cup-table th,
+  .cup-table td {
+    padding-inline: 4px;
+  }
+  body[data-screen='cup'] .header-label {
+    display: none;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }

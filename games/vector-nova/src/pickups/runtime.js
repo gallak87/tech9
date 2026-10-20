@@ -35,6 +35,7 @@ export function createDeviceRuntime({
       },
     ]),
   );
+  let enabled = true;
   let pending = [];
   let disposed = false;
   let staged = null;
@@ -61,11 +62,19 @@ export function createDeviceRuntime({
   return {
     ...ownIdentity,
     scenarios: { ...motion.scenarios, ...deviceScenarios, ...scenarios },
+    setEnabled(value) {
+      if (enabled === Boolean(value)) return;
+      enabled = Boolean(value);
+      simulation.reset();
+      pending = [];
+      presentation?.reset();
+    },
     ...(motion.launch
       ? { launch: (state, setup) => motion.launch(state, setup) }
       : {}),
     advance(state, input, dt) {
       if (disposed || !Number.isFinite(dt) || dt <= 0) return [];
+      if (!enabled) return motion.advance(state, input, dt);
       const elapsed = Math.min(dt, 0.1);
       const steps = Math.ceil(elapsed * 120 - 1e-10);
       const ordered = [];
@@ -98,7 +107,9 @@ export function createDeviceRuntime({
             if (disposed || !Number.isFinite(dt) || dt <= 0) return;
             if (staged) throw new Error('Device advance is already staged');
             const previous = supportedState(state);
-            const before = simulation.beforeStep(input, dt, previous);
+            const before = enabled
+              ? simulation.beforeStep(input, dt, previous)
+              : { events: [], modifiers: {} };
             applyEntryImpulse(before.events, state);
             staged = { state, input, previous, before };
             motion.beginAdvance(state, input, dt, before.modifiers);
@@ -109,12 +120,14 @@ export function createDeviceRuntime({
               throw new Error('Device advance state mismatch');
             const { input, previous, before } = staged;
             const physics = motion.finishAdvance(state);
-            const after = simulation.afterStep(
-              previous,
-              supportedState(state),
-              input,
-              physics,
-            );
+            const after = enabled
+              ? simulation.afterStep(
+                  previous,
+                  supportedState(state),
+                  input,
+                  physics,
+                )
+              : [];
             applyEntryImpulse(after, state);
             const ordered = [...before.events, ...physics, ...after];
             staged = null;
@@ -151,6 +164,7 @@ export function createDeviceRuntime({
       motion.update(context);
       presentation?.update({
         ...context,
+        enabled,
         effects: simulation.snapshot(),
         events: pending,
       });

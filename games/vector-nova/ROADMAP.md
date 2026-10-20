@@ -48,6 +48,7 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 
 ## Further art passes
 
+- [ ] **Fit effect visuals per ship.** Arc rod/discharge origins currently suit Kestrel but intersect or float away from other hulls. Tune attachment points, offsets, spread and scale for each fleet and rival chassis, including projectile origins and surrounding pickup effects. Review in the `dev=1` ship inspector and gameplay; preserve shared effect timing and combat rules. Deferred until a dedicated visual pass.
 - [ ] Halcyon: explore closer buildings, street-canyon scale and grounded city infrastructure using the [saved circuit concept](docs/levels/art-revamp-reference/circuit-wall-v1.png). The asphalt pass is complete; a world/route change needs its own scope.
 - [ ] Nacre: improve storm-ocean wave scale, layered crests, foam and water lighting using the [saved concept](docs/levels/art-revamp-reference/circuit-wall-v1.png). Preserve road/jump readability, underwater racing and approved flight behavior; the ceramic road finish is already implemented.
 - [ ] Vesper: the broader [HD environment proof](docs/hd/vesper.md) remains unimplemented. Start with one representative hollow/connector and measured runtime cost. Preserve opaque resin; the earlier transmission removal and Dev tools work are complete.

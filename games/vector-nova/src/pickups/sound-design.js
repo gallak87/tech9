@@ -1,50 +1,24 @@
-// Original procedural sound design: transient, physical body and short tail.
+// Current authored synthesis. Sample-backed cues live in sample-cues.js.
 // [wave, start Hz, end Hz, duration, gain, delay, attack]
 export function deviceCue(event) {
-  const kind = event.payload?.kind;
-  // These devices finish in the discharge/last-shot tail; no extra end chime.
-  if (event.type === 'pickup-expire' && ['arc', 'repulsor'].includes(kind))
-    return [];
-  if (event.type === 'combat-fire')
-    return kind === 'repulsor'
-      ? [
-          ['sine', 112, 34, 0.55, 0.3, 0, 0.004],
-          ['noise', 2400, 180, 0.32, 0.34, 0, 0.003],
-          ['noise', 7600, 1900, 0.45, 0.07, 0.055, 0.025],
-          ['triangle', 310, 62, 0.2, 0.08, 0.008, 0.003],
-        ]
-      : [
-          ['noise', 1200, 220, 0.14, 0.13, 0, 0.002],
-          ['triangle', 170, 65, 0.18, 0.2, 0, 0.003],
-          ['sine', 82, 36, 0.235, 0.32, 0, 0.004],
-          ['noise', 650, 150, 0.2, 0.065, 0.015, 0.008],
-        ];
-  if (event.type === 'shield-hit')
+  const { kind, shielded } = event.payload ?? {};
+  if (event.type === 'combat-fire' && kind === 'arc')
     return [
-      ['noise', 5800, 800, 0.23, 0.22, 0, 0.002],
-      ['triangle', 260, 63, 0.28, 0.16, 0, 0.003],
-      ['sine', 1320, 990, 0.4, 0.045, 0.012, 0.006],
+      ['noise', 1200, 220, 0.14, 0.13, 0, 0.002],
+      ['triangle', 170, 65, 0.18, 0.2, 0, 0.003],
+      ['sine', 82, 36, 0.235, 0.32, 0, 0.004],
+      ['noise', 650, 150, 0.2, 0.065, 0.015, 0.008],
     ];
-  if (event.type === 'combat-hit')
-    return event.payload?.shielded
-      ? []
-      : [
-          ['noise', 3200, 260, 0.2, 0.23, 0, 0.002],
-          ['sine', 130, 42, 0.3, 0.22, 0, 0.003],
-          ['triangle', 410, 80, 0.13, 0.06, 0.006, 0.002],
-        ];
-  if (event.type === 'combat-confirm' || event.type === 'combat-contact')
+  if (event.type === 'combat-hit' && kind === 'ion' && !shielded)
+    return [
+      ['noise', 3200, 260, 0.2, 0.23, 0, 0.002],
+      ['sine', 130, 42, 0.3, 0.22, 0, 0.003],
+      ['triangle', 410, 80, 0.13, 0.06, 0.006, 0.002],
+    ];
+  if (event.type === 'combat-confirm' && kind === 'ion' && !shielded)
     return [
       ['noise', 2300, 1500, 0.065, 0.05, 0, 0.002],
-      [
-        'sine',
-        event.payload?.shielded ? 540 : 1260,
-        event.payload?.shielded ? 420 : 1540,
-        0.1,
-        0.025,
-        0,
-        0.003,
-      ],
+      ['sine', 1260, 1540, 0.1, 0.025, 0, 0.003],
     ];
   if (event.type === 'pickup-activate') {
     if (kind === 'vector')
@@ -54,24 +28,6 @@ export function deviceCue(event) {
         ['noise', 5000, 1600, 0.55, 0.075, 0.025, 0.02],
         ['sine', 65, 140, 0.26, 0.12, 0, 0.007],
       ];
-    if (kind === 'aegis')
-      return [
-        ['noise', 1700, 650, 0.4, 0.095, 0, 0.012],
-        ['sine', 72, 110, 0.3, 0.11, 0, 0.008],
-        ['sine', 1100, 880, 0.58, 0.045, 0.015, 0.025],
-        ['sine', 1670, 1320, 0.48, 0.022, 0.025, 0.03],
-      ];
-    if (kind === 'repulsor')
-      return [
-        ['noise', 240, 2600, 0.49, 0.13, 0, 0.03],
-        ['sine', 95, 420, 0.49, 0.09, 0, 0.02],
-        ['triangle', 180, 710, 0.46, 0.045, 0.02, 0.025],
-      ];
-    if (kind === 'arc')
-      return [
-        ['noise', 2400, 6800, 0.12, 0.085, 0, 0.003],
-        ['sine', 460, 1120, 0.14, 0.055, 0, 0.004],
-      ];
     if (kind === 'ion')
       return [
         ['noise', 4800, 1100, 0.55, 0.15, 0, 0.012],
@@ -79,15 +35,6 @@ export function deviceCue(event) {
         ['triangle', 380, 190, 0.24, 0.045, 0.01, 0.01],
       ];
   }
-  if (event.type === 'pickup-expire')
-    return [
-      ['noise', kind === 'ion' ? 1600 : 2400, 350, 0.3, 0.04, 0, 0.03],
-      ['sine', 440, 220, 0.26, 0.014, 0, 0.025],
-    ];
-  if (event.type === 'pickup-unavailable')
-    return [['noise', 1600, 900, 0.05, 0.018, 0, 0.002]];
-  if (event.type === 'pickup-cancel')
-    return [['noise', 850, 260, 0.14, 0.03, 0, 0.012]];
   return [];
 }
 

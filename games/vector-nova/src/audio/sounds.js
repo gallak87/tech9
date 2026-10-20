@@ -63,62 +63,15 @@ export const soundEffects = [
     { kind: 'repulsor' },
     1,
   ),
-  device('arc-confirm', 'Arc · target contact', 'combat-confirm', {
-    kind: 'arc',
-  }),
-  device(
-    'repulsor-confirm',
-    'Repulsor · target contact',
-    'combat-confirm',
-    { kind: 'repulsor' },
-    1,
-  ),
-  device(
-    'arc-block',
-    'Arc · shield blocked',
-    'combat-confirm',
-    { kind: 'arc', shielded: true },
-    1,
-  ),
-  device(
-    'repulsor-block',
-    'Repulsor · shield blocked',
-    'combat-confirm',
-    { kind: 'repulsor', shielded: true },
-    1,
-  ),
-  device('shield-hit', 'Aegis · absorb hit', 'shield-hit', {}, 1),
-  device('combat-hit', 'Combat · unshielded hit', 'combat-hit', {
+  device('shield-hit', 'Aegis · collapse / hit', 'shield-hit', {}, 1),
+  device('ion-hit', 'Ion · hull impact', 'combat-hit', {
+    kind: 'ion',
     shielded: false,
   }),
-  device('combat-confirm', 'Combat · hit confirmed', 'combat-confirm', {
+  device('ion-confirm', 'Ion · target contact', 'combat-confirm', {
+    kind: 'ion',
     shielded: false,
   }),
-  device(
-    'combat-confirm-shield',
-    'Combat · shield hit confirmed',
-    'combat-confirm',
-    { shielded: true },
-  ),
-  device(
-    'device-expire',
-    'Aegis · expire',
-    'pickup-expire',
-    {
-      kind: 'aegis',
-    },
-    0.9,
-  ),
-  device('ion-expire', 'Ion · expire', 'pickup-expire', { kind: 'ion' }),
-  device('device-unavailable', 'Device · unavailable', 'pickup-unavailable'),
-  device('device-cancel', 'Device · cancelled', 'pickup-cancel'),
-  device(
-    'aegis-cancel',
-    'Aegis · cancelled',
-    'pickup-cancel',
-    { kind: 'aegis' },
-    0.9,
-  ),
   {
     id: 'vector-bed',
     label: 'Vector · sustained rush',
@@ -175,29 +128,8 @@ export const soundEffects = [
     state: { time: 0, steer: 0, boosting: false, ...state },
     seconds: 3,
   })),
-  {
-    id: 'nacre-thunder',
-    label: 'Nacre · thunder',
-    group: 'Environment',
-    bus: 'race',
-    event: { type: 'nacre-thunder', id: 'audition', submerged: 0 },
-    seconds: 3,
-  },
-  {
-    id: 'nacre-thunder-submerged',
-    label: 'Nacre · submerged thunder',
-    group: 'Environment',
-    bus: 'race',
-    event: { type: 'nacre-thunder', id: 'audition', submerged: 1 },
-    submerged: 1,
-    seconds: 3,
-  },
-  {
-    id: 'glasswake-shelf',
-    label: 'Glasswake · ice shelf collapse',
-    group: 'Environment',
-    bus: 'race',
-    event: { type: 'glasswake-shelf', id: 'opening-sheet' },
-    seconds: 3.6,
-  },
-];
+].sort(
+  (a, b) =>
+    a.group.localeCompare(b.group, 'en') ||
+    a.label.localeCompare(b.label, 'en'),
+);

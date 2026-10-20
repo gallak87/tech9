@@ -1,6 +1,7 @@
 import { createAudio } from './index.js';
 import { createPickupAudio } from '../pickups/audio.js';
-import { createGlasswakeShelfAudio } from '../levels/glasswake/audio.js';
+import { deviceSample } from '../pickups/sample-cues.js';
+import { raceSample } from './sample-cues.js';
 import { soundEffects } from './sounds.js';
 
 // Dedicated owners let the menu audition real cues without emitting gameplay
@@ -38,7 +39,6 @@ export function createSoundPreview({
     const { sound, audio } = current;
     if (sound.bus === 'devices') audio.update(settings, true);
     else {
-      audio.setImmersion(sound.submerged ?? 0);
       audio.update(sound.state ?? {}, settings.volume, true);
     }
     return true;
@@ -55,12 +55,6 @@ export function createSoundPreview({
           ? createDeviceAudio()
           : createRaceAudio({
               engine: Boolean(sound.state),
-              nacre: sound.event?.type === 'nacre-thunder',
-              environment:
-                sound.event?.type === 'glasswake-shelf'
-                  ? createGlasswakeShelfAudio
-                  : undefined,
-              immersion: Boolean(sound.submerged),
             });
       const preview = { sound, audio };
       current = preview;
@@ -72,13 +66,29 @@ export function createSoundPreview({
         onStatus('Audio unavailable');
         return false;
       }
+      const sample =
+        sound.event &&
+        (sound.bus === 'devices'
+          ? deviceSample(sound.event)
+          : raceSample(sound.event));
+      if (sample && !audio.getStatus().loadedSamples.includes(sample.id)) {
+        stop();
+        onStatus(`Sample unavailable: ${sample.id}`);
+        return false;
+      }
       if (!configure()) return false;
       if (sound.effects) audio.setEffects(sound.effects);
       if (sound.event) audio.event(sound.event);
       onStatus('Playing');
-      timer = schedule(() => {
-        if (current === preview) stop();
-      }, sound.seconds * 1000);
+      timer = schedule(
+        () => {
+          if (current === preview) stop();
+        },
+        Math.max(
+          sound.seconds,
+          sound.event ? (audio.duration?.(sound.event) ?? 0) + 0.1 : 0,
+        ) * 1000,
+      );
       return true;
     },
     configure,

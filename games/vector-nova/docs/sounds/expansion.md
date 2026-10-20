@@ -14,7 +14,7 @@ Audition the whole sequence against the inspector target, then with **Shield tar
 
 ## Arc and Repulsor coverage
 
-Arc and Repulsor have completed the owner’s combined sound/VFX review. Retain their current character when extending the set.
+Arc, Aegis and Repulsor are approved. Preserve their character and shared event routing.
 
 | Stage                        | Arc                                                                                 | Repulsor                                                              |
 | ---------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
@@ -25,7 +25,7 @@ Arc and Repulsor have completed the owner’s combined sound/VFX review. Retain 
 | Shielded hit                 | Shared generated warp collapse; no duplicate hull impact                            | Same shared shield block                                              |
 | Contacts during damage grace | Quieter physical impacts for the remaining pellets; no extra damage or confirmation | No repeated pulse contacts                                            |
 | Finish                       | Last shot/activation tails; no extra expiry chime                                   | Discharge tail; no extra expiry chime                                 |
-| Unavailable / cancellation   | Shared quiet unavailable tick; reset cancels owned voices                           | Same shared behavior                                                  |
+| Unavailable / cancellation   | Unavailable is silent; reset cancels owned voices                                   | Same shared behavior                                                  |
 
 The attacker's contact sound replaces the old confirmation beep. A victim's shield hit owns the block cue; the shielded damage notification remains silent. Range, damage grace and event timing stay unchanged.
 
@@ -53,11 +53,11 @@ Review it in the complete device sequence, including impact and block.
 
 **Arc:** a controlled electrical whip into the existing deep pellet launches; target impacts combine a compact crack and rounded armor body. The branching hull corona follows activation and each shot, while blue target outlines/glow follow contacts. Keep the ending gentle. Current prompts: [activation](../../assets/audio/sfx/arc-activate.json), [impact](../../assets/audio/sfx/arc-hit.json).
 
-**Repulsor:** compressed air and magnetic tension gather around the ship, then release as a rounded bass pressure punch. The rose charge shell, layered pulse and short source afterglow follow that shape; the struck hull gives a cushioned, weighty impact. Current prompts: [charge](../../assets/audio/sfx/repulsor-charge.json), [discharge](../../assets/audio/sfx/repulsor-fire.json), [impact](../../assets/audio/sfx/repulsor-hit.json).
+**Repulsor:** compressed air and magnetic tension gather around the ship, then release as a rounded bass pressure punch. The rose charge shell, layered pulse and short source afterglow follow that shape; the struck hull gives a cushioned, weighty impact. All three current samples soften the upper shelf and presence band while retaining their low body and event timing. Current prompts: [charge](../../assets/audio/sfx/repulsor-charge.json), [discharge](../../assets/audio/sfx/repulsor-fire.json), [impact](../../assets/audio/sfx/repulsor-hit.json).
 
-**Shield block:** a thick warp collapse with rounded bass and audible midrange body, shared by both devices. A gentle high shelf softens its raspy upper edge. Current [prompt](../../assets/audio/sfx/shield-block.json). Retain the shield's mint visual identity.
+**Shield block:** a thick warp collapse with rounded bass and audible midrange body, shared by both devices. Aegis start and collapse cut the raspy midrange and upper frequencies, soften their attacks and control peaks without makeup gain or longer tails. Current [prompt](../../assets/audio/sfx/shield-block.json). Retain the shield's mint visual identity.
 
-**Ion:** retain its existing activation, bed, hit, ending and unavailable cues, with the shared Aegis block. Violet plasma pulses and a rolling hull glow show ongoing wake contact; the inspector auditions incoming hits on the player.
+**Ion:** retain its existing activation, bed and hit cues, with the shared Aegis block. Fade the bed when emission ends; no expiry chime or unavailable tick. Violet plasma pulses and a rolling hull glow show ongoing wake contact; the inspector auditions incoming hits on the player.
 
 ## Aegis coverage
 
@@ -71,6 +71,8 @@ Aegis forms with a broad warp surge and collapses with a resonant magnetic pulse
 | Attacker hears blocked hit     | Same collapse at lower gain                                                                            |
 | Natural expiry                 | Same collapse, slightly softer                                                                         |
 | Cancellation                   | Same collapse, quieter still; reset/Stop cancels owned voices                                          |
-| Unavailable                    | Retained shared quiet tick                                                                             |
+| Unavailable                    | Intentional silence; HUD feedback remains                                                              |
 
-Review **Aegis · absorb + break** for the hit sequence and **Aegis · shield** for its full duration and natural expiry. Toggle Driving for the trail and Engine sound for the mix. Current candidates await the owner's complete review.
+Review **Aegis · absorb + break** for the hit sequence and **Aegis · shield** for its full duration and natural expiry. Toggle Driving for the trail and Engine sound for the mix.
+
+The current sound set is graduated: sample-backed cues have no alternate synthesis or fallback. Keep one implementation per cue across gameplay and both previews. Arc firing, Ion, Vector and propulsion retain their intended synthesis; race announcements remain queued in the roadmap.

@@ -7,9 +7,8 @@ import { createRivalPreview, RIVAL_SHIPS } from './rivals.js';
 import { configureShipTextures } from './texture-loader.js';
 import { createInspectionStage } from './inspection-stage.js';
 import { createInspectionPipeline } from './inspection-pipeline.js';
-import { createPairedFraming } from './inspection-framing.js';
 
-const START_ROTATION = -Math.PI * 0.6;
+const START_ROTATION = 0;
 const START_ELEVATION = 0.38;
 const PAIRED_ELEVATION = 0.3;
 
@@ -42,9 +41,9 @@ export async function createInspector({
     time = 0,
     drag = null;
   const preview = {
-    autoRotate: false,
+    autoRotate: true,
     boost: false,
-    driving: false,
+    driving: true,
     elevation: START_ELEVATION,
   };
   const extent = { radial: 1, vertical: 1 };
@@ -137,7 +136,7 @@ export async function createInspector({
       if (devBounds && !pairedPreview) preview.elevation = PAIRED_ELEVATION;
       pairedPreview = !!devBounds;
       const bounds = devBounds ?? group.userData.bounds;
-      pairedFraming = devBounds ? createPairedFraming(bounds) : null;
+      pairedFraming = devBounds;
       framingCenter.set(
         devBounds ? (bounds.min[0] + bounds.max[0]) / 2 : 0,
         0,

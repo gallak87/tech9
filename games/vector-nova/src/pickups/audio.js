@@ -1,4 +1,5 @@
 import { createImmersionMix } from '../audio/immersion.js';
+import { createSampleBank } from '../audio/sample-bank.js';
 
 const clamp = (value) =>
   Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
@@ -22,9 +23,9 @@ export function createPickupAudio({
   let pending;
   let disposed = false;
   let running = false;
+  let mixReady = false;
   let volume = 0;
-  const buffers = new Map();
-  const requests = new AbortController();
+  let bank;
   const shots = new Set();
   const tails = new Set();
   const stopShots = () => {
@@ -34,6 +35,7 @@ export function createPickupAudio({
   };
   function silence() {
     running = false;
+    mixReady = false;
     stopShots();
     for (const bed of beds) {
       bed.gain.gain.cancelScheduledValues(context.currentTime);
@@ -52,6 +54,7 @@ export function createPickupAudio({
         try {
           if (!context) {
             context = createContext();
+            bank = createSampleBank(context, samples, { fetchAudio });
             master = context.createGain();
             master.gain.value = 0;
             waterMix = immersion
@@ -84,24 +87,7 @@ export function createPickupAudio({
             });
           }
           await context.resume();
-          if (!disposed && context.state === 'running')
-            await Promise.all(
-              Object.entries(samples).map(async ([id, url]) => {
-                if (buffers.has(id)) return;
-                try {
-                  const response = await fetchAudio(url, {
-                    signal: requests.signal,
-                  });
-                  if (!response.ok) return;
-                  const bytes = await response.arrayBuffer();
-                  if (disposed) return;
-                  const buffer = await context.decodeAudioData(bytes);
-                  if (!disposed) buffers.set(id, buffer);
-                } catch {
-                  // A missing sample retains the original procedural cue.
-                }
-              }),
-            );
+          if (!disposed && context.state === 'running') await bank.prepare();
           return !disposed && context.state === 'running';
         } catch {
           // Unsupported/blocked audio is optional; the complete visual cue remains.
@@ -115,8 +101,10 @@ export function createPickupAudio({
           compressor?.disconnect();
           master?.disconnect();
           waterMix?.dispose();
+          bank?.dispose();
           waterMix = undefined;
           master = undefined;
+          mixReady = false;
           const failed = context;
           context = undefined;
           if (failed && failed.state !== 'closed')
@@ -138,7 +126,13 @@ export function createPickupAudio({
       }
       if (!master) return;
       master.gain.cancelScheduledValues(context.currentTime);
-      master.gain.setTargetAtTime(volume * 0.95, context.currentTime, 0.025);
+      // A newly enabled bus has no audible voices. Set its level before the
+      // first transient; fading it up swallows short shots in isolated previews.
+      if (!mixReady)
+        master.gain.setValueAtTime(volume * 0.95, context.currentTime);
+      else
+        master.gain.setTargetAtTime(volume * 0.95, context.currentTime, 0.025);
+      mixReady = true;
     },
     setEffects(effects = {}) {
       if (!context) return;
@@ -147,16 +141,17 @@ export function createPickupAudio({
         bed.gain.gain.setTargetAtTime(
           running && effects[bed.kind] ? (bed.kind === 'ion' ? 0.07 : 0.09) : 0,
           context.currentTime,
-          0.045,
+          bed.kind === 'ion' && !effects.ion ? 0.12 : 0.045,
         );
       }
     },
     event(event) {
       if (!running || disposed || !context || context.state !== 'running')
         return;
-      const notes = deviceCue(event);
       const sample = deviceSample(event);
-      const buffer = sample && buffers.get(sample.id);
+      const buffer = sample && bank.get(sample.id);
+      if (sample && !buffer) return;
+      const notes = sample ? [] : deviceCue(event);
       if (!notes.length && !buffer) return;
       const priority = /hit|fire|confirm|contact/.test(event.type)
         ? 3
@@ -267,8 +262,7 @@ export function createPickupAudio({
     silence,
     duration(event) {
       const sample = deviceSample(event);
-      const buffer = sample && buffers.get(sample.id);
-      if (buffer) return buffer.duration;
+      if (sample) return bank?.get(sample.id)?.duration ?? 0;
       return Math.max(
         0,
         ...deviceCue(event).map((note) => note[3] + (note[5] ?? 0) + 0.025),
@@ -279,6 +273,8 @@ export function createPickupAudio({
         unlocked: context?.state === 'running',
         active: running,
         volume,
+        loadedSamples: bank?.loaded() ?? [],
+        missingSamples: bank?.missing() ?? Object.keys(samples),
         shots: shots.size,
         disposed,
         immersion: waterMix?.getStatus() ?? null,
@@ -287,7 +283,7 @@ export function createPickupAudio({
     async dispose() {
       if (disposed) return;
       disposed = true;
-      requests.abort();
+      bank?.dispose();
       silence();
       await pending;
       for (const bed of beds) {
@@ -300,7 +296,6 @@ export function createPickupAudio({
       compressor?.disconnect();
       master?.disconnect();
       waterMix?.dispose();
-      buffers.clear();
       if (context && context.state !== 'closed')
         await context.close().catch(() => {});
     },

@@ -3,8 +3,11 @@ import assert from 'node:assert/strict';
 import { createAudio } from './index.js';
 import { createPropulsion } from './propulsion.js';
 import { createPickupAudio } from '../pickups/audio.js';
-import { deviceSample } from '../pickups/sample-cues.js';
+import { DEVICE_SAMPLES, deviceSample } from '../pickups/sample-cues.js';
 import { deviceCue } from '../pickups/sound-design.js';
+import { createSoundPreview } from './sound-preview.js';
+import { soundEffects } from './sounds.js';
+import { RACE_SAMPLES, raceSample } from './sample-cues.js';
 
 class Param {
   value = 0;
@@ -121,6 +124,37 @@ class Context {
   }
 }
 const state = { speed: 0, time: 0, steer: 0, boosting: false };
+const fetchAudio = async (url) => ({
+  ok: true,
+  arrayBuffer: async () => new TextEncoder().encode(url).buffer,
+});
+function sampleContext() {
+  const context = new Context();
+  context.decodeAudioData = async (bytes) => ({
+    duration: 0.5,
+    sampleUrl: new TextDecoder().decode(bytes),
+  });
+  return context;
+}
+
+test('sample-backed device events have no alternate synthesized cue', () => {
+  for (const kind of ['arc', 'repulsor', 'aegis', 'ion', 'vector'])
+    for (const type of [
+      'pickup-activate',
+      'pickup-expire',
+      'pickup-cancel',
+      'shield-hit',
+      'combat-fire',
+      'combat-hit',
+      'combat-confirm',
+      'combat-contact',
+    ])
+      for (const shielded of [true, false]) {
+        const event = { type, payload: { kind, shielded } };
+        if (deviceSample(event))
+          assert.deepEqual(deviceCue(event), [], `${kind} ${type} ${shielded}`);
+      }
+});
 
 test('complete device sets distinguish outgoing, incoming, blocked and grace contacts', () => {
   for (const kind of ['arc', 'repulsor']) {
@@ -139,6 +173,21 @@ test('complete device sets distinguish outgoing, incoming, blocked and grace con
     assert.deepEqual(deviceCue(event('pickup-expire')), []);
   }
   assert.equal(deviceSample({ type: 'shield-hit' }).id, 'shield-block');
+  assert.deepEqual(
+    deviceSample({
+      type: 'combat-confirm',
+      payload: { kind: 'ion', shielded: true },
+    }),
+    { id: 'shield-block', gain: 0.6 },
+  );
+  assert.equal(
+    deviceSample({
+      type: 'combat-confirm',
+      payload: { kind: 'ion', shielded: false },
+    }),
+    null,
+    'unshielded Ion contact keeps its own cue',
+  );
   for (const [type, id, gain] of [
     ['pickup-activate', 'aegis-activate', 1],
     ['pickup-expire', 'shield-block', 0.65],
@@ -154,6 +203,45 @@ test('complete device sets distinguish outgoing, incoming, blocked and grace con
     null,
     'retain the deep Arc shots already tuned with the owner',
   );
+});
+
+test('utility events stay silent and Ion ends through its bed fade while mute remains immediate', async () => {
+  const context = new Context();
+  const audio = createPickupAudio({
+    createContext: () => context,
+    samples: {},
+  });
+  await audio.unlock();
+  audio.update({ volume: 0.4 }, true);
+  audio.setEffects({ ion: true });
+  const ion = context.nodes.find(
+    (node) => node.kind === 'filter' && node.frequency.value === 780,
+  ).destination.gain;
+  assert.ok(ion.value > 0);
+  const nodes = context.nodes.length;
+  for (const event of [
+    ...['vector', 'aegis', 'arc', 'repulsor', 'ion'].map((kind) => ({
+      type: 'pickup-unavailable',
+      payload: { kind },
+    })),
+    { type: 'pickup-cancel', payload: { kind: 'vector' } },
+    { type: 'pickup-expire', payload: { kind: 'ion' } },
+  ])
+    audio.event(event);
+  assert.equal(context.nodes.length, nodes);
+  assert.equal(audio.getStatus().shots, 0);
+  audio.setEffects({});
+  assert.equal(ion.automation.at(-1).type, 'target');
+  assert.equal(ion.automation.at(-1).value, 0);
+  assert.ok(
+    ion.automation.at(-1).response >= 0.1,
+    'natural end fades over a few hundred milliseconds',
+  );
+  audio.update({ volume: 0.4, muted: true }, true);
+  assert.equal(ion.automation.at(-1).type, 'set');
+  assert.equal(ion.value, 0);
+  await audio.dispose();
+  assert.ok(context.nodes.every((node) => node.disconnected));
 });
 
 test('sample cues share effects mix, bounded voices, caching and pause/disposal with synthesis', async () => {
@@ -199,25 +287,141 @@ test('sample cues share effects mix, bounded voices, caching and pause/disposal 
   assert.equal(context.closes, 1);
 });
 
-test('sample fetch failure retains synthesis; disposal aborts loading without starting sound', async () => {
+test('a fresh or re-enabled pickup bus gives Arc its full attack before smoothing later volume changes', async () => {
   const context = new Context();
   const audio = createPickupAudio({
     createContext: () => context,
-    samples: { 'repulsor-fire': '/missing.wav' },
-    fetchAudio: async () => ({ ok: false }),
+    samples: {},
   });
-  assert.equal(await audio.unlock(), true);
-  audio.update({ volume: 1 }, true);
-  audio.event({ type: 'combat-fire', payload: { kind: 'repulsor' } });
-  assert.ok(
-    context.nodes.some(
-      (node) => node.kind === 'oscillator' && node.starts === 1,
-    ),
+  await audio.unlock();
+  const master = context.nodes[0].gain;
+  audio.update({ volume: 0.4 }, true);
+  assert.deepEqual(master.automation.at(-1), {
+    type: 'set',
+    value: 0.38,
+    time: 0,
+  });
+  audio.event({ type: 'combat-fire', payload: { kind: 'arc' } });
+  assert.equal(audio.getStatus().shots, 1);
+  assert.equal(
+    context.nodes.filter((node) => node.kind === 'oscillator' && node.starts)
+      .length,
+    2,
   );
+  audio.update({ volume: 0.5 }, true);
+  assert.equal(master.automation.at(-1).type, 'target');
+  audio.silence();
+  audio.update({ volume: 0.4 }, true);
+  assert.equal(master.automation.at(-1).type, 'set');
   await audio.dispose();
+});
+
+test('every Sounds entry reaches a live cue or bed, using the current sample whenever one is assigned', async () => {
+  let context, driver;
+  const preview = createSoundPreview({
+    getSettings: () => ({ volume: 0.35 }),
+    createDeviceAudio: () => {
+      context = sampleContext();
+      driver = createPickupAudio({ createContext: () => context, fetchAudio });
+      return driver;
+    },
+    createRaceAudio: (options) => {
+      context = sampleContext();
+      driver = createAudio({
+        ...options,
+        createContext: () => context,
+        fetchAudio,
+      });
+      return driver;
+    },
+    schedule: () => 0,
+    cancel: () => {},
+  });
+  for (const sound of soundEffects) {
+    assert.equal(await preview.play(sound.id), true, sound.id);
+    if (sound.bus === 'devices') {
+      if (sound.event) {
+        assert.equal(driver.getStatus().shots, 1, sound.id);
+        const sample = deviceSample(sound.event);
+        if (sample) {
+          const source = context.nodes
+            .filter((node) => node.kind === 'buffer' && !node.loop)
+            .at(-1);
+          assert.equal(
+            source.buffer.sampleUrl,
+            DEVICE_SAMPLES[sample.id],
+            sound.id,
+          );
+          assert.equal(
+            context.nodes.filter((node) => node.kind === 'oscillator').length,
+            0,
+            'sample-only cue',
+          );
+        }
+      } else {
+        const bed = context.nodes.find(
+          (node) =>
+            node.kind === 'filter' &&
+            node.type === 'bandpass' &&
+            node.destination.gain.value > 0,
+        );
+        assert.ok(bed, sound.id);
+      }
+    } else {
+      assert.equal(driver.getStatus().audible, true, sound.id);
+      const sample = raceSample(sound.event);
+      if (sample) {
+        const source = context.nodes.find(
+          (node) => node.kind === 'buffer' && !node.loop,
+        );
+        assert.equal(
+          source.buffer.sampleUrl,
+          RACE_SAMPLES[sample.id],
+          sound.id,
+        );
+        assert.equal(
+          context.nodes.filter((node) => node.kind === 'oscillator').length,
+          0,
+        );
+      } else
+        assert.ok(
+          context.nodes.some(
+            (node) => node.kind === 'oscillator' && node.starts,
+          ),
+          sound.id,
+        );
+    }
+    preview.stop();
+    await driver.dispose();
+  }
+  preview.dispose();
+});
+
+test('sample fetch failure stays silent; disposal aborts loading without starting sound', async () => {
+  for (const createBus of [createPickupAudio, createAudio]) {
+    const context = sampleContext();
+    const audio = createBus({
+      createContext: () => context,
+      engine: false,
+      fetchAudio: async () => ({ ok: false }),
+    });
+    assert.equal(await audio.unlock(), true);
+    if (createBus === createAudio) audio.update(state, 1, true);
+    else audio.update({ volume: 1 }, true);
+    const before = context.nodes.length;
+    const event =
+      createBus === createAudio
+        ? { type: 'impact' }
+        : { type: 'combat-fire', payload: { kind: 'repulsor' } };
+    audio.event(event);
+    assert.equal(context.nodes.length, before);
+    assert.equal(audio.duration(event), 0);
+    assert.ok(audio.getStatus().missingSamples.length > 0);
+    await audio.dispose();
+  }
 
   let signal, release;
-  const pendingContext = new Context();
+  const pendingContext = sampleContext();
   const waiting = createPickupAudio({
     createContext: () => pendingContext,
     samples: { 'arc-hit': '/hit.wav' },
@@ -448,9 +652,9 @@ test('propulsion rises with speed/boost, eases under braking and sanitizes disco
   );
 });
 
-test('existing cue voices have an attack, are bounded, and release on end/disposal', async () => {
-  const context = new Context();
-  const audio = createAudio({ createContext: () => context });
+test('collision samples keep their attack, share the voice budget and release on end/disposal', async () => {
+  const context = sampleContext();
+  const audio = createAudio({ createContext: () => context, fetchAudio });
   await audio.unlock();
   const before = context.nodes.length;
   audio.event({ type: 'impact' });
@@ -465,9 +669,23 @@ test('existing cue voices have an attack, are bounded, and release on end/dispos
     value: 0,
     time: 0,
   });
-  assert.equal(envelope.gain.automation[1].type, 'linear');
+  assert.equal(oscillator.kind, 'buffer');
+  assert.equal(oscillator.buffer.sampleUrl, RACE_SAMPLES['ship-impact']);
+  assert.equal(envelope.gain.automation[1].value, 0.8);
+  assert.equal(
+    context.nodes.find((node) => node.kind === 'gain').gain.automation.at(-1)
+      .type,
+    'set',
+  );
+  assert.equal(audio.duration({ type: 'impact' }), 0.5);
   oscillator.onended();
   assert.equal(oscillator.disconnected, true);
+  audio.event({ type: 'impact', payload: { shielded: true } });
+  assert.equal(
+    context.nodes.length,
+    before + 8,
+    'shield-hit owns the blocked collision',
+  );
   audio.event({ type: 'lap' });
   assert.equal(context.nodes.length, before + 10);
   await audio.dispose();

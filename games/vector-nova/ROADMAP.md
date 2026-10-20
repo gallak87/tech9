@@ -56,8 +56,9 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 - [ ] Reassess older optional polish notes against current visuals: Zephyr's aerated waterfalls, varied island shelves/openings and close masonry; Saffron Leviathan's bone erosion, creature armor, sandfall volume and ordinary scenery. These are retained art directions, not freshly verified defects or permission to resume completed critique loops.
 - [ ] Author landmark-focused circuit menu stills: Nacre's leviathan, Cindercoil's lava and equivalent signature vistas. Save camera poses and event timing for the existing [capture workflow](ARCHITECTURE.md#circuit-preview-refresh); ordinary ship-free previews already exist.
 
-## Music
+## Audio
 
+- [ ] Replace race-announcement audio: countdown/GO, lap and final-lap cues, and race-complete variants. Keep event timing and clear feedback over propulsion and Tunes; audition the complete set together.
 - [ ] Continue from the existing eight-song pool if more variety is wanted; the earlier target was roughly 16. Choose/finalize circuit assignments, race mix and audible loop transitions with the user. Blue Hour is tagged for Halcyon; the other seven tracks remain general `mix` auditions. Playback, encoding and deployment already work. See the [audio guide](docs/audio/README.md).
 - [ ] Optionally package the proven prompt → sequential render → Tunes audition → human-feedback process as an audio-generation Skill. Reuse the guide/scripts, provenance and one-current-take rules; do not create a second workflow or evidence archive.
 

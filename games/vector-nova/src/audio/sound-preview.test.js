@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createSoundPreview } from './sound-preview.js';
+import { RACE_SAMPLES } from './sample-cues.js';
+import { DEVICE_SAMPLES } from '../pickups/sample-cues.js';
 
 function harness() {
   const drivers = [];
@@ -14,6 +16,14 @@ function harness() {
       events: [],
       updates: [],
       disposals: 0,
+      loadedSamples: Object.keys({ ...DEVICE_SAMPLES, ...RACE_SAMPLES }),
+      cueDuration: 0,
+      getStatus() {
+        return { loadedSamples: this.loadedSamples };
+      },
+      duration() {
+        return this.cueDuration;
+      },
       unlock: () => nextUnlock ?? Promise.resolve(true),
       update(...args) {
         this.updates.push(args);
@@ -103,19 +113,40 @@ test('muting during audition releases audio and a late unlock cannot restart a s
   assert.equal(await h.preview.play('arc-fire'), false);
 });
 
-test('environment previews omit propulsion and only the selected environment is acquired', async () => {
+test('race cues omit propulsion while engine presets acquire it; removed environment previews do nothing', async () => {
   const { preview, drivers } = harness();
-  await preview.play('nacre-thunder-submerged');
+  assert.equal(await preview.play('nacre-thunder-submerged'), false);
+  assert.equal(await preview.play('glasswake-shelf'), false);
+  assert.equal(drivers.length, 0);
+  await preview.play('countdown-go');
   assert.equal(drivers[0].options.engine, false);
-  assert.equal(drivers[0].options.nacre, true);
-  assert.equal(drivers[0].options.environment, undefined);
-  assert.equal(drivers[0].submerged, 1);
-  await preview.play('glasswake-shelf');
-  assert.equal(drivers[1].options.engine, false);
-  assert.equal(drivers[1].options.nacre, false);
-  assert.equal(typeof drivers[1].options.environment, 'function');
   await preview.play('engine-boost');
-  assert.equal(drivers[2].options.engine, true);
-  assert.equal(drivers[2].updates[0][0].boosting, true);
+  assert.equal(drivers[1].options.engine, true);
+  assert.equal(drivers[1].updates[0][0].boosting, true);
   preview.dispose();
+});
+
+test('missing generated cues report a load failure instead of auditioning old synthesis', async () => {
+  const h = harness();
+  const resume = h.deferUnlock();
+  const playing = h.preview.play('arc-hit');
+  h.drivers[0].loadedSamples = [];
+  resume();
+  assert.equal(await playing, false);
+  assert.equal(h.drivers[0].events.length, 0);
+  assert.equal(h.drivers[0].disposals, 1);
+  assert.equal(h.statuses.at(-1), 'Sample unavailable: arc-hit');
+  assert.equal(h.timers.size, 0);
+  h.preview.dispose();
+});
+
+test('a decoded cue keeps its full tail even when longer than the catalog estimate', async () => {
+  const h = harness();
+  const resume = h.deferUnlock();
+  const playing = h.preview.play('arc-hit');
+  h.drivers[0].cueDuration = 1.2;
+  resume();
+  assert.equal(await playing, true);
+  assert.equal([...h.timers][0].duration, 1300);
+  h.preview.dispose();
 });

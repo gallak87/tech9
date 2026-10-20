@@ -1356,8 +1356,15 @@ try {
       'ship inspector loads no track resources and opens a selected sprint',
       async (page) => {
         const trackRequests = [];
+        const auditionRequests = [];
         page.on('request', (request) => {
           const path = new URL(request.url()).pathname;
+          if (
+            /\/src\/ships\/(?:pickup-|engine-preview|inspection-framing)|\/src\/audio\/(?:sound-panel|sound-preview|sounds)\.|\/assets\/(?:pickup-inspector|sound-panel)-|\/audio\/sfx\/|\/(?:aegis-activate|arc-activate|arc-hit|repulsor-charge|repulsor-fire|repulsor-hit|shield-block|ship-impact)-[^/]+\.wav$/.test(
+              path,
+            )
+          )
+            auditionRequests.push(path);
           if (
             /\/src\/core\/game\.js|\/src\/physics\/|\/src\/levels\/[^/]+\/(?!metadata\.js)|\/assets\/game-[^/]+\.js|\/assets\/levels\//.test(
               path,
@@ -1388,12 +1395,27 @@ try {
         assert.equal((await front(page)).selected, 'worldspire');
         assert.equal(await page.locator('#inspection-panel').isVisible(), true);
         assert.equal(await page.locator('#hud').isVisible(), false);
-        await page.locator('[data-preview="driving"]').click();
+        for (const name of ['driving', 'autoRotate'])
+          assert.equal(
+            await page
+              .locator(`[data-preview="${name}"]`)
+              .getAttribute('aria-pressed'),
+            'true',
+          );
         await page.locator('[data-preview="boost"]').click();
         await page.locator('canvas#world').focus();
         await page.keyboard.press('Enter');
         const inspected = await snapshot(page);
         assert.equal(inspected.mode, 'inspection');
+        assert.deepEqual(
+          auditionRequests,
+          [],
+          'normal inspection loads no pickup audition code, target tools or SFX',
+        );
+        assert.equal(
+          await page.locator('.inspection-pickups, [data-sound-panel]').count(),
+          0,
+        );
         assert.deepEqual(
           trackRequests,
           [],

@@ -8,6 +8,9 @@ export function createPickupPreviewAudio({
   return {
     async prepare() {
       if (!(await audio.unlock())) throw new Error('Audio unavailable');
+      const missing = audio.getStatus().missingSamples;
+      if (missing.length)
+        throw new Error(`Samples unavailable: ${missing.join(', ')}`);
       return 0;
     },
     update: (...args) => audio.update(...args),

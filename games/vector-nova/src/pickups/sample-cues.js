@@ -31,6 +31,12 @@ export const DEVICE_SAMPLES = {
 export function deviceSample(event) {
   const { kind, shielded } = event.payload ?? {};
   if (event.type === 'shield-hit') return { id: 'shield-block', gain: 0.8 };
+  if (
+    event.type === 'combat-confirm' &&
+    shielded &&
+    ['arc', 'repulsor', 'ion'].includes(kind)
+  )
+    return { id: 'shield-block', gain: 0.6 };
   if (kind === 'aegis') {
     if (event.type === 'pickup-activate')
       return { id: 'aegis-activate', gain: 1 };
@@ -46,8 +52,7 @@ export function deviceSample(event) {
     return { id: 'repulsor-fire', gain: 1 };
   if (event.type === 'combat-hit' && !shielded)
     return { id: `${kind}-hit`, gain: 1 };
-  if (event.type === 'combat-confirm')
-    return { id: shielded ? 'shield-block' : `${kind}-hit`, gain: 0.6 };
+  if (event.type === 'combat-confirm') return { id: `${kind}-hit`, gain: 0.6 };
   // Physical contact during damage grace is audible, without another hit claim.
   if (event.type === 'combat-contact') return { id: `${kind}-hit`, gain: 0.35 };
   return null;

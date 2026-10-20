@@ -1,6 +1,8 @@
 import { createPropulsion, smooth } from './propulsion.js';
 import { createNacreThunder } from './nacre-thunder.js';
 import { createImmersionMix } from './immersion.js';
+import { createSampleBank } from './sample-bank.js';
+import { RACE_SAMPLES, raceSample } from './sample-cues.js';
 
 const close = (context) => {
   if (context.state === 'closed') return Promise.resolve();
@@ -13,6 +15,8 @@ export function createAudio({
   environment,
   immersion = false,
   engine = true,
+  samples = RACE_SAMPLES,
+  fetchAudio = (url, options) => fetch(url, options),
 } = {}) {
   let resources;
   let unlocking;
@@ -20,10 +24,12 @@ export function createAudio({
   let disposal;
   let active = false;
   let audible = false;
+  let mixReady = false;
   let environmentActive = false;
   let resultsActive = false;
 
   function release(owned) {
+    owned.samples.dispose();
     owned.propulsion?.dispose();
     owned.thunder?.dispose();
     owned.environment?.dispose();
@@ -83,6 +89,7 @@ export function createAudio({
             cueBus.connect(compressor);
             resources = {
               context,
+              samples: createSampleBank(context, samples, { fetchAudio }),
               bus,
               compressor,
               master,
@@ -100,6 +107,8 @@ export function createAudio({
             };
           }
           await resources.context.resume();
+          if (!disposed && resources.context.state === 'running')
+            await resources.samples.prepare();
           return !disposed && resources.context.state === 'running';
         } catch {
           if (resources) {
@@ -129,12 +138,18 @@ export function createAudio({
         : 0;
       audible = active && level > 0;
       environmentActive = !!running && audible;
-      smooth(
-        master.gain,
-        active ? level : 0,
-        context.currentTime,
-        active ? 0.06 : 0.012,
-      );
+      // Set the bus before its first transient instead of swallowing the attack.
+      if (audible && !mixReady) {
+        master.gain.cancelScheduledValues(context.currentTime);
+        master.gain.setValueAtTime(level, context.currentTime);
+      } else
+        smooth(
+          master.gain,
+          active ? level : 0,
+          context.currentTime,
+          active ? 0.06 : 0.012,
+        );
+      mixReady = audible;
       smooth(propulsionBus.gain, running ? 1 : 0, context.currentTime, 0.012);
       if (running) propulsion?.update(state);
       if (!environmentActive) {
@@ -164,6 +179,8 @@ export function createAudio({
       return {
         active,
         audible,
+        loadedSamples: resources?.samples.loaded() ?? [],
+        missingSamples: resources?.samples.missing() ?? Object.keys(samples),
         immersion: resources?.immersion?.getStatus() ?? null,
       };
     },
@@ -173,6 +190,10 @@ export function createAudio({
         resources?.environment?.getPresentation() ??
         null
       );
+    },
+    duration(event) {
+      const sample = raceSample(event);
+      return sample ? (resources?.samples.get(sample.id)?.duration ?? 0) : 0;
     },
     event(event) {
       if (resources && !disposed && environmentActive)
@@ -199,6 +220,10 @@ export function createAudio({
       )
         return;
       const { context, bus, cueBus, shots } = resources;
+      const sample = raceSample(event);
+      const buffer = sample && resources.samples.get(sample.id);
+      // A shield owns its block sound. Missing authored collisions stay silent.
+      if (event.type === 'impact' && !buffer) return;
       const finish = event.type === 'player-race-complete';
       const finalLap = event.type === 'final-lap';
       if (finish || finalLap)
@@ -209,12 +234,22 @@ export function createAudio({
           }
       if (shots.size >= 4) return;
       const time = context.currentTime;
-      const oscillator = context.createOscillator();
+      const oscillator = buffer
+        ? context.createBufferSource()
+        : context.createOscillator();
       const envelope = context.createGain();
       oscillator.connect(envelope).connect(finish || finalLap ? cueBus : bus);
       envelope.gain.setValueAtTime(0, time);
       let end;
-      if (finish || finalLap) {
+      if (buffer) {
+        oscillator.buffer = buffer;
+        end = buffer.duration;
+        envelope.gain.setValueAtTime(sample.gain, time);
+        envelope.gain.setValueAtTime(
+          sample.gain,
+          time + Math.max(0, end - 0.01),
+        );
+      } else if (finish || finalLap) {
         const winner =
           event.payload?.valid !== false && event.payload?.position === 1;
         const notes = finalLap
@@ -251,12 +286,6 @@ export function createAudio({
         envelope.gain.linearRampToValueAtTime(peak, time + 0.012);
         envelope.gain.setValueAtTime(peak, time + (go ? 0.54 : 0.16));
         envelope.gain.exponentialRampToValueAtTime(0.0001, time + duration);
-      } else if (event.type === 'impact') {
-        oscillator.type = 'triangle';
-        oscillator.frequency.setValueAtTime(92, time);
-        oscillator.frequency.exponentialRampToValueAtTime(28, time + 0.2);
-        envelope.gain.linearRampToValueAtTime(0.12, time + 0.004);
-        envelope.gain.exponentialRampToValueAtTime(0.0001, time + 0.25);
       } else {
         oscillator.frequency.setValueAtTime(550, time);
         oscillator.frequency.setValueAtTime(550, time + 0.1);
@@ -300,6 +329,7 @@ export function createAudio({
       active = false;
       if (!resources) return Promise.resolve();
       const owned = resources;
+      owned.samples.dispose();
       smooth(owned.master.gain, 0, owned.context.currentTime, 0.008);
       // Let a running output fade below audibility before closing the device.
       // Suspended audio has no output and can be released immediately.

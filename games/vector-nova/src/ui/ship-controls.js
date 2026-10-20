@@ -91,9 +91,9 @@ export function createShipControls(root, actions, selectedShip = SHIPS[0]) {
   inspectionTools.setAttribute('role', 'group');
   inspectionTools.setAttribute('aria-label', 'Ship preview controls');
   for (const [key, label, pressed] of [
-    ['autoRotate', 'Auto-rotate', false],
+    ['autoRotate', 'Auto-rotate', true],
     ['boost', 'Boost', false],
-    ['driving', 'Driving', false],
+    ['driving', 'Driving', true],
   ]) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -104,7 +104,7 @@ export function createShipControls(root, actions, selectedShip = SHIPS[0]) {
     inspectionTools.append(button);
   }
   const previewHint = document.createElement('p');
-  previewHint.textContent = 'Drag to rotate · Preview: stationary';
+  previewHint.textContent = 'Drag to rotate · Preview: driving at 400 km/h';
   inspectionTools.append(previewHint);
   inspection.insertBefore(inspectionTools, inspection.querySelector('dl'));
   function setInspectionPreview(preview) {

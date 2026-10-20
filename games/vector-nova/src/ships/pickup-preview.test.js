@@ -460,7 +460,7 @@ test('audio preparation gates both sound and VFX; Stop and changing ship cancel 
   assert.equal(h.audio.disposals, 1);
 });
 
-test('Arc candidate plays beyond the shorter burst; retrigger, mute and disposal have one owner', async () => {
+test('Arc activation plays beyond the shorter burst; retrigger, mute and disposal have one owner', async () => {
   const h = previewHarness();
   assert.equal(await h.preview.trigger('arc'), true);
   h.preview.update(1.6);
@@ -484,7 +484,7 @@ test('Arc candidate plays beyond the shorter burst; retrigger, mute and disposal
   assert.equal(await h.preview.trigger('arc'), false);
 });
 
-test('Repulsor keeps its candidate tail alive after the pressure pulse finishes', async () => {
+test('Repulsor keeps its discharge tail alive after the pressure pulse finishes', async () => {
   const h = previewHarness();
   h.audio.prepare = async () => 0;
   h.audio.duration = (event) => (event.type === 'combat-fire' ? 1.42 : 0);
@@ -524,6 +524,7 @@ test('inspector delegates the full sound set and cleanup to the shared gameplay 
   const audio = createPickupPreviewAudio({
     createAudio: () => ({
       unlock: async () => true,
+      getStatus: () => ({ missingSamples: [] }),
       event: (event) => events.push(event),
       duration: () => 1.42,
       silence: () => stopped++,

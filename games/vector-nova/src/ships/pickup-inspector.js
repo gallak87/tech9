@@ -3,6 +3,7 @@ import { createPickupPreview } from './pickup-preview.js';
 import { PICKUP_PREVIEWS } from './pickup-preview-sequence.js';
 import { createRivalPreview } from './rivals.js';
 import { createEnginePreview } from './engine-preview.js';
+import { createPairedFraming } from './inspection-framing.js';
 import './pickup-inspector.css';
 
 // Loaded only by the standalone inspector with dev=1.
@@ -104,7 +105,7 @@ export async function createPickupInspector({
         new Vector3(...other.max),
       ).translate(target.group.position);
       box.union(targetBox);
-      return {
+      const framing = {
         min: box.min.toArray(),
         max: box.max.toArray(),
         subjects: [
@@ -112,6 +113,7 @@ export async function createPickupInspector({
           { min: targetBox.min.toArray(), max: targetBox.max.toArray() },
         ],
       };
+      return { ...framing, ...createPairedFraming(framing) };
     },
     setShip(next) {
       preview.setShip(next);

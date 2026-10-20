@@ -2161,8 +2161,32 @@ select {
 }
 @media (min-width: 761px) and (min-height: 571px) {
   #inspection-panel {
-    width: min(560px, 44vw);
+    width: min(320px, 29vw);
     max-width: none;
+  }
+  #inspection-panel .inspect-title {
+    font-size: clamp(30px, 3.2vw, 44px);
+  }
+  #inspection-panel .intro {
+    height: auto;
+    min-height: 4.5em;
+  }
+  #inspection-panel .ship-selection {
+    gap: 8px;
+  }
+  #inspection-panel .ship-picker button span {
+    display: none;
+  }
+  #inspection-panel dl div {
+    height: auto;
+    min-height: 32px;
+    gap: 12px;
+  }
+  #inspection-panel dl dt {
+    flex: 0 0 72px;
+  }
+  #inspection-panel dl dd {
+    margin: 0;
   }
 }
 @media (min-width: 761px) and (max-width: 1100px) and (min-height: 571px) {
@@ -2518,6 +2542,13 @@ select {
 }
 #interface.inspecting {
   touch-action: none;
+}
+@media (min-width: 761px) and (min-height: 571px) {
+  #inspection-tools {
+    left: calc(6vw + min(320px, 29vw) + 24px);
+    right: 2.5vw;
+    width: auto;
+  }
 }
 @media (max-width: 760px) and (max-aspect-ratio: 1/1) {
   #inspection-tools {

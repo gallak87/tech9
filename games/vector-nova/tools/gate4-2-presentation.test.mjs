@@ -116,8 +116,8 @@ test('device geometry is finite, bounded and entirely owned for disposal', () =>
     object.material?.addEventListener('dispose', () => disposedMaterials++);
   });
   disposeGroup(group);
-  assert.equal(disposedGeometries, 17);
-  assert.equal(disposedMaterials, 17);
+  assert.equal(disposedGeometries, 18);
+  assert.equal(disposedMaterials, 18);
   projector.dispose();
 });
 

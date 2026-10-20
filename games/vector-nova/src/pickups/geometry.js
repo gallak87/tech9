@@ -609,7 +609,7 @@ function shieldHullGeometry() {
   const indices = [];
   const layers = [];
   const sides = 32;
-  for (let layer = 0; layer < 3; layer++) {
+  for (let layer = 0; layer < 4; layer++) {
     for (let row = 0; row < stations.length; row++) {
       const [z, width, height] = stations[row];
       for (let side = 0; side <= sides; side++) {
@@ -650,7 +650,7 @@ function shieldHullGeometry() {
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
-  geometry.boundingSphere.radius *= 1.35;
+  geometry.boundingSphere.radius *= 1.55;
   return geometry;
 }
 
@@ -658,7 +658,7 @@ export function createShipFeedback() {
   const group = new THREE.Group();
   group.name = 'Race device feedback / owned';
   const shieldMaterial = new THREE.ShaderMaterial({
-    name: 'Aegis / expanding ion-field pulses',
+    name: 'Aegis / luminous fracture field',
     forceSinglePass: true,
     transparent: true,
     depthWrite: false,
@@ -670,6 +670,7 @@ export function createShipFeedback() {
       strength: { value: 1 },
       hit: { value: 0 },
       hitSide: { value: 1 },
+      breakAge: { value: 0 },
       release: { value: 0 },
       flowTime: { value: 0 },
       reducedMotion: { value: 0 },
@@ -678,6 +679,7 @@ export function createShipFeedback() {
       uniform float flowTime;
       uniform float reducedMotion;
       uniform float hit;
+      uniform float breakAge;
       attribute float fieldLayer;
       varying vec2 fieldUv;
       varying vec3 viewNormal;
@@ -688,8 +690,9 @@ export function createShipFeedback() {
         fieldUv = uv;
         layer = fieldLayer;
         float motion = 1. - reducedMotion;
-        pulse = fract(flowTime * .85 + max(fieldLayer - 1., 0.) * .5);
-        float outward = fieldLayer > .5 ? pulse * .34 * motion : .008 * sin(flowTime * 5.) * motion;
+        pulse = fract(flowTime * .85 + max(fieldLayer - 2., 0.) * .5);
+        float outward = fieldLayer > 1.5 ? pulse * .3 * motion : fieldLayer > .5 ? .075 : 0.;
+        outward += hit * breakAge * .65 * motion;
         vec3 expanded = position;
         expanded.x *= 1. + outward;
         expanded.y = .22 + (expanded.y - .22) * (1. + outward);
@@ -701,43 +704,52 @@ export function createShipFeedback() {
       }`,
     fragmentShader: `
       uniform vec3 color;
-      uniform float strength;
-      uniform float hit;
-      uniform float hitSide;
-      uniform float release;
-      uniform float flowTime;
-      uniform float reducedMotion;
+      uniform float strength, hit, hitSide, breakAge, release, flowTime, reducedMotion;
       varying vec2 fieldUv;
-      varying vec3 viewNormal;
-      varying vec3 viewPosition;
-      varying float layer;
-      varying float pulse;
+      varying vec3 viewNormal, viewPosition;
+      varying float layer, pulse;
+      vec2 cellHash(vec2 p) {
+        return fract(sin(vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3))))*43758.5453);
+      }
       void main() {
-        if (layer > .5 && reducedMotion > .5) discard;
-        float fresnel = pow(1.-abs(dot(normalize(viewNormal), normalize(-viewPosition))), 8.);
-        float grazingRim = smoothstep(.84,.98,fresnel);
-        float sideRim = smoothstep(.4895,.4985,abs(fieldUv.x-.5));
-        float endRim = 1.-smoothstep(.0045,.015,min(fieldUv.y,1.-fieldUv.y));
-        float seam = 1.-smoothstep(.002,.006,abs(fract(fieldUv.y*8.)-.5));
-        float ribs = 1.-smoothstep(.0015,.005,abs(fract(fieldUv.x*13.+fieldUv.y*3.)-.5));
-        float moving = 1. - reducedMotion;
-        float surge = pow(.5+.5*sin(fieldUv.y*15.-flowTime*5.), 5.) * moving;
-        float side = smoothstep(.18,.8, hitSide > 0. ? fieldUv.x : 1.-fieldUv.x);
-        float contact = side * exp(-pow((fieldUv.y-.3)/.22,2.)) * hit * (1.-step(.5,layer));
-        // Keep the hull readable: energy lives on edges and a sparse lattice,
-        // with two low-opacity shells rippling outward in alternating phases.
-        float alpha = grazingRim*.09 + sideRim*.24 + endRim*.26;
-        alpha += seam*.025 + ribs*.012 + surge*(grazingRim*.025+seam*.035);
-        if (layer > .5) alpha = max(sideRim,endRim)*.42 * pow(1.-pulse,2.) * smoothstep(0.,.09,pulse);
-        float departing = exp(-pow((fieldUv.y-release)/.095,2.)) * step(.001,release);
-        alpha = (alpha + contact*(grazingRim*.18+seam*.32+ribs*.22) + departing*seam*.075) * strength;
-        vec3 fieldColor = mix(color * 3., vec3(3.2), min(1.,contact*.9+surge*.14));
-        // Concentrate HDR energy on the narrow boundary core, never on the
-        // transparent shell faces, so bloom reads as a field around the craft.
-        float rimCore = smoothstep(.92,1.,max(sideRim,endRim));
-        fieldColor *= 1. + rimCore * 2.;
-        if(alpha < .002) discard;
-        gl_FragColor = vec4(fieldColor,min(alpha,.5));
+        if (layer > 1.5 && reducedMotion > .5) discard;
+        float fresnel=pow(1.-abs(dot(normalize(viewNormal),normalize(-viewPosition))),2.5);
+        float sideRim=exp(-pow(min(fieldUv.x,1.-fieldUv.x)/.035,2.));
+        float endRim=exp(-pow(min(fieldUv.y,1.-fieldUv.y)/.022,2.));
+        float rim=max(sideRim,endRim);
+        float seam=exp(-pow((fract(fieldUv.y*8.)-.5)/.04,2.));
+        float motion=1.-reducedMotion;
+        float surge=pow(.5+.5*sin(fieldUv.y*13.-flowTime*5.),4.)*motion;
+        float alpha=.025+fresnel*.16+rim*.44+seam*.025+surge*.035;
+        if (layer > .5) alpha=.015+fresnel*.12+rim*.09;
+        if (layer > 1.5) alpha=(rim*.32+fresnel*.035)*pow(1.-pulse,2.)*smoothstep(0.,.1,pulse);
+        vec3 tint=color*(2.1+rim*1.3);
+        if (hit > 0.) {
+          vec2 p=fieldUv*vec2(7.,12.);
+          vec2 cell=floor(p), local=fract(p);
+          float first=10., second=10., shard=0.;
+          for(int y=-1;y<=1;y++) for(int x=-1;x<=1;x++) {
+            vec2 neighbor=vec2(float(x),float(y));
+            vec2 seed=cellHash(cell+neighbor);
+            float d=length(neighbor+.18+seed*.64-local);
+            if(d<first){second=first;first=d;shard=seed.x;}
+            else second=min(second,d);
+          }
+          float crack=1.-smoothstep(.015,.08,second-first);
+          float gap=1.-smoothstep(.008,.02,second-first);
+          vec2 impact=vec2(hitSide>0.?.74:.26,.4);
+          float radius=length((fieldUv-impact)*vec2(1.,1.5));
+          float reached=1.-smoothstep(breakAge*8.+.06,breakAge*8.+.19,radius);
+          float dissolve=1.-smoothstep(.18+shard*.16,.48+shard*.14,breakAge);
+          alpha=(alpha*(1.-gap*reached)+crack*reached*.6)*dissolve;
+          tint=mix(tint,vec3(3.4,4.,3.7),crack*reached*.8);
+          if(layer>.5) alpha*=.5;
+        }
+        float departing=1.-smoothstep(release,release+.25,fieldUv.y);
+        if(release>0.) alpha*=1.-departing;
+        alpha*=strength*(reducedMotion>.5?.65:1.);
+        if(alpha<.002) discard;
+        gl_FragColor=vec4(tint,min(alpha,.72));
       }`,
   });
   const shield = new THREE.Mesh(shieldHullGeometry(), shieldMaterial);
@@ -745,6 +757,48 @@ export function createShipFeedback() {
   shield.userData.aoExclude = true;
   shield.userData.reflectionExclude = true;
   group.add(shield);
+  const trailMaterial = new THREE.ShaderMaterial({
+    name: 'Aegis / soft moving field wake',
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
+    toneMapped: false,
+    uniforms: {
+      color: { value: new THREE.Color(DEVICE_COLORS.aegis) },
+      strength: { value: 0 },
+      flowTime: { value: 0 },
+    },
+    vertexShader: `varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader: `
+      varying vec2 vUv;
+      uniform vec3 color;
+      uniform float strength,flowTime;
+      void main(){
+        float across=exp(-pow((vUv.x-.5)*5.,2.));
+        float along=smoothstep(0.,.06,vUv.y)*pow(1.-vUv.y,2.);
+        float flow=.8+.2*sin(vUv.y*16.-flowTime*9.);
+        float a=across*along*strength*flow*.14;
+        if(a<.002)discard;
+        gl_FragColor=vec4(color*1.8,a);
+      }`,
+  });
+  const trailPlanes = [];
+  for (const side of [-1, 1]) {
+    for (const tilt of [0, Math.PI / 2]) {
+      const geometry = new THREE.PlaneGeometry(1.2, 10);
+      geometry.rotateY(tilt);
+      geometry.rotateX(-Math.PI / 2);
+      geometry.translate(side * 2, 0.65, -7.7);
+      trailPlanes.push(geometry);
+    }
+  }
+  const shieldTrail = new THREE.Mesh(joined(trailPlanes), trailMaterial);
+  shieldTrail.name = 'Aegis / dim driving trail';
+  shieldTrail.userData.aoExclude =
+    shieldTrail.userData.reflectionExclude = true;
+  shieldTrail.visible = false;
+  group.add(shieldTrail);
   const driveMaterial = new THREE.ShaderMaterial({
     name: 'Vector / tapered propulsion volume',
     transparent: true,
@@ -816,7 +870,15 @@ export function createShipFeedback() {
   shield.visible = drive.visible = false;
   const acquisition = createAcquisitionFlash();
   group.add(acquisition);
-  return { group, shield, shieldMaterial, drive, driveMaterial, acquisition };
+  return {
+    group,
+    shield,
+    shieldMaterial,
+    shieldTrail,
+    drive,
+    driveMaterial,
+    acquisition,
+  };
 }
 
 export function disposeGroup(group) {

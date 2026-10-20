@@ -279,6 +279,7 @@ export function createPickupPresentation({
         racing,
         driving,
         dt,
+        speed: vehicle.speed,
         time: flowTime,
         settings: currentSettings,
       });

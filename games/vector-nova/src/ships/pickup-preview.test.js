@@ -2,7 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Group } from 'three';
 import { COMBAT_RULES } from '../pickups/combat.js';
-import { AEGIS_DURATION, ARC_TARGET_HALF_LENGTH } from '../pickups/rules.js';
+import {
+  AEGIS_DURATION,
+  AEGIS_BREAK_DURATION,
+  ARC_TARGET_HALF_LENGTH,
+} from '../pickups/rules.js';
 import { createShipFeedbackPresentation } from '../pickups/ship-feedback.js';
 import { createPickupPreview } from './pickup-preview.js';
 import { createPickupPreviewAudio } from './pickup-preview-audio.js';
@@ -15,7 +19,10 @@ import {
 test('each audition emits one acquisition; Arc retains the real three-shot timing and speed', () => {
   for (const { id } of PICKUP_PREVIEWS) {
     assert.deepEqual(pickupPreviewFrame(id, 0).events, [
-      { type: 'pickup-activate', payload: { kind: id } },
+      {
+        type: 'pickup-activate',
+        payload: { kind: id === 'aegis-hit' ? 'aegis' : id },
+      },
     ]);
     assert.equal(pickupPreviewFrame(id, 0.01, 0).events.length, 0);
   }
@@ -101,6 +108,68 @@ test('shared hull effects preserve paused timers, impact clearing and reduced-mo
   assert.equal(drive.material.uniforms.flowTime.value, 0);
   feedback.reset();
   assert.equal(drive.visible, false);
+  feedback.dispose();
+});
+
+test('Aegis auditions distinguish a consumed shield from natural expiry', () => {
+  const before = pickupPreviewFrame('aegis-hit', 1.49, 1.48);
+  assert.ok(before.effects.aegisRemaining > 0);
+  const hit = pickupPreviewFrame('aegis-hit', 1.5, 1.49);
+  assert.deepEqual(hit.events, [
+    { type: 'shield-hit', payload: { kind: 'aegis' } },
+  ]);
+  assert.equal(hit.effects.aegisRemaining, 0);
+  assert.equal(
+    'aegis' in hit.beds,
+    false,
+    'Aegis has no sustained audio layer',
+  );
+  assert.equal(hit.end, 1.5 + AEGIS_BREAK_DURATION);
+  assert.deepEqual(pickupPreviewFrame('aegis-hit', 6, 1.5).events, []);
+  const expired = pickupPreviewFrame(
+    'aegis',
+    AEGIS_DURATION,
+    AEGIS_DURATION - 0.01,
+  );
+  assert.equal(expired.events[0].type, 'pickup-expire');
+});
+
+test('Aegis trails only while protected and moving; fracture freezes on pause and releases cleanly', () => {
+  const feedback = createShipFeedbackPresentation();
+  const shield = feedback.group.getObjectByName(
+    'Aegis / hull field and outward pulses',
+  );
+  const trail = feedback.group.getObjectByName('Aegis / dim driving trail');
+  feedback.update({ effects: { aegisRemaining: 5 } });
+  assert.equal(shield.visible, true);
+  assert.equal(trail.visible, false);
+  feedback.update({ effects: { aegisRemaining: 4 }, speed: 110, time: 1 });
+  assert.equal(trail.visible, true);
+  feedback.update({ events: [{ type: 'shield-hit' }], speed: 110, time: 1.1 });
+  assert.equal(
+    trail.visible,
+    false,
+    'consumption stops the moving field immediately',
+  );
+  feedback.update({ dt: 0.2, time: 1.3 });
+  const age = shield.material.uniforms.breakAge.value;
+  assert.ok(Math.abs(age - 0.2) < 1e-9);
+  feedback.update({ racing: false, driving: true, dt: 10, time: 1.3 });
+  assert.equal(shield.material.uniforms.breakAge.value, age);
+  feedback.update({ dt: AEGIS_BREAK_DURATION });
+  assert.equal(shield.visible, false);
+  feedback.update({
+    events: [{ type: 'pickup-expire', payload: { kind: 'aegis' } }],
+  });
+  assert.equal(shield.visible, true);
+  assert.equal(
+    shield.material.uniforms.hit.value,
+    0,
+    'natural expiry never cracks',
+  );
+  feedback.reset();
+  assert.equal(shield.visible, false);
+  assert.equal(trail.visible, false);
   feedback.dispose();
 });
 

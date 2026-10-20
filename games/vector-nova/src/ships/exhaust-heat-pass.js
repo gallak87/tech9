@@ -239,27 +239,15 @@ export class ExhaustHeatPass extends Pass {
       mesh.visible = true;
       mesh.userData.source = source;
       const { velocity, pressure } = source.userData.exhaustHeat;
-      // Hot exhaust persists well beyond the visible blue flame. High-speed
-      // cruise uses the former boost wake; boost adds a modest 12% width/18%
-      // length and stronger refraction. Idle still has a small warm wake.
-      const cruiseHeat = THREE.MathUtils.smoothstep(velocity, 0.05, 0.7);
+      // The source already grows from idle to full cruise and then boost.
+      // Follow its actual dimensions so the heat always surrounds the flame.
+      const cruiseHeat = THREE.MathUtils.smoothstep(velocity, 0.1, 0.7);
       const runningHeat = THREE.MathUtils.lerp(cruiseHeat, 1, pressure);
-      const flameWidth = THREE.MathUtils.lerp(
-        0.95 + velocity * 0.42,
-        1.5,
-        pressure,
-      );
-      const flameLength = 0.38 + velocity * 1.65 + pressure * 3.5;
-      const heatWidth =
-        THREE.MathUtils.lerp(0.95 + velocity * 0.42, 1.5, runningHeat) *
-        (1 + pressure * 0.12);
-      const heatLength =
-        (0.38 + velocity * 1.65 + runningHeat * 3.5) * (1 + pressure * 0.18);
       mesh.userData.heatLevel = runningHeat + pressure * 0.2;
       this.expansion.makeScale(
-        (2.7 * heatWidth) / flameWidth,
-        (2.7 * heatWidth) / flameWidth,
-        (1.7 * heatLength) / flameLength,
+        2.7 * (1 + pressure * 0.12),
+        2.7 * (1 + pressure * 0.12),
+        1.7 * (1 + pressure * 0.18),
       );
       mesh.matrix.copy(source.matrixWorld).multiply(this.expansion);
     });

@@ -29,11 +29,12 @@ export async function createPickupInspector({
   const engineToggle = element.querySelector('[data-engine]');
   const shieldToggle = element.querySelector('[data-shield]');
   const engine = createEnginePreview({ getState: getDriving, getSettings });
-  select.value = 'repulsor';
+  select.value = 'aegis-hit';
   const preview = createPickupPreview({
     ship,
     target: target?.group,
     getSettings,
+    getDriving,
     onStatus: (text) => {
       status.textContent = text;
     },
@@ -84,13 +85,19 @@ export async function createPickupInspector({
         new Vector3(...bounds.max),
       );
       const other = target.group.userData.bounds;
-      box.union(
-        new Box3(
-          new Vector3(...other.min),
-          new Vector3(...other.max),
-        ).translate(target.group.position),
-      );
-      return { min: box.min.toArray(), max: box.max.toArray() };
+      const targetBox = new Box3(
+        new Vector3(...other.min),
+        new Vector3(...other.max),
+      ).translate(target.group.position);
+      box.union(targetBox);
+      return {
+        min: box.min.toArray(),
+        max: box.max.toArray(),
+        subjects: [
+          bounds,
+          { min: targetBox.min.toArray(), max: targetBox.max.toArray() },
+        ],
+      };
     },
     setShip(next) {
       preview.setShip(next);

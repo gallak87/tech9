@@ -1,5 +1,9 @@
 // One sound set shared by racing, the Sounds picker and the ship inspector.
 export const DEVICE_SAMPLES = {
+  'aegis-activate': new URL(
+    '../../assets/audio/sfx/aegis-activate.wav',
+    import.meta.url,
+  ).href,
   'arc-activate': new URL(
     '../../assets/audio/sfx/arc-activate.wav',
     import.meta.url,
@@ -27,6 +31,14 @@ export const DEVICE_SAMPLES = {
 export function deviceSample(event) {
   const { kind, shielded } = event.payload ?? {};
   if (event.type === 'shield-hit') return { id: 'shield-block', gain: 0.8 };
+  if (kind === 'aegis') {
+    if (event.type === 'pickup-activate')
+      return { id: 'aegis-activate', gain: 1 };
+    if (event.type === 'pickup-expire')
+      return { id: 'shield-block', gain: 0.65 };
+    if (event.type === 'pickup-cancel')
+      return { id: 'shield-block', gain: 0.4 };
+  }
   if (!['arc', 'repulsor'].includes(kind)) return null;
   if (event.type === 'pickup-activate')
     return { id: kind === 'arc' ? 'arc-activate' : 'repulsor-charge', gain: 1 };

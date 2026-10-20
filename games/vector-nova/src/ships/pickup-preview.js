@@ -13,6 +13,7 @@ export function createPickupPreview({
   ship,
   target,
   getSettings,
+  getDriving = () => ({}),
   onStatus = () => {},
   createAudio = createPickupPreviewAudio,
   createFeedback = createShipFeedbackPresentation,
@@ -73,6 +74,7 @@ export function createPickupPreview({
       events: next.events,
       time: current.time,
       dt,
+      speed: getDriving().driving ? 400 / 3.6 : 0,
       settings,
     });
     combat.update({ mode: 'racing', settings });
@@ -93,6 +95,7 @@ export function createPickupPreview({
       dt,
       time: current.time,
       settings,
+      speed: getDriving().driving ? 400 / 3.6 : 0,
     });
     current.end = Math.max(next.end, current.audioDuration);
   }

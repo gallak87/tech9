@@ -21,9 +21,15 @@ export const soundEffects = [
   device('vector-activate', 'Vector · activate', 'pickup-activate', {
     kind: 'vector',
   }),
-  device('aegis-activate', 'Aegis · activate', 'pickup-activate', {
-    kind: 'aegis',
-  }),
+  device(
+    'aegis-activate',
+    'Aegis · activate',
+    'pickup-activate',
+    {
+      kind: 'aegis',
+    },
+    1,
+  ),
   device('repulsor-activate', 'Repulsor · charge', 'pickup-activate', {
     kind: 'repulsor',
   }),
@@ -94,12 +100,25 @@ export const soundEffects = [
     'combat-confirm',
     { shielded: true },
   ),
-  device('device-expire', 'Device · expire', 'pickup-expire', {
-    kind: 'aegis',
-  }),
+  device(
+    'device-expire',
+    'Aegis · expire',
+    'pickup-expire',
+    {
+      kind: 'aegis',
+    },
+    0.9,
+  ),
   device('ion-expire', 'Ion · expire', 'pickup-expire', { kind: 'ion' }),
   device('device-unavailable', 'Device · unavailable', 'pickup-unavailable'),
   device('device-cancel', 'Device · cancelled', 'pickup-cancel'),
+  device(
+    'aegis-cancel',
+    'Aegis · cancelled',
+    'pickup-cancel',
+    { kind: 'aegis' },
+    0.9,
+  ),
   {
     id: 'vector-bed',
     label: 'Vector · sustained rush',

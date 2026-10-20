@@ -135,10 +135,12 @@ test('boost releases without moving the hull or leaving nonfinite presentation s
     const cruise = {
       strength: plume.material.uniforms.strength.value,
       length: plume.scale.z,
+      width: plume.scale.x,
     };
     ship.update({ speed: 85, boost: true, time: 2, energy: 1 });
-    assert.ok(plume.material.uniforms.strength.value > cruise.strength * 3);
-    assert.ok(plume.scale.z > cruise.length * 3);
+    assert.ok(plume.material.uniforms.strength.value > cruise.strength * 1.5);
+    assert.ok(plume.scale.z > cruise.length * 1.5);
+    assert.ok(plume.scale.x > cruise.width * 1.25);
     assert.equal(plume.material.uniforms.boostMix.value, 1);
     ship.update({ speed: 85, boost: true, time: 2, energy: 0 });
     assert.equal(plume.material.uniforms.boostMix.value, 0);
@@ -151,6 +153,38 @@ test('boost releases without moving the hull or leaving nonfinite presentation s
     assert.ok(ship.group.quaternion.equals(pose.quaternion));
     ship.dispose();
   }
+});
+
+test('cruise has a full pressure plume, with a larger boost and a quiet stationary throat', async () => {
+  const ship = await createShip({ model });
+  const plume = ship.group.getObjectByName('Ion exhaust');
+  const light = ship.group.getObjectByName(
+    'Ion throat / local ceramic and titanium spill',
+  );
+  const anchor = plume.position.clone();
+  ship.update({ speed: 0, time: 0, reducedMotion: true });
+  assert.ok(plume.scale.z < 0.5);
+  assert.ok(plume.material.uniforms.strength.value < 0.2);
+  ship.update({ speed: 400 / 3.6, time: 1, reducedMotion: true });
+  assert.ok(
+    plume.scale.z >= 5,
+    'ordinary driving has the previous full boost reach',
+  );
+  assert.ok(plume.material.uniforms.strength.value >= 1);
+  const cruise = {
+    length: plume.scale.z,
+    light: light.intensity,
+    reach: light.distance,
+  };
+  ship.update({ speed: 400 / 3.6, boost: true, time: 1, reducedMotion: true });
+  assert.ok(plume.scale.z > cruise.length * 1.5);
+  assert.ok(light.intensity > cruise.light * 1.8);
+  assert.ok(light.distance > cruise.reach);
+  assert.ok(
+    plume.position.equals(anchor),
+    'the larger exhaust stays on its authored nozzle',
+  );
+  ship.dispose();
 });
 
 test('ship instances release owned resources once and leave source, siblings and borrowed reflection intact', async () => {

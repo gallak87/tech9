@@ -22,7 +22,7 @@ Arc and Repulsor have completed the owner’s combined sound/VFX review. Retain 
 | Use                          | Retained deep synthesized pellet shots the owner liked; three separate events       | Generated rounded pressure discharge at 0.5 s                         |
 | Target contact               | Generated electric armor impact at lower gain                                       | Generated cushioned pressure impact at lower gain                     |
 | Incoming hit                 | Same impact at full cue gain                                                        | Same impact at full cue gain                                          |
-| Shielded hit                 | Shared generated glassy field block; no duplicate hull impact                       | Same shared shield block                                              |
+| Shielded hit                 | Shared generated warp collapse; no duplicate hull impact                            | Same shared shield block                                              |
 | Contacts during damage grace | Quieter physical impacts for the remaining pellets; no extra damage or confirmation | No repeated pulse contacts                                            |
 | Finish                       | Last shot/activation tails; no extra expiry chime                                   | Discharge tail; no extra expiry chime                                 |
 | Unavailable / cancellation   | Shared quiet unavailable tick; reset cancels owned voices                           | Same shared behavior                                                  |
@@ -55,4 +55,20 @@ Review it in the complete device sequence, including impact and block.
 
 **Repulsor:** compressed air and magnetic tension gather around the ship, then release as a rounded bass pressure punch. The rose charge shell, layered pulse and short source afterglow follow that shape; the struck hull gives a cushioned, weighty impact. Current prompts: [charge](../../assets/audio/sfx/repulsor-charge.json), [discharge](../../assets/audio/sfx/repulsor-fire.json), [impact](../../assets/audio/sfx/repulsor-hit.json).
 
-**Shield block:** a soft glassy snap and dense protective field thud, shared by both devices. Current [prompt](../../assets/audio/sfx/shield-block.json). Retain the shield's mint visual identity.
+**Shield block:** a thick warp collapse with rounded bass and audible midrange body, shared by both devices. A gentle high shelf softens its raspy upper edge. Current [prompt](../../assets/audio/sfx/shield-block.json). Retain the shield's mint visual identity.
+
+## Aegis coverage
+
+Aegis forms with a broad warp surge and collapses with a resonant magnetic pulse. Keep the middle silent: propulsion already fills that space. Its bright mint shell and dim moving trail remain visible while active; a hit spreads fractures through the shell before it dissolves. Natural expiry fades without fractures.
+
+| Stage                          | Sound                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Activation                     | Generated [warp start](../../assets/audio/sfx/aegis-activate.json)                                     |
+| Protected / driving            | Intentional silence; no sustained hum                                                                  |
+| Incoming hit / shield consumed | Generated [warp collapse](../../assets/audio/sfx/shield-block.json), with no duplicate hull-impact cue |
+| Attacker hears blocked hit     | Same collapse at lower gain                                                                            |
+| Natural expiry                 | Same collapse, slightly softer                                                                         |
+| Cancellation                   | Same collapse, quieter still; reset/Stop cancels owned voices                                          |
+| Unavailable                    | Retained shared quiet tick                                                                             |
+
+Review **Aegis · absorb + break** for the hit sequence and **Aegis · shield** for its full duration and natural expiry. Toggle Driving for the trail and Engine sound for the mix. Current candidates await the owner's complete review.

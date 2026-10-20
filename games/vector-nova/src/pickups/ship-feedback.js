@@ -2,6 +2,7 @@ import { createShipFeedback, disposeGroup } from './geometry.js';
 import { DEVICE_COLORS } from './theme.js';
 import { createArcFeedback } from './arc-feedback.js';
 import { energyCylinder, energyPlane } from './energy-material.js';
+import { AEGIS_BREAK_DURATION } from './rules.js';
 
 const clamp = (value) => Math.max(0, Math.min(1, value));
 const kinds = ['vector', 'aegis', 'repulsor', 'arc', 'ion'];
@@ -38,6 +39,7 @@ export function createShipFeedbackPresentation() {
     pressure.visible = pressureShell.visible = false;
     feedback.acquisition.visible = false;
     feedback.shield.visible = feedback.drive.visible = false;
+    feedback.shieldTrail.visible = false;
   }
   function update({
     effects = {},
@@ -45,6 +47,7 @@ export function createShipFeedbackPresentation() {
     racing = true,
     driving = racing,
     dt = 0,
+    speed = 0,
     time: flowTime = 0,
     settings: currentSettings = {},
   } = {}) {
@@ -76,7 +79,7 @@ export function createShipFeedbackPresentation() {
           );
         }
         if (event.type === 'shield-hit') {
-          hitTime = 0.42;
+          hitTime = AEGIS_BREAK_DURATION;
           hitSide = event.payload?.side || 1;
           expiryTime = 0;
         }
@@ -132,16 +135,23 @@ export function createShipFeedbackPresentation() {
       aegis > 0
         ? 1
         : hitTime > 0
-          ? clamp(hitTime / 0.42)
+          ? clamp(hitTime / AEGIS_BREAK_DURATION)
           : clamp(expiryTime / 0.5);
     field.hit.value =
-      clamp(hitTime / 0.42) * (currentSettings.reducedMotion ? 0.55 : 1);
+      clamp(hitTime / AEGIS_BREAK_DURATION) *
+      (currentSettings.reducedMotion ? 0.55 : 1);
+    field.breakAge.value = hitTime > 0 ? AEGIS_BREAK_DURATION - hitTime : 0;
     field.hitSide.value = hitSide;
     field.release.value =
       expiryTime && !currentSettings.reducedMotion ? 1 - expiryTime / 0.5 : 0;
     if (field.flowTime) field.flowTime.value = flowTime;
     if (field.reducedMotion)
       field.reducedMotion.value = currentSettings.reducedMotion ? 1 : 0;
+    feedback.shieldTrail.visible = driving && aegis > 0 && Math.abs(speed) > 1;
+    feedback.shieldTrail.material.uniforms.strength.value =
+      clamp(Math.abs(speed) / 110) * (currentSettings.reducedMotion ? 0.3 : 1);
+    feedback.shieldTrail.material.uniforms.flowTime.value =
+      currentSettings.reducedMotion ? 0 : flowTime;
     feedback.drive.visible = driving && vector;
     feedback.driveMaterial.uniforms.strength.value = vector
       ? currentSettings.reducedMotion

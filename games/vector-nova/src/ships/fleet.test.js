@@ -150,7 +150,7 @@ test('every exported chassis fits the shared collision hull and owns its correct
     craft.update({ speed: 100, boost: false, energy: 1 });
     const cruise = plumes[0].scale.z;
     craft.update({ speed: 100, boost: true, energy: 1 });
-    assert.ok(plumes[0].scale.z > cruise * 2.5);
+    assert.ok(plumes[0].scale.z > cruise * 1.5);
     craft.dispose();
     craft.dispose();
     scene.traverse((object) => {

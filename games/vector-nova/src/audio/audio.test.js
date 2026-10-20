@@ -139,6 +139,16 @@ test('complete device sets distinguish outgoing, incoming, blocked and grace con
     assert.deepEqual(deviceCue(event('pickup-expire')), []);
   }
   assert.equal(deviceSample({ type: 'shield-hit' }).id, 'shield-block');
+  for (const [type, id, gain] of [
+    ['pickup-activate', 'aegis-activate', 1],
+    ['pickup-expire', 'shield-block', 0.65],
+    ['pickup-cancel', 'shield-block', 0.4],
+  ]) {
+    assert.deepEqual(deviceSample({ type, payload: { kind: 'aegis' } }), {
+      id,
+      gain,
+    });
+  }
   assert.equal(
     deviceSample({ type: 'combat-fire', payload: { kind: 'arc' } }),
     null,

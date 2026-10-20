@@ -2,14 +2,14 @@
 
 Open the game with `?dev=1` to show **Sounds** beside Tunes. Pick a sound and press **Play**; picking another stops the current preview. Use **M** to pause Tunes while listening. Effects volume comes from Settings. Each preview stops automatically; engine and sustained effects play for three seconds.
 
-These 37 choices cover the current gameplay sound effects and their distinct audible variants. The Sounds panel uses the same generated samples, synthesis and effects volume as gameplay. The preview owns separate audio resources and does not activate pickups or alter the race. Audition from a menu or pause screen to hear the selected effect in isolation: racing audio and Tunes otherwise continue, and the isolated cue does not reproduce competition between voices in the full racing mix.
+These 38 choices cover the current gameplay sound effects and their distinct audible variants. The Sounds panel uses the same generated samples, synthesis and effects volume as gameplay. The preview owns separate audio resources and does not activate pickups or alter the race. Audition from a menu or pause screen to hear the selected effect in isolation: racing audio and Tunes otherwise continue, and the isolated cue does not reproduce competition between voices in the full racing mix.
 
-For pickup sound and VFX together, open **Ship inspector → Powerups** with `dev=1`, or go directly to `?inspect=1&dev=1&ship=kestrel`. Choose a device and press **Trigger**. The full Arc/Repulsor sound sets match gameplay. Check **Shield target** to preview a blocked first hit, and **Engine sound** to hear Driving/Boost alongside the device.
+For pickup sound and VFX together, open **Ship inspector → Powerups** with `dev=1`, or go directly to `?inspect=1&dev=1&ship=kestrel`. Choose a device and press **Trigger**. The Arc, Repulsor and Aegis sound sets match gameplay. Aegis has separate full-duration and absorb/break sequences. Check **Shield target** to preview a blocked first hit, and **Engine sound** to hear Driving/Boost alongside the device.
 
 | Picker entry                   | When heard in game                         | Current character                                        |
 | ------------------------------ | ------------------------------------------ | -------------------------------------------------------- |
 | Vector · activate              | Vector road device activates               | Rising rush with low engine body                         |
-| Aegis · activate               | Shield activates                           | Soft low swell and ringing shell                         |
+| Aegis · activate               | Shield activates                           | Generated broad warp-start surge                         |
 | Repulsor · charge              | Repulsor is acquired and charges           | Generated compressed magnetic rise                       |
 | Arc · activate                 | Arc emitter activates                      | Generated controlled electrical whip                     |
 | Ion · activate                 | Ion wake emitter activates                 | Falling rush and low body                                |
@@ -21,14 +21,15 @@ For pickup sound and VFX together, open **Ship inspector → Powerups** with `de
 | Repulsor · target contact      | Player's pulse strikes a rival             | Repulsor impact at reduced gain                          |
 | Arc · shield blocked           | Rival shield blocks an Arc hit             | Shared generated field block at reduced gain             |
 | Repulsor · shield blocked      | Rival shield blocks the pulse              | Same shared block                                        |
-| Aegis · absorb hit             | Shield absorbs contact or weapon hit       | Generated glassy field snap and deep thud                |
+| Aegis · absorb hit             | Shield absorbs contact or weapon hit       | Generated rounded warp collapse; softened upper edge     |
 | Combat · unshielded hit        | Other weapon hits unshielded player        | Noise crack and low impact                               |
 | Combat · hit confirmed         | Other weapon hits an unshielded rival      | Short rising confirmation                                |
 | Combat · shield hit confirmed  | Other weapon hits a shielded rival         | Short falling confirmation                               |
-| Device · expire                | Aegis ends                                 | Shared falling noise and tone                            |
+| Aegis · expire                 | Shield times out                           | Same warp collapse at softer gain                        |
 | Ion · expire                   | Ion emitter ends                           | Lower noise variant of expiry                            |
 | Device · unavailable           | Road device cannot activate                | Quiet noise tick                                         |
-| Device · cancelled             | Vector/Aegis is cancelled                  | Short falling noise                                      |
+| Device · cancelled             | Vector is cancelled                        | Short falling noise                                      |
+| Aegis · cancelled              | Shield is cancelled                        | Same warp collapse at lower gain                         |
 | Vector · sustained rush        | Vector boost remains active                | Continuous bright filtered noise                         |
 | Ion · sustained wake           | Ion emitter remains active                 | Continuous lower filtered noise                          |
 | Countdown · 3 / 2 / 1          | Each red start light                       | Same short 480 Hz tone                                   |
@@ -48,6 +49,6 @@ For pickup sound and VFX together, open **Ship inspector → Powerups** with `de
 
 The propulsion bed continuously responds to acceleration, braking, steering and speed; its three presets are representative states, not separate recordings. Underwater filtering also affects other Nacre sounds. A shielded `combat-hit` is silent because `shield-hit` supplies the audible cue.
 
-Arc and Repulsor finish through their existing tails, with no extra expiry cue.
+Arc and Repulsor finish through their existing tails, with no extra expiry cue. Aegis has no sustained audio layer; its start and collapse leave room for propulsion.
 
 The picker catalog is [sounds.js](../../src/audio/sounds.js). Generated sample routing lives in [sample cues](../../src/pickups/sample-cues.js). Synthesis and mixing live in [pickup sound design](../../src/pickups/sound-design.js), [pickup audio](../../src/pickups/audio.js), [race cues](../../src/audio/index.js), [propulsion](../../src/audio/propulsion.js), [Nacre thunder](../../src/audio/nacre-thunder.js) and [Glasswake shelf audio](../../src/levels/glasswake/audio.js). Keep the catalog and this table aligned when a sound changes.

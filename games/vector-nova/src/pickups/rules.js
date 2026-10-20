@@ -1,5 +1,6 @@
 // Shared authored lifetimes for gameplay and presentation-only previews.
 export const AEGIS_DURATION = 6;
+export const AEGIS_BREAK_DURATION = 0.65;
 
 // Collision pulses keep their established height. Their visible discharge sits
 // just below the hull's hover datum, centered along the ship rather than aft.

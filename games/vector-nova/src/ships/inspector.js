@@ -7,9 +7,11 @@ import { createRivalPreview, RIVAL_SHIPS } from './rivals.js';
 import { configureShipTextures } from './texture-loader.js';
 import { createInspectionStage } from './inspection-stage.js';
 import { createInspectionPipeline } from './inspection-pipeline.js';
+import { createPairedFraming } from './inspection-framing.js';
 
 const START_ROTATION = -Math.PI * 0.6;
 const START_ELEVATION = 0.38;
+const PAIRED_ELEVATION = 0.3;
 
 // A standalone studio: ships, lighting and preview controls only. Never import
 // the game factory, a level implementation, physics, or race audio here.
@@ -50,6 +52,7 @@ export async function createInspector({
   const focusOffset = new T.Vector3();
   let layout = null;
   let pairedPreview = false;
+  let pairedFraming;
   const dispose = () => {
     if (disposed) return;
     disposed = true;
@@ -131,8 +134,10 @@ export async function createInspector({
 
     function fit(group) {
       const devBounds = pickupTools?.framing(group.userData.bounds);
+      if (devBounds && !pairedPreview) preview.elevation = PAIRED_ELEVATION;
       pairedPreview = !!devBounds;
       const bounds = devBounds ?? group.userData.bounds;
+      pairedFraming = devBounds ? createPairedFraming(bounds) : null;
       framingCenter.set(
         devBounds ? (bounds.min[0] + bounds.max[0]) / 2 : 0,
         0,
@@ -273,12 +278,12 @@ export async function createInspector({
           const tools = root
             .querySelector('#inspection-tools')
             .getBoundingClientRect();
-          const left = Math.max(panel.right + 16, innerWidth * 0.5);
-          const top = innerHeight * 0.2;
+          const left = panel.right + 12;
+          const top = Math.max(100, innerHeight * 0.12);
           viewport = {
             left,
             top,
-            width: Math.max(120, innerWidth - left - innerWidth * 0.04),
+            width: Math.max(120, innerWidth - left - innerWidth * 0.025),
             height: Math.max(120, tools.top - top - 20),
           };
         }
@@ -294,6 +299,7 @@ export async function createInspector({
       focusOffset.copy(framingCenter);
       if (subject) focusOffset.applyQuaternion(subject.quaternion);
       const target = new T.Vector3(0, viewport ? 0.7 : 0.3, 0).add(focusOffset);
+      let pairedFrame;
       if (viewport) {
         camera.position.normalize();
         const sinPitch = camera.position.y;
@@ -307,17 +313,31 @@ export async function createInspector({
           1.08 *
             projection *
             Math.max(extent.radial / viewport.width, height / viewport.height);
+        if (pairedFraming && subject)
+          pairedFrame = pairedFraming.frame(
+            camera.position,
+            subject.quaternion,
+            viewport,
+            innerHeight,
+            camera.fov,
+          );
         camera.position
-          .multiplyScalar(distance * (pairedPreview ? 0.8 : 1))
+          .multiplyScalar(pairedFrame?.distance ?? distance)
           .add(target);
       } else camera.position.add(focusOffset);
       camera.setViewOffset(
         innerWidth,
         innerHeight,
         viewport
-          ? innerWidth / 2 - (viewport.left + viewport.width / 2)
+          ? innerWidth / 2 -
+              (viewport.left + viewport.width / 2) +
+              (pairedFrame?.offsetX ?? 0)
           : -innerWidth * 0.15,
-        viewport ? innerHeight / 2 - (viewport.top + viewport.height / 2) : 0,
+        viewport
+          ? innerHeight / 2 -
+              (viewport.top + viewport.height / 2) +
+              (pairedFrame?.offsetY ?? 0)
+          : 0,
         innerWidth,
         innerHeight,
       );
@@ -442,7 +462,9 @@ export async function createInspector({
         preview.autoRotate = false;
         if (event.code === 'Home') {
           rotation = START_ROTATION;
-          preview.elevation = START_ELEVATION;
+          preview.elevation = pairedPreview
+            ? PAIRED_ELEVATION
+            : START_ELEVATION;
         } else if (event.code === 'ArrowLeft') rotation -= 0.15;
         else if (event.code === 'ArrowRight') rotation += 0.15;
         else

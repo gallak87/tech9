@@ -19,7 +19,7 @@ export function createOrbitalPlumeMaterial() {
       strength: { value: 0.15 },
       flowTime: { value: 0 },
       boostMix: { value: 0 },
-      cruiseMix: { value: 0 },
+      thrustMix: { value: 0 },
       reducedMotion: { value: 0 },
     },
     vertexShader: `
@@ -39,7 +39,7 @@ export function createOrbitalPlumeMaterial() {
       uniform float strength;
       uniform float flowTime;
       uniform float boostMix;
-      uniform float cruiseMix;
+      uniform float thrustMix;
       uniform float reducedMotion;
       varying vec3 localPosition;
       varying vec3 localEye;
@@ -63,7 +63,7 @@ export function createOrbitalPlumeMaterial() {
           float phase = aft*23.-flowTime*7.;
           vec2 eddy = vec2(sin(phase+p.y*13.),cos(phase*.83+p.x*11.));
           eddy += .38*vec2(sin(phase*1.73+p.y*21.),cos(phase*1.31-p.x*19.));
-          float shear = smoothstep(.25,.94,aft)*(.009+boostMix*.021);
+          float shear = smoothstep(.25,.94,aft)*(.009+thrustMix*.021+boostMix*.008);
           p.xy += eddy*shear*(1.-reducedMotion);
           // Smooth pressure cells have luminous bulges and dimmer waists;
           // they are part of the gas density, never detached rings or beads.
@@ -71,7 +71,7 @@ export function createOrbitalPlumeMaterial() {
           vec3 cells = exp(-cellDistance*cellDistance)*vec3(1.,.72,.46);
           float compression = max(cells.x,max(cells.y,cells.z));
           float radius = .25*(1.-max(aft,0.)*.24)*(1.-smoothstep(.45,1.,aft)*.96);
-          radius *= mix(1.,.84+.2*compression,boostMix);
+          radius *= mix(1.,.84+.2*compression,thrustMix);
           float radial = length(p.xy)/max(radius,.007);
           float boundary = 1.-smoothstep(.68,1.15,radial);
           float envelope = exp(-radial*radial*3.2)*boundary;
@@ -82,7 +82,7 @@ export function createOrbitalPlumeMaterial() {
           // Emission begins slightly inside the authored aperture. The nozzle
           // lip stays opaque and the engine cavity gains an attached hot root.
           float axial = smoothstep(-.07,-.005,aft)*(1.-smoothstep(.52,.97,aft))*exp(-max(aft,0.)*.65);
-          float flow = 1.+.035*sin(aft*26.-flowTime*(14.+boostMix*9.))*(1.-reducedMotion);
+          float flow = 1.+.035*sin(aft*26.-flowTime*(14.+thrustMix*9.))*(1.-reducedMotion);
           float wisps = 1.-smoothstep(.38,.92,aft)*(.23+.23*sin(phase*1.3+p.x*24.))*(1.-reducedMotion);
           // Past the final compression the broad envelope disperses. Two
           // faint moving filaments carry flow aft without a flat blue paddle.
@@ -92,18 +92,22 @@ export function createOrbitalPlumeMaterial() {
           vec2 strandB = transverse-vec2(-.24+.11*cos(phase*.73),.12*sin(phase*.91));
           float filaments = exp(-dot(strandA,strandA)*34.)*(.65+.35*sin(phase*1.13));
           filaments += exp(-dot(strandB,strandB)*42.)*(.3+.3*cos(phase*.93));
-          float bulk = envelope*(.95+boostMix*.28*compression)*mix(1.,.07,dispersal);
-          // Sustained cruise has a narrow blue jet, while true idle remains
-          // a restrained throat glow. Boost replaces this extra cruise spine.
-          float cruiseCore = exp(-radial*radial*15.)*(1.-smoothstep(.65,.95,aft))*cruiseMix;
-          float density = (bulk+core*1.4+boostMix*pressureCell*2.6+cruiseCore*2.8)*axial*flow*wisps;
+          float bulk = envelope*(.95+thrustMix*.28*compression)*mix(1.,.07,dispersal);
+          float density = (bulk+core*1.4+thrustMix*pressureCell*2.6)*axial*flow*wisps;
           density += filaments*dispersal*.48*(1.-smoothstep(.74,1.,aft))*flow;
+          // Boost spills a soft blue corona outward from the throat before
+          // folding into the longer wake. It remains inside this same volume.
+          float coronaRadius = .31*(1.-smoothstep(.08,.7,aft)*.65);
+          float coronaDistance = length(p.xy)/coronaRadius;
+          float corona = exp(-coronaDistance*coronaDistance*2.8);
+          corona *= (1.-smoothstep(.27,.35,length(p.xy)))*(1.-smoothstep(.25,.7,aft));
+          density += boostMix*corona*.55*axial*flow;
           float alpha = 1.-exp(-density*stepLength*strength*5.3);
           // White lives in the narrow pressure spine and early compression
           // knots. The broad envelope remains saturated cobalt/cyan gas.
-          float whiteHeat = clamp(core*(.2+cruiseMix*.55)+boostMix*pressureCell*.61,0.,.8);
+          float whiteHeat = clamp(core*.2+thrustMix*pressureCell*(.61+boostMix*.18),0.,.8);
           vec3 color = mix(glowColor*1.4,vec3(.72,.88,1.),whiteHeat);
-          color *= 1.25+boostMix*(.4+.25*compression);
+          color *= 1.25+thrustMix*(.4+.25*compression)+boostMix*.4;
           radiance += transmission*alpha*color;
           transmission *= 1.-alpha;
         }

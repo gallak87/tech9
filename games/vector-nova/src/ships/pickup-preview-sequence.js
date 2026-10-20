@@ -1,6 +1,7 @@
 import { COMBAT_RULES } from '../pickups/combat.js';
 import {
   AEGIS_DURATION,
+  AEGIS_BREAK_DURATION,
   ARC_SHOT_HEIGHT,
   ARC_MUZZLE_HEIGHT,
   ARC_TARGET_HALF_LENGTH,
@@ -12,6 +13,7 @@ export const PREVIEW_TARGET_DISTANCE = 27.5;
 export const PICKUP_PREVIEWS = [
   { id: 'vector', label: 'Vector · catapult' },
   { id: 'aegis', label: 'Aegis · shield' },
+  { id: 'aegis-hit', label: 'Aegis · absorb + break' },
   { id: 'repulsor', label: 'Repulsor · charge + pulse' },
   { id: 'arc', label: 'Arc · activate + burst' },
   { id: 'ion', label: 'Ion · wake' },
@@ -32,6 +34,8 @@ export function pickupPreviewFrame(
   target = false,
   shielded = false,
 ) {
+  const breakShield = kind === 'aegis-hit';
+  if (breakShield) kind = 'aegis';
   const events = [];
   const effects = {};
   const combat = { time, emitters: {}, shots: [], flashes: [], wakes: [] };
@@ -67,9 +71,11 @@ export function pickupPreviewFrame(
     if (crossed(vectorContact)) events.push(event('pickup-exit', kind));
     end = vectorContact;
   } else if (kind === 'aegis') {
-    effects.aegisRemaining = Math.max(0, AEGIS_DURATION - time);
-    if (crossed(AEGIS_DURATION)) events.push(event('pickup-expire', kind));
-    end = AEGIS_DURATION + 0.5;
+    const finish = breakShield ? 1.5 : AEGIS_DURATION;
+    effects.aegisRemaining = time < finish ? AEGIS_DURATION - time : 0;
+    if (crossed(finish))
+      events.push(event(breakShield ? 'shield-hit' : 'pickup-expire', kind));
+    end = finish + (breakShield ? AEGIS_BREAK_DURATION : 0.5);
   } else if (kind === 'repulsor') {
     if (time < COMBAT_RULES.pulseDelay)
       combat.emitters.player = { kind, elapsed: time };

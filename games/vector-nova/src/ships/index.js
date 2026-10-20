@@ -164,34 +164,43 @@ export async function createShip({
       boosting: activeBoost,
       reducedMotion,
     });
+    // Cruise reaches the former boost plume. Boost adds another clear step
+    // in volume and emission; idle retains its restrained nozzle glow.
+    const thrust = THREE.MathUtils.lerp(
+      THREE.MathUtils.smoothstep(velocity, 0.1, 0.7),
+      1,
+      pressure,
+    );
     for (const { material, intensity } of power)
       material.emissiveIntensity =
-        intensity * (0.8 + velocity * 0.2 + pressure * 0.35);
+        intensity * (0.8 + thrust * 0.35 + pressure * 0.45);
     plumeMaterial.uniforms.strength.value =
-      (0.12 + velocity * 0.22 + pressure * 0.75) * plumeExposure;
+      (0.12 + velocity * 0.22 + thrust * 0.75 + pressure * 0.8) * plumeExposure;
     plumeMaterial.uniforms.flowTime.value = flowTime;
     plumeMaterial.uniforms.reducedMotion.value = reducedMotion ? 1 : 0;
     plumeMaterial.uniforms.boostMix.value = pressure;
-    plumeMaterial.uniforms.cruiseMix.value =
-      THREE.MathUtils.smoothstep(velocity, 0.1, 0.7) * (1 - pressure);
+    plumeMaterial.uniforms.thrustMix.value = thrust;
     plumeMaterial.uniforms.glowColor.value.setHex(0x2376ff);
     for (let index = 0; index < plumes.length; index++) {
       const pulse = reducedMotion
         ? 1
         : 1 + Math.sin(flowTime * 17 + index * 2) * 0.008;
       const width =
-        THREE.MathUtils.lerp(0.95 + velocity * 0.42, 1.5, pressure) * pulse;
+        THREE.MathUtils.lerp(0.95 + velocity * 0.42, 1.5, thrust) *
+        (1 + pressure * 0.32) *
+        pulse;
       plumes[index].scale.set(
         width * specification.plumeWidth,
         width * specification.plumeWidth,
-        (0.38 + velocity * 1.65 + pressure * 3.5) * pulse,
+        (0.38 + velocity * 1.65 + thrust * 3.5 + pressure * 3.1) * pulse,
       );
       Object.assign(plumes[index].userData.exhaustHeat, {
         pressure,
         velocity,
         time: flowTime,
       });
-      nozzleLights[index].intensity = 0.2 + velocity * 0.12 + pressure * 0.36;
+      nozzleLights[index].intensity = 0.2 + thrust * 0.48 + pressure * 0.7;
+      nozzleLights[index].distance = 1.35 + thrust * 0.45 + pressure * 0.55;
     }
   }
   function dispose() {

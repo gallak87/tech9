@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import { formatTime } from '../src/race/timing.js';
 
 // Browser-only instrumentation accelerates real physics. Production has no
 // finish shortcuts; both the runtime and rendered ghost are exercised here.
@@ -109,6 +110,16 @@ try {
   assert.equal(snap.competition.enabled, false);
   assert.equal(snap.vehicle.energy, 100);
   assert.equal(snap.vehicle.distance, 0);
+  if (!sprint) {
+    assert.equal(
+      await page.locator('#last').textContent(),
+      'STANDING BEST: PENDING',
+    );
+    assert.equal(
+      await page.locator('#best').textContent(),
+      'FLYING BEST: PENDING',
+    );
+  }
   const first = await finishLap();
   assert.equal(first.saved.ghostSaved, true);
   assert.equal(first.improved, true);
@@ -127,9 +138,21 @@ try {
       await page.locator('.timing > span').textContent(),
       'LAP TIME',
     );
-    assert.match(
+    const standingRow = `STANDING BEST: ${formatTime(first.playerTotalTime, 2)}`;
+    assert.equal(await page.locator('#last').textContent(), standingRow);
+    assert.equal(
+      await page.locator('#best').textContent(),
+      'FLYING BEST: PENDING',
+    );
+    await page.evaluate(() => window.__VN.verifyTrialStep(960));
+    assert.equal(
       await page.locator('#last').textContent(),
-      /NEW STANDING BEST/,
+      standingRow,
+      'record stays visible beyond the old six-second announcement',
+    );
+    assert.equal(
+      await page.locator('#best').textContent(),
+      'FLYING BEST: PENDING',
     );
     await page.waitForFunction(() => window.__VN.verifyTrialGhost().visible);
     assert.ok(
@@ -140,6 +163,15 @@ try {
     assert.equal(second.start, 'flying');
     assert.equal(second.improved, true);
     assert.equal(snap.timeTrial.ghostStart, 'flying');
+    await page.waitForFunction(
+      () =>
+        document.querySelector('#best').textContent !== 'FLYING BEST: PENDING',
+    );
+    assert.equal(await page.locator('#last').textContent(), standingRow);
+    assert.equal(
+      await page.locator('#best').textContent(),
+      `FLYING BEST: ${formatTime(second.playerTotalTime, 2)}`,
+    );
     await page.evaluate(() => window.__VN.verifyTrialStep(240));
     await page.waitForFunction(() => window.__VN.verifyTrialGhost().visible);
     const ghost = await page.evaluate(() => window.__VN.verifyTrialGhost());
@@ -237,10 +269,16 @@ try {
   snap = await page.evaluate(() => window.__VN.verifyTrialStep(120, true));
   assert.equal(snap.timeTrial.ghost, false);
   assert.equal(snap.timeTrial.best, first.playerTotalTime);
-  await page.waitForFunction(
-    () =>
-      document.querySelector('#last').textContent === 'BEST TIME · NO GHOST',
-  );
+  if (sprint)
+    await page.waitForFunction(
+      () =>
+        document.querySelector('#last').textContent === 'BEST TIME · NO GHOST',
+    );
+  else
+    assert.equal(
+      await page.locator('#last').textContent(),
+      `STANDING BEST: ${formatTime(first.playerTotalTime, 2)}`,
+    );
   const slower = await finishLap();
   assert.equal(slower.improved, false);
   assert.equal(slower.ghostAvailable, false);

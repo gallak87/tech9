@@ -854,37 +854,38 @@ export function createUI(
             : 'LAP TIME';
         if (!sprint) $('lap').textContent = String(r.lap);
         $('time').textContent = fmt(trial.elapsed);
-        const last = trial.lastLap;
-        $('last').textContent =
-          last && trial.elapsed < 6
-            ? !last.playerValid
-              ? 'LAST LAP INVALID'
-              : `${last.improved ? `NEW ${last.start.toUpperCase()} BEST` : 'LAST LAP'} ${fmt(last.playerTotalTime)}`
-            : trial.delta != null
+        const storageNote =
+          trial.persistence?.saved === false
+            ? 'BEST NOT SAVED'
+            : trial.persistence?.ghostSaved === false
+              ? 'GHOST NOT SAVED'
+              : '';
+        if (!sprint) {
+          // Keep both records in fixed rows, including while the other lap
+          // category is active. Status belongs above the running clock.
+          const caption = root.querySelector('.timing > span');
+          if (!trial.valid) caption.textContent = 'LAP INVALID';
+          else if (storageNote) caption.textContent = storageNote;
+          else if (trial.delta != null)
+            caption.textContent = `S${trial.sector} Δ ${formatDelta(trial.delta)}`;
+          $('last').textContent =
+            `STANDING BEST: ${trial.standingBest == null ? 'PENDING' : fmt(trial.standingBest)}`;
+          $('best').textContent =
+            `FLYING BEST: ${trial.flyingBest == null ? 'PENDING' : fmt(trial.flyingBest)}`;
+        } else {
+          $('last').textContent =
+            trial.delta != null
               ? `S${trial.sector} Δ ${formatDelta(trial.delta)}`
               : trial.ghost
-                ? trial.ghostStart === 'standing' && trial.start === 'flying'
-                  ? 'STANDING GHOST · SET A FLYING BEST'
-                  : 'PERSONAL GHOST'
+                ? 'PERSONAL GHOST'
                 : trial.best
                   ? 'BEST TIME · NO GHOST'
                   : 'SET YOUR FIRST BEST';
-        const storageNote =
-          trial.persistence?.saved === false
-            ? ' · NOT SAVED'
-            : trial.persistence?.ghostSaved === false
-              ? ' · GHOST NOT SAVED'
-              : '';
-        $('best').textContent = !trial.valid
-          ? sprint
+          $('best').textContent = !trial.valid
             ? 'UNRANKED · R TO RETRY'
-            : 'LAP INVALID · NEXT LAP COUNTS'
-          : (trial.best
-              ? `${sprint ? '' : trial.start.toUpperCase() + ' '}BEST ${fmt(trial.best)}`
-              : sprint
-                ? 'NO DEVICES'
-                : `SET A ${trial.start.toUpperCase()} BEST`) +
-            (storageNote || ' · R RETRY');
+            : (trial.best ? `BEST ${fmt(trial.best)}` : 'NO DEVICES') +
+              (storageNote ? ` · ${storageNote}` : ' · R RETRY');
+        }
       } else
         root.querySelector('.timing > span').textContent = sprint
           ? 'ELAPSED'

@@ -355,6 +355,8 @@ export function createTimeTrial({ identity, race, store = storage() }) {
         lap,
         start,
         best: best?.duration ?? null,
+        standingBest: bests.standing?.duration ?? null,
+        flyingBest: bests.flying?.duration ?? null,
         ghost: Boolean(reference?.samples),
         ghostStart: reference?.identity.start ?? null,
         sector: current.length,

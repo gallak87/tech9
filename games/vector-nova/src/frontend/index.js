@@ -182,7 +182,7 @@ export function createFrontend(host) {
   const difficultyControls = () =>
     `<fieldset class="race-difficulty"><legend>Opponent difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${settings.difficulty === d}" tabindex="${settings.difficulty === d ? 0 : -1}">${d}</button>`).join('')}</fieldset>`;
   const facts = () =>
-    `<span>${route() ? (route().length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'}</span><span>${route()?.closed === false ? 'POINT TO POINT' : intent === 'practice' ? 'OPEN PRACTICE' : intent === 'time-trial' ? 'UNLIMITED LAPS' : '2 LAPS'}</span><span>${!['race', 'cup'].includes(intent) ? 'SOLO' : `${RACE_FIELD_SIZE} PILOTS`}</span>`;
+    `<span>${route() ? (route().length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'}</span> <span>${route()?.closed === false ? 'POINT TO POINT' : intent === 'practice' ? 'OPEN PRACTICE' : intent === 'time-trial' ? 'UNLIMITED LAPS' : '2 LAPS'}</span> <span>${!['race', 'cup'].includes(intent) ? 'SOLO' : `${RACE_FIELD_SIZE} PILOTS`}</span>`;
   function remember() {
     try {
       localStorage.setItem('vector-nova.circuit', selected);

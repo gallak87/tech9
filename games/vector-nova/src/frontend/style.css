@@ -270,9 +270,15 @@ button:disabled {
   visibility: hidden;
 }
 .session-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
   padding: 12px 0;
   border-block: 1px solid #333;
   line-height: 1.5;
+}
+.session-facts > span {
+  white-space: nowrap;
 }
 .transfer-status {
   width: 100%;

@@ -2,6 +2,15 @@
   "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "cup-trophy-icons-v1",
+      "source": "assets/ui/cups/",
+      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
+      "provenance": "Four matching transparent championship trophy icons: Founders green, Frontier gold, Horizon red and legendary Apex purple. The original generated red Apex trophy is retained as the shared style and recoloring reference. Source PNGs, exact prompts, menu accent references and SHA-256 hashes are retained; menu integration is pending.",
+      "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/ui/cups/provenance.json"
+    },
+    {
       "id": "worldspire-sprint",
       "source": "assets/levels/worldspire/",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",

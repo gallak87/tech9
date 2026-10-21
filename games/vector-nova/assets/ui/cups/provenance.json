@@ -1,0 +1,54 @@
+{
+  "generator": "Built-in image_gen",
+  "rights": "Generated for VECTOR//NOVA with built-in imagegen. Reference artwork was also generated for this project; no third-party reference artwork supplied.",
+  "usage": "Transparent cup trophy icons for future menu integration. Founders, Frontier and Horizon use green, gold and red accents inspired by the existing menu difficulty colors; Apex uses legendary purple. These are cup tiers, not changes to individual track difficulty.",
+  "reference": {
+    "file": "references/apex-cup-red-v1.png",
+    "originalOutput": "/Users/g/.codex/generated_images/01a15483-d533-7bf1-90fc-820e8cbf7baa/exec-66b53ed5-52da-4902-ae4f-3ee47919e9d3.png",
+    "prompt": "Use case: stylized-concept.\nAsset type: a single transparent game UI championship icon for the Apex Cup in VECTOR//NOVA, an original futuristic anti-gravity racing game.\nPrimary request: design a premium, distinctive Apex Cup trophy emblem. A bold faceted silver summit rises from a shallow angular trophy bowl, with two swept racing fins framing the peak and a short integrated pedestal. It should convey the highest-tier championship, speed and mastery.\nStyle: polished sculptural game icon, precise manufactured geometry, restrained shallow 3D depth, nearly front-on orthographic view. Strong elegant silhouette; a few large shapes and clean negative spaces that remain readable at 64 pixels.\nMaterials and palette: satin platinum and machined titanium, charcoal recessed surfaces, one confident vermilion-red enamel inset. Broad controlled highlights and crisp bevels, no busy surface detailing.\nComposition: one centered isolated emblem on a square transparent canvas, occupying approximately 80 percent of its height, fully visible with generous clear margins. Self-contained lighting with a bright silver edge so it reads against the game's dark charcoal menu.\nConstraints: genuine transparent background including openings; no text, letters, numbers, caption, watermark, background scene, square tile, floor, cast ground shadow, particles, lens flares, heavy glow, weapons, skulls or copied existing game logos. Do not create a contact sheet or a UI screenshot. Deliver one finished icon.",
+    "sha256": "b1c231645553fb194946a4d8e9317d9702a6974f0156f988a53d9faa13f8771f",
+    "size": [1254, 1254]
+  },
+  "images": [
+    {
+      "cupId": "founders",
+      "file": "founders-cup-v1.png",
+      "accentReference": "#85BE99",
+      "originalOutput": "/Users/g/.codex/generated_images/01a15483-d533-7bf1-90fc-820e8cbf7baa/exec-db7a4163-223d-41ec-8e34-077ae1d8db6e.png",
+      "referenceImage": "references/apex-cup-red-v1.png",
+      "prompt": "Use case: stylized-concept. Asset type: a single transparent championship TROPHY ICON for VECTOR//NOVA, an original futuristic racing game.\nThe supplied image is a STYLE REFERENCE for this trophy family: match its satin platinum, machined titanium, charcoal recesses, clean enamel inlays, crisp bevel highlights and sculptural near-front orthographic presentation. This requested icon must have its own recognizable trophy silhouette.\nA square transparent canvas, one centered upright trophy, fully visible, filling approximately 85% of the height with even margins. A small integrated pedestal. Strong silhouette readable at 64 pixels, deliberate large shapes and clean negative spaces. Consistent neutral studio lighting and metallic craftsmanship.\nThis is a standalone CUP ICON, not a full button background and not a wide winged emblem. No text, lettering, numbers, watermark, scenery, tile, ground plane, cast ground shadow, particles, excessive bloom or contact sheet. Genuine transparency around the trophy and inside openings. All uncolored metal remains neutral silver and graphite.\nDesign the FOUNDERS CUP, the first and most approachable tier. A compact, elegant open geometric bowl with two short smoothly swept side handles, a simple central green enamel chevron and a sturdy small pedestal. Broad clean surfaces, restrained detailing, approachable proportions. A clearly recognizable cup shape. Less elaborate and less sharp than the reference: no tall summit, no multiple spear points, no aggressive crown.\nAccent palette: the main menu's easy-tier green, base hue #85BE99, expressed as rich jade-green enamel with soft pale-green highlights. Green accents only; remove every red accent from the style reference.",
+      "sha256": "5f26e4bf2368e38d8b3d03f75bdbeb5b812fc48ced8989872825663b53f00f0c",
+      "size": [1254, 1254]
+    },
+    {
+      "cupId": "frontier",
+      "file": "frontier-cup-v1.png",
+      "accentReference": "#E0D08B",
+      "originalOutput": "/Users/g/.codex/generated_images/01a15483-d533-7bf1-90fc-820e8cbf7baa/exec-543f9de1-c7e4-41fa-91e6-597b56b92244.png",
+      "referenceImage": "references/apex-cup-red-v1.png",
+      "prompt": "Use case: stylized-concept. Asset type: a single transparent championship TROPHY ICON for VECTOR//NOVA, an original futuristic racing game.\nThe supplied image is a STYLE REFERENCE for this trophy family: match its satin platinum, machined titanium, charcoal recesses, clean enamel inlays, crisp bevel highlights and sculptural near-front orthographic presentation. This requested icon must have its own recognizable trophy silhouette.\nA square transparent canvas, one centered upright trophy, fully visible, filling approximately 85% of the height with even margins. A small integrated pedestal. Strong silhouette readable at 64 pixels, deliberate large shapes and clean negative spaces. Consistent neutral studio lighting and metallic craftsmanship.\nThis is a standalone CUP ICON, not a full button background and not a wide winged emblem. No text, lettering, numbers, watermark, scenery, tile, ground plane, cast ground shadow, particles, excessive bloom or contact sheet. Genuine transparency around the trophy and inside openings. All uncolored metal remains neutral silver and graphite.\nDesign the FRONTIER CUP, the second tier of four. A distinctive angular trophy bowl supported by two rising, outward-swept metallic fins like an open gateway, a faceted amber-gold inset at the center, and a short stepped pedestal. Suggest exploration and forward momentum. Moderately elaborate, stronger and more assertive than an introductory cup, but well below the tallest, most intricate summit trophy in the reference. Keep an open central silhouette, with no giant central spear or mountain.\nAccent palette: the main menu's medium-tier yellow-gold, base hue #E0D08B, expressed as champagne-gold/amber enamel and pale golden highlights. The metal body stays neutral platinum. Gold accents only; no red, green or purple.",
+      "sha256": "7fb385824a09a560d18b58bcdf91dff322328df3d72a61c6842dff07327ca4c1",
+      "size": [1254, 1254]
+    },
+    {
+      "cupId": "horizon",
+      "file": "horizon-cup-v1.png",
+      "accentReference": "#DE9191",
+      "originalOutput": "/Users/g/.codex/generated_images/01a15483-d533-7bf1-90fc-820e8cbf7baa/exec-ae243523-023f-4f83-aa56-7d078410b649.png",
+      "referenceImage": "references/apex-cup-red-v1.png",
+      "prompt": "Use case: stylized-concept. Asset type: a single transparent championship TROPHY ICON for VECTOR//NOVA, an original futuristic racing game.\nThe supplied image is a STYLE REFERENCE for this trophy family: match its satin platinum, machined titanium, charcoal recesses, clean enamel inlays, crisp bevel highlights and sculptural near-front orthographic presentation. This requested icon must have its own recognizable trophy silhouette.\nA square transparent canvas, one centered upright trophy, fully visible, filling approximately 85% of the height with even margins. A small integrated pedestal. Strong silhouette readable at 64 pixels, deliberate large shapes and clean negative spaces. Consistent neutral studio lighting and metallic craftsmanship.\nThis is a standalone CUP ICON, not a full button background and not a wide winged emblem. No text, lettering, numbers, watermark, scenery, tile, ground plane, cast ground shadow, particles, excessive bloom or contact sheet. Genuine transparency around the trophy and inside openings. All uncolored metal remains neutral silver and graphite.\nDesign the HORIZON CUP, the hard third tier of four. An assertive sculptural trophy: a rising faceted sun-disc cradled above a deep V-shaped angular bowl, framed by two split, swept orbital arches, with a compact integrated pedestal. The sun is a solid faceted metallic medallion with a broad red enamel center. Make the rising-disc and open-arch silhouette distinctive, elegant and fast; more intricate and imposing than the first two cups but clearly less tall and spiked than the legendary Apex summit trophy. No mountain or giant central spear.\nAccent palette: the main menu's hard-tier red, base hue #DE9191 for lit edges with rich garnet/crimson enamel in the recessed colored sections. Red accents only. Neutral silver and graphite body, no gold, green or purple.",
+      "sha256": "9e7027c9904542c1501c6dad0c088569e925c29a428351d6d12fcd6a2599e94e",
+      "size": [1254, 1254]
+    },
+    {
+      "cupId": "apex",
+      "file": "apex-cup-purple-v2.png",
+      "accentReference": "#B38AE8",
+      "originalOutput": "/Users/g/.codex/generated_images/01a15483-d533-7bf1-90fc-820e8cbf7baa/exec-45f4b404-ba5d-4848-a002-82bf8389d430.png",
+      "referenceImage": "references/apex-cup-red-v1.png",
+      "prompt": "Use case: precise-object-edit. Asset type: updated transparent Apex Cup trophy icon.\nEdit the supplied trophy image. Change ONLY its red enamel accent inlays to a rich legendary amethyst PURPLE, with a violet base, reference highlight hue #B38AE8 and deep plum recesses. Replace all red accent reflections with matching violet-purple reflections. Retain the original trophy's exact silhouette, summit geometry, swept side fins, bowl, pedestal, proportions, framing, lighting, platinum metal, graphite recesses and material detail. The neutral silver metal must remain neutral, not be recolored purple. No added glow, new gems, new ornaments or extra geometry. Preserve the genuinely transparent background and all transparent openings. No text, labels or watermark. One square icon, same framing as the original.",
+      "sha256": "898b1435c5c6ece109f6de8aaf4b85a0dc778792766aaa088604d9d829dc77d3",
+      "size": [1254, 1254]
+    }
+  ]
+}

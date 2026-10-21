@@ -2,6 +2,15 @@
   "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "cup-button-backgrounds-v1",
+      "source": "assets/ui/cups/backgrounds/",
+      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
+      "provenance": "Four opaque panoramic button backgrounds: Founders green valley, Frontier gold canyon, Horizon red escarpment and legendary Apex purple obsidian storm. Environment artwork only, with no composited trophy or text. The original generated red Apex background is retained as the recoloring reference. Source PNGs, exact prompts, accent references and SHA-256 hashes are retained; menu integration is pending.",
+      "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/ui/cups/backgrounds/provenance.json"
+    },
+    {
       "id": "cup-trophy-icons-v1",
       "source": "assets/ui/cups/",
       "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",

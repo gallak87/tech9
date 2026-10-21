@@ -77,7 +77,7 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 - [ ] Consider expansion beyond the delivered ten-racer field only after measuring performance and independent finishes.
 - [x] Add shared physical ship contact, strong magnetic attachment, yaw response and contact feedback cooldowns.
 - [ ] Prototype two recharge stretches and two immediate 25-point cells on Halcyon, capped at 100 reserve. Put recharge on slower/wider lines, retain passive regeneration while tuning, and reset eligibility per racer/lap with forward-crossing anti-farming rules. Expand only after review.
-- [ ] Consider cosmetic rewards after the core mode flows are complete; rewards would not unlock stronger stats, and current content remains available in Practice/Quick Race.
+- [ ] **Progression, badges and cup rewards.** Explore persistent badges/achievements for cup completions, podiums/wins and difficulty milestones, with a satisfying reward reveal on the final standings screen. Ship cosmetics/customisation, pilot titles and trophies are possible directions; the actual rewards remain undecided. Define first-clear and repeat-completion rewards to give cups replay value. Keep stronger-stat unlocks and upgrade economies deferred, and current content available in Practice/Quick Race.
 
 ## Publishing
 

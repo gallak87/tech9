@@ -1,3 +1,4 @@
+import { CONTROLLER_DEFAULTS, controllerSettings } from '../input/gamepad.js';
 import { mobileGraphics } from '../renderer/device.js';
 
 export const vesperGraphicsDefaults = {
@@ -10,6 +11,7 @@ export const halcyonGraphicsDefaults = {
   halcyonRoadReflections: true,
 };
 export const defaults = {
+  ...CONTROLLER_DEFAULTS,
   volume: 0.35,
   quality: 'high',
   reducedMotion: false,
@@ -21,6 +23,7 @@ let current;
 const listeners = new Set();
 function normalize(saved = {}) {
   return {
+    ...controllerSettings(saved),
     halcyonRoadSheen: Number.isFinite(saved.halcyonRoadSheen)
       ? Math.max(0, Math.min(1, saved.halcyonRoadSheen))
       : halcyonGraphicsDefaults.halcyonRoadSheen,

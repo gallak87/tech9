@@ -1,80 +1,52 @@
 # Steam release plan
 
-Status: planning only. Keep polishing VECTOR//NOVA before committing to a Steam release. No release date is set.
+Separate offline Electron demo/full packages and SteamPipe preparation are implemented. See [desktop.md](desktop.md) for edition scope, build/test commands, packaging boundaries and upload preparation. This file tracks remaining work; no release date is set.
 
-Requirements checked on 2026-10-18; recheck Valve's current rules before paying fees or scheduling launch.
+## First-release scope
 
-## Proposed first release
+- Target Windows after hardware validation. Mac packages support local testing; additional advertised platforms need their own validation.
+- Tentative US base price: **$1.99**, to confirm before publishing.
+- Achievements, online leaderboards and Steam Cloud remain optional. Current records, ghosts and cup progress are local.
 
-- Package the existing Three.js/Vite game with Electron, retaining the browser version and shared game code.
-- Start with Windows. Add macOS, Linux or Steam Deck support after testing those targets.
-- Consider a US base price of **$1.99**. This is a tentative preference over $0.99, preserving the inexpensive-game goal with more discount flexibility.
-- Keep achievements, leaderboards and Steam Cloud optional for the first release.
+## Controller presets and dead zones
 
-## 1. Build a desktop package
+Implemented in browser, demo and full game through Settings, including the pause-menu Settings entry. Presets cover the small driving action set; arbitrary per-button remapping and rumble remain out of scope.
 
-- [ ] Add an Electron shell around the production game build.
-- [ ] Bundle tracks, ships, textures, music, decoders and other runtime resources locally; verify the game launches and plays offline.
-- [ ] Configure local asset loading, application identity, icons and versioning.
-- [ ] Keep renderer access to native capabilities restricted to what the game needs.
-- [ ] Produce a repeatable Windows package and test it on a clean machine without development tools.
+| Preset            | Accelerate | Brake | Boost | Airbrake |
+| ----------------- | ---------- | ----- | ----- | -------- |
+| Classic (default) | RT         | LT    | A     | B        |
+| Shoulders         | RT         | LT    | RB    | LB       |
+| Arcade            | A          | LT    | RT    | B        |
 
-Electron embeds Chromium and supports Windows, macOS and Linux. Each advertised platform still needs its own build and verification. Packaging does not itself solve GPU memory limits or first-use loading hitches.
+Xbox-style labels above refer to standard controller button positions.
 
-References: [Electron overview](https://www.electronjs.org/docs/latest/), [application packaging](https://www.electronjs.org/docs/latest/tutorial/application-distribution), [security guidance](https://www.electronjs.org/docs/latest/tutorial/security).
+- Left-stick steering, D-pad/stick menu navigation, A confirm, B back, Menu/Start pause and X normal race-camera cycling are shared across layouts. Off-road recovery stays automatic.
+- Steering dead zone: 0–40%, default 15%, with a live stick/steering display and reset. Use D-pad while testing the stick in controller settings; other menu navigation keeps its independent 55% threshold. Steering assistance is unchanged.
+- View/Select toggles music. Tunes in setup or pause opens song/volume controls; B returns to the menu.
+- Presets/dead zone persist locally and update layout hints. Steam omits the in-race shortcut strip; bindings stay in Settings. Keyboard controls remain available. Settings retains the current race and its Resume action.
+- Synthetic-controller checks cover all three layouts, actual driving, menu navigation, dead-zone boundaries, held buttons, pause/Settings return, disconnect/reconnect, and saved preferences. They do not certify physical hardware or Steam Input; those remain release gates below.
 
-## 2. Finish the desktop experience
+## Release gates
 
-- [ ] Add fullscreen/windowed settings and a Quit button.
-- [ ] Verify settings persist across restarts and package updates.
-- [ ] Complete controller navigation through menus, track/ship selection, racing, pause, settings and results. Existing driving inputs are a starting point, not proof of full controller support.
-- [ ] Check keyboard navigation, controller disconnect/reconnect, alt-tab, audio and window resizing.
-- [ ] Test all 13 tracks, repeated races, track switching and the standalone ship inspector on representative Windows hardware.
-- [ ] Measure startup, frame pacing and memory use; establish minimum and recommended system requirements from testing.
+### Repository and distribution
 
-First milestone: a friend can install the Windows build, launch it offline and play entirely with a controller.
+- [ ] Move Vector Nova into a dedicated private repository when ready, including assets, local/browser tooling and desktop CI. Keep full-game build artifacts restricted to repository collaborators.
+- [ ] Decide what stays publicly playable: the current browser game, a demo, or no public game. Update Pages/hosting as part of the move without affecting the other games in this repository.
 
-## 3. Review assets and disclosures
+### Build and playtesting
 
-- [ ] Audit shipped assets and dependencies against the [asset manifest](../ASSET_MANIFEST.json) and underlying licence/provenance records.
-- [ ] Confirm commercial redistribution rights for music, imagery, models, fonts and third-party code; include required notices in the package.
-- [ ] Complete Steam's content survey, including accurate disclosure of generated artwork and music consumed by players.
+- [ ] After the private-repository move, restore `.github/workflows/vector-nova-desktop.yml.disabled` to `.yml` and run desktop CI for both editions and target platforms.
+- [ ] Test the packaged Windows builds on a clean machine: all courses, a complete cup, Time Trial records/ghosts, repeated races, track switching and ship inspection.
+- [ ] Validate controller-only play, physical mappings, unplug/reconnect, Steam Input/overlay, keyboard navigation, alt-tab, fullscreen, resizing and audio.
+- [ ] Test demo/full Steam installs and private-branch updates, including offline play, save persistence and separate edition data.
+- [ ] Measure startup, frame pacing and memory on representative hardware; publish system requirements based on those measurements.
+- [ ] Resolve release-blocking playtest findings. First acceptance milestone: a friend installs the Windows build and plays offline entirely with a controller.
 
-The project already records generated imagery/music and third-party materials. Those records help the review but do not replace checking the applicable terms. Steam evaluates pre-generated AI content under its normal content and rights requirements; disclosure is not an automatic rejection.
+### Publisher and store
 
-Reference: [Steam content survey](https://partner.steamgames.com/doc/gettingstarted/contentsurvey).
-
-## 4. Register with Steamworks when ready
-
-- [ ] Choose the legal individual or entity publishing the game.
-- [ ] Complete identity verification, banking and tax information, and the Steamworks agreements.
-- [ ] Pay the Steam Direct fee and create the game's application entry.
-
-Valve permits an individual to onboard as a sole proprietor; incorporation is not a Steam requirement. The fee is **$100 per product**, potentially plus applicable tax. It is non-refundable but recoupable after the product reaches **$1,000 in adjusted gross revenue**, under Valve's terms. Sales proceeds are also subject to the distribution agreement's revenue share, taxes, refunds and other applicable adjustments.
-
-References: [onboarding](https://partner.steamgames.com/doc/gettingstarted/onboarding), [Steam Direct fee](https://partner.steamgames.com/doc/gettingstarted/appfee).
-
-## 5. Prepare the store page and build delivery
-
-- [ ] Write the description around features available at launch.
-- [ ] Prepare gameplay screenshots, capsule/library artwork, icons and a short gameplay trailer.
-- [ ] Enter supported platforms, languages, system requirements, content disclosures and regional pricing.
-- [ ] Upload the packaged build through Steam's tools and configure its launch executable.
-- [ ] Test installation and launching through Steam, offline behaviour and delivery of an update.
-- [ ] Submit the store page and build for Valve review, leaving time for feedback and corrections.
-
-Steamworks upload tools are needed for distribution. In-game API features such as achievements and leaderboards are optional; they need not delay an otherwise complete release.
-
-References: [uploading to Steam](https://partner.steamgames.com/doc/sdk/uploading), [Steamworks SDK](https://partner.steamgames.com/doc/sdk), [pricing](https://partner.steamgames.com/doc/store/pricing), [review process](https://partner.steamgames.com/doc/store/review_process).
-
-## 6. Schedule and release
-
-- [ ] Make the approved Coming Soon page public and start collecting wishlists.
-- [ ] Meet both timing requirements: at least **30 days after paying the app fee** for an initial release, and a public Coming Soon page for at least **two weeks**. These periods can overlap.
-- [ ] Finish external playtesting and resolve release-blocking issues.
-- [ ] Confirm the final price, release date, approved build and store claims before publishing.
-- [ ] Plan how to receive bug reports and ship updates after launch.
-
-Valve reviews both the store presence and the build. Store review typically takes 3–5 business days; Valve recommends submitting the page at least seven business days before the intended page launch. Allow additional time for corrections and build review. The waiting periods are minimums, not a promise that the game will be ready in 30 days.
-
-References: [Steam Direct publishing requirements](https://partner.steamgames.com/steamdirect/), [review process](https://partner.steamgames.com/doc/store/review_process).
+- [ ] Choose the publishing identity; complete Steamworks agreements, identity, banking and tax setup. Check current [onboarding](https://partner.steamgames.com/doc/gettingstarted/onboarding) and [Steam Direct fee](https://partner.steamgames.com/doc/gettingstarted/appfee) requirements.
+- [ ] Create and associate full-game/demo App IDs, assign separate Windows depots and configure their launch executables; use the [SteamPipe procedure](desktop.md#steampipe).
+- [ ] Confirm commercial rights and required notices against the [asset manifest](../ASSET_MANIFEST.json), [music provenance](../audio/README.md) and [SFX terms](../audio/sfx.md). Complete the [content survey](https://partner.steamgames.com/doc/gettingstarted/contentsurvey), including generated art/music disclosures.
+- [ ] Prepare an accurate description, gameplay screenshots, capsule/library art and a short trailer. Set languages, supported platforms, measured requirements and [regional pricing](https://partner.steamgames.com/doc/store/pricing).
+- [ ] Obtain [store/build review](https://partner.steamgames.com/doc/store/review_process), publish Coming Soon and meet current [Steam Direct waiting periods](https://partner.steamgames.com/steamdirect/). Allow time for corrections before choosing a release date.
+- [ ] Confirm the final price, build and store claims; establish bug reporting and update delivery before publishing.

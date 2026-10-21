@@ -1,3 +1,9 @@
+import { bindDesktopControls } from '../ui/desktop-controls.js';
+import { CONTROLLER_DEFAULTS } from '../input/gamepad.js';
+import {
+  controllerSettingsView,
+  bindControllerSettings,
+} from './controller-settings.js';
 import {
   CUPS,
   createCupStore,
@@ -70,9 +76,15 @@ export function createFrontend(host) {
   let sessionCup = false,
     cupConfirm = null,
     cupResultsKey = null;
-  const parameters = new URLSearchParams(location.search);
-  const artPass = parameters.get('artPass') === '1';
-  const inspectShip = !artPass && parameters.get('inspect') === '1';
+  const parameters = new URLSearchParams(
+    !import.meta.env?.VN_DESKTOP ? location.search : '',
+  );
+  const artPass =
+    !import.meta.env?.VN_DESKTOP && parameters.get('artPass') === '1';
+  const inspectShip =
+    !import.meta.env?.VN_DESKTOP &&
+    !artPass &&
+    parameters.get('inspect') === '1';
   let special =
     artPass ||
     inspectShip ||
@@ -125,7 +137,10 @@ export function createFrontend(host) {
   let inspector = null,
     inspectorController = null,
     inspectorPending = null;
-  let cacheModule, unsubscribeCache, unsubscribeSettings;
+  let cacheModule,
+    unsubscribeCache,
+    unsubscribeSettings,
+    disposeControllerSettings;
   let preload = {
     ready: 0,
     total: SHIPS.length,
@@ -147,6 +162,12 @@ export function createFrontend(host) {
   let shipPreview = null,
     previewGeneration = 0;
   const life = new AbortController();
+  void import('../input/menu-gamepad.js').then(({ bindMenuGamepad }) => {
+    if (!life.signal.aborted)
+      bindMenuGamepad(life.signal, {
+        toggleMusic: () => music?.togglePlayback(),
+      });
+  });
   // Match CSS: one picker at a time beside the menu, separate pages below.
   const wideMenu = matchMedia('(min-width: 900px)');
   const choosingSession = () =>
@@ -160,6 +181,9 @@ export function createFrontend(host) {
   const shell = host.querySelector('#front-shell');
   const inspectorHost = document.createElement('div');
   inspectorHost.id = 'inspector-host';
+  const desktopControls = import.meta.env?.VN_DESKTOP
+    ? bindDesktopControls(host, life.signal)
+    : null;
   const music =
     artPass || inspectShip || parameters.get('music') === '0'
       ? null
@@ -168,7 +192,7 @@ export function createFrontend(host) {
           isMenuVisible: () => !shell.hidden,
         });
   let sounds = null;
-  if (parameters.get('dev') === '1')
+  if (!import.meta.env.VN_DESKTOP && parameters.get('dev') === '1')
     void import('../audio/sound-panel.js').then(({ createSoundPanel }) => {
       if (life.signal.aborted) return;
       sounds = createSoundPanel(host, {
@@ -296,6 +320,9 @@ export function createFrontend(host) {
     document.body.dataset.screen = next;
     music?.setDriving(next === 'race');
     render();
+    desktopControls?.mount(
+      next === 'inspection' ? inspectorHost : shell.hidden ? null : shell,
+    );
     if (navigating) shell.scrollTop = 0;
     const focus =
       next === 'records'
@@ -437,10 +464,11 @@ export function createFrontend(host) {
   function pickerRaceActions() {
     return `<div class="picker-race-actions"><button class="change-track" data-action="circuits">${escape(intent === 'cup' ? currentCup().name : level().name)} · ${modeName()} <span aria-hidden="true">↗</span></button>${raceActions()}</div>`;
   }
-  const sessionReturn = () => {
-    if (!game?.hasSession() || sessionCup) return '';
-    const name =
-      sessionIntent === 'time-trial'
+  const sessionReturn = (includeCup = false) => {
+    if (!game?.hasSession() || (sessionCup && !includeCup)) return '';
+    const name = sessionCup
+      ? 'Cup Race'
+      : sessionIntent === 'time-trial'
         ? 'Time Trial'
         : sessionIntent === 'practice'
           ? 'Practice'
@@ -453,7 +481,7 @@ export function createFrontend(host) {
     const selectedCraft = lockedCup()
       ? SHIPS.find((entry) => entry.id === savedCup.shipId)
       : selectedShip();
-    return `<section class="race-menu" aria-label="Session setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1>${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step" ${lockedCup() ? 'disabled' : ''}><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    return `<section class="race-menu" aria-label="Session setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1>${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step" ${lockedCup() ? 'disabled' : ''}><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}${music ? button('tunes', 'Tunes') : ''}${import.meta.env?.VN_DESKTOP === true ? button('desktop-quit', 'Quit game') : ''}</nav><div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
   };
   function cupPanel(withActions) {
     const state = cupStore.snapshot().state;
@@ -518,8 +546,11 @@ export function createFrontend(host) {
       ?.append(transfer);
     updateLaunchSummary();
     updateStatus();
+    desktopControls?.mount(shell);
   }
   function render() {
+    disposeControllerSettings?.();
+    disposeControllerSettings = null;
     if (shell.hidden) return;
     if (choosingSession()) {
       renderMenu();
@@ -555,7 +586,7 @@ export function createFrontend(host) {
       const inspecting = launchTarget === 'inspection';
       content.innerHTML = `<section class="loading-copy">${inspecting ? '' : `<div class="loading-card">${picture(route())}${routeArt(route())}</div>`}<div class="transfer-slot loading-transfer"></div>${heading(inspecting ? 'PREPARING STUDIO' : 'LOADING CIRCUIT', inspecting ? 'Ship inspector' : escape(level().name))}${inspecting ? '' : `<div class="session-facts">${facts()}</div>`}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
     } else if (screen === 'settings') {
-      content.innerHTML = `<div class="settings-layout"><section class="settings-form"><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume</span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion</span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label></section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
+      content.innerHTML = `${sessionReturn(true)}<div class="settings-layout"><section class="settings-form"><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume</span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion</span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label>${controllerSettingsView(settings)}</section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
         [
           'Driving',
           [
@@ -563,7 +594,7 @@ export function createFrontend(host) {
             ['Shift', 'Boost'],
             ['Space', 'Airbrake'],
             ['Esc', 'Pause / resume'],
-            ['R', 'Recover at checkpoint / retry finished sprint'],
+            ['R', 'Reset / retry'],
             ['C', 'Change camera'],
           ],
         ],
@@ -571,34 +602,36 @@ export function createFrontend(host) {
           'Menus',
           [
             ['Tab / Shift Tab', 'Move between controls'],
-            ['↑ / ↓', 'Move through menu actions and track rows'],
-            [
-              '← / →',
-              'Browse modes/tracks/ships; change difficulty or setup tab',
-            ],
-            ['Home / End', 'First / last item in a list'],
+            ['↑ / ↓', 'Move between actions'],
+            ['← / →', 'Browse choices'],
+            ['Home / End', 'First / last choice'],
             ['Enter / Space', 'Select or activate'],
             ['Esc', 'Back / cancel loading'],
             ['S', 'Open settings'],
           ],
         ],
-        [
-          'Free camera',
-          [
-            ['F', 'Enter / leave free camera'],
-            ['WASD / Arrows', 'Move'],
-            ['Q / E', 'Move down / up'],
-            ['Drag', 'Look around'],
-            ['P', 'Toggle live dev tools / FPS'],
-            ['Esc', 'Close dev tools, then leave free camera'],
-          ],
-        ],
+        ...(!import.meta.env?.VN_DESKTOP &&
+        (parameters.get('dev') === '1' || artPass)
+          ? [
+              [
+                'Free camera',
+                [
+                  ['F', 'Enter / leave free camera'],
+                  ['WASD / Arrows', 'Move'],
+                  ['Q / E', 'Move down / up'],
+                  ['Drag', 'Look around'],
+                  ['P', 'Toggle live dev tools / FPS'],
+                  ['Esc', 'Close dev tools, then leave free camera'],
+                ],
+              ],
+            ]
+          : []),
         [
           'Tunes',
           [
             ['M', 'Play / pause'],
             [', / .', 'Previous / next track'],
-            ['/', 'Expand player in menus / pause'],
+            ['/', 'Expand player'],
           ],
         ],
       ]
@@ -608,6 +641,10 @@ export function createFrontend(host) {
         )
         .join('')}</section></div>`;
       content.querySelector('select').value = settings.quality;
+      disposeControllerSettings = bindControllerSettings(
+        content.querySelector('.controller-settings'),
+        () => settings,
+      );
     } else if (screen === 'results' && lastResults?.mode === 'cup') {
       content.innerHTML =
         screen === 'results' && !lastResults.final
@@ -668,6 +705,7 @@ export function createFrontend(host) {
     if (statusSlot) statusSlot.append(transfer);
     updateLaunchSummary();
     updateStatus();
+    desktopControls?.mount(shell);
   }
   function mountShipPreview() {
     const slot = shell.querySelector('.ship-preview-slot');
@@ -908,6 +946,14 @@ export function createFrontend(host) {
                 .querySelector('[data-action="inspect"]')
                 ?.focus({ preventScroll: true });
           }
+        },
+        onTunes: music
+          ? () => music.open(gameHost.querySelector('#pause-tunes'))
+          : null,
+        onSettings() {
+          settingsBack = 'race';
+          settingsFocus = null;
+          setScreen('settings');
         },
         onCircuit(next) {
           leaveReview();
@@ -1164,7 +1210,7 @@ export function createFrontend(host) {
       const current = await prepare();
       if (attempt !== launchGeneration || screen !== 'loading') return;
       setScreen('review');
-      if (artPass) {
+      if (!import.meta.env?.VN_DESKTOP && artPass) {
         current.setFlyView(readArtView(parameters));
         current.openDevTools();
       }
@@ -1305,6 +1351,7 @@ export function createFrontend(host) {
       intent = sessionIntent;
       setScreen('race');
       game.resumeSession();
+      gameHost.querySelector('#pause-panel:not(.hidden) #resume')?.focus();
     },
     'time-trial'() {
       chooseMode('time-trial');
@@ -1321,16 +1368,28 @@ export function createFrontend(host) {
       remember();
       setScreen('setup');
     },
+    tunes() {
+      music?.open(shell.querySelector('[data-action="tunes"]'));
+    },
     settings() {
       if (screen === 'settings') return;
       settingsBack = screen;
       settingsFocus = focusSelector();
       setScreen('settings');
     },
+    'controller-reset'() {
+      saveSettings(CONTROLLER_DEFAULTS);
+    },
+    'desktop-quit'() {
+      window.vectorNovaDesktop?.quit();
+    },
     'settings-back'() {
       const destination = settingsBack;
       setScreen(destination);
-      focusMenu(settingsFocus);
+      if (destination === 'race') {
+        game?.resumeSession();
+        gameHost.querySelector('#pause-settings')?.focus();
+      } else focusMenu(settingsFocus);
       if (destination === 'results') game?.showResults();
     },
     launch() {
@@ -1440,6 +1499,14 @@ export function createFrontend(host) {
     signal: life.signal,
   });
   shell.addEventListener(
+    'input',
+    (event) => {
+      if (event.target.dataset.setting === 'steeringDeadZone')
+        saveSettings({ steeringDeadZone: Number(event.target.value) });
+    },
+    { signal: life.signal },
+  );
+  shell.addEventListener(
     'change',
     (e) => {
       if (e.target.dataset.recordFilter) {
@@ -1455,7 +1522,7 @@ export function createFrontend(host) {
       settings[key] =
         e.target.type === 'checkbox'
           ? e.target.checked
-          : key === 'volume'
+          : e.target.type === 'range'
             ? +e.target.value
             : e.target.value;
       saveSettings(settings);
@@ -1744,6 +1811,7 @@ export function createFrontend(host) {
       shipPreview?.dispose();
       unsubscribeCache?.();
       unsubscribeSettings?.();
+      disposeControllerSettings?.();
       cacheModule?.disposeShipCache();
       life.abort();
     },
@@ -1774,25 +1842,26 @@ export function createFrontend(host) {
     { signal: life.signal },
   );
   // Small read-only shell diagnostics used by the preview capture and smoke tools.
-  window.__VN_FRONTEND = {
-    getState: () => ({
-      screen,
-      selected,
-      previewLevelId,
-      loadedId,
-      loading: !!pending || !!inspectorPending,
-      inspector: inspector?.getSnapshot() ?? null,
-      error,
-      intent,
-      cup: cupStore.snapshot(),
-      selectedCup,
-      sessionCup,
-      shipId,
-      preview: shipPreview?.getState() ?? null,
-      preload,
-    }),
-    routes,
-  };
+  if (!import.meta.env?.VN_DESKTOP)
+    window.__VN_FRONTEND = {
+      getState: () => ({
+        screen,
+        selected,
+        previewLevelId,
+        loadedId,
+        loading: !!pending || !!inspectorPending,
+        inspector: inspector?.getSnapshot() ?? null,
+        error,
+        intent,
+        cup: cupStore.snapshot(),
+        selectedCup,
+        sessionCup,
+        shipId,
+        preview: shipPreview?.getState() ?? null,
+        preload,
+      }),
+      routes,
+    };
   if (invalidLevel) {
     error = `Unknown circuit: ${requested}. Choose another circuit to continue.`;
     setScreen('loading');

@@ -122,7 +122,8 @@ export function createShipControls(root, actions, selectedShip = SHIPS[0]) {
   tabs.setAttribute('aria-label', 'Ship collection');
   const collections = [
     ['fleet', 'Your ships'],
-    ...(new URLSearchParams(location.search).get('dev') === '1'
+    ...(!import.meta.env?.VN_DESKTOP &&
+    new URLSearchParams(location.search).get('dev') === '1'
       ? [['rivals', 'AI racers']]
       : []),
   ];

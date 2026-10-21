@@ -1,0 +1,54 @@
+name: Vector Nova desktop releases
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "games/vector-nova/**"
+      - ".github/workflows/vector-nova-desktop.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: ${{ matrix.edition }} / ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        edition: [demo, full]
+        include:
+          - os: windows-latest
+            platform: win32
+          - os: macos-15
+            platform: darwin
+        os: [windows-latest, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: games/vector-nova
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: games/vector-nova/package-lock.json
+      - id: target
+        run: echo "arch=$(node -p process.arch)" >> "$GITHUB_OUTPUT"
+      - run: npm ci
+      - run: npm run test:desktop
+      - run: npm run build:${{ matrix.edition }}
+      - run: npm run verify:desktop -- ${{ matrix.edition }}
+      - run: npm run package:${{ matrix.edition }} -- --platform ${{ matrix.platform }} --arch ${{ steps.target.outputs.arch }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vector-nova-${{ matrix.edition }}-${{ matrix.platform }}-${{ steps.target.outputs.arch }}
+          path: |
+            games/vector-nova/release/${{ matrix.edition }}/*.zip
+            games/vector-nova/release/${{ matrix.edition }}/*.json
+            games/vector-nova/release/${{ matrix.edition }}/*.sha256
+          if-no-files-found: error
+          retention-days: 14

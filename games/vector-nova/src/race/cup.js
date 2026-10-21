@@ -1,28 +1,38 @@
 import { RACE_OPPONENTS } from './roster.js';
 import { SHIPS } from '../ships/catalog.js';
 
-export const CUPS = Object.freeze([
-  Object.freeze({
-    id: 'founders',
-    name: 'Founders Cup',
-    tracks: ['halcyon', 'orbital', 'nacre'],
-  }),
-  Object.freeze({
-    id: 'frontier',
-    name: 'Frontier Cup',
-    tracks: ['vesper', 'glasswake', 'cindercoil'],
-  }),
-  Object.freeze({
-    id: 'horizon',
-    name: 'Horizon Cup',
-    tracks: ['saffron', 'zephyr', 'shatterline'],
-  }),
-  Object.freeze({
-    id: 'apex',
-    name: 'Apex Cup',
-    tracks: ['worldspire', 'helion', 'nightweir', 'umbra'],
-  }),
-]);
+export const CUPS = Object.freeze(
+  import.meta.env?.VN_EDITION === 'demo'
+    ? [
+        Object.freeze({
+          id: 'demo',
+          name: 'Demo Cup',
+          tracks: ['halcyon', 'nacre'],
+        }),
+      ]
+    : [
+        Object.freeze({
+          id: 'founders',
+          name: 'Founders Cup',
+          tracks: ['halcyon', 'orbital', 'nacre'],
+        }),
+        Object.freeze({
+          id: 'frontier',
+          name: 'Frontier Cup',
+          tracks: ['vesper', 'glasswake', 'cindercoil'],
+        }),
+        Object.freeze({
+          id: 'horizon',
+          name: 'Horizon Cup',
+          tracks: ['saffron', 'zephyr', 'shatterline'],
+        }),
+        Object.freeze({
+          id: 'apex',
+          name: 'Apex Cup',
+          tracks: ['worldspire', 'helion', 'nightweir', 'umbra'],
+        }),
+      ],
+);
 export const CUP_POINTS = Object.freeze([25, 18, 15, 12, 10, 8, 6, 4, 2, 1]);
 export const CUP_FINISH_GRACE = 30;
 export const CUP_STORAGE_KEY = 'vector-nova.cup.v1';

@@ -28,6 +28,7 @@ export function createMusicPlayer(
   let queue = musicTracks;
   let wantsPlayback = true;
   let driving = false;
+  let returnFocus = null;
   const compact = matchMedia('(max-width: 760px)');
   const isCompact = () => compact.matches && (driving || !isMenuVisible());
   const root = document.createElement('aside');
@@ -177,7 +178,7 @@ export function createMusicPlayer(
     } catch (error) {
       if (!disposed && request === loadId && error.name !== 'AbortError')
         setStatus(
-          error.name === 'NotAllowedError' ? 'Press M to play' : 'Unavailable',
+          error.name === 'NotAllowedError' ? 'Select Play' : 'Unavailable',
           error.name !== 'NotAllowedError',
         );
     }
@@ -222,6 +223,7 @@ export function createMusicPlayer(
     save();
   }
   function collapse(collapsed) {
+    if (collapsed) root.removeAttribute('data-menu-active');
     root.classList.toggle('is-compact', isCompact());
     controls.hidden = collapsed;
     root.classList.toggle('is-collapsed', collapsed);
@@ -240,9 +242,28 @@ export function createMusicPlayer(
     if (collapsed && hiddenContent.contains(document.activeElement))
       (isCompact() ? compactToggle : expand).focus();
   }
-  function toggleExpanded() {
-    if (!driving || isCompact()) collapse(!controls.hidden);
+  function open(origin = document.activeElement) {
+    if (driving && !isCompact()) return;
+    if (origin && !root.contains(origin)) returnFocus = origin;
+    collapse(false);
+    root.setAttribute('data-menu-active', '');
+    play.focus();
     save();
+  }
+  function close() {
+    collapse(true);
+    if (
+      returnFocus?.isConnected &&
+      returnFocus.getClientRects().length &&
+      !returnFocus.closest('[hidden], .hidden, [inert]')
+    )
+      returnFocus.focus();
+    returnFocus = null;
+    save();
+  }
+  function toggleExpanded() {
+    if (controls.hidden) open();
+    else close();
   }
   listen(expand, 'click', toggleExpanded);
   listen(compactToggle, 'click', toggleExpanded);
@@ -254,8 +275,8 @@ export function createMusicPlayer(
       (isCompact() ? compactToggle : expand.disabled ? play : expand).focus();
   });
   listen(document, 'pointerdown', (event) => {
-    if (isCompact() && !controls.hidden && !root.contains(event.target))
-      collapse(true);
+    if (!root.contains(event.target) && root.hasAttribute('data-menu-active'))
+      close();
   });
   listen(play, 'click', togglePlayback);
   listen(root.querySelector('.music-previous'), 'click', () => switchSong(-1));
@@ -317,10 +338,10 @@ export function createMusicPlayer(
     window,
     'keydown',
     (event) => {
-      if (event.code === 'Escape' && isCompact() && !controls.hidden) {
+      if (event.code === 'Escape' && root.hasAttribute('data-menu-active')) {
         event.preventDefault();
         event.stopPropagation();
-        collapse(true);
+        close();
         return;
       }
       const step =
@@ -347,11 +368,30 @@ export function createMusicPlayer(
     },
     { capture: true },
   );
-  listen(root, 'keydown', (event) => event.stopPropagation());
+  listen(root, 'keydown', (event) => {
+    event.stopPropagation();
+    if (event.key !== 'Tab' || !root.hasAttribute('data-menu-active')) return;
+    const items = [...root.querySelectorAll('button, select, input')].filter(
+      (el) =>
+        !el.disabled &&
+        el.tabIndex >= 0 &&
+        el.getClientRects().length &&
+        !el.closest('[hidden], .hidden, [inert]'),
+    );
+    const index = items.indexOf(document.activeElement);
+    event.preventDefault();
+    items[
+      (index + (event.shiftKey ? -1 : 1) + items.length) % items.length
+    ]?.focus();
+  });
   listen(root, 'click', (event) => {
     if (event.detail > 0) event.target.closest('button')?.blur();
   });
-  listen(root, 'focusin', clearInput);
+  listen(root, 'focusin', (event) => {
+    if (event.relatedTarget && !root.contains(event.relatedTarget))
+      returnFocus = event.relatedTarget;
+    clearInput();
+  });
   listen(document, 'visibilitychange', () => {
     if (document.hidden && !audio.paused) audio.pause();
   });
@@ -359,6 +399,8 @@ export function createMusicPlayer(
   updateVolume();
   loadSong();
   return {
+    open,
+    togglePlayback,
     setDriving(value) {
       driving = value;
       root.classList.toggle('is-compact', isCompact());

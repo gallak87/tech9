@@ -70,9 +70,13 @@ The Halcyon experiment includes automatic **Repulsor** pads (pink, radial shove 
 - Touch: left thumb steers proportionally left/right; pull down on the same pad for airbrake. Right thumb slides through Boost (+ Go), Go, Neutral and Brake. Both controls spring to neutral on release.
 - Menus: Tab/Shift-Tab, Enter/Space.
 - Tunes: M plays/pauses music, comma/period select songs, and / expands/collapses the player. Start race/practice starts music unless manually paused; ordinary menu clicks and race restarts do not. Explicit Play/M always controls playback. Repeat defaults off.
-- Prototype gamepad: left stick steering, RT throttle, LT brake, A boost, B airbrake.
+- Standard controller: left stick steering, X race camera, Menu/Start pause. Settings offers Classic (RT/LT/A/B), Shoulders (RT/LT/RB/LB) and Arcade (A/LT/RT/B) for throttle/brake/boost/airbrake, plus a saved steering dead zone and live test. D-pad/stick navigates menus; A confirms and B returns.
 
 Bend assistance is 0.3; the player steers the remaining turn. Magnetic adhesion follows road pitch/roll and holds a parked craft on slopes. Physical gamepad/mobile use, independent audio listening and foreground frame pacing still need direct verification.
+
+## Desktop / Steam builds
+
+The browser commands above are unchanged. `npm run package:demo` and `npm run package:full` build separate, offline Electron applications for the current platform; add `-- --platform win32 --arch x64` for Windows Steam payloads. The demo contains Kestrel, Halcyon, Nacre and a two-race cup. Both releases omit development tools. See [desktop builds and Steam handoff](docs/steam/desktop.md) for testing, artifacts, controller/window controls, content boundaries and SteamPipe configuration.
 
 ## Development
 

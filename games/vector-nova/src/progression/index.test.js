@@ -100,3 +100,34 @@ test('settings stay synchronized between menu/runtime and survive unavailable st
     delete globalThis.localStorage;
   }
 });
+
+test('controller preferences migrate old saves, persist, validate and reset independently', async () => {
+  let saved = JSON.stringify({ volume: 0.4 });
+  globalThis.localStorage = {
+    getItem: () => saved,
+    setItem: (_key, value) => {
+      saved = value;
+    },
+  };
+  try {
+    const store = await import('./index.js?controller-settings');
+    assert.equal(store.loadSettings().controllerPreset, 'classic');
+    assert.equal(store.loadSettings().steeringDeadZone, 0.15);
+    store.saveSettings({
+      controllerPreset: 'shoulders',
+      steeringDeadZone: 0.23,
+    });
+    const reloaded = await import('./index.js?controller-reloaded');
+    assert.equal(reloaded.loadSettings().controllerPreset, 'shoulders');
+    assert.equal(reloaded.loadSettings().steeringDeadZone, 0.23);
+    store.saveSettings({
+      controllerPreset: 'unrecognized',
+      steeringDeadZone: Infinity,
+    });
+    assert.equal(store.loadSettings().controllerPreset, 'classic');
+    assert.equal(store.loadSettings().steeringDeadZone, 0.15);
+    assert.equal(store.loadSettings().volume, 0.4);
+  } finally {
+    delete globalThis.localStorage;
+  }
+});

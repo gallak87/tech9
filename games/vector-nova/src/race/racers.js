@@ -12,7 +12,12 @@ import {
   sprintRunoutControl,
 } from './course.js';
 import { createRelativeTiming } from './relative-timing.js';
-import { RACE_GRID, RACE_OPPONENTS } from './roster.js';
+import {
+  RACE_GRID,
+  RACE_OPPONENTS,
+  RACE_ORDER,
+  createRaceGrid,
+} from './roster.js';
 export { RACE_GRID, RACE_OPPONENTS } from './roster.js';
 import {
   sweptVectorContacts,
@@ -339,7 +344,8 @@ export function createRacers({
       },
     })),
   };
-  const identityJSON = JSON.stringify(identity);
+  let identityJSON = JSON.stringify(identity);
+  let gridPositions;
   const nearby = new Array(opponents.length + 1);
   let enabled = false,
     elapsed = 0,
@@ -358,9 +364,16 @@ export function createRacers({
   function reset({
     enabled: nextEnabled = true,
     difficulty: nextDifficulty = 'easy',
+    gridOrder = RACE_ORDER,
   } = {}) {
     if (!RACE_DIFFICULTIES.includes(nextDifficulty))
       throw new Error('Unknown race difficulty');
+    const grid = createRaceGrid(gridOrder);
+    identity.grid = grid;
+    identityJSON = JSON.stringify(identity);
+    gridPositions = Object.fromEntries(
+      gridOrder.map((id, index) => [id, index]),
+    );
     staged = null;
     enabled = nextEnabled === true;
     difficulty = nextDifficulty;
@@ -368,7 +381,7 @@ export function createRacers({
     playerFinish = null;
     relativeTiming.reset(
       Object.fromEntries(
-        Object.entries(RACE_GRID).map(([id, pose]) => [id, pose.distance]),
+        Object.entries(grid).map(([id, pose]) => [id, pose.distance]),
       ),
     );
     for (const opponent of opponents) {
@@ -376,7 +389,7 @@ export function createRacers({
       opponent.state = {
         ...createVehicleState(specification.shipId),
         chassisId: specification.id,
-        ...RACE_GRID[specification.id],
+        ...grid[specification.id],
       };
       opponent.prev = { ...opponent.state };
       opponent.race = createRace(track, {
@@ -568,6 +581,7 @@ export function createRacers({
       return (
         b.progress - a.progress ||
         b.distance - a.distance ||
+        gridPositions[a.id] - gridPositions[b.id] ||
         a.id.localeCompare(b.id)
       );
     });

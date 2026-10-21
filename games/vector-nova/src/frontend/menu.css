@@ -426,12 +426,6 @@
   flex-shrink: 0;
   font-size: 11px;
 }
-.menu-layout .picker-hint {
-  font-size: 11px;
-  color: #aaa;
-  margin-top: 12px;
-  flex: none;
-}
 .setup-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -531,10 +525,6 @@
   grid-column: 1 / -1;
   height: 3px;
   background: linear-gradient(to right, #b71818 var(--stat), #333 var(--stat));
-}
-.menu-layout .stat-note {
-  font-size: 10px;
-  margin-top: 13px;
 }
 .picker-header {
   display: flex;
@@ -655,9 +645,6 @@
   }
   .menu-wide .track-group {
     gap: 3px 8px;
-  }
-  .menu-wide .picker-hint {
-    display: none;
   }
   .menu-wide .circuit-card {
     min-height: 40px;
@@ -894,10 +881,6 @@
   .ship-metrics b {
     font-size: 12px;
   }
-  .menu-layout .stat-note {
-    margin-top: 6px;
-    font-size: 9px;
-  }
   .picker-race-actions {
     gap: 5px;
   }
@@ -928,10 +911,6 @@
   }
   .track-group {
     column-gap: 10px;
-  }
-  .menu-layout .picker-hint {
-    font-size: 10px;
-    margin-top: 8px;
   }
 }
 @media (min-width: 500px) and (max-width: 599px) {
@@ -982,9 +961,6 @@
   }
   .circuit-card .track-type-badge {
     top: 0;
-  }
-  .menu-layout .picker-hint {
-    max-width: 30ch;
   }
 }
 @media (max-width: 700px) {
@@ -1186,8 +1162,7 @@
 .cup-event-art svg {
   padding: 2px;
 }
-.cup-menu-panel .cup-save,
-.cup-menu-panel .cup-effects {
+.cup-menu-panel .cup-save {
   color: #aaa;
   font-size: 11px;
   line-height: 1.5;
@@ -1210,7 +1185,6 @@
   font-size: 12px;
   color: #bbb;
 }
-.cup-menu-panel .cup-rules p,
 .cup-menu-panel .cup-confirm p {
   font-size: 12px;
   line-height: 1.6;
@@ -1221,11 +1195,11 @@
   gap: 12px;
   margin: 0 0 16px;
 }
-.menu-wide .menu-cup-picker:has(.cup-scores[open], .cup-rules[open]),
+.menu-wide .menu-cup-picker:has(.cup-scores[open]),
 .menu-wide .menu-cup-picker:has(.cup-confirm) {
   height: auto;
 }
-.menu-cup-picker:has(.cup-scores[open], .cup-rules[open]) .cup-hero,
+.menu-cup-picker:has(.cup-scores[open]) .cup-hero,
 .menu-cup-picker:has(.cup-confirm) .cup-hero,
 .menu-narrow .cup-hero {
   flex: none;
@@ -1273,16 +1247,6 @@
 .records-panel > .records-heading {
   font-size: 24px;
   margin-bottom: 16px;
-}
-.menu-layout .records-intro {
-  display: grid;
-  gap: 6px;
-  font-size: 17px;
-  margin: 8px 0 22px;
-}
-.records-intro span {
-  font-size: 12px;
-  color: #aaa;
 }
 .records-toolbar {
   display: grid;
@@ -1364,19 +1328,6 @@
 .records-list button {
   align-self: start;
 }
-.records-list details {
-  margin-top: 6px;
-  font-size: 11px;
-  color: #aaa;
-  overflow-wrap: anywhere;
-}
-.records-list summary {
-  cursor: pointer;
-  padding-block: 6px;
-}
-.records-list details p {
-  line-height: 1.6;
-}
 .records-empty {
   padding: 28px 0;
   border-top: 1px solid #ffffff30;
@@ -1386,19 +1337,8 @@
   font-size: 23px;
   font-weight: 600;
 }
-.menu-layout .records-empty p {
-  font-size: 13px;
-  line-height: 1.65;
-  color: #bbb;
-  max-width: 52ch;
-  margin: 14px 0 20px;
-}
-.menu-layout .records-help {
-  color: #aaa;
-  font-size: 11px;
-  line-height: 1.6;
-  margin-top: 20px;
-  max-width: 64ch;
+.records-empty button {
+  margin-top: 18px;
 }
 @media (max-width: 599px) {
   .records-list li {

@@ -1,4 +1,5 @@
 import { CUP_FINISH_GRACE } from '../race/cup.js';
+import { createRaceGrid } from '../race/roster.js';
 import { interpolateSurfaceLateral } from '../track/surface.js';
 import * as T from 'three';
 import { createFleetShip } from '../ships/fleet.js';
@@ -542,6 +543,7 @@ export async function createGame({
         playerRace: race,
         enabled,
         difficulty: raceDifficulty,
+        gridOrder: cupRace?.gridOrder,
       });
     }
     race = makeRace();
@@ -642,7 +644,8 @@ export async function createGame({
         competition = racingEnabled;
         scenario = 'staging';
         state = createVehicleState(ship.selected.id);
-        if (competition) Object.assign(state, racerModule.RACE_GRID.player);
+        if (competition)
+          Object.assign(state, createRaceGrid(cupRace?.gridOrder).player);
         prev = { ...state };
         race = makeRace();
         resetRacers();
@@ -733,7 +736,8 @@ export async function createGame({
       if (withCountdown)
         raceDifficulty = cupRace?.difficulty ?? settings.difficulty;
       state = createVehicleState(ship.selected.id);
-      if (competition) Object.assign(state, racerModule.RACE_GRID.player);
+      if (competition)
+        Object.assign(state, createRaceGrid(cupRace?.gridOrder).player);
       prev = { ...state };
       race = makeRace();
       resetRacers();
@@ -1872,7 +1876,7 @@ export async function createGame({
         : {}),
       start,
       startCup(options) {
-        cupRace = { ...options };
+        cupRace = structuredClone(options);
         restart(true, true, false);
         audio.unlock().catch(() => {});
       },
@@ -2118,7 +2122,9 @@ export async function createGame({
           scenario,
           sessionActive,
           timeTrial: trial?.snapshot() ?? null,
-          cup: cupRace ? { ...cupRace, final: !!cupFinalResult } : null,
+          cup: cupRace
+            ? { ...structuredClone(cupRace), final: !!cupFinalResult }
+            : null,
           seed,
           tick,
           settings: { ...settings },

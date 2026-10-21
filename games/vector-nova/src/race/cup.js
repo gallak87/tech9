@@ -48,6 +48,14 @@ export const cupDefinition = (id) => CUPS.find((cup) => cup.id === id);
 export const cupComplete = (state) =>
   !!state && state.results.length === cupDefinition(state.cupId).tracks.length;
 
+// Use the prior event, never the current result: retry/reload must keep the grid.
+// Saved classification already puts valid finishers first, then unclassified IDs.
+export function cupGridOrder(state) {
+  return state?.eventIndex > 0
+    ? state.results[state.eventIndex - 1].map(({ id }) => id)
+    : [...RACE_OPPONENTS.map(({ id }) => id), 'player'];
+}
+
 // Only actual, valid finishes earn points. Missing times sort behind complete
 // totals; equal points/wins/time share a rank, with stable IDs for display only.
 export function classifyCupRace(results) {

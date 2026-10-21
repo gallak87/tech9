@@ -3,8 +3,18 @@ import {
   controllerSettingsView,
   bindControllerSettings,
 } from './controller-settings.js';
-import { CUPS, createCupStore, cupDefinition } from '../race/cup.js';
-import { cupView, cupWaitingView, cupLaunch } from './cup.js';
+import {
+  CUPS,
+  createCupStore,
+  cupDefinition,
+  cupGridOrder,
+} from '../race/cup.js';
+import {
+  cupView,
+  cupWaitingView,
+  updateCupWaitingView,
+  cupLaunch,
+} from './cup.js';
 import { recordsView } from './records.js';
 import { readTrialRecords } from '../race/time-trial.js';
 import { formatTime, formatDelta } from '../race/timing.js';
@@ -257,6 +267,13 @@ export function createFrontend(host) {
     const element =
       typeof target === 'string' ? shell.querySelector(target) : target;
     if (!element || element.disabled) return;
+    for (
+      let details = element.closest('details');
+      details;
+      details = details.parentElement?.closest('details')
+    )
+      if (element.parentElement !== details || element.tagName !== 'SUMMARY')
+        details.open = true;
     element.focus({ preventScroll: true });
     element.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
@@ -267,7 +284,9 @@ export function createFrontend(host) {
         : showingShip()
           ? `button[data-ship="${shipId}"]`
           : intent === 'cup'
-            ? '.cup-picker [aria-pressed="true"], .cup-rules summary'
+            ? (shell.querySelector('.cup-picker [aria-pressed="true"]') ??
+              shell.querySelector('.cup-scores > summary') ??
+              shell.querySelector('.race-actions > .primary'))
             : `[data-level="${selected}"]`,
     );
   }
@@ -347,7 +366,7 @@ export function createFrontend(host) {
       )
       .join(
         '',
-      )}</div><p class="picker-hint">Sprints are downhill, point to point.</p><div class="transfer-slot track-transfer"></div></section>`;
+      )}</div><div class="transfer-slot track-transfer"></div></section>`;
   };
   // Share one intrinsic text area: the longest wrapped description reserves
   // space for every ship without fixed heights, clipping or resize handlers.
@@ -393,9 +412,7 @@ export function createFrontend(host) {
         ([n, v, u, f]) =>
           `<div><span>${n}</span><b>${v} <small>${u}</small></b><i style="--stat:${Math.min(100, f * 100)}%"></i></div>`,
       )
-      .join(
-        '',
-      )}</div><p class="stat-note">Handling and braking are relative ratings.</p></aside>${withActions ? pickerRaceActions() : ''}</div>`;
+      .join('')}</div></aside>${withActions ? pickerRaceActions() : ''}</div>`;
   const modeName = () =>
     ({
       race: 'Quick Race',
@@ -423,34 +440,19 @@ export function createFrontend(host) {
         : isSprint()
           ? 'Start Sprint →'
           : 'Start race →';
-  const modeDescription = () =>
-    intent === 'time-trial'
-      ? isSprint()
-        ? 'One descent against your personal ghost. Manual boost, no road devices.'
-        : 'Unlimited laps. Each clean best saves a ghost for the next lap. Standing and flying bests are separate. Manual boost, no road devices.'
-      : intent === 'practice'
-        ? `${isSprint() ? 'One solo descent' : 'Open solo laps'} to learn the course. No opponents.`
-        : `${isSprint() ? 'One descent' : 'Two laps'} against nine rivals. Choose your opponent difficulty.`;
   const raceActions = () => {
     if (intent === 'cup') {
       const state = cupStore.snapshot().state;
-      const cup = currentCup();
       const next = cupLaunch(
         state,
         selectedCup,
         sessionCup && game?.hasSession(),
       );
-      const event = state
-        ? cup.tracks[
-            Math.min(
-              state.eventIndex + (state.phase === 'results' ? 1 : 0),
-              cup.tracks.length - 1,
-            )
-          ]
-        : null;
-      return `<div class="race-actions"><button class="primary" data-action="${next.action}" ${cupConfirm ? 'disabled' : ''}><strong>${next.label}</strong><small>${next.detail}</small></button>${state ? '' : difficultyControls()}<p class="mode-description">${state ? `${escape(catalog.find((entry) => entry.id === event).name)} · ${state.difficulty} opponents. Your cup progress is saved.` : `${cup.tracks.length} races against nine rivals. Ship and difficulty stay fixed throughout the cup.`}</p></div>`;
+      return `<div class="race-actions"><button class="primary" data-action="${next.action}" ${cupConfirm ? 'disabled' : ''}><strong>${next.label}</strong><small>${next.detail}</small></button>${state ? '' : difficultyControls()}</div>`;
     }
-    return `<div class="race-actions"><button class="primary" data-action="launch"><strong>${launchLabel()}</strong><small>${intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : 'Unlimited laps'}</small></button>${intent === 'race' ? difficultyControls() : ''}<p class="mode-description">${modeDescription()}</p></div>`;
+    const description =
+      intent === 'time-trial' ? 'Manual boost · No road devices' : '';
+    return `<div class="race-actions"><button class="primary" data-action="launch"><strong>${launchLabel()}</strong><small>${intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : 'Unlimited laps'}</small></button>${intent === 'race' ? difficultyControls() : ''}${description ? `<p class="mode-description">${description}</p>` : ''}</div>`;
   };
   function pickerRaceActions() {
     return `<div class="picker-race-actions"><button class="change-track" data-action="circuits">${escape(intent === 'cup' ? currentCup().name : level().name)} · ${modeName()} <span aria-hidden="true">↗</span></button>${raceActions()}</div>`;
@@ -576,7 +578,7 @@ export function createFrontend(host) {
       const inspecting = launchTarget === 'inspection';
       content.innerHTML = `<section class="loading-copy">${inspecting ? '' : `<div class="loading-card">${picture(route())}${routeArt(route())}</div>`}<div class="transfer-slot loading-transfer"></div>${heading(inspecting ? 'PREPARING STUDIO' : 'LOADING CIRCUIT', inspecting ? 'Ship inspector' : escape(level().name))}${inspecting ? '' : `<div class="session-facts">${facts()}</div>`}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
     } else if (screen === 'settings') {
-      content.innerHTML = `${sessionReturn(true)}<div class="settings-layout"><section class="settings-form"><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume</span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion</span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label>${controllerSettingsView(settings)}<p>Saved on this device.</p></section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
+      content.innerHTML = `${sessionReturn(true)}<div class="settings-layout"><section class="settings-form"><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume</span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion</span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label>${controllerSettingsView(settings)}</section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
         [
           'Driving',
           [
@@ -683,7 +685,7 @@ export function createFrontend(host) {
             ? `${escape(SHIPS.find((ship) => ship.id === r.shipId)?.name ?? 'Selected ship')} · ${sprint ? 'One descent' : `${r.laps} lap${r.laps === 1 ? '' : 's'}`} · ${r.delta == null ? 'First completed trial' : `${signed(r.delta)} against previous best`}`
             : 'A checkpoint or manual recovery invalidated this run. Retry for a ranked time.';
         const detail = content.querySelector('.results-list').parentElement;
-        detail.innerHTML = `<p class="trial-best">PERSONAL BEST <b>${stamp(r.bestTime)}</b></p><h2 class="trial-split-title">Cumulative splits</h2><p class="trial-split-key">Elapsed time at each sector · − ahead / + behind previous best</p><ol class="trial-splits" aria-label="Cumulative splits against previous best">${r.splits.map((t, i) => `<li><span>${sprint ? '' : `L${Math.floor(i / 3) + 1} · `}S${(i % 3) + 1}</span><b>${stamp(t)}</b><span>${signed(r.splitDeltas[i])}</span></li>`).join('')}</ol><p class="results-note" role="status">${!r.playerValid ? 'Best and ghost unchanged.' : r.improved ? (r.saved.saved ? (r.saved.ghostSaved ? 'Best and personal ghost saved on this device.' : 'Best saved. Ghost could not be saved; storage may be full or the run exceeded 20 minutes.') : 'Storage unavailable. Best and ghost are kept for this page session only.') : r.ghostAvailable ? 'Personal best unchanged. Retry to race your ghost.' : 'Personal best unchanged. No compatible ghost is saved for this best.'}</p>`;
+        detail.innerHTML = `<p class="trial-best">PERSONAL BEST <b>${stamp(r.bestTime)}</b></p><h2 class="trial-split-title">Cumulative splits</h2><p class="trial-split-key">Elapsed time at each sector · − ahead / + behind previous best</p><ol class="trial-splits" aria-label="Cumulative splits against previous best">${r.splits.map((t, i) => `<li><span>${sprint ? '' : `L${Math.floor(i / 3) + 1} · `}S${(i % 3) + 1}</span><b>${stamp(t)}</b><span>${signed(r.splitDeltas[i])}</span></li>`).join('')}</ol><p class="results-note" role="status">${!r.playerValid ? 'Best and ghost unchanged.' : r.improved ? (r.saved.saved ? (r.saved.ghostSaved ? 'Best and personal ghost saved on this device.' : 'Best saved. Ghost could not be saved; storage may be full or the run exceeded 20 minutes.') : 'Storage unavailable. Best and ghost are kept for this page session only.') : r.ghostAvailable ? 'Personal best unchanged.' : 'Personal best unchanged. No compatible ghost is saved for this best.'}</p>`;
         const retry = content.querySelector('[data-action="retry-race"]');
         retry.textContent = 'Retry Time Trial →';
         const records = content.querySelector('[data-action="continue"]');
@@ -827,13 +829,18 @@ export function createFrontend(host) {
         ]),
       ]);
       if (key !== cupResultsKey) {
-        const focused = focusSelector();
-        const wasWaiting = !!shell.querySelector('.results-note');
+        const waiting = shell.querySelector('.cup-waiting');
         cupResultsKey = key;
+        if (!data.final && waiting) {
+          updateCupWaitingView(waiting, data);
+          return;
+        }
+        const focused = focusSelector();
         render();
-        if (data.final && wasWaiting)
+        if (data.final && waiting) {
+          shell.scrollTop = 0;
           shell.querySelector('h1')?.focus({ preventScroll: true });
-        else focusMenu(focused);
+        } else focusMenu(focused);
       }
       return;
     }
@@ -1154,6 +1161,7 @@ export function createFrontend(host) {
           difficulty: state.difficulty,
           eventIndex: state.eventIndex,
           eventCount: cup.tracks.length,
+          gridOrder: cupGridOrder(state),
         });
       } else if (intent === 'time-trial') current.timeTrial();
       else if (intent === 'practice') current.practice();
@@ -1308,9 +1316,11 @@ export function createFrontend(host) {
       focusMenu('[data-action="cup-cancel"]');
     },
     'cup-cancel'() {
+      const action = cupConfirm;
       cupConfirm = null;
       render();
-      focusMenu('[data-action="cup-restart"]');
+      const opener = shell.querySelector(`[data-action="cup-${action}"]`);
+      focusMenu(opener);
     },
     'cup-confirm'() {
       const state = cupStore.snapshot().state;
@@ -1754,11 +1764,11 @@ export function createFrontend(host) {
         if (screen === 'loading') cancel();
         else if (screen === 'settings') actions['settings-back']();
         else if (screen === 'records') actions['records-back']();
+        else if (cupConfirm) actions['cup-cancel']();
         else if (screen === 'results') {
           if (lastResults?.mode === 'cup') openCup();
           else actions.change();
-        } else if (cupConfirm) actions['cup-cancel']();
-        else if (
+        } else if (
           screen === 'cup' ||
           screen === 'setup' ||
           screen === 'circuits'

@@ -285,7 +285,7 @@ try {
         await page.locator('[data-action="records"]').click();
         assert.match(
           await page.locator('.records-empty').textContent(),
-          /first best/,
+          /No personal bests yet/,
         );
         await page
           .locator('[data-record-filter="ship"]')

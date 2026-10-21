@@ -15,17 +15,31 @@ export const RACE_OPPONENTS = Object.freeze([
 ]);
 
 export const RACE_FIELD_SIZE = RACE_OPPONENTS.length + 1;
-export const RACE_GRID = Object.freeze(
-  Object.fromEntries(
-    ['player', ...RACE_OPPONENTS.map(({ id }) => id)].map((id, index) => [
-      id,
-      Object.freeze({
-        distance: -12 * Math.floor(index / 2) || 0,
-        lateral: index % 2 ? -4 : 4,
-      }),
-    ]),
-  ),
-);
+export const RACE_ORDER = Object.freeze([
+  'player',
+  ...RACE_OPPONENTS.map(({ id }) => id),
+]);
+export function createRaceGrid(order = RACE_ORDER) {
+  if (
+    !Array.isArray(order) ||
+    order.length !== RACE_FIELD_SIZE ||
+    new Set(order).size !== RACE_FIELD_SIZE ||
+    !order.every((id) => RACE_ORDER.includes(id))
+  )
+    throw new Error('Race grid requires every racer exactly once');
+  return Object.freeze(
+    Object.fromEntries(
+      order.map((id, index) => [
+        id,
+        Object.freeze({
+          distance: -12 * Math.floor(index / 2) || 0,
+          lateral: index % 2 ? -4 : 4,
+        }),
+      ]),
+    ),
+  );
+}
+export const RACE_GRID = createRaceGrid();
 export const RACER_COLORS = Object.freeze({
   player: '#fb7959',
   ...Object.fromEntries(RACE_OPPONENTS.map(({ id, color }) => [id, color])),

@@ -70,6 +70,12 @@ async function run() {
       ),
       'low',
     );
+    assert.deepEqual(
+      await evaluate(
+        `(() => { const s = JSON.parse(localStorage.getItem('vector-nova.settings')); return [s.controllerPreset, s.steeringDeadZone]; })()`,
+      ),
+      ['arcade', 0.22],
+    );
     assert.equal(
       await evaluate(`localStorage.getItem('vector-nova.ship')`),
       'kestrel',
@@ -194,6 +200,16 @@ async function run() {
     assert(speed > 5, `${level}: throttle must move the ship; speed=${speed}`);
     await press('Escape');
     await wait(paused);
+    await click('#pause-settings');
+    await wait(`!!document.querySelector('[data-action="resume-session"]')`);
+    assert.equal(
+      await evaluate(
+        `document.querySelector('[data-setting="controllerPreset"]').value`,
+      ),
+      'classic',
+    );
+    await click('[data-action="resume-session"]');
+    await wait(paused);
     await click('#resume');
     await wait(racing);
     await press('Escape');
@@ -303,9 +319,18 @@ async function run() {
   await wait(menu);
   // Controller menu action through the real adapter, with a synthetic standard pad.
   await evaluate(
-    `window.__testPad={connected:true,mapping:'standard',axes:[0,0],buttons:Array.from({length:16},()=>({pressed:false,value:0}))}; Object.defineProperty(navigator,'getGamepads',{value:()=>[window.__testPad], configurable:true}); document.querySelector('[data-action="settings"]').focus(); window.__testPad.buttons[0].pressed=true;`,
+    `window.__testPad={connected:true,mapping:'standard',axes:[0,0],buttons:Array.from({length:16},()=>({pressed:false,value:0}))}; Object.defineProperty(navigator,'getGamepads',{value:()=>[window.__testPad], configurable:true}); document.querySelector('[data-action="settings"]').focus();`,
   );
+  await delay(200);
+  await evaluate('window.__testPad.buttons[0].pressed=true;');
   await wait(`!!document.querySelector('[data-action="settings-back"]')`);
+  await evaluate(
+    `for (const [key, value] of [['controllerPreset', 'arcade'], ['steeringDeadZone', '0.22']]) { const control = document.querySelector('[data-setting="' + key + '"]'); control.value = value; control.dispatchEvent(new Event('change', { bubbles:true })); }`,
+  );
+  await wait(
+    `document.querySelector('[data-controller-action="boost"]').textContent === 'RT' && document.querySelector('#dead-zone-value').textContent === '22%'`,
+  );
+
   await evaluate(
     'window.__testPad.buttons[0].pressed=false; window.__testPad.buttons[1].pressed=true;',
   );

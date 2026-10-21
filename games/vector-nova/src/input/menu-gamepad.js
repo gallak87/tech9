@@ -1,23 +1,26 @@
-// Desktop controller navigation uses the same menu actions as keyboard/mouse.
+import { readGamepad } from './gamepad.js';
+
+// Controller navigation uses the same menu actions as keyboard/mouse.
 // Racing remains owned by createInput; no synthetic throttle/steering here.
-export function menuIntent(pad) {
+export function menuIntent(pad, { stickNavigation = true } = {}) {
   const pressed = (i) => !!pad?.buttons[i]?.pressed;
   return {
     accept: pressed(0),
     back: pressed(1),
     pause: pressed(9),
+    camera: pressed(2),
     x: pressed(14)
       ? -1
       : pressed(15)
         ? 1
-        : Math.abs(pad?.axes[0] ?? 0) > 0.55
+        : stickNavigation && Math.abs(pad?.axes[0] ?? 0) > 0.55
           ? Math.sign(pad.axes[0])
           : 0,
     y: pressed(12)
       ? -1
       : pressed(13)
         ? 1
-        : Math.abs(pad?.axes[1] ?? 0) > 0.55
+        : stickNavigation && Math.abs(pad?.axes[1] ?? 0) > 0.55
           ? Math.sign(pad.axes[1])
           : 0,
   };
@@ -27,6 +30,7 @@ export function bindMenuGamepad(signal) {
     direction = '',
     nextRepeat = 0,
     connected = false,
+    padIdentity = null,
     frame;
   const visible = (element) =>
     element &&
@@ -41,7 +45,10 @@ export function bindMenuGamepad(signal) {
     return visible(pause) ? pause : null;
   };
   function key(value, code = value) {
-    const target = document.activeElement ?? document.body;
+    const target =
+      value === 'Escape'
+        ? (menuRoot() ?? document.body)
+        : (document.activeElement ?? document.body);
     return !target.dispatchEvent(
       new KeyboardEvent('keydown', {
         key: value,
@@ -54,7 +61,10 @@ export function bindMenuGamepad(signal) {
   function navigate(root, x, y) {
     const controls = [
       ...root.querySelectorAll('button, select, input, [tabindex]'),
-    ].filter((el) => !el.disabled && visible(el) && el.type !== 'hidden');
+    ].filter(
+      (el) =>
+        !el.disabled && el.tabIndex >= 0 && visible(el) && el.type !== 'hidden',
+    );
     let target = document.activeElement;
     if (!controls.includes(target)) {
       controls[0]?.focus();
@@ -82,6 +92,7 @@ export function bindMenuGamepad(signal) {
     // Existing grid/list handlers retain their own spatial navigation.
     if (
       target.matches('button') &&
+      root.id !== 'pause-panel' &&
       key(
         x
           ? x < 0
@@ -98,18 +109,23 @@ export function bindMenuGamepad(signal) {
   }
   function poll(now) {
     if (signal.aborted) return;
-    let pad;
-    try {
-      pad = [...navigator.getGamepads()].find(
-        (p) => p?.connected && p.mapping === 'standard',
-      );
-    } catch {
-      /* Optional device. */
-    }
+    const pad = readGamepad();
     const root = menuRoot();
     if (connected && !pad && !root) key('Escape');
     connected = !!pad;
-    const intent = menuIntent(pad);
+    // Calibration must not edit its own value while the player tests full lock.
+    // D-pad navigation remains available throughout the controller section.
+    const intent = menuIntent(pad, {
+      stickNavigation: !document.activeElement?.closest('.controller-settings'),
+    });
+    const identity = pad ? `${pad.index}:${pad.id}` : null;
+    if (identity !== padIdentity) {
+      // Connecting with A/Start held must not activate or resume a menu.
+      previous = intent;
+      direction = '';
+      nextRepeat = 0;
+      padIdentity = identity;
+    }
     if (!document.hidden) {
       if (intent.pause && !previous.pause) key('Escape');
       else if (root) {
@@ -128,7 +144,7 @@ export function bindMenuGamepad(signal) {
           nextRepeat = now + (current !== direction ? 350 : 140);
         }
         direction = current;
-      }
+      } else if (intent.camera && !previous.camera) key('c', 'KeyC');
     }
     previous = intent;
     frame = requestAnimationFrame(poll);

@@ -1,3 +1,8 @@
+import { CONTROLLER_DEFAULTS } from '../input/gamepad.js';
+import {
+  controllerSettingsView,
+  bindControllerSettings,
+} from './controller-settings.js';
 import { CUPS, createCupStore, cupDefinition } from '../race/cup.js';
 import { cupView, cupWaitingView, cupLaunch } from './cup.js';
 import { recordsView } from './records.js';
@@ -121,7 +126,10 @@ export function createFrontend(host) {
   let inspector = null,
     inspectorController = null,
     inspectorPending = null;
-  let cacheModule, unsubscribeCache, unsubscribeSettings;
+  let cacheModule,
+    unsubscribeCache,
+    unsubscribeSettings,
+    disposeControllerSettings;
   let preload = {
     ready: 0,
     total: SHIPS.length,
@@ -143,10 +151,9 @@ export function createFrontend(host) {
   let shipPreview = null,
     previewGeneration = 0;
   const life = new AbortController();
-  if (import.meta.env.VN_DESKTOP)
-    void import('../input/menu-gamepad.js').then(({ bindMenuGamepad }) => {
-      if (!life.signal.aborted) bindMenuGamepad(life.signal);
-    });
+  void import('../input/menu-gamepad.js').then(({ bindMenuGamepad }) => {
+    if (!life.signal.aborted) bindMenuGamepad(life.signal);
+  });
   // Match CSS: one picker at a time beside the menu, separate pages below.
   const wideMenu = matchMedia('(min-width: 900px)');
   const choosingSession = () =>
@@ -445,10 +452,11 @@ export function createFrontend(host) {
   function pickerRaceActions() {
     return `<div class="picker-race-actions"><button class="change-track" data-action="circuits">${escape(intent === 'cup' ? currentCup().name : level().name)} · ${modeName()} <span aria-hidden="true">↗</span></button>${raceActions()}</div>`;
   }
-  const sessionReturn = () => {
-    if (!game?.hasSession() || sessionCup) return '';
-    const name =
-      sessionIntent === 'time-trial'
+  const sessionReturn = (includeCup = false) => {
+    if (!game?.hasSession() || (sessionCup && !includeCup)) return '';
+    const name = sessionCup
+      ? 'Cup Race'
+      : sessionIntent === 'time-trial'
         ? 'Time Trial'
         : sessionIntent === 'practice'
           ? 'Practice'
@@ -528,6 +536,8 @@ export function createFrontend(host) {
     updateStatus();
   }
   function render() {
+    disposeControllerSettings?.();
+    disposeControllerSettings = null;
     if (shell.hidden) return;
     if (choosingSession()) {
       renderMenu();
@@ -563,7 +573,7 @@ export function createFrontend(host) {
       const inspecting = launchTarget === 'inspection';
       content.innerHTML = `<section class="loading-copy">${inspecting ? '' : `<div class="loading-card">${picture(route())}${routeArt(route())}</div>`}<div class="transfer-slot loading-transfer"></div>${heading(inspecting ? 'PREPARING STUDIO' : 'LOADING CIRCUIT', inspecting ? 'Ship inspector' : escape(level().name))}${inspecting ? '' : `<div class="session-facts">${facts()}</div>`}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
     } else if (screen === 'settings') {
-      content.innerHTML = `<div class="settings-layout"><section class="settings-form"><label><span>Graphics <small>High adds ambient occlusion and postprocessing. Low reduces GPU load.</small></span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume <small>Tunes has its own volume control.</small></span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion <small>Reduces decorative motion and distortion.</small></span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p>Saved on this device.</p></section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
+      content.innerHTML = `${sessionReturn(true)}<div class="settings-layout"><section class="settings-form"><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume</span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion</span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label>${controllerSettingsView(settings)}<p>Saved on this device.</p></section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
         [
           'Driving',
           [
@@ -571,7 +581,7 @@ export function createFrontend(host) {
             ['Shift', 'Boost'],
             ['Space', 'Airbrake'],
             ['Esc', 'Pause / resume'],
-            ['R', 'Recover at checkpoint / retry finished sprint'],
+            ['R', 'Reset / retry'],
             ['C', 'Change camera'],
           ],
         ],
@@ -579,18 +589,16 @@ export function createFrontend(host) {
           'Menus',
           [
             ['Tab / Shift Tab', 'Move between controls'],
-            ['↑ / ↓', 'Move through menu actions and track rows'],
-            [
-              '← / →',
-              'Browse modes/tracks/ships; change difficulty or setup tab',
-            ],
-            ['Home / End', 'First / last item in a list'],
+            ['↑ / ↓', 'Move between actions'],
+            ['← / →', 'Browse choices'],
+            ['Home / End', 'First / last choice'],
             ['Enter / Space', 'Select or activate'],
             ['Esc', 'Back / cancel loading'],
             ['S', 'Open settings'],
           ],
         ],
-        ...(!import.meta.env?.VN_DESKTOP
+        ...(!import.meta.env?.VN_DESKTOP &&
+        (parameters.get('dev') === '1' || artPass)
           ? [
               [
                 'Free camera',
@@ -610,7 +618,7 @@ export function createFrontend(host) {
           [
             ['M', 'Play / pause'],
             [', / .', 'Previous / next track'],
-            ['/', 'Expand player in menus / pause'],
+            ['/', 'Expand player'],
           ],
         ],
       ]
@@ -620,6 +628,10 @@ export function createFrontend(host) {
         )
         .join('')}</section></div>`;
       content.querySelector('select').value = settings.quality;
+      disposeControllerSettings = bindControllerSettings(
+        content.querySelector('.controller-settings'),
+        () => settings,
+      );
     } else if (screen === 'results' && lastResults?.mode === 'cup') {
       content.innerHTML =
         screen === 'results' && !lastResults.final
@@ -915,6 +927,11 @@ export function createFrontend(host) {
                 .querySelector('[data-action="inspect"]')
                 ?.focus({ preventScroll: true });
           }
+        },
+        onSettings() {
+          settingsBack = 'race';
+          settingsFocus = null;
+          setScreen('settings');
         },
         onCircuit(next) {
           leaveReview();
@@ -1309,6 +1326,7 @@ export function createFrontend(host) {
       intent = sessionIntent;
       setScreen('race');
       game.resumeSession();
+      gameHost.querySelector('#pause-panel:not(.hidden) #resume')?.focus();
     },
     'time-trial'() {
       chooseMode('time-trial');
@@ -1331,6 +1349,9 @@ export function createFrontend(host) {
       settingsFocus = focusSelector();
       setScreen('settings');
     },
+    'controller-reset'() {
+      saveSettings(CONTROLLER_DEFAULTS);
+    },
     'desktop-fullscreen'() {
       window.vectorNovaDesktop?.toggleFullscreen();
     },
@@ -1340,7 +1361,10 @@ export function createFrontend(host) {
     'settings-back'() {
       const destination = settingsBack;
       setScreen(destination);
-      focusMenu(settingsFocus);
+      if (destination === 'race') {
+        game?.resumeSession();
+        gameHost.querySelector('#pause-settings')?.focus();
+      } else focusMenu(settingsFocus);
       if (destination === 'results') game?.showResults();
     },
     launch() {
@@ -1450,6 +1474,14 @@ export function createFrontend(host) {
     signal: life.signal,
   });
   shell.addEventListener(
+    'input',
+    (event) => {
+      if (event.target.dataset.setting === 'steeringDeadZone')
+        saveSettings({ steeringDeadZone: Number(event.target.value) });
+    },
+    { signal: life.signal },
+  );
+  shell.addEventListener(
     'change',
     (e) => {
       if (e.target.dataset.recordFilter) {
@@ -1465,7 +1497,7 @@ export function createFrontend(host) {
       settings[key] =
         e.target.type === 'checkbox'
           ? e.target.checked
-          : key === 'volume'
+          : e.target.type === 'range'
             ? +e.target.value
             : e.target.value;
       saveSettings(settings);
@@ -1754,6 +1786,7 @@ export function createFrontend(host) {
       shipPreview?.dispose();
       unsubscribeCache?.();
       unsubscribeSettings?.();
+      disposeControllerSettings?.();
       cacheModule?.disposeShipCache();
       life.abort();
     },

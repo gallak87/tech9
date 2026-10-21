@@ -62,6 +62,7 @@ export async function createGame({
   onProgress = () => {},
   onMode = () => {},
   onHome,
+  onSettings,
   onResults,
   onCupRetry,
   onCircuit,
@@ -1087,6 +1088,11 @@ export async function createGame({
               }
             : {}),
           home,
+          openSettings() {
+            pause();
+            input.clear();
+            onSettings?.();
+          },
           exitInspection,
           results: showResults,
           circuit: onCircuit,
@@ -1218,39 +1224,43 @@ export async function createGame({
         { signal: listeners.signal },
       );
     const input = lifetime.own(
-      createInput((command) => {
-        if (
-          !suspended &&
-          timeTrial &&
-          command === 'restart' &&
-          !['fly', 'results'].includes(mode)
-        ) {
-          restart(false, true, true);
-          return;
-        }
-        if (suspended || mode === 'results' || mode === 'fly') return;
-        if (finishAt !== null && !resultsDismissed && command !== 'pause')
-          return;
-        if (command === 'pause') {
-          if (mode === 'inspection') exitInspection();
-          else if (mode === 'paused') resume();
-          else if (mode === 'racing' || mode === 'countdown') pause();
-          else home();
-        }
-        if (command === 'restart') {
-          if (playtest && ['racing', 'paused', 'countdown'].includes(mode))
-            repeatPlaytest();
-          else recover();
-        }
-        if (command === 'start') {
-          if (mode === 'paused') resume();
-          else if (mode !== 'racing') start();
-        }
-        if (command === 'camera') {
-          cameraMode = cameraMode === 'chase' ? 'vista' : 'chase';
-          rig.reset();
-        }
-      }, pause),
+      createInput(
+        (command) => {
+          if (
+            !suspended &&
+            timeTrial &&
+            command === 'restart' &&
+            !['fly', 'results'].includes(mode)
+          ) {
+            restart(false, true, true);
+            return;
+          }
+          if (suspended || mode === 'results' || mode === 'fly') return;
+          if (finishAt !== null && !resultsDismissed && command !== 'pause')
+            return;
+          if (command === 'pause') {
+            if (mode === 'inspection') exitInspection();
+            else if (mode === 'paused') resume();
+            else if (mode === 'racing' || mode === 'countdown') pause();
+            else home();
+          }
+          if (command === 'restart') {
+            if (playtest && ['racing', 'paused', 'countdown'].includes(mode))
+              repeatPlaytest();
+            else recover();
+          }
+          if (command === 'start') {
+            if (mode === 'paused') resume();
+            else if (mode !== 'racing') start();
+          }
+          if (command === 'camera') {
+            cameraMode = cameraMode === 'chase' ? 'vista' : 'chase';
+            rig.reset();
+          }
+        },
+        pause,
+        () => settings,
+      ),
     );
     input.bindTouch(ui.root);
     const unlockDrivingAudio = () => {
@@ -1342,6 +1352,8 @@ export async function createGame({
       last = now;
       time += dt;
       const finishing = finishAt !== null && !resultsDismissed;
+      // Observe button releases during countdown/pause, without advancing physics.
+      const sampledInput = input.sample();
       audio.update(state, settings.volume, mode === 'racing' && !finishing, {
         countdown: mode === 'countdown',
         results: mode === 'results' || (mode === 'racing' && finishing),
@@ -1375,7 +1387,7 @@ export async function createGame({
         const control =
           mode === 'results' || finishing
             ? { throttle: 0, brake: 1, steer: 0, boost: false, airbrake: false }
-            : input.sample();
+            : sampledInput;
         while (accumulator >= 1 / 120) {
           advanceTick(control);
           accumulator -= 1 / 120;
@@ -1586,6 +1598,7 @@ export async function createGame({
           playerPose: runtime.pose(1),
         }),
         lastResults,
+        gamepad: input.gamepadPresent,
         trial: trial?.snapshot(),
         cup: cupRace,
       });
@@ -2150,6 +2163,7 @@ export async function createGame({
             quaternion: ship.group.quaternion.toArray(),
           },
           camera: {
+            mode: cameraMode,
             position: camera.position.toArray(),
             quaternion: camera.quaternion.toArray(),
             up: camera.up.toArray(),

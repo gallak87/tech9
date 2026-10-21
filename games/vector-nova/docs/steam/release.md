@@ -8,9 +8,9 @@ Separate offline Electron demo/full packages and SteamPipe preparation are imple
 - Tentative US base price: **$1.99**, to confirm before publishing.
 - Achievements, online leaderboards and Steam Cloud remain optional. Current records, ghosts and cup progress are local.
 
-## Controller presets and dead zones (deferred)
+## Controller presets and dead zones
 
-Planned for a later implementation pass in both demo and full game. Only the fixed Classic mapping exists today; there is no preset picker or dead-zone setting yet. Start with presets rather than arbitrary per-button remapping.
+Implemented in browser, demo and full game through Settings, including the pause-menu Settings entry. Presets cover the small driving action set; arbitrary per-button remapping and rumble remain out of scope.
 
 | Preset            | Accelerate | Brake | Boost | Airbrake |
 | ----------------- | ---------- | ----- | ----- | -------- |
@@ -20,12 +20,10 @@ Planned for a later implementation pass in both demo and full game. Only the fix
 
 Xbox-style labels above refer to standard controller button positions.
 
-- Keep left-stick steering, D-pad/stick menu navigation, A confirm, B back and Menu/Start pause consistent across presets.
-- Add X for the normal chase/vista camera views. Do not add a recovery button: ordinary off-road recovery is automatic on a timer.
-- Add an adjustable steering dead zone, a live stick indicator and reset to default. Current steering uses a 15% dead zone; menu navigation has a separate 55% threshold. Keep menu navigation independent from driving adjustments and preserve the approved 0.3 steering assistance.
-- Put the preset, layout display and dead-zone control in Settings. Save the selection locally and keep control hints in sync. Existing keyboard defaults remain available.
-- Freecam remains debugging-only: absent from Electron releases, with browser access gated by `?dev=1`.
-- Extend automation to cover each preset, dead-zone boundaries, controller-only menus/driving/pause/results, held-button transitions and disconnect/reconnect. Current automated controller coverage is limited to input interpretation and a menu confirm/back smoke test. Real Windows/Steam controller testing remains necessary.
+- Left-stick steering, D-pad/stick menu navigation, A confirm, B back, Menu/Start pause and X normal race-camera cycling are shared across layouts. Off-road recovery stays automatic.
+- Steering dead zone: 0–40%, default 15%, with a live stick/steering display and reset. Use D-pad while testing the stick in controller settings; other menu navigation keeps its independent 55% threshold. Steering assistance is unchanged.
+- Presets/dead zone persist locally and update layout/HUD hints. Keyboard controls remain available. Settings retains the current race and its Resume action.
+- Synthetic-controller checks cover all three layouts, actual driving, menu navigation, dead-zone boundaries, held buttons, pause/Settings return, disconnect/reconnect, and saved preferences. They do not certify physical hardware or Steam Input; those remain release gates below.
 
 ## Release gates
 

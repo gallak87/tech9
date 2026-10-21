@@ -1,3 +1,4 @@
+import { controllerLayout } from '../input/gamepad.js';
 import { createDevTools } from './dev-tools.js';
 import './style.css';
 import { formatTime, formatDelta } from '../race/timing.js';
@@ -39,7 +40,7 @@ export function createUI(
   root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>
  <section id="title-panel" class="panel"><h1><span class="circuit-name"></span><em></em></h1><p class="intro"></p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>${SHIPS.length.toString().padStart(2, '0')}</b><span>SHIPS</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions launch-actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="practice">PRACTICE LAP <span>↗</span></button></div><div class="actions inspection-actions"><button id="inspect">INSPECT SHIPS <span>↗</span></button>${!import.meta.env?.VN_DESKTOP ? '<button id="explore">FREE CAMERA <span>F</span></button>' : ''}</div></section>
  ${inspectionPanel}
- <section id="pause-panel" class="modal hidden"><h2>Paused</h2><button id="resume" class="primary">Resume <span aria-hidden="true">→</span></button><button id="pause-results" class="hidden">Results</button><section class="pause-quick-settings" aria-label="Quick settings"><label>Graphics <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>Effects volume <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>Reduced motion <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label></section><div class="pause-restart"><button id="restart">Restart race</button></div><nav class="pause-secondary" aria-label="Session options"><button id="home">Race setup</button>${!import.meta.env?.VN_DESKTOP ? '<button id="pause-explore">Free camera <kbd>F</kbd></button>' : ''}</nav><p class="pause-saved">Saved on this device. Tunes has its own volume control.</p></section>
+ <section id="pause-panel" class="modal hidden"><h2>Paused</h2><button id="resume" class="primary">Resume <span aria-hidden="true">→</span></button><button id="pause-results" class="hidden">Results</button><section class="pause-quick-settings" aria-label="Quick settings"><label>Graphics <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>Effects volume <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>Reduced motion <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label></section><div class="pause-restart"><button id="restart">Restart race</button></div><nav class="pause-secondary" aria-label="Session options"><button id="home">Race setup</button><button id="pause-settings">Settings</button></nav><p class="pause-saved">Saved on this device.</p></section>
  <section id="hud" class="hidden"><div class="top-telemetry"><div class="position hidden"><span>POSITION</span><b id="position">1 / ${RACE_FIELD_SIZE}</b><small id="position-state"></small></div><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>LAP TIME</span><b id="time">00:00.000</b><small id="last">LAST —</small><small id="best">SET YOUR FIRST CLEAN LAP</small></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST DRAWS FROM IMPACT RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas></section>
  <footer id="legend"><div class="legend-movement"><kbd>WASD</kbd><span class="legend-or" aria-hidden="true">/</span><kbd aria-label="Arrow keys">↑←↓→</kbd><span>MOVEMENT</span></div><div class="legend-direction"><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div class="legend-direction"><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div class="legend-direction"><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div class="legend-boost"><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RESET</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>
  <div id="touch" class="hidden" role="group" aria-label="Touch driving controls">
@@ -103,9 +104,30 @@ export function createUI(
     repeat.addEventListener('click', actions.repeatPlaytest);
     $('restart').textContent = 'REPEAT CONTACT CASE';
   }
-  const escapeLabel = [...root.querySelectorAll('#legend kbd')].find(
-    (key) => key.textContent === 'ESC',
-  ).nextElementSibling;
+  const keyboardLegend = $('legend').innerHTML;
+  let controlHint = 'keyboard';
+  function updateControlHints(gamepad) {
+    const next = gamepad ? settings.controllerPreset : 'keyboard';
+    if (next === controlHint) return;
+    controlHint = next;
+    const layout = controllerLayout(settings);
+    $('legend').innerHTML = gamepad
+      ? [
+          ['Left stick', 'STEER'],
+          [layout.throttle, 'THROTTLE'],
+          [layout.brake, 'BRAKE'],
+          [layout.airbrake, 'AIRBRAKE'],
+          [layout.boost, 'BOOST'],
+          ['X', 'CAMERA'],
+          ['Menu', 'PAUSE'],
+        ]
+          .map(
+            ([key, label]) =>
+              `<div><kbd>${key}</kbd><span>${label}</span></div>`,
+          )
+          .join('')
+      : keyboardLegend;
+  }
   const roster = document.createElement('aside');
   roster.id = 'race-roster';
   roster.className = 'hidden';
@@ -482,8 +504,7 @@ export function createUI(
   bind('inspect', () => actions.camera('inspection'));
   if (!import.meta.env?.VN_DESKTOP)
     bind('explore', () => actions.camera('fly'));
-  if (!import.meta.env?.VN_DESKTOP)
-    bind('pause-explore', () => actions.camera('fly'));
+  bind('pause-settings', actions.openSettings);
   bind('inspect-back', () => (actions.exitInspection ?? actions.home)());
   bind('resume', actions.resume);
   bind('pause-results', actions.results);
@@ -660,6 +681,7 @@ export function createUI(
       motion = null,
       {
         practice = false,
+        gamepad = false,
         competition = null,
         lastResults = null,
         trial = null,
@@ -672,7 +694,7 @@ export function createUI(
         'hidden',
         !competition?.enabled || !!cup,
       );
-      escapeLabel.textContent = 'PAUSE';
+      updateControlHints(gamepad);
       if (!playtest)
         $('restart').textContent = sprint
           ? 'Restart sprint'

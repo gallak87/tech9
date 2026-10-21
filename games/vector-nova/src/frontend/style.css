@@ -1006,3 +1006,94 @@ body[data-screen='results'] #interface {
   overflow: hidden;
   clip-path: inset(50%);
 }
+
+.settings-page .session-return {
+  width: min(750px, 100%);
+  margin-bottom: 32px;
+}
+.controller-settings {
+  margin-top: 38px;
+}
+.controller-settings h2 {
+  font-size: 22px;
+  margin: 0 0 12px;
+}
+.controller-settings p {
+  color: #999;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.controller-guide {
+  margin: 20px 0;
+}
+.dead-zone-control {
+  display: grid;
+  gap: 12px;
+  justify-items: end;
+  font-variant-numeric: tabular-nums;
+}
+.stick-test {
+  width: min(280px, 100%);
+  margin: 24px 0;
+}
+.stick-test-heading {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  color: #aaa;
+  font-size: 12px;
+}
+.stick-zone-key::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  background: #b0181855;
+  border: 1px solid #b01818;
+}
+.stick-meter {
+  position: relative;
+  height: 18px;
+  border: 1px solid #555;
+  background: #1a1a1a;
+  overflow: hidden;
+}
+.stick-dead-zone {
+  position: absolute;
+  height: 100%;
+  background: #b0181855;
+  border-inline: 1px solid #b01818;
+}
+.stick-meter i {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 3px;
+  background: #eee;
+  transform: translateX(-50%);
+}
+.stick-test p {
+  display: flex;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+}
+.stick-test b {
+  color: #ddd;
+  font-weight: 400;
+}
+.controller-settings > button {
+  padding: 12px 16px;
+}
+@media (max-width: 600px) {
+  .settings-form label {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .dead-zone-control {
+    width: 100%;
+  }
+  .settings-form .dead-zone-control input {
+    width: 100%;
+  }
+}

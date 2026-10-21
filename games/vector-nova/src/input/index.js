@@ -1,6 +1,8 @@
+import { createGamepadReader } from './gamepad.js';
 import { createTouchControls } from './touch.js';
 
-export function createInput(onCommand, onBlur) {
+export function createInput(onCommand, onBlur, getSettings) {
+  const gamepad = createGamepadReader(getSettings);
   const keys = new Set(),
     abort = new AbortController();
   let gamepadPresent = false,
@@ -22,11 +24,12 @@ export function createInput(onCommand, onBlur) {
   const clear = () => {
     keys.clear();
     touch.clear();
+    gamepad.clear();
   };
   window.addEventListener(
     'keydown',
     (e) => {
-      if (!enabled) return;
+      if (!enabled || e.defaultPrevented) return;
       if (e.target.matches('input,select')) return;
       if (e.code === 'Space' && e.target.matches('button')) return;
       if (codes.includes(e.code)) {
@@ -94,21 +97,14 @@ export function createInput(onCommand, onBlur) {
         boost: down('ShiftLeft', 'ShiftRight') || t.boost,
         airbrake: down('Space') || t.airbrake,
       };
-      let pad;
-      try {
-        pad = [...navigator.getGamepads()].find((p) => p?.connected);
-      } catch {
-        /* Gamepad capability is optional. */
-      }
-      gamepadPresent = !!pad;
-      if (pad) {
-        const x = pad.axes[0] || 0;
-        if (Math.abs(x) > 0.15)
-          i.steer = ((Math.abs(x) - 0.15) / 0.85) * Math.sign(x);
-        i.throttle = Math.max(i.throttle, pad.buttons[7]?.value || 0);
-        i.brake = Math.max(i.brake, pad.buttons[6]?.value || 0);
-        i.boost ||= !!pad.buttons[0]?.pressed;
-        i.airbrake ||= !!pad.buttons[1]?.pressed;
+      const pad = gamepad.sample();
+      gamepadPresent = pad.present;
+      if (enabled && !document.hidden) {
+        if (pad.steer) i.steer = pad.steer;
+        i.throttle = Math.max(i.throttle, pad.throttle);
+        i.brake = Math.max(i.brake, pad.brake);
+        i.boost ||= pad.boost;
+        i.airbrake ||= pad.airbrake;
       }
       return i;
     },

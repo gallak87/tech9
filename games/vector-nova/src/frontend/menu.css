@@ -179,7 +179,7 @@
   width: min(100%, 370px);
   margin-bottom: 16px;
 }
-.menu-layout .session-return button {
+:is(.menu-layout, .settings-page) .session-return button {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -191,11 +191,11 @@
   color: #f3d783;
   text-align: left;
 }
-.menu-layout .session-return button:hover {
+:is(.menu-layout, .settings-page) .session-return button:hover {
   border-color: #d6b65c;
   background: #d6b65c20;
 }
-.menu-layout .session-return button:focus-visible {
+:is(.menu-layout, .settings-page) .session-return button:focus-visible {
   outline: 2px solid #f3d783;
   outline-offset: 3px;
 }

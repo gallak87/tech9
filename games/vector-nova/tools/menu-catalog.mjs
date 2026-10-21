@@ -64,6 +64,7 @@ export async function readPreviewManifest(directory) {
 // Generated from CPU route models at dev/build time. The menu never imports worlds.
 export async function menuCatalog({
   root = appRoot,
+  levelIds = null,
   loadModule = (path) => import(pathToFileURL(path)),
   warn = console.warn,
 } = {}) {
@@ -73,7 +74,8 @@ export async function menuCatalog({
   for (const folder of await readdir(resolve(root, 'src/levels'), {
     withFileTypes: true,
   })) {
-    if (!folder.isDirectory()) continue;
+    if (!folder.isDirectory() || (levelIds && !levelIds.includes(folder.name)))
+      continue;
     const dir = resolve(root, 'src/levels', folder.name);
     if (
       !(await access(resolve(dir, 'metadata.js')).then(

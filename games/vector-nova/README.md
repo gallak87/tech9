@@ -74,6 +74,10 @@ The Halcyon experiment includes automatic **Repulsor** pads (pink, radial shove 
 
 Bend assistance is 0.3; the player steers the remaining turn. Magnetic adhesion follows road pitch/roll and holds a parked craft on slopes. Physical gamepad/mobile use, independent audio listening and foreground frame pacing still need direct verification.
 
+## Desktop / Steam builds
+
+The browser commands above are unchanged. `npm run package:demo` and `npm run package:full` build separate, offline Electron applications for the current platform; add `-- --platform win32 --arch x64` for Windows Steam payloads. The demo contains Kestrel, Halcyon, Nacre and a two-race cup. Both releases omit development tools. See [desktop builds and Steam handoff](docs/steam/desktop.md) for testing, artifacts, controller/window controls, content boundaries and SteamPipe configuration.
+
 ## Development
 
 Levels register through asset-free metadata plus a lazy implementation under `src/levels/<slug>/`. The picker and briefing consume the same metadata; see the [level API](docs/LEVEL_API.md) for factories, camera options and resource ownership. Each course owns its model under `src/levels/<slug>/track/`; shared `src/track/` contains reusable geometry/frame helpers.

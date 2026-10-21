@@ -8,3 +8,7 @@ evidence/
 
 # Local music/SFX runtimes, environments, caches and downloaded model weights.
 .audio-model/
+
+# Isolated Electron stages and packaged Steam depots.
+.desktop/
+release/

@@ -690,6 +690,15 @@
         "public/assets/levels/helion/ceramic/normal.ktx2",
         "public/assets/levels/helion/ceramic/arm.ktx2"
       ]
+    },
+    {
+      "id": "desktop-application-icon",
+      "source": "desktop/icons/icon.svg",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Project-authored vector V mark derived from the existing index.html favicon. PNG, ICNS and ICO exports are generated from that SVG for desktop packaging.",
+      "rights": "Project-authored; no third-party asset inputs",
+      "runtimeAssets": ["desktop/icons/icon.icns", "desktop/icons/icon.ico"],
+      "runtimeDependencies": []
     }
   ],
   "thirdParty": [

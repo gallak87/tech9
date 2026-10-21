@@ -60,9 +60,15 @@ export function createFrontend(host) {
   let sessionCup = false,
     cupConfirm = null,
     cupResultsKey = null;
-  const parameters = new URLSearchParams(location.search);
-  const artPass = parameters.get('artPass') === '1';
-  const inspectShip = !artPass && parameters.get('inspect') === '1';
+  const parameters = new URLSearchParams(
+    !import.meta.env?.VN_DESKTOP ? location.search : '',
+  );
+  const artPass =
+    !import.meta.env?.VN_DESKTOP && parameters.get('artPass') === '1';
+  const inspectShip =
+    !import.meta.env?.VN_DESKTOP &&
+    !artPass &&
+    parameters.get('inspect') === '1';
   let special =
     artPass ||
     inspectShip ||
@@ -137,6 +143,10 @@ export function createFrontend(host) {
   let shipPreview = null,
     previewGeneration = 0;
   const life = new AbortController();
+  if (import.meta.env.VN_DESKTOP)
+    void import('../input/menu-gamepad.js').then(({ bindMenuGamepad }) => {
+      if (!life.signal.aborted) bindMenuGamepad(life.signal);
+    });
   // Match CSS: one picker at a time beside the menu, separate pages below.
   const wideMenu = matchMedia('(min-width: 900px)');
   const choosingSession = () =>
@@ -158,7 +168,7 @@ export function createFrontend(host) {
           isMenuVisible: () => !shell.hidden,
         });
   let sounds = null;
-  if (parameters.get('dev') === '1')
+  if (!import.meta.env.VN_DESKTOP && parameters.get('dev') === '1')
     void import('../audio/sound-panel.js').then(({ createSoundPanel }) => {
       if (life.signal.aborted) return;
       sounds = createSoundPanel(host, {
@@ -451,7 +461,7 @@ export function createFrontend(host) {
     const selectedCraft = lockedCup()
       ? SHIPS.find((entry) => entry.id === savedCup.shipId)
       : selectedShip();
-    return `<section class="race-menu" aria-label="Session setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1>${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step" ${lockedCup() ? 'disabled' : ''}><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}</nav><div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    return `<section class="race-menu" aria-label="Session setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1>${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step" ${lockedCup() ? 'disabled' : ''}><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}${import.meta.env?.VN_DESKTOP === true ? button('desktop-fullscreen', 'Fullscreen / Windowed') + button('desktop-quit', 'Quit game') : ''}</nav><div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
   };
   function cupPanel(withActions) {
     const state = cupStore.snapshot().state;
@@ -580,17 +590,21 @@ export function createFrontend(host) {
             ['S', 'Open settings'],
           ],
         ],
-        [
-          'Free camera',
-          [
-            ['F', 'Enter / leave free camera'],
-            ['WASD / Arrows', 'Move'],
-            ['Q / E', 'Move down / up'],
-            ['Drag', 'Look around'],
-            ['P', 'Toggle live dev tools / FPS'],
-            ['Esc', 'Close dev tools, then leave free camera'],
-          ],
-        ],
+        ...(!import.meta.env?.VN_DESKTOP
+          ? [
+              [
+                'Free camera',
+                [
+                  ['F', 'Enter / leave free camera'],
+                  ['WASD / Arrows', 'Move'],
+                  ['Q / E', 'Move down / up'],
+                  ['Drag', 'Look around'],
+                  ['P', 'Toggle live dev tools / FPS'],
+                  ['Esc', 'Close dev tools, then leave free camera'],
+                ],
+              ],
+            ]
+          : []),
         [
           'Tunes',
           [
@@ -1156,7 +1170,7 @@ export function createFrontend(host) {
       const current = await prepare();
       if (attempt !== launchGeneration || screen !== 'loading') return;
       setScreen('review');
-      if (artPass) {
+      if (!import.meta.env?.VN_DESKTOP && artPass) {
         current.setFlyView(readArtView(parameters));
         current.openDevTools();
       }
@@ -1316,6 +1330,12 @@ export function createFrontend(host) {
       settingsBack = screen;
       settingsFocus = focusSelector();
       setScreen('settings');
+    },
+    'desktop-fullscreen'() {
+      window.vectorNovaDesktop?.toggleFullscreen();
+    },
+    'desktop-quit'() {
+      window.vectorNovaDesktop?.quit();
     },
     'settings-back'() {
       const destination = settingsBack;
@@ -1764,25 +1784,26 @@ export function createFrontend(host) {
     { signal: life.signal },
   );
   // Small read-only shell diagnostics used by the preview capture and smoke tools.
-  window.__VN_FRONTEND = {
-    getState: () => ({
-      screen,
-      selected,
-      previewLevelId,
-      loadedId,
-      loading: !!pending || !!inspectorPending,
-      inspector: inspector?.getSnapshot() ?? null,
-      error,
-      intent,
-      cup: cupStore.snapshot(),
-      selectedCup,
-      sessionCup,
-      shipId,
-      preview: shipPreview?.getState() ?? null,
-      preload,
-    }),
-    routes,
-  };
+  if (!import.meta.env?.VN_DESKTOP)
+    window.__VN_FRONTEND = {
+      getState: () => ({
+        screen,
+        selected,
+        previewLevelId,
+        loadedId,
+        loading: !!pending || !!inspectorPending,
+        inspector: inspector?.getSnapshot() ?? null,
+        error,
+        intent,
+        cup: cupStore.snapshot(),
+        selectedCup,
+        sessionCup,
+        shipId,
+        preview: shipPreview?.getState() ?? null,
+        preload,
+      }),
+      routes,
+    };
   if (invalidLevel) {
     error = `Unknown circuit: ${requested}. Choose another circuit to continue.`;
     setScreen('loading');

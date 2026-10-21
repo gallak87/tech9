@@ -1,3 +1,4 @@
+import { createDevTools } from './dev-tools.js';
 import './style.css';
 import { formatTime, formatDelta } from '../race/timing.js';
 import { SHIPS } from '../ships/catalog.js';
@@ -12,10 +13,6 @@ import {
   halcyonGraphicsDefaults,
   vesperGraphicsDefaults,
 } from '../progression/index.js';
-import {
-  halcyonGraphicsControls,
-  vesperGraphicsControls,
-} from './graphics-settings.js';
 
 export function createUI(
   host,
@@ -40,9 +37,9 @@ export function createUI(
   root.classList.toggle('jump-playtest', Boolean(playtest));
   host.append(root);
   root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>
- <section id="title-panel" class="panel"><h1><span class="circuit-name"></span><em></em></h1><p class="intro"></p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>04</b><span>SHIPS</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions launch-actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="practice">PRACTICE LAP <span>↗</span></button></div><div class="actions inspection-actions"><button id="inspect">INSPECT SHIPS <span>↗</span></button><button id="explore">FREE CAMERA <span>F</span></button></div></section>
+ <section id="title-panel" class="panel"><h1><span class="circuit-name"></span><em></em></h1><p class="intro"></p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>${SHIPS.length.toString().padStart(2, '0')}</b><span>SHIPS</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions launch-actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="practice">PRACTICE LAP <span>↗</span></button></div><div class="actions inspection-actions"><button id="inspect">INSPECT SHIPS <span>↗</span></button>${!import.meta.env?.VN_DESKTOP ? '<button id="explore">FREE CAMERA <span>F</span></button>' : ''}</div></section>
  ${inspectionPanel}
- <section id="pause-panel" class="modal hidden"><h2>Paused</h2><button id="resume" class="primary">Resume <span aria-hidden="true">→</span></button><button id="pause-results" class="hidden">Results</button><section class="pause-quick-settings" aria-label="Quick settings"><label>Graphics <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>Effects volume <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>Reduced motion <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label></section><div class="pause-restart"><button id="restart">Restart race</button></div><nav class="pause-secondary" aria-label="Session options"><button id="home">Race setup</button><button id="pause-explore">Free camera <kbd>F</kbd></button></nav><p class="pause-saved">Saved on this device. Tunes has its own volume control.</p></section>
+ <section id="pause-panel" class="modal hidden"><h2>Paused</h2><button id="resume" class="primary">Resume <span aria-hidden="true">→</span></button><button id="pause-results" class="hidden">Results</button><section class="pause-quick-settings" aria-label="Quick settings"><label>Graphics <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>Effects volume <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>Reduced motion <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label></section><div class="pause-restart"><button id="restart">Restart race</button></div><nav class="pause-secondary" aria-label="Session options"><button id="home">Race setup</button>${!import.meta.env?.VN_DESKTOP ? '<button id="pause-explore">Free camera <kbd>F</kbd></button>' : ''}</nav><p class="pause-saved">Saved on this device. Tunes has its own volume control.</p></section>
  <section id="hud" class="hidden"><div class="top-telemetry"><div class="position hidden"><span>POSITION</span><b id="position">1 / ${RACE_FIELD_SIZE}</b><small id="position-state"></small></div><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>LAP TIME</span><b id="time">00:00.000</b><small id="last">LAST —</small><small id="best">SET YOUR FIRST CLEAN LAP</small></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST DRAWS FROM IMPACT RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas></section>
  <footer id="legend"><div class="legend-movement"><kbd>WASD</kbd><span class="legend-or" aria-hidden="true">/</span><kbd aria-label="Arrow keys">↑←↓→</kbd><span>MOVEMENT</span></div><div class="legend-direction"><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div class="legend-direction"><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div class="legend-direction"><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div class="legend-boost"><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RESET</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>
  <div id="touch" class="hidden" role="group" aria-label="Touch driving controls">
@@ -396,70 +393,19 @@ export function createUI(
       $('review-toggle').querySelector('span').textContent = open ? '−' : '+';
     };
   }
-  const flyControls = document.createElement('section');
-  flyControls.id = 'fly-controls';
-  flyControls.className = 'hidden';
-  flyControls.setAttribute('aria-label', 'Free camera controls');
-  flyControls.innerHTML = `<div class="fly-heading"><b>FREE CAMERA <small>SESSION PAUSED</small></b><button id="fly-return">RETURN · F / ESC</button></div><p>Drag to look · WASD / arrows move · Q / E down / up</p><div class="fly-touch"><button data-fly="KeyA" aria-label="Fly left">←</button><button data-fly="KeyW" aria-label="Fly forward">FORWARD</button><button data-fly="KeyD" aria-label="Fly right">→</button><button data-fly="KeyQ" aria-label="Fly down">DOWN</button><button data-fly="KeyS" aria-label="Fly backward">BACK</button><button data-fly="KeyE" aria-label="Fly up">UP</button></div>`;
-  root.append(flyControls);
-  $('fly-return').onclick = actions.leaveFly;
-  const flySettingsButton = document.createElement('button');
-  flySettingsButton.id = 'fly-settings-toggle';
-  flySettingsButton.textContent = 'DEV TOOLS · P';
-  flySettingsButton.setAttribute('aria-expanded', 'false');
-  flySettingsButton.setAttribute('aria-controls', 'fly-settings');
-  flyControls
-    .querySelector('.fly-heading')
-    .insertBefore(flySettingsButton, $('fly-return'));
-  const flySettings = document.createElement('section');
-  flySettings.id = 'fly-settings';
-  flySettings.className = 'hidden';
-  flySettings.dataset.flySettings = '';
-  flySettings.setAttribute('aria-label', 'Free camera dev tools');
-  flySettings.innerHTML = `<div class="fly-heading"><b>DEV TOOLS</b><button id="fly-settings-close" aria-label="Close dev tools">CLOSE · ESC</button></div><dl class="dev-metrics"><div><dt>FPS</dt><dd id="dev-fps">—</dd></div><div><dt>Frame avg</dt><dd id="dev-frame-ms">—</dd></div><div><dt>Draw calls</dt><dd id="dev-calls">—</dd></div><div><dt>Triangles</dt><dd id="dev-triangles">—</dd></div></dl><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Reduced motion</span><input type="checkbox" data-setting="reducedMotion"></label>${metadata.id === 'vesper' ? vesperGraphicsControls(settings) : metadata.id === 'halcyon' ? halcyonGraphicsControls(settings) : ''}<p>Changes apply live and are saved on this device. Frame averages refresh every half second; draw counts include render passes.</p>`;
-  root.append(flySettings);
-  const viewLink = document.createElement('div');
-  viewLink.className = 'dev-view-link';
-  viewLink.innerHTML =
-    '<button id="copy-art-view">COPY VIEW LINK</button><p id="art-view-status" role="status">Reopen this camera position in a silent art pass.</p><input id="art-view-url" type="text" readonly aria-label="Art pass view URL" hidden>';
-  flySettings.querySelector('.dev-metrics').after(viewLink);
-  $('copy-art-view').onclick = async () => {
-    const url = actions.artPassURL();
-    $('art-view-url').value = url;
-    try {
-      await navigator.clipboard.writeText(url);
-      $('art-view-status').textContent = 'View link copied.';
-      $('art-view-url').hidden = true;
-    } catch {
-      $('art-view-url').hidden = false;
-      $('art-view-url').select();
-      $('art-view-status').textContent = 'Copy the selected view link.';
-    }
-  };
-  let perfLast = null,
-    perfElapsed = 0,
-    perfFrames = 0;
-  function closeFlySettings(restoreFocus = true) {
-    const open = !flySettings.classList.contains('hidden');
-    flySettings.classList.add('hidden');
-    flySettingsButton.setAttribute('aria-expanded', 'false');
-    if (open && restoreFocus) flySettingsButton.focus();
-    return open;
-  }
-  function openFlySettings() {
-    if (!flySettings.classList.contains('hidden')) return;
-    flySettings.classList.remove('hidden');
-    perfLast = null;
-    perfElapsed = perfFrames = 0;
-    $('dev-fps').textContent = $('dev-frame-ms').textContent = '—';
-    flySettingsButton.setAttribute('aria-expanded', 'true');
-    $('fly-settings-close').focus();
-  }
-  function toggleFlySettings() {
-    if (!closeFlySettings()) openFlySettings();
-  }
-  flySettingsButton.onclick = toggleFlySettings;
-  $('fly-settings-close').onclick = () => closeFlySettings();
+  const {
+    openFlySettings,
+    toggleFlySettings,
+    closeFlySettings,
+    updateDevTools,
+  } = !import.meta.env?.VN_DESKTOP
+    ? createDevTools(root, actions, settings, metadata)
+    : {
+        openFlySettings() {},
+        toggleFlySettings() {},
+        closeFlySettings() {},
+        updateDevTools() {},
+      };
   function updateSetting(event) {
     const control = event.target;
     const key = control.dataset.setting;
@@ -534,8 +480,10 @@ export function createUI(
   bind('practice', actions.practice);
   bind('inspect-start', actions.start);
   bind('inspect', () => actions.camera('inspection'));
-  bind('explore', () => actions.camera('fly'));
-  bind('pause-explore', () => actions.camera('fly'));
+  if (!import.meta.env?.VN_DESKTOP)
+    bind('explore', () => actions.camera('fly'));
+  if (!import.meta.env?.VN_DESKTOP)
+    bind('pause-explore', () => actions.camera('fly'));
   bind('inspect-back', () => (actions.exitInspection ?? actions.home)());
   bind('resume', actions.resume);
   bind('pause-results', actions.results);
@@ -580,25 +528,7 @@ export function createUI(
     openFlySettings,
     toggleFlySettings,
     closeFlySettings,
-    updateDevTools(now, info) {
-      if (flySettings.classList.contains('hidden') || document.hidden) {
-        perfLast = null;
-        perfElapsed = perfFrames = 0;
-        return;
-      }
-      if (perfLast !== null) {
-        perfElapsed += now - perfLast;
-        perfFrames++;
-      }
-      perfLast = now;
-      if (perfElapsed < 500) return;
-      $('dev-fps').textContent = ((1000 * perfFrames) / perfElapsed).toFixed(1);
-      $('dev-frame-ms').textContent =
-        `${(perfElapsed / perfFrames).toFixed(1)} ms`;
-      $('dev-calls').textContent = info.calls.toLocaleString();
-      $('dev-triangles').textContent = info.triangles.toLocaleString();
-      perfElapsed = perfFrames = 0;
-    },
+    updateDevTools,
     setSuspended(value) {
       suspended = !!value;
       syncPauseOwnership();

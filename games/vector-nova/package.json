@@ -23,14 +23,25 @@
     "prepare": "cd ../.. && husky games/vector-nova/.husky",
     "verify:orbital": "node tools/verify-level.mjs orbital",
     "check:level": "node tools/check-level.mjs",
-    "verify:level": "node tools/verify-level.mjs"
+    "verify:level": "node tools/verify-level.mjs",
+    "build:demo": "node tools/desktop/build.mjs demo",
+    "build:full": "node tools/desktop/build.mjs full",
+    "package:demo": "node tools/desktop/package.mjs demo",
+    "package:full": "node tools/desktop/package.mjs full",
+    "test:desktop": "node --test tools/desktop/*.test.mjs",
+    "verify:desktop": "node tools/desktop/verify.mjs",
+    "steam:prepare": "node tools/desktop/steam.mjs"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "0.21.0",
     "three": "0.186.1"
   },
   "devDependencies": {
+    "@electron/asar": "4.3.1",
+    "@electron/fuses": "2.1.3",
+    "@electron/packager": "20.3.0",
     "@eslint/js": "10.0.1",
+    "electron": "44.9.1",
     "eslint": "10.11.0",
     "eslint-config-prettier": "10.1.8",
     "globals": "17.12.0",
@@ -44,10 +55,10 @@
     "node": ">=22.13.0"
   },
   "lint-staged": {
-    "*.{js,mjs}": [
+    "*.{css,html,json,md}": "prettier --write",
+    "*.{js,mjs,cjs}": [
       "eslint --fix --max-warnings 0 --no-warn-ignored",
       "prettier --write"
-    ],
-    "*.{css,html,json,md}": "prettier --write"
+    ]
   }
 }

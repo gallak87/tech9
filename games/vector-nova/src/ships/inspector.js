@@ -62,7 +62,8 @@ export async function createInspector({
     pickupTools?.dispose();
     rival?.dispose();
     fleet?.dispose();
-    if (window.__VN_INSPECTOR === api) delete window.__VN_INSPECTOR;
+    if (!import.meta.env?.VN_DESKTOP && window.__VN_INSPECTOR === api)
+      delete window.__VN_INSPECTOR;
     lifetime.dispose();
   };
   const check = () => {
@@ -358,7 +359,10 @@ export async function createInspector({
     fleet = loaded;
     stage.scene.add(fleet.group);
     fit(fleet.group);
-    if (new URLSearchParams(location.search).get('dev') === '1') {
+    if (
+      !import.meta.env.VN_DESKTOP &&
+      new URLSearchParams(location.search).get('dev') === '1'
+    ) {
       const { createPickupInspector } = await import('./pickup-inspector.js');
       check();
       const tools = await createPickupInspector({
@@ -489,7 +493,7 @@ export async function createInspector({
       }),
       dispose,
     };
-    window.__VN_INSPECTOR = api;
+    if (!import.meta.env?.VN_DESKTOP) window.__VN_INSPECTOR = api;
     let last = performance.now();
     const animate = (now) => {
       if (disposed) return;

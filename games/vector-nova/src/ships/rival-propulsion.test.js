@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Group, Mesh, BoxGeometry, MeshStandardMaterial } from 'three';
 import { createRivalPropulsion } from './rival-propulsion.js';
+import { DEVICE_COLORS } from '../pickups/theme.js';
 
 function fixture(quality) {
   const hull = new Group();
@@ -103,6 +104,61 @@ test('High rival flow freezes for reduced motion, and visibility/quality remain 
     f.propulsion.update({ quality: 'low', visible: false });
     assert.equal(f.propulsion.group.visible, false);
     assert.equal(f.propulsion.group.userData.quality, 'low');
+  } finally {
+    f.close();
+  }
+});
+
+test('Vector turns the real rival nozzle amber in both tiers and restores blue on exit', () => {
+  const f = fixture('high');
+  try {
+    f.propulsion.update({ speed: 160, catapulting: true, time: 1 });
+    const high = f.propulsion.group.children[0];
+    assert.equal(
+      high.material.uniforms.glowColor.value.getHex(),
+      DEVICE_COLORS.vector,
+    );
+    f.propulsion.update({
+      speed: 160,
+      catapulting: true,
+      time: 1,
+      quality: 'low',
+    });
+    assert.equal(
+      f.propulsion.group.children.length,
+      1,
+      'one exported nozzle remains one draw',
+    );
+    const low = f.propulsion.group.children[0];
+    assert.deepEqual(low.position.toArray(), [0, 0.4, -3]);
+    const colors = low.geometry.attributes.color;
+    for (let i = 0; i < colors.count; i++)
+      assert.ok(colors.getX(i) > colors.getZ(i));
+    const version = colors.version;
+    f.propulsion.update({
+      speed: 160,
+      catapulting: true,
+      time: 2,
+      quality: 'low',
+    });
+    assert.equal(
+      colors.version,
+      version,
+      'steady Vector does not re-upload vertex colors',
+    );
+    f.propulsion.update({
+      speed: 160,
+      catapulting: false,
+      time: 3,
+      quality: 'low',
+    });
+    for (let i = 0; i < colors.count; i++)
+      assert.ok(colors.getZ(i) > colors.getX(i));
+    f.propulsion.update({ speed: 160, time: 3, quality: 'high' });
+    assert.equal(
+      f.propulsion.group.children[0].material.uniforms.glowColor.value.getHex(),
+      0x2376ff,
+    );
   } finally {
     f.close();
   }

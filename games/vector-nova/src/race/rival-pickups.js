@@ -1,12 +1,15 @@
 import { Group } from 'three';
 import { createShipFeedbackPresentation } from '../pickups/ship-feedback.js';
 
-// Reuse the player's field, fracture and expiry, without a second simulation,
-// HUD, audio graph or render pass. Low retains the same single outline draw.
-export function createRivalShield(ship, runtime, settings) {
-  const feedback = createShipFeedbackPresentation(settings);
+// All racers share the player's ship-local pickup effects. This owner only
+// bridges simulation events/state; it creates no HUD, audio or render pass.
+export function createRivalPickups(ship, runtime, settings) {
+  // Rival propulsion supplies Vector at each model's actual exhaust anchors.
+  const feedback = createShipFeedbackPresentation(settings, {
+    vectorThrust: false,
+  });
   const root = new Group();
-  root.name = 'Rival / Aegis';
+  root.name = 'Rival / pickups';
   const bounds = ship.userData.bounds;
   if (bounds) {
     const size = bounds.max.map((value, axis) => value - bounds.min[axis]);
@@ -29,9 +32,7 @@ export function createRivalShield(ship, runtime, settings) {
   }
   const detach = runtime.observePresentation?.({
     events(batch) {
-      for (const event of batch)
-        if (event.payload?.kind === 'aegis' || event.type === 'impact')
-          events.push(event);
+      events.push(...batch);
     },
     reset,
   });
@@ -44,7 +45,7 @@ export function createRivalShield(ship, runtime, settings) {
           ? 0
           : Math.max(0, Math.min(0.1, time - previousTime));
       feedback.update({
-        effects: { aegisRemaining: effects.aegisRemaining },
+        effects,
         events,
         racing: visible && (mode === 'racing' || events.length > 0),
         driving: visible,

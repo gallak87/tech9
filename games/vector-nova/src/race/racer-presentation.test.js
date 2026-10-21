@@ -256,7 +256,7 @@ test('rival shield consumes real combat hits, cracks once, freezes on pause and 
     }
     assert.equal(shield.visible, false);
     presentation.dispose();
-    assert.equal(group.getObjectByName('Rival / Aegis'), undefined);
+    assert.equal(group.getObjectByName('Rival / pickups'), undefined);
     assert.doesNotThrow(() => {
       runtime.reset({ state });
       runtime.advance(state, { throttle: 1 }, 0.1);

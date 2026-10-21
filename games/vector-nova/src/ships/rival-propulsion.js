@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { createEngineResponse } from './engine-response.js';
+import { DEVICE_COLORS } from '../pickups/theme.js';
 import {
   createOrbitalPlumeGeometry,
   createOrbitalPlumeMaterial,
@@ -30,6 +31,8 @@ export function createRivalPropulsion(hull, settings = {}) {
   let tier,
     geometry,
     material,
+    lowColors,
+    vectorTint,
     plumes = [],
     disposed = false;
   const respond = createEngineResponse();
@@ -43,6 +46,8 @@ export function createRivalPropulsion(hull, settings = {}) {
     if (next === tier) return;
     release();
     tier = next;
+    vectorTint = null;
+    lowColors = null;
     if (tier === 'high') {
       geometry = createOrbitalPlumeGeometry();
       material = createOrbitalPlumeMaterial({ samples: 8 });
@@ -50,17 +55,22 @@ export function createRivalPropulsion(hull, settings = {}) {
       geometry = new T.ConeGeometry(0.28, 1, 6, 2, true);
       geometry.rotateX(-Math.PI / 2);
       geometry.translate(0, 0, -0.5);
-      const colors = [];
+      const colors = [],
+        amberColors = [];
+      const blueRoot = new T.Color(0x9ee9ff),
+        blueTip = new T.Color(0x144eb6);
+      const amberRoot = new T.Color(0xffe8b2),
+        amberTip = new T.Color(DEVICE_COLORS.vector);
+      const color = new T.Color();
       for (let i = 0; i < geometry.attributes.position.count; i++) {
         const aft = -geometry.attributes.position.getZ(i);
-        const color = new T.Color().lerpColors(
-          new T.Color(0x9ee9ff),
-          new T.Color(0x144eb6),
-          aft,
-        );
+        color.lerpColors(blueRoot, blueTip, aft);
         colors.push(color.r, color.g, color.b, (1 - aft) ** 1.4);
+        color.lerpColors(amberRoot, amberTip, aft);
+        amberColors.push(color.r, color.g, color.b, (1 - aft) ** 1.4);
       }
       geometry.setAttribute('color', new T.Float32BufferAttribute(colors, 4));
+      lowColors = [new Float32Array(colors), new Float32Array(amberColors)];
       material = new T.MeshBasicMaterial({
         vertexColors: true,
         side: T.DoubleSide,
@@ -113,8 +123,13 @@ export function createRivalPropulsion(hull, settings = {}) {
       u.reducedMotion.value = reducedMotion ? 1 : 0;
       u.boostMix.value = pressure;
       u.thrustMix.value = thrust;
-      u.glowColor.value.setHex(0x2376ff);
+      u.glowColor.value.setHex(catapulting ? DEVICE_COLORS.vector : 0x2376ff);
+    } else if (vectorTint !== catapulting) {
+      // Recolor the existing nozzles only on entry/exit, without extra draws.
+      geometry.attributes.color.array.set(lowColors[catapulting ? 1 : 0]);
+      geometry.attributes.color.needsUpdate = true;
     }
+    vectorTint = catapulting;
     for (const plume of plumes)
       plume.scale.set(
         1 + thrust * 0.15 + pressure * 0.32,

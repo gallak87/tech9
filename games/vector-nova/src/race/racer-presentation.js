@@ -1,7 +1,7 @@
 import { Quaternion, Vector3, MathUtils } from 'three';
 import { createRivalPreview } from '../ships/rivals.js';
 import { createHitFeedback } from '../pickups/hit-feedback.js';
-import { createRivalShield } from './rival-shield.js';
+import { createRivalPickups } from './rival-pickups.js';
 
 const up = new Vector3(0, 1, 0);
 const forward = new Vector3(0, 0, 1);
@@ -27,7 +27,7 @@ export async function createRacerPresentation({
         ship,
         opponent,
         hitFeedback: null,
-        shield: null,
+        pickups: null,
         yaw: new Quaternion(),
         roll: new Quaternion(),
       };
@@ -35,11 +35,15 @@ export async function createRacerPresentation({
       entry.hitFeedback = combat
         ? createHitFeedback(ship.group, settings)
         : null;
-      entry.shield = createRivalShield(ship.group, opponent.runtime, settings);
+      entry.pickups = createRivalPickups(
+        ship.group,
+        opponent.runtime,
+        settings,
+      );
     }
   } catch (error) {
-    ships.forEach(({ ship, hitFeedback, shield }) => {
-      shield?.dispose();
+    ships.forEach(({ ship, hitFeedback, pickups }) => {
+      pickups?.dispose();
       hitFeedback?.dispose();
       ship.dispose();
     });
@@ -53,10 +57,10 @@ export async function createRacerPresentation({
       const show = enabled && ['racing', 'paused', 'countdown'].includes(mode);
       const combatState = combat?.view();
       const flashes = combatState?.flashes ?? [];
-      for (const { ship, opponent, yaw, roll, hitFeedback, shield } of ships) {
+      for (const { ship, opponent, yaw, roll, hitFeedback, pickups } of ships) {
         ship.group.visible = show;
         const effects = opponent.runtime.snapshot?.() ?? {};
-        shield.update({
+        pickups.update({
           visible: show,
           mode,
           state: opponent.state,
@@ -145,8 +149,8 @@ export async function createRacerPresentation({
     dispose() {
       if (disposed) return;
       disposed = true;
-      ships.forEach(({ ship, hitFeedback, shield }) => {
-        shield.dispose();
+      ships.forEach(({ ship, hitFeedback, pickups }) => {
+        pickups.dispose();
         hitFeedback?.dispose();
         ship.dispose();
       });

@@ -6,13 +6,16 @@ import { AEGIS_BREAK_DURATION } from './rules.js';
 import { createQualityPresentation } from './quality.js';
 import { createLowShipFeedback } from './low-feedback.js';
 
-export function createShipFeedbackPresentation(settings = {}) {
+export function createShipFeedbackPresentation(
+  settings = {},
+  { vectorThrust = true } = {},
+) {
   return createQualityPresentation(
     settings,
     (quality) =>
       quality === 'low'
-        ? createLowShipFeedback()
-        : createDetailedShipFeedback(),
+        ? createLowShipFeedback({ vectorThrust })
+        : createDetailedShipFeedback({ vectorThrust }),
     (frame) => frame?.settings,
   );
 }
@@ -24,7 +27,7 @@ const REPULSOR_TAIL = 0.42;
 
 // The exact hull feedback used in races and the dev inspector. No world, HUD
 // or audio owner is needed to draw an acquisition, shield or drive effect.
-function createDetailedShipFeedback() {
+function createDetailedShipFeedback({ vectorThrust }) {
   const feedback = createShipFeedback();
   const arc = createArcFeedback();
   feedback.group.add(arc);
@@ -165,7 +168,7 @@ function createDetailedShipFeedback() {
       clamp(Math.abs(speed) / 110) * (currentSettings.reducedMotion ? 0.3 : 1);
     feedback.shieldTrail.material.uniforms.flowTime.value =
       currentSettings.reducedMotion ? 0 : flowTime;
-    feedback.drive.visible = driving && vector;
+    feedback.drive.visible = driving && vector && vectorThrust;
     feedback.driveMaterial.uniforms.strength.value = vector
       ? currentSettings.reducedMotion
         ? 0.85

@@ -42,7 +42,7 @@ function fieldOutline(color, name) {
   return lines;
 }
 
-export function createLowShipFeedback() {
+export function createLowShipFeedback({ vectorThrust = true } = {}) {
   const group = new T.Group();
   group.name = 'Low pickup / ship feedback';
   const shield = fieldOutline(DEVICE_COLORS.aegis, 'Low Aegis / field');
@@ -126,7 +126,7 @@ export function createLowShipFeedback() {
       acquired.visible = acquiredTime > 0;
       acquired.material.opacity =
         ((settings.reducedMotion ? 0.3 : 0.7) * acquiredTime) / 0.25;
-      drive.visible = effects.vectorActive === true;
+      drive.visible = effects.vectorActive === true && vectorThrust;
     },
     dispose() {
       disposeGroup(group);

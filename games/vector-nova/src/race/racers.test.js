@@ -193,7 +193,7 @@ test('rival Aegis acquisition is visible in both tiers and follows expiry, pause
       'rendering cannot alter simulation state',
     );
     const owned = new Set();
-    groups[0].getObjectByName('Rival / Aegis').traverse((o) => {
+    groups[0].getObjectByName('Rival / pickups').traverse((o) => {
       if (o.geometry) owned.add(o.geometry);
       if (o.material) owned.add(o.material);
     });
@@ -207,7 +207,7 @@ test('rival Aegis acquisition is visible in both tiers and follows expiry, pause
       'quality changes release the detailed shield',
     );
     assert.equal(shield(0, 'low').visible, true);
-    groups[0].getObjectByName('Rival / Aegis').traverse((o) => {
+    groups[0].getObjectByName('Rival / pickups').traverse((o) => {
       if (o.material)
         assert.ok(
           o.material.isMeshBasicMaterial || o.material.isLineBasicMaterial,

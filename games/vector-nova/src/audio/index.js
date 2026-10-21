@@ -203,27 +203,14 @@ export function createAudio({
           resources.thunder?.trigger(event);
         return;
       }
-      // Countdown and contact cues share the unlocked, volume-controlled bus.
-      if (
-        !resources ||
-        disposed ||
-        !audible ||
-        resultsActive ||
-        ![
-          'impact',
-          'lap',
-          'countdown-beep',
-          'countdown-go',
-          'final-lap',
-          'player-race-complete',
-        ].includes(event?.type)
-      )
-        return;
+      if (!resources || disposed || !audible || resultsActive) return;
       const { context, bus, cueBus, shots } = resources;
       const sample = raceSample(event);
       const buffer = sample && resources.samples.get(sample.id);
-      // A shield owns its block sound. Missing authored collisions stay silent.
-      if (event.type === 'impact' && !buffer) return;
+      const countdown =
+        event?.type === 'countdown-beep' || event?.type === 'countdown-go';
+      // Countdown retains its original tones; authored cues have no fallback.
+      if (!buffer && !countdown) return;
       const finish = event.type === 'player-race-complete';
       const finalLap = event.type === 'final-lap';
       if (finish || finalLap)
@@ -234,92 +221,55 @@ export function createAudio({
           }
       if (shots.size >= 4) return;
       const time = context.currentTime;
-      const oscillator = buffer
-        ? context.createBufferSource()
-        : context.createOscillator();
+      const source = countdown
+        ? context.createOscillator()
+        : context.createBufferSource();
       const envelope = context.createGain();
-      oscillator.connect(envelope).connect(finish || finalLap ? cueBus : bus);
+      source
+        .connect(envelope)
+        .connect(countdown || event.type === 'impact' ? bus : cueBus);
       envelope.gain.setValueAtTime(0, time);
       let end;
-      if (buffer) {
-        oscillator.buffer = buffer;
+      if (countdown) {
+        const go = event.type === 'countdown-go';
+        const duration = go ? 0.76 : 0.27;
+        const peak = go ? 0.095 : 0.075;
+        source.type = 'sine';
+        source.frequency.setValueAtTime(go ? 960 : 480, time);
+        envelope.gain.linearRampToValueAtTime(peak, time + 0.012);
+        envelope.gain.setValueAtTime(peak, time + (go ? 0.54 : 0.16));
+        envelope.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+        end = go ? 0.78 : 0.29;
+      } else {
+        source.buffer = buffer;
         end = buffer.duration;
         envelope.gain.setValueAtTime(sample.gain, time);
         envelope.gain.setValueAtTime(
           sample.gain,
           time + Math.max(0, end - 0.01),
         );
-      } else if (finish || finalLap) {
-        const winner =
-          event.payload?.valid !== false && event.payload?.position === 1;
-        const notes = finalLap
-          ? [660, 880]
-          : event.payload?.valid === false
-            ? [440, 349.23]
-            : winner
-              ? [523.25, 659.25, 783.99, 1046.5]
-              : [587.33, 783.99];
-        const gap = finalLap ? 0.19 : 0.17;
-        end = finalLap ? 0.55 : winner ? 2.05 : 1.7;
-        oscillator.type = 'sine';
-        notes.forEach((frequency, index) => {
-          const start = time + gap * index;
-          const release =
-            index === notes.length - 1 ? time + end - 0.03 : start + gap - 0.02;
-          oscillator.frequency.setValueAtTime(frequency, start);
-          envelope.gain.setValueAtTime(0.0001, start);
-          envelope.gain.linearRampToValueAtTime(
-            finalLap ? 0.065 : 0.09,
-            start + 0.012,
-          );
-          envelope.gain.exponentialRampToValueAtTime(0.0001, release);
-        });
-      } else if (
-        event.type === 'countdown-beep' ||
-        event.type === 'countdown-go'
-      ) {
-        const go = event.type === 'countdown-go';
-        const duration = go ? 0.76 : 0.27;
-        const peak = go ? 0.095 : 0.075;
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(go ? 960 : 480, time);
-        envelope.gain.linearRampToValueAtTime(peak, time + 0.012);
-        envelope.gain.setValueAtTime(peak, time + (go ? 0.54 : 0.16));
-        envelope.gain.exponentialRampToValueAtTime(0.0001, time + duration);
-      } else {
-        oscillator.frequency.setValueAtTime(550, time);
-        oscillator.frequency.setValueAtTime(550, time + 0.1);
-        oscillator.frequency.exponentialRampToValueAtTime(825, time + 0.12);
-        envelope.gain.linearRampToValueAtTime(0.07, time + 0.008);
-        envelope.gain.exponentialRampToValueAtTime(0.0001, time + 0.4);
       }
-      end ??=
-        event.type === 'countdown-beep'
-          ? 0.29
-          : event.type === 'countdown-go'
-            ? 0.78
-            : 0.44;
       envelope.gain.linearRampToValueAtTime(0, time + end);
-      oscillator.start();
-      oscillator.stop(time + end + 0.01);
+      source.start();
+      source.stop(time + end + 0.01);
       let ended = false;
       const shot = {
         finish,
         stop() {
           if (ended) return;
           ended = true;
-          oscillator.onended = null;
-          oscillator.stop();
-          oscillator.disconnect();
+          source.onended = null;
+          source.stop();
+          source.disconnect();
           envelope.disconnect();
         },
       };
       shots.add(shot);
-      oscillator.onended = () => {
+      source.onended = () => {
         ended = true;
-        oscillator.onended = null;
+        source.onended = null;
         shots.delete(shot);
-        oscillator.disconnect();
+        source.disconnect();
         envelope.disconnect();
       };
     },

@@ -64,7 +64,7 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 
 ## Audio
 
-- [ ] Replace race-announcement audio: countdown/GO, lap and final-lap cues, and race-complete variants. Keep event timing and clear feedback over propulsion and Tunes; audition the complete set together.
+- [x] Replace lap/final-lap and race-complete audio with modern synth cues shared by gameplay and Sounds. Preserve the original countdown/GO and each finish tail through results.
 - [ ] Continue from the existing eight-song pool if more variety is wanted; the earlier target was roughly 16. Choose/finalize circuit assignments, race mix and audible loop transitions with the user. Blue Hour is tagged for Halcyon; the other seven tracks remain general `mix` auditions. Playback, encoding and deployment already work. See the [audio guide](docs/audio/README.md).
 - [ ] Optionally package the proven prompt → sequential render → Tunes audition → human-feedback process as an audio-generation Skill. Reuse the guide/scripts, provenance and one-current-take rules; do not create a second workflow or evidence archive.
 

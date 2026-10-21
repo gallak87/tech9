@@ -128,12 +128,12 @@ const fetchAudio = async (url) => ({
   ok: true,
   arrayBuffer: async () => new TextEncoder().encode(url).buffer,
 });
-function sampleContext() {
+function sampleContext(durations = {}) {
   const context = new Context();
-  context.decodeAudioData = async (bytes) => ({
-    duration: 0.5,
-    sampleUrl: new TextDecoder().decode(bytes),
-  });
+  context.decodeAudioData = async (bytes) => {
+    const sampleUrl = new TextDecoder().decode(bytes);
+    return { duration: durations[sampleUrl] ?? 0.5, sampleUrl };
+  };
   return context;
 }
 
@@ -397,6 +397,54 @@ test('every Sounds entry reaches a live cue or bed, using the current sample whe
   preview.dispose();
 });
 
+for (const [payload, id] of [
+  [{ valid: true, position: 1 }, 'race-winner'],
+  [{ valid: true, position: 2 }, 'race-finisher'],
+  [{ valid: false, position: 1 }, 'race-invalid'],
+]) {
+  test(`${id} plays through results on the announcement bus and obeys pause`, async () => {
+    const context = sampleContext({ [RACE_SAMPLES[id]]: 2.4 });
+    const audio = createAudio({
+      createContext: () => context,
+      engine: false,
+      immersion: true,
+      fetchAudio,
+    });
+    await audio.unlock();
+    audio.update(state, 0.35, true);
+    const finish = {
+      type: 'player-race-complete',
+      payload,
+    };
+    audio.event(finish);
+    const source = context.nodes.find((node) => node.kind === 'buffer');
+    assert.equal(source.buffer.sampleUrl, RACE_SAMPLES[id]);
+    assert.equal(audio.duration(finish), 2.4);
+    assert.equal(source.destination.destination.destination.kind, 'compressor');
+    assert.equal(source.stops.length, 1);
+    assert.ok(Math.abs(source.stops[0] - 2.41) < 1e-9);
+    const scheduledStops = [...source.stops];
+    audio.update(state, 0.35, false, { results: true });
+    assert.equal(source.disconnected, false);
+    assert.deepEqual(
+      source.stops,
+      scheduledStops,
+      'results preserve the full finish tail',
+    );
+    const nodeCount = context.nodes.length;
+    audio.event(finish);
+    assert.equal(
+      context.nodes.length,
+      nodeCount,
+      'results do not retrigger cues',
+    );
+    audio.update(state, 0.35, false);
+    assert.equal(source.disconnected, true);
+    assert.equal(source.destination.disconnected, true);
+    await audio.dispose();
+  });
+}
+
 test('sample fetch failure stays silent; disposal aborts loading without starting sound', async () => {
   for (const createBus of [createPickupAudio, createAudio]) {
     const context = sampleContext();
@@ -409,13 +457,17 @@ test('sample fetch failure stays silent; disposal aborts loading without startin
     if (createBus === createAudio) audio.update(state, 1, true);
     else audio.update({ volume: 1 }, true);
     const before = context.nodes.length;
-    const event =
+    const events =
       createBus === createAudio
-        ? { type: 'impact' }
-        : { type: 'combat-fire', payload: { kind: 'repulsor' } };
-    audio.event(event);
-    assert.equal(context.nodes.length, before);
-    assert.equal(audio.duration(event), 0);
+        ? soundEffects
+            .filter((sound) => sound.bus === 'race' && raceSample(sound.event))
+            .map((sound) => sound.event)
+        : [{ type: 'combat-fire', payload: { kind: 'repulsor' } }];
+    for (const event of events) {
+      audio.event(event);
+      assert.equal(context.nodes.length, before);
+      assert.equal(audio.duration(event), 0);
+    }
     assert.ok(audio.getStatus().missingSamples.length > 0);
     await audio.dispose();
   }

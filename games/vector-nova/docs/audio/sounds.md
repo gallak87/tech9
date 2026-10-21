@@ -27,20 +27,20 @@ For pickup sound and VFX together, open **Ship inspector → Powerups** with `de
 | Ship · manual boost         | Manual boost held at speed                                                  | Brighter engine and additional rush; preview at 157 m/s |
 | Countdown · 3 / 2 / 1       | Each red start light                                                        | Same short 480 Hz tone                                  |
 | Countdown · go              | Green start light                                                           | Longer 960 Hz tone                                      |
-| Final lap                   | Final lap begins                                                            | Two-note announcement                                   |
-| Lap complete                | Ordinary lap crossing                                                       | Rising two-pitch cue                                    |
-| Race complete · finisher    | Other valid finish                                                          | Two rising notes                                        |
-| Race complete · invalid run | Invalid finish                                                              | Two falling notes                                       |
-| Race complete · winner      | Valid first-place finish                                                    | Four rising notes                                       |
+| Final lap                   | Final lap begins                                                            | Generated urgent synth rise and chord                   |
+| Lap complete                | Ordinary lap crossing                                                       | Generated compact synth lift and resolution             |
+| Race complete · finisher    | Other valid finish                                                          | Generated warm synth finish sting                       |
+| Race complete · invalid run | Invalid finish                                                              | Generated descending synth close                        |
+| Race complete · winner      | Valid first-place finish                                                    | Generated modern electronic victory sting               |
 | Ship · impact               | Wall, rail, structure or racer collision                                    | Generated short body knock with a small scrape          |
 
 The propulsion bed continuously responds to acceleration, braking, steering and speed; its three presets are representative states, not separate recordings. A shielded `combat-hit` is silent because `shield-hit` supplies the audible cue. Arc, Repulsor and Ion blocked-hit confirmations share the Aegis collapse recording. Expiry, cancellation and attacker confirmation use quieter gains in gameplay; the inspector auditions those event sequences.
 
 Arc and Repulsor finish through their existing tails, with no extra expiry cue. Aegis has no sustained audio layer; its start and collapse leave room for propulsion.
 
-All eight WAVs in `assets/audio/sfx/` are live: seven device cues and one physical ship-impact cue. Arc hull impact and target contact share `arc-hit.wav`. Aegis and Repulsor use the approved softened recordings. The race bus plays `ship-impact.wav` for unshielded collisions; a shielded collision uses the Aegis block alone.
+All 13 WAVs in `assets/audio/sfx/` are live: seven device cues, one physical ship-impact cue and five lap/finish announcements. Arc hull impact and target contact share `arc-hit.wav`. Aegis and Repulsor use the approved softened recordings. The race bus shares each announcement recording with Sounds, including lap/final lap and all three finish variants. Countdown/GO retain their original synthesized tones, levels and timing. Lap/finish announcements stay clear of the underwater filter; physical collisions use `ship-impact.wav` through the world mix. A shielded collision uses the Aegis block alone.
 
-Original synthesis remains live for Vector activation/rush, Ion activation/wake/impact/confirmation, the approved Arc shots, propulsion and race announcements. Sample-backed cues have one source only; missing files stay silent and dev previews report the error. Unavailable pickups and Vector cancellation are silent, retaining HUD feedback. Ion emission ends by fading its bed over a few hundred milliseconds; there is no separate expiry chime. Ordinary Vector exit ends its rush without a separate cue. Aegis expiry/cancellation retain their warp collapse.
+Original synthesis remains live for Vector activation/rush, Ion activation/wake/impact/confirmation, the approved Arc shots, propulsion and countdown/GO. Sample-backed cues have one source only; missing files stay silent and dev previews report the error. Unavailable pickups and Vector cancellation are silent, retaining HUD feedback. Ion emission ends by fading its bed over a few hundred milliseconds; there is no separate expiry chime. Ordinary Vector exit ends its rush without a separate cue. Aegis expiry/cancellation retain their warp collapse.
 
 Environment sound work is deferred; the circuits retain their original thunder and shelf synthesis, with no environment entries in this picker.
 

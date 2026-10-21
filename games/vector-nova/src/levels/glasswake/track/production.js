@@ -1,6 +1,5 @@
 import { assetURL } from '../../../assets/url.js';
 import { groundGlasswakeSupports } from './grounding.js';
-import { createGlasswakeDeckBuilder } from './deck-surface.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
@@ -161,7 +160,6 @@ export function buildGlasswakeRoad(
       { intervals: track.supportedRuns },
     );
   const half = track.width / 2;
-  const deckGeometry = createGlasswakeDeckBuilder(track);
   const tops = { crystal: [], frost: [], reinforcement: [] };
   const walls = [];
   const sillEntries = [];
@@ -201,16 +199,25 @@ export function buildGlasswakeRoad(
             (left + right) / 2 >= zone.lateralMin &&
             (left + right) / 2 <= zone.lateralMax,
         );
-        // The glass is sealed flush across every cassette. The sills underneath
-        // retain panel rhythm without holes in the rendered/contact surface.
-        const from = start;
-        const to = end;
+        // No longitudinal seam is removed from frost: opaque travel bands begin
+        // and end at the exact rule boundaries, including a split cassette.
+        const from = frosted ? start : start + seam;
+        const to = frosted ? end : end - seam;
         const kind = frosted
           ? 'frost'
           : reinforcement
             ? 'reinforcement'
             : 'crystal';
-        tops[kind].push(deckGeometry(from, to, left, right));
+        tops[kind].push(
+          sweepGeometry(
+            track,
+            [
+              [left, 0],
+              [right, 0],
+            ],
+            { start: from, end: to, step: 2.5 },
+          ),
+        );
         cassetteIntervals.push({
           start: from,
           end: to,

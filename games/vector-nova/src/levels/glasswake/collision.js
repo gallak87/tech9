@@ -5,7 +5,7 @@ export function createGlasswakeCollisionWorld({ track }) {
   return collectProductionSolids({
     track,
     id: 'glasswake-jump-solids',
-    geometryId: 'production-corridors-v2-flush-deck',
+    geometryId: 'production-corridors-v1',
     road: buildGlasswakeRoad(track, { collisionOnly: true }),
     uvScale: 16,
     select(object) {

@@ -1,10 +1,14 @@
 # tech9
 
-An indie game studio that runs on Claude subagents.
+Standalone games and [Worldkit](worldkit/), a reusable Three.js environment package.
 
-You give it a game idea. It builds the game.
+Worldkit is consumed through `@worldkit/environment`; it does not require the older studio generator or agent workflows documented later on this page.
 
 ---
+
+## Environment package
+
+[Worldkit](worldkit/) (`@worldkit/environment`) supplies reusable Three.js environments and canonical art assets. It replaces the former `_tech9` directory as a consumable local dependency; the studio orchestration below remains a separate legacy workflow.
 
 ## Games
 
@@ -22,7 +26,11 @@ You give it a game idea. It builds the game.
 
 ---
 
-## How it works
+## Legacy studio generator
+
+The remaining sections describe the older root studio tooling. They are retained for existing projects and are not the Worldkit package workflow.
+
+### How it works
 
 ```
   your idea

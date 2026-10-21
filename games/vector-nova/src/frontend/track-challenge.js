@@ -5,6 +5,7 @@ const challenges = {
   halcyon: 'Warm-up',
   orbital: 'Easy',
   vesper: 'Easy',
+  'vesper-forest': 'Easy',
   nacre: 'Easy',
   glasswake: 'Easy',
   cindercoil: 'Medium',

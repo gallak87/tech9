@@ -175,3 +175,55 @@ test('local asset streaming supports music ranges and confines the decoder eval 
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('full desktop staging preserves registered Worldkit provenance byte-for-byte while demo omits it', async () => {
+  const { mkdtemp, readFile, readdir, rm, stat } =
+    await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const { copyWorldkitNotices } = await import('./notices.mjs');
+  const scratch = await mkdtemp(join(tmpdir(), 'vn-worldkit-notices-'));
+  const appRoot = fileURLToPath(new URL('../..', import.meta.url));
+  try {
+    const demo = join(scratch, 'demo');
+    assert.deepEqual(
+      await copyWorldkitNotices(demo, editionPolicy('demo')),
+      [],
+    );
+    await assert.rejects(stat(demo), { code: 'ENOENT' });
+    const full = join(scratch, 'full');
+    const staged = await copyWorldkitNotices(full, editionPolicy('full'));
+    const manifest = JSON.parse(
+      await readFile(join(appRoot, 'docs/ASSET_MANIFEST.json'), 'utf8'),
+    );
+    const asset = manifest.assets.find(
+      (entry) => entry.id === 'worldkit-forest-art',
+    );
+    assert.ok(asset);
+    for (const record of asset.provenanceRecords) {
+      const relative = record.replace(/^\.\.\/\.\.\/worldkit\//, 'worldkit/');
+      assert.ok(
+        staged.includes(relative),
+        `Registered provenance is staged: ${record}`,
+      );
+      assert.deepEqual(
+        await readFile(join(full, relative)),
+        await readFile(resolve(appRoot, record)),
+      );
+    }
+    assert.ok(staged.includes('worldkit/modules/landscape/THREE-LICENSE.txt'));
+    assert.ok(
+      staged.includes(
+        'worldkit/modules/landscape/assets/runtime/textures/SOURCES.md',
+      ),
+    );
+    assert.ok(
+      staged.every((path) => /\.(md|txt|json)$/.test(path)),
+      'Only notices and source metadata, no copied runtime art',
+    );
+    assert.deepEqual(await readdir(full), ['worldkit']);
+  } finally {
+    await rm(scratch, { recursive: true, force: true });
+  }
+});

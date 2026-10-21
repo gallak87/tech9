@@ -1,0 +1,98 @@
+{
+  "name": "@worldkit/environment",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Composable Three.js environment systems and canonical forest art assets.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/package.test.mjs modules/landscape/tests/*.test.js modules/island-ocean/tests/*.test.js modules/pond-water/tests/*.test.js modules/weather/tests/weather.test.js",
+    "build": "node tools/verify-package.mjs",
+    "check": "npm test && npm run build",
+    "lint": "eslint src tests/package.test.mjs tools/verify-package.mjs --max-warnings 0",
+    "legacy:test": "node --test tests/*.test.mjs modules/*/tests/*.test.js",
+    "legacy:build": "node tools/build-modules.mjs",
+    "t9": "node tools/tech9.mjs",
+    "sync:modules": "node tools/sync-modules.mjs",
+    "verify:weather": "node modules/weather/tests/browser.mjs",
+    "hooks:install": "node tools/install-hooks.mjs",
+    "lint:staged": "lint-staged"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.11.0",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.12.0",
+    "husky": "9.1.7",
+    "lint-staged": "16.4.0",
+    "playwright": "1.58.2",
+    "prettier": "3.9.8",
+    "three": "0.186.1",
+    "vite": "8.3.0",
+    "pixi.js": "8.16.0"
+  },
+  "engines": {
+    "node": "^22.13.0 || >=24.0.0"
+  },
+  "lint-staged": {
+    "{tools,tests}/**/*.mjs": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "eslint.config.mjs": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "*.{md,json}": "prettier --write",
+    "modules/**/src/*.js": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "modules/**/tests/*.js": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write"
+    ]
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.js",
+    "./forest": "./src/forest.js",
+    "./landscape": "./src/landscape.js",
+    "./ocean": "./src/ocean.js",
+    "./water": "./src/water.js",
+    "./weather": "./src/weather.js",
+    "./package.json": "./package.json",
+    "./forest/kit": "./src/forest-kit.js"
+  },
+  "peerDependencies": {
+    "three": "0.186.1"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "ARCHITECTURE.md",
+    "NOTICE.md",
+    "modules/landscape/src",
+    "modules/landscape/README.md",
+    "modules/island-ocean/src",
+    "modules/island-ocean/README.md",
+    "modules/pond-water/src",
+    "modules/pond-water/README.md",
+    "modules/weather/src",
+    "modules/weather/README.md",
+    "modules/landscape/assets/runtime",
+    "modules/landscape/THREE-LICENSE.txt",
+    "modules/pond-water/assets",
+    "modules/pond-water/THREE-LICENSE.txt",
+    "modules/weather/NOTICE.md",
+    "modules/landscape/assets/art/textures/bark_brown_02_diff_1k.jpg",
+    "modules/landscape/assets/art/textures/bark_brown_02_nor_gl_1k.jpg",
+    "modules/landscape/assets/art/textures/bark_brown_02_rough_1k.jpg",
+    "modules/landscape/assets/art/textures/forest-granite-diff.jpg",
+    "modules/landscape/assets/art/textures/rock_boulder_cracked_nor_gl_1k.jpg",
+    "modules/landscape/assets/art/textures/rock_boulder_cracked_rough_1k.jpg",
+    "modules/landscape/assets/art/textures/pine-spray.png",
+    "modules/landscape/assets/art/textures/timber-endgrain.jpg",
+    "modules/landscape/assets/art/asset-report.json",
+    "modules/landscape/assets/art/sources/manifest.json"
+  ]
+}

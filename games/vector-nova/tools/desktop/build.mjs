@@ -5,6 +5,7 @@ import { resolve, dirname, relative } from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { menuCatalog } from '../menu-catalog.mjs';
+import { copyWorldkitNotices } from './notices.mjs';
 import {
   editionPolicy,
   includePublic,
@@ -33,6 +34,7 @@ export async function buildDesktop(edition) {
   const levelCatalog = '\0desktop-level-catalog';
   await build({
     configFile: false,
+    resolve: { dedupe: ['three'] },
     root,
     base: './',
     publicDir: false,
@@ -177,6 +179,7 @@ export async function buildDesktop(edition) {
   const notices = resolve(stage, 'notices');
   await mkdir(notices, { recursive: true });
   await cp(resolve(root, 'docs/licenses'), notices, { recursive: true });
+  const worldkitNotices = await copyWorldkitNotices(notices, policy);
   for (const [name, license] of [
     ['three', 'LICENSE'],
     ['@dimforge/rapier3d-compat', 'LICENSE'],
@@ -192,7 +195,10 @@ export async function buildDesktop(edition) {
   );
   await writeFile(
     resolve(notices, 'README.txt'),
-    'VECTOR//NOVA includes project-authored and generated art/music, and CC0 materials listed in ASSET_MANIFEST.json. The manifest describes the source project; only the edition assets listed in release-manifest.json are distributed. Electron/Chromium notices also accompany the platform executable.\n',
+    'VECTOR//NOVA includes project-authored and generated art/music, and CC0 materials listed in ASSET_MANIFEST.json. The manifest describes the source project; only the edition assets listed in release-manifest.json are distributed. Electron/Chromium notices also accompany the platform executable.\n' +
+      (worldkitNotices.length
+        ? 'Worldkit package notices and original forest asset/source metadata are preserved under worldkit/. Runtime images and models are listed in release-manifest.json.\n'
+        : ''),
   );
   const inventory = [];
   for (const file of await files(stage)) {

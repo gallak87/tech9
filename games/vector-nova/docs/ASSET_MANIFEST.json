@@ -543,6 +543,43 @@
       "provenanceRecord": "assets/levels/vesper/provenance.json"
     },
     {
+      "id": "worldkit-forest-art",
+      "source": "../../worldkit/modules/landscape/assets/",
+      "creator": "Worldkit project contributors; Poly Haven: Rob Tuytel (bark photography and fern scanning), Rico Cilliers (fern modeling)",
+      "provenance": "Canonical Worldkit forest-kit.glb supplies fern_a for Vesper Forest surface-attached groundcover. Bark Brown 02 supplies 1K color, OpenGL normal and roughness maps through @worldkit/environment/forest/kit. These are package-owned runtime assets, emitted by the consumer build without copying into Vector Nova public assets. The GLB also retains original project tree/rock/log geometry and separately credited Poly Haven plant/material sources; complete source URLs, selected variants, checksums and rebuild details remain in Worldkit records.",
+      "rights": "Selected Poly Haven fern geometry/textures and Bark Brown 02 maps are CC0-1.0 (https://polyhaven.com/license). Original project art retains its existing ownership; Worldkit packaging grants no new licence.",
+      "runtimeDependencies": ["three", "@worldkit/environment"],
+      "runtimeAssets": [
+        "../../worldkit/modules/landscape/assets/runtime/forest-kit.glb",
+        "../../worldkit/modules/landscape/assets/art/textures/bark_brown_02_diff_1k.jpg",
+        "../../worldkit/modules/landscape/assets/art/textures/bark_brown_02_nor_gl_1k.jpg",
+        "../../worldkit/modules/landscape/assets/art/textures/bark_brown_02_rough_1k.jpg"
+      ],
+      "provenanceRecords": [
+        "../../worldkit/NOTICE.md",
+        "../../worldkit/modules/landscape/assets/runtime/ASSETS.md",
+        "../../worldkit/modules/landscape/assets/art/sources/manifest.json",
+        "../../worldkit/modules/landscape/assets/art/asset-report.json"
+      ]
+    },
+    {
+      "id": "vesper-forest-pilot",
+      "source": "src/levels/vesper-forest/",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Independent Vesper Forest circuit retains the approved Vesper route and borrows the existing vesper-canopy GLBs and sky read-only. Level-owned material integration and surface-attached tapered bough assemblies use separately registered Worldkit bark PBR and ferns plus Vesper broadleaf geometry. The bounded recipe covers the hollow passage, 220m before the entrance and 220m after the crown landing corridor. The entry rim is refined procedurally from its existing contour without changing the source GLB or opening clearance. The original Vesper entry remains the source record for its geometry and generated imagery.",
+      "rights": "Project-authored integration and procedural geometry; borrowed Vesper and Worldkit assets retain their separately registered rights.",
+      "runtimeDependencies": [
+        "three",
+        "@worldkit/environment",
+        "vesper-canopy",
+        "worldkit-forest-art"
+      ],
+      "provenanceRecords": [
+        "assets/levels/vesper/provenance.json",
+        "../../worldkit/NOTICE.md"
+      ]
+    },
+    {
       "id": "cindercoil-caldera",
       "source": "assets/levels/cindercoil/ and src/levels/cindercoil/",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",

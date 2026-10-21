@@ -2,7 +2,7 @@
 
 ## Stack and module boundaries
 
-Standalone Vite + Three.js ES modules, WebGL2, PBR/ACES and sRGB output. No repository framework, alternate launcher or cloned runtime. See the [README](README.md) for available circuits and the [roadmap](ROADMAP.md) for planned work.
+Standalone Vite + Three.js ES modules, WebGL2, PBR/ACES and sRGB output. The optional Worldkit environment dependency supplies reusable systems and art; the game retains its renderer, frame loop and level lifecycle. No alternate launcher or cloned runtime. See the [README](README.md) for available circuits and the [roadmap](ROADMAP.md) for planned work.
 
 The locally owned ESLint/Prettier/lint-staged/Husky configuration was adapted from Chronoforge Echo at the user's request.
 
@@ -21,6 +21,18 @@ The locally owned ESLint/Prettier/lint-staged/Husky configuration was adapted fr
 `src/levels/<slug>/track/`, `environment/` and `backdrop/` own each circuit’s route, construction, materials, scenery and sky; Nacre also owns its overlay and flight presentation adapter. Shared directories contain reusable mechanics, never a default world style. Asset URLs follow stable level/ship folders; replay identities are independent of asset filenames.
 
 `src/levels/` discovers asset-free metadata eagerly and imports only the selected implementation. Its [level API](docs/LEVEL_API.md) defines factories, presentation and ownership; unknown or malformed levels fail visibly.
+
+## Worldkit and Vesper Forest
+
+`@worldkit/environment` is the local consumable package at [`worldkit/`](../../worldkit/README.md), formerly `_tech9`. The pilot imports its public `/forest/kit` entry; Vite deduplicates the shared Three.js peer and emits package-owned asset URLs into the consumer build. Historical orchestration, game scaffolds and source-copy workflows are not part of this dependency. Worldkit owns canonical art and loading helpers; Vector Nova owns placement recipes, landmarks, lighting, collision and its existing rendering pipeline.
+
+`src/levels/vesper-forest/` is a separate **Vesper Forest** circuit. Original `vesper` code and assets remain the control. Its route, jumps, surfaces and devices are retained, with distinct metadata, track, app, motion and collision identities to keep records and replay compatibility separate. Cups continue to select the original. The pilot borrows the registered Vesper GLBs/sky read-only; its own environment materials and instances are independently owned. `tools/vesper-forest-pilot.test.mjs` compares route frames and deterministic motion against that control.
+
+The bounded art pass centers on the authored hollow passage (approximately 687–1574 m), with two 220 m reuse regions: `hollow.entry - 220` to `hollow.entry` (467–687 m), and `jumps[0].landingEnd` to `landingEnd + 220` (2060–2280 m). These are route regions, not tiles. `environment/forest-dressing.js` raycasts actual placed wood surfaces, attaches tapered bough assemblies beside the driving corridor, and carries existing Vesper broadleaf clusters plus Worldkit ferns on those branches. Clearance checks preserve road/flight space. Regional batching and distance-controlled fine detail bound the presentation work; they are not an FPS guarantee.
+
+`environment/hero-finish.js` rounds only the entry rim while retaining its exact wall attachment edges and retreating from the route; the original GLB is unchanged. The bounded finish adds one static draw to the 12 region-batched dressing draws, with no extra lights or render passes.
+
+`environment/forest-look.js` loads Worldkit's canonical bark color, normal and roughness maps once per environment. Metre-scaled projection combines the finer scan with existing broad bark character across authored and generated wood. The level owns loaded textures and generated geometry; borrowed Vesper materials and loaded kit textures retain their original owner until dependents are released. Source provenance and licences remain in [Worldkit notices](../../worldkit/NOTICE.md) and the [asset manifest](docs/ASSET_MANIFEST.json). Visual direction is in the [art bible](docs/ART_BIBLE.md#vesper-forest-pilot).
 
 ## Front end and world ownership
 

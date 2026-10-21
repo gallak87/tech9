@@ -4,6 +4,16 @@ import { menuCatalog } from './tools/menu-catalog.mjs';
 
 let devServer;
 export default defineConfig({
+  resolve: { dedupe: ['three'] },
+  // Canonical assets in the linked package are also served during development.
+  server: {
+    fs: {
+      allow: [
+        import.meta.dirname,
+        resolve(import.meta.dirname, '../../worldkit'),
+      ],
+    },
+  },
   plugins: [
     {
       name: 'vector-nova-menu-catalog',

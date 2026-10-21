@@ -1,8 +1,10 @@
 # Tech9 graduation
 
+> Historical plan. The former `_tech9` directory is now [Worldkit](worldkit/), a consumable environment package. Root-framework promotion, agent-generation and copied-module goals below are not part of that package or the Vesper Forest pilot. Paths below follow the rename for reference.
+
 ## Current structure
 
-`_tech9/` is the framework to promote to the repository root. It owns its tools, configuration and documentation. Runnable packages install their own dependencies.
+`worldkit/` is the framework to promote to the repository root. It owns its tools, configuration and documentation. Runnable packages install their own dependencies.
 
 | Path                                             | Purpose                                                                                                                                                               |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -17,9 +19,9 @@
 
 Framework and baseline versions live in their package manifests. Modules have no runtime dependency on games or the older root framework. Games own their copied source, assets and dependencies; `tech9.json` and `GAME_PLAN.json` remain immutable fork receipts.
 
-`web-3d-world` selects grounded-walking, placement-collisions, landscape and weather. Its authored composition is separate from the reusable forest assets and rendering in landscape. The CLI selects either authored baseline or a minimal `web-canvas2d`, `web-pixi` or `web-three` scaffold. Module synchronization targets the selected package explicitly and validates renderer/runtime, dependencies and sibling modules. `sprite-world` takes explicit authored data and callbacks; Echo campaign/combat/progression/save state remains outside the framework. The [canyon plan](./_tech9/docs/plans/canyon.md) and [world composition roadmap](./_tech9/ROADMAP.md) are future capability work.
+`web-3d-world` selects grounded-walking, placement-collisions, landscape and weather. Its authored composition is separate from the reusable forest assets and rendering in landscape. The CLI selects either authored baseline or a minimal `web-canvas2d`, `web-pixi` or `web-three` scaffold. Module synchronization targets the selected package explicitly and validates renderer/runtime, dependencies and sibling modules. `sprite-world` takes explicit authored data and callbacks; Echo campaign/combat/progression/save state remains outside the framework. The [canyon plan](./worldkit/docs/plans/canyon.md) and [world composition roadmap](./worldkit/ROADMAP.md) are future capability work.
 
-From the repository root, use `./_tech9/run`; from the framework directory, use `./run`. Supported Node versions are recorded in `package.json`. Framework verification is `./run run check`; package checks run in their owning directories. Optional hooks are installed through `./run run hooks:install`.
+From the repository root, use `./worldkit/run`; from the framework directory, use `./run`. Supported Node versions are recorded in `package.json`. Framework verification is `./run run check`; package checks run in their owning directories. Optional hooks are installed through `./run run hooks:install`.
 
 ## Pre-graduation work
 
@@ -54,21 +56,21 @@ Validation completed:
 - Independent interface review: all four reported ownership/configuration/history issues fixed and rechecked. Independent visual review: **8.0/10 in round 3**; ordinary input reaches the observatory and a grounded, opaque shoreline lookout.
 - Representative coastal timing: 180 frames, median/p95 **16.7/16.7 ms**, Chromium 153.0.8010.53, ANGLE Metal Apple M1 Pro, 1280×720 CSS viewport, coastal preset and 1.5-million backing-pixel budget. This is one desktop sample, not physical mobile acceptance or full GPU-memory measurement.
 
-Evidence remains in ignored `_tech9/.artifacts/framework-expansion/` (final framework log, interface/visual reports and `final-generation.json`), `_tech9/.artifacts/generation/run-gewTSg/`, `_tech9/.artifacts/scaffold-browser/run-A50REa/` and the coastal package's `.artifacts/verification/`.
+Evidence remains in ignored `worldkit/.artifacts/framework-expansion/` (final framework log, interface/visual reports and `final-generation.json`), `worldkit/.artifacts/generation/run-gewTSg/`, `worldkit/.artifacts/scaffold-browser/run-A50REa/` and the coastal package's `.artifacts/verification/`.
 
-Remaining limits are explicit: direct click movement does not route around obstacles; scenery fade affects whole props; ground/water repeats and angular authored boundaries remain visible; still captures do not establish motion polish. Resource bytes estimate retained pixels, and protected active/pending artwork may exceed the eviction target. Physical mobile performance, native Godot generation and broader asset tooling remain future work. Reference findings and justified deferrals are in `_tech9/docs/REFERENCE-GAMES.md` and `_tech9/ROADMAP.md`.
+Remaining limits are explicit: direct click movement does not route around obstacles; scenery fade affects whole props; ground/water repeats and angular authored boundaries remain visible; still captures do not establish motion polish. Resource bytes estimate retained pixels, and protected active/pending artwork may exceed the eviction target. Physical mobile performance, native Godot generation and broader asset tooling remain future work. Reference findings and justified deferrals are in `worldkit/docs/REFERENCE-GAMES.md` and `worldkit/ROADMAP.md`.
 
 The user deferred `audio-runtime` for review after step 03; it is recorded but not extracted. Step 04 awaits the user's new-game concept, core loop, presentation and target devices. Agree its scope and visual gate before starting the separate game/framework-dev goal.
 
 From the repository root:
 
 ```sh
-./_tech9/run --prefix baselines/web-2.5d-world run dev # http://127.0.0.1:4403
-./_tech9/run --prefix baselines/web-3d-world run dev  # http://127.0.0.1:4399
-./_tech9/run run t9 -- starting-points
+./worldkit/run --prefix baselines/web-2.5d-world run dev # http://127.0.0.1:4403
+./worldkit/run --prefix baselines/web-3d-world run dev  # http://127.0.0.1:4399
+./worldkit/run run t9 -- starting-points
 ```
 
-Use `_tech9/GENERATE.md` for `web-canvas2d`, `web-pixi` or `web-three` and for creating the selected standalone game after the brief.
+Use `worldkit/GENERATE.md` for `web-canvas2d`, `web-pixi` or `web-three` and for creating the selected standalone game after the brief.
 
 ## Graduation gate
 
@@ -84,7 +86,7 @@ Update the current structure and gate status as these deliverables land. Canyon,
 
 ## Target layout
 
-Promote all accepted `_tech9/` contents to the root, including hidden configuration, starting packages, games, modules, assets, tools and documentation. Move the older root framework into `_archive/`. Preserve source, editable assets, licenses and package boundaries. Keep `.git/` and the active `.github/` workflows at root.
+Promote all accepted `worldkit/` contents to the root, including hidden configuration, starting packages, games, modules, assets, tools and documentation. Move the older root framework into `_archive/`. Preserve source, editable assets, licenses and package boundaries. Keep `.git/` and the active `.github/` workflows at root.
 
 GitHub deployment discovers committed browser games and reference pilots through `tools/pages.mjs`, using each package's build or static-site requirements. The workflow supports the nested and promoted framework locations. Games use `/<slug>/`, pilots use `/_pilot/<slug>/`, and Vulpine retains the front door while present. Archived games are excluded by default; `INCLUDE_ARCHIVE_GAMES=true` enables `_archive/games/` at `/_archive/<slug>/`. Choose archive coverage and any legacy-route redirects during cutover. Deployment and framework verification remain separate workflows.
 
@@ -94,7 +96,7 @@ Prerequisite: the graduation gate is complete.
 
 1. **Checkpoint.** Inspect repository status and active worktrees, select the accepted source commit and create a recoverable checkpoint. Perform relocation in an isolated worktree.
 2. **Archive.** Inventory existing root content and local files. Decide the exact `_archive/` contents and archived-game deployment policy; preserve required package boundaries and supporting tools.
-3. **Promote.** Move the agreed root content to `_archive/`, then move `_tech9/` contents to root. Resolve path collisions, carry hidden configuration and preserve fork receipts byte-for-byte. Reinstall dependencies in owning packages.
+3. **Promote.** Move the agreed root content to `_archive/`, then move `worldkit/` contents to root. Resolve path collisions, carry hidden configuration and preserve fork receipts byte-for-byte. Reinstall dependencies in owning packages.
 4. **Reconnect.** Update root instructions, documentation links, commands, ignore rules and repository integrations. Install the scoped hook at `.husky/_`. Update GitHub deployment discovery, build paths and public routes for the selected game set.
 5. **Verify.** Run root framework checks, module synchronization checks and affected baselines/web-3d-world/package checks. Confirm relocated assets load and deployment output includes every selected game at its intended route.
 6. **Commit.** Commit the cutover with concise root setup, module use and deployment instructions. Reconcile any remaining worktrees with the new paths.

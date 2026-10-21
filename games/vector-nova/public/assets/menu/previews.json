@@ -117,6 +117,15 @@
       "sourceRevision": "f995e8f5c08aba54fef2bfb10692d8faef75927d",
       "sourceDirty": true,
       "routeSignature": "c0f8e6bbcbcf3b12"
+    },
+    "vesper-forest": {
+      "file": "vesper-forest.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "3475ae15fa72669bee56d57e53d9ca4b53af487d",
+      "sourceDirty": true,
+      "routeSignature": "2f147e93e90cfdd4"
     }
   }
 }

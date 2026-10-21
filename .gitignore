@@ -2,8 +2,8 @@ node_modules/
 .DS_Store
 /_site/
 
-# Local agent coordination, before and after framework root migration.
-/_tech9/runs/
+# Local task coordination and package experiments.
+/worldkit/runs/
 /runs/
 
 # Generated per machine by `npm run mcp:setup` — contains absolute paths to

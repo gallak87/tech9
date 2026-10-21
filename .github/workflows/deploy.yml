@@ -6,10 +6,10 @@ on:
       - main
     paths:
       - 'games/**'
-      - '_tech9/games/**'
+      - 'worldkit/**'
       - '_archive/games/**'
       - 'tools/pages.mjs'
-      - '_tech9/tools/pages.mjs'
+      - 'worldkit/tools/pages.mjs'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -44,8 +44,8 @@ jobs:
           # Archive hosting is opt-in through a repository variable.
           INCLUDE_ARCHIVE_GAMES: ${{ vars.INCLUDE_ARCHIVE_GAMES || 'false' }}
         run: |
-          if [ -f _tech9/tools/pages.mjs ]; then
-            node _tech9/tools/pages.mjs
+          if [ -f worldkit/tools/pages.mjs ]; then
+            node worldkit/tools/pages.mjs
           else
             node tools/pages.mjs
           fi

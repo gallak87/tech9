@@ -35,7 +35,7 @@ Xbox-style labels above refer to standard controller button positions.
 
 ### Build and playtesting
 
-- [ ] Run the desktop CI workflow on GitHub for both editions and target platforms.
+- [ ] After the private-repository move, restore `.github/workflows/vector-nova-desktop.yml.disabled` to `.yml` and run desktop CI for both editions and target platforms.
 - [ ] Test the packaged Windows builds on a clean machine: all courses, a complete cup, Time Trial records/ghosts, repeated races, track switching and ship inspection.
 - [ ] Validate controller-only play, physical mappings, unplug/reconnect, Steam Input/overlay, keyboard navigation, alt-tab, fullscreen, resizing and audio.
 - [ ] Test demo/full Steam installs and private-branch updates, including offline play, save persistence and separate edition data.

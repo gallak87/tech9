@@ -5,7 +5,7 @@
       "id": "cup-button-backgrounds-v1",
       "source": "assets/ui/cups/backgrounds/",
       "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
-      "provenance": "Four opaque panoramic button backgrounds: Founders green valley, Frontier gold canyon, Horizon red escarpment and legendary Apex purple obsidian storm. Environment artwork only, with no composited trophy or text. The original generated red Apex background is retained as the recoloring reference. Source PNGs, exact prompts, accent references and SHA-256 hashes are retained; menu integration is pending.",
+      "provenance": "Opaque panoramic cup button background studies. Four initial landscape studies are retained; a later Apex study explores abstract graphite and softly lit violet pigment. Artwork only, with no composited trophy or text. Source PNGs, exact prompts, references and SHA-256 hashes are retained; menu integration is pending.",
       "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
       "runtimeDependencies": [],
       "provenanceRecord": "assets/ui/cups/backgrounds/provenance.json"

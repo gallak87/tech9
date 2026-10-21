@@ -1,7 +1,7 @@
 {
   "generator": "Built-in image_gen",
   "rights": "Generated for VECTOR//NOVA with built-in imagegen. The Apex reference was also generated for this project; no third-party reference artwork supplied.",
-  "usage": "Full-bleed panoramic cup button background artwork, ready for future menu integration. Background scenery only: no trophy, icon, label or UI composited into these images. Green, gold, red and purple suggest increasing cup challenge without changing individual track difficulty.",
+  "usage": "Full-bleed panoramic cup button background studies for future menu integration. Earlier landscape studies are retained; the current Apex direction explores abstract graphite and softly lit violet pigment. No trophy, icon, label or UI is composited into the artwork.",
   "reference": {
     "file": "references/apex-background-red-v1.png",
     "originalOutput": "/Users/g/.codex/generated_images/01a15483-d533-7bf1-90fc-820e8cbf7baa/exec-f43b349c-3738-48a2-bb70-567549bc6ccb.png",
@@ -51,6 +51,17 @@
       "size": [2172, 724],
       "mode": "RGB",
       "sha256": "3ec12c1b5f5b04939b9bf76f5b4e08b810abe33e8e336a8bd15a4cd073271a3c"
+    },
+    {
+      "cupId": "apex",
+      "file": "apex-background-abstract-v1.png",
+      "accentReference": "#B38AE8",
+      "originalOutput": "/Users/g/.codex/generated_images/01a15483-d533-7bf1-90fc-820e8cbf7baa/exec-0b468607-4125-442c-ae4e-7d14eda769e8.png",
+      "status": "Abstract direction study; replaces scenery with textured graphite and violet pigment. Not integrated into the menu.",
+      "prompt": "Use case: stylized-concept.\nAsset type: premium abstract full-bleed background artwork for an Apex Cup selection button in VECTOR//NOVA, a futuristic racing game.\nPrimary request: a sleek, sophisticated charcoal-and-amethyst abstract color splash, softly luminous and richly textured. It must look like a premium physical material study, not a landscape, illustration of a place, or cartoon.\nVisual treatment: a broad asymmetrical sweep of dark violet liquid pigment and finely dispersed amethyst mineral powder skims across smoked graphite. The flowing pigment has delicate striations, feathered granular edges, fine stippling and occasional satin titanium glints. Restrained dim violet illumination appears from within the denser pigment and along a few thin edges, like light caught under a translucent coating. Large elegant gestural shapes, subtly layered depth, tactile matte-to-satin contrast. Controlled roughness and microtexture, not plastic gloss. A few softly scattered particles remain close to the main stroke.\nComposition: wide approximately 3:1 panoramic rectangle, edge-to-edge artwork. The gesture sweeps from lower middle toward upper right with an expressive concentration of textured purple on the right half. The left third is subdued near-black graphite with very faint grain and soft tonal variation, suitable for a separately overlaid icon later. Natural dark falloff toward the edges, no blank margin or boxed frame. The design must remain elegant and readable at small button size.\nPalette: neutral near-black, graphite, deep plum and amethyst with a few soft #B38AE8 violet highlights. Overall dim and moody; no bright white hotspots, neon tubes, loud bloom or rainbow colors. Keep colored areas selective rather than tinting the entire image.\nConstraints: ABSTRACT MATERIAL ART ONLY. No environment, horizon, scenery, mountains, rocks arranged as terrain, cliffs, sky, clouds, weather, water landscape, planets, galaxy, stars or space scene. No trophy, cup, logo, symbol, emblem shape, badge, crest, wings, text, numbers, border, UI, actual button or foreground icon. No comic ink outlines, cartoon paint splashes, rainbow splatter, simple vector shapes, busy confetti or sharp decorative polygons. Opaque background, no transparency. One finished standalone background image.",
+      "size": [2172, 724],
+      "mode": "RGB",
+      "sha256": "06550b14a90b7471b6358e51bc11ebd1b12aa6283a62ffd722588287fb288efe"
     }
   ]
 }

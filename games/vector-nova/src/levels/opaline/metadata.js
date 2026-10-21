@@ -8,7 +8,7 @@ export default {
     edition: 'MINERAL CIRCUIT',
     subtitle: 'OPALINE DIVIDE / 14',
     intro:
-      'Follow porcelain shelves into an iridescent river canyon. Read the brightening walls, ride the spillway current, and cross the fractured terraces.',
+      'Surf the opening porcelain banks into an iridescent river canyon. Read the brightening walls, ride the spillway current, and cross the fractured terraces.',
     tag: 'OPALINE DIVIDE',
     tagDetail: 'MINERAL SPILLWAYS',
     detail:

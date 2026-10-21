@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import { createOpalineTrack } from './track/model.js';
+import { createSurgeFlow } from './environment/flow.js';
+import { createLifetime } from '../../core/lifecycle.js';
 import {
   createOpalineSurfaceGeometry,
   createOpalineConnectorRailGeometry,
@@ -142,7 +144,10 @@ test('visible and collision shelf tops share finite exact coordinates, material 
       assert.ok(
         triangle.roadCoordinates &&
           triangle.roadCoordinates.every(
-            ([s, x]) => Number.isFinite(s) && Math.abs(x) <= 16,
+            ([s, x]) =>
+              Number.isFinite(s) &&
+              x >= -16 &&
+              x <= (track.sampleSurface(s, x)?.bounds.max ?? 16) + 0.001,
           ),
       );
     const spans = roadIntervals(track);
@@ -526,5 +531,38 @@ test('production staged currents push or accelerate the real body, with reduced 
     }
   } finally {
     collisionWorld.dispose();
+  }
+});
+
+// The exact sheet owns the road. Source/drain curtains must not overpaint its
+// sheltered lane or pretend to occupy a different lane in the force shader.
+test('cross-current curtains meet the road edges with truthful shelter coordinates', () => {
+  const lifetime = createLifetime();
+  try {
+    for (const zone of track.surgeZones.filter(
+      (zone) => zone.kind === 'cross',
+    )) {
+      const flow = createSurgeFlow(track, zone, lifetime);
+      assert.equal(flow.curtains.length, 2);
+      for (const curtain of flow.curtains) {
+        const { position, roadCoord } = curtain.geometry.attributes;
+        for (let i = 0; i < position.count; i++) {
+          const s = roadCoord.getX(i),
+            lateral = roadCoord.getY(i);
+          assert.ok(Math.abs(lateral) >= track.width / 2);
+          const frame = track.sample(s);
+          const actual = new T.Vector3()
+            .fromBufferAttribute(position, i)
+            .sub(frame.position)
+            .dot(frame.right);
+          assert.ok(
+            Math.abs(actual - lateral) < 0.001,
+            `curtain lane ${actual}/${lateral}`,
+          );
+        }
+      }
+    }
+  } finally {
+    lifetime.dispose();
   }
 });

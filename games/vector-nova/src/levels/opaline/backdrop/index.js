@@ -11,10 +11,10 @@ export function createOpalineBackdrop() {
     depthTest: false,
     uniforms: {
       sun: { value: OPALINE_SUN },
-      horizonColor: { value: new T.Color('#bdb8bd') },
-      middleColor: { value: new T.Color('#607eaa') },
-      zenithColor: { value: new T.Color('#2c456f') },
-      cloudShade: { value: new T.Color('#8290ae') },
+      horizonColor: { value: new T.Color('#9faab8') },
+      middleColor: { value: new T.Color('#416d9d') },
+      zenithColor: { value: new T.Color('#203e69') },
+      cloudShade: { value: new T.Color('#6c7e9c') },
       cloudLight: { value: new T.Color('#e4d8cf') },
     },
     vertexShader:
@@ -58,14 +58,14 @@ export function createOpalineBackdrop() {
   return {
     group,
     sunDirection: OPALINE_SUN,
-    sunColor: '#fff8ef',
-    sunIntensity: 2.7,
+    sunColor: '#ffe9ce',
+    sunIntensity: 2.45,
     ambientSky: '#bfcbdc',
-    ambientGround: '#424150',
-    ambientIntensity: 0.22,
+    ambientGround: '#343b4e',
+    ambientIntensity: 0.28,
     fillColor: '#a6b7d5',
     fillIntensity: 0.12,
-    environmentIntensity: 0.7,
+    environmentIntensity: 0.48,
     far: 7500,
     update({ camera } = {}) {
       if (camera) group.position.copy(camera.position);

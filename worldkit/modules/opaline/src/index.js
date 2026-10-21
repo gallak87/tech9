@@ -64,6 +64,7 @@ export function createOpalineKit({
     const prototypes = specs.map((spec, index) => {
       const geometry = createOpalineMassGeometry({
         ...spec,
+        form: spec.name,
         seed: seed + index * 149,
         detail,
       });

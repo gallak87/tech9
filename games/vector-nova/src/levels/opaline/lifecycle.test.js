@@ -96,6 +96,11 @@ test('environment borrows road maps, releases its own resources once, and preser
       settings: { quality: 'low', reducedMotion: true },
     });
     environmentCounts = watch(sceneResources(environment.group));
+    assert.equal(
+      environment.group.userData.metrics.runoffs,
+      3,
+      'shaded banks retain attachment metadata for all authored runoffs',
+    );
     const water = environment.group.getObjectByName(
         'Opaline / iridescent river',
       ),

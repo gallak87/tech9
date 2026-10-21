@@ -1,4 +1,22 @@
 import * as T from 'three';
+import { sampleOpalineSurfBank } from '../track/surf.js';
+
+const SURF_BREAK_OFFSETS = [
+  0, 0.15, 3.5, 8, 17, 14, 32, 37, 57, 49, 94, 131, 169,
+];
+const SURF_BREAK_RISES = [0, 4, 9, 16, 21, 35, 39, 71, 79, 117, 125, 105, -155];
+
+// Continuous piecewise strata faults: broad planar breaks, not a corrugated
+// sine tube. This field is shared by rendered terrain and CPU contacts.
+function fault(value) {
+  const cell = Math.floor(value),
+    t = value - cell;
+  const hash = (n) => {
+    const h = Math.sin(n * 127.1 + 91.7) * 43758.5453;
+    return (h - Math.floor(h)) * 2 - 1;
+  };
+  return T.MathUtils.lerp(hash(cell), hash(cell + 1), t);
+}
 
 /** The mineral shelf continues into its own eroded mass. Shared with CPU terrain contacts. */
 export function createShelfBankGeometry(track, { start, end, side, step = 4 }) {
@@ -44,11 +62,13 @@ export function createShelfBankGeometry(track, { start, end, side, step = 4 }) {
   const count = Math.ceil((end - start) / step),
     positions = [],
     uv = [],
-    indices = [],
+    smoothIndices = [],
+    fractureIndices = [],
     cols = profile.length;
   for (let row = 0; row <= count; row++) {
     const s = start + ((end - start) * row) / count,
       f = track.sample(s);
+    const surf = !outer && sampleOpalineSurfBank(track, s);
     const taper = Math.min(
       1,
       Math.max(0, (s - start) / 38),
@@ -70,13 +90,36 @@ export function createShelfBankGeometry(track, { start, end, side, step = 4 }) {
         (x - 16) * (0.6 + 0.4 * envelope) +
         fold * influence * (outer ? 5.5 : 8);
       // Fold variation must not move the bank inside the declared driving skin.
-      const lateral =
+      let lateral =
         side * (column === 0 ? 16 : Math.max(16 + (x - 16) * 0.35, folded));
       let h = y;
       if (!outer && column > 1) h *= heightScale * (0.42 + 0.58 * envelope);
       if (column > 0)
         h +=
           (Math.sin(s * 0.065 + column * 1.4) * 0.7 + fold * 0.9) * influence;
+      if (surf) {
+        // The smooth lower band is a separate, authored deck. This skin starts
+        // at its exact outer edge; a steep rough break guides the narrowing exit.
+        lateral =
+          surf.max +
+          SURF_BREAK_OFFSETS[column] * (0.75 + 0.25 * envelope) +
+          (column > 2
+            ? Math.max(-SURF_BREAK_OFFSETS[column] * 0.3, fold * influence * 5)
+            : 0);
+        h =
+          surf.height +
+          SURF_BREAK_RISES[column] *
+            (column < 3 ? 1 : heightScale * (0.6 + 0.4 * envelope));
+        if (column > 2)
+          h += Math.sin(s * 0.065 + column * 1.4) * 0.7 + fold * 0.9;
+      }
+      // Preserve the exact running edge, surf join and low overhang clearance.
+      // Upper ledges erode at medium scale; their stepped faces remain solid.
+      if (column > 3 && column < cols - 1) {
+        const weight = Math.min(1, (column - 3) / 4);
+        lateral += side * fault(s / 47) * 5 * weight;
+        h += fault(s / 34) * 8 * weight;
+      }
       const p = f.position
         .clone()
         .addScaledVector(f.right, lateral)
@@ -87,6 +130,8 @@ export function createShelfBankGeometry(track, { start, end, side, step = 4 }) {
       uv.push(lateral / 16, s / 16);
       if (row < count && column < cols - 1) {
         const n = row * cols + column;
+        const fracture = outer ? [5, 9].includes(column) : [4].includes(column);
+        const indices = fracture ? fractureIndices : smoothIndices;
         if (side > 0)
           indices.push(n, n + cols, n + 1, n + 1, n + cols, n + cols + 1);
         else indices.push(n, n + 1, n + cols, n + 1, n + cols + 1, n + cols);
@@ -96,8 +141,9 @@ export function createShelfBankGeometry(track, { start, end, side, step = 4 }) {
   const geometry = new T.BufferGeometry();
   geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
   geometry.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
-  geometry.setIndex(indices);
-  geometry.addGroup(0, indices.length, 0);
+  geometry.setIndex([...smoothIndices, ...fractureIndices]);
+  geometry.addGroup(0, smoothIndices.length, 0);
+  geometry.addGroup(smoothIndices.length, fractureIndices.length, 1);
   geometry.computeVertexNormals();
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();

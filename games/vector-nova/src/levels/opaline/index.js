@@ -9,7 +9,7 @@ import { createDevices } from './devices.js';
 
 export default function createLevel({ shape = false } = {}) {
   return {
-    version: '0.1.0-opaline-1',
+    version: '0.2.0-opaline-2',
     createTrack: createOpalineTrack,
     createRoad: (context) => createOpalineRoad({ ...context, shape }),
     createEnvironment: (context) =>
@@ -32,12 +32,12 @@ export default function createLevel({ shape = false } = {}) {
     renderer: {
       world: shape ? 'opaline-shape' : 'opaline',
       background: '#c0c9d0',
-      fog: shape ? null : { color: '#c2ccce', density: 0.00034 },
+      fog: shape ? null : { color: '#aebdc8', density: 0.00028 },
       bloomStrength: 0.12,
       bloomThreshold: 1.25,
       sunShadowExtent: 220,
-      sunShadowNormalBias: 0.18,
-      sunShadowBias: -0.00015,
+      sunShadowNormalBias: 0.9,
+      sunShadowBias: -0.0003,
       reflectionFar: 2600,
       contact: { surfaceStep: 3, opacity: 0.48 },
       catapultBlurScale: 0.6,

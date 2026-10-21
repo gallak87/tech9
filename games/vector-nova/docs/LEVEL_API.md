@@ -133,6 +133,8 @@ Own implementation files under `src/levels/<slug>/track/`, `environment/` and `b
 5. Expand through deterministic placement recipes while composing distinct enclosed stretches, openings and distant views. Preserve surface attachment, road/flight clearance and navigational silhouettes at both quality settings.
 6. Check fixed views, loading/failure cleanup, gameplay and measured frame pacing; finish with an in-motion driving review. Keep a few useful captures, and stop critic loops when concrete issues are resolved instead of chasing a numerical art score.
 
+If a bank visually invites driving, give it an explicit supported skin: shared rendered/contact triangles, route coordinates, surface frames and finite bounds. Prove entry, slope traversal and exit with the real vehicle before expanding that treatment; widening bounds alone creates an invisible road.
+
 The Vesper Forest integration demonstrates this ownership split. Its forest art and metre scales are a specific kit, not a universal biome specification. Constructors must release partial allocations on failure; disposal must be safe to repeat and must not free borrowed resources.
 
 ## Shared local mechanics

@@ -191,6 +191,10 @@ test('public input validation rejects invalid dimensions before allocating a sce
     () => createOpalineMassGeometry({ profile: 'sphere' }),
     /profile/,
   );
+  assert.throws(
+    () => createOpalineMassGeometry({ form: 'unknown' }),
+    /mineral form/,
+  );
   assert.throws(() => createOpalineArchGeometry({ thickness: -5 }), /positive/);
   assert.throws(() => createOpalineMaterials({ textureScale: 0 }), /positive/);
 });

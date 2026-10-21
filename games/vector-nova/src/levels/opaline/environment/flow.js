@@ -55,7 +55,7 @@ export function createSurgeFlow(track, zone, lifetime) {
         [42, 0.6],
         [22, 0.45],
         [18, 0.1],
-        [5, 0.08],
+        [16, 0.08],
       ],
       [
         [-16, 0.1],
@@ -80,7 +80,7 @@ export function createSurgeFlow(track, zone, lifetime) {
               .addScaledVector(f.up, y)
               .toArray(),
           );
-          coords.push(s, -8 + col);
+          coords.push(s, x);
           if (row < rows && col < cols - 1) {
             const n = row * cols + col;
             indices.push(n, n + cols, n + 1, n + 1, n + cols, n + cols + 1);
@@ -115,29 +115,57 @@ export function createSurgeFlow(track, zone, lifetime) {
 export function createVeilMaterial(lifetime) {
   return lifetime.own(
     new T.ShaderMaterial({
-      name: 'Opaline / river inside thin mineral wall',
+      name: 'Opaline / deep pressurised emerald mineral',
       side: T.DoubleSide,
-      transparent: true,
-      depthWrite: false,
       uniforms: { clock: { value: 0 }, pressure: { value: 0.2 } },
-      vertexShader:
-        'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      vertexShader: `
+        varying vec2 vUv;varying vec3 vWorld,vNormal;
+        void main(){
+          vUv=uv;vec4 world=modelMatrix*vec4(position,1.);
+          vWorld=world.xyz;vNormal=normalize(mat3(modelMatrix)*normal);
+          gl_Position=projectionMatrix*viewMatrix*world;
+        }`,
       fragmentShader: `
-      varying vec2 vUv;uniform float clock,pressure;
-      float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-      float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
+      varying vec2 vUv;varying vec3 vWorld,vNormal;
+      uniform float clock,pressure;
+      float hash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
+      float noise(vec3 p){
+        vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+        return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),
+          mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);
+      }
       void main(){
-        vec2 p=vec2(vUv.x*3.7,vUv.y*11.-clock*.035);
-        float cloud=noise(p)+.28*noise(p*2.1+vec2(7.,2.));
-        float caustic=pow(1.-abs(sin(p.x*1.3+sin(p.y*.8)+cloud*1.7)),7.);
-        vec3 color=mix(vec3(.006,.026,.019),vec3(.085,.23,.145),smoothstep(.24,1.0,cloud));
-        // Slow dark fluid clouds sit behind mineral, with pressure collecting
-        // near the lower spill source instead of electrifying the whole wall.
-        float source=exp(-pow((vUv.x-.19)/.17,2.));
-        color+=vec3(.055,.14,.08)*caustic*.055;
-        color+=vec3(.055,.19,.105)*pressure*source*(.65+.35*cloud);
-        float edge=smoothstep(0.,.06,vUv.x)*smoothstep(0.,.06,1.-vUv.x);
-        gl_FragColor=vec4(color,.91*edge);
+        vec3 eye=normalize(cameraPosition-vWorld);
+        vec3 n=normalize(vNormal)*(gl_FrontFacing?1.:-1.);
+        float ripple=sin(vWorld.y*.31+vWorld.x*.017-clock*.3)*sin(vWorld.z*.055+vWorld.y*.09);
+        n=normalize(n+vec3(dFdx(ripple),dFdy(ripple),0.)*.12);
+        vec3 ray=refract(-eye,n,1./1.38);
+        // Finite optical depth, sampled in world metres. Changing viewpoint
+        // moves the inclusions relative to the surface instead of scrolling a flat picture.
+        vec3 transmittance=vec3(1.),scatter=vec3(0.);
+        for(int i=0;i<6;i++){
+          float depth=(float(i)+.5)*4.;
+          vec3 q=(vWorld+ray*depth)*.047+vec3(0.,-clock*.014,0.);
+          float cloud=noise(q)+noise(q*2.13+9.)*.3;
+          float fold=sin(q.y*2.7+sin(q.x*1.3)+cloud*2.6);
+          float inclusion=smoothstep(.22,.72,cloud)*(.52+.48*smoothstep(-.3,.6,fold));
+          vec3 extinction=vec3(.15,.036,.082)*(1.1+inclusion*1.8);
+          vec3 absorbed=1.-exp(-extinction*4.);
+          vec3 lit=mix(vec3(.006,.048,.026),vec3(.12,.42,.21),inclusion);
+          float shaft=pow(max(0.,1.-abs(fold)),9.);
+          lit+=vec3(.065,.19,.075)*shaft*(.2+pressure*.4);
+          scatter+=transmittance*absorbed*lit;
+          transmittance*=1.-absorbed;
+        }
+        vec3 color=scatter+transmittance*vec3(.008,.06,.035);
+        float fresnel=.035+.965*pow(1.-max(dot(eye,n),0.),5.);
+        vec3 reflection=reflect(-eye,n);
+        vec3 sky=mix(vec3(.11,.19,.23),vec3(.45,.55,.62),smoothstep(-.2,.8,reflection.y));
+        float glint=pow(max(dot(reflection,normalize(vec3(.8,.5,.31))),0.),180.);
+        color=mix(color,sky,fresnel*.63)+vec3(.9,.78,.57)*glint*.33;
+        // Pressure collects at the low spill source; it never flattens the whole volume.
+        color+=vec3(.025,.09,.045)*pressure*exp(-pow((vUv.x-.19)/.15,2.));
+        gl_FragColor=vec4(color,1.);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`,

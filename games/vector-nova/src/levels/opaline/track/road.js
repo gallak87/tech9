@@ -9,6 +9,7 @@ import {
   roadIntervals,
   createOpalineSurfaceGeometry,
   createOpalineConnectorRailGeometry,
+  createOpalineSurfGeometry,
 } from './geometry.js';
 
 export async function createOpalineRoad({ track, shape = false } = {}) {
@@ -67,7 +68,7 @@ export async function createOpalineRoad({ track, shape = false } = {}) {
             ',0.,1.);float washed=1.-smoothstep(7.,11.,vShelfCoord.y);diffuseColor.rgb*=mix(vec3(1.),vec3(.68,.79,.72),surgeArea*washed*.45);',
         );
       };
-      palette.stone.customProgramCacheKey = () => 'opaline-running-shelf-v1';
+      palette.stone.customProgramCacheKey = () => 'opaline-running-shelf-v2';
     }
     const stone =
       palette?.stone ??
@@ -159,6 +160,14 @@ export async function createOpalineRoad({ track, shape = false } = {}) {
           );
         }
       }
+    }
+    for (const bank of track.surfBanks) {
+      const deck = add(
+        createOpalineSurfGeometry(track, bank),
+        stone,
+        'Opaline / surfable polished inner bank ' + bank.id,
+      );
+      deck.userData.roadSurface = true;
     }
     for (const jump of track.jumps) {
       for (const side of [-1, 1]) {

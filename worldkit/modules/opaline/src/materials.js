@@ -19,6 +19,12 @@ const FRAGMENT_PARS = /* glsl */ `
 varying vec3 vOpalinePosition;
 varying vec3 vOpalineNormal;
 uniform float opalineTextureScale;
+float opalineHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float opalineNoise(vec2 p){
+  vec2 cell=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(opalineHash(cell),opalineHash(cell+vec2(1.,0.)),f.x),mix(opalineHash(cell+vec2(0.,1.)),opalineHash(cell+vec2(1.,1.)),f.x),f.y);
+}
+
 vec3 opalinePerturb(vec3 surfPosition, vec3 surfNormal, vec2 heightDerivative, float faceSign) {
   vec3 dx=normalize(dFdx(surfPosition)), dy=normalize(dFdy(surfPosition));
   vec3 r1=cross(dy,surfNormal),r2=cross(surfNormal,dx);
@@ -31,26 +37,30 @@ vec4 opalineTriplanar(sampler2D tex, vec3 p, vec3 weights) {
 }
 `;
 const SURFACE = /* glsl */ `
-vec3 opalineWeights = pow(abs(normalize(vOpalineNormal)), vec3(4.0));
-opalineWeights /= max(dot(opalineWeights, vec3(1.0)), 0.001);
-vec3 opalineP = vOpalinePosition * opalineTextureScale;
-float opalinePore = 0.0;
+vec3 opalineWorldNormal=normalize(vOpalineNormal);
+vec3 opalineWeights=pow(abs(opalineWorldNormal),vec3(4.));
+opalineWeights/=max(dot(opalineWeights,vec3(1.)),.001);
+vec3 opalineP=vOpalinePosition*opalineTextureScale;
+float opalinePore=0.;
 #ifdef USE_MAP
-  vec4 opalineColor = opalineTriplanar(map, opalineP, opalineWeights);
-  opalinePore = 1.0-smoothstep(.46,.73,dot(opalineColor.rgb,vec3(.2126,.7152,.0722)));
-  diffuseColor *= opalineColor;
+  vec4 opalineColor=opalineTriplanar(map,opalineP,opalineWeights);
+  opalinePore=1.-smoothstep(.43,.72,dot(opalineColor.rgb,vec3(.2126,.7152,.0722)));
+  diffuseColor*=opalineColor;
 #endif
-// Depositional colors are material layers, never painted directional shading.
-// Their broad wavelength survives distant silhouettes; pore detail is the
-// original substrate image, sampled consistently across assembled pieces.
-float opalineBend = sin(vOpalinePosition.x*.018+sin(vOpalinePosition.z*.013))*3.5;
-float opalineLayer = vOpalinePosition.y*.32+opalineBend;
-float opalineVein = pow(.5+.5*sin(opalineLayer*1.63),12.0);
-float opalineCloud = .5+.5*sin(vOpalinePosition.x*.027+vOpalinePosition.z*.019+sin(vOpalinePosition.y*.061));
-float opalineLamina = smoothstep(.28,.82,.5+.5*sin(opalineLayer+sin(vOpalinePosition.x*.045)*.65));
-vec3 opalineTint = mix(vec3(.68,.59,.75),vec3(.82,.69,.49),opalineCloud);
-diffuseColor.rgb *= mix(vec3(1.0),opalineTint,.09+opalineLamina*.18+opalineVein*.29);
-diffuseColor.rgb *= mix(vec3(1.0),vec3(.63,.57,.59),opalinePore*.3);
+// All field coordinates are world metres, including instanced/scaled geology.
+// Quiet glazed upper surfaces and rough fracture faces share the same substrate.
+float opalineFace=1.-smoothstep(.12,.72,opalineWorldNormal.y);
+float opalineDeposit=opalineNoise(vOpalinePosition.xz*.023+vec2(11.,3.));
+float opalineWeather=opalineNoise(vec2(vOpalinePosition.x*.047+vOpalinePosition.z*.021,vOpalinePosition.y*.061)+vec2(7.,17.));
+float opalineLayer=vOpalinePosition.y*.105+opalineDeposit*1.8+opalineWeather*.4;
+float opalinePeriod=fract(opalineLayer);
+float opalineVein=1.-smoothstep(.018,.065+fwidth(opalineLayer),abs(opalinePeriod-.46));
+float opalineLamina=smoothstep(.2,.62,opalinePeriod)*(1.-smoothstep(.70,.95,opalinePeriod));
+float opalineRecess=smoothstep(.47,.76,opalineWeather)*opalineFace;
+vec3 opalineDepositTint=mix(vec3(.72,.64,.81),vec3(.92,.79,.58),smoothstep(.25,.75,opalineDeposit));
+float opalineTintStrength=.12+opalineLamina*.20+opalineFace*.12+opalineVein*.20*opalineFace;
+diffuseColor.rgb*=mix(vec3(1.),opalineDepositTint,opalineTintStrength);
+diffuseColor.rgb*=mix(vec3(1.),vec3(.70,.65,.76),opalineRecess*.38+opalinePore*(.10+.1*opalineFace));
 `;
 
 function applyMineralSurface(material, { detail, textureScale }) {
@@ -74,7 +84,7 @@ float roughnessFactor = roughness;
 #ifdef USE_ROUGHNESSMAP
   roughnessFactor *= opalineTriplanar(roughnessMap, opalineP, opalineWeights).g;
 #else
-  roughnessFactor = clamp(roughnessFactor*(.77+opalineLamina*.25+opalinePore*.46+opalineVein*.15),.18,.98);
+  roughnessFactor = clamp(roughnessFactor*(.79+opalineFace*.29+opalineWeather*.12+opalinePore*.20+opalineVein*.10),.2,.98);
 #endif
 `,
       );
@@ -85,7 +95,7 @@ float roughnessFactor = roughness;
 #ifdef USE_NORMALMAP
   #include <normal_fragment_maps>
 #else
-  float opalineHeight = -opalinePore*.075-opalineVein*.025;
+  float opalineHeight = -opalinePore*(.025+.035*opalineFace)-opalineVein*.035*opalineFace-opalineRecess*.055;
   #ifdef USE_BUMPMAP
     opalineHeight += opalineTriplanar(bumpMap,opalineP,opalineWeights).r*bumpScale;
   #endif
@@ -95,7 +105,7 @@ float roughnessFactor = roughness;
       );
   };
   // Programs are shared by every prototype and placement of the same detail.
-  material.customProgramCacheKey = () => `opaline-mineral-v2-${detail}`;
+  material.customProgramCacheKey = () => `opaline-mineral-v3-${detail}`;
   return material;
 }
 

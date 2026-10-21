@@ -1,5 +1,7 @@
 import * as T from 'three';
 import { sweepGeometry } from '../../../track/geometry.js';
+import { sampleOpalineSurfBank, opalineSurfPoint } from './surf.js';
+export { sampleOpalineSurfBank } from './surf.js';
 
 /** Gap-free spans shared by production geometry and CPU contact construction. */
 export function roadIntervals(track) {
@@ -11,6 +13,10 @@ export function roadIntervals(track) {
   for (const interval of track.constructedIntervals) {
     cuts.add(interval.start);
     cuts.add(interval.end);
+  }
+  for (const bank of track.surfBanks ?? []) {
+    cuts.add(bank.start);
+    cuts.add(bank.end);
   }
   const ordered = [...cuts].sort((a, b) => a - b),
     intervals = [];
@@ -107,4 +113,55 @@ export function createOpalineConnectorRailGeometry(
     end,
     step,
   });
+}
+
+/** The polished, concave bank is this exact deck mesh in render and physics. */
+export function createOpalineSurfGeometry(
+  track,
+  { start = 0, end = track.length, step = 4 } = {},
+) {
+  if (
+    !Number.isFinite(start) ||
+    !Number.isFinite(end) ||
+    end <= start ||
+    !Number.isFinite(step) ||
+    step <= 0
+  )
+    throw new Error('Invalid Opaline surf range');
+  const positions = [],
+    uvs = [],
+    coords = [],
+    indices = [];
+  const cols = 7;
+  for (const span of roadIntervals(track)) {
+    const a = Math.max(start, span.start),
+      b = Math.min(end, span.end);
+    if (b <= a || !sampleOpalineSurfBank(track, (a + b) / 2)) continue;
+    const count = Math.ceil((b - a) / step),
+      base = positions.length / 3;
+    for (let row = 0; row <= count; row++) {
+      const distance = a + ((b - a) * row) / count;
+      const bank = sampleOpalineSurfBank(track, distance);
+      for (let column = 0; column < cols; column++) {
+        const lateral = bank.min + (bank.width * column) / (cols - 1);
+        positions.push(...opalineSurfPoint(track, distance, lateral).toArray());
+        uvs.push(lateral / 16, distance / 16);
+        coords.push(distance, lateral);
+        if (row < count && column < cols - 1) {
+          const n = base + row * cols + column;
+          indices.push(n, n + cols, n + 1, n + 1, n + cols, n + cols + 1);
+        }
+      }
+    }
+  }
+  const geometry = new T.BufferGeometry();
+  geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2));
+  geometry.setAttribute('roadCoord', new T.Float32BufferAttribute(coords, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+  geometry.userData = { opalineSurf: true, start, end };
+  return geometry;
 }

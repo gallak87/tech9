@@ -9,10 +9,10 @@ const PROFILE = [
   [-12, 100],
 ];
 const WINDOWS = [
-  [0.4, 0.14, 0.29, 0.095],
-  [0.57, 0.37, 0.32, 0.1],
-  [0.4, 0.6, 0.29, 0.095],
-  [0.57, 0.84, 0.32, 0.105],
+  [0.48, 0.14, 0.21, 0.095],
+  [0.61, 0.37, 0.265, 0.1],
+  [0.48, 0.6, 0.21, 0.095],
+  [0.61, 0.84, 0.265, 0.105],
 ];
 
 // Positive outside all windows. The broad lobes break the ellipse without
@@ -180,6 +180,7 @@ function createCrust(surface) {
     addEdge(b, c);
     addEdge(c, a);
   }
+  const revealStart = indices.length;
   // Shared solved edge vertices close both the aperture reveal and the outer
   // shell perimeter. No duplicate unshared contour points or T-junctions.
   for (const [a, b] of edges.values())
@@ -188,6 +189,8 @@ function createCrust(surface) {
   geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
   geometry.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2));
   geometry.setIndex(indices);
+  geometry.addGroup(0, revealStart, 0);
+  geometry.addGroup(revealStart, indices.length - revealStart, 1);
   geometry.computeVertexNormals();
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
@@ -212,4 +215,58 @@ export function createMineralVeilGeometry(track, start, end) {
     surface.dispose();
     throw error;
   }
+}
+
+/** Extend the actual arch terminal contour into flared bedrock. This fitted
+ * landmark assembly does not assume the kit's ring tessellation or quality.
+ */
+export function createMineralSpringingGeometry(arch, side, depth) {
+  const source = arch.attributes.position,
+    ring = [];
+  for (let i = 0; i < source.count; i++) {
+    const p = new T.Vector3().fromBufferAttribute(source, i);
+    if (Math.abs(p.y) < 0.001 && p.x * side > 0) ring.push(p);
+  }
+  const center = ring
+    .reduce((sum, p) => sum.add(p), new T.Vector3())
+    .divideScalar(ring.length);
+  const unique = new Map();
+  for (const p of ring)
+    if (p.distanceTo(center) > 3)
+      unique.set(`${p.x.toFixed(3)}:${p.z.toFixed(3)}`, p);
+  const contour = [...unique.values()].sort(
+    (a, b) =>
+      Math.atan2(a.z - center.z, a.x - center.x) -
+      Math.atan2(b.z - center.z, b.x - center.x),
+  );
+  const positions = [],
+    uv = [],
+    indices = [],
+    rows = 12,
+    cols = contour.length;
+  for (let row = 0; row <= rows; row++) {
+    const t = row / rows,
+      flare = 1.015 + 0.58 * t * t;
+    for (let col = 0; col < cols; col++) {
+      const p = contour[col];
+      positions.push(
+        center.x + (p.x - center.x) * flare + side * 9 * t * t,
+        0.7 - depth * t,
+        center.z + (p.z - center.z) * flare,
+      );
+      uv.push(col / cols, (t * depth) / 16);
+      if (row < rows) {
+        const a = row * cols + col,
+          b = row * cols + ((col + 1) % cols);
+        indices.push(a, b, a + cols, b, b + cols, a + cols);
+      }
+    }
+  }
+  const geometry = new T.BufferGeometry();
+  geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+  return geometry;
 }

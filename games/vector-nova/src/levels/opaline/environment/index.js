@@ -4,12 +4,20 @@ import {
   createOceanLayer,
   createIslandCoast,
 } from '@worldkit/environment/ocean';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import {
+  mergeGeometries,
+  mergeVertices,
+  toCreasedNormals,
+} from 'three/addons/utils/BufferGeometryUtils.js';
 import { createLifetime } from '../../../core/lifecycle.js';
 import { roadIntervals } from '../track/geometry.js';
 import { createShelfBankGeometry } from './strata.js';
-import { createMineralVeilGeometry } from './mineral-veil.js';
+import {
+  createMineralVeilGeometry,
+  createMineralSpringingGeometry,
+} from './mineral-veil.js';
 import { createSurgeFlow, createVeilMaterial } from './flow.js';
+import { createBankRunoff } from './runoff.js';
 import { OPALINE_SUN } from '../backdrop/index.js';
 
 const UP = new T.Vector3(0, 1, 0);
@@ -41,10 +49,10 @@ export function createOpalineEnvironment({ track, road, settings = {} }) {
     const farKit = lifetime.own(
       createOpalineKit({ textures: road.textures, detail: 'low' }),
     );
-    kit.materials.stone.color.set('#d8d5d3');
-    kit.materials.shadow.color.set('#ccc6d3');
-    farKit.materials.stone.color.set('#cac9cc');
-    farKit.materials.shadow.color.set('#ccc6d3');
+    kit.materials.stone.color.set('#ded7cb');
+    kit.materials.shadow.color.set('#c8bdc6');
+    farKit.materials.stone.color.set('#ded7cb');
+    farKit.materials.shadow.color.set('#c8bdc6');
     const random = randomSource();
     const routePoints = [];
     for (let s = 0; s < track.length; s += 18)
@@ -69,23 +77,39 @@ export function createOpalineEnvironment({ track, road, settings = {} }) {
       group.add(item);
       return item;
     }
+    function shadedBank(span, side) {
+      const source = createShelfBankGeometry(track, { ...span, side });
+      let creased;
+      try {
+        // Sharp ledges need separate normals to avoid shadow terminator bands.
+        // Positions and triangles stay identical to the collision bank.
+        creased = toCreasedNormals(source, Math.PI / 4);
+        const shaded = mergeVertices(creased);
+        shaded.userData = { ...source.userData };
+        return shaded;
+      } finally {
+        creased?.dispose();
+        source.dispose();
+      }
+    }
     const bankMeshes = [];
     for (const span of activeSpans)
       for (const side of [-1, 1])
         bankMeshes.push(
           mesh(
-            createShelfBankGeometry(track, { ...span, side }),
+            shadedBank(span, side),
             [kit.materials.stone, kit.materials.shadow],
             'Opaline / continuous mineral cliff ' + side,
           ),
         );
-    const entries = kit.prototypes.map(() => []);
+    // A second placement family uses the same owned forms with exposed fracture material.
+    const entries = Array.from({ length: kit.prototypes.length * 2 }, () => []);
     const frameMatrix = new T.Matrix4(),
       scaleVector = new T.Vector3();
-    function mass(index, position, scale, yaw = 0) {
+    function mass(index, position, scale, yaw = 0, orientation = null) {
       frameMatrix.compose(
         position,
-        new T.Quaternion().setFromAxisAngle(UP, yaw),
+        orientation ?? new T.Quaternion().setFromAxisAngle(UP, yaw),
         scaleVector.set(...scale),
       );
       entries[index].push({
@@ -97,9 +121,16 @@ export function createOpalineEnvironment({ track, road, settings = {} }) {
     for (let s = 0; s < track.length; s += 135) {
       const f = track.sample(s);
       for (const side of [-1, 1]) {
+        const gallery = track.sections.find(
+          (section) => section.id === 'folds',
+        );
+        // Open the outside of the gallery bend so the water and farther rim
+        // read as separate depth planes instead of another symmetric corridor.
+        if (side < 0 && s > gallery.start + 100 && s < gallery.end - 160)
+          continue;
         const offset = side * (270 + random() * 130),
           p = f.position.clone().addScaledVector(f.right, offset);
-        const index = Math.floor(random() * 5),
+        const index = [0, 0, 1, 1, 2, 2, 3, 4][Math.floor(random() * 8)],
           size = 1.2 + random() * 1.6;
         const dimensions = kit.prototypes[index].bounds.getSize(
           new T.Vector3(),
@@ -139,20 +170,67 @@ export function createOpalineEnvironment({ track, road, settings = {} }) {
       const angle = (i / 48) * Math.PI * 2,
         radius = 1750 + random() * 430;
       mass(
-        i % 5,
+        [0, 1, 2, 0, 1, 2, 3, 0, 1, 4, 2, 0][i % 12],
         new T.Vector3(Math.cos(angle) * radius, -160, Math.sin(angle) * radius),
         [3.8 + random() * 2.4, 1.7 + random() * 2.9, 3 + random() * 2],
         random() * 6.28,
       );
     }
+    // Local beds of broken crust: clustered around selected bends with quiet
+    // intervals between them. Ray attachment puts every assembly in the bank;
+    // the all-route sphere test also protects roads doubling back underneath.
+    group.updateMatrixWorld(true);
+    const attachRay = new T.Raycaster();
+    const accentBeds = [];
+    for (const section of track.sections) {
+      const length = section.end - section.start;
+      for (const fraction of [0.24, 0.56, 0.82])
+        accentBeds.push(section.start + length * fraction);
+    }
+    for (const center of accentBeds) {
+      if (
+        center > track.landmarks.veil.start - 40 &&
+        center < track.landmarks.veil.end + 40
+      )
+        continue;
+      for (let shard = 0; shard < 7; shard++) {
+        const s = center + (shard - 3) * (6 + random() * 4);
+        if (track.isGap(s)) continue;
+        const f = track.sample(s),
+          height = 20 + (shard % 3) * 11 + random() * 5;
+        attachRay.set(
+          f.position.clone().addScaledVector(f.up, height),
+          f.right,
+        );
+        attachRay.far = 100;
+        const hit = attachRay.intersectObjects(bankMeshes, false)[0];
+        if (!hit) continue;
+        const scale = [
+          0.065 + random() * 0.065,
+          0.07 + random() * 0.045,
+          0.11 + random() * 0.09,
+        ];
+        const p = hit.point.clone().addScaledVector(f.right, 4);
+        const dimensions = kit.prototypes[5].bounds.getSize(new T.Vector3());
+        const radius =
+          Math.hypot(dimensions.x * scale[0], dimensions.z * scale[2]) * 0.5;
+        if (routePoints.some((q) => p.distanceTo(q) < radius + 24)) continue;
+        const orientation = upright(f).multiply(
+          new T.Quaternion().setFromAxisAngle(UP, (random() - 0.5) * 0.45),
+        );
+        mass(shard % 4 === 0 ? 11 : 5, p, scale, 0, orientation);
+      }
+    }
     const lods = [];
     entries.forEach((placements, index) => {
       const pair = [kit, farKit].map((source, detail) => {
-        const part = source.prototypes[index],
+        const part = source.prototypes[index % source.prototypes.length],
           instance = lifetime.own(
             new T.InstancedMesh(
               part.geometry,
-              part.material,
+              index >= source.prototypes.length
+                ? source.materials.shadow
+                : part.material,
               Math.max(1, placements.length),
             ),
           );
@@ -180,7 +258,7 @@ export function createOpalineEnvironment({ track, road, settings = {} }) {
     mineralWindow.userData.aoExclude = true;
     mesh(
       veilCrust,
-      kit.materials.stone,
+      [kit.materials.stone, kit.materials.shadow],
       'Opaline / thick pearl crust around four mineral windows',
     );
     for (const [i, s] of [veil.start + 25, veil.end - 35].entries()) {
@@ -200,6 +278,20 @@ export function createOpalineEnvironment({ track, road, settings = {} }) {
         near: part,
         far: farKit.archParts[0],
       });
+      for (const side of [-1, 1]) {
+        const foot = mesh(
+          createMineralSpringingGeometry(
+            part.geometry,
+            side,
+            (arch.position.y + 42) / arch.scale.y,
+          ),
+          kit.materials.stone,
+          'Opaline / fitted bedrock arch springing',
+        );
+        foot.position.copy(arch.position);
+        foot.quaternion.copy(arch.quaternion);
+        foot.scale.copy(arch.scale);
+      }
     }
     // Heavy overlapping shelf caps and uneven seams root the thin wall in geology.
     for (let s = veil.start + 65; s < veil.end; s += 175) {
@@ -222,40 +314,26 @@ export function createOpalineEnvironment({ track, road, settings = {} }) {
         far: farKit.prototypes[5],
       });
     }
-    // Small offset shelves overlap at the shell's outer edges. Their thickness
-    // and uneven spacing replace the former continuous tubular outlines.
-    for (const [edge, x, y] of [
-      [0, -12, 98],
-      [1, 44, 10],
-    ]) {
-      for (let s = veil.start + 12; s < veil.end; s += 36 + random() * 14) {
-        const f = track.sample(s),
-          part = kit.prototypes[edge ? 5 : 2],
-          rim = new T.Mesh(part.geometry, kit.materials.stone);
-        rim.name = 'Opaline / broken overlapping mineral window crust';
-        rim.position
-          .copy(f.position)
-          .addScaledVector(f.right, x + (random() - 0.5) * 6)
-          .addScaledVector(f.up, y + (random() - 0.5) * 4);
-        rim.quaternion
-          .copy(upright(f))
-          .multiply(
-            new T.Quaternion().setFromAxisAngle(UP, (random() - 0.5) * 0.32),
-          );
-        rim.scale.set(
-          0.22 + random() * 0.09,
-          0.13 + random() * 0.08,
-          0.4 + random() * 0.13,
-        );
-        rim.castShadow = true;
-        rim.receiveShadow = true;
-        group.add(rim);
-        landmarkDetails.push({
-          mesh: rim,
-          near: part,
-          far: farKit.prototypes[edge ? 5 : 2],
-        });
-      }
+    // Thick embedded ledges join the veil's lower crust to its host bank.
+    for (let s = veil.start + 35; s < veil.end; s += 138) {
+      const f = track.sample(s),
+        part = kit.prototypes[2];
+      const root = new T.Mesh(part.geometry, kit.materials.stone);
+      root.name = 'Opaline / embedded mineral wall footing';
+      root.position
+        .copy(f.position)
+        .addScaledVector(f.right, 55)
+        .addScaledVector(f.up, -12);
+      root.quaternion.copy(upright(f));
+      root.scale.set(0.32, 0.48, 0.82);
+      root.castShadow = true;
+      root.receiveShadow = true;
+      group.add(root);
+      landmarkDetails.push({
+        mesh: root,
+        near: part,
+        far: farKit.prototypes[2],
+      });
     }
     const coast = createIslandCoast({
       x: 0,
@@ -285,13 +363,23 @@ export function createOpalineEnvironment({ track, road, settings = {} }) {
     });
     const water = group.getObjectByName('Opaline / iridescent river');
     water.userData.aoExclude = true;
-    water.material.uniforms.size.value = 0.65;
+    water.material.uniforms.size.value = 1.3;
     water.material.fragmentShader = water.material.fragmentShader.replace(
       'vec3 outgoingLight = albedo;',
-      'albedo=mix(albedo,vec3(.006,.048,.028),.58); vec3 outgoingLight = albedo;',
+      'albedo=mix(albedo,vec3(.006,.048,.028),.22); vec3 outgoingLight = albedo;',
     );
     water.material.needsUpdate = true;
     group.updateMatrixWorld(true);
+    const runoffs = [
+      track.surgeZones[0].start + 70,
+      track.surgeZones[2].end - 60,
+      track.sections.find((section) => section.id === 'folds').showcase + 70,
+    ]
+      .map((distance) =>
+        createBankRunoff(track, bankMeshes, distance, lifetime),
+      )
+      .filter(Boolean);
+    for (const runoff of runoffs) group.add(runoff.group);
     const veinRay = new T.Raycaster();
     const flows = track.surgeZones.map((zone) => {
       const flow = createSurgeFlow(track, zone, lifetime);
@@ -410,9 +498,10 @@ export function createOpalineEnvironment({ track, road, settings = {} }) {
       }
     }
     group.userData.metrics = {
-      recipe: 'opaline-canyon-v1',
+      recipe: 'opaline-canyon-v2',
       proofAreas: regions,
       masses: entries.flat().length,
+      runoffs: runoffs.length,
       loadState: 'ready',
     };
     return {
@@ -424,6 +513,8 @@ export function createOpalineEnvironment({ track, road, settings = {} }) {
           time = frame.time ?? frame.state?.time ?? 0;
         configure(frame.camera, current.quality);
         ocean.update(current.reducedMotion ? 0 : (frame.dt ?? 0));
+        for (const runoff of runoffs)
+          runoff.update(current.reducedMotion ? 0 : time);
         for (const flow of flows) {
           const pulse = flow.update(time, current.reducedMotion);
           flow.warningMaterial.emissiveIntensity =

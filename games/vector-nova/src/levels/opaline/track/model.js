@@ -1,7 +1,9 @@
 import * as T from 'three';
 import { cacheClosedCatmullRom } from '../../../track/cached-curve.js';
+import { createOpalineSurfBanks, sampleOpalineSurfSurface } from './surf.js';
+import { createClosedPointLookup } from './point-lookup.js';
 
-export const OPALINE_REVISION = 'opaline-route-1';
+export const OPALINE_REVISION = 'opaline-route-2-surf';
 const WIDTH = 32;
 const HORIZONTAL_LENGTH = 5960;
 const wrap = (s, length) => ((s % length) + length) % length;
@@ -139,11 +141,14 @@ export function createOpalineTrack() {
   // Remap the independent plan/grade design to actual travelled metres.
   const count = Math.ceil(HORIZONTAL_LENGTH * 2),
     step = HORIZONTAL_LENGTH / count,
-    arcs = [0];
+    arcs = [0],
+    points = new Float64Array(count * 3);
   let previous = rawPoint(0);
+  previous.toArray(points, 0);
   for (let i = 1; i <= count; i++) {
     const point = rawPoint(i * step);
     arcs.push(arcs.at(-1) + point.distanceTo(previous));
+    if (i < count) point.toArray(points, i * 3);
     previous = point;
   }
   const length = arcs.at(-1);
@@ -164,7 +169,10 @@ export function createOpalineTrack() {
     }
     return (lo + (distance - arcs[lo]) / (arcs[lo + 1] - arcs[lo])) * step;
   };
-  const positionAt = (s) => rawPoint(horizontalDistance(s));
+  // Keep exact authored arc lengths, but never repeat Catmull arc searches in
+  // per-frame contact sampling. Cubic lookup retains the half-metre bake's shape.
+  const pointAt = createClosedPointLookup(points, HORIZONTAL_LENGTH);
+  const positionAt = (s) => pointAt(horizontalDistance(s));
   const tangentAt = (s) =>
     positionAt(s + 0.25)
       .sub(positionAt(s - 0.25))
@@ -302,6 +310,13 @@ export function createOpalineTrack() {
     inspection: parked(35),
     impact: { distance: 75, speed: 80, lateral: 12, heading: 0.08 },
     'bank-rest': parked(routeDistance(node(7))),
+    'surf-approach': {
+      distance: jumps[0].landingStart + 100,
+      lateral: 8,
+      speed: 65,
+      heading: 0,
+    },
+    'surf-return': { distance: 720, lateral: 28, speed: 65, heading: 0 },
     'slope-rest': parked(routeDistance(node(12))),
   };
   for (const section of sections)
@@ -324,7 +339,7 @@ export function createOpalineTrack() {
   const bounds = new T.Box3();
   for (let s = 0; s < length; s += 5) bounds.expandByPoint(sample(s).position);
   bounds.expandByScalar(WIDTH / 2);
-  return {
+  const track = {
     id: 'opaline-divide-1',
     name: 'Opaline Divide',
     geometryVersion: OPALINE_REVISION,
@@ -340,6 +355,7 @@ export function createOpalineTrack() {
     jumps,
     surgeZones,
     constructedIntervals,
+    surfBanks: createOpalineSurfBanks({ jumps, constructedIntervals }),
     bounds,
     boundaryIntervals: [],
     showcases: sections.map(({ id, name, showcase }) => ({
@@ -377,4 +393,7 @@ export function createOpalineTrack() {
       return jumps.some((j) => d > j.takeoff && d < j.landingStart);
     },
   };
+  track.sampleSurface = (distance, lateral = 0) =>
+    sampleOpalineSurfSurface(track, distance, lateral);
+  return track;
 }

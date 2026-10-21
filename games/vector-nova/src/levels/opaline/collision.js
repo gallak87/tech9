@@ -5,6 +5,7 @@ import {
 } from '../../physics/collision-world.js';
 import {
   createOpalineSurfaceGeometry,
+  createOpalineSurfGeometry,
   createOpalineConnectorRailGeometry,
   roadIntervals,
 } from './track/geometry.js';
@@ -33,6 +34,13 @@ export function createOpalineCollisionWorld({ track }) {
       start: interval.start,
       end: interval.end,
     });
+  for (const bank of track.surfBanks)
+    append(createOpalineSurfGeometry(track, bank), {
+      id: `opaline-${bank.id}`,
+      kind: 'deck',
+      start: bank.start,
+      end: bank.end,
+    });
   for (const [index, interval] of roadIntervals(track).entries())
     if (!interval.constructed)
       for (const side of [-1, 1])
@@ -51,8 +59,8 @@ export function createOpalineCollisionWorld({ track }) {
       });
   return createCollisionWorld({
     id: 'opaline-shelf-solids',
-    version: 1,
-    geometryId: `${track.geometryVersion}:mineral-top-bank-terrain-connector-rails-v1`,
+    version: 2,
+    geometryId: `${track.geometryVersion}:mineral-surf-top-bank-terrain-connector-rails-v2`,
     triangles,
   });
 }

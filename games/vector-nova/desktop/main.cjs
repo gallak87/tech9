@@ -75,7 +75,9 @@ function createWindow() {
     height: dimension(saved.height, 900, 600, area.height),
     minWidth: 800,
     minHeight: 500,
-    fullscreen: saved.fullscreen === true,
+    // Explicit false disables the native fullscreen button on macOS.
+    fullscreen: saved.fullscreen === true ? true : undefined,
+    fullscreenable: true,
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, 'preload.cjs'),
@@ -151,7 +153,11 @@ app.whenReady().then(() => {
               submenu: [
                 { role: 'minimize' },
                 { role: 'close' },
-                { label: 'Fullscreen / Windowed', click: toggleFullscreen },
+                {
+                  label: 'Fullscreen / Windowed',
+                  accelerator: 'Control+Command+F',
+                  click: toggleFullscreen,
+                },
               ],
             },
           ]

@@ -63,6 +63,18 @@ async function run() {
       failures.push(`${details.statusCode} ${details.url}`);
   });
   await wait(menu);
+  assert.equal(
+    window.isFullScreenable(),
+    true,
+    'Native fullscreen must remain available when starting windowed',
+  );
+  if (process.env.VN_PROBE_WINDOW_ONLY === '1') {
+    console.log(
+      `PASS ${manifest.edition}: native fullscreen enabled after startup`,
+    );
+    await evaluate('window.vectorNovaDesktop.quit()');
+    return;
+  }
   if (process.env.VN_PROBE_RESTART === '1') {
     assert.equal(
       await evaluate(

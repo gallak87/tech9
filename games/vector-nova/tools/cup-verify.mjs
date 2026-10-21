@@ -49,12 +49,10 @@ try {
         mode = 'racing';
         for (let i = 0; i < ticks; i++) {
           const finished = race.history.length >= (track.closed === false ? 1 : 2);
-          if (finished && finishAt === null) finishAt = state.time;
-          advanceTick(finished ? { throttle: 0, brake: 1, steer: 0, boost: false, airbrake: false } : racerModule.getRacerControl(state, track, { runtime, difficulty: 'easy' }));
-          if (finishAt !== null && state.time - finishAt >= CUP_FINISH_GRACE) break;
+          if (finished) break;
+          advanceTick(racerModule.getRacerControl(state, track, { runtime, difficulty: 'hard' }));
         }
-        if (finishAt !== null && state.time - finishAt >= 2.4) mode = 'results';
-        else pause();
+        if (race.history.length < (track.closed === false ? 1 : 2)) pause();
         return this.getSnapshot();
       },
       getSnapshot() {`,
@@ -78,6 +76,7 @@ try {
     assert.equal(overflow, false, 'cup content fits the viewport width');
   }
   async function ready(level) {
+    console.log(`Checking ${level}`);
     await page.waitForFunction(
       (level) =>
         window.__VN?.ready &&
@@ -113,16 +112,91 @@ try {
       assert.equal(row.lateral, grid[row.id].lateral);
     }
   }
+  let checkedFinishPause = false;
   async function finish() {
+    await page.evaluate(() => {
+      window.cupWaitingSeen = false;
+      window.cupWaitingObserver?.disconnect();
+      window.cupWaitingObserver = new MutationObserver(() => {
+        window.cupWaitingSeen ||= !!document.querySelector('.cup-waiting');
+      });
+      window.cupWaitingObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    });
     for (
       let n = 0;
       n < 65 && (await state()).cup.state.phase !== 'results';
       n++
     ) {
-      await page.evaluate(() => window.__VN.verifyCupStep(1200));
+      const stepped = await page.evaluate(() =>
+        window.__VN.verifyCupStep(1200),
+      );
+      if (stepped.competition.playerFinished) {
+        const started = Date.now();
+        await page.locator('#race-finish').waitFor({ state: 'visible' });
+        const finishFrame = await page.evaluate(() =>
+          window.__VN.getSnapshot(),
+        );
+        if (!checkedFinishPause) {
+          await page.keyboard.press('Escape');
+          const paused = await page.evaluate(() => window.__VN.getSnapshot());
+          assert.equal(paused.mode, 'paused');
+          await page.waitForTimeout(350);
+          assert.equal(
+            (await page.evaluate(() => window.__VN.getSnapshot())).tick,
+            paused.tick,
+            'pause freezes fast-forward',
+          );
+          await page.locator('#home')[touch ? 'tap' : 'click']();
+          await page.waitForTimeout(200);
+          assert.equal(
+            (await page.evaluate(() => window.__VN.getSnapshot())).tick,
+            paused.tick,
+            'the cup hub freezes fast-forward',
+          );
+          await click('cup-resume');
+          await page.locator('#resume')[touch ? 'tap' : 'click']();
+          checkedFinishPause = true;
+        }
+        await page.waitForFunction(
+          () => window.__VN_FRONTEND.getState().cup.state.phase === 'results',
+          null,
+          { timeout: 15000 },
+        );
+        const elapsed = Date.now() - started;
+        const resolved = await page.evaluate(() => window.__VN.getSnapshot());
+        assert.deepEqual(
+          resolved.ship.position,
+          finishFrame.ship.position,
+          'the visible ship holds its finish pose',
+        );
+        assert.deepEqual(
+          resolved.camera.position,
+          finishFrame.camera.position,
+          'fast-forward never accelerates the visible camera',
+        );
+        assert.ok(
+          elapsed >= 2000,
+          'the finish banner uses real presentation time',
+        );
+        const remaining = stepped.competition.standings.filter(
+          (r) => !r.finished,
+        ).length;
+        console.log(
+          `PASS production cup fast-forward: ${elapsed}ms to standings, ${remaining} rivals still racing at player finish`,
+        );
+        break;
+      }
       await page.waitForTimeout(30);
     }
     const s = await state();
+    assert.equal(
+      await page.evaluate(() => window.cupWaitingSeen),
+      false,
+      'finish goes directly to scored standings',
+    );
     assert.equal(
       s.cup.state.phase,
       'results',

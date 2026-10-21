@@ -1,4 +1,4 @@
-import { CUP_FINISH_GRACE } from '../race/cup.js';
+import { createCupFinish } from './cup-finish.js';
 import { createRaceGrid } from '../race/roster.js';
 import { interpolateSurfaceLateral } from '../track/surface.js';
 import * as T from 'three';
@@ -271,6 +271,7 @@ export async function createGame({
       time = 0,
       raf = 0,
       active = true,
+      fastForwarding = false,
       inspectionTime = 0,
       inspectionLayout = null;
     const inputLog = [],
@@ -307,8 +308,11 @@ export async function createGame({
         };
       }
       events.push(event);
-      raceFeedback.event(event);
       if (events.length > 500) events.shift();
+      if (e.type === 'jump-transfer' || e.type === 'road-recovery')
+        prev = { ...state };
+      if (fastForwarding) return;
+      raceFeedback.event(event);
       try {
         if (e.type === 'lap' && competition) {
           if (race.history.length === 1) audio.event({ type: 'final-lap' });
@@ -335,8 +339,6 @@ export async function createGame({
           e.payload.position && e.payload.normal ? e.payload : null,
         );
       }
-      if (e.type === 'jump-transfer' || e.type === 'road-recovery')
-        prev = { ...state };
     };
     const racingEnabled = Boolean(definition.racing) && !blockout;
     const runtimeContext = {
@@ -424,7 +426,18 @@ export async function createGame({
       resultsDismissed = false;
     const ghost = lifetime.own(createPersonalGhost(scene));
     let cupRace = null,
+      cupFinish = null,
+      finishNeedsRender = false,
       cupFinalResult = null;
+    window.addEventListener(
+      'resize',
+      () => {
+        finishNeedsRender = true;
+      },
+      {
+        signal: listeners.signal,
+      },
+    );
     let timeTrial = false,
       trial = null,
       ghostSamples = null;
@@ -445,6 +458,7 @@ export async function createGame({
     const resetRuntime = (reason) => {
       if (reason !== 'manual-recover') {
         finishAt = null;
+        cupFinish = null;
         cupFinalResult = null;
         resultsDismissed = false;
         lastResults = null;
@@ -850,6 +864,10 @@ export async function createGame({
       if (!lastResults) return;
       if (mode === 'inspection' && inspectionReturnMode) exitInspection();
       if (mode === 'fly') leaveFly();
+      if (cupFinish && !cupFinalResult) {
+        resume();
+        return;
+      }
       mode = 'results';
       resultsDismissed = false;
       ui.setFinish(null);
@@ -1110,6 +1128,7 @@ export async function createGame({
       appliedMotion = settings.reducedMotion;
     lifetime.defer(
       subscribeSettings((next) => {
+        finishNeedsRender = true;
         const graphicsChanged =
           next.quality !== appliedQuality ||
           next.reducedMotion !== appliedMotion;
@@ -1308,6 +1327,50 @@ export async function createGame({
       last = now;
       time += dt;
       const finishing = finishAt !== null && !resultsDismissed;
+      if (cupFinish && ['racing', 'results', 'paused'].includes(mode)) {
+        // Hold the finish frame while the field resolves offscreen. Never
+        // render accelerated motion or tie the banner's duration to race time.
+        audio.update(state, settings.volume, false, {
+          results: mode !== 'paused',
+        });
+        if (finishNeedsRender) {
+          view.render(now);
+          finishNeedsRender = false;
+        }
+        if (mode !== 'paused') {
+          let progress;
+          fastForwarding = true;
+          try {
+            progress = cupFinish.advance(dt);
+          } finally {
+            fastForwarding = false;
+          }
+          if (progress.complete && !cupFinalResult) {
+            cupFinalResult = {
+              ...structuredClone(
+                racers.snapshot({
+                  playerState: state,
+                  playerRace: race,
+                  playerPose: runtime.pose(1),
+                }).results,
+              ),
+              mode: 'cup',
+              final: true,
+              remaining: 0,
+            };
+            lastResults = cupFinalResult;
+          }
+          if (progress.ready && mode === 'racing') {
+            mode = 'results';
+            ui.setFinish(null);
+            input.clear();
+            ui.setMode(mode);
+            onResults(cupFinalResult);
+          }
+        }
+        raf = requestAnimationFrame(render);
+        return;
+      }
       audio.update(state, settings.volume, mode === 'racing' && !finishing, {
         countdown: mode === 'countdown',
         results: mode === 'results' || (mode === 'racing' && finishing),
@@ -1572,38 +1635,34 @@ export async function createGame({
           finishAt = state.time;
           lastResults = structuredClone(standings.results);
           ui.setFinish(lastResults);
+          if (cupRace) {
+            accumulator = 0;
+            finishNeedsRender = false;
+            input.clear();
+            cupFinish = createCupFinish({
+              simulationTime: () => state.time,
+              allFinished: () =>
+                racers.opponents.every((racer) => racer.finish),
+              step: () =>
+                advanceTick({
+                  throttle: 0,
+                  brake: 1,
+                  steer: 0,
+                  boost: false,
+                  airbrake: false,
+                }),
+            });
+          }
         }
-        if (mode === 'racing' && state.time - finishAt >= 2.4) {
+        if (!cupRace && mode === 'racing' && state.time - finishAt >= 2.4) {
           lastResults = structuredClone(standings.results);
           mode = 'results';
           ui.setFinish(null);
           input.clear();
           ui.setMode(mode);
         }
-        if (mode === 'results') {
-          if (cupRace) {
-            const remaining = Math.max(
-              0,
-              CUP_FINISH_GRACE - (state.time - finishAt),
-            );
-            if (
-              !cupFinalResult &&
-              (remaining <= 0 ||
-                standings.standings.every((row) => row.finished))
-            )
-              cupFinalResult = {
-                ...structuredClone(standings.results),
-                mode: 'cup',
-                final: true,
-                remaining: 0,
-              };
-            lastResults = cupFinalResult ?? {
-              ...structuredClone(standings.results),
-              mode: 'cup',
-              final: false,
-              remaining: Math.ceil(remaining),
-            };
-          } else lastResults = structuredClone(standings.results);
+        if (!cupRace && mode === 'results') {
+          lastResults = structuredClone(standings.results);
           onResults(lastResults);
         }
       }
@@ -1930,6 +1989,8 @@ export async function createGame({
           sessionActive,
           inspectionReturnMode,
           finishAt,
+          cupFinish,
+          cupFinalResult,
           resultsDismissed,
           cameraMode,
           scenario,
@@ -1986,6 +2047,8 @@ export async function createGame({
             sessionActive,
             inspectionReturnMode,
             finishAt,
+            cupFinish,
+            cupFinalResult,
             resultsDismissed,
             cameraMode,
             scenario,

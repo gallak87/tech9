@@ -9,6 +9,7 @@ import {
   cupRaceRows,
   cupStandings,
   cupComplete,
+  cupGridOrder,
 } from './cup.js';
 import { RACE_OPPONENTS } from './roster.js';
 const ids = ['player', ...RACE_OPPONENTS.map((r) => r.id)];
@@ -91,6 +92,42 @@ test('ten places score once; invalid and missing finishes never score', () => {
   assert.equal(scored.find((r) => r.id === 'rook').status, 'dnf');
   assert.equal(scored[0].points, 25);
   assert.equal(scored[0].id, 'latch');
+});
+
+test('cup grids use the previous race, survive retries/reloads, and reset to tenth', () => {
+  const storage = memory();
+  let store = createCupStore(() => storage);
+  store.start('apex', 'shrike', 'hard');
+  const opening = [...ids.slice(1), 'player'];
+  assert.deepEqual(cupGridOrder(store.snapshot().state), opening);
+  store.finish(result());
+  assert.deepEqual(cupGridOrder(store.snapshot().state), opening);
+  store.next();
+  assert.deepEqual(cupGridOrder(store.snapshot().state), ids);
+  const second = result(ids.toReversed());
+  second.standings.find((r) => r.id === 'rook').valid = false;
+  second.standings.find((r) => r.id === 'gannet').finished = false;
+  store.finish(second);
+  // Retrying this result must retain the first race's grid, not use this finish.
+  store = createCupStore(() => storage);
+  store.retry();
+  assert.deepEqual(cupGridOrder(store.snapshot().state), ids);
+  store.finish(second);
+  store.next();
+  store = createCupStore(() => storage);
+  const expected = ids
+    .toReversed()
+    .filter((id) => !['rook', 'gannet'].includes(id));
+  expected.push('gannet', 'rook');
+  assert.deepEqual(cupGridOrder(store.snapshot().state), expected);
+  const order = cupGridOrder(store.snapshot().state);
+  order.reverse();
+  assert.deepEqual(cupGridOrder(store.snapshot().state), expected);
+  store.finish(result());
+  store.retry();
+  assert.deepEqual(cupGridOrder(store.snapshot().state), expected);
+  store.start('apex', 'shrike', 'hard');
+  assert.deepEqual(cupGridOrder(store.snapshot().state), opening);
 });
 test('wins break tied points before total time; exact ties share rank', () => {
   // A win plus third ties two seconds: 25+15 versus 18+18 does not tie;

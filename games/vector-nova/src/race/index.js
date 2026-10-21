@@ -87,7 +87,9 @@ export function createRace(
       // Holding distance in flight ensures missing a road never awards its CP.
       for (const jump of track.jumps || []) {
         for (
-          let cycle = sprint ? 0 : Math.floor(previous / track.length);
+          let cycle = sprint
+            ? 0
+            : Math.max(0, Math.floor(previous / track.length));
           cycle <= (sprint ? 0 : Math.floor(current / track.length));
           cycle++
         ) {
@@ -133,17 +135,18 @@ export function createRace(
           this.completedTransfers.push(key);
         }
       }
-      const firstCycle = sprint ? 0 : Math.floor(previous / track.length);
+      const firstCycle = sprint
+        ? 0
+        : Math.max(0, Math.floor(previous / track.length));
       const finalCycle = sprint ? 0 : Math.floor(current / track.length);
       for (let cycle = firstCycle; cycle <= finalCycle; cycle++) {
         for (let index = 0; index < count; index++) {
           const crossing = cycle * track.length + positions[index];
           if (crossing <= previous || crossing > current) continue;
-          // A parked physical hull can settle just behind checkpoint zero.
-          // Its first forward start-line crossing is not a completed lap or
-          // skipped checkpoint. The trial clock still includes this wait.
+          // Rear-grid travel (or a hull settling behind zero) belongs to lap 1.
+          // Crossing the start is not a completed lap or skipped checkpoint;
+          // the clock still includes all time spent reaching the line.
           if (
-            precise &&
             cycle === 0 &&
             index === 0 &&
             this.checkpoint === 0 &&

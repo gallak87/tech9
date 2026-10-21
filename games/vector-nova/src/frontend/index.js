@@ -1,4 +1,9 @@
-import { CUPS, createCupStore, cupDefinition } from '../race/cup.js';
+import {
+  CUPS,
+  createCupStore,
+  cupDefinition,
+  cupGridOrder,
+} from '../race/cup.js';
 import { cupView, cupWaitingView, cupLaunch } from './cup.js';
 import { recordsView } from './records.js';
 import { readTrialRecords } from '../race/time-trial.js';
@@ -1117,6 +1122,7 @@ export function createFrontend(host) {
           difficulty: state.difficulty,
           eventIndex: state.eventIndex,
           eventCount: cup.tracks.length,
+          gridOrder: cupGridOrder(state),
         });
       } else if (intent === 'time-trial') current.timeTrial();
       else if (intent === 'practice') current.practice();

@@ -7,7 +7,13 @@ import { createVehicleState, STEERING_ASSIST } from '../physics/index.js';
 import { createHalcyonSimulationRuntime } from '../levels/halcyon/device-runtime.js';
 import { createHalcyonDevices } from '../levels/halcyon/devices.js';
 import { createRace } from './index.js';
-import { RACE_FIELD_SIZE, RACE_OPPONENTS, RACER_COLORS } from './roster.js';
+import {
+  RACE_FIELD_SIZE,
+  RACE_OPPONENTS,
+  RACER_COLORS,
+  RACE_ORDER,
+  createRaceGrid,
+} from './roster.js';
 import { VEHICLE_HULL as HULL } from '../physics/hull.js';
 import {
   createRacers,
@@ -125,6 +131,94 @@ test('staggered grid, pause and solo never award the rear grid a partial lap', (
   assert.equal(racers.snapshot().results, null);
   racers.dispose();
 });
+
+test('ordered grids place the full field, seed timing, and preserve grid rank at rest', () => {
+  const racers = createHalcyonRacers({ track });
+  try {
+    for (let slot = 0; slot < RACE_FIELD_SIZE; slot++) {
+      const gridOrder = RACE_ORDER.filter((id) => id !== 'player');
+      gridOrder.splice(slot, 0, 'player');
+      const grid = createRaceGrid(gridOrder);
+      const playerState = { ...createVehicleState(), ...grid.player };
+      const playerRace = createRace(track);
+      racers.reset({ gridOrder });
+      assert.deepEqual(racers.identity.grid, grid);
+      assert.deepEqual(
+        racers
+          .snapshot({ playerState, playerRace })
+          .standings.map(({ id }) => id),
+        gridOrder,
+      );
+      for (const opponent of racers.opponents) {
+        const expected = grid[opponent.specification.id];
+        assert.equal(opponent.state.distance, expected.distance);
+        assert.equal(opponent.state.lateral, expected.lateral);
+      }
+      for (const [id, timing] of Object.entries(
+        racers.serialize().relativeTiming,
+      ))
+        assert.deepEqual(timing.current, [grid[id].distance, 0]);
+    }
+    const initial = racers.serialize();
+    for (const bad of [
+      [],
+      RACE_ORDER.slice(1),
+      [...RACE_ORDER.slice(1), 'rook'],
+      [...RACE_ORDER.slice(1), 'unknown'],
+    ]) {
+      assert.throws(() => racers.reset({ gridOrder: bad }), /every racer/);
+      assert.deepEqual(racers.serialize(), initial);
+    }
+    step(racers, 1);
+    const saved = racers.serialize();
+    step(racers, 1);
+    const expected = racers.serialize();
+    racers.restore(saved);
+    step(racers, 1);
+    assert.deepEqual(racers.serialize(), expected);
+    racers.reset();
+    assert.deepEqual(racers.identity.grid, RACE_GRID);
+    assert.throws(() => racers.restore(saved), /mismatch/);
+  } finally {
+    racers.dispose();
+  }
+});
+
+for (const sprint of [false, true])
+  test(`${sprint ? 'sprint' : 'circuit'} rear-grid start counts time without inventing checkpoints`, () => {
+    const course = {
+      id: 'grid-timing',
+      length: sprint ? 1100 : 1000,
+      closed: !sprint,
+      ...(sprint ? { finishDistance: 1000 } : {}),
+      checkpoints: [0, 250, 500, 750, ...(sprint ? [1000] : [])].map(
+        (distance) => ({ distance }),
+      ),
+    };
+    const race = createRace(course);
+    assert.deepEqual(race.step(-48, -4, 2), []);
+    assert.deepEqual(race.step(-4, 0, 0.1), []);
+    assert.equal(race.valid, true);
+    assert.equal(race.history.length, 0);
+    race.step(0, 1000, 10);
+    assert.equal(race.valid, true);
+    assert.equal(race.history.length, 1);
+    assert.ok(Math.abs(race.history[0].duration - 12.1) < 1e-10);
+    // A rear row on a circuit overlaps the prior cycle's tail geometrically,
+    // but does not need to satisfy that cycle's jump/checkpoint history.
+    if (!sprint) {
+      const nearFinish = createRace({
+        ...course,
+        checkpoints: [...course.checkpoints, { distance: 990 }],
+        jumps: [
+          { id: 'tail', takeoff: 970, landingStart: 990, landingEnd: 995 },
+        ],
+      });
+      nearFinish.step(-48, 1, 2);
+      assert.equal(nearFinish.valid, true);
+      assert.equal(nearFinish.checkpoint, 0);
+    }
+  });
 
 test('each opponent owns device eligibility, shield timers and reserve independently', () => {
   const racers = createHalcyonRacers({ track });

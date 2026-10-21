@@ -4,8 +4,10 @@ import {
   cupDefinition,
   cupRaceRows,
   cupStandings,
+  cupGridOrder,
   CUP_POINTS,
 } from '../src/race/cup.js';
+import { createRaceGrid } from '../src/race/roster.js';
 const cup = cupDefinition(process.env.VN_CUP_ID ?? 'founders');
 assert.ok(cup, 'VN_CUP_ID must name an available cup');
 const base = process.env.VN_URL;
@@ -97,7 +99,19 @@ try {
     assert.equal(snap.competition.standings.length, 10);
     assert.equal(snap.lap.history.length, 0);
     assert.equal(snap.vehicle.energy, 100);
-    assert.equal((await state()).cup.state.cupId, cup.id);
+    const current = (await state()).cup.state;
+    assert.equal(current.cupId, cup.id);
+    const order = cupGridOrder(current);
+    const grid = createRaceGrid(order);
+    assert.deepEqual(snap.cup.gridOrder, order);
+    assert.deepEqual(
+      snap.competition.standings.map((row) => row.id),
+      order,
+    );
+    for (const row of snap.competition.standings) {
+      assert.equal(row.distance, grid[row.id].distance);
+      assert.equal(row.lateral, grid[row.id].lateral);
+    }
   }
   async function finish() {
     for (

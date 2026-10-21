@@ -7,6 +7,11 @@ import { getRacerControl } from '../src/race/racers.js';
 
 const DT = 1 / 120;
 const cases = {
+  glasswake: [
+    [600, 6],
+    [1030, 6],
+    [3700, -6],
+  ],
   saffron: [
     [4195, -12],
     [4195, -16],

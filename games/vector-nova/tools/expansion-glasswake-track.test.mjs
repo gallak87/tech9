@@ -9,9 +9,66 @@ import { createGlasswakeRuntime } from '../src/levels/glasswake/runtime.js';
 import { createVehicleState } from '../src/physics/index.js';
 import { createRace } from '../src/race/index.js';
 import { assertTrackContract } from './level-checks/track-contract.mjs';
+import { createRoadSurface } from '../src/physics/road-surface.js';
+import { indexedTriangles } from '../src/physics/collision-world.js';
 
 const track = createGlasswakeTrack();
 const clamp = THREE.MathUtils.clamp;
+
+test('Glasswake glass and frost form one flush, smooth driving surface across the lap', (t) => {
+  const road = buildGlasswakeRoad(track, { collisionOnly: true });
+  road.group.updateMatrixWorld(true);
+  const surfaces = road.group.children.filter(
+    (mesh) => mesh.userData.drivingSurface,
+  );
+  const triangles = surfaces.flatMap((mesh) =>
+    indexedTriangles(
+      mesh.geometry.attributes.position.array,
+      mesh.geometry.index.array,
+      { kind: 'deck', id: mesh.name },
+      mesh.matrixWorld,
+      mesh.geometry.attributes.roadCoord,
+    ),
+  );
+  const sample = createRoadSurface(triangles);
+  t.after(() => {
+    sample.dispose();
+    road.dispose();
+  });
+  assert.equal(surfaces.length, 3, 'retain the same three material draws');
+  assert.ok(triangles.length < 70000, 'keep refinement bounded');
+  for (const lateral of [-13.5, -4.5, 0, 4.5, 13.5]) {
+    let previous = null;
+    for (let distance = 0.3; distance < track.length; distance += 0.3) {
+      if (track.isGap(distance)) {
+        previous = null;
+        continue;
+      }
+      const frame = track.sample(distance);
+      const surface = sample(distance, lateral, frame);
+      assert.ok(surface, `unsealed panel seam at ${distance}, ${lateral}`);
+      const height = surface.position.clone().sub(frame.position).dot(frame.up);
+      assert.ok(
+        Math.abs(height) < (lateral === 0 ? 0.012 : 0.06),
+        `deck sag at ${distance}, ${lateral}: ${height}`,
+      );
+      if (previous)
+        assert.ok(
+          surface.up.angleTo(previous) < 0.04,
+          `contact-normal bump at ${distance}, ${lateral}`,
+        );
+      previous = surface.up;
+    }
+  }
+  for (const jump of track.jumps) {
+    const distance = (jump.takeoff + jump.landingStart) / 2;
+    assert.equal(
+      sample(distance, 0, track.sample(distance)),
+      null,
+      'real fracture gaps remain open',
+    );
+  }
+});
 
 test('Glasswake route is a continuous metre-parameterized loop with a pronounced crevice plunge', () => {
   const report = assertTrackContract(track);

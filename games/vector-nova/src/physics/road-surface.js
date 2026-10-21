@@ -3,6 +3,9 @@ import { Matrix4, Quaternion, Vector3 } from 'three';
 // Thin backing beneath a rendered panel belongs to the same support skin.
 // Keep separate road storeys and overhead surfaces as native obstacles.
 const BACKING_DEPTH = 0.35;
+const CELL_SIZE = 4;
+const cellKey = (distance, lateral) =>
+  `${Math.floor(distance / CELL_SIZE)}:${Math.floor(lateral / CELL_SIZE)}`;
 
 // Route coordinates identify a deck even where different roads cross in space.
 // Retain its actual planar triangles rather than a second analytic road skin.
@@ -79,11 +82,22 @@ export function createRoadSurface(triangles) {
       smooth,
     };
     faces.push(face);
-    const from = Math.floor(Math.min(a[0], b[0], c[0]) / 16);
-    const to = Math.floor(Math.max(a[0], b[0], c[0]) / 16);
-    for (let key = from; key <= to; key++) {
-      if (!cells.has(key)) cells.set(key, []);
-      cells.get(key).push(face);
+    // Query both road axes: a finer deck must not make every hull/corner test
+    // scan all triangles across the entire road width.
+    const sMargin = (Math.abs(ds1) + Math.abs(ds2)) * 1e-5;
+    const xMargin = (Math.abs(dx1) + Math.abs(dx2)) * 1e-5;
+    const from = Math.floor((Math.min(a[0], b[0], c[0]) - sMargin) / CELL_SIZE);
+    const to = Math.floor((Math.max(a[0], b[0], c[0]) + sMargin) / CELL_SIZE);
+    const left = Math.floor((Math.min(a[1], b[1], c[1]) - xMargin) / CELL_SIZE);
+    const right = Math.floor(
+      (Math.max(a[1], b[1], c[1]) + xMargin) / CELL_SIZE,
+    );
+    for (let s = from; s <= to; s++) {
+      for (let x = left; x <= right; x++) {
+        const key = `${s}:${x}`;
+        if (!cells.has(key)) cells.set(key, []);
+        cells.get(key).push(face);
+      }
     }
   }
   for (const vertex of vertices.values()) {
@@ -100,7 +114,7 @@ export function createRoadSurface(triangles) {
       nearest = Infinity,
       selectedElevation = 0;
     const candidates = [];
-    for (const f of cells.get(Math.floor(distance / 16)) ?? []) {
+    for (const f of cells.get(cellKey(distance, lateral)) ?? []) {
       const s = distance - f.a[0],
         x = lateral - f.a[1];
       const u = (s * f.dx2 - x * f.ds2) / f.determinant;

@@ -36,6 +36,27 @@ function deck(id, y, station = 0, reverse = false) {
 const reference = { position: new Vector3(0, 0, 20), up: new Vector3(0, 1, 0) };
 const DT = 1 / 120;
 
+test('road lookup retains coverage and ownership at both spatial grid boundaries', () => {
+  const sample = createRoadSurface([
+    ...deck('road', 0, -20),
+    ...deck('backing', -0.12, -20),
+  ]);
+  for (const distance of [-16, -4, 0, 4, 16]) {
+    for (const lateral of [-8, -4, 0, 4, 8]) {
+      for (const epsilon of [-1e-6, 0, 1e-6]) {
+        const skin = sample(distance + epsilon, lateral + epsilon, reference);
+        assert.ok(skin);
+        assert.ok(Math.abs(skin.position.y) < 1e-9);
+        assert.deepEqual(
+          new Set(skin.roadOwners),
+          new Set(['road', 'backing']),
+        );
+      }
+    }
+  }
+  sample.dispose();
+});
+
 test('road sampling selects the local top surface, leaves gaps empty, and keeps crossed roads separate', () => {
   const sample = createRoadSurface([
     ...deck('road', 0),

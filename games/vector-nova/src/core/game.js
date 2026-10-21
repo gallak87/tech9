@@ -63,6 +63,7 @@ export async function createGame({
   onMode = () => {},
   onHome,
   onSettings,
+  onTunes,
   onResults,
   onCupRetry,
   onCircuit,
@@ -1088,6 +1089,13 @@ export async function createGame({
               }
             : {}),
           home,
+          openTunes: onTunes
+            ? () => {
+                pause();
+                input.clear();
+                onTunes();
+              }
+            : null,
           openSettings() {
             pause();
             input.clear();

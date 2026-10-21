@@ -32,6 +32,7 @@ export function controllerSettingsView(settings) {
     <div><dt><kbd>Left stick</kbd></dt><dd>Steer</dd></div>
     <div><dt><kbd>X</kbd></dt><dd>Change race camera</dd></div>
     <div><dt><kbd>Menu / Start</kbd></dt><dd>Pause / resume</dd></div>
+    <div><dt><kbd>View / Select</kbd></dt><dd>Music play / pause</dd></div>
     <div><dt><kbd>D-pad / stick</kbd></dt><dd>Navigate menus</dd></div>
     <div><dt><kbd>A / B</kbd></dt><dd>Confirm / back</dd></div></dl>
     </div>

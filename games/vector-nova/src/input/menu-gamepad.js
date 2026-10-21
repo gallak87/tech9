@@ -8,6 +8,7 @@ export function menuIntent(pad, { stickNavigation = true } = {}) {
     accept: pressed(0),
     back: pressed(1),
     pause: pressed(9),
+    music: pressed(8),
     camera: pressed(2),
     x: pressed(14)
       ? -1
@@ -25,7 +26,7 @@ export function menuIntent(pad, { stickNavigation = true } = {}) {
           : 0,
   };
 }
-export function bindMenuGamepad(signal) {
+export function bindMenuGamepad(signal, { toggleMusic = () => {} } = {}) {
   let previous = {},
     direction = '',
     nextRepeat = 0,
@@ -37,6 +38,10 @@ export function bindMenuGamepad(signal) {
     element.getClientRects().length &&
     !element.closest('[hidden], .hidden, [inert]');
   const menuRoot = () => {
+    const music = document.querySelector(
+      '[data-music-player][data-menu-active]',
+    );
+    if (visible(music)) return music;
     const front = document.querySelector('#front-shell');
     if (visible(front)) return front;
     const inspector = document.querySelector('#inspector-host');
@@ -86,6 +91,8 @@ export function bindMenuGamepad(signal) {
             ),
           ),
         );
+      if (target.matches('input[type="range"]'))
+        target.dispatchEvent(new Event('input', { bubbles: true }));
       target.dispatchEvent(new Event('change', { bubbles: true }));
       return;
     }
@@ -127,6 +134,7 @@ export function bindMenuGamepad(signal) {
       padIdentity = identity;
     }
     if (!document.hidden) {
+      if (intent.music && !previous.music) toggleMusic();
       if (intent.pause && !previous.pause) key('Escape');
       else if (root) {
         if (intent.back && !previous.back) key('Escape');

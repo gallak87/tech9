@@ -200,6 +200,20 @@ async function run() {
     assert(speed > 5, `${level}: throttle must move the ship; speed=${speed}`);
     await press('Escape');
     await wait(paused);
+    assert.equal(
+      await evaluate('!!document.querySelector("#legend")'),
+      false,
+      'Steam omits the shortcut footer',
+    );
+    await click('#pause-tunes');
+    assert(
+      await evaluate(
+        'document.activeElement.matches(".music-play") && !document.querySelector("#music-controls").hidden',
+      ),
+    );
+    await press('Escape');
+    assert(await evaluate('document.activeElement.id === "pause-tunes"'));
+    assert(await evaluate(paused));
     await click('#pause-settings');
     await wait(`!!document.querySelector('[data-action="resume-session"]')`);
     assert.equal(
@@ -319,7 +333,30 @@ async function run() {
   await wait(menu);
   // Controller menu action through the real adapter, with a synthetic standard pad.
   await evaluate(
-    `window.__testPad={connected:true,mapping:'standard',axes:[0,0],buttons:Array.from({length:16},()=>({pressed:false,value:0}))}; Object.defineProperty(navigator,'getGamepads',{value:()=>[window.__testPad], configurable:true}); document.querySelector('[data-action="settings"]').focus();`,
+    `window.__testPad={connected:true,mapping:'standard',axes:[0,0],buttons:Array.from({length:16},()=>({pressed:false,value:0}))}; Object.defineProperty(navigator,'getGamepads',{value:()=>[window.__testPad], configurable:true}); document.querySelector('[data-action="tunes"]').focus();`,
+  );
+  await delay(200);
+  await evaluate('window.__testPad.buttons[0].pressed=true;');
+  await wait(
+    `document.activeElement.matches('.music-play') && document.querySelector('[data-music-player]').hasAttribute('data-menu-active')`,
+  );
+  const wasPaused = await evaluate('document.querySelector("audio").paused');
+  await evaluate(
+    'window.__testPad.buttons[0].pressed=false; window.__testPad.buttons[8].pressed=true;',
+  );
+  await wait(`document.querySelector('audio').paused === ${!wasPaused}`);
+  await delay(450);
+  assert.equal(
+    await evaluate('document.querySelector("audio").paused'),
+    !wasPaused,
+    'View toggles music once while held',
+  );
+  await evaluate(
+    'window.__testPad.buttons[8].pressed=false; window.__testPad.buttons[1].pressed=true;',
+  );
+  await wait(`document.activeElement.matches('[data-action="tunes"]')`);
+  await evaluate(
+    `window.__testPad.buttons[1].pressed=false; document.querySelector('[data-action="settings"]').focus();`,
   );
   await delay(200);
   await evaluate('window.__testPad.buttons[0].pressed=true;');

@@ -428,7 +428,8 @@ export function createRacers({
         vehicleEvents,
         { grounded: opponent.runtime.pose(1)?.grounded !== false },
       );
-      // CPU adapters have no presentation. Drain pending decorative events.
+      // Deliver decorative events to attached observers, then drain them even
+      // in CPU-only races so feedback never accumulates between simulation ticks.
       opponent.runtime.update({});
       relativeTiming.update(
         opponent.specification.id,

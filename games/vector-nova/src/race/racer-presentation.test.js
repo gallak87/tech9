@@ -10,6 +10,10 @@ import {
   Vector3,
 } from 'three';
 import { createRacerPresentation } from './racer-presentation.js';
+import { createDeviceRuntime } from '../pickups/runtime.js';
+import { createVehicleState } from '../physics/index.js';
+import { createTrack } from '../levels/halcyon/track/model.js';
+import { createHalcyonDevices } from '../levels/halcyon/devices.js';
 
 test('rivals follow their own speed, boost/Vector, simulation clock and live graphics tier', async () => {
   const frames = [];
@@ -159,4 +163,107 @@ test('racing applies the shared Arc glow to the struck rival, preserves pause, a
   presentation.dispose();
   assert.equal(scene.children.length, 0);
   assert.ok(effects.every((effect) => effect.parent === null));
+});
+
+test('rival shield consumes real combat hits, cracks once, freezes on pause and releases its observer', async () => {
+  const track = createTrack();
+  const actors = new Map();
+  const combat = {
+    bind: (id, actor) => actors.set(id, actor),
+    resetActor: (id) => actors.delete(id),
+    view: () => ({ flashes: [] }),
+  };
+  const state = {
+    ...createVehicleState(),
+    distance: 359.7,
+    lateral: 3,
+    speed: 80,
+  };
+  const runtime = createDeviceRuntime({
+    track,
+    devices: createHalcyonDevices(track),
+    combat,
+    combatId: 'rook',
+  });
+  runtime.reset({ state });
+  const group = new Group();
+  const presentation = await createRacerPresentation({
+    racers: {
+      enabled: true,
+      opponents: [
+        {
+          specification: { id: 'rook', name: 'Rook' },
+          state,
+          prev: { ...state },
+          runtime,
+        },
+      ],
+    },
+    scene: new Scene(),
+    track,
+    combat,
+    loadRival: async () => ({ group, dispose: () => group.removeFromParent() }),
+  });
+  try {
+    runtime.advance(state, { throttle: 1 }, 1 / 120);
+    runtime.update({});
+    presentation.update({ mode: 'racing' });
+    const shield = group.getObjectByName(
+      'Aegis / hull field and outward pulses',
+    );
+    const field = shield.material.uniforms;
+    assert.equal(shield.visible, true);
+    const reserve = state.energy;
+    assert.equal(
+      actors.get('rook').hit({
+        source: 'player',
+        kind: 'arc',
+        impulse: new Vector3(),
+        cost: 6,
+      }),
+      true,
+    );
+    assert.equal(
+      state.energy,
+      reserve,
+      'shield protection still comes from the runtime',
+    );
+    runtime.update({});
+    presentation.update({ mode: 'racing' });
+    assert.equal(runtime.snapshot().aegisRemaining, 0);
+    assert.equal(field.hit.value, 1);
+    assert.equal(
+      group.getObjectByName('Aegis / dim driving trail').visible,
+      false,
+    );
+    runtime.update({});
+    for (let i = 0; i < 2; i++) {
+      runtime.advance(state, { throttle: 1 }, 0.1);
+      runtime.update({});
+      presentation.update({ mode: 'racing' });
+    }
+    const age = field.breakAge.value;
+    assert.ok(
+      age > 0.19 && age < 0.21,
+      'drained hit events never restart the fracture',
+    );
+    presentation.update({ mode: 'paused' });
+    assert.equal(field.breakAge.value, age);
+    for (let i = 0; i < 10; i++) {
+      runtime.advance(state, { throttle: 1 }, 0.1);
+      runtime.update({});
+      presentation.update({ mode: 'racing' });
+    }
+    assert.equal(shield.visible, false);
+    presentation.dispose();
+    assert.equal(group.getObjectByName('Rival / Aegis'), undefined);
+    assert.doesNotThrow(() => {
+      runtime.reset({ state });
+      runtime.advance(state, { throttle: 1 }, 0.1);
+      runtime.update({});
+    }, 'disposed race presentation leaves no active observer');
+  } finally {
+    presentation.dispose();
+    runtime.dispose();
+  }
 });

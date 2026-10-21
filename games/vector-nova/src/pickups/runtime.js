@@ -6,7 +6,7 @@ import { isCombatDevice, COMBAT_RULES } from './combat.js';
 import { createPickupSimulation, VECTOR_PROPULSION } from './simulation.js';
 
 // Compose devices around a circuit's actual simulation. Player and rivals use
-// this same adapter; only the player supplies decorative presentation.
+// this same adapter. Rival renderers observe feedback without a HUD or audio graph.
 export function createDeviceRuntime({
   track,
   devices,
@@ -42,6 +42,11 @@ export function createDeviceRuntime({
   let pending = [];
   let disposed = false;
   let staged = null;
+  const presentationObservers = new Set();
+  function resetPresentation() {
+    presentation?.reset();
+    for (const observer of presentationObservers) observer.reset();
+  }
   const supportedState = (state) => ({
     ...state,
     grounded: motion.pose(1)?.grounded !== false,
@@ -125,7 +130,7 @@ export function createDeviceRuntime({
       simulation.reset();
       combat?.resetActor(combatId, combatId === 'player');
       pending = [];
-      presentation?.reset();
+      resetPresentation();
     },
     ...(motion.launch
       ? { launch: (state, setup) => motion.launch(state, setup) }
@@ -208,7 +213,7 @@ export function createDeviceRuntime({
       );
       pending = [];
       staged = null;
-      presentation?.reset();
+      resetPresentation();
     },
     snapshot() {
       const movement = motion.snapshot();
@@ -227,10 +232,14 @@ export function createDeviceRuntime({
       motion.restore(data?.motion ?? null);
       pending = [];
       staged = null;
-      presentation?.reset();
+      resetPresentation();
     },
     pose: (alpha) => motion.pose(alpha),
     getPresentation: () => presentation?.getPresentation?.() ?? null,
+    observePresentation(observer) {
+      presentationObservers.add(observer);
+      return () => presentationObservers.delete(observer);
+    },
     update(context) {
       motion.update(context);
       presentation?.update({
@@ -239,6 +248,8 @@ export function createDeviceRuntime({
         effects: simulation.snapshot(),
         events: pending,
       });
+      if (pending.length)
+        for (const observer of presentationObservers) observer.events(pending);
       pending = [];
     },
     dispose() {
@@ -246,6 +257,7 @@ export function createDeviceRuntime({
       disposed = true;
       pending = [];
       staged = null;
+      presentationObservers.clear();
       combat?.resetActor(combatId, combatId === 'player');
       presentation?.dispose();
       motion.dispose();

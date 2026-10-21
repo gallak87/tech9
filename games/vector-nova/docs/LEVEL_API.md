@@ -86,6 +86,8 @@ New production levels declare `racing: { createDevices, createMotion? }` on the 
 
 Core uses `src/pickups/runtime.js` for deterministic device composition and `src/race/racers.js` for the field, grid, input decisions, difficulty, relative gaps, two-lap classification and serialization. Each racer owns separate motion, device, reserve and lap state. Rival meshes consume `runtime.pose(alpha)` during true flight. Shared countdown/HUD/results and renderer launch feedback require no circuit-specific reimplementation.
 
+Device wrappers expose `observePresentation({ events(batch), reset() })`, returning an unsubscribe function. This read-only visual observer receives pending events during `update` before they are drained, and resets on enable changes, reset or restore. It owns no gameplay state and is never serialized. Rival shield presentation uses it for acquisition, hits and expiry while reading sustained shield state from the ordinary snapshot.
+
 AI snapshots are temporary test state captured and restored within the same build. Validate their contents and course/ship identity; AI behavior has no version counter, and difficulty tuning requires no compatibility migration.
 
 The wrapper preserves local scenarios and adds device approach scenarios. Snapshots retain device fields at the top level and the complete custom adapter under `motion`; identity includes the motion rules and layout. Optional `racing.identity` supplies a deliberately preserved compatibility identity (used by Halcyon), and `racing.scenarios` can add diagnostic setups. All production circuits, including Nacre, require this shared system.

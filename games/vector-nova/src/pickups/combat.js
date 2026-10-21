@@ -7,13 +7,16 @@ import {
 } from './rules.js';
 
 export const COMBAT_RULES = Object.freeze({
-  version: 2,
+  version: 3,
   pulseDelay: 0.5,
   pulseRadius: 36,
   arcDelay: 0.15,
-  arcInterval: 0.3,
-  arcSpeed: 460,
+  arcInterval: 0.45,
+  arcSpeed: 345,
   arcLifetime: 0.8,
+  arcLockRange: 220,
+  arcLockCone: Math.PI / 6,
+  arcTurnRate: 0.9,
   wakeDuration: 4.5,
   wakeLifetime: 3.2,
   wakeInterval: 0.09,
@@ -92,6 +95,62 @@ export function createCombatSimulation({
         { position: b, quaternion },
         boltHull,
       )?.fraction ?? 1
+    );
+  }
+  function arcAim(shot, target) {
+    const other = eligible(target);
+    if (!other || target === shot.source) return null;
+    let ahead = other.actor.state.distance - shot.distance;
+    if (track.closed !== false)
+      ahead =
+        T.MathUtils.euclideanModulo(ahead + track.length / 2, track.length) -
+        track.length / 2;
+    if (ahead <= 0 || ahead > COMBAT_RULES.arcLockRange) return null;
+    const frame = track.sample(other.actor.state.distance);
+    const height = other.pose.position
+      .clone()
+      .sub(frame.position)
+      .dot(frame.up);
+    if (Math.abs(height - shot.height) > 1.8) return null;
+    const lateral = other.actor.state.lateral - shot.lateral;
+    return {
+      other,
+      heading: Math.atan2(lateral, ahead),
+      distance: Math.hypot(ahead, lateral),
+    };
+  }
+  function acquireArcTarget(shot) {
+    let target = null;
+    let nearest = Infinity;
+    for (const [id] of actors) {
+      const aim = arcAim(shot, id);
+      if (
+        !aim ||
+        Math.abs(aim.heading - shot.heading) > COMBAT_RULES.arcLockCone ||
+        aim.distance > COMBAT_RULES.arcLockRange ||
+        aim.distance > nearest ||
+        (aim.distance === nearest && id >= target) ||
+        blocked(vector(shot.position), aim.other.pose.position) < 0.99
+      )
+        continue;
+      target = id;
+      nearest = aim.distance;
+    }
+    return target;
+  }
+  function steerArc(shot, dt) {
+    if (shot.target === null) return;
+    const aim = arcAim(shot, shot.target);
+    // Each bolt owns one lock. Losing it never snaps onto a different racer;
+    // passing the target releases it rather than turning the bolt around.
+    if (!aim) {
+      shot.target = null;
+      return;
+    }
+    shot.heading += T.MathUtils.clamp(
+      aim.heading - shot.heading,
+      -COMBAT_RULES.arcTurnRate * dt,
+      COMBAT_RULES.arcTurnRate * dt,
     );
   }
   function notify(id, type, payload) {
@@ -179,7 +238,7 @@ export function createCombatSimulation({
         .sub(frame.position)
         .addScaledVector(frame.right, -actor.state.lateral)
         .dot(frame.up) + ARC_SHOT_HEIGHT;
-    state.shots.push({
+    const shot = {
       id: state.sequence++,
       source: id,
       age: 0,
@@ -196,7 +255,9 @@ export function createCombatSimulation({
         .multiplyScalar(COMBAT_RULES.arcSpeed + Math.max(0, actor.state.speed))
         .toArray(),
       quaternion: pose.quaternion.toArray(),
-    });
+    };
+    shot.target = acquireArcTarget(shot);
+    state.shots.push(shot);
     state.flashes.push({
       id: state.sequence++,
       kind: 'arc',
@@ -347,8 +408,9 @@ export function createCombatSimulation({
         shot.age += dt;
         if (shot.age > COMBAT_RULES.arcLifetime) return false;
         const a = vector(shot.position);
-        // Arc pulses follow the road frame, never a target. Steering chooses
-        // their lateral trajectory; hills and banks need no separate pitch aim.
+        // Bounded homing adjusts road-local yaw; hills and banks still need
+        // no separate pitch aim, and every movement keeps the swept collision.
+        steerArc(shot, dt);
         shot.distance += shot.speed * Math.cos(shot.heading) * dt;
         shot.lateral += shot.speed * Math.sin(shot.heading) * dt;
         if (

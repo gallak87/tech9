@@ -3,7 +3,8 @@ import * as THREE from 'three';
 // Integrate emission through a small local volume. The proxy's faces never
 // supply visible shading: radial/axial density goes to zero before its bounds.
 // This removes the view-angle streaks produced by transparent cone surfaces.
-export function createOrbitalPlumeMaterial() {
+export function createOrbitalPlumeMaterial({ samples = 28 } = {}) {
+  const steps = Math.max(4, Math.min(28, Math.round(samples)));
   return new THREE.ShaderMaterial({
     name: 'Ion exhaust / pressure core and turbulent envelope',
     transparent: true,
@@ -52,10 +53,10 @@ export function createOrbitalPlumeMaterial() {
         vec3 nearBox = min(a,b), farBox = max(a,b);
         float start = max(0.,max(nearBox.x,max(nearBox.y,nearBox.z)));
         float end = min(farBox.x,min(farBox.y,farBox.z));
-        float stepLength = max(0.,end-start)/28.;
+        float stepLength = max(0.,end-start)/${steps}.;
         float transmission = 1.;
         vec3 radiance = vec3(0.);
-        for(int sampleIndex=0;sampleIndex<28;sampleIndex++) {
+        for(int sampleIndex=0;sampleIndex<${steps};sampleIndex++) {
           vec3 p = localEye + ray*(start+(float(sampleIndex)+.5)*stepLength);
           float aft = clamp(-p.z,-.07,1.);
           // Axial compression is fixed in the engine frame; only the softer

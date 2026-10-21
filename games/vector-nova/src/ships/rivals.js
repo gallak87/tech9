@@ -2,6 +2,7 @@ import { assetURL } from '../assets/url.js';
 import { Box3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { resourcesFor } from './index.js';
+import { createRivalPropulsion } from './rival-propulsion.js';
 
 // Rival meshes serve inspection and racing. Circuit race models assign their
 // handling profiles separately from the player-selectable fleet catalog.
@@ -91,7 +92,7 @@ export const RIVAL_SHIPS = Object.freeze([
 
 export async function createRivalPreview(
   id,
-  { loadAsset = (url) => new GLTFLoader().loadAsync(url) } = {},
+  { loadAsset = (url) => new GLTFLoader().loadAsync(url), settings = {} } = {},
 ) {
   const specification = RIVAL_SHIPS.find((craft) => craft.id === id);
   if (!specification) throw new Error(`Unknown rival: ${id}`);
@@ -99,6 +100,11 @@ export async function createRivalPreview(
     assetURL(`assets/ships/rivals/${id}/${id}.glb`),
   );
   const resources = resourcesFor(group);
+  const releaseResources = () => {
+    resources.geometries.forEach((resource) => resource.dispose());
+    resources.materials.forEach((resource) => resource.dispose());
+    resources.textures.forEach((resource) => resource.dispose());
+  };
   group.name = `${specification.name} / AI racer preview`;
   group.traverse((object) => {
     if (object.isMesh) object.castShadow = object.receiveShadow = true;
@@ -109,17 +115,24 @@ export async function createRivalPreview(
     rivalId: id,
     bounds: { min: bounds.min.toArray(), max: bounds.max.toArray() },
   };
+  let propulsion;
+  try {
+    propulsion = createRivalPropulsion(group, settings);
+  } catch (error) {
+    releaseResources();
+    throw error;
+  }
   let disposed = false;
   return {
     group,
     specification,
+    update: propulsion.update,
     dispose() {
       if (disposed) return;
       disposed = true;
+      propulsion.dispose();
       group.removeFromParent();
-      resources.geometries.forEach((resource) => resource.dispose());
-      resources.materials.forEach((resource) => resource.dispose());
-      resources.textures.forEach((resource) => resource.dispose());
+      releaseResources();
     },
   };
 }

@@ -1,6 +1,7 @@
 import * as T from 'three';
 import { createSnowDriftLayer } from './drift.js';
 import { sampleGlasswakeWeather } from './state.js';
+import { createNacreOceanClock } from '../../nacre/environment/ocean-clock.js';
 /** Local racing adaptation of the Tech9 weather reference's seeded GPU volumes.
  * World-space wrapping, faded volume edges and two depth layers suit race speed.
  * No frame loop, audio owner, physics mutation, or framework import is created.
@@ -10,6 +11,7 @@ export function createGlasswakeWeather({ track, shape = false }) {
   group.name = 'Glasswake / gusting snow and ice powder';
   group.userData.aoExclude = true;
   const layers = [];
+  const advanceClock = createNacreOceanClock();
   let disposed = false;
   let presentation = {};
   if (!shape)
@@ -89,9 +91,18 @@ export function createGlasswakeWeather({ track, shape = false }) {
   }
   return {
     group,
-    update({ state = {}, camera, settings = {}, reviewing = false } = {}) {
+    update(frame = {}) {
       if (disposed) return;
-      const weather = sampleGlasswakeWeather(track, state, settings);
+      const { state = {}, camera, settings = {}, reviewing = false } = frame;
+      const time = advanceClock({
+        ...frame,
+        time: frame.time ?? state.time ?? 0,
+      });
+      const weather = sampleGlasswakeWeather(
+        track,
+        { ...state, time },
+        settings,
+      );
       let count = 0;
       for (const layer of layers) {
         const quality = settings.quality === 'low' ? 0.8 : 1;

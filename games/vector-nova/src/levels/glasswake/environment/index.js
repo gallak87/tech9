@@ -698,10 +698,21 @@ export function createGlasswakeEnvironment({
     settings: nextSettings = currentSettings,
     reviewing = false,
     camera,
+    time = state.time ?? 0,
+    mode,
+    reset,
   } = {}) {
     if (disposed) return;
     currentSettings = nextSettings;
-    weather.update({ state, camera, settings: nextSettings, reviewing });
+    weather.update({
+      state,
+      camera,
+      settings: nextSettings,
+      reviewing,
+      time,
+      mode,
+      reset,
+    });
     const conditions = weather.snapshot();
     event = sampleCalvingState(track, state, ship?.group?.position);
     firstShelf = sampleFirstShelf(glasswakeFlightState(track).openingShelf);

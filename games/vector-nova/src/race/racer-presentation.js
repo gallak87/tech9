@@ -1,6 +1,7 @@
 import { Quaternion, Vector3, MathUtils } from 'three';
 import { createRivalPreview } from '../ships/rivals.js';
 import { createHitFeedback } from '../pickups/hit-feedback.js';
+import { createRivalPickups } from './rival-pickups.js';
 
 const up = new Vector3(0, 1, 0);
 const forward = new Vector3(0, 0, 1);
@@ -18,20 +19,31 @@ export async function createRacerPresentation({
   const ships = [];
   try {
     for (const opponent of racers.opponents) {
-      const ship = await loadRival(opponent.specification.id);
+      const ship = await loadRival(opponent.specification.id, { settings });
       ship.group.name = `${opponent.specification.name} / racing`;
       ship.group.visible = false;
       scene.add(ship.group);
-      ships.push({
+      const entry = {
         ship,
         opponent,
-        hitFeedback: combat ? createHitFeedback(ship.group, settings) : null,
+        hitFeedback: null,
+        pickups: null,
         yaw: new Quaternion(),
         roll: new Quaternion(),
-      });
+      };
+      ships.push(entry);
+      entry.hitFeedback = combat
+        ? createHitFeedback(ship.group, settings)
+        : null;
+      entry.pickups = createRivalPickups(
+        ship.group,
+        opponent.runtime,
+        settings,
+      );
     }
   } catch (error) {
-    ships.forEach(({ ship, hitFeedback }) => {
+    ships.forEach(({ ship, hitFeedback, pickups }) => {
+      pickups?.dispose();
       hitFeedback?.dispose();
       ship.dispose();
     });
@@ -45,24 +57,49 @@ export async function createRacerPresentation({
       const show = enabled && ['racing', 'paused', 'countdown'].includes(mode);
       const combatState = combat?.view();
       const flashes = combatState?.flashes ?? [];
-      for (const { ship, opponent, yaw, roll, hitFeedback } of ships) {
+      for (const { ship, opponent, yaw, roll, hitFeedback, pickups } of ships) {
         ship.group.visible = show;
+        const effects = opponent.runtime.snapshot?.() ?? {};
+        pickups.update({
+          visible: show,
+          mode,
+          state: opponent.state,
+          effects,
+          settings,
+        });
         const contact = flashes.findLast(
           (flash) =>
             flash.target === opponent.specification.id &&
             ['arc', 'repulsor', 'ion'].includes(flash.kind),
         );
-        const blocking = flashes.some(
-          (flash) =>
-            flash.target === opponent.specification.id &&
-            flash.kind === 'aegis',
-        );
+        const blocking =
+          effects.aegisRemaining > 0 ||
+          flashes.some(
+            (flash) =>
+              flash.target === opponent.specification.id &&
+              flash.kind === 'aegis',
+          );
         if (!show) {
+          ship.update?.({ quality: settings.quality, visible: false });
           hitFeedback?.update(undefined, settings);
           continue;
         }
         const blend = mode === 'racing' ? MathUtils.clamp(alpha, 0, 1) : 1;
         const state = opponent.state;
+        ship.update?.({
+          speed: MathUtils.lerp(
+            opponent.prev?.speed ?? state.speed,
+            state.speed,
+            blend,
+          ),
+          boost: state.boosting,
+          catapulting: effects.vectorActive === true,
+          time: state.time,
+          energy: state.energy / 100,
+          quality: settings.quality,
+          reducedMotion: settings.reducedMotion,
+          visible: true,
+        });
         const pose = opponent.runtime.pose(blend);
         if (pose) {
           ship.group.position.copy(pose.position);
@@ -112,7 +149,8 @@ export async function createRacerPresentation({
     dispose() {
       if (disposed) return;
       disposed = true;
-      ships.forEach(({ ship, hitFeedback }) => {
+      ships.forEach(({ ship, hitFeedback, pickups }) => {
+        pickups.dispose();
         hitFeedback?.dispose();
         ship.dispose();
       });

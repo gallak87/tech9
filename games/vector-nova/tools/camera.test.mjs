@@ -4,6 +4,32 @@ import * as THREE from 'three';
 import { createCameraRig } from '../src/camera/index.js';
 import { createTrack } from '../src/levels/halcyon/track/model.js';
 
+test('repeated feedback does not drift the chase rig and clears cleanly', () => {
+  const track = createTrack();
+  const cameras = [0, 1].map(
+    () => new THREE.PerspectiveCamera(64, 16 / 9, 0.2, 14000),
+  );
+  const rigs = cameras.map((camera) => createCameraRig(camera));
+  const state = { distance: 100, lateral: 0, speed: 112 };
+  const feedback = {
+    fov: 0,
+    position: [0.05, 0.04, 0.08],
+    rotation: [0.008, 0, 0.012],
+  };
+  for (let i = 0; i < 180; i++) {
+    rigs[0].update(track, state, 1 / 60);
+    rigs[1].update(track, state, 1 / 60, { feedback });
+    assert.ok(cameras[0].position.distanceTo(cameras[1].position) < 0.11);
+    state.distance += state.speed / 60;
+  }
+  rigs.forEach((rig) => rig.update(track, state, 1 / 60));
+  assert.ok(cameras[0].position.distanceTo(cameras[1].position) < 1e-9);
+  assert.ok(cameras[0].quaternion.angleTo(cameras[1].quaternion) < 1e-7);
+  rigs[1].update(track, state, 1 / 60, { feedback, reducedMotion: true });
+  rigs[0].update(track, state, 1 / 60, { reducedMotion: true });
+  assert.ok(cameras[0].position.distanceTo(cameras[1].position) < 1e-9);
+});
+
 test('chase transport retains the authored following distance at racing speed', () => {
   const track = createTrack();
   const camera = new THREE.PerspectiveCamera(64, 16 / 9, 0.2, 14000);

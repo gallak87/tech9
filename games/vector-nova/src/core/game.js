@@ -5,13 +5,18 @@ import { createFleetShip } from '../ships/fleet.js';
 import { createInspectionStage } from '../ships/inspection-stage.js';
 import { createInspectionPipeline } from '../ships/inspection-pipeline.js';
 import { RIVAL_SHIPS, createRivalPreview } from '../ships/rivals.js';
-import { loadShipSelection, saveShipSelection } from '../ships/catalog.js';
+import {
+  getShip,
+  loadShipSelection,
+  saveShipSelection,
+} from '../ships/catalog.js';
 import { createRenderer } from '../renderer/index.js';
 import { mobileGraphics } from '../renderer/device.js';
 import {
   createVehicleState,
   STEERING_ASSIST,
   surfaceHullClearance,
+  getVehiclePace,
 } from '../physics/index.js';
 import { createRace } from '../race/index.js';
 import { createTimeTrial, trialIdentity } from '../race/time-trial.js';
@@ -22,6 +27,7 @@ import { createInput } from '../input/index.js';
 import { createCameraRig } from '../camera/index.js';
 import { createAudio } from '../audio/index.js';
 import { createEffects } from '../effects/index.js';
+import { createRaceFeedback } from '../effects/race-feedback.js';
 import { createUI } from '../ui/index.js';
 import {
   loadSettings,
@@ -278,6 +284,7 @@ export async function createGame({
       audio = lifetime.own(createAudio(definition.audio)),
       effects = lifetime.own(createEffects(scene, definition.effects));
     let rig = createCameraRig(camera, definition.camera, inspectionBounds);
+    const raceFeedback = createRaceFeedback();
     let inspectionTab = 'fleet',
       inspectedRival = RIVAL_SHIPS[0],
       rivalPreview = null,
@@ -306,6 +313,7 @@ export async function createGame({
         };
       }
       events.push(event);
+      raceFeedback.event(event);
       if (events.length > 500) events.shift();
       try {
         if (e.type === 'lap' && competition) {
@@ -467,6 +475,7 @@ export async function createGame({
       }
       audio.resetEnvironment();
       effects.reset();
+      raceFeedback.reset();
       world.reset();
     };
     const advance = (control) => {
@@ -1002,7 +1011,7 @@ export async function createGame({
       ui.setRivalLoading(true);
       let loaded;
       try {
-        loaded = await createRivalPreview(id);
+        loaded = await createRivalPreview(id, { settings });
         if (!active || request !== rivalRequest || mode !== 'inspection') {
           loaded.dispose();
           return false;
@@ -1386,6 +1395,20 @@ export async function createGame({
           : state;
       ship.group.visible =
         mode !== 'fly' && (mode !== 'inspection' || inspectionTab === 'fleet');
+      const motionFeedback = runtime.snapshot() ?? {};
+      const thermal = motionFeedback.motion ?? motionFeedback;
+      const feedback = raceFeedback.update({
+        state: s,
+        mode,
+        reducedMotion: settings.reducedMotion,
+        catapulting: motionFeedback.vectorActive === true,
+        heat:
+          thermal.heat !== undefined
+            ? thermal.heat / 100
+            : thermal.contactId
+              ? 0.6
+              : 0,
+      });
       if (mode === 'inspection') {
         if (inspectionPreview.autoRotate && !settings.reducedMotion)
           inspectionTime += dt;
@@ -1400,6 +1423,15 @@ export async function createGame({
             steer: 0,
             time,
             energy: 1,
+            reducedMotion: settings.reducedMotion,
+          });
+        else
+          rivalPreview?.update({
+            speed: inspectionPreview.driving ? 400 / 3.6 : 0,
+            boost: inspectionPreview.boost,
+            time,
+            energy: 1,
+            quality: settings.quality,
             reducedMotion: settings.reducedMotion,
           });
         camera.position.setFromSphericalCoords(
@@ -1489,6 +1521,7 @@ export async function createGame({
             worldPose,
             subject: ship.group,
             paused: mode === 'paused',
+            feedback,
             finish: finishing
               ? T.MathUtils.smoothstep(state.time - finishAt, 0, 1.8)
               : 0,
@@ -1502,7 +1535,7 @@ export async function createGame({
         camera,
         settings,
         ship,
-        motion: runtime.snapshot(),
+        motion: motionFeedback,
         reviewing: mode === 'overview' || (blockout && mode === 'title'),
       };
       audio.setImmersion(
@@ -1517,9 +1550,15 @@ export async function createGame({
       view.setRacingFeedback?.({
         mode,
         speed: s.speed,
+        cruiseSpeed:
+          getVehiclePace(s.shipId, track.pace)?.cruiseSpeed ??
+          getShip(s.shipId).handling.cruiseSpeed,
         boosting: s.boosting,
-        catapulting: runtime.snapshot()?.vectorActive === true,
+        catapulting: motionFeedback.vectorActive === true,
         enabled: racingEnabled,
+        feedback,
+        subjectPosition: ship.group.position,
+        time: s.time,
       });
       effects.update(mode === 'racing' ? dt : 0, { visible: mode !== 'fly' });
       ghost.update(

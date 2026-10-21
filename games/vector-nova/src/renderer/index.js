@@ -15,6 +15,7 @@ import { attachWorldPass } from './world-pass.js';
 import { drawUnculledScene } from './warm-scene.js';
 import { mobileGraphics } from './device.js';
 import { createGraphicsContext } from './graphics-context.js';
+import { racingLens, racingBlurStrength } from './racing-lens.js';
 
 export async function createRenderer(
   host,
@@ -182,33 +183,8 @@ export async function createRenderer(
     composer.addPass(bloom);
     // Radial streaks convey the catapult's launch without frame history.
     // Preserve the vanishing point and the lower-centre ship silhouette.
-    const racingBlur = lifetime.own(
-      new ShaderPass({
-        uniforms: { tDiffuse: { value: null }, strength: { value: 0 } },
-        vertexShader: `
-        varying vec2 racingUv;
-        void main() {
-          racingUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.);
-        }`,
-        fragmentShader: `
-        uniform sampler2D tDiffuse;
-        uniform float strength;
-        varying vec2 racingUv;
-        void main() {
-          vec2 radial = racingUv - vec2(.5,.52);
-          float edge = smoothstep(.08,.42,length(radial * vec2(1.15,1.)));
-          float craft = smoothstep(.09,.20,length((racingUv-vec2(.5,.25))*vec2(1.,1.4)));
-          vec2 stride = radial * strength * edge * craft;
-          vec4 streak = vec4(0.);
-          for (int i=0; i<32; i++) {
-            float amount = float(i)/31.;
-            streak += texture2D(tDiffuse,clamp(racingUv-stride*amount,vec2(0.),vec2(1.)));
-          }
-          gl_FragColor = streak / 32.;
-        }`,
-      }),
-    );
+    const racingBlur = lifetime.own(new ShaderPass(racingLens));
+    const projectedCraft = new T.Vector3();
     racingBlur.enabled = false;
     composer.addPass(racingBlur);
     let blurTarget = 0,
@@ -273,23 +249,48 @@ export async function createRenderer(
       setRacingFeedback({
         mode,
         speed = 0,
+        cruiseSpeed,
         boosting = false,
         catapulting = false,
         enabled = false,
+        feedback = {},
+        subjectPosition,
+        time = 0,
       }) {
         const active =
           enabled &&
           mode === 'racing' &&
           !shape &&
           !settings.reducedMotion &&
-          (settings.quality === 'high' || catapulting);
+          settings.quality === 'high';
         catapultBlur = active && catapulting;
-        blurTarget = active
-          ? catapulting
-            ? 0.24 * T.MathUtils.clamp(options.catapultBlurScale ?? 1, 0, 1)
-            : T.MathUtils.smoothstep(speed, 75, 150) * 0.016 +
-              (boosting ? 0.012 : 0)
+        const courseScale = T.MathUtils.clamp(
+          options.catapultBlurScale ?? 1,
+          0,
+          1,
+        );
+        blurTarget =
+          (active
+            ? racingBlurStrength({
+                speed,
+                cruiseSpeed,
+                boost: feedback.boost ?? (boosting ? 1 : 0),
+                catapulting,
+              })
+            : 0) * courseScale;
+        racingBlur.uniforms.pressure.value = active
+          ? Math.max(feedback.boost ?? 0, catapulting ? 1 : 0) *
+            Math.sqrt(courseScale)
           : 0;
+        racingBlur.uniforms.time.value = time;
+        if (subjectPosition) {
+          camera.updateMatrixWorld();
+          projectedCraft.copy(subjectPosition).project(camera);
+          racingBlur.uniforms.craftCenter.value.set(
+            projectedCraft.x * 0.5 + 0.5,
+            projectedCraft.y * 0.5 + 0.5,
+          );
+        }
         if (!active) {
           racingBlur.uniforms.strength.value = 0;
           racingBlur.enabled = false;
@@ -367,7 +368,7 @@ export async function createRenderer(
           (targetBlur - racingBlur.uniforms.strength.value) *
           (1 - Math.exp(-dt * (catapultBlur ? 60 : 12)));
         racingBlur.enabled =
-          (settings.quality === 'high' || catapultBlur) &&
+          settings.quality === 'high' &&
           racingBlur.uniforms.strength.value > 0.0001;
         if (
           settings.quality === 'high' ||

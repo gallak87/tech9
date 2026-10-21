@@ -15,6 +15,7 @@ import { AEGIS_DURATION } from './rules.js';
 import { createHitFeedback } from './hit-feedback.js';
 import { pickupQuality } from './quality.js';
 import { createLowDeviceGeometry } from './low-geometry.js';
+import { createReadoutAnchor } from './readout-anchor.js';
 import './style.css';
 
 const clamp = (value) => Math.max(0, Math.min(1, value));
@@ -152,7 +153,7 @@ export function createPickupPresentation({
   const combatValue = combatRow.querySelector('[data-combat-value]');
   const combatFill = combatRow.querySelector('em');
   const combatIcon = combatRow.querySelector('[data-combat-icon]');
-  const anchor = new THREE.Vector3();
+  const readoutAnchor = createReadoutAnchor();
   let lastCombatIcon = null;
   let combatNotice = null;
   let combatNoticeValue = '';
@@ -177,6 +178,7 @@ export function createPickupPresentation({
   document.addEventListener('visibilitychange', visibility);
   function reset() {
     noticeTime = flowTime = 0;
+    readoutAnchor.reset();
     feedback.reset();
     ionHit?.update();
     hud.hidden = true;
@@ -223,6 +225,7 @@ export function createPickupPresentation({
         });
         root.visible = feedback.group.visible = false;
         hud.hidden = true;
+        readoutAnchor.reset();
         silence();
         return;
       }
@@ -407,16 +410,21 @@ export function createPickupPresentation({
         !nodes.vector.row.hidden ||
         !nodes.aegis.row.hidden ||
         !combatRow.hidden;
-      hud.hidden = !racing;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      let anchor = null;
       if (camera && racing && hasReadout) {
-        (ship.group || ship).updateWorldMatrix(true, false);
-        anchor.set(0, 1.6, 0);
-        (ship.group || ship).localToWorld(anchor);
-        anchor.project(camera);
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        const x = (anchor.x * 0.5 + 0.5) * width;
-        const y = (-anchor.y * 0.5 + 0.5) * height - 12;
+        anchor = readoutAnchor.update({
+          ship: ship.group || ship,
+          camera,
+          width,
+          height,
+          dt,
+        });
+      } else readoutAnchor.reset();
+      hud.hidden = !anchor;
+      if (anchor) {
+        const { x, y } = anchor;
         let left = Math.max(88, Math.min(width - 88, x));
         // Portrait timing occupies the right side of the hull's projected path.
         // Slide only overlapping readouts into the adjacent clear space.
@@ -434,7 +442,6 @@ export function createPickupPresentation({
         }
         hud.style.left = left + 'px';
         hud.style.top = Math.max(110, Math.min(height - 70, y)) + 'px';
-        hud.hidden = anchor.z < -1 || anchor.z > 1;
       }
       for (const visual of hardware) {
         visual.updateCamera(camera, (ship.group || ship).position);

@@ -146,6 +146,117 @@ test('each opponent owns device eligibility, shield timers and reserve independe
   racers.dispose();
 });
 
+test('rival Aegis acquisition is visible in both tiers and follows expiry, pause, restore and reset', async () => {
+  const racers = createHalcyonRacers({ track });
+  const scene = new Scene();
+  const groups = [];
+  const presentation = await createRacerPresentation({
+    racers,
+    scene,
+    track,
+    settings: { quality: 'high' },
+    loadRival: async () => {
+      const group = new Group();
+      group.userData.bounds = { min: [-3, -0.4, -4], max: [3, 1.5, 4] };
+      groups.push(group);
+      return { group, dispose: () => group.removeFromParent() };
+    },
+  });
+  const draw = (quality = 'high', mode = 'racing') =>
+    presentation.update({ mode, settings: { quality } });
+  const shield = (i = 0, quality = 'high') =>
+    groups[i].getObjectByName(
+      quality === 'high'
+        ? 'Aegis / hull field and outward pulses'
+        : 'Low Aegis / field',
+    );
+  try {
+    racers.reset({ enabled: true });
+    draw();
+    assert.ok(groups.every((_, i) => !shield(i).visible));
+    const rook = racers.opponents[0];
+    Object.assign(rook.state, { distance: 359.7, lateral: 3, speed: 80 });
+    rook.runtime.reset({ reason: 'scenario', state: rook.state });
+    racers.advance(dt);
+    const acquired = racers.serialize();
+    draw();
+    assert.equal(rook.runtime.snapshot().aegisRemaining, 6);
+    assert.equal(shield().visible, true);
+    assert.ok(groups.slice(1).every((_, i) => !shield(i + 1).visible));
+    assert.equal(
+      groups[0].getObjectByName('Aegis / dim driving trail').visible,
+      true,
+    );
+    assert.deepEqual(
+      racers.serialize(),
+      acquired,
+      'rendering cannot alter simulation state',
+    );
+    const owned = new Set();
+    groups[0].getObjectByName('Rival / pickups').traverse((o) => {
+      if (o.geometry) owned.add(o.geometry);
+      if (o.material) owned.add(o.material);
+    });
+    const freed = new Set();
+    for (const resource of owned)
+      resource.addEventListener('dispose', () => freed.add(resource));
+    draw('low', 'paused');
+    assert.equal(
+      freed.size,
+      owned.size,
+      'quality changes release the detailed shield',
+    );
+    assert.equal(shield(0, 'low').visible, true);
+    groups[0].getObjectByName('Rival / pickups').traverse((o) => {
+      if (o.material)
+        assert.ok(
+          o.material.isMeshBasicMaterial || o.material.isLineBasicMaterial,
+        );
+    });
+    draw('high', 'paused');
+    assert.equal(shield().visible, true);
+    const flow = shield().material.uniforms.flowTime.value;
+    draw('high', 'paused');
+    assert.equal(shield().material.uniforms.flowTime.value, flow);
+
+    // Near-expiry restore exercises a real timer transition, not a fabricated FX event.
+    const ending = rook.runtime.snapshot();
+    ending.aegisRemaining = dt / 2;
+    rook.runtime.restore(ending);
+    racers.advance(dt);
+    draw();
+    assert.equal(rook.runtime.snapshot().aegisRemaining, 0);
+    assert.equal(shield().visible, true, 'expiry starts its release tail');
+    for (let i = 0; i < 70; i++) {
+      racers.advance(dt);
+      draw();
+    }
+    assert.equal(shield().visible, false);
+    racers.restore(acquired);
+    draw();
+    assert.equal(
+      shield().visible,
+      true,
+      'restored active state rebuilds the field',
+    );
+    draw('high', 'fly');
+    assert.equal(groups[0].visible, false);
+    draw();
+    assert.equal(shield().visible, true);
+    racers.reset({ enabled: true });
+    draw();
+    assert.ok(
+      groups.every((_, i) => !shield(i).visible),
+      'reset leaves no stale shield or release',
+    );
+  } finally {
+    presentation.dispose();
+    presentation.dispose();
+    racers.dispose();
+  }
+  assert.equal(scene.children.length, 0);
+});
+
 test('open practice never becomes a finished race after two laps', () => {
   const racers = createHalcyonRacers({ track });
   const context = playerWithTwoLaps();

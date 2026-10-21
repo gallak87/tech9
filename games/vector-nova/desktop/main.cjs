@@ -124,8 +124,14 @@ function createWindow() {
     app.quit();
   });
   window.on('close', savePreferences);
-  window.on('enter-full-screen', savePreferences);
-  window.on('leave-full-screen', savePreferences);
+  for (const event of ['enter-full-screen', 'leave-full-screen'])
+    window.on(event, () => {
+      savePreferences();
+      window.webContents.send(
+        'window:fullscreen-changed',
+        window.isFullScreen(),
+      );
+    });
   window.once('ready-to-show', () => window.show());
   void window.loadURL(`${ORIGIN}/index.html`);
 }
@@ -175,6 +181,10 @@ app.whenReady().then(() => {
   });
   protocol.handle('vn-game', (request) =>
     serveResource(request, join(__dirname, 'dist')),
+  );
+  ipcMain.handle(
+    'window:get-fullscreen',
+    (event) => trustedSender(event, window) && window.isFullScreen(),
   );
   ipcMain.on('window:fullscreen', (event) => {
     if (trustedSender(event, window)) toggleFullscreen();

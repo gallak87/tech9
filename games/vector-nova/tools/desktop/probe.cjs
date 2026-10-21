@@ -68,6 +68,21 @@ async function run() {
     true,
     'Native fullscreen must remain available when starting windowed',
   );
+  assert.equal(
+    await evaluate('window.vectorNovaDesktop.getFullscreen()'),
+    window.isFullScreen(),
+  );
+  assert(
+    await evaluate(
+      '!!document.querySelector(".desktop-window-controls button[data-desktop-fullscreen]")',
+    ),
+  );
+  assert.equal(
+    await evaluate(
+      `!!document.querySelector('.menu-links [data-action="desktop-fullscreen"]')`,
+    ),
+    false,
+  );
   if (process.env.VN_PROBE_WINDOW_ONLY === '1') {
     console.log(
       `PASS ${manifest.edition}: native fullscreen enabled after startup`,
@@ -132,7 +147,7 @@ async function run() {
   );
   assert.deepEqual(
     await evaluate('Object.keys(window.vectorNovaDesktop).sort()'),
-    ['quit', 'toggleFullscreen'],
+    ['getFullscreen', 'onFullscreenChange', 'quit', 'toggleFullscreen'],
   );
   const expected = [...manifest.levels].sort();
   assert.deepEqual(
@@ -216,6 +231,16 @@ async function run() {
       await evaluate('!!document.querySelector("#legend")'),
       false,
       'Steam omits the shortcut footer',
+    );
+    assert.equal(
+      await evaluate(
+        `document.querySelector('#pause-panel [data-desktop-fullscreen]').checked`,
+      ),
+      window.isFullScreen(),
+    );
+    assert.equal(
+      await evaluate('!!document.querySelector(".desktop-window-controls")'),
+      false,
     );
     await click('#pause-tunes');
     assert(

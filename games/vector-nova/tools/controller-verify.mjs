@@ -7,6 +7,7 @@ if (!process.env.VN_URL)
   throw new Error('Set VN_URL to this checkout’s server.');
 const responsive = process.argv.includes('--responsive');
 const tunes = process.argv.includes('--tunes');
+const desktopControls = process.argv.includes('--desktop-controls');
 const browser = await chromium.launch({
   headless: true,
   ...(process.env.VN_BROWSER_PATH
@@ -40,8 +41,34 @@ try {
         window.__controllerTest.connected ? [window.__controllerTest] : [],
     });
   });
+  if (desktopControls)
+    await context.addInitScript(() => {
+      // Renderer contract test only; native availability is checked in the Electron probe.
+      let fullscreen = false;
+      const listeners = new Set();
+      window.__setNativeFullscreen = (value) => {
+        fullscreen = value;
+        for (const listener of listeners) listener(fullscreen);
+      };
+      window.vectorNovaDesktop = {
+        getFullscreen: async () => fullscreen,
+        onFullscreenChange: (listener) => {
+          listeners.add(listener);
+          return () => listeners.delete(listener);
+        },
+        toggleFullscreen: () => window.__setNativeFullscreen(!fullscreen),
+        quit() {},
+      };
+    });
   const page = await context.newPage();
   page.on('pageerror', (error) => errors.push(error.message));
+  const settleInput = () =>
+    page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        ),
+    );
   const snapshot = () => page.evaluate(() => window.__VN.getSnapshot());
   const button = async (index, value) => {
     await page.evaluate(
@@ -53,7 +80,7 @@ try {
       },
       { index, value },
     );
-    await page.waitForTimeout(100);
+    await settleInput();
   };
   const tap = async (index) => {
     await button(index, 1);
@@ -63,7 +90,7 @@ try {
     await page.evaluate((x) => {
       window.__controllerTest.axes[0] = x;
     }, x);
-    await page.waitForTimeout(100);
+    await settleInput();
   };
   const neutral = async () => {
     await page.evaluate(() => {
@@ -73,7 +100,7 @@ try {
         b.value = 0;
       }
     });
-    await page.waitForTimeout(100);
+    await settleInput();
   };
   const navigate = async (selector) => {
     for (let i = 0; i < 40; i++) {
@@ -96,7 +123,121 @@ try {
       mode,
       { timeout: 90000 },
     );
-  if (tunes) {
+  if (desktopControls) {
+    await page.goto(process.env.VN_URL);
+    const floating = '.desktop-window-controls button';
+    await page.locator(floating).waitFor();
+    assert.equal(
+      await page
+        .locator('.menu-links [data-action="desktop-fullscreen"]')
+        .count(),
+      0,
+    );
+    await navigate(floating);
+    await tap(0);
+    assert.equal(
+      await page.locator(floating).getAttribute('aria-pressed'),
+      'true',
+    );
+    await page.keyboard.press('Enter');
+    assert.equal(
+      await page.locator(floating).getAttribute('aria-pressed'),
+      'false',
+    );
+    await page.locator('[data-action="settings"]').click();
+    for (const viewport of [
+      { width: 1440, height: 1000 },
+      { width: 800, height: 600 },
+      { width: 2560, height: 1440 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.locator(floating).focus();
+      const box = await page.locator(floating).boundingBox();
+      const tunesBox = await page.locator('[data-music-player]').boundingBox();
+      assert(box.x >= 0 && box.y >= 0 && box.x + box.width <= viewport.width);
+      assert(
+        box.x + box.width <= tunesBox.x,
+        'fullscreen stays clear of Tunes',
+      );
+      const back = await page
+        .locator('[data-action="settings-back"]')
+        .boundingBox();
+      assert(
+        box.x >= back.x + back.width ||
+          box.y + box.height <= back.y ||
+          box.y >= back.y + back.height,
+        'fullscreen stays clear of Back',
+      );
+    }
+    if (process.env.VN_EVIDENCE)
+      await page.screenshot({
+        path: process.env.VN_EVIDENCE.replace('.png', '-menu.png'),
+      });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.keyboard.press('Escape');
+    await page.locator('[data-action="inspect"]').click();
+    await page.locator('#inspect-back').waitFor();
+    await navigate(floating);
+    await tap(0);
+    assert.equal(
+      await page.locator(floating).getAttribute('aria-pressed'),
+      'true',
+    );
+    await tap(1);
+    await page.locator('[data-action="practice"]').click();
+    await page.locator('[data-action="launch"]').click();
+    await page.waitForFunction(
+      () =>
+        document.body.dataset.screen === 'race' &&
+        document.querySelector('#hud:not(.hidden)'),
+      null,
+      { timeout: 90000 },
+    );
+    assert.equal(
+      await page.locator(floating).count(),
+      0,
+      'no floating control during race',
+    );
+    await tap(9);
+    await page.locator('#pause-panel:not(.hidden)').waitFor();
+    const checkbox = '#pause-panel [data-desktop-fullscreen]';
+    assert(
+      await page.locator(checkbox).isChecked(),
+      'pause reflects fullscreen from inspector',
+    );
+    await navigate(checkbox);
+    await tap(0);
+    assert.equal(await page.locator(checkbox).isChecked(), false);
+    await page.evaluate(() => window.__setNativeFullscreen(true));
+    assert(
+      await page.locator(checkbox).isChecked(),
+      'native shortcut updates checkbox',
+    );
+    await page.keyboard.press('Space');
+    assert.equal(await page.locator(checkbox).isChecked(), false);
+    await page.locator('#pause-settings').click();
+    await page.locator(floating).waitFor();
+    assert.equal(
+      await page.locator(floating).getAttribute('aria-pressed'),
+      'false',
+    );
+    await page.evaluate(() => window.__setNativeFullscreen(true));
+    assert.equal(
+      await page.locator(floating).getAttribute('aria-label'),
+      'Exit fullscreen',
+    );
+    await page.keyboard.press('Escape');
+    assert(
+      await page.locator(checkbox).isChecked(),
+      'pause state remains synchronized after Settings',
+    );
+    assert(await page.locator('#pause-panel:not(.hidden)').isVisible());
+    if (process.env.VN_EVIDENCE)
+      await page.screenshot({ path: process.env.VN_EVIDENCE });
+    console.log(
+      'PASS desktop controls: setup, Settings, inspector, pause, keyboard/controller access, native state updates, 800–2560px layout',
+    );
+  } else if (tunes) {
     await page.goto(new URL('?level=halcyon', process.env.VN_URL).href);
     await page.locator('[data-action="tunes"]').waitFor();
     // A real browser gesture unlocks HTML audio; the pad remains synthetic.

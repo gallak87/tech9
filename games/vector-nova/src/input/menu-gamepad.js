@@ -108,9 +108,12 @@ export function bindMenuGamepad(signal, { toggleMusic = () => {} } = {}) {
           : y < 0
             ? 'ArrowUp'
             : 'ArrowDown',
-      )
+      ) &&
+      document.activeElement !== target
     )
       return;
+    // A spatial handler at an edge may leave focus unchanged. Continue through
+    // the root's native controls so header/global actions remain reachable.
     const index = controls.indexOf(target);
     controls[(index + (x || y) + controls.length) % controls.length]?.focus();
   }

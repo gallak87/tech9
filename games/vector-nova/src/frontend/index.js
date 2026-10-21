@@ -1,3 +1,4 @@
+import { bindDesktopControls } from '../ui/desktop-controls.js';
 import { CONTROLLER_DEFAULTS } from '../input/gamepad.js';
 import {
   controllerSettingsView,
@@ -180,6 +181,9 @@ export function createFrontend(host) {
   const shell = host.querySelector('#front-shell');
   const inspectorHost = document.createElement('div');
   inspectorHost.id = 'inspector-host';
+  const desktopControls = import.meta.env?.VN_DESKTOP
+    ? bindDesktopControls(host, life.signal)
+    : null;
   const music =
     artPass || inspectShip || parameters.get('music') === '0'
       ? null
@@ -316,6 +320,9 @@ export function createFrontend(host) {
     document.body.dataset.screen = next;
     music?.setDriving(next === 'race');
     render();
+    desktopControls?.mount(
+      next === 'inspection' ? inspectorHost : shell.hidden ? null : shell,
+    );
     if (navigating) shell.scrollTop = 0;
     const focus =
       next === 'records'
@@ -474,7 +481,7 @@ export function createFrontend(host) {
     const selectedCraft = lockedCup()
       ? SHIPS.find((entry) => entry.id === savedCup.shipId)
       : selectedShip();
-    return `<section class="race-menu" aria-label="Session setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1>${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step" ${lockedCup() ? 'disabled' : ''}><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}${music ? button('tunes', 'Tunes') : ''}${import.meta.env?.VN_DESKTOP === true ? button('desktop-fullscreen', 'Fullscreen / Windowed') + button('desktop-quit', 'Quit game') : ''}</nav><div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    return `<section class="race-menu" aria-label="Session setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1>${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step" ${lockedCup() ? 'disabled' : ''}><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}${music ? button('tunes', 'Tunes') : ''}${import.meta.env?.VN_DESKTOP === true ? button('desktop-quit', 'Quit game') : ''}</nav><div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
   };
   function cupPanel(withActions) {
     const state = cupStore.snapshot().state;
@@ -539,6 +546,7 @@ export function createFrontend(host) {
       ?.append(transfer);
     updateLaunchSummary();
     updateStatus();
+    desktopControls?.mount(shell);
   }
   function render() {
     disposeControllerSettings?.();
@@ -697,6 +705,7 @@ export function createFrontend(host) {
     if (statusSlot) statusSlot.append(transfer);
     updateLaunchSummary();
     updateStatus();
+    desktopControls?.mount(shell);
   }
   function mountShipPreview() {
     const slot = shell.querySelector('.ship-preview-slot');
@@ -1370,9 +1379,6 @@ export function createFrontend(host) {
     },
     'controller-reset'() {
       saveSettings(CONTROLLER_DEFAULTS);
-    },
-    'desktop-fullscreen'() {
-      window.vectorNovaDesktop?.toggleFullscreen();
     },
     'desktop-quit'() {
       window.vectorNovaDesktop?.quit();

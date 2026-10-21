@@ -13,6 +13,10 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 5. [x] **Apex Cup.** Add Worldspire (sprint) → Helion Flare → Nightweir (sprint) → Umbra Fold: a longer four-event finale alternating descents with the harder circuits. Reuse the same cup rules and validate resume/retry across both formats.
 6. [x] **UI revamp around the working modes.** Once Time Trials and all four cups are playable, design the menu, setup, records and results flows around their actual needs. Make mode selection and return/retry paths consistent while retaining Quick Race and Practice. Preserve keyboard and touch navigation. Choose the final layout after using both modes; avoid committing to a speculative menu design first.
 
+## Menu navigation
+
+- [ ] **Redesign navigation for large/fullscreen menus across the whole game.** The current wide layout is difficult to navigate. Rework grouping, predictable D-pad/arrow movement between sections, visible focus, scroll/focus retention and Back/Resume paths for setup, cups, records, Settings and the inspector. Validate complete keyboard/controller flows at windowed, fullscreen and ultrawide sizes, and preserve browser/touch access. This is shared game UX, not a Steam-only redesign; choose the layout through a dedicated playtest pass.
+
 ## Implemented
 
 - [x] Eleven worlds: Halcyon Speedway, Asterion Orbital, Nacre Tempest, Vesper Canopy, Glasswake Comet, Cindercoil, Saffron Leviathan, Umbra Fold, Helion Flare, Zephyr Basilica and Shatterline, with their course-owned scenery, surfaces, hazards and events.

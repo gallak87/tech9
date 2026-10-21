@@ -15,7 +15,7 @@ import { attachWorldPass } from './world-pass.js';
 import { drawUnculledScene } from './warm-scene.js';
 import { mobileGraphics } from './device.js';
 import { createGraphicsContext } from './graphics-context.js';
-import { racingLens } from './racing-lens.js';
+import { racingLens, racingBlurStrength } from './racing-lens.js';
 
 export async function createRenderer(
   host,
@@ -249,6 +249,7 @@ export async function createRenderer(
       setRacingFeedback({
         mode,
         speed = 0,
+        cruiseSpeed,
         boosting = false,
         catapulting = false,
         enabled = false,
@@ -270,10 +271,12 @@ export async function createRenderer(
         );
         blurTarget =
           (active
-            ? catapulting
-              ? 0.24
-              : T.MathUtils.smoothstep(speed, 45, 155) * 0.04 +
-                (feedback.boost ?? (boosting ? 1 : 0)) * 0.12
+            ? racingBlurStrength({
+                speed,
+                cruiseSpeed,
+                boost: feedback.boost ?? (boosting ? 1 : 0),
+                catapulting,
+              })
             : 0) * courseScale;
         racingBlur.uniforms.pressure.value = active
           ? Math.max(feedback.boost ?? 0, catapulting ? 1 : 0) *

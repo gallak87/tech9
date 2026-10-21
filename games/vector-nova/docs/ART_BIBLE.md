@@ -10,7 +10,7 @@ Readability order: upcoming road/corner, craft/propulsion, gameplay feedback, de
 
 High/low presets retain the same world and navigation cues. Reduced motion restrains flashes and environmental movement. Use generated imagery only for appropriate asset/material roles, with exact provenance; preserve editable sources and licences.
 
-Racing speed should read through peripheral travel and a widening view, with the upcoming road and player silhouette kept clear. Cruise feels fast, boost adds blue edge streaks and stronger rush, and Vector remains the strongest surge. Rivals carry visible nozzle-mounted blue thrust that grows under boost; Low keeps a simple fading silhouette. Pickups and outgoing shots give small kicks, received hits and collisions carry more weight, and heat adds a fine tremor. Responses settle quickly rather than sustaining heavy screen shake; reduced motion removes the added camera movement and speed lens.
+Racing speed should read through peripheral travel and a widening view, with the upcoming road and player silhouette kept clear. The last 20% of cruise speed builds a subtle rush capped at one-third of boost blur; boost adds blue edge streaks and stronger rush, and Vector remains the strongest surge. Rivals carry visible nozzle-mounted blue thrust that grows under boost; Low keeps a simple fading silhouette. Pickups and outgoing shots give small kicks, received hits and collisions carry more weight, and heat adds a fine tremor. Responses settle quickly rather than sustaining heavy screen shake; reduced motion removes the added camera movement and speed lens.
 
 ## Kestrel
 

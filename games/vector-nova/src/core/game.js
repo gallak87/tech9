@@ -5,13 +5,18 @@ import { createFleetShip } from '../ships/fleet.js';
 import { createInspectionStage } from '../ships/inspection-stage.js';
 import { createInspectionPipeline } from '../ships/inspection-pipeline.js';
 import { RIVAL_SHIPS, createRivalPreview } from '../ships/rivals.js';
-import { loadShipSelection, saveShipSelection } from '../ships/catalog.js';
+import {
+  getShip,
+  loadShipSelection,
+  saveShipSelection,
+} from '../ships/catalog.js';
 import { createRenderer } from '../renderer/index.js';
 import { mobileGraphics } from '../renderer/device.js';
 import {
   createVehicleState,
   STEERING_ASSIST,
   surfaceHullClearance,
+  getVehiclePace,
 } from '../physics/index.js';
 import { createRace } from '../race/index.js';
 import { createTimeTrial, trialIdentity } from '../race/time-trial.js';
@@ -1507,6 +1512,9 @@ export async function createGame({
       view.setRacingFeedback?.({
         mode,
         speed: s.speed,
+        cruiseSpeed:
+          getVehiclePace(s.shipId, track.pace)?.cruiseSpeed ??
+          getShip(s.shipId).handling.cruiseSpeed,
         boosting: s.boosting,
         catapulting: motionFeedback.vectorActive === true,
         enabled: racingEnabled,

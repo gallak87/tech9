@@ -27,7 +27,7 @@ test('each audition emits one acquisition; Arc retains the real three-shot timin
     assert.equal(pickupPreviewFrame(id, 0.01, 0).events.length, 0);
   }
   const events = [];
-  for (let index = 1; index <= 100; index++)
+  for (let index = 1; index <= 200; index++)
     events.push(
       ...pickupPreviewFrame('arc', index / 100, (index - 1) / 100).events,
     );
@@ -298,16 +298,16 @@ test('the dev target stops Arc pellets at its hull and uses the gameplay hit gra
   const flash = hit.combat.flashes.find((flash) => flash.type !== 'muzzle');
   assert.equal(flash.position[2], distance);
   assert.equal(flash.kind, 'arc');
-  const all = pickupPreviewFrame('arc', 1, -1, true).events;
+  const all = pickupPreviewFrame('arc', 2, -1, true).events;
   assert.equal(all.filter((event) => event.type === 'combat-fire').length, 3);
   assert.equal(
     all.filter((event) => event.type === 'combat-confirm').length,
-    1,
-    'later shots land during the same hit grace',
+    2,
+    'the third shot arrives after hit grace expires',
   );
   assert.equal(
     all.filter((event) => event.type === 'combat-contact').length,
-    2,
+    1,
   );
   for (let index = 0; index < 3; index++) {
     const at = impact + index * COMBAT_RULES.arcInterval + 0.001;
@@ -332,7 +332,7 @@ test('the dev target stops Arc pellets at its hull and uses the gameplay hit gra
   assert.equal(repulsor.events.at(-1).type, 'combat-confirm');
 });
 
-test('a shielded target blocks the first hit; later Arc contacts remain grace-only', () => {
+test('a shielded target blocks the first hit, skips the second and takes the third on its hull', () => {
   for (const kind of ['arc', 'repulsor']) {
     const at =
       kind === 'arc'
@@ -351,14 +351,20 @@ test('a shielded target blocks the first hit; later Arc contacts remain grace-on
       'aegis',
     );
   }
-  const arc = pickupPreviewFrame('arc', 1, -1, true, true);
+  const arc = pickupPreviewFrame('arc', 2, -1, true, true);
   assert.equal(
     arc.events.filter((event) => event.type === 'combat-confirm').length,
-    1,
+    2,
   );
   assert.equal(
     arc.events.filter((event) => event.type === 'combat-contact').length,
-    2,
+    1,
+  );
+  assert.deepEqual(
+    arc.events
+      .filter((event) => event.type === 'combat-confirm')
+      .map((event) => event.payload.shielded),
+    [true, false],
   );
 });
 
@@ -368,7 +374,12 @@ test('the target stays visible between auditions, follows ship changes and detac
   assert.equal(target.parent, h.ship);
   assert.equal(target.position.z, PREVIEW_TARGET_DISTANCE);
   await h.preview.trigger('arc');
-  h.preview.update(0.2);
+  h.preview.update(
+    COMBAT_RULES.arcDelay +
+      (PREVIEW_TARGET_DISTANCE - ARC_TARGET_HALF_LENGTH) /
+        COMBAT_RULES.arcSpeed +
+      0.01,
+  );
   const flashes = h.ship.children[0].children[1].children.filter(
     (object) =>
       object.visible && object.name === 'Combat / contact or pressure pulse',

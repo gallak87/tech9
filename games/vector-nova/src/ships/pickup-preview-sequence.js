@@ -43,9 +43,11 @@ export function pickupPreviewFrame(
   const events = [];
   const effects = {};
   const combat = { time, emitters: {}, shots: [], flashes: [], wakes: [] };
+  let targetShield = shielded;
   const crossed = (at) => previous < at && time >= at;
   function targetHit(at, position, confirmed = true) {
-    const blocked = confirmed && shielded;
+    const blocked = confirmed && targetShield;
+    if (confirmed) targetShield = false;
     if (crossed(at))
       events.push({
         type: confirmed ? 'combat-confirm' : 'combat-contact',

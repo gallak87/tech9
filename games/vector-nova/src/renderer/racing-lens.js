@@ -1,4 +1,15 @@
-import { Vector2 } from 'three';
+import { MathUtils, Vector2 } from 'three';
+
+export function racingBlurStrength({
+  speed,
+  cruiseSpeed,
+  boost = 0,
+  catapulting = false,
+}) {
+  if (catapulting) return 0.24;
+  const cruise = MathUtils.smoothstep(speed / cruiseSpeed, 0.8, 1) * (0.16 / 3);
+  return MathUtils.lerp(cruise, 0.16, MathUtils.clamp(boost, 0, 1));
+}
 
 // Peripheral world streaking, with a clear road aim and a tracked sharp craft.
 // One existing postprocess slot, no motion history or additional render target.

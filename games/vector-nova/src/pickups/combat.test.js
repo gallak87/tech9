@@ -21,8 +21,8 @@ const track = {
     curvature: 0,
   }),
 };
-function harness(collisionWorld = null) {
-  const combat = createCombatSimulation({ track, collisionWorld });
+function harness(collisionWorld = null, course = track) {
+  const combat = createCombatSimulation({ track: course, collisionWorld });
   const actors = new Map(),
     events = [];
   function add(id, z, x = 0, speed = 0, shield = false) {
@@ -32,8 +32,12 @@ function harness(collisionWorld = null) {
       hits: [],
       grounded: true,
       pose: () => ({
-        position: new T.Vector3(state.lateral, 1.2, state.distance),
-        quaternion: new T.Quaternion(),
+        position: course
+          .sample(state.distance)
+          .position.clone()
+          .addScaledVector(course.sample(state.distance).right, state.lateral)
+          .addScaledVector(course.sample(state.distance).up, 1.2),
+        quaternion: course.sample(state.distance).quaternion.clone(),
         grounded: actor.grounded,
       }),
       notify: (event) => events.push({ id, ...event }),
@@ -146,35 +150,167 @@ test('arc fires exactly three swept bolts and reaches a separated rival', () => 
   h.add('player', 0);
   const target = h.add('target', 180);
   h.collect('player', 'arc');
-  h.step(170);
+  h.step(240);
   assert.equal(h.events.filter((e) => e.type === 'combat-fire').length, 3);
   assert.ok(target.hits.length >= 1);
   assert.equal(h.combat.view().shots.length, 0);
 });
-test('every Arc contact flashes the target while damage grace still allows only one impulse', () => {
+test('Arc fires at the slower speed over a 0.9-second window and homes across lanes', () => {
+  for (const source of ['player', 'rival']) {
+    const h = harness();
+    h.add(source, 0, -9, 100);
+    const target = h.add('target', 110, 9, 100);
+    h.collect(source, 'arc');
+    const fired = [];
+    let previousCount = 0;
+    for (let tick = 0; tick < 240; tick++) {
+      h.step();
+      const count = h.events.filter(
+        (event) => event.type === 'combat-fire',
+      ).length;
+      if (count > previousCount) {
+        fired.push(h.combat.view().time);
+        const shot = h.combat.view().shots.at(-1);
+        assert.equal(
+          shot.speed,
+          345 + 100,
+          'retain the firing ship’s forward momentum',
+        );
+        assert.equal(shot.target, 'target');
+        assert.ok(
+          shot.heading > 0 &&
+            shot.heading <= COMBAT_RULES.arcTurnRate / 120 + 1e-9,
+        );
+      }
+      previousCount = count;
+    }
+    assert.equal(fired.length, 3);
+    for (const [index, at] of [0.15, 0.6, 1.05].entries())
+      assert.ok(Math.abs(fired[index] - at) <= 1 / 120 + 1e-9);
+    assert.equal(
+      target.hits.length,
+      2,
+      'gentle tracking reaches a moving racer across the road',
+    );
+    assert.equal(h.combat.view().shots.length, 0);
+  }
+});
+test('Arc only acquires a nearby forward grounded racer, with stable tie-breaking', () => {
+  for (const reverse of [false, true]) {
+    const h = harness();
+    h.add('source', 100);
+    h.add('behind', 90);
+    h.add('outside-cone', 105, 12);
+    h.add('distant', 400);
+    h.add('flying', 130).grounded = false;
+    const deck = h.add('other-deck', 135);
+    const pose = deck.pose;
+    deck.pose = () => {
+      const p = pose();
+      p.position.y += 12;
+      return p;
+    };
+    const targets = ['alpha', 'beta'];
+    if (reverse) targets.reverse();
+    for (const id of targets) h.add(id, 180, 8);
+    h.collect('source', 'arc');
+    h.step(18);
+    assert.equal(h.combat.view().shots[0].target, 'alpha');
+  }
+});
+test('Arc turning is bounded; losing a target never reacquires or makes a U-turn', () => {
+  const h = harness();
+  h.add('source', 0);
+  const target = h.add('target', 120, 9);
+  h.add('alternate', 160, -9);
+  h.collect('source', 'arc');
+  h.step(20);
+  const shotId = h.combat.view().shots[0].id;
+  const before = h.combat.view().shots[0].heading;
+  target.state.lateral = -12;
+  h.step();
+  let shot = h.combat.view().shots.find((s) => s.id === shotId);
+  assert.ok(
+    Math.abs(shot.heading - before) <= COMBAT_RULES.arcTurnRate / 120 + 1e-9,
+  );
+  target.state.distance = 0;
+  h.step();
+  shot = h.combat.view().shots.find((s) => s.id === shotId);
+  assert.equal(shot.target, null);
+  const heading = shot.heading;
+  target.state.distance = 120;
+  h.step(4);
+  shot = h.combat.view().shots.find((s) => s.id === shotId);
+  assert.equal(shot.target, null);
+  assert.equal(shot.heading, heading);
+  assert.ok(shot.velocity[2] > 0);
+});
+test('homing survives a banked lap seam and restores an in-flight lock deterministically', () => {
+  const radius = 300;
+  const course = {
+    ...track,
+    closed: true,
+    length: Math.PI * 2 * radius,
+    sample(distance) {
+      const angle = distance / radius;
+      const quaternion = new T.Quaternion().setFromEuler(
+        new T.Euler(0, angle, 0.35, 'YXZ'),
+      );
+      return {
+        position: new T.Vector3(
+          radius * (1 - Math.cos(angle)),
+          0,
+          radius * Math.sin(angle),
+        ),
+        quaternion,
+        right: new T.Vector3(1, 0, 0).applyQuaternion(quaternion),
+        up: new T.Vector3(0, 1, 0).applyQuaternion(quaternion),
+        tangent: new T.Vector3(0, 0, 1).applyQuaternion(quaternion),
+      };
+    },
+  };
+  const h = harness(null, course);
+  h.add('source', course.length - 50, -7);
+  const target = h.add('target', 50, 7);
+  h.collect('source', 'arc');
+  h.step(23);
+  const saved = h.combat.snapshot();
+  assert.equal(saved.shots[0].target, 'target');
+  assert.ok(saved.shots[0].heading > 0);
+  h.step(220);
+  const expected = h.combat.snapshot();
+  const hits = structuredClone(target.hits);
+  assert.ok(hits.length > 0);
+  target.hits = [];
+  h.combat.restore(saved);
+  h.step(220);
+  assert.deepEqual(h.combat.snapshot(), expected);
+  assert.deepEqual(target.hits, hits);
+});
+test('every Arc contact flashes, with only the first and third shots outside hit grace', () => {
   const h = harness();
   h.add('player', 0);
   const target = h.add('target', 14);
   h.collect('player', 'arc');
   const contacts = new Set();
-  for (let tick = 0; tick < 160; tick++) {
+  for (let tick = 0; tick < 210; tick++) {
     h.step();
     for (const flash of h.combat.view().flashes)
       if (flash.target === 'target' && flash.kind === 'arc')
         contacts.add(flash.id);
   }
   assert.equal(contacts.size, 3);
-  assert.equal(target.hits.length, 1);
+  assert.equal(target.hits.length, 2);
   assert.equal(
     h.events.filter((event) => event.type === 'combat-confirm').length,
-    1,
+    2,
   );
   for (const id of ['player', 'target'])
     assert.equal(
       h.events.filter(
         (event) => event.type === 'combat-contact' && event.id === id,
       ).length,
-      2,
+      1,
       'later contacts are audible to both racers without extra damage',
     );
   assert.equal(h.combat.view().flashes.length, 0, 'all visual contacts expire');
@@ -325,8 +461,9 @@ test('shield results are forwarded and grace limits successive hits', () => {
   const target = h.add('target', 80, 0, 0, true);
   h.collect('player', 'arc');
   h.step(170);
-  assert.equal(target.hits.length, 1);
+  assert.equal(target.hits.length, 2);
   assert.equal(target.hits[0].shielded, true);
+  assert.equal(target.hits[1].shielded, false);
   assert.ok(
     h.events.some(
       (e) => e.id === 'target' && e.type === 'combat-hit' && e.payload.shielded,

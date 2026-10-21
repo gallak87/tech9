@@ -392,9 +392,7 @@ export function createFrontend(host) {
         ([n, v, u, f]) =>
           `<div><span>${n}</span><b>${v} <small>${u}</small></b><i style="--stat:${Math.min(100, f * 100)}%"></i></div>`,
       )
-      .join(
-        '',
-      )}</div><p class="stat-note">Handling and braking are relative ratings.</p></aside>${withActions ? pickerRaceActions() : ''}</div>`;
+      .join('')}</div></aside>${withActions ? pickerRaceActions() : ''}</div>`;
   const modeName = () =>
     ({
       race: 'Quick Race',
@@ -422,34 +420,18 @@ export function createFrontend(host) {
         : isSprint()
           ? 'Start Sprint →'
           : 'Start race →';
-  const modeDescription = () =>
-    intent === 'time-trial'
-      ? isSprint()
-        ? 'One descent against your personal ghost. Manual boost, no road devices.'
-        : 'Unlimited laps. Each clean best saves a ghost for the next lap. Standing and flying bests are separate. Manual boost, no road devices.'
-      : intent === 'practice'
-        ? `${isSprint() ? 'One solo descent' : 'Open solo laps'} to learn the course. No opponents.`
-        : '';
   const raceActions = () => {
     if (intent === 'cup') {
       const state = cupStore.snapshot().state;
-      const cup = currentCup();
       const next = cupLaunch(
         state,
         selectedCup,
         sessionCup && game?.hasSession(),
       );
-      const event = state
-        ? cup.tracks[
-            Math.min(
-              state.eventIndex + (state.phase === 'results' ? 1 : 0),
-              cup.tracks.length - 1,
-            )
-          ]
-        : null;
-      return `<div class="race-actions"><button class="primary" data-action="${next.action}" ${cupConfirm ? 'disabled' : ''}><strong>${next.label}</strong><small>${next.detail}</small></button>${state ? '' : difficultyControls()}<p class="mode-description">${state ? `${escape(catalog.find((entry) => entry.id === event).name)} · ${state.difficulty} opponents. Your cup progress is saved.` : `${cup.tracks.length} races against nine rivals. Ship and difficulty stay fixed throughout the cup.`}</p></div>`;
+      return `<div class="race-actions"><button class="primary" data-action="${next.action}" ${cupConfirm ? 'disabled' : ''}><strong>${next.label}</strong><small>${next.detail}</small></button>${state ? '' : difficultyControls()}</div>`;
     }
-    const description = modeDescription();
+    const description =
+      intent === 'time-trial' ? 'Manual boost · No road devices' : '';
     return `<div class="race-actions"><button class="primary" data-action="launch"><strong>${launchLabel()}</strong><small>${intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : 'Unlimited laps'}</small></button>${intent === 'race' ? difficultyControls() : ''}${description ? `<p class="mode-description">${description}</p>` : ''}</div>`;
   };
   function pickerRaceActions() {
@@ -573,7 +555,7 @@ export function createFrontend(host) {
       const inspecting = launchTarget === 'inspection';
       content.innerHTML = `<section class="loading-copy">${inspecting ? '' : `<div class="loading-card">${picture(route())}${routeArt(route())}</div>`}<div class="transfer-slot loading-transfer"></div>${heading(inspecting ? 'PREPARING STUDIO' : 'LOADING CIRCUIT', inspecting ? 'Ship inspector' : escape(level().name))}${inspecting ? '' : `<div class="session-facts">${facts()}</div>`}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
     } else if (screen === 'settings') {
-      content.innerHTML = `<div class="settings-layout"><section class="settings-form"><label><span>Graphics <small>High adds ambient occlusion and postprocessing. Low reduces GPU load.</small></span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume <small>Tunes has its own volume control.</small></span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion <small>Reduces decorative motion and distortion.</small></span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label><p>Saved on this device.</p></section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
+      content.innerHTML = `<div class="settings-layout"><section class="settings-form"><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume</span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion</span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label></section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
         [
           'Driving',
           [
@@ -674,7 +656,7 @@ export function createFrontend(host) {
             ? `${escape(SHIPS.find((ship) => ship.id === r.shipId)?.name ?? 'Selected ship')} · ${sprint ? 'One descent' : `${r.laps} lap${r.laps === 1 ? '' : 's'}`} · ${r.delta == null ? 'First completed trial' : `${signed(r.delta)} against previous best`}`
             : 'A checkpoint or manual recovery invalidated this run. Retry for a ranked time.';
         const detail = content.querySelector('.results-list').parentElement;
-        detail.innerHTML = `<p class="trial-best">PERSONAL BEST <b>${stamp(r.bestTime)}</b></p><h2 class="trial-split-title">Cumulative splits</h2><p class="trial-split-key">Elapsed time at each sector · − ahead / + behind previous best</p><ol class="trial-splits" aria-label="Cumulative splits against previous best">${r.splits.map((t, i) => `<li><span>${sprint ? '' : `L${Math.floor(i / 3) + 1} · `}S${(i % 3) + 1}</span><b>${stamp(t)}</b><span>${signed(r.splitDeltas[i])}</span></li>`).join('')}</ol><p class="results-note" role="status">${!r.playerValid ? 'Best and ghost unchanged.' : r.improved ? (r.saved.saved ? (r.saved.ghostSaved ? 'Best and personal ghost saved on this device.' : 'Best saved. Ghost could not be saved; storage may be full or the run exceeded 20 minutes.') : 'Storage unavailable. Best and ghost are kept for this page session only.') : r.ghostAvailable ? 'Personal best unchanged. Retry to race your ghost.' : 'Personal best unchanged. No compatible ghost is saved for this best.'}</p>`;
+        detail.innerHTML = `<p class="trial-best">PERSONAL BEST <b>${stamp(r.bestTime)}</b></p><h2 class="trial-split-title">Cumulative splits</h2><p class="trial-split-key">Elapsed time at each sector · − ahead / + behind previous best</p><ol class="trial-splits" aria-label="Cumulative splits against previous best">${r.splits.map((t, i) => `<li><span>${sprint ? '' : `L${Math.floor(i / 3) + 1} · `}S${(i % 3) + 1}</span><b>${stamp(t)}</b><span>${signed(r.splitDeltas[i])}</span></li>`).join('')}</ol><p class="results-note" role="status">${!r.playerValid ? 'Best and ghost unchanged.' : r.improved ? (r.saved.saved ? (r.saved.ghostSaved ? 'Best and personal ghost saved on this device.' : 'Best saved. Ghost could not be saved; storage may be full or the run exceeded 20 minutes.') : 'Storage unavailable. Best and ghost are kept for this page session only.') : r.ghostAvailable ? 'Personal best unchanged.' : 'Personal best unchanged. No compatible ghost is saved for this best.'}</p>`;
         const retry = content.querySelector('[data-action="retry-race"]');
         retry.textContent = 'Retry Time Trial →';
         const records = content.querySelector('[data-action="continue"]');

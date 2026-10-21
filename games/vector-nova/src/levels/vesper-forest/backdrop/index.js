@@ -1,88 +1,55 @@
-import { assetURL } from '../../../assets/url.js';
 import * as T from 'three';
 
-/** Authored far sky and forest horizon; the nearby forest remains world geometry. */
-export async function createVesperBackdrop() {
-  let texture;
-  try {
-    texture = await new T.TextureLoader().loadAsync(
-      assetURL('assets/levels/vesper/vesper-night-sky-v1.png'),
-    );
-  } catch (cause) {
-    throw new Error(
-      'The Vesper forest sky could not load. Reload to try again.',
-      { cause },
-    );
-  }
-  texture.colorSpace = T.SRGBColorSpace;
-  texture.wrapS = T.RepeatWrapping;
-  texture.wrapT = T.ClampToEdgeWrapping;
-  texture.anisotropy = 4;
+/** New procedural dusk atmosphere; no panorama or legacy environment dependency. */
+export function createVesperBackdrop() {
   const group = new T.Group();
-  group.name = 'Vesper / moonlit clouds and distant forest';
-  const sunDirection = new T.Vector3(-0.55, 0.46, 0.68).normalize();
+  group.name = 'Living Forest / cloud sea at dusk';
+  const sunDirection = new T.Vector3(-0.62, 0.55, -0.48).normalize();
+  const geometry = new T.SphereGeometry(5000, 32, 16);
   const material = new T.ShaderMaterial({
-    name: 'Vesper / forest sky radiance',
     side: T.BackSide,
     depthWrite: false,
-    uniforms: { forestSky: { value: texture } },
-    vertexShader: `varying vec3 ray; void main(){ ray=position; vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.); gl_Position=p.xyww; }`,
-    fragmentShader: `varying vec3 ray; uniform sampler2D forestSky;
-      const float PI=3.141592653589793;
-      void main(){
-        vec3 direction=normalize(ray);
-        float u=fract(atan(direction.z,direction.x)/(2.*PI)+.34);
-        float v=asin(clamp(direction.y,-1.,1.))/PI+.5;
-        // Overlap the panorama ends so imperfect authored edge matches cannot
-        // create a visible meridian. Source pixels remain unchanged.
-        float overlap=.04;
-        float panoramaU=u*(1.-overlap);
-        // Analytic UV derivatives stay continuous across the longitude wrap;
-        // implicit derivatives there select a visibly wrong, tiny mip level.
-        vec3 dx=dFdx(direction),dy=dFdy(direction);
-        float longitudeScale=(1.-overlap)/(2.*PI*max(dot(direction.xz,direction.xz),.000001));
-        float latitudeScale=1./(PI*sqrt(max(1.-direction.y*direction.y,.000001)));
-        vec2 uvDx=vec2((direction.x*dx.z-direction.z*dx.x)*longitudeScale,dx.y*latitudeScale);
-        vec2 uvDy=vec2((direction.x*dy.z-direction.z*dy.x)*longitudeScale,dy.y*latitudeScale);
-        vec3 radiance=textureGrad(forestSky,vec2(panoramaU,v),uvDx,uvDy).rgb;
-        if(panoramaU<overlap){
-          vec3 opposite=textureGrad(forestSky,vec2(panoramaU+1.-overlap,v),uvDx,uvDy).rgb;
-          radiance=mix(opposite,radiance,smoothstep(0.,overlap,panoramaU));
-        }
-        radiance=mix(radiance,vec3(dot(radiance,vec3(.2126,.7152,.0722))),.18)*.43;
-        gl_FragColor=vec4(radiance,1.);
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-      }`,
+    uniforms: { sun: { value: sunDirection } },
+    vertexShader:
+      'varying vec3 ray; void main(){ray=position;vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_Position=p.xyww;}',
+    fragmentShader: `
+ varying vec3 ray;uniform vec3 sun;
+ float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+ float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
+ float fbm(vec2 p){float n=0.,a=.5;for(int i=0;i<4;i++){n+=noise(p)*a;p=p*2.03+13.7;a*=.5;}return n;}
+ void main(){vec3 d=normalize(ray);float h=smoothstep(-.12,.7,d.y);
+ vec3 sky=mix(vec3(.34,.49,.49),vec3(.024,.067,.11),h);
+ float glow=pow(max(dot(d,sun),0.),12.);sky+=vec3(.48,.31,.14)*glow;
+ vec2 p=d.xz/(max(d.y,.04)+.18)*1.6;
+ float cloud=smoothstep(.43,.73,fbm(p+vec2(3,8)))*smoothstep(-.04,.3,d.y);
+ sky=mix(sky,vec3(.3,.4,.41)+glow*vec3(.35,.23,.11),cloud*.65);
+ sky+=vec3(.85,.65,.34)*smoothstep(.999,.9997,dot(d,sun))*.8;
+ gl_FragColor=vec4(sky,1.);
+ #include <tonemapping_fragment>
+ #include <colorspace_fragment>
+ }`,
   });
-  const sky = new T.Mesh(new T.SphereGeometry(5000, 32, 16), material);
-  sky.name = 'Vesper / moonlit forest panorama';
+  const sky = new T.Mesh(geometry, material);
   sky.frustumCulled = false;
   sky.renderOrder = -1000;
   group.add(sky);
-  let disposed = false;
   return {
     group,
     sunDirection,
-    sunColor: '#e1edff',
-    // Moon key and opposing cool fill separate crown masses from the quieter sky.
-    sunIntensity: 2.6,
-    ambientSky: '#93b4ce',
-    ambientGround: '#68796c',
-    ambientIntensity: 1.15,
-    fillColor: '#a5c6d4',
-    fillIntensity: 0.75,
-    environmentIntensity: 0.52,
+    sunColor: '#ffe1ae',
+    sunIntensity: 3.3,
+    ambientSky: '#b5d9df',
+    ambientGround: '#22383a',
+    ambientIntensity: 0.65,
+    fillColor: '#91b8cf',
+    fillIntensity: 0.3,
+    environmentIntensity: 0.6,
     far: 6500,
-    ownedTextures: [texture],
-    update({ camera } = {}) {
+    update({ camera }) {
       if (camera) group.position.copy(camera.position);
     },
     dispose() {
-      if (disposed) return;
-      disposed = true;
-      texture.dispose();
-      sky.geometry.dispose();
+      geometry.dispose();
       material.dispose();
       group.clear();
     },

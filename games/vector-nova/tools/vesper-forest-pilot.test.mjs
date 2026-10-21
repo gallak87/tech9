@@ -4,6 +4,10 @@ import { readdir } from 'node:fs/promises';
 import { createCatalog, circuitURL } from '../src/levels/contract.js';
 import { createVesperTrack as baselineTrack } from '../src/levels/vesper/track/model.js';
 import { createVesperTrack as pilotTrack } from '../src/levels/vesper-forest/track/model.js';
+import { createVesperRoad as baselineRoad } from '../src/levels/vesper/track/road.js';
+import { createVesperRoad as pilotRoad } from '../src/levels/vesper-forest/track/road.js';
+import { createVesperCollisionWorld as baselineCollision } from '../src/levels/vesper/collision.js';
+import { createVesperCollisionWorld as pilotCollision } from '../src/levels/vesper-forest/collision.js';
 import { createVesperRuntime as baselineRuntime } from '../src/levels/vesper/runtime.js';
 import { createVesperRuntime as pilotRuntime } from '../src/levels/vesper-forest/runtime.js';
 import { createDevices as baselineDevices } from '../src/levels/vesper/devices.js';
@@ -135,5 +139,154 @@ test('pilot physics matches the control through ground travel and crown flight, 
     } finally {
       adapters.forEach((adapter) => adapter.dispose());
     }
+  }
+});
+
+const oldRoadDecorations = new Set([
+  'Paired braided load roots',
+  'Maintenance sleeves and root sockets',
+]);
+
+test('new-kit road attachments replace old vines without changing any driving, curb or guidance geometry', () => {
+  const original = baselineRoad({ track: baselineTrack() });
+  const pilot = pilotRoad({ track: pilotTrack() });
+  try {
+    const meshes = (road) => {
+      const result = [];
+      road.group.traverse((object) => {
+        if (object.isMesh) result.push(object);
+      });
+      return result;
+    };
+    const allOriginal = meshes(original),
+      actual = meshes(pilot);
+    for (const name of oldRoadDecorations) {
+      assert.ok(
+        allOriginal.some((mesh) => mesh.name === name),
+        `baseline contains ${name}`,
+      );
+      assert.ok(
+        !actual.some((mesh) => mesh.name === name),
+        `pilot removed ${name}`,
+      );
+    }
+    const expected = allOriginal.filter(
+      (mesh) => !oldRoadDecorations.has(mesh.name),
+    );
+    assert.equal(
+      actual.length,
+      expected.length,
+      'only the two obsolete decoration meshes are removed',
+    );
+    assert.ok(actual.some((mesh) => mesh.userData.drivingSurface));
+    assert.ok(
+      actual.some(
+        (mesh) => mesh.name === 'Advance jump lane and landing guidance',
+      ),
+    );
+    const materialState = (material) => {
+      const state = material.toJSON();
+      delete state.uuid;
+      return {
+        state,
+        shader: material.onBeforeCompile.toString(),
+        cacheKey: material.customProgramCacheKey(),
+      };
+    };
+    for (let i = 0; i < expected.length; i++) {
+      const a = expected[i],
+        b = actual[i],
+        label = a.name || `road mesh ${i}`;
+      assert.equal(b.name, a.name);
+      assert.deepEqual(b.userData, a.userData, `${label} semantic tags`);
+      assert.deepEqual(
+        b.geometry.index.array,
+        a.geometry.index.array,
+        `${label} triangle indices`,
+      );
+      assert.deepEqual(
+        Object.keys(b.geometry.attributes),
+        Object.keys(a.geometry.attributes),
+      );
+      for (const [name, attribute] of Object.entries(a.geometry.attributes)) {
+        const next = b.geometry.attributes[name];
+        assert.equal(next.itemSize, attribute.itemSize);
+        assert.equal(next.normalized, attribute.normalized);
+        assert.deepEqual(next.array, attribute.array, `${label} ${name}`);
+      }
+      assert.deepEqual(b.geometry.groups, a.geometry.groups);
+      assert.deepEqual(b.geometry.drawRange, a.geometry.drawRange);
+      assert.deepEqual(b.matrix.toArray(), a.matrix.toArray());
+      assert.deepEqual(
+        materialState(b.material),
+        materialState(a.material),
+        `${label} material and shader`,
+      );
+    }
+  } finally {
+    original.dispose();
+    pilot.dispose();
+  }
+});
+
+test('the rebuilt pilot removes obsolete bough/vine colliders and retains every driving contact', () => {
+  const original = baselineCollision({ track: baselineTrack() });
+  const pilot = pilotCollision({ track: pilotTrack() });
+  try {
+    const removed = 'placed-landing-bough';
+    assert.ok(original.targets.some((target) => target.id === removed));
+    assert.ok(original.triangles.some((triangle) => triangle.id === removed));
+    assert.ok(!pilot.targets.some((target) => target.id === removed));
+    assert.ok(!pilot.triangles.some((triangle) => triangle.id === removed));
+    assert.notEqual(pilot.rulesId, original.rulesId);
+    const removedIds = new Set(
+      original.targets
+        .filter(
+          (target) =>
+            target.id === removed || oldRoadDecorations.has(target.name),
+        )
+        .map((target) => target.id),
+    );
+    assert.ok(
+      pilot.targets.every((target) => !oldRoadDecorations.has(target.name)),
+    );
+    const remainingTargets = original.targets.filter(
+      (target) => !removedIds.has(target.id),
+    );
+    const contactTarget = (target) => {
+      const contact = { ...target };
+      delete contact.id;
+      return contact;
+    };
+    assert.deepEqual(
+      pilot.targets.map(contactTarget),
+      remainingTargets.map(contactTarget),
+    );
+    const names = (world) =>
+      new Map(world.targets.map((target) => [target.id, target.name]));
+    const originalNames = names(original);
+    const pilotNames = names(pilot);
+    const remaining = original.triangles.filter(
+      (triangle) => !removedIds.has(triangle.id),
+    );
+    assert.equal(pilot.triangleCount, remaining.length);
+    // Extraction numbers targets and triangles in insertion order. Removing the
+    // old bough/vines changes IDs, but no retained road vertex or contact metadata may move.
+    const contact = (triangle, targetNames) => {
+      const surface = { ...triangle, target: targetNames.get(triangle.id) };
+      delete surface.id;
+      delete surface.order;
+      return surface;
+    };
+    for (let i = 0; i < remaining.length; i++) {
+      assert.deepEqual(
+        contact(pilot.triangles[i], pilotNames),
+        contact(remaining[i], originalNames),
+        `road contact triangle ${i}`,
+      );
+    }
+  } finally {
+    original.dispose();
+    pilot.dispose();
   }
 });

@@ -544,38 +544,34 @@
     },
     {
       "id": "worldkit-forest-art",
-      "source": "../../worldkit/modules/landscape/assets/",
-      "creator": "Worldkit project contributors; Poly Haven: Rob Tuytel (bark photography and fern scanning), Rico Cilliers (fern modeling)",
-      "provenance": "Canonical Worldkit forest-kit.glb supplies fern_a for Vesper Forest surface-attached groundcover. Bark Brown 02 supplies 1K color, OpenGL normal and roughness maps through @worldkit/environment/forest/kit. These are package-owned runtime assets, emitted by the consumer build without copying into Vector Nova public assets. The GLB also retains original project tree/rock/log geometry and separately credited Poly Haven plant/material sources; complete source URLs, selected variants, checksums and rebuild details remain in Worldkit records.",
-      "rights": "Selected Poly Haven fern geometry/textures and Bark Brown 02 maps are CC0-1.0 (https://polyhaven.com/license). Original project art retains its existing ownership; Worldkit packaging grants no new licence.",
+      "source": "../../worldkit/modules/living-forest/ and ../../worldkit/modules/island-ocean/",
+      "creator": "Worldkit project contributors and built-in imagegen; Three.js contributors for derived water code",
+      "provenance": "Living Forest supplies newly authored procedural tree, curved foliage, rock and hollow geometry. Packaged silver-bark-color-v1.png supplies bark color and artistic bump relief; leaf-spray-v1.png supplies transparent foliage on curved alpha-tested geometry. Generated-asset prompts, generation IDs, dimensions and checksums are retained in package provenance. The bark image is not a calibrated normal/roughness set. The ocean system reuses Worldkit island-ocean and its Three.js-derived water surface. Package assets are emitted by the consumer build; no old forest-kit GLB, Poly Haven fern or bark scan is used by this level.",
+      "rights": "Project-authored/generated art; the private package grants no new licence. Derived Three.js water code retains its MIT notice.",
       "runtimeDependencies": ["three", "@worldkit/environment"],
       "runtimeAssets": [
-        "../../worldkit/modules/landscape/assets/runtime/forest-kit.glb",
-        "../../worldkit/modules/landscape/assets/art/textures/bark_brown_02_diff_1k.jpg",
-        "../../worldkit/modules/landscape/assets/art/textures/bark_brown_02_nor_gl_1k.jpg",
-        "../../worldkit/modules/landscape/assets/art/textures/bark_brown_02_rough_1k.jpg"
+        "../../worldkit/modules/living-forest/assets/silver-bark-color-v1.png",
+        "../../worldkit/modules/living-forest/assets/leaf-spray-v1.png"
       ],
       "provenanceRecords": [
         "../../worldkit/NOTICE.md",
-        "../../worldkit/modules/landscape/assets/runtime/ASSETS.md",
-        "../../worldkit/modules/landscape/assets/art/sources/manifest.json",
-        "../../worldkit/modules/landscape/assets/art/asset-report.json"
+        "../../worldkit/modules/living-forest/assets/provenance.json",
+        "../../worldkit/modules/pond-water/THREE-LICENSE.txt"
       ]
     },
     {
       "id": "vesper-forest-pilot",
       "source": "src/levels/vesper-forest/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Independent Vesper Forest circuit retains the approved Vesper route and borrows the existing vesper-canopy GLBs and sky read-only. Level-owned material integration and surface-attached tapered bough assemblies use separately registered Worldkit bark PBR and ferns plus Vesper broadleaf geometry. The bounded recipe covers the hollow passage, 220m before the entrance and 220m after the crown landing corridor. The entry rim is refined procedurally from its existing contour without changing the source GLB or opening clearance. The original Vesper entry remains the source record for its geometry and generated imagery.",
-      "rights": "Project-authored integration and procedural geometry; borrowed Vesper and Worldkit assets retain their separately registered rights.",
+      "provenance": "Independent Vesper Forest circuit retains the approved Vesper route, driving surface, rails and motion rules. Old decorative braided road vines and sockets are removed; Living Forest roots connect the underside to soil or the hollow wall. Its entire environment and backdrop are newly composed from the Living Forest artkit, new river-cut terrain and roots, a procedural dusk sky and Worldkit ocean water. No original Vesper GLB/sky assets or earlier-pilot fallback remain. The removed landing-bough and old decorative road geometry have no colliders; retained driving-surface and rail contacts stay unchanged. Original Vesper remains independently available as the control.",
+      "rights": "Project-authored integration and procedural geometry; Worldkit art and derived water code retain their separately registered rights.",
       "runtimeDependencies": [
         "three",
         "@worldkit/environment",
-        "vesper-canopy",
         "worldkit-forest-art"
       ],
       "provenanceRecords": [
-        "assets/levels/vesper/provenance.json",
+        "../../worldkit/modules/living-forest/assets/provenance.json",
         "../../worldkit/NOTICE.md"
       ]
     },

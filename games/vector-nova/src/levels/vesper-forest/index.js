@@ -9,7 +9,7 @@ import { createVesperRuntime } from './runtime.js';
 
 export default function createLevel({ shape = false } = {}) {
   return {
-    version: '0.5.2-vesper-forest-pilot-1',
+    version: '0.6.0-living-forest-1',
     playtests: {
       jump: {
         scenario: 'crown-fast',
@@ -23,11 +23,11 @@ export default function createLevel({ shape = false } = {}) {
     renderer: {
       world: shape ? 'vesper-forest-shape' : 'vesper-forest',
       background: shape ? '#19242e' : '#081722',
-      fog: shape ? null : { color: '#294453', density: 0.00135 },
-      bloomStrength: 0.18,
+      fog: shape ? null : { color: '#587b7b', density: 0.0006 },
+      bloomStrength: 0.12,
       bloomThreshold: 1.1,
-      fillHeight: 10,
-      sunShadowNormalBias: 0.12,
+      fillHeight: 70,
+      sunShadowNormalBias: 0.06,
       sunShadowBias: -0.00009,
       reflectionFar: 1800,
       contact: shape ? undefined : { surfaceStep: 3, opacity: 0.5 },

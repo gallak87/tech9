@@ -164,15 +164,6 @@ export function createVesperRoad({ track, shape = false }) {
     emissiveIntensity: shape ? 0 : 1.6 * lightScale,
     roughness: 0.45,
   });
-  const bark = new T.MeshStandardMaterial({
-    color: shape ? 0x505d64 : 0x352719,
-    roughness: 0.91,
-  });
-  const metal = new T.MeshStandardMaterial({
-    color: 0x77918b,
-    metalness: 0.7,
-    roughness: 0.4,
-  });
   const sap = new T.MeshPhysicalMaterial({
     color: 0xba8944,
     emissive: 0x402409,
@@ -454,8 +445,6 @@ export function createVesperRoad({ track, shape = false }) {
     }
   });
   const seals = [],
-    roots = [],
-    clamps = [],
     inlays = [];
   const box = new T.BoxGeometry(1, 1, 1);
   for (let s = 10; s < track.length; s += 20) {
@@ -485,58 +474,8 @@ export function createVesperRoad({ track, shape = false }) {
         );
       }
   }
-  if (!shape)
-    for (let s = 18; s < track.length; s += 76) {
-      if (track.isGap(s, 0)) continue;
-      const f = track.sample(s);
-      const anchor = framePoint(
-        f,
-        0,
-        -Math.min(48, Math.max(24, (f.position.y + 80) * 0.55)),
-      );
-      for (const side of [-1, 1])
-        for (const braid of [-1, 1]) {
-          // These two crown sockets would cross the lower hollow spiral.
-          // The adjacent shell-attached ribs carry this short crown span.
-          if (side === 1 && s >= 1460 && s <= 1540) continue;
-          const start = framePoint(f, side * 10, -3.8);
-          const end = anchor
-            .clone()
-            .addScaledVector(f.right, side * 25)
-            .addScaledVector(f.tangent, -17);
-          const points = [
-            start,
-            framePoint(f, side * (15 + braid * 1.6), -13, -5),
-            framePoint(f, side * (19 - braid * 1.6), -28, -10),
-            end,
-          ];
-          roots.push(
-            new T.TubeGeometry(
-              new T.CatmullRomCurve3(points),
-              12,
-              1.3,
-              6,
-              false,
-            ),
-          );
-          clamps.push(
-            new T.CylinderGeometry(2, 2, 2.4, 8).applyMatrix4(
-              new T.Matrix4().compose(
-                start,
-                new T.Quaternion().setFromUnitVectors(
-                  new T.Vector3(0, 1, 0),
-                  end.clone().sub(start).normalize(),
-                ),
-                new T.Vector3(1, 1, 1),
-              ),
-            ),
-          );
-        }
-    }
   box.dispose();
   mergeParts(group, seals, milk, 'Translucent reinforcement joints');
-  mergeParts(group, roots, bark, 'Paired braided load roots');
-  mergeParts(group, clamps, metal, 'Maintenance sleeves and root sockets');
   mergeParts(group, inlays, vein, 'Amber resin edge windows');
   // Advance lane arrows and continuous boundary inlays communicate a real
   // flight choice; they are visual guidance, never boost pads or hidden rails.

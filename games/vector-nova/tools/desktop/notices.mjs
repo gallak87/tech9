@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 // code, editable Blender projects, or another copy of the runtime art.
 const WORLDKIT_NOTICES = [
   'NOTICE.md',
+  'modules/living-forest/assets/provenance.json',
   'modules/landscape/THREE-LICENSE.txt',
   'modules/landscape/assets/runtime/ASSETS.md',
   'modules/landscape/assets/runtime/textures/SOURCES.md',

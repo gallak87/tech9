@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "file": "silver-bark-color-v1.png",
+      "type": "generated-color-texture",
+      "generator": "OpenAI built-in image_gen",
+      "generatedAt": "2026-10-21",
+      "generationId": "exec-c034f37f-648a-4233-9d7b-914087c05bf7",
+      "source": "Original image generated for the Living Forest artkit; no third-party source image.",
+      "transformations": [],
+      "width": 1254,
+      "height": 1254,
+      "bytes": 4274584,
+      "sha256": "41f424e1fc6afcc2341e5b9b4b897f13468f53ccb0b0a2d9a8531dddc236abde",
+      "prompt": "Use case: photorealistic-natural\nAsset type: seamless repeating bark color texture for a real-time 3D alien old-growth forest, square 1024x1024.\nPrimary request: a flat orthographic scan of weathered silver-slate tree bark, filling the entire frame. Large long interlocking vertical plates with irregular forked fissures, subtle small flaky edges and fine woody grain. Plausible natural material, massive ancient tree character.\nComposition: strictly flat, no perspective, no trunk silhouette, no background. Seamless repeat in both axes. Broad vertical organic shapes, varying widths and lengths, no regular horizontal dashes.\nColor palette: restrained medium gray brown with faint sage lichen and warm gray exposed wood. Moderate contrast, dark gray fissures, never black/white.\nLighting: even diffuse flat albedo, no directional lighting, no cast shadows, no specular highlights, no vignette.\nAvoid: leaves, moss clumps, branches, text, symbols, painted marks, visible tile border, excessive tiny repeated patterns.",
+      "notes": "Stored byte-for-byte as generated. This is a color image, not a calibrated scan or a separately authored normal/roughness map. The private package grants no new licence to project art."
+    },
+    {
+      "file": "leaf-spray-v1.png",
+      "type": "generated-rgba-foliage-spray",
+      "generator": "OpenAI built-in image_gen",
+      "generatedAt": "2026-10-21",
+      "generationId": "exec-47939343-61c5-4f9f-97f1-9ae51d5bc436",
+      "source": "Original image generated for Living Forest; no third-party source image.",
+      "transformations": [],
+      "width": 1254,
+      "height": 1254,
+      "bytes": 2266105,
+      "sha256": "5b1ff70d33bf70a29caff888651085902112caa148ffb69d8eabbd1890614595",
+      "alphaValidation": {
+        "mode": "RGBA",
+        "minimum": 0,
+        "maximum": 255,
+        "coverageAtAlpha128": 0.4559851855243444,
+        "fullyTransparentFraction": 0.4223518234472654
+      },
+      "notes": "Stored byte-for-byte as generated. No image processing. The private package grants no new licence to project art.",
+      "prompt": "Use case: photorealistic-natural\nAsset type: transparent foliage cutout for alpha-tested 3D canopy cards in a real-time game.\nPrimary request: one dense, irregular broadleaf branch spray, with many small oval pointed leaves on fine branching woody twigs, photographed straight-on. A lush asymmetric cluster with overlapping leaves and many small holes showing transparency between them. All foliage connected to plausible fine branches. Rich muted jade, dark olive and sage green leaves, a few pale newer leaves; delicate natural veins.\nComposition: one isolated branch spray spreading from the bottom center toward top and both sides, roughly square overall silhouette, close crop with small transparent margin, no pot or trunk or ground. Leaf sizes varied, 40\u201370 leaves total, no large palm fronds. Enough foliage coverage to make a solid canopy mass when several sprays overlap.\nLighting: soft even overcast illumination, restrained highlights, no cast shadow or baked strong direction. Realistic leaf texture.\nConstraints: actual transparent background, transparent gaps, clean non-white edges. No text, no scenery, no border, no diagram, no multiple panels."
+    }
+  ]
+}

@@ -974,16 +974,6 @@ body[data-screen='results'] #interface {
   color: #e8e8e8;
   margin-right: 8px;
 }
-.cup-rules {
-  border-top: 1px solid #444;
-}
-.cup-rules ul {
-  margin: 0 0 12px;
-  padding-left: 18px;
-  color: #aaa;
-  font-size: 12px;
-  line-height: 1.6;
-}
 .cup-results-panel {
   width: min(1000px, 100%);
   margin-block: auto;

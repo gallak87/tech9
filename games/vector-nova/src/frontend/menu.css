@@ -1220,11 +1220,11 @@
   gap: 12px;
   margin: 0 0 16px;
 }
-.menu-wide .menu-cup-picker:has(.cup-scores[open], .cup-rules[open]),
+.menu-wide .menu-cup-picker:has(.cup-scores[open]),
 .menu-wide .menu-cup-picker:has(.cup-confirm) {
   height: auto;
 }
-.menu-cup-picker:has(.cup-scores[open], .cup-rules[open]) .cup-hero,
+.menu-cup-picker:has(.cup-scores[open]) .cup-hero,
 .menu-cup-picker:has(.cup-confirm) .cup-hero,
 .menu-narrow .cup-hero {
   flex: none;

@@ -264,7 +264,9 @@ export function createFrontend(host) {
         : showingShip()
           ? `button[data-ship="${shipId}"]`
           : intent === 'cup'
-            ? '.cup-picker [aria-pressed="true"], .cup-rules summary'
+            ? (shell.querySelector('.cup-picker [aria-pressed="true"]') ??
+              shell.querySelector('.cup-scores > summary') ??
+              shell.querySelector('.race-actions > .primary'))
             : `[data-level="${selected}"]`,
     );
   }

@@ -346,7 +346,7 @@ export function createFrontend(host) {
       )
       .join(
         '',
-      )}</div><p class="picker-hint">Sprints are downhill, point to point.</p><div class="transfer-slot track-transfer"></div></section>`;
+      )}</div><div class="transfer-slot track-transfer"></div></section>`;
   };
   // Share one intrinsic text area: the longest wrapped description reserves
   // space for every ship without fixed heights, clipping or resize handlers.
@@ -429,7 +429,7 @@ export function createFrontend(host) {
         : 'Unlimited laps. Each clean best saves a ghost for the next lap. Standing and flying bests are separate. Manual boost, no road devices.'
       : intent === 'practice'
         ? `${isSprint() ? 'One solo descent' : 'Open solo laps'} to learn the course. No opponents.`
-        : `${isSprint() ? 'One descent' : 'Two laps'} against nine rivals. Choose your opponent difficulty.`;
+        : '';
   const raceActions = () => {
     if (intent === 'cup') {
       const state = cupStore.snapshot().state;
@@ -449,7 +449,8 @@ export function createFrontend(host) {
         : null;
       return `<div class="race-actions"><button class="primary" data-action="${next.action}" ${cupConfirm ? 'disabled' : ''}><strong>${next.label}</strong><small>${next.detail}</small></button>${state ? '' : difficultyControls()}<p class="mode-description">${state ? `${escape(catalog.find((entry) => entry.id === event).name)} · ${state.difficulty} opponents. Your cup progress is saved.` : `${cup.tracks.length} races against nine rivals. Ship and difficulty stay fixed throughout the cup.`}</p></div>`;
     }
-    return `<div class="race-actions"><button class="primary" data-action="launch"><strong>${launchLabel()}</strong><small>${intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : 'Unlimited laps'}</small></button>${intent === 'race' ? difficultyControls() : ''}<p class="mode-description">${modeDescription()}</p></div>`;
+    const description = modeDescription();
+    return `<div class="race-actions"><button class="primary" data-action="launch"><strong>${launchLabel()}</strong><small>${intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : 'Unlimited laps'}</small></button>${intent === 'race' ? difficultyControls() : ''}${description ? `<p class="mode-description">${description}</p>` : ''}</div>`;
   };
   function pickerRaceActions() {
     return `<div class="picker-race-actions"><button class="change-track" data-action="circuits">${escape(intent === 'cup' ? currentCup().name : level().name)} · ${modeName()} <span aria-hidden="true">↗</span></button>${raceActions()}</div>`;

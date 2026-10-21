@@ -426,12 +426,6 @@
   flex-shrink: 0;
   font-size: 11px;
 }
-.menu-layout .picker-hint {
-  font-size: 11px;
-  color: #aaa;
-  margin-top: 12px;
-  flex: none;
-}
 .setup-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -655,9 +649,6 @@
   }
   .menu-wide .track-group {
     gap: 3px 8px;
-  }
-  .menu-wide .picker-hint {
-    display: none;
   }
   .menu-wide .circuit-card {
     min-height: 40px;
@@ -929,10 +920,6 @@
   .track-group {
     column-gap: 10px;
   }
-  .menu-layout .picker-hint {
-    font-size: 10px;
-    margin-top: 8px;
-  }
 }
 @media (min-width: 500px) and (max-width: 599px) {
   body:has(.picker-header) .music-player:not(.is-compact) {
@@ -982,9 +969,6 @@
   }
   .circuit-card .track-type-badge {
     top: 0;
-  }
-  .menu-layout .picker-hint {
-    max-width: 30ch;
   }
 }
 @media (max-width: 700px) {

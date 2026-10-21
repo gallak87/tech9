@@ -8,6 +8,8 @@ const WORLDKIT_NOTICES = [
   'NOTICE.md',
   'modules/living-forest/assets/provenance.json',
   'modules/opaline/assets/provenance.json',
+  'modules/opaline/assets/pbr-provenance.json',
+  'modules/opaline/assets/sculpture-provenance.json',
   'modules/landscape/THREE-LICENSE.txt',
   'modules/landscape/assets/runtime/ASSETS.md',
   'modules/landscape/assets/runtime/textures/SOURCES.md',

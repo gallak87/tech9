@@ -1,0 +1,38 @@
+{
+  "asset": "Opaline mineral sculptures",
+  "creator": "Worldkit project contributors",
+  "description": "Three authored fractured buttresses and an asymmetric mineral curl with a real aperture and inset emerald volume. Original geometry; physical surface relief samples the CC0 Marble Cliff 01 height map.",
+  "authoringSource": "../art/build-sculptures.py",
+  "tool": "Blender 5.1.1",
+  "command": "blender -b --python worldkit/modules/opaline/art/build-sculptures.py",
+  "heightSource": "marble-cliff-01-height-2k.png",
+  "heightSourceProvenance": "pbr-provenance.json",
+  "rights": "Original project geometry; sampled Marble Cliff 01 relief is CC0-1.0. No source mesh or concept image pixels are embedded.",
+  "coordinates": "glTF Y-up; metres; buttress roots near y=0. Curl contains its own below-route root. Consumers own composition and materials.",
+  "assets": [
+    {
+      "file": "mineral-sculptures-high.glb",
+      "detail": "high",
+      "triangles": 179970,
+      "parts": 5,
+      "bytes": 3243316,
+      "sha256": "c5ee9f1e35b1eb2feac879bddcc62fc925865bad44b33e507d0e8b98b4bcb74b"
+    },
+    {
+      "file": "mineral-sculptures-low.glb",
+      "detail": "low",
+      "triangles": 46438,
+      "parts": 5,
+      "bytes": 839692,
+      "sha256": "a461ad29c95ef201f141c8eef0a1c0051467303ccbcbe1a6a6c1b87fe7e5c856"
+    },
+    {
+      "file": "mineral-sculptures-distant.glb",
+      "detail": "distant",
+      "triangles": 7254,
+      "parts": 5,
+      "bytes": 134356,
+      "sha256": "452cc63c2656317e7164424f9fa0481308cfec193b7a25cfcfd96d0d20b0ac0e"
+    }
+  ]
+}

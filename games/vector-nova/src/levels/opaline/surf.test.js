@@ -11,6 +11,8 @@ import { createShelfBankGeometry } from './environment/strata.js';
 import { createOpalineCollisionWorld } from './collision.js';
 import { createOpalineRuntime } from './runtime.js';
 import { createRoadSurface } from '../../physics/road-surface.js';
+import { createCollisionWorld } from '../../physics/collision-world.js';
+import { VEHICLE_HULL } from '../../physics/hull.js';
 import { createRapierWorld } from '../../physics/rapier-world.js';
 import { createVehicleState } from '../../physics/index.js';
 import { createRace } from '../../race/index.js';
@@ -73,7 +75,11 @@ test('the concave surf skin joins the rendered cliff exactly and is the finite d
         cliff.dispose();
       }
     }
-    for (const s of [125, 150, 175, 330, 400, 650, 800, 920, 980]) {
+    for (const s of track.surfBanks.flatMap((bank) => [
+      bank.start + bank.entry / 2,
+      (bank.start + bank.end) / 2,
+      bank.end - bank.exit / 2,
+    ])) {
       const bank = sampleOpalineSurfBank(track, s);
       for (const fraction of [0.1, 0.4, 0.75, 0.95]) {
         const lateral = 16 + bank.width * fraction;
@@ -91,7 +97,7 @@ test('the concave surf skin joins the rendered cliff exactly and is the finite d
       assert.equal(sampleOpalineSurfBank(track, bank.start).width, 0);
       assert.equal(sampleOpalineSurfBank(track, bank.end).width, 0);
     }
-    assert.equal(track.sampleSurface(1500, 22), null);
+    assert.equal(track.sampleSurface(1600, 22), null);
     assert.equal(track.width, 32, 'ordinary flat road remains unchanged');
   } finally {
     sampleRoad.dispose();
@@ -196,12 +202,13 @@ test('ordinary production steering climbs the bank, follows its slope, and retur
 
 test('the narrowing visible cliff guides a high line through the exit and the approach bank preserves the first jump', async (t) => {
   const context = await production(t);
-  const exit = driver(context, 720, 30, 90);
+  const bank = track.surfBanks[1];
+  const exit = driver(context, bank.end - bank.exit, 30, 400 / 3.6);
   try {
-    for (let tick = 0; tick < 1500 && exit.state.distance < 1000; tick++)
+    for (let tick = 0; tick < 1500 && exit.state.distance < bank.end; tick++)
       exit.step();
     assert.ok(
-      exit.state.distance >= 1000,
+      exit.state.distance >= bank.end,
       'high line completes the gradual bank return',
     );
     assert.ok(
@@ -229,5 +236,217 @@ test('the narrowing visible cliff guides a high line through the exit and the ap
     );
   } finally {
     approach.runtime.dispose();
+  }
+});
+
+test('every natural lower bank is supported while connectors and real gaps retain ordinary ownership', () => {
+  const natural = roadIntervals(track).filter((span) => !span.constructed);
+  assert.deepEqual(
+    track.surfBanks.map(({ start, end }) => [start, end]),
+    natural.map(({ start, end }) => [start, end]),
+  );
+  const covered = track.surfBanks.reduce(
+    (sum, bank) => sum + bank.end - bank.start,
+    0,
+  );
+  assert.ok(
+    covered > 5000,
+    'support covers the whole natural route, not selected showcases',
+  );
+  for (const bank of track.surfBanks) {
+    for (let s = bank.start + 1; s < bank.end - 1; s += 17) {
+      const bounds = sampleOpalineSurfBank(track, s);
+      assert.ok(bounds.width > 0, `no unsupported lower-bank hole at ${s}`);
+      assert.equal(track.sampleSurface(s, bounds.max).bounds.max, bounds.max);
+    }
+  }
+  for (const span of track.constructedIntervals)
+    assert.equal(
+      sampleOpalineSurfBank(track, (span.start + span.end) / 2),
+      null,
+    );
+  for (const jump of track.jumps)
+    assert.equal(
+      sampleOpalineSurfBank(track, (jump.takeoff + jump.landingStart) / 2),
+      null,
+    );
+});
+
+test('every supported inner bank corridor clears the full rendered terrain hull', () => {
+  const full = createOpalineCollisionWorld({ track });
+  const terrain = createCollisionWorld({
+    id: 'opaline-supported-bank-clearance',
+    version: 1,
+    geometryId: track.geometryVersion,
+    triangles: full.triangles.filter((triangle) => triangle.kind === 'terrain'),
+  });
+  try {
+    for (const bank of track.surfBanks) {
+      for (let s = bank.start + 4; s < bank.end; s += 8) {
+        for (const lateral of [18, 22, 26, 30]) {
+          const frame = track.sampleSurface(s, lateral);
+          if (lateral > frame.bounds.max - 3.5) continue;
+          const hit = terrain.sweepHull(
+            {
+              position: frame.position.clone().addScaledVector(frame.up, 4),
+              quaternion: frame.quaternion,
+            },
+            {
+              position: frame.position
+                .clone()
+                .addScaledVector(frame.up, VEHICLE_HULL.hover),
+              quaternion: frame.quaternion,
+            },
+            VEHICLE_HULL,
+          );
+          assert.equal(
+            hit,
+            null,
+            `${hit?.shape.id} blocks supported bank ${s}/${lateral}`,
+          );
+        }
+      }
+    }
+  } finally {
+    terrain.dispose();
+    full.dispose();
+  }
+});
+
+function steerToward(run, target) {
+  const frame =
+    track.sampleSurface(run.state.distance, run.state.lateral) ??
+    track.sample(run.state.distance);
+  const heading = T.MathUtils.clamp(
+    (target - run.state.lateral) * 0.055,
+    -0.28,
+    0.28,
+  );
+  // Ordinary steering with a curve preview; production assist remains unchanged.
+  return T.MathUtils.clamp(
+    (run.state.heading - heading) * 2 -
+      (frame.curvature * run.state.speed) /
+        (frame.longitudinalMetric ?? 1) /
+        1.5,
+    -1,
+    1,
+  );
+}
+
+test('later basin, veil, crown and return banks support climbing and descending at racing speed', async (t) => {
+  const context = await production(t);
+  for (const [distance, speed] of [
+    [1750, 80],
+    [2800, 400 / 3.6],
+    [3550, 400 / 3.6],
+    [5300, 400 / 3.6],
+  ]) {
+    const run = driver(context, distance, 10, speed);
+    let returning = false,
+      peak = 10,
+      peakRise = 0;
+    try {
+      for (let tick = 0; tick < 1000; tick++) {
+        const bounds = track.sampleSurface(
+          run.state.distance,
+          run.state.lateral,
+        )?.bounds ?? { max: 16 };
+        const target = returning ? 8 : Math.min(28, bounds.max - 4);
+        run.step({ ...CRUISE, steer: steerToward(run, target) });
+        const pose = run.runtime.pose(1);
+        assert.ok(
+          !pose.recovering,
+          `supported bank departed after starting at ${distance}`,
+        );
+        peak = Math.max(peak, run.state.lateral);
+        if (run.state.lateral > 26) returning = true;
+        if (run.state.lateral > 22) {
+          const frame = track.sampleSurface(
+            run.state.distance,
+            run.state.lateral,
+          );
+          const up = new T.Vector3(0, 1, 0).applyQuaternion(pose.quaternion);
+          assert.ok(up.dot(frame.up) > 0.98, `slope alignment at ${distance}`);
+          const base = track.sample(run.state.distance);
+          peakRise = Math.max(
+            peakRise,
+            pose.position.clone().sub(base.position).dot(base.up),
+          );
+        }
+        if (returning && run.state.lateral < 9) break;
+      }
+      assert.ok(
+        peak > 26 && peakRise > 4,
+        `climbed the real bank at ${distance}`,
+      );
+      assert.ok(
+        returning && run.state.lateral < 9,
+        `returned from bank at ${distance}`,
+      );
+      assert.ok(
+        !run.events.some((event) =>
+          ['road-departure', 'road-recovery', 'impact'].includes(event.type),
+        ),
+        `clean contact at ${distance}`,
+      );
+    } finally {
+      run.runtime.dispose();
+    }
+  }
+});
+
+test('400km/h entries and early exit steering retain support on every long bank', async (t) => {
+  const context = await production(t);
+  for (const bank of track.surfBanks.slice(1)) {
+    for (const phase of ['entry', 'exit']) {
+      const start =
+        phase === 'entry'
+          ? track.isGap(bank.start - 25)
+            ? bank.start + 0.1
+            : bank.start - 25
+          : bank.end - bank.exit - 20;
+      const end =
+        phase === 'entry' ? bank.start + bank.entry + 130 : bank.end - 0.5;
+      const run = driver(
+        context,
+        start,
+        phase === 'entry' ? 10 : 30,
+        400 / 3.6,
+      );
+      let peak = run.state.lateral;
+      try {
+        for (let tick = 0; tick < 1800 && run.state.distance < end; tick++) {
+          const preview = phase === 'exit' ? 60 : 0;
+          const max =
+            sampleOpalineSurfBank(track, run.state.distance + preview)?.max ??
+            16;
+          run.step({
+            ...CRUISE,
+            steer: steerToward(run, Math.min(28, max - 5)),
+          });
+          peak = Math.max(peak, run.state.lateral);
+          assert.ok(
+            !run.runtime.pose(1)?.recovering,
+            `${bank.id} ${phase} lost support`,
+          );
+        }
+        assert.ok(run.state.distance >= end, `${bank.id} completes ${phase}`);
+        if (phase === 'entry')
+          assert.ok(peak > 25, `${bank.id} climbs into bank`);
+        else
+          assert.ok(
+            run.state.lateral < 15,
+            `${bank.id} returns to ordinary road before the boundary`,
+          );
+        assert.ok(
+          !run.events.some((event) =>
+            ['road-departure', 'road-recovery', 'impact'].includes(event.type),
+          ),
+          `${bank.id} ${phase} has no false collision/release`,
+        );
+      } finally {
+        run.runtime.dispose();
+      }
+    }
   }
 });

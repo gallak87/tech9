@@ -1,7 +1,8 @@
 import * as T from 'three';
 import {
   createOpalineMaterials,
-  opalineStoneURL,
+  opalineStoneURLs,
+  loadOpalineSculptures,
 } from '@worldkit/environment/opaline';
 import { createLifetime } from '../../../core/lifecycle.js';
 import { sweepGeometry } from '../../../track/geometry.js';
@@ -21,20 +22,26 @@ export async function createOpalineRoad({ track, shape = false } = {}) {
     let textures = {},
       palette;
     if (!shape) {
-      const map = lifetime.own(
-        await new T.TextureLoader().loadAsync(opalineStoneURL),
+      const stoneMaps = {};
+      // Load each authored channel once; the environment borrows this palette.
+      for (const [key, url] of Object.entries(opalineStoneURLs)) {
+        const map = lifetime.own(await new T.TextureLoader().loadAsync(url));
+        map.colorSpace = key === 'map' ? T.SRGBColorSpace : T.NoColorSpace;
+        map.wrapS = map.wrapT = T.RepeatWrapping;
+        map.anisotropy = 8;
+        stoneMaps[key] = map;
+      }
+      textures = { stone: stoneMaps };
+      palette = lifetime.own(
+        createOpalineMaterials({
+          textures,
+          surface: 'shelf',
+          wetness: 0.55,
+          textureScale: 1 / 6,
+        }),
       );
-      map.colorSpace = T.SRGBColorSpace;
-      map.wrapS = map.wrapT = T.RepeatWrapping;
-      map.anisotropy = 8;
-      const bump = lifetime.own(map.clone());
-      bump.colorSpace = T.NoColorSpace;
-      bump.needsUpdate = true;
-      textures = { stone: { map, bumpMap: bump } };
-      palette = lifetime.own(createOpalineMaterials({ textures }));
-      palette.stone.roughness = 0.23;
-      palette.stone.bumpScale = 0.045;
-      palette.stone.color.set('#d2d3e0');
+      palette.stone.color.set('#e2dcd2');
+      palette.stone.envMapIntensity = 0.7;
       const baseShader = palette.stone.onBeforeCompile;
       palette.stone.onBeforeCompile = (shader) => {
         baseShader(shader);
@@ -70,6 +77,9 @@ export async function createOpalineRoad({ track, shape = false } = {}) {
       };
       palette.stone.customProgramCacheKey = () => 'opaline-running-shelf-v2';
     }
+    const sculptures = shape
+      ? null
+      : lifetime.own(await loadOpalineSculptures());
     const stone =
       palette?.stone ??
       lifetime.own(
@@ -202,6 +212,7 @@ export async function createOpalineRoad({ track, shape = false } = {}) {
     return {
       group,
       textures,
+      sculptures,
       materials: palette?.materials,
       ready: Promise.resolve(),
       dispose: () => lifetime.dispose(),

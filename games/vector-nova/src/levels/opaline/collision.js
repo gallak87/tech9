@@ -59,8 +59,8 @@ export function createOpalineCollisionWorld({ track }) {
       });
   return createCollisionWorld({
     id: 'opaline-shelf-solids',
-    version: 2,
-    geometryId: `${track.geometryVersion}:mineral-surf-top-bank-terrain-connector-rails-v2`,
+    version: 3,
+    geometryId: `${track.geometryVersion}:mineral-surf-top-bank-terrain-connector-rails-v3`,
     triangles,
   });
 }

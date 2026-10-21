@@ -2,9 +2,11 @@ import * as T from 'three';
 import { sampleOpalineSurfBank } from '../track/surf.js';
 
 const SURF_BREAK_OFFSETS = [
-  0, 0.15, 3.5, 8, 17, 14, 32, 37, 57, 49, 94, 131, 169,
+  0, 0.15, 8, 17, 27, 40, 50, 65, 82, 101, 125, 145, 169,
 ];
-const SURF_BREAK_RISES = [0, 4, 9, 16, 21, 35, 39, 71, 79, 117, 125, 105, -155];
+const SURF_BREAK_RISES = [
+  0, 4, 18, 50, 76, 102, 120, 130, 142, 148, 125, 90, -155,
+];
 
 // Continuous piecewise strata faults: broad planar breaks, not a corrugated
 // sine tube. This field is shared by rendered terrain and CPU contacts.
@@ -32,17 +34,17 @@ export function createShelfBankGeometry(track, { start, end, side, step = 4 }) {
   const profile = outer
     ? [
         [16, 0],
-        [18, -1.6],
-        [24, -4],
-        [29, -9],
-        [27, -15],
-        [46, -18],
-        [41, -29],
-        [60, -35],
-        [56, -53],
-        [82, -63],
-        [80, -108],
-        [125, -155],
+        [17, -1],
+        [19, -3],
+        [18, -12],
+        [20, -29],
+        [24, -42],
+        [21, -57],
+        [30, -72],
+        [26, -93],
+        [38, -110],
+        [35, -155],
+        [70, -155],
       ]
     : [
         [16, 0],
@@ -130,7 +132,7 @@ export function createShelfBankGeometry(track, { start, end, side, step = 4 }) {
       uv.push(lateral / 16, s / 16);
       if (row < count && column < cols - 1) {
         const n = row * cols + column;
-        const fracture = outer ? [5, 9].includes(column) : [4].includes(column);
+        const fracture = outer && [5, 9].includes(column);
         const indices = fracture ? fractureIndices : smoothIndices;
         if (side > 0)
           indices.push(n, n + cols, n + 1, n + 1, n + cols, n + cols + 1);

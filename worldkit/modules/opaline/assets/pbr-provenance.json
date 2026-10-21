@@ -1,0 +1,72 @@
+{
+  "asset": "Marble Cliff 01",
+  "author": "Amal Kumar",
+  "source": "https://polyhaven.com/a/marble_cliff_01",
+  "license": "CC0-1.0",
+  "licenseURL": "https://polyhaven.com/license",
+  "retrieved": "2026-10-21",
+  "sourceTileSizeMeters": 4.299351692199707,
+  "sourceHeightScaleMeters": null,
+  "heightScaleNote": "MaterialX uses 0.01 displacement scale but does not establish calibrated metric relief; game displacement amplitude is authored explicitly.",
+  "artTileSizeMeters": 16,
+  "cpuHeightMin": 0.003860532539864195,
+  "cpuHeightMax": 0.8679331654840925,
+  "cpuHeightMean": 0.46679549662155717,
+  "assets": [
+    {
+      "file": "marble-cliff-01-color-2k.jpg",
+      "role": "color",
+      "sourceURL": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_cliff_01/marble_cliff_01_diff_2k.jpg",
+      "width": 2048,
+      "height": 2048,
+      "bytes": 3013368,
+      "sha256": "60107dd781a928957420ea0db2f7e5ea5ebdd6ca81b1af4045a55a8dfb130694",
+      "transformations": []
+    },
+    {
+      "file": "marble-cliff-01-normal-2k.jpg",
+      "role": "normal",
+      "sourceURL": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_cliff_01/marble_cliff_01_nor_gl_2k.jpg",
+      "width": 2048,
+      "height": 2048,
+      "bytes": 2660079,
+      "sha256": "8ea2ed3a93b8761b8b6289d44cbaa0fbf5807508251dcc193145318ec89089a4",
+      "transformations": []
+    },
+    {
+      "file": "marble-cliff-01-roughness-2k.jpg",
+      "role": "roughness",
+      "sourceURL": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_cliff_01/marble_cliff_01_rough_2k.jpg",
+      "width": 2048,
+      "height": 2048,
+      "bytes": 2096718,
+      "sha256": "361b562d294de9c75f8789b5aea00b8581296cbd9b285bd4410e495ebbd65c4c",
+      "transformations": []
+    },
+    {
+      "file": "marble-cliff-01-height-2k.png",
+      "role": "height",
+      "sourceURL": "https://dl.polyhaven.org/file/ph-assets/Textures/png/2k/marble_cliff_01/marble_cliff_01_disp_2k.png",
+      "width": 2048,
+      "height": 2048,
+      "bytes": 5263312,
+      "sha256": "0495ea6fee85d32a9d995de83551cc430335e718c7e7b22da248ae4ac26c56b8",
+      "transformations": []
+    },
+    {
+      "file": "marble-cliff-01-height-128.u16",
+      "role": "cpuHeightField",
+      "derivedFrom": "marble-cliff-01-height-2k.png",
+      "width": 128,
+      "height": 128,
+      "encoding": "uint16 little-endian",
+      "normalizationDivisor": 65535,
+      "rowOrder": "v=0 bottom to v=1 top; matches TextureLoader flipY=true",
+      "bytes": 32768,
+      "sha256": "8dc8aa86ab35c082c77e1e0cd9d725958626e3d69c3edef00670f764df4c6741",
+      "transformations": [
+        "Convert 16-bit PNG to float; 16x16 box average to 128x128; round to uint16; vertically flip rows; encode little-endian."
+      ]
+    }
+  ]
+}

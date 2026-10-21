@@ -9,6 +9,9 @@ import {
   createOpalineArchGeometry,
   createOpalineMaterials,
   opalineStoneURL,
+  opalineStoneURLs,
+  opalineStoneMetrics,
+  opalineHeightFieldURL,
 } from '../../../src/opaline.js';
 
 const triangleCount = (geometry) => geometry.index.count / 3;
@@ -222,7 +225,10 @@ test('mineral shader programs share cache keys and add instancing-safe world tri
       fragmentShader: T.ShaderLib.standard.fragmentShader,
     };
     a.stone.onBeforeCompile(shader);
-    assert.equal(shader.uniforms.opalineTextureScale.value, 0.07);
+    assert.equal(
+      shader.uniforms.opalineTextureScale.value,
+      opalineStoneMetrics.textureScale,
+    );
     assert.ok(
       shader.vertexShader.includes('instanceMatrix * opalineWorldPosition'),
     );
@@ -293,5 +299,106 @@ test('far mineral silhouettes retain undercut ledges and fractured multi-height 
   } finally {
     terrace.dispose();
     rib.dispose();
+  }
+});
+
+test('scan PBR channels and CPU heightfield ship intact with explicit source provenance', async () => {
+  const provenance = JSON.parse(
+    await readFile(
+      new URL('../assets/pbr-provenance.json', import.meta.url),
+      'utf8',
+    ),
+  );
+  assert.equal(provenance.license, 'CC0-1.0');
+  assert.equal(Object.keys(opalineStoneURLs).length, 4);
+  const hashes = new Set();
+  for (const record of provenance.assets) {
+    const data = await readFile(
+      new URL(`../assets/${record.file}`, import.meta.url),
+    );
+    const hash = createHash('sha256').update(data).digest('hex');
+    assert.equal(hash, record.sha256, record.file);
+    assert.equal(data.length, record.bytes);
+    hashes.add(hash);
+  }
+  assert.equal(
+    hashes.size,
+    5,
+    'color, normal, roughness and height are independent authored data',
+  );
+  const height = await readFile(new URL(opalineHeightFieldURL));
+  assert.equal(height.length, 128 * 128 * 2);
+  let minimum = 1,
+    maximum = 0;
+  for (let i = 0; i < height.length; i += 2) {
+    const value =
+      height.readUInt16LE(i) / opalineStoneMetrics.heightFieldDivisor;
+    minimum = Math.min(minimum, value);
+    maximum = Math.max(maximum, value);
+  }
+  assert.ok(
+    maximum - minimum > 0.8,
+    'the heightfield retains the cliff scan relief',
+  );
+  assert.equal(
+    opalineStoneMetrics.heightRangeMeters,
+    null,
+    'art relief does not claim calibrated metric height',
+  );
+});
+
+test('wet shelf controls share PBR maps and programs while retaining independent material ownership', () => {
+  const maps = {
+    map: new T.Texture(),
+    normalMap: new T.Texture(),
+    roughnessMap: new T.Texture(),
+    heightMap: new T.Texture(),
+  };
+  const wall = createOpalineMaterials({ textures: { stone: maps } });
+  const shelf = createOpalineMaterials({
+    textures: { stone: maps },
+    surface: 'shelf',
+    wetness: 0.8,
+  });
+  let disposedMaps = 0;
+  Object.values(maps).forEach((texture) =>
+    texture.addEventListener('dispose', () => disposedMaps++),
+  );
+  try {
+    assert.equal(wall.stone.bumpMap, maps.heightMap);
+    assert.equal(shelf.stone.normalMap, wall.stone.normalMap);
+    assert.equal(
+      shelf.stone.customProgramCacheKey(),
+      wall.stone.customProgramCacheKey(),
+    );
+    assert.ok(shelf.stone.roughness < wall.stone.roughness);
+    assert.equal(shelf.stone.userData.opaline.wetness.value, 0.8);
+    assert.equal(shelf.stone.userData.opaline.polish.value, 1);
+    const shader = {
+      uniforms: {},
+      vertexShader: T.ShaderLib.standard.vertexShader,
+      fragmentShader: T.ShaderLib.standard.fragmentShader,
+    };
+    shelf.stone.onBeforeCompile(shader);
+    assert.ok(
+      shader.fragmentShader.includes('opalineTriplanarNormal(normalMap'),
+    );
+    assert.ok(
+      !shader.fragmentShader.includes('#include <normal_fragment_maps>'),
+      'authored UV normal projection must not leak into world geology',
+    );
+    assert.throws(
+      () => createOpalineMaterials({ surface: 'metal' }),
+      /wall or shelf/,
+    );
+    assert.throws(
+      () => createOpalineMaterials({ wetness: 2 }),
+      /between 0 and 1/,
+    );
+  } finally {
+    wall.dispose();
+    shelf.dispose();
+    assert.equal(disposedMaps, 0);
+    Object.values(maps).forEach((texture) => texture.dispose());
   }
 });

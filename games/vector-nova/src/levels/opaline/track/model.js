@@ -3,7 +3,7 @@ import { cacheClosedCatmullRom } from '../../../track/cached-curve.js';
 import { createOpalineSurfBanks, sampleOpalineSurfSurface } from './surf.js';
 import { createClosedPointLookup } from './point-lookup.js';
 
-export const OPALINE_REVISION = 'opaline-route-2-surf';
+export const OPALINE_REVISION = 'opaline-route-3-all-mineral-banks';
 const WIDTH = 32;
 const HORIZONTAL_LENGTH = 5960;
 const wrap = (s, length) => ((s % length) + length) % length;
@@ -304,6 +304,11 @@ export function createOpalineTrack() {
     position: sample(distance).position,
     quaternion: sample(distance).quaternion,
   }));
+  const surfBanks = createOpalineSurfBanks({
+    jumps,
+    constructedIntervals,
+    length,
+  });
   const parked = (distance) => ({ distance, lateral: 0, speed: 0, heading: 0 });
   const scenarios = {
     staging: parked(0),
@@ -316,7 +321,20 @@ export function createOpalineTrack() {
       speed: 65,
       heading: 0,
     },
-    'surf-return': { distance: 720, lateral: 28, speed: 65, heading: 0 },
+    'surf-return': {
+      distance: surfBanks[1].end - surfBanks[1].exit,
+      lateral: 28,
+      speed: 400 / 3.6,
+      heading: 0,
+    },
+    'surf-veil': { distance: 2800, lateral: 10, speed: 400 / 3.6, heading: 0 },
+    'surf-crown': { distance: 3550, lateral: 10, speed: 400 / 3.6, heading: 0 },
+    'surf-homeward': {
+      distance: 5300,
+      lateral: 10,
+      speed: 400 / 3.6,
+      heading: 0,
+    },
     'slope-rest': parked(routeDistance(node(12))),
   };
   for (const section of sections)
@@ -355,7 +373,7 @@ export function createOpalineTrack() {
     jumps,
     surgeZones,
     constructedIntervals,
-    surfBanks: createOpalineSurfBanks({ jumps, constructedIntervals }),
+    surfBanks,
     bounds,
     boundaryIntervals: [],
     showcases: sections.map(({ id, name, showcase }) => ({

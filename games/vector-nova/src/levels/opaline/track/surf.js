@@ -8,25 +8,51 @@ const smooth = (t) => {
 };
 
 /** Authored lower mineral skin. Upper strata remain collision-only terrain. */
-export function createOpalineSurfBanks({ jumps, constructedIntervals }) {
-  return [
-    {
-      id: 'approach-surf',
-      start: constructedIntervals[0].end,
-      end: jumps[0].takeoff,
-      width: 10,
-      entry: 26,
-      exit: 48,
-    },
-    {
-      id: 'reception-surf',
-      start: jumps[0].landingStart,
-      end: 1000,
-      width: 18,
-      entry: 72,
-      exit: 280,
-    },
-  ];
+export function createOpalineSurfBanks({
+  jumps,
+  constructedIntervals,
+  length,
+}) {
+  // Natural lower banks are one gameplay material everywhere, never a list of
+  // opt-in showcase locations. Only actual connectors and gaps interrupt them.
+  const cuts = new Set([0, length]);
+  for (const span of constructedIntervals) {
+    cuts.add(span.start);
+    cuts.add(span.end);
+  }
+  for (const jump of jumps) {
+    cuts.add(jump.takeoff);
+    cuts.add(jump.landingStart);
+  }
+  const ordered = [...cuts].sort((a, b) => a - b),
+    banks = [];
+  for (let i = 0; i < ordered.length - 1; i++) {
+    const start = ordered[i],
+      end = ordered[i + 1],
+      middle = (start + end) / 2;
+    if (
+      constructedIntervals.some(
+        (span) => middle > span.start && middle < span.end,
+      ) ||
+      jumps.some((jump) => middle > jump.takeoff && middle < jump.landingStart)
+    )
+      continue;
+    const approach = end === jumps[0].takeoff;
+    const id = approach
+      ? 'approach-surf'
+      : start === jumps[0].landingStart
+        ? 'reception-surf'
+        : `mineral-surf-${banks.length + 1}`;
+    banks.push({
+      id,
+      start,
+      end,
+      width: approach ? 10 : 18,
+      entry: approach ? 26 : Math.min(72, (end - start) * 0.29),
+      exit: approach ? 48 : Math.min(280, (end - start) * 0.53),
+    });
+  }
+  return banks;
 }
 
 /** Route/lateral bounds and elevation used by deck, cliff join and art accents. */
@@ -36,8 +62,10 @@ export function sampleOpalineSurfBank(track, distance) {
       ? distance
       : T.MathUtils.euclideanModulo(distance, track.length);
   // Match Float32 roadCoord endpoint quantization as well as double route queries.
+  const endpointTolerance = Math.max(1e-4, track.length * 2 ** -23);
   const bank = track.surfBanks?.find(
-    (span) => s >= span.start - 1e-4 && s <= span.end + 1e-4,
+    (span) =>
+      s >= span.start - endpointTolerance && s <= span.end + endpointTolerance,
   );
   if (!bank) return null;
   const width =

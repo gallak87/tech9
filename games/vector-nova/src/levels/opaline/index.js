@@ -9,7 +9,7 @@ import { createDevices } from './devices.js';
 
 export default function createLevel({ shape = false } = {}) {
   return {
-    version: '0.2.0-opaline-2',
+    version: '0.3.0-opaline-3',
     createTrack: createOpalineTrack,
     createRoad: (context) => createOpalineRoad({ ...context, shape }),
     createEnvironment: (context) =>

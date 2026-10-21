@@ -4,7 +4,12 @@ import {
   cupDefinition,
   cupGridOrder,
 } from '../race/cup.js';
-import { cupView, cupWaitingView, cupLaunch } from './cup.js';
+import {
+  cupView,
+  cupWaitingView,
+  updateCupWaitingView,
+  cupLaunch,
+} from './cup.js';
 import { recordsView } from './records.js';
 import { readTrialRecords } from '../race/time-trial.js';
 import { formatTime, formatDelta } from '../race/timing.js';
@@ -242,6 +247,13 @@ export function createFrontend(host) {
     const element =
       typeof target === 'string' ? shell.querySelector(target) : target;
     if (!element || element.disabled) return;
+    for (
+      let details = element.closest('details');
+      details;
+      details = details.parentElement?.closest('details')
+    )
+      if (element.parentElement !== details || element.tagName !== 'SUMMARY')
+        details.open = true;
     element.focus({ preventScroll: true });
     element.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
@@ -803,13 +815,18 @@ export function createFrontend(host) {
         ]),
       ]);
       if (key !== cupResultsKey) {
-        const focused = focusSelector();
-        const wasWaiting = !!shell.querySelector('.results-note');
+        const waiting = shell.querySelector('.cup-waiting');
         cupResultsKey = key;
+        if (!data.final && waiting) {
+          updateCupWaitingView(waiting, data);
+          return;
+        }
+        const focused = focusSelector();
         render();
-        if (data.final && wasWaiting)
+        if (data.final && waiting) {
+          shell.scrollTop = 0;
           shell.querySelector('h1')?.focus({ preventScroll: true });
-        else focusMenu(focused);
+        } else focusMenu(focused);
       }
       return;
     }
@@ -1277,9 +1294,11 @@ export function createFrontend(host) {
       focusMenu('[data-action="cup-cancel"]');
     },
     'cup-cancel'() {
+      const action = cupConfirm;
       cupConfirm = null;
       render();
-      focusMenu('[data-action="cup-restart"]');
+      const opener = shell.querySelector(`[data-action="cup-${action}"]`);
+      focusMenu(opener);
     },
     'cup-confirm'() {
       const state = cupStore.snapshot().state;
@@ -1699,11 +1718,11 @@ export function createFrontend(host) {
         if (screen === 'loading') cancel();
         else if (screen === 'settings') actions['settings-back']();
         else if (screen === 'records') actions['records-back']();
+        else if (cupConfirm) actions['cup-cancel']();
         else if (screen === 'results') {
           if (lastResults?.mode === 'cup') openCup();
           else actions.change();
-        } else if (cupConfirm) actions['cup-cancel']();
-        else if (
+        } else if (
           screen === 'cup' ||
           screen === 'setup' ||
           screen === 'circuits'

@@ -26,8 +26,8 @@ export function createInput(onCommand, onBlur) {
   window.addEventListener(
     'keydown',
     (e) => {
-      if (!enabled) return;
-      if (e.target.matches('input,select')) return;
+      if (!enabled || e.defaultPrevented) return;
+      if (e.target.closest('input,select,textarea,summary')) return;
       if (e.code === 'Space' && e.target.matches('button')) return;
       if (codes.includes(e.code)) {
         e.preventDefault();

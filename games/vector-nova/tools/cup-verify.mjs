@@ -162,7 +162,12 @@ try {
         ? /Circuit · 2 laps · Scored/
         : /Sprint · 1 descent · Scored/,
     );
-    const expected = cupStandings(s.cup.state);
+    const standings = cupStandings(s.cup.state);
+    const playerIndex = standings.findIndex((row) => row.id === 'player');
+    const expected =
+      s.cup.state.results.length === cup.tracks.length
+        ? standings
+        : standings.slice(Math.max(0, playerIndex - 2), playerIndex + 3);
     assert.deepEqual(
       await page
         .locator('.cup-standings tbody tr td:nth-of-type(2)')
@@ -184,7 +189,10 @@ try {
         result.playerTotalTime,
       );
     }
-    assert.equal(await page.locator('.cup-standings tbody tr').count(), 10);
+    assert.equal(
+      await page.locator('.cup-standings tbody tr').count(),
+      expected.length,
+    );
     await fits();
     console.log(
       'PASS event',

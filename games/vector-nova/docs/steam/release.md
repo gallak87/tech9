@@ -28,6 +28,11 @@ Xbox-style labels above refer to standard controller button positions.
 
 ## Release gates
 
+### Repository and distribution
+
+- [ ] Move Vector Nova into a dedicated private repository when ready, including assets, local/browser tooling and desktop CI. Keep full-game build artifacts restricted to repository collaborators.
+- [ ] Decide what stays publicly playable: the current browser game, a demo, or no public game. Update Pages/hosting as part of the move without affecting the other games in this repository.
+
 ### Build and playtesting
 
 - [ ] Run the desktop CI workflow on GitHub for both editions and target platforms.

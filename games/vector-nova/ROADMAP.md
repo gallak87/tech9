@@ -79,6 +79,10 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 - [ ] Prototype two recharge stretches and two immediate 25-point cells on Halcyon, capped at 100 reserve. Put recharge on slower/wider lines, retain passive regeneration while tuning, and reset eligibility per racer/lap with forward-crossing anti-farming rules. Expand only after review.
 - [ ] Consider cosmetic rewards after the core mode flows are complete; rewards would not unlock stronger stats, and current content remains available in Practice/Quick Race.
 
+## Publishing
+
+- [ ] **Move Vector Nova into its own private repository when ready.** Preserve local/browser builds, move desktop CI with the game, and decide what remains publicly playable on the web. Track the migration in the [release checklist](docs/steam/release.md#repository-and-distribution).
+
 ## Tooling follow-up
 
 - [ ] Consolidate the compatibility developer launcher into dedicated tool views after migrating its consumers. Preserve jump-test cases/reset/step/launch, shape review and ship/rival inspection. Direct art-pass/inspection links and maintained frontend/level checks already exist.

@@ -6,6 +6,8 @@ The whole world and the raceway must share an identity: surface, edge silhouette
 
 Engage early and spread climbs, drops, banks, corkscrews and inversions through the lap, with readable recovery space. Do not stretch flat straights to meet a length target or cluster every dramatic feature in one short sequence.
 
+Course challenge comes from harder obstacles or hazards and more consequential jumps or exposed edges where a fall is easier. Visual clutter and an unreadable route are not difficulty. A biome-road may alternate with constructed connectors or form the entire route; its material and edge cues must make the drivable surface clear.
+
 Readability order: upcoming road/corner, craft/propulsion, gameplay feedback, decoration. Use real geometry, meaningful large/medium/small forms, coherent material response and grounded construction. Avoid bloom hiding form, screenshots posing as scenery, palette-swap levels and detail that vanishes at driving speed.
 
 High/low presets retain the same world and navigation cues. Reduced motion restrains flashes and environmental movement. Use generated imagery only for appropriate asset/material roles, with exact provenance; preserve editable sources and licences.

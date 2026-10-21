@@ -21,7 +21,8 @@ test('new mature silhouettes stay within near/far budgets with broad non-flat cr
       assert.ok(prototype.height > 80 && prototype.height < 125);
       assert.ok(prototype.radius > 45 && prototype.radius < 85);
       assert.ok(
-        prototype.foliageClusterCount >= 120 && far.foliageClusterCount === prototype.foliageClusterCount,
+        prototype.foliageClusterCount >= 120 &&
+          far.foliageClusterCount === prototype.foliageClusterCount,
         'near and far crowns preserve every attached spray cluster',
       );
       assert.ok(
@@ -118,7 +119,7 @@ test('kit owns each generated resource exactly once and never disposes borrowed 
     detail: 'low',
     textures: {
       wood: { map: borrowed, normalMap: normal, roughnessMap: roughness },
-      leaf: {map: leafMap},
+      leaf: { map: leafMap },
     },
   });
   assert.equal(kit.materials.wood.map, borrowed);

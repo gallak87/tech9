@@ -12,15 +12,17 @@ import {
 } from '@worldkit/environment/ocean';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createForestTerrain, randomSource } from './terrain.js';
+import { createLifetime } from '../../../core/lifecycle.js';
 
 const UP = new T.Vector3(0, 1, 0);
+const DETAIL_DISTANCE = { high: 330, low: 130 };
+const DRAW_DISTANCE = 1550;
+const DETAIL_REFRESH_DISTANCE = 30;
 
-function batches(parts, placements, name, group) {
+function createBatches(parts, placements, name, group, lifetime) {
   const meshes = parts.map(({ geometry, material }) => {
-    const mesh = new T.InstancedMesh(
-      geometry,
-      material,
-      Math.max(1, placements.length),
+    const mesh = lifetime.own(
+      new T.InstancedMesh(geometry, material, Math.max(1, placements.length)),
     );
     mesh.name = name;
     mesh.castShadow = true;
@@ -46,48 +48,67 @@ function placement(position, scale, yaw = 0) {
   };
 }
 
-/** A wholly new world composed around the fixed road. No old Vesper assets. */
-export async function createVesperEnvironment({
-  track,
-  settings = {},
-  view,
-} = {}) {
+/** Build one owned world; a failed build releases every acquired resource. */
+export async function createVesperEnvironment(context = {}) {
+  const lifetime = createLifetime();
+  try {
+    const textures = await loadTextures(lifetime);
+    return buildEnvironment(context, textures, lifetime);
+  } catch (error) {
+    const failures = [error];
+    try {
+      lifetime.dispose();
+    } catch (cleanupError) {
+      failures.push(cleanupError);
+    }
+    if (failures.length > 1) {
+      throw new AggregateError(
+        failures,
+        'Living Forest construction and cleanup failed',
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+}
+
+async function loadTextures(lifetime) {
   const loader = new T.TextureLoader();
   let bark, foliage;
   try {
-    bark = await loader.loadAsync(livingForestBarkURL);
-    foliage = await loader.loadAsync(livingForestLeafURL);
+    bark = lifetime.own(await loader.loadAsync(livingForestBarkURL));
+    foliage = lifetime.own(await loader.loadAsync(livingForestLeafURL));
   } catch (cause) {
-    bark?.dispose();
     throw new Error('Living Forest art could not load. Reload to try again.', {
       cause,
     });
   }
-  foliage.colorSpace = T.SRGBColorSpace;
-  foliage.anisotropy = 8;
-  bark.colorSpace = T.SRGBColorSpace;
+  bark.colorSpace = foliage.colorSpace = T.SRGBColorSpace;
+  bark.anisotropy = foliage.anisotropy = 8;
   bark.wrapS = bark.wrapT = T.RepeatWrapping;
-  bark.anisotropy = 8;
-  const relief = bark.clone();
+  const relief = lifetime.own(bark.clone());
   relief.colorSpace = T.NoColorSpace;
   relief.needsUpdate = true;
-  const textures = {
-    wood: { map: bark, bumpMap: relief },
-    leaf: { map: foliage },
-  };
+  return { wood: { map: bark, bumpMap: relief }, leaf: { map: foliage } };
+}
+
+function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
   const group = new T.Group();
   group.name = 'Vesper Forest / new Living Forest world';
-  const terrain = createForestTerrain(track);
+  lifetime.defer(() => group.clear());
+  const batches = (parts, placements, name, target) =>
+    createBatches(parts, placements, name, target, lifetime);
+  const terrain = lifetime.own(createForestTerrain(track));
   group.add(terrain.mesh);
-  const kit = createLivingForestKit({ detail: 'high', textures }),
-    farKit = createLivingForestKit({ detail: 'low', textures });
-  const inner = kit.materials.wood.clone();
+  const kit = lifetime.own(createLivingForestKit({ detail: 'high', textures })),
+    farKit = lifetime.own(createLivingForestKit({ detail: 'low', textures }));
+  const inner = lifetime.own(kit.materials.wood.clone());
   inner.name = 'Living Forest / warm heartwood';
   inner.color.set('#8a9684');
   inner.emissive.set('#273d35');
   inner.emissiveIntensity = 0.12;
   inner.bumpScale = 0.65;
-  const rim = kit.materials.wood.clone();
+  const rim = lifetime.own(kit.materials.wood.clone());
   rim.name = 'Living Forest / pale rolled wound';
   rim.color.set('#a1a090');
   rim.bumpScale = 0.6;
@@ -96,15 +117,17 @@ export async function createVesperEnvironment({
   for (let s = 0; s < track.length; s += 6)
     route.push(track.sample(s).position.clone());
   route.push(route[0].clone());
-  const hollow = createLivingHollow({
-    center: hollowData.center,
-    radius: 185,
-    base: -112,
-    top: 410,
-    routePoints: route,
-    clearance: 34,
-    materials: { bark: kit.materials.wood, inner, rim },
-  });
+  const hollow = lifetime.own(
+    createLivingHollow({
+      center: hollowData.center,
+      radius: 185,
+      base: -112,
+      top: 410,
+      routePoints: route,
+      clearance: 34,
+      materials: { bark: kit.materials.wood, inner, rim },
+    }),
+  );
   group.add(hollow.group);
   kit.materials.wood.bumpScale = 0.75;
   farKit.materials.wood.bumpScale = 0.3;
@@ -141,6 +164,7 @@ export async function createVesperEnvironment({
     }
     const item = placement(p, scale, random() * Math.PI * 2);
     item.height = targetHeight;
+    item.detailCenter = p.clone().addScaledVector(UP, targetHeight * 0.6);
     stands[variant].push(item);
     accepted.push(item);
     return true;
@@ -211,7 +235,7 @@ export async function createVesperEnvironment({
       ),
     );
   }
-  const crownMeshes = batches(
+  batches(
     crownParts,
     crownPlacements,
     'Living Forest / cathedral canopy',
@@ -242,15 +266,12 @@ export async function createVesperEnvironment({
       );
     else shrubs.push(placement(new T.Vector3(x, y, z), scale, random() * 6.28));
   }
-  const rockMeshes = [];
   rocks.forEach((p, i) =>
-    rockMeshes.push(
-      ...batches(
-        [kit.rockParts[i]],
-        p,
-        'Living Forest / mossy slate outcrops',
-        group,
-      ),
+    batches(
+      [kit.rockParts[i]],
+      p,
+      'Living Forest / mossy slate outcrops',
+      group,
     ),
   );
   const shrubMeshes = batches(
@@ -262,6 +283,10 @@ export async function createVesperEnvironment({
   // New-kit roots meet the real deck underside and soil or inner hollow wall.
   const rootPieces = [],
     connections = [];
+  // The pieces are temporary owners until their merged geometry is acquired.
+  const releaseRootPieces = () =>
+    rootPieces.splice(0).forEach((g) => g.dispose());
+  lifetime.defer(releaseRootPieces);
   hollow.group.updateMatrixWorld(true);
   const innerShell = hollow.group.getObjectByName(
     'Living Forest / living inner cambium',
@@ -317,7 +342,10 @@ export async function createVesperEnvironment({
     }
   }
   const rootsGeometry = rootPieces.length ? mergeGeometries(rootPieces) : null;
-  rootPieces.forEach((g) => g.dispose());
+  if (rootPieces.length && !rootsGeometry)
+    throw new Error('Living Forest root geometry could not merge');
+  if (rootsGeometry) lifetime.own(rootsGeometry);
+  releaseRootPieces();
   if (rootsGeometry) {
     const roots = new T.Mesh(rootsGeometry, kit.materials.wood);
     roots.name = 'Living Forest / rooted road foundations';
@@ -332,15 +360,17 @@ export async function createVesperEnvironment({
     level: -112,
     harmonics: [],
   });
-  const water = createOceanLayer({
-    id: 'Living Forest / reflective floodplain',
-    coast,
-    halfSize: 2400,
-    quality: 'balanced',
-    waterColor: '#17464b',
-    distortionScale: 0.6,
-    normalSize: 128,
-  });
+  const water = lifetime.own(
+    createOceanLayer({
+      id: 'Living Forest / reflective floodplain',
+      coast,
+      halfSize: 2400,
+      quality: 'balanced',
+      waterColor: '#17464b',
+      distortionScale: 0.6,
+      normalSize: 128,
+    }),
+  );
   water.init({
     scene: group,
     definition: {
@@ -370,9 +400,11 @@ export async function createVesperEnvironment({
     lastQuality;
   function configure(camera, quality) {
     if (!camera) return;
+    quality = quality === 'low' ? 'low' : 'high';
+    const qualityChanged = lastQuality !== quality;
     const changed =
-      lastCamera.distanceToSquared(camera.position) > 30 ** 2 ||
-      lastQuality !== quality;
+      lastCamera.distanceToSquared(camera.position) >
+        DETAIL_REFRESH_DISTANCE ** 2 || qualityChanged;
     if (!changed) return;
     lastCamera.copy(camera.position);
     lastQuality = quality;
@@ -380,11 +412,12 @@ export async function createVesperEnvironment({
       let n = 0,
         f = 0;
       for (const item of lod.entries) {
-        const d = camera.position.distanceTo(
-          item.position.clone().addScaledVector(UP, item.height * 0.6),
+        const distanceSquared = camera.position.distanceToSquared(
+          item.detailCenter,
         );
-        if (d > 1550) continue;
-        const meshes = d < (quality === 'low' ? 130 : 330) ? lod.near : lod.far;
+        if (distanceSquared > DRAW_DISTANCE ** 2) continue;
+        const meshes =
+          distanceSquared < DETAIL_DISTANCE[quality] ** 2 ? lod.near : lod.far;
         const index = meshes === lod.near ? n++ : f++;
         meshes.forEach((m) => m.setMatrixAt(index, item.matrix));
       }
@@ -400,7 +433,7 @@ export async function createVesperEnvironment({
       });
     }
     shrubMeshes.forEach((m) => (m.visible = quality !== 'low'));
-    if (waterMesh) {
+    if (waterMesh && qualityChanged) {
       waterMesh.reflectionStride = quality === 'low' ? 12 : 5;
       waterMesh.renderTarget.setSize(
         quality === 'low' ? 512 : 768,
@@ -414,33 +447,14 @@ export async function createVesperEnvironment({
     ready: Promise.resolve(),
     update(frame = {}) {
       if (disposed) return;
-      configure(
-        frame.camera ?? view?.camera,
-        (frame.settings ?? settings).quality,
-      );
-      water.update(frame.settings?.reducedMotion ? 0 : (frame.dt ?? 0));
+      const currentSettings = frame.settings ?? settings;
+      configure(frame.camera ?? view?.camera, currentSettings.quality);
+      water.update(currentSettings.reducedMotion ? 0 : (frame.dt ?? 0));
     },
     dispose() {
       if (disposed) return;
       disposed = true;
-      water.dispose();
-      [
-        ...treeLods.flatMap((l) => [...l.near, ...l.far]),
-        ...crownMeshes,
-        ...rockMeshes,
-        ...shrubMeshes,
-      ].forEach((m) => m.dispose());
-      rootsGeometry?.dispose();
-      hollow.dispose();
-      terrain.dispose();
-      inner.dispose();
-      rim.dispose();
-      kit.dispose();
-      farKit.dispose();
-      bark.dispose();
-      relief.dispose();
-      foliage.dispose();
-      group.clear();
+      lifetime.dispose();
     },
   };
 }

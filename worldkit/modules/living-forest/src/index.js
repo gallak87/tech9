@@ -149,7 +149,9 @@ function matureTree(seed, variant, detail, materials) {
         // coverage; near crowns gain a third gently twisted plane for depth.
         for (let card = 0; card < (high ? 3 : 2); card++) {
           const leaf = createFoliageSprayGeometry({
-            length: sprayLength, width: sprayWidth, bend: bendAmount,
+            length: sprayLength,
+            width: sprayWidth,
+            bend: bendAmount,
             tint: [brightness * 0.96, brightness, brightness * 0.98],
           });
           leaf.rotateZ([-0.68, 0.68, 0][card]);
@@ -197,9 +199,16 @@ function shrub(seed, detail, materials) {
       ),
     );
     for (let card = 0; card < 2; card++) {
-      const leaf = createFoliageSprayGeometry({length: 5.5 + random() * 2, width: 6.5, bend: 0.5});
-      leaf.rotateZ(card ? 0.7 : -0.7); leaf.rotateX(-0.35); leaf.rotateY(a);
-      leaf.translate(tip.x, tip.y - 1, tip.z); leaves.push(leaf);
+      const leaf = createFoliageSprayGeometry({
+        length: 5.5 + random() * 2,
+        width: 6.5,
+        bend: 0.5,
+      });
+      leaf.rotateZ(card ? 0.7 : -0.7);
+      leaf.rotateX(-0.35);
+      leaf.rotateY(a);
+      leaf.translate(tip.x, tip.y - 1, tip.z);
+      leaves.push(leaf);
     }
   }
   return [

@@ -122,6 +122,17 @@ The [reusable checks](../tools/level-checks/README.md) cover track/module contra
 
 Own implementation files under `src/levels/<slug>/track/`, `environment/` and `backdrop/` as useful; those names are organization conventions, not additional required factories. Shared directories contain mechanics used across levels. Existing public asset URLs stay stable across source moves.
 
+## Environment assembly workflow
+
+1. Establish the route and driving surfaces before the art pass. For biome-road sections, the visible terrain, shell or channel must be the actual sampled/contact surface; an invisible conventional deck must not disagree with it.
+2. Define the biome palette, material families, large silhouettes and unique landmark. Keep light and composition level-owned.
+3. Build concrete reusable assets and assemblies through [Worldkit's public entries](../../../worldkit/README.md). Keep placement, landmarks, exclusions and collision policy in the level; add shared abstractions only when another consumer needs them.
+4. Prove the kit in two substantial areas visible from the driving camera, including a landmark approach or landing where relevant. Review geometry/materials separately from lighting, and establish near/far detail and reflection budgets before expansion.
+5. Expand through deterministic placement recipes while composing distinct enclosed stretches, openings and distant views. Preserve surface attachment, road/flight clearance and navigational silhouettes at both quality settings.
+6. Check fixed views, loading/failure cleanup, gameplay and measured frame pacing; finish with an in-motion driving review. Keep a few useful captures, and stop critic loops when concrete issues are resolved instead of chasing a numerical art score.
+
+The Vesper Forest integration demonstrates this ownership split. Its forest art and metre scales are a specific kit, not a universal biome specification. Constructors must release partial allocations on failure; disposal must be safe to repeat and must not free borrowed resources.
+
 ## Shared local mechanics
 
 `src/physics/flight.js` exports `DEFAULT_FLIGHT_RULES` and `createFlightModel(overrides)`. A model returns `{ rules, sweptLanding, sweptRail, createRuntime }`; its swept-contact functions accept `(track, jump, beforePose, afterPose[, velocity])`, with velocity required by `sweptLanding`. Poses contain world `position` and `quaternion`. The receiving interval includes the 150 m extension from `physics/landing-zone.js`, bounded by the next takeoff and course finish. A landing still requires supported contact; the sampled solver requires a forward, upright descending hull. There is no invisible road across gaps or target-seeking flight assistance. Keep authored `landingEnd` and recovery stations unchanged when using the shared extension.

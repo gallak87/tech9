@@ -129,23 +129,39 @@ export function createLeafGeometry({
 }
 
 /** A gently bent full-image card, stem anchored at bottom centre (local origin). */
-export function createFoliageSprayGeometry({length = 16, width = 16, bend = 1.4, tint = [1, 1, 1]} = {}) {
-  const positions = [], colors = [], uvs = [], indices = [];
+export function createFoliageSprayGeometry({
+  length = 16,
+  width = 16,
+  bend = 1.4,
+  tint = [1, 1, 1],
+} = {}) {
+  const positions = [],
+    colors = [],
+    uvs = [],
+    indices = [];
   for (let row = 0; row < 3; row++) {
     const t = row / 2;
     for (let side = 0; side < 2; side++) {
-      positions.push((side - 0.5) * width, Math.sin(t * Math.PI) * bend, t * length);
+      positions.push(
+        (side - 0.5) * width,
+        Math.sin(t * Math.PI) * bend,
+        t * length,
+      );
       uvs.push(side, t);
       const value = 0.84 + t * 0.16;
       colors.push(tint[0] * value, tint[1] * value, tint[2] * value);
     }
-    if (row < 2) { const a = row * 2; indices.push(a, a + 2, a + 1, a + 2, a + 3, a + 1); }
+    if (row < 2) {
+      const a = row * 2;
+      indices.push(a, a + 2, a + 1, a + 2, a + 3, a + 1);
+    }
   }
   const geometry = new T.BufferGeometry();
   geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
   geometry.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2));
   geometry.setAttribute('color', new T.Float32BufferAttribute(colors, 3));
-  geometry.setIndex(indices); geometry.computeVertexNormals();
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
   return geometry;
 }
 

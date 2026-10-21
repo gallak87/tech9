@@ -1,0 +1,14 @@
+{
+  "assets": [
+    {
+      "file": "porcelain-color-v1.png",
+      "generator": "Built-in image_gen.imagegen",
+      "date": "2026-10-21",
+      "prompt": "Use case: photorealistic-natural. Asset type: seamless tileable game-environment albedo/color material texture, square. Primary request: an original alien river-polished porcelain mineral substrate, photographed orthographically straight down, filling every pixel edge to edge. Mostly calm warm ivory and pearl ceramic stone, slight cloudy mineral structure, very thin and sparse lilac-grey and pale ochre veins meandering through it, tiny pores and fine erosion scratches. Material is naturally formed geological porcelain, not manufactured bathroom marble, not ice or snow. Subtle variation across large and small scales; quiet base value suitable for repeating on large sculptural cliffs and smooth racing shelves. Flat uniform diffuse illumination, absolutely no baked directional shadows, no highlights, no perspective, no bevelled tile edges, no objects, no text or logos. Seamless repeat at all four edges. Avoid broad dark streaks, exaggerated cracks, glitter, plastic, or dramatic high-contrast marbling. The mineral color itself should remain ivory across nearly the entire texture.",
+      "transformations": [],
+      "width": 1254,
+      "height": 1254,
+      "sha256": "5926847004cea55aab49b7d543ab5a908a10cf19bfef9184255d89ac4011a1c2"
+    }
+  ]
+}

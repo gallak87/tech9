@@ -13,7 +13,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'vite';
 import { LANDSCAPE_ASSETS, FOREST_MATERIAL_ASSETS } from '../src/forest.js';
-import { livingForestBarkURL, livingForestLeafURL } from '../src/living-forest.js';
+import {
+  livingForestBarkURL,
+  livingForestLeafURL,
+} from '../src/living-forest.js';
+import { opalineStoneURL } from '../src/opaline.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const scratch = await mkdtemp(path.join(tmpdir(), 'worldkit-package-'));
@@ -46,7 +50,9 @@ try {
   for (const entry of Object.values(manifest.exports))
     assert.ok(paths.has(entry.slice(2)), entry);
   const urls = [
-    livingForestBarkURL, livingForestLeafURL,
+    livingForestBarkURL,
+    livingForestLeafURL,
+    opalineStoneURL,
     ...Object.values(LANDSCAPE_ASSETS),
     ...Object.values(FOREST_MATERIAL_ASSETS),
   ];
@@ -62,6 +68,7 @@ try {
     'modules/pond-water/assets/LICENSE.md',
     'modules/weather/NOTICE.md',
     'modules/living-forest/assets/provenance.json',
+    'modules/opaline/assets/provenance.json',
   ])
     assert.ok(paths.has(notice), notice);
 
@@ -98,7 +105,8 @@ try {
     import * as ocean from '@worldkit/environment/ocean';
     import * as water from '@worldkit/environment/water';
     import * as weather from '@worldkit/environment/weather';
-    window.worldkitConsumer = { worldkit, forest, landscape, ocean, water, weather };
+    import * as opaline from '@worldkit/environment/opaline';
+    window.worldkitConsumer = { worldkit, forest, landscape, ocean, water, weather, opaline };
   `,
   );
   const result = await build({
@@ -194,13 +202,53 @@ try {
     2,
     'Living Forest must not emit legacy forest assets',
   );
-  assert.ok(livingArt.some(item=>/silver-bark-color-v1-.*\.png$/.test(item.fileName)));
-  assert.ok(livingArt.some(item=>/leaf-spray-v1-.*\.png$/.test(item.fileName)));
+  assert.ok(
+    livingArt.some((item) =>
+      /silver-bark-color-v1-.*\.png$/.test(item.fileName),
+    ),
+  );
+  assert.ok(
+    livingArt.some((item) => /leaf-spray-v1-.*\.png$/.test(item.fileName)),
+  );
   assert.ok(
     livingOutputs.some(
       (item) =>
         item.type === 'chunk' &&
         item.code.includes('/worldkit-consumer/assets/silver-bark-color-v1-'),
+    ),
+  );
+  await writeFile(
+    path.join(consumer, 'main.js'),
+    `
+    import * as opaline from '@worldkit/environment/opaline';
+    window.opalineConsumer = opaline;
+  `,
+  );
+  const opaline = await build({
+    root: consumer,
+    configFile: false,
+    logLevel: 'error',
+    base: '/worldkit-consumer/',
+    resolve: { dedupe: ['three'] },
+    build: { write: false, assetsInlineLimit: 0 },
+  });
+  const opalineOutputs = (Array.isArray(opaline) ? opaline : [opaline]).flatMap(
+    (item) => item.output,
+  );
+  const opalineArt = opalineOutputs.filter(
+    (item) => item.type === 'asset' && /\.(jpg|png|glb)$/.test(item.fileName),
+  );
+  assert.equal(
+    opalineArt.length,
+    1,
+    'Opaline imports only its own canonical mineral image',
+  );
+  assert.ok(/porcelain-color-v1-.*\.png$/.test(opalineArt[0].fileName));
+  assert.ok(
+    opalineOutputs.some(
+      (item) =>
+        item.type === 'chunk' &&
+        item.code.includes('/worldkit-consumer/assets/porcelain-color-v1-'),
     ),
   );
   console.log(

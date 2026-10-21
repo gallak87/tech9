@@ -126,6 +126,15 @@
       "sourceRevision": "fa6de202d742fcf7a52ab1db7d748a66bc0534b3",
       "sourceDirty": true,
       "routeSignature": "2f147e93e90cfdd4"
+    },
+    "opaline": {
+      "file": "opaline.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "5a122f5c9d57b1082f878d8b7c2a02fbd2089fbd",
+      "sourceDirty": true,
+      "routeSignature": "18e7a5aedfd51126"
     }
   }
 }

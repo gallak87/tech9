@@ -46,6 +46,12 @@ Establish silhouettes, ground relationships and sightlines before surface detail
 
 Cool sheltered canopy and quieter distance contrast with warm grazing sunlight on pale outer wood, exposed heartwood and amber resin guidance. Reveal large folds and branch junctions before fine bark grain; keep sheltered areas legible without flattening every surface with fill. Material scale, route clearance and rooted placement must survive reuse across the complete circuit. This is the intended art direction; visual finish and performance require scene validation.
 
+## Opaline Divide
+
+An alien river has eroded warm ivory and pearl geology into bowls, folded cliffs and polished spillways. The running surface is the mineral shelf itself, continuous with its eroded mass; occasional ceramic service bridges are visibly constructed connectors. Avoid a conventional painted road laid over a canyon. Dark emerald water, restrained lilac-grey veins, warm grazing light and cool distant haze distinguish smooth racing shelves from rough cliff faces. The translucent river wall is the landmark: fluid depth and pressure-light pass through a thin mineral veil framed by heavy, irregular geology. Compose open terraces, the low basin and enclosed galleries rather than repeating one canyon cross-section.
+
+Spillway surges provide the local identity. Embedded veins brighten before a visible traveling sheet reaches the racing surface. Along-flow rewards its line with acceleration; cross-flow pushes toward the exposed outer edge. The inner mineral shelf must visibly remain sheltered, with the same current boundary on High, Low and reduced motion. Keep both fractured terraces and their receiving shelves legible at speed. The Worldkit Opaline artkit supplies reusable forms and material response; the level owns its route, geology attachment, landmark, water and lighting.
+
 ## Glasswake Comet
 
 Pale fractured glacial ice, dark buried meteor, cobalt crevices and aurora above a supported transparent crystal raceway. Preserve the approved see-through floor: a light cloudy vein texture gives it an ice feel without hiding the ribs or canyon. Opaque ice carries cloud layers, granular frost and fine fractures, with readable broad forms and restrained warm fittings.

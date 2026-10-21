@@ -1,0 +1,100 @@
+import { createDeviceLayout } from '../../pickups/layout.js';
+
+export function createDevices(track) {
+  const sections = Object.fromEntries(
+    track.sections.map((section) => [section.id, section]),
+  );
+  const plan = [
+    {
+      id: 'arrival-vector',
+      type: 'vector',
+      distance: 65,
+      lateral: 0,
+      width: 14,
+      length: 45,
+      label: 'Arrival vector',
+    },
+    {
+      id: 'fracture-aegis',
+      type: 'aegis',
+      distance: track.jumps[0].recovery + 50,
+      lateral: 5,
+      width: 8,
+      length: 8,
+      label: 'Terrace aegis',
+    },
+    {
+      id: 'spillway-ion',
+      type: 'ion',
+      distance: sections.spillway.start + 90,
+      lateral: 9,
+      width: 5,
+      length: 10,
+      label: 'Spillway ion',
+    },
+    {
+      id: 'basin-vector',
+      type: 'vector',
+      distance: sections.basin.start + 35,
+      lateral: 0,
+      width: 14,
+      length: 48,
+      label: 'Basin vector',
+    },
+    {
+      id: 'veil-aegis',
+      type: 'aegis',
+      distance: sections.veil.start + 35,
+      lateral: 5,
+      width: 8,
+      length: 8,
+      label: 'Veil aegis',
+    },
+    {
+      id: 'crown-vector',
+      type: 'vector',
+      distance: track.jumps[1].takeoff - 90,
+      lateral: 0,
+      width: 14,
+      length: 44,
+      label: 'Crown vector',
+    },
+    {
+      id: 'folds-arc',
+      type: 'arc',
+      distance: sections.folds.start + 60,
+      lateral: -7,
+      width: 5,
+      length: 10,
+      label: 'Gallery arc',
+    },
+    {
+      id: 'gallery-repulsor',
+      type: 'repulsor',
+      distance: sections.folds.end - 185,
+      lateral: -7,
+      width: 5,
+      length: 10,
+      label: 'Gallery repulsor',
+    },
+    {
+      id: 'return-aegis',
+      type: 'aegis',
+      distance: sections.return.start + 40,
+      lateral: 6,
+      width: 8,
+      length: 8,
+      label: 'Return aegis',
+    },
+    {
+      id: 'daybreak-vector',
+      type: 'vector',
+      distance: track.length - 320,
+      lateral: 0,
+      width: 14,
+      length: 48,
+      label: 'Daybreak vector',
+    },
+  ];
+  return createDeviceLayout(track, plan);
+}

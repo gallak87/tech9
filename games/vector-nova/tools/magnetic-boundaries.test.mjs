@@ -217,3 +217,83 @@ test('finite support preserves Shatterline closed tube seams and widened collect
     }
   }
 });
+
+const policyFixture = () => ({
+  id: 'boundary-policy-fixture',
+  geometryVersion: 'fixture-v1',
+  length: 40,
+  width: 20,
+  jumps: [],
+  sample(distance) {
+    return {
+      position: new Vector3(0, 0, distance),
+      right: new Vector3(1, 0, 0),
+      up: new Vector3(0, 1, 0),
+      tangent: new Vector3(0, 0, 1),
+      quaternion: new Quaternion(),
+    };
+  },
+});
+
+test('undeclared boundary policy retains existing continuous faces and replay identity', () => {
+  const track = policyFixture(),
+    old = withMagneticBoundaries(track),
+    explicitUndefined = withMagneticBoundaries({
+      ...track,
+      boundaryIntervals: undefined,
+    });
+  assert.deepEqual(old, explicitUndefined);
+  assert.equal(generated(old).length, 40);
+  assert.equal(
+    old.rulesId,
+    `${track.id}:road-bounds-4m-v3-authored-coverage:${JSON.stringify({ geometry: track.geometryVersion, length: track.length, width: track.width, closed: true, jumps: [] })}`,
+  );
+});
+
+test('explicit open edges retain authored contacts without generating invisible walls', () => {
+  const track = { ...policyFixture(), boundaryIntervals: [] };
+  const rail = {
+    id: 'visible-connector',
+    kind: 'rail',
+    points: [
+      [10, 0, 8],
+      [10, 1, 8],
+      [10, 0, 12],
+    ],
+    roadBoundary: true,
+    start: 8,
+    end: 12,
+  };
+  const world = withMagneticBoundaries(track, {
+    id: 'visible',
+    rulesId: 'visible-v1',
+    triangles: [rail],
+  });
+  assert.deepEqual(world.triangles, [rail]);
+  assert.match(world.rulesId, /:boundary-policy-v1:\[\]$/);
+});
+
+test('bounded policies cut exactly at authored ends and reject invalid intervals', () => {
+  const track = policyFixture();
+  const world = withMagneticBoundaries({
+    ...track,
+    boundaryIntervals: [{ start: 5, end: 14 }],
+  });
+  const faces = generated(world);
+  assert.ok(faces.length > 0);
+  assert.equal(Math.min(...faces.map((face) => face.start)), 5);
+  assert.equal(Math.max(...faces.map((face) => face.end)), 14);
+  assert.ok(faces.every((face) => face.start >= 5 && face.end <= 14));
+  for (const boundaryIntervals of [
+    null,
+    {},
+    [{ start: 9, end: 4 }],
+    [{ start: -1, end: 4 }],
+    [{ start: 0, end: 41 }],
+    [{ start: NaN, end: 8 }],
+  ])
+    assert.throws(
+      () => withMagneticBoundaries({ ...track, boundaryIntervals }),
+      /Invalid track boundary intervals/,
+    );
+});

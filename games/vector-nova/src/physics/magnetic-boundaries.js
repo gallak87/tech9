@@ -75,6 +75,23 @@ function authoredCoverage(track, triangles, ranges) {
 // cannot be projected through another body when it reaches the edge.
 export function withMagneticBoundaries(track, collisionWorld = null) {
   const triangles = [...(collisionWorld?.triangles ?? [])];
+  // Undefined preserves historical continuous edges. An explicit empty policy
+  // leaves mineral shelves exposed; authored rail triangles are always retained.
+  const boundaryIntervals = track.boundaryIntervals;
+  if (
+    boundaryIntervals !== undefined &&
+    (!Array.isArray(boundaryIntervals) ||
+      boundaryIntervals.some(
+        (span) =>
+          !span ||
+          !Number.isFinite(span.start) ||
+          !Number.isFinite(span.end) ||
+          span.start < 0 ||
+          span.end > track.length ||
+          span.start >= span.end,
+      ))
+  )
+    throw new Error('Invalid track boundary intervals');
   const spacing = 4;
   const from = track.closed === false ? -60 : 0;
   const end = track.length;
@@ -115,11 +132,22 @@ export function withMagneticBoundaries(track, collisionWorld = null) {
       if (Number.isFinite(distance) && distance > from && distance < end)
         cuts.add(distance);
   }
+  for (const span of boundaryIntervals ?? []) {
+    cuts.add(span.start);
+    cuts.add(span.end);
+  }
   const stations = [...cuts].sort((a, b) => a - b);
   for (let index = 0; index < stations.length - 1; index++) {
     const distance = stations[index],
       next = stations[index + 1];
     if (gap(distance, next)) continue;
+    if (
+      boundaryIntervals &&
+      !boundaryIntervals.some(
+        (span) => distance >= span.start && next <= span.end,
+      )
+    )
+      continue;
     for (const side of [-1, 1]) {
       if (covered(side, distance, next)) continue;
       const a = frameAt(distance, side),
@@ -149,7 +177,7 @@ export function withMagneticBoundaries(track, collisionWorld = null) {
   return {
     id: `${collisionWorld?.id ?? track.id}-magnetic-edges`,
     version: 3,
-    rulesId: `${collisionWorld?.rulesId ?? track.id}:road-bounds-4m-v3-authored-coverage:${JSON.stringify({ geometry: track.geometryVersion, length: track.length, width: track.width, closed: track.closed !== false, jumps: track.jumps })}`,
+    rulesId: `${collisionWorld?.rulesId ?? track.id}:road-bounds-4m-v3-authored-coverage:${JSON.stringify({ geometry: track.geometryVersion, length: track.length, width: track.width, closed: track.closed !== false, jumps: track.jumps })}${boundaryIntervals === undefined ? '' : `:boundary-policy-v1:${JSON.stringify(boundaryIntervals)}`}`,
     triangles,
   };
 }

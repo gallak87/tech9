@@ -12,6 +12,7 @@ const challenges = {
   saffron: 'Medium',
   zephyr: 'Medium',
   helion: 'Hard',
+  opaline: 'Hard',
   umbra: 'Hard',
   shatterline: 'Easy',
   worldspire: 'Medium',

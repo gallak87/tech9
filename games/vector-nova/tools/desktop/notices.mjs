@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const WORLDKIT_NOTICES = [
   'NOTICE.md',
   'modules/living-forest/assets/provenance.json',
+  'modules/opaline/assets/provenance.json',
   'modules/landscape/THREE-LICENSE.txt',
   'modules/landscape/assets/runtime/ASSETS.md',
   'modules/landscape/assets/runtime/textures/SOURCES.md',
@@ -18,7 +19,8 @@ const WORLDKIT_NOTICES = [
 ];
 
 export async function copyWorldkitNotices(notices, { levels }) {
-  if (!levels.includes('vesper-forest')) return [];
+  if (!levels.some((id) => ['vesper-forest', 'opaline'].includes(id)))
+    return [];
   const packageRoot = dirname(
     fileURLToPath(import.meta.resolve('@worldkit/environment/package.json')),
   );

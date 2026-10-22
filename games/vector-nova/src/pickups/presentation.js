@@ -13,6 +13,7 @@ import { deviceCSSColor } from './theme.js';
 import { createShipFeedbackPresentation } from './ship-feedback.js';
 import { AEGIS_DURATION } from './rules.js';
 import { createHitFeedback } from './hit-feedback.js';
+import { createSurfaceProjector } from './surface-projector.js';
 import { pickupQuality } from './quality.js';
 import { createLowDeviceGeometry } from './low-geometry.js';
 import { createReadoutAnchor } from './readout-anchor.js';
@@ -96,9 +97,15 @@ export function createPickupPresentation({
   let hardware = [];
   function buildHardware() {
     for (const visual of hardware) disposeGroup(visual.group);
-    const projector = createRoadProjector(track);
+    const projector =
+      track.deviceProjection === 'rendered-surface'
+        ? createSurfaceProjector(track, surfaces)
+        : createRoadProjector(track);
     hardware = devices.map((device) => {
-      const mountHeight = roadDeviceMountHeight(surfaces, device, projector);
+      const mountHeight =
+        track.deviceProjection === 'rendered-surface'
+          ? 0
+          : roadDeviceMountHeight(surfaces, device, projector);
       const createGeometry =
         quality === 'low'
           ? createLowDeviceGeometry

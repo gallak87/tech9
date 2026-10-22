@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-21",
+  "generationMode": "Built-in image_gen tool",
+  "purpose": "Driving-view concept selection; images are visual direction, not current gameplay screenshots or exact track blueprints.",
+  "referenceImages": [],
+  "images": [
+    {
+      "id": "ferric-thunder",
+      "title": "Ferric Thunder",
+      "image": "ferric-thunder-v1.png",
+      "prompt": "ferric-thunder-v1-prompt.txt",
+      "width": 1672,
+      "height": 941,
+      "sha256": "cbd1c892343d12d3b73a3edd5511a12ad73f805bac90e37b6d90d960af0d65cd",
+      "generationSource": "/Users/g/.codex/generated_images/01a161b7-c3d6-7372-8cba-130dc6514fb3/exec-eab14db4-73d3-4bcd-b70c-9c8e15ac5016.png"
+    },
+    {
+      "id": "sporeheart",
+      "title": "Sporeheart",
+      "image": "sporeheart-v1.png",
+      "prompt": "sporeheart-v1-prompt.txt",
+      "width": 1672,
+      "height": 941,
+      "sha256": "e1e53c98f65a528577b3b0d105e9723bb0a89d8e8e3ae8573216e59b19c9022f",
+      "generationSource": "/Users/g/.codex/generated_images/01a161b7-c3d6-7372-8cba-130dc6514fb3/exec-1cf45650-42fd-40f0-adf0-128833f585d9.png"
+    },
+    {
+      "id": "colossus-works",
+      "title": "Colossus Works",
+      "image": "colossus-works-v1.png",
+      "prompt": "colossus-works-v1-prompt.txt",
+      "width": 1672,
+      "height": 940,
+      "sha256": "f6c54f075220b08f2d1633863dcc6844ea1b2f4686a9ddad9571503babad2bc9",
+      "generationSource": "/Users/g/.codex/generated_images/01a161b7-c3d6-7372-8cba-130dc6514fb3/exec-b52319b9-505f-439d-b313-adf1ffef5533.png"
+    }
+  ]
+}

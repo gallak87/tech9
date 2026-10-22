@@ -16,6 +16,7 @@ const challenges = {
   shatterline: 'Easy',
   worldspire: 'Medium',
   nightweir: 'Medium',
+  colossus: 'Hard',
 };
 
 export const trackChallenge = (id) =>

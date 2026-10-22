@@ -122,7 +122,8 @@ export function createDeviceRuntime({
           },
         }
       : {}),
-    avoidance: () => combat?.avoidance(combatId) ?? null,
+    avoidance: () =>
+      combat?.avoidance(combatId) ?? motion.avoidance?.() ?? null,
     scenarios: { ...motion.scenarios, ...deviceScenarios, ...scenarios },
     setEnabled(value) {
       if (enabled === Boolean(value)) return;

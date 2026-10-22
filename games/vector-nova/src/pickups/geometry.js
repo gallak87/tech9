@@ -400,7 +400,7 @@ export function createDeviceGeometry(
     road('signal', markers, 0.021, null, false);
   } else {
     // An open, segmented arch leaves the racing sightline completely clear.
-    const frame = track.sample(distance);
+    const frame = projector.frame?.(distance, centre) ?? track.sample(distance);
     const point = (x, y, z = 0) =>
       projector
         .sample(distance, x)

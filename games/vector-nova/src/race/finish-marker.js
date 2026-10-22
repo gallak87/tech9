@@ -63,12 +63,16 @@ export function createFinishMarker(
       ]) {
         const s = start + ((row + along) * depth) / 2;
         const x = -width / 2 + (column + side) * tileWidth;
-        const frame = track.sample(s);
+        const surface =
+          track.deviceProjection === 'rendered-surface'
+            ? track.sampleSurface?.(s, x)
+            : null;
+        const frame = surface ?? track.sample(s);
         // Sample every corner so banking and curvature conform across both
         // rows, including implementations which reuse one scratch frame.
         const point = frame.position
           .clone()
-          .addScaledVector(frame.right, x)
+          .addScaledVector(frame.right, surface ? 0 : x)
           .addScaledVector(frame.up, height);
         positions.push(point.x, point.y, point.z);
         normals.push(frame.up.x, frame.up.y, frame.up.z);

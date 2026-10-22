@@ -62,7 +62,8 @@
     "./weather": "./src/weather.js",
     "./package.json": "./package.json",
     "./forest/kit": "./src/forest-kit.js",
-    "./living-forest": "./src/living-forest.js"
+    "./living-forest": "./src/living-forest.js",
+    "./industrial": "./src/industrial.js"
   },
   "peerDependencies": {
     "three": "0.186.1"
@@ -97,6 +98,8 @@
     "modules/landscape/assets/art/sources/manifest.json",
     "modules/living-forest/src",
     "modules/living-forest/README.md",
-    "modules/living-forest/assets"
+    "modules/living-forest/assets",
+    "modules/industrial/src",
+    "modules/industrial/README.md"
   ]
 }

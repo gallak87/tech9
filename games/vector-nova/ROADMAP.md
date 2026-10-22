@@ -39,6 +39,8 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 
 ## Level work
 
+- [ ] **Colossus Works.** Complete the approved 9.46 km Hard factory circuit in [the level brief](docs/levels/colossus.md), including physical ejectors, factory machinery and curved-surface device placement; commit production, then run the requested gameplay/free-camera art critique.
+
 - [ ] Resolve small on-road vertical bob on Nightweir’s broad banked panels. The two-triangle cross-sections introduce physical diagonal ridges; revisit tessellation together with road seals, pickup projection and other two-vertex-row consumers. A shared solution must preserve collision-query performance. Do not add map-specific hover offsets or smooth the ship through solid road. Countdown/reset placement is handled separately by the shared controller.
 
 - [ ] Investigate the extra turn-assistance feel reported in Zephyr on 2026-10-17: the early right bend beneath the stone cross-span, approaching the boost strip before the first waterfall jump (reference HUD: lap 1, 00:07.300, 396 km/h). The shared 0.3 curvature assistance is present; additional bend-specific behavior is unconfirmed. Compare neutral-input yaw, road banking/support transport and camera motion before proposing a handling change. Deferred from the query-controller/FPS pass; preserve the approved assistance until reviewed with the user.

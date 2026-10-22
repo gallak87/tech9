@@ -1,0 +1,161 @@
+import * as T from 'three';
+import { sheetGeometry, rimGeometry } from './surface.js';
+
+function workingSteel(shape) {
+  const material = new T.MeshStandardMaterial({
+    name: 'Colossus / worn working-channel steel',
+    color: shape ? '#a0a7ac' : '#858d8b',
+    roughness: 0.59,
+    metalness: shape ? 0.1 : 0.55,
+  });
+  if (!shape) {
+    material.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          '#include <common>',
+          '#include <common>\nattribute vec2 roadCoord; varying vec2 steelCoord;',
+        )
+        .replace(
+          '#include <begin_vertex>',
+          '#include <begin_vertex>\nsteelCoord=roadCoord;',
+        );
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          '#include <common>',
+          '#include <common>\nvarying vec2 steelCoord;',
+        )
+        .replace(
+          '#include <map_fragment>',
+          `#include <map_fragment>
+          vec2 p=steelCoord;
+          float seams=1.-smoothstep(.045,.095,abs(mod(p.x+9.,18.)-9.));
+          float longitudinal=1.-smoothstep(.035,.075,abs(mod(p.y+6.,12.)-6.));
+          float broad=sin(p.x*.11+sin(p.y*.28))*sin(p.y*.17+p.x*.027);
+          float stain=smoothstep(.2,.85,sin(p.x*.17+sin(p.y*.48))*sin(p.y*.41));
+          float scratches=sin(p.x*3.+sin(p.y*2.))*.018/(1.+length(fwidth(p))*3.);
+          float grime=smoothstep(22.,36.,abs(p.y));
+          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.14,.18,.19),stain*.24+grime*.12);
+          diffuseColor.rgb*=1.+broad*.085+scratches-seams*.42-longitudinal*.24;
+        `,
+        )
+        .replace(
+          '#include <roughnessmap_fragment>',
+          '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+broad*.09+stain*.12+grime*.1,.32,.88);',
+        );
+    };
+    material.customProgramCacheKey = () => 'colossus-working-steel-v2';
+  }
+  return material;
+}
+export function createColossusRoad({
+  track,
+  shape = false,
+  collectSolid = null,
+}) {
+  const group = new T.Group();
+  group.name = 'Colossus / continuous machine working surfaces';
+  const geometries = new Set(),
+    materials = new Set();
+  const steel = workingSteel(shape);
+  materials.add(steel);
+  const dark = new T.MeshStandardMaterial({
+    color: '#28363d',
+    roughness: 0.75,
+    metalness: 0.45,
+  });
+  materials.add(dark);
+  const rim = new T.MeshStandardMaterial({
+    color: '#a89e78',
+    roughness: 0.65,
+    metalness: 0.4,
+  });
+  materials.add(rim);
+  const amber = new T.MeshStandardMaterial({
+    color: '#e8b04b',
+    emissive: '#8b5015',
+    emissiveIntensity: 0.25,
+    roughness: 0.8,
+  });
+  materials.add(amber);
+  const add = (name, geometry, material, info) => {
+    geometries.add(geometry);
+    const mesh = new T.Mesh(geometry, material);
+    mesh.name = name;
+    mesh.castShadow = info?.kind !== 'deck';
+    mesh.receiveShadow = true;
+    mesh.userData.drivingSurface = info?.kind === 'deck';
+    mesh.userData.roadSurface = info?.kind === 'deck';
+    group.add(mesh);
+    if (info) collectSolid?.({ name, geometry, ...info });
+    return mesh;
+  };
+  for (const [i, run] of track.runs.entries()) {
+    for (let start = run.start; start < run.end - 0.01; start += 150) {
+      const end = Math.min(run.end, start + 150),
+        info = { start: Math.max(0, start), end };
+      add(
+        'working-sheet-' + i + '-' + start,
+        sheetGeometry(track, start, end),
+        steel,
+        { kind: 'deck', ...info },
+      );
+      add(
+        'channel-backing-' + i + '-' + start,
+        sheetGeometry(track, start, end, { lift: -3 }),
+        dark,
+        { kind: 'structure', ...info },
+      );
+      const cuts = [
+        start,
+        end,
+        ...track.ejectors
+          .flatMap((e) => [e.openingStart, e.openingEnd])
+          .filter((s) => s > start && s < end),
+      ].sort((a, b) => a - b);
+      for (let n = 0; n < cuts.length - 1; n++) {
+        const a = cuts[n],
+          b = cuts[n + 1],
+          mid = (a + b) / 2;
+        if (
+          track.ejectors.some(
+            (e) => mid >= e.openingStart && mid <= e.openingEnd,
+          )
+        )
+          continue;
+        for (const side of [-1, 1])
+          add(
+            'formed-rim-' + side + '-' + a,
+            rimGeometry(track, a, b, side),
+            rim,
+            { kind: 'rail', roadBoundary: true, start: a, end: b },
+          );
+      }
+    }
+  }
+  if (!collectSolid) {
+    for (const jump of track.jumps)
+      for (let i = 0; i < 3; i++) {
+        const end = jump.takeoff - 12 - i * 20;
+        add(
+          'launch-lip-warning',
+          sheetGeometry(track, end - 2, end, {
+            min: -32,
+            max: 32,
+            lift: 0.035,
+          }),
+          amber,
+        );
+      }
+  }
+  let disposed = false;
+  return {
+    group,
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      geometries.forEach((g) => g.dispose());
+      materials.forEach((m) => m.dispose());
+      group.clear();
+    },
+  };
+}

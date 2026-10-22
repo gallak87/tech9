@@ -127,8 +127,10 @@ export function createCombatDeviceGeometry(
     0.025,
     signal,
   );
-  const frame = track.sample(cy);
   for (const side of [-1, 1]) {
+    const frame =
+      projector.frame?.(cy, cx + side * (device.width / 2 + 0.28)) ??
+      track.sample(cy);
     const pedestal = new T.Mesh(new T.BoxGeometry(0.32, 1.45, 1.1), dark);
     pedestal.position
       .copy(projector.sample(cy, cx + side * (device.width / 2 + 0.28)))

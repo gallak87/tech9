@@ -121,10 +121,15 @@ test('every shipped circuit gets finite paint at its actual timing seam without 
         geometry.getAttribute('position'),
         1,
       );
-      const frame = track.sample(distance);
+      const x = -marker.group.userData.width / 2;
+      const surface =
+        track.deviceProjection === 'rendered-surface'
+          ? track.sampleSurface(distance, x)
+          : null;
+      const frame = surface ?? track.sample(distance);
       const expected = frame.position
         .clone()
-        .addScaledVector(frame.right, -marker.group.userData.width / 2)
+        .addScaledVector(frame.right, surface ? 0 : x)
         .addScaledVector(frame.up, marker.group.userData.height);
       assert.ok(vertex.distanceTo(expected) < 0.001, entry.name);
       circuits++;

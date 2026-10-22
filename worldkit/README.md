@@ -51,6 +51,8 @@ Detailed configuration and lifecycle contracts live in the [Living Forest](modul
 
 For kit-only consumers, use `@worldkit/environment/forest/kit`: it exports `loadForestKit`, `disposeForestKit`, `prepareForestParts`, `FOREST_KIT_URL` and `BARK_MATERIAL_ASSETS`. This entry emits only the kit GLB and three bark maps. Vite discovers static asset URLs before JavaScript tree-shaking, so importing a narrow entry matters even when only a few names are selected from the broader `/forest` entry.
 
+The /industrial entry supplies original press frames, factory bays, roller banks, drive wheels, ejector housings, channel cassettes, gantries, service towers and motor housings through createIndustrialKit. See the [industrial module guide](modules/industrial/README.md) for ownership. Colossus Works is its first consumer.
+
 ## Art and world ownership
 
 Worldkit owns reusable source systems, canonical assets, asset URLs and their provenance. A game owns its landmarks, route, composition, lighting, collision policy, placement recipes and performance budget. A giant hollow tree can use Worldkit's bark and foliage assets while its geometry remains specific to that level.

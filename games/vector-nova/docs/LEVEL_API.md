@@ -124,6 +124,8 @@ The [reusable checks](../tools/level-checks/README.md) cover track/module contra
 
 Own implementation files under `src/levels/<slug>/track/`, `environment/` and `backdrop/` as useful; those names are organization conventions, not additional required factories. Shared directories contain mechanics used across levels. Existing public asset URLs stay stable across source moves.
 
+A level may opt into `track.deviceProjection = 'rendered-surface'` when its declared `roadSurface` meshes have transverse curvature. Pickup casings and symbols then clip to those rendered triangles with metre-based `roadCoord` attributes; finish paint samples `sampleSurface`. This affects presentation only. Keep the usual device layout and collision ownership.
+
 ## Environment assembly workflow
 
 1. Establish the route and driving surfaces before the art pass. For a new course, prove its signature jumps, climbs, corkscrew/inversion and recovery spaces in playable greybox before committing to environment assembly. A hazard mechanic alone does not establish the game's vertical driving identity. Preserve an approved route unless changes are authorized. For biome-road sections, the visible terrain, shell or channel must be the actual sampled/contact surface.

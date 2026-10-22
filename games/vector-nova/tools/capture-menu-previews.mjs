@@ -134,6 +134,19 @@ try {
             'Nightweir / the floodgates',
           ).userData.phaseOverride = 1;
         }
+        if (id === 'colossus') {
+          const station = track.presses[0].distance - 145;
+          const frame = track.sample(station);
+          camera.position
+            .copy(frame.position)
+            .addScaledVector(frame.tangent, -40)
+            .addScaledVector(frame.right, -36)
+            .addScaledVector(frame.up, 36);
+          target
+            .copy(track.sample(station + 380).position)
+            .addScaledVector(frame.up, 22);
+          camera.fov = 62;
+        }
         camera.lookAt(target);
         camera.updateProjectionMatrix();
         // Let ordinary world updates relocate sky/weather around the free

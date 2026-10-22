@@ -114,7 +114,16 @@ export function createColossusEnvironment({
   };
   const assembly = (name, distance, lateral = 0, up = 0, turn = 0) => {
     let matrix = trackMatrix(distance, lateral, up);
-    if (['coolingBank', 'serviceTower', 'factoryBay'].includes(name)) {
+    if (
+      [
+        'coolingBank',
+        'serviceTower',
+        'factoryBay',
+        'feedRoll',
+        'serviceDeck',
+        'hydraulicBank',
+      ].includes(name)
+    ) {
       const f = track.sample(distance),
         forward = f.tangent.clone().setY(0).normalize(),
         right = new T.Vector3(0, 1, 0).cross(forward).normalize();
@@ -130,12 +139,29 @@ export function createColossusEnvironment({
       matrix.setPosition(position);
     }
     matrix.multiply(new T.Matrix4().makeRotationY(turn));
+    if (name === 'serviceDeck') {
+      const inverse = matrix.clone().invert();
+      if (
+        routeSurvey.some((p) => {
+          const v = p.clone().applyMatrix4(inverse);
+          return Math.abs(v.x) < 48 && Math.abs(v.y) < 22 && Math.abs(v.z) < 85;
+        })
+      )
+        return;
+    }
     if (name === 'factoryBay')
       for (const side of [-1, 1])
         foundation(
           new T.Vector3(side * 85, -18, 0).applyMatrix4(matrix),
           46,
           64,
+        );
+    if (name === 'feedRoll')
+      for (const side of [-1, 1])
+        foundation(
+          new T.Vector3(side * 92, -20, 0).applyMatrix4(matrix),
+          44,
+          62,
         );
     if (name === 'coolingBank')
       foundation(new T.Vector3(0, -32, 0).applyMatrix4(matrix), 66, 124);
@@ -164,6 +190,36 @@ export function createColossusEnvironment({
       matrices: [new T.Matrix4()],
     });
   };
+  const supplyPipe = (points, matrix, radius = 2.8) => {
+    const curve = new T.CatmullRomCurve3(
+      points.map((p) => new T.Vector3(...p).applyMatrix4(matrix)),
+      false,
+      'centripetal',
+    );
+    staticPart(
+      new T.TubeGeometry(curve, points.length * 5, radius, 8, false),
+      kit.materials.steel,
+      'Hydraulics / connected pressure feed',
+    );
+    for (const t of [0, 1]) {
+      const flange = new T.CylinderGeometry(
+        radius * 1.9,
+        radius * 1.9,
+        2.4,
+        16,
+      );
+      flange.applyQuaternion(
+        new T.Quaternion().setFromUnitVectors(
+          new T.Vector3(0, 1, 0),
+          curve.getTangent(t),
+        ),
+      );
+      flange.translate(...curve.getPoint(t).toArray());
+      staticPart(flange, kit.materials.dark, 'Hydraulics / flange coupling');
+    }
+  };
+  const workLights = [],
+    workAnchors = [];
   const openBay = (s, margin = 0) =>
     track.ejectors.some(
       (e) => s > e.openingStart - margin && s < e.openingEnd + margin,
@@ -175,6 +231,37 @@ export function createColossusEnvironment({
     roughness: 0.5,
   });
   materials.add(fixture);
+  const taskLamp = (matrix, position, color = '#ffe1b3', strength = 1) => {
+    putBox(
+      kit.materials.dark,
+      [14, 5, 18],
+      position,
+      matrix,
+      'Service / task-light housing',
+    );
+    putBox(
+      fixture,
+      [10, 1.4, 14],
+      [position[0], position[1] - 3, position[2]],
+      matrix,
+      'Service / task-light lens',
+    );
+    workAnchors.push({
+      strength,
+      position: new T.Vector3(
+        position[0],
+        position[1] - 5,
+        position[2],
+      ).applyMatrix4(matrix),
+      color: new T.Color(color),
+    });
+  };
+  if (!shape)
+    for (let i = 0; i < 3; i++) {
+      const light = new T.PointLight('#ffe1b3', 0, 210, 2);
+      group.add(light);
+      workLights.push(light);
+    }
   const caution = new T.MeshStandardMaterial({
     color: '#e6aa32',
     roughness: 0.58,
@@ -221,6 +308,32 @@ export function createColossusEnvironment({
   const routeSurvey = [];
   for (let s = 0; s < track.length; s += 16)
     routeSurvey.push(track.sample(s).position);
+  const uprightMatrix = (distance) => {
+    const f = track.sample(distance),
+      up = new T.Vector3(0, 1, 0),
+      forward = f.tangent.clone().setY(0).normalize();
+    return new T.Matrix4()
+      .makeBasis(up.clone().cross(forward), up, forward)
+      .setPosition(f.position);
+  };
+  const bodyClear = (size, position, matrix) => {
+    const inverse = matrix
+      .clone()
+      .multiply(new T.Matrix4().makeTranslation(...position))
+      .invert();
+    return !routeSurvey.some((p) => {
+      const v = p.clone().applyMatrix4(inverse);
+      return (
+        Math.abs(v.x) < size[0] / 2 + 40 &&
+        Math.abs(v.y) < size[1] / 2 + 40 &&
+        Math.abs(v.z) < size[2] / 2 + 20
+      );
+    });
+  };
+  const solidBody = (material, size, position, matrix, name) => {
+    if (bodyClear(size, position, matrix))
+      putBox(material, size, position, matrix, name);
+  };
   const groundY = -70;
   const foundationRequests = [];
   const foundation = (top, width, depth) =>
@@ -244,64 +357,93 @@ export function createColossusEnvironment({
       )
     )
       return;
-    const localGround =
-      Math.min(
-        ...[-1, 1].flatMap((x) =>
-          [-1, 1].map((z) =>
-            quarry.heightAt(top.x + (x * width) / 2, top.z + (z * depth) / 2),
-          ),
+    // Sample the full footprint: narrow quarry clefts can fall between corners.
+    let localGround = Infinity;
+    for (let x = -width / 2; x <= width / 2 + 12; x += 12)
+      for (let z = -depth / 2; z <= depth / 2 + 12; z += 12)
+        localGround = Math.min(
+          localGround,
+          quarry.heightAt(top.x + x, top.z + z),
+        );
+    localGround -= 38;
+    const h = top.y - localGround;
+    if (h < 25) return;
+    // Open steel trestles keep process machinery dominant over its supports.
+    const plinthHeight = Math.min(40, h * 0.22),
+      foot = localGround + plinthHeight;
+    const beam = (a, b, w, material = kit.materials.dark) => {
+      const start = new T.Vector3(...a),
+        end = new T.Vector3(...b),
+        delta = end.clone().sub(start);
+      const m = new T.Matrix4().compose(
+        start.add(end).multiplyScalar(0.5),
+        new T.Quaternion().setFromUnitVectors(
+          new T.Vector3(0, 1, 0),
+          delta.clone().normalize(),
         ),
-      ) - 16;
-    const h = Math.max(20, top.y - localGround);
-    const span = Math.max(width, depth),
-      thickness = Math.min(width, depth),
-      alongZ = depth > width;
-    const profile = new T.Shape(
-      [
-        [-span / 2, 0],
-        [span / 2, 0],
-        [span / 2, h - Math.min(35, h * 0.3)],
-        [span * 0.42, h],
-        [-span * 0.42, h],
-        [-span / 2, h - Math.min(35, h * 0.3)],
-      ].map(([x, y]) => new T.Vector2(x, y)),
-    );
-    if (span > 75 && h > 150)
-      profile.holes.push(
-        new T.Path(
-          [
-            [-span * 0.23, 30],
-            [-span * 0.23, h - 88],
-            [-span * 0.13, h - 55],
-            [span * 0.13, h - 55],
-            [span * 0.23, h - 88],
-            [span * 0.23, 30],
-          ].map(([x, y]) => new T.Vector2(x, y)),
-        ),
+        new T.Vector3(1, 1, 1),
       );
-    const pier = new T.ExtrudeGeometry(profile, {
-      depth: thickness,
-      bevelEnabled: false,
-      steps: 1,
-    });
-    pier.translate(0, 0, -thickness / 2);
-    if (alongZ) pier.rotateY(Math.PI / 2);
-    pier.translate(top.x, localGround, top.z);
-    staticPart(pier, concrete, 'Factory / open stepped abutment');
+      putBox(material, [w, delta.length(), w], [0, 0, 0], m);
+    };
+    const xs = [-width * 0.34, width * 0.34],
+      zs = [-depth * 0.34, depth * 0.34];
+    for (const x of xs)
+      for (const z of zs) {
+        putBox(
+          concrete,
+          [22, plinthHeight, 26],
+          [top.x + x, localGround + plinthHeight / 2, top.z + z],
+        );
+        putBox(
+          kit.materials.steel,
+          [25, 3, 29],
+          [top.x + x, foot + 1.5, top.z + z],
+        );
+        beam(
+          [top.x + x, foot, top.z + z],
+          [top.x + x, top.y - 9, top.z + z],
+          9,
+        );
+        for (const dx of [-5, 5])
+          putBox(
+            kit.materials.steel,
+            [2, h - plinthHeight - 8, 12],
+            [top.x + x + dx, (foot + top.y - 8) / 2, top.z + z],
+          );
+      }
+    const cells = Math.max(1, Math.ceil((top.y - foot) / 160));
+    for (let i = 0; i < cells; i++) {
+      const y0 = T.MathUtils.lerp(foot, top.y - 12, i / cells),
+        y1 = T.MathUtils.lerp(foot, top.y - 12, (i + 1) / cells);
+      for (const z of zs) {
+        beam(
+          [top.x + xs[0], y0, top.z + z],
+          [top.x + xs[1], y1, top.z + z],
+          4.5,
+        );
+        beam(
+          [top.x + xs[1], y0, top.z + z],
+          [top.x + xs[0], y1, top.z + z],
+          4.5,
+        );
+        beam([top.x + xs[0], y1, top.z + z], [top.x + xs[1], y1, top.z + z], 7);
+      }
+      for (const x of xs)
+        beam(
+          [top.x + x, y0, top.z + zs[0]],
+          [top.x + x, y1, top.z + zs[1]],
+          4.5,
+        );
+    }
     putBox(
-      kit.materials.shell,
-      [width + 12, 18, depth + 12],
-      [top.x, top.y - 9, top.z],
+      kit.materials.dark,
+      [width + 8, 14, depth + 8],
+      [top.x, top.y - 7, top.z],
     );
     putBox(
       kit.materials.steel,
-      [width + 14, 4, depth + 14],
-      [top.x, top.y + 2, top.z],
-    );
-    putBox(
-      stone,
-      [width + 80, 36, depth + 80],
-      [top.x, localGround + 18, top.z],
+      [width + 12, 3, depth + 12],
+      [top.x, top.y + 1.5, top.z],
     );
     rockMass(
       [top.x, localGround - 20, top.z],
@@ -315,6 +457,9 @@ export function createColossusEnvironment({
     const cuts = [
       run.start,
       run.end,
+      ...track.sections
+        .flatMap((s) => [s.start, s.end])
+        .filter((s) => s > run.start && s < run.end),
       ...track.ejectors
         .flatMap((e) => [e.openingStart - 10, e.openingEnd + 10])
         .filter((s) => s > run.start && s < run.end),
@@ -323,21 +468,42 @@ export function createColossusEnvironment({
       if (openBay((cuts[n] + cuts[n + 1]) / 2, 10)) continue;
       for (let a = cuts[n]; a < cuts[n + 1] - 0.01; a += 250) {
         const b = Math.min(a + 250, cuts[n + 1]);
+        const district = track.sections.find(
+          (s) => (a + b) / 2 >= s.start && (a + b) / 2 < s.end,
+        )?.id;
+        const casingHeight = [
+          'die',
+          'dive',
+          'return',
+          'crown',
+          'headstock',
+        ].includes(district)
+          ? 0.23
+          : district === 'cooling'
+            ? 0.5
+            : district === 'press'
+              ? 0.35
+              : 1;
+        const casingProfile = (profile, side) =>
+          profile.map(([x, y]) => [x * side, y > 0 ? y * casingHeight : y]);
         for (const side of [-1, 1]) {
           staticPart(
             housingGeometry(
               track,
               a,
               b,
-              [
-                [40, -5],
-                [40, -24],
-                [65, -24],
-                [65, 9],
-                [60, 15],
-                [49, 15],
-                [49, -5],
-              ].map(([x, y]) => [x * side, y]),
+              casingProfile(
+                [
+                  [40, -5],
+                  [40, -24],
+                  [65, -24],
+                  [65, 9],
+                  [60, 15],
+                  [49, 15],
+                  [49, -5],
+                ],
+                side,
+              ),
             ),
             kit.materials.dark,
             'Continuous load bed',
@@ -347,14 +513,17 @@ export function createColossusEnvironment({
               track,
               a,
               b,
-              [
-                [49, 15],
-                [49, 20],
-                [60, 20],
-                [66, 14],
-                [66, 9],
-                [60, 15],
-              ].map(([x, y]) => [x * side, y]),
+              casingProfile(
+                [
+                  [49, 15],
+                  [49, 20],
+                  [60, 20],
+                  [66, 14],
+                  [66, 9],
+                  [60, 15],
+                ],
+                side,
+              ),
             ),
             kit.materials.shell,
             'Formed outer casing',
@@ -364,12 +533,15 @@ export function createColossusEnvironment({
               track,
               a,
               b,
-              [
-                [40, -23],
-                [40, -27],
-                [67, -27],
-                [67, -23],
-              ].map(([x, y]) => [x * side, y]),
+              casingProfile(
+                [
+                  [40, -23],
+                  [40, -27],
+                  [67, -27],
+                  [67, -23],
+                ],
+                side,
+              ),
             ),
             kit.materials.steel,
             'Lower carrying flange',
@@ -462,8 +634,8 @@ export function createColossusEnvironment({
             [150, -19],
             [150, height],
             [96, height],
-            [96, 78],
-            [114, 78],
+            [96, id === 'press' ? 104 : 78],
+            [114, id === 'press' ? 104 : 78],
             [114, 20],
             [96, 20],
           ]),
@@ -475,10 +647,10 @@ export function createColossusEnvironment({
             a,
             b,
             p([
-              [68, y],
+              [id === 'press' ? 114 : 68, y],
               [155, y],
               [155, y + 11],
-              [68, y + 11],
+              [id === 'press' ? 114 : 68, y + 11],
             ]),
             kit.materials.steel,
             'Factory / connected mezzanine',
@@ -498,8 +670,11 @@ export function createColossusEnvironment({
       }
     }
   }
+  // Intake is an exposed feed mill: the road is the work bed beneath its rolls.
+  const intake = track.sections.find((s) => s.id === 'intake');
+  for (const offset of [110, 230]) assembly('feedRoll', intake.start + offset);
   // Room-size assemblies make the chutes read as machine beds within a factory.
-  for (const id of ['intake', 'press', 'crossfeed', 'return']) {
+  for (const id of ['press', 'crossfeed', 'return']) {
     const zone = track.sections.find((s) => s.id === id);
     for (
       let d = zone.start + 55;
@@ -516,13 +691,39 @@ export function createColossusEnvironment({
   }
   for (const id of ['screw', 'auger']) {
     const zone = track.sections.find((s) => s.id === id);
-    for (let d = zone.start + 140; d < zone.end - 80; d += 220) {
+    for (let d = zone.start + 220; d < zone.end - 60; d += 220) {
       for (const side of [-1, 1]) {
         assembly('rollerBank', d, side * 77, -18);
         const wheel = kit.createAssembly('driveWheel');
         const pivot = new T.Group();
-        pivot.applyMatrix4(trackMatrix(d, side * 67, 24));
+        pivot.applyMatrix4(trackMatrix(d, side * 84, 42));
+        wheel.scale.setScalar(1.35);
         pivot.add(wheel);
+        for (const x of [-14, 14]) {
+          const bearing = kit.createAssembly('driveBearing');
+          bearing.scale.setScalar(1.35);
+          bearing.position.set(x, -4, 0);
+          pivot.add(bearing);
+        }
+        const gearbox = kit.createAssembly('driveGearbox');
+        gearbox.position.set(side * 44, -4, 0);
+        pivot.add(gearbox);
+        const driveMatrix = trackMatrix(d, side * 84, 42);
+        solidBody(
+          kit.materials.dark,
+          [126, 12, 95],
+          [side * 26, -40, 0],
+          driveMatrix,
+          'Roll / complete drive bearing seat',
+        );
+        for (const z of [-34, 34])
+          solidBody(
+            kit.materials.steel,
+            [126, 7, 10],
+            [side * 26, -33.5, z],
+            driveMatrix,
+            'Roll / mounting crossmember',
+          );
         group.add(pivot);
         moving.push({ object: wheel, axis: 'x', speed: side * 0.18 });
       }
@@ -538,19 +739,46 @@ export function createColossusEnvironment({
     const zone = track.sections.find((s) => s.id === id);
     for (let s = zone.start + 50; s < zone.end - 60; s += 140) {
       const m = trackMatrix(s);
-      const drum = new T.CylinderGeometry(
-        69,
-        69,
-        106,
-        40,
-        1,
-        true,
-        -Math.PI * 0.77,
-        Math.PI * 1.54,
-      );
-      drum.rotateX(Math.PI / 2);
-      drum.applyMatrix4(m);
-      staticPart(drum, innerCasing);
+      // Wide inspection apertures reveal the roller drives between load rings.
+      for (const z of [-45, 45]) {
+        const drum = new T.CylinderGeometry(
+          69,
+          69,
+          16,
+          40,
+          1,
+          true,
+          -Math.PI * 0.77,
+          Math.PI * 1.54,
+        );
+        drum.rotateX(Math.PI / 2);
+        drum.translate(0, 0, z);
+        drum.applyMatrix4(m);
+        staticPart(drum, innerCasing, 'Roll / open inspection bay');
+      }
+      // Longitudinal ribs and bolted segment joins make the roll casing a machine.
+      for (let i = 0; i <= 10; i++) {
+        const angle = Math.PI * 0.73 + (i * Math.PI * 1.54) / 10;
+        const x = Math.cos(angle) * 66,
+          y = Math.sin(angle) * 66;
+        const rib = new T.BoxGeometry(3.4, 3.4, 102);
+        rib.rotateZ(angle);
+        rib.translate(x, y, 0);
+        rib.applyMatrix4(m);
+        staticPart(
+          rib,
+          kit.materials.steel,
+          'Roll / internal longitudinal rib',
+        );
+        for (const z of [-51, 51]) {
+          const plate = new T.BoxGeometry(10, 4, 8);
+          plate.rotateZ(angle);
+          plate.translate(x, y, z);
+          plate.applyMatrix4(m);
+          staticPart(plate, kit.materials.dark, 'Roll / casing joint clamp');
+        }
+      }
+
       for (const z of [-53, 53]) {
         const ring = new T.TorusGeometry(70, 3.8, 8, 48, Math.PI * 1.54);
         ring.rotateZ(Math.PI * 0.73);
@@ -573,7 +801,7 @@ export function createColossusEnvironment({
         putBox(kit.materials.shell, [6, 39, 12], [side * 42.5, -5, 0], m);
         putBox(kit.materials.dark, [34, 10, 18], [side * 55, -30, 0], m);
         // Sparse service panels break the outer skin without making a picket fence.
-        if (!['screw', 'auger', 'cooling'].includes(section.id))
+        if (!['screw', 'auger', 'cooling', 'press'].includes(section.id))
           assembly('channelCassette', s, side * 77, 6, side < 0 ? Math.PI : 0);
       }
     }
@@ -860,6 +1088,41 @@ export function createColossusEnvironment({
   putBox(kit.materials.shell, [110, 14, 96], [0, 0, 0], loadMatrix);
   for (const side of [-1, 1])
     putBox(kit.materials.dark, [12, 25, 90], [side * 48, -19.5, 0], loadMatrix);
+  const hoistFrame = trackMatrix(hero.landingStart + 100);
+  for (const x of [-38, 38])
+    for (const z of [-30, 30]) {
+      const a = new T.Vector3(x, 207, z * 0.6).applyMatrix4(hoistFrame);
+      const b = new T.Vector3(x, 8, z).applyMatrix4(loadMatrix);
+      const line = new T.LineCurve3(a, b);
+      staticPart(
+        new T.TubeGeometry(line, 1, 0.85, 6, false),
+        kit.materials.dark,
+        'Gantry / tensioned load suspension',
+      );
+      putBox(
+        kit.materials.steel,
+        [12, 6, 12],
+        [x, 9, z],
+        loadMatrix,
+        'Gantry / lifting lug',
+      );
+    }
+  for (const z of [-30, 30]) {
+    putBox(
+      kit.materials.amber,
+      [100, 10, 16],
+      [0, 196, z * 0.6],
+      hoistFrame,
+      'Gantry / spreader crosshead',
+    );
+    putBox(
+      kit.materials.steel,
+      [105, 4, 20],
+      [0, -8, z],
+      loadMatrix,
+      'Gantry / payload flange',
+    );
+  }
   // Broad return-leg landmarks: exposed counterweight guides, cooling shells
   // and the massive crown bed. They are readable from the driving surface.
   const section = (id) => track.sections.find((entry) => entry.id === id);
@@ -893,32 +1156,6 @@ export function createColossusEnvironment({
       }
     }
   }
-  const uprightMatrix = (distance) => {
-    const f = track.sample(distance),
-      up = new T.Vector3(0, 1, 0),
-      forward = f.tangent.clone().setY(0).normalize();
-    return new T.Matrix4()
-      .makeBasis(up.clone().cross(forward), up, forward)
-      .setPosition(f.position);
-  };
-  const bodyClear = (size, position, matrix) => {
-    const inverse = matrix
-      .clone()
-      .multiply(new T.Matrix4().makeTranslation(...position))
-      .invert();
-    return !routeSurvey.some((p) => {
-      const v = p.clone().applyMatrix4(inverse);
-      return (
-        Math.abs(v.x) < size[0] / 2 + 40 &&
-        Math.abs(v.y) < size[1] / 2 + 40 &&
-        Math.abs(v.z) < size[2] / 2 + 20
-      );
-    });
-  };
-  const solidBody = (material, size, position, matrix, name) => {
-    if (bodyClear(size, position, matrix))
-      putBox(material, size, position, matrix, name);
-  };
   // Distinct district-scale bodies: an enclosed die receiver, a tall open gantry
   // dock and a low dispatch yard. Broad voids keep the existing flight visible.
   for (const jump of track.jumps) {
@@ -983,13 +1220,29 @@ export function createColossusEnvironment({
           bevelSegments: 1,
           steps: 1,
         });
-        body.translate(side * 126, 0, z - 28);
+        body.translate(side * 126, 0, z - 9);
         body.applyMatrix4(m);
         staticPart(
           body,
-          kit.materials.shell,
-          'District / stepped receiving column',
+          kit.materials.steel,
+          'District / fabricated receiving web',
         );
+        for (const edge of [-29, 29])
+          solidBody(
+            kit.materials.shell,
+            [9, height - 62, 62],
+            [side * 126 + edge, (height - 62) / 2 + 14, z],
+            m,
+            'District / column flange',
+          );
+        for (const y of [-8, height - 17])
+          solidBody(
+            kit.materials.dark,
+            [86, 12, 68],
+            [side * 126, y, z],
+            m,
+            'District / bolted bearing seat',
+          );
         if (height > 100)
           solidBody(
             kit.materials.dark,
@@ -1028,17 +1281,101 @@ export function createColossusEnvironment({
       );
     }
     if (isDie || isGantry)
-      for (const z of [-length / 2 + 15, length / 2 - 15])
+      for (const z of [-length / 2 + 15, length / 2 - 15]) {
         solidBody(
-          kit.materials.shell,
-          [310, 26, 42],
+          kit.materials.dark,
+          [310, 20, 14],
           [0, height, z],
           m,
-          'District / receiving header',
+          'District / header web',
         );
+        for (const y of [-13, 13])
+          solidBody(
+            kit.materials.shell,
+            [314, 6, 48],
+            [0, height + y, z],
+            m,
+            'District / header flange',
+          );
+        for (let x = -132; x <= 132; x += 44)
+          solidBody(
+            kit.materials.steel,
+            [5, 20, 39],
+            [x, height, z],
+            m,
+            'District / header stiffener',
+          );
+      }
   }
+  for (const press of track.presses) {
+    const matrix = uprightMatrix(press.distance),
+      supplyDistance = press.distance + 55,
+      supplyMatrix = uprightMatrix(supplyDistance);
+    for (const side of [-1, 1]) {
+      // Seat supplies in the open space between columns, below the outer service deck.
+      assembly('serviceDeck', press.distance, side * 108, 40);
+      assembly('hydraulicBank', supplyDistance, side * 78, 0);
+      const points = [
+        ...[
+          [side * 78 + 24, 58, 21],
+          [side * 78 + 24, 83, 21],
+        ].map((p) => new T.Vector3(...p).applyMatrix4(supplyMatrix).toArray()),
+        ...[
+          [side * 60, 83, 0],
+          [side * 60, 67, 0],
+          [press.lateral, 65, 0],
+        ].map((p) => new T.Vector3(...p).applyMatrix4(matrix).toArray()),
+      ];
+      supplyPipe(points, new T.Matrix4());
+      solidBody(
+        kit.materials.dark,
+        [55, 14, 90],
+        [side * 78, -12, 0],
+        supplyMatrix,
+        'Press / hydraulic service plinth',
+      );
+      for (const z of [-36, 36])
+        solidBody(
+          kit.materials.steel,
+          [55, 5, 10],
+          [side * 78, -3, z],
+          supplyMatrix,
+          'Press / equipment mounting crossmember',
+        );
+      taskLamp(supplyMatrix, [side * 64, 71, -38], '#ffe1b3', 0.4);
+    }
+  }
+  for (const d of [
+    section('intake').start + 110,
+    section('intake').start + 230,
+  ])
+    for (const side of [-1, 1])
+      taskLamp(uprightMatrix(d), [side * 70, 61, -33], '#ffe1b3', 0.28);
+
+  for (let d = cooling.start + 85; d < cooling.end - 80; d += 190)
+    for (const side of [-1, 1]) assembly('serviceDeck', d, side * 58, 26);
+  for (const jump of track.jumps) {
+    const d = jump.landingStart + (jump.hero ? 320 : 180),
+      m = uprightMatrix(d);
+    for (const side of [-1, 1]) {
+      assembly('serviceDeck', d, side * 101, 20);
+      taskLamp(m, [side * 100, 57, -24]);
+      for (const z of [-58, 58])
+        solidBody(
+          kit.materials.steel,
+          [5, 40, 5],
+          [side * 101, 0, z],
+          m,
+          'Receiving / service deck support',
+        );
+    }
+  }
+  const dieJump = track.jumps.find((j) => j.id === 'die-transfer');
+  for (const d of [dieJump.takeoff - 110, dieJump.landingStart + 180])
+    for (const side of [-1, 1])
+      assembly('dieJaw', d, side * 110, 0, side < 0 ? Math.PI : 0);
   const returnZone = section('return'),
-    returnDistance = returnZone.start + 170,
+    returnDistance = returnZone.start + 285,
     returnFrame = track.sample(returnDistance),
     outboard = -Math.sign(returnFrame.curvature || 1),
     returnMatrix = uprightMatrix(returnDistance);
@@ -1068,7 +1405,52 @@ export function createColossusEnvironment({
     vessel.translate(outboard * 112, 62, z);
     vessel.applyMatrix4(returnMatrix);
     staticPart(vessel, kit.materials.steel, 'Return / accumulator bank');
+    for (const y of [16, 108]) {
+      const collar = new T.CylinderGeometry(24.5, 24.5, 5, 24);
+      collar.translate(outboard * 112, y, z);
+      collar.applyMatrix4(returnMatrix);
+      staticPart(collar, kit.materials.dark, 'Return / accumulator flange');
+    }
+    supplyPipe(
+      [
+        [outboard * 112, 113, z],
+        [outboard * 112, 128, z],
+        [outboard * 83, 128, z],
+        [outboard * 83, 70, z],
+      ],
+      returnMatrix,
+      4,
+    );
   }
+  assembly('hydraulicBank', returnDistance, outboard * 70, 0);
+  solidBody(
+    kit.materials.dark,
+    [54, 14, 90],
+    [outboard * 70, -12, 0],
+    returnMatrix,
+    'Return / pump mounting bed',
+  );
+  assembly('serviceDeck', returnDistance, outboard * 145, 26);
+  supplyPipe(
+    [
+      [outboard * 83, 70, -75],
+      [outboard * 83, 70, 0],
+      [outboard * 83, 70, 75],
+    ],
+    returnMatrix,
+    4,
+  );
+  supplyPipe(
+    [
+      [outboard * 70 + 24, 58, 21],
+      [outboard * 83, 93, 21],
+      [outboard * 83, 70, 21],
+    ],
+    returnMatrix,
+    3,
+  );
+  taskLamp(returnMatrix, [outboard * 75, 82, -55], '#c9e6ff', 0.65);
+  taskLamp(returnMatrix, [outboard * 75, 82, 55], '#c9e6ff', 0.65);
   foundation(
     new T.Vector3(outboard * 165, -60, 0).applyMatrix4(returnMatrix),
     120,
@@ -1076,21 +1458,27 @@ export function createColossusEnvironment({
   );
   // One exposed headstock flywheel replaces the generic portal sequence.
   // Its outboard mounting reads from the last hairpin and never enters a reach.
-  const headDistance = section('headstock').start + 320,
+  const headDistance = section('headstock').start + 210,
     headFrame = track.sample(headDistance),
-    headApproach = track.sample(section('headstock').start + 160).position;
+    headApproach = track.sample(section('headstock').start + 10).position;
   const headWheel = kit.createAssembly('driveWheel');
-  headWheel.scale.setScalar(3.6);
+  headWheel.scale.setScalar(4.2);
   const headMount = new T.Group();
   headMount.add(headWheel);
+  for (const x of [-65, 65]) {
+    const bearing = kit.createAssembly('driveBearing');
+    bearing.scale.setScalar(4.2);
+    bearing.position.set(x, -8, 0);
+    headMount.add(bearing);
+  }
   headMount.name = 'Headstock / exposed main flywheel';
-  for (const offset of [240, 280, 320]) {
+  for (const offset of [190, 230, 280]) {
     const up = new T.Vector3(0, 1, 0),
       right = up.clone().cross(headFrame.tangent).normalize(),
       position = headFrame.position
         .clone()
         .addScaledVector(right, offset)
-        .addScaledVector(up, 60),
+        .addScaledVector(up, 95),
       axis = headApproach.clone().sub(position).setY(0).normalize();
     const headMatrix = new T.Matrix4()
       .makeBasis(axis, up, axis.clone().cross(up))
@@ -1124,6 +1512,35 @@ export function createColossusEnvironment({
     foundation(new T.Vector3(0, -160, 0).applyMatrix4(headMatrix), 110, 235);
     break;
   }
+  for (const d of [section('headstock').start + 500])
+    for (const side of [-1, 1]) {
+      const m = trackMatrix(d, side * 101, 42),
+        drive = new T.Group();
+      drive.applyMatrix4(m);
+      const wheel = kit.createAssembly('driveWheel');
+      wheel.scale.setScalar(1.7);
+      drive.add(wheel);
+      for (const x of [-23, 23]) {
+        const bearing = kit.createAssembly('driveBearing');
+        bearing.position.set(x, -5, 0);
+        bearing.scale.setScalar(1.7);
+        drive.add(bearing);
+      }
+      const gearbox = kit.createAssembly('driveGearbox');
+      gearbox.position.set(side * 55, -5, 0);
+      gearbox.scale.setScalar(1.4);
+      drive.add(gearbox);
+      group.add(drive);
+      moving.push({ object: wheel, axis: 'x', speed: side * 0.12 });
+      solidBody(
+        kit.materials.dark,
+        [110, 18, 100],
+        [side * 22, -48, 0],
+        m,
+        'Headstock / exposed drive bed',
+      );
+      taskLamp(m, [side * 35, 55, -35], '#c9e6ff', 0.45);
+    }
   // Counterweights travel inside their guides; this movement is decorative.
   for (const d of [rise.start + 100, rise.start + 330]) {
     const f = track.sample(d);
@@ -1316,8 +1733,10 @@ export function createColossusEnvironment({
     );
     const batch = new T.BatchedMesh(count, vertices, 0, material);
     batch.name = 'Colossus / culled machinery batch';
+    batch.userData.geometryNames = [];
     for (const { geometry, matrices } of entries) {
       const id = batch.addGeometry(geometry);
+      batch.userData.geometryNames[id] = geometry.name;
       for (const matrix of matrices)
         batch.setMatrixAt(batch.addInstance(id), matrix);
     }
@@ -1327,9 +1746,17 @@ export function createColossusEnvironment({
     machineBatches.push(batch);
   }
   for (const [material, items] of batches) {
-    // Bounded local batches preserve culling around the long descent.
-    for (let i = 0; i < items.length; i += 24) {
-      const chunk = items.slice(i, i + 24);
+    // Group by location rather than authoring order so distant structures cull.
+    const cells = new Map();
+    for (const item of items) {
+      const e = item.transform.elements;
+      const key = [e[12], e[13], e[14]]
+        .map((v) => Math.floor(v / 600))
+        .join('/');
+      if (!cells.has(key)) cells.set(key, []);
+      cells.get(key).push(item);
+    }
+    for (const chunk of cells.values()) {
       const instances = new T.InstancedMesh(boxes, material, chunk.length);
       instances.name = 'Colossus / structural assembly batch';
       chunk.forEach((entry, index) =>
@@ -1338,6 +1765,7 @@ export function createColossusEnvironment({
       instances.castShadow = instances.receiveShadow = true;
       instances.computeBoundingSphere();
       group.add(instances);
+      machineBatches.push(instances);
     }
   }
   const rockManager = new T.LoadingManager();
@@ -1390,7 +1818,28 @@ export function createColossusEnvironment({
           m.needsUpdate = true;
         }
     },
-    update({ time = 0, settings = {} }) {
+    update({ time = 0, settings = {}, camera }) {
+      if (camera?.position) {
+        const nearest = workAnchors
+          .map((anchor) => ({
+            ...anchor,
+            distance: anchor.position.distanceTo(camera.position),
+          }))
+          .sort((a, b) => a.distance - b.distance);
+        workLights.forEach((light, i) => {
+          const anchor = nearest[i];
+          if (!anchor) {
+            light.intensity = 0;
+            return;
+          }
+          light.position.copy(anchor.position);
+          light.color.copy(anchor.color);
+          light.intensity =
+            10000 *
+            anchor.strength *
+            (1 - T.MathUtils.smoothstep(anchor.distance, 140, 320));
+        });
+      }
       for (const item of moving) {
         const t = settings.reducedMotion ? 0 : time;
         if (item.axis) item.object.rotation[item.axis] = t * item.speed;

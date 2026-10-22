@@ -1,6 +1,6 @@
 # Industrial assemblies
 
-`createIndustrialKit({ finish })` from `@worldkit/environment/industrial` provides original metre-scale press frames, factory bays, roller banks, drive wheels, ejector housings, channel cassettes, cooling banks, gantries, service towers and motor housings. Colossus Works is the first consumer. Assemblies share bevelled geometry and enamel/metal materials.
+`createIndustrialKit({ finish })` from `@worldkit/environment/industrial` provides original metre-scale press frames, factory bays, roller banks, drive wheels, ejector housings, channel cassettes, cooling banks, gantries, service towers, motor housings, feed rolls, die jaws, bearing pedestals, drive gearboxes, hydraulic supply banks and service decks. Colossus Works is the first consumer. Assemblies share bevelled geometry and enamel/metal materials. Working assemblies include connected pipe feeds, removable access panels, machined shafts, fabricated webs and flanges. Keep their working faces visible from the consuming game’s driving camera; service hardware hidden behind continuous walls adds cost without improving the scene.
 
 The kit returns `prototypes`, `materials`, `createAssembly(name)` and idempotent `dispose()`. Placed assemblies borrow its geometry/materials; remove them before disposing the kit. The caller owns placement, lights, collision and moving parts. Geometry construction needs no browser.
 

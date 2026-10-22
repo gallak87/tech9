@@ -7,8 +7,8 @@ function workingSteel(shape) {
   const material = new T.MeshStandardMaterial({
     name: 'Colossus / worn working-channel steel',
     color: shape ? '#a0a7ac' : '#7f919a',
-    roughness: 0.56,
-    metalness: shape ? 0.1 : 0.52,
+    roughness: 0.68,
+    metalness: shape ? 0.1 : 0.4,
   });
   if (!shape) {
     material.onBeforeCompile = (shader) => {

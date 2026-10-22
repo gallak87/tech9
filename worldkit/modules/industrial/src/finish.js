@@ -92,7 +92,7 @@ export function createIndustrialFinish(renderer = null) {
           vec3 iw=pow(abs(normalize(cross(dFdx(industrialPoint),dFdy(industrialPoint)))),vec3(4.));iw/=max(.001,iw.x+iw.y+iw.z);
           vec3 detailColor=${sample};float detailLuma=dot(detailColor,vec3(.299,.587,.114));
           diffuseColor.rgb*=mix(vec3(1.),detailColor*${kind === 'shell' ? '1.4' : '3.6'},${coordinates === 'road' ? '.28' : kind === 'shell' ? '(.10+.28*smoothstep(.55,.8,industrialNoise(industrialPoint.xz*.015)))' : kind === 'dark' ? '.3' : '.63'});
-          roughnessFactor=clamp(roughnessFactor+${kind === 'shell' ? '(.7-detailLuma)*.22' : '(detailLuma-.3)*.7'},.24,.92);`,
+          roughnessFactor=clamp(roughnessFactor+${kind === 'shell' ? '(.7-detailLuma)*.22' : '(detailLuma-.18)*.24'},.24,.92);`,
         );
         // A small surface gradient breaks perfectly flat reflections while the
         // authored metre scale keeps the finish from becoming coarse concrete.
@@ -108,7 +108,7 @@ export function createIndustrialFinish(renderer = null) {
           );
       };
       material.customProgramCacheKey = () =>
-        key + '-industrial-map-v3-' + kind + '-' + coordinates;
+        key + '-industrial-map-v4-' + kind + '-' + coordinates;
     },
     dispose() {
       if (disposed) return;

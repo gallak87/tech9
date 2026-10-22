@@ -66,11 +66,13 @@ export function createColossusTrack() {
     );
   const alignment = (h, j) =>
     windowAt(h, j.h - 160, j.h + j.gap + j.receiving - 80, 80);
+  // Wider transitions retain each grade window's integral, preserving the
+  // approved world positions and pitches of all transfer approaches/landings.
   const gradeAt = (h) => {
     let grade =
       0.04 +
-      0.76 * windowAt(h, 2280, 2510, 70) -
-      0.46 * windowAt(h, 3370, 3780, 80);
+      0.76 * windowAt(h, 2280, 2510, 160) -
+      0.46 * windowAt(h, 3310, 3720, 200);
     for (const j of definitions)
       grade = T.MathUtils.lerp(grade, 0.18, alignment(h, j));
     return grade * (1 - smooth((h - 5980) / 120));
@@ -147,6 +149,41 @@ export function createColossusTrack() {
     const rows = Math.ceil(curve.getLength() / step);
     for (let i = 1; i <= rows; i++) positions.push(curve.getPointAt(i / rows));
     if (b.id) returnStations[b.id] = (positions.length - 1) * step;
+  }
+  // Give the upper works one sustained climb and one broad crest. Author its
+  // elevation by planar distance so short Bezier handles cannot insert extra
+  // pitch waves at the counterweight, cooling and headstock bends. The quintic
+  // joins have zero vertical curvature; the final slope matches the intake.
+  const returnStart = SOURCE_LENGTH / step;
+  const planar = new Float64Array(positions.length);
+  for (let i = returnStart + 1; i < positions.length; i++)
+    planar[i] =
+      planar[i - 1] +
+      Math.hypot(
+        positions[i].x - positions[i - 1].x,
+        positions[i].z - positions[i - 1].z,
+      );
+  const crestIndex = Math.round(
+    (returnStations.crown +
+      0.58 * (returnStations.headstock - returnStations.crown)) /
+      step,
+  );
+  const crestAt = planar[crestIndex],
+    crestY = positions[0].y + 115,
+    endAt = planar.at(-1),
+    startY = positions[returnStart].y,
+    endY = positions[0].y;
+  for (let i = returnStart; i < positions.length; i++) {
+    const s = planar[i];
+    if (s <= crestAt)
+      positions[i].y = T.MathUtils.lerp(startY, crestY, smooth(s / crestAt));
+    else {
+      const t = (s - crestAt) / (endAt - crestAt);
+      const endSlopeBasis = t * t * t * (-4 + t * (7 - 3 * t));
+      positions[i].y =
+        T.MathUtils.lerp(crestY, endY, smooth(t)) -
+        0.04 * (endAt - crestAt) * endSlopeBasis;
+    }
   }
   const count = positions.length - 1;
   const arcs = new Float64Array(count + 1);
@@ -243,8 +280,10 @@ export function createColossusTrack() {
       ),
     };
   }
+  // The rigid crosshead needs a clear transverse sweep. Keep the first station
+  // past the changing bank at the bottom hook, on the steady upper climb.
   const ejectorStations = [
-    returnStations.rise + 330,
+    returnStations.rise + 1000,
     returnStations.crown + 80,
   ];
   // Flat work beds; banking and the selected reversing rolls belong to the route frame.
@@ -480,7 +519,7 @@ export function createColossusTrack() {
   return {
     id: 'colossus-circuit',
     name: 'Colossus Works',
-    geometryVersion: 'colossus-flat-circuit-v6',
+    geometryVersion: 'colossus-flat-circuit-v7',
     closed: true,
     width: 72,
     length,

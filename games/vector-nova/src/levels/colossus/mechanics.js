@@ -49,22 +49,52 @@ export function pressPose(track, press, time) {
     quaternion: frame.quaternion,
   };
 }
+// The tread clock is shared by the rendered slats, exposed drive drums and
+// contact response. +side always feeds towards that road shoulder.
+export const CROSSFEED_RULES = Object.freeze({
+  speed: 8,
+  treadPitch: 4.2,
+  inner: -9,
+  outer: 35,
+  acceleration: 19,
+  drag: 7,
+  grip: 0.58,
+  entryLength: 24,
+  contactEnvelope: 0.15,
+  contactInterval: 0.28,
+});
+export function crossfeedTravel(time) {
+  return time * CROSSFEED_RULES.speed;
+}
+export function crossfeedBounds(belt) {
+  return belt.side > 0
+    ? { min: CROSSFEED_RULES.inner, max: CROSSFEED_RULES.outer }
+    : { min: -CROSSFEED_RULES.outer, max: -CROSSFEED_RULES.inner };
+}
 export function sampleCrossfeed(track, distance, lateral, time) {
   distance = T.MathUtils.euclideanModulo(distance, track.length);
   const belt = track.belts.find(
     (b) => distance >= b.start && distance <= b.end,
   );
-  if (!belt || belt.side * lateral < -9) return null;
+  if (!belt) return null;
+  const { min, max } = crossfeedBounds(belt);
+  if (lateral < min || lateral > max) return null;
+  const R = CROSSFEED_RULES;
   const envelope =
-    smooth((distance - belt.start) / 24) * smooth((belt.end - distance) / 24);
-  const pulse = 0.82 + 0.18 * Math.sin(time * 0.9);
+    smooth((distance - belt.start) / R.entryLength) *
+    smooth((belt.end - distance) / R.entryLength);
+  const tread = (belt.side * lateral - crossfeedTravel(time)) / R.treadPitch;
+  // A small tooth engagement variation supplies real mechanical traction
+  // pulses while never reversing the advertised feed direction.
+  const pulse = 0.9 + 0.1 * Math.cos(tread * Math.PI * 2);
   return {
     id: belt.id,
     side: belt.side,
     envelope,
-    lateralAcceleration: belt.side * 19 * envelope * pulse,
-    forwardAcceleration: -7 * envelope,
-    grip: 0.58,
+    treadCell: Math.floor(tread),
+    lateralAcceleration: belt.side * R.acceleration * envelope * pulse,
+    forwardAcceleration: -R.drag * envelope,
+    grip: R.grip,
   };
 }
 

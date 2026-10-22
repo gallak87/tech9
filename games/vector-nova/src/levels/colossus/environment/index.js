@@ -1,8 +1,8 @@
 import * as T from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { ROCK_FORMS_URL } from '@worldkit/environment/forest';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { createQuarry } from './quarry.js';
+import { createColossusMountains } from './mountains.js';
+import { createColossusConveyors } from './conveyors.js';
 import { createIndustrialKit } from '@worldkit/environment/industrial';
 import { createColossusPaint, housingGeometry } from '../track/presentation.js';
 import {
@@ -33,35 +33,8 @@ export function createColossusEnvironment({
     assemblies = new Map(),
     machineBatches = [];
   const quarry = createQuarry(track, shape ? null : view?.renderer);
-  group.add(quarry.mesh);
-  const stone = quarry.material;
-  let rock = new T.CylinderGeometry(0.72, 1, 1, 7, 2);
-  const rp = rock.attributes.position;
-  for (let i = 0; i < rp.count; i++) {
-    const x = rp.getX(i),
-      y = rp.getY(i),
-      z = rp.getZ(i),
-      angle = Math.atan2(z, x);
-    const radius =
-      1 + Math.sin(angle * 3.1 + y * 4) * 0.12 + Math.cos(angle * 7.7) * 0.08;
-    rp.setXYZ(i, x * radius, y + Math.sin(angle * 4.3) * 0.055, z * radius);
-  }
-  const indexedRock = rock;
-  rock = rock.toNonIndexed();
-  indexedRock.dispose();
-  rock.computeVertexNormals();
-  geometries.add(rock);
-  const rockObjects = [];
-  const rockMass = (position, scale, turn = 0) => {
-    const object = new T.Mesh(rock, stone);
-    object.position.set(...position);
-    object.scale.set(...scale);
-    object.rotation.y = turn;
-    object.castShadow = object.receiveShadow = true;
-    object.name = 'Quarry / fractured bench';
-    rockObjects.push(object);
-    group.add(object);
-  };
+  const mountains = createColossusMountains(track, quarry);
+  group.add(quarry.mesh, mountains.group);
   const warning = new T.MeshStandardMaterial({
     color: '#f1b54c',
     emissive: '#ff9d24',
@@ -448,11 +421,6 @@ export function createColossusEnvironment({
       kit.materials.steel,
       [width + 12, 3, depth + 12],
       [top.x, top.y + 1.5, top.z],
-    );
-    rockMass(
-      [top.x, localGround - 20, top.z],
-      [width + 100, 90, depth + 100],
-      top.x * 0.01,
     );
   };
   // Continuous swept housings seat the running sheet inside a load-bearing bed.
@@ -1104,69 +1072,8 @@ export function createColossusEnvironment({
       putBox(kit.materials.steel, [20, 3, 145], [side * 60, 32, 60], m);
     }
   }
-  // Rotating transverse patterns make the actual sideways surface force legible.
-  const beltMaterials = [];
-  for (const belt of track.belts) {
-    const material = new T.MeshStandardMaterial({
-      color: '#48575b',
-      roughness: 0.7,
-      metalness: 0.4,
-    });
-    const clock = { value: 0 };
-    material.onBeforeCompile = (shader) => {
-      shader.uniforms.beltClock = clock;
-      shader.vertexShader = shader.vertexShader
-        .replace(
-          '#include <common>',
-          '#include <common>\nattribute vec2 roadCoord; varying vec2 beltCoord;',
-        )
-        .replace(
-          '#include <begin_vertex>',
-          '#include <begin_vertex>\nbeltCoord=roadCoord;',
-        );
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
-          '#include <common>',
-          '#include <common>\nuniform float beltClock; varying vec2 beltCoord;',
-        )
-        .replace(
-          '#include <map_fragment>',
-          '#include <map_fragment>\nfloat band=step(.68,fract((beltCoord.y-beltClock*8.)/10.)); diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.44,.30,.10),band*.65);',
-        );
-    };
-    const compile = material.onBeforeCompile;
-    material.onBeforeCompile = (shader) => {
-      compile(shader);
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <emissivemap_fragment>',
-        '#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vec3(.18,.085,.014)*band;',
-      );
-    };
-    material.customProgramCacheKey = () => 'colossus-crossfeed-v2';
-    materials.add(material);
-    const min = belt.side > 0 ? -9 : -35,
-      max = belt.side > 0 ? 35 : 9;
-    mesh(
-      paint.rectangle(belt.start, belt.end, { min, max, lift: 0.035 }),
-      material,
-      belt.id + ' / moving tread',
-    );
-    beltMaterials.push({ clock, side: belt.side });
-    for (const d of [belt.start + 25, belt.end - 25])
-      assembly('motor', d, belt.side * 56, 4);
-    // Approach marks lie on the working sheet, so they cannot read as floating obstacles.
-    for (let x = -20; x <= 20; x += 10)
-      mesh(
-        paint.rectangle(belt.start - 46, belt.start - 34, {
-          min: x - 2.5,
-          max: x + 2.5,
-          lift: 0.04,
-          columns: 2,
-        }),
-        hazardPaint,
-        belt.id + ' / approach mark',
-      );
-  }
+  const conveyors = createColossusConveyors({ track, paint, shape });
+  group.add(conveyors.group);
 
   // Ejector bays have open discharge edges, physical piston heads and a visible
   // stroke footprint. The housing and guide rails sit outside the running bed.
@@ -1905,57 +1812,6 @@ export function createColossusEnvironment({
     if (!merged) groups.push({ ...request });
   }
   for (const g of groups) makeFoundation(g.top, g.width, g.depth);
-  // Large quarry terraces, kept below the playable envelope.
-  const center = track.bounds.getCenter(new T.Vector3());
-  const size = track.bounds.getSize(new T.Vector3());
-  putBox(stone, [size.x + 1600, 80, size.z + 1300], [center.x, -110, center.z]);
-  const floor = new T.MeshStandardMaterial({ color: '#857e70', roughness: 1 });
-  materials.add(floor);
-  for (let i = 0; i < 10; i++) {
-    const side = i % 2 ? -1 : 1;
-    const x = center.x + side * (size.x / 2 + 580),
-      z = center.z + (Math.floor(i / 2) - 2) * 680;
-    for (let tier = 0; tier < 3; tier++) {
-      const height = 300 + (i % 3) * 75;
-      rockMass(
-        [x + side * tier * 120, tier * 285 + height / 2 - 80, z],
-        [620 - tier * 75, height, 520 - tier * 55],
-        i * 0.8,
-      );
-    }
-    putBox(floor, [340, 10, 110], [x - side * 300, 170, z]);
-  }
-  // A few fractured spurs establish cliff silhouettes; all are rejected near
-  // every race reach and jump corridor, rather than repeated alongside the bed.
-  for (const [i, id] of ['screw', 'dive', 'die', 'return', 'crown'].entries()) {
-    const f = track.sample(section(id).start + 100),
-      right = new T.Vector3(0, 1, 0).cross(f.tangent).normalize();
-    for (const side of [-1, 1]) {
-      const p = f.position
-        .clone()
-        .addScaledVector(right, side * (480 + (i % 2) * 110));
-      const ground = quarry.heightAt(p.x, p.z),
-        height = Math.min(260, Math.max(130, f.position.y - ground - 100));
-      if (
-        routeSurvey.some(
-          (q) =>
-            Math.hypot(q.x - p.x, q.z - p.z) < 270 &&
-            q.y < ground + height + 65,
-        )
-      )
-        continue;
-      rockMass(
-        [p.x, ground + height / 2 - 35, p.z],
-        [170, height + 70, 190],
-        i * 0.63,
-      );
-      rockMass(
-        [p.x + side * 80, ground + height * 0.3 - 45, p.z + 100],
-        [130, height * 0.7 + 90, 145],
-        i * 0.63 + 0.7,
-      );
-    }
-  }
   // One multi-draw batch per material keeps the kit's distinct parts culled
   // individually without paying a draw call for every nearby casing.
   const materialGroups = new Map();
@@ -2007,49 +1863,13 @@ export function createColossusEnvironment({
       machineBatches.push(instances);
     }
   }
-  const rockManager = new T.LoadingManager();
-  const rockReady =
-    !shape && view?.renderer
-      ? new GLTFLoader(rockManager).loadAsync(ROCK_FORMS_URL).then((gltf) => {
-          const forms = [],
-            sourceResources = new Set();
-          gltf.scene.updateMatrixWorld(true);
-          gltf.scene.traverse((object) => {
-            if (!object.isMesh) return;
-            sourceResources.add(object.geometry);
-            sourceResources.add(object.material);
-            if (disposed) return;
-            const geometry = object.geometry
-              .clone()
-              .applyMatrix4(object.matrixWorld);
-            geometry.computeBoundingBox();
-            const size = geometry.boundingBox.getSize(new T.Vector3()),
-              center = geometry.boundingBox.getCenter(new T.Vector3());
-            geometry.translate(-center.x, -center.y, -center.z);
-            geometry.scale(2 / size.x, 1 / size.y, 2 / size.z);
-            geometry.computeBoundingSphere();
-            geometries.add(geometry);
-            forms.push(geometry);
-          });
-          sourceResources.forEach((resource) => resource.dispose());
-          if (!disposed)
-            rockObjects.forEach((object, i) => {
-              object.geometry = forms[i % forms.length];
-              object.updateMatrixWorld(true);
-              const bounds = new T.Box3()
-                .setFromObject(object)
-                .expandByScalar(36);
-              if (routeSurvey.some((p) => bounds.containsPoint(p)))
-                group.remove(object);
-            });
-        })
-      : Promise.resolve();
   paint.dispose();
   let disposed = false;
   return {
     group,
-    ready: Promise.all([quarry.ready, rockReady]),
+    ready: quarry.ready,
     setReflection(texture) {
+      conveyors.setReflection(texture);
       for (const m of [...materials, ...Object.values(kit.materials)])
         if (m.isMeshStandardMaterial) {
           m.envMap = texture;
@@ -2150,15 +1970,16 @@ export function createColossusEnvironment({
         light.material = phase.active ? red : warning;
         light.visible = phase.active || phase.warning || shape;
       }
-      for (const { clock, side } of beltMaterials) clock.value = time * side;
+      conveyors.update({ time });
     },
     dispose() {
       if (disposed) return;
       disposed = true;
-      rockManager.abort();
       group.clear();
       machineBatches.forEach((b) => b.dispose());
       kit.dispose();
+      conveyors.dispose();
+      mountains.dispose();
       quarry.dispose();
       geometries.forEach((g) => g.dispose());
       materials.forEach((m) => m.dispose());

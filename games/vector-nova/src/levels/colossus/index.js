@@ -8,7 +8,7 @@ import { createColossusRuntime } from './runtime.js';
 import { createDevices } from './devices.js';
 export default function createLevel({ shape = false } = {}) {
   return {
-    version: '1.1.0-colossus-v6',
+    version: '1.1.0-colossus-v7',
     renderer: {
       world: 'colossus',
       background: '#a7b3b9',

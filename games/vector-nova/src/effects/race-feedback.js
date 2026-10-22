@@ -50,6 +50,12 @@ export function createRaceFeedback() {
         duration = payload.kind === 'repulsor' ? 0.38 : 0.18;
       }
       if (type === 'combat-hit') strength = payload.shielded ? 0.32 : 0.62;
+      // A level-owned moving surface produces a mechanical engagement, without
+      // pretending to be weapon damage or consuming a shield.
+      if (type === 'colossus-conveyor-contact') {
+        strength = payload.contact === 'engage' ? 0.26 : 0.13;
+        duration = payload.contact === 'engage' ? 0.24 : 0.18;
+      }
       if (type === 'combat-confirm') {
         strength = 0.09;
         duration = 0.16;

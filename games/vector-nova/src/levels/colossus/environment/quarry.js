@@ -4,11 +4,12 @@ import {
   toCreasedNormals,
 } from 'three/addons/utils/BufferGeometryUtils.js';
 import { FOREST_MATERIAL_ASSETS } from '@worldkit/environment/forest';
+import { createColossusLandform } from './mountains.js';
 
-/** A connected terraced quarry cut below every route reach, including crossings. */
+/** Local extraction benches cut into the mountain shoulder below the works. */
 export function createQuarry(track, renderer = null) {
   const material = new T.MeshStandardMaterial({
-    color: '#b8ad9b',
+    color: '#aaa695',
     roughness: 0.95,
     metalness: 0.02,
     flatShading: false,
@@ -56,16 +57,16 @@ export function createQuarry(track, renderer = null) {
       vec3 w=pow(abs(normalize(cross(dFdx(quarryPoint),dFdy(quarryPoint)))),vec3(4.));w/=max(.001,w.x+w.y+w.z);
       vec3 grain=texture2D(map,quarryPoint.yz/24.).rgb*w.x+texture2D(map,quarryPoint.xz/24.).rgb*w.y+texture2D(map,quarryPoint.xy/24.).rgb*w.z;
       quarryRelief=dot(grain,vec3(.299,.587,.114));
-      diffuseColor.rgb*=mix(vec3(.9),grain*2.8,.55);
+      diffuseColor.rgb*=mix(vec3(.96),grain*2.5,.22);
       #endif
       vec3 faceNormal=normalize(cross(dFdx(quarryPoint),dFdy(quarryPoint)));
       float benchDust=smoothstep(.46,.88,abs(faceNormal.y));
-      float foldedHeight=quarryPoint.y+sin(quarryPoint.x*.004+sin(quarryPoint.z*.003))*46.+cos(quarryPoint.z*.005-quarryPoint.x*.001)*25.;
+      float foldedHeight=quarryPoint.y+sin(quarryPoint.x*.0015+sin(quarryPoint.z*.0012))*65.+quarryPoint.z*.035;
       float layer=quarryNoise(vec2(foldedHeight*.023,quarryPoint.x*.0005));
-      vec3 bedrock=mix(vec3(.36,.42,.46),vec3(.75,.65,.52),smoothstep(.24,.76,layer));
+      vec3 bedrock=mix(vec3(.66,.69,.68),vec3(.83,.79,.69),smoothstep(.24,.76,layer));
       float stonePatch=quarryNoise(quarryPoint.xz*.004);
-      vec3 dust=mix(vec3(.8,.72,.57),vec3(1.12,1.02,.82),stonePatch);
-      diffuseColor.rgb*=mix(bedrock,dust,benchDust*.86);
+      vec3 dust=mix(vec3(.87,.83,.73),vec3(1.02,.97,.85),stonePatch);
+      diffuseColor.rgb*=mix(bedrock,dust,benchDust*.62);
       diffuseColor.rgb*=.9+.1*quarryNoise(quarryPoint.xz*.008);
       quarryRelief+=quarryNoise(quarryPoint.xy*.08)*.22;`,
     );
@@ -73,20 +74,35 @@ export function createQuarry(track, renderer = null) {
       '#include <normal_fragment_maps>',
       `#include <normal_fragment_maps>
       vec3 qx=dFdx(-vViewPosition),qy=dFdy(-vViewPosition),qrX=cross(qy,normal),qrY=cross(normal,qx);
-      float qdet=dot(qx,qrX); vec2 qSlope=vec2(dFdx(quarryRelief),dFdy(quarryRelief))*.15;
+      float qdet=dot(qx,qrX); vec2 qSlope=vec2(dFdx(quarryRelief),dFdy(quarryRelief))*.065;
       normal=normalize(abs(qdet)*normal-sign(qdet)*(qSlope.x*qrX+qSlope.y*qrY));`,
     );
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <opaque_fragment>',
+      `float terrainHaze=1.-exp(-max(0.,distance(cameraPosition,quarryPoint)-650.)*.000075);
+      outgoingLight=mix(outgoingLight,vec3(.48,.55,.59),min(.72,terrainHaze));
+      #include <opaque_fragment>`,
+    );
   };
-  material.customProgramCacheKey = () => 'colossus-fractured-quarry-v3';
+  material.customProgramCacheKey = () => 'colossus-mountain-quarry-v4';
   const survey = [];
   for (let s = 0; s < track.length; s += 16)
     survey.push(track.sample(s).position);
-  const bounds = track.bounds.clone().expandByScalar(650),
+  const landform = createColossusLandform(track);
+  const bounds = track.bounds.clone().expandByScalar(900),
     step = 30;
   const nx = Math.ceil((bounds.max.x - bounds.min.x) / step),
     nz = Math.ceil((bounds.max.z - bounds.min.z) / step),
     positions = [],
-    bands = [-90, 35, 210, 440, 720, 1060, 1470, 1930, 2450];
+    bands = [-90, 35, 210, 440, 720, 1060, 1470, 1930, 2450, 3100];
+  const axes = {
+    x: Array.from({ length: nx + 1 }, (_, i) =>
+      T.MathUtils.lerp(bounds.min.x, bounds.max.x, i / nx),
+    ),
+    z: Array.from({ length: nz + 1 }, (_, i) =>
+      T.MathUtils.lerp(bounds.min.z, bounds.max.z, i / nz),
+    ),
+  };
   const faults = ['screw', 'die', 'cooling'].map((id, i) => {
     const zone = track.sections.find((s) => s.id === id),
       f = track.sample(zone.start + 180),
@@ -99,16 +115,25 @@ export function createQuarry(track, renderer = null) {
     for (const p of survey) {
       const d = Math.hypot(x - p.x, z - p.z);
       nearest = Math.min(nearest, d);
-      roof = Math.min(roof, p.y - 72 + Math.max(0, d - 105) * 0.72);
+      roof = Math.min(roof, p.y - 95 + Math.max(0, d - 125) * 0.85);
     }
-    // Unequal extraction benches with broad flats and broken sloping faces.
+    // Only the factory shoulder is excavated. The same uncut height field
+    // continues through the outer mesh and supplies the mountain skyline.
     const warp =
       (Math.sin(x * 0.0023 + Math.sin(z * 0.003)) * 70 +
         Math.cos(z * 0.0027 - x * 0.001) * 45) *
       Math.min(1, Math.max(0, nearest - 120) / 180);
-    return { x, z, roof, nearest, cut: roof + warp };
+    const natural = landform.heightAt(x, z);
+    return {
+      x,
+      z,
+      roof,
+      nearest,
+      natural,
+      cut: Math.min(natural, roof + warp),
+    };
   };
-  const elevation = ({ x, z, roof, nearest, cut }) => {
+  const elevation = ({ x, z, roof, nearest, natural, cut }) => {
     let low = bands[0],
       high = bands[1];
     for (let i = 0; i < bands.length - 1; i++)
@@ -132,7 +157,7 @@ export function createQuarry(track, renderer = null) {
         T.MathUtils.clamp((460 - along) / 180, 0, 1) *
         78;
     }
-    cleft *= T.MathUtils.smoothstep(nearest, 145, 310);
+    cleft *= T.MathUtils.smoothstep(nearest, 145, 310) * 0.55;
     const benchBreak =
       (Math.sin(x * 0.011 + z * 0.003) * 9 +
         Math.cos(z * 0.009 - x * 0.006) * 6) *
@@ -141,12 +166,20 @@ export function createQuarry(track, renderer = null) {
       Math.sin(x * 0.017 + z * 0.006) *
       Math.cos(z * 0.013) *
       Math.min(3, Math.max(0, nearest - 110) * 0.01);
-    return Math.max(
-      -72,
-      Math.min(roof - 8, bench + rubble + benchBreak - cleft),
-    );
+    const excavation = 1 - T.MathUtils.smoothstep(nearest, 240, 680),
+      cutHeight = Math.min(natural, bench + rubble + benchBreak - cleft),
+      ground = T.MathUtils.lerp(natural, cutHeight, excavation),
+      clearance = T.MathUtils.lerp(
+        roof - 8,
+        natural,
+        T.MathUtils.smoothstep(nearest, 520, 820),
+      );
+    return Math.max(-72, Math.min(ground, clearance));
   };
-  const heightAt = (x, z) => elevation(fieldAt(x, z));
+  const heightAt = (x, z) =>
+    x < bounds.min.x || x > bounds.max.x || z < bounds.min.z || z > bounds.max.z
+      ? landform.heightAt(x, z)
+      : elevation(fieldAt(x, z));
   // Split the surface at exact bench contours. A regular grid straddling steep
   // risers produces alternating triangular teeth; the ledges need their own edges.
   const knees = bands
@@ -154,8 +187,7 @@ export function createQuarry(track, renderer = null) {
     .flatMap((lo, i) => [lo + (bands[i + 1] - lo) * 0.79, bands[i + 1]]);
   const grid = [];
   for (let z = 0; z <= nz; z++)
-    for (let x = 0; x <= nx; x++)
-      grid.push(fieldAt(bounds.min.x + x * step, bounds.min.z + z * step));
+    for (let x = 0; x <= nx; x++) grid.push(fieldAt(axes.x[x], axes.z[z]));
   const clip = (poly, cut, above) => {
     const result = [];
     for (let i = 0; i < poly.length; i++) {
@@ -167,7 +199,7 @@ export function createQuarry(track, renderer = null) {
       if (insideA !== insideB) {
         const t = (cut - a.cut) / (b.cut - a.cut),
           p = {};
-        for (const key of ['x', 'z', 'roof', 'nearest', 'cut'])
+        for (const key of ['x', 'z', 'roof', 'nearest', 'natural', 'cut'])
           p[key] = T.MathUtils.lerp(a[key], b[key], t);
         p.cut = cut;
         result.push(p);
@@ -209,7 +241,7 @@ export function createQuarry(track, renderer = null) {
   smooth.dispose();
   geometry.computeBoundingSphere();
   const mesh = new T.Mesh(geometry, material);
-  mesh.name = 'Colossus / connected terraced quarry';
+  mesh.name = 'Colossus / excavated mountain shoulder';
   mesh.receiveShadow = true;
   mesh.castShadow = true;
   return {
@@ -217,6 +249,8 @@ export function createQuarry(track, renderer = null) {
     material,
     ready,
     heightAt,
+    bounds,
+    axes,
     dispose() {
       if (disposed) return;
       disposed = true;

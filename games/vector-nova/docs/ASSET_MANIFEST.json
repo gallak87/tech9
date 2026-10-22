@@ -5,7 +5,7 @@
       "id": "colossus-industrial",
       "source": "src/levels/colossus/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original working-bed geometry, connected fractured quarry terrain and factory composition. Original Worldkit machinery assemblies use generated steel and enamel textures at physical scale. Quarry reuses canonical Worldkit authored rock forms and the forest granite diffuse map derived from the registered Poly Haven CC0 scan. Physical presses, ejectors and transverse belts are authored in the level. The selected concept is separately registered.",
+      "provenance": "Original working-bed geometry, connected mountain ridges, excavated quarry terrain and factory composition. Original Worldkit machinery assemblies use generated steel and enamel textures at physical scale. Mountain and quarry shaders reuse the forest granite diffuse map derived from the registered Poly Haven CC0 scan. Physical presses, ejectors and steel slat conveyors are authored in the level. The selected concept is separately registered.",
       "rights": "Project-authored geometry/shaders and original generated steel/enamel; borrowed rock imagery retains CC0-1.0 provenance.",
       "runtimeDependencies": [
         "three",
@@ -20,7 +20,6 @@
       "runtimeAssets": [
         "../../worldkit/modules/industrial/assets/rolled-steel-v1.png",
         "../../worldkit/modules/industrial/assets/worn-enamel-v1.png",
-        "../../worldkit/modules/landscape/assets/runtime/rock-forms.glb",
         "../../worldkit/modules/landscape/assets/art/textures/forest-granite-diff.jpg"
       ]
     },

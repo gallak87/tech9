@@ -8,10 +8,10 @@ export function createIndustrialKit({ finish = null } = {}) {
     shell: new T.MeshPhysicalMaterial({
       name: 'Worldkit / enamel machine casings',
       color: '#c7c4af',
-      roughness: 0.36,
-      clearcoat: 0.42,
-      clearcoatRoughness: 0.3,
-      metalness: 0.12,
+      roughness: 0.24,
+      clearcoat: 0.72,
+      clearcoatRoughness: 0.2,
+      metalness: 0.06,
     }),
     steel: new T.MeshStandardMaterial({
       name: 'Worldkit / working steel',
@@ -27,8 +27,8 @@ export function createIndustrialKit({ finish = null } = {}) {
     }),
     cast: new T.MeshStandardMaterial({
       name: 'Worldkit / rough cast bearing bodies',
-      color: '#7b827c',
-      roughness: 0.74,
+      color: '#626a63',
+      roughness: 0.84,
       metalness: 0.36,
     }),
     machined: new T.MeshStandardMaterial({

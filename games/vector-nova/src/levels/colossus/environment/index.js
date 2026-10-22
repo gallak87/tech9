@@ -1873,7 +1873,14 @@ export function createColossusEnvironment({
       for (const m of [...materials, ...Object.values(kit.materials)])
         if (m.isMeshStandardMaterial) {
           m.envMap = texture;
-          m.envMapIntensity = m === polished ? 0.9 : 0.65;
+          m.envMapIntensity =
+            m === kit.materials.shell
+              ? 1.45
+              : m === kit.materials.cast
+                ? 0.35
+                : m === polished || m === kit.materials.machined
+                  ? 0.95
+                  : 0.65;
           m.needsUpdate = true;
         }
     },

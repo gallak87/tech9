@@ -102,9 +102,9 @@ export function createIndustrialFinish(renderer = null) {
           `#include <roughnessmap_fragment>
           vec3 iw=pow(abs(normalize(cross(dFdx(industrialPoint),dFdy(industrialPoint)))),vec3(4.));iw/=max(.001,iw.x+iw.y+iw.z);
           vec3 detailColor=${sample};float detailLuma=dot(detailColor,vec3(.299,.587,.114));
-          diffuseColor.rgb*=mix(vec3(1.),detailColor*${kind === 'shell' ? '1.4' : '3.6'},${coordinates === 'road' ? '.28' : kind === 'shell' ? '(.10+.28*smoothstep(.55,.8,industrialNoise(industrialPoint.xz*.015)))' : kind === 'dark' ? '.3' : kind === 'machined' ? '.18' : kind === 'cast' ? '.42' : '.63'});
+          diffuseColor.rgb*=mix(vec3(1.),detailColor*${kind === 'shell' ? '1.4' : '3.6'},${coordinates === 'road' ? '.075' : kind === 'shell' ? '(.04+.09*smoothstep(.55,.8,industrialNoise(industrialPoint.xz*.015)))' : kind === 'dark' ? '.3' : kind === 'machined' ? '.18' : kind === 'cast' ? '.42' : '.63'});
           ${kind === 'machined' && coordinates === 'part' ? `vec3 partNormal=normalize(cross(dFdx(industrialLocal),dFdy(industrialLocal)));float turning=mix(industrialLocal.y,length(industrialLocal.xz),step(.75,abs(partNormal.y)))*9.;float toolMark=sin(turning*6.28318)*(1.-smoothstep(.4,1.5,fwidth(turning)));roughnessFactor+=toolMark*.045;diffuseColor.rgb*=.96+toolMark*.025;` : ''}
-          roughnessFactor=clamp(roughnessFactor+${kind === 'shell' ? '(.7-detailLuma)*.22' : '(detailLuma-.18)*.24'},.24,.92);`,
+          roughnessFactor=clamp(roughnessFactor+${kind === 'shell' ? '(.7-detailLuma)*.10' : '(detailLuma-.18)*.24'},.24,.92);`,
         );
         // A small surface gradient breaks perfectly flat reflections while the
         // authored metre scale keeps the finish from becoming coarse concrete.
@@ -115,12 +115,12 @@ export function createIndustrialFinish(renderer = null) {
           vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition);
           vec3 rx=cross(sy,normal),ry=cross(normal,sx);
           float det=dot(sx,rx);
-          vec2 slope=vec2(dFdx(detailLuma),dFdy(detailLuma))*${kind === 'shell' ? '.015' : kind === 'cast' ? '.045' : kind === 'machined' ? '.002' : '.008'};
+          vec2 slope=vec2(dFdx(detailLuma),dFdy(detailLuma))*${kind === 'shell' ? '.003' : kind === 'cast' ? '.045' : kind === 'machined' ? '.002' : '.008'};
           normal=normalize(abs(det)*normal-sign(det)*(slope.x*rx+slope.y*ry));`,
           );
       };
       material.customProgramCacheKey = () =>
-        key + '-industrial-map-v5-' + kind + '-' + coordinates;
+        key + '-industrial-map-v6-' + kind + '-' + coordinates;
     },
     dispose() {
       if (disposed) return;

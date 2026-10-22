@@ -6,9 +6,9 @@ import { createColossusPaint } from './presentation.js';
 function workingSteel(shape, track) {
   const material = new T.MeshStandardMaterial({
     name: 'Colossus / worn working-channel steel',
-    color: shape ? '#a0a7ac' : '#7f919a',
-    roughness: 0.68,
-    metalness: shape ? 0.1 : 0.4,
+    color: shape ? '#a0a7ac' : '#7c898c',
+    roughness: shape ? 0.68 : 0.57,
+    metalness: shape ? 0.1 : 0.74,
   });
   if (!shape) {
     material.onBeforeCompile = (shader) => {
@@ -68,19 +68,23 @@ float steelNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(m
           float workZone=clamp(workRange(p.x,millZone)+workRange(p.x,headZone),0.,1.);
           float contact=exp(-pow((abs(p.y)-14.)/8.,2.))*workZone;
           float returnWear=workRange(p.x,returnZone)*(1.-smoothstep(10.,29.,abs(p.y)));
-          float workingWear=max(contact,returnWear*.65)*(.7+.3*steelNoise(p*vec2(.006,.22)));
+          // Broad longitudinal roll contact carries the metal response throughout the works.
+          float feedOffset=sin(p.x*.003)*1.5;
+          float feedPolish=exp(-pow((abs(p.y-feedOffset)-12.)/6.5,2.));
+          float workPatch=.65+.35*steelNoise(p*vec2(.008,.07));
+          float workingWear=max(max(contact,returnWear*.65),feedPolish*.8)*workPatch;
           diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.16,.19,.19),grime*.35);
-          diffuseColor.rgb*=.94+steelHash(floor(plate/vec2(48.,18.)))*.1+broad*.05;
-          diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*1.12,workingWear);
+          diffuseColor.rgb*=.91+steelHash(floor(plate/vec2(48.,18.)))*.15+broad*.035;
+          diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*1.2,workingWear);
           diffuseColor.rgb*=1.-seams*.48-longitudinal*.3-fastener*.32;
         `,
         )
         .replace(
           '#include <roughnessmap_fragment>',
-          '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+grime*.16-workingWear*.14,.44,.88);',
+          '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+grime*.2-workingWear*.22,.34,.88);',
         );
     };
-    material.customProgramCacheKey = () => 'colossus-working-steel-v5';
+    material.customProgramCacheKey = () => 'colossus-working-steel-v6';
   }
   return material;
 }
@@ -200,7 +204,7 @@ export function createColossusRoad({
     setReflection(texture) {
       for (const m of materials) {
         m.envMap = texture;
-        m.envMapIntensity = 0.5;
+        m.envMapIntensity = m === steel ? 0.85 : 0.5;
         m.needsUpdate = true;
       }
     },

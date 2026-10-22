@@ -15,6 +15,7 @@ import { collectRoadSurfaces } from '../src/pickups/device-mount.js';
 import { createDevices } from '../src/levels/colossus/devices.js';
 import { createFinishMarker } from '../src/race/finish-marker.js';
 import * as T from 'three';
+import { createColossusPaint } from '../src/levels/colossus/track/presentation.js';
 import { createIndustrialKit } from '@worldkit/environment/industrial';
 const level = createLevel(),
   track = level.createTrack();
@@ -434,5 +435,39 @@ test('ejectors physically throw every hull through the discharge edge, then lift
   } finally {
     dynamics.dispose();
     collisionWorld.dispose();
+  }
+});
+
+test('belt and hazard paint conforms to the exact rendered triangles across banks and curved shoulders', () => {
+  const road = level.createRoad({ track });
+  road.group.updateMatrixWorld(true);
+  const projector = createSurfaceProjector(
+    track,
+    collectRoadSurfaces(road.group),
+  );
+  const paint = createColossusPaint(track);
+  try {
+    for (const belt of track.belts) {
+      const g = paint.rectangle(belt.start, belt.end, {
+        min: -35,
+        max: 35,
+        lift: 0.05,
+      });
+      const p = g.attributes.position,
+        c = g.attributes.roadCoord;
+      assert.ok(p.count > 0);
+      for (let i = 0; i < p.count; i++) {
+        const position = new T.Vector3().fromBufferAttribute(p, i);
+        assert.ok(
+          position.distanceTo(projector.sample(c.getX(i), c.getY(i))) < 0.055,
+          'paint must not cross or float above steel',
+        );
+      }
+      g.dispose();
+    }
+  } finally {
+    paint.dispose();
+    projector.dispose();
+    road.dispose();
   }
 });

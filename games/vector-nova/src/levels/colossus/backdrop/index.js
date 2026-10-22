@@ -22,9 +22,9 @@ export function createColossusBackdrop() {
     sunIntensity: 3.2,
     ambientSky: '#c1d7e1',
     ambientGround: '#706858',
-    ambientIntensity: 0.8,
+    ambientIntensity: 0.55,
     fillColor: '#b0cee1',
-    fillIntensity: 0.35,
+    fillIntensity: 0.24,
     environmentIntensity: 0.8,
     far: 22000,
     update({ camera }) {

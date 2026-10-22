@@ -1,12 +1,13 @@
 import * as T from 'three';
 import { sheetGeometry, rimGeometry } from './surface.js';
+import { createColossusPaint } from './presentation.js';
 
 function workingSteel(shape) {
   const material = new T.MeshStandardMaterial({
     name: 'Colossus / worn working-channel steel',
-    color: shape ? '#a0a7ac' : '#858d8b',
-    roughness: 0.59,
-    metalness: shape ? 0.1 : 0.55,
+    color: shape ? '#a0a7ac' : '#56686f',
+    roughness: 0.52,
+    metalness: shape ? 0.1 : 0.72,
   });
   if (!shape) {
     material.onBeforeCompile = (shader) => {
@@ -22,7 +23,10 @@ function workingSteel(shape) {
       shader.fragmentShader = shader.fragmentShader
         .replace(
           '#include <common>',
-          '#include <common>\nvarying vec2 steelCoord;',
+          `#include <common>
+varying vec2 steelCoord;
+float steelHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float steelNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(steelHash(i),steelHash(i+vec2(1,0)),f.x),mix(steelHash(i+vec2(0,1)),steelHash(i+vec2(1,1)),f.x),f.y);}`,
         )
         .replace(
           '#include <map_fragment>',
@@ -30,20 +34,21 @@ function workingSteel(shape) {
           vec2 p=steelCoord;
           float seams=1.-smoothstep(.045,.095,abs(mod(p.x+9.,18.)-9.));
           float longitudinal=1.-smoothstep(.035,.075,abs(mod(p.y+6.,12.)-6.));
-          float broad=sin(p.x*.11+sin(p.y*.28))*sin(p.y*.17+p.x*.027);
-          float stain=smoothstep(.2,.85,sin(p.x*.17+sin(p.y*.48))*sin(p.y*.41));
+          float broad=(steelNoise(p*vec2(.018,.08))-.5);
+          float stain=steelNoise(p*vec2(.042,.13)+17.);
           float scratches=sin(p.x*3.+sin(p.y*2.))*.018/(1.+length(fwidth(p))*3.);
+          float brushed=smoothstep(.3,.85,steelNoise(p*vec2(.003,.24)));
           float grime=smoothstep(22.,36.,abs(p.y));
-          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.14,.18,.19),stain*.24+grime*.12);
-          diffuseColor.rgb*=1.+broad*.085+scratches-seams*.42-longitudinal*.24;
+          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.14,.18,.19),stain*.055+grime*.14);
+          diffuseColor.rgb*=1.+broad*.055+brushed*.055+scratches-seams*.42-longitudinal*.24;
         `,
         )
         .replace(
           '#include <roughnessmap_fragment>',
-          '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+broad*.09+stain*.12+grime*.1,.32,.88);',
+          '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor-brushed*.19+broad*.09+stain*.045+grime*.1,.25,.88);',
         );
     };
-    material.customProgramCacheKey = () => 'colossus-working-steel-v2';
+    material.customProgramCacheKey = () => 'colossus-working-steel-v4';
   }
   return material;
 }
@@ -133,12 +138,13 @@ export function createColossusRoad({
     }
   }
   if (!collectSolid) {
+    const paint = createColossusPaint(track);
     for (const jump of track.jumps)
       for (let i = 0; i < 3; i++) {
         const end = jump.takeoff - 12 - i * 20;
         add(
           'launch-lip-warning',
-          sheetGeometry(track, end - 2, end, {
+          paint.rectangle(end - 2, end, {
             min: -32,
             max: 32,
             lift: 0.035,
@@ -146,6 +152,7 @@ export function createColossusRoad({
           amber,
         );
       }
+    paint.dispose();
   }
   let disposed = false;
   return {

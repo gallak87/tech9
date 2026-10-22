@@ -39,7 +39,8 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 
 ## Level work
 
-- [ ] **Colossus Works.** Complete the approved 9.46 km Hard factory circuit in [the level brief](docs/levels/colossus.md), including physical ejectors, factory machinery and curved-surface device placement; commit production, then run the requested gameplay/free-camera art critique.
+- [x] **Colossus Works.** Ship the approved 9.46 km Hard factory circuit in [the level brief](docs/levels/colossus.md), with physical ejectors, factory machinery and curved-surface markings/devices. Production committed; three gameplay/free-camera critique rounds completed.
+- [ ] Further Colossus art refinement after human review: deepen the press hall construction and lighting, reduce repeated cream slab silhouettes, enrich quarry masses and improve work-bed material response. The completed critic rounds do not constitute AAA approval.
 
 - [ ] Resolve small on-road vertical bob on Nightweir’s broad banked panels. The two-triangle cross-sections introduce physical diagonal ridges; revisit tessellation together with road seals, pickup projection and other two-vertex-row consumers. A shared solution must preserve collision-query performance. Do not add map-specific hover offsets or smooth the ship through solid road. Countdown/reset placement is handled separately by the shared controller.
 

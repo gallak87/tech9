@@ -5,7 +5,7 @@
       "id": "colossus-industrial",
       "source": "src/levels/colossus/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original procedural working-channel geometry, fractured quarry benches and factory composition. Original Worldkit factory bays, rollers, drives, casings, presses, ejector housings and gantries supply reusable machinery. Physical press/ejector motion and transverse belts are authored in the level. Selected imagegen concept is separately registered under environment-driving-concepts-2026-10-21. No third-party machinery or texture inputs.",
+      "provenance": "Original procedural working-channel geometry, fractured quarry benches and factory composition. Original Worldkit factory bays, rollers, drives, casings, cooling fin banks, presses, ejector housings and gantries supply reusable machinery. Physical press/ejector motion and transverse belts are authored in the level. Selected imagegen concept is separately registered under environment-driving-concepts-2026-10-21. No third-party machinery or texture inputs.",
       "rights": "Project-authored source geometry, materials and shaders; no third-party artwork or runtime textures",
       "runtimeDependencies": ["three", "@worldkit/environment/industrial"]
     },

@@ -5,44 +5,110 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 /** Concrete machinery assemblies in metres. Placement, clocks and collision belong to the game. */
 export function createIndustrialKit() {
   const materials = {
-    shell: new T.MeshStandardMaterial({ name: 'Worldkit / enamel machine casings', color: '#c7c4af', roughness: 0.52, metalness: 0.38 }),
-    steel: new T.MeshStandardMaterial({ name: 'Worldkit / working steel', color: '#76868e', roughness: 0.34, metalness: 0.82 }),
-    dark: new T.MeshStandardMaterial({ name: 'Worldkit / graphite machine interiors', color: '#252e35', roughness: 0.68, metalness: 0.5 }),
-    amber: new T.MeshStandardMaterial({ name: 'Worldkit / machinery caution enamel', color: '#c98c2b', roughness: 0.64, metalness: 0.25 }),
+    shell: new T.MeshStandardMaterial({
+      name: 'Worldkit / enamel machine casings',
+      color: '#c7c4af',
+      roughness: 0.57,
+      metalness: 0.12,
+    }),
+    steel: new T.MeshStandardMaterial({
+      name: 'Worldkit / working steel',
+      color: '#76868e',
+      roughness: 0.34,
+      metalness: 0.82,
+    }),
+    dark: new T.MeshStandardMaterial({
+      name: 'Worldkit / graphite machine interiors',
+      color: '#252e35',
+      roughness: 0.68,
+      metalness: 0.5,
+    }),
+    amber: new T.MeshStandardMaterial({
+      name: 'Worldkit / machinery caution enamel',
+      color: '#c98c2b',
+      roughness: 0.64,
+      metalness: 0.25,
+    }),
   };
   for (const key of ['shell', 'steel', 'dark']) {
     const material = materials[key];
     material.onBeforeCompile = (shader) => {
-      shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 machinePosition;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nmachinePosition=position;');
-      shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 machinePosition;')
-        .replace('#include <map_fragment>', '#include <map_fragment>\nfloat wear=sin(machinePosition.x*.31+sin(machinePosition.z*.17))*sin(machinePosition.y*.19); float drip=smoothstep(.7,.95,sin(machinePosition.x*2.4+machinePosition.z*.4))*smoothstep(.0,.9,sin(machinePosition.y*.08)); diffuseColor.rgb*=1.+wear*.065-drip*.12;')
-        .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+wear*.06+drip*.08,.2,.95);');
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          '#include <common>',
+          '#include <common>\nvarying vec3 machinePosition;',
+        )
+        .replace(
+          '#include <begin_vertex>',
+          '#include <begin_vertex>\nmachinePosition=position;',
+        );
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          '#include <common>',
+          '#include <common>\nvarying vec3 machinePosition;',
+        )
+        .replace(
+          '#include <map_fragment>',
+          '#include <map_fragment>\nfloat wear=sin(machinePosition.x*.31+sin(machinePosition.z*.17))*sin(machinePosition.y*.19); float drip=smoothstep(.7,.95,sin(machinePosition.x*2.4+machinePosition.z*.4))*smoothstep(.0,.9,sin(machinePosition.y*.08)); diffuseColor.rgb*=1.+wear*.065-drip*.12;',
+        )
+        .replace(
+          '#include <roughnessmap_fragment>',
+          '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+wear*.06+drip*.08,.2,.95);',
+        );
     };
     material.customProgramCacheKey = () => 'worldkit-industrial-finish-v2';
   }
-  const geometries = new Set(), prototypes = {};
+  const geometries = new Set(),
+    prototypes = {};
   function assembly(name, build) {
     const batches = {};
     const add = (key, geometry, position, rotation = null) => {
-      geometry.applyMatrix4(new T.Matrix4().compose(
-        new T.Vector3(...position), rotation ?? new T.Quaternion(), new T.Vector3(1, 1, 1),
-      ));
-      if (geometry.index) { const flat = geometry.toNonIndexed(); geometry.dispose(); geometry = flat; }
+      geometry.applyMatrix4(
+        new T.Matrix4().compose(
+          new T.Vector3(...position),
+          rotation ?? new T.Quaternion(),
+          new T.Vector3(1, 1, 1),
+        ),
+      );
+      if (geometry.index) {
+        const flat = geometry.toNonIndexed();
+        geometry.dispose();
+        geometry = flat;
+      }
       (batches[key] ??= []).push(geometry);
     };
-    const box = (key, size, position) => add(key, new RoundedBoxGeometry(...size, 1, Math.min(0.65, Math.min(...size) * 0.12)), position);
-    const cylinder = (key, radius, length, position) => add(key, new T.CylinderGeometry(radius, radius, length, 12), position);
+    const box = (key, size, position) =>
+      add(
+        key,
+        new RoundedBoxGeometry(
+          ...size,
+          1,
+          Math.min(0.65, Math.min(...size) * 0.12),
+        ),
+        position,
+      );
+    const cylinder = (key, radius, length, position) =>
+      add(key, new T.CylinderGeometry(radius, radius, length, 12), position);
     const beam = (key, a, b, width) => {
-      const from = new T.Vector3(...a), to = new T.Vector3(...b), delta = to.clone().sub(from);
-      add(key, new T.BoxGeometry(width, delta.length(), width), from.add(to).multiplyScalar(0.5).toArray(),
-        new T.Quaternion().setFromUnitVectors(new T.Vector3(0, 1, 0), delta.normalize()));
+      const from = new T.Vector3(...a),
+        to = new T.Vector3(...b),
+        delta = to.clone().sub(from);
+      add(
+        key,
+        new T.BoxGeometry(width, delta.length(), width),
+        from.add(to).multiplyScalar(0.5).toArray(),
+        new T.Quaternion().setFromUnitVectors(
+          new T.Vector3(0, 1, 0),
+          delta.normalize(),
+        ),
+      );
     };
     build({ box, cylinder, beam, add });
     prototypes[name] = Object.entries(batches).map(([key, parts]) => {
       const geometry = mergeGeometries(parts, false);
       parts.forEach((part) => part.dispose());
-      geometry.computeBoundingBox(); geometry.computeBoundingSphere();
+      geometry.computeBoundingBox();
+      geometry.computeBoundingSphere();
       geometries.add(geometry);
       return { geometry, material: materials[key] };
     });
@@ -67,7 +133,8 @@ export function createIndustrialKit() {
     }
     box('shell', [170, 12, 22], [0, 177, 0]);
     box('steel', [170, 5, 26], [0, 159, 0]);
-    for (let x = -72; x < 70; x += 24) beam('dark', [x, 160, 0], [x + 24, 176, 0], 3);
+    for (let x = -72; x < 70; x += 24)
+      beam('dark', [x, 160, 0], [x + 24, 176, 0], 3);
     box('amber', [28, 13, 31], [12, 161, 0]);
     for (const x of [4, 20]) box('steel', [0.9, 75, 0.9], [x, 118, 0]);
   });
@@ -95,38 +162,63 @@ export function createIndustrialKit() {
       box('shell', [10, 110, 44], [side * 65, 45, 0]);
       for (const y of [16, 52, 88]) {
         box('steel', [26, 2, 56], [side * 75, y, 0]);
-        for (const z of [-24, 0, 24]) box('amber', [0.7, 5, 0.7], [side * 62, y + 3.5, z]);
+        for (const z of [-24, 0, 24])
+          box('amber', [0.7, 5, 0.7], [side * 62, y + 3.5, z]);
         box('amber', [0.7, 0.7, 52], [side * 62, y + 6, 0]);
         box('shell', [3, 22, 25], [side * 63, y + 16, 0]);
       }
-      for (const z of [-18, 18]) cylinder('steel', 2.4, 110, [side * 59, 50, z]);
-      for (let y = 10; y < 90; y += 8) box('dark', [2, 0.65, 18], [side * 57, y, 0]);
+      for (const z of [-18, 18])
+        cylinder('steel', 2.4, 110, [side * 59, 50, z]);
+      for (let y = 10; y < 90; y += 8)
+        box('dark', [2, 0.65, 18], [side * 57, y, 0]);
       box('steel', [27, 8, 64], [side * 77, -18, 0]);
     }
     for (const z of [-19, 19]) {
       box('dark', [178, 4, 5], [0, 107, z]);
       box('shell', [178, 4, 5], [0, 125, z]);
-      for (let x = -84; x < 80; x += 28) beam('steel', [x, 108, z], [x + 28, 124, z], 2);
+      for (let x = -84; x < 80; x += 28)
+        beam('steel', [x, 108, z], [x + 28, 124, z], 2);
     }
   });
   assembly('rollerBank', ({ box, add }) => {
     box('dark', [34, 22, 76], [0, 0, 0]);
-    const rot = new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 0, 1), Math.PI / 2);
+    const rot = new T.Quaternion().setFromAxisAngle(
+      new T.Vector3(0, 0, 1),
+      Math.PI / 2,
+    );
     for (const z of [-24, 0, 24]) {
       add('steel', new T.CylinderGeometry(9, 9, 34, 24), [0, 13, z], rot);
       for (const x of [-19, 19]) {
         box('shell', [7, 25, 18], [x, 6, z]);
-        add('amber', new T.CylinderGeometry(5, 5, 3, 12), [x * 1.18, 13, z], rot);
+        add(
+          'amber',
+          new T.CylinderGeometry(5, 5, 3, 12),
+          [x * 1.18, 13, z],
+          rot,
+        );
       }
     }
   });
   assembly('driveWheel', ({ box, add }) => {
-    const rot = new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 0, 1), Math.PI / 2);
-    add('steel', new T.TorusGeometry(21, 3, 6, 40), [0, 0, 0], new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), Math.PI / 2));
+    const rot = new T.Quaternion().setFromAxisAngle(
+      new T.Vector3(0, 0, 1),
+      Math.PI / 2,
+    );
+    add(
+      'steel',
+      new T.TorusGeometry(21, 3, 6, 40),
+      [0, 0, 0],
+      new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), Math.PI / 2),
+    );
     add('amber', new T.CylinderGeometry(5, 5, 10, 16), [0, 0, 0], rot);
     for (let i = 0; i < 8; i++) {
-      const a = i * Math.PI / 4;
-      add('dark', new T.BoxGeometry(5, 37, 3), [0, 0, 0], new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), a));
+      const a = (i * Math.PI) / 4;
+      add(
+        'dark',
+        new T.BoxGeometry(5, 37, 3),
+        [0, 0, 0],
+        new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), a),
+      );
       box('shell', [7, 3, 5], [0, Math.cos(a) * 23, Math.sin(a) * 23]);
     }
   });
@@ -156,11 +248,26 @@ export function createIndustrialKit() {
       cylinder('dark', 3, 30, [0, 0, z]);
     }
   });
+  assembly('coolingBank', ({ box, cylinder }) => {
+    box('dark', [52, 92, 112], [0, 24, 0]);
+    for (const z of [-58, 58]) {
+      box('shell', [62, 110, 10], [0, 27, z]);
+      box('steel', [70, 9, 18], [0, -28, z]);
+    }
+    for (let z = -48; z <= 48; z += 8) box('steel', [57, 82, 2], [0, 23, z]);
+    for (const y of [-16, 20, 56]) box('dark', [3, 5, 112], [-31, y, 0]);
+    box('shell', [62, 12, 124], [0, 85, 0]);
+    box('steel', [64, 4, 128], [0, 93, 0]);
+    for (const z of [-40, 40]) cylinder('steel', 7, 34, [16, 109, z]);
+    box('dark', [72, 12, 142], [0, -34, 0]);
+  });
   let disposed = false;
   return {
-    prototypes, materials,
+    prototypes,
+    materials,
     createAssembly(name) {
-      if (disposed || !prototypes[name]) throw new Error('Unknown or disposed industrial assembly: ' + name);
+      if (disposed || !prototypes[name])
+        throw new Error('Unknown or disposed industrial assembly: ' + name);
       const group = new T.Group();
       group.name = 'Worldkit / ' + name;
       for (const part of prototypes[name]) {
@@ -171,7 +278,8 @@ export function createIndustrialKit() {
       return group;
     },
     dispose() {
-      if (disposed) return; disposed = true;
+      if (disposed) return;
+      disposed = true;
       geometries.forEach((g) => g.dispose());
       Object.values(materials).forEach((m) => m.dispose());
     },

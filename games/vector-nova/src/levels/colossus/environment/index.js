@@ -24,9 +24,7 @@ export function createColossusEnvironment({
   const kit = createIndustrialKit({ finish: shape ? null : road?.finish }),
     geometries = new Set(),
     materials = new Set();
-  const boxes = new T.BoxGeometry(1, 1, 1);
-  geometries.add(boxes);
-  const batches = new Map();
+  const formedBoxes = new Map();
   const records = [],
     ejectorRecords = [],
     moving = [],
@@ -65,17 +63,35 @@ export function createColossusEnvironment({
     matrix = new T.Matrix4(),
     name = 'machine structure',
   ) => {
-    const transform = matrix
-      .clone()
-      .multiply(
-        new T.Matrix4().compose(
-          new T.Vector3(...localPosition),
-          new T.Quaternion(),
-          new T.Vector3(...size),
-        ),
+    // Physical bevel widths survive long beams and thin sheet returns. Size
+    // prototypes join the existing culled batches instead of adding draw calls.
+    const key = size.join('/');
+    if (!formedBoxes.has(key)) {
+      let geometry = new RoundedBoxGeometry(
+        ...size,
+        1,
+        Math.min(0.8, Math.min(...size) * 0.12),
       );
-    if (!batches.has(material)) batches.set(material, []);
-    batches.get(material).push({ transform, name });
+      if (geometry.index) {
+        const flat = geometry.toNonIndexed();
+        geometry.dispose();
+        geometry = flat;
+      }
+      geometry.name = name;
+      geometries.add(geometry);
+      formedBoxes.set(key, geometry);
+    }
+    const geometry = formedBoxes.get(key),
+      batchKey = geometry.uuid + '/' + material.uuid;
+    if (!assemblies.has(batchKey))
+      assemblies.set(batchKey, { geometry, material, matrices: [] });
+    assemblies
+      .get(batchKey)
+      .matrices.push(
+        matrix
+          .clone()
+          .multiply(new T.Matrix4().makeTranslation(...localPosition)),
+      );
   };
   const mesh = (geometry, material, name) => {
     geometries.add(geometry);
@@ -334,20 +350,24 @@ export function createColossusEnvironment({
       )
     )
       return;
-    // Sample the full footprint: narrow quarry clefts can fall between corners.
-    let localGround = Infinity;
-    for (let x = -width / 2; x <= width / 2 + 12; x += 12)
-      for (let z = -depth / 2; z <= depth / 2 + 12; z += 12)
-        localGround = Math.min(
-          localGround,
-          quarry.heightAt(top.x + x, top.z + z),
-        );
-    localGround -= 38;
-    const h = top.y - localGround;
-    if (h < 25) return;
-    // Open steel trestles keep process machinery dominant over its supports.
-    const plinthHeight = Math.min(40, h * 0.22),
-      foot = localGround + plinthHeight;
+    // Each leg gets a visible stepped footing fitted to its own rock elevation.
+    // A single buried datum hid all four plinths on sloping excavation benches.
+    const feet = [];
+    const xs = [-width * 0.34, width * 0.34],
+      zs = [-depth * 0.34, depth * 0.34];
+    for (const x of xs)
+      for (const z of zs) {
+        const levels = [];
+        for (const dx of [-17, 0, 17])
+          for (const dz of [-19, 0, 19])
+            levels.push(quarry.heightAt(top.x + x + dx, top.z + z + dz));
+        const low = Math.min(...levels) - 10,
+          foot = Math.min(top.y - 24, Math.max(...levels) + 12);
+        if (foot - low < 8 || top.y - foot < 20) continue;
+        feet.push({ x, z, low, foot });
+      }
+    if (!feet.length) return;
+    const foot = Math.max(...feet.map((f) => f.foot));
     const beam = (a, b, w, material = kit.materials.dark) => {
       const start = new T.Vector3(...a),
         end = new T.Vector3(...b),
@@ -362,32 +382,41 @@ export function createColossusEnvironment({
       );
       putBox(material, [w, delta.length(), w], [0, 0, 0], m);
     };
-    const xs = [-width * 0.34, width * 0.34],
-      zs = [-depth * 0.34, depth * 0.34];
-    for (const x of xs)
-      for (const z of zs) {
-        putBox(
-          concrete,
-          [22, plinthHeight, 26],
-          [top.x + x, localGround + plinthHeight / 2, top.z + z],
-        );
+    for (const { x, z, low, foot: base } of feet) {
+      putBox(
+        concrete,
+        [34, base - low - 5, 38],
+        [top.x + x, (base + low - 5) / 2, top.z + z],
+        new T.Matrix4(),
+        'Foundation / rock-seated spread footing',
+      );
+      putBox(
+        concrete,
+        [28, 7, 32],
+        [top.x + x, base - 3.5, top.z + z],
+        new T.Matrix4(),
+        'Foundation / raised bearing plinth',
+      );
+      putBox(
+        kit.materials.steel,
+        [25, 3, 29],
+        [top.x + x, base + 1.5, top.z + z],
+      );
+      beam([top.x + x, base, top.z + z], [top.x + x, top.y - 9, top.z + z], 9);
+      for (const dx of [-5, 5])
         putBox(
           kit.materials.steel,
-          [25, 3, 29],
-          [top.x + x, foot + 1.5, top.z + z],
+          [2, top.y - base - 8, 12],
+          [top.x + x + dx, (base + top.y - 8) / 2, top.z + z],
         );
-        beam(
-          [top.x + x, foot, top.z + z],
-          [top.x + x, top.y - 9, top.z + z],
-          9,
-        );
-        for (const dx of [-5, 5])
+      for (const dx of [-9, 9])
+        for (const dz of [-11, 11])
           putBox(
-            kit.materials.steel,
-            [2, h - plinthHeight - 8, 12],
-            [top.x + x + dx, (foot + top.y - 8) / 2, top.z + z],
+            kit.materials.dark,
+            [2.5, 4, 2.5],
+            [top.x + x + dx, base + 3, top.z + z + dz],
           );
-      }
+    }
     const cells = Math.max(1, Math.ceil((top.y - foot) / 160));
     for (let i = 0; i < cells; i++) {
       const y0 = T.MathUtils.lerp(foot, top.y - 12, i / cells),
@@ -423,6 +452,33 @@ export function createColossusEnvironment({
       [top.x, top.y + 1.5, top.z],
     );
   };
+  // Structural stations follow working assemblies. Between them a low formed
+  // lip exposes drive beds instead of masking them with tall cream skins.
+  const bearingStations = [];
+  const stationRecipes = {
+    intake: [110, 120, 32],
+    screw: [220, 220, 32],
+    press: [55, 125, 26],
+    die: [55, 180, 28],
+    dive: [70, 240, 26],
+    crossfeed: [100, 180, 32],
+    auger: [220, 220, 32],
+    gantry: [65, 300, 32],
+    return: [55, 380, 32],
+    rise: [100, 230, 30],
+    counterweight: [120, 240, 30],
+    cooling: [85, 190, 34],
+    crown: [100, 450, 36],
+    headstock: [210, 290, 34],
+  };
+  for (const section of track.sections) {
+    const [first, spacing, length] = stationRecipes[section.id] || [
+      70, 240, 28,
+    ];
+    for (let d = section.start + first; d < section.end - 35; d += spacing)
+      if (!openBay(d, 90) && !track.isGap(d))
+        bearingStations.push({ distance: d, length, section: section.id });
+  }
   // Continuous swept housings seat the running sheet inside a load-bearing bed.
   // The cross sections stay outside the full 72 m playable sheet through rolls.
   for (const run of track.runs) {
@@ -431,6 +487,9 @@ export function createColossusEnvironment({
       run.end,
       ...track.sections
         .flatMap((s) => [s.start, s.end])
+        .filter((s) => s > run.start && s < run.end),
+      ...bearingStations
+        .flatMap((s) => [s.distance - s.length / 2, s.distance + s.length / 2])
         .filter((s) => s > run.start && s < run.end),
       ...track.ejectors
         .flatMap((e) => [e.openingStart - 10, e.openingEnd + 10])
@@ -443,19 +502,21 @@ export function createColossusEnvironment({
         const district = track.sections.find(
           (s) => (a + b) / 2 >= s.start && (a + b) / 2 < s.end,
         )?.id;
-        const casingHeight = [
-          'die',
-          'dive',
-          'return',
-          'crown',
-          'headstock',
-        ].includes(district)
-          ? 0.23
-          : district === 'cooling'
-            ? 0.5
-            : ['press', 'crossfeed'].includes(district)
-              ? 0.35
-              : 1;
+        const station = bearingStations.some(
+          (s) => Math.abs((a + b) / 2 - s.distance) < s.length / 2 + 0.01,
+        );
+        const casingHeight = station
+          ? [
+              'press',
+              'die',
+              'dive',
+              'crossfeed',
+              'return',
+              'headstock',
+            ].includes(district)
+            ? 0.45
+            : 0.85
+          : 0.16;
         const casingProfile = (profile, side) =>
           profile.map(([x, y]) => [x * side, y > 0 ? y * casingHeight : y]);
         for (const side of [-1, 1]) {
@@ -549,6 +610,30 @@ export function createColossusEnvironment({
   for (const m of [warmCladding, coolCladding]) {
     materials.add(m);
     if (!shape) road?.finish?.bind(m, 'shell');
+  }
+  if (!shape && road?.finish) {
+    for (const m of [cladding, warmCladding, coolCladding]) {
+      const compile = m.onBeforeCompile,
+        cacheKey = m.customProgramCacheKey();
+      m.onBeforeCompile = (shader, renderer) => {
+        compile.call(m, shader, renderer);
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <roughnessmap_fragment>',
+          `#include <roughnessmap_fragment>
+        vec3 wallNormal=abs(normalize(cross(dFdx(industrialPoint),dFdy(industrialPoint))));
+        vec2 wallCoord=vec2(wallNormal.x>wallNormal.z?industrialPoint.z:industrialPoint.x,industrialPoint.y);
+        vec2 panelSize=vec2(26.,9.);
+        vec2 panelCell=mod(wallCoord+vec2(mod(floor(wallCoord.y/9.),2.)*13.,0.),panelSize);
+        vec2 panelEdge=min(panelCell,panelSize-panelCell);
+        vec2 panelAA=max(fwidth(wallCoord),vec2(.025));
+        vec2 panelJoint=(1.-smoothstep(vec2(.06),vec2(.13)+panelAA,panelEdge))*min(vec2(1.),vec2(.15)/panelAA);
+        float panelLine=max(panelJoint.x,panelJoint.y)*(1.-smoothstep(.65,.9,wallNormal.y));
+        diffuseColor.rgb*=1.-panelLine*.32;
+        roughnessFactor=clamp(roughnessFactor+panelLine*.15,.25,.95);`,
+        );
+      };
+      m.customProgramCacheKey = () => cacheKey + '-fabricated-panels-v1';
+    }
   }
   const sweepBuilding = (a, b, profile, material, name) =>
     staticPart(housingGeometry(uprightTrack, a, b, profile), material, name);
@@ -849,23 +934,28 @@ export function createColossusEnvironment({
         staticPart(ring, kit.materials.shell);
       }
       for (const side of [-1, 1]) {
-        putBox(kit.materials.shell, [12, 34, 112], [side * 75, -9, 0], m);
+        // Separate ring feet leave the drive visible through the barrel window.
+        for (const z of [-45, 45])
+          putBox(kit.materials.shell, [16, 34, 18], [side * 75, -9, z], m);
+        putBox(kit.materials.dark, [12, 10, 112], [side * 75, -21, 0], m);
         putBox(kit.materials.steel, [28, 8, 116], [side * 75, -28, 0], m);
       }
     }
   }
-  for (const section of track.sections) {
-    for (let s = section.start + 40; s < section.end - 30; s += 140) {
-      if (openBay(s, 80) || track.isGap(s)) continue;
-      const m = trackMatrix(s);
-      for (const side of [-1, 1]) {
-        putBox(kit.materials.steel, [28, 44, 6], [side * 56, -3, 0], m);
-        putBox(kit.materials.shell, [6, 39, 12], [side * 42.5, -5, 0], m);
-        putBox(kit.materials.dark, [34, 10, 18], [side * 55, -30, 0], m);
-        // Sparse service panels break the outer skin without making a picket fence.
-        if (!['screw', 'auger', 'cooling', 'press'].includes(section.id))
-          assembly('channelCassette', s, side * 77, 6, side < 0 ? Math.PI : 0);
-      }
+  for (const station of bearingStations) {
+    const m = trackMatrix(station.distance);
+    for (const side of [-1, 1]) {
+      putBox(kit.materials.steel, [28, 36, 8], [side * 56, -7, 0], m);
+      putBox(kit.materials.cast, [8, 30, 18], [side * 44, -7, 0], m);
+      putBox(kit.materials.dark, [34, 10, 26], [side * 55, -30, 0], m);
+      if (['die', 'dive', 'gantry', 'crown'].includes(station.section))
+        assembly(
+          'channelCassette',
+          station.distance,
+          side * 80,
+          0,
+          side < 0 ? Math.PI : 0,
+        );
     }
   }
   // Ordinary production floor: unequal work bays and rooted utility stacks.
@@ -1839,29 +1929,6 @@ export function createColossusEnvironment({
     batch.computeBoundingSphere();
     group.add(batch);
     machineBatches.push(batch);
-  }
-  for (const [material, items] of batches) {
-    // Group by location rather than authoring order so distant structures cull.
-    const cells = new Map();
-    for (const item of items) {
-      const e = item.transform.elements;
-      const key = [e[12], e[13], e[14]]
-        .map((v) => Math.floor(v / 600))
-        .join('/');
-      if (!cells.has(key)) cells.set(key, []);
-      cells.get(key).push(item);
-    }
-    for (const chunk of cells.values()) {
-      const instances = new T.InstancedMesh(boxes, material, chunk.length);
-      instances.name = 'Colossus / structural assembly batch';
-      chunk.forEach((entry, index) =>
-        instances.setMatrixAt(index, entry.transform),
-      );
-      instances.castShadow = instances.receiveShadow = true;
-      instances.computeBoundingSphere();
-      group.add(instances);
-      machineBatches.push(instances);
-    }
   }
   paint.dispose();
   let disposed = false;

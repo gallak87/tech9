@@ -158,8 +158,8 @@ export function createIndustrialKit({ finish = null } = {}) {
     for (const x of [-28, 28]) box('dark', [9, 12, 154], [x, -5, 0]);
     for (const z of [-65, 0, 65]) box('steel', [86, 8, 10], [0, -5, z]);
     for (const x of [-39, 39]) {
-      box('shell', [10, 16, 150], [x, 5, 0]);
-      box('steel', [14, 4, 154], [x, 15, 0]);
+      box('dark', [10, 10, 150], [x, 2, 0]);
+      box('steel', [14, 3, 154], [x, 8, 0]);
     }
     const axle = new T.Quaternion().setFromAxisAngle(
       new T.Vector3(0, 0, 1),
@@ -168,7 +168,34 @@ export function createIndustrialKit({ finish = null } = {}) {
     for (let z = -60; z <= 60; z += 20) {
       add('machined', new T.CylinderGeometry(8, 8, 70, 20), [0, 22, z], axle);
       for (const x of [-45, 45]) {
-        box('shell', [12, 23, 16], [x, 17, z]);
+        // Split bearing caps expose each roller and shaft above an open bed.
+        const pedestal = new T.Shape(
+          [
+            [-10, 3],
+            [10, 3],
+            [10, 8],
+            [6, 16],
+            [-6, 16],
+            [-10, 8],
+          ].map(([a, b]) => new T.Vector2(a, b)),
+        );
+        add(
+          'cast',
+          new T.ExtrudeGeometry(pedestal, {
+            depth: 10,
+            bevelEnabled: true,
+            bevelSize: 0.7,
+            bevelThickness: 0.7,
+            bevelSegments: 1,
+            steps: 1,
+          }),
+          [x - 5, 0, z],
+          new T.Quaternion().setFromAxisAngle(
+            new T.Vector3(0, 1, 0),
+            Math.PI / 2,
+          ),
+        );
+        box('shell', [15, 4, 19], [x, 31, z]);
         add('dark', new T.CylinderGeometry(10, 10, 7, 20), [x, 22, z], axle);
         add('machined', new T.CylinderGeometry(5, 5, 11, 16), [x, 22, z], axle);
         for (const dz of [-6, 6]) box('steel', [15, 4, 3], [x, 7, z + dz]);

@@ -9,7 +9,7 @@ import { createColossusLandform } from './mountains.js';
 /** Local extraction benches cut into the mountain shoulder below the works. */
 export function createQuarry(track, renderer = null) {
   const material = new T.MeshStandardMaterial({
-    color: '#aaa695',
+    color: '#92958b',
     roughness: 0.95,
     metalness: 0.02,
     flatShading: false,
@@ -55,26 +55,40 @@ export function createQuarry(track, renderer = null) {
       `float quarryRelief=0.;
       #ifdef USE_MAP
       vec3 w=pow(abs(normalize(cross(dFdx(quarryPoint),dFdy(quarryPoint)))),vec3(4.));w/=max(.001,w.x+w.y+w.z);
-      vec3 grain=texture2D(map,quarryPoint.yz/24.).rgb*w.x+texture2D(map,quarryPoint.xz/24.).rgb*w.y+texture2D(map,quarryPoint.xy/24.).rgb*w.z;
+      vec3 grain=texture2D(map,quarryPoint.yz/32.).rgb*w.x+texture2D(map,quarryPoint.xz/32.).rgb*w.y+texture2D(map,quarryPoint.xy/32.).rgb*w.z;
+      vec3 fracture=texture2D(map,quarryPoint.yz/145.+.37).rgb*w.x+texture2D(map,quarryPoint.xz/145.+.37).rgb*w.y+texture2D(map,quarryPoint.xy/145.+.37).rgb*w.z;
+      grain=mix(grain,fracture,.65);
       quarryRelief=dot(grain,vec3(.299,.587,.114));
-      diffuseColor.rgb*=mix(vec3(.96),grain*2.5,.22);
+      diffuseColor.rgb*=mix(vec3(.96),vec3(quarryRelief*2.7),.64);
       #endif
       vec3 faceNormal=normalize(cross(dFdx(quarryPoint),dFdy(quarryPoint)));
-      float benchDust=smoothstep(.46,.88,abs(faceNormal.y));
+      float benchDust=smoothstep(.50,.90,abs(faceNormal.y));
+      // Bedding follows the folded mountain, while fractured joints cut across
+      // it. Broad mineral masses remain legible beyond the fine rock scan.
+      vec2 plan=quarryPoint.xz;
+      float warp=quarryNoise(plan*.0017)*47.+quarryNoise(plan*.006)*12.;
       float foldedHeight=quarryPoint.y+sin(quarryPoint.x*.0015+sin(quarryPoint.z*.0012))*65.+quarryPoint.z*.035;
-      float layer=quarryNoise(vec2(foldedHeight*.023,quarryPoint.x*.0005));
-      vec3 bedrock=mix(vec3(.66,.69,.68),vec3(.83,.79,.69),smoothstep(.24,.76,layer));
-      float stonePatch=quarryNoise(quarryPoint.xz*.004);
-      vec3 dust=mix(vec3(.87,.83,.73),vec3(1.02,.97,.85),stonePatch);
-      diffuseColor.rgb*=mix(bedrock,dust,benchDust*.62);
-      diffuseColor.rgb*=.9+.1*quarryNoise(quarryPoint.xz*.008);
-      quarryRelief+=quarryNoise(quarryPoint.xy*.08)*.22;`,
+      float layer=quarryNoise(vec2((foldedHeight+warp)*.035,quarryPoint.x*.0007));
+      float mineral=quarryNoise(plan*.003+vec2(quarryPoint.y*.0018));
+      vec3 bedrock=mix(vec3(.34,.40,.42),vec3(.76,.69,.53),smoothstep(.22,.82,layer));
+      bedrock=mix(bedrock,vec3(.46,.49,.46),mineral*.35);
+      float seamCoord=(foldedHeight+warp+quarryNoise(plan*.014)*16.)/27.;
+      float seam=1.-smoothstep(.025,.09,abs(fract(seamCoord)-.5));
+      float jointCoord=quarryNoise(vec2((quarryPoint.x+quarryPoint.z*.63)*.022,quarryPoint.y*.035)+vec2(warp*.016));
+      float joint=(1.-smoothstep(.015,.055,abs(jointCoord-.5)))*smoothstep(.38,.7,quarryNoise(plan*.018));
+      float resolved=1.-smoothstep(.2,.75,max(fwidth(seamCoord),fwidth(jointCoord)));
+      bedrock*=1.-resolved*(seam*.08*smoothstep(.38,.68,quarryNoise(plan*.027))+joint*.14)*(1.-benchDust*.8);
+      float stonePatch=quarryNoise(plan*.009)+quarryNoise(plan*.035)*.3;
+      vec3 dust=mix(vec3(.57,.55,.47),vec3(.88,.80,.64),smoothstep(.2,.95,stonePatch));
+      diffuseColor.rgb*=mix(bedrock,dust,benchDust*.82);
+      diffuseColor.rgb*=.82+.18*quarryNoise(plan*.018+quarryPoint.y*.002);
+      quarryRelief+=quarryNoise(quarryPoint.xy*.08)*.32+resolved*(seam*.24+joint*.3);`,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <normal_fragment_maps>',
       `#include <normal_fragment_maps>
       vec3 qx=dFdx(-vViewPosition),qy=dFdy(-vViewPosition),qrX=cross(qy,normal),qrY=cross(normal,qx);
-      float qdet=dot(qx,qrX); vec2 qSlope=vec2(dFdx(quarryRelief),dFdy(quarryRelief))*.065;
+      float qdet=dot(qx,qrX); vec2 qSlope=vec2(dFdx(quarryRelief),dFdy(quarryRelief))*.11;
       normal=normalize(abs(qdet)*normal-sign(qdet)*(qSlope.x*qrX+qSlope.y*qrY));`,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
@@ -84,7 +98,7 @@ export function createQuarry(track, renderer = null) {
       #include <opaque_fragment>`,
     );
   };
-  material.customProgramCacheKey = () => 'colossus-mountain-quarry-v4';
+  material.customProgramCacheKey = () => 'colossus-mountain-quarry-v5';
   const survey = [];
   for (let s = 0; s < track.length; s += 16)
     survey.push(track.sample(s).position);

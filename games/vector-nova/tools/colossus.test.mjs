@@ -317,6 +317,48 @@ test('production contact carries the ship across the lap seam without a snap or 
   }
 });
 
+test('counterweight ropes stay attached to their sheaves and moving clevises, including reduced motion', () => {
+  const environment = level.createEnvironment({ track });
+  const blocks = [],
+    ropes = [];
+  environment.group.traverse((object) => {
+    if (object.name === 'Climb / travelling counterweight') blocks.push(object);
+    if (object.name === 'Climb / tensioned lifting rope') ropes.push(object);
+  });
+  const sample = (time, reducedMotion) => {
+    environment.update({ time, settings: { reducedMotion } });
+    environment.group.updateMatrixWorld(true);
+    return ropes.map((rope, i) => {
+      const top = new T.Vector3(0, 0.5, 0).applyMatrix4(rope.matrixWorld),
+        bottom = new T.Vector3(0, -0.5, 0).applyMatrix4(rope.matrixWorld),
+        clevis = new T.Vector3(i % 2 ? 8 : -8, 28, -12).applyMatrix4(
+          blocks[Math.floor(i / 2)].matrixWorld,
+        );
+      assert.ok(
+        bottom.distanceTo(clevis) < 1e-6,
+        'rope terminates at the moving clevis',
+      );
+      assert.ok(top.y > bottom.y, 'rope stays in tension below its sheave');
+      return { top, bottom };
+    });
+  };
+  try {
+    assert.ok(blocks.length > 0);
+    assert.equal(ropes.length, blocks.length * 2);
+    const initial = sample(0, false),
+      moved = sample(12, false);
+    assert.ok(moved.some((p, i) => p.bottom.distanceTo(initial[i].bottom) > 1));
+    for (let i = 0; i < ropes.length; i++)
+      assert.ok(moved[i].top.distanceTo(initial[i].top) < 1e-6);
+    const still = sample(12, true),
+      later = sample(45, true);
+    for (let i = 0; i < ropes.length; i++)
+      assert.ok(still[i].bottom.distanceTo(later[i].bottom) < 1e-6);
+  } finally {
+    environment.dispose();
+  }
+});
+
 test('industrial assemblies share owned resources and dispose once', () => {
   const kit = createIndustrialKit();
   const a = kit.createAssembly('pressFrame'),

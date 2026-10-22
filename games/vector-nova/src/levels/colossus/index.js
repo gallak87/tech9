@@ -17,7 +17,7 @@ export default function createLevel({ shape = false } = {}) {
       bloomThreshold: 1.1,
       reflectionFar: 16000,
       fillHeight: 90,
-      ambientOcclusion: { radius: 9, thickness: 3, blendIntensity: 0.62 },
+      ambientOcclusion: { radius: 12, thickness: 4, blendIntensity: 0.78 },
       sunShadowExtent: 320,
       sunShadowNormalBias: 0.35,
       sunShadowBias: -0.00012,

@@ -25,11 +25,17 @@ export function createIndustrialKit({ finish = null } = {}) {
       roughness: 0.54,
       metalness: 0.38,
     }),
+    cast: new T.MeshStandardMaterial({
+      name: 'Worldkit / rough cast bearing bodies',
+      color: '#7b827c',
+      roughness: 0.74,
+      metalness: 0.36,
+    }),
     machined: new T.MeshStandardMaterial({
       name: 'Worldkit / exposed machined alloy',
       color: '#bac8cc',
-      roughness: 0.4,
-      metalness: 0.52,
+      roughness: 0.28,
+      metalness: 0.86,
     }),
     amber: new T.MeshStandardMaterial({
       name: 'Worldkit / machinery caution enamel',
@@ -38,14 +44,20 @@ export function createIndustrialKit({ finish = null } = {}) {
       metalness: 0.25,
     }),
   };
-  for (const key of ['shell', 'steel', 'dark'])
+  for (const key of ['shell', 'steel', 'dark', 'cast'])
     finish?.bind(materials[key], key);
-  finish?.bind(materials.machined, 'steel');
+  finish?.bind(materials.machined, 'machined', 'part');
   const geometries = new Set(),
     prototypes = {};
   function assembly(name, build) {
     const batches = {};
     const add = (key, geometry, position, rotation = null) => {
+      // Retain the lathe axis before the part is rotated/placed into its assembly.
+      if (key === 'machined')
+        geometry.setAttribute(
+          'industrialCoord',
+          geometry.attributes.position.clone(),
+        );
       geometry.applyMatrix4(
         new T.Matrix4().compose(
           new T.Vector3(...position),
@@ -142,9 +154,116 @@ export function createIndustrialKit({ finish = null } = {}) {
       return { geometry, material: materials[key] };
     });
   }
+  assembly('transferBed', ({ box, add, panel, pipe }) => {
+    for (const x of [-28, 28]) box('dark', [9, 12, 154], [x, -5, 0]);
+    for (const z of [-65, 0, 65]) box('steel', [86, 8, 10], [0, -5, z]);
+    for (const x of [-39, 39]) {
+      box('shell', [10, 16, 150], [x, 5, 0]);
+      box('steel', [14, 4, 154], [x, 15, 0]);
+    }
+    const axle = new T.Quaternion().setFromAxisAngle(
+      new T.Vector3(0, 0, 1),
+      Math.PI / 2,
+    );
+    for (let z = -60; z <= 60; z += 20) {
+      add('machined', new T.CylinderGeometry(8, 8, 70, 20), [0, 22, z], axle);
+      for (const x of [-45, 45]) {
+        box('shell', [12, 23, 16], [x, 17, z]);
+        add('dark', new T.CylinderGeometry(10, 10, 7, 20), [x, 22, z], axle);
+        add('machined', new T.CylinderGeometry(5, 5, 11, 16), [x, 22, z], axle);
+        for (const dz of [-6, 6]) box('steel', [15, 4, 3], [x, 7, z + dz]);
+      }
+    }
+    box('shell', [58, 26, 26], [0, 10, -83]);
+    panel(0, 10, -97, 44, 18, -1, true);
+    pipe(
+      [
+        [-45, 22, -60],
+        [-52, 22, -60],
+        [-52, 22, 60],
+        [-45, 22, 60],
+      ],
+      3,
+    );
+    for (const z of [-54, 54]) box('steel', [90, 11, 14], [0, -14, z]);
+    box('amber', [50, 8, 18], [0, 36, 70]);
+    for (const z of [-50, 0, 50]) {
+      box('dark', [14, 12, 30], [55, 14, z]);
+      panel(55, 14, z - 16, 11, 8, -1, false);
+    }
+    add(
+      'machined',
+      new T.CylinderGeometry(2, 2, 135, 12),
+      [55, 14, 0],
+      new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), Math.PI / 2),
+    );
+    box('shell', [24, 27, 34], [55, 22, -84]);
+    add('steel', new T.CylinderGeometry(10, 10, 25, 20), [55, 43, -84], axle);
+    for (const z of [-68, 0, 68]) box('steel', [114, 7, 12], [7, -18, z]);
+  });
+  assembly('counterweightGuide', ({ box, add, beam }) => {
+    box('cast', [72, 14, 64], [0, -28, 0]);
+    for (const x of [-26, 26]) {
+      box('dark', [6, 180, 23], [x, 63, 0]);
+      for (const z of [-12, 12]) box('steel', [12, 180, 3], [x, 63, z]);
+      box('shell', [17, 9, 44], [x, -16, 0]);
+      for (const y of [18, 74, 128]) box('cast', [12, 8, 30], [x, y, 0]);
+      beam('dark', [x, -17, 18], [x, 137, 28], 4);
+    }
+    box('cast', [74, 16, 62], [0, 157, 0]);
+    box('shell', [80, 5, 66], [0, 168, 0]);
+    const axle = new T.Quaternion().setFromAxisAngle(
+      new T.Vector3(0, 0, 1),
+      Math.PI / 2,
+    );
+    for (const x of [-8, 8]) {
+      add('steel', new T.CylinderGeometry(12, 12, 5, 24), [x, 145, 0], axle);
+      for (const dx of [-3, 3])
+        add(
+          'dark',
+          new T.CylinderGeometry(14, 14, 1.5, 24),
+          [x + dx, 145, 0],
+          axle,
+        );
+    }
+    add('machined', new T.CylinderGeometry(3, 3, 70, 16), [0, 145, 0], axle);
+    for (const x of [-28, 28]) box('cast', [9, 17, 22], [x, 141, 0]);
+  });
+  assembly('counterweight', ({ box, add }) => {
+    for (const y of [-16, -5, 6, 17]) box('cast', [28, 9, 32], [0, y, 0]);
+    for (const x of [-11, 11]) box('steel', [4, 45, 36], [x, 0, 0]);
+    box('shell', [32, 5, 38], [0, -24, 0]);
+    box('amber', [30, 3, 35], [0, 24, 0]);
+    for (const x of [-8, 8]) {
+      box('steel', [5, 8, 7], [x, 27, -12]);
+      add(
+        'dark',
+        new T.CylinderGeometry(2.5, 2.5, 9, 12),
+        [x, 27, -12],
+        new T.Quaternion().setFromAxisAngle(
+          new T.Vector3(0, 0, 1),
+          Math.PI / 2,
+        ),
+      );
+    }
+  });
+  assembly('louverPanel', ({ box, add }) => {
+    box('dark', [66, 74, 8], [0, 0, 4]);
+    for (const x of [-35, 35]) box('shell', [5, 82, 17], [x, 0, 0]);
+    for (const y of [-39, 39]) box('shell', [74, 5, 17], [0, y, 0]);
+    for (let y = -31; y <= 31; y += 9)
+      add(
+        'steel',
+        new T.BoxGeometry(64, 3, 14),
+        [0, y, -4],
+        new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), 0.48),
+      );
+    for (const x of [-31, 31])
+      for (const y of [-35, 35]) box('machined', [3, 3, 3], [x, y, -10]);
+  });
   assembly('driveGearbox', ({ box, add, panel, pipe }) => {
     box('dark', [46, 8, 70], [0, -27, 0]);
-    box('shell', [34, 42, 58], [0, -3, 0]);
+    box('cast', [34, 42, 58], [0, -3, 0]);
     box('steel', [40, 4, 64], [0, 20, 0]);
     const axle = new T.Quaternion().setFromAxisAngle(
       new T.Vector3(0, 0, 1),
@@ -250,7 +369,7 @@ export function createIndustrialKit({ finish = null } = {}) {
   });
   assembly('driveBearing', ({ box, add }) => {
     box('dark', [14, 5, 22], [0, -21, 0]);
-    box('shell', [10, 13, 16], [0, -12, 0]);
+    box('cast', [10, 13, 16], [0, -12, 0]);
     const axle = new T.Quaternion().setFromAxisAngle(
       new T.Vector3(0, 0, 1),
       Math.PI / 2,
@@ -297,7 +416,7 @@ export function createIndustrialKit({ finish = null } = {}) {
       new T.Vector3(0, 0, 1),
       Math.PI / 2,
     );
-    add('steel', new T.CylinderGeometry(18, 18, 154, 32), [0, 72, 0], axle);
+    add('machined', new T.CylinderGeometry(18, 18, 154, 32), [0, 72, 0], axle);
     for (let x = -66; x <= 66; x += 22)
       add(
         'dark',
@@ -307,9 +426,46 @@ export function createIndustrialKit({ finish = null } = {}) {
       );
     for (const side of [-1, 1]) {
       box('dark', [44, 18, 62], [side * 92, -10, 0]);
-      box('shell', [31, 73, 45], [side * 92, 33, 0]);
+      // Cast bearing cheeks expose the web and anchoring feet below the roll.
+      const cheek = new T.Shape(
+        [
+          [-22, -3],
+          [22, -3],
+          [17, 53],
+          [10, 67],
+          [-10, 67],
+          [-17, 53],
+        ].map(([x, y]) => new T.Vector2(x, y)),
+      );
+      cheek.holes.push(
+        new T.Path(
+          [
+            [-8, 12],
+            [-8, 43],
+            [0, 54],
+            [8, 43],
+            [8, 12],
+          ].map(([x, y]) => new T.Vector2(x, y)),
+        ),
+      );
+      for (const z of [-20, 12])
+        add(
+          'cast',
+          new T.ExtrudeGeometry(cheek, {
+            depth: 8,
+            bevelEnabled: true,
+            bevelSize: 1,
+            bevelThickness: 1,
+            bevelSegments: 1,
+            steps: 1,
+          }),
+          [side * 92, 0, z],
+        );
+      box('dark', [17, 45, 15], [side * 92, 25, 0]);
+      for (const x of [-17, 17])
+        box('steel', [5, 7, 56], [side * 92 + x, -2, 0]);
       add(
-        'shell',
+        'cast',
         new T.CylinderGeometry(26, 26, 27, 24),
         [side * 92, 72, 0],
         axle,
@@ -339,20 +495,66 @@ export function createIndustrialKit({ finish = null } = {}) {
       box('amber', [40, 6, 55], [side * 92, 98, 0]);
     }
   });
-  assembly('pressFrame', ({ box, cylinder, panel, pipe }) => {
+  assembly('pressFrame', ({ box, cylinder, panel, pipe, add }) => {
     for (const x of [-54, 54]) {
       box('dark', [19, 8, 42], [x, -5, 0]);
-      box('shell', [14, 79, 30], [x, 35, 0]);
-      box('dark', [7, 57, 32], [x, 33, 0]);
+      const upright = new T.Shape(
+        [
+          [-10, -4],
+          [10, -4],
+          [10, 7],
+          [7, 18],
+          [7, 61],
+          [12, 71],
+          [-12, 71],
+          [-7, 61],
+          [-7, 18],
+          [-10, 7],
+        ].map(([a, b]) => new T.Vector2(a, b)),
+      );
+      upright.holes.push(
+        new T.Path(
+          [
+            [-3.5, 18],
+            [-3.5, 54],
+            [0, 60],
+            [3.5, 54],
+            [3.5, 18],
+          ].map(([a, b]) => new T.Vector2(a, b)),
+        ),
+      );
+      for (const z of [-15, 7])
+        add(
+          'cast',
+          new T.ExtrudeGeometry(upright, {
+            depth: 8,
+            bevelEnabled: true,
+            bevelSize: 0.6,
+            bevelThickness: 0.6,
+            bevelSegments: 1,
+            steps: 1,
+          }),
+          [x, 0, z],
+        );
+      box('dark', [6, 48, 4], [x, 34, 10]);
       cylinder('steel', 3.7, 62, [x, 33, -18]);
       box('amber', [18, 3, 35], [x, 68, 0]);
       for (const y of [16, 48]) panel(x, y, -16, 12, 23);
       for (const y of [7, 59]) cylinder('dark', 5.7, 6, [x, y, -18]);
     }
-    box('shell', [124, 18, 40], [0, 78, 0]);
+    for (const y of [71.5, 84.5]) box('cast', [124, 5, 40], [0, y, 0]);
+    for (const x of [-54, 54]) box('cast', [16, 18, 40], [x, 78, 0]);
+    box('dark', [98, 12, 5], [0, 78, 15]);
+    pipe(
+      [
+        [-44, 78, -8],
+        [44, 78, -8],
+      ],
+      2.1,
+    );
     box('dark', [88, 8, 30], [0, 66, 0]);
     box('steel', [130, 3, 48], [0, 90, 0]);
-    for (const x of [-42, 0, 42]) panel(x, 78, -21, 35, 13);
+    for (const x of [-51, 51]) panel(x, 78, -21, 19, 13);
     for (const x of [-30, 30]) cylinder('steel', 8, 16, [x, 96, 0]);
     for (const side of [-1, 1]) {
       box('dark', [16, 34, 22], [side * 72, 14, 0]);

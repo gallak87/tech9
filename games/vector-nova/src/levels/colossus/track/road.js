@@ -3,7 +3,7 @@ import { createIndustrialFinish } from '@worldkit/environment/industrial';
 import { sheetGeometry, rimGeometry } from './surface.js';
 import { createColossusPaint } from './presentation.js';
 
-function workingSteel(shape) {
+function workingSteel(shape, track) {
   const material = new T.MeshStandardMaterial({
     name: 'Colossus / worn working-channel steel',
     color: shape ? '#a0a7ac' : '#7f919a',
@@ -12,6 +12,23 @@ function workingSteel(shape) {
   });
   if (!shape) {
     material.onBeforeCompile = (shader) => {
+      for (const [name, start, end] of [
+        ['millZone', 0, track.sections.find((s) => s.id === 'press').start],
+        [
+          'returnZone',
+          ...['start', 'end'].map(
+            (k) => track.sections.find((s) => s.id === 'return')[k],
+          ),
+        ],
+        [
+          'headZone',
+          ...['start', 'end'].map(
+            (k) => track.sections.find((s) => s.id === 'headstock')[k],
+          ),
+        ],
+      ])
+        shader.uniforms[name] = { value: new T.Vector2(start, end) };
+
       shader.vertexShader = shader.vertexShader
         .replace(
           '#include <common>',
@@ -26,6 +43,8 @@ function workingSteel(shape) {
           '#include <common>',
           `#include <common>
 varying vec2 steelCoord;
+uniform vec2 millZone,returnZone,headZone;
+float workRange(float d,vec2 z){return smoothstep(z.x,z.x+24.,d)*(1.-smoothstep(z.y-24.,z.y,d));}
 float steelHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float steelNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(steelHash(i),steelHash(i+vec2(1,0)),f.x),mix(steelHash(i+vec2(0,1)),steelHash(i+vec2(1,1)),f.x),f.y);}`,
         )
@@ -33,23 +52,35 @@ float steelNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(m
           '#include <map_fragment>',
           `#include <map_fragment>
           vec2 p=steelCoord;
-          float seams=1.-smoothstep(.045,.095,abs(mod(p.x+9.,18.)-9.));
-          float longitudinal=1.-smoothstep(.035,.075,abs(mod(p.y+6.,12.)-6.));
-          float broad=(steelNoise(p*vec2(.018,.08))-.5);
-          float stain=steelNoise(p*vec2(.042,.13)+17.);
-          float scratches=sin(p.x*3.+sin(p.y*2.))*.018/(1.+length(fwidth(p))*3.);
-          float brushed=smoothstep(.3,.85,steelNoise(p*vec2(.003,.24)));
-          float grime=smoothstep(22.,36.,abs(p.y));
-          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.14,.18,.19),stain*.055+grime*.14);
-          diffuseColor.rgb*=(.90+steelHash(floor(p/vec2(18.,12.)))*.16)+broad*.035+brushed*.012+scratches-seams*.42-longitudinal*.24;
+          // Large staggered fabrication plates, with sparse anchored fasteners.
+          float row=floor((p.y+36.)/18.);
+          vec2 plate=vec2(p.x+mod(row,2.)*24.,p.y+36.);
+          vec2 cell=mod(plate,vec2(48.,18.));
+          vec2 edge=min(cell,vec2(48.,18.)-cell);
+          vec2 aa=max(fwidth(p),vec2(.025));
+          float seams=(1.-smoothstep(.055,.11+aa.x,edge.x))*min(1.,.11/aa.x);
+          float longitudinal=(1.-smoothstep(.04,.08+aa.y,edge.y))*min(1.,.08/aa.y);
+          float boltDistance=length(edge-vec2(1.4,1.2));
+          float fastener=(1.-smoothstep(.18,.28+max(aa.x,aa.y),boltDistance))*(1.-smoothstep(.25,1.2,max(aa.x,aa.y)));
+          float broad=steelNoise(p*vec2(.012,.07))-.5;
+          float stain=steelNoise(p*vec2(.018,.17)+17.);
+          float grime=smoothstep(25.,36.,abs(p.y))*(.5+.5*stain);
+          float workZone=clamp(workRange(p.x,millZone)+workRange(p.x,headZone),0.,1.);
+          float contact=exp(-pow((abs(p.y)-14.)/8.,2.))*workZone;
+          float returnWear=workRange(p.x,returnZone)*(1.-smoothstep(10.,29.,abs(p.y)));
+          float workingWear=max(contact,returnWear*.65)*(.7+.3*steelNoise(p*vec2(.006,.22)));
+          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.16,.19,.19),grime*.35);
+          diffuseColor.rgb*=.94+steelHash(floor(plate/vec2(48.,18.)))*.1+broad*.05;
+          diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*1.12,workingWear);
+          diffuseColor.rgb*=1.-seams*.48-longitudinal*.3-fastener*.32;
         `,
         )
         .replace(
           '#include <roughnessmap_fragment>',
-          '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+grime*.18,.38,.88);',
+          '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+grime*.16-workingWear*.14,.44,.88);',
         );
     };
-    material.customProgramCacheKey = () => 'colossus-working-steel-v4';
+    material.customProgramCacheKey = () => 'colossus-working-steel-v5';
   }
   return material;
 }
@@ -66,7 +97,7 @@ export function createColossusRoad({
   const finish = createIndustrialFinish(
     !shape && !collectSolid ? view?.renderer : null,
   );
-  const steel = workingSteel(shape);
+  const steel = workingSteel(shape, track);
   if (!shape && !collectSolid) finish.bind(steel, 'steel', 'road');
   materials.add(steel);
   const dark = new T.MeshStandardMaterial({

@@ -61,7 +61,10 @@ export function createIndustrialFinish(renderer = null) {
         shader.vertexShader = shader.vertexShader
           .replace(
             '#include <common>',
-            '#include <common>\nvarying vec3 industrialPoint;',
+            '#include <common>\nvarying vec3 industrialPoint;' +
+              (coordinates === 'part'
+                ? '\nattribute vec3 industrialCoord; varying vec3 industrialLocal;'
+                : ''),
           )
           .replace(
             '#include <project_vertex>',
@@ -73,16 +76,24 @@ export function createIndustrialFinish(renderer = null) {
           #ifdef USE_INSTANCING
           industrialWorld=instanceMatrix*industrialWorld;
           #endif
-          industrialPoint=(modelMatrix*industrialWorld).xyz;`,
+          industrialPoint=(modelMatrix*industrialWorld).xyz;
+          ${coordinates === 'part' ? 'industrialLocal=industrialCoord;' : ''}`,
           );
         shader.fragmentShader = shader.fragmentShader.replace(
           '#include <common>',
           '#include <common>\nuniform sampler2D industrialDetail; varying vec3 industrialPoint;\nfloat industrialHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }\nfloat industrialNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(industrialHash(i),industrialHash(i+vec2(1,0)),f.x),mix(industrialHash(i+vec2(0,1)),industrialHash(i+vec2(1,1)),f.x),f.y);}',
         );
+        if (coordinates === 'part')
+          shader.fragmentShader = shader.fragmentShader.replace(
+            '#include <common>',
+            '#include <common>\nvarying vec3 industrialLocal;',
+          );
         const sample =
-          coordinates === 'road'
-            ? 'texture2D(industrialDetail,steelCoord/9.).rgb'
-            : `(
+          coordinates === 'part'
+            ? 'texture2D(industrialDetail,vec2(industrialLocal.y,length(industrialLocal.xz))/3.).rgb'
+            : coordinates === 'road'
+              ? 'texture2D(industrialDetail,steelCoord/9.).rgb'
+              : `(
           texture2D(industrialDetail,industrialPoint.yz/7.).rgb*iw.x+
           texture2D(industrialDetail,industrialPoint.xz/7.).rgb*iw.y+
           texture2D(industrialDetail,industrialPoint.xy/7.).rgb*iw.z)`;
@@ -91,7 +102,8 @@ export function createIndustrialFinish(renderer = null) {
           `#include <roughnessmap_fragment>
           vec3 iw=pow(abs(normalize(cross(dFdx(industrialPoint),dFdy(industrialPoint)))),vec3(4.));iw/=max(.001,iw.x+iw.y+iw.z);
           vec3 detailColor=${sample};float detailLuma=dot(detailColor,vec3(.299,.587,.114));
-          diffuseColor.rgb*=mix(vec3(1.),detailColor*${kind === 'shell' ? '1.4' : '3.6'},${coordinates === 'road' ? '.28' : kind === 'shell' ? '(.10+.28*smoothstep(.55,.8,industrialNoise(industrialPoint.xz*.015)))' : kind === 'dark' ? '.3' : '.63'});
+          diffuseColor.rgb*=mix(vec3(1.),detailColor*${kind === 'shell' ? '1.4' : '3.6'},${coordinates === 'road' ? '.28' : kind === 'shell' ? '(.10+.28*smoothstep(.55,.8,industrialNoise(industrialPoint.xz*.015)))' : kind === 'dark' ? '.3' : kind === 'machined' ? '.18' : kind === 'cast' ? '.42' : '.63'});
+          ${kind === 'machined' && coordinates === 'part' ? `vec3 partNormal=normalize(cross(dFdx(industrialLocal),dFdy(industrialLocal)));float turning=mix(industrialLocal.y,length(industrialLocal.xz),step(.75,abs(partNormal.y)))*9.;float toolMark=sin(turning*6.28318)*(1.-smoothstep(.4,1.5,fwidth(turning)));roughnessFactor+=toolMark*.045;diffuseColor.rgb*=.96+toolMark*.025;` : ''}
           roughnessFactor=clamp(roughnessFactor+${kind === 'shell' ? '(.7-detailLuma)*.22' : '(detailLuma-.18)*.24'},.24,.92);`,
         );
         // A small surface gradient breaks perfectly flat reflections while the
@@ -103,12 +115,12 @@ export function createIndustrialFinish(renderer = null) {
           vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition);
           vec3 rx=cross(sy,normal),ry=cross(normal,sx);
           float det=dot(sx,rx);
-          vec2 slope=vec2(dFdx(detailLuma),dFdy(detailLuma))*${kind === 'shell' ? '.015' : '.008'};
+          vec2 slope=vec2(dFdx(detailLuma),dFdy(detailLuma))*${kind === 'shell' ? '.015' : kind === 'cast' ? '.045' : kind === 'machined' ? '.002' : '.008'};
           normal=normalize(abs(det)*normal-sign(det)*(slope.x*rx+slope.y*ry));`,
           );
       };
       material.customProgramCacheKey = () =>
-        key + '-industrial-map-v4-' + kind + '-' + coordinates;
+        key + '-industrial-map-v5-' + kind + '-' + coordinates;
     },
     dispose() {
       if (disposed) return;

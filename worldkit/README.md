@@ -51,7 +51,7 @@ Detailed configuration and lifecycle contracts live in the [Living Forest](modul
 
 For kit-only consumers, use `@worldkit/environment/forest/kit`: it exports `loadForestKit`, `disposeForestKit`, `prepareForestParts`, `FOREST_KIT_URL` and `BARK_MATERIAL_ASSETS`. This entry emits only the kit GLB and three bark maps. Vite discovers static asset URLs before JavaScript tree-shaking, so importing a narrow entry matters even when only a few names are selected from the broader `/forest` entry.
 
-The /industrial entry supplies original press frames, factory bays, roller banks, drive wheels, ejector housings, channel cassettes, gantries, service towers and motor housings through createIndustrialKit. See the [industrial module guide](modules/industrial/README.md) for ownership. Colossus Works is its first consumer.
+The /industrial entry supplies original press frames, factory bays, roller banks, drive wheels, ejector housings, channel cassettes, gantries, service towers and motor housings through createIndustrialKit, with optional shared metre-scaled steel and enamel finishes through createIndustrialFinish. See the [industrial module guide](modules/industrial/README.md) for ownership. Colossus Works is its first consumer.
 
 ## Art and world ownership
 
@@ -81,3 +81,5 @@ npm run lint
 `check` runs the focused module and package tests, then packs the actual npm payload into a temporary standalone Vite consumer and builds it with a non-root base URL. It verifies that all public imports resolve, canonical assets ship, and the resulting build contains no source file URLs. Temporary outputs are removed. The package remains private; no publishing is needed for the pilot.
 
 The old baselines, pilots, CLI and source-copy workflows remain as references. They are excluded from the package payload and are not its API or required workflow. Historical documentation is retained in [legacy-framework.md](docs/legacy-framework.md) and [legacy-architecture.md](docs/legacy-architecture.md). Historical fork receipts keep their original paths.
+
+`ROCK_FORMS_URL` from `/forest` supplies the two original authored rock meshes without the full forest scene or materials. It resolves to the compact canonical GLB; callers own materials, placement and disposal. See [runtime art sources](modules/landscape/assets/runtime/ASSETS.md).

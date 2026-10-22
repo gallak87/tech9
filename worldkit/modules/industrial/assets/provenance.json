@@ -1,0 +1,9 @@
+{
+  "asset": "rolled-steel-v1.png",
+  "creator": "Built-in imagegen",
+  "date": "2026-10-22",
+  "source": "Original generated texture, no image inputs",
+  "sha256": "988d5de473535f8efbb4ff16aa088e1b7ac45645217a6c81c89ff493feb90bd1",
+  "prompt": "Use case: photorealistic-natural. Asset type: seamless tileable diffuse material texture for a real-time 3D industrial racing game, square 1024x1024. Primary request: an orthographic close-up of a flat heavy rolled steel machine bed, photographed under perfectly diffuse uniform neutral light. Cool neutral gray steel, fine longitudinal tooling abrasion, subtle irregular iron oxidation in shallow scuffs, rubbed silver working streaks, fine pits, convincing restrained aged industrial material. This is a texture map, no scene and no perspective. The entire image is one continuous steel surface filling the frame, with no borders, no plate divisions, no bolts, no holes, no objects, no paint, no logos, no text. All four edges must seamlessly tile. Keep high-frequency physical grain and medium-scale scuff variation, avoid large blobs, avoid dramatic shadows, highlights, vignettes, gradients or baked directional lighting. No embedded frame. Neutral albedo for application to geometry with real PBR lighting.",
+  "use": "Metre-scaled steel detail and restrained enamel/structural finish for Worldkit industrial assemblies and Colossus working beds. No third-party artwork."
+}

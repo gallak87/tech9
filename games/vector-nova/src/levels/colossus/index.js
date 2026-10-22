@@ -8,16 +8,19 @@ import { createColossusRuntime } from './runtime.js';
 import { createDevices } from './devices.js';
 export default function createLevel({ shape = false } = {}) {
   return {
-    version: '1.0.0-colossus-v5',
+    version: '1.1.0-colossus-v6',
     renderer: {
       world: 'colossus',
       background: '#a7b3b9',
-      fog: { color: '#acb4b6', density: 0.00013 },
+      fog: { color: '#acb4b6', density: 0.00022 },
       bloomStrength: 0.025,
       bloomThreshold: 1.1,
       reflectionFar: 16000,
       fillHeight: 90,
+      ambientOcclusion: { radius: 9, thickness: 3, blendIntensity: 0.62 },
       sunShadowExtent: 320,
+      sunShadowNormalBias: 0.35,
+      sunShadowBias: -0.00012,
       catapultBlurScale: 0.12,
     },
     camera: {
@@ -37,6 +40,7 @@ export default function createLevel({ shape = false } = {}) {
     createDynamics: createColossusDynamics,
     createRuntime: createColossusRuntime,
     racing: { createDevices, createMotion: createColossusRuntime },
+    effects: { refinedSparks: !shape },
     railContactSparks: true,
     practiceSectionsUntimed: true,
     playtests: {
@@ -53,6 +57,8 @@ export default function createLevel({ shape = false } = {}) {
           ['ejector', 'Horizontal ejector'],
           ['ejector-two', 'Reverse ejector'],
           ['press', 'Working presses'],
+          ['press-impact', 'Deliberate press impact'],
+          ['ejector-impact', 'Deliberate ejector impact'],
           ['crossfeed', 'Sideways belts'],
           ['screw', 'Screw feed wall roll'],
           ['auger', 'Reverse auger'],
@@ -61,7 +67,11 @@ export default function createLevel({ shape = false } = {}) {
           ['cooling', 'Cooling drum reversals'],
           ['headstock', 'Headstock hairpin'],
           ['finish', 'Lap seam'],
-        ].map(([id, label]) => ({ id, label, scenario: id + '-approach' })),
+        ].map(([id, label]) => ({
+          id,
+          label,
+          scenario: id.endsWith('-impact') ? id : id + '-approach',
+        })),
       },
     },
   };

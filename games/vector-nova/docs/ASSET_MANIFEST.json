@@ -5,9 +5,24 @@
       "id": "colossus-industrial",
       "source": "src/levels/colossus/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original procedural working-channel geometry, fractured quarry benches and factory composition. Original Worldkit factory bays, rollers, drives, casings, cooling fin banks, presses, ejector housings and gantries supply reusable machinery. Physical press/ejector motion and transverse belts are authored in the level. Selected imagegen concept is separately registered under environment-driving-concepts-2026-10-21. No third-party machinery or texture inputs.",
-      "rights": "Project-authored source geometry, materials and shaders; no third-party artwork or runtime textures",
-      "runtimeDependencies": ["three", "@worldkit/environment/industrial"]
+      "provenance": "Original working-bed geometry, connected fractured quarry terrain and factory composition. Original Worldkit machinery assemblies use generated steel and enamel textures at physical scale. Quarry reuses canonical Worldkit authored rock forms and the forest granite diffuse map derived from the registered Poly Haven CC0 scan. Physical presses, ejectors and transverse belts are authored in the level. The selected concept is separately registered.",
+      "rights": "Project-authored geometry/shaders and original generated steel/enamel; borrowed rock imagery retains CC0-1.0 provenance.",
+      "runtimeDependencies": [
+        "three",
+        "@worldkit/environment/industrial",
+        "@worldkit/environment/forest"
+      ],
+      "provenanceRecords": [
+        "../../worldkit/modules/industrial/assets/provenance.json",
+        "../../worldkit/modules/landscape/assets/runtime/ASSETS.md",
+        "../../worldkit/modules/industrial/assets/enamel-provenance.json"
+      ],
+      "runtimeAssets": [
+        "../../worldkit/modules/industrial/assets/rolled-steel-v1.png",
+        "../../worldkit/modules/industrial/assets/worn-enamel-v1.png",
+        "../../worldkit/modules/landscape/assets/runtime/rock-forms.glb",
+        "../../worldkit/modules/landscape/assets/art/textures/forest-granite-diff.jpg"
+      ]
     },
     {
       "id": "environment-driving-concepts-2026-10-21",

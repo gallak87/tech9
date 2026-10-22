@@ -2,11 +2,11 @@ import * as T from 'three';
 import { smooth } from './track/model.js';
 
 export const PRESS_RULES = Object.freeze({
-  period: 10,
-  warning: 2.4,
-  fall: 0.8,
-  hold: 2.2,
-  rise: 1.6,
+  period: 6.4,
+  warning: 1.65,
+  fall: 0.24,
+  hold: 2.35,
+  rise: 1.05,
   clearance: 27,
   minimum: 0.4,
 });
@@ -69,11 +69,11 @@ export function sampleCrossfeed(track, distance, lateral, time) {
 }
 
 export const EJECTOR_RULES = Object.freeze({
-  period: 11,
-  warning: 2.4,
-  stroke: 0.9,
-  hold: 0.7,
-  retract: 2.5,
+  period: 6.8,
+  warning: 1.15,
+  stroke: 0.38,
+  hold: 0.6,
+  retract: 1.65,
   parked: -58,
   extended: 48,
 });

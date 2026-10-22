@@ -621,10 +621,31 @@ export async function createRapierWorld({
         b.motion.addScaledVector(lb, -j);
       }
     }
+    // Authored heavy machinery may bound the opponent's response. A nearly
+    // vertical crush against magnetic support has vanishing planar inverse mass;
+    // unrestricted impulses turn that constrained contact into enormous sideways
+    // velocity. Ordinary racer/static responses retain their established rules.
+    for (const [actor, other] of [
+      [a, b],
+      [b, a],
+    ]) {
+      if (!actor || !other?.contactSpeedLimit || actor.contactSpeedLimit)
+        continue;
+      const guide = actor.motion.clone().sub(actor.velocity);
+      actor.velocity.clampLength(0, other.contactSpeedLimit);
+      actor.motion.copy(actor.velocity).add(guide);
+      actor.angularVelocity.clampLength(0, 12);
+    }
     const push = Math.min(0.3, hit.depth + RAPIER_RULES.skin * 2);
     if (linear > 1e-8) {
-      shift(a, la.clone().multiplyScalar(push / linear));
-      if (b) shift(b, lb.clone().multiplyScalar(-push / linear));
+      const da = la.clone().multiplyScalar(push / linear);
+      if (b?.contactSpeedLimit) da.clampLength(0, push);
+      shift(a, da);
+      if (b) {
+        const db = lb.clone().multiplyScalar(-push / linear);
+        if (a.contactSpeedLimit) db.clampLength(0, push);
+        shift(b, db);
+      }
     }
     a.contacts.push({
       point: point.clone(),
@@ -731,7 +752,11 @@ export async function createRapierWorld({
       alive();
       return roadSurface(...args);
     },
-    createActor({ hull = VEHICLE_HULL, mass = 1 } = {}) {
+    createActor({
+      hull = VEHICLE_HULL,
+      mass = 1,
+      contactSpeedLimit = null,
+    } = {}) {
       alive();
       if (
         !['halfWidth', 'halfLength', 'hover'].every(
@@ -743,7 +768,18 @@ export async function createRapierWorld({
         throw new Error('Query actor requires positive dimensions and mass.');
       let id = 0;
       while (actors.has(id)) id++;
-      const a = { id, mass, hull: { ...hull }, contactShape: null };
+      if (
+        contactSpeedLimit !== null &&
+        (!Number.isFinite(contactSpeedLimit) || contactSpeedLimit <= 0)
+      )
+        throw new Error('Contact speed limit must be positive.');
+      const a = {
+        id,
+        mass,
+        contactSpeedLimit,
+        hull: { ...hull },
+        contactShape: null,
+      };
       clear(a);
       shapeFor(a);
       actors.set(id, a);
@@ -896,6 +932,7 @@ export async function createRapierWorld({
           actors: [...actors.values()].map((a) => ({
             id: a.id,
             mass: a.mass,
+            contactSpeedLimit: a.contactSpeedLimit,
             hull: a.hull,
             contactShape: a.contactShape,
             ...copyPose(a),
@@ -928,6 +965,8 @@ export async function createRapierWorld({
             !sameShape(a.contactShape, actors.get(a.id).contactShape) ||
             typeof a.active !== 'boolean' ||
             actors.get(a.id).mass !== a.mass ||
+            actors.get(a.id).contactSpeedLimit !==
+              (a.contactSpeedLimit ?? null) ||
             JSON.stringify(actors.get(a.id).hull) !== JSON.stringify(a.hull),
         )
       )

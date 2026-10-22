@@ -63,7 +63,7 @@ export function housingGeometry(track, start, end, profile) {
         );
       if (row < rows) {
         const a = base + row * 2;
-        indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+        indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
       }
     }
   }

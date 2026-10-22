@@ -1,5 +1,8 @@
 import * as T from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { ROCK_FORMS_URL } from '@worldkit/environment/forest';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { createQuarry } from './quarry.js';
 import { createIndustrialKit } from '@worldkit/environment/industrial';
 import { createColossusPaint, housingGeometry } from '../track/presentation.js';
 import {
@@ -9,11 +12,16 @@ import {
   ejectorPose,
 } from '../mechanics.js';
 
-export function createColossusEnvironment({ track, shape = false }) {
+export function createColossusEnvironment({
+  track,
+  shape = false,
+  road = null,
+  view = null,
+}) {
   const group = new T.Group();
   group.name = 'Colossus / quarry and working machinery';
   const paint = createColossusPaint(track);
-  const kit = createIndustrialKit(),
+  const kit = createIndustrialKit({ finish: shape ? null : road?.finish }),
     geometries = new Set(),
     materials = new Set();
   const boxes = new T.BoxGeometry(1, 1, 1);
@@ -24,13 +32,10 @@ export function createColossusEnvironment({ track, shape = false }) {
     moving = [],
     assemblies = new Map(),
     machineBatches = [];
-  const stone = new T.MeshStandardMaterial({
-    color: '#907861',
-    roughness: 0.98,
-    flatShading: true,
-  });
-  materials.add(stone);
-  const rock = new T.CylinderGeometry(0.72, 1, 1, 9, 5);
+  const quarry = createQuarry(track, shape ? null : view?.renderer);
+  group.add(quarry.mesh);
+  const stone = quarry.material;
+  let rock = new T.CylinderGeometry(0.72, 1, 1, 7, 2);
   const rp = rock.attributes.position;
   for (let i = 0; i < rp.count; i++) {
     const x = rp.getX(i),
@@ -41,8 +46,12 @@ export function createColossusEnvironment({ track, shape = false }) {
       1 + Math.sin(angle * 3.1 + y * 4) * 0.12 + Math.cos(angle * 7.7) * 0.08;
     rp.setXYZ(i, x * radius, y + Math.sin(angle * 4.3) * 0.055, z * radius);
   }
+  const indexedRock = rock;
+  rock = rock.toNonIndexed();
+  indexedRock.dispose();
   rock.computeVertexNormals();
   geometries.add(rock);
+  const rockObjects = [];
   const rockMass = (position, scale, turn = 0) => {
     const object = new T.Mesh(rock, stone);
     object.position.set(...position);
@@ -50,6 +59,7 @@ export function createColossusEnvironment({ track, shape = false }) {
     object.rotation.y = turn;
     object.castShadow = object.receiveShadow = true;
     object.name = 'Quarry / fractured bench';
+    rockObjects.push(object);
     group.add(object);
   };
   const warning = new T.MeshStandardMaterial({
@@ -103,9 +113,33 @@ export function createColossusEnvironment({ track, shape = false }) {
     return object;
   };
   const assembly = (name, distance, lateral = 0, up = 0, turn = 0) => {
-    const matrix = trackMatrix(distance, lateral, up).multiply(
-      new T.Matrix4().makeRotationY(turn),
-    );
+    let matrix = trackMatrix(distance, lateral, up);
+    if (['coolingBank', 'serviceTower', 'factoryBay'].includes(name)) {
+      const f = track.sample(distance),
+        forward = f.tangent.clone().setY(0).normalize(),
+        right = new T.Vector3(0, 1, 0).cross(forward).normalize();
+      const position = f.position
+        .clone()
+        .addScaledVector(f.right, lateral)
+        .add(new T.Vector3(0, up, 0));
+      matrix = new T.Matrix4().makeBasis(
+        right,
+        new T.Vector3(0, 1, 0),
+        forward,
+      );
+      matrix.setPosition(position);
+    }
+    matrix.multiply(new T.Matrix4().makeRotationY(turn));
+    if (name === 'factoryBay')
+      for (const side of [-1, 1])
+        foundation(
+          new T.Vector3(side * 85, -18, 0).applyMatrix4(matrix),
+          46,
+          64,
+        );
+    if (name === 'coolingBank')
+      foundation(new T.Vector3(0, -32, 0).applyMatrix4(matrix), 66, 124);
+
     for (const part of kit.prototypes[name]) {
       const key = part.geometry.uuid;
       if (!assemblies.has(key)) assemblies.set(key, { ...part, matrices: [] });
@@ -182,6 +216,99 @@ export function createColossusEnvironment({ track, shape = false }) {
   });
   materials.add(polished);
   materials.add(hazardPaint);
+  // Real world-vertical foundation piers root the elevated open works in the quarry.
+  // Reject placements near any other route reach, including beneath overpasses.
+  const routeSurvey = [];
+  for (let s = 0; s < track.length; s += 16)
+    routeSurvey.push(track.sample(s).position);
+  const groundY = -70;
+  const foundationRequests = [];
+  const foundation = (top, width, depth) =>
+    foundationRequests.push({ top, width, depth });
+  const concrete = new T.MeshStandardMaterial({
+    color: '#74746b',
+    roughness: 0.91,
+    metalness: 0.04,
+  });
+  materials.add(concrete);
+  if (!shape) road?.finish?.bind(concrete, 'dark');
+  const makeFoundation = (top, width, depth) => {
+    if (
+      top.y < groundY + 40 ||
+      routeSurvey.some(
+        (p) =>
+          Math.abs(p.x - top.x) < width / 2 + 48 &&
+          Math.abs(p.z - top.z) < depth / 2 + 48 &&
+          p.y > groundY - 20 &&
+          p.y < top.y + 20,
+      )
+    )
+      return;
+    const localGround =
+      Math.min(
+        ...[-1, 1].flatMap((x) =>
+          [-1, 1].map((z) =>
+            quarry.heightAt(top.x + (x * width) / 2, top.z + (z * depth) / 2),
+          ),
+        ),
+      ) - 16;
+    const h = Math.max(20, top.y - localGround);
+    const span = Math.max(width, depth),
+      thickness = Math.min(width, depth),
+      alongZ = depth > width;
+    const profile = new T.Shape(
+      [
+        [-span / 2, 0],
+        [span / 2, 0],
+        [span / 2, h - Math.min(35, h * 0.3)],
+        [span * 0.42, h],
+        [-span * 0.42, h],
+        [-span / 2, h - Math.min(35, h * 0.3)],
+      ].map(([x, y]) => new T.Vector2(x, y)),
+    );
+    if (span > 75 && h > 150)
+      profile.holes.push(
+        new T.Path(
+          [
+            [-span * 0.23, 30],
+            [-span * 0.23, h - 88],
+            [-span * 0.13, h - 55],
+            [span * 0.13, h - 55],
+            [span * 0.23, h - 88],
+            [span * 0.23, 30],
+          ].map(([x, y]) => new T.Vector2(x, y)),
+        ),
+      );
+    const pier = new T.ExtrudeGeometry(profile, {
+      depth: thickness,
+      bevelEnabled: false,
+      steps: 1,
+    });
+    pier.translate(0, 0, -thickness / 2);
+    if (alongZ) pier.rotateY(Math.PI / 2);
+    pier.translate(top.x, localGround, top.z);
+    staticPart(pier, concrete, 'Factory / open stepped abutment');
+    putBox(
+      kit.materials.shell,
+      [width + 12, 18, depth + 12],
+      [top.x, top.y - 9, top.z],
+    );
+    putBox(
+      kit.materials.steel,
+      [width + 14, 4, depth + 14],
+      [top.x, top.y + 2, top.z],
+    );
+    putBox(
+      stone,
+      [width + 80, 36, depth + 80],
+      [top.x, localGround + 18, top.z],
+    );
+    rockMass(
+      [top.x, localGround - 20, top.z],
+      [width + 100, 90, depth + 100],
+      top.x * 0.01,
+    );
+  };
   // Continuous swept housings seat the running sheet inside a load-bearing bed.
   // The cross sections stay outside the full 72 m playable sheet through rolls.
   for (const run of track.runs) {
@@ -251,13 +378,133 @@ export function createColossusEnvironment({ track, shape = false }) {
       }
     }
   }
+  // Shared walls, bearing floors and roof wings turn the beds into factory spaces.
+  // Upright architecture follows the ground plan without inheriting racing banks.
+  const uprightTrack = {
+    sample(distance) {
+      const f = track.sample(distance),
+        up = new T.Vector3(0, 1, 0);
+      return {
+        position: f.position,
+        right: up.clone().cross(f.tangent).normalize(),
+        up,
+      };
+    },
+  };
+  const cladding = new T.MeshStandardMaterial({
+    color: '#718078',
+    roughness: 0.61,
+    metalness: 0.22,
+  });
+  materials.add(cladding);
+  if (!shape) road?.finish?.bind(cladding, 'shell');
+  const warmCladding = cladding.clone(),
+    coolCladding = cladding.clone();
+  warmCladding.color.set('#876f5c');
+  coolCladding.color.set('#597b86');
+  for (const m of [warmCladding, coolCladding]) {
+    materials.add(m);
+    if (!shape) road?.finish?.bind(m, 'shell');
+  }
+  const sweepBuilding = (a, b, profile, material, name) =>
+    staticPart(housingGeometry(uprightTrack, a, b, profile), material, name);
+  for (const id of ['intake', 'press', 'crossfeed', 'cooling']) {
+    const zone = track.sections.find((s) => s.id === id);
+    for (
+      let a = zone.start + 28, index = 0;
+      a < zone.end - 40;
+      a += 160, index++
+    ) {
+      const b = Math.min(a + 154, zone.end - 24);
+      if (openBay((a + b) / 2, 180)) continue;
+      for (const side of [-1, 1]) {
+        const curvature = Math.max(
+          ...[a, (a + b) / 2, b].map((d) =>
+            Math.abs(track.sample(d).curvature),
+          ),
+        );
+        // Keep swept architecture away from its offset-curve singularity.
+        const reach = Math.min(157, 0.75 / Math.max(curvature, 0.0001));
+        if (reach < 90) continue;
+        const p = (profile) =>
+          profile.map(([x, y]) => [Math.min(x, reach) * side, y]);
+        sweepBuilding(
+          a,
+          b,
+          p([
+            [68, -59],
+            [155, -59],
+            [155, -26],
+            [68, -26],
+          ]),
+          kit.materials.dark,
+          'Factory / continuous bearing floor',
+        );
+        sweepBuilding(
+          a,
+          b,
+          p([
+            [68, -27],
+            [155, -27],
+            [155, -19],
+            [68, -19],
+          ]),
+          kit.materials.shell,
+          'Factory / shared floor cap',
+        );
+        if (id === 'cooling') continue;
+        const height = (side > 0 ? 118 : 81) + (index % 3 === 1 ? 20 : 0);
+        sweepBuilding(
+          a,
+          b,
+          p([
+            [96, -19],
+            [150, -19],
+            [150, height],
+            [96, height],
+            [96, 78],
+            [114, 78],
+            [114, 20],
+            [96, 20],
+          ]),
+          id === 'press' ? warmCladding : cladding,
+          'Factory / deep production recess',
+        );
+        for (const y of [27])
+          sweepBuilding(
+            a,
+            b,
+            p([
+              [68, y],
+              [155, y],
+              [155, y + 11],
+              [68, y + 11],
+            ]),
+            kit.materials.steel,
+            'Factory / connected mezzanine',
+          );
+        sweepBuilding(
+          a,
+          b,
+          p([
+            [side > 0 ? 28 : 61, height + 9],
+            [157, height + 9],
+            [157, height + 21],
+            [side > 0 ? 28 : 61, height + 21],
+          ]),
+          kit.materials.shell,
+          'Factory / asymmetric roof wing',
+        );
+      }
+    }
+  }
   // Room-size assemblies make the chutes read as machine beds within a factory.
-  for (const id of ['intake', 'press', 'crossfeed', 'return', 'headstock']) {
+  for (const id of ['intake', 'press', 'crossfeed', 'return']) {
     const zone = track.sections.find((s) => s.id === id);
     for (
       let d = zone.start + 55;
       d < zone.end - 40;
-      d += id === 'press' ? 85 : 150
+      d += id === 'press' ? 125 : id === 'return' ? 380 : 290
     ) {
       if (openBay(d, 100)) continue;
       assembly('factoryBay', d);
@@ -285,6 +532,7 @@ export function createColossusEnvironment({ track, shape = false }) {
   // Partial barrel casings enclose the wall rolls, with daylight slots above.
   const innerCasing = kit.materials.dark.clone();
   innerCasing.side = T.DoubleSide;
+  if (!shape) road?.finish?.bind(innerCasing, 'dark');
   materials.add(innerCasing);
   for (const id of ['screw', 'auger']) {
     const zone = track.sections.find((s) => s.id === id);
@@ -332,7 +580,16 @@ export function createColossusEnvironment({ track, shape = false }) {
   }
   // Ordinary production floor: unequal work bays and rooted utility stacks.
   for (const section of track.sections.filter(
-    (s) => !['screw', 'auger', 'die', 'gantry'].includes(s.id),
+    (s) =>
+      ![
+        'screw',
+        'auger',
+        'die',
+        'gantry',
+        'cooling',
+        'headstock',
+        'return',
+      ].includes(s.id),
   )) {
     for (
       let s = section.start + 70, i = 0;
@@ -345,11 +602,6 @@ export function createColossusEnvironment({ track, shape = false }) {
       assembly('serviceTower', s, side * 105, -48);
       putBox(kit.materials.shell, [90, 38, 110], [side * 105, -37, 5], m);
       putBox(kit.materials.dark, [110, 9, 130], [side * 105, -60, 5], m);
-      const base = track
-        .sample(s)
-        .position.clone()
-        .addScaledVector(track.sample(s).right, side * 155);
-      rockMass([base.x, base.y - 155, base.z], [130, 220, 120], s * 0.01);
     }
   }
   // The press hall is a connected structure with a partial roof and broad daylight.
@@ -604,10 +856,10 @@ export function createColossusEnvironment({ track, shape = false }) {
   const hero = track.jumps.find((j) => j.hero);
   for (const s of [hero.takeoff - 90, hero.landingStart + 100])
     assembly('gantry', s);
-  const loadMatrix = trackMatrix(hero.landingStart + 130, 0, 105);
+  const loadMatrix = trackMatrix(hero.landingStart + 130, 0, 170);
   putBox(kit.materials.shell, [110, 14, 96], [0, 0, 0], loadMatrix);
   for (const side of [-1, 1])
-    putBox(kit.materials.dark, [12, 25, 96], [side * 48, -13, 0], loadMatrix);
+    putBox(kit.materials.dark, [12, 25, 90], [side * 48, -19.5, 0], loadMatrix);
   // Broad return-leg landmarks: exposed counterweight guides, cooling shells
   // and the massive crown bed. They are readable from the driving surface.
   const section = (id) => track.sections.find((entry) => entry.id === id);
@@ -640,6 +892,237 @@ export function createColossusEnvironment({ track, shape = false }) {
         putBox(kit.materials.amber, [4, 6, 70], [side * 58, 8, 0], m);
       }
     }
+  }
+  const uprightMatrix = (distance) => {
+    const f = track.sample(distance),
+      up = new T.Vector3(0, 1, 0),
+      forward = f.tangent.clone().setY(0).normalize();
+    return new T.Matrix4()
+      .makeBasis(up.clone().cross(forward), up, forward)
+      .setPosition(f.position);
+  };
+  const bodyClear = (size, position, matrix) => {
+    const inverse = matrix
+      .clone()
+      .multiply(new T.Matrix4().makeTranslation(...position))
+      .invert();
+    return !routeSurvey.some((p) => {
+      const v = p.clone().applyMatrix4(inverse);
+      return (
+        Math.abs(v.x) < size[0] / 2 + 40 &&
+        Math.abs(v.y) < size[1] / 2 + 40 &&
+        Math.abs(v.z) < size[2] / 2 + 20
+      );
+    });
+  };
+  const solidBody = (material, size, position, matrix, name) => {
+    if (bodyClear(size, position, matrix))
+      putBox(material, size, position, matrix, name);
+  };
+  // Distinct district-scale bodies: an enclosed die receiver, a tall open gantry
+  // dock and a low dispatch yard. Broad voids keep the existing flight visible.
+  for (const jump of track.jumps) {
+    const isDie = jump.id === 'die-transfer',
+      isGantry = jump.hero;
+    const distance = jump.landingStart + (isGantry ? 320 : 180),
+      m = uprightMatrix(distance),
+      length = isGantry ? 270 : 210,
+      height = isGantry ? 194 : isDie ? 150 : 70;
+    for (const side of [-1, 1]) {
+      solidBody(
+        kit.materials.dark,
+        [98, 54, length + 35],
+        [side * 126, -53, 0],
+        m,
+        'District / receiving plinth',
+      );
+      solidBody(
+        kit.materials.shell,
+        [106, 16, length + 45],
+        [side * 126, -20, 0],
+        m,
+        'District / bearing deck',
+      );
+      for (const z of [-length / 2 + 28, length / 2 - 28]) {
+        if (
+          !bodyClear([82, height + 3, 59], [side * 126, height / 2 - 14, z], m)
+        )
+          continue;
+        const frame = new T.Shape(
+          [
+            [-39, -14],
+            [39, -14],
+            [39, 18],
+            [31, 28],
+            [31, height - 58],
+            [22, height - 14],
+            [-22, height - 14],
+            [-31, height - 58],
+            [-31, 28],
+            [-39, 18],
+          ].map(([x, y]) => new T.Vector2(x, y)),
+        );
+        if (height > 100)
+          frame.holes.push(
+            new T.Path(
+              [
+                [-13, 26],
+                [-13, height - 68],
+                [-7, height - 47],
+                [7, height - 47],
+                [13, height - 68],
+                [13, 26],
+              ].map(([x, y]) => new T.Vector2(x, y)),
+            ),
+          );
+        const body = new T.ExtrudeGeometry(frame, {
+          depth: 56,
+          bevelEnabled: true,
+          bevelThickness: 1.5,
+          bevelSize: 1.5,
+          bevelSegments: 1,
+          steps: 1,
+        });
+        body.translate(side * 126, 0, z - 28);
+        body.applyMatrix4(m);
+        staticPart(
+          body,
+          kit.materials.shell,
+          'District / stepped receiving column',
+        );
+        if (height > 100)
+          solidBody(
+            kit.materials.dark,
+            [29, height - 73, 10],
+            [side * 126, (height - 21) / 2, z + 18],
+            m,
+            'District / deep column recess',
+          );
+      }
+      solidBody(
+        isGantry ? coolCladding : isDie ? warmCladding : cladding,
+        [60, 45, length - 12],
+        [side * 129, height - 32, 0],
+        m,
+        'District / deep upper body',
+      );
+      solidBody(
+        kit.materials.shell,
+        [86, 20, length + 20],
+        [side * 107, height + 1, 0],
+        m,
+        'District / supported roof return',
+      );
+      if (isGantry || isDie)
+        solidBody(
+          kit.materials.dark,
+          [38, 80, length - 100],
+          [side * 150, 36, 0],
+          m,
+          'District / recessed service volume',
+        );
+      foundation(
+        new T.Vector3(side * 126, -74, 0).applyMatrix4(m),
+        88,
+        length * 0.72,
+      );
+    }
+    if (isDie || isGantry)
+      for (const z of [-length / 2 + 15, length / 2 - 15])
+        solidBody(
+          kit.materials.shell,
+          [310, 26, 42],
+          [0, height, z],
+          m,
+          'District / receiving header',
+        );
+  }
+  const returnZone = section('return'),
+    returnDistance = returnZone.start + 170,
+    returnFrame = track.sample(returnDistance),
+    outboard = -Math.sign(returnFrame.curvature || 1),
+    returnMatrix = uprightMatrix(returnDistance);
+  solidBody(
+    kit.materials.dark,
+    [138, 85, 240],
+    [outboard * 160, -18, 0],
+    returnMatrix,
+    'Return / powerhouse base',
+  );
+  solidBody(
+    coolCladding,
+    [110, 145, 220],
+    [outboard * 181, 75, 0],
+    returnMatrix,
+    'Return / powerhouse body',
+  );
+  solidBody(
+    kit.materials.shell,
+    [143, 28, 250],
+    [outboard * 167, 158, 0],
+    returnMatrix,
+    'Return / massive service roof',
+  );
+  for (const z of [-75, 0, 75]) {
+    const vessel = new T.CylinderGeometry(22, 22, 100, 24);
+    vessel.translate(outboard * 112, 62, z);
+    vessel.applyMatrix4(returnMatrix);
+    staticPart(vessel, kit.materials.steel, 'Return / accumulator bank');
+  }
+  foundation(
+    new T.Vector3(outboard * 165, -60, 0).applyMatrix4(returnMatrix),
+    120,
+    200,
+  );
+  // One exposed headstock flywheel replaces the generic portal sequence.
+  // Its outboard mounting reads from the last hairpin and never enters a reach.
+  const headDistance = section('headstock').start + 320,
+    headFrame = track.sample(headDistance),
+    headApproach = track.sample(section('headstock').start + 160).position;
+  const headWheel = kit.createAssembly('driveWheel');
+  headWheel.scale.setScalar(3.6);
+  const headMount = new T.Group();
+  headMount.add(headWheel);
+  headMount.name = 'Headstock / exposed main flywheel';
+  for (const offset of [240, 280, 320]) {
+    const up = new T.Vector3(0, 1, 0),
+      right = up.clone().cross(headFrame.tangent).normalize(),
+      position = headFrame.position
+        .clone()
+        .addScaledVector(right, offset)
+        .addScaledVector(up, 60),
+      axis = headApproach.clone().sub(position).setY(0).normalize();
+    const headMatrix = new T.Matrix4()
+      .makeBasis(axis, up, axis.clone().cross(up))
+      .setPosition(position);
+    headMount.matrix.copy(headMatrix);
+    headMount.matrix.decompose(
+      headMount.position,
+      headMount.quaternion,
+      headMount.scale,
+    );
+    headMount.updateMatrixWorld(true);
+    const bounds = new T.Box3().setFromObject(headMount).expandByScalar(38);
+    if (routeSurvey.some((p) => bounds.containsPoint(p))) continue;
+    group.add(headMount);
+    moving.push({ object: headWheel, axis: 'x', speed: 0.075 });
+    solidBody(
+      kit.materials.dark,
+      [100, 55, 242],
+      [0, -133, 0],
+      headMatrix,
+      'Headstock / main bearing block',
+    );
+    for (const z of [-112, 112])
+      solidBody(
+        kit.materials.shell,
+        [112, 125, 33],
+        [0, -60, z],
+        headMatrix,
+        'Headstock / deep bearing cheeks',
+      );
+    foundation(new T.Vector3(0, -160, 0).applyMatrix4(headMatrix), 110, 235);
+    break;
   }
   // Counterweights travel inside their guides; this movement is decorative.
   for (const d of [rise.start + 100, rise.start + 330]) {
@@ -688,49 +1171,6 @@ export function createColossusEnvironment({ track, shape = false }) {
       putBox(kit.materials.steel, [1, 70, 1], [x, -60, 0], m);
     putBox(kit.materials.shell, [85, 22, 45], [-80, -105, 0], m);
   }
-  // Real world-vertical foundation piers root the elevated open works in the quarry.
-  // Reject placements near any other route reach, including beneath overpasses.
-  const routeSurvey = [];
-  for (let s = 0; s < track.length; s += 16)
-    routeSurvey.push(track.sample(s).position);
-  const groundY = -70;
-  const foundation = (top, width, depth) => {
-    if (
-      top.y < groundY + 40 ||
-      routeSurvey.some(
-        (p) =>
-          Math.abs(p.x - top.x) < width / 2 + 48 &&
-          Math.abs(p.z - top.z) < depth / 2 + 48 &&
-          p.y > groundY - 20 &&
-          p.y < top.y + 20,
-      )
-    )
-      return;
-    const h = top.y - groundY;
-    putBox(
-      kit.materials.dark,
-      [width, h, depth],
-      [top.x, groundY + h / 2, top.z],
-    );
-    putBox(
-      kit.materials.shell,
-      [width + 12, 18, depth + 12],
-      [top.x, top.y - 9, top.z],
-    );
-    putBox(
-      kit.materials.steel,
-      [width + 14, 4, depth + 14],
-      [top.x, top.y + 2, top.z],
-    );
-    putBox(stone, [width + 80, 36, depth + 80], [top.x, groundY + 18, top.z]);
-    for (let y = groundY + 100; y < top.y - 20; y += 120)
-      putBox(kit.materials.shell, [width + 5, 9, depth + 5], [top.x, y, top.z]);
-    rockMass(
-      [top.x, groundY - 20, top.z],
-      [width + 100, 90, depth + 100],
-      top.x * 0.01,
-    );
-  };
   for (const d of [hero.takeoff - 90, hero.landingStart + 100]) {
     for (const side of [-1, 1]) {
       const f = track.sample(d),
@@ -759,6 +1199,56 @@ export function createColossusEnvironment({ track, shape = false }) {
     for (const side of [-1, 1])
       foundation(new T.Vector3(side * 180, -290, 0).applyMatrix4(m), 48, 64);
   }
+  // Merge adjacent loads into broad abutments; reject any merged footprint that
+  // would intrude on another reach. The continuous bearing floors bridge the gaps.
+  const groups = [];
+  const safeFoot = (top, width, depth) =>
+    !routeSurvey.some(
+      (p) =>
+        Math.abs(p.x - top.x) < width / 2 + 48 &&
+        Math.abs(p.z - top.z) < depth / 2 + 48 &&
+        p.y > groundY - 20 &&
+        p.y < top.y + 20,
+    );
+  for (const request of foundationRequests) {
+    let merged = false;
+    for (const g of groups) {
+      if (
+        Math.abs(g.top.y - request.top.y) > 90 ||
+        g.top.distanceTo(request.top) > 250
+      )
+        continue;
+      const minX = Math.min(
+          g.top.x - g.width / 2,
+          request.top.x - request.width / 2,
+        ),
+        maxX = Math.max(
+          g.top.x + g.width / 2,
+          request.top.x + request.width / 2,
+        );
+      const minZ = Math.min(
+          g.top.z - g.depth / 2,
+          request.top.z - request.depth / 2,
+        ),
+        maxZ = Math.max(
+          g.top.z + g.depth / 2,
+          request.top.z + request.depth / 2,
+        );
+      const width = maxX - minX,
+        depth = maxZ - minZ,
+        top = new T.Vector3(
+          (minX + maxX) / 2,
+          Math.max(g.top.y, request.top.y),
+          (minZ + maxZ) / 2,
+        );
+      if (width > 240 || depth > 240 || !safeFoot(top, width, depth)) continue;
+      Object.assign(g, { top, width, depth });
+      merged = true;
+      break;
+    }
+    if (!merged) groups.push({ ...request });
+  }
+  for (const g of groups) makeFoundation(g.top, g.width, g.depth);
   // Large quarry terraces, kept below the playable envelope.
   const center = track.bounds.getCenter(new T.Vector3());
   const size = track.bounds.getSize(new T.Vector3());
@@ -778,6 +1268,37 @@ export function createColossusEnvironment({ track, shape = false }) {
       );
     }
     putBox(floor, [340, 10, 110], [x - side * 300, 170, z]);
+  }
+  // A few fractured spurs establish cliff silhouettes; all are rejected near
+  // every race reach and jump corridor, rather than repeated alongside the bed.
+  for (const [i, id] of ['screw', 'dive', 'die', 'return', 'crown'].entries()) {
+    const f = track.sample(section(id).start + 100),
+      right = new T.Vector3(0, 1, 0).cross(f.tangent).normalize();
+    for (const side of [-1, 1]) {
+      const p = f.position
+        .clone()
+        .addScaledVector(right, side * (480 + (i % 2) * 110));
+      const ground = quarry.heightAt(p.x, p.z),
+        height = Math.min(260, Math.max(130, f.position.y - ground - 100));
+      if (
+        routeSurvey.some(
+          (q) =>
+            Math.hypot(q.x - p.x, q.z - p.z) < 270 &&
+            q.y < ground + height + 65,
+        )
+      )
+        continue;
+      rockMass(
+        [p.x, ground + height / 2 - 35, p.z],
+        [170, height + 70, 190],
+        i * 0.63,
+      );
+      rockMass(
+        [p.x + side * 80, ground + height * 0.3 - 45, p.z + 100],
+        [130, height * 0.7 + 90, 145],
+        i * 0.63 + 0.7,
+      );
+    }
   }
   // One multi-draw batch per material keeps the kit's distinct parts culled
   // individually without paying a draw call for every nearby casing.
@@ -819,10 +1340,56 @@ export function createColossusEnvironment({ track, shape = false }) {
       group.add(instances);
     }
   }
+  const rockManager = new T.LoadingManager();
+  const rockReady =
+    !shape && view?.renderer
+      ? new GLTFLoader(rockManager).loadAsync(ROCK_FORMS_URL).then((gltf) => {
+          const forms = [],
+            sourceResources = new Set();
+          gltf.scene.updateMatrixWorld(true);
+          gltf.scene.traverse((object) => {
+            if (!object.isMesh) return;
+            sourceResources.add(object.geometry);
+            sourceResources.add(object.material);
+            if (disposed) return;
+            const geometry = object.geometry
+              .clone()
+              .applyMatrix4(object.matrixWorld);
+            geometry.computeBoundingBox();
+            const size = geometry.boundingBox.getSize(new T.Vector3()),
+              center = geometry.boundingBox.getCenter(new T.Vector3());
+            geometry.translate(-center.x, -center.y, -center.z);
+            geometry.scale(2 / size.x, 1 / size.y, 2 / size.z);
+            geometry.computeBoundingSphere();
+            geometries.add(geometry);
+            forms.push(geometry);
+          });
+          sourceResources.forEach((resource) => resource.dispose());
+          if (!disposed)
+            rockObjects.forEach((object, i) => {
+              object.geometry = forms[i % forms.length];
+              object.updateMatrixWorld(true);
+              const bounds = new T.Box3()
+                .setFromObject(object)
+                .expandByScalar(36);
+              if (routeSurvey.some((p) => bounds.containsPoint(p)))
+                group.remove(object);
+            });
+        })
+      : Promise.resolve();
   paint.dispose();
   let disposed = false;
   return {
     group,
+    ready: Promise.all([quarry.ready, rockReady]),
+    setReflection(texture) {
+      for (const m of [...materials, ...Object.values(kit.materials)])
+        if (m.isMeshStandardMaterial) {
+          m.envMap = texture;
+          m.envMapIntensity = m === polished ? 0.9 : 0.65;
+          m.needsUpdate = true;
+        }
+    },
     update({ time = 0, settings = {} }) {
       for (const item of moving) {
         const t = settings.reducedMotion ? 0 : time;
@@ -887,9 +1454,11 @@ export function createColossusEnvironment({ track, shape = false }) {
     dispose() {
       if (disposed) return;
       disposed = true;
+      rockManager.abort();
       group.clear();
       machineBatches.forEach((b) => b.dispose());
       kit.dispose();
+      quarry.dispose();
       geometries.forEach((g) => g.dispose());
       materials.forEach((m) => m.dispose());
     },

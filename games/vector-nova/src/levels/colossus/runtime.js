@@ -24,7 +24,7 @@ export function createColossusRuntime(context) {
     id: 'colossus-industrial-flight',
     version: 1,
     rulesId:
-      'colossus-30-v1:' +
+      'colossus-flat-hazards-v6:' +
       JSON.stringify({
         geometry: track.geometryVersion,
         pace: track.pace,

@@ -23,6 +23,7 @@ export async function createColossusDynamics({ track, collisionWorld }) {
         hover: spec.height / 2,
       },
       mass: 1000000,
+      contactSpeedLimit: spec.id.startsWith('press') ? 180 : 600,
     }),
   }));
   let time = 0;
@@ -31,7 +32,7 @@ export async function createColossusDynamics({ track, collisionWorld }) {
     id: 'colossus-press-query-world',
     rulesId:
       world.rulesId +
-      ':machines-v2:' +
+      ':machines-v3-bounded-contact:' +
       JSON.stringify({
         presses: PRESS_RULES,
         ejectors: EJECTOR_RULES,

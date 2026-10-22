@@ -3,12 +3,14 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 /** Concrete machinery assemblies in metres. Placement, clocks and collision belong to the game. */
-export function createIndustrialKit() {
+export function createIndustrialKit({ finish = null } = {}) {
   const materials = {
-    shell: new T.MeshStandardMaterial({
+    shell: new T.MeshPhysicalMaterial({
       name: 'Worldkit / enamel machine casings',
       color: '#c7c4af',
-      roughness: 0.57,
+      roughness: 0.36,
+      clearcoat: 0.42,
+      clearcoatRoughness: 0.3,
       metalness: 0.12,
     }),
     steel: new T.MeshStandardMaterial({
@@ -19,9 +21,9 @@ export function createIndustrialKit() {
     }),
     dark: new T.MeshStandardMaterial({
       name: 'Worldkit / graphite machine interiors',
-      color: '#252e35',
-      roughness: 0.68,
-      metalness: 0.5,
+      color: '#53616a',
+      roughness: 0.54,
+      metalness: 0.38,
     }),
     amber: new T.MeshStandardMaterial({
       name: 'Worldkit / machinery caution enamel',
@@ -30,34 +32,8 @@ export function createIndustrialKit() {
       metalness: 0.25,
     }),
   };
-  for (const key of ['shell', 'steel', 'dark']) {
-    const material = materials[key];
-    material.onBeforeCompile = (shader) => {
-      shader.vertexShader = shader.vertexShader
-        .replace(
-          '#include <common>',
-          '#include <common>\nvarying vec3 machinePosition;',
-        )
-        .replace(
-          '#include <begin_vertex>',
-          '#include <begin_vertex>\nmachinePosition=position;',
-        );
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
-          '#include <common>',
-          '#include <common>\nvarying vec3 machinePosition;',
-        )
-        .replace(
-          '#include <map_fragment>',
-          '#include <map_fragment>\nfloat wear=sin(machinePosition.x*.31+sin(machinePosition.z*.17))*sin(machinePosition.y*.19); float drip=smoothstep(.7,.95,sin(machinePosition.x*2.4+machinePosition.z*.4))*smoothstep(.0,.9,sin(machinePosition.y*.08)); diffuseColor.rgb*=1.+wear*.065-drip*.12;',
-        )
-        .replace(
-          '#include <roughnessmap_fragment>',
-          '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+wear*.06+drip*.08,.2,.95);',
-        );
-    };
-    material.customProgramCacheKey = () => 'worldkit-industrial-finish-v2';
-  }
+  for (const key of ['shell', 'steel', 'dark'])
+    finish?.bind(materials[key], key);
   const geometries = new Set(),
     prototypes = {};
   function assembly(name, build) {
@@ -127,26 +103,55 @@ export function createIndustrialKit() {
   });
   assembly('gantry', ({ box, beam }) => {
     for (const x of [-77, 77]) {
-      box('shell', [13, 180, 18], [x, 80, 0]);
+      box('shell', [13, 228, 18], [x, 104, 0]);
       box('dark', [25, 8, 34], [x, -8, 0]);
-      box('amber', [18, 5, 26], [x, 165, 0]);
+      box('amber', [18, 5, 26], [x, 213, 0]);
     }
-    box('shell', [170, 12, 22], [0, 177, 0]);
-    box('steel', [170, 5, 26], [0, 159, 0]);
+    box('shell', [170, 12, 22], [0, 225, 0]);
+    box('steel', [170, 5, 26], [0, 207, 0]);
     for (let x = -72; x < 70; x += 24)
-      beam('dark', [x, 160, 0], [x + 24, 176, 0], 3);
-    box('amber', [28, 13, 31], [12, 161, 0]);
-    for (const x of [4, 20]) box('steel', [0.9, 75, 0.9], [x, 118, 0]);
+      beam('dark', [x, 208, 0], [x + 24, 224, 0], 3);
+    box('amber', [28, 13, 31], [12, 209, 0]);
+    for (const x of [4, 20]) box('steel', [0.9, 40, 0.9], [x, 184, 0]);
   });
-  assembly('serviceTower', ({ box, cylinder }) => {
-    box('dark', [30, 110, 34], [0, 48, 0]);
-    box('shell', [26, 30, 30], [0, 86, 0]);
-    for (let y = 8; y < 88; y += 20) {
-      box('steel', [39, 3, 41], [0, y, 0]);
-      box('amber', [25, 1.2, 1], [0, y + 5, -21]);
-    }
-    cylinder('steel', 5, 103, [20, 49, 8]);
-    box('shell', [46, 6, 43], [0, 105, 0]);
+  assembly('serviceTower', ({ box, cylinder, add }) => {
+    const body = new T.Shape(
+      [
+        [-20, -10],
+        [20, -10],
+        [20, 80],
+        [12, 108],
+        [-12, 108],
+        [-20, 80],
+      ].map(([x, y]) => new T.Vector2(x, y)),
+    );
+    body.holes.push(
+      new T.Path(
+        [
+          [-10, 12],
+          [-10, 76],
+          [10, 76],
+          [10, 12],
+        ].map(([x, y]) => new T.Vector2(x, y)),
+      ),
+    );
+    add(
+      'shell',
+      new T.ExtrudeGeometry(body, {
+        depth: 34,
+        bevelEnabled: true,
+        bevelThickness: 1,
+        bevelSize: 1,
+        bevelSegments: 1,
+        steps: 1,
+      }),
+      [0, 0, -17],
+    );
+    box('dark', [25, 88, 12], [0, 41, 12]);
+    box('steel', [48, 12, 52], [0, -8, 0]);
+    box('amber', [27, 8, 40], [0, 83, 0]);
+    cylinder('steel', 6, 103, [25, 44, 8]);
+    box('shell', [48, 12, 52], [0, 108, 0]);
   });
   assembly('motor', ({ box, cylinder }) => {
     box('dark', [26, 10, 40], [0, 0, 0]);
@@ -156,29 +161,52 @@ export function createIndustrialKit() {
     box('amber', [24, 2, 34], [0, 5, 0]);
   });
 
-  assembly('factoryBay', ({ box, cylinder, beam }) => {
+  assembly('factoryBay', ({ box, cylinder, add }) => {
     for (const side of [-1, 1]) {
-      box('dark', [38, 120, 50], [side * 85, 48, 0]);
-      box('shell', [10, 110, 44], [side * 65, 45, 0]);
-      for (const y of [16, 52, 88]) {
-        box('steel', [26, 2, 56], [side * 75, y, 0]);
-        for (const z of [-24, 0, 24])
-          box('amber', [0.7, 5, 0.7], [side * 62, y + 3.5, z]);
-        box('amber', [0.7, 0.7, 52], [side * 62, y + 6, 0]);
-        box('shell', [3, 22, 25], [side * 63, y + 16, 0]);
-      }
-      for (const z of [-18, 18])
-        cylinder('steel', 2.4, 110, [side * 59, 50, z]);
-      for (let y = 10; y < 90; y += 8)
-        box('dark', [2, 0.65, 18], [side * 57, y, 0]);
-      box('steel', [27, 8, 64], [side * 77, -18, 0]);
+      const frame = new T.Shape(
+        [
+          [-25, -16],
+          [25, -16],
+          [25, 88],
+          [15, 128],
+          [-15, 128],
+          [-25, 88],
+        ].map(([x, y]) => new T.Vector2(x, y)),
+      );
+      frame.holes.push(
+        new T.Path(
+          [
+            [-12, 8],
+            [-12, 89],
+            [-7, 106],
+            [7, 106],
+            [12, 89],
+            [12, 8],
+          ].map(([x, y]) => new T.Vector2(x, y)),
+        ),
+      );
+      add(
+        'shell',
+        new T.ExtrudeGeometry(frame, {
+          depth: 42,
+          bevelEnabled: true,
+          bevelThickness: 1,
+          bevelSize: 1,
+          bevelSegments: 1,
+          steps: 1,
+        }),
+        [side * 85, 0, -21],
+      );
+      box('dark', [30, 111, 8], [side * 85, 50, 20]);
+      box('steel', [58, 13, 70], [side * 85, -17, 0]);
+      for (const y of [18, 62, 101])
+        box('steel', [24, 9, 68], [side * 76, y, 0]);
+      cylinder('steel', 4.5, 105, [side * 59, 48, 0]);
+      box('amber', [22, 5, 44], [side * 85, 113, -2]);
     }
-    for (const z of [-19, 19]) {
-      box('dark', [178, 4, 5], [0, 107, z]);
-      box('shell', [178, 4, 5], [0, 125, z]);
-      for (let x = -84; x < 80; x += 28)
-        beam('steel', [x, 108, z], [x + 28, 124, z], 2);
-    }
+    box('shell', [185, 21, 52], [0, 131, 0]);
+    box('dark', [135, 10, 36], [0, 116, 0]);
+    box('steel', [190, 6, 58], [0, 145, 0]);
   });
   assembly('rollerBank', ({ box, add }) => {
     box('dark', [34, 22, 76], [0, 0, 0]);
@@ -248,18 +276,57 @@ export function createIndustrialKit() {
       cylinder('dark', 3, 30, [0, 0, z]);
     }
   });
-  assembly('coolingBank', ({ box, cylinder }) => {
+  assembly('coolingBank', ({ box, cylinder, add }) => {
     box('dark', [52, 92, 112], [0, 24, 0]);
     for (const z of [-58, 58]) {
-      box('shell', [62, 110, 10], [0, 27, z]);
-      box('steel', [70, 9, 18], [0, -28, z]);
+      const outline = new T.Shape(
+        [
+          [-39, -32],
+          [39, -32],
+          [39, 59],
+          [27, 98],
+          [-27, 98],
+          [-39, 59],
+        ].map(([x, y]) => new T.Vector2(x, y)),
+      );
+      const opening = new T.Path();
+      opening.absarc(0, 31, 25, 0, Math.PI * 2, true);
+      outline.holes.push(opening);
+      add(
+        'shell',
+        new T.ExtrudeGeometry(outline, {
+          depth: 12,
+          bevelEnabled: true,
+          bevelThickness: 1,
+          bevelSize: 1,
+          bevelSegments: 1,
+          steps: 1,
+        }),
+        [0, 0, z - 6],
+      );
+      add('steel', new T.TorusGeometry(26, 3.5, 8, 32), [
+        0,
+        31,
+        z + (z > 0 ? 7 : -7),
+      ]);
+      for (let i = 0; i < 6; i++)
+        add(
+          'dark',
+          new T.BoxGeometry(7, 43, 3),
+          [0, 31, z + (z > 0 ? 5 : -5)],
+          new T.Quaternion().setFromAxisAngle(
+            new T.Vector3(0, 0, 1),
+            (i * Math.PI) / 3,
+          ),
+        );
+      box('steel', [84, 12, 24], [0, -29, z]);
     }
-    for (let z = -48; z <= 48; z += 8) box('steel', [57, 82, 2], [0, 23, z]);
-    for (const y of [-16, 20, 56]) box('dark', [3, 5, 112], [-31, y, 0]);
-    box('shell', [62, 12, 124], [0, 85, 0]);
-    box('steel', [64, 4, 128], [0, 93, 0]);
-    for (const z of [-40, 40]) cylinder('steel', 7, 34, [16, 109, z]);
-    box('dark', [72, 12, 142], [0, -34, 0]);
+    for (let z = -48; z <= 48; z += 12) box('steel', [63, 83, 3], [0, 24, z]);
+    box('shell', [55, 16, 116], [0, 88, 0]);
+    box('dark', [88, 19, 150], [0, -36, 0]);
+    box('steel', [94, 6, 158], [0, -25, 0]);
+    cylinder('steel', 11, 28, [0, 108, 0]);
+    box('shell', [32, 7, 35], [0, 123, 0]);
   });
   let disposed = false;
   return {

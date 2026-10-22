@@ -140,10 +140,10 @@ export async function createRenderer(
       ao.gtaoMaterial.dispose();
       ao.blendMaterial.dispose();
     });
-    ao.blendIntensity = 0.5;
+    ao.blendIntensity = options.ambientOcclusion?.blendIntensity ?? 0.5;
     ao.updateGtaoMaterial({
-      radius: 3.0,
-      thickness: 1.1,
+      radius: options.ambientOcclusion?.radius ?? 3.0,
+      thickness: options.ambientOcclusion?.thickness ?? 1.1,
       distanceExponent: 2,
       distanceFallOff: 0.7,
       scale: 1,

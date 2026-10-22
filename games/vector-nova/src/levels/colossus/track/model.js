@@ -69,12 +69,8 @@ export function createColossusTrack() {
   const gradeAt = (h) => {
     let grade =
       0.04 +
-      0.76 * windowAt(h, 2280, 2510, 70) +
-      0.25 * windowAt(h, 2570, 2700, 60) -
-      0.46 * windowAt(h, 3370, 3780, 80) +
-      0.2 * windowAt(h, 3820, 3930, 60) -
-      0.31 * windowAt(h, 5010, 5180, 60) +
-      0.23 * windowAt(h, 5240, 5360, 50);
+      0.76 * windowAt(h, 2280, 2510, 70) -
+      0.46 * windowAt(h, 3370, 3780, 80);
     for (const j of definitions)
       grade = T.MathUtils.lerp(grade, 0.18, alignment(h, j));
     return grade * (1 - smooth((h - 5980) / 120));
@@ -251,16 +247,8 @@ export function createColossusTrack() {
     returnStations.rise + 330,
     returnStations.crown + 80,
   ];
-  // The usable chute is a curved steel sheet. Its shoulders are fully drivable.
-  const profileAt = (s) => {
-    const h = sourceAt(s);
-    let depth = 8 + 4 * windowAt(h, 2260, 2700, 70);
-    depth *= 1 - 0.94 * windowAt(h, 1020, 1550, 50);
-    for (const j of definitions) depth *= 1 - 0.8 * alignment(h, j);
-    for (const h0 of ejectorStations)
-      depth *= 1 - 0.98 * windowAt(h, h0 - 90, h0 + 60, 30);
-    return { halfWidth: 36, depth };
-  };
+  // Flat work beds; banking and the selected reversing rolls belong to the route frame.
+  const profileAt = () => ({ halfWidth: 36, depth: 0 });
   const surfacePoint = (s, lateral) => {
     const f = sample(s),
       { halfWidth, depth } = profileAt(s);
@@ -367,11 +355,11 @@ export function createColossusTrack() {
   const presses = [1180, 1340, 1500].map((h, i) => ({
     id: 'press-' + (i + 1),
     distance: distanceAt(h),
-    lateral: i % 2 ? -15 : 15,
-    width: 29,
-    depth: 22,
+    lateral: i % 2 ? -12 : 12,
+    width: 45,
+    depth: 28,
     height: 10,
-    phaseOffset: i * 2.8,
+    phaseOffset: i * 1.43,
   }));
   const belts = [
     [2800, 2950, 1],
@@ -395,7 +383,7 @@ export function createColossusTrack() {
     width: 12,
     height: 18,
     depth: 30,
-    phaseOffset: i * 5.5,
+    phaseOffset: i * 3.4,
     openingStart: distanceAt(h - 48),
     openingEnd: distanceAt(h + 72),
   }));
@@ -416,6 +404,18 @@ export function createColossusTrack() {
       distance: ejectors[1].distance - 240,
       speed: 100,
       time: 6,
+    },
+    'press-impact': {
+      distance: presses[0].distance - 42,
+      lateral: presses[0].lateral,
+      speed: 105,
+      time: 1.45,
+    },
+    'ejector-impact': {
+      distance: ejectors[0].distance - 55,
+      lateral: 0,
+      speed: 105,
+      time: 0.84,
     },
     'press-approach': { distance: distanceAt(1030), speed: 95, time: 0 },
     'crossfeed-approach': { distance: distanceAt(2700), speed: 110 },
@@ -480,7 +480,7 @@ export function createColossusTrack() {
   return {
     id: 'colossus-circuit',
     name: 'Colossus Works',
-    geometryVersion: 'colossus-circuit-v5',
+    geometryVersion: 'colossus-flat-circuit-v6',
     closed: true,
     width: 72,
     length,

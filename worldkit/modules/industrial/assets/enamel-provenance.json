@@ -1,0 +1,9 @@
+{
+  "asset": "worn-enamel-v1.png",
+  "creator": "Built-in imagegen",
+  "date": "2026-10-22",
+  "source": "Original generated texture; no image inputs",
+  "sha256": "19b36d302779b2041ee8780b376f1e82214d2f7f537612ff8a1e7af3b6567a63",
+  "prompt": "Asset type: seamless tileable diffuse albedo texture for a real-time 3D industrial game, square 1024x1024. Orthographic close-up of aged warm ivory enamel paint on heavy steel machinery, flat surface under perfectly uniform neutral diffuse light. Broad coherent areas of intact off-white coating, restrained fine hairline cracks, scattered irregular scuffed-through gray metal, tiny oxidized brown specks, a few subtle vertical gray grime trails. Industrial wear with scale variation but still 85 percent intact cream paint. Honest photographic material texture, no scene or perspective. One continuous surface fills the frame. No plate seams, bolts, holes, text, symbols, objects or borders. No cast shadows, directional highlights, gradients, vignette or baked lighting. All four edges seamlessly tile. The paint should have restrained cool-gray grime, never large black blobs or strongly saturated rust. Not a painted illustration. No embedded frame.",
+  "use": "Metre-scaled warm enamel on Worldkit industrial housings."
+}

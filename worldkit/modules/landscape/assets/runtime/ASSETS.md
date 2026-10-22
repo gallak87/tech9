@@ -94,3 +94,8 @@ than the broad geological forms; the shared normal map supplies fine relief.
 
 See `art/asset-report.json` for exact triangle counts and GLB bytes. These are
 source prototype counts, not scene instance counts or a GPU performance claim.
+
+`rock-forms.glb` contains only the two original project-authored rock meshes from
+`forest-kit.glb`, with positions, normals and indices; no materials or image data.
+Reproduce it with `python3 tools/extract-rock-forms.py`. Colossus normalizes these
+shared forms for quarry spurs and uses its own triplanar rock material.

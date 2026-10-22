@@ -15,7 +15,10 @@ import { collectRoadSurfaces } from '../src/pickups/device-mount.js';
 import { createDevices } from '../src/levels/colossus/devices.js';
 import { createFinishMarker } from '../src/race/finish-marker.js';
 import * as T from 'three';
-import { createColossusPaint } from '../src/levels/colossus/track/presentation.js';
+import {
+  createColossusPaint,
+  housingGeometry,
+} from '../src/levels/colossus/track/presentation.js';
 import { createIndustrialKit } from '@worldkit/environment/industrial';
 const level = createLevel(),
   track = level.createTrack();
@@ -102,7 +105,7 @@ test('crossfeed force agrees with tread coverage and leaves a quiet strip', () =
   }
 });
 
-test('actual raised shoulders support the hull through both reversing rolls', async () => {
+test('flat work-bed edges support the hull through both reversing rolls', async () => {
   const collisionWorld = level.createCollisionWorld({ track });
   const dynamics = await level.createDynamics({ track, collisionWorld });
   try {
@@ -327,7 +330,7 @@ test('industrial assemblies share owned resources and dispose once', () => {
   assert.equal(releases, 1);
 });
 
-test('curved pickup footprints sit on actual rendered facets and finish paint clears the full bowl', () => {
+test('pickup footprints and finish paint conform to the flat banked work bed', () => {
   const road = level.createRoad({ track });
   const projector = createSurfaceProjector(
     track,
@@ -359,13 +362,23 @@ test('curved pickup footprints sit on actual rendered facets and finish paint cl
       g.dispose();
     }
     const positions = paint.group.children[0].geometry.attributes.position;
+    const f = track.sample(0),
+      xs = Array.from({ length: positions.count }, (_, i) =>
+        new T.Vector3()
+          .fromBufferAttribute(positions, i)
+          .sub(f.position)
+          .dot(f.right),
+      );
     assert.ok(
-      Math.max(
-        ...Array.from({ length: positions.count }, (_, i) => positions.getY(i)),
-      ) >
-        track.sample(0).position.y + 6,
-      'checkerboard climbs both curved shoulders',
+      Math.min(...xs) < -34 && Math.max(...xs) > 34,
+      'checker spans the flat working bed',
     );
+    for (let d = 0; d < track.length; d += 25)
+      assert.equal(
+        track.profileAt(d).depth,
+        0,
+        'ordinary and banked beds remain flat across their width',
+      );
   } finally {
     paint.dispose();
     projector.dispose();
@@ -438,7 +451,7 @@ test('ejectors physically throw every hull through the discharge edge, then lift
   }
 });
 
-test('belt and hazard paint conforms to the exact rendered triangles across banks and curved shoulders', () => {
+test('belt and hazard paint conforms to rendered triangles across banked surfaces', () => {
   const road = level.createRoad({ track });
   road.group.updateMatrixWorld(true);
   const projector = createSurfaceProjector(
@@ -469,5 +482,136 @@ test('belt and hazard paint conforms to the exact rendered triangles across bank
     paint.dispose();
     projector.dispose();
     road.dispose();
+  }
+});
+
+test('fast press strikes give real impact feedback without a magnetic-constraint velocity explosion', async () => {
+  const collisionWorld = level.createCollisionWorld({ track });
+  const dynamics = await level.createDynamics({ track, collisionWorld });
+  try {
+    for (const shipId of ['kestrel', 'shrike', 'bastion', 'needle']) {
+      dynamics.reset();
+      const runtime = level.createRuntime({
+        track,
+        collisionWorld,
+        dynamics,
+        presentation: false,
+      });
+      const state = {
+        ...createVehicleState(shipId),
+        ...track.scenarios['press-impact'],
+      };
+      runtime.reset({ state });
+      const events = [];
+      let maximum = 0;
+      for (let i = 0; i < 360; i++) {
+        const before = state.distance;
+        events.push(
+          ...runtime.advance(state, { ...COAST, throttle: 1 }, 1 / 120),
+        );
+        maximum = Math.max(
+          maximum,
+          Math.abs(state.speed),
+          Math.abs(state.lateralSpeed),
+        );
+        assert.ok(
+          Math.abs(state.distance - before) < 5,
+          'one tick must not teleport the racer',
+        );
+      }
+      assert.ok(
+        events.some((e) => e.type === 'impact' && e.payload.severity > 0.5),
+        'deliberate strike produces real contact feedback',
+      );
+      assert.ok(
+        maximum < 260,
+        shipId + ' bounded post-impact motion ' + maximum,
+      );
+      runtime.dispose();
+    }
+  } finally {
+    dynamics.dispose();
+    collisionWorld.dispose();
+  }
+});
+
+test('closed machine housings expose outward faces on the sides and end caps', () => {
+  const straight = {
+    sample: (s) => ({
+      position: new T.Vector3(0, 0, s),
+      right: new T.Vector3(1, 0, 0),
+      up: new T.Vector3(0, 1, 0),
+    }),
+  };
+  const g = housingGeometry(straight, 0, 20, [
+    [-2, -3],
+    [2, -3],
+    [2, 3],
+    [-2, 3],
+  ]);
+  const p = g.attributes.position,
+    n = g.attributes.normal,
+    center = new T.Vector3(0, 0, 10);
+  for (let i = 0; i < p.count; i++)
+    assert.ok(
+      new T.Vector3()
+        .fromBufferAttribute(p, i)
+        .sub(center)
+        .dot(new T.Vector3().fromBufferAttribute(n, i)) > 0,
+      'machined exterior must face outward',
+    );
+  g.dispose();
+});
+
+test('cruise and boosted flight corridors clear the decorative factory solids', async () => {
+  const shapeLevel = createLevel({ shape: true }),
+    environment = shapeLevel.createEnvironment({ track });
+  try {
+    await environment.ready;
+    environment.update({ time: 0 });
+    environment.group.updateMatrixWorld(true);
+    const ray = new T.Raycaster();
+    for (const jump of track.jumps)
+      for (const shipId of ['kestrel', 'shrike', 'bastion', 'needle']) {
+        const pace = getVehiclePace(shipId, track.pace);
+        for (const speed of [pace.cruiseSpeed, pace.boostSpeed]) {
+          const result = inspectJump({
+            track,
+            jump,
+            shipId,
+            speed,
+            retainTrace: true,
+            runtime: level.createRuntime({ track, presentation: false }),
+          });
+          for (let i = 6; i < result.trace.length; i += 6) {
+            const a = new T.Vector3().fromArray(result.trace[i - 6].position),
+              b = new T.Vector3().fromArray(result.trace[i].position),
+              delta = b.clone().sub(a),
+              right = new T.Vector3(0, 1, 0).cross(delta).normalize();
+            for (const [lateral, vertical] of [
+              [0, 0],
+              [-2.5, 0],
+              [2.5, 0],
+              [0, 1.5],
+              [0, -1.5],
+            ]) {
+              const origin = a.clone().addScaledVector(right, lateral);
+              origin.y += vertical;
+              ray.set(origin, delta.clone().normalize());
+              ray.far = delta.length();
+              const hit = ray.intersectObjects(
+                environment.group.children,
+                true,
+              )[0];
+              assert.ok(
+                !hit,
+                `${jump.id}/${shipId}/${speed} intersects ${hit?.object.name} at ${hit?.point.toArray()}`,
+              );
+            }
+          }
+        }
+      }
+  } finally {
+    environment.dispose();
   }
 });

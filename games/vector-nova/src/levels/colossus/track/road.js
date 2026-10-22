@@ -1,13 +1,14 @@
 import * as T from 'three';
+import { createIndustrialFinish } from '@worldkit/environment/industrial';
 import { sheetGeometry, rimGeometry } from './surface.js';
 import { createColossusPaint } from './presentation.js';
 
 function workingSteel(shape) {
   const material = new T.MeshStandardMaterial({
     name: 'Colossus / worn working-channel steel',
-    color: shape ? '#a0a7ac' : '#56686f',
-    roughness: 0.52,
-    metalness: shape ? 0.1 : 0.72,
+    color: shape ? '#a0a7ac' : '#7f919a',
+    roughness: 0.56,
+    metalness: shape ? 0.1 : 0.52,
   });
   if (!shape) {
     material.onBeforeCompile = (shader) => {
@@ -40,12 +41,12 @@ float steelNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(m
           float brushed=smoothstep(.3,.85,steelNoise(p*vec2(.003,.24)));
           float grime=smoothstep(22.,36.,abs(p.y));
           diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.14,.18,.19),stain*.055+grime*.14);
-          diffuseColor.rgb*=1.+broad*.055+brushed*.055+scratches-seams*.42-longitudinal*.24;
+          diffuseColor.rgb*=(.90+steelHash(floor(p/vec2(18.,12.)))*.16)+broad*.035+brushed*.012+scratches-seams*.42-longitudinal*.24;
         `,
         )
         .replace(
           '#include <roughnessmap_fragment>',
-          '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor-brushed*.19+broad*.09+stain*.045+grime*.1,.25,.88);',
+          '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+grime*.18,.38,.88);',
         );
     };
     material.customProgramCacheKey = () => 'colossus-working-steel-v4';
@@ -56,12 +57,17 @@ export function createColossusRoad({
   track,
   shape = false,
   collectSolid = null,
+  view = null,
 }) {
   const group = new T.Group();
   group.name = 'Colossus / continuous machine working surfaces';
   const geometries = new Set(),
     materials = new Set();
+  const finish = createIndustrialFinish(
+    !shape && !collectSolid ? view?.renderer : null,
+  );
   const steel = workingSteel(shape);
+  if (!shape && !collectSolid) finish.bind(steel, 'steel', 'road');
   materials.add(steel);
   const dark = new T.MeshStandardMaterial({
     color: '#28363d',
@@ -71,7 +77,7 @@ export function createColossusRoad({
   materials.add(dark);
   const rim = new T.MeshStandardMaterial({
     color: '#a89e78',
-    roughness: 0.65,
+    roughness: 0.435,
     metalness: 0.4,
   });
   materials.add(rim);
@@ -157,9 +163,20 @@ export function createColossusRoad({
   let disposed = false;
   return {
     group,
+    finish,
+    ready: finish.ready,
+    ownedTextures: finish.ownedTextures,
+    setReflection(texture) {
+      for (const m of materials) {
+        m.envMap = texture;
+        m.envMapIntensity = 0.5;
+        m.needsUpdate = true;
+      }
+    },
     dispose() {
       if (disposed) return;
       disposed = true;
+      finish.dispose();
       geometries.forEach((g) => g.dispose());
       materials.forEach((m) => m.dispose());
       group.clear();

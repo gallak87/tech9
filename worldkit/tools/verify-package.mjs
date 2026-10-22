@@ -17,12 +17,6 @@ import {
   livingForestBarkURL,
   livingForestLeafURL,
 } from '../src/living-forest.js';
-import {
-  opalineStoneURL,
-  opalineStoneURLs,
-  opalineHeightFieldURL,
-  opalineSculptureURLs,
-} from '../src/opaline.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const scratch = await mkdtemp(path.join(tmpdir(), 'worldkit-package-'));
@@ -57,10 +51,6 @@ try {
   const urls = [
     livingForestBarkURL,
     livingForestLeafURL,
-    opalineStoneURL,
-    ...Object.values(opalineStoneURLs),
-    opalineHeightFieldURL,
-    ...Object.values(opalineSculptureURLs),
     ...Object.values(LANDSCAPE_ASSETS),
     ...Object.values(FOREST_MATERIAL_ASSETS),
   ];
@@ -76,10 +66,6 @@ try {
     'modules/pond-water/assets/LICENSE.md',
     'modules/weather/NOTICE.md',
     'modules/living-forest/assets/provenance.json',
-    'modules/opaline/assets/provenance.json',
-    'modules/opaline/assets/pbr-provenance.json',
-    'modules/opaline/assets/sculpture-provenance.json',
-    'modules/opaline/art/build-sculptures.py',
   ])
     assert.ok(paths.has(notice), notice);
 
@@ -116,8 +102,7 @@ try {
     import * as ocean from '@worldkit/environment/ocean';
     import * as water from '@worldkit/environment/water';
     import * as weather from '@worldkit/environment/weather';
-    import * as opaline from '@worldkit/environment/opaline';
-    window.worldkitConsumer = { worldkit, forest, landscape, ocean, water, weather, opaline };
+    window.worldkitConsumer = { worldkit, forest, landscape, ocean, water, weather };
   `,
   );
   const result = await build({
@@ -228,61 +213,6 @@ try {
         item.code.includes('/worldkit-consumer/assets/silver-bark-color-v1-'),
     ),
   );
-  await writeFile(
-    path.join(consumer, 'main.js'),
-    `
-    import * as opaline from '@worldkit/environment/opaline';
-    window.opalineConsumer = opaline;
-  `,
-  );
-  const opaline = await build({
-    root: consumer,
-    configFile: false,
-    logLevel: 'error',
-    base: '/worldkit-consumer/',
-    resolve: { dedupe: ['three'] },
-    build: { write: false, assetsInlineLimit: 0 },
-  });
-  const opalineOutputs = (Array.isArray(opaline) ? opaline : [opaline]).flatMap(
-    (item) => item.output,
-  );
-  const opalineArt = opalineOutputs.filter(
-    (item) => item.type === 'asset' && /\.(jpg|png)$/.test(item.fileName),
-  );
-  assert.equal(
-    opalineArt.length,
-    5,
-    'Opaline emits its original concept color plus four real PBR channels',
-  );
-  assert.ok(
-    opalineArt.some((item) =>
-      /porcelain-color-v1-.*\.png$/.test(item.fileName),
-    ),
-  );
-  for (const channel of ['color', 'normal', 'roughness', 'height'])
-    assert.ok(
-      opalineArt.some((item) =>
-        item.fileName.includes(`marble-cliff-01-${channel}-2k-`),
-      ),
-    );
-  assert.ok(
-    opalineOutputs.some(
-      (item) =>
-        item.type === 'asset' &&
-        /marble-cliff-01-height-128-.*\.u16$/.test(item.fileName),
-    ),
-    'CPU heightfield resolves through the consumer deployment base',
-  );
-  for (const detail of ['high', 'low', 'distant'])
-    assert.ok(
-      opalineOutputs.some(
-        (item) =>
-          item.type === 'asset' &&
-          item.fileName.includes(`mineral-sculptures-${detail}-`) &&
-          item.fileName.endsWith('.glb'),
-      ),
-      `Opaline ${detail} sculptures resolve through the consumer deployment base`,
-    );
   console.log(
     `Worldkit packed-consumer build passed: ${paths.size} package files, ${assets.length} emitted assets; all exports resolved.`,
   );

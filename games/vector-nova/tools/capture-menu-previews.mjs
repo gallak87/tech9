@@ -119,21 +119,6 @@ try {
           camera.position.set(1400, track.spireHeight + 650, -2200);
           target.set(0, track.spireHeight - 1450, 0);
         }
-        if (id === 'opaline') {
-          // The default wide overview sits inside the mineral escarpments.
-          // Show the actual shelf and its contained-river landmark from the road.
-          const zone = track.surgeZones[2];
-          const station = (zone.start + zone.end) / 2;
-          const frame = track.sample(station - 45);
-          camera.position
-            .copy(frame.position)
-            .addScaledVector(frame.tangent, -18)
-            .addScaledVector(frame.up, 9);
-          target
-            .copy(track.sample(station + 80).position)
-            .addScaledVector(frame.up, 18);
-          camera.fov = 68;
-        }
         if (id === 'nightweir') {
           const station = track.curtains[2].s - 190;
           const frame = track.sample(station);
@@ -158,7 +143,7 @@ try {
         );
         game.setSuspended(true);
         // Preserve the ordinary composer result for owned water/cloud passes.
-        if (!['nightweir', 'worldspire', 'opaline'].includes(id))
+        if (!['nightweir', 'worldspire'].includes(id))
           renderer.render(scene, camera);
         const canvas = document.createElement('canvas');
         canvas.width = 640;

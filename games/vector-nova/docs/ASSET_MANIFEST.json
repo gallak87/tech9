@@ -5,7 +5,7 @@
       "id": "biome-road-concepts-2026-10-21",
       "source": "assets/levels/biome-road-concepts/2026-10-21/",
       "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
-      "provenance": "Opaline Divide, Ferric Tide and Morrow Engine concept studies for user selection. Exact prompts and image hashes retained.",
+      "provenance": "Ferric Tide and Morrow Engine concept studies for user selection. Exact prompts and image hashes retained.",
       "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
       "runtimeDependencies": [],
       "provenanceRecord": "assets/levels/biome-road-concepts/2026-10-21/provenance.json"
@@ -550,41 +550,6 @@
         "public/assets/levels/vesper/vesper-night-sky-v1.png"
       ],
       "provenanceRecord": "assets/levels/vesper/provenance.json"
-    },
-    {
-      "id": "worldkit-opaline-art",
-      "source": "../../worldkit/modules/opaline/ and ../../worldkit/modules/island-ocean/",
-      "creator": "Worldkit project contributors; Amal Kumar / Poly Haven for Marble Cliff 01; Three.js contributors for derived water code",
-      "provenance": "Original Blender-authored mineral buttresses and aperture curl in high/low/distant GLBs, with physical relief sampled from Marble Cliff 01. Canonical unmodified CC0 color, OpenGL normal, roughness and displacement maps supply triplanar surfaces. The honed shelf reduces fracture contrast and normal strength; cliff faces retain relief. Package-owned assets are emitted once by the consumer build. Worldkit ocean retains its Three.js-derived water implementation.",
-      "rights": "Original project geometry and shaders; Marble Cliff 01 source maps and derived relief are CC0-1.0. Derived Three.js water code retains its MIT notice.",
-      "runtimeDependencies": ["three", "@worldkit/environment"],
-      "runtimeAssets": [
-        "../../worldkit/modules/opaline/assets/marble-cliff-01-color-2k.jpg",
-        "../../worldkit/modules/opaline/assets/marble-cliff-01-normal-2k.jpg",
-        "../../worldkit/modules/opaline/assets/marble-cliff-01-roughness-2k.jpg",
-        "../../worldkit/modules/opaline/assets/marble-cliff-01-height-2k.png",
-        "../../worldkit/modules/opaline/assets/mineral-sculptures-high.glb",
-        "../../worldkit/modules/opaline/assets/mineral-sculptures-low.glb",
-        "../../worldkit/modules/opaline/assets/mineral-sculptures-distant.glb"
-      ],
-      "provenanceRecords": [
-        "../../worldkit/modules/opaline/assets/pbr-provenance.json",
-        "../../worldkit/modules/opaline/assets/sculpture-provenance.json",
-        "../../worldkit/NOTICE.md",
-        "../../worldkit/modules/pond-water/THREE-LICENSE.txt"
-      ]
-    },
-    {
-      "id": "opaline-divide",
-      "source": "src/levels/opaline/",
-      "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original mineral-road circuit and connected cliff geometry, constructed service bridges, authored translucent mineral curls, procedural sky and simulation-timed spillway currents. All six natural inner banks share their rendered and CPU driving skin; connector rails and rough upper terrain have matching CPU collision geometry. Reusable Worldkit mineral art and ocean are separately registered; the earlier Opaline concept image remains a design reference rather than runtime scenery.",
-      "rights": "Project-authored integration, geometry and shaders; borrowed Worldkit art and derived water retain their separately registered rights.",
-      "runtimeDependencies": [
-        "three",
-        "@worldkit/environment",
-        "worldkit-opaline-art"
-      ]
     },
     {
       "id": "worldkit-forest-art",

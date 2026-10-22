@@ -31,12 +31,6 @@ test('demo contains two worlds and one player ship; shared materials do not ship
     assert(!includePublic(path, 'demo'), path);
   assert.throws(() => editionPolicy('unlocked'));
 });
-test('full desktop includes Opaline and its saved preview while the demo remains scoped', () => {
-  assert.ok(editionPolicy('full').levels.includes('opaline'));
-  assert.ok(!editionPolicy('demo').levels.includes('opaline'));
-  assert.ok(includePublic('assets/menu/opaline.webp', 'full'));
-  assert.ok(!includePublic('assets/menu/opaline.webp', 'demo'));
-});
 test('custom protocol confines requests to the renderer root', () => {
   const root = resolve('example/dist');
   assert.equal(resourcePath('vn-game://app/', root), root + sep + 'index.html');
@@ -203,10 +197,10 @@ test('full desktop staging preserves registered Worldkit provenance byte-for-byt
     const manifest = JSON.parse(
       await readFile(join(appRoot, 'docs/ASSET_MANIFEST.json'), 'utf8'),
     );
-    const assets = manifest.assets.filter((entry) =>
-      ['worldkit-forest-art', 'worldkit-opaline-art'].includes(entry.id),
+    const assets = manifest.assets.filter(
+      (entry) => entry.id === 'worldkit-forest-art',
     );
-    assert.equal(assets.length, 2);
+    assert.equal(assets.length, 1);
     for (const record of new Set(
       assets.flatMap((asset) => asset.provenanceRecords),
     )) {

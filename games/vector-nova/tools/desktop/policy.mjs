@@ -14,7 +14,6 @@ export const fullLevels = [
   'shatterline',
   'worldspire',
   'nightweir',
-  'opaline',
 ];
 export function editionPolicy(edition) {
   if (!['demo', 'full'].includes(edition))

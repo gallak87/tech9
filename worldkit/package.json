@@ -5,7 +5,7 @@
   "description": "Composable Three.js environment systems and canonical forest art assets.",
   "type": "module",
   "scripts": {
-    "test": "node --test tests/package.test.mjs modules/landscape/tests/*.test.js modules/island-ocean/tests/*.test.js modules/pond-water/tests/*.test.js modules/weather/tests/weather.test.js modules/living-forest/tests/*.test.js modules/opaline/tests/*.test.js",
+    "test": "node --test tests/package.test.mjs modules/landscape/tests/*.test.js modules/island-ocean/tests/*.test.js modules/pond-water/tests/*.test.js modules/weather/tests/weather.test.js modules/living-forest/tests/*.test.js",
     "build": "node tools/verify-package.mjs",
     "check": "npm test && npm run build",
     "lint": "eslint src tests/package.test.mjs tools/verify-package.mjs --max-warnings 0",
@@ -62,8 +62,7 @@
     "./weather": "./src/weather.js",
     "./package.json": "./package.json",
     "./forest/kit": "./src/forest-kit.js",
-    "./living-forest": "./src/living-forest.js",
-    "./opaline": "./src/opaline.js"
+    "./living-forest": "./src/living-forest.js"
   },
   "peerDependencies": {
     "three": "0.186.1"
@@ -98,10 +97,6 @@
     "modules/landscape/assets/art/sources/manifest.json",
     "modules/living-forest/src",
     "modules/living-forest/README.md",
-    "modules/living-forest/assets",
-    "modules/opaline/src",
-    "modules/opaline/art",
-    "modules/opaline/README.md",
-    "modules/opaline/assets"
+    "modules/living-forest/assets"
   ]
 }

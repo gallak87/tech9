@@ -2,10 +2,10 @@
   "process": "Chromium canvas WebP quality 0.86, high-quality scaling: 512px trophies with alpha and 960px-wide backgrounds. Original sources retained unchanged.",
   "images": [
     {
-      "source": "assets/ui/cups/concepts-v2/founders-seed-bowl-v2.png",
+      "source": "assets/ui/cups/concepts-v2/founders-ignition-v3.png",
       "file": "public/assets/menu/cups/founders-trophy.webp",
-      "bytes": 26772,
-      "sha256": "179086b824a442848ccd7deb6bd8dfc1ae486c8b8a91fa0856d2189ffd43b128"
+      "bytes": 34826,
+      "sha256": "d60b881c147a08f98d49baf4af052877f38dff3b7f9443810574ccd97e9b838d"
     },
     {
       "source": "assets/ui/cups/backgrounds/founders-background-abstract-v1.png",

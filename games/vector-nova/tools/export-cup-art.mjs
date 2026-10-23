@@ -4,7 +4,7 @@ import { chromium } from 'playwright';
 
 const root = new URL('../', import.meta.url);
 const icons = {
-  founders: 'founders-seed-bowl-v2.png',
+  founders: 'founders-ignition-v3.png',
   frontier: 'frontier-sunrise-arc-v2.png',
   horizon: 'horizon-forge-crown-v2.png',
   apex: 'apex-singularity-v3.png',

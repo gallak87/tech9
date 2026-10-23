@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+import { SharedKTX2Loader as KTX2Loader } from '../../../assets/ktx2-loader.js';
 import { createShatterlineTrack } from './model.js';
 import { createShatterlineRoad } from './road.js';
 import { createAsphalt } from '../../halcyon/track/asphalt.js';

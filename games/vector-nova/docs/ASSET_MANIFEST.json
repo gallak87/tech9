@@ -55,7 +55,7 @@
       "id": "cup-button-backgrounds-v1",
       "source": "assets/ui/cups/backgrounds/",
       "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
-      "provenance": "Four matching opaque panoramic cup button backgrounds in the approved abstract material direction: Founders green pigment, Frontier gold streaks, Horizon red sweep and Apex purple pigment over dark graphite. Earlier landscape studies remain as source history. Artwork only, with no composited trophy or text. Exact prompts, references, current-set filenames and SHA-256 hashes are retained; menu integration is pending.",
+      "provenance": "Opaque panoramic cup button backgrounds. Current set: retained green earthy textured Founders artwork, gold sunset for Frontier, a red volcanic pit immediately ahead for Horizon, and a purple space wormhole for Apex. Earlier landscape and abstract studies remain as source history. Background artwork only, without composited trophies or text. Exact prompts, references, current-set filenames and SHA-256 hashes are retained; menu integration is pending.",
       "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
       "runtimeDependencies": [],
       "provenanceRecord": "assets/ui/cups/backgrounds/provenance.json"

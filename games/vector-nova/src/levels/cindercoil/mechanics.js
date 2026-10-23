@@ -1,11 +1,11 @@
 // All cues and consequences sample the same fixed simulation clock.
 export const CINDERCOIL_RULES = Object.freeze({
-  version: 2,
+  version: 3,
   surgePeriod: 13,
   warningDuration: 3,
   activeDuration: 4.8,
-  surgeDrag: 22,
-  reserveDrain: 12,
+  hazardSeverity: 0.75,
+  reserveDrain: 18,
   exposedBoundary: -3,
   ventPeriod: 11,
   ventWarning: 2.2,

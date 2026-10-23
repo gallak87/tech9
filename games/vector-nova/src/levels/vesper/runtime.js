@@ -1,5 +1,6 @@
 import { createFlightModel } from '../../physics/flight.js';
-import { sampleVesperSurface } from './surface.js';
+import { sampleVesperSurface, VESPER_SAP_SEVERITY } from './surface.js';
+import { HAZARD_SURFACE_RULES } from '../../physics/hazard-surface.js';
 
 export const VESPER_FLIGHT = createFlightModel({
   gravity: 26,
@@ -7,7 +8,7 @@ export const VESPER_FLIGHT = createFlightModel({
 });
 export function vesperGroundOptions(track, state) {
   const surface = sampleVesperSurface(track, state);
-  return { surface: { drag: surface.drag } };
+  return { surface };
 }
 export function createVesperRuntime(context) {
   const { track } = context;
@@ -16,7 +17,7 @@ export function createVesperRuntime(context) {
     forgivingContacts: Boolean(context.collisionWorld),
     id: 'vesper-forest-flight',
     version: 2,
-    rulesId: `vesper-rules-2:${JSON.stringify({ revision: track.revision, rules: VESPER_FLIGHT.rules, jumps: track.jumps, zones: track.sapZones })}`,
+    rulesId: `vesper-rules-3:${JSON.stringify({ revision: track.revision, rules: VESPER_FLIGHT.rules, jumps: track.jumps, zones: track.sapZones, hazard: HAZARD_SURFACE_RULES, severity: VESPER_SAP_SEVERITY })}`,
     groundOptions: ({ state }) => vesperGroundOptions(track, state),
   });
   let surface = { id: 'resin', zone: null, drag: 0 };

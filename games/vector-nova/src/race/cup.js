@@ -48,12 +48,45 @@ export const cupDefinition = (id) => CUPS.find((cup) => cup.id === id);
 export const cupComplete = (state) =>
   !!state && state.results.length === cupDefinition(state.cupId).tracks.length;
 
-// Use the prior event, never the current result: retry/reload must keep the grid.
-// Saved classification already puts valid finishers first, then unclassified IDs.
-export function cupGridOrder(state) {
-  return state?.eventIndex > 0
-    ? state.results[state.eventIndex - 1].map(({ id }) => id)
-    : [...RACE_OPPONENTS.map(({ id }) => id), 'player'];
+// Grid promotion is earned across completed events, independently of championship
+// points. Later cups advance more slowly and punish poor finishes more strongly.
+const GRID_PROGRESSION = Object.freeze({
+  demo: { advance: 7, setback: 1 },
+  founders: { advance: 7, setback: 1 },
+  frontier: { advance: 5, setback: 1.25 },
+  horizon: { advance: 3.5, setback: 1.5 },
+  apex: { advance: 2.5, setback: 2 },
+});
+
+// A results screen may preview the next grid. Default callers always use only
+// earlier races, so retry/reload cannot promote a player using this race's result.
+export function cupGridOrder(state, { next = false } = {}) {
+  const completed = state
+    ? state.results.slice(0, state.eventIndex + Number(next))
+    : [];
+  const rivals = completed.length
+    ? completed
+        .at(-1)
+        .filter((row) => row.id !== 'player')
+        .map((row) => row.id)
+    : RACE_OPPONENTS.map(({ id }) => id);
+  const rules = GRID_PROGRESSION[state?.cupId] ?? GRID_PROGRESSION.founders;
+  let progress = 0;
+  for (const rows of completed) {
+    const player = scored(rows).find((row) => row.id === 'player');
+    const change =
+      player.status !== 'finished'
+        ? -2 * rules.setback
+        : player.points >= CUP_POINTS[4]
+          ? (rules.advance * (player.points - CUP_POINTS[4])) /
+            (CUP_POINTS[0] - CUP_POINTS[4])
+          : (-rules.setback * (CUP_POINTS[4] - player.points)) /
+            (CUP_POINTS[4] - CUP_POINTS.at(-1));
+    progress = Math.max(0, Math.min(field.length - 1, progress + change));
+  }
+  const position = field.length - Math.floor(progress + 1e-9);
+  rivals.splice(position - 1, 0, 'player');
+  return rivals;
 }
 
 // Only actual, valid finishes earn points. Missing times sort behind complete

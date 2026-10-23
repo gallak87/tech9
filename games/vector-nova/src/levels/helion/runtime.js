@@ -1,12 +1,17 @@
 import { headingExtents } from '../../physics/hull.js';
 import { createFlightModel } from '../../physics/flight.js';
 import {
+  HAZARD_SURFACE_RULES,
+  sampleHazardSurface,
+} from '../../physics/hazard-surface.js';
+import {
   HELION_HEAT_RULES,
   sampleHelionThermal,
   integrateHelionHeat,
   helionActiveThrustScale,
 } from './thermal.js';
 
+export const HELION_FIRE_SEVERITY = 1;
 const FLIGHT_RULES = {
   gravity: 26,
   airAcceleration: 4,
@@ -34,7 +39,7 @@ export function createHelionRuntime(context, telemetry = {}) {
     contactHeat = 0,
     disposed = false,
     staged = null;
-  const rulesId = `helion-thermal-flight-v3:${JSON.stringify({ geometry: track.geometryVersion, heat: HELION_HEAT_RULES, flight: flightModel.rules, jumps: track.jumps, zones: track.thermalZones })}`;
+  const rulesId = `helion-thermal-flight-v4:${JSON.stringify({ geometry: track.geometryVersion, heat: HELION_HEAT_RULES, hazard: HAZARD_SURFACE_RULES, severity: HELION_FIRE_SEVERITY, flight: flightModel.rules, jumps: track.jumps, zones: track.thermalZones })}`;
   const scenarios = Object.fromEntries(
     Object.entries(track.scenarios).map(([name, state]) => [
       name,
@@ -69,12 +74,12 @@ export function createHelionRuntime(context, telemetry = {}) {
     scenarios,
     shouldLaunch: helionShouldLaunch,
     groundOptions: ({ state }) => ({
-      surface: { thrustScale: thrustScale(state) },
+      surface: fireSurface(state),
       roadBounds: helionRoadBounds(track, state.distance),
     }),
   });
   let flightMode = 'magnetic';
-  function thrustScale(state) {
+  function fireSurface(state) {
     const sample = sampleHelionThermal(
       track,
       state.distance,
@@ -82,12 +87,21 @@ export function createHelionRuntime(context, telemetry = {}) {
       state.time,
       { airborne: flightMode !== 'magnetic' },
     );
-    return helionActiveThrustScale(
+    const surface = sampleHazardSurface(
+      state.speed,
+      HELION_FIRE_SEVERITY,
+      sample.contactStrength,
+    );
+    // Fire bites immediately, including a cold boost-through. Accumulated heat
+    // still adds engine overload and its existing short recovery after escape.
+    surface.thrustScale *= helionActiveThrustScale(
       heat,
       sample.exposure > 0 ? 0 : contactAge,
       state.time,
     );
+    return surface;
   }
+  const thrustScale = (state) => fireSurface(state).thrustScale;
   function publish(state) {
     const sample = sampleHelionThermal(
       track,
@@ -212,6 +226,7 @@ export function createHelionRuntime(context, telemetry = {}) {
       flightMode = data.flight.mode;
     },
     pose: (alpha) => base.pose(alpha),
+    applyImpulse: (state, impulse) => base.applyImpulse(state, impulse),
     update(frame) {
       base.update?.(frame);
       if (frame.state) publish(frame.state);

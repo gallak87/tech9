@@ -1,4 +1,8 @@
 import { MathUtils } from 'three';
+import {
+  combatDisruption,
+  sampleCombatDisruption,
+} from '../pickups/combat-consequences.js';
 
 const clamp = MathUtils.clamp;
 const empty = () => ({
@@ -21,12 +25,14 @@ export function createRaceFeedback() {
     previousTime = null,
     pressure = 0,
     grinder = null,
+    disruption = null,
     last = empty();
   function reset() {
     pulses = [];
     previousTime = null;
     pressure = 0;
     grinder = null;
+    disruption = null;
     last = empty();
   }
   return {
@@ -58,7 +64,12 @@ export function createRaceFeedback() {
         strength = payload.kind === 'repulsor' ? 0.55 : 0.13;
         duration = payload.kind === 'repulsor' ? 0.38 : 0.18;
       }
-      if (type === 'combat-hit') strength = payload.shielded ? 0.32 : 0.62;
+      if (type === 'combat-hit') {
+        strength = payload.shielded ? 0.32 : 0.82;
+        duration = payload.shielded ? 0.32 : 0.48;
+        if (!payload.shielded)
+          disruption = combatDisruption(disruption, payload.kind, time, 0);
+      }
       // A level-owned moving surface produces a mechanical engagement, without
       // pretending to be weapon damage or consuming a shield.
       if (type === 'colossus-conveyor-contact') {
@@ -109,6 +120,7 @@ export function createRaceFeedback() {
       if (reducedMotion) {
         pulses = [];
         grinder = null;
+        disruption = null;
         last = empty();
       }
       if (mode === 'paused') return last;
@@ -155,25 +167,36 @@ export function createRaceFeedback() {
       const rattle =
         (Math.sin(time * 71) + 0.45 * Math.sin(time * 109)) * grind;
       const roll = Math.sin(time * 57) * grind * (grinder?.side ?? 1);
+      const attack = sampleCombatDisruption(disruption, time);
+      const damage = (attack?.strength ?? 0) * 0.7;
+      const weaponRattle =
+        (Math.sin(time * 49) + 0.4 * Math.sin(time * 83)) * damage;
+      const weaponRoll = Math.sin(time * 31) * damage;
       last = {
         fov: speed * 4 + pressure * 4 + (catapulting ? 5 : 0) + surge,
         position: [
           sideways * 0.14 + roll * 0.025,
-          kick * 0.12 + tremor * 0.014 + rattle * 0.065,
+          kick * 0.12 + tremor * 0.014 + rattle * 0.065 + weaponRattle * 0.065,
           kick * 0.22,
         ],
         rotation: [
-          kick * 0.019 + tremor * 0.0015 + rattle * 0.006,
+          kick * 0.019 +
+            tremor * 0.0015 +
+            rattle * 0.006 +
+            weaponRattle * 0.006,
           sideways * 0.007,
-          -sideways * 0.025 + pressureRipple * 0.0008 + roll * 0.009,
+          -sideways * 0.025 +
+            pressureRipple * 0.0008 +
+            roll * 0.009 +
+            weaponRoll * 0.009,
         ],
         speed,
         boost: pressure,
         impact: clamp(impact, 0, 1),
         heat,
-        hullHeave: rattle * 0.1,
-        hullPitch: rattle * 0.012,
-        hullRoll: roll * 0.022,
+        hullHeave: rattle * 0.1 + weaponRattle * 0.1,
+        hullPitch: rattle * 0.012 + weaponRattle * 0.012,
+        hullRoll: roll * 0.022 + weaponRoll * 0.022,
       };
       return last;
     },

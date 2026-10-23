@@ -51,6 +51,7 @@ export function sampleHelionThermal(
   const result = {
     zone: zone?.id ?? null,
     exposure: 0,
+    contactStrength: 0,
     cooling: HELION_HEAT_RULES.passiveCooling,
     sheltered: false,
     flareStrength: 0,
@@ -81,6 +82,7 @@ export function sampleHelionThermal(
       ...result,
       active: true,
       exposure: HELION_HEAT_RULES.furnaceHeating,
+      contactStrength: 1,
       cooling: 0,
       flareStrength: 0.8,
     };
@@ -105,6 +107,7 @@ export function sampleHelionThermal(
           ? 0
           : HELION_HEAT_RULES.passiveCooling,
       exposure: contact ? HELION_HEAT_RULES.flareHeating * strength : 0,
+      contactStrength: contact ? strength : 0,
       laneCenter,
       active,
       flareStrength: strength,

@@ -1,6 +1,10 @@
 import { Vector3 } from 'three';
 import { createFlightModel } from '../../physics/flight.js';
 import {
+  HAZARD_SURFACE_RULES,
+  sampleHazardSurface,
+} from '../../physics/hazard-surface.js';
+import {
   CINDERCOIL_RULES,
   sampleCindercoilEvent,
   surgeAt,
@@ -21,14 +25,16 @@ export function createCindercoilRuntime(context) {
   const flight = model.createRuntime(context, {
     id: 'cindercoil-volcanic',
     version: context.dynamics ? 3 : 1,
-    rulesId: `cindercoil-v1:${JSON.stringify({ geometry: track.geometryVersion, flight: model.rules, jumps: track.jumps, zones: track.surgeZones, rules: CINDERCOIL_RULES })}`,
+    rulesId: `cindercoil-v2:${JSON.stringify({ geometry: track.geometryVersion, flight: model.rules, jumps: track.jumps, zones: track.surgeZones, rules: CINDERCOIL_RULES, hazard: HAZARD_SURFACE_RULES })}`,
     automaticRecovery: context.playtest?.automaticRecovery !== false,
     testLaunch: Boolean(context.playtest),
     forgivingContacts: Boolean(context.dynamics),
     groundOptions: ({ state }) => ({
-      surface: {
-        drag: surgeAt(track, state)?.contact ? CINDERCOIL_RULES.surgeDrag : 0,
-      },
+      surface: sampleHazardSurface(
+        state.speed,
+        CINDERCOIL_RULES.hazardSeverity,
+        surgeAt(track, state)?.contact ? 1 : 0,
+      ),
     }),
     launchImpulse: ({ time }) =>
       new Vector3(
@@ -132,7 +138,11 @@ export function createCindercoilRuntime(context) {
           type: 'lava-contact',
           payload: {
             id: contact.zone.id,
-            drag: CINDERCOIL_RULES.surgeDrag,
+            severity: CINDERCOIL_RULES.hazardSeverity,
+            drag: sampleHazardSurface(
+              state.speed,
+              CINDERCOIL_RULES.hazardSeverity,
+            ).drag,
             reserveDrain: CINDERCOIL_RULES.reserveDrain,
           },
         });

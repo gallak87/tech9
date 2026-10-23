@@ -13,6 +13,7 @@ import { deviceCSSColor } from './theme.js';
 import { createShipFeedbackPresentation } from './ship-feedback.js';
 import { AEGIS_DURATION } from './rules.js';
 import { createHitFeedback } from './hit-feedback.js';
+import { createCombatScreenFeedback } from './combat-screen-feedback.js';
 import { createSurfaceProjector } from './surface-projector.js';
 import { pickupQuality } from './quality.js';
 import { createLowDeviceGeometry } from './low-geometry.js';
@@ -122,9 +123,10 @@ export function createPickupPresentation({
   const combatVisual = combat
     ? createCombatPresentation(scene, combat, settings)
     : null;
-  const ionHit = combat
+  const hitFeedback = combat
     ? createHitFeedback(ship.group || ship, settings)
     : null;
+  const screenFeedback = createCombatScreenFeedback(host);
   const feedback = createShipFeedbackPresentation(settings);
   (ship.group || ship).add(feedback.group);
   const audio = createPickupAudio({ immersion: Boolean(audioImmersion) });
@@ -187,7 +189,8 @@ export function createPickupPresentation({
     noticeTime = flowTime = 0;
     readoutAnchor.reset();
     feedback.reset();
-    ionHit?.update();
+    hitFeedback?.update();
+    screenFeedback.reset();
     hud.hidden = true;
     for (const visual of hardware) visual.reset?.();
     combatNotice = null;
@@ -224,7 +227,8 @@ export function createPickupPresentation({
       }
       combatVisual?.update({ mode, enabled, settings: nextSettings });
       if (!enabled) {
-        ionHit?.update(undefined, nextSettings);
+        hitFeedback?.update(undefined, nextSettings);
+        screenFeedback.reset();
         feedback.update({
           racing: false,
           driving: false,
@@ -242,7 +246,7 @@ export function createPickupPresentation({
       const combatState = combat?.view();
       const flash = driving
         ? combatState?.flashes.findLast(
-            (entry) => entry.target === 'player' && entry.kind === 'ion',
+            (entry) => entry.target === 'player' && isCombatDevice(entry.kind),
           )
         : null;
       const blocking =
@@ -250,11 +254,19 @@ export function createPickupPresentation({
         combatState?.flashes.some(
           (entry) => entry.target === 'player' && entry.kind === 'aegis',
         );
-      ionHit?.update(flash?.age, nextSettings, 'ion', {
-        ionContact:
-          driving && !blocking ? (combat?.ionContact?.('player') ?? 0) : 0,
-        time: combatState?.time,
-      });
+      const disruption = driving ? combat?.disruption?.('player') : null;
+      screenFeedback.update(disruption, nextSettings, driving);
+      hitFeedback?.update(
+        flash?.age,
+        nextSettings,
+        disruption?.kind ?? flash?.kind ?? 'ion',
+        {
+          disruption: disruption?.strength ?? 0,
+          ionContact:
+            driving && !blocking ? (combat?.ionContact?.('player') ?? 0) : 0,
+          time: combatState?.time,
+        },
+      );
       hud.hidden = !racing;
       root.visible = mode !== 'inspection';
       feedback.group.visible = driving;
@@ -373,7 +385,9 @@ export function createPickupPresentation({
       const displayedEmitter =
         combatNoticeTime > 0 && combatNoticePriority >= 3 ? null : emitter;
       const combatKind =
-        displayedEmitter?.kind ?? (combatNoticeTime > 0 ? combatNotice : null);
+        disruption?.kind ??
+        displayedEmitter?.kind ??
+        (combatNoticeTime > 0 ? combatNotice : null);
       combatRow.hidden = !combatKind;
       hud.classList.toggle('has-combat', !!combatKind);
       if (combatKind) {
@@ -397,18 +411,22 @@ export function createPickupPresentation({
         const remaining = displayedEmitter
           ? Math.max(0, duration - displayedEmitter.elapsed)
           : 0;
-        combatValue.textContent = displayedEmitter
-          ? combatKind === 'arc'
-            ? 3 - displayedEmitter.shots + '/3'
-            : remaining.toFixed(1) + 's'
-          : combatNoticeValue;
-        const fraction = !displayedEmitter
-          ? 0
-          : combatKind === 'repulsor'
-            ? displayedEmitter.elapsed / duration
-            : combatKind === 'arc'
-              ? (3 - displayedEmitter.shots) / 3
-              : remaining / duration;
+        combatValue.textContent = disruption
+          ? `SLOWED · ${disruption.remaining.toFixed(1)}s`
+          : displayedEmitter
+            ? combatKind === 'arc'
+              ? 3 - displayedEmitter.shots + '/3'
+              : remaining.toFixed(1) + 's'
+            : combatNoticeValue;
+        const fraction = disruption
+          ? disruption.remaining / disruption.duration
+          : !displayedEmitter
+            ? 0
+            : combatKind === 'repulsor'
+              ? displayedEmitter.elapsed / duration
+              : combatKind === 'arc'
+                ? (3 - displayedEmitter.shots) / 3
+                : remaining / duration;
         combatFill.style.transform = 'scaleX(' + clamp(fraction) + ')';
       }
       // Anchor above the rendered hull, including banking and flight. Only
@@ -477,7 +495,8 @@ export function createPickupPresentation({
       document.removeEventListener('visibilitychange', visibility);
       hud.remove();
       combatVisual?.dispose();
-      ionHit?.dispose();
+      hitFeedback?.dispose();
+      screenFeedback.dispose();
       disposeGroup(root);
       feedback.dispose();
       void audio.dispose();

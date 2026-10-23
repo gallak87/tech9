@@ -141,3 +141,42 @@
     font-size: 7px;
   }
 }
+
+/* Received attacks share the simulation envelope, so pause freezes every cue. */
+.race-hit-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.race-hit-screen[hidden] {
+  display: none;
+}
+.race-hit-screen > i {
+  position: absolute;
+  inset: 0;
+}
+.race-hit-flash {
+  background: #fff;
+  opacity: var(--hit-flash, 0);
+}
+.race-hit-pressure {
+  background: radial-gradient(ellipse at 50% 55%, transparent 34%, #08030f 94%);
+  opacity: var(--hit-tunnel, 0);
+}
+.race-hit-edge {
+  box-shadow: inset 0 0 85px 8px var(--hit-color);
+  opacity: calc(var(--hit-pulse, 0) * 0.28);
+}
+.race-hit-screen[data-kind='ion'] .race-hit-edge {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 18px,
+    #b5a1ff14 19px 20px
+  );
+}
+[data-combat-hit='arc'] #hud .top-telemetry,
+[data-combat-hit='arc'] #hud .telemetry {
+  filter: brightness(calc(1 + var(--combat-hud-pulse, 0) * 0.55));
+  text-shadow: 0 0 calc(var(--combat-hud-pulse, 0) * 18px) #7bc7ff;
+}

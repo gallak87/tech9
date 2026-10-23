@@ -137,13 +137,20 @@ export async function createRacerPresentation({
             .multiply(yaw)
             .multiply(roll);
         }
+        const disruption = combat?.disruption?.(opponent.specification.id);
         // Hull-space interference must use this frame's rendered transform.
-        hitFeedback?.update(contact?.age, settings, contact?.kind, {
-          ionContact: !blocking
-            ? (combat?.ionContact?.(opponent.specification.id) ?? 0)
-            : 0,
-          time: combatState?.time,
-        });
+        hitFeedback?.update(
+          contact?.age,
+          settings,
+          disruption?.kind ?? contact?.kind,
+          {
+            disruption: disruption?.strength ?? 0,
+            ionContact: !blocking
+              ? (combat?.ionContact?.(opponent.specification.id) ?? 0)
+              : 0,
+            time: combatState?.time,
+          },
+        );
       }
     },
     dispose() {

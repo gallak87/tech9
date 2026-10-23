@@ -4,7 +4,9 @@ import {
   cupComplete,
   cupStandings,
   cupRaceRows,
+  cupChampion,
 } from '../race/cup.js';
+import { cupCard } from './cup-art.js';
 import { SHIPS } from '../ships/catalog.js';
 import { formatTime } from '../race/timing.js';
 import { trackChallenge } from './track-challenge.js';
@@ -90,7 +92,7 @@ export function cupLaunch(state, cupId, live = false) {
     return {
       action: 'cup-abandon',
       label: 'Choose another cup →',
-      detail: 'Cup complete',
+      detail: cupChampion(state) ? 'Cup champion' : 'Final standings',
     };
   if (state.phase === 'results')
     return {
@@ -115,6 +117,7 @@ export function cupView({
   live = false,
   confirm = null,
   menu = null,
+  collection = {},
 }) {
   const cup = cupDefinition(state?.cupId ?? cupId) ?? CUPS[0];
   const trackName = (id) => catalog.find((l) => l.id === id)?.name ?? id;
@@ -129,7 +132,7 @@ export function cupView({
     complete &&
     standings.filter((r) => r.position === player.position).length > 1;
   const title = complete
-    ? `${tied ? 'Joint ' : ''}${player.position === 1 ? 'Cup champion.' : `Cup complete · ${player.position}/10`}`
+    ? `${tied ? 'Joint ' : ''}${cupChampion(state) ? 'Cup champion.' : `Cup finished · ${player.position}/10`}`
     : cup.name;
   if (!menu && state?.phase === 'results')
     return resultsView({
@@ -159,7 +162,7 @@ export function cupView({
     : '';
   if (menu) {
     const picker = !state
-      ? `<fieldset class="cup-picker" aria-label="Choose a championship">${CUPS.map((entry) => `<button data-cup="${entry.id}" aria-pressed="${cup.id === entry.id}">${esc(entry.name)}</button>`).join('')}</fieldset>`
+      ? `<fieldset class="cup-picker" aria-label="Choose a championship">${CUPS.map((entry) => cupCard(entry, cup.id, collection)).join('')}</fieldset>`
       : '';
     const management = confirm
       ? actions
@@ -168,7 +171,7 @@ export function cupView({
         : '';
     return `<section class="cup-panel cup-menu-panel" aria-label="${esc(cup.name)}">${menu.hero(title)}${picker}${route}${notice ? `<p class="cup-save" role="status">${esc(notice)}</p>` : ''}${management}${scores ? `<details class="cup-scores"><summary>Standings & race results · ${state.results.length}/${cup.tracks.length} scored</summary>${scores}</details>` : ''}${menu.actions ?? ''}</section>`;
   }
-  return `<section class="cup-panel"><div class="front-heading"><span class="kicker">CHAMPIONSHIP / ${esc(cup.name.toUpperCase())}</span><h1 tabindex="-1">${title}</h1></div>${!state ? `<fieldset class="cup-picker"><legend>Choose a championship</legend>${CUPS.map((entry) => `<button data-cup="${entry.id}" aria-pressed="${cup.id === entry.id}">${esc(entry.name)}</button>`).join('')}</fieldset>` : ''}${route}<p class="cup-summary">${state ? `${esc(SHIPS.find((s) => s.id === state.shipId).name)} · ${state.difficulty} · locked for this cup · ${state.results.length}/${cup.tracks.length} races scored${complete ? ` · ${player.points} points` : ''}` : `${cup.tracks.length} races · 10 pilots`}</p>${notice ? `<p class="cup-save" role="status">${esc(notice)}</p>` : ''}${!state ? `<section class="cup-setup" aria-label="Cup setup"><fieldset><legend>Ship for all ${cup.tracks.length} races</legend>${SHIPS.map((s) => `<button data-ship="${s.id}" aria-pressed="${shipId === s.id}">${s.name}</button>`).join('')}</fieldset><fieldset><legend>Opponent difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${difficulty === d}">${d}</button>`).join('')}</fieldset></section>` : ''}${actions}${scores}</section>`;
+  return `<section class="cup-panel"><div class="front-heading"><span class="kicker">CHAMPIONSHIP / ${esc(cup.name.toUpperCase())}</span><h1 tabindex="-1">${title}</h1></div>${!state ? `<fieldset class="cup-picker"><legend>Choose a championship</legend>${CUPS.map((entry) => cupCard(entry, cup.id, collection)).join('')}</fieldset>` : ''}${route}<p class="cup-summary">${state ? `${esc(SHIPS.find((s) => s.id === state.shipId).name)} · ${state.difficulty} · locked for this cup · ${state.results.length}/${cup.tracks.length} races scored${complete ? ` · ${player.points} points` : ''}` : `${cup.tracks.length} races · 10 pilots`}</p>${notice ? `<p class="cup-save" role="status">${esc(notice)}</p>` : ''}${!state ? `<section class="cup-setup" aria-label="Cup setup"><fieldset><legend>Ship for all ${cup.tracks.length} races</legend>${SHIPS.map((s) => `<button data-ship="${s.id}" aria-pressed="${shipId === s.id}">${s.name}</button>`).join('')}</fieldset><fieldset><legend>Opponent difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${difficulty === d}">${d}</button>`).join('')}</fieldset></section>` : ''}${actions}${scores}</section>`;
 }
 
 function waitingRows(data) {

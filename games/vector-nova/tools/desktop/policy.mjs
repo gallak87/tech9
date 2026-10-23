@@ -44,6 +44,12 @@ export function includePublic(path, edition) {
     return true;
   if (policy.levels.some((id) => path === `assets/menu/${id}.webp`))
     return true;
+  if (
+    /^assets\/menu\/cups\/(founders|frontier|horizon|apex)-(trophy|background)\.webp$/.test(
+      path,
+    )
+  )
+    return edition === 'full' || path.startsWith('assets/menu/cups/founders-');
   if (policy.ships.some((id) => path.startsWith(`assets/ships/${id}/`)))
     return true;
   if (

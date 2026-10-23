@@ -8,6 +8,7 @@ import {
   getRacerControl,
 } from '../src/race/racers.js';
 import { RACE_FIELD_SIZE, RACE_OPPONENTS } from '../src/race/roster.js';
+import { cupDefinition } from '../src/race/cup.js';
 import { createRapierWorld } from '../src/physics/rapier-world.js';
 import { withMagneticBoundaries } from '../src/physics/magnetic-boundaries.js';
 import { createCombatSimulation } from '../src/pickups/combat.js';
@@ -406,7 +407,10 @@ try {
             original,
             'cup selection moved the shared menu',
           );
-          assert.equal(await page.locator('.cup-route li').count(), 4);
+          assert.equal(
+            await page.locator('.cup-route li').count(),
+            cupDefinition('apex').tracks.length,
+          );
           await page.locator('.race-menu [data-action="ship-step"]').click();
           await page.locator('[data-ship="shrike"]').click();
           assert.equal((await front(page)).intent, 'cup');
@@ -459,7 +463,7 @@ try {
         );
         await press('Space', '[data-level="orbital"]');
         assert.equal((await front(page)).selected, 'orbital');
-        await press('End', '[data-level="umbra"]');
+        await press('End', '[data-level="colossus"]');
         await press('Home', '[data-level="halcyon"]');
         await press('ArrowUp', '.picker-tabs [data-action="circuits"]');
         await press('ArrowRight', '.picker-tabs [data-action="ship-step"]');
@@ -518,14 +522,14 @@ try {
         await press('Escape', '[data-action="settings"]');
         await page.locator('.menu-selection[data-action="circuits"]').focus();
         await press('ArrowRight', '[data-level="orbital"]');
-        await press('End', '[data-level="umbra"]');
+        await press('End', '[data-level="colossus"]');
         await press('s', '[data-action="settings-back"]');
-        await press('Escape', '[data-level="umbra"]');
+        await press('Escape', '[data-level="colossus"]');
         assert.equal((await front(page)).selected, 'orbital');
         await press('Tab', '.music-previous');
         await press('Tab', '.music-play');
         await press('Shift+Tab', '.music-previous');
-        await press('Shift+Tab', '[data-level="umbra"]');
+        await press('Shift+Tab', '[data-level="colossus"]');
         await press('Escape', '.menu-selection[data-action="circuits"]');
         await press('ArrowDown', '.menu-selection[data-action="ship-step"]');
         await press('ArrowDown', '[data-action="launch"]');
@@ -692,7 +696,7 @@ try {
           true,
         );
         await page.locator('.picker-tabs [data-action="circuits"]').click();
-        assert.equal(await page.locator('.circuit-card').count(), 13);
+        assert.equal(await page.locator('.circuit-card').count(), 15);
         assert.equal(
           await page.locator('.circuit-card [data-type="sprint"]').count(),
           3,
@@ -755,7 +759,7 @@ try {
         async (page) => {
           await page.goto(url('level=zephyr'));
           await fleetReady(page);
-          assert.equal(await page.locator('.circuit-card').count(), 13);
+          assert.equal(await page.locator('.circuit-card').count(), 15);
           assert.ok(
             await page
               .locator('.circuit-hero')
@@ -1840,7 +1844,10 @@ try {
           }
           await page.locator('.menu-selection[data-action="circuits"]').click();
           await page.locator('[data-cup="apex"]').click();
-          assert.equal(await page.locator('.cup-route li').count(), 4);
+          assert.equal(
+            await page.locator('.cup-route li').count(),
+            cupDefinition('apex').tracks.length,
+          );
           await page
             .locator('.picker-header [data-action="home"]')
             .last()
@@ -1897,9 +1904,9 @@ try {
           await fleetReady(page);
           await page.locator('.menu-selection[data-action="circuits"]').focus();
           await press('Enter', '[data-level="halcyon"]');
-          await press('End', '[data-level="umbra"]');
-          await press('Space', '[data-level="umbra"]');
-          assert.equal((await front(page)).selected, 'umbra');
+          await press('End', '[data-level="colossus"]');
+          await press('Space', '[data-level="colossus"]');
+          assert.equal((await front(page)).selected, 'colossus');
           await press('Escape', '.menu-selection[data-action="circuits"]');
           await press('ArrowDown', '.menu-selection[data-action="ship-step"]');
           await press('Enter', 'button[data-ship="kestrel"]');
@@ -1926,7 +1933,7 @@ try {
           await press('Space', '[data-action="settings-back"]');
           await press('Tab', '[data-setting="quality"]');
           await press('Escape', '[data-action="settings"]');
-          await press('Tab', '.music-previous');
+          await press('Tab', '[data-action="tunes"]');
           await press('Shift+Tab', '[data-action="settings"]');
           assert.equal(await page.evaluate(() => !!window.__VN), false);
         },

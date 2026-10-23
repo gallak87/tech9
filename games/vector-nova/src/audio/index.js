@@ -203,7 +203,9 @@ export function createAudio({
           resources.thunder?.trigger(event);
         return;
       }
-      if (!resources || disposed || !audible || resultsActive) return;
+      const champion = event?.type === 'cup-champion';
+      if (!resources || disposed || !audible || (resultsActive && !champion))
+        return;
       const { context, bus, cueBus, shots } = resources;
       const sample = raceSample(event);
       const buffer = sample && resources.samples.get(sample.id);
@@ -211,7 +213,8 @@ export function createAudio({
         event?.type === 'countdown-beep' || event?.type === 'countdown-go';
       // Countdown retains its original tones; authored cues have no fallback.
       if (!buffer && !countdown) return;
-      const finish = event.type === 'player-race-complete';
+      const finish = event.type === 'player-race-complete' || champion;
+      if (champion && [...shots].some((shot) => shot.champion)) return;
       const finalLap = event.type === 'final-lap';
       if (finish || finalLap)
         for (const shot of shots)
@@ -220,7 +223,15 @@ export function createAudio({
             shots.delete(shot);
           }
       if (shots.size >= 4) return;
-      const time = context.currentTime;
+      // Schedule against the actual finish voice, including any remaining tail.
+      const time = champion
+        ? Math.max(
+            context.currentTime + 0.6,
+            ...[...shots]
+              .filter((shot) => shot.finish)
+              .map((shot) => shot.endsAt + 0.25),
+          )
+        : context.currentTime;
       const source = countdown
         ? context.createOscillator()
         : context.createBufferSource();
@@ -243,18 +254,22 @@ export function createAudio({
       } else {
         source.buffer = buffer;
         end = buffer.duration;
-        envelope.gain.setValueAtTime(sample.gain, time);
+        envelope.gain.setValueAtTime(champion ? 0 : sample.gain, time);
+        if (champion)
+          envelope.gain.linearRampToValueAtTime(sample.gain, time + 0.008);
         envelope.gain.setValueAtTime(
           sample.gain,
           time + Math.max(0, end - 0.01),
         );
       }
       envelope.gain.linearRampToValueAtTime(0, time + end);
-      source.start();
+      source.start(time);
       source.stop(time + end + 0.01);
       let ended = false;
       const shot = {
         finish,
+        champion,
+        endsAt: time + end + 0.01,
         stop() {
           if (ended) return;
           ended = true;
@@ -272,6 +287,7 @@ export function createAudio({
         source.disconnect();
         envelope.disconnect();
       };
+      return time - context.currentTime;
     },
     dispose() {
       if (disposed) return disposal || Promise.resolve();

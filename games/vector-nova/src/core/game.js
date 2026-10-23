@@ -1944,6 +1944,10 @@ export async function createGame({
         restart(true, true, false);
         audio.unlock().catch(() => {});
       },
+      celebrateCup() {
+        if (!cupRace || mode !== 'results') return 0.6;
+        return audio.event({ type: 'cup-champion' }) ?? 0.6;
+      },
       timeTrial: () => {
         restart(false, true, true);
         audio.unlock().catch(() => {});

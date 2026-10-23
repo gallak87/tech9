@@ -1,0 +1,510 @@
+/* The collection is deliberately quiet until a championship is won. */
+.cup-cabinet {
+  width: min(100%, 370px);
+  margin: 18px 0 6px;
+  padding-top: 12px;
+  border-top: 1px solid #ffffff24;
+}
+.cup-cabinet-heading {
+  display: flex;
+  justify-content: space-between;
+  color: #c8c8c8;
+  font-size: 10px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+}
+.cup-cabinet-total {
+  color: #777;
+}
+.cup-cabinet ul {
+  display: grid;
+  grid-template-columns: repeat(var(--cup-count), minmax(0, 1fr));
+  gap: 6px;
+  padding: 0;
+  margin: 8px 0 0;
+  list-style: none;
+}
+.cup-cabinet li {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  color: #858585;
+  font-size: 10px;
+}
+.cup-cabinet img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  opacity: 0.22;
+  filter: grayscale(1);
+}
+.cup-cabinet small {
+  color: #656565;
+  font-size: 9px;
+}
+.cup-cabinet .is-earned {
+  color: #eee;
+}
+.cup-cabinet .is-earned img {
+  opacity: 1;
+  filter: drop-shadow(0 0 8px #ffffff12);
+}
+.cup-cabinet .is-earned small {
+  color: var(--cup-accent);
+}
+.cup-cabinet .cup-save {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.cup-menu-panel .cup-picker {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.menu-layout .cup-picker .cup-card,
+.cup-picker .cup-card {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 3 / 1;
+  padding: 12px 18px 12px 96px;
+  background: #101114;
+  border: 1px solid #ffffff26;
+  text-align: left;
+  letter-spacing: 0;
+  transition:
+    border-color 160ms,
+    background 160ms;
+}
+.cup-card-background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 1;
+  transition: opacity 220ms;
+  pointer-events: none;
+  z-index: -2;
+}
+.cup-card::before,
+.cup-art-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #05060930, #05060950 38%, transparent 68%);
+  pointer-events: none;
+  z-index: -1;
+}
+.cup-card-trophy {
+  position: absolute;
+  left: 9px;
+  width: 82px;
+  height: 82px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px #000a);
+  opacity: 0.62;
+  pointer-events: none;
+}
+.cup-card-label {
+  display: grid;
+  gap: 7px;
+  text-shadow: 0 2px 5px #000;
+}
+.cup-card-label strong {
+  font-size: clamp(13px, 1.25vw, 18px);
+  font-weight: 500;
+}
+.cup-card-label small {
+  color: #c9c9c9;
+  font-size: 11px;
+  font-weight: 400;
+}
+.cup-earned-mark {
+  margin-left: auto;
+  padding-left: 5px;
+  color: var(--cup-accent);
+}
+.menu-layout .cup-picker .cup-card[aria-pressed='true'] {
+  border-color: #ffffff70;
+  border-bottom: 2px solid #d01818;
+}
+.menu-layout .cup-picker .cup-card:hover {
+  border-color: var(--cup-accent);
+}
+.menu-layout .cup-picker .cup-card:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+.cup-menu-panel .cup-art-hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  height: clamp(120px, 19vh, 178px);
+  min-height: 0;
+  overflow: hidden;
+  background: #121216;
+  border-bottom: 1px solid var(--cup-accent);
+}
+.cup-hero-trophy {
+  width: 28%;
+  height: 95%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 14px #000b);
+  opacity: 0.62;
+}
+.is-earned > .cup-card-trophy,
+.is-earned > .cup-hero-trophy {
+  opacity: 1;
+}
+.cup-hero-caption {
+  padding: 12px 20px 12px 0;
+}
+.cup-hero-caption .kicker {
+  color: var(--cup-accent);
+  font-size: 9px;
+  letter-spacing: 2px;
+}
+.cup-hero-caption .cup-title {
+  margin: 10px 0 8px;
+  font-size: clamp(23px, 2.8vw, 38px);
+  font-weight: 500;
+}
+.cup-hero-caption p {
+  margin: 0;
+  font-size: 12px;
+  color: #bdbdbd;
+}
+
+.cup-victory {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  align-items: center;
+  width: min(1180px, 100%);
+  min-height: clamp(420px, 70vh, 660px);
+  margin: auto;
+  background: #0e0e12;
+  border: 1px solid #ffffff24;
+  border-top: 2px solid var(--cup-accent);
+}
+.cup-victory::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, #06070bf2, #06070b60 80%),
+    linear-gradient(0deg, #08090be6, transparent 60%);
+  z-index: -1;
+}
+.cup-victory-background {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.75;
+  z-index: -2;
+}
+.cup-victory-copy {
+  padding: clamp(24px, 4vw, 64px);
+  padding-right: 0;
+  z-index: 1;
+}
+.cup-victory .kicker {
+  color: var(--cup-accent);
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+.cup-victory h1 {
+  font-size: clamp(38px, 5vw, 72px);
+  line-height: 0.98;
+  font-weight: 500;
+  letter-spacing: -2px;
+  margin: 22px 0;
+}
+.cup-victory .cup-victory-score {
+  font-size: 18px;
+  color: #dedee2;
+}
+.cup-victory-score span {
+  padding: 0 7px;
+  color: #777;
+}
+.cup-victory .cup-victory-earned {
+  color: var(--cup-accent);
+  font-size: 13px;
+  margin: 30px 0;
+}
+.cup-victory .front-actions {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 10px;
+}
+.cup-victory .front-actions button {
+  min-height: 44px;
+  padding: 13px 18px;
+  font-size: 12px;
+}
+.cup-victory .cup-save {
+  font-size: 12px;
+  color: #ddd;
+}
+.cup-victory-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  height: 100%;
+  min-height: 360px;
+}
+.cup-victory-trophy {
+  width: min(100%, 460px);
+  max-height: 55vh;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 24px #0009);
+  animation: cup-arrive 1.05s cubic-bezier(0.18, 0.75, 0.22, 1)
+    var(--cup-reveal-delay) both;
+  z-index: 1;
+}
+.cup-victory-halo {
+  position: absolute;
+  width: 85%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--cup-accent) 22%, transparent),
+    transparent 65%
+  );
+  animation: cup-halo 1.6s ease-out var(--cup-reveal-delay) both;
+}
+.cup-victory-sparks {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+}
+.cup-victory-sparks i {
+  position: absolute;
+  width: 2px;
+  height: 8px;
+  background: var(--cup-accent);
+  box-shadow: 0 0 8px var(--cup-accent);
+  animation: cup-spark 1.6s ease-out
+    calc(var(--cup-reveal-delay) + 0.5s + var(--spark-lag)) both;
+}
+@keyframes cup-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(48px) scale(0.55) rotate(-9deg);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.025) rotate(1deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cup-halo {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  to {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+}
+@keyframes cup-spark {
+  from {
+    opacity: 0;
+    transform: translate(0, 0) scale(0);
+  }
+  15% {
+    opacity: 0.75;
+  }
+  to {
+    opacity: 0;
+    transform: translate(var(--spark-x), var(--spark-y))
+      rotate(var(--spark-turn));
+  }
+}
+.reduced-motion .cup-victory-trophy,
+.reduced-motion .cup-victory-halo {
+  animation: none;
+}
+.reduced-motion .cup-victory-sparks {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cup-victory-trophy,
+  .cup-victory-halo {
+    animation: none;
+  }
+  .cup-victory-sparks {
+    display: none;
+  }
+}
+@media (min-width: 900px) and (max-height: 800px) {
+  .front-content.menu-wide {
+    padding-top: 72px;
+  }
+  .menu-wide .race-menu {
+    padding-top: 8px;
+  }
+  .cup-menu-panel .cup-art-hero {
+    height: 100px;
+  }
+  .cup-menu-panel .cup-route li {
+    padding-block: 4px;
+    min-height: 40px;
+  }
+  .cup-menu-panel .cup-event-art {
+    width: 46px;
+    height: 32px;
+  }
+  .menu-layout .cup-picker .cup-card {
+    min-height: 0;
+  }
+  .cup-card-trophy {
+    width: 70px;
+    height: 70px;
+  }
+  .cup-cabinet {
+    margin-top: 10px;
+    padding-top: 8px;
+  }
+  .cup-cabinet img {
+    width: 40px;
+    height: 40px;
+  }
+}
+@media (min-width: 900px) and (max-height: 640px) {
+  .front-content.menu-wide {
+    padding-top: 32px;
+  }
+  .menu-wide .race-menu {
+    padding-top: 0;
+  }
+  .front-content .mode-picker button {
+    min-height: 32px;
+    padding-block: 6px;
+  }
+  .menu-wide .menu-selection {
+    padding-block: 4px;
+  }
+  .menu-layout .race-actions > .primary {
+    padding-block: 10px;
+  }
+  .cup-menu-panel .cup-art-hero {
+    height: 80px;
+  }
+  .cup-hero-caption .cup-title {
+    font-size: 25px;
+    margin: 5px 0;
+  }
+  .cup-menu-panel .cup-route {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 10px;
+  }
+  .cup-menu-panel .cup-route li {
+    grid-template-columns: 14px 38px minmax(0, 1fr);
+    column-gap: 5px;
+  }
+  .cup-menu-panel .cup-route strong {
+    font-size: 11px;
+  }
+  .cup-menu-panel .cup-route small {
+    font-size: 9px;
+  }
+  .cup-menu-panel .cup-event-art {
+    width: 38px;
+  }
+  .cup-cabinet {
+    margin-top: 6px;
+    padding-top: 6px;
+  }
+  .cup-cabinet ul {
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .cup-cabinet li {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 1px 2px;
+    font-size: 9px;
+  }
+  .cup-cabinet li > :not(img) {
+    justify-self: start;
+    align-self: center;
+  }
+  .cup-cabinet img {
+    width: 28px;
+    height: 32px;
+    grid-row: 1 / span 2;
+  }
+}
+@media (max-width: 599px) {
+  .cup-menu-panel .cup-art-hero {
+    height: 150px;
+  }
+  .menu-layout .cup-picker .cup-card {
+    min-height: 92px;
+    aspect-ratio: auto;
+    padding: 12px 6px 12px 62px;
+  }
+  .cup-card-trophy {
+    left: 2px;
+    width: 58px;
+    height: 70px;
+  }
+  .cup-card-label strong {
+    font-size: 12px;
+  }
+  .cup-card-label small {
+    font-size: 10px;
+  }
+  .cup-earned-mark {
+    position: absolute;
+    top: 5px;
+    right: 6px;
+    font-size: 10px;
+  }
+  .cup-victory {
+    grid-template-columns: 1fr;
+  }
+  .cup-victory-copy {
+    padding: 26px 24px;
+    grid-row: 2;
+  }
+  .cup-victory-stage {
+    height: 220px;
+    min-height: 0;
+    grid-row: 1;
+  }
+  .cup-victory-trophy {
+    height: 230px;
+  }
+  .cup-victory-halo {
+    height: 250px;
+    width: 250px;
+  }
+  .cup-victory h1 {
+    margin: 14px 0;
+  }
+  .cup-victory-earned {
+    margin: 20px 0;
+  }
+}

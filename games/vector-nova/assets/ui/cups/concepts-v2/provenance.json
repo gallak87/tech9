@@ -1,7 +1,7 @@
 {
   "generator": "Built-in image_gen",
   "rights": "Generated for VECTOR//NOVA with built-in imagegen; no third-party reference artwork supplied.",
-  "usage": "A second set of transparent trophy concepts for review in the cup-trophy-concepts worktree. Each tier has a different silhouette and material identity with increasing graphical complexity. These are concept alternatives; existing trophy assets and approved button backgrounds remain unchanged and menu integration is pending.",
+  "usage": "Approved transparent trophy set used by the cup picker, trophy cabinet and championship reveal. Each tier has a different silhouette and material identity with increasing graphical complexity. Original PNGs are retained unchanged; runtime WebP exports and source hashes are recorded in ../runtime-exports.json.",
   "images": [
     {
       "cupId": "founders",

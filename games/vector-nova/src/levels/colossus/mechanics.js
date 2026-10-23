@@ -57,11 +57,13 @@ export const CROSSFEED_RULES = Object.freeze({
   inner: -9,
   outer: 35,
   acceleration: 19,
-  drag: 7,
+  resistance: 1.45,
+  maximumDrag: 100,
+  thrustScale: 0.45,
   grip: 0.58,
   entryLength: 24,
   contactEnvelope: 0.15,
-  contactInterval: 0.28,
+  contactInterval: 0.1,
 });
 export function crossfeedTravel(time) {
   return time * CROSSFEED_RULES.speed;
@@ -71,7 +73,7 @@ export function crossfeedBounds(belt) {
     ? { min: CROSSFEED_RULES.inner, max: CROSSFEED_RULES.outer }
     : { min: -CROSSFEED_RULES.outer, max: -CROSSFEED_RULES.inner };
 }
-export function sampleCrossfeed(track, distance, lateral, time) {
+export function sampleCrossfeed(track, distance, lateral, time, speed = 0) {
   distance = T.MathUtils.euclideanModulo(distance, track.length);
   const belt = track.belts.find(
     (b) => distance >= b.start && distance <= b.end,
@@ -84,8 +86,8 @@ export function sampleCrossfeed(track, distance, lateral, time) {
     smooth((distance - belt.start) / R.entryLength) *
     smooth((belt.end - distance) / R.entryLength);
   const tread = (belt.side * lateral - crossfeedTravel(time)) / R.treadPitch;
-  // A small tooth engagement variation supplies real mechanical traction
-  // pulses while never reversing the advertised feed direction.
+  // Teeth bite into forward momentum while the chain carries the hull sideways.
+  // Resistance falls with speed so the machine slows a ship without trapping it.
   const pulse = 0.9 + 0.1 * Math.cos(tread * Math.PI * 2);
   return {
     id: belt.id,
@@ -93,7 +95,10 @@ export function sampleCrossfeed(track, distance, lateral, time) {
     envelope,
     treadCell: Math.floor(tread),
     lateralAcceleration: belt.side * R.acceleration * envelope * pulse,
-    forwardAcceleration: -R.drag * envelope,
+    forwardAcceleration:
+      -Math.min(R.maximumDrag, Math.max(0, speed) * R.resistance) * envelope,
+    thrustScale: 1 - (1 - R.thrustScale) * envelope,
+    intensity: envelope * (0.45 + 0.55 * Math.min(1, Math.max(0, speed) / 120)),
     grip: R.grip,
   };
 }

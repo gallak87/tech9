@@ -223,17 +223,53 @@ export function createColossusTrack() {
     fs,
     true,
   );
-  const rollAt = (h) => {
-    // A finite look-ahead blends banking across authored curve joins and the
-    // lap seam, even where their second derivatives differ.
-    const s = distanceAt(h),
+  // Filter only automatic corner banking. The short curvature look-ahead and
+  // hard bank limit otherwise make the wide shoulders kick at curve joins.
+  // A compact smooth kernel retains broad banks; authored wall rolls and jump
+  // alignment are applied afterwards and keep their approved envelopes.
+  const bankRadius = 60;
+  const rawBanks = Float64Array.from({ length: fc }, (_, i) => {
+    const s = i * fs,
       a = tangentAt(s - 12),
       b = tangentAt(s + 12);
-    let bank = -T.MathUtils.clamp(
+    return -T.MathUtils.clamp(
       (Math.atan2(b.x * a.z - b.z * a.x, b.x * a.x + b.z * a.z) * 55) / 12,
       -0.9,
       0.9,
     );
+  });
+  const bankSteps = Math.ceil(bankRadius / fs);
+  const banks = Float64Array.from({ length: fc }, (_, i) => {
+    let sum = 0,
+      weight = 0;
+    for (let offset = -bankSteps; offset <= bankSteps; offset++) {
+      const x = (offset * fs) / bankRadius;
+      if (Math.abs(x) >= 1) continue;
+      const w = (1 - x * x) ** 3;
+      sum += rawBanks[(i + offset + fc) % fc] * w;
+      weight += w;
+    }
+    return sum / weight;
+  });
+  const bankAt = (s) => {
+    const f = wrap(s) / fs,
+      i = Math.floor(f),
+      t = f - i,
+      a = banks[(i - 1 + fc) % fc],
+      b = banks[i],
+      c = banks[(i + 1) % fc],
+      d = banks[(i + 2) % fc];
+    // Cubic interpolation keeps the filtered bank derivative continuous between
+    // stored stations, instead of putting small new kinks into the working bed.
+    return (
+      b +
+      0.5 *
+        t *
+        (c - a + t * (2 * a - 5 * b + 4 * c - d + t * (3 * (b - c) + d - a)))
+    );
+  };
+  const rollAt = (h) => {
+    let bank = bankAt(distanceAt(h));
     for (const j of definitions) bank *= 1 - alignment(h, j);
     const r = rolls.find((entry) => h >= entry.start && h <= entry.end);
     if (!r) return bank;
@@ -370,7 +406,7 @@ export function createColossusTrack() {
     ['press', 'The Forge Cycle', 1020],
     ['die', 'Broken Die Transfer', 1590],
     ['dive', 'Discharge Dive', 2260],
-    ['crossfeed', 'Crossfeed Belts', 2700],
+    ['crossfeed', 'Crossfeed Grinders', 2700],
     ['auger', 'Reverse Auger', 3330],
     ['gantry', 'Gantry Flight', 3980],
     ['return', 'Counterweight Reversals', 5000],
@@ -519,7 +555,7 @@ export function createColossusTrack() {
   return {
     id: 'colossus-circuit',
     name: 'Colossus Works',
-    geometryVersion: 'colossus-flat-circuit-v7',
+    geometryVersion: 'colossus-flat-circuit-v8',
     closed: true,
     width: 72,
     length,
@@ -558,7 +594,7 @@ export function createColossusTrack() {
     review: {
       kind: 'bare-track',
       description:
-        'A compact factory circuit: two reversing wall rolls, three transfers, presses, crossfeed belts and a climbing return through the upper works.',
+        'A compact factory circuit: two reversing wall rolls, three transfers, presses, crossfeed grinders and a climbing return through the upper works.',
     },
   };
 }

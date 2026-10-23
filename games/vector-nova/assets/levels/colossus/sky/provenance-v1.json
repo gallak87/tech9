@@ -1,0 +1,12 @@
+{
+  "id": "colossus-sky-v1",
+  "created": "2026-10-22",
+  "generator": "OpenAI built-in image_gen",
+  "originalOutput": "/Users/g/.codex/generated_images/01a161b7-c3d6-7372-8cba-130dc6514fb3/exec-352a1f24-eb8c-454c-a590-b467d31714a7.png",
+  "runtimeAsset": "public/assets/levels/colossus/colossus-sky-v1.png",
+  "prompt": "Use case: stylized-concept. Asset type: production sky panorama for a premium futuristic anti-gravity racing game, Colossus Works, a vast mountain quarry and heavy machine factory. Generate a richly colored, beautiful, cinematic alpine sky after a storm is clearing. The sky should have memorable monumental cumulus cloud architecture: sculptural ivory cloud towers with luminous pale-gold rims, deep cool periwinkle and slate-blue undersides, broad clean cobalt and turquoise blue windows between the clouds, delicate high cirrus. Confident sophisticated color, immense airy scale, natural atmospheric depth, polished painted realism appropriate to a premium stylized game. This is bright late-afternoon daylight with the warm sun roughly 45 degrees above the horizon, behind a glowing thinner cloud region near 65 percent of the panorama width; no visible sun disc or lens flare. Do not make a beige overcast or sunset. Keep the horizon softly atmospheric so the game's real rocky mountains silhouette clearly against it. Technical composition: one full 360-degree equirectangular sky map, exactly 2:1 landscape, preferably 4096 by 2048, seamless matching left/right edges; upper hemisphere above image midpoint, horizon at midpoint, below the horizon only soft distant atmospheric blue cloud haze fading to a quiet low-detail blue-grey nadir, not a mirrored picture. Upper pole has smooth quiet blue/cirrus to avoid polar pinching. Clouds form a coherent panoramic sky rather than a photographic narrow view stretched wide. Cloud forms span the horizon and rise high enough to be beautiful from a low racing camera. Sky and cloud atmosphere ONLY: no mountains, ground, water, buildings, roads, ships, planets, people, text, borders or watermarks.",
+  "rights": "Generated for VECTOR//NOVA. No third-party reference image supplied.",
+  "integration": "Cloud-only panorama. Authored mountains and quarry remain geometry; seam overlap and polar averaging are applied in the sky shader. Source warm cloud region aligned in yaw to the level key light.",
+  "dimensions": [1774, 887],
+  "sha256": "9076f10f7824e75798d142d60ed123cd07d09da837b6f4b56992c32e0d73c129"
+}

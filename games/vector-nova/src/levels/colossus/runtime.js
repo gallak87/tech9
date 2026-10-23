@@ -28,7 +28,7 @@ export function createColossusRuntime(context) {
     id: 'colossus-industrial-flight',
     version: 1,
     rulesId:
-      'colossus-flat-hazards-v7-crossfeed:' +
+      'colossus-flat-hazards-v8-grinders:' +
       JSON.stringify({
         geometry: track.geometryVersion,
         pace: track.pace,
@@ -48,6 +48,7 @@ export function createColossusRuntime(context) {
         state.distance,
         state.lateral,
         state.time,
+        state.speed,
       );
       return { pace: track.pace, surface: belt || {} };
     },
@@ -68,18 +69,25 @@ export function createColossusRuntime(context) {
     const belt =
       runtime.pose(1)?.grounded === false
         ? null
-        : sampleCrossfeed(track, state.distance, state.lateral, state.time);
+        : sampleCrossfeed(
+            track,
+            state.distance,
+            state.lateral,
+            state.time,
+            state.speed,
+          );
     if (!belt || belt.envelope < CROSSFEED_RULES.contactEnvelope) {
+      if (contact)
+        events.push({
+          type: 'colossus-conveyor-exit',
+          payload: { id: contact.id },
+        });
       contact = null;
       return events;
     }
     const entry = contact?.id !== belt.id;
-    const seam = contact?.cell !== belt.treadCell;
     contact = { id: belt.id, cell: belt.treadCell };
-    if (
-      (entry || seam) &&
-      state.time - lastContactTime >= CROSSFEED_RULES.contactInterval
-    ) {
+    if (state.time - lastContactTime >= CROSSFEED_RULES.contactInterval) {
       lastContactTime = state.time;
       events.push({
         type: 'colossus-conveyor-contact',
@@ -87,6 +95,7 @@ export function createColossusRuntime(context) {
           id: belt.id,
           side: belt.side,
           contact: entry ? 'engage' : 'tread',
+          intensity: belt.intensity,
           distance: state.distance,
           lateral: state.lateral,
         },

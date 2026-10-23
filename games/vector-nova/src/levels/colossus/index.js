@@ -8,7 +8,7 @@ import { createColossusRuntime } from './runtime.js';
 import { createDevices } from './devices.js';
 export default function createLevel({ shape = false } = {}) {
   return {
-    version: '1.1.0-colossus-v7',
+    version: '1.1.0-colossus-v8',
     renderer: {
       world: 'colossus',
       background: '#a7b3b9',
@@ -35,7 +35,7 @@ export default function createLevel({ shape = false } = {}) {
     createTrack: createColossusTrack,
     createRoad: (c) => createColossusRoad({ ...c, shape }),
     createEnvironment: (c) => createColossusEnvironment({ ...c, shape }),
-    createBackdrop: createColossusBackdrop,
+    createBackdrop: (c) => createColossusBackdrop({ ...c, shape }),
     createCollisionWorld: createColossusCollisionWorld,
     createDynamics: createColossusDynamics,
     createRuntime: createColossusRuntime,
@@ -59,7 +59,7 @@ export default function createLevel({ shape = false } = {}) {
           ['press', 'Working presses'],
           ['press-impact', 'Deliberate press impact'],
           ['ejector-impact', 'Deliberate ejector impact'],
-          ['crossfeed', 'Sideways belts'],
+          ['crossfeed', 'Crossfeed grinders'],
           ['screw', 'Screw feed wall roll'],
           ['auger', 'Reverse auger'],
           ['dive', 'Discharge dive'],

@@ -9,6 +9,9 @@ const empty = () => ({
   boost: 0,
   impact: 0,
   heat: 0,
+  hullHeave: 0,
+  hullPitch: 0,
+  hullRoll: 0,
 });
 
 // All envelopes use simulation time. A burst is a brief push and settled return,
@@ -17,16 +20,22 @@ export function createRaceFeedback() {
   let pulses = [],
     previousTime = null,
     pressure = 0,
+    grinder = null,
     last = empty();
   function reset() {
     pulses = [];
     previousTime = null;
     pressure = 0;
+    grinder = null;
     last = empty();
   }
   return {
     reset,
     event({ type, payload = {}, time = 0 }) {
+      if (type === 'colossus-conveyor-exit' || type === 'jump-launch') {
+        grinder = null;
+        pulses = pulses.filter((pulse) => !pulse.grinder);
+      }
       if (['jump-transfer', 'road-recovery'].includes(type)) {
         if (payload.outcome !== 'landed') {
           reset();
@@ -53,8 +62,10 @@ export function createRaceFeedback() {
       // A level-owned moving surface produces a mechanical engagement, without
       // pretending to be weapon damage or consuming a shield.
       if (type === 'colossus-conveyor-contact') {
-        strength = payload.contact === 'engage' ? 0.26 : 0.13;
-        duration = payload.contact === 'engage' ? 0.24 : 0.18;
+        const intensity = clamp(payload.intensity ?? 1, 0, 1);
+        grinder = { time, intensity, side: Math.sign(payload.side ?? 1) };
+        strength = (payload.contact === 'engage' ? 0.43 : 0.18) * intensity;
+        duration = payload.contact === 'engage' ? 0.24 : 0.16;
       }
       if (type === 'combat-confirm') {
         strength = 0.09;
@@ -77,6 +88,7 @@ export function createRaceFeedback() {
         strength,
         duration,
         surge,
+        grinder: type === 'colossus-conveyor-contact',
         side: Math.sign(payload.side ?? 0),
       });
       if (pulses.length > 8) pulses.shift();
@@ -96,6 +108,7 @@ export function createRaceFeedback() {
       }
       if (reducedMotion) {
         pulses = [];
+        grinder = null;
         last = empty();
       }
       if (mode === 'paused') return last;
@@ -133,18 +146,34 @@ export function createRaceFeedback() {
       heat = clamp(heat, 0, 1);
       const tremor = (Math.sin(time * 21) + Math.sin(time * 33) * 0.4) * heat;
       const pressureRipple = Math.sin(time * 19) * pressure * speed;
+      // Grounded grinder contacts refresh this short simulation-time envelope.
+      // It dies immediately after exit/flight and never moves the physical hull.
+      const grind = grinder
+        ? grinder.intensity *
+          (1 - MathUtils.smoothstep(time - grinder.time, 0.1, 0.23))
+        : 0;
+      const rattle =
+        (Math.sin(time * 71) + 0.45 * Math.sin(time * 109)) * grind;
+      const roll = Math.sin(time * 57) * grind * (grinder?.side ?? 1);
       last = {
         fov: speed * 4 + pressure * 4 + (catapulting ? 5 : 0) + surge,
-        position: [sideways * 0.14, kick * 0.12 + tremor * 0.014, kick * 0.22],
+        position: [
+          sideways * 0.14 + roll * 0.025,
+          kick * 0.12 + tremor * 0.014 + rattle * 0.065,
+          kick * 0.22,
+        ],
         rotation: [
-          kick * 0.019 + tremor * 0.0015,
+          kick * 0.019 + tremor * 0.0015 + rattle * 0.006,
           sideways * 0.007,
-          -sideways * 0.025 + pressureRipple * 0.0008,
+          -sideways * 0.025 + pressureRipple * 0.0008 + roll * 0.009,
         ],
         speed,
         boost: pressure,
         impact: clamp(impact, 0, 1),
         heat,
+        hullHeave: rattle * 0.1,
+        hullPitch: rattle * 0.012,
+        hullRoll: roll * 0.022,
       };
       return last;
     },

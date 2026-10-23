@@ -317,7 +317,78 @@ export function createIndustrialKit({ finish = null } = {}) {
   });
   assembly('hydraulicBank', ({ box, add, panel, pipe }) => {
     box('dark', [48, 8, 82], [0, 0, 0]);
-    box('shell', [40, 26, 58], [0, 17, 6]);
+    // The recessed vessel supports a formed access frame, cooler cassette and
+    // oil-level window. All pieces stay inside the original reservoir envelope.
+    box('cast', [32, 26, 58], [0, 17, 6]);
+    const cover = new T.Shape(
+      [
+        [-25, -13],
+        [25, -13],
+        [29, -9],
+        [29, 9],
+        [25, 13],
+        [-25, 13],
+        [-29, 9],
+        [-29, -9],
+      ].map(([z, y]) => new T.Vector2(z, y)),
+    );
+    const coolerOpening = new T.Path(
+      [
+        [-21, -8],
+        [-21, 7],
+        [13, 7],
+        [13, -8],
+      ].map(([z, y]) => new T.Vector2(z, y)),
+    );
+    cover.holes.push(coolerOpening);
+    // The level window sits behind the outer face, inside its own real aperture.
+    cover.holes.push(
+      new T.Path(
+        [
+          [17.5, -9],
+          [17.5, 9],
+          [24.5, 9],
+          [24.5, -9],
+        ].map(([z, y]) => new T.Vector2(z, y)),
+      ),
+    );
+    const sideRotation = new T.Quaternion().setFromAxisAngle(
+      new T.Vector3(0, 1, 0),
+      Math.PI / 2,
+    );
+    for (const side of [-1, 1]) {
+      // A 3.5 m formed lip reads as a removable casing instead of a flat wall.
+      add(
+        'shell',
+        new T.ExtrudeGeometry(cover, {
+          depth: 3.5,
+          bevelEnabled: false,
+          steps: 1,
+        }),
+        [side < 0 ? -20 : 16.5, 17, 6],
+        sideRotation,
+      );
+      // Four substantial inclined blades expose the shadowed cooler depth.
+      // The hole maps to world z [-7, 27] after the side-plane rotation.
+      box('dark', [0.5, 15, 34], [side * 16.25, 16.5, 10]);
+      const bladeRotation = new T.Quaternion().setFromAxisAngle(
+        new T.Vector3(0, 0, 1),
+        side * 0.22,
+      );
+      for (const y of [11, 15, 19, 23]) {
+        add(
+          'steel',
+          new T.BoxGeometry(2.7, 1.8, 32),
+          [side * 18, y, 10],
+          bladeRotation,
+        );
+      }
+      // One large oil-level window belongs to the same service casing.
+      // Its flanged recess and amber column remain readable at driving scale.
+      box('steel', [1, 18, 7], [side * 19.2, 17, -15]);
+      box('dark', [0.3, 15, 4.5], [side * 19.75, 17, -15]);
+      box('amber', [0.12, 9, 2.3], [side * 19.94, 14.5, -15]);
+    }
     box('steel', [44, 4, 62], [0, 32, 6]);
     panel(0, 17, -24, 30, 17, -1, false);
     const horizontal = new T.Quaternion().setFromAxisAngle(
@@ -624,43 +695,51 @@ export function createIndustrialKit({ finish = null } = {}) {
     box('steel', [24, 6, 10], [12, 153, 0]);
   });
   assembly('serviceTower', ({ box, cylinder, add }) => {
+    // A tapered cast yoke carries the head through an open, deep web to its shoe.
     const body = new T.Shape(
       [
-        [-20, -10],
-        [20, -10],
-        [20, 80],
+        [-22, -10],
+        [22, -10],
+        [19, 12],
+        [14, 76],
+        [19, 92],
         [12, 108],
         [-12, 108],
-        [-20, 80],
+        [-19, 92],
+        [-14, 76],
+        [-19, 12],
       ].map(([x, y]) => new T.Vector2(x, y)),
     );
     body.holes.push(
       new T.Path(
         [
-          [-10, 12],
-          [-10, 76],
-          [10, 76],
-          [10, 12],
+          [-9, 8],
+          [-7, 76],
+          [0, 91],
+          [7, 76],
+          [9, 8],
         ].map(([x, y]) => new T.Vector2(x, y)),
       ),
     );
     add(
-      'shell',
+      'cast',
       new T.ExtrudeGeometry(body, {
-        depth: 34,
+        depth: 26,
         bevelEnabled: true,
         bevelThickness: 1,
         bevelSize: 1,
         bevelSegments: 1,
         steps: 1,
       }),
-      [0, 0, -17],
+      [0, 0, -13],
     );
-    box('dark', [25, 88, 12], [0, 41, 12]);
     box('steel', [48, 12, 52], [0, -8, 0]);
-    box('amber', [27, 8, 40], [0, 83, 0]);
+    box('shell', [43, 9, 42], [0, 3, 0]);
+    box('shell', [36, 15, 40], [0, 100, 0]);
+    box('amber', [27, 5, 32], [0, 89, 0]);
     cylinder('steel', 6, 103, [25, 44, 8]);
-    box('shell', [48, 12, 52], [0, 108, 0]);
+    for (const y of [4, 86]) box('cast', [10, 8, 32], [21, y, 0]);
+    box('steel', [40, 6, 46], [0, 111, 0]);
   });
   assembly('motor', ({ box, cylinder }) => {
     box('dark', [26, 10, 40], [0, 0, 0]);
@@ -670,63 +749,65 @@ export function createIndustrialKit({ finish = null } = {}) {
     box('amber', [24, 2, 34], [0, 5, 0]);
   });
 
-  assembly('factoryBay', ({ box, cylinder, add, panel }) => {
+  assembly('factoryBay', ({ box, cylinder, add }) => {
     for (const side of [-1, 1]) {
       const frame = new T.Shape(
         [
-          [-25, -16],
-          [25, -16],
-          [25, 88],
-          [15, 128],
-          [-15, 128],
-          [-25, 88],
+          [-27.9, -16],
+          [27.9, -16],
+          [24, 5],
+          [18, 24],
+          [15, 87],
+          [22, 109],
+          [17, 128],
+          [-17, 128],
+          [-22, 109],
+          [-15, 87],
+          [-18, 24],
+          [-24, 5],
         ].map(([x, y]) => new T.Vector2(x, y)),
       );
       frame.holes.push(
         new T.Path(
           [
-            [-12, 8],
-            [-12, 89],
-            [-7, 106],
-            [7, 106],
-            [12, 89],
-            [12, 8],
+            [-11, 7],
+            [-7, 86],
+            [-10, 102],
+            [0, 112],
+            [10, 102],
+            [7, 86],
+            [11, 7],
           ].map(([x, y]) => new T.Vector2(x, y)),
         ),
       );
       add(
-        'dark',
+        'cast',
         new T.ExtrudeGeometry(frame, {
-          depth: 14,
+          depth: 32,
           bevelEnabled: true,
           bevelThickness: 1,
           bevelSize: 1,
           bevelSegments: 1,
           steps: 1,
         }),
-        [side * 85, 0, -7],
+        [side * 85, 0, -16],
       );
-      box('dark', [30, 111, 8], [side * 85, 50, 20]);
-      // The outer flange clears the bevelled web by 2 m; coincident faces shimmer in banks.
-      for (const edge of [-23, 23])
-        box('shell', [10, 97, 48], [side * 85 + edge, 35, 0]);
-      for (const y of [-9, 113]) box('steel', [56, 10, 56], [side * 85, y, 0]);
+      // Short removable caps leave the waist and the through-opening visible.
+      box('shell', [46, 18, 48], [side * 85, 2, 0]);
+      box('shell', [40, 16, 46], [side * 85, 116, 0]);
       box('steel', [58, 13, 70], [side * 85, -17, 0]);
-      for (const y of [18, 62, 101])
-        box('steel', [24, 9, 68], [side * 76, y, 0]);
+      for (const y of [18, 101]) box('cast', [24, 11, 56], [side * 76, y, 0]);
       cylinder('steel', 4.5, 105, [side * 59, 48, 0]);
       box('amber', [22, 5, 44], [side * 85, 113, -2]);
-      for (const z of [-23, 23])
-        for (const y of [31, 74]) panel(side * 103, y, z, 12, 27, Math.sign(z));
       for (const y of [7, 95]) cylinder('dark', 7, 8, [side * 59, y, 0]);
     }
+    // Exposed header webs connect thick cast shoulders to unequal steel flanges.
     box('dark', [185, 21, 14], [0, 131, 0]);
-    for (const y of [118, 144]) box('shell', [190, 5, 58], [0, y, 0]);
-    for (const x of [-85, 85]) box('steel', [12, 25, 54], [x, 131, 0]);
+    box('steel', [190, 8, 58], [0, 119, 0]);
+    box('shell', [190, 5, 46], [0, 144, 0]);
+    for (const x of [-85, -48, 0, 48, 85])
+      box('steel', [7, 21, 50], [x, 131, 0]);
     box('dark', [135, 10, 36], [0, 116, 0]);
-    for (const z of [-9, 9])
-      for (const x of [-64, -32, 0, 32, 64])
-        panel(x, 132, z, 28, 15, Math.sign(z), true);
   });
   assembly('rollerBank', ({ box, add, panel }) => {
     box('dark', [34, 22, 76], [0, 0, 0]);
@@ -821,49 +902,105 @@ export function createIndustrialKit({ finish = null } = {}) {
       cylinder('dark', 3, 30, [0, 0, z]);
     }
   });
-  assembly('coolingBank', ({ box, cylinder, add, panel, pipe }) => {
-    box('dark', [52, 92, 112], [0, 24, 0]);
-    for (const z of [-58, 58]) {
-      const outline = new T.Shape(
-        [
-          [-39, -32],
-          [39, -32],
-          [39, 59],
-          [27, 98],
-          [-27, 98],
-          [-39, 59],
-        ].map(([x, y]) => new T.Vector2(x, y)),
-      );
-      const opening = new T.Path();
-      opening.absarc(0, 31, 25, 0, Math.PI * 2, true);
-      outline.holes.push(opening);
+  assembly('coolingBank', ({ box, cylinder, add, pipe }) => {
+    const axis = new T.Quaternion().setFromAxisAngle(
+      new T.Vector3(1, 0, 0),
+      Math.PI / 2,
+    );
+    // A real shaft joins the recessed impellers through an exposed bearing bridge.
+    add('machined', new T.CylinderGeometry(6, 6, 104, 24), [0, 31, 0], axis);
+    add('cast', new T.CylinderGeometry(12, 12, 16, 24), [0, 31, 0], axis);
+    const support = new T.Shape(
+      [
+        [-18, -22],
+        [18, -22],
+        [13, 5],
+        [8, 24],
+        [-8, 24],
+        [-13, 5],
+      ].map(([x, y]) => new T.Vector2(x, y)),
+    );
+    add(
+      'cast',
+      new T.ExtrudeGeometry(support, {
+        depth: 18,
+        bevelEnabled: true,
+        bevelSize: 1,
+        bevelThickness: 1,
+        bevelSegments: 1,
+        steps: 1,
+      }),
+      [0, 0, -9],
+    );
+    for (const side of [-1, 1]) {
+      const face = side * 61,
+        fan = side * 43,
+        rotation = new T.Quaternion().setFromAxisAngle(
+          new T.Vector3(1, 0, 0),
+          (side * Math.PI) / 2,
+        );
+      // Thick lower casting and thin removable hood replace the flat appliance face.
+      const cradle = new T.Shape();
+      cradle.moveTo(-39, -28);
+      cradle.lineTo(39, -28);
+      cradle.lineTo(39, 31);
+      cradle.lineTo(29, 31);
+      cradle.absarc(0, 31, 29, 0, Math.PI, true);
+      cradle.lineTo(-39, 31);
+      cradle.closePath();
       add(
-        'shell',
-        new T.ExtrudeGeometry(outline, {
-          depth: 12,
+        'cast',
+        new T.ExtrudeGeometry(cradle, {
+          depth: 10,
           bevelEnabled: true,
-          bevelThickness: 1,
           bevelSize: 1,
+          bevelThickness: 1,
           bevelSegments: 1,
           steps: 1,
         }),
-        [0, 0, z - 6],
+        [0, 0, face - 5],
       );
-      add('steel', new T.TorusGeometry(26, 3.5, 8, 32), [
-        0,
-        31,
-        z + (z > 0 ? 7 : -7),
-      ]);
-      const face = z + (z > 0 ? 7 : -7);
+      const hood = new T.Shape();
+      hood.absarc(0, 31, 36, 0, Math.PI, false);
+      hood.lineTo(-32, 31);
+      hood.absarc(0, 31, 32, Math.PI, 0, true);
+      hood.closePath();
+      add(
+        'shell',
+        new T.ExtrudeGeometry(hood, {
+          depth: 14,
+          bevelEnabled: true,
+          bevelSize: 0.7,
+          bevelThickness: 0.7,
+          bevelSegments: 1,
+          steps: 1,
+        }),
+        [0, 0, face - 7],
+      );
+      // The closed lathed wall gives the inlet a visible inner throat and varying thickness.
       add(
         'dark',
-        new T.CylinderGeometry(9, 9, 9, 24),
-        [0, 31, face],
-        new T.Quaternion().setFromAxisAngle(
-          new T.Vector3(1, 0, 0),
-          Math.PI / 2,
+        new T.LatheGeometry(
+          [
+            [24, -13],
+            [31, 13],
+            [34, 13],
+            [29, -13],
+            [24, -13],
+          ]
+            .reverse()
+            .map(([r, y]) => new T.Vector2(r, y)),
+          32,
         ),
+        [0, 31, side * 48],
+        rotation,
       );
+      add('machined', new T.TorusGeometry(31.5, 1.4, 8, 32), [
+        0,
+        31,
+        side * 63,
+      ]);
+      add('dark', new T.CylinderGeometry(9, 9, 13, 24), [0, 31, fan], axis);
       for (let i = 0; i < 6; i++) {
         const blade = new T.Shape();
         blade.moveTo(6, -3);
@@ -881,25 +1018,22 @@ export function createIndustrialKit({ finish = null } = {}) {
             bevelSegments: 1,
             steps: 1,
           }),
-          [0, 31, face],
+          [0, 31, fan],
           new T.Quaternion().setFromAxisAngle(
             new T.Vector3(0, 0, 1),
             (i * Math.PI) / 3,
           ),
         );
       }
-      add('machined', new T.TorusGeometry(22.5, 1.2, 6, 32), [
-        0,
-        31,
-        face + Math.sign(z) * 3,
-      ]);
-      box('steel', [84, 12, 24], [0, -29, z]);
-      panel(0, 77, z + Math.sign(z) * 8, 40, 22, Math.sign(z), true);
-      for (const x of [-22, 22])
-        panel(x, -12, z + Math.sign(z) * 8, 26, 16, Math.sign(z));
+      box('steel', [84, 12, 24], [0, -29, side * 58]);
+      for (const x of [-31, 31]) box('cast', [7, 20, 12], [x, 55, side * 58]);
     }
-    for (let z = -48; z <= 48; z += 12) box('steel', [63, 83, 3], [0, 24, z]);
-    box('shell', [55, 16, 116], [0, 88, 0]);
+    for (const x of [-31, 31]) {
+      box('cast', [8, 9, 114], [x, 65, 0]);
+      for (let z = -24; z <= 24; z += 12) box('steel', [4, 67, 3], [x, 22, z]);
+    }
+    box('cast', [60, 9, 32], [0, 72, 0]);
+    cylinder('dark', 14, 24, [0, 88, 0]);
     box('dark', [88, 19, 150], [0, -36, 0]);
     box('steel', [94, 6, 158], [0, -25, 0]);
     cylinder('steel', 11, 28, [0, 108, 0]);

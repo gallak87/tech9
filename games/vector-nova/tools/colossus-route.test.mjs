@@ -38,6 +38,35 @@ test('supported vertical transitions stay broad while the major dive and ascent 
   );
 });
 
+test('the full-width shoulders have no short bank-induced pitch kicks', () => {
+  // A smooth centreline alone misses the sharp humps made by changing bank
+  // across a 72 m sheet. Survey both racing shoulders and the physical edges.
+  const pitch = (v) => (Math.atan2(v.y, Math.hypot(v.x, v.z)) * 180) / Math.PI;
+  for (const lateral of [-36, -30, 30, 36]) {
+    let maximumRate = 0,
+      maximumStation = 0;
+    for (let s = 0; s < track.length; s += 1) {
+      if (track.isGap(s - 3) || track.isGap(s + 3)) continue;
+      const a = track.surfacePoint(s - 2, lateral),
+        b = track.surfacePoint(s, lateral),
+        c = track.surfacePoint(s + 2, lateral),
+        before = b.clone().sub(a),
+        after = c.clone().sub(b),
+        rate =
+          Math.abs(pitch(after) - pitch(before)) /
+          ((before.length() + after.length()) / 2);
+      if (rate > maximumRate) {
+        maximumRate = rate;
+        maximumStation = s;
+      }
+    }
+    assert.ok(
+      maximumRate < 1.5,
+      `shoulder ${lateral} pitch change ${maximumRate} deg/m at ${maximumStation} m`,
+    );
+  }
+});
+
 test('the upper works have one climb peak and one descent trough without short pitch waves', () => {
   const directions = [];
   for (let s = returnStart + 3; s < track.length - 3; s += 2) {

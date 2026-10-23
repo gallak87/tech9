@@ -5,54 +5,76 @@ import { createColossusPaint } from './presentation.js';
 
 function workingSteel(shape, track) {
   const material = new T.MeshStandardMaterial({
-    name: 'Colossus / worn working-channel steel',
+    name: 'Colossus / process-finished working-channel steel',
     color: shape ? '#a0a7ac' : '#7c898c',
     roughness: shape ? 0.68 : 0.57,
     metalness: shape ? 0.1 : 0.74,
   });
-  if (!shape) {
-    material.onBeforeCompile = (shader) => {
-      for (const [name, start, end] of [
-        ['millZone', 0, track.sections.find((s) => s.id === 'press').start],
-        [
-          'returnZone',
-          ...['start', 'end'].map(
-            (k) => track.sections.find((s) => s.id === 'return')[k],
-          ),
-        ],
-        [
-          'headZone',
-          ...['start', 'end'].map(
-            (k) => track.sections.find((s) => s.id === 'headstock')[k],
-          ),
-        ],
-      ])
-        shader.uniforms[name] = { value: new T.Vector2(start, end) };
-
-      shader.vertexShader = shader.vertexShader
-        .replace(
-          '#include <common>',
-          '#include <common>\nattribute vec2 roadCoord; varying vec2 steelCoord;',
-        )
-        .replace(
-          '#include <begin_vertex>',
-          '#include <begin_vertex>\nsteelCoord=roadCoord;',
-        );
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
-          '#include <common>',
-          `#include <common>
+  if (shape) return material;
+  const section = (id) => {
+    const result = track.sections.find((entry) => entry.id === id);
+    if (!result) throw new Error('Missing process section: ' + id);
+    return result;
+  };
+  const zones = {
+    millZone: new T.Vector2(0, section('press').start),
+    augerZone: new T.Vector2(
+      section('crossfeed').start,
+      section('gantry').start,
+    ),
+    forgeZone: new T.Vector2(section('press').start, section('dive').start),
+    returnZone: new T.Vector2(section('return').start, section('return').end),
+    coolingZone: new T.Vector2(
+      section('cooling').start,
+      section('cooling').end,
+    ),
+    headZone: new T.Vector2(section('crown').start, track.length),
+  };
+  // Same placement stations as the paired coolingBank assemblies. Gravity in
+  // the sheet frame determines the broad drainage tail; it is not a road stripe.
+  const coolingStations = [];
+  for (
+    let d = zones.coolingZone.x + 85;
+    d < zones.coolingZone.y - 80;
+    d += 190
+  ) {
+    const frame = track.sample(d);
+    const downhill = new T.Vector2(-frame.tangent.y, -frame.right.y);
+    if (downhill.lengthSq() < 0.0001) downhill.set(-1, 0);
+    downhill.normalize();
+    coolingStations.push(new T.Vector3(d, downhill.x, downhill.y));
+  }
+  const coolingCount = coolingStations.length;
+  if (!coolingCount) coolingStations.push(new T.Vector3(-1e6, -1, 0));
+  material.onBeforeCompile = (shader) => {
+    for (const [name, value] of Object.entries(zones))
+      shader.uniforms[name] = { value };
+    shader.uniforms.coolingStations = { value: coolingStations };
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        '#include <common>',
+        '#include <common>\nattribute vec2 roadCoord; varying vec2 steelCoord;',
+      )
+      .replace(
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\nsteelCoord=roadCoord;',
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <common>',
+        `#include <common>
 varying vec2 steelCoord;
-uniform vec2 millZone,returnZone,headZone;
-float workRange(float d,vec2 z){return smoothstep(z.x,z.x+24.,d)*(1.-smoothstep(z.y-24.,z.y,d));}
+uniform vec2 millZone,augerZone,forgeZone,returnZone,coolingZone,headZone;
+uniform vec3 coolingStations[${coolingStations.length}];
+float workRange(float d,vec2 z){return smoothstep(z.x,z.x+36.,d)*(1.-smoothstep(z.y-36.,z.y,d));}
 float steelHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float steelNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(steelHash(i),steelHash(i+vec2(1,0)),f.x),mix(steelHash(i+vec2(0,1)),steelHash(i+vec2(1,1)),f.x),f.y);}`,
-        )
-        .replace(
-          '#include <map_fragment>',
-          `#include <map_fragment>
+      )
+      .replace(
+        '#include <map_fragment>',
+        `#include <map_fragment>
           vec2 p=steelCoord;
-          // Large staggered fabrication plates, with sparse anchored fasteners.
+          // Retained fabrication joints. Process finish is independent of plates.
           float row=floor((p.y+36.)/18.);
           vec2 plate=vec2(p.x+mod(row,2.)*24.,p.y+36.);
           vec2 cell=mod(plate,vec2(48.,18.));
@@ -62,32 +84,63 @@ float steelNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(m
           float longitudinal=(1.-smoothstep(.04,.08+aa.y,edge.y))*min(1.,.08/aa.y);
           float boltDistance=length(edge-vec2(1.4,1.2));
           float fastener=(1.-smoothstep(.18,.28+max(aa.x,aa.y),boltDistance))*(1.-smoothstep(.25,1.2,max(aa.x,aa.y)));
-          float broad=steelNoise(p*vec2(.012,.07))-.5;
-          float stain=steelNoise(p*vec2(.018,.17)+17.);
-          float grime=smoothstep(25.,36.,abs(p.y))*(.5+.5*stain);
-          float workZone=clamp(workRange(p.x,millZone)+workRange(p.x,headZone),0.,1.);
-          float contact=exp(-pow((abs(p.y)-14.)/8.,2.))*workZone;
-          float returnWear=workRange(p.x,returnZone)*(1.-smoothstep(10.,29.,abs(p.y)));
-          // Broad longitudinal roll contact carries the metal response throughout the works.
-          float feedOffset=sin(p.x*.003)*1.5;
-          float feedPolish=exp(-pow((abs(p.y-feedOffset)-12.)/6.5,2.));
-          float workPatch=.65+.35*steelNoise(p*vec2(.008,.07));
-          float workingWear=max(max(contact,returnWear*.65),feedPolish*.8)*workPatch;
-          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.16,.19,.19),grime*.35);
-          diffuseColor.rgb*=.91+steelHash(floor(plate/vec2(48.,18.)))*.15+broad*.035;
-          diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*1.2,workingWear);
+
+          // One broad rubbed workpiece footprint, with softer worked shoulders.
+          // No ubiquitous twin wheel-track pattern: the hull is a hovercraft.
+          float mill=clamp(workRange(p.x,millZone)+workRange(p.x,augerZone),0.,1.);
+          float forge=workRange(p.x,forgeZone);
+          float head=workRange(p.x,headZone);
+          float returned=workRange(p.x,returnZone);
+          float lateral=abs(p.y);
+          float bed=1.-smoothstep(15.,26.,lateral);
+          float margin=smoothstep(15.,32.,lateral);
+          float slowVariation=.86+.14*steelNoise(p*vec2(.004,.04));
+          float polish=clamp(bed*(mill*.92+forge*.35+returned*.38)+head*(1.-smoothstep(27.,35.,lateral)),0.,1.)*slowVariation;
+          // Compact dark mill scale remains at unworked margins, especially dies.
+          // The oxide is almost neutral; amber remains reserved for safety paint.
+          float oxide=(margin*(.18+.72*forge+.32*mill)+.03+.09*forge)*(1.-head*.9)*slowVariation;
+
+          // Wide cooling footprints follow installed banks and drain down the
+          // actual sheet slope. 28–68 m falloffs survive driving distance.
+          float wash=0.;
+          for(int i=0;i<${coolingStations.length};i++){
+            vec3 station=coolingStations[i];
+            vec2 flow=station.yz;
+            vec2 q=vec2(p.x-station.x,p.y);
+            float along=dot(q,flow);
+            float across=dot(q,vec2(-flow.y,flow.x));
+            vec2 curtainCoord=vec2(along/46.,across/28.);
+            vec2 drainCoord=vec2((along-43.)/68.,across/(8.+9.*smoothstep(0.,90.,along)));
+            float curtain=exp(-dot(curtainCoord,curtainCoord));
+            float drained=exp(-dot(drainCoord,drainCoord))*.65;
+            wash=max(wash,max(curtain,drained));
+          }
+          wash*=workRange(p.x,coolingZone);
+          oxide*=1.-wash*.7;
+          diffuseColor.rgb*=mix(vec3(1.),vec3(.43,.47,.45),oxide);
+          diffuseColor.rgb*=1.+polish*(.35-head*.20)-wash*.10;
+          diffuseColor.rgb*=.965+steelHash(floor(plate/vec2(48.,18.)))*.055;
           diffuseColor.rgb*=1.-seams*.48-longitudinal*.3-fastener*.32;
-        `,
-        )
-        .replace(
-          '#include <roughnessmap_fragment>',
-          '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+grime*.2-workingWear*.22,.34,.88);',
-        );
-    };
-    material.customProgramCacheKey = () => 'colossus-working-steel-v6';
-  }
+      `,
+      )
+      .replace(
+        '#include <roughnessmap_fragment>',
+        `#include <roughnessmap_fragment>
+          // Applied after the shared finish's restrained substrate texture.
+          // Keep broad reflections legible, with no mirror-like signal glare.
+          roughnessFactor=clamp(roughnessFactor+oxide*.22-polish*.25-wash*.20,.32+head*.18,.84);`,
+      )
+      .replace(
+        '#include <metalnessmap_fragment>',
+        `#include <metalnessmap_fragment>
+          metalnessFactor=clamp(metalnessFactor-oxide*.42+polish*.16-wash*.10,.28,.90);`,
+      );
+  };
+  material.customProgramCacheKey = () =>
+    'colossus-working-steel-process-v1-' + coolingCount;
   return material;
 }
+
 export function createColossusRoad({
   track,
   shape = false,

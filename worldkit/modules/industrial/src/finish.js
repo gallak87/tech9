@@ -102,7 +102,7 @@ export function createIndustrialFinish(renderer = null) {
           `#include <roughnessmap_fragment>
           vec3 iw=pow(abs(normalize(cross(dFdx(industrialPoint),dFdy(industrialPoint)))),vec3(4.));iw/=max(.001,iw.x+iw.y+iw.z);
           vec3 detailColor=${sample};float detailLuma=dot(detailColor,vec3(.299,.587,.114));
-          diffuseColor.rgb*=mix(vec3(1.),detailColor*${kind === 'shell' ? '1.4' : '3.6'},${coordinates === 'road' ? '.075' : kind === 'shell' ? '(.04+.09*smoothstep(.55,.8,industrialNoise(industrialPoint.xz*.015)))' : kind === 'dark' ? '.3' : kind === 'machined' ? '.18' : kind === 'cast' ? '.42' : '.63'});
+          diffuseColor.rgb*=mix(vec3(1.),detailColor*${kind === 'shell' ? '1.4' : '3.6'},${coordinates === 'road' ? '.16' : kind === 'shell' ? '(.04+.09*smoothstep(.55,.8,industrialNoise(industrialPoint.xz*.015)))' : kind === 'dark' ? '.3' : kind === 'machined' ? '.18' : kind === 'cast' ? '.42' : '.63'});
           ${kind === 'machined' && coordinates === 'part' ? `vec3 partNormal=normalize(cross(dFdx(industrialLocal),dFdy(industrialLocal)));float turning=mix(industrialLocal.y,length(industrialLocal.xz),step(.75,abs(partNormal.y)))*9.;float toolMark=sin(turning*6.28318)*(1.-smoothstep(.4,1.5,fwidth(turning)));roughnessFactor+=toolMark*.045;diffuseColor.rgb*=.96+toolMark*.025;` : ''}
           roughnessFactor=clamp(roughnessFactor+${kind === 'shell' ? '(.7-detailLuma)*.10' : '(detailLuma-.18)*.24'},.24,.92);`,
         );

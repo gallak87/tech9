@@ -1337,7 +1337,7 @@ export async function createGame({
       localRoll = new T.Quaternion();
     const upAxis = new T.Vector3(0, 1, 0),
       forwardAxis = new T.Vector3(0, 0, 1);
-    function pose(s, alpha = 1) {
+    function pose(s, alpha = 1, feedback = {}) {
       const worldPose = runtime.pose?.(alpha);
       const surface = track.sampleSurface?.(s.distance, s.lateral);
       const f = surface || track.sample(s.distance);
@@ -1353,6 +1353,11 @@ export async function createGame({
         ship.group.position.copy(worldPose.position);
         ship.group.quaternion.copy(worldPose.quaternion);
         if (worldPose.steeringBank) ship.group.quaternion.multiply(localRoll);
+      }
+      if (worldPose?.grounded !== false && feedback.hullHeave) {
+        ship.group.translateY(feedback.hullHeave);
+        ship.group.rotateX(feedback.hullPitch);
+        ship.group.rotateZ(feedback.hullRoll);
       }
       ship.update({
         speed: s.speed,
@@ -1572,7 +1577,7 @@ export async function createGame({
         camera.updateProjectionMatrix();
       } else {
         camera.clearViewOffset();
-        const worldPose = pose(s, alpha);
+        const worldPose = pose(s, alpha, feedback);
         const reviewing = mode === 'overview' || (blockout && mode === 'title');
         if (mode === 'fly') {
           flyCamera.update(dt);

@@ -2,6 +2,15 @@
   "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "cup-trophy-concepts-v2",
+      "source": "assets/ui/cups/concepts-v2/",
+      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
+      "provenance": "Four transparent trophy concepts with increasing complexity and distinct silhouettes: Founders Seed Bowl in pearl ceramic and green enamel, Frontier Sunrise Arc in titanium and gold, Horizon Forge Crown in blackened titanium and red, and Apex Singularity with nested violet orbital rings. Source PNGs, exact prompts, palette references and SHA-256 hashes retained. Concept alternatives only; menu integration is pending.",
+      "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/ui/cups/concepts-v2/provenance.json"
+    },
+    {
       "id": "colossus-industrial",
       "source": "src/levels/colossus/",
       "creator": "VECTOR//NOVA project contributors",

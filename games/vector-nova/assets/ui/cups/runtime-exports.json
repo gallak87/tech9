@@ -2,49 +2,49 @@
   "process": "Chromium canvas WebP quality 0.86, high-quality scaling: 512px trophies with alpha and 960px-wide backgrounds. Original sources retained unchanged.",
   "images": [
     {
-      "source": "assets/ui/cups/concepts-v2/founders-ignition-v3.png",
+      "source": "assets/ui/cups/founders-trophy.png",
       "file": "public/assets/menu/cups/founders-trophy.webp",
       "bytes": 34826,
       "sha256": "d60b881c147a08f98d49baf4af052877f38dff3b7f9443810574ccd97e9b838d"
     },
     {
-      "source": "assets/ui/cups/backgrounds/founders-background-abstract-v1.png",
+      "source": "assets/ui/cups/founders-background.png",
       "file": "public/assets/menu/cups/founders-background.webp",
       "bytes": 51526,
       "sha256": "223c8cebecb02eca5e90d252b61fb55a7fe4454939a81e263e073252725aedef"
     },
     {
-      "source": "assets/ui/cups/concepts-v2/frontier-sunrise-arc-v2.png",
+      "source": "assets/ui/cups/frontier-trophy.png",
       "file": "public/assets/menu/cups/frontier-trophy.webp",
       "bytes": 38922,
       "sha256": "144fe8dc937e3a65f1adbd0a0b310d5eb35a1e7286625a1e90b01a00b00d6b98"
     },
     {
-      "source": "assets/ui/cups/backgrounds/frontier-background-sunset-v1.png",
+      "source": "assets/ui/cups/frontier-background.png",
       "file": "public/assets/menu/cups/frontier-background.webp",
       "bytes": 15714,
       "sha256": "a77bbdab0de39824dbb9460831ea3969c379f705e27bf761ad51015d26bb64ca"
     },
     {
-      "source": "assets/ui/cups/concepts-v2/horizon-forge-crown-v2.png",
+      "source": "assets/ui/cups/horizon-trophy.png",
       "file": "public/assets/menu/cups/horizon-trophy.webp",
       "bytes": 51028,
       "sha256": "73e74917bf8c747721abbcf91509d411a69aa2353aaaa554b5493df2617e97d1"
     },
     {
-      "source": "assets/ui/cups/backgrounds/horizon-background-volcano-v1.png",
+      "source": "assets/ui/cups/horizon-background.png",
       "file": "public/assets/menu/cups/horizon-background.webp",
       "bytes": 59770,
       "sha256": "4b066a5b3ee86355bc83f0abcf080927878f333cafe9ce3727d0e9d167a7dd1e"
     },
     {
-      "source": "assets/ui/cups/concepts-v2/apex-singularity-v3.png",
+      "source": "assets/ui/cups/apex-trophy.png",
       "file": "public/assets/menu/cups/apex-trophy.webp",
       "bytes": 79718,
       "sha256": "7b04601ccc0877a59787242bffd4b8cf842c6b63073f647eb73996728358f2ea"
     },
     {
-      "source": "assets/ui/cups/backgrounds/apex-background-wormhole-v1.png",
+      "source": "assets/ui/cups/apex-background.png",
       "file": "public/assets/menu/cups/apex-background.webp",
       "bytes": 43116,
       "sha256": "618052e431235ef13967c1906747f92eda71c36275b068e271e44b20c3c582b6"

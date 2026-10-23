@@ -31,13 +31,13 @@
       "provenanceRecord": "docs/audio/sfx.md"
     },
     {
-      "id": "cup-trophy-concepts-v2",
-      "source": "assets/ui/cups/concepts-v2/",
+      "id": "cup-art-sources",
+      "source": "assets/ui/cups/",
       "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
-      "provenance": "Four transparent trophy concepts with increasing complexity and distinct silhouettes: Founders Ignition with swept titanium fins and a jade core, Frontier Sunrise Arc in titanium and gold, Horizon Forge Crown in blackened titanium and red, and Apex Singularity with nested violet orbital rings. Source PNGs, exact prompts, palette references and SHA-256 hashes retained. Approved runtime silhouettes; WebP exports are separately registered.",
+      "provenance": "Current approved source PNGs: Founders Ignition with a green pigment background, Frontier Sunrise Arc with a gold sunset, Horizon Forge Crown with a red volcanic pit, and Apex Singularity with a purple wormhole. Exact prompts, palette references, dimensions and SHA-256 hashes retained. Runtime WebP exports are separately registered.",
       "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
       "runtimeDependencies": [],
-      "provenanceRecord": "assets/ui/cups/concepts-v2/provenance.json"
+      "provenanceRecord": "assets/ui/cups/provenance.json"
     },
     {
       "id": "colossus-industrial",
@@ -88,24 +88,6 @@
       "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
       "runtimeDependencies": [],
       "provenanceRecord": "assets/levels/biome-road-concepts/2026-10-21/provenance.json"
-    },
-    {
-      "id": "cup-button-backgrounds-v1",
-      "source": "assets/ui/cups/backgrounds/",
-      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
-      "provenance": "Opaque panoramic cup button backgrounds. Current set: retained green earthy textured Founders artwork, gold sunset for Frontier, a red volcanic pit immediately ahead for Horizon, and a purple space wormhole for Apex. Earlier landscape and abstract studies remain as source history. Background artwork only, without composited trophies or text. Exact prompts, references, current-set filenames and SHA-256 hashes are retained; approved current-set WebP exports are separately registered.",
-      "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
-      "runtimeDependencies": [],
-      "provenanceRecord": "assets/ui/cups/backgrounds/provenance.json"
-    },
-    {
-      "id": "cup-trophy-icons-v1",
-      "source": "assets/ui/cups/",
-      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
-      "provenance": "Four matching transparent championship trophy icons: Founders green, Frontier gold, Horizon red and legendary Apex purple. The original generated red Apex trophy is retained as the shared style and recoloring reference. Source PNGs, exact prompts, menu accent references and SHA-256 hashes are retained; menu integration is pending.",
-      "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
-      "runtimeDependencies": [],
-      "provenanceRecord": "assets/ui/cups/provenance.json"
     },
     {
       "id": "worldspire-sprint",

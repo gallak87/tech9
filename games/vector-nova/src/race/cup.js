@@ -29,7 +29,7 @@ export const CUPS = Object.freeze(
         Object.freeze({
           id: 'apex',
           name: 'Apex Cup',
-          tracks: ['worldspire', 'helion', 'nightweir', 'umbra'],
+          tracks: ['worldspire', 'helion', 'nightweir', 'umbra', 'colossus'],
         }),
       ],
 );

@@ -176,14 +176,14 @@ export async function createOrbitalBackdrop() {
         float land=mix(globalLand,1.-authoredOcean,surroundWeight(vUv));
         float sun=max(dot(n,sunDirection),0.);
         float day=smoothstep(-.12,.19,dot(n,sunDirection));
-        float grazing=1.-max(dot(n,view),0.);
+        float grazing=1.-clamp(dot(n,view),0.,1.);
         // Clouds cast a small coherent, displaced soft shadow on the sphere.
         vec3 radial=vPosition-planetCenter;
         float alongSun=dot(radial,sunDirection);
         float shadowDistance=-alongSun+sqrt(max(0.,alongSun*alongSun+12035.*12035.-dot(radial,radial)));
         vec3 cloudPoint=vPosition+sunDirection*shadowDistance;
         vec3 cloudLocal=normalize(planetToLocal*(cloudPoint-planetCenter));
-        vec2 shadowUv=vec2(fract(atan(cloudLocal.z,-cloudLocal.x)/6.28318530718),asin(cloudLocal.y)/3.14159265359+.5);
+        vec2 shadowUv=vec2(fract(atan(cloudLocal.z,-cloudLocal.x)/6.28318530718),asin(clamp(cloudLocal.y,-1.,1.))/3.14159265359+.5);
         float cloudShadow=sampleCloud(shadowUv).r*mix(weatherCover(cloudPoint,normalize(cloudPoint-planetCenter)),1.,surroundWeight(shadowUv));
         float irradiance=.055+sun*2.7*(1.-cloudShadow*.34);
         vec3 radiance=albedo*irradiance*day;
@@ -251,7 +251,7 @@ export async function createOrbitalBackdrop() {
         float cosine=dot(n,sunDirection);
         float day=smoothstep(-.09,.18,cosine);
         float sun=max(dot(cloudNormal,sunDirection),0.);
-        float edge=1.-max(dot(n,view),0.);
+        float edge=1.-clamp(dot(n,view),0.,1.);
         vec3 shade=mix(vec3(.59,.68,.75),vec3(1.,.985,.94),smoothstep(.12,.7,cloud.r))*(.72+cloud.b*.46);
         vec3 radiance=shade*(.10+sun*1.15)*day;
         radiance+=vec3(.09,.23,.43)*pow(edge,4.)*day;
@@ -284,7 +284,9 @@ export async function createOrbitalBackdrop() {
       void main() {
         vec3 n=normalize(vNormal);
         vec3 view=normalize(cameraPosition-vPosition);
-        float mu=max(dot(n,view),0.);
+        // Normalized dot products can round above one at nadir. A negative
+        // pow base produces NaN alpha, which bloom spreads over the whole frame.
+        float mu=clamp(dot(n,view),0.,1.);
         float limb=pow(1.-mu,7.5);
         float daylight=smoothstep(-.18,.35,dot(n,sunDirection));
         float forward=pow(max(dot(view,-sunDirection),0.),8.);

@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'vite';
-import { resolve } from 'node:path';
+import { resolve, join } from 'node:path';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 
 const memory = () => {
   const values = new Map();
@@ -17,14 +19,19 @@ const memory = () => {
   };
 };
 async function edition(t, name) {
+  const cacheDir = await mkdtemp(join(tmpdir(), 'vn-edition-test-'));
   const server = await createServer({
     configFile: false,
+    cacheDir,
     root: resolve(import.meta.dirname, '..'),
     define: { 'import.meta.env.VN_EDITION': JSON.stringify(name) },
     server: { middlewareMode: true, hmr: false, watch: null },
     logLevel: 'error',
   });
-  t.after(() => server.close());
+  t.after(async () => {
+    await server.close();
+    await rm(cacheDir, { recursive: true, force: true });
+  });
   const modules = await Promise.all(
     [
       'progression/profile',

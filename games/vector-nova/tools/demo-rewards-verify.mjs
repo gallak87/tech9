@@ -1,5 +1,6 @@
 // Run after build:demo. Developer gates use an isolated browser-only demo;
-// a second smoke check loads the actual audited desktop renderer without APIs.
+// a second smoke check loads the audited desktop renderer with a host-window
+// bridge stub. Developer APIs must remain absent; native IPC has separate tests.
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { createServer, preview } from 'vite';
@@ -21,7 +22,7 @@ const browser = await chromium.launch({
 });
 const base = `http://127.0.0.1:${server.httpServer.address().port}`;
 const errors = [];
-let compiled;
+let compiled, activePage;
 const state = (page) => page.evaluate(() => window.__VN_FRONTEND.getState());
 async function pad(page, index) {
   for (const pressed of [true, false])
@@ -57,8 +58,20 @@ async function open(query) {
     });
   });
   const page = await context.newPage();
+  activePage = page;
+  await page.addInitScript(() => {
+    window.vectorNovaDesktop = {
+      toggleFullscreen() {},
+      getFullscreen: async () => false,
+      onFullscreenChange: () => () => {},
+      quit() {},
+    };
+  });
   page.setDefaultTimeout(15000);
-  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('pageerror', (error) => {
+    errors.push(error.message);
+    console.error(error.message);
+  });
   await page.goto(`${base}/?${query}`);
   await page.waitForFunction(() => window.__VN_FRONTEND);
   return { context, page };
@@ -168,6 +181,10 @@ try {
       const { page, context } = await open('dev=2');
       await action(page, 'garage-tab').focus();
       await page.keyboard.press('Enter');
+      await page.waitForFunction(
+        () =>
+          document.querySelector('.ship-preview')?.dataset.state === 'ready',
+      );
       assert.equal(await page.locator('.garage-fleet button').count(), 1);
       assert.equal(await page.locator('.garage-equipment-card').count(), 2);
       assert.match(
@@ -186,10 +203,12 @@ try {
         /2 \/ 2/,
       );
       // Final layout check after desktop interactions: no new mobile-only paths.
-      for (const viewport of [
-        { width: 390, height: 844 },
-        { width: 844, height: 390 },
-      ]) {
+      for (const viewport of process.argv.includes('--desktop-only')
+        ? []
+        : [
+            { width: 390, height: 844 },
+            { width: 844, height: 390 },
+          ]) {
         await page.setViewportSize(viewport);
         assert.ok(
           await page.evaluate(
@@ -201,7 +220,10 @@ try {
       }
       await context.close();
       console.log(
-        'PASS complete demo garage, two-slot toggles and final responsive layouts',
+        'PASS complete demo garage and two-slot toggles' +
+          (process.argv.includes('--desktop-only')
+            ? ''
+            : ' with final responsive layouts'),
       );
     }
   }
@@ -214,8 +236,19 @@ try {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1000 },
   });
+  await page.addInitScript(() => {
+    window.vectorNovaDesktop = {
+      toggleFullscreen() {},
+      getFullscreen: async () => false,
+      onFullscreenChange: () => () => {},
+      quit() {},
+    };
+  });
   page.setDefaultTimeout(15000);
-  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('pageerror', (error) => {
+    errors.push(error.message);
+    console.error(error.message);
+  });
   await page.goto(
     `http://127.0.0.1:${compiled.httpServer.address().port}/?dev=2`,
   );
@@ -230,6 +263,9 @@ try {
     throw error;
   }
   await page.keyboard.press('Enter');
+  await page.waitForFunction(
+    () => document.querySelector('.ship-preview')?.dataset.state === 'ready',
+  );
   assert.equal(await page.locator('.garage-fleet button').count(), 1);
   assert.equal(await page.locator('.garage-equipment-card').count(), 0);
   assert.equal(
@@ -245,6 +281,13 @@ try {
     await page.locator('.career-intro').innerText(),
     /Export your save/,
   );
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll('img.reward-art')].every(
+      (img) => img.complete && img.naturalWidth > 0,
+    ),
+  );
+  if (process.env.VN_EVIDENCE)
+    await page.screenshot({ path: process.env.VN_EVIDENCE });
   assert.equal(
     await page
       .locator('img.reward-art')
@@ -265,6 +308,15 @@ try {
   console.log(
     'PASS audited demo renderer, four icons and no developer escape hatch',
   );
+} catch (error) {
+  if (activePage && !activePage.isClosed())
+    console.error(
+      'Browser state:',
+      await state(activePage),
+      await activePage.locator('body').innerText(),
+    );
+  console.error('Browser errors:', errors);
+  throw error;
 } finally {
   await browser.close();
   await server.close();

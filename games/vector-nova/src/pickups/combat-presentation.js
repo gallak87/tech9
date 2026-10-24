@@ -169,18 +169,18 @@ function createDetailedCombatPresentation(scene, combat) {
         crown.visible = pressure.visible = pulse || repulsorHit || ionHit;
         impact.visible = upright.visible = !pulse && !repulsorHit && !ionHit;
         const fade =
-          (arcHit ? 0.35 : 1) *
+          (arcHit ? 0.85 : 1) *
           Math.pow(Math.max(0, 1 - flash.age / (muzzle ? 0.12 : 0.55)), 1.5);
         const radius = pulse
           ? Math.max(3.6, flash.radius * Math.min(1, flash.age / 0.3))
           : muzzle
             ? 2.2
             : arcHit
-              ? 1.2 + flash.age * 2
+              ? 2.2 + flash.age * 7
               : ionHit
                 ? 1.6 + flash.age * 2
                 : repulsorHit
-                  ? 2 + flash.age * 4
+                  ? 3 + flash.age * 8
                   : 2.5 + flash.age * 9;
         crown.scale.set(
           radius,

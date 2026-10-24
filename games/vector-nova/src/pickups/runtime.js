@@ -1,3 +1,4 @@
+import { Vector3 } from 'three';
 import {
   createMagneticRuntime,
   runtimeIdentity,
@@ -51,12 +52,30 @@ export function createDeviceRuntime({
     ...state,
     grounded: motion.pose(1)?.grounded !== false,
   });
+  function applyDisruption(state, disruption = combat?.disruption(combatId)) {
+    if (
+      !disruption ||
+      motion.pose(1)?.grounded === false ||
+      state.speed <= disruption.speedLimit
+    )
+      return;
+    const pose = motion.pose(1);
+    if (motion.applyImpulse && pose) {
+      const impulse = new Vector3(
+        0,
+        0,
+        disruption.speedLimit - state.speed,
+      ).applyQuaternion(pose.quaternion);
+      motion.applyImpulse(state, impulse);
+    } else state.speed = disruption.speedLimit;
+  }
   function bindCombat(state) {
     if (!combat || !enabled) return;
     combat.bind(combatId, {
       state,
       pose: () => motion.pose(1),
       notify: (event) => pending.push(event),
+      disrupt: (disruption) => applyDisruption(state, disruption),
       hit({ source, kind, impulse, cost }) {
         const shield = simulation.consumeShield({ source, attack: kind });
         if (shield) {
@@ -153,6 +172,7 @@ export function createDeviceRuntime({
           elapsed / steps,
           before.modifiers,
         );
+        applyDisruption(state);
         const after = simulation.afterStep(
           previous,
           supportedState(state),
@@ -160,6 +180,7 @@ export function createDeviceRuntime({
           physics,
         );
         applyEntryImpulse(after, state);
+        applyDisruption(state);
         ordered.push(...before.events, ...physics, ...after);
       }
       pending.push(...ordered);
@@ -186,6 +207,7 @@ export function createDeviceRuntime({
               throw new Error('Device advance state mismatch');
             const { input, previous, before } = staged;
             const physics = motion.finishAdvance(state);
+            if (enabled) applyDisruption(state);
             if (physics.some((event) => event.type === 'road-recovery'))
               combat?.resetActor(combatId);
             const after = enabled
@@ -197,6 +219,7 @@ export function createDeviceRuntime({
                 )
               : [];
             applyEntryImpulse(after, state);
+            if (enabled) applyDisruption(state);
             const ordered = [...before.events, ...physics, ...after];
             staged = null;
             pending.push(...ordered);

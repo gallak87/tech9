@@ -1,13 +1,19 @@
 import * as T from 'three';
 import { ionWakeContact, sampleIonContact } from './ion-contact.js';
 import {
+  COMBAT_CONSEQUENCES,
+  combatDisruption,
+  sampleCombatDisruption,
+} from './combat-consequences.js';
+import {
   ARC_SHOT_HEIGHT,
   ARC_MUZZLE_HEIGHT,
   ARC_TARGET_HALF_LENGTH,
 } from './rules.js';
 
 export const COMBAT_RULES = Object.freeze({
-  version: 3,
+  version: 4,
+  consequences: COMBAT_CONSEQUENCES,
   pulseDelay: 0.5,
   pulseRadius: 36,
   arcDelay: 0.15,
@@ -65,6 +71,7 @@ export function createCombatSimulation({
     sequence: 0,
     emitters: {},
     grace: {},
+    disruptions: {},
     positions: {},
     wakeHits: {},
     shots: [],
@@ -160,7 +167,24 @@ export function createCombatSimulation({
     if ((state.grace[target] ?? 0) > state.time) return;
     const targetActor = eligible(target);
     if (!targetActor || source === target) return;
-    const shielded = targetActor.actor.hit({ source, kind, impulse, cost });
+    const entrySpeed = targetActor.actor.state.speed;
+    const shielded = targetActor.actor.hit({
+      source,
+      kind,
+      impulse,
+      cost: COMBAT_CONSEQUENCES[kind]?.reserveCost ?? cost,
+    });
+    if (!shielded) {
+      state.disruptions[target] = combatDisruption(
+        state.disruptions[target],
+        kind,
+        state.time,
+        entrySpeed,
+      );
+      targetActor.actor.disrupt?.(
+        sampleCombatDisruption(state.disruptions[target], state.time),
+      );
+    }
     state.grace[target] =
       state.time + (kind === 'ion' ? 1.25 : COMBAT_RULES.hitGrace);
     const payload = {
@@ -168,6 +192,7 @@ export function createCombatSimulation({
       target,
       kind,
       shielded,
+      duration: shielded ? 0 : COMBAT_CONSEQUENCES[kind].duration,
       position: position.toArray(),
     };
     notify(target, 'combat-hit', payload);
@@ -288,6 +313,7 @@ export function createCombatSimulation({
     } else {
       delete state.emitters[id];
       delete state.grace[id];
+      delete state.disruptions[id];
       delete state.positions[id];
       state.shots = state.shots.filter((shot) => shot.source !== id);
       state.wakes = state.wakes.filter((wake) => wake.source !== id);
@@ -305,6 +331,9 @@ export function createCombatSimulation({
     step(dt) {
       if (!Number.isFinite(dt) || dt <= 0) return;
       state.time += dt;
+      for (const [id, disruption] of Object.entries(state.disruptions))
+        if (state.time >= disruption.startedAt + disruption.duration)
+          delete state.disruptions[id];
       for (const flash of state.flashes) flash.age += dt;
       state.flashes = state.flashes.filter((flash) => flash.age < 0.55);
       // Preserve crossing order without making racers compete for a gate.
@@ -540,6 +569,9 @@ export function createCombatSimulation({
         if (exposure.until <= state.time) delete state.wakeHits[id];
       touched.clear();
     },
+    disruption(id) {
+      return sampleCombatDisruption(state.disruptions[id], state.time);
+    },
     avoidance(id) {
       const actor = actors.get(id);
       if (!actor) return null;
@@ -614,6 +646,18 @@ export function createCombatSimulation({
         data.flashes.length > 32 ||
         !data.emitters ||
         !data.grace ||
+        !data.disruptions ||
+        Object.values(data.disruptions).some(
+          (entry) =>
+            !entry ||
+            !COMBAT_CONSEQUENCES[entry.kind] ||
+            entry.duration !== COMBAT_CONSEQUENCES[entry.kind].duration ||
+            !Number.isFinite(entry.entrySpeed) ||
+            entry.entrySpeed < 0 ||
+            !Number.isFinite(entry.startedAt) ||
+            entry.startedAt < 0 ||
+            entry.startedAt > data.time,
+        ) ||
         !data.positions ||
         !data.wakeHits
       )

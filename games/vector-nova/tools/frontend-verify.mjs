@@ -64,12 +64,14 @@ async function check(
   fn,
   viewport = { width: 1440, height: 900 },
   settings = {},
+  deviceScaleFactor = 1,
 ) {
   if (process.env.VN_CHECK && !new RegExp(process.env.VN_CHECK).test(name))
     return;
   const context = await browser.newContext({
     viewport,
     hasTouch: viewport.width < 760,
+    deviceScaleFactor,
   });
   try {
     await context.addInitScript(
@@ -1643,6 +1645,69 @@ try {
         /artPass=1/,
       );
     });
+    await check(
+      'Orbital downward views stay visible through HDR bloom',
+      async (page) => {
+        await page.goto(url('artPass=1&level=orbital&music=0'));
+        await booted(page);
+        const samples = await page.evaluate(async () => {
+          const views = [
+            [
+              [512.0843, 177.6554, 328.0377],
+              [509.2743, 79.5723, 308.7551],
+            ],
+            [
+              [511.6117, 161.1578, 324.7944],
+              [508.8017, 63.0747, 305.5118],
+            ],
+            [
+              [509.7307, 95.501, 311.8866],
+              [501.221, 6.2661, 267.5614],
+            ],
+            [
+              [510.8642, 107.3871, 317.7907],
+              [502.3545, 18.1522, 273.4655],
+            ],
+          ];
+          const [position, target] = views.at(-1);
+          for (let i = 0; i < 24; i++) {
+            views.push([
+              position.map((v, axis) => v + (axis === 1 ? Math.sin(i) * 8 : 0)),
+              target.map((v, axis) => v + (axis === 0 ? Math.cos(i) * 4 : 0)),
+            ]);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = 160;
+          canvas.height = 100;
+          const context = canvas.getContext('2d', { willReadFrequently: true });
+          const samples = [];
+          for (const [position, target] of views) {
+            window.__VN.setFlyView({ position, target, fov: 64 });
+            await new Promise((resolve) =>
+              requestAnimationFrame(() => requestAnimationFrame(resolve)),
+            );
+            context.drawImage(document.querySelector('#world'), 0, 0, 160, 100);
+            const { data } = context.getImageData(0, 0, 160, 100);
+            let lit = 0;
+            for (let i = 0; i < data.length; i += 4) {
+              if (data[i] + data[i + 1] + data[i + 2] > 45) lit++;
+            }
+            samples.push(lit / (160 * 100));
+          }
+          return samples;
+        });
+        samples.forEach((lit, i) =>
+          assert.ok(
+            lit > 0.8,
+            `downward view ${i} lost the rendered scene (${lit})`,
+          ),
+        );
+      },
+      // A one-pixel change can miss the near-parallel normal/view alignment.
+      { width: 1529, height: 906 },
+      { quality: 'high', reducedMotion: false },
+      2,
+    );
     await check('unknown circuit recovery and cancelled load', async (page) => {
       await page.goto(url('level=does-not-exist'));
       await page.locator('.transfer-status.failed').waitFor();

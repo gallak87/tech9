@@ -54,6 +54,12 @@ test('final standings include the complete field', () => {
   const html = resultAt(5, { complete: true });
   assert.deepEqual(ranks(html), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   assert.match(html, /Final cup standings/);
+  assert.doesNotMatch(html, /Next grid:/);
+});
+test('results explain the earned next grid instead of promising pole after a win', () => {
+  assert.match(resultAt(1), /Next grid: P03 \/ 10/);
+  assert.match(resultAt(5), /Next grid: P10 \/ 10/);
+  assert.match(resultAt(1, { valid: false }), /Next grid: P10 \/ 10/);
 });
 test('invalid finishes stay visible with zero points and storage warnings survive the compact view', () => {
   const html = resultAt(1, {

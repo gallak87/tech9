@@ -126,17 +126,23 @@ for (const folder of await readdir(directory, { withFileTypes: true })) {
           lateral: device.lateral,
           speed: 100,
         };
+        const motion = createMotion({
+          track,
+          collisionWorld,
+          dynamics,
+          presentation: false,
+        });
+        assert.equal(
+          typeof motion.applyImpulse,
+          'function',
+          `${folder.name}: player and rivals forward weapon impulses to the physical actor`,
+        );
         const runtime = createDeviceRuntime({
           track,
           devices,
           combat,
           combatId,
-          motion: createMotion({
-            track,
-            collisionWorld,
-            dynamics,
-            presentation: false,
-          }),
+          motion,
         });
         runtime.reset({ state });
         return { state, runtime, combatId };

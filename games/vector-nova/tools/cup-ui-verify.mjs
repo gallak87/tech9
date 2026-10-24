@@ -83,6 +83,10 @@ try {
     'true',
   );
   await page.locator(`[data-cup="${cup.id}"]`).click();
+  assert.match(
+    await page.locator('.cup-grid-progress').textContent(),
+    /Starting grid: P10 \/ 10/,
+  );
   await page.locator('[data-action="cup-start"]').click();
   await page.waitForFunction(
     () => window.__VN?.ready && window.__VN.getSnapshot().cup,
@@ -172,6 +176,10 @@ try {
     'classification opens at the top even after scrolling the waiting panel',
   );
   assert.equal(await page.locator('.cup-standings tbody tr').count(), 5);
+  assert.match(
+    await page.locator('.cup-grid-progress').textContent(),
+    /Next grid: P10 \/ 10/,
+  );
   assert.deepEqual(
     await page
       .locator('.cup-standings tbody tr td:first-child')
@@ -273,6 +281,10 @@ try {
   await page.reload();
   await openCup();
   assert.equal(await page.locator('.cup-title').textContent(), cup.name);
+  assert.match(
+    await page.locator('.cup-grid-progress').textContent(),
+    /Next grid: P10 \/ 10/,
+  );
   assert.equal(await page.locator('[data-cup]').count(), 0);
   assert.equal(
     await page.locator('#front-shell').getAttribute('class'),
@@ -360,6 +372,7 @@ try {
   await page.evaluate(() => window.__VN.pause());
   await page.evaluate((data) => window.__VN.verifyCupResults(data), final);
   assert.equal(await page.locator('.cup-standings tbody tr').count(), 10);
+  assert.equal(await page.locator('.cup-grid-progress').count(), 0);
   assert.equal(
     await page.locator('.cup-standings caption').textContent(),
     'Final cup standings',

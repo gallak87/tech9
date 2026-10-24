@@ -167,3 +167,28 @@ test('ongoing Ion contact rolls softly over the hull and yields to the first str
   geometry.dispose();
   original.dispose();
 });
+
+test('High and Low retain the incoming weapon identity until drive recovery ends', () => {
+  for (const quality of ['high', 'low']) {
+    const ship = new Group();
+    const geometry = new BoxGeometry();
+    const material = new MeshBasicMaterial();
+    ship.add(new Mesh(geometry, material));
+    const feedback = createHitFeedback(ship, { quality });
+    feedback.update(undefined, { quality }, 'repulsor', {
+      disruption: 1,
+      time: 2,
+    });
+    assert.equal(feedback.group.visible, true);
+    const response = feedback.group.children[0].material;
+    assert.equal(
+      (response.uniforms?.color.value ?? response.color).getHex(),
+      DEVICE_COLORS.repulsor,
+    );
+    feedback.update(undefined, { quality }, 'repulsor', { disruption: 0 });
+    assert.equal(feedback.group.visible, false);
+    feedback.dispose();
+    geometry.dispose();
+    material.dispose();
+  }
+});

@@ -63,7 +63,42 @@ const cases = [
       assert.equal(snapshot.contactAge, 0);
       assert.equal(
         events.filter((event) => event.type === 'helion-power').length,
-        1,
+        0,
+        'ongoing fire already limits thrust; crossing the overload threshold is not a second onset',
+      );
+    },
+  },
+  {
+    level: 'helion',
+    name: 'helion cold fire entry',
+    start(track) {
+      return {
+        distance:
+          track.thermalZones.find((zone) => zone.kind === 'furnace').start -
+          0.01,
+        speed: 30,
+      };
+    },
+    local: ({ heat, contactAge, contactHeat }) => ({
+      heat,
+      contactAge,
+      contactHeat,
+    }),
+    assert(snapshot, events) {
+      // The staged sample was outside the fire; first heating belongs to the
+      // next tick, while power changes at the actual solved entry position.
+      assert.equal(snapshot.heat, 0);
+      const changes = events.filter((event) => event.type === 'helion-power');
+      assert.equal(changes.length, 1);
+      assert.equal(changes[0].payload.limited, true);
+      assert.ok(changes[0].payload.thrustScale <= 0.45);
+    },
+    assertNext(snapshot, events) {
+      assert.ok(Math.abs(snapshot.heat - 25 * DT) < 1e-10);
+      assert.equal(snapshot.contactAge, 0);
+      assert.equal(
+        events.filter((event) => event.type === 'helion-power').length,
+        0,
       );
     },
   },
@@ -100,7 +135,7 @@ const cases = [
 ];
 
 for (const scenario of cases) {
-  test(`${scenario.level} local effects run after the shared body solve exactly once`, async () => {
+  test(`${scenario.name ?? scenario.level} local effects run after the shared body solve exactly once`, async () => {
     const definition = (
       await import(`../src/levels/${scenario.level}/index.js`)
     ).default();
@@ -147,10 +182,9 @@ for (const scenario of cases) {
       for (let tick = 0; tick < 3; tick++) {
         staged.beginAdvance(state, controls, DT);
         stagedWorld.step(DT);
-        assert.deepEqual(
-          staged.finishAdvance(state),
-          direct.advance(other, controls, DT),
-        );
+        const nextEvents = staged.finishAdvance(state);
+        assert.deepEqual(nextEvents, direct.advance(other, controls, DT));
+        if (tick === 0) scenario.assertNext?.(staged.snapshot(), nextEvents);
       }
       assert.deepEqual(state, other);
       assert.deepEqual(

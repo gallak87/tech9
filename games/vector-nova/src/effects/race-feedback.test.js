@@ -18,7 +18,7 @@ test('camera impulses distinguish hits from confirms, settle fully, and pause in
   assert.ok(Math.abs(a.position[2]) > Math.abs(b.position[2]) * 3);
   assert.deepEqual(hit.update(frame(1.04, { mode: 'paused' })), a);
   assert.deepEqual(hit.update(frame(1.04)), a);
-  assert.deepEqual(hit.update(frame(2)).position, [0, 0, 0]);
+  assert.deepEqual(hit.update(frame(3)).position, [0, 0, 0]);
 });
 
 test('wall/racer impacts are directional and bounded even with overlapping weapon fire', () => {
@@ -95,4 +95,36 @@ test('later Arc contacts still respond gently during damage grace', () => {
   assert.ok(responses[0].impact > responses[1].impact);
   assert.ok(responses[1].impact > 0);
   assert.ok(responses[0].position.every((value) => Math.abs(value) < 0.02));
+});
+
+test('received weapons rattle for their whole bounded recovery, while shields and reduced motion suppress it', () => {
+  for (const [kind, duration] of [
+    ['ion', 1],
+    ['arc', 2],
+    ['repulsor', 3],
+  ]) {
+    const feedback = createRaceFeedback();
+    feedback.event({ type: 'combat-hit', time: 1, payload: { kind } });
+    const sustained = feedback.update(frame(1 + duration * 0.5));
+    assert.ok(sustained.hullHeave !== 0);
+    assert.ok(sustained.position[1] !== 0);
+    assert.deepEqual(
+      feedback.update(frame(1 + duration, { mode: 'paused' })),
+      sustained,
+    );
+    const ended = feedback.update(frame(1 + duration));
+    assert.equal(Math.abs(ended.hullHeave), 0);
+    assert.deepEqual(ended.position, [0, 0, 0]);
+    feedback.event({
+      type: 'combat-hit',
+      time: 5,
+      payload: { kind, shielded: true },
+    });
+    assert.equal(Math.abs(feedback.update(frame(5.6)).hullHeave), 0);
+    feedback.event({ type: 'combat-hit', time: 8, payload: { kind } });
+    assert.equal(
+      feedback.update(frame(8.1, { reducedMotion: true })).hullHeave,
+      0,
+    );
+  }
 });

@@ -28,25 +28,27 @@ export const RACE_LAPS = 2;
 export const RACE_DIFFICULTIES = Object.freeze(['easy', 'medium', 'hard']);
 const DRIVER_PROFILES = Object.freeze({
   easy: {
-    cornerLoad: 28,
-    pace: 0.04,
-    boostCurvature: 0.0018,
-    boostReserve: 60,
-    boostFloor: 35,
-  },
-  medium: {
     cornerLoad: 48,
     pace: 0.12,
     boostCurvature: 0.0046,
     boostReserve: 40,
     boostFloor: 16,
   },
-  hard: {
+  medium: {
     cornerLoad: 80,
     pace: 0.16,
     boostCurvature: 0.008,
     boostReserve: 14,
     boostFloor: 0,
+  },
+  hard: {
+    cornerLoad: 110,
+    pace: 0.2,
+    boostCurvature: 0.012,
+    boostReserve: 12,
+    boostFloor: 0,
+    brakingPreview: 1.2,
+    flightBoost: true,
   },
 });
 const REORIENT = Object.freeze({ belowSpeed: 14, heading: Math.PI / 3 });
@@ -87,8 +89,20 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
   const profile = DRIVER_PROFILES[difficulty];
   if (track.closed === false && opponent.finish)
     return sprintRunoutControl(track, state);
-  if (opponent.runtime?.pose(1)?.grounded === false)
-    return { throttle: 1, brake: 0, steer: 0, boost: false, airbrake: false };
+  if (opponent.runtime?.pose(1)?.grounded === false) {
+    // Long downhill receivers have room to spend reserve in flight. Short
+    // technical transfers keep the authored ballistic arrival instead.
+    const jump = track.jumps?.find(
+      (entry) => Math.abs(entry.takeoff - state.distance) < 1,
+    );
+    const boost =
+      profile.flightBoost === true &&
+      track.closed === false &&
+      jump?.landingEnd - jump?.landingStart >= 600 &&
+      state.energy >
+        (state.boosting ? profile.boostFloor : profile.boostReserve);
+    return { throttle: 1, brake: 0, steer: 0, boost, airbrake: false };
+  }
   const handling = getShip(state.shipId).handling;
   const coursePace = getVehiclePace(state.shipId, track.pace);
   const speedProfile = coursePace ?? handling;
@@ -109,18 +123,37 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
     Math.abs(frame.curvature),
     Math.abs(lookahead.curvature),
   );
-  const cornerSpeed = clamp(
-    // Difficulty chooses the target load; weaker steering also limits the
-    // maximum this chassis can follow without spending its reserve on rails.
+  const cornerLimit = (curve) =>
     Math.sqrt(
-      Math.min(
-        profile.cornerLoad,
-        DRIVER_PROFILES.hard.cornerLoad * handling.turn,
-      ) / Math.max(curvature, 0.000001),
-    ),
-    63,
-    Math.max(speedProfile.boostSpeed, VECTOR_PROPULSION.cruiseSpeed),
-  );
+      Math.min(profile.cornerLoad, 110 * handling.turn) /
+        Math.max(Math.abs(curve), 0.000001),
+    );
+  // Hard plans how late it can safely brake, rather than treating the entire
+  // visible road as the next corner. The limit is lateral grip/steering load,
+  // not nominal boost speed: a descent can earn more momentum than that.
+  let cornerSpeed;
+  if (profile.brakingPreview) {
+    cornerSpeed = Math.max(63, cornerLimit(frame.curvature));
+    const preview = Math.max(65, state.speed * profile.brakingPreview);
+    for (const fraction of [1 / 3, 2 / 3, 1]) {
+      const distance = preview * fraction;
+      const future = track.sample(state.distance + distance);
+      const safeSpeed = Math.max(63, cornerLimit(future.curvature));
+      cornerSpeed = Math.min(
+        cornerSpeed,
+        Math.sqrt(safeSpeed ** 2 + 2 * handling.braking * 0.45 * distance),
+      );
+    }
+  } else {
+    cornerSpeed = clamp(
+      Math.sqrt(
+        Math.min(profile.cornerLoad, 80 * handling.turn) /
+          Math.max(curvature, 0.000001),
+      ),
+      63,
+      Math.max(speedProfile.boostSpeed, VECTOR_PROPULSION.cruiseSpeed),
+    );
+  }
   // Plan boost from the road and the ship's own reserve. Hard must race at
   // full intent even when the player never presses boost.
   let wantsBoost =
@@ -189,8 +222,15 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
     );
     // Arrive at the authored launch speed; carrying extra strip momentum into
     // a gap can overshoot the receiving deck even with a clean launch line.
-    targetSpeed = launchSpeed;
-    brakeSpeed = launchSpeed;
+    const ahead = distanceAhead(track, state.distance, jump.takeoff);
+    const approachSpeed = profile.brakingPreview
+      ? Math.sqrt(
+          launchSpeed ** 2 +
+            2 * handling.braking * 0.45 * Math.max(0, ahead - 30),
+        )
+      : launchSpeed;
+    targetSpeed = approachSpeed;
+    brakeSpeed = approachSpeed;
     targetLane = 0;
     wantsBoost = state.energy > 3 && state.speed < launchSpeed - 1;
   }

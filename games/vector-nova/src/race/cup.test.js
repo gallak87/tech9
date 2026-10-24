@@ -94,7 +94,7 @@ test('ten places score once; invalid and missing finishes never score', () => {
   assert.equal(scored[0].id, 'latch');
 });
 
-test('cup grids use the previous race, survive retries/reloads, and reset to tenth', () => {
+test('earned cup grids survive retries/reloads and retain rival classification order', () => {
   const storage = memory();
   let store = createCupStore(() => storage);
   store.start('apex', 'shrike', 'hard');
@@ -103,7 +103,9 @@ test('cup grids use the previous race, survive retries/reloads, and reset to ten
   store.finish(result());
   assert.deepEqual(cupGridOrder(store.snapshot().state), opening);
   store.next();
-  assert.deepEqual(cupGridOrder(store.snapshot().state), ids);
+  const promoted = ids.filter((id) => id !== 'player');
+  promoted.splice(7, 0, 'player');
+  assert.deepEqual(cupGridOrder(store.snapshot().state), promoted);
   const second = result(ids.toReversed());
   second.standings.find((r) => r.id === 'rook').valid = false;
   second.standings.find((r) => r.id === 'gannet').finished = false;
@@ -111,14 +113,15 @@ test('cup grids use the previous race, survive retries/reloads, and reset to ten
   // Retrying this result must retain the first race's grid, not use this finish.
   store = createCupStore(() => storage);
   store.retry();
-  assert.deepEqual(cupGridOrder(store.snapshot().state), ids);
+  assert.deepEqual(cupGridOrder(store.snapshot().state), promoted);
   store.finish(second);
   store.next();
   store = createCupStore(() => storage);
   const expected = ids
     .toReversed()
-    .filter((id) => !['rook', 'gannet'].includes(id));
+    .filter((id) => !['player', 'rook', 'gannet'].includes(id));
   expected.push('gannet', 'rook');
+  expected.splice(8, 0, 'player');
   assert.deepEqual(cupGridOrder(store.snapshot().state), expected);
   const order = cupGridOrder(store.snapshot().state);
   order.reverse();
@@ -128,6 +131,83 @@ test('cup grids use the previous race, survive retries/reloads, and reset to ten
   assert.deepEqual(cupGridOrder(store.snapshot().state), expected);
   store.start('apex', 'shrike', 'hard');
   assert.deepEqual(cupGridOrder(store.snapshot().state), opening);
+});
+
+for (const [cupId, positions] of [
+  ['founders', [10, 3, 1]],
+  ['frontier', [10, 5, 1]],
+  ['horizon', [10, 7, 3]],
+  ['apex', [10, 8, 5, 3, 1]],
+]) {
+  test(`${cupId}: consecutive wins earn progressively harder grid promotion`, () => {
+    const storage = memory();
+    let store = createCupStore(() => storage);
+    store.start(cupId, 'kestrel', 'medium');
+    for (let event = 0; event < positions.length; event++) {
+      const before = store.snapshot().state;
+      const current = cupGridOrder(before);
+      assert.equal(current.indexOf('player') + 1, positions[event]);
+      assert.equal(new Set(current).size, ids.length);
+      store.finish(result());
+      assert.deepEqual(cupGridOrder(store.snapshot().state), current);
+      if (event < positions.length - 1) {
+        const preview = cupGridOrder(store.snapshot().state, { next: true });
+        assert.equal(preview.indexOf('player') + 1, positions[event + 1]);
+        store.next();
+        store = createCupStore(() => storage);
+        assert.deepEqual(cupGridOrder(store.snapshot().state), preview);
+      }
+    }
+  });
+}
+
+function resultInPlace(position) {
+  const order = ids.filter((id) => id !== 'player');
+  order.splice(position - 1, 0, 'player');
+  return result(order);
+}
+
+test('Founders rewards a podium after a win; Apex requires sustained winning results', () => {
+  const run = (cupId, places) => {
+    const storage = memory();
+    const store = createCupStore(() => storage);
+    store.start(cupId, 'kestrel', 'hard');
+    for (const place of places) {
+      store.finish(resultInPlace(place));
+      store.next();
+    }
+    return cupGridOrder(store.snapshot().state).indexOf('player') + 1;
+  };
+  assert.equal(run('founders', [1, 3]), 1);
+  assert.equal(run('apex', [1, 1, 3]), 5);
+  assert.equal(run('apex', [1, 1, 1]), 3);
+  assert.equal(run('apex', [1, 1, 1, 3]), 2);
+});
+
+test('midfield holds grid progress; invalid finishes and DNFs lose earned places', () => {
+  for (const status of ['finished', 'invalid', 'dnf']) {
+    for (const [cupId, expected] of [
+      ['founders', status === 'finished' ? 3 : 5],
+      ['apex', status === 'finished' ? 8 : 10],
+    ]) {
+      const storage = memory();
+      let store = createCupStore(() => storage);
+      store.start(cupId, 'kestrel', 'easy');
+      store.finish(result());
+      store.next();
+      const race = resultInPlace(5);
+      const player = race.standings.find((row) => row.id === 'player');
+      player.valid = status !== 'invalid';
+      player.finished = status !== 'dnf';
+      store.finish(race);
+      store.next();
+      store = createCupStore(() => storage);
+      assert.equal(
+        cupGridOrder(store.snapshot().state).indexOf('player') + 1,
+        expected,
+      );
+    }
+  }
 });
 test('wins break tied points before total time; exact ties share rank', () => {
   // A win plus third ties two seconds: 25+15 versus 18+18 does not tie;

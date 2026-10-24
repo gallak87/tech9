@@ -722,12 +722,12 @@ test('all nine difficulty ladders improve and hard Rook stays close to a clean b
       assert.ok(opponent.state.energy >= 0 && opponent.state.energy <= 100);
     }
     assert.ok(
-      gentle.finish.totalTime < 105,
-      'easy must improve on the old 116–119s field',
+      gentle.finish.totalTime < 92,
+      'easy now carries the former medium pace',
     );
     assert.ok(
-      quick.finish.totalTime < gentle.finish.totalTime * 0.92,
-      `${quick.id}: medium must be meaningfully faster`,
+      quick.finish.totalTime < gentle.finish.totalTime * 0.985,
+      `${quick.id}: medium must carry the former hard pace`,
     );
     assert.ok(
       fastest.finish.totalTime < quick.finish.totalTime,
@@ -736,10 +736,136 @@ test('all nine difficulty ladders improve and hard Rook stays close to a clean b
   }
   const clean = cleanKestrelTime();
   const rook = hard.opponents.find(({ id }) => id === 'rook').finish.totalTime;
-  assert.ok(rook > clean, 'a clean Kestrel run beats the same-profile rival');
   assert.ok(
-    rook < clean * 1.04,
-    'hard leaves less than 4% margin for mistakes',
+    Math.abs(rook - clean) < clean * 0.03,
+    `hard ${rook}s stays within 3% of clean boosted driving ${clean}s`,
+  );
+});
+
+test('hard carries earned downhill speed but brakes for real corner and launch limits', () => {
+  const downhill = {
+    closed: false,
+    length: 3000,
+    width: 40,
+    pace: { cruiseScale: 1.25, boostScale: 1.15 },
+    sample: () => ({ curvature: 0.001, right: new Vector3(1, 0, 0) }),
+  };
+  const state = { ...createVehicleState(), speed: 220, distance: 300 };
+  const before = { ...state };
+  const hard = getRacerControl(state, downhill, { difficulty: 'hard' });
+  assert.equal(hard.brake, 0, 'nominal boost speed is not a braking limit');
+  assert.equal(hard.throttle, 1, 'keep earned descent momentum');
+  assert.ok(
+    getRacerControl(state, downhill, { difficulty: 'medium' }).brake > 0,
+  );
+  assert.deepEqual(state, before, 'driver cannot directly grant speed');
+
+  const tightening = {
+    ...downhill,
+    sample: (distance) => ({
+      curvature: distance > 370 ? 0.012 : 0.001,
+      right: new Vector3(1, 0, 0),
+    }),
+  };
+  assert.ok(
+    getRacerControl(state, tightening, { difficulty: 'hard' }).brake > 0,
+    'braking envelope sees an approaching sharp corner',
+  );
+  const jump = { ...downhill, jumps: [{ takeoff: 550, targetSpeed: 155 }] };
+  const far = { ...state, speed: 190 };
+  assert.equal(getRacerControl(far, jump, { difficulty: 'hard' }).brake, 0);
+  assert.ok(getRacerControl(far, jump, { difficulty: 'medium' }).brake > 0);
+  assert.ok(
+    getRacerControl({ ...far, distance: 525 }, jump, { difficulty: 'hard' })
+      .brake > 0,
+    'settle at the authored launch speed before leaving the lip',
+  );
+});
+
+test('hard spends real airborne reserve only over long sprint receiving decks', () => {
+  const state = { ...createVehicleState(), distance: 200, speed: 155 };
+  const runtime = { pose: () => ({ grounded: false }) };
+  const descent = {
+    closed: false,
+    jumps: [{ takeoff: 200, landingStart: 600, landingEnd: 1250 }],
+  };
+  const input = (state, track, difficulty = 'hard') =>
+    getRacerControl(state, track, { difficulty, runtime });
+  assert.equal(input(state, descent).boost, true);
+  assert.equal(input({ ...state, energy: 0 }, descent).boost, false);
+  assert.equal(input(state, descent, 'medium').boost, false);
+  assert.equal(input(state, { ...descent, closed: true }).boost, false);
+  assert.equal(
+    input(state, {
+      ...descent,
+      jumps: [{ takeoff: 200, landingStart: 600, landingEnd: 800 }],
+    }).boost,
+    false,
+    'preserve the ballistic approach on short receivers',
+  );
+});
+
+test('hard downhill pace improves without missed transfers, impacts or player-relative assistance', async () => {
+  const { createWorldspireTrack } =
+    await import('../levels/worldspire/track/model.js');
+  const { createWorldspireRuntime } =
+    await import('../levels/worldspire/runtime.js');
+  const { createDevices } = await import('../levels/worldspire/devices.js');
+  const descent = createWorldspireTrack();
+  const devices = createDevices(descent);
+  const times = [];
+  for (const difficulty of ['medium', 'hard']) {
+    const runtime = createDeviceRuntime({
+      track: descent,
+      devices,
+      motion: createWorldspireRuntime({ track: descent, presentation: false }),
+    });
+    const state = createVehicleState();
+    const race = createRace(descent);
+    const landings = new Set();
+    runtime.reset({ state });
+    try {
+      for (let tick = 0; tick < 120 * 120 && !race.complete; tick++) {
+        const options = { difficulty, devices, runtime, pace: 0.96 };
+        const input = getRacerControl(state, descent, options);
+        if (tick % 120 === 0) {
+          for (const offset of [-1000, 1000])
+            assert.deepEqual(
+              getRacerControl(state, descent, {
+                ...options,
+                nearby: [{ ...state, distance: state.distance + offset }],
+              }),
+              input,
+              'a distant player cannot change rival performance',
+            );
+        }
+        const previous = state.distance;
+        const events = runtime.advance(state, input, dt);
+        runtime.update({});
+        for (const event of events) {
+          assert.notEqual(event.type, 'impact', 'clean downhill driving');
+          assert.notEqual(event.type, 'jump-miss', 'no missed transfers');
+          if (event.type === 'jump-transfer') {
+            assert.equal(event.payload.outcome, 'landed');
+            landings.add(event.payload.id);
+          }
+        }
+        race.step(previous, state.distance, dt, events, {
+          grounded: runtime.pose(1)?.grounded !== false,
+        });
+      }
+      assert.equal(race.complete, true);
+      assert.equal(race.valid, true);
+      assert.equal(landings.size, descent.jumps.length);
+      assert.ok(state.energy >= 0 && state.energy <= 100);
+      times.push(race.history[0].duration);
+    } finally {
+      runtime.dispose();
+    }
+  }
+  assert.ok(
+    times[1] < times[0] * 0.95,
+    `hard ${times[1]}s versus medium ${times[0]}s`,
   );
 });
 

@@ -182,8 +182,8 @@ test('Repulsor charge and pulse share the road frame, remain bounded, and retain
     );
   }
   assert.ok(
-    hit.children[2].scale.x < 3,
-    'contact stays compact around the struck ship',
+    hit.children[2].scale.x >= 3 && hit.children[2].scale.x < 7,
+    'stronger impact stays around the struck hull, below the outgoing 36 m pulse',
   );
   const intensity = pulse.children[3].material.uniforms.strength.value;
   combat.update({ mode: 'paused' });

@@ -1591,6 +1591,20 @@ export function createFlightModel(overrides = {}) {
       version: options.version,
       rulesId: `${collisionWorld ? `${options.rulesId}:collision-${JSON.stringify({ id: collisionWorld.id, version: collisionWorld.version, rulesId: collisionWorld.rulesId })}` : options.rulesId}${dynamics ? `:dynamics-${JSON.stringify({ id: dynamics.id, version: dynamics.version, rulesId: dynamics.rulesId })}:${MAGNETIC_BODY_RULES}:shared-transition-tick-v1` : collisionWorld ? ':supported-rail-slide-v1' : ''}${options.forgivingContacts ? `:forgiving-deck-wall-v4:support-height-${options.supportHeight ?? 0}` : ''}${boundaryRecoveryGrace ? ':boundary-recovery-grace-v1' : ''}${automaticRecovery ? '' : ':manual-recovery-v1'}`,
       scenarios,
+      applyImpulse(state, impulse) {
+        if (disposed || mode !== 'magnetic') return;
+        if (magneticBody) {
+          magneticBody.applyImpulse(state, impulse);
+          return;
+        }
+        const frame = track.sample(state.distance);
+        const forward = frame.tangent
+          .clone()
+          .multiplyScalar(Math.cos(state.heading))
+          .addScaledVector(frame.right, Math.sin(state.heading));
+        state.speed += impulse.dot(forward);
+        state.lateralSpeed += impulse.dot(frame.right);
+      },
       advance(state, input, dt, modifiers = {}) {
         const events = [];
         if (disposed || !Number.isFinite(dt) || dt <= 0) return events;

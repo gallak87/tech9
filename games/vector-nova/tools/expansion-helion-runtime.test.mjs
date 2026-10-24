@@ -86,7 +86,8 @@ test('supported detours remain grounded and a visible inner divider contains lat
       state = {
         ...createVehicleState(),
         distance: jump.takeoff - 2,
-        lateral: -8,
+        // Physical shelter starts beyond -8.5; -8 is still in the flare lane.
+        lateral: -10,
         speed: 85,
       };
     runtime.reset({ state });
@@ -227,7 +228,10 @@ test('overheated furnace traversal has a measurable declared engine power conseq
     hot.advance(a, controls, DT);
     cold.advance(b, controls, DT);
   }
-  assert.ok(a.speed < b.speed - 5);
+  assert.ok(
+    a.speed < b.speed * 0.9,
+    'overload adds at least 10% speed loss to the now-damaging cold fire contact',
+  );
   assert.equal(a.energy, b.energy);
 });
 

@@ -116,7 +116,7 @@ function createDetailedHitFeedback(ship, hull) {
       age,
       { reducedMotion = false } = {},
       kind = 'arc',
-      { ionContact = 0, time = 0 } = {},
+      { ionContact = 0, time = 0, disruption = 0 } = {},
     ) {
       if (disposed) return;
       const hit =
@@ -127,13 +127,14 @@ function createDetailedHitFeedback(ship, hull) {
       const exposure = Number.isFinite(ionContact)
         ? Math.max(0, Math.min(1, ionContact))
         : 0;
-      group.visible = hit || exposure > 0.001;
+      const sustained = Math.max(0, Math.min(1, disruption));
+      group.visible = hit || exposure > 0.001 || sustained > 0.001;
       if (!group.visible) {
         material.uniforms.strength.value = 0;
         glow.uniforms.strength.value = 0;
         return;
       }
-      if (!hit) kind = 'ion';
+      if (!hit && !sustained) kind = 'ion';
       for (const surface of [material, glow]) {
         surface.uniforms.interference.value = hit ? 0 : 1;
         surface.uniforms.time.value = reducedMotion ? 0 : time;
@@ -149,7 +150,10 @@ function createDetailedHitFeedback(ship, hull) {
       const release = hit ? 1 - smooth(Math.max(0, (age - 0.08) / 0.47)) : 0;
       material.uniforms.strength.value = hit
         ? attack * release * (reducedMotion ? 0.45 : 1)
-        : exposure * (reducedMotion ? 0.18 : 0.38);
+        : Math.max(
+            exposure * (reducedMotion ? 0.18 : 0.38),
+            sustained * (reducedMotion ? 0.22 : 0.52),
+          );
       glow.uniforms.strength.value = material.uniforms.strength.value;
       ship.updateWorldMatrix(true, true);
       inverse.copy(ship.matrixWorld).invert();

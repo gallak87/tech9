@@ -1,9 +1,15 @@
 import { createSaffronScreenDust } from './atmosphere.js';
 import { createFlightModel } from '../../physics/flight.js';
+import {
+  HAZARD_SURFACE_RULES,
+  sampleHazardSurface,
+} from '../../physics/hazard-surface.js';
 import { sampleSaffronDeposits, saffronSandExposure } from './track/sand.js';
 import { grazerTrigger } from './grazer.js';
 import { createSaffronCollisionWorld } from './collision.js';
 
+// Sand uses the easy hazard weight even though the full fossil route is Medium.
+export const SAFFRON_SAND_SEVERITY = 0.5;
 export const SAFFRON_RULES = Object.freeze({
   gravity: 26,
   railOffset: {
@@ -43,7 +49,7 @@ export function createSaffronRuntime(context) {
     forgivingContacts: Boolean(context.dynamics),
     id: 'saffron-sand-flight',
     version: context.dynamics ? 7 : 5,
-    rulesId: `saffron-width40-v${context.dynamics ? 7 : 5}:${JSON.stringify({ track: track.id, geometry: track.geometryVersion, jumps: track.jumps, rules: flightModel.rules, sand: 'migrating-four-v1-drag3', grazer: { event: 'forward-breach-v1', trigger: grazerTrigger(track) } })}`,
+    rulesId: `saffron-width40-v${context.dynamics ? 7 : 5}:${JSON.stringify({ track: track.id, geometry: track.geometryVersion, jumps: track.jumps, rules: flightModel.rules, sand: { pattern: 'migrating-four-v1', severity: SAFFRON_SAND_SEVERITY, response: HAZARD_SURFACE_RULES }, grazer: { event: 'forward-breach-v1', trigger: grazerTrigger(track) } })}`,
     edgeSource: 'saffron-baffle-catch',
     automaticRecovery: context.playtest?.automaticRecovery !== false,
     scenarios: Object.fromEntries(
@@ -55,11 +61,11 @@ export function createSaffronRuntime(context) {
     shouldLaunch: ({ jump, state }) =>
       !jump.optional || state.lateral >= jump.lateralMin,
     groundOptions: ({ state }) => ({
-      surface: {
-        drag:
-          3 *
-          saffronSandExposure(track, state.distance, state.lateral, state.time),
-      },
+      surface: sampleHazardSurface(
+        state.speed,
+        SAFFRON_SAND_SEVERITY,
+        saffronSandExposure(track, state.distance, state.lateral, state.time),
+      ),
     }),
   });
   function finishLocal(state, events, beforeDistance, beforeTime) {
@@ -98,7 +104,18 @@ export function createSaffronRuntime(context) {
       if (surfaceId)
         events.push({ type: 'sand-exit', payload: { id: surfaceId } });
       if (next)
-        events.push({ type: 'sand-enter', payload: { id: next, drag: 3 } });
+        events.push({
+          type: 'sand-enter',
+          payload: {
+            id: next,
+            severity: SAFFRON_SAND_SEVERITY,
+            drag: sampleHazardSurface(
+              state.speed,
+              SAFFRON_SAND_SEVERITY,
+              sandExposure,
+            ).drag,
+          },
+        });
       surfaceId = next;
     }
     return events;

@@ -161,16 +161,18 @@ export function createLowHitFeedback(ship, hull) {
       age,
       { reducedMotion = false } = {},
       kind = 'arc',
-      { ionContact = 0 } = {},
+      { ionContact = 0, disruption = 0 } = {},
     ) {
       const hit =
         ['arc', 'repulsor', 'ion'].includes(kind) && age >= 0 && age < 0.55;
       const contact = kind === 'ion' ? clamp(ionContact) : 0;
-      group.visible = hit || contact > 0;
+      group.visible = hit || contact > 0 || disruption > 0;
       outline.material.color.setHex(DEVICE_COLORS[kind] ?? DEVICE_COLORS.arc);
       outline.material.opacity =
         (reducedMotion ? 0.45 : 0.9) *
-        (hit ? clamp(age / 0.06) * clamp((0.55 - age) / 0.4) : contact * 0.4);
+        (hit
+          ? clamp(age / 0.06) * clamp((0.55 - age) / 0.4)
+          : Math.max(contact * 0.4, clamp(disruption) * 0.65));
     },
     dispose() {
       disposeGroup(group);

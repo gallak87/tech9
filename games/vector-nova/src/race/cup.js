@@ -1,37 +1,34 @@
+import { IS_DEMO, CAREER_SHIPS } from '../progression/edition.js';
 import { RACE_OPPONENTS } from './roster.js';
 import { SHIPS } from '../ships/catalog.js';
 
+export const ALL_CUPS = Object.freeze(
+  [
+    { id: 'demo', name: 'Demo Cup', tracks: ['halcyon', 'nacre'] },
+    {
+      id: 'founders',
+      name: 'Founders Cup',
+      tracks: ['halcyon', 'orbital', 'nacre'],
+    },
+    {
+      id: 'frontier',
+      name: 'Frontier Cup',
+      tracks: ['vesper', 'glasswake', 'cindercoil'],
+    },
+    {
+      id: 'horizon',
+      name: 'Horizon Cup',
+      tracks: ['saffron', 'zephyr', 'shatterline'],
+    },
+    {
+      id: 'apex',
+      name: 'Apex Cup',
+      tracks: ['worldspire', 'helion', 'nightweir', 'umbra', 'colossus'],
+    },
+  ].map(Object.freeze),
+);
 export const CUPS = Object.freeze(
-  import.meta.env?.VN_EDITION === 'demo'
-    ? [
-        Object.freeze({
-          id: 'demo',
-          name: 'Demo Cup',
-          tracks: ['halcyon', 'nacre'],
-        }),
-      ]
-    : [
-        Object.freeze({
-          id: 'founders',
-          name: 'Founders Cup',
-          tracks: ['halcyon', 'orbital', 'nacre'],
-        }),
-        Object.freeze({
-          id: 'frontier',
-          name: 'Frontier Cup',
-          tracks: ['vesper', 'glasswake', 'cindercoil'],
-        }),
-        Object.freeze({
-          id: 'horizon',
-          name: 'Horizon Cup',
-          tracks: ['saffron', 'zephyr', 'shatterline'],
-        }),
-        Object.freeze({
-          id: 'apex',
-          name: 'Apex Cup',
-          tracks: ['worldspire', 'helion', 'nightweir', 'umbra', 'colossus'],
-        }),
-      ],
+  ALL_CUPS.filter((cup) => (IS_DEMO ? cup.id === 'demo' : cup.id !== 'demo')),
 );
 export const CUP_POINTS = Object.freeze([25, 18, 15, 12, 10, 8, 6, 4, 2, 1]);
 export const CUP_FINISH_GRACE = 30;
@@ -168,12 +165,16 @@ export function cupChampion(state) {
   const player = cupStandings(state).find((row) => row.id === 'player');
   return player.position === 1 && player.points > 0 ? player : null;
 }
-export function validateCup(value) {
-  const cup = cupDefinition(value?.cupId);
+export function validateCup(value, { crossEdition = false } = {}) {
+  const cup = (crossEdition ? ALL_CUPS : CUPS).find(
+    (entry) => entry.id === value?.cupId,
+  );
   if (
     !cup ||
     value.version !== VERSION ||
-    !SHIPS.some((s) => s.id === value.shipId) ||
+    !(crossEdition
+      ? CAREER_SHIPS.includes(value.shipId)
+      : SHIPS.some((s) => s.id === value.shipId)) ||
     !['easy', 'medium', 'hard'].includes(value.difficulty) ||
     !['racing', 'results'].includes(value.phase) ||
     !Number.isInteger(value.eventIndex) ||
@@ -221,21 +222,32 @@ export function validateCup(value) {
 
 export function createCupStore(storage = () => localStorage) {
   let state = null,
+    otherEdition = null,
     saved = true,
     notice = '';
+  function restore(raw) {
+    const valid =
+      raw && raw !== 'null'
+        ? validateCup(JSON.parse(raw), { crossEdition: true })
+        : null;
+    state = valid && validateCup(valid);
+    otherEdition = state ? null : valid;
+    notice = otherEdition
+      ? 'Saved championship resumes in the other edition. Your career and trophies are kept.'
+      : raw && raw !== 'null' && !state
+        ? 'Saved cup is incompatible or damaged. Start a new cup.'
+        : '';
+  }
   try {
     const raw = storage().getItem(CUP_STORAGE_KEY);
-    if (raw && raw !== 'null') {
-      state = validateCup(JSON.parse(raw));
-      if (!state)
-        notice = 'Saved cup is incompatible or damaged. Start a new cup.';
-    }
+    restore(raw);
   } catch {
     saved = false;
     notice = 'Cup storage is unavailable. Progress lasts for this page only.';
   }
   function persist(next) {
     state = next;
+    otherEdition = null;
     try {
       storage().setItem(CUP_STORAGE_KEY, JSON.stringify(next));
       saved = true;
@@ -249,11 +261,11 @@ export function createCupStore(storage = () => localStorage) {
   }
   return {
     snapshot: () => ({ state: copy(state), saved, notice }),
+    exportState: () => copy(otherEdition ?? state),
     reload() {
       const raw = storage().getItem(CUP_STORAGE_KEY);
-      state = raw ? validateCup(JSON.parse(raw)) : null;
+      restore(raw);
       saved = true;
-      notice = '';
     },
     start(cupId, shipId, difficulty) {
       const next = validateCup({

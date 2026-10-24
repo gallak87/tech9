@@ -1,6 +1,9 @@
+import { IS_DEMO, CAREER_SHIPS, FULL_CUPS, fullCupWins } from './edition.js';
 import { SHIPS } from '../ships/catalog.js';
 import {
   REWARDS,
+  ALL_REWARDS,
+  AVAILABLE_EQUIPMENT,
   EQUIPMENT,
   enhancementRanks,
   STANDARD_EQUIPMENT_SLOTS,
@@ -17,10 +20,10 @@ export const raceProgressPoints = (position) =>
         : 1
     : 0;
 export const equipmentCapacity = (profile, shipId) =>
-  profile.exoticShip === shipId
+  !IS_DEMO && profile.exoticShip === shipId
     ? MAX_EQUIPMENT_SLOTS
     : STANDARD_EQUIPMENT_SLOTS;
-const cups = ['founders', 'frontier', 'horizon', 'apex'];
+const cups = [...FULL_CUPS, 'demo'];
 const copy = (value) => structuredClone(value);
 export const starterShip = () =>
   SHIPS.some((ship) => ship.id === 'shrike') ? 'shrike' : SHIPS[0].id;
@@ -37,7 +40,7 @@ export function freshProfile() {
     claims: [],
     exoticShip: null,
     loadouts: Object.fromEntries(
-      SHIPS.map((ship) => [ship.id, Array(MAX_EQUIPMENT_SLOTS).fill(null)]),
+      CAREER_SHIPS.map((id) => [id, Array(MAX_EQUIPMENT_SLOTS).fill(null)]),
     ),
   };
 }
@@ -56,17 +59,16 @@ export function validateProfile(value) {
     value.wins < 0 ||
     value.wins > 1000000 ||
     !strings(value.raceClaims, 20000) ||
-    !strings(value.cups, 4, (id) => cups.includes(id)) ||
+    !strings(value.cups, cups.length, (id) => cups.includes(id)) ||
     !strings(value.trialTracks, 100) ||
-    !strings(value.claims, REWARDS.length, (id) =>
-      REWARDS.some((reward) => reward.id === id),
+    !strings(value.claims, ALL_REWARDS.length, (id) =>
+      ALL_REWARDS.some((reward) => reward.id === id),
     ) ||
-    !(
-      value.exoticShip === null ||
-      SHIPS.some((ship) => ship.id === value.exoticShip)
-    ) ||
+    !(value.exoticShip === null || CAREER_SHIPS.includes(value.exoticShip)) ||
     !value.loadouts ||
-    typeof value.loadouts !== 'object'
+    typeof value.loadouts !== 'object' ||
+    Array.isArray(value.loadouts) ||
+    Object.keys(value.loadouts).some((id) => !CAREER_SHIPS.includes(id))
   )
     return null;
   const next = freshProfile();
@@ -110,14 +112,22 @@ export function validateProfile(value) {
     next.raceScores = copy(value.raceScores);
   }
   if (next.exoticShip && !next.claims.includes('exotic-slot')) return null;
-  for (const ship of SHIPS) {
-    const slots = value.loadouts[ship.id];
+  // Older demos saved only Kestrel. Expand that exact legacy shape; reject
+  // partially missing full-game fleets rather than silently repairing damage.
+  const legacyDemo =
+    Object.keys(value.loadouts).length === 1 &&
+    Object.hasOwn(value.loadouts, 'kestrel');
+  for (const shipId of CAREER_SHIPS) {
+    if (legacyDemo && shipId !== 'kestrel') continue;
+    const slots = value.loadouts[shipId];
     const legacy = value.version === 1;
     const limit = legacy
-      ? next.exoticShip === ship.id
+      ? next.exoticShip === shipId
         ? 2
         : 1
-      : equipmentCapacity(next, ship.id);
+      : next.exoticShip === shipId
+        ? MAX_EQUIPMENT_SLOTS
+        : STANDARD_EQUIPMENT_SLOTS;
     if (
       !Array.isArray(slots) ||
       slots.length !== (legacy ? 2 : MAX_EQUIPMENT_SLOTS) ||
@@ -131,7 +141,7 @@ export function validateProfile(value) {
       new Set(slots.filter(Boolean)).size !== slots.filter(Boolean).length
     )
       return null;
-    next.loadouts[ship.id] = Array.from(
+    next.loadouts[shipId] = Array.from(
       { length: MAX_EQUIPMENT_SLOTS },
       (_, i) => slots[i] ?? null,
     );
@@ -139,18 +149,23 @@ export function validateProfile(value) {
   return next;
 }
 export function shipUnlocked(profile, id) {
-  return id === starterShip() || profile.claims.includes(`ship-${id}`);
+  return (
+    SHIPS.some((ship) => ship.id === id) &&
+    (id === starterShip() || profile.claims.includes(`ship-${id}`))
+  );
+}
+export function equippedItems(profile, shipId) {
+  return (profile.loadouts[shipId] ?? [])
+    .slice(0, equipmentCapacity(profile, shipId))
+    .map((id) =>
+      AVAILABLE_EQUIPMENT.some((item) => item.id === id) ? id : null,
+    );
 }
 export function sessionBuild(profile, shipId, { stock = false } = {}) {
   return {
     version: 1,
     enhancements: stock ? {} : enhancementRanks(profile),
-    equipment: stock
-      ? []
-      : (profile.loadouts[shipId] ?? []).slice(
-          0,
-          equipmentCapacity(profile, shipId),
-        ),
+    equipment: stock ? [] : equippedItems(profile, shipId),
   };
 }
 export function buildIdentity(build) {
@@ -180,7 +195,7 @@ function earned(profile, requirement) {
   if (requirement.trials)
     return profile.trialTracks.length >= requirement.trials;
   if (requirement.cup) return profile.cups.includes(requirement.cup);
-  return profile.cups.length >= requirement.cups;
+  return fullCupWins(profile) >= requirement.cups;
 }
 export function rewardProgress(profile, requirement) {
   if (requirement.finishes)
@@ -197,7 +212,7 @@ export function rewardProgress(profile, requirement) {
     ];
   if (requirement.cup)
     return [Number(profile.cups.includes(requirement.cup)), 1];
-  return [profile.cups.length, requirement.cups];
+  return [Math.min(fullCupWins(profile), requirement.cups), requirement.cups];
 }
 export function createProfileStore(storage = () => localStorage) {
   let state = freshProfile(),
@@ -319,7 +334,9 @@ export function createProfileStore(storage = () => localStorage) {
         !Number.isInteger(slot) ||
         slot < 0 ||
         slot >= equipmentCapacity(state, ship) ||
-        (id !== null && !state.claims.includes(`equipment-${id}`))
+        (id !== null &&
+          (!AVAILABLE_EQUIPMENT.some((item) => item.id === id) ||
+            !state.claims.includes(`equipment-${id}`)))
       )
         return false;
       const next = copy(state);
@@ -333,6 +350,7 @@ export function createProfileStore(storage = () => localStorage) {
     },
     chooseExotic(ship) {
       if (
+        IS_DEMO ||
         state.exoticShip ||
         !state.claims.includes('exotic-slot') ||
         !shipUnlocked(state, ship)

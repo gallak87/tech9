@@ -30,7 +30,7 @@ export function createSaveTransfer({
     version: 1,
     savedAt: new Date().toISOString(),
     profile: profileStore.snapshot().state,
-    cup: cupStore.snapshot().state,
+    cup: cupStore.exportState?.() ?? cupStore.snapshot().state,
     trophies: { version: 1, cups: cupCollection.snapshot().cups },
     trials: exportTrialSaves(readableStorage()),
   });
@@ -50,10 +50,10 @@ export function createSaveTransfer({
       throw new Error('This career save is damaged or incompatible.');
     const cup =
       data.cup === undefined
-        ? cupStore.snapshot().state
+        ? (cupStore.exportState?.() ?? cupStore.snapshot().state)
         : data.cup === null
           ? null
-          : validateCup(data.cup);
+          : validateCup(data.cup, { crossEdition: true });
     if (data.cup != null && !cup)
       throw new Error('This cup save is damaged or incompatible.');
     const trials =
@@ -72,7 +72,13 @@ export function createSaveTransfer({
     } catch {
       throw new Error('This trophy collection is damaged or incompatible.');
     }
-    return { profile, cup, trials, trophies };
+    return {
+      profile,
+      cup,
+      trials,
+      trophies,
+      cupUnavailable: !!cup && !validateCup(cup),
+    };
   }
   return {
     ...profileStore,

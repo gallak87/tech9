@@ -1,3 +1,5 @@
+import { DEMO_REQUIREMENTS } from '../../src/progression/edition.js';
+
 export const demoLevels = ['halcyon', 'nacre'];
 export const fullLevels = [
   'halcyon',
@@ -46,7 +48,10 @@ export function includePublic(path, edition) {
       path,
     )
   )
-    return true;
+    return (
+      edition === 'full' ||
+      Object.hasOwn(DEMO_REQUIREMENTS, path.split('/').at(-1).slice(0, -4))
+    );
   if (policy.levels.some((id) => path.startsWith(`assets/levels/${id}/`)))
     return true;
   if (policy.levels.some((id) => path === `assets/menu/${id}.webp`))

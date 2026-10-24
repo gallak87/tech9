@@ -1,3 +1,4 @@
+import { IS_DEMO, fullCupWins } from './edition.js';
 import { REWARDS, ENHANCEMENTS, requirementText } from './catalog.js';
 import { rewardProgress } from './profile.js';
 import { rewardIcon, escapeHTML } from './view.js';
@@ -22,7 +23,9 @@ const unit = (requirement) =>
   requirement.points
     ? 'progress'
     : requirement.finishes
-      ? 'finish'
+      ? requirement.finishes === 1
+        ? 'finish'
+        : 'finishes'
       : requirement.trials
         ? 'maps'
         : requirement.cups
@@ -58,12 +61,15 @@ export function rewardGoals(profile, { mode = 'race', trackId, cupId } = {}) {
     if (!reward) return [];
     const counted = profile.trialTracks.includes(trackId);
     const waiting = profile.trialTracks.length >= reward.requirement.trials;
-    const prerequisite = !profile.claims.includes(reward.requirement.after);
-    const detail = waiting
-      ? 'Records ready · Earn Boost Duration I in races'
-      : counted
-        ? 'Record counted here · Try another map'
-        : `Set a clean record here${prerequisite ? ' · Race upgrade required' : ''}`;
+    const prerequisite =
+      reward.requirement.after &&
+      !profile.claims.includes(reward.requirement.after);
+    const detail =
+      waiting && prerequisite
+        ? 'Records ready · Earn Boost Duration I in races'
+        : counted
+          ? 'Record counted here · Try another map'
+          : `Set a clean record here${prerequisite ? ' · Race upgrade required' : ''}`;
     return [goal(reward, detail)];
   }
   const ordinary = remaining
@@ -71,6 +77,8 @@ export function rewardGoals(profile, { mode = 'race', trackId, cupId } = {}) {
       (reward) => reward.requirement.points || reward.requirement.finishes,
     )
     .sort((a, b) => {
+      if (a.requirement.finishes && b.requirement.finishes)
+        return a.requirement.finishes - b.requirement.finishes;
       if (a.requirement.finishes) return -1;
       if (b.requirement.finishes) return 1;
       return a.requirement.points - b.requirement.points;
@@ -88,7 +96,9 @@ export function rewardGoals(profile, { mode = 'race', trackId, cupId } = {}) {
       goal(
         reward,
         reward.requirement.finishes
-          ? 'Complete your first valid race'
+          ? reward.requirement.finishes === 1
+            ? 'Complete your first valid race'
+            : `Complete ${reward.requirement.finishes} valid races · Every placing counts`
           : reward.requirement.points <= profile.points
             ? 'Complete a valid finish to claim'
             : `Every valid finish · ${reward.requirement.points - profile.points} progress to go`,
@@ -113,7 +123,7 @@ export function rewardGoals(profile, { mode = 'race', trackId, cupId } = {}) {
     : null;
   const exotic = remaining.find((reward) => reward.requirement.cups);
   const finalCup =
-    exotic && !profile.cups.includes(cupId) && profile.cups.length === 3
+    exotic && !profile.cups.includes(cupId) && fullCupWins(profile) === 3
       ? goal(exotic, 'Win your final championship · Four equipment slots')
       : null;
   return [cupGoal, finalCup, ...raceGoals].filter(Boolean).slice(0, 2);
@@ -158,19 +168,26 @@ export function raceProgressView(before, after, context, result) {
     context.mode === 'time-trial'
       ? result?.playerValid
       : player?.valid && player?.finished;
-  const label = points
-    ? `+${points} race progress`
-    : maps
-      ? 'New Time Trial map recorded'
-      : valid
-        ? 'Progress saved'
-        : 'No progress · A valid finish is required';
-  const description = points
-    ? `${player?.position ? `P${player.position} · ` : ''}Every valid finish counts. Wins +5 · 2nd +4 · 3rd +3 · 4th–5th +2 · 6th–10th +1`
-    : context.mode === 'time-trial'
-      ? 'Each distinct map counts once toward your boost rewards.'
-      : valid
-        ? 'This result has already been counted. Improve your cup placing to earn the difference.'
-        : 'Retry for a classified finish.';
+  const finishes = after.finishes - before.finishes;
+  const label =
+    IS_DEMO && finishes
+      ? '+1 race finish'
+      : points
+        ? `+${points} race progress`
+        : maps
+          ? 'New Time Trial map recorded'
+          : valid
+            ? 'Progress saved'
+            : 'No progress · A valid finish is required';
+  const description =
+    IS_DEMO && points
+      ? 'Every valid finish counts toward demo rewards, at any placing. Export your career to carry it into the full game.'
+      : points
+        ? `${player?.position ? `P${player.position} · ` : ''}Every valid finish counts. Wins +5 · 2nd +4 · 3rd +3 · 4th–5th +2 · 6th–10th +1`
+        : context.mode === 'time-trial'
+          ? 'Each distinct map counts once toward your boost rewards.'
+          : valid
+            ? 'This result has already been counted. Improve your cup placing to earn the difference.'
+            : 'Retry for a classified finish.';
   return `<section class="race-reward-progress"><h3>${escapeHTML(label)}</h3><p>${escapeHTML(description)}</p>${rewardBadgesView(goals, after, { before, results: true })}</section>`;
 }

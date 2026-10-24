@@ -1,7 +1,12 @@
 import { SHIPS } from '../ships/catalog.js';
 import { assetURL } from '../assets/url.js';
-import { EQUIPMENT } from '../progression/catalog.js';
-import { equipmentCapacity, shipUnlocked } from '../progression/profile.js';
+import { IS_DEMO } from '../progression/edition.js';
+import { AVAILABLE_EQUIPMENT } from '../progression/catalog.js';
+import {
+  equipmentCapacity,
+  shipUnlocked,
+  equippedItems,
+} from '../progression/profile.js';
 import { EQUIPMENT_CONTROLS } from '../equipment/controls.js';
 import {
   escapeHTML,
@@ -27,9 +32,9 @@ export function garageView({
   const unlocked = shipUnlocked(profile, craft.id);
   const cupLocked = !!lockedShip && lockedShip !== craft.id;
   const capacity = equipmentCapacity(profile, craft.id);
-  const loadout = profile.loadouts[craft.id].slice(0, capacity);
+  const loadout = equippedItems(profile, craft.id);
   const count = loadout.filter(Boolean).length;
-  const equipment = EQUIPMENT.filter((item) =>
+  const equipment = AVAILABLE_EQUIPMENT.filter((item) =>
     profile.claims.includes(`equipment-${item.id}`),
   );
   const hint = stock
@@ -55,16 +60,13 @@ export function garageView({
       .join(
         '',
       )}</div>${equipment.length ? '' : '<p class="garage-equipment-empty">No equipment unlocked yet.</p>'}<p class="garage-equipment-hint">${hint}</p></section>
-    ${profile.claims.includes('exotic-slot') && !profile.exoticShip && unlocked && !cupLocked ? `<section class="garage-exotic">${rewardIcon('exotic-slot')}<span><strong>Quad Core earned</strong><small>Permanently equip four items on one ship.</small></span><button data-action="fit-exotic">Fit to ${craft.name}</button></section>` : ''}
+    ${!IS_DEMO && profile.claims.includes('exotic-slot') && !profile.exoticShip && unlocked && !cupLocked ? `<section class="garage-exotic">${rewardIcon('exotic-slot')}<span><strong>Quad Core earned</strong><small>Permanently equip four items on one ship.</small></span><button data-action="fit-exotic">Fit to ${craft.name}</button></section>` : ''}
     <footer class="garage-footer"><span class="garage-notice" role="status" aria-live="polite">${escapeHTML(notice)}</span></footer></div></div>`;
 }
 
 export function toggleGarageEquipment(store, shipId, id) {
   const profile = store.snapshot().state;
-  const loadout = profile.loadouts[shipId]?.slice(
-    0,
-    equipmentCapacity(profile, shipId),
-  );
+  const loadout = equippedItems(profile, shipId);
   if (
     !loadout ||
     !shipUnlocked(profile, shipId) ||

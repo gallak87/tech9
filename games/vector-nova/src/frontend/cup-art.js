@@ -1,4 +1,4 @@
-import { CUPS, cupDefinition, cupChampion } from '../race/cup.js';
+import { CUPS, ALL_CUPS, cupDefinition, cupChampion } from '../race/cup.js';
 import { assetURL } from '../assets/url.js';
 
 const accents = {
@@ -21,16 +21,22 @@ export function cupCard(cup, selected, collection) {
   return `<button class="cup-card ${won ? 'is-earned' : ''}" data-cup="${cup.id}" aria-pressed="${selected === cup.id}" aria-label="${cup.name}, ${cup.tracks.length} races, ${won ? 'trophy earned' : 'not yet won'}" style="--cup-accent:${art.accent}"><img class="cup-card-background" src="${art.background}" alt=""><img class="cup-card-trophy" src="${art.trophy}" alt=""><span class="cup-card-label"><strong>${cup.name}</strong><small>${cup.tracks.length} races</small></span>${won ? '<span class="cup-earned-mark" aria-hidden="true">✓</span>' : ''}</button>`;
 }
 export function cupCabinet({ cups = {}, notice = '' } = {}) {
-  const count = CUPS.filter((cup) => cups[cup.id]).length;
-  return `<section class="cup-cabinet" aria-label="Earned cups"><div class="cup-cabinet-heading"><span>Trophy cabinet</span><span>${count}<span class="cup-cabinet-total"> / ${CUPS.length}</span></span></div><ul style="--cup-count:${CUPS.length}">${CUPS.map(
-    (cup) => {
+  const displayed = [
+    ...CUPS,
+    ...ALL_CUPS.filter(
+      (cup) => cup.id === 'demo' && cups.demo && !CUPS.includes(cup),
+    ),
+  ];
+  const count = displayed.filter((cup) => cups[cup.id]).length;
+  return `<section class="cup-cabinet" aria-label="Earned cups"><div class="cup-cabinet-heading"><span>Trophy cabinet</span><span>${count}<span class="cup-cabinet-total"> / ${displayed.length}</span></span></div><ul style="--cup-count:${displayed.length}">${displayed
+    .map((cup) => {
       const won = !!cups[cup.id],
         art = cupArt(cup.id);
       return `<li class="${won ? 'is-earned' : ''}" style="--cup-accent:${art.accent}" aria-label="${cup.name}: ${won ? 'trophy earned' : 'not yet won'}"><img src="${art.trophy}" alt=""><span>${cup.name.replace(' Cup', '')}</span><small>${won ? '✓ Won' : '—'}</small></li>`;
-    },
-  ).join(
-    '',
-  )}</ul>${notice ? `<p class="cup-save" role="status">${notice}</p>` : ''}</section>`;
+    })
+    .join(
+      '',
+    )}</ul>${notice ? `<p class="cup-save" role="status">${notice}</p>` : ''}</section>`;
 }
 export function cupHero(cup, title, collection, rewards = '') {
   const art = cupArt(cup.id),

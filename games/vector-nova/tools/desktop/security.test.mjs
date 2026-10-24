@@ -248,13 +248,15 @@ test('full edition includes all fleet rail stills without shipping their source 
   assert.equal(includePublic('assets/menu/ships/README.md', 'full'), false);
 });
 
-test('desktop editions include every reward icon but omit artwork sources and prompts', async () => {
+test('desktop editions include their reward icons but omit artwork sources and prompts', async () => {
   const { REWARDS } = await import('../../src/progression/catalog.js');
+  const { DEMO_REQUIREMENTS } =
+    await import('../../src/progression/edition.js');
   for (const edition of ['demo', 'full']) {
     for (const reward of REWARDS)
       assert.equal(
         includePublic(`assets/rewards/icons-v2/${reward.id}.png`, edition),
-        true,
+        edition === 'full' || Object.hasOwn(DEMO_REQUIREMENTS, reward.id),
       );
     for (const file of ['source/speed-1.png', 'provenance.json', 'unknown.png'])
       assert.equal(

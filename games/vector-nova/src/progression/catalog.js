@@ -1,3 +1,5 @@
+import { IS_DEMO, DEMO_REQUIREMENTS } from './edition.js';
+
 // Player progression is explicit session data; rival handling never reads it.
 export const ENHANCEMENTS = Object.freeze([
   { id: 'speed', name: 'Top speed', gains: [0, 0.05, 0.1, 0.2], unit: 'km/h' },
@@ -122,7 +124,7 @@ const gearMilestones = {
   stabilizer: { cup: 'frontier' },
   lance: { cup: 'apex' },
 };
-export const REWARDS = Object.freeze([
+export const ALL_REWARDS = Object.freeze([
   ...ENHANCEMENTS.flatMap((stat) =>
     ranks.map((rank, i) => ({
       id: `${stat.id}-${i + 1}`,
@@ -166,18 +168,38 @@ export const REWARDS = Object.freeze([
     requirement: { cups: 4 },
   },
 ]);
+export const REWARDS = IS_DEMO
+  ? Object.freeze(
+      Object.entries(DEMO_REQUIREMENTS).map(([id, requirement]) => ({
+        ...ALL_REWARDS.find((reward) => reward.id === id),
+        requirement,
+      })),
+    )
+  : ALL_REWARDS;
+export const AVAILABLE_EQUIPMENT = Object.freeze(
+  EQUIPMENT.filter((item) =>
+    REWARDS.some((reward) => reward.equipment === item.id),
+  ),
+);
 export function requirementText(requirement) {
-  if (requirement.finishes) return 'Finish your first valid race';
+  if (requirement.finishes)
+    return requirement.finishes === 1
+      ? 'Finish your first valid race'
+      : `Complete ${requirement.finishes} valid race finishes`;
   if (requirement.points)
     return `Earn ${requirement.points} race progress · Every valid finish counts`;
   if (requirement.trials)
     return `Set clean Time Trial records on ${requirement.trials} different map${requirement.trials === 1 ? '' : 's'}${requirement.after ? ` · Requires Boost duration ${ranks[Number(requirement.after.split('-')[1]) - 1]}` : ''}`;
   if (requirement.cup)
-    return `${import.meta.env?.VN_EDITION === 'demo' ? 'Full game · ' : ''}Win ${requirement.cup[0].toUpperCase() + requirement.cup.slice(1)} Cup`;
-  return `${import.meta.env?.VN_EDITION === 'demo' ? 'Full game · ' : ''}Win all four cups`;
+    return `Win ${requirement.cup[0].toUpperCase() + requirement.cup.slice(1)} Cup`;
+  return `Win all four cups`;
 }
 export function enhancementRanks(profile) {
-  const claims = new Set(profile?.claims ?? []);
+  const claims = new Set(
+    (profile?.claims ?? []).filter((id) =>
+      REWARDS.some((reward) => reward.id === id),
+    ),
+  );
   return Object.fromEntries(
     ENHANCEMENTS.map(({ id }) => [
       id,

@@ -44,7 +44,7 @@
       "id": "nightweir",
       "original": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-2246e568-1e6f-4c7c-926b-4351a3089959.png",
       "promptRecord": "nightweir-v1-prompt.txt",
-      "image": "nightweir-v1.png",
+      "image": "../../nightweir/reference/nightweir-v1.png",
       "sourceImageSha256": "4468371cadf9ef0f622a1e6d998387e3928d423a4342d865bcf6e92fe42760cc",
       "promptRecordSha256": "de846f492e12b81fed3aba7b5ada911ef91ecec39af123dbd86c9fd159138bea"
     },
@@ -52,7 +52,7 @@
       "id": "worldspire",
       "original": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-02dd97f9-95dc-452d-ab4a-47e3e0d89130.png",
       "promptRecord": "worldspire-v1-prompt.txt",
-      "image": "worldspire-v1.png",
+      "image": "../../worldspire/reference/worldspire-v1.png",
       "sourceImageSha256": "05cef3f2053706c4634ccebc08730bef856183d9605979d4cdc619a9c9ae210c",
       "promptRecordSha256": "93b070255188b842224629caddcad3fa04708b6561b1a2500d8fb27e5fb54dd5"
     }

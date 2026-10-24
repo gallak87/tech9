@@ -4,7 +4,7 @@ Selected source: [reference-guided panorama](helion-sky-v2.png) and [exact gener
 
 Generated with the built-in imagegen tool using the project's [original scene drawing](reference/thermal-observatory-scene.png) as the image reference for palette, atmosphere, lighting and celestial detail. The original drawing is preserved unchanged. No external artwork or third-party assets were supplied.
 
-Earlier source: [first panorama](helion-sky-v1.png) and [its exact prompt](sky-prompt.txt), generated without reference images.
+The [earlier generation prompt](sky-prompt.txt), generated without reference images, is retained as a format reference. Its superseded panorama is available in Git history; the selected v2 source and original scene reference remain here.
 
 The PNGs contain bounded image color, not captured HDR radiance. They supply distant atmosphere/space; terrain, architecture, lighting, events and gameplay are authored separately. Preserve native source images when exporting runtime textures.
 

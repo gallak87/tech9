@@ -7,7 +7,7 @@
     "prompt": "assets/ships/bastion/revision-prompt.txt",
     "sha256": "7d2929fc972666069d0702c097da84d3e3e7f6874edaaa86470dd6aff2381cd3",
     "sourceKind": "Original generated design reference",
-    "previousConcept": "concept-01.png"
+    "previousConceptInGitHistory": "concept-01.png"
   },
   "model": {
     "source": "assets/ships/bastion/bastion.blend",

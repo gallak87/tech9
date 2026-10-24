@@ -28,7 +28,7 @@ For pickup sound and VFX together, open **Ship inspector → Powerups** with `de
 | Countdown · 3 / 2 / 1       | Each red start light                                                        | Same short 480 Hz tone                                       |
 | Countdown · go              | Green start light                                                           | Longer 960 Hz tone                                           |
 | Cup · champion              | First place in the final championship standings, after the race-finish cue  | Generated warm impact, rising swell and resolved synth chord |
-| Final lap                   | Final lap begins                                                            | Generated urgent synth rise and chord                        |
+| Final lap                   | Final lap begins                                                            | Generated punchy double electronic clap                      |
 | Lap complete                | Ordinary lap crossing                                                       | Generated compact synth lift and resolution                  |
 | Race complete · finisher    | Other valid finish                                                          | Generated warm synth finish sting                            |
 | Race complete · invalid run | Invalid finish                                                              | Generated descending synth close                             |

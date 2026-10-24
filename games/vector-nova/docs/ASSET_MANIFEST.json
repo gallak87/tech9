@@ -422,7 +422,7 @@
       "source": "assets/audio/sfx/final-lap.wav",
       "promptRecord": "assets/audio/sfx/final-lap.json",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "Modern electronic race cue shared by gameplay and Sounds. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 2 seconds; retained source 0.00\u20131.60 seconds (1.60 seconds), applied +0.08 dB gain for -5.5 dBFS peak headroom, with 2 ms/10 ms edge fades. No EQ or compression added.",
+      "provenance": "Double electronic clap for the final-lap crossing, shared by gameplay and Sounds. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 2 seconds; retained source 0.24\u20131.24 seconds (1 second) to remove the lead-in and retain both attacks about 0.25 seconds apart. Applied -5.05 dB gain for -5.5 dBFS peak headroom, with 2 ms/20 ms edge fades. No EQ or compression added.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
       "runtimeDependencies": [],
       "provenanceRecord": "docs/audio/sfx.md"

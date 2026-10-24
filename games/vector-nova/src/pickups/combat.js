@@ -168,7 +168,16 @@ export function createCombatSimulation({
   function notify(id, type, payload) {
     actors.get(id)?.notify({ type, payload });
   }
-  function hit(source, target, kind, impulse, cost, position, equipment) {
+  function hit(
+    source,
+    target,
+    kind,
+    impulse,
+    cost,
+    position,
+    equipment,
+    incomingQuaternion,
+  ) {
     if ((state.grace[target] ?? 0) > state.time) return;
     const targetActor = eligible(target);
     if (!targetActor || source === target) return;
@@ -186,6 +195,7 @@ export function createCombatSimulation({
         state.time,
         entrySpeed,
         toughness(targetActor.actor.state),
+        equipment,
       );
       targetActor.actor.disrupt?.(
         sampleCombatDisruption(state.disruptions[target], state.time),
@@ -208,8 +218,12 @@ export function createCombatSimulation({
       id: state.sequence++,
       target,
       kind: shielded ? 'aegis' : kind,
+      ...(equipment ? { equipment } : {}),
       position: payload.position,
-      quaternion: targetActor.pose.quaternion.toArray(),
+      quaternion:
+        !shielded && incomingQuaternion
+          ? [...incomingQuaternion]
+          : targetActor.pose.quaternion.toArray(),
       age: 0,
       radius: 4,
     });
@@ -296,6 +310,7 @@ export function createCombatSimulation({
     state.flashes.push({
       id: state.sequence++,
       kind: 'arc',
+      ...(heavy ? { equipment: 'lance' } : {}),
       type: 'muzzle',
       source: id,
       position: pose.position
@@ -544,6 +559,7 @@ export function createCombatSimulation({
             8,
             a.clone().lerp(b, first),
             shot.heavy ? 'lance' : undefined,
+            shot.heavy ? shot.quaternion : undefined,
           );
           // Damage grace suppresses repeated impulses, not visible contact.
           if (!applied) {
@@ -560,8 +576,11 @@ export function createCombatSimulation({
               id: state.sequence++,
               target,
               kind: 'arc',
+              ...(shot.heavy ? { equipment: 'lance' } : {}),
               position: a.clone().lerp(b, first).toArray(),
-              quaternion: other.pose.quaternion.toArray(),
+              quaternion: shot.heavy
+                ? [...shot.quaternion]
+                : other.pose.quaternion.toArray(),
               age: 0,
               radius: 4,
             });

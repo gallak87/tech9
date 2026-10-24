@@ -1334,6 +1334,19 @@ export async function createGame({
         },
       }),
     );
+    const equipmentEvents = [];
+    if (runtime.observePresentation)
+      lifetime.defer(
+        runtime.observePresentation({
+          events(batch) {
+            equipmentEvents.push(...batch);
+          },
+          reset() {
+            equipmentEvents.length = 0;
+            equipmentPresentation.reset();
+          },
+        }),
+      );
     const unlockDrivingAudio = () => {
       if (!suspended && ['racing', 'countdown'].includes(mode))
         void audio.unlock().catch(() => {});
@@ -1681,6 +1694,14 @@ export async function createGame({
         mode,
         suspended,
         reducedMotion: settings.reducedMotion,
+        settings,
+        events: equipmentEvents.splice(0),
+        motion: {
+          airborne: runtime.pose(alpha)?.grounded === false,
+          correction: Math.min(1, Math.abs(s.lateralSpeed ?? 0) / 12),
+          speed: s.speed,
+          reserve: s.energy,
+        },
       });
       racerPresentation?.update({
         alpha,

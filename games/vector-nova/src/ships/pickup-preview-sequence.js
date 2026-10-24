@@ -3,6 +3,11 @@ import { Vector3 } from 'three';
 import { sampleIonContact } from '../pickups/ion-contact.js';
 import { EQUIPMENT, equipmentById } from '../progression/catalog.js';
 import {
+  equipmentDemonstration,
+  PREVIEW_TARGET_DISTANCE,
+} from './equipment-demonstration.js';
+export { PREVIEW_TARGET_DISTANCE } from './equipment-demonstration.js';
+import {
   AEGIS_DURATION,
   AEGIS_BREAK_DURATION,
   ARC_SHOT_HEIGHT,
@@ -12,9 +17,6 @@ import {
   LANCE_SPEED,
   LANCE_LIFETIME,
 } from '../pickups/rules.js';
-
-// Leave room to read the traveling effects and the target's full silhouette.
-export const PREVIEW_TARGET_DISTANCE = 27.5;
 
 export const PICKUP_PREVIEWS = [
   { id: 'vector', label: 'Vector · catapult' },
@@ -29,7 +31,7 @@ export const DEVICE_PREVIEWS = [
   ...PICKUP_PREVIEWS.map((entry) => ({ ...entry, group: 'Road pickups' })),
   ...EQUIPMENT.map(({ id, name, detail }) => ({
     id,
-    label: `${name} · ${id === 'lance' ? 'fire + impact' : 'activate'}`,
+    label: `${name} · ${{ jump: 'launch + landing', injector: 'restore reserve', slipstream: 'close the gap', stabilizer: 'airborne correction', lance: 'fire + impact', deflector: 'protect + expire' }[id]}`,
     group: 'Equipped abilities',
     detail,
   })),
@@ -49,17 +51,24 @@ const playerPosition = new Vector3();
 
 // Samples of presentation state, never a race, collision world or vehicle
 // simulation. Combat timings/speeds come directly from the game's rules.
-// The ship stays on its plinth; Ion's wake travels through its local frame.
+// Equipped abilities add bounded studio demonstrations. Ion's wake travels
+// through the inspection frame. Neither imports a level or physics.
 export function pickupPreviewFrame(
   kind,
   time,
   previous = -1,
   target = false,
   shielded = false,
+  reducedMotion = false,
 ) {
   const breakShield = kind === 'aegis-hit' || kind === 'deflector-hit';
   if (breakShield) kind = kind === 'aegis-hit' ? 'aegis' : 'deflector';
   const item = equipmentById(kind);
+  const demo = equipmentDemonstration(
+    breakShield ? 'deflector-hit' : kind,
+    time,
+    reducedMotion,
+  );
   const events = [];
   const effects = {};
   const combat = { time, emitters: {}, shots: [], flashes: [], wakes: [] };
@@ -102,26 +111,41 @@ export function pickupPreviewFrame(
         quaternion,
         age,
         radius: 4,
+        ...(item?.id === 'lance' ? { equipment: 'lance' } : {}),
       });
   }
   if (crossed(0))
     events.push(event(item ? 'equipment-activate' : 'pickup-activate', kind));
   let end = 0;
   if (item) {
-    end = Math.max(0.8, item.duration) + 0.3;
+    end = Math.max(Math.max(0.8, item.duration) + 0.3, demo.end);
+    const landing =
+      kind === 'jump' ? 44 / 26 : kind === 'stabilizer' ? 3.7 : Infinity;
+    if (crossed(landing))
+      events.push({
+        type: 'jump-transfer',
+        payload: { id: 'equipment-jump', outcome: 'landed' },
+      });
     if (item.duration > 0 && !breakShield && crossed(item.duration))
       events.push(event('equipment-expire', kind));
     if (kind === 'deflector' && breakShield) {
       equipment.slots[0].active = time < 1.5 ? item.duration - time : 0;
-      if (crossed(1.5)) events.push(event('equipment-block', kind));
-      if (time >= 1.5 && time < 2.05)
-        combat.flashes.push({
-          kind: 'aegis',
-          target: 'player',
-          position: [0, 0, 0],
-          quaternion,
-          age: time - 1.5,
-          radius: 4,
+      if (crossed(1.5))
+        events.push({
+          type: 'equipment-block',
+          payload: { kind, direction: [0, 0, 1] },
+        });
+      const distance = PREVIEW_TARGET_DISTANCE - ARC_TARGET_HALF_LENGTH;
+      const launch = 1.5 - distance / COMBAT_RULES.arcSpeed;
+      if (time >= launch && time < 1.5)
+        combat.shots.push({
+          position: [
+            0,
+            ARC_SHOT_HEIGHT,
+            PREVIEW_TARGET_DISTANCE - (time - launch) * COMBAT_RULES.arcSpeed,
+          ],
+          quaternion: [0, 1, 0, 0],
+          age: time - launch,
         });
       end = 2.05;
     }
@@ -142,6 +166,7 @@ export function pickupPreviewFrame(
           quaternion,
           age: time,
           radius: 1.5,
+          equipment: 'lance',
         });
       if (time < travel)
         combat.shots.push({
@@ -291,6 +316,7 @@ export function pickupPreviewFrame(
     effects,
     combat,
     equipment,
+    demo,
     end,
     ionContact:
       !effects.aegisRemaining &&

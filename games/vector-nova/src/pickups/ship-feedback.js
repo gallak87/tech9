@@ -80,6 +80,7 @@ function createDetailedShipFeedback({ vectorThrust }) {
           repulsorTime = REPULSOR_TAIL;
         if (
           kind === 'arc' &&
+          event.payload?.equipment !== 'lance' &&
           (event.type === 'pickup-activate' || event.type === 'combat-fire')
         ) {
           arcTime = ARC_TAIL;

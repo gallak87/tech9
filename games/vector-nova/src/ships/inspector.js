@@ -100,6 +100,9 @@ export async function createInspector({
     );
     host.append(canvas);
     const stage = lifetime.own(createInspectionStage(renderer));
+    const inspectionFrame = new T.Group();
+    inspectionFrame.name = 'Inspector / studio orientation';
+    stage.scene.add(inspectionFrame);
     const camera = new T.PerspectiveCamera(39, 1, 0.1, 200);
     const pipeline = lifetime.own(
       createInspectionPipeline(renderer, stage.scene, camera),
@@ -140,7 +143,7 @@ export async function createInspector({
     ui.setInspectionMenu(true);
     ui.setInspectionPreview(preview);
 
-    function fit(group) {
+    function fit(group, resetRotation = true) {
       const devBounds = pickupTools?.framing(group.userData.bounds);
       if (devBounds && !pairedPreview) preview.elevation = PAIRED_ELEVATION;
       pairedPreview = !!devBounds;
@@ -165,7 +168,7 @@ export async function createInspector({
         Math.abs(bounds.min[1] - 0.55),
         Math.abs(bounds.max[1] - 0.55),
       );
-      rotation = START_ROTATION;
+      if (resetRotation) rotation = START_ROTATION;
       layout = null;
     }
     async function selectShip(id) {
@@ -222,7 +225,7 @@ export async function createInspector({
         rival?.dispose();
         rival = loaded;
         rivalId = id;
-        stage.scene.add(loaded.group);
+        inspectionFrame.add(loaded.group);
         fit(loaded.group);
         ui.setInspectedRival(craft);
         return true;
@@ -267,8 +270,10 @@ export async function createInspector({
       time += dt;
       if (preview.autoRotate && !settings.reducedMotion) rotation += dt * 0.12;
       const subject = tab === 'fleet' ? fleet?.group : rival?.group;
-      subject?.position.set(0, 0.15, 0);
-      subject?.rotation.set(0, rotation, 0);
+      inspectionFrame.position.set(0, 0.15, 0);
+      inspectionFrame.rotation.set(0, rotation, 0);
+      subject?.position.set(0, 0, 0);
+      subject?.quaternion.identity();
       if (tab === 'fleet')
         fleet?.update({
           speed: preview.driving ? 400 / 3.6 : 0,
@@ -321,7 +326,7 @@ export async function createInspector({
       );
       camera.aspect = innerWidth / innerHeight;
       focusOffset.copy(framingCenter);
-      if (subject) focusOffset.applyQuaternion(subject.quaternion);
+      if (subject) focusOffset.applyQuaternion(inspectionFrame.quaternion);
       const target = new T.Vector3(0, viewport ? 0.7 : 0.3, 0).add(focusOffset);
       let pairedFrame;
       if (viewport) {
@@ -340,7 +345,7 @@ export async function createInspector({
         if (pairedFraming && subject)
           pairedFrame = pairedFraming.frame(
             camera.position,
-            subject.quaternion,
+            inspectionFrame.quaternion,
             viewport,
             innerHeight,
             camera.fov,
@@ -381,7 +386,7 @@ export async function createInspector({
       check();
     }
     fleet = loaded;
-    stage.scene.add(fleet.group);
+    inspectionFrame.add(fleet.group);
     fit(fleet.group);
     if (
       !import.meta.env.VN_DESKTOP &&
@@ -392,6 +397,11 @@ export async function createInspector({
       const tools = await createPickupInspector({
         host: root.querySelector('#inspection-tools'),
         ship: fleet.group,
+        frame: inspectionFrame,
+        onFramingChanged: () => {
+          const subject = tab === 'fleet' ? fleet?.group : rival?.group;
+          if (subject) fit(subject, false);
+        },
         getSettings: () => settings,
         getDriving: () => ({
           ...preview,
@@ -507,6 +517,7 @@ export async function createInspector({
     api = {
       ready: true,
       refreshProgression,
+      audition: (...args) => pickupTools?.audition(...args) ?? false,
       configure(next) {
         settings = { ...next };
         pickupTools?.configure();
@@ -514,7 +525,13 @@ export async function createInspector({
       getSnapshot: () => ({
         mode: 'inspection',
         ship: { id: fleet.selected.id, loading },
-        inspection: { tab, rivalId, rivalLoading, preview: { ...preview } },
+        inspection: {
+          tab,
+          rivalId,
+          rivalLoading,
+          preview: { ...preview },
+          demonstration: pickupTools?.getSnapshot(),
+        },
       }),
       dispose,
     };

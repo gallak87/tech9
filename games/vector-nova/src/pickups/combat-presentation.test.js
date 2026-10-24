@@ -125,6 +125,139 @@ test('Arc streaks grow forward from beneath the hull, including rotated ship fra
   assert.equal(scene.children.length, 0);
 });
 
+test('Lance retains a narrow leading spear and localized directional armor strike in both presets', () => {
+  for (const quality of ['high', 'low']) {
+    const scene = new T.Group();
+    const pose = {
+      position: new T.Vector3(20, 30, 40),
+      quaternion: new T.Quaternion().setFromEuler(new T.Euler(0.3, 1.1, -0.6)),
+    };
+    let state;
+    const presentation = createCombatPresentation(
+      scene,
+      {
+        pose: () => pose,
+        view: () => state,
+      },
+      { quality },
+    );
+    const localBounds = (mesh, index = 0) => {
+      const matrix = new T.Matrix4();
+      mesh.getMatrixAt(index, matrix);
+      const bounds = new T.Box3();
+      const vertices = mesh.geometry.getAttribute('position');
+      for (let i = 0; i < vertices.count; i++) {
+        const point = new T.Vector3()
+          .fromBufferAttribute(vertices, i)
+          .applyMatrix4(matrix)
+          .sub(pose.position)
+          .applyQuaternion(pose.quaternion.clone().invert());
+        bounds.expandByPoint(point);
+      }
+      return bounds;
+    };
+    const sample = (time, reducedMotion = false, shielded = false) => {
+      state = pickupPreviewFrame('lance', time, -1, true, shielded).combat;
+      for (const element of [...state.shots, ...state.flashes]) {
+        element.position = new T.Vector3(...element.position)
+          .applyQuaternion(pose.quaternion)
+          .add(pose.position)
+          .toArray();
+        element.quaternion = pose.quaternion.toArray();
+      }
+      const snapshot = JSON.stringify(state);
+      presentation.update({
+        mode: 'racing',
+        settings: { quality, reducedMotion },
+      });
+      assert.equal(JSON.stringify(state), snapshot);
+    };
+    for (const age of [0.005, 0.025, 0.04]) {
+      sample(age);
+      const cores = scene.getObjectByName('Lance / white-hot spear cores');
+      assert.equal(cores.count, 1);
+      const bounds = localBounds(cores);
+      assert.ok(bounds.min.z >= -1e-4, 'the spear grows from the launch point');
+      assert.ok(
+        bounds.getSize(new T.Vector3()).x < 0.5,
+        'dense spear stays narrow',
+      );
+      assert.ok(bounds.getSize(new T.Vector3()).z <= 14.0001);
+      assert.ok(Math.abs(bounds.max.z - age * 490) < 1e-4);
+      if (quality === 'high') {
+        assert.equal(
+          scene.getObjectByName('Arc / traveling pulse').visible,
+          false,
+        );
+      } else {
+        assert.equal(scene.getObjectByName('Low Arc / bolts').count, 0);
+      }
+    }
+    sample(0.16);
+    const fragments = scene.getObjectByName(
+      'Lance / directional impact splinters and muzzle snap',
+    );
+    assert.equal(fragments.count, quality === 'high' ? 9 : 5);
+    const moving = new T.Matrix4();
+    fragments.getMatrixAt(0, moving);
+    const movingPosition = new T.Vector3().setFromMatrixPosition(moving);
+    sample(0.16, true);
+    const held = new T.Matrix4();
+    fragments.getMatrixAt(0, held);
+    assert.ok(
+      movingPosition.distanceTo(new T.Vector3().setFromMatrixPosition(held)) >
+        0.5,
+      'reduced motion removes traveling fragments but keeps the contact',
+    );
+    const frozen = Array.from(fragments.instanceMatrix.array);
+    presentation.update({
+      mode: 'paused',
+      settings: { quality, reducedMotion: true },
+    });
+    assert.deepEqual(Array.from(fragments.instanceMatrix.array), frozen);
+    if (quality === 'high') {
+      assert.equal(
+        scene.children[0].children.some(
+          (child) =>
+            child.name === 'Combat / contact or pressure pulse' &&
+            child.visible,
+        ),
+        false,
+      );
+    } else {
+      assert.equal(
+        scene.getObjectByName('Low combat / contact rings').count,
+        0,
+      );
+    }
+    sample(1);
+    assert.equal(fragments.count, 0);
+    assert.equal(fragments.visible, false);
+    assert.equal(
+      scene.getObjectByName('Lance / white-hot spear cores').count,
+      0,
+    );
+    presentation.dispose();
+    assert.equal(scene.children.length, 0);
+  }
+});
+
+test('Lance firing uses its equipment rails without triggering Arc hull feedback', () => {
+  for (const quality of ['high', 'low']) {
+    const feedback = createShipFeedbackPresentation({ quality });
+    feedback.update({
+      events: [
+        { type: 'combat-fire', payload: { kind: 'arc', equipment: 'lance' } },
+      ],
+    });
+    assert.equal(
+      feedback.group.children.some((child) => child.visible),
+      false,
+    );
+    feedback.dispose();
+  }
+});
+
 test('Repulsor charge and pulse share the road frame, remain bounded, and retain their actual timing', () => {
   const scene = new T.Group();
   const pose = {

@@ -48,8 +48,93 @@ test('equipment auditions cover the live catalogue and retain active lifetimes a
   assert.equal(block.equipment.shield, false);
   assert.equal(block.equipment.slots[0].active, 0);
   assert.deepEqual(block.events, [
-    { type: 'equipment-block', payload: { kind: 'deflector' } },
+    {
+      type: 'equipment-block',
+      payload: { kind: 'deflector', direction: [0, 0, 1] },
+    },
   ]);
+});
+
+test('utility demonstrations show launch, correction, reserve restoration and a closing rival gap', () => {
+  const jump = pickupPreviewFrame('jump', 0.8);
+  assert.ok(jump.demo.position[1] > 9);
+  assert.equal(jump.demo.airborne, true);
+  assert.deepEqual(jump.demo.target, [0, 0, PREVIEW_TARGET_DISTANCE]);
+  const landed = pickupPreviewFrame('jump', 2.1, 1.6);
+  assert.equal(landed.demo.airborne, false);
+  assert.equal(landed.demo.position[1], 0);
+  assert.equal(
+    landed.events.filter(({ type }) => type === 'jump-transfer').length,
+    1,
+  );
+  assert.equal(pickupPreviewFrame('jump', 2.11, 2.1).events.length, 0);
+
+  const drifting = pickupPreviewFrame('stabilizer', 0.4).demo;
+  const corrected = pickupPreviewFrame('stabilizer', 2.4).demo;
+  assert.ok(Math.abs(drifting.position[0]) > 3);
+  assert.ok(drifting.rotation[2] > 0.3);
+  assert.equal(Math.abs(corrected.position[0]), 0);
+  assert.equal(corrected.rotation[2], 0);
+  assert.equal(corrected.airborne, true);
+  assert.equal(pickupPreviewFrame('stabilizer', 3.8).demo.position[1], 0);
+  assert.deepEqual(
+    pickupPreviewFrame('stabilizer', 0.4, 0, false, false, true).demo.rotation,
+    [0, 0, 0],
+  );
+
+  assert.equal(pickupPreviewFrame('injector', 0).demo.reserve.value, 25);
+  assert.equal(pickupPreviewFrame('injector', 0.7).demo.reserve.value, 70);
+  const surge = pickupPreviewFrame('slipstream', 3).demo;
+  assert.ok(surge.target[2] < PREVIEW_TARGET_DISTANCE - 10);
+  assert.ok(surge.target[2] > 13);
+});
+
+test('moving auditions keep their rival independent and restore the hull on Stop, retrigger and chassis changes', async () => {
+  const target = new Group();
+  const h = previewHarness(target);
+  await h.preview.trigger('jump');
+  h.preview.update(0.8);
+  assert.ok(h.ship.position.y > 9);
+  assert.equal(target.position.y, 0);
+  assert.equal(target.position.z, PREVIEW_TARGET_DISTANCE);
+  const height = h.ship.position.y;
+  h.preview.update(0);
+  assert.equal(
+    h.ship.position.y,
+    height,
+    'presentation offsets never accumulate',
+  );
+  h.preview.stop();
+  assert.deepEqual(h.ship.position.toArray(), [0, 0, 0]);
+  assert.deepEqual(h.ship.quaternion.toArray(), [0, 0, 0, 1]);
+  await h.preview.trigger('stabilizer');
+  h.preview.update(0.5);
+  assert.ok(h.ship.position.x < -3);
+  await h.preview.trigger('arc');
+  assert.deepEqual(h.ship.position.toArray(), [0, 0, 0]);
+  await h.preview.trigger('jump');
+  h.preview.update(0.4);
+  const replacement = new Group();
+  h.preview.setShip(replacement);
+  assert.deepEqual(h.ship.position.toArray(), [0, 0, 0]);
+  assert.equal(target.visible, false);
+  assert.equal(h.preview.getSnapshot().kind, null);
+  h.preview.dispose();
+  assert.deepEqual(replacement.position.toArray(), [0, 0, 0]);
+});
+
+test('a paused authoring sample holds its pose without replaying activation or landing audio', async () => {
+  const h = previewHarness(new Group());
+  await h.preview.trigger('jump', { time: 0.8, paused: true });
+  const position = h.ship.position.toArray();
+  const events = h.events.length;
+  h.preview.update(10);
+  assert.deepEqual(h.ship.position.toArray(), position);
+  assert.equal(h.preview.getSnapshot().time, 0.8);
+  assert.equal(h.events.length, events);
+  h.preview.stop();
+  assert.deepEqual(h.ship.position.toArray(), [0, 0, 0]);
+  h.preview.dispose();
 });
 
 test('Lance auditions fire one heavy bolt and preserve its sound identity through a shielded or bare impact', () => {
@@ -296,6 +381,8 @@ test('Aegis trails only while protected and moving; fracture freezes on pause an
 
 function previewHarness(target) {
   const ship = new Group();
+  const frame = new Group();
+  frame.add(ship);
   const settings = { volume: 0.35, muted: false };
   const events = [];
   const statuses = [];
@@ -322,6 +409,7 @@ function previewHarness(target) {
   const preview = createPickupPreview({
     ship,
     target,
+    frame,
     getSettings: () => settings,
     onStatus: (value) => statuses.push(value),
     createAudio: () => audio,
@@ -329,6 +417,7 @@ function previewHarness(target) {
   return {
     preview,
     ship,
+    frame,
     settings,
     audio,
     events,
@@ -348,10 +437,14 @@ test('equipped fields expire, stop and clear on chassis changes using the shared
   const h = previewHarness();
   await h.preview.trigger('deflector');
   const effects = h.ship.getObjectByName('Player equipment effects');
-  const shield = effects.getObjectByName('Deflector / protective field');
+  const shield = effects.getObjectByName(
+    'Deflector / segmented conformal panels',
+  );
   assert.equal(effects.visible, true);
   assert.equal(shield.visible, true);
   h.preview.update(2.5);
+  assert.equal(h.preview.getSnapshot().kind, 'deflector');
+  h.preview.update(0.4);
   assert.equal(shield.visible, false);
   h.preview.stop();
   assert.equal(effects.visible, false);
@@ -448,10 +541,10 @@ test('a shielded target blocks the first hit, skips the second and takes the thi
   );
 });
 
-test('the target stays visible between auditions, follows ship changes and detaches on teardown', async () => {
+test('the target stays in the inspection frame across chassis changes and detaches on teardown', async () => {
   const target = new Group();
   const h = previewHarness(target);
-  assert.equal(target.parent, h.ship);
+  assert.equal(target.parent, h.frame);
   assert.equal(target.position.z, PREVIEW_TARGET_DISTANCE);
   await h.preview.trigger('arc');
   h.preview.update(
@@ -461,7 +554,7 @@ test('the target stays visible between auditions, follows ship changes and detac
       0.01,
   );
   const flashes = [];
-  h.ship.traverse((object) => {
+  h.frame.traverse((object) => {
     if (object.visible && object.name === 'Combat / contact or pressure pulse')
       flashes.push(object);
   });
@@ -473,13 +566,14 @@ test('the target stays visible between auditions, follows ship changes and detac
   );
   h.preview.stop();
   assert.equal(target.visible, true);
-  assert.equal(target.parent, h.ship);
+  assert.equal(target.parent, h.frame);
   h.preview.setShip(null);
-  assert.equal(target.parent, null);
+  assert.equal(target.visible, false);
   assert.equal(h.ship.children.length, 0);
   const replacement = new Group();
   h.preview.setShip(replacement);
-  assert.equal(target.parent, replacement);
+  assert.equal(target.parent, h.frame);
+  assert.equal(target.visible, true);
   h.preview.dispose();
   assert.equal(replacement.children.length, 0);
 });

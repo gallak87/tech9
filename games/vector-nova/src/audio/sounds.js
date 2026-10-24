@@ -30,6 +30,16 @@ export const soundEffects = [
     ),
     group: 'Equipped abilities',
   })),
+  {
+    ...device(
+      'jump-land',
+      'Jump Drive · landing catch',
+      'jump-transfer',
+      { id: 'equipment-jump', outcome: 'landed' },
+      0.9,
+    ),
+    group: 'Equipped abilities',
+  },
   ...[
     device(
       'lance-fire',

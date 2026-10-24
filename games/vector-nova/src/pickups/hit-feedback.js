@@ -116,10 +116,17 @@ function createDetailedHitFeedback(ship, hull) {
       age,
       { reducedMotion = false } = {},
       kind = 'arc',
-      { ionContact = 0, time = 0, disruption = 0 } = {},
+      {
+        ionContact = 0,
+        time = 0,
+        disruption = 0,
+        equipment,
+        disruptionEquipment,
+      } = {},
     ) {
       if (disposed) return;
       const hit =
+        equipment !== 'lance' &&
         ['arc', 'repulsor', 'ion'].includes(kind) &&
         Number.isFinite(age) &&
         age >= 0 &&
@@ -127,7 +134,10 @@ function createDetailedHitFeedback(ship, hull) {
       const exposure = Number.isFinite(ionContact)
         ? Math.max(0, Math.min(1, ionContact))
         : 0;
-      const sustained = Math.max(0, Math.min(1, disruption));
+      const sustained =
+        disruptionEquipment === 'lance'
+          ? 0
+          : Math.max(0, Math.min(1, disruption));
       group.visible = hit || exposure > 0.001 || sustained > 0.001;
       if (!group.visible) {
         material.uniforms.strength.value = 0;

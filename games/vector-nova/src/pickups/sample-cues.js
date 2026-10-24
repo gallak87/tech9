@@ -4,6 +4,8 @@ export const DEVICE_SAMPLES = {
     '../../assets/audio/sfx/jump-activate.wav',
     import.meta.url,
   ).href,
+  'jump-land': new URL('../../assets/audio/sfx/jump-land.wav', import.meta.url)
+    .href,
   'injector-activate': new URL(
     '../../assets/audio/sfx/injector-activate.wav',
     import.meta.url,
@@ -56,6 +58,12 @@ export const DEVICE_SAMPLES = {
 
 export function deviceSample(event) {
   const { kind, shielded, equipment } = event.payload ?? {};
+  if (
+    event.type === 'jump-transfer' &&
+    event.payload?.id === 'equipment-jump' &&
+    event.payload?.outcome === 'landed'
+  )
+    return { id: 'jump-land', gain: 0.6 };
   if (
     event.type === 'equipment-activate' &&
     kind !== 'lance' &&

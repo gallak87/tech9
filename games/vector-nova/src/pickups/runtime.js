@@ -84,9 +84,14 @@ export function createDeviceRuntime({
       disrupt: (disruption) => applyDisruption(state, disruption),
       hit({ source, kind, impulse, cost }) {
         if (equipment?.absorbHit()) {
+          const position = combat.pose(source)?.position?.toArray();
           pending.push({
             type: 'equipment-block',
-            payload: { kind: 'deflector', source },
+            payload: {
+              kind: 'deflector',
+              source,
+              ...(position ? { position } : {}),
+            },
           });
           return true;
         }

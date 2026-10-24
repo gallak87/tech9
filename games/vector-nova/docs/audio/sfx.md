@@ -52,7 +52,7 @@ For an isolated cue, use **Sounds → Play** with `?dev=1` or `?dev=2`. For the 
 - **Engine sound** adds Driving/Boost while those buttons are on. It starts unchecked and silences on blur or close.
 - **Shield target** adds Aegis to Rook for Arc/Repulsor/Lance. **Ion · incoming wake** instead attacks your ship and offers **Shield your ship**.
 - **Aegis · shield** plays the full lifetime; **absorb + break** tests a hit after 1.5 seconds. Its middle is intentionally silent.
-- **Equipped abilities** includes all six items. Lance fires the actual heavy bolt; Deflector has full-lifetime and absorb/break auditions. Utility items show their gameplay activation/active effects; the studio does not simulate a jump, reserve injection or drafting physics.
+- **Equipped abilities** includes all six items. Lance fires the actual heavy bolt; Deflector has full-lifetime and absorb/break auditions. Utility items stage launch/landing, reserve refill, a four-second overtake and airborne stabilization with the shared gameplay effects. The studio uses presentation-only motion and never constructs a race or collision world. Jump Drive has separate launch and landing-catch recordings.
 - Graphics quality uses the same pickup renderers as gameplay. Low keeps bare cues; High includes glow, trails and fractures. Normal inspection loads no pickup-test code, target or audition sounds without `dev=1` or `dev=2`.
 
 Finish the complete device set using the [brief/template](../sounds/expansion.md) and [cue inventory](sounds.md). Listen with propulsion and Tunes; technical validation cannot judge the mix. Preserve natural tails, align attacks with real events and check loop seams by ear.

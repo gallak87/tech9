@@ -1,7 +1,7 @@
 {
-  "prompt": "One isolated futuristic racing slipstream drive engaging. A quick low turbine catch opens into a smooth accelerating suction rush, with a deep energetic body and an airy tail fading gently. Sleek, forceful, rounded, close and dry. No music, voices, melody, gunfire, impacts or repeated sweeps.",
-  "seconds": 2,
-  "seed": 70953,
+  "prompt": "One racing slipstream drive catching airflow. Immediate turbine catch followed by a continuous smooth powerful rushing suction of air, held steady for several seconds and easing away at the end. Low mechanical turbine body under soft wind, close dry recording. No music, speech, melody, impact, explosion, alarms or repeated sweeps.",
+  "seconds": 4.2,
+  "seed": 74103,
   "steps": 8,
   "cfg": 1
 }

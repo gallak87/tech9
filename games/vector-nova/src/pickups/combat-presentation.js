@@ -7,6 +7,7 @@ import { ARC_SHOT_HEIGHT, ARC_MUZZLE_HEIGHT } from './rules.js';
 import { disposeGroup } from './geometry.js';
 import { createQualityPresentation } from './quality.js';
 import { createLowCombatPresentation } from './low-combat.js';
+import { createLancePresentation, isLanceFlash } from './lance-presentation.js';
 
 const BOLT_LENGTH = 16;
 const BOLT_WIDTH = 2.8;
@@ -83,6 +84,7 @@ function createDetailedCombatPresentation(scene, combat) {
     return group;
   });
   const ribbon = createIonRibbon(root);
+  const lance = createLancePresentation(root);
   const visualOffset = new T.Vector3();
   return {
     group: root,
@@ -143,8 +145,8 @@ function createDetailedCombatPresentation(scene, combat) {
         });
       flashes.forEach(({ group, impact, upright, crown, pressure }, index) => {
         const flash = state.flashes[index];
-        group.visible = !!flash;
-        if (!flash) return;
+        group.visible = !!flash && !isLanceFlash(flash);
+        if (!group.visible) return;
         group.position.fromArray(flash.position);
         group.quaternion.fromArray(flash.quaternion);
         const muzzle = flash.type === 'muzzle';
@@ -201,8 +203,8 @@ function createDetailedCombatPresentation(scene, combat) {
       });
       shots.forEach((mesh, index) => {
         const shot = state.shots[index];
-        mesh.visible = !!shot;
-        if (!shot) return;
+        mesh.visible = !!shot && !shot.heavy;
+        if (!mesh.visible) return;
         mesh.position.fromArray(shot.position);
         mesh.quaternion.fromArray(shot.quaternion);
         mesh.position.add(
@@ -210,25 +212,20 @@ function createDetailedCombatPresentation(scene, combat) {
             .set(0, ARC_MUZZLE_HEIGHT - ARC_SHOT_HEIGHT, 0)
             .applyQuaternion(mesh.quaternion),
         );
-        mesh.scale.x = mesh.scale.y = shot.heavy ? 2.4 : 1;
-        mesh.scale.z =
-          (shot.heavy ? 1.8 : 1) *
-          Math.min(
-            1,
-            Math.max(0, (shot.age * COMBAT_RULES.arcSpeed) / BOLT_LENGTH),
-          );
+        mesh.scale.x = mesh.scale.y = 1;
+        mesh.scale.z = Math.min(
+          1,
+          Math.max(0, (shot.age * COMBAT_RULES.arcSpeed) / BOLT_LENGTH),
+        );
         for (const plane of mesh.children)
-          tune(
-            plane,
-            shot.heavy ? 'repulsor' : 'arc',
-            settings.reducedMotion ? 0.8 : shot.heavy ? 1.5 : 1.15,
-            shot.age,
-          );
+          tune(plane, 'arc', settings.reducedMotion ? 0.8 : 1.15, shot.age);
       });
+      lance.update(state, combat, settings);
       ribbon.update(state, combat, settings.reducedMotion);
     },
     dispose() {
       ribbon.dispose();
+      lance.dispose();
       disposeGroup(root);
     },
   };

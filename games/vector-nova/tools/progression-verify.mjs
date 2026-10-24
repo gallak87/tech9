@@ -169,13 +169,37 @@ try {
           await page.waitForFunction(() =>
             document
               .querySelector('.inspection-pickups [role="status"]')
-              .textContent.startsWith('Playing'),
+              .textContent.match(/^(Playing|Demo)/),
           );
           await page.waitForTimeout(
             kind === 'arc' || kind === 'repulsor' ? 1800 : 300,
           );
+          const demonstration = await page.evaluate(
+            () => window.__VN_INSPECTOR.getSnapshot().inspection.demonstration,
+          );
+          if (kind === 'jump' || kind === 'stabilizer')
+            assert.ok(demonstration.position[1] > 2, `${kind} lifts the hull`);
+          if (kind === 'slipstream')
+            assert.ok(demonstration.target[2] < 27.5, 'the gap visibly closes');
+          if (kind === 'injector') {
+            await page.waitForFunction(
+              () => document.querySelector('[data-reserve] meter').value === 70,
+            );
+            assert.equal(
+              await page.locator('[data-reserve]:visible').count(),
+              1,
+            );
+          }
           await page.locator('[data-stop]').click();
           assert.equal(await status.innerText(), 'Ready');
+          assert.deepEqual(
+            await page.evaluate(
+              () =>
+                window.__VN_INSPECTOR.getSnapshot().inspection.demonstration
+                  .position,
+            ),
+            [0, 0, 0],
+          );
         }
         await page.locator('#inspection-pickup').selectOption('arc');
         await page.locator('[data-shield]').check();
@@ -211,6 +235,7 @@ try {
         );
         for (const cue of [
           'jump-activate',
+          'jump-land',
           'injector-activate',
           'slipstream-activate',
           'deflector-activate',

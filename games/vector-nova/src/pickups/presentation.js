@@ -261,6 +261,8 @@ export function createPickupPresentation({
         nextSettings,
         disruption?.kind ?? flash?.kind ?? 'ion',
         {
+          equipment: flash?.equipment,
+          disruptionEquipment: disruption?.equipment,
           disruption: disruption?.strength ?? 0,
           ionContact:
             driving && !blocking ? (combat?.ionContact?.('player') ?? 0) : 0,

@@ -144,6 +144,8 @@ export async function createRacerPresentation({
           settings,
           disruption?.kind ?? contact?.kind,
           {
+            equipment: contact?.equipment,
+            disruptionEquipment: disruption?.equipment,
             disruption: disruption?.strength ?? 0,
             ionContact: !blocking
               ? (combat?.ionContact?.(opponent.specification.id) ?? 0)

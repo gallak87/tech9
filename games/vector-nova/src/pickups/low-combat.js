@@ -8,8 +8,9 @@ import {
 } from './rules.js';
 import { disposeGroup } from './geometry.js';
 import { lowMaterial } from './low-geometry.js';
+import { createLancePresentation, isLanceFlash } from './lance-presentation.js';
 
-// Four bounded batches, independent of racer count. Keep every live projectile
+// Bounded batches, independent of racer count. Keep every live projectile
 // and dangerous wake segment; Low changes presentation, never simulation.
 export function createLowCombatPresentation(scene, combat) {
   const group = new T.Group();
@@ -78,6 +79,7 @@ export function createLowCombatPresentation(scene, combat) {
   wake.frustumCulled = false;
   wake.userData.aoExclude = wake.userData.reflectionExclude = true;
   group.add(wake);
+  const lance = createLancePresentation(group, { low: true });
   const a = new T.Vector3(),
     b = new T.Vector3(),
     right = new T.Vector3(),
@@ -116,7 +118,7 @@ export function createLowCombatPresentation(scene, combat) {
       flashes.count = 0;
       for (const flash of state.flashes.slice(0, 32)) {
         // The bolt itself supplies the muzzle cue; contacts use one small ring.
-        if (flash.type === 'muzzle') continue;
+        if (flash.type === 'muzzle' || isLanceFlash(flash)) continue;
         transform.position.fromArray(flash.position);
         transform.quaternion.fromArray(flash.quaternion);
         const pulse = flash.kind === 'repulsor' && flash.radius > 10;
@@ -131,9 +133,9 @@ export function createLowCombatPresentation(scene, combat) {
           strength * Math.max(0, 1 - flash.age / 0.55),
         );
       }
-      shots.count = Math.min(30, state.shots.length);
-      for (let i = 0; i < shots.count; i++) {
-        const shot = state.shots[i];
+      shots.count = 0;
+      for (const shot of state.shots.slice(0, 30)) {
+        if (shot.heavy) continue;
         transform.position.fromArray(shot.position);
         transform.quaternion.fromArray(shot.quaternion);
         transform.position.add(
@@ -146,9 +148,10 @@ export function createLowCombatPresentation(scene, combat) {
           1,
           Math.min(8, shot.age * COMBAT_RULES.arcSpeed),
         );
-        instance(shots, i, 'arc', strength);
+        instance(shots, shots.count++, 'arc', strength);
       }
       for (const mesh of [charges, flashes, shots]) upload(mesh);
+      lance.update(state, combat, settings);
       const count = Math.min(256, state.wakes.length);
       for (let i = 0; i < count; i++) {
         const segment = state.wakes[i];
@@ -184,6 +187,7 @@ export function createLowCombatPresentation(scene, combat) {
     },
     dispose() {
       for (const mesh of [charges, flashes, shots]) mesh.dispose();
+      lance.dispose();
       disposeGroup(group);
     },
   };

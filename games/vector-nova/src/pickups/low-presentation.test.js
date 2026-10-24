@@ -39,7 +39,7 @@ function resources(root) {
   return all;
 }
 
-test('Low combat uses four plain batches, preserves live shots/wakes and releases each quality tier', () => {
+test('Low combat keeps bounded plain batches, preserves live shots/wakes and releases each quality tier', () => {
   const scene = new T.Group();
   let state = pickupPreviewFrame('arc', 0.36).combat;
   const combat = {
@@ -48,7 +48,7 @@ test('Low combat uses four plain batches, preserves live shots/wakes and release
   };
   const presentation = createCombatPresentation(scene, combat, low);
   plain(presentation.group);
-  assert.equal(presentation.group.children.length, 4);
+  assert.equal(presentation.group.children.length, 5);
   const owned = resources(presentation.group),
     freed = new Set();
   for (const resource of owned)

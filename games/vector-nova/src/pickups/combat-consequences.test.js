@@ -23,6 +23,34 @@ test('volleys cannot compound speed loss or extend the original recovery clock',
   );
 });
 
+test('Lance keeps its presentation identity through recovery without changing the heavy-hit curve', () => {
+  const ordinary = combatDisruption(null, 'repulsor', 10, 120);
+  const lance = combatDisruption(null, 'repulsor', 10, 120, 0, 'lance');
+  assert.deepEqual(lance, { ...ordinary, equipment: 'lance' });
+  for (const age of [0, 0.1, 1, 2.5]) {
+    const { equipment, ...sample } = sampleCombatDisruption(lance, 10 + age);
+    assert.equal(equipment, 'lance');
+    assert.deepEqual(sample, sampleCombatDisruption(ordinary, 10 + age));
+  }
+  assert.equal(combatDisruption(lance, 'arc', 11, 50).equipment, 'lance');
+  assert.equal(combatDisruption(lance, 'repulsor', 11, 50).equipment, 'lance');
+  assert.equal(
+    combatDisruption(lance, 'repulsor', 14, 120).equipment,
+    undefined,
+  );
+  assert.equal(
+    combatDisruption(
+      combatDisruption(null, 'arc', 10, 120),
+      'repulsor',
+      11,
+      50,
+      0,
+      'lance',
+    ).equipment,
+    'lance',
+  );
+});
+
 test('HUD distinguishes an Arc pulse and Repulsor tunnel; reduced motion has no flash or pulsing', () => {
   const sample = (kind, age, quiet = false) =>
     sampleCombatScreen(

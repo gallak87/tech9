@@ -80,8 +80,15 @@ test('live Lance fire and impact retain equipment identity without changing heav
     const h = harness();
     h.add('player', 0);
     const target = h.add('target', 80, 0, 0, shielded);
+    const targetPose = target.pose;
+    const bank = new T.Quaternion().setFromAxisAngle(
+      new T.Vector3(0, 0, 1),
+      0.6,
+    );
+    target.pose = () => ({ ...targetPose(), quaternion: bank.clone() });
     for (const [id, actor] of h.actors) h.combat.bind(id, actor);
     assert.equal(h.combat.fireLance('player'), true);
+    assert.equal(h.combat.view().flashes[0].equipment, 'lance');
     h.step(30);
     const fire = h.events.find(({ type }) => type === 'combat-fire');
     const hit = h.events.find(({ type }) => type === 'combat-hit');
@@ -90,6 +97,24 @@ test('live Lance fire and impact retain equipment identity without changing heav
     assert.equal(hit.payload.kind, 'repulsor');
     assert.equal(hit.payload.shielded, shielded);
     assert.equal(target.hits.length, 1);
+    const flash = h.combat
+      .view()
+      .flashes.find((entry) => entry.target === 'target');
+    assert.equal(flash.equipment, 'lance');
+    assert.equal(flash.kind, shielded ? 'aegis' : 'repulsor');
+    assert.deepEqual(
+      flash.quaternion,
+      shielded ? bank.toArray() : [0, 0, 0, 1],
+      'armor fragments follow the incoming shot; a shield keeps its own hull frame',
+    );
+    if (!shielded) {
+      h.step(60);
+      assert.equal(h.combat.view().flashes.length, 0);
+      assert.equal(h.combat.disruption('target').equipment, 'lance');
+      const snapshot = h.combat.snapshot();
+      h.combat.restore(snapshot);
+      assert.equal(h.combat.disruption('target').equipment, 'lance');
+    }
   }
 });
 test('repulsor charges, pushes locally, respects decks/flight and has bounded repeat hits', () => {

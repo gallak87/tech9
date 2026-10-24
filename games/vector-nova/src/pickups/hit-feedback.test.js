@@ -192,3 +192,38 @@ test('High and Low retain the incoming weapon identity until drive recovery ends
     material.dispose();
   }
 });
+
+test('Lance uses its localized armor burst without a Repulsor hull wash during hit or recovery', () => {
+  for (const quality of ['high', 'low']) {
+    const ship = new Group();
+    const geometry = new BoxGeometry();
+    const material = new MeshBasicMaterial();
+    ship.add(new Mesh(geometry, material));
+    const feedback = createHitFeedback(ship, { quality });
+    feedback.update(0.1, { quality }, 'repulsor', { equipment: 'lance' });
+    assert.equal(feedback.group.visible, false);
+    feedback.update(undefined, { quality }, 'repulsor', {
+      disruption: 1,
+      disruptionEquipment: 'lance',
+    });
+    assert.equal(feedback.group.visible, false);
+    feedback.update(0.1, { quality }, 'repulsor', {
+      disruption: 1,
+      disruptionEquipment: 'lance',
+    });
+    assert.equal(
+      feedback.group.visible,
+      true,
+      'another ordinary hit retains its hull flash during Lance recovery',
+    );
+    feedback.update(undefined, { quality }, 'repulsor', { disruption: 1 });
+    assert.equal(
+      feedback.group.visible,
+      true,
+      'ordinary Repulsor recovery retains its hull response',
+    );
+    feedback.dispose();
+    geometry.dispose();
+    material.dispose();
+  }
+});

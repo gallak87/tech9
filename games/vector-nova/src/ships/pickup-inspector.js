@@ -10,8 +10,10 @@ import './pickup-inspector.css';
 export async function createPickupInspector({
   host,
   ship,
+  frame,
   getSettings,
   getDriving,
+  onFramingChanged = () => {},
 }) {
   let target, targetError;
   try {
@@ -25,7 +27,7 @@ export async function createPickupInspector({
     'aria-label',
     'Powerup and equipment sound and effects preview',
   );
-  element.innerHTML = `<label for="inspection-pickup">Powerups & equipment</label><div class="inspection-pickup-controls"><select id="inspection-pickup"></select><button type="button" data-trigger>Trigger</button><button type="button" data-stop>Stop</button></div><p data-detail></p><label class="inspection-engine"><input type="checkbox" data-engine>Engine sound <span>Driving / Boost</span></label><label class="inspection-engine"><input type="checkbox" data-shield><span data-shield-label>Shield target</span></label><p role="status">Ready · Rook target ahead</p>`;
+  element.innerHTML = `<label for="inspection-pickup">Powerups & equipment</label><div class="inspection-pickup-controls"><select id="inspection-pickup"></select><button type="button" data-trigger>Trigger</button><button type="button" data-stop>Stop</button></div><p data-detail></p><div class="inspection-reserve" data-reserve hidden><span>Demo boost reserve <output>25 → 70</output></span><meter min="0" max="100" value="25" aria-label="Demonstration boost reserve"></meter></div><label class="inspection-engine"><input type="checkbox" data-engine>Engine sound <span>Driving / Boost</span></label><label class="inspection-engine"><input type="checkbox" data-shield><span data-shield-label>Shield target</span></label><p role="status">Ready · Rook target ahead</p>`;
   const select = element.querySelector('#inspection-pickup');
   for (const name of new Set(DEVICE_PREVIEWS.map(({ group }) => group))) {
     const group = document.createElement('optgroup');
@@ -49,8 +51,10 @@ export async function createPickupInspector({
   const engine = createEnginePreview({ getState: getDriving, getSettings });
   select.value = 'ion';
   const updateShieldLabel = () => {
-    element.querySelector('[data-detail]').textContent =
-      DEVICE_PREVIEWS.find(({ id }) => id === select.value)?.detail ?? '';
+    const entry = DEVICE_PREVIEWS.find(({ id }) => id === select.value);
+    element.querySelector('[data-detail]').textContent = entry?.detail
+      ? `${entry.detail} · Staged studio demo`
+      : '';
     shieldLabel.textContent =
       select.value === 'ion'
         ? 'Shield your ship · Ion'
@@ -61,11 +65,18 @@ export async function createPickupInspector({
   updateShieldLabel();
   const preview = createPickupPreview({
     ship,
+    frame,
     target: target?.group,
     getSettings,
     getDriving,
     onStatus: (text) => {
       status.textContent = text;
+    },
+    onDemonstration(demo) {
+      const reserve = element.querySelector('[data-reserve]');
+      reserve.hidden = !demo?.reserve;
+      if (demo?.reserve)
+        reserve.querySelector('meter').value = demo.reserve.value;
     },
   });
   host.append(element);
@@ -80,8 +91,9 @@ export async function createPickupInspector({
   };
   stop.onclick = () => preview.stop();
   select.onchange = () => {
-    preview.stop();
+    preview.select(select.value);
     updateShieldLabel();
+    onFramingChanged();
   };
   shieldToggle.onchange = () => preview.stop();
   const life = new AbortController();
@@ -113,24 +125,48 @@ export async function createPickupInspector({
       void engine.changed();
     },
     framing(bounds) {
-      if (!target) return null;
       const box = new Box3(
         new Vector3(...bounds.min),
         new Vector3(...bounds.max),
       );
-      const other = target.group.userData.bounds;
-      const targetBox = new Box3(
-        new Vector3(...other.min),
-        new Vector3(...other.max),
-      ).translate(target.group.position);
-      box.union(targetBox);
+      // Keep the entire bounded launch and recovery demonstration in frame.
+      // This does not resize/recenter the camera while an ability is playing.
+      box.min.x -= 0.7;
+      box.max.x += 0.7;
+      box.min.y -= 1.1;
+      box.max.y += 0.5;
+      box.min.z -= 4; // Driving exhaust extends beyond the authored hull bounds.
+      if (select.value === 'stabilizer') box.min.x -= 3.2;
+      box.max.y +=
+        select.value === 'jump' ? 9.4 : select.value === 'stabilizer' ? 4.5 : 0;
+      if (select.value === 'slipstream') box.min.z = Math.min(box.min.z, -16);
+      const subjects = [{ min: box.min.toArray(), max: box.max.toArray() }];
+      if (
+        target &&
+        [
+          'ion',
+          'arc',
+          'repulsor',
+          'lance',
+          'slipstream',
+          'deflector-hit',
+        ].includes(select.value)
+      ) {
+        const other = target.group.userData.bounds;
+        const targetBox = new Box3(
+          new Vector3(...other.min),
+          new Vector3(...other.max),
+        ).translate(target.group.position);
+        subjects.push({
+          min: targetBox.min.toArray(),
+          max: targetBox.max.toArray(),
+        });
+        box.union(targetBox);
+      }
       const framing = {
         min: box.min.toArray(),
         max: box.max.toArray(),
-        subjects: [
-          bounds,
-          { min: targetBox.min.toArray(), max: targetBox.max.toArray() },
-        ],
+        subjects,
       };
       return { ...framing, ...createPairedFraming(framing) };
     },
@@ -145,6 +181,14 @@ export async function createPickupInspector({
       updateShieldLabel();
       void engine.changed();
       if (!next) status.textContent = 'Loading ship…';
+    },
+    getSnapshot: () => preview.getSnapshot(),
+    audition(kind, options) {
+      select.value = kind;
+      updateShieldLabel();
+      preview.select(kind);
+      onFramingChanged();
+      return preview.trigger(kind, options);
     },
     dispose() {
       life.abort();

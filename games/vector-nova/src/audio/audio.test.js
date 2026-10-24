@@ -210,6 +210,18 @@ test('sample-backed device events have no alternate synthesized cue', () => {
 });
 
 test('equipped abilities share their generated cues with gameplay and retain silent blocked hull hits', () => {
+  assert.equal(
+    deviceSample({
+      type: 'jump-transfer',
+      payload: { id: 'equipment-jump', outcome: 'landed' },
+    }).id,
+    'jump-land',
+  );
+  for (const payload of [
+    { id: 'equipment-jump', outcome: 'recovered' },
+    { id: 'course-jump', outcome: 'landed' },
+  ])
+    assert.equal(deviceSample({ type: 'jump-transfer', payload }), null);
   for (const { id } of EQUIPMENT.filter(({ id }) => id !== 'lance')) {
     const event = { type: 'equipment-activate', payload: { kind: id } };
     assert.equal(deviceSample(event).id, `${id}-activate`);

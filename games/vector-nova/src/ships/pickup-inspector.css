@@ -60,3 +60,21 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+.inspection-reserve {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #bbb;
+}
+.inspection-reserve[hidden] {
+  display: none;
+}
+.inspection-reserve span {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.inspection-reserve meter {
+  width: 100%;
+  height: 9px;
+  accent-color: #79d6ba;
+}

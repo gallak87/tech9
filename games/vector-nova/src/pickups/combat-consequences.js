@@ -12,16 +12,24 @@ export const COMBAT_CONSEQUENCES = Object.freeze({
 const clamp = (value) => Math.max(0, Math.min(1, value));
 const smooth = (value) => value * value * (3 - 2 * value);
 
-export function combatDisruption(previous, kind, time, speed, mitigation = 0) {
+export function combatDisruption(
+  previous,
+  kind,
+  time,
+  speed,
+  mitigation = 0,
+  equipment,
+) {
   const current = previous && time < previous.startedAt + previous.duration;
-  const strongest =
+  const retained =
     current &&
     COMBAT_CONSEQUENCES[previous.kind].duration >=
-      COMBAT_CONSEQUENCES[kind].duration
-      ? previous.kind
-      : kind;
+      COMBAT_CONSEQUENCES[kind].duration;
+  const strongest = retained ? previous.kind : kind;
+  const identity = retained ? previous.equipment : equipment;
   return {
     kind: strongest,
+    ...(identity ? { equipment: identity } : {}),
     startedAt: current ? previous.startedAt : time,
     duration: COMBAT_CONSEQUENCES[strongest].duration * (1 - mitigation),
     ...(mitigation ? { mitigation } : {}),

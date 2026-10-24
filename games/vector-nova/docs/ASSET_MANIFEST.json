@@ -83,12 +83,13 @@
       "id": "equipment-sfx",
       "source": "assets/audio/sfx/",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "Seven local text-to-audio cues: Jump Drive, Reserve Injector, Slipstream Drive, Deflector and Magnetic Stabilizer activation, plus Lance fire and hull impact. Generated sequentially with the pinned official MLX runtime, FP16 Small-SFX and FP32 SAME-S decoder, without reference audio. Stereo 44.1 kHz 16-bit PCM; leading silence trimmed, 2 ms attack and 25 ms end fades, with peak normalization. Exact generation configs, source/final hashes and sample-accurate edits are retained. Integrated for user audition; listening approval pending. Deflector block/expiry reuse the established shield-block recording.",
+      "provenance": "Eight local text-to-audio cues: Jump Drive launch and landing catch, Reserve Injector, Slipstream Drive, Deflector and Magnetic Stabilizer activation, plus Lance fire and hull impact. Revised for distinct physical actions and generated sequentially with the pinned official MLX runtime, FP16 Small-SFX and FP32 SAME-S decoder, without reference audio. Stereo 44.1 kHz 16-bit PCM; leading padding removed, source windows cropped to the action with 0.5–1 ms attack and 20 ms end fades, and peak normalization. Slipstream retains a full four-second rushing body. Exact generation configs, source/final hashes and sample-accurate edits are retained. Integrated for user audition; listening approval pending. Deflector block/expiry reuse the established shield-block recording.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See docs/audio/sfx.md.",
       "runtimeDependencies": [],
       "provenanceRecord": "assets/audio/sfx/equipment-provenance.json",
       "promptRecords": [
         "assets/audio/sfx/jump-activate.json",
+        "assets/audio/sfx/jump-land.json",
         "assets/audio/sfx/injector-activate.json",
         "assets/audio/sfx/slipstream-activate.json",
         "assets/audio/sfx/deflector-activate.json",
@@ -98,6 +99,7 @@
       ],
       "runtimeAssets": [
         "assets/audio/sfx/jump-activate.wav",
+        "assets/audio/sfx/jump-land.wav",
         "assets/audio/sfx/injector-activate.wav",
         "assets/audio/sfx/slipstream-activate.wav",
         "assets/audio/sfx/deflector-activate.wav",
@@ -213,7 +215,7 @@
       "id": "nightweir-sprint",
       "source": "assets/levels/nightweir/",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",
-      "provenance": "Original editable Blender stormwater city and matching collision geometry, source-fed water, moving sluice gates and generated distant sky. Municipal road borrows the separately registered Halcyon CC0 asphalt; masonry borrows the Helion CC0 Concrete034 substrate. Waterfalls reuse Nacre\u2019s Tech9-derived procedural mipmapped ripple normals with locally authored gravity-based flow and aeration, borrowing the existing city probe. Blackstart restores district windows and turbines ahead of the driver. Authored hydraulic anchors connect turbine feeds, discharges and contained tailraces; runtime jets, foam and lit spray reuse the water clock and fixed work-light pool. Rooted gorge ledges use a project-generated fractured strata texture with separately registered Shatterline limestone as fine detail. Full race 13.58 km plus 650 m receiving quay.",
+      "provenance": "Original editable Blender stormwater city and matching collision geometry, source-fed water, moving sluice gates and generated distant sky. Municipal road borrows the separately registered Halcyon CC0 asphalt; masonry borrows the Helion CC0 Concrete034 substrate. Waterfalls reuse Nacre’s Tech9-derived procedural mipmapped ripple normals with locally authored gravity-based flow and aeration, borrowing the existing city probe. Blackstart restores district windows and turbines ahead of the driver. Authored hydraulic anchors connect turbine feeds, discharges and contained tailraces; runtime jets, foam and lit spray reuse the water clock and fixed work-light pool. Rooted gorge ledges use a project-generated fractured strata texture with separately registered Shatterline limestone as fine detail. Full race 13.58 km plus 650 m receiving quay.",
       "rights": "Project-authored geometry and generated sky, brick, gorge, zinc and scree textures; borrowed materials separately registered.",
       "runtimeDependencies": [
         "three",
@@ -310,8 +312,8 @@
       "id": "circuit-menu-previews",
       "source": "public/assets/menu/",
       "creator": "VECTOR//NOVA runtime via tools/capture-menu-previews.mjs",
-      "provenance": "One 640\u00d7400 WebP ship-free circuit still per circuit, captured from project-owned game assets at Low quality. Regenerate with npm run previews; capture provenance is stored alongside the images; freshness warnings never hide saved stills. These files are served menu assets, not verification evidence.",
-      "rights": "Derived from this project\u2019s registered level and ship assets; their original provenance and rights apply",
+      "provenance": "One 640×400 WebP ship-free circuit still per circuit, captured from project-owned game assets at Low quality. Regenerate with npm run previews; capture provenance is stored alongside the images; freshness warnings never hide saved stills. These files are served menu assets, not verification evidence.",
+      "rights": "Derived from this project’s registered level and ship assets; their original provenance and rights apply",
       "runtimeDependencies": [
         "public/assets/menu/*.webp",
         "public/assets/menu/previews.json"
@@ -437,7 +439,7 @@
       "source": "assets/audio/sfx/arc-activate.wav",
       "promptRecord": "assets/audio/sfx/arc-activate.json",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "Current Arc activation shared by gameplay, Sounds and the dev Ship inspector; tuned synthesized pellet firing is retained. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM; generated 2 seconds, retained source 0.00\u20131.28 seconds after trimming quiet padding at -70 dBFS RMS with 40 ms margins. No gain or fades applied.",
+      "provenance": "Current Arc activation shared by gameplay, Sounds and the dev Ship inspector; tuned synthesized pellet firing is retained. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM; generated 2 seconds, retained source 0.00–1.28 seconds after trimming quiet padding at -70 dBFS RMS with 40 ms margins. No gain or fades applied.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
       "runtimeDependencies": [],
       "provenanceRecord": "docs/audio/sfx.md"
@@ -447,7 +449,7 @@
       "source": "assets/audio/sfx/repulsor-fire.wav",
       "promptRecord": "assets/audio/sfx/repulsor-fire.json",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "Current sound shared by gameplay, Sounds and the dev Ship inspector; reviewed with the Arc/Repulsor sound and VFX set. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 2 seconds; retained source 0.10\u20131.52 seconds (1.42 seconds), applied -6.83 dB gain to -8 dBFS peak and 3 ms/6 ms edge fades. Final tone shaping applies a -4 dB high shelf at 1.8 kHz (slope 1) and a -2 dB bell at 3 kHz (Q 1), retaining sample length and low body without gain compensation.",
+      "provenance": "Current sound shared by gameplay, Sounds and the dev Ship inspector; reviewed with the Arc/Repulsor sound and VFX set. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 2 seconds; retained source 0.10–1.52 seconds (1.42 seconds), applied -6.83 dB gain to -8 dBFS peak and 3 ms/6 ms edge fades. Final tone shaping applies a -4 dB high shelf at 1.8 kHz (slope 1) and a -2 dB bell at 3 kHz (Q 1), retaining sample length and low body without gain compensation.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
       "runtimeDependencies": [],
       "provenanceRecord": "docs/audio/sfx.md"
@@ -457,7 +459,7 @@
       "source": "assets/audio/sfx/repulsor-charge.wav",
       "promptRecord": "assets/audio/sfx/repulsor-charge.json",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "Current sound shared by gameplay, Sounds and the dev Ship inspector; reviewed with the Arc/Repulsor sound and VFX set. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 1 second; retained source 0.00\u20130.64 seconds, linearly resampled to 0.48 seconds to fit the half-second charge, applied -7.86 dB gain to -16 dBFS peak and 8 ms/18 ms edge fades. Final tone shaping applies a -4 dB high shelf at 1.8 kHz (slope 1) and a -2 dB bell at 3 kHz (Q 1), retaining the charge window and low body without gain compensation.",
+      "provenance": "Current sound shared by gameplay, Sounds and the dev Ship inspector; reviewed with the Arc/Repulsor sound and VFX set. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 1 second; retained source 0.00–0.64 seconds, linearly resampled to 0.48 seconds to fit the half-second charge, applied -7.86 dB gain to -16 dBFS peak and 8 ms/18 ms edge fades. Final tone shaping applies a -4 dB high shelf at 1.8 kHz (slope 1) and a -2 dB bell at 3 kHz (Q 1), retaining the charge window and low body without gain compensation.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
       "runtimeDependencies": [],
       "provenanceRecord": "docs/audio/sfx.md"
@@ -467,7 +469,7 @@
       "source": "assets/audio/sfx/repulsor-hit.wav",
       "promptRecord": "assets/audio/sfx/repulsor-hit.json",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "Current sound shared by gameplay, Sounds and the dev Ship inspector; reviewed with the Arc/Repulsor sound and VFX set. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 1 second; retained source 0.00\u20130.79 seconds, applied -2.41 dB gain to -10 dBFS peak and 2 ms/10 ms edge fades. Final tone shaping applies a -4 dB high shelf at 1.8 kHz (slope 1) and a -2 dB bell at 3 kHz (Q 1), retaining sample length and low body without gain compensation.",
+      "provenance": "Current sound shared by gameplay, Sounds and the dev Ship inspector; reviewed with the Arc/Repulsor sound and VFX set. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 1 second; retained source 0.00–0.79 seconds, applied -2.41 dB gain to -10 dBFS peak and 2 ms/10 ms edge fades. Final tone shaping applies a -4 dB high shelf at 1.8 kHz (slope 1) and a -2 dB bell at 3 kHz (Q 1), retaining sample length and low body without gain compensation.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
       "runtimeDependencies": [],
       "provenanceRecord": "docs/audio/sfx.md"
@@ -477,7 +479,7 @@
       "source": "assets/audio/sfx/arc-hit.wav",
       "promptRecord": "assets/audio/sfx/arc-hit.json",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "Current sound shared by gameplay, Sounds and the dev Ship inspector; reviewed with the Arc/Repulsor sound and VFX set. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 1 second; retained source 0.43\u20130.84 seconds (0.41 seconds) to isolate the main attack, applied -5.90 dB gain to -11 dBFS peak and 2 ms/10 ms edge fades.",
+      "provenance": "Current sound shared by gameplay, Sounds and the dev Ship inspector; reviewed with the Arc/Repulsor sound and VFX set. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 1 second; retained source 0.43–0.84 seconds (0.41 seconds) to isolate the main attack, applied -5.90 dB gain to -11 dBFS peak and 2 ms/10 ms edge fades.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
       "runtimeDependencies": [],
       "provenanceRecord": "docs/audio/sfx.md"
@@ -487,7 +489,7 @@
       "source": "assets/audio/sfx/aegis-activate.wav",
       "promptRecord": "assets/audio/sfx/aegis-activate.json",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "Current Aegis warp-start cue shared by gameplay, Sounds and the dev Ship inspector. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 1 second; retained source 0.00\u20130.84 seconds, applied -1.25 dB gain to -6 dBFS peak before a -3 dB high shelf at 1.5 kHz, with 3 ms/18 ms edge fades. Final tone shaping adds a -3 dB high shelf at 1.5 kHz (slope 1) and a -2 dB bell at 2.8 kHz (Q 1), retaining sample length and bass without gain compensation. Additional de-harshing applies a -6 dB bell at 950 Hz (Q 0.65), two-pole 1.8 kHz low-pass, RMS compression (threshold 0.3, ratio 1.8:1, attack 6 ms, release 70 ms, knee 2, no makeup), and a 15 ms opening fade; no normalization or compensating gain.",
+      "provenance": "Current Aegis warp-start cue shared by gameplay, Sounds and the dev Ship inspector. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 1 second; retained source 0.00–0.84 seconds, applied -1.25 dB gain to -6 dBFS peak before a -3 dB high shelf at 1.5 kHz, with 3 ms/18 ms edge fades. Final tone shaping adds a -3 dB high shelf at 1.5 kHz (slope 1) and a -2 dB bell at 2.8 kHz (Q 1), retaining sample length and bass without gain compensation. Additional de-harshing applies a -6 dB bell at 950 Hz (Q 0.65), two-pole 1.8 kHz low-pass, RMS compression (threshold 0.3, ratio 1.8:1, attack 6 ms, release 70 ms, knee 2, no makeup), and a 15 ms opening fade; no normalization or compensating gain.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
       "runtimeDependencies": [],
       "provenanceRecord": "docs/audio/sfx.md"
@@ -497,7 +499,7 @@
       "source": "assets/audio/sfx/shield-block.wav",
       "promptRecord": "assets/audio/sfx/shield-block.json",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "Current Aegis warp-collapse cue shared by incoming shield hits, quieter attacker blocks, natural expiry and cancellation. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 1 second; retained source 0.30\u20130.74 seconds (0.44 seconds), applied +1.17 dB gain to -4 dBFS peak before a -3 dB high shelf at 1.5 kHz, with 2 ms/12 ms edge fades. Final tone shaping adds a -3 dB high shelf at 1.5 kHz (slope 1) and a -2 dB bell at 2.8 kHz (Q 1), retaining sample length and bass without gain compensation. Additional de-harshing applies a -6 dB bell at 950 Hz (Q 0.65), two-pole 1.8 kHz low-pass, RMS compression (threshold 0.3, ratio 1.8:1, attack 6 ms, release 70 ms, knee 2, no makeup), and a 10 ms opening fade; no normalization or compensating gain.",
+      "provenance": "Current Aegis warp-collapse cue shared by incoming shield hits, quieter attacker blocks, natural expiry and cancellation. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 1 second; retained source 0.30–0.74 seconds (0.44 seconds), applied +1.17 dB gain to -4 dBFS peak before a -3 dB high shelf at 1.5 kHz, with 2 ms/12 ms edge fades. Final tone shaping adds a -3 dB high shelf at 1.5 kHz (slope 1) and a -2 dB bell at 2.8 kHz (Q 1), retaining sample length and bass without gain compensation. Additional de-harshing applies a -6 dB bell at 950 Hz (Q 0.65), two-pole 1.8 kHz low-pass, RMS compression (threshold 0.3, ratio 1.8:1, attack 6 ms, release 70 ms, knee 2, no makeup), and a 10 ms opening fade; no normalization or compensating gain.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
       "runtimeDependencies": [],
       "provenanceRecord": "docs/audio/sfx.md"
@@ -507,7 +509,7 @@
       "source": "assets/audio/sfx/ship-impact.wav",
       "promptRecord": "assets/audio/sfx/ship-impact.json",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "Physical collision cue shared by gameplay and Sounds. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 1 second; retained 0.00\u20130.50 seconds, applied 45 Hz high-pass and 3.8 kHz low-pass, a 2 ms opening fade and 80 ms ending fade from 0.42 seconds. No normalization or gain added; runtime gain 0.8 before the shared effects mix.",
+      "provenance": "Physical collision cue shared by gameplay and Sounds. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 1 second; retained 0.00–0.50 seconds, applied 45 Hz high-pass and 3.8 kHz low-pass, a 2 ms opening fade and 80 ms ending fade from 0.42 seconds. No normalization or gain added; runtime gain 0.8 before the shared effects mix.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
       "runtimeDependencies": [],
       "provenanceRecord": "docs/audio/sfx.md"
@@ -517,7 +519,7 @@
       "source": "assets/audio/sfx/lap-complete.wav",
       "promptRecord": "assets/audio/sfx/lap-complete.json",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "Modern electronic race cue shared by gameplay and Sounds. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 2 seconds; retained source 0.03\u20131.43 seconds (1.40 seconds), applied +0.23 dB gain for -7 dBFS peak headroom, with 2 ms/10 ms edge fades. No EQ or compression added.",
+      "provenance": "Modern electronic race cue shared by gameplay and Sounds. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 2 seconds; retained source 0.03–1.43 seconds (1.40 seconds), applied +0.23 dB gain for -7 dBFS peak headroom, with 2 ms/10 ms edge fades. No EQ or compression added.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
       "runtimeDependencies": [],
       "provenanceRecord": "docs/audio/sfx.md"
@@ -527,7 +529,7 @@
       "source": "assets/audio/sfx/final-lap.wav",
       "promptRecord": "assets/audio/sfx/final-lap.json",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "Double electronic clap for the final-lap crossing, shared by gameplay and Sounds. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 2 seconds; retained source 0.24\u20131.24 seconds (1 second) to remove the lead-in and retain both attacks about 0.25 seconds apart. Applied -5.05 dB gain for -5.5 dBFS peak headroom, with 2 ms/20 ms edge fades. No EQ or compression added.",
+      "provenance": "Double electronic clap for the final-lap crossing, shared by gameplay and Sounds. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 2 seconds; retained source 0.24–1.24 seconds (1 second) to remove the lead-in and retain both attacks about 0.25 seconds apart. Applied -5.05 dB gain for -5.5 dBFS peak headroom, with 2 ms/20 ms edge fades. No EQ or compression added.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
       "runtimeDependencies": [],
       "provenanceRecord": "docs/audio/sfx.md"
@@ -537,7 +539,7 @@
       "source": "assets/audio/sfx/race-finisher.wav",
       "promptRecord": "assets/audio/sfx/race-finisher.json",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "Modern electronic race cue shared by gameplay and Sounds. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 3 seconds; retained source 0.00\u20132.60 seconds (2.60 seconds), applied -4.61 dB gain for -6 dBFS peak headroom, with 2 ms/10 ms edge fades. No EQ or compression added.",
+      "provenance": "Modern electronic race cue shared by gameplay and Sounds. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 3 seconds; retained source 0.00–2.60 seconds (2.60 seconds), applied -4.61 dB gain for -6 dBFS peak headroom, with 2 ms/10 ms edge fades. No EQ or compression added.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
       "runtimeDependencies": [],
       "provenanceRecord": "docs/audio/sfx.md"
@@ -547,7 +549,7 @@
       "source": "assets/audio/sfx/race-invalid.wav",
       "promptRecord": "assets/audio/sfx/race-invalid.json",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "Modern electronic race cue shared by gameplay and Sounds. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 2 seconds; retained source 0.10\u20131.75 seconds (1.65 seconds), applied +1.05 dB gain for -8 dBFS peak headroom, with 2 ms/10 ms edge fades. No EQ or compression added.",
+      "provenance": "Modern electronic race cue shared by gameplay and Sounds. Generated locally with Small-SFX FP16, SAME-S FP32 decoder and T5Gemma through the official MLX runtime; exact source/model revisions and dependency pins are in tools/sfx-models.json and tools/sfx-requirements.txt. No reference audio supplied. Stereo 44.1 kHz / 16-bit PCM. Generated 2 seconds; retained source 0.10–1.75 seconds (1.65 seconds), applied +1.05 dB gain for -8 dBFS peak headroom, with 2 ms/10 ms edge fades. No EQ or compression added.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
       "runtimeDependencies": [],
       "provenanceRecord": "docs/audio/sfx.md"
@@ -915,7 +917,7 @@
       "source": "assets/levels/halcyon/asphalt/",
       "creator": "Charlotte Baglioni (photography), Dario Barresi (processing) / Poly Haven",
       "provenance": "Poly Haven Asphalt 03 scan, 2.05 m square. Retained source maps: 2K color and OpenGL normal, 1K packed AO/roughness/metalness. build.py encodes mipmapped UASTC KTX2; shader moisture varies independently over metres. Source URLs, hashes, authors and runtime hashes are retained. No source lighting or reflection imagery added. Shatterline reuses the same runtime maps for aggregate-topped induction cassettes with independent moisture, tint and construction joints; no duplicate source or runtime images.",
-      "rights": "CC0-1.0 \u2014 https://polyhaven.com/license",
+      "rights": "CC0-1.0 — https://polyhaven.com/license",
       "runtimeDependencies": ["three", "public/assets/ships/decoder/"],
       "runtimeAssets": [
         "public/assets/levels/halcyon/asphalt/color.ktx2",
@@ -928,8 +930,8 @@
       "id": "helion-heat-ceramic",
       "source": "assets/levels/helion/ceramic/",
       "creator": "Lennart Demes / ambientCG; VECTOR//NOVA material adaptation",
-      "provenance": "Concrete034 CC0 approximation, adapted to dense heat ceramic with retained color, OpenGL normal and roughness sources. Metric 4.4 \u00d7 2.2 m repeat preserves source aspect. Reproducible UASTC KTX2 maps shared by fresh, heat-cycled and graphite-covered road cassettes; architecture and thermal effects keep their existing finish.",
-      "rights": "CC0-1.0 \u2014 https://docs.ambientcg.com/license/",
+      "provenance": "Concrete034 CC0 approximation, adapted to dense heat ceramic with retained color, OpenGL normal and roughness sources. Metric 4.4 × 2.2 m repeat preserves source aspect. Reproducible UASTC KTX2 maps shared by fresh, heat-cycled and graphite-covered road cassettes; architecture and thermal effects keep their existing finish.",
+      "rights": "CC0-1.0 — https://docs.ambientcg.com/license/",
       "runtimeDependencies": ["three", "public/assets/ships/decoder/"],
       "runtimeAssets": [
         "public/assets/levels/helion/ceramic/color.ktx2",
@@ -942,8 +944,8 @@
       "id": "cindercoil-fired-ceramic",
       "source": "assets/levels/cindercoil/ceramic/",
       "creator": "Lennart Demes / ambientCG; VECTOR//NOVA material adaptation",
-      "provenance": "Concrete030 CC0 procedural PBR source adapted to neutral fired mineral ceramic; retained color, OpenGL normal and roughness inputs, reproducible mipmapped UASTC KTX2 build. One 3 \u00d7 3 m repeat serves ceramic road bodies and cassettes. Original cassette-scale seam relief is independent of grain; the Crown uses a restrained dark glaze and the existing borrowed district reflection probe. No collision displacement or baked lava light.",
-      "rights": "CC0-1.0 \u2014 https://docs.ambientcg.com/license/",
+      "provenance": "Concrete030 CC0 procedural PBR source adapted to neutral fired mineral ceramic; retained color, OpenGL normal and roughness inputs, reproducible mipmapped UASTC KTX2 build. One 3 × 3 m repeat serves ceramic road bodies and cassettes. Original cassette-scale seam relief is independent of grain; the Crown uses a restrained dark glaze and the existing borrowed district reflection probe. No collision displacement or baked lava light.",
+      "rights": "CC0-1.0 — https://docs.ambientcg.com/license/",
       "runtimeDependencies": ["three", "public/assets/ships/decoder/"],
       "runtimeAssets": [
         "public/assets/levels/cindercoil/ceramic/color.ktx2",

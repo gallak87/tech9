@@ -19,7 +19,19 @@ export function createEquipmentPresentation({ host, scene, activate }) {
   hud.addEventListener('pointerdown', (event) => event.stopPropagation());
   hud.addEventListener('click', click);
   return {
-    update({ equipment, pose, mode, suspended, reducedMotion }) {
+    reset() {
+      effects.reset();
+    },
+    update({
+      equipment,
+      pose,
+      mode,
+      suspended,
+      reducedMotion,
+      settings,
+      events,
+      motion,
+    }) {
       const slots = equipment?.slots ?? [];
       const visible =
         !suspended &&
@@ -61,7 +73,16 @@ export function createEquipmentPresentation({ host, scene, activate }) {
           `${(1 - slot.remaining / item.cooldown) * 100}%`,
         );
       });
-      effects.update({ equipment, pose, mode, suspended, reducedMotion });
+      effects.update({
+        equipment,
+        pose,
+        mode,
+        suspended,
+        reducedMotion,
+        settings,
+        events,
+        motion,
+      });
     },
     dispose() {
       hud.remove();

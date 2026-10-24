@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+import { SharedKTX2Loader as KTX2Loader } from '../../../assets/ktx2-loader.js';
 import { createCindercoilCeramicMaps, CERAMIC_REPEAT } from './ceramic-maps.js';
 import { createCindercoilRoad, createCindercoilTrack } from './index.js';
 import { setCeramicCoordinates } from './surface-finish.js';

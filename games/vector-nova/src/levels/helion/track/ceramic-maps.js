@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+import { SharedKTX2Loader } from '../../../assets/ktx2-loader.js';
 import { assetURL } from '../../../assets/url.js';
 
 // Road-only maps: architecture retains its existing thermal finish.
@@ -10,10 +10,7 @@ export function createHelionCeramicMaps(renderer, materials) {
   let disposed = false;
   const manager = new THREE.LoadingManager();
   const loader = renderer
-    ? new KTX2Loader(manager)
-        .setTranscoderPath(assetURL('assets/ships/decoder/'))
-        .setWorkerLimit(2)
-        .detectSupport(renderer)
+    ? new SharedKTX2Loader(manager).detectSupport(renderer)
     : null;
   const ready = loader
     ? Promise.allSettled(

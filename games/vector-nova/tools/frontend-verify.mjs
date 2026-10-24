@@ -1792,9 +1792,10 @@ try {
         await page.locator('[data-action="ship-step"]').first().click();
         const retry = page.locator('.ship-preview-status button');
         if (await retry.isVisible()) await retry.click();
-        await page.waitForFunction(
-          () => window.__VN_FRONTEND.getState().preview?.selected === 'kestrel',
-        );
+        await page.waitForFunction(() => {
+          const state = window.__VN_FRONTEND.getState();
+          return state.preview?.selected === state.shipId;
+        });
       },
     );
   }

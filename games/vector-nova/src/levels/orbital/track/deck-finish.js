@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+import { SharedKTX2Loader } from '../../../assets/ktx2-loader.js';
 import { assetURL } from '../../../assets/url.js';
 
 // Original analytic PBR maps; source and rights: assets/levels/orbital/deck/.
@@ -22,10 +22,7 @@ export function createDeckFinish(renderer) {
     material.needsUpdate = true;
   }
   const loader = renderer
-    ? new KTX2Loader(manager)
-        .setTranscoderPath(assetURL('assets/ships/decoder/'))
-        .setWorkerLimit(2)
-        .detectSupport(renderer)
+    ? new SharedKTX2Loader(manager).detectSupport(renderer)
     : null;
   // CPU geometry review has no renderer or fetches. Runtime readiness includes
   // every map, including bindings cloned before asynchronous decoding completes.

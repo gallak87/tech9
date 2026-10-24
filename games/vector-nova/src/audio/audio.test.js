@@ -62,6 +62,7 @@ class Context {
       attack: new Param(),
       release: new Param(),
       starts: 0,
+      startTimes: [],
       stops: [],
       disconnected: false,
       connect(destination) {
@@ -71,8 +72,9 @@ class Context {
       disconnect() {
         this.disconnected = true;
       },
-      start() {
+      start(time = 0) {
         this.starts++;
+        this.startTimes.push(time);
       },
       stop(time = 0) {
         this.stops.push(time);
@@ -136,6 +138,56 @@ function sampleContext(durations = {}) {
   };
   return context;
 }
+
+test('cup reward waits for the actual finish tail, survives results and cancels with its screen', async () => {
+  const context = sampleContext({
+    [RACE_SAMPLES['race-winner']]: 3,
+    [RACE_SAMPLES['cup-champion']]: 3,
+  });
+  const audio = createAudio({
+    createContext: () => context,
+    engine: false,
+    fetchAudio,
+  });
+  await audio.unlock();
+  audio.update(state, 0.35, true);
+  audio.event({
+    type: 'player-race-complete',
+    payload: { valid: true, position: 1 },
+  });
+  context.currentTime = 2.4;
+  audio.update(state, 0.35, false, { results: true });
+  const delay = audio.event({ type: 'cup-champion' });
+  const sources = context.nodes.filter((node) => node.kind === 'buffer');
+  const reward = sources.at(-1);
+  assert.ok(Math.abs(reward.startTimes[0] - 3.26) < 1e-9);
+  assert.ok(Math.abs(delay - 0.86) < 1e-9);
+  assert.ok(reward.startTimes[0] >= sources[0].stops[0] + 0.25);
+  audio.event({ type: 'cup-champion' });
+  assert.equal(
+    context.nodes.filter((node) => node.kind === 'buffer').length,
+    2,
+    'only one reveal voice',
+  );
+  audio.update(state, 0.35, false, { results: true });
+  assert.equal(reward.disconnected, false);
+  audio.update(state, 0.35, false);
+  assert.equal(
+    reward.disconnected,
+    true,
+    'leaving results cancels even a scheduled reward',
+  );
+  audio.update(state, 0.35, false, { results: true });
+  assert.ok(
+    Math.abs(audio.event({ type: 'cup-champion' }) - 0.6) < 1e-9,
+    'no lingering finish delay',
+  );
+  const next = context.nodes.filter((node) => node.kind === 'buffer').at(-1);
+  audio.update(state, 0, false, { results: true });
+  assert.equal(next.disconnected, true, 'mute cancels the reward');
+  assert.equal(audio.event({ type: 'cup-champion' }), undefined);
+  await audio.dispose();
+});
 
 test('sample-backed device events have no alternate synthesized cue', () => {
   for (const kind of ['arc', 'repulsor', 'aegis', 'ion', 'vector'])

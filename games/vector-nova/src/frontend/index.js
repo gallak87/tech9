@@ -25,9 +25,10 @@ import {
   createCupStore,
   cupDefinition,
   cupGridOrder,
-  cupComplete,
-  cupStandings,
+  cupChampion,
 } from '../race/cup.js';
+import { createCupCollection } from '../progression/cup-collection.js';
+import { cupCabinet, cupHero, cupVictoryView } from './cup-art.js';
 import {
   cupView,
   cupWaitingView,
@@ -61,6 +62,7 @@ import {
 import '../ui/style.css';
 import './style.css';
 import './menu.css';
+import './cup-art.css';
 
 const escape = (text) =>
   String(text).replace(
@@ -99,6 +101,11 @@ export async function createFrontend(host) {
   const profileStore = createProfileStore(developer?.storage);
   const profile = () => profileStore.snapshot().state;
   const cupStore = createCupStore(developer?.storage);
+  const cupCollection = createCupCollection(developer?.storage);
+  cupCollection.award(cupStore.snapshot().state);
+  for (const id of Object.keys(cupCollection.snapshot().cups))
+    profileStore.recordCup(id);
+  let cupCelebration = null;
   let selectedCup = cupStore.snapshot().state?.cupId ?? CUPS[0].id;
   const currentCup = () =>
     cupDefinition(cupStore.snapshot().state?.cupId ?? selectedCup);
@@ -259,6 +266,7 @@ export async function createFrontend(host) {
     store: createSaveTransfer({
       profileStore,
       cupStore,
+      cupCollection,
       storage: developer?.storage,
     }),
     signal: life.signal,
@@ -392,6 +400,7 @@ export async function createFrontend(host) {
   }
   function setScreen(next) {
     const navigating = screen !== next;
+    if (next !== 'results') cupCelebration = null;
     screen = next;
     previewShipId = null;
     previewLevelId = selected;
@@ -428,7 +437,9 @@ export async function createFrontend(host) {
                 ? '[data-action="settings-back"]'
                 : next === 'loading'
                   ? '[data-action="cancel"]'
-                  : 'h1';
+                  : cupCelebration
+                    ? '[data-action="cup-standings"]'
+                    : 'h1';
     shell.querySelector(focus)?.focus({ preventScroll: true });
     if (next === 'circuits')
       shell.querySelector(focus)?.scrollIntoView({ block: 'nearest' });
@@ -535,14 +546,13 @@ export async function createFrontend(host) {
     const selectedCraft = lockedCup()
       ? SHIPS.find((entry) => entry.id === savedCup.shipId)
       : selectedShip();
-    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}${button('career', `Career & saves${earnedRewards.length ? ` · ${earnedRewards.length} new` : ''}`)}${music ? button('tunes', 'Tunes') : ''}${import.meta.env?.VN_DESKTOP === true ? button('desktop-quit', 'Quit game') : ''}</nav><div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${cupCabinet(cupCollection.snapshot())}<nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}${button('career', `Career & saves${earnedRewards.length ? ` · ${earnedRewards.length} new` : ''}`)}${music ? button('tunes', 'Tunes') : ''}${import.meta.env?.VN_DESKTOP === true ? button('desktop-quit', 'Quit game') : ''}</nav><div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
   };
   function cupPanel(withActions) {
-    const state = cupStore.snapshot().state;
     const cup = currentCup();
-    const event = cup.tracks[state?.eventIndex ?? 0];
     return cupView({
       ...cupStore.snapshot(),
+      collection: cupCollection.snapshot().cups,
       routes,
       catalog,
       cupId: selectedCup,
@@ -553,7 +563,7 @@ export async function createFrontend(host) {
       menu: {
         eventArt: (id) => picture(route(id)) + routeArt(route(id)),
         hero: (title) =>
-          `<div class="circuit-hero cup-hero"><div class="detail-image">${picture(route(event))}${routeArt(route(event))}${goalBadges(event)}<span class="track-type-badge">${cup.tracks.length} races</span><div class="track-caption"><h2 class="cup-title">${title}</h2><p>${state ? `Race ${state.eventIndex + 1}` : 'Opening race'} · ${escape(catalog.find((entry) => entry.id === event).name)}</p></div></div></div>`,
+          cupHero(cup, title, cupCollection.snapshot().cups, goalBadges()),
         actions: withActions ? raceActions() : '',
       },
     });
@@ -714,11 +724,16 @@ export async function createFrontend(host) {
         () => settings,
       );
     } else if (screen === 'results' && lastResults?.mode === 'cup') {
-      content.innerHTML =
-        screen === 'results' && !lastResults.final
+      content.innerHTML = cupCelebration
+        ? cupVictoryView(cupStore.snapshot().state, {
+            ...cupCelebration,
+            notice: cupCollection.snapshot().notice,
+          })
+        : !lastResults.final
           ? cupWaitingView(lastResults)
           : cupView({
               ...cupStore.snapshot(),
+              collection: cupCollection.snapshot().cups,
               routes,
               catalog,
               cupId: selectedCup,
@@ -929,6 +944,7 @@ export async function createFrontend(host) {
     lastResults = data;
     if (data.mode === 'time-trial') return;
     if (data.mode === 'cup') {
+      if (cupCelebration && shell.querySelector('.cup-victory')) return;
       const key = JSON.stringify([
         data.final,
         data.remaining,
@@ -951,7 +967,11 @@ export async function createFrontend(host) {
         render();
         if (data.final && waiting) {
           shell.scrollTop = 0;
-          shell.querySelector('h1')?.focus({ preventScroll: true });
+          shell
+            .querySelector(
+              cupCelebration ? '[data-action="cup-standings"]' : 'h1',
+            )
+            ?.focus({ preventScroll: true });
         } else focusMenu(focused);
       }
       return;
@@ -1100,8 +1120,12 @@ export async function createFrontend(host) {
           if (sessionCup) cupStore.retry();
         },
         onResults(data) {
-          if (data.mode === 'cup' && sessionCup && data.final) {
-            cupStore.finish(data);
+          if (
+            data.mode === 'cup' &&
+            sessionCup &&
+            data.final &&
+            cupStore.finish(data)
+          ) {
             const saved = cupStore.snapshot().state;
             const player = data.standings.find((row) => row.id === 'player');
             earnedRewards.push(
@@ -1112,12 +1136,11 @@ export async function createFrontend(host) {
                 finished: !!player?.finished,
               }),
             );
-            if (
-              cupComplete(saved) &&
-              cupStandings(saved).find((row) => row.id === 'player')
-                ?.position === 1
-            )
+            if (cupChampion(saved)) {
               earnedRewards.push(...profileStore.recordCup(saved.cupId));
+              const fresh = cupCollection.award(saved);
+              cupCelebration = { fresh, delay: game?.celebrateCup() ?? 0.6 };
+            }
           } else if (
             data.mode !== 'cup' &&
             data.mode !== 'time-trial' &&
@@ -1488,6 +1511,11 @@ export async function createFrontend(host) {
     },
     home: goHome,
     'cup-hub': openCup,
+    'cup-standings'() {
+      cupCelebration = null;
+      render();
+      focusMenu('h1');
+    },
     'saved-cup': openCup,
     'cup-start'() {
       if (cupStore.snapshot().state) return;
@@ -1932,8 +1960,15 @@ export async function createFrontend(host) {
             ? '[data-cup]'
             : '[data-difficulty]';
       const items = [...shell.querySelectorAll(selector)];
-      const columns =
-        card.dataset.level || card.dataset.ship
+      const columns = card.dataset.cup
+        ? items.filter(
+            (item) =>
+              Math.abs(
+                item.getBoundingClientRect().top -
+                  items[0].getBoundingClientRect().top,
+              ) < 1,
+          ).length
+        : card.dataset.level || card.dataset.ship
           ? getComputedStyle(card.parentElement).gridTemplateColumns.split(' ')
               .length
           : 1;
@@ -1956,6 +1991,27 @@ export async function createFrontend(host) {
               );
       e.preventDefault();
       let next = items[index];
+      if (card.dataset.cup) {
+        const current = items.indexOf(card);
+        if (e.code === 'ArrowUp' && current < columns) {
+          const reward = shell.querySelector('.cup-hero .reward-chip');
+          if (reward) focusMenu(reward);
+          else focusPickerHeader();
+          return;
+        }
+        if (e.code === 'ArrowDown' && current + columns >= items.length) {
+          focusMenu('[data-action="cup-start"]');
+          return;
+        }
+        if (
+          e.code === 'ArrowLeft' &&
+          current % columns === 0 &&
+          wideMenu.matches
+        ) {
+          focusMenu('.menu-selection[data-action="circuits"]');
+          return;
+        }
+      }
       if (card.dataset.level && ['ArrowUp', 'ArrowDown'].includes(e.code)) {
         // Difficulty row breaks leave empty cells; follow the visible rows.
         const current = card.getBoundingClientRect();
@@ -2042,7 +2098,8 @@ export async function createFrontend(host) {
         else if (screen === 'records') actions['records-back']();
         else if (cupConfirm) actions['cup-cancel']();
         else if (screen === 'results') {
-          if (lastResults?.mode === 'cup') openCup();
+          if (cupCelebration) actions['cup-standings']();
+          else if (lastResults?.mode === 'cup') openCup();
           else actions.change();
         } else if (
           screen === 'cup' ||
@@ -2124,6 +2181,8 @@ export async function createFrontend(host) {
         error,
         intent,
         cup: cupStore.snapshot(),
+        cupCollection: cupCollection.snapshot(),
+        cupCelebration: !!cupCelebration,
         selectedCup,
         sessionCup,
         shipId,

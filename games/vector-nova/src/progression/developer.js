@@ -1,3 +1,4 @@
+import { CUP_COLLECTION_KEY, createCupCollection } from './cup-collection.js';
 // Dynamically imported only by browser builds. Never a durable career writer.
 import {
   freshProfile,
@@ -100,6 +101,23 @@ export function createDeveloperSession(parameters) {
     );
     storage.setItem(CUP_STORAGE_KEY, JSON.stringify(saved));
   }
+  const trophies =
+    parameters.get('dev') === '2'
+      ? Object.fromEntries(
+          CUPS.map((cup) => [
+            cup.id,
+            {
+              earnedAt: Date.now(),
+              difficulty: 'hard',
+              points: cup.tracks.length * 25,
+            },
+          ]),
+        )
+      : createCupCollection().snapshot().cups;
+  storage.setItem(
+    CUP_COLLECTION_KEY,
+    JSON.stringify({ version: 1, cups: trophies }),
+  );
   storage.setItem(PROFILE_KEY, JSON.stringify(state));
   return {
     storage: () => storage,

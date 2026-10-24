@@ -94,6 +94,7 @@ export const soundEffects = [
   race('countdown-go', 'Countdown · go', 'countdown-go', {}, 0.9),
   race('lap', 'Lap complete', 'lap', {}, 1.4),
   race('final-lap', 'Final lap', 'final-lap', {}, 1.6),
+  race('cup-champion', 'Cup · champion', 'cup-champion', {}, 3.7),
   race(
     'race-win',
     'Race complete · winner',

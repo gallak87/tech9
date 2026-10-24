@@ -1,3 +1,4 @@
+import { createCupCollection, CUP_COLLECTION_KEY } from './cup-collection.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -270,4 +271,56 @@ test('legacy careers migrate without losing equipment; new careers enforce two/f
     transfer.parse(transfer.export()).profile.loadouts,
     migrated.snapshot().state.loadouts,
   );
+});
+
+test('save transfer carries trophies, preserves legacy saves, and rolls trophy writes back', () => {
+  const source = memory(),
+    destination = memory();
+  const trophy = { earnedAt: 12345, difficulty: 'hard', points: 75 };
+  source.setItem(
+    CUP_COLLECTION_KEY,
+    JSON.stringify({ version: 1, cups: { founders: trophy } }),
+  );
+  const make = (storage) => {
+    const cupCollection = createCupCollection(() => storage);
+    return {
+      cupCollection,
+      transfer: createSaveTransfer({
+        profileStore: createProfileStore(() => storage),
+        cupStore: createCupStore(() => storage),
+        cupCollection,
+        storage: () => storage,
+      }),
+    };
+  };
+  const original = make(source),
+    target = make(destination);
+  const file = original.transfer.export();
+  target.transfer.replace(target.transfer.parse(file));
+  assert.deepEqual(target.cupCollection.snapshot().cups, { founders: trophy });
+  const legacy = JSON.parse(file);
+  delete legacy.trophies;
+  target.transfer.replace(target.transfer.parse(JSON.stringify(legacy)));
+  assert.deepEqual(target.cupCollection.snapshot().cups, { founders: trophy });
+  const damaged = JSON.parse(file);
+  damaged.trophies.version = 99;
+  assert.throws(() => target.transfer.parse(JSON.stringify(damaged)), /trophy/);
+  const previous = destination.getItem(CUP_COLLECTION_KEY),
+    set = destination.setItem;
+  let fail = true;
+  destination.setItem = (key, value) => {
+    if (key === SAVE_BACKUP_KEY && fail) {
+      fail = false;
+      throw Error('quota');
+    }
+    set(key, value);
+  };
+  const empty = JSON.parse(file);
+  empty.trophies.cups = {};
+  assert.throws(
+    () => target.transfer.replace(target.transfer.parse(JSON.stringify(empty))),
+    /could not be saved/,
+  );
+  assert.equal(destination.getItem(CUP_COLLECTION_KEY), previous);
+  assert.deepEqual(target.cupCollection.snapshot().cups, { founders: trophy });
 });

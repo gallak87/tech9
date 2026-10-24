@@ -155,6 +155,19 @@ export function cupStandings(state) {
   });
   return rows;
 }
+// Completion of the schedule and winning its championship are separate facts.
+// Exact first-place ties retain the scoring system's shared rank. An all-DNF
+// field has no champion, even though its zero-point rows also share rank one.
+export function cupChampion(state) {
+  if (
+    !cupDefinition(state?.cupId) ||
+    state.phase !== 'results' ||
+    !cupComplete(state)
+  )
+    return null;
+  const player = cupStandings(state).find((row) => row.id === 'player');
+  return player.position === 1 && player.points > 0 ? player : null;
+}
 export function validateCup(value) {
   const cup = cupDefinition(value?.cupId);
   if (

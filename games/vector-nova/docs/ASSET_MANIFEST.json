@@ -2,6 +2,44 @@
   "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "cup-menu-art",
+      "source": "public/assets/menu/cups/",
+      "creator": "VECTOR//NOVA project contributors using approved imagegen sources",
+      "provenance": "Runtime WebP exports of the approved distinct trophy silhouettes and four cup backgrounds. Transparent trophies at 512 square, opaque backgrounds at 960 by 320; browser Canvas high-quality resampling and WebP quality 0.86 via tools/export-cup-art.mjs. Original PNGs remain intact. Source mapping, dimensions and SHA-256 hashes retained.",
+      "rights": "Generated for this project; no third-party reference artwork supplied",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/ui/cups/runtime-exports.json",
+      "runtimeAssets": [
+        "public/assets/menu/cups/founders-trophy.webp",
+        "public/assets/menu/cups/founders-background.webp",
+        "public/assets/menu/cups/frontier-trophy.webp",
+        "public/assets/menu/cups/frontier-background.webp",
+        "public/assets/menu/cups/horizon-trophy.webp",
+        "public/assets/menu/cups/horizon-background.webp",
+        "public/assets/menu/cups/apex-trophy.webp",
+        "public/assets/menu/cups/apex-background.webp"
+      ]
+    },
+    {
+      "id": "sfx-cup-champion",
+      "source": "assets/audio/sfx/cup-champion.wav",
+      "promptRecord": "assets/audio/sfx/cup-champion.json",
+      "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
+      "provenance": "Three-second championship reward sting generated locally through the pinned official MLX Small-SFX runtime and model in tools/sfx-models.json. No reference audio. Stereo 44.1 kHz / 16-bit PCM; full-length master measured at -4 dBFS peak. Played at 0.85 cue gain after the race finish voice has ended.",
+      "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See provenanceRecord for licence links.",
+      "runtimeDependencies": [],
+      "provenanceRecord": "docs/audio/sfx.md"
+    },
+    {
+      "id": "cup-art-sources",
+      "source": "assets/ui/cups/",
+      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
+      "provenance": "Current approved source PNGs: Founders Ignition with a green pigment background, Frontier Sunrise Arc with a gold sunset, Horizon Forge Crown with a red volcanic pit, and Apex Singularity with a purple wormhole. Exact prompts, palette references, dimensions and SHA-256 hashes retained. Runtime WebP exports are separately registered.",
+      "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/ui/cups/provenance.json"
+    },
+    {
       "id": "colossus-industrial",
       "source": "src/levels/colossus/",
       "creator": "VECTOR//NOVA project contributors",
@@ -50,24 +88,6 @@
       "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
       "runtimeDependencies": [],
       "provenanceRecord": "assets/levels/biome-road-concepts/2026-10-21/provenance.json"
-    },
-    {
-      "id": "cup-button-backgrounds-v1",
-      "source": "assets/ui/cups/backgrounds/",
-      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
-      "provenance": "Opaque panoramic cup button backgrounds. Current set: retained green earthy textured Founders artwork, gold sunset for Frontier, a red volcanic pit immediately ahead for Horizon, and a purple space wormhole for Apex. Earlier landscape and abstract studies remain as source history. Background artwork only, without composited trophies or text. Exact prompts, references, current-set filenames and SHA-256 hashes are retained; menu integration is pending.",
-      "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
-      "runtimeDependencies": [],
-      "provenanceRecord": "assets/ui/cups/backgrounds/provenance.json"
-    },
-    {
-      "id": "cup-trophy-icons-v1",
-      "source": "assets/ui/cups/",
-      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
-      "provenance": "Four matching transparent championship trophy icons: Founders green, Frontier gold, Horizon red and legendary Apex purple. The original generated red Apex trophy is retained as the shared style and recoloring reference. Source PNGs, exact prompts, menu accent references and SHA-256 hashes are retained; menu integration is pending.",
-      "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
-      "runtimeDependencies": [],
-      "provenanceRecord": "assets/ui/cups/provenance.json"
     },
     {
       "id": "worldspire-sprint",

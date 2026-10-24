@@ -7,7 +7,7 @@
     "prompt": "assets/ships/shrike/revision-prompt.txt",
     "sha256": "2a48dd68f8de5a303caa4d7fb273c84529e7535f43248990fb4eb850cd54a7eb",
     "sourceKind": "Original generated design reference",
-    "previousConcept": "concept-01.png"
+    "previousConceptInGitHistory": "concept-01.png"
   },
   "model": {
     "source": "assets/ships/shrike/shrike.blend",

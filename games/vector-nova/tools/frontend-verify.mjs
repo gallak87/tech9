@@ -8,12 +8,12 @@ import {
   getRacerControl,
 } from '../src/race/racers.js';
 import { RACE_FIELD_SIZE, RACE_OPPONENTS } from '../src/race/roster.js';
+import { cupDefinition } from '../src/race/cup.js';
 import { createRapierWorld } from '../src/physics/rapier-world.js';
 import { withMagneticBoundaries } from '../src/physics/magnetic-boundaries.js';
 import { createCombatSimulation } from '../src/pickups/combat.js';
 import { createDeviceRuntime } from '../src/pickups/runtime.js';
 import { createRace } from '../src/race/index.js';
-import { CUPS } from '../src/race/cup.js';
 import {
   createMagneticRuntime,
   advanceSession,
@@ -64,12 +64,14 @@ async function check(
   fn,
   viewport = { width: 1440, height: 900 },
   settings = {},
+  deviceScaleFactor = 1,
 ) {
   if (process.env.VN_CHECK && !new RegExp(process.env.VN_CHECK).test(name))
     return;
   const context = await browser.newContext({
     viewport,
     hasTouch: viewport.width < 760,
+    deviceScaleFactor,
   });
   try {
     await context.addInitScript(
@@ -409,11 +411,9 @@ try {
           );
           assert.equal(
             await page.locator('.cup-route li').count(),
-            CUPS.find((cup) => cup.id === 'apex').tracks.length,
+            cupDefinition('apex').tracks.length,
           );
-          await page
-            .locator('.menu-selection[data-action="ship-step"]')
-            .click();
+          await page.locator('.race-menu [data-action="ship-step"]').click();
           await page.locator('[data-ship="shrike"]').click();
           assert.equal((await front(page)).intent, 'cup');
           await page.locator('[data-action="race-tab"]').click();
@@ -466,7 +466,7 @@ try {
         );
         await press('Space', '[data-level="orbital"]');
         assert.equal((await front(page)).selected, 'orbital');
-        await press('End', '[data-level="umbra"]');
+        await press('End', '[data-level="colossus"]');
         await press('Home', '[data-level="halcyon"]');
         await press('ArrowUp', '.picker-tabs [data-action="circuits"]');
         await press('ArrowRight', '.picker-tabs [data-action="ship-step"]');
@@ -525,14 +525,14 @@ try {
         await press('Escape', '[data-action="settings"]');
         await page.locator('.menu-selection[data-action="circuits"]').focus();
         await press('ArrowRight', '[data-level="orbital"]');
-        await press('End', '[data-level="umbra"]');
+        await press('End', '[data-level="colossus"]');
         await press('s', '[data-action="settings-back"]');
-        await press('Escape', '[data-level="umbra"]');
+        await press('Escape', '[data-level="colossus"]');
         assert.equal((await front(page)).selected, 'orbital');
         await press('Tab', '.music-previous');
         await press('Tab', '.music-play');
         await press('Shift+Tab', '.music-previous');
-        await press('Shift+Tab', '[data-level="umbra"]');
+        await press('Shift+Tab', '[data-level="colossus"]');
         await press('Escape', '.menu-selection[data-action="circuits"]');
         await press('ArrowDown', '.menu-selection[data-action="ship-step"]');
         await press('ArrowDown', '[data-action="launch"]');
@@ -699,7 +699,7 @@ try {
           true,
         );
         await page.locator('.picker-tabs [data-action="circuits"]').click();
-        assert.equal(await page.locator('.circuit-card').count(), 13);
+        assert.equal(await page.locator('.circuit-card').count(), 15);
         assert.equal(
           await page.locator('.circuit-card [data-type="sprint"]').count(),
           3,
@@ -762,7 +762,7 @@ try {
         async (page) => {
           await page.goto(url('level=zephyr'));
           await fleetReady(page);
-          assert.equal(await page.locator('.circuit-card').count(), 13);
+          assert.equal(await page.locator('.circuit-card').count(), 15);
           assert.ok(
             await page
               .locator('.circuit-hero')
@@ -1646,6 +1646,69 @@ try {
         /artPass=1/,
       );
     });
+    await check(
+      'Orbital downward views stay visible through HDR bloom',
+      async (page) => {
+        await page.goto(url('artPass=1&level=orbital&music=0'));
+        await booted(page);
+        const samples = await page.evaluate(async () => {
+          const views = [
+            [
+              [512.0843, 177.6554, 328.0377],
+              [509.2743, 79.5723, 308.7551],
+            ],
+            [
+              [511.6117, 161.1578, 324.7944],
+              [508.8017, 63.0747, 305.5118],
+            ],
+            [
+              [509.7307, 95.501, 311.8866],
+              [501.221, 6.2661, 267.5614],
+            ],
+            [
+              [510.8642, 107.3871, 317.7907],
+              [502.3545, 18.1522, 273.4655],
+            ],
+          ];
+          const [position, target] = views.at(-1);
+          for (let i = 0; i < 24; i++) {
+            views.push([
+              position.map((v, axis) => v + (axis === 1 ? Math.sin(i) * 8 : 0)),
+              target.map((v, axis) => v + (axis === 0 ? Math.cos(i) * 4 : 0)),
+            ]);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = 160;
+          canvas.height = 100;
+          const context = canvas.getContext('2d', { willReadFrequently: true });
+          const samples = [];
+          for (const [position, target] of views) {
+            window.__VN.setFlyView({ position, target, fov: 64 });
+            await new Promise((resolve) =>
+              requestAnimationFrame(() => requestAnimationFrame(resolve)),
+            );
+            context.drawImage(document.querySelector('#world'), 0, 0, 160, 100);
+            const { data } = context.getImageData(0, 0, 160, 100);
+            let lit = 0;
+            for (let i = 0; i < data.length; i += 4) {
+              if (data[i] + data[i + 1] + data[i + 2] > 45) lit++;
+            }
+            samples.push(lit / (160 * 100));
+          }
+          return samples;
+        });
+        samples.forEach((lit, i) =>
+          assert.ok(
+            lit > 0.8,
+            `downward view ${i} lost the rendered scene (${lit})`,
+          ),
+        );
+      },
+      // A one-pixel change can miss the near-parallel normal/view alignment.
+      { width: 1529, height: 906 },
+      { quality: 'high', reducedMotion: false },
+      2,
+    );
     await check('unknown circuit recovery and cancelled load', async (page) => {
       await page.goto(url('level=does-not-exist'));
       await page.locator('.transfer-status.failed').waitFor();
@@ -1849,7 +1912,7 @@ try {
           await page.locator('[data-cup="apex"]').click();
           assert.equal(
             await page.locator('.cup-route li').count(),
-            CUPS.find((cup) => cup.id === 'apex').tracks.length,
+            cupDefinition('apex').tracks.length,
           );
           await page
             .locator('.picker-header [data-action="home"]')
@@ -1907,9 +1970,9 @@ try {
           await fleetReady(page);
           await page.locator('.menu-selection[data-action="circuits"]').focus();
           await press('Enter', '[data-level="halcyon"]');
-          await press('End', '[data-level="umbra"]');
-          await press('Space', '[data-level="umbra"]');
-          assert.equal((await front(page)).selected, 'umbra');
+          await press('End', '[data-level="colossus"]');
+          await press('Space', '[data-level="colossus"]');
+          assert.equal((await front(page)).selected, 'colossus');
           await press('Escape', '.menu-selection[data-action="circuits"]');
           await press('ArrowDown', '.menu-selection[data-action="ship-step"]');
           await press('Enter', 'button[data-ship="kestrel"]');
@@ -1936,7 +1999,7 @@ try {
           await press('Space', '[data-action="settings-back"]');
           await press('Tab', '[data-setting="quality"]');
           await press('Escape', '[data-action="settings"]');
-          await press('Tab', '.music-previous');
+          await press('Tab', '[data-action="tunes"]');
           await press('Shift+Tab', '[data-action="settings"]');
           assert.equal(await page.evaluate(() => !!window.__VN), false);
         },

@@ -23,7 +23,7 @@
     },
     {
       "id": "mineral",
-      "sourceImage": "mineral-v1.png",
+      "sourceImageInGitHistory": "mineral-v1.png",
       "originalOutput": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-650126fd-cee2-4731-8041-41f2af0168ce.png",
       "promptRecord": "mineral-prompt-v1.txt",
       "imageSha256": "a0eca6baab405111fc752238206765771df26ef561cbb3fc134da1e8408c34b1",

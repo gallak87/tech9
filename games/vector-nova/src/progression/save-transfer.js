@@ -1,3 +1,8 @@
+import {
+  CUP_COLLECTION_KEY,
+  createCupCollection,
+  readCupCollection,
+} from './cup-collection.js';
 import { PROFILE_KEY, validateProfile } from './profile.js';
 import { CUP_STORAGE_KEY, validateCup } from '../race/cup.js';
 import {
@@ -11,6 +16,7 @@ export function createSaveTransfer({
   profileStore,
   cupStore,
   storage = () => localStorage,
+  cupCollection = createCupCollection(storage),
 }) {
   const readableStorage = () => {
     try {
@@ -25,6 +31,7 @@ export function createSaveTransfer({
     savedAt: new Date().toISOString(),
     profile: profileStore.snapshot().state,
     cup: cupStore.snapshot().state,
+    trophies: { version: 1, cups: cupCollection.snapshot().cups },
     trials: exportTrialSaves(readableStorage()),
   });
   function parse(text) {
@@ -53,7 +60,19 @@ export function createSaveTransfer({
       data.trials === undefined
         ? exportTrialSaves(readableStorage())
         : validateTrialSaves(data.trials);
-    return { profile, cup, trials };
+    let trophies;
+    try {
+      trophies = {
+        version: 1,
+        cups:
+          data.trophies === undefined
+            ? cupCollection.snapshot().cups
+            : readCupCollection(JSON.stringify(data.trophies)),
+      };
+    } catch {
+      throw new Error('This trophy collection is damaged or incompatible.');
+    }
+    return { profile, cup, trials, trophies };
   }
   return {
     ...profileStore,
@@ -76,6 +95,7 @@ export function createSaveTransfer({
         writes = new Map([
           [PROFILE_KEY, JSON.stringify(next.profile)],
           [CUP_STORAGE_KEY, JSON.stringify(next.cup)],
+          [CUP_COLLECTION_KEY, JSON.stringify(next.trophies)],
         ]);
       for (let i = 0; i < store.length; i++) {
         const key = store.key(i);
@@ -105,6 +125,7 @@ export function createSaveTransfer({
       clearTrialMemory(store);
       profileStore.reload();
       cupStore.reload();
+      cupCollection.reload();
       return next;
     },
   };

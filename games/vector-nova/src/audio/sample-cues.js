@@ -1,4 +1,8 @@
 export const RACE_SAMPLES = {
+  'cup-champion': new URL(
+    '../../assets/audio/sfx/cup-champion.wav',
+    import.meta.url,
+  ).href,
   'lap-complete': new URL(
     '../../assets/audio/sfx/lap-complete.wav',
     import.meta.url,
@@ -25,6 +29,8 @@ export const RACE_SAMPLES = {
 
 export function raceSample(event) {
   switch (event?.type) {
+    case 'cup-champion':
+      return { id: 'cup-champion', gain: 0.85 };
     case 'lap':
       return { id: 'lap-complete', gain: 1 };
     case 'final-lap':

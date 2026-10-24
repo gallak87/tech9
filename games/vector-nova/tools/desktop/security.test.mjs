@@ -54,6 +54,16 @@ test('custom protocol confines requests to the renderer root', () => {
   assert(!CSP.includes("'unsafe-eval'"));
   assert(CSP.includes("connect-src 'self'"));
 });
+
+test('cup art ships only approved runtime exports for each edition', () => {
+  for (const cup of ['founders', 'frontier', 'horizon', 'apex'])
+    for (const kind of ['trophy', 'background']) {
+      const path = `assets/menu/cups/${cup}-${kind}.webp`;
+      assert.equal(includePublic(path, 'full'), true);
+      assert.equal(includePublic(path, 'demo'), cup === 'founders');
+    }
+  assert.equal(includePublic('assets/menu/cups/source.png', 'full'), false);
+});
 test('native operations require the window main frame', () => {
   const mainFrame = { url: 'vn-game://app/index.html' };
   const webContents = { mainFrame };

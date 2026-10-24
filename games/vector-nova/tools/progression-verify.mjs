@@ -1,3 +1,4 @@
+import { CAREER_VERSION } from '../src/progression/profile.js';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 const base = process.env.VN_URL;
@@ -68,15 +69,19 @@ async function key(page, code) {
   await page.keyboard.up(code);
 }
 async function pad(page, index) {
-  await page.evaluate((i) => {
-    window.testPad.buttons[i] = { pressed: true, value: 1 };
-  }, index);
-  await page.waitForTimeout(100);
-  await page.evaluate((i) => {
-    window.testPad.buttons[i] = { pressed: false, value: 0 };
-  }, index);
-  await page.waitForTimeout(100);
+  for (const pressed of [true, false]) {
+    await page.evaluate(
+      ({ index, pressed }) => {
+        window.testPad.buttons[index] = { pressed, value: Number(pressed) };
+        return new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        );
+      },
+      { index, pressed },
+    );
+  }
 }
+
 try {
   await check(
     'developer inspector shortcut restores AI racers and sound/effect auditions in both modes',
@@ -303,23 +308,21 @@ try {
           await action(page, mode);
           await action(page, 'circuits');
           const geometry = await page.evaluate(() => {
-            const image = document
-              .querySelector('.detail-image')
+            const hero = document.querySelector('.cup-art-hero, .detail-image');
+            const image = hero.getBoundingClientRect();
+            const badges = hero
+              .querySelector('.reward-badges')
               .getBoundingClientRect();
-            const badges = document
-              .querySelector('.detail-image .reward-badges')
-              .getBoundingClientRect();
-            const title = document
-              .querySelector('.track-caption h2')
-              .getBoundingClientRect();
-            const cards = [
-              ...document.querySelectorAll('.detail-image .reward-badge'),
-            ];
+            const title = hero.querySelector('h2').getBoundingClientRect();
+            const cards = [...hero.querySelectorAll('.reward-badge')];
             return {
               contained:
                 badges.left >= image.left &&
                 badges.right <= image.right &&
-                badges.bottom < title.top - 6,
+                (badges.bottom < title.top - 6 ||
+                  badges.top > title.bottom + 6) &&
+                badges.top >= image.top &&
+                badges.bottom <= image.bottom,
               overflow: document.documentElement.scrollWidth > innerWidth,
               textClipped: cards.some((c) => c.scrollWidth > c.clientWidth + 1),
             };
@@ -327,7 +330,7 @@ try {
           assert.equal(
             geometry.contained,
             true,
-            `${width} ${mode}: badges remain on image above title`,
+            `${width} ${mode}: badges remain inside the artwork without covering its title`,
           );
           assert.equal(geometry.overflow, false);
           assert.equal(geometry.textClipped, false);
@@ -409,6 +412,22 @@ try {
         await page.locator('.reward-tooltip:not([hidden])').count(),
         0,
       );
+      await action(page, 'cup-hub');
+      for (const controller of [false, true]) {
+        await page.locator('[data-cup="founders"]').focus();
+        if (controller) await pad(page, 12);
+        else await key(page, 'ArrowUp');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.rewardInfo),
+          'cup-founders',
+        );
+        if (controller) await pad(page, 13);
+        else await key(page, 'ArrowDown');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.cup),
+          'founders',
+        );
+      }
       const art = await page.evaluate(async () => {
         const { REWARDS } = await import('/src/progression/catalog.js');
         const { rewardIcon } = await import('/src/progression/view.js');
@@ -440,6 +459,17 @@ try {
         ),
       );
       assert.equal(await page.locator('.garage-equipment-card img').count(), 6);
+      await action(page, 'race-tab');
+      await action(page, 'cup-hub');
+      for (const controller of [false, true]) {
+        await page.locator('[data-cup="founders"]').focus();
+        if (controller) await pad(page, 12);
+        else await key(page, 'ArrowUp');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.action),
+          'race-tab',
+        );
+      }
     },
   );
   await check(
@@ -586,8 +616,24 @@ try {
       assert.ok(saved.claims.includes('ship-bastion'));
       assert.ok(saved.claims.includes('equipment-deflector'));
       assert.equal(saved.cups.length, 1);
-      await action(page, 'equipment');
-      await page.locator('[data-equip="deflector"]').click();
+      assert.ok((await state(page)).cupCollection.cups.founders);
+      assert.equal(await page.locator('.cup-victory').count(), 1);
+      assert.equal(
+        await page.evaluate(() => document.activeElement.dataset.action),
+        'cup-standings',
+      );
+      await pad(page, 0);
+      assert.equal(await page.locator('.cup-victory').count(), 0);
+      assert.ok(await page.locator('.earned-rewards').count());
+      await page.locator('[data-action="equipment"]').focus();
+      await pad(page, 0);
+      assert.equal(
+        (await state(page)).screen,
+        'setup',
+        'controller opens the between-race garage',
+      );
+      await page.locator('[data-equip="deflector"]').focus();
+      await pad(page, 0);
       assert.equal(
         (await state(page)).career.state.loadouts.shrike[0],
         'deflector',
@@ -835,28 +881,35 @@ try {
       assert.equal((await state(page)).screen, 'home');
       await action(page, 'career');
       const download = page.waitForEvent('download');
-      await page.locator('[data-export]').click();
+      await page.locator('[data-export]').focus();
+      await pad(page, 0);
       const stream = await (await download).createReadStream();
       const chunks = [];
       for await (const chunk of stream) chunks.push(chunk);
       const bytes = Buffer.concat(chunks),
         saved = JSON.parse(bytes);
-      assert.equal(saved.profile.version, 2);
+      assert.equal(saved.profile.version, CAREER_VERSION);
+      assert.equal(Object.keys(saved.trophies.cups).length, 4);
       assert.ok('cup' in saved && Array.isArray(saved.trials));
-      await page
-        .locator('[data-save-file]')
-        .setInputFiles({
-          name: 'save.json',
-          mimeType: 'application/json',
-          buffer: bytes,
-        });
+      await page.locator('[data-save-file]').setInputFiles({
+        name: 'save.json',
+        mimeType: 'application/json',
+        buffer: bytes,
+      });
       assert.equal(
         await page.evaluate(() =>
           document.activeElement.hasAttribute('data-cancel'),
         ),
         true,
       );
-      await page.locator('[data-confirm-import]').click();
+      await pad(page, 15);
+      assert.equal(
+        await page.evaluate(() =>
+          document.activeElement.hasAttribute('data-confirm-import'),
+        ),
+        true,
+      );
+      await pad(page, 0);
       assert.deepEqual((await state(page)).career.state.loadouts.needle, [
         'jump',
         'lance',

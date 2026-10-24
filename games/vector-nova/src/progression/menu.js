@@ -44,7 +44,7 @@ export function createProgressionMenu({
     const content =
       confirmation === 'exotic'
         ? ''
-        : `${careerView(state)}<div class="career-transfer"><button data-export>Export save</button><button data-import>Import save</button><button data-backup>Export previous backup</button><input type="file" accept=".json,application/json" hidden data-save-file><span>Career · Equipment · Cup progress · Time Trial records & ghosts</span></div>`;
+        : `${careerView(state)}<div class="career-transfer"><button data-export>Export save</button><button data-import>Import save</button><button data-backup>Export previous backup</button><input type="file" accept=".json,application/json" hidden data-save-file><span>Career · Equipment · Cups & trophies · Time Trial records & ghosts</span></div>`;
     const ask =
       confirmation === 'exotic'
         ? `<section class="progression-confirm" role="alertdialog" aria-label="Choose exotic ship"><h3>Fit Quad Core to ${ship.name}?</h3><p>This permanent reward gives ${ship.name} four equipment slots.</p><button data-cancel>Keep choosing</button><button data-confirm-exotic>Fit Quad Core</button></section>`

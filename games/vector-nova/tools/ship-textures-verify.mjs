@@ -10,6 +10,11 @@ const context = await browser.newContext({
   viewport: { width: 1600, height: 1000 },
 });
 const page = await context.newPage();
+const decoderWarnings = [];
+page.on('console', (message) => {
+  if (message.text().includes('Multiple active KTX2 loaders'))
+    decoderWarnings.push(message.text());
+});
 await page.route('**/loader-fixture', (r) =>
   r.fulfill({ contentType: 'text/html', body: '<!doctype html><body></body>' }),
 );
@@ -119,6 +124,55 @@ try {
     return performance.now() - start;
   });
   console.log('GPU', JSON.stringify({ cold, warmMs: warm, gpu }));
+  // Road construction shares the fleet's decoder, including simultaneous
+  // requests for the same files. Each road still owns its sampler state.
+  const roads = await page.evaluate(async () => {
+    const { WebGLRenderer, MeshPhysicalMaterial } =
+      await import('/node_modules/.vite/deps/three.js');
+    const { createDeckFinish } =
+      await import('/src/levels/orbital/track/deck-finish.js');
+    const renderer = new WebGLRenderer();
+    const materials = [new MeshPhysicalMaterial(), new MeshPhysicalMaterial()];
+    const finishes = materials.map((material) => {
+      const finish = createDeckFinish(renderer);
+      finish.bind(material);
+      return finish;
+    });
+    const before = { ...window.workerCounts };
+    try {
+      await Promise.all(finishes.map((finish) => finish.ready));
+      const independent = materials[0].map !== materials[1].map;
+      materials[0].map.repeat.set(9, 7);
+      const secondRepeat = materials[1].map.repeat.toArray();
+      finishes[0].dispose();
+      await window.preview.setShip('kestrel');
+      return {
+        before,
+        after: { ...window.workerCounts },
+        independent,
+        secondRepeat,
+        compressed: materials.every(
+          (material) => material.map.isCompressedTexture,
+        ),
+        preview: window.preview.getState(),
+      };
+    } finally {
+      finishes.forEach((finish) => finish.dispose());
+      materials.forEach((material) => material.dispose());
+      renderer.dispose();
+      renderer.forceContextLoss();
+    }
+  });
+  assert.equal(roads.independent, true);
+  assert.equal(roads.compressed, true);
+  assert.deepEqual(roads.secondRepeat, [6, 2]);
+  assert.deepEqual(
+    roads.after,
+    roads.before,
+    'roads reuse fleet workers without retiring them',
+  );
+  assert.equal(roads.preview.error, '');
+  console.log('PASS concurrent road/fleet ownership', JSON.stringify(roads));
   // Cached clones survive other previews being disposed; cache/worker retirement
   // allows a new load using the retained real GPU capability snapshot.
   for (let i = 0; i < 3; i++) {
@@ -229,6 +283,7 @@ try {
   await page.waitForTimeout(100);
   const workers = await page.evaluate(() => window.workerCounts);
   assert.equal(workers.created, workers.terminated);
+  assert.deepEqual(decoderWarnings, []);
   console.log('workers', workers);
 } finally {
   await browser.close();

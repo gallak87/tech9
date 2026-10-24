@@ -1,9 +1,9 @@
-import { FileLoader, LoaderUtils, LoadingManager, WebGLRenderer } from 'three';
+import { FileLoader, LoaderUtils, LoadingManager } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
-import { assetURL } from '../assets/url.js';
+import { SharedKTX2Loader } from '../assets/ktx2-loader.js';
+export { configureKTX2Support as configureShipTextures } from '../assets/ktx2-loader.js';
 
-let current, support;
+let current;
 const DECODE_TIMEOUT_MS = 30000;
 function state() {
   if (current) return current;
@@ -24,39 +24,8 @@ function state() {
   return (current = owner);
 }
 
-// Prefer an existing preview/race renderer when one is already available.
-export function configureShipTextures(renderer) {
-  if (support) return;
-  const owner = state();
-  owner.loader = new KTX2Loader(owner.manager)
-    .setTranscoderPath(assetURL('assets/ships/decoder/'))
-    .setWorkerLimit(2)
-    .detectSupport(renderer);
-  support = { ...owner.loader.workerConfig };
-}
-
-function ensureTextureSupport() {
-  if (support) return;
-  // Collapsed ship selection has no studio renderer yet. Probe once using an
-  // unattached 1px context, then release it immediately; no world or render loop.
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 1;
-  const probe = new WebGLRenderer({ canvas, antialias: false });
-  try {
-    configureShipTextures(probe);
-  } finally {
-    probe.dispose();
-    probe.forceContextLoss();
-  }
-}
-
 async function decoder(owner) {
-  if (!owner.loader) {
-    owner.loader = new KTX2Loader(owner.manager)
-      .setTranscoderPath(assetURL('assets/ships/decoder/'))
-      .setWorkerLimit(2);
-    owner.loader.workerConfig = { ...support };
-  }
+  owner.loader ??= new SharedKTX2Loader(owner.manager);
   await owner.loader.init();
   owner.abort.signal.throwIfAborted();
   return owner.loader;
@@ -67,12 +36,7 @@ function retire(owner, reason) {
   if (current === owner) current = null;
   owner.abort.abort(reason);
   owner.manager.abort();
-  // init() is just abortable JS/WASM transfer. Worker startup or transcode can
-  // hang independently; never wait on raw parse promises to terminate workers.
-  const loader = owner.loader;
-  if (loader?.transcoderPending) {
-    void loader.transcoderPending.catch(() => {}).then(() => loader.dispose());
-  }
+  owner.loader?.dispose();
   // GLTFLoader normally revokes these; also reclaim them on failed workers.
   for (const url of owner.blobs) URL.revokeObjectURL(url);
   owner.blobs.clear();
@@ -100,15 +64,15 @@ export function loadFleetGLTF(url, onProgress) {
     const compressed = json.extensionsUsed?.includes('KHR_texture_basisu');
     try {
       if (compressed) {
-        ensureTextureSupport();
-        timer = setTimeout(
-          () =>
-            retire(
-              owner,
-              new Error('Ship texture decoder timed out; retry loading'),
-            ),
-          DECODE_TIMEOUT_MS,
-        );
+        timer = setTimeout(() => {
+          const error = new Error(
+            'Ship texture decoder timed out; retry loading',
+          );
+          // A stalled shared worker affects every decoder client. Reject all
+          // pending work and let subsequent loads start a fresh pool.
+          owner.loader?.invalidate(error);
+          retire(owner, error);
+        }, DECODE_TIMEOUT_MS);
       }
       const loader = new GLTFLoader(owner.manager);
       if (compressed) loader.setKTX2Loader(await decoder(owner));

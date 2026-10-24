@@ -42,7 +42,7 @@ upper-left texture orientation, and records sRGB only for color/emissive maps.
 Tangent normals stay RGB; do not use the encoder's X/alpha normal swizzle.
 Already-compressed input is rejected: rebuild the PNG GLB to change settings.
 
-`texture-loader.js` owns one two-worker KTX2 loader. A live preview/race renderer supplies GPU capabilities when available. Otherwise a temporary unattached 1px renderer detects support and immediately releases its context, so compressed preloading finishes with the Ship accordion closed. PNG loads need neither the probe nor decoder. Cache disposal/page exit abort requests and releases workers. Failed or
+`texture-loader.js` shares the two-worker KTX2 decoder in `src/assets/ktx2-loader.js` with road finishes. Requests and decoded textures stay independently owned: disposing a road cannot cancel fleet loading, and the last decoder client releases the workers. A live preview/race renderer supplies GPU capabilities when available. Otherwise a temporary unattached 1px renderer detects support and immediately releases its context, so compressed preloading finishes with the Ship accordion closed. PNG loads need neither the probe nor decoder. Cache disposal/page exit aborts fleet requests. Failed or
 30-second-stalled decoding rejects the model rather than caching missing maps,
 so selection/preload can retry. The matching Three.js 0.186.1 Basis decoder is
 served through `assetURL` under `assets/ships/decoder/` (Apache-2.0).
@@ -50,7 +50,7 @@ served through `assetURL` under `assets/ships/decoder/` (Apache-2.0).
 its total GPU figure remains an estimate excluding driver overhead.
 
 With the dev server running, `VN_URL=http://127.0.0.1:5179 node tools/ship-textures-verify.mjs`
-checks renderer-independent cold preload, real GPU uploads, preview/cache disposal and decoder
+checks renderer-independent cold preload, real GPU uploads, shared road/fleet workers, preview/cache disposal and decoder
 failure/timeout/retry. Add `--png-fixture /path/to/lossless.glb` to check ordinary
 PNG loading before any renderer exists. Visual fidelity still requires matching
 studio and chase captures; these checks do not establish art quality.

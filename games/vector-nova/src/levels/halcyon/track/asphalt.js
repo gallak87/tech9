@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+import { SharedKTX2Loader } from '../../../assets/ktx2-loader.js';
 import { assetURL } from '../../../assets/url.js';
 
 // Poly Haven Asphalt 03, CC0. Source files, authors and the deterministic KTX2
@@ -11,10 +11,7 @@ export function createAsphalt(
   { uvLength = 16, label = 'Halcyon', moisture: initialMoisture = 0.8 } = {},
 ) {
   const manager = new THREE.LoadingManager();
-  const loader = new KTX2Loader(manager)
-    .setTranscoderPath(assetURL('assets/ships/decoder/'))
-    .setWorkerLimit(2)
-    .detectSupport(renderer);
+  const loader = new SharedKTX2Loader(manager).detectSupport(renderer);
   const textures = new Set();
   let disposed = false;
   const moisture = { value: initialMoisture };

@@ -49,8 +49,11 @@ export function createEquipmentSystem({ motion, combat, actorId = 'player' }) {
           held[i] = false;
           continue;
         }
+        const wasActive = slot.active > 0;
         slot.remaining = Math.max(0, slot.remaining - dt);
         slot.active = Math.max(0, slot.active - dt);
+        if (wasActive && slot.active === 0)
+          events.push({ type: 'equipment-expire', payload: { kind: slot.id } });
         if (slot.id === 'deflector' && !slot.active) shield = false;
         const pressed = enabled && !!input?.[`equipment${i + 1}`];
         if (pressed && !held[i] && activate(slot, state))

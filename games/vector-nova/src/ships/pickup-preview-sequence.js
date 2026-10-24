@@ -1,6 +1,7 @@
 import { COMBAT_RULES } from '../pickups/combat.js';
 import { Vector3 } from 'three';
 import { sampleIonContact } from '../pickups/ion-contact.js';
+import { EQUIPMENT, equipmentById } from '../progression/catalog.js';
 import {
   AEGIS_DURATION,
   AEGIS_BREAK_DURATION,
@@ -8,6 +9,8 @@ import {
   ARC_MUZZLE_HEIGHT,
   ARC_TARGET_HALF_LENGTH,
   ION_WAKE_RADIUS,
+  LANCE_SPEED,
+  LANCE_LIFETIME,
 } from '../pickups/rules.js';
 
 // Leave room to read the traveling effects and the target's full silhouette.
@@ -20,6 +23,22 @@ export const PICKUP_PREVIEWS = [
   { id: 'repulsor', label: 'Repulsor · charge + pulse' },
   { id: 'arc', label: 'Arc · activate + burst' },
   { id: 'ion', label: 'Ion · incoming wake' },
+];
+
+export const DEVICE_PREVIEWS = [
+  ...PICKUP_PREVIEWS.map((entry) => ({ ...entry, group: 'Road pickups' })),
+  ...EQUIPMENT.map(({ id, name, detail }) => ({
+    id,
+    label: `${name} · ${id === 'lance' ? 'fire + impact' : 'activate'}`,
+    group: 'Equipped abilities',
+    detail,
+  })),
+  {
+    id: 'deflector-hit',
+    label: 'Deflector · absorb + break',
+    group: 'Equipped abilities',
+    detail: 'Protect your ship, then absorb an incoming hit.',
+  },
 ];
 
 const quaternion = [0, 0, 0, 1];
@@ -38,31 +57,46 @@ export function pickupPreviewFrame(
   target = false,
   shielded = false,
 ) {
-  const breakShield = kind === 'aegis-hit';
-  if (breakShield) kind = 'aegis';
+  const breakShield = kind === 'aegis-hit' || kind === 'deflector-hit';
+  if (breakShield) kind = kind === 'aegis-hit' ? 'aegis' : 'deflector';
+  const item = equipmentById(kind);
   const events = [];
   const effects = {};
   const combat = { time, emitters: {}, shots: [], flashes: [], wakes: [] };
+  const equipment = {
+    time,
+    slots: item
+      ? [
+          {
+            id: kind,
+            remaining: Math.max(0, item.cooldown - time),
+            active: Math.max(0, item.duration - time),
+          },
+        ]
+      : [],
+    shield: kind === 'deflector' && time < (breakShield ? 1.5 : item.duration),
+  };
   let targetShield = shielded;
   const crossed = (at) => previous < at && time >= at;
-  function targetHit(at, position, confirmed = true) {
+  function targetHit(at, position, confirmed = true, hitKind = kind) {
     const blocked = confirmed && targetShield;
     if (confirmed) targetShield = false;
     if (crossed(at))
       events.push({
         type: confirmed ? 'combat-confirm' : 'combat-contact',
         payload: {
-          kind,
+          kind: hitKind,
           source: 'player',
           target: 'rook',
           shielded: blocked,
           position,
+          ...(item?.id === 'lance' ? { equipment: 'lance' } : {}),
         },
       });
     const age = time - at;
     if (age >= 0 && age < 0.55)
       combat.flashes.push({
-        kind: blocked ? 'aegis' : kind,
+        kind: blocked ? 'aegis' : hitKind,
         target: 'rook',
         position,
         quaternion,
@@ -70,9 +104,57 @@ export function pickupPreviewFrame(
         radius: 4,
       });
   }
-  if (crossed(0)) events.push(event('pickup-activate', kind));
+  if (crossed(0))
+    events.push(event(item ? 'equipment-activate' : 'pickup-activate', kind));
   let end = 0;
-  if (kind === 'vector') {
+  if (item) {
+    end = Math.max(0.8, item.duration) + 0.3;
+    if (item.duration > 0 && !breakShield && crossed(item.duration))
+      events.push(event('equipment-expire', kind));
+    if (kind === 'deflector' && breakShield) {
+      equipment.slots[0].active = time < 1.5 ? item.duration - time : 0;
+      if (crossed(1.5)) events.push(event('equipment-block', kind));
+      if (time >= 1.5 && time < 2.05)
+        combat.flashes.push({
+          kind: 'aegis',
+          target: 'player',
+          position: [0, 0, 0],
+          quaternion,
+          age: time - 1.5,
+          radius: 4,
+        });
+      end = 2.05;
+    }
+    if (kind === 'lance') {
+      const distance = PREVIEW_TARGET_DISTANCE - ARC_TARGET_HALF_LENGTH;
+      const travel = target ? distance / LANCE_SPEED : LANCE_LIFETIME;
+      if (crossed(0))
+        events.push({
+          type: 'combat-fire',
+          payload: { kind: 'arc', equipment: 'lance' },
+        });
+      if (time < 0.12)
+        combat.flashes.push({
+          kind: 'arc',
+          type: 'muzzle',
+          source: 'player',
+          position: [0, ARC_MUZZLE_HEIGHT, 0],
+          quaternion,
+          age: time,
+          radius: 1.5,
+        });
+      if (time < travel)
+        combat.shots.push({
+          heavy: true,
+          position: [0, ARC_SHOT_HEIGHT, time * LANCE_SPEED],
+          quaternion,
+          age: time,
+        });
+      if (target)
+        targetHit(travel, [0, ARC_SHOT_HEIGHT, distance], true, 'repulsor');
+      end = travel + 0.55;
+    }
+  } else if (kind === 'vector') {
     effects.vectorActive = time < vectorContact;
     if (crossed(vectorContact)) events.push(event('pickup-exit', kind));
     end = vectorContact;
@@ -208,6 +290,7 @@ export function pickupPreviewFrame(
     events,
     effects,
     combat,
+    equipment,
     end,
     ionContact:
       !effects.aegisRemaining &&

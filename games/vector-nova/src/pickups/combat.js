@@ -10,6 +10,8 @@ import {
   ARC_SHOT_HEIGHT,
   ARC_MUZZLE_HEIGHT,
   ARC_TARGET_HALF_LENGTH,
+  LANCE_SPEED,
+  LANCE_LIFETIME,
 } from './rules.js';
 
 export const COMBAT_RULES = Object.freeze({
@@ -166,7 +168,7 @@ export function createCombatSimulation({
   function notify(id, type, payload) {
     actors.get(id)?.notify({ type, payload });
   }
-  function hit(source, target, kind, impulse, cost, position) {
+  function hit(source, target, kind, impulse, cost, position, equipment) {
     if ((state.grace[target] ?? 0) > state.time) return;
     const targetActor = eligible(target);
     if (!targetActor || source === target) return;
@@ -198,6 +200,7 @@ export function createCombatSimulation({
       shielded,
       duration: shielded ? 0 : COMBAT_CONSEQUENCES[kind].duration,
       position: position.toArray(),
+      ...(equipment ? { equipment } : {}),
     };
     notify(target, 'combat-hit', payload);
     notify(source, 'combat-confirm', payload);
@@ -277,7 +280,8 @@ export function createCombatSimulation({
       heading,
       height,
       speed:
-        (heavy ? 490 : COMBAT_RULES.arcSpeed) + Math.max(0, actor.state.speed),
+        (heavy ? LANCE_SPEED : COMBAT_RULES.arcSpeed) +
+        Math.max(0, actor.state.speed),
       position: pose.position
         .clone()
         .addScaledVector(frame.up, ARC_SHOT_HEIGHT)
@@ -305,7 +309,10 @@ export function createCombatSimulation({
       age: 0,
       radius: 1.5,
     });
-    notify(id, 'combat-fire', { kind: 'arc' });
+    notify(id, 'combat-fire', {
+      kind: 'arc',
+      ...(heavy ? { equipment: 'lance' } : {}),
+    });
   }
   function resetActor(id, all = false) {
     actors.delete(id);
@@ -472,7 +479,7 @@ export function createCombatSimulation({
       }
       state.shots = state.shots.filter((shot) => {
         shot.age += dt;
-        if (shot.age > (shot.heavy ? 1.1 : COMBAT_RULES.arcLifetime))
+        if (shot.age > (shot.heavy ? LANCE_LIFETIME : COMBAT_RULES.arcLifetime))
           return false;
         const a = vector(shot.position);
         // Bounded homing adjusts road-local yaw; hills and banks still need
@@ -536,6 +543,7 @@ export function createCombatSimulation({
               .addScaledVector(velocity.clone().normalize(), 2),
             8,
             a.clone().lerp(b, first),
+            shot.heavy ? 'lance' : undefined,
           );
           // Damage grace suppresses repeated impulses, not visible contact.
           if (!applied) {
@@ -543,6 +551,7 @@ export function createCombatSimulation({
               source: shot.source,
               target,
               kind: 'arc',
+              ...(shot.heavy ? { equipment: 'lance' } : {}),
               position: a.clone().lerp(b, first).toArray(),
             };
             notify(shot.source, 'combat-contact', payload);

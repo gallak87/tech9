@@ -3,8 +3,9 @@ import { createShipFeedbackPresentation } from '../pickups/ship-feedback.js';
 import { createCombatPresentation } from '../pickups/combat-presentation.js';
 import { createHitFeedback } from '../pickups/hit-feedback.js';
 import { createPickupPreviewAudio } from './pickup-preview-audio.js';
+import { createEquipmentEffects } from '../equipment/effects.js';
 import {
-  PICKUP_PREVIEWS,
+  DEVICE_PREVIEWS,
   PREVIEW_TARGET_DISTANCE,
   pickupPreviewFrame,
 } from './pickup-preview-sequence.js';
@@ -23,6 +24,7 @@ export function createPickupPreview({
   root.name = 'Inspector / isolated pickup audition';
   const feedback = createFeedback(getSettings());
   root.add(feedback.group);
+  const equipment = createEquipmentEffects(root);
   const pose = { position: new Vector3(), quaternion: new Quaternion() };
   const targetPose = {
     position: new Vector3(0, 0, PREVIEW_TARGET_DISTANCE),
@@ -65,6 +67,7 @@ export function createPickupPreview({
     current = null;
     audio.stop();
     feedback.reset();
+    equipment.reset();
     targetFeedback?.update();
     playerFeedback?.update();
     targetShield?.reset();
@@ -105,6 +108,12 @@ export function createPickupPreview({
       settings,
     });
     combat.update({ mode: 'racing', settings });
+    equipment.update({
+      equipment: next.equipment,
+      pose,
+      mode: 'racing',
+      reducedMotion: settings.reducedMotion,
+    });
     const hit = state.flashes.findLast(
       (flash) =>
         flash.target === 'rook' && ['arc', 'repulsor'].includes(flash.kind),
@@ -142,7 +151,7 @@ export function createPickupPreview({
   }
   return {
     async trigger(kind, { shielded = false } = {}) {
-      if (disposed || !PICKUP_PREVIEWS.some((entry) => entry.id === kind))
+      if (disposed || !DEVICE_PREVIEWS.some((entry) => entry.id === kind))
         return false;
       stop('Preparing…');
       const token = request;
@@ -160,11 +169,11 @@ export function createPickupPreview({
         render(-1);
         onStatus(
           `Playing${
-            target
+            target && ['ion', 'arc', 'repulsor', 'lance'].includes(kind)
               ? kind === 'ion'
                 ? ` · Rook → ${shielded ? 'your shield' : 'your ship'}`
                 : ` · Rook ${shielded ? 'shielded' : 'target'}`
-              : ''
+              : ' · your ship'
           }`,
         );
         return true;
@@ -198,6 +207,7 @@ export function createPickupPreview({
       disposed = true;
       audio.dispose();
       feedback.dispose();
+      equipment.dispose();
       combat.dispose();
       playerFeedback?.dispose();
       targetFeedback?.dispose();

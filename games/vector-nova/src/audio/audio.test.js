@@ -8,6 +8,7 @@ import { deviceCue } from '../pickups/sound-design.js';
 import { createSoundPreview } from './sound-preview.js';
 import { soundEffects } from './sounds.js';
 import { RACE_SAMPLES, raceSample } from './sample-cues.js';
+import { EQUIPMENT } from '../progression/catalog.js';
 
 class Param {
   value = 0;
@@ -206,6 +207,54 @@ test('sample-backed device events have no alternate synthesized cue', () => {
         if (deviceSample(event))
           assert.deepEqual(deviceCue(event), [], `${kind} ${type} ${shielded}`);
       }
+});
+
+test('equipped abilities share their generated cues with gameplay and retain silent blocked hull hits', () => {
+  for (const { id } of EQUIPMENT.filter(({ id }) => id !== 'lance')) {
+    const event = { type: 'equipment-activate', payload: { kind: id } };
+    assert.equal(deviceSample(event).id, `${id}-activate`);
+    assert.deepEqual(deviceCue(event), []);
+    assert.ok(
+      soundEffects.some(
+        ({ event: cue }) => cue?.type === event.type && cue.payload.kind === id,
+      ),
+    );
+  }
+  const fire = {
+    type: 'combat-fire',
+    payload: { kind: 'arc', equipment: 'lance' },
+  };
+  assert.equal(deviceSample(fire).id, 'lance-fire');
+  assert.deepEqual(deviceCue(fire), []);
+  for (const type of ['combat-hit', 'combat-confirm', 'combat-contact']) {
+    const event = { type, payload: { kind: 'repulsor', equipment: 'lance' } };
+    assert.equal(deviceSample(event).id, 'lance-hit');
+    assert.deepEqual(deviceCue(event), []);
+  }
+  assert.equal(
+    deviceSample({
+      type: 'combat-hit',
+      payload: { kind: 'repulsor', equipment: 'lance', shielded: true },
+    }),
+    null,
+  );
+  assert.equal(
+    deviceSample({
+      type: 'combat-confirm',
+      payload: { kind: 'repulsor', equipment: 'lance', shielded: true },
+    }).id,
+    'shield-block',
+  );
+  assert.equal(
+    deviceSample({ type: 'equipment-block', payload: { kind: 'deflector' } })
+      .id,
+    'shield-block',
+  );
+  assert.equal(
+    deviceSample({ type: 'equipment-expire', payload: { kind: 'deflector' } })
+      .id,
+    'shield-block',
+  );
 });
 
 test('complete device sets distinguish outgoing, incoming, blocked and grace contacts', () => {

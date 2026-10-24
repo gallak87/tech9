@@ -37,7 +37,10 @@ export function createSoundPanel(
     target.addEventListener(type, listener, { signal: life.signal });
   listen(play, 'click', () => void preview.play(picker.value));
   listen(picker, 'change', () => preview.stop());
-  listen(root, 'keydown', (event) => event.stopPropagation());
+  listen(root, 'keydown', (event) => {
+    if (event.code === 'Escape') preview.stop();
+    else event.stopPropagation();
+  });
   listen(root, 'keyup', (event) => event.stopPropagation());
   listen(root, 'pointerdown', (event) => event.stopPropagation());
   listen(root, 'focusin', clearInput);
@@ -46,6 +49,11 @@ export function createSoundPanel(
   });
   host.append(root);
   return {
+    mount(target = host) {
+      const parent = target ?? host;
+      parent.append(root);
+      root.toggleAttribute('data-docked', parent !== host);
+    },
     configure: () => preview.configure(),
     dispose() {
       life.abort();

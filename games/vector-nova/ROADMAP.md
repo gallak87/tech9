@@ -73,6 +73,8 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 
 ## Future race modes and systems
 
+- [ ] **Event types, sidegrades and world reuse.** Use the [connected design notes](docs/level-types-and-rewards.md) for the event/reward matrix and proposed order: a small sidegrade batch with an Eliminator pilot, then Carve and Escape proofs; selected biome siblings and curated series follow successful pilots. Freestyle remains a candidate and Assault comes later. Next implementation is undecided; existing cups do not automatically expand with the catalogue.
+
 - [x] Full pickup coverage across all thirteen production maps: Vector, Aegis, Repulsor, Arc and Ion, with circuit-owned optional lanes, shield counterplay and jump/recovery clearance. Preserve independent per-racer collection, rival avoidance and deterministic combat/replay.
 - [ ] Human race-balance pass on the full pickup layouts: tune weapon frequency and shield availability against real pack spacing, especially on long sprints. Include equipment combinations and fully upgraded player builds.
 

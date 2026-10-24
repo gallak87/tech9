@@ -74,6 +74,24 @@ function harness(collisionWorld = null, course = track) {
   }
   return { combat, actors, events, add, step, collect };
 }
+
+test('live Lance fire and impact retain equipment identity without changing heavy-hit consequences', () => {
+  for (const shielded of [false, true]) {
+    const h = harness();
+    h.add('player', 0);
+    const target = h.add('target', 80, 0, 0, shielded);
+    for (const [id, actor] of h.actors) h.combat.bind(id, actor);
+    assert.equal(h.combat.fireLance('player'), true);
+    h.step(30);
+    const fire = h.events.find(({ type }) => type === 'combat-fire');
+    const hit = h.events.find(({ type }) => type === 'combat-hit');
+    assert.equal(fire.payload.equipment, 'lance');
+    assert.equal(hit.payload.equipment, 'lance');
+    assert.equal(hit.payload.kind, 'repulsor');
+    assert.equal(hit.payload.shielded, shielded);
+    assert.equal(target.hits.length, 1);
+  }
+});
 test('repulsor charges, pushes locally, respects decks/flight and has bounded repeat hits', () => {
   const h = harness();
   h.add('player', 100);

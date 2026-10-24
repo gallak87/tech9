@@ -2,7 +2,11 @@
 // [wave, start Hz, end Hz, duration, gain, delay, attack]
 export function deviceCue(event) {
   const { kind, shielded } = event.payload ?? {};
-  if (event.type === 'combat-fire' && kind === 'arc')
+  if (
+    event.type === 'combat-fire' &&
+    kind === 'arc' &&
+    event.payload?.equipment !== 'lance'
+  )
     return [
       ['noise', 1200, 220, 0.14, 0.13, 0, 0.002],
       ['triangle', 170, 65, 0.18, 0.2, 0, 0.003],

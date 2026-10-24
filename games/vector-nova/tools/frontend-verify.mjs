@@ -1382,6 +1382,17 @@ try {
         });
         await page.goto(url('level=halcyon'));
         await page.locator('[data-level="worldspire"]').click();
+        assert.equal((await front(page)).selected, 'worldspire');
+        // The normal menu no longer exposes the developer inspector button.
+        // Direct inspection remains available without loading audition tools.
+        await page.goto(url('level=worldspire&inspect=1'));
+        await page.waitForFunction(
+          () =>
+            window.__VN_INSPECTOR?.ready &&
+            window.__VN_FRONTEND.getState().screen === 'inspection',
+          null,
+          { timeout: 90000 },
+        );
         await page.evaluate(() => {
           window.enteredScreens = [];
           new MutationObserver(() => {
@@ -1391,14 +1402,6 @@ try {
             attributeFilter: ['data-screen'],
           });
         });
-        await page.locator('[data-action="inspect"]').click();
-        await page.waitForFunction(
-          () =>
-            window.__VN_INSPECTOR?.ready &&
-            window.__VN_FRONTEND.getState().screen === 'inspection',
-          null,
-          { timeout: 90000 },
-        );
         assert.equal((await front(page)).selected, 'worldspire');
         assert.equal(await page.locator('#inspection-panel').isVisible(), true);
         assert.equal(await page.locator('#hud').isVisible(), false);

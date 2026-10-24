@@ -1,5 +1,4 @@
 import { shipUnlocked } from '../progression/profile.js';
-import { loadoutSummary, rewardIcon } from '../progression/view.js';
 import * as T from 'three';
 import { createLifetime } from '../core/lifecycle.js';
 import { createShipControls, inspectionPanel } from '../ui/ship-controls.js';
@@ -25,7 +24,6 @@ export async function createInspector({
   onProgress,
   onBack,
   getProfile,
-  onEquipment,
 }) {
   const lifetime = createLifetime();
   const listeners = new AbortController();
@@ -134,21 +132,10 @@ export async function createInspector({
       getShip(shipId),
       { getProfile },
     );
-    let equipmentButton;
-    if (getProfile && onEquipment) {
-      equipmentButton = document.createElement('button');
-      equipmentButton.className = 'garage-action';
-      equipmentButton.id = 'inspector-equipment';
-      equipmentButton.onclick = () => onEquipment(fleet?.selected.id ?? shipId);
-      root.querySelector('#inspection-tools').before(equipmentButton);
-      refreshProgression();
-    }
     function refreshProgression() {
       if (!getProfile) return;
       const craft = fleet?.selected ?? getShip(shipId);
       ui.setShip(craft);
-      if (equipmentButton)
-        equipmentButton.innerHTML = `${rewardIcon('exotic')}<span><strong>Equipment</strong><small>${loadoutSummary(getProfile(), craft.id)}</small></span><b aria-hidden="true">›</b>`;
     }
     ui.setInspectionMenu(true);
     ui.setInspectionPreview(preview);

@@ -7,7 +7,7 @@ const clamp = (value) =>
 import { deviceCue, createDeviceNoise } from './sound-design.js';
 import { DEVICE_SAMPLES, deviceSample } from './sample-cues.js';
 
-// This bus owns only immediate road-device cues. It never writes vehicle state.
+// Shared road-device and equipped-ability cues. Never writes vehicle state.
 export function createPickupAudio({
   createContext = () => new AudioContext(),
   immersion = false,
@@ -155,7 +155,7 @@ export function createPickupAudio({
       if (!notes.length && !buffer) return;
       const priority = /hit|fire|confirm|contact/.test(event.type)
         ? 3
-        : event.type === 'pickup-activate'
+        : ['pickup-activate', 'equipment-activate'].includes(event.type)
           ? 2
           : 1;
       if (shots.size >= 4) {

@@ -1,6 +1,6 @@
 import { Box3, Vector3 } from 'three';
 import { createPickupPreview } from './pickup-preview.js';
-import { PICKUP_PREVIEWS } from './pickup-preview-sequence.js';
+import { DEVICE_PREVIEWS } from './pickup-preview-sequence.js';
 import { createRivalPreview } from './rivals.js';
 import { createEnginePreview } from './engine-preview.js';
 import { createPairedFraming } from './inspection-framing.js';
@@ -21,9 +21,25 @@ export async function createPickupInspector({
   }
   const element = document.createElement('section');
   element.className = 'inspection-pickups';
-  element.setAttribute('aria-label', 'Powerup sound and effects preview');
-  element.innerHTML = `<label for="inspection-pickup">Powerups</label><div class="inspection-pickup-controls"><select id="inspection-pickup">${PICKUP_PREVIEWS.map(({ id, label }) => `<option value="${id}">${label}</option>`).join('')}</select><button type="button" data-trigger>Trigger</button><button type="button" data-stop>Stop</button></div><label class="inspection-engine"><input type="checkbox" data-engine>Engine sound <span>Driving / Boost</span></label><label class="inspection-engine"><input type="checkbox" data-shield><span data-shield-label>Shield target</span></label><p role="status">Ready · Rook target ahead</p>`;
+  element.setAttribute(
+    'aria-label',
+    'Powerup and equipment sound and effects preview',
+  );
+  element.innerHTML = `<label for="inspection-pickup">Powerups & equipment</label><div class="inspection-pickup-controls"><select id="inspection-pickup"></select><button type="button" data-trigger>Trigger</button><button type="button" data-stop>Stop</button></div><p data-detail></p><label class="inspection-engine"><input type="checkbox" data-engine>Engine sound <span>Driving / Boost</span></label><label class="inspection-engine"><input type="checkbox" data-shield><span data-shield-label>Shield target</span></label><p role="status">Ready · Rook target ahead</p>`;
   const select = element.querySelector('#inspection-pickup');
+  for (const name of new Set(DEVICE_PREVIEWS.map(({ group }) => group))) {
+    const group = document.createElement('optgroup');
+    group.label = name;
+    for (const entry of DEVICE_PREVIEWS.filter(
+      (entry) => entry.group === name,
+    )) {
+      const option = document.createElement('option');
+      option.value = entry.id;
+      option.textContent = entry.label;
+      group.append(option);
+    }
+    select.append(group);
+  }
   const trigger = element.querySelector('[data-trigger]');
   const stop = element.querySelector('[data-stop]');
   const status = element.querySelector('[role="status"]');
@@ -33,12 +49,14 @@ export async function createPickupInspector({
   const engine = createEnginePreview({ getState: getDriving, getSettings });
   select.value = 'ion';
   const updateShieldLabel = () => {
+    element.querySelector('[data-detail]').textContent =
+      DEVICE_PREVIEWS.find(({ id }) => id === select.value)?.detail ?? '';
     shieldLabel.textContent =
       select.value === 'ion'
         ? 'Shield your ship · Ion'
-        : 'Shield target · Arc / Repulsor';
+        : 'Shield target · Arc / Repulsor / Lance';
     shieldToggle.disabled =
-      !ship || !['arc', 'repulsor', 'ion'].includes(select.value);
+      !ship || !['arc', 'repulsor', 'ion', 'lance'].includes(select.value);
   };
   updateShieldLabel();
   const preview = createPickupPreview({
@@ -57,7 +75,7 @@ export async function createPickupInspector({
     void preview.trigger(select.value, {
       shielded:
         shieldToggle.checked &&
-        ['arc', 'repulsor', 'ion'].includes(select.value),
+        ['arc', 'repulsor', 'ion', 'lance'].includes(select.value),
     });
   };
   stop.onclick = () => preview.stop();

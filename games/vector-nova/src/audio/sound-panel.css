@@ -17,6 +17,19 @@
 body:not(:has([data-music-player])) .sound-panel {
   right: 2.5vw;
 }
+.sound-panel[data-docked] {
+  position: static;
+  inset: auto;
+  flex-basis: 100%;
+  width: 100%;
+  max-width: 480px;
+  margin-top: 8px;
+}
+@media (max-width: 1100px) {
+  .sound-panel:not([data-docked]) {
+    display: none;
+  }
+}
 .sound-panel-heading,
 .sound-panel-controls {
   display: flex;

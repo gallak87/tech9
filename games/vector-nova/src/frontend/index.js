@@ -253,13 +253,15 @@ export async function createFrontend(host) {
           isMenuVisible: () => !shell.hidden,
         });
   let sounds = null;
-  if (!import.meta.env.VN_DESKTOP && parameters.get('dev') === '1')
+  if (!import.meta.env.VN_DESKTOP && ['1', '2'].includes(parameters.get('dev')))
     void import('../audio/sound-panel.js').then(({ createSoundPanel }) => {
       if (life.signal.aborted) return;
       sounds = createSoundPanel(host, {
         clearInput: () => game?.clearInput(),
         getSettings: () => settings,
       });
+      if (inspector)
+        sounds.mount(inspectorHost.querySelector('#inspection-tools'));
     });
   const progressionMenu = createProgressionMenu({
     host,
@@ -1250,6 +1252,7 @@ export async function createFrontend(host) {
   function closeInspector() {
     const destination = inspectionBack ?? launchBack;
     if (inspector) shipId = inspector.getSnapshot().ship.id;
+    sounds?.mount();
     inspectorController?.abort();
     inspector?.dispose();
     inspector = null;
@@ -1291,10 +1294,6 @@ export async function createFrontend(host) {
       return createInspector({
         host: inspectorHost,
         getProfile: profile,
-        onEquipment: (id) => {
-          closeInspector();
-          openGarage(id);
-        },
         shipId,
         settings,
         signal,
@@ -1317,6 +1316,7 @@ export async function createFrontend(host) {
       inspectionBack = launchBack;
       inspectorHost.inert = false;
       setScreen('inspection');
+      sounds?.mount(inspectorHost.querySelector('#inspection-tools'));
       inspectorHost
         .querySelector('#inspect-back')
         ?.focus({ preventScroll: true });

@@ -6,15 +6,76 @@ import {
   AEGIS_DURATION,
   AEGIS_BREAK_DURATION,
   ARC_TARGET_HALF_LENGTH,
+  LANCE_SPEED,
 } from '../pickups/rules.js';
 import { createShipFeedbackPresentation } from '../pickups/ship-feedback.js';
 import { createPickupPreview } from './pickup-preview.js';
 import { createPickupPreviewAudio } from './pickup-preview-audio.js';
+import { EQUIPMENT, equipmentById } from '../progression/catalog.js';
 import {
   PICKUP_PREVIEWS,
+  DEVICE_PREVIEWS,
   PREVIEW_TARGET_DISTANCE,
   pickupPreviewFrame,
 } from './pickup-preview-sequence.js';
+
+test('equipment auditions cover the live catalogue and retain active lifetimes and shield outcomes', () => {
+  for (const item of EQUIPMENT) {
+    assert.ok(DEVICE_PREVIEWS.some(({ id }) => id === item.id));
+    const start = pickupPreviewFrame(item.id, 0);
+    assert.equal(start.events[0].type, 'equipment-activate');
+    assert.equal(start.equipment.slots[0].remaining, item.cooldown);
+    assert.equal(start.equipment.slots[0].active, item.duration);
+    if (!item.duration) continue;
+    const finish = pickupPreviewFrame(
+      item.id,
+      item.duration,
+      item.duration - 0.01,
+    );
+    assert.equal(finish.equipment.slots[0].active, 0);
+    assert.equal(finish.events[0].type, 'equipment-expire');
+  }
+  const deflector = equipmentById('deflector');
+  assert.equal(
+    pickupPreviewFrame('deflector', deflector.duration - 0.01).equipment.shield,
+    true,
+  );
+  assert.equal(
+    pickupPreviewFrame('deflector', deflector.duration).equipment.shield,
+    false,
+  );
+  const block = pickupPreviewFrame('deflector-hit', 1.5, 1.49);
+  assert.equal(block.equipment.shield, false);
+  assert.equal(block.equipment.slots[0].active, 0);
+  assert.deepEqual(block.events, [
+    { type: 'equipment-block', payload: { kind: 'deflector' } },
+  ]);
+});
+
+test('Lance auditions fire one heavy bolt and preserve its sound identity through a shielded or bare impact', () => {
+  const hitAt =
+    (PREVIEW_TARGET_DISTANCE - ARC_TARGET_HALF_LENGTH) / LANCE_SPEED;
+  const flight = pickupPreviewFrame('lance', hitAt / 2, 0, true);
+  assert.equal(flight.combat.shots.length, 1);
+  assert.equal(flight.combat.shots[0].heavy, true);
+  assert.equal(flight.combat.shots[0].position[2], (LANCE_SPEED * hitAt) / 2);
+  for (const shielded of [false, true]) {
+    const hit = pickupPreviewFrame('lance', hitAt + 0.001, -1, true, shielded);
+    assert.equal(hit.combat.shots.length, 0);
+    const fire = hit.events.filter(({ type }) => type === 'combat-fire');
+    assert.deepEqual(fire, [
+      { type: 'combat-fire', payload: { kind: 'arc', equipment: 'lance' } },
+    ]);
+    const contact = hit.events.find(({ type }) => type === 'combat-confirm');
+    assert.equal(contact.payload.kind, 'repulsor');
+    assert.equal(contact.payload.equipment, 'lance');
+    assert.equal(contact.payload.shielded, shielded);
+    assert.equal(
+      hit.combat.flashes.at(-1).kind,
+      shielded ? 'aegis' : 'repulsor',
+    );
+  }
+});
 
 test('each audition emits one acquisition; Arc retains the real three-shot timing and speed', () => {
   for (const { id } of PICKUP_PREVIEWS) {
@@ -283,6 +344,25 @@ function previewHarness(target) {
   };
 }
 
+test('equipped fields expire, stop and clear on chassis changes using the shared race effects', async () => {
+  const h = previewHarness();
+  await h.preview.trigger('deflector');
+  const effects = h.ship.getObjectByName('Player equipment effects');
+  const shield = effects.getObjectByName('Deflector / protective field');
+  assert.equal(effects.visible, true);
+  assert.equal(shield.visible, true);
+  h.preview.update(2.5);
+  assert.equal(shield.visible, false);
+  h.preview.stop();
+  assert.equal(effects.visible, false);
+  await h.preview.trigger('stabilizer');
+  assert.ok(effects.children.some((mesh) => mesh.visible && mesh !== shield));
+  h.preview.setShip(new Group());
+  assert.equal(effects.visible, false);
+  h.preview.dispose();
+  assert.equal(effects.parent, null);
+});
+
 test('the dev target stops Arc pellets at its hull and uses the gameplay hit grace and flash', () => {
   const distance = PREVIEW_TARGET_DISTANCE - ARC_TARGET_HALF_LENGTH;
   const impact = COMBAT_RULES.arcDelay + distance / COMBAT_RULES.arcSpeed;
@@ -380,10 +460,11 @@ test('the target stays visible between auditions, follows ship changes and detac
         COMBAT_RULES.arcSpeed +
       0.01,
   );
-  const flashes = h.ship.children[0].children[1].children.filter(
-    (object) =>
-      object.visible && object.name === 'Combat / contact or pressure pulse',
-  );
+  const flashes = [];
+  h.ship.traverse((object) => {
+    if (object.visible && object.name === 'Combat / contact or pressure pulse')
+      flashes.push(object);
+  });
   assert.ok(
     flashes.some(
       (object) =>

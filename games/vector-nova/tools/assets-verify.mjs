@@ -52,7 +52,7 @@ for (const file of runtime) {
   const path = relative(root, file);
   assert.match(
     path,
-    /^public\/assets\/(levels\/[a-z][a-z0-9-]*\/|ships\/(?:rivals\/)?[a-z][a-z0-9-]*\/|menu\/)/,
+    /^public\/assets\/(levels\/[a-z][a-z0-9-]*\/|ships\/(?:rivals\/)?[a-z][a-z0-9-]*\/|rewards\/icons-v[12]\/|menu\/)/,
     `canonical ownership: ${path}`,
   );
   assert.ok(listed.has(path), `unindexed or obsolete runtime export: ${path}`);
@@ -93,6 +93,7 @@ for (const asset of manifest.assets) {
   for (const path of [
     asset.provenanceRecord,
     asset.promptRecord,
+    ...(asset.promptRecords ?? []),
     asset.skyProvenance,
     ...(asset.provenanceRecords ?? []),
   ].filter(Boolean))

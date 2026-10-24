@@ -1,4 +1,5 @@
 import { CAREER_VERSION } from '../src/progression/profile.js';
+import { DEVICE_PREVIEWS } from '../src/ships/pickup-preview-sequence.js';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 const base = process.env.VN_URL;
@@ -86,6 +87,15 @@ try {
   await check(
     'developer inspector shortcut restores AI racers and sound/effect auditions in both modes',
     async (page) => {
+      await page.addInitScript(() => {
+        const settings = JSON.parse(
+          localStorage.getItem('vector-nova.settings'),
+        );
+        localStorage.setItem(
+          'vector-nova.settings',
+          JSON.stringify({ ...settings, volume: 0.35 }),
+        );
+      });
       for (const query of ['', 'dev=0', 'dev=true']) {
         await open(page, query);
         assert.equal(await page.locator('[data-action="inspect"]').count(), 0);
@@ -110,13 +120,14 @@ try {
         await page.waitForFunction(() => window.__VN_INSPECTOR?.ready, null, {
           timeout: 90000,
         });
+        assert.equal(await page.locator('#inspector-equipment').count(), 0);
         assert.equal(
           await page.locator('.inspection-pickups:visible').count(),
           1,
         );
         assert.equal(
           await page.locator('#inspection-pickup option').count(),
-          6,
+          DEVICE_PREVIEWS.length,
         );
         await page.locator('#inspection-fleet-tab').focus();
         await key(page, 'ArrowRight');
@@ -152,14 +163,7 @@ try {
           true,
         );
         const status = page.locator('.inspection-pickups [role="status"]');
-        for (const kind of [
-          'vector',
-          'aegis',
-          'aegis-hit',
-          'repulsor',
-          'arc',
-          'ion',
-        ]) {
+        for (const { id: kind } of DEVICE_PREVIEWS) {
           await page.locator('#inspection-pickup').selectOption(kind);
           await page.locator('[data-trigger]').click();
           await page.waitForFunction(() =>
@@ -185,20 +189,84 @@ try {
         await page.locator('[data-stop]').focus();
         await pad(page, 0);
         assert.equal(await status.innerText(), 'Ready');
+        await page.locator('#inspection-pickup').selectOption('lance');
+        await page.locator('[data-trigger]').focus();
+        await pad(page, 0);
+        await page.waitForFunction(() =>
+          document
+            .querySelector('.inspection-pickups [role="status"]')
+            .textContent.includes('shielded'),
+        );
+        await page.locator('[data-stop]').focus();
+        await key(page, 'Enter');
+        const sounds = page.locator('[data-sound-panel]');
+        assert.equal(
+          await page.locator('#inspection-tools [data-sound-panel]').count(),
+          1,
+        );
+        assert.equal(
+          await sounds.count(),
+          1,
+          'Sounds is available in both developer modes',
+        );
+        for (const cue of [
+          'jump-activate',
+          'injector-activate',
+          'slipstream-activate',
+          'deflector-activate',
+          'stabilizer-activate',
+          'lance-fire',
+          'lance-hit',
+        ]) {
+          await page.locator('#sound-picker').selectOption(cue);
+          await page.locator('#sound-picker').focus();
+          await key(page, 'Tab');
+          if (mode === '1') await key(page, 'Enter');
+          else await pad(page, 0);
+          await page.waitForFunction(
+            () =>
+              document.querySelector('[data-sound-panel] [role="status"]')
+                .textContent === 'Playing',
+          );
+        }
+        await page.locator('#sound-picker').focus();
+        const selectedSound = await page.locator('#sound-picker').inputValue();
+        await pad(page, 14);
+        assert.notEqual(
+          await page.locator('#sound-picker').inputValue(),
+          selectedSound,
+        );
+        assert.equal(
+          await sounds.locator('[role="status"]').innerText(),
+          'Ready',
+        );
         await page.locator('input[data-engine]').uncheck();
         assert.equal(
           await page.evaluate(() => !!window.__VN),
           false,
           'the inspector never starts a race',
         );
-        if (mode === '1') await key(page, 'Escape');
-        else await pad(page, 1);
+        if (mode === '1') {
+          await page.locator('#sound-picker').focus();
+          await key(page, 'Escape');
+        } else await pad(page, 1);
         assert.equal((await state(page)).screen, 'home');
         assert.equal(
           await page.evaluate(() => document.activeElement.dataset.action),
           'inspect',
         );
         assert.equal(await page.locator('#inspector-host').count(), 0);
+        await page.locator('[data-action="garage-tab"]').focus();
+        if (mode === '1') await key(page, 'Enter');
+        else await pad(page, 0);
+        assert.equal(
+          await page.locator('.dedicated-garage:visible').count(),
+          1,
+        );
+        await page.locator('[data-action="race-tab"]').focus();
+        if (mode === '1') await key(page, 'Enter');
+        else await pad(page, 0);
+        assert.equal((await state(page)).screen, 'home');
       }
     },
   );
@@ -931,7 +999,9 @@ try {
         await page.locator('#inspection-panel .stat-notch:visible').count(),
         18,
       );
-      await page.locator('#inspector-equipment').click();
+      await page.locator('#inspect-back').focus();
+      await key(page, 'Enter');
+      await action(page, 'garage-tab');
       assert.equal(await page.locator('.dedicated-garage:visible').count(), 1);
     },
   );
@@ -1186,8 +1256,8 @@ try {
       await page.locator('[data-level="halcyon"]').focus();
       await key(page, 'ArrowUp');
       assert.equal(
-        await page.evaluate(() => document.activeElement.dataset.action),
-        'race-tab',
+        await page.evaluate(() => document.activeElement.dataset.rewardInfo),
+        'speed-1',
       );
       await open(page, 'inspect=1');
       await page.waitForFunction(() => window.__VN_INSPECTOR?.ready, null, {
@@ -1205,11 +1275,11 @@ try {
         await page.evaluate(() => document.activeElement.dataset.ship),
         'shrike',
       );
-      await pad(page, 15);
-      assert.equal(
-        await page.evaluate(() => document.activeElement.id),
-        'inspector-equipment',
-      );
+      assert.equal(await page.locator('#inspector-equipment').count(), 0);
+      await page.locator('#inspect-back').focus();
+      await pad(page, 0);
+      assert.equal((await state(page)).screen, 'home');
+      await page.locator('[data-action="garage-tab"]').focus();
       await pad(page, 0);
       assert.equal(await page.locator('.garage-fleet [data-ship]').count(), 1);
       await open(page, 'dev=1&ship=bastion&equipment=deflector');
@@ -1279,7 +1349,7 @@ try {
     [844, 390],
   ]) {
     await check(
-      `responsive garage, inspector and equipment HUD ${width}x${height}`,
+      `responsive garage and equipment HUD ${width}x${height}`,
       async (page) => {
         await page.setViewportSize({ width, height });
         await open(page, 'dev=2&ship=shrike');
@@ -1313,20 +1383,6 @@ try {
             .locator('.picker-header [data-action="home"]')
             .last()
             .click();
-        await action(page, 'inspect');
-        await page.waitForFunction(() => window.__VN_INSPECTOR?.ready, null, {
-          timeout: 90000,
-        });
-        assert.ok(
-          await page.evaluate(() =>
-            [
-              ...document.querySelectorAll(
-                '#inspection-panel .performance-label',
-              ),
-            ].every((el) => el.scrollWidth <= el.clientWidth + 1),
-          ),
-        );
-        await page.locator('#inspector-equipment').click();
         await action(page, 'race-tab');
         await action(page, 'practice');
         await launch(page);

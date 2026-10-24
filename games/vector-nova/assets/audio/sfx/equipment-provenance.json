@@ -1,0 +1,86 @@
+{
+  "runtime": "Stable Audio 3 Small-SFX MLX",
+  "toolchain": "tools/sfx-models.json",
+  "referenceAudio": null,
+  "format": "stereo 44100 Hz 16-bit PCM",
+  "approval": "Generated and integrated for user audition; listening approval pending.",
+  "cues": {
+    "jump-activate": {
+      "config": "jump-activate.json",
+      "sourceSha256": "1d8aa7311036106e695faffd04305720b2a40774a89b861ad244fbbe564765e3",
+      "trimStartFrame": 3960,
+      "trimEndFrame": 65128,
+      "gain": 0.85603894,
+      "fadeInFrames": 88,
+      "fadeOutFrames": 1102,
+      "seconds": 1.387029,
+      "sha256": "1ed42d503f0f82bc438f626b70a4bb2a7c5f55b879bc0a220a89672f5802c575"
+    },
+    "injector-activate": {
+      "config": "injector-activate.json",
+      "sourceSha256": "033b9ccfd202f1118743c0dc2021d3ed8d9219568afef6492827042e81c95a7f",
+      "trimStartFrame": 0,
+      "trimEndFrame": 66150,
+      "gain": 2.05100603,
+      "fadeInFrames": 88,
+      "fadeOutFrames": 1102,
+      "seconds": 1.5,
+      "sha256": "e802178014c0cc96faccce3cf75196b54bed110708dbfc6c105e60049302971b"
+    },
+    "slipstream-activate": {
+      "config": "slipstream-activate.json",
+      "sourceSha256": "9f9ebc0e7e0693293d0631a3d0fe42c12d8c546cc10a439de540b39bb3064e0d",
+      "trimStartFrame": 1980,
+      "trimEndFrame": 65568,
+      "gain": 0.56638608,
+      "fadeInFrames": 88,
+      "fadeOutFrames": 1102,
+      "seconds": 1.441905,
+      "sha256": "3712fdcfeb30f90c8d68d7bf13b62c95dcd9b8df2a75ed5f660719205a6a8a6c"
+    },
+    "deflector-activate": {
+      "config": "deflector-activate.json",
+      "sourceSha256": "7469d3482fa5fd84459a496aa312e6f9f71f171b4f70634a092ea7947a78c61f",
+      "trimStartFrame": 0,
+      "trimEndFrame": 56108,
+      "gain": 0.82948763,
+      "fadeInFrames": 88,
+      "fadeOutFrames": 1102,
+      "seconds": 1.27229,
+      "sha256": "6f375b326c927948c7ed4fd16d0f26b580f94f6207c52aa26d5675be2bea7f87"
+    },
+    "stabilizer-activate": {
+      "config": "stabilizer-activate.json",
+      "sourceSha256": "747aafbd8fd4b249e28c5e9147f636e4befdfcd9b94e053403f04705c0cd8caa",
+      "trimStartFrame": 4840,
+      "trimEndFrame": 45328,
+      "gain": 0.87249577,
+      "fadeInFrames": 88,
+      "fadeOutFrames": 1102,
+      "seconds": 0.918095,
+      "sha256": "096bf8a027ab07bab5eb8bc3f4b7b6eb1285c5a78419c79237a50dc532b48ce6"
+    },
+    "lance-fire": {
+      "config": "lance-fire.json",
+      "sourceSha256": "6a322b029c8ab35b286fbf1e2ced22f397ff5a85944b8aaf5fd758d616e2f8de",
+      "trimStartFrame": 3520,
+      "trimEndFrame": 51488,
+      "gain": 1.15581761,
+      "fadeInFrames": 88,
+      "fadeOutFrames": 1102,
+      "seconds": 1.08771,
+      "sha256": "f04b5a7ef01206d3d34d1032d71eac14d001deae92f277290ece7d27abc250bc"
+    },
+    "lance-hit": {
+      "config": "lance-hit.json",
+      "sourceSha256": "fdfe3aa28a523b96e6469fe98d1044da18ec7467ab402c400b3602adb7df1374",
+      "trimStartFrame": 0,
+      "trimEndFrame": 66150,
+      "gain": 2.18732324,
+      "fadeInFrames": 88,
+      "fadeOutFrames": 1102,
+      "seconds": 1.5,
+      "sha256": "3f5c9a740b15bdccf3ef2b765da5bdfb40fe2de05ac71678428721213b04d957"
+    }
+  }
+}

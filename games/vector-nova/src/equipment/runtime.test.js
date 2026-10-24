@@ -72,6 +72,23 @@ test('independent equipment slots, cooldown edge, snapshot and one-hit shield', 
     [16, 26],
   );
 });
+test('Deflector expiry emits one release cue and a consumed field cannot expire twice', () => {
+  const state = { equipment: ['deflector'] };
+  const gear = createEquipmentSystem({ motion: {} });
+  gear.reset({ state });
+  gear.beforeStep(state, { equipment1: true }, 0.01);
+  const expired = gear.beforeStep(state, {}, 2.5);
+  assert.deepEqual(expired.events, [
+    { type: 'equipment-expire', payload: { kind: 'deflector' } },
+  ]);
+  assert.equal(gear.snapshot().shield, false);
+  assert.deepEqual(gear.beforeStep(state, {}, 0.01).events, []);
+  gear.reset({ state });
+  gear.beforeStep(state, { equipment1: true }, 0.01);
+  assert.equal(gear.absorbHit(), true);
+  assert.deepEqual(gear.beforeStep(state, {}, 3).events, []);
+});
+
 test('Slipstream checks a prior bound rival before its next update, without firing road pickups', () => {
   const combat = createCombatSimulation({ track });
   const make = (distance) => ({

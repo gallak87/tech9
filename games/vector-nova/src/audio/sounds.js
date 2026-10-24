@@ -1,3 +1,5 @@
+import { EQUIPMENT } from '../progression/catalog.js';
+
 // Audition entries use the same event sounds as gameplay. Shared cues
 // appear once; continuous engine/effect beds have short representative previews.
 const device = (id, label, type, payload = {}, seconds = 0.7) => ({
@@ -18,6 +20,32 @@ const race = (id, label, type, payload = {}, seconds = 0.8) => ({
 });
 
 export const soundEffects = [
+  ...EQUIPMENT.filter(({ id }) => id !== 'lance').map(({ id, name }) => ({
+    ...device(
+      `${id}-activate`,
+      `${name} · activate`,
+      'equipment-activate',
+      { kind: id },
+      2.1,
+    ),
+    group: 'Equipped abilities',
+  })),
+  ...[
+    device(
+      'lance-fire',
+      'Lance · fire',
+      'combat-fire',
+      { kind: 'arc', equipment: 'lance' },
+      2.1,
+    ),
+    device(
+      'lance-hit',
+      'Lance · hull impact',
+      'combat-hit',
+      { kind: 'repulsor', equipment: 'lance', shielded: false },
+      1.6,
+    ),
+  ].map((sound) => ({ ...sound, group: 'Equipped abilities' })),
   device('vector-activate', 'Vector · activate', 'pickup-activate', {
     kind: 'vector',
   }),
@@ -63,7 +91,13 @@ export const soundEffects = [
     { kind: 'repulsor' },
     1,
   ),
-  device('shield-hit', 'Aegis · collapse / hit', 'shield-hit', {}, 1),
+  device(
+    'shield-hit',
+    'Aegis / Deflector · collapse / hit',
+    'shield-hit',
+    {},
+    1,
+  ),
   device('ion-hit', 'Ion · hull impact', 'combat-hit', {
     kind: 'ion',
     shielded: false,

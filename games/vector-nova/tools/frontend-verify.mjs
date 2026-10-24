@@ -13,6 +13,7 @@ import { withMagneticBoundaries } from '../src/physics/magnetic-boundaries.js';
 import { createCombatSimulation } from '../src/pickups/combat.js';
 import { createDeviceRuntime } from '../src/pickups/runtime.js';
 import { createRace } from '../src/race/index.js';
+import { CUPS } from '../src/race/cup.js';
 import {
   createMagneticRuntime,
   advanceSession,
@@ -353,7 +354,7 @@ try {
                 '.menu-selection[data-action="circuits"]',
                 '.menu-selection[data-action="ship-step"]',
                 '.race-actions > .primary',
-                '.picker-tabs',
+                '.menu-top-tabs',
               ].map((selector) => {
                 const { x, y, width, height } = document
                   .querySelector(selector)
@@ -406,16 +407,22 @@ try {
             original,
             'cup selection moved the shared menu',
           );
-          assert.equal(await page.locator('.cup-route li').count(), 4);
-          await page.locator('.race-menu [data-action="ship-step"]').click();
+          assert.equal(
+            await page.locator('.cup-route li').count(),
+            CUPS.find((cup) => cup.id === 'apex').tracks.length,
+          );
+          await page
+            .locator('.menu-selection[data-action="ship-step"]')
+            .click();
           await page.locator('[data-ship="shrike"]').click();
           assert.equal((await front(page)).intent, 'cup');
+          await page.locator('[data-action="race-tab"]').click();
           assert.deepEqual(
             await anchors(),
             original,
             'cup ship selection moved the shared menu',
           );
-          await page.locator('.picker-tabs [data-action="circuits"]').click();
+          await page.locator('.menu-selection[data-action="circuits"]').click();
           assert.equal(
             await page
               .locator('[data-cup="apex"]')
@@ -1280,11 +1287,11 @@ try {
       },
       { width: 1280, height: 720 },
     );
-    await check('AI inspector tab requires dev=1', async (page) => {
-      for (const query of ['', '&dev=0', '&dev=true', '&dev=1']) {
+    await check('AI inspector tab requires dev=1 or dev=2', async (page) => {
+      for (const query of ['', '&dev=0', '&dev=true', '&dev=1', '&dev=2']) {
         await page.goto(url(`inspect=1&ship=kestrel${query}`));
         await inspectorReady(page);
-        const enabled = query === '&dev=1';
+        const enabled = ['&dev=1', '&dev=2'].includes(query);
         assert.equal(
           await page.getByRole('tab', { name: 'AI racers' }).count(),
           enabled ? 1 : 0,
@@ -1840,7 +1847,10 @@ try {
           }
           await page.locator('.menu-selection[data-action="circuits"]').click();
           await page.locator('[data-cup="apex"]').click();
-          assert.equal(await page.locator('.cup-route li').count(), 4);
+          assert.equal(
+            await page.locator('.cup-route li').count(),
+            CUPS.find((cup) => cup.id === 'apex').tracks.length,
+          );
           await page
             .locator('.picker-header [data-action="home"]')
             .last()

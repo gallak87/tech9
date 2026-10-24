@@ -120,7 +120,8 @@ export function createUI(
           [layout.brake, 'BRAKE'],
           [layout.airbrake, 'AIRBRAKE'],
           [layout.boost, 'BOOST'],
-          ['X', 'CAMERA'],
+          ['RS', 'CAMERA'],
+          ['X / Y · D-pad ← / →', 'EQUIPMENT'],
           ['Menu', 'PAUSE'],
         ]
           .map(

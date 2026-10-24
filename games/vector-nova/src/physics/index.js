@@ -1,5 +1,6 @@
+import { mitigateHazardSurface } from './hazard-surface.js';
 import { VEHICLE_HULL, sweptLateralExtent } from './hull.js';
-import { getShip } from '../ships/catalog.js';
+import { getShip, vehicleHandling } from '../ships/catalog.js';
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const finite = (value, fallback = 0) =>
   Number.isFinite(value) ? value : fallback;
@@ -31,7 +32,11 @@ export function surfaceHullClearance(frame, heading = 0) {
 }
 
 /** Optional course propulsion, shared by physical driving and AI speed choice. */
-export function getVehiclePace(shipId, profile) {
+export function getVehiclePace(
+  shipId,
+  profile,
+  handling = getShip(shipId).handling,
+) {
   if (!profile) return null;
   const cruiseScale = clamp(finite(profile.cruiseScale, 1), 0.5, 2);
   const boostScale = clamp(finite(profile.boostScale, 1), 0.5, 2);
@@ -52,7 +57,6 @@ export function getVehiclePace(shipId, profile) {
     overspeedDeceleration === 1
   )
     return null;
-  const handling = getShip(shipId).handling;
   return {
     cruiseSpeed: handling.cruiseSpeed * cruiseScale,
     boostSpeed: handling.boostSpeed * boostScale,
@@ -106,7 +110,7 @@ export function updateBoostState(state, input, events) {
 
 function integrate(s, controls, track, dt, events) {
   const { throttle, brake, steer, airbrake, steeringAssist } = controls;
-  const handling = getShip(s.shipId).handling;
+  const handling = vehicleHandling(s);
   const surface = track.sampleSurface?.(s.distance, s.lateral);
   const frame = surface ?? track.sample(s.distance);
   const longitudinalMetric = surface?.longitudinalMetric ?? 1;
@@ -508,6 +512,10 @@ function integrate(s, controls, track, dt, events) {
 }
 
 export function stepVehicle(state, input, track, dt, options = {}) {
+  options = {
+    ...options,
+    surface: mitigateHazardSurface(options.surface, state),
+  };
   const events = [];
   if (!Number.isFinite(dt) || dt <= 0) return events;
   const controls = {
@@ -516,7 +524,7 @@ export function stepVehicle(state, input, track, dt, options = {}) {
     steer: clamp(finite(input?.steer), -1, 1),
     boost: !!input?.boost,
     airbrake: !!input?.airbrake,
-    pace: getVehiclePace(state.shipId, options.pace),
+    pace: getVehiclePace(state.shipId, options.pace, vehicleHandling(state)),
     supportHeight: Math.max(0, finite(options.supportHeight)),
     railRecovery:
       typeof options.railRecovery?.id === 'string'

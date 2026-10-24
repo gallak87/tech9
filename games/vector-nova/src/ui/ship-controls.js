@@ -1,3 +1,5 @@
+import { performanceView } from '../progression/view.js';
+import { shipUnlocked } from '../progression/profile.js';
 import { SHIPS } from '../ships/catalog.js';
 import { RIVAL_SHIPS } from '../ships/rivals.js';
 
@@ -27,9 +29,17 @@ const shipStats = [
 export const inspectionPanel = `<section id="inspection-panel" class="panel hidden"><div class="eyebrow">AERODYNAMICS DIVISION / 07</div><h1 class="inspect-title" aria-live="polite">KESTREL<span class="dot">.</span></h1><p class="intro">Twin-core magnetic interceptor.<br>Ceramic armour. Exposed titanium propulsion.<br>Built to stay close to the limit.</p><dl><div><dt>DESIGN</dt><dd>Split prow / swept ceramic chassis</dd></div><div><dt>PROPULSION</dt><dd>Dual induction turbines</dd></div></dl><div class="actions"><button id="inspect-start" class="primary">DRIVE PROTOTYPE <span>↗</span></button><button id="inspect-back">BACK TO PROVING GROUND</button></div></section>`;
 
 // Shared fleet/inspector controls; no level or race runtime dependencies.
-export function createShipControls(root, actions, selectedShip = SHIPS[0]) {
+export function createShipControls(
+  root,
+  actions,
+  selectedShip = SHIPS[0],
+  { getProfile } = {},
+) {
   const $ = (id) => root.querySelector('#' + id);
   const shipPickers = [];
+  const availableShips = SHIPS.filter(
+    (craft) => !getProfile || shipUnlocked(getProfile(), craft.id),
+  );
   for (const [panelId, prefix] of [
     ['title-panel', 'paddock'],
     ['inspection-panel', 'inspection'],
@@ -37,7 +47,7 @@ export function createShipControls(root, actions, selectedShip = SHIPS[0]) {
     if (!$(panelId)) continue;
     const section = document.createElement('section');
     section.className = 'ship-selection';
-    section.innerHTML = `<div class="ship-picker-label" id="${prefix}-ship-label">CHOOSE SHIP <span>04 CHASSIS</span></div><div class="ship-picker" role="radiogroup" aria-labelledby="${prefix}-ship-label"></div><div class="ship-stats" role="group" aria-label="Selected ship performance; bars compare the current fleet"></div>`;
+    section.innerHTML = `<div class="ship-picker-label" id="${prefix}-ship-label">CHOOSE SHIP <span>${String(availableShips.length).padStart(2, '0')} CHASSIS</span></div><div class="ship-picker" role="radiogroup" aria-labelledby="${prefix}-ship-label"></div><div class="ship-stats" role="group" aria-label="Selected ship performance; bars compare the current fleet"></div>`;
     const stats = section.querySelector('.ship-stats');
     for (const stat of shipStats) {
       const row = document.createElement('div');
@@ -47,7 +57,7 @@ export function createShipControls(root, actions, selectedShip = SHIPS[0]) {
       stats.append(row);
     }
     const choices = section.querySelector('.ship-picker');
-    for (const craft of SHIPS) {
+    for (const craft of availableShips) {
       const button = document.createElement('button');
       button.type = 'button';
       button.dataset.ship = craft.id;
@@ -64,7 +74,8 @@ export function createShipControls(root, actions, selectedShip = SHIPS[0]) {
         event.preventDefault();
         event.stopPropagation();
         const next =
-          (SHIPS.indexOf(craft) + direction + SHIPS.length) % SHIPS.length;
+          (availableShips.indexOf(craft) + direction + availableShips.length) %
+          availableShips.length;
         const target = choices.children[next];
         target.focus();
         target.click();
@@ -123,7 +134,7 @@ export function createShipControls(root, actions, selectedShip = SHIPS[0]) {
   const collections = [
     ['fleet', 'Your ships'],
     ...(!import.meta.env?.VN_DESKTOP &&
-    new URLSearchParams(location.search).get('dev') === '1'
+    ['1', '2'].includes(new URLSearchParams(location.search).get('dev'))
       ? [['rivals', 'AI racers']]
       : []),
   ];
@@ -210,22 +221,31 @@ export function createShipControls(root, actions, selectedShip = SHIPS[0]) {
         button.setAttribute('aria-checked', String(chosen));
         button.tabIndex = chosen ? 0 : -1;
       }
-      for (const stat of shipStats) {
-        const value = stat.value(craft.handling);
-        const fraction = value / stat.maximum;
-        const rating = (fraction * 10).toFixed(1);
-        const text = stat.format ? stat.format(value) : `${rating}/10`;
-        const row = section.querySelector(`[data-stat="${stat.id}"]`);
-        const meter = row.querySelector('[role="meter"]');
-        row.querySelector('b').textContent = text;
-        row.style.setProperty('--stat-fill', `${fraction * 100}%`);
-        row.title = `${stat.label}: ${text}. ${rating}/10 relative to the current fleet.`;
-        meter.setAttribute('aria-valuenow', String(Math.round(fraction * 100)));
-        meter.setAttribute(
-          'aria-valuetext',
-          `${text}; relative to the current fleet`,
+      if (getProfile) {
+        section.querySelector('.ship-stats').innerHTML = performanceView(
+          craft,
+          getProfile(),
         );
-      }
+      } else
+        for (const stat of shipStats) {
+          const value = stat.value(craft.handling);
+          const fraction = value / stat.maximum;
+          const rating = (fraction * 10).toFixed(1);
+          const text = stat.format ? stat.format(value) : `${rating}/10`;
+          const row = section.querySelector(`[data-stat="${stat.id}"]`);
+          const meter = row.querySelector('[role="meter"]');
+          row.querySelector('b').textContent = text;
+          row.style.setProperty('--stat-fill', `${fraction * 100}%`);
+          row.title = `${stat.label}: ${text}. ${rating}/10 relative to the current fleet.`;
+          meter.setAttribute(
+            'aria-valuenow',
+            String(Math.round(fraction * 100)),
+          );
+          meter.setAttribute(
+            'aria-valuetext',
+            `${text}; relative to the current fleet`,
+          );
+        }
     }
     if (inspectionTab === 'fleet') setInspectionDetails(craft);
   }

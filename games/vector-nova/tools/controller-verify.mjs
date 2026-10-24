@@ -579,17 +579,17 @@ try {
         assert.ok(Math.abs((await snapshot()).input.steer + 0.5) < 1e-10);
         await neutral();
         const camera = (await snapshot()).camera.mode;
-        await button(2, 1);
+        await button(11, 1);
         const changed = (await snapshot()).camera.mode;
         assert.notEqual(changed, camera);
         await page.waitForTimeout(300);
         assert.equal(
           (await snapshot()).camera.mode,
           changed,
-          'held X changes camera once',
+          'held right-stick click changes camera once',
         );
-        await button(2, 0);
-        await tap(2);
+        await button(11, 0);
+        await tap(11);
         assert.equal((await snapshot()).camera.mode, camera);
         console.log(
           `PASS ${preset}: controller Settings navigation, retained session, live mapping, throttle/brake/boost/airbrake/steer, held confirm and camera edge`,

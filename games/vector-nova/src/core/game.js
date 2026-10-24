@@ -1,3 +1,6 @@
+import { createEquipmentPresentation } from '../equipment/presentation.js';
+import { buildIdentity } from '../progression/profile.js';
+import { vehicleHandling } from '../ships/catalog.js';
 import { createCupFinish } from './cup-finish.js';
 import { createRaceGrid } from '../race/roster.js';
 import { interpolateSurfaceLateral } from '../track/surface.js';
@@ -6,11 +9,7 @@ import { createFleetShip } from '../ships/fleet.js';
 import { createInspectionStage } from '../ships/inspection-stage.js';
 import { createInspectionPipeline } from '../ships/inspection-pipeline.js';
 import { RIVAL_SHIPS, createRivalPreview } from '../ships/rivals.js';
-import {
-  getShip,
-  loadShipSelection,
-  saveShipSelection,
-} from '../ships/catalog.js';
+import { loadShipSelection, saveShipSelection } from '../ships/catalog.js';
 import { createRenderer } from '../renderer/index.js';
 import { mobileGraphics } from '../renderer/device.js';
 import {
@@ -66,6 +65,9 @@ export async function createGame({
   onSettings,
   onTunes,
   onResults,
+  onTrialRecord,
+  onAttempt,
+  trialStorage,
   onCupRetry,
   onCircuit,
 } = {}) {
@@ -267,7 +269,17 @@ export async function createGame({
       elevation: 0.365,
     };
     let inspectionDrag = null;
-    let state = createVehicleState(ship.selected.id),
+    let playerBuild = { version: 1, enhancements: {}, equipment: [] };
+    const playerState = (stock = false) => ({
+      ...createVehicleState(ship.selected.id),
+      ...(!stock && buildIdentity(playerBuild)
+        ? {
+            enhancements: { ...playerBuild.enhancements },
+            equipment: [...playerBuild.equipment],
+          }
+        : {}),
+    });
+    let state = playerState(),
       prev = { ...state },
       race,
       mode = 'title',
@@ -362,6 +374,7 @@ export async function createGame({
       settings,
       emit,
       audioImmersion: definition.audio?.immersion,
+      equipment: true,
     };
     const motion = await (definition.createRuntime ?? createMagneticRuntime)(
       runtimeContext,
@@ -482,8 +495,11 @@ export async function createGame({
                 ship: ship.selected,
                 version: VERSION,
                 runtime: runtimeIdentity(runtime),
+                build: timeTrial ? null : buildIdentity(playerBuild),
               }),
               race,
+              ...(trialStorage ? { store: trialStorage } : {}),
+              onRecord: onTrialRecord,
             })
           : null;
         ghostSamples = trial?.reference?.samples;
@@ -651,13 +667,14 @@ export async function createGame({
       }
       if (newRun) {
         sessionActive = true;
+        onAttempt?.();
         ui.setFinish(null);
         ui.setResultsAvailable(false);
         raceDifficulty = settings.difficulty;
         timeTrial = false;
         competition = racingEnabled;
         scenario = 'staging';
-        state = createVehicleState(ship.selected.id);
+        state = playerState(timeTrial);
         if (competition)
           Object.assign(state, createRaceGrid(cupRace?.gridOrder).player);
         prev = { ...state };
@@ -680,6 +697,13 @@ export async function createGame({
       input.clear();
       ui.setMode(mode);
       if (newRun) armCountdown();
+      if (
+        !import.meta.env?.VN_DESKTOP &&
+        newRun &&
+        developerSetup &&
+        parameters.get('finish') === '1'
+      )
+        api.devSetup({ finish: true, place: parameters.get('place') ?? 1 });
       // Review links still enter through the real start button/audio gesture.
       // Normal launch and fresh-lap actions retain the complete circuit.
       if (
@@ -735,6 +759,7 @@ export async function createGame({
       flyCamera?.leave();
       inspectionReturnMode = null;
       sessionActive = true;
+      onAttempt?.();
       inspectionFromMenu = false;
       ui.setInspectionMenu(false);
       ui.setInspectionSession(false);
@@ -749,7 +774,7 @@ export async function createGame({
       competition = !timeTrial && racingEnabled && compete;
       if (withCountdown)
         raceDifficulty = cupRace?.difficulty ?? settings.difficulty;
-      state = createVehicleState(ship.selected.id);
+      state = playerState(timeTrial);
       if (competition)
         Object.assign(state, createRaceGrid(cupRace?.gridOrder).player);
       prev = { ...state };
@@ -770,6 +795,12 @@ export async function createGame({
       view.resetMetrics();
       ui.setMode(mode);
       if (withCountdown) armCountdown();
+      if (
+        !import.meta.env?.VN_DESKTOP &&
+        developerSetup &&
+        parameters.get('finish') === '1'
+      )
+        api.devSetup({ finish: true, place: parameters.get('place') ?? 1 });
     }
     function repeatPlaytest() {
       window.__VN.loadScenario(selectedPlaytestCase.scenario, 7);
@@ -846,7 +877,7 @@ export async function createGame({
       sceneShip();
       mode = 'title';
       scenario = 'staging';
-      state = createVehicleState(ship.selected.id);
+      state = playerState(timeTrial);
       competition = false;
       cupRace = null;
       timeTrial = false;
@@ -997,7 +1028,7 @@ export async function createGame({
               material.envMap = cityReflection;
         });
         scenario = 'staging';
-        state = createVehicleState(ship.selected.id);
+        state = playerState(timeTrial);
         prev = { ...state };
         competition = false;
         race = makeRace();
@@ -1294,6 +1325,15 @@ export async function createGame({
       ),
     );
     input.bindTouch(ui.root);
+    const equipmentPresentation = lifetime.own(
+      createEquipmentPresentation({
+        host,
+        scene,
+        activate: (slot) => {
+          if (mode === 'racing' && !suspended) input.activateEquipment(slot);
+        },
+      }),
+    );
     const unlockDrivingAudio = () => {
       if (!suspended && ['racing', 'countdown'].includes(mode))
         void audio.unlock().catch(() => {});
@@ -1470,6 +1510,7 @@ export async function createGame({
             : sampledInput;
         while (accumulator >= 1 / 120) {
           advanceTick(control);
+          input.consumeEquipment();
           accumulator -= 1 / 120;
         }
       }
@@ -1634,6 +1675,13 @@ export async function createGame({
         definition.audio?.immersion?.({ ...frame, track }) ?? 0,
       );
       runtime.update?.(frame);
+      equipmentPresentation.update({
+        equipment: runtime.equipment?.(),
+        pose: runtime.pose(alpha),
+        mode,
+        suspended,
+        reducedMotion: settings.reducedMotion,
+      });
       racerPresentation?.update({
         alpha,
         mode,
@@ -1643,8 +1691,8 @@ export async function createGame({
         mode,
         speed: s.speed,
         cruiseSpeed:
-          getVehiclePace(s.shipId, track.pace)?.cruiseSpeed ??
-          getShip(s.shipId).handling.cruiseSpeed,
+          getVehiclePace(s.shipId, track.pace, vehicleHandling(s))
+            ?.cruiseSpeed ?? vehicleHandling(s).cruiseSpeed,
         boosting: s.boosting,
         catapulting: motionFeedback.vectorActive === true,
         enabled: racingEnabled,
@@ -1736,8 +1784,36 @@ export async function createGame({
       }
       raf = requestAnimationFrame(render);
     }
+    const developerSetup =
+      !import.meta.env?.VN_DESKTOP && ['1', '2'].includes(parameters.get('dev'))
+        ? (await import('../progression/developer-runtime.js'))
+            .setupDeveloperRace
+        : null;
     api = {
       ready: false,
+      ...(!import.meta.env?.VN_DESKTOP && developerSetup
+        ? {
+            devSetup(options = {}) {
+              if (!sessionActive)
+                throw new Error(
+                  'Start a session before using developer setup.',
+                );
+              cancelCountdown();
+              developerSetup(
+                { track, state, race, runtime, racers, timeTrial },
+                options,
+              );
+              prev = { ...state };
+              initial = captureInitial(state, runtime, dynamics);
+              input.clear();
+              accumulator = 0;
+              mode = 'racing';
+              rig.reset();
+              ui.setMode(mode);
+              return api.getSnapshot();
+            },
+          }
+        : {}),
       version: VERSION,
       ...(!import.meta.env?.VN_DESKTOP && playtest
         ? {
@@ -1875,6 +1951,7 @@ export async function createGame({
                 return {
                   version: VERSION,
                   runtime: runtimeIdentity(runtime),
+                  build: timeTrial ? null : buildIdentity(playerBuild),
                   case: selectedPlaytestCase.id,
                   scenario,
                   mode,
@@ -1938,6 +2015,11 @@ export async function createGame({
             leaveFly,
           }
         : {}),
+      setBuild(build) {
+        if (sessionActive)
+          throw new Error('Prepare a new session before changing the build.');
+        playerBuild = structuredClone(build);
+      },
       start,
       startCup(options) {
         cupRace = structuredClone(options);
@@ -2028,6 +2110,7 @@ export async function createGame({
                   : {}),
                 ship: { id: ship.selected.id, version: ship.selected.version },
                 runtime: runtimeIdentity(runtime),
+                build: timeTrial ? null : buildIdentity(playerBuild),
                 initial: JSON.parse(JSON.stringify(initial)),
                 seed,
                 scenario,
@@ -2198,7 +2281,7 @@ export async function createGame({
           settings: { ...settings },
           handling: {
             steeringAssist: STEERING_ASSIST,
-            ...ship.selected.handling,
+            ...vehicleHandling(state),
           },
           runtime: { ...runtimeIdentity(runtime), state: runtime.snapshot() },
           trackFrame: {

@@ -14,6 +14,7 @@ export const fullLevels = [
   'shatterline',
   'worldspire',
   'nightweir',
+  'colossus',
 ];
 export function editionPolicy(edition) {
   if (!['demo', 'full'].includes(edition))
@@ -40,9 +41,17 @@ export function includePublic(path, edition) {
   const policy = editionPolicy(edition);
   if (/\.(?:map|blend|py|md|wav)$/.test(path) || path.endsWith('previews.json'))
     return false;
+  if (
+    /^assets\/rewards\/icons-v2\/(?:(?:speed|acceleration|handling|braking|boost|toughness)-[123]|equipment-(?:jump|injector|slipstream|deflector|stabilizer|lance)|ship-(?:bastion|needle|kestrel)|exotic-slot)\.png$/.test(
+      path,
+    )
+  )
+    return true;
   if (policy.levels.some((id) => path.startsWith(`assets/levels/${id}/`)))
     return true;
   if (policy.levels.some((id) => path === `assets/menu/${id}.webp`))
+    return true;
+  if (policy.ships.some((id) => path === `assets/menu/ships/${id}.jpg`))
     return true;
   if (policy.ships.some((id) => path.startsWith(`assets/ships/${id}/`)))
     return true;
@@ -59,9 +68,12 @@ export function includePublic(path, edition) {
   );
 }
 export const forbiddenModules =
-  /\/src\/(?:core\/(?:fly-camera|review-camera)\.js|ui\/dev-tools\.js|audio\/sound-panel\.js|ships\/pickup-inspector\.js)/;
+  /\/src\/(?:core\/(?:fly-camera|review-camera)\.js|ui\/dev-tools\.js|audio\/sound-panel\.js|ships\/pickup-inspector\.js|progression\/developer(?:-runtime)?\.js)/;
 export const forbiddenRendererText = [
   '__VN',
+  'devSetup',
+  'setupDeveloperRace',
+  'createDeveloperSession',
   'openDevTools',
   'getArtPassURL',
   'getReplay()',

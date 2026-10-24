@@ -1,3 +1,4 @@
+import { toughness } from '../progression/catalog.js';
 // One contact episode has one feedback event, regardless of manifold point
 // count or whether the vehicle takes off / reattaches during that episode.
 export function createContactFeedback() {
@@ -45,4 +46,17 @@ export function createContactFeedback() {
 export function racerImpact(incomingSpeed) {
   const severity = Math.min(1, Math.max(0.1, incomingSpeed / 45));
   return { severity, energyCost: 2 + severity * 8 };
+}
+
+// Only explicitly authored machinery is a world hazard. Walls and racer
+// contacts retain their original costs, and solid collision response is intact.
+export function mitigateHazardImpact(impact, state, shape) {
+  const reduction = shape?.hazard ? toughness(state) : 0;
+  return reduction
+    ? {
+        ...impact,
+        severity: impact.severity * (1 - reduction),
+        energyCost: impact.energyCost * (1 - reduction),
+      }
+    : impact;
 }

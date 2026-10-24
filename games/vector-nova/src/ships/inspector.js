@@ -1,3 +1,5 @@
+import { shipUnlocked } from '../progression/profile.js';
+import { loadoutSummary, rewardIcon } from '../progression/view.js';
 import * as T from 'three';
 import { createLifetime } from '../core/lifecycle.js';
 import { createShipControls, inspectionPanel } from '../ui/ship-controls.js';
@@ -22,6 +24,8 @@ export async function createInspector({
   signal,
   onProgress,
   onBack,
+  getProfile,
+  onEquipment,
 }) {
   const lifetime = createLifetime();
   const listeners = new AbortController();
@@ -128,7 +132,24 @@ export async function createInspector({
         },
       },
       getShip(shipId),
+      { getProfile },
     );
+    let equipmentButton;
+    if (getProfile && onEquipment) {
+      equipmentButton = document.createElement('button');
+      equipmentButton.className = 'garage-action';
+      equipmentButton.id = 'inspector-equipment';
+      equipmentButton.onclick = () => onEquipment(fleet?.selected.id ?? shipId);
+      root.querySelector('#inspection-tools').before(equipmentButton);
+      refreshProgression();
+    }
+    function refreshProgression() {
+      if (!getProfile) return;
+      const craft = fleet?.selected ?? getShip(shipId);
+      ui.setShip(craft);
+      if (equipmentButton)
+        equipmentButton.innerHTML = `${rewardIcon('exotic')}<span><strong>Equipment</strong><small>${loadoutSummary(getProfile(), craft.id)}</small></span><b aria-hidden="true">›</b>`;
+    }
     ui.setInspectionMenu(true);
     ui.setInspectionPreview(preview);
 
@@ -161,7 +182,13 @@ export async function createInspector({
       layout = null;
     }
     async function selectShip(id) {
-      if (disposed || loading || tab !== 'fleet') return false;
+      if (
+        disposed ||
+        loading ||
+        tab !== 'fleet' ||
+        (getProfile && !shipUnlocked(getProfile(), id))
+      )
+        return false;
       loading = true;
       pickupTools?.setShip(null);
       ui.shipError('');
@@ -170,6 +197,7 @@ export async function createInspector({
         if (!(await fleet.select(id)) || disposed) return false;
         fit(fleet.group);
         ui.setShip(fleet.selected);
+        refreshProgression();
         saveShipSelection(fleet.selected.id);
         await renderer.compileAsync(stage.scene, camera);
         return !disposed;
@@ -370,7 +398,7 @@ export async function createInspector({
     fit(fleet.group);
     if (
       !import.meta.env.VN_DESKTOP &&
-      new URLSearchParams(location.search).get('dev') === '1'
+      ['1', '2'].includes(new URLSearchParams(location.search).get('dev'))
     ) {
       const { createPickupInspector } = await import('./pickup-inspector.js');
       check();
@@ -491,6 +519,7 @@ export async function createInspector({
     );
     api = {
       ready: true,
+      refreshProgression,
       configure(next) {
         settings = { ...next };
         pickupTools?.configure();

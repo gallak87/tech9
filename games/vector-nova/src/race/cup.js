@@ -155,7 +155,7 @@ export function cupStandings(state) {
   });
   return rows;
 }
-function validate(value) {
+export function validateCup(value) {
   const cup = cupDefinition(value?.cupId);
   if (
     !cup ||
@@ -193,6 +193,10 @@ function validate(value) {
   }
   return {
     version: VERSION,
+    runId:
+      typeof value.runId === 'string' && value.runId.length <= 100
+        ? value.runId
+        : `legacy-${cup.id}-${value.shipId}`,
     cupId: cup.id,
     shipId: value.shipId,
     difficulty: value.difficulty,
@@ -209,7 +213,7 @@ export function createCupStore(storage = () => localStorage) {
   try {
     const raw = storage().getItem(CUP_STORAGE_KEY);
     if (raw && raw !== 'null') {
-      state = validate(JSON.parse(raw));
+      state = validateCup(JSON.parse(raw));
       if (!state)
         notice = 'Saved cup is incompatible or damaged. Start a new cup.';
     }
@@ -232,9 +236,16 @@ export function createCupStore(storage = () => localStorage) {
   }
   return {
     snapshot: () => ({ state: copy(state), saved, notice }),
+    reload() {
+      const raw = storage().getItem(CUP_STORAGE_KEY);
+      state = raw ? validateCup(JSON.parse(raw)) : null;
+      saved = true;
+      notice = '';
+    },
     start(cupId, shipId, difficulty) {
-      const next = validate({
+      const next = validateCup({
         version: VERSION,
+        runId: crypto.randomUUID(),
         cupId,
         shipId,
         difficulty,

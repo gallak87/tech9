@@ -1,5 +1,6 @@
 export default {
   id: 'orbital',
+  trackId: 'asterion-orbital-1',
   name: 'Asterion Orbital',
   order: 2,
   shape: true,

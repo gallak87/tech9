@@ -1,3 +1,4 @@
+import metadata from './metadata.js';
 import { createDevices } from './devices.js';
 import * as T from 'three';
 import {
@@ -25,7 +26,7 @@ export default function createLevel({ shape }) {
     createTrack() {
       const track = createLevel2Track();
       if (!shape) {
-        track.id = 'asterion-orbital-1';
+        track.id = metadata.trackId;
         track.review = {
           ...track.review,
           kind: 'orbital-production',

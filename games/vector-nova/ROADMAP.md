@@ -74,13 +74,17 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 ## Future race modes and systems
 
 - [x] Full pickup coverage across all thirteen production maps: Vector, Aegis, Repulsor, Arc and Ion, with circuit-owned optional lanes, shield counterplay and jump/recovery clearance. Preserve independent per-racer collection, rival avoidance and deterministic combat/replay.
-- [ ] Human race-balance pass on the full pickup layouts: tune weapon frequency and shield availability against real pack spacing, especially on long sprints. Built-in ship abilities and upgrade systems remain deferred.
+- [ ] Human race-balance pass on the full pickup layouts: tune weapon frequency and shield availability against real pack spacing, especially on long sprints. Include equipment combinations and fully upgraded player builds.
 
 - [ ] Consider briefings and a podium presentation after the prioritized modes and results flows are complete.
 - [ ] Consider expansion beyond the delivered ten-racer field only after measuring performance and independent finishes.
 - [x] Add shared physical ship contact, strong magnetic attachment, yaw response and contact feedback cooldowns.
 - [ ] Prototype two recharge stretches and two immediate 25-point cells on Halcyon, capped at 100 reserve. Put recharge on slower/wider lines, retain passive regeneration while tuning, and reset eligibility per racer/lap with forward-crossing anti-farming rules. Expand only after review.
-- [ ] **Progression, badges and cup rewards.** Explore persistent badges/achievements for cup completions, podiums/wins and difficulty milestones, with a satisfying reward reveal on the final standings screen. Ship cosmetics/customisation, pilot titles and trophies are possible directions; the actual rewards remain undecided. Define first-clear and repeat-completion rewards to give cups replay value. Keep stronger-stat unlocks and upgrade economies deferred, and current content available in Practice/Quick Race.
+- [x] **Rewards experiment.** Persistent finish/placement progression with immediate first-finish speed, hero reward badges and results progress, ordered cup ship unlocks, six equipped abilities alongside road pickups, Quad Core, two-map Time Trial milestones, shared garage/inspector notches, save transfer and browser-only progression/finish shortcuts. Balance remains subject to human play; starting ship performance and AI tuning are unchanged.
+- [x] **Dedicated Garage.** User-approved Race/Garage tabs retain race setup while the Garage combines ship selection, a live model, enhancement notches and inline equipment. Two items per hull; Quad Core allows four on one hull. The advanced model inspector has a separate Race-screen button in browser developer modes (`?dev=1` or `?dev=2`).
+- [ ] **Jump shortcuts across road chunks.** Allow deliberate leaps onto another supported part of a circuit, including lap-seam cases, with explicit checkpoint/shortcut rules and recovery grace. Current Jump uses the nearby receiving corridor; do not silently award skipped checkpoints.
+- [ ] **Actual 3D ship modifications.** Plan authored hull changes for earned enhancements and mounted equipment with user art direction. Use the generated attachment concepts in assets/rewards/icons-v2/: stat fin/thruster/gyro/brake/reservoir/armor modules, underside Jump pods and rail-mounted Lance. Define per-hull hardpoints, scale and clearance before authoring meshes; preserve the fleet silhouettes. Current icons, glowing stat notches and runtime effects are the prototype; Blender/model work is deferred.
+- [ ] **Progression balance and later rewards.** Human play review of upgrade ratios, cooldowns and reward pacing. Consider badges, cosmetics, titles and difficulty milestones; any track recharge experiment must preserve the current pickup frequency and overlapping combat. Build/loadout codes remain optional follow-up.
 
 ## Publishing
 
@@ -96,4 +100,4 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 - [ ] Kestrel photorealism comparison and further authoring: paused while publishing/gameplay took priority. Start with matched Blender/Three.js baselines, then prove a visible improvement on one assembly before full baking or fleet rollout. Follow the [ship visual improvement workflow](assets/ships/README.md#visual-improvement-workflow); the shipped fleet finish is not evidence of photorealism or browser export degradation.
 - [ ] Umbra gravity-lens cue: revisit the arrow that can imply steering toward the pull even though the player must counter-steer.
 
-Stored/manual-use items, further offensive-device rollout, side attacks, destructive damage/elimination, online systems, upgrade economies, procedural tracks and the industrial energy complex require separate scope. Quality and a complete racing loop take priority over map count.
+Further offensive-device rollout, side attacks, destructive damage/elimination, online systems, procedural tracks and a consumable upgrade economy require separate scope. Quality and a complete racing loop take priority over map count.

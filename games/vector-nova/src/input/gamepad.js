@@ -83,6 +83,10 @@ export function sampleGamepad(pad, settings = {}, blocked = new Set()) {
     brake: value(preset.brake),
     boost: pressed(preset.boost),
     airbrake: pressed(preset.airbrake),
+    equipment1: pressed(2),
+    equipment2: pressed(3),
+    equipment3: pressed(14),
+    equipment4: pressed(15),
   };
 }
 // A held menu/trigger button must be released before it can drive after a

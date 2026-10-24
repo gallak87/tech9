@@ -23,6 +23,7 @@ export async function createColossusDynamics({ track, collisionWorld }) {
         hover: spec.height / 2,
       },
       mass: 1000000,
+      hazard: true,
       contactSpeedLimit: spec.id.startsWith('press') ? 180 : 600,
     }),
   }));

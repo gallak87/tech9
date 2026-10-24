@@ -6,7 +6,7 @@ import { createEnginePreview } from './engine-preview.js';
 import { createPairedFraming } from './inspection-framing.js';
 import './pickup-inspector.css';
 
-// Loaded only by the standalone inspector with dev=1.
+// Loaded only by the browser inspector with dev=1 or dev=2.
 export async function createPickupInspector({
   host,
   ship,

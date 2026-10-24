@@ -1,0 +1,290 @@
+{
+  "generator": "Built-in image_gen tool",
+  "date": "2026-10-23",
+  "mode": "generation; one call per individual reward; transparent_background=true",
+  "references": [],
+  "rights": "Generated for this project. No third-party reference artwork supplied.",
+  "export": "Original PNG retained; sips -Z 128 exports a 128px PNG with alpha, no artwork edits.",
+  "assets": [
+    {
+      "id": "speed-1",
+      "rarity": 1,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: top speed enhancement, tier 1: single swept forward-pointing ceramic chevron with a short green central energy channel.\nClass: green uncommon, minimal one-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-2887094c-3beb-4dfb-bca5-baaee2abca30.png",
+      "source": "assets/rewards/icons-v1/source/speed-1.png",
+      "runtime": "public/assets/rewards/icons-v1/speed-1.png",
+      "sourceSHA256": "2926ea73e1e3da819a9c7db16cd2119f48ed624d440004382ff1f3abd939137e",
+      "runtimeSHA256": "cf760baa922b6232d0f2ef5f31b73ddd19a575cca4d9acee7dced2c105390b44"
+    },
+    {
+      "id": "speed-2",
+      "rarity": 2,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: top speed enhancement, tier 2: two nested swept forward chevrons with blue energy channels and a pair of compact aerodynamic fins.\nClass: blue rare, more developed two-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-ebe0578e-2545-4c50-abf7-58cba8f318c2.png",
+      "source": "assets/rewards/icons-v1/source/speed-2.png",
+      "runtime": "public/assets/rewards/icons-v1/speed-2.png",
+      "sourceSHA256": "2bcd280b1d22d9916c274d1ab6d1b24c4b2c09dd280918282801ebcf78fce4ea",
+      "runtimeSHA256": "fea00ad6b70f4e1aae17b0c23b25bb834d7064f3beba25c1f4cbf899f7d5aef0"
+    },
+    {
+      "id": "speed-3",
+      "rarity": 3,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: top speed enhancement, tier 3: three interlocking swept forward chevrons, purple energy channels, a faceted central speed core and integrated outer fins.\nClass: purple epic, richer three-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-bbb6002f-d21a-40bc-9cd1-c79c6f123759.png",
+      "source": "assets/rewards/icons-v1/source/speed-3.png",
+      "runtime": "public/assets/rewards/icons-v1/speed-3.png",
+      "sourceSHA256": "59882426199a81f653e1bcaf9ac5e6d0f111cad2dbabedba62d0023176e8fb2e",
+      "runtimeSHA256": "2165a7dafd0c6a40d582d5f0bab2e235cbc521c69501dc15b824cd673570579d"
+    },
+    {
+      "id": "acceleration-1",
+      "rarity": 1,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: acceleration enhancement, tier 1: one compact engine thrust nozzle with a short green exhaust wedge.\nClass: green uncommon, minimal one-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-bc3e633e-df89-486d-b0dc-99903d76a5ab.png",
+      "source": "assets/rewards/icons-v1/source/acceleration-1.png",
+      "runtime": "public/assets/rewards/icons-v1/acceleration-1.png",
+      "sourceSHA256": "7cf66e427d196bcdb29cc20d564538054ecb87a0802bf4df27e1f8cf255b0799",
+      "runtimeSHA256": "212987c9f71940493d66931245f5a60383e2558a20cc61f2e9f038bb8c0dcf2b"
+    },
+    {
+      "id": "acceleration-2",
+      "rarity": 2,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: acceleration enhancement, tier 2: a paired engine thrust nozzle with two short blue exhaust wedges and a visible connecting power bridge.\nClass: blue rare, more developed two-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-fd60739c-fadd-463b-950c-22e71e914670.png",
+      "source": "assets/rewards/icons-v1/source/acceleration-2.png",
+      "runtime": "public/assets/rewards/icons-v1/acceleration-2.png",
+      "sourceSHA256": "9b090a924683be2e73ee2a11beba6fb8d9d75f0e10d3c8fe7ba2afdb36fb2016",
+      "runtimeSHA256": "4429b5685237ff9e324d3360d47764a99e6992c0e6f573e904a80bd079c966c1"
+    },
+    {
+      "id": "acceleration-3",
+      "rarity": 3,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: acceleration enhancement, tier 3: three clustered engine thrust nozzles around a faceted purple power core, with three short crisp purple exhaust wedges.\nClass: purple epic, richer three-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-69cc2ac7-c1b2-4d97-8437-da16a3fc0b38.png",
+      "source": "assets/rewards/icons-v1/source/acceleration-3.png",
+      "runtime": "public/assets/rewards/icons-v1/acceleration-3.png",
+      "sourceSHA256": "0868789f2e40165daf59c3db8e15b5419c51ab88b2c28beaadae336384de6601",
+      "runtimeSHA256": "5026c873f63ac0b7e4c59d8c5a7c36b44aad1d1adb7ec38aa5530465d5da9bd7"
+    },
+    {
+      "id": "handling-1",
+      "rarity": 1,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: handling enhancement, tier 1: one broad open gyroscope ring holding a small green center pivot.\nClass: green uncommon, minimal one-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-5a77888f-f4cd-4b01-b943-a15fc7fe52ee.png",
+      "source": "assets/rewards/icons-v1/source/handling-1.png",
+      "runtime": "public/assets/rewards/icons-v1/handling-1.png",
+      "sourceSHA256": "72094290174a44fa67f32deb7f39d306a92a1671dc1383d626a8dc48ff4b8dc3",
+      "runtimeSHA256": "5f406d6aa356c21b866a1984d49fdbbd0db3afc71491bb27292ff78823985b1a"
+    },
+    {
+      "id": "handling-2",
+      "rarity": 2,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: handling enhancement, tier 2: two interlocking broad gyroscope rings with a blue central pivot and two stabilizing vanes.\nClass: blue rare, more developed two-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-b06f0b9c-2e59-4791-b4bb-79c1ec58a591.png",
+      "source": "assets/rewards/icons-v1/source/handling-2.png",
+      "runtime": "public/assets/rewards/icons-v1/handling-2.png",
+      "sourceSHA256": "2022177657e973d82c605690f6a5223e885be34601870b9796b24a2360b63841",
+      "runtimeSHA256": "90d3bdfd94837b3efdd09d4c3412a299e8bc241ed2ee23de82876fad4e2cb017"
+    },
+    {
+      "id": "handling-3",
+      "rarity": 3,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: handling enhancement, tier 3: three nested angular gyroscope rings around a bright purple center pivot with integrated floating stabilizing vanes.\nClass: purple epic, richer three-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-56ea2972-be6b-4318-841d-577373d3bf24.png",
+      "source": "assets/rewards/icons-v1/source/handling-3.png",
+      "runtime": "public/assets/rewards/icons-v1/handling-3.png",
+      "sourceSHA256": "164ee78070714a2eebe2fee3d75c559079a8f9a85cc105bc92afc7286daeaac8",
+      "runtimeSHA256": "473fad4980d20c07096f60d3eee57e7d277f405b448d445aeb938d26a01617c5"
+    },
+    {
+      "id": "braking-1",
+      "rarity": 1,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: braking enhancement, tier 1: one pair of opposed thick brake caliper jaws with a green central stopping bar.\nClass: green uncommon, minimal one-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-0ee522b7-4362-43ee-81f6-4d7909975dae.png",
+      "source": "assets/rewards/icons-v1/source/braking-1.png",
+      "runtime": "public/assets/rewards/icons-v1/braking-1.png",
+      "sourceSHA256": "3f28907a9e5dd2e7bc474ecb5d0f79565bad6ec1ba481be8b8ded973afbb0a00",
+      "runtimeSHA256": "6ac9cec44089821c92c509f99f31a29a566bf187432805ab027e076b9e7eb816"
+    },
+    {
+      "id": "braking-2",
+      "rarity": 2,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: braking enhancement, tier 2: two opposed double brake caliper jaws around a blue central rotor, heavier outer brace.\nClass: blue rare, more developed two-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-fe894baf-6ecd-49c6-8eeb-c2cb1249069b.png",
+      "source": "assets/rewards/icons-v1/source/braking-2.png",
+      "runtime": "public/assets/rewards/icons-v1/braking-2.png",
+      "sourceSHA256": "a64dab7ccdf7ef768d1739253dcbacc30ae05cbebf27be8ad935c41496495d54",
+      "runtimeSHA256": "84571d89a0fc19151632958eec40b09bf1dac4a2ed1b65378de591b08f707a31"
+    },
+    {
+      "id": "braking-3",
+      "rarity": 3,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: braking enhancement, tier 3: a sophisticated four-jaw magnetic brake array surrounding a purple faceted rotor, bold layered clamps.\nClass: purple epic, richer three-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-6bb93804-dfa7-4261-83e5-6c2582eb39e0.png",
+      "source": "assets/rewards/icons-v1/source/braking-3.png",
+      "runtime": "public/assets/rewards/icons-v1/braking-3.png",
+      "sourceSHA256": "cb26e5c69b8daf843993b3f791d504dbeddb7f91883371b2233be7bd052e3c90",
+      "runtimeSHA256": "e71a29b178acb8b9c50408222486e3506dfe4a1b82125720c73575ae92597026"
+    },
+    {
+      "id": "boost-1",
+      "rarity": 1,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: boost duration enhancement, tier 1: one stout energy reserve canister with a single green luminous window.\nClass: green uncommon, minimal one-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-0dbbdd52-7756-4084-918b-17d2b9a82842.png",
+      "source": "assets/rewards/icons-v1/source/boost-1.png",
+      "runtime": "public/assets/rewards/icons-v1/boost-1.png",
+      "sourceSHA256": "f52781538cc805739ae153c01556aeeeba435e11522aab99ce3e8201825d63b7",
+      "runtimeSHA256": "344693c1380e79627b0adac3ab970dbd8770b8cc4efcbaa2b00af94da498cdc0"
+    },
+    {
+      "id": "boost-2",
+      "rarity": 2,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: boost duration enhancement, tier 2: a twin-cell energy reserve canister with two blue luminous windows and a stout connecting cap.\nClass: blue rare, more developed two-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-c7e1816c-5a81-4ff9-9a4f-83f74e18c5cd.png",
+      "source": "assets/rewards/icons-v1/source/boost-2.png",
+      "runtime": "public/assets/rewards/icons-v1/boost-2.png",
+      "sourceSHA256": "3d96cea8db0e7df1548bce2d42ec3a16097d6b8731615cf9fe68a4942140c901",
+      "runtimeSHA256": "60702a55e0d31a52f57e124bf0aa9edceadd0d3d6fef25f914f78b5b7973c9d3"
+    },
+    {
+      "id": "boost-3",
+      "rarity": 3,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: boost duration enhancement, tier 3: a triple-cell energy reserve assembly with three purple luminous windows and a faceted reinforced manifold.\nClass: purple epic, richer three-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-8151487c-c45f-4563-97ba-3231dab1ce71.png",
+      "source": "assets/rewards/icons-v1/source/boost-3.png",
+      "runtime": "public/assets/rewards/icons-v1/boost-3.png",
+      "sourceSHA256": "5ef82b7afad356f9bf4d4317a4731921dcd23bab2a9bd85d76555725a7c7a708",
+      "runtimeSHA256": "d9ac878bf9efd86038326646e1ae867f4c54d1ceb7c9419bfda70faed30eca67"
+    },
+    {
+      "id": "toughness-1",
+      "rarity": 1,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: toughness enhancement, tier 1: one thick angular shield-shaped armor plate with a green inset seam.\nClass: green uncommon, minimal one-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-f17066ef-fe23-4e6b-a0c2-5a334e1f56c5.png",
+      "source": "assets/rewards/icons-v1/source/toughness-1.png",
+      "runtime": "public/assets/rewards/icons-v1/toughness-1.png",
+      "sourceSHA256": "f8c42aff6b1ac8ba88d242cb7bebadde80f5833bc23f556de70303c33ad2fa01",
+      "runtimeSHA256": "a3f65a296bd6acb3e9db2f5351f2240e86397ce15ada8c9fbae5159fde10f25c"
+    },
+    {
+      "id": "toughness-2",
+      "rarity": 2,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: toughness enhancement, tier 2: two overlapping angular shield-shaped armor plates with blue inset seams and reinforced corners.\nClass: blue rare, more developed two-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-18295786-42f9-4bbc-9b07-44579092706e.png",
+      "source": "assets/rewards/icons-v1/source/toughness-2.png",
+      "runtime": "public/assets/rewards/icons-v1/toughness-2.png",
+      "sourceSHA256": "77968a7b133348833c23529c40ec1897232673a03c08703360fa6154f59ae39b",
+      "runtimeSHA256": "5c118b8ab26d382562ec71dcadb5fc96215d7c2d0f408d929d4f43435202726f"
+    },
+    {
+      "id": "toughness-3",
+      "rarity": 3,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: toughness enhancement, tier 3: three interlocking shield-shaped armor plates with purple inset seams, a central faceted reinforcement and strong beveled outer edges.\nClass: purple epic, richer three-part construction. Use only this class hue for luminous accents; neutral white ceramic and charcoal structure remain consistent. The underlying motif must stay clear despite the added tier complexity.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-50f8e2a1-ff75-424e-9d56-5f91940e9989.png",
+      "source": "assets/rewards/icons-v1/source/toughness-3.png",
+      "runtime": "public/assets/rewards/icons-v1/toughness-3.png",
+      "sourceSHA256": "817a90fe5a42f3dd0c219bd7dae5cd7e49e0b260706c9e900653f84b0cdf29e1",
+      "runtimeSHA256": "e89a03d1b32dca0e65dc345bc4a52fab90545c83cb939e476c145dd81e7d79e6"
+    },
+    {
+      "id": "equipment-jump",
+      "rarity": 2,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Jump Drive equipment. A compact blue gravitic launch device: broad upward arrow-like ceramic prow rising between two angular levitation coils. Blue rare class, two main articulated parts, readable upward launch silhouette. Blue accents only.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-6ff948e3-bc03-4603-a7e0-c97ff4ab508e.png",
+      "source": "assets/rewards/icons-v1/source/equipment-jump.png",
+      "runtime": "public/assets/rewards/icons-v1/equipment-jump.png",
+      "sourceSHA256": "5fe816b14e8bb74e0bd72ac3a3742d35381ab6bf6d13642ae10d94a14cb61339",
+      "runtimeSHA256": "dd6ae59b44fe22599397db9def77196ed13ed749bbb26763f646b1be46d1bec5"
+    },
+    {
+      "id": "equipment-injector",
+      "rarity": 1,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Reserve Injector equipment. A simple stout horizontal energy cartridge with a tapered injection plug and a single green luminous fuel window. Green uncommon class, uncomplicated one-cell construction, clear capsule silhouette. Green accents only.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-d42b5bad-9876-4ef4-b365-ef51e81c6458.png",
+      "source": "assets/rewards/icons-v1/source/equipment-injector.png",
+      "runtime": "public/assets/rewards/icons-v1/equipment-injector.png",
+      "sourceSHA256": "890a40eb349ccfb7eddc99f3321e79f98163d2f4ff271ba6e022073ff5d8a904",
+      "runtimeSHA256": "f8c89461ba20a49381a7cbdcea306cf4ee40328b2e318f0d86fabb1f34cbb2b9"
+    },
+    {
+      "id": "equipment-slipstream",
+      "rarity": 2,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Slipstream Drive equipment. Two broad swept aerodynamic vanes forming a compact streamlined S-shaped channel, with two crisp blue luminous trailing ribbons held tightly within the device silhouette. Blue rare class, paired construction, readable flow motif. Blue accents only.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-bb44e7b3-5396-4fdc-8229-f7aab9fe17df.png",
+      "source": "assets/rewards/icons-v1/source/equipment-slipstream.png",
+      "runtime": "public/assets/rewards/icons-v1/equipment-slipstream.png",
+      "sourceSHA256": "e980f24916ca4039684ae4d498872e73fb92db26b5de83a49acadc8a6b2dec03",
+      "runtimeSHA256": "3a83cb4901dfe4cc35f6cb370bc1a611cbf8e27f853a9f18908039793f280a35"
+    },
+    {
+      "id": "equipment-deflector",
+      "rarity": 2,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Deflector equipment. A small robust shield projector with two separated angular emitter arms shaping a clear translucent blue shield plane between them. Blue rare class, paired emitter construction, readable protective shield silhouette. Blue accents only.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-0f987044-8029-4a46-a713-251dee50c140.png",
+      "source": "assets/rewards/icons-v1/source/equipment-deflector.png",
+      "runtime": "public/assets/rewards/icons-v1/equipment-deflector.png",
+      "sourceSHA256": "11adf88e0d7ee71a5460e872b4e2d3a7fe0d9b457442afa54a6869bd2b8df79d",
+      "runtimeSHA256": "2aa216b820740a218ff83a39677eb8e7d17dad4be9eb6a691ea8a746c96ef4f0"
+    },
+    {
+      "id": "equipment-stabilizer",
+      "rarity": 3,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Magnetic Stabilizer equipment. A sophisticated four-arm gyro device with a floating faceted central core, stout diagonal stabilizer arms and a small levitating purple magnetic ring. Purple epic class, layered engineered form and a strong cross-like silhouette. Purple accents only.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-12a6c225-ce4f-4380-8d7b-e5424229ce04.png",
+      "source": "assets/rewards/icons-v1/source/equipment-stabilizer.png",
+      "runtime": "public/assets/rewards/icons-v1/equipment-stabilizer.png",
+      "sourceSHA256": "7db4a1e626d41b8c544b3447db6dfdb4635e8a4eb32d84b5e3169904cb6b033b",
+      "runtimeSHA256": "88afee181c3140dd1bb1a77259116170b79b35051c7bfbf7635db7d0f6820305"
+    },
+    {
+      "id": "equipment-lance",
+      "rarity": 3,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Lance heavy weapon. A sleek diagonal sci-fi rail-lance cannon: a long pointed ceramic barrel, two stout graphite magnetic rails and three bright purple focusing blocks, an arrowhead-shaped emitter. Purple epic class, elaborate but readable weapon silhouette, clearly a forward energy weapon. Purple accents only.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-8d059ded-8f92-4235-92c1-fcd328df1068.png",
+      "source": "assets/rewards/icons-v1/source/equipment-lance.png",
+      "runtime": "public/assets/rewards/icons-v1/equipment-lance.png",
+      "sourceSHA256": "b53e873723909ce6eb7f652fc51257d54133b9a84a794f6db2c89205d83b1d84",
+      "runtimeSHA256": "d28b21f39878a382571b3259a5840421d5bfa8c6a23acbf609c2645c231d9a58"
+    },
+    {
+      "id": "ship-bastion",
+      "rarity": 3,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Bastion ship unlock. A miniature angular anti-gravity racing craft, twin long narrow rectangular chisel-nose sponsons separated by open cross braces, slim central cockpit and rear engines. Low broad industrial twin-hull silhouette, not a tank. Pearl ceramic with graphite, brass-orange identification strips; use a restrained purple epic-class halo at the engineered edge, no cloud. Sophisticated hull detail in large readable shapes.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-72d9da89-e336-4434-9d37-3bd04345cc1b.png",
+      "source": "assets/rewards/icons-v1/source/ship-bastion.png",
+      "runtime": "public/assets/rewards/icons-v1/ship-bastion.png",
+      "sourceSHA256": "d8a941cb1b1f04a45d6de2f07b33765879ab6d33e90af2267b825b3c30d0177e",
+      "runtimeSHA256": "a98aebc70ab4b8474de915c33238d09d1b9ee4bef5df345df60bb72d2f1b29e9"
+    },
+    {
+      "id": "ship-needle",
+      "rarity": 3,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Needle ship unlock. A miniature angular anti-gravity racing craft, a single very long sharply tapered central prow, broad angular shoulder armor, swept rear stabilizers, exactly one oversized circular rear engine. Slim arrowhead silhouette. Pearl ceramic and graphite with violet identification strips. Purple epic-class luminous accents, sophisticated hull detail in large readable shapes.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-318235e9-81a4-4d57-9950-fdb9d909e028.png",
+      "source": "assets/rewards/icons-v1/source/ship-needle.png",
+      "runtime": "public/assets/rewards/icons-v1/ship-needle.png",
+      "sourceSHA256": "41bd60909baf7033db956bbe06d1ee0128953fe5b0cd9abb20afb860727bdee8",
+      "runtimeSHA256": "360cc2a079ce652bc12c951e55bade2b8830685e16aa200d7c5fe62623a0e04b"
+    },
+    {
+      "id": "ship-kestrel",
+      "rarity": 3,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Kestrel ship unlock. A miniature angular anti-gravity racing craft, slender split twin nose, swept jet-like planform, dark central canopy and paired rear engines. Sleek balanced racing silhouette. Pearl ceramic and graphite with restrained red identification strips. Purple epic-class luminous accents at the engineered edge, sophisticated hull detail in large readable shapes.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-5efb558b-7640-4e13-9426-9d4f7af29c72.png",
+      "source": "assets/rewards/icons-v1/source/ship-kestrel.png",
+      "runtime": "public/assets/rewards/icons-v1/ship-kestrel.png",
+      "sourceSHA256": "12f325dbe3e47a0c79815faf53d8e806536733e9e4dfc8ec9a2afe91cf886da7",
+      "runtimeSHA256": "487e5718b2057c866e8644e3a0c18b634094f52a209bcb95eccffbd65b533916"
+    },
+    {
+      "id": "exotic-slot",
+      "rarity": 4,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Quad Core exotic upgrade. Four distinct golden energy cores arranged in a compact cross around a brilliant central faceted junction, with interlocking pearl ceramic and graphite armor segments. Gold exotic class, the most refined and intricate design in this icon set, four unmistakable powerful cores, premium engineered shape, restrained molten-gold luminous edges. Gold accents only, no purple blue or green.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-00fda7eb-5f5c-4683-a5bc-6f6dd4135069.png",
+      "source": "assets/rewards/icons-v1/source/exotic-slot.png",
+      "runtime": "public/assets/rewards/icons-v1/exotic-slot.png",
+      "sourceSHA256": "0657e7b414cf3b4086d5e231d99569b75f4a2e5778f38b4fd767b9fed9425b77",
+      "runtimeSHA256": "64c235de518685f90c3b46ca57bcaef2a4a7773e2ade7e1ad5858a6c49fbc999"
+    }
+  ]
+}

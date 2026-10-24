@@ -541,6 +541,7 @@ export async function createRapierWorld({
           shape: {
             id: `racer-${b.id}`,
             kind: 'racer',
+            ...(b.hazard ? { hazard: true } : {}),
             actorId: b.id,
             order: b.id,
           },
@@ -663,6 +664,7 @@ export async function createRapierWorld({
         shape: {
           id: `racer-${a.id}`,
           kind: 'racer',
+          ...(a.hazard ? { hazard: true } : {}),
           actorId: a.id,
           order: a.id,
         },
@@ -756,6 +758,7 @@ export async function createRapierWorld({
       hull = VEHICLE_HULL,
       mass = 1,
       contactSpeedLimit = null,
+      hazard = false,
     } = {}) {
       alive();
       if (
@@ -776,6 +779,7 @@ export async function createRapierWorld({
       const a = {
         id,
         mass,
+        hazard: Boolean(hazard),
         contactSpeedLimit,
         hull: { ...hull },
         contactShape: null,
@@ -932,6 +936,7 @@ export async function createRapierWorld({
           actors: [...actors.values()].map((a) => ({
             id: a.id,
             mass: a.mass,
+            ...(a.hazard ? { hazard: true } : {}),
             contactSpeedLimit: a.contactSpeedLimit,
             hull: a.hull,
             contactShape: a.contactShape,
@@ -965,6 +970,7 @@ export async function createRapierWorld({
             !sameShape(a.contactShape, actors.get(a.id).contactShape) ||
             typeof a.active !== 'boolean' ||
             actors.get(a.id).mass !== a.mass ||
+            actors.get(a.id).hazard !== Boolean(a.hazard) ||
             actors.get(a.id).contactSpeedLimit !==
               (a.contactSpeedLimit ?? null) ||
             JSON.stringify(actors.get(a.id).hull) !== JSON.stringify(a.hull),

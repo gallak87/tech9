@@ -1,0 +1,965 @@
+/* Shared garage presentation: the setup and inspector use the same values. */
+:root {
+  --reward-1: #87dba1;
+  --reward-2: #75baff;
+  --reward-3: #c39bff;
+  --reward-4: #ffcb69;
+}
+.rarity-0 {
+  --rarity: #ddd;
+}
+.rarity-1 {
+  --rarity: var(--reward-1);
+}
+.rarity-2 {
+  --rarity: var(--reward-2);
+}
+.rarity-3 {
+  --rarity: var(--reward-3);
+}
+.rarity-4 {
+  --rarity: var(--reward-4);
+}
+.reward-icon {
+  object-fit: contain;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  color: var(--rarity, #ff995d);
+}
+.performance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 24px;
+  margin-top: 12px;
+}
+.performance-stat {
+  min-width: 0;
+}
+.performance-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+}
+.performance-label b {
+  font-size: 13px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.performance-label small {
+  color: #a5a5a5;
+  font-size: 9px;
+}
+.performance-label em {
+  font-style: normal;
+  color: #ffa26a;
+}
+.enhancement-meter {
+  display: flex;
+  height: 7px;
+  margin-top: 7px;
+  background: #ffffff12;
+  gap: 2px;
+  padding-right: 6px;
+}
+.stat-base {
+  display: block;
+  background: #bd2424;
+  height: 100%;
+  flex-shrink: 1;
+}
+.stat-notch {
+  display: block;
+  position: relative;
+  flex-shrink: 1;
+  min-width: 3px;
+  height: 100%;
+  transform: skewX(-24deg);
+  background: linear-gradient(90deg, #e34b16, #ff9c4c);
+  border: 1px solid #ffd29a;
+  box-shadow:
+    0 0 4px #ffb06e,
+    0 0 10px #ff631880;
+}
+.garage-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px 14px;
+  text-align: left;
+  border: 1px solid #ffb16b55;
+  background: linear-gradient(115deg, #ff81151a, #ffffff04);
+}
+.garage-action > span {
+  flex: 1;
+}
+.garage-action strong,
+.garage-action small {
+  display: block;
+}
+.garage-action small {
+  color: #aaa;
+  margin-top: 3px;
+  font-size: 10px;
+}
+.ship-list button[data-locked='true'] strong::after {
+  content: ' ◇';
+  color: #999;
+}
+.ship-locked-note {
+  font-size: 11px;
+  color: #ffbc8d;
+  margin-top: 6px;
+}
+.progression-dialog {
+  width: min(1010px, calc(100vw - 48px));
+  max-height: calc(100dvh - 48px);
+  padding: 0;
+  color: #efefef;
+  border: 1px solid #ffffff30;
+  background:
+    radial-gradient(ellipse at 95% 0%, #53301644, transparent 52%), #101012;
+  box-shadow: 0 30px 120px #000c;
+  font-family: inherit;
+}
+.progression-dialog::backdrop {
+  background: #050507b8;
+  backdrop-filter: blur(10px);
+}
+.progression-dialog button {
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid #ffffff25;
+  background: #ffffff05;
+  padding: 10px 14px;
+}
+.progression-dialog button:hover {
+  background-color: #ffffff10;
+}
+.progression-dialog button:focus-visible {
+  outline: 2px solid #fff1da;
+  outline-offset: 3px;
+}
+.progression-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 24px 28px 20px;
+  background: #101012f5;
+  border-bottom: 1px solid #ffffff18;
+}
+.progression-header .kicker {
+  font-size: 10px;
+  color: #aaa;
+  letter-spacing: 0.14em;
+}
+.progression-header h2 {
+  margin: 7px 0 0;
+  font-size: clamp(21px, 2.5vw, 30px);
+  letter-spacing: -0.035em;
+}
+.progression-header [data-close] {
+  white-space: nowrap;
+}
+.progression-header [data-close] span {
+  margin-left: 12px;
+}
+.progression-body {
+  padding: 0 28px 24px;
+}
+.equipment-intro,
+.career-intro {
+  color: #aaa;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 20px 0;
+}
+.equipment-slots {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 22px;
+  align-items: stretch;
+}
+.equipment-slots button {
+  min-width: 180px;
+  text-align: left;
+  border-left: 3px solid #555;
+}
+.equipment-slots button[aria-pressed='true'] {
+  border-color: #ff9f5e;
+  background: #ff8d1810;
+}
+.equipment-slots small,
+.equipment-slots strong {
+  display: block;
+}
+.equipment-slots small {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: #bca38d;
+  margin-bottom: 6px;
+}
+.second-slot-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #a9957d;
+  font-size: 11px;
+  padding: 10px;
+}
+.equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.progression-dialog .equipment-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 20px 18px 14px;
+  min-width: 0;
+  background: radial-gradient(
+    ellipse at 0 0,
+    color-mix(in srgb, var(--rarity) 9%, transparent),
+    transparent 80%
+  );
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+.equipment-card > .reward-icon {
+  height: 36px;
+  width: 36px;
+  margin-bottom: 16px;
+  filter: drop-shadow(
+    0 0 8px color-mix(in srgb, var(--rarity) 35%, transparent)
+  );
+}
+.equipment-card-heading small {
+  color: var(--rarity);
+  font-size: 9px;
+  letter-spacing: 0.065em;
+  text-transform: uppercase;
+}
+.equipment-card-heading strong {
+  display: block;
+  font-size: 18px;
+  letter-spacing: -0.025em;
+  margin-top: 5px;
+}
+.equipment-description {
+  color: #b7b7bb;
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 12px 0;
+  flex: 1;
+}
+.equipment-detail {
+  font-size: 10px;
+  color: #aaa;
+  line-height: 1.5;
+}
+.equipment-status {
+  margin-top: 16px;
+  padding-top: 12px;
+  width: 100%;
+  border-top: 1px solid #ffffff18;
+  font-size: 11px;
+  color: var(--rarity);
+}
+.progression-dialog .equipment-card.equipped {
+  border-color: var(--rarity);
+  box-shadow: inset 0 0 25px color-mix(in srgb, var(--rarity) 7%, transparent);
+}
+.equipment-card.locked {
+  opacity: 0.65;
+}
+.equipment-card.locked .equipment-status {
+  color: #ccc;
+}
+.equipment-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  font-size: 12px;
+  color: #aaa;
+}
+.exotic-choice {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 22px;
+  padding: 16px;
+  border: 1px solid #ffcb6955;
+  background: #ffcb690b;
+}
+.exotic-choice div {
+  flex: 1;
+}
+.exotic-choice p {
+  font-size: 12px;
+  color: #bbb;
+  margin: 5px 0;
+}
+.progression-notice {
+  margin: 0;
+  padding: 0 28px 18px;
+  color: #eab78a;
+  font-size: 12px;
+}
+.progression-notice:empty {
+  padding: 0;
+}
+.progression-confirm {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  padding: 24px 28px;
+  border-top: 1px solid #ffb87766;
+  background: #191514;
+  box-shadow: 0 -20px 70px #000a;
+}
+.progression-confirm h3 {
+  margin: 0;
+}
+.progression-confirm p {
+  color: #ccc;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.progression-confirm button + button {
+  margin-left: 12px;
+  border-color: #ef994b;
+}
+.career-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 14px 24px;
+  margin-top: 24px;
+}
+.career-summary strong {
+  font-size: 32px;
+}
+.career-summary small {
+  font-size: 14px;
+  color: #aaa;
+  font-weight: 400;
+}
+.career-summary > span {
+  font-size: 12px;
+  color: #bbb;
+}
+.reward-roadmap {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.reward-milestone {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #ffffff16;
+  background: #ffffff02;
+}
+.reward-milestone strong {
+  font-size: 13px;
+}
+.reward-milestone p {
+  color: #aaa;
+  font-size: 11px;
+  margin: 5px 0;
+}
+.reward-milestone small {
+  font-size: 10px;
+  color: #bbb;
+}
+.reward-milestone.earned {
+  border-color: color-mix(in srgb, var(--rarity) 35%, transparent);
+}
+.reward-milestone.earned small {
+  color: var(--rarity);
+}
+.career-transfer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+.career-transfer span {
+  font-size: 11px;
+  color: #aaa;
+}
+.earned-rewards {
+  margin: 20px 0;
+  border-top: 1px solid #ff9b4b55;
+  padding-top: 14px;
+}
+.earned-rewards h3 {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #e4b490;
+}
+.earned-rewards > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.earned-reward {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--rarity) 10%, transparent),
+    #ffffff02
+  );
+  border: 1px solid color-mix(in srgb, var(--rarity) 30%, transparent);
+}
+.earned-reward small {
+  display: block;
+  font-size: 9px;
+  color: var(--rarity);
+  text-transform: uppercase;
+}
+.earned-reward strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 15px;
+}
+.earned-reward p {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #bbb;
+}
+#inspection-panel .performance-grid {
+  margin: 12px 0;
+  gap: 12px 16px;
+}
+#inspection-panel .garage-action {
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  .progression-dialog {
+    width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+  }
+  .progression-header {
+    padding: 18px;
+  }
+  .progression-body {
+    padding: 0 18px 18px;
+  }
+  .equipment-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .progression-dialog .equipment-card {
+    padding: 14px;
+  }
+  .equipment-slots {
+    flex-wrap: wrap;
+  }
+  .reward-roadmap {
+    grid-template-columns: 1fr;
+  }
+  .exotic-choice {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 430px) {
+  .equipment-grid {
+    grid-template-columns: 1fr;
+  }
+  .equipment-card > .reward-icon {
+    margin-bottom: 10px;
+  }
+  .equipment-card-heading strong {
+    font-size: 17px;
+  }
+  .performance-grid {
+    column-gap: 14px;
+  }
+  .equipment-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .equipment-card {
+    transition: none;
+  }
+}
+
+.progression-dialog button {
+  letter-spacing: normal;
+}
+.progression-dialog .equipment-description {
+  letter-spacing: normal;
+}
+
+.equipment-hud {
+  position: absolute;
+  left: 50%;
+  bottom: 58px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 5;
+}
+.equipment-hud[hidden] {
+  display: none;
+}
+.equipment-hud-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 160px;
+  padding: 9px 13px 11px;
+  background: #090d13cc;
+  border: 1px solid #ffffff35;
+  color: #ddd;
+  text-align: left;
+  letter-spacing: normal;
+}
+.equipment-hud-slot > span {
+  display: grid;
+  gap: 3px;
+}
+.equipment-hud-slot small {
+  color: #bbb;
+  font-size: 9px;
+}
+.equipment-hud-slot strong {
+  font-size: 11px;
+}
+.equipment-hud-slot em {
+  color: #999;
+  font-size: 10px;
+  font-style: normal;
+}
+.equipment-hud-slot > i {
+  position: absolute;
+  height: 2px;
+  left: 0;
+  bottom: 0;
+  width: var(--charge);
+  background: #ffb06f;
+}
+.equipment-hud-slot.ready {
+  border-color: #ffad6a88;
+}
+.equipment-hud-slot.ready em {
+  color: #ffd2a7;
+}
+.equipment-hud-slot.active {
+  border-color: #9bcaff;
+  box-shadow: 0 0 16px #70bcff26;
+}
+.equipment-hud-slot:disabled {
+  opacity: 0.7;
+}
+.equipment-hud-slot .reward-icon {
+  width: 28px;
+  height: 28px;
+}
+@media (max-width: 760px) {
+  .equipment-hud {
+    bottom: 154px;
+  }
+  .equipment-hud-slot {
+    min-width: 110px;
+    padding: 8px;
+    gap: 5px;
+  }
+  .equipment-hud-slot strong {
+    font-size: 10px;
+  }
+}
+
+.ship-stats:has(.performance-grid) {
+  display: block;
+}
+
+#inspection-panel .ship-selection:has(.performance-grid) .ship-picker,
+#inspection-panel .ship-selection:has(.performance-grid) .ship-stats {
+  grid-column: 1 / -1;
+}
+#inspection-panel .ship-selection:has(.performance-grid) .ship-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+#inspection-panel .performance-label {
+  flex-wrap: wrap;
+  gap: 3px 8px;
+}
+#inspection-panel .performance-label b {
+  font-size: 12px;
+}
+.garage-action strong,
+.garage-action small {
+  letter-spacing: normal;
+}
+@media (min-width: 1100px) {
+  #inspection-panel:has(.performance-grid) {
+    width: min(400px, 29vw);
+  }
+}
+
+#interface #inspection-panel .ship-selection:has(.performance-grid) {
+  grid-template-rows: auto auto auto;
+}
+
+@media (max-height: 570px) and (orientation: landscape) {
+  #inspection-panel:has(.performance-grid) {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}
+
+.equipment-hud {
+  display: grid;
+  grid-template-columns: repeat(var(--equipment-count, 2), minmax(0, 1fr));
+  width: max-content;
+  max-width: calc(100% - 32px);
+}
+.equipment-hud-slot {
+  min-width: 0;
+  width: 150px;
+  max-width: 100%;
+}
+@media (max-width: 760px) {
+  .equipment-hud {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+    width: 252px;
+  }
+  .equipment-hud-slot {
+    width: 124px;
+    min-height: 54px;
+  }
+  .equipment-hud-slot small {
+    font-size: 8px;
+  }
+}
+
+.exotic-confirm-dialog {
+  width: min(520px, calc(100vw - 32px));
+}
+.exotic-confirm-dialog .progression-body {
+  display: none;
+}
+.exotic-confirm-dialog .progression-confirm {
+  position: static;
+}
+
+/* Reward emblems sit on the hero artwork, above the existing track caption. */
+.reward-badges {
+  color: #eee;
+  text-align: left;
+}
+
+.detail-image > .reward-badges {
+  position: absolute;
+  z-index: 2;
+  top: 18px;
+  left: 18px;
+  right: 92px;
+  width: fit-content;
+  max-width: calc(100% - 110px);
+}
+.reward-badges-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #eee;
+  text-shadow: 0 1px 8px #000;
+}
+.reward-badges-list {
+  display: flex;
+  gap: 10px;
+}
+.reward-badge {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--rarity) 38%, transparent);
+  border-left: 2px solid var(--rarity);
+  background: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--rarity) 10%, #0c1015ee),
+    #090c11eb
+  );
+  box-shadow: 0 4px 18px #0005;
+  backdrop-filter: blur(8px);
+}
+.reward-badge-emblem {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 44px;
+  color: var(--rarity);
+  background: color-mix(in srgb, var(--rarity) 13%, transparent);
+}
+.reward-badge-emblem .reward-icon {
+  width: 38px;
+  height: 38px;
+  filter: drop-shadow(
+    0 0 5px color-mix(in srgb, var(--rarity) 50%, transparent)
+  );
+}
+.reward-badge-copy {
+  min-width: 0;
+  flex: 1;
+}
+.reward-badge-copy strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: normal;
+}
+.reward-badge-copy small {
+  display: block;
+  margin-top: 4px;
+  color: #c2c5ca;
+  font-size: 10px;
+  line-height: 1.4;
+  letter-spacing: normal;
+}
+.reward-badge-progress {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+  font-size: 9px;
+  color: var(--rarity);
+  white-space: nowrap;
+}
+.reward-badge-meter {
+  display: block;
+  flex: 1;
+  height: 3px;
+  background: #ffffff20;
+  overflow: hidden;
+}
+.reward-badge-meter i {
+  display: block;
+  height: 100%;
+  width: var(--to);
+  background: var(--rarity);
+  box-shadow: 0 0 7px var(--rarity);
+}
+.reward-badges-results .reward-badge-meter i {
+  animation: reward-advance 0.8s ease-out both;
+}
+@keyframes reward-advance {
+  from {
+    width: var(--from);
+  }
+  to {
+    width: var(--to);
+  }
+}
+.race-reward-progress {
+  margin: 24px 0;
+  padding-top: 20px;
+  border-top: 1px solid #ffffff20;
+}
+.race-reward-progress > h3 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.025em;
+}
+.race-reward-progress > p {
+  margin: 8px 0 16px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #bbb;
+}
+.race-reward-progress .reward-badges {
+  max-width: 660px;
+}
+.loading-rewards {
+  margin-top: 20px;
+}
+.loading-rewards:empty {
+  display: none;
+}
+/* Hero chips are intrinsic-width labels; details appear only on interaction. */
+.reward-badges-compact > .reward-badges-label {
+  display: none;
+}
+.reward-badges-compact .reward-badges-list {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.reward-chip-wrap {
+  min-width: 0;
+  max-width: 100%;
+}
+#front-shell .reward-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 38px;
+  padding: 3px 9px 3px 4px;
+  border: 1px solid #ffffff20;
+  border-radius: 4px;
+  background: #090d13d9;
+  box-shadow: none;
+  color: #eee;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: normal;
+  text-align: left;
+}
+#front-shell .reward-chip .reward-icon {
+  width: 30px;
+  height: 30px;
+}
+#front-shell .reward-chip small {
+  font: inherit;
+  color: var(--rarity);
+}
+#front-shell .reward-chip:hover {
+  background: #141820ef;
+  border-color: var(--rarity);
+}
+#front-shell .reward-chip:focus-visible {
+  outline: 2px solid #eee;
+  outline-offset: 2px;
+}
+.reward-tooltip {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  top: calc(100% + 6px);
+  width: 250px;
+  max-width: 100%;
+  padding: 10px 12px;
+  background: #0d1017f5;
+  border: 1px solid #ffffff30;
+  border-top-color: var(--rarity);
+  box-shadow: 0 6px 18px #0006;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.reward-tooltip[hidden] {
+  display: none;
+}
+.reward-tooltip strong,
+.reward-tooltip span,
+.reward-tooltip small {
+  display: block;
+}
+.reward-tooltip strong {
+  font-weight: 500;
+  color: var(--rarity);
+}
+.reward-tooltip span {
+  margin-top: 4px;
+  color: #ccc;
+}
+.reward-tooltip small {
+  margin-top: 5px;
+  color: #aaa;
+  font-size: 10px;
+}
+.loading-rewards .reward-badges {
+  position: relative;
+  width: fit-content;
+}
+.earned-reward > .reward-art,
+.reward-milestone > .reward-art {
+  width: 44px;
+  height: 44px;
+}
+@media (max-width: 700px) {
+  .cinematic-menu .circuit-hero {
+    min-height: 180px;
+  }
+  .detail-image > .reward-badges {
+    top: 10px;
+    left: 10px;
+    right: 65px;
+    max-width: calc(100% - 75px);
+  }
+  .reward-badges-results .reward-badges-list {
+    flex-direction: column;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reward-badges-results .reward-badge-meter i {
+    animation: none;
+  }
+}
+.reduced-motion .reward-badges-results .reward-badge-meter i {
+  animation: none;
+}
+
+.reward-badge-gain {
+  margin-left: 7px;
+  color: var(--rarity);
+  font-size: 9px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.result-panel:has(.race-reward-progress) .results-list {
+  max-height: min(22vh, 180px);
+}
+.result-panel .race-reward-progress {
+  margin: 16px 0 0;
+  padding-top: 14px;
+}
+.result-panel .race-reward-progress > h3 {
+  font-size: 19px;
+}
+.result-panel .race-reward-progress > p {
+  font-size: 10px;
+  margin: 6px 0 12px;
+}
+.result-panel .reward-badge {
+  padding: 10px;
+  gap: 8px;
+}
+.result-panel .earned-rewards {
+  margin: 14px 0 0;
+  padding-top: 10px;
+}
+.result-panel .earned-reward {
+  padding: 10px 12px;
+}
+.result-panel .results-actions {
+  padding-top: 16px;
+}

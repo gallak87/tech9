@@ -1,3 +1,4 @@
+import { upgradedHandling } from '../progression/catalog.js';
 // Asset-free fleet identity and deterministic handling. Reserve is displayed
 // as a percentage; endurance is expressed through drain/recharge rates.
 const baseline = {
@@ -116,4 +117,10 @@ export function saveShipSelection(id) {
   } catch {
     /* The current session still works without storage. */
   }
+}
+
+// Only the player session carries enhancements. Catalog profiles remain immutable
+// and every rival/stock trial continues to use the original tuning.
+export function vehicleHandling(state) {
+  return upgradedHandling(getShip(state.shipId).handling, state.enhancements);
 }

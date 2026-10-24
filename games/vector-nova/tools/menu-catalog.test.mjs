@@ -89,3 +89,13 @@ test('WebP headers report dimensions and reject incomplete or unrelated files', 
   assert.throws(() => webpSize(Buffer.from('not an image')), /Invalid/);
   assert.throws(() => webpSize(header().subarray(0, 20)), /Missing/);
 });
+
+test('Orbital menu records use the production identity rather than its shape study', async () => {
+  const { default: createOrbital } =
+    await import('../src/levels/orbital/index.js');
+  const entries = await menuCatalog({ levelIds: ['orbital'], warn() {} });
+  assert.equal(
+    entries[0].trackId,
+    createOrbital({ shape: false }).createTrack().id,
+  );
+});

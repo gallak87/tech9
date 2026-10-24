@@ -1,3 +1,4 @@
+import { createFlightModel } from '../physics/flight.js';
 import { stepVehicle } from '../physics/index.js';
 import {
   createMagneticBody,
@@ -9,7 +10,29 @@ export function createMagneticRuntime({
   track,
   dynamics = null,
   settings = {},
+  collisionWorld = null,
+  equipment = false,
 }) {
+  if (dynamics && equipment) {
+    const runtime = createFlightModel().createRuntime(
+      {
+        track: { ...track, jumps: track.jumps ?? [] },
+        dynamics,
+        collisionWorld,
+        settings,
+      },
+      {
+        id: 'magnetic',
+        version: 2,
+        rulesId: BASELINE_RULES,
+        forgivingContacts: true,
+      },
+    );
+    // The ground controller is unchanged. Equipment builds carry their own
+    // identity; stock Time Trials retain their existing namespace.
+    runtime.rulesId = `${BASELINE_RULES}:${MAGNETIC_BODY_RULES}:${dynamics.rulesId}`;
+    return runtime;
+  }
   if (dynamics) {
     const actor = dynamics.createActor();
     const body = createMagneticBody({ track, dynamics, actor });
@@ -204,7 +227,11 @@ export function validateReplayInputs(inputs, expectedTicks = inputs?.length) {
       control.throttle < 0 ||
       control.brake < 0 ||
       typeof control.boost !== 'boolean' ||
-      typeof control.airbrake !== 'boolean'
+      typeof control.airbrake !== 'boolean' ||
+      ['equipment1', 'equipment2', 'equipment3', 'equipment4'].some(
+        (key) =>
+          control[key] !== undefined && typeof control[key] !== 'boolean',
+      )
     )
       throw new Error('Replay input log is noncontiguous or malformed');
   }

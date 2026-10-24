@@ -30,7 +30,8 @@ export function controllerSettingsView(settings) {
       )
       .join('')}
     <div><dt><kbd>Left stick</kbd></dt><dd>Steer</dd></div>
-    <div><dt><kbd>X</kbd></dt><dd>Change race camera</dd></div>
+    <div><dt><kbd>Right stick click</kbd></dt><dd>Change race camera</dd></div>
+    <div><dt><kbd>X / Y / D-pad ← / →</kbd></dt><dd>Equipment 1 / 2 / 3 / 4</dd></div>
     <div><dt><kbd>Menu / Start</kbd></dt><dd>Pause / resume</dd></div>
     <div><dt><kbd>View / Select</kbd></dt><dd>Music play / pause</dd></div>
     <div><dt><kbd>D-pad / stick</kbd></dt><dd>Navigate menus</dd></div>

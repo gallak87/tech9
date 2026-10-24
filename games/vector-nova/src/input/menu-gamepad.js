@@ -9,7 +9,7 @@ export function menuIntent(pad, { stickNavigation = true } = {}) {
     back: pressed(1),
     pause: pressed(9),
     music: pressed(8),
-    camera: pressed(2),
+    camera: pressed(11),
     x: pressed(14)
       ? -1
       : pressed(15)
@@ -38,6 +38,10 @@ export function bindMenuGamepad(signal, { toggleMusic = () => {} } = {}) {
     element.getClientRects().length &&
     !element.closest('[hidden], .hidden, [inert]');
   const menuRoot = () => {
+    const progression = document.querySelector(
+      'dialog[data-progression-dialog][open]',
+    );
+    if (visible(progression)) return progression;
     const music = document.querySelector(
       '[data-music-player][data-menu-active]',
     );

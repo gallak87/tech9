@@ -7,9 +7,13 @@ import {
   surfaceHullClearance,
   updateBoostState,
 } from './index.js';
-import { getShip } from '../ships/catalog.js';
+import { vehicleHandling } from '../ships/catalog.js';
 import { createMagneticBody, MAGNETIC_BODY_RULES } from './magnetic-body.js';
-import { createContactFeedback, racerImpact } from './contact-feedback.js';
+import {
+  createContactFeedback,
+  racerImpact,
+  mitigateHazardImpact,
+} from './contact-feedback.js';
 import { landingZoneEnd } from './landing-zone.js';
 
 export const DEFAULT_FLIGHT_RULES = Object.freeze({
@@ -116,6 +120,9 @@ export function createFlightModel(overrides = {}) {
     let surfaces = landingSurfaces.get(track);
     if (!surfaces) landingSurfaces.set(track, (surfaces = new Map()));
     if (!surfaces.has(jump)) {
+      if (jump.id === 'equipment-jump')
+        for (const cached of surfaces.keys())
+          if (cached.id === 'equipment-jump') surfaces.delete(cached);
       const segments = [];
       const receivingEnd = landingZoneEnd(track, jump);
       for (let start = jump.landingStart; start < receivingEnd; start += 4) {
@@ -165,7 +172,8 @@ export function createFlightModel(overrides = {}) {
   // Half the hull must overlap the authored rail envelope; offsets represent
   // visible outboard barriers without expanding the road landing surface.
   function sweptRail(track, jump, before, after) {
-    if (!track.jumps.includes(jump)) return null;
+    if (!track.jumps.includes(jump) && jump.id !== 'equipment-jump')
+      return null;
     const receivingEnd = landingZoneEnd(track, jump);
     const height = R.railHeight[jump.id] ?? 0.9;
     const offset = R.railOffset[jump.id] ?? 0;
@@ -272,7 +280,8 @@ export function createFlightModel(overrides = {}) {
   // support permits an edge catch; internal seams never reject a supported hull.
   // Only top-down, forward, upright contacts on the current jump can relatch.
   function sweptLanding(track, jump, before, after, velocity) {
-    if (!track.jumps.includes(jump)) return null;
+    if (!track.jumps.includes(jump) && jump.id !== 'equipment-jump')
+      return null;
     const receivingEnd = landingZoneEnd(track, jump);
     const motion = new THREE.Line3(before.position, after.position);
     const nearest = new THREE.Vector3();
@@ -627,12 +636,15 @@ export function createFlightModel(overrides = {}) {
               frame.right,
               state.speed * Math.sin(state.heading) + state.lateralSpeed * 0.15,
             );
-      const impulse = options.launchImpulse?.({
-        state,
-        jump,
-        position: world.position.clone(),
-        time: state.time,
-      });
+      const impulse =
+        jump.id === 'equipment-jump'
+          ? null
+          : options.launchImpulse?.({
+              state,
+              jump,
+              position: world.position.clone(),
+              time: state.time,
+            });
       if (impulse) {
         if (![impulse.x, impulse.y, impulse.z].every(Number.isFinite))
           throw new Error('Launch impulse must be a finite world vector.');
@@ -1124,6 +1136,7 @@ export function createFlightModel(overrides = {}) {
       return false;
     }
     function flightFailure(jump) {
+      if (flight.equipmentGraceUntil > flight.elapsed) return null;
       const frame = track.sample(jump.landingStart);
       const offset = currentPose.position.clone().sub(frame.position);
       const down = offset.dot(frame.up);
@@ -1141,7 +1154,7 @@ export function createFlightModel(overrides = {}) {
     }
 
     function airPropulsion(state, input, dt, events) {
-      const handling = getShip(state.shipId).handling;
+      const handling = vehicleHandling(state);
       state.speed = flight.velocity.length();
       const boost = updateBoostState(
         state,
@@ -1163,7 +1176,9 @@ export function createFlightModel(overrides = {}) {
     }
 
     function prepareDynamicFlight(state, input, dt, events) {
-      const jump = track.jumps.find((entry) => entry.id === flight.id);
+      const jump =
+        flight.equipmentJump ??
+        track.jumps.find((entry) => entry.id === flight.id);
       state.time += dt;
       state.impact = Math.max(0, state.impact - dt * 2.4);
       state.steer = clamp(Number(input?.steer) || 0, -1, 1);
@@ -1173,11 +1188,19 @@ export function createFlightModel(overrides = {}) {
       if (wasRecovering && automaticRecovery)
         flight.remaining = Math.max(0, flight.remaining - dt);
       const acceleration = airPropulsion(state, input, dt, events);
+      if (stepModifiers.airDamping)
+        acceleration.addScaledVector(
+          flight.launchRight,
+          -flight.velocity.dot(flight.launchRight) * stepModifiers.airDamping,
+        );
       let angularVelocity;
       if (!wasRecovering) {
         acceleration.addScaledVector(
           flight.launchRight,
-          -state.steer * R.airAcceleration,
+          -state.steer *
+            R.airAcceleration *
+            (stepModifiers.airControl ?? 1) *
+            (flight.equipmentJump ? 4 : 1),
         );
         const extra = options.airAcceleration?.({
           state,
@@ -1303,14 +1326,22 @@ export function createFlightModel(overrides = {}) {
         if (contact && hit.shape.kind === 'rail') flight.edgeCaught = true;
         if (fresh.has(hit)) {
           const racer = hit.shape.kind === 'racer';
-          const impact = racer
-            ? racerImpact(hit.incomingSpeed)
-            : {
-                severity: clamp(hit.incomingSpeed / 55, crash ? 0.45 : 0.18, 1),
-                energyCost: crash
-                  ? COLLISION_RULES.crashEnergy
-                  : R.edgeEnergyCost,
-              };
+          const impact = mitigateHazardImpact(
+            racer
+              ? racerImpact(hit.incomingSpeed)
+              : {
+                  severity: clamp(
+                    hit.incomingSpeed / 55,
+                    crash ? 0.45 : 0.18,
+                    1,
+                  ),
+                  energyCost: crash
+                    ? COLLISION_RULES.crashEnergy
+                    : R.edgeEnergyCost,
+                },
+            state,
+            hit.shape,
+          );
           const shielded = shield;
           shield = false;
           const energyCost = shielded ? 0 : impact.energyCost;
@@ -1369,6 +1400,30 @@ export function createFlightModel(overrides = {}) {
         transfer(state, jump, 'landed', events, contact, contactPose);
         return;
       }
+      // Baseline magnetic circuits have sampled road support rather than
+      // physical deck colliders. Use the same swept receiving-surface test as
+      // authored flight, so equipment can land on their actual curved road.
+      if (flight.equipmentJump && !collisionWorld) {
+        const landing = sweptLanding(
+          track,
+          jump,
+          previousPose,
+          currentPose,
+          flight.velocity,
+        );
+        if (landing) {
+          const contactPose = {
+            position: previousPose.position
+              .clone()
+              .lerp(currentPose.position, landing.fraction),
+            quaternion: previousPose.quaternion
+              .clone()
+              .slerp(currentPose.quaternion, landing.fraction),
+          };
+          transfer(state, jump, 'landed', events, landing, contactPose);
+          return;
+        }
+      }
       if (mode === 'recovery') {
         if (automaticRecovery && flight.remaining <= 1e-8)
           transfer(state, jump, 'recovered', events);
@@ -1379,12 +1434,19 @@ export function createFlightModel(overrides = {}) {
     }
 
     function advanceFlight(state, input, dt, events) {
-      const jump = track.jumps.find((entry) => entry.id === flight.id);
+      const jump =
+        flight.equipmentJump ??
+        track.jumps.find((entry) => entry.id === flight.id);
       state.time += dt;
       state.impact = Math.max(0, state.impact - dt * 2.4);
       state.steer = clamp(Number(input?.steer) || 0, -1, 1);
       state.distance = flight.from;
       const acceleration = airPropulsion(state, input, dt, events);
+      if (stepModifiers.airDamping)
+        acceleration.addScaledVector(
+          flight.launchRight,
+          -flight.velocity.dot(flight.launchRight) * stepModifiers.airDamping,
+        );
       acceleration.y -= R.gravity;
       flight.elapsed += dt;
       if (mode === 'recovery') {
@@ -1412,7 +1474,10 @@ export function createFlightModel(overrides = {}) {
       const before = clonePose(currentPose);
       acceleration.addScaledVector(
         flight.launchRight,
-        -state.steer * R.airAcceleration,
+        -state.steer *
+          R.airAcceleration *
+          (stepModifiers.airControl ?? 1) *
+          (flight.equipmentJump ? 4 : 1),
       );
       const extra = options.airAcceleration?.({
         state,
@@ -1591,6 +1656,54 @@ export function createFlightModel(overrides = {}) {
       version: options.version,
       rulesId: `${collisionWorld ? `${options.rulesId}:collision-${JSON.stringify({ id: collisionWorld.id, version: collisionWorld.version, rulesId: collisionWorld.rulesId })}` : options.rulesId}${dynamics ? `:dynamics-${JSON.stringify({ id: dynamics.id, version: dynamics.version, rulesId: dynamics.rulesId })}:${MAGNETIC_BODY_RULES}:shared-transition-tick-v1` : collisionWorld ? ':supported-rail-slide-v1' : ''}${options.forgivingContacts ? `:forgiving-deck-wall-v4:support-height-${options.supportHeight ?? 0}` : ''}${boundaryRecoveryGrace ? ':boundary-recovery-grace-v1' : ''}${automaticRecovery ? '' : ':manual-recovery-v1'}`,
       scenarios,
+      jump(state) {
+        if (disposed || pending || !dynamics) return false;
+        if (mode !== 'magnetic') {
+          // A timed second lift can rescue a fall; it never resets race progress.
+          mode = 'flight';
+          flight.failure = null;
+          flight.remaining = 0;
+          flight.equipmentGraceUntil = flight.elapsed + 1.7;
+          const normal = track.sample(state.distance).up;
+          flight.velocity.addScaledVector(
+            normal,
+            22 - Math.min(0, flight.velocity.dot(normal)),
+          );
+          actor.setVelocity(flight.velocity, flight.angularVelocity);
+          return true;
+        }
+        const from = state.distance;
+        const at =
+          track.closed === false
+            ? from
+            : THREE.MathUtils.euclideanModulo(from, track.length);
+        const end =
+          Math.min(
+            track.finishDistance ?? track.length,
+            at + Math.max(450, state.speed * 4),
+          ) - 0.01;
+        if (end <= at + 15) return false;
+        const jump = {
+          id: 'equipment-jump',
+          takeoff: at,
+          landingStart: Math.max(0, at - 15),
+          landingEnd: end,
+          recovery: at,
+          halfWidth: track.width / 2,
+        };
+        const physical = actor.read();
+        beginFlight(state, jump, from, [], physical, physical);
+        flight.equipmentJump = jump;
+        flight.equipmentGraceUntil = 2.2;
+        const normal = track.sample(from).up;
+        flight.velocity.addScaledVector(
+          normal,
+          22 - Math.min(0, flight.velocity.dot(normal)),
+        );
+        flight.angularVelocity.set(0, 0, 0);
+        actor.setVelocity(flight.velocity, flight.angularVelocity);
+        return true;
+      },
       applyImpulse(state, impulse) {
         if (disposed || mode !== 'magnetic') return;
         if (magneticBody) {
@@ -1678,7 +1791,18 @@ export function createFlightModel(overrides = {}) {
           throw new Error('Invalid flight runtime state.');
         if (
           data.flight &&
-          !track.jumps.some((jump) => jump.id === data.flight.id)
+          !track.jumps.some((jump) => jump.id === data.flight.id) &&
+          !(
+            data.flight.id === 'equipment-jump' &&
+            data.flight.equipmentJump &&
+            [
+              'takeoff',
+              'landingStart',
+              'landingEnd',
+              'recovery',
+              'halfWidth',
+            ].every((key) => Number.isFinite(data.flight.equipmentJump[key]))
+          )
         )
           throw new Error('Unknown flight jump.');
         mode = data.mode;

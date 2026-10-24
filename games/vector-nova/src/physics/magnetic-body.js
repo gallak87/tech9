@@ -1,5 +1,6 @@
+import { mitigateHazardSurface } from './hazard-surface.js';
 import * as T from 'three';
-import { getShip } from '../ships/catalog.js';
+import { vehicleHandling } from '../ships/catalog.js';
 import {
   COLLISION_HULLS_ID,
   getCollisionHull,
@@ -11,7 +12,11 @@ import {
   updateBoostState,
 } from './index.js';
 import { VEHICLE_HULL, projectedHullExtent, hullAxes } from './hull.js';
-import { createContactFeedback, racerImpact } from './contact-feedback.js';
+import {
+  createContactFeedback,
+  racerImpact,
+  mitigateHazardImpact,
+} from './contact-feedback.js';
 
 export const MAGNETIC_BODY_RULES = `magnetic-query-v10-supported-reset-visual-landing160-yaw-0.85-120-grip:${COLLISION_HULLS_ID}`;
 const clamp = T.MathUtils.clamp;
@@ -351,6 +356,10 @@ export function createMagneticBody({
       lastSpeed = state.speed;
     },
     stage(state, input, dt, options = {}) {
+      options = {
+        ...options,
+        surface: mitigateHazardSurface(options.surface, state),
+      };
       if (!initialized) initialize(state, options);
       const body = actor.read();
       if (capture) {
@@ -372,7 +381,7 @@ export function createMagneticBody({
         state.impact = Math.max(0, state.impact - dt * 2.4);
         state.energy = Math.min(
           100,
-          state.energy + getShip(state.shipId).handling.recharge * dt,
+          state.energy + vehicleHandling(state).recharge * dt,
         );
         state.boosting = false;
         pending = {
@@ -398,13 +407,13 @@ export function createMagneticBody({
         body.velocity.addScaledVector(f.tangent, deviceImpulse);
         actor.setVelocity(body.velocity);
       }
-      const handling = getShip(state.shipId).handling;
+      const handling = vehicleHandling(state);
       const throttle = clamp(finite(input?.throttle), 0, 1);
       const brake = clamp(finite(input?.brake), 0, 1);
       const steer = clamp(finite(input?.steer), -1, 1);
       const airbrake = Boolean(input?.airbrake);
       const boost = updateBoostState(state, input, events);
-      const resolvedPace = getVehiclePace(state.shipId, options.pace);
+      const resolvedPace = getVehiclePace(state.shipId, options.pace, handling);
       const pace = resolvedPace ?? handling;
       const pad = options.propulsion && brake < 0.1;
       const cruise = Math.max(
@@ -595,7 +604,11 @@ export function createMagneticBody({
           : poseCopy(body);
       for (const hit of contactFeedback.collect(body.contacts, state.time)) {
         const key = hit.shape.id;
-        const impact = racerImpact(hit.incomingSpeed);
+        const impact = mitigateHazardImpact(
+          racerImpact(hit.incomingSpeed),
+          state,
+          hit.shape,
+        );
         const { severity } = impact;
         const shielded = pending?.shield === true;
         if (pending) pending.shield = false;

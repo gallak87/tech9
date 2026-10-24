@@ -14,6 +14,7 @@ test('demo contains two worlds and one player ship; shared materials do not ship
   for (const path of [
     'assets/levels/halcyon/halcyon-clouds-v1.png',
     'assets/ships/kestrel/kestrel.glb',
+    'assets/menu/ships/kestrel.jpg',
     'assets/ships/rivals/rook/rook.glb',
     'assets/ships/decoder/basis_transcoder.wasm',
     'assets/levels/helion/ceramic/normal.ktx2',
@@ -22,6 +23,7 @@ test('demo contains two worlds and one player ship; shared materials do not ship
     assert(includePublic(path, 'demo'), path);
   for (const path of [
     'assets/ships/needle/needle.glb',
+    'assets/menu/ships/needle.jpg',
     'assets/levels/helion/thermal-observatory.glb',
     'assets/levels/nightweir/nightweir-city.glb.gz',
     'assets/menu/orbital.webp',
@@ -227,5 +229,27 @@ test('full desktop staging preserves registered Worldkit provenance byte-for-byt
     assert.deepEqual(await readdir(full), ['worldkit']);
   } finally {
     await rm(scratch, { recursive: true, force: true });
+  }
+});
+
+test('full edition includes all fleet rail stills without shipping their source notes', () => {
+  for (const id of editionPolicy('full').ships)
+    assert.equal(includePublic(`assets/menu/ships/${id}.jpg`, 'full'), true);
+  assert.equal(includePublic('assets/menu/ships/README.md', 'full'), false);
+});
+
+test('desktop editions include every reward icon but omit artwork sources and prompts', async () => {
+  const { REWARDS } = await import('../../src/progression/catalog.js');
+  for (const edition of ['demo', 'full']) {
+    for (const reward of REWARDS)
+      assert.equal(
+        includePublic(`assets/rewards/icons-v2/${reward.id}.png`, edition),
+        true,
+      );
+    for (const file of ['source/speed-1.png', 'provenance.json', 'unknown.png'])
+      assert.equal(
+        includePublic(`assets/rewards/icons-v2/${file}`, edition),
+        false,
+      );
   }
 });

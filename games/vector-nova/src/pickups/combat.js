@@ -1,3 +1,4 @@
+import { toughness } from '../progression/catalog.js';
 import * as T from 'three';
 import { ionWakeContact, sampleIonContact } from './ion-contact.js';
 import {
@@ -79,10 +80,12 @@ export function createCombatSimulation({
     flashes: [],
   });
   state = fresh();
-  function eligible(id) {
+  function eligible(id, requireTouched = true) {
     const actor = actors.get(id);
     const pose = actor?.pose();
-    return touched.has(id) && pose?.grounded !== false && !pose?.recovering
+    return (!requireTouched || touched.has(id)) &&
+      pose?.grounded !== false &&
+      !pose?.recovering
       ? actor && pose && { actor, pose }
       : null;
   }
@@ -180,6 +183,7 @@ export function createCombatSimulation({
         kind,
         state.time,
         entrySpeed,
+        toughness(targetActor.actor.state),
       );
       targetActor.actor.disrupt?.(
         sampleCombatDisruption(state.disruptions[target], state.time),
@@ -250,7 +254,7 @@ export function createCombatSimulation({
       );
     }
   }
-  function shoot(id, actor, pose) {
+  function shoot(id, actor, pose, heavy = false) {
     const direction = forward.clone().applyQuaternion(pose.quaternion);
     const frame = track.sample(actor.state.distance);
     const heading = Math.atan2(
@@ -266,12 +270,14 @@ export function createCombatSimulation({
     const shot = {
       id: state.sequence++,
       source: id,
+      ...(heavy ? { heavy: true } : {}),
       age: 0,
       distance: actor.state.distance,
       lateral: actor.state.lateral,
       heading,
       height,
-      speed: COMBAT_RULES.arcSpeed + Math.max(0, actor.state.speed),
+      speed:
+        (heavy ? 490 : COMBAT_RULES.arcSpeed) + Math.max(0, actor.state.speed),
       position: pose.position
         .clone()
         .addScaledVector(frame.up, ARC_SHOT_HEIGHT)
@@ -281,7 +287,7 @@ export function createCombatSimulation({
         .toArray(),
       quaternion: pose.quaternion.toArray(),
     };
-    shot.target = acquireArcTarget(shot);
+    shot.target = heavy ? null : acquireArcTarget(shot);
     state.shots.push(shot);
     state.flashes.push({
       id: state.sequence++,
@@ -323,6 +329,37 @@ export function createCombatSimulation({
     bind(id, actor) {
       actors.set(id, actor);
       touched.add(id);
+    },
+    draftTarget(id) {
+      const source = eligible(id);
+      if (!source) return null;
+      for (const [target] of actors) {
+        const other = eligible(target, false);
+        if (!other || id === target) continue;
+        let ahead = other.actor.state.distance - source.actor.state.distance;
+        if (track.closed !== false)
+          ahead =
+            T.MathUtils.euclideanModulo(
+              ahead + track.length / 2,
+              track.length,
+            ) -
+            track.length / 2;
+        if (
+          ahead > 5 &&
+          ahead < 180 &&
+          Math.abs(other.actor.state.lateral - source.actor.state.lateral) <
+            9 &&
+          blocked(source.pose.position, other.pose.position) > 0.99
+        )
+          return target;
+      }
+      return null;
+    },
+    fireLance(id) {
+      const source = eligible(id);
+      if (!source) return false;
+      shoot(id, source.actor, source.pose, true);
+      return true;
     },
     request(id, event) {
       requests.push({ id, event });
@@ -435,7 +472,8 @@ export function createCombatSimulation({
       }
       state.shots = state.shots.filter((shot) => {
         shot.age += dt;
-        if (shot.age > COMBAT_RULES.arcLifetime) return false;
+        if (shot.age > (shot.heavy ? 1.1 : COMBAT_RULES.arcLifetime))
+          return false;
         const a = vector(shot.position);
         // Bounded homing adjusts road-local yaw; hills and banks still need
         // no separate pitch aim, and every movement keeps the swept collision.
@@ -492,7 +530,7 @@ export function createCombatSimulation({
           const applied = hit(
             shot.source,
             target,
-            'arc',
+            shot.heavy ? 'repulsor' : 'arc',
             right
               .multiplyScalar(side * 5)
               .addScaledVector(velocity.clone().normalize(), 2),
@@ -651,7 +689,13 @@ export function createCombatSimulation({
           (entry) =>
             !entry ||
             !COMBAT_CONSEQUENCES[entry.kind] ||
-            entry.duration !== COMBAT_CONSEQUENCES[entry.kind].duration ||
+            entry.duration !==
+              COMBAT_CONSEQUENCES[entry.kind].duration *
+                (1 - (entry.mitigation ?? 0)) ||
+            (entry.mitigation != null &&
+              (!Number.isFinite(entry.mitigation) ||
+                entry.mitigation < 0 ||
+                entry.mitigation > 0.2)) ||
             !Number.isFinite(entry.entrySpeed) ||
             entry.entrySpeed < 0 ||
             !Number.isFinite(entry.startedAt) ||

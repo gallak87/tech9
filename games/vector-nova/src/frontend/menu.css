@@ -234,6 +234,7 @@
   min-width: 0;
 }
 .menu-wide .menu-picker {
+  padding-top: clamp(12px, 4dvh, 40px);
   height: calc(100dvh - 112px);
   display: flex;
   flex-direction: column;
@@ -694,7 +695,8 @@
     flex-wrap: wrap;
     gap: 4px 10px;
   }
-  .race-menu {
+  .race-menu,
+  .menu-wide .menu-picker {
     padding-top: 12px;
   }
 }
@@ -1081,7 +1083,8 @@
   }
 }
 @media (min-width: 900px) and (max-height: 640px) {
-  .menu-wide .race-menu {
+  .menu-wide .race-menu,
+  .menu-wide .menu-picker {
     padding-top: 0;
   }
   .menu-wide .menu-selection {

@@ -850,6 +850,20 @@
       "rights": "Project-authored; no third-party asset inputs",
       "runtimeAssets": ["desktop/icons/icon.icns", "desktop/icons/icon.ico"],
       "runtimeDependencies": []
+    },
+    {
+      "id": "ship-picker-stills",
+      "source": "public/assets/menu/ships/",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "400×225 JPEG captures of the actual player GLBs in src/frontend/ship-preview.js, generated with tools/capture-ship-previews.mjs. No model or material changes.",
+      "rights": "Project-authored model captures; underlying ship assets retain their registered provenance.",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "public/assets/menu/ships/shrike.jpg",
+        "public/assets/menu/ships/bastion.jpg",
+        "public/assets/menu/ships/needle.jpg",
+        "public/assets/menu/ships/kestrel.jpg"
+      ]
     }
   ],
   "thirdParty": [
@@ -870,6 +884,84 @@
       "version": "1.58.2",
       "license": "Apache-2.0",
       "source": "https://github.com/microsoft/playwright"
+    },
+    {
+      "id": "reward-icons-v1",
+      "source": "assets/rewards/icons-v1/source/",
+      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
+      "provenance": "28 original transparent reward icons: six stat families in green/blue/purple tiers, six equipment items, three epic hull unlocks and gold Quad Core. One generation per icon; exact prompts, original outputs and SHA-256 hashes retained. Runtime PNGs mechanically resized to 128px with alpha.",
+      "rights": "Generated for this project; no third-party reference artwork supplied",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/rewards/icons-v1/provenance.json",
+      "runtimeAssets": [
+        "public/assets/rewards/icons-v1/speed-1.png",
+        "public/assets/rewards/icons-v1/speed-2.png",
+        "public/assets/rewards/icons-v1/speed-3.png",
+        "public/assets/rewards/icons-v1/acceleration-1.png",
+        "public/assets/rewards/icons-v1/acceleration-2.png",
+        "public/assets/rewards/icons-v1/acceleration-3.png",
+        "public/assets/rewards/icons-v1/handling-1.png",
+        "public/assets/rewards/icons-v1/handling-2.png",
+        "public/assets/rewards/icons-v1/handling-3.png",
+        "public/assets/rewards/icons-v1/braking-1.png",
+        "public/assets/rewards/icons-v1/braking-2.png",
+        "public/assets/rewards/icons-v1/braking-3.png",
+        "public/assets/rewards/icons-v1/boost-1.png",
+        "public/assets/rewards/icons-v1/boost-2.png",
+        "public/assets/rewards/icons-v1/boost-3.png",
+        "public/assets/rewards/icons-v1/toughness-1.png",
+        "public/assets/rewards/icons-v1/toughness-2.png",
+        "public/assets/rewards/icons-v1/toughness-3.png",
+        "public/assets/rewards/icons-v1/equipment-jump.png",
+        "public/assets/rewards/icons-v1/equipment-injector.png",
+        "public/assets/rewards/icons-v1/equipment-slipstream.png",
+        "public/assets/rewards/icons-v1/equipment-deflector.png",
+        "public/assets/rewards/icons-v1/equipment-stabilizer.png",
+        "public/assets/rewards/icons-v1/equipment-lance.png",
+        "public/assets/rewards/icons-v1/ship-bastion.png",
+        "public/assets/rewards/icons-v1/ship-needle.png",
+        "public/assets/rewards/icons-v1/ship-kestrel.png",
+        "public/assets/rewards/icons-v1/exotic-slot.png"
+      ]
+    },
+    {
+      "id": "reward-icons-v2",
+      "source": "assets/rewards/icons-v2/",
+      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
+      "provenance": "Current 28-icon reward set. Revised all 18 stat tiers plus Jump and Lance into plausible mounted ship modules; reused the remaining eight v1 icons. Exact edit prompts, project-owned image references, original PNGs and hashes retained. v1 is retained as source history; runtime uses v2 only.",
+      "rights": "Generated for this project using its own generated reward art as references. No third-party artwork supplied.",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/rewards/icons-v2/provenance.json",
+      "runtimeAssets": [
+        "public/assets/rewards/icons-v2/speed-1.png",
+        "public/assets/rewards/icons-v2/speed-2.png",
+        "public/assets/rewards/icons-v2/speed-3.png",
+        "public/assets/rewards/icons-v2/acceleration-1.png",
+        "public/assets/rewards/icons-v2/acceleration-2.png",
+        "public/assets/rewards/icons-v2/acceleration-3.png",
+        "public/assets/rewards/icons-v2/handling-1.png",
+        "public/assets/rewards/icons-v2/handling-2.png",
+        "public/assets/rewards/icons-v2/handling-3.png",
+        "public/assets/rewards/icons-v2/braking-1.png",
+        "public/assets/rewards/icons-v2/braking-2.png",
+        "public/assets/rewards/icons-v2/braking-3.png",
+        "public/assets/rewards/icons-v2/boost-1.png",
+        "public/assets/rewards/icons-v2/boost-2.png",
+        "public/assets/rewards/icons-v2/boost-3.png",
+        "public/assets/rewards/icons-v2/toughness-1.png",
+        "public/assets/rewards/icons-v2/toughness-2.png",
+        "public/assets/rewards/icons-v2/toughness-3.png",
+        "public/assets/rewards/icons-v2/equipment-jump.png",
+        "public/assets/rewards/icons-v2/equipment-injector.png",
+        "public/assets/rewards/icons-v2/equipment-slipstream.png",
+        "public/assets/rewards/icons-v2/equipment-deflector.png",
+        "public/assets/rewards/icons-v2/equipment-stabilizer.png",
+        "public/assets/rewards/icons-v2/equipment-lance.png",
+        "public/assets/rewards/icons-v2/ship-bastion.png",
+        "public/assets/rewards/icons-v2/ship-needle.png",
+        "public/assets/rewards/icons-v2/ship-kestrel.png",
+        "public/assets/rewards/icons-v2/exotic-slot.png"
+      ]
     }
   ]
 }

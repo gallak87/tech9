@@ -8,6 +8,12 @@ export const GHOST_VERSION = 1;
 const MAX_SECONDS = 1200;
 const MAX_SAMPLES = MAX_SECONDS * 10 + 2;
 const memory = new Map();
+const storageMemories = new WeakMap();
+function memoryFor(store) {
+  if (!store?.isolated) return memory;
+  if (!storageMemories.has(store)) storageMemories.set(store, new Map());
+  return storageMemories.get(store);
+}
 const finite = (v) => typeof v === 'number' && Number.isFinite(v);
 const copy = (v) => structuredClone(v);
 const delta = (time, reference) =>
@@ -25,7 +31,7 @@ function storage() {
     return null;
   }
 }
-export function trialIdentity({ track, ship, version, runtime }) {
+export function trialIdentity({ track, ship, version, runtime, build = null }) {
   return {
     rules: track.closed === false ? TRIAL_RULES : LAP_TRIAL_RULES,
     track: track.id,
@@ -39,6 +45,7 @@ export function trialIdentity({ track, ship, version, runtime }) {
     finish: track.closed === false ? track.finishDistance : track.length,
     laps: 1,
     physics: 3,
+    ...(build ? { build } : {}),
     ...(track.closed === false ? {} : { start: 'standing' }),
   };
 }
@@ -106,7 +113,7 @@ export function decodeGhost(ghost, duration) {
 }
 export function readTrialBest(identity, store = storage()) {
   const key = keyFor(identity);
-  let data = memory.get(key);
+  let data = memoryFor(store).get(key);
   try {
     const raw = store?.getItem(key);
     if (raw && !data) data = JSON.parse(raw);
@@ -148,7 +155,7 @@ export function readTrialRecords(store = storage()) {
   } catch {
     /* Disabled storage still permits page-session records. */
   }
-  for (const [key, record] of memory) entries.set(key, record);
+  for (const [key, record] of memoryFor(store)) entries.set(key, record);
   const records = [];
   for (const [key, data] of entries) {
     const id = data?.identity;
@@ -192,7 +199,7 @@ export function readTrialRecords(store = storage()) {
 
 function saveBest(record, store) {
   const key = keyFor(record.identity);
-  memory.set(key, copy(record));
+  memoryFor(store).set(key, copy(record));
   try {
     if (!store) throw new Error('No storage');
     store.setItem(key, JSON.stringify(record));
@@ -207,7 +214,12 @@ function saveBest(record, store) {
     }
   }
 }
-export function createTimeTrial({ identity, race, store = storage() }) {
+export function createTimeTrial({
+  identity,
+  race,
+  store = storage(),
+  onRecord,
+}) {
   const sprint = identity.format === 'sprint';
   const identities = sprint
     ? { sprint: identity }
@@ -266,6 +278,8 @@ export function createTimeTrial({ identity, race, store = storage() }) {
           ? encodeGhost(samples)
           : null,
     };
+    if (record.ghost && !decodeGhost(record.ghost, duration))
+      record.ghost = null;
     const saved = improved ? saveBest(record, store) : null;
     const completed = {
       mode: 'time-trial',
@@ -296,6 +310,7 @@ export function createTimeTrial({ identity, race, store = storage() }) {
       };
       persistence = saved;
     }
+    if (improved) onRecord?.(copy(completed));
     return completed;
   }
   // Pose sampling straddles a fixed physics step. Split that step at the
@@ -370,4 +385,48 @@ export function createTimeTrial({ identity, race, store = storage() }) {
       };
     },
   };
+}
+
+// Save transfer reuses the normal record/ghost validator and exact identity key.
+export function exportTrialSaves(store = storage()) {
+  return readTrialRecords(store).map(({ key, identity }) => {
+    const { samples, ...data } = readTrialBest(identity, store);
+    return { key, data: { ...data, ghost: samples ? data.ghost : null } };
+  });
+}
+export function validateTrialSaves(entries) {
+  if (
+    !Array.isArray(entries) ||
+    entries.length > 2000 ||
+    new Set(entries.map((e) => e?.key)).size !== entries.length
+  )
+    throw new Error('Invalid Time Trial records.');
+  const values = new Map();
+  for (const entry of entries) {
+    if (
+      !entry ||
+      typeof entry.key !== 'string' ||
+      !entry.key.startsWith('vector-nova.trial.v1.')
+    )
+      throw new Error('Invalid Time Trial record key.');
+    values.set(entry.key, JSON.stringify(entry.data));
+  }
+  const store = {
+    isolated: true,
+    length: values.size,
+    key: (i) => [...values.keys()][i],
+    getItem: (key) => values.get(key),
+  };
+  const records = readTrialRecords(store);
+  if (
+    records.length !== entries.length ||
+    entries.some(
+      ({ data }) => data.ghost && !decodeGhost(data.ghost, data.duration),
+    )
+  )
+    throw new Error('Damaged Time Trial record or ghost.');
+  return exportTrialSaves(store);
+}
+export function clearTrialMemory(store = storage()) {
+  memoryFor(store).clear();
 }

@@ -45,16 +45,30 @@ test('each preset maps independent analog throttle/brake and boost/airbrake butt
           boost: false,
           airbrake: false,
           steer: 0,
+          equipment1: false,
+          equipment2: false,
+          equipment3: false,
+          equipment4: false,
           [action]: action === 'throttle' || action === 'brake' ? 0.7 : true,
         },
         `${controllerPreset} ${action}`,
       );
     }
     const pad = device();
-    pad.buttons[2] = { value: 1, pressed: true };
+    pad.buttons[11] = { value: 1, pressed: true };
     assert.deepEqual(
       sampleGamepad(pad, settings),
-      { throttle: 0, brake: 0, boost: false, airbrake: false, steer: 0 },
+      {
+        throttle: 0,
+        brake: 0,
+        boost: false,
+        airbrake: false,
+        steer: 0,
+        equipment1: false,
+        equipment2: false,
+        equipment3: false,
+        equipment4: false,
+      },
       'camera never doubles as driving/recovery',
     );
     assert.equal(menuIntent(pad).camera, true);
@@ -176,4 +190,28 @@ test('a fresh-session clear observes the pad before throttle is held through cou
   reader.clear();
   pad.buttons[7] = { value: 1, pressed: true };
   assert.equal(reader.sample().throttle, 1);
+});
+
+test('X/Y and D-pad left/right activate four separate items across all driving presets', () => {
+  for (const controllerPreset of ['classic', 'shoulders', 'arcade']) {
+    for (const [slot, index] of [2, 3, 14, 15].entries()) {
+      const pad = device();
+      pad.buttons[index] = { value: 1, pressed: true };
+      const input = sampleGamepad(pad, { controllerPreset });
+      assert.equal(input[`equipment${slot + 1}`], true);
+      assert.equal(
+        [1, 2, 3, 4].filter((i) => input[`equipment${i}`]).length,
+        1,
+      );
+      assert.equal(input.throttle, 0);
+      assert.equal(input.boost, false);
+      assert.equal(input.airbrake, false);
+      assert.equal(
+        sampleGamepad(pad, { controllerPreset }, new Set([index]))[
+          `equipment${slot + 1}`
+        ],
+        false,
+      );
+    }
+  }
 });

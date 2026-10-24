@@ -1,3 +1,5 @@
+import { createEquipmentSystem } from '../equipment/runtime.js';
+import { toughness } from '../progression/catalog.js';
 import { Vector3 } from 'three';
 import {
   createMagneticRuntime,
@@ -18,6 +20,10 @@ export function createDeviceRuntime({
   combat = null,
   combatId = 'player',
 }) {
+  const equipment =
+    combatId === 'player'
+      ? createEquipmentSystem({ motion, combat, actorId: combatId })
+      : null;
   const simulation = createPickupSimulation({
     trackLength: track.length,
     closed: track.closed !== false,
@@ -77,17 +83,44 @@ export function createDeviceRuntime({
       notify: (event) => pending.push(event),
       disrupt: (disruption) => applyDisruption(state, disruption),
       hit({ source, kind, impulse, cost }) {
+        if (equipment?.absorbHit()) {
+          pending.push({
+            type: 'equipment-block',
+            payload: { kind: 'deflector', source },
+          });
+          return true;
+        }
         const shield = simulation.consumeShield({ source, attack: kind });
         if (shield) {
           pending.push(shield);
           return true;
         }
-        motion.applyImpulse?.(state, impulse);
-        state.energy = Math.max(0, state.energy - cost);
+        motion.applyImpulse?.(
+          state,
+          impulse.clone().multiplyScalar(1 - toughness(state)),
+        );
+        state.energy = Math.max(
+          0,
+          state.energy - cost * (1 - toughness(state)),
+        );
         state.impact = Math.max(state.impact, 0.65);
         return false;
       },
     });
+  }
+  function beforeEquipment(state, input, dt, before) {
+    if (!equipment) return before;
+    const gear = equipment.beforeStep(state, input, dt, { enabled });
+    const road = before.modifiers.propulsion,
+      extra = gear.modifiers.propulsion;
+    before.events.push(...gear.events);
+    before.modifiers = { ...before.modifiers, ...gear.modifiers };
+    if (road && extra)
+      before.modifiers.propulsion = {
+        cruiseSpeed: Math.max(road.cruiseSpeed, extra.cruiseSpeed),
+        thrust: Math.max(road.thrust, extra.thrust),
+      };
+    return before;
   }
   function applyEntryImpulse(events, state) {
     if (
@@ -164,7 +197,12 @@ export function createDeviceRuntime({
       const ordered = [];
       for (let tick = 0; tick < steps; tick++) {
         const previous = supportedState(state);
-        const before = simulation.beforeStep(input, elapsed / steps, previous);
+        const before = beforeEquipment(
+          state,
+          input,
+          elapsed / steps,
+          simulation.beforeStep(input, elapsed / steps, previous),
+        );
         applyEntryImpulse(before.events, state);
         const physics = motion.advance(
           state,
@@ -194,9 +232,14 @@ export function createDeviceRuntime({
             if (staged) throw new Error('Device advance is already staged');
             bindCombat(state);
             const previous = supportedState(state);
-            const before = enabled
-              ? simulation.beforeStep(input, dt, previous)
-              : { events: [], modifiers: {} };
+            const before = beforeEquipment(
+              state,
+              input,
+              dt,
+              enabled
+                ? simulation.beforeStep(input, dt, previous)
+                : { events: [], modifiers: {} },
+            );
             applyEntryImpulse(before.events, state);
             staged = { state, input, previous, before };
             motion.beginAdvance(state, input, dt, before.modifiers);
@@ -230,6 +273,7 @@ export function createDeviceRuntime({
     reset(context) {
       motion.reset(context);
       simulation.reset(context);
+      equipment?.reset(context);
       combat?.resetActor(
         combatId,
         combatId === 'player' &&
@@ -244,6 +288,7 @@ export function createDeviceRuntime({
       return {
         ...movement,
         ...simulation.snapshot(),
+        ...(equipment ? { equipment: equipment.snapshot() } : {}),
         ...(combat && combatId === 'player'
           ? { combat: combat.snapshot() }
           : {}),
@@ -252,6 +297,7 @@ export function createDeviceRuntime({
     },
     restore(data) {
       simulation.restore(data);
+      if (equipment && data.equipment) equipment.restore(data.equipment);
       if (combat && combatId === 'player') combat.restore(data.combat);
       motion.restore(data?.motion ?? null);
       pending = [];
@@ -259,6 +305,7 @@ export function createDeviceRuntime({
       resetPresentation();
     },
     pose: (alpha) => motion.pose(alpha),
+    equipment: () => equipment?.snapshot() ?? null,
     getPresentation: () => presentation?.getPresentation?.() ?? null,
     observePresentation(observer) {
       presentationObservers.add(observer);

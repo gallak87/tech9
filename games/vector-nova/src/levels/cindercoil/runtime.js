@@ -1,3 +1,4 @@
+import { toughness } from '../../progression/catalog.js';
 import { Vector3 } from 'three';
 import { createFlightModel } from '../../physics/flight.js';
 import {
@@ -130,7 +131,8 @@ export function createCindercoilRuntime(context) {
     if (touching) {
       state.energy = Math.max(
         0,
-        state.energy - CINDERCOIL_RULES.reserveDrain * step,
+        state.energy -
+          CINDERCOIL_RULES.reserveDrain * step * (1 - toughness(state)),
       );
       contactSeconds += step;
       if (contactId !== contact.zone.id)

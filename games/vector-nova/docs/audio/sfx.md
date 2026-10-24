@@ -47,12 +47,12 @@ Output is stereo 44.1 kHz / 16-bit PCM. The upstream writer rejects non-finite a
 
 ## Audition and integration
 
-For an isolated cue, use **Sounds → Play** with `?dev=1`. For the full sound/VFX sequence, open **Ship inspector → Powerups → Trigger**, or `?inspect=1&dev=1&ship=kestrel`. Stop cancels the audition; triggering again starts fresh. Effects volume is shared with gameplay.
+For an isolated cue, use **Sounds → Play** with `?dev=1`. For the full sound/VFX sequence, use `?dev=1` or `?dev=2` and open **Race → Ship inspector → Powerups → Trigger**, or `?inspect=1&dev=1&ship=kestrel`. Stop cancels the audition; triggering again starts fresh. Effects volume is shared with gameplay.
 
 - **Engine sound** adds Driving/Boost while those buttons are on. It starts unchecked and silences on blur or close.
 - **Shield target** adds Aegis to Rook for Arc/Repulsor. **Ion · incoming wake** instead attacks your ship and offers **Shield your ship**.
 - **Aegis · shield** plays the full lifetime; **absorb + break** tests a hit after 1.5 seconds. Its middle is intentionally silent.
-- Graphics quality uses the same pickup renderers as gameplay. Low keeps bare cues; High includes glow, trails and fractures. Normal inspection loads no pickup-test code, target or audition sounds without `dev=1`.
+- Graphics quality uses the same pickup renderers as gameplay. Low keeps bare cues; High includes glow, trails and fractures. Normal inspection loads no pickup-test code, target or audition sounds without `dev=1` or `dev=2`.
 
 Finish the complete device set using the [brief/template](../sounds/expansion.md) and [cue inventory](sounds.md). Listen with propulsion and Tunes; technical validation cannot judge the mix. Preserve natural tails, align attacks with real events and check loop seams by ear.
 

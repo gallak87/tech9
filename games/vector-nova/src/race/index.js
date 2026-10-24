@@ -97,6 +97,14 @@ export function createRace(
           const takeoff = base + jump.takeoff;
           if (previous > takeoff + epsilon || current <= takeoff + epsilon)
             continue;
+          const equipmentTransfer = vehicleEvents.find(
+            (event) =>
+              event.type === 'jump-transfer' &&
+              event.payload.id === 'equipment-jump' &&
+              event.payload.outcome === 'landed' &&
+              Math.abs(event.payload.from - previous) < epsilon &&
+              Math.abs(event.payload.to - current) < epsilon,
+          )?.payload;
           const transfer = vehicleEvents.find(
             (event) =>
               event.type === 'jump-transfer' && event.payload.id === jump.id,
@@ -106,17 +114,24 @@ export function createRace(
           if (jump.optional && !transfer) continue;
           const key = `${cycle}:${jump.id}`;
           const target = current - base;
+          const equipmentAllowed =
+            equipmentTransfer &&
+            current - previous <= 1000 &&
+            target >= jump.landingStart - epsilon &&
+            target <= landingZoneEnd(track, jump) + epsilon &&
+            !this.completedTransfers.includes(key);
           const allowed =
-            transfer &&
-            Math.abs(previous - takeoff) < epsilon &&
-            Math.abs(transfer.from - previous) < epsilon &&
-            Math.abs(transfer.to - current) < epsilon &&
-            !this.completedTransfers.includes(key) &&
-            ((transfer.outcome === 'landed' &&
-              target >= jump.landingStart - epsilon &&
-              target <= landingZoneEnd(track, jump) + epsilon) ||
-              (transfer.outcome === 'recovered' &&
-                Math.abs(target - jump.recovery) < epsilon));
+            equipmentAllowed ||
+            (transfer &&
+              Math.abs(previous - takeoff) < epsilon &&
+              Math.abs(transfer.from - previous) < epsilon &&
+              Math.abs(transfer.to - current) < epsilon &&
+              !this.completedTransfers.includes(key) &&
+              ((transfer.outcome === 'landed' &&
+                target >= jump.landingStart - epsilon &&
+                target <= landingZoneEnd(track, jump) + epsilon) ||
+                (transfer.outcome === 'recovered' &&
+                  Math.abs(target - jump.recovery) < epsilon)));
           if (!allowed) {
             this.valid = false;
             return events;

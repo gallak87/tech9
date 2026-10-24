@@ -1,0 +1,333 @@
+{
+  "generator": "Built-in image_gen tool",
+  "date": "2026-10-23",
+  "mode": "20 individual edits with referenced_image_paths and transparent_background=true; 8 existing generated icons retained unchanged",
+  "direction": "All six stat families, Jump and Lance are plausible ship attachments with mounting shoes, lugs, cradles and power connectors. Visual concepts for later authored 3D parts; no production meshes or hardpoint dimensions implied.",
+  "rights": "Generated for this project. References are this project\u2019s generated v1 reward icons. No third-party reference artwork supplied.",
+  "export": "Original PNG retained; sips -Z 128 exports a 128px PNG with alpha, no artwork edits.",
+  "assets": [
+    {
+      "id": "speed-1",
+      "rarity": 1,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Replace the abstract arrow/chevron emblem with an actual low-profile bolt-on aerodynamic/field-control fin pack, a graphite mounting spine with a wedge fairing and functional fins. Green has one fin, blue two, purple three. Orient horizontally/diagonally like a component that sits flush on a racing ship's rear deck, not a logo. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/speed-1.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-2887094c-3beb-4dfb-bca5-baaee2abca30.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-6030eaab-be9b-470e-9611-75cdcfdbeed2.png",
+      "sourceSHA256": "731986fd0f2e31e9f5c6f8c8f79c48b438ae21747fde77f5d350c12837f7ce7e",
+      "runtime": "public/assets/rewards/icons-v2/speed-1.png",
+      "runtimeSHA256": "6e52478b108a2d46561b44fc6508c0de7ce8e2def9c5001830a007a62116b7d2"
+    },
+    {
+      "id": "speed-2",
+      "rarity": 2,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Replace the abstract arrow/chevron emblem with an actual low-profile bolt-on aerodynamic/field-control fin pack, a graphite mounting spine with a wedge fairing and functional fins. Green has one fin, blue two, purple three. Orient horizontally/diagonally like a component that sits flush on a racing ship's rear deck, not a logo. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/speed-2.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-ebe0578e-2545-4c50-abf7-58cba8f318c2.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-15fbf8e8-e97f-4597-8210-623c7554d90e.png",
+      "sourceSHA256": "16a1ed7e6c693d0253260cc374a683576307889e132bb4c8a73ddaff30d0e383",
+      "runtime": "public/assets/rewards/icons-v2/speed-2.png",
+      "runtimeSHA256": "0d6ad2090831f6f2142cf3bb949b7b3e6aa6b088b554c3491ea1d1948b5a99b0"
+    },
+    {
+      "id": "speed-3",
+      "rarity": 3,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Replace the abstract arrow/chevron emblem with an actual low-profile bolt-on aerodynamic/field-control fin pack, a graphite mounting spine with a wedge fairing and functional fins. Green has one fin, blue two, purple three. Orient horizontally/diagonally like a component that sits flush on a racing ship's rear deck, not a logo. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/speed-3.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-bbb6002f-d21a-40bc-9cd1-c79c6f123759.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-12d07e9e-2a04-4dc0-b74b-43c1730acaee.png",
+      "sourceSHA256": "8d9183ea7a09382752285b40a65cbab1c8bb9d918c36504d90dc8a498975ad27",
+      "runtime": "public/assets/rewards/icons-v2/speed-3.png",
+      "runtimeSHA256": "b3612316357d0fd77fff66f15f4f29f68b2362d4c189e6f82e641befaaa5fd0a"
+    },
+    {
+      "id": "acceleration-1",
+      "rarity": 1,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Retain the recognizable exhaust nozzle count and tier color, but show a single connected thruster pod assembly with a short graphite underslung mounting rail, two clear attachment feet and one compact power collar. All nozzles point backward in the SAME direction; no radial three-direction thrust. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/acceleration-1.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-bc3e633e-df89-486d-b0dc-99903d76a5ab.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-a4c1bd20-ebd1-4414-9e7b-25977ab0bc3c.png",
+      "sourceSHA256": "4d4d810815971990ff1d813d9b066af25a37a881a6f4a6b7368a529059523de8",
+      "runtime": "public/assets/rewards/icons-v2/acceleration-1.png",
+      "runtimeSHA256": "89ab08c8ef8a5b4268777f5841f8abb5cff49fe784ee4a6ca0b6d6c3812f5056"
+    },
+    {
+      "id": "acceleration-2",
+      "rarity": 2,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Retain the recognizable exhaust nozzle count and tier color, but show a single connected thruster pod assembly with a short graphite underslung mounting rail, two clear attachment feet and one compact power collar. All nozzles point backward in the SAME direction; no radial three-direction thrust. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/acceleration-2.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-fd60739c-fadd-463b-950c-22e71e914670.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-e6f08bfa-1f3f-4b40-8af6-4f15e5b3f7ed.png",
+      "sourceSHA256": "12a2799efbd9c647d97ea73794dd74bbdc6679cb8288308e7421ce9122cf41ae",
+      "runtime": "public/assets/rewards/icons-v2/acceleration-2.png",
+      "runtimeSHA256": "0efb696af816adeb10a1dd00ed731164b819ad62f01fd39122fb4dc22c356243"
+    },
+    {
+      "id": "acceleration-3",
+      "rarity": 3,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Retain the recognizable exhaust nozzle count and tier color, but show a single connected thruster pod assembly with a short graphite underslung mounting rail, two clear attachment feet and one compact power collar. All nozzles point backward in the SAME direction; no radial three-direction thrust. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/acceleration-3.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-69cc2ac7-c1b2-4d97-8437-da16a3fc0b38.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-01ce2649-aac0-4846-a4b5-8e66098c62ed.png",
+      "sourceSHA256": "943d6f97d27cac5343169b5fafcd9d4187a33c569453d751ee1fffea4adb4389",
+      "runtime": "public/assets/rewards/icons-v2/acceleration-3.png",
+      "runtimeSHA256": "ba1e5802952c7feb99929e095888b074d7f2ec8a7a644f9510ee862bf5913149"
+    },
+    {
+      "id": "handling-1",
+      "rarity": 1,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Retain the gyroscope ring tier motif but make it an attachable steering-control pod: the gimbal is seated on one compact trapezoidal graphite mounting shoe with two bolt ears and a power port. It must look like hardware mounted behind a ship cockpit, not a floating emblem. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/handling-1.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-5a77888f-f4cd-4b01-b943-a15fc7fe52ee.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-41c9cad4-0d0e-4a3a-915f-f945b17fff1e.png",
+      "sourceSHA256": "62afcb042b796a9c76924e39116384e97f2326ef4495fe5f43e60acff8d3ee40",
+      "runtime": "public/assets/rewards/icons-v2/handling-1.png",
+      "runtimeSHA256": "2d2664510f71b29061b7a0c25d45193390fe44a61ff23667d30f60ae1c81a710"
+    },
+    {
+      "id": "handling-2",
+      "rarity": 2,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Retain the gyroscope ring tier motif but make it an attachable steering-control pod: the gimbal is seated on one compact trapezoidal graphite mounting shoe with two bolt ears and a power port. It must look like hardware mounted behind a ship cockpit, not a floating emblem. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/handling-2.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-b06f0b9c-2e59-4791-b4bb-79c1ec58a591.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-f478e872-26e5-41d6-906a-36aa11b04050.png",
+      "sourceSHA256": "03a90498467575a433ad81adb86a986e645261202e54f79e7b2b099143d632d4",
+      "runtime": "public/assets/rewards/icons-v2/handling-2.png",
+      "runtimeSHA256": "fa2a6fdf4d572cc5bbf855194af3e176451d4dc1eca5c8fd45bca0bc0d7e7bb3"
+    },
+    {
+      "id": "handling-3",
+      "rarity": 3,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Retain the gyroscope ring tier motif but make it an attachable steering-control pod: the gimbal is seated on one compact trapezoidal graphite mounting shoe with two bolt ears and a power port. It must look like hardware mounted behind a ship cockpit, not a floating emblem. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/handling-3.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-56ea2972-be6b-4318-841d-577373d3bf24.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-389a4ea6-3a5a-444a-9111-116bb16d6540.png",
+      "sourceSHA256": "95613a1271fe4db18a3d7f8258e5841c8b8531f126e0b27e0a5ff4f16231d3c0",
+      "runtime": "public/assets/rewards/icons-v2/handling-3.png",
+      "runtimeSHA256": "92c54e8618c33cd0f6e54e62a895c1073d2eaa0ecb52cf3da320311db8476692"
+    },
+    {
+      "id": "braking-1",
+      "rarity": 1,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Make this unmistakably a magnetic brake cassette that attaches beside a ship's engine. Retain the caliper tier motif, add a short shared mounting spine and two robust bolt-on attachment tabs. No wheel or tire; its jaws act on an electromagnetic disc/field. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/braking-1.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-0ee522b7-4362-43ee-81f6-4d7909975dae.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-5bd21452-cfae-4784-9ef2-37df48d83d31.png",
+      "sourceSHA256": "65e1e17bff1fb6f86a941dc10ee91900f454883ac287a8e115c3139688cc39af",
+      "runtime": "public/assets/rewards/icons-v2/braking-1.png",
+      "runtimeSHA256": "f4a2a6632d5cee7a126ff065997414e705a5db4ef7ecebe59e04e1da5e5259dd"
+    },
+    {
+      "id": "braking-2",
+      "rarity": 2,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Make this unmistakably a magnetic brake cassette that attaches beside a ship's engine. Retain the caliper tier motif, add a short shared mounting spine and two robust bolt-on attachment tabs. No wheel or tire; its jaws act on an electromagnetic disc/field. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/braking-2.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-fe894baf-6ecd-49c6-8eeb-c2cb1249069b.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-21b76d51-4f5c-4ce5-935a-3ef5d54baee9.png",
+      "sourceSHA256": "21759cdc21913537ee4878d8b8fdd1ef3b4e5f2ea71ca72e19fc43f5c1ecb0ea",
+      "runtime": "public/assets/rewards/icons-v2/braking-2.png",
+      "runtimeSHA256": "73b5a22fd655618f6a434220513889d7ee983a944a89b8eec28971a46c58be5c"
+    },
+    {
+      "id": "braking-3",
+      "rarity": 3,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Make this unmistakably a magnetic brake cassette that attaches beside a ship's engine. Retain the caliper tier motif, add a short shared mounting spine and two robust bolt-on attachment tabs. No wheel or tire; its jaws act on an electromagnetic disc/field. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/braking-3.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-6bb93804-dfa7-4261-83e5-6c2582eb39e0.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-ae24b8e2-5d88-482b-ae70-f465b80fcc44.png",
+      "sourceSHA256": "5f002b526cbb0cb6dcf9a15d241ac1f4eb79966c2c20ee43d00c20d351bcdb2e",
+      "runtime": "public/assets/rewards/icons-v2/braking-3.png",
+      "runtimeSHA256": "ce0fa6ca729eddf67521ac05510d02fb964db586b9ae32ce5aacd3eed1c7fc25"
+    },
+    {
+      "id": "boost-1",
+      "rarity": 1,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Keep the one/two/three reserve canister tier motif, but seat the canister(s) in a unified removable graphite cradle with a visible retaining strap, two mounting feet and a small connector. A real bolt-on boost reservoir, not a loose inventory potion. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/boost-1.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-0dbbdd52-7756-4084-918b-17d2b9a82842.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-4ffa72da-5ed0-4819-91bc-90ae3705580e.png",
+      "sourceSHA256": "16ea44a1e1a0f4bfa8b0311821f91f434e79f397923974ba49694d50b2442671",
+      "runtime": "public/assets/rewards/icons-v2/boost-1.png",
+      "runtimeSHA256": "14e073d191c8c64cf380dae812442ab924c6eb1fb426ee7c4e4bdae7d8745da1"
+    },
+    {
+      "id": "boost-2",
+      "rarity": 2,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Keep the one/two/three reserve canister tier motif, but seat the canister(s) in a unified removable graphite cradle with a visible retaining strap, two mounting feet and a small connector. A real bolt-on boost reservoir, not a loose inventory potion. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/boost-2.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-c7e1816c-5a81-4ff9-9a4f-83f74e18c5cd.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-4c08bb0a-268f-44a4-8e56-eaca65abcca0.png",
+      "sourceSHA256": "79596110441fc2419aab5859d7bc87a0ead23a76b1776e8030d45dae81256237",
+      "runtime": "public/assets/rewards/icons-v2/boost-2.png",
+      "runtimeSHA256": "8332d93f21622e9545d347385bfe8a06755e8aa2df1d52b00849d76dfc24eade"
+    },
+    {
+      "id": "boost-3",
+      "rarity": 3,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Keep the one/two/three reserve canister tier motif, but seat the canister(s) in a unified removable graphite cradle with a visible retaining strap, two mounting feet and a small connector. A real bolt-on boost reservoir, not a loose inventory potion. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/boost-3.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-8151487c-c45f-4563-97ba-3231dab1ce71.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-cf2c0ce1-df85-40c2-aebf-890baf3dafac.png",
+      "sourceSHA256": "69a43aa0dcf9050eadc13f9589487b32d2df9d6ff2dcd1e711028224a2056e97",
+      "runtime": "public/assets/rewards/icons-v2/boost-3.png",
+      "runtimeSHA256": "2775a2c3a794edd50f302b29e3a9f66f579002bd4c76df7b75751bd0a37d71ea"
+    },
+    {
+      "id": "toughness-1",
+      "rarity": 1,
+      "prompt": "Edit the attached project-owned armor icon. Output EXACTLY ONE isolated object for the GREEN tier, on a genuinely transparent background. Square canvas. This is a production 30\u201344px inventory icon: one removable hull armor module for an anti-gravity racing ship, not a shield held by a person. A SINGLE simple low-profile triangular pearl-ceramic armor plate. Minimal and clean. All luminous insets and its single power socket are green only. Show two clear robust attachment clips/lugs on its graphite backing so the module could clip onto a curved ship hull. Beveled manufactured ceramic, graphite and metal style consistent with the reference, three-quarter view, strong compact silhouette, large clean surfaces, generous transparent margin, not cropped. No other tier, no alternative color, no separate objects, no comparison, no triptych, no contact sheet. No opaque or gradient backdrop, no floor, no drop shadow, no text, no numbers, no circular badge, no gems, no decorative noise. Only this one green armor attachment assembly.",
+      "source": "assets/rewards/icons-v2/source/toughness-1.png",
+      "rejectedAttempt": {
+        "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Transform the shield-shaped emblem into actual low-profile conformal hull armor tiles with clearly visible mounting lips/clips and layered backing. One green plate, two blue overlapping plates, three purple interlocked plates. A removable armor patch that lies on the ship surface, not a handheld shield or medallion. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+        "output": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-9791424f-9547-403e-a624-00563447e0aa.png",
+        "reason": "Returned a three-tier comparison instead of one isolated transparent icon."
+      },
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-f17066ef-fe23-4e6b-a0c2-5a334e1f56c5.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-0563ffae-5b02-4027-b401-c0588d61b91b.png",
+      "sourceSHA256": "be4851a3fafae7276c8d652dc64e2d1c12de9f38854a52e3c919a0d5b2f8f415",
+      "runtime": "public/assets/rewards/icons-v2/toughness-1.png",
+      "runtimeSHA256": "6ff6d5b4054c8deb66015b90490dfd3e2fdaacf86cbe6011ea64a8bbf92a471e"
+    },
+    {
+      "id": "toughness-2",
+      "rarity": 2,
+      "prompt": "Edit the attached project-owned armor icon. Output EXACTLY ONE isolated object for the BLUE tier, on a genuinely transparent background. Square canvas. This is a production 30\u201344px inventory icon: one removable hull armor module for an anti-gravity racing ship, not a shield held by a person. TWO overlapping pearl-ceramic armor tiles joined on ONE compact common graphite backing plate. All luminous insets and its single power socket are blue only. Show two clear robust attachment clips/lugs on its graphite backing so the module could clip onto a curved ship hull. Beveled manufactured ceramic, graphite and metal style consistent with the reference, three-quarter view, strong compact silhouette, large clean surfaces, generous transparent margin, not cropped. No other tier, no alternative color, no separate objects, no comparison, no triptych, no contact sheet. No opaque or gradient backdrop, no floor, no drop shadow, no text, no numbers, no circular badge, no gems, no decorative noise. Only this one blue armor attachment assembly.",
+      "source": "assets/rewards/icons-v2/source/toughness-2.png",
+      "rejectedAttempt": {
+        "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Transform the shield-shaped emblem into actual low-profile conformal hull armor tiles with clearly visible mounting lips/clips and layered backing. One green plate, two blue overlapping plates, three purple interlocked plates. A removable armor patch that lies on the ship surface, not a handheld shield or medallion. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+        "output": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-5417f5e0-1766-4597-bc74-20c3ec5a6622.png",
+        "reason": "Returned a three-tier comparison instead of one isolated transparent icon."
+      },
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-18295786-42f9-4bbc-9b07-44579092706e.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-c0f19a94-ccc4-415b-8131-c9ccda3ad4a2.png",
+      "sourceSHA256": "7e9ddb931413c6edea9dded8dd9de30be2609cbcbc9e89d54c7b0e3ce703bb84",
+      "runtime": "public/assets/rewards/icons-v2/toughness-2.png",
+      "runtimeSHA256": "aeb7facb768b874eb880a03224d80e6811f4302c8bcc837a12865bc1cdd415c3"
+    },
+    {
+      "id": "toughness-3",
+      "rarity": 3,
+      "prompt": "Edit the attached project-owned armor icon. Output EXACTLY ONE isolated object for the PURPLE tier, on a genuinely transparent background. Square canvas. This is a production 30\u201344px inventory icon: one removable hull armor module for an anti-gravity racing ship, not a shield held by a person. THREE interlocked pearl-ceramic armor tiles form ONE compact unified armor patch on a common graphite backing plate. All luminous insets and its single power socket are purple only. Show two clear robust attachment clips/lugs on its graphite backing so the module could clip onto a curved ship hull. Beveled manufactured ceramic, graphite and metal style consistent with the reference, three-quarter view, strong compact silhouette, large clean surfaces, generous transparent margin, not cropped. No other tier, no alternative color, no separate objects, no comparison, no triptych, no contact sheet. No opaque or gradient backdrop, no floor, no drop shadow, no text, no numbers, no circular badge, no gems, no decorative noise. Only this one purple armor attachment assembly.",
+      "source": "assets/rewards/icons-v2/source/toughness-3.png",
+      "rejectedAttempt": {
+        "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Transform the shield-shaped emblem into actual low-profile conformal hull armor tiles with clearly visible mounting lips/clips and layered backing. One green plate, two blue overlapping plates, three purple interlocked plates. A removable armor patch that lies on the ship surface, not a handheld shield or medallion. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+        "output": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-8116f43e-08b1-4350-9fbe-82c243398bca.png",
+        "reason": "Returned a three-tier comparison instead of one isolated transparent icon."
+      },
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-50f8e2a1-ff75-424e-9d56-5f91940e9989.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-da341d8e-c9d8-446d-989e-683181cadf17.png",
+      "sourceSHA256": "50335514f6cdc05fed4dbacd17a1d899a3c0d4e95a91c0871da98f224098a197",
+      "runtime": "public/assets/rewards/icons-v2/toughness-3.png",
+      "runtimeSHA256": "6b656d934470dce91d5e27d4ece779975252872121e717b152df74df8bfb302c"
+    },
+    {
+      "id": "equipment-jump",
+      "rarity": 2,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Remove the literal arrow symbol. Make a bolt-on impulse lift pod for the ship underside: two compact downward-facing magnetic thruster bells joined by a low rectangular ceramic/graphite housing, blue luminous coils, two solid mounting lugs and a power socket. The two bells are the recognizable silhouette. No arrow, no wings, no logo. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/equipment-jump.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-6ff948e3-bc03-4603-a7e0-c97ff4ab508e.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-ad30aeac-9a11-40d1-9ce2-104f7103036f.png",
+      "sourceSHA256": "eabc5748bafd21e69e77b9e035dee008beead3d32f164034eafae186f2f56102",
+      "runtime": "public/assets/rewards/icons-v2/equipment-jump.png",
+      "runtimeSHA256": "8d6363d17bdac34367fe18ab5df8d61d14240cc3fbae1a999472ce611fca3ea7"
+    },
+    {
+      "id": "equipment-injector",
+      "rarity": 1,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Reserve Injector equipment. A simple stout horizontal energy cartridge with a tapered injection plug and a single green luminous fuel window. Green uncommon class, uncomplicated one-cell construction, clear capsule silhouette. Green accents only.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-d42b5bad-9876-4ef4-b365-ef51e81c6458.png",
+      "source": "assets/rewards/icons-v1/source/equipment-injector.png",
+      "runtime": "public/assets/rewards/icons-v2/equipment-injector.png",
+      "sourceSHA256": "890a40eb349ccfb7eddc99f3321e79f98163d2f4ff271ba6e022073ff5d8a904",
+      "runtimeSHA256": "f8c89461ba20a49381a7cbdcea306cf4ee40328b2e318f0d86fabb1f34cbb2b9",
+      "unchangedFrom": "assets/rewards/icons-v1/provenance.json"
+    },
+    {
+      "id": "equipment-slipstream",
+      "rarity": 2,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Slipstream Drive equipment. Two broad swept aerodynamic vanes forming a compact streamlined S-shaped channel, with two crisp blue luminous trailing ribbons held tightly within the device silhouette. Blue rare class, paired construction, readable flow motif. Blue accents only.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-bb44e7b3-5396-4fdc-8229-f7aab9fe17df.png",
+      "source": "assets/rewards/icons-v1/source/equipment-slipstream.png",
+      "runtime": "public/assets/rewards/icons-v2/equipment-slipstream.png",
+      "sourceSHA256": "e980f24916ca4039684ae4d498872e73fb92db26b5de83a49acadc8a6b2dec03",
+      "runtimeSHA256": "3a83cb4901dfe4cc35f6cb370bc1a611cbf8e27f853a9f18908039793f280a35",
+      "unchangedFrom": "assets/rewards/icons-v1/provenance.json"
+    },
+    {
+      "id": "equipment-deflector",
+      "rarity": 2,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Deflector equipment. A small robust shield projector with two separated angular emitter arms shaping a clear translucent blue shield plane between them. Blue rare class, paired emitter construction, readable protective shield silhouette. Blue accents only.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-0f987044-8029-4a46-a713-251dee50c140.png",
+      "source": "assets/rewards/icons-v1/source/equipment-deflector.png",
+      "runtime": "public/assets/rewards/icons-v2/equipment-deflector.png",
+      "sourceSHA256": "11adf88e0d7ee71a5460e872b4e2d3a7fe0d9b457442afa54a6869bd2b8df79d",
+      "runtimeSHA256": "2aa216b820740a218ff83a39677eb8e7d17dad4be9eb6a691ea8a746c96ef4f0",
+      "unchangedFrom": "assets/rewards/icons-v1/provenance.json"
+    },
+    {
+      "id": "equipment-stabilizer",
+      "rarity": 3,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Magnetic Stabilizer equipment. A sophisticated four-arm gyro device with a floating faceted central core, stout diagonal stabilizer arms and a small levitating purple magnetic ring. Purple epic class, layered engineered form and a strong cross-like silhouette. Purple accents only.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-12a6c225-ce4f-4380-8d7b-e5424229ce04.png",
+      "source": "assets/rewards/icons-v1/source/equipment-stabilizer.png",
+      "runtime": "public/assets/rewards/icons-v2/equipment-stabilizer.png",
+      "sourceSHA256": "7db4a1e626d41b8c544b3447db6dfdb4635e8a4eb32d84b5e3169904cb6b033b",
+      "runtimeSHA256": "88afee181c3140dd1bb1a77259116170b79b35051c7bfbf7635db7d0f6820305",
+      "unchangedFrom": "assets/rewards/icons-v1/provenance.json"
+    },
+    {
+      "id": "equipment-lance",
+      "rarity": 3,
+      "prompt": "Edit this reward icon into a plausible modular attachment for VECTOR//NOVA's anti-gravity racing ships. Preserve its pearl ceramic, graphite and machined-metal style, existing rarity color, strong readable silhouette, and genuinely transparent background. Make it an attachable heavy rail cannon rather than a spear or missile. Retain a long twin-rail purple emitter, but replace the pointed spearhead with a squared split muzzle and a visible beam channel. Add a compact underslung locking shoe/clamp with two mounting lugs beneath the rear third, and a small power feed collar. No handgrip or trigger, no loose projectile, no turret base taller than the cannon. Shared interface across all modules: a low-profile graphite dovetail shoe, two bold attachment lugs, and one small power socket; show enough mounting hardware to make attachment understandable, but keep it secondary. Lower tier green is simple and compact, blue adds a second functional stage, purple is richer and more powerful without becoming jewelry. This is a production inventory icon, recognizable at 30\u201344px. Near-front three-quarter view of the isolated part; keep generous transparent margins and no part cropped. No ship, no background, no floor, no drop shadow, no badge border, no text, no numbers, no ornamental crystal/gem unless it is clearly enclosed energy hardware. Preserve alpha. Keep forms large and clean; avoid tiny bolts, microscopic circuitry or decorative noise.",
+      "source": "assets/rewards/icons-v2/source/equipment-lance.png",
+      "reference": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-8d059ded-8f92-4235-92c1-fcd328df1068.png",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-59ef948a-ecaa-485c-af3a-ee4b9468d5a7.png",
+      "sourceSHA256": "0e437b5215b6c70551064588e63e92c730930ab413e794193e58416c1270086a",
+      "runtime": "public/assets/rewards/icons-v2/equipment-lance.png",
+      "runtimeSHA256": "ea436637820bf5eb4fb40ed019a7cdeb222bc872c55610a136d2f4ceb4d671a2"
+    },
+    {
+      "id": "ship-bastion",
+      "rarity": 3,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Bastion ship unlock. A miniature angular anti-gravity racing craft, twin long narrow rectangular chisel-nose sponsons separated by open cross braces, slim central cockpit and rear engines. Low broad industrial twin-hull silhouette, not a tank. Pearl ceramic with graphite, brass-orange identification strips; use a restrained purple epic-class halo at the engineered edge, no cloud. Sophisticated hull detail in large readable shapes.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-72d9da89-e336-4434-9d37-3bd04345cc1b.png",
+      "source": "assets/rewards/icons-v1/source/ship-bastion.png",
+      "runtime": "public/assets/rewards/icons-v2/ship-bastion.png",
+      "sourceSHA256": "d8a941cb1b1f04a45d6de2f07b33765879ab6d33e90af2267b825b3c30d0177e",
+      "runtimeSHA256": "a98aebc70ab4b8474de915c33238d09d1b9ee4bef5df345df60bb72d2f1b29e9",
+      "unchangedFrom": "assets/rewards/icons-v1/provenance.json"
+    },
+    {
+      "id": "ship-needle",
+      "rarity": 3,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Needle ship unlock. A miniature angular anti-gravity racing craft, a single very long sharply tapered central prow, broad angular shoulder armor, swept rear stabilizers, exactly one oversized circular rear engine. Slim arrowhead silhouette. Pearl ceramic and graphite with violet identification strips. Purple epic-class luminous accents, sophisticated hull detail in large readable shapes.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-318235e9-81a4-4d57-9950-fdb9d909e028.png",
+      "source": "assets/rewards/icons-v1/source/ship-needle.png",
+      "runtime": "public/assets/rewards/icons-v2/ship-needle.png",
+      "sourceSHA256": "41bd60909baf7033db956bbe06d1ee0128953fe5b0cd9abb20afb860727bdee8",
+      "runtimeSHA256": "360cc2a079ce652bc12c951e55bade2b8830685e16aa200d7c5fe62623a0e04b",
+      "unchangedFrom": "assets/rewards/icons-v1/provenance.json"
+    },
+    {
+      "id": "ship-kestrel",
+      "rarity": 3,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Kestrel ship unlock. A miniature angular anti-gravity racing craft, slender split twin nose, swept jet-like planform, dark central canopy and paired rear engines. Sleek balanced racing silhouette. Pearl ceramic and graphite with restrained red identification strips. Purple epic-class luminous accents at the engineered edge, sophisticated hull detail in large readable shapes.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-5efb558b-7640-4e13-9426-9d4f7af29c72.png",
+      "source": "assets/rewards/icons-v1/source/ship-kestrel.png",
+      "runtime": "public/assets/rewards/icons-v2/ship-kestrel.png",
+      "sourceSHA256": "12f325dbe3e47a0c79815faf53d8e806536733e9e4dfc8ec9a2afe91cf886da7",
+      "runtimeSHA256": "487e5718b2057c866e8644e3a0c18b634094f52a209bcb95eccffbd65b533916",
+      "unchangedFrom": "assets/rewards/icons-v1/provenance.json"
+    },
+    {
+      "id": "exotic-slot",
+      "rarity": 4,
+      "prompt": "Use case: stylized-concept. Asset type: production inventory/reward icon for VECTOR//NOVA, an anti-gravity sci-fi racing game. Create ONE isolated square icon, genuinely transparent background. A compact manufactured device/emblem made of pearl ceramic and dark graphite with clean machined metal bevels and restrained luminous class-color insets. Premium game-item illustration, near-front orthographic three-quarter view, bold readable silhouette, centered, fills 78% of canvas, generous transparent margin. Must remain recognizable at 32\u201348px: large simple forms, no tiny circuitry, no text, no letters, no numbers, no border/frame, no circular badge, no background scenery, no floor, no drop shadow. Local controlled luminous edges, never a fuzzy glowing cloud. Original design, no brand logo. Square 1024px.\nSubject: Quad Core exotic upgrade. Four distinct golden energy cores arranged in a compact cross around a brilliant central faceted junction, with interlocking pearl ceramic and graphite armor segments. Gold exotic class, the most refined and intricate design in this icon set, four unmistakable powerful cores, premium engineered shape, restrained molten-gold luminous edges. Gold accents only, no purple blue or green.",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1548f-5c52-7591-9383-fb19ed48c213/exec-00fda7eb-5f5c-4683-a5bc-6f6dd4135069.png",
+      "source": "assets/rewards/icons-v1/source/exotic-slot.png",
+      "runtime": "public/assets/rewards/icons-v2/exotic-slot.png",
+      "sourceSHA256": "0657e7b414cf3b4086d5e231d99569b75f4a2e5778f38b4fd767b9fed9425b77",
+      "runtimeSHA256": "64c235de518685f90c3b46ca57bcaef2a4a7773e2ade7e1ad5858a6c49fbc999",
+      "unchangedFrom": "assets/rewards/icons-v1/provenance.json"
+    }
+  ]
+}

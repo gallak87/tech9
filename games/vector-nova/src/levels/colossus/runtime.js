@@ -50,7 +50,10 @@ export function createColossusRuntime(context) {
         state.time,
         state.speed,
       );
-      return { pace: track.pace, surface: belt || {} };
+      return {
+        pace: track.pace,
+        surface: belt ? { ...belt, hazard: true } : {},
+      };
     },
     forgivingContacts: true,
     automaticRecovery: context.playtest?.automaticRecovery !== false,

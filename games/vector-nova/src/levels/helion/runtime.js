@@ -227,6 +227,7 @@ export function createHelionRuntime(context, telemetry = {}) {
     },
     pose: (alpha) => base.pose(alpha),
     applyImpulse: (state, impulse) => base.applyImpulse(state, impulse),
+    jump: (state) => base.jump(state),
     update(frame) {
       base.update?.(frame);
       if (frame.state) publish(frame.state);

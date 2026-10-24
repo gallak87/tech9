@@ -1,3 +1,19 @@
+import { garageView, toggleGarageEquipment, navigateGarage } from './garage.js';
+import {
+  createProfileStore,
+  shipUnlocked,
+  starterShip,
+  sessionBuild,
+} from '../progression/profile.js';
+import { rewardsView } from '../progression/view.js';
+import { bindRewardDetails } from '../progression/reward-details.js';
+import {
+  rewardGoals,
+  rewardBadgesView,
+  raceProgressView,
+} from '../progression/goals.js';
+import { createSaveTransfer } from '../progression/save-transfer.js';
+import { createProgressionMenu } from '../progression/menu.js';
 import { bindDesktopControls } from '../ui/desktop-controls.js';
 import { CONTROLLER_DEFAULTS } from '../input/gamepad.js';
 import {
@@ -9,6 +25,8 @@ import {
   createCupStore,
   cupDefinition,
   cupGridOrder,
+  cupComplete,
+  cupStandings,
 } from '../race/cup.js';
 import {
   cupView,
@@ -66,19 +84,27 @@ function picture(route, className = '') {
     : '';
 }
 
-export function createFrontend(host) {
+export async function createFrontend(host) {
   const catalog = discoverLevels().list;
   const circuits = catalog;
-  const cupStore = createCupStore();
+  const parameters = new URLSearchParams(
+    !import.meta.env?.VN_DESKTOP ? location.search : '',
+  );
+  const developer =
+    !import.meta.env?.VN_DESKTOP && ['1', '2'].includes(parameters.get('dev'))
+      ? (await import('../progression/developer.js')).createDeveloperSession(
+          parameters,
+        )
+      : null;
+  const profileStore = createProfileStore(developer?.storage);
+  const profile = () => profileStore.snapshot().state;
+  const cupStore = createCupStore(developer?.storage);
   let selectedCup = cupStore.snapshot().state?.cupId ?? CUPS[0].id;
   const currentCup = () =>
     cupDefinition(cupStore.snapshot().state?.cupId ?? selectedCup);
   let sessionCup = false,
     cupConfirm = null,
     cupResultsKey = null;
-  const parameters = new URLSearchParams(
-    !import.meta.env?.VN_DESKTOP ? location.search : '',
-  );
   const artPass =
     !import.meta.env?.VN_DESKTOP && parameters.get('artPass') === '1';
   const inspectShip =
@@ -113,10 +139,38 @@ export function createFrontend(host) {
     recordTrack = 'all';
   let previewLevelId = selected;
   let previewShipId = null;
+  let garageBack = 'home',
+    garageFocus = null,
+    garageNotice = '';
   let shipId =
-      (inspectShip && SHIPS.find((s) => s.id === parameters.get('ship')))?.id ??
-      loadShipSelection().id,
+      (
+        (inspectShip || developer) &&
+        SHIPS.find((s) => s.id === parameters.get('ship'))
+      )?.id ?? loadShipSelection().id,
     settings = loadSettings();
+  if (!shipUnlocked(profile(), shipId)) shipId = starterShip();
+  let sessionRewardId = '',
+    earnedRewards = [],
+    rewardStart = null,
+    rewardContext = null;
+  const goalContext = (trackId = selected) => ({
+    mode: intent,
+    trackId,
+    cupId: intent === 'cup' ? currentCup().id : null,
+  });
+  const goalBadges = (trackId = selected) =>
+    rewardBadgesView(rewardGoals(profile(), goalContext(trackId)), profile());
+  function beginRewardAttempt() {
+    sessionRewardId = crypto.randomUUID();
+    earnedRewards = [];
+    rewardStart = profile();
+    rewardContext = {
+      mode: sessionIntent,
+      trackId: loadedId ?? selected,
+      cupId: sessionIntent === 'cup' ? cupStore.snapshot().state?.cupId : null,
+    };
+  }
+
   let game = null,
     loadedId = null,
     pending = null,
@@ -200,6 +254,34 @@ export function createFrontend(host) {
         getSettings: () => settings,
       });
     });
+  const progressionMenu = createProgressionMenu({
+    host,
+    store: createSaveTransfer({
+      profileStore,
+      cupStore,
+      storage: developer?.storage,
+    }),
+    signal: life.signal,
+    sandbox: !!developer,
+    onChange({ imported = false } = {}) {
+      if (imported) {
+        game?.dispose();
+        game = null;
+        loadedId = null;
+        sessionCup = false;
+        lastResults = null;
+        selectedCup = cupStore.snapshot().state?.cupId ?? CUPS[0].id;
+        if (intent === 'cup' && cupStore.snapshot().state) {
+          shipId = cupStore.snapshot().state.shipId;
+          selected = currentCup().tracks[cupStore.snapshot().state.eventIndex];
+        }
+      }
+      if (!shipUnlocked(profile(), shipId) && !lockedCup())
+        shipId = starterShip();
+      inspector?.refreshProgression?.();
+      render();
+    },
+  });
   const level = () => catalog.find((l) => l.id === selected);
   const route = (id = selected) => routes.find((r) => r.id === id);
   const selectedShip = () => SHIPS.find((s) => s.id === shipId);
@@ -249,7 +331,15 @@ export function createFrontend(host) {
       return `[data-record-filter="${element.dataset.recordFilter}"]`;
     if (element.dataset.recordKey)
       return `[data-record-key="${element.dataset.recordKey}"]`;
-    for (const key of ['level', 'ship', 'difficulty', 'cup', 'action']) {
+    for (const key of [
+      'rewardInfo',
+      'level',
+      'ship',
+      'equip',
+      'difficulty',
+      'cup',
+      'action',
+    ]) {
       if (!element.dataset[key]) continue;
       const scope = element.closest(
         '.menu-selection, .picker-tabs, .picker-header',
@@ -261,7 +351,7 @@ export function createFrontend(host) {
           : scope
             ? '.picker-header '
             : '';
-      return `${prefix}button[data-${key}="${element.dataset[key]}"]`;
+      return `${prefix}button[data-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}="${element.dataset[key]}"]`;
     }
     return element.matches('.ship-preview canvas')
       ? '.ship-preview canvas'
@@ -296,7 +386,8 @@ export function createFrontend(host) {
   }
   function focusPickerHeader() {
     focusMenu(
-      '.picker-tabs [aria-pressed="true"], .picker-header button:last-child',
+      shell.querySelector('.picker-header button:last-child') ??
+        shell.querySelector('[data-action="race-tab"]'),
     );
   }
   function setScreen(next) {
@@ -375,51 +466,17 @@ export function createFrontend(host) {
         '',
       )}</div><div class="transfer-slot track-transfer"></div></section>`;
   };
-  // Share one intrinsic text area: the longest wrapped description reserves
-  // space for every ship without fixed heights, clipping or resize handlers.
-  const shipDescription = () =>
-    `<p class="ship-description">${SHIPS.map(
-      (s) =>
-        `<span${s.id === ship().id ? '' : ' aria-hidden="true"'}>${escape(s.description)}</span>`,
-    ).join('')}</p>`;
-  const shipPanel = (withActions = false) =>
-    `<div class="setup-layout"><section class="ship-list" aria-label="Choose ship">${SHIPS.map((s, i) => `<button data-ship="${s.id}" aria-pressed="${s.id === shipId}" tabindex="${s.id === shipId ? 0 : -1}" class="${s.id === shipId ? 'selected' : ''}"><span>0${i + 1}</span><div><strong>${s.name}</strong><small>${s.role}</small></div></button>`).join('')}</section><section class="ship-details"><span class="kicker">${escape(ship().design)}</span><h2>${ship().name}<small>${previewShipId ? 'PREVIEW' : 'SELECTED SHIP'}</small></h2><div class="ship-preview-slot"><p role="status">Loading ship preview…</p></div><div class="transfer-slot ship-transfer"></div>${shipDescription()}</section><aside class="setup-details"><span class="kicker">PERFORMANCE / ${ship().role.toUpperCase()}</span><div class="ship-metrics">${[
-      [
-        'Cruise',
-        Math.round(ship().handling.cruiseSpeed * 3.6),
-        'KM/H',
-        ship().handling.cruiseSpeed / 140,
-      ],
-      [
-        'Acceleration',
-        ship().handling.thrust,
-        'M/S²',
-        ship().handling.thrust / 55,
-      ],
-      [
-        'Handling',
-        ((ship().handling.turn / 1.3) * 10).toFixed(1),
-        '/ 10',
-        ship().handling.turn / 1.3,
-      ],
-      [
-        'Braking',
-        ((ship().handling.braking / 100) * 10).toFixed(1),
-        '/ 10',
-        ship().handling.braking / 100,
-      ],
-      [
-        'Boost reserve',
-        (100 / ship().handling.boostDrain).toFixed(1),
-        'SEC',
-        15 / ship().handling.boostDrain,
-      ],
-    ]
-      .map(
-        ([n, v, u, f]) =>
-          `<div><span>${n}</span><b>${v} <small>${u}</small></b><i style="--stat:${Math.min(100, f * 100)}%"></i></div>`,
-      )
-      .join('')}</div></aside>${withActions ? pickerRaceActions() : ''}</div>`;
+  const shipPanel = () =>
+    garageView({
+      profile: profile(),
+      craft: ship(),
+      selectedShip: shipId,
+      lockedShip: lockedCup()?.shipId,
+      stock: intent === 'time-trial',
+      mode: modeName(),
+      track: level().name,
+      notice: garageNotice,
+    });
   const modeName = () =>
     ({
       race: 'Quick Race',
@@ -455,15 +512,12 @@ export function createFrontend(host) {
         selectedCup,
         sessionCup && game?.hasSession(),
       );
-      return `<div class="race-actions"><button class="primary" data-action="${next.action}" ${cupConfirm ? 'disabled' : ''}><strong>${next.label}</strong><small>${next.detail}</small></button>${state ? '' : difficultyControls()}</div>`;
+      return `<div class="race-actions"><button class="primary" data-action="${next.action}" ${cupConfirm ? 'disabled' : ''}><strong>${next.label}</strong><small>${next.detail}</small></button>${state ? '' : difficultyControls()}<p class="mode-description">Every valid race finish earns progress. Win the championship for cup rewards.</p></div>`;
     }
     const description =
       intent === 'time-trial' ? 'Manual boost · No road devices' : '';
     return `<div class="race-actions"><button class="primary" data-action="launch"><strong>${launchLabel()}</strong><small>${intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : 'Unlimited laps'}</small></button>${intent === 'race' ? difficultyControls() : ''}${description ? `<p class="mode-description">${description}</p>` : ''}</div>`;
   };
-  function pickerRaceActions() {
-    return `<div class="picker-race-actions"><button class="change-track" data-action="circuits">${escape(intent === 'cup' ? currentCup().name : level().name)} · ${modeName()} <span aria-hidden="true">↗</span></button>${raceActions()}</div>`;
-  }
   const sessionReturn = (includeCup = false) => {
     if (!game?.hasSession() || (sessionCup && !includeCup)) return '';
     const name = sessionCup
@@ -481,7 +535,7 @@ export function createFrontend(host) {
     const selectedCraft = lockedCup()
       ? SHIPS.find((entry) => entry.id === savedCup.shipId)
       : selectedShip();
-    return `<section class="race-menu" aria-label="Session setup"><h1 class="menu-wordmark">VECTOR<span>//</span>NOVA</h1>${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step" ${lockedCup() ? 'disabled' : ''}><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${button('inspect', 'Ship inspector')}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}${music ? button('tunes', 'Tunes') : ''}${import.meta.env?.VN_DESKTOP === true ? button('desktop-quit', 'Quit game') : ''}</nav><div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div><nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}${button('career', `Career & saves${earnedRewards.length ? ` · ${earnedRewards.length} new` : ''}`)}${music ? button('tunes', 'Tunes') : ''}${import.meta.env?.VN_DESKTOP === true ? button('desktop-quit', 'Quit game') : ''}</nav><div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
   };
   function cupPanel(withActions) {
     const state = cupStore.snapshot().state;
@@ -499,12 +553,23 @@ export function createFrontend(host) {
       menu: {
         eventArt: (id) => picture(route(id)) + routeArt(route(id)),
         hero: (title) =>
-          `<div class="circuit-hero cup-hero"><div class="detail-image">${picture(route(event))}${routeArt(route(event))}<span class="track-type-badge">${cup.tracks.length} races</span><div class="track-caption"><h2 class="cup-title">${title}</h2><p>${state ? `Race ${state.eventIndex + 1}` : 'Opening race'} · ${escape(catalog.find((entry) => entry.id === event).name)}</p></div></div></div>`,
+          `<div class="circuit-hero cup-hero"><div class="detail-image">${picture(route(event))}${routeArt(route(event))}${goalBadges(event)}<span class="track-type-badge">${cup.tracks.length} races</span><div class="track-caption"><h2 class="cup-title">${title}</h2><p>${state ? `Race ${state.eventIndex + 1}` : 'Opening race'} · ${escape(catalog.find((entry) => entry.id === event).name)}</p></div></div></div>`,
         actions: withActions ? raceActions() : '',
       },
     });
   }
+  const topNavigation = () =>
+    `<header class="menu-topbar"><span class="menu-wordmark">VECTOR<span>//</span>NOVA</span><nav class="menu-top-tabs" aria-label="Main navigation"><button data-action="race-tab" aria-pressed="${!showingShip()}">Race</button><button data-action="garage-tab" aria-pressed="${showingShip()}">Garage</button></nav></header>`;
   function renderMenu() {
+    if (showingShip()) {
+      shell.className = 'cinematic-menu garage-page';
+      shell.innerHTML = `<div class="menu-backdrop" aria-hidden="true">${picture(route())}</div>${topNavigation()}<main class="front-content dedicated-garage" aria-label="Ship garage">${shipPanel()}</main>`;
+      mountShipPreview();
+      shell.querySelector('.ship-transfer')?.append(transfer);
+      updateStatus();
+      desktopControls?.mount(shell);
+      return;
+    }
     const wide = wideMenu.matches;
     const picking = wide || screen !== 'home';
     const setup = showingShip();
@@ -516,13 +581,15 @@ export function createFrontend(host) {
         ? '← Back to results'
         : '← Back to setup';
     const pickerHeader = wide
-      ? `<nav class="picker-tabs" aria-label="Setup view"><button data-action="circuits" aria-pressed="${!setup && !records}">${cup ? 'Cups' : 'Tracks'}</button><button data-action="ship-step" aria-pressed="${setup}" ${lockedCup() ? 'disabled' : ''}>Ship</button>${records ? `<h2 class="records-heading">Records</h2>${button('records-back', recordsBack === 'results' ? '← Results' : '← Back')}` : ''}</nav>`
-      : `<header class="picker-header"><button class="front-brand" data-action="home">VECTOR<span>//</span>NOVA</button>${button(backAction, backLabel)}</header>`;
+      ? records
+        ? `<header class="picker-tabs"><h2 class="records-heading">Records</h2>${button('records-back', recordsBack === 'results' ? '← Results' : '← Back')}</header>`
+        : ''
+      : `<header class="picker-header">${button(backAction, backLabel)}</header>`;
     const pickerContent = !picking
       ? ''
       : records
         ? recordsView({
-            records: readTrialRecords(),
+            records: readTrialRecords(developer?.storage?.()),
             catalog,
             routes,
             shipId: recordShip,
@@ -536,7 +603,7 @@ export function createFrontend(host) {
             ? cupPanel(!wide)
             : circuitPanel();
     shell.className = 'cinematic-menu';
-    shell.innerHTML = `<div class="menu-backdrop" aria-hidden="true">${picture(route())}</div><main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${records ? 'menu-records-picker' : setup ? 'menu-ship-picker' : cup ? 'menu-cup-picker' : 'menu-track-picker'}" aria-label="${records ? 'Time Trial records' : setup ? 'Ship selection' : cup ? 'Championship selection' : 'Track selection'}">${pickerHeader}${pickerContent}</section>` : ''}</main>`;
+    shell.innerHTML = `<div class="menu-backdrop" aria-hidden="true">${picture(route())}</div>${topNavigation()}<main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${records ? 'menu-records-picker' : setup ? 'menu-ship-picker' : cup ? 'menu-cup-picker' : 'menu-track-picker'}" aria-label="${records ? 'Time Trial records' : setup ? 'Ship selection' : cup ? 'Championship selection' : 'Track selection'}">${pickerHeader}${pickerContent}</section>` : ''}</main>`;
     if (!setup && !cup && !records && picking) showDetail(selected);
     if (showingShip()) mountShipPreview();
     shell
@@ -584,7 +651,7 @@ export function createFrontend(host) {
     let content = main;
     if (screen === 'loading') {
       const inspecting = launchTarget === 'inspection';
-      content.innerHTML = `<section class="loading-copy">${inspecting ? '' : `<div class="loading-card">${picture(route())}${routeArt(route())}</div>`}<div class="transfer-slot loading-transfer"></div>${heading(inspecting ? 'PREPARING STUDIO' : 'LOADING CIRCUIT', inspecting ? 'Ship inspector' : escape(level().name))}${inspecting ? '' : `<div class="session-facts">${facts()}</div>`}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
+      content.innerHTML = `<section class="loading-copy">${inspecting ? '' : `<div class="loading-card">${picture(route())}${routeArt(route())}</div>`}<div class="transfer-slot loading-transfer"></div>${heading(inspecting ? 'PREPARING STUDIO' : 'LOADING CIRCUIT', inspecting ? 'Ship inspector' : escape(level().name))}${inspecting ? '' : `<div class="session-facts">${facts()}</div><div class="loading-rewards">${goalBadges()}</div>`}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
     } else if (screen === 'settings') {
       content.innerHTML = `${sessionReturn(true)}<div class="settings-layout"><section class="settings-form"><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume</span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion</span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label>${controllerSettingsView(settings)}</section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
         [
@@ -592,6 +659,7 @@ export function createFrontend(host) {
           [
             ['WASD / Arrows', 'Throttle, brake and steer'],
             ['Shift', 'Boost'],
+            ['Q / E / Z / X', 'Equipment 1 / 2 / 3 / 4'],
             ['Space', 'Airbrake'],
             ['Esc', 'Pause / resume'],
             ['R', 'Reset / retry'],
@@ -701,6 +769,29 @@ export function createFrontend(host) {
         records.textContent = 'Time Trial records';
       } else updateResults(lastResults);
     }
+    if (
+      screen === 'results' &&
+      (lastResults?.mode !== 'cup' || lastResults.final)
+    ) {
+      const panel = content.querySelector('.result-panel, .cup-results-panel');
+      const actions = panel?.querySelector(
+        '.results-actions, .cup-result-actions',
+      );
+      const progression =
+        raceProgressView(
+          rewardStart,
+          profile(),
+          rewardContext ?? {},
+          lastResults,
+        ) + rewardsView(earnedRewards);
+      if (actions) actions.insertAdjacentHTML('beforebegin', progression);
+      else panel?.insertAdjacentHTML('beforeend', progression);
+      if (lastResults?.mode === 'cup')
+        panel?.insertAdjacentHTML(
+          'beforeend',
+          `<div class="front-actions">${button('equipment', 'Change equipment')}</div>`,
+        );
+    }
     const statusSlot = shell.querySelector('.transfer-slot');
     if (statusSlot) statusSlot.append(transfer);
     updateLaunchSummary();
@@ -745,14 +836,22 @@ export function createFrontend(host) {
     const template = document.createElement('template');
     template.innerHTML = shipPanel();
     for (const selector of [
-      '.ship-details > .kicker',
-      '.ship-details > h2',
-      '.ship-description',
-      '.setup-details',
-    ])
+      '.ship-details > h1',
+      '.garage-role',
+      '.garage-ship-status',
+      '.garage-performance',
+      '.garage-equipment',
+      '.garage-footer',
+    ]) {
       shell
         .querySelector(selector)
         ?.replaceWith(template.content.querySelector(selector));
+    }
+    shell.querySelector('.garage-exotic')?.remove();
+    const exotic = template.content.querySelector('.garage-exotic');
+    if (exotic) shell.querySelector('.garage-footer').before(exotic);
+    for (const item of shell.querySelectorAll('button[data-ship]'))
+      item.dataset.preview = String(item.dataset.ship === ship().id);
     mountShipPreview();
     shell.querySelector('.ship-transfer')?.append(transfer);
     updateStatus();
@@ -763,7 +862,7 @@ export function createFrontend(host) {
       node = shell.querySelector('.circuit-hero');
     if (!node) return;
     previewLevelId = id;
-    node.innerHTML = `<div class="detail-image">${picture(r)}${routeArt(r)}${trackBadge(id)}<div class="track-caption"><h2>${escape(l.name)}</h2><p>${trackChallenge(id)} · ${r ? (r.length / 1000).toFixed(2) + ' km' : '—'}</p></div></div>`;
+    node.innerHTML = `<div class="detail-image">${picture(r)}${routeArt(r)}${goalBadges(id)}${trackBadge(id)}<div class="track-caption"><h2>${escape(l.name)}</h2><p>${trackChallenge(id)} · ${r ? (r.length / 1000).toFixed(2) + ' km' : '—'}</p></div></div>`;
   }
   function selectCircuit(id) {
     invalidLevel = false;
@@ -787,7 +886,11 @@ export function createFrontend(host) {
     const label = loading
       ? error ||
         `${launchTarget === 'inspection' ? 'Ship inspector' : level().name} · ${progress || 'Preparing session'}`
-      : preload.label;
+      : preload.loading
+        ? 'Preparing ships'
+        : preload.failed?.length
+          ? 'Ship preload incomplete'
+          : preload.label;
     const fraction = loading
       ? launchTarget === 'inspection'
         ? [
@@ -904,9 +1007,10 @@ export function createFrontend(host) {
       if (special && artPass) readArtView(parameters);
       const { createGame } = await import('../core/game.js');
       signal.throwIfAborted();
-      const params = special
-        ? new URLSearchParams(parameters)
-        : new URLSearchParams();
+      const params =
+        special || developer
+          ? new URLSearchParams(parameters)
+          : new URLSearchParams();
       params.set('level', id);
       // An art pass inspects the finished environment, never a route study or
       // jump-test scene accidentally retained in a copied URL.
@@ -915,6 +1019,15 @@ export function createFrontend(host) {
       const gameOptions = {
         host: gameHost,
         parameters: params,
+        trialStorage: developer?.storage?.(),
+        onAttempt() {
+          beginRewardAttempt();
+        },
+        onTrialRecord(data) {
+          earnedRewards.push(
+            ...profileStore.recordTrial(id, data.playerValid && data.improved),
+          );
+        },
         signal,
         onProgress(stage) {
           if (token === generation) {
@@ -987,8 +1100,39 @@ export function createFrontend(host) {
           if (sessionCup) cupStore.retry();
         },
         onResults(data) {
-          if (data.mode === 'cup' && sessionCup && data.final)
+          if (data.mode === 'cup' && sessionCup && data.final) {
             cupStore.finish(data);
+            const saved = cupStore.snapshot().state;
+            const player = data.standings.find((row) => row.id === 'player');
+            earnedRewards.push(
+              ...profileStore.recordRace({
+                id: `${saved.runId}:${saved.eventIndex}`,
+                position: player?.position,
+                valid: !!player?.valid,
+                finished: !!player?.finished,
+              }),
+            );
+            if (
+              cupComplete(saved) &&
+              cupStandings(saved).find((row) => row.id === 'player')
+                ?.position === 1
+            )
+              earnedRewards.push(...profileStore.recordCup(saved.cupId));
+          } else if (
+            data.mode !== 'cup' &&
+            data.mode !== 'time-trial' &&
+            sessionIntent === 'race'
+          ) {
+            const player = data.standings?.find((row) => row.id === 'player');
+            earnedRewards.push(
+              ...profileStore.recordRace({
+                id: sessionRewardId,
+                position: player?.position,
+                valid: !!data.playerValid && !!player?.valid,
+                finished: !!player?.finished,
+              }),
+            );
+          }
           lastResults = data;
           if (screen === 'race' || screen === 'review') setScreen('results');
           else if (screen === 'results') updateResults(data);
@@ -1123,6 +1267,11 @@ export function createFrontend(host) {
       signal.throwIfAborted();
       return createInspector({
         host: inspectorHost,
+        getProfile: profile,
+        onEquipment: (id) => {
+          closeInspector();
+          openGarage(id);
+        },
         shipId,
         settings,
         signal,
@@ -1161,6 +1310,10 @@ export function createFrontend(host) {
   function launch() {
     return loadView('race', (current) => {
       sessionIntent = intent;
+      beginRewardAttempt();
+      current.setBuild?.(
+        sessionBuild(profile(), shipId, { stock: intent === 'time-trial' }),
+      );
       setScreen('race');
       if (intent === 'cup') {
         const state = cupStore.snapshot().state;
@@ -1221,7 +1374,31 @@ export function createFrontend(host) {
       }
     }
   }
+  function openGarage(id = lockedCup()?.shipId ?? shipId) {
+    if (showingShip()) {
+      focusPicker();
+      return;
+    }
+    garageBack = ['home', 'circuits', 'cup', 'records'].includes(screen)
+      ? screen
+      : intent === 'cup'
+        ? 'cup'
+        : 'home';
+    garageFocus = focusSelector();
+    garageNotice = '';
+    setScreen('setup');
+    showShip(id);
+    focusMenu(`[data-ship="${id}"]`);
+  }
+  function closeGarage() {
+    setScreen(garageBack);
+    focusMenu(garageFocus ?? '.menu-selection[data-action="ship-step"]');
+  }
   function goHome() {
+    if (showingShip()) {
+      closeGarage();
+      return;
+    }
     const previous = screen;
     if (screen === 'loading') {
       cancel('home');
@@ -1265,6 +1442,24 @@ export function createFrontend(host) {
     focusMenu(`[data-action="${mode === 'race' ? 'quick-race' : mode}"]`);
   }
   const actions = {
+    equipment() {
+      openGarage(lockedCup()?.shipId ?? shipId);
+    },
+    'race-tab'() {
+      if (showingShip()) closeGarage();
+      focusMenu('[data-action="race-tab"]');
+    },
+    'garage-tab'() {
+      openGarage();
+      focusMenu('[data-action="garage-tab"]');
+    },
+    'fit-exotic'() {
+      progressionMenu.openExotic(ship().id);
+    },
+    career() {
+      progressionMenu.openCareer();
+      earnedRewards = [];
+    },
     'quick-race'() {
       chooseMode('race');
     },
@@ -1279,7 +1474,8 @@ export function createFrontend(host) {
     },
     'record-trial'() {
       if (recordTrack !== 'all') selected = recordTrack;
-      if (recordShip !== 'all') shipId = recordShip;
+      if (recordShip !== 'all' && shipUnlocked(profile(), recordShip))
+        shipId = recordShip;
       saveShipSelection(shipId);
       remember();
       chooseMode('time-trial');
@@ -1364,9 +1560,8 @@ export function createFrontend(host) {
       if (intent === 'cup') focusPicker();
     },
     'ship-step'() {
-      if (lockedCup()) return;
       remember();
-      setScreen('setup');
+      openGarage();
     },
     tunes() {
       music?.open(shell.querySelector('[data-action="tunes"]'));
@@ -1431,7 +1626,9 @@ export function createFrontend(host) {
       if (!el || el.disabled) return;
       if (el.dataset.recordTrack) {
         selected = el.dataset.recordTrack;
-        shipId = el.dataset.recordShip;
+        shipId = shipUnlocked(profile(), el.dataset.recordShip)
+          ? el.dataset.recordShip
+          : starterShip();
         saveShipSelection(shipId);
         remember();
         chooseMode('time-trial');
@@ -1443,13 +1640,36 @@ export function createFrontend(host) {
         focusMenu(`[data-cup="${selectedCup}"]`);
       } else if (el.dataset.level) {
         selectCircuit(el.dataset.level);
-      } else if (el.dataset.ship) {
-        if (lockedCup()) return;
-        previewShipId = null;
-        shipId = el.dataset.ship;
-        saveShipSelection(shipId);
+      } else if (el.dataset.equip) {
+        if (
+          intent === 'time-trial' ||
+          (lockedCup() && lockedCup().shipId !== ship().id)
+        )
+          return;
+        const id = ship().id;
+        garageNotice = toggleGarageEquipment(
+          profileStore,
+          id,
+          el.dataset.equip,
+        );
         render();
-        shell.querySelector(`[data-ship="${shipId}"]`)?.focus();
+        focusMenu(`[data-equip="${el.dataset.equip}"]`);
+      } else if (el.dataset.ship) {
+        const id = el.dataset.ship;
+        if (
+          !shipUnlocked(profile(), id) ||
+          (lockedCup() && lockedCup().shipId !== id)
+        ) {
+          showShip(id);
+          return;
+        }
+        shipId = id;
+        previewShipId = null;
+        saveShipSelection(id);
+        remember();
+        garageNotice = '';
+        render();
+        focusMenu(`[data-ship="${id}"]`);
       } else if (el.dataset.difficulty) {
         if (lockedCup()) return;
         settings.difficulty = el.dataset.difficulty;
@@ -1480,19 +1700,26 @@ export function createFrontend(host) {
       const selector = card.dataset.level
         ? '[data-level]'
         : 'button[data-ship]';
-      for (const item of shell.querySelectorAll(selector))
-        item.tabIndex = item === card ? 0 : -1;
+      if (!showingShip())
+        for (const item of shell.querySelectorAll(selector))
+          item.tabIndex = item === card ? 0 : -1;
       if (card.dataset.level) showDetail(card.dataset.level);
       else showShip(card.dataset.ship);
     },
     { signal: life.signal },
   );
+  bindRewardDetails(shell, life.signal);
   function restoreSelection(e) {
     const circuitList = e.target.closest('.circuit-grid');
-    if (circuitList && !circuitList.contains(e.relatedTarget))
+    if (
+      circuitList &&
+      !circuitList.contains(e.relatedTarget) &&
+      !e.relatedTarget?.closest?.('.reward-badges')
+    )
       showDetail(selected);
     const shipList = e.target.closest('.ship-list');
-    if (shipList && !shipList.contains(e.relatedTarget)) showShip(shipId);
+    if (shipList && !showingShip() && !shipList.contains(e.relatedTarget))
+      showShip(shipId);
   }
   shell.addEventListener('focusout', restoreSelection, { signal: life.signal });
   shell.addEventListener('pointerout', restoreSelection, {
@@ -1534,14 +1761,72 @@ export function createFrontend(host) {
     'keydown',
     (e) => {
       if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (
+        e.target.closest('.menu-top-tabs') &&
+        [
+          'ArrowLeft',
+          'ArrowRight',
+          'ArrowUp',
+          'ArrowDown',
+          'Home',
+          'End',
+        ].includes(e.code)
+      ) {
+        e.preventDefault();
+        if (e.code === 'ArrowDown') {
+          if (showingShip()) focusPicker();
+          else
+            focusMenu(
+              '.mode-picker button[aria-pressed="true"], .picker-header button, .picker-tabs button',
+            );
+        } else
+          focusMenu(
+            `[data-action="${['ArrowLeft', 'Home'].includes(e.code) ? 'race' : 'garage'}-tab"]`,
+          );
+        return;
+      }
+      if (showingShip() && navigateGarage(e, shell)) return;
       const control = e.target.closest('button');
       const vertical = ['ArrowUp', 'ArrowDown'].includes(e.code);
       const edge = ['Home', 'End'].includes(e.code);
       const horizontal = ['ArrowLeft', 'ArrowRight'].includes(e.code);
       if (!control || (!vertical && !edge && !horizontal)) return;
 
+      if (control.dataset.rewardInfo) {
+        e.preventDefault();
+        const chips = [
+          ...control.closest('.reward-badges').querySelectorAll('button'),
+        ];
+        if (e.code === 'ArrowDown') focusPicker();
+        else if (e.code === 'ArrowUp') focusMenu('[data-action="race-tab"]');
+        else
+          focusMenu(
+            chips[
+              e.code === 'Home'
+                ? 0
+                : e.code === 'End'
+                  ? chips.length - 1
+                  : Math.max(
+                      0,
+                      Math.min(
+                        chips.length - 1,
+                        chips.indexOf(control) +
+                          (e.code === 'ArrowRight' ? 1 : -1),
+                      ),
+                    )
+            ],
+          );
+        return;
+      }
       if (control.closest('.mode-picker')) {
         e.preventDefault();
+        if (
+          e.code === 'ArrowUp' &&
+          [...control.parentElement.children].indexOf(control) < 2
+        ) {
+          focusMenu('[data-action="race-tab"]');
+          return;
+        }
         const items = [
           ...control.closest('.mode-picker').querySelectorAll('button'),
         ];
@@ -1618,23 +1903,6 @@ export function createFrontend(host) {
         }
         return;
       }
-      if (control.closest('.picker-tabs')) {
-        e.preventDefault();
-        if (vertical) {
-          if (e.code === 'ArrowDown') focusPicker();
-          else
-            focusMenu(
-              `.menu-selection[data-action="${showingShip() ? 'ship-step' : 'circuits'}"]`,
-            );
-        } else {
-          const action = ['ArrowLeft', 'Home'].includes(e.code)
-            ? 'circuits'
-            : 'ship-step';
-          actions[action]();
-          focusMenu(`.picker-tabs [data-action="${action}"]`);
-        }
-        return;
-      }
       if (control.closest('.picker-header') && vertical) {
         e.preventDefault();
         if (e.code === 'ArrowDown') focusPicker();
@@ -1703,7 +1971,9 @@ export function createFrontend(host) {
           );
         next = candidates[0]?.item ?? card;
         if (next === card && e.code === 'ArrowUp') {
-          focusPickerHeader();
+          const reward = shell.querySelector('.detail-image .reward-chip');
+          if (reward) focusMenu(reward);
+          else focusPickerHeader();
           return;
         }
       }
@@ -1857,6 +2127,8 @@ export function createFrontend(host) {
         selectedCup,
         sessionCup,
         shipId,
+        career: profileStore.snapshot(),
+        developer: !!developer,
         preview: shipPreview?.getState() ?? null,
         preload,
       }),

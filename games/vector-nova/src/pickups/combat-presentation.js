@@ -210,12 +210,20 @@ function createDetailedCombatPresentation(scene, combat) {
             .set(0, ARC_MUZZLE_HEIGHT - ARC_SHOT_HEIGHT, 0)
             .applyQuaternion(mesh.quaternion),
         );
-        mesh.scale.z = Math.min(
-          1,
-          Math.max(0, (shot.age * COMBAT_RULES.arcSpeed) / BOLT_LENGTH),
-        );
+        mesh.scale.x = mesh.scale.y = shot.heavy ? 2.4 : 1;
+        mesh.scale.z =
+          (shot.heavy ? 1.8 : 1) *
+          Math.min(
+            1,
+            Math.max(0, (shot.age * COMBAT_RULES.arcSpeed) / BOLT_LENGTH),
+          );
         for (const plane of mesh.children)
-          tune(plane, 'arc', settings.reducedMotion ? 0.8 : 1.15, shot.age);
+          tune(
+            plane,
+            shot.heavy ? 'repulsor' : 'arc',
+            settings.reducedMotion ? 0.8 : shot.heavy ? 1.5 : 1.15,
+            shot.age,
+          );
       });
       ribbon.update(state, combat, settings.reducedMotion);
     },

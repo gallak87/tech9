@@ -1,3 +1,4 @@
+import { EQUIPMENT_CONTROLS } from '../equipment/controls.js';
 import { createGamepadReader } from './gamepad.js';
 import { createTouchControls } from './touch.js';
 
@@ -20,8 +21,11 @@ export function createInput(onCommand, onBlur, getSettings) {
     'ShiftLeft',
     'ShiftRight',
     'Space',
+    ...EQUIPMENT_CONTROLS.map(({ key }) => key),
   ];
+  const equipmentPulses = EQUIPMENT_CONTROLS.map(() => false);
   const clear = () => {
+    equipmentPulses.fill(false);
     keys.clear();
     touch.clear();
     gamepad.clear();
@@ -79,6 +83,18 @@ export function createInput(onCommand, onBlur, getSettings) {
   const down = (...k) => k.some((v) => keys.has(v));
   return {
     clear,
+    activateEquipment(slot) {
+      if (
+        enabled &&
+        Number.isInteger(slot) &&
+        slot >= 0 &&
+        slot < equipmentPulses.length
+      )
+        equipmentPulses[slot] = true;
+    },
+    consumeEquipment() {
+      equipmentPulses.fill(false);
+    },
     setEnabled(value) {
       enabled = value;
       if (!value) clear();
@@ -96,6 +112,12 @@ export function createInput(onCommand, onBlur, getSettings) {
             Number(down('ArrowLeft', 'KeyA')) || t.steer,
         boost: down('ShiftLeft', 'ShiftRight') || t.boost,
         airbrake: down('Space') || t.airbrake,
+        ...Object.fromEntries(
+          EQUIPMENT_CONTROLS.map(({ key }, i) => [
+            `equipment${i + 1}`,
+            down(key) || equipmentPulses[i],
+          ]),
+        ),
       };
       const pad = gamepad.sample();
       gamepadPresent = pad.present;
@@ -105,7 +127,10 @@ export function createInput(onCommand, onBlur, getSettings) {
         i.brake = Math.max(i.brake, pad.brake);
         i.boost ||= pad.boost;
         i.airbrake ||= pad.airbrake;
+        for (let slot = 1; slot <= EQUIPMENT_CONTROLS.length; slot++)
+          i[`equipment${slot}`] ||= pad[`equipment${slot}`];
       }
+      // A touch pulse survives observation and render frames without a physics tick.
       return i;
     },
     bindTouch(root) {

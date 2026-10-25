@@ -125,7 +125,7 @@ test('Arc streaks grow forward from beneath the hull, including rotated ship fra
   assert.equal(scene.children.length, 0);
 });
 
-test('Lance retains a narrow leading spear and localized directional armor strike in both presets', () => {
+test('Lance keeps a thick molten-orange blast and large fireball in both presets', () => {
   for (const quality of ['high', 'low']) {
     const scene = new T.Group();
     const pose = {
@@ -174,16 +174,28 @@ test('Lance retains a narrow leading spear and localized directional armor strik
     };
     for (const age of [0.005, 0.025, 0.04]) {
       sample(age);
-      const cores = scene.getObjectByName('Lance / white-hot spear cores');
-      assert.equal(cores.count, 1);
+      const cores = scene.getObjectByName('Lance / yellow-hot blast cores');
+      assert.equal(
+        cores.count,
+        2,
+        'live projectile and powerful muzzle discharge',
+      );
       const bounds = localBounds(cores);
-      assert.ok(bounds.min.z >= -1e-4, 'the spear grows from the launch point');
+      assert.ok(bounds.min.z >= -1e-4, 'the blast grows from the launch point');
       assert.ok(
-        bounds.getSize(new T.Vector3()).x < 0.5,
-        'dense spear stays narrow',
+        bounds.getSize(new T.Vector3()).x > 1.3,
+        'the yellow-hot center is visibly thicker than the old narrow spear',
       );
       assert.ok(bounds.getSize(new T.Vector3()).z <= 14.0001);
       assert.ok(Math.abs(bounds.max.z - age * 490) < 1e-4);
+      const body = scene.getObjectByName(
+        'Lance / lava-orange body, fireball and hot fragments',
+      );
+      assert.ok(
+        localBounds(body).getSize(new T.Vector3()).x > 3,
+        'the orange body gives the blast several meters of thickness',
+      );
+      assert.equal(body.material.color.getHex(), 0xff5908);
       if (quality === 'high') {
         assert.equal(
           scene.getObjectByName('Arc / traveling pulse').visible,
@@ -195,19 +207,24 @@ test('Lance retains a narrow leading spear and localized directional armor strik
     }
     sample(0.16);
     const fragments = scene.getObjectByName(
-      'Lance / directional impact splinters and muzzle snap',
+      'Lance / lava-orange body, fireball and hot fragments',
     );
-    assert.equal(fragments.count, quality === 'high' ? 9 : 5);
+    assert.equal(fragments.count, quality === 'high' ? 15 : 8);
+    assert.ok(
+      localBounds(fragments).getSize(new T.Vector3()).x > 5,
+      'the main orange fireball is large relative to the struck hull',
+    );
     const moving = new T.Matrix4();
-    fragments.getMatrixAt(0, moving);
+    const spark = quality === 'high' ? 5 : 3;
+    fragments.getMatrixAt(spark, moving);
     const movingPosition = new T.Vector3().setFromMatrixPosition(moving);
     sample(0.16, true);
     const held = new T.Matrix4();
-    fragments.getMatrixAt(0, held);
+    fragments.getMatrixAt(spark, held);
     assert.ok(
       movingPosition.distanceTo(new T.Vector3().setFromMatrixPosition(held)) >
         0.5,
-      'reduced motion removes traveling fragments but keeps the contact',
+      'reduced motion holds hot fragments close to the fireball',
     );
     const frozen = Array.from(fragments.instanceMatrix.array);
     presentation.update({
@@ -234,8 +251,14 @@ test('Lance retains a narrow leading spear and localized directional armor strik
     assert.equal(fragments.count, 0);
     assert.equal(fragments.visible, false);
     assert.equal(
-      scene.getObjectByName('Lance / white-hot spear cores').count,
+      scene.getObjectByName('Lance / yellow-hot blast cores').count,
       0,
+    );
+    sample(0.16, false, true);
+    assert.equal(
+      fragments.count,
+      0,
+      'shielded Aegis contact retains its existing green identity',
     );
     presentation.dispose();
     assert.equal(scene.children.length, 0);

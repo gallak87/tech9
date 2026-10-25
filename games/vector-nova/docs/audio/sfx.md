@@ -57,6 +57,8 @@ For an isolated cue, use **Sounds → Play** with `?dev=1` or `?dev=2`. For the 
 
 Finish the complete device set using the [brief/template](../sounds/expansion.md) and [cue inventory](sounds.md). Listen with propulsion and Tunes; technical validation cannot judge the mix. Preserve natural tails, align attacks with real events and check loop seams by ear.
 
+Lance fire adds an offline audio edit after local generation: `assets/audio/sfx/lance-fire-edit.py --source <generated-WAV>` masters the generated ion discharge with a gentle low cut and softened upper frequencies, retaining its natural electrical body and charged-air tail. Its exact recipe and source/master hashes live in equipment provenance; runtime still plays the shared WAV sample.
+
 Register the current config/master/export and generation provenance in [ASSET_MANIFEST.json](../ASSET_MANIFEST.json). The shared device bus decodes samples on unlock and applies the same voice budget, compressor, effects volume and underwater mix as synthesis. Physical ship collisions and lap/finish announcements share the sample loader. Countdown/GO retain their original synthesis. Lap/finish announcements use a clear bus outside the underwater filter, while retaining the shared effects volume and compressor. Sample-backed cues have no procedural fallback: missing files stay silent and dev previews report the failure. Stop, pause, mute and disposal stop owned voices.
 
 ## Source and licences

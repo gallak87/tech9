@@ -3,7 +3,7 @@
   "toolchain": "tools/sfx-models.json",
   "referenceAudio": null,
   "format": "stereo 44100 Hz 16-bit PCM",
-  "approval": "Revised for distinct physical ability actions and integrated for user audition; listening approval pending.",
+  "approval": "Lance fire and impact approved by the user after the final volume and tail adjustments; other equipment cues remain integrated for audition.",
   "cues": {
     "jump-activate": {
       "config": "jump-activate.json",
@@ -62,25 +62,48 @@
     },
     "lance-fire": {
       "config": "lance-fire.json",
-      "sourceSha256": "d3dcc82ca2810867a37911d60523c4076bddb621b74b33b6fd4987807e87613f",
-      "trimStartFrame": 50,
-      "trimEndFrame": 41945,
-      "gain": 0.7794293,
-      "fadeInFrames": 22,
-      "fadeOutFrames": 882,
-      "seconds": 0.95,
-      "sha256": "8568e0130fc19de341c0d311f80b9b1ba262b04435f04cad0d501c4af2d4c33d"
+      "sourceSha256": "228f5697d4fac12f084fd7030ce0eaf02627e0b3ef074eead1e20d2880d6f189",
+      "trimStartFrame": 0,
+      "trimEndFrame": 38588,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 30,
+          "Q": 0.7071067811865476,
+          "b": [0.9969821934042312, -1.9939643868084624, 0.9969821934042312],
+          "a": [-1.9939552796310778, 0.9939734939858471]
+        },
+        {
+          "type": "lowpass",
+          "hz": 4000,
+          "Q": 0.7071067811865476,
+          "b": [
+            0.057200372524855596, 0.11440074504971119, 0.057200372524855596
+          ],
+          "a": [-1.2188793364455874, 0.4476808265450099]
+        }
+      ],
+      "gain": 58906.55694648313,
+      "fadeInFrames": 44,
+      "fadeOutFrames": 1984,
+      "editScript": "lance-fire-edit.py",
+      "editScriptSha256": "b75900bcd9cb03e2cd2020022ebf56a720b4f61e32143d613403bf9f66629307",
+      "seconds": 0.875011,
+      "sha256": "3e827ca15d9ab1afccb928b14e0d391e51571d6b7f1ca2ffb1a9c268bb535ae6",
+      "postGainDb": 4,
+      "peakDbfs": -1,
+      "fadeOutCurve": "raised-cosine"
     },
     "lance-hit": {
       "config": "lance-hit.json",
-      "sourceSha256": "f77b5a954ae07fde29da0776c37008e07ab3757074e609051ec4026d32bbc35a",
-      "trimStartFrame": 3632,
-      "trimEndFrame": 38912,
-      "gain": 1.16421482,
+      "sourceSha256": "355278b7c0893d2a07fc0e82d2d88d931de378ca65b151d079d570298b4c9091",
+      "trimStartFrame": 0,
+      "trimEndFrame": 5733,
+      "gain": 0.95039397,
       "fadeInFrames": 22,
-      "fadeOutFrames": 882,
-      "seconds": 0.8,
-      "sha256": "217d7e23da6b023e4a30ec34ddcbf0fa0849509fe1cbfea9534f398d733a7b34"
+      "fadeOutFrames": 1323,
+      "seconds": 0.13,
+      "sha256": "e1df19af68d050ab4d0d26f613aa6bbbb37ef8c70622adee233be0848a79b62f"
     },
     "jump-land": {
       "config": "jump-land.json",

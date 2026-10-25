@@ -252,8 +252,8 @@ export function createEquipmentEffects(scene) {
   );
 
   const lance = branch('Lance / split muzzle rails');
-  const railGeometry = ownGeometry(new T.BoxGeometry(0.12, 0.12, 3.2));
-  const railMaterial = basic(0xffe3ad);
+  const railGeometry = ownGeometry(new T.BoxGeometry(0.2, 0.18, 3.2));
+  const railMaterial = basic(0xff731c);
   for (const side of [-1, 1]) {
     const rail = mesh(
       lance,

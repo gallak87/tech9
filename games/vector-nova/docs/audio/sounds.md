@@ -6,42 +6,42 @@ These 33 choices are sorted alphabetically by group and name. Shared recordings 
 
 For pickup sound and VFX together, open **Ship inspector → Powerups & equipment** with `dev=1` or `dev=2`, or go directly to `?inspect=1&dev=1&ship=kestrel`. Choose a device and press **Trigger**. The Arc, Repulsor and Aegis sound sets match gameplay. Aegis has separate full-duration and absorb/break sequences. Check **Shield target** to preview a blocked first hit, and **Engine sound** to hear Driving/Boost alongside the device.
 
-| Picker entry                       | When heard in game                                                          | Current character                                              |
-| ---------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| Aegis · activate                   | Shield activates                                                            | Generated broad warp-start surge                               |
-| Aegis / Deflector · collapse / hit | Shield absorbs a hit, expires or is cancelled; weapon hits a shielded rival | Shared generated rounded warp collapse                         |
-| Arc · activate                     | Arc emitter activates                                                       | Generated controlled electrical whip                           |
-| Arc · fire                         | Each Arc shot fires                                                         | Electrical snap with a deep descending body                    |
-| Arc · hull impact                  | Arc hits a hull; quieter for outgoing contact                               | Generated electrical armor crack and low thud                  |
-| Ion · activate                     | Ion wake emitter activates                                                  | Falling rush and low body                                      |
-| Ion · hull impact                  | Ion wake hits the unshielded player                                         | Original synthesized noise crack and low impact                |
-| Ion · sustained wake               | Ion emitter remains active                                                  | Continuous lower filtered noise                                |
-| Ion · target contact               | Player's wake hits an unshielded rival                                      | Original synthesized rising confirmation                       |
-| Repulsor · charge                  | Repulsor is acquired and charges                                            | Generated compressed magnetic rise                             |
-| Repulsor · fire                    | Repulsor discharges                                                         | Generated rounded pressure punch and air tail                  |
-| Repulsor · hull impact             | Repulsor hits a hull; quieter for outgoing contact                          | Generated cushioned pressure hit                               |
-| Vector · activate                  | Vector road device activates                                                | Rising rush with low engine body                               |
-| Vector · sustained rush            | Vector boost remains active                                                 | Continuous bright filtered noise                               |
-| Jump Drive · activate              | Equipped launch activates                                                   | Generated compressed thruster kick and short air release       |
-| Jump Drive · landing catch         | Equipped jump reaches supported road                                        | Generated quiet suspension compression and rebound             |
-| Reserve Injector · activate        | Reserve injection succeeds                                                  | Generated valve click and short pressure intake                |
-| Slipstream Drive · activate        | Drafting surge activates with a rival ahead                                 | Generated turbine catch and four-second suction rush           |
-| Deflector · activate               | Equipped shield activates                                                   | Generated compact latch and electrical field lock              |
-| Magnetic Stabilizer · activate     | Air-control stabilization activates                                         | Generated gyro spool and restrained servo seating              |
-| Lance · fire                       | Heavy equipped projectile fires                                             | Generated capacitor snap, mechanical recoil and short air tear |
-| Lance · hull impact                | Lance strikes a hull; quieter for outgoing contact                          | Generated concentrated metal punch and short panel resonance   |
-| Ship · cruise                      | Ship travelling at speed                                                    | Engine harmonics plus airflow; preview at 112 m/s              |
-| Ship · hover / idle                | Stationary running ship                                                     | Hover fundamental and paired engine harmonics                  |
-| Ship · manual boost                | Manual boost held at speed                                                  | Brighter engine and additional rush; preview at 157 m/s        |
-| Countdown · 3 / 2 / 1              | Each red start light                                                        | Same short 480 Hz tone                                         |
-| Countdown · go                     | Green start light                                                           | Longer 960 Hz tone                                             |
-| Cup · champion                     | First place in the final championship standings, after the race-finish cue  | Generated warm impact, rising swell and resolved synth chord   |
-| Final lap                          | Final lap begins                                                            | Generated punchy double electronic clap                        |
-| Lap complete                       | Ordinary lap crossing                                                       | Generated compact synth lift and resolution                    |
-| Race complete · finisher           | Other valid finish                                                          | Generated warm synth finish sting                              |
-| Race complete · invalid run        | Invalid finish                                                              | Generated descending synth close                               |
-| Race complete · winner             | Valid first-place finish                                                    | Generated modern electronic victory sting                      |
-| Ship · impact                      | Wall, rail, structure or racer collision                                    | Generated short body knock with a small scrape                 |
+| Picker entry                       | When heard in game                                                          | Current character                                            |
+| ---------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Aegis · activate                   | Shield activates                                                            | Generated broad warp-start surge                             |
+| Aegis / Deflector · collapse / hit | Shield absorbs a hit, expires or is cancelled; weapon hits a shielded rival | Shared generated rounded warp collapse                       |
+| Arc · activate                     | Arc emitter activates                                                       | Generated controlled electrical whip                         |
+| Arc · fire                         | Each Arc shot fires                                                         | Electrical snap with a deep descending body                  |
+| Arc · hull impact                  | Arc hits a hull; quieter for outgoing contact                               | Generated electrical armor crack and low thud                |
+| Ion · activate                     | Ion wake emitter activates                                                  | Falling rush and low body                                    |
+| Ion · hull impact                  | Ion wake hits the unshielded player                                         | Original synthesized noise crack and low impact              |
+| Ion · sustained wake               | Ion emitter remains active                                                  | Continuous lower filtered noise                              |
+| Ion · target contact               | Player's wake hits an unshielded rival                                      | Original synthesized rising confirmation                     |
+| Repulsor · charge                  | Repulsor is acquired and charges                                            | Generated compressed magnetic rise                           |
+| Repulsor · fire                    | Repulsor discharges                                                         | Generated rounded pressure punch and air tail                |
+| Repulsor · hull impact             | Repulsor hits a hull; quieter for outgoing contact                          | Generated cushioned pressure hit                             |
+| Vector · activate                  | Vector road device activates                                                | Rising rush with low engine body                             |
+| Vector · sustained rush            | Vector boost remains active                                                 | Continuous bright filtered noise                             |
+| Jump Drive · activate              | Equipped launch activates                                                   | Generated compressed thruster kick and short air release     |
+| Jump Drive · landing catch         | Equipped jump reaches supported road                                        | Generated quiet suspension compression and rebound           |
+| Reserve Injector · activate        | Reserve injection succeeds                                                  | Generated valve click and short pressure intake              |
+| Slipstream Drive · activate        | Drafting surge activates with a rival ahead                                 | Generated turbine catch and four-second suction rush         |
+| Deflector · activate               | Equipped shield activates                                                   | Generated compact latch and electrical field lock            |
+| Magnetic Stabilizer · activate     | Air-control stabilization activates                                         | Generated gyro spool and restrained servo seating            |
+| Lance · fire                       | Heavy equipped projectile fires                                             | Rounded ion discharge with a short charged-air tail          |
+| Lance · hull impact                | Lance strikes a hull; quieter for outgoing contact                          | Generated single rounded mini boom with a short clean fade   |
+| Ship · cruise                      | Ship travelling at speed                                                    | Engine harmonics plus airflow; preview at 112 m/s            |
+| Ship · hover / idle                | Stationary running ship                                                     | Hover fundamental and paired engine harmonics                |
+| Ship · manual boost                | Manual boost held at speed                                                  | Brighter engine and additional rush; preview at 157 m/s      |
+| Countdown · 3 / 2 / 1              | Each red start light                                                        | Same short 480 Hz tone                                       |
+| Countdown · go                     | Green start light                                                           | Longer 960 Hz tone                                           |
+| Cup · champion                     | First place in the final championship standings, after the race-finish cue  | Generated warm impact, rising swell and resolved synth chord |
+| Final lap                          | Final lap begins                                                            | Generated punchy double electronic clap                      |
+| Lap complete                       | Ordinary lap crossing                                                       | Generated compact synth lift and resolution                  |
+| Race complete · finisher           | Other valid finish                                                          | Generated warm synth finish sting                            |
+| Race complete · invalid run        | Invalid finish                                                              | Generated descending synth close                             |
+| Race complete · winner             | Valid first-place finish                                                    | Generated modern electronic victory sting                    |
+| Ship · impact                      | Wall, rail, structure or racer collision                                    | Generated short body knock with a small scrape               |
 
 The cup reward starts at least 0.6 seconds into its reveal and 0.25 seconds after any remaining race-finish voice. It follows effects volume, cancels when leaving results, and does not replay when reopening saved standings. Reduced motion keeps the trophy visible without the entrance animation.
 

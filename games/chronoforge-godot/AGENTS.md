@@ -1,0 +1,15 @@
+# Chronoforge Echo in Godot — clean project
+
+Owner decision: 2026-10-24: build current Echo in a CLEAN Godot project here. This supersedes rebuilding Dusk or preserving its missing-passenger story. Read BRIEF.md, STATUS.md and ROADMAP.md first. Do not restore the old paused Goal; the owner is deleting it and will set a new one later.
+
+Authoritative game: sibling `../chronoforge-echo/` in this main tech9 checkout. Its actual source, current artwork and runtime behavior govern story, maps, membership, progression, resources, combat and UI. Dusk at `/Users/g/code/scratch/chronoforge-dusk-creative/games/chronoforge-dusk` is a READ-ONLY asset/tool donor. Do not refactor its campaign or copy its application wholesale. Ignore historical Dusk acceptance percentages, chapter tests, saved-game compatibility and layout constraints. No fallback game/build or old save migration is required. Do not change Echo or owner data.
+
+Export declarative data from Echo's FINAL constructed worlds; executable story/progression/combat rules need faithful native ports checked against actual JavaScript oracle traces. Prefer small native GDScript modules over a generic transpiler, embedded JS runtime or Node sidecar. Use actual dynamic hero IDs/membership; stable model indices may exist only in the visual adapter. No invented recruitment schedule or story substitution.
+
+Build in layers: exact rules/data and spatial silhouette, one genuinely playable slice, art/animation detail, then expand. First prove solo Kaida and `hav_first`; then the real Haventide route and edge-connected travel. Preserve current Echo's full shape while delivering bounded milestones. Reuse selected models/rigs/gear/Mixamo clips; copy only needed asset closures and licences. No paid Meshy/Tripo tangent or body-generation loop.
+
+Fan out disjoint work. One Godot/native/Metal/Blender/GPU job at a time on16 GB M1 Pro. Functional probes may run2–5x; actual animation/contact/readability/performance run1x. Use isolated saves/browser contexts. Keep compact selected proof and editable sources; retire superseded outputs after dependency checks. No push or history rewrite. Protect the donor owner's `game/export_presets.cfg`; do not stage it.
+
+Critics split50/50 broad experience and detail; prioritize the weakest two. Cap at10rounds or justified9/10, reassess after at most2corrections on a bounded layer instead of capture/parameter loops. Tests cannot establish fun/art/audio quality. Before implementing world-feedback cinema, require an independent concept review of player cause, meaningful visible action and fun/cool payoff; then review the actual result. The old Dusk awning is deferred, not a template.
+
+White-dotted icon/portrait edges: roadmap ONLY now. Use actual equipped3D idle for large character menu previews. Existing Echo audio may be reused; new local-model audio generation waits for the owner to share their model. Slightly arcadey smooth motion is a later feel pass. No autonomous new Goal or separate chat unless the user requests it.

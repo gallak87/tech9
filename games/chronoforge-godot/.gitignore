@@ -1,0 +1,5 @@
+.godot/
+dist/
+evidence/
+.DS_Store
+*.tmp

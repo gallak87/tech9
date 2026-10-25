@@ -1,5 +1,0 @@
-node_modules/
-.DS_Store
-playwright-report/
-tests/artifacts/
-assets/source/*.blend1

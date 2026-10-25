@@ -1,5 +1,7 @@
-# Chronoforge Echo — clean Godot3D project
+# Echo 3D experiment handoff
 
-Owner-approved clean project beside current Echo. Start with [BRIEF.md](BRIEF.md), [AGENTS.md](AGENTS.md), [STATUS.md](STATUS.md) and [ROADMAP.md](ROADMAP.md).
+[BRIEF.md](BRIEF.md) is the small next experiment: one animated character, equipped weapon, Worldkit coast and clean unload/reload. [DONOR_ASSETS.md](DONOR_ASSETS.md) is an optional discovery aid. The owner may use a fresh folder or prompt instead.
 
-This folder currently holds the new-chat handoff. No Godot game or release candidate has been implemented here yet. Current sibling Echo is the gameplay/story/art authority; Dusk is a read-only asset/tool donor. Old Dusk story, saves, layout constraints, fallback requirements and completion estimates are superseded.
+This folder contains documentation only. No experiment, game build or new Goal has been started. The former complete Godot port, mandatory rules exporter and campaign roadmap are superseded; their history remains in Git. The folder keeps its historical name to avoid choosing the next project's location during this cleanup.
+
+Later feedback, outside the experiment: defer white-dotted icon edges; prefer equipped 3D idle in large menu previews and Mixamo-like motion; revisit smoother, slightly arcadey movement and local audio generation later. Future environmental cinema needs an independent concept critique of meaningful player cause, visible action and fun payoff. If game development follows, current Echo source governs story, recruitment, progression and connected map travel; rediscover the relevant behavior then.

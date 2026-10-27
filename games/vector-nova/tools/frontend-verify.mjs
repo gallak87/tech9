@@ -30,6 +30,7 @@ assert.ok(
   'Use --desktop or --responsive, or neither for both.',
 );
 const browser = await chromium.launch({
+  args: ['--mute-audio'],
   headless: true,
   ...(process.env.VN_BROWSER_PATH
     ? { executablePath: process.env.VN_BROWSER_PATH }

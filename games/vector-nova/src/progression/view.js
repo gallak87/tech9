@@ -90,8 +90,17 @@ export function rewardsView(rewards, { heading = 'Earned this run' } = {}) {
   if (!rewards?.length) return '';
   return `<section class="earned-rewards" aria-label="${heading}"><h3>${heading}</h3><div>${rewards.map((reward) => `<article class="earned-reward rarity-${reward.rarity}">${rewardIcon(reward.id)}<span><small>${RARITIES[reward.rarity]}</small><strong>${reward.name}</strong><p>${reward.description}</p></span></article>`).join('')}</div></section>`;
 }
+const collectedRewardCount = (profile) =>
+  REWARDS.filter((reward) => profile.claims.includes(reward.id)).length;
+export function careerProgressView(profile) {
+  const collected = collectedRewardCount(profile);
+  return `<section class="career-progress" aria-label="Career unlocks"><div class="career-progress-heading"><span>Unlocks</span><span>${collected}<span class="career-progress-total"> / ${REWARDS.length}</span></span></div><div class="career-progress-bar" role="progressbar" aria-label="Collected career rewards" aria-valuemin="0" aria-valuemax="${REWARDS.length}" aria-valuenow="${collected}" aria-valuetext="${collected} of ${REWARDS.length} rewards collected" style="--reward-count:${REWARDS.length}">${REWARDS.map(
+    (_, index) =>
+      `<span class="career-progress-notch${index < collected ? ' is-earned' : ''}" aria-hidden="true"></span>`,
+  ).join('')}</div></section>`;
+}
 export function careerView(profile) {
-  return `<div class="career-summary"><strong>${REWARDS.filter((reward) => profile.claims.includes(reward.id)).length}<small> / ${REWARDS.length} rewards</small></strong>${IS_DEMO ? '' : `<span>${profile.points} race progress</span>`}<span>${profile.finishes} finishes · ${profile.wins} wins</span><span>${IS_DEMO ? Number(profile.cups.includes('demo')) : fullCupWins(profile)} / ${IS_DEMO ? 1 : 4} cup wins</span><span>${Math.min(profile.trialTracks.length, IS_DEMO ? 1 : 2)} / ${IS_DEMO ? 1 : 2} Time Trial maps</span></div><p class="career-intro">${IS_DEMO ? 'Four rewards to earn: finish races, win the Demo Cup and set a clean Time Trial record. Equip two items. Export your save here, then import it in the full game to keep your rewards, trophy and records. Full-game upgrades stay saved while you play the demo.' : 'Permanent enhancements improve every ship. Every valid Quick Race or cup-race finish earns progress: 1st +5, 2nd +4, 3rd +3, 4th–5th +2, 6th–10th +1. Win championships and set clean Time Trial records on two different maps to complete your collection.'}</p><div class="reward-roadmap">${REWARDS.map(
+  return `<div class="career-summary"><strong>${collectedRewardCount(profile)}<small> / ${REWARDS.length} rewards</small></strong>${IS_DEMO ? '' : `<span>${profile.points} race progress</span>`}<span>${profile.finishes} finishes · ${profile.wins} wins</span><span>${IS_DEMO ? Number(profile.cups.includes('demo')) : fullCupWins(profile)} / ${IS_DEMO ? 1 : 4} cup wins</span><span>${Math.min(profile.trialTracks.length, IS_DEMO ? 1 : 2)} / ${IS_DEMO ? 1 : 2} Time Trial maps</span></div><p class="career-intro">${IS_DEMO ? 'Four rewards to earn: finish races, win the Demo Cup and set a clean Time Trial record. Equip two items. Export your save here, then import it in the full game to keep your rewards, trophy and records. Full-game upgrades stay saved while you play the demo.' : 'Permanent enhancements improve every ship. Every valid Quick Race or cup-race finish earns progress: 1st +5, 2nd +4, 3rd +3, 4th–5th +2, 6th–10th +1. Win championships and set clean Time Trial records on two different maps to complete your collection.'}</p><div class="reward-roadmap">${REWARDS.map(
     (reward) => {
       const owned = profile.claims.includes(reward.id),
         [progress, total] = rewardProgress(profile, reward.requirement);

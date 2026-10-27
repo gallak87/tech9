@@ -13,6 +13,7 @@ app.setPath('appData', process.env.VN_PROBE_PROFILE);
 BrowserWindow.prototype.show = function () {};
 const failures = [];
 app.on('web-contents-created', (_event, contents) => {
+  contents.setAudioMuted(true);
   contents.on('console-message', (event) => {
     if (event.level === 'error' || event.level === 3) {
       failures.push(event.message);
@@ -54,15 +55,39 @@ async function press(keyCode) {
 const menu = `!!document.querySelector('.race-menu') && !document.querySelector('#front-shell').hidden`;
 const racing = `document.querySelector('#hud') && !document.querySelector('#hud').classList.contains('hidden') && document.querySelector('#front-shell').hidden`;
 const paused = `document.querySelector('#pause-panel') && !document.querySelector('#pause-panel').classList.contains('hidden')`;
+async function checkCollection() {
+  const total = manifest.edition === 'demo' ? 4 : 28;
+  const progress = await evaluate(`(() => {
+    const bar = document.querySelector('.career-progress-bar');
+    const claims = JSON.parse(localStorage.getItem('vector-nova.career.v1'))?.claims ?? [];
+    const available = ${JSON.stringify(manifest.edition === 'demo' ? ['speed-1', 'equipment-jump', 'equipment-deflector', 'boost-1'] : null)};
+    return {
+      collected: Number(bar?.getAttribute('aria-valuenow')),
+      total: Number(bar?.getAttribute('aria-valuemax')),
+      notches: bar?.children.length,
+      active: bar?.querySelectorAll('.is-earned').length,
+      saved: available ? claims.filter(id => available.includes(id)).length : claims.length,
+      styled: getComputedStyle(bar?.firstElementChild).backgroundImage.includes('linear-gradient'),
+    };
+  })()`);
+  assert.equal(progress.total, total, 'collection uses the edition catalogue');
+  assert.equal(progress.notches, total);
+  assert.equal(progress.collected, progress.saved);
+  assert.equal(progress.active, progress.saved);
+  assert.equal(progress.styled, true, 'collection styles ship in Electron');
+}
 async function run() {
   await app.whenReady();
   window = BrowserWindow.getAllWindows()[0];
+  assert.equal(window.webContents.isAudioMuted(), true);
   window.webContents.setBackgroundThrottling(false);
   session.defaultSession.webRequest.onCompleted((details) => {
     if (details.statusCode >= 400)
       failures.push(`${details.statusCode} ${details.url}`);
   });
   await wait(menu);
+  await wait(`document.querySelector('.transfer-status')?.hidden === true`);
+  await checkCollection();
   assert.equal(
     window.isFullScreenable(),
     true,
@@ -185,6 +210,7 @@ async function run() {
     [...manifest.ships].sort(),
   );
   await click('[data-ship="kestrel"]');
+  await click('[data-action="race-tab"]');
   await click('[data-action="settings"]');
   assert.equal(
     await evaluate(`document.querySelector('[data-setting="quality"]').value`),
@@ -310,6 +336,7 @@ async function run() {
   for (const ship of manifest.ships.filter((id) => id !== 'kestrel')) {
     await click('[data-action="ship-step"]');
     await click(`[data-ship="${ship}"]`);
+    await click('[data-action="race-tab"]');
     await click('[data-action="practice"]');
     await click('[data-action="launch"]');
     await wait(racing);
@@ -332,6 +359,7 @@ async function run() {
   }
   await click('[data-action="ship-step"]');
   await click('[data-ship="kestrel"]');
+  await click('[data-action="race-tab"]');
   await click('[data-action="cup-hub"]');
   assert(
     await evaluate(
@@ -354,9 +382,14 @@ async function run() {
   await wait(paused);
   await click('#home');
   await wait(menu);
-  await click('[data-action="inspect"]');
+  assert.equal(
+    await evaluate(`!!document.querySelector('[data-action="inspect"]')`),
+    false,
+    'The developer-only ship inspector must not ship',
+  );
+  await click('[data-action="garage-tab"]');
   await wait(
-    `!!document.querySelector('#inspect-back') && !document.querySelector('#inspector-host').inert`,
+    `document.querySelector('.ship-preview')?.dataset.state === 'ready'`,
   );
   assert.deepEqual(
     await evaluate(`Object.keys(window).filter(k => k.startsWith('__VN'))`),
@@ -366,7 +399,7 @@ async function run() {
     await evaluate(`!!document.querySelector('#inspection-rivals-tab')`),
     false,
   );
-  await click('#inspect-back');
+  await click('[data-action="race-tab"]');
   await wait(menu);
   // Controller menu action through the real adapter, with a synthetic standard pad.
   await evaluate(
@@ -413,8 +446,9 @@ async function run() {
     'delete window.__testPad; Object.defineProperty(navigator,"getGamepads",{value:()=>[], configurable:true});',
   );
   assert.equal(failures.length, 0, failures.join('\n'));
+  await checkCollection();
   console.log(
-    `PASS ${manifest.edition}: catalogs, tamper attempts, sandbox, CSP/assets, settings persistence, Quick Race, Time Trial, cups, inspector and controller menus`,
+    `PASS ${manifest.edition}: catalogs, tamper attempts, sandbox, CSP/assets, settings persistence, Quick Race, Time Trial, cups, garage studio and controller menus`,
   );
   await evaluate('window.vectorNovaDesktop.quit()');
 }

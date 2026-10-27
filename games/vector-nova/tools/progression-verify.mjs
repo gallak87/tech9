@@ -6,6 +6,7 @@ const base = process.env.VN_URL;
 if (!base) throw new Error('Set VN_URL to a running browser build.');
 const responsive = process.argv.includes('--responsive');
 const browser = await chromium.launch({
+  args: ['--mute-audio'],
   channel: process.env.VN_BROWSER_CHANNEL ?? 'chrome',
   headless: true,
 });

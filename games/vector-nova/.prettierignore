@@ -1,4 +1,5 @@
 .experiments/
+.audio-model/
 evidence/
 .husky/
 dist/

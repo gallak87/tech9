@@ -7,6 +7,7 @@ import { createServer, preview } from 'vite';
 import config from '../vite.config.js';
 import { resolve } from 'node:path';
 import { readFile } from 'node:fs/promises';
+import { createProfileStore } from '../src/progression/profile.js';
 const root = resolve(import.meta.dirname, '..');
 const server = await createServer({
   ...config,
@@ -17,6 +18,7 @@ const server = await createServer({
 });
 await server.listen();
 const browser = await chromium.launch({
+  args: ['--mute-audio'],
   channel: process.env.VN_BROWSER_CHANNEL ?? 'chrome',
   headless: true,
 });
@@ -77,6 +79,19 @@ async function open(query) {
   return { context, page };
 }
 const action = (page, id) => page.locator(`[data-action="${id}"]`).first();
+async function collection(page, collected) {
+  const bar = page.getByRole('progressbar', {
+    name: 'Collected career rewards',
+  });
+  await bar.waitFor();
+  assert.equal(await bar.getAttribute('aria-valuemax'), '4');
+  assert.equal(await bar.getAttribute('aria-valuenow'), String(collected));
+  assert.equal(await bar.locator('.career-progress-notch').count(), 4);
+  assert.equal(await bar.locator('.is-earned').count(), collected);
+  const bounds = await bar.boundingBox();
+  const trophies = await page.locator('.cup-cabinet').boundingBox();
+  assert.ok(bounds.y + bounds.height < trophies.y);
+}
 const results = (page) =>
   page.waitForFunction(
     () => window.__VN_FRONTEND.getState().screen === 'results',
@@ -87,6 +102,7 @@ try {
   if (!process.argv.includes('--compiled-only')) {
     {
       const { page, context } = await open('dev=1&finish=1&place=4');
+      await collection(page, 0);
       await page.locator('[data-reward-info="equipment-jump"]').focus();
       assert.match(
         await page.locator('#reward-detail-equipment-jump').innerText(),
@@ -121,6 +137,9 @@ try {
         await page.locator('.earned-rewards').innerText(),
         /Jump Drive/,
       );
+      await action(page, 'change').focus();
+      await page.keyboard.press('Enter');
+      await collection(page, 2);
       await context.close();
       console.log(
         'PASS demo first/third finish reveals through keyboard/controller',
@@ -151,6 +170,9 @@ try {
         'deflector',
       );
       assert.equal(await page.locator('.garage-equipment-card').count(), 1);
+      await action(page, 'race-tab').focus();
+      await pad(page, 0);
+      await collection(page, 2);
       await context.close();
       console.log(
         'PASS Demo Cup trophy, reward and controller equipment selection',
@@ -172,6 +194,9 @@ try {
       );
       assert.deepEqual((await state(page)).career.state.claims, ['boost-1']);
       assert.equal((await state(page)).career.state.finishes, 0);
+      await page.keyboard.press('Escape');
+      await page.locator('#home').click();
+      await collection(page, 1);
       await context.close();
       console.log(
         'PASS clean Time Trial earns Boost I without racing prerequisite',
@@ -179,6 +204,7 @@ try {
     }
     {
       const { page, context } = await open('dev=2');
+      await collection(page, 4);
       await action(page, 'garage-tab').focus();
       await page.keyboard.press('Enter');
       await page.waitForFunction(
@@ -252,6 +278,7 @@ try {
   await page.goto(
     `http://127.0.0.1:${compiled.httpServer.address().port}/?dev=2`,
   );
+  await collection(page, 0);
   try {
     await action(page, 'garage-tab').focus();
   } catch (error) {
@@ -304,9 +331,57 @@ try {
       .length,
     4,
   );
+  // Import a real full-game career through the release UI. Its extra claims
+  // remain saved, while both demo views count only the four playable rewards.
+  const values = new Map();
+  const fullCareer = createProfileStore(() => ({
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+  }));
+  for (let i = 0; i < 24; i++)
+    fullCareer.recordRace({ id: `demo-import-${i}`, position: 1 });
+  for (const id of ['founders', 'frontier', 'horizon', 'apex'])
+    fullCareer.recordCup(id);
+  for (const id of ['halcyon', 'nacre']) fullCareer.recordTrial(id, true);
+  const profile = fullCareer.snapshot().state;
+  assert.equal(profile.claims.length, 28);
+  await page.locator('[data-save-file]').setInputFiles({
+    name: 'full-career.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(
+      JSON.stringify({ game: 'vector-nova', version: 1, profile }),
+    ),
+  });
+  await page.locator('[data-confirm-import]').click();
+  assert.match(
+    await page.locator('.career-summary strong').innerText(),
+    /4 \/ 4 rewards/,
+  );
+  await page.keyboard.press('Escape');
+  await collection(page, 4);
+  assert.equal(
+    await page.evaluate(
+      () =>
+        JSON.parse(localStorage.getItem('vector-nova.career.v1')).claims.length,
+    ),
+    28,
+  );
+  await page.reload();
+  await collection(page, 4);
+  for (const viewport of process.argv.includes('--desktop-only')
+    ? []
+    : [
+        { width: 390, height: 844 },
+        { width: 844, height: 390 },
+      ]) {
+    await page.setViewportSize(viewport);
+    await collection(page, 4);
+    const bounds = await page.locator('.career-progress-bar').boundingBox();
+    assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= viewport.width);
+  }
   assert.deepEqual(errors, []);
   console.log(
-    'PASS audited demo renderer, four icons and no developer escape hatch',
+    'PASS audited demo renderer, four icons, persistent four-notch collection and no developer escape hatch',
   );
 } catch (error) {
   if (activePage && !activePage.isClosed())

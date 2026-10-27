@@ -9,6 +9,7 @@ const responsive = process.argv.includes('--responsive');
 const tunes = process.argv.includes('--tunes');
 const desktopControls = process.argv.includes('--desktop-controls');
 const browser = await chromium.launch({
+  args: ['--mute-audio'],
   headless: true,
   ...(process.env.VN_BROWSER_PATH
     ? { executablePath: process.env.VN_BROWSER_PATH }

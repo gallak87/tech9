@@ -54,7 +54,10 @@ test('Halcyon retains four 54m strips and adds opening protection plus combat ga
     devices = createHalcyonDevices(track);
   assert.equal(track.id, HALCYON_TRACK_ID);
   assert.equal(devices.filter((entry) => entry.type === 'vector').length, 4);
-  assert.equal(devices.filter((entry) => entry.type === 'aegis').length, 3);
+  assert.deepEqual(
+    devices.filter((entry) => entry.type === 'aegis').map(({ id }) => id),
+    ['aegis-launch', 'aegis-crown', 'aegis-corkscrew', 'aegis-sky-exit'],
+  );
   for (const entry of devices) {
     assert.ok(Math.abs(entry.lateral) + entry.width / 2 < track.width / 2 - 1);
     if (entry.type === 'vector') assert.equal(entry.length, 54);

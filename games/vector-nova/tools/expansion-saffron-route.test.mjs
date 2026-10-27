@@ -8,7 +8,11 @@ import {
   saffronSandSection,
   saffronSandExposure,
 } from '../src/levels/saffron/track/index.js';
-import { createSaffronRuntime } from '../src/levels/saffron/runtime.js';
+import {
+  createSaffronRuntime,
+  SAFFRON_SAND_SEVERITY,
+} from '../src/levels/saffron/runtime.js';
+import { sampleHazardSurface } from '../src/physics/hazard-surface.js';
 import { createVehicleState, stepVehicle } from '../src/physics/index.js';
 import { createRace } from '../src/race/index.js';
 import {
@@ -244,20 +248,39 @@ test('migrating visible deposit samples match drag, preserve exposed glass and a
     );
   }
   const runtime = createSaffronRuntime(context);
-  const sandy = {
-    ...createVehicleState(),
-    distance: section.distance,
-    lateral: section.lateral,
-    speed: 85,
-  };
-  const baseline = { ...sandy };
-  runtime.advance(sandy, neutral, 1 / 120);
-  stepVehicle(baseline, neutral, track, 1 / 120, { steeringAssist: 0.3 });
-  assert.ok(
-    Math.abs(baseline.speed - sandy.speed - 3 / 120) < 0.0001,
-    'sand adds actual 3 m/s² drag at matched state',
-  );
-  assert.equal(runtime.snapshot().saffron.surfaceId, zone.id);
+  assert.equal(SAFFRON_SAND_SEVERITY, 0.5);
+  for (const speed of [30, 85, 150])
+    for (const input of [neutral, { ...neutral, throttle: 1, boost: true }]) {
+      const sandy = {
+        ...createVehicleState(),
+        distance: section.distance,
+        lateral: section.lateral,
+        speed,
+      };
+      const expected = { ...sandy };
+      const baseline = { ...sandy };
+      runtime.reset({ state: sandy });
+      runtime.advance(sandy, input, 1 / 120);
+      stepVehicle(expected, input, track, 1 / 120, {
+        steeringAssist: 0.3,
+        surface: sampleHazardSurface(speed, SAFFRON_SAND_SEVERITY),
+      });
+      stepVehicle(baseline, input, track, 1 / 120, { steeringAssist: 0.3 });
+      assert.ok(
+        Math.abs(expected.speed - sandy.speed) < 1e-9,
+        'visible sand uses the shared speed-scaled resistance and thrust loss',
+      );
+      assert.ok(sandy.speed < baseline.speed, 'boost cannot bypass sand');
+      assert.equal(runtime.snapshot().saffron.surfaceId, zone.id);
+
+      const glass = { ...baseline, time: 0, lateral: -10, speed };
+      const clear = { ...glass };
+      runtime.reset({ state: glass });
+      runtime.advance(glass, input, 1 / 120);
+      stepVehicle(clear, input, track, 1 / 120, { steeringAssist: 0.3 });
+      assert.ok(Math.abs(glass.speed - clear.speed) < 1e-9);
+      assert.equal(runtime.snapshot().saffron.surfaceId, null);
+    }
   runtime.dispose();
 });
 

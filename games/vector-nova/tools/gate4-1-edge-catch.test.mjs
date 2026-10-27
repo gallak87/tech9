@@ -11,12 +11,14 @@ import {
 import { createVehicleState } from '../src/physics/index.js';
 import { createRace } from '../src/race/index.js';
 import { advanceSession } from '../src/core/session-runtime.js';
+import { landingZoneEnd } from '../src/physics/landing-zone.js';
 
 const track = createLevel3Track();
 const control = {
   throttle: 1,
   brake: 0,
-  boost: true,
+  // Coast through contact so reserve drain/air thrust cannot mask its penalty.
+  boost: false,
   airbrake: false,
   steer: 0,
 };
@@ -107,7 +109,7 @@ test('swept finite rail volumes catch top and sideways wing hits before penetrat
       }
 });
 
-test('rail forgiveness does not catch thin wing tips, high flyovers, undersides, gaps, wrong road or invalid attitudes', () => {
+test('rail forgiveness respects boosted receiving runout and rejects unsupported or invalid contacts', () => {
   for (const jump of track.jumps) {
     const frame = track.sample(jump.landingStart + 50);
     const from = poseAt(frame, jump.halfWidth, R.railHeight[jump.id] + 5),
@@ -124,8 +126,8 @@ test('rail forgiveness does not catch thin wing tips, high flyovers, undersides,
         poseAt(track.sample(jump.landingStart - 10), 15, 1),
       ],
       [
-        poseAt(track.sample(jump.landingEnd + 10), 15, 12),
-        poseAt(track.sample(jump.landingEnd + 10), 15, 1),
+        poseAt(track.sample(landingZoneEnd(track, jump) + 10), 15, 12),
+        poseAt(track.sample(landingZoneEnd(track, jump) + 10), 15, 1),
       ],
     ];
     for (const axis of [new T.Vector3(0, 1, 0), new T.Vector3(0, 0, 1)]) {
@@ -136,6 +138,16 @@ test('rail forgiveness does not catch thin wing tips, high flyovers, undersides,
     }
     for (const [before, after] of rejected)
       assert.equal(sweptNacreRail(track, jump, before, after), null);
+    const runout = track.sample(jump.landingEnd + 10);
+    assert.ok(
+      sweptNacreRail(
+        track,
+        jump,
+        poseAt(runout, jump.halfWidth, R.railHeight[jump.id] + 5),
+        poseAt(runout, jump.halfWidth, 1),
+      ),
+      'boosted overshoots retain supported receiving-rail contact',
+    );
     assert.equal(sweptNacreRail(track, { ...jump }, from, to), null);
     assert.equal(
       sweptNacreRail(
@@ -162,6 +174,7 @@ function edgeRun(index, side, dt = step, lap = 0) {
   let contact;
   for (let tick = 0; tick < 1400; tick++) {
     const before = { ...state };
+    const beforeFlight = runtime.snapshot().flight;
     const next = advanceSession({
       state,
       input: control,
@@ -171,13 +184,18 @@ function edgeRun(index, side, dt = step, lap = 0) {
       emit: (e) => events.push(e),
     });
     if (next.some((e) => e.payload?.source === 'nacre-edge-catch'))
-      contact = { before, after: { ...state }, snapshot: runtime.snapshot() };
+      contact = {
+        before,
+        beforeFlight,
+        after: { ...state },
+        snapshot: runtime.snapshot(),
+      };
     if (next.some((e) => e.type === 'jump-transfer')) break;
   }
   return { runtime, state, race, events, contact };
 }
 
-test('both edge catches bounce inward once with a5% speed and2-point reserve penalty, preserving real flight then landing', () => {
+test('both edge catches bounce inward once with a 5% forward-speed and 2-point reserve penalty, preserving flight then landing', () => {
   for (const index of [1, 2])
     for (const side of ['left', 'right']) {
       const result = edgeRun(index, side),
@@ -192,16 +210,21 @@ test('both edge catches bounce inward once with a5% speed and2-point reserve pen
         'flight',
         'rail catch does not pull down to the road',
       );
-      assert.ok(
-        Math.abs(
-          result.contact.after.speed / result.contact.before.speed - 0.95,
-        ) < 1e-9,
-      );
       assert.equal(result.contact.after.energy, 98);
       const velocity = new T.Vector3().fromArray(
         result.contact.snapshot.flight.velocity,
       );
       const frame = track.sample(impacts[0].payload.distance);
+      const incoming = new T.Vector3().fromArray(
+        result.contact.beforeFlight.velocity,
+      );
+      assert.ok(
+        Math.abs(
+          velocity.dot(frame.tangent) / incoming.dot(frame.tangent) - 0.95,
+        ) < 1e-9,
+        'penalty applies to forward momentum, while gravity and the inward bounce retain their own components',
+      );
+      assert.equal(result.contact.after.speed, velocity.length());
       assert.ok(sign * velocity.dot(frame.right) < -1.9);
       const pose = result.runtime.pose(1),
         landing = track.sample(result.state.distance);

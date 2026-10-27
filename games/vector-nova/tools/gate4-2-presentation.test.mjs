@@ -213,12 +213,23 @@ class Context {
   }
 }
 
+function sampledAudio(context) {
+  context.decodeAudioData = async (bytes) => ({
+    duration: 0.5,
+    sampleUrl: new TextDecoder().decode(bytes),
+  });
+  return createPickupAudio({
+    createContext: () => context,
+    fetchAudio: async (url) => ({
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode(url).buffer,
+    }),
+  });
+}
+
 test('pickup audio is silent before gestures, while paused/muted and after disposal', async () => {
   const context = new Context();
-  const audio = createPickupAudio({
-    createContext: () => context,
-    samples: {},
-  });
+  const audio = sampledAudio(context);
   const event = { type: 'pickup-activate', payload: { kind: 'vector' } };
   audio.update({ volume: 0.35 }, true);
   audio.event(event);
@@ -276,20 +287,17 @@ test('blocked and absent AudioContext cannot prevent visual gameplay', async () 
   assert.equal(context.state, 'closed');
 });
 
-test('acquisition signatures are distinct, finite and release every layered voice', async () => {
+test('acquisition signatures retain Vector synthesis and authored Aegis samples, releasing every voice', async () => {
   const context = new Context();
-  const audio = createPickupAudio({
-    createContext: () => context,
-    samples: {},
-  });
+  const audio = sampledAudio(context);
   await audio.unlock();
   audio.update({ volume: 0.5 }, true);
   const busNodeCount = context.nodes.length;
   const signatures = [];
-  for (const [type, kind] of [
-    ['pickup-activate', 'vector'],
-    ['pickup-activate', 'aegis'],
-    ['shield-hit', 'aegis'],
+  for (const [type, kind, sample] of [
+    ['pickup-activate', 'vector', null],
+    ['pickup-activate', 'aegis', 'aegis-activate'],
+    ['shield-hit', 'aegis', 'shield-block'],
   ]) {
     const first = context.nodes.length;
     audio.event({ type, payload: { kind } });
@@ -299,31 +307,44 @@ test('acquisition signatures are distinct, finite and release every layered voic
     const envelopes = context.nodes
       .slice(first)
       .filter((node) => node.kind === 'gain');
-    assert.ok(
-      voices.length > 1,
-      'A complete signature has a body and harmonic layer',
-    );
+    if (sample) {
+      assert.equal(voices.length, 1, 'Authored cues play one decoded sample');
+      assert.equal(voices[0].kind, 'buffer');
+      assert.ok(voices[0].buffer.sampleUrl.endsWith(`/${sample}.wav`));
+      assert.equal(voices[0].buffer.duration, 0.5);
+      assert.ok(envelopes[0].gain.value > 0);
+    } else {
+      assert.ok(voices.length > 1, 'Vector retains its layered signature');
+      for (const envelope of envelopes) {
+        assert.equal(envelope.gain.automation[0].value, 0);
+        const attack = envelope.gain.automation.find(
+          (item) => item.type === 'linear' && item.value > 0,
+        );
+        assert.ok(attack.time > context.currentTime);
+        assert.equal(envelope.gain.automation.at(-1).value, 0);
+      }
+    }
     assert.equal(audio.getStatus().shots, 1);
     signatures.push(
-      voices.map((voice) => [voice.type, voice.frequency.automation]),
+      voices.map((voice) => [
+        voice.type,
+        voice.buffer?.sampleUrl,
+        voice.frequency.automation,
+      ]),
     );
-    for (const envelope of envelopes) {
-      assert.equal(envelope.gain.automation[0].value, 0);
-      const attack = envelope.gain.automation.find(
-        (item) => item.type === 'linear' && item.value > 0,
-      );
-      assert.ok(attack.time > context.currentTime);
-      assert.equal(envelope.gain.automation.at(-1).value, 0);
-    }
     for (const voice of voices) {
-      assert.ok(Number.isFinite(voice.stopTimes[0]));
-      assert.ok(voice.stopTimes[0] > voice.startTime);
+      assert.ok(Number.isFinite(voice.startTime));
+      assert.ok(voice.startTime >= context.currentTime);
+      if (!sample) {
+        assert.ok(Number.isFinite(voice.stopTimes[0]));
+        assert.ok(voice.stopTimes[0] > voice.startTime);
+      }
     }
     voices[0].onended();
     assert.equal(
       audio.getStatus().shots,
-      1,
-      'Ending one layer leaves its remaining tail owned',
+      voices.length > 1 ? 1 : 0,
+      'Only remaining layers keep the shot owned',
     );
     for (const voice of voices.slice(1)) voice.onended();
     assert.equal(audio.getStatus().shots, 0);
@@ -378,6 +399,11 @@ test('later unprotected contact replaces protection feedback immediately; pause 
     style = {
       setProperty(name, value) {
         this[name] = value;
+      },
+      removeProperty(name) {
+        const previous = this[name] ?? '';
+        delete this[name];
+        return previous;
       },
     };
     dataset = {};
@@ -616,10 +642,7 @@ test('all Aegis arches clear the whole chase corridor through pickup, braking an
 
 test('device voice priority preserves hits, fades stolen voices and owns sustained beds', async () => {
   const context = new Context();
-  const audio = createPickupAudio({
-    createContext: () => context,
-    samples: {},
-  });
+  const audio = sampledAudio(context);
   await audio.unlock();
   audio.update({ volume: 0.8 }, true);
   const bedGains = context.nodes

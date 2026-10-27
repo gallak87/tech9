@@ -6,10 +6,15 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // These CPU framing checks need geometry; real image decoding is covered by
 // browser verification. Kestrel now embeds the same PBR maps as the fleet.
 function geometryLoader() {
-  return new GLTFLoader().register(() => ({
-    name: 'CPU_TEXTURES',
-    loadTexture: async () => new T.Texture(),
-  }));
+  return new GLTFLoader()
+    .register(() => ({
+      name: 'KHR_texture_basisu',
+      loadTexture: async () => new T.Texture(),
+    }))
+    .register(() => ({
+      name: 'CPU_TEXTURES',
+      loadTexture: async () => new T.Texture(),
+    }));
 }
 
 import { createShip } from '../src/ships/index.js';
@@ -173,7 +178,8 @@ test('Stationary Umbra framing stays still across panel widths and uneven frame 
   const probe = track.sample(100).position;
   const intervals = [1 / 120, 1 / 36, 1 / 60, 1 / 50];
   try {
-    for (const width of [1440, 900, 760, 640, 390]) {
+    // Circuit expansion verification is desktop-only, including panel widths.
+    for (const width of [1440, 1280, 900]) {
       const camera = new T.PerspectiveCamera(64, width / 900, 0.2, 22000);
       const rig = createCameraRig(camera, level.camera, bounds);
       for (let i = 0; i < 400; i++)

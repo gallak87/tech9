@@ -172,6 +172,7 @@ test('rival shield consumes real combat hits, cracks once, freezes on pause and 
     bind: (id, actor) => actors.set(id, actor),
     resetActor: (id) => actors.delete(id),
     view: () => ({ flashes: [] }),
+    disruption: () => null,
   };
   const state = {
     ...createVehicleState(),

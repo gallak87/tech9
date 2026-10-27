@@ -957,7 +957,8 @@ test('ceramic and membrane triangles stay above the actual recessed substrate an
   let minimum = Infinity;
   let probes = 0;
   for (const mesh of group.children.filter(
-    (child) => child.geometry?.attributes.roadCoord,
+    // All sweeps now carry route coordinates, including the substrate itself.
+    (child) => child.userData.drivingSurface,
   )) {
     const p = mesh.geometry.attributes.position;
     const coord = mesh.geometry.attributes.roadCoord;
@@ -1269,7 +1270,7 @@ test('landing settle serializes and resets deterministically without presentatio
   restored.dispose();
 });
 
-test('moving off-centre jumps retain their screen composition through takeoff and touchdown', () => {
+test('off-centre cruise and boost-speed launches retain composition at handoffs and settle smoothly after touchdown', () => {
   for (const jump of track.jumps)
     for (const speed of [78.4, 165])
       for (const lateral of [-6, 6])
@@ -1287,7 +1288,9 @@ test('moving off-centre jumps retain their screen composition through takeoff an
             camera,
             createNacreLevel({ shape: false }).camera,
           );
-          const input = { ...empty, throttle: 1, boost: speed > 150 };
+          // Test launch-speed composition while coasting through the jump.
+          // Sustained airborne thrust is covered in flight-boost.test.mjs.
+          const input = { ...empty, throttle: 1, boost: false };
           let previous = { ...state };
           let previousScreenX;
           let previousAirborne = false;
@@ -1328,8 +1331,11 @@ test('moving off-centre jumps retain their screen composition through takeoff an
             const airborne = !!pose && !pose.grounded;
             if (previousScreenX !== undefined) {
               const step = Math.abs(screenX - previousScreenX);
+              // The approved landing blend shortened from 0.32 s to 0.16 s,
+              // so its return can move twice as far per frame. Source handoffs
+              // below still retain their original, stricter continuity bound.
               assert.ok(
-                step < 0.008,
+                step < (landed ? 0.016 : 0.008),
                 `${jump.id}: visible sideways step ${step}`,
               );
               if (airborne !== previousAirborne) {

@@ -1,0 +1,217 @@
+.freestyle-hud {
+  position: absolute;
+  z-index: 5;
+  top: 112px;
+  left: 32px;
+  width: 292px;
+  pointer-events: none;
+  color: #f3f1e9;
+  text-shadow: 0 2px 5px #000;
+  background: linear-gradient(90deg, #071015dd, #07101588 82%, transparent);
+  padding: 18px 22px 20px 18px;
+  border-left: 2px solid #d45335;
+  font-variant-numeric: tabular-nums;
+}
+.freestyle-hud[hidden] {
+  display: none;
+}
+.fs-score > span,
+.fs-phase {
+  font-size: 10px;
+  letter-spacing: 0.17em;
+  color: #aec1c9;
+}
+.fs-score > strong {
+  display: block;
+  font-size: 42px;
+  line-height: 1.2;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+}
+.fs-score > small {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: #b5c5cb;
+}
+.fs-score small b {
+  font-size: 22px;
+  letter-spacing: 0;
+  color: #f7b184;
+  margin-left: 10px;
+}
+.fs-links {
+  display: flex;
+  gap: 5px;
+  margin: 15px 0 22px;
+}
+.fs-links i {
+  width: 36px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-style: normal;
+  border: 1px solid #56636b;
+  color: #a0afb7;
+  transform: skew(-12deg);
+}
+.fs-links i[data-state='current'] {
+  border-color: #df9c6c;
+  color: #f9d4ae;
+}
+.fs-links i[data-state='clean'] {
+  background: #365d56;
+  color: #a5f4da;
+  border-color: #91d8c1;
+}
+.fs-links i[data-state='broken'] {
+  background: #4d2725;
+  color: #d7a096;
+  border-color: #925c52;
+}
+.fs-trick {
+  display: block;
+  font-size: 17px;
+  line-height: 1.35;
+  min-height: 46px;
+  margin: 8px 0;
+}
+.fs-rotation {
+  height: 3px;
+  background: #ffffff15;
+  overflow: hidden;
+}
+.fs-rotation i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #e39a6f;
+  transform-origin: left;
+}
+.fs-catch {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #c6d3d4;
+  min-height: 36px;
+  margin: 12px 0 6px;
+}
+.fs-last {
+  display: block;
+  font-size: 11px;
+  min-height: 16px;
+  color: #8da5a9;
+}
+.fs-controls {
+  display: grid;
+  gap: 7px;
+  border-top: 1px solid #ffffff20;
+  padding-top: 14px;
+  margin-top: 14px;
+  font-size: 9px;
+  color: #899a9f;
+  letter-spacing: 0.035em;
+}
+.fs-controls b {
+  display: block;
+  color: #ccd7d7;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.freestyle-hud[data-armed='true'] {
+  border-color: #a1e7d0;
+}
+.freestyle-hud[data-armed='true'] .fs-catch {
+  color: #b7f8df;
+}
+.freestyle-hud[data-late='true'] .fs-rotation i {
+  background: #ea593f;
+}
+#interface[data-level='launchworks'] .top-telemetry,
+#interface[data-level='launchworks'] #race-roster,
+#interface[data-level='launchworks'] #legend,
+#interface[data-level='launchworks'] #minimap {
+  display: none !important;
+}
+.freestyle-results .fs-result-score {
+  font-size: 72px;
+  font-weight: 750;
+  letter-spacing: -0.055em;
+  margin: 10px 0;
+  color: #f1d6ae;
+}
+.freestyle-results .fs-result-summary {
+  display: flex;
+  gap: 32px;
+  margin: 12px 0 24px;
+  color: #aebec2;
+}
+.freestyle-results .fs-result-summary b {
+  color: #f1eee8;
+  font-size: 22px;
+  margin-right: 7px;
+}
+.freestyle-results ol {
+  padding: 0;
+  list-style: none;
+  margin: 0;
+}
+.freestyle-results li {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 16px;
+  padding: 12px 0;
+  border-top: 1px solid #ffffff18;
+  font-size: 13px;
+  color: #aabdc3;
+}
+.freestyle-results li b {
+  color: #e4eee9;
+}
+.freestyle-results li span:last-child {
+  color: #dfbd8f;
+}
+@media (max-height: 750px) {
+  .freestyle-hud {
+    top: 90px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .fs-links {
+    margin: 10px 0 14px;
+  }
+  .fs-controls {
+    margin-top: 10px;
+    padding-top: 10px;
+  }
+  .fs-score > strong {
+    font-size: 34px;
+  }
+}
+@media (max-width: 760px) {
+  .freestyle-hud {
+    left: 14px;
+    top: 86px;
+    width: 225px;
+    padding: 12px;
+  }
+  .fs-score > strong {
+    font-size: 30px;
+  }
+  .fs-controls {
+    display: none;
+  }
+  .fs-trick {
+    font-size: 14px;
+    min-height: 35px;
+  }
+  .fs-catch {
+    font-size: 11px;
+  }
+  .fs-links {
+    margin-bottom: 12px;
+  }
+  .freestyle-results .fs-result-summary {
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+}

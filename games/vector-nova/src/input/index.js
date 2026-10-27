@@ -2,8 +2,13 @@ import { EQUIPMENT_CONTROLS } from '../equipment/controls.js';
 import { createGamepadReader } from './gamepad.js';
 import { createTouchControls } from './touch.js';
 
-export function createInput(onCommand, onBlur, getSettings) {
-  const gamepad = createGamepadReader(getSettings);
+export function createInput(
+  onCommand,
+  onBlur,
+  getSettings,
+  { freestyle = false } = {},
+) {
+  const gamepad = createGamepadReader(getSettings, undefined, freestyle);
   const keys = new Set(),
     abort = new AbortController();
   let gamepadPresent = false,
@@ -21,6 +26,7 @@ export function createInput(onCommand, onBlur, getSettings) {
     'ShiftLeft',
     'ShiftRight',
     'Space',
+    ...(freestyle ? ['ControlLeft', 'ControlRight'] : []),
     ...EQUIPMENT_CONTROLS.map(({ key }) => key),
   ];
   const equipmentPulses = EQUIPMENT_CONTROLS.map(() => false);
@@ -129,6 +135,25 @@ export function createInput(onCommand, onBlur, getSettings) {
         i.airbrake ||= pad.airbrake;
         for (let slot = 1; slot <= EQUIPMENT_CONTROLS.length; slot++)
           i[`equipment${slot}`] ||= pad[`equipment${slot}`];
+      }
+      if (freestyle) {
+        const ctrl = down('ControlLeft', 'ControlRight');
+        const horizontal =
+          Number(down('ArrowRight', 'KeyD')) -
+          Number(down('ArrowLeft', 'KeyA'));
+        const vertical =
+          Number(down('ArrowDown', 'KeyS')) - Number(down('ArrowUp', 'KeyW'));
+        i.aerialPitch = ctrl
+          ? vertical
+          : pad.equipment1
+            ? -(pad.aerialStickY ?? 0)
+            : 0;
+        i.aerialYaw = ctrl ? -horizontal : pad.equipment1 ? -pad.steer : 0;
+        i.aerialRoll = down('ShiftLeft', 'ShiftRight')
+          ? -horizontal
+          : pad.equipment2
+            ? -pad.steer
+            : 0;
       }
       // A touch pulse survives observation and render frames without a physics tick.
       return i;

@@ -228,6 +228,11 @@ export function validateReplayInputs(inputs, expectedTicks = inputs?.length) {
       control.brake < 0 ||
       typeof control.boost !== 'boolean' ||
       typeof control.airbrake !== 'boolean' ||
+      ['aerialPitch', 'aerialYaw', 'aerialRoll'].some(
+        (key) =>
+          control[key] !== undefined &&
+          (!Number.isFinite(control[key]) || Math.abs(control[key]) > 1),
+      ) ||
       ['equipment1', 'equipment2', 'equipment3', 'equipment4'].some(
         (key) =>
           control[key] !== undefined && typeof control[key] !== 'boolean',

@@ -353,6 +353,11 @@ try {
         await page.keyboard.press('ArrowDown');
         assert.equal(
           await page.evaluate(() => document.activeElement.dataset.action),
+          'freestyle',
+        );
+        await page.keyboard.press('ArrowDown');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.action),
           'circuits',
         );
         await page.locator('[data-action="time-trial"]').click();
@@ -369,7 +374,7 @@ try {
         );
         await page
           .locator('[data-record-filter="ship"]')
-          .selectOption('needle');
+          .selectOption('shrike');
         await page.keyboard.press('Escape');
         assert.equal((await front(page)).intent, 'time-trial');
         assert.equal(
@@ -382,7 +387,7 @@ try {
           .selectOption('orbital');
         await page.locator('[data-action="record-trial"]').click();
         assert.equal((await front(page)).selected, 'orbital');
-        assert.equal((await front(page)).shipId, 'needle');
+        assert.equal((await front(page)).shipId, 'shrike');
         assert.equal((await front(page)).intent, 'time-trial');
         await page.locator('[data-action="practice"]').click();
         assert.match(
@@ -390,6 +395,17 @@ try {
           /Practice/,
         );
         assert.equal(await page.locator('[data-difficulty]').count(), 0);
+        await page.locator('[data-action="freestyle"]').click();
+        assert.equal((await front(page)).intent, 'freestyle');
+        assert.equal((await front(page)).selected, 'launchworks');
+        assert.equal(await page.locator('.circuit-card').count(), 1);
+        assert.equal(await page.locator('[data-difficulty]').count(), 0);
+        assert.match(
+          await page.locator('[data-action="launch"]').textContent(),
+          /Start Freestyle/,
+        );
+        await page.locator('[data-action="practice"]').click();
+        assert.equal((await front(page)).selected, 'orbital');
         await page.locator('[data-action="cup-hub"]').click();
         assert.equal((await front(page)).intent, 'cup');
         assert.equal(await page.locator('[data-cup]').count(), 4);
@@ -660,7 +676,7 @@ try {
           window.retainedPlayer = document.querySelector('[data-music-player]');
         });
         const routes = await page.evaluate(() => window.__VN_FRONTEND.routes);
-        const circuits = routes;
+        const circuits = routes.filter((route) => !route.freestyle);
         assert.equal(
           await page.locator('.circuit-card').count(),
           circuits.length,

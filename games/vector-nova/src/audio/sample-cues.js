@@ -29,6 +29,8 @@ export const RACE_SAMPLES = {
 
 export function raceSample(event) {
   switch (event?.type) {
+    case 'freestyle-bank':
+      return event.payload?.clean ? { id: 'freestyle-bank', gain: 0.65 } : null;
     case 'cup-champion':
       return { id: 'cup-champion', gain: 0.85 };
     case 'lap':

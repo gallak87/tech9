@@ -1237,6 +1237,7 @@ export function createFlightModel(overrides = {}) {
                 flight.steerAngle,
               ),
             );
+          options.airAttitude?.({ target, state, input, dt, jump });
           const error = target
             .multiply(currentPose.quaternion.clone().invert())
             .normalize();
@@ -1244,7 +1245,12 @@ export function createFlightModel(overrides = {}) {
           const angle = 2 * Math.acos(clamp(error.w, -1, 1));
           angularVelocity = new THREE.Vector3(error.x, error.y, error.z);
           if (angularVelocity.lengthSq() > 1e-12)
-            angularVelocity.setLength(Math.min(2.5, angle * 8));
+            angularVelocity.setLength(
+              Math.min(
+                options.airAngularSpeed ?? 2.5,
+                angle * (options.airAngularResponse ?? 8),
+              ),
+            );
         }
       }
       const starting = !flight.dynamicsStarted;
@@ -1256,7 +1262,7 @@ export function createFlightModel(overrides = {}) {
           ? angularVelocity
               .clone()
               .sub(flight.angularVelocity)
-              .multiplyScalar(8)
+              .multiplyScalar(options.airAngularResponse ?? 8)
           : new THREE.Vector3(),
         ...(starting
           ? {
@@ -1511,7 +1517,11 @@ export function createFlightModel(overrides = {}) {
           flight.steerAngle,
         ),
       );
-      currentPose.quaternion.slerp(orientation, -Math.expm1(-8 * dt));
+      options.airAttitude?.({ target: orientation, state, input, dt, jump });
+      currentPose.quaternion.slerp(
+        orientation,
+        -Math.expm1(-(options.airAngularResponse ?? 8) * dt),
+      );
       if (collisionWorld) {
         if (advanceWorldContacts(state, jump, before, acceleration, dt, events))
           return;

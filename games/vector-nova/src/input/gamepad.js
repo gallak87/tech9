@@ -94,6 +94,7 @@ export function sampleGamepad(pad, settings = {}, blocked = new Set()) {
 export function createGamepadReader(
   getSettings = () => ({}),
   read = readGamepad,
+  freestyle = false,
 ) {
   const blocked = new Set();
   let identity = null;
@@ -121,7 +122,18 @@ export function createGamepadReader(
         if (!button?.pressed && buttonValue(button) <= 0.05)
           blocked.delete(index);
       }
-      return { present: !!pad, ...sampleGamepad(pad, getSettings(), blocked) };
+      return {
+        present: !!pad,
+        ...sampleGamepad(pad, getSettings(), blocked),
+        ...(freestyle
+          ? {
+              aerialStickY: -steeringAxis(
+                pad?.axes[1],
+                getSettings().steeringDeadZone,
+              ),
+            }
+          : {}),
+      };
     },
   };
 }

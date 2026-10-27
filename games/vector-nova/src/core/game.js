@@ -2,6 +2,7 @@ import { createEquipmentPresentation } from '../equipment/presentation.js';
 import { buildIdentity } from '../progression/profile.js';
 import { vehicleHandling } from '../ships/catalog.js';
 import { createCupFinish } from './cup-finish.js';
+import { finishFreestyle } from '../freestyle/records.js';
 import { createRaceGrid } from '../race/roster.js';
 import { interpolateSurfaceLateral } from '../track/surface.js';
 import * as T from 'three';
@@ -134,6 +135,7 @@ export async function createGame({
       },
     );
     const VERSION = definition.version;
+    const freestyle = Boolean(definition.freestyle);
     const settings = loadSettings();
     await checkpoint('Preparing route');
     const track = validateTrack(await definition.createTrack());
@@ -272,7 +274,7 @@ export async function createGame({
     let playerBuild = { version: 1, enhancements: {}, equipment: [] };
     const playerState = (stock = false) => ({
       ...createVehicleState(ship.selected.id),
-      ...(!stock && buildIdentity(playerBuild)
+      ...(!stock && !freestyle && buildIdentity(playerBuild)
         ? {
             enhancements: { ...playerBuild.enhancements },
             equipment: [...playerBuild.equipment],
@@ -474,7 +476,7 @@ export async function createGame({
       createRace(track, {
         rulesId: `${runtime.rulesId}:ship-${ship.selected.id}-v${ship.selected.version}${competition ? `:difficulty-${raceDifficulty}` : ''}`,
         untimed: Boolean(playtest),
-        laps: timeTrial && track.closed === false ? 1 : Infinity,
+        laps: freestyle || (timeTrial && track.closed === false) ? 1 : Infinity,
         continuous: timeTrial && track.closed !== false,
       });
     const resetRuntime = (reason) => {
@@ -552,6 +554,24 @@ export async function createGame({
       }
       advance(control);
       tick++;
+      const freestyleResult = freestyle && runtime.snapshot().freestyle?.result;
+      if (freestyleResult && lastResults?.mode !== 'freestyle') {
+        lastResults = finishFreestyle(
+          freestyleResult,
+          `${track.id}:${VERSION}:${runtime.rulesId}:${ship.selected.id}:${ship.selected.version}`,
+          trialStorage,
+        );
+        input.clear();
+        mode = 'results';
+        ui.setResultsAvailable(true);
+        ui.setMode(mode);
+        audio.event({
+          type: 'player-race-complete',
+          payload: { valid: lastResults.playerValid, position: 1 },
+        });
+        onResults?.(lastResults);
+        return;
+      }
       const trialResult = trial?.capture(trialPose(), 1 / 120);
       if (ghostSamples !== trial?.reference?.samples) {
         ghostSamples = trial?.reference?.samples;
@@ -672,7 +692,7 @@ export async function createGame({
         ui.setResultsAvailable(false);
         raceDifficulty = settings.difficulty;
         timeTrial = false;
-        competition = racingEnabled;
+        competition = !freestyle && racingEnabled;
         scenario = 'staging';
         state = playerState(timeTrial);
         if (competition)
@@ -771,7 +791,7 @@ export async function createGame({
       sceneShip();
       timeTrial = Boolean(trialMode);
       if (timeTrial || cupRace) seed = 7;
-      competition = !timeTrial && racingEnabled && compete;
+      competition = !freestyle && !timeTrial && racingEnabled && compete;
       if (withCountdown)
         raceDifficulty = cupRace?.difficulty ?? settings.difficulty;
       state = playerState(timeTrial);
@@ -1290,11 +1310,11 @@ export async function createGame({
         (command) => {
           if (
             !suspended &&
-            timeTrial &&
+            (timeTrial || freestyle) &&
             command === 'restart' &&
             !['fly', 'results'].includes(mode)
           ) {
-            restart(false, true, true);
+            restart(false, true, timeTrial);
             return;
           }
           if (suspended || mode === 'results' || mode === 'fly') return;
@@ -1322,6 +1342,7 @@ export async function createGame({
         },
         pause,
         () => settings,
+        { freestyle },
       ),
     );
     input.bindTouch(ui.root);
@@ -1514,6 +1535,7 @@ export async function createGame({
       if (
         (mode === 'racing' || mode === 'results') &&
         !trial?.result &&
+        !(freestyle && lastResults?.mode === 'freestyle') &&
         !cupFinalResult
       ) {
         accumulator += dt;
@@ -1682,6 +1704,7 @@ export async function createGame({
         settings,
         ship,
         motion: motionFeedback,
+        gamepad: input.gamepadPresent,
         reviewing: mode === 'overview' || (blockout && mode === 'title'),
       };
       audio.setImmersion(
@@ -1758,6 +1781,7 @@ export async function createGame({
       });
       if (
         onResults &&
+        !freestyle &&
         !timeTrial &&
         !playtest &&
         !resultsDismissed &&

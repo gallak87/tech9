@@ -73,7 +73,9 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 
 ## Future race modes and systems
 
-- [ ] **Event types, sidegrades and world reuse.** Use the [connected design notes](docs/level-types-and-rewards.md) for the event/reward matrix and proposed order: a small sidegrade batch with an Eliminator pilot, then Carve and Escape proofs; selected biome siblings and curated series follow successful pilots. Freestyle remains a candidate and Assault comes later. Next implementation is undecided; existing cups do not automatically expand with the catalogue.
+- [ ] Human playtest the browser **Freestyle pilot / Asterion Launchworks**: directional pitch/yaw/roll, recovery, slope catches and five-transfer scoring. Tune feel, course variety and medals before production expansion or career rewards. See the [pilot design](docs/level-types-and-rewards.md#freestyle-browser-pilot).
+
+- [ ] **Event types, sidegrades and world reuse.** Use the [connected design notes](docs/level-types-and-rewards.md) for the event/reward matrix and original proposed order: a small sidegrade batch with an Eliminator pilot, then Carve and Escape proofs; selected biome siblings and curated series follow successful pilots. Freestyle now has the browser pilot above; Assault comes later. Existing cups do not automatically expand with the catalogue.
 - [ ] **Revisit or replace Magnetic Stabilizer.** Its four-second air-steering and sideways-drift assist currently feels too niche to justify an equipment slot outside occasional landing/recovery situations. Assess a more useful, distinct role during sidegrade playtests; rework or replace it if that role does not emerge. Preserve the stock controls and courses' stock-build completability.
 
 - [x] Full pickup coverage across all thirteen production maps: Vector, Aegis, Repulsor, Arc and Ion, with circuit-owned optional lanes, shield counterplay and jump/recovery clearance. Preserve independent per-racer collection, rival avoidance and deterministic combat/replay.

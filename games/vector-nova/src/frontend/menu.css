@@ -1472,3 +1472,55 @@
     gap: 8px;
   }
 }
+.front-content .mode-picker [data-action='freestyle'] {
+  grid-column: 1 / -1;
+  min-height: 32px;
+  padding-block: 6px;
+}
+.freestyle-guide {
+  padding: 16px 0 4px;
+  max-width: 72ch;
+}
+.freestyle-guide h3 {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 9px;
+}
+.freestyle-guide p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #b5c1c4;
+  margin: 6px 0;
+}
+.freestyle-guide b {
+  color: #e2e8e8;
+  font-weight: 600;
+}
+.freestyle-guide .freestyle-pad-guide {
+  color: #91afa9;
+}
+@media (min-width: 900px) and (max-height: 800px) {
+  .menu-wide .race-menu {
+    padding-top: 0;
+  }
+  .menu-wide .mode-picker {
+    margin-bottom: 0;
+    gap: 3px;
+  }
+  .menu-wide .mode-picker button {
+    min-height: 32px;
+    padding-block: 6px;
+  }
+  .menu-wide .mode-picker [data-action='freestyle'] {
+    min-height: 24px;
+    padding-block: 3px;
+    font-size: 11px;
+  }
+  .freestyle-guide {
+    padding-top: 10px;
+  }
+  .freestyle-guide p {
+    font-size: 11px;
+    line-height: 1.5;
+  }
+}

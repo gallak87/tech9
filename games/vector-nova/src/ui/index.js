@@ -74,6 +74,10 @@ export function createUI(
     $('sprint-retry').onclick = actions.restart;
     $('sprint-home').onclick = actions.home;
   }
+  if (metadata.freestyle) {
+    $('restart').textContent = 'Retry Freestyle';
+    $('start').firstChild.textContent = 'START FREESTYLE ';
+  }
   let casePicker = null;
   if (playtest?.cases?.length > 1) {
     casePicker = document.createElement('div');

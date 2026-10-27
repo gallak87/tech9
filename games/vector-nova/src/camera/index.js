@@ -68,17 +68,16 @@ export function createCameraRig(
         feedbackApplied = false;
       }
       const worldMotion = !!worldPose && !worldPose.grounded;
+      const viewQuaternion = worldPose?.viewQuaternion ?? worldPose?.quaternion;
       const surface =
         !worldMotion && track.sampleSurface?.(state.distance, state.lateral);
       const f = worldMotion
         ? {
             position: worldPose.position.clone(),
-            quaternion: worldPose.quaternion,
-            right: new T.Vector3(1, 0, 0).applyQuaternion(worldPose.quaternion),
-            up: new T.Vector3(0, 1, 0).applyQuaternion(worldPose.quaternion),
-            tangent: new T.Vector3(0, 0, 1).applyQuaternion(
-              worldPose.quaternion,
-            ),
+            quaternion: viewQuaternion,
+            right: new T.Vector3(1, 0, 0).applyQuaternion(viewQuaternion),
+            up: new T.Vector3(0, 1, 0).applyQuaternion(viewQuaternion),
+            tangent: new T.Vector3(0, 0, 1).applyQuaternion(viewQuaternion),
           }
         : surface || track.sample(state.distance);
       const craftAnchor = worldPose

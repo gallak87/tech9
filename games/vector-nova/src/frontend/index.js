@@ -52,6 +52,7 @@ import {
   subscribeSettings,
 } from '../progression/index.js';
 import { createMusicPlayer } from '../audio/player.js';
+import { createMenuBackdrop } from './menu-backdrop.js';
 import { assetURL } from '../assets/url.js';
 import { TRACK_CHALLENGES, trackChallenge } from './track-challenge.js';
 import {
@@ -240,6 +241,7 @@ export async function createFrontend(host) {
   const transfer = host.querySelector('.transfer-status');
   const gameHost = host.querySelector('#game-host');
   const shell = host.querySelector('#front-shell');
+  const menuBackdrop = createMenuBackdrop(life.signal);
   const inspectorHost = document.createElement('div');
   inspectorHost.id = 'inspector-host';
   const desktopControls = import.meta.env?.VN_DESKTOP
@@ -575,7 +577,8 @@ export async function createFrontend(host) {
   function renderMenu() {
     if (showingShip()) {
       shell.className = 'cinematic-menu garage-page';
-      shell.innerHTML = `<div class="menu-backdrop" aria-hidden="true">${picture(route())}</div>${topNavigation()}<main class="front-content dedicated-garage" aria-label="Ship garage">${shipPanel()}</main>`;
+      shell.innerHTML = `${topNavigation()}<main class="front-content dedicated-garage" aria-label="Ship garage">${shipPanel()}</main>`;
+      menuBackdrop.mount(shell);
       mountShipPreview();
       shell.querySelector('.ship-transfer')?.append(transfer);
       updateStatus();
@@ -615,7 +618,8 @@ export async function createFrontend(host) {
             ? cupPanel(!wide)
             : circuitPanel();
     shell.className = 'cinematic-menu';
-    shell.innerHTML = `<div class="menu-backdrop" aria-hidden="true">${picture(route())}</div>${topNavigation()}<main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${records ? 'menu-records-picker' : setup ? 'menu-ship-picker' : cup ? 'menu-cup-picker' : 'menu-track-picker'}" aria-label="${records ? 'Time Trial records' : setup ? 'Ship selection' : cup ? 'Championship selection' : 'Track selection'}">${pickerHeader}${pickerContent}</section>` : ''}</main>`;
+    shell.innerHTML = `${topNavigation()}<main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${records ? 'menu-records-picker' : setup ? 'menu-ship-picker' : cup ? 'menu-cup-picker' : 'menu-track-picker'}" aria-label="${records ? 'Time Trial records' : setup ? 'Ship selection' : cup ? 'Championship selection' : 'Track selection'}">${pickerHeader}${pickerContent}</section>` : ''}</main>`;
+    menuBackdrop.mount(shell);
     if (!setup && !cup && !records && picking) showDetail(selected);
     if (showingShip()) mountShipPreview();
     shell
@@ -630,6 +634,10 @@ export async function createFrontend(host) {
   function render() {
     disposeControllerSettings?.();
     disposeControllerSettings = null;
+    menuBackdrop.configure({
+      active: !shell.hidden && choosingSession(),
+      reducedMotion: settings.reducedMotion,
+    });
     if (shell.hidden) return;
     if (choosingSession()) {
       renderMenu();
@@ -1112,6 +1120,10 @@ export async function createFrontend(host) {
             if (screen !== 'results') {
               screen = mode === 'inspection' ? 'inspection' : 'race';
               shell.hidden = true;
+              menuBackdrop.configure({
+                active: false,
+                reducedMotion: settings.reducedMotion,
+              });
               gameHost.inert = false;
               document.body.dataset.screen = screen;
               updateStatus();
@@ -2146,6 +2158,10 @@ export async function createFrontend(host) {
   );
   unsubscribeSettings = subscribeSettings((next) => {
     settings = { ...next };
+    menuBackdrop.configure({
+      active: !shell.hidden && choosingSession(),
+      reducedMotion: settings.reducedMotion,
+    });
     sounds?.configure();
     inspector?.configure(settings);
     document.body.classList.toggle('reduced-motion', settings.reducedMotion);

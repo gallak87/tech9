@@ -264,6 +264,82 @@ async function finishInputs(difficulty, initial) {
 try {
   if (!flags.includes('--responsive')) {
     await check(
+      'menu waves animate independently of tracks and respect reduced motion',
+      async (page) => {
+        await page.goto(url('level=halcyon&music=0'));
+        const canvas = page.locator('.menu-backdrop canvas');
+        await canvas.waitFor();
+        await page.evaluate(() => {
+          window.menuBackdropCanvas = document.querySelector(
+            '.menu-backdrop canvas',
+          );
+        });
+        const frame = () =>
+          page.evaluate(() => window.menuBackdropCanvas.toDataURL());
+        const first = await frame();
+        await page.waitForTimeout(250);
+        assert.notEqual(await frame(), first, 'waves move slowly');
+        assert.equal(await page.locator('.menu-backdrop img').count(), 0);
+        const originalPreview = await page
+          .locator('.detail-image > img')
+          .getAttribute('src');
+        await page.locator('[data-level="orbital"]').focus();
+        await page.keyboard.press('Enter');
+        assert.equal((await front(page)).selected, 'orbital');
+        assert.notEqual(
+          await page.locator('.detail-image > img').getAttribute('src'),
+          originalPreview,
+          'the selected track still updates its preview',
+        );
+        for (const action of ['cup-hub', 'records', 'garage-tab', 'race-tab']) {
+          await page.locator(`[data-action="${action}"]`).click();
+          assert.ok(
+            await page.evaluate(
+              () =>
+                document.querySelector('.menu-backdrop canvas') ===
+                window.menuBackdropCanvas,
+            ),
+            'menu renders retain the same background',
+          );
+        }
+        await page.locator('[data-action="settings"]').click();
+        const hidden = await frame();
+        await page.waitForTimeout(150);
+        assert.equal(
+          await frame(),
+          hidden,
+          'the inactive background stops drawing',
+        );
+        await page.locator('[data-setting="reducedMotion"]').check();
+        await page.keyboard.press('Escape');
+        const still = await frame();
+        await page.waitForTimeout(200);
+        assert.equal(
+          await frame(),
+          still,
+          'the game reduced-motion setting freezes waves',
+        );
+        await page.locator('[data-action="settings"]').click();
+        await page.locator('[data-setting="reducedMotion"]').uncheck();
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+        await page.keyboard.press('Escape');
+        const systemStill = await frame();
+        await page.waitForTimeout(200);
+        assert.equal(
+          await frame(),
+          systemStill,
+          'system reduced motion also freezes waves',
+        );
+        assert.equal(
+          await page.evaluate(() => !!window.__VN),
+          false,
+          'menus never load a race',
+        );
+      },
+      { width: 1440, height: 900 },
+      { reducedMotion: false },
+    );
+    await check(
       'explicit modes, records and setup without loading worlds',
       async (page) => {
         await page.goto(url('level=halcyon&music=0'));
@@ -347,9 +423,7 @@ try {
           await page.goto(url('level=halcyon&music=0'));
           const anchors = () =>
             page.evaluate(() => ({
-              backdrop: document
-                .querySelector('.menu-backdrop img')
-                ?.getAttribute('src'),
+              backdrop: !!document.querySelector('.menu-backdrop canvas'),
               bounds: [
                 '.menu-wordmark',
                 '.mode-picker',
@@ -1993,7 +2067,7 @@ try {
             await page.locator('#front-shell').getAttribute('class'),
             'cinematic-menu',
           );
-          assert.equal(await page.locator('.menu-backdrop img').count(), 1);
+          assert.equal(await page.locator('.menu-backdrop canvas').count(), 1);
           await page
             .locator('[data-record-filter="ship"]')
             .selectOption('shrike');

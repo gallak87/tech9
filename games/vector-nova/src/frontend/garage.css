@@ -445,9 +445,7 @@
   letter-spacing: -0.055em;
 }
 .garage-page .menu-backdrop::after {
-  background:
-    linear-gradient(90deg, #090909f5 0%, #090909d9 40%, #090909b8),
-    linear-gradient(0deg, #090909ee, transparent);
+  background: #09090955;
 }
 .dedicated-garage .ship-transfer {
   min-height: 22px;
@@ -603,23 +601,10 @@
   }
 }
 
-.menu-topbar::before {
-  content: '';
-  position: fixed;
-  inset: 0 0 auto;
-  height: 82px;
-  background: #090909f2;
-  box-shadow: 0 8px 20px #09090970;
-  z-index: -1;
-  pointer-events: none;
-}
 #front-shell.cinematic-menu {
   scroll-padding-top: 88px;
 }
 @media (max-width: 760px) {
-  .menu-topbar::before {
-    height: 124px;
-  }
   #front-shell.cinematic-menu {
     scroll-padding-top: 130px;
   }

@@ -315,7 +315,7 @@ try {
           original,
           `${mode} keeps mode navigation fixed`,
         );
-        assert.ok(await page.locator('.menu-backdrop img:visible').count());
+        assert.ok(await page.locator('.menu-backdrop canvas:visible').count());
       }
     },
   );

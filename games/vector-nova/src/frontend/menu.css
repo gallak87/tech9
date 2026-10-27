@@ -10,26 +10,18 @@
   z-index: -1;
   pointer-events: none;
 }
-.menu-backdrop img {
+.menu-backdrop canvas {
+  display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: 65% center;
-  filter: blur(1px) saturate(0.8);
 }
 .menu-backdrop::after {
   content: '';
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(
-      90deg,
-      #090909f5 0%,
-      #090909dc 28%,
-      #09090990 62%,
-      #090909bd
-    ),
-    linear-gradient(0deg, #090909e8, transparent);
+    linear-gradient(90deg, #09090985 0%, #09090945 30%, transparent 65%),
+    linear-gradient(180deg, #090909b8 0%, transparent 40%);
 }
 .front-content.menu-layout {
   width: min(1600px, 100%);

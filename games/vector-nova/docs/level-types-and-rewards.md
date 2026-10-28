@@ -6,7 +6,7 @@ Design notes, 2026-10-24. This captures the connected directions under discussio
 
 Grow VECTOR//NOVA through new event rules, meaningful equipment choices and new routes in familiar worlds. Preserve fast anti-gravity racing, colossal environments, committed movement and readable courses.
 
-The original preference was **sidegrades and weapon expansion**, with **Eliminator, Carve and Escape as favored event candidates**. On 2026-10-28, Eliminator was selected for a complete standalone event on a new map, **Crucible Foundry**, followed by an Interceptor exploration if time permits. Assault remains later. Freestyle's separate branch remains an unmerged experiment.
+The original preference was **sidegrades and weapon expansion**, with **Eliminator, Carve and Escape as favored event candidates**. On 2026-10-28, Eliminator was selected for a complete standalone event on a new map, **Crucible Foundry**, followed by **Interceptor / Crucible Dispatch** on the same course. Both are on independent development commits for human review. Assault remains later. Freestyle's separate branch remains an unmerged experiment.
 
 Use these distinctions when planning:
 
@@ -136,4 +136,8 @@ Crucible is a new 4.30 km industrial circuit, independent of Colossus Works. Wid
 
 Ten racers use ordinary shared physics and difficulty settings. After 22 seconds, the last active racer is removed; cuts then repeat every 10 seconds until the player is cut or becomes the sole survivor. The comparison uses actual unwrapped course progress, with stable grid-order ties. A cut removes the hull and combat participation, leaves a brief extraction trace and updates the edge countdown. It does not add destructive ship health. The player can pause, retry, use earned equipment and earn the normal placement-based career progress once per valid attempt. Existing cups keep their lineups and reward requirements. Manual recovery or invalid route credit cannot produce a ranked result.
 
-Interceptor is a separate pursuit objective rather than another elimination rule. Its proposed target is a large AI racing craft pursued by the player and a small armed squad; damage must come from actual shared weapon contacts, and target escape must be physical course progress.
+## Interceptor / Crucible Dispatch
+
+Interceptor reuses Crucible's course with a new objective. You and three allied racers—Rook, Kite and Manta—pursue **Goliath**, a 40-metre armored racing courier. It uses real shared magnetic motion and a matching large compound hull, rather than a scaled decorative ship. The [courier concept and exact prompt](levels/interceptor/provenance.json) remain beside the source. Only propulsion and shield hardware is active on this mission's course.
+
+Hold **Q / controller X** to fire the issued pursuit Lance; **E / Y** injects reserve. The hull is stock and these mission weapons are loaned, so permanent unlocks and the normal Lance's long recharge stay unchanged. Allies fire real Lance projectiles on staggered cooldowns; Goliath leaves Ion countermeasure wakes. Friendly fire is disabled. Damage requires actual unblocked weapon contacts with the courier's physical target bounds. The mission ends when its hull reaches zero or it physically completes two circuits; elapsed time alone cannot defeat it. Pause/retry, contribution results, deterministic replay and five/one progress for valid success/failure use the existing shared flows. No new cups or reward requirements are added.

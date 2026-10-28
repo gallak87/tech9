@@ -2,6 +2,23 @@
   "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "goliath-courier-concept",
+      "source": "docs/levels/interceptor/",
+      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
+      "provenance": "Original selected armored heavy-courier concept for the large Interceptor target. Considered silhouettes, exact prompt, selected image and image hash are retained. Reference only; no concept pixels are used as runtime ship textures.",
+      "rights": "Generated for this project; no third-party reference artwork supplied",
+      "runtimeDependencies": [],
+      "provenanceRecord": "docs/levels/interceptor/provenance.json"
+    },
+    {
+      "id": "goliath-interceptor-target",
+      "source": "src/ships/interceptor-target.js and src/ships/interceptor-target-hull.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original source-authored 40 × 16 × 6 metre AI courier with twelve connected structural contact parts, fitted ceramic/graphite/metal geometry, recessed ion outlets and shared rival propulsion. Rendering and physical contact share the authored numeric structural vertices and validated hull hash. Crucible Dispatch borrows the registered Foundry course and Worldkit materials; no new runtime media or player-fleet model replacement.",
+      "rights": "Project-authored and derived from registered project assets; original provenance and rights apply",
+      "runtimeDependencies": ["three"]
+    },
+    {
       "id": "crucible-foundry-concept",
       "source": "docs/levels/crucible/",
       "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",

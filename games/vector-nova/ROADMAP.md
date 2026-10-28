@@ -73,7 +73,7 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 
 ## Future race modes and systems
 
-- [ ] **Event types, sidegrades and world reuse.** The standalone Eliminator event now has its own Crucible Foundry circuit on the event-development branch. Human playtests should tune cut pressure and combat balance before merging. Interceptor is the next authorized exploration; Carve, Escape, sidegrades and later Assault remain in the [connected design notes](docs/level-types-and-rewards.md). Existing cups do not automatically expand with the catalogue.
+- [ ] **Event types, sidegrades and world reuse.** Standalone Eliminator has its own Crucible Foundry circuit, and Interceptor reuses that course with Goliath and a three-racer allied squad on the event-development branches. Human playtests should tune stock Eliminator balance, cut pressure, pursuit duration and combat before merging. Carve, Escape, sidegrades and later Assault remain in the [connected design notes](docs/level-types-and-rewards.md). Existing cups do not automatically expand with the catalogue.
 - [ ] **Revisit or replace Magnetic Stabilizer.** Its four-second air-steering and sideways-drift assist currently feels too niche to justify an equipment slot outside occasional landing/recovery situations. Assess a more useful, distinct role during sidegrade playtests; rework or replace it if that role does not emerge. Preserve the stock controls and courses' stock-build completability.
 
 - [x] Full pickup coverage across all thirteen production maps: Vector, Aegis, Repulsor, Arc and Ion, with circuit-owned optional lanes, shield counterplay and jump/recovery clearance. Preserve independent per-racer collection, rival avoidance and deterministic combat/replay.

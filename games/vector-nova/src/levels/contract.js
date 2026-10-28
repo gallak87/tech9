@@ -31,7 +31,7 @@ export function validateMetadata(metadata, id = metadata?.id) {
       throw new Error(`Invalid circuit text: ${id}.${field}`);
   if (
     metadata.eventType !== undefined &&
-    !['eliminator'].includes(metadata.eventType)
+    !['eliminator', 'interceptor'].includes(metadata.eventType)
   )
     throw new Error(`Invalid circuit event: ${id}`);
   for (const flag of [
@@ -74,10 +74,16 @@ export function validateDefinition(definition, id = 'circuit') {
   if (
     definition.event !== undefined &&
     (!definition.event ||
-      definition.event.type !== 'eliminator' ||
-      ![definition.event.firstCut, definition.event.interval].every(
-        (value) => Number.isFinite(value) && value > 0,
-      ))
+      !['eliminator', 'interceptor'].includes(definition.event.type) ||
+      (definition.event.type === 'eliminator' &&
+        ![definition.event.firstCut, definition.event.interval].every(
+          (value) => Number.isFinite(value) && value > 0,
+        )) ||
+      (definition.event.type === 'interceptor' &&
+        (definition.event.targetId !== 'goliath' ||
+          ![definition.event.health, definition.event.escapeLaps].every(
+            (value) => Number.isFinite(value) && value > 0,
+          ))))
   )
     throw new Error(`Invalid ${id}.event`);
   for (const name of [
@@ -117,6 +123,11 @@ export function validateDefinition(definition, id = 'circuit') {
   )
     throw new Error(`Invalid ${id}.audio.immersion`);
   if (definition.racing !== undefined) {
+    if (
+      definition.racing?.loadRival !== undefined &&
+      typeof definition.racing.loadRival !== 'function'
+    )
+      throw new Error(`Invalid ${id}.racing.loadRival`);
     if (
       !definition.racing ||
       typeof definition.racing.createDevices !== 'function'

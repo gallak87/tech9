@@ -345,20 +345,77 @@ export function createRacers({
   createRuntime,
   dynamics = null,
   continuous = false,
+  field = null,
 }) {
   if (typeof createRuntime !== 'function')
     throw new Error('Racers require the circuit simulation factory');
   if (typeof continuous !== 'boolean')
     throw new Error('Continuous racing must be a boolean');
+  if (
+    field &&
+    (typeof field.id !== 'string' ||
+      !field.id ||
+      field.id.length > 160 ||
+      !Array.isArray(field.opponents) ||
+      field.opponents.length < 1 ||
+      field.opponents.length > 16 ||
+      field.opponents.some(
+        (specification) =>
+          !specification ||
+          typeof specification.id !== 'string' ||
+          !specification.id ||
+          specification.id === 'player' ||
+          typeof specification.name !== 'string' ||
+          !Number.isFinite(specification.lane) ||
+          !Number.isFinite(specification.pace) ||
+          specification.pace <= 0 ||
+          (specification.team !== undefined &&
+            typeof specification.team !== 'string') ||
+          (specification.chassisId !== undefined &&
+            typeof specification.chassisId !== 'string') ||
+          (specification.version !== undefined &&
+            (!Number.isSafeInteger(specification.version) ||
+              specification.version <= 0)),
+      ) ||
+      new Set(field.opponents.map((specification) => specification.id)).size !==
+        field.opponents.length ||
+      !field.grid ||
+      Array.isArray(field.grid) ||
+      (field.control !== undefined && typeof field.control !== 'function'))
+  )
+    throw new Error('Invalid custom racing field');
+  const specifications = field ? copy(field.opponents) : RACE_OPPONENTS;
+  if (field)
+    for (const specification of specifications) getShip(specification.shipId);
+  const ids = field
+    ? ['player', ...specifications.map((specification) => specification.id)]
+    : Object.keys(RACE_GRID);
+  if (
+    field &&
+    (Object.keys(field.grid).length !== ids.length ||
+      ids.some(
+        (id) =>
+          !field.grid[id] ||
+          !Number.isFinite(field.grid[id].distance) ||
+          !Number.isFinite(field.grid[id].lateral) ||
+          !Object.values(field.grid[id]).every((value) =>
+            Number.isFinite(value),
+          ),
+      ))
+  )
+    throw new Error('Custom field needs one finite grid pose for every racer');
+  const initialGrid = field ? copy(field.grid) : RACE_GRID;
+  const initialOrder = field ? Object.keys(initialGrid) : RACE_ORDER;
+  const fieldControl = field?.control;
   const sprint = track.closed === false;
   const lapsRequired = continuous ? Infinity : sprint ? 1 : RACE_LAPS;
   const course = courseIdentity(track);
-  const relativeTiming = createRelativeTiming(Object.keys(RACE_GRID));
-  const opponents = RACE_OPPONENTS.map((specification) => ({
+  const relativeTiming = createRelativeTiming(ids);
+  const opponents = specifications.map((specification) => ({
     specification,
     state: {
       ...createVehicleState(specification.shipId),
-      chassisId: specification.id,
+      chassisId: specification.chassisId ?? specification.id,
     },
     prev: null,
     race: null,
@@ -371,7 +428,8 @@ export function createRacers({
   // Visual names/colors are deliberately absent from deterministic identity.
   const identity = {
     ...(continuous ? { continuous: true } : {}),
-    grid: RACE_GRID,
+    ...(field ? { field: { id: field.id, order: initialOrder } } : {}),
+    grid: initialGrid,
     drivers: DRIVER_PROFILES,
     reorient: REORIENT,
     opponents: opponents.map(({ specification, runtime }) => ({
@@ -382,6 +440,15 @@ export function createRacers({
       },
       lane: specification.lane,
       pace: specification.pace,
+      ...(field
+        ? {
+            chassis: {
+              id: specification.chassisId ?? specification.id,
+              version: specification.version ?? 1,
+            },
+            team: specification.team ?? null,
+          }
+        : {}),
       runtime: {
         id: runtime.id,
         version: runtime.version,
@@ -409,12 +476,23 @@ export function createRacers({
   function reset({
     enabled: nextEnabled = true,
     difficulty: nextDifficulty = 'easy',
-    gridOrder = RACE_ORDER,
+    gridOrder = initialOrder,
   } = {}) {
     if (!RACE_DIFFICULTIES.includes(nextDifficulty))
       throw new Error('Unknown race difficulty');
-    const grid = createRaceGrid(gridOrder);
+    if (
+      field &&
+      (!Array.isArray(gridOrder) ||
+        gridOrder.length !== ids.length ||
+        new Set(gridOrder).size !== ids.length ||
+        !gridOrder.every((id) => ids.includes(id)))
+    )
+      throw new Error(
+        'Custom grid order must contain every racer exactly once',
+      );
+    const grid = field ? copy(initialGrid) : createRaceGrid(gridOrder);
     identity.grid = grid;
+    if (field) identity.field.order = [...gridOrder];
     identityJSON = JSON.stringify(identity);
     gridPositions = Object.fromEntries(
       gridOrder.map((id, index) => [id, index]),
@@ -433,7 +511,7 @@ export function createRacers({
       const { specification } = opponent;
       opponent.state = {
         ...createVehicleState(specification.shipId),
-        chassisId: specification.id,
+        chassisId: specification.chassisId ?? specification.id,
         ...grid[specification.id],
       };
       opponent.prev = { ...opponent.state };
@@ -462,11 +540,39 @@ export function createRacers({
     for (const opponent of opponents)
       if (!opponent.eliminated) nearby.push(opponent.state);
     if (playerState) nearby.push(playerPrevious ?? playerState);
-    const controls = opponents.map((opponent) =>
-      opponent.eliminated
-        ? null
-        : controlsFor(opponent, track, devices, nearby, difficulty),
-    );
+    const controls = opponents.map((opponent) => {
+      if (opponent.eliminated) return null;
+      const defaultControl = controlsFor(
+        opponent,
+        track,
+        devices,
+        nearby,
+        difficulty,
+      );
+      if (!fieldControl) return defaultControl;
+      const control = fieldControl({
+        opponent,
+        track,
+        devices,
+        nearby,
+        difficulty,
+        defaultControl,
+      });
+      if (
+        !control ||
+        !['throttle', 'brake', 'steer'].every(
+          (key) => Number.isFinite(control[key]) && Math.abs(control[key]) <= 1,
+        ) ||
+        control.throttle < 0 ||
+        control.brake < 0 ||
+        typeof control.boost !== 'boolean' ||
+        typeof control.airbrake !== 'boolean'
+      )
+        throw new Error(
+          'Custom field control must return normalized driving inputs',
+        );
+      return control;
+    });
     opponents.forEach((opponent) => {
       if (!opponent.eliminated) opponent.prev = { ...opponent.state };
     });
@@ -618,6 +724,7 @@ export function createRacers({
         opponent.runtime.pose(1),
       ),
       ...(continuous ? { eliminated: opponent.eliminated } : {}),
+      ...(field ? { team: opponent.specification.team ?? null } : {}),
     }));
     const currentFinish = continuous
       ? null
@@ -804,7 +911,8 @@ export function createRacers({
             ([key, value]) => typeof state[key] === typeof value,
           ) ||
           state.shipId !== opponent.specification.shipId ||
-          state.chassisId !== opponent.specification.id
+          state.chassisId !==
+            (opponent.specification.chassisId ?? opponent.specification.id)
         )
           throw new Error('Racer vehicle state mismatch');
       if (
@@ -830,7 +938,7 @@ export function createRacers({
       const engine = dynamics?.snapshot();
       let validation;
       try {
-        validation = createRuntime();
+        validation = createRuntime(opponent.specification);
         validation.restore(saved.runtime);
       } finally {
         validation?.dispose();

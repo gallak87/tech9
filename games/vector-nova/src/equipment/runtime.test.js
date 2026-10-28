@@ -35,6 +35,39 @@ const track = {
     curvature: 0,
   }),
 };
+test('issued pursuit cadence repeats held fire without changing ordinary Lance cooldown or held-edge behavior', () => {
+  const state = { equipment: ['lance'] };
+  let issuedShots = 0,
+    normalShots = 0;
+  const issued = createEquipmentSystem({
+    motion: {},
+    combat: { fireLance: () => ++issuedShots },
+    tuning: { lance: { cooldown: 1.2, autoRepeat: true } },
+  });
+  const normal = createEquipmentSystem({
+    motion: {},
+    combat: { fireLance: () => ++normalShots },
+  });
+  issued.reset({ state });
+  normal.reset({ state });
+  for (let i = 0; i < 480; i++) {
+    issued.beforeStep(state, { equipment1: true }, 1 / 120);
+    normal.beforeStep(state, { equipment1: true }, 1 / 120);
+  }
+  assert.equal(issuedShots, 4);
+  assert.equal(normalShots, 1);
+  const saved = issued.snapshot();
+  issued.restore(saved);
+  assert.deepEqual(issued.snapshot(), saved);
+  assert.throws(
+    () =>
+      createEquipmentSystem({
+        motion: {},
+        tuning: { lance: { cooldown: -1 } },
+      }),
+    /tuning/,
+  );
+});
 test('independent equipment slots, cooldown edge, snapshot and one-hit shield', () => {
   const state = {
     ...createVehicleState(),

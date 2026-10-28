@@ -164,10 +164,9 @@ export function raceProgressView(before, after, context, result) {
   const goals = rewardGoals(before, context);
   if (!goals.length && !points && !maps) return '';
   const player = result?.standings?.find((row) => row.id === 'player');
-  const valid =
-    context.mode === 'time-trial'
-      ? result?.playerValid
-      : player?.valid && player?.finished;
+  const valid = ['time-trial', 'interceptor'].includes(context.mode)
+    ? result?.playerValid
+    : player?.valid && player?.finished;
   const finishes = after.finishes - before.finishes;
   const label =
     IS_DEMO && finishes
@@ -180,14 +179,16 @@ export function raceProgressView(before, after, context, result) {
             ? 'Progress saved'
             : 'No progress · A valid finish is required';
   const description =
-    IS_DEMO && points
-      ? 'Every valid finish counts toward demo rewards, at any placing. Export your career to carry it into the full game.'
-      : points
-        ? `${player?.position ? `P${player.position} · ` : ''}Every valid finish counts. Wins +5 · 2nd +4 · 3rd +3 · 4th–5th +2 · 6th–10th +1`
-        : context.mode === 'time-trial'
-          ? 'Each distinct map counts once toward your boost rewards.'
-          : valid
-            ? 'This result has already been counted. Improve your cup placing to earn the difference.'
-            : 'Retry for a classified finish.';
+    context.mode === 'interceptor'
+      ? 'Mission success earns 5 progress; a valid failed pursuit earns 1. Issued equipment does not unlock it in your garage.'
+      : IS_DEMO && points
+        ? 'Every valid finish counts toward demo rewards, at any placing. Export your career to carry it into the full game.'
+        : points
+          ? `${player?.position ? `P${player.position} · ` : ''}Every valid finish counts. Wins +5 · 2nd +4 · 3rd +3 · 4th–5th +2 · 6th–10th +1`
+          : context.mode === 'time-trial'
+            ? 'Each distinct map counts once toward your boost rewards.'
+            : valid
+              ? 'This result has already been counted. Improve your cup placing to earn the difference.'
+              : 'Retry for a classified finish.';
   return `<section class="race-reward-progress"><h3>${escapeHTML(label)}</h3><p>${escapeHTML(description)}</p>${rewardBadgesView(goals, after, { before, results: true })}</section>`;
 }

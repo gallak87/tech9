@@ -78,6 +78,10 @@ export function createUI(
     $('restart').textContent = 'Retry Eliminator';
     $('start').firstChild.textContent = 'START ELIMINATOR ';
   }
+  if (metadata.eventType === 'interceptor') {
+    $('restart').textContent = 'Retry Interceptor';
+    $('start').firstChild.textContent = 'START INTERCEPTOR ';
+  }
   let casePicker = null;
   if (playtest?.cases?.length > 1) {
     casePicker = document.createElement('div');

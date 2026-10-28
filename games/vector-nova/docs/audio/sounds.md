@@ -45,6 +45,8 @@ For pickup sound and VFX together, open **Ship inspector → Powerups & equipmen
 
 Eliminator reuses the short start-light tone for its final three cut warnings and a quieter existing finisher sting when another racer is extracted. Player elimination uses the descending close; surviving the final cut uses the established winner sting. There is no second overlapping cut cue on the player’s terminal result, and continuous laps do not announce a final lap.
 
+Interceptor's issued pursuit Lance retains the approved deep fire and compact impact samples at its mission firing cadence. The normal equipment item keeps its existing recharge. Ion countermeasure contact uses the existing incoming combat feedback; mission success and escape reuse the established winner and descending-close cues.
+
 The cup reward starts at least 0.6 seconds into its reveal and 0.25 seconds after any remaining race-finish voice. It follows effects volume, cancels when leaving results, and does not replay when reopening saved standings. Reduced motion keeps the trophy visible without the entrance animation.
 
 The propulsion bed continuously responds to acceleration, braking, steering and speed; its three presets are representative states, not separate recordings. A shielded `combat-hit` is silent because `shield-hit` supplies the audible cue. Arc, Repulsor and Ion blocked-hit confirmations share the Aegis collapse recording. Expiry, cancellation and attacker confirmation use quieter gains in gameplay; the inspector auditions those event sequences.

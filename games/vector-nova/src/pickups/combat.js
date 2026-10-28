@@ -38,6 +38,35 @@ const vector = (value) => new T.Vector3().fromArray(value);
 const up = new T.Vector3(0, 1, 0);
 const forward = new T.Vector3(0, 0, 1);
 const boltHull = { halfWidth: 0.15, halfLength: 0.15, hover: 0.15 };
+const defaultHitBounds = Object.freeze({
+  half: Object.freeze({ x: 2.5, y: 1.8, z: ARC_TARGET_HALF_LENGTH }),
+  center: Object.freeze([0, 0, 0]),
+});
+
+// Actor-local bounds are configuration, not damage state. Large event chassis
+// provide their actual hull envelope instead of inheriting the racer-sized box.
+export function combatHitBounds(bounds) {
+  if (bounds == null) return null;
+  const half = bounds.half ?? bounds;
+  const values = Array.isArray(half) ? half : [half.x, half.y, half.z];
+  const offset = bounds.center ?? [0, 0, 0];
+  const center = Array.isArray(offset)
+    ? [...offset]
+    : [offset.x, offset.y, offset.z];
+  if (
+    values.length !== 3 ||
+    !values.every((value) => Number.isFinite(value) && value > 0) ||
+    center.length !== 3 ||
+    !center.every(Number.isFinite)
+  )
+    throw new Error(
+      'Combat hit bounds need positive finite half extents and a finite local center',
+    );
+  return Object.freeze({
+    half: Object.freeze({ x: values[0], y: values[1], z: values[2] }),
+    center: Object.freeze(center),
+  });
+}
 
 // Continuous segment/box test, also used with relative target motion so fast
 // opposing movement cannot step over a bolt between two fixed ticks.
@@ -63,8 +92,12 @@ export function createCombatSimulation({
   track,
   collisionWorld = null,
   dynamics = null,
+  onHit,
 }) {
+  if (onHit !== undefined && typeof onHit !== 'function')
+    throw new Error('Combat hit observer must be a function');
   const actors = new Map();
+  const boxes = new WeakMap();
   const touched = new Set();
   let requests = [];
   let state;
@@ -82,6 +115,23 @@ export function createCombatSimulation({
     flashes: [],
   });
   state = fresh();
+  function sameTeam(source, target) {
+    const team = actors.get(source)?.team;
+    return (
+      typeof team === 'string' &&
+      team.length > 0 &&
+      team === actors.get(target)?.team
+    );
+  }
+  function hitBounds(actor) {
+    if (!actor.hitBounds) return defaultHitBounds;
+    let box = boxes.get(actor.hitBounds);
+    if (!box) {
+      box = combatHitBounds(actor.hitBounds);
+      boxes.set(actor.hitBounds, box);
+    }
+    return box;
+  }
   function eligible(id, requireTouched = true) {
     const actor = actors.get(id);
     const pose = actor?.pose();
@@ -111,7 +161,8 @@ export function createCombatSimulation({
   }
   function arcAim(shot, target) {
     const other = eligible(target);
-    if (!other || target === shot.source) return null;
+    if (!other || target === shot.source || sameTeam(shot.source, target))
+      return null;
     let ahead = other.actor.state.distance - shot.distance;
     if (track.closed !== false)
       ahead =
@@ -180,7 +231,7 @@ export function createCombatSimulation({
   ) {
     if ((state.grace[target] ?? 0) > state.time) return;
     const targetActor = eligible(target);
-    if (!targetActor || source === target) return;
+    if (!targetActor || source === target || sameTeam(source, target)) return;
     const entrySpeed = targetActor.actor.state.speed;
     const shielded = targetActor.actor.hit({
       source,
@@ -214,8 +265,9 @@ export function createCombatSimulation({
     };
     notify(target, 'combat-hit', payload);
     notify(source, 'combat-confirm', payload);
+    const hitId = state.sequence++;
     state.flashes.push({
-      id: state.sequence++,
+      id: hitId,
       target,
       kind: shielded ? 'aegis' : kind,
       ...(equipment ? { equipment } : {}),
@@ -227,6 +279,7 @@ export function createCombatSimulation({
       age: 0,
       radius: 4,
     });
+    onHit?.({ ...copy(payload), hitId });
     return true;
   }
   function pulse(id, actor, pose) {
@@ -246,6 +299,7 @@ export function createCombatSimulation({
       if (
         !other ||
         id === target ||
+        sameTeam(id, target) ||
         !nearCourse(actor.state.distance, other.actor.state.distance, 60)
       )
         continue;
@@ -349,6 +403,7 @@ export function createCombatSimulation({
   }
   return {
     bind(id, actor) {
+      hitBounds(actor);
       actors.set(id, actor);
       touched.add(id);
     },
@@ -525,17 +580,26 @@ export function createCombatSimulation({
           if (
             !other ||
             id === shot.source ||
+            sameTeam(shot.source, id) ||
             !nearCourse(shot.distance, other.actor.state.distance, 600)
           )
             continue;
           const inverse = other.pose.quaternion.clone().invert();
+          const box = hitBounds(other.actor);
+          const center = new T.Vector3()
+            .fromArray(box.center)
+            .applyQuaternion(other.pose.quaternion);
           const previous = state.positions[id]
             ? vector(state.positions[id])
             : other.pose.position;
           const fraction = segmentBoxFraction(
-            a.clone().sub(previous).applyQuaternion(inverse),
-            b.clone().sub(other.pose.position).applyQuaternion(inverse),
-            { x: 2.5, y: 1.8, z: ARC_TARGET_HALF_LENGTH },
+            a.clone().sub(previous).sub(center).applyQuaternion(inverse),
+            b
+              .clone()
+              .sub(other.pose.position)
+              .sub(center)
+              .applyQuaternion(inverse),
+            box.half,
           );
           if (fraction !== null && fraction < first) {
             first = fraction;
@@ -599,6 +663,7 @@ export function createCombatSimulation({
           if (
             !other ||
             id === wake.source ||
+            sameTeam(wake.source, id) ||
             exposure?.targets.includes(id) ||
             !nearCourse(wake.distance, other.actor.state.distance, 45)
           )
@@ -643,7 +708,11 @@ export function createCombatSimulation({
       if (!actor) return null;
       const horizon = Math.max(35, actor.state.speed * 0.7);
       for (const wake of state.wakes) {
-        if (wake.source === id || wake.age > COMBAT_RULES.wakeLifetime - 0.3)
+        if (
+          wake.source === id ||
+          sameTeam(wake.source, id) ||
+          wake.age > COMBAT_RULES.wakeLifetime - 0.3
+        )
           continue;
         let ahead = wake.distance - actor.state.distance;
         if (track.closed !== false && ahead < -track.length / 2)
@@ -677,7 +746,9 @@ export function createCombatSimulation({
         pose.position,
         id,
         COMBAT_RULES.wakeLifetime,
-        (wake) => nearCourse(wake.distance, actor.state.distance, 45),
+        (wake) =>
+          !sameTeam(wake.source, id) &&
+          nearCourse(wake.distance, actor.state.distance, 45),
       );
     },
     view() {

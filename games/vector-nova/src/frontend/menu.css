@@ -1435,8 +1435,9 @@
   border-top: 1px solid #ffffff30;
   border-bottom: 1px solid #ffffff30;
 }
-.mode-picker [data-action='eliminator'] {
-  grid-column: 1/-1;
+.front-content .mode-picker [data-action='eliminator'],
+.front-content .mode-picker [data-action='interceptor'] {
+  grid-column: auto;
   min-height: 30px;
   padding-block: 5px;
 }
@@ -1470,7 +1471,8 @@
     min-height: 32px;
     padding-block: 6px;
   }
-  .menu-wide .mode-picker [data-action='eliminator'] {
+  .menu-wide .mode-picker [data-action='eliminator'],
+  .menu-wide .mode-picker [data-action='interceptor'] {
     min-height: 24px;
     padding-block: 3px;
     font-size: 11px;

@@ -16,33 +16,54 @@ const hermite = (a, b, t) => {
 // opens over the planet into a long, visibly falling receiving apron.
 export function createLaunchworksTrack() {
   const lips = Array.from({ length: 5 }, (_, i) => ({
-    z: 420 + i * 1000,
+    z: 420 + i * 1450,
     y: 900 - i * 145,
   }));
+  const headings = [0, 0.42, -0.32, 0.38, -0.28];
+  function yawAt(station) {
+    for (let i = 1; i < lips.length; i++) {
+      const start = lips[i - 1].z + 960;
+      const end = lips[i].z - 180;
+      if (station < start) return headings[i - 1];
+      if (station <= end) {
+        const t = (station - start) / (end - start);
+        const blend = t * t * t * (t * (6 * t - 15) + 10);
+        return T.MathUtils.lerp(headings[i - 1], headings[i], blend);
+      }
+    }
+    return headings.at(-1);
+  }
   const nodes = [{ z: 0, y: 875, slope: 0 }];
   for (const lip of lips)
     nodes.push(
       { z: lip.z - 130, y: lip.y - 20, slope: -0.08 },
       { ...lip, slope: 0.26 },
-      { z: lip.z + 360, y: lip.y - 25, slope: -0.22 },
-      { z: lip.z + 740, y: lip.y - 108.6, slope: -0.22 },
+      { z: lip.z + 400, y: lip.y - 25, slope: -0.18 },
+      { z: lip.z + 940, y: lip.y - 122.2, slope: -0.18 },
     );
-  const finishZ = lips.at(-1).z + 820,
+  const finishZ = lips.at(-1).z + 1050,
     endZ = finishZ + 500;
   nodes.push(
-    { z: finishZ, y: lips.at(-1).y - 120, slope: -0.04 },
-    { z: endZ, y: lips.at(-1).y - 125, slope: 0 },
+    { z: finishZ, y: lips.at(-1).y - 133, slope: -0.04 },
+    { z: endZ, y: lips.at(-1).y - 140, slope: 0 },
   );
   const samples = [],
     distances = [];
   let segment = 0,
-    length = 0;
+    length = 0,
+    x = 0,
+    forward = 0;
   for (let z = 0; z <= endZ; z++) {
     while (segment + 1 < nodes.length - 1 && z > nodes[segment + 1].z)
       segment++;
     const a = nodes[segment],
       b = nodes[segment + 1];
-    const p = new T.Vector3(0, hermite(a, b, (z - a.z) / (b.z - a.z)), z);
+    if (z > 0) {
+      const yaw = yawAt(z - 0.5);
+      x += Math.sin(yaw);
+      forward += Math.cos(yaw);
+    }
+    const p = new T.Vector3(x, hermite(a, b, (z - a.z) / (b.z - a.z)), forward);
     if (samples.length) length += p.distanceTo(samples.at(-1));
     samples.push(p);
     distances.push(length);
@@ -65,29 +86,36 @@ export function createLaunchworksTrack() {
       .clone()
       .sub(samples[Math.max(0, lo - 1)])
       .normalize();
-    const right = new T.Vector3(1, 0, 0),
+    const right = new T.Vector3()
+        .crossVectors(new T.Vector3(0, 1, 0), tangent)
+        .normalize(),
       up = new T.Vector3().crossVectors(tangent, right).normalize();
+    // Open-course cameras need a real chase offset even at distance zero.
+    if (distance !== s) position.addScaledVector(tangent, distance - s);
+    const curvature =
+      (yawAt(Math.min(endZ, lo + 1)) - yawAt(Math.max(0, lo - 1))) /
+      (distances[Math.min(endZ, lo + 1)] - distances[Math.max(0, lo - 1)]);
     const quaternion = new T.Quaternion().setFromRotationMatrix(
       new T.Matrix4().makeBasis(right, up, tangent),
     );
-    return { position, tangent, right, up, quaternion, curvature: 0, bank: 0 };
+    return { position, tangent, right, up, quaternion, curvature, bank: 0 };
   }
   const jumps = lips.map((lip, i) => ({
     id: `transfer-${i + 1}`,
     label: `Transfer ${i + 1}`,
     takeoff: distanceAt(lip.z),
-    landingStart: distanceAt(lip.z + 360),
-    landingEnd: distanceAt(lip.z + 740),
-    recovery: distanceAt(lip.z + 745),
+    landingStart: distanceAt(lip.z + 400),
+    landingEnd: distanceAt(lip.z + 940),
+    recovery: distanceAt(lip.z + 945),
     halfWidth: WIDTH / 2,
-    target: distanceAt(lip.z + 560),
+    target: distanceAt(lip.z + 760),
     targetLateral: [-4, 4, 0, -5, 5][i],
   }));
   const finishDistance = distanceAt(finishZ);
   return {
-    id: 'asterion-launchworks-v1',
+    id: 'asterion-launchworks-v2',
     name: 'Asterion Launchworks',
-    geometryVersion: 'five-aprons-v1',
+    geometryVersion: 'five-bending-aprons-v2',
     length,
     width: WIDTH,
     closed: false,
@@ -95,6 +123,7 @@ export function createLaunchworksTrack() {
     sample,
     jumps,
     distanceAt,
+    endStation: endZ,
     // Receiver momentum, rather than repeated full-reserve boosts, supplies
     // the next launch. This pace profile belongs only to the transfer course.
     pace: {
@@ -127,13 +156,12 @@ export function createLaunchworksTrack() {
         ],
         [
           `jump${i + 1}-success`,
-          { distance: j.takeoff - 2, speed: 145, lateral: j.targetLateral },
+          { distance: j.takeoff - 2, speed: 166, lateral: j.targetLateral },
         ],
       ]),
     ]),
-    bounds: new T.Box3(
-      new T.Vector3(-900, 0, -600),
-      new T.Vector3(900, 1500, endZ + 600),
-    ),
+    bounds: new T.Box3()
+      .setFromPoints(samples)
+      .expandByVector(new T.Vector3(900, 600, 600)),
   };
 }

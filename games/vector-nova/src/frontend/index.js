@@ -478,7 +478,7 @@ export async function createFrontend(host) {
     }
     const guide =
       intent === 'freestyle'
-        ? `<aside class="freestyle-guide"><h3>Five transfers. Keep the chain.</h3><p><b>Ctrl + direction</b> flips / spins · <b>Shift + left/right</b> rolls. Combine axes, release or countersteer, then tap <b>Space</b> just before touchdown.</p><p class="freestyle-pad-guide">Pad: <b>X + stick</b> flips / spins · <b>Y + horizontal stick</b> rolls · <b>${controllerLayout(settings).airbrake}</b> catches.</p><p>Settle the hull into the mint receiving lane. Clean catches bank tricks, grow the multiplier and carry speed into the next launch. Stock builds · Separate records · Gold 27,000.</p></aside>`
+        ? `<aside class="freestyle-guide"><h3>Five transfers. Keep the chain.</h3><p>Ride the <b>Vector strips</b> into each launch. <b>Ctrl + W/S</b> flips · <b>Ctrl + A/D</b> rolls · <b>Ctrl + Q/E</b> spins. Combine directions, release or countersteer, then tap <b>Space</b> before touchdown. Arrows also work.</p><p class="freestyle-pad-guide">Pad: hold <b>X</b>, use the <b>left stick</b> to flip / roll and <b>right stick</b> to spin · <b>${controllerLayout(settings).airbrake}</b> catches.</p><p>Settle the hull into the mint receiving lane. Clean catches bank tricks, grow the multiplier and carry speed into the next launch. Stock builds · Separate records · Gold 27,000.</p></aside>`
         : '';
     return `<section class="circuit-picker-panel" aria-label="Choose a track"><div class="circuit-hero" aria-live="polite"></div>${guide}<div class="circuit-grid" role="group" aria-label="Tracks">${[
       ...groups,

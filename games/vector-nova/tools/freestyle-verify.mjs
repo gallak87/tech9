@@ -39,20 +39,20 @@ export function pilot({ state, motion, track }) {
     track.jumps[Math.min(f.legs.length, 4)];
   const airborne = !!motion.flight;
   const steer = Math.max(
-    -0.55,
+    -0.9,
     Math.min(
-      0.55,
+      0.9,
       (state.lateral - jump.targetLateral) * 0.04 +
         state.heading * 1.8 +
-        state.lateralSpeed * 0.03,
+        state.lateralSpeed * 0.03 -
+        (track.sample(state.distance).curvature * state.speed) / (1.5 * 1.24),
     ),
   );
   return {
     throttle: 1,
     brake: 0,
     steer,
-    boost:
-      !airborne && jump.takeoff - state.distance < 300 && state.speed < 144,
+    boost: false,
     airbrake:
       airborne &&
       f.touchdown != null &&
@@ -81,12 +81,10 @@ try {
     false,
     'setup does not load a world',
   );
-  const fit = await page
-    .locator('#front-shell')
-    .evaluate((node) => ({
-      vertical: node.scrollHeight - node.clientHeight,
-      horizontal: node.scrollWidth - node.clientWidth,
-    }));
+  const fit = await page.locator('#front-shell').evaluate((node) => ({
+    vertical: node.scrollHeight - node.clientHeight,
+    horizontal: node.scrollWidth - node.clientWidth,
+  }));
   assert.ok(
     fit.vertical <= 1 && fit.horizontal <= 1,
     'the pilot menu fits a short desktop viewport',
@@ -117,13 +115,22 @@ try {
       window.__VN_FRONTEND?.getState().screen === 'race' &&
       !window.__VN_FRONTEND.getState().loading,
   );
+  await page.waitForFunction(
+    () => window.__VN.getSnapshot().camera.position[2] < -12,
+  );
+  assert.ok(
+    (await page.evaluate(() => window.__VN.getSnapshot().vehicle.distance)) < 1,
+    'the chase camera starts behind the grid before driving',
+  );
   for (const [modifier, directions, expected] of [
     [
       'ControlLeft',
-      ['ArrowUp', 'ArrowRight'],
-      { aerialPitch: -1, aerialYaw: -1 },
+      ['KeyW', 'KeyA'],
+      { aerialPitch: -1, aerialRoll: 1, aerialYaw: 0, boost: false },
     ],
-    ['ShiftLeft', ['KeyD'], { aerialRoll: -1 }],
+    ['ControlLeft', ['KeyD'], { aerialRoll: -1, boost: false }],
+    ['ControlLeft', ['KeyQ'], { aerialYaw: 1, boost: false }],
+    ['ShiftLeft', ['KeyD'], { aerialRoll: 0, boost: true }],
   ]) {
     await page.evaluate(() => window.__VN.loadScenario('jump1-success'));
     await page.keyboard.down(modifier);
@@ -138,10 +145,17 @@ try {
       window.__VN.pause();
       return window.__VN.getSnapshot();
     });
-    assert.ok(
-      Math.hypot(...held.runtime.state.flight.angularVelocity) > 1,
-      'held directions rotate the actual hull',
-    );
+    if (modifier === 'ShiftLeft')
+      assert.equal(
+        Math.hypot(...held.runtime.state.freestyle.angular),
+        0,
+        'boost never requests a trick',
+      );
+    else
+      assert.ok(
+        Math.hypot(...held.runtime.state.flight.angularVelocity) > 1,
+        'held directions rotate the actual hull',
+      );
     assert.ok(
       Math.abs(held.camera.up[0]) < 0.08 && held.camera.up[1] > 0.95,
       `the camera keeps a readable horizon with ordinary speed feedback: ${held.camera.up}`,
@@ -160,6 +174,45 @@ try {
   console.log(
     'PASS · compact setup, keyboard entry, held directional input and pause',
   );
+  await page.evaluate(() => {
+    window.__testPad = {
+      id: 'freestyle-check',
+      index: 0,
+      mapping: 'standard',
+      connected: true,
+      axes: [-0.8, -1, 0.6, 0],
+      buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })),
+    };
+    Object.defineProperty(navigator, 'getGamepads', {
+      configurable: true,
+      value: () => [window.__testPad],
+    });
+    window.__VN.loadScenario('jump1-success');
+  });
+  await page.waitForFunction(() => window.__VN.getSnapshot().gamepadPresent);
+  await page.evaluate(() => {
+    window.__testPad.buttons[2] = { pressed: true, value: 1 };
+  });
+  await page.waitForFunction(
+    () => window.__VN.getSnapshot().input.aerialPitch < -0.9,
+  );
+  const stick = await page.evaluate(() => {
+    const input = window.__VN.getSnapshot().input;
+    window.__VN.pause();
+    return input;
+  });
+  assert.ok(
+    stick.aerialRoll > 0.7 && stick.aerialYaw < -0.4,
+    'one held controller modifier combines all three axes',
+  );
+  assert.equal(stick.boost, false);
+  await page.evaluate(() => {
+    window.__testPad.connected = false;
+    window.__testPad.buttons[2] = { pressed: false, value: 0 };
+  });
+  console.log(
+    'PASS · one controller modifier, mixed left stick and right-stick spin',
+  );
   const run = await page.evaluate((driver) => {
     const v = window.__VN,
       control = eval(`(${driver})`);
@@ -176,6 +229,10 @@ try {
       state: s.vehicle ?? s.state,
       mode: s.mode,
       freestyle: s.runtime.state.freestyle,
+      vectorEntries: s.events.filter(
+        (event) =>
+          event.type === 'pickup-activate' && event.payload.kind === 'vector',
+      ).length,
       errors: s.errors,
     };
   }, pilot.toString());
@@ -195,6 +252,16 @@ try {
   );
   assert.ok(run.freestyle.result, 'the real course reaches its result');
   assert.equal(run.freestyle.legs.length, 5);
+  assert.equal(
+    run.vectorEntries,
+    5,
+    'each real approach strip supplies launch propulsion',
+  );
+  assert.equal(
+    run.state.energy,
+    100,
+    'the complete curved course needs no manual boost',
+  );
   assert.equal(
     run.freestyle.bestChain,
     5,

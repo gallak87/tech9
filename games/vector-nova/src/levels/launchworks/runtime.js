@@ -17,8 +17,8 @@ export function createLaunchworksRuntime(context) {
   });
   const motion = model.createRuntime(context, {
     id: 'launchworks-freestyle',
-    version: 1,
-    rulesId: `launchworks-v1:${JSON.stringify({ rules: FREESTYLE_RULES, pace: track.pace })}`,
+    version: 2,
+    rulesId: `launchworks-v2:${JSON.stringify({ rules: FREESTYLE_RULES, pace: track.pace })}`,
     scenarios: Object.fromEntries(
       Object.entries(track.scenarios).map(([id, state]) => [
         id,

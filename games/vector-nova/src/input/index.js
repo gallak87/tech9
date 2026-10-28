@@ -148,11 +148,11 @@ export function createInput(
           : pad.equipment1
             ? -(pad.aerialStickY ?? 0)
             : 0;
-        i.aerialYaw = ctrl ? -horizontal : pad.equipment1 ? -pad.steer : 0;
-        i.aerialRoll = down('ShiftLeft', 'ShiftRight')
-          ? -horizontal
-          : pad.equipment2
-            ? -pad.steer
+        i.aerialRoll = ctrl ? -horizontal : pad.equipment1 ? -pad.steer : 0;
+        i.aerialYaw = ctrl
+          ? Number(down('KeyQ')) - Number(down('KeyE'))
+          : pad.equipment1
+            ? -(pad.aerialStickX ?? 0)
             : 0;
       }
       // A touch pulse survives observation and render frames without a physics tick.

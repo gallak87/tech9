@@ -2,6 +2,7 @@ import { createLaunchworksTrack } from './track/model.js';
 import { createLaunchworksRoad } from './track/road.js';
 import { createLaunchworksEnvironment } from './environment.js';
 import { createLaunchworksRuntime } from './runtime.js';
+import { createLaunchworksDevices } from './devices.js';
 import { createOrbitalBackdrop } from '../orbital/backdrop/index.js';
 import { collectProductionSolids } from '../../physics/production-solids.js';
 import { createFreestyleOverlay } from '../../freestyle/overlay.js';
@@ -10,7 +11,7 @@ import { DEVICE_SAMPLES } from '../../pickups/sample-cues.js';
 
 export default function createLevel() {
   return {
-    version: '0.1.0-freestyle-pilot',
+    version: '0.2.0-freestyle-pilot',
     freestyle: true,
     audio: {
       samples: {
@@ -42,7 +43,7 @@ export default function createLevel() {
       collectProductionSolids({
         track,
         id: 'launchworks-solids',
-        geometryId: 'five-aprons-v1',
+        geometryId: 'five-bending-aprons-v2',
         road: createLaunchworksRoad({ track }),
         select: (object) =>
           object.userData.drivingSurface
@@ -52,6 +53,9 @@ export default function createLevel() {
               : null,
       }),
     createRuntime: createLaunchworksRuntime,
-    racing: { createDevices: () => [], createMotion: createLaunchworksRuntime },
+    racing: {
+      createDevices: createLaunchworksDevices,
+      createMotion: createLaunchworksRuntime,
+    },
   };
 }

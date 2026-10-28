@@ -131,6 +131,10 @@ export function createGamepadReader(
                 pad?.axes[1],
                 getSettings().steeringDeadZone,
               ),
+              aerialStickX: steeringAxis(
+                pad?.axes[2],
+                getSettings().steeringDeadZone,
+              ),
             }
           : {}),
       };

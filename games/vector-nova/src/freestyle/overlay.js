@@ -9,7 +9,7 @@ export function createFreestyleOverlay({ host }) {
   root.innerHTML =
     '<div class="fs-score"><span>FREESTYLE / STOCK BUILD</span><strong>0</strong><small>CHAIN <b>—</b></small></div><div class="fs-links" aria-label="Five transfers">' +
     Array.from({ length: 5 }, (_, i) => `<i>${i + 1}</i>`).join('') +
-    '</div><div class="fs-flight"><span class="fs-phase">BUILD LAUNCH SPEED</span><strong class="fs-trick">Five transfers. One chain.</strong><div class="fs-rotation"><i></i></div><p class="fs-catch">Aim for the mint receiving lane.</p><small class="fs-last"></small></div><div class="fs-controls"><span><b>CTRL + ↑↓ / WASD</b> FLIP / SPIN</span><span><b>SHIFT + ←→ / AD</b> ROLL</span><span><b>SPACE</b> CATCH / ROTATION BRAKE</span></div>';
+    '</div><div class="fs-flight"><span class="fs-phase">BUILD LAUNCH SPEED</span><strong class="fs-trick">Five transfers. One chain.</strong><div class="fs-rotation"><i></i></div><p class="fs-catch">Aim for the mint receiving lane.</p><small class="fs-last"></small></div><div class="fs-controls"><span><b>CTRL + DIRECTION</b> ↑↓ / WS FLIP · ←→ / AD ROLL · COMBINE BOTH</span><span><b>CTRL + Q / E</b> FLAT SPIN</span><span><b>SPACE</b> CATCH / ROTATION BRAKE</span></div>';
   host.append(root);
   const score = root.querySelector('.fs-score>strong'),
     chain = root.querySelector('.fs-score small b'),
@@ -27,10 +27,14 @@ export function createFreestyleOverlay({ host }) {
       const names = frame.gamepad
         ? [
             'X + LEFT STICK',
-            'Y + ← / →',
+            'X + RIGHT STICK',
             controllerLayout(frame.settings).airbrake,
           ]
-        : ['CTRL + DIRECTION', 'SHIFT + ←→ / AD', 'SPACE'];
+        : ['CTRL + DIRECTION', 'CTRL + Q / E', 'SPACE'];
+      root.querySelector('.fs-controls span').lastChild.textContent =
+        frame.gamepad
+          ? ' FLIP / ROLL · COMBINE BOTH'
+          : ' ↑↓ / WS FLIP · ←→ / AD ROLL · COMBINE BOTH';
       controls.forEach((node, i) => {
         node.textContent = names[i];
       });
@@ -78,7 +82,7 @@ export function createFreestyleOverlay({ host }) {
               : seconds != null && seconds < 0.7
                 ? `Tap ${names[2]} to catch.`
                 : 'Settle the hull. Aim for the mint lane.'
-        : 'Boost on approach. Carry speed into the next launch.';
+        : 'Ride the Vector strip into each launch. Keep your line through the bends.';
       const leg = data.legs.at(-1);
       last.textContent = leg
         ? `${leg.reason} · ${leg.bank ? `+${leg.bank.toLocaleString()}` : 'chain broken'}`

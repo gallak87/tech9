@@ -12,7 +12,7 @@ export default {
     intro:
       'Five colossal transfers. Commit a slow trick, recover, and catch the receiving slope. Protect the chain.',
     detail:
-      'Ctrl + direction flips / spins · Shift + left/right rolls. Pad: X + stick flips / spins, Y + stick rolls. Release and settle; tap Space / B before touchdown.',
+      'Ctrl + W/S flips, A/D rolls, Q/E spins. Combine directions for diagonal tricks. Ride the Vector strips into each launch. Pad: X + left stick flips / rolls, X + right stick spins. Release and settle; tap the airbrake before touchdown.',
     tag: 'ASTERION LAUNCHWORKS',
     tagDetail: 'FIVE TRANSFERS / STOCK BUILD',
     start: 'START FREESTYLE',

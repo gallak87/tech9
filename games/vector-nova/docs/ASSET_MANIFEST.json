@@ -611,7 +611,7 @@
       "id": "asterion-launchworks-pilot",
       "source": "src/levels/launchworks/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original source-authored five-transfer course, receiving lanes and suspended deck trusses. Reuses the registered Asterion drydock/solar-garden geometry, materials and planetary backdrop. Its clean-catch cue reuses the registered Vector jump landing sample. No new downloaded or generated media.",
+      "provenance": "Original source-authored five-transfer course with curved ground connectors, receiving lanes and suspended deck trusses. Reuses the registered Asterion drydock/solar-garden geometry, materials and planetary backdrop, plus the shared Vector boost-strip hardware. Its clean-catch cue reuses the registered Vector jump landing sample. No new downloaded or generated media.",
       "rights": "Derived from this project's registered Asterion and equipment assets; their original provenance and rights apply",
       "runtimeDependencies": ["three"]
     },

@@ -19,8 +19,19 @@ export function createLaunchworksEnvironment({ track }) {
         ? solarGarden({ wings: 3, radiator: true })
         : drydock({ unfinished: i === 2, scale: 1 });
     const matrix = new T.Matrix4().compose(
-      frame.position.clone().add(new T.Vector3(side * 390, -170, 100)),
-      new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), side * 0.18),
+      frame.position
+        .clone()
+        .addScaledVector(frame.right, side * 390)
+        .addScaledVector(frame.up, -170)
+        .addScaledVector(frame.tangent, 100),
+      frame.quaternion
+        .clone()
+        .multiply(
+          new T.Quaternion().setFromAxisAngle(
+            new T.Vector3(0, 1, 0),
+            side * 0.18,
+          ),
+        ),
       new T.Vector3(1.6, 1.6, 1.6),
     );
     group.add(
@@ -35,12 +46,16 @@ export function createLaunchworksEnvironment({ track }) {
   }
   const beamMaterial = materials.dark;
   const beamGeometry = new T.BoxGeometry(1, 1, 1);
-  const beams = new T.InstancedMesh(beamGeometry, beamMaterial, 200);
+  const beams = new T.InstancedMesh(
+    beamGeometry,
+    beamMaterial,
+    Math.ceil(track.endStation / 100) * 3,
+  );
   const matrix = new T.Matrix4(),
     scale = new T.Vector3(),
     p = new T.Vector3();
   let count = 0;
-  for (let z = 0; z < 5100; z += 100) {
+  for (let z = 0; z < track.endStation; z += 100) {
     const distance = track.distanceAt(z);
     if (track.isGap(distance)) continue;
     const frame = track.sample(distance);

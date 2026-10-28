@@ -29,6 +29,11 @@ export function validateMetadata(metadata, id = metadata?.id) {
       typeof metadata.ui[field] !== 'string'
     )
       throw new Error(`Invalid circuit text: ${id}.${field}`);
+  if (
+    metadata.eventType !== undefined &&
+    !['eliminator'].includes(metadata.eventType)
+  )
+    throw new Error(`Invalid circuit event: ${id}`);
   for (const flag of [
     'compact',
     'stackedReview',
@@ -66,6 +71,15 @@ export function validateMetadata(metadata, id = metadata?.id) {
 }
 
 export function validateDefinition(definition, id = 'circuit') {
+  if (
+    definition.event !== undefined &&
+    (!definition.event ||
+      definition.event.type !== 'eliminator' ||
+      ![definition.event.firstCut, definition.event.interval].every(
+        (value) => Number.isFinite(value) && value > 0,
+      ))
+  )
+    throw new Error(`Invalid ${id}.event`);
   for (const name of [
     'createTrack',
     'createRoad',

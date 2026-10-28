@@ -344,11 +344,14 @@ export function createRacers({
   devices = [],
   createRuntime,
   dynamics = null,
+  continuous = false,
 }) {
   if (typeof createRuntime !== 'function')
     throw new Error('Racers require the circuit simulation factory');
+  if (typeof continuous !== 'boolean')
+    throw new Error('Continuous racing must be a boolean');
   const sprint = track.closed === false;
-  const lapsRequired = sprint ? 1 : RACE_LAPS;
+  const lapsRequired = continuous ? Infinity : sprint ? 1 : RACE_LAPS;
   const course = courseIdentity(track);
   const relativeTiming = createRelativeTiming(Object.keys(RACE_GRID));
   const opponents = RACE_OPPONENTS.map((specification) => ({
@@ -362,10 +365,12 @@ export function createRacers({
     runtime: createRuntime(specification),
     finish: null,
     boostSeconds: 0,
+    ...(continuous ? { eliminated: false } : {}),
   }));
   // Record the actual field configuration instead of a second version stamp.
   // Visual names/colors are deliberately absent from deterministic identity.
   const identity = {
+    ...(continuous ? { continuous: true } : {}),
     grid: RACE_GRID,
     drivers: DRIVER_PROFILES,
     reorient: REORIENT,
@@ -437,6 +442,10 @@ export function createRacers({
       });
       opponent.finish = null;
       opponent.boostSeconds = 0;
+      if (continuous) {
+        opponent.eliminated = false;
+        opponent.runtime.setEnabled?.(enabled);
+      }
       opponent.runtime.reset({ reason: 'restart', state: opponent.state });
     }
   }
@@ -449,16 +458,17 @@ export function createRacers({
     elapsed += step;
     // All controls are sampled before anyone advances, so this one bounded
     // field view needs neither per-driver copies nor per-driver filter arrays.
-    nearby.length = opponents.length + (playerState ? 1 : 0);
-    opponents.forEach((opponent, index) => {
-      nearby[index] = opponent.state;
-    });
-    if (playerState) nearby[opponents.length] = playerPrevious ?? playerState;
+    nearby.length = 0;
+    for (const opponent of opponents)
+      if (!opponent.eliminated) nearby.push(opponent.state);
+    if (playerState) nearby.push(playerPrevious ?? playerState);
     const controls = opponents.map((opponent) =>
-      controlsFor(opponent, track, devices, nearby, difficulty),
+      opponent.eliminated
+        ? null
+        : controlsFor(opponent, track, devices, nearby, difficulty),
     );
     opponents.forEach((opponent) => {
-      opponent.prev = { ...opponent.state };
+      if (!opponent.eliminated) opponent.prev = { ...opponent.state };
     });
     return { step, controls, playerState, playerRace, playerPose };
   }
@@ -469,6 +479,7 @@ export function createRacers({
   ) {
     const events = [];
     opponents.forEach((opponent, index) => {
+      if (opponent.eliminated) return;
       const vehicleEvents = shared
         ? opponent.runtime.finishAdvance(opponent.state)
         : opponent.runtime.advance(opponent.state, controls[index], step);
@@ -490,7 +501,8 @@ export function createRacers({
         elapsed,
       );
       const wasFinished = !!opponent.finish;
-      if (!opponent.finish) opponent.finish = finishFrom(opponent.race);
+      if (!continuous && !opponent.finish)
+        opponent.finish = finishFrom(opponent.race);
       if (opponent.finish && !wasFinished)
         events.push({
           type: 'racer-complete',
@@ -510,7 +522,7 @@ export function createRacers({
   }
 
   function finishPlayerRace(playerRace, events) {
-    if (!playerFinish && playerRace) {
+    if (!continuous && !playerFinish && playerRace) {
       playerFinish = finishFrom(playerRace);
       if (playerFinish)
         events.push({
@@ -526,7 +538,12 @@ export function createRacers({
     if (staged) throw new Error('Racer advance is already staged');
     staged = prepareTick(dt, context);
     opponents.forEach((opponent, index) => {
-      opponent.runtime.beginAdvance(opponent.state, staged.controls[index], dt);
+      if (!opponent.eliminated)
+        opponent.runtime.beginAdvance(
+          opponent.state,
+          staged.controls[index],
+          dt,
+        );
     });
   }
 
@@ -569,12 +586,14 @@ export function createRacers({
       speed: state.speed,
       lap: Math.min(lapsRequired, completedLaps + 1),
       completedLaps,
-      progress: clamp(
-        displayDistance /
-          (sprint ? track.finishDistance : RACE_LAPS * track.length),
-        0,
-        1,
-      ),
+      progress: continuous
+        ? displayDistance / track.length
+        : clamp(
+            displayDistance /
+              (sprint ? track.finishDistance : RACE_LAPS * track.length),
+            0,
+            1,
+          ),
       lapTimes: finish
         ? [...finish.lapTimes]
         : race.history.slice(0, lapsRequired).map((lap) => lap.duration),
@@ -589,8 +608,8 @@ export function createRacers({
   }
 
   function snapshot({ playerState, playerRace, playerPose } = {}) {
-    const standings = opponents.map((opponent) =>
-      row(
+    const standings = opponents.map((opponent) => ({
+      ...row(
         opponent.specification.id,
         opponent.specification.name,
         opponent.state,
@@ -598,9 +617,11 @@ export function createRacers({
         opponent.finish,
         opponent.runtime.pose(1),
       ),
-    );
-    const currentFinish =
-      playerFinish ?? (playerRace ? finishFrom(playerRace) : null);
+      ...(continuous ? { eliminated: opponent.eliminated } : {}),
+    }));
+    const currentFinish = continuous
+      ? null
+      : (playerFinish ?? (playerRace ? finishFrom(playerRace) : null));
     if (playerState && playerRace)
       standings.push(
         row(
@@ -659,7 +680,7 @@ export function createRacers({
     return {
       enabled,
       difficulty,
-      laps: lapsRequired,
+      laps: continuous ? null : lapsRequired,
       courseFormat: course.format,
       elapsed,
       // First completed sprint, or the first two circuit laps, valid or invalid.
@@ -716,6 +737,7 @@ export function createRacers({
         runtime: opponent.runtime.snapshot(),
         finish: copy(opponent.finish),
         boostSeconds: opponent.boostSeconds,
+        ...(continuous ? { eliminated: opponent.eliminated } : {}),
       })),
     };
   }
@@ -760,6 +782,7 @@ export function createRacers({
       const opponent = opponents[index];
       if (
         saved.id !== opponent.specification.id ||
+        (continuous && typeof saved.eliminated !== 'boolean') ||
         saved.state?.shipId !== opponent.specification.shipId ||
         !saved.prev ||
         !saved.race ||
@@ -825,10 +848,37 @@ export function createRacers({
       opponent.state = copy(saved.state);
       opponent.prev = copy(saved.prev);
       Object.assign(opponent.race, copy(saved.race));
+      if (continuous) {
+        opponent.eliminated = saved.eliminated;
+        opponent.runtime.setEnabled?.(enabled && !opponent.eliminated);
+        // Restoring logical body state does not deactivate a live query actor.
+        // Reset the actor first, then restore the exact saved logical snapshot.
+        if (opponent.eliminated)
+          opponent.runtime.reset({
+            reason: 'eliminated',
+            state: opponent.state,
+          });
+      }
       opponent.runtime.restore(copy(saved.runtime));
       opponent.finish = copy(saved.finish);
       opponent.boostSeconds = saved.boostSeconds;
     });
+  }
+
+  function setEliminated(id) {
+    if (!continuous)
+      throw new Error('Only continuous event fields eliminate racers');
+    if (staged)
+      throw new Error('Finish the shared racer step before eliminating');
+    const opponent = opponents.find((entry) => entry.specification.id === id);
+    if (!opponent) throw new Error(`Unknown rival: ${id}`);
+    if (opponent.eliminated) return false;
+    opponent.eliminated = true;
+    opponent.runtime.setEnabled?.(false);
+    // Skipping a future stage alone leaves the previous physical actor moving.
+    // Runtime reset disables that actor until its next (now skipped) stage.
+    opponent.runtime.reset({ reason: 'eliminated', state: opponent.state });
+    return true;
   }
 
   return {
@@ -845,6 +895,7 @@ export function createRacers({
     snapshot,
     serialize,
     restore,
+    setEliminated,
     dispose() {
       if (disposed) return;
       disposed = true;

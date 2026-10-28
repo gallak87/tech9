@@ -29,6 +29,10 @@ export const RACE_SAMPLES = {
 
 export function raceSample(event) {
   switch (event?.type) {
+    case 'eliminator-cut':
+      return event.payload?.id === 'player'
+        ? null
+        : { id: 'race-finisher', gain: 0.35 };
     case 'cup-champion':
       return { id: 'cup-champion', gain: 0.85 };
     case 'lap':

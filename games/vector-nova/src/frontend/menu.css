@@ -1435,6 +1435,60 @@
   border-top: 1px solid #ffffff30;
   border-bottom: 1px solid #ffffff30;
 }
+.mode-picker [data-action='eliminator'] {
+  grid-column: 1/-1;
+  min-height: 30px;
+  padding-block: 5px;
+}
+.event-guide {
+  padding: 14px 0 6px;
+  max-width: 70ch;
+}
+.event-guide h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.event-guide p {
+  font-size: 12px;
+  line-height: 1.55;
+  color: #b7b7b7;
+  margin: 6px 0;
+}
+.event-guide b {
+  color: #e7d3c3;
+}
+@media (min-width: 900px) and (max-height: 800px) {
+  .menu-wide .race-menu {
+    padding-top: 0;
+  }
+  .menu-wide .mode-picker {
+    margin-bottom: 0;
+    gap: 3px;
+  }
+  .menu-wide .mode-picker button {
+    min-height: 32px;
+    padding-block: 6px;
+  }
+  .menu-wide .mode-picker [data-action='eliminator'] {
+    min-height: 24px;
+    padding-block: 3px;
+    font-size: 11px;
+  }
+  .menu-wide .menu-links {
+    margin-top: 0;
+  }
+  .menu-wide .menu-selection {
+    padding-block: 9px;
+  }
+  .event-guide {
+    padding-top: 9px;
+  }
+  .event-guide p {
+    font-size: 11px;
+    line-height: 1.45;
+  }
+}
 .records-empty h3 {
   font-size: 23px;
   font-weight: 600;

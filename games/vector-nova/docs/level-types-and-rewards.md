@@ -6,7 +6,7 @@ Design notes, 2026-10-24. This captures the connected directions under discussio
 
 Grow VECTOR//NOVA through new event rules, meaningful equipment choices and new routes in familiar worlds. Preserve fast anti-gravity racing, colossal environments, committed movement and readable courses.
 
-The current preference is **sidegrades and weapon expansion**, with **Eliminator, Carve and Escape as favored event candidates**. Assault comes later. Freestyle remains a developed candidate, with its slow tricks and demanding jump chains retained below. The next implementation task has not been chosen.
+The original preference was **sidegrades and weapon expansion**, with **Eliminator, Carve and Escape as favored event candidates**. On 2026-10-28, Eliminator was selected for a complete standalone event on a new map, **Crucible Foundry**, followed by an Interceptor exploration if time permits. Assault remains later. Freestyle's separate branch remains an unmerged experiment.
 
 Use these distinctions when planning:
 
@@ -26,13 +26,13 @@ An event type does not always require another course. A new course does not alwa
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | Circuit racing | Repeated corners, overtaking, combat and lap consistency.                                                                                 | Existing courses support new rules and loadout experiments.                                                                 | Main home for offensive, defensive and propulsion builds.                                 | Existing foundation.                                       |
 | Sprint racing  | Sustained descent, speed management and committed transfers.                                                                              | Existing worlds can supply new descending routes and destination landmarks.                                                 | Propulsion, reserve and recovery choices matter.                                          | Existing foundation.                                       |
-| Eliminator     | Stay ahead as the last racer is removed at successive cuts.                                                                               | First pilot on an existing circuit; environment production can stay small.                                                  | Immediate purpose for weapon and defensive sidegrades.                                    | Preferred early pilot.                                     |
+| Eliminator     | Stay ahead as the last racer is removed at successive cuts.                                                                               | Dedicated Crucible Foundry circuit using the industrial Worldkit assets.                                                    | Existing placement-based career progress; weapon and defensive builds remain useful.      | Standalone event on the development branch.                |
 | Carve          | Link deliberate slides through banks and sweeping bends, preserving speed and making clean exits.                                         | Prototype on an existing banked section; author a dedicated route only if the handling supports it.                         | Can award racing equipment; decide scored-build rules before upgrades affect records.     | Preferred early exploration.                               |
 | Escape         | Maintain pace ahead of a visible environmental threat and reach a clear destination.                                                      | A suitable sprint biome supplies infrastructure, scenery and effects; pressure and failure rules still need implementation. | Sustained boost and defensive choices may become useful if the event permits career gear. | Preferred after a small rules prototype.                   |
 | Freestyle      | Commit to slow aerial tricks, recover attitude and catch the receiving slope; five well-linked jumps should produce an outstanding score. | Shared biome art around purpose-built launch and receiving geometry.                                                        | Mastery can unlock weapons or modules useful in other races.                              | Retained candidate; currently behind the preferred pilots. |
 | Assault        | Race alongside or through a colossal machine, attacking readable exposed systems during openings.                                         | Industrial assemblies and existing weapons help; moving targets, encounter states and route changes add scope.              | Strong destination for a broader weapon collection.                                       | Later, after weapon expansion.                             |
 
-Interceptor (pursue and pressure an escaping target) and Redline (escalating speed with heat/boost management) remain parked ideas. They have no proposed production milestone yet.
+Interceptor (pursue and pressure an escaping target) is the next authorized exploration after Eliminator. Redline (escalating speed with heat/boost management) remains parked.
 
 ### Mechanical notes to retain
 
@@ -106,7 +106,7 @@ Use the [art bible](ART_BIBLE.md), [sound expansion guide](sounds/expansion.md) 
 - Include keyboard/controller navigation, pause/retry, clear success/failure, deterministic rules, compatible records/saves, and High/Low/reduced-motion behavior in the playable event. Follow existing verification instructions for the assigned scope.
 - Register generated assets and source prompts in [ASSET_MANIFEST.json](ASSET_MANIFEST.json). Refresh affected saved menu stills when course presentation changes.
 
-## Proposed implementation order
+## Original proposed implementation order
 
 Each step should yield a small playable result. This is a dependency order, with no dates or commitment to complete every branch.
 
@@ -129,3 +129,11 @@ The suggested smallest next package is **one weapon sidegrade plus Eliminator on
 - Championship identity and duration if a new series is actually warranted.
 
 These choices can be settled one pilot at a time; the matrix is intended to keep their relationships visible without turning every idea into an immediate task.
+
+## Eliminator / Crucible Foundry
+
+Crucible is a new 4.30 km industrial circuit, independent of Colossus Works. Wide banked racing lanes pass colossal heat exchangers, grounded factory halls and dispatch gantries using existing Worldkit industrial assets. Four broad Vector strips and alternating offensive/defensive lanes make position recoverable through driving and combat. There are no required jumps. The selected [concept and exact prompt](levels/crucible/provenance.json) guide the authored environment.
+
+Ten racers use ordinary shared physics and difficulty settings. After 22 seconds, the last active racer is removed; cuts then repeat every 10 seconds until the player is cut or becomes the sole survivor. The comparison uses actual unwrapped course progress, with stable grid-order ties. A cut removes the hull and combat participation, leaves a brief extraction trace and updates the edge countdown. It does not add destructive ship health. The player can pause, retry, use earned equipment and earn the normal placement-based career progress once per valid attempt. Existing cups keep their lineups and reward requirements. Manual recovery or invalid route credit cannot produce a ranked result.
+
+Interceptor is a separate pursuit objective rather than another elimination rule. Its proposed target is a large AI racing craft pursued by the player and a small armed squad; damage must come from actual shared weapon contacts, and target escape must be physical course progress.

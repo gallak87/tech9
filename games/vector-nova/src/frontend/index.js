@@ -1,4 +1,5 @@
 import { garageView, toggleGarageEquipment, navigateGarage } from './garage.js';
+import { eliminatorResultsView } from '../events/eliminator-view.js';
 import {
   createProfileStore,
   shipUnlocked,
@@ -139,7 +140,11 @@ export async function createFrontend(host) {
   }
   if (!catalog.some((level) => level.id === selected)) selected = catalog[0].id;
   let screen = 'home',
-    intent = 'race';
+    intent =
+      catalog.find((entry) => entry.id === selected)?.eventType ?? 'race';
+  let racingTrack = catalog.find((entry) => entry.id === selected)?.eventType
+    ? catalog.find((entry) => !entry.eventType).id
+    : selected;
   let sessionIntent = 'race',
     recordsBack = 'home',
     recordsFocus = null;
@@ -300,21 +305,23 @@ export async function createFrontend(host) {
   const ship = () => SHIPS.find((s) => s.id === (previewShipId ?? shipId));
   const isSprint = (id = selected) => route(id)?.closed === false;
   const sessionName = (id = selected, practice = intent === 'practice') =>
-    (
-      screen === 'results'
-        ? lastResults?.mode === 'time-trial'
-        : intent === 'time-trial'
-    )
-      ? 'Time Trial'
-      : intent === 'cup'
-        ? currentCup().name
-        : isSprint(id)
-          ? practice
-            ? 'Solo Descent'
-            : 'Downhill Sprint'
-          : practice
-            ? 'Practice'
-            : 'Quick Race';
+    catalog.find((entry) => entry.id === id)?.eventType === 'eliminator'
+      ? 'Eliminator'
+      : (
+            screen === 'results'
+              ? lastResults?.mode === 'time-trial'
+              : intent === 'time-trial'
+          )
+        ? 'Time Trial'
+        : intent === 'cup'
+          ? currentCup().name
+          : isSprint(id)
+            ? practice
+              ? 'Solo Descent'
+              : 'Downhill Sprint'
+            : practice
+              ? 'Practice'
+              : 'Quick Race';
   const loadedLevel = () => catalog.find((l) => l.id === loadedId) ?? level();
   const difficultyControls = () =>
     `<fieldset class="race-difficulty"><legend>Opponent difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${settings.difficulty === d}" tabindex="${settings.difficulty === d ? 0 : -1}">${d}</button>`).join('')}</fieldset>`;
@@ -460,17 +467,23 @@ export async function createFrontend(host) {
   };
   const circuitPanel = () => {
     const groups = new Map();
-    for (const track of circuits.toSorted(
-      (a, b) =>
-        TRACK_CHALLENGES.indexOf(trackChallenge(a.id)) -
-        TRACK_CHALLENGES.indexOf(trackChallenge(b.id)),
-    )) {
+    for (const track of circuits
+      .filter((entry) =>
+        intent === 'eliminator'
+          ? entry.eventType === 'eliminator'
+          : !entry.eventType,
+      )
+      .toSorted(
+        (a, b) =>
+          TRACK_CHALLENGES.indexOf(trackChallenge(a.id)) -
+          TRACK_CHALLENGES.indexOf(trackChallenge(b.id)),
+      )) {
       const challenge = trackChallenge(track.id);
       const group = challenge === 'Warm-up' ? 'Easy' : challenge;
       if (!groups.has(group)) groups.set(group, []);
       groups.get(group).push(track);
     }
-    return `<section class="circuit-picker-panel" aria-label="Choose a track"><div class="circuit-hero" aria-live="polite"></div><div class="circuit-grid" role="group" aria-label="Tracks">${[
+    return `<section class="circuit-picker-panel" aria-label="Choose a track"><div class="circuit-hero" aria-live="polite"></div>${intent === 'eliminator' ? '<aside class="event-guide"><h3>Stay ahead of the cut.</h3><p>Last place is removed after <b>22 seconds</b>, then every <b>10 seconds</b>. Watch the at-risk racer and survive to the final ship. Your equipped build and the course’s weapons are active.</p><p>Every valid result earns normal race progress. Cups keep their original lineups.</p></aside>' : ''}<div class="circuit-grid" role="group" aria-label="Tracks">${[
       ...groups,
     ]
       .map(
@@ -498,6 +511,7 @@ export async function createFrontend(host) {
       practice: 'Practice',
       'time-trial': 'Time Trial',
       cup: 'Championships',
+      eliminator: 'Eliminator',
     })[intent];
   const modePicker = () =>
     `<nav class="mode-picker" aria-label="Game mode">${[
@@ -505,6 +519,9 @@ export async function createFrontend(host) {
       ['cup-hub', 'cup', 'Championships'],
       ['time-trial', 'time-trial', 'Time Trial'],
       ['practice', 'practice', 'Practice'],
+      ...(catalog.some((entry) => entry.eventType === 'eliminator')
+        ? [['eliminator', 'eliminator', 'Eliminator']]
+        : []),
     ]
       .map(
         ([action, mode, label]) =>
@@ -512,13 +529,15 @@ export async function createFrontend(host) {
       )
       .join('')}</nav>`;
   const launchLabel = () =>
-    intent === 'time-trial'
-      ? 'Start Time Trial →'
-      : intent === 'practice'
-        ? 'Start Practice →'
-        : isSprint()
-          ? 'Start Sprint →'
-          : 'Start race →';
+    intent === 'eliminator'
+      ? 'Start Eliminator →'
+      : intent === 'time-trial'
+        ? 'Start Time Trial →'
+        : intent === 'practice'
+          ? 'Start Practice →'
+          : isSprint()
+            ? 'Start Sprint →'
+            : 'Start race →';
   const raceActions = () => {
     if (intent === 'cup') {
       const state = cupStore.snapshot().state;
@@ -531,17 +550,19 @@ export async function createFrontend(host) {
     }
     const description =
       intent === 'time-trial' ? 'Manual boost · No road devices' : '';
-    return `<div class="race-actions"><button class="primary" data-action="launch"><strong>${launchLabel()}</strong><small>${intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : 'Unlimited laps'}</small></button>${intent === 'race' ? difficultyControls() : ''}${description ? `<p class="mode-description">${description}</p>` : ''}</div>`;
+    return `<div class="race-actions"><button class="primary" data-action="launch"><strong>${launchLabel()}</strong><small>${intent === 'eliminator' ? '10 racers · last survivor' : intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : 'Unlimited laps'}</small></button>${['race', 'eliminator'].includes(intent) ? difficultyControls() : ''}${description ? `<p class="mode-description">${description}</p>` : ''}</div>`;
   };
   const sessionReturn = (includeCup = false) => {
     if (!game?.hasSession() || (sessionCup && !includeCup)) return '';
     const name = sessionCup
       ? 'Cup Race'
-      : sessionIntent === 'time-trial'
-        ? 'Time Trial'
-        : sessionIntent === 'practice'
-          ? 'Practice'
-          : 'Quick Race';
+      : sessionIntent === 'eliminator'
+        ? 'Eliminator'
+        : sessionIntent === 'time-trial'
+          ? 'Time Trial'
+          : sessionIntent === 'practice'
+            ? 'Practice'
+            : 'Quick Race';
     return `<aside class="session-return"><button data-action="resume-session"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4-5 5 5 5M4 9h10a6 6 0 0 1 0 12h-2"/></svg><span><strong>Resume ${name}</strong><small>${escape(loadedLevel().name)}</small></span></button></aside>`;
   };
   const homeMenu = () => {
@@ -756,6 +777,10 @@ export async function createFrontend(host) {
         `${currentCup().name} · ${currentCup()
           .tracks.map((id) => catalog.find((entry) => entry.id === id).name)
           .join(' → ')}`;
+    } else if (screen === 'results' && lastResults?.mode === 'eliminator') {
+      content.innerHTML = eliminatorResultsView(lastResults, {
+        courseName: loadedLevel().name,
+      });
     } else if (screen === 'results') {
       const sprint = isSprint(loadedId);
       const trial = lastResults?.mode === 'time-trial';
@@ -952,7 +977,7 @@ export async function createFrontend(host) {
   function updateResults(data) {
     if (!data) return;
     lastResults = data;
-    if (data.mode === 'time-trial') return;
+    if (['time-trial', 'eliminator'].includes(data.mode)) return;
     if (data.mode === 'cup') {
       if (cupCelebration && shell.querySelector('.cup-victory')) return;
       const key = JSON.stringify([
@@ -1101,6 +1126,14 @@ export async function createFrontend(host) {
         onCircuit(next) {
           leaveReview();
           selected = next;
+          const eventType = catalog.find(
+            (entry) => entry.id === next,
+          )?.eventType;
+          intent =
+            eventType ??
+            (['eliminator', 'interceptor'].includes(intent) ? 'race' : intent);
+          if (!eventType) racingTrack = next;
+          previewLevelId = next;
           remember();
           setScreen('circuits');
         },
@@ -1158,7 +1191,7 @@ export async function createFrontend(host) {
           } else if (
             data.mode !== 'cup' &&
             data.mode !== 'time-trial' &&
-            sessionIntent === 'race'
+            ['race', 'eliminator'].includes(sessionIntent)
           ) {
             const player = data.standings?.find((row) => row.id === 'player');
             earnedRewards.push(
@@ -1470,13 +1503,22 @@ export async function createFrontend(host) {
     }
   }
   function chooseMode(mode) {
+    if (mode === 'eliminator') {
+      if (!level()?.eventType) racingTrack = selected;
+      selected = catalog.find((entry) => entry.eventType === 'eliminator').id;
+    } else if (level()?.eventType) selected = racingTrack;
+    previewLevelId = selected;
     intent = mode;
+    remember();
     cupConfirm = null;
     if (!choosingSession()) game?.returnToSetup();
     setScreen('home');
     focusMenu(`[data-action="${mode === 'race' ? 'quick-race' : mode}"]`);
   }
   const actions = {
+    eliminator() {
+      chooseMode('eliminator');
+    },
     equipment() {
       openGarage(lockedCup()?.shipId ?? shipId);
     },
@@ -2090,7 +2132,7 @@ export async function createFrontend(host) {
       if (
         e.code === 'KeyR' &&
         screen === 'results' &&
-        lastResults?.mode === 'time-trial'
+        ['time-trial', 'eliminator'].includes(lastResults?.mode)
       ) {
         e.preventDefault();
         actions['retry-race']();

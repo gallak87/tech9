@@ -135,6 +135,15 @@
       "sourceRevision": "656960ff39206f1d8da43493cead22796fa5a7d3",
       "sourceDirty": true,
       "routeSignature": "465f763b58be5b17"
+    },
+    "crucible": {
+      "file": "crucible.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "3a72c844f1d09aee611a7ec71b0302c4b2d2677e",
+      "sourceDirty": true,
+      "routeSignature": "e9c5595dda27f4a2"
     }
   }
 }

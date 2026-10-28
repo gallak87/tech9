@@ -1,5 +1,7 @@
 # Verification tools
 
+`VN_URL=<worktree-server> node tools/eliminator-verify.mjs` checks the dedicated Eliminator flow in muted Chrome: native entry, starting camera, pause/controller controls, a physical 22-second loss, continuous real-racer cuts, retry/reset and one placement award per attempt. Response-only diagnostics accelerate the existing fixed-step session; they never enter production builds. Pure rules and active-actor removal regressions live in `src/events/eliminator.test.js` and `src/race/racers-events.test.js`.
+
 `VN_URL=<preview-url> node tools/mobile-graphics-verify.mjs` checks fresh phone Low defaults in portrait/landscape, race startup and driving-pad input in headless WebKit. It injects `WEBGL_lose_context` during real shader creation to verify one High-to-Low retry and a recoverable Low failure. Install the Playwright WebKit browser first; set `VN_BROWSER=chrome` for a Chrome regression or `VN_CHECK=<regex>` to select cases. It writes no artifacts. Emulation does not reproduce an iPhone's hardware memory limit; physical Safari verification remains separate.
 
 Run `npm test` for all circuits' numerical checks: magnetic handling, Nacre flight, devices, camera composition, track frames/clearance, replay, catalog loading and resource lifecycle. `npm run lint` checks source and formatting; `npm run build` produces the shared application.

@@ -73,7 +73,7 @@ Prioritize these milestones ahead of the remaining backlog. Build enough UI to p
 
 ## Future race modes and systems
 
-- [ ] **Event types, sidegrades and world reuse.** Use the [connected design notes](docs/level-types-and-rewards.md) for the event/reward matrix and proposed order: a small sidegrade batch with an Eliminator pilot, then Carve and Escape proofs; selected biome siblings and curated series follow successful pilots. Freestyle remains a candidate and Assault comes later. Next implementation is undecided; existing cups do not automatically expand with the catalogue.
+- [ ] **Event types, sidegrades and world reuse.** The standalone Eliminator event now has its own Crucible Foundry circuit on the event-development branch. Human playtests should tune cut pressure and combat balance before merging. Interceptor is the next authorized exploration; Carve, Escape, sidegrades and later Assault remain in the [connected design notes](docs/level-types-and-rewards.md). Existing cups do not automatically expand with the catalogue.
 - [ ] **Revisit or replace Magnetic Stabilizer.** Its four-second air-steering and sideways-drift assist currently feels too niche to justify an equipment slot outside occasional landing/recovery situations. Assess a more useful, distinct role during sidegrade playtests; rework or replace it if that role does not emerge. Preserve the stock controls and courses' stock-build completability.
 
 - [x] Full pickup coverage across all thirteen production maps: Vector, Aegis, Repulsor, Arc and Ion, with circuit-owned optional lanes, shield counterplay and jump/recovery clearance. Preserve independent per-racer collection, rival avoidance and deterministic combat/replay.

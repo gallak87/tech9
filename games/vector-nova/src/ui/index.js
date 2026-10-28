@@ -74,6 +74,10 @@ export function createUI(
     $('sprint-retry').onclick = actions.restart;
     $('sprint-home').onclick = actions.home;
   }
+  if (metadata.eventType === 'eliminator') {
+    $('restart').textContent = 'Retry Eliminator';
+    $('start').firstChild.textContent = 'START ELIMINATOR ';
+  }
   let casePicker = null;
   if (playtest?.cases?.length > 1) {
     casePicker = document.createElement('div');
@@ -884,7 +888,7 @@ export function createUI(
       }
       if (competition?.enabled) {
         for (const rival of competition.standings.filter(
-          (entry) => entry.id !== 'player',
+          (entry) => entry.id !== 'player' && !entry.eliminated,
         )) {
           const frame = track.sample(rival.distance);
           dot(

@@ -54,10 +54,12 @@ export async function createRacerPresentation({
     update({ alpha = 1, mode = 'title', settings = {} } = {}) {
       if (disposed) return;
       const enabled = racers.enabled;
-      const show = enabled && ['racing', 'paused', 'countdown'].includes(mode);
+      const showField =
+        enabled && ['racing', 'paused', 'countdown'].includes(mode);
       const combatState = combat?.view();
       const flashes = combatState?.flashes ?? [];
       for (const { ship, opponent, yaw, roll, hitFeedback, pickups } of ships) {
+        const show = showField && !opponent.eliminated;
         ship.group.visible = show;
         const effects = opponent.runtime.snapshot?.() ?? {};
         pickups.update({

@@ -1,5 +1,7 @@
 import { garageView, toggleGarageEquipment, navigateGarage } from './garage.js';
 import { TRICKS } from '../freestyle/rules.js';
+import { eliminatorResultsView } from '../events/eliminator-view.js';
+import { interceptorResultsView } from '../events/interceptor-view.js';
 import {
   createProfileStore,
   shipUnlocked,
@@ -139,9 +141,15 @@ export async function createFrontend(host) {
     }
   }
   if (!catalog.some((level) => level.id === selected)) selected = catalog[0].id;
+  const eventTypeFor = (id) => {
+    const entry = catalog.find((item) => item.id === id);
+    return entry?.freestyle ? 'freestyle' : entry?.eventType;
+  };
   let screen = 'home',
-    intent = selected === 'launchworks' ? 'freestyle' : 'race';
-  let racingTrack = selected === 'launchworks' ? 'halcyon' : selected;
+    intent = eventTypeFor(selected) ?? 'race';
+  let racingTrack = eventTypeFor(selected)
+    ? catalog.find((entry) => !entry.freestyle && !entry.eventType).id
+    : selected;
   let sessionIntent = 'race',
     recordsBack = 'home',
     recordsFocus = null;
@@ -302,28 +310,32 @@ export async function createFrontend(host) {
   const ship = () => SHIPS.find((s) => s.id === (previewShipId ?? shipId));
   const isSprint = (id = selected) => route(id)?.closed === false;
   const sessionName = (id = selected, practice = intent === 'practice') =>
-    id === 'launchworks'
+    eventTypeFor(id) === 'freestyle'
       ? 'Freestyle'
-      : (
-            screen === 'results'
-              ? lastResults?.mode === 'time-trial'
-              : intent === 'time-trial'
-          )
-        ? 'Time Trial'
-        : intent === 'cup'
-          ? currentCup().name
-          : isSprint(id)
-            ? practice
-              ? 'Solo Descent'
-              : 'Downhill Sprint'
-            : practice
-              ? 'Practice'
-              : 'Quick Race';
+      : catalog.find((entry) => entry.id === id)?.eventType === 'eliminator'
+        ? 'Eliminator'
+        : catalog.find((entry) => entry.id === id)?.eventType === 'interceptor'
+          ? 'Interceptor'
+          : (
+                screen === 'results'
+                  ? lastResults?.mode === 'time-trial'
+                  : intent === 'time-trial'
+              )
+            ? 'Time Trial'
+            : intent === 'cup'
+              ? currentCup().name
+              : isSprint(id)
+                ? practice
+                  ? 'Solo Descent'
+                  : 'Downhill Sprint'
+                : practice
+                  ? 'Practice'
+                  : 'Quick Race';
   const loadedLevel = () => catalog.find((l) => l.id === loadedId) ?? level();
   const difficultyControls = () =>
     `<fieldset class="race-difficulty"><legend>Opponent difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${settings.difficulty === d}" tabindex="${settings.difficulty === d ? 0 : -1}">${d}</button>`).join('')}</fieldset>`;
   const facts = () =>
-    `<span>${route() ? (route().length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'}</span> <span>${route()?.closed === false ? 'POINT TO POINT' : intent === 'practice' ? 'OPEN PRACTICE' : intent === 'time-trial' ? 'UNLIMITED LAPS' : '2 LAPS'}</span> <span>${!['race', 'cup'].includes(intent) ? 'SOLO' : `${RACE_FIELD_SIZE} PILOTS`}</span>`;
+    `<span>${route() ? (route().length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'}</span> <span>${intent === 'freestyle' ? '5 TRANSFERS' : intent === 'eliminator' ? 'SURVIVE THE CUT' : intent === 'interceptor' ? '2 CIRCUIT PURSUIT' : route()?.closed === false ? 'POINT TO POINT' : intent === 'practice' ? 'OPEN PRACTICE' : intent === 'time-trial' ? 'UNLIMITED LAPS' : '2 LAPS'}</span> <span>${intent === 'interceptor' ? '4 HUNTERS · 1 TARGET' : ['race', 'cup', 'eliminator'].includes(intent) ? `${RACE_FIELD_SIZE} PILOTS` : 'SOLO'}</span>`;
   function remember() {
     try {
       localStorage.setItem('vector-nova.circuit', selected);
@@ -465,7 +477,13 @@ export async function createFrontend(host) {
   const circuitPanel = () => {
     const groups = new Map();
     for (const track of circuits
-      .filter((entry) => Boolean(entry.freestyle) === (intent === 'freestyle'))
+      .filter(
+        (entry) =>
+          (eventTypeFor(entry.id) ?? 'race') ===
+          (['freestyle', 'eliminator', 'interceptor'].includes(intent)
+            ? intent
+            : 'race'),
+      )
       .toSorted(
         (a, b) =>
           TRACK_CHALLENGES.indexOf(trackChallenge(a.id)) -
@@ -479,7 +497,11 @@ export async function createFrontend(host) {
     const guide =
       intent === 'freestyle'
         ? `<aside class="freestyle-guide"><h3>Five transfers. Keep the chain.</h3><p>Ride the <b>Vector strips</b> into each launch. <b>Ctrl + W/S</b> flips · <b>Ctrl + A/D</b> rolls · <b>Ctrl + Q/E</b> spins. Combine directions, release or countersteer, then tap <b>Space</b> before touchdown. Arrows also work.</p><p class="freestyle-pad-guide">Pad: hold <b>X</b>, use the <b>left stick</b> to flip / roll and <b>right stick</b> to spin · <b>${controllerLayout(settings).airbrake}</b> catches.</p><p>Settle the hull into the mint receiving lane. Clean catches bank tricks, grow the multiplier and carry speed into the next launch. Stock builds · Separate records · Gold 27,000.</p></aside>`
-        : '';
+        : intent === 'eliminator'
+          ? '<aside class="event-guide"><h3>Stay ahead of the cut.</h3><p>Last place is removed after <b>22 seconds</b>, then every <b>10 seconds</b>. Watch the at-risk racer and survive to the final ship. Your equipped build and the course’s weapons are active.</p><p>Every valid result earns normal race progress. Cups keep their original lineups.</p></aside>'
+          : intent === 'interceptor'
+            ? '<aside class="event-guide"><h3>Bring down Goliath.</h3><p>You and <b>three allied racers</b> must disable the heavy courier before it completes <b>two circuits</b>. Aim by driving your ship. <b>Hold Q / X</b> to fire your issued Lance; <b>E / Y</b> refills boost reserve.</p><p>Stock hull · Issued weapons · Friendly fire off. Keep pace through the bends and use the Vector strips.</p></aside>'
+            : '';
     return `<section class="circuit-picker-panel" aria-label="Choose a track"><div class="circuit-hero" aria-live="polite"></div>${guide}<div class="circuit-grid" role="group" aria-label="Tracks">${[
       ...groups,
     ]
@@ -497,7 +519,7 @@ export async function createFrontend(host) {
       craft: ship(),
       selectedShip: shipId,
       lockedShip: lockedCup()?.shipId,
-      stock: intent === 'time-trial' || intent === 'freestyle',
+      stock: ['time-trial', 'freestyle', 'interceptor'].includes(intent),
       mode: modeName(),
       track: level().name,
       notice: garageNotice,
@@ -509,6 +531,8 @@ export async function createFrontend(host) {
       'time-trial': 'Time Trial',
       cup: 'Championships',
       freestyle: 'Freestyle',
+      eliminator: 'Eliminator',
+      interceptor: 'Interceptor',
     })[intent];
   const modePicker = () =>
     `<nav class="mode-picker" aria-label="Game mode">${[
@@ -519,6 +543,12 @@ export async function createFrontend(host) {
       ...(catalog.some((entry) => entry.freestyle)
         ? [['freestyle', 'freestyle', 'Freestyle · Pilot']]
         : []),
+      ...(catalog.some((entry) => entry.eventType === 'eliminator')
+        ? [['eliminator', 'eliminator', 'Eliminator']]
+        : []),
+      ...(catalog.some((entry) => entry.eventType === 'interceptor')
+        ? [['interceptor', 'interceptor', 'Interceptor']]
+        : []),
     ]
       .map(
         ([action, mode, label]) =>
@@ -528,13 +558,17 @@ export async function createFrontend(host) {
   const launchLabel = () =>
     intent === 'freestyle'
       ? 'Start Freestyle →'
-      : intent === 'time-trial'
-        ? 'Start Time Trial →'
-        : intent === 'practice'
-          ? 'Start Practice →'
-          : isSprint()
-            ? 'Start Sprint →'
-            : 'Start race →';
+      : intent === 'eliminator'
+        ? 'Start Eliminator →'
+        : intent === 'interceptor'
+          ? 'Start Interceptor →'
+          : intent === 'time-trial'
+            ? 'Start Time Trial →'
+            : intent === 'practice'
+              ? 'Start Practice →'
+              : isSprint()
+                ? 'Start Sprint →'
+                : 'Start race →';
   const raceActions = () => {
     if (intent === 'cup') {
       const state = cupStore.snapshot().state;
@@ -547,7 +581,7 @@ export async function createFrontend(host) {
     }
     const description =
       intent === 'time-trial' ? 'Manual boost · No road devices' : '';
-    return `<div class="race-actions"><button class="primary" data-action="launch"><strong>${launchLabel()}</strong><small>${intent === 'freestyle' ? '5 transfers · solo' : intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : 'Unlimited laps'}</small></button>${intent === 'race' ? difficultyControls() : ''}${description ? `<p class="mode-description">${description}</p>` : ''}</div>`;
+    return `<div class="race-actions"><button class="primary" data-action="launch"><strong>${launchLabel()}</strong><small>${intent === 'freestyle' ? '5 transfers · solo' : intent === 'interceptor' ? '3 allies · one target' : intent === 'eliminator' ? '10 racers · last survivor' : intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : 'Unlimited laps'}</small></button>${['race', 'eliminator', 'interceptor'].includes(intent) ? difficultyControls() : ''}${description ? `<p class="mode-description">${description}</p>` : ''}</div>`;
   };
   const sessionReturn = (includeCup = false) => {
     if (!game?.hasSession() || (sessionCup && !includeCup)) return '';
@@ -555,11 +589,15 @@ export async function createFrontend(host) {
       ? 'Cup Race'
       : sessionIntent === 'freestyle'
         ? 'Freestyle'
-        : sessionIntent === 'time-trial'
-          ? 'Time Trial'
-          : sessionIntent === 'practice'
-            ? 'Practice'
-            : 'Quick Race';
+        : sessionIntent === 'eliminator'
+          ? 'Eliminator'
+          : sessionIntent === 'interceptor'
+            ? 'Interceptor'
+            : sessionIntent === 'time-trial'
+              ? 'Time Trial'
+              : sessionIntent === 'practice'
+                ? 'Practice'
+                : 'Quick Race';
     return `<aside class="session-return"><button data-action="resume-session"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4-5 5 5 5M4 9h10a6 6 0 0 1 0 12h-2"/></svg><span><strong>Resume ${name}</strong><small>${escape(loadedLevel().name)}</small></span></button></aside>`;
   };
   const homeMenu = () => {
@@ -777,6 +815,14 @@ export async function createFrontend(host) {
     } else if (screen === 'results' && lastResults?.mode === 'freestyle') {
       const r = lastResults;
       content.innerHTML = `<section class="result-panel freestyle-results">${heading('FREESTYLE / ASTERION LAUNCHWORKS', r.playerValid ? `${r.medal}${r.improved ? ' · Personal best' : ''}` : 'Practice score · unranked')}<div class="fs-result-score">${r.score.toLocaleString()}</div><div class="fs-result-summary"><span><b>${r.bestChain}</b>best chain</span><span><b>${r.clean} / 5</b>clean catches</span><span><b>${r.best?.toLocaleString() ?? '—'}</b>personal best</span></div><ol aria-label="Transfer scores">${r.legs.map((leg, i) => `<li><b>TRANSFER ${i + 1}</b><span>${escape(leg.reason)}${leg.tricks.length ? ' · ' + leg.tricks.map((k) => TRICKS[k].name).join(' + ') : ''}</span><span>${leg.bank ? '+' : ''}${leg.bank.toLocaleString()}</span></li>`).join('')}</ol><p class="results-note">${r.playerValid ? (r.improved ? (r.saved ? 'Personal best saved on this device.' : 'Best retained for this session; storage unavailable.') : 'Personal best unchanged.') : 'An incomplete route or manual recovery invalidated this record. Retry from the start for a ranked score.'} Gold: 27,000 · Silver: 14,000 · Bronze: 4,500.</p><div class="front-actions results-actions">${button('retry-race', 'Retry Freestyle →', true)}${button('change', 'Back to setup')}</div></section>`;
+    } else if (screen === 'results' && lastResults?.mode === 'eliminator') {
+      content.innerHTML = eliminatorResultsView(lastResults, {
+        courseName: loadedLevel().name,
+      });
+    } else if (screen === 'results' && lastResults?.mode === 'interceptor') {
+      content.innerHTML = interceptorResultsView(lastResults, {
+        courseName: loadedLevel().name,
+      });
     } else if (screen === 'results') {
       const sprint = isSprint(loadedId);
       const trial = lastResults?.mode === 'time-trial';
@@ -974,7 +1020,12 @@ export async function createFrontend(host) {
   function updateResults(data) {
     if (!data) return;
     lastResults = data;
-    if (data.mode === 'time-trial' || data.mode === 'freestyle') return;
+    if (
+      ['time-trial', 'freestyle', 'eliminator', 'interceptor'].includes(
+        data.mode,
+      )
+    )
+      return;
     if (data.mode === 'cup') {
       if (cupCelebration && shell.querySelector('.cup-victory')) return;
       const key = JSON.stringify([
@@ -1123,6 +1174,14 @@ export async function createFrontend(host) {
         onCircuit(next) {
           leaveReview();
           selected = next;
+          const eventType = eventTypeFor(next);
+          intent =
+            eventType ??
+            (['freestyle', 'eliminator', 'interceptor'].includes(intent)
+              ? 'race'
+              : intent);
+          if (!eventType) racingTrack = next;
+          previewLevelId = next;
           remember();
           setScreen('circuits');
         },
@@ -1156,7 +1215,18 @@ export async function createFrontend(host) {
           if (sessionCup) cupStore.retry();
         },
         onResults(data) {
-          if (
+          if (data.mode === 'interceptor' && sessionIntent === 'interceptor') {
+            // The existing ledger awards five progress for mission success and
+            // one for a valid failed attempt; the UI never invents race places.
+            earnedRewards.push(
+              ...profileStore.recordRace({
+                id: sessionRewardId,
+                position: data.won ? 1 : 10,
+                valid: !!data.playerValid,
+                finished: true,
+              }),
+            );
+          } else if (
             data.mode === 'cup' &&
             sessionCup &&
             data.final &&
@@ -1180,7 +1250,7 @@ export async function createFrontend(host) {
           } else if (
             data.mode !== 'cup' &&
             data.mode !== 'time-trial' &&
-            sessionIntent === 'race'
+            ['race', 'eliminator'].includes(sessionIntent)
           ) {
             const player = data.standings?.find((row) => row.id === 'player');
             earnedRewards.push(
@@ -1370,7 +1440,7 @@ export async function createFrontend(host) {
       beginRewardAttempt();
       current.setBuild?.(
         sessionBuild(profile(), shipId, {
-          stock: intent === 'time-trial' || intent === 'freestyle',
+          stock: ['time-trial', 'freestyle', 'interceptor'].includes(intent),
         }),
       );
       setScreen('race');
@@ -1494,10 +1564,10 @@ export async function createFrontend(host) {
     }
   }
   function chooseMode(mode) {
-    if (mode === 'freestyle') {
-      if (selected !== 'launchworks') racingTrack = selected;
-      selected = 'launchworks';
-    } else if (selected === 'launchworks') selected = racingTrack;
+    if (['freestyle', 'eliminator', 'interceptor'].includes(mode)) {
+      if (!eventTypeFor(selected)) racingTrack = selected;
+      selected = catalog.find((entry) => eventTypeFor(entry.id) === mode).id;
+    } else if (eventTypeFor(selected)) selected = racingTrack;
     previewLevelId = selected;
     intent = mode;
     remember();
@@ -1507,6 +1577,12 @@ export async function createFrontend(host) {
     focusMenu(`[data-action="${mode === 'race' ? 'quick-race' : mode}"]`);
   }
   const actions = {
+    eliminator() {
+      chooseMode('eliminator');
+    },
+    interceptor() {
+      chooseMode('interceptor');
+    },
     equipment() {
       openGarage(lockedCup()?.shipId ?? shipId);
     },
@@ -1715,8 +1791,7 @@ export async function createFrontend(host) {
         selectCircuit(el.dataset.level);
       } else if (el.dataset.equip) {
         if (
-          intent === 'time-trial' ||
-          intent === 'freestyle' ||
+          ['time-trial', 'freestyle', 'interceptor'].includes(intent) ||
           (lockedCup() && lockedCup().shipId !== ship().id)
         )
           return;
@@ -2124,7 +2199,9 @@ export async function createFrontend(host) {
       if (
         e.code === 'KeyR' &&
         screen === 'results' &&
-        ['time-trial', 'freestyle'].includes(lastResults?.mode)
+        ['time-trial', 'freestyle', 'eliminator', 'interceptor'].includes(
+          lastResults?.mode,
+        )
       ) {
         e.preventDefault();
         actions['retry-race']();

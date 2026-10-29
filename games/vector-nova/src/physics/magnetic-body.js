@@ -4,7 +4,7 @@ import { vehicleHandling } from '../ships/catalog.js';
 import {
   COLLISION_HULLS_ID,
   getCollisionHull,
-} from '../ships/collision-hulls.js';
+} from '../ships/contact-hulls.js';
 import {
   getVehiclePace,
   STEERING_ASSIST,

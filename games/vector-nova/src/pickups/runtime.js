@@ -5,7 +5,7 @@ import {
   createMagneticRuntime,
   runtimeIdentity,
 } from '../core/session-runtime.js';
-import { isCombatDevice, COMBAT_RULES } from './combat.js';
+import { isCombatDevice, COMBAT_RULES, combatHitBounds } from './combat.js';
 import { createPickupSimulation, VECTOR_PROPULSION } from './simulation.js';
 
 // Compose devices around a circuit's actual simulation. Player and rivals use
@@ -19,10 +19,26 @@ export function createDeviceRuntime({
   scenarios = {},
   combat = null,
   combatId = 'player',
+  team,
+  hitBounds,
+  equipmentTuning = {},
+  beforeCombat,
 }) {
+  if (team != null && typeof team !== 'string')
+    throw new Error('Combat team must be a string');
+  if (beforeCombat !== undefined && typeof beforeCombat !== 'function')
+    throw new Error('Combat preparation must be a function');
+  const actorTeam = team?.trim() || null;
+  const actorBounds = combatHitBounds(hitBounds);
+  const tuning = structuredClone(equipmentTuning);
+  const actorIdentity = {
+    ...(actorTeam ? { team: actorTeam } : {}),
+    ...(actorBounds ? { hitBounds: actorBounds } : {}),
+    ...(Object.keys(tuning).length ? { equipmentTuning: tuning } : {}),
+  };
   const equipment =
     combatId === 'player'
-      ? createEquipmentSystem({ motion, combat, actorId: combatId })
+      ? createEquipmentSystem({ motion, combat, actorId: combatId, tuning })
       : null;
   const simulation = createPickupSimulation({
     trackLength: track.length,
@@ -78,6 +94,8 @@ export function createDeviceRuntime({
   function bindCombat(state) {
     if (!combat || !enabled) return;
     combat.bind(combatId, {
+      ...(actorTeam ? { team: actorTeam } : {}),
+      ...(actorBounds ? { hitBounds: actorBounds } : {}),
       state,
       pose: () => motion.pose(1),
       notify: (event) => pending.push(event),
@@ -163,10 +181,14 @@ export function createDeviceRuntime({
   };
   return {
     ...ownIdentity,
-    ...(combat
+    ...(combat || Object.keys(actorIdentity).length
       ? {
           rulesId:
-            ownIdentity.rulesId + ':combat:' + JSON.stringify(COMBAT_RULES),
+            ownIdentity.rulesId +
+            (combat ? ':combat:' + JSON.stringify(COMBAT_RULES) : '') +
+            (Object.keys(actorIdentity).length
+              ? ':actor:' + JSON.stringify(actorIdentity)
+              : ''),
         }
       : {}),
     ...(combat && combatId === 'player'
@@ -174,6 +196,7 @@ export function createDeviceRuntime({
           advanceInteractions(dt) {
             if (!enabled) return [];
             const start = pending.length;
+            beforeCombat?.(dt);
             combat.step(dt);
             return pending.slice(start);
           },

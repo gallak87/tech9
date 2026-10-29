@@ -144,6 +144,24 @@
       "sourceRevision": "dd4b5d5ddc53baa6e96d3a1d1b347bc8857225e2",
       "sourceDirty": true,
       "routeSignature": "755f6f868afaf354"
+    },
+    "crucible": {
+      "file": "crucible.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "3a72c844f1d09aee611a7ec71b0302c4b2d2677e",
+      "sourceDirty": true,
+      "routeSignature": "e9c5595dda27f4a2"
+    },
+    "interceptor": {
+      "file": "interceptor.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "2990d4f634e3db79f238937bbfc65509a4025f99",
+      "sourceDirty": true,
+      "routeSignature": "e9c5595dda27f4a2"
     }
   }
 }

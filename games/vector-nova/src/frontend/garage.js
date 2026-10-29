@@ -38,7 +38,9 @@ export function garageView({
     profile.claims.includes(`equipment-${item.id}`),
   );
   const hint = stock
-    ? 'Stock Time Trial · Equipment and enhancements are disabled.'
+    ? mode === 'Interceptor'
+      ? 'Stock hull · Lance and reserve injector are issued for this mission.'
+      : `Stock ${mode} · Equipment and enhancements are disabled.`
     : cupLocked
       ? 'Ship locked for this championship. Return to your championship ship to change equipment.'
       : '';

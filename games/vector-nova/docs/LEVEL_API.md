@@ -21,6 +21,10 @@ Unknown slugs, orphaned modules, invalid metadata and missing required factories
 
 ## Descriptor and owned components
 
+Dedicated event courses may declare metadata `eventType: 'eliminator'` and descriptor `event: {type:'eliminator', firstCut:22, interval:10}` with positive finite simulation-time durations. The frontend selects and filters the dedicated discipline; the shared session owns cuts and terminal results rather than treating them as timed circuit finishes. Ordinary courses omit these fields. Event courses remain independent of existing cup lineups.
+
+Interceptor uses `eventType:'interceptor'` and `event:{type:'interceptor',targetId:'goliath',health:240,escapeLaps:2}`. Its `racing.loadRival(id,{settings})` may return a source-authored NPC presentation with the ordinary `{group,update,dispose}` ownership contract. The mission supplies a versioned custom racer field and contact bounds; it does not enlarge the standard race roster. Optional combat bindings support `team` and `hitBounds:{half:[x,y,z],center:[x,y,z]}`. `equipmentTuning` can override an issued slot's cooldown and held-fire behavior within that runtime only; it participates in replay identity and never alters the equipment catalogue.
+
 The optional `audio` descriptor configures the shared audio owner. `audio.environment(context, bus)` may return a level-owned `{ trigger(event), stop(), dispose(), getPresentation?() }` voice component. The context is the existing, gesture-unlocked AudioContext and `bus` feeds the shared compressor/master gain. `trigger` receives session events only while running and audible; `stop` runs on pause, mute or environment reset, and `dispose` releases owned nodes before context closure. Reject unrelated event types locally. Keep sound synthesis and tuning in the selected level.
 
 Required descriptor fields:

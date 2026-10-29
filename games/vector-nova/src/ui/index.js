@@ -78,6 +78,14 @@ export function createUI(
     $('restart').textContent = 'Retry Freestyle';
     $('start').firstChild.textContent = 'START FREESTYLE ';
   }
+  if (metadata.eventType === 'eliminator') {
+    $('restart').textContent = 'Retry Eliminator';
+    $('start').firstChild.textContent = 'START ELIMINATOR ';
+  }
+  if (metadata.eventType === 'interceptor') {
+    $('restart').textContent = 'Retry Interceptor';
+    $('start').firstChild.textContent = 'START INTERCEPTOR ';
+  }
   let casePicker = null;
   if (playtest?.cases?.length > 1) {
     casePicker = document.createElement('div');
@@ -888,7 +896,7 @@ export function createUI(
       }
       if (competition?.enabled) {
         for (const rival of competition.standings.filter(
-          (entry) => entry.id !== 'player',
+          (entry) => entry.id !== 'player' && !entry.eliminated,
         )) {
           const frame = track.sample(rival.distance);
           dot(

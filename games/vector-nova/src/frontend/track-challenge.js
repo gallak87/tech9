@@ -18,6 +18,8 @@ const challenges = {
   nightweir: 'Medium',
   colossus: 'Hard',
   launchworks: 'Medium',
+  crucible: 'Medium',
+  interceptor: 'Medium',
 };
 
 export const trackChallenge = (id) =>

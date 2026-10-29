@@ -70,7 +70,7 @@ export function createEquipmentPresentation({ host, scene, activate }) {
               : `${Math.ceil(slot.remaining)}s`;
         button.style.setProperty(
           '--charge',
-          `${(1 - slot.remaining / item.cooldown) * 100}%`,
+          `${(1 - slot.remaining / (slot.cooldown ?? item.cooldown)) * 100}%`,
         );
       });
       effects.update({

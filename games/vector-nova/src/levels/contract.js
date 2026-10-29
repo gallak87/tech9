@@ -29,6 +29,11 @@ export function validateMetadata(metadata, id = metadata?.id) {
       typeof metadata.ui[field] !== 'string'
     )
       throw new Error(`Invalid circuit text: ${id}.${field}`);
+  if (
+    metadata.eventType !== undefined &&
+    !['eliminator', 'interceptor'].includes(metadata.eventType)
+  )
+    throw new Error(`Invalid circuit event: ${id}`);
   for (const flag of [
     'compact',
     'stackedReview',
@@ -66,6 +71,21 @@ export function validateMetadata(metadata, id = metadata?.id) {
 }
 
 export function validateDefinition(definition, id = 'circuit') {
+  if (
+    definition.event !== undefined &&
+    (!definition.event ||
+      !['eliminator', 'interceptor'].includes(definition.event.type) ||
+      (definition.event.type === 'eliminator' &&
+        ![definition.event.firstCut, definition.event.interval].every(
+          (value) => Number.isFinite(value) && value > 0,
+        )) ||
+      (definition.event.type === 'interceptor' &&
+        (definition.event.targetId !== 'goliath' ||
+          ![definition.event.health, definition.event.escapeLaps].every(
+            (value) => Number.isFinite(value) && value > 0,
+          ))))
+  )
+    throw new Error(`Invalid ${id}.event`);
   for (const name of [
     'createTrack',
     'createRoad',
@@ -103,6 +123,11 @@ export function validateDefinition(definition, id = 'circuit') {
   )
     throw new Error(`Invalid ${id}.audio.immersion`);
   if (definition.racing !== undefined) {
+    if (
+      definition.racing?.loadRival !== undefined &&
+      typeof definition.racing.loadRival !== 'function'
+    )
+      throw new Error(`Invalid ${id}.racing.loadRival`);
     if (
       !definition.racing ||
       typeof definition.racing.createDevices !== 'function'

@@ -29,6 +29,13 @@ function finiteVector(value, name) {
     throw new Error(`Rapier requires a finite ${name}.`);
   return vector(value);
 }
+function finiteMovementLimit(value) {
+  if (value == null) return null;
+  const normal = finiteVector(value.normal, 'movement-limit normal');
+  if (Math.abs(normal.lengthSq() - 1) > 1e-6 || !Number.isFinite(value.offset))
+    throw new Error('Movement limits need a unit normal and finite offset.');
+  return { normal, offset: value.offset };
+}
 function finitePose(pose) {
   const position = finiteVector(pose?.position, 'position');
   const q = pose?.quaternion;
@@ -366,6 +373,19 @@ export async function createRapierWorld({
       a.velocity.addScaledVector(n, -a.velocity.dot(n));
       a.angularVelocity.copy(n.multiplyScalar(a.angularVelocity.dot(n)));
     }
+    if (a.movementLimit) {
+      const { normal, offset } = a.movementLimit;
+      const allowed = Math.max(0, offset - a.position.dot(normal)) / dt;
+      const excess = a.motion.dot(normal) - allowed;
+      if (excess > 0) {
+        // Constrain proposed translation before scene/pair sweeps. This is a
+        // non-impact speed envelope: no contact pulse, bounce or hidden speed.
+        a.motion.addScaledVector(normal, -excess);
+        const velocityExcess = a.velocity.dot(normal) - allowed;
+        if (velocityExcess > 0)
+          a.velocity.addScaledVector(normal, -velocityExcess);
+      }
+    }
     a.angle = a.quaternion.angleTo(a.endRotation);
     const delta = a.endRotation.clone().multiply(a.quaternion.clone().invert());
     if (delta.w < 0) delta.set(-delta.x, -delta.y, -delta.z, -delta.w);
@@ -510,6 +530,12 @@ export async function createRapierWorld({
     return refine(a, b, null, dt);
   }
   function shift(a, delta) {
+    if (a.movementLimit) {
+      const { normal, offset } = a.movementLimit;
+      const excess =
+        delta.dot(normal) - Math.max(0, offset - a.position.dot(normal));
+      if (excess > 0) delta.addScaledVector(normal, -excess);
+    }
     if (delta.lengthSq() < 1e-14) return;
     let hit = null;
     a.proxy.setTranslation(a.position);
@@ -734,6 +760,7 @@ export async function createRapierWorld({
       acceleration: zero(),
       angularAcceleration: zero(),
       support: null,
+      movementLimit: null,
       contacts: [],
       active: false,
     });
@@ -769,6 +796,7 @@ export async function createRapierWorld({
       mass = 1,
       contactSpeedLimit = null,
       selfContactSpeedLimit = null,
+      movementLimitId = null,
       hazard = false,
     } = {}) {
       alive();
@@ -788,8 +816,16 @@ export async function createRapierWorld({
         )
       )
         throw new Error('Contact speed limit must be positive.');
+      if (
+        movementLimitId !== null &&
+        (typeof movementLimitId !== 'string' ||
+          !movementLimitId ||
+          movementLimitId.length > 160)
+      )
+        throw new Error('Movement-limit actors need a bounded rules identity.');
       const a = {
         id,
+        movementLimitId,
         mass,
         hazard: Boolean(hazard),
         contactSpeedLimit,
@@ -842,6 +878,7 @@ export async function createRapierWorld({
           support,
           acceleration,
           angularAcceleration,
+          movementLimit,
           fraction = 1,
         } = {}) {
           valid();
@@ -849,6 +886,11 @@ export async function createRapierWorld({
             throw new Error(
               'Interacting actors must share the complete world step.',
             );
+          if (movementLimit !== undefined) {
+            if (movementLimit !== null && !a.movementLimitId)
+              throw new Error('Movement limit requires an opted-in actor.');
+            a.movementLimit = finiteMovementLimit(movementLimit);
+          }
           if (pose) setPose(pose);
           if (velocity !== undefined) setVelocity(velocity, angularVelocity);
           else if (angularVelocity !== undefined)
@@ -956,6 +998,12 @@ export async function createRapierWorld({
               : {}),
             hull: a.hull,
             contactShape: a.contactShape,
+            ...(a.movementLimitId
+              ? {
+                  movementLimitId: a.movementLimitId,
+                  movementLimit: a.movementLimit,
+                }
+              : {}),
             ...copyPose(a),
             quaternion: encodeQ(a.quaternion),
             velocity: a.velocity,
@@ -986,6 +1034,8 @@ export async function createRapierWorld({
             !sameShape(a.contactShape, actors.get(a.id).contactShape) ||
             typeof a.active !== 'boolean' ||
             actors.get(a.id).mass !== a.mass ||
+            actors.get(a.id).movementLimitId !== (a.movementLimitId ?? null) ||
+            (a.movementLimit != null && !actors.get(a.id).movementLimitId) ||
             actors.get(a.id).hazard !== Boolean(a.hazard) ||
             actors.get(a.id).contactSpeedLimit !==
               (a.contactSpeedLimit ?? null) ||
@@ -998,6 +1048,7 @@ export async function createRapierWorld({
       const next = data.actors.map((a) => ({
         ...a,
         selfContactSpeedLimit: a.selfContactSpeedLimit ?? null,
+        movementLimit: finiteMovementLimit(a.movementLimit),
         ...finitePose(a),
         velocity: finiteVector(a.velocity, 'velocity'),
         angularVelocity: finiteVector(a.angularVelocity, 'angular velocity'),

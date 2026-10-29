@@ -230,6 +230,7 @@ export function createMagneticBody({
     return { position, quaternion };
   }
   function support(state, options = {}, dt = 0) {
+    const supportHull = dynamics.supportHull ?? hull;
     const f = magneticFrame(track, state.distance, state.lateral, sampleRoad);
     const solved = initialized ? actor.read() : null;
     const actual = solved?.quaternion ?? f.quaternion;
@@ -244,19 +245,20 @@ export function createMagneticBody({
     const vertices =
       solved?.contactShape?.vertices ??
       getCollisionHull(state.chassisId ?? state.shipId).vertices;
-    let height = hull.hover + surfaceHullClearance(f.surface, state.heading);
+    let height =
+      supportHull.hover + surfaceHullClearance(f.surface, state.heading);
     // Whole-hull road clearance belongs to ordinary support, independent of
     // the decorative landing animation.
     const axes = hullAxes(aligned);
     const roadOwners = new Set(f.surface?.roadOwners ?? []);
     const travel =
       solved?.velocity.clone().multiplyScalar(dt) ?? new T.Vector3();
-    for (const x of [-hull.halfWidth, hull.halfWidth]) {
-      for (const z of [-hull.halfLength, hull.halfLength]) {
+    for (const x of [-supportHull.halfWidth, supportHull.halfWidth]) {
+      for (const z of [-supportHull.halfLength, supportHull.halfLength]) {
         const offset = axes[0]
           .clone()
           .multiplyScalar(x)
-          .addScaledVector(axes[1], -hull.hover)
+          .addScaledVector(axes[1], -supportHull.hover)
           .addScaledVector(axes[2], z)
           .add(travel);
         const along = offset.dot(f.tangent) / (f.longitudinalMetric ?? 1);
@@ -317,7 +319,9 @@ export function createMagneticBody({
             : T.MathUtils.euclideanModulo(state.distance, track.length),
         length: track.closed === false ? 0 : track.length,
         reach:
-          Math.hypot(hull.halfWidth, hull.halfLength) + travel.length() + 2,
+          Math.hypot(supportHull.halfWidth, supportHull.halfLength) +
+          travel.length() +
+          2,
         owners: [...roadOwners],
       },
     };

@@ -764,9 +764,15 @@ export async function createLockdownEnvironment({
       for (let bay = 0; bay < 8; bay++)
         pane(hall, 8, 4, [(-3.5 + bay) * 12, h + 13, -7], amber);
     }
-    // Real retaining piers root the running surface where it crosses the gorge.
+    // Grounded piers reach the raised route. The inverted reach is carried by
+    // its continuous bridge girder, leaving the driving envelope unobstructed.
     for (let distance = 25; distance < track.length; distance += 84) {
-      const f = layout.streetFrame(distance, 1);
+      if (track.sample(distance).up.y < 0.5) continue;
+      const groundFrame = layout.streetFrame(distance, 1),
+        f = {
+          ...groundFrame,
+          position: track.sample(distance).position,
+        };
       for (const side of [-1, 1]) {
         const p = f.position.clone().addScaledVector(f.out, side * 27),
           ground = layout.terrainHeight(p.x, p.z),
@@ -780,7 +786,7 @@ export async function createLockdownEnvironment({
     // The municipal street crosses the course, not along it: a full spandrel
     // carries the upper street and a rooted control wing seats against one pier.
     for (const fraction of [0.12, 0.73]) {
-      const f = track.sample(track.length * fraction),
+      const f = (track.groundSample ?? track.sample)(track.length * fraction),
         right = new T.Vector3(f.right.x, 0, f.right.z).normalize(),
         forward = new T.Vector3().crossVectors(right, WORLD_UP).normalize();
       const quaternion = new T.Quaternion().setFromRotationMatrix(
@@ -879,7 +885,7 @@ export async function createLockdownEnvironment({
     // abutments and a generating gallery are composed beside the racing view.
     const hydro = layout.hydro;
     const hframe = (distance) => {
-      const f = track.sample(distance),
+      const f = (track.groundSample ?? track.sample)(distance),
         right = new T.Vector3(f.right.x, 0, f.right.z).normalize(),
         forward = new T.Vector3().crossVectors(right, WORLD_UP).normalize();
       return {

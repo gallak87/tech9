@@ -11,7 +11,7 @@ export function createInterceptorDevices(track, options) {
     ? Math.max(1, Math.ceil((track.length - 360) / 250))
     : 16;
   const plan = [
-    ...support.filter((device) => ['vector', 'aegis'].includes(device.type)),
+    ...support.filter((device) => device.type === 'aegis'),
     ...Array.from({ length: count }, (_, index) => ({
       id: `${options?.prefix ?? 'dispatch'}-attack-${index + 1}`,
       type: index % 4 === 3 ? 'repulsor' : 'arc',
@@ -22,8 +22,9 @@ export function createInterceptorDevices(track, options) {
       label: index % 4 === 3 ? 'Close-range pulse' : 'Forward burst',
     })),
   ];
-  // Existing Dispatch replays retain their original layout ordering. Sibling
-  // courses use distance order for the shared driver's pickup look-ahead.
+  // Keep authored attack order on Dispatch. Sibling courses use distance order
+  // for the shared driver's pickup look-ahead. Pursuits omit induction strips;
+  // closing the gap uses the pilot's manual boost and issued Reserve Injector.
   return createDeviceLayout(
     track,
     options ? plan.toSorted((a, b) => a.distance - b.distance) : plan,

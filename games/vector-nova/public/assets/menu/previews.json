@@ -159,16 +159,16 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "58dc4126e39b1a606ee19d5d3470ad71f5a7690a",
+      "sourceRevision": "7a9256f249809145f66aaeb1e2fbbf7a5b80d931",
       "sourceDirty": true,
-      "routeSignature": "e9c5595dda27f4a2"
+      "routeSignature": "f8cc38fa9e1c7492"
     },
     "interceptor-helion": {
       "file": "interceptor-helion.webp",
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "58dc4126e39b1a606ee19d5d3470ad71f5a7690a",
+      "sourceRevision": "7a9256f249809145f66aaeb1e2fbbf7a5b80d931",
       "sourceDirty": true,
       "routeSignature": "718653a5c9f7ca2a"
     },
@@ -177,9 +177,9 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "58dc4126e39b1a606ee19d5d3470ad71f5a7690a",
+      "sourceRevision": "7a9256f249809145f66aaeb1e2fbbf7a5b80d931",
       "sourceDirty": true,
-      "routeSignature": "3152c784023c7879"
+      "routeSignature": "6714b13d3b3cdec1"
     }
   }
 }

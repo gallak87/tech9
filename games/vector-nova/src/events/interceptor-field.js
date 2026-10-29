@@ -134,7 +134,7 @@ export function createInterceptorField({
     (value, index) => (value + hull.bounds.min[index]) / 2,
   );
   return {
-    id: `interceptor-squad-v3:${boss.id}:${boss.cruiseKph}:${hull.hullSha256}${pursuitIdentity(path)}`,
+    id: `interceptor-squad-v4:${boss.id}:${boss.cruiseKph}:${hull.hullSha256}${pursuitIdentity(path)}`,
     opponents: [
       {
         id: boss.id,
@@ -194,7 +194,9 @@ export function createInterceptorField({
           lane: line.lane,
           pace: 1,
           difficulty: 'hard',
-          nearby,
+          // Hunters are pursuers, never traffic that the quarry yields to.
+          // Real hull queries still resolve contact with every actor.
+          nearby: [],
           runtime: opponent.runtime,
         });
         const velocity = opponent.runtime?.pose(1)?.velocity;

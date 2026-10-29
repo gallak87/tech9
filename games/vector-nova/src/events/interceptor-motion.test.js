@@ -73,10 +73,10 @@ test('courier facing rotates the actual contact hull and fires real projectiles 
   );
   try {
     assert.equal(runtime.id, 'interceptor-magnetic');
-    assert.equal(runtime.version, 3);
+    assert.equal(runtime.version, 4);
     assert.equal(
       runtime.rulesId,
-      `${BASELINE_RULES}:${MAGNETIC_BODY_RULES}:${dynamics.rulesId}:courier-facing-v3-driving-axis:self-contact-100:other-contact-180`,
+      `${BASELINE_RULES}:${MAGNETIC_BODY_RULES}:${dynamics.rulesId}:courier-facing-v3-driving-axis:self-contact-100:other-contact-180:boss-support-footprint-v1`,
     );
     runtime.reset({ state });
     for (let i = 0; i < 3 * 120; i++) step(runtime, state);
@@ -455,7 +455,7 @@ test('a course-composed boss retains real furnace heat, cooling, reversed contac
     assert.ok(f.runtime.rulesId.includes('helion-thermal-flight-v4:'));
     assert.ok(
       f.runtime.rulesId.endsWith(
-        'courier-facing-v3-driving-axis:self-contact-100:other-contact-180',
+        'courier-facing-v3-driving-axis:self-contact-100:other-contact-180:boss-support-footprint-v1',
       ),
     );
     for (let i = 0; i < 400; i++) f.step();

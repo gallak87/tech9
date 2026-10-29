@@ -1,4 +1,9 @@
 import * as T from 'three';
+import {
+  createPursuitRoute,
+  envelope,
+  smooth,
+} from '../../interceptor/track/pursuit-route.js';
 
 const TARGET_LENGTH = 4700,
   WIDTH = 44;
@@ -6,7 +11,7 @@ const wrap = (s, length) => T.MathUtils.euclideanModulo(s, length);
 
 // Mission-local closed streets. This does not adapt/close the original 13.6km
 // Nightweir descent or its jump corridors: all geometry is newly authored.
-export function createNightweirLockdownTrack() {
+function createBasinPlan() {
   const source = [
     [0, 120, 0],
     [80, 126, 290],
@@ -113,5 +118,24 @@ export function createNightweirLockdownTrack() {
         ]),
       ),
     },
+  };
+}
+
+// The outboard generating reach rises clear of the occupied basin before a
+// complete connected corkscrew. Its far side plunges back to the tailrace;
+// the original reservoir and return-water districts retain their footprint.
+export function createNightweirLockdownTrack() {
+  const track = createPursuitRoute(createBasinPlan(), {
+    heightAt: (f) => 140 * envelope(f, 0.365, 0.445, 0.61, 0.745),
+    rollAt: (f) => Math.PI * 2 * smooth((f - 0.43) / 0.22),
+    moments: [
+      { id: 'generating-corkscrew', type: 'corkscrew', start: 0.43, end: 0.65 },
+      { id: 'tailrace-plunge', type: 'drop', start: 0.61, end: 0.745 },
+    ],
+  });
+  return {
+    ...track,
+    id: 'nightweir-lockdown-pursuit-v2',
+    geometryVersion: 'nightweir-basin-corkscrew-plunge-v2',
   };
 }

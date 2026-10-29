@@ -2,27 +2,31 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const base = process.env.VN_URL ?? 'http://127.0.0.1:5213';
+const difficulty = process.env.VN_DIFFICULTY ?? 'easy';
+assert.ok(['easy', 'medium', 'hard'].includes(difficulty));
+const selectedBosses = process.env.VN_BOSSES?.split(',');
+const closeBoost = process.env.VN_CLOSE_BOOST === '1';
 const encounters = [
   {
     level: 'interceptor',
     boss: 'goliath',
     name: 'Goliath',
     kind: 'lance',
-    progress: 0.25,
+    progress: 1.3,
   },
   {
     level: 'interceptor-helion',
     boss: 'wraith',
     name: 'Wraith',
     kind: 'arc',
-    progress: 0.65,
+    progress: 1.35,
   },
   {
     level: 'interceptor-nightweir',
     boss: 'bulwark',
     name: 'Bulwark',
-    kind: 'ion',
-    progress: 0.65,
+    kind: 'lance',
+    progress: 1.3,
   },
 ];
 const browser = await chromium.launch({
@@ -33,29 +37,33 @@ const browser = await chromium.launch({
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const faults = [];
 page.on('pageerror', (error) => faults.push(error.stack ?? error.message));
-await page.addInitScript(() => {
-  localStorage.setItem(
-    'vector-nova.settings',
-    JSON.stringify({
-      quality: 'low',
-      volume: 0,
-      reducedMotion: true,
-      difficulty: 'easy',
-    }),
-  );
-  window.__variantPad = {
-    id: 'variant-controller',
-    index: 0,
-    connected: false,
-    mapping: 'standard',
-    axes: [0, 0, 0, 0],
-    buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })),
-  };
-  Object.defineProperty(navigator, 'getGamepads', {
-    configurable: true,
-    value: () => [window.__variantPad],
-  });
-});
+await page.addInitScript(
+  ({ difficulty, closeBoost }) => {
+    localStorage.setItem(
+      'vector-nova.settings',
+      JSON.stringify({
+        quality: 'low',
+        volume: 0,
+        reducedMotion: true,
+        difficulty,
+      }),
+    );
+    window.__variantCloseBoost = closeBoost;
+    window.__variantPad = {
+      id: 'variant-controller',
+      index: 0,
+      connected: false,
+      mapping: 'standard',
+      axes: [0, 0, 0, 0],
+      buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })),
+    };
+    Object.defineProperty(navigator, 'getGamepads', {
+      configurable: true,
+      value: () => [window.__variantPad],
+    });
+  },
+  { difficulty, closeBoost },
+);
 
 // Test-only response instrumentation advances ordinary controls through the
 // actual session and observes real physics/combat. It supplies no result state.
@@ -75,12 +83,15 @@ await page.route('**/src/core/game.js*', async (route) => {
       `
     stepVariant(ticks) {
       cancelCountdown();mode='racing';ui.setMode(mode);
-      const audit = window.__variantAudit ??= {maxSpeed:0,maxStep:0,maxRouteStep:0,maxHeight:0,maxSupportedHeight:0,airborneTicks:0,invalidAirborneTicks:0,flightIds:[],maxHeat:0,coolingTicks:0,cooledOnStrip:false,maxLateral:0,phases:[],shots:[],wakes:0,maxWeave:0};
+      const audit = window.__variantAudit ??= {maxSpeed:0,maxStep:0,maxRouteStep:0,maxHeight:0,maxSupportedHeight:0,airborneTicks:0,invalidAirborneTicks:0,flightIds:[],maxHeat:0,coolingTicks:0,cooledOnStrip:false,maxLateral:0,phases:[],shots:[],wakes:0,maxWeave:0,attackLaps:{},minGap:Infinity,closeBoostTicks:0};
       const shotIds = window.__variantShotIds ??= new Set();
       for(let i=0;i<Math.min(ticks,1200)&&mode==='racing';i++) {
         advanceTick(window.__variantPilot({state:{...state},track,racers,devices,runtime}));
         const target = racers.opponents.find(opponent=>opponent.specification.id===missionBoss.id);
         const physical = target.runtime.pose(1), frame = track.sample(target.state.distance), error = physical.position.clone().sub(frame.position);
+        const chaseGap=target.state.distance-state.distance;
+        audit.minGap=Math.min(audit.minGap,chaseGap);
+        if(chaseGap<90&&state.boosting)audit.closeBoostTicks++;
         audit.maxSpeed = Math.max(audit.maxSpeed,physical.velocity?.length()??Math.abs(target.state.speed));
         audit.maxHeight = Math.max(audit.maxHeight,Math.abs(error.dot(frame.up)));
         const movement = target.runtime.snapshot().motion;
@@ -108,12 +119,25 @@ await page.route('**/src/core/game.js*', async (route) => {
         const attack = interceptor.snapshot().counterattack;
         if(attack.warning) {
           if(!audit.phases.includes(attack.phase))audit.phases.push(attack.phase);
-          if(attack.phase==='firing')audit.maxWeave=Math.max(audit.maxWeave,Math.abs(target.state.lateral));
+          const lap=audit.attackLaps[attack.lap]??={warningTicks:0,firingTicks:0,backwardTicks:0,minHullDot:1,warningVisible:false};
+          lap.warningTicks++;
+          if(!lap.warningVisible) {
+            eventPresentation.update({mode,settings,interceptor:missionSnapshot()});
+            const warning=host.querySelector('.ic-counterattack');
+            lap.warningVisible=!!warning&&!warning.hidden&&warning.getBoundingClientRect().height>0&&/CHARGING|TURNING|VOLLEY/.test(warning.textContent);
+          }
+          if(attack.phase==='firing') {
+            audit.maxWeave=Math.max(audit.maxWeave,Math.abs(target.state.lateral));
+            lap.firingTicks++;
+            const hullDot=new T.Vector3(0,0,1).applyQuaternion(physical.quaternion).dot(frame.tangent);
+            lap.minHullDot=Math.min(lap.minHullDot,hullDot);
+            if(hullDot<-.9)lap.backwardTicks++;
+          }
         }
         const active = combat.view();
         for(const shot of active.shots)if(shot.source===missionBoss.id&&!shotIds.has(shot.id)) {
           shotIds.add(shot.id);
-          audit.shots.push({heavy:!!shot.heavy,forwardDot:new T.Vector3(0,0,1).applyQuaternion(new T.Quaternion().fromArray(shot.quaternion)).dot(frame.tangent),velocityDot:new T.Vector3().fromArray(shot.velocity).dot(frame.tangent)});
+          audit.shots.push({lap:attack.lap,heavy:!!shot.heavy,forwardDot:new T.Vector3(0,0,1).applyQuaternion(new T.Quaternion().fromArray(shot.quaternion)).dot(frame.tangent),velocityDot:new T.Vector3().fromArray(shot.velocity).dot(frame.tangent)});
         }
         audit.wakes=Math.max(audit.wakes,active.wakes.filter(wake=>wake.source===missionBoss.id).length);
       }
@@ -164,9 +188,20 @@ async function installPilot() {
         pace: 1,
         lane: target.lateral,
         devices,
-        nearby: [state, ...racers.opponents.map((opponent) => opponent.state)],
+        nearby: window.__variantCloseBoost
+          ? []
+          : [state, ...racers.opponents.map((opponent) => opponent.state)],
         runtime,
       });
+      if (window.__variantCloseBoost) {
+        input.throttle = 1;
+        input.brake = 0;
+        input.boost = true;
+        input.equipment1 =
+          state.time > 2 && state.time < 5 && gap > 25 && gap < 440;
+        input.equipment2 = state.energy < 35;
+        return input;
+      }
       const followSpeed =
         target.speed + Math.max(-30, Math.min(40, (gap - 100) * 0.5));
       if (gap < 145) {
@@ -181,7 +216,7 @@ async function installPilot() {
       }
       input.boost &&= gap > 145 && state.energy > (state.boosting ? 12 : 25);
       input.equipment1 =
-        state.time > 2 && state.time < 5 && gap > 35 && gap < 440;
+        state.time > 2 && state.time < 5 && gap > 25 && gap < 440;
       input.equipment2 = state.energy < 35;
       return input;
     };
@@ -279,6 +314,7 @@ try {
   );
 
   for (const encounter of encounters) {
+    if (selectedBosses && !selectedBosses.includes(encounter.boss)) continue;
     await press('[data-level="' + encounter.level + '"]');
     await press('[data-action="launch"]');
     await page.waitForFunction(
@@ -299,7 +335,10 @@ try {
     }));
     assert.equal(start.snapshot.interceptor.targetId, encounter.boss);
     assert.equal(start.snapshot.interceptor.targetName, encounter.name);
-    assert.equal(start.snapshot.interceptor.maxHealth, 450);
+    assert.equal(
+      start.snapshot.interceptor.maxHealth,
+      { easy: 450, medium: 700, hard: 950 }[difficulty],
+    );
     assert.equal(start.diagnostics.actors, 5);
     assert.ok(start.diagnostics.roster.includes(encounter.boss));
     assert.equal(start.diagnostics.model?.id, encounter.boss);
@@ -340,12 +379,24 @@ try {
       encounter.name.toUpperCase(),
     );
     let latest;
-    for (let batch = 0; batch < 18; batch++) {
+    for (let batch = 0; batch < 36; batch++) {
       latest = await page.evaluate(() => ({
         snapshot: window.__VN.stepVariant(600),
         diagnostics: window.__VN.variantDiagnostics(),
       }));
       auditDamage(latest.snapshot.interceptor, latest.diagnostics.contacts);
+      if ((batch + 1) % 6 === 0)
+        console.log(
+          JSON.stringify({
+            progress: encounter.boss,
+            batch: batch + 1,
+            seconds: latest.snapshot.interceptor.elapsed,
+            target: latest.diagnostics.target.distance,
+            speed: latest.diagnostics.target.speed,
+            player: latest.snapshot.interceptor.playerDistance,
+            result: latest.snapshot.interceptor.result?.reason ?? null,
+          }),
+        );
       if (
         latest.snapshot.interceptor.result ||
         (latest.diagnostics.target.distance >=
@@ -355,13 +406,16 @@ try {
         break;
     }
     const { audit } = latest.diagnostics;
-    if (!audit.phases.includes('firing')) {
+    if (
+      !audit.phases.includes('firing') ||
+      latest.snapshot.interceptor.counterattacks.length < 2
+    ) {
       const motion = latest.diagnostics.motions.find(
         (opponent) => opponent.id === encounter.boss,
       ).runtime;
       console.log(
         JSON.stringify({
-          failure: 'missing signature',
+          failure: 'missing lap signature',
           boss: encounter.boss,
           mission: latest.snapshot.interceptor,
           target: latest.diagnostics.target,
@@ -410,17 +464,97 @@ try {
       latest.snapshot.interceptor.playerDamage > 0,
       'real player attacks hit ' + encounter.boss,
     );
-    if (encounter.kind === 'ion') {
-      assert.ok(audit.wakes > 0, 'Bulwark lays a real Ion wake');
-      assert.ok(audit.maxWeave > 0.25, 'Bulwark changes its physical lane');
-    } else {
-      const shots = audit.shots.filter(
-        (shot) => shot.heavy === (encounter.kind === 'lance'),
+    assert.ok(
+      audit.minGap >= 29.99,
+      'the physical pursuit buffer prevents passing ' + encounter.boss,
+    );
+    if (closeBoost)
+      assert.ok(
+        audit.closeBoostTicks > 120,
+        'held manual boost reaches the real pursuit buffer for ' +
+          encounter.boss,
+      );
+    const pulseHits = latest.diagnostics.contacts.filter(
+      (contact) =>
+        contact.source === 'player' &&
+        contact.target === encounter.boss &&
+        contact.kind === 'repulsor' &&
+        contact.equipment !== 'lance' &&
+        !contact.shielded,
+    ).length;
+    if (closeBoost && encounter.boss === 'bulwark')
+      assert.ok(
+        pulseHits > 0,
+        'ordinary Repulsor gates hit the boss from the pursuit buffer',
+      );
+    const mission = latest.snapshot.interceptor;
+    assert.equal(
+      mission.counterattacks.length,
+      2,
+      'each physical lap marker is consumed',
+    );
+    assert.deepEqual(
+      mission.counterattacks.map((attack) => attack.shots),
+      difficulty === 'easy' ? [1, 1] : [2, 2],
+      'both lap volleys follow encounter difficulty',
+    );
+    for (const lap of [1, 2]) {
+      const attack = audit.attackLaps[lap];
+      assert.ok(
+        attack?.warningTicks >= 120,
+        'visible warning for lap ' + lap + ' of ' + encounter.boss,
       );
       assert.ok(
-        shots.some((shot) => shot.forwardDot < -0.9 && shot.velocityDot < 0),
-        'real rearward signature projectiles for ' + encounter.boss,
+        attack.warningVisible,
+        'the live HUD renders the charge/turn warning on lap ' +
+          lap +
+          ' of ' +
+          encounter.boss,
       );
+      assert.ok(
+        attack.firingTicks >= 120,
+        'sustained firing hold for lap ' + lap + ' of ' + encounter.boss,
+      );
+      assert.ok(
+        attack.backwardTicks > 90 && attack.minHullDot < -0.9,
+        'physical hull turns rearward on lap ' + lap + ' of ' + encounter.boss,
+      );
+      const signatureShots = audit.shots.filter(
+        (shot) =>
+          shot.lap === lap && shot.heavy === (encounter.kind === 'lance'),
+      );
+      assert.equal(
+        signatureShots.length,
+        (difficulty === 'easy' ? 1 : 2) * (encounter.kind === 'arc' ? 3 : 1),
+        'each scheduled volley emits its actual projectiles on lap ' +
+          lap +
+          ' of ' +
+          encounter.boss,
+      );
+      assert.ok(
+        signatureShots.every(
+          (shot) => shot.forwardDot < -0.9 && shot.velocityDot < 0,
+        ),
+        'real rearward signature projectiles on lap ' +
+          lap +
+          ' of ' +
+          encounter.boss,
+      );
+    }
+    assert.ok(
+      latest.diagnostics.contacts.some(
+        (contact) =>
+          contact.source === encounter.boss &&
+          ['player', 'rook', 'kite', 'manta'].includes(contact.target) &&
+          (encounter.kind === 'lance'
+            ? contact.equipment === 'lance'
+            : contact.kind === 'arc'),
+      ),
+      'the signature volley makes a real squad contact for ' + encounter.boss,
+    );
+    if (encounter.boss === 'bulwark') {
+      assert.ok(audit.wakes > 0, 'Bulwark lays a real Ion wake');
+      assert.ok(audit.maxWeave > 0.25, 'Bulwark changes its physical lane');
     }
     assert.deepEqual(latest.diagnostics.errors, []);
     console.log(
@@ -441,6 +575,11 @@ try {
           ? { maxHeat: audit.maxHeat, cooledOnStrip: audit.cooledOnStrip }
           : {}),
         signature: encounter.kind,
+        difficulty,
+        minGap: audit.minGap,
+        closeBoostTicks: audit.closeBoostTicks,
+        pulseHits,
+        attackLaps: audit.attackLaps,
       }),
     );
     if (latest.snapshot.interceptor.result)

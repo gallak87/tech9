@@ -2,10 +2,16 @@ import * as T from 'three';
 
 export const WORLD_UP = new T.Vector3(0, 1, 0);
 export function createLockdownLayout(track) {
+  // The raised corkscrew belongs to the racing structure. Keep the occupied
+  // district and its water levels rooted in the original ground plan.
+  const groundSample = track.groundSample ?? track.sample;
   const samples = Array.from(
     { length: Math.ceil(track.length / 14) },
     (_, index) => ({
-      ...track.sample((index * track.length) / Math.ceil(track.length / 14)),
+      ...groundSample((index * track.length) / Math.ceil(track.length / 14)),
+      roadFrame: track.sample(
+        (index * track.length) / Math.ceil(track.length / 14),
+      ),
       distance: (index * track.length) / Math.ceil(track.length / 14),
     }),
   );
@@ -85,7 +91,7 @@ export function createLockdownLayout(track) {
   const quayFar = (distance) =>
     Math.min(
       148,
-      0.82 / Math.max(0.0005, Math.max(0, track.sample(distance).curvature)),
+      0.82 / Math.max(0.0005, Math.max(0, groundSample(distance).curvature)),
     );
   const quaySamples = quays.map((quay) => ({
     ...quay,
@@ -216,7 +222,14 @@ export function createLockdownLayout(track) {
       land = Math.min(land, discharge.lowerY - 12);
     const quay = quayAt(x, z);
     if (quay) land = Math.min(land, quay.waterY - 12);
-    if (road.distance < 70) land = Math.min(land, road.frame.position.y - 14);
+    if (road.distance < 70) {
+      const physical = road.frame.roadFrame;
+      const lowest =
+        physical.position.y -
+        Math.abs(physical.right.y) * 27 -
+        Math.abs(physical.up.y) * 14;
+      land = Math.min(land, road.frame.position.y - 14, lowest - 3);
+    }
     return land;
   }
   const inRiver = (x, z, margin = 0) =>
@@ -226,7 +239,7 @@ export function createLockdownLayout(track) {
   const clear = (point, radius = 0) =>
     nearest(point.x, point.z).distance >= 36 + radius;
   function streetFrame(distance, side) {
-    const frame = track.sample(distance),
+    const frame = groundSample(distance),
       out = new T.Vector3(frame.right.x, 0, frame.right.z)
         .normalize()
         .multiplyScalar(side);
@@ -342,7 +355,7 @@ export function createLockdownLayout(track) {
       hero: true,
     });
   return {
-    track,
+    track: { ...track, sample: groundSample },
     discharge,
     quays,
     quayFar,

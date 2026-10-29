@@ -69,14 +69,15 @@ test('Helion Breach owns a Wraith mission while preserving every thermal and fli
     assert.equal(typeof level[key], 'function', key);
 });
 
-test('pursuit gates preserve support strips and clear both vaults and the shield-wall transition', () => {
+test('pursuit gates retain shields without boost strips and clear both vaults and the shield-wall transition', () => {
   const base = createHelionLevel({ shape: false });
   const level = createLevel(),
     track = level.createTrack();
   const devices = level.racing.createDevices(track);
   const support = (layout) =>
-    layout.filter((device) => ['vector', 'aegis'].includes(device.type));
+    layout.filter((device) => device.type === 'aegis');
   assert.deepEqual(support(devices), support(base.racing.createDevices(track)));
+  assert.ok(devices.every((device) => device.type !== 'vector'));
   assert.equal(
     new Set(devices.map((device) => device.id)).size,
     devices.length,

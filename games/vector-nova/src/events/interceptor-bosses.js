@@ -31,7 +31,7 @@ export const INTERCEPTOR_BOSSES = Object.freeze([
       marker: 0.2,
       telegraph: 1,
       turn: 0.6,
-      hold: 2.6,
+      hold: 3,
       shotInterval: 1.3,
     }),
     countermeasureInterval: null,
@@ -42,15 +42,14 @@ export const INTERCEPTOR_BOSSES = Object.freeze([
     kind: 'Wake layer',
     cruiseKph: 300,
     laneWeave: 3,
-    attack: attack('ion', {
+    attack: attack('lance', {
       marker: 0.15,
-      telegraph: 1.2,
-      turn: 0,
-      hold: 4.6,
-      reverse: false,
-      blasts: Object.freeze({ easy: 1, medium: 1, hard: 1 }),
+      telegraph: 1.6,
+      turn: 1,
+      hold: 2.4,
+      shotInterval: 1.1,
     }),
-    countermeasureInterval: null,
+    countermeasureInterval: 9,
   }),
 ]);
 

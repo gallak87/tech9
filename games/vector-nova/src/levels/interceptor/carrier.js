@@ -48,6 +48,9 @@ export function createDispatchCarrier({ track, terrain, kit, palette }) {
   ) {
     const f = track.sample(distance),
       right = new T.Vector3(f.tangent.z, 0, -f.tangent.x).normalize();
+    // The continuous paired girders span steep bank changes. A world-upright
+    // crosshead here would cut through the lowered edge of the running skin.
+    if (f.up.y < 0.8) continue;
     const head = f.position.clone().addScaledVector(f.up, -31);
     const rotation = new T.Quaternion().setFromRotationMatrix(
       new T.Matrix4().makeBasis(

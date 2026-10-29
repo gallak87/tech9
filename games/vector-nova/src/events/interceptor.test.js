@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInterceptorEvent, missionProfile } from './interceptor.js';
 import { interceptorBoss } from './interceptor-bosses.js';
+import { COMBAT_RULES } from '../pickups/combat.js';
 
 const create = (options) =>
   createInterceptorEvent({ escapeDistance: 8600, ...options });
@@ -264,7 +265,7 @@ test('each boss keeps the same difficulty hulls while using its own physical att
   }
 });
 
-test('specialist attack restores retain only the unfinished volley and never turn the forward-facing wake layer', () => {
+test('specialist attack restores retain only the unfinished rear-facing volley', () => {
   for (const bossId of ['wraith', 'bulwark']) {
     const boss = interceptorBoss(bossId),
       attack = boss.attack;
@@ -287,9 +288,9 @@ test('specialist attack restores retain only the unfinished volley and never tur
     const first = a.step(attack.shotInterval, progress(marker + 20));
     const replay = b.step(attack.shotInterval, progress(marker + 20));
     assert.deepEqual(replay, first);
-    assert.equal(replay.length, bossId === 'wraith' ? 1 : 0);
+    assert.equal(replay.length, 1);
     assert.deepEqual(b.snapshot(), a.snapshot());
-    if (bossId === 'bulwark') assert.equal(b.snapshot().counterattack.yaw, 0);
+    assert.equal(b.snapshot().counterattack.yaw, Math.PI);
     const remaining = attack.hold + attack.turn - attack.shotInterval;
     assert.deepEqual(
       a.step(remaining, progress(marker + 30)),
@@ -299,11 +300,90 @@ test('specialist attack restores retain only the unfinished volley and never tur
     assert.deepEqual(b.snapshot(), a.snapshot());
     b.reset();
     assert.equal(b.snapshot().counterattack.phase, 'idle');
-    assert.equal(b.snapshot().nextIonFire, null);
+    assert.equal(b.snapshot().nextIonFire, boss.countermeasureInterval);
     assert.deepEqual(b.snapshot().counterattacks, []);
     assert.deepEqual(b.step(1, progress(marker)), []);
     assert.equal(b.snapshot().counterattack.phase, 'telegraph');
   }
+});
+
+test('every boss warns, completes one backward volley per lap, and holds its aim through the last shot', () => {
+  for (const bossId of ['goliath', 'wraith', 'bulwark']) {
+    const boss = interceptorBoss(bossId),
+      attack = boss.attack;
+    assert.equal(attack.reverse, true);
+    assert.ok(attack.telegraph >= 1, 'a readable charge precedes the turn');
+    assert.ok(attack.turn >= 0.5, 'the physical turn is visible');
+    for (const difficulty of ['easy', 'medium', 'hard']) {
+      const mission = create({
+        bossId,
+        difficulty,
+        allies: [],
+        routeLength: 1000,
+        escapeDistance: 2000,
+      });
+      const firing = attack.telegraph + attack.turn,
+        lastShot = (attack.blasts[difficulty] - 1) * attack.shotInterval,
+        burstTail =
+          attack.kind === 'arc'
+            ? COMBAT_RULES.arcDelay + 2 * COMBAT_RULES.arcInterval
+            : 0;
+      assert.ok(
+        attack.hold - lastShot - burstTail >= 0.6,
+        'hold the final projectile before turning forward',
+      );
+      for (let lap = 0; lap < 2; lap++) {
+        const marker = 1000 * (lap + attack.marker);
+        mission.step(0.1, progress(marker));
+        assert.equal(mission.snapshot().counterattack.phase, 'telegraph');
+        assert.equal(mission.snapshot().counterattack.warning, true);
+        const shots = mission.step(firing, progress(marker + 10));
+        assert.equal(mission.snapshot().counterattack.yaw, Math.PI);
+        if (lastShot)
+          shots.push(...mission.step(lastShot, progress(marker + 20)));
+        assert.equal(
+          shots.filter((event) => event.payload.kind === attack.kind).length,
+          attack.blasts[difficulty],
+        );
+        assert.equal(mission.snapshot().counterattack.phase, 'firing');
+        assert.equal(mission.snapshot().counterattack.yaw, Math.PI);
+        mission.step(
+          attack.hold + attack.turn - lastShot,
+          progress(marker + 30),
+        );
+        assert.equal(mission.snapshot().counterattack.phase, 'idle');
+        assert.equal(mission.snapshot().counterattack.yaw, 0);
+        assert.equal(mission.snapshot().counterattacks.length, lap + 1);
+        const consumed = mission.snapshot().counterattacks;
+        mission.step(0.1, progress(marker - 10));
+        mission.step(0.1, progress(marker + 40));
+        assert.deepEqual(mission.snapshot().counterattacks, consumed);
+      }
+    }
+  }
+});
+
+test('Bulwark keeps separate Ion wakes and suppresses them while its heavy volley turns and fires', () => {
+  const mission = create({ bossId: 'bulwark', allies: [] });
+  assert.deepEqual(mission.step(8.9, progress(100)), []);
+  const wake = mission.step(0.1, progress(100));
+  assert.equal(wake.length, 1);
+  assert.equal(wake[0].payload.kind, 'ion');
+  mission.step(6, progress(645));
+  assert.equal(mission.snapshot().counterattack.phase, 'telegraph');
+  const events = mission.step(5.2, progress(900));
+  assert.equal(
+    events.filter((event) => event.payload.kind === 'lance').length,
+    2,
+  );
+  assert.equal(
+    events.some((event) => event.payload.kind === 'ion'),
+    false,
+  );
+  mission.step(6.7, progress(1000));
+  const next = mission.step(0.1, progress(1000));
+  assert.equal(next.length, 1);
+  assert.equal(next[0].payload.kind, 'ion');
 });
 
 test('boss identity, target aliases, real damage ownership and named terminal results survive replay isolation', () => {

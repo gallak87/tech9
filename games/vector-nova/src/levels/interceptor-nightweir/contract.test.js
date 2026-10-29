@@ -18,7 +18,7 @@ test('Lockdown is a continuous wide two-lap circuit independent of the Nightweir
     original = createNightweirTrack();
   assert.equal(track.closed, true);
   assert.equal(track.width, 44);
-  assert.ok(Math.abs(track.length - 4700) < 0.01);
+  assert.ok(track.length > 4700 && track.length < 4800);
   assert.equal(original.closed, false);
   assert.ok(original.length > 13000);
   assert.ok(original.jumps.length >= 8);
@@ -45,13 +45,15 @@ test('Lockdown is a continuous wide two-lap circuit independent of the Nightweir
   assert.ok(start.up.dot(end.up) > 0.99999);
   for (let s = 0; s < track.length; s += 7) {
     const f = track.sample(s);
-    assert.ok(f.up.y > 0.9);
-    assert.ok(Math.abs(f.tangent.y) < 0.14);
+    assert.ok(Math.abs(f.up.length() - 1) < 1e-8);
+    assert.ok(Math.abs(f.tangent.y) < 0.52);
+    assert.ok(f.quaternion.angleTo(track.sample(s + 0.5).quaternion) < 0.009);
     assert.ok(Math.abs(f.curvature) < 0.018);
     assert.ok(Math.abs(f.right.dot(f.up)) < 1e-8);
     assert.ok(f.position.toArray().every(Number.isFinite));
   }
   const gates = createLockdownDevices(track);
+  assert.ok(gates.every((gate) => gate.type !== 'vector'));
   assert.ok(
     gates.filter((gate) => ['arc', 'repulsor'].includes(gate.type)).length >=
       16,
@@ -103,6 +105,11 @@ test('new ward buildings and generating halls retain a deliberate clear racing c
     layout = createLockdownLayout(track);
   assert.ok(layout.buildings.length > 70);
   assert.equal(layout.quays.length, 3);
+  for (let s = 0; s < track.length; s += 25) {
+    assert.ok(Number.isFinite(track.groundSample(s).curvature));
+    assert.ok(Number.isFinite(track.scenerySample(s).curvature));
+    assert.ok(Number.isFinite(layout.quayFar(s)));
+  }
   assert.ok(layout.halls.length >= 3);
   for (const building of [...layout.buildings, ...layout.halls]) {
     const radius = Math.hypot(building.width, building.depth) / 2;
@@ -223,6 +230,83 @@ test('the real magnetic stock and equipment bodies cross the closed support seam
         assert.equal(impacts, 0);
         assert.ok(minimumSpeed >= 79.9);
         assert.ok(maximumHeight < 3);
+      } finally {
+        runtime.dispose();
+      }
+    }
+  } finally {
+    dynamics.dispose();
+  }
+});
+
+test('the generating corkscrew is a full supported road roll followed by a substantial plunge', async () => {
+  const track = createNightweirLockdownTrack(),
+    roll = track.routeMoments.find((moment) => moment.type === 'corkscrew'),
+    plunge = track.routeMoments.find((moment) => moment.type === 'drop');
+  assert.ok(roll.end - roll.start > 1000);
+  let minimumUp = 1;
+  for (let s = roll.start; s < roll.end; s += 4)
+    minimumUp = Math.min(minimumUp, track.sample(s).up.y);
+  assert.ok(minimumUp < -0.99, 'the running skin becomes genuinely inverted');
+  assert.ok(
+    track.sample(plunge.start).position.y -
+      track.sample(plunge.end).position.y >
+      100,
+  );
+  for (let s = 0; s < track.length; s += 2) {
+    const a = track.sample(s),
+      b = track.sample(s + 0.5);
+    for (const side of [-22, 22]) {
+      const edgeA = a.position.clone().addScaledVector(a.right, side),
+        edgeB = b.position.clone().addScaledVector(b.right, side);
+      assert.ok(
+        Math.abs(edgeB.y - edgeA.y) / 0.5 < 0.55,
+        `smooth edge at ${s}`,
+      );
+    }
+    assert.ok(track.scenerySample(s).up.y > 0.85);
+    assert.ok(track.groundSample(s).up.y > 0.98);
+  }
+  const collisionWorld = createLockdownCollision({ track }),
+    dynamics = await createRapierWorld({ collisionWorld });
+  try {
+    for (const equipment of [false, true]) {
+      const state = createVehicleState('shrike');
+      state.distance = roll.start - 100;
+      state.speed = 300 / 3.6;
+      const runtime = createMagneticRuntime({
+        track,
+        collisionWorld,
+        dynamics,
+        equipment,
+        settings: { steeringAssist: 0.3 },
+      });
+      runtime.reset({ state });
+      let impacts = 0;
+      try {
+        for (
+          let tick = 0;
+          tick < 120 * 24 && state.distance < plunge.end + 60;
+          tick++
+        ) {
+          const control = getRacerControl(state, track, {
+            difficulty: 'medium',
+          });
+          control.boost = false;
+          const events = runtime.advance(state, control, 1 / 120),
+            frame = track.sample(state.distance),
+            height = runtime
+              .pose(1)
+              .position.clone()
+              .sub(frame.position)
+              .dot(frame.up);
+          impacts += events.filter((event) => event.type === 'impact').length;
+          assert.ok(state.speed > 80);
+          assert.ok(Math.abs(state.lateral) < 1);
+          assert.ok(height > 0.35 && height < 1.1);
+        }
+        assert.ok(state.distance > plunge.end + 60);
+        assert.equal(impacts, 0);
       } finally {
         runtime.dispose();
       }

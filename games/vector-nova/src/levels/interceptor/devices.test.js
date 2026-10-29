@@ -3,12 +3,10 @@ import assert from 'node:assert/strict';
 import { createInterceptorDevices } from './devices.js';
 import { createCrucibleDevices } from '../crucible/devices.js';
 
-test('generalizing pursuit lanes preserves the existing Goliath layout exactly', () => {
+test('pursuit gates retain shields and attacks without track boost strips', () => {
   const track = { length: 4300, width: 44, closed: true };
   const expected = [
-    ...createCrucibleDevices(track).filter((device) =>
-      ['vector', 'aegis'].includes(device.type),
-    ),
+    ...createCrucibleDevices(track).filter((device) => device.type === 'aegis'),
     ...Array.from({ length: 16 }, (_, index) => ({
       id: `dispatch-attack-${index + 1}`,
       type: index % 4 === 3 ? 'repulsor' : 'arc',

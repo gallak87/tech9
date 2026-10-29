@@ -10,6 +10,7 @@ import { createInterceptorEvent } from '../events/interceptor.js';
 import { createInterceptorPresentation } from '../events/interceptor-view.js';
 import { createInterceptorField } from '../events/interceptor-field.js';
 import { createInterceptorMotion } from '../events/interceptor-motion.js';
+import { createInterceptorChaseMotion } from '../events/interceptor-chase.js';
 import { interceptorBoss } from '../events/interceptor-bosses.js';
 import {
   PURSUIT_EQUIPMENT,
@@ -446,9 +447,17 @@ export async function createGame({
           }
         : {}),
     };
-    const motion = await (definition.createRuntime ?? createMagneticRuntime)(
-      runtimeContext,
-    );
+    const motion = interceptor
+      ? createInterceptorChaseMotion(runtimeContext, {
+          createMotion: definition.createRuntime ?? createMagneticRuntime,
+          getTarget: () =>
+            racers?.opponents.find(
+              (opponent) => opponent.specification.id === missionBoss.id,
+            ),
+        })
+      : await (definition.createRuntime ?? createMagneticRuntime)(
+          runtimeContext,
+        );
     const devices = racingEnabled ? definition.racing.createDevices(track) : [];
     const combat =
       !!interceptor ||

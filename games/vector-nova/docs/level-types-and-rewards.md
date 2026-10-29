@@ -148,6 +148,20 @@ Ten racers use ordinary shared physics and difficulty settings. After 22 seconds
 
 ## Interceptor / Crucible Dispatch
 
-Interceptor reuses Crucible's course with a new objective. You and three allied racers—Rook, Kite and Manta—pursue **Goliath**, a 40-metre armored racing courier. It uses real shared magnetic motion and a matching large compound hull, rather than a scaled decorative ship. The [courier concept and exact prompt](levels/interceptor/provenance.json) remain beside the source. Only propulsion and shield hardware is active on this mission's course.
+Interceptor reuses Crucible's course with a new objective. You and three allied racers—Rook, Kite and Manta—pursue **Goliath**, a 40-metre armored racing courier. It uses real shared magnetic motion and a matching large compound hull. The [courier concept and exact prompt](levels/interceptor/provenance.json) remain beside the source. Goliath cruises around **300 km/h**, starts ahead of the squad and resists weapon disruption. Allies match its speed while retaining firing distance.
 
-Hold **Q / controller X** to fire the issued pursuit Lance; **E / Y** injects reserve. The hull is stock and these mission weapons are loaned, so permanent unlocks and the normal Lance's long recharge stay unchanged. Allies fire real Lance projectiles on staggered cooldowns; Goliath leaves Ion countermeasure wakes. Friendly fire is disabled. Damage requires actual unblocked weapon contacts with the courier's physical target bounds. The mission ends when its hull reaches zero or it physically completes two circuits; elapsed time alone cannot defeat it. Pause/retry, contribution results, deterministic replay and five/one progress for valid success/failure use the existing shared flows. No new cups or reward requirements are added.
+Hold **Q / controller X** for an issued Lance shot every **0.8 seconds**; **E / Y** injects reserve. Sixteen offensive gates, spaced roughly 250 metres apart, add automatic Arc bursts and close-range Repulsor pulses. The mission hull remains stock and weapons are loaned; the garage always displays the complete owned career build. Normal equipment cooldowns and permanent unlocks remain separate. Allies fire real Lance projectiles on staggered cooldowns; Goliath leaves Ion countermeasure wakes. Friendly fire is disabled, and hull damage requires actual unblocked contacts.
+
+Goliath has **450 / 700 / 950 hull** on Easy / Medium / Hard. At **15% of each lap**, a charge warning precedes a physical turn to face the pursuers. It keeps traveling along the road while facing backward, fires one blast on Easy or two on Medium/Hard, then turns forward. Its collider, rendered hull and weapon direction share the same orientation; dodging its line avoids the volley. The mission ends when its hull reaches zero or it physically completes two circuits. Pause/retry, contribution results, deterministic replay and five/one progress for valid success/failure use the existing shared flows. No new cups or reward requirements are added.
+
+### Interceptor encounter selection
+
+Interceptor offers three independent boss encounters through the normal course picker. Course cards have boss names and no course challenge tiers; Easy / Medium / Hard controls the shared 450 / 700 / 950 hull profiles for every boss. Existing race courses and cups keep their own routes and lineups.
+
+| Encounter          | Boss    | Signature attack                                                |
+| ------------------ | ------- | --------------------------------------------------------------- |
+| Crucible Dispatch  | Goliath | Turns backward for heavy Lance shots at 15% of each lap.        |
+| Asterion Intercept | Wraith  | Turns for successive rear-facing Arc bursts at 20% of each lap. |
+| Halcyon Lockdown   | Bulwark | Weaves while laying a sustained Ion wake at 15% of each lap.    |
+
+The new encounters reuse the original Orbital and Halcyon geometry under distinct mission identities. Wraith and Bulwark have separate source-authored hulls and functional model blockouts; detailed art passes remain the next step. The selected encounter is remembered when leaving and returning to the mode.

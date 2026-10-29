@@ -1,29 +1,63 @@
 import { getRacerControl } from '../race/racers.js';
-import { GOLIATH_HULL } from '../ships/interceptor-target-hull.js';
+import { getBossHull } from '../ships/boss-hulls.js';
+import { interceptorBoss } from './interceptor-bosses.js';
+import { vehicleHandling } from '../ships/catalog.js';
+export { PURSUIT_EQUIPMENT, PURSUIT_TUNING } from './interceptor-loadout.js';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-export const PURSUIT_EQUIPMENT = Object.freeze(['lance', 'injector']);
-export const PURSUIT_TUNING = Object.freeze({
-  lance: Object.freeze({ cooldown: 1.2, autoRepeat: true }),
-});
+export const INTERCEPTOR_CRUISE_KPH = 300;
 
-export function createInterceptorField() {
-  const half = GOLIATH_HULL.bounds.max.map(
-    (value, index) => (value - GOLIATH_HULL.bounds.min[index]) / 2,
+// Drive to a speed through ordinary throttle/brakes. In particular, a hunter
+// must brake before reaching the courier rather than waiting for a hull hit.
+function matchSpeed(control, state, track, speed) {
+  const handling = vehicleHandling(state);
+  const drag = 4.4 + 0.0018 * state.speed * state.speed;
+  const nominalDrag = 4.4 + 0.0018 * handling.cruiseSpeed ** 2;
+  const engine = Math.max(
+    1,
+    handling.thrust -
+      (handling.thrust - nominalDrag) *
+        (Math.max(0, state.speed) / handling.cruiseSpeed) ** 2,
   );
-  const center = GOLIATH_HULL.bounds.max.map(
-    (value, index) => (value + GOLIATH_HULL.bounds.min[index]) / 2,
+  const acceleration = 2 * (speed - state.speed);
+  const grade = 9.81 * track.sample(state.distance).tangent.y;
+  return {
+    ...control,
+    boost: false,
+    throttle: Math.min(
+      control.throttle,
+      clamp((drag + grade + acceleration) / engine, 0, 1),
+    ),
+    brake: Math.max(
+      control.brake,
+      clamp(-acceleration / handling.braking, 0, 0.85),
+    ),
+  };
+}
+
+export function createInterceptorField({
+  bossId = 'goliath',
+  getCounterattack = () => null,
+} = {}) {
+  const boss = interceptorBoss(bossId),
+    hull = getBossHull(bossId);
+  const cruiseSpeed = boss.cruiseKph / 3.6;
+  const half = hull.bounds.max.map(
+    (value, index) => (value - hull.bounds.min[index]) / 2,
+  );
+  const center = hull.bounds.max.map(
+    (value, index) => (value + hull.bounds.min[index]) / 2,
   );
   return {
-    id: `interceptor-squad-v1:${GOLIATH_HULL.hullSha256}`,
+    id: `interceptor-squad-v3:${boss.id}:${boss.cruiseKph}:${hull.hullSha256}`,
     opponents: [
       {
-        id: 'goliath',
-        name: 'Goliath',
+        id: boss.id,
+        name: boss.name,
         shipId: 'bastion',
-        chassisId: 'goliath',
+        chassisId: boss.id,
         lane: 0,
-        pace: 0.82,
+        pace: 1,
         team: 'quarry',
         version: 1,
         hitBounds: { half, center },
@@ -58,21 +92,45 @@ export function createInterceptorField() {
     ],
     grid: {
       player: { distance: 0, lateral: 0 },
-      goliath: { distance: 120, lateral: 0 },
+      [boss.id]: { distance: 240, lateral: 0 },
       rook: { distance: -12, lateral: -10 },
       kite: { distance: -24, lateral: 10 },
       manta: { distance: -36, lateral: -6 },
     },
     control({ opponent, track, devices, nearby, defaultControl }) {
-      if (opponent.specification.id === 'goliath')
-        return { ...defaultControl, boost: false };
-      const target = nearby.find((state) => state.chassisId === 'goliath');
+      if (opponent.specification.id === boss.id) {
+        const phase = getCounterattack();
+        const lane =
+          boss.laneWeave && phase?.phase === 'firing'
+            ? boss.laneWeave * Math.sin(phase.phaseElapsed * Math.PI * 0.8)
+            : 0;
+        const control = getRacerControl(opponent.state, track, {
+          lane,
+          pace: 1,
+          difficulty: 'hard',
+          nearby,
+          runtime: opponent.runtime,
+        });
+        const velocity = opponent.runtime?.pose(1)?.velocity;
+        const measuredSpeed = velocity?.dot(
+          track.sample(opponent.state.distance).tangent,
+        );
+        return matchSpeed(
+          control,
+          Number.isFinite(measuredSpeed)
+            ? { ...opponent.state, speed: Math.max(0, measuredSpeed) }
+            : opponent.state,
+          track,
+          cruiseSpeed,
+        );
+      }
+      const target = nearby.find((state) => state.chassisId === boss.id);
       if (!target) return defaultControl;
       const gap = target.distance - opponent.state.distance;
       const index = ['rook', 'kite', 'manta'].indexOf(
         opponent.specification.id,
       );
-      const desiredGap = 70 + index * 25;
+      const desiredGap = 100 + index * 35;
       const lane =
         gap > 50 && gap < 380
           ? target.lateral + opponent.specification.lane
@@ -85,15 +143,12 @@ export function createInterceptorField() {
         nearby,
         runtime: opponent.runtime,
       });
-      if (gap < desiredGap) {
-        control.boost = false;
-        control.throttle = Math.min(control.throttle, 0.3);
-        control.brake = Math.max(
-          control.brake,
-          clamp((desiredGap - gap) / 70, 0, 0.5),
-        );
-      }
-      return control;
+      if (gap > desiredGap + 140) return control;
+      const followSpeed = Math.max(
+        0,
+        target.speed + clamp((gap - desiredGap) * 0.45, -35, 35),
+      );
+      return matchSpeed(control, opponent.state, track, followSpeed);
     },
   };
 }

@@ -1,6 +1,9 @@
+[data-event='interceptor'] {
+  --ic-hud-top: 108px;
+}
 .interceptor-hud {
   position: absolute;
-  top: 108px;
+  top: var(--ic-hud-top);
   left: 28px;
   z-index: 5;
   width: 270px;
@@ -12,11 +15,11 @@
   pointer-events: none;
   font-variant-numeric: tabular-nums;
 }
-.interceptor-hud[hidden] {
+.interceptor-hud[hidden],
+.interceptor-boss[hidden] {
   display: none;
 }
 .ic-identity,
-.ic-health-label > span,
 .ic-escape > span {
   font-size: 9px;
   letter-spacing: 0.14em;
@@ -33,9 +36,9 @@
   margin: 12px 0 17px;
 }
 .ic-target strong {
-  font-size: 22px;
-  letter-spacing: 0.035em;
-  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  font-weight: 600;
 }
 .ic-gap {
   font-size: 9px;
@@ -43,21 +46,52 @@
   color: #bbb9af;
   white-space: nowrap;
 }
-.ic-health-label {
+.interceptor-boss {
+  position: absolute;
+  top: var(--ic-hud-top);
+  left: 50%;
+  z-index: 5;
+  width: min(520px, 42vw);
+  transform: translateX(-50%);
+  pointer-events: none;
+  color: #fff1ed;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 6px #000;
+}
+.ic-boss-heading {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
+  margin-bottom: 9px;
 }
-.ic-health-label b {
-  font-size: 23px;
-  font-weight: 650;
-  color: #f0b880;
+.ic-boss-heading strong {
+  font-size: 16px;
+  letter-spacing: 0.18em;
+  font-weight: 700;
 }
-.ic-health-label small {
-  font-size: 12px;
-  font-weight: 400;
-  color: #aca79b;
+.ic-boss-heading span {
+  font-size: 13px;
+  color: #e9c5c5;
+}
+.ic-boss-meter {
+  height: 15px;
+  padding: 2px;
+  border: 1px solid #b8646466;
+  background: #160b0de6;
+  box-shadow: 0 3px 14px #0008;
+  overflow: hidden;
+}
+.ic-boss-meter i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #8c1521, #e33b43);
+  box-shadow: inset 0 1px #ffaaa866;
+  transform-origin: left;
+  transition: transform 0.15s ease-out;
+}
+.interceptor-boss[data-reduced='true'] .ic-boss-meter i {
+  transition: none;
 }
 .ic-health {
   height: 11px;
@@ -116,6 +150,23 @@
   letter-spacing: 0.025em;
   color: #a4a59d;
 }
+.ic-counterattack {
+  margin: 8px 0 12px;
+  padding: 9px 10px;
+  border-left: 2px solid #ff814f;
+  background: #a32d182e;
+  color: #ffc394;
+  font-size: 10px;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+}
+.ic-counterattack[hidden] {
+  display: none;
+}
+.interceptor-hud[data-counterattack='firing'] .ic-counterattack {
+  color: #fff1d9;
+  background: #c6412866;
+}
 .ic-controls b {
   display: inline-block;
   min-width: 58px;
@@ -166,9 +217,10 @@
 }
 .interceptor-contributions {
   display: grid;
-  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 28px;
   max-width: 650px;
-  margin: 24px 0;
+  margin: 24px 0 18px;
 }
 .interceptor-contributions > div {
   display: grid;
@@ -181,37 +233,47 @@
   color: #b1afa6;
 }
 .interceptor-contributions b {
-  font-size: 14px;
+  font-size: 20px;
   font-weight: 600;
   color: #e9cb9c;
 }
-.interceptor-contributions i {
-  grid-column: 1 / -1;
-  height: 5px;
-  background: #ffffff13;
+.interceptor-contributions > div + div b {
+  color: #9bb8c2;
 }
-.interceptor-contributions em {
-  display: block;
-  height: 100%;
-  background: #bc7540;
+.interceptor-target-health {
+  max-width: 650px;
+  margin: 18px 0 24px;
 }
-.interceptor-contributions > div + div em {
-  background: #768f97;
+.interceptor-target-health > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+.interceptor-target-health span {
+  color: #b1afa6;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+.interceptor-target-health b {
+  color: #edcba5;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.interceptor-target-health .ic-health {
+  height: 12px;
+  margin: 8px 0 0;
 }
 @media (max-height: 750px) {
+  [data-event='interceptor'] {
+    --ic-hud-top: 87px;
+  }
   .interceptor-hud {
-    top: 87px;
     padding-top: 11px;
     padding-bottom: 10px;
   }
   .ic-target {
     margin-block: 9px 13px;
-  }
-  .ic-target strong {
-    font-size: 20px;
-  }
-  .ic-health {
-    margin-bottom: 12px;
   }
   .ic-squad {
     margin-top: 11px;
@@ -221,14 +283,19 @@
     padding-top: 10px;
   }
 }
+@media (max-width: 1100px) {
+  .interceptor-boss {
+    width: min(520px, calc(100vw - 56px));
+  }
+  .interceptor-hud {
+    top: calc(var(--ic-hud-top) + 72px);
+  }
+}
 @media (max-width: 760px) {
   .interceptor-hud {
     left: 13px;
     width: 235px;
     padding-inline: 12px;
-  }
-  .ic-target strong {
-    font-size: 19px;
   }
   .ic-gap {
     font-size: 8px;

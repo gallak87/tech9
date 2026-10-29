@@ -33,6 +33,13 @@ export const COMBAT_RULES = Object.freeze({
 });
 export const COMBAT_TYPES = Object.freeze(['repulsor', 'arc', 'ion']);
 export const isCombatDevice = (type) => COMBAT_TYPES.includes(type);
+export function validateCombatResistance(value = 0) {
+  if (!Number.isFinite(value) || value < 0 || value > 1)
+    throw new Error(
+      'Combat resistance must be a finite value from zero to one',
+    );
+  return value;
+}
 const copy = (value) => structuredClone(value);
 const vector = (value) => new T.Vector3().fromArray(value);
 const up = new T.Vector3(0, 1, 0);
@@ -233,21 +240,31 @@ export function createCombatSimulation({
     const targetActor = eligible(target);
     if (!targetActor || source === target || sameTeam(source, target)) return;
     const entrySpeed = targetActor.actor.state.speed;
+    const resistance = targetActor.actor.combatResistance ?? 0;
+    const mitigation = resistance
+      ? 1 - (1 - toughness(targetActor.actor.state)) * (1 - resistance)
+      : toughness(targetActor.actor.state);
+    const reserveCost = COMBAT_CONSEQUENCES[kind]?.reserveCost ?? cost;
     const shielded = targetActor.actor.hit({
       source,
       kind,
-      impulse,
-      cost: COMBAT_CONSEQUENCES[kind]?.reserveCost ?? cost,
+      impulse: resistance
+        ? impulse.clone().multiplyScalar(1 - resistance)
+        : impulse,
+      cost: resistance ? reserveCost * (1 - resistance) : reserveCost,
     });
     if (!shielded) {
-      state.disruptions[target] = combatDisruption(
-        state.disruptions[target],
-        kind,
-        state.time,
-        entrySpeed,
-        toughness(targetActor.actor.state),
-        equipment,
-      );
+      state.disruptions[target] = {
+        ...combatDisruption(
+          state.disruptions[target],
+          kind,
+          state.time,
+          entrySpeed,
+          mitigation,
+          equipment,
+        ),
+        ...(resistance ? { combatResistance: resistance } : {}),
+      };
       targetActor.actor.disrupt?.(
         sampleCombatDisruption(state.disruptions[target], state.time),
       );
@@ -259,7 +276,11 @@ export function createCombatSimulation({
       target,
       kind,
       shielded,
-      duration: shielded ? 0 : COMBAT_CONSEQUENCES[kind].duration,
+      duration: shielded
+        ? 0
+        : resistance
+          ? state.disruptions[target].duration
+          : COMBAT_CONSEQUENCES[kind].duration,
       position: position.toArray(),
       ...(equipment ? { equipment } : {}),
     };
@@ -404,6 +425,7 @@ export function createCombatSimulation({
   return {
     bind(id, actor) {
       hitBounds(actor);
+      validateCombatResistance(actor.combatResistance);
       actors.set(id, actor);
       touched.add(id);
     },
@@ -791,10 +813,18 @@ export function createCombatSimulation({
             entry.duration !==
               COMBAT_CONSEQUENCES[entry.kind].duration *
                 (1 - (entry.mitigation ?? 0)) ||
+            (entry.combatResistance !== undefined &&
+              (!Number.isFinite(entry.combatResistance) ||
+                entry.combatResistance <= 0 ||
+                entry.combatResistance > 1 ||
+                entry.mitigation == null)) ||
             (entry.mitigation != null &&
               (!Number.isFinite(entry.mitigation) ||
-                entry.mitigation < 0 ||
-                entry.mitigation > 0.2)) ||
+                entry.mitigation < (entry.combatResistance ?? 0) ||
+                entry.mitigation >
+                  (entry.combatResistance
+                    ? 1 - 0.8 * (1 - entry.combatResistance)
+                    : 0.2))) ||
             !Number.isFinite(entry.entrySpeed) ||
             entry.entrySpeed < 0 ||
             !Number.isFinite(entry.startedAt) ||

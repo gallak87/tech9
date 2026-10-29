@@ -20,6 +20,8 @@ const name = (id) =>
   id === 'player'
     ? 'YOU'
     : String(id ?? '').replace(/^./, (character) => character.toUpperCase());
+const weaponName = (id) =>
+  ({ lance: 'Lance', arc: 'Arc', repulsor: 'Repulsor' })[id] ?? 'Weapon';
 
 // Mission completion has an outcome and damage contribution, not race places
 // or invented lap times. This helper stays asset-free for the main menu.
@@ -31,7 +33,17 @@ export function interceptorResultsView(
     player = finite(result?.playerDamage),
     allied = finite(result?.alliedDamage);
   const total = Math.max(1, finite(result?.maxHealth));
-  return `<section class="result-panel interceptor-results"><div class="front-heading"><span class="kicker">INTERCEPTOR / ${escape(courseName)}</span><h1 tabindex="-1">${won ? 'Goliath disabled' : 'Goliath escaped'}${result?.playerValid === false ? ' · Unranked' : ''}</h1></div><p class="interceptor-outcome">${won ? 'The squad stopped the target before the escape boundary.' : 'The target reached the escape boundary with hull remaining. Stay on its line and land more Lance shots.'}</p><div class="interceptor-result-stats"><span><b>${duration(result?.elapsed ?? result?.time)}</b>pursuit duration</span><span><b>${Math.round(finite(result?.health))} / ${Math.round(total)}</b>target hull remaining</span><span><b>${Math.floor(finite(result?.hits))}</b>confirmed hits</span></div><div class="interceptor-contributions" aria-label="Confirmed damage contributions"><div><span>YOU</span><b>${player}</b><i><em style="width:${Math.min(100, Math.max(0, (player / total) * 100))}%"></em></i></div><div><span>ALLIED RACERS</span><b>${allied}</b><i><em style="width:${Math.min(100, Math.max(0, (allied / total) * 100))}%"></em></i></div></div><p class="results-note">Stock hull · Issued Lance and Reserve Injector. Damage is counted only from real, unblocked hits on Goliath.${result?.playerValid === false ? ' This run is unranked.' : ''}</p><div class="front-actions results-actions"><button class="primary" data-action="retry-race">Retry Interceptor →</button><button data-action="change">Back to setup</button></div></section>`;
+  const targetName = result?.targetName ?? 'Goliath';
+  const remaining = Math.min(total, Math.max(0, finite(result?.health)));
+  return `<section class="result-panel interceptor-results">
+    <div class="front-heading"><span class="kicker">INTERCEPTOR / ${escape(courseName)}</span><h1 tabindex="-1">${escape(targetName)} ${won ? 'disabled' : 'escaped'}${result?.playerValid === false ? ' · Unranked' : ''}</h1></div>
+    <p class="interceptor-outcome">${won ? 'The squad stopped the target before the escape boundary.' : 'The target reached the escape boundary with hull remaining. Stay on its line and land more Lance shots.'}</p>
+    <div class="interceptor-result-stats"><span><b>${duration(result?.elapsed ?? result?.time)}</b>pursuit duration</span><span><b>${Math.floor(finite(result?.hits))}</b>confirmed hits</span></div>
+    <div class="interceptor-contributions" aria-label="Damage dealt"><div><span>YOUR DAMAGE</span><b>${player}</b></div><div><span>ALLIED DAMAGE</span><b>${allied}</b></div></div>
+    <div class="interceptor-target-health"><div><span>${escape(targetName.toUpperCase())} · HEALTH REMAINING</span><b>${Math.round(remaining)} / ${Math.round(total)}</b></div><div class="ic-health" role="progressbar" aria-label="${escape(targetName)} remaining health" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${remaining}" aria-valuetext="${Math.round(remaining)} health remaining out of ${Math.round(total)}"><i style="transform:scaleX(${remaining / total})"></i></div></div>
+    ${result?.playerValid === false ? '<p class="results-note">Unranked run.</p>' : ''}
+    <div class="front-actions results-actions"><button class="primary" data-action="retry-race">Retry Interceptor →</button><button data-action="change">Back to setup</button></div>
+  </section>`;
 }
 
 export function createInterceptorPresentation({ host }) {
@@ -42,12 +54,23 @@ export function createInterceptorPresentation({ host }) {
   root.hidden = true;
   root.setAttribute('aria-label', 'Interceptor target and squad status');
   root.innerHTML =
-    '<span class="ic-identity">INTERCEPTOR / PURSUIT</span><div class="ic-target"><strong>GOLIATH</strong><span class="ic-gap">ACQUIRE TARGET</span></div><div class="ic-health-label"><span>TARGET HULL</span><b>240 <small>/ 240</small></b></div><div class="ic-health" role="progressbar" aria-label="Goliath hull" aria-valuemin="0" aria-valuemax="240" aria-valuenow="240"><i></i></div><div class="ic-escape"><span>ESCAPE BOUNDARY</span><b>—</b></div><div class="ic-route"><i></i></div><p class="ic-squad">ROOK · KITE · MANTA</p><p class="ic-hit">Land Lance shots. The squad will support.</p><div class="ic-controls"><span><b>Q / X</b> FIRE LANCE</span><span><b>E / Y</b> RESERVE INJECTOR</span><span><b class="ic-boost-key">SHIFT / A</b> BOOST TO CLOSE THE GAP</span></div>';
-  host.append(root);
+    '<span class="ic-identity">INTERCEPTOR / PURSUIT</span><div class="ic-target"><strong>TARGET</strong><span class="ic-gap">ACQUIRE TARGET</span></div><div class="ic-escape"><span>ESCAPE BOUNDARY</span><b>—</b></div><div class="ic-route"><i></i></div><p class="ic-squad">ROOK · KITE · MANTA</p><p class="ic-hit">Land Lance shots. The squad will support.</p><div class="ic-controls"><span><b>Q / X</b> FIRE LANCE</span><span><b>E / Y</b> RESERVE INJECTOR</span><span><b class="ic-boost-key">SHIFT / A</b> BOOST TO CLOSE THE GAP</span></div>';
+  const boss = document.createElement('section');
+  boss.className = 'interceptor-boss';
+  boss.hidden = true;
+  boss.setAttribute('aria-label', 'Goliath');
+  boss.innerHTML =
+    '<div class="ic-boss-heading"><strong>GOLIATH</strong><span>—</span></div><div class="ic-boss-meter" role="progressbar" aria-label="Goliath remaining health" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0"><i></i></div>';
+  const counterattack = document.createElement('p');
+  counterattack.className = 'ic-counterattack';
+  counterattack.setAttribute('role', 'status');
+  counterattack.hidden = true;
+  root.insertBefore(counterattack, root.querySelector('.ic-controls'));
+  host.append(root, boss);
   const gap = root.querySelector('.ic-gap'),
-    health = root.querySelector('.ic-health'),
+    health = boss.querySelector('.ic-boss-meter'),
     healthFill = health.querySelector('i'),
-    healthLabel = root.querySelector('.ic-health-label b'),
+    healthLabel = boss.querySelector('.ic-boss-heading span'),
     escapeLabel = root.querySelector('.ic-escape b'),
     route = root.querySelector('.ic-route i'),
     squad = root.querySelector('.ic-squad'),
@@ -59,19 +82,45 @@ export function createInterceptorPresentation({ host }) {
       if (disposed) return;
       const data = frame.interceptor;
       root.hidden = !data || !['racing', 'countdown'].includes(frame.mode);
+      boss.hidden = root.hidden;
       if (!data) return;
+      const targetName = data.targetName ?? 'Goliath';
+      boss.querySelector('.ic-boss-heading strong').textContent =
+        targetName.toUpperCase();
+      boss.setAttribute('aria-label', targetName);
+      health.setAttribute('aria-label', `${targetName} remaining health`);
+      root.querySelector('.ic-identity').textContent =
+        `INTERCEPTOR / ${(data.difficulty ?? 'medium').toUpperCase()}`;
+      const phase = data.counterattack?.phase ?? 'idle';
+      root.dataset.counterattack = phase;
+      counterattack.hidden = phase === 'idle';
+      counterattack.textContent =
+        phase === 'telegraph'
+          ? 'TARGET CHARGING · MOVE OFF ITS LINE'
+          : phase === 'turning-back'
+            ? `${targetName.toUpperCase()} TURNING · GET READY TO DODGE`
+            : phase === 'firing'
+              ? data.counterattack?.kind === 'ion'
+                ? 'ION WAKE · FIND A CLEAR LANE'
+                : 'INCOMING VOLLEY · DODGE'
+              : 'TARGET TURNING FORWARD';
       const remaining = Math.max(0, finite(data.health)),
         maximum = Math.max(1, finite(data.maxHealth));
       root.dataset.reduced = String(!!frame.settings?.reducedMotion);
+      boss.dataset.reduced = root.dataset.reduced;
       root.dataset.close = String(Math.abs(finite(data.gap)) < 320);
       const separation = finite(data.gap);
       gap.textContent =
         Math.abs(separation) < 12
           ? 'ALONGSIDE'
           : `${Math.round(Math.abs(separation))} m ${separation >= 0 ? 'AHEAD' : 'BEHIND'}`;
-      healthLabel.innerHTML = `${Math.ceil(remaining)} <small>/ ${Math.ceil(maximum)}</small>`;
+      healthLabel.textContent = `${Math.ceil(remaining)} / ${Math.ceil(maximum)}`;
       health.setAttribute('aria-valuemax', String(maximum));
       health.setAttribute('aria-valuenow', String(remaining));
+      health.setAttribute(
+        'aria-valuetext',
+        `${Math.ceil(remaining)} health remaining out of ${Math.ceil(maximum)}`,
+      );
       healthFill.style.transform = `scaleX(${Math.min(1, remaining / maximum)})`;
       escapeLabel.textContent = `${distance(finite(data.escapeDistance) - finite(data.targetDistance))} left`;
       route.style.transform = `scaleX(${Math.max(0, Math.min(1, finite(data.escapeProgress)))})`;
@@ -85,18 +134,20 @@ export function createInterceptorPresentation({ host }) {
           : 'ally'
         : 'none';
       hit.textContent = recent
-        ? `${name(data.lastHit.source)} · ${data.lastHit.equipment === 'lance' ? 'Lance' : 'Arc'} hit · ${data.lastHit.damage} damage`
-        : 'Land Lance shots. The squad will support.';
+        ? `${name(data.lastHit.source)} · ${weaponName(data.lastHit.equipment)} hit · ${data.lastHit.damage} damage`
+        : 'Hold fire. Cross weapon gates for extra attacks.';
       boost.textContent = `SHIFT / ${controllerLayout(frame.settings ?? {}).boost}`;
     },
     trigger() {},
     reset() {
       root.hidden = true;
+      boss.hidden = true;
       root.dataset.hit = 'none';
     },
     dispose() {
       disposed = true;
       root.remove();
+      boss.remove();
       if (host.dataset.event === 'interceptor') {
         if (previousEvent === undefined) delete host.dataset.event;
         else host.dataset.event = previousEvent;

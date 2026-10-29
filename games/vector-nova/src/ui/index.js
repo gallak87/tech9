@@ -705,7 +705,10 @@ export function createUI(
       } = {},
     ) {
       currentCompetition = competition;
-      retainedResults = lastResults;
+      // Solo and mission outcomes have no race roster to show in the paddock.
+      retainedResults = Array.isArray(lastResults?.standings)
+        ? lastResults
+        : null;
       $('pause-race-settings')?.classList.toggle(
         'hidden',
         !competition?.enabled || !!cup,

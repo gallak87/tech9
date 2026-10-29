@@ -1,6 +1,7 @@
 // Original source-authored courier structure, in metres. +Z forward, +Y up.
-// Rendered primary masses use these same vertices; small fitted details remain
-// inside the compound envelope. Exhaust effects never participate in contact.
+// These frozen numeric parts remain the gameplay contact proxy. Art-directed
+// formed skins preserve the overall measured envelope and exhaust origins.
+// Exhaust effects never participate in contact.
 const boundsOf = (vertices) => {
   const min = [Infinity, Infinity, Infinity],
     max = [-Infinity, -Infinity, -Infinity];

@@ -24,7 +24,6 @@ export function garageView({
   craft,
   selectedShip,
   lockedShip,
-  stock,
   mode,
   track,
   notice = '',
@@ -37,13 +36,9 @@ export function garageView({
   const equipment = AVAILABLE_EQUIPMENT.filter((item) =>
     profile.claims.includes(`equipment-${item.id}`),
   );
-  const hint = stock
-    ? mode === 'Interceptor'
-      ? 'Stock hull · Lance and reserve injector are issued for this mission.'
-      : `Stock ${mode} · Equipment and enhancements are disabled.`
-    : cupLocked
-      ? 'Ship locked for this championship. Return to your championship ship to change equipment.'
-      : '';
+  const hint = cupLocked
+    ? 'Ship locked for this championship. Return to your championship ship to change equipment.'
+    : '';
   return `<div class="garage-top"><span>Choose ship</span><span>${escapeHTML(mode)} / ${escapeHTML(track)}</span></div>
     <div class="garage-layout"><nav class="garage-fleet" aria-label="Choose ship">${fleet
       .filter((ship) => shipUnlocked(profile, ship.id))
@@ -52,12 +47,12 @@ export function garageView({
           `<button data-ship="${ship.id}" aria-pressed="${ship.id === selectedShip}" data-preview="${ship.id === craft.id}" aria-label="Select ${ship.name}"><img src="${assetURL(`assets/menu/ships/${ship.id}.jpg`)}" alt=""><strong>${ship.name}${ship.id === selectedShip ? ' ✓' : ''}</strong><small>${ship.role}</small></button>`,
       )
       .join('')}</nav>
-    <div class="garage-main"><div class="garage-studio"><section class="ship-details"><h1>${craft.name}</h1><p class="garage-role">${craft.role}</p><div class="ship-preview-slot"><p role="status">Loading ship preview…</p></div><span class="garage-ship-status">${!unlocked ? shipLockText(profile, craft.id) : cupLocked ? 'Locked for this championship' : ''}</span><div class="transfer-slot ship-transfer"></div></section><section class="garage-performance" aria-label="Ship performance"><span class="kicker">Performance</span>${performanceView(craft, profile, { stock })}<div class="garage-legend"><span>Stock</span><span>Earned upgrades</span></div></section></div>
-    <section class="garage-equipment" aria-label="Choose equipment"><div class="garage-equipment-heading"><h2>Equipment</h2><span class="garage-equipment-count">${stock ? 'Stock rules' : `<b>${count} / ${capacity}</b> equipped${capacity === 4 ? ' · Quad Core' : ''}`}</span></div><div class="garage-equipment-grid">${equipment
+    <div class="garage-main"><div class="garage-studio"><section class="ship-details"><h1>${craft.name}</h1><p class="garage-role">${craft.role}</p><div class="ship-preview-slot"><p role="status">Loading ship preview…</p></div><span class="garage-ship-status">${!unlocked ? shipLockText(profile, craft.id) : cupLocked ? 'Locked for this championship' : ''}</span><div class="transfer-slot ship-transfer"></div></section><section class="garage-performance" aria-label="Ship performance"><span class="kicker">Performance</span>${performanceView(craft, profile)}<div class="garage-legend"><span>Stock</span><span>Earned upgrades</span></div></section></div>
+    <section class="garage-equipment" aria-label="Choose equipment"><div class="garage-equipment-heading"><h2>Equipment</h2><span class="garage-equipment-count"><b>${count} / ${capacity}</b> equipped${capacity === 4 ? ' · Quad Core' : ''}</span></div><div class="garage-equipment-grid">${equipment
       .map((item) => {
         const index = loadout.indexOf(item.id),
           equipped = index >= 0;
-        return `<button class="garage-equipment-card rarity-${item.rarity}" data-equip="${item.id}" aria-pressed="${equipped && !stock}" ${!unlocked || cupLocked || stock ? 'disabled' : ''}>${rewardIcon(`equipment-${item.id}`)}<span><strong>${item.name}</strong><small>${item.detail}</small><span class="garage-equipment-status">${equipped && !stock ? '✓ Equipped · ' : ''}${item.cooldown}s cooldown</span>${equipped && !stock ? `<kbd>${EQUIPMENT_CONTROLS[index].label}</kbd>` : ''}</span></button>`;
+        return `<button class="garage-equipment-card rarity-${item.rarity}" data-equip="${item.id}" aria-pressed="${equipped}" ${!unlocked || cupLocked ? 'disabled' : ''}>${rewardIcon(`equipment-${item.id}`)}<span><strong>${item.name}</strong><small>${item.detail}</small><span class="garage-equipment-status">${equipped ? '✓ Equipped · ' : ''}${item.cooldown}s cooldown</span>${equipped ? `<kbd>${EQUIPMENT_CONTROLS[index].label}</kbd>` : ''}</span></button>`;
       })
       .join(
         '',

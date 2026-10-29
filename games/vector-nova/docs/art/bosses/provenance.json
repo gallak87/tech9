@@ -1,0 +1,43 @@
+{
+  "concepts": [
+    {
+      "id": "goliath",
+      "image": "goliath-concept-v1.png",
+      "sha256": "86a6759f7cceec0622725a26cb5c7b9be606e8c8f4c27264688326b2f3b51a2a",
+      "tool": "Built-in imagegen",
+      "date": "2026-10-28",
+      "promptRecord": "README.md",
+      "inputs": [
+        "Project-authored boss blockout capture used only for broad proportions",
+        "Approved project-owned Kestrel used only for fleet material and manufacture language"
+      ],
+      "use": "3D modeling reference only; no generated concept pixels are runtime textures"
+    },
+    {
+      "id": "wraith",
+      "image": "wraith-concept-v1.png",
+      "sha256": "f45bfb7c14a35046e43b223ac810bad93b1c7848c02a51c4de18bb4d6bd4a0d0",
+      "tool": "Built-in imagegen",
+      "date": "2026-10-28",
+      "promptRecord": "README.md",
+      "inputs": [
+        "Project-authored boss blockout capture used only for broad proportions",
+        "Approved project-owned Kestrel used only for fleet material and manufacture language"
+      ],
+      "use": "3D modeling reference only; no generated concept pixels are runtime textures"
+    },
+    {
+      "id": "bulwark",
+      "image": "bulwark-concept-v1.png",
+      "sha256": "11cde133c5855d11243dcb87678111f08b4eb6aeb3166c4125ed53239db67e6d",
+      "tool": "Built-in imagegen",
+      "date": "2026-10-28",
+      "promptRecord": "README.md",
+      "inputs": [
+        "Project-authored boss blockout capture used only for broad proportions",
+        "Approved project-owned Kestrel used only for fleet material and manufacture language"
+      ],
+      "use": "3D modeling reference only; no generated concept pixels are runtime textures"
+    }
+  ]
+}

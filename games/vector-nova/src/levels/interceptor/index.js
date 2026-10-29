@@ -8,11 +8,11 @@ export default function createLevel() {
   const base = createCrucibleLevel();
   return {
     ...base,
-    version: '1.0.0-interceptor-dispatch',
+    version: '1.2.0-interceptor-dispatch',
     event: {
       type: 'interceptor',
       targetId: 'goliath',
-      health: 240,
+      bossId: 'goliath',
       escapeLaps: 2,
     },
     createTrack: createInterceptorTrack,

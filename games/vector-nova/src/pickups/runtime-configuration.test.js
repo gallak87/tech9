@@ -4,6 +4,7 @@ import { Quaternion, Vector3 } from 'three';
 import { createDeviceRuntime } from './runtime.js';
 import { createCombatSimulation } from './combat.js';
 import { createVehicleState } from '../physics/index.js';
+import { createInterceptorEvent } from '../events/interceptor.js';
 
 const DT = 1 / 120;
 const track = {
@@ -170,4 +171,244 @@ test('beforeCombat runs after all actor binds and launches a truthful allied hit
   } finally {
     [player, ally, target].forEach((runtime) => runtime.dispose());
   }
+});
+
+function resistanceRun(
+  combatResistance,
+  { shielded = false, toughness = 0, backward = false } = {},
+) {
+  const mission = createInterceptorEvent({
+    health: 240,
+    escapeDistance: track.length * 2,
+  });
+  const contacts = [],
+    impulses = [];
+  const combat = createCombatSimulation({
+    track,
+    onHit(payload) {
+      contacts.push(payload);
+      mission.hit({
+        ...payload,
+        key: `${payload.hitId}:${payload.source}:${payload.target}`,
+      });
+    },
+  });
+  let fired = false;
+  const source = createDeviceRuntime({
+    track,
+    devices: [],
+    motion: motion(),
+    combat,
+    beforeCombat() {
+      if (!fired) {
+        fired = true;
+        assert.equal(combat.fireLance('player'), true);
+      }
+    },
+  });
+  const targetMotion = motion();
+  const target = createDeviceRuntime({
+    track,
+    devices: shielded
+      ? [
+          {
+            id: 'shield',
+            type: 'aegis',
+            distance: 101,
+            lateral: 0,
+            width: 10,
+            length: 8,
+          },
+        ]
+      : [],
+    motion: {
+      ...targetMotion,
+      ...(backward
+        ? {
+            pose(alpha) {
+              const physical = targetMotion.pose(alpha);
+              return (
+                physical && {
+                  ...physical,
+                  quaternion: new Quaternion().setFromAxisAngle(
+                    new Vector3(0, 1, 0),
+                    Math.PI,
+                  ),
+                  drivingQuaternion: physical.quaternion,
+                }
+              );
+            },
+          }
+        : {}),
+      applyImpulse(state, impulse) {
+        impulses.push(impulse.toArray());
+        state.speed = Math.max(0, state.speed + impulse.z);
+        state.lateralSpeed += impulse.x;
+      },
+    },
+    combat,
+    combatId: 'goliath',
+    combatResistance,
+  });
+  const states = [
+    { ...createVehicleState(), distance: 0, speed: 80 },
+    {
+      ...createVehicleState(),
+      distance: 100,
+      speed: 80,
+      enhancements: { toughness },
+    },
+  ];
+  function step(ticks) {
+    for (let index = 0; index < ticks; index++) {
+      source.advance(states[0], coast, DT);
+      target.advance(states[1], coast, DT);
+      source.advanceInteractions(DT);
+    }
+  }
+  try {
+    source.reset({ state: states[0] });
+    target.reset({ state: states[1] });
+    for (let index = 0; index < 120 && !contacts.length; index++) step(1);
+    assert.equal(
+      contacts.length,
+      1,
+      'a real projectile reaches the moving target',
+    );
+    const impact = {
+      states: structuredClone(states),
+      source: source.snapshot(),
+      target: target.snapshot(),
+      combat: combat.snapshot(),
+    };
+    const result = {
+      contact: contacts[0],
+      impulse: impulses[0],
+      health: mission.snapshot().health,
+      state: { ...states[1] },
+      disruption: combat.disruption('goliath'),
+      rulesId: target.rulesId,
+    };
+    if (combatResistance && !shielded) {
+      const incompatible = structuredClone(impact.combat);
+      delete incompatible.disruptions.goliath.combatResistance;
+      assert.throws(
+        () => combat.restore(incompatible),
+        /Combat replay/,
+        'extra mitigation requires explicit resistant actor state',
+      );
+      assert.deepEqual(combat.snapshot(), impact.combat);
+    }
+    step(42);
+    const after = structuredClone(states),
+      replayCombat = combat.snapshot();
+    result.afterRecovery = { ...states[1] };
+    result.remainingDisruption = combat.disruption('goliath');
+    Object.assign(states[0], impact.states[0]);
+    Object.assign(states[1], impact.states[1]);
+    target.restore(impact.target);
+    source.restore(impact.source);
+    assert.deepEqual(combat.snapshot(), impact.combat);
+    step(42);
+    assert.deepEqual(
+      states,
+      after,
+      'restore repeats movement and reduced consequences exactly',
+    );
+    assert.deepEqual(combat.snapshot(), replayCombat);
+    return result;
+  } finally {
+    source.dispose();
+    target.dispose();
+  }
+}
+
+test('opted combat resistance preserves moving-target Lance damage while reducing physical disruption and replaying exactly', () => {
+  const normal = resistanceRun(undefined),
+    zero = resistanceRun(0),
+    armored = resistanceRun(0.9);
+  assert.deepEqual(
+    normal,
+    zero,
+    'zero keeps the ordinary runtime and consequences unchanged',
+  );
+  assert.equal(normal.health, 222);
+  assert.equal(
+    armored.health,
+    normal.health,
+    'armor never shields the actual mission damage',
+  );
+  assert.equal(armored.contact.shielded, false);
+  assert.equal(armored.contact.equipment, 'lance');
+  assert.equal(normal.state.energy, 82);
+  assert.ok(Math.abs(armored.state.energy - 98.2) < 1e-10);
+  assert.ok(Math.abs(armored.impulse[0] - normal.impulse[0] * 0.1) < 1e-10);
+  assert.ok(Math.abs(armored.impulse[2] - normal.impulse[2] * 0.1) < 1e-10);
+  assert.equal(normal.disruption.duration, 3);
+  assert.ok(Math.abs(armored.disruption.duration - 0.3) < 1e-10);
+  assert.ok(
+    normal.state.speed < 45,
+    'ordinary Lance keeps its established strong slowdown',
+  );
+  assert.ok(
+    armored.state.speed > 76,
+    'the armored target retains over 95% of its pace',
+  );
+  assert.ok(normal.remainingDisruption);
+  assert.equal(armored.remainingDisruption, null);
+  assert.notEqual(normal.rulesId, armored.rulesId);
+  assert.match(armored.rulesId, /"combatResistance":0.9/);
+});
+
+test('resistance combines with toughness and preserves real shielding', () => {
+  const armored = resistanceRun(0.9, { toughness: 3 });
+  assert.ok(Math.abs(armored.state.energy - 98.56) < 1e-10);
+  assert.ok(Math.abs(armored.disruption.mitigation - 0.92) < 1e-10);
+  assert.ok(Math.abs(armored.disruption.duration - 0.24) < 1e-10);
+  const shielded = resistanceRun(0.9, { shielded: true });
+  assert.equal(shielded.contact.shielded, true);
+  assert.equal(shielded.health, 240);
+  assert.equal(shielded.state.energy, 100);
+  assert.equal(shielded.disruption, null);
+  assert.equal(shielded.impulse, undefined);
+});
+
+test('a backward-facing target applies real weapon slowdown along its independent driving axis', () => {
+  const forward = resistanceRun(0.9),
+    backward = resistanceRun(0.9, { backward: true });
+  assert.equal(backward.health, 222);
+  assert.equal(backward.contact.shielded, false);
+  assert.ok(Math.abs(backward.state.speed - forward.state.speed) < 1e-10);
+  assert.ok(backward.state.speed > 76 && backward.state.speed < 77);
+  assert.ok(backward.afterRecovery.speed < 80);
+  assert.ok(
+    Math.abs(backward.afterRecovery.distance - forward.afterRecovery.distance) <
+      1e-10,
+    'the rearward hull pose never turns repeated stun corrections into forward acceleration',
+  );
+});
+
+test('combat resistance rejects invalid configuration and binding values', () => {
+  for (const combatResistance of [null, NaN, Infinity, -0.1, 1.1, '0.9']) {
+    assert.throws(
+      () =>
+        createDeviceRuntime({
+          track,
+          devices: [],
+          motion: motion(),
+          combatResistance,
+        }),
+      /resistance/,
+    );
+    const combat = createCombatSimulation({ track });
+    assert.throws(
+      () => combat.bind('invalid', { combatResistance }),
+      /resistance/,
+    );
+  }
+  const immune = resistanceRun(1);
+  assert.equal(immune.health, 222);
+  assert.equal(immune.state.energy, 100);
+  assert.equal(immune.state.speed, 80);
+  assert.equal(immune.disruption, null);
 });

@@ -8,11 +8,13 @@ import { createEliminatorEvent } from '../events/eliminator.js';
 import { createEliminatorPresentation } from '../events/eliminator-view.js';
 import { createInterceptorEvent } from '../events/interceptor.js';
 import { createInterceptorPresentation } from '../events/interceptor-view.js';
+import { createInterceptorField } from '../events/interceptor-field.js';
+import { createInterceptorMotion } from '../events/interceptor-motion.js';
+import { interceptorBoss } from '../events/interceptor-bosses.js';
 import {
-  createInterceptorField,
   PURSUIT_EQUIPMENT,
   PURSUIT_TUNING,
-} from '../events/interceptor-field.js';
+} from '../events/interceptor-loadout.js';
 import { interpolateSurfaceLateral } from '../track/surface.js';
 import * as T from 'three';
 import { createFleetShip } from '../ships/fleet.js';
@@ -160,13 +162,27 @@ export async function createGame({
     const settings = loadSettings();
     await checkpoint('Preparing route');
     const track = validateTrack(await definition.createTrack());
-    if (!freestyle && definition.event?.type === 'interceptor')
-      interceptor = createInterceptorEvent({
+    const missionBoss =
+      definition.event?.type === 'interceptor'
+        ? interceptorBoss(definition.event.bossId ?? definition.event.targetId)
+        : null;
+    const newInterceptor = (difficulty = settings.difficulty) =>
+      createInterceptorEvent({
         targetId: definition.event.targetId,
+        bossId: missionBoss.id,
         health: definition.event.health,
+        difficulty,
+        routeLength: track.length,
         escapeDistance: track.length * definition.event.escapeLaps,
       });
-    const raceField = interceptor ? createInterceptorField() : null;
+    if (!freestyle && definition.event?.type === 'interceptor')
+      interceptor = newInterceptor();
+    const raceField = interceptor
+      ? createInterceptorField({
+          bossId: missionBoss.id,
+          getCounterattack: () => interceptor.snapshot().counterattack,
+        })
+      : null;
     const eventIdentity = () =>
       eliminator
         ? { ...definition.event, rulesId: eliminator.rulesId }
@@ -482,18 +498,33 @@ export async function createGame({
                 combatId: specification.id,
                 team: specification.team,
                 hitBounds: specification.hitBounds,
+                ...(interceptor && specification.id === missionBoss.id
+                  ? { combatResistance: 0.9 }
+                  : {}),
                 track,
-                devices,
+                devices:
+                  interceptor && specification.id === missionBoss.id
+                    ? devices.filter((device) => device.type === 'aegis')
+                    : devices,
                 identity: definition.racing.identity,
-                motion: (
-                  definition.racing.createMotion ?? createMagneticRuntime
-                )({
-                  track,
-                  collisionWorld,
-                  dynamics,
-                  settings,
-                  presentation: false,
-                }),
+                motion:
+                  interceptor && specification.id === missionBoss.id
+                    ? createInterceptorMotion(
+                        { track, collisionWorld, dynamics, settings },
+                        {
+                          getYaw: () =>
+                            interceptor.snapshot().counterattack.yaw,
+                        },
+                      )
+                    : (definition.racing.createMotion ?? createMagneticRuntime)(
+                        {
+                          track,
+                          collisionWorld,
+                          dynamics,
+                          settings,
+                          presentation: false,
+                        },
+                      ),
               }),
           }),
         )
@@ -553,7 +584,11 @@ export async function createGame({
         interceptor?.invalidate();
       } else {
         eliminator?.reset();
-        interceptor?.reset();
+        if (interceptor) {
+          if (interceptor.snapshot().difficulty !== raceDifficulty)
+            interceptor = newInterceptor(raceDifficulty);
+          else interceptor.reset();
+        }
         eventPresentation?.reset();
         lastEliminationWarning = null;
       }
@@ -657,7 +692,7 @@ export async function createGame({
       }
       if (interceptor && competition) {
         const target = racers.opponents.find(
-          (opponent) => opponent.specification.id === 'goliath',
+          (opponent) => opponent.specification.id === missionBoss.id,
         );
         for (const event of interceptor.step(1 / 120, {
           targetDistance: target.state.distance,
@@ -768,19 +803,21 @@ export async function createGame({
         return;
       }
       const target = racers.opponents.find(
-        (opponent) => opponent.specification.id === 'goliath',
+        (opponent) => opponent.specification.id === missionBoss.id,
       );
       for (const command of pendingMissionFire.splice(0)) {
-        if (command.kind === 'ion')
-          combat.request('goliath', {
-            type: 'pickup-activate',
-            payload: {
-              kind: 'ion',
-              deviceId: 'goliath-countermeasure',
-              fraction: 0,
-            },
-          });
-        else {
+        if (command.source === missionBoss.id) {
+          if (command.kind === 'lance') combat.fireLance(missionBoss.id);
+          else
+            combat.request(missionBoss.id, {
+              type: 'pickup-activate',
+              payload: {
+                kind: command.kind,
+                deviceId: `${missionBoss.id}-countermeasure`,
+                fraction: 0,
+              },
+            });
+        } else {
           const source = racers.opponents.find(
             (opponent) => opponent.specification.id === command.source,
           );
@@ -799,7 +836,7 @@ export async function createGame({
       if (!interceptor) return null;
       const snapshot = interceptor.snapshot();
       const target = racers.opponents.find(
-        (opponent) => opponent.specification.id === 'goliath',
+        (opponent) => opponent.specification.id === missionBoss.id,
       );
       return {
         ...snapshot,
@@ -2429,6 +2466,8 @@ export async function createGame({
                 (replay.competition &&
                   JSON.stringify(replay.field) !==
                     JSON.stringify(racers?.identity)) ||
+                (interceptor &&
+                  replay.difficulty !== interceptor.snapshot().difficulty) ||
                 (track.closed === false &&
                   JSON.stringify(replay.course) !==
                     JSON.stringify(courseIdentity(track))) ||

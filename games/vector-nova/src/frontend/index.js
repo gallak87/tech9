@@ -2,6 +2,7 @@ import { garageView, toggleGarageEquipment, navigateGarage } from './garage.js';
 import { TRICKS } from '../freestyle/rules.js';
 import { eliminatorResultsView } from '../events/eliminator-view.js';
 import { interceptorResultsView } from '../events/interceptor-view.js';
+import { interceptorBoss } from '../events/interceptor-bosses.js';
 import {
   createProfileStore,
   shipUnlocked,
@@ -42,6 +43,7 @@ import { recordsView } from './records.js';
 import { readTrialRecords } from '../race/time-trial.js';
 import { formatTime, formatDelta } from '../race/timing.js';
 import { discoverLevels } from '../levels/catalog.js';
+import { canonicalLevelId } from '../levels/aliases.js';
 import routes from 'virtual:menu-catalog';
 import { RACE_FIELD_SIZE, RACE_OPPONENTS } from '../race/roster.js';
 import {
@@ -128,14 +130,24 @@ export async function createFrontend(host) {
     parameters.has('review') ||
     parameters.has('test') ||
     parameters.has('capture');
-  const requested = parameters.get('level');
+  const previousLevel = parameters.get('level');
+  const alias = canonicalLevelId(previousLevel);
+  const requested = catalog.some((entry) => entry.id === alias)
+    ? alias
+    : previousLevel;
+  if (requested !== previousLevel) {
+    parameters.set('level', requested);
+    const url = new URL(location.href);
+    url.searchParams.set('level', requested);
+    history.replaceState(history.state, '', url);
+  }
   let invalidLevel =
     requested && !catalog.some((level) => level.id === requested);
   let selected =
     requested || (parameters.get('test') === 'jump' ? 'saffron' : null);
   if (!selected) {
     try {
-      selected = localStorage.getItem('vector-nova.circuit');
+      selected = canonicalLevelId(localStorage.getItem('vector-nova.circuit'));
     } catch {
       /* Optional storage. */
     }
@@ -150,6 +162,13 @@ export async function createFrontend(host) {
   let racingTrack = eventTypeFor(selected)
     ? catalog.find((entry) => !entry.freestyle && !entry.eventType).id
     : selected;
+  const eventSelections = new Map();
+  if (eventTypeFor(selected))
+    eventSelections.set(eventTypeFor(selected), selected);
+  const encounterBoss = (id = selected) =>
+    interceptorBoss(
+      catalog.find((entry) => entry.id === id)?.bossId ?? 'goliath',
+    );
   let sessionIntent = 'race',
     recordsBack = 'home',
     recordsFocus = null;
@@ -333,7 +352,7 @@ export async function createFrontend(host) {
                   : 'Quick Race';
   const loadedLevel = () => catalog.find((l) => l.id === loadedId) ?? level();
   const difficultyControls = () =>
-    `<fieldset class="race-difficulty"><legend>Opponent difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${settings.difficulty === d}" tabindex="${settings.difficulty === d ? 0 : -1}">${d}</button>`).join('')}</fieldset>`;
+    `<fieldset class="race-difficulty"><legend>${intent === 'interceptor' ? 'Encounter difficulty' : 'Opponent difficulty'}</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${settings.difficulty === d}" tabindex="${settings.difficulty === d ? 0 : -1}">${d}</button>`).join('')}</fieldset>`;
   const facts = () =>
     `<span>${route() ? (route().length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'}</span> <span>${intent === 'freestyle' ? '5 TRANSFERS' : intent === 'eliminator' ? 'SURVIVE THE CUT' : intent === 'interceptor' ? '2 CIRCUIT PURSUIT' : route()?.closed === false ? 'POINT TO POINT' : intent === 'practice' ? 'OPEN PRACTICE' : intent === 'time-trial' ? 'UNLIMITED LAPS' : '2 LAPS'}</span> <span>${intent === 'interceptor' ? '4 HUNTERS · 1 TARGET' : ['race', 'cup', 'eliminator'].includes(intent) ? `${RACE_FIELD_SIZE} PILOTS` : 'SOLO'}</span>`;
   function remember() {
@@ -469,9 +488,14 @@ export async function createFrontend(host) {
     return `<div class="front-heading"><span class="kicker">${kicker}</span><h1 tabindex="-1">${title}</h1></div>`;
   }
   const trackBadge = (id) =>
-    `<span class="track-type-badge" data-type="${id === 'launchworks' ? 'freestyle' : isSprint(id) ? 'sprint' : 'circuit'}">${id === 'launchworks' ? 'Freestyle' : isSprint(id) ? 'Sprint' : 'Circuit'}</span>`;
+    eventTypeFor(id) === 'interceptor'
+      ? `<span class="track-type-badge" data-type="interceptor">${escape(encounterBoss(id).name)}</span>`
+      : `<span class="track-type-badge" data-type="${id === 'launchworks' ? 'freestyle' : isSprint(id) ? 'sprint' : 'circuit'}">${id === 'launchworks' ? 'Freestyle' : isSprint(id) ? 'Sprint' : 'Circuit'}</span>`;
   const trackCard = (l) => {
-    const challenge = trackChallenge(l.id);
+    const challenge =
+      eventTypeFor(l.id) === 'interceptor'
+        ? `${encounterBoss(l.id).name}, Interceptor`
+        : trackChallenge(l.id);
     return `<button class="circuit-card ${l.id === selected ? 'selected' : ''}" data-level="${l.id}" tabindex="${l.id === selected ? 0 : -1}" aria-pressed="${l.id === selected}" title="${escape(l.name)}" aria-label="${escape(l.name)}, ${challenge}, ${l.freestyle ? 'freestyle' : isSprint(l.id) ? 'downhill sprint' : 'circuit'}. Select track."><span class="track-icon">${picture(route(l.id))}${routeArt(route(l.id))}</span><span class="card-name"><span class="card-title">${escape(l.name)}</span></span>${trackBadge(l.id)}<span class="track-selected" aria-hidden="true">${l.id === selected ? '✓' : ''}</span></button>`;
   };
   const circuitPanel = () => {
@@ -484,12 +508,14 @@ export async function createFrontend(host) {
             ? intent
             : 'race'),
       )
-      .toSorted(
-        (a, b) =>
-          TRACK_CHALLENGES.indexOf(trackChallenge(a.id)) -
-          TRACK_CHALLENGES.indexOf(trackChallenge(b.id)),
+      .toSorted((a, b) =>
+        intent === 'interceptor'
+          ? a.order - b.order
+          : TRACK_CHALLENGES.indexOf(trackChallenge(a.id)) -
+            TRACK_CHALLENGES.indexOf(trackChallenge(b.id)),
       )) {
-      const challenge = trackChallenge(track.id);
+      const challenge =
+        intent === 'interceptor' ? 'Bosses' : trackChallenge(track.id);
       const group = challenge === 'Warm-up' ? 'Easy' : challenge;
       if (!groups.has(group)) groups.set(group, []);
       groups.get(group).push(track);
@@ -500,14 +526,15 @@ export async function createFrontend(host) {
         : intent === 'eliminator'
           ? '<aside class="event-guide"><h3>Stay ahead of the cut.</h3><p>Last place is removed after <b>22 seconds</b>, then every <b>10 seconds</b>. Watch the at-risk racer and survive to the final ship. Your equipped build and the course’s weapons are active.</p><p>Every valid result earns normal race progress. Cups keep their original lineups.</p></aside>'
           : intent === 'interceptor'
-            ? '<aside class="event-guide"><h3>Bring down Goliath.</h3><p>You and <b>three allied racers</b> must disable the heavy courier before it completes <b>two circuits</b>. Aim by driving your ship. <b>Hold Q / X</b> to fire your issued Lance; <b>E / Y</b> refills boost reserve.</p><p>Stock hull · Issued weapons · Friendly fire off. Keep pace through the bends and use the Vector strips.</p></aside>'
+            ? `<aside class="event-guide"><h3>Stop ${escape(encounterBoss().name)} within 2 laps.</h3><p><b>Hold Q / X</b> Fire Lance · <b>E / Y</b> Refill reserve · <b>Shift / ${controllerLayout(settings).boost}</b> Boost</p></aside>`
             : '';
     return `<section class="circuit-picker-panel" aria-label="Choose a track"><div class="circuit-hero" aria-live="polite"></div>${guide}<div class="circuit-grid" role="group" aria-label="Tracks">${[
       ...groups,
     ]
-      .map(
-        ([challenge, tracks]) =>
-          `<div class="track-group" data-challenge="${challenge.toLowerCase()}" role="group" aria-label="${challenge === 'Easy' ? 'Warm-up and Easy' : challenge} tracks"><span class="track-group-label" aria-hidden="true">${challenge}</span>${tracks.map(trackCard).join('')}</div>`,
+      .map(([challenge, tracks]) =>
+        intent === 'interceptor'
+          ? `<div class="track-group" role="group" aria-label="Boss encounters">${tracks.map(trackCard).join('')}</div>`
+          : `<div class="track-group" data-challenge="${challenge.toLowerCase()}" role="group" aria-label="${challenge === 'Easy' ? 'Warm-up and Easy' : challenge} tracks"><span class="track-group-label" aria-hidden="true">${challenge}</span>${tracks.map(trackCard).join('')}</div>`,
       )
       .join(
         '',
@@ -519,7 +546,6 @@ export async function createFrontend(host) {
       craft: ship(),
       selectedShip: shipId,
       lockedShip: lockedCup()?.shipId,
-      stock: ['time-trial', 'freestyle', 'interceptor'].includes(intent),
       mode: modeName(),
       track: level().name,
       notice: garageNotice,
@@ -606,7 +632,7 @@ export async function createFrontend(host) {
     const selectedCraft = lockedCup()
       ? SHIPS.find((entry) => entry.id === savedCup.shipId)
       : selectedShip();
-    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${intent === 'freestyle' ? 'Freestyle · stock build' : isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot())}<nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}${button('career', `Career & saves${earnedRewards.length ? ` · ${earnedRewards.length} new` : ''}`)}${music ? button('tunes', 'Tunes') : ''}${import.meta.env?.VN_DESKTOP === true ? button('desktop-quit', 'Quit game') : ''}</nav><div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : intent === 'interceptor' ? `${escape(encounterBoss().name)} · Interceptor` : `${trackChallenge(selected)} · ${intent === 'freestyle' ? 'Freestyle · stock build' : isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot())}<nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}${button('career', `Career & saves${earnedRewards.length ? ` · ${earnedRewards.length} new` : ''}`)}${music ? button('tunes', 'Tunes') : ''}${import.meta.env?.VN_DESKTOP === true ? button('desktop-quit', 'Quit game') : ''}</nav><div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
   };
   function cupPanel(withActions) {
     const cup = currentCup();
@@ -955,7 +981,7 @@ export async function createFrontend(host) {
       node = shell.querySelector('.circuit-hero');
     if (!node) return;
     previewLevelId = id;
-    node.innerHTML = `<div class="detail-image">${picture(r)}${routeArt(r)}${goalBadges(id)}${trackBadge(id)}<div class="track-caption"><h2>${escape(l.name)}</h2><p>${trackChallenge(id)} · ${r ? (r.length / 1000).toFixed(2) + ' km' : '—'}</p></div></div>`;
+    node.innerHTML = `<div class="detail-image">${picture(r)}${routeArt(r)}${goalBadges(id)}${trackBadge(id)}<div class="track-caption"><h2>${escape(l.name)}</h2><p>${eventTypeFor(id) === 'interceptor' ? escape(encounterBoss(id).name) : trackChallenge(id)} · ${r ? (r.length / 1000).toFixed(2) + ' km' : '—'}</p></div></div>`;
   }
   function selectCircuit(id) {
     invalidLevel = false;
@@ -1564,9 +1590,13 @@ export async function createFrontend(host) {
     }
   }
   function chooseMode(mode) {
+    if (eventTypeFor(selected))
+      eventSelections.set(eventTypeFor(selected), selected);
     if (['freestyle', 'eliminator', 'interceptor'].includes(mode)) {
       if (!eventTypeFor(selected)) racingTrack = selected;
-      selected = catalog.find((entry) => eventTypeFor(entry.id) === mode).id;
+      selected =
+        eventSelections.get(mode) ??
+        catalog.find((entry) => eventTypeFor(entry.id) === mode).id;
     } else if (eventTypeFor(selected)) selected = racingTrack;
     previewLevelId = selected;
     intent = mode;
@@ -1790,11 +1820,7 @@ export async function createFrontend(host) {
       } else if (el.dataset.level) {
         selectCircuit(el.dataset.level);
       } else if (el.dataset.equip) {
-        if (
-          ['time-trial', 'freestyle', 'interceptor'].includes(intent) ||
-          (lockedCup() && lockedCup().shipId !== ship().id)
-        )
-          return;
+        if (lockedCup() && lockedCup().shipId !== ship().id) return;
         const id = ship().id;
         garageNotice = toggleGarageEquipment(
           profileStore,

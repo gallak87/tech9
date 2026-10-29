@@ -5,6 +5,8 @@ export default {
   shape: false,
   review: true,
   eventType: 'interceptor',
+  bossId: 'goliath',
+  bossName: 'Goliath',
   ui: {
     edition: 'INTERCEPTOR / GOLIATH DISPATCH',
     subtitle: 'THE FOUNDRY PURSUIT',

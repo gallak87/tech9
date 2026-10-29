@@ -637,14 +637,24 @@ export async function createRapierWorld({
       actor.motion.copy(actor.velocity).add(guide);
       actor.angularVelocity.clampLength(0, 12);
     }
+    for (const actor of [a, b]) {
+      if (!actor?.selfContactSpeedLimit) continue;
+      // Opt-in hulls bound their own resolved impulse before any remaining
+      // movement. Keep independent road/support guidance intact.
+      const guide = actor.motion.clone().sub(actor.velocity);
+      actor.velocity.clampLength(0, actor.selfContactSpeedLimit);
+      actor.motion.copy(actor.velocity).add(guide);
+    }
     const push = Math.min(0.3, hit.depth + RAPIER_RULES.skin * 2);
     if (linear > 1e-8) {
       const da = la.clone().multiplyScalar(push / linear);
-      if (b?.contactSpeedLimit) da.clampLength(0, push);
+      if (a.selfContactSpeedLimit || b?.contactSpeedLimit)
+        da.clampLength(0, push);
       shift(a, da);
       if (b) {
         const db = lb.clone().multiplyScalar(-push / linear);
-        if (a.contactSpeedLimit) db.clampLength(0, push);
+        if (b.selfContactSpeedLimit || a.contactSpeedLimit)
+          db.clampLength(0, push);
         shift(b, db);
       }
     }
@@ -758,6 +768,7 @@ export async function createRapierWorld({
       hull = VEHICLE_HULL,
       mass = 1,
       contactSpeedLimit = null,
+      selfContactSpeedLimit = null,
       hazard = false,
     } = {}) {
       alive();
@@ -772,8 +783,9 @@ export async function createRapierWorld({
       let id = 0;
       while (actors.has(id)) id++;
       if (
-        contactSpeedLimit !== null &&
-        (!Number.isFinite(contactSpeedLimit) || contactSpeedLimit <= 0)
+        [contactSpeedLimit, selfContactSpeedLimit].some(
+          (limit) => limit !== null && (!Number.isFinite(limit) || limit <= 0),
+        )
       )
         throw new Error('Contact speed limit must be positive.');
       const a = {
@@ -781,6 +793,7 @@ export async function createRapierWorld({
         mass,
         hazard: Boolean(hazard),
         contactSpeedLimit,
+        selfContactSpeedLimit,
         hull: { ...hull },
         contactShape: null,
       };
@@ -938,6 +951,9 @@ export async function createRapierWorld({
             mass: a.mass,
             ...(a.hazard ? { hazard: true } : {}),
             contactSpeedLimit: a.contactSpeedLimit,
+            ...(a.selfContactSpeedLimit !== null
+              ? { selfContactSpeedLimit: a.selfContactSpeedLimit }
+              : {}),
             hull: a.hull,
             contactShape: a.contactShape,
             ...copyPose(a),
@@ -973,12 +989,15 @@ export async function createRapierWorld({
             actors.get(a.id).hazard !== Boolean(a.hazard) ||
             actors.get(a.id).contactSpeedLimit !==
               (a.contactSpeedLimit ?? null) ||
+            actors.get(a.id).selfContactSpeedLimit !==
+              (a.selfContactSpeedLimit ?? null) ||
             JSON.stringify(actors.get(a.id).hull) !== JSON.stringify(a.hull),
         )
       )
         throw new Error('Query snapshot identity or actors do not match.');
       const next = data.actors.map((a) => ({
         ...a,
+        selfContactSpeedLimit: a.selfContactSpeedLimit ?? null,
         ...finitePose(a),
         velocity: finiteVector(a.velocity, 'velocity'),
         angularVelocity: finiteVector(a.angularVelocity, 'angular velocity'),

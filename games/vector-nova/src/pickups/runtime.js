@@ -5,7 +5,12 @@ import {
   createMagneticRuntime,
   runtimeIdentity,
 } from '../core/session-runtime.js';
-import { isCombatDevice, COMBAT_RULES, combatHitBounds } from './combat.js';
+import {
+  isCombatDevice,
+  COMBAT_RULES,
+  combatHitBounds,
+  validateCombatResistance,
+} from './combat.js';
 import { createPickupSimulation, VECTOR_PROPULSION } from './simulation.js';
 
 // Compose devices around a circuit's actual simulation. Player and rivals use
@@ -21,6 +26,7 @@ export function createDeviceRuntime({
   combatId = 'player',
   team,
   hitBounds,
+  combatResistance = 0,
   equipmentTuning = {},
   beforeCombat,
 }) {
@@ -30,10 +36,12 @@ export function createDeviceRuntime({
     throw new Error('Combat preparation must be a function');
   const actorTeam = team?.trim() || null;
   const actorBounds = combatHitBounds(hitBounds);
+  const resistance = validateCombatResistance(combatResistance);
   const tuning = structuredClone(equipmentTuning);
   const actorIdentity = {
     ...(actorTeam ? { team: actorTeam } : {}),
     ...(actorBounds ? { hitBounds: actorBounds } : {}),
+    ...(resistance ? { combatResistance: resistance } : {}),
     ...(Object.keys(tuning).length ? { equipmentTuning: tuning } : {}),
   };
   const equipment =
@@ -87,7 +95,7 @@ export function createDeviceRuntime({
         0,
         0,
         disruption.speedLimit - state.speed,
-      ).applyQuaternion(pose.quaternion);
+      ).applyQuaternion(pose.drivingQuaternion ?? pose.quaternion);
       motion.applyImpulse(state, impulse);
     } else state.speed = disruption.speedLimit;
   }
@@ -96,6 +104,7 @@ export function createDeviceRuntime({
     combat.bind(combatId, {
       ...(actorTeam ? { team: actorTeam } : {}),
       ...(actorBounds ? { hitBounds: actorBounds } : {}),
+      ...(resistance ? { combatResistance: resistance } : {}),
       state,
       pose: () => motion.pose(1),
       notify: (event) => pending.push(event),

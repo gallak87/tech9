@@ -2,6 +2,23 @@
   "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "interceptor-boss-art-concepts-v1",
+      "source": "docs/art/bosses/",
+      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
+      "provenance": "Three original concept sheets for Goliath, Wraith and Bulwark, generated separately from project-owned blockout and approved fleet references. Exact prompts, image hashes and reference roles retained. Modeling references only; runtime ships use original authored geometry and material maps.",
+      "rights": "Generated for this project from project-owned references",
+      "runtimeDependencies": [],
+      "provenanceRecord": "docs/art/bosses/provenance.json"
+    },
+    {
+      "id": "interceptor-specialist-bosses",
+      "source": "src/ships/wraith-target.js, src/ships/bulwark-target.js, src/ships/boss-hulls.js and shared boss art helpers",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original formed Wraith split-prong cutter and Bulwark shield barge, built around the registered project-generated concept sheets. Shaped ceramic skins, graphite carriers, genuine intake/service recesses, machined fittings and original clean procedural material maps. Frozen contact proxies, measured bounds and exhaust origins are validated independently from the render skins. No generated concept pixels or external model assets are used at runtime.",
+      "rights": "Project-owned geometry and materials",
+      "runtimeDependencies": ["Three.js", "shared rival propulsion"]
+    },
+    {
       "id": "goliath-courier-concept",
       "source": "docs/levels/interceptor/",
       "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
@@ -14,7 +31,7 @@
       "id": "goliath-interceptor-target",
       "source": "src/ships/interceptor-target.js and src/ships/interceptor-target-hull.js",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original source-authored 40 × 16 × 6 metre AI courier with twelve connected structural contact parts, fitted ceramic/graphite/metal geometry, recessed ion outlets and shared rival propulsion. Rendering and physical contact share the authored numeric structural vertices and validated hull hash. Crucible Dispatch borrows the registered Foundry course and Worldkit materials; no new runtime media or player-fleet model replacement.",
+      "provenance": "Original source-authored 40 × 16 × 6 metre AI courier with twelve frozen structural contact parts, concept-guided formed ceramic skins, fitted graphite and metal assemblies, a pressure cargo spine and three recessed ion drives. Visual skins retain measured bounds and exhaust origins while the validated numeric contact hull remains unchanged. Original clean procedural finish maps and scoped boss propulsion are project-authored; generated concepts remain references only.",
       "rights": "Project-authored and derived from registered project assets; original provenance and rights apply",
       "runtimeDependencies": ["three"]
     },

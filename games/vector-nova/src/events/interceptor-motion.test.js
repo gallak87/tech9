@@ -10,6 +10,9 @@ import { createVehicleState } from '../physics/index.js';
 import { createCombatSimulation } from '../pickups/combat.js';
 import { createInterceptorEvent } from './interceptor.js';
 import { createDeviceRuntime } from '../pickups/runtime.js';
+import createHelionBreach from '../levels/interceptor-helion/index.js';
+import { BASELINE_RULES } from '../core/session-runtime.js';
+import { MAGNETIC_BODY_RULES } from '../physics/magnetic-body.js';
 
 const DT = 1 / 120;
 const smooth = (value) => {
@@ -69,6 +72,12 @@ test('courier facing rotates the actual contact hull and fires real projectiles 
     { getYaw: () => facingAt(state.time) },
   );
   try {
+    assert.equal(runtime.id, 'interceptor-magnetic');
+    assert.equal(runtime.version, 3);
+    assert.equal(
+      runtime.rulesId,
+      `${BASELINE_RULES}:${MAGNETIC_BODY_RULES}:${dynamics.rulesId}:courier-facing-v3-driving-axis:self-contact-100:other-contact-180`,
+    );
     runtime.reset({ state });
     for (let i = 0; i < 3 * 120; i++) step(runtime, state);
     const pose = runtime.pose(1),
@@ -377,5 +386,205 @@ test('the forty-metre turning hull sweeps safely through the actual dispatch cou
   } finally {
     runtime.dispose();
     dynamics.dispose();
+  }
+});
+
+async function helionBossFixture(initial, { clear = false, getYaw } = {}) {
+  const level = createHelionBreach();
+  const original = level.createTrack();
+  const track = clear ? { ...original, thermalZones: [] } : original;
+  const collisionWorld = level.createCollisionWorld({ track });
+  const dynamics = await createRapierWorld({ collisionWorld });
+  const state = {
+    ...createVehicleState('bastion'),
+    chassisId: 'wraith',
+    ...initial(track),
+  };
+  const runtime = createInterceptorMotion(
+    {
+      track,
+      collisionWorld,
+      dynamics,
+      settings: { steeringAssist: 0.3 },
+      presentation: false,
+    },
+    {
+      createMotion: level.racing.createMotion,
+      getYaw: () => getYaw?.(state) ?? 0,
+    },
+  );
+  runtime.reset({ state });
+  return {
+    track,
+    state,
+    runtime,
+    dynamics,
+    step(input = {}) {
+      // Exercise the same shared physical clock used by the live race.
+      runtime.beginAdvance(state, input, DT);
+      dynamics.step(DT);
+      return runtime.finishAdvance(state);
+    },
+    snapshot: () => ({
+      state: structuredClone(state),
+      runtime: runtime.snapshot(),
+      dynamics: dynamics.snapshot(),
+    }),
+    restore(saved) {
+      Object.assign(state, structuredClone(saved.state));
+      runtime.restore(saved.runtime);
+      dynamics.restore(saved.dynamics);
+    },
+    dispose() {
+      runtime.dispose();
+      dynamics.dispose();
+    },
+  };
+}
+
+test('a course-composed boss retains real furnace heat, cooling, reversed contact facing and exact replay', async () => {
+  const f = await helionBossFixture(
+    (track) => ({
+      distance:
+        track.thermalZones.find((zone) => zone.kind === 'furnace').start + 15,
+    }),
+    { getYaw: (state) => facingAt(state.time) },
+  );
+  try {
+    assert.equal(f.runtime.id, 'interceptor-helion-thermal-flight');
+    assert.ok(f.runtime.rulesId.includes('helion-thermal-flight-v4:'));
+    assert.ok(
+      f.runtime.rulesId.endsWith(
+        'courier-facing-v3-driving-axis:self-contact-100:other-contact-180',
+      ),
+    );
+    for (let i = 0; i < 400; i++) f.step();
+    const saved = f.snapshot();
+    assert.ok(
+      saved.runtime.heat > 80,
+      'the live boss wrapper retains active furnace exposure',
+    );
+    assert.equal(saved.dynamics.actors[0].selfContactSpeedLimit, 100);
+    assert.equal(saved.dynamics.actors[0].contactSpeedLimit, 180);
+    assert.ok(
+      new Vector3(0, 0, 1)
+        .applyQuaternion(f.runtime.pose(1).quaternion)
+        .dot(f.track.sample(f.state.distance).tangent) < -0.999,
+    );
+    f.runtime.advance(f.state, {}, 0);
+    f.runtime.update({ state: f.state, dt: 0, mode: 'paused' });
+    assert.deepEqual(
+      f.snapshot(),
+      saved,
+      'a paused thermal boss does not advance',
+    );
+    const drive = { throttle: 1, steer: 0, brake: 0, boost: false };
+    const expectedEvents = Array.from({ length: 90 }, () => f.step(drive));
+    const expected = f.snapshot();
+    assert.ok(
+      f.state.distance > saved.state.distance,
+      'reverse-facing hull still drives forward',
+    );
+    f.restore(saved);
+    assert.deepEqual(
+      Array.from({ length: 90 }, () => f.step(drive)),
+      expectedEvents,
+    );
+    assert.deepEqual(
+      f.snapshot(),
+      expected,
+      'thermal state and physical attitude replay together exactly',
+    );
+    const heat = f.runtime.snapshot().heat;
+    Object.assign(f.state, {
+      distance:
+        f.track.thermalZones.find((zone) => zone.kind === 'cooling').start + 15,
+      speed: 0,
+      lateral: 0,
+      heading: 0,
+    });
+    f.runtime.reset({ state: f.state });
+    f.runtime.restore({
+      ...f.runtime.snapshot(),
+      heat,
+      contactAge: 0,
+      contactHeat: heat,
+    });
+    for (let i = 0; i < 360; i++) f.step();
+    assert.equal(
+      f.runtime.snapshot().heat,
+      0,
+      'real cooling surfaces still discharge stored boss heat',
+    );
+  } finally {
+    f.dispose();
+  }
+});
+
+test('a course-composed boss keeps optional vault flight, physical landing and airborne replay', async () => {
+  const f = await helionBossFixture(
+    (track) => track.scenarios['jump1-cruise70'],
+  );
+  const drive = { throttle: 1, steer: 0, brake: 0, boost: false };
+  try {
+    const events = [];
+    for (let i = 0; i < 40; i++) events.push(...f.step(drive));
+    assert.ok(events.some((event) => event.type === 'jump-launch'));
+    assert.equal(f.runtime.snapshot().mode, 'flight');
+    assert.equal(
+      f.runtime.pose(1).grounded,
+      false,
+      'the gap is physically airborne, not magnetically bridged',
+    );
+    const saved = f.snapshot();
+    const expectedEvents = Array.from({ length: 220 }, () => f.step(drive));
+    assert.ok(
+      expectedEvents
+        .flat()
+        .some(
+          (event) =>
+            event.type === 'jump-transfer' &&
+            event.payload.outcome === 'landed',
+        ),
+    );
+    assert.equal(f.runtime.snapshot().mode, 'magnetic');
+    const expected = f.snapshot();
+    f.restore(saved);
+    assert.deepEqual(
+      Array.from({ length: 220 }, () => f.step(drive)),
+      expectedEvents,
+    );
+    assert.deepEqual(
+      f.snapshot(),
+      expected,
+      'airborne boss continuation and landing restore exactly',
+    );
+  } finally {
+    f.dispose();
+  }
+});
+
+test('the boss course factory retains immediate fire resistance during boost', async () => {
+  const level = createHelionBreach(),
+    track = level.createTrack();
+  const distance =
+    track.thermalZones.find((zone) => zone.kind === 'furnace').start + 5;
+  const initial = () => ({ distance, speed: 20 });
+  const hot = await helionBossFixture(initial);
+  const safe = await helionBossFixture(initial, { clear: true });
+  try {
+    for (let i = 0; i < 120; i++) {
+      const input = { throttle: 1, brake: 0, steer: 0, boost: true };
+      hot.step(input);
+      safe.step(input);
+    }
+    assert.ok(hot.runtime.snapshot().heat > 0);
+    assert.ok(
+      hot.state.speed < safe.state.speed * 0.8,
+      `fire=${hot.state.speed}, clear=${safe.state.speed}`,
+    );
+  } finally {
+    hot.dispose();
+    safe.dispose();
   }
 });

@@ -11,14 +11,14 @@ const encounters = [
     progress: 0.25,
   },
   {
-    level: 'interceptor-orbital',
+    level: 'interceptor-helion',
     boss: 'wraith',
     name: 'Wraith',
     kind: 'arc',
     progress: 0.65,
   },
   {
-    level: 'interceptor-halcyon',
+    level: 'interceptor-nightweir',
     boss: 'bulwark',
     name: 'Bulwark',
     kind: 'ion',
@@ -75,7 +75,7 @@ await page.route('**/src/core/game.js*', async (route) => {
       `
     stepVariant(ticks) {
       cancelCountdown();mode='racing';ui.setMode(mode);
-      const audit = window.__variantAudit ??= {maxSpeed:0,maxStep:0,maxRouteStep:0,maxHeight:0,maxLateral:0,phases:[],shots:[],wakes:0,maxWeave:0};
+      const audit = window.__variantAudit ??= {maxSpeed:0,maxStep:0,maxRouteStep:0,maxHeight:0,maxSupportedHeight:0,airborneTicks:0,invalidAirborneTicks:0,flightIds:[],maxHeat:0,coolingTicks:0,cooledOnStrip:false,maxLateral:0,phases:[],shots:[],wakes:0,maxWeave:0};
       const shotIds = window.__variantShotIds ??= new Set();
       for(let i=0;i<Math.min(ticks,1200)&&mode==='racing';i++) {
         advanceTick(window.__variantPilot({state:{...state},track,racers,devices,runtime}));
@@ -83,6 +83,22 @@ await page.route('**/src/core/game.js*', async (route) => {
         const physical = target.runtime.pose(1), frame = track.sample(target.state.distance), error = physical.position.clone().sub(frame.position);
         audit.maxSpeed = Math.max(audit.maxSpeed,physical.velocity?.length()??Math.abs(target.state.speed));
         audit.maxHeight = Math.max(audit.maxHeight,Math.abs(error.dot(frame.up)));
+        const movement = target.runtime.snapshot().motion;
+        if(physical.grounded===false) {
+          audit.airborneTicks++;
+          const flightId=movement?.flight?.flight?.id;
+          if(movement?.mode!=='flight'||!track.jumps?.some(jump=>jump.id===flightId))audit.invalidAirborneTicks++;
+          else if(!audit.flightIds.includes(flightId))audit.flightIds.push(flightId);
+        } else audit.maxSupportedHeight=Math.max(audit.maxSupportedHeight,Math.abs(error.dot(frame.up)));
+        if(Number.isFinite(movement?.heat)) {
+          audit.maxHeat=Math.max(audit.maxHeat,movement.heat);
+          const at=T.MathUtils.euclideanModulo(target.state.distance,track.length);
+          if(track.thermalZones?.some(zone=>zone.kind==='cooling'&&at>=zone.start&&at<=zone.end)) {
+            audit.coolingTicks++;
+            if(Number.isFinite(audit.previousHeat)&&movement.heat<audit.previousHeat-1e-6)audit.cooledOnStrip=true;
+          }
+          audit.previousHeat=movement.heat;
+        }
         audit.maxLateral = Math.max(audit.maxLateral,Math.abs(error.dot(frame.right)));
         if(audit.previous) {
           audit.maxStep = Math.max(audit.maxStep,physical.position.distanceTo(new T.Vector3().fromArray(audit.previous.position)));
@@ -110,7 +126,9 @@ await page.route('**/src/core/game.js*', async (route) => {
       return {boss:missionBoss.id,actors:dynamics.snapshot().actors.filter(actor=>actor.active).length,
         roster:racers.opponents.map(opponent=>opponent.specification.id),model:model?{id:model.userData.rivalId,bounds:model.userData.bounds}:null,
         audit:structuredClone(window.__variantAudit??null),contacts:structuredClone(window.__variantContacts??[]),
-        target:{...target.state},routeLength:track.length,errors:[...errors]};
+        target:{...target.state},routeLength:track.length,errors:[...errors],
+        playerMotion:{id:runtime.id,rulesId:runtime.rulesId,state:runtime.snapshot().motion},
+        motions:racers.opponents.map(opponent=>({id:opponent.specification.id,runtime:{id:opponent.runtime.id,version:opponent.runtime.version,rulesId:opponent.runtime.rulesId,state:opponent.runtime.snapshot().motion}}))};
     },getSnapshot() {`,
     ),
   });
@@ -218,43 +236,41 @@ try {
       .count(),
     0,
   );
-  const cards = await page
-    .locator('.circuit-card')
-    .evaluateAll((elements) =>
-      elements.map((element) => ({
-        id: element.dataset.level,
-        label: element.getAttribute('aria-label'),
-      })),
-    );
+  const cards = await page.locator('.circuit-card').evaluateAll((elements) =>
+    elements.map((element) => ({
+      id: element.dataset.level,
+      label: element.getAttribute('aria-label'),
+    })),
+  );
   assert.deepEqual(
     cards.map((card) => card.id),
     encounters.map((encounter) => encounter.level),
   );
   assert.ok(cards.every((card) => !/easy|medium|hard/i.test(card.label)));
-  await press('[data-level="interceptor-orbital"]');
-  assert.equal((await frontend()).selected, 'interceptor-orbital');
+  await press('[data-level="interceptor-helion"]');
+  assert.equal((await frontend()).selected, 'interceptor-helion');
   await press('[data-action="quick-race"]');
   await press('[data-action="interceptor"]');
-  assert.equal((await frontend()).selected, 'interceptor-orbital');
+  assert.equal((await frontend()).selected, 'interceptor-helion');
   await page.reload();
   await page.waitForFunction(
     () => window.__VN_FRONTEND?.getState().screen === 'home',
   );
-  assert.equal((await frontend()).selected, 'interceptor-orbital');
+  assert.equal((await frontend()).selected, 'interceptor-helion');
   await page.evaluate(() => {
     window.__variantPad.connected = true;
   });
   await page.waitForTimeout(100);
-  await page.locator('[data-level="interceptor-orbital"]').focus();
+  await page.locator('[data-level="interceptor-helion"]').focus();
   await pad(15, true);
   await pad(15, false);
   assert.equal(
     await page.evaluate(() => document.activeElement.dataset.level),
-    'interceptor-halcyon',
+    'interceptor-nightweir',
   );
   await pad(0, true);
   await pad(0, false);
-  assert.equal((await frontend()).selected, 'interceptor-halcyon');
+  assert.equal((await frontend()).selected, 'interceptor-nightweir');
   await page.evaluate(() => {
     window.__variantPad.connected = false;
   });
@@ -287,6 +303,33 @@ try {
     assert.equal(start.diagnostics.actors, 5);
     assert.ok(start.diagnostics.roster.includes(encounter.boss));
     assert.equal(start.diagnostics.model?.id, encounter.boss);
+    const bossMotion = start.diagnostics.motions.find(
+      (opponent) => opponent.id === encounter.boss,
+    ).runtime;
+    if (encounter.boss === 'wraith') {
+      assert.equal(bossMotion.id, 'interceptor-helion-thermal-flight-devices');
+      assert.ok(bossMotion.rulesId.includes('helion-thermal-flight-v4:'));
+      assert.ok(bossMotion.rulesId.includes('courier-facing-v3-driving-axis'));
+      for (const motion of [
+        bossMotion,
+        start.diagnostics.playerMotion,
+        ...start.diagnostics.motions
+          .filter((opponent) => opponent.id !== encounter.boss)
+          .map((opponent) => opponent.runtime),
+      ]) {
+        assert.ok(
+          motion.id.includes('helion-thermal-flight'),
+          'live Helion controllers are composed for the whole field',
+        );
+        for (const key of ['heat', 'contactAge', 'contactHeat'])
+          assert.ok(
+            Number.isFinite(motion.state?.[key]),
+            'live Helion state includes ' + key,
+          );
+      }
+    } else {
+      assert.equal(bossMotion.id, 'interceptor-magnetic-devices');
+    }
     assert.deepEqual(
       start.snapshot.runtime.state.equipment.slots.map((slot) => slot.id),
       ['lance', 'injector'],
@@ -312,6 +355,23 @@ try {
         break;
     }
     const { audit } = latest.diagnostics;
+    if (!audit.phases.includes('firing')) {
+      const motion = latest.diagnostics.motions.find(
+        (opponent) => opponent.id === encounter.boss,
+      ).runtime;
+      console.log(
+        JSON.stringify({
+          failure: 'missing signature',
+          boss: encounter.boss,
+          mission: latest.snapshot.interceptor,
+          target: latest.diagnostics.target,
+          routeLength: latest.diagnostics.routeLength,
+          audit,
+          motion: { id: motion.id, state: motion.state },
+          errors: latest.diagnostics.errors,
+        }),
+      );
+    }
     assert.ok(
       audit.phases.includes('firing'),
       'signature attack activates for ' + encounter.boss,
@@ -324,7 +384,28 @@ try {
       audit.maxStep < 5 && audit.maxRouteStep < 5,
       'bounded physical progress for ' + encounter.boss,
     );
-    assert.ok(audit.maxHeight < 4, 'magnetic support for ' + encounter.boss);
+    assert.ok(
+      audit.maxSupportedHeight < 4,
+      'bounded magnetic support for ' + encounter.boss,
+    );
+    if (encounter.boss === 'wraith') {
+      assert.equal(
+        audit.invalidAirborneTicks,
+        0,
+        'Wraith only leaves support in a real authored vault flight',
+      );
+      assert.ok(
+        audit.maxHeat > 0,
+        'live Wraith accumulates heat in actual furnaces',
+      );
+      assert.ok(
+        audit.coolingTicks > 0 && audit.cooledOnStrip,
+        'live Wraith loses stored heat on a real cooling strip',
+      );
+    } else {
+      assert.equal(audit.airborneTicks, 0, 'magnetic boss stays supported');
+      assert.ok(audit.maxHeight < 4, 'magnetic support for ' + encounter.boss);
+    }
     assert.ok(
       latest.snapshot.interceptor.playerDamage > 0,
       'real player attacks hit ' + encounter.boss,
@@ -352,6 +433,13 @@ try {
         maxSpeedKph: audit.maxSpeed * 3.6,
         maxStep: audit.maxStep,
         maxHeight: audit.maxHeight,
+        maxSupportedHeight: audit.maxSupportedHeight,
+        airborneTicks: audit.airborneTicks,
+        flightIds: audit.flightIds,
+        motion: bossMotion.id,
+        ...(encounter.boss === 'wraith'
+          ? { maxHeat: audit.maxHeat, cooledOnStrip: audit.cooledOnStrip }
+          : {}),
         signature: encounter.kind,
       }),
     );

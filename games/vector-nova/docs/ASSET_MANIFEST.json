@@ -2,6 +2,23 @@
   "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "interceptor-mission-worlds",
+      "source": "src/levels/interceptor/, src/levels/interceptor-helion/ and src/levels/interceptor-nightweir/",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original mission-local process districts, connected observatory infrastructure and closed hydroelectric basin city. Dispatch reuses the registered Colossus quarry/mountain constructors, industrial kit/finish and sky without changing the approved course. Breach retains the registered Helion observatory, sky, ceramic maps and thermal world with a separate placement recipe. Lockdown composes new terrain, streets, machinery and water from registered Nightweir finishes/sky and selected rock textures; it does not load the original merged city. No new external models or generated runtime images.",
+      "rights": "Project-authored geometry and shaders; borrowed project imagery and CC0 sources retain their registered provenance.",
+      "runtimeDependencies": ["three", "@worldkit/environment"],
+      "borrowedAssets": [
+        "public/assets/levels/colossus/",
+        "public/assets/levels/helion/",
+        "public/assets/levels/nightweir/fired-brick-v1.png",
+        "public/assets/levels/nightweir/zinc-roof-v1.png",
+        "public/assets/levels/nightweir/gorge-strata-v1.png",
+        "public/assets/levels/nightweir/damp-scree-v1.png",
+        "public/assets/levels/shatterline/limestone-v1.png"
+      ]
+    },
+    {
       "id": "interceptor-boss-art-concepts-v1",
       "source": "docs/art/bosses/",
       "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",

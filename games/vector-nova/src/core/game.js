@@ -179,6 +179,7 @@ export async function createGame({
       interceptor = newInterceptor();
     const raceField = interceptor
       ? createInterceptorField({
+          track,
           bossId: missionBoss.id,
           getCounterattack: () => interceptor.snapshot().counterattack,
         })
@@ -510,8 +511,17 @@ export async function createGame({
                 motion:
                   interceptor && specification.id === missionBoss.id
                     ? createInterceptorMotion(
-                        { track, collisionWorld, dynamics, settings },
                         {
+                          track,
+                          collisionWorld,
+                          dynamics,
+                          settings,
+                          presentation: false,
+                        },
+                        {
+                          createMotion:
+                            definition.racing.createMotion ??
+                            createMagneticRuntime,
                           getYaw: () =>
                             interceptor.snapshot().counterattack.yaw,
                         },

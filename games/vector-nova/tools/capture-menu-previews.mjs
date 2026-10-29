@@ -151,6 +151,22 @@ try {
             .addScaledVector(frame.up, 22);
           camera.fov = 62;
         }
+        if (id === 'interceptor' || id === 'interceptor-helion') {
+          // The generic rear overview sits inside Dispatch's new galleries.
+          // Keep a clear road approach; Helion's exposed vault exit reveals
+          // its defining stellar limb instead of a near shield's back face.
+          const station = track.length * (id === 'interceptor' ? 0.04 : 0.15);
+          const frame = track.sample(station);
+          camera.position
+            .copy(frame.position)
+            .addScaledVector(frame.tangent, -30)
+            .addScaledVector(frame.up, 14);
+          target
+            .copy(track.sample(station + 115).position)
+            .addScaledVector(frame.up, 5);
+          camera.up.copy(frame.up);
+          camera.fov = 62;
+        }
         camera.lookAt(target);
         camera.updateProjectionMatrix();
         // Let ordinary world updates relocate sky/weather around the free
@@ -159,8 +175,17 @@ try {
           requestAnimationFrame(() => requestAnimationFrame(done)),
         );
         game.setSuspended(true);
-        // Preserve the ordinary composer result for owned water/cloud passes.
-        if (!['nightweir', 'worldspire'].includes(id))
+        // Preserve the ordinary composer result for owned water/cloud passes
+        // and the mission worlds’ authored presentation.
+        if (
+          ![
+            'nightweir',
+            'worldspire',
+            'interceptor',
+            'interceptor-helion',
+            'interceptor-nightweir',
+          ].includes(id)
+        )
           renderer.render(scene, camera);
         const canvas = document.createElement('canvas');
         canvas.width = 640;

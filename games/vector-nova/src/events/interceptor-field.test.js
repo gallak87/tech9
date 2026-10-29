@@ -12,6 +12,9 @@ import { createRapierWorld } from '../physics/rapier-world.js';
 import { withMagneticBoundaries } from '../physics/magnetic-boundaries.js';
 import { createMagneticRuntime } from '../core/session-runtime.js';
 import { createDeviceRuntime } from '../pickups/runtime.js';
+import createHelionBreach from '../levels/interceptor-helion/index.js';
+import { createInterceptorMotion } from './interceptor-motion.js';
+import { createInterceptorEvent } from './interceptor.js';
 
 test('the pursuit driver uses brakes to govern the courier and anticipate the large hull', () => {
   const field = createInterceptorField(),
@@ -115,6 +118,167 @@ test('real shared courier physics cruises at 300kph while allies retain firing d
       impacts.filter((event) => event.id === 'goliath').length,
       0,
       'courier has no rail or ally collision',
+    );
+  } finally {
+    racers.dispose();
+    dynamics.dispose();
+  }
+});
+
+test('course pursuit paths version field replay identity without changing ordinary boss identities', () => {
+  const track = createInterceptorTrack();
+  for (const bossId of ['goliath', 'bulwark'])
+    assert.equal(
+      createInterceptorField({ bossId, track }).id,
+      createInterceptorField({ bossId }).id,
+    );
+  const helion = createHelionBreach().createTrack();
+  const field = createInterceptorField({ bossId: 'wraith', track: helion });
+  assert.ok(
+    field.id.includes(
+      helion.pursuitPath.id + '-v' + helion.pursuitPath.version,
+    ),
+  );
+  assert.ok(field.id.length <= 160);
+  assert.equal(helion.pursuitPath.intervals.length, 2);
+  for (const [index, interval] of helion.pursuitPath.intervals.entries()) {
+    const jump = helion.jumps[index];
+    assert.ok(
+      interval.settled < jump.takeoff - 20,
+      'the nose clears the separator before the lip',
+    );
+    assert.ok(interval.release >= jump.recovery);
+    assert.ok(interval.lane <= -4.5 && interval.lane >= -10.5);
+  }
+  const changed = structuredClone(helion.pursuitPath);
+  changed.intervals[0].lane -= 0.1;
+  assert.notEqual(
+    field.id,
+    createInterceptorField({
+      bossId: 'wraith',
+      track: { ...helion, pursuitPath: changed },
+    }).id,
+  );
+  changed.intervals[0].lane = 0;
+  assert.throws(
+    () =>
+      createInterceptorField({
+        bossId: 'wraith',
+        track: { ...helion, pursuitPath: changed },
+      }),
+    /Invalid course pursuit interval/,
+  );
+});
+
+test('the real Helion field clears both physical dividers with its thermal boss and allied chase offsets', async () => {
+  const level = createHelionBreach(),
+    track = level.createTrack();
+  const devices = level.racing.createDevices(track);
+  const collisionWorld = level.createCollisionWorld({ track });
+  const dynamics = await createRapierWorld({ collisionWorld });
+  const mission = createInterceptorEvent({
+    bossId: 'wraith',
+    targetId: 'wraith',
+    routeLength: track.length,
+    escapeDistance: track.length * 2,
+    difficulty: 'easy',
+  });
+  const field = createInterceptorField({
+    track,
+    bossId: 'wraith',
+    getCounterattack: () => mission.snapshot().counterattack,
+  });
+  const dividerHits = [];
+  const racers = createRacers({
+    track,
+    devices,
+    field,
+    dynamics,
+    continuous: true,
+    createRuntime(specification) {
+      const context = {
+        track,
+        collisionWorld,
+        dynamics,
+        settings: { steeringAssist: 0.3 },
+        presentation: false,
+      };
+      const runtime = createDeviceRuntime({
+        track,
+        devices:
+          specification.id === 'wraith'
+            ? devices.filter((entry) => entry.type === 'aegis')
+            : devices,
+        combatId: specification.id,
+        motion:
+          specification.id === 'wraith'
+            ? createInterceptorMotion(context, {
+                createMotion: level.racing.createMotion,
+                getYaw: () => mission.snapshot().counterattack.yaw,
+              })
+            : level.racing.createMotion(context),
+      });
+      const finish = runtime.finishAdvance.bind(runtime);
+      runtime.finishAdvance = (state) => {
+        const events = finish(state);
+        for (const event of events)
+          if (
+            event.type === 'impact' &&
+            JSON.stringify(event).includes('split-lane')
+          )
+            dividerHits.push({ id: specification.id, ...event.payload });
+        return events;
+      };
+      return runtime;
+    },
+  });
+  const target = racers.opponents[0];
+  const crossed = new Set();
+  let blasts = 0;
+  try {
+    racers.reset();
+    for (
+      let tick = 0;
+      tick < 100 * 120 && target.state.distance < track.jumps[1].recovery + 450;
+      tick++
+    ) {
+      racers.advance(1 / 120);
+      blasts += mission
+        .step(1 / 120, {
+          targetDistance: target.state.distance,
+          playerDistance: target.state.distance - 100,
+        })
+        .filter((event) => event.type === 'interceptor-fire').length;
+      for (const jump of track.jumps)
+        if (
+          target.state.distance >= jump.takeoff &&
+          target.state.distance < jump.landingStart
+        ) {
+          crossed.add(jump.id);
+          assert.ok(
+            target.state.speed > 10,
+            'boss makes real forward progress through the supported branch',
+          );
+          assert.ok(
+            target.state.lateral < -5 && target.state.lateral > -11,
+            'large contact hull stays clear of both physical curbs',
+          );
+        }
+    }
+    assert.equal(crossed.size, 2);
+    assert.ok(
+      target.state.distance > track.jumps[1].recovery + 400,
+      `boss continued to ${target.state.distance.toFixed(1)}m`,
+    );
+    for (const ally of racers.opponents.slice(1))
+      assert.ok(
+        ally.state.distance > track.jumps[1].landingStart + 80,
+        `${ally.specification.id} also clears the second divider`,
+      );
+    assert.equal(dividerHits.length, 0, JSON.stringify(dividerHits));
+    assert.ok(
+      blasts > 0,
+      'the same physical traversal still reaches and performs its signature counterattack',
     );
   } finally {
     racers.dispose();

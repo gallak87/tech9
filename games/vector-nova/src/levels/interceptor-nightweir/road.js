@@ -52,6 +52,90 @@ export function createLockdownRoad({ track, collectSolid, ...context }) {
   road.group.traverse((mesh) => {
     if (mesh.geometry) closeRoadStart(track, mesh.geometry);
   });
+  const deck = road.group.children.find(
+    (mesh) => mesh.userData.roadSurface,
+  )?.material;
+  if (deck?.onBeforeCompile) {
+    const finish = deck.onBeforeCompile,
+      key = deck.customProgramCacheKey.bind(deck);
+    const oldKey = key();
+    deck.onBeforeCompile = (shader, renderer) => {
+      finish(shader, renderer);
+      shader.fragmentShader = shader.fragmentShader.replace(
+        'float laneSpacing=5.00;',
+        'float laneSpacing=13.33;',
+      );
+    };
+    deck.customProgramCacheKey = () => oldKey + '-lockdown-three-broad-lanes';
+  }
+  // The point emitter sits inside its glass. An unlit lens prevents the
+  // near-zero light distance from turning every hood into a white bead.
+  let lens;
+  road.group.traverse((object) => {
+    if (!object.material) return;
+    const replace = (material) => {
+      if (!/warm road lantern/.test(material.name)) return material;
+      lens ??= new T.MeshBasicMaterial({
+        name: 'Lockdown / shielded warm road lantern lens',
+        color: '#b69b74',
+        toneMapped: true,
+      });
+      return lens;
+    };
+    object.material = Array.isArray(object.material)
+      ? object.material.map(replace)
+      : replace(object.material);
+  });
+  const dispose = road.dispose;
+  let disposed = false;
+  road.dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    dispose();
+    lens?.dispose();
+  };
+  const lightCenters = Array.from(
+      { length: Math.ceil(track.length / 14) },
+      (_, i) =>
+        track.sample((i * track.length) / Math.ceil(track.length / 14))
+          .position,
+    ),
+    lightOffsets = new Map();
+  const update = road.update;
+  road.update = (frame) => {
+    update?.(frame);
+    road.group.traverse((object) => {
+      if (!object.isPointLight) return;
+      const key = object.position
+        .toArray()
+        .map((v) => v.toFixed(3))
+        .join(',');
+      let offset = lightOffsets.get(key);
+      if (!offset) {
+        let nearest = lightCenters[0],
+          distance = Infinity;
+        for (const center of lightCenters) {
+          const d =
+            (center.x - object.position.x) ** 2 +
+            (center.z - object.position.z) ** 2;
+          if (d < distance) {
+            distance = d;
+            nearest = center;
+          }
+        }
+        offset = nearest
+          .clone()
+          .sub(object.position)
+          .setY(0)
+          .normalize()
+          .multiplyScalar(4.5);
+        offset.y = -0.8;
+        lightOffsets.set(key, offset);
+      }
+      object.position.add(offset);
+      object.intensity *= 0.32;
+    });
+  };
   return road;
 }
 export function createLockdownCollision({ track }) {

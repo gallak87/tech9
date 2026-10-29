@@ -58,7 +58,7 @@ function flareMaterial(core = false, cloud = false) {
  * is discarded for low quality; only small distant service details are reduced. */
 export async function createHelionEnvironment(
   { track, view, settings = {} },
-  { loadAsset } = {},
+  { loadAsset, sitePlan } = {},
 ) {
   const group = new T.Group();
   group.name = 'Helion / working thermal observatory';
@@ -171,36 +171,93 @@ export async function createHelionEnvironment(
     const L = track.length;
     // A repeated family with different joints/scale makes the ordinary road a
     // working facility, with gaps preserving long braking and star sightlines.
-    for (const [s, lateral, scale, yaw] of [
-      [0.04, 135, 1.08, 1.57],
-      [0.19, -150, 1.12, 1.4],
-      [0.29, -180, 1.9, 1.57],
-      [0.43, 135, 1.28, 1.5],
-      [0.62, 185, 1.6, 1.65],
-      [0.79, -160, 1.25, 1.4],
-      [0.94, 145, 1.0, 1.6],
-    ])
-      site('Sunshield', s * L, lateral, -53, scale, yaw);
-    for (const [s, lateral, scale, yaw] of [
-      [0.085, 112, 0.8, -0.4],
-      [0.14, 132, 1.1, 0.3],
-      [0.21, 140, 1.35, -0.6],
-      [0.37, -115, 0.72, -0.3],
-      [0.51, 125, 0.94, 0.8],
-      [0.59, -120, 1.2, 0.45],
-      [0.7, 148, 0.85, -0.7],
-      [0.83, 125, 0.7, 0.3],
-      [0.91, -130, 0.8, -0.4],
-    ])
-      site('RadiatorFan', s * L, lateral, -18, scale, yaw);
-    site('InstrumentTower', 0.245 * L, -95, -35, 1.15, 0.25);
-    site('InstrumentTower', 0.47 * L, -180, -55, 1.4, 0);
-    site('InstrumentTower', 0.9 * L, 145, -38, 0.65, 0.4);
-    // Distant massing sits below/behind complete near assemblies, giving scale
-    // through off-axis views without adding a generic orbital skyline.
-    site('Sunshield', 0.31 * L, -860, -210, 3.5, 1.2);
-    site('Sunshield', 0.72 * L, 900, -240, 3.0, 1.75);
-    site('RadiatorFan', 0.52 * L, -720, -130, 2.2, 0.5);
+    const architecture = sitePlan ?? [
+      ...[
+        [0.04, 135, 1.08, 1.57],
+        [0.19, -150, 1.12, 1.4],
+        [0.29, -180, 1.9, 1.57],
+        [0.43, 135, 1.28, 1.5],
+        [0.62, 185, 1.6, 1.65],
+        [0.79, -160, 1.25, 1.4],
+        [0.94, 145, 1.0, 1.6],
+      ].map(([fraction, lateral, scale, yaw]) => ({
+        name: 'Sunshield',
+        fraction,
+        lateral,
+        lift: -53,
+        scale,
+        yaw,
+      })),
+      ...[
+        [0.085, 112, 0.8, -0.4],
+        [0.14, 132, 1.1, 0.3],
+        [0.21, 140, 1.35, -0.6],
+        [0.37, -115, 0.72, -0.3],
+        [0.51, 125, 0.94, 0.8],
+        [0.59, -120, 1.2, 0.45],
+        [0.7, 148, 0.85, -0.7],
+        [0.83, 125, 0.7, 0.3],
+        [0.91, -130, 0.8, -0.4],
+      ].map(([fraction, lateral, scale, yaw]) => ({
+        name: 'RadiatorFan',
+        fraction,
+        lateral,
+        lift: -18,
+        scale,
+        yaw,
+      })),
+      {
+        name: 'InstrumentTower',
+        fraction: 0.245,
+        lateral: -95,
+        lift: -35,
+        scale: 1.15,
+        yaw: 0.25,
+      },
+      {
+        name: 'InstrumentTower',
+        fraction: 0.47,
+        lateral: -180,
+        lift: -55,
+        scale: 1.4,
+        yaw: 0,
+      },
+      {
+        name: 'InstrumentTower',
+        fraction: 0.9,
+        lateral: 145,
+        lift: -38,
+        scale: 0.65,
+        yaw: 0.4,
+      },
+      // Distant massing sits below/behind complete near assemblies.
+      {
+        name: 'Sunshield',
+        fraction: 0.31,
+        lateral: -860,
+        lift: -210,
+        scale: 3.5,
+        yaw: 1.2,
+      },
+      {
+        name: 'Sunshield',
+        fraction: 0.72,
+        lateral: 900,
+        lift: -240,
+        scale: 3,
+        yaw: 1.75,
+      },
+      {
+        name: 'RadiatorFan',
+        fraction: 0.52,
+        lateral: -720,
+        lift: -130,
+        scale: 2.2,
+        yaw: 0.5,
+      },
+    ];
+    for (const { name, fraction, lateral, lift, scale, yaw } of architecture)
+      site(name, fraction * L, lateral, lift, scale, yaw);
 
     for (let s = 40, index = 0; s < L; s += 142, index++) {
       const frame = track.sample(s);

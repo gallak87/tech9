@@ -8,7 +8,10 @@ import { createHelionRuntime } from './runtime.js';
 import { createHelionOverlay } from './overlay.js';
 import { withShipHeatEffects } from './ship-heat.js';
 
-export default function createLevel({ shape = false } = {}) {
+export default function createLevel({
+  shape = false,
+  environmentOptions,
+} = {}) {
   const telemetry = {};
   return {
     version: '0.7.0-helion-racing',
@@ -48,7 +51,7 @@ export default function createLevel({ shape = false } = {}) {
       withShipHeatEffects(
         shape
           ? { group: new T.Group(), dispose() {} }
-          : await createHelionEnvironment(context),
+          : await createHelionEnvironment(context, environmentOptions),
         telemetry,
       ),
     createBackdrop: (context) =>

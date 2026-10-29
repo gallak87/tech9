@@ -1,11 +1,18 @@
 import { createMagneticRuntime } from '../core/session-runtime.js';
 
-// Goliath stays supported by the ordinary shared controller. Its mission may
-// turn the physical hull to fire backwards while propulsion follows the road.
-export function createInterceptorMotion(context, { getYaw = () => 0 } = {}) {
-  if (!context?.dynamics || typeof getYaw !== 'function')
+// Keep each course's physical motion and hazards while turning the contact
+// hull to fire backwards independently of its driving direction.
+export function createInterceptorMotion(
+  context,
+  { getYaw = () => 0, createMotion = createMagneticRuntime } = {},
+) {
+  if (
+    !context?.dynamics ||
+    typeof getYaw !== 'function' ||
+    typeof createMotion !== 'function'
+  )
     throw new Error(
-      'Interceptor motion needs shared dynamics and a yaw reader',
+      'Interceptor motion needs shared dynamics, a motion factory and a yaw reader',
     );
   const dynamics = {
     ...context.dynamics,
@@ -16,7 +23,7 @@ export function createInterceptorMotion(context, { getYaw = () => 0 } = {}) {
         contactSpeedLimit: 180,
       }),
   };
-  const motion = createMagneticRuntime({
+  const motion = createMotion({
     ...context,
     dynamics,
     equipment: false,
@@ -32,7 +39,7 @@ export function createInterceptorMotion(context, { getYaw = () => 0 } = {}) {
   };
   return {
     ...motion,
-    id: 'interceptor-magnetic',
+    id: `interceptor-${motion.id}`,
     version: 3,
     rulesId: `${motion.rulesId}:courier-facing-v3-driving-axis:self-contact-100:other-contact-180`,
     beginAdvance(state, input, dt, modifiers) {

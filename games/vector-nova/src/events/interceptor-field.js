@@ -5,6 +5,89 @@ import { vehicleHandling } from '../ships/catalog.js';
 export { PURSUIT_EQUIPMENT, PURSUIT_TUNING } from './interceptor-loadout.js';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const smooth = (value) => {
+  const t = clamp(value, 0, 1);
+  return t * t * (3 - 2 * t);
+};
+function coursePursuitPath(track) {
+  if (track?.pursuitPath == null) return null;
+  const path = structuredClone(track.pursuitPath);
+  let previousEnd = -Infinity;
+  if (
+    typeof path.id !== 'string' ||
+    !path.id ||
+    path.id.length > 32 ||
+    !Number.isInteger(path.version) ||
+    path.version < 1 ||
+    !Array.isArray(path.intervals) ||
+    !path.intervals.length
+  )
+    throw new Error('Invalid course pursuit path');
+  for (const interval of path.intervals) {
+    const { start, settled, release, end, lane, min, max } = interval;
+    if (
+      !interval.id ||
+      ![start, settled, release, end, lane, min, max].every(Number.isFinite) ||
+      start < 0 ||
+      start < previousEnd ||
+      !(start < settled && settled <= release && release < end) ||
+      end > track.length ||
+      min < -track.width / 2 ||
+      max > track.width / 2 ||
+      min + 4.5 > lane ||
+      max - 4.5 < lane
+    )
+      throw new Error('Invalid course pursuit interval');
+    previousEnd = end;
+  }
+  return path;
+}
+function pursuitIdentity(path) {
+  if (!path) return '';
+  // Field ids are capped at 160 characters. Fingerprint every authored value,
+  // retaining the readable path id/version rather than dropping replay data.
+  let hash = 2166136261;
+  for (const character of JSON.stringify(path))
+    hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
+  return `:path-${path.id}-v${path.version}-${(hash >>> 0).toString(16).padStart(8, '0')}`;
+}
+function pursuitLine(path, track, state, lane) {
+  if (!path) return { track, lane };
+  const s =
+    track.closed === false
+      ? state.distance
+      : ((state.distance % track.length) + track.length) % track.length;
+  const interval = path.intervals.find(
+    (entry) => s >= entry.start && s <= entry.end,
+  );
+  if (!interval) return { track, lane };
+  const weight = Math.min(
+    smooth((s - interval.start) / (interval.settled - interval.start)),
+    1 - smooth((s - interval.release) / (interval.end - interval.release)),
+  );
+  const min = -track.width / 2 + (interval.min + track.width / 2) * weight;
+  const max = track.width / 2 + (interval.max - track.width / 2) * weight;
+  return {
+    lane: lane + (interval.lane - lane) * weight,
+    // Bound the ordinary driver's device/traffic lane choices too. This only
+    // informs its steering calculation; physical support and colliders still
+    // use the untouched production track and level runtime.
+    track: {
+      ...track,
+      sampleSurface(distance, lateral) {
+        const frame =
+          track.sampleSurface?.(distance, lateral) ?? track.sample(distance);
+        return {
+          ...frame,
+          bounds: {
+            min: Math.max(frame.bounds?.min ?? -track.width / 2, min),
+            max: Math.min(frame.bounds?.max ?? track.width / 2, max),
+          },
+        };
+      },
+    },
+  };
+}
 export const INTERCEPTOR_CRUISE_KPH = 300;
 
 // Drive to a speed through ordinary throttle/brakes. In particular, a hunter
@@ -36,9 +119,11 @@ function matchSpeed(control, state, track, speed) {
 }
 
 export function createInterceptorField({
+  track: courseTrack,
   bossId = 'goliath',
   getCounterattack = () => null,
 } = {}) {
+  const path = coursePursuitPath(courseTrack);
   const boss = interceptorBoss(bossId),
     hull = getBossHull(bossId);
   const cruiseSpeed = boss.cruiseKph / 3.6;
@@ -49,7 +134,7 @@ export function createInterceptorField({
     (value, index) => (value + hull.bounds.min[index]) / 2,
   );
   return {
-    id: `interceptor-squad-v3:${boss.id}:${boss.cruiseKph}:${hull.hullSha256}`,
+    id: `interceptor-squad-v3:${boss.id}:${boss.cruiseKph}:${hull.hullSha256}${pursuitIdentity(path)}`,
     opponents: [
       {
         id: boss.id,
@@ -104,8 +189,9 @@ export function createInterceptorField({
           boss.laneWeave && phase?.phase === 'firing'
             ? boss.laneWeave * Math.sin(phase.phaseElapsed * Math.PI * 0.8)
             : 0;
-        const control = getRacerControl(opponent.state, track, {
-          lane,
+        const line = pursuitLine(path, track, opponent.state, lane);
+        const control = getRacerControl(opponent.state, line.track, {
+          lane: line.lane,
           pace: 1,
           difficulty: 'hard',
           nearby,
@@ -135,8 +221,14 @@ export function createInterceptorField({
         gap > 50 && gap < 380
           ? target.lateral + opponent.specification.lane
           : opponent.specification.lane;
-      const control = getRacerControl(opponent.state, track, {
-        lane: clamp(lane, -12, 12),
+      const line = pursuitLine(
+        path,
+        track,
+        opponent.state,
+        clamp(lane, -12, 12),
+      );
+      const control = getRacerControl(opponent.state, line.track, {
+        lane: line.lane,
         pace: 1,
         difficulty: 'medium',
         devices,

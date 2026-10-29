@@ -161,7 +161,7 @@ Interceptor offers three independent boss encounters through the normal course p
 | Encounter          | Boss    | Signature attack                                                |
 | ------------------ | ------- | --------------------------------------------------------------- |
 | Crucible Dispatch  | Goliath | Turns backward for heavy Lance shots at 15% of each lap.        |
-| Asterion Intercept | Wraith  | Turns for successive rear-facing Arc bursts at 20% of each lap. |
-| Halcyon Lockdown   | Bulwark | Weaves while laying a sustained Ion wake at 15% of each lap.    |
+| Helion Breach      | Wraith  | Turns for successive rear-facing Arc bursts at 20% of each lap. |
+| Nightweir Lockdown | Bulwark | Weaves while laying a sustained Ion wake at 15% of each lap.    |
 
-The new encounters reuse the original Orbital and Halcyon geometry under distinct mission identities. Wraith and Bulwark have separate source-authored hulls and functional model blockouts; detailed art passes remain the next step. The selected encounter is remembered when leaving and returning to the mode.
+The missions reuse the newer biome families: Colossus machinery for Crucible, Helion's thermal observatory and active fiery floors for Breach, and Nightweir's wet municipal/hydroelectric kit for a new 4.70 km closed basin circuit. Original race courses and the Nightweir sprint remain independent. Goliath, Wraith and Bulwark use separate concept-guided, source-authored models and distinct palettes. Retired Orbital/Halcyon mission links redirect to the new encounters. The selected encounter is remembered when leaving and returning to the mode.

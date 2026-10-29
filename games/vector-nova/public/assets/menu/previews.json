@@ -159,36 +159,27 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "1ed638196b1bf157a3fe604d9f2e40ef7c31f10a",
+      "sourceRevision": "58dc4126e39b1a606ee19d5d3470ad71f5a7690a",
       "sourceDirty": true,
       "routeSignature": "e9c5595dda27f4a2"
-    },
-    "interceptor-halcyon": {
-      "file": "interceptor-halcyon.webp",
-      "width": 640,
-      "height": 400,
-      "preset": "route-overview-v1",
-      "sourceRevision": "1ed638196b1bf157a3fe604d9f2e40ef7c31f10a",
-      "sourceDirty": true,
-      "routeSignature": "02f71eb4fa1274b5"
-    },
-    "interceptor-orbital": {
-      "file": "interceptor-orbital.webp",
-      "width": 640,
-      "height": 400,
-      "preset": "route-overview-v1",
-      "sourceRevision": "1ed638196b1bf157a3fe604d9f2e40ef7c31f10a",
-      "sourceDirty": true,
-      "routeSignature": "bbe77454a0908a64"
     },
     "interceptor-helion": {
       "file": "interceptor-helion.webp",
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "1ed638196b1bf157a3fe604d9f2e40ef7c31f10a",
+      "sourceRevision": "58dc4126e39b1a606ee19d5d3470ad71f5a7690a",
       "sourceDirty": true,
       "routeSignature": "718653a5c9f7ca2a"
+    },
+    "interceptor-nightweir": {
+      "file": "interceptor-nightweir.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "58dc4126e39b1a606ee19d5d3470ad71f5a7690a",
+      "sourceDirty": true,
+      "routeSignature": "3152c784023c7879"
     }
   }
 }

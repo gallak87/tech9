@@ -1,5 +1,3 @@
-// Inactive draft: the Lockdown environment is not implemented yet.
-// Restore index.js and metadata.js together when the environment is ready.
 import { createNightweirLockdownTrack } from './track/model.js';
 import { createLockdownRoad, createLockdownCollision } from './road.js';
 import { createLockdownEnvironment } from './environment/index.js';
@@ -44,7 +42,16 @@ export default function createLevel({ shape = false } = {}) {
       }),
     createEnvironment: (context) =>
       createLockdownEnvironment({ ...context, shape }),
-    createBackdrop: (context) => createNightweirBackdrop({ ...context, shape }),
+    createBackdrop: async (context) => ({
+      ...(await createNightweirBackdrop({ ...context, shape })),
+      sunColor: '#d9ded8',
+      sunIntensity: 2.35,
+      ambientSky: '#a1b9c9',
+      ambientGround: '#3e535c',
+      ambientIntensity: 0.95,
+      fillColor: '#9eb9c8',
+      fillIntensity: 0.74,
+    }),
     createCollisionWorld: createLockdownCollision,
     createRuntime: createMagneticRuntime,
     racing: {

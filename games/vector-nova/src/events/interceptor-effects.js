@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { createWraithEffects } from './interceptor-wraith-effects.js';
+import { createBulwarkEffects } from './interceptor-bulwark-effects.js';
 
 const amber = 0xff9b32,
   white = 0xfff4d5;
@@ -25,7 +26,9 @@ export function createInterceptorEffects({
   const themed =
     bossId === 'wraith'
       ? createWraithEffects({ scene, boss, track, combat, racers })
-      : null;
+      : bossId === 'bulwark'
+        ? createBulwarkEffects({ scene, boss, track, combat, racers })
+        : null;
   const geometries = new Set(),
     materials = new Set();
   const geometry = (g) => {
@@ -274,7 +277,7 @@ export function createInterceptorEffects({
     themed?.update(frame);
     const data = frame.interceptor;
     const disabled = !!(data?.result?.won && data.health === 0);
-    if (bossId === 'wraith' && disabled && !wasDisabled)
+    if (['wraith', 'bulwark'].includes(bossId) && disabled && !wasDisabled)
       for (const [material] of power)
         defeatPower.set(material, material.emissiveIntensity);
     if (wasDisabled && !disabled) {
@@ -297,8 +300,9 @@ export function createInterceptorEffects({
     if (disabled)
       for (const [material, base] of power)
         material.emissiveIntensity =
-          (bossId === 'wraith' ? (defeatPower.get(material) ?? base) : base) *
-          Math.max(0, 1 - disableAge / 0.45);
+          (['wraith', 'bulwark'].includes(bossId)
+            ? (defeatPower.get(material) ?? base)
+            : base) * Math.max(0, 1 - disableAge / 0.45);
     const state = combat.view(),
       attack = data.counterattack;
     const reduced = !!frame.settings.reducedMotion;
@@ -308,7 +312,7 @@ export function createInterceptorEffects({
     );
     let whiteAge = hit?.age ?? Infinity,
       whiteSpan = 0.16;
-    if (bossId === 'wraith') {
+    if (['wraith', 'bulwark'].includes(bossId)) {
       const now = state.time ?? data.elapsed;
       if (now < whiteClock) {
         whiteStarted = -Infinity;

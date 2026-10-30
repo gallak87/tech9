@@ -27,10 +27,19 @@ RECIPES = {
     "wraith-expose": (0, 0.8, 40, 3400, -2.5, 0.004, 0.065),
     "wraith-core-hit": (0.04, 0.4, 35, 3800, -1.5, 0.001, 0.065),
     "wraith-disable": (0.05, 1.2, 32, 4000, -1.5, 0.003, 0.1),
+    "bulwark-charge": (0, 1.6, 28, 2800, -3, 0.012, 0.075),
+    "bulwark-lock": (0.04, 0.25, 32, 3000, -2.5, 0.001, 0.04),
+    "bulwark-turn": (0.15, 0.9, 28, 2900, -2.5, 0.004, 0.075),
+    "bulwark-fire": (0.04, 0.45, 28, 2700, -1.5, 0.001, 0.065),
+    "bulwark-counter": (0.025, 0.55, 30, 2700, -2, 0.002, 0.065),
+    "bulwark-expose": (0.07, 0.6, 28, 3000, -2.5, 0.004, 0.065),
+    "bulwark-core-hit": (0.025, 0.35, 30, 2800, -1.5, 0.001, 0.06),
+    "bulwark-disable": (0.04, 1.4, 26, 2800, -1.5, 0.003, 0.12),
 }
 DECAYS = {
     "goliath-disable": {"startSeconds": 0.2, "exponent": 2},
     "wraith-disable": {"startSeconds": 0.18, "exponent": 2.4},
+    "bulwark-disable": {"startSeconds": 0.2, "exponent": 2.8},
 }
 
 

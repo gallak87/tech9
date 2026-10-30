@@ -12,7 +12,10 @@ import { createInterceptorField } from '../events/interceptor-field.js';
 import { createInterceptorMotion } from '../events/interceptor-motion.js';
 import { createInterceptorChaseMotion } from '../events/interceptor-chase.js';
 import { createInterceptorEffects } from '../events/interceptor-effects.js';
-import { aimWraithScissors } from '../events/interceptor-aim.js';
+import {
+  aimWraithScissors,
+  aimBulwarkSlab,
+} from '../events/interceptor-aim.js';
 import { interceptorBoss } from '../events/interceptor-bosses.js';
 import {
   PURSUIT_EQUIPMENT,
@@ -487,8 +490,11 @@ export async function createGame({
                       ...payload,
                       hitLocal,
                       key: `${payload.hitId}:${payload.source}:${payload.target}`,
-                    }))
+                    })) {
+                      if (hit.type === 'interceptor-breakwater')
+                        combat.stopIon(missionBoss.id);
                       emit(hit);
+                    }
                   },
                 }
               : {}),
@@ -751,7 +757,11 @@ export async function createGame({
         })) {
           if (event.type === 'interceptor-fire')
             pendingMissionFire.push(event.payload);
-          else emit(event);
+          else {
+            if (event.type === 'interceptor-wake-stop')
+              combat.stopIon(missionBoss.id);
+            emit(event);
+          }
         }
         const status = interceptor.snapshot();
         if (status.result) {
@@ -764,7 +774,10 @@ export async function createGame({
           mode = 'results';
           ui.setResultsAvailable(true);
           ui.setMode(mode);
-          if (lastResults.won && ['goliath', 'wraith'].includes(missionBoss.id))
+          if (
+            lastResults.won &&
+            ['goliath', 'wraith', 'bulwark'].includes(missionBoss.id)
+          )
             emit({
               type: 'interceptor-cue',
               payload: {
@@ -896,10 +909,14 @@ export async function createGame({
                 signature:
                   command.kind === 'arc'
                     ? 'wraith-scissor'
-                    : 'goliath-pressure',
+                    : missionBoss.id === 'bulwark'
+                      ? 'bulwark-slab'
+                      : 'goliath-pressure',
               };
-              if (command.kind === 'arc') {
-                const aimed = aimWraithScissors({
+              if (command.kind === 'arc' || missionBoss.id === 'bulwark') {
+                const aimed = (
+                  command.kind === 'arc' ? aimWraithScissors : aimBulwarkSlab
+                )({
                   track,
                   bossPose: physical,
                   muzzle: command.muzzle,
@@ -934,6 +951,9 @@ export async function createGame({
               payload: {
                 kind: command.kind,
                 deviceId: `${missionBoss.id}-countermeasure`,
+                ...(missionBoss.id === 'bulwark' && command.kind === 'ion'
+                  ? { wakeMuzzle: [0, 0.15, -10.4] }
+                  : {}),
                 fraction: 0,
               },
             });
@@ -2072,7 +2092,7 @@ export async function createGame({
           camera.updateProjectionMatrix();
         } else if (
           mode === 'results' &&
-          missionBoss?.id === 'wraith' &&
+          ['wraith', 'bulwark'].includes(missionBoss?.id) &&
           interceptor.snapshot().result
         ) {
           // A long-range takedown still deserves a readable view of the actual

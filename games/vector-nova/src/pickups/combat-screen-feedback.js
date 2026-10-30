@@ -38,10 +38,12 @@ export function createCombatScreenFeedback(host) {
         return;
       }
       root.hidden = false;
-      root.dataset.kind = host.dataset.combatHit =
-        disruption.signature === 'goliath-pressure'
-          ? 'pressure'
-          : disruption.kind;
+      root.dataset.kind = host.dataset.combatHit = [
+        'goliath-pressure',
+        'bulwark-slab',
+      ].includes(disruption.signature)
+        ? 'pressure'
+        : disruption.kind;
       const { flash, pulse, tunnel } = sampleCombatScreen(
         disruption,
         settings.reducedMotion,
@@ -51,11 +53,13 @@ export function createCombatScreenFeedback(host) {
       root.style.setProperty('--hit-tunnel', tunnel.toFixed(3));
       root.style.setProperty(
         '--hit-color',
-        disruption.signature === 'goliath-pressure'
-          ? '#ffb65a'
-          : disruption.signature === 'wraith-scissor'
-            ? '#8ceaff'
-            : deviceCSSColor(disruption.kind),
+        disruption.signature === 'bulwark-slab'
+          ? '#c3eab9'
+          : disruption.signature === 'goliath-pressure'
+            ? '#ffb65a'
+            : disruption.signature === 'wraith-scissor'
+              ? '#8ceaff'
+              : deviceCSSColor(disruption.kind),
       );
       host.style.setProperty('--combat-hud-pulse', pulse.toFixed(3));
     },

@@ -1,4 +1,36 @@
 export const RACE_SAMPLES = {
+  'bulwark-charge': new URL(
+    '../../assets/audio/sfx/bosses/bulwark-charge.wav',
+    import.meta.url,
+  ).href,
+  'bulwark-lock': new URL(
+    '../../assets/audio/sfx/bosses/bulwark-lock.wav',
+    import.meta.url,
+  ).href,
+  'bulwark-turn': new URL(
+    '../../assets/audio/sfx/bosses/bulwark-turn.wav',
+    import.meta.url,
+  ).href,
+  'bulwark-fire': new URL(
+    '../../assets/audio/sfx/bosses/bulwark-fire.wav',
+    import.meta.url,
+  ).href,
+  'bulwark-counter': new URL(
+    '../../assets/audio/sfx/bosses/bulwark-counter.wav',
+    import.meta.url,
+  ).href,
+  'bulwark-expose': new URL(
+    '../../assets/audio/sfx/bosses/bulwark-expose.wav',
+    import.meta.url,
+  ).href,
+  'bulwark-core-hit': new URL(
+    '../../assets/audio/sfx/bosses/bulwark-core-hit.wav',
+    import.meta.url,
+  ).href,
+  'bulwark-disable': new URL(
+    '../../assets/audio/sfx/bosses/bulwark-disable.wav',
+    import.meta.url,
+  ).href,
   'wraith-charge': new URL(
     '../../assets/audio/sfx/bosses/wraith-charge.wav',
     import.meta.url,

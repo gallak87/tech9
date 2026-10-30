@@ -577,7 +577,11 @@ test('each boss keeps the same difficulty hulls while using its own physical att
           attack.telegraph + attack.turn + (attack.fireDelay ?? 0),
           progress(marker + 10),
         )
-        .filter((event) => event.type === 'interceptor-fire');
+        .filter(
+          (event) =>
+            event.type === 'interceptor-fire' &&
+            event.payload.kind === attack.kind,
+        );
       assert.equal(first.length, 1);
       assert.equal(first[0].payload.source, bossId);
       assert.equal(first[0].payload.kind, attack.kind);
@@ -745,33 +749,37 @@ test('every authored boss beat warns, fires across both laps and holds its aim t
   }
 });
 
-test('Bulwark keeps separate Ion wakes and suppresses them while its heavy volley turns and fires', () => {
-  const mission = create({ bossId: 'bulwark', allies: [] });
-  assert.deepEqual(mission.step(8.9, progress(100)), []);
-  const wake = mission.step(0.1, progress(100));
+test('Bulwark uses only authored forward wake requests rather than a stale passive nine-second timer', () => {
+  const mission = create({
+    bossId: 'bulwark',
+    allies: [],
+    routeLength: 1000,
+    escapeDistance: 2000,
+  });
+  assert.deepEqual(mission.step(9, progress(100)), []);
+  mission.step(1, progress(140));
+  const wake = mission
+    .step(0.8, progress(150))
+    .filter((event) => event.type === 'interceptor-fire');
   assert.equal(wake.length, 1);
   assert.equal(wake[0].payload.kind, 'ion');
-  mission.step(6, progress(645));
-  assert.equal(mission.snapshot().counterattack.phase, 'telegraph');
-  const events = mission.step(5.2, progress(900));
+  const later = mission.step(30, progress(190));
   assert.equal(
-    events.filter((event) => event.payload.kind === 'lance').length,
-    2,
-  );
-  assert.equal(
-    events.some((event) => event.payload.kind === 'ion'),
+    later.some((event) => event.payload.kind === 'ion'),
     false,
   );
-  mission.step(6.7, progress(1000));
-  const next = mission.step(0.1, progress(1000));
-  assert.equal(next.length, 1);
-  assert.equal(next[0].payload.kind, 'ion');
+  assert.equal(
+    later.filter((event) => event.type === 'interceptor-wake-stop').length,
+    1,
+  );
+  assert.equal(mission.snapshot().counterattack.breakwater.emitting, false);
+  assert.equal(mission.snapshot().nextIonFire, null);
 });
 
 test('boss identity, target aliases, real damage ownership and named terminal results survive replay isolation', () => {
   const identities = new Set();
   for (const bossId of ['goliath', 'wraith', 'bulwark']) {
-    const health = bossId === 'bulwark' ? 18 : 9;
+    const health = 9;
     const mission = create({ bossId, health });
     identities.add(mission.rulesId);
     assert.equal(
@@ -854,13 +862,13 @@ test('real unblocked hits determine damage, distinguish player/allies, and dedup
   assert.equal(snapshot.hits, 4);
 });
 
-test('Goliath and Wraith armor chips retain real hit credit and replay identity while Bulwark keeps stock weapon damage', () => {
+test('each boss armor profile retains real chip hit credit and strict replay identity', () => {
   for (const bossId of ['goliath', 'wraith', 'bulwark']) {
     const mission = create({ bossId });
-    for (const [equipment, stock, chip] of [
-      ['lance', 18, 9],
-      ['arc', 5, 2],
-      ['repulsor', 12, 6],
+    for (const [equipment, chip] of [
+      ['lance', 9],
+      ['arc', 2],
+      ['repulsor', 6],
     ]) {
       const hit = mission.hit({
         source: 'player',
@@ -869,11 +877,8 @@ test('Goliath and Wraith armor chips retain real hit credit and replay identity 
         kind: equipment === 'lance' ? 'repulsor' : equipment,
         ...(equipment === 'lance' ? { equipment: 'lance' } : {}),
       });
-      assert.equal(hit[0].payload.damage, bossId !== 'bulwark' ? chip : stock);
-      assert.equal(
-        hit[0].payload.armored,
-        bossId !== 'bulwark' ? true : undefined,
-      );
+      assert.equal(hit[0].payload.damage, chip);
+      assert.equal(hit[0].payload.armored, true);
       assert.equal(hit[0].payload.weakPoint, undefined);
     }
     const saved = JSON.parse(JSON.stringify(mission.snapshot()));
@@ -882,16 +887,17 @@ test('Goliath and Wraith armor chips retain real hit credit and replay identity 
     assert.deepEqual(restored.snapshot(), saved);
     assert.equal(saved.hits, 3, 'armor does not discard real contacts');
     const forged = structuredClone(saved);
-    if (bossId !== 'bulwark') {
-      delete forged.lastHit.armored;
-      assert.deepEqual(
-        JSON.parse(mission.rulesId).counterattack[
-          bossId === 'goliath' ? 'pressure' : 'resonance'
-        ].armorPlayer,
-        { lance: 9, arc: 2, repulsor: 6 },
-      );
-      assert.equal(saved.version, 9);
-    } else forged.lastHit.armored = true;
+    delete forged.lastHit.armored;
+    const mechanic = {
+      goliath: 'pressure',
+      wraith: 'resonance',
+      bulwark: 'breakwater',
+    }[bossId];
+    assert.deepEqual(
+      JSON.parse(mission.rulesId).counterattack[mechanic].armorPlayer,
+      { lance: 9, arc: 2, repulsor: 6 },
+    );
+    assert.equal(saved.version, 9);
     assert.throws(() => restored.restore(forged));
     assert.deepEqual(restored.snapshot(), saved);
   }

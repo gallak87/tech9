@@ -21,6 +21,39 @@ const race = (id, label, type, payload = {}, seconds = 0.8) => ({
 
 export const soundEffects = [
   ...[
+    ['charge', 'Shield bulkheads loading', 1.6],
+    ['lock', 'Vault latch', 0.25],
+    ['turn', 'Barge gyro turn', 0.9],
+    ['fire', 'Pressure slab', 0.45],
+    ['counter', 'Shoulder emitter ruptured', 0.55],
+    ['expose', 'Shoulder shutters open', 0.6],
+    ['disable', 'Shield collapse', 1.4],
+  ].map(([cue, label, seconds]) => ({
+    ...race(
+      `bulwark-${cue}`,
+      `Bulwark · ${label}`,
+      'interceptor-cue',
+      { bossId: 'bulwark', cue },
+      seconds,
+    ),
+    group: 'Interceptor · Bulwark',
+  })),
+  {
+    ...race(
+      'bulwark-core-hit',
+      'Bulwark · Critical shoulder hit',
+      'interceptor-hit',
+      {
+        bossId: 'bulwark',
+        target: 'bulwark',
+        source: 'player',
+        weakPoint: true,
+      },
+      0.35,
+    ),
+    group: 'Interceptor · Bulwark',
+  },
+  ...[
     ['charge', 'Twin capacitors', 1.2],
     ['lock', 'Ion lock', 0.25],
     ['turn', 'Reverse thrust', 0.55],

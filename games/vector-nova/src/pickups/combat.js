@@ -16,7 +16,7 @@ import {
 } from './rules.js';
 
 export const COMBAT_RULES = Object.freeze({
-  version: 5,
+  version: 6,
   consequences: COMBAT_CONSEQUENCES,
   pulseDelay: 0.5,
   pulseRadius: 36,
@@ -497,7 +497,7 @@ export function createCombatSimulation({
       if (!source) return false;
       if (
         options.signature !== undefined &&
-        options.signature !== 'goliath-pressure'
+        !['goliath-pressure', 'bulwark-slab'].includes(options.signature)
       )
         throw new Error('Unknown signature projectile');
       const pose = options.pose ?? source.pose;
@@ -534,6 +534,20 @@ export function createCombatSimulation({
     request(id, event) {
       requests.push({ id, event });
     },
+    // A destroyed emitter ends future deposits, never the physical trail it
+    // already laid. Keep the burst's existing contact ledger until it expires.
+    stopIon(id) {
+      const pending = requests.length;
+      requests = requests.filter(
+        ({ id: source, event }) =>
+          source !== id || event.payload.kind !== 'ion',
+      );
+      const emitter = state.emitters[id];
+      if (emitter?.kind !== 'ion') return requests.length !== pending;
+      delete state.emitters[id];
+      notify(id, 'pickup-expire', { kind: 'ion', deviceId: emitter.deviceId });
+      return true;
+    },
     resetActor,
     step(dt) {
       if (!Number.isFinite(dt) || dt <= 0) return;
@@ -552,6 +566,15 @@ export function createCombatSimulation({
       for (const { id, event } of requests) {
         if (!eligible(id)) continue;
         const { kind, deviceId } = event.payload;
+        const wakeMuzzle = event.payload.wakeMuzzle;
+        if (
+          wakeMuzzle !== undefined &&
+          (kind !== 'ion' ||
+            !Array.isArray(wakeMuzzle) ||
+            wakeMuzzle.length !== 3 ||
+            !wakeMuzzle.every((v) => Number.isFinite(v) && Math.abs(v) <= 100))
+        )
+          throw new Error('Ion emitter requires a finite physical muzzle');
         if (state.emitters[id])
           notify(id, 'pickup-unavailable', {
             kind,
@@ -567,6 +590,7 @@ export function createCombatSimulation({
             nextWake: 0,
             tail: null,
             burst: state.sequence++,
+            ...(wakeMuzzle ? { wakeMuzzle: [...wakeMuzzle] } : {}),
           };
           if (kind === 'ion')
             state.wakeHits[state.emitters[id].burst] = {
@@ -609,12 +633,16 @@ export function createCombatSimulation({
         }
         if (emitter.kind === 'ion') {
           if (emitter.elapsed >= emitter.nextWake) {
-            const tail = pose.position
-              .clone()
-              .addScaledVector(
-                forward.clone().applyQuaternion(pose.quaternion),
-                -5,
-              );
+            const tail = emitter.wakeMuzzle
+              ? vector(emitter.wakeMuzzle)
+                  .applyQuaternion(pose.quaternion)
+                  .add(pose.position)
+              : pose.position
+                  .clone()
+                  .addScaledVector(
+                    forward.clone().applyQuaternion(pose.quaternion),
+                    -5,
+                  );
             if (emitter.tail)
               state.wakes.push({
                 id: state.sequence++,
@@ -894,7 +922,8 @@ export function createCombatSimulation({
           (shot) =>
             shot.signature !== undefined &&
             !(
-              (shot.signature === 'goliath-pressure' && shot.heavy === true) ||
+              (['goliath-pressure', 'bulwark-slab'].includes(shot.signature) &&
+                shot.heavy === true) ||
               (shot.signature === 'wraith-scissor' &&
                 shot.heavy === undefined &&
                 shot.target === null)
@@ -908,13 +937,23 @@ export function createCombatSimulation({
           (flash) =>
             flash.signature !== undefined &&
             !(
-              (flash.signature === 'goliath-pressure' &&
+              (['goliath-pressure', 'bulwark-slab'].includes(flash.signature) &&
                 flash.equipment === 'lance') ||
               (flash.signature === 'wraith-scissor' &&
                 flash.equipment === undefined)
             ),
         ) ||
         !data.emitters ||
+        Object.values(data.emitters).some(
+          (emitter) =>
+            emitter.wakeMuzzle !== undefined &&
+            (emitter.kind !== 'ion' ||
+              !Array.isArray(emitter.wakeMuzzle) ||
+              emitter.wakeMuzzle.length !== 3 ||
+              !emitter.wakeMuzzle.every(
+                (v) => Number.isFinite(v) && Math.abs(v) <= 100,
+              )),
+        ) ||
         !data.grace ||
         !data.disruptions ||
         Object.values(data.disruptions).some(

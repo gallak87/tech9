@@ -2,6 +2,35 @@
   "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "interceptor-bulwark-sfx",
+      "source": "assets/audio/sfx/bosses/",
+      "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
+      "provenance": "Eight locally generated Bulwark moving-vault cues: shield bulkhead load, vault latch, heavy gyro turn, contained pressure slab, shoulder emitter rupture, shoulder shutter opening, critical shoulder thud and shield-collapse drive rundown. Generated strictly sequentially with the pinned official MLX Small-SFX runtime without reference audio. Current prompts, source/master hashes and exact onset trims, filtering, body compression and smooth release recipes are retained. Real phase, accepted fire and shoulder-hit events use the shared race effects bus; return aliases the quieter Bulwark turn. Goliath, Wraith and approved player Lance recordings remain unchanged. Integrated for encounter critique; human listening approval pending.",
+      "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See docs/audio/sfx.md.",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/audio/sfx/bosses/provenance.json",
+      "generationConfigs": [
+        "assets/audio/sfx/bosses/bulwark-charge.json",
+        "assets/audio/sfx/bosses/bulwark-lock.json",
+        "assets/audio/sfx/bosses/bulwark-turn.json",
+        "assets/audio/sfx/bosses/bulwark-fire.json",
+        "assets/audio/sfx/bosses/bulwark-counter.json",
+        "assets/audio/sfx/bosses/bulwark-expose.json",
+        "assets/audio/sfx/bosses/bulwark-core-hit.json",
+        "assets/audio/sfx/bosses/bulwark-disable.json"
+      ],
+      "runtimeAssets": [
+        "assets/audio/sfx/bosses/bulwark-charge.wav",
+        "assets/audio/sfx/bosses/bulwark-lock.wav",
+        "assets/audio/sfx/bosses/bulwark-turn.wav",
+        "assets/audio/sfx/bosses/bulwark-fire.wav",
+        "assets/audio/sfx/bosses/bulwark-counter.wav",
+        "assets/audio/sfx/bosses/bulwark-expose.wav",
+        "assets/audio/sfx/bosses/bulwark-core-hit.wav",
+        "assets/audio/sfx/bosses/bulwark-disable.wav"
+      ]
+    },
+    {
       "id": "interceptor-wraith-sfx",
       "source": "assets/audio/sfx/bosses/",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",

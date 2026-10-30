@@ -52,7 +52,9 @@ export function createInterceptorEvent({
   const COUNTERATTACK = boss.attack;
   const pressure = COUNTERATTACK.pressure;
   const resonance = COUNTERATTACK.resonance;
+  const breakwater = COUNTERATTACK.breakwater;
   const opening = pressure ?? resonance;
+  const armor = opening?.armorPlayer ?? breakwater?.armorPlayer;
   const markers = COUNTERATTACK.markers ?? [COUNTERATTACK.marker];
   const profile = {
     ...missionProfile(difficulty),
@@ -65,7 +67,7 @@ export function createInterceptorEvent({
   const ATTACK_DURATION = FACING_DURATION + (opening?.breach ?? 0);
   const LOCK_TIME = pressure
     ? Math.min(COUNTERATTACK.telegraph, FIRE_START - pressure.lockLead)
-    : (resonance?.lockTime ?? null);
+    : (resonance?.lockTime ?? breakwater?.lockTime ?? null);
   const ATTACK_COUNT = markers.length * 2;
   const attackLocation = (index) => ({
     lap: Math.floor(index / markers.length) + 1,
@@ -89,7 +91,7 @@ export function createInterceptorEvent({
     const direction =
       Math.abs(first) > 1 ? -Math.sign(first) : index % 2 === 0 ? 1 : -1;
     return Array.from({ length: profile.blasts }, (_, shot) =>
-      boundedLane(first + shot * direction * pressure.laneStep),
+      boundedLane(first + shot * direction * (pressure ?? breakwater).laneStep),
     );
   };
   const ionInterval = boss.countermeasureInterval;
@@ -158,6 +160,47 @@ export function createInterceptorEvent({
     keys = new Set();
   }
   reset();
+  function breakwaterSnapshot(current = state) {
+    const attack = current.counterattacks.at(-1);
+    const elapsed = attack ? current.elapsed - attack.started : 0;
+    const active =
+      !!attack &&
+      !attack.breakHit &&
+      elapsed >= breakwater.expose - EPSILON &&
+      elapsed < COUNTERATTACK.telegraph - EPSILON;
+    return {
+      active,
+      side: attack?.side ?? 1,
+      remaining: active ? COUNTERATTACK.telegraph - elapsed : 0,
+      disabled: !!attack?.breakHit,
+      emitting:
+        !!attack?.wakeRequested &&
+        !attack.breakHit &&
+        elapsed < COUNTERATTACK.telegraph - EPSILON,
+      wakeRequested: !!attack?.wakeRequested,
+      stoppedAt:
+        attack?.breakHit?.elapsed ??
+        (attack?.wakeStopped ? attack.started + COUNTERATTACK.telegraph : null),
+      opensIn:
+        attack && !attack.breakHit && elapsed < breakwater.expose
+          ? breakwater.expose - elapsed
+          : 0,
+      source: targetId,
+      cycle: attack ? current.counterattacks.length - 1 : null,
+      emitter: [
+        breakwater.emitter[0] * (attack?.side ?? 1),
+        ...breakwater.emitter.slice(1),
+      ],
+      bounds: {
+        minX: breakwater.minX,
+        maxX: breakwater.maxX,
+        low: breakwater.low,
+        high: breakwater.high,
+        rearMin: breakwater.rearMin,
+        rearMax: breakwater.rearMax,
+      },
+    };
+  }
   function counterattackSnapshot(current = state) {
     const attack = current.counterattacks.at(-1);
     const elapsed = attack ? Math.max(0, current.elapsed - attack.started) : 0;
@@ -275,6 +318,33 @@ export function createInterceptorEvent({
             },
           }
         : {}),
+      ...(breakwater
+        ? {
+            attackIndex: attack ? current.counterattacks.length - 1 : null,
+            tracking: !!attack && !attack.locked && phase === 'telegraph',
+            locked: !!attack?.locked,
+            aimLane: attack?.locked
+              ? attack.aimLanes[Math.min(attack.shots, profile.blasts - 1)]
+              : (attack?.trackingLane ?? null),
+            aimLanes: attack?.locked ? [...attack.aimLanes] : [],
+            aimDistance: attack?.aimDistance ?? null,
+            nextShot: attack
+              ? Math.min(attack.shots, profile.blasts - 1)
+              : null,
+            fireIn:
+              attack && attack.shots < profile.blasts
+                ? Math.max(
+                    0,
+                    SHOT_START +
+                      attack.shots * COUNTERATTACK.shotInterval -
+                      elapsed,
+                  )
+                : null,
+            charge: attack ? clamp(elapsed / COUNTERATTACK.telegraph) : 0,
+            exposed: breakwaterSnapshot(current).active,
+            breakwater: breakwaterSnapshot(current),
+          }
+        : {}),
     };
   }
   function advanceCounterattack(
@@ -324,9 +394,103 @@ export function createInterceptorEvent({
                   }),
             }
           : {}),
+        ...(breakwater
+          ? {
+              side: index % 2 === 0 ? 1 : -1,
+              breakHit: null,
+              wakeRequested: false,
+              wakeStopped: false,
+              cues: 0,
+              trackingLane: boundedLane(previousLateral),
+              locked: false,
+              aimLanes: [],
+              aimDistance: null,
+            }
+          : {}),
       });
     }
     for (const [attackIndex, attack] of state.counterattacks.entries()) {
+      if (breakwater) {
+        const lockAt = attack.started + LOCK_TIME;
+        if (!attack.locked) {
+          const fraction =
+            state.elapsed > previousElapsed
+              ? clamp(
+                  (Math.min(lockAt, state.elapsed) - previousElapsed) /
+                    (state.elapsed - previousElapsed),
+                )
+              : 1;
+          attack.trackingLane = boundedLane(
+            previousLateral +
+              (state.playerLateral - previousLateral) * fraction,
+          );
+          if (state.elapsed >= lockAt - EPSILON) {
+            attack.locked = true;
+            attack.aimLanes = lanes(attack, attackIndex);
+            attack.aimDistance = Math.max(
+              30,
+              Math.min(240, state.targetDistance - state.playerDistance),
+            );
+          }
+        }
+        if (
+          !attack.wakeRequested &&
+          state.elapsed >= attack.started + breakwater.wakeOn - EPSILON
+        ) {
+          attack.wakeRequested = true;
+          if (!attack.breakHit)
+            events.push({
+              type: 'interceptor-fire',
+              payload: {
+                source: targetId,
+                kind: 'ion',
+                elapsed: attack.started + breakwater.wakeOn,
+                attackIndex,
+                ...attackLocation(attackIndex),
+              },
+            });
+        }
+        if (
+          !attack.wakeStopped &&
+          state.elapsed >= attack.started + COUNTERATTACK.telegraph - EPSILON
+        ) {
+          attack.wakeStopped = true;
+          events.push({
+            type: 'interceptor-wake-stop',
+            payload: {
+              source: targetId,
+              bossId,
+              elapsed: attack.started + COUNTERATTACK.telegraph,
+              attackIndex,
+              ...attackLocation(attackIndex),
+            },
+          });
+        }
+        for (const [bit, cue, offset] of [
+          [1, 'charge', 0],
+          [2, 'lock', LOCK_TIME],
+          [4, 'turn', COUNTERATTACK.telegraph],
+          [8, 'expose', breakwater.expose],
+          [32, 'return', RETURN_START],
+        ]) {
+          const elapsed = attack.started + offset;
+          if (!(attack.cues & bit) && elapsed <= state.elapsed + EPSILON) {
+            attack.cues |= bit;
+            events.push({
+              type: 'interceptor-cue',
+              payload: {
+                source: targetId,
+                bossId,
+                cue,
+                elapsed,
+                attackIndex,
+                ...attackLocation(attackIndex),
+                ...(cue === 'lock' ? { aimLanes: [...attack.aimLanes] } : {}),
+              },
+            });
+          }
+        }
+      }
       if (opening) {
         const lockAt = attack.started + LOCK_TIME;
         if (!attack.locked) {
@@ -435,13 +599,15 @@ export function createInterceptorEvent({
             source: targetId,
             kind: COUNTERATTACK.kind,
             elapsed,
-            ...(opening
+            ...(opening || breakwater
               ? {
                   aimLane: attack.aimLanes[attack.shots],
                   aimDistance: attack.aimDistance,
                   muzzle: resonance
                     ? [attack.shots % 2 === 0 ? -2.2 : 2.2, 0.48, 8.75]
-                    : [attack.shots % 2 === 0 ? -4.8 : 4.8, 1, 18.5],
+                    : breakwater
+                      ? [attack.shots % 2 === 0 ? -4.7 : 4.7, 2.25, 8.8]
+                      : [attack.shots % 2 === 0 ? -4.8 : 4.8, 1, 18.5],
                   shotIndex: attack.shots,
                   attackIndex,
                   ...attackLocation(attackIndex),
@@ -500,6 +666,92 @@ export function createInterceptorEvent({
         elapsed >= attack.started + FACING_DURATION - EPSILON &&
         elapsed < attack.started + ATTACK_DURATION - EPSILON,
     );
+  const shoulderPoint = (point, side) =>
+    breakwater &&
+    Array.isArray(point) &&
+    point.length === 3 &&
+    point.every(Number.isFinite) &&
+    point[0] * side >= breakwater.minX &&
+    point[0] * side <= breakwater.maxX &&
+    point[1] >= breakwater.low &&
+    point[1] <= breakwater.high &&
+    point[2] >= breakwater.rearMin &&
+    point[2] <= breakwater.rearMax;
+  const shoulderWindow = (attack, elapsed) =>
+    attack &&
+    elapsed >= attack.started + breakwater.expose - EPSILON &&
+    elapsed < attack.started + COUNTERATTACK.telegraph - EPSILON;
+  function validBreakwaterAttack(attack, index, saved) {
+    const elapsed = saved.elapsed - attack.started;
+    const locked = elapsed >= LOCK_TIME - EPSILON;
+    const hit = attack.breakHit;
+    if (
+      attack.side !== (index % 2 === 0 ? 1 : -1) ||
+      typeof attack.wakeRequested !== 'boolean' ||
+      typeof attack.wakeStopped !== 'boolean' ||
+      (attack.wakeRequested && elapsed < breakwater.wakeOn - EPSILON) ||
+      (attack.wakeStopped && elapsed < COUNTERATTACK.telegraph - EPSILON) ||
+      (saved.result === null &&
+        (attack.wakeRequested !== elapsed >= breakwater.wakeOn - EPSILON ||
+          attack.wakeStopped !==
+            elapsed >= COUNTERATTACK.telegraph - EPSILON)) ||
+      (hit !== null &&
+        (!hit ||
+          hit.source !== 'player' ||
+          !['lance', 'arc'].includes(hit.equipment) ||
+          typeof hit.key !== 'string' ||
+          !hit.key ||
+          hit.key.length > 160 ||
+          !saved.hitKeys?.includes(`player:${hit.key}`) ||
+          !Number.isFinite(hit.elapsed) ||
+          hit.elapsed > saved.elapsed + EPSILON ||
+          !shoulderWindow(attack, hit.elapsed) ||
+          !shoulderPoint(hit.hitLocal, attack.side)))
+    )
+      return false;
+    let cues = hit ? 16 : 0;
+    for (const [bit, offset] of [
+      [1, 0],
+      [2, LOCK_TIME],
+      [4, COUNTERATTACK.telegraph],
+      [8, breakwater.expose],
+      [32, RETURN_START],
+    ])
+      if (elapsed >= offset - EPSILON) cues |= bit;
+    if (
+      !Number.isFinite(attack.trackingLane) ||
+      Math.abs(attack.trackingLane) > laneBound ||
+      typeof attack.locked !== 'boolean' ||
+      (attack.locked && !locked) ||
+      (saved.result === null && attack.locked !== locked) ||
+      !Number.isInteger(attack.cues) ||
+      attack.cues < 0 ||
+      (attack.cues & ~cues) !== 0 ||
+      (attack.cues & 16) !== (cues & 16) ||
+      (saved.result === null && attack.cues !== cues) ||
+      !Array.isArray(attack.aimLanes) ||
+      attack.aimLanes.length !== (attack.locked ? profile.blasts : 0) ||
+      (attack.locked
+        ? !Number.isFinite(attack.aimDistance) ||
+          attack.aimDistance < 30 ||
+          attack.aimDistance > 240
+        : attack.aimDistance !== null)
+    )
+      return false;
+    return attack.aimLanes.every(
+      (lane, shot) => lane === lanes(attack, index)[shot],
+    );
+  }
+  function isSavedShoulderHit(hit, saved) {
+    const attack = saved.counterattacks[hit.breakwaterCycle];
+    return (
+      hit.source === 'player' &&
+      Number.isInteger(hit.breakwaterCycle) &&
+      attack?.breakHit?.elapsed === hit.elapsed &&
+      attack.breakHit.equipment === hit.equipment &&
+      JSON.stringify(attack.breakHit.hitLocal) === JSON.stringify(hit.hitLocal)
+    );
+  }
   function validResonanceAttack(attack, index, saved) {
     const lockAt = attack.started + LOCK_TIME;
     const closeAt = attack.started + resonance.counterClose;
@@ -653,6 +905,14 @@ export function createInterceptorEvent({
       const key = `${payload.source}:${payload.key}`;
       if (keys.has(key)) return [];
       const player = payload.source === 'player';
+      const shoulderAttack = breakwater && state.counterattacks.at(-1);
+      const breaksEmitter =
+        !!shoulderAttack &&
+        !shoulderAttack.breakHit &&
+        player &&
+        ['lance', 'arc'].includes(equipment) &&
+        shoulderWindow(shoulderAttack, state.elapsed) &&
+        shoulderPoint(payload.hitLocal, shoulderAttack.side);
       const pulseCore =
         player &&
         equipment === 'repulsor' &&
@@ -661,21 +921,32 @@ export function createInterceptorEvent({
         state.targetDistance - state.playerDistance >= 0 &&
         state.targetDistance - state.playerDistance <= 38;
       const weakPoint =
-        !!breachedAt(state.elapsed) &&
-        (equipment === 'repulsor' ? pulseCore : corePoint(payload.hitLocal));
+        breaksEmitter ||
+        (!!breachedAt(state.elapsed) &&
+          (equipment === 'repulsor' ? pulseCore : corePoint(payload.hitLocal)));
       const baseDamage = DAMAGE[equipment][player ? 'player' : 'ally'];
-      const armored = !!opening?.armorPlayer && !weakPoint;
+      const armored = !!armor && !weakPoint;
       const damage = Math.min(
         state.health,
         weakPoint
           ? player
-            ? baseDamage * opening.coreMultiplier
+            ? baseDamage * (opening ?? breakwater).coreMultiplier
             : baseDamage + 1
           : armored && player
-            ? opening.armorPlayer[equipment]
+            ? armor[equipment]
             : baseDamage,
       );
       keys.add(key);
+      if (breaksEmitter) {
+        shoulderAttack.breakHit = {
+          source: payload.source,
+          equipment,
+          key: payload.key,
+          elapsed: state.elapsed,
+          hitLocal: [...payload.hitLocal],
+        };
+        shoulderAttack.cues |= 16;
+      }
       state.health -= damage;
       state.hits++;
       if (player) {
@@ -694,6 +965,9 @@ export function createInterceptorEvent({
         ...(weakPoint
           ? {
               weakPoint: true,
+              ...(breaksEmitter
+                ? { breakwaterCycle: state.counterattacks.length - 1 }
+                : {}),
               ...(equipment === 'repulsor'
                 ? {
                     corePulse: {
@@ -727,6 +1001,36 @@ export function createInterceptorEvent({
               : {}),
           },
         },
+        ...(breaksEmitter
+          ? [
+              {
+                type: 'interceptor-breakwater',
+                payload: {
+                  source: targetId,
+                  bossId,
+                  attacker: payload.source,
+                  equipment,
+                  key: payload.key,
+                  hitLocal: [...payload.hitLocal],
+                  elapsed: state.elapsed,
+                  attackIndex: state.counterattacks.length - 1,
+                  side: shoulderAttack.side,
+                  ...attackLocation(state.counterattacks.length - 1),
+                },
+              },
+              {
+                type: 'interceptor-cue',
+                payload: {
+                  source: targetId,
+                  bossId,
+                  cue: 'counter',
+                  elapsed: state.elapsed,
+                  attackIndex: state.counterattacks.length - 1,
+                  ...attackLocation(state.counterattacks.length - 1),
+                },
+              },
+            ]
+          : []),
       ];
     },
     step(
@@ -996,6 +1300,8 @@ export function createInterceptorEvent({
           }
           if (resonance && !validResonanceAttack(attack, index, saved))
             return false;
+          if (breakwater && !validBreakwaterAttack(attack, index, saved))
+            return false;
           const due = Math.max(
             0,
             Math.min(
@@ -1037,28 +1343,30 @@ export function createInterceptorEvent({
               (saved.lastHit.weakPoint
                 ? saved.lastHit.source === 'player'
                   ? DAMAGE[saved.lastHit.equipment].player *
-                    (opening?.coreMultiplier ?? 1)
+                    ((opening ?? breakwater)?.coreMultiplier ?? 1)
                   : DAMAGE[saved.lastHit.equipment].ally + 1
-                : opening?.armorPlayer && saved.lastHit.source === 'player'
-                  ? opening.armorPlayer[saved.lastHit.equipment]
+                : armor && saved.lastHit.source === 'player'
+                  ? armor[saved.lastHit.equipment]
                   : DAMAGE[saved.lastHit.equipment][
                       saved.lastHit.source === 'player' ? 'player' : 'ally'
                     ]) ||
-            (!!opening?.armorPlayer && !saved.lastHit.weakPoint
+            (!!armor && !saved.lastHit.weakPoint
               ? saved.lastHit.armored !== true
               : saved.lastHit.armored !== undefined) ||
             (saved.lastHit.weakPoint !== undefined &&
               (saved.lastHit.weakPoint !== true ||
-                !breachedAt(saved.lastHit.elapsed, saved) ||
-                (saved.lastHit.equipment === 'repulsor'
-                  ? saved.lastHit.source !== 'player' ||
-                    !Number.isFinite(saved.lastHit.corePulse?.lateral) ||
-                    Math.abs(saved.lastHit.corePulse.lateral) >
-                      opening.coreHalfWidth ||
-                    !Number.isFinite(saved.lastHit.corePulse?.gap) ||
-                    saved.lastHit.corePulse.gap < 0 ||
-                    saved.lastHit.corePulse.gap > 38
-                  : !corePoint(saved.lastHit.hitLocal)))) ||
+                (breakwater
+                  ? !isSavedShoulderHit(saved.lastHit, saved)
+                  : !breachedAt(saved.lastHit.elapsed, saved) ||
+                    (saved.lastHit.equipment === 'repulsor'
+                      ? saved.lastHit.source !== 'player' ||
+                        !Number.isFinite(saved.lastHit.corePulse?.lateral) ||
+                        Math.abs(saved.lastHit.corePulse.lateral) >
+                          opening.coreHalfWidth ||
+                        !Number.isFinite(saved.lastHit.corePulse?.gap) ||
+                        saved.lastHit.corePulse.gap < 0 ||
+                        saved.lastHit.corePulse.gap > 38
+                      : !corePoint(saved.lastHit.hitLocal))))) ||
             !finite(saved.lastHit.elapsed) ||
             saved.lastHit.elapsed > saved.elapsed + EPSILON))
       )

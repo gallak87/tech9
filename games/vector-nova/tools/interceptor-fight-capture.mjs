@@ -138,7 +138,7 @@ try {
         Math.min(...(attack.aimLanes ?? [0]).map((x) => Math.abs(x - lane)));
       const counterLine =
         attack.resonance && ['counter', 'held', 'imperfect'].includes(policy);
-      const lane =
+      let lane =
         attack.locked &&
         attack.warning &&
         (attack.resonance || attack.shots < attack.blasts)
@@ -150,6 +150,19 @@ try {
                 ? attack.aimLanes[0]
                 : 0
           : 0;
+      const water = attack.breakwater;
+      const cleanFlank =
+        water && (policy === 'flank' || (policy === 'imperfect' && !missed));
+      if (
+        water &&
+        (cleanFlank || policy === 'wrong') &&
+        attack.phase === 'telegraph'
+      )
+        lane =
+          target.lateral +
+          water.side * (policy === 'wrong' ? -4.9 : water.side > 0 ? 4.8 : 5.2);
+      else if (cleanFlank && attack.warning && attack.locked)
+        lane = options.toSorted((a, b) => distance(b) - distance(a))[0];
       let control = getRacerControl(state, track, {
         difficulty: 'hard',
         pace: 1,
@@ -188,9 +201,11 @@ try {
       }
       control.equipment1 =
         window.__fightFirePolicy === 'window'
-          ? attack.exposed &&
-            attack.phaseElapsed > (attack.resonance ? 0.7 : 0.4) &&
-            attack.phaseElapsed < (attack.resonance ? 0.9 : 0.6)
+          ? water
+            ? water.active
+            : attack.exposed &&
+              attack.phaseElapsed > (attack.resonance ? 0.7 : 0.4) &&
+              attack.phaseElapsed < (attack.resonance ? 0.9 : 0.6)
           : window.__fightFirePolicy === 'none'
             ? false
             : state.time > 2;
@@ -250,6 +265,17 @@ try {
     if (mission.counterattack.countered && !seen.has('counter')) {
       seen.add('counter');
       label = 'counter';
+    }
+    if (mission.counterattack.breakwater?.active && !seen.has('emitter-open')) {
+      seen.add('emitter-open');
+      label = 'emitter-open';
+    }
+    if (
+      mission.counterattack.breakwater?.disabled &&
+      !seen.has('emitter-cut')
+    ) {
+      seen.add('emitter-cut');
+      label = 'emitter-cut';
     }
     if (
       mission.counterattack.countered &&
@@ -345,6 +371,28 @@ try {
       seen.add('cruise-restored');
       label = 'cruise-restored';
     }
+    const water = mission.counterattack.breakwater;
+    if (
+      water?.disabled &&
+      mission.elapsed - water.stoppedAt > 0.35 &&
+      !data.presentation.white &&
+      !data.combat.flashes.some(
+        (f) => f.target === mission.targetId && f.equipment === 'lance',
+      ) &&
+      !seen.has('wake-cut-clear')
+    ) {
+      seen.add('wake-cut-clear');
+      label = 'wake-cut-clear';
+    }
+    if (
+      water?.emitting &&
+      mission.counterattack.elapsed > 1.5 &&
+      !data.presentation.white &&
+      !seen.has('wake-live-clear')
+    ) {
+      seen.add('wake-live-clear');
+      label = 'wake-live-clear';
+    }
     if (label) {
       if (cycles > 1) label = `a${attackIndex + 1}-${label}`;
       const path = resolve(output, `${label}.png`);
@@ -361,6 +409,15 @@ try {
         countered: mission.counterattack.countered,
         counterProgress: mission.counterattack.counterProgress,
         aimLanes: mission.counterattack.aimLanes,
+        ...(water
+          ? {
+              breakwater: water,
+              liveIonEmitter: data.combat.emitters[mission.targetId] ?? null,
+              depositedWakes: data.combat.wakes
+                .filter((w) => w.source === mission.targetId)
+                .map((w) => ({ id: w.id, age: w.age, a: w.a, b: w.b })),
+            }
+          : {}),
         presentation: data.presentation,
         playerLateral: data.snapshot.vehicle.lateral,
         lastHit: mission.lastHit,

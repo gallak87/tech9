@@ -212,6 +212,184 @@ test('a boss lane lock ducks only its charging voice and the return reuses the m
   await audio.dispose();
 });
 
+test('Bulwark exposes eight authored moving-vault cues and only confirmed player shoulder hits', () => {
+  const entries = soundEffects.filter(
+    ({ group }) => group === 'Interceptor · Bulwark',
+  );
+  assert.equal(entries.length, 8);
+  assert.equal(
+    new Set(entries.map(({ event }) => raceSample(event)?.id)).size,
+    8,
+  );
+  for (const { event, bus } of entries) {
+    assert.equal(bus, 'race');
+    assert.ok(RACE_SAMPLES[raceSample(event)?.id]);
+  }
+  assert.deepEqual(
+    raceSample({
+      type: 'interceptor-cue',
+      payload: {
+        bossId: 'bulwark',
+        cue: 'return',
+      },
+    }),
+    { id: 'bulwark-turn', gain: 0.55 },
+  );
+  const critical = {
+    bossId: 'bulwark',
+    target: 'bulwark',
+    source: 'player',
+    weakPoint: true,
+  };
+  assert.deepEqual(raceSample({ type: 'interceptor-hit', payload: critical }), {
+    id: 'bulwark-core-hit',
+    gain: 0.88,
+  });
+  for (const payload of [
+    { ...critical, source: 'rook' },
+    { ...critical, weakPoint: false },
+    { ...critical, target: 'player' },
+  ])
+    assert.equal(raceSample({ type: 'interceptor-hit', payload }), null);
+});
+
+test('Bulwark rupture hands its shoulder thud and shutter tails to the counter while preserving other bosses', async () => {
+  const context = sampleContext();
+  const audio = createAudio({
+    createContext: () => context,
+    engine: false,
+    fetchAudio,
+  });
+  await audio.unlock();
+  audio.update(state, 0.35, true);
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'goliath', cue: 'fire' },
+  });
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'bulwark', cue: 'expose' },
+  });
+  audio.event({
+    type: 'interceptor-hit',
+    payload: {
+      bossId: 'bulwark',
+      target: 'bulwark',
+      source: 'player',
+      weakPoint: true,
+    },
+  });
+  const sources = () => context.nodes.filter((node) => node.buffer?.sampleUrl);
+  const old = sources();
+  const other = structuredClone(old[0].destination.gain.automation);
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'bulwark', cue: 'counter' },
+  });
+  assert.equal(
+    sources().at(-1).buffer.sampleUrl,
+    RACE_SAMPLES['bulwark-counter'],
+  );
+  for (const [index, gain] of [
+    [1, 0.74],
+    [2, 0.88],
+  ]) {
+    const duck = old[index].destination.gain.automation.find(
+      (entry) => entry.type === 'linear' && entry.time === 0.015,
+    );
+    assert.equal(duck?.value, gain * 0.25);
+  }
+  assert.deepEqual(old[0].destination.gain.automation, other);
+  audio.resetEnvironment();
+  assert.ok(sources().every((voice) => voice.disconnected));
+  await audio.dispose();
+});
+
+test('Bulwark breakwater cadence, quieter return and complete defeat release survive their real phase windows', async () => {
+  const durations = {
+    charge: 1.6,
+    lock: 0.25,
+    turn: 0.9,
+    fire: 0.45,
+    counter: 0.55,
+    expose: 0.6,
+    'core-hit': 0.35,
+    disable: 1.4,
+  };
+  const context = sampleContext(
+    Object.fromEntries(
+      Object.entries(durations).map(([cue, seconds]) => [
+        RACE_SAMPLES[`bulwark-${cue}`],
+        seconds,
+      ]),
+    ),
+  );
+  const audio = createAudio({
+    createContext: () => context,
+    engine: false,
+    fetchAudio,
+  });
+  await audio.unlock();
+  audio.update(state, 0.35, true);
+  const sources = () => context.nodes.filter((node) => node.buffer?.sampleUrl);
+  for (const [elapsed, cue] of [
+    [0, 'charge'],
+    [1, 'expose'],
+    [1.4, 'core-hit'],
+    [1.4, 'counter'],
+    [4.3, 'lock'],
+    [5.3, 'turn'],
+    [6.2, 'fire'],
+    [7.2, 'fire'],
+    [8.2, 'return'],
+    [12, 'disable'],
+  ]) {
+    context.currentTime = elapsed;
+    for (const source of sources())
+      if (!source.disconnected && source.stops[0] <= elapsed)
+        source.onended?.();
+    const before = sources().length;
+    audio.event(
+      cue === 'core-hit'
+        ? {
+            type: 'interceptor-hit',
+            payload: {
+              bossId: 'bulwark',
+              target: 'bulwark',
+              source: 'player',
+              weakPoint: true,
+            },
+          }
+        : {
+            type: 'interceptor-cue',
+            payload: { bossId: 'bulwark', cue, elapsed },
+          },
+    );
+    assert.equal(
+      sources().length,
+      before + 1,
+      `${cue} has room in the race voice budget`,
+    );
+    assert.equal(
+      sources().at(-1).buffer.sampleUrl,
+      RACE_SAMPLES[`bulwark-${cue === 'return' ? 'turn' : cue}`],
+    );
+    if (cue === 'disable') {
+      const disable = sources().at(-1);
+      assert.equal(disable.stops[0], 13.41);
+      audio.update(state, 0.35, false, { results: true });
+      assert.equal(disable.disconnected, false);
+      audio.update(state, 0, false, { results: true });
+      assert.equal(
+        disable.disconnected,
+        true,
+        'mute still cancels the victory tail',
+      );
+    }
+  }
+  await audio.dispose();
+});
+
 test('Wraith exposes eight distinct authored auditions, its return alias and only real player capacitor hits', () => {
   const entries = soundEffects.filter(
     ({ group }) => group === 'Interceptor · Wraith',

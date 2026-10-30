@@ -1,16 +1,14 @@
 import * as T from 'three';
 import { COMBAT_RULES } from '../pickups/combat.js';
+import { LANCE_SPEED, LANCE_LIFETIME } from '../pickups/rules.js';
 
 // Predict the receiving road station, never the pilot's lateral response.
 // Each real projectile freezes this pose at discharge and then flies straight.
-export function aimWraithScissors({
-  track,
-  bossPose,
-  muzzle,
-  player,
-  aimLane,
-  sourceSpeed = 0,
-}) {
+function aimFrozenLane(
+  { track, bossPose, muzzle, player, aimLane, sourceSpeed = 0 },
+  projectileSpeed,
+  lifetime,
+) {
   if (
     ![
       player?.distance,
@@ -26,10 +24,10 @@ export function aimWraithScissors({
     .fromArray(muzzle)
     .applyQuaternion(bossPose.quaternion)
     .add(bossPose.position);
-  const speed = COMBAT_RULES.arcSpeed + Math.max(0, sourceSpeed);
+  const speed = projectileSpeed + Math.max(0, sourceSpeed);
   const destination = new T.Vector3();
   let flightTime = Math.min(
-    COMBAT_RULES.arcLifetime,
+    lifetime,
     position.distanceTo(track.sample(player.distance).position) / speed,
   );
   let receiveDistance, frame;
@@ -43,10 +41,7 @@ export function aimWraithScissors({
   };
   for (let i = 0; i < 5; i++) {
     receive();
-    flightTime = Math.min(
-      COMBAT_RULES.arcLifetime,
-      position.distanceTo(destination) / speed,
-    );
+    flightTime = Math.min(lifetime, position.distanceTo(destination) / speed);
   }
   receive();
   const direction = destination.clone().sub(position).normalize();
@@ -59,3 +54,8 @@ export function aimWraithScissors({
   );
   return { position, quaternion, destination, receiveDistance, flightTime };
 }
+
+export const aimWraithScissors = (options) =>
+  aimFrozenLane(options, COMBAT_RULES.arcSpeed, COMBAT_RULES.arcLifetime);
+export const aimBulwarkSlab = (options) =>
+  aimFrozenLane(options, LANCE_SPEED, LANCE_LIFETIME);

@@ -11,7 +11,7 @@ import { createDeviceRuntime } from '../../pickups/runtime.js';
 
 // A Shrike-only roll probe cannot catch the courier's compound hull contacting
 // the next owned deck chunk. Keep the real boss, three allies and both turns.
-test('the real Bulwark squad completes the corkscrew and closed loop with both lap volleys', async () => {
+test('the real Bulwark squad completes the corkscrew and closed loop with all reached Breakwater volleys', async () => {
   const level = createLevel(),
     track = level.createTrack(),
     devices = level.racing.createDevices(track),
@@ -106,7 +106,7 @@ test('the real Bulwark squad completes the corkscrew and closed loop with both l
     assert.equal(bossImpacts.length, 0, JSON.stringify(bossImpacts));
     assert.deepEqual(
       mission.snapshot().counterattacks.map((attack) => attack.shots),
-      [2, 2],
+      [2, 2, 2],
     );
   } finally {
     racers.dispose();

@@ -1,236 +1,78 @@
-# VECTOR//NOVA — gameplay trailer script
+# VECTOR//NOVA — interwoven trailer script
 
-Status: working draft, 2026-10-29. Iterate here before recording or building the movie. Timings are edit targets; the final music choice and strongest takes can move them.
+**One 67-second film.** Racing, world spectacle and progression alternate within the same musical arc. The opening retains the strongest existing footage, menus first appear in the 23–31-second region, then action returns before competition, Garage and the final Shatterline jump.
 
-## Purpose and agreed direction
+**RC1 saved:** [movie and frozen script/edit plan](rc1/README.md). Before the next recording, address the [re-record TODOs](TODO.md) after the current gameplay and bug fixes land.
 
-Make a roughly 60-second gameplay trailer for the full game's Steam page, then reuse selected takes for short marketing clips and a separate demo cut.
+**Creative spine:** survive spectacular worlds → fight and pass → bend gravity → choose where to race → compete and earn → choose your ship → commit to the biggest jump.
 
-The promise: fast anti-gravity racing through spectacular worlds, with physical jumps, dangerous roads, combat and earned ships/equipment. Let actual driving demonstrate it. The first seconds should communicate speed and an unforgettable place, even with sound off.
+## Editorial timeline
 
-- Featured worlds: **Glasswake Comet, Cindercoil, Nacre Tempest, Colossus Works, Helion Flare, Umbra Fold, Shatterline and Nightweir**. Halcyon is outside the current main-trailer shot list.
-- Opening progression: **Glasswake blizzard → Cindercoil flowing road lava → Nacre's giant leviathan/worm breaching over the player during a jump**, with the storm waves visible. Keep the ship racing from the first shot.
-- Save **Shatterline and Nightweir's huge jumps for the climax**, after the Garage, weapon and pickup sequences. Build from hostile environments to racing/combat, then the largest flights.
-- Hero ship: **Kestrel**, the creator's favorite and the full game's final ship unlock. Show the Garage transition from starter Shrike to Kestrel.
-- Show rewards through the Garage, ship choice and equipping a weapon, followed by that weapon in action.
-- Add short animated HTML/CSS title overlays at selected feature beats. Keep driving visible, tie each claim to the action beneath it, and leave the creature reveal and biggest jumps unobstructed.
-- Use the existing soundtrack and pickup/equipment sounds. Choose the song together before locking the cut.
-- Keep the ordinary race camera and useful HUD visible for most footage. Use a brief model view in the Garage; any scenic inserts should support the racing.
-- Open directly on action. Keep text sparse, readable and understandable without narration. Finish with the game title and a clear call to action.
+All times are provisional until readable action and Ionwake's actual phrases are conformed. Keep normal gameplay speed. Capture longer handles, then remove loading/navigation dead time. A real attack, the racer it hits and the subsequent pass must remain a continuous encounter.
 
-These are editorial preferences, not a request to change levels, progression or gameplay.
+| Target time                 | Picture / action                                                                                                                                                                                                                                              | Camera, cut and sound                                                                                                                                                                                                                                                                                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **00:00–00:03 · 3s**        | **Glasswake:** immediate moving race through the blizzard, with real rivals ahead and readable road edges. Reuse the clean opening from the previous trailer.                                                                                                 | Chase view. Music begins already in motion; restrained engine/wind. Cut as the road opens, retaining forward travel and similar ship scale. No countdown or opening title card.                                                                                                                                                                         |
+| **00:03–00:06 · 3s**        | **Cindercoil:** steer around the volcanic lava surge and clear its edge cleanly. Reuse the verified avoidance shot.                                                                                                                                           | Chase view. Keep the visible steering response and actual world audio. Engine envelopes at the map boundary prevent a hard pitch jump.                                                                                                                                                                                                                  |
+| **00:06–00:17 · up to 11s** | **Nacre:** nearby rival → fire an equipped weapon → hit that racer → pass the same racer → press C → jump with the creature/body and waves in view → land. This is one continuous racing story, with the wider camera providing a new reveal after the pass.  | Begin chase. Press the real C control **after the hit racer has been passed**; confirm camera changes to vista. Keep attack, response, pass and camera change uncut. Hold vista through the jump/landing. Duck music slightly for real weapon cues; retain native engine/FX continuously. Trim passive lead-in/tail if the complete story reads sooner. |
+| **00:17–00:23 · 6s**        | **Umbra's first jump:** approach from outside the preview zone, watch the automatic camera rise, then the actual airborne gravity deflection/lensing and a successful landing as the camera returns.                                                          | **Stay in chase**: C/vista bypasses the automatic preview. Let the game's own movement sell the gravity mechanic. Preserve the normal landing and camera return. No added lens effects, explanatory feature card or speed ramp.                                                                                                                         |
+| **00:23–00:25 · 2s**        | **Main menu:** show the actual partially filled career progress bar and the main choices.                                                                                                                                                                     | Direct cut into an already settled menu. Engine fades out; Ionwake keeps its steady groove and level. Keep the interface at normal readable scale.                                                                                                                                                                                                      |
+| **00:25–00:30 · about 5s**  | **Circuit selection:** hover **Glasswake → Colossus → Helion**; let each image/name settle, then actually select Helion.                                                                                                                                      | Normal visible pointer, deliberate movement. About 1.4–1.6s per settled preview; include the selection response. Extend up to 0.5s if needed rather than dropping a preview. Cut from the selected Helion state to Helion racing.                                                                                                                       |
+| **00:30–00:33 · 3s**        | **Helion:** the chosen circuit becomes gameplay. Show player, road and direction immediately, then avoid the stellar fire sweep while remaining grounded. Reuse the clean existing shot.                                                                      | Chase view. Reintroduce game sound gently beneath the same musical groove; do not create a new musical build for this short return.                                                                                                                                                                                                                     |
+| **00:33–00:36 · 3s**        | **Championships:** hover one cup, then use actual selection to show its event details where needed.                                                                                                                                                           | Hold cup name and track/event list together for about 2s. A hover does not create a separate detail panel; show only existing UI behavior.                                                                                                                                                                                                              |
+| **00:36–00:39 · 3s**        | **Time Trial:** select the mode and show the real records screen or mode/record controls.                                                                                                                                                                     | Give the Time Trial identity a settled readable hold. Use actual records or an honest empty state; do not fabricate times. End before loading a race.                                                                                                                                                                                                   |
+| **00:39–00:44 · 5s**        | **Zephyr:** establish player, road, direction and the tower beside the route, then race past its visibly changing tilt with waterfall/wake in view. This breaks up the competition and Garage screens with action.                                            | Use chase or **C/vista**, choosing the native view that actually frames the moving tower and readable player/course. Choose the excerpt by visible motion, not solely a timer. The real collapse lasts nine seconds; show a coherent portion rather than promising it all. Keep the musical groove steady and use actual world sound; no fake impact.   |
+| **00:44–00:46 · 2s**        | **Fully unlocked menu:** a separate showcase state with **28/28 rewards** clearly visible before Garage.                                                                                                                                                      | Clean editorial cut to isolated dev=2. No reward animation or implication that the preceding few races earned all rewards.                                                                                                                                                                                                                              |
+| **00:46–00:52 · 6s**        | **Garage:** hover **Bastion → Needle → Kestrel**, keeping the model, role and performance panel visible.                                                                                                                                                      | About 1.8s per settled preview. Bastion's Endurance/longer Boost contrasts with Needle's Speed/top speed, then Kestrel's Balanced profile. Keep the real stat rows in the same position; no added comparison cards.                                                                                                                                     |
+| **00:52–00:56 · 4s**        | **Select Kestrel**, with **Quad Core**, four equipped slots and the actual loadout visible together.                                                                                                                                                          | Hold at least 3s after selection/loading settles. Return from Time Trial to Quick Race before this capture so stock trial rules do not suppress equipment. This earns the final return to racing.                                                                                                                                                       |
+| **00:56–01:04 · about 8s**  | **Shatterline finale:** the selected, fully upgraded **Kestrel with Quad Core and the same four equipped items** enters the giant Horizon Transfer jump. Grounded approach → launch → full airborne scale → receiving road → clean landing and brief run-out. | Begin in chase with native jump preview. Establish road/player/direction, then the gap and destination; a normal C change after launch may reveal the full flight if the receiver and landing remain clear. Reserve the major musical expansion for this launch and let the real landing resolve it. Do not cut the landing to meet a rigid duration.   |
+| **01:04–01:07 · 3s**        | **VECTOR//NOVA wordmark.**                                                                                                                                                                                                                                    | Actual game type treatment, red #c41c1c / off-white #edf0e9 / charcoal #191919. Carry a short native landing tail into the mark, then a resolved musical close. Add one Steam action only after the real public store/demo state is verified; use the wordmark alone for this review cut.                                                               |
 
-## Main trailer: first assembly
+## Camera and footage gates
 
-Capture each action as a longer take with at least 3 seconds of spare footage on either side. The durations below describe the edited movie, not the raw recordings. Keep a complete takeoff-to-landing sequence for the signature jumps.
+Use the normal player **C** command, which toggles chase and vista. Do not use fly/inspection cameras or create a new camera system. Vista's wider offset is the user's screenshot reference. Nacre and a selected point in the Shatterline finale provide vista variation. Zephyr may stay in chase if its tower falls outside vista framing. Avoid switching every few seconds simply because another angle exists.
 
-| ID  | Edit time | Picture and action                                                                                                                                                                         | Sound / purpose                                                                                                             |
-| --- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| S01 | 00–04     | **Glasswake:** open already racing through an exposed exterior in windblown snow/blizzard, with the icy road and ship clearly readable.                                                    | Start in an energetic part of the chosen song. Engine/boost and weather sound where present establish immediate motion.     |
-| S02 | 04–08     | **Cindercoil:** cut from snow to volcanic heat. Show lava flowing from the caldera onto/across the road at Curtain Reach, then drive across the diagonal flow.                             | Carry momentum across the cold-to-fire cut. Keep the lava source, road and ship in the same readable action where possible. |
-| S03 | 08–15     | **Nacre:** approach the first jump, launch, leviathan breaches overhead, huge storm waves establish scale, then a readable landing.                                                        | First major spectacle after the two environment hooks. Preserve launch, water/creature sound where present and landing.     |
-| S04 | 15–19     | **Colossus Works:** race past moving presses/ejectors or along a dramatic working surface, ideally with rivals visible.                                                                    | Let an existing machinery or contact sound punctuate the cut where available. Establish racing through interactive hazards. |
-| S05 | 19–23     | **Helion:** approach the dripping lava/fire-road moment identified by the creator; evade active fire or take shelter. Select the exact section during rehearsal.                           | Heat/fire audio if present; show hazard, driver response and clearance in one readable beat.                                |
-| S06 | 23–29     | **Umbra:** approach a broken span, launch, visibly counter the midair gravitational pull and land. Keep the amber gravity cue if it helps explain the correction.                          | Give this shot time to explain itself. Favor a clean trajectory over several rapid cuts.                                    |
-| S07 | 29–33     | **Garage:** show Shrike selected, then switch to Kestrel. Hold briefly on the live ship model and earned enhancement presentation.                                                         | A short musical breathing space with real selection sounds where present. Optional overlay: “EARN YOUR NEXT SHIP”.          |
-| S08 | 33–36     | **Garage:** remove one equipped item, select **Lance**, and show the equipped state.                                                                                                       | One clear loadout change. Optional overlay: “BUILD YOUR LOADOUT”.                                                           |
-| S09 | 36–40     | **Weapon payoff:** Kestrel fires Lance at a rival in a real race. Show the shot and a readable hit/response if a good take is available. Use Colossus or another already introduced world. | Let the weapon's own sound lead the beat. Match the visible loadout to S08.                                                 |
-| S10 | 40–43     | **Pickup / racing payoff:** cross an automatic road pickup and use the resulting effect during a close pass.                                                                               | Keep the pickup cue audible. Show collection and consequence together; begin the final musical build.                       |
-| S11 | 43–49     | **Shatterline climax:** boost from a launch ramp into one of the huge long flights. Keep the ship, enormous gap, receiving road and landing readable.                                      | Open up the musical payoff. Preserve the scale and duration of real flight, then punctuate the landing.                     |
-| S12 | 49–55     | **Nightweir climax:** follow with a huge basin jump over the city/spillway, ideally with city awakening/floodgates visible, ending in a confident landing and fast descent.                | Final escalation and decisive action. Match the flight/landing to the song's strongest phrase.                              |
-| S13 | 55–60     | **End card:** VECTOR//NOVA over a clean moving gameplay background or a brief title card. “Wishlist on Steam”. Add “Play the demo” once publicly available.                                | Resolve the musical phrase and leave the title/CTA readable for several seconds.                                            |
+**Nacre must be recaptured for the live camera change.** A close isolated developer setup can place Rook 35m ahead before the take, then use the real equipped Lance, actual damage response and normal steering to pass him before pressing C. Other racers remain in the real field. This earlier encounter lets vista begin before the creature leaves frame. Preserve the genuine hit/pass and do not transplant the earlier take's combat response. The previous source locates a useful but later encounter: Arc fires around old master 9.76–10.67, hits Kite around 10.00, then passes Kite around 12.21. The first position gain around 11.27 is an unrelated Pike pass; it is not the proof of the attack's effect. Press C only after the actual hit target is behind. Lance confirms its heavy hit as a repulsor-kind consequence; identify it by equipment=lance rather than requiring an Arc-kind confirmation. Retain the same run and camera change through the jump rather than splicing a different racer's reaction.
 
-Keep the Glasswake → Cindercoil → Nacre opening order and reserve the biggest Shatterline/Nightweir flights for the end. If Nacre's complete event or either climax jump needs more room, adjust the cut or extend toward 65–70 seconds. Reduce a secondary middle beat before rushing or speeding up a signature flight. The final music selection may move these boundaries.
+The creature's head begins diving around old master 12.2, while its 280m body trails behind. Vista may reveal the still-airborne body/tail and waves during the player's jump. Verify the new framing; do not promise a new full head breach after the overtake or retime the animal independently. If it is not visible, adjust the normal encounter/camera timing and recapture. Never composite a different creature pass into the race.
 
-Optional reserve footage: a reward/results reveal, a Time Trial ghost chase, a second Garage angle, a Shatterline transparent tube/corkscrew and a Nightweir city descent. Use these only if they strengthen the rough cut; the giant jumps remain the climax.
+**Umbra first jump:** begin approximately 320m before the first lip so the automatic preview starts during the take. Candidate state: distance 958.5016143897458, speed 102, time 7, lane 0, boost off. CPU launch is about 3.02s and landing about 4.93s; headed capture must verify gravity deflection, lensing, camera lift/return and safe landing. Keep chase throughout.
 
-## Animated feature titles
+**Zephyr:** revised chase candidate starts at distance 520.6947350868637, speed 112, time 7, lane 0, boost off; the earlier vista take at 721.1601454684161 missed the actual hero tower. The tower's event triggers on route distance, then tilts over nine seconds. Capture 12s and inspect the middle of the fall; compare native views before choosing the usable five seconds. If the tower is behind the camera or its motion cannot be read, adjust approach speed/location or camera timing through ordinary controls and recapture. Do not slow down or animate the tower separately.
 
-Use popping title divs over continuing footage to connect the spectacle to what the player can do and earn. Start with the four default cues below, plus the end card. The times are editable; each title needs a readable hold of roughly 2.5–3 seconds after its entrance. Choose a few strong claims rather than displaying a statistic over every shot.
+**Shatterline/Garage continuity:** use the same isolated fully unlocked profile as the final Garage: selected Kestrel, all enhancement ranks 3, Quad Core assigned to Kestrel, equipped **Jump Drive → Reserve Injector → Deflector → Lance** in that slot order. Set upgrades=3 or omit the parameter; never use the capture runner's old upgrades=0 default for this finale. Verify the recorded ship identity, profile and four-slot HUD before accepting the take. Horizon Transfer candidate state: distance 19386.20799640747, speed 155, time 7, lane 0, boost off. Stock CPU timing (launch about 1.18s, landing about 5.97s) is only a starting point; validate the fully upgraded profile's actual flight and landing. Capture longer than the final eight-second slot.
 
-### Current claim inventory
+The CPU timings are starting points, not evidence that recorded footage passes. Keep source handles and inspect native contacts, recovery, camera mode and actual visible events. Correct wrapper motion detection uses the nested flight mode where a level has one. Preserve the game and player's real save; staging remains isolated and does not change shipping physics, levels, UI or assets.
 
-Counts checked against the current full-game source on 2026-10-29. Recheck against the final capture/release build because content is still changing.
+## Menus and legibility
 
-| Claim              | Current value and meaning                                                                                                                              | Source                                                                                                |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| Tracks             | **15 tracks: 12 circuits + 3 sprints.** Sprints are Shatterline, Worldspire and Nightweir.                                                             | [Full edition policy](../tools/desktop/policy.mjs), [menu route catalog](../tools/menu-catalog.mjs)   |
-| Ships              | **4 flyable ships; unlock 3 more.** Start with Shrike, earn Bastion, Needle and Kestrel.                                                               | [Progression profile](../src/progression/profile.js), [reward catalog](../src/progression/catalog.js) |
-| Rewards            | **28 rewards to earn:** 18 enhancement tiers, 3 ships, 6 equipped abilities and Quad Core.                                                             | [Reward catalog](../src/progression/catalog.js)                                                       |
-| Equipped abilities | **6 equippable abilities.** These are separate from automatic road pickups.                                                                            | [Equipment/reward catalog](../src/progression/catalog.js)                                             |
-| Championships      | **4 championships:** Founders, Frontier, Horizon and Apex.                                                                                             | [Cup definitions](../src/race/cup.js)                                                                 |
-| Main modes         | **4 modes:** Quick Race, Championships, Time Trial and Practice. Downhill Sprint and Solo Descent are contextual race/practice names on sprint tracks. | [Mode picker](../src/frontend/index.js)                                                               |
+Record three comfortable menu chunks, then select settled windows for the interwoven timeline. The film never becomes one long navigation walkthrough. Keep each requested screen recognisable; do not replace the real interface with overlays.
 
-The suggested “10 circuits / 4 sprints” and “6 racing modes” are placeholders, not the current shipping claims. Use the values above until the implementation changes. Do not call the mixed reward catalog “28 weapons” or “28 unique ship upgrades”. These counts describe the full game; the demo cut needs its own edition-specific copy.
+1. **Progress and circuits:** actual partially filled progress bar, then three settled circuit hover previews ending on actual Helion selection and its response.
+2. **Cup and Time Trial:** one hovered/selected cup with actual event details, then Time Trial identity/records.
+3. **All rewards and Garage:** 28/28, then three ship/model/stat previews, selected Kestrel and Quad Core/four-item capacity.
 
-### Title cue sheet
+Opening menu chunks may use an isolated dev=2 profile with upgrades=1 to give a genuine partially filled claim bar; verify the displayed count rather than drawing a fake bar. Final Garage uses /?dev=2&ship=kestrel&exotic=kestrel with **no upgrades parameter**, granting all 28 claims and Quad Core on Kestrel. Equip Jump Drive, Reserve Injector, Deflector and Lance. Only the final showcase must be 28/28. Keep developer URLs, tools, music panel and browser chrome outside the recording.
 
-| Cue | Edit time / shot               | Main title                        | Small supporting line       | Use                                                                                                                                                                       |
-| --- | ------------------------------ | --------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| T01 | 03–07 / Glasswake → Cindercoil | **15 TRACKS**                     | **12 CIRCUITS · 3 SPRINTS** | Default. Let the first few seconds establish racing before the title arrives. Clear it before Nacre's breach.                                                             |
-| T02 | 15.5–19 / Colossus racing      | **4 CHAMPIONSHIPS**               | None                        | Default candidate. Use on a readable stretch with rivals; drop it if the machinery needs the whole frame.                                                                 |
-| T03 | 29.2–32.8 / Garage ship switch | **UNLOCK 3 MORE SHIPS**           | None                        | Default. Arrive as the Garage shows the fleet; let Kestrel remain the visual focus.                                                                                       |
-| T04 | 33–36 / Garage equipment       | **28 REWARDS TO EARN**            | None                        | Default. Tie the count to earned enhancements and equipment while equipping Lance.                                                                                        |
-| T05 | 36.2–39.8 / Lance payoff       | **6 EQUIPPABLE ABILITIES**        | None                        | Reserve; replace T04 if this tells the story better. Avoid three uninterrupted cards across Garage and weapon action.                                                     |
-| T06 | Optional mode/ghost insert     | **RACE. CHASE GHOSTS. WIN CUPS.** | None                        | Reserve; only use with footage that demonstrates these activities. Numeric alternative: “4 WAYS TO PLAY”, paired with the four actual mode names and enough reading time. |
+Menus contain no invented click sounds. If the current interface produces no audio, the musical bed carries those moments. Pointer stays visible for hover demonstrations and leaves critical labels clear. If previews need longer, extend settled holds by a few seconds overall; shorten navigation, not comprehension.
 
-Keep the 43–55 second Shatterline/Nightweir climax free of feature-count titles. The end card handles the game name and Steam/demo call to action. If T02 is removed, three feature cards are enough; the footage does not need text everywhere.
+## Music and sound
 
-### Look, motion and placement
+Use the approved **Ionwake** source as one musical arrangement across the entire film. Conform broad phrases first: **immediate action → clear combat/gravity passage → steady interwoven middle → one major Shatterline expansion → resolved logo**. Keep the same groove and broadly constant musical level through circuit selection, Helion, cups/Time Trial, Zephyr and Garage. Removing/reintroducing engines distinguishes menus from action; do not duck and rebuild the song every three seconds. Use only a brief cue-driven dip for the important Nacre attack, then reserve the major lift for the finale. Adjust shot boundaries to real phrasing without sacrificing action or settled menu holds.
 
-- Match VECTOR//NOVA's typography, angular shapes and existing accents. Use a large headline, optional smaller support line, strong contrast and a restrained dark backing/shadow where the world is busy.
-- Try a quick 150–220 ms entrance with a slight upward slide and scale from about 94% to 100%, then hold steady. Exit in about 150 ms. Avoid continuous bouncing or flashing while the viewer reads.
-- Position each cue in measured empty space. Avoid the ship, receiving road, Nacre creature, gravity cue, race position, timing, equipment HUD and minimap. Check against the actual shot; do not assume one corner is safe everywhere.
-- Use a consistent margin of roughly 5% of the frame. Check readability in the small Steam player. Change placement/reflow for vertical clips rather than blindly cropping the widescreen layout.
-- Start with existing music and game cues; an extra title whoosh is optional and should leave pickup/weapon sounds clear.
+- Capture with in-game music paused, host speakers muted and no microphone.
+- Preserve Nacre's native attack/hit/pass/jump audio continuously. Briefly lower music 2–3dB for important real cues, with smooth release.
+- Across map cuts, use 120–180ms game-audio envelopes and compatible engine loads; never stack two loud engines. Avoid repeated boost toggles. Keep game audio restrained enough that different engine pitches do not become the edit's dominant feature.
+- Keep menu gaps free of engine/wind; retain only actual UI audio where it exists. Reintroduce game audio gently at Helion, Zephyr and the finale.
+- On current mixed race buses, fade around events rather than cutting the event itself. Timestamp-matched existing cue assets may restore a real recorded event if needed; do not invent boost, impact or creature sounds.
+- No decorative swoosh barrage, artificial impact on the logo, speed ramps or fabricated hits. Music resolves over the final wordmark; the landing provides the physical punctuation.
 
-### Scripting the overlay layer
+## Production and review
 
-Author a separate marketing HTML/CSS overlay layer with `pointer-events: none`. A future title manifest should hold cue ID, shot ID, start/end relative to the **edited shot's in-point**, text, supporting line, position and animation preset. Derive the global timeline from the edit; raw-recording pre-roll must not offset the titles.
+The current master is the [67-second interwoven movie](rc1/vector-nova-rc1.mp4), driven by [interwoven.json](interwoven.json). Its source in-points, frame boundaries, profile requirements and audio decisions are retained with the raw takes under ignored .experiments/marketing/interwoven-v3/. Glasswake, Cindercoil and Helion reuse the previous clean sources; Nacre/C, Umbra, Zephyr, the Shatterline finale and menus use new captures. The [30-second edit list](trailer.json) remains an earlier version.
 
-Playwright can mount the layer in a headed browser to preview the titles over a rehearsal. For final assembly, keep clean gameplay masters and composite the same titles afterward with the editing/FFmpeg pipeline. This lets us change counts, wording, timing or localization without replaying a shot, and works with Electron footage without changing the shipped game. Export the title animations against the edit's fixed frame clock so their timing is reproducible.
+Use [prototype.mjs](../tools/marketing/prototype.mjs) for dedicated-tab gameplay capture, including normal C presses and verified hit/pass-triggered camera switching. Use [menu-capture.mjs](../tools/marketing/menu-capture.mjs) for the three actual menu source chunks and settled-action markers. The Nacre rolling encounter starts at route distance zero to keep its lap HUD valid. The finale uses the same fully upgraded Kestrel and four equipped items as Garage. Keep the assembled master, clean sources and edit metadata. The present renderer is 1600×900 at device scale 1, exported as 1920×1080 H.264 / stereo AAC at 60fps. Verify source cadence, final frame count, full decode and audio peaks.
 
-Title wording, animations and the manifest are planning items at this stage; no overlays have been added to the game or capture runner yet.
+The musical middle remains continuous. At film 57.33s the arrangement moves from Ionwake source 73.48s to 87.80s on the same beat grid, using a 40ms crossfade and one gentle 1.5dB lift for the finale. Engine fades and silent menu cuts retain the requested alternation without repeatedly rebuilding the music.
 
-## Shot preparation notes
-
-### Glasswake and Cindercoil opening
-
-Choose a Glasswake exterior with exposed blizzard weather; sheltered caverns reduce the effect. Show fast driving through the snow with a visible road edge and horizon. Test whether the first frame reads at small Steam-player size before committing to the take.
-
-Cindercoil's **Curtain Reach** has a permanent diagonal lava spill across the road, distinct from its timed warned surges. Start with that continuous source-to-road flow for a reliable snow-to-fire cut. Existing browser rehearsal scenarios include `spill-approach`, `spill-crossing`, `spill-source` and `spill-outfall`; choose an approach long enough to show actual driving through the scene. If a timed surge is visually stronger, capture the warning, advancing flow and response without implying the permanent spill switches on.
-
-### Nacre hero event
-
-The current leviathan reveal is linked to the **first jump** and responds to player distance and approach speed. It is not a fixed wall-clock event. Rehearse with the intended ship, upgrades and entry speed, then repeat that setup. Use an earlier continuous approach or full restart: the built-in `jump1-approach` starts too near takeoff to assume it reproduces the complete reveal, and discontinuous repositioning can reset the creature's event clock. Record the approach, breach, flight and landing together. Start with the normal race camera; test the alternate player camera only if the creature is obscured.
-
-First question for the rough cut: can a new viewer see both the player's jump and the creature crossing overhead? Preserve the waves and horizon as scale references. A wide free-camera shot can be a reserve insert, but this opening sequence should establish what the player experiences.
-
-### Garage and Lance
-
-Use a headed browser at `/?dev=2&ship=shrike` for initial staging. This gives an isolated, in-memory, fully unlocked profile. The current full-game Garage order is Shrike → Bastion → Needle → Kestrel.
-
-1. Open Garage with Shrike selected. Record a clean starting hold.
-2. Select Kestrel and let the live model settle into a useful view.
-3. Kestrel normally has Jump Drive and Reserve Injector equipped in this preset. Remove Reserve Injector to make space, then select Lance. Simply clicking Lance with both slots occupied will not equip it.
-4. Record the final Kestrel/loadout state, then capture the corresponding race action. With Jump in slot one and Lance in slot two, the current keyboard equipment actions are Q and E respectively; verify the selected slots before the take.
-
-Hide developer panels, audition controls and setup shortcuts in the recorded image. Use the ordinary Garage selection/equipment flow. The preset unlocks real content for staging; do not imply the trailer shows a fresh career. Current rewards include enhancement notches and equipment effects; no authored 3D upgrade attachments are assumed.
-
-The `dev=2` preset and developer scenario/replay APIs are absent from release Electron. Decide the final Garage capture source after comparing the browser take with the shipping Garage. Prefer the packaged app for final footage where practical; a matching browser take can be used if it faithfully shows the same player-facing visuals and behavior.
-
-### World and effect continuity
-
-| World           | Runtime ID    | Shot to rehearse                                                                                                                       |
-| --------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Glasswake Comet | `glasswake`   | Exposed blizzard exterior, icy road and fast driving; first shot.                                                                      |
-| Cindercoil      | `cindercoil`  | Curtain Reach lava source flowing across the road; second shot.                                                                        |
-| Nacre Tempest   | `nacre`       | First-jump leviathan breach, large storm waves, landing; underwater footage as reserve.                                                |
-| Colossus Works  | `colossus`    | Moving presses/ejectors, working surfaces and wall rolls.                                                                              |
-| Helion Flare    | `helion`      | Creator's dripping lava/fire-road target, sweeping fire, shelter and escape. Verify the exact desired appearance in the current build. |
-| Umbra Fold      | `umbra`       | Midair tidal pull, countersteer and landing with a readable gravity cue.                                                               |
-| Shatterline     | `shatterline` | Huge flight with a visible receiver and landing; first climax shot. Tube/corkscrew as reserve.                                         |
-| Nightweir       | `nightweir`   | Huge basin flight with city/spillway scale and a clean landing; final climax shot. Blackstart/floodgates if visible.                   |
-
-Use a consistent hero ship where possible, especially across Garage → weapon payoff. The first pass uses standard two-slot Kestrel equipment; extra Quad Core slots are unnecessary for this story. Keep a real opponent ahead for the Lance shot. Road pickups activate automatically; equipped Lance is a separate manual action. Do not substitute one effect for the other in the edit.
-
-## Capture plan: QuickTime with Playwright
-
-**Yes: QuickTime can record the visible game while headed Playwright drives it.** The recorder captures the display independently, so Playwright's built-in video encoder does not determine the recording frame rate. This still depends on actual rendering and recorder performance: a nominal 60 fps output cannot restore frames the game never rendered.
-
-The installed Playwright recorder currently uses 25 fps without audio. Keep that option for rough previews if useful; use external screen/window recording for candidate final takes.
-
-### Confirmed local CLI and scripting support
-
-Checked against macOS **26.6.2**, QuickTime Player **10.5**, the installed application's AppleScript dictionary, and `/usr/sbin/screencapture` help/man page. These are interface checks; no screen recording was started.
-
-QuickTime supports AppleScript through `osascript`, including `new screen recording`. However, that command has no recording-document return value in the installed dictionary, unlike `new movie recording`. Apple's macOS 26 instructions confirm that New Screen Recording opens **Screenshot's controls**. Do not assume the movie-recording `start`/`stop` document workflow gives unattended screen recording. [Apple automation guidance](https://support.apple.com/guide/quicktime-player/automation-tips-qtp797f6599f/mac), [macOS 26 screen recording workflow](https://support.apple.com/en-euro/guide/quicktime-player/qtp97b08e666/10.5/mac/26)
-
-The built-in **`screencapture` CLI** is the more direct automation candidate:
-
-| Option                | Documented local behavior                                                                                                           |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `-v`                  | Record video.                                                                                                                       |
-| `-V 15`               | Limit the recording to 15 seconds.                                                                                                  |
-| `-R x,y,width,height` | Select a screen rectangle; check actual Retina output dimensions.                                                                   |
-| `-l WINDOW_ID`        | Select a window; verify video framing on this Mac in the first test.                                                                |
-| `-D 1`                | Select a display. Prefer a game window/region for final takes.                                                                      |
-| `-g` / `-G AUDIO_ID`  | Capture the default audio input / a specified audio source. These do not establish a clean internal-game-audio route by themselves. |
-
-Example for a later, explicitly started test, after creating the output directory and verifying the rectangle contains the game:
-
-```sh
-/usr/sbin/screencapture -v -V 15 -R 100,100,1920,1080 .experiments/marketing/capture-test.mov
-```
-
-The local CLI documents **no frame-rate option** and no explicit system-audio switch. A timed recording command is available, but 60 fps pacing and internal audio still need proving. Its help/man page also does not specify a machine-readable recording-start handshake; a future runner needs measured lead-in time or a backend with a start callback.
-
-For fully scripted **1080p with a 60 fps target and game audio**, the stronger native candidate is a small **ScreenCaptureKit Swift helper**, controlled by Node alongside Playwright. The installed SDK includes frame-interval control, captured audio, file recording and recording-start/finish callbacks. Requesting `minimumFrameInterval = 1/60` sets a capture-rate target; it does not guarantee the game produces 60 unique frames. Capture the selected game application/window and its audio, with microphone capture off. Validate the chosen filter's audio scope in the test. [Apple frame-interval API](https://developer.apple.com/documentation/screencapturekit/scstreamconfiguration/minimumframeinterval), [audio capture API](https://developer.apple.com/documentation/screencapturekit/scstreamconfiguration/capturesaudio), [file recording API](https://developer.apple.com/documentation/screencapturekit/screcordingoutput)
-
-Proposed single-command workflow: **stage shot → await scene readiness → start native recording → await recording-start → pre-roll → real-time Playwright driving → post-roll → stop/finalize → inspect with `ffprobe` → save take metadata**. FFmpeg can later trim, assemble and mix the approved takes using the script's edit points. Both FFmpeg and `ffprobe` are installed locally. The runner, native helper and per-shot driving sequences remain to be implemented; full movie capture waits for the shot-list iteration and technical test. macOS capture permission must be granted to the eventual recorder/host when first used.
-
-### First technical test
-
-Before recording the full shot list, make a 10–15 second test containing fast motion, a jump/turn and a clearly audible pickup or weapon. This is a future capture step; no recording has been made for this draft.
-
-1. Use a visible, foreground game window with hardware acceleration and a **1920×1080 game image**. Check the captured pixel dimensions; Retina points and encoded pixels can differ. Keep HUD framing consistent.
-2. With QuickTime choose **File → New Screen Recording**, or open Screenshot with **Shift–Command–5**. Capture the game window or a precisely framed portion. Keep browser chrome, Dock, notifications, pointer highlights and developer UI out of the picture; move the pointer aside after setup.
-3. Start the recorder, focus the game, leave a short lead-in, then let the driver perform the action at normal speed. Wait for real loading/scene readiness rather than recording a loading transition unintentionally.
-4. Check actual frame cadence, dropped/duplicated frames, resolution, image clarity and audio synchronization. Watch the result at normal speed. Do not assume QuickTime guarantees a selectable fixed 60 fps recording mode.
-5. Keep QuickTime if the test is smooth and the audio route works. Otherwise use OBS with an explicit 60 fps target and application audio capture. Inspect that result too.
-
-### Game audio on this Mac
-
-The planning machine currently reports **macOS 26.6.2**. Apple's current instructions put Screenshot's “Include System Audio” option in macOS 27 or later; the documented QuickTime audio input is a microphone. For this setup, plan a working internal-audio route if using QuickTime, or use OBS application audio capture. Recording the speakers through the microphone will not preserve the game's sound cleanly. [Apple recording instructions](https://support.apple.com/en-us/102618)
-
-OBS on macOS 13+ supports application audio through its macOS Screen Capture source; OBS 30+ also has a macOS Audio Capture source. This is the fallback if QuickTime adds routing friction. [OBS audio guide](https://obsproject.com/kb/macos-desktop-audio-capture-guide)
-
-### Automation responsibilities
-
-- Reuse the maintained [frontend probe patterns](../tools/README.md) for navigation, readiness checks and input. Existing historical harnesses need their launch assumptions checked before reuse.
-- A future capture runner should stage the level, ship, loadout, camera and approach; wait for the operator/recorder-ready signal; then perform real-time input or a compatible real-time replay. It should leave the game visible and focused throughout the take.
-- Developer scenarios/replays can help rehearse repeatable action in browser builds. Keep the build with the replay because compatibility depends on game/track/ship/runtime versions. Exact replay coverage of the selected loadout and world event still needs rehearsal.
-- Fast simulation stepping, finish fixtures, teleports and paused art-pass views are preparation/verification tools. They do not produce normal-speed driving footage merely because a screen recorder is running. Complete setup before the usable take begins.
-- The existing desktop probe is hidden and muted. A future visible capture runner needs an intentional capture configuration, including game audio; do not assume the verification command is ready to record.
-- Recording remains an explicit later step. This document does not start a server, change saves, launch the game, or record the desktop.
-
-See [desktop release boundaries](../docs/steam/desktop.md#release-boundary) and the [runtime/replay documentation](../ARCHITECTURE.md#lifecycle-and-verification) when implementing the runner. The built-in CLI path needs no custom recorder; the ScreenCaptureKit path needs a small native helper. Neither requires adding developer APIs to the release game.
-
-## Music, sound and edit
-
-Choose a section of an existing beat with an immediate groove and a useful build/payoff over roughly one minute. Audition the creator's preferred songs before choosing; no song is locked yet. The current [song catalog](../src/audio/tracks.js) lists titles and BPM, and the [audio guide](../docs/audio/README.md) locates the WAV masters.
-
-- Use one continuous soundtrack bed across the edit. Start at a strong phrase; map the Garage breathing space and final escalation to the arrangement, then adjust shot timings.
-- Prefer the WAV master for editing. Capture gameplay effects with in-game music paused or its music volume reduced to zero, then add the soundtrack in the editor. Make sure engine, pickup and equipment effects remain audible during the test.
-- Preserve real boost, pickup, weapon and landing sounds. Lower music briefly where a signature sound needs space. Avoid layering a second copy of in-game music beneath the edit track.
-- Cut on useful beats while preserving cause and effect: takeoff → flight → landing, pickup → effect, equip Lance → fire Lance. Some actions need to cross a beat.
-- Review both with sound and muted. Music should increase the impact of action that is already understandable.
-
-## Outputs and Steam presentation
-
-1. **Main Steam trailer:** roughly 60 seconds, 16:9, target 1920×1080 at 60 fps. Gameplay dominates, with the standard player perspective/HUD visible for most shots. Export H.264 video with stereo AAC audio in MP4; retain a high-quality editing master.
-2. **Short marketing clips:** three initial self-contained 10–15 second cuts: Nacre breach, Shatterline/Nightweir giant-flight highlights, and Garage → Lance payoff. Glasswake → Cindercoil and Umbra gravity are additional candidates. Include a small title/CTA. Check vertical framing separately if needed; a center crop may lose the creature, landing or HUD.
-3. **Demo-specific cut:** roughly 20–30 seconds featuring Kestrel, Nacre and other content actually in the current demo. Halcyon can be included here if useful. Full-game worlds and Lance must not appear as playable demo features. The full-game trailer can still advertise the demo with a clear end CTA.
-
-Valve recommends showing gameplay early, often with HUD visible, and communicating without sound. Steam automatically generates a six-second microtrailer from six one-second samples of the first visible trailer, so distribute strong gameplay throughout. Its upload guidance supports 1080p, 30/60 fps, H.264 and AAC; the supplied Adobe preset uses 20 Mbps video and 192 Kbps stereo audio. These are delivery references, not a substitute for testing the captured motion. [Steam trailer guidance](https://partner.steamgames.com/doc/store/trailer)
-
-Use “Wishlist on Steam” once the store page is public. Use “Play the demo” when it is accessible. Keep unannounced release dates out of the card.
-
-## Capture records and next decisions
-
-For each selected raw take, record the shot ID, take number, build/commit plus dirty-state note, edition/browser or Electron, level, ship, upgrades, equipment slots, camera, approach/replay reference, recorder settings, audio route and usable in/out times. Store raw takes outside Git; keep temporary rehearsals in ignored `.experiments/` and preserve selected masters in the chosen editing location. Keep this file as the current script rather than a running log of discarded takes.
-
-Before locking the movie:
-
-- [ ] Pick the song and usable section with the creator.
-- [ ] Choose the three or four feature-title cues, preview their layout over the selected takes, and recheck all numeric claims against the final build.
-- [ ] Test QuickTime + headed driver for smooth motion and clean internal audio; choose OBS if needed.
-- [ ] Choose the automation recorder: test the built-in `screencapture` CLI, or implement ScreenCaptureKit for explicit frame-interval/audio control and recording callbacks.
-- [ ] Select the exposed Glasswake blizzard and Cindercoil lava-crossing opening shots.
-- [ ] Rehearse Nacre's first jump and decide its framing/duration after the snow/fire opening.
-- [ ] Identify the exact Colossus, Helion and Umbra approaches to save.
-- [ ] Rehearse the huge Shatterline and Nightweir jumps as complete climax takes.
-- [ ] Verify the Garage preset, select Kestrel, equip Lance and rehearse the matching race hit.
-- [ ] Choose the browser/Electron source for each final take and the capture build.
-- [ ] Assemble a rough cut; review comprehension, pacing, sound and CTA before polishing.
-- [ ] Replace any shots affected by ongoing updates, then check the final export at normal speed and muted.
+After capture, judge the actual picture and sound separately: shot/hit/same-target pass, C change and creature visibility, Umbra's first-jump camera/lensing, readable menu holds, real tower motion, Kestrel's four slots and the complete final jump/landing. A script score does not certify the movie.

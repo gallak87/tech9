@@ -13,6 +13,7 @@ const cycles = Number(process.env.VN_CYCLES ?? 1);
 const firePolicy = process.env.VN_FIRE ?? 'held';
 const difficulty = process.env.VN_DIFFICULTY ?? 'hard';
 const missAttack = Number(process.env.VN_MISS_ATTACK ?? 1);
+const fineShots = process.env.VN_FINE_SHOTS === '1';
 const output = resolve('.experiments/fight-critics', level, round);
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({
@@ -61,12 +62,12 @@ await page.route('**/src/core/game.js*', async (route) => {
   source = source.replace(
     'getSnapshot() {',
     `
-    stepFight(frames = 1) {
+    stepFight(frames = 1, stepMs = 100) {
       cancelCountdown(); mode = 'racing'; ui.setMode(mode);
       cancelAnimationFrame(raf);
       for (let f = 0; f < frames && mode === 'racing'; f++) {
         window.__fightInput = window.__fightPilot({state, track, racers, devices, runtime, mission:interceptor.snapshot()});
-        render((last || performance.now()) + 100);
+        render((last || performance.now()) + stepMs);
         cancelAnimationFrame(raf);
       }
       delete window.__fightInput;
@@ -78,6 +79,7 @@ await page.route('**/src/core/game.js*', async (route) => {
       const powered=[];model?.traverse(o=>{for(const m of [o.material].flat())if(m?.name?.endsWith('_Ion')&&!powered.some(p=>p.name===m.name))powered.push({name:m.name,intensity:m.emissiveIntensity});});
       return {snapshot:this.getSnapshot(), contacts:structuredClone(window.__fightHits ?? []),
         combat:combat.view(), metrics:this.getMetrics(), camera:camera.position.toArray(),
+        playerPosition:runtime.pose(1).position.toArray(),
         presentation:{powered,plumes:propulsion?.children.map(p=>({scale:p.scale.toArray(),strength:p.material.uniforms?.strength?.value,opacity:p.material.opacity})),white:model?.getObjectByName('Boss / white armor hit')?.visible},
         opponents:racers.opponents.map(r=>({id:r.specification.id,state:{...r.state},pose:{position:r.runtime.pose(1).position.toArray()}}))};
     },
@@ -204,10 +206,18 @@ try {
     previousShots = 0,
     firstShot = null;
   let currentAttack = null;
-  for (let i = 0; i < Math.max(380, cycles * 350); i++) {
-    const data = await page.evaluate(() => window.__VN.stepFight(1));
+  let stepMs = 100,
+    observedContacts = 0;
+  for (let i = 0; i < Math.max(500, cycles * 500); i++) {
+    const data = await page.evaluate(
+      (ms) => window.__VN.stepFight(1, ms),
+      stepMs,
+    );
     const mission = data.snapshot.interceptor;
+    const newContacts = data.contacts.slice(observedContacts);
+    observedContacts = data.contacts.length;
     const phase = mission.counterattack.phase;
+    stepMs = fineShots && phase === 'firing' ? 20 : 100;
     const attackIndex = mission.counterattack.attackIndex ?? 0;
     if (attackIndex !== currentAttack) {
       seen.clear();
@@ -265,6 +275,28 @@ try {
     if (muzzle && firstShot === null) {
       firstShot = mission.elapsed;
       label = 'muzzle';
+    }
+    if (
+      data.combat.shots.some(
+        (s) =>
+          s.source === mission.targetId &&
+          Math.hypot(...s.position.map((x, i) => x - data.playerPosition[i])) <
+            14,
+      ) &&
+      !seen.has('near-pass')
+    ) {
+      seen.add('near-pass');
+      label = 'near-pass';
+    }
+    if (
+      newContacts.some(
+        (h) =>
+          h.source === mission.targetId && h.target === 'player' && !h.shielded,
+      ) &&
+      !seen.has('incoming-hit')
+    ) {
+      seen.add('incoming-hit');
+      label = 'incoming-hit';
     }
     if (
       firstShot !== null &&

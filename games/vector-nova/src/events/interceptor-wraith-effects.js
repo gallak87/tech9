@@ -40,6 +40,31 @@ export function createWraithEffects({ scene, boss, track, combat, racers }) {
     materials.add(m);
     return m;
   };
+  const ionTail = (tube = false) => {
+    const m = new T.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      toneMapped: false,
+      side: tube ? T.FrontSide : T.DoubleSide,
+      blending: T.AdditiveBlending,
+      opacity: 0.7,
+      uniforms: {
+        strength: { value: 0.22 },
+        color: { value: new T.Color(0x69cfff) },
+      },
+      vertexShader: `varying vec2 vUv;varying vec3 vNormal,vEye;
+        void main(){vUv=uv;vec4 p=modelViewMatrix*vec4(position,1.);
+        vNormal=normalMatrix*normal;vEye=-p.xyz;gl_Position=projectionMatrix*p;}`,
+      fragmentShader: `varying vec2 vUv;varying vec3 vNormal,vEye;uniform float strength;uniform vec3 color;
+        void main(){float along=${tube ? 'vUv.x' : '1.-vUv.y'};
+        float edge=${tube ? 'pow(max(0.,dot(normalize(vNormal),normalize(vEye))),2.)' : 'pow(max(0.,1.-abs(vUv.x*2.-1.)),2.2)'};
+        float fade=pow(max(0.,1.-along),1.6);
+        vec3 c=mix(color,vec3(.8,1.,1.),pow(1.-along,5.));
+        gl_FragColor=vec4(c,edge*fade*strength);}`,
+    });
+    materials.add(m);
+    return m;
+  };
   const box = geo(new T.BoxGeometry(1, 1, 1));
   const formed = geo(new RoundedBoxGeometry(1, 1, 1, 1, 0.08));
   const mesh = (parent, g, m, p, s) => {
@@ -163,20 +188,22 @@ export function createWraithEffects({ scene, boss, track, combat, racers }) {
     world.add(halo);
     return { g, h, core, halo };
   });
+  const spear = geo(new T.OctahedronGeometry(1, 0));
+  spear.scale(0.32, 0.11, 2.2);
+  spear.translate(0, 0, -2.2);
+  const trail = geo(new T.PlaneGeometry(1.1, 4.8));
+  trail.rotateX(Math.PI / 2);
+  const boltMaterial = material(0x69cfff, 0.75),
+    boltTail = ionTail();
   const bolts = Array.from({ length: 12 }, () => {
     const group = new T.Group();
+    group.name = 'Wraith / physical ion spear';
     world.add(group);
-    for (const side of [-1, 1]) {
-      const o = mesh(
-        group,
-        box,
-        white,
-        [side * 0.3, 0, -1.7],
-        [0.16, 0.16, 3.4],
-      );
-      o.rotation.y = side * 0.1;
-      mesh(group, box, cold, [side * 0.55, 0, -2.8], [0.2, 0.36, 4.7]);
-    }
+    mesh(group, spear, boltMaterial, [0, 0, 0], [1, 1, 1]);
+    mesh(group, trail, boltTail, [0, 0, -2.4], [1, 1, 1]);
+    mesh(group, spear, white, [0, 0, 0], [0.38, 0.35, 0.85]);
+    const cross = mesh(group, trail, boltTail, [0, 0, -2.4], [1, 1, 1]);
+    cross.rotation.z = Math.PI / 2;
     return group;
   });
   const bursts = Array.from({ length: 10 }, () => {
@@ -217,14 +244,15 @@ export function createWraithEffects({ scene, boss, track, combat, racers }) {
         -t * 4,
       );
     });
-    const m = material(0x94e8ff, 0.7),
+    const m = ionTail(true),
+      lowMaterial = material(0x75c5ff, 0.5),
       object = mesh(
         mount,
         geo(
           new T.TubeGeometry(
             new T.CatmullRomCurve3(points),
             16,
-            0.055,
+            0.04,
             3,
             false,
           ),
@@ -240,7 +268,7 @@ export function createWraithEffects({ scene, boss, track, combat, racers }) {
       );
     else object.position.set(side * 2.4, 0.8, -8.9);
     object.name = 'Wraith / residual ion coil';
-    return { object, m, index, side };
+    return { object, m, lowMaterial, index, side };
   });
   const start = new T.Vector3(),
     end = new T.Vector3(),
@@ -325,10 +353,13 @@ export function createWraithEffects({ scene, boss, track, combat, racers }) {
         active &&
         (attack.phase === 'turning-back' || attack.phase === 'turning-forward');
     });
-    quench.forEach(({ object, m, index, side }) => {
+    quench.forEach(({ object, m, lowMaterial, index, side }) => {
       const p = defeatAge / (0.55 + index * 0.14);
       object.visible = won && p < 1;
       m.opacity = Math.max(0, 1 - p) * (reduced ? 0.25 : 0.8);
+      m.uniforms.strength.value = m.opacity;
+      lowMaterial.opacity = m.opacity * 0.65;
+      object.material = low ? lowMaterial : m;
       object.scale.set(
         0.8 + 0.2 * (1 - p),
         0.8 + 0.2 * (1 - p),
@@ -467,6 +498,8 @@ export function createWraithEffects({ scene, boss, track, combat, racers }) {
     const shots = active
       ? state.shots.filter((s) => s.signature === 'wraith-scissor')
       : [];
+    boltMaterial.color.setHex(countered ? 0x69e9ff : 0x797dff);
+    boltTail.uniforms.color.value.copy(boltMaterial.color);
     bolts.forEach((group, i) => {
       const shot = shots[i];
       group.visible = !!shot;
@@ -475,6 +508,16 @@ export function createWraithEffects({ scene, boss, track, combat, racers }) {
       group.quaternion.fromArray(shot.quaternion);
       group.children.forEach((child, n) => {
         child.visible = !low || n % 2 === 0;
+        const growth = Math.max(
+          0,
+          Math.min(1, (shot.age * (shot.speed ?? 400)) / 4.8),
+        );
+        if (n === 0) child.scale.set(1, 1, growth);
+        else if (n === 2) child.scale.set(0.38, 0.35, 0.85 * growth);
+        else {
+          child.scale.set(1, 1, growth);
+          child.position.z = -2.4 * growth;
+        }
       });
     });
     const flashes = active

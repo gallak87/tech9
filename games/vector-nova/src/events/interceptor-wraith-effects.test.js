@@ -154,7 +154,7 @@ const liveBolts = (world) =>
     (child) =>
       child.isGroup &&
       child.visible &&
-      child.children.some((mesh) => mesh.isMesh && mesh.position.z < -1),
+      child.name === 'Wraith / physical ion spear',
   );
 
 test('Wraith warnings join its real transformed prongs to both normal and edge-lane receivers without invalid or truncated geometry', () => {

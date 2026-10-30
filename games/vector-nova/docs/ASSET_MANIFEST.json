@@ -2,6 +2,35 @@
   "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "interceptor-boss-sfx",
+      "source": "assets/audio/sfx/bosses/",
+      "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
+      "provenance": "Eight locally generated Goliath cues: pressure charge, magnetic yaw, siege cannon discharge, exposed vent release, cannon energy recovery, critical core hit, target lane latch and disabled core quench. Generated sequentially with the pinned official MLX Small-SFX runtime without reference audio. Current JSON prompts and source/master hashes are retained; master.py trims each action, gently filters its extremes, gently compresses the body, normalizes peaks and applies click-free raised-cosine releases. Boss events use the shared race effects bus. Approved player Lance recordings remain unchanged. Integrated for encounter critique; human listening approval pending.",
+      "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See docs/audio/sfx.md.",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/audio/sfx/bosses/provenance.json",
+      "generationConfigs": [
+        "assets/audio/sfx/bosses/goliath-charge.json",
+        "assets/audio/sfx/bosses/goliath-turn.json",
+        "assets/audio/sfx/bosses/goliath-fire.json",
+        "assets/audio/sfx/bosses/goliath-expose.json",
+        "assets/audio/sfx/bosses/goliath-recover.json",
+        "assets/audio/sfx/bosses/goliath-core-hit.json",
+        "assets/audio/sfx/bosses/goliath-lock.json",
+        "assets/audio/sfx/bosses/goliath-disable.json"
+      ],
+      "runtimeAssets": [
+        "assets/audio/sfx/bosses/goliath-charge.wav",
+        "assets/audio/sfx/bosses/goliath-turn.wav",
+        "assets/audio/sfx/bosses/goliath-fire.wav",
+        "assets/audio/sfx/bosses/goliath-expose.wav",
+        "assets/audio/sfx/bosses/goliath-recover.wav",
+        "assets/audio/sfx/bosses/goliath-core-hit.wav",
+        "assets/audio/sfx/bosses/goliath-lock.wav",
+        "assets/audio/sfx/bosses/goliath-disable.wav"
+      ]
+    },
+    {
       "id": "interceptor-mission-worlds",
       "source": "src/levels/interceptor/, src/levels/interceptor-helion/ and src/levels/interceptor-nightweir/",
       "creator": "VECTOR//NOVA project contributors",

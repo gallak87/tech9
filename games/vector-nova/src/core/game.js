@@ -11,6 +11,7 @@ import { createInterceptorPresentation } from '../events/interceptor-view.js';
 import { createInterceptorField } from '../events/interceptor-field.js';
 import { createInterceptorMotion } from '../events/interceptor-motion.js';
 import { createInterceptorChaseMotion } from '../events/interceptor-chase.js';
+import { createInterceptorEffects } from '../events/interceptor-effects.js';
 import { interceptorBoss } from '../events/interceptor-bosses.js';
 import {
   PURSUIT_EQUIPMENT,
@@ -469,8 +470,21 @@ export async function createGame({
             ...(interceptor
               ? {
                   onHit(payload) {
+                    const target = racers?.opponents.find(
+                      (entry) => entry.specification.id === missionBoss.id,
+                    );
+                    const pose = target?.runtime.pose(1);
+                    const hitLocal =
+                      pose && payload.position
+                        ? new T.Vector3()
+                            .fromArray(payload.position)
+                            .sub(pose.position)
+                            .applyQuaternion(pose.quaternion.clone().invert())
+                            .toArray()
+                        : null;
                     for (const hit of interceptor.hit({
                       ...payload,
+                      hitLocal,
                       key: `${payload.hitId}:${payload.source}:${payload.target}`,
                     }))
                       emit(hit);
@@ -509,7 +523,7 @@ export async function createGame({
                 team: specification.team,
                 hitBounds: specification.hitBounds,
                 ...(interceptor && specification.id === missionBoss.id
-                  ? { combatResistance: 0.9 }
+                  ? { combatResistance: 0.9, damageDuringGrace: true }
                   : {}),
                 track,
                 devices:
@@ -557,6 +571,18 @@ export async function createGame({
             combat,
             settings,
             loadRival: definition.racing.loadRival,
+          }),
+        )
+      : null;
+    const interceptorEffects = interceptor
+      ? lifetime.own(
+          createInterceptorEffects({
+            scene,
+            track,
+            bossId: missionBoss.id,
+            boss: racerPresentation.getShip(missionBoss.id).group,
+            racers,
+            combat,
           }),
         )
       : null;
@@ -716,6 +742,8 @@ export async function createGame({
         for (const event of interceptor.step(1 / 120, {
           targetDistance: target.state.distance,
           playerDistance: state.distance,
+          playerLateral: state.lateral,
+          targetLateral: target.state.lateral,
           playerValid: race.valid,
         })) {
           if (event.type === 'interceptor-fire')
@@ -733,13 +761,23 @@ export async function createGame({
           mode = 'results';
           ui.setResultsAvailable(true);
           ui.setMode(mode);
-          audio.event({
-            type: 'player-race-complete',
-            payload: {
-              valid: lastResults.won && lastResults.playerValid,
-              position: lastResults.won ? 1 : 10,
-            },
-          });
+          if (lastResults.won && missionBoss.id === 'goliath')
+            emit({
+              type: 'interceptor-cue',
+              payload: {
+                bossId: missionBoss.id,
+                cue: 'disable',
+                elapsed: state.time,
+              },
+            });
+          else
+            audio.event({
+              type: 'player-race-complete',
+              payload: {
+                valid: lastResults.won && lastResults.playerValid,
+                position: lastResults.won ? 1 : 10,
+              },
+            });
           onResults?.(lastResults);
           return;
         }
@@ -826,8 +864,44 @@ export async function createGame({
       );
       for (const command of pendingMissionFire.splice(0)) {
         if (command.source === missionBoss.id) {
-          if (command.kind === 'lance') combat.fireLance(missionBoss.id);
-          else
+          if (command.kind === 'lance') {
+            let fired;
+            if (Number.isFinite(command.aimLane) && command.muzzle) {
+              const physical = target.runtime.pose(1);
+              const origin = new T.Vector3()
+                .fromArray(command.muzzle)
+                .applyQuaternion(physical.quaternion)
+                .add(physical.position);
+              const ahead = track.sample(state.distance);
+              const destination = ahead.position
+                .clone()
+                .addScaledVector(ahead.right, command.aimLane)
+                .addScaledVector(ahead.up, 1.8);
+              const direction = destination.sub(origin).normalize();
+              const quaternion = new T.Quaternion().setFromRotationMatrix(
+                new T.Matrix4().lookAt(
+                  new T.Vector3(),
+                  direction.clone().negate(),
+                  ahead.up,
+                ),
+              );
+              fired = combat.fireLance(missionBoss.id, {
+                pose: { position: origin, quaternion },
+                signature: 'goliath-pressure',
+              });
+            } else fired = combat.fireLance(missionBoss.id);
+            if (fired)
+              emit({
+                type: 'interceptor-cue',
+                payload: {
+                  bossId: missionBoss.id,
+                  cue: 'fire',
+                  elapsed: state.time,
+                  attackIndex: command.attackIndex,
+                  shotIndex: command.shotIndex,
+                },
+              });
+          } else
             combat.request(missionBoss.id, {
               type: 'pickup-activate',
               payload: {
@@ -1982,10 +2056,24 @@ export async function createGame({
               ? T.MathUtils.smoothstep(state.time - finishAt, 0, 1.8)
               : 0,
           });
+        // Keep the target hull in the clear part of the results composition.
+        // This is projection only: results and earned progress remain immediate.
+        if (mode === 'results' && interceptor?.snapshot().result) {
+          camera.setViewOffset(
+            innerWidth,
+            innerHeight,
+            innerWidth * 0.2,
+            0,
+            innerWidth,
+            innerHeight,
+          );
+          camera.updateProjectionMatrix();
+        }
       }
       const frame = {
         state: s,
         dt: mode === 'racing' ? dt : 0,
+        presentationDt: mode === 'results' ? dt : 0,
         time: s.time,
         mode,
         camera,
@@ -2021,7 +2109,9 @@ export async function createGame({
         alpha,
         mode,
         settings,
+        interceptor: frame.interceptor,
       });
+      interceptorEffects?.update(frame);
       view.setRacingFeedback?.({
         mode,
         speed: s.speed,

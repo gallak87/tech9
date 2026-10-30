@@ -1,6 +1,6 @@
 import { interceptorBoss } from './interceptor-bosses.js';
 
-export const INTERCEPTOR_RULES_VERSION = 4;
+export const INTERCEPTOR_RULES_VERSION = 8;
 const EPSILON = 1e-8;
 const copy = (value) => structuredClone(value);
 const MISSION_PROFILES = Object.freeze({
@@ -50,13 +50,27 @@ export function createInterceptorEvent({
 } = {}) {
   const boss = interceptorBoss(bossId);
   const COUNTERATTACK = boss.attack;
+  const pressure = COUNTERATTACK.pressure;
+  const markers = COUNTERATTACK.markers ?? [COUNTERATTACK.marker];
   const profile = {
     ...missionProfile(difficulty),
     blasts: COUNTERATTACK.blasts[difficulty],
   };
   const FIRE_START = COUNTERATTACK.telegraph + COUNTERATTACK.turn;
   const RETURN_START = FIRE_START + COUNTERATTACK.hold;
-  const ATTACK_DURATION = RETURN_START + COUNTERATTACK.turn;
+  const FACING_DURATION = RETURN_START + COUNTERATTACK.turn;
+  const ATTACK_DURATION = FACING_DURATION + (pressure?.breach ?? 0);
+  const LOCK_TIME = pressure
+    ? Math.min(COUNTERATTACK.telegraph, FIRE_START - pressure.lockLead)
+    : null;
+  const ATTACK_COUNT = markers.length * 2;
+  const attackLocation = (index) => ({
+    lap: Math.floor(index / markers.length) + 1,
+    beat: (index % markers.length) + 1,
+  });
+  const laneBound = 19;
+  const boundedLane = (value) =>
+    Math.max(-laneBound, Math.min(laneBound, value));
   const ionInterval = boss.countermeasureInterval;
   if (
     !actorId(targetId) ||
@@ -110,6 +124,8 @@ export function createInterceptorEvent({
       alliedHits: 0,
       targetDistance: 0,
       playerDistance: 0,
+      playerLateral: 0,
+      targetLateral: 0,
       lastHit: null,
       nextAllyFire: cadence.map((entry) => entry.first),
       nextIonFire: ionInterval,
@@ -138,33 +154,89 @@ export function createInterceptorEvent({
       phase = 'firing';
       phaseElapsed = elapsed - FIRE_START;
       yaw = COUNTERATTACK.reverse ? Math.PI : 0;
-    } else if (attack && elapsed < ATTACK_DURATION - EPSILON) {
+    } else if (attack && elapsed < FACING_DURATION - EPSILON) {
       phase = 'turning-forward';
       phaseElapsed = elapsed - RETURN_START;
       yaw = COUNTERATTACK.reverse
         ? Math.PI * (1 - smooth(phaseElapsed / COUNTERATTACK.turn))
         : 0;
+    } else if (attack && pressure && elapsed < ATTACK_DURATION - EPSILON) {
+      phase = attack.incomingHits.length ? 'recovered' : 'breach';
+      phaseElapsed = elapsed - FACING_DURATION;
     }
     return {
       phase,
       kind: COUNTERATTACK.kind,
       yaw,
-      warning: phase !== 'idle',
-      lap: attack ? current.counterattacks.length : null,
+      warning: !['idle', 'breach', 'recovered'].includes(phase),
+      lap: attack
+        ? Math.floor((current.counterattacks.length - 1) / markers.length) + 1
+        : null,
+      beat: attack
+        ? ((current.counterattacks.length - 1) % markers.length) + 1
+        : null,
       shots: attack?.shots ?? 0,
       blasts: profile.blasts,
       elapsed: Math.min(elapsed, ATTACK_DURATION),
       phaseElapsed: Math.max(0, phaseElapsed),
       started: attack?.started ?? null,
+      ...(pressure
+        ? {
+            attackIndex: attack ? current.counterattacks.length - 1 : null,
+            tracking: !!attack && !attack.locked && phase === 'telegraph',
+            locked: !!attack?.locked,
+            aimLane: attack?.locked
+              ? attack.aimLanes[Math.min(attack.shots, profile.blasts - 1)]
+              : (attack?.trackingLane ?? null),
+            aimLanes: attack?.locked ? [...attack.aimLanes] : [],
+            aimDistance: attack?.aimDistance ?? null,
+            nextShot: attack
+              ? Math.min(attack.shots, profile.blasts - 1)
+              : null,
+            fireIn:
+              attack && attack.shots < profile.blasts
+                ? Math.max(
+                    0,
+                    FIRE_START +
+                      attack.shots * COUNTERATTACK.shotInterval -
+                      elapsed,
+                  )
+                : null,
+            charge: attack ? clamp(elapsed / COUNTERATTACK.telegraph) : 0,
+            exposed: phase === 'breach',
+            recovered: phase === 'recovered',
+            pressureHits: attack?.incomingHits.length ?? 0,
+            recoveryAt: attack?.incomingHits[0]?.elapsed ?? null,
+            breachProgress:
+              phase === 'breach' ? clamp(phaseElapsed / pressure.breach) : 0,
+            core: {
+              open: phase === 'breach',
+              remaining:
+                phase === 'breach' ? pressure.breach - phaseElapsed : 0,
+              halfWidth: pressure.coreHalfWidth,
+              rearMin: pressure.coreRearMin,
+              rearMax: pressure.coreRearMax,
+              low: pressure.coreLow,
+              high: pressure.coreHigh,
+            },
+          }
+        : {}),
     };
   }
-  function advanceCounterattack(previousElapsed, previousDistance, events) {
-    while (state.counterattacks.length < 2) {
+  function advanceCounterattack(
+    previousElapsed,
+    previousDistance,
+    previousLateral,
+    events,
+  ) {
+    while (state.counterattacks.length < ATTACK_COUNT) {
       const previous = state.counterattacks.at(-1);
       const available = previous ? previous.started + ATTACK_DURATION : 0;
       if (available > state.elapsed + EPSILON) break;
+      const index = state.counterattacks.length;
       const marker =
-        routeLength * (state.counterattacks.length + COUNTERATTACK.marker);
+        routeLength *
+        (Math.floor(index / markers.length) + markers[index % markers.length]);
       if (state.targetDistance < marker) break;
       // Locate the physical marker within this tick. Distance may subsequently
       // fall back; consuming the marker once keeps a reverse crossing harmless.
@@ -179,9 +251,82 @@ export function createInterceptorEvent({
         available,
         previousElapsed + (state.elapsed - previousElapsed) * fraction,
       );
-      state.counterattacks.push({ started, shots: 0 });
+      state.counterattacks.push({
+        started,
+        shots: 0,
+        ...(pressure
+          ? {
+              trackingLane: boundedLane(previousLateral),
+              locked: false,
+              aimLanes: [],
+              aimDistance: null,
+              cues: 0,
+              incomingHits: [],
+            }
+          : {}),
+      });
     }
-    for (const attack of state.counterattacks) {
+    for (const [attackIndex, attack] of state.counterattacks.entries()) {
+      if (pressure) {
+        const lockAt = attack.started + LOCK_TIME;
+        if (!attack.locked) {
+          const fraction =
+            state.elapsed > previousElapsed
+              ? clamp(
+                  (Math.min(lockAt, state.elapsed) - previousElapsed) /
+                    (state.elapsed - previousElapsed),
+                )
+              : 1;
+          attack.trackingLane = boundedLane(
+            previousLateral +
+              (state.playerLateral - previousLateral) * fraction,
+          );
+          if (state.elapsed >= lockAt - EPSILON) {
+            attack.locked = true;
+            const first = attack.trackingLane;
+            const direction =
+              Math.abs(first) > 1
+                ? -Math.sign(first)
+                : attackIndex % 2 === 0
+                  ? 1
+                  : -1;
+            attack.aimLanes = Array.from(
+              { length: profile.blasts },
+              (_, index) =>
+                boundedLane(first + index * direction * pressure.laneStep),
+            );
+            attack.aimDistance = Math.max(
+              30,
+              Math.min(240, state.targetDistance - state.playerDistance),
+            );
+          }
+        }
+        for (const [bit, cue, offset] of [
+          [1, 'charge', 0],
+          [2, 'lock', LOCK_TIME],
+          [4, 'turn', COUNTERATTACK.telegraph],
+          [32, 'return', RETURN_START],
+          [8, 'expose', FACING_DURATION],
+        ]) {
+          const elapsed = attack.started + offset;
+          if (!(attack.cues & bit) && elapsed <= state.elapsed + EPSILON) {
+            attack.cues |= bit;
+            if (cue !== 'expose' || !attack.incomingHits.length)
+              events.push({
+                type: 'interceptor-cue',
+                payload: {
+                  source: targetId,
+                  bossId,
+                  cue,
+                  elapsed,
+                  attackIndex,
+                  ...attackLocation(attackIndex),
+                  ...(cue === 'lock' ? { aimLanes: [...attack.aimLanes] } : {}),
+                },
+              });
+          }
+        }
+      }
       while (attack.shots < profile.blasts) {
         const elapsed =
           attack.started +
@@ -190,7 +335,21 @@ export function createInterceptorEvent({
         if (elapsed > state.elapsed + EPSILON) break;
         events.push({
           type: 'interceptor-fire',
-          payload: { source: targetId, kind: COUNTERATTACK.kind, elapsed },
+          payload: {
+            source: targetId,
+            kind: COUNTERATTACK.kind,
+            elapsed,
+            ...(pressure
+              ? {
+                  aimLane: attack.aimLanes[attack.shots],
+                  aimDistance: attack.aimDistance,
+                  muzzle: [attack.shots % 2 === 0 ? -4.8 : 4.8, 1, 18.5],
+                  shotIndex: attack.shots,
+                  attackIndex,
+                  ...attackLocation(attackIndex),
+                }
+              : {}),
+          },
         });
         attack.shots++;
       }
@@ -225,6 +384,24 @@ export function createInterceptorEvent({
     };
     return { type: 'interceptor-complete', payload: copy(state.result) };
   }
+  const corePoint = (point) =>
+    pressure &&
+    Array.isArray(point) &&
+    point.length === 3 &&
+    point.every(Number.isFinite) &&
+    Math.abs(point[0]) <= pressure.coreHalfWidth &&
+    point[1] >= pressure.coreLow &&
+    point[1] <= pressure.coreHigh &&
+    point[2] >= pressure.coreRearMin &&
+    point[2] <= pressure.coreRearMax;
+  const breachedAt = (elapsed, current = state) =>
+    pressure &&
+    current.counterattacks.some(
+      (attack) =>
+        attack.incomingHits.length === 0 &&
+        elapsed >= attack.started + FACING_DURATION - EPSILON &&
+        elapsed < attack.started + ATTACK_DURATION - EPSILON,
+    );
   return {
     rulesId,
     reset,
@@ -232,6 +409,59 @@ export function createInterceptorEvent({
       if (!state.result) state.playerValid = false;
     },
     hit(payload) {
+      // A pressure hit returns charge to the accumulator. Only an actual,
+      // unshielded hit on the human pilot can deny that pilot's overload;
+      // allied collisions and ordinary hazards never steal the opening.
+      if (
+        pressure &&
+        !state.result &&
+        payload?.source === targetId &&
+        payload.target === 'player' &&
+        payload.signature === 'goliath-pressure' &&
+        !payload.shielded &&
+        typeof payload.key === 'string' &&
+        payload.key.length > 0 &&
+        payload.key.length <= 160
+      ) {
+        const attack = state.counterattacks.at(-1);
+        const elapsed = attack ? state.elapsed - attack.started : 0;
+        if (
+          attack &&
+          elapsed >= FIRE_START - EPSILON &&
+          elapsed < FACING_DURATION - EPSILON &&
+          attack.incomingHits.length < profile.blasts &&
+          !attack.incomingHits.some((hit) => hit.key === payload.key)
+        ) {
+          const first = attack.incomingHits.length === 0;
+          attack.incomingHits.push({
+            key: payload.key,
+            elapsed: state.elapsed,
+            signature: payload.signature,
+          });
+          if (first) {
+            attack.cues |= 16;
+            return [
+              {
+                type: 'interceptor-cue',
+                payload: {
+                  source: targetId,
+                  bossId,
+                  cue: 'recover',
+                  elapsed: state.elapsed,
+                  attackIndex: state.counterattacks.length - 1,
+                  ...attackLocation(state.counterattacks.length - 1),
+                  ...(Array.isArray(payload.position) &&
+                  payload.position.length === 3 &&
+                  payload.position.every(Number.isFinite)
+                    ? { position: [...payload.position] }
+                    : {}),
+                },
+              },
+            ];
+          }
+        }
+        return [];
+      }
       const equipment = damageKind(payload);
       if (
         state.result ||
@@ -248,9 +478,27 @@ export function createInterceptorEvent({
       const key = `${payload.source}:${payload.key}`;
       if (keys.has(key)) return [];
       const player = payload.source === 'player';
+      const pulseCore =
+        player &&
+        equipment === 'repulsor' &&
+        Math.abs(state.playerLateral - state.targetLateral) <=
+          pressure?.coreHalfWidth &&
+        state.targetDistance - state.playerDistance >= 0 &&
+        state.targetDistance - state.playerDistance <= 38;
+      const weakPoint =
+        !!breachedAt(state.elapsed) &&
+        (equipment === 'repulsor' ? pulseCore : corePoint(payload.hitLocal));
+      const baseDamage = DAMAGE[equipment][player ? 'player' : 'ally'];
+      const armored = !!pressure && !weakPoint;
       const damage = Math.min(
         state.health,
-        DAMAGE[equipment][player ? 'player' : 'ally'],
+        weakPoint
+          ? player
+            ? baseDamage * pressure.coreMultiplier
+            : baseDamage + 1
+          : armored && player
+            ? pressure.armorPlayer[equipment]
+            : baseDamage,
       );
       keys.add(key);
       state.health -= damage;
@@ -267,12 +515,27 @@ export function createInterceptorEvent({
         equipment,
         damage,
         elapsed: state.elapsed,
+        ...(armored ? { armored: true } : {}),
+        ...(weakPoint
+          ? {
+              weakPoint: true,
+              ...(equipment === 'repulsor'
+                ? {
+                    corePulse: {
+                      lateral: state.playerLateral - state.targetLateral,
+                      gap: state.targetDistance - state.playerDistance,
+                    },
+                  }
+                : { hitLocal: [...payload.hitLocal] }),
+            }
+          : {}),
       };
       return [
         {
           type: 'interceptor-hit',
           payload: {
             source: payload.source,
+            bossId,
             target: targetId,
             kind: payload.kind,
             equipment,
@@ -280,31 +543,57 @@ export function createInterceptorEvent({
             health: state.health,
             key: payload.key,
             elapsed: state.elapsed,
+            ...(armored ? { armored: true } : {}),
+            ...(weakPoint ? { weakPoint: true } : {}),
+            ...(Array.isArray(payload.position) &&
+            payload.position.length === 3 &&
+            payload.position.every(Number.isFinite)
+              ? { position: [...payload.position] }
+              : {}),
           },
         },
       ];
     },
-    step(dt, { targetDistance, playerDistance, playerValid = true } = {}) {
+    step(
+      dt,
+      {
+        targetDistance,
+        playerDistance,
+        playerValid = true,
+        playerLateral = 0,
+        targetLateral = 0,
+      } = {},
+    ) {
       if (!Number.isFinite(dt) || dt < 0)
         throw new Error('Invalid Interceptor timestep');
       if (dt === 0 || state.result) return [];
       if (
         !Number.isFinite(targetDistance) ||
         !Number.isFinite(playerDistance) ||
+        !Number.isFinite(playerLateral) ||
+        !Number.isFinite(targetLateral) ||
         typeof playerValid !== 'boolean' ||
         !Number.isFinite(state.elapsed + dt)
       )
         throw new Error('Interceptor requires finite physical progress');
       const previousElapsed = state.elapsed;
       const previousDistance = state.targetDistance;
+      const previousLateral = state.playerLateral;
       state.elapsed += dt;
       state.targetDistance = targetDistance;
       state.playerDistance = playerDistance;
+      state.playerLateral = playerLateral;
+      state.targetLateral = targetLateral;
       state.playerValid &&= playerValid;
       if (state.health <= 0) return [finish('disabled')];
       if (targetDistance >= escapeDistance) return [finish('escaped')];
       const events = [];
-      advanceCounterattack(previousElapsed, previousDistance, events);
+      advanceCounterattack(
+        previousElapsed,
+        previousDistance,
+        previousLateral,
+        events,
+      );
       for (const [index, entry] of cadence.entries()) {
         // A stalled render must not produce an unbounded catch-up volley. Live
         // sessions use 120 Hz; excessive missed opportunities remain misses.
@@ -417,6 +706,8 @@ export function createInterceptorEvent({
         saved.hits !== saved.playerHits + saved.alliedHits ||
         !Number.isFinite(saved.targetDistance) ||
         !Number.isFinite(saved.playerDistance) ||
+        !Number.isFinite(saved.playerLateral) ||
+        !Number.isFinite(saved.targetLateral) ||
         !Array.isArray(saved.nextAllyFire) ||
         saved.nextAllyFire.length !== allyIds.length ||
         !saved.nextAllyFire.every((value, index) =>
@@ -433,7 +724,7 @@ export function createInterceptorEvent({
         saved.maxHealth !== health ||
         saved.routeLength !== routeLength ||
         !Array.isArray(saved.counterattacks) ||
-        saved.counterattacks.length > 2 ||
+        saved.counterattacks.length > ATTACK_COUNT ||
         !saved.counterattacks.every((attack, index, attacks) => {
           if (
             !attack ||
@@ -447,6 +738,75 @@ export function createInterceptorEvent({
                 attacks[index - 1].started + ATTACK_DURATION - EPSILON)
           )
             return false;
+          if (pressure) {
+            if (
+              !Array.isArray(attack.incomingHits) ||
+              attack.incomingHits.length > attack.shots ||
+              new Set(attack.incomingHits.map((hit) => hit?.key)).size !==
+                attack.incomingHits.length ||
+              !attack.incomingHits.every(
+                (hit) =>
+                  hit &&
+                  typeof hit.key === 'string' &&
+                  hit.key.length > 0 &&
+                  hit.key.length <= 160 &&
+                  hit.signature === 'goliath-pressure' &&
+                  Number.isFinite(hit.elapsed) &&
+                  hit.elapsed <= saved.elapsed + EPSILON &&
+                  hit.elapsed >= attack.started + FIRE_START - EPSILON &&
+                  hit.elapsed < attack.started + FACING_DURATION - EPSILON,
+              )
+            )
+              return false;
+            const locked =
+              saved.elapsed >= attack.started + LOCK_TIME - EPSILON;
+            let expectedCues = 0;
+            for (const [bit, offset] of [
+              [1, 0],
+              [2, LOCK_TIME],
+              [4, COUNTERATTACK.telegraph],
+              [32, RETURN_START],
+              [8, FACING_DURATION],
+            ])
+              if (saved.elapsed >= attack.started + offset - EPSILON)
+                expectedCues |= bit;
+            if (attack.incomingHits.length) expectedCues |= 16;
+            if (
+              !Number.isFinite(attack.trackingLane) ||
+              Math.abs(attack.trackingLane) > laneBound ||
+              typeof attack.locked !== 'boolean' ||
+              (attack.locked && !locked) ||
+              (saved.result === null && attack.locked !== locked) ||
+              !Number.isInteger(attack.cues) ||
+              attack.cues < 0 ||
+              (attack.cues & 16) !== (expectedCues & 16) ||
+              (attack.cues & ~expectedCues) !== 0 ||
+              (saved.result === null && attack.cues !== expectedCues) ||
+              !Array.isArray(attack.aimLanes) ||
+              attack.aimLanes.length !== (attack.locked ? profile.blasts : 0) ||
+              (attack.locked
+                ? !Number.isFinite(attack.aimDistance) ||
+                  attack.aimDistance < 30 ||
+                  attack.aimDistance > 240
+                : attack.aimDistance !== null)
+            )
+              return false;
+            const first = attack.trackingLane;
+            const direction =
+              Math.abs(first) > 1
+                ? -Math.sign(first)
+                : index % 2 === 0
+                  ? 1
+                  : -1;
+            if (
+              attack.aimLanes.some(
+                (lane, shot) =>
+                  lane !==
+                  boundedLane(first + shot * direction * pressure.laneStep),
+              )
+            )
+              return false;
+          }
           const due = Math.max(
             0,
             Math.min(
@@ -461,8 +821,11 @@ export function createInterceptorEvent({
             ? attack.shots === due
             : attack.shots <= due;
         }) ||
-        !Object.entries(counterattackSnapshot(saved)).every(
-          ([key, value]) => saved.counterattack?.[key] === value,
+        !Object.entries(counterattackSnapshot(saved)).every(([key, value]) =>
+          value && typeof value === 'object'
+            ? JSON.stringify(saved.counterattack?.[key]) ===
+              JSON.stringify(value)
+            : saved.counterattack?.[key] === value,
         ) ||
         !Array.isArray(saved.hitKeys) ||
         saved.hitKeys.length !== saved.hits ||
@@ -482,9 +845,31 @@ export function createInterceptorEvent({
             !finite(saved.lastHit.damage) ||
             saved.lastHit.damage <= 0 ||
             saved.lastHit.damage >
-              DAMAGE[saved.lastHit.equipment][
-                saved.lastHit.source === 'player' ? 'player' : 'ally'
-              ] ||
+              (saved.lastHit.weakPoint
+                ? saved.lastHit.source === 'player'
+                  ? DAMAGE[saved.lastHit.equipment].player *
+                    (pressure?.coreMultiplier ?? 1)
+                  : DAMAGE[saved.lastHit.equipment].ally + 1
+                : pressure && saved.lastHit.source === 'player'
+                  ? pressure.armorPlayer[saved.lastHit.equipment]
+                  : DAMAGE[saved.lastHit.equipment][
+                      saved.lastHit.source === 'player' ? 'player' : 'ally'
+                    ]) ||
+            (!!pressure && !saved.lastHit.weakPoint
+              ? saved.lastHit.armored !== true
+              : saved.lastHit.armored !== undefined) ||
+            (saved.lastHit.weakPoint !== undefined &&
+              (saved.lastHit.weakPoint !== true ||
+                !breachedAt(saved.lastHit.elapsed, saved) ||
+                (saved.lastHit.equipment === 'repulsor'
+                  ? saved.lastHit.source !== 'player' ||
+                    !Number.isFinite(saved.lastHit.corePulse?.lateral) ||
+                    Math.abs(saved.lastHit.corePulse.lateral) >
+                      pressure.coreHalfWidth ||
+                    !Number.isFinite(saved.lastHit.corePulse?.gap) ||
+                    saved.lastHit.corePulse.gap < 0 ||
+                    saved.lastHit.corePulse.gap > 38
+                  : !corePoint(saved.lastHit.hitLocal)))) ||
             !finite(saved.lastHit.elapsed) ||
             saved.lastHit.elapsed > saved.elapsed + EPSILON))
       )
@@ -516,6 +901,8 @@ export function createInterceptorEvent({
           'alliedHits',
           'targetDistance',
           'playerDistance',
+          'playerLateral',
+          'targetLateral',
           'lastHit',
           'nextAllyFire',
           'nextIonFire',

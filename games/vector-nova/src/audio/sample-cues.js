@@ -1,4 +1,36 @@
 export const RACE_SAMPLES = {
+  'goliath-charge': new URL(
+    '../../assets/audio/sfx/bosses/goliath-charge.wav',
+    import.meta.url,
+  ).href,
+  'goliath-turn': new URL(
+    '../../assets/audio/sfx/bosses/goliath-turn.wav',
+    import.meta.url,
+  ).href,
+  'goliath-fire': new URL(
+    '../../assets/audio/sfx/bosses/goliath-fire.wav',
+    import.meta.url,
+  ).href,
+  'goliath-expose': new URL(
+    '../../assets/audio/sfx/bosses/goliath-expose.wav',
+    import.meta.url,
+  ).href,
+  'goliath-recover': new URL(
+    '../../assets/audio/sfx/bosses/goliath-recover.wav',
+    import.meta.url,
+  ).href,
+  'goliath-core-hit': new URL(
+    '../../assets/audio/sfx/bosses/goliath-core-hit.wav',
+    import.meta.url,
+  ).href,
+  'goliath-lock': new URL(
+    '../../assets/audio/sfx/bosses/goliath-lock.wav',
+    import.meta.url,
+  ).href,
+  'goliath-disable': new URL(
+    '../../assets/audio/sfx/bosses/goliath-disable.wav',
+    import.meta.url,
+  ).href,
   'cup-champion': new URL(
     '../../assets/audio/sfx/cup-champion.wav',
     import.meta.url,
@@ -29,6 +61,32 @@ export const RACE_SAMPLES = {
 
 export function raceSample(event) {
   switch (event?.type) {
+    case 'interceptor-cue': {
+      const levels = {
+        charge: 0.74,
+        turn: 0.82,
+        fire: 0.9,
+        expose: 0.74,
+        recover: 0.82,
+        lock: 0.9,
+        return: 0.55,
+        disable: 0.95,
+      };
+      const { bossId, cue } = event.payload ?? {};
+      const id = `${bossId}-${cue === 'return' ? 'turn' : cue}`;
+      return Object.hasOwn(levels, cue) && Object.hasOwn(RACE_SAMPLES, id)
+        ? { id, gain: levels[cue] }
+        : null;
+    }
+    case 'interceptor-hit': {
+      const { bossId, target, source, weakPoint } = event.payload ?? {};
+      const id = `${bossId ?? target}-core-hit`;
+      return source === 'player' &&
+        weakPoint === true &&
+        Object.hasOwn(RACE_SAMPLES, id)
+        ? { id, gain: 0.88 }
+        : null;
+    }
     case 'freestyle-bank':
       return event.payload?.clean ? { id: 'freestyle-bank', gain: 0.65 } : null;
     case 'eliminator-cut':

@@ -332,11 +332,11 @@ test('opted combat resistance preserves moving-target Lance damage while reducin
     zero,
     'zero keeps the ordinary runtime and consequences unchanged',
   );
-  assert.equal(normal.health, 222);
+  assert.equal(normal.health, 231);
   assert.equal(
     armored.health,
     normal.health,
-    'armor never shields the actual mission damage',
+    'physical resistance never changes the boss armor damage profile',
   );
   assert.equal(armored.contact.shielded, false);
   assert.equal(armored.contact.equipment, 'lance');
@@ -376,7 +376,7 @@ test('resistance combines with toughness and preserves real shielding', () => {
 test('a backward-facing target applies real weapon slowdown along its independent driving axis', () => {
   const forward = resistanceRun(0.9),
     backward = resistanceRun(0.9, { backward: true });
-  assert.equal(backward.health, 222);
+  assert.equal(backward.health, 231);
   assert.equal(backward.contact.shielded, false);
   assert.ok(Math.abs(backward.state.speed - forward.state.speed) < 1e-10);
   assert.ok(backward.state.speed > 76 && backward.state.speed < 77);
@@ -407,7 +407,7 @@ test('combat resistance rejects invalid configuration and binding values', () =>
     );
   }
   const immune = resistanceRun(1);
-  assert.equal(immune.health, 222);
+  assert.equal(immune.health, 231);
   assert.equal(immune.state.energy, 100);
   assert.equal(immune.state.speed, 80);
   assert.equal(immune.disruption, null);

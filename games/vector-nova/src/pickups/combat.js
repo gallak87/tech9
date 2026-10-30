@@ -1,4 +1,5 @@
 import { toughness } from '../progression/catalog.js';
+import { projectMagneticBody } from '../physics/magnetic-body.js';
 import * as T from 'three';
 import { ionWakeContact, sampleIonContact } from './ion-contact.js';
 import {
@@ -235,8 +236,10 @@ export function createCombatSimulation({
     position,
     equipment,
     incomingQuaternion,
+    signature,
   ) {
-    if ((state.grace[target] ?? 0) > state.time) return;
+    const damageOnly = (state.grace[target] ?? 0) > state.time;
+    if (damageOnly && !actors.get(target)?.damageDuringGrace) return;
     const targetActor = eligible(target);
     if (!targetActor || source === target || sameTeam(source, target)) return;
     const entrySpeed = targetActor.actor.state.speed;
@@ -248,12 +251,19 @@ export function createCombatSimulation({
     const shielded = targetActor.actor.hit({
       source,
       kind,
-      impulse: resistance
-        ? impulse.clone().multiplyScalar(1 - resistance)
-        : impulse,
-      cost: resistance ? reserveCost * (1 - resistance) : reserveCost,
+      impulse: damageOnly
+        ? new T.Vector3()
+        : resistance
+          ? impulse.clone().multiplyScalar(1 - resistance)
+          : impulse,
+      cost: damageOnly
+        ? 0
+        : resistance
+          ? reserveCost * (1 - resistance)
+          : reserveCost,
+      ...(damageOnly ? { damageOnly: true } : {}),
     });
-    if (!shielded) {
+    if (!shielded && !damageOnly) {
       state.disruptions[target] = {
         ...combatDisruption(
           state.disruptions[target],
@@ -264,25 +274,30 @@ export function createCombatSimulation({
           equipment,
         ),
         ...(resistance ? { combatResistance: resistance } : {}),
+        ...(signature ? { signature } : {}),
       };
       targetActor.actor.disrupt?.(
         sampleCombatDisruption(state.disruptions[target], state.time),
       );
     }
-    state.grace[target] =
-      state.time + (kind === 'ion' ? 1.25 : COMBAT_RULES.hitGrace);
+    if (!damageOnly)
+      state.grace[target] =
+        state.time + (kind === 'ion' ? 1.25 : COMBAT_RULES.hitGrace);
     const payload = {
       source,
       target,
       kind,
       shielded,
-      duration: shielded
-        ? 0
-        : resistance
-          ? state.disruptions[target].duration
-          : COMBAT_CONSEQUENCES[kind].duration,
+      duration:
+        shielded || damageOnly
+          ? 0
+          : resistance
+            ? state.disruptions[target].duration
+            : COMBAT_CONSEQUENCES[kind].duration,
       position: position.toArray(),
       ...(equipment ? { equipment } : {}),
+      ...(signature ? { signature } : {}),
+      ...(damageOnly ? { damageOnly: true } : {}),
     };
     notify(target, 'combat-hit', payload);
     notify(source, 'combat-confirm', payload);
@@ -292,6 +307,7 @@ export function createCombatSimulation({
       target,
       kind: shielded ? 'aegis' : kind,
       ...(equipment ? { equipment } : {}),
+      ...(signature ? { signature } : {}),
       position: payload.position,
       quaternion:
         !shielded && incomingQuaternion
@@ -346,7 +362,7 @@ export function createCombatSimulation({
       );
     }
   }
-  function shoot(id, actor, pose, heavy = false) {
+  function shoot(id, actor, pose, heavy = false, signature) {
     const direction = forward.clone().applyQuaternion(pose.quaternion);
     const frame = track.sample(actor.state.distance);
     const heading = Math.atan2(
@@ -358,11 +374,12 @@ export function createCombatSimulation({
         .clone()
         .sub(frame.position)
         .addScaledVector(frame.right, -actor.state.lateral)
-        .dot(frame.up) + ARC_SHOT_HEIGHT;
+        .dot(frame.up) + (signature ? 0 : ARC_SHOT_HEIGHT);
     const shot = {
       id: state.sequence++,
       source: id,
       ...(heavy ? { heavy: true } : {}),
+      ...(signature ? { signature } : {}),
       age: 0,
       distance: actor.state.distance,
       lateral: actor.state.lateral,
@@ -373,13 +390,28 @@ export function createCombatSimulation({
         Math.max(0, actor.state.speed),
       position: pose.position
         .clone()
-        .addScaledVector(frame.up, ARC_SHOT_HEIGHT)
+        .addScaledVector(frame.up, signature ? 0 : ARC_SHOT_HEIGHT)
         .toArray(),
       velocity: direction
         .multiplyScalar(COMBAT_RULES.arcSpeed + Math.max(0, actor.state.speed))
         .toArray(),
       quaternion: pose.quaternion.toArray(),
     };
+    if (signature) {
+      const projected = projectMagneticBody(
+        track,
+        pose.position,
+        actor.state.distance,
+        actor.state.lateral,
+      );
+      shot.distance = projected.distance;
+      shot.lateral = projected.lateral;
+      shot.velocity = forward
+        .clone()
+        .applyQuaternion(pose.quaternion)
+        .multiplyScalar(shot.speed)
+        .toArray();
+    }
     shot.target = heavy ? null : acquireArcTarget(shot);
     state.shots.push(shot);
     state.flashes.push({
@@ -387,12 +419,13 @@ export function createCombatSimulation({
       kind: 'arc',
       ...(heavy ? { equipment: 'lance' } : {}),
       type: 'muzzle',
+      ...(signature ? { signature } : {}),
       source: id,
       position: pose.position
         .clone()
         .addScaledVector(
           up.clone().applyQuaternion(pose.quaternion),
-          ARC_MUZZLE_HEIGHT,
+          signature ? 0 : ARC_MUZZLE_HEIGHT,
         )
         .toArray(),
       quaternion: pose.quaternion.toArray(),
@@ -426,6 +459,11 @@ export function createCombatSimulation({
     bind(id, actor) {
       hitBounds(actor);
       validateCombatResistance(actor.combatResistance);
+      if (
+        actor.damageDuringGrace !== undefined &&
+        typeof actor.damageDuringGrace !== 'boolean'
+      )
+        throw new Error('Damage during grace must be a boolean');
       actors.set(id, actor);
       touched.add(id);
     },
@@ -454,10 +492,25 @@ export function createCombatSimulation({
       }
       return null;
     },
-    fireLance(id) {
+    fireLance(id, options = {}) {
       const source = eligible(id);
       if (!source) return false;
-      shoot(id, source.actor, source.pose, true);
+      if (
+        options.signature !== undefined &&
+        options.signature !== 'goliath-pressure'
+      )
+        throw new Error('Unknown signature projectile');
+      const pose = options.pose ?? source.pose;
+      if (
+        !pose.position?.isVector3 ||
+        !pose.quaternion?.isQuaternion ||
+        ![...pose.position.toArray(), ...pose.quaternion.toArray()].every(
+          Number.isFinite,
+        ) ||
+        Math.abs(pose.quaternion.lengthSq() - 1) > 1e-5
+      )
+        throw new Error('Signature fire requires a finite physical pose');
+      shoot(id, source.actor, pose, true, options.signature);
       return true;
     },
     request(id, event) {
@@ -576,23 +629,40 @@ export function createCombatSimulation({
         const a = vector(shot.position);
         // Bounded homing adjusts road-local yaw; hills and banks still need
         // no separate pitch aim, and every movement keeps the swept collision.
-        steerArc(shot, dt);
-        shot.distance += shot.speed * Math.cos(shot.heading) * dt;
-        shot.lateral += shot.speed * Math.sin(shot.heading) * dt;
+        if (!shot.signature) steerArc(shot, dt);
+        let b;
+        if (shot.signature) {
+          // A siege bolt leaves its real offset muzzle along the frozen aim.
+          // It never snaps to the actor centre or steers after the lane locks.
+          b = a.clone().addScaledVector(vector(shot.velocity), dt);
+          const projected = projectMagneticBody(
+            track,
+            b,
+            shot.distance,
+            shot.lateral,
+          );
+          shot.distance = projected.distance;
+          shot.lateral = projected.lateral;
+        } else {
+          shot.distance += shot.speed * Math.cos(shot.heading) * dt;
+          shot.lateral += shot.speed * Math.sin(shot.heading) * dt;
+        }
         if (
           (track.closed === false && shot.distance > track.length) ||
           Math.abs(shot.lateral) > track.width / 2
         )
           return false;
         const frame = track.sample(shot.distance);
-        const b = frame.position
+        b ??= frame.position
           .clone()
           .addScaledVector(frame.right, shot.lateral)
           .addScaledVector(frame.up, shot.height);
         const velocity = b.clone().sub(a).divideScalar(dt);
-        const quaternion = frame.quaternion
-          .clone()
-          .multiply(new T.Quaternion().setFromAxisAngle(up, shot.heading));
+        const quaternion = shot.signature
+          ? new T.Quaternion().fromArray(shot.quaternion)
+          : frame.quaternion
+              .clone()
+              .multiply(new T.Quaternion().setFromAxisAngle(up, shot.heading));
         shot.quaternion = quaternion.toArray();
         shot.velocity = velocity.toArray();
         let first = blocked(a, b, quaternion);
@@ -646,6 +716,7 @@ export function createCombatSimulation({
             a.clone().lerp(b, first),
             shot.heavy ? 'lance' : undefined,
             shot.heavy ? shot.quaternion : undefined,
+            shot.signature,
           );
           // Damage grace suppresses repeated impulses, not visible contact.
           if (!applied) {
@@ -654,6 +725,7 @@ export function createCombatSimulation({
               target,
               kind: 'arc',
               ...(shot.heavy ? { equipment: 'lance' } : {}),
+              ...(shot.signature ? { signature: shot.signature } : {}),
               position: a.clone().lerp(b, first).toArray(),
             };
             notify(shot.source, 'combat-contact', payload);
@@ -663,6 +735,7 @@ export function createCombatSimulation({
               target,
               kind: 'arc',
               ...(shot.heavy ? { equipment: 'lance' } : {}),
+              ...(shot.signature ? { signature: shot.signature } : {}),
               position: a.clone().lerp(b, first).toArray(),
               quaternion: shot.heavy
                 ? [...shot.quaternion]
@@ -799,10 +872,20 @@ export function createCombatSimulation({
         !Number.isSafeInteger(data.sequence) ||
         !Array.isArray(data.shots) ||
         data.shots.length > 30 ||
+        data.shots.some(
+          (shot) =>
+            shot.signature !== undefined &&
+            shot.signature !== 'goliath-pressure',
+        ) ||
         !Array.isArray(data.wakes) ||
         data.wakes.length > 256 ||
         !Array.isArray(data.flashes) ||
         data.flashes.length > 32 ||
+        data.flashes.some(
+          (flash) =>
+            flash.signature !== undefined &&
+            flash.signature !== 'goliath-pressure',
+        ) ||
         !data.emitters ||
         !data.grace ||
         !data.disruptions ||

@@ -94,16 +94,28 @@ export function createInterceptorPresentation({ host }) {
       const phase = data.counterattack?.phase ?? 'idle';
       root.dataset.counterattack = phase;
       counterattack.hidden = phase === 'idle';
-      counterattack.textContent =
-        phase === 'telegraph'
-          ? 'TARGET CHARGING · MOVE OFF ITS LINE'
-          : phase === 'turning-back'
-            ? `${targetName.toUpperCase()} TURNING · GET READY TO DODGE`
-            : phase === 'firing'
-              ? data.counterattack?.kind === 'ion'
-                ? 'ION WAKE · FIND A CLEAR LANE'
-                : 'INCOMING VOLLEY · DODGE'
-              : 'TARGET TURNING FORWARD';
+      const recenter =
+        data.counterattack?.aimLanes &&
+        data.counterattack.warning &&
+        data.counterattack.shots >= data.counterattack.blasts &&
+        !data.counterattack.pressureHits;
+      counterattack.textContent = recenter
+        ? 'RECENTER · CORE OPENING'
+        : phase === 'recovered'
+          ? 'PRESSURE RECOVERED · VENT SEALED'
+          : phase === 'breach'
+            ? 'CORE OPEN · HIT THE REAR VENT'
+            : phase === 'telegraph'
+              ? data.counterattack?.aimLanes
+                ? 'DODGE · FORCE THE CORE OPEN'
+                : 'TARGET CHARGING · MOVE OFF ITS LINE'
+              : phase === 'turning-back'
+                ? `${targetName.toUpperCase()} TURNING · GET READY TO DODGE`
+                : phase === 'firing'
+                  ? data.counterattack?.kind === 'ion'
+                    ? 'ION WAKE · FIND A CLEAR LANE'
+                    : 'INCOMING VOLLEY · DODGE'
+                  : 'TARGET TURNING FORWARD';
       const remaining = Math.max(0, finite(data.health)),
         maximum = Math.max(1, finite(data.maxHealth));
       root.dataset.reduced = String(!!frame.settings?.reducedMotion);
@@ -134,7 +146,7 @@ export function createInterceptorPresentation({ host }) {
           : 'ally'
         : 'none';
       hit.textContent = recent
-        ? `${name(data.lastHit.source)} · ${weaponName(data.lastHit.equipment)} hit · ${data.lastHit.damage} damage`
+        ? `${name(data.lastHit.source)} · ${data.lastHit.weakPoint ? 'CORE BREACH' : data.lastHit.armored ? 'ARMOR HIT' : weaponName(data.lastHit.equipment) + ' hit'} · ${data.lastHit.damage} damage`
         : 'Hold fire. Cross weapon gates for extra attacks.';
       boost.textContent = `SHIFT / ${controllerLayout(frame.settings ?? {}).boost}`;
     },

@@ -32,9 +32,10 @@ export async function createRacerPresentation({
         roll: new Quaternion(),
       };
       ships.push(entry);
-      entry.hitFeedback = combat
-        ? createHitFeedback(ship.group, settings)
-        : null;
+      entry.hitFeedback =
+        combat && opponent.specification.team !== 'quarry'
+          ? createHitFeedback(ship.group, settings)
+          : null;
       entry.pickups = createRivalPickups(
         ship.group,
         opponent.runtime,
@@ -51,7 +52,18 @@ export async function createRacerPresentation({
   }
   let disposed = false;
   return {
-    update({ alpha = 1, mode = 'title', settings = {} } = {}) {
+    getShip(id) {
+      return (
+        ships.find(({ opponent }) => opponent.specification.id === id)?.ship ??
+        null
+      );
+    },
+    update({
+      alpha = 1,
+      mode = 'title',
+      settings = {},
+      interceptor = null,
+    } = {}) {
       if (disposed) return;
       const enabled = racers.enabled;
       const showField =
@@ -59,11 +71,17 @@ export async function createRacerPresentation({
       const combatState = combat?.view();
       const flashes = combatState?.flashes ?? [];
       for (const { ship, opponent, yaw, roll, hitFeedback, pickups } of ships) {
-        const show = showField && !opponent.eliminated;
+        const retained = !!(
+          mode === 'results' &&
+          interceptor?.result &&
+          opponent.specification.id === interceptor.targetId
+        );
+        const disabled = retained && interceptor.result.won;
+        const show = (showField || retained) && !opponent.eliminated;
         ship.group.visible = show;
         const effects = opponent.runtime.snapshot?.() ?? {};
         pickups.update({
-          visible: show,
+          visible: show && !disabled,
           mode,
           state: opponent.state,
           effects,
@@ -100,7 +118,7 @@ export async function createRacerPresentation({
           energy: state.energy / 100,
           quality: settings.quality,
           reducedMotion: settings.reducedMotion,
-          visible: true,
+          visible: !disabled,
         });
         const pose = opponent.runtime.pose(blend);
         if (pose) {

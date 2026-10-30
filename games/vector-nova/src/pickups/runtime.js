@@ -27,6 +27,7 @@ export function createDeviceRuntime({
   team,
   hitBounds,
   combatResistance = 0,
+  damageDuringGrace = false,
   equipmentTuning = {},
   beforeCombat,
 }) {
@@ -34,6 +35,8 @@ export function createDeviceRuntime({
     throw new Error('Combat team must be a string');
   if (beforeCombat !== undefined && typeof beforeCombat !== 'function')
     throw new Error('Combat preparation must be a function');
+  if (typeof damageDuringGrace !== 'boolean')
+    throw new Error('Damage during grace must be a boolean');
   const actorTeam = team?.trim() || null;
   const actorBounds = combatHitBounds(hitBounds);
   const resistance = validateCombatResistance(combatResistance);
@@ -42,6 +45,7 @@ export function createDeviceRuntime({
     ...(actorTeam ? { team: actorTeam } : {}),
     ...(actorBounds ? { hitBounds: actorBounds } : {}),
     ...(resistance ? { combatResistance: resistance } : {}),
+    ...(damageDuringGrace ? { damageDuringGrace: true } : {}),
     ...(Object.keys(tuning).length ? { equipmentTuning: tuning } : {}),
   };
   const equipment =
@@ -105,11 +109,12 @@ export function createDeviceRuntime({
       ...(actorTeam ? { team: actorTeam } : {}),
       ...(actorBounds ? { hitBounds: actorBounds } : {}),
       ...(resistance ? { combatResistance: resistance } : {}),
+      ...(damageDuringGrace ? { damageDuringGrace: true } : {}),
       state,
       pose: () => motion.pose(1),
       notify: (event) => pending.push(event),
       disrupt: (disruption) => applyDisruption(state, disruption),
-      hit({ source, kind, impulse, cost }) {
+      hit({ source, kind, impulse, cost, damageOnly = false }) {
         if (equipment?.absorbHit()) {
           const position = combat.pose(source)?.position?.toArray();
           pending.push({
@@ -127,6 +132,7 @@ export function createDeviceRuntime({
           pending.push(shield);
           return true;
         }
+        if (damageOnly) return false;
         motion.applyImpulse?.(
           state,
           impulse.clone().multiplyScalar(1 - toughness(state)),

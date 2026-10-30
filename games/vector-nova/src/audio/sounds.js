@@ -20,6 +20,35 @@ const race = (id, label, type, payload = {}, seconds = 0.8) => ({
 });
 
 export const soundEffects = [
+  ...[
+    ['charge', 'Pressure charge', 1.4],
+    ['turn', 'Magnetic turn', 0.8],
+    ['fire', 'Siege cannon', 0.7],
+    ['expose', 'Breach vent', 1.1],
+    ['recover', 'Cannon recharged', 0.6],
+    ['lock', 'Target lane locked', 0.3],
+    ['return', 'Cannon returning', 0.8],
+    ['disable', 'Core quenched', 1.2],
+  ].map(([cue, label, seconds]) => ({
+    ...race(
+      `goliath-${cue}`,
+      `Goliath · ${label}`,
+      'interceptor-cue',
+      { bossId: 'goliath', cue },
+      seconds,
+    ),
+    group: 'Interceptor · Goliath',
+  })),
+  {
+    ...race(
+      'goliath-core-hit',
+      'Goliath · Critical core hit',
+      'interceptor-hit',
+      { target: 'goliath', source: 'player', weakPoint: true },
+      0.5,
+    ),
+    group: 'Interceptor · Goliath',
+  },
   ...EQUIPMENT.filter(({ id }) => id !== 'lance').map(({ id, name }) => ({
     ...device(
       `${id}-activate`,

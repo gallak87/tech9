@@ -38,7 +38,9 @@ export function createCombatScreenFeedback(host) {
         return;
       }
       root.hidden = false;
-      root.dataset.kind = host.dataset.combatHit = disruption.kind;
+      root.dataset.kind = host.dataset.combatHit = disruption.signature
+        ? 'pressure'
+        : disruption.kind;
       const { flash, pulse, tunnel } = sampleCombatScreen(
         disruption,
         settings.reducedMotion,
@@ -46,7 +48,10 @@ export function createCombatScreenFeedback(host) {
       root.style.setProperty('--hit-flash', flash.toFixed(3));
       root.style.setProperty('--hit-pulse', pulse.toFixed(3));
       root.style.setProperty('--hit-tunnel', tunnel.toFixed(3));
-      root.style.setProperty('--hit-color', deviceCSSColor(disruption.kind));
+      root.style.setProperty(
+        '--hit-color',
+        disruption.signature ? '#ffb65a' : deviceCSSColor(disruption.kind),
+      );
       host.style.setProperty('--combat-hud-pulse', pulse.toFixed(3));
     },
     reset,

@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { mkdir } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import { chromium } from 'playwright';
 
 const base = process.env.VN_URL ?? 'http://127.0.0.1:5215';
@@ -46,12 +48,38 @@ await page.route('**/src/core/game.js*', async (route) => {
     source = await response.text();
   assert.ok(source.includes('getSnapshot() {'));
   assert.ok(source.includes('onHit(payload) {'));
-  assert.ok(source.includes("combat.fireLance('goliath');"));
+  const contactAnchor = 'for (const hit of interceptor.hit({';
+  const combatAnchor = 'runtimeContext.combat = combat;';
+  assert.ok(
+    source.includes(contactAnchor),
+    'the live owner still receives physical contacts',
+  );
+  assert.ok(
+    source.includes(combatAnchor),
+    'the live session exposes its combat owner',
+  );
+  assert.ok(
+    source.includes('const event = { ...e, tick, time: state.time };'),
+    'the live event ledger is instrumented',
+  );
   const audited = source
     .replace(
-      'onHit(payload) {',
-      `onHit(payload) {
-    (window.__missionProbeContacts??=[]).push(structuredClone(payload));`,
+      contactAnchor,
+      `const probeMission = interceptor.snapshot();
+    (window.__missionProbeContacts ??= []).push({
+      ...structuredClone(payload), hitLocal: hitLocal && [...hitLocal],
+      encounter: { elapsed:probeMission.elapsed,
+        playerLateral:probeMission.playerLateral,targetLateral:probeMission.targetLateral,
+        gap:probeMission.targetDistance-probeMission.playerDistance,
+        attack:structuredClone(probeMission.counterattacks.at(-1)??null) },
+    });
+    ${contactAnchor}`,
+    )
+    .replace(
+      'const event = { ...e, tick, time: state.time };',
+      `const event = { ...e, tick, time: state.time };
+    if(e.type==='interceptor-hit')
+      (window.__missionProbeAccepted ??= []).push(structuredClone(e.payload));`,
     )
     .replace(
       'onMode(value);',
@@ -59,21 +87,30 @@ await page.route('**/src/core/game.js*', async (route) => {
     onMode(value);`,
     )
     .replace(
-      "combat.fireLance('goliath');",
-      `{
-      const fired = combat.fireLance('goliath');
-      const shot = combat.snapshot().shots.filter(shot => shot.source === 'goliath').at(-1);
-      if (fired && shot) {
-        const frame = track.sample(target.state.distance);
-        (window.__missionProbeCountershots ??= []).push({
-          distance: target.state.distance,
-          speed: target.state.speed,
-          phase: interceptor.snapshot().counterattack,
-          velocityDot: new T.Vector3().fromArray(shot.velocity).dot(frame.tangent),
-          forwardDot: new T.Vector3(0,0,1).applyQuaternion(new T.Quaternion().fromArray(shot.quaternion)).dot(frame.tangent),
-          shot: structuredClone(shot),
-        });
-      }
+      combatAnchor,
+      `${combatAnchor}
+    if(combat && interceptor) {
+      const originalFireLance = combat.fireLance.bind(combat);
+      combat.fireLance = (id,options) => {
+        const fired = originalFireLance(id,options);
+        if(fired && id===missionBoss.id) {
+          const shot=combat.snapshot().shots.findLast(shot=>shot.source===id);
+          const target=racers.opponents.find(opponent=>opponent.specification.id===id);
+          if(shot && target) {
+            const frame=track.sample(target.state.distance);
+            (window.__missionProbeCountershots ??= []).push({
+              distance:target.state.distance,speed:target.state.speed,
+              phase:interceptor.snapshot().counterattack,
+              hullForwardDot:new T.Vector3(0,0,1).applyQuaternion(target.runtime.pose(1).quaternion).dot(frame.tangent),
+              hunterDot:new T.Vector3().fromArray(shot.velocity).normalize().dot(runtime.pose(1).position.clone().sub(new T.Vector3().fromArray(shot.position)).normalize()),
+              velocityDot:new T.Vector3().fromArray(shot.velocity).dot(frame.tangent),
+              forwardDot:new T.Vector3(0,0,1).applyQuaternion(new T.Quaternion().fromArray(shot.quaternion)).dot(frame.tangent),
+              shot:structuredClone(shot),
+            });
+          }
+        }
+        return fired;
+      };
     }`,
     );
   await route.fulfill({
@@ -124,20 +161,29 @@ await page.route('**/src/core/game.js*', async (route) => {
       const quarry = racers.opponents.find(opponent=>opponent.specification.id==='goliath');
       const pose = quarry.runtime.pose(1), frame = track.sample(quarry.state.distance), body = dynamics.snapshot().actors.find(actor=>actor.contactShape?.id==='goliath');
       const error = pose.position.clone().sub(frame.position);
-      return {actors:dynamics?.snapshot().actors.map(actor=>({id:actor.id,active:actor.active,shape:actor.contactShape?{id:actor.contactShape.id,bounds:actor.contactShape.bounds,parts:actor.contactShape.parts?.length}:null}))??[],
+      const powered=new Map();
+      boss?.traverse(object=>{for(const material of [object.material].flat())
+        if(material?.emissive?.getHex())powered.set(material,{name:material.name,intensity:material.emissiveIntensity});});
+      const bounds=boss && new T.Box3().setFromObject(boss);
+      const frustum=new T.Frustum().setFromProjectionMatrix(new T.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));
+      return {cameraView:structuredClone(camera.view),actors:dynamics?.snapshot().actors.map(actor=>({id:actor.id,active:actor.active,shape:actor.contactShape?{id:actor.contactShape.id,bounds:actor.contactShape.bounds,parts:actor.contactShape.parts?.length}:null}))??[],
         target:{state:{...quarry.state},position:pose.position.toArray(),quaternion:pose.quaternion.toArray(),headingOffset:quarry.runtime.snapshot().headingOffset??0,
           velocity:body.velocity,tangent:frame.tangent.toArray(),tangentVelocity:new T.Vector3().copy(body.velocity).dot(frame.tangent),worldSpeed:new T.Vector3().copy(body.velocity).length(),
           height:error.dot(frame.up),lateralError:error.dot(frame.right),roadError:error.length(),grounded:pose.grounded,recovering:pose.recovering,contacts:body.contacts},
         routeLength: track.length,
         opponents:racers.opponents.map(opponent=>({id:opponent.specification.id,state:{...opponent.state},hitBounds:opponent.specification.hitBounds,
           forwardDot:new T.Vector3(0,0,1).applyQuaternion(opponent.runtime.pose(1).quaternion).dot(track.sample(opponent.state.distance).tangent)})),
-        boss:boss?{name:boss.name,bounds:boss.userData.bounds,scale:boss.scale.toArray(),forwardDot:new T.Vector3(0,0,1).applyQuaternion(boss.getWorldQuaternion(new T.Quaternion())).dot(track.sample(racers.opponents.find(opponent=>opponent.specification.id==='goliath').state.distance).tangent)}:null,
+        boss:boss?{visible:boss.visible,inView:frustum.intersectsBox(bounds),
+          propulsionVisible:boss.getObjectByName('Rival / propulsion')?.visible,
+          powered:[...powered.values()],name:boss.name,bounds:boss.userData.bounds,scale:boss.scale.toArray(),forwardDot:new T.Vector3(0,0,1).applyQuaternion(boss.getWorldQuaternion(new T.Quaternion())).dot(track.sample(racers.opponents.find(opponent=>opponent.specification.id==='goliath').state.distance).tangent)}:null,
         combat:combat?.snapshot(),queuedFire:structuredClone(pendingMissionFire),
         counterframes:structuredClone(window.__missionProbeCounterframes??[]),
         countershots:structuredClone(window.__missionProbeCountershots??[]),
         motionAudit:structuredClone(window.__missionProbeMotion??null),
         modes:structuredClone(window.__missionProbeModes??[]),
-        contacts:structuredClone(window.__missionProbeContacts??[]),draws:renderer.info.render.calls};
+        contacts:structuredClone(window.__missionProbeContacts??[]),
+        accepted:structuredClone(window.__missionProbeAccepted??[]),
+        auditBaseline:structuredClone(window.__missionProbeBaseline??null),draws:renderer.info.render.calls};
     },getSnapshot() {`,
     ),
   });
@@ -171,6 +217,10 @@ const issued = (snapshot) =>
 const clearAudit = () =>
   page.evaluate(() => {
     window.__missionProbeContacts = [];
+    window.__missionProbeAccepted = [];
+    window.__missionProbeBaseline = structuredClone(
+      window.__VN.getSnapshot().interceptor,
+    );
     window.__missionProbeCounterframes = [];
     window.__missionProbeCountershots = [];
     window.__missionProbeMotion = null;
@@ -226,48 +276,125 @@ async function installPilot() {
     };
   });
 }
-function verifyCombatAudit(mission, contacts) {
-  let health = mission.maxHealth,
-    player = 0,
-    allied = 0,
-    hits = 0;
+function verifyCombatAudit(mission, diagnostics) {
+  const { contacts, accepted, auditBaseline } = diagnostics;
+  const baseline = auditBaseline ?? {
+    health: mission.maxHealth,
+    playerDamage: 0,
+    alliedDamage: 0,
+    hits: 0,
+  };
+  let health = baseline.health,
+    player = baseline.playerDamage,
+    allied = baseline.alliedDamage,
+    hits = baseline.hits;
   const seen = new Set(),
-    allies = new Set(['rook', 'kite', 'manta']);
+    allies = new Set(['rook', 'kite', 'manta']),
+    credited = new Map();
+  for (const event of accepted) {
+    assert.ok(
+      !credited.has(event.key),
+      'the mission never credits a physical contact twice',
+    );
+    credited.set(event.key, event);
+  }
   for (const contact of contacts) {
-    if (
-      health <= 0 ||
-      contact.target !== 'goliath' ||
-      contact.shielded ||
-      !(contact.source === 'player' || allies.has(contact.source))
-    )
-      continue;
+    const key = `${contact.hitId}:${contact.source}:${contact.target}`;
+    const event = credited.get(key);
     const lance = contact.kind === 'repulsor' && contact.equipment === 'lance';
     const pickup =
       ['arc', 'repulsor'].includes(contact.kind) &&
       (contact.equipment == null || contact.equipment === contact.kind);
-    if (!lance && !pickup) continue;
-    const key = `${contact.hitId}:${contact.source}:${contact.target}`;
-    if (seen.has(key)) continue;
+    if (
+      health <= 0 ||
+      contact.target !== 'goliath' ||
+      contact.shielded ||
+      !(contact.source === 'player' || allies.has(contact.source)) ||
+      (!lance && !pickup)
+    ) {
+      assert.equal(
+        event,
+        undefined,
+        'shielded, friendly or ineligible contacts never earn HP damage',
+      );
+      continue;
+    }
+    assert.ok(!seen.has(key), 'the raw combat owner reports each contact once');
     seen.add(key);
+    assert.ok(
+      event,
+      `actual unblocked impact ${key} reaches the mission damage ledger`,
+    );
+    assert.equal(event.source, contact.source);
+    assert.equal(event.target, contact.target);
+    assert.equal(event.kind, contact.kind);
+    const equipment = lance ? 'lance' : contact.kind;
+    assert.equal(event.equipment, equipment);
+    // Independent Goliath armor/core contract. Geometry comes from the real
+    // swept contact; the open window is reconstructed from the attack clock,
+    // rather than accepting the mission's weakPoint or final HP claims.
+    const state = contact.encounter,
+      attack = state.attack;
+    const elapsed = attack ? state.elapsed - attack.started : -1;
+    const breached =
+      !!attack &&
+      !attack.incomingHits.length &&
+      elapsed >= 5 - 1e-8 &&
+      elapsed < 8 - 1e-8;
+    const point = contact.hitLocal;
+    const playerContact = contact.source === 'player';
+    const core =
+      breached &&
+      (equipment === 'repulsor'
+        ? playerContact &&
+          Math.abs(state.playerLateral - state.targetLateral) <= 1.5 &&
+          state.gap >= 0 &&
+          state.gap <= 38
+        : Array.isArray(point) &&
+          point.length === 3 &&
+          point.every(Number.isFinite) &&
+          Math.abs(point[0]) <= 1.5 &&
+          point[1] >= -0.3 &&
+          point[1] <= 3.2 &&
+          point[2] >= -21.2 &&
+          point[2] <= -17.5);
     const damage = Math.min(
       health,
-      lance
-        ? contact.source === 'player'
-          ? 18
-          : 3
-        : contact.kind === 'repulsor'
-          ? contact.source === 'player'
-            ? 12
-            : 2
-          : contact.source === 'player'
-            ? 5
-            : 1,
+      playerContact
+        ? (core
+            ? { lance: 54, arc: 15, repulsor: 36 }
+            : { lance: 9, arc: 2, repulsor: 6 })[equipment]
+        : (core
+            ? { lance: 4, arc: 2, repulsor: 3 }
+            : { lance: 3, arc: 1, repulsor: 2 })[equipment],
+    );
+    assert.equal(
+      !!event.weakPoint,
+      core,
+      'critical credit requires the real open aperture and contact bounds',
+    );
+    assert.equal(!!event.armored, !core, 'closed armor is reported honestly');
+    assert.equal(
+      event.damage,
+      damage,
+      'accepted HP damage follows the independent armor/core contract',
     );
     health -= damage;
+    assert.equal(
+      event.health,
+      health,
+      'each emitted damage row contains the actual remaining hull',
+    );
     hits++;
-    if (contact.source === 'player') player += damage;
+    if (playerContact) player += damage;
     else allied += damage;
+    credited.delete(key);
   }
+  assert.equal(
+    credited.size,
+    0,
+    'every credited HP change has a real unblocked physical contact',
+  );
   assert.equal(
     mission.health,
     health,
@@ -284,10 +411,7 @@ function verifyCombatAudit(mission, contacts) {
     'support damage matches real allied impacts',
   );
   assert.equal(mission.hits, hits, 'each actual impact is credited once');
-  assert.equal(
-    mission.playerDamage + mission.alliedDamage + mission.health,
-    mission.maxHealth,
-  );
+  assert.equal(player + allied + health, mission.maxHealth);
 }
 async function verifyCounterattack() {
   await page.setViewportSize({ width: 1280, height: 720 });
@@ -384,9 +508,12 @@ async function verifyCounterattack() {
   const pausedAttack = firing.snapshot.interceptor.counterattack;
   await page.waitForTimeout(180);
   assert.deepEqual((await snapshot()).interceptor.counterattack, pausedAttack);
-  await page.evaluate(() =>
-    window.__VN.stepMission(300, window.__missionPilot),
-  );
+  for (let batch = 0; batch < 40; batch++) {
+    const current = await page.evaluate(() =>
+      window.__VN.stepMission(30, window.__missionPilot),
+    );
+    if (current.interceptor.counterattack.phase === 'idle') break;
+  }
   const recovered = await page.evaluate(() => ({
     snapshot: window.__VN.getSnapshot(),
     diagnostics: window.__VN.missionDiagnostics(),
@@ -424,13 +551,10 @@ async function verifyCounterattack() {
   assert.ok(
     recovered.snapshot.interceptor.targetDistance -
       warned.interceptor.targetDistance <
-      550,
+      850,
     'the brief counterattack cannot jump kilometres along the course',
   );
-  verifyCombatAudit(
-    recovered.snapshot.interceptor,
-    recovered.diagnostics.contacts,
-  );
+  verifyCombatAudit(recovered.snapshot.interceptor, recovered.diagnostics);
   console.log(
     JSON.stringify({
       check:
@@ -443,6 +567,88 @@ async function verifyCounterattack() {
     }),
   );
   await page.setViewportSize({ width: 1440, height: 960 });
+}
+async function verifyNativeWeapons() {
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => window.__VN.getSnapshot().mode === 'racing');
+  await page.keyboard.down('KeyQ');
+  assert.equal((await snapshot()).input.equipment1, true);
+  await page.waitForFunction(
+    () =>
+      window.__VN
+        .getSnapshot()
+        .events.filter(
+          (event) =>
+            event.type === 'equipment-activate' &&
+            event.payload.kind === 'lance',
+        ).length >= 2,
+  );
+  const nativeShots = (await snapshot()).events.filter(
+    (event) =>
+      event.type === 'equipment-activate' && event.payload.kind === 'lance',
+  );
+  assert.ok(nativeShots[1].payload.time - nativeShots[0].payload.time <= 0.82);
+  await page.keyboard.up('KeyQ');
+  await page.keyboard.press('Escape');
+  const paused = await snapshot();
+  await page.waitForTimeout(180);
+  assert.equal(
+    (await snapshot()).interceptor.elapsed,
+    paused.interceptor.elapsed,
+  );
+  assert.equal(
+    (await snapshot()).interceptor.health,
+    paused.interceptor.health,
+  );
+  await page.evaluate(
+    (control) => window.__VN.stepMission(180, control),
+    still,
+  );
+  const fireCount = (await snapshot()).events.filter(
+    (event) =>
+      event.type === 'equipment-activate' && event.payload.kind === 'lance',
+  ).length;
+  await page.evaluate(() => {
+    window.__checkPad.connected = true;
+  });
+  await page.waitForTimeout(100);
+  await page.keyboard.press('Escape');
+  await padButton(2, true);
+  assert.equal(
+    (await snapshot()).input.equipment1,
+    true,
+    'controller X maps to the issued Lance',
+  );
+  await page.waitForFunction(
+    (count) =>
+      window.__VN
+        .getSnapshot()
+        .events.filter(
+          (event) =>
+            event.type === 'equipment-activate' &&
+            event.payload.kind === 'lance',
+        ).length > count,
+    fireCount,
+  );
+  await padButton(2, false);
+  await padButton(9, true);
+  await page.waitForFunction(() => window.__VN.getSnapshot().mode === 'paused');
+  await padButton(9, false);
+  await page.evaluate(() => {
+    window.__checkPad.connected = false;
+  });
+  const physical = await page.evaluate(() => ({
+    snapshot: window.__VN.getSnapshot(),
+    diagnostics: window.__VN.missionDiagnostics(),
+  }));
+  verifyCombatAudit(physical.snapshot.interceptor, physical.diagnostics);
+  assert.ok(
+    physical.diagnostics.accepted.length > 0,
+    'native firing reaches the actual physical target',
+  );
+  console.log(
+    `PASS · native Q/controller X, frozen pause and ${physical.diagnostics.accepted.length} independently audited physical hits`,
+  );
 }
 async function verifyGarageAfterWin() {
   const profile = (await front()).career.state;
@@ -517,85 +723,111 @@ async function verifyGarageAfterWin() {
   );
 }
 async function probeMission() {
-  await clearAudit();
   await installPilot();
-  let maxSpeed = 0,
-    maxGap = 0,
-    maxRoadError = 0,
-    last;
-  for (let second = 1; second <= 35; second++) {
-    const current = await page.evaluate(() => {
-      window.__VN.stepMission(120, window.__missionPilot);
-      return {
-        snapshot: window.__VN.getSnapshot(),
-        diagnostics: window.__VN.missionDiagnostics(),
-      };
-    });
-    verifyCombatAudit(
-      current.snapshot.interceptor,
-      current.diagnostics.contacts,
-    );
-    maxSpeed = Math.max(maxSpeed, current.diagnostics.target.worldSpeed);
-    maxGap = Math.max(maxGap, current.snapshot.interceptor.gap);
-    maxRoadError = Math.max(maxRoadError, current.diagnostics.target.roadError);
-    last = current;
-    if (process.env.VN_TRACE === '1')
-      console.log(
-        JSON.stringify({
-          probe: second,
-          time: current.snapshot.interceptor.elapsed,
-          phase: current.snapshot.interceptor.counterattack.phase,
-          yaw: current.snapshot.interceptor.counterattack.yaw,
-          health: current.snapshot.interceptor.health,
-          gap: current.snapshot.interceptor.gap,
-          player: current.snapshot.vehicle,
-          target: current.diagnostics.target,
-          countershots: current.diagnostics.countershots.length,
-        }),
-      );
-    if (current.snapshot.interceptor.result) break;
+  const before = (await front()).career.state;
+  const escaped = await runMission(
+    'unarmed physical pursuit / live escape result',
+    'unarmed',
+  );
+  assert.equal(
+    escaped.won,
+    false,
+    'without issued Lance fire Goliath escapes physically',
+  );
+  assert.equal(escaped.reason, 'escaped');
+  assert.ok(
+    escaped.diagnostics.contacts.every(
+      (contact) => contact.source !== 'player' || contact.equipment !== 'lance',
+    ),
+    'the physical escape uses no issued player Lance; ordinary road pickups remain active',
+  );
+  assert.ok(
+    escaped.health > 0 && escaped.targetDistance >= escaped.escapeDistance,
+  );
+  const immediate = await front();
+  assert.equal(
+    immediate.screen,
+    'results',
+    'the real terminal tick opens results immediately',
+  );
+  assert.equal(immediate.career.state.finishes, before.finishes + 1);
+  assert.equal(immediate.career.state.points, before.points + 1);
+  assert.equal(immediate.career.state.wins, before.wins);
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+  const tableau = await page.evaluate(() => window.__VN.missionDiagnostics());
+  assert.equal(
+    tableau.boss.visible,
+    true,
+    'the escaped boss stays visible behind its results',
+  );
+  assert.equal(
+    tableau.boss.inView,
+    true,
+    'the live boss remains inside the actual result camera frustum',
+  );
+  assert.equal(
+    tableau.boss.propulsionVisible,
+    true,
+    'escape never quenches live engine plumes',
+  );
+  assert.ok(
+    tableau.boss.powered.length > 0 &&
+      tableau.boss.powered.every((material) => material.intensity > 0),
+    'every live authored engine material remains powered',
+  );
+  assert.equal(
+    tableau.cameraView?.enabled,
+    true,
+    'result composition enables its camera projection offset',
+  );
+  assert.ok(tableau.cameraView.offsetX > 0);
+  assert.match(
+    await page.locator('.interceptor-results h1').textContent(),
+    /escaped/,
+  );
+  if (process.env.VN_EVIDENCE) {
+    const path = resolve(process.env.VN_EVIDENCE);
+    await mkdir(dirname(path), { recursive: true });
+    await page.screenshot({ path });
+    console.log(`Escape result capture: ${path}`);
   }
+  await page.evaluate(() => {
+    window.__VN.showResults();
+    window.__VN.showResults();
+  });
+  assert.deepEqual(
+    (await front()).career.state,
+    immediate.career.state,
+    'returning to escape results never awards progress twice',
+  );
+  await pressButton('[data-action="retry-race"]');
+  const retried = await snapshot();
+  assert.equal(retried.interceptor.elapsed, 0);
+  assert.equal(retried.interceptor.health, 700);
+  assert.equal(retried.interceptor.result, null);
+  assert.deepEqual(retried.interceptor.counterattacks, []);
+  assert.deepEqual(issued(retried), ['lance', 'injector']);
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+  const reset = await page.evaluate(() => window.__VN.missionDiagnostics());
+  assert.equal(
+    reset.cameraView?.enabled ?? false,
+    false,
+    'retry clears the result-only camera projection',
+  );
+  assert.deepEqual(reset.queuedFire, []);
   console.log(
-    JSON.stringify({
-      check: 'Medium35s pursuit motion audit',
-      maxSpeedKph: maxSpeed * 3.6,
-      maxGap,
-      maxRoadError,
-      health: last.snapshot.interceptor.health,
-      gap: last.snapshot.interceptor.gap,
-      countershots: last.diagnostics.countershots.length,
-      motionAudit: last.diagnostics.motionAudit,
-    }),
+    'PASS · physical two-lap escape retains the live powered boss; immediate once-only career progress and retry reset',
   );
-  assert.ok(
-    maxSpeed < 150,
-    `courier world speed stays physically bounded (${maxSpeed}m/s)`,
-  );
-  assert.ok(
-    maxRoadError < 25,
-    `courier stays over the actual course (${maxRoadError}m)`,
-  );
-  assert.ok(
-    last.snapshot.interceptor.gap < 500,
-    `the pursuing pilot can still reach the courier (${last.snapshot.interceptor.gap}m)`,
-  );
-  assert.ok(
-    last.diagnostics.motionAudit.maxStepDistance < 5,
-    'route progress remains bounded at every physical tick',
-  );
-  assert.ok(
-    last.diagnostics.motionAudit.maxStepMovement < 5,
-    'the actual hull cannot jump across the world between ticks',
-  );
-  assert.ok(
-    last.diagnostics.motionAudit.maxReportedSpeed < 150,
-    'cached driving speed also stays physically bounded during combat',
-  );
-  assert.ok(
-    last.diagnostics.motionAudit.maxWorldSpeed <= 100.001,
-    'actual target velocity obeys its physical bound on every tick',
-  );
-  console.log('PASS · Medium35s pursuit remains physical and reachable');
 }
 async function verifyDifficultyRetries() {
   for (const [difficulty, health, blasts] of [
@@ -671,25 +903,36 @@ async function runMission(label, driver) {
         1200,
         driver === 'pilot'
           ? window.__missionPilot
-          : {
-              throttle: 0,
-              brake: 0,
-              steer: 0,
-              boost: false,
-              airbrake: false,
-              equipment1: false,
-              equipment2: false,
-            },
+          : driver === 'unarmed'
+            ? (context) => ({
+                ...window.__missionPilot(context),
+                equipment1: false,
+              })
+            : {
+                throttle: 0,
+                brake: 0,
+                steer: 0,
+                boost: false,
+                airbrake: false,
+                equipment1: false,
+                equipment2: false,
+              },
       );
       return {
         snapshot: game.getSnapshot(),
         diagnostics: game.missionDiagnostics(),
       };
     }, driver);
-    verifyCombatAudit(
-      current.snapshot.interceptor,
-      current.diagnostics.contacts,
-    );
+    verifyCombatAudit(current.snapshot.interceptor, current.diagnostics);
+    if (probeOnly && batch % 2 === 0)
+      console.log(
+        JSON.stringify({
+          check: 'accelerated escape',
+          time: current.snapshot.interceptor.elapsed,
+          health: current.snapshot.interceptor.health,
+          gap: current.snapshot.interceptor.gap,
+        }),
+      );
     assert.equal(
       current.diagnostics.actors.filter((actor) => actor.active).length,
       5,
@@ -724,21 +967,30 @@ async function runMission(label, driver) {
     result.diagnostics.motionAudit.maxWorldSpeed <= 100.001,
     'actual courier velocity respects its physical bound throughout the mission',
   );
-  if (driver === 'inactive') {
+  if (driver === 'inactive' || driver === 'unarmed') {
+    const rules = JSON.parse(result.diagnostics.auditBaseline.rulesId);
+    const stations = rules.counterattack.markers?.length ?? 1;
+    const expectedLaps = Array.from({ length: 2 }, (_, index) =>
+      Array(stations * rules.counterattack.blasts).fill(index + 1),
+    ).flat();
     assert.equal(
       result.diagnostics.countershots.length,
-      2,
-      'the escaping target fires once on each Easy lap',
+      expectedLaps.length,
+      'the escaping target discharges at every authored station on both laps',
     );
     assert.deepEqual(
       result.diagnostics.countershots.map((shot) => shot.phase.lap),
-      [1, 2],
+      expectedLaps,
     );
     assert.ok(
       result.diagnostics.countershots.every(
-        (shot) => shot.forwardDot < -0.95 && shot.velocityDot < -100,
+        (shot) =>
+          shot.hullForwardDot < -0.95 &&
+          shot.hunterDot > 0.8 &&
+          shot.shot.velocity.every(Number.isFinite) &&
+          Math.hypot(...shot.shot.velocity) > 100,
       ),
-      'both laps turn and fire physical backward projectiles',
+      'both laps face backward and discharge real physical shots toward the hunter',
     );
   }
   console.log(
@@ -808,10 +1060,13 @@ try {
     assert.equal(start.interceptor.maxHealth, 700);
     await probeMission();
   } else if (nativeOnly) {
-    await page.keyboard.press('Escape');
-    await page.waitForFunction(
-      () => window.__VN.getSnapshot().mode === 'paused',
+    assert.deepEqual(issued(start), ['lance', 'injector']);
+    assert.deepEqual(start.vehicle.enhancements, {});
+    await page.evaluate(
+      (control) => window.__VN.stepMission(120, control),
+      still,
     );
+    await verifyNativeWeapons();
     await pressButton('#home');
     await page.waitForFunction(
       () => window.__VN_FRONTEND.getState().screen === 'home',
@@ -865,83 +1120,7 @@ try {
       'PASS · native lazy mission entry, issued stock gear and five physical actors with a full-size Goliath',
     );
 
-    await page.keyboard.press('Escape');
-    await page.waitForFunction(
-      () => window.__VN.getSnapshot().mode === 'racing',
-    );
-    await page.keyboard.down('KeyQ');
-    assert.equal((await snapshot()).input.equipment1, true);
-    await page.waitForFunction(
-      () =>
-        window.__VN
-          .getSnapshot()
-          .events.filter(
-            (event) =>
-              event.type === 'equipment-activate' &&
-              event.payload.kind === 'lance',
-          ).length >= 2,
-    );
-    const nativeShots = (await snapshot()).events.filter(
-      (event) =>
-        event.type === 'equipment-activate' && event.payload.kind === 'lance',
-    );
-    assert.ok(
-      nativeShots[1].payload.time - nativeShots[0].payload.time <= 0.82,
-    );
-    await page.keyboard.up('KeyQ');
-    await page.keyboard.press('Escape');
-    const paused = await snapshot();
-    await page.waitForTimeout(180);
-    assert.equal(
-      (await snapshot()).interceptor.elapsed,
-      paused.interceptor.elapsed,
-    );
-    assert.equal(
-      (await snapshot()).interceptor.health,
-      paused.interceptor.health,
-    );
-    await page.evaluate(
-      (control) => window.__VN.stepMission(180, control),
-      still,
-    );
-    const fireCount = (await snapshot()).events.filter(
-      (event) =>
-        event.type === 'equipment-activate' && event.payload.kind === 'lance',
-    ).length;
-    await page.evaluate(() => {
-      window.__checkPad.connected = true;
-    });
-    await page.waitForTimeout(100);
-    await page.keyboard.press('Escape');
-    await padButton(2, true);
-    assert.equal(
-      (await snapshot()).input.equipment1,
-      true,
-      'controller X maps to the issued Lance',
-    );
-    await page.waitForFunction(
-      (count) =>
-        window.__VN
-          .getSnapshot()
-          .events.filter(
-            (event) =>
-              event.type === 'equipment-activate' &&
-              event.payload.kind === 'lance',
-          ).length > count,
-      fireCount,
-    );
-    await padButton(2, false);
-    await padButton(9, true);
-    await page.waitForFunction(
-      () => window.__VN.getSnapshot().mode === 'paused',
-    );
-    await padButton(9, false);
-    await page.evaluate(() => {
-      window.__checkPad.connected = false;
-    });
-    console.log(
-      'PASS · native Q and controller X fire real Lance shots; pause freezes clock and hull',
-    );
+    await verifyNativeWeapons();
 
     await page.evaluate(() => window.__VN.restartRace());
     await clearAudit();
@@ -1039,3 +1218,6 @@ try {
 } finally {
   await browser.close();
 }
+
+// Intercepted module fetches can retain Node's HTTP pool after Chrome closes.
+process.exit(0);

@@ -49,14 +49,14 @@ function fixture() {
   const body = new T.Mesh(borrowedGeometry, borrowedMaterial);
   body.position.y = 1.8;
   boss.add(body);
-  for (const [side, x] of [
-    ['L', -4.2],
-    ['C', 0],
-    ['R', 4.2],
+  for (const [side, x, y] of [
+    ['L', -4.2, 1.1],
+    ['C', 0, 1],
+    ['R', 4.2, 1.1],
   ]) {
     const anchor = new T.Group();
     anchor.name = `Exhaust_${side}`;
-    anchor.position.set(x, 1.1, -10);
+    anchor.position.set(x, y, -10);
     boss.add(anchor);
   }
   const distance = track.length * 0.14 + (6.2 * 300) / 3.6;
@@ -441,6 +441,175 @@ test('Bulwark result tableaus retain permanent hardware while owned energy, warn
     h.dispose();
   }
 });
+
+for (const { settings, ruptured } of [
+  { settings: { quality: 'high', reducedMotion: false }, ruptured: false },
+  { settings: { quality: 'low', reducedMotion: true }, ruptured: true },
+]) {
+  test(`Bulwark ${settings.quality} defeat runs down all three real drive mouths without relighting an ${ruptured ? 'already ruptured' : 'active'} coil`, () => {
+    const h = fixture();
+    try {
+      h.frame.settings = settings;
+      h.stepOwner(1.2);
+      h.effects.update(h.frame);
+      const coilSignals = h.shoulders.map(
+        (shoulder) =>
+          shoulder.children.find(
+            (object) =>
+              object.isMesh &&
+              object.material.transparent &&
+              object.name !== 'Bulwark / local pressure release',
+          ).material,
+      );
+      if (ruptured) {
+        h.owner.hit(hit('ruptured-before-defeat'));
+        h.frame.interceptor = h.owner.snapshot();
+        h.effects.update(h.frame);
+        h.stepOwner(0.4);
+        h.effects.update(h.frame);
+      }
+      const before = coilSignals.map((material) => material.opacity);
+      const selected = h.shoulders.findIndex(
+        (shoulder) =>
+          shoulder.position.x *
+            h.frame.interceptor.counterattack.breakwater.side >
+          0,
+      );
+      assert.ok(ruptured ? before[selected] === 0 : before[selected] > 0.5);
+      const fans = h.mount.children.filter(
+        (object) => object.name === 'Bulwark / pressure rundown fan',
+      );
+      const anchors = ['L', 'C', 'R'].map((name) =>
+        h.boss.getObjectByName(`Exhaust_${name}`),
+      );
+      assert.equal(fans.length, anchors.length);
+      const fanStrength = (object) =>
+        visible(object)
+          ? (object.material.uniforms?.strength?.value ??
+            object.material.opacity)
+          : 0;
+      const frozenFans = () =>
+        fans.map((object) => ({
+          visible: object.visible,
+          position: object.position.toArray(),
+          scale: object.scale.toArray(),
+          strength: fanStrength(object),
+          flow: object.material.uniforms?.flow?.value ?? null,
+        }));
+      h.frame.mode = 'results';
+      h.frame.interceptor.result = { won: true };
+      h.frame.interceptor.health = 0;
+      h.frame.presentationDt = 0;
+      h.effects.update(h.frame);
+      let priorTime = 0,
+        priorCoils = before;
+      const moments = [
+        [0, []],
+        [0.15, [0, 1]],
+        [0.35, [0, 1, 2]],
+        [0.6, [1, 2]],
+        [1.2, []],
+      ];
+      for (const [time, expected] of moments) {
+        h.frame.presentationDt = time - priorTime;
+        h.effects.update(h.frame);
+        priorTime = time;
+        const lit = fans.flatMap((object, index) =>
+          fanStrength(object) > 1e-5 ? [index] : [],
+        );
+        assert.deepEqual(
+          lit,
+          expected,
+          `the short pressure rundown has its authored sequence at${time}s`,
+        );
+        const currentCoils = coilSignals.map((material) => material.opacity);
+        currentCoils.forEach((opacity, index) =>
+          assert.ok(
+            opacity <= priorCoils[index] + 1e-12,
+            'defeat fades the actual prior coil signal instead of manufacturing new energy',
+          ),
+        );
+        if (ruptured)
+          assert.equal(
+            currentCoils[selected],
+            0,
+            'the dead emitter never brightens again',
+          );
+        priorCoils = currentCoils;
+        for (const index of lit) {
+          const fromMouth = fans[index]
+            .getWorldPosition(new T.Vector3())
+            .sub(anchors[index].getWorldPosition(new T.Vector3()));
+          const right = new T.Vector3(1, 0, 0).applyQuaternion(
+            h.boss.quaternion,
+          );
+          const up = new T.Vector3(0, 1, 0).applyQuaternion(h.boss.quaternion);
+          const forward = new T.Vector3(0, 0, 1).applyQuaternion(
+            h.boss.quaternion,
+          );
+          assert.ok(
+            Math.abs(fromMouth.dot(right)) < 1e-6,
+            'each fan retains its own actual drive-mouth lateral origin',
+          );
+          assert.ok(
+            fromMouth.dot(up) <= 0 && fromMouth.dot(forward) <= 0,
+            'residual pressure falls behind its own mouth rather than crossing the hull',
+          );
+          assert.ok(
+            fromMouth.length() < 3,
+            'the pressure rundown stays compact',
+          );
+        }
+        if (time === 0.35) {
+          const paused = frozenFans();
+          h.frame.presentationDt = 0;
+          h.effects.update(h.frame);
+          assert.deepEqual(
+            frozenFans(),
+            paused,
+            'a frozen presentation clock cannot advance or restart the rundown',
+          );
+        }
+        assert.equal(visible(h.body), true);
+        assert.equal(h.world.visible, false);
+      }
+      assert.deepEqual(
+        energy(h.mount),
+        [],
+        'all owned energy is gone by the settled result',
+      );
+      h.effects.reset();
+      h.owner.reset();
+      h.frame.mode = 'countdown';
+      h.frame.interceptor = h.owner.snapshot();
+      h.effects.update(h.frame);
+      assert.ok(
+        fans.every((object) => !object.visible),
+        'retry cannot inherit a death fan',
+      );
+      h.owner.step(1 / 120, h.progress);
+      h.stepOwner(1.2);
+      h.frame.mode = 'racing';
+      h.effects.update(h.frame);
+      h.frame.mode = 'results';
+      h.frame.interceptor.result = { won: true };
+      h.frame.interceptor.health = 0;
+      h.frame.presentationDt = 0;
+      h.effects.update(h.frame);
+      h.frame.presentationDt = 0.15;
+      h.effects.update(h.frame);
+      assert.deepEqual(
+        fans.flatMap((object, index) =>
+          fanStrength(object) > 1e-5 ? [index] : [],
+        ),
+        [0, 1],
+        'a later win starts a fresh three-mouth rundown',
+      );
+    } finally {
+      h.dispose();
+    }
+  });
+}
 
 test('Bulwark effects dispose each owned resource once and never dispose the borrowed hull or texture', () => {
   const h = fixture(),

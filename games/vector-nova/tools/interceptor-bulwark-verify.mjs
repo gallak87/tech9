@@ -133,8 +133,11 @@ await page.route('**/src/core/game.js*', async (route) => {
     },
     readBulwark() {
       const model = racerPresentation.getShip('bulwark')?.group;
-      const powered = [];
+      const powered = [], fans = [];
       model?.traverse(object => {
+        if (object.name === 'Bulwark / pressure rundown fan')
+          fans.push({visible: object.visible,
+            strength: object.material.uniforms?.strength?.value ?? object.material.opacity});
         for (const material of [object.material].flat())
           if (material?.name?.endsWith('_Ion') && !powered.some(entry => entry.name === material.name))
             powered.push({name: material.name, intensity: material.emissiveIntensity});
@@ -150,7 +153,7 @@ await page.route('**/src/core/game.js*', async (route) => {
           hardware: model?.getObjectByName('Bulwark / breakwater hardware')?.visible,
           signals: scene.getObjectByName('Bulwark / physical breaker signals')?.visible,
           rupture: model?.getObjectByName('Bulwark / ruptured emitter')?.visible,
-          powered},
+          powered, fans},
         audio: audio.inspectBulwarkQueue(), audioStatus: audio.getStatus(),
         combat: combat.snapshot(),
         contacts: structuredClone(window.__bulwarkContacts ?? []),
@@ -526,11 +529,26 @@ try {
   assert.equal(finished.career.state.points, beforeCareer.points + 5);
   assert.equal(finished.career.state.wins, beforeCareer.wins + 1);
   assert.ok(
-    current.audio.voices.some((voice) => voice.finish),
-    'a real finish voice is queued',
+    current.audio.voices.some(
+      (voice) => voice.finish && voice.id === 'bulwark-disable',
+    ),
+    'the actual Bulwark disable finish cue is queued',
   );
   assert.equal(current.cameraView?.enabled, true);
-  const tableau = await present(24);
+  const rundown = await present(5);
+  assert.equal(
+    rundown.boss.fans.length,
+    3,
+    'all three actual drive-pressure fans are mounted',
+  );
+  assert.ok(
+    rundown.boss.fans.every((fan) => fan.visible && fan.strength > 0),
+    'the staged drive-pressure rundown is live after the real takedown',
+  );
+  const tableau = await present(19);
+  assert.ok(
+    tableau.boss.fans.every((fan) => !fan.visible && fan.strength === 0),
+  );
   assert.equal(tableau.boss.visible, true);
   assert.equal(tableau.boss.hardware, true);
   assert.equal(tableau.boss.propulsion, false);
@@ -578,6 +596,11 @@ try {
   const reset = await present(1);
   assert.equal(reset.cameraView?.enabled ?? false, false);
   assert.equal(reset.boss.rupture, false);
+  assert.equal(reset.boss.fans.length, 3);
+  assert.ok(
+    reset.boss.fans.every((fan) => !fan.visible && fan.strength === 0),
+    'native retry clears every pressure rundown fan',
+  );
   assert.ok(
     !reset.audio.voices.some(
       (voice) => voice.finish || voice.id.startsWith('bulwark-'),

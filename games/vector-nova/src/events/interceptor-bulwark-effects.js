@@ -196,6 +196,34 @@ export function createBulwarkEffects({ scene, boss, track, combat, racers }) {
     ];
     points.forEach((p, i) => p.toArray(out, i * 3));
   };
+  const fanGeometry = geo(new T.PlaneGeometry(2.2, 2.2));
+  const rundown = [
+    ['L', -4.2, 1.1],
+    ['C', 0, 1],
+    ['R', 4.2, 1.1],
+  ].map(([name, x, y], index) => {
+    const anchor = boss.getObjectByName(`Exhaust_${name}`);
+    const origin = anchor?.position.clone() ?? new T.Vector3(x, y, -10);
+    const material = new T.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      side: T.DoubleSide,
+      toneMapped: false,
+      uniforms: { strength: { value: 0 }, flow: { value: 0 } },
+      vertexShader:
+        'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      fragmentShader: `varying vec2 vUv;uniform float strength,flow;void main(){
+        vec2 p=vUv*2.-1.;p.x+=sin(p.y*6.-flow*5.)*.09;
+        float haze=(1.-smoothstep(.12,1.,length(p*vec2(.8,1.15))));
+        gl_FragColor=vec4(mix(vec3(.28,.33,.28),vec3(.75,.8,.65),vUv.y),haze*haze*strength);}`,
+    });
+    materials.add(material);
+    const lowMaterial = light(0xaeb7a0, 0);
+    const object = mesh(mount, fanGeometry, material, origin.toArray());
+    object.name = 'Bulwark / pressure rundown fan';
+    return { origin, index, object, material, lowMaterial };
+  });
+  const defeatLight = new Map();
   let disposed = false,
     wasWon = false,
     defeatAge = 0;
@@ -208,6 +236,11 @@ export function createBulwarkEffects({ scene, boss, track, combat, racers }) {
       !!data && ['racing', 'paused', 'countdown'].includes(frame.mode);
     const tableau = !!data?.result && frame.mode === 'results',
       won = tableau && data.result.won && data.health === 0;
+    if (won && !wasWon)
+      shoulders.forEach(({ signal }) =>
+        defeatLight.set(signal, signal.opacity),
+      );
+    if (!won) defeatLight.clear();
     defeatAge = won
       ? wasWon
         ? defeatAge + Math.max(0, frame.presentationDt ?? 0)
@@ -225,10 +258,10 @@ export function createBulwarkEffects({ scene, boss, track, combat, racers }) {
     shoulders.forEach(({ side, signal, energy, vanes, vent, ventMaterial }) => {
       const selected = water?.side === side && attack.phase !== 'idle';
       const energized = live && selected && water?.active && !broken;
-      signal.color.setHex(energized ? 0x89ffb5 : 0x6c6444);
+      if (!won) signal.color.setHex(energized ? 0x89ffb5 : 0x6c6444);
       signal.opacity = tableau
         ? won
-          ? Math.max(0, 1 - defeatAge / 0.5) * 0.25
+          ? Math.max(0, 1 - defeatAge / 0.5) * (defeatLight.get(signal) ?? 0)
           : 0
         : selected && broken
           ? 0
@@ -269,6 +302,27 @@ export function createBulwarkEffects({ scene, boss, track, combat, racers }) {
         o.rotation.z = a + settle * 0.3;
         o.material = energized ? signal : dark;
       });
+    });
+    rundown.forEach(({ origin, index, object, material, lowMaterial }) => {
+      const age = defeatAge - index * 0.12;
+      object.visible = !!(won && age >= 0 && age < 0.5);
+      const strength = object.visible
+        ? Math.sin((age / 0.5) * Math.PI) * (reduced ? 0.12 : 0.4)
+        : 0;
+      material.uniforms.strength.value = strength;
+      material.uniforms.flow.value = reduced ? 0 : age;
+      lowMaterial.opacity = strength * 0.22;
+      object.material = low ? lowMaterial : material;
+      object.position
+        .copy(origin)
+        .add(
+          new T.Vector3(
+            0,
+            reduced ? -0.2 : -0.2 - age * 0.8,
+            -0.15 - (reduced ? 0 : age * 3),
+          ),
+        );
+      object.scale.set(1 + age * 0.4, reduced ? 0.45 : 0.35 + age, 1);
     });
     muzzleLight.opacity =
       live && ['telegraph', 'turning-back', 'firing'].includes(attack.phase)
@@ -371,6 +425,7 @@ export function createBulwarkEffects({ scene, boss, track, combat, racers }) {
       mount.visible = world.visible = false;
       wasWon = false;
       defeatAge = 0;
+      defeatLight.clear();
     },
     dispose() {
       if (disposed) return;

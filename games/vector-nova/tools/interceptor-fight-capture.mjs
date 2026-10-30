@@ -77,10 +77,11 @@ await page.route('**/src/core/game.js*', async (route) => {
       const model=racerPresentation.getShip(missionBoss.id)?.group;
       const propulsion=model?.getObjectByName('Rival / propulsion');
       const powered=[];model?.traverse(o=>{for(const m of [o.material].flat())if(m?.name?.endsWith('_Ion')&&!powered.some(p=>p.name===m.name))powered.push({name:m.name,intensity:m.emissiveIntensity});});
+      const rundown=[];model?.traverse(o=>{if(o.name==='Bulwark / pressure rundown fan')rundown.push({visible:o.visible,position:o.position.toArray(),strength:o.material.uniforms?.strength?.value??o.material.opacity});});
       return {snapshot:this.getSnapshot(), contacts:structuredClone(window.__fightHits ?? []),
         combat:combat.view(), metrics:this.getMetrics(), camera:camera.position.toArray(),
         playerPosition:runtime.pose(1).position.toArray(),
-        presentation:{powered,plumes:propulsion?.children.map(p=>({scale:p.scale.toArray(),strength:p.material.uniforms?.strength?.value,opacity:p.material.opacity})),white:model?.getObjectByName('Boss / white armor hit')?.visible},
+        presentation:{powered,rundown,plumes:propulsion?.children.map(p=>({visible:p.visible&&propulsion.visible,scale:p.scale.toArray(),strength:p.material.uniforms?.strength?.value,opacity:p.material.opacity})),white:model?.getObjectByName('Boss / white armor hit')?.visible},
         opponents:racers.opponents.map(r=>({id:r.specification.id,state:{...r.state},pose:{position:r.runtime.pose(1).position.toArray()}}))};
     },
     settleFight(frames = 1) {
@@ -431,7 +432,8 @@ try {
         for (const [label, steps] of [
           ['disabled-0', 0],
           ['disabled-150', 3],
-          ['disabled-600', 9],
+          ['disabled-350', 4],
+          ['disabled-600', 5],
           ['disabled-1200', 12],
           ['disabled-2000', 16],
         ]) {
@@ -447,6 +449,7 @@ try {
             time: settled.snapshot.interceptor.elapsed,
             health: settled.snapshot.interceptor.health,
             mode: settled.snapshot.mode,
+            presentation: settled.presentation,
           });
           console.log(JSON.stringify(frames.at(-1)));
         }

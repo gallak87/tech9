@@ -37,10 +37,18 @@ export async function assertLevelContract(
     identity,
   } = production.racing;
   const devices = createDeviceLayout(track, createDevices(track));
-  for (const kind of ['vector', 'aegis'])
+  const pursuit = production.event?.type === 'interceptor';
+  for (const kind of pursuit
+    ? ['aegis', 'arc', 'repulsor']
+    : ['vector', 'aegis'])
     assert.ok(
       devices.some((device) => device.type === kind),
       `missing ${kind} layout`,
+    );
+  if (pursuit)
+    assert.ok(
+      !devices.some((device) => device.type === 'vector'),
+      'interceptor layouts must not include vector strips',
     );
   const runtime = createDeviceRuntime({
     track,

@@ -20,18 +20,25 @@ for (const folder of await readdir(directory, { withFileTypes: true })) {
   if (!folder.isDirectory()) continue;
   const files = await readdir(new URL(`${folder.name}/`, directory));
   if (!files.includes('metadata.js')) continue;
+  const metadata = (await import(`../src/levels/${folder.name}/metadata.js`))
+    .default;
+  // Freestyle has its own Vector-only transfer contract and browser overlay.
+  if (metadata.freestyle) continue;
   const definition = (
     await import(`../src/levels/${folder.name}/index.js`)
   ).default({});
   const track = definition.createTrack();
   const devices = definition.racing.createDevices(track);
   const attacks = devices.filter((device) => isCombatDevice(device.type));
+  const pursuit = definition.event?.type === 'interceptor';
 
-  test(`${folder.name}: complete pickup set leaves safe, optional combat lanes`, () => {
+  test(`${folder.name}: ${pursuit ? 'pursuit shields and attacks stay on the supported road' : 'complete pickup set leaves safe, optional combat lanes'}`, () => {
     createDeviceLayout(track, devices);
     assert.deepEqual(
       [...new Set(devices.map((device) => device.type))].sort(),
-      ['aegis', 'arc', 'ion', 'repulsor', 'vector'],
+      pursuit
+        ? ['aegis', 'arc', 'repulsor']
+        : ['aegis', 'arc', 'ion', 'repulsor', 'vector'],
     );
     for (let i = 0; i < devices.length; i++) {
       const device = devices[i];
@@ -40,7 +47,7 @@ for (const folder of await readdir(directory, { withFileTypes: true })) {
           (track.finishDistance ?? track.length),
         `${device.id}: hardware must precede the finish/runout`,
       );
-      if (i)
+      if (i && metadata.id !== 'interceptor')
         assert.ok(
           devices[i - 1].distance <= device.distance,
           'AI reads pickups in route order',
@@ -57,12 +64,14 @@ for (const folder of await readdir(directory, { withFileTypes: true })) {
     }
     for (let i = 0; i < attacks.length; i++) {
       const device = attacks[i];
+      if (!pursuit)
+        assert.ok(
+          Math.abs(device.lateral) > device.width / 2 + VEHICLE_HULL.halfWidth,
+          `${device.id}: a centred ship must be able to decline the weapon`,
+        );
       assert.ok(
-        Math.abs(device.lateral) > device.width / 2 + VEHICLE_HULL.halfWidth,
-        `${device.id}: a centred ship must be able to decline the weapon`,
-      );
-      assert.ok(
-        Math.abs(device.lateral) + device.width / 2 <= track.width / 2 - 3,
+        Math.abs(device.lateral) + device.width / 2 <=
+          track.width / 2 - (pursuit ? 1 : 3),
         `${device.id}: leave room beside the rail`,
       );
       for (const distance of [
@@ -87,12 +96,13 @@ for (const folder of await readdir(directory, { withFileTypes: true })) {
         const end = device.distance + device.length / 2;
         if (end < jump.takeoff)
           assert.ok(
-            jump.takeoff - end >= (device.type === 'ion' ? 800 : 350),
+            jump.takeoff - end >=
+              (pursuit ? 60 : device.type === 'ion' ? 800 : 350),
             `${device.id}: attack too close to ${jump.id} takeoff`,
           );
         if (start > jump.recovery)
           assert.ok(
-            start - jump.recovery >= 150,
+            start - jump.recovery >= (pursuit ? 30 : 150),
             `${device.id}: allow landing recovery after ${jump.id}`,
           );
       }

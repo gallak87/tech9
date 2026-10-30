@@ -7,6 +7,10 @@ node_modules/
 package-lock.json
 docs/licenses/
 public/assets/ships/decoder/
+# Reproducible Python exports; collision data is intentionally compact.
+assets/levels/shatterline/asset-manifest.json
+assets/levels/shatterline/collision-kit.json
+public/assets/levels/shatterline/collision-kit.json
 
 .desktop/
 release/

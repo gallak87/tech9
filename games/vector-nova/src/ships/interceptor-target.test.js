@@ -209,23 +209,22 @@ test('Goliath Low exhaust leaves its chambers readable and responds to driving/b
   }
 });
 
-test('Crucible Dispatch is a pursuit identity on the unchanged Foundry course, with support and offensive weapon gates', () => {
+test('Crucible Dispatch owns a separate pursuit route with support and offensive weapon gates', () => {
   const original = createCrucibleTrack(),
     pursuit = createInterceptorTrack();
   assert.notEqual(original.id, pursuit.id);
-  assert.equal(pursuit.geometryVersion, original.geometryVersion);
-  assert.equal(pursuit.length, original.length);
-  for (let i = 0; i < 30; i++)
-    assert.ok(
-      original
-        .sample((original.length * i) / 30)
-        .position.equals(pursuit.sample((pursuit.length * i) / 30).position),
-    );
+  assert.notEqual(pursuit.geometryVersion, original.geometryVersion);
+  assert.notEqual(pursuit.length, original.length);
+  assert.equal(pursuit.width, original.width);
+  assert.deepEqual(
+    pursuit.routeMoments.map((moment) => moment.type),
+    ['drop', 'bank-reversal'],
+  );
   const devices = createInterceptorDevices(pursuit);
   assert.ok(devices.length > 4);
   assert.ok(
     devices.every((device) =>
-      ['vector', 'aegis', 'arc', 'repulsor'].includes(device.type),
+      ['aegis', 'arc', 'repulsor'].includes(device.type),
     ),
   );
 });

@@ -152,16 +152,36 @@ Interceptor adapts Crucible's course with a raised exchanger crown, a long suppo
 
 Hold **Q / controller X** for an issued Lance shot every **0.8 seconds**; **E / Y** injects reserve. Sixteen offensive gates, spaced roughly 250 metres apart, add automatic Arc bursts and close-range Repulsor pulses. Pursuit courses have no Vector boost strips; manual boost and the Reserve Injector remain available. The mission hull remains stock and weapons are loaned; the garage always displays the complete owned career build. Normal equipment cooldowns and permanent unlocks remain separate. Allies fire real Lance projectiles on staggered cooldowns; Goliath leaves Ion countermeasure wakes. Friendly fire is disabled, and hull damage requires actual unblocked contacts.
 
-Goliath has **450 / 700 / 950 hull** on Easy / Medium / Hard. At **15% of each lap**, a charge warning precedes a physical turn to face the pursuers. It keeps traveling along the road while facing backward, fires one blast on Easy or two on Medium/Hard, then turns forward. Its collider, rendered hull and weapon direction share the same orientation; dodging its line avoids the volley. The mission ends when its hull reaches zero or it physically completes two circuits. Pause/retry, contribution results, deterministic replay and five/one progress for valid success/failure use the existing shared flows. No new cups or reward requirements are added.
+Goliath has **450 / 700 / 950 hull** on Easy / Medium / Hard. At **15%, 43% and 88% of each lap**, it locks firing lanes, physically turns toward the pursuers and fires one pressure shot on Easy or two on Medium/Hard. Avoiding that volley opens its rear pressure vent for stronger real weapon hits. Its collider, rendered hull and weapon direction share the same orientation. The mission ends when its hull reaches zero or it physically completes two circuits. Pause/retry, contribution results, deterministic replay and five/one progress for valid success/failure use the existing shared flows. No new cups or reward requirements are added.
 
 ### Interceptor encounter selection
 
 Interceptor offers three independent boss encounters through the normal course picker. Course cards have boss names and no course challenge tiers; Easy / Medium / Hard controls the shared 450 / 700 / 950 hull profiles for every boss. Existing race courses and cups keep their own routes and lineups.
 
-| Encounter          | Boss    | Signature attack                                                   |
-| ------------------ | ------- | ------------------------------------------------------------------ |
-| Crucible Dispatch  | Goliath | Turns backward for heavy Lance shots at 15% of each lap.           |
-| Helion Breach      | Wraith  | Turns for successive rear-facing Arc bursts at 20% of each lap.    |
-| Nightweir Lockdown | Bulwark | Turns for a slower heavy rear salvo at 15%; also leaves Ion wakes. |
+| Encounter          | Boss    | Driving interaction                                                                                                      |
+| ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Crucible Dispatch  | Goliath | Dodge its locked pressure volley, then hit the open rear vent. Three attacks per lap.                                    |
+| Helion Breach      | Wraith  | Release and freshly ignite boost after lock to split the ion shots, then hit its exposed capacitor. Two attacks per lap. |
+| Nightweir Lockdown | Bulwark | Shoot the alternating lit shoulder from outside its central wake to stop future deposits, then dodge its pressure slabs. |
 
 The missions reuse the newer biome families: Colossus machinery for Crucible, Helion's thermal observatory and active fiery floors for Breach, and Nightweir's wet municipal/hydroelectric kit for a new closed basin circuit. Lockdown's elevated generating reach rolls through a complete corkscrew before plunging toward the tailrace; the city and water stay grounded beneath it. Breach retains Helion's substantial elevation changes, 103-degree wall ride and optional vaults. Smooth mission-local banking replaces abrupt road-edge kicks on Dispatch and Lockdown. Original race courses and the Nightweir sprint remain independent. Goliath, Wraith and Bulwark use separate concept-guided, source-authored models and distinct palettes. Retired Orbital/Halcyon mission links redirect to the new encounters. The selected encounter is remembered when leaving and returning to the mode.
+
+## Main menu integration proposal
+
+Keep the existing **Race / Garage** shell and one shared setup screen. Group the directly selectable modes under quiet headings, without adding another navigation page:
+
+| Racing        | Missions    | Solo       |
+| ------------- | ----------- | ---------- |
+| Quick Race    | Interceptor | Time Trial |
+| Championships |             | Practice   |
+| Eliminator    |             |            |
+
+This grouping is a proposal, not the current layout. Future Escape and Assault fit Missions; scored Carve fits Solo. Keep future modes out of the visible menu until playable. Freestyle remains an experiment; the recommended production menu leaves it in developer access until its feel is approved. Preserve the moving background, cached world imagery, compact unlock notches above the trophy cabinet, existing icon language and restrained menu sounds.
+
+Selecting **Interceptor** should restore the last encounter and show three boss-first cards: **Goliath / Crucible Dispatch**, **Wraith / Helion Breach**, and **Bulwark / Nightweir Lockdown**. Use the boss as the choice label and the course as its setting; omit circuit difficulty bands. Retain the shared encounter difficulty and hull selectors, show **Stock ship · issued Lance + Injector**, and give one mechanic sentence from the table above. **Start pursuit** launches explicitly. Arrow/D-pad movement previews choices, Enter/A selects, and Escape/B returns focus to the encounter control. Continue using cached artwork; hover must never construct a world.
+
+Keep **Resume Interceptor · [encounter]** for a paused attempt. Results should offer **Retry pursuit** and **Choose encounter**, preserving encounter, hull and difficulty. Retry starts a new reward attempt; returning to setup must preserve the original suspended session. The current shared lifecycle already supports the underlying retention and once-only awards; per-mode encounter choices currently last for the page session. Durable mode-specific choices, the labels and grouped layout remain integration work.
+
+Career stays shared: a valid success earns **5 progress**, a valid failed pursuit **1**. Existing unlock notches continue counting actual collected rewards. Issued mission weapons do not become permanent equipment. Keep the original four cups and their reward requirements stable; missions and Eliminator launch independently. Consider boss completion marks or a separately curated mission tour after balance and reward decisions. Per-boss completion history and mastery rewards are not implemented.
+
+Suggested order: fix mode-grid keyboard/controller navigation and expose the stock-kit rule; choose the grouping and Freestyle visibility; build boss-first selection and clear return labels; verify retained sessions and focus; then deliberately add the approved new events to the packaged full-game allowlist and asset policy. The browser currently discovers these events, while the full desktop policy still lists only the ordinary courses. Keep the demo's two-course boundary. A release-policy change needs its own packaged-content validation when desktop builds resume.

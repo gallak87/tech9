@@ -526,7 +526,7 @@ export async function createFrontend(host) {
         : intent === 'eliminator'
           ? '<aside class="event-guide"><h3>Stay ahead of the cut.</h3><p>Last place is removed after <b>22 seconds</b>, then every <b>10 seconds</b>. Watch the at-risk racer and survive to the final ship. Your equipped build and the course’s weapons are active.</p><p>Every valid result earns normal race progress. Cups keep their original lineups.</p></aside>'
           : intent === 'interceptor'
-            ? `<aside class="event-guide"><h3>Stop ${escape(encounterBoss().name)} within 2 laps.</h3><p><b>Hold Q / X</b> Fire Lance · <b>E / Y</b> Refill reserve · <b>Shift / ${controllerLayout(settings).boost}</b> Boost</p></aside>`
+            ? `<aside class="event-guide"><h3>Stop ${escape(encounterBoss().name)} within 2 laps.</h3><p><b>Hold Q / X</b> Fire Lance · <b>E / Y</b> Refill reserve · <b>Shift / ${controllerLayout(settings).boost}</b> Boost</p><p>Stock ship · issued Lance + Injector</p></aside>`
             : '';
     return `<section class="circuit-picker-panel" aria-label="Choose a track"><div class="circuit-hero" aria-live="polite"></div>${guide}<div class="circuit-grid" role="group" aria-label="Tracks">${[
       ...groups,
@@ -1995,33 +1995,39 @@ export async function createFrontend(host) {
       }
       if (control.closest('.mode-picker')) {
         e.preventDefault();
-        if (
-          e.code === 'ArrowUp' &&
-          [...control.parentElement.children].indexOf(control) < 2
-        ) {
-          focusMenu('[data-action="race-tab"]');
-          return;
-        }
         const items = [
           ...control.closest('.mode-picker').querySelectorAll('button'),
-        ];
-        const columns = getComputedStyle(
-          control.closest('.mode-picker'),
-        ).gridTemplateColumns.split(' ').length;
-        if (
-          e.code === 'ArrowDown' &&
-          items.indexOf(control) + columns >= items.length
-        ) {
-          focusMenu('.menu-selection[data-action="circuits"]');
+        ].filter((item) => !item.disabled && item.getClientRects().length);
+        if (vertical) {
+          // Mode buttons span different numbers of CSS grid tracks. Follow
+          // their rendered rows instead of treating each track as a button.
+          const origin = control.getBoundingClientRect();
+          const direction = e.code === 'ArrowDown' ? 1 : -1;
+          const candidates = items
+            .map((item) => ({ item, rect: item.getBoundingClientRect() }))
+            .filter(({ rect }) => (rect.top - origin.top) * direction > 1);
+          const row = candidates.length
+            ? (direction > 0 ? Math.min : Math.max)(
+                ...candidates.map(({ rect }) => rect.top),
+              )
+            : null;
+          const center = origin.left + origin.width / 2;
+          const next = candidates
+            .filter(({ rect }) => Math.abs(rect.top - row) < 1)
+            .toSorted(
+              (a, b) =>
+                Math.abs(a.rect.left + a.rect.width / 2 - center) -
+                Math.abs(b.rect.left + b.rect.width / 2 - center),
+            )[0]?.item;
+          focusMenu(
+            next ??
+              (direction > 0
+                ? '.menu-selection[data-action="circuits"]'
+                : '[data-action="race-tab"]'),
+          );
           return;
         }
-        const step = vertical
-          ? e.code === 'ArrowDown'
-            ? columns
-            : -columns
-          : e.code === 'ArrowRight'
-            ? 1
-            : -1;
+        const step = e.code === 'ArrowRight' ? 1 : -1;
         const index =
           e.code === 'Home'
             ? 0

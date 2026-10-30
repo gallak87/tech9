@@ -59,6 +59,73 @@ const createLevel = () => ({
   createEnvironment: component,
   createBackdrop: component,
 });
+const createPursuitLevel = (kinds = ['aegis', 'arc', 'repulsor']) => ({
+  ...createLevel(),
+  event: { type: 'interceptor', targetId: 'goliath', escapeLaps: 2 },
+  racing: {
+    createDevices: () =>
+      kinds.map((type, index) => ({
+        id: `pursuit-${type}`,
+        type,
+        distance: 70 + index * 150,
+        lateral: 3,
+        width: 8,
+        length: 8,
+        label: type,
+      })),
+  },
+});
+
+test('an Interceptor module advances with shields and attacks instead of Vector strips', async () => {
+  const report = await assertLevelContract({
+    metadata,
+    createLevel: () => createPursuitLevel(),
+  });
+  assert.equal(report.racing.devices, 3);
+  assert.equal(report.production.samples, report.shape.samples);
+});
+
+test('ordinary race modules still require Vector strips', async () => {
+  await assert.rejects(
+    assertLevelContract({
+      metadata,
+      createLevel: () => ({
+        ...createLevel(),
+        racing: {
+          createDevices: () =>
+            createLevel()
+              .racing.createDevices()
+              .filter((device) => device.type !== 'vector'),
+        },
+      }),
+    }),
+    /missing vector layout/,
+  );
+});
+
+test('Interceptor modules require every shield and attack kind', async () => {
+  const kinds = ['aegis', 'arc', 'repulsor'];
+  for (const missing of kinds)
+    await assert.rejects(
+      assertLevelContract({
+        metadata,
+        createLevel: () =>
+          createPursuitLevel(kinds.filter((kind) => kind !== missing)),
+      }),
+      new RegExp(`missing ${missing} layout`),
+    );
+});
+
+test('Interceptor modules reject Vector strips even with their complete arming layout', async () => {
+  await assert.rejects(
+    assertLevelContract({
+      metadata,
+      createLevel: () =>
+        createPursuitLevel(['aegis', 'arc', 'repulsor', 'vector']),
+    }),
+    /interceptor layouts must not include vector strips/,
+  );
+});
 
 test('named playtest cases require distinct IDs and an available default case', () => {
   const entry = { id: 'approach', label: 'Approach', scenario: 'jump' };

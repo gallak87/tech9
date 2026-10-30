@@ -80,7 +80,10 @@ test('Shatterline floodlights illuminate the driving face through inversion with
       ) {
         poles.update({ state: { distance } });
         const active = lights.filter((light) => light.intensity > 500);
-        assert.ok(active.length >= 2, 'neighboring flood pools overlap');
+        // The approved transparent bores exclude poles; exposed decks retain
+        // the overlapping flood pools through their complete inversions.
+        if (!track.tubeAt(distance))
+          assert.ok(active.length >= 2, 'neighboring flood pools overlap');
         for (const light of active) {
           const fixture = poles.fixtures.find((item) =>
             item.position.equals(light.position),

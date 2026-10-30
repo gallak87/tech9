@@ -105,7 +105,7 @@ async function menuFits(page) {
   const layout = await page.evaluate(() => {
     const shell = document.querySelector('#front-shell');
     const visible = [
-      ...shell.querySelectorAll('button, .ship-metrics > div'),
+      ...shell.querySelectorAll('button, .performance-stat'),
     ].filter((el) => el.getBoundingClientRect().height > 0);
     return {
       vertical: shell.scrollHeight - shell.clientHeight,
@@ -161,9 +161,13 @@ async function finishInputs(difficulty, initial) {
         collisionWorld,
         dynamics,
         presentation: false,
+        equipment: specification.id === 'player',
       }),
     });
-  const vehicle = { ...createVehicleState(), ...RACE_GRID.player };
+  const vehicle = {
+    ...createVehicleState(initial.vehicle.shipId),
+    ...RACE_GRID.player,
+  };
   const runtime = createRuntime();
   const racers = createRacers({ track, devices, dynamics, createRuntime });
   const race = createRace(track, { rulesId: runtime.rulesId });
@@ -172,10 +176,18 @@ async function finishInputs(difficulty, initial) {
     // Production binds every chassis before its fresh-session world rebuild.
     // Replacing a default player box after that rebuild changes collider
     // allocation order and therefore crowded-field contact resolution.
-    runtime.reset({ reason: 'initialize', state: vehicle });
+    runtime.reset({
+      reason: 'initialize',
+      state: vehicle,
+      seed: initial.runtime.seed,
+    });
     dynamics.reset();
     racers.reset({ enabled: true, difficulty });
-    runtime.reset({ reason: 'fresh-lap', state: vehicle });
+    runtime.reset({
+      reason: 'fresh-lap',
+      state: vehicle,
+      seed: initial.runtime.seed,
+    });
     const actualInitial = captureInitial(vehicle, runtime, dynamics);
     const differences = [];
     const compareInitial = (actual, expected, path = 'initial') => {
@@ -343,23 +355,85 @@ try {
     await check(
       'explicit modes, records and setup without loading worlds',
       async (page) => {
+        await page.addInitScript(() => {
+          window.__modeTestPad = {
+            id: 'Synthetic standard controller',
+            index: 0,
+            connected: true,
+            mapping: 'standard',
+            axes: [0, 0],
+            buttons: Array.from({ length: 17 }, () => ({
+              pressed: false,
+              value: 0,
+            })),
+          };
+          Object.defineProperty(navigator, 'getGamepads', {
+            configurable: true,
+            value: () => [window.__modeTestPad],
+          });
+        });
         await page.goto(url('level=halcyon&music=0'));
+        const focusedAction = () =>
+          page.evaluate(() => document.activeElement.dataset.action);
+        const key = async (code, expected) => {
+          await page.keyboard.press(code);
+          assert.equal(await focusedAction(), expected, `${code} focus`);
+        };
+        const tap = async (index, expected) => {
+          for (const pressed of [true, false]) {
+            await page.evaluate(
+              ({ index, pressed }) => {
+                window.__modeTestPad.buttons[index] = {
+                  pressed,
+                  value: Number(pressed),
+                };
+              },
+              { index, pressed },
+            );
+            await page.evaluate(
+              () =>
+                new Promise((resolve) =>
+                  requestAnimationFrame(() => requestAnimationFrame(resolve)),
+                ),
+            );
+          }
+          if (expected)
+            assert.equal(await focusedAction(), expected, `Pad ${index} focus`);
+        };
         await page.locator('[data-action="quick-race"]').focus();
-        await page.keyboard.press('ArrowDown');
-        assert.equal(
-          await page.evaluate(() => document.activeElement.dataset.action),
-          'time-trial',
+        await key('ArrowDown', 'time-trial');
+        await key('ArrowDown', 'freestyle');
+        await key('ArrowRight', 'eliminator');
+        await key('ArrowRight', 'interceptor');
+        await key('ArrowUp', 'practice');
+        await key('ArrowUp', 'cup-hub');
+        await key('ArrowUp', 'race-tab');
+        await key('ArrowDown', 'quick-race');
+        await key('End', 'interceptor');
+        await key('ArrowDown', 'circuits');
+
+        await page.locator('[data-action="quick-race"]').focus();
+        await tap(13, 'time-trial');
+        await tap(13, 'freestyle');
+        await tap(15, 'eliminator');
+        await tap(15, 'interceptor');
+        await tap(0, 'interceptor');
+        assert.equal((await front(page)).intent, 'interceptor');
+        assert.equal(await page.locator('.circuit-card').count(), 3);
+        assert.match(
+          await page.locator('.event-guide').textContent(),
+          /Stock ship · issued Lance \+ Injector/,
         );
-        await page.keyboard.press('ArrowDown');
-        assert.equal(
-          await page.evaluate(() => document.activeElement.dataset.action),
-          'freestyle',
-        );
-        await page.keyboard.press('ArrowDown');
-        assert.equal(
-          await page.evaluate(() => document.activeElement.dataset.action),
-          'circuits',
-        );
+        await tap(13, 'circuits');
+        await tap(0);
+        assert.equal((await front(page)).screen, 'circuits');
+        await tap(1, 'circuits');
+        assert.equal((await front(page)).screen, 'home');
+        await tap(12, 'interceptor');
+        await tap(12, 'practice');
+        await tap(12, 'cup-hub');
+        await tap(12, 'race-tab');
+
         await page.locator('[data-action="time-trial"]').click();
         assert.equal((await front(page)).intent, 'time-trial');
         assert.equal(await page.locator('[data-difficulty]').count(), 0);
@@ -410,12 +484,9 @@ try {
         assert.equal((await front(page)).intent, 'cup');
         assert.equal(await page.locator('[data-cup]').count(), 4);
         await page.locator('[data-action="cup-hub"]').focus();
-        await page.keyboard.press('ArrowDown');
-        await page.keyboard.press('ArrowDown');
-        assert.equal(
-          await page.evaluate(() => document.activeElement.dataset.action),
-          'circuits',
-        );
+        await key('ArrowDown', 'practice');
+        await key('ArrowDown', 'interceptor');
+        await key('ArrowDown', 'circuits');
         await page.keyboard.press('ArrowRight');
         assert.equal(
           await page.evaluate(() => document.activeElement.dataset.cup),
@@ -460,6 +531,9 @@ try {
             'cup-hub',
             'time-trial',
             'practice',
+            'freestyle',
+            'eliminator',
+            'interceptor',
             'quick-race',
             'cup-hub',
           ]) {
@@ -470,7 +544,7 @@ try {
               `${action} moved the shared menu`,
             );
             await menuFits(page);
-            const origin = (await front(page)).screen;
+            const { screen: origin, intent: originMode } = await front(page);
             await page.locator('[data-action="records"]').click();
             assert.deepEqual(
               await anchors(),
@@ -488,6 +562,7 @@ try {
             assert.equal((await front(page)).screen, 'records');
             await page.locator('[data-action="records-back"]').click();
             assert.equal((await front(page)).screen, origin);
+            assert.equal((await front(page)).intent, originMode);
             assert.deepEqual(
               await anchors(),
               original,
@@ -559,11 +634,11 @@ try {
         assert.equal((await front(page)).selected, 'orbital');
         await press('End', '[data-level="colossus"]');
         await press('Home', '[data-level="halcyon"]');
-        await press('ArrowUp', '.picker-tabs [data-action="circuits"]');
-        await press('ArrowRight', '.picker-tabs [data-action="ship-step"]');
-        await press('ArrowDown', 'button[data-ship="kestrel"]');
-        await press('ArrowRight', 'button[data-ship="shrike"]');
-        assert.equal((await front(page)).shipId, 'kestrel');
+        await press('Escape', '.menu-selection[data-action="circuits"]');
+        await press('ArrowDown', '.menu-selection[data-action="ship-step"]');
+        await press('Enter', 'button[data-ship="shrike"]');
+        assert.equal(await page.locator('.garage-fleet button').count(), 1);
+        assert.equal(await page.locator('.performance-stat').count(), 6);
         await press('Space', 'button[data-ship="shrike"]');
         assert.equal((await front(page)).shipId, 'shrike');
         await page.waitForFunction(
@@ -588,10 +663,7 @@ try {
           ))
           assert.equal(align, 'center');
         await press('ArrowDown', '[data-action="records"]');
-        await press('ArrowDown', '[data-action="inspect"]');
-        await press('Enter');
-        await inspectorReady(page);
-        await press('Escape', '[data-action="inspect"]');
+        assert.equal(await page.locator('[data-action="inspect"]').count(), 0);
         await press('ArrowDown', '[data-action="settings"]');
         await press('Enter', '[data-action="settings-back"]');
         await press('Tab', '[data-setting="quality"]');
@@ -654,9 +726,11 @@ try {
       },
     );
     await check(
-      'setup, hover/keyboard selection, settings and fleet cache',
+      'earned fleet previews, committed Garage selection, settings and fleet cache',
       async (page) => {
-        await page.goto(url('level=halcyon'));
+        // The earned-fleet sandbox supplies owned hulls for preview/selection.
+        // Fresh-career navigation and launch cases retain only starter Shrike.
+        await page.goto(url('level=halcyon&dev=2&ship=kestrel'));
         await fleetReady(page);
         assert.match(
           await page.locator('[data-action="launch"]').textContent(),
@@ -676,7 +750,11 @@ try {
           window.retainedPlayer = document.querySelector('[data-music-player]');
         });
         const routes = await page.evaluate(() => window.__VN_FRONTEND.routes);
-        const circuits = routes.filter((route) => !route.freestyle);
+        const raceIds = await page
+          .locator('.circuit-card')
+          .evaluateAll((cards) => cards.map((card) => card.dataset.level));
+        assert.equal(raceIds.length, 15, 'ordinary racing course catalogue');
+        const circuits = routes.filter((route) => raceIds.includes(route.id));
         assert.equal(
           await page.locator('.circuit-card').count(),
           circuits.length,
@@ -725,8 +803,8 @@ try {
             .textContent(),
           /Vesper Canopy/,
         );
-        await page.locator('.picker-tabs [data-action="ship-step"]').click();
-        assert.equal(await page.locator('.ship-metrics > div').count(), 5);
+        await page.locator('.menu-selection[data-action="ship-step"]').click();
+        assert.equal(await page.locator('.performance-stat').count(), 6);
         assert.equal(
           await page.evaluate(() => !!window.__VN),
           false,
@@ -740,6 +818,7 @@ try {
         await page.locator('button[data-ship="bastion"]').focus();
         await page.keyboard.press('Enter');
         assert.equal((await front(page)).shipId, 'bastion');
+        await page.keyboard.press('Escape');
         await page.locator('[data-difficulty="hard"]').click();
         assert.equal(
           await page
@@ -747,7 +826,8 @@ try {
             .textContent(),
           'hard',
         );
-        await page.locator('[data-action="settings"]').click();
+        await page.locator('[data-action="garage-tab"]').click();
+        await page.keyboard.press('s');
         assert.equal(await page.locator('.front-heading').count(), 0);
         const headerGroup = await page
           .locator('.front-header')
@@ -776,7 +856,7 @@ try {
         assert.ok(backBounds.y >= 0 && backBounds.y + backBounds.height <= 78);
         await back.click();
         assert.equal((await front(page)).screen, 'setup');
-        await page.locator('[data-action="settings"]').click();
+        await page.keyboard.press('s');
         await page.keyboard.press('Escape');
         assert.equal((await front(page)).screen, 'setup');
         assert.equal((await front(page)).shipId, 'bastion');
@@ -789,7 +869,8 @@ try {
           ),
           true,
         );
-        await page.locator('.picker-tabs [data-action="circuits"]').click();
+        await page.locator('[data-action="race-tab"]').click();
+        await page.locator('.menu-selection[data-action="circuits"]').click();
         assert.equal(await page.locator('.circuit-card').count(), 15);
         assert.equal(
           await page.locator('.circuit-card [data-type="sprint"]').count(),
@@ -797,7 +878,7 @@ try {
         );
         assert.equal(
           await page.locator('.circuit-card [data-type="circuit"]').count(),
-          10,
+          12,
         );
         assert.equal(await page.locator('.track-group').count(), 3);
         assert.equal(await page.locator('.card-challenge').count(), 0);
@@ -863,18 +944,19 @@ try {
             await page
               .locator('.menu-wordmark')
               .evaluate((el) => getComputedStyle(el).fontSize),
-            '32px',
+            '26px',
           );
           await menuFits(page);
           await page.locator('[data-level="worldspire"]').click();
           assert.equal((await front(page)).screen, 'home');
-          await page.locator('.picker-tabs [data-action="ship-step"]').click();
+          await page.locator('[data-action="garage-tab"]').click();
           await page.waitForFunction(
             () =>
-              window.__VN_FRONTEND.getState().preview?.selected === 'kestrel',
+              window.__VN_FRONTEND.getState().preview?.selected === 'shrike',
           );
-          assert.equal(await page.locator('.ship-metrics > div').count(), 5);
+          assert.equal(await page.locator('.performance-stat').count(), 6);
           await menuFits(page);
+          await page.locator('[data-action="race-tab"]').click();
           await page.locator('[data-difficulty="hard"]').click();
           assert.match(
             await page
@@ -892,8 +974,11 @@ try {
       async (page) => {
         await page.goto(url('level=halcyon'));
         await fleetReady(page);
-        await page.locator('.picker-tabs [data-action="ship-step"]').click();
-        await page.locator('[data-ship="needle"]').click();
+        await page.locator('.menu-selection[data-action="ship-step"]').click();
+        assert.equal(await page.locator('.garage-fleet button').count(), 1);
+        assert.equal(await page.locator('[data-ship="needle"]').count(), 0);
+        await page.locator('[data-ship="shrike"]').click();
+        await page.keyboard.press('Escape');
         await page.evaluate(() => {
           window.retainedAudio = document.querySelector('audio');
           window.retainedPlayer = document.querySelector('[data-music-player]');
@@ -906,7 +991,7 @@ try {
           { timeout: 20000 },
         );
         assert.equal(await page.locator('#front-shell').isVisible(), false);
-        assert.equal((await snapshot(page)).ship.id, 'needle');
+        assert.equal((await snapshot(page)).ship.id, 'shrike');
         assert.equal(
           (await snapshot(page)).competition.standings.length,
           RACE_FIELD_SIZE,
@@ -996,7 +1081,7 @@ try {
           () => window.__VN_FRONTEND.getState().screen === 'race',
         );
         assert.equal((await front(page)).intent, 'practice');
-        assert.equal((await snapshot(page)).ship.id, 'needle');
+        assert.equal((await snapshot(page)).ship.id, 'shrike');
         assert.equal(
           await page.evaluate(
             () =>
@@ -1348,7 +1433,7 @@ try {
         );
         await page.keyboard.press('Escape');
         await page.locator('#home').click();
-        await page.goto(url('inspect=1&ship=kestrel&level=halcyon&dev=1'));
+        await page.goto(url('inspect=1&ship=shrike&level=halcyon&dev=1'));
         await booted(page);
         await page.getByRole('tab', { name: 'AI racers' }).click();
         assert.equal(
@@ -1374,13 +1459,13 @@ try {
         const back = await page.locator('#inspect-back').boundingBox();
         assert.ok(picker.y + picker.height < back.y);
         assert.ok(back.y + back.height <= 720);
-        assert.equal((await snapshot(page)).ship.id, 'kestrel');
+        assert.equal((await snapshot(page)).ship.id, 'shrike');
       },
       { width: 1280, height: 720 },
     );
     await check('AI inspector tab requires dev=1 or dev=2', async (page) => {
       for (const query of ['', '&dev=0', '&dev=true', '&dev=1', '&dev=2']) {
-        await page.goto(url(`inspect=1&ship=kestrel${query}`));
+        await page.goto(url(`inspect=1&ship=shrike${query}`));
         await inspectorReady(page);
         const enabled = ['&dev=1', '&dev=2'].includes(query);
         assert.equal(
@@ -1407,7 +1492,7 @@ try {
         await page.goto(url('level=halcyon'));
         for (const selector of [
           '.menu-selection[data-action="ship-step"]',
-          '.picker-tabs [data-action="ship-step"]',
+          '[data-action="garage-tab"]',
         ]) {
           await page.locator('[data-level="vesper"]').click();
           await page.locator(selector).click();
@@ -1417,7 +1502,15 @@ try {
             () => window.__VN_FRONTEND.getState().preview?.selected,
           );
           assert.equal(await page.evaluate(() => !!window.__VN), false);
-          await page.locator('.picker-tabs [data-action="circuits"]').click();
+          await page.keyboard.press('Escape');
+          assert.equal((await front(page)).screen, 'home');
+          assert.equal(
+            await page
+              .locator(selector)
+              .evaluate((el) => el === document.activeElement),
+            true,
+            'Garage returns focus to its opener',
+          );
         }
         await page.locator('[data-level="halcyon"]').click();
         await page.locator('[data-action="practice"]').click();
@@ -1432,7 +1525,7 @@ try {
         const paused = await snapshot(page);
         for (const selector of [
           '.menu-selection[data-action="ship-step"]',
-          '.picker-tabs [data-action="ship-step"]',
+          '[data-action="garage-tab"]',
         ]) {
           await page.locator('[data-level="worldspire"]').click();
           await page.locator(selector).focus();
@@ -1446,7 +1539,15 @@ try {
           assert.equal(after.mode, 'paused');
           assert.equal(after.tick, paused.tick);
           assert.deepEqual(after.vehicle, paused.vehicle);
-          await page.locator('.picker-tabs [data-action="circuits"]').click();
+          await page.keyboard.press('Escape');
+          assert.equal((await front(page)).screen, 'home');
+          assert.equal(
+            await page
+              .locator(selector)
+              .evaluate((el) => el === document.activeElement),
+            true,
+            'Garage restores the retained-session opener',
+          );
         }
       },
     );
@@ -1542,7 +1643,7 @@ try {
     await check(
       'menu inspector preserves selections, music and a paused session',
       async (page) => {
-        await page.goto(url('level=vesper'));
+        await page.goto(url('level=vesper&dev=2'));
         await page.locator('[data-level="halcyon"]').click();
         await page.evaluate(() => {
           window.retainedPlayer = document.querySelector('[data-music-player]');
@@ -1633,10 +1734,10 @@ try {
     await check(
       'standalone inspector retries failed ship loading',
       async (page) => {
-        await page.route('**/assets/ships/needle/needle.glb', (route) =>
+        await page.route('**/assets/ships/shrike/shrike.glb', (route) =>
           route.abort(),
         );
-        await page.goto(url('inspect=1&ship=needle'));
+        await page.goto(url('inspect=1&ship=shrike'));
         await page.locator('.transfer-status.failed').waitFor();
         assert.equal(await page.evaluate(() => !!window.__VN), false);
         assert.equal(await page.locator('canvas#world').count(), 0);
@@ -1648,7 +1749,7 @@ try {
         await page.unrouteAll({ behavior: 'wait' });
         await page.locator('[data-action="retry"]').click();
         await inspectorReady(page);
-        assert.equal((await snapshot(page)).ship.id, 'needle');
+        assert.equal((await snapshot(page)).ship.id, 'shrike');
         await page.locator('#inspect-back').click();
         assert.equal((await front(page)).screen, 'home');
         assert.equal(await page.locator('canvas#world').count(), 0);
@@ -1822,41 +1923,51 @@ try {
         },
       );
       try {
-        for (const [view, action, escape] of [
-          ['home', 'launch', false],
-          ['setup', 'launch', true],
-          ['circuits', 'launch', false],
-          ['setup', 'practice', false],
-          ['circuits', 'practice', true],
-          ['circuits', 'inspect', false],
-          ['setup', 'inspect', true],
-        ]) {
-          if (action === 'practice')
-            await page.locator('[data-action="practice"]').click();
-          if (view !== 'home')
-            await page
-              .locator(
-                `.picker-tabs [data-action="${view === 'setup' ? 'ship-step' : 'circuits'}"]`,
-              )
-              .click();
-          await page
-            .locator(
-              `[data-action="${action === 'practice' ? 'launch' : action}"]`,
-            )
-            .click();
-          assert.equal((await front(page)).screen, 'loading');
-          if (escape) await page.keyboard.press('Escape');
-          else await page.locator('[data-action="cancel"]').click();
-          assert.equal((await front(page)).screen, view);
-          assert.equal((await front(page)).selected, 'halcyon');
-          assert.equal(
-            await page
-              .locator(
-                `.picker-tabs [data-action="${view === 'setup' ? 'ship-step' : 'circuits'}"]`,
-              )
-              .getAttribute('aria-pressed'),
-            'true',
-          );
+        for (const developer of [false, true]) {
+          if (developer) {
+            await page.goto(url('level=halcyon&dev=1'));
+            await page.waitForFunction(() => window.__VN_FRONTEND);
+          }
+          const origins = developer
+            ? [
+                ['home', 'inspect', false],
+                ['circuits', 'inspect', true],
+                ['records', 'inspect', false],
+              ]
+            : [
+                ['home', 'quick-race', false],
+                ['circuits', 'quick-race', true],
+                ['home', 'practice', true],
+                ['circuits', 'practice', false],
+              ];
+          for (const [view, action, escape] of origins) {
+            if (!developer)
+              await page.locator(`[data-action="${action}"]`).click();
+            else if ((await front(page)).screen === 'records')
+              await page.locator('[data-action="records-back"]').click();
+            if (view === 'circuits')
+              await page
+                .locator('.menu-selection[data-action="circuits"]')
+                .click();
+            else if (view === 'records')
+              await page.locator('[data-action="records"]').click();
+            else if ((await front(page)).screen !== 'home')
+              await page.keyboard.press('Escape');
+            const opener = `[data-action="${developer ? 'inspect' : 'launch'}"]`;
+            await page.locator(opener).click();
+            assert.equal((await front(page)).screen, 'loading');
+            if (escape) await page.keyboard.press('Escape');
+            else await page.locator('[data-action="cancel"]').click();
+            assert.equal((await front(page)).screen, view);
+            assert.equal((await front(page)).selected, 'halcyon');
+            assert.equal(
+              await page
+                .locator(opener)
+                .evaluate((el) => el === document.activeElement),
+              true,
+              'Cancelled loading restores its initiating control',
+            );
+          }
         }
       } finally {
         release();
@@ -1974,9 +2085,11 @@ try {
         await page.locator('[data-record-key]').last().click();
         assert.equal((await front(page)).intent, 'time-trial');
         assert.equal((await front(page)).selected, 'halcyon');
-        assert.equal((await front(page)).shipId, 'needle');
+        assert.equal((await front(page)).shipId, 'shrike');
         assert.equal((await front(page)).loadedId, null);
         assert.equal(await page.evaluate(() => !!window.__VN), false);
+        await page.locator('[data-action="garage-tab"]').click();
+        assert.equal(await page.locator('[data-ship="needle"]').count(), 0);
       },
       viewport,
     );

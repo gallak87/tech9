@@ -88,8 +88,11 @@ test('the Bloomspan corkscrew carries native hulls through a complete inversion 
         speed,
       };
       runtime.reset({ state });
-      let inverted = false;
-      for (let tick = 0; tick < 1400 && state.distance < end + 40; tick++) {
+      let inverted = false,
+        bodyRoll = 0,
+        previousBank = null;
+      // The sap lanes traverse this climbing roll more slowly than the resin.
+      for (let tick = 0; tick < 2000 && state.distance < end + 40; tick++) {
         const before = state.speed;
         const events = runtime.advance(
           state,
@@ -105,11 +108,8 @@ test('the Bloomspan corkscrew carries native hulls through a complete inversion 
           },
           1 / 120,
         );
-        assert.equal(
-          runtime.pose(1)?.grounded,
-          true,
-          `road lost at ${state.distance}`,
-        );
+        const pose = runtime.pose(1);
+        assert.equal(pose?.grounded, true, `road lost at ${state.distance}`);
         assert.equal(
           events.some(({ type }) =>
             ['road-departure', 'road-recovery', 'impact'].includes(type),
@@ -121,7 +121,24 @@ test('the Bloomspan corkscrew carries native hulls through a complete inversion 
           before - state.speed < 1.3,
           `false braking at ${state.distance}: ${before} -> ${state.speed}`,
         );
-        inverted ||= track.sample(state.distance).up.y < -0.95;
+        const frame = track.sample(state.distance);
+        // Remove the climb pitch before measuring the actual hull's roll.
+        const unbankedUp = new T.Vector3(0, 1, 0)
+          .addScaledVector(frame.tangent, -frame.tangent.y)
+          .normalize();
+        const bodyUp = new T.Vector3(0, 1, 0).applyQuaternion(pose.quaternion);
+        const relativeUp = bodyUp.dot(unbankedUp);
+        inverted ||= relativeUp < -0.95;
+        const unbankedRight = new T.Vector3().crossVectors(
+          unbankedUp,
+          frame.tangent,
+        );
+        const bank = Math.atan2(-bodyUp.dot(unbankedRight), relativeUp);
+        if (previousBank !== null) {
+          const change = bank - previousBank;
+          bodyRoll += Math.atan2(Math.sin(change), Math.cos(change));
+        }
+        previousBank = bank;
         assert.ok(
           Math.abs(state.lateral) < 11.5,
           `lane lost at ${state.distance}: ${state.lateral}`,
@@ -130,6 +147,10 @@ test('the Bloomspan corkscrew carries native hulls through a complete inversion 
       assert.ok(
         state.distance > end + 39 && inverted,
         `incomplete inversion ${lateral}/${speed}`,
+      );
+      assert.ok(
+        Math.abs(bodyRoll - Math.PI * 2) < 0.05,
+        `native hull completes one full roll ${lateral}/${speed}: ${bodyRoll}`,
       );
     }
   }

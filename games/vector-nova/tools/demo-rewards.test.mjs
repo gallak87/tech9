@@ -25,7 +25,8 @@ async function edition(t, name) {
     cacheDir,
     root: resolve(import.meta.dirname, '..'),
     define: { 'import.meta.env.VN_EDITION': JSON.stringify(name) },
-    server: { middlewareMode: true, hmr: false, watch: null },
+    server: { middlewareMode: true, hmr: false, ws: false, watch: null },
+    optimizeDeps: { noDiscovery: true },
     logLevel: 'error',
   });
   t.after(async () => {

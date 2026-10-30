@@ -21,6 +21,34 @@ const race = (id, label, type, payload = {}, seconds = 0.8) => ({
 
 export const soundEffects = [
   ...[
+    ['charge', 'Twin capacitors', 1.2],
+    ['lock', 'Ion lock', 0.25],
+    ['turn', 'Reverse thrust', 0.55],
+    ['fire', 'Ion scissors', 0.45],
+    ['counter', 'Lock ruptured', 0.55],
+    ['expose', 'Capacitor vent', 0.8],
+    ['disable', 'Twin drives quenched', 1.2],
+  ].map(([cue, label, seconds]) => ({
+    ...race(
+      `wraith-${cue}`,
+      `Wraith · ${label}`,
+      'interceptor-cue',
+      { bossId: 'wraith', cue },
+      seconds,
+    ),
+    group: 'Interceptor · Wraith',
+  })),
+  {
+    ...race(
+      'wraith-core-hit',
+      'Wraith · Critical capacitor hit',
+      'interceptor-hit',
+      { bossId: 'wraith', target: 'wraith', source: 'player', weakPoint: true },
+      0.4,
+    ),
+    group: 'Interceptor · Wraith',
+  },
+  ...[
     ['charge', 'Pressure charge', 1.4],
     ['turn', 'Magnetic turn', 0.8],
     ['fire', 'Siege cannon', 0.7],

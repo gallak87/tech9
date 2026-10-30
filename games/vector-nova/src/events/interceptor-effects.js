@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { createWraithEffects } from './interceptor-wraith-effects.js';
 
 const amber = 0xff9b32,
   white = 0xfff4d5;
@@ -21,6 +22,10 @@ export function createInterceptorEffects({
   mounted.name = 'Interceptor / pressure machinery';
   scene.add(root);
   boss.add(mounted);
+  const themed =
+    bossId === 'wraith'
+      ? createWraithEffects({ scene, boss, track, combat, racers })
+      : null;
   const geometries = new Set(),
     materials = new Set();
   const geometry = (g) => {
@@ -260,10 +265,18 @@ export function createInterceptorEffects({
   let disposed = false,
     disableAge = 0,
     wasDisabled = false;
+  let whiteStarted = -Infinity,
+    whiteClock = -Infinity,
+    whiteKey = null;
+  const defeatPower = new Map();
   function update(frame) {
     if (disposed) return;
+    themed?.update(frame);
     const data = frame.interceptor;
     const disabled = !!(data?.result?.won && data.health === 0);
+    if (bossId === 'wraith' && disabled && !wasDisabled)
+      for (const [material] of power)
+        defeatPower.set(material, material.emissiveIntensity);
     if (wasDisabled && !disabled) {
       for (const [material, base] of power) material.emissiveIntensity = base;
       wasDisabled = false;
@@ -283,7 +296,9 @@ export function createInterceptorEffects({
     wasDisabled = disabled;
     if (disabled)
       for (const [material, base] of power)
-        material.emissiveIntensity = base * Math.max(0, 1 - disableAge / 0.45);
+        material.emissiveIntensity =
+          (bossId === 'wraith' ? (defeatPower.get(material) ?? base) : base) *
+          Math.max(0, 1 - disableAge / 0.45);
     const state = combat.view(),
       attack = data.counterattack;
     const reduced = !!frame.settings.reducedMotion;
@@ -291,10 +306,30 @@ export function createInterceptorEffects({
     const hit = state.flashes.findLast(
       (f) => f.target === bossId && f.kind !== 'aegis' && f.age < 0.16,
     );
-    hitGroup.visible = !!hit && hit.age + disableAge < 0.16;
+    let whiteAge = hit?.age ?? Infinity,
+      whiteSpan = 0.16;
+    if (bossId === 'wraith') {
+      const now = state.time ?? data.elapsed;
+      if (now < whiteClock) {
+        whiteStarted = -Infinity;
+        whiteKey = null;
+      }
+      if (hit) {
+        const at = now - hit.age,
+          key = hit.id ?? `${hit.source}:${at}`;
+        if (key !== whiteKey) {
+          whiteKey = key;
+          if (at - whiteStarted >= 0.28) whiteStarted = at;
+        }
+      }
+      whiteClock = now;
+      whiteAge = now - whiteStarted;
+      whiteSpan = 0.12;
+    }
+    hitGroup.visible = whiteAge >= 0 && whiteAge + disableAge < whiteSpan;
     if (hitGroup.visible) {
       hitMaterial.opacity =
-        (reduced ? 0.17 : 0.8) * (1 - (hit.age + disableAge) / 0.16);
+        (reduced ? 0.17 : 0.8) * (1 - (whiteAge + disableAge) / whiteSpan);
       boss.updateWorldMatrix(true, true);
       inverse.copy(boss.matrixWorld).invert();
       for (const { source, copy } of parts) {
@@ -446,7 +481,13 @@ export function createInterceptorEffects({
       sheet.visible = disabled && disableAge > 0 && disableAge < 2;
       if (!sheet.visible) return;
       sheet.position
-        .set((i - 1.5) * 0.9, 1.2, -19.6)
+        .set(
+          (i - 1.5) * 0.9,
+          1.2,
+          bossId === 'goliath'
+            ? -19.6
+            : (boss.userData.bounds?.min?.[2] ?? -9) + 0.4,
+        )
         .applyQuaternion(boss.quaternion)
         .add(boss.position);
       sheet.position.y += reduced ? 0 : disableAge * (1 + i * 0.2);
@@ -525,6 +566,10 @@ export function createInterceptorEffects({
   return {
     update,
     reset() {
+      themed?.reset();
+      whiteStarted = whiteClock = -Infinity;
+      whiteKey = null;
+      defeatPower.clear();
       root.visible = mounted.visible = false;
       disableAge = 0;
       wasDisabled = false;
@@ -533,6 +578,7 @@ export function createInterceptorEffects({
     dispose() {
       if (disposed) return;
       disposed = true;
+      themed?.dispose();
       for (const [material, base] of power) material.emissiveIntensity = base;
       root.removeFromParent();
       mounted.removeFromParent();

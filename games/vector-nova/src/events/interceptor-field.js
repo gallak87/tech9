@@ -134,7 +134,7 @@ export function createInterceptorField({
     (value, index) => (value + hull.bounds.min[index]) / 2,
   );
   return {
-    id: `interceptor-squad-v4:${boss.id}:${boss.cruiseKph}:${hull.hullSha256}${pursuitIdentity(path)}`,
+    id: `interceptor-squad-v4:${boss.id}:${boss.cruiseKph}:${hull.hullSha256}${boss.initialLead ? `:l${boss.initialLead}c${boss.chargeKph ?? boss.cruiseKph}` : ''}${pursuitIdentity(path)}`,
     opponents: [
       {
         id: boss.id,
@@ -177,7 +177,7 @@ export function createInterceptorField({
     ],
     grid: {
       player: { distance: 0, lateral: 0 },
-      [boss.id]: { distance: 240, lateral: 0 },
+      [boss.id]: { distance: boss.initialLead ?? 240, lateral: 0 },
       rook: { distance: -12, lateral: -10 },
       kite: { distance: -24, lateral: 10 },
       manta: { distance: -36, lateral: -6 },
@@ -185,6 +185,13 @@ export function createInterceptorField({
     control({ opponent, track, devices, nearby, defaultControl }) {
       if (opponent.specification.id === boss.id) {
         const phase = getCounterattack();
+        // Wraith diverts drive power to its capacitors for the complete
+        // authored attack. This costs forward pace even if the pilot is far
+        // behind; normal throttle/brakes earn both the slowdown and recovery.
+        const attackSpeed =
+          boss.chargeKph && phase?.phase && phase.phase !== 'idle'
+            ? boss.chargeKph / 3.6
+            : cruiseSpeed;
         const lane =
           boss.laneWeave && phase?.phase === 'firing'
             ? boss.laneWeave * Math.sin(phase.phaseElapsed * Math.PI * 0.8)
@@ -209,7 +216,7 @@ export function createInterceptorField({
             ? { ...opponent.state, speed: Math.max(0, measuredSpeed) }
             : opponent.state,
           track,
-          cruiseSpeed,
+          attackSpeed,
         );
       }
       const target = nearby.find((state) => state.chassisId === boss.id);

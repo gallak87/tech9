@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { Group, Mesh, BoxGeometry, MeshStandardMaterial } from 'three';
 import { createRivalPropulsion } from './rival-propulsion.js';
 import { DEVICE_COLORS } from '../pickups/theme.js';
+import { createWraithTarget } from './wraith-target.js';
 
 function fixture(quality) {
   const hull = new Group();
@@ -162,4 +163,177 @@ test('Vector turns the real rival nozzle amber in both tiers and restores blue o
   } finally {
     f.close();
   }
+});
+
+function driveView(propulsion, material) {
+  return {
+    visible: propulsion.group.visible,
+    emission: material.emissiveIntensity,
+    outlets: propulsion.group.children.map((plume) => ({
+      position: plume.position.toArray(),
+      scale: plume.scale.toArray(),
+      signal: plume.material.uniforms?.strength.value ?? plume.material.opacity,
+      glow: plume.material.uniforms?.glowColor.value.toArray() ?? [
+        ...plume.geometry.attributes.color.array,
+      ],
+    })),
+  };
+}
+
+for (const quality of ['high', 'low']) {
+  test(`${quality} ordinary propulsion remains identical with omitted power or explicit full drive power`, () => {
+    const ordinary = fixture(quality),
+      explicit = fixture(quality);
+    try {
+      for (const frame of [
+        { speed: 0, time: 0 },
+        { speed: 83, time: 1 },
+        { speed: 140, time: 1.5, boost: true },
+        { speed: 160, time: 2, catapulting: true, energy: 0 },
+        { speed: 90, time: 3, boost: true, energy: 0 },
+        {
+          speed: 83,
+          time: 4,
+          quality: quality === 'high' ? 'low' : 'high',
+          reducedMotion: true,
+        },
+        { speed: 83, time: 5, quality, visible: false },
+      ]) {
+        ordinary.propulsion.update(frame);
+        explicit.propulsion.update({ ...frame, drivePower: 1 });
+        assert.deepEqual(
+          driveView(ordinary.propulsion, ordinary.material),
+          driveView(explicit.propulsion, explicit.material),
+          'ordinary racers retain their exact nozzle, intensity, palette and scale response',
+        );
+      }
+    } finally {
+      ordinary.close();
+      explicit.close();
+    }
+  });
+}
+
+test('drive charge dims live High/Low exhaust and hull emissions, keeps anchors fixed, and restores without accumulating scale', () => {
+  const charged = fixture('high'),
+    normal = fixture('high');
+  try {
+    for (const quality of ['high', 'low', 'high']) {
+      const frame = { speed: 300 / 3.6, time: 10, quality };
+      normal.propulsion.update(frame);
+      charged.propulsion.update({ ...frame, drivePower: 0.35 });
+      const full = driveView(normal.propulsion, normal.material);
+      const reduced = driveView(charged.propulsion, charged.material);
+      assert.ok(
+        Math.abs(reduced.emission - full.emission * 0.35) < 1e-12,
+        'the real authored Ion chamber loses the same drive power as its plume',
+      );
+      reduced.outlets.forEach((plume, index) => {
+        const reference = full.outlets[index];
+        assert.deepEqual(
+          plume.position,
+          reference.position,
+          'a power cue never moves the exported nozzle',
+        );
+        assert.deepEqual(
+          plume.scale.slice(0, 2),
+          reference.scale.slice(0, 2),
+          'drive reduction preserves nozzle mouth width',
+        );
+        assert.ok(
+          plume.scale[2] > 0 && plume.scale[2] < reference.scale[2],
+          'charge has a visibly shorter plume',
+        );
+        assert.ok(
+          Math.abs(plume.signal - reference.signal * 0.35) < 1e-12,
+          'High shader strength and Low alpha communicate the same reduced power',
+        );
+        assert.deepEqual(
+          plume.glow,
+          reference.glow,
+          'power reduction preserves the established ion palette',
+        );
+      });
+      charged.propulsion.update({ ...frame, drivePower: 0.35 });
+      assert.deepEqual(
+        driveView(charged.propulsion, charged.material),
+        reduced,
+        'paused/repeated frames never shrink the plume again',
+      );
+      charged.propulsion.update(frame);
+      assert.deepEqual(
+        driveView(charged.propulsion, charged.material),
+        full,
+        'omitting the local charge cue restores ordinary drive exactly',
+      );
+    }
+  } finally {
+    charged.close();
+    normal.close();
+  }
+});
+
+test('authored Wraith Low fitting preserves charge power through quality changes without taking hull ownership', () => {
+  const ship = createWraithTarget({ quality: 'low' });
+  const body = ship.group.getObjectByName('Wraith / authored chassis');
+  const borrowed = new Set();
+  const emitted = new Set();
+  body.traverse((object) => {
+    if (object.geometry) borrowed.add(object.geometry);
+    for (const material of [object.material].flat())
+      if (material) {
+        borrowed.add(material);
+        if (material.emissive?.getHex()) emitted.add(material);
+      }
+  });
+  const disposed = new Map([...borrowed].map((resource) => [resource, 0]));
+  for (const resource of borrowed)
+    resource.addEventListener('dispose', () =>
+      disposed.set(resource, disposed.get(resource) + 1),
+    );
+  const propulsion = {
+    group: ship.group.getObjectByName('Rival / propulsion'),
+  };
+  const chamber = [...emitted][0];
+  assert.ok(chamber, 'the test observes the real authored ion chamber');
+  try {
+    let anchors;
+    for (const quality of ['low', 'high', 'low']) {
+      const frame = { quality, speed: 300 / 3.6, time: 6 };
+      ship.update(frame);
+      const full = driveView(propulsion, chamber);
+      anchors ??= full.outlets.map((plume) => plume.position);
+      assert.deepEqual(
+        full.outlets.map((plume) => plume.position),
+        anchors,
+      );
+      ship.update({ ...frame, drivePower: 0.35 });
+      const charge = driveView(propulsion, chamber);
+      assert.ok(Math.abs(charge.emission - full.emission * 0.35) < 1e-12);
+      charge.outlets.forEach((plume, index) => {
+        assert.deepEqual(plume.position, anchors[index]);
+        assert.ok(
+          Math.abs(plume.signal - full.outlets[index].signal * 0.35) < 1e-12,
+          'boss Low fitting cannot replace the shared reduction with its full-drive opacity',
+        );
+        assert.ok(plume.scale[2] < full.outlets[index].scale[2]);
+      });
+      ship.update(frame);
+      assert.deepEqual(
+        driveView(propulsion, chamber),
+        full,
+        'Wraith releases back to its exact authored drive response',
+      );
+      assert.ok(
+        [...disposed.values()].every((count) => count === 0),
+        'quality/power changes own no authored hull resources',
+      );
+    }
+  } finally {
+    ship.dispose();
+  }
+  assert.ok(
+    [...disposed.values()].every((count) => count === 1),
+    'only the ship releases its authored resources, exactly once',
+  );
 });

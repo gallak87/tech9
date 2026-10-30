@@ -16,7 +16,7 @@ import {
 } from './rules.js';
 
 export const COMBAT_RULES = Object.freeze({
-  version: 4,
+  version: 5,
   consequences: COMBAT_CONSEQUENCES,
   pulseDelay: 0.5,
   pulseRadius: 36,
@@ -412,7 +412,7 @@ export function createCombatSimulation({
         .multiplyScalar(shot.speed)
         .toArray();
     }
-    shot.target = heavy ? null : acquireArcTarget(shot);
+    shot.target = heavy || signature ? null : acquireArcTarget(shot);
     state.shots.push(shot);
     state.flashes.push({
       id: state.sequence++,
@@ -511,6 +511,24 @@ export function createCombatSimulation({
       )
         throw new Error('Signature fire requires a finite physical pose');
       shoot(id, source.actor, pose, true, options.signature);
+      return true;
+    },
+    fireArc(id, options = {}) {
+      const source = eligible(id);
+      if (!source) return false;
+      if (options.signature !== 'wraith-scissor')
+        throw new Error('Unknown Arc signature projectile');
+      const pose = options.pose;
+      if (
+        !pose?.position?.isVector3 ||
+        !pose.quaternion?.isQuaternion ||
+        ![...pose.position.toArray(), ...pose.quaternion.toArray()].every(
+          Number.isFinite,
+        ) ||
+        Math.abs(pose.quaternion.lengthSq() - 1) > 1e-5
+      )
+        throw new Error('Signature fire requires a finite physical pose');
+      shoot(id, source.actor, pose, false, options.signature);
       return true;
     },
     request(id, event) {
@@ -875,7 +893,12 @@ export function createCombatSimulation({
         data.shots.some(
           (shot) =>
             shot.signature !== undefined &&
-            shot.signature !== 'goliath-pressure',
+            !(
+              (shot.signature === 'goliath-pressure' && shot.heavy === true) ||
+              (shot.signature === 'wraith-scissor' &&
+                shot.heavy === undefined &&
+                shot.target === null)
+            ),
         ) ||
         !Array.isArray(data.wakes) ||
         data.wakes.length > 256 ||
@@ -884,7 +907,12 @@ export function createCombatSimulation({
         data.flashes.some(
           (flash) =>
             flash.signature !== undefined &&
-            flash.signature !== 'goliath-pressure',
+            !(
+              (flash.signature === 'goliath-pressure' &&
+                flash.equipment === 'lance') ||
+              (flash.signature === 'wraith-scissor' &&
+                flash.equipment === undefined)
+            ),
         ) ||
         !data.emitters ||
         !data.grace ||

@@ -106,6 +106,18 @@ export async function createRacerPresentation({
         }
         const blend = mode === 'racing' ? MathUtils.clamp(alpha, 0, 1) : 1;
         const state = opponent.state;
+        const attack = interceptor?.counterattack;
+        let drivePower = 1;
+        if (opponent.specification.id === 'wraith' && attack?.started != null) {
+          if (attack.phase !== 'idle')
+            drivePower =
+              1 - 0.65 * MathUtils.smoothstep(attack.elapsed, 0, 0.4);
+          else {
+            const releaseAge =
+              interceptor.elapsed - attack.started - attack.elapsed;
+            drivePower = 0.35 + 0.65 * MathUtils.smoothstep(releaseAge, 0, 0.4);
+          }
+        }
         ship.update?.({
           speed: MathUtils.lerp(
             opponent.prev?.speed ?? state.speed,
@@ -119,6 +131,7 @@ export async function createRacerPresentation({
           quality: settings.quality,
           reducedMotion: settings.reducedMotion,
           visible: !disabled,
+          drivePower,
         });
         const pose = opponent.runtime.pose(blend);
         if (pose) {

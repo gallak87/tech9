@@ -85,6 +85,8 @@ export function createInterceptorPresentation({ host }) {
       boss.hidden = root.hidden;
       if (!data) return;
       const targetName = data.targetName ?? 'Goliath';
+      root.dataset.boss = data.bossId ?? data.targetId;
+      boss.dataset.boss = root.dataset.boss;
       boss.querySelector('.ic-boss-heading strong').textContent =
         targetName.toUpperCase();
       boss.setAttribute('aria-label', targetName);
@@ -93,29 +95,54 @@ export function createInterceptorPresentation({ host }) {
         `INTERCEPTOR / ${(data.difficulty ?? 'medium').toUpperCase()}`;
       const phase = data.counterattack?.phase ?? 'idle';
       root.dataset.counterattack = phase;
+      boss.dataset.counterattack = phase;
       counterattack.hidden = phase === 'idle';
       const recenter =
         data.counterattack?.aimLanes &&
         data.counterattack.warning &&
         data.counterattack.shots >= data.counterattack.blasts &&
         !data.counterattack.pressureHits;
-      counterattack.textContent = recenter
-        ? 'RECENTER · CORE OPENING'
-        : phase === 'recovered'
-          ? 'PRESSURE RECOVERED · VENT SEALED'
-          : phase === 'breach'
-            ? 'CORE OPEN · HIT THE REAR VENT'
-            : phase === 'telegraph'
-              ? data.counterattack?.aimLanes
-                ? 'DODGE · FORCE THE CORE OPEN'
-                : 'TARGET CHARGING · MOVE OFF ITS LINE'
-              : phase === 'turning-back'
-                ? `${targetName.toUpperCase()} TURNING · GET READY TO DODGE`
-                : phase === 'firing'
-                  ? data.counterattack?.kind === 'ion'
-                    ? 'ION WAKE · FIND A CLEAR LANE'
-                    : 'INCOMING VOLLEY · DODGE'
-                  : 'TARGET TURNING FORWARD';
+      const resonance = data.counterattack?.resonance;
+      if (resonance && counterattack.parentNode !== boss)
+        boss.append(counterattack);
+      else if (!resonance && counterattack.parentNode !== root)
+        root.insertBefore(counterattack, root.querySelector('.ic-controls'));
+      const ionCounter = data.counterattack;
+      counterattack.textContent = resonance
+        ? ionCounter.exposed
+          ? 'CAPACITORS EXPOSED · FIRE'
+          : ionCounter.countered
+            ? 'LOCK BROKEN · KEEP YOUR LINE'
+            : ionCounter.canCounter
+              ? ionCounter.counterProgress > 0 && ionCounter.boostHeld
+                ? 'HOLD BOOST · BREAKING LOCK'
+                : ionCounter.boostHeld
+                  ? 'RELEASE · RE-IGNITE BOOST'
+                  : 'IGNITE BOOST · BREAK THE LOCK'
+              : phase === 'telegraph'
+                ? ionCounter.boostHeld
+                  ? 'RELEASE BOOST · RESONANCE CHARGING'
+                  : 'RESONANCE CHARGING · WAIT FOR LOCK'
+                : phase === 'recovered'
+                  ? 'LOCK HELD · CAPACITORS SEALED'
+                  : 'ION SCISSORS · MOVE OFF YOUR LINE'
+        : recenter
+          ? 'RECENTER · CORE OPENING'
+          : phase === 'recovered'
+            ? 'PRESSURE RECOVERED · VENT SEALED'
+            : phase === 'breach'
+              ? 'CORE OPEN · HIT THE REAR VENT'
+              : phase === 'telegraph'
+                ? data.counterattack?.aimLanes
+                  ? 'DODGE · FORCE THE CORE OPEN'
+                  : 'TARGET CHARGING · MOVE OFF ITS LINE'
+                : phase === 'turning-back'
+                  ? `${targetName.toUpperCase()} TURNING · GET READY TO DODGE`
+                  : phase === 'firing'
+                    ? data.counterattack?.kind === 'ion'
+                      ? 'ION WAKE · FIND A CLEAR LANE'
+                      : 'INCOMING VOLLEY · DODGE'
+                    : 'TARGET TURNING FORWARD';
       const remaining = Math.max(0, finite(data.health)),
         maximum = Math.max(1, finite(data.maxHealth));
       root.dataset.reduced = String(!!frame.settings?.reducedMotion);
@@ -146,7 +173,7 @@ export function createInterceptorPresentation({ host }) {
           : 'ally'
         : 'none';
       hit.textContent = recent
-        ? `${name(data.lastHit.source)} · ${data.lastHit.weakPoint ? 'CORE BREACH' : data.lastHit.armored ? 'ARMOR HIT' : weaponName(data.lastHit.equipment) + ' hit'} · ${data.lastHit.damage} damage`
+        ? `${name(data.lastHit.source)} · ${data.lastHit.weakPoint ? (resonance ? 'CAPACITOR HIT' : 'CORE BREACH') : data.lastHit.armored ? 'ARMOR HIT' : weaponName(data.lastHit.equipment) + ' hit'} · ${data.lastHit.damage} damage`
         : 'Hold fire. Cross weapon gates for extra attacks.';
       boost.textContent = `SHIFT / ${controllerLayout(frame.settings ?? {}).boost}`;
     },

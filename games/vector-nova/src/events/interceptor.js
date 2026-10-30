@@ -1,6 +1,6 @@
 import { interceptorBoss } from './interceptor-bosses.js';
 
-export const INTERCEPTOR_RULES_VERSION = 8;
+export const INTERCEPTOR_RULES_VERSION = 9;
 const EPSILON = 1e-8;
 const copy = (value) => structuredClone(value);
 const MISSION_PROFILES = Object.freeze({
@@ -51,18 +51,21 @@ export function createInterceptorEvent({
   const boss = interceptorBoss(bossId);
   const COUNTERATTACK = boss.attack;
   const pressure = COUNTERATTACK.pressure;
+  const resonance = COUNTERATTACK.resonance;
+  const opening = pressure ?? resonance;
   const markers = COUNTERATTACK.markers ?? [COUNTERATTACK.marker];
   const profile = {
     ...missionProfile(difficulty),
     blasts: COUNTERATTACK.blasts[difficulty],
   };
   const FIRE_START = COUNTERATTACK.telegraph + COUNTERATTACK.turn;
+  const SHOT_START = FIRE_START + (COUNTERATTACK.fireDelay ?? 0);
   const RETURN_START = FIRE_START + COUNTERATTACK.hold;
   const FACING_DURATION = RETURN_START + COUNTERATTACK.turn;
-  const ATTACK_DURATION = FACING_DURATION + (pressure?.breach ?? 0);
+  const ATTACK_DURATION = FACING_DURATION + (opening?.breach ?? 0);
   const LOCK_TIME = pressure
     ? Math.min(COUNTERATTACK.telegraph, FIRE_START - pressure.lockLead)
-    : null;
+    : (resonance?.lockTime ?? null);
   const ATTACK_COUNT = markers.length * 2;
   const attackLocation = (index) => ({
     lap: Math.floor(index / markers.length) + 1,
@@ -71,6 +74,24 @@ export function createInterceptorEvent({
   const laneBound = 19;
   const boundedLane = (value) =>
     Math.max(-laneBound, Math.min(laneBound, value));
+  const trackedLane = (value) =>
+    resonance ? Math.max(-20, Math.min(20, value)) : boundedLane(value);
+  const lanes = (attack, index) => {
+    const first = attack.trackingLane;
+    if (resonance) {
+      const step = attack.countered ? resonance.deflection : resonance.laneStep;
+      // Never clamp a successful outward fork back onto an edge pilot.
+      return Array.from(
+        { length: profile.blasts },
+        (_, shot) => first + (shot % 2 === 0 ? -step : step),
+      );
+    }
+    const direction =
+      Math.abs(first) > 1 ? -Math.sign(first) : index % 2 === 0 ? 1 : -1;
+    return Array.from({ length: profile.blasts }, (_, shot) =>
+      boundedLane(first + shot * direction * pressure.laneStep),
+    );
+  };
   const ionInterval = boss.countermeasureInterval;
   if (
     !actorId(targetId) ||
@@ -126,6 +147,8 @@ export function createInterceptorEvent({
       playerDistance: 0,
       playerLateral: 0,
       targetLateral: 0,
+      playerBoost: false,
+      playerBoosting: false,
       lastHit: null,
       nextAllyFire: cadence.map((entry) => entry.first),
       nextIonFire: ionInterval,
@@ -160,15 +183,23 @@ export function createInterceptorEvent({
       yaw = COUNTERATTACK.reverse
         ? Math.PI * (1 - smooth(phaseElapsed / COUNTERATTACK.turn))
         : 0;
-    } else if (attack && pressure && elapsed < ATTACK_DURATION - EPSILON) {
-      phase = attack.incomingHits.length ? 'recovered' : 'breach';
+    } else if (attack && opening && elapsed < ATTACK_DURATION - EPSILON) {
+      phase = resonance
+        ? attack.countered
+          ? 'overload'
+          : 'recovered'
+        : attack.incomingHits.length
+          ? 'recovered'
+          : 'breach';
       phaseElapsed = elapsed - FACING_DURATION;
     }
+    const exposed = phase === 'breach' || phase === 'overload';
+    const pulse = resonance && attack?.boostPulses.at(-1);
     return {
       phase,
       kind: COUNTERATTACK.kind,
       yaw,
-      warning: !['idle', 'breach', 'recovered'].includes(phase),
+      warning: !['idle', 'breach', 'overload', 'recovered'].includes(phase),
       lap: attack
         ? Math.floor((current.counterattacks.length - 1) / markers.length) + 1
         : null,
@@ -180,8 +211,29 @@ export function createInterceptorEvent({
       elapsed: Math.min(elapsed, ATTACK_DURATION),
       phaseElapsed: Math.max(0, phaseElapsed),
       started: attack?.started ?? null,
-      ...(pressure
+      ...(opening
         ? {
+            ...(resonance
+              ? {
+                  resonance: true,
+                  countered: !!attack?.countered,
+                  counterProgress: attack?.countered
+                    ? 1
+                    : attack?.boostActive
+                      ? clamp(
+                          (pulse.acceptedUntil - pulse.started) /
+                            resonance.boostHold,
+                        )
+                      : 0,
+                  canCounter:
+                    !!attack &&
+                    !attack.countered &&
+                    elapsed >= LOCK_TIME - EPSILON &&
+                    elapsed < resonance.counterClose - EPSILON,
+                  boostHeld: current.playerBoost,
+                  counterAt: attack?.counterAt ?? null,
+                }
+              : {}),
             attackIndex: attack ? current.counterattacks.length - 1 : null,
             tracking: !!attack && !attack.locked && phase === 'telegraph',
             locked: !!attack?.locked,
@@ -197,27 +249,29 @@ export function createInterceptorEvent({
               attack && attack.shots < profile.blasts
                 ? Math.max(
                     0,
-                    FIRE_START +
+                    SHOT_START +
                       attack.shots * COUNTERATTACK.shotInterval -
                       elapsed,
                   )
                 : null,
             charge: attack ? clamp(elapsed / COUNTERATTACK.telegraph) : 0,
-            exposed: phase === 'breach',
+            exposed,
             recovered: phase === 'recovered',
-            pressureHits: attack?.incomingHits.length ?? 0,
-            recoveryAt: attack?.incomingHits[0]?.elapsed ?? null,
-            breachProgress:
-              phase === 'breach' ? clamp(phaseElapsed / pressure.breach) : 0,
+            ...(pressure
+              ? {
+                  pressureHits: attack?.incomingHits.length ?? 0,
+                  recoveryAt: attack?.incomingHits[0]?.elapsed ?? null,
+                }
+              : {}),
+            breachProgress: exposed ? clamp(phaseElapsed / opening.breach) : 0,
             core: {
-              open: phase === 'breach',
-              remaining:
-                phase === 'breach' ? pressure.breach - phaseElapsed : 0,
-              halfWidth: pressure.coreHalfWidth,
-              rearMin: pressure.coreRearMin,
-              rearMax: pressure.coreRearMax,
-              low: pressure.coreLow,
-              high: pressure.coreHigh,
+              open: exposed,
+              remaining: exposed ? opening.breach - phaseElapsed : 0,
+              halfWidth: opening.coreHalfWidth,
+              rearMin: opening.coreRearMin,
+              rearMax: opening.coreRearMax,
+              low: opening.coreLow,
+              high: opening.coreHigh,
             },
           }
         : {}),
@@ -227,6 +281,7 @@ export function createInterceptorEvent({
     previousElapsed,
     previousDistance,
     previousLateral,
+    previousBoost,
     events,
   ) {
     while (state.counterattacks.length < ATTACK_COUNT) {
@@ -238,8 +293,6 @@ export function createInterceptorEvent({
         routeLength *
         (Math.floor(index / markers.length) + markers[index % markers.length]);
       if (state.targetDistance < marker) break;
-      // Locate the physical marker within this tick. Distance may subsequently
-      // fall back; consuming the marker once keeps a reverse crossing harmless.
       const fraction =
         previousDistance < marker && state.targetDistance > previousDistance
           ? clamp(
@@ -254,20 +307,27 @@ export function createInterceptorEvent({
       state.counterattacks.push({
         started,
         shots: 0,
-        ...(pressure
+        ...(opening
           ? {
-              trackingLane: boundedLane(previousLateral),
+              trackingLane: trackedLane(previousLateral),
               locked: false,
               aimLanes: [],
               aimDistance: null,
               cues: 0,
-              incomingHits: [],
+              ...(pressure
+                ? { incomingHits: [] }
+                : {
+                    boostPulses: [],
+                    boostActive: false,
+                    countered: false,
+                    counterAt: null,
+                  }),
             }
           : {}),
       });
     }
     for (const [attackIndex, attack] of state.counterattacks.entries()) {
-      if (pressure) {
+      if (opening) {
         const lockAt = attack.started + LOCK_TIME;
         if (!attack.locked) {
           const fraction =
@@ -277,28 +337,61 @@ export function createInterceptorEvent({
                     (state.elapsed - previousElapsed),
                 )
               : 1;
-          attack.trackingLane = boundedLane(
+          attack.trackingLane = trackedLane(
             previousLateral +
               (state.playerLateral - previousLateral) * fraction,
           );
           if (state.elapsed >= lockAt - EPSILON) {
             attack.locked = true;
-            const first = attack.trackingLane;
-            const direction =
-              Math.abs(first) > 1
-                ? -Math.sign(first)
-                : attackIndex % 2 === 0
-                  ? 1
-                  : -1;
-            attack.aimLanes = Array.from(
-              { length: profile.blasts },
-              (_, index) =>
-                boundedLane(first + index * direction * pressure.laneStep),
-            );
+            attack.aimLanes = lanes(attack, attackIndex);
             attack.aimDistance = Math.max(
               30,
               Math.min(240, state.targetDistance - state.playerDistance),
             );
+          }
+        }
+        if (resonance && !attack.countered) {
+          const closeAt = attack.started + resonance.counterClose;
+          const validEdge =
+            state.playerBoost &&
+            !previousBoost &&
+            state.playerBoosting &&
+            previousElapsed >= lockAt - EPSILON &&
+            previousElapsed < closeAt - EPSILON;
+          if (validEdge) {
+            attack.boostPulses.push({
+              started: previousElapsed,
+              acceptedUntil: previousElapsed,
+            });
+            attack.boostActive = true;
+          }
+          if (attack.boostActive) {
+            const pulse = attack.boostPulses.at(-1);
+            if (state.playerBoost && state.playerBoosting) {
+              pulse.acceptedUntil = Math.min(state.elapsed, closeAt);
+              if (
+                pulse.acceptedUntil - pulse.started >=
+                resonance.boostHold - EPSILON
+              ) {
+                attack.countered = true;
+                attack.counterAt = pulse.started + resonance.boostHold;
+                attack.aimLanes = lanes(attack, attackIndex);
+                attack.cues |= 16;
+                events.push({
+                  type: 'interceptor-cue',
+                  payload: {
+                    source: targetId,
+                    bossId,
+                    cue: 'counter',
+                    elapsed: attack.counterAt,
+                    attackIndex,
+                    ...attackLocation(attackIndex),
+                  },
+                });
+              }
+            } else attack.boostActive = false;
+            if (attack.countered || state.elapsed >= closeAt - EPSILON)
+              attack.boostActive = false;
           }
         }
         for (const [bit, cue, offset] of [
@@ -311,7 +404,10 @@ export function createInterceptorEvent({
           const elapsed = attack.started + offset;
           if (!(attack.cues & bit) && elapsed <= state.elapsed + EPSILON) {
             attack.cues |= bit;
-            if (cue !== 'expose' || !attack.incomingHits.length)
+            if (
+              cue !== 'expose' ||
+              (resonance ? attack.countered : !attack.incomingHits.length)
+            )
               events.push({
                 type: 'interceptor-cue',
                 payload: {
@@ -330,7 +426,7 @@ export function createInterceptorEvent({
       while (attack.shots < profile.blasts) {
         const elapsed =
           attack.started +
-          FIRE_START +
+          SHOT_START +
           attack.shots * COUNTERATTACK.shotInterval;
         if (elapsed > state.elapsed + EPSILON) break;
         events.push({
@@ -339,11 +435,13 @@ export function createInterceptorEvent({
             source: targetId,
             kind: COUNTERATTACK.kind,
             elapsed,
-            ...(pressure
+            ...(opening
               ? {
                   aimLane: attack.aimLanes[attack.shots],
                   aimDistance: attack.aimDistance,
-                  muzzle: [attack.shots % 2 === 0 ? -4.8 : 4.8, 1, 18.5],
+                  muzzle: resonance
+                    ? [attack.shots % 2 === 0 ? -2.2 : 2.2, 0.48, 8.75]
+                    : [attack.shots % 2 === 0 ? -4.8 : 4.8, 1, 18.5],
                   shotIndex: attack.shots,
                   attackIndex,
                   ...attackLocation(attackIndex),
@@ -385,23 +483,100 @@ export function createInterceptorEvent({
     return { type: 'interceptor-complete', payload: copy(state.result) };
   }
   const corePoint = (point) =>
-    pressure &&
+    opening &&
     Array.isArray(point) &&
     point.length === 3 &&
     point.every(Number.isFinite) &&
-    Math.abs(point[0]) <= pressure.coreHalfWidth &&
-    point[1] >= pressure.coreLow &&
-    point[1] <= pressure.coreHigh &&
-    point[2] >= pressure.coreRearMin &&
-    point[2] <= pressure.coreRearMax;
+    Math.abs(point[0]) <= opening.coreHalfWidth &&
+    point[1] >= opening.coreLow &&
+    point[1] <= opening.coreHigh &&
+    point[2] >= opening.coreRearMin &&
+    point[2] <= opening.coreRearMax;
   const breachedAt = (elapsed, current = state) =>
-    pressure &&
+    opening &&
     current.counterattacks.some(
       (attack) =>
-        attack.incomingHits.length === 0 &&
+        (resonance ? attack.countered : attack.incomingHits.length === 0) &&
         elapsed >= attack.started + FACING_DURATION - EPSILON &&
         elapsed < attack.started + ATTACK_DURATION - EPSILON,
     );
+  function validResonanceAttack(attack, index, saved) {
+    const lockAt = attack.started + LOCK_TIME;
+    const closeAt = attack.started + resonance.counterClose;
+    const locked = saved.elapsed >= lockAt - EPSILON;
+    if (
+      typeof attack.countered !== 'boolean' ||
+      typeof attack.boostActive !== 'boolean' ||
+      !Array.isArray(attack.boostPulses) ||
+      attack.boostPulses.length > 64 ||
+      !attack.boostPulses.every(
+        (pulse, i, pulses) =>
+          pulse &&
+          Number.isFinite(pulse.started) &&
+          pulse.started >= lockAt - EPSILON &&
+          pulse.started < closeAt - EPSILON &&
+          Number.isFinite(pulse.acceptedUntil) &&
+          pulse.acceptedUntil >= pulse.started &&
+          pulse.acceptedUntil <= Math.min(saved.elapsed, closeAt) + EPSILON &&
+          (i === 0 || pulse.started > pulses[i - 1].acceptedUntil + EPSILON) &&
+          (i === pulses.length - 1 ||
+            pulse.acceptedUntil - pulse.started <
+              resonance.boostHold - EPSILON),
+      )
+    )
+      return false;
+    const earned = attack.boostPulses.find(
+      (pulse) =>
+        pulse.acceptedUntil - pulse.started >= resonance.boostHold - EPSILON,
+    );
+    const counterAt = earned ? earned.started + resonance.boostHold : null;
+    if (
+      attack.countered !== !!earned ||
+      attack.counterAt !== counterAt ||
+      (attack.boostActive &&
+        (attack.countered ||
+          !saved.playerBoost ||
+          !saved.playerBoosting ||
+          saved.elapsed >= closeAt - EPSILON ||
+          !attack.boostPulses.length ||
+          Math.abs(attack.boostPulses.at(-1).acceptedUntil - saved.elapsed) >
+            EPSILON))
+    )
+      return false;
+    let expectedCues = earned ? 16 : 0;
+    for (const [bit, offset] of [
+      [1, 0],
+      [2, LOCK_TIME],
+      [4, COUNTERATTACK.telegraph],
+      [32, RETURN_START],
+      [8, FACING_DURATION],
+    ])
+      if (saved.elapsed >= attack.started + offset - EPSILON)
+        expectedCues |= bit;
+    if (
+      !Number.isFinite(attack.trackingLane) ||
+      Math.abs(attack.trackingLane) > 20 ||
+      typeof attack.locked !== 'boolean' ||
+      (attack.locked && !locked) ||
+      (saved.result === null && attack.locked !== locked) ||
+      !Number.isInteger(attack.cues) ||
+      attack.cues < 0 ||
+      (attack.cues & 16) !== (expectedCues & 16) ||
+      (attack.cues & ~expectedCues) !== 0 ||
+      (saved.result === null && attack.cues !== expectedCues) ||
+      !Array.isArray(attack.aimLanes) ||
+      attack.aimLanes.length !== (attack.locked ? profile.blasts : 0) ||
+      (attack.locked
+        ? !Number.isFinite(attack.aimDistance) ||
+          attack.aimDistance < 30 ||
+          attack.aimDistance > 240
+        : attack.aimDistance !== null)
+    )
+      return false;
+    return attack.aimLanes.every(
+      (lane, shot) => lane === lanes(attack, index)[shot],
+    );
+  }
   return {
     rulesId,
     reset,
@@ -482,22 +657,22 @@ export function createInterceptorEvent({
         player &&
         equipment === 'repulsor' &&
         Math.abs(state.playerLateral - state.targetLateral) <=
-          pressure?.coreHalfWidth &&
+          opening?.coreHalfWidth &&
         state.targetDistance - state.playerDistance >= 0 &&
         state.targetDistance - state.playerDistance <= 38;
       const weakPoint =
         !!breachedAt(state.elapsed) &&
         (equipment === 'repulsor' ? pulseCore : corePoint(payload.hitLocal));
       const baseDamage = DAMAGE[equipment][player ? 'player' : 'ally'];
-      const armored = !!pressure && !weakPoint;
+      const armored = !!opening?.armorPlayer && !weakPoint;
       const damage = Math.min(
         state.health,
         weakPoint
           ? player
-            ? baseDamage * pressure.coreMultiplier
+            ? baseDamage * opening.coreMultiplier
             : baseDamage + 1
           : armored && player
-            ? pressure.armorPlayer[equipment]
+            ? opening.armorPlayer[equipment]
             : baseDamage,
       );
       keys.add(key);
@@ -562,6 +737,8 @@ export function createInterceptorEvent({
         playerValid = true,
         playerLateral = 0,
         targetLateral = 0,
+        playerBoost = false,
+        playerBoosting = false,
       } = {},
     ) {
       if (!Number.isFinite(dt) || dt < 0)
@@ -573,17 +750,23 @@ export function createInterceptorEvent({
         !Number.isFinite(playerLateral) ||
         !Number.isFinite(targetLateral) ||
         typeof playerValid !== 'boolean' ||
+        typeof playerBoost !== 'boolean' ||
+        typeof playerBoosting !== 'boolean' ||
+        (playerBoosting && !playerBoost) ||
         !Number.isFinite(state.elapsed + dt)
       )
         throw new Error('Interceptor requires finite physical progress');
       const previousElapsed = state.elapsed;
       const previousDistance = state.targetDistance;
       const previousLateral = state.playerLateral;
+      const previousBoost = state.playerBoost;
       state.elapsed += dt;
       state.targetDistance = targetDistance;
       state.playerDistance = playerDistance;
       state.playerLateral = playerLateral;
       state.targetLateral = targetLateral;
+      state.playerBoost = playerBoost;
+      state.playerBoosting = playerBoosting;
       state.playerValid &&= playerValid;
       if (state.health <= 0) return [finish('disabled')];
       if (targetDistance >= escapeDistance) return [finish('escaped')];
@@ -592,6 +775,7 @@ export function createInterceptorEvent({
         previousElapsed,
         previousDistance,
         previousLateral,
+        previousBoost,
         events,
       );
       for (const [index, entry] of cadence.entries()) {
@@ -708,6 +892,9 @@ export function createInterceptorEvent({
         !Number.isFinite(saved.playerDistance) ||
         !Number.isFinite(saved.playerLateral) ||
         !Number.isFinite(saved.targetLateral) ||
+        typeof saved.playerBoost !== 'boolean' ||
+        typeof saved.playerBoosting !== 'boolean' ||
+        (saved.playerBoosting && !saved.playerBoost) ||
         !Array.isArray(saved.nextAllyFire) ||
         saved.nextAllyFire.length !== allyIds.length ||
         !saved.nextAllyFire.every((value, index) =>
@@ -807,12 +994,14 @@ export function createInterceptorEvent({
             )
               return false;
           }
+          if (resonance && !validResonanceAttack(attack, index, saved))
+            return false;
           const due = Math.max(
             0,
             Math.min(
               profile.blasts,
               Math.floor(
-                (saved.elapsed - attack.started - FIRE_START + EPSILON) /
+                (saved.elapsed - attack.started - SHOT_START + EPSILON) /
                   COUNTERATTACK.shotInterval,
               ) + 1,
             ),
@@ -848,14 +1037,14 @@ export function createInterceptorEvent({
               (saved.lastHit.weakPoint
                 ? saved.lastHit.source === 'player'
                   ? DAMAGE[saved.lastHit.equipment].player *
-                    (pressure?.coreMultiplier ?? 1)
+                    (opening?.coreMultiplier ?? 1)
                   : DAMAGE[saved.lastHit.equipment].ally + 1
-                : pressure && saved.lastHit.source === 'player'
-                  ? pressure.armorPlayer[saved.lastHit.equipment]
+                : opening?.armorPlayer && saved.lastHit.source === 'player'
+                  ? opening.armorPlayer[saved.lastHit.equipment]
                   : DAMAGE[saved.lastHit.equipment][
                       saved.lastHit.source === 'player' ? 'player' : 'ally'
                     ]) ||
-            (!!pressure && !saved.lastHit.weakPoint
+            (!!opening?.armorPlayer && !saved.lastHit.weakPoint
               ? saved.lastHit.armored !== true
               : saved.lastHit.armored !== undefined) ||
             (saved.lastHit.weakPoint !== undefined &&
@@ -865,7 +1054,7 @@ export function createInterceptorEvent({
                   ? saved.lastHit.source !== 'player' ||
                     !Number.isFinite(saved.lastHit.corePulse?.lateral) ||
                     Math.abs(saved.lastHit.corePulse.lateral) >
-                      pressure.coreHalfWidth ||
+                      opening.coreHalfWidth ||
                     !Number.isFinite(saved.lastHit.corePulse?.gap) ||
                     saved.lastHit.corePulse.gap < 0 ||
                     saved.lastHit.corePulse.gap > 38
@@ -903,6 +1092,8 @@ export function createInterceptorEvent({
           'playerDistance',
           'playerLateral',
           'targetLateral',
+          'playerBoost',
+          'playerBoosting',
           'lastHit',
           'nextAllyFire',
           'nextIonFire',

@@ -12,6 +12,7 @@ import { createInterceptorField } from '../events/interceptor-field.js';
 import { createInterceptorMotion } from '../events/interceptor-motion.js';
 import { createInterceptorChaseMotion } from '../events/interceptor-chase.js';
 import { createInterceptorEffects } from '../events/interceptor-effects.js';
+import { aimWraithScissors } from '../events/interceptor-aim.js';
 import { interceptorBoss } from '../events/interceptor-bosses.js';
 import {
   PURSUIT_EQUIPMENT,
@@ -744,6 +745,8 @@ export async function createGame({
           playerDistance: state.distance,
           playerLateral: state.lateral,
           targetLateral: target.state.lateral,
+          playerBoost: !!control.boost,
+          playerBoosting: !!state.boosting,
           playerValid: race.valid,
         })) {
           if (event.type === 'interceptor-fire')
@@ -761,7 +764,7 @@ export async function createGame({
           mode = 'results';
           ui.setResultsAvailable(true);
           ui.setMode(mode);
-          if (lastResults.won && missionBoss.id === 'goliath')
+          if (lastResults.won && ['goliath', 'wraith'].includes(missionBoss.id))
             emit({
               type: 'interceptor-cue',
               payload: {
@@ -864,7 +867,10 @@ export async function createGame({
       );
       for (const command of pendingMissionFire.splice(0)) {
         if (command.source === missionBoss.id) {
-          if (command.kind === 'lance') {
+          if (
+            command.kind === 'lance' ||
+            (command.kind === 'arc' && command.muzzle)
+          ) {
             let fired;
             if (Number.isFinite(command.aimLane) && command.muzzle) {
               const physical = target.runtime.pose(1);
@@ -885,10 +891,31 @@ export async function createGame({
                   ahead.up,
                 ),
               );
-              fired = combat.fireLance(missionBoss.id, {
+              const shot = {
                 pose: { position: origin, quaternion },
-                signature: 'goliath-pressure',
-              });
+                signature:
+                  command.kind === 'arc'
+                    ? 'wraith-scissor'
+                    : 'goliath-pressure',
+              };
+              if (command.kind === 'arc') {
+                const aimed = aimWraithScissors({
+                  track,
+                  bossPose: physical,
+                  muzzle: command.muzzle,
+                  player: state,
+                  aimLane: command.aimLane,
+                  sourceSpeed: target.state.speed,
+                });
+                shot.pose = {
+                  position: aimed.position,
+                  quaternion: aimed.quaternion,
+                };
+              }
+              fired =
+                command.kind === 'arc'
+                  ? combat.fireArc(missionBoss.id, shot)
+                  : combat.fireLance(missionBoss.id, shot);
             } else fired = combat.fireLance(missionBoss.id);
             if (fired)
               emit({
@@ -2043,6 +2070,31 @@ export async function createGame({
             ship.group.position.clone().addScaledVector(f.tangent, 5),
           );
           camera.updateProjectionMatrix();
+        } else if (
+          mode === 'results' &&
+          missionBoss?.id === 'wraith' &&
+          interceptor.snapshot().result
+        ) {
+          // A long-range takedown still deserves a readable view of the actual
+          // target. Only the camera cuts; the recorded pursuit stays untouched.
+          const target = racers.opponents.find(
+            (r) => r.specification.id === missionBoss.id,
+          );
+          const body = target.runtime.pose(1);
+          const up = new T.Vector3(0, 1, 0).applyQuaternion(body.quaternion);
+          const forward = new T.Vector3(0, 0, 1).applyQuaternion(
+            body.quaternion,
+          );
+          const right = new T.Vector3(1, 0, 0).applyQuaternion(body.quaternion);
+          camera.position
+            .copy(body.position)
+            .addScaledVector(forward, -26)
+            .addScaledVector(up, 6)
+            .addScaledVector(right, -6);
+          camera.up.copy(up);
+          camera.fov = 55;
+          camera.lookAt(body.position.clone().addScaledVector(up, 1));
+          view.follow(body.position);
         } else
           rig.update(track, s, dt, {
             mode: cameraMode,

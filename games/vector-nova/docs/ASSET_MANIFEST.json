@@ -2,6 +2,35 @@
   "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "interceptor-wraith-sfx",
+      "source": "assets/audio/sfx/bosses/",
+      "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
+      "provenance": "Eight locally generated Wraith cues: twin capacitor charge, target ion lock, paired reverse thrust, ion scissors discharge, lock rupture counter, exposed capacitor vent, critical capacitor hit and twin-drive quench. Generated sequentially with the pinned official MLX Small-SFX runtime without reference audio. Current prompts, source/master hashes and exact onset trims, filters, compression and smooth release recipes are retained. Boss events use the shared race effects bus; the return aliases the quieter Wraith turn. Goliath and approved player Lance recordings remain unchanged. Integrated for encounter critique; human listening approval pending.",
+      "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See docs/audio/sfx.md.",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/audio/sfx/bosses/provenance.json",
+      "generationConfigs": [
+        "assets/audio/sfx/bosses/wraith-charge.json",
+        "assets/audio/sfx/bosses/wraith-lock.json",
+        "assets/audio/sfx/bosses/wraith-turn.json",
+        "assets/audio/sfx/bosses/wraith-fire.json",
+        "assets/audio/sfx/bosses/wraith-counter.json",
+        "assets/audio/sfx/bosses/wraith-expose.json",
+        "assets/audio/sfx/bosses/wraith-core-hit.json",
+        "assets/audio/sfx/bosses/wraith-disable.json"
+      ],
+      "runtimeAssets": [
+        "assets/audio/sfx/bosses/wraith-charge.wav",
+        "assets/audio/sfx/bosses/wraith-lock.wav",
+        "assets/audio/sfx/bosses/wraith-turn.wav",
+        "assets/audio/sfx/bosses/wraith-fire.wav",
+        "assets/audio/sfx/bosses/wraith-counter.wav",
+        "assets/audio/sfx/bosses/wraith-expose.wav",
+        "assets/audio/sfx/bosses/wraith-core-hit.wav",
+        "assets/audio/sfx/bosses/wraith-disable.wav"
+      ]
+    },
+    {
       "id": "interceptor-boss-sfx",
       "source": "assets/audio/sfx/bosses/",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",

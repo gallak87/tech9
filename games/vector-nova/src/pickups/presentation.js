@@ -31,12 +31,16 @@ const ICONS = {
 };
 const icon = (kind) =>
   `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[kind]}"/></svg>`;
+const signatureName = (signature) =>
+  signature === 'wraith-scissor' ? 'ION SCISSORS' : 'PRESSURE';
 
 export function pickupEventLabel(event) {
   const kind = event.payload?.kind;
   if (isCombatDevice(kind)) {
     const name = event.payload?.signature
-      ? 'PRESSURE CANNON'
+      ? event.payload.signature === 'wraith-scissor'
+        ? 'ION SCISSORS'
+        : 'PRESSURE CANNON'
       : event.payload?.equipment === 'lance'
         ? 'LANCE'
         : COMBAT_NAMES[kind];
@@ -319,7 +323,7 @@ export function createPickupPresentation({
           combatNoticePriority = priority;
           combatNotice = event.payload.kind;
           combatNoticeName = event.payload.signature
-            ? 'PRESSURE'
+            ? signatureName(event.payload.signature)
             : event.payload.equipment === 'lance'
               ? 'LANCE'
               : null;
@@ -415,12 +419,15 @@ export function createPickupPresentation({
         }
         combatRow.classList.toggle('is-active', !!displayedEmitter);
         combatName.textContent = disruption?.signature
-          ? 'PRESSURE'
+          ? signatureName(disruption.signature)
           : !displayedEmitter && combatNoticeName
             ? combatNoticeName
             : COMBAT_NAMES[combatKind];
         if (disruption?.signature)
-          combatRow.style.setProperty('--device-color', '#ffb65a');
+          combatRow.style.setProperty(
+            '--device-color',
+            disruption.signature === 'wraith-scissor' ? '#8ceaff' : '#ffb65a',
+          );
         const duration =
           combatKind === 'repulsor'
             ? COMBAT_RULES.pulseDelay

@@ -212,6 +212,164 @@ test('a boss lane lock ducks only its charging voice and the return reuses the m
   await audio.dispose();
 });
 
+test('Wraith exposes eight distinct authored auditions, its return alias and only real player capacitor hits', () => {
+  const entries = soundEffects.filter(
+    ({ group }) => group === 'Interceptor · Wraith',
+  );
+  assert.equal(entries.length, 8);
+  assert.equal(
+    new Set(entries.map(({ event }) => raceSample(event)?.id)).size,
+    8,
+  );
+  for (const { event, bus } of entries) {
+    assert.equal(bus, 'race');
+    assert.ok(RACE_SAMPLES[raceSample(event)?.id]);
+  }
+  assert.deepEqual(
+    raceSample({
+      type: 'interceptor-cue',
+      payload: {
+        bossId: 'wraith',
+        cue: 'return',
+      },
+    }),
+    { id: 'wraith-turn', gain: 0.55 },
+  );
+  const critical = {
+    bossId: 'wraith',
+    target: 'wraith',
+    source: 'player',
+    weakPoint: true,
+  };
+  assert.deepEqual(raceSample({ type: 'interceptor-hit', payload: critical }), {
+    id: 'wraith-core-hit',
+    gain: 0.88,
+  });
+  for (const payload of [
+    { ...critical, source: 'rook' },
+    { ...critical, weakPoint: false },
+    { ...critical, target: 'player' },
+  ])
+    assert.equal(raceSample({ type: 'interceptor-hit', payload }), null);
+  assert.equal(
+    raceSample({
+      type: 'interceptor-cue',
+      payload: {
+        bossId: 'wraith',
+        cue: 'recover',
+      },
+    }),
+    null,
+    'Goliath recharge does not borrow a Wraith sound',
+  );
+});
+
+test('a successful Wraith counter hands off its own warning tails without ducking Goliath or player Lance', async (t) => {
+  for (const phase of ['charge', 'lock', 'turn'])
+    await t.test(phase, async () => {
+      const context = sampleContext();
+      const playerContext = sampleContext();
+      const audio = createAudio({
+        createContext: () => context,
+        engine: false,
+        fetchAudio,
+      });
+      const pickups = createPickupAudio({
+        createContext: () => playerContext,
+        fetchAudio,
+      });
+      await audio.unlock();
+      await pickups.unlock();
+      audio.update(state, 0.35, true);
+      pickups.update({ volume: 0.35 }, true);
+      pickups.event({
+        type: 'combat-fire',
+        payload: { equipment: 'lance', kind: 'lance' },
+      });
+      audio.event({
+        type: 'interceptor-cue',
+        payload: { bossId: 'goliath', cue: 'fire' },
+      });
+      audio.event({ type: 'impact' });
+      const warning = {
+        type: 'interceptor-cue',
+        payload: { bossId: 'wraith', cue: phase },
+      };
+      audio.event(warning);
+      const sources = () =>
+        context.nodes.filter((node) => node.buffer?.sampleUrl);
+      const old = sources();
+      const playerLance = playerContext.nodes.find(
+        (node) => node.buffer?.sampleUrl === DEVICE_SAMPLES['lance-fire'],
+      );
+      assert.ok(playerLance);
+      const unchanged = [old[0], old[1], playerLance].map((voice) =>
+        structuredClone(voice.destination.gain.automation),
+      );
+      context.currentTime = 0.1;
+      audio.event({
+        type: 'interceptor-cue',
+        payload: { bossId: 'wraith', cue: 'counter' },
+      });
+      assert.equal(
+        sources().at(-1).buffer.sampleUrl,
+        RACE_SAMPLES['wraith-counter'],
+      );
+      const duck = old[2].destination.gain.automation.find(
+        (entry) =>
+          entry.type === 'linear' && Math.abs(entry.time - 0.115) < 1e-9,
+      );
+      assert.equal(duck?.value, raceSample(warning).gain * 0.25);
+      for (const [index, voice] of [old[0], old[1], playerLance].entries())
+        assert.deepEqual(voice.destination.gain.automation, unchanged[index]);
+      audio.update(state, 0.35, false);
+      assert.ok(sources().every((voice) => voice.disconnected));
+      await audio.dispose();
+      await pickups.dispose();
+    });
+});
+
+test('Wraith disable owns a full results tail and retry silences it before the next encounter', async () => {
+  const context = sampleContext({ [RACE_SAMPLES['wraith-disable']]: 1.2 });
+  const audio = createAudio({
+    createContext: () => context,
+    engine: false,
+    fetchAudio,
+  });
+  await audio.unlock();
+  audio.update(state, 0.35, true);
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'wraith', cue: 'fire' },
+  });
+  audio.update(state, 0.35, false, { results: true });
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'wraith', cue: 'disable' },
+  });
+  const sources = () => context.nodes.filter((node) => node.buffer?.sampleUrl);
+  const quench = sources().at(-1);
+  assert.equal(quench.buffer.sampleUrl, RACE_SAMPLES['wraith-disable']);
+  assert.equal(quench.stops[0], 1.21);
+  audio.update(state, 0.35, false, { results: true });
+  assert.equal(quench.disconnected, false);
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'wraith', cue: 'fire' },
+  });
+  assert.equal(sources().length, 2, 'results reject stale ion shots');
+  audio.resetEnvironment();
+  assert.ok(sources().every((voice) => voice.disconnected));
+  audio.update(state, 0.35, true);
+  assert.equal(sources().length, 2, 'retry never replays the quench');
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'wraith', cue: 'charge' },
+  });
+  assert.equal(sources().length, 3);
+  await audio.dispose();
+});
+
 test('boss recovery ducks its own active cannon tail while retaining other cues and approved player Lance', async () => {
   const context = sampleContext({ [RACE_SAMPLES['goliath-fire']]: 0.7 });
   const playerContext = sampleContext();

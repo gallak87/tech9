@@ -145,7 +145,7 @@ function createDetailedCombatPresentation(scene, combat) {
         });
       flashes.forEach(({ group, impact, upright, crown, pressure }, index) => {
         const flash = state.flashes[index];
-        group.visible = !!flash && !isLanceFlash(flash);
+        group.visible = !!flash && !isLanceFlash(flash) && !flash.signature;
         if (!group.visible) return;
         group.position.fromArray(flash.position);
         group.quaternion.fromArray(flash.quaternion);
@@ -203,7 +203,7 @@ function createDetailedCombatPresentation(scene, combat) {
       });
       shots.forEach((mesh, index) => {
         const shot = state.shots[index];
-        mesh.visible = !!shot && !shot.heavy;
+        mesh.visible = !!shot && !shot.heavy && !shot.signature;
         if (!mesh.visible) return;
         mesh.position.fromArray(shot.position);
         mesh.quaternion.fromArray(shot.quaternion);

@@ -19,8 +19,19 @@ RECIPES = {
     "goliath-core-hit": (0, 0.5, 28, 3000, -1.5, 0.001, 0.065),
     "goliath-lock": (0, 0.3, 32, 3300, -2, 0.001, 0.045),
     "goliath-disable": (0.06, 1.2, 26, 3200, -1.5, 0.003, 0.1),
+    "wraith-charge": (0, 1.2, 40, 4200, -3, 0.009, 0.045),
+    "wraith-lock": (0, 0.25, 45, 4200, -2.5, 0.001, 0.04),
+    "wraith-turn": (0.05, 0.55, 40, 4000, -2.5, 0.003, 0.055),
+    "wraith-fire": (0.15, 0.45, 38, 3800, -1.5, 0.001, 0.065),
+    "wraith-counter": (0, 0.55, 38, 4100, -2, 0.002, 0.065),
+    "wraith-expose": (0, 0.8, 40, 3400, -2.5, 0.004, 0.065),
+    "wraith-core-hit": (0.04, 0.4, 35, 3800, -1.5, 0.001, 0.065),
+    "wraith-disable": (0.05, 1.2, 32, 4000, -1.5, 0.003, 0.1),
 }
-DECAYS = {"goliath-disable": {"startSeconds": 0.2, "exponent": 2}}
+DECAYS = {
+    "goliath-disable": {"startSeconds": 0.2, "exponent": 2},
+    "wraith-disable": {"startSeconds": 0.18, "exponent": 2.4},
+}
 
 
 def filter_audio(data, channels, rate, kind, hz):

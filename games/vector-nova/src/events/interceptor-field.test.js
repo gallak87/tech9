@@ -49,6 +49,169 @@ test('the pursuit driver uses brakes to govern the courier and anticipate the la
   );
 });
 
+test('Wraith alone diverts drive power throughout its authored attack without reading player distance', () => {
+  const track = createInterceptorTrack();
+  for (const bossId of ['goliath', 'wraith', 'bulwark']) {
+    let phase = 'idle';
+    const field = createInterceptorField({
+      bossId,
+      getCounterattack: () => ({ phase, phaseElapsed: 0 }),
+    });
+    const state = {
+      ...createVehicleState('bastion'),
+      chassisId: bossId,
+      distance: 1900,
+      speed: 300 / 3.6,
+    };
+    const drive = (gap) =>
+      field.control({
+        opponent: { specification: field.opponents[0], state },
+        track,
+        nearby: [{ distance: state.distance - gap, chassisId: 'shrike' }],
+      });
+    const idle = drive(32);
+    for (phase of [
+      'telegraph',
+      'turning-back',
+      'firing',
+      'turning-forward',
+      'overload',
+      'recovered',
+    ]) {
+      const close = drive(32),
+        distant = drive(1000);
+      assert.deepEqual(
+        close,
+        distant,
+        `${bossId} ${phase} does not depend on the pilot gap`,
+      );
+      if (bossId === 'wraith') {
+        assert.equal(close.throttle, 0);
+        assert.ok(
+          close.brake > idle.brake + 0.1,
+          `ordinary brakes divert drive power during ${phase}`,
+        );
+      } else
+        assert.deepEqual(
+          close,
+          idle,
+          `${bossId} retains its original300km/h pace`,
+        );
+    }
+    phase = 'idle';
+    assert.deepEqual(
+      drive(32),
+      idle,
+      'the ordinary cruise controller resumes after the attack',
+    );
+  }
+  const helion = createHelionBreach().createTrack();
+  const field = createInterceptorField({ track: helion, bossId: 'wraith' });
+  assert.ok(field.id.includes(':l100c200'));
+  assert.ok(field.id.length <= 160);
+});
+
+test('real Helion Wraith physics brakes toward200km/h during charging and accelerates after the six-second drive diversion', async () => {
+  const level = createHelionBreach(),
+    track = level.createTrack();
+  const collisionWorld = level.createCollisionWorld({ track });
+  const dynamics = await createRapierWorld({ collisionWorld });
+  try {
+    for (const station of [1900, 3500]) {
+      let phase = 'telegraph';
+      const field = createInterceptorField({
+        track,
+        bossId: 'wraith',
+        getCounterattack: () => ({ phase }),
+      });
+      const state = {
+        ...createVehicleState('bastion'),
+        chassisId: 'wraith',
+        distance: station,
+        speed: 300 / 3.6,
+      };
+      const runtime = createInterceptorMotion(
+        {
+          track,
+          collisionWorld,
+          dynamics,
+          settings: { steeringAssist: 0.3 },
+          presentation: false,
+        },
+        { createMotion: level.racing.createMotion },
+      );
+      try {
+        runtime.reset({ state });
+        let previous = state.speed,
+          maxChange = 0;
+        const step = () => {
+          const control = field.control({
+            opponent: { specification: field.opponents[0], state, runtime },
+            track,
+            nearby: [],
+          });
+          runtime.beginAdvance(state, control, 1 / 120);
+          dynamics.step(1 / 120);
+          runtime.finishAdvance(state);
+          maxChange = Math.max(maxChange, Math.abs(state.speed - previous));
+          previous = state.speed;
+        };
+        for (let tick = 0; tick < 6 * 120; tick++) step();
+        const chargedSpeed = state.speed;
+        assert.ok(
+          chargedSpeed * 3.6 > 185 && chargedSpeed * 3.6 < 210,
+          `station${station}: settled charging speed${(chargedSpeed * 3.6).toFixed(1)}km/h`,
+        );
+        const charged = field.control({
+          opponent: { specification: field.opponents[0], state, runtime },
+          track,
+          nearby: [],
+        });
+        phase = 'idle';
+        const restored = field.control({
+          opponent: { specification: field.opponents[0], state, runtime },
+          track,
+          nearby: [],
+        });
+        assert.ok(
+          restored.throttle >= charged.throttle &&
+            restored.brake <= charged.brake,
+          'ending capacitor diversion restores ordinary drive authority',
+        );
+        for (let tick = 0; tick < 120; tick++) step();
+        if (station === 1900)
+          assert.ok(
+            state.speed > chargedSpeed + 10,
+            'ordinary thrust restores forward pace on the clear road',
+          );
+        else {
+          assert.ok(
+            runtime.snapshot().heat > 0,
+            'the following active fire section still heats the real hull',
+          );
+          assert.ok(
+            state.speed > 20,
+            'ordinary fire consequences retain real forward movement',
+          );
+        }
+        assert.ok(
+          maxChange < 3,
+          `speed changes continuously through physics:${maxChange}`,
+        );
+        assert.equal(
+          typeof runtime.snapshot().heat,
+          'number',
+          'the original thermal owner remains active',
+        );
+      } finally {
+        runtime.dispose();
+      }
+    }
+  } finally {
+    dynamics.dispose();
+  }
+});
+
 test('real shared courier physics cruises at 300kph while allies retain firing distance for a full lap', async () => {
   const track = createInterceptorTrack(),
     devices = createInterceptorDevices(track);

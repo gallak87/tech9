@@ -12,6 +12,7 @@ const policy = process.env.VN_POLICY ?? 'centre';
 const cycles = Number(process.env.VN_CYCLES ?? 1);
 const firePolicy = process.env.VN_FIRE ?? 'held';
 const difficulty = process.env.VN_DIFFICULTY ?? 'hard';
+const missAttack = Number(process.env.VN_MISS_ATTACK ?? 1);
 const output = resolve('.experiments/fight-critics', level, round);
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({
@@ -22,10 +23,18 @@ const browser = await chromium.launch({
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const faults = [];
 page.on('pageerror', (error) => faults.push(error.message));
+page.on('console', (message) => {
+  if (
+    message.type() === 'error' &&
+    /WebGL|shader|THREE|TypeError|ReferenceError/i.test(message.text())
+  )
+    faults.push(message.text());
+});
 await page.addInitScript(
-  ({ quality, reducedMotion, policy, firePolicy, difficulty }) => {
+  ({ quality, reducedMotion, policy, firePolicy, difficulty, missAttack }) => {
     window.__fightPolicy = policy;
     window.__fightFirePolicy = firePolicy;
+    window.__fightMissAttack = missAttack;
     localStorage.setItem(
       'vector-nova.settings',
       JSON.stringify({
@@ -36,7 +45,7 @@ await page.addInitScript(
       }),
     );
   },
-  { quality, reducedMotion, policy, firePolicy, difficulty },
+  { quality, reducedMotion, policy, firePolicy, difficulty, missAttack },
 );
 await page.route('**/src/core/game.js*', async (route) => {
   const response = await route.fetch();
@@ -64,8 +73,12 @@ await page.route('**/src/core/game.js*', async (route) => {
       return this.fightState();
     },
     fightState() {
+      const model=racerPresentation.getShip(missionBoss.id)?.group;
+      const propulsion=model?.getObjectByName('Rival / propulsion');
+      const powered=[];model?.traverse(o=>{for(const m of [o.material].flat())if(m?.name?.endsWith('_Ion')&&!powered.some(p=>p.name===m.name))powered.push({name:m.name,intensity:m.emissiveIntensity});});
       return {snapshot:this.getSnapshot(), contacts:structuredClone(window.__fightHits ?? []),
         combat:combat.view(), metrics:this.getMetrics(), camera:camera.position.toArray(),
+        presentation:{powered,plumes:propulsion?.children.map(p=>({scale:p.scale.toArray(),strength:p.material.uniforms?.strength?.value,opacity:p.material.opacity})),white:model?.getObjectByName('Boss / white armor hit')?.visible},
         opponents:racers.opponents.map(r=>({id:r.specification.id,state:{...r.state},pose:{position:r.runtime.pose(1).position.toArray()}}))};
     },
     settleFight(frames = 1) {
@@ -98,6 +111,9 @@ try {
   );
   await page.evaluate(async () => {
     const { getRacerControl } = await import('/src/race/racers.js');
+    const { createInterceptorField } =
+      await import('/src/events/interceptor-field.js');
+    let pursuitField;
     window.__fightPilot = ({
       state,
       track,
@@ -112,21 +128,27 @@ try {
       const gap = target.distance - state.distance;
       const policy = window.__fightPolicy ?? 'centre';
       const attack = mission.counterattack;
-      const dodge =
-        policy === 'dodge' ||
-        (policy === 'imperfect' && attack.attackIndex !== 1);
-      const options = [-13, 0, 13];
+      const missed = attack.attackIndex === window.__fightMissAttack;
+      const dodge = policy === 'dodge' || (policy === 'imperfect' && !missed);
+      const edge = Math.min(13, track.width / 2 - 4);
+      const options = [-edge, 0, edge];
       const distance = (lane) =>
         Math.min(...(attack.aimLanes ?? [0]).map((x) => Math.abs(x - lane)));
+      const counterLine =
+        attack.resonance && ['counter', 'held', 'imperfect'].includes(policy);
       const lane =
-        attack.locked && attack.warning && attack.shots < attack.blasts
-          ? dodge
-            ? options.toSorted((a, b) => distance(b) - distance(a))[0]
-            : ['camp', 'imperfect'].includes(policy)
-              ? attack.aimLanes[0]
-              : 0
+        attack.locked &&
+        attack.warning &&
+        (attack.resonance || attack.shots < attack.blasts)
+          ? counterLine
+            ? mission.counterattacks.at(-1).trackingLane
+            : dodge
+              ? options.toSorted((a, b) => distance(b) - distance(a))[0]
+              : ['camp', 'imperfect'].includes(policy)
+                ? attack.aimLanes[0]
+                : 0
           : 0;
-      const control = getRacerControl(state, track, {
+      let control = getRacerControl(state, track, {
         difficulty: 'hard',
         pace: 1,
         lane,
@@ -134,16 +156,45 @@ try {
         runtime: attack.warning || attack.exposed ? null : runtime,
         nearby: [],
       });
-      control.boost = gap > 36 && state.energy > 10;
+      const s = ((state.distance % track.length) + track.length) % track.length;
+      const inDetour = track.pursuitPath?.intervals.some(
+        (i) => s >= i.start && s <= i.end,
+      );
+      if (inDetour) {
+        pursuitField ??= createInterceptorField({
+          track,
+          bossId: mission.bossId,
+        });
+        // Reuse the course's supported detour intent. This remains ordinary
+        // steering/throttle input through the unmodified thermal/flight body.
+        control = pursuitField.control({
+          opponent: { specification: { id: mission.bossId }, state, runtime },
+          track,
+          devices,
+          nearby: [],
+          defaultControl: control,
+        });
+      }
+      control.boost = gap > 36 && state.energy > 10 && !inDetour;
+      if (attack.resonance && attack.warning) {
+        if (policy === 'counter' || (policy === 'imperfect' && !missed))
+          control.boost =
+            attack.canCounter && attack.elapsed >= 1 && !attack.countered;
+        else if (policy === 'held' || (policy === 'imperfect' && missed))
+          control.boost = true;
+        else control.boost = false;
+      }
       control.equipment1 =
         window.__fightFirePolicy === 'window'
           ? attack.exposed &&
-            attack.phaseElapsed > 0.4 &&
-            attack.phaseElapsed < 0.6
+            attack.phaseElapsed > (attack.resonance ? 0.7 : 0.4) &&
+            attack.phaseElapsed < (attack.resonance ? 0.9 : 0.6)
           : window.__fightFirePolicy === 'none'
             ? false
             : state.time > 2;
-      control.equipment2 = state.energy < 45;
+      control.equipment2 =
+        state.energy < 45 &&
+        runtime.snapshot().equipment.slots[1]?.remaining === 0;
       return control;
     };
   });
@@ -153,7 +204,7 @@ try {
     previousShots = 0,
     firstShot = null;
   let currentAttack = null;
-  for (let i = 0; i < Math.max(240, cycles * 250); i++) {
+  for (let i = 0; i < Math.max(380, cycles * 350); i++) {
     const data = await page.evaluate(() => window.__VN.stepFight(1));
     const mission = data.snapshot.interceptor;
     const phase = mission.counterattack.phase;
@@ -181,6 +232,23 @@ try {
     if (!seen.has(phase) && phase !== 'idle') {
       seen.add(phase);
       label = phase;
+    }
+    if (mission.counterattack.locked && !seen.has('lock')) {
+      seen.add('lock');
+      label = 'lock';
+    }
+    if (mission.counterattack.countered && !seen.has('counter')) {
+      seen.add('counter');
+      label = 'counter';
+    }
+    if (
+      mission.counterattack.countered &&
+      mission.elapsed - mission.counterattack.counterAt > 0.12 &&
+      mission.elapsed - mission.counterattack.counterAt < 0.3 &&
+      !seen.has('counter-rupture')
+    ) {
+      seen.add('counter-rupture');
+      label = 'counter-rupture';
     }
     if (
       phase === 'turning-back' &&
@@ -220,15 +288,31 @@ try {
       label = 'core-slam';
     }
     if (
-      phase === 'breach' &&
+      ['breach', 'overload'].includes(phase) &&
       mission.counterattack.phaseElapsed > 0.35 &&
       !recent &&
+      (phase !== 'overload' ||
+        !data.combat.flashes.some(
+          (f) =>
+            f.target === mission.targetId && f.kind !== 'aegis' && f.age < 0.35,
+        )) &&
       !seen.has('breach-open')
     ) {
       seen.add('breach-open');
-      label = 'breach-open';
+      label = phase === 'overload' ? 'capacitors-open' : 'breach-open';
     }
     previousShots = shots;
+    const restored =
+      seen.has('turning-forward') &&
+      phase === 'idle' &&
+      mission.elapsed -
+        mission.counterattack.started -
+        mission.counterattack.elapsed >
+        0.5;
+    if (restored && !seen.has('cruise-restored')) {
+      seen.add('cruise-restored');
+      label = 'cruise-restored';
+    }
     if (label) {
       if (cycles > 1) label = `a${attackIndex + 1}-${label}`;
       const path = resolve(output, `${label}.png`);
@@ -240,18 +324,19 @@ try {
         gap: mission.gap,
         phase,
         health: mission.health,
+        playerBoosting: data.snapshot.vehicle.boosting,
+        reserve: data.snapshot.vehicle.energy,
+        countered: mission.counterattack.countered,
+        counterProgress: mission.counterattack.counterProgress,
+        aimLanes: mission.counterattack.aimLanes,
+        presentation: data.presentation,
         playerLateral: data.snapshot.vehicle.lateral,
         lastHit: mission.lastHit,
         contacts: data.contacts.length,
       });
       console.log(JSON.stringify(frames.at(-1)));
     }
-    if (
-      seen.has('turning-forward') &&
-      phase === 'idle' &&
-      attackIndex >= cycles - 1
-    )
-      break;
+    if (restored && attackIndex >= cycles - 1) break;
     if (mission.result) {
       if (mission.result.won) {
         for (const [label, steps] of [

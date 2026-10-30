@@ -31,9 +31,12 @@ export function fitBossPropulsion(propulsion, frame, scale, mouthRadii) {
     plume.scale.z *= scale.z;
     // A visible idle core keeps Low's powered blue cue without filling the
     // aperture. Driving/full-boost endpoints retain the existing translucency.
-    plume.material.opacity = Math.min(
-      0.7,
-      0.18 + thrust * 0.295 + pressure * 0.22,
-    );
+    plume.material.opacity =
+      Math.min(0.7, 0.18 + thrust * 0.295 + pressure * 0.22) *
+      MathUtils.clamp(
+        Number.isFinite(frame.drivePower) ? frame.drivePower : 1,
+        0,
+        1,
+      );
   }
 }

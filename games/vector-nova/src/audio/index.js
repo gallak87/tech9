@@ -232,6 +232,14 @@ export function createAudio({
         for (const shot of shots)
           if (shot.sampleId === `${event.payload.bossId}-fire`)
             shot.duck?.(0.5);
+      if (event?.type === 'interceptor-cue' && event.payload?.cue === 'counter')
+        for (const shot of shots)
+          if (
+            ['charge', 'lock', 'turn'].some(
+              (cue) => shot.sampleId === `${event.payload.bossId}-${cue}`,
+            )
+          )
+            shot.duck?.(0.25);
       const finalLap = event.type === 'final-lap';
       if (finish || finalLap)
         for (const shot of shots)

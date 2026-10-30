@@ -268,3 +268,122 @@ for (const id of ['goliath', 'wraith', 'bulwark']) {
     }
   });
 }
+
+test('a charged Wraith defeat fades from actual current engine brightness and retry starts a fresh fade', async () => {
+  const scene = new T.Scene();
+  const racer = opponent('wraith', 'quarry');
+  const racers = { enabled: true, opponents: [racer] };
+  const presentation = await createRacerPresentation({
+    scene,
+    racers,
+    track,
+    settings: { quality: 'low' },
+    loadRival: async (id) => createBossTarget(id, { quality: 'low' }),
+  });
+  const boss = presentation.getShip('wraith').group;
+  const power = new Set();
+  boss.traverse((object) => {
+    for (const material of [object.material].flat())
+      if (material?.emissive?.getHex()) power.add(material);
+  });
+  const effects = createInterceptorEffects({
+    scene,
+    boss,
+    bossId: 'wraith',
+    track,
+    racers,
+    combat: { view: () => ({ time: 10, shots: [], flashes: [] }) },
+  });
+  const mission = {
+    targetId: 'wraith',
+    health: 700,
+    result: null,
+    elapsed: 10,
+    counterattack: {
+      phase: 'overload',
+      started: 6.5,
+      elapsed: 3.5,
+      phaseElapsed: 0.5,
+      exposed: true,
+      warning: false,
+      shots: 2,
+      blasts: 2,
+    },
+  };
+  const frame = {
+    mode: 'racing',
+    presentationDt: 0.1,
+    settings: { quality: 'low' },
+    state: { distance: 68, lateral: 0, speed: 80 },
+    ship: { group: new T.Group() },
+    interceptor: mission,
+  };
+  const brightness = () =>
+    [...power].map((material) => material.emissiveIntensity);
+  const update = () => {
+    presentation.update(frame);
+    effects.update(frame);
+  };
+  try {
+    for (const cruiseSpeed of [80, 30]) {
+      effects.reset();
+      racer.state.speed = cruiseSpeed;
+      frame.mode = 'racing';
+      mission.health = 700;
+      mission.result = null;
+      update();
+      const charged = brightness();
+      assert.ok(charged.every((value) => value > 0));
+      frame.mode = 'results';
+      mission.health = 0;
+      mission.result = { won: true };
+      update();
+      assert.deepEqual(
+        brightness(),
+        charged,
+        'the first disabled frame never brightens dim charged engines',
+      );
+      let previous = charged;
+      for (let tick = 0; tick < 6; tick++) {
+        update();
+        const current = brightness();
+        assert.ok(
+          current.every((value, index) => value <= previous[index] + 1e-12),
+          'results fade monotonically despite repeated propulsion updates',
+        );
+        previous = current;
+      }
+      assert.ok(brightness().every((value) => value === 0));
+      assert.equal(boss.getObjectByName('Rival / propulsion').visible, false);
+      effects.reset();
+      frame.mode = 'countdown';
+      mission.health = 700;
+      mission.result = null;
+      mission.counterattack = {
+        phase: 'idle',
+        started: null,
+        elapsed: 0,
+        exposed: false,
+        warning: false,
+      };
+      update();
+      assert.ok(
+        brightness().every((value, index) => value > charged[index]),
+        'retry restores the full authored drive response',
+      );
+      mission.counterattack = {
+        phase: 'overload',
+        started: 6.5,
+        elapsed: 3.5,
+        phaseElapsed: 0.5,
+        exposed: true,
+        warning: false,
+        shots: 2,
+        blasts: 2,
+      };
+    }
+  } finally {
+    effects.dispose();
+    presentation.dispose();
+  }
+});

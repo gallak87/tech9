@@ -99,6 +99,7 @@ export function createRivalPropulsion(hull, settings = {}) {
     quality = settings.quality,
     reducedMotion = false,
     visible = true,
+    drivePower = 1,
   } = {}) {
     if (disposed) return;
     setQuality(quality);
@@ -114,11 +115,17 @@ export function createRivalPropulsion(hull, settings = {}) {
       1,
       pressure,
     );
+    const powerScale = T.MathUtils.clamp(
+      Number.isFinite(drivePower) ? drivePower : 1,
+      0,
+      1,
+    );
     for (const [mat, intensity] of power)
-      mat.emissiveIntensity = intensity * (0.8 + thrust * 0.4 + pressure * 0.7);
+      mat.emissiveIntensity =
+        intensity * (0.8 + thrust * 0.4 + pressure * 0.7) * powerScale;
     if (tier === 'high') {
       const u = material.uniforms;
-      u.strength.value = 0.1 + thrust * 0.95 + pressure * 0.8;
+      u.strength.value = (0.1 + thrust * 0.95 + pressure * 0.8) * powerScale;
       u.flowTime.value = flowTime;
       u.reducedMotion.value = reducedMotion ? 1 : 0;
       u.boostMix.value = pressure;
@@ -129,12 +136,14 @@ export function createRivalPropulsion(hull, settings = {}) {
       geometry.attributes.color.array.set(lowColors[catapulting ? 1 : 0]);
       geometry.attributes.color.needsUpdate = true;
     }
+    if (tier === 'low') material.opacity = 0.85 * powerScale;
     vectorTint = catapulting;
     for (const plume of plumes)
       plume.scale.set(
         1 + thrust * 0.15 + pressure * 0.32,
         1 + thrust * 0.15 + pressure * 0.32,
-        0.3 + thrust * 4.1 + pressure * 3.1,
+        (0.3 + thrust * 4.1 + pressure * 3.1) *
+          T.MathUtils.lerp(0.4, 1, powerScale),
       );
     group.userData.pressure = pressure;
   }

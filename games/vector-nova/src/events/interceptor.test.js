@@ -561,7 +561,7 @@ test('each boss keeps the same difficulty hulls while using its own physical att
       assert.equal(initial.bossKind, boss.kind);
       assert.equal(initial.counterattack.kind, attack.kind);
       assert.equal(initial.counterattack.blasts, attack.blasts[difficulty]);
-      const marker = 1000 * attack.marker;
+      const marker = 1000 * (attack.markers ?? [attack.marker])[0];
       assert.deepEqual(mission.step(1, progress(marker - 1)), []);
       assert.equal(mission.snapshot().counterattack.phase, 'idle');
       assert.equal(
@@ -573,7 +573,10 @@ test('each boss keeps the same difficulty hulls while using its own physical att
       assert.equal(mission.snapshot().counterattack.phase, 'telegraph');
       assert.equal(mission.snapshot().counterattack.started, 2);
       const first = mission
-        .step(attack.telegraph + attack.turn, progress(marker + 10))
+        .step(
+          attack.telegraph + attack.turn + (attack.fireDelay ?? 0),
+          progress(marker + 10),
+        )
         .filter((event) => event.type === 'interceptor-fire');
       assert.equal(first.length, 1);
       assert.equal(first[0].payload.source, bossId);
@@ -594,8 +597,9 @@ test('each boss keeps the same difficulty hulls while using its own physical att
       const remaining =
         attack.hold +
         attack.turn +
-        (attack.pressure?.breach ?? 0) -
-        rest * attack.shotInterval;
+        (attack.pressure?.breach ?? attack.resonance?.breach ?? 0) -
+        rest * attack.shotInterval -
+        (attack.fireDelay ?? 0);
       mission.step(remaining, progress(marker + 30));
       assert.equal(mission.snapshot().counterattack.phase, 'idle');
       assert.equal(mission.snapshot().counterattack.yaw, 0);
@@ -630,9 +634,12 @@ test('specialist attack restores retain only the unfinished rear-facing volley',
     };
     const a = create(options),
       b = create(options);
-    const marker = 1000 * attack.marker;
+    const marker = 1000 * (attack.markers ?? [attack.marker])[0];
     a.step(1, progress(marker));
-    a.step(attack.telegraph + attack.turn, progress(marker + 10));
+    a.step(
+      attack.telegraph + attack.turn + (attack.fireDelay ?? 0),
+      progress(marker + 10),
+    );
     const saved = JSON.parse(JSON.stringify(a.snapshot()));
     assert.equal(saved.counterattack.shots, 1);
     b.restore(saved);
@@ -644,7 +651,12 @@ test('specialist attack restores retain only the unfinished rear-facing volley',
     assert.equal(replay.length, 1);
     assert.deepEqual(b.snapshot(), a.snapshot());
     assert.equal(b.snapshot().counterattack.yaw, Math.PI);
-    const remaining = attack.hold + attack.turn - attack.shotInterval;
+    const remaining =
+      attack.hold +
+      attack.turn +
+      (attack.resonance?.breach ?? 0) -
+      attack.shotInterval -
+      (attack.fireDelay ?? 0);
     assert.deepEqual(
       a.step(remaining, progress(marker + 30)),
       b.step(remaining, progress(marker + 30)),
@@ -655,7 +667,12 @@ test('specialist attack restores retain only the unfinished rear-facing volley',
     assert.equal(b.snapshot().counterattack.phase, 'idle');
     assert.equal(b.snapshot().nextIonFire, boss.countermeasureInterval);
     assert.deepEqual(b.snapshot().counterattacks, []);
-    assert.deepEqual(b.step(1, progress(marker)), []);
+    assert.equal(
+      b
+        .step(1, progress(marker))
+        .filter((event) => event.type === 'interceptor-fire').length,
+      0,
+    );
     assert.equal(b.snapshot().counterattack.phase, 'telegraph');
   }
 });
@@ -675,14 +692,15 @@ test('every authored boss beat warns, fires across both laps and holds its aim t
         routeLength: 1000,
         escapeDistance: 2000,
       });
-      const firing = attack.telegraph + attack.turn,
+      const firing = attack.telegraph + attack.turn + (attack.fireDelay ?? 0),
         lastShot = (attack.blasts[difficulty] - 1) * attack.shotInterval,
         burstTail =
-          attack.kind === 'arc'
+          attack.kind === 'arc' && !attack.resonance
             ? COMBAT_RULES.arcDelay + 2 * COMBAT_RULES.arcInterval
             : 0;
       assert.ok(
-        attack.hold - lastShot - burstTail >= 0.6,
+        attack.hold - (attack.fireDelay ?? 0) - lastShot - burstTail >=
+          (attack.resonance ? 0.3 : 0.6),
         'hold the final projectile before turning forward',
       );
       const markers = attack.markers ?? [attack.marker];
@@ -703,7 +721,11 @@ test('every authored boss beat warns, fires across both laps and holds its aim t
         assert.equal(mission.snapshot().counterattack.phase, 'firing');
         assert.equal(mission.snapshot().counterattack.yaw, Math.PI);
         mission.step(
-          attack.hold + attack.turn + (attack.pressure?.breach ?? 0) - lastShot,
+          attack.hold +
+            attack.turn +
+            (attack.pressure?.breach ?? attack.resonance?.breach ?? 0) -
+            lastShot -
+            (attack.fireDelay ?? 0),
           progress(marker + 30),
         );
         assert.equal(mission.snapshot().counterattack.phase, 'idle');
@@ -749,7 +771,7 @@ test('Bulwark keeps separate Ion wakes and suppresses them while its heavy volle
 test('boss identity, target aliases, real damage ownership and named terminal results survive replay isolation', () => {
   const identities = new Set();
   for (const bossId of ['goliath', 'wraith', 'bulwark']) {
-    const health = bossId === 'goliath' ? 9 : 18;
+    const health = bossId === 'bulwark' ? 18 : 9;
     const mission = create({ bossId, health });
     identities.add(mission.rulesId);
     assert.equal(
@@ -781,7 +803,7 @@ test('boss identity, target aliases, real damage ownership and named terminal re
   const alias = create({
     bossId: 'wraith',
     targetId: 'custom-target',
-    health: 18,
+    health: 9,
   });
   assert.deepEqual(alias.hit({ ...lance(), target: 'wraith' }), []);
   assert.equal(
@@ -832,7 +854,7 @@ test('real unblocked hits determine damage, distinguish player/allies, and dedup
   assert.equal(snapshot.hits, 4);
 });
 
-test('Goliath armor chips retain real hit credit and replay identity while other bosses keep stock weapon damage', () => {
+test('Goliath and Wraith armor chips retain real hit credit and replay identity while Bulwark keeps stock weapon damage', () => {
   for (const bossId of ['goliath', 'wraith', 'bulwark']) {
     const mission = create({ bossId });
     for (const [equipment, stock, chip] of [
@@ -847,10 +869,10 @@ test('Goliath armor chips retain real hit credit and replay identity while other
         kind: equipment === 'lance' ? 'repulsor' : equipment,
         ...(equipment === 'lance' ? { equipment: 'lance' } : {}),
       });
-      assert.equal(hit[0].payload.damage, bossId === 'goliath' ? chip : stock);
+      assert.equal(hit[0].payload.damage, bossId !== 'bulwark' ? chip : stock);
       assert.equal(
         hit[0].payload.armored,
-        bossId === 'goliath' ? true : undefined,
+        bossId !== 'bulwark' ? true : undefined,
       );
       assert.equal(hit[0].payload.weakPoint, undefined);
     }
@@ -860,13 +882,15 @@ test('Goliath armor chips retain real hit credit and replay identity while other
     assert.deepEqual(restored.snapshot(), saved);
     assert.equal(saved.hits, 3, 'armor does not discard real contacts');
     const forged = structuredClone(saved);
-    if (bossId === 'goliath') {
+    if (bossId !== 'bulwark') {
       delete forged.lastHit.armored;
       assert.deepEqual(
-        JSON.parse(mission.rulesId).counterattack.pressure.armorPlayer,
+        JSON.parse(mission.rulesId).counterattack[
+          bossId === 'goliath' ? 'pressure' : 'resonance'
+        ].armorPlayer,
         { lance: 9, arc: 2, repulsor: 6 },
       );
-      assert.equal(saved.version, 8);
+      assert.equal(saved.version, 9);
     } else forged.lastHit.armored = true;
     assert.throws(() => restored.restore(forged));
     assert.deepEqual(restored.snapshot(), saved);

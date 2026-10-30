@@ -1,4 +1,36 @@
 export const RACE_SAMPLES = {
+  'wraith-charge': new URL(
+    '../../assets/audio/sfx/bosses/wraith-charge.wav',
+    import.meta.url,
+  ).href,
+  'wraith-lock': new URL(
+    '../../assets/audio/sfx/bosses/wraith-lock.wav',
+    import.meta.url,
+  ).href,
+  'wraith-turn': new URL(
+    '../../assets/audio/sfx/bosses/wraith-turn.wav',
+    import.meta.url,
+  ).href,
+  'wraith-fire': new URL(
+    '../../assets/audio/sfx/bosses/wraith-fire.wav',
+    import.meta.url,
+  ).href,
+  'wraith-counter': new URL(
+    '../../assets/audio/sfx/bosses/wraith-counter.wav',
+    import.meta.url,
+  ).href,
+  'wraith-expose': new URL(
+    '../../assets/audio/sfx/bosses/wraith-expose.wav',
+    import.meta.url,
+  ).href,
+  'wraith-core-hit': new URL(
+    '../../assets/audio/sfx/bosses/wraith-core-hit.wav',
+    import.meta.url,
+  ).href,
+  'wraith-disable': new URL(
+    '../../assets/audio/sfx/bosses/wraith-disable.wav',
+    import.meta.url,
+  ).href,
   'goliath-charge': new URL(
     '../../assets/audio/sfx/bosses/goliath-charge.wav',
     import.meta.url,
@@ -71,6 +103,7 @@ export function raceSample(event) {
         lock: 0.9,
         return: 0.55,
         disable: 0.95,
+        counter: 0.9,
       };
       const { bossId, cue } = event.payload ?? {};
       const id = `${bossId}-${cue === 'return' ? 'turn' : cue}`;
@@ -83,6 +116,7 @@ export function raceSample(event) {
       const id = `${bossId ?? target}-core-hit`;
       return source === 'player' &&
         weakPoint === true &&
+        target === (bossId ?? target) &&
         Object.hasOwn(RACE_SAMPLES, id)
         ? { id, gain: 0.88 }
         : null;

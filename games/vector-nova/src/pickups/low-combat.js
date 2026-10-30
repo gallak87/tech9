@@ -118,7 +118,8 @@ export function createLowCombatPresentation(scene, combat) {
       flashes.count = 0;
       for (const flash of state.flashes.slice(0, 32)) {
         // The bolt itself supplies the muzzle cue; contacts use one small ring.
-        if (flash.type === 'muzzle' || isLanceFlash(flash)) continue;
+        if (flash.type === 'muzzle' || isLanceFlash(flash) || flash.signature)
+          continue;
         transform.position.fromArray(flash.position);
         transform.quaternion.fromArray(flash.quaternion);
         const pulse = flash.kind === 'repulsor' && flash.radius > 10;
@@ -135,7 +136,7 @@ export function createLowCombatPresentation(scene, combat) {
       }
       shots.count = 0;
       for (const shot of state.shots.slice(0, 30)) {
-        if (shot.heavy) continue;
+        if (shot.heavy || shot.signature) continue;
         transform.position.fromArray(shot.position);
         transform.quaternion.fromArray(shot.quaternion);
         transform.position.add(

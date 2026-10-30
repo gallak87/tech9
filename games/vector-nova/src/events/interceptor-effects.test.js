@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import { createInterceptorEffects } from './interceptor-effects.js';
+import { createWraithTarget } from '../ships/wraith-target.js';
 
 test('boss white hits cover real instanced armor, expire and never own ship resources', () => {
   const scene = new T.Scene(),
@@ -320,3 +321,111 @@ for (const settings of [
     }
   });
 }
+
+test('rapid real Wraith contact feedback leaves visible gaps for its open core and resets cleanly after pause/retry', () => {
+  const scene = new T.Scene(),
+    ship = createWraithTarget({ quality: 'low' }),
+    boss = ship.group;
+  scene.add(boss);
+  const state = { time: 0, shots: [], flashes: [] };
+  const effects = createInterceptorEffects({
+    scene,
+    boss,
+    bossId: 'wraith',
+    combat: { view: () => state },
+    racers: {
+      opponents: [
+        {
+          specification: { id: 'wraith' },
+          state: { distance: 100, speed: 80 },
+        },
+      ],
+    },
+    track: {
+      sample: (s) => ({
+        position: new T.Vector3(0, 0, s),
+        right: new T.Vector3(1, 0, 0),
+        up: new T.Vector3(0, 1, 0),
+      }),
+    },
+  });
+  const frame = {
+    mode: 'racing',
+    settings: { quality: 'high', reducedMotion: false },
+    state: { distance: 68, lateral: 0, speed: 80 },
+    interceptor: {
+      elapsed: 0,
+      health: 700,
+      counterattack: {
+        phase: 'overload',
+        exposed: true,
+        phaseElapsed: 0.5,
+        elapsed: 3.5,
+        warning: false,
+        shots: 2,
+        blasts: 2,
+      },
+    },
+  };
+  try {
+    const white = boss.getObjectByName('Boss / white armor hit');
+    const capacitor = boss
+      .getObjectByName('Wraith / split capacitors')
+      .children.find((child) => child.geometry?.type === 'OctahedronGeometry');
+    let on = 0,
+      longest = 0,
+      current = 0,
+      openCoreFrames = 0;
+    for (let tick = 0; tick < 120; tick++) {
+      state.time = frame.interceptor.elapsed = tick / 120;
+      state.flashes = [{ id: tick, target: 'wraith', kind: 'arc', age: 0 }];
+      effects.update(frame);
+      if (white.visible) {
+        on++;
+        current++;
+        longest = Math.max(longest, current);
+      } else {
+        current = 0;
+        if (capacitor.visible) openCoreFrames++;
+      }
+    }
+    assert.ok(
+      on > 0,
+      'accepted rapid contacts still produce unmistakable white feedback',
+    );
+    assert.ok(
+      longest <= 16,
+      'no continuous white pulse can exceed the short response window',
+    );
+    assert.ok(
+      openCoreFrames > 50,
+      'repeated impacts cannot permanently obscure the actual exposed target',
+    );
+    effects.reset();
+    state.time = frame.interceptor.elapsed = 2;
+    state.flashes = [{ id: 1000, target: 'wraith', kind: 'arc', age: 0 }];
+    effects.update(frame);
+    assert.equal(white.visible, true);
+    const opacity = white.children[0].material.opacity;
+    frame.mode = 'paused';
+    for (let repeat = 0; repeat < 5; repeat++) effects.update(frame);
+    assert.equal(
+      white.children[0].material.opacity,
+      opacity,
+      'pause freezes the bounded hit response',
+    );
+    effects.reset();
+    frame.mode = 'racing';
+    state.time = frame.interceptor.elapsed = 0;
+    state.flashes = [{ id: 0, target: 'wraith', kind: 'arc', age: 0 }];
+    effects.update(frame);
+    assert.equal(
+      white.visible,
+      true,
+      'retry immediately accepts its first real contact even with reused IDs',
+    );
+  } finally {
+    effects.dispose();
+    ship.dispose();
+  }
+});

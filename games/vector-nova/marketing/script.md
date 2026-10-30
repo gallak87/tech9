@@ -13,6 +13,7 @@ The promise: fast anti-gravity racing through spectacular worlds, with physical 
 - Save **Shatterline and Nightweir's huge jumps for the climax**, after the Garage, weapon and pickup sequences. Build from hostile environments to racing/combat, then the largest flights.
 - Hero ship: **Kestrel**, the creator's favorite and the full game's final ship unlock. Show the Garage transition from starter Shrike to Kestrel.
 - Show rewards through the Garage, ship choice and equipping a weapon, followed by that weapon in action.
+- Add short animated HTML/CSS title overlays at selected feature beats. Keep driving visible, tie each claim to the action beneath it, and leave the creature reveal and biggest jumps unobstructed.
 - Use the existing soundtrack and pickup/equipment sounds. Choose the song together before locking the cut.
 - Keep the ordinary race camera and useful HUD visible for most footage. Use a brief model view in the Garage; any scenic inserts should support the racing.
 - Open directly on action. Keep text sparse, readable and understandable without narration. Finish with the game title and a clear call to action.
@@ -42,6 +43,54 @@ Capture each action as a longer take with at least 3 seconds of spare footage on
 Keep the Glasswake → Cindercoil → Nacre opening order and reserve the biggest Shatterline/Nightweir flights for the end. If Nacre's complete event or either climax jump needs more room, adjust the cut or extend toward 65–70 seconds. Reduce a secondary middle beat before rushing or speeding up a signature flight. The final music selection may move these boundaries.
 
 Optional reserve footage: a reward/results reveal, a Time Trial ghost chase, a second Garage angle, a Shatterline transparent tube/corkscrew and a Nightweir city descent. Use these only if they strengthen the rough cut; the giant jumps remain the climax.
+
+## Animated feature titles
+
+Use popping title divs over continuing footage to connect the spectacle to what the player can do and earn. Start with the four default cues below, plus the end card. The times are editable; each title needs a readable hold of roughly 2.5–3 seconds after its entrance. Choose a few strong claims rather than displaying a statistic over every shot.
+
+### Current claim inventory
+
+Counts checked against the current full-game source on 2026-10-29. Recheck against the final capture/release build because content is still changing.
+
+| Claim              | Current value and meaning                                                                                                                              | Source                                                                                                |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| Tracks             | **15 tracks: 12 circuits + 3 sprints.** Sprints are Shatterline, Worldspire and Nightweir.                                                             | [Full edition policy](../tools/desktop/policy.mjs), [menu route catalog](../tools/menu-catalog.mjs)   |
+| Ships              | **4 flyable ships; unlock 3 more.** Start with Shrike, earn Bastion, Needle and Kestrel.                                                               | [Progression profile](../src/progression/profile.js), [reward catalog](../src/progression/catalog.js) |
+| Rewards            | **28 rewards to earn:** 18 enhancement tiers, 3 ships, 6 equipped abilities and Quad Core.                                                             | [Reward catalog](../src/progression/catalog.js)                                                       |
+| Equipped abilities | **6 equippable abilities.** These are separate from automatic road pickups.                                                                            | [Equipment/reward catalog](../src/progression/catalog.js)                                             |
+| Championships      | **4 championships:** Founders, Frontier, Horizon and Apex.                                                                                             | [Cup definitions](../src/race/cup.js)                                                                 |
+| Main modes         | **4 modes:** Quick Race, Championships, Time Trial and Practice. Downhill Sprint and Solo Descent are contextual race/practice names on sprint tracks. | [Mode picker](../src/frontend/index.js)                                                               |
+
+The suggested “10 circuits / 4 sprints” and “6 racing modes” are placeholders, not the current shipping claims. Use the values above until the implementation changes. Do not call the mixed reward catalog “28 weapons” or “28 unique ship upgrades”. These counts describe the full game; the demo cut needs its own edition-specific copy.
+
+### Title cue sheet
+
+| Cue | Edit time / shot               | Main title                        | Small supporting line       | Use                                                                                                                                                                       |
+| --- | ------------------------------ | --------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T01 | 03–07 / Glasswake → Cindercoil | **15 TRACKS**                     | **12 CIRCUITS · 3 SPRINTS** | Default. Let the first few seconds establish racing before the title arrives. Clear it before Nacre's breach.                                                             |
+| T02 | 15.5–19 / Colossus racing      | **4 CHAMPIONSHIPS**               | None                        | Default candidate. Use on a readable stretch with rivals; drop it if the machinery needs the whole frame.                                                                 |
+| T03 | 29.2–32.8 / Garage ship switch | **UNLOCK 3 MORE SHIPS**           | None                        | Default. Arrive as the Garage shows the fleet; let Kestrel remain the visual focus.                                                                                       |
+| T04 | 33–36 / Garage equipment       | **28 REWARDS TO EARN**            | None                        | Default. Tie the count to earned enhancements and equipment while equipping Lance.                                                                                        |
+| T05 | 36.2–39.8 / Lance payoff       | **6 EQUIPPABLE ABILITIES**        | None                        | Reserve; replace T04 if this tells the story better. Avoid three uninterrupted cards across Garage and weapon action.                                                     |
+| T06 | Optional mode/ghost insert     | **RACE. CHASE GHOSTS. WIN CUPS.** | None                        | Reserve; only use with footage that demonstrates these activities. Numeric alternative: “4 WAYS TO PLAY”, paired with the four actual mode names and enough reading time. |
+
+Keep the 43–55 second Shatterline/Nightweir climax free of feature-count titles. The end card handles the game name and Steam/demo call to action. If T02 is removed, three feature cards are enough; the footage does not need text everywhere.
+
+### Look, motion and placement
+
+- Match VECTOR//NOVA's typography, angular shapes and existing accents. Use a large headline, optional smaller support line, strong contrast and a restrained dark backing/shadow where the world is busy.
+- Try a quick 150–220 ms entrance with a slight upward slide and scale from about 94% to 100%, then hold steady. Exit in about 150 ms. Avoid continuous bouncing or flashing while the viewer reads.
+- Position each cue in measured empty space. Avoid the ship, receiving road, Nacre creature, gravity cue, race position, timing, equipment HUD and minimap. Check against the actual shot; do not assume one corner is safe everywhere.
+- Use a consistent margin of roughly 5% of the frame. Check readability in the small Steam player. Change placement/reflow for vertical clips rather than blindly cropping the widescreen layout.
+- Start with existing music and game cues; an extra title whoosh is optional and should leave pickup/weapon sounds clear.
+
+### Scripting the overlay layer
+
+Author a separate marketing HTML/CSS overlay layer with `pointer-events: none`. A future title manifest should hold cue ID, shot ID, start/end relative to the **edited shot's in-point**, text, supporting line, position and animation preset. Derive the global timeline from the edit; raw-recording pre-roll must not offset the titles.
+
+Playwright can mount the layer in a headed browser to preview the titles over a rehearsal. For final assembly, keep clean gameplay masters and composite the same titles afterward with the editing/FFmpeg pipeline. This lets us change counts, wording, timing or localization without replaying a shot, and works with Electron footage without changing the shipped game. Export the title animations against the edit's fixed frame clock so their timing is reproducible.
+
+Title wording, animations and the manifest are planning items at this stage; no overlays have been added to the game or capture runner yet.
 
 ## Shot preparation notes
 
@@ -91,6 +140,35 @@ Use a consistent hero ship where possible, especially across Garage → weapon p
 
 The installed Playwright recorder currently uses 25 fps without audio. Keep that option for rough previews if useful; use external screen/window recording for candidate final takes.
 
+### Confirmed local CLI and scripting support
+
+Checked against macOS **26.6.2**, QuickTime Player **10.5**, the installed application's AppleScript dictionary, and `/usr/sbin/screencapture` help/man page. These are interface checks; no screen recording was started.
+
+QuickTime supports AppleScript through `osascript`, including `new screen recording`. However, that command has no recording-document return value in the installed dictionary, unlike `new movie recording`. Apple's macOS 26 instructions confirm that New Screen Recording opens **Screenshot's controls**. Do not assume the movie-recording `start`/`stop` document workflow gives unattended screen recording. [Apple automation guidance](https://support.apple.com/guide/quicktime-player/automation-tips-qtp797f6599f/mac), [macOS 26 screen recording workflow](https://support.apple.com/en-euro/guide/quicktime-player/qtp97b08e666/10.5/mac/26)
+
+The built-in **`screencapture` CLI** is the more direct automation candidate:
+
+| Option                | Documented local behavior                                                                                                           |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `-v`                  | Record video.                                                                                                                       |
+| `-V 15`               | Limit the recording to 15 seconds.                                                                                                  |
+| `-R x,y,width,height` | Select a screen rectangle; check actual Retina output dimensions.                                                                   |
+| `-l WINDOW_ID`        | Select a window; verify video framing on this Mac in the first test.                                                                |
+| `-D 1`                | Select a display. Prefer a game window/region for final takes.                                                                      |
+| `-g` / `-G AUDIO_ID`  | Capture the default audio input / a specified audio source. These do not establish a clean internal-game-audio route by themselves. |
+
+Example for a later, explicitly started test, after creating the output directory and verifying the rectangle contains the game:
+
+```sh
+/usr/sbin/screencapture -v -V 15 -R 100,100,1920,1080 .experiments/marketing/capture-test.mov
+```
+
+The local CLI documents **no frame-rate option** and no explicit system-audio switch. A timed recording command is available, but 60 fps pacing and internal audio still need proving. Its help/man page also does not specify a machine-readable recording-start handshake; a future runner needs measured lead-in time or a backend with a start callback.
+
+For fully scripted **1080p with a 60 fps target and game audio**, the stronger native candidate is a small **ScreenCaptureKit Swift helper**, controlled by Node alongside Playwright. The installed SDK includes frame-interval control, captured audio, file recording and recording-start/finish callbacks. Requesting `minimumFrameInterval = 1/60` sets a capture-rate target; it does not guarantee the game produces 60 unique frames. Capture the selected game application/window and its audio, with microphone capture off. Validate the chosen filter's audio scope in the test. [Apple frame-interval API](https://developer.apple.com/documentation/screencapturekit/scstreamconfiguration/minimumframeinterval), [audio capture API](https://developer.apple.com/documentation/screencapturekit/scstreamconfiguration/capturesaudio), [file recording API](https://developer.apple.com/documentation/screencapturekit/screcordingoutput)
+
+Proposed single-command workflow: **stage shot → await scene readiness → start native recording → await recording-start → pre-roll → real-time Playwright driving → post-roll → stop/finalize → inspect with `ffprobe` → save take metadata**. FFmpeg can later trim, assemble and mix the approved takes using the script's edit points. Both FFmpeg and `ffprobe` are installed locally. The runner, native helper and per-shot driving sequences remain to be implemented; full movie capture waits for the shot-list iteration and technical test. macOS capture permission must be granted to the eventual recorder/host when first used.
+
 ### First technical test
 
 Before recording the full shot list, make a 10–15 second test containing fast motion, a jump/turn and a clearly audible pickup or weapon. This is a future capture step; no recording has been made for this draft.
@@ -116,7 +194,7 @@ OBS on macOS 13+ supports application audio through its macOS Screen Capture sou
 - The existing desktop probe is hidden and muted. A future visible capture runner needs an intentional capture configuration, including game audio; do not assume the verification command is ready to record.
 - Recording remains an explicit later step. This document does not start a server, change saves, launch the game, or record the desktop.
 
-See [desktop release boundaries](../docs/steam/desktop.md#release-boundary) and the [runtime/replay documentation](../ARCHITECTURE.md#lifecycle-and-verification) when implementing the runner. No capture engine or release debug API is required for this draft.
+See [desktop release boundaries](../docs/steam/desktop.md#release-boundary) and the [runtime/replay documentation](../ARCHITECTURE.md#lifecycle-and-verification) when implementing the runner. The built-in CLI path needs no custom recorder; the ScreenCaptureKit path needs a small native helper. Neither requires adding developer APIs to the release game.
 
 ## Music, sound and edit
 
@@ -145,7 +223,9 @@ For each selected raw take, record the shot ID, take number, build/commit plus d
 Before locking the movie:
 
 - [ ] Pick the song and usable section with the creator.
+- [ ] Choose the three or four feature-title cues, preview their layout over the selected takes, and recheck all numeric claims against the final build.
 - [ ] Test QuickTime + headed driver for smooth motion and clean internal audio; choose OBS if needed.
+- [ ] Choose the automation recorder: test the built-in `screencapture` CLI, or implement ScreenCaptureKit for explicit frame-interval/audio control and recording callbacks.
 - [ ] Select the exposed Glasswake blizzard and Cindercoil lava-crossing opening shots.
 - [ ] Rehearse Nacre's first jump and decide its framing/duration after the snow/fire opening.
 - [ ] Identify the exact Colossus, Helion and Umbra approaches to save.

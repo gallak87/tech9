@@ -71,7 +71,7 @@ async function check(
     return;
   const context = await browser.newContext({
     viewport,
-    hasTouch: viewport.width < 760,
+    hasTouch: viewport.width < 760 || viewport.height < 500,
     deviceScaleFactor,
   });
   try {
@@ -2095,7 +2095,7 @@ try {
             .locator('[data-record-filter="ship"]')
             .selectOption('shrike');
           await press('Escape', '[data-action="records"]');
-          await page.locator('.menu-links [data-action="settings"]').focus();
+          await page.locator('.menu-top-tabs [data-action="settings"]').focus();
           await page.waitForFunction(
             () =>
               getComputedStyle(document.activeElement).borderBottomColor ===
@@ -2185,22 +2185,18 @@ try {
               '[data-music-player]',
             );
           });
-          const footer = await page
-            .locator('.menu-links button')
-            .evaluateAll((buttons) =>
-              buttons.map((button) => ({
-                height: button.getBoundingClientRect().height,
-                padding: getComputedStyle(button).paddingInlineStart,
-              })),
-            );
-          const tabPadding = await page
-            .locator('.menu-top-tabs button')
-            .first()
-            .evaluate((button) => getComputedStyle(button).paddingInlineStart);
-          assert.ok(
-            footer.every(
-              (button) => button.height === 32 && button.padding === tabPadding,
-            ),
+          assert.deepEqual(
+            await page.locator('.menu-top-tabs button').allTextContents(),
+            ['Race', 'Garage', 'Settings', 'Career & saves', 'Tunes'],
+          );
+          assert.equal(
+            await page
+              .locator(
+                '.menu-links [data-action="settings"], .menu-links [data-action="career"], .menu-links [data-action="tunes"]',
+              )
+              .count(),
+            0,
+            'top-level pages must not remain in the old footer',
           );
           await compactWidthFits(page);
           await page.locator('[data-action="garage-tab"]').click();
@@ -2243,14 +2239,14 @@ try {
           await page.mouse.move(0, 0);
           assert.deepEqual(
             await glasswake.evaluate((card) => {
-              const underline = getComputedStyle(card, '::after');
+              const accent = getComputedStyle(card, '::after');
               return {
-                color: underline.backgroundColor,
-                height: underline.height,
+                color: accent.backgroundColor,
+                width: accent.width,
               };
             }),
-            { color: 'rgb(208, 24, 24)', height: '2px' },
-            'the selected circuit keeps its red underline after the pointer leaves',
+            { color: 'rgb(208, 24, 24)', width: '2px' },
+            'the selected circuit keeps its red left accent after the pointer leaves',
           );
           await compactWidthFits(page);
           await page.locator('.picker-header [data-action="home"]').click();
@@ -2275,6 +2271,175 @@ try {
         viewport,
       );
     }
+  }
+  for (const viewport of [
+    ...(!flags.includes('--responsive') ? [{ width: 1440, height: 1000 }] : []),
+    ...(!flags.includes('--desktop')
+      ? [
+          { width: 390, height: 844 },
+          { width: 844, height: 390 },
+          { width: 320, height: 700 },
+        ]
+      : []),
+  ]) {
+    await check(
+      `top-level utility pages ${viewport.width}×${viewport.height}`,
+      async (page) => {
+        await page.goto(url('level=halcyon'));
+        await fleetReady(page);
+        const tab = (action) =>
+          page.locator(`.menu-top-tabs [data-action="${action}"]`);
+        const activate = async (action) => {
+          if (viewport.width < 760 || viewport.height < 500)
+            await tab(action).tap();
+          else await tab(action).click();
+          assert.equal(
+            await page
+              .locator('.menu-top-tabs [aria-pressed="true"]')
+              .getAttribute('data-action'),
+            action,
+          );
+        };
+        const fits = async () => {
+          assert.equal(
+            await page.evaluate(() => {
+              const shell = document.querySelector('#front-shell');
+              const tabs = [
+                ...document.querySelectorAll('.menu-top-tabs button'),
+              ];
+              return (
+                document.documentElement.scrollWidth <= innerWidth &&
+                shell.scrollWidth <= shell.clientWidth + 1 &&
+                tabs.every((tab) => {
+                  const r = tab.getBoundingClientRect();
+                  return (
+                    r.left >= 0 &&
+                    r.right <= innerWidth + 1 &&
+                    r.top >= 0 &&
+                    r.bottom <= innerHeight
+                  );
+                })
+              );
+            }),
+            true,
+            'all top-level tabs must remain visible and fit the viewport',
+          );
+        };
+        const samePlayer = async () => {
+          assert.equal(
+            await page.evaluate(
+              () =>
+                window.retainedMusic ===
+                  document.querySelector('[data-music-player]') &&
+                window.retainedAudio ===
+                  document.querySelector('[data-music-player] audio'),
+            ),
+            true,
+            'tabs must retain the same Tunes player and audio element',
+          );
+        };
+        assert.deepEqual(
+          await page.locator('.menu-top-tabs button').allTextContents(),
+          ['Race', 'Garage', 'Settings', 'Career & saves', 'Tunes'],
+        );
+        await page.evaluate(() => {
+          window.retainedMusic = document.querySelector('[data-music-player]');
+          window.retainedAudio = window.retainedMusic.querySelector('audio');
+        });
+        await fits();
+        await activate('settings');
+        assert.equal((await front(page)).screen, 'settings');
+        await page.locator('[data-setting="quality"]').selectOption('low');
+        await fits();
+        await activate('career');
+        assert.equal((await front(page)).screen, 'career');
+        assert.equal(
+          await page
+            .locator('.utility-content [data-progression-career]')
+            .count(),
+          1,
+        );
+        assert.equal(
+          await page.locator('[data-progression-dialog][open]').count(),
+          0,
+          'Career is page content, not an open dialog',
+        );
+        assert.equal(await page.locator('.career-transfer button').count(), 3);
+        assert.equal(
+          await page.evaluate(() => {
+            const actions = document.querySelector('.career-transfer');
+            const summary = document.querySelector('.career-summary');
+            return (
+              !!(
+                actions.compareDocumentPosition(summary) &
+                Node.DOCUMENT_POSITION_FOLLOWING
+              ) &&
+              actions.getBoundingClientRect().bottom <=
+                summary.getBoundingClientRect().top
+            );
+          }),
+          true,
+          'save controls must appear above career progress',
+        );
+        await fits();
+        await activate('tunes');
+        assert.equal((await front(page)).screen, 'tunes');
+        assert.equal(
+          await page.locator('.utility-content [data-music-page]').count(),
+          1,
+        );
+        assert.equal(
+          await page.locator('[data-music-player][data-menu-active]').count(),
+          0,
+          'the Tunes page must not trap controller focus away from the tabs',
+        );
+        const song = page.locator('.music-song');
+        const selectedSong = await song.inputValue();
+        await song.focus();
+        await page.keyboard.press('Escape');
+        assert.equal((await front(page)).screen, 'home');
+        await samePlayer();
+        await activate('garage-tab');
+        await page.locator('.ship-preview[data-state="ready"]').waitFor();
+        await activate('tunes');
+        assert.equal(await song.inputValue(), selectedSong);
+        await samePlayer();
+        await page.locator('[data-action="settings-back"]').click();
+        assert.equal((await front(page)).screen, 'setup');
+        await activate('race-tab');
+        await activate('career');
+        await page.locator('[data-progression-career] [data-close]').click();
+        assert.equal((await front(page)).screen, 'home');
+        assert.equal(
+          await tab('career').evaluate((el) => el === document.activeElement),
+          true,
+          'Career Back restores its top-level tab focus',
+        );
+        await tab('race-tab').focus();
+        await page.keyboard.press('End');
+        assert.equal(
+          await tab('tunes').evaluate((el) => el === document.activeElement),
+          true,
+        );
+        await page.keyboard.press('Home');
+        await page.keyboard.press('ArrowRight');
+        assert.equal(
+          await tab('garage-tab').evaluate(
+            (el) => el === document.activeElement,
+          ),
+          true,
+        );
+        await page.keyboard.press('ArrowRight');
+        await page.keyboard.press('Enter');
+        assert.equal((await front(page)).screen, 'settings');
+        await page.keyboard.press('Escape');
+        assert.equal((await front(page)).screen, 'home');
+        await fits();
+        await samePlayer();
+        assert.equal(await page.evaluate(() => !!window.__VN), false);
+      },
+      viewport,
+    );
   }
 } finally {
   await browser.close();

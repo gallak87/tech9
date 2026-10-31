@@ -13,7 +13,11 @@ const pauseIcon = icon('<path d="M8 5v14M16 5v14" stroke-width="4"/>');
 // Shared music transport. Independent of race time and the effects mix.
 export function createMusicPlayer(
   host,
-  { clearInput = () => {}, isMenuVisible = () => false } = {},
+  {
+    clearInput = () => {},
+    isMenuVisible = () => false,
+    onPageBack = () => {},
+  } = {},
 ) {
   let preferences = {};
   try {
@@ -29,8 +33,11 @@ export function createMusicPlayer(
   let wantsPlayback = true;
   let driving = false;
   let returnFocus = null;
+  let page = false,
+    pageCollapsed = true;
   const compact = matchMedia('(max-width: 760px)');
-  const isCompact = () => compact.matches && (driving || !isMenuVisible());
+  const isCompact = () =>
+    !page && compact.matches && (driving || !isMenuVisible());
   const root = document.createElement('aside');
   root.className = 'music-player';
   root.dataset.musicPlayer = '';
@@ -120,7 +127,7 @@ export function createMusicPlayer(
           volume: audio.volume,
           repeat: audio.loop,
           shuffle: shuffled,
-          collapsed: controls.hidden,
+          collapsed: page ? pageCollapsed : controls.hidden,
         }),
       );
     } catch {
@@ -223,6 +230,7 @@ export function createMusicPlayer(
     save();
   }
   function collapse(collapsed) {
+    if (page) collapsed = false;
     if (collapsed) root.removeAttribute('data-menu-active');
     root.classList.toggle('is-compact', isCompact());
     controls.hidden = collapsed;
@@ -243,6 +251,11 @@ export function createMusicPlayer(
       (isCompact() ? compactToggle : expand).focus();
   }
   function open(origin = document.activeElement) {
+    if (page) {
+      collapse(false);
+      play.focus();
+      return;
+    }
     if (driving && !isCompact()) return;
     if (origin && !root.contains(origin)) returnFocus = origin;
     collapse(false);
@@ -251,6 +264,10 @@ export function createMusicPlayer(
     save();
   }
   function close() {
+    if (page) {
+      onPageBack();
+      return;
+    }
     collapse(true);
     if (
       returnFocus?.isConnected &&
@@ -262,12 +279,33 @@ export function createMusicPlayer(
     save();
   }
   function toggleExpanded() {
+    if (page) return;
     if (controls.hidden) open();
     else close();
+  }
+  function mountPage(container) {
+    if (disposed || !container) return;
+    if (!page) pageCollapsed = controls.hidden;
+    page = true;
+    returnFocus = null;
+    root.dataset.musicPage = '';
+    root.removeAttribute('data-menu-active');
+    if (root.parentElement !== container) container.append(root);
+    collapse(false);
+    expand.disabled = false;
+  }
+  function unmountPage() {
+    if (!page) return;
+    page = false;
+    delete root.dataset.musicPage;
+    host.append(root);
+    collapse(pageCollapsed);
+    expand.disabled = driving && !isCompact();
   }
   listen(expand, 'click', toggleExpanded);
   listen(compactToggle, 'click', toggleExpanded);
   listen(compact, 'change', () => {
+    if (page) return;
     const focused = root.contains(document.activeElement);
     collapse(true);
     expand.disabled = driving && !isCompact();
@@ -338,6 +376,12 @@ export function createMusicPlayer(
     window,
     'keydown',
     (event) => {
+      if (event.code === 'Escape' && page && root.contains(event.target)) {
+        event.preventDefault();
+        event.stopPropagation();
+        onPageBack();
+        return;
+      }
       if (event.code === 'Escape' && root.hasAttribute('data-menu-active')) {
         event.preventDefault();
         event.stopPropagation();
@@ -369,6 +413,7 @@ export function createMusicPlayer(
     { capture: true },
   );
   listen(root, 'keydown', (event) => {
+    if (page) return;
     event.stopPropagation();
     if (event.key !== 'Tab' || !root.hasAttribute('data-menu-active')) return;
     const items = [...root.querySelectorAll('button, select, input')].filter(
@@ -388,7 +433,7 @@ export function createMusicPlayer(
     if (event.detail > 0) event.target.closest('button')?.blur();
   });
   listen(root, 'focusin', (event) => {
-    if (event.relatedTarget && !root.contains(event.relatedTarget))
+    if (!page && event.relatedTarget && !root.contains(event.relatedTarget))
       returnFocus = event.relatedTarget;
     clearInput();
   });
@@ -400,9 +445,12 @@ export function createMusicPlayer(
   loadSong();
   return {
     open,
+    mountPage,
+    unmountPage,
     togglePlayback,
     setDriving(value) {
       driving = value;
+      if (value && page) unmountPage();
       root.classList.toggle('is-compact', isCompact());
       if (value) collapse(true);
       expand.disabled = value && !isCompact();

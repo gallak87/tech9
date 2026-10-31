@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "asset": "Saffron formed ceramic baffle vane",
+  "creator": "VECTOR//NOVA project contributors",
+  "rights": "Original project-authored geometry and materials; no external images or meshes",
+  "generator": "assets/levels/saffron/build_baffles.py",
+  "source": "assets/levels/saffron/baffles.blend",
+  "runtimeGeometry": "assets/levels/saffron/baffles-meshes.json",
+  "gameAxes": "+X lateral, +Y up, long +Z",
+  "collisionEnvelope": {
+    "min": [-0.45, -0.26, -6.38],
+    "max": [0.45, 0.91, 6.38]
+  },
+  "physicalSolidSource": "src/levels/saffron/track/solids.js",
+  "physicalSolidMarginMetres": 0.0005,
+  "placement": "Replaces each existing SAFFRON_SOLIDS.vane visual at the original bafflePlacements transforms; physical solids and clamps are unchanged",
+  "construction": "Closed beveled ceramic hood over a recessed graphite folded carrier with two machined bronze seating collars. Hidden carrier bevels and subpixel flush pins are omitted; all visible cap, carrier-side, keel and seat silhouettes remain. All geometry stays inside the existing physical vane solid.",
+  "triangleCount": 176,
+  "materialTriangles": {
+    "ceramic": 60,
+    "graphite": 44,
+    "bronze": 72
+  },
+  "blenderVersion": "5.2.3 LTS",
+  "sha256": {
+    "build_baffles.py": "623a237e0f27718b099fa7231e031c1e3654efe7b864179614622a58b47681c7",
+    "baffles.blend": "8e52001ad542a3d952f5c04656786328a157991849aef21ba6ae781dfa719120",
+    "baffles-meshes.json": "958599907a5095e540815929cd7176edb25099b09faa0177ee419e4b03b01698"
+  }
+}

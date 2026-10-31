@@ -215,6 +215,20 @@ export function buildFossilPlacements(track, survey) {
       ),
     );
   }
+  // The upper remnant enters the banked Amber chase frame, giving this open
+  // connector a fossil silhouette. Its surveyed root stays fully buried.
+  const amberCrest = track.sections.find(({ id }) => id === 'amber');
+  const amberFrame = horizontalFrame(track, amberCrest.showcase + 150);
+  const amberShoulder = amberFrame.position
+    .clone()
+    .addScaledVector(amberFrame.right, -250);
+  amberShoulder.y = survey.heightAt(amberShoulder.x, amberShoulder.z) - 20;
+  const amberRotation = amberFrame.quaternion
+    .clone()
+    .multiply(new T.Quaternion().setFromEuler(new T.Euler(0.04, -0.45, -0.1)));
+  placements.scapula.push(
+    matrixAt(amberShoulder, new T.Vector3(1.45, 1.45, 1.74), amberRotation),
+  );
   for (const [s, lateral, height] of sandfallAnchors(track)) {
     const frame = horizontalFrame(track, s);
     const position = frame.position

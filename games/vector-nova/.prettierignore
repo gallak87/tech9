@@ -15,3 +15,5 @@ release/
 assets/levels/shatterline/asset-manifest.json
 assets/levels/shatterline/collision-kit.json
 public/assets/levels/shatterline/collision-kit.json
+assets/levels/saffron/baffles-meshes.json
+assets/levels/saffron/scarps-meshes.json

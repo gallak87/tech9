@@ -1,0 +1,40 @@
+{
+  "format": 1,
+  "source": "assets/levels/saffron/build_scarps.py",
+  "editable": "assets/levels/saffron/scarps.blend",
+  "reviewExport": "assets/levels/saffron/scarps.glb",
+  "runtime": "assets/levels/saffron/scarps-meshes.json",
+  "gameAxes": "+X lateral, +Y up, +Z along shelf",
+  "families": [
+    {
+      "name": "scarp_0",
+      "triangles": 1522,
+      "bounds": {
+        "min": [-1.1646, -0.2, -1.0502],
+        "max": [1.09959, 1.0, 1.15955]
+      }
+    },
+    {
+      "name": "scarp_1",
+      "triangles": 1634,
+      "bounds": {
+        "min": [-1.15717, -0.2, -1.1958],
+        "max": [1.09847, 1.0, 1.0502]
+      }
+    },
+    {
+      "name": "scarp_2",
+      "triangles": 1616,
+      "bounds": {
+        "min": [-1.15454, -0.2, -1.0502],
+        "max": [1.09852, 1.0, 1.15001]
+      }
+    }
+  ],
+  "sha256": {
+    "assets/levels/saffron/build_scarps.py": "492f5b31cc9f5991a8b7c2f744f4fd5fd796041c5228beb971d3c5ccc15167ed",
+    "assets/levels/saffron/scarps.blend": "e84d5d65d054dc522193579a01fc559b139fead69ce13991949f8a48722d5eee",
+    "assets/levels/saffron/scarps.glb": "63b9d076ca63f4fd36ff0c9f9eb7a30edd5e2edf5228dfdd8345d40f13a5cdfe",
+    "assets/levels/saffron/scarps-meshes.json": "1d2aff2fd38cd6312182e87916de5c41410028540e4dd8e80201af3b37a25bcb"
+  }
+}

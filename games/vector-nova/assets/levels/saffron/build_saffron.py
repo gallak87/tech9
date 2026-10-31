@@ -2,11 +2,12 @@
 Game axes: +Y up, +Z forward, including the living grazer. Approved dune-grazer concept v1 guides its anatomy.
 CPU modeling/export only; no renders. All visible forms are actual geometry.
 """
-import bpy, math, random, json, hashlib
+import bpy, math, random, json, hashlib, sys
 from mathutils import noise
 from pathlib import Path
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
+sys.dont_write_bytecode=True
 ROOT=Path(__file__).resolve().parents[3]
 OUT=ROOT/'public/assets/levels/saffron'
 SRC=ROOT/'assets/levels/saffron'
@@ -62,8 +63,8 @@ sk=root('skull'); N=112; R=80; v=[]; f=[]
 def cranial_point(t,a,layer):
  rx=82+25*math.sin(math.pi*t)**.6;ry=75+10*math.sin(math.pi*t)
  erosion=1+.010*math.sin(a*5+t*13)+.007*math.cos(a*9-t*21)
- # The interior survey envelope stays fixed. Large, unequal outer anatomical
- # saddles replace the balloon-like continuous exterior without narrowing it.
+ # Broad outer saddles and unequal inner temporal folds share a thick cortex.
+ # Authored road and chase-camera clearance are checked on the exported mesh.
  rostrum=48*math.exp(-((t-.13)/.21)**2)
  temporal=31*math.exp(-((t-.73)/.17)**2)
  brow=35*math.exp(-((t-.19)/.19)**2)
@@ -78,14 +79,55 @@ def cranial_point(t,a,layer):
  for tt,aa in [(.30,.31),(.30,2.83),(.66,.29),(.66,2.83)]:
   radius=math.sqrt(((t-tt)/.18)**2+((a-aa)/.40)**2)
   orbital+=16*math.exp(-((radius-1)/.31)**2)
+ # Outer cortex has broad anatomical planes between the orbital buttresses.
+ # Positive plates and recessed sutures remain outside the sculpted cavity.
  channels=0
- for aa,tt,length,depth in [(.93,.55,.29,7.5),(2.12,.74,.23,6.5),(1.27,.30,.23,5.5)]:
-  channels+=depth*math.exp(-((a-aa-.075*math.sin(t*8))/.075)**2)*math.exp(-((t-tt)/length)**4)
- x=(rx+layer*(14+(rostrum+temporal)*side*asymmetry+orbital-channels))*math.cos(a)*erosion
- y=24+(ry+layer*(13+(brow+occiput)*roof+nasal+sagittal+orbital*.6-channels))*math.sin(a)*erosion
+ for aa,tt,length,depth,width in [(.91,.53,.30,19,.11),(2.13,.73,.25,17,.105),(1.26,.28,.24,14,.085),(.45,.84,.15,12,.09),(2.67,.56,.24,14,.10)]:
+  sweep=aa+.115*math.sin(t*5.5+aa*.7)
+  channels+=depth*math.exp(-((a-sweep)/width)**2)*math.exp(-((t-tt)/length)**4)
+ # Rostrally flattened cheek planes and an unequal brow become masses rather
+ # than an evenly inflated tube. Rounded superellipse shoulders retain curved
+ # anatomy at the edges, with long flat-catching planes between those edges.
+ plane_window=math.exp(-((t-.43)/.50)**4)
+ c=math.cos(a);sn=math.sin(a)
+ outer_c=math.copysign(abs(c)**.76,c)
+ outer_s=math.copysign(abs(sn)**.84,sn)
+ planed_x=(outer_c-c)*rx*plane_window
+ planed_y=(outer_s-sn)*ry*plane_window*(1 if sn>0 else .35)
+ # Thick zygomatic and brow plates are separated by the real outer valleys;
+ # no outer channel can cut through the inner cortex.
+ cheek=13*math.exp(-((t-.48)/.30)**4)*math.exp(-((a-.70)/.27)**4)
+ cheek+=16*math.exp(-((t-.59)/.27)**4)*math.exp(-((a-2.41)/.24)**4)
+ thickness_x=max(4,14+(rostrum+temporal)*side*asymmetry+orbital+cheek-channels)
+ thickness_y=max(4,13+(brow+occiput)*roof+nasal+sagittal+orbital*.6+cheek*.45-channels)
+ # Real medium-scale interior anatomy: temporal folds grow from the side
+ # wall into high palatal shelves, with deep galleries between them. These
+ # unequal cortical masses replace detached tube-like ornaments. Large planar
+ # cores and steep blended shoulders read from the normal racing camera.
+ def patch(tt,aa,dt,da):
+  delta=(a-aa+math.pi)%(2*math.pi)-math.pi
+  return math.exp(-((t-tt)/dt)**4)*math.exp(-(delta/da)**4)
+ inner_form=0
+ inner_form-=29*patch(.41,.42,.13,.48)      # right temporal/palatal root
+ inner_form-=25*patch(.67,2.62,.15,.42)    # unequal left temporal fold
+ inner_form-=34*patch(.17,1.39,.105,.36)   # high frontal plate
+ inner_form-=24*patch(.76,1.95,.12,.38)    # descending rear roof fold
+ inner_form-=23*patch(.52,3.34,.17,.25)    # broad low left palatal shelf
+ inner_form-=24*patch(.83,-.11,.11,.25)    # low right rear shelf
+ inner_form+=17*patch(.53,1.02,.12,.31)    # sheltered gallery behind the fold
+ inner_form+=15*patch(.35,2.28,.13,.34)    # opposing recessed gallery
+ # Let the outside follow most of each fold, preserving convincing variable
+ # wall thickness and avoiding a thin pressed-foil interior.
+ interior_shift=inner_form*(1-.20*layer)
+ x=(rx+layer*thickness_x+interior_shift)*c*erosion+layer*planed_x
+ y=24+(ry+layer*thickness_y+interior_shift)*sn*erosion+layer*planed_y
  mouth=(8*math.sin(a*3+.4)+4.5*math.sin(a*7+1.2))*math.exp(-(t/.09)**2)
  occipital_break=(6*math.sin(a*4+.8)+3*math.cos(a*9))*math.exp(-((1-t)/.08)**2)
- z=t*300-layer*16*math.exp(-(t/.15)**2)*roof+mouth+occipital_break
+ # Uneven outer fracture lips expose changing cortical thickness while the
+ # the mouth and exit remain wide around the approved banked road.
+ lip=(6*math.sin(a*3+.7)+3*math.sin(a*7-1.1))*math.exp(-(t/.075)**2)
+ lip+=(5*math.cos(a*4+.3)+2.5*math.sin(a*7))*math.exp(-((1-t)/.065)**2)
+ z=t*300-layer*16*math.exp(-(t/.15)**2)*roof+mouth+occipital_break+layer*lip
  return (x,y,z)
 for layer in range(2):
  for j in range(R+1):
@@ -141,6 +183,70 @@ cranial=mesh('Cranial_shell_with_orbits',v,f,bone,sk)
 # Thick rounded cortical lips; the silhouette and holes are geometry, not paint.
 bevel=cranial.modifiers.new('Eroded rounded orbital and pore rims','BEVEL'); bevel.width=1.8; bevel.segments=3; bevel.limit_method='ANGLE'; bevel.angle_limit=.48
 bpy.context.view_layer.objects.active=cranial; cranial.select_set(True); bpy.ops.object.modifier_apply(modifier=bevel.name); cranial.select_set(False)
+# The concept's exposed lower walls are a connected cortical web, not a
+# continuous sheet with a few orbit-shaped holes. Irregular compound galleries
+# branch through the full wall; unequal retained bridges carry the loads into
+# the existing mouth, temporal folds and palatal frame. All cuts are subtractive.
+skull_galleries=[
+ # Lower negative-X temporal/palatal wall, exposed by the banked chase view.
+ (.700,3.75,12,8,.28),(.820,3.60,15,8,-.38),(.860,4.08,12,8,.44),(.650,4.18,12,7,-.22),
+ (.755,3.72,11,4,.18),(.850,3.85,6,14,-.25),(.680,4.00,6,13,.30),
+ (.630,3.56,4,3.5,.14),(.925,3.62,5,4,-.50),(.755,4.25,4,3,.32),
+ # Mouth-side load web, below and separate from the retained primary orbits.
+ (.100,3.25,12,8,.27),(.230,3.55,11,8,-.44),(.305,3.78,12,7,.30),
+ (.160,3.40,10,11,-.18),(.245,3.95,4,3.2,.52),(.065,3.55,5,3.5,-.35),
+ # High mouth lip: one unequal branching roof gallery, never another arch.
+ (.060,1.35,9,7,.20),(.130,1.80,9,7,-.30),(.100,1.60,8,10,.12),
+]
+skull_cavity_frames=[]
+for gallery_index,(t,a,run,arc,tilt) in enumerate(skull_galleries):
+ inner=Vector(cranial_point(t,a,0));outer=Vector(cranial_point(t,a,1));center=(inner+outer)*.5
+ axis=(outer-inner).normalized()
+ along=Vector((0,0,1));along=(along-axis*along.dot(axis)).normalized();across=axis.cross(along).normalized()
+ # Rotate the elongated branch in the actual tangent plane, rather than
+ # stamping equal circular holes in UV rows.
+ u_axis=along*math.cos(tilt)+across*math.sin(tilt)
+ v_axis=across*math.cos(tilt)-along*math.sin(tilt)
+ skull_cavity_frames.append((center.copy(),axis.copy(),u_axis.copy(),v_axis.copy(),run,arc))
+ vv=[];ff=[];segments=26 if max(run,arc)>7 else 18
+ levels=[(-1,.84),(-.70,1.04),(-.05,1.015),(0,1),(.05,.99),(.70,.96),(1,.81)]
+ for depth,flare in levels:
+  for i in range(segments):
+   theta=i*2*math.pi/segments
+   radius=1+.27*math.sin(theta*3+gallery_index*.89)+.10*math.cos(theta*5-gallery_index*.53)
+   # A broad stress lobe and constricted neck make selected connected
+   # galleries bifurcate; the retained bone is a branching irregular web.
+   if gallery_index in (0,1,3,10,11,16,17):
+    branch=(theta-(.45+gallery_index*.61)+math.pi)%(2*math.pi)-math.pi
+    radius+=.28*math.exp(-(branch/.40)**2)
+   u=math.cos(theta)*run*radius*flare
+   v=math.sin(theta)*arc*radius*flare
+   u+=v*(.14 if gallery_index%2 else -.11)
+   vv.append(tuple(center+axis*(depth*110)+u_axis*u+v_axis*v))
+ for row in range(len(levels)-1):
+  for i in range(segments):ff.append((row*segments+i,row*segments+(i+1)%segments,(row+1)*segments+(i+1)%segments,(row+1)*segments+i))
+ ff.extend([tuple(range(segments-1,-1,-1)),tuple((len(levels)-1)*segments+i for i in range(segments))])
+ cutter=mesh('Skull_compound_cortical_gallery_'+str(gallery_index),vv,ff,bone,None)
+ import bmesh
+ bm=bmesh.new();bm.from_mesh(cutter.data);bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(cutter.data);bm.free()
+ bpy.ops.object.select_all(action='DESELECT');cranial.select_set(True);bpy.context.view_layer.objects.active=cranial
+ modifier=cranial.modifiers.new('Connected true cortical gallery '+str(gallery_index),'BOOLEAN');modifier.operation='DIFFERENCE';modifier.solver='EXACT';modifier.object=cutter
+ bpy.ops.object.modifier_apply(modifier=modifier.name)
+ cutter_mesh=cutter.data;bpy.data.objects.remove(cutter,do_unlink=True);bpy.data.meshes.remove(cutter_mesh)
+# Exposed cut lips remain pale cortex. A narrow real central depth band is
+# mineral-dark, and the later geometry-derived visibility bake shades the
+# surrounding warm cancellous thickness. No flat dark wall decal is used.
+cranial.data.materials.append(seam);marrow_index=len(cranial.data.materials)-1
+for polygon in cranial.data.polygons:
+ q=Vector((polygon.center.x,polygon.center.z,-polygon.center.y));n=Vector((polygon.normal.x,polygon.normal.z,-polygon.normal.y))
+ for center,axis,along,across,run,arc in skull_cavity_frames:
+  delta=q-center;radius=((delta.dot(along)/run)**2+(delta.dot(across)/arc)**2)**.5
+  if abs(delta.dot(axis))<3.8 and .60<radius<1.65 and abs(n.dot(axis))<.52:
+   polygon.material_index=marrow_index;break
+bpy.context.view_layer.objects.active=cranial;cranial.select_set(True)
+bevel=cranial.modifiers.new('Rounded thick cortical web lips','BEVEL');bevel.width=.95;bevel.segments=2;bevel.limit_method='ANGLE';bevel.angle_limit=.60
+bpy.ops.object.modifier_apply(modifier=bevel.name);cranial.select_set(False)
+for polygon in cranial.data.polygons:polygon.use_smooth=True
 # Baked shelter occlusion retains readable warm mineral surfaces in low quality.
 colors=cranial.data.color_attributes.new(name='Cortical_shelter',type='FLOAT_COLOR',domain='CORNER')
 for poly in cranial.data.polygons:
@@ -152,9 +258,8 @@ for poly in cranial.data.polygons:
   shelter*=.93+.07*math.sin(z*.037+q.x*.019)
   colors.data[loop].color=(shelter,shelter*.98,shelter*.91,1)
 
-# Raised orbital buttresses and thin broad cheek laminae define specific anatomy.
-for side in [-1,1]:
- tube('Recessed_cranial_internal_buttress',[(side*62,-21,148),(side*67,8,148),(side*66,35,148),(side*61,62,148)],[8,10,9,3],bone,sk,12)
+# Interior temporal buttresses are part of the shell's folded cortex above;
+# no detached decorative tube is laid across the racing gallery.
 # Jaw arches, flared cheek horns, nasal bridge, and perimeter teeth.
 for side in [-1,1]:
  for ridge in range(1):
@@ -224,7 +329,8 @@ for variant in range(2):
   for poly in cp.data.polygons:poly.use_smooth=True
 ri=root('rib')
 def rib_blade(parent,variant,start,end):
- verts=[];faces=[];segments=20;rows=max(10,math.ceil((end-start)*58))
+ articulated=parent.name=='rib_1'
+ verts=[];faces=[];marrow_faces=[];segments=32 if articulated else 20;rows=max(10,math.ceil((end-start)*58))
  def centerline(t):
   a=t*math.pi
   return Vector((-86*math.cos(a)+18*math.sin(a)**2,-21+131*math.sin(a)**.86+22*math.sin(a)*math.cos(a),36*math.sin(a*1.3+variant*.35)+12*t*t))
@@ -249,6 +355,13 @@ def rib_blade(parent,variant,start,end):
    radial=math.cos(theta);edge=math.sin(theta)
    groove=(4.5+2*math.sin(a))*math.exp(-(radial/.26)**2)*midshaft
    shoulder=1+.15*math.cos(theta*3+variant*.3)*midshaft
+   if articulated:
+    # A deep costal face lies between unequal integral cortical shoulders.
+    # The recess forks/tapers into the proximal saddle and retained fracture,
+    # replacing the broad swollen face with readable layered bone section.
+    groove_center=.10+.13*math.sin(a*1.4)
+    groove=(12+3*math.sin(a))*math.exp(-((radial-groove_center)/.46)**4)*math.sin(a)**.85
+    shoulder=1+.08*math.cos(theta*2+.4)*midshaft+.035*radial*midshaft
    q=center+normal*(width*radial*shoulder)+foreaft*((breadth-groove)*math.copysign(abs(edge)**.72,edge))
    # Large torn cortical tabs are restricted to broken ends. The continuous
    # shaft keeps calm, broad anatomical surfaces and a readable silhouette.
@@ -257,11 +370,17 @@ def rib_blade(parent,variant,start,end):
     q+=tangent*(3.3*math.sin(theta*3+variant)+1.8*math.cos(theta*5-variant))
    verts.append(tuple(q))
  for j in range(rows):
-  for i in range(segments):faces.append((j*segments+i,j*segments+(i+1)%segments,(j+1)*segments+(i+1)%segments,(j+1)*segments+i))
+  for i in range(segments):
+   if articulated:
+    t=start+(end-start)*(j+.5)/rows;a=t*math.pi;theta=2*math.pi*(i+.5)/segments
+    # Mineral-stained cancellous exposure is restricted to the deepest
+    # genuine groove floor, subordinate to the broad clean cortical lips.
+    if .15<t<.57 and abs(math.cos(theta)-(.10+.13*math.sin(a*1.4)))<.13:
+     marrow_faces.append(len(faces))
+   faces.append((j*segments+i,j*segments+(i+1)%segments,(j+1)*segments+(i+1)%segments,(j+1)*segments+i))
  # A broken rib has a real thick annulus around a recessed cancellous floor.
  # Floor pockets and a few broad trabecular bridges are one closed surface,
  # with material changes on its actual faces, never an overlaid marrow decal.
- marrow_faces=[]
  def cancellous_surface(x,y):
   radius=math.hypot(x,y);edge=max(0,min(1,(1-radius)*5))
   pores=0
@@ -309,8 +428,89 @@ def rib_blade(parent,variant,start,end):
  if marrow_faces:
   ob.data.materials.append(seam)
   for index in marrow_faces:ob.data.polygons[index].material_index=1
+ if (articulated and start==0) or parent.name in ('rib','rib_2'):
+  # Representative exposed proximal cortex: stress-aligned irregular true
+  # through-cavities leave thick branching bone, as in the scene reference.
+  # All authoring is subtractive inside the existing external envelope.
+  if parent.name=='rib_1':
+   holes=[(.060,-14,9,8),(.135,-10,11,9),(.235,-14,10.5,9),(.355,-8,11,8),(.485,-1,9,6.5),(.155,-24,3.8,3.1),(.092,-10,3.6,2.8),(.105,4,3.3,2.6),(.189,-7,3.8,2.9),(.203,-24,2.8,2.3),(.285,5,3.6,2.8),(.407,-4,3.9,3.2),(.46,-18,3.1,2.4)]
+  elif parent.name=='rib':
+   # The complete arch carries an unequal forked proximal gallery and a
+   # quieter distal return. It is not a repeated copy of the broken prototype.
+   holes=[(.080,-9,10,7),(.175,-12,12,8),(.290,3,10,7),(.800,0,11,7),(.905,-7,9,6),(.135,-14,6,7),(.115,-22,3.8,3),(.850,-12,5.2,4)]
+  else:
+   # This variant retains its original missing shaft sector; two distinct
+   # stress paths grow around the short proximal root and long distal blade.
+   holes=[(.070,-15,8,7),(.165,-7,9,8),(.680,-13,11,8),(.840,1,12,7),(.910,-12,8,6),(.120,-13,4.5,8),(.800,-10,5,8),(.735,5,3.8,3)]
+  cavity_frames=[]
+  for hole_index,(t,offset,rise,span) in enumerate(holes):
+   if not start+.018<t<end-.018:continue
+   a=t*math.pi;center=centerline(t)
+   outward=Vector((-math.cos(a),math.sin(a),0));depth=Vector((0,0,1))
+   twist=.50*math.sin(a*1.3+variant*.8)
+   axis=(outward*math.cos(twist)+depth*math.sin(twist)).normalized()
+   across=(depth*math.cos(twist)-outward*math.sin(twist)).normalized()
+   along=across.cross(axis).normalized()
+   if along.dot(centerline(min(1,t+.001))-centerline(max(0,t-.001)))<0:along=-along
+   center+=across*offset
+   vv=[];ff=[];cut_segments=(28 if hole_index<5 else 18) if articulated else (24 if hole_index<5 else 16);cut_levels=[(-1,.82),(-.72,1.04),(-.10,1.01),(0,1),(.10,.99),(.72,.96),(1,.79)]
+   cavity_frames.append((center.copy(),axis.copy(),across.copy(),along.copy(),rise,span))
+   for depth_level,flare in cut_levels:
+    for i in range(cut_segments):
+     theta=i*2*math.pi/cut_segments
+     # Unequal elongated multi-lobe outlines avoid repeated circular punchouts.
+     radius=1+.22*math.sin(theta*3+hole_index*.83)+.10*math.cos(theta*5-hole_index*.47)
+     if hole_index in (1,3):
+      branch=(theta-(.6 if hole_index==1 else 3.8)+math.pi)%(2*math.pi)-math.pi
+      radius+=.24*math.exp(-(branch/.39)**2)
+     u=math.cos(theta)*span*radius*flare
+     v=math.sin(theta)*rise*radius*flare
+     # A tilted stem and one broad lobe carry the apparent stress direction.
+     u+=v*(.18 if hole_index%2 else -.14)
+     q=center+axis*(depth_level*62)+across*u+along*v
+     vv.append(tuple(q))
+   for row in range(len(cut_levels)-1):
+    for i in range(cut_segments):ff.append((row*cut_segments+i,row*cut_segments+(i+1)%cut_segments,(row+1)*cut_segments+(i+1)%cut_segments,(row+1)*cut_segments+i))
+   ff.extend([tuple(range(cut_segments-1,-1,-1)),tuple((len(cut_levels)-1)*cut_segments+i for i in range(cut_segments))])
+   cutter=mesh('rib_1_irregular_stress_cavity_'+str(hole_index),vv,ff,bone,None)
+   # Recalculate closed cutter winding before the exact Boolean.
+   import bmesh
+   bm=bmesh.new();bm.from_mesh(cutter.data);bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(cutter.data);bm.free()
+   bpy.ops.object.select_all(action='DESELECT');ob.select_set(True);bpy.context.view_layer.objects.active=ob
+   modifier=ob.modifiers.new('True porous cortex / cavity '+str(hole_index),'BOOLEAN');modifier.operation='DIFFERENCE';modifier.solver='EXACT';modifier.object=cutter
+   bpy.ops.object.modifier_apply(modifier=modifier.name)
+   cutter_mesh=cutter.data;bpy.data.objects.remove(cutter,do_unlink=True);bpy.data.meshes.remove(cutter_mesh)
+  # Pale exposed cortex continues around each real lip. Only the narrow
+  # central depth of a through-wall is mineral-dark marrow; geometric cavity
+  # visibility grades the intervening bone, rather than painting every wall.
+  if seam not in list(ob.data.materials):ob.data.materials.append(seam)
+  marrow_index=list(ob.data.materials).index(seam)
+  for polygon in ob.data.polygons:
+   q=Vector((polygon.center.x,polygon.center.z,-polygon.center.y))
+   n=Vector((polygon.normal.x,polygon.normal.z,-polygon.normal.y))
+   for center,axis,across,along,rise,span in cavity_frames:
+    delta=q-center;depth=delta.dot(axis)
+    radius=((delta.dot(across)/span)**2+(delta.dot(along)/rise)**2)**.5
+    if abs(depth)<4.2 and .66<radius<1.5 and abs(n.dot(axis))<.50:
+     polygon.material_index=marrow_index;break
+  # Rounded arrises belong to the actual deep cortical walls and reveal their
+  # thickness. This removes more bone; it cannot enter the road envelope.
+  bpy.context.view_layer.objects.active=ob;ob.select_set(True)
+  bevel=ob.modifiers.new('Worn thick porous cortical lips','BEVEL');bevel.width=.85;bevel.segments=2 if articulated else 1;bevel.limit_method='ANGLE';bevel.angle_limit=.55
+  bpy.ops.object.modifier_apply(modifier=bevel.name);ob.select_set(False)
+  for polygon in ob.data.polygons:polygon.use_smooth=True
+
 def rib_root(parent,variant):
- ellipsoid('Enlarged_costal_articular_head',(-91,-24,6),(24,20,31),bone,parent,24,14)
+ head=ellipsoid('Enlarged_costal_articular_head',(-91,-24,6),(24,20,31),bone,parent,24,14)
+ if parent.name=='rib_1':
+  # The proximal end is a seated concave articular saddle with a thick
+  # retained lip, rather than another round disconnected swelling.
+  for vertex in head.data.vertices:
+   x,y,z=vertex.co.x,vertex.co.z,-vertex.co.y
+   radius=((x+91)/24)**2+((y+24)/20)**2
+   if radius<1 and z<6:z+=12*(1-radius)**2
+   vertex.co=C((x,y,z))
+  head.data.update()
  tube('Costal_neck_and_tubercle',[(-96,-28,8),(-101,-10,14),(-88,14,21)],[16,17,8],bone,parent,16)
  tube('Tapered_distal_costal_root',[(86,-20,-8),(91,-31,0),(99,-37,15)],[6,9,3],bone,parent,12)
 rib_blade(ri,0,0,1);rib_root(ri,0)
@@ -706,6 +906,39 @@ for rt in [sk,ve,*vertebra_variants]:
 for rt in modules:
  for ob in rt.children:
   if ob.type=='MESH':ob.data.validate(clean_customdata=False)
+# Unequal broken neural sectors and integral branching cortical galleries are
+# cut after the existing organic union, preserving the actual receiver floors.
+# Keep the old single-material cortical node names in the runtime export.
+import importlib.util
+web_spec=importlib.util.spec_from_file_location('saffron_vertebral_webs',SRC/'vertebral_webs.py')
+web_module=importlib.util.module_from_spec(web_spec);web_spec.loader.exec_module(web_module)
+vertebral_web_report=web_module.refine_vertebral_webs([ve,*vertebra_variants],bone,seam)
+print('SAFFRON VERTEBRAL WEBS',json.dumps(vertebral_web_report))
+import bmesh
+for rt in [ve,*vertebra_variants]:
+ for ob in list(rt.children):
+  if ob.type!='MESH':continue
+  used=sorted({polygon.material_index for polygon in ob.data.polygons})
+  if len(used)<2:continue
+  original_name=ob.name;old_data=ob.data;parts=[]
+  for material_index in used:
+   material=old_data.materials[material_index]
+   data=old_data.copy();bm=bmesh.new();bm.from_mesh(data)
+   bmesh.ops.delete(bm,geom=[face for face in bm.faces if face.material_index!=material_index],context='FACES_ONLY')
+   bmesh.ops.delete(bm,geom=[vertex for vertex in bm.verts if not vertex.link_faces],context='VERTS')
+   for face in bm.faces:face.material_index=0
+   bm.to_mesh(data);bm.free();data.materials.clear();data.materials.append(material);data.update()
+   part=ob.copy();part.data=data;bpy.context.collection.objects.link(part);part.parent=rt
+   parts.append((part,original_name if material_index==0 else original_name+'_'+material.name))
+  bpy.data.objects.remove(ob,do_unlink=True)
+  if old_data.users==0:bpy.data.meshes.remove(old_data)
+  for part,name in parts:part.name=name
+# The exposed lower cranial wall is a genuine connected cortical framework,
+# replacing its continuous panel before the shared geometry-derived AO bake.
+cranial_spec=importlib.util.spec_from_file_location('saffron_cranial_webs',SRC/'cranial_webs.py')
+cranial_module=importlib.util.module_from_spec(cranial_spec);cranial_spec.loader.exec_module(cranial_module)
+cranial_web_report=cranial_module.apply_cranial_web(sk,bone,seam)
+print('SAFFRON CRANIAL STRUCTURAL WEB',json.dumps(cranial_web_report))
 # Geometry-derived cortical cavity light: the full anatomical module casts into
 # a bounded cosine-weighted hemisphere around each actual mesh vertex. Keeping
 # all material parts in one BVH includes the deep orbit walls, joint saddles and
@@ -799,6 +1032,8 @@ reference=bpy.data.images.load(str(SRC/'dune-grazer-approved-concept-v1.png'));r
 scene['grazer_motion']='Low +Z forward breach along a fixed Vista transect; delayed body emergence/dive, tail buried; once-per-lap runtime timestamp'
 scene['authoring']='CPU modeled actual apertures, varied anatomical components, dune displacement, armor modules; animation is deterministic level-owned transform/deformation'
 scene['cortical_cavity_bake']='Per-module geometry BVH; 16 cosine-weighted hemisphere rays per vertex, 36 m radius, 0.22 m normal offset, two connected-vertex smoothing passes; cavity visibility multiplied into cortical vertex colors, including scapula and sandfall bone. Grazer and sandfall flow sheets excluded.'
+scene['vertebral_webs']='Original vertebral_webs.py subtractive anatomy: unequal sealed upper neural breaks, connected branching cortical galleries and exposed cancellous depth; all receiver/floor vertices below game Y20 are preserved.'
+scene['cranial_structural_web']='Original cranial_webs.py anatomy: continuous lower temporal/palatal panel replaced by an unequal tapering/fanned load plates, finer radiating forks, flush cortical attachments and a closed full-thickness sleeve; one connected watertight framework with predominantly open negative space. Modeled from scene-reference.png; primary orbits and mouth outline retained.'
 bpy.context.preferences.filepaths.save_version=0
 bpy.ops.wm.save_as_mainfile(filepath=str(SRC/'leviathan-kit.blend'))
 bpy.ops.export_scene.gltf(filepath=str(OUT/'leviathan-kit.glb'),export_format='GLB',use_selection=False,export_yup=True,export_apply=True,export_vertex_color='ACTIVE')
@@ -810,7 +1045,7 @@ for rt in modules:
 bounds['skull'].update({'origin':'mouth floor center','clearHalfWidth':50,'overheadMinimum':70})
 bounds['sandfall']['origin']='top fossil shelf'
 bounds['burrower'].update({'origin':'shoulder root; head leads +Z, tail follows -Z','forward':'+Z','shieldCount':9,'reference':'assets/levels/saffron/dune-grazer-approved-concept-v1.png'})
-files=[SRC/'dune-grazer-approved-concept-v1.png',SRC/'build_saffron.py',SRC/'leviathan-kit.blend',SRC/'scene-reference.png',SRC/'saffron-sky-v2.png',SRC/'sky-prompt-v2.txt',OUT/'leviathan-kit.glb',OUT/'saffron-sky-v2.png']
+files=[SRC/'dune-grazer-approved-concept-v1.png',SRC/'build_saffron.py',SRC/'vertebral_webs.py',SRC/'cranial_webs.py',SRC/'leviathan-kit.blend',SRC/'scene-reference.png',SRC/'saffron-sky-v2.png',SRC/'sky-prompt-v2.txt',OUT/'leviathan-kit.glb',OUT/'saffron-sky-v2.png']
 # Retain all provenance and future baker metadata when regenerating the kit.
 manifest_path=SRC/'asset-manifest.json'
 manifest=json.loads(manifest_path.read_text()) if manifest_path.exists() else {}

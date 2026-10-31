@@ -104,7 +104,7 @@ function weathered(material, kind, texture, mineralSurface = null) {
         : 1 / 32
     : 1 / 54;
   const mineralStrength = bone ? (marrow ? 0.64 : chalk ? 0.24 : 0.42) : 0.72;
-  const mineralRelief = bone ? (marrow ? 0.22 : chalk ? 0.045 : 0.075) : 0.24;
+  const mineralRelief = bone ? (marrow ? 0.22 : chalk ? 0.035 : 0.055) : 0.24;
   // Also expose the shader-owned sampler to resource collection/accounting.
   material.saffronWeatheringNoise = texture;
   material.onBeforeCompile = (shader) => {
@@ -135,6 +135,16 @@ function weathered(material, kind, texture, mineralSurface = null) {
       float pores=smoothstep(.64,.87,relief)*filtered;
       float fissure=smoothstep(.76,.94,sNoise(vSaffronWorld*vec3(.07,.20,.12)))*filtered;
       diffuseColor.rgb *= ${bone ? '.74+broad*.31+strata*.018-pores*.045-fissure*.10' : '.80+broad*.28+strata*.095'};
+      ${
+        bone && !marrow
+          ? `
+      #ifdef USE_COLOR
+      float corticalExposure=smoothstep(.42,.88,(vColor.r+vColor.g+vColor.b)/3.);
+      diffuseColor.rgb*=mix(vec3(.74,.64,.52),vec3(1.07,1.045,1.),corticalExposure);
+      #endif
+      `
+          : ''
+      }
       float mineralHeight=0.;
       ${
         mineral
@@ -167,7 +177,7 @@ function weathered(material, kind, texture, mineralSurface = null) {
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <normal_fragment_maps>',
       `#include <normal_fragment_maps>
-      float micro=sNoise(vSaffronWorld*${bone ? '.43' : '.32'})*${bone ? '.075' : '.14'}+mineralHeight;
+      float micro=sNoise(vSaffronWorld*${bone ? '.43' : '.32'})*${bone ? '.045' : '.14'}+mineralHeight;
       vec3 q0=dFdx(-vViewPosition),q1=dFdy(-vViewPosition);
       vec3 r0=cross(q1,normal),r1=cross(normal,q0);
       float det=dot(q0,r0);
@@ -175,7 +185,7 @@ function weathered(material, kind, texture, mineralSurface = null) {
     );
   };
   material.customProgramCacheKey = () =>
-    `saffron-baked-weathered-${kind}-v3-${marrow ? 'marrow' : chalk ? 'chalk' : 'shell'}-${Boolean(mineralSurface?.texture)}`;
+    `saffron-baked-weathered-${kind}-v4-${marrow ? 'marrow' : chalk ? 'chalk' : 'shell'}-${Boolean(mineralSurface?.texture)}`;
   return material;
 }
 
@@ -276,6 +286,10 @@ export function createSaffronMaterials(
 }
 
 export function applyFossilWeathering(material, texture, mineralSurface) {
+  // Leached cortex separates the fossil from its ochre soil and marrow. Keep
+  // the original chalk highlights and dark fracture material as distinct layers.
+  if (/pale_fossil/i.test(material.name))
+    material.color.lerp(new T.Color().setRGB(0.76, 0.7, 0.56), 0.55);
   material.roughness = Math.max(material.roughness ?? 0.8, 0.8);
   return weathered(material, 'bone', texture, mineralSurface);
 }

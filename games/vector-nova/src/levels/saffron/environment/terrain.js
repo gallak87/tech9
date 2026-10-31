@@ -179,7 +179,7 @@ export function createLandformSurvey(track) {
         center.x + (i / grid - 0.5) * width,
         center.z + (j / grid - 0.5) * depth,
       );
-  function heightAt(x, z) {
+  function heightAt(x, z, heights = field) {
     const gx = ((x - center.x + width / 2) / width) * grid,
       gz = ((z - center.z + depth / 2) / depth) * grid;
     if (gx < 0 || gz < 0 || gx >= grid || gz >= grid) return rawHeightAt(x, z);
@@ -187,10 +187,10 @@ export function createLandformSurvey(track) {
       j = Math.floor(gz),
       u = gx - i,
       v = gz - j;
-    const a = field[j * (grid + 1) + i],
-      b = field[(j + 1) * (grid + 1) + i],
-      c = field[(j + 1) * (grid + 1) + i + 1],
-      d = field[j * (grid + 1) + i + 1];
+    const a = heights[j * (grid + 1) + i],
+      b = heights[(j + 1) * (grid + 1) + i],
+      c = heights[(j + 1) * (grid + 1) + i + 1],
+      d = heights[j * (grid + 1) + i + 1];
     return u + v <= 1
       ? a * (1 - u - v) + d * u + b * v
       : c * (u + v - 1) + b * (1 - u) + d * (1 - v);

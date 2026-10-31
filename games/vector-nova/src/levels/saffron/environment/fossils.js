@@ -164,10 +164,10 @@ export function createFossils(
               material.name === 'Saffron_mineral_bands'
             ) {
               material.transparent = true;
-              material.opacity = 0.42;
+              material.opacity = 0.6;
               material.depthWrite = false;
               material.roughness = 1;
-              material.color.set('#a5814a');
+              material.color.set('#b9965b');
               material.forceSinglePass = true;
               material.onBeforeCompile = (shader) => {
                 shader.uniforms.saffronFlowTime = poseUniforms.time;
@@ -189,13 +189,13 @@ export function createFossils(
                     float granular=fNoise(vec2(vFall.x*.95,fallFlight*24.-saffronFlowTime*1.65));
                     float channel=fNoise(vec2(vFall.x*.23+sin(vFall.y*.025)*.6,fallFlight*7.-saffronFlowTime*.48));
                     float threads=.5+.5*sin(vFall.x*1.05+channel*3.);
-                    float density=(.40+.60*smoothstep(.12,.86,threads))*(.66+.34*granular);
+                    float density=(.54+.46*smoothstep(.12,.86,threads))*(.72+.28*granular);
                     diffuseColor.a*=silhouette*density;
                     diffuseColor.rgb*=.77+granular*.23;`,
                   );
               };
               material.customProgramCacheKey = () =>
-                'saffron-accelerating-granular-volume-v6';
+                'saffron-accelerating-granular-volume-v7';
             }
             if (name === 'burrower') {
               applyCreatureWeathering(material, weatheringTexture);

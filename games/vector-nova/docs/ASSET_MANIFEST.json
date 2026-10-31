@@ -820,14 +820,20 @@
       "id": "saffron-leviathan",
       "source": "assets/levels/saffron/ and src/levels/saffron/",
       "creator": "VECTOR//NOVA project contributors; built-in imagegen for the retained scene and sky references",
-      "provenance": "Scene-guided editable Blender fossil/burrower/dune kit, original route glass and deterministic local sand presentation. Rebuilt cortical anatomy and geometry-derived cavity vertex colors retain their generator and source hashes. Fossil and bedrock finish borrows the separately registered project-generated Shatterline limestone at distinct physical scales; sand, grazer and road do not use that map.",
+      "provenance": "Scene-guided editable Blender fossil/burrower/dune kit, original route glass and deterministic local sand presentation. Rebuilt cortical anatomy and geometry-derived cavity vertex colors retain their generator and source hashes. Fossil and bedrock finish borrows the separately registered project-generated Shatterline limestone at distinct physical scales; sand, grazer and road do not use that map. Formed ceramic/graphite/bronze baffles and three closed fractured sediment scarps retain original Blender generators, editable scenes and hashed indexed geometry bundled with the level; they introduce no external images or meshes.",
       "rights": "Project-authored and project-generated; no third-party artwork supplied",
       "runtimeDependencies": ["three", "shatterline-limestone"],
       "provenanceRecord": "assets/levels/saffron/PROVENANCE.md",
       "runtimeAssets": [
         "public/assets/levels/saffron/leviathan-kit.glb",
         "public/assets/levels/saffron/saffron-sky-v2.png",
-        "public/assets/levels/saffron/weathering-noise-v1.r8"
+        "public/assets/levels/saffron/weathering-noise-v1.r8",
+        "assets/levels/saffron/baffles-meshes.json",
+        "assets/levels/saffron/scarps-meshes.json"
+      ],
+      "provenanceRecords": [
+        "assets/levels/saffron/baffles-manifest.json",
+        "assets/levels/saffron/scarps-manifest.json"
       ]
     },
     {

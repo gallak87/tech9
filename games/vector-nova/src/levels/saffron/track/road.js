@@ -8,6 +8,9 @@ import {
   deckEndGeometry,
 } from './solids.js';
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { deckSkinGeometry } from './skins.js';
+import baffleKit from '../../../../assets/levels/saffron/baffles-meshes.json' with { type: 'json' };
 import {
   sweepGeometry,
   boxProfile,
@@ -213,6 +216,7 @@ roughnessFactor=clamp(roughnessFactor+haze*.18+skin*.045+vein*.025,.24,.64);`,
     return mesh;
   };
   const runs = roadRuns(track);
+  const deckSurfaces = [];
   const profile = (points, start, end, mat, name) =>
     add(
       name,
@@ -238,6 +242,7 @@ roughnessFactor=clamp(roughnessFactor+haze*.18+skin*.045+vein*.025,.24,.64);`,
     top.renderOrder = 2;
     top.userData.drivingSurface = true;
     top.userData.roadSurface = true;
+    deckSurfaces.push({ start, end, geometry: top.geometry });
     top.userData.interval = [start, end];
     profile(
       SAFFRON_SOLIDS.underside,
@@ -301,17 +306,20 @@ roughnessFactor=clamp(roughnessFactor+haze*.18+skin*.045+vein*.025,.24,.64);`,
   ends.material.side = THREE.DoubleSide;
   for (const section of track.sections.filter((s) =>
     ['sandfall', 'return'].includes(s.id),
-  ))
-    profile(
-      [
-        [-16.5, 0.045],
-        [16.5, 0.045],
-      ],
-      section.start,
-      section.end,
-      honey,
+  )) {
+    add(
       'Honey-opaque reinforced turn panels',
+      deckSkinGeometry(
+        deckSurfaces,
+        track,
+        section.start,
+        section.end,
+        16.5,
+        0.045,
+      ),
+      honey,
     );
+  }
   const box = ownGeometry(new THREE.BoxGeometry(1, 1, 1));
   const instanced = (name, geometry, mat, entries) => {
     const mesh = new THREE.InstancedMesh(geometry, mat, entries.length);
@@ -428,19 +436,58 @@ roughnessFactor=clamp(roughnessFactor+haze*.18+skin*.045+vein*.025,.24,.64);`,
     for (let x = begin; x < end; x += 3)
       warning.push({ s: j.takeoff - 3, x, y: 0.09, scale: [1.6, 0.12, 1.5] });
   }
-  instanced('Split tapered baffle vanes', vaneGeometry(), bone, vanes);
-  instanced('Baffle bronze bearing anchors', box, support, clamps);
+  const formedVanes = shape ? [] : vanes;
+  instanced(
+    'Split tapered baffle vanes',
+    vaneGeometry(),
+    bone,
+    shape ? vanes : [],
+  );
+  const baffleMaterials = {
+    ceramic: material({ color: 0xd8c9ac, roughness: 0.43, metalness: 0.12 }),
+    graphite: material({ color: 0x3c3932, roughness: 0.48, metalness: 0.6 }),
+    bronze: material({ color: 0x9b7139, roughness: 0.38, metalness: 0.65 }),
+  };
+  for (const [name, source] of Object.entries(baffleKit.groups)) {
+    const geometry = ownGeometry(new THREE.BufferGeometry());
+    geometry.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute(source.positions, 3),
+    );
+    geometry.setAttribute(
+      'normal',
+      new THREE.Float32BufferAttribute(source.normals, 3),
+    );
+    geometry.setIndex(source.indices);
+    instanced(
+      `Formed baffle ${name}`,
+      geometry,
+      baffleMaterials[name],
+      formedVanes,
+    );
+  }
+  const bearingPosts = shape
+    ? clamps
+    : clamps.flatMap((entry) => [
+        { ...entry, y: 1.12, scale: [0.48, 1.86, 0.9] },
+        { ...entry, s: entry.s + 7.6, y: 1.12, scale: [0.48, 1.86, 0.9] },
+      ]);
+  instanced('Baffle bronze bearing anchors', box, support, bearingPosts);
   instanced(
     'Seated baffle bearing saddles',
     box,
     seam,
-    clamps.map((entry) => ({
+    bearingPosts.map((entry) => ({
       ...entry,
       y: 0.24,
       scale: [0.76, 0.3, 1.65],
     })),
   );
-  instanced('Glass lens section seams', box, seam, panelRims);
+  const joints = panelRims.map(({ s }) =>
+    deckSkinGeometry(deckSurfaces, track, s - 0.0375, s + 0.0375, 16.8, 0.065),
+  );
+  add('Glass lens section seams', mergeGeometries(joints), seam);
+  joints.forEach((geometry) => geometry.dispose());
   instanced('Deep lens compression sills', box, support, lensSills);
   instanced('Subsurface mineral laminae', box, amber, laminae);
   if (!shape)

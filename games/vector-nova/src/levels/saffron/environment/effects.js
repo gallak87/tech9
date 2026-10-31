@@ -196,6 +196,10 @@ export function createDesertEffects(
   const ridgeEnd = path.length + 320;
   const ridgeGeometry = resources.geometry(new T.BufferGeometry());
   const source = survey.meshData;
+  const liftedHeights = Float32Array.from(
+    { length: source.positions.length / 3 },
+    (_, index) => source.positions[index * 3 + 1],
+  );
   const remap = new Map();
   const ridgePositions = [],
     ridgeIndices = [],
@@ -210,6 +214,7 @@ export function createDesertEffects(
     const dx = x - path.start.x,
       dz = z - path.start.z;
     const vertex = {
+      index,
       x,
       y: y - 0.04,
       z,
@@ -379,6 +384,13 @@ export function createDesertEffects(
     disturbanceSeeds[i] = random();
   disturbanceGeometry.setAttribute(
     'position',
+    new T.BufferAttribute(
+      new Float32Array(disturbanceSeeds.length),
+      3,
+    ).setUsage(T.DynamicDrawUsage),
+  );
+  disturbanceGeometry.setAttribute(
+    'seed',
     new T.BufferAttribute(disturbanceSeeds, 3),
   );
   const disturbanceMaterial = resources.material(
@@ -387,23 +399,18 @@ export function createDesertEffects(
       depthWrite: false,
       uniforms: { clock: { value: 0 }, strength: { value: 0 } },
       vertexShader: `
-        uniform float clock; uniform float strength; varying float alpha;
+        attribute vec3 seed; uniform float clock; uniform float strength; varying float alpha;
         void main() {
-          float age=fract(position.y+clock*.31);
-          float side=position.x>.5?1.:-1.;
-          float broad=step(.76,position.z);
-          float grain=step(.44,position.z)*(1.-broad);
-          float trail=position.z*180.;
-          vec3 p=vec3(side*(48.+age*27.-trail*.06),sin(age*3.14159)*(2.+position.x*7.),45.-trail-age*24.);
-          vec3 peeling=vec3(side*(70.+age*70.),age*(4.+position.x*8.),-80.-trail*.9-age*45.);
-          p=mix(p,peeling,broad);
-          vec4 v=modelViewMatrix*vec4(p,1.);
+          float age=fract(seed.y+clock*.31);
+          float broad=step(.76,seed.z);
+          float grain=step(.44,seed.z)*(1.-broad);
+          vec4 v=modelViewMatrix*vec4(position,1.);
           gl_Position=projectionMatrix*v;
-          float dustSize=mix(clamp(7600./max(1.,-v.z),3.,24.),clamp(12000./max(1.,-v.z),5.,32.),broad);
+          float dustSize=mix(clamp(18000./max(1.,-v.z),5.,34.),clamp(29000./max(1.,-v.z),8.,44.),broad);
           gl_PointSize=mix(dustSize,clamp(1350./max(1.,-v.z),.7,2.),grain);
-          alpha=strength*sin(age*3.14159)*mix(mix(.05,.18,grain),.06,broad);
+          alpha=strength*sin(age*3.14159)*mix(mix(.075,.18,grain),.085,broad);
         }`,
-      fragmentShader: `varying float alpha;void main(){float r=length(gl_PointCoord-.5)*2.;gl_FragColor=vec4(.38,.25,.12,alpha*exp(-r*r*3.6));\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}`,
+      fragmentShader: `varying float alpha;void main(){float r=length(gl_PointCoord-.5)*2.;gl_FragColor=vec4(.52,.35,.17,alpha*exp(-r*r*3.6));\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}`,
     }),
   );
   const disturbance = new T.Points(disturbanceGeometry, disturbanceMaterial);
@@ -413,6 +420,7 @@ export function createDesertEffects(
   let lastPresentation = sampleBurrower(-1);
   let lastAge = null;
   let lastMotion = null;
+  let lastDustAge = null;
   let disposed = false;
   function update({
     time = 0,
@@ -452,6 +460,7 @@ export function createDesertEffects(
             motionAmount,
           );
         ridgeVertices.setXYZ(k, p.x, p.y + lift, p.z);
+        liftedHeights[p.index] = p.y + lift;
         alphaVertices.setX(k, T.MathUtils.smoothstep(lift, 0.06, 0.75) * edge);
       }
       ridgeVertices.needsUpdate = true;
@@ -480,6 +489,39 @@ export function createDesertEffects(
     disturbance.quaternion.copy(path.quaternion);
     disturbance.visible =
       age > 2 && age < 22 && !settings.reducedMotion && !reviewing;
+    if (disturbance.visible && age !== lastDustAge) {
+      const positions = disturbanceGeometry.attributes.position;
+      for (let i = 0; i < positions.count; i++) {
+        const sx = disturbanceSeeds[i * 3],
+          sy = disturbanceSeeds[i * 3 + 1],
+          sz = disturbanceSeeds[i * 3 + 2];
+        const phase = (sy + age * 0.31) % 1;
+        const side = sx > 0.5 ? 1 : -1;
+        const broad = sz >= 0.76;
+        const trail = sz * 180;
+        const x =
+          side * (broad ? 70 + phase * 70 : 48 + phase * 27 - trail * 0.06);
+        const z = broad
+          ? -80 - trail * 0.9 - phase * 45
+          : 45 - trail - phase * 24;
+        const lift = broad
+          ? phase * (4 + sx * 8)
+          : Math.sin(phase * Math.PI) * (2 + sx * 7);
+        const worldX =
+          path.start.x + path.forward.x * (travel + z) + path.right.x * x;
+        const worldZ =
+          path.start.z + path.forward.z * (travel + z) + path.right.z * x;
+        // Powder peels from the actual moving surface. A head-height origin
+        // buried tail particles in rising terrain and in the creature's berms.
+        const surface = Math.max(
+          survey.heightAt(worldX, worldZ),
+          survey.heightAt(worldX, worldZ, liftedHeights),
+        );
+        positions.setXYZ(i, x, surface + lift + 2 - disturbance.position.y, z);
+      }
+      positions.needsUpdate = true;
+      lastDustAge = age;
+    }
     disturbanceGeometry.setDrawRange(0, settings.quality === 'low' ? 120 : 320);
     disturbanceMaterial.uniforms.clock.value = Math.max(0, age);
     disturbanceMaterial.uniforms.strength.value = Math.max(

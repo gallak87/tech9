@@ -390,8 +390,9 @@ test('production and shape expose real open spans, finite meshes and terrain-gro
           );
     });
     assert.ok(draws < 80);
-    // Beveled vanes, seated saddles and open-web supports total 228,514.
-    assert.ok(triangles < 235000);
+    // The neutral physical study totals 195,440 triangles. Production's
+    // formed 176-triangle vanes and paired bearing posts total 404,324.
+    assert.ok(triangles < (shape ? 200000 : 410000));
     const shoes = road.group.getObjectByName('Broad fossil shelf shoes'),
       matrix = new THREE.Matrix4(),
       position = new THREE.Vector3();

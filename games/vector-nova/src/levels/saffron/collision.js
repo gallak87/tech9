@@ -134,7 +134,9 @@ export function createSaffronCollisionWorld({ track }) {
           ),
         );
   }
-  triangles.push(...fossilTriangles);
+  // Detailed porous anatomy can exceed the engine's function-argument limit.
+  // Append iteratively while preserving the authored triangle order.
+  for (const triangle of fossilTriangles) triangles.push(triangle);
   const supports = jumpSupportPlan(track, survey, fossilTriangles);
   const leg = new T.BoxGeometry(1, 1, 1),
     shoe = new T.CylinderGeometry(0.38, 0.7, 1, 6),

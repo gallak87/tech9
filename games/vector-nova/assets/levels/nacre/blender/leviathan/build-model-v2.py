@@ -46,7 +46,7 @@ def mesh(name, verts, faces, mat, collection=asset):
     if collection==asset: parts[mat.name].append(o)
     return o
 
-profile=[(0,3.3,2.5),(3,5.5,4.1),(10,8.9,6.7),(18,8.7,8.2),(30,8.9,9.0),(48,8.0,8.25),(76,6.7,6.9),(106,5.0,5.2),(135,3.5,3.8),(159,2.0,2.25),(175,.69,.85),(180,.06,.1)]
+profile=[(0,4.0,2.2),(3,6.5,3.9),(10,9.0,6.0),(18,8.6,7.5),(25,7.8,7.4),(34,8.8,8.9),(48,8.0,8.25),(76,6.7,6.9),(106,5.0,5.2),(135,3.5,3.8),(159,2.0,2.25),(175,.69,.85),(180,.06,.1)]
 def radii(x):
     for i in range(len(profile)-1):
         a,b=profile[i],profile[i+1]
@@ -56,8 +56,14 @@ def radii(x):
     return .06,.1
 def surface(x, angle, lift=0):
     ry,rz=radii(x)
-    belly=(1.0*math.exp(-((x-26)/23)**2)+.45*math.exp(-((x-67)/35)**2))*max(0,-math.cos(angle))**2
-    return (x,math.sin(angle)*(ry+lift),math.cos(angle)*(rz+lift)-belly)
+    s,c=math.sin(angle),math.cos(angle)
+    # Low rounded wedge planes meet a cheek, living neck and high shoulder.
+    head=smooth((30-x)/24)
+    lateral=math.copysign(abs(s)**(1-.22*head),s)
+    dorsal=math.copysign(abs(c)**(1-.28*head),c)
+    if c<0: dorsal*=1-.15*head
+    belly=(1.0*math.exp(-((x-26)/23)**2)+.45*math.exp(-((x-67)/35)**2))*max(0,-c)**2
+    return (x,lateral*(ry+lift),dorsal*(rz+lift)-belly)
 
 # Vertex paint is actual GLTF COLOR_0 data, not a Blender-only procedural node.
 # Values are in linear RGB and share the exact same material path in Blender
@@ -95,6 +101,9 @@ def paint_object(obj,material):
                 edge=max(smooth((angle-.46)/.50),smooth((t-.72)/.28)*.76)
                 mix=edge*.58;target=(.095,.198,.211)
                 variation=.88+.18*broad+.05*fine
+                if 'cephalic' in obj.name and v.index>=len(obj.data.vertices)//2:
+                    # This is the real recessed underside of the closed crown.
+                    mix=.88;target=(.022,.067,.074);variation=.91
         rgb=[max(.004,((1-mix)*base[i]+mix*target[i])*variation) for i in range(3)]
         c.color=(*rgb,1)
 
@@ -104,7 +113,7 @@ for i in range(n):
     x=i*LENGTH/(n-1); ry,rz=radii(x)
     for j in range(radial):
         a=2*math.pi*j/radial
-        groove_scale=1+(.009*math.cos(x*2.5))*(1 if x>18 else .15)
+        groove_scale=1+.004*math.sin(x*.105)*math.exp(-((x-64)/58)**2)
         p=surface(x,a);verts.append((p[0],p[1]*groove_scale,p[2]*groove_scale))
 for i in range(n-1):
     for j in range(radial):
@@ -128,44 +137,50 @@ def ribbon(name, points, width, mat, radial=5):
             faces.append((a,b,b+radial,a+radial))
     return mesh(name,verts,faces,mat)
 
-# A single curved bony brow grows out of the rounded muzzle. Its small scalloped
-# trailing edge exposes a living neck instead of paired aircraft-like panels.
+# A closed low cephalic wedge rolls into the cheeks above a sheltered reveal.
 v=[]; f=[]; nx=25; na=17
 for i in range(nx):
     t=i/(nx-1); x=.45+t*22.8
-    aperture=.60+.47*math.sin(math.pi*t)**.55
+    aperture=.70+.50*math.sin(math.pi*t)**.7
     for j in range(na):
         q=2*j/(na-1)-1; a=q*aperture
-        scallop=(.65+1.55*math.sin(q*math.pi*3+.4)**2)*t**7
-        v.append(surface(x+scallop,a,.13+.44*(1-q*q)*math.sin(math.pi*t)+.075*math.sin(x*1.05+q*3.4)*math.sin(math.pi*t)**2))
+        scallop=(.45+1.1*math.sin(q*math.pi*2+.4)**2)*t**8
+        lift=.36+.48*(1-q*q)*math.sin(math.pi*t)
+        v.append(surface(x+scallop,a,lift))
 for i in range(nx-1):
     for j in range(na-1):
         a=i*na+j; f.append((a,a+na,a+na+1,a+1))
-mesh('Rounded single cephalic crown',v,f,pearl)
+top_count=len(v)
+v += [(p[0],p[1]*.993,p[2]-.27) for p in v]
+f += [tuple(i+top_count for i in reversed(face)) for face in list(f)]
+perimeter=list(range(na))+[i*na+na-1 for i in range(1,nx)]+list(range((nx-1)*na+na-2,(nx-1)*na-1,-1))+[i*na for i in range(nx-2,0,-1)]
+for i,a in enumerate(perimeter):
+    b=perimeter[(i+1)%len(perimeter)];f.append((a,b,b+top_count,a+top_count))
+mesh('Seated closed cephalic crown',v,f,pearl)
 for side in [-1,1]:
-    pts=[surface(x,side*(1.82+.018*x),.10) for x in range(0,24)]
-    ribbon('Continuous soft muzzle crease',pts,.14,groove)
+    pts=[surface(.45+x,side*(1.60+.025*x),.04) for x in range(0,24)]
+    ribbon('Recessed closed mouth slot',pts,.37,groove)
     # A fleshy lower lip gives the head a whale-like expression.
-    ribbon('Rounded lower lip',[surface(x,side*(1.88+.016*x),.16) for x in range(0,21)],.20,skin,6)
+    ribbon('Rounded lower lip',[surface(.45+x,side*(1.68+.024*x),.08) for x in range(0,21)],.39,skin,6)
     for fold in range(3):
         points=[surface(13+i*.85,side*(1.03+fold*.16+.09*math.sin(i*.34)),.17) for i in range(15)]
         ribbon('Soft jaw-to-neck hide crease',points,.10+fold*.025,skin,5)
     for k,x in enumerate([25,29,33,37]):
         angles=[.94+i*.13 for i in range(12)]
         pts=[surface(x+.85*math.sin(a*1.5),side*a,.09) for a in angles]
-        ribbon('Curved breathing gill recess',pts,.16,groove)
-        ribbon('Soft raised gill fold',[(p[0]-.48,p[1]*1.007,p[2]) for p in pts],.19,skin,6)
+        ribbon('Curved breathing gill recess',pts,.23+.025*(3-k),groove)
+        ribbon('Soft raised gill fold',[(p[0]-.48,p[1]*1.007,p[2]) for p in pts],.27+.03*(3-k),skin,6)
         ribbon('Gill living light tip',pts[-4:],.045,glow,4)
-    eye_x=9.1; eye_a=side*1.34
+    eye_x=10.4; eye_a=side*1.30
     eye_position=surface(eye_x,eye_a,.13)
     bpy.ops.mesh.primitive_uv_sphere_add(segments=20, ring_count=10, radius=1, location=eye_position)
-    eye=bpy.context.object; eye.name='Recessed living cyan eye'; eye.scale=(.87,.30,.48)
+    eye=bpy.context.object; eye.name='Recessed living cyan eye'; eye.scale=(.91,.32,.44)
     bpy.ops.object.transform_apply(location=True,rotation=True,scale=True)
     for c in list(eye.users_collection): c.objects.unlink(eye)
     asset.objects.link(eye); eye.data.materials.append(glow); parts[glow.name].append(eye)
     for poly in eye.data.polygons: poly.use_smooth=True
-    points=[surface(eye_x-1.25+u*.42,side*(1.20-.035*math.sin(u*.8)),.23) for u in range(7)]
-    ribbon('Heavy organic eye brow',points,.26,skin,6)
+    points=[surface(eye_x-1.35+u*.45,side*(1.12-.055*math.sin(u*.6)),.34) for u in range(7)]
+    ribbon('Heavy organic eye brow',points,.36,skin,6)
 
 # Overlapping rounded scutes: raised inner rings and rolled edges, no flat
 # repeated metal slats. The three rows are offset and leave broad hide channels.
@@ -173,13 +188,13 @@ for row,a in enumerate([-.84,0,.84]):
     for k in range(20):
         x=27+k*6.8+(3.25 if row!=1 else 0)+.65*math.sin(k*1.67+row*2)
         if x>164: continue
-        length=(8.4 if x<125 else 7.0)*(1+.12*math.sin(k*1.29+row*3))
-        aw=(.31 if row!=1 else .40)*(1+.16*math.sin(k*.83+row*1.7))
+        length=(9.8 if x<64 else (8.2 if x<125 else 6.4))*(1+.14*math.sin(k*1.29+row*3))
+        aw=(.36 if row!=1 else .43)*(1-.20*smooth((x-80)/70))*(1+.11*math.sin(k*.83+row*1.7))
         a += .017*math.sin(k*2.1+row)
         outline=[(x-length*.46,a-aw*.72),(x-length*.21,a-aw),(x+length*.24,a-aw*.83),(x+length*.55,a-aw*.31),(x+length*.60,a),(x+length*.55,a+aw*.31),(x+length*.24,a+aw*.83),(x-length*.21,a+aw),(x-length*.46,a+aw*.72)]
         outline=[(u+.22*math.sin(j*2.2+k*.6),angle+.015*math.sin(j*2.4+k)) for j,(u,angle) in enumerate(outline)]
         inner=[(x+(u-x)*.71,a+(angle-a)*.71) for u,angle in outline]
-        v=[surface(u,angle,.17) for u,angle in outline]+[surface(u,angle,.61) for u,angle in inner]+[surface(x-.5,a,.76)]
+        v=[surface(u,angle,.12) for u,angle in outline]+[surface(u,angle,.50) for u,angle in inner]+[surface(x-.5,a,.63)]
         n=len(outline); f=[]
         for j in range(n):
             f.append((j,(j+1)%n,(j+1)%n+n,j+n))
@@ -191,10 +206,12 @@ for side in [-1,1]:
     v=[]; f=[]; samples=93
     for i in range(samples):
         x=31+i*1.46; t=i/(samples-1); ry,rz=radii(x)
-        reach=(2.4+3.8*math.sin(math.pi*t)**.7)*(1-.4*t)*(1+.10*math.sin(x*.49))
+        reach=(1.5+4.5*math.exp(-((x-54)/18)**2)+2.8*math.exp(-((x-100)/16)**2)+1.5*math.exp(-((x-140)/12)**2))*(1-.45*t)
+        reach=min(reach,10.45-ry*.75)
         for j in range(3):
             q=j/2
-            v.append((x+q*2.4,side*(ry*.75+reach*q),-rz*.51-q*(1.7+.45*math.sin(x*.55))))
+            fold=.45*math.sin(math.pi*q)*math.exp(-((x-65)/42)**2)
+            v.append((x+q*4.2,side*(ry*.75+reach*q),-rz*.51-q*(1.6+.28*math.sin(x*.10))-fold))
     for i in range(samples-1):
         for j in range(2):
             a=i*3+j; f.append((a,a+1,a+4,a+3))
@@ -205,21 +222,32 @@ for side in [-1,1]:
     for i in range(samples-1):
         a=i*3; b=(i+1)*3; f.append((a,b,b+top_count,a+top_count))
         a=i*3+2; b=(i+1)*3+2; f.append((a,a+top_count,b+top_count,b))
+    for end,reverse in [(0,True),((samples-1)*3,False)]:
+        for j in range(2):
+            cap=(end+j,end+j+1,end+j+1+top_count,end+j+top_count)
+            f.append(tuple(reversed(cap)) if reverse else cap)
+    # Mirror changes handedness; both closed fin volumes face outward.
+    if side>0: f=[tuple(reversed(face)) for face in f]
     mesh('Continuous lateral swimming fringe',v,f,fin)
     ribbon('Fleshy fin insertion',[v[i*3] for i in range(samples)],.25,skin,6)
-    for i in range(0,samples,3):
+    for i in range(0,samples,6):
         ribbon('Fine membrane rib',[v[i*3],v[i*3+1],v[i*3+2]],.085,skin,5)
     for start in range(0,samples-5,12):
         ribbon('Interrupted living fin margin',[v[i*3+2] for i in range(start,min(samples,start+8))],.045,glow,4)
 
-# A narrow upright tail blade, broad enough to read at track scale.
+# A low continuous closed ridge gives the rear half a flowing fin contour.
 v=[]; f=[]
 for i in range(31):
-    x=142+i*1.24; t=i/30; ry,rz=radii(min(x,180)); h=math.sin(math.pi*t)**1.2*6.5
-    v.extend([(x,0,rz*.7),(x+2,0,rz+h)])
-for i in range(30): f.append((i*2,i*2+1,i*2+3,i*2+2))
-mesh('Low swept dorsal tail blade',v,f,fin)
-ribbon('Tail fin luminous edge',[v[i*2+1] for i in range(31)],.095,glow)
+    t=i/30; x=84+t*95; ry,rz=radii(x)
+    h=math.sin(math.pi*t)**.7*(2.0+.35*math.sin(t*math.pi*4))
+    width=.17*(.45+.55*math.sin(math.pi*t))
+    v.extend([(x,-width,rz*.86),(x,width,rz*.86),(x+2,0,rz*.91+h)])
+for i in range(30):
+    for j in range(3):
+        a=i*3+j;b=i*3+(j+1)%3;f.append((a,b,b+3,a+3))
+f.extend([(2,1,0),(90,91,92)])
+mesh('Closed low posterior dorsal ridge',v,f,fin)
+ribbon('Tail fin luminous edge',[v[i*3+2] for i in range(31)],.095,glow)
 
 # Light lives in irregular photophore chains, not full-length luminous cables.
 for side in [-1,1]:
@@ -274,10 +302,10 @@ bpy.context.view_layer.objects.active=objects[0]
 export_path=OUT+'/nacre-leviathan-v2.glb'
 bpy.ops.export_scene.gltf(filepath=export_path,export_format='GLB',use_selection=True,export_skins=False,export_animations=False,export_apply=True,export_yup=True,export_vertex_color='MATERIAL',export_all_vertex_colors=False)
 triangles=sum(sum(len(p.vertices)-2 for p in o.data.polygons) for o in objects)
-report={'lengthMetres':280,'conservativeRadius':24,'artRevision':11,'vertexColorMeshes':3,'materialVariation':'GLTF COLOR_0 organic growth edges, broad head mottling, muted belly gradient; exported scalar PBR roughness','materials':len(objects),'triangles':triangles,'textureCount':0,'vertexCount':sum(len(o.data.vertices) for o in objects),'blenderVersion':bpy.app.version_string,'runtimeAxis':'GLTF +X head-to-tail, +Y dorsal, +Z starboard','glbBytes':os.path.getsize(export_path)}
+report={'lengthMetres':280,'conservativeRadius':24,'artRevision':12,'vertexColorMeshes':3,'materialVariation':'GLTF COLOR_0 organic growth edges, broad head mottling, muted belly gradient; exported scalar PBR roughness','materials':len(objects),'triangles':triangles,'textureCount':0,'vertexCount':sum(len(o.data.vertices) for o in objects),'blenderVersion':bpy.app.version_string,'runtimeAxis':'GLTF +X head-to-tail, +Y dorsal, +Z starboard','glbBytes':os.path.getsize(export_path)}
 with open(ART+'/model-manifest-v2.json','w') as f: json.dump(report,f,indent=2)
 
 
-scene['design']='One enormous organic aquatic worm: fuller muzzle and neck, curved nacre scutes, soft fin membranes. V2 source, original v1 preserved.'
+scene['design']='One enormous organic aquatic worm: low wedge head, seated thick crown, graded nacre shields and connected low swimming lobes/ridge. V2 anatomy revision; original concept and rig preserved.'
 bpy.ops.wm.save_as_mainfile(filepath=ART+'/nacre-leviathan-v2.blend')
 print(json.dumps(report))

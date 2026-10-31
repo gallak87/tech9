@@ -79,7 +79,8 @@ test('Nacre assemblies and their actual instance bounds clear road and both flig
     }
   });
   assert.ok(environment.userData.metrics.meshCount < 60);
-  assert.ok(environment.userData.metrics.triangleCount < 650000);
+  // Closed shore shelves, rooted reef colonies and fitted piers remain bounded.
+  assert.ok(environment.userData.metrics.triangleCount < 665000);
   assert.equal(environment.userData.metrics.textures, 1);
   environment.userData.dispose();
 });

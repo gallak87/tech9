@@ -1,6 +1,6 @@
 {
   "level": "Nacre Tempest",
-  "version": "nacre-stormfront-v4",
+  "version": "nacre-stormfront-v5",
   "source": "Original source-native geometry and shader code authored for VECTOR//NOVA; one original generated storm radiance image supplied as an optional production sky texture",
   "externalAssets": [
     {
@@ -8,6 +8,13 @@
       "source": "https://ambientcg.com/view?id=Terrazzo019S",
       "license": "CC0-1.0",
       "provenance": "assets/levels/nacre/ceramic/provenance.json"
+    },
+    {
+      "asset": "Worldkit Rock Boulder Cracked color derivative and OpenGL normal",
+      "source": "https://polyhaven.com/a/rock_boulder_cracked",
+      "license": "CC0-1.0",
+      "creators": "Dimitrios Savva (photography), Dario Barresi (processing); existing gray/olive project color derivative",
+      "provenance": "../../worldkit/modules/landscape/assets/runtime/ASSETS.md"
     }
   ],
   "generatedImageAssets": [
@@ -25,12 +32,12 @@
       "ownership": "Backdrop owns and releases the supplied texture exactly once"
     }
   ],
-  "runtimeMaps": 2,
+  "runtimeMaps": 4,
   "assets": [
     {
       "id": "ocean",
       "source": "src/levels/nacre/environment/water.js, ocean-waves.js, ocean-profile.json, ocean-normals.js, ocean-reflection.js",
-      "method": "Twelve wind-biased grouped Gerstner waves spanning 60–251 metres with horizontal displacement and exact sheltered normals. The full field remains active around both sides of the circuit; distance band limits preserve resolvable long swells at the horizon. Narrow protection follows actual banked deck clearance and local leviathan contacts. A shared profile drives the live Three.js shader and editable Blender study. Compression and crest activation select ragged whitecaps; directional chop and mipmapped procedural wind ripples separate small highlights from geometric swells. Ocean-only pre-race phase carries into simulation-time animation at green, preserving creature/event timing; manual pause and reduced motion freeze the waves.",
+      "method": "Twelve wind-biased grouped Gerstner waves spanning 60\u2013251 metres with horizontal displacement and exact sheltered normals. The full field remains active around both sides of the circuit; distance band limits preserve resolvable long swells at the horizon. Narrow protection follows actual banked deck clearance and local leviathan contacts. A shared profile drives the live Three.js shader and editable Blender study. Compression and crest activation select wind-torn crest ribbons; directional chop and mipmapped procedural wind ripples separate small highlights from geometric swells. Ocean-only pre-race phase carries into simulation-time animation at green, preserving creature/event timing; manual pause and reduced motion freeze the waves. Underwater optics use inward geometric-swell normals, finite Fresnel/transmission and total-internal-reflection handling, with filtered sky radiance and a bounded depth reflection approximation. Bounded camera-to-ceiling Beer absorption reduces distant ceiling contrast without another scene reflection pass.",
       "passes": 1,
       "borrowedMaps": 1,
       "newMapAllocations": 1,
@@ -59,8 +66,8 @@
     },
     {
       "id": "archipelago-and-reef",
-      "source": "src/levels/nacre/environment/world.js",
-      "method": "Deterministic instanced weathered pinnacles, grounded irregular boulder reefs, asymmetric antlers, thin sea fans and encrusting coral, plus route-cleared large fan/ribbon canopy gardens above the submerged road line, volcanic islands and marine titanium observatory; sampled road plus explicit flight-corridor clearance"
+      "source": "src/levels/nacre/environment/world.js, organic.js, geometry.js, observatory.js",
+      "method": "Deterministic instanced fractured stacks and closed volcanic shelves, rooted thick cavity colonies, open branching fans and fronds, plus apertured nacre observatory piers and fitted roof petals. Growth samples actual transformed triangles; route and explicit flight corridors remain reserved."
     },
     {
       "id": "material-caustics",
@@ -85,7 +92,7 @@
     {
       "id": "reef-radiance",
       "source": "src/levels/nacre/environment/index.js",
-      "method": "Three unshadowed local cyan/violet/amber lights select nearby authored garden anchors, fade by distance and actual camera immersion, and add no render or shadow passes"
+      "method": "Three unshadowed pooled cyan/violet/green/amber lights select authored anchors by priority and camera visibility, with explicit intensity and a fixed 165 m physical reach; immersion and overview gate illumination. No added render or shadow passes."
     },
     {
       "id": "water-crossing-presentation",
@@ -112,17 +119,17 @@
         "src/levels/nacre/environment/leviathan/",
         "public/assets/levels/nacre/leviathan/nacre-leviathan-v2.glb"
       ],
-      "method": "Original 280m Blender sea worm with nacre shields, fins, photophores and vertex color variation. One loaded body supplies a curved first-jump breach and a submerged diagonal crossing with fixed world-space heading and speed-scaled timing. Existing foam and pooled spray accompany the breach. Pause/reset, reduced motion, loading failure and owned disposal are supported.",
+      "method": "Original 280m Blender sea worm with a low wedge head, closed seated nacre crown, graded shields, closed flowing fins, photophores and vertex color variation. One loaded body supplies a curved first-jump breach and a submerged diagonal crossing with fixed world-space heading and speed-scaled timing. The existing two foam planes use advected irregular froth, while the unchanged spray pool uses quieter granular particles and velocity-projected tapered drain streaks, all borrowing scene fog. Pause/reset, reduced motion, loading failure and owned disposal are supported.",
       "concept": "assets/levels/nacre/blender/leviathan/concept-v1.png",
       "conceptProvenance": "assets/levels/nacre/blender/leviathan/concept-v1.json",
       "animalCount": 1,
-      "modelTriangles": 35772,
-      "sourceTrianglesIncludingFoam": 35776,
+      "modelTriangles": 36238,
+      "sourceTrianglesIncludingFoam": 36242,
       "maxDrawsIncludingEffects": 8,
       "runtimeMaps": 0,
       "additionalRenderPasses": 0,
-      "assetBytes": 917044,
-      "assetSha256": "7144cf836dc045fc5e174af655397fd77b25bfc3d9fc11a639b5986a1a627844",
+      "assetBytes": 920024,
+      "assetSha256": "cadd606de49855f5e00371260712a6249fdfabb5e8a5b8911e557bad8c5136df",
       "sourceCountNote": "Included in environment totals; source counts are distinct from rendered performance.",
       "lengthMetres": 280,
       "vertexColorMeshes": 3,
@@ -147,6 +154,17 @@
       "draws": 3,
       "newTextures": 0,
       "newRenderPasses": 0
+    },
+    {
+      "id": "basalt-mineral-finish",
+      "source": "src/levels/nacre/environment/mineral-surface.js and materials.js",
+      "publicAPI": "@worldkit/environment/forest:FOREST_MATERIAL_ASSETS",
+      "method": "One owned shared 1K color/OpenGL-normal pair from the registered CC0 Rock Boulder Cracked set. Luminance-led slate color and restrained reoriented relief use a 16 m world triplanar repeat, retaining vertex cavities and existing wet/salt/deep roughness zones. Only basalt uses these maps; readiness, partial failure, cancellation and disposal are level-owned.",
+      "textures": 2,
+      "dimensions": [1024, 1024],
+      "estimatedMipBytes": 11184811,
+      "newDraws": 0,
+      "newRenderPasses": 0
     }
   ],
   "limitations": [
@@ -155,21 +173,22 @@
     "Storm radiance represents distant atmosphere on a camera-centered sky sphere; the volcanic islands, reef and observatory are world-space geometry.",
     "The generated sky is LDR radiance; the image does not supply HDR sun values or volumetric storm geometry.",
     "Crossing foam/spray is deterministic visual presentation, not fluid simulation or a water collision system. The standing foam sheet uses a 14cm offset to avoid coplanar road/water flicker; the crossing curve and craft event are solved at the actual water level.",
-    "Source counts are not actual rendered performance certification; browser and foreground hardware evidence must be recorded separately."
+    "Source counts are not actual rendered performance certification; browser and foreground hardware evidence must be recorded separately.",
+    "Leviathan spray retains deterministic source-linked birth positions rather than model-vertex attachment. Its drain streaks are screen-space sprites; contact froth and spray do not simulate continuous water sheets or fluid mass."
   ],
   "runtimeMapConditions": {
-    "productionWithSkyTexture": 2,
-    "proceduralFallback": 1,
+    "productionWithSkyTexture": 4,
+    "proceduralFallback": 3,
     "shapeReview": 0,
-    "environmentGeometry": 1,
+    "environmentGeometry": 3,
     "waterBorrowedFromBackdrop": 1,
     "reflectionTargetsHigh": 1,
     "reflectionTargetsLowActive": 0
   },
   "sourceMetrics": {
-    "environmentMeshes": 50,
-    "environmentTriangles": 615678,
-    "environmentPrimitives": 2414,
+    "environmentMeshes": 58,
+    "environmentTriangles": 653880,
+    "environmentPrimitives": 2469,
     "skyMeshes": 1,
     "skyTriangles": 960,
     "marineSnowHigh": 1600,
@@ -184,11 +203,12 @@
     "splashPoolPointsHigh": 480,
     "splashPoolPointsLow": 240,
     "leviathanCount": 1,
-    "leviathanModelTriangles": 35772,
+    "leviathanModelTriangles": 36238,
     "leviathanSprayHigh": 960,
     "leviathanSprayLow": 480,
     "weatherDraws": 3,
     "weatherTrianglesHigh": 2550,
     "weatherTrianglesLow": 1134
-  }
+  },
+  "runtimeMapScope": "Environment/backdrop maps; the three road ceramic maps are counted separately."
 }

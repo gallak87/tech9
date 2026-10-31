@@ -1,6 +1,8 @@
 import * as T from 'three';
 import { groundFrame } from '../../../environment/placement.js';
 import { createBatches } from './geometry.js';
+import { createReefSponge } from './organic.js';
+import { addObservatory } from './observatory.js';
 import { nacreSeabedHeight } from './seabed.js';
 
 export function createNacreWorld(track, materials, clearance, random, seabedY) {
@@ -21,6 +23,15 @@ export function createNacreWorld(track, materials, clearance, random, seabedY) {
     }
     return null;
   }
+  // Living terrace clearings replace nearby solitary stacks rather than
+  // burying the new habitat behind the previous upright composition.
+  const reefClearings = [
+    [2500, -1],
+    [3850, 1],
+  ].map(([s, side]) => {
+    const frame = groundFrame(track, s);
+    return frame.position.clone().addScaledVector(frame.right, side * 230);
+  });
   // Weathered asymmetric pinnacles rise out of broad, irregular talus feet.
   for (let i = 0; i < 32; i += 1) {
     const distance = (track.length * (i + 0.3)) / 32;
@@ -44,12 +55,32 @@ export function createNacreWorld(track, materials, clearance, random, seabedY) {
       0.075,
       0.31 + random() * 0.1,
     );
+    const spireYaw = random() * 6;
+    if (reefClearings.some((c) => Math.hypot(c.x - p.x, c.z - p.z) < 115)) {
+      placements.pop();
+      continue;
+    }
     batches.add(
       i % 2 ? 'basaltA' : 'basaltB',
       materials.basalt,
       [p.x, rootY + height / 2, p.z],
       [radius * 0.9, height, radius * 0.82],
-      [0, random() * 6, 0],
+      [0, spireYaw, 0],
+      color,
+    );
+    // An attached lower shoulder breaks the solitary obelisk silhouette;
+    // both stacks stay inside the site's existing conservative footprint.
+    const shoulderAngle = i * 1.73;
+    const shoulderX = p.x + Math.cos(shoulderAngle) * radius * 0.32;
+    const shoulderZ = p.z + Math.sin(shoulderAngle) * radius * 0.3;
+    const shoulderRoot = nacreSeabedHeight(track, shoulderX, shoulderZ) - 14;
+    const shoulderHeight = height * (0.54 + (i % 3) * 0.045);
+    batches.add(
+      i % 2 ? 'basaltB' : 'basaltA',
+      materials.basalt,
+      [shoulderX, shoulderRoot + shoulderHeight / 2, shoulderZ],
+      [radius * 0.7, shoulderHeight, radius * 0.66],
+      [0, i * 0.71 + 0.6, 0],
       color,
     );
     for (let b = 0; b < 3; b += 1) {
@@ -66,6 +97,120 @@ export function createNacreWorld(track, materials, clearance, random, seabedY) {
         [0, i * 0.71 + b, 0.08 * Math.sin(i)],
         color,
       );
+    }
+  }
+  // A few composed headlands remain above the swells; submerged terraces
+  // continue their horizontal geological language through the living reef.
+  const geologySites = [
+    [750, -1, true, 170, 360],
+    [1450, -1, true, 205, 430],
+    [track.length - 310, -1, true],
+    [2020, -1, false],
+    [2500, -1, false, 154, 230, true],
+    [2650, 1, false],
+    [2860, -1, false],
+    [3850, 1, false, 154, 230, true],
+  ];
+  for (const [
+    index,
+    [distance, side, exposed, authoredRadius, authoredOffset, living],
+  ] of geologySites.entries()) {
+    const frame = track.sample(distance);
+    const top = exposed
+      ? waterY + 48 + (index % 2) * 17
+      : frame.position.y - 22;
+    const radius = authoredRadius ?? (exposed ? 205 : 174);
+    const p = place(
+      distance,
+      side,
+      authoredOffset ?? (exposed ? 430 : 305),
+      radius,
+      seabedY - 45,
+      top + (living ? 58 : 4),
+      exposed ? 'volcanic-headland' : 'reef-bearing-terrace',
+    );
+    if (!p) continue;
+    const rootY = nacreSeabedHeight(track, p.x, p.z) - 16;
+    const height = top - rootY;
+    const yaw =
+      Math.atan2(frame.tangent.x, frame.tangent.z) + 0.3 * Math.sin(index * 2);
+    batches.add(
+      exposed ? 'shoreShelf' : 'reefShelf',
+      materials.basalt,
+      [p.x, rootY + height / 2, p.z],
+      [radius * 0.84, height, radius],
+      [0, yaw, 0],
+      exposed ? '#72898b' : '#71918b',
+    );
+    // Attached lower talus follows the same bedding and never floats above the
+    // surveyed seabed. Its extent remains within the reserved site envelope.
+    batches.add(
+      'reefShelf',
+      materials.basalt,
+      [p.x, rootY + height * 0.26, p.z],
+      [radius, height * 0.52, radius * 0.91],
+      [0, yaw + 0.16, 0],
+      exposed ? '#61797d' : '#667e79',
+    );
+    if (living) {
+      const shelfPosition = [p.x, rootY + height / 2, p.z];
+      const shelfSize = [radius * 0.84, height, radius];
+      const colonies = [
+        [-22, -8, [34, 44, 29], '#a7bba8'],
+        [22, 16, [28, 32, 25], '#b5a7b6'],
+        [0, -28, [36, 38, 31], '#a7b9ad'],
+      ];
+      let growthTop = top;
+      for (const [
+        colony,
+        [forward, toward, size, tint],
+      ] of colonies.entries()) {
+        const position = p
+          .clone()
+          .addScaledVector(frame.tangent, forward)
+          .addScaledVector(frame.right, -side * toward);
+        const samples = [
+          [0, 0],
+          [-size[0] * 0.65, 0],
+          [size[0] * 0.65, 0],
+          [0, -size[2] * 0.65],
+          [0, size[2] * 0.65],
+        ]
+          .map(([x, z]) =>
+            batches.surface(
+              'reefShelf',
+              shelfPosition,
+              shelfSize,
+              [0, yaw, 0],
+              position.x + x,
+              position.z + z,
+            ),
+          )
+          .filter((y) => y !== null);
+        if (samples.length !== 5) continue;
+        position.y = Math.min(...samples) - 1.2;
+        batches.add(
+          'reefSponge',
+          materials.reefCoral,
+          position.toArray(),
+          size,
+          [0, yaw + colony * 1.7, 0],
+          tint,
+        );
+        growthTop = Math.max(growthTop, position.y + size[1]);
+      }
+      const lightPosition = p
+        .clone()
+        .addScaledVector(frame.tangent, -22)
+        .addScaledVector(frame.right, -side * 35);
+      lightPosition.y = growthTop + 15;
+      lightAnchors.push({
+        position: lightPosition,
+        color: '#9fc8b8',
+        intensity: 4800,
+        priority: 3,
+      });
+      placements.at(-1).growthTop = growthTop;
     }
   }
   // Reefs grow as asymmetric branches, thin fans and encrusting boulder coral.
@@ -173,8 +318,8 @@ export function createNacreWorld(track, materials, clearance, random, seabedY) {
           batches.add(
             'fan',
             materials.fan,
-            [tip[0], tip[1] - 4, tip[2]],
-            [5 + random() * 3, 7 + random() * 4, 3],
+            [tip[0], fork[1], tip[2]],
+            [5 + random() * 3, height * (0.58 + random() * 0.12), 3],
             [0.15, angle, -0.2 + random() * 0.4],
           );
           batches.beam(
@@ -216,6 +361,165 @@ export function createNacreWorld(track, materials, clearance, random, seabedY) {
         }
       }
     }
+  }
+  // Two close reef outcrops carry living tissue at the driver's horizon. Their
+  // broad accreted caps intersect the rooted geology rather than perching on tips.
+  const rootGeometry = createReefSponge(),
+    rootVertices = rootGeometry.attributes.position;
+  const encrustingRoots = [],
+    encrustingBody = [];
+  for (let i = 0; i < rootVertices.count; i++) {
+    const vertex = new T.Vector3().fromBufferAttribute(rootVertices, i);
+    encrustingBody.push(vertex);
+    if (Math.abs(vertex.y + 0.08) < 0.00001) encrustingRoots.push(vertex);
+  }
+  rootGeometry.dispose();
+  for (const [index, distance] of [2420, 3680].entries()) {
+    const frame = groundFrame(track, distance),
+      radius = 30;
+    const cap = frame.position.y + 14;
+    const p = place(
+      distance,
+      -1,
+      85,
+      radius,
+      seabedY - 40,
+      cap,
+      'near-field-encrusting-assembly',
+    );
+    if (!p) continue;
+    const rootY = nacreSeabedHeight(track, p.x, p.z) - 12;
+    const crownY = frame.position.y - 6,
+      height = crownY - rootY;
+    const yaw = Math.atan2(frame.tangent.x, frame.tangent.z) + 0.35;
+    batches.add(
+      'reefRoot',
+      materials.basalt,
+      [p.x, rootY + height / 2, p.z],
+      [radius * 0.95, height, radius * 0.93],
+      [0, yaw, 0],
+      '#879c92',
+    );
+    const support = {
+      position: [p.x, crownY - 3.5, p.z],
+      size: [radius * 0.94, 8, radius * 0.88],
+      rotation: [0, yaw, 0],
+    };
+    batches.add(
+      'reefRockA',
+      materials.basalt,
+      support.position,
+      support.size,
+      support.rotation,
+      '#879c92',
+    );
+    let growthTop = -Infinity;
+    for (const [colony, [along, toward, size]] of [
+      [-5, -5, [13, 28, 12]],
+      [7, -5, [10, 23, 10]],
+    ].entries()) {
+      const center = p
+        .clone()
+        .addScaledVector(frame.tangent, along)
+        .addScaledVector(frame.right, toward);
+      // Open mouths face the driver's sightline; low folded tissue grows from
+      // the cap rather than presenting tall closed-looking tips from below.
+      const axis = frame.right
+        .clone()
+        .multiplyScalar(0.8660254)
+        .addScaledVector(frame.up, 0.5)
+        .normalize();
+      const orientation = new T.Quaternion()
+        .setFromUnitVectors(frame.up, axis)
+        .multiply(
+          new T.Quaternion().setFromAxisAngle(frame.up, yaw + colony * 1.8),
+        );
+      const rotation = new T.Euler()
+        .setFromQuaternion(orientation)
+        .toArray()
+        .slice(0, 3);
+      const scale = new T.Vector3(...size);
+      const samples = encrustingRoots.map((vertex) => {
+        const foot = vertex
+          .clone()
+          .multiply(scale)
+          .applyQuaternion(orientation);
+        const surface = batches.surface(
+          'reefRockA',
+          support.position,
+          support.size,
+          support.rotation,
+          center.x + foot.x,
+          center.z + foot.z,
+        );
+        return surface === null ? null : surface - foot.y;
+      });
+      if (samples.some((y) => y === null)) continue;
+      center.y = Math.min(...samples) - 1;
+      const relativeTop = Math.max(
+        ...encrustingBody.map(
+          (vertex) =>
+            vertex.clone().multiply(scale).applyQuaternion(orientation).y,
+        ),
+      );
+      center.y = Math.min(center.y, cap - relativeTop);
+      batches.add(
+        'reefSponge',
+        materials.reefCoral,
+        center.toArray(),
+        size,
+        rotation,
+        colony ? '#ddd5d7' : '#dbe4cf',
+      );
+      growthTop = Math.max(growthTop, center.y + relativeTop);
+    }
+    // Accreted fragments and short attached growth break the exposed ledge
+    // rim, joining the organism's buried root to the surrounding reef rock.
+    for (let fragment = 0; fragment < 8; fragment++) {
+      const angle = (fragment * Math.PI) / 4 + index * 0.37;
+      const reach = 17 + (fragment % 3) * 2;
+      const x = p.x + Math.cos(angle) * reach,
+        z = p.z + Math.sin(angle) * reach;
+      const y = batches.surface(
+        'reefRockA',
+        support.position,
+        support.size,
+        support.rotation,
+        x,
+        z,
+      );
+      if (y === null) continue;
+      batches.add(
+        'reefRockB',
+        materials.basalt,
+        [x, y - 0.8, z],
+        [
+          3.6 + (fragment % 2) * 1.1,
+          2.3 + (fragment % 3) * 0.35,
+          3.1 + (fragment % 2) * 0.8,
+        ],
+        [0, angle, 0.04 * Math.sin(fragment)],
+        '#879c92',
+      );
+      batches.beam(
+        materials.kelp,
+        [x, y - 0.5, z],
+        [x + Math.cos(angle) * 2.5, y + 0.8, z + Math.sin(angle) * 2.5],
+        0.32,
+        null,
+        'twig',
+      );
+    }
+    const lightPosition = p.clone().addScaledVector(frame.right, 10);
+    lightPosition.y = growthTop + 12;
+    lightAnchors.push({
+      position: lightPosition,
+      color: index ? '#b5c7c2' : '#bdcbb4',
+      intensity: 1600,
+      priority: 2,
+    });
+    placements.at(-1).growthTop = growthTop;
+    placements.at(-1).roadHeight = frame.position.y;
   }
   // Large living canopies frame the submerged course above its barrier line.
   const gardens = [];
@@ -269,8 +573,8 @@ export function createNacreWorld(track, materials, clearance, random, seabedY) {
       const a = index * 0.9 + fan * 1.5;
       const x = p.x + Math.cos(a) * 19,
         z = p.z + Math.sin(a) * 16;
-      const crownY = floor + 18 + (fan % 2) * 10;
-      const size = [18 + fan * 2, Math.min(32 + fan * 2, top - crownY - 3), 9];
+      const crownY = floor + 6 + (fan % 2) * 7;
+      const size = [25 + fan * 2, Math.min(44 + fan * 2, top - crownY - 3), 9];
       const rotation = [0.12, facing + (fan - 1.5) * 0.32, -0.16 + fan * 0.08];
       batches.beam(
         materials.kelp,
@@ -436,56 +740,4 @@ export function createNacreWorld(track, materials, clearance, random, seabedY) {
     placements,
     lightAnchors,
   };
-}
-
-function addObservatory(batch, m, center, waterY, seabedY) {
-  const p = (x, y, z) => [center.x + x, waterY + y, center.z + z];
-  const depth = waterY - seabedY;
-  batch.add('column', m.alloy, p(0, (126 - depth) / 2, 0), [
-    35,
-    126 + depth,
-    35,
-  ]);
-  batch.add('tube', m.pearl, p(0, 12, 0), [72, 12, 72]);
-  batch.add('tube', m.alloy, p(0, 116, 0), [84, 8, 84]);
-  batch.add('tube', m.glass, p(0, 124, 0), [77, 11, 77]);
-  batch.add('shell', m.pearl, p(0, 130, 0), [92, 22, 92]);
-  batch.add('lens', m.glass, p(0, 169, 0), [48, 42, 48]);
-  batch.add('ring', m.pearl, p(0, 170, 0), [51, 51, 51], [Math.PI / 2, 0, 0]);
-  batch.add('ring', m.amber, p(0, 119, 0), [85, 85, 30], [Math.PI / 2, 0, 0]);
-  batch.add('ring', m.alloy, p(0, 169, 0), [54, 54, 54], [0, 0.4, 0]);
-  batch.add(
-    'ring',
-    m.alloy,
-    p(0, 169, 0),
-    [54, 54, 54],
-    [0, 0.4 + Math.PI / 2, 0],
-  );
-  batch.add('cone', m.pearl, p(0, 245, 0), [10, 94, 10]);
-  batch.add('orb', m.amber, p(0, 297, 0), [4, 4, 4]);
-  for (let i = 0; i < 12; i += 1) {
-    const a = (i * Math.PI) / 6;
-    const x = Math.cos(a),
-      z = Math.sin(a);
-    batch.beam(
-      m.pearl,
-      p(x * 102, -depth + 15, z * 102),
-      p(x * 34, 112, z * 34),
-      4.5,
-    );
-    batch.beam(m.alloy, p(x * 33, 65, z * 33), p(x * 76, 115, z * 76), 2.3);
-    batch.add('box', m.pearl, p(x * 78, 126, z * 78), [2.4, 15, 4], [0, -a, 0]);
-    batch.add('box', m.amber, p(x * 64, 20, z * 64), [3, 0.8, 4], [0, -a, 0]);
-    batch.add('shell', m.pearl, p(x * 61, 11, z * 61), [14, 7, 11], [0, -a, 0]);
-  }
-  for (let y = -110; y < 100; y += 28) {
-    batch.add('ring', m.alloy, p(0, y, 0), [37, 37, 12], [Math.PI / 2, 0, 0]);
-    batch.add(
-      'ring',
-      m.glow,
-      p(0, y + 1.5, 0),
-      [37.5, 37.5, 5],
-      [Math.PI / 2, 0, 0],
-    );
-  }
 }

@@ -674,12 +674,14 @@
       "id": "nacre-tempest",
       "source": "src/levels/nacre/ and assets/levels/nacre/blender/",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",
-      "provenance": "Original route, marine geometry, analytic ocean/materials, generated storm panorama and Blender-authored leviathan. Editable sources and exact sky prompt retained. Road finish combines original metric rim/seal shading and coated pearl with the separately registered nacre-ceramic material, borrowing the existing district probe. Ocean now uses grouped Gerstner swells, compression-selected whitecaps, procedural wind ripples adapted from Tech9 island-ocean, locally owned marine weather and a High-quality planar reflection adapted from Three.js Water via Tech9 pond-water.",
-      "rights": "Project-authored/generated world; ceramic surface maps separately registered as nacre-ceramic; reflection camera adaptation MIT (src/levels/nacre/environment/THREE-LICENSE.txt)",
-      "runtimeDependencies": ["three"],
+      "provenance": "Original route, marine geometry, analytic ocean/materials, generated storm panorama and Blender-authored leviathan. Editable sources and exact sky prompt retained. Road finish combines original metric rim/seal shading and coated pearl with the separately registered nacre-ceramic material, borrowing the existing district probe. Ocean now uses grouped Gerstner swells, compression-selected whitecaps, procedural wind ripples adapted from Tech9 island-ocean, locally owned marine weather and a High-quality planar reflection adapted from Three.js Water via Tech9 pond-water. Closed volcanic shelves, attached cavity reef forms and fitted observatory construction remain source-native. Basalt borrows the existing Worldkit CC0 Rock Boulder Cracked color/normal pair at physical scale; source authors and derivative details remain in Worldkit provenance.",
+      "rights": "Project-authored/generated world; ceramic surface maps separately registered as nacre-ceramic; reflection camera adaptation MIT (src/levels/nacre/environment/THREE-LICENSE.txt); Worldkit rock imagery CC0-1.0 (Dimitrios Savva/Dario Barresi, existing project color derivative)",
+      "runtimeDependencies": ["three", "@worldkit/environment/forest"],
       "runtimeAssets": [
         "public/assets/levels/nacre/nacre-storm-sky-v1.png",
-        "public/assets/levels/nacre/leviathan/nacre-leviathan-v2.glb"
+        "public/assets/levels/nacre/leviathan/nacre-leviathan-v2.glb",
+        "../../worldkit/modules/landscape/assets/art/textures/forest-granite-diff.jpg",
+        "../../worldkit/modules/landscape/assets/art/textures/rock_boulder_cracked_nor_gl_1k.jpg"
       ],
       "provenanceRecord": "assets/levels/nacre/PROVENANCE.json",
       "skyProvenance": "assets/levels/nacre/SKY_PROVENANCE.json",

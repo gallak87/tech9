@@ -24,21 +24,46 @@ function waterEffects(path) {
       transparent: true,
       depthWrite: false,
       side: T.DoubleSide,
-      uniforms: { age: { value: -1 } },
-      vertexShader: `varying vec2 waterUv; void main(){ waterUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+      fog: true,
+      uniforms: {
+        ...T.UniformsUtils.clone(T.UniformsLib.fog),
+        age: { value: -1 },
+      },
+      vertexShader: `
+        varying vec2 waterUv;
+        #include <fog_pars_vertex>
+        void main(){
+          waterUv=uv;
+          vec4 mvPosition=modelViewMatrix*vec4(position,1.);
+          gl_Position=projectionMatrix*mvPosition;
+          #include <fog_vertex>
+        }`,
       fragmentShader: `
         uniform float age; varying vec2 waterUv;
+        #include <fog_pars_fragment>
+        float foamHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+        float foamNoise(vec2 p){
+          vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+          return mix(mix(foamHash(i),foamHash(i+vec2(1.,0.)),f.x),
+            mix(foamHash(i+vec2(0.,1.)),foamHash(i+1.),f.x),f.y);
+        }
         void main(){
-          float r=length(waterUv-.5)*2.;
+          vec2 uv=(waterUv-.5)*2.;
+          float r=length(uv);
           float t=max(age,0.);
           float fade=smoothstep(0.,.3,t)*(1.-smoothstep(2.5,4.7,t));
-          float pulse=.5+.5*sin(r*39.-t*4.);
-          float ring=exp(-pow((r-(.27+t*.075))/.068,2.));
-          float foam=exp(-pow((r-.3)/.24,2.))*(.36+.64*pulse);
-          float broken=.6+.4*sin(atan(waterUv.y-.5,waterUv.x-.5)*19.+r*25.);
-          gl_FragColor=vec4(mix(vec3(.23,.62,.65),vec3(.82,.95,.93),ring), (ring*.67+foam*.4)*broken*fade*(1.-smoothstep(.83,1.,r)));
+          vec2 drift=uv*8.-vec2(t*.13,t*.045);
+          float broad=foamNoise(drift), grain=foamNoise(drift*3.1+vec2(2.7,-1.8));
+          float rim=exp(-pow((r-(.27+t*.075)+(broad-.5)*.065)/.073,2.));
+          float churn=exp(-pow((r-.3)/.24,2.));
+          float islands=smoothstep(.30,.73,broad*.72+grain*.28);
+          float ragged=.35+.65*smoothstep(.16,.74,grain);
+          float aeration=(rim*.44+churn*.32*islands)*ragged;
+          vec3 color=mix(vec3(.20,.43,.45),vec3(.68,.82,.81),islands*.55+rim*.45);
+          gl_FragColor=vec4(color,aeration*fade*(1.-smoothstep(.83,1.,r)));
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
+          #include <fog_fragment>
         }`,
     });
     const mesh = new T.Mesh(
@@ -66,25 +91,65 @@ function waterEffects(path) {
   geometry.setAttribute('kind', new T.BufferAttribute(kinds, 1));
   geometry.setAttribute('strength', new T.BufferAttribute(strengths, 1));
   const material = new T.ShaderMaterial({
-    uniforms: { age: { value: 0 } },
+    uniforms: {
+      ...T.UniformsUtils.clone(T.UniformsLib.fog),
+      age: { value: 0 },
+    },
     transparent: true,
     depthWrite: false,
+    fog: true,
     vertexShader: `
       attribute vec3 velocity; attribute float birth; attribute float size; attribute float life; attribute float kind; attribute float strength;
       uniform float age; varying float alpha; varying float trail;
+      varying vec2 flowDirection; varying float spraySeed; varying float particleAge;
+      #include <fog_pars_vertex>
       void main(){
         float t=age-birth;
         vec3 p=position+velocity*max(t,0.); p.y-=15.*max(t,0.)*max(t,0.);
-        vec4 v=modelViewMatrix*vec4(p,1.); gl_Position=projectionMatrix*v;
-        gl_PointSize=clamp(1800.*size/max(1.,-v.z),1.5,28.);
+        vec4 mvPosition=modelViewMatrix*vec4(p,1.); gl_Position=projectionMatrix*mvPosition;
+        vec3 falling=velocity-vec3(0.,30.*max(t,0.),0.);
+        vec4 direction=projectionMatrix*modelViewMatrix*vec4(falling,0.);
+        vec2 projected=direction.xy*gl_Position.w-gl_Position.xy*direction.w;
+        flowDirection=length(projected)>.0001?normalize(projected):vec2(0.,-1.);
+        spraySeed=fract(sin(dot(position.xz,vec2(.052,.173))+birth*.91)*43758.5453);
+        particleAge=max(t,0.);
+        float stretch=mix(1.,(1.15+min(particleAge*.18,.35))*(.8+.35*spraySeed),kind);
+        gl_PointSize=clamp(1800.*size/max(1.,-mvPosition.z)*stretch,1.5,mix(28.,36.,kind));
         trail=kind;
         alpha=step(0.,t)*smoothstep(0.,.13,t)*(1.-smoothstep(life*.64,life,t))*step(.02,p.y)*strength*(1.-.55*smoothstep(.3,2.1,t)*kind);
+        #include <fog_vertex>
       }`,
     fragmentShader: `
       varying float alpha; varying float trail;
-      void main(){ vec2 uv=(gl_PointCoord-.5)*2.; uv.x*=mix(1.,3.2,trail); float r=length(uv); float a=(1.-smoothstep(.3,1.,r))*alpha*.8; if(a<.015) discard; gl_FragColor=vec4(.81,.95,.96,a);
+      varying vec2 flowDirection; varying float spraySeed; varying float particleAge;
+      #include <fog_pars_fragment>
+      float sprayHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+      float sprayNoise(vec2 p){
+        vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+        return mix(mix(sprayHash(i),sprayHash(i+vec2(1.,0.)),f.x),
+          mix(sprayHash(i+vec2(0.,1.)),sprayHash(i+1.),f.x),f.y);
+      }
+      void main(){
+        vec2 uv=(gl_PointCoord-.5)*2.;
+        vec2 direction=normalize(vec2(flowDirection.x,-flowDirection.y));
+        vec2 q=vec2(dot(uv,vec2(-direction.y,direction.x)),dot(uv,direction));
+        float r=length(q*vec2(1.,1.12));
+        float grain=sprayNoise(q*3.1+spraySeed*19.7-vec2(0.,particleAge*.15));
+        float grainFade=1.-smoothstep(.13,.35,length(fwidth(q)));
+        grain=mix(.5,grain,grainFade);
+        float cloud=exp(-r*r*3.8)*(1.-smoothstep(.85,1.,r))*(.35+.65*grain);
+        float taper=.055+.025*(1.-smoothstep(-.8,.8,q.y));
+        float wander=sin(q.y*4.+spraySeed*6.283)*.022;
+        float streak=exp(-pow((q.x-wander)/taper,2.));
+        streak+=.12*exp(-pow((q.x+.10+wander)/.04,2.));
+        streak*=exp(-q.y*q.y*1.5)*(1.-smoothstep(.72,1.,abs(q.y)))*(.55+.45*grain);
+        float coverage=mix(cloud*.56,streak*.38*(.65+.35*spraySeed),trail);
+        float a=coverage*alpha;
+        if(a<.006) discard;
+        gl_FragColor=vec4(mix(vec3(.65,.80,.82),vec3(.66,.82,.85),trail),a);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
+        #include <fog_fragment>
       }`,
   });
   const spray = new T.Points(geometry, material);
@@ -148,16 +213,16 @@ export function createNacreLeviathan(track, { loadAsset } = {}) {
   let currentTime = 0;
   const metrics = {
     meshCount: 8,
-    triangleCount: 35776,
+    triangleCount: 36242,
     primitiveCount: 1,
     animalCount: 1,
-    modelTriangles: 35772,
+    modelTriangles: 36238,
     bodyLength: NACRE_LEVIATHAN.length,
     sprayPointsHigh: POINT_COUNT,
     sprayPointsLow: POINT_COUNT / 2,
     textures: 0,
     additionalRenderPasses: 0,
-    assetBytes: 917044,
+    assetBytes: 920024,
   };
   function disposeGroup(target) {
     const geometries = new Set();

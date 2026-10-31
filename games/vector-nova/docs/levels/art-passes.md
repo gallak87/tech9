@@ -3,7 +3,7 @@
 User assignment, 2026-10-31. This is a finite sequence, not a recurring campaign.
 
 1. **Saffron Leviathan — complete.** Completed ten broad-strokes and six detail rounds on 2026-10-31. Final independent critic: **6.2/10 overall** (broad 6.2, purposeful finish 6.2); stopped at the sixteen-round cap below 9/10. Fossil anatomy, mineral finish and lighting improved; ordinary connectors, infrastructure and sandfall impact remain limitations. Desktop route/collision, lifecycle, native driving and production/shape smoke checks passed, the production build passed and the menu still was refreshed. See the final version record in [ART_SCORES.json](../ART_SCORES.json).
-2. **Nacre Tempest — queued.** After Saffron's commit and goal completion, create a new goal and repeat the same prescribed pass for the original `nacre` course. This follow-up is authorized; no new user confirmation or manual goal stop is required.
+2. **Nacre Tempest — complete.** Followed Saffron with ten broad-strokes and six detail rounds on 2026-10-31. Final independent critic: **5.2/10 overall** (broad 5.3, purposeful finish 5.0, weighted equally); stopped at the sixteen-round cap below 9/10. Reworked shore/reef forms, observatory construction, the editable leviathan, water finish and lighting. Cyan depth, isolated reef plinths, coarse geology, sparse observatory detail and creature-water weight remain limitations. Desktop contract/clearance, lifecycle, native driving with both jump landings, loading/recovery, bounded matched performance checks and the production build passed; the menu still was refreshed. See [ART_SCORES.json](../ART_SCORES.json). The assigned sequence is complete; both critic loops stay closed.
 
 ## Prescribed pass
 

@@ -841,7 +841,9 @@ export async function createFrontend(host) {
           life.signal.aborted
         )
           return;
-        shipPreview = createShipPreview();
+        shipPreview = createShipPreview({
+          autoRotate: !settings.reducedMotion,
+        });
         shell
           .querySelector('.ship-preview-slot')
           .replaceChildren(shipPreview.element);
@@ -888,6 +890,17 @@ export async function createFrontend(host) {
     if (!node) return;
     previewLevelId = id;
     node.innerHTML = `<div class="detail-image">${picture(r)}${routeArt(r)}${goalBadges(id)}${trackBadge(id)}<div class="track-caption"><h2>${escape(l.name)}</h2><p>${trackChallenge(id)} · ${r ? (r.length / 1000).toFixed(2) + ' km' : '—'}</p></div></div>`;
+  }
+  function showCupDetail(id) {
+    const cup = cupDefinition(id),
+      node = shell.querySelector('.cup-menu-panel .cup-hero');
+    if (!cup || !node || cupStore.snapshot().state) return;
+    node.outerHTML = cupHero(
+      cup,
+      escape(cup.name),
+      cupCollection.snapshot().cups,
+      goalBadges(),
+    );
   }
   function selectCircuit(id) {
     invalidLevel = false;
@@ -1727,6 +1740,8 @@ export async function createFrontend(host) {
     (e) => {
       const card = e.target.closest('[data-level]');
       if (card && e.pointerType !== 'touch') showDetail(card.dataset.level);
+      const cup = e.target.closest('button[data-cup]');
+      if (cup && e.pointerType !== 'touch') showCupDetail(cup.dataset.cup);
       const chassis = e.target.closest('button[data-ship]');
       if (chassis && e.pointerType !== 'touch') showShip(chassis.dataset.ship);
     },
@@ -1735,6 +1750,11 @@ export async function createFrontend(host) {
   shell.addEventListener(
     'focusin',
     (e) => {
+      const cup = e.target.closest('button[data-cup]');
+      if (cup) {
+        showCupDetail(cup.dataset.cup);
+        return;
+      }
       const card = e.target.closest('button[data-level], button[data-ship]');
       if (!card) return;
       const selector = card.dataset.level
@@ -1757,6 +1777,13 @@ export async function createFrontend(host) {
       !e.relatedTarget?.closest?.('.reward-badges')
     )
       showDetail(selected);
+    const cupList = e.target.closest('.cup-picker');
+    if (
+      cupList &&
+      !cupList.contains(e.relatedTarget) &&
+      !e.relatedTarget?.closest?.('.reward-badges')
+    )
+      showCupDetail(currentCup().id);
     const shipList = e.target.closest('.ship-list');
     if (shipList && !showingShip() && !shipList.contains(e.relatedTarget))
       showShip(shipId);

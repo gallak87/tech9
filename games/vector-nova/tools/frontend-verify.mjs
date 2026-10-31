@@ -687,19 +687,19 @@ try {
             to,
           );
         }
-        await page.locator('[data-level="vesper"]').hover();
+        await page.locator('[data-level="vesper-forest"]').hover();
         assert.equal((await front(page)).selected, 'halcyon');
         assert.equal(
           await page.locator('.circuit-hero h2').textContent(),
-          'Vesper Canopy',
+          'Vesper Forest',
         );
-        await page.locator('[data-level="vesper"]').focus();
+        await page.locator('[data-level="vesper-forest"]').focus();
         await page.keyboard.press('Enter');
         assert.equal((await front(page)).screen, 'home');
-        assert.equal((await front(page)).selected, 'vesper');
+        assert.equal((await front(page)).selected, 'vesper-forest');
         assert.equal(
           await page
-            .locator('[data-level="vesper"]')
+            .locator('[data-level="vesper-forest"]')
             .getAttribute('aria-pressed'),
           'true',
         );
@@ -707,7 +707,7 @@ try {
           await page
             .locator('.menu-selection[data-action="circuits"]')
             .textContent(),
-          /Vesper Canopy/,
+          /Vesper Forest/,
         );
         await page.locator('.picker-tabs [data-action="ship-step"]').click();
         assert.equal(await page.locator('.ship-metrics > div').count(), 5);
@@ -774,14 +774,14 @@ try {
           true,
         );
         await page.locator('.picker-tabs [data-action="circuits"]').click();
-        assert.equal(await page.locator('.circuit-card').count(), 15);
+        assert.equal(await page.locator('.circuit-card').count(), 14);
         assert.equal(
           await page.locator('.circuit-card [data-type="sprint"]').count(),
           3,
         );
         assert.equal(
           await page.locator('.circuit-card [data-type="circuit"]').count(),
-          10,
+          11,
         );
         assert.equal(await page.locator('.track-group').count(), 3);
         assert.equal(await page.locator('.card-challenge').count(), 0);
@@ -798,7 +798,7 @@ try {
           /Medium, downhill sprint/,
         );
         await page.locator('[data-level="shatterline"]').hover();
-        assert.equal((await front(page)).selected, 'vesper');
+        assert.equal((await front(page)).selected, 'vesper-forest');
         assert.equal(
           await page.locator('.circuit-hero .track-type-badge').textContent(),
           'Sprint',
@@ -837,7 +837,7 @@ try {
         async (page) => {
           await page.goto(url('level=zephyr'));
           await fleetReady(page);
-          assert.equal(await page.locator('.circuit-card').count(), 15);
+          assert.equal(await page.locator('.circuit-card').count(), 14);
           assert.ok(
             await page
               .locator('.circuit-hero')
@@ -1393,10 +1393,10 @@ try {
           '.menu-selection[data-action="ship-step"]',
           '.picker-tabs [data-action="ship-step"]',
         ]) {
-          await page.locator('[data-level="vesper"]').click();
+          await page.locator('[data-level="vesper-forest"]').click();
           await page.locator(selector).click();
           assert.equal((await front(page)).screen, 'setup');
-          assert.equal((await front(page)).selected, 'vesper');
+          assert.equal((await front(page)).selected, 'vesper-forest');
           await page.waitForFunction(
             () => window.__VN_FRONTEND.getState().preview?.selected,
           );
@@ -1526,7 +1526,7 @@ try {
     await check(
       'menu inspector preserves selections, music and a paused session',
       async (page) => {
-        await page.goto(url('level=vesper'));
+        await page.goto(url('level=vesper-forest'));
         await page.locator('[data-level="halcyon"]').click();
         await page.evaluate(() => {
           window.retainedPlayer = document.querySelector('[data-music-player]');
@@ -1672,9 +1672,9 @@ try {
       },
     );
     await check(
-      'Vesper Up-only race keeps ordinary bumps on the road',
+      'Vesper Forest Up-only race keeps ordinary bumps on the road',
       async (page) => {
-        await page.goto(url('level=vesper&music=0'));
+        await page.goto(url('level=vesper-forest&music=0'));
         await page.locator('[data-action="launch"]').click();
         await booted(page);
         await page.waitForFunction(
@@ -1707,23 +1707,26 @@ try {
         assert.deepEqual(driven.errors, []);
       },
     );
-    await check('Vesper art-pass and return from free camera', async (page) => {
-      await page.goto(url('artPass=1&level=vesper'));
-      await booted(page);
-      await page.waitForFunction(
-        () => window.__VN.getSnapshot().mode === 'fly',
-      );
-      assert.equal(await page.locator('[data-music-player]').count(), 0);
-      assert.ok(await page.locator('#fly-settings').isVisible());
-      await page.keyboard.press('Escape');
-      await page.keyboard.press('Escape');
-      assert.equal((await front(page)).screen, 'review');
-      assert.ok(await page.locator('.developer-note').isVisible());
-      assert.match(
-        await page.evaluate(() => window.__VN.getArtPassURL()),
-        /artPass=1/,
-      );
-    });
+    await check(
+      'Vesper Forest art-pass and return from free camera',
+      async (page) => {
+        await page.goto(url('artPass=1&level=vesper-forest'));
+        await booted(page);
+        await page.waitForFunction(
+          () => window.__VN.getSnapshot().mode === 'fly',
+        );
+        assert.equal(await page.locator('[data-music-player]').count(), 0);
+        assert.ok(await page.locator('#fly-settings').isVisible());
+        await page.keyboard.press('Escape');
+        await page.keyboard.press('Escape');
+        assert.equal((await front(page)).screen, 'review');
+        assert.ok(await page.locator('.developer-note').isVisible());
+        assert.match(
+          await page.evaluate(() => window.__VN.getArtPassURL()),
+          /artPass=1/,
+        );
+      },
+    );
     await check(
       'Orbital downward views stay visible through HDR bloom',
       async (page) => {
@@ -1966,14 +1969,29 @@ try {
     );
   }
   if (!flags.includes('--desktop')) {
+    const compactWidthFits = async (page) => {
+      assert.equal(
+        await page.evaluate(() => {
+          const shell = document.querySelector('#front-shell');
+          return (
+            document.documentElement.scrollWidth <= innerWidth &&
+            shell.scrollWidth <= shell.clientWidth + 1
+          );
+        }),
+        true,
+        'the menu must fit the viewport width',
+      );
+    };
     for (const viewport of [
       { width: 390, height: 844 },
       { width: 844, height: 390 },
+      { width: 320, height: 700 },
     ]) {
       await check(
         `championship uses the same compact menu ${viewport.width}×${viewport.height}`,
         async (page) => {
           await page.goto(url('level=halcyon&music=0'));
+          await page.locator('.mode-picker').waitFor();
           const navigation = () => page.locator('.mode-picker').boundingBox();
           const original = await navigation();
           for (const action of [
@@ -1988,15 +2006,27 @@ try {
             assert.deepEqual(await navigation(), original);
           }
           await page.locator('.menu-selection[data-action="circuits"]').click();
-          await page.locator('[data-cup="apex"]').click();
+          const apex = page.locator('[data-cup="apex"]');
+          if (viewport.width < 760) await apex.tap();
+          else await apex.click();
+          assert.equal((await front(page)).selectedCup, 'apex');
           assert.equal(
             await page.locator('.cup-route li').count(),
             cupDefinition('apex').tracks.length,
           );
-          await page
-            .locator('.picker-header [data-action="home"]')
-            .last()
-            .click();
+          await page.locator('[data-cup="frontier"]').focus();
+          assert.equal(
+            await page.locator('.cup-hero .cup-title').textContent(),
+            'Frontier Cup',
+          );
+          assert.equal((await front(page)).selectedCup, 'apex');
+          await page.locator('[data-action="cup-start"]').focus();
+          assert.equal(
+            await page.locator('.cup-hero .cup-title').textContent(),
+            'Apex Cup',
+          );
+          await compactWidthFits(page);
+          await page.locator('.picker-header [data-action="home"]').click();
           assert.equal((await front(page)).intent, 'cup');
           assert.match(
             await page
@@ -2004,23 +2034,20 @@ try {
               .textContent(),
             /Apex Cup/,
           );
-          await page.locator('[data-action="ship-step"]').click();
-          await page.locator('[data-ship="shrike"]').click();
+          await page.locator('[data-action="garage-tab"]').click();
+          await page.locator('.ship-preview[data-state="ready"]').waitFor();
+          assert.equal((await front(page)).shipId, 'shrike');
+          await compactWidthFits(page);
+          await page.locator('[data-action="race-tab"]').click();
+          assert.equal((await front(page)).intent, 'cup');
           assert.equal(
             await page.locator('[data-action="cup-start"]').count(),
             1,
           );
-          await page
-            .locator('.picker-header [data-action="home"]')
-            .last()
-            .click();
-          assert.equal((await front(page)).intent, 'cup');
-          assert.equal((await front(page)).shipId, 'shrike');
           assert.equal(
-            await page.evaluate(
-              () => document.documentElement.scrollWidth > innerWidth,
-            ),
-            false,
+            (await front(page)).cup.state,
+            null,
+            'browsing must not start a cup',
           );
           assert.equal(await page.evaluate(() => !!window.__VN), false);
         },
@@ -2053,33 +2080,35 @@ try {
           await press('Space', '[data-level="colossus"]');
           assert.equal((await front(page)).selected, 'colossus');
           await press('Escape', '.menu-selection[data-action="circuits"]');
-          await press('ArrowDown', '.menu-selection[data-action="ship-step"]');
-          await press('Enter', 'button[data-ship="kestrel"]');
-          await press('End', 'button[data-ship="needle"]');
-          await press('Enter', 'button[data-ship="needle"]');
-          assert.equal((await front(page)).shipId, 'needle');
+          await page
+            .locator('.menu-selection[data-action="ship-step"]')
+            .focus();
+          await press('Enter', 'button[data-ship="shrike"]');
+          await page.locator('.ship-preview[data-state="ready"]').waitFor();
+          assert.equal(await page.locator('.garage-fleet button').count(), 1);
+          await press('Enter', 'button[data-ship="shrike"]');
+          assert.equal((await front(page)).shipId, 'shrike');
           await press('Escape', '.menu-selection[data-action="ship-step"]');
-          await press('ArrowDown', '[data-action="launch"]');
-          await press('ArrowDown', '[data-difficulty="easy"]');
-          await press('ArrowRight', '[data-difficulty="medium"]');
-          await press('ArrowDown', '[data-action="records"]');
+          await page.locator('[data-action="records"]').focus();
           await press('Enter', '[data-record-filter="track"]');
-          assert.equal(
-            await page.locator('#front-shell').getAttribute('class'),
-            'cinematic-menu',
-          );
-          assert.equal(await page.locator('.menu-backdrop canvas').count(), 1);
           await page
             .locator('[data-record-filter="ship"]')
             .selectOption('shrike');
           await press('Escape', '[data-action="records"]');
-          await press('ArrowDown', '[data-action="inspect"]');
-          await press('ArrowDown', '[data-action="settings"]');
+          await page.locator('.menu-links [data-action="settings"]').focus();
+          await page.waitForFunction(
+            () =>
+              getComputedStyle(document.activeElement).borderBottomColor ===
+              'rgb(208, 24, 24)',
+          );
           await press('Space', '[data-action="settings-back"]');
           await press('Tab', '[data-setting="quality"]');
           await press('Escape', '[data-action="settings"]');
-          await press('Tab', '[data-action="tunes"]');
-          await press('Shift+Tab', '[data-action="settings"]');
+          await compactWidthFits(page);
+          assert.equal(
+            await page.locator('[data-action="inspect"]').count(),
+            0,
+          );
           assert.equal(await page.evaluate(() => !!window.__VN), false);
         },
         viewport,
@@ -2140,86 +2169,108 @@ try {
       { width: 768, height: 768 },
       { width: 390, height: 844 },
       { width: 320, height: 700 },
+      { width: 844, height: 390 },
     ]) {
       await check(
         `separate pickers and persistent Tunes ${viewport.width}×${viewport.height}`,
         async (page) => {
           await page.goto(url('level=halcyon'));
           await fleetReady(page);
-          assert.equal(
-            (await front(page)).preview,
-            null,
-            'preload should not require opening Ship',
-          );
-          assert.equal(await page.evaluate(() => !!window.__VN), false);
+          assert.equal((await front(page)).preview, null);
           assert.equal((await front(page)).screen, 'home');
-          await menuFits(page);
-          assert.equal(
-            await page
-              .locator('.menu-wordmark')
-              .evaluate((el) => getComputedStyle(el).fontSize),
-            '32px',
-          );
           assert.equal(await page.locator('.menu-picker').count(), 0);
-          assert.equal(await page.locator('.music-heading').isVisible(), true);
-          await page.locator('[data-action="ship-step"]').click();
-          await page.waitForFunction(
-            () =>
-              window.__VN_FRONTEND.getState().preview?.selected === 'kestrel',
+          assert.equal(await page.locator('[data-music-player]').count(), 1);
+          await page.evaluate(() => {
+            window.retainedMusic = document.querySelector(
+              '[data-music-player]',
+            );
+          });
+          const footer = await page
+            .locator('.menu-links button')
+            .evaluateAll((buttons) =>
+              buttons.map((button) => ({
+                height: button.getBoundingClientRect().height,
+                padding: getComputedStyle(button).paddingInlineStart,
+              })),
+            );
+          const tabPadding = await page
+            .locator('.menu-top-tabs button')
+            .first()
+            .evaluate((button) => getComputedStyle(button).paddingInlineStart);
+          assert.ok(
+            footer.every(
+              (button) => button.height === 32 && button.padding === tabPadding,
+            ),
           );
-          const layout = await page.evaluate(() => ({
-            height: document.querySelector('.ship-preview-slot').clientHeight,
-            overflow: document.documentElement.scrollWidth > innerWidth,
-            columns: getComputedStyle(
-              document.querySelector('.ship-metrics'),
-            ).gridTemplateColumns.split(' ').length,
-            status:
-              document.querySelector('.transfer-status').parentElement
-                .className,
-          }));
-          assert.ok(layout.height >= 70 && layout.height < viewport.height);
-          assert.equal(layout.overflow, false);
-          assert.equal(layout.columns, 1);
-          assert.match(layout.status, /ship-transfer/);
-          assert.equal(await page.locator('.ship-metrics > div').count(), 5);
+          await compactWidthFits(page);
+          await page.locator('[data-action="garage-tab"]').click();
+          await page.locator('.ship-preview[data-state="ready"]').waitFor();
+          assert.equal((await front(page)).preview.selected, 'shrike');
+          const preview = await page
+            .locator('.ship-preview-slot')
+            .boundingBox();
+          assert.ok(preview.height >= 70 && preview.height < viewport.height);
+          assert.equal(await page.locator('.garage-performance').count(), 1);
+          await compactWidthFits(page);
           assert.equal(
             await page.evaluate(() =>
               [...document.querySelectorAll('#front-shell *')].some(
-                (e) =>
-                  e.clientHeight > 0 &&
-                  ['auto', 'scroll'].includes(getComputedStyle(e).overflowY) &&
-                  e.scrollHeight > e.clientHeight + 1,
+                (element) =>
+                  element.clientHeight > 0 &&
+                  ['auto', 'scroll'].includes(
+                    getComputedStyle(element).overflowY,
+                  ) &&
+                  element.scrollHeight > element.clientHeight + 1,
               ),
             ),
             false,
-            'no nested menu scrollers',
+            'only the page scrolls; the garage must not add a nested scroller',
           );
-          await menuFits(page);
-          await page.locator('[data-action="circuits"]').click();
-          assert.equal((await front(page)).screen, 'circuits');
-          await menuFits(page);
-          if (viewport.width < 760)
-            await page.locator('[data-level="glasswake"]').tap();
-          else await page.locator('[data-level="glasswake"]').click();
+          await page.locator('[data-action="race-tab"]').click();
+          assert.equal(await page.locator('.ship-preview canvas').count(), 0);
+          await page.locator('.menu-selection[data-action="circuits"]').click();
+          assert.equal(await page.locator('.circuit-card').count(), 14);
+          assert.equal(
+            await page.locator('[data-level="vesper-forest"]').count(),
+            1,
+          );
+          const glasswake = page.locator('[data-level="glasswake"]');
+          if (viewport.width < 760) await glasswake.tap();
+          else await glasswake.click();
           assert.equal((await front(page)).screen, 'circuits');
           assert.equal((await front(page)).selected, 'glasswake');
-          assert.equal(
-            await page
-              .locator('[data-level="glasswake"]')
-              .getAttribute('aria-pressed'),
-            'true',
+          assert.equal(await glasswake.getAttribute('aria-pressed'), 'true');
+          await page.mouse.move(0, 0);
+          assert.deepEqual(
+            await glasswake.evaluate((card) => {
+              const underline = getComputedStyle(card, '::after');
+              return {
+                color: underline.backgroundColor,
+                height: underline.height,
+              };
+            }),
+            { color: 'rgb(208, 24, 24)', height: '2px' },
+            'the selected circuit keeps its red underline after the pointer leaves',
           );
-          assert.equal(
-            await page.locator('#front-shell').evaluate((el) => el.scrollTop),
-            0,
-            'new picker starts at the top',
-          );
-          await page.locator('[data-action="home"]').first().click();
+          await compactWidthFits(page);
+          await page.locator('.picker-header [data-action="home"]').click();
           assert.equal((await front(page)).screen, 'home');
           assert.match(
-            await page.locator('[data-action="circuits"]').textContent(),
+            await page
+              .locator('.menu-selection[data-action="circuits"]')
+              .textContent(),
             /Glasswake Comet/,
           );
+          assert.equal(
+            await page.evaluate(
+              () =>
+                window.retainedMusic ===
+                document.querySelector('[data-music-player]'),
+            ),
+            true,
+            'menu navigation retains the same Tunes player',
+          );
+          assert.equal(await page.evaluate(() => !!window.__VN), false);
         },
         viewport,
       );

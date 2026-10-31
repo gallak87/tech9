@@ -5,7 +5,6 @@ export const fullLevels = [
   'halcyon',
   'orbital',
   'nacre',
-  'vesper',
   'vesper-forest',
   'glasswake',
   'cindercoil',

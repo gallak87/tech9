@@ -7,7 +7,7 @@ Run commands from `games/vector-nova` with Node 22.13+ and npm. The ordinary `np
 |              | Demo                                                                  | Full game                                    |
 | ------------ | --------------------------------------------------------------------- | -------------------------------------------- |
 | Player ships | Kestrel                                                               | Kestrel, Shrike, Bastion, Needle             |
-| Courses      | Halcyon Speedway, Nacre Tempest                                       | All 13 existing courses                      |
+| Courses      | Halcyon Speedway, Nacre Tempest                                       | All 14 existing courses                      |
 | Modes        | Quick Race, Practice, Time Trial with local ghosts, two-race Demo Cup | Same core modes, four existing championships |
 | AI field     | Nine rivals in Quick Race / Cup; solo Practice / Time Trial           | Same                                         |
 | Duration     | Unlimited; no timer or expiry                                         | Unlimited                                    |

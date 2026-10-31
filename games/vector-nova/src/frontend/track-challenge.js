@@ -4,7 +4,6 @@ export const TRACK_CHALLENGES = ['Warm-up', 'Easy', 'Medium', 'Hard'];
 const challenges = {
   halcyon: 'Warm-up',
   orbital: 'Easy',
-  vesper: 'Easy',
   'vesper-forest': 'Easy',
   nacre: 'Easy',
   glasswake: 'Easy',

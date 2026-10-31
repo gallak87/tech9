@@ -4,6 +4,8 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { menuCatalog, previewPreset, webpSize } from './menu-catalog.mjs';
+import { editionPolicy } from './desktop/policy.mjs';
+import { ALL_CUPS } from '../src/race/cup.js';
 
 function header(width = 640, height = 400) {
   const bytes = Buffer.alloc(30);
@@ -98,4 +100,24 @@ test('Orbital menu records use the production identity rather than its shape stu
     entries[0].trackId,
     createOrbital({ shape: false }).createTrack().id,
   );
+});
+
+test('the full desktop catalogue and every championship resolve to the active worlds', async () => {
+  const policy = editionPolicy('full');
+  const routes = await menuCatalog({ warn() {} });
+  assert.equal(routes.length, 14);
+  assert.deepEqual(
+    new Set(policy.levels),
+    new Set(routes.map((route) => route.id)),
+  );
+  const forest = routes.find((route) => route.id === 'vesper-forest');
+  assert.equal(forest.name, 'Vesper Forest');
+  assert.equal(forest.preview, 'assets/menu/vesper-forest.webp');
+  assert.equal(
+    ALL_CUPS.find((cup) => cup.id === 'frontier').tracks[0],
+    forest.id,
+  );
+  for (const cup of ALL_CUPS)
+    for (const id of cup.tracks)
+      assert.ok(policy.levels.includes(id), `${cup.name}: ${id}`);
 });

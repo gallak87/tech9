@@ -13,7 +13,7 @@ export const ALL_CUPS = Object.freeze(
     {
       id: 'frontier',
       name: 'Frontier Cup',
-      tracks: ['vesper', 'glasswake', 'cindercoil'],
+      tracks: ['vesper-forest', 'glasswake', 'cindercoil'],
     },
     {
       id: 'horizon',

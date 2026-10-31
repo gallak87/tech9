@@ -18,7 +18,7 @@ const controls = {
 };
 const cases = [
   {
-    level: 'vesper',
+    level: 'vesper-forest',
     start(track) {
       const zone = track.sapZones[0];
       return {

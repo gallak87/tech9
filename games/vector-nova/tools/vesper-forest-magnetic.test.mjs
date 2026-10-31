@@ -1,27 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
-import { createVesperTrack } from '../src/levels/vesper/track/model.js';
-import { createVesperRuntime } from '../src/levels/vesper/runtime.js';
+import { createVesperTrack } from '../src/levels/vesper-forest/track/model.js';
+import { createVesperRuntime } from '../src/levels/vesper-forest/runtime.js';
 import {
   getRacerControl,
   createRacers,
   RACE_GRID,
 } from '../src/race/racers.js';
 import createNacreLevel from '../src/levels/nacre/index.js';
-import createVesperLevel from '../src/levels/vesper/index.js';
+import createVesperForestLevel from '../src/levels/vesper-forest/index.js';
 import { createDeviceRuntime } from '../src/pickups/runtime.js';
 import { createRace } from '../src/race/index.js';
 import { advanceSession } from '../src/core/session-runtime.js';
-import { createVesperCollisionWorld } from '../src/levels/vesper/collision.js';
+import { createVesperCollisionWorld } from '../src/levels/vesper-forest/collision.js';
 import { createMagneticBody } from '../src/physics/magnetic-body.js';
 import { createRapierWorld } from '../src/physics/rapier-world.js';
 import { withMagneticBoundaries } from '../src/physics/magnetic-boundaries.js';
 import { createVehicleState } from '../src/physics/index.js';
 
-// Actual Vesper geometry and actual Kestrel hull: the old fixed support target
+// Actual Vesper Forest geometry and actual Kestrel hull: the old fixed support target
 // lost up to 119 m/s in one tick here even without touching a collider.
-test('Vesper tree turns and descending road preserve momentum between genuine contacts', async (t) => {
+test('Vesper Forest tree turns and descending road preserve momentum between genuine contacts', async (t) => {
   const track = createVesperTrack();
   const collision = createVesperCollisionWorld({ track });
   const world = await createRapierWorld({
@@ -135,7 +135,7 @@ test('the Bloomspan corkscrew carries native hulls through a complete inversion 
   }
 });
 
-test('the Vesper crown transfer retains forward momentum through physical landing and magnetic capture', async (t) => {
+test('the Vesper Forest crown transfer retains forward momentum through physical landing and magnetic capture', async (t) => {
   const track = createVesperTrack();
   const collisionWorld = createVesperCollisionWorld({ track });
   const dynamics = await createRapierWorld({
@@ -185,7 +185,7 @@ test('the Vesper crown transfer retains forward momentum through physical landin
   }
 });
 
-test('Vesper tree-side hull straddles separate or recover instead of hanging', async (t) => {
+test('Vesper Forest tree-side hull straddles separate or recover instead of hanging', async (t) => {
   const track = createVesperTrack();
   const collision = createVesperCollisionWorld({ track });
   const dynamics = await createRapierWorld({
@@ -241,7 +241,7 @@ test('Vesper tree-side hull straddles separate or recover instead of hanging', a
 // User reproduction: Quick Race, nine opponents, hold Up without boost.
 // Check both the regraded course and an unchanged course that also showed hops.
 for (const [level, createLevel] of [
-  ['vesper', createVesperLevel],
+  ['vesper-forest', createVesperForestLevel],
   ['nacre', createNacreLevel],
 ]) {
   test(`${level} full-field starts retain magnetic adhesion through ordinary bumps`, async () => {
@@ -348,8 +348,8 @@ for (const [level, createLevel] of [
 
 // The first crowded crown landing used to lose 48 m/s in a single tick even
 // with zero contact impulse: a rigid clearance correction saturated the solve.
-test('crowded Vesper touchdown absorbs normal motion without false forward braking', async (t) => {
-  const definition = createVesperLevel({ shape: false });
+test('crowded Vesper Forest touchdown absorbs normal motion without false forward braking', async (t) => {
+  const definition = createVesperForestLevel({ shape: false });
   const track = definition.createTrack();
   const collisionWorld = definition.createCollisionWorld({ track });
   const native = await createRapierWorld({

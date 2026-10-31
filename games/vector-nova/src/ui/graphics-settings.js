@@ -4,7 +4,7 @@ export function halcyonGraphicsControls(settings) {
 }
 
 export function vesperGraphicsControls(settings) {
-  return `<fieldset class="graphics-options"><legend>Vesper materials</legend><p>Compare Vesper material effects live.</p>${[
+  return `<fieldset class="graphics-options"><legend>Vesper Forest materials</legend><p>Compare Vesper Forest material effects live.</p>${[
     ['vesperClearcoat', 'Resin clearcoat', 'Polished surface highlights'],
     [
       'vesperResinDetail',

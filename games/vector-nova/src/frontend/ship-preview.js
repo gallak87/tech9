@@ -7,7 +7,7 @@ import { getShip } from '../ships/catalog.js';
 
 // A small, on-demand studio owns only the selected chassis. It never loads a
 // circuit or runs a second game loop, and releases its context on leaving setup.
-export function createShipPreview() {
+export function createShipPreview({ autoRotate = false } = {}) {
   const element = document.createElement('div');
   element.className = 'ship-preview';
   element.innerHTML =
@@ -44,12 +44,16 @@ export function createShipPreview() {
   controls.minPolarAngle = 0.15;
   controls.maxPolarAngle = Math.PI - 0.15;
   controls.rotateSpeed = 0.65;
+  controls.autoRotate = autoRotate;
+  // Match the inspector's gentle 0.12 rad/s turntable.
+  controls.autoRotateSpeed = (0.12 * 60) / (2 * Math.PI);
   let current = null,
     requested = null,
     selected = null;
   let generation = 0,
     disposed = false,
     frame = 0,
+    lastTime = 0,
     width = 0,
     height = 0;
   let loading = false,
@@ -89,7 +93,7 @@ export function createShipPreview() {
     camera.position.copy(center).addScaledVector(direction, distance * 1.08);
     controls.update();
   }
-  function draw() {
+  function draw(time) {
     frame = 0;
     if (disposed || !element.isConnected || !current?.group.visible) return;
     const rect = element.getBoundingClientRect();
@@ -104,7 +108,10 @@ export function createShipPreview() {
       camera.updateProjectionMatrix();
       fit();
     }
+    controls.update(Math.min((time - lastTime) / 1000, 0.05));
+    lastTime = time;
     renderer.render(scene, camera);
+    if (controls.autoRotate) invalidate();
   }
   function invalidate() {
     if (!disposed && !frame) frame = requestAnimationFrame(draw);
@@ -116,6 +123,12 @@ export function createShipPreview() {
     'keydown',
     (event) => {
       if (!current || loading) return;
+      if (
+        ['Home', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(
+          event.code,
+        )
+      )
+        controls.autoRotate = false;
       if (event.code === 'Home') fit(true);
       else if (
         ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.code)
@@ -185,6 +198,7 @@ export function createShipPreview() {
       size.set(dimensions.width, dimensions.height, dimensions.length);
       controls.target.copy(center);
       fit(true);
+      controls.autoRotate = autoRotate;
       element.dataset.state = 'ready';
       element.dataset.ship = id;
       canvas.setAttribute(

@@ -706,20 +706,6 @@
       "provenanceRecord": "assets/levels/nacre/ceramic/provenance.json"
     },
     {
-      "id": "vesper-canopy",
-      "source": "assets/levels/vesper/ and src/levels/vesper/",
-      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
-      "provenance": "Original reproducible Blender forest and hollow: three mature crown habits, united secondary branch anatomy, restrained hollow ribs, terrain-seated groves and bracket-fungus colonies. Shared PBR bark, broadleaf, leaf-litter and floral-tissue maps with Blender-baked normal/roughness companions; generated night sky. Opaque resin uses internal parallax and restrained reflections. Editable sources, prompts and dormant creature retained.",
-      "rights": "Project-authored/generated; no third-party reference artwork or meshes",
-      "runtimeDependencies": ["three"],
-      "runtimeAssets": [
-        "public/assets/levels/vesper/vesper-canopy.glb",
-        "public/assets/levels/vesper/vesper-connected-forest-v1.glb",
-        "public/assets/levels/vesper/vesper-night-sky-v1.png"
-      ],
-      "provenanceRecord": "assets/levels/vesper/provenance.json"
-    },
-    {
       "id": "worldkit-forest-art",
       "source": "../../worldkit/modules/living-forest/ and ../../worldkit/modules/island-ocean/",
       "creator": "Worldkit project contributors and built-in imagegen; Three.js contributors for derived water code",
@@ -737,10 +723,10 @@
       ]
     },
     {
-      "id": "vesper-forest-pilot",
+      "id": "vesper-forest",
       "source": "src/levels/vesper-forest/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Independent Vesper Forest circuit retains the approved Vesper route, driving surface, rails and motion rules. Old decorative braided road vines and sockets are removed; Living Forest roots connect the underside to soil or the hollow wall. Its entire environment and backdrop are newly composed from the Living Forest artkit, new river-cut terrain and roots, a procedural dusk sky and Worldkit ocean water. No original Vesper GLB/sky assets or earlier-pilot fallback remain. The removed landing-bough and old decorative road geometry have no colliders; retained driving-surface and rail contacts stay unchanged. Original Vesper remains independently available as the control.",
+      "provenance": "Vesper Forest owns its approved route, opaque resin driving surface, rails and motion rules. Living Forest roots connect the underside to soil or the hollow wall. Its environment and backdrop combine the Living Forest artkit, river-cut terrain, rooted foundations, a procedural dusk sky and Worldkit ocean water. Collision extracts the driving surface and rails without decorative environment geometry.",
       "rights": "Project-authored integration and procedural geometry; Worldkit art and derived water code retain their separately registered rights.",
       "runtimeDependencies": [
         "three",

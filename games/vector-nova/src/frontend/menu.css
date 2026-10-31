@@ -46,7 +46,7 @@
   border: 0;
 }
 .menu-layout button:not(.primary):hover {
-  background: #ffffff09;
+  background: rgb(255 255 255 / 3%);
 }
 .front-content.menu-wide {
   display: grid;
@@ -143,6 +143,7 @@
 }
 .menu-links {
   display: flex;
+  flex-wrap: wrap;
   gap: 24px;
   margin-top: 14px;
 }
@@ -209,11 +210,20 @@
   font-size: 15px;
   text-align: left;
 }
-.menu-links button {
-  min-height: 40px;
-  padding: 0;
+.menu-layout .menu-links button {
+  min-height: 32px;
+  padding: 0 12px;
+  border-bottom: 2px solid transparent;
   color: #bbb;
   font-size: 12px;
+}
+.menu-layout .menu-links button:is(:hover, :focus-visible) {
+  border-bottom-color: #d01818;
+}
+@media (max-width: 760px) {
+  .menu-layout .menu-links button {
+    padding-inline: 8px;
+  }
 }
 /* A retained session is the first action, with its own quiet gold accent. */
 .menu-layout .session-return {
@@ -400,14 +410,26 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 4px 6px;
-  border-left: 2px solid transparent;
+  padding: 0 6px 0 0;
   text-align: left;
   min-height: 44px;
 }
 .menu-layout .circuit-card.selected {
-  border-left-color: #d01818;
   background: #ffffff0a;
+}
+.menu-layout .circuit-card:is(:hover, :focus-visible, .selected)::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 2px;
+  background: #d01818;
+  pointer-events: none;
+  z-index: 1;
+}
+.menu-layout .circuit-card .track-icon {
+  align-self: stretch;
+  height: auto;
+  overflow: hidden;
 }
 .track-icon {
   position: relative;
@@ -606,9 +628,6 @@
   border-color: #aaa;
   background: #262626;
 }
-.front-content.menu-narrow:has(.picker-header) {
-  padding-top: 16px;
-}
 .menu-narrow > .race-menu {
   padding-top: 25px;
 }
@@ -703,7 +722,7 @@
   }
   .menu-wide .circuit-card {
     min-height: 40px;
-    padding: 3px 4px;
+    padding: 0 4px 0 0;
     gap: 7px;
   }
   .menu-wide .track-icon {
@@ -876,7 +895,7 @@
   }
   .menu-layout .circuit-card {
     gap: 7px;
-    padding: 4px;
+    padding: 0 4px 0 0;
   }
   .track-icon {
     width: 42px;
@@ -987,9 +1006,6 @@
 }
 @media (max-width: 499px) {
   /* Stack only when the fixed-size title and visible transport cannot fit. */
-  .front-content.menu-narrow:has(.picker-header) {
-    padding-top: 80px;
-  }
   .menu-narrow .menu-track-picker {
     height: calc(100dvh - 96px);
   }
@@ -1020,7 +1036,7 @@
   }
   .menu-layout .circuit-card {
     min-height: 40px;
-    padding: 3px;
+    padding: 0 3px 0 0;
     gap: 5px;
   }
   .circuit-card .track-type-badge {

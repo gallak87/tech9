@@ -4,7 +4,7 @@ Widen complete existing circuits and refit their immediate surroundings while pr
 
 ## Road finish briefs
 
-The separate [road finish set](roads/README.md) documents the Halcyon process and per-level starting points for improving existing surfaces. It preserves each circuit's material identity, leaves Vesper deferred. Its workflow is independent of the widening sequence and human gates below; these briefs do not start or approve widening work.
+The separate [road finish set](roads/README.md) documents the Halcyon process and per-level starting points for improving existing surfaces. It preserves each circuit's material identity, leaves Vesper Forest deferred. Its workflow is independent of the widening sequence and human gates below; these briefs do not start or approve widening work.
 
 ## Current circuits and remaining scope
 

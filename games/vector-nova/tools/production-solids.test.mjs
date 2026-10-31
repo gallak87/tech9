@@ -1,14 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
 import * as T from 'three';
 import { collectProductionSolids } from '../src/physics/production-solids.js';
 import { sweepGeometry } from '../src/track/geometry.js';
 import { createFlightModel } from '../src/physics/flight.js';
 import { createVehicleState } from '../src/physics/index.js';
 import { projectedHullExtent } from '../src/physics/hull.js';
-import kit from '../src/levels/vesper/collision-kit.json' with { type: 'json' };
 
 const track = {
   id: 'production-fixture',
@@ -125,25 +122,6 @@ test('forgiving magnetic support retains hull clearance under steering after lan
     assert.ok(clearance >= 0.067 - 1e-8);
   }
   runtime.dispose();
-});
-
-test('Vesper physical bough kit matches its production GLB source', async () => {
-  const bytes = await readFile(
-    new URL(
-      '../public/assets/levels/vesper/vesper-canopy.glb',
-      import.meta.url,
-    ),
-  );
-  assert.equal(
-    kit.sourceHash,
-    createHash('sha256').update(bytes).digest('hex'),
-  );
-  assert.ok(kit.modules.landing_branch.length > 0);
-  assert.ok(
-    kit.modules.landing_branch.every(
-      (part) => part.positions.length > 0 && part.indices.length > 0,
-    ),
-  );
 });
 
 test('a tilted static deck capture and its full settling interval keep the supported hull above the road', () => {

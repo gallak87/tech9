@@ -6,4 +6,4 @@ Inspect skull openings, ribs, baffles, buried supports, terrain and jump receive
 
 Keep shared handling and 0.3 steering assistance unchanged. Verify supported driving, honest missed jumps, recovery and ten-racer behavior with bounded desktop checks. Inspect test selection before execution: environment tests include a combined portrait camera case, which is excluded by the campaign's desktop-only scope. Refresh the Saffron menu still after visual changes and commit its manifest.
 
-Use the [level API](../LEVEL_API.md), [art direction](../ART_BIBLE.md), [road material brief](roads/saffron.md) and [verification tools](../../tools/README.md). Present remaining findings to the user for driving review. Do not start this deferred work without an assignment.
+Use the [level API](../LEVEL_API.md), [art direction](../ART_BIBLE.md), [road material brief](roads/README.md#current-materials) and [verification tools](../../tools/README.md). Present remaining findings to the user for driving review. Do not start this deferred work without an assignment.

@@ -1,52 +1,38 @@
 # Steam release plan
 
-Separate offline Electron demo/full packages and SteamPipe preparation are implemented. See [desktop.md](desktop.md) for edition scope, build/test commands, packaging boundaries and upload preparation. This file tracks remaining work; no release date is set.
-
 ## First-release scope
 
-- Target Windows after hardware validation. Mac packages support local testing; additional advertised platforms need their own validation.
-- Tentative US base price: **$1.99**, to confirm before publishing.
-- Achievements, online leaderboards and Steam Cloud remain optional. Current records, ghosts and cup progress are local.
+- **Planned US base price: $7.99.** Regional prices, any launch discount and the release date remain undecided.
+- Target Windows after hardware validation. Mac packages currently support owner testing; other advertised platforms need their own validation.
+- Records, ghosts, careers and cups are local. Steam achievements, online leaderboards and Cloud remain optional.
+
+## Implemented
+
+Offline demo/full Electron builds, Mac packaging, SteamPipe preparation, career/save ownership and controller/audio flows are implemented. Automated browser/native checks cover these flows; physical Windows/Steam Input testing remains below. See [desktop commands and boundaries](desktop.md).
+
+The approved [Blue Hour RC2 trailer](../../marketing/rc2/README.md) is complete: 80.617 seconds at 1080p60, with its movie, script and edit snapshots retained. Store description, screenshots, capsule/library art and publishing still need preparation.
 
 ## Controller presets and dead zones
 
-Implemented in browser, demo and full game through Settings, including the pause-menu Settings entry. Presets cover the small driving action set; arbitrary per-button remapping and rumble remain out of scope.
-
-| Preset            | Accelerate | Brake | Boost | Airbrake |
-| ----------------- | ---------- | ----- | ----- | -------- |
-| Classic (default) | RT         | LT    | A     | B        |
-| Shoulders         | RT         | LT    | RB    | LB       |
-| Arcade            | A          | LT    | RT    | B        |
-
-Xbox-style labels above refer to standard controller button positions.
-
-- Left-stick steering, D-pad/stick menu navigation, A confirm, B back, Menu/Start pause and right-stick-click normal race-camera cycling are shared across layouts. X/Y activate equipment slots 1/2; D-pad left/right activates slots 3/4. Off-road recovery stays automatic.
-- Steering dead zone: 0–40%, default 15%, with a live stick/steering display and reset. Use D-pad while testing the stick in controller settings; other menu navigation keeps its independent 55% threshold. Steering assistance is unchanged.
-- View/Select toggles music. Tunes in setup or pause opens song/volume controls; B returns to the menu.
-- Presets/dead zone persist locally and update layout hints. Steam omits the in-race shortcut strip; bindings stay in Settings. Keyboard controls remain available. Settings retains the current race and its Resume action.
-- Synthetic-controller checks cover all three layouts, actual driving, menu navigation, dead-zone boundaries, held buttons, pause/Settings return, disconnect/reconnect, and saved preferences. They do not certify physical hardware or Steam Input; those remain release gates below.
+Use the [player controls](../../README.md#controls) and in-game Settings for presets, bindings and dead-zone calibration. Synthetic-controller coverage does not replace physical controller/Steam Input testing.
 
 ## Release gates
 
 ### Repository and distribution
 
-- [ ] Move Vector Nova into a dedicated private repository when ready, including assets, local/browser tooling and desktop CI. Keep full-game build artifacts restricted to repository collaborators.
-- [ ] Decide what stays publicly playable: the current browser game, a demo, or no public game. Update Pages/hosting as part of the move without affecting the other games in this repository.
+- [ ] Move to a dedicated private repository and decide whether public hosting retains the browser game, a demo or neither; preserve other games' hosting.
+- [ ] Restore `.github/workflows/vector-nova-desktop.yml.disabled` in the private repository and run desktop CI for both editions and target platforms.
 
 ### Build and playtesting
 
-- [ ] After the private-repository move, restore `.github/workflows/vector-nova-desktop.yml.disabled` to `.yml` and run desktop CI for both editions and target platforms.
-- [ ] Test the packaged Windows builds on a clean machine: all courses, a complete cup, Time Trial records/ghosts, repeated races, track switching and ship inspection.
-- [ ] Validate controller-only play, physical mappings, unplug/reconnect, Steam Input/overlay, keyboard navigation, alt-tab, fullscreen, resizing and audio.
-- [ ] Test demo/full Steam installs and private-branch updates, including offline play, save persistence and separate edition data.
-- [ ] Measure startup, frame pacing and memory on representative hardware; publish system requirements based on those measurements.
-- [ ] Resolve release-blocking playtest findings. First acceptance milestone: a friend installs the Windows build and plays offline entirely with a controller.
+- [ ] Test the packaged Windows editions on a clean machine: offline install, every course, complete cups, Time Trial records/ghosts, all three careers, save transfer, repeated races and updates.
+- [ ] Validate physical controller-only play, unplug/reconnect, Steam Input/overlay, keyboard navigation, alt-tab, fullscreen/resizing and audible audio. First acceptance: a friend installs the Windows build and plays offline entirely with a controller.
+- [ ] Measure startup, frame pacing and memory on representative hardware, set measured system requirements and resolve release-blocking findings.
 
 ### Publisher and store
 
-- [ ] Choose the publishing identity; complete Steamworks agreements, identity, banking and tax setup. Check current [onboarding](https://partner.steamgames.com/doc/gettingstarted/onboarding) and [Steam Direct fee](https://partner.steamgames.com/doc/gettingstarted/appfee) requirements.
-- [ ] Create and associate full-game/demo App IDs, assign separate Windows depots and configure their launch executables; use the [SteamPipe procedure](desktop.md#steampipe).
-- [ ] Confirm commercial rights and required notices against the [asset manifest](../ASSET_MANIFEST.json), [music provenance](../audio/README.md) and [SFX terms](../audio/sfx.md). Complete the [content survey](https://partner.steamgames.com/doc/gettingstarted/contentsurvey), including generated art/music disclosures.
-- [ ] Prepare an accurate description, gameplay screenshots, capsule/library art and a short trailer. Set languages, supported platforms, measured requirements and [regional pricing](https://partner.steamgames.com/doc/store/pricing).
-- [ ] Obtain [store/build review](https://partner.steamgames.com/doc/store/review_process), publish Coming Soon and meet current [Steam Direct waiting periods](https://partner.steamgames.com/steamdirect/). Allow time for corrections before choosing a release date.
-- [ ] Confirm the final price, build and store claims; establish bug reporting and update delivery before publishing.
+- [ ] Complete publisher identity, agreements, banking/tax and fee setup; consult current [onboarding](https://partner.steamgames.com/doc/gettingstarted/onboarding) and [Steam Direct](https://partner.steamgames.com/doc/gettingstarted/appfee) requirements.
+- [ ] Associate full/demo App IDs, Windows depots and launch executables; validate private-branch Steam installs/updates, offline play and edition-separated saves using the [SteamPipe handoff](desktop.md#steampipe).
+- [ ] Confirm commercial rights/notices against the [asset manifest](../ASSET_MANIFEST.json), [music provenance](../audio/README.md) and [SFX terms](../audio/sfx.md); complete the [content survey](https://partner.steamgames.com/doc/gettingstarted/contentsurvey), including generated-content disclosures.
+- [ ] Finish description, screenshots, capsule/library art, languages, supported platforms and regional prices; upload the approved trailer and check all store claims against the release build.
+- [ ] Complete [store/build review](https://partner.steamgames.com/doc/store/review_process) and Coming Soon preparation; check current [Steam Direct timing](https://partner.steamgames.com/steamdirect/) before setting a date. Confirm any discount plan, bug-report channel and update delivery before publishing.

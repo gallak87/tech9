@@ -1,10 +1,10 @@
 # Circuit expansion
 
-Widen complete existing circuits and refit their immediate surroundings while preserving their route, identity, assets, and accumulated polish. Work case by case, with one owner chat per level brief. The original expansion levels are already merged; their completed briefs remain in Git.
+This workflow applies to newly assigned circuit widening and surroundings work. Preserve each course's route, identity, assets and accumulated polish, with one owner chat per brief. The original expansion levels are merged; completed execution briefs remain in Git and do not authorize another pass.
 
-## Road finish briefs
+## Road materials and deferred work
 
-The separate [road finish set](roads/README.md) documents the Halcyon process and per-level starting points for improving existing surfaces. It preserves each circuit's material identity, leaves Vesper Forest deferred. Its workflow is independent of the widening sequence and human gates below; these briefs do not start or approve widening work.
+The [road material index](roads/README.md) links current finishes, sources and the reusable material workflow. Umbra's road finish brief and Saffron's surroundings review remain deferred; Vesper Forest's existing resin is preserved. Material work is independent of the widening sequence and human gates below and does not approve widening.
 
 ## Current circuits and remaining scope
 

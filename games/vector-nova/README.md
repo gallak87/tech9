@@ -60,7 +60,7 @@ On touch screens, the left pad steers and pulling down airbrakes; the right cont
 - [Event and reward design](docs/level-types-and-rewards.md): mechanics, sidegrades and unresolved choices.
 - [Startup and careers](docs/intro-and-profiles.md): UI, names, isolated saves and global settings.
 - [Architecture](ARCHITECTURE.md) and [level API](docs/LEVEL_API.md): current runtime contracts and ownership.
-- [Art direction](docs/ART_BIBLE.md), [critic score history](docs/ART_SCORES.json) and [road finish workflow](docs/expansion/roads/README.md): visual constraints, recorded pass scores and current material references.
+- [Art direction](docs/ART_BIBLE.md), [latest art scores](docs/ART_SCORES.json) and [road finish workflow](docs/expansion/roads/README.md): visual constraints, latest map scores and current material references.
 - [Audio workflow](docs/audio/README.md): local generation, audition and provenance.
 - [Verification tools](tools/README.md): supported checks and their limits.
 - [Asset manifest](docs/ASSET_MANIFEST.json), [licences](docs/licenses/) and [ship source workflow](assets/ships/README.md): retained sources, rights and export instructions.

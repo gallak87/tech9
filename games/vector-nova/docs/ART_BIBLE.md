@@ -1,6 +1,6 @@
 # Art direction
 
-Completed level art critic scores live in [ART_SCORES.json](ART_SCORES.json). Append one compact final record per pass, retaining its scope, result revision and source; detailed findings and temporary evidence stay in chat or ignored `.experiments/`. Scores describe the reviewed version and do not replace human acceptance or a fresh review of later changes.
+Latest level art critic scores, out of 10, live in [ART_SCORES.json](ART_SCORES.json) as a plain mapping of level ID to number. Replace the previous score after each completed pass; keep detailed findings in chat or ignored `.experiments/`.
 
 The authorized [Saffron → Nacre art-pass sequence](levels/art-passes.md) records the current finite assignment and its stopping rules.
 

@@ -166,8 +166,7 @@ export async function createZephyrEnvironment({
     position: towerAnchor.toArray(),
     scale: 0.9,
   });
-  // A pair of broad irregular overlapping streams carries the falling wake;
-  // distant narrow strands otherwise collapse into parallel wire silhouettes.
+  // Unequal separated streams carry the falling wake, with a porous tail.
   const towerWater = new T.Group();
   const wakeSource = new T.MeshStandardMaterial({
     name: 'Zephyr water deep volume',
@@ -192,51 +191,51 @@ export async function createZephyrEnvironment({
     });
   });
 
-  // Turbulent foam keeps its local volume while its centre follows the arc.
-  // Shearing every vertex down the long trail would stretch these into ribbons.
-  const foamGeometry = new T.SphereGeometry(1, 16, 12);
-  const foamVertices = foamGeometry.attributes.position;
-  for (let i = 0; i < foamVertices.count; i++) {
-    const x = foamVertices.getX(i),
-      y = foamVertices.getY(i),
-      z = foamVertices.getZ(i);
-    const r =
-      1 +
-      0.34 * Math.sin(x * 7 + y * 3) * Math.sin(z * 6 - y * 4) +
-      0.13 * Math.sin(x * 15 - z * 11 + y * 8);
-    foamVertices.setXYZ(i, x * r, y * r, z * r);
-  }
-  foamGeometry.computeVertexNormals();
+  // Aeration follows the event arc without stretching lit polygonal clumps.
+  // Camera-facing droplets keep soft coverage at the encounter's large scale.
+  const foamGeometry = new T.PlaneGeometry(2, 2);
   const foamMaterial = new T.MeshStandardMaterial({
     color: '#d8e5df',
     roughness: 0.83,
     metalness: 0,
     transparent: true,
-    opacity: 0.72,
+    opacity: 0.42,
     depthWrite: false,
   });
   foamMaterial.onBeforeCompile = (shader) => {
     shader.vertexShader =
       'varying vec3 foamLocal;\n' +
-      shader.vertexShader.replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\nfoamLocal=position;',
-      );
+      shader.vertexShader
+        .replace(
+          '#include <begin_vertex>',
+          '#include <begin_vertex>\nfoamLocal=position;',
+        )
+        .replace(
+          '#include <defaultnormal_vertex>',
+          'vec3 transformedNormal=vec3(0.,0.,1.);',
+        )
+        .replace(
+          '#include <project_vertex>',
+          `vec4 mvPosition=modelViewMatrix*vec4(instanceMatrix[3].xyz,1.);
+        vec2 foamSize=vec2(length(instanceMatrix[0].xyz),length(instanceMatrix[1].xyz));
+        mvPosition.xy+=position.xy*foamSize*length(modelMatrix[0].xyz);
+        gl_Position=projectionMatrix*mvPosition;`,
+        );
     shader.fragmentShader =
       'varying vec3 foamLocal;\n' +
       zephyrNoiseGLSL +
       shader.fragmentShader.replace(
         '#include <normal_fragment_maps>',
         `#include <normal_fragment_maps>
-      float breakup=zephyrNoise(foamLocal*5.)*.7+zephyrNoise(foamLocal*13.)*.3;
-      float softEdge=smoothstep(.03,.62,abs(dot(normal,normalize(vViewPosition))));
-      diffuseColor.a*=smoothstep(.24,.64,breakup)*softEdge;
+      float breakup=zephyrNoise(foamLocal*3.)*.7+zephyrNoise(foamLocal*8.)*.3;
+      float softEdge=1.-smoothstep(.12,1.,length(foamLocal.xy*vec2(.8,1.))+(breakup-.5)*.24);
+      diffuseColor.a*=softEdge*(.25+breakup*.65);
     `,
       );
   };
-  foamMaterial.customProgramCacheKey = () => 'zephyr-porous-foam-v1';
+  foamMaterial.customProgramCacheKey = () => 'zephyr-porous-foam-v2';
   const towerFoam = new T.InstancedMesh(foamGeometry, foamMaterial, 40);
-  towerFoam.name = 'Zephyr / turbulent masses retaining volume along the arc';
+  towerFoam.name = 'Zephyr / soft aeration along the falling arc';
   towerFoam.userData.aoExclude = true;
   towerFoam.frustumCulled = false;
   towerWater.add(towerFoam);

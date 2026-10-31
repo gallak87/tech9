@@ -1,0 +1,24 @@
+{
+  "name": "Zephyr closed masonry aqueduct bay",
+  "createdDate": "2026-10-31",
+  "creator": "VECTOR//NOVA project contributors",
+  "rights": "Original project-authored geometry; no third-party models, textures or fonts.",
+  "reference": "assets/levels/zephyr/zephyr-scene-reference.png",
+  "referenceProvenance": "assets/levels/zephyr/asset-manifest.json#concept",
+  "workflow": "Editable Blender masonry with true pointed openings, deep spandrel webs, radial voussoirs and seated capitals. Evaluated geometry and split normals export to static metre-space buffers, merged into the existing stone/trim batches.",
+  "coordinates": "Metres, X lateral, Y up, span Z=-39..39. Runtime placement scales only the span length.",
+  "files": {
+    "assets/levels/zephyr/aqueduct/build_aqueduct.py": {
+      "bytes": 6628,
+      "sha256": "ae974068ed16d2c1d3e9b151635d6d56d00aa6787c46539c1de39a434d2b71ff"
+    },
+    "assets/levels/zephyr/aqueduct/aqueduct-bay.blend": {
+      "bytes": 156329,
+      "sha256": "d84d13e92c781d87cc40c3bd99594a0429e19ddbeafd2b3ab8486d2854bb5c8d"
+    },
+    "src/levels/zephyr/environment/geometry/aqueduct-bay.js": {
+      "bytes": 890070,
+      "sha256": "fb2cd468d66c8824b413947d784699fce1bacb71853a25df0536a8a1c92a01e3"
+    }
+  }
+}

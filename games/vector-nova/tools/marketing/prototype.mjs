@@ -10,8 +10,6 @@ import {
 } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { createServer } from 'node:net';
-import { assembleMontage } from './montage.mjs';
-import { assembleGameplay } from './gameplay.mjs';
 import { assembleTrailer } from './trailer.mjs';
 
 // Explicit capture of a dedicated game tab using an isolated developer profile.
@@ -42,7 +40,7 @@ if (outputIndex >= 0 && !args[outputIndex + 1])
   throw new Error('--output requires a directory.');
 const output = resolve(
   root,
-  outputIndex >= 0 ? args[outputIndex + 1] : '.experiments/marketing/montage',
+  outputIndex >= 0 ? args[outputIndex + 1] : '.experiments/marketing/trailer',
 );
 const captureOnly = args.includes('--capture-only');
 const option = (key) => {
@@ -54,11 +52,12 @@ const option = (key) => {
 };
 const config = JSON.parse(
   await readFile(
-    option('--shots') ?? join(root, 'marketing/montage.json'),
+    option('--shots') ?? join(root, 'marketing/edit-plan.json'),
     'utf8',
   ),
 );
-const movie = join(output, config.outputFile ?? 'vector-nova-montage-15s.mp4');
+if (config.kind !== 'trailer') throw new Error('Expected a trailer edit plan.');
+const movie = join(output, config.outputFile ?? 'vector-nova-trailer.mp4');
 const reuseDirectory = option('--reuse-from');
 const reuseManifest = reuseDirectory
   ? JSON.parse(await readFile(join(reuseDirectory, 'manifest.json'), 'utf8'))
@@ -974,13 +973,7 @@ try {
     browser = null;
   }
   if (!captureOnly) {
-    manifest.result = await (
-      config.kind === 'trailer'
-        ? assembleTrailer
-        : config.kind === 'continuous'
-          ? assembleGameplay
-          : assembleMontage
-    )({
+    manifest.result = await assembleTrailer({
       root,
       output,
       manifest,

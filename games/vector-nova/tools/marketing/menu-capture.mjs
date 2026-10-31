@@ -1,12 +1,101 @@
 import { chromium } from 'playwright';
 import { spawn, execFileSync } from 'node:child_process';
-import { access, appendFile, mkdir, writeFile } from 'node:fs/promises';
+import {
+  access,
+  appendFile,
+  mkdir,
+  readFile,
+  writeFile,
+} from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import {
+  createCareerSlots,
+  createMemoryStorage,
+} from '../../src/progression/careers.js';
+import { createDeveloperSession } from '../../src/progression/developer.js';
+import { readTrialRecords } from '../../src/race/time-trial.js';
 
 const root = resolve(import.meta.dirname, '../..');
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+const sourceIds = ['intro', 'menu-circuits', 'menu-cups-trial', 'menu-garage'];
+
+function storageEntries(storage) {
+  return Array.from({ length: storage.length }, (_, index) => {
+    const key = storage.key(index);
+    return [key, storage.getItem(key)];
+  });
+}
+
+async function trialFixture(path) {
+  if (!path) return null;
+  const fixture = JSON.parse(await readFile(resolve(root, path), 'utf8'));
+  if (
+    !Array.isArray(fixture.storageEntries) ||
+    !fixture.storageEntries.length ||
+    fixture.storageEntries.some(
+      (entry) =>
+        !Array.isArray(entry) ||
+        entry.length !== 2 ||
+        typeof entry[0] !== 'string' ||
+        !entry[0].startsWith('vector-nova.trial.v1.') ||
+        typeof entry[1] !== 'string',
+    ) ||
+    !fixture.provenance ||
+    typeof fixture.level !== 'string' ||
+    typeof fixture.ship !== 'string'
+  )
+    throw new Error(
+      'Expected genuine logical trial storage entries and provenance.',
+    );
+  const storage = createMemoryStorage();
+  for (const [key, value] of fixture.storageEntries)
+    storage.setItem(key, value);
+  const records = readTrialRecords(storage);
+  if (
+    !records.length ||
+    records.some((record) => !record.saved || !record.ghostSaved) ||
+    !records.some((record) => record.identity.ship.id === fixture.ship)
+  )
+    throw new Error(
+      'The fixture must contain a persisted, valid personal ghost.',
+    );
+  return {
+    ...fixture,
+    source: resolve(root, path),
+    records: records.map(({ key, duration, identity, ghostSaved }) => ({
+      key,
+      duration,
+      identity,
+      ghostSaved,
+    })),
+  };
+}
+
+function showcaseSeed(id, fixture) {
+  if (id === 'intro') return [];
+  const source = createMemoryStorage();
+  const careers = createCareerSlots({ storage: () => source });
+  careers.create(1);
+  const selected = careers.storageFor(1);
+  const parameters = new URLSearchParams({
+    dev: '2',
+    ship: 'kestrel',
+    exotic: 'kestrel',
+    equipment: 'jump,injector,deflector,lance',
+  });
+  if (id !== 'menu-garage') parameters.set('upgrades', '1');
+  const showcase = createDeveloperSession(parameters).storage();
+  for (const [key, value] of storageEntries(showcase))
+    selected.setItem(key, value);
+  selected.setItem('vector-nova.ship', 'kestrel');
+  selected.setItem('vector-nova.circuit', fixture?.level ?? 'nacre');
+  if (id === 'menu-cups-trial')
+    for (const [key, value] of fixture.storageEntries)
+      selected.setItem(key, value);
+  return storageEntries(source);
+}
 
 async function command(program, args) {
   return new Promise((done, reject) => {
@@ -28,7 +117,30 @@ async function command(program, args) {
   });
 }
 
-function installMenuCapture() {
+function installMenuCapture({ seed, visiblePointer }) {
+  for (const [key, value] of seed) localStorage.setItem(key, value);
+  localStorage.setItem(
+    'vector-nova.music',
+    JSON.stringify({ volume: 0.4, collapsed: true }),
+  );
+  if (visiblePointer) {
+    // Tab sharing omits Playwright's virtual OS cursor. Show a plain cursor at
+    // the real pointer-event coordinates so the recorded browsing is visible.
+    let cursor;
+    document.addEventListener('pointermove', (event) => {
+      if (!cursor) {
+        cursor = document.createElement('div');
+        cursor.setAttribute('aria-hidden', 'true');
+        cursor.dataset.capturePointer = '';
+        cursor.style.cssText =
+          'position:fixed;left:0;top:0;width:18px;height:26px;z-index:2147483647;pointer-events:none';
+        cursor.innerHTML =
+          '<svg viewBox="0 0 18 26" width="18" height="26"><path d="M1 1v20l5-5 4 9 4-2-4-9h7Z" fill="#101010" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+        document.body.append(cursor);
+      }
+      cursor.style.transform = `translate(${event.clientX}px,${event.clientY}px)`;
+    });
+  }
   localStorage.setItem(
     'vector-nova.settings',
     JSON.stringify({
@@ -63,7 +175,26 @@ function installMenuCapture() {
 
 async function snapshot(page) {
   return page.evaluate(() => {
-    const state = window.__VN_FRONTEND.getState();
+    const state = window.__VN_FRONTEND?.getState();
+    if (!state)
+      return {
+        screen:
+          document.querySelector('#front-shell')?.dataset.entryStage ?? null,
+        preview: document.querySelector('.entry-ship .ship-preview')
+          ? { ...document.querySelector('.entry-ship .ship-preview').dataset }
+          : null,
+        startVisible: !!document
+          .querySelector('.entry-continue')
+          ?.getClientRects().length,
+        tabs: document.querySelectorAll('.entry-tab').length,
+        musicPaused:
+          document.querySelector('[data-music-player] audio')?.paused ?? true,
+        shipOpacity: document.querySelector('.entry-ship .ship-preview')
+          ? getComputedStyle(
+              document.querySelector('.entry-ship .ship-preview'),
+            ).opacity
+          : null,
+      };
     const framing = Object.fromEntries(
       [
         ['progress', '.career-progress'],
@@ -115,6 +246,16 @@ async function snapshot(page) {
       equipment:
         document.querySelector('.garage-equipment-count')?.textContent.trim() ??
         null,
+      records: [...document.querySelectorAll('.records-list li')].map(
+        (row) => ({
+          description: row
+            .querySelector('.record-description')
+            ?.textContent.trim(),
+          best: row.querySelector('strong')?.textContent.trim(),
+          track: row.querySelector('[data-record-key]')?.dataset.recordTrack,
+          ship: row.querySelector('[data-record-key]')?.dataset.recordShip,
+        }),
+      ),
       framing,
     };
   });
@@ -148,17 +289,24 @@ async function readyShip(page, id) {
   await page.waitForTimeout(200);
 }
 
-async function glide(page, selector, pointer, duration = 420) {
+async function glide(
+  page,
+  selector,
+  pointer,
+  duration = 360,
+  { x = 0.55, y = 0.55 } = {},
+) {
   const target = page.locator(selector).first();
   await target.scrollIntoViewIfNeeded();
   const box = await target.boundingBox();
   if (!box) throw new Error(`Missing pointer target ${selector}`);
   const destination = {
-    x: box.x + box.width * 0.55,
-    y: box.y + box.height * 0.55,
+    x: box.x + box.width * x,
+    y: box.y + box.height * y,
   };
   const origin = { ...pointer };
   const steps = 18;
+  const started = performance.now();
   for (let step = 1; step <= steps; step++) {
     const t = step / steps;
     const eased = t * t * (3 - 2 * t);
@@ -166,7 +314,8 @@ async function glide(page, selector, pointer, duration = 420) {
       origin.x + (destination.x - origin.x) * eased,
       origin.y + (destination.y - origin.y) * eased,
     );
-    await page.waitForTimeout(duration / steps);
+    const wait = started + (duration * step) / steps - performance.now();
+    if (wait > 0) await page.waitForTimeout(wait);
   }
   Object.assign(pointer, destination);
   return target;
@@ -316,27 +465,30 @@ async function createRecorder(page, context, raw, binding) {
   return framing;
 }
 
-async function flow(page, id, mark, pointer) {
+async function flow(page, id, mark, pointer, fixture) {
   const click = async (selector) => {
-    const target = await glide(page, selector, pointer);
-    await target.click();
+    await glide(page, selector, pointer);
+    await page.mouse.click(pointer.x, pointer.y);
     await settledImages(page);
   };
   if (id === 'menu-circuits') {
     await mark('main-progress');
-    await page.waitForTimeout(2000);
+    await glide(page, '[data-action="circuits"]', pointer, 650);
+    await page.waitForTimeout(1450);
     await click('[data-action="circuits"]');
     for (const level of ['glasswake', 'colossus', 'helion']) {
-      await glide(page, `[data-level="${level}"]`, pointer);
+      await mark(`circuit-${level}-approach`);
+      await glide(page, `[data-level="${level}"]`, pointer, 360, { x: 0.13 });
       await page.waitForFunction(
         (level) => window.__VN_FRONTEND.getState().previewLevelId === level,
         level,
       );
       await settledImages(page);
       await mark(`circuit-${level}`);
-      await page.waitForTimeout(1600);
+      await page.waitForTimeout(1400);
+      await mark(`circuit-${level}-hold-end`);
     }
-    await page.locator('[data-level="helion"]').click();
+    await page.mouse.click(pointer.x, pointer.y);
     await page.waitForFunction(
       () => window.__VN_FRONTEND.getState().selected === 'helion',
     );
@@ -347,10 +499,17 @@ async function flow(page, id, mark, pointer) {
     await mark('main-before-cups');
     await page.waitForTimeout(500);
     await click('[data-action="cup-hub"]');
+    await mark('cup-browse-start');
+    await glide(page, '[data-cup="frontier"]', pointer);
+    await settledImages(page);
+    await mark('cup-frontier-hover');
+    await page.waitForTimeout(800);
+    await mark('cup-horizon-approach');
     await glide(page, '[data-cup="horizon"]', pointer);
+    await settledImages(page);
     await mark('cup-horizon-hover');
     await page.waitForTimeout(800);
-    await page.locator('[data-cup="horizon"]').click();
+    await page.mouse.click(pointer.x, pointer.y);
     await settledImages(page);
     await mark('cup-horizon-details');
     await page.waitForTimeout(2300);
@@ -361,8 +520,25 @@ async function flow(page, id, mark, pointer) {
     await page.waitForFunction(
       () => window.__VN_FRONTEND.getState().screen === 'records',
     );
+    await page.waitForFunction(
+      ({ level, ship }) =>
+        [...document.querySelectorAll('.records-list [data-record-key]')].some(
+          (button) =>
+            button.dataset.recordTrack === level &&
+            button.dataset.recordShip === ship,
+        ),
+      { level: fixture.level, ship: fixture.ship },
+    );
+    await settledImages(page);
     await mark('time-trial-records');
+    await glide(page, '[data-record-filter="track"]', pointer);
+    await page
+      .locator('[data-record-filter="track"]')
+      .selectOption(fixture.level);
+    await mark('time-trial-filtered-records');
+    await glide(page, '.records-list li:first-child', pointer, 450);
     await page.waitForTimeout(2300);
+    await mark('time-trial-records-hold-end');
   } else if (id === 'menu-garage') {
     await mark('all-28-progress');
     await page.waitForTimeout(2000);
@@ -370,12 +546,14 @@ async function flow(page, id, mark, pointer) {
     await readyShip(page, 'kestrel');
     await mark('garage-open');
     for (const ship of ['bastion', 'needle', 'kestrel']) {
+      await mark(`ship-${ship}-approach`);
       await glide(page, `button[data-ship="${ship}"]`, pointer);
       await readyShip(page, ship);
       await mark(`ship-${ship}-stats`);
       await page.waitForTimeout(1800);
+      await mark(`ship-${ship}-hold-end`);
     }
-    await page.locator('button[data-ship="kestrel"]').click();
+    await page.mouse.click(pointer.x, pointer.y);
     await readyShip(page, 'kestrel');
     await page.waitForFunction(
       () =>
@@ -387,15 +565,59 @@ async function flow(page, id, mark, pointer) {
         ),
     );
     await mark('kestrel-selected-quad-core');
-    await page.waitForTimeout(3400);
+    await glide(page, '.garage-equipment-count', pointer, 700, { x: 1.15 });
+    await page.waitForTimeout(3300);
+    await mark('kestrel-loadout-hold-end');
   } else throw new Error(`Unknown menu flow ${id}`);
 }
 
+async function pauseMusic(page) {
+  await page.evaluate(() => {
+    const player = document.querySelector('[data-music-player]');
+    const audio = player?.querySelector('audio');
+    if (audio && !audio.paused) player.querySelector('.music-play').click();
+    if (player && !player.classList.contains('is-collapsed'))
+      player.querySelector('.music-expand').click();
+  });
+}
+
+async function startTitle(page) {
+  await page.evaluate(async () => {
+    window.__VN_TITLE_STARTED_AT = performance.now();
+    await window.__VN_TITLE_MODULE.startEntry(document.querySelector('#app'));
+    const audio = document.querySelector('[data-music-player] audio');
+    if (audio && !audio.paused) document.querySelector('.music-play').click();
+    await new Promise((done) =>
+      requestAnimationFrame(() => {
+        window.__VN_TITLE_FIRST_FRAME = performance.now();
+        done();
+      }),
+    );
+  });
+  await page.waitForFunction(
+    () =>
+      document.querySelector('#front-shell')?.dataset.entryStage === 'intro',
+  );
+}
+
 export async function captureMenus({
-  output = resolve(root, '.experiments/marketing/interwoven-menu-v1'),
+  output = resolve(root, '.experiments/marketing/rc2-menu'),
   flowOnly = false,
   base = process.env.VN_URL,
+  only = sourceIds,
+  recordFixture = null,
 } = {}) {
+  if (
+    !only.length ||
+    new Set(only).size !== only.length ||
+    only.some((id) => !sourceIds.includes(id))
+  )
+    throw new Error(`Choose source ids from ${sourceIds.join(', ')}.`);
+  const fixture = await trialFixture(recordFixture);
+  if (only.includes('menu-cups-trial') && !fixture)
+    throw new Error(
+      '--record-fixture is required for populated Time Trial records.',
+    );
   output = resolve(root, output);
   await mkdir(output, { recursive: true });
   if (!flowOnly) {
@@ -408,7 +630,7 @@ export async function captureMenus({
   }
   const manifest = {
     createdAt: new Date().toISOString(),
-    kind: 'menu-sources',
+    kind: 'intro-menu-sources',
     flowOnly,
     sourceRevision: execFileSync('git', ['rev-parse', 'HEAD'], {
       cwd: root,
@@ -419,10 +641,19 @@ export async function captureMenus({
       encoding: 'utf8',
     }).trim(),
     backend:
-      'Chrome dedicated-tab getDisplayMedia, no microphone; music disabled; actual menu audio only',
+      'Chrome dedicated-tab getDisplayMedia, no microphone; native music paused; actual menu audio only',
     renderingViewport: { width: 1600, height: 900, deviceScaleFactor: 1 },
+    pointer:
+      'Menus draw a plain noninteractive arrow at actual pointermove coordinates because Chrome tab sharing omits the virtual OS cursor; native cursor hidden. Intro has no pointer.',
     profile:
-      'isolated dev=2: first two chunks upgrades=1 (16/28 rewards), final Garage all28; Quad Core Kestrel; player career untouched',
+      'isolated throwaway Career1, showroom dev2 profile copied into dev1 memory: first two chunks16/28, final Garage28/28; Quad Core Kestrel; genuine trial entries copied unchanged; personal careers untouched',
+    trialFixture: fixture
+      ? {
+          source: fixture.source,
+          provenance: fixture.provenance,
+          records: fixture.records,
+        }
+      : null,
     shots: [],
   };
   let ownedServer, browser;
@@ -475,59 +706,80 @@ export async function captureMenus({
         '--autoplay-policy=no-user-gesture-required',
       ],
     });
-    const context = await browser.newContext({
-      viewport: { width: 1600, height: 900 },
-      deviceScaleFactor: 1,
-    });
-    await context.addInitScript(installMenuCapture);
-    const page = await context.newPage();
-    const errors = [];
-    page.on('pageerror', (error) => {
-      errors.push(error.message);
-      console.error(error.message);
-    });
-    for (const id of ['menu-circuits', 'menu-cups-trial', 'menu-garage']) {
-      console.log(`MENU ${id}`);
-      const url = new URL(
-        '/?dev=2&ship=kestrel&exotic=kestrel&level=nacre&music=0',
-        base,
-      );
-      if (id !== 'menu-garage') url.searchParams.set('upgrades', '1');
-      await page.goto(url.href);
-      await page.waitForFunction(
-        () => window.__VN_FRONTEND?.getState().screen === 'home',
-      );
-      await page.waitForFunction(
-        () => window.__VN_FRONTEND.getState().preload.fraction === 1,
-        null,
-        { timeout: 180000 },
-      );
-      await settledImages(page);
+    for (const id of only) {
+      console.log(`SOURCE ${id}`);
+      const context = await browser.newContext({
+        viewport: { width: 1600, height: 900 },
+        deviceScaleFactor: 1,
+      });
+      await context.addInitScript(installMenuCapture, {
+        seed: showcaseSeed(id, fixture),
+        visiblePointer: id !== 'intro',
+      });
+      const page = await context.newPage();
+      const errors = [];
+      page.on('pageerror', (error) => {
+        errors.push(error.message);
+        console.error(error.message);
+      });
+      const url = new URL('/?dev=1&ship=kestrel&level=nacre', base);
+      if (id === 'intro') {
+        await page.route('**/src/core/main.js*', (route) =>
+          route.fulfill({ contentType: 'text/javascript', body: '' }),
+        );
+        await page.goto(base);
+        // Load production modules/models before recording, then let the actual
+        // entry own its native five-second fade. No replay hooks or fake title.
+        await page.evaluate(async () => {
+          window.__VN_TITLE_MODULE = await import('/src/frontend/entry.js');
+          await import('/src/frontend/ship-preview.js');
+          const { loadShipModel } = await import('/src/ships/model-cache.js');
+          await loadShipModel('kestrel');
+        });
+      } else {
+        if (id === 'menu-cups-trial')
+          url.searchParams.set('level', fixture.level);
+        await page.goto(url.href);
+        await page.waitForFunction(
+          () => window.__VN_FRONTEND?.getState().screen === 'home',
+        );
+        await page.waitForFunction(
+          () => window.__VN_FRONTEND.getState().preload.fraction === 1,
+          null,
+          { timeout: 180000 },
+        );
+        await settledImages(page);
+        await pauseMusic(page);
+      }
       await page.evaluate(() => {
         document.title = 'VN Menu Capture';
       });
       await page.addStyleTag({
         content:
-          '.sound-panel,.dev-tools,[data-action="inspect"]{display:none!important}',
+          '.sound-panel,.dev-tools,[data-action="inspect"]{display:none!important}html,body,body *{cursor:none!important}',
       });
-      const expectedRewards = id === 'menu-garage' ? '28' : '16';
-      await page.waitForFunction(
-        (expectedRewards) =>
-          document
-            .querySelector('.career-progress-bar')
-            ?.getAttribute('aria-valuenow') === expectedRewards,
-        expectedRewards,
-      );
-      const progressBox = await page.locator('.career-progress').boundingBox();
-      if (
-        !progressBox ||
-        progressBox.y < 0 ||
-        progressBox.y + progressBox.height > 900
-      )
-        throw new Error(
-          'Career progress bar is outside the recording viewport.',
+      if (id !== 'intro') {
+        const expectedRewards = id === 'menu-garage' ? '28' : '16';
+        await page.waitForFunction(
+          (expectedRewards) =>
+            document
+              .querySelector('.career-progress-bar')
+              ?.getAttribute('aria-valuenow') === expectedRewards,
+          expectedRewards,
         );
-      const pointer = { x: 25, y: 25 };
+        const progressBox = await page
+          .locator('.career-progress')
+          .boundingBox();
+        if (
+          !progressBox ||
+          progressBox.y < 0 ||
+          progressBox.y + progressBox.height > 900
+        )
+          throw new Error(
+            'Career progress bar is outside the recording viewport.',
+          );
+      }
+      const pointer = { x: 1540, y: 850 };
       await page.mouse.move(pointer.x, pointer.y);
       const capture = flowOnly
         ? null
@@ -542,9 +794,13 @@ export async function captureMenus({
       const rawStartedAt = await page.evaluate(
         () => window.__VN_MENU_RECORDING?.startedAt ?? performance.now(),
       );
+      if (id === 'intro') await startTitle(page);
       const inPoint = await page.evaluate(
-        (start) => (performance.now() - start) / 1000,
-        rawStartedAt,
+        ({ start, intro }) =>
+          ((intro ? window.__VN_TITLE_FIRST_FRAME : performance.now()) -
+            start) /
+          1000,
+        { start: rawStartedAt, intro: id === 'intro' },
       );
       const actions = [];
       const mark = async (name) => {
@@ -557,17 +813,44 @@ export async function captureMenus({
           at: rawSeconds - inPoint,
           rawSeconds,
           state: await snapshot(page),
+          pointer: { ...pointer },
         });
         console.log(`MARK ${id} ${name} ${(rawSeconds - inPoint).toFixed(3)}`);
       };
       const start = await snapshot(page);
-      await flow(page, id, mark, pointer);
+      if (id === 'intro') {
+        await mark('title-background-and-reveal');
+        await page.waitForFunction(
+          () =>
+            document.querySelector('.entry-ship .ship-preview')?.dataset
+              .state === 'ready',
+          null,
+          { timeout: 120000 },
+        );
+        await mark('title-ship-ready');
+        const remaining = await page.evaluate(
+          () => 5700 - (performance.now() - window.__VN_TITLE_STARTED_AT),
+        );
+        if (remaining > 0) await page.waitForTimeout(remaining);
+        await mark('title-reveal-complete-handle');
+      } else await flow(page, id, mark, pointer, fixture);
       const seconds =
         (await page.evaluate(
           (start) => (performance.now() - start) / 1000,
           rawStartedAt,
         )) - inPoint;
       const end = await snapshot(page);
+      if (
+        id === 'intro' &&
+        (end.screen !== 'intro' ||
+          !end.startVisible ||
+          end.tabs ||
+          !end.musicPaused ||
+          Number(end.shipOpacity) < 0.99)
+      )
+        throw new Error(
+          'Native title reveal, paused transport or manual Start changed during capture.',
+        );
       if (
         id === 'menu-garage' &&
         ['preview', 'stats', 'capacity'].some(
@@ -585,7 +868,7 @@ export async function captureMenus({
         id,
         seconds,
         inPoint,
-        mode: 'menu',
+        mode: id === 'intro' ? 'intro' : 'menu',
         state: {},
         actions,
         capture,
@@ -624,6 +907,7 @@ export async function captureMenus({
         JSON.stringify(manifest, null, 2),
       );
       console.log(`SAVED ${id} ${seconds.toFixed(3)}s`);
+      await context.close();
     }
     return manifest;
   } finally {
@@ -646,22 +930,26 @@ if (
   const args = process.argv.slice(2);
   if (args.includes('--help'))
     console.log(
-      'node tools/marketing/menu-capture.mjs [--output DIRECTORY] [--flow-only]\nCaptures three isolated menu source takes with settled action markers.\n--flow-only verifies the same flows headless, without recording. VN_URL may select an existing server.',
+      `node tools/marketing/menu-capture.mjs [--output DIRECTORY] [--only ${sourceIds.join(',')}] [--record-fixture FILE] [--flow-only]\nCaptures the real title reveal and three isolated menu source takes, preserving pointer travel around settled markers.\n--record-fixture supplies genuine logical Time Trial record/ghost entries with provenance; required for menu-cups-trial.\n--flow-only verifies selected flows headless, without recording. VN_URL may select an existing server.`,
     );
   else {
-    const outputIndex = args.indexOf('--output');
-    if (
-      args.some(
-        (arg, index) =>
-          !['--output', '--flow-only'].includes(arg) &&
-          args[index - 1] !== '--output',
-      ) ||
-      (outputIndex >= 0 &&
-        (!args[outputIndex + 1] || args[outputIndex + 1].startsWith('--')))
-    )
-      throw new Error('Invalid argument. Use --help.');
+    const options = {};
+    for (let index = 0; index < args.length; index++) {
+      const flag = args[index];
+      if (flag === '--flow-only') continue;
+      if (
+        !['--output', '--only', '--record-fixture'].includes(flag) ||
+        !args[index + 1] ||
+        args[index + 1].startsWith('--') ||
+        options[flag]
+      )
+        throw new Error('Invalid argument. Use --help.');
+      options[flag] = args[++index];
+    }
     const manifest = await captureMenus({
-      output: outputIndex >= 0 ? args[outputIndex + 1] : undefined,
+      output: options['--output'],
+      only: options['--only']?.split(','),
+      recordFixture: options['--record-fixture'],
       flowOnly: args.includes('--flow-only'),
     });
     console.log(

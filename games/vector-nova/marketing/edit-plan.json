@@ -1,0 +1,320 @@
+{
+  "id": "interwoven-trailer-rc2-blue-hour",
+  "kind": "trailer",
+  "crf": 18,
+  "fps": 60,
+  "frames": 4837,
+  "outputFile": "vector-nova-rc2-blue-hour.mp4",
+  "music": {
+    "id": "blue-hour",
+    "sourceOffset": 9.3,
+    "gain": 0.27,
+    "ducks": [
+      {
+        "from": 12.1,
+        "to": 13,
+        "gain": 0.75
+      }
+    ],
+    "phraseJumps": [
+      {
+        "at": 50.7,
+        "source": 45,
+        "crossfade": 0.04,
+        "gain": 1
+      },
+      {
+        "at": 70.3875,
+        "source": 90,
+        "crossfade": 0.04,
+        "gain": 1.1885022274370185
+      },
+      {
+        "at": 77.21666666666667,
+        "source": 116.51666666666667,
+        "crossfade": 0.04,
+        "gain": 1
+      }
+    ]
+  },
+  "closing": {
+    "from": 4633,
+    "to": 4837,
+    "tail": 0.2,
+    "image": ".experiments/marketing/rc2/closing-wordmark.png"
+  },
+  "captureShots": [
+    {
+      "id": "glasswake-pack",
+      "seconds": 6,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/interwoven-v3",
+        "id": "glasswake-pack"
+      }
+    },
+    {
+      "id": "cindercoil-avoid",
+      "seconds": 5,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/interwoven-v3",
+        "id": "cindercoil-avoid"
+      }
+    },
+    {
+      "id": "nacre-early-vista",
+      "seconds": 15,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/interwoven-v3",
+        "id": "nacre-early-vista"
+      }
+    },
+    {
+      "id": "umbra-first-lens",
+      "seconds": 8,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/interwoven-v3",
+        "id": "umbra-first-lens"
+      }
+    },
+    {
+      "id": "helion-sweep",
+      "seconds": 5,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/interwoven-v3",
+        "id": "helion-sweep"
+      }
+    },
+    {
+      "id": "zephyr-tower-chase",
+      "seconds": 12,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/interwoven-v3",
+        "id": "zephyr-tower-chase"
+      }
+    },
+    {
+      "id": "shatterline-finale-vista",
+      "seconds": 9,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/interwoven-v3",
+        "id": "shatterline-finale-vista"
+      }
+    },
+    {
+      "id": "editorial-black",
+      "seconds": 0.7,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/rc2",
+        "id": "editorial-black"
+      }
+    },
+    {
+      "id": "intro",
+      "seconds": 5.6731999999880784,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/rc2-menu",
+        "id": "intro"
+      }
+    },
+    {
+      "id": "menu-circuits",
+      "seconds": 9.55130000001192,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/rc2-menu-pointer",
+        "id": "menu-circuits"
+      }
+    },
+    {
+      "id": "menu-cups-trial",
+      "seconds": 11.880299999982117,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/rc2-menu-pointer",
+        "id": "menu-cups-trial"
+      }
+    },
+    {
+      "id": "menu-garage",
+      "seconds": 14.283400000005962,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/rc2-menu-pointer",
+        "id": "menu-garage"
+      }
+    },
+    {
+      "id": "trial-ghost",
+      "seconds": 4.6,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/rc2",
+        "id": "trial-ghost"
+      }
+    }
+  ],
+  "cuts": [
+    {
+      "shot": "intro",
+      "source": 0,
+      "from": 0,
+      "to": 300,
+      "audio": false
+    },
+    {
+      "shot": "editorial-black",
+      "source": 0,
+      "from": 300,
+      "to": 342,
+      "audio": false
+    },
+    {
+      "shot": "glasswake-pack",
+      "source": 0,
+      "from": 342,
+      "to": 530
+    },
+    {
+      "shot": "cindercoil-avoid",
+      "source": 0,
+      "from": 530,
+      "to": 718
+    },
+    {
+      "shot": "nacre-early-vista",
+      "source": 0,
+      "from": 718,
+      "to": 1372
+    },
+    {
+      "shot": "umbra-first-lens",
+      "source": 0,
+      "from": 1372,
+      "to": 1732
+    },
+    {
+      "shot": "menu-circuits",
+      "source": 0.0052000000178813455,
+      "from": 1732,
+      "to": 1851,
+      "audio": false
+    },
+    {
+      "shot": "menu-circuits",
+      "source": 2.6552000000178815,
+      "from": 1851,
+      "to": 1965,
+      "audio": false
+    },
+    {
+      "shot": "menu-circuits",
+      "source": 4.569600000023842,
+      "from": 1965,
+      "to": 2079,
+      "audio": false
+    },
+    {
+      "shot": "menu-circuits",
+      "source": 6.484999999999999,
+      "from": 2079,
+      "to": 2241,
+      "audio": false
+    },
+    {
+      "shot": "helion-sweep",
+      "source": 0,
+      "from": 2241,
+      "to": 2429
+    },
+    {
+      "shot": "menu-cups-trial",
+      "source": 2.3739999999999997,
+      "from": 2429,
+      "to": 2635,
+      "audio": false
+    },
+    {
+      "shot": "menu-cups-trial",
+      "source": 8.701299999982117,
+      "from": 2635,
+      "to": 2825,
+      "audio": false
+    },
+    {
+      "shot": "trial-ghost",
+      "source": 0,
+      "from": 2825,
+      "to": 3065,
+      "gain": 0.55
+    },
+    {
+      "shot": "zephyr-tower-chase",
+      "source": 1,
+      "from": 3065,
+      "to": 3365
+    },
+    {
+      "shot": "menu-garage",
+      "source": 0.0014000000059604112,
+      "from": 3365,
+      "to": 3485,
+      "audio": false
+    },
+    {
+      "shot": "menu-garage",
+      "source": 2.805600000023842,
+      "from": 3485,
+      "to": 3631,
+      "audio": false
+    },
+    {
+      "shot": "menu-garage",
+      "source": 5.2485,
+      "from": 3631,
+      "to": 3774,
+      "audio": false
+    },
+    {
+      "shot": "menu-garage",
+      "source": 7.637800000011921,
+      "from": 3774,
+      "to": 3917,
+      "audio": false
+    },
+    {
+      "shot": "menu-garage",
+      "source": 10.25,
+      "from": 3917,
+      "to": 4158,
+      "audio": false
+    },
+    {
+      "shot": "shatterline-finale-vista",
+      "source": 0,
+      "from": 4158,
+      "to": 4633
+    }
+  ]
+}

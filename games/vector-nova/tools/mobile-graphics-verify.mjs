@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium, webkit, devices } from 'playwright';
+import { seedVerificationCareer } from './verification-career.mjs';
 
 // Real renderer + WebKit shader binding, with a deterministic context-loss fault.
 // This emulates phone input/layout, not an iPhone's hardware memory limit.
@@ -8,7 +9,7 @@ if (!base) throw new Error('Set VN_URL to an existing dev/preview server.');
 const chrome = process.env.VN_BROWSER === 'chrome';
 const browser = await (chrome ? chromium : webkit).launch({
   headless: true,
-  ...(chrome ? { channel: 'chrome' } : {}),
+  ...(chrome ? { args: ['--mute-audio'], channel: 'chrome' } : {}),
 });
 try {
   for (const scenario of [
@@ -28,14 +29,18 @@ try {
       ...(scenario.viewport ? { viewport: scenario.viewport } : {}),
     });
     try {
+      await seedVerificationCareer(context);
       await context.addInitScript(({ quality, fault, blockAudio }) => {
         if (blockAudio)
           AudioContext.prototype.resume = () => new Promise(() => {});
-        if (quality)
-          localStorage.setItem(
-            'vector-nova.settings',
-            JSON.stringify({ quality }),
-          );
+        localStorage.setItem(
+          'vector-nova.settings',
+          JSON.stringify({
+            ...(quality ? { quality } : {}),
+            volume: 0,
+            masterVolume: 0,
+          }),
+        );
         const create = WebGL2RenderingContext.prototype.createShader;
         const contexts = new WeakSet();
         window.__graphicsProbe = { shaders: 0, worlds: 0, lost: false };
@@ -56,7 +61,7 @@ try {
       const page = await context.newPage();
       const errors = [];
       page.on('pageerror', (error) => errors.push(error.message));
-      await page.goto(new URL('?level=halcyon&music=0', base).href);
+      await page.goto(new URL('?intro=0&level=halcyon&music=0', base).href);
       await page.locator('[data-action="launch"]').tap();
       await page.waitForFunction(
         () =>

@@ -9,19 +9,8 @@
 .entry-shell.entry-leaving > section {
   opacity: 0;
 }
-.entry-topbar {
-  position: fixed;
-  z-index: 3;
-  top: 22px;
-  left: clamp(24px, 4vw, 64px);
-  right: 380px;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px 28px;
-}
 .entry-topbar .entry-wordmark {
-  font-size: 26px;
+  pointer-events: none;
 }
 .entry-intro {
   min-height: 100svh;
@@ -86,7 +75,7 @@
 }
 #front-shell.entry-shell .entry-tab {
   min-height: 44px;
-  padding: 10px 12px;
+  padding: 10px var(--selection-inline-padding);
   border: 0;
   border-bottom: 2px solid transparent;
   font:
@@ -160,16 +149,129 @@
   gap: 12px;
   max-width: 680px;
 }
-.entry-shell .entry-careers .entry-profile {
+.entry-profile-row {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   min-width: 0;
   min-height: 68px;
-  width: 100%;
-  padding: 10px 14px;
+  box-sizing: border-box;
+  padding: 10px var(--selection-inline-padding);
+}
+.entry-profile-row
+  > :is(.entry-slot-number, .entry-profile-copy, .entry-profile-action) {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+.entry-profile-name,
+.entry-profile-name-editor {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.entry-profile-name-editor {
+  width: min(100%, 296px);
+  gap: 8px;
+  pointer-events: auto;
+}
+.entry-profile-row-editing {
+  grid-template-columns: 22px minmax(0, 1fr);
   background: rgb(255 255 255 / 2%);
+  box-shadow: inset 2px 0 #d01818;
+}
+.entry-rename-actions {
+  display: flex;
+  flex: none;
+}
+.entry-shell :is(.entry-rename, .entry-rename-actions button) {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px;
+  pointer-events: auto;
+}
+.entry-profile-name .entry-rename {
+  margin-block: -10px;
+}
+.entry-shell :is(.entry-rename, .entry-rename-actions button) svg {
+  width: 19px;
+  height: 19px;
+}
+.entry-shell .entry-careers .entry-profile {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  background: rgb(255 255 255 / 2%);
+}
+.entry-profile-row input[data-career-name] {
+  flex: 0 1 200px;
+  width: 200px;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 0;
+  border-bottom: 1px solid #d01818;
+  border-radius: 0;
+  padding: 7px 4px;
+  background: #090909a8;
+  color: #e8e8e8;
+  font:
+    16px Arial,
+    sans-serif;
+}
+.entry-profile-row input[data-career-name]:focus-visible {
+  outline-offset: 0;
+}
+.entry-profile-row input[data-career-name][aria-invalid='true'] {
+  border-bottom-color: #eab78a;
+}
+.entry-profile[data-career-loading] {
+  cursor: progress;
+}
+.entry-career-loading {
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  overflow: hidden;
+  background: rgb(208 24 24 / 15%);
+}
+.entry-career-loading::after {
+  content: '';
+  display: block;
+  width: 35%;
+  height: 100%;
+  background: #d01818;
+  will-change: transform;
+  animation: entry-career-loading 1.1s ease-in-out infinite;
+}
+@keyframes entry-career-loading {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(290%);
+  }
+}
+.entry-reduced-motion .entry-career-loading::after {
+  width: 100%;
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .entry-career-loading::after {
+    width: 100%;
+    animation: none;
+  }
 }
 .entry-profile-copy {
   display: flex;
@@ -189,16 +291,19 @@
   font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.entry-careers .entry-profile .career-progress {
+.entry-careers .entry-profile-row .career-progress {
   max-width: 420px;
   width: 100%;
   margin-top: 6px;
 }
-.entry-profile .career-progress-heading {
+.entry-profile-row .career-progress-heading {
   font-size: 9px;
 }
-.entry-careers .entry-profile .career-progress-bar {
+.entry-careers .entry-profile-row .career-progress-bar {
   height: 8px;
   margin-top: 4px;
 }
@@ -270,15 +375,6 @@
   animation: none;
 }
 @media (max-width: 760px) {
-  .entry-topbar {
-    top: 72px;
-    left: 24px;
-    right: 24px;
-    gap: 10px 18px;
-  }
-  .entry-topbar .entry-wordmark {
-    font-size: 22px;
-  }
   #front-shell.entry-shell .entry-tab {
     padding-inline: 8px;
   }
@@ -305,10 +401,10 @@
   .entry-careers .entry-profile-grid {
     gap: 10px;
   }
-  .entry-shell .entry-careers .entry-profile {
+  .entry-profile-row {
     grid-template-columns: 18px minmax(0, 1fr) auto;
     gap: 10px;
-    padding: 10px 12px;
+    padding: 10px var(--selection-inline-padding);
   }
   .entry-profile-action {
     font-size: 11px;

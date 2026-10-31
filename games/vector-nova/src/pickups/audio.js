@@ -1,8 +1,6 @@
 import { createImmersionMix } from '../audio/immersion.js';
 import { createSampleBank } from '../audio/sample-bank.js';
-
-const clamp = (value) =>
-  Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
+import { effectsVolume } from '../progression/index.js';
 
 import { deviceCue, createDeviceNoise } from './sound-design.js';
 import { DEVICE_SAMPLES, deviceSample } from './sample-cues.js';
@@ -118,7 +116,7 @@ export function createPickupAudio({
     },
     update(settings = {}, active = false, submerged = 0) {
       waterMix?.update(submerged);
-      volume = settings.muted ? 0 : clamp(settings.volume);
+      volume = effectsVolume(settings);
       running = !!active && !disposed && volume > 0;
       if (!running) {
         silence();

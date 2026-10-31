@@ -1,8 +1,14 @@
 import { assetURL } from '../assets/url.js';
 import { musicTracks } from './tracks.js';
+import {
+  loadSettings,
+  saveSettings,
+  subscribeSettings,
+} from '../progression/index.js';
 import './player.css';
 
 const preferenceKey = 'vector-nova.music';
+const startupPreferenceKey = 'startUpMusicOn';
 const icon = (paths) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 const playIcon = icon(
@@ -13,10 +19,17 @@ const pauseIcon = icon('<path d="M8 5v14M16 5v14" stroke-width="4"/>');
 // Shared music transport. Independent of race time and the effects mix.
 export function createMusicPlayer(
   host,
-  { clearInput = () => {}, isMenuVisible = () => false } = {},
+  {
+    clearInput = () => {},
+    isMenuVisible = () => false,
+    isStartupScreen = () => false,
+  } = {},
 ) {
   let preferences = {};
+  let wantsPlayback = true;
+  let settings = loadSettings();
   try {
+    wantsPlayback = localStorage.getItem(startupPreferenceKey) !== 'false';
     preferences = JSON.parse(localStorage.getItem(preferenceKey)) || {};
   } catch {
     // Storage is optional; the player still works with session defaults.
@@ -24,7 +37,6 @@ export function createMusicPlayer(
   let selected = musicTracks.find((track) => track.id === 'blue-hour');
   let shuffled = preferences.shuffle === true;
   let queue = musicTracks;
-  let wantsPlayback = true;
   let driving = false;
   let returnFocus = null;
   const compact = matchMedia('(max-width: 760px)');
@@ -70,9 +82,6 @@ export function createMusicPlayer(
   progress.setAttribute('aria-hidden', 'true');
   root.append(progress);
   audio.loop = preferences.repeat === true;
-  audio.volume = Number.isFinite(preferences.volume)
-    ? Math.min(1, Math.max(0, preferences.volume))
-    : 0.4;
   root.append(audio);
   host.append(root);
   const abort = new AbortController();
@@ -98,6 +107,9 @@ export function createMusicPlayer(
   let disposed = false;
   let loadId = 0;
   let awaitingGesture = false;
+  let starting = false;
+  let playRequest = 0;
+  let playAppearance = null;
   for (const track of musicTracks) {
     const option = document.createElement('option');
     option.value = track.id;
@@ -105,7 +117,6 @@ export function createMusicPlayer(
     picker.append(option);
   }
   picker.value = selected.id;
-  volume.value = audio.volume;
   loop.setAttribute('aria-pressed', String(audio.loop));
   shuffle.setAttribute('aria-pressed', String(shuffled));
   resetQueue();
@@ -115,7 +126,6 @@ export function createMusicPlayer(
       localStorage.setItem(
         preferenceKey,
         JSON.stringify({
-          volume: audio.volume,
           repeat: audio.loop,
           shuffle: shuffled,
           collapsed: controls.hidden,
@@ -142,11 +152,17 @@ export function createMusicPlayer(
       `${Math.min(1, Math.max(0, fraction)) * 100}%`,
     );
   function update() {
-    play.innerHTML = audio.paused ? playIcon : pauseIcon;
-    play.setAttribute(
-      'aria-label',
-      audio.paused ? 'Play music' : 'Pause music',
-    );
+    const pauseAction = !audio.paused || starting;
+    // Keep the clicked SVG mounted through timeupdate/metadata events. Replacing
+    // it between pointerdown and pointerup can swallow an otherwise valid click.
+    if (pauseAction !== playAppearance) {
+      playAppearance = pauseAction;
+      play.innerHTML = pauseAction ? pauseIcon : playIcon;
+      play.setAttribute(
+        'aria-label',
+        pauseAction ? 'Pause music' : 'Play music',
+      );
+    }
     root.classList.toggle('is-playing', !audio.paused);
     const duration = Number.isFinite(audio.duration) ? audio.duration : 0;
     seek.disabled = !duration;
@@ -165,28 +181,50 @@ export function createMusicPlayer(
     durationOutput.textContent = duration ? stamp(duration) : '—:—';
   }
   function updateVolume() {
-    audio.volume = Number(volume.value);
-    fill(volume, audio.volume);
-    volumeOutput.textContent = `${Math.round(audio.volume * 100)}%`;
+    volume.value = settings.musicVolume;
+    audio.volume = settings.masterVolume * settings.musicVolume;
+    fill(volume, settings.musicVolume);
+    volumeOutput.textContent = `${Math.round(settings.musicVolume * 100)}%`;
   }
   async function start() {
-    const request = loadId;
+    if (disposed || !wantsPlayback || starting) return;
+    const request = ++playRequest;
+    const song = loadId;
+    starting = true;
+    update();
     try {
       await audio.play();
-      if (!disposed && request === loadId) awaitingGesture = false;
+      if (disposed || !wantsPlayback) {
+        audio.pause();
+        return;
+      }
+      if (request === playRequest && song === loadId) awaitingGesture = false;
     } catch (error) {
-      if (!disposed && request === loadId && error.name !== 'AbortError') {
+      if (
+        !disposed &&
+        request === playRequest &&
+        song === loadId &&
+        error.name !== 'AbortError'
+      ) {
         awaitingGesture = error.name === 'NotAllowedError' && wantsPlayback;
         setStatus(
           error.name === 'NotAllowedError' ? 'Ready' : 'Unavailable',
           error.name !== 'NotAllowedError',
         );
       }
+    } finally {
+      if (request === playRequest) {
+        starting = false;
+        if (!disposed) update();
+      }
     }
   }
   function loadSong(resume = false) {
     loadId++;
+    playRequest++;
+    starting = false;
     awaitingGesture = false;
+    wantsPlayback = resume;
     audio.pause();
     setStatus('Loading');
     audio.src = assetURL(selected.path);
@@ -195,13 +233,24 @@ export function createMusicPlayer(
     if (resume) void start();
   }
   function togglePlayback() {
-    wantsPlayback = audio.paused;
+    wantsPlayback = audio.paused && !starting;
+    if (isStartupScreen()) {
+      try {
+        localStorage.setItem(startupPreferenceKey, String(wantsPlayback));
+      } catch {
+        // The explicit session intent still applies when storage is unavailable.
+      }
+    }
     if (wantsPlayback) {
-      if (audio.error) loadSong();
-      void start();
+      if (audio.error) loadSong(true);
+      else void start();
     } else {
+      playRequest++;
+      starting = false;
       awaitingGesture = false;
       audio.pause();
+      setStatus('Paused');
+      update();
     }
   }
   function resetQueue() {
@@ -216,7 +265,7 @@ export function createMusicPlayer(
     }
     queue = [selected, ...remaining];
   }
-  function switchSong(offset, resume = !audio.paused) {
+  function switchSong(offset, resume = wantsPlayback) {
     let index = queue.indexOf(selected);
     if (shuffled && offset > 0 && index === queue.length - 1) {
       resetQueue();
@@ -306,7 +355,7 @@ export function createMusicPlayer(
   listen(root.querySelector('.music-previous'), 'click', () => switchSong(-1));
   listen(root.querySelector('.music-next'), 'click', () => switchSong(1));
   listen(picker, 'change', () => {
-    const resume = !audio.paused;
+    const resume = wantsPlayback;
     selected = musicTracks.find((track) => track.id === picker.value);
     loadSong(resume);
     save();
@@ -319,10 +368,9 @@ export function createMusicPlayer(
     if (Number.isFinite(audio.duration)) audio.currentTime = Number(seek.value);
     update();
   });
-  listen(volume, 'input', () => {
-    updateVolume();
-    save();
-  });
+  listen(volume, 'input', () =>
+    saveSettings({ musicVolume: Number(volume.value) }),
+  );
   listen(loop, 'click', () => {
     audio.loop = !audio.loop;
     loop.setAttribute('aria-pressed', String(audio.loop));
@@ -342,13 +390,19 @@ export function createMusicPlayer(
     'ended',
   ])
     listen(audio, event, update);
-  listen(audio, 'playing', () => setStatus('Playing'));
+  listen(audio, 'play', () => {
+    if (!wantsPlayback) audio.pause();
+  });
+  listen(audio, 'playing', () => {
+    if (!wantsPlayback) audio.pause();
+    else setStatus('Playing');
+  });
   listen(audio, 'waiting', () => setStatus('Loading'));
   listen(audio, 'pause', () => {
     if (!audio.error) setStatus('Paused');
   });
   listen(audio, 'ended', () => {
-    if (!document.hidden) switchSong(1, true);
+    if (wantsPlayback && !document.hidden) switchSong(1, true);
   });
   listen(audio, 'loadedmetadata', () => {
     setStatus(audio.paused ? 'Ready' : 'Playing');
@@ -421,10 +475,13 @@ export function createMusicPlayer(
     if (document.hidden && !audio.paused) audio.pause();
   });
   collapse(preferences.collapsed !== false);
-  updateVolume();
-  // Persist only transport preferences, removing any previous song choice.
+  const unsubscribeSettings = subscribeSettings((next) => {
+    settings = next;
+    updateVolume();
+  });
+  // Transport-only preferences omit the song and volumes; lanes share Settings.
   save();
-  loadSong(true);
+  loadSong(wantsPlayback);
   return {
     open,
     close,
@@ -453,6 +510,9 @@ export function createMusicPlayer(
       if (disposed) return;
       disposed = true;
       abort.abort();
+      unsubscribeSettings();
+      playRequest++;
+      starting = false;
       audio.pause();
       audio.removeAttribute('src');
       audio.load();

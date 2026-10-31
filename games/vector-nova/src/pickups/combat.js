@@ -15,10 +15,10 @@ import {
 } from './rules.js';
 
 export const COMBAT_RULES = Object.freeze({
-  version: 4,
+  version: 5,
   consequences: COMBAT_CONSEQUENCES,
   pulseDelay: 0.5,
-  pulseRadius: 36,
+  pulseRadius: 108,
   arcDelay: 0.15,
   arcInterval: 0.45,
   arcSpeed: 345,
@@ -231,7 +231,20 @@ export function createCombatSimulation({
   }
   function pulse(id, actor, pose) {
     const origin = pose.position;
-    const normal = up.clone().applyQuaternion(pose.quaternion);
+    const roadFrame = (distance, lateral) => {
+      const surface = track.sampleSurface?.(distance, lateral);
+      if (surface) return surface;
+      const frame = track.sample(distance);
+      return {
+        ...frame,
+        position: frame.position.clone().addScaledVector(frame.right, lateral),
+      };
+    };
+    const sourceFrame = roadFrame(actor.state.distance, actor.state.lateral);
+    const sourceHeight = origin
+      .clone()
+      .sub(sourceFrame.position)
+      .dot(sourceFrame.up);
     state.flashes.push({
       id: state.sequence++,
       kind: 'repulsor',
@@ -239,6 +252,8 @@ export function createCombatSimulation({
       quaternion: pose.quaternion.toArray(),
       age: 0,
       radius: COMBAT_RULES.pulseRadius,
+      distance: actor.state.distance,
+      lateral: actor.state.lateral,
     });
     notify(id, 'combat-fire', { kind: 'repulsor' });
     for (const [target] of actors) {
@@ -246,20 +261,63 @@ export function createCombatSimulation({
       if (
         !other ||
         id === target ||
-        !nearCourse(actor.state.distance, other.actor.state.distance, 60)
+        !nearCourse(
+          actor.state.distance,
+          other.actor.state.distance,
+          COMBAT_RULES.pulseRadius,
+        )
       )
         continue;
-      const delta = other.pose.position.clone().sub(origin);
-      if (Math.abs(delta.dot(normal)) > 6) continue;
-      delta.addScaledVector(normal, -delta.dot(normal));
-      const distance = delta.length();
-      if (
-        distance > COMBAT_RULES.pulseRadius ||
-        blocked(origin, other.pose.position) < 0.99
-      )
-        continue;
-      if (distance < 0.01) delta.set(1, 0, 0).applyQuaternion(pose.quaternion);
-      else delta.divideScalar(distance);
+      let along = other.actor.state.distance - actor.state.distance;
+      if (track.closed !== false)
+        along =
+          T.MathUtils.euclideanModulo(along + track.length / 2, track.length) -
+          track.length / 2;
+      const across = other.actor.state.lateral - actor.state.lateral;
+      const distance = Math.hypot(along, across);
+      if (distance > COMBAT_RULES.pulseRadius) continue;
+      const targetFrame = roadFrame(
+        other.actor.state.distance,
+        other.actor.state.lateral,
+      );
+      const targetHeight = other.pose.position
+        .clone()
+        .sub(targetFrame.position)
+        .dot(targetFrame.up);
+      if (Math.abs(targetHeight - sourceHeight) > 6) continue;
+      // A longer wave travels along the supported course, rather than a chord
+      // through a hill. Static cover still blocks it on each short interval.
+      const steps = Math.max(1, Math.ceil(distance / 8));
+      let before = origin;
+      let occluded = false;
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        const frame = roadFrame(
+          actor.state.distance + along * t,
+          actor.state.lateral + across * t,
+        );
+        const after =
+          i === steps
+            ? other.pose.position
+            : frame.position
+                .clone()
+                .addScaledVector(
+                  frame.up,
+                  T.MathUtils.lerp(sourceHeight, targetHeight, t),
+                );
+        if (blocked(before, after) < 0.99) {
+          occluded = true;
+          break;
+        }
+        before = after;
+      }
+      if (occluded) continue;
+      const delta = targetFrame.tangent
+        .clone()
+        .multiplyScalar(along)
+        .addScaledVector(targetFrame.right, across);
+      if (distance < 0.01) delta.copy(targetFrame.right);
+      else delta.normalize();
       const force = 12 * (1 - (distance / COMBAT_RULES.pulseRadius) * 0.65);
       hit(
         id,
@@ -628,14 +686,20 @@ export function createCombatSimulation({
         .slice(-256);
       state.flashes = state.flashes.slice(-32);
       for (const [id] of actors) {
-        const current = eligible(id);
-        if (current) state.positions[id] = current.pose.position.toArray();
+        // Keep the last physical pose even while this actor is immune. The
+        // landing tick must not sweep its entire flight from the takeoff point.
+        const pose = actors.get(id)?.pose();
+        if (pose) state.positions[id] = pose.position.toArray();
       }
       for (const [id, exposure] of Object.entries(state.wakeHits))
         if (exposure.until <= state.time) delete state.wakeHits[id];
       touched.clear();
     },
     disruption(id) {
+      const pose = actors.get(id)?.pose();
+      // Keep the ground-contact envelope's clock, but suspend its physical and
+      // presentation sampling through flight. Supported contact resumes it.
+      if (pose?.grounded === false || pose?.recovering) return null;
       return sampleCombatDisruption(state.disruptions[id], state.time);
     },
     avoidance(id) {

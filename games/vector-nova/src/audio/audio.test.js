@@ -140,6 +140,48 @@ function sampleContext(durations = {}) {
   return context;
 }
 
+test('Master scales race and device cues exactly once and Tunes remains independent', async () => {
+  for (const id of ['countdown-go', 'repulsor-fire']) {
+    const context = sampleContext();
+    const settings = { masterVolume: 0.25, volume: 0.4, musicVolume: 0.8 };
+    const statuses = [];
+    let driver;
+    const preview = createSoundPreview({
+      getSettings: () => settings,
+      onStatus: (value) => statuses.push(value),
+      createRaceAudio: (options) =>
+        (driver = createAudio({
+          ...options,
+          createContext: () => context,
+          fetchAudio,
+        })),
+      createDeviceAudio: () =>
+        (driver = createPickupAudio({
+          createContext: () => context,
+          fetchAudio,
+        })),
+      schedule: () => 0,
+      cancel: () => {},
+    });
+    try {
+      assert.equal(await preview.play(id), true, id);
+      const master = context.nodes.find((node) => node.kind === 'gain').gain;
+      const expected = 0.1 * (id === 'repulsor-fire' ? 0.95 : 1);
+      assert.ok(Math.abs(master.value - expected) < 1e-12, id);
+      settings.musicVolume = 0;
+      assert.equal(preview.configure(), true);
+      assert.ok(Math.abs(master.value - expected) < 1e-12, `${id}: music lane`);
+      settings.masterVolume = 0;
+      assert.equal(preview.configure(), false);
+      assert.equal(master.value, 0, `${id}: Master silences active voices`);
+      assert.equal(statuses.at(-1), 'Effects muted');
+    } finally {
+      preview.dispose();
+      await driver?.dispose();
+    }
+  }
+});
+
 test('cup reward waits for the actual finish tail, survives results and cancels with its screen', async () => {
   const context = sampleContext({
     [RACE_SAMPLES['race-winner']]: 3,

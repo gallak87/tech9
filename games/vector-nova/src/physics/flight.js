@@ -8,7 +8,12 @@ import {
   updateBoostState,
 } from './index.js';
 import { vehicleHandling } from '../ships/catalog.js';
-import { createMagneticBody, MAGNETIC_BODY_RULES } from './magnetic-body.js';
+import {
+  createMagneticBody,
+  magneticFrame,
+  projectMagneticBody,
+  MAGNETIC_BODY_RULES,
+} from './magnetic-body.js';
 import {
   createContactFeedback,
   racerImpact,
@@ -42,6 +47,18 @@ export const DEFAULT_FLIGHT_RULES = Object.freeze({
   edgeEnergyCost: 2,
   railHeight: {},
   railOffset: {},
+});
+
+// Powered hops are shorter and more steerable than the authored course jumps.
+// Keep their tuning separate so ordinary ballistic transfers stay unchanged.
+export const EQUIPMENT_JUMP_RULES = Object.freeze({
+  impulse: 22,
+  gravityScale: 1 / 0.7,
+  airControl: 8,
+  curveGuide: 1,
+  arcStiffness: 64,
+  arcDamping: 16,
+  maximumArcCorrection: 120,
 });
 
 // Shared swept contact and ballistic motion. Authored route, rules, effects,
@@ -165,6 +182,21 @@ export function createFlightModel(overrides = {}) {
       forward.dot(frame.tangent) > 0
       ? yaw
       : null;
+  }
+
+  function sampledLandingHeading(jump, quaternion, frame, velocity) {
+    const heading = landingHeading(quaternion, frame);
+    // Match physical receiving-deck forgiveness for powered hops. A descending
+    // supported hull can recover from tilt without changing ordinary jumps.
+    if (heading !== null || jump.id !== 'equipment-jump') return heading;
+    return clamp(
+      Math.atan2(
+        velocity.dot(frame.right),
+        Math.max(0.01, velocity.dot(frame.tangent)),
+      ),
+      -R.headingTolerance,
+      R.headingTolerance,
+    );
   }
 
   // Sweep the supported portion of the hull against this jump's finite receiving
@@ -330,7 +362,7 @@ export function createFlightModel(overrides = {}) {
         .slerp(after.quaternion, fraction);
       const offset = position.clone().sub(frame.position);
       const lateral = offset.dot(frame.right);
-      const yaw = landingHeading(quaternion, frame);
+      const yaw = sampledLandingHeading(jump, quaternion, frame, velocity);
       const footprint = edgeFootprint(
         quaternion,
         frame,
@@ -424,7 +456,7 @@ export function createFlightModel(overrides = {}) {
       }
       const { fraction, distance, frame, position, quaternion } = contact;
       const lateral = position.clone().sub(frame.position).dot(frame.right);
-      const yaw = landingHeading(quaternion, frame);
+      const yaw = sampledLandingHeading(jump, quaternion, frame, velocity);
       const footprint = edgeFootprint(
         quaternion,
         frame,
@@ -541,6 +573,7 @@ export function createFlightModel(overrides = {}) {
     let disposed = false;
     let seed = 0;
     let stepModifiers = {};
+    let equipmentFrame = null;
     const surfaceFrame = (state) =>
       track.sampleSurface?.(state.distance, state.lateral) ??
       track.sample(state.distance);
@@ -1153,6 +1186,130 @@ export function createFlightModel(overrides = {}) {
               : null;
     }
 
+    function poweredRoadAcceleration(dt) {
+      if (!flight.equipmentJump) return null;
+      const previous = flight.equipmentGuide ?? {
+        distance: flight.from,
+        lateral: 0,
+      };
+      const guide = projectMagneticBody(
+        track,
+        currentPose.position,
+        previous.distance,
+        previous.lateral,
+        dynamics?.sampleRoadSurface,
+      );
+      equipmentFrame = guide.frame;
+      const height = currentPose.position
+        .clone()
+        .sub(guide.frame.position)
+        .dot(guide.frame.up);
+      flight.equipmentGuide = {
+        ...previous,
+        distance: guide.distance,
+        lateral: guide.lateral,
+        height: previous.height ?? height,
+      };
+      const station =
+        track.closed === false
+          ? guide.distance
+          : THREE.MathUtils.euclideanModulo(guide.distance, track.length);
+      if (
+        height < 0 ||
+        Math.abs(guide.lateral) > track.width / 2 + R.halfWidth ||
+        (track.surfaceCoverage?.(station, guide.lateral) ?? 1) <= 0 ||
+        track.jumps.some(
+          (jump) =>
+            !jump.optional &&
+            station > jump.takeoff &&
+            station < jump.landingStart,
+        )
+      )
+        return null;
+      const span = 2;
+      const before = magneticFrame(
+        track,
+        guide.distance - span,
+        guide.lateral,
+        dynamics?.sampleRoadSurface,
+      );
+      const after = magneticFrame(
+        track,
+        guide.distance + span,
+        guide.lateral,
+        dynamics?.sampleRoadSurface,
+      );
+      const positionChange = after.position
+        .clone()
+        .sub(before.position)
+        .multiplyScalar(1 / (2 * span));
+      const rightChange = after.right
+        .clone()
+        .sub(before.right)
+        .multiplyScalar(1 / (2 * span));
+      const upChange = after.up
+        .clone()
+        .sub(before.up)
+        .multiplyScalar(1 / (2 * span));
+      const pathChange = positionChange
+        .clone()
+        .addScaledVector(upChange, height);
+      const along =
+        flight.velocity.dot(guide.frame.tangent) /
+        Math.max(0.25, pathChange.dot(guide.frame.tangent));
+      const across =
+        flight.velocity.dot(guide.frame.right) -
+        pathChange.dot(guide.frame.right) * along;
+      const rise =
+        flight.velocity.dot(guide.frame.up) -
+        pathChange.dot(guide.frame.up) * along;
+      const curvature = after.position
+        .clone()
+        .add(before.position)
+        .addScaledVector(guide.frame.position, -2)
+        .addScaledVector(
+          after.up.clone().add(before.up).addScaledVector(guide.frame.up, -2),
+          height,
+        )
+        .multiplyScalar(1 / (span * span));
+      // Transport velocity through the moving road frame. The engine still
+      // integrates the trajectory and resolves real walls/ceilings; only the
+      // powered hop gains the same curve-following acceleration as its runway.
+      const age = Math.max(0, flight.elapsed - dt);
+      const gravity = R.gravity * EQUIPMENT_JUMP_RULES.gravityScale;
+      const targetHeight =
+        flight.equipmentGuide.height +
+        EQUIPMENT_JUMP_RULES.impulse * age -
+        (gravity * age * age) / 2 +
+        (flight.equipmentGuide.forceHeight ?? 0);
+      const targetRise =
+        EQUIPMENT_JUMP_RULES.impulse -
+        gravity * age +
+        (flight.equipmentGuide.forceRise ?? 0);
+      const correction = clamp(
+        EQUIPMENT_JUMP_RULES.arcStiffness * (targetHeight - height) +
+          EQUIPMENT_JUMP_RULES.arcDamping * (targetRise - rise),
+        -EQUIPMENT_JUMP_RULES.maximumArcCorrection,
+        EQUIPMENT_JUMP_RULES.maximumArcCorrection,
+      );
+      return curvature
+        .multiplyScalar(along * along)
+        .addScaledVector(rightChange, 2 * along * across)
+        .addScaledVector(upChange, 2 * along * rise)
+        .addScaledVector(guide.frame.up, correction);
+    }
+
+    function retainPoweredAirForce(force, dt) {
+      const guide = flight.equipmentGuide;
+      if (!guide || !equipmentFrame) return;
+      const acceleration = force.dot(equipmentFrame.up);
+      guide.forceHeight =
+        (guide.forceHeight ?? 0) +
+        (guide.forceRise ?? 0) * dt +
+        (acceleration * dt * dt) / 2;
+      guide.forceRise = (guide.forceRise ?? 0) + acceleration * dt;
+    }
+
     function airPropulsion(state, input, dt, events) {
       const handling = vehicleHandling(state);
       state.speed = flight.velocity.length();
@@ -1167,12 +1324,41 @@ export function createFlightModel(overrides = {}) {
         100,
       );
       // Apply the ship's extra boost thrust along its actual flight direction.
-      // Gravity and contacts still decide the trajectory; no boost means the
-      // original ballistic arc, with no aiming force or airborne speed clamp.
-      return flight.velocity
+      // Gravity and contacts still decide the trajectory. Ordinary jumps retain
+      // their original ballistic arc; powered hops use stronger gravity to keep
+      // the original launch kick without the long hang time.
+      const acceleration = flight.velocity
         .clone()
         .normalize()
         .multiplyScalar(boost ? handling.boostThrust - handling.thrust : 0);
+      equipmentFrame = null;
+      if (flight.equipmentControl) {
+        const curve = mode === 'flight' ? poweredRoadAcceleration(dt) : null;
+        if (curve) acceleration.add(curve);
+        // Replace the engine's world gravity for powered hops only. Their
+        // shorter arc must act away from/into the road, including wall rides.
+        acceleration.y += dynamics?.gravity ?? R.gravity;
+        acceleration.addScaledVector(
+          equipmentFrame?.up ?? flight.launchUp,
+          -R.gravity * EQUIPMENT_JUMP_RULES.gravityScale,
+        );
+      }
+      return acceleration;
+    }
+
+    function flightDirection(velocity) {
+      const forward = velocity.clone();
+      if (flight.equipmentControl) {
+        // A powered hop at walking speed keeps its nose facing the course,
+        // rather than pitching vertically and somersaulting at the apex.
+        const launchForward =
+          equipmentFrame?.tangent ?? axis(flight.launchQuaternion, 0, 0, 1);
+        forward.addScaledVector(
+          launchForward,
+          Math.max(0, 40 - forward.dot(launchForward)),
+        );
+      }
+      return forward.normalize();
     }
 
     function prepareDynamicFlight(state, input, dt, events) {
@@ -1190,17 +1376,18 @@ export function createFlightModel(overrides = {}) {
       const acceleration = airPropulsion(state, input, dt, events);
       if (stepModifiers.airDamping)
         acceleration.addScaledVector(
-          flight.launchRight,
-          -flight.velocity.dot(flight.launchRight) * stepModifiers.airDamping,
+          equipmentFrame?.right ?? flight.launchRight,
+          -flight.velocity.dot(equipmentFrame?.right ?? flight.launchRight) *
+            stepModifiers.airDamping,
         );
       let angularVelocity;
       if (!wasRecovering) {
         acceleration.addScaledVector(
-          flight.launchRight,
+          equipmentFrame?.right ?? flight.launchRight,
           -state.steer *
             R.airAcceleration *
             (stepModifiers.airControl ?? 1) *
-            (flight.equipmentJump ? 4 : 1),
+            (flight.equipmentControl ? EQUIPMENT_JUMP_RULES.airControl : 1),
         );
         const extra = options.airAcceleration?.({
           state,
@@ -1213,6 +1400,7 @@ export function createFlightModel(overrides = {}) {
           if (![extra.x, extra.y, extra.z].every(Number.isFinite))
             throw new Error('Air acceleration must be a finite world vector.');
           acceleration.add(extra);
+          retainPoweredAirForce(extra, dt);
         }
         flight.steerAngle +=
           (-state.steer * R.airYaw - flight.steerAngle) * -Math.expm1(-4 * dt);
@@ -1224,8 +1412,11 @@ export function createFlightModel(overrides = {}) {
             .clone()
             .addScaledVector(acceleration, dt * 0.5);
           forward.y -= R.gravity * dt * 0.5;
-          forward.normalize();
-          const right = flight.launchUp.clone().cross(forward).normalize();
+          forward.copy(flightDirection(forward));
+          const right = (equipmentFrame?.up ?? flight.launchUp)
+            .clone()
+            .cross(forward)
+            .normalize();
           const up = forward.clone().cross(right).normalize();
           const target = new THREE.Quaternion()
             .setFromRotationMatrix(
@@ -1400,10 +1591,11 @@ export function createFlightModel(overrides = {}) {
         transfer(state, jump, 'landed', events, contact, contactPose);
         return;
       }
-      // Baseline magnetic circuits have sampled road support rather than
-      // physical deck colliders. Use the same swept receiving-surface test as
-      // authored flight, so equipment can land on their actual curved road.
-      if (flight.equipmentJump && !collisionWorld) {
+      // Physical road skins are deliberately local to authored jump corridors.
+      // Equipment can launch anywhere, so sweep the ordinary sampled road when
+      // there is no physical top face here. Never fill a real gap or replace a
+      // compound curved sheet with its centreline plane.
+      if (flight.equipmentJump) {
         const landing = sweptLanding(
           track,
           jump,
@@ -1411,7 +1603,24 @@ export function createFlightModel(overrides = {}) {
           currentPose,
           flight.velocity,
         );
-        if (landing) {
+        const station =
+          landing &&
+          (track.closed === false
+            ? landing.distance
+            : THREE.MathUtils.euclideanModulo(landing.distance, track.length));
+        const frame = landing && track.sample(landing.distance);
+        const supported =
+          landing &&
+          !track.jumps.some(
+            (entry) =>
+              !entry.optional &&
+              station > entry.takeoff &&
+              station < entry.landingStart,
+          ) &&
+          (track.surfaceCoverage?.(station, landing.lateral) ?? 1) > 0 &&
+          !track.sampleSurface?.(landing.distance, landing.lateral) &&
+          !dynamics.sampleRoadSurface?.(station, landing.lateral, frame);
+        if (supported) {
           const contactPose = {
             position: previousPose.position
               .clone()
@@ -1420,6 +1629,23 @@ export function createFlightModel(overrides = {}) {
               .clone()
               .slerp(currentPose.quaternion, landing.fraction),
           };
+          if (landing.edgeCatch) {
+            landing.lateral = catchEdge(
+              state,
+              jump,
+              landing,
+              contactPose,
+              events,
+            );
+            landing.heading = -landing.side * 0.015;
+          }
+          // Adopt the swept contact, not the integrated endpoint below it.
+          actor.reset({
+            pose: contactPose,
+            velocity: flight.velocity,
+            angularVelocity: flight.angularVelocity,
+            active: true,
+          });
           transfer(state, jump, 'landed', events, landing, contactPose);
           return;
         }
@@ -1444,8 +1670,9 @@ export function createFlightModel(overrides = {}) {
       const acceleration = airPropulsion(state, input, dt, events);
       if (stepModifiers.airDamping)
         acceleration.addScaledVector(
-          flight.launchRight,
-          -flight.velocity.dot(flight.launchRight) * stepModifiers.airDamping,
+          equipmentFrame?.right ?? flight.launchRight,
+          -flight.velocity.dot(equipmentFrame?.right ?? flight.launchRight) *
+            stepModifiers.airDamping,
         );
       acceleration.y -= R.gravity;
       flight.elapsed += dt;
@@ -1473,11 +1700,11 @@ export function createFlightModel(overrides = {}) {
       }
       const before = clonePose(currentPose);
       acceleration.addScaledVector(
-        flight.launchRight,
+        equipmentFrame?.right ?? flight.launchRight,
         -state.steer *
           R.airAcceleration *
           (stepModifiers.airControl ?? 1) *
-          (flight.equipmentJump ? 4 : 1),
+          (flight.equipmentControl ? EQUIPMENT_JUMP_RULES.airControl : 1),
       );
       const extra = options.airAcceleration?.({
         state,
@@ -1490,6 +1717,7 @@ export function createFlightModel(overrides = {}) {
         if (![extra.x, extra.y, extra.z].every(Number.isFinite))
           throw new Error('Air acceleration must be a finite world vector.');
         acceleration.add(extra);
+        retainPoweredAirForce(extra, dt);
       }
       currentPose.position
         .addScaledVector(flight.velocity, dt)
@@ -1497,8 +1725,11 @@ export function createFlightModel(overrides = {}) {
       flight.velocity.addScaledVector(acceleration, dt);
       // Craft attitude follows its actual ballistic velocity; limited pilot yaw is
       // visual and does not point or pull the trajectory toward the target road.
-      const forward = flight.velocity.clone().normalize();
-      const right = flight.launchUp.clone().cross(forward).normalize();
+      const forward = flightDirection(flight.velocity);
+      const right = (equipmentFrame?.up ?? flight.launchUp)
+        .clone()
+        .cross(forward)
+        .normalize();
       const up = forward.clone().cross(right).normalize();
       const orientation = new THREE.Quaternion().setFromRotationMatrix(
         new THREE.Matrix4().makeBasis(right, up, forward),
@@ -1654,7 +1885,7 @@ export function createFlightModel(overrides = {}) {
     const adapter = {
       id: options.id,
       version: options.version,
-      rulesId: `${collisionWorld ? `${options.rulesId}:collision-${JSON.stringify({ id: collisionWorld.id, version: collisionWorld.version, rulesId: collisionWorld.rulesId })}` : options.rulesId}${dynamics ? `:dynamics-${JSON.stringify({ id: dynamics.id, version: dynamics.version, rulesId: dynamics.rulesId })}:${MAGNETIC_BODY_RULES}:shared-transition-tick-v1` : collisionWorld ? ':supported-rail-slide-v1' : ''}${options.forgivingContacts ? `:forgiving-deck-wall-v4:support-height-${options.supportHeight ?? 0}` : ''}${boundaryRecoveryGrace ? ':boundary-recovery-grace-v1' : ''}${automaticRecovery ? '' : ':manual-recovery-v1'}`,
+      rulesId: `${collisionWorld ? `${options.rulesId}:collision-${JSON.stringify({ id: collisionWorld.id, version: collisionWorld.version, rulesId: collisionWorld.rulesId })}` : options.rulesId}${dynamics ? `:dynamics-${JSON.stringify({ id: dynamics.id, version: dynamics.version, rulesId: dynamics.rulesId })}:${MAGNETIC_BODY_RULES}:shared-transition-tick-v1:equipment-jump-v2-${JSON.stringify(EQUIPMENT_JUMP_RULES)}` : collisionWorld ? ':supported-rail-slide-v1' : ''}${options.forgivingContacts ? `:forgiving-deck-wall-v4:support-height-${options.supportHeight ?? 0}` : ''}${boundaryRecoveryGrace ? ':boundary-recovery-grace-v1' : ''}${automaticRecovery ? '' : ':manual-recovery-v1'}`,
       scenarios,
       jump(state) {
         if (disposed || pending || !dynamics) return false;
@@ -1664,10 +1895,12 @@ export function createFlightModel(overrides = {}) {
           flight.failure = null;
           flight.remaining = 0;
           flight.equipmentGraceUntil = flight.elapsed + 1.7;
+          flight.equipmentControl = true;
           const normal = track.sample(state.distance).up;
           flight.velocity.addScaledVector(
             normal,
-            22 - Math.min(0, flight.velocity.dot(normal)),
+            EQUIPMENT_JUMP_RULES.impulse -
+              Math.min(0, flight.velocity.dot(normal)),
           );
           actor.setVelocity(flight.velocity, flight.angularVelocity);
           return true;
@@ -1679,7 +1912,9 @@ export function createFlightModel(overrides = {}) {
             : THREE.MathUtils.euclideanModulo(from, track.length);
         const end =
           Math.min(
-            track.finishDistance ?? track.length,
+            track.closed === false
+              ? (track.finishDistance ?? track.length)
+              : Infinity,
             at + Math.max(450, state.speed * 4),
           ) - 0.01;
         if (end <= at + 15) return false;
@@ -1691,14 +1926,36 @@ export function createFlightModel(overrides = {}) {
           recovery: at,
           halfWidth: track.width / 2,
         };
-        const physical = actor.read();
+        let physical = actor.read();
+        if (!magneticBody.snapshot().initialized) {
+          // Equipment can be pressed on the first green tick, before the actor
+          // has been staged. Launch from the real countdown support pose then.
+          const frame = surfaceFrame(state);
+          physical = {
+            ...magneticBody.pose(1),
+            velocity: frame.tangent
+              .clone()
+              .multiplyScalar(state.speed * Math.cos(state.heading))
+              .addScaledVector(frame.right, state.lateralSpeed),
+            angularVelocity: new THREE.Vector3(),
+          };
+          actor.reset({
+            active: true,
+            pose: physical,
+            velocity: physical.velocity,
+            angularVelocity: physical.angularVelocity,
+          });
+        }
         beginFlight(state, jump, from, [], physical, physical);
         flight.equipmentJump = jump;
+        flight.equipmentGuide = { distance: from, lateral: state.lateral };
+        flight.equipmentControl = true;
         flight.equipmentGraceUntil = 2.2;
         const normal = track.sample(from).up;
         flight.velocity.addScaledVector(
           normal,
-          22 - Math.min(0, flight.velocity.dot(normal)),
+          EQUIPMENT_JUMP_RULES.impulse -
+            Math.min(0, flight.velocity.dot(normal)),
         );
         flight.angularVelocity.set(0, 0, 0);
         actor.setVelocity(flight.velocity, flight.angularVelocity);
@@ -1745,6 +2002,7 @@ export function createFlightModel(overrides = {}) {
         return events;
       },
       reset({ seed: nextSeed = 0, state } = {}) {
+        equipmentFrame = null;
         mode = 'magnetic';
         flight = null;
         currentPose = null;
@@ -1789,6 +2047,23 @@ export function createFlightModel(overrides = {}) {
       restore(data) {
         if (!data || !['magnetic', 'flight', 'recovery'].includes(data.mode))
           throw new Error('Invalid flight runtime state.');
+        if (
+          data.flight?.equipmentControl !== undefined &&
+          typeof data.flight.equipmentControl !== 'boolean'
+        )
+          throw new Error('Invalid powered flight control state.');
+        if (
+          data.flight?.equipmentGuide !== undefined &&
+          (!['distance', 'lateral'].every((key) =>
+            Number.isFinite(data.flight.equipmentGuide?.[key]),
+          ) ||
+            ['height', 'forceHeight', 'forceRise'].some(
+              (key) =>
+                data.flight.equipmentGuide[key] !== undefined &&
+                !Number.isFinite(data.flight.equipmentGuide[key]),
+            ))
+        )
+          throw new Error('Invalid powered flight road guide.');
         if (
           data.flight &&
           !track.jumps.some((jump) => jump.id === data.flight.id) &&
@@ -1874,6 +2149,7 @@ export function createFlightModel(overrides = {}) {
       },
       update() {},
       dispose() {
+        equipmentFrame = null;
         disposed = true;
         mode = 'magnetic';
         flight = null;

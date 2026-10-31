@@ -3,6 +3,7 @@ import { createPickupAudio } from '../pickups/audio.js';
 import { deviceSample } from '../pickups/sample-cues.js';
 import { raceSample } from './sample-cues.js';
 import { soundEffects } from './sounds.js';
+import { effectsVolume } from '../progression/index.js';
 
 // Dedicated owners let the menu audition real cues without emitting gameplay
 // events or changing a running race's audio state. Each preview releases its
@@ -31,7 +32,8 @@ export function createSoundPreview({
   function configure() {
     if (!current) return false;
     const settings = getSettings();
-    if (settings.muted || !(settings.volume > 0)) {
+    const volume = effectsVolume(settings);
+    if (!(volume > 0)) {
       stop();
       onStatus('Effects muted');
       return false;
@@ -39,7 +41,7 @@ export function createSoundPreview({
     const { sound, audio } = current;
     if (sound.bus === 'devices') audio.update(settings, true);
     else {
-      audio.update(sound.state ?? {}, settings.volume, true);
+      audio.update(sound.state ?? {}, volume, true);
     }
     return true;
   }

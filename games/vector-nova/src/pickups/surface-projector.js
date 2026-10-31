@@ -8,6 +8,7 @@ const cross = (a, b, p) =>
 export function createSurfaceProjector(track, surfaces) {
   const buckets = new Map(),
     bucketSize = 64;
+  const bounds = { minX: Infinity, maxX: -Infinity };
   for (const mesh of surfaces) {
     const g = mesh.geometry,
       p = g.attributes.position,
@@ -29,7 +30,16 @@ export function createSurfaceProjector(track, surfaces) {
         .sub(vertices[0].p)
         .cross(vertices[2].p.clone().sub(vertices[0].p))
         .normalize();
-      const triangle = { vertices, normal };
+      const triangle = {
+        vertices,
+        normal,
+        minX: Math.min(...vertices.map((v) => v.at[0])),
+        maxX: Math.max(...vertices.map((v) => v.at[0])),
+        minS: Math.min(...vertices.map((v) => v.at[1])),
+        maxS: Math.max(...vertices.map((v) => v.at[1])),
+      };
+      bounds.minX = Math.min(bounds.minX, triangle.minX);
+      bounds.maxX = Math.max(bounds.maxX, triangle.maxX);
       const distances = vertices.map((v) => v.at[1]);
       for (
         let b = Math.floor(Math.min(...distances) / bucketSize);
@@ -52,7 +62,10 @@ export function createSurfaceProjector(track, surfaces) {
     return result;
   };
   function sample(distance, lateral) {
-    const s = T.MathUtils.euclideanModulo(distance, track.length),
+    const s =
+        track.closed === false
+          ? T.MathUtils.clamp(distance, 0, track.length)
+          : T.MathUtils.euclideanModulo(distance, track.length),
       point = [lateral, s];
     for (const { vertices } of candidates(s, s)) {
       const [a, b, c] = vertices,
@@ -84,11 +97,16 @@ export function createSurfaceProjector(track, surfaces) {
       const low = Math.min(...original.map((v) => v[1])),
         high = Math.max(...original.map((v) => v[1]));
       for (
-        let lap = Math.floor(low / track.length);
-        lap <= Math.floor(high / track.length);
+        let lap = track.closed === false ? 0 : Math.floor(low / track.length);
+        lap <= (track.closed === false ? 0 : Math.floor(high / track.length));
         lap++
       ) {
         const shape = original.map(([x, s]) => [x, s - lap * track.length]);
+        const minX = Math.min(...shape.map((p) => p[0]));
+        const maxX = Math.max(...shape.map((p) => p[0]));
+        const minS = Math.min(...shape.map((p) => p[1]));
+        const maxS = Math.max(...shape.map((p) => p[1]));
+        if (maxX < bounds.minX || minX > bounds.maxX) continue;
         const sign = Math.sign(
           shape.reduce((sum, a, i) => {
             const b = shape[(i + 1) % shape.length];
@@ -99,6 +117,13 @@ export function createSurfaceProjector(track, surfaces) {
           Math.max(0, low - lap * track.length),
           Math.min(track.length, high - lap * track.length),
         )) {
+          if (
+            triangle.maxX < minX ||
+            triangle.minX > maxX ||
+            triangle.maxS < minS ||
+            triangle.minS > maxS
+          )
+            continue;
           let polygon = triangle.vertices;
           for (let e = 0; e < shape.length && polygon.length; e++) {
             const a = shape[e],

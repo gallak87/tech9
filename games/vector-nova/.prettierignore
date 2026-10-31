@@ -10,3 +10,8 @@ public/assets/ships/decoder/
 
 .desktop/
 release/
+
+# Blender-exported geometry data keeps the exporter's numeric formatting.
+assets/levels/shatterline/asset-manifest.json
+assets/levels/shatterline/collision-kit.json
+public/assets/levels/shatterline/collision-kit.json

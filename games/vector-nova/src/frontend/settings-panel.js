@@ -13,7 +13,17 @@ export function settingsView(
   settings,
   { developer = false, artPass = false } = {},
 ) {
-  return `<div class="settings-layout"><section class="settings-form"><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume</span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion</span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label>${controllerSettingsView(settings)}</section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
+  const audio = [
+    ['masterVolume', 'Master volume'],
+    ['volume', 'Game effects'],
+    ['musicVolume', 'Tunes'],
+  ]
+    .map(
+      ([key, label]) =>
+        `<label><span>${label}</span><span class="audio-volume-control"><output for="setting-${key}" data-setting-output="${key}">${Math.round(settings[key] * 100)}%</output><input id="setting-${key}" aria-label="${label}" data-setting="${key}" type="range" min="0" max="1" step=".01" value="${settings[key]}"></span></label>`,
+    )
+    .join('');
+  return `<div class="settings-layout"><section class="settings-form"><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label>${audio}<label><span>Reduced motion</span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label>${controllerSettingsView(settings)}</section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
     [
       'Driving',
       [
@@ -83,6 +93,8 @@ export function bindSettingsPanel(
       if (control.type === 'checkbox') control.checked = value;
       else control.value = value;
     }
+    for (const output of root.querySelectorAll('[data-setting-output]'))
+      output.textContent = `${Math.round(current[output.dataset.settingOutput] * 100)}%`;
   };
   sync(current);
   const unsubscribe = subscribeSettings(sync);
@@ -104,8 +116,7 @@ export function bindSettingsPanel(
   root.addEventListener(
     'input',
     (event) => {
-      if (event.target.dataset.setting === 'steeringDeadZone')
-        save(event.target);
+      if (event.target.type === 'range') save(event.target);
     },
     { signal: life.signal },
   );

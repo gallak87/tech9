@@ -8,6 +8,7 @@ import {
   CUP_POINTS,
 } from '../src/race/cup.js';
 import { createRaceGrid } from '../src/race/roster.js';
+import { seedVerificationCareer } from './verification-career.mjs';
 const cup = cupDefinition(process.env.VN_CUP_ID ?? 'founders');
 assert.ok(cup, 'VN_CUP_ID must name an available cup');
 const base = process.env.VN_URL;
@@ -16,13 +17,18 @@ const [width, height] = (process.env.VN_CUP_VIEWPORT ?? '1440x900')
   .split('x')
   .map(Number);
 const touch = width < 900;
-const browser = await chromium.launch({ headless: true, channel: 'chrome' });
+const browser = await chromium.launch({
+  args: ['--mute-audio'],
+  headless: true,
+  channel: 'chrome',
+});
 const context = await browser.newContext({
   viewport: { width, height },
   hasTouch: touch,
 });
 const faults = [];
 try {
+  await seedVerificationCareer(context);
   await context.addInitScript(() =>
     localStorage.setItem(
       'vector-nova.settings',
@@ -52,6 +58,8 @@ try {
           if (finished) break;
           advanceTick(racerModule.getRacerControl(state, track, { runtime, difficulty: 'hard' }));
         }
+        if (race.history.length >= (track.closed === false ? 1 : 2))
+          window.__cupPlayerFinishStepAt ??= performance.now();
         if (race.history.length < (track.closed === false ? 1 : 2)) pause();
         return this.getSnapshot();
       },
@@ -116,9 +124,13 @@ try {
   async function finish() {
     await page.evaluate(() => {
       window.cupWaitingSeen = false;
+      window.__cupPlayerFinishStepAt = null;
+      window.__cupResultsObservedAt = null;
       window.cupWaitingObserver?.disconnect();
       window.cupWaitingObserver = new MutationObserver(() => {
         window.cupWaitingSeen ||= !!document.querySelector('.cup-waiting');
+        if (window.__VN_FRONTEND?.getState().cup.state?.phase === 'results')
+          window.__cupResultsObservedAt ??= performance.now();
       });
       window.cupWaitingObserver.observe(document.body, {
         childList: true,
@@ -134,7 +146,6 @@ try {
         window.__VN.verifyCupStep(1200),
       );
       if (stepped.competition.playerFinished) {
-        const started = Date.now();
         await page.locator('#race-finish').waitFor({ state: 'visible' });
         const finishFrame = await page.evaluate(() =>
           window.__VN.getSnapshot(),
@@ -165,7 +176,10 @@ try {
           null,
           { timeout: 15000 },
         );
-        const elapsed = Date.now() - started;
+        const elapsed = await page.evaluate(
+          () => window.__cupResultsObservedAt - window.__cupPlayerFinishStepAt,
+        );
+        assert.ok(Number.isFinite(elapsed));
         const resolved = await page.evaluate(() => window.__VN.getSnapshot());
         assert.deepEqual(
           resolved.ship.position,
@@ -192,6 +206,10 @@ try {
       await page.waitForTimeout(30);
     }
     const s = await state();
+    if (s.cupCelebration) {
+      await page.locator('.cup-victory').waitFor();
+      await click('cup-standings');
+    }
     assert.equal(
       await page.evaluate(() => window.cupWaitingSeen),
       false,
@@ -273,8 +291,9 @@ try {
       s.cup.state.eventIndex + 1,
       s.cup.state.results.at(-1).find((r) => r.id === 'player'),
     );
+    await page.evaluate(() => window.cupWaitingObserver.disconnect());
   }
-  await page.goto(base + '?music=0');
+  await page.goto(base + '?intro=0&music=0');
   await click('cup-hub');
   if (touch) await click('circuits');
   await page.locator(`[data-cup="${cup.id}"]`)[touch ? 'tap' : 'click']();
@@ -283,6 +302,7 @@ try {
   if (touch) await click('home');
   await click('ship-step');
   await page.locator('[data-ship="shrike"]')[touch ? 'tap' : 'click']();
+  await click('race-tab');
   await click('cup-start');
   await ready(cup.tracks[0]);
   if (touch) {
@@ -373,6 +393,7 @@ try {
   await click('cup-confirm');
   assert.equal((await state()).cup.state, null);
   await page.reload();
+  await page.locator('[data-action="cup-hub"]').first().waitFor();
   assert.equal((await state()).cup.state, null);
   assert.deepEqual(faults, []);
   console.log(

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import * as T from 'three';
 import { createHelionTrack } from '../src/levels/helion/track/model.js';
 import {
   createHelionRuntime,
@@ -8,8 +9,10 @@ import {
 import {
   sampleHelionHeatFeedback,
   helionHeatPulse,
+  HELION_HEAT_RULES,
 } from '../src/levels/helion/thermal.js';
 import { createVehicleState } from '../src/physics/index.js';
+import { createRapierWorld } from '../src/physics/rapier-world.js';
 import { createRace } from '../src/race/index.js';
 import {
   advanceSession,
@@ -330,4 +333,126 @@ test('contact timers and pulsing thrust replay exactly, independent of presentat
   assert.deepEqual(a.snapshot(), b.snapshot());
   a.dispose();
   b.dispose();
+});
+
+for (const physical of [false, true])
+  test(`${physical ? 'shared physical' : 'coordinate'} continuous fire releases all drag and overload at three seconds`, async () => {
+    // Keep the real fire sampler and forces on a long straight patch so leaving
+    // the zone, a bend or a rail cannot explain the regained acceleration.
+    const fixture = {
+      ...track,
+      length: 10000,
+      jumps: [],
+      sampleSurface: undefined,
+      thermalZones: [{ id: 'fire', kind: 'furnace', start: 100, end: 2000 }],
+      sample: (distance) => ({
+        position: new T.Vector3(0, 0, distance),
+        tangent: new T.Vector3(0, 0, 1),
+        right: new T.Vector3(1, 0, 0),
+        up: new T.Vector3(0, 1, 0),
+        quaternion: new T.Quaternion(),
+        curvature: 0,
+        bank: 0,
+      }),
+    };
+    const dynamics = physical ? await createRapierWorld() : null;
+    const telemetry = {};
+    const runtime = createHelionRuntime(
+      { track: fixture, dynamics },
+      telemetry,
+    );
+    const state = { ...createVehicleState(), distance: 120 };
+    try {
+      runtime.reset({ state });
+      assert.ok(Math.abs(telemetry.thrustScale - 0.45) < 1e-9);
+      for (let i = 0; i < 359; i++) runtime.advance(state, {}, DT);
+      runtime.update({ state });
+      assert.ok(telemetry.thrustScale < 0.45);
+      assert.ok(runtime.snapshot().contactDuration < 3);
+      const release = runtime.advance(state, {}, DT);
+      runtime.update({ state });
+      assert.equal(runtime.snapshot().contactDuration, 3);
+      assert.equal(telemetry.thrustScale, 1);
+      assert.equal(
+        release.find((event) => event.type === 'helion-power')?.payload.limited,
+        false,
+      );
+      for (let i = 0; i < 240; i++) runtime.advance(state, controls, DT);
+      runtime.update({ state });
+      assert.equal(telemetry.contactDuration, 3);
+      assert.equal(telemetry.thrustScale, 1);
+      assert.equal(telemetry.heat, 100);
+      assert.ok(state.distance < fixture.thermalZones[0].end);
+      assert.ok(state.speed > 50, `accelerates inside fire: ${state.speed}`);
+      assert.ok(sampleHelionHeatFeedback(telemetry).smoke > 0.6);
+      assert.equal(state.resetCount, 0);
+    } finally {
+      runtime.dispose();
+      dynamics?.dispose();
+    }
+  });
+
+test('fire cap survives brief gaps, rearms after genuine clearance, and restores deterministically', () => {
+  const telemetry = {};
+  const a = createHelionRuntime({ track }, telemetry);
+  const b = adapter();
+  const furnace = track.thermalZones.find((zone) => zone.kind === 'furnace');
+  const shelter = track.thermalZones.find((zone) => zone.kind === 'shelter');
+  const state = { ...createVehicleState(), distance: furnace.start + 15 };
+  try {
+    a.reset({ state });
+    for (let i = 0; i < 360; i++) a.advance(state, {}, DT);
+    state.distance = shelter.start + 15;
+    for (let i = 0; i < 30; i++) a.advance(state, {}, DT);
+    a.update({ state });
+    assert.equal(
+      telemetry.thrustScale,
+      1,
+      'overload cannot return after the cap',
+    );
+    state.distance = furnace.start + 15;
+    a.advance(state, {}, DT);
+    a.update({ state });
+    assert.equal(telemetry.thrustScale, 1, 'a brief gap does not restart fire');
+    assert.equal(a.snapshot().contactDuration, 3);
+    state.distance = shelter.start + 15;
+    for (let i = 0; i < 60; i++) a.advance(state, {}, DT);
+    a.update({ state });
+    assert.equal(a.snapshot().fireClearAge, HELION_HEAT_RULES.contactRearm);
+    assert.equal(telemetry.thrustScale, 1);
+    const copy = structuredClone(state);
+    const saved = structuredClone(a.snapshot());
+    b.restore(saved);
+    for (const [key, invalid] of [
+      ['contactDuration', NaN],
+      ['contactDuration', -1],
+      ['contactDuration', 3.1],
+      ['fireClearAge', NaN],
+      ['fireClearAge', -1],
+      ['fireClearAge', 0.6],
+    ]) {
+      assert.throws(
+        () => b.restore({ ...saved, [key]: invalid }),
+        /Invalid Helion thermal state/,
+      );
+      assert.deepEqual(b.snapshot(), saved);
+    }
+    state.distance = copy.distance = furnace.start + 15;
+    for (let i = 0; i < 400; i++) {
+      assert.deepEqual(a.advance(state, {}, DT), b.advance(copy, {}, DT));
+      if (i === 0) {
+        a.update({ state });
+        assert.ok(telemetry.thrustScale < 0.45, 'a new contact has full bite');
+        assert.ok(a.snapshot().contactDuration < 0.01);
+      }
+    }
+    assert.deepEqual(state, copy);
+    assert.deepEqual(a.snapshot(), b.snapshot());
+    a.reset({ state });
+    assert.equal(a.snapshot().contactDuration, 0);
+    assert.equal(a.snapshot().fireClearAge, HELION_HEAT_RULES.contactRearm);
+  } finally {
+    a.dispose();
+    b.dispose();
+  }
 });

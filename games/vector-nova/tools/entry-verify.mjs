@@ -6,6 +6,7 @@ import { createCupStore } from '../src/race/cup.js';
 import { CUP_COLLECTION_KEY } from '../src/progression/cup-collection.js';
 import {
   createMemoryStorage,
+  createCareerSlots,
   CAREER_SLOTS_KEY,
 } from '../src/progression/careers.js';
 import {
@@ -98,6 +99,20 @@ function fixture() {
   return { text, entries, profile: profile.snapshot().state };
 }
 const saved = fixture();
+const careerFixtureStorage = createMemoryStorage();
+const careerFixture = createCareerSlots({
+  storage: () => careerFixtureStorage,
+  now: () => 1,
+});
+careerFixture.create(1);
+for (const [key, value] of Object.entries(saved.entries))
+  careerFixture.storageFor(1).setItem(key, value);
+const careerFixtureEntries = Object.fromEntries(
+  Array.from({ length: careerFixtureStorage.length }, (_, index) => {
+    const key = careerFixtureStorage.key(index);
+    return [key, careerFixtureStorage.getItem(key)];
+  }),
+);
 
 async function check(name, fn, options = {}) {
   if (process.env.VN_CHECK && !new RegExp(process.env.VN_CHECK).test(name))
@@ -165,7 +180,11 @@ async function check(name, fn, options = {}) {
           });
       },
       {
-        entries: options.oldProgress ? saved.entries : {},
+        entries: options.existingCareer
+          ? careerFixtureEntries
+          : options.oldProgress
+            ? saved.entries
+            : {},
         reducedMotion: options.reducedMotion === true,
         blocked: options.blocked === true,
       },
@@ -356,15 +375,69 @@ async function home(page, id) {
   );
   await fits(page);
 }
+async function activateCareerCard(
+  page,
+  id,
+  touch = false,
+  target = 'continue',
+) {
+  const row = page.locator(`[data-career-id="${id}"]`);
+  await row.scrollIntoViewIfNeeded();
+  const point = await row.evaluate((element, target) => {
+    const visual =
+      target === 'name'
+        ? element.querySelector('.entry-profile-title')
+        : target === 'continue'
+          ? element.querySelector('.entry-profile-action')
+          : element;
+    const rect = visual.getBoundingClientRect();
+    const x = target === 'body' ? rect.right - 8 : rect.x + rect.width / 2;
+    const y = target === 'body' ? rect.bottom - 8 : rect.y + rect.height / 2;
+    const button = document.elementFromPoint(x, y)?.closest('button');
+    return { x, y, id: button?.dataset.careerSlot };
+  }, target);
+  assert.equal(
+    point.id,
+    String(id),
+    `the visible career ${target} hits its native launch button`,
+  );
+  if (touch) await page.touchscreen.tap(point.x, point.y);
+  else await page.mouse.click(point.x, point.y);
+}
 async function choose(page, id, touch = false) {
-  const slot = page.locator(`[data-career-slot="${id}"]`);
-  if (touch) await slot.tap();
-  else await slot.click();
+  await activateCareerCard(page, id, touch);
   await home(page, id);
 }
+async function renameBesideLabel(label, pencil) {
+  const text = await label.boundingBox();
+  const button = await pencil.boundingBox();
+  const glyph = await pencil.locator('svg').boundingBox();
+  assert.ok(text && button && glyph);
+  assert.ok(
+    button.x - (text.x + text.width) >= -1 &&
+      button.x - (text.x + text.width) <= 12,
+    'the pencil target sits immediately beside the name',
+  );
+  assert.ok(
+    glyph.x - (text.x + text.width) <= 28,
+    'the pencil glyph stays near the name',
+  );
+  assert.ok(
+    Math.abs(glyph.y + glyph.height / 2 - (text.y + text.height / 2)) <= 3,
+    'the pencil and name share a vertical center',
+  );
+}
+async function renameInputWidth(input, page) {
+  const box = await input.boundingBox();
+  assert.ok(
+    box && box.width >= 48 && box.width <= 201,
+    'rename input is usable and never wider than 200px',
+  );
+  if (page.viewportSize().width >= 900)
+    assert.ok(Math.abs(box.width - 200) <= 1, 'desktop rename input is 200px');
+}
 async function switchCareer(page) {
-  await page.locator('.menu-top-tabs [data-action="career"]').click();
-  await page.locator('[data-switch-career]').click();
+  await page.locator('.menu-top-tabs [data-action="switch-career"]').click();
   await stage(page, 'profiles');
 }
 async function slotData(page) {
@@ -416,7 +489,1044 @@ async function setCircuit(page, id) {
   assert.equal((await front(page)).selected, id);
 }
 
+async function careerLoading(page, activation, fail = false) {
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  let moduleRequests = 0;
+  await page.route('**/src/frontend/index.js*', async (route) => {
+    moduleRequests++;
+    await gate;
+    if (fail) await route.abort('failed');
+    else await route.continue();
+  });
+  try {
+    await page.goto(url('intro=1&music=0'));
+    await page.getByRole('button', { name: 'Start', exact: true }).click();
+    await profiles(page, { empty: 2 });
+    const selected = page.locator('[data-career-slot="1"]');
+    if (activation === 'keyboard') {
+      await selected.focus();
+      await page.keyboard.press('Enter');
+    } else if (activation === 'controller') {
+      await selected.focus();
+      await pulse(page, 0, true);
+      await pulse(page, 0, false);
+    } else
+      await activateCareerCard(
+        page,
+        1,
+        activation.startsWith('touch'),
+        activation.endsWith('-name')
+          ? 'name'
+          : activation.endsWith('-body')
+            ? 'body'
+            : 'continue',
+      );
+    const progress = selected.locator(
+      '.entry-career-loading[role="progressbar"]',
+    );
+    await progress.waitFor();
+    assert.equal(await selected.getAttribute('aria-busy'), 'true');
+    assert.match(await progress.getAttribute('aria-label'), /opening career/i);
+    assert.equal(
+      await progress.getAttribute('aria-valuenow'),
+      null,
+      'unknown module progress stays indeterminate',
+    );
+    await frame(page);
+    await frame(page);
+    const shape = await progress.evaluate((bar) => {
+      const r = bar.getBoundingClientRect();
+      const button = bar.closest('button').getBoundingClientRect();
+      const accent = getComputedStyle(bar, '::after');
+      return {
+        height: r.height,
+        width: r.width,
+        bottom: r.bottom - button.bottom,
+        color: accent.backgroundColor,
+        animation: accent.animationName,
+        reduced: matchMedia('(prefers-reduced-motion: reduce)').matches,
+      };
+    });
+    assert.ok(shape.height > 0 && shape.height <= 4, JSON.stringify(shape));
+    assert.ok(shape.width > 30, JSON.stringify(shape));
+    assert.ok(Math.abs(shape.bottom) <= 3, JSON.stringify(shape));
+    assert.equal(shape.color, 'rgb(208, 24, 24)');
+    if (shape.reduced) assert.equal(shape.animation, 'none');
+    else assert.notEqual(shape.animation, 'none');
+    await fits(page);
+    await page.evaluate(() =>
+      document.querySelector('[data-career-slot="2"]').click(),
+    );
+    assert.equal(
+      (await slotData(page)).active,
+      1,
+      'repeated activation cannot switch the pending career',
+    );
+    assert.equal(
+      await page.locator('[data-career-slot][aria-busy="true"]').count(),
+      1,
+    );
+    assert.equal(await page.locator('.entry-career-loading').count(), 1);
+    release();
+    if (fail) {
+      await page.waitForFunction(() => {
+        const notice = document.querySelector('.entry-notice');
+        return (
+          notice?.textContent.trim() &&
+          !document.querySelector('[data-career-slot][aria-busy="true"]')
+        );
+      });
+      assert.equal(await page.locator('.entry-career-loading').count(), 0);
+      assert.equal(
+        await selected.evaluate((button) => button === document.activeElement),
+        true,
+        'failure restores the clicked career focus',
+      );
+      assert.equal(await selected.isEnabled(), true);
+      await profiles(page, { empty: 2 });
+    } else {
+      await home(page, 1);
+      assert.equal(await page.locator('.entry-career-loading').count(), 0);
+    }
+    assert.equal(
+      moduleRequests,
+      1,
+      'one lazy frontend request serves the pending choice',
+    );
+    assert.equal(await page.locator('canvas#world').count(), 0);
+  } finally {
+    release();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
+}
+
+async function careerRename(page, { touch = false } = {}) {
+  const activate = (locator) => (touch ? locator.tap() : locator.click());
+  const primary = () => page.locator('[data-career-slot="1"]');
+  const pencil = () => page.locator('[data-career-rename="1"]');
+  const name = () => page.locator('[data-career-name]');
+  const save = () => page.locator('[data-career-save]');
+  const cancel = () => page.locator('[data-career-cancel]');
+  const title = () => page.locator('[data-career-id="1"] .entry-profile-title');
+  const tapPad = async (index) => {
+    await pulse(page, index, true);
+    await pulse(page, index, false);
+  };
+  const restored = async (expected) => {
+    assert.equal(await name().count(), 0);
+    assert.equal(await title().textContent(), expected);
+    assert.equal(
+      await primary().evaluate((button) => button === document.activeElement),
+      true,
+      'rename returns to the career launcher',
+    );
+    assert.equal((await slotData(page)).slots[0].name, expected);
+    assert.equal(
+      await page.locator('canvas#world, #game-host').count(),
+      0,
+      'renaming never starts a world or opens the career',
+    );
+  };
+  const editorFits = async () => {
+    await fits(page);
+    for (const selector of [
+      '[data-career-name]',
+      '[data-career-save]',
+      '[data-career-cancel]',
+    ]) {
+      const box = await page.locator(selector).boundingBox();
+      assert.ok(
+        box && box.x >= 0 && box.x + box.width <= page.viewportSize().width + 1,
+        `${selector} remains within the viewport`,
+      );
+      assert.ok(box.height >= 32, `${selector} remains an actionable control`);
+    }
+  };
+  await page.goto(url('intro=1'));
+  await activate(page.getByRole('button', { name: 'Start', exact: true }));
+  await profiles(page, { empty: 2 });
+  assert.equal(
+    await page.locator('[data-career-rename]').count(),
+    1,
+    'only started careers offer a pencil',
+  );
+  assert.equal(
+    await page
+      .locator('[data-career-rename="2"], [data-career-rename="3"]')
+      .count(),
+    0,
+  );
+  const before = await slotData(page);
+  await renameBesideLabel(title(), pencil());
+  assert.equal(
+    await pencil().evaluate((button) => button.closest('[data-career-slot]')),
+    null,
+    'the pencil is not nested in the launch button',
+  );
+  assert.equal(
+    await primary().getAttribute('aria-labelledby'),
+    'entry-career-title-1 entry-career-action-1',
+  );
+  assert.equal(
+    await primary().getAttribute('aria-describedby'),
+    'entry-career-detail-1',
+  );
+  assert.equal(
+    await primary().locator('button, input, select').count(),
+    0,
+    'native launch control never contains interactive descendants',
+  );
+  const pickerPencil = await pencil()
+    .locator('svg')
+    .evaluate((svg) => svg.outerHTML);
+  await activate(pencil());
+  assert.equal(await name().inputValue(), 'Career 1');
+  assert.equal(await name().getAttribute('maxlength'), '32');
+  assert.equal(
+    await name().evaluate((input) => input === document.activeElement),
+    true,
+  );
+  assert.equal(
+    await pencil().count(),
+    0,
+    'check/cancel replace the pencil while editing',
+  );
+  assert.equal(await save().getAttribute('aria-label'), 'Save career name');
+  assert.equal(
+    await cancel().getAttribute('aria-label'),
+    'Cancel career rename',
+  );
+  await editorFits();
+  await renameInputWidth(name(), page);
+  assert.equal(
+    await name().evaluate((input) => input.closest('button')),
+    null,
+    'the text editor is never inside a button',
+  );
+  assert.equal(await page.locator('button button, button input').count(), 0);
+  await name().fill('   ');
+  await activate(save());
+  assert.equal(await name().getAttribute('aria-invalid'), 'true');
+  assert.match(
+    await page.locator('#entry-career-notice').textContent(),
+    /name|character/i,
+  );
+  assert.equal((await slotData(page)).slots[0].name, 'Career 1');
+  await name().fill('x'.repeat(33));
+  assert.ok(
+    (await name().inputValue()).length <= 32,
+    'native input bounds pasted names',
+  );
+  const escaped = 'Night <Crew> "One"';
+  await name().fill('  Night   <Crew> "One"  ');
+  if (touch) await activate(save());
+  else await page.keyboard.press('Enter');
+  await restored(escaped);
+  assert.equal(
+    await page.locator('[data-career-id="1"] crew').count(),
+    0,
+    'custom names are rendered as text',
+  );
+  await activate(pencil());
+  await name().fill('Discard this');
+  await activate(cancel());
+  await restored(escaped);
+  if (!touch) {
+    // Pencil is a native keyboard stop; ordinary pad navigation skips it.
+    await primary().focus();
+    await page.keyboard.press('Tab');
+    assert.equal(
+      await pencil().evaluate((button) => button === document.activeElement),
+      true,
+    );
+    await page.keyboard.press('Enter');
+    await name().fill('Keyboard discard');
+    await page.keyboard.press('Escape');
+    await restored(escaped);
+    await tapPad(13);
+    assert.equal(
+      await page
+        .locator('[data-career-slot="2"]')
+        .evaluate((button) => button === document.activeElement),
+      true,
+      'D-pad skips inline pencils',
+    );
+    await tapPad(3);
+    assert.equal(
+      await name().count(),
+      0,
+      'Y cannot rename an unstarted career',
+    );
+    await primary().focus();
+    await tapPad(3);
+    assert.equal(
+      await name().evaluate((input) => input === document.activeElement),
+      true,
+      'Y edits the focused started career',
+    );
+    await name().fill('Controller discard');
+    await tapPad(1);
+    await restored(escaped);
+    await tapPad(3);
+    await name().fill('Controller discard');
+    await tapPad(13);
+    assert.equal(
+      await save().evaluate((button) => button === document.activeElement),
+      true,
+      'D-pad reaches check',
+    );
+    await tapPad(13);
+    assert.equal(
+      await cancel().evaluate((button) => button === document.activeElement),
+      true,
+      'D-pad reaches cancel',
+    );
+    await tapPad(0);
+    await restored(escaped);
+    await tapPad(3);
+    await name().fill('Pad <One>');
+    await tapPad(13);
+    await tapPad(0);
+    await restored('Pad <One>');
+  }
+  if (touch) {
+    await activate(pencil());
+    await name().fill('A'.repeat(32));
+    await activate(save());
+    await restored('A'.repeat(32));
+  }
+  const finalName = touch ? 'A'.repeat(32) : 'Pad <One>';
+  const after = await slotData(page);
+  assert.deepEqual(
+    after.slots.map((slot) => slot.entries),
+    before.slots.map((slot) => slot.entries),
+    'renaming preserves all career progress and saved loadouts',
+  );
+  assert.deepEqual(
+    after.slots.slice(1).map((slot) => slot.name),
+    ['Career 2', 'Career 3'],
+  );
+  await page.goto(url('intro=1'));
+  await activate(page.getByRole('button', { name: 'Start', exact: true }));
+  await profiles(page, { empty: 2 });
+  assert.equal(
+    await title().textContent(),
+    finalName,
+    'custom career name survives reload',
+  );
+  await choose(page, 1, touch);
+  assert.equal((await front(page)).careerSlot.name, finalName);
+  await activate(page.locator('.menu-top-tabs [data-action="career"]'));
+  assert.equal(
+    await page.locator('#career-page-title').textContent(),
+    finalName,
+    'active Career page uses the saved name',
+  );
+  assert.deepEqual((await front(page)).career.state, saved.profile);
+  await activeCareerRename(page, {
+    touch,
+    initialName: finalName,
+    pickerPencil,
+  });
+  await fits(page);
+}
+
+async function activeCareerRename(page, { touch, initialName, pickerPencil }) {
+  const activate = (locator) => (touch ? locator.tap() : locator.click());
+  const pencil = () =>
+    page.locator('[data-progression-career] [data-career-rename]');
+  const name = () =>
+    page.locator('[data-progression-career] [data-career-name]');
+  const save = () =>
+    page.locator('[data-progression-career] [data-career-save]');
+  const cancel = () =>
+    page.locator('[data-progression-career] [data-career-cancel]');
+  const heading = () => page.locator('#career-page-title');
+  const switcher = () =>
+    page.locator('.menu-top-tabs [data-action="switch-career"]');
+  const tapPad = async (index) => {
+    await pulse(page, index, true);
+    await pulse(page, index, false);
+  };
+  const sameName = async (expected) => {
+    assert.equal(
+      (await front(page)).screen,
+      'career',
+      'editing stays on the Career page',
+    );
+    assert.equal(await name().count(), 0);
+    assert.equal(await heading().textContent(), expected);
+    assert.equal(
+      (await front(page)).careerSlot.name,
+      expected,
+      'live frontend diagnostics follow header rename',
+    );
+    assert.equal((await slotData(page)).slots[0].name, expected);
+  };
+  const navFits = async () => {
+    await frame(page);
+    await frame(page);
+    await fits(page);
+    const order = await page
+      .locator('.menu-top-tabs button')
+      .evaluateAll((buttons) => buttons.map((button) => button.dataset.action));
+    assert.equal(
+      order.indexOf('switch-career'),
+      order.indexOf('tunes') + 1,
+      'Switch career follows Tunes',
+    );
+    assert.equal(
+      await switcher().getAttribute('aria-pressed'),
+      null,
+      'Switch career is an action rather than a page tab',
+    );
+    assert.equal(
+      await page.locator('[data-switch-career]').count(),
+      0,
+      'the old body switch button is removed',
+    );
+    const placement = await switcher().evaluate((button) => {
+      const icon = button.querySelector('svg');
+      const text = [...button.childNodes].find(
+        (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim(),
+      );
+      if (!icon || !text) return null;
+      const range = document.createRange();
+      range.selectNodeContents(text);
+      return {
+        label: text.textContent.trim(),
+        text: range.getBoundingClientRect().toJSON(),
+        icon: icon.getBoundingClientRect().toJSON(),
+      };
+    });
+    assert.ok(placement, 'Switch career contains its text and arrow');
+    assert.equal(placement.label, 'Switch career');
+    assert.ok(
+      placement.icon.left >= placement.text.right - 1,
+      'back arrow sits to the right of the label',
+    );
+  };
+  const editorFits = async () => {
+    await navFits();
+    for (const selector of [
+      '[data-career-name]',
+      '[data-career-save]',
+      '[data-career-cancel]',
+    ]) {
+      const box = await page
+        .locator(`[data-progression-career] ${selector}`)
+        .boundingBox();
+      assert.ok(
+        box && box.x >= 0 && box.x + box.width <= page.viewportSize().width + 1,
+        `header ${selector} fits the viewport`,
+      );
+    }
+  };
+  const before = await slotData(page);
+  await navFits();
+  assert.equal(await heading().textContent(), initialName);
+  await renameBesideLabel(heading(), pencil());
+  assert.equal(
+    await pencil()
+      .locator('svg')
+      .evaluate((svg) => svg.outerHTML),
+    pickerPencil,
+    'Career header uses the same pencil as the picker',
+  );
+  await activate(pencil());
+  assert.equal(await name().inputValue(), initialName);
+  assert.equal(await name().getAttribute('maxlength'), '32');
+  assert.equal(
+    await name().evaluate((input) => input === document.activeElement),
+    true,
+  );
+  await editorFits();
+  await renameInputWidth(name(), page);
+  await name().fill('  ');
+  await activate(save());
+  assert.equal(await name().getAttribute('aria-invalid'), 'true');
+  assert.equal((await slotData(page)).slots[0].name, initialName);
+  await name().fill('  Bridge   <Two>  ');
+  if (touch) await activate(save());
+  else await page.keyboard.press('Enter');
+  await sameName('Bridge <Two>');
+  assert.equal(
+    await page.locator('[data-progression-career] two').count(),
+    0,
+    'header names stay escaped',
+  );
+  await activate(pencil());
+  await name().fill('Do not save');
+  await activate(cancel());
+  await sameName('Bridge <Two>');
+  if (!touch) {
+    await pencil().focus();
+    await page.keyboard.press('Enter');
+    await name().fill('Keyboard discard');
+    await page.keyboard.press('Escape');
+    await sameName('Bridge <Two>');
+    await switcher().focus();
+    await tapPad(13);
+    assert.equal(
+      await pencil().evaluate((button) => button === document.activeElement),
+      false,
+      'normal D-pad navigation skips the header pencil',
+    );
+    await page.locator('[data-export]').focus();
+    await tapPad(3);
+    assert.equal(
+      await name().evaluate((input) => input === document.activeElement),
+      true,
+      'Y opens header rename from the Career page',
+    );
+    await name().fill('Controller discard');
+    await tapPad(1);
+    await sameName('Bridge <Two>');
+    await tapPad(3);
+    await name().fill('Controller discard');
+    await tapPad(13);
+    assert.equal(
+      await save().evaluate((button) => button === document.activeElement),
+      true,
+    );
+    await tapPad(13);
+    assert.equal(
+      await cancel().evaluate((button) => button === document.activeElement),
+      true,
+    );
+    await tapPad(0);
+    await sameName('Bridge <Two>');
+    await tapPad(3);
+    await name().fill('Header <Pilot>');
+    await tapPad(13);
+    await tapPad(0);
+    await sameName('Header <Pilot>');
+  } else {
+    await activate(pencil());
+    await name().fill('B'.repeat(32));
+    await activate(save());
+    await sameName('B'.repeat(32));
+  }
+  const finalName = touch ? 'B'.repeat(32) : 'Header <Pilot>';
+  assert.deepEqual(
+    (await slotData(page)).slots.map((slot) => slot.entries),
+    before.slots.map((slot) => slot.entries),
+    'header rename preserves progress in all slots',
+  );
+  for (const action of ['race-tab', 'garage-tab', 'settings', 'career']) {
+    await activate(page.locator(`.menu-top-tabs [data-action="${action}"]`));
+    await navFits();
+  }
+  if (touch) await activate(switcher());
+  else {
+    await page.locator('.menu-top-tabs [data-action="tunes"]').focus();
+    await tapPad(15);
+    assert.equal(
+      await switcher().evaluate((button) => button === document.activeElement),
+      true,
+      'D-pad reaches the top-level Switch career action',
+    );
+    await tapPad(0);
+  }
+  await profiles(page, { empty: 2 });
+  assert.equal(
+    await page
+      .locator('[data-career-id="1"] .entry-profile-title')
+      .textContent(),
+    finalName,
+    'picker reflects the live header rename',
+  );
+  assert.equal(
+    await page
+      .locator('[data-career-slot="1"]')
+      .evaluate((button) => button === document.activeElement),
+    true,
+    'Switch career returns focus to the active slot',
+  );
+  await page.goto(url('intro=1'));
+  await activate(page.getByRole('button', { name: 'Start', exact: true }));
+  await profiles(page, { empty: 2 });
+  assert.equal(
+    await page
+      .locator('[data-career-id="1"] .entry-profile-title')
+      .textContent(),
+    finalName,
+    'header rename survives reload',
+  );
+  await choose(page, 1, touch);
+  await activate(page.locator('.menu-top-tabs [data-action="career"]'));
+  await sameName(finalName);
+  await navFits();
+}
+
+async function startWordmark(
+  page,
+  activation,
+  reduced = false,
+  { withMusic = false } = {},
+) {
+  await page.addInitScript(() => {
+    const animate = Element.prototype.animate;
+    const bounds = (element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return range.getBoundingClientRect().toJSON();
+    };
+    window.__startWordmarkCalls = [];
+    Element.prototype.animate = function (frames, options) {
+      const target = this.matches('.entry-topbar .entry-wordmark');
+      const natural = target ? bounds(this) : null;
+      const animation = animate.call(this, frames, options);
+      if (target) {
+        animation.pause();
+        animation.currentTime = 0;
+        window.__startWordmarkCalls.push({
+          animation,
+          element: this,
+          natural,
+          frames,
+          options,
+        });
+      }
+      return animation;
+    };
+  });
+  await page.goto(url(withMusic ? 'intro=1' : 'intro=1&music=0'));
+  await title(page);
+  const origin = await page
+    .locator('.entry-intro .entry-wordmark')
+    .evaluate((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return range.getBoundingClientRect().toJSON();
+    });
+  if (activation === 'controller') {
+    await pulse(page, 0, true);
+    await frame(page);
+    await frame(page);
+    await pulse(page, 0, false);
+  } else if (activation === 'keyboard') await page.keyboard.press('Enter');
+  else if (activation === 'space') await page.keyboard.press('Space');
+  else if (activation === 'touch')
+    await page.getByRole('button', { name: 'Start', exact: true }).tap();
+  else await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await stage(page, 'profiles');
+  assert.equal(
+    await page.locator('[data-career-slot]').count(),
+    3,
+    'career controls render without waiting for the fly animation',
+  );
+  assert.equal(
+    (await slotData(page)).active,
+    null,
+    'Start activates exactly once without selecting a career',
+  );
+  assert.equal(
+    await page
+      .locator('[data-entry-stage="intro"], #game-host, canvas#world')
+      .count(),
+    0,
+  );
+  if (reduced) {
+    assert.equal(
+      await page.evaluate(() => window.__startWordmarkCalls.length),
+      0,
+      'Reduced motion skips the fly animation',
+    );
+    await profiles(page);
+    return;
+  }
+  const animation = await page.evaluate(() => {
+    const calls = window.__startWordmarkCalls;
+    if (calls.length !== 1) return { count: calls.length };
+    const { animation, element, natural } = calls[0];
+    const glyph = () => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return range.getBoundingClientRect().toJSON();
+    };
+    const row = document.querySelector('[data-career-slot="1"]');
+    const firstRow = row.getBoundingClientRect().toJSON();
+    const samples = [0, 110, 220].map((time) => {
+      animation.currentTime = time;
+      return {
+        glyph: glyph(),
+        row: row.getBoundingClientRect().toJSON(),
+        horizontal: document.documentElement.scrollWidth - innerWidth,
+      };
+    });
+    animation.currentTime = 0;
+    return {
+      count: calls.length,
+      duration: animation.effect.getTiming().duration,
+      listed: element.getAnimations().includes(animation),
+      natural,
+      firstRow,
+      samples,
+    };
+  });
+  assert.equal(
+    animation.count,
+    1,
+    'one Start activation produces one wordmark fly',
+  );
+  assert.equal(
+    animation.duration,
+    220,
+    'wordmark uses the existing short transition duration',
+  );
+  assert.equal(animation.listed, true);
+  const close = (actual, expected, label) =>
+    assert.ok(
+      Math.abs(actual - expected) <= 3,
+      `${label}: ${actual} versus ${expected}`,
+    );
+  for (const key of ['left', 'top', 'width', 'height']) {
+    close(
+      animation.samples[0].glyph[key],
+      origin[key],
+      `wordmark starts at title ${key}`,
+    );
+    close(
+      animation.samples[2].glyph[key],
+      animation.natural[key],
+      `wordmark ends at header ${key}`,
+    );
+  }
+  for (const { glyph, row, horizontal } of animation.samples) {
+    close(
+      row.top,
+      animation.firstRow.top,
+      'the fly does not shift career layout',
+    );
+    close(
+      row.height,
+      animation.firstRow.height,
+      'the fly does not resize career rows',
+    );
+    assert.ok(
+      glyph.left >= -3 && glyph.right <= page.viewportSize().width + 3,
+      'wordmark stays inside the viewport throughout the fly',
+    );
+    assert.ok(horizontal <= 1, 'wordmark fly causes no horizontal overflow');
+  }
+  await page.evaluate(async () => {
+    const { animation } = window.__startWordmarkCalls[0];
+    animation.play();
+    await animation.finished;
+  });
+  const final = await page
+    .locator('.entry-topbar .entry-wordmark')
+    .evaluate((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return range.getBoundingClientRect().toJSON();
+    });
+  for (const key of ['left', 'top', 'width', 'height'])
+    close(
+      final[key],
+      animation.natural[key],
+      `finished wordmark retains natural header ${key}`,
+    );
+  assert.equal((await slotData(page)).active, null);
+  await profiles(page);
+}
+
+async function headerWordmarkContinuity(page) {
+  const viewport = page.viewportSize();
+  const touch = viewport.width < 760 || viewport.height < 500;
+  await startWordmark(page, touch ? 'touch' : 'keyboard', false, {
+    withMusic: true,
+  });
+  const measure = (selector) =>
+    page.locator(selector).evaluate((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      const glyph = range.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return {
+        left: glyph.left,
+        top: glyph.top,
+        width: glyph.width,
+        height: glyph.height,
+        font: style.font,
+        spacing: style.letterSpacing,
+      };
+    });
+  const sameGlyph = (actual, expected, label) => {
+    for (const key of ['left', 'top', 'width', 'height'])
+      assert.ok(
+        Math.abs(actual[key] - expected[key]) <= 0.1,
+        `${label} ${key}: ${actual[key]} versus ${expected[key]}`,
+      );
+    assert.equal(actual.font, expected.font, `${label} typography`);
+    assert.equal(actual.spacing, expected.spacing, `${label} letter spacing`);
+  };
+  const picker = await measure('.entry-topbar .entry-wordmark');
+  const flight = await page.evaluate(
+    () => window.__startWordmarkCalls[0].natural,
+  );
+  for (const key of ['left', 'top', 'width', 'height'])
+    assert.ok(
+      Math.abs(picker[key] - flight[key]) <= 0.1,
+      `Start flight ends at the stable picker ${key}`,
+    );
+  await choose(page, 1, touch);
+  sameGlyph(
+    await measure('.menu-topbar .menu-wordmark'),
+    picker,
+    'career picker to Race',
+  );
+  await switchCareer(page);
+  await profiles(page, { empty: 2 });
+  sameGlyph(
+    await measure('.entry-topbar .entry-wordmark'),
+    picker,
+    'Race back to career picker',
+  );
+  assert.equal(
+    await page
+      .locator('[data-career-slot="1"]')
+      .evaluate((button) => button === document.activeElement),
+    true,
+    'returning retains the active career focus',
+  );
+  assert.equal(await page.locator('canvas#world').count(), 0);
+}
+
 try {
+  for (const viewport of [
+    ...(!flags.includes('--responsive')
+      ? [
+          { width: 1440, height: 900 },
+          { width: 1920, height: 1080 },
+          { width: 1024, height: 900 },
+        ]
+      : []),
+    ...(!flags.includes('--desktop')
+      ? [
+          { width: 390, height: 844 },
+          { width: 320, height: 700 },
+          { width: 844, height: 390 },
+        ]
+      : []),
+  ])
+    await check(
+      `header wordmark stays anchored through career switching ${viewport.width}×${viewport.height}`,
+      headerWordmarkContinuity,
+      { viewport, touch: viewport.width < 760 || viewport.height < 500 },
+    );
+  if (!flags.includes('--responsive')) {
+    for (const activation of ['mouse', 'keyboard', 'space', 'controller'])
+      await check(`Start wordmark fly through ${activation}`, (page) =>
+        startWordmark(page, activation),
+      );
+    await check(
+      'Start wordmark skips fly with Reduced motion',
+      (page) => startWordmark(page, 'keyboard', true),
+      { reducedMotion: true },
+    );
+  }
+  if (!flags.includes('--desktop'))
+    for (const viewport of [
+      { width: 390, height: 844 },
+      { width: 320, height: 700 },
+      { width: 844, height: 390 },
+    ])
+      await check(
+        `Start wordmark fly in touch ${viewport.width}×${viewport.height}`,
+        (page) => startWordmark(page, 'touch'),
+        { viewport, touch: true },
+      );
+  if (!flags.includes('--responsive'))
+    await check(
+      'career rename pointer, keyboard, controller and persistence',
+      (page) => careerRename(page),
+      { existingCareer: true },
+    );
+  if (!flags.includes('--desktop'))
+    for (const viewport of [
+      { width: 390, height: 844 },
+      { width: 320, height: 700 },
+      { width: 844, height: 390 },
+    ])
+      await check(
+        `career rename touch ${viewport.width}×${viewport.height}`,
+        (page) => careerRename(page, { touch: true }),
+        { existingCareer: true, viewport, touch: true, reducedMotion: true },
+      );
+  if (!flags.includes('--responsive')) {
+    await check(
+      'career cache reuses parsed ships and decoder across career switches',
+      async (page) => {
+        const requests = [];
+        let workers = 0;
+        page.on('request', (request) => {
+          if (/\/assets\/ships\/(?:.*\.glb|decoder\/)/.test(request.url()))
+            requests.push(request.url());
+        });
+        page.on('worker', () => workers++);
+        await page.goto(url('intro=0&music=0'));
+        await home(page, 1);
+        const first = await front(page);
+        await page.evaluate(async () => {
+          const { SHIPS } = await import('/src/ships/catalog.js');
+          const { loadShipModel } = await import('/src/ships/model-cache.js');
+          window.__careerCacheModels = await Promise.all(
+            SHIPS.map((ship) => loadShipModel(ship.id)),
+          );
+          window.__careerSourceDisposals = 0;
+          const resources = new Set();
+          for (const model of window.__careerCacheModels)
+            model.traverse((object) => {
+              if (object.geometry) resources.add(object.geometry);
+              for (const material of [object.material].flat()) {
+                if (!material) continue;
+                resources.add(material);
+                for (const value of Object.values(material))
+                  if (value?.isTexture) resources.add(value);
+              }
+            });
+          for (const resource of resources)
+            resource.addEventListener(
+              'dispose',
+              () => window.__careerSourceDisposals++,
+            );
+        });
+        await page.locator('.menu-top-tabs [data-action="garage-tab"]').click();
+        await page.waitForFunction(
+          () => window.__VN_FRONTEND.getState().preview?.selected === 'bastion',
+        );
+        await page.locator('.ship-preview canvas').evaluate((canvas) => {
+          window.__careerPreviewCanvas = canvas;
+          window.__careerPreviewContext = canvas.getContext('webgl2');
+        });
+        const initialRequests = requests.length;
+        const initialWorkers = workers;
+        assert.equal(
+          requests.filter((url) => /\.glb(?:\?|$)/.test(url)).length,
+          4,
+          'the initial fleet is loaded once',
+        );
+        for (const id of [2, 1]) {
+          await switchCareer(page);
+          assert.equal(
+            await page
+              .locator('.ship-preview, #game-host, canvas#world')
+              .count(),
+            0,
+            'career selection retains no preview renderer or race world',
+          );
+          await page.waitForFunction(() =>
+            window.__careerPreviewContext.isContextLost(),
+          );
+          assert.equal(
+            await page.evaluate(() => window.__careerPreviewCanvas.isConnected),
+            false,
+          );
+          const cache = await page.evaluate(async () => {
+            const { SHIPS } = await import('/src/ships/catalog.js');
+            const { loadShipModel, subscribeShipCache } =
+              await import('/src/ships/model-cache.js');
+            let status;
+            const unsubscribe = subscribeShipCache((next) => {
+              status = next;
+            });
+            unsubscribe();
+            const same = (
+              await Promise.all(SHIPS.map((ship) => loadShipModel(ship.id)))
+            ).every(
+              (model, index) => model === window.__careerCacheModels[index],
+            );
+            return { status, same, disposed: window.__careerSourceDisposals };
+          });
+          assert.equal(
+            cache.status.ready,
+            4,
+            'all parsed sources remain ready in the career picker',
+          );
+          assert.equal(cache.status.loading, false);
+          assert.deepEqual(cache.status.failed, []);
+          assert.equal(
+            cache.same,
+            true,
+            'the same parsed objects survive each career',
+          );
+          assert.equal(
+            cache.disposed,
+            0,
+            'per-career cleanup never disposes cached source resources',
+          );
+          await choose(page, id);
+          assert.equal(
+            requests.length,
+            initialRequests,
+            'no ship GLB or decoder is fetched again',
+          );
+          assert.equal(
+            workers,
+            initialWorkers,
+            'career switches reuse existing texture decoder workers',
+          );
+          const current = await front(page);
+          if (id === 2) {
+            assert.equal(current.career.state.claims.length, 0);
+            assert.equal(current.shipId, 'shrike');
+            assert.notEqual(
+              current.selected,
+              first.selected,
+              'new career does not inherit selected route',
+            );
+          } else {
+            assert.deepEqual(current.career.state, first.career.state);
+            assert.equal(current.shipId, first.shipId);
+            assert.equal(current.selected, first.selected);
+          }
+        }
+      },
+      { existingCareer: true },
+    );
+    for (const activation of [
+      'mouse-name',
+      'mouse-body',
+      'mouse-continue',
+      'keyboard',
+      'controller',
+    ])
+      await check(
+        `career loading feedback through ${activation}`,
+        (page) => careerLoading(page, activation),
+        { existingCareer: true },
+      );
+    await check(
+      'career loading failure restores the clicked slot',
+      (page) => careerLoading(page, 'keyboard', true),
+      { existingCareer: true },
+    );
+  }
+  if (!flags.includes('--desktop')) {
+    for (const viewport of [
+      { width: 390, height: 844 },
+      { width: 320, height: 700 },
+      { width: 844, height: 390 },
+    ])
+      await check(
+        `career loading feedback in touch ${viewport.width}×${viewport.height}`,
+        (page) =>
+          careerLoading(
+            page,
+            viewport.width === 390
+              ? 'touch-name'
+              : viewport.width === 320
+                ? 'touch-continue'
+                : 'touch-body',
+          ),
+        { existingCareer: true, viewport, touch: true, reducedMotion: true },
+      );
+  }
   if (!flags.includes('--responsive')) {
     await check(
       'old unscoped saves are ignored by the current three-career format',
@@ -511,7 +1621,7 @@ try {
         await page.keyboard.press('ArrowRight');
         assert.equal(
           await page.locator('[data-setting="volume"]').inputValue(),
-          '0.05',
+          '0.01',
         );
         await openTunes(page);
         await page.locator('.music-song').selectOption('phase-shift');
@@ -616,12 +1726,12 @@ try {
         await profiles(page, { empty: 2 });
         assert.equal(
           await page
-            .locator('[data-career-slot="1"] [role="progressbar"]')
+            .locator('[data-career-id="1"] [role="progressbar"]')
             .getAttribute('aria-valuenow'),
           String(saved.profile.claims.length),
         );
         assert.match(
-          await page.locator('[data-career-slot="1"]').textContent(),
+          await page.locator('[data-career-id="1"]').textContent(),
           /Frontier Cup/,
         );
         const first = (await slotData(page)).slots[0].entries;

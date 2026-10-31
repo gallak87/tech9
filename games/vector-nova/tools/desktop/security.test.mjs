@@ -106,6 +106,7 @@ test('controller navigation dead zone and buttons are independent from driving',
   assert.deepEqual(menuIntent(null), {
     accept: false,
     back: false,
+    secondary: false,
     pause: false,
     camera: false,
     music: false,
@@ -120,12 +121,17 @@ test('controller navigation dead zone and buttons are independent from driving',
   assert.deepEqual(menuIntent(pad), {
     accept: false,
     back: false,
+    secondary: false,
     pause: true,
     camera: false,
     music: false,
     x: 0,
     y: -1,
   });
+  pad.buttons[3].pressed = true;
+  assert.equal(menuIntent(pad).secondary, true);
+  assert.equal(menuIntent(pad).accept, false);
+  assert.equal(menuIntent(pad).back, false);
 });
 
 test('local asset streaming supports music ranges and confines the decoder eval policy', async () => {

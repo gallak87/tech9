@@ -29,6 +29,7 @@ const report = {
   ],
 };
 const browser = await chromium.launch({
+  args: ['--mute-audio'],
   headless: true,
   ...(process.env.VN_BROWSER_PATH
     ? { executablePath: process.env.VN_BROWSER_PATH }
@@ -199,7 +200,9 @@ try {
         assert.equal((await snapshot(page)).tick, beforeDispose);
         assert.deepEqual(faults, []);
         assetForFailure ||= requests.find((url) =>
-          /\/assets\/ships\/.*\.glb(?:\?|$)/.test(url),
+          new URL(url).pathname.endsWith(
+            `/assets/ships/${initial.ship.id}/${initial.ship.id}.glb`,
+          ),
         );
         Object.assign(result, {
           shape,

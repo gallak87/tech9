@@ -391,9 +391,6 @@
 .reward-milestone.earned {
   border-color: color-mix(in srgb, var(--rarity) 35%, transparent);
 }
-.reward-milestone.earned small {
-  color: var(--rarity);
-}
 .career-transfer {
   display: flex;
   align-items: center;
@@ -419,12 +416,71 @@
 }
 .career-page .progression-header > div {
   min-width: 0;
+  flex: 1;
 }
 .career-page .progression-header h1 {
   margin: 4px 0 0;
   font-size: clamp(24px, 3vw, 30px);
   line-height: 1.1;
   letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+}
+.career-name-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.career-name-heading h1 {
+  min-width: 0;
+}
+.career-name-editor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  width: min(100%, 296px);
+  margin-top: 4px;
+}
+.career-name-editor input {
+  flex: 0 1 200px;
+  min-width: 0;
+  width: 200px;
+  box-sizing: border-box;
+  border: 0;
+  border-bottom: 1px solid #d01818;
+  border-radius: 0;
+  padding: 7px 4px;
+  background: #090909a8;
+  color: #e8e8e8;
+  font:
+    16px Arial,
+    sans-serif;
+}
+.career-name-editor input:focus-visible {
+  outline-offset: 0;
+}
+.career-name-editor input[aria-invalid='true'] {
+  border-bottom-color: #eab78a;
+}
+.career-name-actions {
+  display: flex;
+  flex: none;
+}
+.front-content
+  .career-page
+  :is([data-career-rename], .career-name-actions button) {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px;
+}
+.career-page :is([data-career-rename], .career-name-actions button) svg {
+  width: 19px;
+  height: 19px;
 }
 .career-page .progression-body {
   padding: 0 0 16px;
@@ -526,6 +582,12 @@
 .career-page .reward-milestone.earned .reward-icon {
   border-color: color-mix(in srgb, var(--rarity) 65%, transparent);
   background: color-mix(in srgb, var(--rarity) 14%, transparent);
+}
+.career-page .reward-milestone.locked .reward-icon {
+  filter: grayscale(0.5);
+}
+.career-page .reward-milestone.locked > div {
+  opacity: 0.7;
 }
 .career-page .reward-milestone strong {
   font-size: 12px;
@@ -1075,23 +1137,10 @@
 .reward-tooltip[hidden] {
   display: none;
 }
-.reward-tooltip strong,
-.reward-tooltip span,
-.reward-tooltip small {
-  display: block;
-}
 .reward-tooltip strong {
+  display: block;
   font-weight: 500;
   color: var(--rarity);
-}
-.reward-tooltip span {
-  margin-top: 4px;
-  color: #ccc;
-}
-.reward-tooltip small {
-  margin-top: 5px;
-  color: #aaa;
-  font-size: 10px;
 }
 .loading-rewards .reward-badges {
   position: relative;
@@ -1157,7 +1206,4 @@
 }
 .result-panel .earned-reward {
   padding: 10px 12px;
-}
-.result-panel .results-actions {
-  padding-top: 16px;
 }

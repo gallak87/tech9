@@ -12,6 +12,7 @@ if (!process.env.VN_URL)
   throw new Error('Set VN_URL to this checkout’s server.');
 const responsive = process.argv.includes('--responsive');
 const tunes = process.argv.includes('--tunes');
+const audioSettings = process.argv.includes('--audio');
 const career = process.argv.includes('--career');
 const desktopControls = process.argv.includes('--desktop-controls');
 const careerStorage = createMemoryStorage();
@@ -36,7 +37,7 @@ const context = await browser.newContext({
 const errors = [];
 try {
   await context.addInitScript(
-    ({ careerSeed, registryKey, tunes }) => {
+    ({ careerSeed, registryKey, tunes, audioSettings }) => {
       if (localStorage.getItem(registryKey) === null)
         for (const [key, value] of careerSeed) localStorage.setItem(key, value);
       if (tunes && !localStorage.getItem('vector-nova.music'))
@@ -47,8 +48,15 @@ try {
       if (!localStorage.getItem('vector-nova.settings'))
         localStorage.setItem(
           'vector-nova.settings',
-          JSON.stringify({ quality: 'low', volume: 0, reducedMotion: true }),
+          JSON.stringify({
+            quality: 'low',
+            volume: audioSettings ? 0.6 : 0,
+            masterVolume: audioSettings ? 0.8 : 1,
+            musicVolume: audioSettings ? 0.5 : 0.4,
+            reducedMotion: true,
+          }),
         );
+      if (audioSettings) localStorage.setItem('startUpMusicOn', 'false');
       window.__controllerTest = {
         id: 'Synthetic standard controller',
         index: 0,
@@ -66,7 +74,7 @@ try {
           window.__controllerTest.connected ? [window.__controllerTest] : [],
       });
     },
-    { careerSeed, registryKey: CAREER_SLOTS_KEY, tunes },
+    { careerSeed, registryKey: CAREER_SLOTS_KEY, tunes, audioSettings },
   );
   if (desktopControls)
     await context.addInitScript(() => {
@@ -169,8 +177,186 @@ try {
       mode,
       { timeout: 90000 },
     );
-  if (desktopControls) {
+  if (audioSettings) {
+    const approximate = (actual, expected, message) =>
+      assert.ok(
+        Math.abs(actual - expected) < 1e-8,
+        `${message}: ${actual} != ${expected}`,
+      );
+    const stored = () =>
+      page.evaluate(() =>
+        JSON.parse(localStorage.getItem('vector-nova.settings')),
+      );
+    const audioVolume = () =>
+      page.locator('audio').evaluate((audio) => audio.volume);
+    const settingsRange = (key) => page.locator(`[data-setting="${key}"]`);
+    const viewports = responsive
+      ? [
+          { width: 390, height: 844 },
+          { width: 320, height: 700 },
+          { width: 844, height: 390 },
+        ]
+      : [{ width: 1440, height: 1000 }];
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      await page.goto(
+        new URL('?intro=0&level=halcyon', process.env.VN_URL).href,
+      );
+      await page.locator('[data-action="settings"]').waitFor();
+      await navigate('[data-action="settings"]');
+      await tap(0);
+      for (const [key, label] of [
+        ['masterVolume', 'Master volume'],
+        ['volume', 'Game effects'],
+        ['musicVolume', 'Tunes'],
+      ]) {
+        const range = settingsRange(key);
+        assert.equal(await range.getAttribute('type'), 'range');
+        assert.equal(await range.getAttribute('aria-label'), label);
+        await navigate(`[data-setting="${key}"]`);
+        const before = Number(await range.inputValue());
+        const direction = before < 1 ? 1 : -1;
+        const step = Number(await range.getAttribute('step'));
+        await tap(direction > 0 ? 15 : 14);
+        const next = Number(await range.inputValue());
+        approximate(
+          next,
+          before + direction * step,
+          `${key} controller adjustment`,
+        );
+        approximate((await stored())[key], next, `${key} persists live`);
+        assert.equal(
+          await page.locator(`[data-setting-output="${key}"]`).textContent(),
+          `${Math.round(next * 100)}%`,
+          `${key} output tracks its lane`,
+        );
+        const settings = await stored();
+        approximate(
+          await audioVolume(),
+          settings.masterVolume * settings.musicVolume,
+          'Tunes obeys master and its own lane',
+        );
+        approximate(
+          Number(
+            await page.locator('[aria-label="Music volume"]').inputValue(),
+          ),
+          settings.musicVolume,
+          'player displays raw Tunes lane',
+        );
+        await range.scrollIntoViewIfNeeded();
+        const box = await range.boundingBox();
+        assert.ok(
+          box.x >= 0 && box.x + box.width <= viewport.width + 1,
+          `${key} fits ${viewport.width}x${viewport.height}`,
+        );
+        assert.ok(
+          box.y >= 0 && box.y + box.height <= viewport.height + 1,
+          `${key} scrolls fully into view`,
+        );
+      }
+      // Native keyboard changes use the same live input path as controller input.
+      await settingsRange('masterVolume').focus();
+      await page.keyboard.press('Home');
+      approximate(await audioVolume(), 0, 'master zero silences Tunes');
+      approximate(
+        (await stored()).masterVolume,
+        0,
+        'keyboard master mute persists',
+      );
+      await page.keyboard.press('End');
+      approximate(
+        await audioVolume(),
+        (await stored()).musicVolume,
+        'master full restores raw Tunes gain',
+      );
+      const effects = (await stored()).volume;
+      await page.keyboard.press('Escape');
+      assert.ok(
+        await page
+          .locator('[data-action="settings"]')
+          .evaluate((element) => element === document.activeElement),
+        'Settings Back restores opener',
+      );
+      await navigate('[data-action="tunes"]');
+      await tap(0);
+      await navigate('[aria-label="Music volume"]');
+      const playerBefore = Number(
+        await page.locator('[aria-label="Music volume"]').inputValue(),
+      );
+      const direction = playerBefore < 1 ? 1 : -1;
+      await tap(direction > 0 ? 15 : 14);
+      const playerAfter = Number(
+        await page.locator('[aria-label="Music volume"]').inputValue(),
+      );
+      approximate(
+        playerAfter,
+        playerBefore + direction * 0.01,
+        'player controller Tunes adjustment',
+      );
+      approximate(
+        (await stored()).musicVolume,
+        playerAfter,
+        'player updates shared Tunes preference',
+      );
+      approximate(
+        (await stored()).volume,
+        effects,
+        'Tunes adjustment preserves Game effects',
+      );
+      await tap(1);
+      assert.ok(
+        await page
+          .locator('[data-action="tunes"]')
+          .evaluate((element) => element === document.activeElement),
+        'Tunes Back restores opener',
+      );
+      await navigate('[data-action="settings"]');
+      await tap(0);
+      approximate(
+        Number(await settingsRange('musicVolume').inputValue()),
+        playerAfter,
+        'Settings reflects player Tunes change',
+      );
+      assert.equal(
+        await page.evaluate(
+          () =>
+            document.querySelector('#front-shell').scrollWidth <=
+            innerWidth + 1,
+        ),
+        true,
+        'audio Settings have no horizontal overflow',
+      );
+      assert.equal(
+        await page.locator('canvas#world').count(),
+        0,
+        'audio Settings never load a game world',
+      );
+      await page.reload();
+      await page.locator('[data-action="settings"]').waitFor();
+      await page.locator('[data-action="settings"]').click();
+      approximate(
+        Number(await settingsRange('musicVolume').inputValue()),
+        playerAfter,
+        'shared Tunes preference survives reload',
+      );
+      approximate(
+        await audioVolume(),
+        playerAfter,
+        'effective gain survives reload',
+      );
+      console.log(
+        `PASS audio Settings ${viewport.width}x${viewport.height}: keyboard/controller lanes, master mute, shared Tunes gain, persistence and focus return`,
+      );
+    }
+  } else if (desktopControls) {
     await page.goto(new URL('?intro=0', process.env.VN_URL).href);
+    await page.waitForFunction(() =>
+      document.querySelector('.entry-continue, .race-menu'),
+    );
+    if (await page.locator('.entry-continue').count()) {
+      await page.getByRole('button', { name: 'Start', exact: true }).click();
+      await page.locator('[data-career-slot="1"]').click();
+    }
     const floating = '.desktop-window-controls button';
     await page.locator(floating).waitFor();
     assert.equal(
@@ -221,8 +407,13 @@ try {
       });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.keyboard.press('Escape');
-    await page.locator('[data-action="inspect"]').click();
-    await page.locator('#inspect-back').waitFor();
+    assert.equal(
+      await page.locator('[data-action="inspect"]').count(),
+      0,
+      'compiled desktop omits developer inspector',
+    );
+    await page.locator('[data-action="garage-tab"]').click();
+    await page.locator('.dedicated-garage').waitFor();
     await navigate(floating);
     await tap(0);
     assert.equal(
@@ -249,7 +440,7 @@ try {
     const checkbox = '#pause-panel [data-desktop-fullscreen]';
     assert(
       await page.locator(checkbox).isChecked(),
-      'pause reflects fullscreen from inspector',
+      'pause reflects fullscreen from Garage',
     );
     await navigate(checkbox);
     await tap(0);
@@ -281,7 +472,7 @@ try {
     if (process.env.VN_EVIDENCE)
       await page.screenshot({ path: process.env.VN_EVIDENCE });
     console.log(
-      'PASS desktop controls: setup, Settings, inspector, pause, keyboard/controller access, native state updates, 800–2560px layout',
+      'PASS desktop controls: setup, Settings, Garage, pause, keyboard/controller access, native state updates, 800–2560px layout',
     );
   } else if (career) {
     await page.goto(new URL('?intro=0&music=0', process.env.VN_URL).href);
@@ -336,6 +527,13 @@ try {
       await tap(15);
       assert.ok(
         await page
+          .locator('.menu-top-tabs [data-action="switch-career"]')
+          .evaluate((element) => element === document.activeElement),
+        'next D-pad input reaches Switch career in the underlying navigation',
+      );
+      await tap(15);
+      assert.ok(
+        await page
           .locator('.menu-top-tabs [data-action="race-tab"]')
           .evaluate((element) => element === document.activeElement),
         'next D-pad input reaches the underlying menu',
@@ -374,9 +572,11 @@ try {
     assert.equal(await page.locator('.music-song').inputValue(), 'blue-hour');
     assert.equal(
       await page.evaluate(() =>
-        Object.hasOwn(
-          JSON.parse(localStorage.getItem('vector-nova.music')),
-          'song',
+        ['song', 'volume'].some((key) =>
+          Object.hasOwn(
+            JSON.parse(localStorage.getItem('vector-nova.music')),
+            key,
+          ),
         ),
       ),
       false,
@@ -402,13 +602,15 @@ try {
     await page.waitForFunction(() => !document.querySelector('audio').paused);
     assert.equal(
       await page.evaluate(() =>
-        Object.hasOwn(
-          JSON.parse(localStorage.getItem('vector-nova.music')),
-          'song',
+        ['song', 'volume'].some((key) =>
+          Object.hasOwn(
+            JSON.parse(localStorage.getItem('vector-nova.music')),
+            key,
+          ),
         ),
       ),
       false,
-      'song changes stay in memory',
+      'song changes stay in memory and volume lives in shared Settings',
     );
     await navigate('.music-loop');
     await page.keyboard.press('Tab');

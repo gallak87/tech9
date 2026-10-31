@@ -8,22 +8,28 @@ import { disposeGroup } from './geometry.js';
 import { createQualityPresentation } from './quality.js';
 import { createLowCombatPresentation } from './low-combat.js';
 import { createLancePresentation, isLanceFlash } from './lance-presentation.js';
+import { createRoadPulsePresentation } from './road-pulse.js';
 
 const BOLT_LENGTH = 16;
 const BOLT_WIDTH = 2.8;
 
-export function createCombatPresentation(scene, combat, settings = {}) {
+export function createCombatPresentation(
+  scene,
+  combat,
+  settings = {},
+  projection = null,
+) {
   return createQualityPresentation(
     settings,
     (quality) =>
       quality === 'low'
-        ? createLowCombatPresentation(scene, combat)
-        : createDetailedCombatPresentation(scene, combat),
+        ? createLowCombatPresentation(scene, combat, projection)
+        : createDetailedCombatPresentation(scene, combat, projection),
     (frame) => frame?.settings,
   );
 }
 
-function createDetailedCombatPresentation(scene, combat) {
+function createDetailedCombatPresentation(scene, combat, projection) {
   const root = new T.Group();
   root.name = 'Automatic combat / pulses, bolts and wakes';
   scene.add(root);
@@ -85,6 +91,9 @@ function createDetailedCombatPresentation(scene, combat) {
   });
   const ribbon = createIonRibbon(root);
   const lance = createLancePresentation(root);
+  const roadPulse = projection
+    ? createRoadPulsePresentation(root, projection)
+    : null;
   const visualOffset = new T.Vector3();
   return {
     group: root,
@@ -92,6 +101,7 @@ function createDetailedCombatPresentation(scene, combat) {
       root.visible = enabled && ['racing', 'paused'].includes(mode);
       if (!root.visible) return;
       const state = combat.view();
+      roadPulse?.update(state, settings);
       const tune = (mesh, kind, strength, age = 0) => {
         const u = mesh.material.uniforms;
         u.color.value.setHex(DEVICE_COLORS[kind]);
@@ -145,7 +155,8 @@ function createDetailedCombatPresentation(scene, combat) {
         });
       flashes.forEach(({ group, impact, upright, crown, pressure }, index) => {
         const flash = state.flashes[index];
-        group.visible = !!flash && !isLanceFlash(flash);
+        group.visible =
+          !!flash && !isLanceFlash(flash) && !roadPulse?.handles(flash);
         if (!group.visible) return;
         group.position.fromArray(flash.position);
         group.quaternion.fromArray(flash.quaternion);
@@ -226,6 +237,7 @@ function createDetailedCombatPresentation(scene, combat) {
     dispose() {
       ribbon.dispose();
       lance.dispose();
+      roadPulse?.dispose();
       disposeGroup(root);
     },
   };

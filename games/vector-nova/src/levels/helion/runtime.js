@@ -21,6 +21,11 @@ const FLIGHT_RULES = {
 };
 const flightModel = createFlightModel(FLIGHT_RULES);
 const wrapped = (s, length) => ((s % length) + length) % length;
+const advanceContactTimer = (age, dt, maximum) => {
+  const next = age + dt;
+  // Fixed-step sums must reach the boundary on its intended simulation tick.
+  return next >= maximum - 1e-9 ? maximum : next;
+};
 
 export function helionRoadBounds(track, distance) {
   const s = wrapped(distance, track.length);
@@ -37,9 +42,11 @@ export function createHelionRuntime(context, telemetry = {}) {
   let heat = 0,
     contactAge = HELION_HEAT_RULES.visualRelease,
     contactHeat = 0,
+    contactDuration = 0,
+    fireClearAge = HELION_HEAT_RULES.contactRearm,
     disposed = false,
     staged = null;
-  const rulesId = `helion-thermal-flight-v4:${JSON.stringify({ geometry: track.geometryVersion, heat: HELION_HEAT_RULES, hazard: HAZARD_SURFACE_RULES, severity: HELION_FIRE_SEVERITY, flight: flightModel.rules, jumps: track.jumps, zones: track.thermalZones })}`;
+  const rulesId = `helion-thermal-flight-v6-grounded-contact:${JSON.stringify({ geometry: track.geometryVersion, heat: HELION_HEAT_RULES, hazard: HAZARD_SURFACE_RULES, severity: HELION_FIRE_SEVERITY, flight: flightModel.rules, jumps: track.jumps, zones: track.thermalZones })}`;
   const scenarios = Object.fromEntries(
     Object.entries(track.scenarios).map(([name, state]) => [
       name,
@@ -79,7 +86,23 @@ export function createHelionRuntime(context, telemetry = {}) {
     }),
   });
   let flightMode = 'magnetic';
+  function syncFlightMode() {
+    const pose = base.pose(1);
+    flightMode =
+      pose?.grounded === false
+        ? pose.recovering
+          ? 'recovery'
+          : 'flight'
+        : 'magnetic';
+  }
   function fireSurface(state) {
+    // A continuous patch cannot trap a stalled ship. Keep its full initial bite,
+    // then restore propulsion until the ship has genuinely cleared the fire.
+    if (
+      flightMode !== 'magnetic' ||
+      contactDuration >= HELION_HEAT_RULES.maximumContactPenalty
+    )
+      return sampleHazardSurface(state.speed, HELION_FIRE_SEVERITY, 0);
     const sample = sampleHelionThermal(
       track,
       state.distance,
@@ -115,33 +138,73 @@ export function createHelionRuntime(context, telemetry = {}) {
       thrustScale: thrustScale(state),
       contactAge: sample.exposure > 0 ? 0 : contactAge,
       contactHeat,
+      contactDuration,
+      fireClearAge,
       heatTime: state.time,
       flightMode,
     });
   }
   function prepareStep(state, dt) {
+    syncFlightMode();
+    const sample = sampleHelionThermal(
+      track,
+      state.distance,
+      state.lateral,
+      state.time,
+      { airborne: flightMode !== 'magnetic' },
+    );
+    if (
+      sample.exposure > 0 &&
+      !sample.sheltered &&
+      fireClearAge >= HELION_HEAT_RULES.contactRearm
+    )
+      contactDuration = 0;
     return {
-      sample: sampleHelionThermal(
+      sample,
+      before: thrustScale(state),
+      airborne: flightMode !== 'magnetic',
+      dt,
+    };
+  }
+  function finishStep(state, step, events) {
+    let { sample } = step;
+    const { before, dt, airborne } = step;
+    syncFlightMode();
+    // Contacts follow the solved state on both takeoff and touchdown. A powered
+    // lift cannot add a final ground-heat tick, nor grant immunity after landing.
+    if (airborne !== (flightMode !== 'magnetic')) {
+      sample = sampleHelionThermal(
         track,
         state.distance,
         state.lateral,
         state.time,
-        {
-          airborne: flightMode !== 'magnetic',
-        },
-      ),
-      before: thrustScale(state),
-      dt,
-    };
-  }
-  function finishStep(state, { sample, before, dt }, events) {
-    flightMode = base.snapshot().mode;
+        { airborne: flightMode !== 'magnetic' },
+      );
+      if (
+        sample.exposure > 0 &&
+        !sample.sheltered &&
+        fireClearAge >= HELION_HEAT_RULES.contactRearm
+      )
+        contactDuration = 0;
+    }
     heat = integrateHelionHeat(heat, sample, dt);
     if (sample.exposure > 0 && !sample.sheltered) {
       contactAge = 0;
       contactHeat = heat;
-    } else
+      fireClearAge = 0;
+      contactDuration = advanceContactTimer(
+        contactDuration,
+        dt,
+        HELION_HEAT_RULES.maximumContactPenalty,
+      );
+    } else {
       contactAge = Math.min(HELION_HEAT_RULES.visualRelease, contactAge + dt);
+      fireClearAge = advanceContactTimer(
+        fireClearAge,
+        dt,
+        HELION_HEAT_RULES.contactRearm,
+      );
+    }
     const power = thrustScale(state);
     if (before < 1 !== power < 1)
       events.push({
@@ -155,7 +218,14 @@ export function createHelionRuntime(context, telemetry = {}) {
     version: base.version,
     rulesId: base.rulesId,
     scenarios,
-    ...(base.launch ? { launch: base.launch } : {}),
+    ...(base.launch
+      ? {
+          launch(state, setup) {
+            base.launch(state, setup);
+            syncFlightMode();
+          },
+        }
+      : {}),
     advance(state, input, dt, modifiers) {
       if (disposed || !Number.isFinite(dt) || dt <= 0) return [];
       const elapsed = Math.min(dt, 0.1),
@@ -198,11 +268,21 @@ export function createHelionRuntime(context, telemetry = {}) {
       heat = options.scenario === 'heat-hot' ? 78 : 0;
       contactAge = heat ? 0 : HELION_HEAT_RULES.visualRelease;
       contactHeat = heat;
+      contactDuration = 0;
+      fireClearAge = HELION_HEAT_RULES.contactRearm;
       if (options.state) publish(options.state);
     },
     snapshot() {
       const flight = base.snapshot();
-      return { mode: flight.mode, flight, heat, contactAge, contactHeat };
+      return {
+        mode: flight.mode,
+        flight,
+        heat,
+        contactAge,
+        contactHeat,
+        contactDuration,
+        fireClearAge,
+      };
     },
     restore(data) {
       if (
@@ -215,7 +295,13 @@ export function createHelionRuntime(context, telemetry = {}) {
         data.contactAge > HELION_HEAT_RULES.visualRelease ||
         !Number.isFinite(data.contactHeat) ||
         data.contactHeat < 0 ||
-        data.contactHeat > HELION_HEAT_RULES.maximum
+        data.contactHeat > HELION_HEAT_RULES.maximum ||
+        !Number.isFinite(data.contactDuration) ||
+        data.contactDuration < 0 ||
+        data.contactDuration > HELION_HEAT_RULES.maximumContactPenalty ||
+        !Number.isFinite(data.fireClearAge) ||
+        data.fireClearAge < 0 ||
+        data.fireClearAge > HELION_HEAT_RULES.contactRearm
       )
         throw new Error('Invalid Helion thermal state.');
       base.restore(data.flight);
@@ -223,13 +309,20 @@ export function createHelionRuntime(context, telemetry = {}) {
       heat = data.heat;
       contactAge = data.contactAge;
       contactHeat = data.contactHeat;
-      flightMode = data.flight.mode;
+      contactDuration = data.contactDuration;
+      fireClearAge = data.fireClearAge;
+      syncFlightMode();
     },
     pose: (alpha) => base.pose(alpha),
     applyImpulse: (state, impulse) => base.applyImpulse(state, impulse),
-    jump: (state) => base.jump(state),
+    jump(state) {
+      const activated = base.jump(state);
+      syncFlightMode();
+      return activated;
+    },
     update(frame) {
       base.update?.(frame);
+      syncFlightMode();
       if (frame.state) publish(frame.state);
     },
     dispose() {

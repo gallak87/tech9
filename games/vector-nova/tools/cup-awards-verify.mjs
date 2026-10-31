@@ -3,6 +3,7 @@ import { chromium } from 'playwright';
 import { createCupStore, CUP_STORAGE_KEY } from '../src/race/cup.js';
 import { RACE_OPPONENTS } from '../src/race/roster.js';
 import { CUP_COLLECTION_KEY } from '../src/progression/cup-collection.js';
+import { careerKey, seedVerificationCareer } from './verification-career.mjs';
 
 const base = process.env.VN_URL;
 if (!base) throw Error('Set VN_URL to this checkout’s dev server');
@@ -38,7 +39,7 @@ function savedFinal(position = 1, complete = false) {
     getItem: (k) => values.get(k),
     setItem: (k, v) => values.set(k, v),
   }));
-  store.start('founders', 'kestrel', 'easy');
+  store.start('founders', 'shrike', 'easy');
   store.finish(result(position));
   store.next();
   store.finish(result(position));
@@ -46,12 +47,17 @@ function savedFinal(position = 1, complete = false) {
   if (complete) store.finish(result(position));
   return store.snapshot().state;
 }
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await chromium.launch({
+  args: ['--mute-audio'],
+  channel: 'chrome',
+  headless: true,
+});
 const context = await browser.newContext({
   viewport: { width, height },
   hasTouch: width < 900,
 });
 try {
+  await seedVerificationCareer(context);
   await context.addInitScript(() => {
     if (!localStorage.getItem('vector-nova.settings'))
       localStorage.setItem(
@@ -140,7 +146,7 @@ try {
         path: `${process.env.VN_CUP_CAPTURE}/${name}.png`,
       });
   };
-  await page.goto(base + '?music=0');
+  await page.goto(base + '?intro=0&music=0');
   await openCup();
   await page.locator('[data-cup="founders"]').focus();
   await settle();
@@ -169,7 +175,7 @@ try {
 
   await page.evaluate(
     ({ key, saved }) => localStorage.setItem(key, JSON.stringify(saved)),
-    { key: CUP_STORAGE_KEY, saved: savedFinal() },
+    { key: careerKey(CUP_STORAGE_KEY), saved: savedFinal() },
   );
   await page.reload();
   await openCup();
@@ -286,6 +292,7 @@ try {
   await fits();
   await capture('earned-menu');
   await page.reload();
+  await page.locator('.cup-cabinet').waitFor();
   assert.equal(await page.locator('.cup-cabinet .is-earned').count(), 1);
   assert.equal((await state()).cupCelebration, false);
 
@@ -296,12 +303,13 @@ try {
       localStorage.setItem(key, JSON.stringify(saved));
     },
     {
-      key: CUP_STORAGE_KEY,
-      collection: CUP_COLLECTION_KEY,
+      key: careerKey(CUP_STORAGE_KEY),
+      collection: careerKey(CUP_COLLECTION_KEY),
       saved: savedFinal(1, true),
     },
   );
   await page.reload();
+  await page.locator('.cup-cabinet').waitFor();
   assert.equal((await state()).cupCollection.cups.founders.points, 75);
   assert.equal((await state()).cupCelebration, false);
   // A complete P2 championship is still unearned, even on migration.
@@ -311,12 +319,13 @@ try {
       localStorage.setItem(key, JSON.stringify(saved));
     },
     {
-      key: CUP_STORAGE_KEY,
-      collection: CUP_COLLECTION_KEY,
+      key: careerKey(CUP_STORAGE_KEY),
+      collection: careerKey(CUP_COLLECTION_KEY),
       saved: savedFinal(2, true),
     },
   );
   await page.reload();
+  await page.locator('.cup-cabinet').waitFor();
   assert.deepEqual((await state()).cupCollection.cups, {});
   assert.equal(await page.locator('.cup-cabinet .is-earned').count(), 0);
   assert.deepEqual(faults, []);

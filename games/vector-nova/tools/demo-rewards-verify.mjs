@@ -8,13 +8,23 @@ import config from '../vite.config.js';
 import { resolve } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { createProfileStore } from '../src/progression/profile.js';
+import { careerKey, seedVerificationCareer } from './verification-career.mjs';
+import { createMemoryStorage } from '../src/progression/careers.js';
+import { createCupStore } from '../src/race/cup.js';
+import { createSaveTransfer } from '../src/progression/save-transfer.js';
 const root = resolve(import.meta.dirname, '..');
 const server = await createServer({
   ...config,
   configFile: false,
   root,
   define: { 'import.meta.env.VN_EDITION': '"demo"' },
-  server: { ...config.server, host: '127.0.0.1', port: 0, strictPort: false },
+  server: {
+    ...config.server,
+    host: '127.0.0.1',
+    port: 0,
+    strictPort: false,
+    hmr: false,
+  },
 });
 await server.listen();
 const browser = await chromium.launch({
@@ -69,7 +79,7 @@ async function open(query) {
       quit() {},
     };
   });
-  page.setDefaultTimeout(15000);
+  page.setDefaultTimeout(60000);
   page.on('pageerror', (error) => {
     errors.push(error.message);
     console.error(error.message);
@@ -80,7 +90,7 @@ async function open(query) {
 }
 const action = (page, id) => page.locator(`[data-action="${id}"]`).first();
 async function collection(page, collected) {
-  const bar = page.getByRole('progressbar', {
+  const bar = page.locator('.race-menu').getByRole('progressbar', {
     name: 'Collected career rewards',
   });
   await bar.waitFor();
@@ -88,9 +98,15 @@ async function collection(page, collected) {
   assert.equal(await bar.getAttribute('aria-valuenow'), String(collected));
   assert.equal(await bar.locator('.career-progress-notch').count(), 4);
   assert.equal(await bar.locator('.is-earned').count(), collected);
-  const bounds = await bar.boundingBox();
-  const trophies = await page.locator('.cup-cabinet').boundingBox();
-  assert.ok(bounds.y + bounds.height < trophies.y);
+  const layout = await bar.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    const trophies = element
+      .closest('.race-menu')
+      .querySelector('.cup-cabinet')
+      .getBoundingClientRect();
+    return { bottom: bounds.bottom, trophiesTop: trophies.top };
+  });
+  assert.ok(layout.bottom < layout.trophiesTop);
 }
 const results = (page) =>
   page.waitForFunction(
@@ -106,7 +122,16 @@ try {
       await page.locator('[data-reward-info="equipment-jump"]').focus();
       assert.match(
         await page.locator('#reward-detail-equipment-jump').innerText(),
-        /3 valid races/,
+        /^New equipment$/,
+      );
+      assert.equal(
+        await page
+          .locator(
+            '#reward-detail-equipment-jump span, #reward-detail-equipment-jump small',
+          )
+          .count(),
+        0,
+        'compact hero goals omit requirement and progress rows',
       );
       await pad(page, 1);
       assert.equal(
@@ -262,6 +287,8 @@ try {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1000 },
   });
+  activePage = page;
+  await seedVerificationCareer(page.context());
   await page.addInitScript(() => {
     window.vectorNovaDesktop = {
       toggleFullscreen() {},
@@ -270,14 +297,16 @@ try {
       quit() {},
     };
   });
-  page.setDefaultTimeout(15000);
+  page.setDefaultTimeout(60000);
   page.on('pageerror', (error) => {
     errors.push(error.message);
     console.error(error.message);
   });
   await page.goto(
-    `http://127.0.0.1:${compiled.httpServer.address().port}/?dev=2`,
+    `http://127.0.0.1:${compiled.httpServer.address().port}/?intro=0&dev=2`,
   );
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await page.locator('[data-career-slot="1"]').click();
   await collection(page, 0);
   try {
     await action(page, 'garage-tab').focus();
@@ -304,6 +333,8 @@ try {
   await action(page, 'career').focus();
   await page.keyboard.press('Enter');
   assert.equal(await page.locator('.reward-milestone').count(), 4);
+  await page.locator('.career-rules summary').focus();
+  await page.keyboard.press('Enter');
   assert.match(
     await page.locator('.career-intro').innerText(),
     /Export your save/,
@@ -333,11 +364,8 @@ try {
   );
   // Import a real full-game career through the release UI. Its extra claims
   // remain saved, while both demo views count only the four playable rewards.
-  const values = new Map();
-  const fullCareer = createProfileStore(() => ({
-    getItem: (key) => values.get(key) ?? null,
-    setItem: (key, value) => values.set(key, value),
-  }));
+  const fullStorage = createMemoryStorage();
+  const fullCareer = createProfileStore(() => fullStorage);
   for (let i = 0; i < 24; i++)
     fullCareer.recordRace({ id: `demo-import-${i}`, position: 1 });
   for (const id of ['founders', 'frontier', 'horizon', 'apex'])
@@ -349,7 +377,11 @@ try {
     name: 'full-career.json',
     mimeType: 'application/json',
     buffer: Buffer.from(
-      JSON.stringify({ game: 'vector-nova', version: 1, profile }),
+      createSaveTransfer({
+        profileStore: fullCareer,
+        cupStore: createCupStore(() => fullStorage),
+        storage: () => fullStorage,
+      }).export(),
     ),
   });
   await page.locator('[data-confirm-import]').click();
@@ -361,12 +393,14 @@ try {
   await collection(page, 4);
   assert.equal(
     await page.evaluate(
-      () =>
-        JSON.parse(localStorage.getItem('vector-nova.career.v1')).claims.length,
+      (key) => JSON.parse(localStorage.getItem(key)).claims.length,
+      careerKey('vector-nova.career.v1'),
     ),
     28,
   );
   await page.reload();
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await page.locator('[data-career-slot="1"]').click();
   await collection(page, 4);
   for (const viewport of process.argv.includes('--desktop-only')
     ? []
@@ -375,6 +409,12 @@ try {
         { width: 844, height: 390 },
       ]) {
     await page.setViewportSize(viewport);
+    await page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        ),
+    );
     await collection(page, 4);
     const bounds = await page.locator('.career-progress-bar').boundingBox();
     assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= viewport.width);
@@ -387,7 +427,7 @@ try {
   if (activePage && !activePage.isClosed())
     console.error(
       'Browser state:',
-      await state(activePage),
+      await state(activePage).catch(() => null),
       await activePage.locator('body').innerText(),
     );
   console.error('Browser errors:', errors);

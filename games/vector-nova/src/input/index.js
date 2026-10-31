@@ -39,6 +39,8 @@ export function createInput(onCommand, onBlur, getSettings) {
       if (codes.includes(e.code)) {
         e.preventDefault();
         keys.add(e.code);
+        const slot = EQUIPMENT_CONTROLS.findIndex(({ key }) => key === e.code);
+        if (slot >= 0 && !e.repeat) equipmentPulses[slot] = true;
       }
       if (!e.repeat) {
         const commands = {
@@ -130,7 +132,7 @@ export function createInput(onCommand, onBlur, getSettings) {
         for (let slot = 1; slot <= EQUIPMENT_CONTROLS.length; slot++)
           i[`equipment${slot}`] ||= pad[`equipment${slot}`];
       }
-      // A touch pulse survives observation and render frames without a physics tick.
+      // Equipment taps survive observation and frames without a physics tick.
       return i;
     },
     bindTouch(root) {

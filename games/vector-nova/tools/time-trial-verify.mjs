@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { formatTime } from '../src/race/timing.js';
+import { careerKey, seedVerificationCareer } from './verification-career.mjs';
 
 // Browser-only instrumentation accelerates real physics. Production has no
 // finish shortcuts; both the runtime and rendered ghost are exercised here.
@@ -8,7 +9,11 @@ const base = process.env.VN_URL;
 const level = process.env.VN_TRIAL_LEVEL ?? 'halcyon';
 const sprint = level === 'shatterline';
 if (!base) throw Error('Set VN_URL to the current dev server');
-const browser = await chromium.launch({ headless: true, channel: 'chrome' });
+const browser = await chromium.launch({
+  args: ['--mute-audio'],
+  headless: true,
+  channel: 'chrome',
+});
 const [width, height] = (process.env.VN_TRIAL_VIEWPORT ?? '1440x900')
   .split('x')
   .map(Number);
@@ -18,6 +23,7 @@ const context = await browser.newContext({
   hasTouch: touch,
 });
 try {
+  await seedVerificationCareer(context);
   await context.addInitScript(() =>
     localStorage.setItem(
       'vector-nova.settings',
@@ -58,9 +64,16 @@ try {
   async function start() {
     await activate(page.locator('[data-action="time-trial"]').first());
     await activate(page.locator('[data-action="launch"]'));
-    await page.waitForFunction(() => window.__VN?.ready, null, {
-      timeout: 120000,
-    });
+    await page.waitForFunction(
+      () =>
+        window.__VN?.ready &&
+        window.__VN_FRONTEND.getState().screen === 'race' &&
+        window.__VN.getSnapshot().timeTrial,
+      null,
+      {
+        timeout: 120000,
+      },
+    );
     snap = await page.evaluate(() => {
       window.__VN.restartRace();
       window.__VN.pause();
@@ -104,7 +117,7 @@ try {
     assert.equal(snap.timeTrial.elapsed, 0);
     assert.equal(snap.vehicle.energy, 100);
   }
-  await page.goto(base + `?level=${level}&music=0`);
+  await page.goto(base + `?intro=0&level=${level}&music=0`);
   await start();
   assert.equal(snap.timeTrial.best, null);
   assert.equal(snap.competition.enabled, false);
@@ -243,7 +256,9 @@ try {
   await activate(page.locator('[data-action="practice"]').first());
   await activate(page.locator('[data-action="launch"]'));
   await page.waitForFunction(
-    () => window.__VN?.getSnapshot().timeTrial === null,
+    () =>
+      window.__VN_FRONTEND.getState().screen === 'race' &&
+      window.__VN?.getSnapshot().timeTrial === null,
   );
   await page.evaluate(() => window.__VN.pause());
   assert.equal(
@@ -255,15 +270,15 @@ try {
   assert.equal(snap.timeTrial.best, first.playerTotalTime);
   assert.equal(snap.timeTrial.ghost, true);
   // Time-only quota fallback must never promise a missing ghost on reload.
-  await page.evaluate(() => {
+  await page.evaluate((prefix) => {
     for (const key of Object.keys(localStorage).filter((key) =>
-      key.startsWith('vector-nova.trial.'),
+      key.startsWith(prefix),
     )) {
       const record = JSON.parse(localStorage.getItem(key));
       record.ghost = null;
       localStorage.setItem(key, JSON.stringify(record));
     }
-  });
+  }, careerKey('vector-nova.trial.'));
   await page.reload();
   await start();
   snap = await page.evaluate(() => window.__VN.verifyTrialStep(120, true));

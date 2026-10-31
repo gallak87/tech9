@@ -26,7 +26,7 @@ export function createCindercoilRuntime(context) {
   const flight = model.createRuntime(context, {
     id: 'cindercoil-volcanic',
     version: context.dynamics ? 3 : 1,
-    rulesId: `cindercoil-v2:${JSON.stringify({ geometry: track.geometryVersion, flight: model.rules, jumps: track.jumps, zones: track.surgeZones, rules: CINDERCOIL_RULES, hazard: HAZARD_SURFACE_RULES })}`,
+    rulesId: `cindercoil-v3-grounded-contact:${JSON.stringify({ geometry: track.geometryVersion, flight: model.rules, jumps: track.jumps, zones: track.surgeZones, rules: CINDERCOIL_RULES, hazard: HAZARD_SURFACE_RULES })}`,
     automaticRecovery: context.playtest?.automaticRecovery !== false,
     testLaunch: Boolean(context.playtest),
     forgivingContacts: Boolean(context.dynamics),
@@ -127,7 +127,9 @@ export function createCindercoilRuntime(context) {
     state: { distance: jump.takeoff - 3, speed: 102, time: 3 },
   };
   let stagedContact = null;
-  function finishContact(state, contact, touching, step, events) {
+  function finishContact(state, step, events) {
+    const contact = surgeAt(track, state);
+    const touching = flight.pose(1)?.grounded !== false && contact?.contact;
     if (touching) {
       state.energy = Math.max(
         0,
@@ -162,11 +164,8 @@ export function createCindercoilRuntime(context) {
       const count = Math.ceil(elapsed * 120 - 1e-10);
       for (let tick = 0; tick < count; tick++) {
         const step = elapsed / count;
-        const contact = surgeAt(track, state);
-        const pose = flight.pose(1);
-        const touching = (!pose || pose.grounded) && contact?.contact;
         events.push(...flight.advance(state, input, step, modifiers));
-        finishContact(state, contact, touching, step, events);
+        finishContact(state, step, events);
       }
       return events;
     },
@@ -175,22 +174,16 @@ export function createCindercoilRuntime(context) {
           beginAdvance(state, input, dt, modifiers) {
             if (stagedContact)
               throw new Error('Finish the pending Cindercoil step first');
-            const contact = surgeAt(track, state);
-            const pose = flight.pose(1);
-            stagedContact = {
-              contact,
-              touching: (!pose || pose.grounded) && contact?.contact,
-              dt,
-            };
+            stagedContact = { dt };
             flight.beginAdvance(state, input, dt, modifiers);
           },
           finishAdvance(state) {
             if (!stagedContact)
               throw new Error('Stage the Cindercoil step before resolving it');
-            const { contact, touching, dt } = stagedContact;
+            const { dt } = stagedContact;
             const events = flight.finishAdvance(state);
             stagedContact = null;
-            return finishContact(state, contact, touching, dt, events);
+            return finishContact(state, dt, events);
           },
         }
       : {}),

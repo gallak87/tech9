@@ -9,10 +9,11 @@ import {
 import { disposeGroup } from './geometry.js';
 import { lowMaterial } from './low-geometry.js';
 import { createLancePresentation, isLanceFlash } from './lance-presentation.js';
+import { createRoadPulsePresentation } from './road-pulse.js';
 
 // Bounded batches, independent of racer count. Keep every live projectile
 // and dangerous wake segment; Low changes presentation, never simulation.
-export function createLowCombatPresentation(scene, combat) {
+export function createLowCombatPresentation(scene, combat, projection = null) {
   const group = new T.Group();
   group.name = 'Low combat / batches';
   scene.add(group);
@@ -80,6 +81,9 @@ export function createLowCombatPresentation(scene, combat) {
   wake.userData.aoExclude = wake.userData.reflectionExclude = true;
   group.add(wake);
   const lance = createLancePresentation(group, { low: true });
+  const roadPulse = projection
+    ? createRoadPulsePresentation(group, projection, { low: true })
+    : null;
   const a = new T.Vector3(),
     b = new T.Vector3(),
     right = new T.Vector3(),
@@ -105,6 +109,7 @@ export function createLowCombatPresentation(scene, combat) {
       group.visible = enabled && ['racing', 'paused'].includes(mode);
       if (!group.visible) return;
       const state = combat.view();
+      roadPulse?.update(state, settings);
       const strength = settings.reducedMotion ? 0.65 : 1;
       charges.count = 0;
       for (const [id, emitter] of Object.entries(state.emitters).slice(0, 10)) {
@@ -118,7 +123,12 @@ export function createLowCombatPresentation(scene, combat) {
       flashes.count = 0;
       for (const flash of state.flashes.slice(0, 32)) {
         // The bolt itself supplies the muzzle cue; contacts use one small ring.
-        if (flash.type === 'muzzle' || isLanceFlash(flash)) continue;
+        if (
+          flash.type === 'muzzle' ||
+          isLanceFlash(flash) ||
+          roadPulse?.handles(flash)
+        )
+          continue;
         transform.position.fromArray(flash.position);
         transform.quaternion.fromArray(flash.quaternion);
         const pulse = flash.kind === 'repulsor' && flash.radius > 10;
@@ -188,6 +198,7 @@ export function createLowCombatPresentation(scene, combat) {
     dispose() {
       for (const mesh of [charges, flashes, shots]) mesh.dispose();
       lance.dispose();
+      roadPulse?.dispose();
       disposeGroup(group);
     },
   };

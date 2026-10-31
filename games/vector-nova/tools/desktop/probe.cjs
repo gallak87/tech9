@@ -39,17 +39,41 @@ async function wait(expression, timeout = 120000) {
   );
 }
 async function click(selector) {
+  const target = `Array.from(document.querySelectorAll(${JSON.stringify(selector)})).find(element => element.getClientRects().length && !element.closest('[hidden], [inert]'))`;
   await wait(
-    `!!document.querySelector(${JSON.stringify(selector)}) && !document.querySelector(${JSON.stringify(selector)}).disabled`,
+    `(() => { const element = ${target}; return !!element && !element.disabled; })()`,
   );
-  await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
+  await evaluate(`(() => {
+    const element = ${target};
+    element.focus();
+    // Focus previews may replace a card; activate its current native control.
+    (${target}).click();
+  })()`);
 }
-function key(keyCode, type = 'keyDown') {
-  window.webContents.sendInputEvent({ type, keyCode });
+async function key(keyCode, type = 'keyDown') {
+  // Native sendInputEvent requires an OS-focused window. The external verifier
+  // stays hidden, so deliver trusted browser input without stealing host focus.
+  const letter = /^[A-Z]$/.test(keyCode);
+  await window.webContents.debugger.sendCommand('Input.dispatchKeyEvent', {
+    type,
+    key: letter ? keyCode.toLowerCase() : keyCode,
+    code: letter ? `Key${keyCode}` : keyCode,
+    text:
+      type === 'keyDown'
+        ? keyCode === 'Enter'
+          ? '\r'
+          : letter
+            ? keyCode.toLowerCase()
+            : ''
+        : '',
+    windowsVirtualKeyCode: letter
+      ? keyCode.charCodeAt(0)
+      : { Enter: 13, Escape: 27, F12: 123 }[keyCode],
+  });
 }
 async function press(keyCode) {
-  key(keyCode);
-  key(keyCode, 'keyUp');
+  await key(keyCode);
+  await key(keyCode, 'keyUp');
   await delay(100);
 }
 const menu = `!!document.querySelector('.race-menu') && !document.querySelector('#front-shell').hidden`;
@@ -98,6 +122,7 @@ async function enterCareer() {
   await press('Enter');
   await wait(
     `document.querySelectorAll('[data-entry-stage="profiles"] [data-career-slot]').length === 3`,
+    10000,
   );
   await click('[data-career-slot="1"]');
   await wait(menu);
@@ -155,6 +180,13 @@ async function run() {
   window = BrowserWindow.getAllWindows()[0];
   assert.equal(window.webContents.isAudioMuted(), true);
   window.webContents.setBackgroundThrottling(false);
+  window.webContents.debugger.attach('1.3');
+  await window.webContents.debugger.sendCommand(
+    'Emulation.setFocusEmulationEnabled',
+    {
+      enabled: true,
+    },
+  );
   session.defaultSession.webRequest.onCompleted((details) => {
     if (details.statusCode >= 400)
       failures.push(`${details.statusCode} ${details.url}`);
@@ -319,9 +351,9 @@ async function run() {
     await press('F12');
     assert.equal(window.webContents.isDevToolsOpened(), false);
     assert(await evaluate(racing));
-    key('W');
+    await key('W');
     await delay(1200);
-    key('W', 'keyUp');
+    await key('W', 'keyUp');
     const speed = await evaluate(
       `Number(document.querySelector('#speed').textContent)`,
     );
@@ -416,9 +448,9 @@ async function run() {
     await click('[data-action="practice"]');
     await click('[data-action="launch"]');
     await wait(racing);
-    key('W');
+    await key('W');
     await delay(1200);
-    key('W', 'keyUp');
+    await key('W', 'keyUp');
     assert(
       await evaluate(
         `Number(document.querySelector('#speed').textContent) > 5`,

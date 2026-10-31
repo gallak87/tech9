@@ -15,8 +15,15 @@ export function energyMaterial(style) {
       time: { value: 0 },
       strength: { value: 1 },
       motion: { value: 1 },
+      origin: { value: new T.Vector2() },
+      courseLength: { value: 0 },
+      pulseRadius: { value: 108 },
     },
-    vertexShader: `varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    vertexShader:
+      style === 'road-pressure'
+        ? `attribute vec2 roadCoord; uniform vec2 origin; uniform float courseLength,pulseRadius; varying vec2 vUv;
+      void main(){float along=roadCoord.y-origin.y;if(courseLength>0.)along=mod(along+courseLength*.5,courseLength)-courseLength*.5;vUv=.5+vec2(roadCoord.x-origin.x,along)/(2.*pulseRadius);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`
+        : `varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
     fragmentShader: `
       varying vec2 vUv;
       uniform vec3 color;
@@ -83,15 +90,24 @@ export function energyMaterial(style) {
           light=front*.85+roll*.28+edge*.17;
           core=front*.24;
         `
-                      : style === 'pressure'
+                      : style === 'road-pressure'
                         ? `
+          float frontRadius=max(.033333,min(1.,age/.3));
+          float front=exp(-pow((radius-frontRadius)/.026,2.));
+          float body=exp(-pow((radius-frontRadius+.08)/.085,2.));
+          float echo=exp(-pow((radius-frontRadius*.69)/.022,2.));
+          light=front*.8+body*.35+echo*.2;
+          core=front*.28;
+        `
+                        : style === 'pressure'
+                          ? `
           float front=exp(-pow((radius-.87)/.026,2.));
           float body=exp(-pow((radius-.79)/.085,2.));
           float echo=exp(-pow((radius-.6)/.022,2.));
           light=front*.8+body*.35+echo*.2;
           core=front*.28;
         `
-                        : `
+                          : `
           float arms=pow(abs(cos(angle*4.+.3)),22.);
           float shards=arms*exp(-radius*3.8)*smoothstep(.03,.12,radius);
           core=exp(-radius*radius*170.);

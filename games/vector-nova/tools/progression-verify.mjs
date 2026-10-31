@@ -1,10 +1,22 @@
-import { CAREER_VERSION } from '../src/progression/profile.js';
+import { CAREER_VERSION, PROFILE_KEY } from '../src/progression/profile.js';
+import {
+  createCareerSlots,
+  createMemoryStorage,
+  CAREER_SLOTS_KEY,
+} from '../src/progression/careers.js';
 import { DEVICE_PREVIEWS } from '../src/ships/pickup-preview-sequence.js';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 const base = process.env.VN_URL;
 if (!base) throw new Error('Set VN_URL to a running browser build.');
 const responsive = process.argv.includes('--responsive');
+const careerStorage = createMemoryStorage();
+createCareerSlots({ storage: () => careerStorage, now: () => 1 }).create(1);
+const careerSeed = Array.from({ length: careerStorage.length }, (_, index) => {
+  const key = careerStorage.key(index);
+  return [key, careerStorage.getItem(key)];
+});
+const scopedProfileKey = `${CAREER_SLOTS_KEY}.slot.1.${PROFILE_KEY}`;
 const browser = await chromium.launch({
   args: ['--mute-audio'],
   channel: process.env.VN_BROWSER_CHANNEL ?? 'chrome',
@@ -19,26 +31,32 @@ async function check(name, fn) {
     hasTouch: responsive,
   });
   try {
-    await context.addInitScript(() => {
-      localStorage.setItem(
-        'vector-nova.settings',
-        JSON.stringify({ quality: 'low', volume: 0, reducedMotion: true }),
-      );
-      window.testPad = {
-        id: 'verification',
-        index: 0,
-        mapping: 'standard',
-        connected: true,
-        axes: [0, 0, 0, 0],
-        buttons: Array.from({ length: 17 }, () => ({
-          value: 0,
-          pressed: false,
-        })),
-      };
-      Object.defineProperty(navigator, 'getGamepads', {
-        value: () => [window.testPad],
-      });
-    });
+    await context.addInitScript(
+      ({ careerSeed, registryKey }) => {
+        if (localStorage.getItem(registryKey) === null)
+          for (const [key, value] of careerSeed)
+            localStorage.setItem(key, value);
+        localStorage.setItem(
+          'vector-nova.settings',
+          JSON.stringify({ quality: 'low', volume: 0, reducedMotion: true }),
+        );
+        window.testPad = {
+          id: 'verification',
+          index: 0,
+          mapping: 'standard',
+          connected: true,
+          axes: [0, 0, 0, 0],
+          buttons: Array.from({ length: 17 }, () => ({
+            value: 0,
+            pressed: false,
+          })),
+        };
+        Object.defineProperty(navigator, 'getGamepads', {
+          value: () => [window.testPad],
+        });
+      },
+      { careerSeed, registryKey: CAREER_SLOTS_KEY },
+    );
     const page = await context.newPage(),
       errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
@@ -50,7 +68,9 @@ async function check(name, fn) {
   }
 }
 const open = async (page, query) => {
-  await page.goto(new URL(`?${query}`, base).href);
+  const target = new URL(`?${query}`, base);
+  target.searchParams.set('intro', '0');
+  await page.goto(target.href);
   await page.waitForFunction(() => window.__VN_FRONTEND);
 };
 const action = (page, name) =>
@@ -469,7 +489,7 @@ try {
         else await key(page, 'Enter');
         assert.match(
           await page.locator('.reward-tooltip:not([hidden])').innerText(),
-          /Complete your first valid race/,
+          /Top speed I · \+5% total/,
         );
         const screen = (await state(page)).screen;
         if (controller) await pad(page, 1);
@@ -596,7 +616,7 @@ try {
         await page
           .locator('.detail-image .reward-tooltip:not([hidden])')
           .innerText(),
-        /Set a clean record here/,
+        /Boost duration II · \+12% total/,
       );
       await action(page, 'practice');
       assert.equal(
@@ -611,7 +631,7 @@ try {
       );
       assert.match(
         await page.locator('.loading-rewards').textContent(),
-        /Complete your first valid race/,
+        /Stat:\s*Speed I/,
       );
       await page.waitForFunction(
         () => window.__VN_FRONTEND.getState().screen === 'results',
@@ -1035,15 +1055,15 @@ try {
     'Quad Core controller confirmation assigns four items to exactly one hull',
     async (page) => {
       await open(page, 'dev=2');
-      await page.evaluate(() => {
+      await page.evaluate((profileKey) => {
         const profile = window.__VN_FRONTEND.getState().career.state;
         profile.exoticShip = null;
         for (const slots of Object.values(profile.loadouts)) {
           slots[2] = null;
           slots[3] = null;
         }
-        localStorage.setItem('vector-nova.career.v1', JSON.stringify(profile));
-      });
+        localStorage.setItem(profileKey, JSON.stringify(profile));
+      }, scopedProfileKey);
       await open(page, 'dev=1&ship=shrike');
       await action(page, 'ship-step');
       await page.locator('[data-action="fit-exotic"]').focus();

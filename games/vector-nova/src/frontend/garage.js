@@ -25,8 +25,6 @@ export function garageView({
   selectedShip,
   lockedShip,
   stock,
-  mode,
-  track,
   notice = '',
 }) {
   const unlocked = shipUnlocked(profile, craft.id);
@@ -42,14 +40,13 @@ export function garageView({
     : cupLocked
       ? 'Ship locked for this championship. Return to your championship ship to change equipment.'
       : '';
-  return `<div class="garage-top"><span>Choose ship</span><span>${escapeHTML(mode)} / ${escapeHTML(track)}</span></div>
-    <div class="garage-layout"><nav class="garage-fleet" aria-label="Choose ship">${fleet
-      .filter((ship) => shipUnlocked(profile, ship.id))
-      .map(
-        (ship) =>
-          `<button data-ship="${ship.id}" aria-pressed="${ship.id === selectedShip}" data-preview="${ship.id === craft.id}" aria-label="Select ${ship.name}"><img src="${assetURL(`assets/menu/ships/${ship.id}.jpg`)}" alt=""><strong>${ship.name}${ship.id === selectedShip ? ' ✓' : ''}</strong><small>${ship.role}</small></button>`,
-      )
-      .join('')}</nav>
+  return `<div class="garage-layout"><nav class="garage-fleet" aria-label="Choose ship">${fleet
+    .filter((ship) => shipUnlocked(profile, ship.id))
+    .map(
+      (ship) =>
+        `<button data-ship="${ship.id}" aria-pressed="${ship.id === selectedShip}" data-preview="${ship.id === craft.id}" aria-label="Select ${ship.name}"><img src="${assetURL(`assets/menu/ships/${ship.id}.jpg`)}" alt=""><strong>${ship.name}${ship.id === selectedShip ? ' ✓' : ''}</strong><small>${ship.role}</small></button>`,
+    )
+    .join('')}</nav>
     <div class="garage-main"><div class="garage-studio"><section class="ship-details"><h1>${craft.name}</h1><p class="garage-role">${craft.role}</p><div class="ship-preview-slot"><p role="status">Loading ship preview…</p></div><span class="garage-ship-status">${!unlocked ? shipLockText(profile, craft.id) : cupLocked ? 'Locked for this championship' : ''}</span><div class="transfer-slot ship-transfer"></div></section><section class="garage-performance" aria-label="Ship performance"><span class="kicker">Performance</span>${performanceView(craft, profile, { stock })}<div class="garage-legend"><span>Stock</span><span>Earned upgrades</span></div></section></div>
     <section class="garage-equipment" aria-label="Choose equipment"><div class="garage-equipment-heading"><h2>Equipment</h2><span class="garage-equipment-count">${stock ? 'Stock rules' : `<b>${count} / ${capacity}</b> equipped${capacity === 4 ? ' · Quad Core' : ''}`}</span></div><div class="garage-equipment-grid">${equipment
       .map((item) => {

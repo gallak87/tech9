@@ -122,7 +122,7 @@ export function careerView(profile) {
         .map((reward) => {
           const owned = profile.claims.includes(reward.id),
             [progress, total] = rewardProgress(profile, reward.requirement);
-          return `<article class="reward-milestone rarity-${reward.rarity} ${owned ? 'earned' : ''}">${rewardIcon(reward.id)}<div><strong>${reward.name}</strong><p>${reward.description}</p><small>${owned ? '✓ Earned' : `${requirementText(reward.requirement)} · ${progress}/${total}`}</small></div></article>`;
+          return `<article class="reward-milestone rarity-${reward.rarity} ${owned ? 'earned' : 'locked'}" aria-label="${escapeHTML(reward.name)} · ${owned ? 'Unlocked' : 'Locked'}">${rewardIcon(reward.id)}<div><strong>${reward.name}</strong><p>${reward.description}</p>${owned ? '' : `<small>${requirementText(reward.requirement)} · ${progress}/${total}</small>`}</div></article>`;
         })
         .join('')}</div></section>`;
     })

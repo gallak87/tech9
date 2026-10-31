@@ -107,6 +107,13 @@
   font-size: 22px;
   font-weight: 400;
 }
+.menu-layout button.menu-selection {
+  padding-inline: var(--selection-inline-padding);
+  border-left: 2px solid transparent;
+}
+.menu-layout button.menu-selection:is(:hover, :focus-visible) {
+  border-left-color: #d01818;
+}
 .race-actions {
   width: min(100%, 370px);
   display: grid;
@@ -287,7 +294,7 @@
 }
 .menu-wide .menu-picker {
   padding-top: clamp(12px, 4dvh, 40px);
-  height: calc(100dvh - 112px);
+  height: calc(100dvh - var(--menu-header-clearance, 88px) - 24px);
   display: flex;
   flex-direction: column;
 }
@@ -769,7 +776,7 @@
     padding-bottom: 16px;
   }
   .menu-wide .menu-picker {
-    height: calc(100dvh - 92px);
+    height: calc(100dvh - var(--menu-header-clearance, 76px) - 16px);
   }
   .menu-wide .menu-selection {
     padding-block: 12px;
@@ -1075,6 +1082,19 @@
   border-left-color: #d01818;
   background: #ffffff12;
   color: #fff;
+}
+.front-content .mode-picker [data-action='cup-hub'] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.mode-cup-trophy {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  pointer-events: none;
 }
 .menu-layout
   :is(.mode-picker, .race-difficulty, .menu-extras)
@@ -1489,10 +1509,48 @@
   }
 }
 
-/* Five persistent sections share the same header and measured content clearance. */
+/* Entry and career menus keep the wordmark anchored when navigation wraps. */
 .menu-topbar {
+  position: fixed;
+  z-index: 3;
+  background: transparent;
+  top: 22px;
+  left: clamp(24px, 4vw, 64px);
+  right: 380px;
+  display: flex;
+  align-items: flex-start;
   flex-wrap: wrap;
+  min-height: 44px;
   gap: 8px 24px;
+}
+.menu-topbar > :is(.menu-wordmark, .entry-wordmark) {
+  flex: none;
+  margin: 0 !important;
+  padding-block: calc((44px - 1em) / 2);
+  font:
+    italic 900 26px/1 Arial,
+    sans-serif;
+  letter-spacing: -0.055em;
+  white-space: nowrap;
+  color: #e8e8e8;
+}
+.menu-topbar > :is(.menu-wordmark, .entry-wordmark) > span {
+  margin-inline: 0;
+}
+@media (max-width: 760px) {
+  .menu-topbar {
+    top: 72px;
+    left: 24px;
+    right: 24px;
+  }
+  .menu-topbar > :is(.menu-wordmark, .entry-wordmark) {
+    font-size: 22px;
+  }
+}
+@media (max-width: 360px) {
+  .menu-topbar > :is(.menu-wordmark, .entry-wordmark) {
+    font-size: 19px;
+  }
 }
 .menu-top-tabs {
   flex-wrap: wrap;
@@ -1502,6 +1560,21 @@
 }
 .menu-top-tabs button {
   white-space: nowrap;
+}
+.menu-top-tabs .menu-switch-career {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-left: 2px solid transparent;
+}
+.menu-top-tabs .menu-switch-career:is(:hover, :focus-visible) {
+  border-left-color: #d01818;
+}
+.menu-switch-career svg {
+  width: 17px;
+  height: 17px;
+  flex: none;
 }
 #front-shell.cinematic-menu {
   scroll-padding-top: var(--menu-header-clearance, 88px);

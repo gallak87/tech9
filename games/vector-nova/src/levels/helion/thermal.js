@@ -7,6 +7,8 @@ export const HELION_HEAT_RULES = Object.freeze({
   furnaceHeating: 25,
   powerThreshold: 62,
   minimumThrust: 0.56,
+  maximumContactPenalty: 3,
+  contactRearm: 0.5,
   penaltyRelease: 1,
   visualRelease: 5,
   pulsePeriod: 1.2,

@@ -22,9 +22,10 @@ import {
   cupDefinition,
   cupGridOrder,
   cupChampion,
+  cupComplete,
 } from '../race/cup.js';
 import { createCupCollection } from '../progression/cup-collection.js';
-import { cupCabinet, cupHero, cupVictoryView } from './cup-art.js';
+import { cupArt, cupCabinet, cupHero, cupVictoryView } from './cup-art.js';
 import {
   cupView,
   cupWaitingView,
@@ -90,7 +91,8 @@ export async function createFrontend(
     storage,
     music: sharedMusic = null,
     career = null,
-    onSwitchCareer = () => {},
+    onSwitchCareer = null,
+    onRenameCareer = null,
     configureMusicNavigation = () => {},
   } = {},
 ) {
@@ -239,6 +241,10 @@ export async function createFrontend(
     if (!life.signal.aborted)
       bindMenuGamepad(life.signal, {
         toggleMusic: () => music?.togglePlayback(),
+        onSecondaryAction(root) {
+          if (root === shell && screen === 'career')
+            progressionMenu.renameCareer();
+        },
       });
   });
   // Match CSS: one picker at a time beside the menu, separate pages below.
@@ -246,7 +252,8 @@ export async function createFrontend(
   const choosingSession = () =>
     ['home', 'circuits', 'setup', 'cup', 'records'].includes(screen);
   const utilityPage = () => ['settings', 'career'].includes(screen);
-  const menuVisible = () => choosingSession() || utilityPage();
+  const menuVisible = () =>
+    choosingSession() || utilityPage() || screen === 'loading';
   const showingShip = () => screen === 'setup';
   const lockedCup = () => (intent === 'cup' ? cupStore.snapshot().state : null);
   host.innerHTML =
@@ -292,9 +299,14 @@ export async function createFrontend(
     signal: life.signal,
     sandbox: !!developer,
     careerName: career?.name,
-    onSwitchCareer: () => {
-      if (!disposed) onSwitchCareer();
-    },
+    onRenameCareer:
+      career && onRenameCareer
+        ? (name) => {
+            if (disposed) throw new Error('This career is closed.');
+            career = onRenameCareer(name);
+            return career.name;
+          }
+        : null,
     onCareerBack: () => actions['settings-back'](),
     onChange({ imported = false } = {}) {
       if (disposed) return;
@@ -523,19 +535,14 @@ export async function createFrontend(
       selectedShip: shipId,
       lockedShip: lockedCup()?.shipId,
       stock: intent === 'time-trial',
-      mode: modeName(),
-      track: level().name,
       notice: garageNotice,
     });
-  const modeName = () =>
-    ({
-      race: 'Quick Race',
-      practice: 'Practice',
-      'time-trial': 'Time Trial',
-      cup: 'Championships',
-    })[intent];
-  const modePicker = () =>
-    `<nav class="mode-picker" aria-label="Game mode">${[
+  const modePicker = () => {
+    const saved = cupStore.snapshot().state;
+    const activeCup =
+      saved && !cupComplete(saved) ? cupDefinition(saved.cupId) : null;
+    const cupStatus = activeCup ? `${escape(activeCup.name)} in progress` : '';
+    return `<nav class="mode-picker" aria-label="Game mode">${[
       ['quick-race', 'race', 'Quick Race'],
       ['cup-hub', 'cup', 'Championships'],
       ['time-trial', 'time-trial', 'Time Trial'],
@@ -543,9 +550,12 @@ export async function createFrontend(
     ]
       .map(
         ([action, mode, label]) =>
-          `<button data-action="${action}" aria-pressed="${intent === mode}">${label}</button>`,
+          `<button data-action="${action}" aria-pressed="${intent === mode}"${mode === 'cup' && activeCup ? ` aria-describedby="active-cup-description" title="${cupStatus}"` : ''}>${label}${mode === 'cup' && activeCup ? `<img class="mode-cup-trophy" src="${cupArt(activeCup.id).trophy}" alt="" aria-hidden="true">` : ''}</button>`,
       )
-      .join('')}</nav>`;
+      .join(
+        '',
+      )}${activeCup ? `<span id="active-cup-description" class="sr-only">${cupStatus}</span>` : ''}</nav>`;
+  };
   const launchLabel = () =>
     intent === 'time-trial'
       ? 'Start Time Trial →'
@@ -620,7 +630,11 @@ export async function createFrontend(
       ['career', 'Career'],
       ...(music ? [['tunes', 'Tunes']] : []),
     ];
-    return `<header class="menu-topbar"><span class="menu-wordmark">VECTOR<span>//</span>NOVA</span><nav class="menu-top-tabs" aria-label="Main navigation">${tabs.map(([action, label]) => `<button data-action="${action}" ${action === 'tunes' ? 'aria-expanded="false" aria-controls="music-panel"' : `aria-pressed="${active === action}"`}>${label}</button>`).join('')}</nav></header>`;
+    const switchCareer =
+      career && onSwitchCareer
+        ? '<button class="menu-switch-career" data-action="switch-career">Switch career <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 14-5-5 5-5M4 9h10a6 6 0 0 1 6 6v5"/></svg></button>'
+        : '';
+    return `<header class="menu-topbar"><span class="menu-wordmark">VECTOR<span>//</span>NOVA</span><nav class="menu-top-tabs" aria-label="Main navigation">${tabs.map(([action, label]) => `<button data-action="${action}" ${action === 'tunes' ? 'aria-expanded="false" aria-controls="music-panel"' : `aria-pressed="${active === action}"`}>${label}</button>`).join('')}${switchCareer}</nav></header>`;
   };
   const headerObserver = new ResizeObserver(updateHeaderClearance);
   life.signal.addEventListener('abort', () => headerObserver.disconnect(), {
@@ -726,7 +740,11 @@ export async function createFrontend(
       return;
     }
     shell.className =
-      screen === 'settings' ? 'cinematic-menu utility-shell settings-page' : '';
+      screen === 'settings'
+        ? 'cinematic-menu utility-shell settings-page'
+        : screen === 'loading'
+          ? 'loading-page'
+          : '';
     const title = {
       circuits: wideMenu.matches ? 'RACE SETUP' : 'SELECT CIRCUIT',
       setup: wideMenu.matches ? 'RACE SETUP' : 'CHOOSE SHIP',
@@ -750,6 +768,7 @@ export async function createFrontend(
     shell.innerHTML = `<header class="front-header"><button class="front-brand" data-action="home" aria-label="Vector Nova setup">VECTOR<span>//</span>NOVA</button>${headerLabel}${headerAction}</header><main class="front-content" data-page="${screen}"></main><footer class="front-footer"><span>${screen === 'circuits' ? 'ARROWS · BROWSE <i>/</i> ENTER · SELECT <i>/</i> TAB · CONTROLS' : `${sessionName(screen === 'results' ? loadedId : selected, screen !== 'results' && intent === 'practice').toUpperCase()} <i>/</i> ${escape((screen === 'results' ? loadedLevel() : level()).name.toUpperCase())}`}</span></footer>`;
     if (screen === 'loading' && launchTarget === 'inspection')
       shell.querySelector('.front-footer span').textContent = 'SHIP INSPECTOR';
+    if (screen === 'loading') menuBackdrop.mount(shell);
     if (screen === 'settings') {
       shell.innerHTML = `${topNavigation()}<main class="front-content utility-page" data-page="settings"><header class="utility-heading"><div><span class="kicker">PREFERENCES</span><h1>Settings</h1></div>${button('settings-back', '← Back')}</header><section class="utility-content"></section></main>`;
       menuBackdrop.mount(shell);
@@ -812,7 +831,7 @@ export async function createFrontend(
           : player?.position === 1
             ? 'Winner.'
             : 'Race finished.';
-      content.innerHTML = `<section class="result-panel">${heading('FINISH / ' + escape(loadedLevel().name.toUpperCase()), title)}<div class="results-layout"><section class="result-personal"><span class="kicker">${lastResults?.playerValid ? 'RACE TIME' : 'UNRANKED RUN'}</span><strong>${stamp(lastResults?.playerTotalTime)}</strong><p>${lastResults?.playerValid ? `${sprint ? 'One descent' : `${lastResults.laps ?? 2} laps`} · ${escape(lastResults.difficulty ?? settings.difficulty)}` : `${sprint ? 'This descent' : 'A lap'} was invalidated. This run does not count toward classification.`}</p><div class="lap-splits">${(lastResults?.playerLapTimes ?? []).map((t, i) => `<span>${sprint ? 'DESCENT' : `LAP ${i + 1}`}<b>${stamp(t)}</b></span>`).join('')}</div></section><section><ol class="results-list" aria-label="Race classification" tabindex="0"></ol><p class="results-note" role="status"></p></section></div><div class="front-actions results-actions">${button('retry-race', 'Retry Quick Race →', true)}${button('continue', 'Continue driving')}${button('change', 'Back to setup')}</div></section>`;
+      content.innerHTML = `<section class="result-panel">${heading('FINISH / ' + escape(loadedLevel().name.toUpperCase()), title)}<div class="front-actions results-actions">${button('retry-race', 'Retry Quick Race →', true)}${button('continue', 'Continue driving')}${button('change', 'Back to setup')}</div><div class="results-layout"><section class="result-personal"><span class="kicker">${lastResults?.playerValid ? 'RACE TIME' : 'UNRANKED RUN'}</span><strong>${stamp(lastResults?.playerTotalTime)}</strong><p>${lastResults?.playerValid ? `${sprint ? 'One descent' : `${lastResults.laps ?? 2} laps`} · ${escape(lastResults.difficulty ?? settings.difficulty)}` : `${sprint ? 'This descent' : 'A lap'} was invalidated. This run does not count toward classification.`}</p><div class="lap-splits">${(lastResults?.playerLapTimes ?? []).map((t, i) => `<span>${sprint ? 'DESCENT' : `LAP ${i + 1}`}<b>${stamp(t)}</b></span>`).join('')}</div></section><section><ol class="results-list" aria-label="Race classification" tabindex="0"></ol><p class="results-note" role="status"></p></section></div></section>`;
       if (trial) {
         const r = lastResults;
         const signed = formatDelta;
@@ -846,13 +865,14 @@ export async function createFrontend(
           rewardContext ?? {},
           lastResults,
         ) + rewardsView(earnedRewards);
-      if (actions) actions.insertAdjacentHTML('beforebegin', progression);
-      else panel?.insertAdjacentHTML('beforeend', progression);
+      panel?.insertAdjacentHTML('beforeend', progression);
       if (lastResults?.mode === 'cup')
-        panel?.insertAdjacentHTML(
-          'beforeend',
-          `<div class="front-actions">${button('equipment', 'Change equipment')}</div>`,
-        );
+        actions
+          ?.querySelector('.front-actions')
+          ?.insertAdjacentHTML(
+            'beforeend',
+            button('equipment', 'Change equipment'),
+          );
     }
     const statusSlot = shell.querySelector('.transfer-slot');
     if (statusSlot) statusSlot.append(transfer);
@@ -1567,6 +1587,9 @@ export async function createFrontend(
       earnedRewards = [];
       openUtility('career');
     },
+    'switch-career'() {
+      if (!disposed && career) void onSwitchCareer?.();
+    },
     'quick-race'() {
       chooseMode('race');
     },
@@ -1888,6 +1911,7 @@ export async function createFrontend(
               controls.find(
                 (control) =>
                   !control.disabled &&
+                  !control.hasAttribute('data-controller-skip') &&
                   control.getClientRects().length &&
                   !control.closest('[hidden], [inert]'),
               ),
@@ -2253,7 +2277,8 @@ export async function createFrontend(
     progressionMenu.unmountCareer();
     disposal = Promise.allSettled([pending?.promise, inspectorPending]).then(
       () => {
-        cacheModule?.disposeShipCache();
+        // Parsed fleet sources and their decoder belong to the page session.
+        // Career switches dispose instances above; pagehide releases the cache.
         if (!import.meta.env?.VN_DESKTOP) delete window.__VN_FRONTEND;
         host.replaceChildren();
       },

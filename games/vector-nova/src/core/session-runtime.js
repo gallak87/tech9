@@ -1,4 +1,4 @@
-import { createFlightModel } from '../physics/flight.js';
+import { createFlightModel, EQUIPMENT_JUMP_RULES } from '../physics/flight.js';
 import { stepVehicle } from '../physics/index.js';
 import {
   createMagneticBody,
@@ -30,7 +30,7 @@ export function createMagneticRuntime({
     );
     // The ground controller is unchanged. Equipment builds carry their own
     // identity; stock Time Trials retain their existing namespace.
-    runtime.rulesId = `${BASELINE_RULES}:${MAGNETIC_BODY_RULES}:${dynamics.rulesId}`;
+    runtime.rulesId = `${BASELINE_RULES}:${MAGNETIC_BODY_RULES}:${dynamics.rulesId}:equipment-jump-v2-${JSON.stringify(EQUIPMENT_JUMP_RULES)}`;
     return runtime;
   }
   if (dynamics) {

@@ -121,7 +121,7 @@ test('repulsor charges, pushes locally, respects decks/flight and has bounded re
   const h = harness();
   h.add('player', 100);
   const near = h.add('near', 112, 6);
-  const far = h.add('far', 200);
+  const far = h.add('far', 240);
   const flying = h.add('flying', 104);
   flying.grounded = false;
   h.collect('player', 'repulsor');
@@ -136,6 +136,78 @@ test('repulsor charges, pushes locally, respects decks/flight and has bounded re
   h.collect('far', 'repulsor', 'second');
   h.step(61);
   assert.equal(near.hits.length, 1);
+});
+test('Repulsor reaches 108 road metres in both directions without affecting separate decks or flight', () => {
+  const h = harness();
+  h.add('player', 200);
+  const ahead = h.add('ahead', 307);
+  const behind = h.add('behind', 93);
+  const outside = h.add('outside', 309);
+  const offDeck = h.add('off-deck', 240);
+  const deckPose = offDeck.pose;
+  offDeck.pose = () => {
+    const pose = deckPose();
+    pose.position.y += 12;
+    return pose;
+  };
+  const flying = h.add('flying', 230);
+  flying.grounded = false;
+  h.collect('player', 'repulsor');
+  h.step(61);
+  assert.equal(COMBAT_RULES.pulseRadius, 108);
+  assert.equal(ahead.hits.length, 1);
+  assert.equal(behind.hits.length, 1);
+  assert.ok(ahead.hits[0].impulse[2] > 0);
+  assert.ok(behind.hits[0].impulse[2] < 0);
+  assert.equal(outside.hits.length, 0);
+  assert.equal(offDeck.hits.length, 0);
+  assert.equal(flying.hits.length, 0);
+  const pulse = h.combat.view().flashes.find((flash) => !flash.target);
+  assert.equal(pulse.distance, 200);
+  assert.equal(pulse.lateral, 0);
+});
+test('Repulsor follows rising road contours while keeping static cover authoritative', () => {
+  const course = {
+    ...track,
+    sample(distance) {
+      const tangent = new T.Vector3(0, 0.3, 1).normalize();
+      const right = new T.Vector3(1, 0, 0);
+      const up = tangent.clone().cross(right);
+      return {
+        ...track.sample(distance),
+        position: new T.Vector3(0, distance * 0.3, distance),
+        tangent,
+        right,
+        up,
+        quaternion: new T.Quaternion().setFromRotationMatrix(
+          new T.Matrix4().makeBasis(right, up, tangent),
+        ),
+      };
+    },
+  };
+  for (const covered of [false, true]) {
+    const h = harness(
+      {
+        sweepHull(a, b) {
+          return {
+            fraction:
+              covered && a.position.z < 150 && b.position.z >= 150 ? 0.5 : 1,
+          };
+        },
+      },
+      course,
+    );
+    h.add('player', 100);
+    const target = h.add('target', 196);
+    h.collect('player', 'repulsor');
+    h.step(61);
+    assert.equal(target.hits.length, covered ? 0 : 1);
+    if (!covered)
+      assert.ok(
+        target.hits[0].impulse[1] > 0,
+        'impulse follows the receiving road plane',
+      );
+  }
 });
 test('every racer can collect the same combat gate together or close behind', () => {
   for (const kind of ['repulsor', 'arc', 'ion']) {

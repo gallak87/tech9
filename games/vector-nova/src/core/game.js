@@ -33,6 +33,7 @@ import {
   loadSettings,
   saveSettings,
   subscribeSettings,
+  effectsVolume,
 } from '../progression/index.js';
 
 import { artPassURL } from './art-pass.js';
@@ -1446,7 +1447,7 @@ export async function createGame({
       if (cupFinish && ['racing', 'results', 'paused'].includes(mode)) {
         // Hold the finish frame while the field resolves offscreen. Never
         // render accelerated motion or tie the banner's duration to race time.
-        audio.update(state, settings.volume, false, {
+        audio.update(state, effectsVolume(settings), false, {
           results: mode !== 'paused',
         });
         if (finishNeedsRender) {
@@ -1487,10 +1488,15 @@ export async function createGame({
         raf = requestAnimationFrame(render);
         return;
       }
-      audio.update(state, settings.volume, mode === 'racing' && !finishing, {
-        countdown: mode === 'countdown',
-        results: mode === 'results' || (mode === 'racing' && finishing),
-      });
+      audio.update(
+        state,
+        effectsVolume(settings),
+        mode === 'racing' && !finishing,
+        {
+          countdown: mode === 'countdown',
+          results: mode === 'results' || (mode === 'racing' && finishing),
+        },
+      );
       if (mode === 'countdown') {
         const step = countdown.advance();
         if (step !== null) {

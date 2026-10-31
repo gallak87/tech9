@@ -12,13 +12,24 @@ export const halcyonGraphicsDefaults = {
 };
 export const defaults = {
   ...CONTROLLER_DEFAULTS,
+  masterVolume: 1,
   volume: 0.35,
+  musicVolume: 0.4,
   quality: 'high',
   reducedMotion: false,
   difficulty: 'easy',
   ...vesperGraphicsDefaults,
   ...halcyonGraphicsDefaults,
 };
+const volumeLane = (value, fallback) =>
+  Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : fallback;
+
+export const effectsVolume = (settings = {}) =>
+  settings.muted
+    ? 0
+    : volumeLane(settings.masterVolume, defaults.masterVolume) *
+      volumeLane(settings.volume, defaults.volume);
+
 let current;
 const listeners = new Set();
 function normalize(saved = {}) {
@@ -37,9 +48,9 @@ function normalize(saved = {}) {
         typeof saved[key] === 'boolean' ? saved[key] : fallback,
       ]),
     ),
-    volume: Number.isFinite(saved.volume)
-      ? Math.max(0, Math.min(1, saved.volume))
-      : defaults.volume,
+    masterVolume: volumeLane(saved.masterVolume, defaults.masterVolume),
+    volume: volumeLane(saved.volume, defaults.volume),
+    musicVolume: volumeLane(saved.musicVolume, defaults.musicVolume),
     quality: ['low', 'high'].includes(saved.quality)
       ? saved.quality
       : mobileGraphics()

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { RACE_OPPONENTS } from '../src/race/roster.js';
 import { CUPS, cupDefinition } from '../src/race/cup.js';
+import { careerKey, seedVerificationCareer } from './verification-career.mjs';
 const cup = cupDefinition(process.env.VN_CUP_ID ?? 'founders');
 assert.ok(cup, 'VN_CUP_ID must name an available cup');
 const lastCup = CUPS.at(-1);
@@ -16,12 +17,17 @@ if (!base) throw Error('Set VN_URL to a dev server');
 const [width, height] = (process.env.VN_CUP_VIEWPORT ?? '1440x900')
   .split('x')
   .map(Number);
-const browser = await chromium.launch({ headless: true, channel: 'chrome' });
+const browser = await chromium.launch({
+  args: ['--mute-audio'],
+  headless: true,
+  channel: 'chrome',
+});
 const context = await browser.newContext({
   viewport: { width, height },
   hasTouch: width < 900,
 });
 try {
+  await seedVerificationCareer(context);
   await context.addInitScript(() =>
     localStorage.setItem(
       'vector-nova.settings',
@@ -44,10 +50,12 @@ try {
   const openCup = async () => {
     await page.locator('[data-action="cup-hub"]').click();
     if (width < 900) await page.locator('[data-action="circuits"]').click();
+    // Keep stationary pointer hover from competing with keyboard previews.
+    await page.mouse.move(0, 0);
   };
   const faults = [];
   page.on('pageerror', (e) => faults.push(e.message));
-  await page.goto(base + '?music=0');
+  await page.goto(base + '?intro=0&music=0');
   await openCup();
   await page.locator('[data-cup="founders"]').focus();
   await page.keyboard.press('End');
@@ -89,7 +97,10 @@ try {
   );
   await page.locator('[data-action="cup-start"]').click();
   await page.waitForFunction(
-    () => window.__VN?.ready && window.__VN.getSnapshot().cup,
+    () =>
+      window.__VN?.ready &&
+      window.__VN_FRONTEND.getState().screen === 'race' &&
+      window.__VN.getSnapshot().cup,
     null,
     { timeout: 120000 },
   );
@@ -237,14 +248,54 @@ try {
       false,
       'cup content fits its containers',
     );
-    if (width >= 1200 && height >= 900)
-      assert.equal(
-        await page
-          .locator('#front-shell')
-          .evaluate((node) => node.scrollHeight <= node.clientHeight + 1),
-        true,
-        'desktop standings fit without scrolling',
+    if (width >= 1200 && height >= 900) {
+      await page.locator('#front-shell').evaluate((node) => {
+        node.scrollTop = 0;
+      });
+      const layout = await page
+        .locator('.cup-results-panel')
+        .evaluate((node) => {
+          const heading = node
+            .querySelector('.cup-result-heading')
+            .getBoundingClientRect();
+          const actions = node
+            .querySelector('.cup-result-actions > .front-actions')
+            .getBoundingClientRect();
+          const table = node.querySelector('.cup-standings');
+          return {
+            headingBottom: heading.bottom,
+            actionsTop: actions.top,
+            actionsBottom: actions.bottom,
+            tableFits: table.scrollHeight <= table.clientHeight + 1,
+          };
+        });
+      assert.ok(
+        layout.actionsTop >= layout.headingBottom - 1 &&
+          layout.actionsTop - layout.headingBottom < 120,
+        'cup result actions stay near the heading',
       );
+      assert.ok(
+        layout.actionsBottom <= height,
+        'primary cup result actions are in the first viewport',
+      );
+      assert.equal(
+        layout.tableFits,
+        true,
+        'standings have no internal scrolling',
+      );
+      const rewards = page.locator('.earned-rewards .earned-reward');
+      if (await rewards.count()) {
+        await rewards.last().scrollIntoViewIfNeeded();
+        const bounds = await rewards.last().boundingBox();
+        assert.ok(
+          bounds.y >= 0 && bounds.y + bounds.height <= height + 1,
+          'earned rewards remain reachable through outer-page scrolling',
+        );
+        await page.locator('#front-shell').evaluate((node) => {
+          node.scrollTop = 0;
+        });
+      }
+    }
   };
   await fits();
   await page.locator('.cup-options > summary').focus();
@@ -291,10 +342,23 @@ try {
     'cinematic-menu',
   );
   if (width < 900) await page.locator('[data-action="home"]').first().click();
-  assert.equal(
-    await page.locator('.race-menu [data-action="ship-step"]').isDisabled(),
-    true,
+  assert.match(
+    await page.locator('.race-menu [data-action="ship-step"]').textContent(),
+    /Locked for this cup/,
   );
+  await page.locator('.race-menu [data-action="ship-step"]').click();
+  await page.locator('.dedicated-garage').waitFor();
+  assert.equal(
+    await page
+      .locator('.garage-fleet [aria-pressed="true"]')
+      .getAttribute('data-ship'),
+    saved.shipId,
+  );
+  assert.equal(
+    (await page.evaluate(() => window.__VN_FRONTEND.getState())).shipId,
+    saved.shipId,
+  );
+  await page.locator('[data-action="race-tab"]').click();
   assert.equal(await page.locator('[data-difficulty]').count(), 0);
   if (width < 900) await page.locator('[data-action="circuits"]').click();
   await page.locator('.cup-scores > summary').click();
@@ -356,16 +420,17 @@ try {
     ),
   };
   await page.evaluate(
-    (state) =>
-      localStorage.setItem('vector-nova.cup.v1', JSON.stringify(state)),
-    finalState,
+    ({ key, state }) => localStorage.setItem(key, JSON.stringify(state)),
+    { key: careerKey('vector-nova.cup.v1'), state: finalState },
   );
   await page.reload();
   await openCup();
   await page.locator('[data-action="cup-resume"]').click();
   await page.waitForFunction(
     (id) =>
-      window.__VN?.ready && window.__VN_FRONTEND.getState().loadedId === id,
+      window.__VN?.ready &&
+      window.__VN_FRONTEND.getState().screen === 'race' &&
+      window.__VN_FRONTEND.getState().loadedId === id,
     cup.tracks.at(-1),
     { timeout: 120000 },
   );

@@ -120,8 +120,14 @@ export function createPickupPresentation({
     projector.dispose();
   }
   buildHardware();
+  const combatProjector = combat
+    ? createSurfaceProjector(track, surfaces)
+    : null;
   const combatVisual = combat
-    ? createCombatPresentation(scene, combat, settings)
+    ? createCombatPresentation(scene, combat, settings, {
+        track,
+        projector: combatProjector,
+      })
     : null;
   const hitFeedback = combat
     ? createHitFeedback(ship.group || ship, settings)
@@ -497,6 +503,7 @@ export function createPickupPresentation({
       document.removeEventListener('visibilitychange', visibility);
       hud.remove();
       combatVisual?.dispose();
+      combatProjector?.dispose();
       hitFeedback?.dispose();
       screenFeedback.dispose();
       disposeGroup(root);

@@ -1,6 +1,7 @@
 import { MAX_SAVE_BYTES } from './save-transfer.js';
 import { SHIPS } from '../ships/catalog.js';
 import { careerView, escapeHTML } from './view.js';
+import { careerNameIcons } from './career-name.js';
 import './style.css';
 export function createProgressionMenu({
   host,
@@ -8,7 +9,7 @@ export function createProgressionMenu({
   signal,
   onChange = () => {},
   onCareerBack = () => {},
-  onSwitchCareer = null,
+  onRenameCareer = null,
   careerName = 'Career',
   sandbox = false,
 }) {
@@ -19,7 +20,9 @@ export function createProgressionMenu({
   const career = document.createElement('section');
   career.className = 'career-page';
   career.dataset.progressionCareer = '';
-  let careerMounted = false;
+  let careerMounted = false,
+    renaming = false,
+    renameDraft = '';
   const activeRoot = () => (dialog.open ? dialog : career);
   const isActive = (root) =>
     root === dialog ? dialog.open : careerMounted && career.isConnected;
@@ -65,7 +68,7 @@ export function createProgressionMenu({
     const content =
       confirmation === 'exotic'
         ? ''
-        : `<div class="career-transfer">${onSwitchCareer ? '<button data-switch-career>Switch career</button>' : ''}<button data-export>Export save</button><button data-import>Import save</button><button data-backup aria-label="Export previous backup">Export backup</button><input type="file" accept=".json,application/json" hidden data-save-file><span>Includes rewards, equipment, cups, records and ghosts.</span></div>${careerView(state)}`;
+        : `<div class="career-transfer"><button data-export>Export save</button><button data-import>Import save</button><button data-backup aria-label="Export previous backup">Export backup</button><input type="file" accept=".json,application/json" hidden data-save-file><span>Includes rewards, equipment, cups, records and ghosts.</span></div>${careerView(state)}`;
     const ask =
       confirmation === 'exotic'
         ? `<section class="progression-confirm" role="alertdialog" aria-label="Choose exotic ship"><h3>Fit Quad Core to ${ship.name}?</h3><p>This permanent reward gives ${ship.name} four equipment slots.</p><button data-cancel>Keep choosing</button><button data-confirm-exotic>Fit Quad Core</button></section>`
@@ -73,8 +76,14 @@ export function createProgressionMenu({
           ? `<section class="progression-confirm" role="alertdialog" aria-label="Import career"><h3>Replace this career?</h3><p>Incoming save: ${imported.profile.wins} wins · ${imported.profile.claims.length} rewards · ${imported.profile.cups.length} cup wins. A backup of your current career will be kept on this device.</p>${imported.cupUnavailable ? '<p>This championship can only resume in the other edition. Its results, rewards and trophies will stay saved.</p>' : ''}<button data-cancel>Cancel</button><button data-confirm-import>Import career</button></section>`
           : '';
     const titleId = inline ? 'career-page-title' : 'progression-title';
-    const notice = `<p class="progression-notice" role="status">${escapeHTML(message || store.snapshot().notice || (sandbox ? 'Temporary playtest profile. Your earned career is untouched.' : ''))}</p>`;
-    const header = `<header class="progression-header"><div><span class="kicker">VECTOR//NOVA · ${sandbox ? 'PLAYTEST PROFILE' : inline ? 'CAREER' : 'GARAGE'}</span><${inline ? 'h1' : 'h2'} id="${titleId}">${title}</${inline ? 'h1' : 'h2'}></div><button data-close aria-label="${inline ? 'Back from' : 'Close'} ${title}">Back${inline ? '' : ' <span aria-hidden="true">×</span>'}</button></header>`;
+    const notice = `<p class="progression-notice" id="${inline ? 'career-page-notice' : 'progression-notice'}" role="status">${escapeHTML(message || store.snapshot().notice || (sandbox ? 'Temporary playtest profile. Your earned career is untouched.' : ''))}</p>`;
+    const rename =
+      inline && onRenameCareer && !sandbox && !ask
+        ? renaming
+          ? `<div class="career-name-editor"><input data-career-name aria-label="Career name" aria-describedby="career-page-notice" maxlength="32" value="${escapeHTML(renameDraft)}" autocomplete="off" spellcheck="false"><div class="career-name-actions" role="group" aria-label="Career name actions"><button type="button" data-career-save aria-label="Save career name" title="Save career name">${careerNameIcons.check}</button><button type="button" data-career-cancel aria-label="Cancel career rename" title="Cancel career rename">${careerNameIcons.cancel}</button></div></div>`
+          : `<button type="button" data-career-rename data-controller-skip aria-label="Rename ${title}" title="Rename career · Controller Y">${careerNameIcons.pencil}</button>`
+        : '';
+    const header = `<header class="progression-header"><div><span class="kicker">VECTOR//NOVA · ${sandbox ? 'PLAYTEST PROFILE' : inline ? 'CAREER' : 'GARAGE'}</span><div class="${inline ? 'career-name-heading' : ''}"><${inline ? 'h1' : 'h2'} id="${titleId}" ${renaming && inline ? 'class="sr-only"' : ''}>${title}</${inline ? 'h1' : 'h2'}>${rename}</div></div><button data-close aria-label="${inline ? 'Back from' : 'Close'} ${title}">Back${inline ? '' : ' <span aria-hidden="true">×</span>'}</button></header>`;
     root.innerHTML = inline
       ? `${header}${ask}<div class="progression-body" ${ask ? 'inert' : ''}>${notice}${content}</div>`
       : `${header}<div class="progression-body" ${ask ? 'inert' : ''}>${content}</div>${notice}${ask}`;
@@ -84,6 +93,49 @@ export function createProgressionMenu({
       root
         .querySelector(focus ?? (ask ? '[data-cancel]' : '[data-close]'))
         ?.focus();
+  }
+  function renameCareer() {
+    if (
+      !careerMounted ||
+      !career.isConnected ||
+      dialog.open ||
+      imported ||
+      confirmation ||
+      !onRenameCareer ||
+      sandbox
+    )
+      return false;
+    if (renaming) {
+      career
+        .querySelector('[data-career-name]')
+        ?.focus({ preventScroll: true });
+      return true;
+    }
+    renaming = true;
+    renameDraft = careerName;
+    message = '';
+    render('[data-career-name]');
+    career.querySelector('[data-career-name]')?.select();
+    return true;
+  }
+  function finishRename(save) {
+    if (!renaming) return;
+    if (save) {
+      const input = career.querySelector('[data-career-name]');
+      try {
+        careerName = onRenameCareer(input.value);
+      } catch (error) {
+        message = error.message;
+        career.querySelector('.progression-notice').textContent = message;
+        input.setAttribute('aria-invalid', 'true');
+        input.focus({ preventScroll: true });
+        return;
+      }
+    }
+    renaming = false;
+    renameDraft = '';
+    message = '';
+    render('[data-export]');
   }
   dialog.addEventListener(
     'cancel',
@@ -103,6 +155,23 @@ export function createProgressionMenu({
     view.addEventListener(
       'keydown',
       (event) => {
+        if (renaming && event.key === 'Escape') {
+          event.preventDefault();
+          event.stopPropagation();
+          finishRename(false);
+          return;
+        }
+        if (
+          renaming &&
+          event.target.matches('[data-career-name]') &&
+          event.key === 'Enter' &&
+          !event.isComposing
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          finishRename(true);
+          return;
+        }
         if (event.key === 'Escape') {
           event.preventDefault();
           event.stopPropagation();
@@ -124,7 +193,10 @@ export function createProgressionMenu({
           return;
         const root = event.currentTarget;
         const buttons = [...root.querySelectorAll('button')].filter(
-          (button) => !button.disabled && !button.closest('[inert]'),
+          (button) =>
+            !button.disabled &&
+            !button.hasAttribute('data-controller-skip') &&
+            !button.closest('[inert]'),
         );
         const direction = ['ArrowUp', 'ArrowLeft'].includes(event.key) ? -1 : 1;
         const grid = event.target.closest('.equipment-grid');
@@ -151,13 +223,12 @@ export function createProgressionMenu({
       (event) => {
         const button = event.target.closest('button');
         if (!button) return;
+        if (button.hasAttribute('data-career-rename'))
+          return void renameCareer();
+        if (button.hasAttribute('data-career-save')) return finishRename(true);
+        if (button.hasAttribute('data-career-cancel'))
+          return finishRename(false);
         if (button.hasAttribute('data-close')) return close();
-        if (button.hasAttribute('data-switch-career')) {
-          importSequence++;
-          imported = null;
-          onSwitchCareer?.();
-          return;
-        }
         if (button.hasAttribute('data-confirm-exotic')) {
           store.chooseExotic(shipId);
           confirmation = null;
@@ -216,6 +287,17 @@ export function createProgressionMenu({
       { signal },
     );
     view.addEventListener(
+      'input',
+      (event) => {
+        if (!event.target.matches('[data-career-name]')) return;
+        renameDraft = event.target.value;
+        event.target.removeAttribute('aria-invalid');
+        message = '';
+        career.querySelector('.progression-notice').textContent = '';
+      },
+      { signal },
+    );
+    view.addEventListener(
       'change',
       async (event) => {
         if (!event.target.matches('[data-save-file]')) return;
@@ -229,6 +311,8 @@ export function createProgressionMenu({
           const text = await file.text();
           if (sequence !== importSequence || !isActive(root)) return;
           imported = store.parse(text);
+          renaming = false;
+          renameDraft = '';
           message = '';
           render();
         } catch (error) {
@@ -254,6 +338,7 @@ export function createProgressionMenu({
     mountCareer,
     unmountCareer,
     openCareer: mountCareer,
+    renameCareer,
     openExotic(id) {
       shipId = id;
       open('exotic');
@@ -267,6 +352,8 @@ export function createProgressionMenu({
       imported = null;
       confirmation = null;
       message = '';
+      renaming = false;
+      renameDraft = '';
       careerMounted = true;
     }
     if (career.parentElement !== container) container.replaceChildren(career);
@@ -278,6 +365,8 @@ export function createProgressionMenu({
     careerMounted = false;
     imported = null;
     message = '';
+    renaming = false;
+    renameDraft = '';
     career.remove();
   }
   function open(choice = null) {

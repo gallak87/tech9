@@ -22,26 +22,6 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.garage-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-height: 44px;
-  margin: 14px 0 18px;
-}
-.garage-top button {
-  border: 0;
-  padding: 10px 0;
-  background: transparent;
-  color: #bbb;
-  font-size: 12px;
-}
-.garage-top > span {
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  font-size: 11px;
-  color: #aaa;
-}
 .garage-layout {
   display: grid;
   grid-template-columns: 150px minmax(0, 1fr);
@@ -335,9 +315,6 @@
     margin-top: 14px;
     padding-top: 12px;
   }
-  .garage-top {
-    margin: 6px 0 12px;
-  }
 }
 @media (max-width: 1000px) {
   .garage-header > span:last-child {
@@ -454,22 +431,6 @@
   text-align: left;
 }
 
-.menu-topbar {
-  position: fixed;
-  z-index: 3;
-  background: transparent;
-  top: 22px;
-  left: clamp(24px, 4vw, 64px);
-  right: 380px;
-  display: flex;
-  align-items: center;
-  gap: 34px;
-  min-height: 42px;
-}
-.menu-topbar .menu-wordmark {
-  margin: 0 !important;
-  font-size: 26px;
-}
 .menu-top-tabs {
   display: flex;
   align-self: stretch;
@@ -495,18 +456,6 @@
   color: #fff;
   border-bottom-color: #d01818;
 }
-.garage-top {
-  margin: 0 0 18px;
-  min-height: 40px;
-  color: #aaa;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.garage-top > span:last-child {
-  letter-spacing: 0.04em;
-  text-transform: none;
-}
 .garage-fleet button[aria-pressed='true'] {
   border-left-color: #ce2529;
 }
@@ -520,15 +469,6 @@
   font-size: 11px;
 }
 @media (max-width: 760px) {
-  .menu-topbar {
-    top: 72px;
-    left: 24px;
-    right: 24px;
-    gap: 24px;
-  }
-  .menu-topbar .menu-wordmark {
-    font-size: 22px;
-  }
   .menu-top-tabs {
     gap: 4px;
   }
@@ -541,23 +481,8 @@
   .cinematic-menu .front-content.menu-layout {
     padding-top: 130px;
   }
-  .garage-top {
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .garage-top > span:last-child {
-    text-align: right;
-    max-width: 60%;
-    font-size: 10px;
-  }
 }
 @media (max-width: 360px) {
-  .menu-topbar {
-    gap: 18px;
-  }
-  .menu-topbar .menu-wordmark {
-    font-size: 19px;
-  }
   .menu-top-tabs {
     gap: 4px;
   }
@@ -589,10 +514,6 @@
   letter-spacing: normal;
 }
 @media (min-width: 901px) and (max-height: 800px) {
-  .garage-top {
-    min-height: 28px;
-    margin-bottom: 12px;
-  }
   .garage-performance .performance-grid {
     gap: 10px;
   }

@@ -131,3 +131,39 @@ test('controller preferences migrate old saves, persist, validate and reset inde
     delete globalThis.localStorage;
   }
 });
+
+test('audio lanes persist independently and master scales effects exactly once', async () => {
+  let saved = JSON.stringify({ volume: 0.35 });
+  globalThis.localStorage = {
+    getItem: () => saved,
+    setItem: (_key, value) => {
+      saved = value;
+    },
+  };
+  try {
+    const store = await import('./index.js?audio-lanes');
+    assert.equal(store.loadSettings().masterVolume, 1);
+    assert.equal(store.loadSettings().musicVolume, 0.4);
+    store.saveSettings({ masterVolume: 0.5, volume: 0.6, musicVolume: 0.8 });
+    assert.equal(store.effectsVolume(store.loadSettings()), 0.3);
+    const reloaded = await import('./index.js?audio-lanes-reloaded');
+    assert.equal(reloaded.loadSettings().masterVolume, 0.5);
+    assert.equal(reloaded.loadSettings().volume, 0.6);
+    assert.equal(reloaded.loadSettings().musicVolume, 0.8);
+    store.saveSettings({ masterVolume: 0 });
+    assert.equal(store.effectsVolume(store.loadSettings()), 0);
+    assert.equal(store.loadSettings().volume, 0.6);
+    assert.equal(store.loadSettings().musicVolume, 0.8);
+    store.saveSettings({ masterVolume: 2, volume: -1, musicVolume: Infinity });
+    assert.equal(store.loadSettings().masterVolume, 1);
+    assert.equal(store.loadSettings().volume, 0);
+    assert.equal(store.loadSettings().musicVolume, 0.4);
+    assert.equal(store.effectsVolume(), 0.35);
+    assert.equal(
+      store.effectsVolume({ muted: true, masterVolume: 1, volume: 1 }),
+      0,
+    );
+  } finally {
+    delete globalThis.localStorage;
+  }
+});

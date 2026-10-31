@@ -12,6 +12,8 @@ import createHelion from '../src/levels/helion/index.js';
 import createCindercoil from '../src/levels/cindercoil/index.js';
 import createSaffron from '../src/levels/saffron/index.js';
 import createVesperForest from '../src/levels/vesper-forest/index.js';
+import createColossus from '../src/levels/colossus/index.js';
+import { createDeviceRuntime } from '../src/pickups/runtime.js';
 import { sampleSaffronDeposits } from '../src/levels/saffron/track/sand.js';
 import {
   runtimeIdentity,
@@ -294,3 +296,132 @@ for (const [id, create, start, maximum] of definitions)
         collisionWorld.dispose();
       }
     });
+
+const poweredHazards = [
+  ...definitions,
+  [
+    'colossus',
+    createColossus,
+    (track, active) => {
+      const belt = track.belts[0];
+      return {
+        distance: (belt.start + belt.end) / 2,
+        lateral: belt.side * (active ? 16 : -24),
+        time: 0,
+      };
+    },
+  ],
+];
+function hazardContact(id, snapshot) {
+  if (id === 'helion') return snapshot.contactDuration;
+  if (id === 'cindercoil') return snapshot.contactId !== null;
+  if (id === 'saffron') return snapshot.saffron.sandExposure;
+  if (id === 'vesper-forest') return snapshot.surface.id === 'sap';
+  return snapshot.crossfeedContact.contact !== null;
+}
+for (const [id, create, start] of poweredHazards)
+  test(`${id}: powered hops ignore ground hazards from activation through flight and resume contact on touchdown`, async () => {
+    const level = create({ shape: true });
+    const track = {
+      ...level.createTrack(),
+      sample: frame,
+      sampleSurface: undefined,
+    };
+    const collisionWorld = createCollisionWorld({
+      id: `${id}-powered-hazard-fixture`,
+      version: 1,
+      geometryId: 'flat',
+      triangles: [],
+    });
+    const dynamics = await createRapierWorld({ collisionWorld });
+    const outputs = [];
+    try {
+      for (const active of [false, true]) {
+        const motion = level.racing.createMotion({
+          track,
+          collisionWorld,
+          dynamics,
+          presentation: false,
+        });
+        const runtime = createDeviceRuntime({ track, devices: [], motion });
+        const state = {
+          ...createVehicleState('kestrel'),
+          ...start(track, active),
+          speed: 0,
+          energy: 60,
+          equipment: ['jump'],
+        };
+        try {
+          runtime.reset({ state });
+          let airborne = false,
+            landed = false;
+          const airEnergy = [];
+          for (let tick = 0; tick < 300; tick++) {
+            runtime.beginAdvance(
+              state,
+              {
+                ...drive,
+                throttle: 0,
+                boost: false,
+                equipment1: tick === 0,
+              },
+              DT,
+            );
+            dynamics.step(DT);
+            runtime.finishAdvance(state);
+            const grounded = runtime.pose(1)?.grounded !== false;
+            if (!grounded) {
+              airborne = true;
+              assert.equal(
+                Boolean(hazardContact(id, motion.snapshot())),
+                false,
+                `airborne contact on tick ${tick}`,
+              );
+              if (id === 'helion')
+                assert.equal(
+                  motion.snapshot().heat,
+                  0,
+                  'takeoff cannot add one final heat tick',
+                );
+              airEnergy.push(state.energy);
+            } else if (airborne) {
+              landed = true;
+              assert.equal(
+                Boolean(hazardContact(id, motion.snapshot())),
+                active,
+                'contact returns on the supported touchdown tick',
+              );
+              break;
+            }
+          }
+          assert.ok(
+            airborne && landed,
+            'the equipment input must launch and physically land',
+          );
+          runtime.beginAdvance(state, { ...drive, boost: false }, DT);
+          dynamics.step(DT);
+          runtime.finishAdvance(state);
+          outputs.push({ airEnergy, speed: state.speed, energy: state.energy });
+        } finally {
+          runtime.dispose();
+        }
+      }
+      assert.deepEqual(
+        outputs[1].airEnergy,
+        outputs[0].airEnergy,
+        'ground contact cannot drain reserve in flight',
+      );
+      assert.ok(
+        outputs[1].speed < outputs[0].speed,
+        'the first grounded drive step has the normal hazard resistance',
+      );
+      if (id === 'cindercoil')
+        assert.ok(
+          outputs[1].energy < outputs[0].energy,
+          'lava reserve drain resumes on landing',
+        );
+    } finally {
+      dynamics.dispose();
+      collisionWorld.dispose();
+    }
+  });

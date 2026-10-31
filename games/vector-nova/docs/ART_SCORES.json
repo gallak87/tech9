@@ -146,6 +146,33 @@
         "criticAgent": "/root/saffron_critic"
       },
       "note": "Stopped at the prescribed cap below 9/10. Final rubric weights broad composition and purposeful finish equally; matched whole-course static, dynamic and native chase views were reviewed. Ordinary connectors, smooth bone masses, infrastructure and sandfall impact remain limitations. This is an agent art judgment, not human acceptance."
+    },
+    {
+      "levelId": "nacre",
+      "levelName": "Nacre Tempest",
+      "pass": "original-course whole environment, prescribed broad-strokes and detail pass including lighting",
+      "score": 5.2,
+      "rounds": 16,
+      "phases": {
+        "broad": {
+          "rounds": 10,
+          "score": 5.3
+        },
+        "detail": {
+          "rounds": 6,
+          "purposefulFinishScore": 5.0,
+          "overallScore": 5.2
+        }
+      },
+      "commitDate": "2026-10-31",
+      "resultCommit": "a4a2871b2ad087961cce334cf20c5958f51871cd",
+      "includedInMainAtRecord": true,
+      "source": {
+        "threadId": "01a19129-4214-7fb1-8ee0-eda8cac34800",
+        "threadTitle": "fzero-art5",
+        "criticAgent": "/root/saffron_critic"
+      },
+      "note": "Stopped at the prescribed cap below 9/10. Overall is the rounded equal-weight average of broad composition and purposeful finish. Final whole-course, bounded native event and actual keyboard-driving views were reviewed. Cyan underwater depth, isolated reef plinths, coarse geology, sparse observatory construction and creature-water weight remain limitations. This is an agent art judgment, not human acceptance."
     }
   ]
 }

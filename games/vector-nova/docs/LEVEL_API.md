@@ -125,7 +125,7 @@ The [reusable checks](../tools/level-checks/README.md) cover track/module contra
 
 Own implementation files under `src/levels/<slug>/track/`, `environment/` and `backdrop/` as useful; those names are organization conventions, not additional required factories. Shared directories contain mechanics used across levels. Existing public asset URLs stay stable across source moves.
 
-A level may opt into `track.deviceProjection = 'rendered-surface'` when its declared `roadSurface` meshes have transverse curvature. Pickup casings and symbols then clip to those rendered triangles with metre-based `roadCoord` attributes; finish paint samples `sampleSurface`. This affects presentation only. Keep the usual device layout and collision ownership.
+A level may opt into `track.deviceProjection = 'rendered-surface'` when pickup casings and symbols need exact projection onto declared `roadSurface` triangles, including transverse curvature or subdivided banked sheets. Projection uses metre-based `roadCoord` attributes and does not require `sampleSurface`; finish paint uses that optional curved-surface sampler when present and otherwise follows the route frame, with clearance verified against the rendered skin. This affects presentation only. Keep the usual device layout and collision ownership.
 
 ## Environment assembly workflow
 

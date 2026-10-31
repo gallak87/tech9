@@ -70,15 +70,15 @@ test('40 m production and shape decks match physical collision', () => {
         for (const deck of decks) {
           const positions = deck.geometry.attributes.position;
           const [start, end] = deck.userData.interval;
-          const rows = positions.count / 2;
+          const columns = deck.geometry.userData.sweep.columns[0];
+          const rows = positions.count / columns;
           for (let row = 0; row < rows; row++) {
             const frame = track.sample(
               start + ((end - start) * row) / (rows - 1),
             );
-            for (const [index, lateral] of [
-              [row * 2, -20],
-              [row * 2 + 1, 20],
-            ]) {
+            for (let column = 0; column < columns; column++) {
+              const index = row * columns + column;
+              const lateral = -20 + (40 * column) / (columns - 1);
               const actual = new T.Vector3().fromBufferAttribute(
                 positions,
                 index,

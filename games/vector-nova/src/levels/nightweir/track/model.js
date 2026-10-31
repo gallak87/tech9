@@ -312,8 +312,19 @@ export function createNightweirTrack() {
     const before = horizontalPoint(Math.max(0, h - 40));
     const center = horizontalPoint(h);
     const after = horizontalPoint(Math.min(sourceLength, h + 40));
-    const incoming = center.clone().sub(before).normalize();
-    const outgoing = after.clone().sub(center).normalize();
+    const incoming = center.clone().sub(before);
+    const outgoing = after.clone().sub(center);
+    // A clamped endpoint has no incoming/outgoing span. Use its one-sided
+    // local direction so the grid extension inherits the same bank as the
+    // first road metres, instead of introducing an abrupt zero-bank wedge.
+    if (incoming.lengthSq() < 1e-12)
+      incoming
+        .copy(horizontalPoint(Math.min(sourceLength, h + 0.01)))
+        .sub(center);
+    if (outgoing.lengthSq() < 1e-12)
+      outgoing.copy(center).sub(horizontalPoint(Math.max(0, h - 0.01)));
+    incoming.normalize();
+    outgoing.normalize();
     const turn = Math.atan2(
       incoming.x * outgoing.z - incoming.z * outgoing.x,
       incoming.dot(outgoing),
@@ -444,7 +455,8 @@ export function createNightweirTrack() {
   return {
     id: 'nightweir-sprint',
     name: 'Nightweir',
-    geometryVersion: 'nightweir-sprint-v3',
+    geometryVersion: 'nightweir-sprint-v4-transverse-deck',
+    deviceProjection: 'rendered-surface',
     closed: false,
     width: WIDTH,
     length,

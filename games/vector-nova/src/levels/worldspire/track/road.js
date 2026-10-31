@@ -132,7 +132,9 @@ export function createWorldspireRoad({
           [-half, 0],
           [half, 0],
         ],
-        range,
+        // The wide opening bank needs transverse facets, otherwise a whole
+        // chassis crosses alternating full-width triangle ridges at the start.
+        i === 0 ? { ...range, transverseStep: 4 } : range,
       ),
       ivory,
       { kind: 'deck', ...route },

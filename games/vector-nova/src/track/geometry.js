@@ -18,11 +18,19 @@ const vector = (name, value) => {
 export function sweepGeometry(
   track,
   profile,
-  { start = 0, end = track.length, step = 6, uvScale = 16 } = {},
+  {
+    start = 0,
+    end = track.length,
+    step = 6,
+    uvScale = 16,
+    transverseStep,
+  } = {},
 ) {
   positive('Track length', track.length);
   positive('Sweep step', step);
   positive('Sweep UV scale', uvScale);
+  if (transverseStep !== undefined)
+    positive('Sweep transverse step', transverseStep);
   finite('Sweep range', [start, end]);
   if (end <= start) throw new RangeError('Sweep end must exceed start');
   if (typeof track.sample !== 'function')
@@ -40,9 +48,19 @@ export function sweepGeometry(
       throw new RangeError(`Collapsed sweep profile face ${index - 1}`);
   }
   const count = Math.ceil((end - start) / step);
+  const columns = profile
+    .slice(1)
+    .map(([x, y], face) =>
+      transverseStep === undefined
+        ? 2
+        : Math.ceil(
+            Math.hypot(x - profile[face][0], y - profile[face][1]) /
+              transverseStep,
+          ) + 1,
+    );
   if (
     !Number.isSafeInteger(count) ||
-    (count + 1) * (profile.length - 1) * 2 > 1000000
+    (count + 1) * columns.reduce((sum, value) => sum + value, 0) > 1000000
   )
     throw new RangeError(
       'Sweep exceeds 1000000 vertices; increase step or split the range',
@@ -67,10 +85,10 @@ export function sweepGeometry(
     const [ax, ay] = profile[face];
     const [bx, by] = profile[face + 1];
     for (let index = 0; index <= count; index += 1) {
-      for (const [x, y, u] of [
-        [ax, ay, 0],
-        [bx, by, 1],
-      ]) {
+      for (let column = 0; column < columns[face]; column++) {
+        const u = column / (columns[face] - 1);
+        const x = THREE.MathUtils.lerp(ax, bx, u);
+        const y = THREE.MathUtils.lerp(ay, by, u);
         const point = framePoint(frames[index], x, y);
         positions.push(point.x, point.y, point.z);
         const distance = start + ((end - start) * index) / count;
@@ -78,8 +96,11 @@ export function sweepGeometry(
         roadCoord.push(distance, x);
       }
       if (index < count) {
-        const n = vertexStart + index * 2;
-        indices.push(n, n + 2, n + 1, n + 1, n + 2, n + 3);
+        for (let column = 0; column < columns[face] - 1; column++) {
+          const n = vertexStart + index * columns[face] + column;
+          const next = n + columns[face];
+          indices.push(n, next, n + 1, n + 1, next, next + 1);
+        }
       }
     }
   }
@@ -94,6 +115,7 @@ export function sweepGeometry(
     new THREE.Float32BufferAttribute(roadCoord, 2),
   );
   geometry.setIndex(indices);
+  geometry.userData.sweep = { start, end, rows: count + 1, columns };
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
   return geometry;
@@ -157,17 +179,24 @@ export function roadSealGeometry(
       'Seal breadth must fit the lap and track width must exceed its edge insets',
     );
   const attribute = surface.getAttribute('position');
+  const columns = surface.userData.sweep?.columns ?? [2];
+  const rowWidth = columns[0];
   if (
     !attribute ||
     attribute.itemSize !== 3 ||
-    attribute.count < 4 ||
-    attribute.count % 2 ||
+    columns.length !== 1 ||
+    !Number.isSafeInteger(rowWidth) ||
+    rowWidth < 2 ||
+    attribute.count < rowWidth * 2 ||
+    attribute.count % rowWidth ||
     !Array.from(attribute.array).every(Number.isFinite)
   )
-    throw new TypeError('Seals require a finite two-point sweep surface');
+    throw new TypeError(
+      'Seals require a finite single-face (two-point sweep profile) surface',
+    );
   if (track.length / spacing > 1000000)
     throw new RangeError('Seal spacing creates too many bands');
-  const segments = attribute.count / 2 - 1;
+  const segments = attribute.count / rowWidth - 1;
   const step = track.length / segments;
   const positions = [];
   const normals = [];
@@ -203,39 +232,44 @@ export function roadSealGeometry(
       const first = Math.max(0, Math.floor(from / step));
       const last = Math.min(segments - 1, Math.floor(to / step));
       for (let segment = first; segment <= last; segment += 1) {
-        const vertices = [
-          { u: 0, v: 0, position: point(segment * 2) },
-          { u: 1, v: 0, position: point(segment * 2 + 1) },
-          { u: 0, v: 1, position: point(segment * 2 + 2) },
-          { u: 1, v: 1, position: point(segment * 2 + 3) },
-        ];
-        for (const triangle of [
-          [0, 2, 1],
-          [1, 2, 3],
-        ]) {
-          let polygon = triangle.map((index) => vertices[index]);
-          const normal = new THREE.Vector3()
-            .crossVectors(
-              polygon[1].position.clone().sub(polygon[0].position),
-              polygon[2].position.clone().sub(polygon[0].position),
-            )
-            .normalize();
-          for (const [axis, limit, keepAbove] of [
-            ['v', (from - segment * step) / step, true],
-            ['v', (to - segment * step) / step, false],
-            ['u', edgeInset, true],
-            ['u', 1 - edgeInset, false],
+        for (let column = 0; column < rowWidth - 1; column++) {
+          const u0 = column / (rowWidth - 1);
+          const u1 = (column + 1) / (rowWidth - 1);
+          const n = segment * rowWidth + column;
+          const vertices = [
+            { u: u0, v: 0, position: point(n) },
+            { u: u1, v: 0, position: point(n + 1) },
+            { u: u0, v: 1, position: point(n + rowWidth) },
+            { u: u1, v: 1, position: point(n + rowWidth + 1) },
+          ];
+          for (const triangle of [
+            [0, 2, 1],
+            [1, 2, 3],
           ]) {
-            if (!polygon.length) break;
-            polygon = clip(polygon, axis, limit, keepAbove);
-          }
-          for (let i = 1; i < polygon.length - 1; i += 1) {
-            for (const vertex of [polygon[0], polygon[i], polygon[i + 1]]) {
-              const lifted = vertex.position
-                .clone()
-                .addScaledVector(normal, offset);
-              positions.push(lifted.x, lifted.y, lifted.z);
-              normals.push(normal.x, normal.y, normal.z);
+            let polygon = triangle.map((index) => vertices[index]);
+            const normal = new THREE.Vector3()
+              .crossVectors(
+                polygon[1].position.clone().sub(polygon[0].position),
+                polygon[2].position.clone().sub(polygon[0].position),
+              )
+              .normalize();
+            for (const [axis, limit, keepAbove] of [
+              ['v', (from - segment * step) / step, true],
+              ['v', (to - segment * step) / step, false],
+              ['u', edgeInset, true],
+              ['u', 1 - edgeInset, false],
+            ]) {
+              if (!polygon.length) break;
+              polygon = clip(polygon, axis, limit, keepAbove);
+            }
+            for (let i = 1; i < polygon.length - 1; i += 1) {
+              for (const vertex of [polygon[0], polygon[i], polygon[i + 1]]) {
+                const lifted = vertex.position
+                  .clone()
+                  .addScaledVector(normal, offset);
+                positions.push(lifted.x, lifted.y, lifted.z);
+                normals.push(normal.x, normal.y, normal.z);
+              }
             }
           }
         }

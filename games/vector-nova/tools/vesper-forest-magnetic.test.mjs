@@ -88,8 +88,12 @@ test('the Bloomspan corkscrew carries native hulls through a complete inversion 
         speed,
       };
       runtime.reset({ state });
+      // The climbing span crosses viscous sap off the left resin lane. Budget
+      // for 20 m/s average traversal instead of assuming the entry speed holds.
+      const maxTicks = Math.ceil(((end - start + 80) / 20) * 120);
       let inverted = false;
-      for (let tick = 0; tick < 1400 && state.distance < end + 40; tick++) {
+      let ticks = 0;
+      for (; ticks < maxTicks && state.distance < end + 40; ticks++) {
         const before = state.speed;
         const events = runtime.advance(
           state,
@@ -105,11 +109,8 @@ test('the Bloomspan corkscrew carries native hulls through a complete inversion 
           },
           1 / 120,
         );
-        assert.equal(
-          runtime.pose(1)?.grounded,
-          true,
-          `road lost at ${state.distance}`,
-        );
+        const pose = runtime.pose(1);
+        assert.equal(pose?.grounded, true, `road lost at ${state.distance}`);
         assert.equal(
           events.some(({ type }) =>
             ['road-departure', 'road-recovery', 'impact'].includes(type),
@@ -121,7 +122,15 @@ test('the Bloomspan corkscrew carries native hulls through a complete inversion 
           before - state.speed < 1.3,
           `false braking at ${state.distance}: ${before} -> ${state.speed}`,
         );
-        inverted ||= track.sample(state.distance).up.y < -0.95;
+        // A pitched ascent cannot point its normal straight down in world Y.
+        // Check the actual hull against the same slope with its authored roll
+        // removed, so a complete inversion remains distinct from mere travel.
+        const frame = track.sample(state.distance);
+        const unrolledUp = frame.up
+          .clone()
+          .applyAxisAngle(frame.tangent, -frame.roll);
+        const hullUp = new T.Vector3(0, 1, 0).applyQuaternion(pose.quaternion);
+        inverted ||= hullUp.dot(unrolledUp) < -0.95;
         assert.ok(
           Math.abs(state.lateral) < 11.5,
           `lane lost at ${state.distance}: ${state.lateral}`,
@@ -129,7 +138,7 @@ test('the Bloomspan corkscrew carries native hulls through a complete inversion 
       }
       assert.ok(
         state.distance > end + 39 && inverted,
-        `incomplete inversion ${lateral}/${speed}`,
+        `incomplete inversion ${lateral}/${speed} after ${ticks / 120}s: ${state.distance}m of ${end + 40}m, speed ${state.speed}, inverted ${inverted}`,
       );
     }
   }

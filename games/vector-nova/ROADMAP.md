@@ -28,11 +28,8 @@ Reviewed against `main` and the active event review branches on **2026-10-31**. 
 
 ### Known course follow-ups
 
-- [ ] **Nightweir:** resolve vertical bob on broad banked panels. Investigate tessellation with road seals, pickup projection and other two-vertex-row consumers; retain query performance. Do not hide solid-road ridges with hover offsets or move ships through them.
-- [ ] **Zephyr:** investigate the reported extra turn-assistance feel at the early right bend beneath the stone cross-span, before the first waterfall boost strip (2026-10-17 reference: lap 1, 00:07.300, 396 km/h). Compare neutral yaw, banking/support transport and camera motion; preserve the approved 0.3 assistance until reviewed.
-- [ ] **Vesper Forest:** classify the Bloomspan inversion regression at lateral −8 m and 112 m/s in `tools/vesper-forest-magnetic.test.mjs`. It fails on both original and lowered Crown-receiver routes; distinguish traversal from the test's time budget. Crown landing and full rival races pass separately.
-- [ ] **Shatterline:** investigate the existing floodlight-overlap assertion in `tools/shatterline-lighting.test.mjs`, including its sampling inside sections where pole fixtures are intentionally omitted. Reproduce before changing approved lighting or geometry.
-- [ ] Reproduce any remaining Halcyon white-ground/lane-marking flicker and Asterion road flicker on the current build. The underlay fix and later road finishes shipped; older reports are not confirmed current defects.
+- [ ] **Nightweir:** human driving review of the remaining small facet motion on the sharpest banks. The starting-bank discontinuity and broad-panel ridges are fixed with a subdivided solid deck; retain unchanged hover height and shared surface projection.
+- [ ] **Zephyr:** human review of the reported extra turn-assistance feel at the early right bend beneath the stone cross-span, before the first waterfall boost strip (2026-10-17 reference: lap 1, 00:07.300, 396 km/h). Production-collider yaw and camera checks do not reproduce extra assistance; preserve the approved 0.3 setting.
 
 ## Next
 

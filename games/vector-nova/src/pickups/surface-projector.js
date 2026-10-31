@@ -184,7 +184,7 @@ export function createSurfaceProjector(track, surfaces) {
   return {
     sample,
     geometry,
-    frame: (s, x) => track.sampleSurface(s, x),
+    frame: (s, x) => track.sampleSurface?.(s, x) ?? track.sample(s),
     dispose() {
       buckets.clear();
     },

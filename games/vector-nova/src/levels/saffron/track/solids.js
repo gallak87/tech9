@@ -3,7 +3,7 @@ import { boxProfile } from '../../../track/geometry.js';
 
 // Shared authored dimensions and tessellation for rendering and physical contact.
 export const SAFFRON_SOLIDS = Object.freeze({
-  version: 'saffron-solids-v3-width40',
+  version: 'saffron-solids-v4-opening-bands',
   step: 3.2,
   supportWidth: 3.2,
   supportDepth: 4.4,
@@ -39,6 +39,16 @@ export function roadRuns(track) {
   }
   runs.push([start, track.length]);
   return runs;
+}
+// The opening bank must not twist a single 40 m-wide triangle beneath the
+// chassis. Keep later approved runs and their established tessellation intact.
+export function roadSweepOptions(start, end, runningSurface = false) {
+  return {
+    start,
+    end,
+    step: SAFFRON_SOLIDS.step,
+    ...(runningSurface && start === 0 ? { transverseStep: 4 } : {}),
+  };
 }
 export const toeProfile = (side) => boxProfile(side * 20.48, 0.18, 0.68, 0.75);
 export function createBaffleGeometry() {

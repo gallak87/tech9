@@ -1,6 +1,7 @@
 import {
   SAFFRON_SOLIDS,
   roadRuns,
+  roadSweepOptions,
   toeProfile,
   createBaffleGeometry,
   bafflePlacements,
@@ -227,7 +228,7 @@ roughnessFactor=clamp(roughnessFactor+haze*.18+skin*.045+vein*.025,.24,.64);`,
           points[0][0] > points[1][0]
           ? [...points].reverse()
           : points,
-        { start, end, step: SAFFRON_SOLIDS.step },
+        roadSweepOptions(start, end, points === SAFFRON_SOLIDS.top),
       ),
       mat,
     );

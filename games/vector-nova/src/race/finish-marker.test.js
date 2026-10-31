@@ -124,7 +124,7 @@ test('every shipped circuit gets finite paint at its actual timing seam without 
       const x = -marker.group.userData.width / 2;
       const surface =
         track.deviceProjection === 'rendered-surface'
-          ? track.sampleSurface(distance, x)
+          ? track.sampleSurface?.(distance, x)
           : null;
       const frame = surface ?? track.sample(distance);
       const expected = frame.position
@@ -138,4 +138,85 @@ test('every shipped circuit gets finite paint at its actual timing seam without 
     }
   }
   assert.ok(circuits >= 12);
+});
+
+test('Nightweir finish paint clears its real tessellated running sheet without a curved-surface sampler', async () => {
+  const { createNightweirTrack } =
+    await import('../levels/nightweir/track/model.js');
+  const { createNightweirRoad } =
+    await import('../levels/nightweir/track/road.js');
+  const { indexedTriangles } = await import('../physics/collision-world.js');
+  const { createRoadSurface } = await import('../physics/road-surface.js');
+  const track = createNightweirTrack();
+  assert.equal(track.deviceProjection, 'rendered-surface');
+  assert.equal(track.sampleSurface, undefined);
+  const deck = [];
+  const road = createNightweirRoad({
+    track,
+    collectSolid({ name, geometry, ...info }) {
+      if (info.kind !== 'deck') return;
+      deck.push(
+        ...indexedTriangles(
+          geometry.attributes.position.array,
+          geometry.index.array,
+          { id: name, ...info },
+          null,
+          geometry.attributes.roadCoord,
+        ),
+      );
+    },
+  });
+  road.dispose();
+  const actual = createRoadSurface(deck);
+  const marker = createFinishMarker(track);
+  const geometry = marker.group.children[0].geometry;
+  const { start, end, width, columns } = marker.group.userData;
+  const coordinates = [];
+  for (let row = 0; row < 2; row++)
+    for (let column = 0; column < columns; column++)
+      for (const [side, along] of [
+        [0, 0],
+        [0, 1],
+        [1, 0],
+        [1, 1],
+      ])
+        coordinates.push(
+          start + ((row + along) * (end - start)) / 2,
+          -width / 2 + ((column + side) * width) / columns,
+        );
+  const paint = createRoadSurface(
+    indexedTriangles(
+      geometry.attributes.position.array,
+      geometry.index.array,
+      { id: 'finish-paint', kind: 'deck' },
+      null,
+      new T.Float32BufferAttribute(coordinates, 2),
+    ),
+  );
+  try {
+    // Sample tile interiors too: correct corners alone cannot establish that
+    // the paint triangles remain above the road's different facet diagonals.
+    for (let row = 0; row <= 12; row++)
+      for (let column = 0; column <= columns * 4; column++) {
+        const s = T.MathUtils.lerp(
+          Math.fround(start),
+          Math.fround(end),
+          row / 12,
+        );
+        const x = -width / 2 + (width * column) / (columns * 4);
+        const frame = track.sample(s);
+        const base = actual(s, x, frame);
+        const top = paint(s, x, frame);
+        assert.ok(base && top, `missing paint or road at ${s}, ${x}`);
+        const clearance = top.position.clone().sub(base.position).dot(frame.up);
+        assert.ok(
+          clearance > 0.1 && clearance < 0.15,
+          `finish paint clearance ${clearance}m at ${s}, ${x}`,
+        );
+      }
+  } finally {
+    paint.dispose();
+    actual.dispose();
+    marker.dispose();
+  }
 });

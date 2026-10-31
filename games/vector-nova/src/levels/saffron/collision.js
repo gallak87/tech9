@@ -11,6 +11,7 @@ import { jumpSupportPlan } from './track/supports.js';
 import {
   SAFFRON_SOLIDS,
   roadRuns,
+  roadSweepOptions,
   toeProfile,
   createBaffleGeometry,
   bafflePlacements,
@@ -59,11 +60,11 @@ export function createSaffronCollisionWorld({ track }) {
       ['structure', SAFFRON_SOLIDS.underside],
       ...[-1, 1].map((side) => ['rail', toeProfile(side)]),
     ]) {
-      const data = sweepGeometry(track, profile, {
-        start,
-        end,
-        step: SAFFRON_SOLIDS.step,
-      });
+      const data = sweepGeometry(
+        track,
+        profile,
+        roadSweepOptions(start, end, kind === 'deck'),
+      );
       geometry(data, {
         id: `road-${start}-${kind}`,
         kind,

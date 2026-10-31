@@ -55,12 +55,21 @@ export function setMetreUV(geometry) {
   if (!road) return;
   const uv = geometry.getAttribute('uv');
   const position = geometry.getAttribute('position');
+  const sweep = geometry.userData.sweep;
+  let face = 0,
+    faceStart = 0;
   for (let i = 0; i < road.count; i++) {
-    const first = i - (i % 2);
+    let rowWidth = sweep?.columns[face] ?? 2;
+    while (sweep && i >= faceStart + sweep.rows * rowWidth) {
+      faceStart += sweep.rows * rowWidth;
+      rowWidth = sweep.columns[++face];
+    }
+    const first = i - ((i - faceStart) % rowWidth);
+    const last = first + rowWidth - 1;
     const width = Math.hypot(
-      position.getX(first + 1) - position.getX(first),
-      position.getY(first + 1) - position.getY(first),
-      position.getZ(first + 1) - position.getZ(first),
+      position.getX(last) - position.getX(first),
+      position.getY(last) - position.getY(first),
+      position.getZ(last) - position.getZ(first),
     );
     uv.setXY(i, road.getY(first) + uv.getX(i) * width, road.getX(i));
   }

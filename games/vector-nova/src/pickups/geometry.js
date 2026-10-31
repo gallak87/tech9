@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { sweepGeometry } from '../track/geometry.js';
+import { createSurfaceProjector } from './surface-projector.js';
 import { DEVICE_COLORS } from './theme.js';
 import { createDeviceSignal, createAcquisitionFlash } from './signal.js';
 import { createVectorDeckMaterial } from './vector-deck.js';
@@ -18,6 +19,13 @@ const rectangle = (x0, x1, s0, s1) => [
 // Clip authored track-space shapes against the actual Float32 road triangles.
 // Interpolating ideal sample frames instead would cut into the road on a bank.
 export function createRoadProjector(track, suppliedSurface) {
+  if (suppliedSurface?.userData.sweep?.columns[0] > 2)
+    return createSurfaceProjector(track, [
+      {
+        geometry: suppliedSurface,
+        matrixWorld: new THREE.Matrix4(),
+      },
+    ]);
   const surface =
     suppliedSurface ||
     sweepGeometry(track, [

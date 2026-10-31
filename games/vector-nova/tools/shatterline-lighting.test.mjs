@@ -66,12 +66,25 @@ test('road collision boundaries and end faces follow the authored width', () => 
   }
 });
 
-test('Shatterline floodlights illuminate the driving face through inversion without occupying the road', () => {
+test('Shatterline floodlights illuminate exposed inversions and leave tube interiors clear', () => {
   const track = createShatterlineTrack();
   const poles = createShatterlinePoleLights(track);
   const lights = poles.group.children.filter((object) => object.isSpotLight);
   try {
     assert.equal(lights.length, 6, 'the full course uses a bounded light pool');
+    for (const tube of track.tubes) {
+      assert.ok(
+        poles.fixtures.every(
+          ({ distance }) => distance < tube.start || distance > tube.end,
+        ),
+        `${tube.id} deliberately has no road-mounted pole fixtures`,
+      );
+      poles.update({ state: { distance: (tube.start + tube.end) / 2 } });
+      assert.ok(
+        lights.every((light) => light.intensity === 0),
+        `${tube.id} interior is beyond the exposed-road flood pools`,
+      );
+    }
     for (const section of track.descents) {
       for (
         let distance = section.start + 35;
@@ -80,7 +93,13 @@ test('Shatterline floodlights illuminate the driving face through inversion with
       ) {
         poles.update({ state: { distance } });
         const active = lights.filter((light) => light.intensity > 500);
-        assert.ok(active.length >= 2, 'neighboring flood pools overlap');
+        // The transparent tubes deliberately omit poles. Their mouths may
+        // borrow a fading neighboring pool; only exposed road needs overlap.
+        if (!track.tubeAt(distance))
+          assert.ok(
+            active.length >= 2,
+            `neighboring flood pools overlap on exposed road at ${distance}m`,
+          );
         for (const light of active) {
           const fixture = poles.fixtures.find((item) =>
             item.position.equals(light.position),

@@ -331,8 +331,18 @@ export function createWorldspireTrack() {
     const before = horizontalPoint(Math.max(0, h - 40));
     const center = horizontalPoint(h);
     const after = horizontalPoint(Math.min(sourceLength, h + 40));
-    const incoming = center.clone().sub(before).normalize();
-    const outgoing = after.clone().sub(center).normalize();
+    const incoming = center.clone().sub(before);
+    const outgoing = after.clone().sub(center);
+    // Endpoint spans collapse when clamped. Preserve the one-sided local
+    // direction so the starting extension joins the same bank as the road.
+    if (incoming.lengthSq() < 1e-12)
+      incoming
+        .copy(horizontalPoint(Math.min(sourceLength, h + 0.01)))
+        .sub(center);
+    if (outgoing.lengthSq() < 1e-12)
+      outgoing.copy(center).sub(horizontalPoint(Math.max(0, h - 0.01)));
+    incoming.normalize();
+    outgoing.normalize();
     const turn = Math.atan2(
       incoming.x * outgoing.z - incoming.z * outgoing.x,
       incoming.dot(outgoing),
@@ -468,7 +478,8 @@ export function createWorldspireTrack() {
   return {
     id: 'worldspire-sprint',
     name: 'Worldspire',
-    geometryVersion: 'worldspire-sprint-v5',
+    geometryVersion: 'worldspire-sprint-v6-start-bank-opening-deck',
+    deviceProjection: 'rendered-surface',
     closed: false,
     width: WIDTH,
     length,

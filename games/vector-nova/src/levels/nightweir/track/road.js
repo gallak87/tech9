@@ -159,7 +159,7 @@ export function createNightweirRoad({
           [-half, 0],
           [half, 0],
         ],
-        range,
+        { ...range, transverseStep: 2 },
       ),
       deck,
       { kind: 'deck', ...route },

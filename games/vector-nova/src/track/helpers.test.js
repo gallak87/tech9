@@ -178,10 +178,123 @@ test('road seals reject invalid step and malformed surfaces rather than hanging'
       { offset: NaN },
     ])
       assert.throws(() => roadSealGeometry(track, surface, options));
+    for (const width of [0, 1, 1.5, Infinity]) {
+      surface.userData.sweep.columns = [width];
+      assert.throws(() => roadSealGeometry(track, surface), /single-face/);
+    }
+    surface.userData.sweep.columns = [2];
     const malformed = new T.BufferGeometry();
     assert.throws(() => roadSealGeometry(track, malformed), /two-point sweep/);
     malformed.dispose();
   } finally {
     surface.dispose();
   }
+});
+
+test('transverse sweeps retain exact road coordinates for seals and pickup projection', async () => {
+  const { createRoadProjector } = await import('../pickups/geometry.js');
+  const { createRoadSurface } = await import('../physics/road-surface.js');
+  const { indexedTriangles } = await import('../physics/collision-world.js');
+  const track = straight();
+  const original = track.sample;
+  track.sample = (distance) => {
+    const frame = original(distance);
+    frame.right.applyAxisAngle(frame.tangent, distance * 0.04);
+    frame.up.applyAxisAngle(frame.tangent, distance * 0.04);
+    return frame;
+  };
+  const surface = sweepGeometry(
+    track,
+    [
+      [-4, 0],
+      [4, 0],
+    ],
+    { step: 4, transverseStep: 2 },
+  );
+  const projector = createRoadProjector(track, surface);
+  const sample = createRoadSurface(
+    indexedTriangles(
+      surface.attributes.position.array,
+      surface.index.array,
+      { id: 'test-road', kind: 'deck' },
+      null,
+      surface.attributes.roadCoord,
+    ),
+  );
+  const seals = roadSealGeometry(track, surface, {
+    spacing: 5,
+    breadth: 0.2,
+    offset: 0,
+  });
+  const projected = projector.geometry(
+    [
+      [
+        [-3, 3],
+        [3, 3],
+        [3, 14],
+        [-3, 14],
+      ],
+    ],
+    0,
+  );
+  try {
+    assert.deepEqual(surface.userData.sweep.columns, [5]);
+    assert.equal(surface.attributes.position.count, 30);
+    assert.equal(surface.index.count, 120);
+    for (const [s, x] of [
+      [3.2, -2.7],
+      [11.7, 1.1],
+      [19.2, 0.2],
+    ])
+      assert.ok(
+        projector
+          .sample(s, x)
+          .distanceTo(sample(s, x, track.sample(s)).position) < 1e-6,
+      );
+    // Both consumers must clip to each small triangle, including its real
+    // Float32 diagonal; a two-vertex-row assumption creates buried details.
+    const triangles = [];
+    for (let i = 0; i < surface.index.count; i += 3)
+      triangles.push(
+        new T.Triangle(
+          ...[0, 1, 2].map((j) =>
+            new T.Vector3().fromBufferAttribute(
+              surface.attributes.position,
+              surface.index.getX(i + j),
+            ),
+          ),
+        ),
+      );
+    const nearest = new T.Vector3();
+    for (const geometry of [seals, projected]) {
+      const position = geometry.attributes.position;
+      assert.ok(position.count > 0);
+      for (let i = 0; i < position.count; i++) {
+        const p = new T.Vector3().fromBufferAttribute(position, i);
+        assert.ok(
+          triangles.some(
+            (triangle) =>
+              triangle.closestPointToPoint(p, nearest).distanceTo(p) < 1e-5,
+          ),
+        );
+      }
+    }
+  } finally {
+    seals.dispose();
+    projected.dispose();
+    projector.dispose();
+    sample.dispose();
+    surface.dispose();
+  }
+  for (const transverseStep of [0, -1, Infinity, NaN, 1e-12])
+    assert.throws(() =>
+      sweepGeometry(
+        track,
+        [
+          [-4, 0],
+          [4, 0],
+        ],
+        { transverseStep },
+      ),
+    );
 });

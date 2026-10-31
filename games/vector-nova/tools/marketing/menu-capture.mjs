@@ -601,7 +601,7 @@ async function startTitle(page) {
 }
 
 export async function captureMenus({
-  output = resolve(root, '.experiments/marketing/rc2-menu'),
+  output = resolve(root, '.experiments/marketing/menu-capture'),
   flowOnly = false,
   base = process.env.VN_URL,
   only = sourceIds,

@@ -10,7 +10,7 @@
 
 Offline demo/full Electron builds, Mac packaging, SteamPipe preparation, career/save ownership and controller/audio flows are implemented. Automated browser/native checks cover these flows; physical Windows/Steam Input testing remains below. See [desktop commands and boundaries](desktop.md).
 
-The approved [Blue Hour RC2 trailer](../../marketing/rc2/README.md) is complete: 80.617 seconds at 1080p60, with its movie, script and edit snapshots retained. Store description, screenshots, capsule/library art and publishing still need preparation.
+The approved [Blue Hour RC3 trailer](../../marketing/rc3/README.md) is complete: 80.617 seconds at 1080p60, with its movie, script and edit snapshots retained. Store description, screenshots, capsule/library art and publishing still need preparation.
 
 ## Controller presets and dead zones
 

@@ -21,7 +21,7 @@ const option = (name, fallback) => {
 };
 const output = resolve(
   root,
-  option('--output', '.experiments/marketing/rc2-trial'),
+  option('--output', '.experiments/marketing/trial-capture'),
 );
 const level = option('--level', 'halcyon');
 const ship = option('--ship', 'kestrel');
@@ -168,12 +168,7 @@ try {
     const game = window.__VN;
     game.pause();
     const { getRacerControl } = await import('/src/race/racers.js');
-    const { createCareerSlots } = await import('/src/progression/careers.js');
-    const { readTrialRecords, readTrialBest } =
-      await import('/src/race/time-trial.js');
     const T = await import('/node_modules/three/build/three.module.js');
-    const careers = createCareerSlots();
-    const storage = careers.storageFor(careers.active().id);
     const track = game.getTrack();
     const button = (value) => ({
       value,
@@ -196,7 +191,6 @@ try {
       enabled: false,
       done: false,
       samples: [],
-      firstLap: [],
       completions: [],
       errors: [],
       lastLap: 1,
@@ -208,29 +202,11 @@ try {
       runoutUntil: null,
     };
     window.__VN_TRIAL_CAPTURE = state;
-    let reference = null;
-    const projection = new T.PerspectiveCamera();
+    const ghostRoot = game
+      .getScene()
+      .scene.getObjectByName('Personal best ghost / non-colliding');
     const ghostPosition = new T.Vector3();
-    const lerpSample = (samples, time) => {
-      let low = 0,
-        high = samples.length - 1;
-      while (high - low > 1) {
-        const middle = (low + high) >> 1;
-        if (samples[middle].elapsed <= time) low = middle;
-        else high = middle;
-      }
-      const a = samples[low],
-        b = samples[high];
-      const t = Math.max(
-        0,
-        Math.min(1, (time - a.elapsed) / (b.elapsed - a.elapsed)),
-      );
-      return {
-        distance: a.distance + (b.distance - a.distance) * t,
-        speed: a.speed + (b.speed - a.speed) * t,
-        boost: a.boost,
-      };
-    };
+    const playerPosition = new T.Vector3();
     const frame = (now) => {
       if (!state.enabled) {
         requestAnimationFrame(frame);
@@ -255,19 +231,7 @@ try {
           state.lastLap = s.lap.lap;
           if (!completed.playerValid)
             throw new Error(`Invalid completed lap ${completed.lap}.`);
-          if (s.lap.lap === 2) {
-            state.firstLap.push({
-              elapsed: completed.playerTotalTime,
-              distance: track.length,
-              speed: s.vehicle.speed,
-              boost: s.vehicle.boosting,
-            });
-            const record = readTrialRecords(storage).find(
-              (record) => record.identity.start === 'standing',
-            );
-            reference = readTrialBest(record.identity, storage);
-          }
-          if (s.lap.lap >= 3) state.runoutUntil = now + 1200;
+          if (s.lap.lap >= 3) state.runoutUntil = now + 3500;
         }
         if (state.runoutUntil !== null && now >= state.runoutUntil) {
           state.enabled = false;
@@ -280,46 +244,21 @@ try {
         const mode = s.runtime.state.flight?.mode ?? s.runtime.state.mode;
         const control = getRacerControl(s.vehicle, track, {
           difficulty: 'hard',
-          lane: 0,
+          // A real line change after the flying lap lets its newly saved ghost
+          // become visible beside us instead of fading at exact hull overlap.
+          lane: s.lap.lap >= 3 ? 7 : 0,
           pace: 1,
           runtime: { pose: () => ({ grounded: mode === 'magnetic' }) },
         });
-        let referenceGap = null;
-        if (s.mode === 'racing' && s.lap.lap === 1) {
-          // A clean cruise lap leaves genuine reserve for following the saved
-          // ghost closely on lap two. The player's boost remains available.
+        // Run the flying lap at the ordinary hard driver's full pace. Do not
+        // pace or brake against the standing ghost. Settle boost before the line
+        // and keep the actual run-out at normal cruise for an even engine tail.
+        if (
+          s.lap.lap === 1 ||
+          (s.lap.lap === 2 && s.vehicle.distance >= track.length * 2 - 350) ||
+          s.lap.lap >= 3
+        )
           control.boost = false;
-          state.firstLap.push({
-            elapsed: trial.elapsed,
-            distance: s.vehicle.distance,
-            speed: s.vehicle.speed,
-            boost: s.vehicle.boosting,
-          });
-        } else if (
-          s.mode === 'racing' &&
-          s.lap.lap === 2 &&
-          state.firstLap.length > 2
-        ) {
-          // Brake/throttle normally to follow our actual prior lap, keeping the
-          // cyan personal ghost ahead in the native chase view near the line.
-          const ref = lerpSample(state.firstLap, trial.elapsed);
-          referenceGap = ref.distance - (s.vehicle.distance - track.length);
-          const targetSpeed = Math.max(
-            0,
-            ref.speed + (referenceGap - 18) * 0.8,
-          );
-          control.throttle = s.vehicle.speed <= targetSpeed + 1 ? 1 : 0;
-          control.brake = Math.max(
-            0,
-            Math.min(1, (s.vehicle.speed - targetSpeed - 1) / 18),
-          );
-          control.boost =
-            trial.elapsed < reference.duration - 8 &&
-            control.brake === 0 &&
-            targetSpeed > s.vehicle.speed + 3 &&
-            s.vehicle.energy > 8;
-        }
-        if (s.lap.lap >= 3) control.boost = false;
         pad.axes[0] = control.steer;
         for (const [index, value] of [
           [7, control.throttle],
@@ -329,57 +268,34 @@ try {
         ])
           pad.buttons[index] = button(value);
         let ghost = null;
-        if (
-          s.lap.lap === 2 &&
-          reference?.samples?.length > 2 &&
-          trial.elapsed <= reference.duration
-        ) {
-          const samples = reference.samples;
-          let low = 0,
-            high = samples.length - 1;
-          while (high - low > 1) {
-            const mid = (low + high) >> 1;
-            if (samples[mid][0] <= trial.elapsed) low = mid;
-            else high = mid;
-          }
-          const a = samples[low],
-            b = samples[high];
-          const t = Math.max(
-            0,
-            Math.min(1, (trial.elapsed - a[0]) / (b[0] - a[0])),
-          );
-          ghostPosition
-            .fromArray(a, 1)
-            .lerp(new T.Vector3().fromArray(b, 1), t);
-          const world = ghostPosition.toArray();
-          projection.fov = s.camera.fov;
-          projection.aspect = innerWidth / innerHeight;
-          projection.updateProjectionMatrix();
-          projection.position.fromArray(s.camera.position);
-          projection.quaternion.fromArray(s.camera.quaternion);
-          projection.updateMatrixWorld();
-          const screen = ghostPosition.clone().project(projection);
+        if (s.lap.lap >= 3 && trial?.ghostStart === 'flying' && ghostRoot) {
+          ghostRoot.getWorldPosition(ghostPosition);
+          const screen = ghostPosition.clone().project(game.getScene().camera);
+          const opacity = ghostRoot.children[0]?.material?.opacity ?? 0;
           ghost = {
-            world,
+            world: ghostPosition.toArray(),
             screen: screen.toArray(),
+            visible: ghostRoot.visible,
+            opacity,
             inFrame:
+              ghostRoot.visible &&
+              opacity >= 0.04 &&
               Math.abs(screen.x) <= 1 &&
               Math.abs(screen.y) <= 1 &&
               screen.z > -1 &&
               screen.z < 1,
             separation: ghostPosition.distanceTo(
-              new T.Vector3().fromArray(s.ship.position),
+              playerPosition.fromArray(s.ship.position),
             ),
           };
         }
-        if (
-          s.lap.lap === 2 &&
-          trial.elapsed >= (reference?.duration ?? Infinity) - 6
-        )
+        if (s.lap.lap >= 3)
           state.ghostFrames.push({
+            now,
+            lap: s.lap.lap,
             elapsed: trial.elapsed,
+            ghostStart: trial.ghostStart,
             ghost,
-            referenceGap,
           });
         if (now - state.lastSample >= 100) {
           state.samples.push({
@@ -391,7 +307,6 @@ try {
             vehicle: s.vehicle,
             input: s.input,
             ghost,
-            referenceGap,
             camera: s.camera.mode,
             events: s.events.slice(-10),
             errors: s.errors,
@@ -586,7 +501,6 @@ try {
         seconds: s.timeTrial.elapsed,
         distance: s.vehicle.distance,
         speed: s.vehicle.speed,
-        referenceGap: state.samples.at(-1)?.referenceGap ?? null,
         valid: s.lap.valid,
         errors: state.errors,
       };
@@ -602,6 +516,9 @@ try {
     const recording = await page.evaluate(() => {
       const recording = window.__VN_TRIAL_RECORDING;
       const drive = window.__VN_TRIAL_CAPTURE;
+      const firstVisible = drive.ghostFrames.find(
+        (frame) => frame.ghostStart === 'flying' && frame.ghost?.inFrame,
+      );
       return {
         settings: recording.settings,
         audioBuses: recording.audioBuses,
@@ -609,6 +526,13 @@ try {
         greenAtRawSeconds: (drive.startedAt - recording.startedAt) / 1000,
         secondFinishAtRawSeconds:
           (drive.completions[1].wallTime - recording.startedAt) / 1000,
+        excerptInPoint:
+          (drive.completions[1].wallTime - recording.startedAt) / 1000 - 1,
+        secondFinishAtExcerptSeconds: 1,
+        excerptSeconds: 4,
+        postLineGhostFirstVisibleAtRawSeconds: firstVisible
+          ? (firstVisible.now - recording.startedAt) / 1000
+          : null,
       };
     });
     await writeFile(
@@ -652,11 +576,14 @@ try {
     }).trim(),
     driver: {
       firstLapBoost: false,
-      secondLapTargetGhostGapMetres: 18,
-      finalEightSecondsBoost: false,
+      flyingLap: 'ordinary hard-driver pace, no standing-ghost pacing',
+      finalApproachBoostOffMetres: 350,
+      postLineRunoutSeconds: 3.5,
+      postLineTargetLaneMetres: 7,
+      excerptLineCrossingSeconds: 1,
     },
     method:
-      'Two full real-time laps through ordinary virtual standard-gamepad input and unmodified stock Time Trial production runtime. No scenario, finish, checkpoint, timer or ghost seeding.',
+      'A genuine standing warm-up followed by a full-pace flying lap and 3.5 seconds of the next lap. Ordinary virtual standard-gamepad input and unmodified stock Time Trial production runtime; no ghost pacing, scenario, finish, checkpoint, timer or ghost seeding.',
     career:
       'Fresh isolated browser Career 1; only chosen hull unlocked for selection. No personal browser profile or saves.',
     completions: captured.completions,
@@ -680,32 +607,31 @@ try {
       captured.records.every((record) => record.saved && record.ghostSaved),
   );
   assert.ok(captured.final.vehicle.resetCount === 0);
-  const finishTime = captured.completions[1].playerTotalTime;
-  const finishFrames = captured.ghostFrames.filter(
-    (frame) =>
-      frame.elapsed >= finishTime - 3.3 && frame.elapsed <= finishTime - 0.1,
+  assert.equal(captured.completions[1].start, 'flying');
+  assert.equal(captured.final.timeTrial.ghostStart, 'flying');
+  const postLineFrames = captured.ghostFrames.filter(
+    (frame) => frame.elapsed >= 0.1 && frame.elapsed <= 3,
   );
-  const readableFrames = finishFrames.filter(
-    (frame) =>
-      frame.ghost?.inFrame &&
-      frame.ghost.separation >= 7 &&
-      frame.ghost.separation <= 65,
+  const readableFrames = postLineFrames.filter(
+    (frame) => frame.ghostStart === 'flying' && frame.ghost?.inFrame,
   );
   assert.ok(
-    finishFrames.length >= 30 &&
-      readableFrames.length / finishFrames.length >= 0.8,
-    'Genuine ghost stays readable in the four-second finish excerpt.',
+    postLineFrames.length >= 30 &&
+      readableFrames.length >= 15 &&
+      readableFrames.length / postLineFrames.length >= 0.3,
+    'The genuine flying ghost appears visibly after the line in the next lap.',
   );
-  if (record)
-    assert.ok(
-      captured.samples
-        .filter(
-          (sample) =>
-            sample.lap.lap === 2 && sample.timeTrial.elapsed >= finishTime - 4,
-        )
-        .every((sample) => !sample.input.boost && !sample.vehicle.boosting),
-      'Final finish excerpt has no boost toggles.',
-    );
+  const flying = captured.completions[1];
+  assert.ok(
+    captured.samples
+      .filter(
+        (sample) =>
+          sample.now >= flying.wallTime - 1000 &&
+          sample.now <= flying.wallTime + 3000,
+      )
+      .every((sample) => !sample.input.boost && !sample.vehicle.boosting),
+    'The line crossing and post-line ghost reveal have steady boost-free audio.',
+  );
   const fixture = {
     storageEntries: captured.storageEntries,
     provenance,

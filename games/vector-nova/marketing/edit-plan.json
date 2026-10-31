@@ -1,10 +1,10 @@
 {
-  "id": "interwoven-trailer-rc2-blue-hour",
+  "id": "interwoven-trailer-rc3-blue-hour",
   "kind": "trailer",
   "crf": 18,
   "fps": 60,
   "frames": 4837,
-  "outputFile": "vector-nova-rc2-blue-hour.mp4",
+  "outputFile": "vector-nova-rc3-blue-hour.mp4",
   "music": {
     "id": "blue-hour",
     "sourceOffset": 9.3,
@@ -40,8 +40,7 @@
   "closing": {
     "from": 4633,
     "to": 4837,
-    "tail": 0.2,
-    "image": ".experiments/marketing/rc2/closing-wordmark.png"
+    "tail": 0.2
   },
   "captureShots": [
     {
@@ -50,7 +49,7 @@
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/interwoven-v3",
+        "directory": ".experiments/marketing/rc3/assembly-v1",
         "id": "glasswake-pack"
       }
     },
@@ -60,7 +59,7 @@
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/interwoven-v3",
+        "directory": ".experiments/marketing/rc3/assembly-v1",
         "id": "cindercoil-avoid"
       }
     },
@@ -70,7 +69,7 @@
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/interwoven-v3",
+        "directory": ".experiments/marketing/rc3/assembly-v1",
         "id": "nacre-early-vista"
       }
     },
@@ -80,7 +79,7 @@
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/interwoven-v3",
+        "directory": ".experiments/marketing/rc3/assembly-v1",
         "id": "umbra-first-lens"
       }
     },
@@ -90,7 +89,7 @@
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/interwoven-v3",
+        "directory": ".experiments/marketing/rc3/assembly-v1",
         "id": "helion-sweep"
       }
     },
@@ -100,7 +99,7 @@
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/interwoven-v3",
+        "directory": ".experiments/marketing/rc3/assembly-v1",
         "id": "zephyr-tower-chase"
       }
     },
@@ -110,68 +109,68 @@
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/interwoven-v3",
+        "directory": ".experiments/marketing/rc3/assembly-v1",
         "id": "shatterline-finale-vista"
       }
     },
     {
-      "id": "editorial-black",
-      "seconds": 0.7,
-      "preroll": 0,
-      "state": {},
-      "importFrom": {
-        "directory": ".experiments/marketing/rc2",
-        "id": "editorial-black"
-      }
-    },
-    {
       "id": "intro",
-      "seconds": 5.6731999999880784,
+      "seconds": 5.66559999999404,
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc2-menu",
+        "directory": ".experiments/marketing/rc3/assembly-v1",
         "id": "intro"
       }
     },
     {
       "id": "menu-circuits",
-      "seconds": 9.55130000001192,
+      "seconds": 9.50109999999404,
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc2-menu-pointer",
+        "directory": ".experiments/marketing/rc3/assembly-v1",
         "id": "menu-circuits"
       }
     },
     {
       "id": "menu-cups-trial",
-      "seconds": 11.880299999982117,
+      "seconds": 11.86309999999404,
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc2-menu-pointer",
+        "directory": ".experiments/marketing/rc3/assembly-v1",
         "id": "menu-cups-trial"
       }
     },
     {
       "id": "menu-garage",
-      "seconds": 14.283400000005962,
+      "seconds": 14.212,
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc2-menu-pointer",
+        "directory": ".experiments/marketing/rc3/assembly-v1",
         "id": "menu-garage"
       }
     },
     {
       "id": "trial-ghost",
-      "seconds": 4.6,
+      "seconds": 4,
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc2",
+        "directory": ".experiments/marketing/rc3/assembly-v1",
         "id": "trial-ghost"
+      }
+    },
+    {
+      "id": "editorial-black",
+      "seconds": 0.9,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/rc3/assembly-v1",
+        "id": "editorial-black"
       }
     }
   ],
@@ -216,28 +215,28 @@
     },
     {
       "shot": "menu-circuits",
-      "source": 0.0052000000178813455,
+      "source": 0.0018999999761580844,
       "from": 1732,
       "to": 1851,
       "audio": false
     },
     {
       "shot": "menu-circuits",
-      "source": 2.6552000000178815,
+      "source": 2.639199999988079,
       "from": 1851,
       "to": 1965,
       "audio": false
     },
     {
       "shot": "menu-circuits",
-      "source": 4.569600000023842,
+      "source": 4.555299999982118,
       "from": 1965,
       "to": 2079,
       "audio": false
     },
     {
       "shot": "menu-circuits",
-      "source": 6.484999999999999,
+      "source": 6.4624999999999995,
       "from": 2079,
       "to": 2241,
       "audio": false
@@ -250,14 +249,14 @@
     },
     {
       "shot": "menu-cups-trial",
-      "source": 2.3739999999999997,
+      "source": 2.360299999982119,
       "from": 2429,
       "to": 2635,
       "audio": false
     },
     {
       "shot": "menu-cups-trial",
-      "source": 8.701299999982117,
+      "source": 8.689699999988079,
       "from": 2635,
       "to": 2825,
       "audio": false
@@ -277,35 +276,35 @@
     },
     {
       "shot": "menu-garage",
-      "source": 0.0014000000059604112,
+      "source": 0.0023000000119208774,
       "from": 3365,
       "to": 3485,
       "audio": false
     },
     {
       "shot": "menu-garage",
-      "source": 2.805600000023842,
+      "source": 2.7799000000059606,
       "from": 3485,
       "to": 3631,
       "audio": false
     },
     {
       "shot": "menu-garage",
-      "source": 5.2485,
+      "source": 5.185300000011921,
       "from": 3631,
       "to": 3774,
       "audio": false
     },
     {
       "shot": "menu-garage",
-      "source": 7.637800000011921,
+      "source": 7.581800000011921,
       "from": 3774,
       "to": 3917,
       "audio": false
     },
     {
       "shot": "menu-garage",
-      "source": 10.25,
+      "source": 10.1885,
       "from": 3917,
       "to": 4158,
       "audio": false

@@ -119,6 +119,33 @@
         "turnId": "01a165aa-7adb-73e1-894f-76a860b160bb"
       },
       "note": "Stopped at the round cap below the 9/10 target. Six districts weighted equally, with 50% broad composition and 50% purposeful detail. Factory silhouettes and quarry forms remained the main limitations."
+    },
+    {
+      "levelId": "saffron",
+      "levelName": "Saffron Leviathan",
+      "pass": "whole environment, prescribed broad-strokes and detail pass including lighting",
+      "score": 6.2,
+      "rounds": 16,
+      "phases": {
+        "broad": {
+          "rounds": 10,
+          "score": 6.2
+        },
+        "detail": {
+          "rounds": 6,
+          "purposefulFinishScore": 6.2,
+          "overallScore": 6.2
+        }
+      },
+      "commitDate": "2026-10-31",
+      "resultCommit": "8eba2dc61451735927bd18997849d94b686c5335",
+      "includedInMainAtRecord": true,
+      "source": {
+        "threadId": "01a19129-4214-7fb1-8ee0-eda8cac34800",
+        "threadTitle": "fzero-art5",
+        "criticAgent": "/root/saffron_critic"
+      },
+      "note": "Stopped at the prescribed cap below 9/10. Final rubric weights broad composition and purposeful finish equally; matched whole-course static, dynamic and native chase views were reviewed. Ordinary connectors, smooth bone masses, infrastructure and sandfall impact remain limitations. This is an agent art judgment, not human acceptance."
     }
   ]
 }

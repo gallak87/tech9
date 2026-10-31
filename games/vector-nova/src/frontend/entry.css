@@ -1,0 +1,335 @@
+#front-shell.entry-shell {
+  scroll-padding-top: var(--entry-header-clearance, 100px);
+}
+.entry-shell > section {
+  position: relative;
+  z-index: 1;
+  transition: opacity 220ms ease;
+}
+.entry-shell.entry-leaving > section {
+  opacity: 0;
+}
+.entry-topbar {
+  position: fixed;
+  z-index: 3;
+  top: 22px;
+  left: clamp(24px, 4vw, 64px);
+  right: 380px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+}
+.entry-topbar .entry-wordmark {
+  font-size: 26px;
+}
+.entry-intro {
+  min-height: 100svh;
+  width: min(1800px, 100%);
+  margin: auto;
+  padding: 32px clamp(24px, 6vw, 88px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+}
+.entry-identity {
+  z-index: 2;
+  min-width: 0;
+  order: 1;
+  width: 100%;
+  text-align: center;
+}
+.entry-identity h1 {
+  margin: 0;
+}
+.entry-wordmark {
+  display: block;
+  font:
+    italic 900 clamp(38px, 5vw, 90px)/1 Arial,
+    sans-serif;
+  letter-spacing: -0.055em;
+  white-space: nowrap;
+  color: #e8e8e8;
+}
+.entry-wordmark > span {
+  color: #d01818;
+  margin-inline: 0.045em;
+}
+.entry-intro .entry-wordmark {
+  animation: entry-wordmark-breathe 3s ease-in-out infinite;
+}
+.entry-shell button {
+  font-family: inherit;
+  font-weight: 400;
+  cursor: pointer;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: #e8e8e8;
+  letter-spacing: normal;
+  text-transform: none;
+  text-align: left;
+}
+.entry-shell button:enabled:is(:hover, :focus-visible) {
+  border-left-color: #d01818;
+  background: rgb(255 255 255 / 3%);
+}
+#front-shell.entry-shell button:focus-visible {
+  outline: 0;
+  border-left-color: #d01818;
+  box-shadow: inset 2px 0 #d01818;
+  background: rgb(255 255 255 / 6%);
+}
+#front-shell.entry-shell .entry-tab {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font:
+    15px/20px Arial,
+    sans-serif;
+  white-space: nowrap;
+  color: #aaa;
+  box-shadow: none;
+}
+#front-shell.entry-shell
+  .entry-tab:is(:hover, :focus-visible, [aria-pressed='true']) {
+  border-bottom-color: #d01818;
+  color: #fff;
+}
+#front-shell.entry-shell .entry-continue {
+  margin-top: 28px;
+  min-height: 44px;
+  min-width: 152px;
+  padding: 12px 32px;
+  font-size: 16px;
+  text-align: center;
+}
+.entry-ship {
+  position: relative;
+  width: min(80vw, 1000px);
+  height: min(50svh, 560px);
+  min-width: 0;
+  flex: none;
+}
+.entry-ship .ship-preview {
+  background: transparent;
+  opacity: 0;
+}
+.entry-ship .entry-ship-ready {
+  animation: entry-ship-reveal var(--ship-reveal-duration, 4s) ease-out both;
+}
+.entry-ship .ship-preview-status {
+  display: none;
+}
+.entry-page {
+  width: min(1480px, 100%);
+  margin: auto;
+  min-height: 100svh;
+  padding: var(--entry-header-clearance, 100px) clamp(24px, 4vw, 64px) 32px;
+  box-sizing: border-box;
+  animation: entry-ship-reveal 220ms ease-out both;
+}
+.entry-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.entry-page-heading h1 {
+  font-size: clamp(28px, 4vw, 44px);
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: -0.035em;
+}
+.entry-profile-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  max-width: 920px;
+}
+.entry-shell .entry-profile {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+  min-height: 88px;
+  width: 100%;
+  padding: 16px 20px;
+  background: rgb(255 255 255 / 2%);
+}
+.entry-profile-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+}
+.entry-shell .entry-profile[aria-pressed='true'] {
+  border-left-color: #d01818;
+}
+.entry-slot-number {
+  color: #888;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+}
+.entry-profile-title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.entry-profile .career-progress {
+  max-width: 420px;
+  width: 100%;
+  margin-top: 10px;
+}
+.entry-profile .career-progress-heading {
+  font-size: 9px;
+}
+.entry-profile .career-progress-bar {
+  height: 9px;
+  margin-top: 5px;
+}
+.entry-career-detail {
+  display: block;
+  font-size: 11px;
+  color: #aaa;
+  line-height: 1.5;
+  margin-top: 6px;
+}
+.entry-career-detail > span {
+  color: #666;
+  margin-inline: 4px;
+}
+.entry-profile-action {
+  font-size: 13px;
+  white-space: nowrap;
+  color: #bbb;
+}
+.entry-shell .entry-profile:disabled {
+  opacity: 1;
+  cursor: default;
+  color: #888;
+}
+.entry-back {
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.entry-notice {
+  color: #eab78a;
+  font-size: 12px;
+  max-width: 920px;
+  line-height: 1.5;
+}
+.entry-utility-content {
+  min-width: 0;
+}
+.entry-utility .settings-layout {
+  margin-top: 0;
+}
+@keyframes entry-ship-reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes entry-wordmark-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.76;
+  }
+}
+.entry-reduced-motion .entry-wordmark,
+.entry-reduced-motion .entry-ship-ready {
+  animation: none;
+  opacity: 1;
+}
+.entry-reduced-motion > section {
+  transition: none;
+  animation: none;
+}
+@media (max-width: 760px) {
+  .entry-topbar {
+    top: 72px;
+    left: 24px;
+    right: 24px;
+    gap: 10px 18px;
+  }
+  .entry-topbar .entry-wordmark {
+    font-size: 22px;
+  }
+  #front-shell.entry-shell .entry-tab {
+    padding-inline: 8px;
+  }
+  .entry-intro {
+    padding: 24px;
+    gap: 20px;
+  }
+  .entry-wordmark {
+    font-size: clamp(32px, 10.5vw, 70px);
+  }
+  .entry-identity {
+    align-self: center;
+  }
+  #front-shell.entry-shell .entry-continue {
+    margin-top: 24px;
+  }
+  .entry-ship {
+    width: 100%;
+    height: min(45svh, 480px);
+  }
+  .entry-page {
+    padding-inline: 24px;
+  }
+  .entry-profile-grid {
+    gap: 10px;
+  }
+  .entry-shell .entry-profile {
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    gap: 12px;
+    min-height: 80px;
+    padding: 14px 12px;
+  }
+  .entry-profile-title {
+    font-size: 18px;
+  }
+  .entry-profile-action {
+    font-size: 11px;
+  }
+  .entry-profile .career-progress {
+    margin-top: 8px;
+  }
+  .entry-utility .settings-layout {
+    grid-template-columns: 1fr;
+  }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .entry-intro {
+    padding: 72px 36px 16px;
+    gap: 12px;
+  }
+  .entry-wordmark {
+    font-size: clamp(34px, 5vw, 58px);
+  }
+  .entry-ship {
+    height: 38svh;
+  }
+  #front-shell.entry-shell .entry-continue {
+    margin-top: 16px;
+  }
+  .entry-page {
+    padding-inline: 36px;
+  }
+}

@@ -103,17 +103,17 @@ export function getShip(id) {
   return SHIPS.find((entry) => entry.id === id) ?? SHIPS[0];
 }
 
-export function loadShipSelection() {
+export function loadShipSelection(storage = null) {
   try {
-    return getShip(localStorage.getItem('vector-nova.ship'));
+    return getShip(storage?.getItem('vector-nova.ship'));
   } catch {
     return SHIPS[0];
   }
 }
 
-export function saveShipSelection(id) {
+export function saveShipSelection(id, storage = null) {
   try {
-    localStorage.setItem('vector-nova.ship', getShip(id).id);
+    storage?.setItem('vector-nova.ship', getShip(id).id);
   } catch {
     /* The current session still works without storage. */
   }

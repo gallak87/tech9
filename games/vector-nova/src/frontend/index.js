@@ -19,11 +19,8 @@ import {
 import { createSaveTransfer } from '../progression/save-transfer.js';
 import { createProgressionMenu } from '../progression/menu.js';
 import { bindDesktopControls } from '../ui/desktop-controls.js';
-import { CONTROLLER_DEFAULTS, controllerLayout } from '../input/gamepad.js';
-import {
-  controllerSettingsView,
-  bindControllerSettings,
-} from './controller-settings.js';
+import { controllerLayout } from '../input/gamepad.js';
+import { settingsView, bindSettingsPanel } from './settings-panel.js';
 import {
   CUPS,
   createCupStore,
@@ -92,7 +89,20 @@ function picture(route, className = '') {
     : '';
 }
 
-export async function createFrontend(host) {
+export async function createFrontend(
+  host,
+  {
+    backdrop = null,
+    storage,
+    music: sharedMusic = null,
+    career = null,
+    onSwitchCareer = () => {},
+    configureMusicNavigation = () => {},
+  } = {},
+) {
+  if (!storage || typeof storage.getItem !== 'function')
+    throw new TypeError('A selected career storage adapter is required.');
+  let disposed = false;
   const catalog = discoverLevels().list;
   const circuits = catalog;
   const parameters = new URLSearchParams(
@@ -102,12 +112,14 @@ export async function createFrontend(host) {
     !import.meta.env?.VN_DESKTOP && ['1', '2'].includes(parameters.get('dev'))
       ? (await import('../progression/developer.js')).createDeveloperSession(
           parameters,
+          storage,
         )
       : null;
-  const profileStore = createProfileStore(developer?.storage);
+  const careerStorage = () => developer?.storage?.() ?? storage;
+  const profileStore = createProfileStore(careerStorage);
   const profile = () => profileStore.snapshot().state;
-  const cupStore = createCupStore(developer?.storage);
-  const cupCollection = createCupCollection(developer?.storage);
+  const cupStore = createCupStore(careerStorage);
+  const cupCollection = createCupCollection(careerStorage);
   cupCollection.award(cupStore.snapshot().state);
   for (const id of Object.keys(cupCollection.snapshot().cups))
     profileStore.recordCup(id);
@@ -147,7 +159,9 @@ export async function createFrontend(host) {
     requested || (parameters.get('test') === 'jump' ? 'saffron' : null);
   if (!selected) {
     try {
-      selected = canonicalLevelId(localStorage.getItem('vector-nova.circuit'));
+      selected = canonicalLevelId(
+        careerStorage().getItem('vector-nova.circuit'),
+      );
     } catch {
       /* Optional storage. */
     }
@@ -183,7 +197,7 @@ export async function createFrontend(host) {
       (
         (inspectShip || developer) &&
         SHIPS.find((s) => s.id === parameters.get('ship'))
-      )?.id ?? loadShipSelection().id,
+      )?.id ?? loadShipSelection(careerStorage()).id,
     settings = loadSettings();
   if (!shipUnlocked(profile(), shipId)) shipId = starterShip();
   let sessionRewardId = '',
@@ -263,6 +277,8 @@ export async function createFrontend(host) {
   const wideMenu = matchMedia('(min-width: 900px)');
   const choosingSession = () =>
     ['home', 'circuits', 'setup', 'cup', 'records'].includes(screen);
+  const utilityPage = () => ['settings', 'career'].includes(screen);
+  const menuVisible = () => choosingSession() || utilityPage();
   const showingShip = () => screen === 'setup';
   const lockedCup = () => (intent === 'cup' ? cupStore.snapshot().state : null);
   host.innerHTML =
@@ -270,19 +286,22 @@ export async function createFrontend(host) {
   const transfer = host.querySelector('.transfer-status');
   const gameHost = host.querySelector('#game-host');
   const shell = host.querySelector('#front-shell');
-  const menuBackdrop = createMenuBackdrop(life.signal);
+  const menuBackdrop = backdrop ?? createMenuBackdrop(life.signal);
   const inspectorHost = document.createElement('div');
   inspectorHost.id = 'inspector-host';
   const desktopControls = import.meta.env?.VN_DESKTOP
     ? bindDesktopControls(host, life.signal)
     : null;
+  const musicNavigation = {
+    clearInput: () => game?.clearInput(),
+    isMenuVisible: () => !shell.hidden,
+  };
   const music =
     artPass || inspectShip || parameters.get('music') === '0'
       ? null
-      : createMusicPlayer(host, {
-          clearInput: () => game?.clearInput(),
-          isMenuVisible: () => !shell.hidden,
-        });
+      : (sharedMusic ?? createMusicPlayer(host, musicNavigation));
+  music?.configureNavigation?.(musicNavigation);
+  configureMusicNavigation(musicNavigation);
   let sounds = null;
   if (!import.meta.env.VN_DESKTOP && ['1', '2'].includes(parameters.get('dev')))
     void import('../audio/sound-panel.js').then(({ createSoundPanel }) => {
@@ -300,17 +319,30 @@ export async function createFrontend(host) {
       profileStore,
       cupStore,
       cupCollection,
-      storage: developer?.storage,
+      storage: careerStorage,
     }),
     signal: life.signal,
     sandbox: !!developer,
+    careerName: career?.name,
+    onSwitchCareer: () => {
+      if (!disposed) onSwitchCareer();
+    },
+    onCareerBack: () => actions['settings-back'](),
     onChange({ imported = false } = {}) {
+      if (disposed) return;
       if (imported) {
+        generation++;
+        launchGeneration++;
+        controller?.abort();
         game?.dispose();
         game = null;
         loadedId = null;
         sessionCup = false;
         lastResults = null;
+        if (['race', 'results'].includes(settingsBack)) {
+          settingsBack = 'home';
+          settingsFocus = null;
+        }
         selectedCup = cupStore.snapshot().state?.cupId ?? CUPS[0].id;
         if (intent === 'cup' && cupStore.snapshot().state) {
           shipId = cupStore.snapshot().state.shipId;
@@ -357,7 +389,7 @@ export async function createFrontend(host) {
     `<span>${route() ? (route().length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'}</span> <span>${intent === 'freestyle' ? '5 TRANSFERS' : intent === 'eliminator' ? 'SURVIVE THE CUT' : intent === 'interceptor' ? '2 CIRCUIT PURSUIT' : route()?.closed === false ? 'POINT TO POINT' : intent === 'practice' ? 'OPEN PRACTICE' : intent === 'time-trial' ? 'UNLIMITED LAPS' : '2 LAPS'}</span> <span>${intent === 'interceptor' ? '4 HUNTERS · 1 TARGET' : ['race', 'cup', 'eliminator'].includes(intent) ? `${RACE_FIELD_SIZE} PILOTS` : 'SOLO'}</span>`;
   function remember() {
     try {
-      localStorage.setItem('vector-nova.circuit', selected);
+      careerStorage().setItem('vector-nova.circuit', selected);
     } catch {
       /* Optional storage. */
     }
@@ -438,7 +470,11 @@ export async function createFrontend(host) {
     );
   }
   function setScreen(next) {
+    if (disposed) return;
     const navigating = screen !== next;
+    if (navigating) music?.close();
+    if (screen === 'career' && next !== 'career')
+      progressionMenu.unmountCareer();
     if (next !== 'results') cupCelebration = null;
     screen = next;
     previewShipId = null;
@@ -474,11 +510,13 @@ export async function createFrontend(host) {
               ? '.cup-picker [aria-pressed="true"], .race-actions > .primary'
               : next === 'settings'
                 ? '[data-action="settings-back"]'
-                : next === 'loading'
-                  ? '[data-action="cancel"]'
-                  : cupCelebration
-                    ? '[data-action="cup-standings"]'
-                    : 'h1';
+                : next === 'career'
+                  ? '[data-export]'
+                  : next === 'loading'
+                    ? '[data-action="cancel"]'
+                    : cupCelebration
+                      ? '[data-action="cup-standings"]'
+                      : 'h1';
     shell.querySelector(focus)?.focus({ preventScroll: true });
     if (next === 'circuits')
       shell.querySelector(focus)?.scrollIntoView({ block: 'nearest' });
@@ -632,7 +670,7 @@ export async function createFrontend(host) {
     const selectedCraft = lockedCup()
       ? SHIPS.find((entry) => entry.id === savedCup.shipId)
       : selectedShip();
-    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : intent === 'interceptor' ? `${escape(encounterBoss().name)} · Interceptor` : `${trackChallenge(selected)} · ${intent === 'freestyle' ? 'Freestyle · stock build' : isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot())}<nav class="menu-links" aria-label="Preferences">${button('settings', 'Settings')}${button('career', `Career & saves${earnedRewards.length ? ` · ${earnedRewards.length} new` : ''}`)}${music ? button('tunes', 'Tunes') : ''}${import.meta.env?.VN_DESKTOP === true ? button('desktop-quit', 'Quit game') : ''}</nav><div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : intent === 'interceptor' ? `${escape(encounterBoss().name)} · Interceptor` : `${trackChallenge(selected)} · ${intent === 'freestyle' ? 'Freestyle · stock build' : isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot())}${import.meta.env?.VN_DESKTOP === true ? `<nav class="menu-links" aria-label="Application">${button('desktop-quit', 'Quit game')}</nav>` : ''}<div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
   };
   function cupPanel(withActions) {
     const cup = currentCup();
@@ -654,13 +692,47 @@ export async function createFrontend(host) {
       },
     });
   }
-  const topNavigation = () =>
-    `<header class="menu-topbar"><span class="menu-wordmark">VECTOR<span>//</span>NOVA</span><nav class="menu-top-tabs" aria-label="Main navigation"><button data-action="race-tab" aria-pressed="${!showingShip()}">Race</button><button data-action="garage-tab" aria-pressed="${showingShip()}">Garage</button></nav></header>`;
+  const topNavigation = () => {
+    const active = showingShip()
+      ? 'garage-tab'
+      : utilityPage()
+        ? screen
+        : 'race-tab';
+    const tabs = [
+      ['race-tab', 'Race'],
+      ['garage-tab', 'Garage'],
+      ['settings', 'Settings'],
+      ['career', 'Career'],
+      ...(music ? [['tunes', 'Tunes']] : []),
+    ];
+    return `<header class="menu-topbar"><span class="menu-wordmark">VECTOR<span>//</span>NOVA</span><nav class="menu-top-tabs" aria-label="Main navigation">${tabs.map(([action, label]) => `<button data-action="${action}" ${action === 'tunes' ? 'aria-expanded="false" aria-controls="music-panel"' : `aria-pressed="${active === action}"`}>${label}</button>`).join('')}</nav></header>`;
+  };
+  const headerObserver = new ResizeObserver(updateHeaderClearance);
+  life.signal.addEventListener('abort', () => headerObserver.disconnect(), {
+    once: true,
+  });
+  function updateHeaderClearance() {
+    const header = shell.querySelector('.menu-topbar');
+    if (header)
+      shell.style.setProperty(
+        '--menu-header-clearance',
+        `${Math.ceil(header.getBoundingClientRect().bottom + 20)}px`,
+      );
+  }
+  function mountMenuHeader() {
+    headerObserver.disconnect();
+    const header = shell.querySelector('.menu-topbar');
+    if (header) {
+      updateHeaderClearance();
+      headerObserver.observe(header);
+    }
+  }
   function renderMenu() {
     if (showingShip()) {
       shell.className = 'cinematic-menu garage-page';
       shell.innerHTML = `${topNavigation()}<main class="front-content dedicated-garage" aria-label="Ship garage">${shipPanel()}</main>`;
       menuBackdrop.mount(shell);
+      mountMenuHeader();
       mountShipPreview();
       shell.querySelector('.ship-transfer')?.append(transfer);
       updateStatus();
@@ -686,7 +758,7 @@ export async function createFrontend(host) {
       ? ''
       : records
         ? recordsView({
-            records: readTrialRecords(developer?.storage?.()),
+            records: readTrialRecords(careerStorage()),
             catalog,
             routes,
             shipId: recordShip,
@@ -702,6 +774,7 @@ export async function createFrontend(host) {
     shell.className = 'cinematic-menu';
     shell.innerHTML = `${topNavigation()}<main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${records ? 'menu-records-picker' : setup ? 'menu-ship-picker' : cup ? 'menu-cup-picker' : 'menu-track-picker'}" aria-label="${records ? 'Time Trial records' : setup ? 'Ship selection' : cup ? 'Championship selection' : 'Track selection'}">${pickerHeader}${pickerContent}</section>` : ''}</main>`;
     menuBackdrop.mount(shell);
+    mountMenuHeader();
     if (!setup && !cup && !records && picking) showDetail(selected);
     if (showingShip()) mountShipPreview();
     shell
@@ -714,10 +787,12 @@ export async function createFrontend(host) {
     desktopControls?.mount(shell);
   }
   function render() {
+    if (disposed) return;
+    headerObserver.disconnect();
     disposeControllerSettings?.();
     disposeControllerSettings = null;
     menuBackdrop.configure({
-      active: !shell.hidden && choosingSession(),
+      active: !shell.hidden && menuVisible(),
       reducedMotion: settings.reducedMotion,
     });
     if (shell.hidden) return;
@@ -725,7 +800,18 @@ export async function createFrontend(host) {
       renderMenu();
       return;
     }
-    shell.className = screen === 'settings' ? 'settings-page' : '';
+    if (screen === 'career') {
+      shell.className = 'cinematic-menu utility-shell';
+      shell.innerHTML = `${topNavigation()}<main class="front-content utility-page" data-page="career"><section class="utility-content" aria-label="Career and saves"></section></main>`;
+      menuBackdrop.mount(shell);
+      mountMenuHeader();
+      const slot = shell.querySelector('.utility-content');
+      progressionMenu.mountCareer(slot);
+      desktopControls?.mount(shell);
+      return;
+    }
+    shell.className =
+      screen === 'settings' ? 'cinematic-menu utility-shell settings-page' : '';
     const title = {
       circuits: wideMenu.matches ? 'RACE SETUP' : 'SELECT CIRCUIT',
       setup: wideMenu.matches ? 'RACE SETUP' : 'CHOOSE SHIP',
@@ -749,72 +835,26 @@ export async function createFrontend(host) {
     shell.innerHTML = `<header class="front-header"><button class="front-brand" data-action="home" aria-label="Vector Nova setup">VECTOR<span>//</span>NOVA</button>${headerLabel}${headerAction}</header><main class="front-content" data-page="${screen}"></main><footer class="front-footer"><span>${screen === 'circuits' ? 'ARROWS · BROWSE <i>/</i> ENTER · SELECT <i>/</i> TAB · CONTROLS' : `${sessionName(screen === 'results' ? loadedId : selected, screen !== 'results' && intent === 'practice').toUpperCase()} <i>/</i> ${escape((screen === 'results' ? loadedLevel() : level()).name.toUpperCase())}`}</span></footer>`;
     if (screen === 'loading' && launchTarget === 'inspection')
       shell.querySelector('.front-footer span').textContent = 'SHIP INSPECTOR';
+    if (screen === 'settings') {
+      shell.innerHTML = `${topNavigation()}<main class="front-content utility-page" data-page="settings"><header class="utility-heading"><div><span class="kicker">PREFERENCES</span><h1>Settings</h1></div>${button('settings-back', '← Back')}</header><section class="utility-content"></section></main>`;
+      menuBackdrop.mount(shell);
+      mountMenuHeader();
+    }
     const main = shell.querySelector('.front-content');
-    let content = main;
+    let content =
+      screen === 'settings' ? main.querySelector('.utility-content') : main;
     if (screen === 'loading') {
       const inspecting = launchTarget === 'inspection';
       content.innerHTML = `<section class="loading-copy">${inspecting ? '' : `<div class="loading-card">${picture(route())}${routeArt(route())}</div>`}<div class="transfer-slot loading-transfer"></div>${heading(inspecting ? 'PREPARING STUDIO' : 'LOADING CIRCUIT', inspecting ? 'Ship inspector' : escape(level().name))}${inspecting ? '' : `<div class="session-facts">${facts()}</div><div class="loading-rewards">${goalBadges()}</div>`}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
     } else if (screen === 'settings') {
-      content.innerHTML = `${sessionReturn(true)}<div class="settings-layout"><section class="settings-form"><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label><label><span>Effects volume</span><input data-setting="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label><span>Reduced motion</span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label>${controllerSettingsView(settings)}</section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
-        [
-          'Driving',
-          [
-            ['WASD / Arrows', 'Throttle, brake and steer'],
-            ['Shift', 'Boost'],
-            ['Q / E / Z / X', 'Equipment 1 / 2 / 3 / 4'],
-            ['Space', 'Airbrake'],
-            ['Esc', 'Pause / resume'],
-            ['R', 'Reset / retry'],
-            ['C', 'Change camera'],
-          ],
-        ],
-        [
-          'Menus',
-          [
-            ['Tab / Shift Tab', 'Move between controls'],
-            ['↑ / ↓', 'Move between actions'],
-            ['← / →', 'Browse choices'],
-            ['Home / End', 'First / last choice'],
-            ['Enter / Space', 'Select or activate'],
-            ['Esc', 'Back / cancel loading'],
-            ['S', 'Open settings'],
-          ],
-        ],
-        ...(!import.meta.env?.VN_DESKTOP &&
-        (parameters.get('dev') === '1' || artPass)
-          ? [
-              [
-                'Free camera',
-                [
-                  ['F', 'Enter / leave free camera'],
-                  ['WASD / Arrows', 'Move'],
-                  ['Q / E', 'Move down / up'],
-                  ['Drag', 'Look around'],
-                  ['P', 'Toggle live dev tools / FPS'],
-                  ['Esc', 'Close dev tools, then leave free camera'],
-                ],
-              ],
-            ]
-          : []),
-        [
-          'Tunes',
-          [
-            ['M', 'Play / pause'],
-            [', / .', 'Previous / next track'],
-            ['/', 'Expand player'],
-          ],
-        ],
-      ]
-        .map(
-          ([title, rows]) =>
-            `<h3>${title}</h3><dl>${rows.map(([key, label]) => `<div><dt><kbd>${key}</kbd></dt><dd>${label}</dd></div>`).join('')}</dl>`,
-        )
-        .join('')}</section></div>`;
-      content.querySelector('select').value = settings.quality;
-      disposeControllerSettings = bindControllerSettings(
-        content.querySelector('.controller-settings'),
-        () => settings,
-      );
+      content.innerHTML = `${sessionReturn(true)}${settingsView(settings, {
+        developer: parameters.get('dev') === '1',
+        artPass,
+      })}`;
+      disposeControllerSettings = bindSettingsPanel(content, {
+        getSettings: () => settings,
+        signal: life.signal,
+      });
     } else if (screen === 'results' && lastResults?.mode === 'cup') {
       content.innerHTML = cupCelebration
         ? cupVictoryView(cupStore.snapshot().state, {
@@ -935,7 +975,9 @@ export async function createFrontend(host) {
           life.signal.aborted
         )
           return;
-        shipPreview = createShipPreview();
+        shipPreview = createShipPreview({
+          autoRotate: !settings.reducedMotion,
+        });
         shell
           .querySelector('.ship-preview-slot')
           .replaceChildren(shipPreview.element);
@@ -983,6 +1025,17 @@ export async function createFrontend(host) {
     previewLevelId = id;
     node.innerHTML = `<div class="detail-image">${picture(r)}${routeArt(r)}${goalBadges(id)}${trackBadge(id)}<div class="track-caption"><h2>${escape(l.name)}</h2><p>${eventTypeFor(id) === 'interceptor' ? escape(encounterBoss(id).name) : trackChallenge(id)} · ${r ? (r.length / 1000).toFixed(2) + ' km' : '—'}</p></div></div>`;
   }
+  function showCupDetail(id) {
+    const cup = cupDefinition(id),
+      node = shell.querySelector('.cup-menu-panel .cup-hero');
+    if (!cup || !node || cupStore.snapshot().state) return;
+    node.outerHTML = cupHero(
+      cup,
+      escape(cup.name),
+      cupCollection.snapshot().cups,
+      goalBadges(),
+    );
+  }
   function selectCircuit(id) {
     invalidLevel = false;
     selected = id;
@@ -1001,6 +1054,7 @@ export async function createFrontend(host) {
       );
   }
   function updateStatus() {
+    if (disposed) return;
     const loading = screen === 'loading';
     const label = loading
       ? error ||
@@ -1044,7 +1098,7 @@ export async function createFrontend(host) {
     shell.querySelector('.loading-card')?.classList.toggle('failed', !!error);
   }
   function updateResults(data) {
-    if (!data) return;
+    if (disposed || !data) return;
     lastResults = data;
     if (
       ['time-trial', 'freestyle', 'eliminator', 'interceptor'].includes(
@@ -1112,6 +1166,7 @@ export async function createFrontend(host) {
   // Serialize world creation/disposal. A cancelled factory must finish unwinding
   // before the next renderer can acquire GPU resources; music is never disposed here.
   async function prepare() {
+    if (disposed) throw new DOMException('Disposed', 'AbortError');
     if (game && loadedId === selected) return game;
     if (pending?.id === selected && !pending.signal.aborted)
       return pending.promise;
@@ -1148,11 +1203,13 @@ export async function createFrontend(host) {
       const gameOptions = {
         host: gameHost,
         parameters: params,
-        trialStorage: developer?.storage?.(),
+        trialStorage: careerStorage(),
         onAttempt() {
+          if (disposed || signal.aborted || token !== generation) return;
           beginRewardAttempt();
         },
         onTrialRecord(data) {
+          if (disposed || signal.aborted || token !== generation) return;
           earnedRewards.push(
             ...profileStore.recordTrial(id, data.playerValid && data.improved),
           );
@@ -1166,6 +1223,7 @@ export async function createFrontend(host) {
           }
         },
         onHome(info) {
+          if (disposed || signal.aborted || token !== generation) return;
           if (info?.error) {
             controller?.abort();
             game?.dispose();
@@ -1190,14 +1248,19 @@ export async function createFrontend(host) {
           }
         },
         onTunes: music
-          ? () => music.open(gameHost.querySelector('#pause-tunes'))
+          ? () => {
+              if (!disposed && !signal.aborted && token === generation)
+                music.open(gameHost.querySelector('#pause-tunes'));
+            }
           : null,
         onSettings() {
+          if (disposed || signal.aborted || token !== generation) return;
           settingsBack = 'race';
           settingsFocus = null;
           setScreen('settings');
         },
         onCircuit(next) {
+          if (disposed || signal.aborted || token !== generation) return;
           leaveReview();
           selected = next;
           const eventType = eventTypeFor(next);
@@ -1212,6 +1275,7 @@ export async function createFrontend(host) {
           setScreen('circuits');
         },
         onMode(mode) {
+          if (disposed || signal.aborted || token !== generation) return;
           if (screen === 'loading') return;
           if (special && ['title', 'overview'].includes(mode)) {
             setScreen('review');
@@ -1238,9 +1302,11 @@ export async function createFrontend(host) {
           }
         },
         onCupRetry() {
+          if (disposed || signal.aborted || token !== generation) return;
           if (sessionCup) cupStore.retry();
         },
         onResults(data) {
+          if (disposed || signal.aborted || token !== generation) return;
           if (data.mode === 'interceptor' && sessionIntent === 'interceptor') {
             // The existing ledger awards five progress for mission success and
             // one for a valid failed attempt; the UI never invents race places.
@@ -1606,6 +1672,14 @@ export async function createFrontend(host) {
     setScreen('home');
     focusMenu(`[data-action="${mode === 'race' ? 'quick-race' : mode}"]`);
   }
+  function openUtility(next) {
+    if (screen === next) return;
+    if (!utilityPage()) {
+      settingsBack = screen;
+      settingsFocus = focusSelector();
+    }
+    setScreen(next);
+  }
   const actions = {
     eliminator() {
       chooseMode('eliminator');
@@ -1618,6 +1692,7 @@ export async function createFrontend(host) {
     },
     'race-tab'() {
       if (showingShip()) closeGarage();
+      else if (utilityPage() || screen !== 'home') goHome();
       focusMenu('[data-action="race-tab"]');
     },
     'garage-tab'() {
@@ -1628,8 +1703,8 @@ export async function createFrontend(host) {
       progressionMenu.openExotic(ship().id);
     },
     career() {
-      progressionMenu.openCareer();
       earnedRewards = [];
+      openUtility('career');
     },
     'quick-race'() {
       chooseMode('race');
@@ -1650,7 +1725,7 @@ export async function createFrontend(host) {
       if (recordTrack !== 'all') selected = recordTrack;
       if (recordShip !== 'all' && shipUnlocked(profile(), recordShip))
         shipId = recordShip;
-      saveShipSelection(shipId);
+      saveShipSelection(shipId, careerStorage());
       remember();
       chooseMode('time-trial');
       focusMenu('[data-action="launch"]');
@@ -1746,19 +1821,16 @@ export async function createFrontend(host) {
       music?.open(shell.querySelector('[data-action="tunes"]'));
     },
     settings() {
-      if (screen === 'settings') return;
-      settingsBack = screen;
-      settingsFocus = focusSelector();
-      setScreen('settings');
-    },
-    'controller-reset'() {
-      saveSettings(CONTROLLER_DEFAULTS);
+      openUtility('settings');
     },
     'desktop-quit'() {
       window.vectorNovaDesktop?.quit();
     },
     'settings-back'() {
-      const destination = settingsBack;
+      const destination =
+        ['race', 'results'].includes(settingsBack) && !game?.hasSession()
+          ? 'home'
+          : settingsBack;
       setScreen(destination);
       if (destination === 'race') {
         game?.resumeSession();
@@ -1808,7 +1880,7 @@ export async function createFrontend(host) {
         shipId = shipUnlocked(profile(), el.dataset.recordShip)
           ? el.dataset.recordShip
           : starterShip();
-        saveShipSelection(shipId);
+        saveShipSelection(shipId, careerStorage());
         remember();
         chooseMode('time-trial');
         focusMenu('[data-action="launch"]');
@@ -1840,7 +1912,7 @@ export async function createFrontend(host) {
         }
         shipId = id;
         previewShipId = null;
-        saveShipSelection(id);
+        saveShipSelection(id, careerStorage());
         remember();
         garageNotice = '';
         render();
@@ -1862,6 +1934,8 @@ export async function createFrontend(host) {
     (e) => {
       const card = e.target.closest('[data-level]');
       if (card && e.pointerType !== 'touch') showDetail(card.dataset.level);
+      const cup = e.target.closest('button[data-cup]');
+      if (cup && e.pointerType !== 'touch') showCupDetail(cup.dataset.cup);
       const chassis = e.target.closest('button[data-ship]');
       if (chassis && e.pointerType !== 'touch') showShip(chassis.dataset.ship);
     },
@@ -1870,6 +1944,11 @@ export async function createFrontend(host) {
   shell.addEventListener(
     'focusin',
     (e) => {
+      const cup = e.target.closest('button[data-cup]');
+      if (cup) {
+        showCupDetail(cup.dataset.cup);
+        return;
+      }
       const card = e.target.closest('button[data-level], button[data-ship]');
       if (!card) return;
       const selector = card.dataset.level
@@ -1892,6 +1971,13 @@ export async function createFrontend(host) {
       !e.relatedTarget?.closest?.('.reward-badges')
     )
       showDetail(selected);
+    const cupList = e.target.closest('.cup-picker');
+    if (
+      cupList &&
+      !cupList.contains(e.relatedTarget) &&
+      !e.relatedTarget?.closest?.('.reward-badges')
+    )
+      showCupDetail(currentCup().id);
     const shipList = e.target.closest('.ship-list');
     if (shipList && !showingShip() && !shipList.contains(e.relatedTarget))
       showShip(shipId);
@@ -1900,14 +1986,6 @@ export async function createFrontend(host) {
   shell.addEventListener('pointerout', restoreSelection, {
     signal: life.signal,
   });
-  shell.addEventListener(
-    'input',
-    (event) => {
-      if (event.target.dataset.setting === 'steeringDeadZone')
-        saveSettings({ steeringDeadZone: Number(event.target.value) });
-    },
-    { signal: life.signal },
-  );
   shell.addEventListener(
     'change',
     (e) => {
@@ -1919,16 +1997,6 @@ export async function createFrontend(host) {
         shell.querySelector(`[data-record-filter="${key}"]`).focus();
         return;
       }
-      const key = e.target.dataset.setting;
-      if (!key) return;
-      settings[key] =
-        e.target.type === 'checkbox'
-          ? e.target.checked
-          : e.target.type === 'range'
-            ? +e.target.value
-            : e.target.value;
-      saveSettings(settings);
-      document.body.classList.toggle('reduced-motion', settings.reducedMotion);
     },
     { signal: life.signal },
   );
@@ -1950,14 +2018,40 @@ export async function createFrontend(host) {
         e.preventDefault();
         if (e.code === 'ArrowDown') {
           if (showingShip()) focusPicker();
-          else
+          else if (utilityPage()) {
+            const controls = [
+              ...shell.querySelectorAll('main button, main input, main select'),
+            ];
+            focusMenu(
+              controls.find(
+                (control) =>
+                  !control.disabled &&
+                  control.getClientRects().length &&
+                  !control.closest('[hidden], [inert]'),
+              ),
+            );
+          } else
             focusMenu(
               '.mode-picker button[aria-pressed="true"], .picker-header button, .picker-tabs button',
             );
-        } else
-          focusMenu(
-            `[data-action="${['ArrowLeft', 'Home'].includes(e.code) ? 'race' : 'garage'}-tab"]`,
-          );
+        } else {
+          const tabs = [...shell.querySelectorAll('.menu-top-tabs button')];
+          const index = tabs.indexOf(e.target.closest('button'));
+          const next =
+            e.code === 'Home'
+              ? 0
+              : e.code === 'End'
+                ? tabs.length - 1
+                : (index +
+                    (e.code === 'ArrowLeft'
+                      ? -1
+                      : e.code === 'ArrowRight'
+                        ? 1
+                        : 0) +
+                    tabs.length) %
+                  tabs.length;
+          focusMenu(tabs[next]);
+        }
         return;
       }
       if (showingShip() && navigateGarage(e, shell)) return;
@@ -2249,7 +2343,7 @@ export async function createFrontend(host) {
       } else if (e.code === 'Escape') {
         e.preventDefault();
         if (screen === 'loading') cancel();
-        else if (screen === 'settings') actions['settings-back']();
+        else if (utilityPage()) actions['settings-back']();
         else if (screen === 'records') actions['records-back']();
         else if (cupConfirm) actions['cup-cancel']();
         else if (screen === 'results') {
@@ -2281,28 +2375,45 @@ export async function createFrontend(host) {
     },
     { signal: life.signal },
   );
-  window.addEventListener(
-    'pagehide',
-    () => {
-      controller?.abort();
-      game?.dispose();
-      inspectorController?.abort();
-      inspector?.dispose();
-      music?.dispose();
-      sounds?.dispose();
-      shipPreview?.dispose();
-      unsubscribeCache?.();
-      unsubscribeSettings?.();
-      disposeControllerSettings?.();
-      cacheModule?.disposeShipCache();
-      life.abort();
-    },
-    { once: true },
-  );
+  let disposal;
+  function dispose() {
+    if (disposal) return disposal;
+    disposed = true;
+    generation++;
+    launchGeneration++;
+    previewGeneration++;
+    controller?.abort();
+    inspectorController?.abort();
+    life.abort();
+    game?.dispose();
+    game = null;
+    inspector?.dispose();
+    inspector = null;
+    music?.close();
+    if (!sharedMusic) music?.dispose();
+    sounds?.dispose();
+    shipPreview?.dispose();
+    unsubscribeCache?.();
+    unsubscribeSettings?.();
+    disposeControllerSettings?.();
+    progressionMenu.unmountCareer();
+    disposal = Promise.allSettled([pending?.promise, inspectorPending]).then(
+      () => {
+        cacheModule?.disposeShipCache();
+        if (!import.meta.env?.VN_DESKTOP) delete window.__VN_FRONTEND;
+        host.replaceChildren();
+      },
+    );
+    return disposal;
+  }
+  window.addEventListener('pagehide', () => void dispose(), {
+    once: true,
+    signal: life.signal,
+  });
   unsubscribeSettings = subscribeSettings((next) => {
     settings = { ...next };
     menuBackdrop.configure({
-      active: !shell.hidden && choosingSession(),
+      active: !shell.hidden && menuVisible(),
       reducedMotion: settings.reducedMotion,
     });
     sounds?.configure();
@@ -2346,6 +2457,7 @@ export async function createFrontend(host) {
         sessionCup,
         shipId,
         career: profileStore.snapshot(),
+        careerSlot: career ? { id: career.id, name: career.name } : null,
         developer: !!developer,
         preview: shipPreview?.getState() ?? null,
         preload,
@@ -2374,9 +2486,14 @@ export async function createFrontend(host) {
           void module.preloadShips();
         })
         .catch(() => {
+          if (disposed) return;
           preload.label = 'Fleet preload unavailable';
           updateStatus();
         });
     });
   }
+  return {
+    dispose,
+    clearInput: () => game?.clearInput(),
+  };
 }

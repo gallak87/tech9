@@ -13,7 +13,7 @@ Reviewed against main on 2026-10-11. A shipped pass is not a new visual acceptan
 | Halcyon Speedway  | Completed reference; preserve the approved asphalt                                            |
 | Asterion Orbital  | Authored alloy PBR pass shipped; [retained brief](orbital.md)                                 |
 | Nacre Tempest     | Mineral ceramic finish shipped; [retained brief](nacre.md)                                    |
-| Vesper Canopy     | Deferred from this initial set; preserve its existing resin finish                            |
+| Vesper Forest     | Deferred from this initial set; preserve its existing resin finish                            |
 | Glasswake Comet   | Relief/grazing-response pass and transmission removal shipped; [retained brief](glasswake.md) |
 | Cindercoil        | Fired ceramic surface pass shipped; [retained brief](cindercoil.md)                           |
 | Saffron Leviathan | Fused glass/sand finish shipped; [retained brief](saffron.md)                                 |

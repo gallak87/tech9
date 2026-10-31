@@ -1,15 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FrontSide, Raycaster } from 'three';
-import { createVesperTrack } from '../src/levels/vesper/track/model.js';
-import { createVesperRoad } from '../src/levels/vesper/track/road.js';
+import { createVesperTrack } from '../src/levels/vesper-forest/track/model.js';
+import { createVesperRoad } from '../src/levels/vesper-forest/track/road.js';
 import { createWorldspireTrack } from '../src/levels/worldspire/track/model.js';
 import { createWorldspireRoad } from '../src/levels/worldspire/track/road.js';
 import { createNightweirTrack } from '../src/levels/nightweir/track/model.js';
 import { createNightweirRoad } from '../src/levels/nightweir/track/road.js';
 
 for (const [name, createTrack, createRoad, shellName] of [
-  ['Vesper', createVesperTrack, createVesperRoad, /sides and underside/],
+  ['Vesper Forest', createVesperTrack, createVesperRoad, /sides and underside/],
   ['Worldspire', createWorldspireTrack, createWorldspireRoad, /^Keel /],
   [
     'Nightweir',

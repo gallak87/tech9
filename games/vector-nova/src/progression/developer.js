@@ -1,4 +1,5 @@
 import { CUP_COLLECTION_KEY, createCupCollection } from './cup-collection.js';
+import { createMemoryStorage } from './careers.js';
 // Dynamically imported only by browser builds. Never a durable career writer.
 import {
   freshProfile,
@@ -12,22 +13,19 @@ import { REWARDS, AVAILABLE_EQUIPMENT } from './catalog.js';
 import { CUPS, CUP_STORAGE_KEY, createCupStore } from '../race/cup.js';
 import { RACE_OPPONENTS } from '../race/roster.js';
 import { SHIPS } from '../ships/catalog.js';
-export function createDeveloperSession(parameters) {
-  const memory = new Map();
-  const storage = {
-    isolated: true,
-    get length() {
-      return memory.size;
-    },
-    key: (i) => [...memory.keys()][i] ?? null,
-    getItem: (key) => memory.get(key) ?? null,
-    setItem: (key, value) => memory.set(key, String(value)),
-    removeItem: (key) => memory.delete(key),
-  };
+export function createDeveloperSession(parameters, sourceStorage = null) {
+  const storage = createMemoryStorage();
+  if (parameters.get('dev') !== '2' && sourceStorage)
+    for (let i = 0; i < sourceStorage.length; i++) {
+      const key = sourceStorage.key(i);
+      if (key !== null) storage.setItem(key, sourceStorage.getItem(key));
+    }
   const state =
     parameters.get('dev') === '2'
       ? freshProfile()
-      : createProfileStore().snapshot().state;
+      : sourceStorage
+        ? createProfileStore(() => sourceStorage).snapshot().state
+        : freshProfile();
   if (parameters.get('dev') === '2') {
     state.wins = 24;
     state.finishes = 24;
@@ -117,7 +115,9 @@ export function createDeveloperSession(parameters) {
             },
           ]),
         )
-      : createCupCollection().snapshot().cups;
+      : sourceStorage
+        ? createCupCollection(() => sourceStorage).snapshot().cups
+        : {};
   storage.setItem(
     CUP_COLLECTION_KEY,
     JSON.stringify({ version: 1, cups: trophies }),

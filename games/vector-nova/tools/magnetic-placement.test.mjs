@@ -4,7 +4,7 @@ import { createRapierWorld } from '../src/physics/rapier-world.js';
 import { withMagneticBoundaries } from '../src/physics/magnetic-boundaries.js';
 import { createVehicleState } from '../src/physics/index.js';
 
-for (const slug of ['nightweir', 'umbra', 'zephyr', 'vesper']) {
+for (const slug of ['nightweir', 'umbra', 'zephyr', 'vesper-forest']) {
   test(`${slug}: countdown and recovery already use the first driving tick's road placement`, async (t) => {
     const level = (await import(`../src/levels/${slug}/index.js`)).default({});
     const track = level.createTrack();

@@ -73,12 +73,12 @@ For scored Carve/Freestyle, a fixed build per ship is the starting proposal, fol
 
 [Worldkit](../../../worldkit/README.md) supplies canonical assets, materials and geometry factories. VECTOR//NOVA retains course composition, hero landmarks, lighting, collision, hazards, event rules and performance budgets. Extract reusable pieces when real sibling courses need them; avoid an upfront universal biome engine.
 
-| Existing world         | Plausible extension                                                                 | Reusable foundation / new work                                                                                                    |
-| ---------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Colossus Works         | Eliminator on the circuit; later an industrial descent, transfer course or Assault. | Industrial kit, steel/enamel finishes and machinery; new routes need distinct silhouettes, clearances and composition.            |
-| Nightweir              | Escape through hydroelectric districts.                                             | Civic infrastructure, water and gate vocabulary; threat behavior and route timing require a dedicated proof.                      |
-| Shatterline            | Escape or Freestyle candidate.                                                      | Accelerator structures, mountain terrain and long-flight experience; each event needs appropriate pressure or receiving geometry. |
-| Vesper / Vesper Forest | Carve through broad rooted banks, or a future canopy transfer course.               | Existing forest assets and surfaces; foliage and branches must leave fast lines and airborne receivers readable.                  |
+| Existing world | Plausible extension                                                                 | Reusable foundation / new work                                                                                                    |
+| -------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Colossus Works | Eliminator on the circuit; later an industrial descent, transfer course or Assault. | Industrial kit, steel/enamel finishes and machinery; new routes need distinct silhouettes, clearances and composition.            |
+| Nightweir      | Escape through hydroelectric districts.                                             | Civic infrastructure, water and gate vocabulary; threat behavior and route timing require a dedicated proof.                      |
+| Shatterline    | Escape or Freestyle candidate.                                                      | Accelerator structures, mountain terrain and long-flight experience; each event needs appropriate pressure or receiving geometry. |
+| Vesper Forest  | Carve through broad rooted banks, or a future canopy transfer course.               | Existing forest assets and surfaces; foliage and branches must leave fast lines and airborne receivers readable.                  |
 
 These are matches to investigate, not a content assignment. Preserve approved courses as playable originals; give new variants distinct event identities and new routes their own course identities. Reuse saves art production, while route design, collision, camera readability and driving verification remain necessary.
 

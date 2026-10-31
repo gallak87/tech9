@@ -10,6 +10,7 @@ import {
   cupStandings,
   cupComplete,
   cupGridOrder,
+  validateCup,
 } from './cup.js';
 import { RACE_OPPONENTS } from './roster.js';
 const ids = ['player', ...RACE_OPPONENTS.map((r) => r.id)];
@@ -28,6 +29,17 @@ function memory() {
     setItem: (k, v) => data.set(k, v),
   };
 }
+test('current cup saves require their own run identity', () => {
+  const storage = memory();
+  const valid = createCupStore(() => storage).start(
+    'founders',
+    'shrike',
+    'easy',
+  );
+  assert.equal(validateCup(valid).runId, valid.runId);
+  for (const runId of [undefined, '', 'x'.repeat(101)])
+    assert.equal(validateCup({ ...valid, runId }), null);
+});
 for (const cup of CUPS)
   test(`${cup.name}: events persist at every boundary; retry replaces only current scores`, () => {
     const storage = memory();

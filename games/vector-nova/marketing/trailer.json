@@ -1,0 +1,176 @@
+{
+  "id": "gameplay-trailer-v1",
+  "kind": "trailer",
+  "fps": 60,
+  "frames": 1800,
+  "outputFile": "vector-nova-gameplay-trailer-30s.mp4",
+  "music": {
+    "id": "ionwake",
+    "sourceOffset": 16.15,
+    "gain": 0.48,
+    "ducks": [
+      {
+        "from": 7.92,
+        "to": 9.4667,
+        "gain": 0.75
+      }
+    ]
+  },
+  "closing": {
+    "from": 1612,
+    "to": 1800,
+    "tail": 0.2
+  },
+  "captureShots": [
+    {
+      "id": "glasswake-pack",
+      "level": "glasswake",
+      "mode": "race",
+      "seconds": 6,
+      "preroll": 6.3,
+      "state": {},
+      "aiSpeed": true,
+      "exotic": "kestrel",
+      "equipment": ["lance", "deflector", "injector", "jump"],
+      "engineGain": 0.35,
+      "driver": {
+        "lane": -4,
+        "fire": false,
+        "boost": false
+      }
+    },
+    {
+      "id": "cindercoil-avoid",
+      "level": "cindercoil",
+      "seconds": 5,
+      "preroll": 0.08,
+      "state": {
+        "distance": 260,
+        "speed": 75,
+        "time": 3.5,
+        "lateral": 0
+      },
+      "aiSpeed": true,
+      "engineGain": 0.35,
+      "driver": {
+        "lane": 8.5,
+        "boost": false,
+        "laneSchedule": [
+          {
+            "distance": 550,
+            "lane": 0
+          }
+        ],
+        "version": 2
+      }
+    },
+    {
+      "id": "nacre-race",
+      "seconds": 22,
+      "preroll": 0.1,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/part1-gameplay-v2",
+        "id": "nacre-race"
+      }
+    },
+    {
+      "id": "helion-sweep",
+      "level": "helion",
+      "seconds": 5,
+      "preroll": 0.08,
+      "state": {
+        "distance": 4016.9056548992503,
+        "speed": 95,
+        "time": 8,
+        "lateral": 0
+      },
+      "aiSpeed": true,
+      "engineGain": 0.35,
+      "driver": {
+        "lane": -10.5,
+        "boost": false,
+        "laneSchedule": [
+          {
+            "distance": 4260,
+            "lane": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "shatterline-launch",
+      "level": "shatterline",
+      "seconds": 5,
+      "preroll": 0.08,
+      "state": {
+        "distance": 2444.3758660952685,
+        "speed": 145,
+        "time": 7,
+        "lateral": 0
+      },
+      "aiSpeed": true,
+      "engineGain": 0.35,
+      "driver": {
+        "lane": 0,
+        "boost": false
+      }
+    },
+    {
+      "id": "nightweir-hero",
+      "level": "nightweir",
+      "seconds": 9,
+      "preroll": 0.08,
+      "state": {
+        "distance": 3887.1340976548254,
+        "speed": 160,
+        "time": 7,
+        "lateral": 0
+      },
+      "aiSpeed": true,
+      "engineGain": 0.35,
+      "driver": {
+        "lane": 0,
+        "boost": false
+      }
+    }
+  ],
+  "cuts": [
+    {
+      "shot": "glasswake-pack",
+      "source": 0,
+      "from": 0,
+      "to": 188
+    },
+    {
+      "shot": "cindercoil-avoid",
+      "source": 0,
+      "from": 188,
+      "to": 376
+    },
+    {
+      "shot": "nacre-race",
+      "source": 8,
+      "from": 376,
+      "to": 860
+    },
+    {
+      "shot": "helion-sweep",
+      "source": 0,
+      "from": 860,
+      "to": 1048
+    },
+    {
+      "shot": "shatterline-launch",
+      "source": 0,
+      "from": 1048,
+      "to": 1209
+    },
+    {
+      "shot": "nightweir-hero",
+      "source": 0,
+      "from": 1209,
+      "to": 1612
+    }
+  ]
+}

@@ -55,11 +55,85 @@ async function press(keyCode) {
 const menu = `!!document.querySelector('.race-menu') && !document.querySelector('#front-shell').hidden`;
 const racing = `document.querySelector('#hud') && !document.querySelector('#hud').classList.contains('hidden') && document.querySelector('#front-shell').hidden`;
 const paused = `document.querySelector('#pause-panel') && !document.querySelector('#pause-panel').classList.contains('hidden')`;
+async function careerKey(key) {
+  const { activeCareerKey, CAREER_SLOTS_KEY } =
+    await import('./probe-helpers.mjs');
+  const registry = await evaluate(
+    `JSON.parse(localStorage.getItem(${JSON.stringify(CAREER_SLOTS_KEY)}))`,
+  );
+  return activeCareerKey(registry, key);
+}
+async function readCareer(key) {
+  return evaluate(
+    `localStorage.getItem(${JSON.stringify(await careerKey(key))})`,
+  );
+}
+async function writeCareer(values) {
+  for (const [key, value] of Object.entries(values))
+    await evaluate(
+      `localStorage.setItem(${JSON.stringify(await careerKey(key))}, ${JSON.stringify(value)})`,
+    );
+}
+async function checkTitle() {
+  await wait(
+    `!!document.querySelector('[data-entry-stage="intro"] .entry-continue')`,
+  );
+  assert.equal(
+    await evaluate(`document.querySelector('.entry-continue').textContent`),
+    'Start',
+  );
+  assert.equal(
+    await evaluate(`document.querySelectorAll('.entry-topbar').length`),
+    0,
+  );
+  assert(
+    await evaluate(
+      `document.querySelector('[data-music-player]').getClientRects().length > 0`,
+    ),
+  );
+}
+async function enterCareer() {
+  await checkTitle();
+  assert(await evaluate(`document.activeElement.matches('.entry-continue')`));
+  await press('Enter');
+  await wait(
+    `document.querySelectorAll('[data-entry-stage="profiles"] [data-career-slot]').length === 3`,
+  );
+  await click('[data-career-slot="1"]');
+  await wait(menu);
+  await wait(`document.querySelector('.transfer-status')?.hidden === true`);
+  // Also assert the slot namespace before any progression/selections are seeded.
+  await careerKey('vector-nova.career.v1');
+}
+async function unlockFullFleet() {
+  const { unlockedCareerSave } = await import('./probe-helpers.mjs');
+  const text = unlockedCareerSave();
+  await click('.menu-top-tabs [data-action="career"]');
+  await wait(`!!document.querySelector('[data-save-file]')`);
+  await evaluate(`(() => {
+    const input = document.querySelector('[data-save-file]');
+    const files = new DataTransfer();
+    files.items.add(new File([${JSON.stringify(text)}], 'desktop-career.json', { type: 'application/json' }));
+    input.files = files.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
+  await click('[data-confirm-import]');
+  await wait(
+    `document.querySelector('.progression-notice')?.textContent.includes('Save imported.')`,
+  );
+  const profile = JSON.parse(await readCareer('vector-nova.career.v1'));
+  for (const ship of ['bastion', 'needle', 'kestrel'])
+    assert(profile.claims.includes(`ship-${ship}`));
+  await click('[data-action="race-tab"]');
+  await wait(menu);
+}
 async function checkCollection() {
   const total = manifest.edition === 'demo' ? 4 : 28;
+  const claims =
+    JSON.parse(await readCareer('vector-nova.career.v1'))?.claims ?? [];
   const progress = await evaluate(`(() => {
     const bar = document.querySelector('.career-progress-bar');
-    const claims = JSON.parse(localStorage.getItem('vector-nova.career.v1'))?.claims ?? [];
+    const claims = ${JSON.stringify(claims)};
     const available = ${JSON.stringify(manifest.edition === 'demo' ? ['speed-1', 'equipment-jump', 'equipment-deflector', 'boost-1'] : null)};
     return {
       collected: Number(bar?.getAttribute('aria-valuenow')),
@@ -85,9 +159,7 @@ async function run() {
     if (details.statusCode >= 400)
       failures.push(`${details.statusCode} ${details.url}`);
   });
-  await wait(menu);
-  await wait(`document.querySelector('.transfer-status')?.hidden === true`);
-  await checkCollection();
+  await checkTitle();
   assert.equal(
     window.isFullScreenable(),
     true,
@@ -97,6 +169,15 @@ async function run() {
     await evaluate('window.vectorNovaDesktop.getFullscreen()'),
     window.isFullScreen(),
   );
+  if (process.env.VN_PROBE_WINDOW_ONLY === '1') {
+    console.log(
+      `PASS ${manifest.edition}: native fullscreen enabled after startup`,
+    );
+    await evaluate('window.vectorNovaDesktop.quit()');
+    return;
+  }
+  await enterCareer();
+  await checkCollection();
   assert(
     await evaluate(
       '!!document.querySelector(".desktop-window-controls button[data-desktop-fullscreen]")',
@@ -108,13 +189,6 @@ async function run() {
     ),
     false,
   );
-  if (process.env.VN_PROBE_WINDOW_ONLY === '1') {
-    console.log(
-      `PASS ${manifest.edition}: native fullscreen enabled after startup`,
-    );
-    await evaluate('window.vectorNovaDesktop.quit()');
-    return;
-  }
   if (process.env.VN_PROBE_RESTART === '1') {
     assert.equal(
       await evaluate(
@@ -128,15 +202,10 @@ async function run() {
       ),
       ['arcade', 0.22],
     );
-    assert.equal(
-      await evaluate(`localStorage.getItem('vector-nova.ship')`),
-      'kestrel',
-    );
+    assert.equal(await readCareer('vector-nova.ship'), 'kestrel');
     await click('[data-action="cup-hub"]');
     assert.equal(
-      await evaluate(
-        `JSON.parse(localStorage.getItem('vector-nova.cup.v1')).cupId`,
-      ),
+      JSON.parse(await readCareer('vector-nova.cup.v1')).cupId,
       manifest.edition === 'demo' ? 'demo' : 'founders',
     );
     await click('[data-action="cup-resume"]');
@@ -181,14 +250,19 @@ async function run() {
     ),
     expected,
   );
+  if (manifest.edition === 'full') await unlockFullFleet();
   // Attempt conventional URL/save unlocks; the executable catalog cannot grow.
+  await writeCareer({
+    'vector-nova.ship': 'needle',
+    'vector-nova.circuit': 'umbra',
+  });
   await evaluate(
-    `localStorage.setItem('vector-nova.ship','needle'); localStorage.setItem('vector-nova.circuit','umbra'); localStorage.setItem('vector-nova.demo','false'); localStorage.setItem('vector-nova.settings',JSON.stringify({ quality:'low', volume:0.2 }));`,
+    `localStorage.setItem('vector-nova.demo','false'); localStorage.setItem('vector-nova.settings',JSON.stringify({ quality:'low', volume:0.2 }));`,
   );
   await window.loadURL(
     'vn-game://app/index.html?dev=1&artPass=1&test=jump&review=shape&capture=1&demo=0&edition=full&level=umbra',
   );
-  await wait(menu);
+  await enterCareer();
   assert.deepEqual(
     await evaluate(
       `[...document.querySelectorAll('button[data-level]')].map(b=>b.dataset.level).sort()`,
@@ -209,8 +283,9 @@ async function run() {
     ),
     [...manifest.ships].sort(),
   );
-  await click('[data-ship="kestrel"]');
+  await click('button[data-ship="kestrel"]');
   await click('[data-action="race-tab"]');
+  assert.equal(await readCareer('vector-nova.ship'), 'kestrel');
   await click('[data-action="settings"]');
   assert.equal(
     await evaluate(`document.querySelector('[data-setting="quality"]').value`),
@@ -335,8 +410,9 @@ async function run() {
   await wait(menu);
   for (const ship of manifest.ships.filter((id) => id !== 'kestrel')) {
     await click('[data-action="ship-step"]');
-    await click(`[data-ship="${ship}"]`);
+    await click(`button[data-ship="${ship}"]`);
     await click('[data-action="race-tab"]');
+    assert.equal(await readCareer('vector-nova.ship'), ship);
     await click('[data-action="practice"]');
     await click('[data-action="launch"]');
     await wait(racing);
@@ -358,7 +434,7 @@ async function run() {
     );
   }
   await click('[data-action="ship-step"]');
-  await click('[data-ship="kestrel"]');
+  await click('button[data-ship="kestrel"]');
   await click('[data-action="race-tab"]');
   await click('[data-action="cup-hub"]');
   assert(

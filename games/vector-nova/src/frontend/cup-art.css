@@ -131,7 +131,6 @@
 }
 .menu-layout .cup-picker .cup-card[aria-pressed='true'] {
   border-color: #ffffff70;
-  border-bottom: 2px solid #d01818;
 }
 .menu-layout .cup-picker .cup-card:hover {
   border-color: var(--cup-accent);
@@ -139,6 +138,17 @@
 .menu-layout .cup-picker .cup-card:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 3px;
+}
+.menu-layout
+  .cup-picker
+  .cup-card:is(:hover, :focus-visible, [aria-pressed='true'])::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: #d01818;
+  pointer-events: none;
+  z-index: 1;
 }
 .cup-menu-panel .cup-art-hero {
   position: relative;

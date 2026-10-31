@@ -1,19 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readdir } from 'node:fs/promises';
 import { createCatalog, circuitURL } from '../src/levels/contract.js';
-import { createVesperTrack as baselineTrack } from '../src/levels/vesper/track/model.js';
-import { createVesperTrack as pilotTrack } from '../src/levels/vesper-forest/track/model.js';
-import { createVesperRoad as baselineRoad } from '../src/levels/vesper/track/road.js';
-import { createVesperRoad as pilotRoad } from '../src/levels/vesper-forest/track/road.js';
-import { createVesperCollisionWorld as baselineCollision } from '../src/levels/vesper/collision.js';
-import { createVesperCollisionWorld as pilotCollision } from '../src/levels/vesper-forest/collision.js';
-import { createVesperRuntime as baselineRuntime } from '../src/levels/vesper/runtime.js';
-import { createVesperRuntime as pilotRuntime } from '../src/levels/vesper-forest/runtime.js';
-import { createDevices as baselineDevices } from '../src/levels/vesper/devices.js';
-import { createDevices as pilotDevices } from '../src/levels/vesper-forest/devices.js';
-import { sampleVesperSurface as baselineSurface } from '../src/levels/vesper/surface.js';
-import { sampleVesperSurface as pilotSurface } from '../src/levels/vesper-forest/surface.js';
+import { createVesperTrack } from '../src/levels/vesper-forest/track/model.js';
+import { createVesperRoad } from '../src/levels/vesper-forest/track/road.js';
+import { createVesperCollisionWorld } from '../src/levels/vesper-forest/collision.js';
+import { createVesperRuntime } from '../src/levels/vesper-forest/runtime.js';
+import { createDevices } from '../src/levels/vesper-forest/devices.js';
+import { sampleVesperSurface } from '../src/levels/vesper-forest/surface.js';
 import { createVehicleState } from '../src/physics/index.js';
 import {
   compatibleRuntime,
@@ -23,8 +18,22 @@ import { trackChallenge } from '../src/frontend/track-challenge.js';
 import { menuCatalog } from './menu-catalog.mjs';
 import { editionPolicy } from './desktop/policy.mjs';
 
-// Keep the approved circuit as a measurable control for this art-only pilot.
-test('Vesper Forest is a separate discoverable circuit with its own course identity', async () => {
+// These fingerprints describe the approved Forest route, road and contacts.
+// Quantize double precision noise without allowing a physical route change.
+const fingerprint = (value) =>
+  createHash('sha256')
+    .update(
+      JSON.stringify(value, (_, item) =>
+        typeof item === 'number'
+          ? Math.round(item * 1e8) / 1e8
+          : ArrayBuffer.isView(item)
+            ? Array.from(item)
+            : item,
+      ),
+    )
+    .digest('hex');
+
+test('Vesper Forest is independently discoverable without constructing a world', async () => {
   const entries = await readdir(new URL('../src/levels/', import.meta.url), {
     withFileTypes: true,
   });
@@ -38,255 +47,189 @@ test('Vesper Forest is a separate discoverable circuit with its own course ident
     };
   }
   const catalog = createCatalog(metadata, loaders);
-  const original = catalog.list.find((entry) => entry.id === 'vesper');
-  const pilot = catalog.list.find((entry) => entry.id === 'vesper-forest');
-  assert.equal(original.name, 'Vesper Canopy');
-  assert.equal(pilot.name, 'Vesper Forest');
-  assert.equal(catalog.list.indexOf(pilot), catalog.list.indexOf(original) + 1);
-  assert.equal(trackChallenge(pilot.id), trackChallenge(original.id));
+  const forest = catalog.list.find((entry) => entry.id === 'vesper-forest');
+  assert.equal(forest.name, 'Vesper Forest');
   assert.equal(
-    circuitURL('https://example.test/?level=vesper', pilot.id).searchParams.get(
-      'level',
-    ),
-    pilot.id,
+    catalog.list.filter((entry) => entry.id === forest.id).length,
+    1,
   );
-  assert.ok(editionPolicy('full').levels.includes(pilot.id));
-  assert.ok(!editionPolicy('demo').levels.includes(pilot.id));
-  const courses = await menuCatalog({
-    levelIds: [original.id, pilot.id],
-    warn() {},
-  });
-  assert.equal(courses.length, 2);
-  assert.notEqual(courses[0].trackId, courses[1].trackId);
-  assert.equal(courses[0].routeSignature, courses[1].routeSignature);
+  assert.equal(trackChallenge(forest.id), 'Easy');
+  assert.equal(
+    circuitURL('https://example.test/', forest.id).searchParams.get('level'),
+    forest.id,
+  );
+  assert.ok(editionPolicy('full').levels.includes(forest.id));
+  assert.ok(!editionPolicy('demo').levels.includes(forest.id));
+  const [course] = await menuCatalog({ levelIds: [forest.id], warn() {} });
+  assert.equal(course.trackId, 'vesper-forest-1');
 });
 
-test('the pilot retains every route frame, jump, surface and device from approved Vesper', () => {
-  const original = baselineTrack(),
-    pilot = pilotTrack();
-  assert.notEqual(original.id, pilot.id);
-  const geometry = (track) =>
-    Object.fromEntries(
-      Object.entries(track).filter(
-        ([key, value]) =>
-          !['id', 'name', 'review'].includes(key) &&
-          typeof value !== 'function',
+test('the approved Forest route, surfaces and device layout retain their physical contract', () => {
+  const track = createVesperTrack();
+  assert.equal(track.id, 'vesper-forest-1');
+  assert.equal(track.name, 'Vesper Forest');
+  assert.equal(track.width, 28);
+  assert.equal(track.length, 4762.5398043901305);
+  assert.equal(track.jumps.length, 1);
+  assert.equal(track.inversions.length, 1);
+  const geometry = Object.fromEntries(
+    Object.entries(track).filter(
+      ([key, value]) =>
+        !['id', 'name', 'review'].includes(key) && typeof value !== 'function',
+    ),
+  );
+  assert.equal(
+    fingerprint(geometry),
+    '6752cd5a186fcb53d7d9f10ae3702633a5ee2878fc39ce3c150144f31e21214a',
+  );
+  const frames = [];
+  for (let distance = -2; distance <= track.length + 2; distance++) {
+    const frame = track.sample(distance);
+    frames.push({
+      distance,
+      position: frame.position.toArray(),
+      tangent: frame.tangent.toArray(),
+      right: frame.right.toArray(),
+      up: frame.up.toArray(),
+      quaternion: frame.quaternion.toArray(),
+      curvature: frame.curvature,
+      bank: frame.bank,
+      roll: frame.roll,
+      gap: track.isGap(distance),
+      surfaces: [-12, 0, 12].map((lateral) =>
+        sampleVesperSurface(track, { distance, lateral, speed: 85 }),
       ),
-    );
-  assert.deepEqual(geometry(pilot), geometry(original));
-  for (let distance = -2; distance <= original.length + 2; distance += 1) {
-    assert.deepEqual(
-      pilot.sample(distance),
-      original.sample(distance),
-      `route at ${distance}m`,
-    );
-    assert.equal(pilot.isGap(distance), original.isGap(distance));
-    for (const lateral of [-12, 0, 12]) {
-      const state = { distance, lateral };
-      assert.deepEqual(
-        pilotSurface(pilot, state),
-        baselineSurface(original, state),
-      );
-    }
+    });
   }
-  assert.deepEqual(pilotDevices(pilot), baselineDevices(original));
+  assert.equal(
+    fingerprint(frames),
+    '9bade6deadc92d1a6bc4a1a0b458ca39d4d9bd7539306e915b88877688b1a57a',
+  );
+  assert.equal(
+    fingerprint(createDevices(track)),
+    '65fdff8db17985352fa675a4b0ae82b2d8e09646fb6b027c4f63425ac1598ff3',
+  );
 });
 
-test('pilot physics matches the control through ground travel and crown flight, with isolated replay identity', () => {
-  const tracks = [baselineTrack(), pilotTrack()];
-  const factories = [baselineRuntime, pilotRuntime];
-  const jump = tracks[0].jumps[0];
-  for (const initial of [
-    { distance: 460, speed: 80 },
-    { distance: tracks[0].landmarks.hollow.entry, speed: 60 },
-    { distance: jump.takeoff - 0.1, speed: 112 },
+test('Forest coast, hollow and crown-flight simulations retain their deterministic behavior', () => {
+  const track = createVesperTrack();
+  for (const [initial, expected] of [
+    [
+      { distance: 460, speed: 80 },
+      '198a785e08381125bf19af195708d2931bd2266d19bbec2f29eecf33f762856e',
+    ],
+    [
+      { distance: track.landmarks.hollow.entry, speed: 60 },
+      'e95ef4ade25ae2e40cd88b0ff99e88320841ce6fd9fb82f9f8a7368697386b67',
+    ],
+    [
+      { distance: track.jumps[0].takeoff - 0.1, speed: 112 },
+      '21a7b3a9f558b9fb0f73ab697d64d6c556dd5e6a601b74b0b72e223c523ff7b3',
+    ],
   ]) {
-    const adapters = factories.map((factory, index) =>
-      factory({ track: tracks[index], presentation: false }),
-    );
-    const states = adapters.map(() => ({
-      ...createVehicleState(),
-      ...initial,
-    }));
+    const runtime = createVesperRuntime({ track, presentation: false });
+    const state = { ...createVehicleState(), ...initial };
     try {
-      assert.equal(adapters[0].rulesId, adapters[1].rulesId);
-      assert.equal(
-        compatibleRuntime(adapters[0], runtimeIdentity(adapters[1])),
-        false,
-      );
-      assert.equal(
-        compatibleRuntime(adapters[1], runtimeIdentity(adapters[0])),
-        false,
-      );
-      adapters.forEach((adapter, index) =>
-        adapter.reset({ state: states[index], seed: 7 }),
-      );
+      runtime.reset({ state, seed: 7 });
+      assert.equal(compatibleRuntime(runtime, runtimeIdentity(runtime)), true);
+      const trace = [];
       for (let tick = 0; tick < 720; tick++) {
-        const input = {
-          throttle: 0,
-          brake: 0,
-          steer: 0,
-          boost: false,
-          airbrake: false,
-        };
-        const events = adapters.map((adapter, index) =>
-          adapter.advance(states[index], input, 1 / 120),
+        const events = runtime.advance(
+          state,
+          {
+            throttle: 0,
+            brake: 0,
+            steer: 0,
+            boost: false,
+            airbrake: false,
+          },
+          1 / 120,
         );
-        assert.deepEqual(events[1], events[0]);
-        assert.deepEqual(states[1], states[0]);
-        assert.deepEqual(adapters[1].snapshot(), adapters[0].snapshot());
+        trace.push({ state: { ...state }, motion: runtime.snapshot(), events });
       }
+      assert.equal(
+        fingerprint(trace),
+        expected,
+        `simulation at ${initial.distance}m`,
+      );
+      if (initial.speed === 112)
+        assert.ok(
+          trace.some((step) =>
+            step.events.some(
+              (event) =>
+                event.type === 'jump-transfer' &&
+                event.payload.outcome === 'landed',
+            ),
+          ),
+        );
     } finally {
-      adapters.forEach((adapter) => adapter.dispose());
+      runtime.dispose();
     }
   }
 });
 
-const oldRoadDecorations = new Set([
-  'Paired braided load roots',
-  'Maintenance sleeves and root sockets',
-]);
-
-test('new-kit road attachments replace old vines without changing any driving, curb or guidance geometry', () => {
-  const original = baselineRoad({ track: baselineTrack() });
-  const pilot = pilotRoad({ track: pilotTrack() });
+test('Forest road geometry, materials and guidance retain the approved mesh contract', () => {
+  const road = createVesperRoad({ track: createVesperTrack() });
   try {
-    const meshes = (road) => {
-      const result = [];
-      road.group.traverse((object) => {
-        if (object.isMesh) result.push(object);
+    const meshes = [];
+    road.group.updateMatrixWorld(true);
+    road.group.traverse((object) => {
+      if (!object.isMesh) return;
+      const state = object.material.toJSON();
+      delete state.uuid;
+      meshes.push({
+        name: object.name,
+        userData: object.userData,
+        index: object.geometry.index?.array,
+        attributes: Object.fromEntries(
+          Object.entries(object.geometry.attributes).map(([id, attribute]) => [
+            id,
+            {
+              itemSize: attribute.itemSize,
+              normalized: attribute.normalized,
+              array: attribute.array,
+            },
+          ]),
+        ),
+        groups: object.geometry.groups,
+        drawRange: object.geometry.drawRange,
+        matrix: object.matrix.toArray(),
+        material: {
+          state,
+          shader: object.material.onBeforeCompile.toString(),
+          cacheKey: object.material.customProgramCacheKey(),
+        },
       });
-      return result;
-    };
-    const allOriginal = meshes(original),
-      actual = meshes(pilot);
-    for (const name of oldRoadDecorations) {
-      assert.ok(
-        allOriginal.some((mesh) => mesh.name === name),
-        `baseline contains ${name}`,
-      );
-      assert.ok(
-        !actual.some((mesh) => mesh.name === name),
-        `pilot removed ${name}`,
-      );
-    }
-    const expected = allOriginal.filter(
-      (mesh) => !oldRoadDecorations.has(mesh.name),
-    );
-    assert.equal(
-      actual.length,
-      expected.length,
-      'only the two obsolete decoration meshes are removed',
-    );
-    assert.ok(actual.some((mesh) => mesh.userData.drivingSurface));
+    });
+    assert.equal(meshes.length, 89);
+    assert.ok(meshes.some((mesh) => mesh.userData.drivingSurface));
     assert.ok(
-      actual.some(
+      meshes.some(
         (mesh) => mesh.name === 'Advance jump lane and landing guidance',
       ),
     );
-    const materialState = (material) => {
-      const state = material.toJSON();
-      delete state.uuid;
-      return {
-        state,
-        shader: material.onBeforeCompile.toString(),
-        cacheKey: material.customProgramCacheKey(),
-      };
-    };
-    for (let i = 0; i < expected.length; i++) {
-      const a = expected[i],
-        b = actual[i],
-        label = a.name || `road mesh ${i}`;
-      assert.equal(b.name, a.name);
-      assert.deepEqual(b.userData, a.userData, `${label} semantic tags`);
-      assert.deepEqual(
-        b.geometry.index.array,
-        a.geometry.index.array,
-        `${label} triangle indices`,
-      );
-      assert.deepEqual(
-        Object.keys(b.geometry.attributes),
-        Object.keys(a.geometry.attributes),
-      );
-      for (const [name, attribute] of Object.entries(a.geometry.attributes)) {
-        const next = b.geometry.attributes[name];
-        assert.equal(next.itemSize, attribute.itemSize);
-        assert.equal(next.normalized, attribute.normalized);
-        assert.deepEqual(next.array, attribute.array, `${label} ${name}`);
-      }
-      assert.deepEqual(b.geometry.groups, a.geometry.groups);
-      assert.deepEqual(b.geometry.drawRange, a.geometry.drawRange);
-      assert.deepEqual(b.matrix.toArray(), a.matrix.toArray());
-      assert.deepEqual(
-        materialState(b.material),
-        materialState(a.material),
-        `${label} material and shader`,
-      );
-    }
+    assert.equal(
+      fingerprint(meshes),
+      'e0403b4fb877f90bb3313f2ede5d3882f100f9c2749db99849bc5998d4176c33',
+    );
   } finally {
-    original.dispose();
-    pilot.dispose();
+    road.dispose();
   }
 });
 
-test('the rebuilt pilot removes obsolete bough/vine colliders and retains every driving contact', () => {
-  const original = baselineCollision({ track: baselineTrack() });
-  const pilot = pilotCollision({ track: pilotTrack() });
+test('Forest collision keeps every approved deck, rail and structural triangle', () => {
+  const collision = createVesperCollisionWorld({ track: createVesperTrack() });
   try {
-    const removed = 'placed-landing-bough';
-    assert.ok(original.targets.some((target) => target.id === removed));
-    assert.ok(original.triangles.some((triangle) => triangle.id === removed));
-    assert.ok(!pilot.targets.some((target) => target.id === removed));
-    assert.ok(!pilot.triangles.some((triangle) => triangle.id === removed));
-    assert.notEqual(pilot.rulesId, original.rulesId);
-    const removedIds = new Set(
-      original.targets
-        .filter(
-          (target) =>
-            target.id === removed || oldRoadDecorations.has(target.name),
-        )
-        .map((target) => target.id),
+    assert.equal(collision.targets.length, 9);
+    assert.equal(collision.triangleCount, 4318);
+    assert.equal(
+      fingerprint({
+        targets: collision.targets,
+        triangles: collision.triangles,
+      }),
+      'f24d9bfaf21930594c3ec7cb10fdc0bc78eb00126d61731e7fd373e70e6488d7',
     );
-    assert.ok(
-      pilot.targets.every((target) => !oldRoadDecorations.has(target.name)),
-    );
-    const remainingTargets = original.targets.filter(
-      (target) => !removedIds.has(target.id),
-    );
-    const contactTarget = (target) => {
-      const contact = { ...target };
-      delete contact.id;
-      return contact;
-    };
-    assert.deepEqual(
-      pilot.targets.map(contactTarget),
-      remainingTargets.map(contactTarget),
-    );
-    const names = (world) =>
-      new Map(world.targets.map((target) => [target.id, target.name]));
-    const originalNames = names(original);
-    const pilotNames = names(pilot);
-    const remaining = original.triangles.filter(
-      (triangle) => !removedIds.has(triangle.id),
-    );
-    assert.equal(pilot.triangleCount, remaining.length);
-    // Extraction numbers targets and triangles in insertion order. Removing the
-    // old bough/vines changes IDs, but no retained road vertex or contact metadata may move.
-    const contact = (triangle, targetNames) => {
-      const surface = { ...triangle, target: targetNames.get(triangle.id) };
-      delete surface.id;
-      delete surface.order;
-      return surface;
-    };
-    for (let i = 0; i < remaining.length; i++) {
-      assert.deepEqual(
-        contact(pilot.triangles[i], pilotNames),
-        contact(remaining[i], originalNames),
-        `road contact triangle ${i}`,
-      );
-    }
   } finally {
-    original.dispose();
-    pilot.dispose();
+    collision.dispose();
   }
 });

@@ -13,7 +13,7 @@ import { createGlasswakeTrack } from '../levels/glasswake/track/model.js';
 const circuits = [
   ['nacre', 'createLevel3Track', 'createNacreRuntime'],
   ['orbital', 'createLevel2Track', null],
-  ['vesper', 'createVesperTrack', 'createVesperRuntime'],
+  ['vesper-forest', 'createVesperTrack', 'createVesperRuntime'],
   ['glasswake', 'createGlasswakeTrack', 'createGlasswakeRuntime'],
   ['cindercoil', 'createCindercoilTrack', 'createCindercoilRuntime'],
 ];

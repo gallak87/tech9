@@ -768,6 +768,11 @@ body[data-screen='results'] #interface {
   top: 16px;
   right: 2.5vw;
 }
+.music-player:not(.is-compact, .is-collapsed) {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 .music-player :focus-visible {
   outline-color: #e8e8e8;
 }

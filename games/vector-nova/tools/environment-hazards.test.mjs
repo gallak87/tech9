@@ -11,7 +11,6 @@ import { sampleCrossfeed } from '../src/levels/colossus/mechanics.js';
 import createHelion from '../src/levels/helion/index.js';
 import createCindercoil from '../src/levels/cindercoil/index.js';
 import createSaffron from '../src/levels/saffron/index.js';
-import createVesper from '../src/levels/vesper/index.js';
 import createVesperForest from '../src/levels/vesper-forest/index.js';
 import { sampleSaffronDeposits } from '../src/levels/saffron/track/sand.js';
 import {
@@ -158,10 +157,7 @@ const definitions = [
     },
     0.75,
   ],
-  ...[
-    ['vesper', createVesper],
-    ['vesper-forest', createVesperForest],
-  ].map(([id, create]) => [
+  ...[['vesper-forest', createVesperForest]].map(([id, create]) => [
     id,
     create,
     (track, active) => {

@@ -1,3 +1,3 @@
-import { createFrontend } from '../frontend/index.js';
+import { startEntry } from '../frontend/entry.js';
 
-createFrontend(document.querySelector('#app'));
+void startEntry(document.querySelector('#app'));

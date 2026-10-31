@@ -73,15 +73,6 @@
       "sourceDirty": true,
       "routeSignature": "5cab1f1f99b9673d"
     },
-    "vesper": {
-      "file": "vesper.webp",
-      "width": 640,
-      "height": 400,
-      "preset": "route-overview-v1",
-      "sourceRevision": "f995e8f5c08aba54fef2bfb10692d8faef75927d",
-      "sourceDirty": true,
-      "routeSignature": "2f147e93e90cfdd4"
-    },
     "zephyr": {
       "file": "zephyr.webp",
       "width": 640,

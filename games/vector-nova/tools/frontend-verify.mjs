@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import {
+  createCareerSlots,
+  CAREER_SLOTS_KEY,
+} from '../src/progression/careers.js';
+import { PROFILE_KEY } from '../src/progression/profile.js';
 import createHalcyonLevel from '../src/levels/halcyon/index.js';
 import { createVehicleState } from '../src/physics/index.js';
 import {
@@ -21,6 +26,23 @@ import {
 } from '../src/core/session-runtime.js';
 
 // Maintained player-flow check. Requires an existing server; writes no artifacts.
+const careerValues = new Map();
+const seedStorage = {
+  isolated: true,
+  get length() {
+    return careerValues.size;
+  },
+  key: (index) => [...careerValues.keys()][index] ?? null,
+  getItem: (key) => careerValues.get(key) ?? null,
+  setItem: (key, value) => careerValues.set(key, String(value)),
+  removeItem: (key) => careerValues.delete(key),
+};
+createCareerSlots({ storage: () => seedStorage, now: () => 1 }).create(1);
+const careerSeed = [...careerValues];
+const careerPrefix = careerSeed
+  .find(([key]) => key.endsWith(PROFILE_KEY))[0]
+  .slice(0, -PROFILE_KEY.length);
+
 const base = process.env.VN_URL;
 if (!base) throw new Error('Set VN_URL to an existing dev/preview server.');
 const flags = process.argv.slice(2);
@@ -36,7 +58,11 @@ const browser = await chromium.launch({
     ? { executablePath: process.env.VN_BROWSER_PATH }
     : { channel: process.env.VN_BROWSER_CHANNEL ?? 'chrome' }),
 });
-const url = (query = '') => new URL(`?${query}`, base).href;
+const url = (query = '') => {
+  const target = new URL(`?${query}`, base);
+  target.searchParams.set('intro', '0');
+  return target.href;
+};
 const front = (page) => page.evaluate(() => window.__VN_FRONTEND.getState());
 const snapshot = (page) =>
   page.evaluate(() => (window.__VN_INSPECTOR ?? window.__VN).getSnapshot());
@@ -71,12 +97,15 @@ async function check(
     return;
   const context = await browser.newContext({
     viewport,
-    hasTouch: viewport.width < 760,
+    hasTouch: viewport.width < 760 || viewport.height < 500,
     deviceScaleFactor,
   });
   try {
     await context.addInitScript(
-      (settings) =>
+      ({ settings, careerSeed, registryKey }) => {
+        if (localStorage.getItem(registryKey) === null)
+          for (const [key, value] of careerSeed)
+            localStorage.setItem(key, value);
         localStorage.setItem(
           'vector-nova.settings',
           JSON.stringify({
@@ -86,8 +115,9 @@ async function check(
             difficulty: 'easy',
             ...settings,
           }),
-        ),
-      settings,
+        );
+      },
+      { settings, careerSeed, registryKey: CAREER_SLOTS_KEY },
     );
     const page = await context.newPage();
     const faults = [];
@@ -753,7 +783,7 @@ try {
         const raceIds = await page
           .locator('.circuit-card')
           .evaluateAll((cards) => cards.map((card) => card.dataset.level));
-        assert.equal(raceIds.length, 15, 'ordinary racing course catalogue');
+        assert.equal(raceIds.length, 14, 'ordinary racing course catalogue');
         const circuits = routes.filter((route) => raceIds.includes(route.id));
         assert.equal(
           await page.locator('.circuit-card').count(),
@@ -781,19 +811,19 @@ try {
             to,
           );
         }
-        await page.locator('[data-level="vesper"]').hover();
+        await page.locator('[data-level="vesper-forest"]').hover();
         assert.equal((await front(page)).selected, 'halcyon');
         assert.equal(
           await page.locator('.circuit-hero h2').textContent(),
-          'Vesper Canopy',
+          'Vesper Forest',
         );
-        await page.locator('[data-level="vesper"]').focus();
+        await page.locator('[data-level="vesper-forest"]').focus();
         await page.keyboard.press('Enter');
         assert.equal((await front(page)).screen, 'home');
-        assert.equal((await front(page)).selected, 'vesper');
+        assert.equal((await front(page)).selected, 'vesper-forest');
         assert.equal(
           await page
-            .locator('[data-level="vesper"]')
+            .locator('[data-level="vesper-forest"]')
             .getAttribute('aria-pressed'),
           'true',
         );
@@ -801,7 +831,7 @@ try {
           await page
             .locator('.menu-selection[data-action="circuits"]')
             .textContent(),
-          /Vesper Canopy/,
+          /Vesper Forest/,
         );
         await page.locator('.menu-selection[data-action="ship-step"]').click();
         assert.equal(await page.locator('.performance-stat').count(), 6);
@@ -871,14 +901,14 @@ try {
         );
         await page.locator('[data-action="race-tab"]').click();
         await page.locator('.menu-selection[data-action="circuits"]').click();
-        assert.equal(await page.locator('.circuit-card').count(), 15);
+        assert.equal(await page.locator('.circuit-card').count(), 14);
         assert.equal(
           await page.locator('.circuit-card [data-type="sprint"]').count(),
           3,
         );
         assert.equal(
           await page.locator('.circuit-card [data-type="circuit"]').count(),
-          12,
+          11,
         );
         assert.equal(await page.locator('.track-group').count(), 3);
         assert.equal(await page.locator('.card-challenge').count(), 0);
@@ -895,7 +925,7 @@ try {
           /Medium, downhill sprint/,
         );
         await page.locator('[data-level="shatterline"]').hover();
-        assert.equal((await front(page)).selected, 'vesper');
+        assert.equal((await front(page)).selected, 'vesper-forest');
         assert.equal(
           await page.locator('.circuit-hero .track-type-badge').textContent(),
           'Sprint',
@@ -934,7 +964,7 @@ try {
         async (page) => {
           await page.goto(url('level=zephyr'));
           await fleetReady(page);
-          assert.equal(await page.locator('.circuit-card').count(), 15);
+          assert.equal(await page.locator('.circuit-card').count(), 14);
           assert.ok(
             await page
               .locator('.circuit-hero')
@@ -1494,10 +1524,10 @@ try {
           '.menu-selection[data-action="ship-step"]',
           '[data-action="garage-tab"]',
         ]) {
-          await page.locator('[data-level="vesper"]').click();
+          await page.locator('[data-level="vesper-forest"]').click();
           await page.locator(selector).click();
           assert.equal((await front(page)).screen, 'setup');
-          assert.equal((await front(page)).selected, 'vesper');
+          assert.equal((await front(page)).selected, 'vesper-forest');
           await page.waitForFunction(
             () => window.__VN_FRONTEND.getState().preview?.selected,
           );
@@ -1643,7 +1673,7 @@ try {
     await check(
       'menu inspector preserves selections, music and a paused session',
       async (page) => {
-        await page.goto(url('level=vesper&dev=2'));
+        await page.goto(url('level=vesper-forest&dev=2'));
         await page.locator('[data-level="halcyon"]').click();
         await page.evaluate(() => {
           window.retainedPlayer = document.querySelector('[data-music-player]');
@@ -1789,9 +1819,9 @@ try {
       },
     );
     await check(
-      'Vesper Up-only race keeps ordinary bumps on the road',
+      'Vesper Forest Up-only race keeps ordinary bumps on the road',
       async (page) => {
-        await page.goto(url('level=vesper&music=0'));
+        await page.goto(url('level=vesper-forest&music=0'));
         await page.locator('[data-action="launch"]').click();
         await booted(page);
         await page.waitForFunction(
@@ -1824,23 +1854,26 @@ try {
         assert.deepEqual(driven.errors, []);
       },
     );
-    await check('Vesper art-pass and return from free camera', async (page) => {
-      await page.goto(url('artPass=1&level=vesper'));
-      await booted(page);
-      await page.waitForFunction(
-        () => window.__VN.getSnapshot().mode === 'fly',
-      );
-      assert.equal(await page.locator('[data-music-player]').count(), 0);
-      assert.ok(await page.locator('#fly-settings').isVisible());
-      await page.keyboard.press('Escape');
-      await page.keyboard.press('Escape');
-      assert.equal((await front(page)).screen, 'review');
-      assert.ok(await page.locator('.developer-note').isVisible());
-      assert.match(
-        await page.evaluate(() => window.__VN.getArtPassURL()),
-        /artPass=1/,
-      );
-    });
+    await check(
+      'Vesper Forest art-pass and return from free camera',
+      async (page) => {
+        await page.goto(url('artPass=1&level=vesper-forest'));
+        await booted(page);
+        await page.waitForFunction(
+          () => window.__VN.getSnapshot().mode === 'fly',
+        );
+        assert.equal(await page.locator('[data-music-player]').count(), 0);
+        assert.ok(await page.locator('#fly-settings').isVisible());
+        await page.keyboard.press('Escape');
+        await page.keyboard.press('Escape');
+        assert.equal((await front(page)).screen, 'review');
+        assert.ok(await page.locator('.developer-note').isVisible());
+        assert.match(
+          await page.evaluate(() => window.__VN.getArtPassURL()),
+          /artPass=1/,
+        );
+      },
+    );
     await check(
       'Orbital downward views stay visible through HDR bloom',
       async (page) => {
@@ -2019,36 +2052,39 @@ try {
       async (page) => {
         await page.goto(url('level=halcyon&music=0'));
         // Valid saved-record fixtures exercise a long list without running twelve races.
-        await page.evaluate((trackId) => {
-          for (let i = 0; i < 12; i++) {
-            const identity = {
-              track: trackId,
-              ship: { id: i % 2 ? 'shrike' : 'needle', version: 'fixture' },
-              version: `fixture-${i}`,
-              physics: 3,
-              rules: 'menu fixture',
-              format: 'circuit',
-              laps: 3,
-            };
-            let hash = 2166136261;
-            for (const c of JSON.stringify(identity))
-              hash = Math.imul(hash ^ c.charCodeAt(0), 16777619);
-            const duration = 180 + i;
-            localStorage.setItem(
-              `vector-nova.trial.v1.${(hash >>> 0).toString(16)}`,
-              JSON.stringify({
-                version: 1,
-                identity,
-                duration,
-                laps: Array(3).fill(duration / 3),
-                splits: Array.from(
-                  { length: 9 },
-                  (_, n) => (duration * (n + 1)) / 9,
-                ),
-              }),
-            );
-          }
-        }, createHalcyonLevel().createTrack().id);
+        await page.evaluate(
+          ({ trackId, careerPrefix }) => {
+            for (let i = 0; i < 12; i++) {
+              const identity = {
+                track: trackId,
+                ship: { id: i % 2 ? 'shrike' : 'needle', version: 'fixture' },
+                version: `fixture-${i}`,
+                physics: 3,
+                rules: 'menu fixture',
+                format: 'circuit',
+                laps: 3,
+              };
+              let hash = 2166136261;
+              for (const c of JSON.stringify(identity))
+                hash = Math.imul(hash ^ c.charCodeAt(0), 16777619);
+              const duration = 180 + i;
+              localStorage.setItem(
+                `${careerPrefix}vector-nova.trial.v1.${(hash >>> 0).toString(16)}`,
+                JSON.stringify({
+                  version: 1,
+                  identity,
+                  duration,
+                  laps: Array(3).fill(duration / 3),
+                  splits: Array.from(
+                    { length: 9 },
+                    (_, n) => (duration * (n + 1)) / 9,
+                  ),
+                }),
+              );
+            }
+          },
+          { trackId: createHalcyonLevel().createTrack().id, careerPrefix },
+        );
         await page.locator('[data-action="records"]').click();
         assert.equal(await page.locator('.records-list li').count(), 12);
         assert.equal(await page.locator('.record-course img').count(), 12);
@@ -2085,7 +2121,11 @@ try {
         await page.locator('[data-record-key]').last().click();
         assert.equal((await front(page)).intent, 'time-trial');
         assert.equal((await front(page)).selected, 'halcyon');
-        assert.equal((await front(page)).shipId, 'shrike');
+        assert.equal(
+          (await front(page)).shipId,
+          'shrike',
+          'a fresh career must not equip the locked hull from an imported record',
+        );
         assert.equal((await front(page)).loadedId, null);
         assert.equal(await page.evaluate(() => !!window.__VN), false);
         await page.locator('[data-action="garage-tab"]').click();
@@ -2095,14 +2135,29 @@ try {
     );
   }
   if (!flags.includes('--desktop')) {
+    const compactWidthFits = async (page) => {
+      assert.equal(
+        await page.evaluate(() => {
+          const shell = document.querySelector('#front-shell');
+          return (
+            document.documentElement.scrollWidth <= innerWidth &&
+            shell.scrollWidth <= shell.clientWidth + 1
+          );
+        }),
+        true,
+        'the menu must fit the viewport width',
+      );
+    };
     for (const viewport of [
       { width: 390, height: 844 },
       { width: 844, height: 390 },
+      { width: 320, height: 700 },
     ]) {
       await check(
         `championship uses the same compact menu ${viewport.width}×${viewport.height}`,
         async (page) => {
           await page.goto(url('level=halcyon&music=0'));
+          await page.locator('.mode-picker').waitFor();
           const navigation = () => page.locator('.mode-picker').boundingBox();
           const original = await navigation();
           for (const action of [
@@ -2117,15 +2172,27 @@ try {
             assert.deepEqual(await navigation(), original);
           }
           await page.locator('.menu-selection[data-action="circuits"]').click();
-          await page.locator('[data-cup="apex"]').click();
+          const apex = page.locator('[data-cup="apex"]');
+          if (viewport.width < 760) await apex.tap();
+          else await apex.click();
+          assert.equal((await front(page)).selectedCup, 'apex');
           assert.equal(
             await page.locator('.cup-route li').count(),
             cupDefinition('apex').tracks.length,
           );
-          await page
-            .locator('.picker-header [data-action="home"]')
-            .last()
-            .click();
+          await page.locator('[data-cup="frontier"]').focus();
+          assert.equal(
+            await page.locator('.cup-hero .cup-title').textContent(),
+            'Frontier Cup',
+          );
+          assert.equal((await front(page)).selectedCup, 'apex');
+          await page.locator('[data-action="cup-start"]').focus();
+          assert.equal(
+            await page.locator('.cup-hero .cup-title').textContent(),
+            'Apex Cup',
+          );
+          await compactWidthFits(page);
+          await page.locator('.picker-header [data-action="home"]').click();
           assert.equal((await front(page)).intent, 'cup');
           assert.match(
             await page
@@ -2133,23 +2200,20 @@ try {
               .textContent(),
             /Apex Cup/,
           );
-          await page.locator('[data-action="ship-step"]').click();
-          await page.locator('[data-ship="shrike"]').click();
+          await page.locator('[data-action="garage-tab"]').click();
+          await page.locator('.ship-preview[data-state="ready"]').waitFor();
+          assert.equal((await front(page)).shipId, 'shrike');
+          await compactWidthFits(page);
+          await page.locator('[data-action="race-tab"]').click();
+          assert.equal((await front(page)).intent, 'cup');
           assert.equal(
             await page.locator('[data-action="cup-start"]').count(),
             1,
           );
-          await page
-            .locator('.picker-header [data-action="home"]')
-            .last()
-            .click();
-          assert.equal((await front(page)).intent, 'cup');
-          assert.equal((await front(page)).shipId, 'shrike');
           assert.equal(
-            await page.evaluate(
-              () => document.documentElement.scrollWidth > innerWidth,
-            ),
-            false,
+            (await front(page)).cup.state,
+            null,
+            'browsing must not start a cup',
           );
           assert.equal(await page.evaluate(() => !!window.__VN), false);
         },
@@ -2182,33 +2246,35 @@ try {
           await press('Space', '[data-level="colossus"]');
           assert.equal((await front(page)).selected, 'colossus');
           await press('Escape', '.menu-selection[data-action="circuits"]');
-          await press('ArrowDown', '.menu-selection[data-action="ship-step"]');
-          await press('Enter', 'button[data-ship="kestrel"]');
-          await press('End', 'button[data-ship="needle"]');
-          await press('Enter', 'button[data-ship="needle"]');
-          assert.equal((await front(page)).shipId, 'needle');
+          await page
+            .locator('.menu-selection[data-action="ship-step"]')
+            .focus();
+          await press('Enter', 'button[data-ship="shrike"]');
+          await page.locator('.ship-preview[data-state="ready"]').waitFor();
+          assert.equal(await page.locator('.garage-fleet button').count(), 1);
+          await press('Enter', 'button[data-ship="shrike"]');
+          assert.equal((await front(page)).shipId, 'shrike');
           await press('Escape', '.menu-selection[data-action="ship-step"]');
-          await press('ArrowDown', '[data-action="launch"]');
-          await press('ArrowDown', '[data-difficulty="easy"]');
-          await press('ArrowRight', '[data-difficulty="medium"]');
-          await press('ArrowDown', '[data-action="records"]');
+          await page.locator('[data-action="records"]').focus();
           await press('Enter', '[data-record-filter="track"]');
-          assert.equal(
-            await page.locator('#front-shell').getAttribute('class'),
-            'cinematic-menu',
-          );
-          assert.equal(await page.locator('.menu-backdrop canvas').count(), 1);
           await page
             .locator('[data-record-filter="ship"]')
             .selectOption('shrike');
           await press('Escape', '[data-action="records"]');
-          await press('ArrowDown', '[data-action="inspect"]');
-          await press('ArrowDown', '[data-action="settings"]');
+          await page.locator('.menu-top-tabs [data-action="settings"]').focus();
+          await page.waitForFunction(
+            () =>
+              getComputedStyle(document.activeElement).borderBottomColor ===
+              'rgb(208, 24, 24)',
+          );
           await press('Space', '[data-action="settings-back"]');
           await press('Tab', '[data-setting="quality"]');
           await press('Escape', '[data-action="settings"]');
-          await press('Tab', '[data-action="tunes"]');
-          await press('Shift+Tab', '[data-action="settings"]');
+          await compactWidthFits(page);
+          assert.equal(
+            await page.locator('[data-action="inspect"]').count(),
+            0,
+          );
           assert.equal(await page.evaluate(() => !!window.__VN), false);
         },
         viewport,
@@ -2269,90 +2335,314 @@ try {
       { width: 768, height: 768 },
       { width: 390, height: 844 },
       { width: 320, height: 700 },
+      { width: 844, height: 390 },
     ]) {
       await check(
         `separate pickers and persistent Tunes ${viewport.width}×${viewport.height}`,
         async (page) => {
           await page.goto(url('level=halcyon'));
           await fleetReady(page);
-          assert.equal(
-            (await front(page)).preview,
-            null,
-            'preload should not require opening Ship',
-          );
-          assert.equal(await page.evaluate(() => !!window.__VN), false);
+          assert.equal((await front(page)).preview, null);
           assert.equal((await front(page)).screen, 'home');
-          await menuFits(page);
+          assert.equal(await page.locator('.menu-picker').count(), 0);
+          assert.equal(await page.locator('[data-music-player]').count(), 1);
+          await page.evaluate(() => {
+            window.retainedMusic = document.querySelector(
+              '[data-music-player]',
+            );
+          });
+          assert.deepEqual(
+            await page.locator('.menu-top-tabs button').allTextContents(),
+            ['Race', 'Garage', 'Settings', 'Career', 'Tunes'],
+          );
           assert.equal(
             await page
-              .locator('.menu-wordmark')
-              .evaluate((el) => getComputedStyle(el).fontSize),
-            '32px',
+              .locator(
+                '.menu-links [data-action="settings"], .menu-links [data-action="career"], .menu-links [data-action="tunes"]',
+              )
+              .count(),
+            0,
+            'top-level pages must not remain in the old footer',
           );
-          assert.equal(await page.locator('.menu-picker').count(), 0);
-          assert.equal(await page.locator('.music-heading').isVisible(), true);
-          await page.locator('[data-action="ship-step"]').click();
-          await page.waitForFunction(
-            () =>
-              window.__VN_FRONTEND.getState().preview?.selected === 'kestrel',
-          );
-          const layout = await page.evaluate(() => ({
-            height: document.querySelector('.ship-preview-slot').clientHeight,
-            overflow: document.documentElement.scrollWidth > innerWidth,
-            columns: getComputedStyle(
-              document.querySelector('.ship-metrics'),
-            ).gridTemplateColumns.split(' ').length,
-            status:
-              document.querySelector('.transfer-status').parentElement
-                .className,
-          }));
-          assert.ok(layout.height >= 70 && layout.height < viewport.height);
-          assert.equal(layout.overflow, false);
-          assert.equal(layout.columns, 1);
-          assert.match(layout.status, /ship-transfer/);
-          assert.equal(await page.locator('.ship-metrics > div').count(), 5);
+          await compactWidthFits(page);
+          await page.locator('[data-action="garage-tab"]').click();
+          await page.locator('.ship-preview[data-state="ready"]').waitFor();
+          assert.equal((await front(page)).preview.selected, 'shrike');
+          const preview = await page
+            .locator('.ship-preview-slot')
+            .boundingBox();
+          assert.ok(preview.height >= 70 && preview.height < viewport.height);
+          assert.equal(await page.locator('.garage-performance').count(), 1);
+          await compactWidthFits(page);
           assert.equal(
             await page.evaluate(() =>
               [...document.querySelectorAll('#front-shell *')].some(
-                (e) =>
-                  e.clientHeight > 0 &&
-                  ['auto', 'scroll'].includes(getComputedStyle(e).overflowY) &&
-                  e.scrollHeight > e.clientHeight + 1,
+                (element) =>
+                  element.clientHeight > 0 &&
+                  ['auto', 'scroll'].includes(
+                    getComputedStyle(element).overflowY,
+                  ) &&
+                  element.scrollHeight > element.clientHeight + 1,
               ),
             ),
             false,
-            'no nested menu scrollers',
+            'only the page scrolls; the garage must not add a nested scroller',
           );
-          await menuFits(page);
-          await page.locator('[data-action="circuits"]').click();
-          assert.equal((await front(page)).screen, 'circuits');
-          await menuFits(page);
-          if (viewport.width < 760)
-            await page.locator('[data-level="glasswake"]').tap();
-          else await page.locator('[data-level="glasswake"]').click();
+          await page.locator('[data-action="race-tab"]').click();
+          assert.equal(await page.locator('.ship-preview canvas').count(), 0);
+          await page.locator('.menu-selection[data-action="circuits"]').click();
+          assert.equal(await page.locator('.circuit-card').count(), 14);
+          assert.equal(
+            await page.locator('[data-level="vesper-forest"]').count(),
+            1,
+          );
+          const glasswake = page.locator('[data-level="glasswake"]');
+          if (viewport.width < 760) await glasswake.tap();
+          else await glasswake.click();
           assert.equal((await front(page)).screen, 'circuits');
           assert.equal((await front(page)).selected, 'glasswake');
-          assert.equal(
-            await page
-              .locator('[data-level="glasswake"]')
-              .getAttribute('aria-pressed'),
-            'true',
+          assert.equal(await glasswake.getAttribute('aria-pressed'), 'true');
+          await page.mouse.move(0, 0);
+          assert.deepEqual(
+            await glasswake.evaluate((card) => {
+              const accent = getComputedStyle(card, '::after');
+              return {
+                color: accent.backgroundColor,
+                width: accent.width,
+              };
+            }),
+            { color: 'rgb(208, 24, 24)', width: '2px' },
+            'the selected circuit keeps its red left accent after the pointer leaves',
           );
-          assert.equal(
-            await page.locator('#front-shell').evaluate((el) => el.scrollTop),
-            0,
-            'new picker starts at the top',
-          );
-          await page.locator('[data-action="home"]').first().click();
+          await compactWidthFits(page);
+          await page.locator('.picker-header [data-action="home"]').click();
           assert.equal((await front(page)).screen, 'home');
           assert.match(
-            await page.locator('[data-action="circuits"]').textContent(),
+            await page
+              .locator('.menu-selection[data-action="circuits"]')
+              .textContent(),
             /Glasswake Comet/,
           );
+          assert.equal(
+            await page.evaluate(
+              () =>
+                window.retainedMusic ===
+                document.querySelector('[data-music-player]'),
+            ),
+            true,
+            'menu navigation retains the same Tunes player',
+          );
+          assert.equal(await page.evaluate(() => !!window.__VN), false);
         },
         viewport,
       );
     }
+  }
+  for (const viewport of [
+    ...(!flags.includes('--responsive') ? [{ width: 1440, height: 1000 }] : []),
+    ...(!flags.includes('--desktop')
+      ? [
+          { width: 390, height: 844 },
+          { width: 844, height: 390 },
+          { width: 320, height: 700 },
+        ]
+      : []),
+  ]) {
+    await check(
+      `top-level utility pages ${viewport.width}×${viewport.height}`,
+      async (page) => {
+        await page.goto(url('level=halcyon'));
+        await fleetReady(page);
+        const tab = (action) =>
+          page.locator(`.menu-top-tabs [data-action="${action}"]`);
+        const activate = async (action) => {
+          const previous = await page
+            .locator('.menu-top-tabs [aria-pressed="true"]')
+            .getAttribute('data-action');
+          if (viewport.width < 760 || viewport.height < 500)
+            await tab(action).tap();
+          else await tab(action).click();
+          assert.equal(
+            await page
+              .locator('.menu-top-tabs [aria-pressed="true"]')
+              .getAttribute('data-action'),
+            action === 'tunes' ? previous : action,
+          );
+        };
+        const floatingTunes = async (screen) => {
+          assert.equal((await front(page)).screen, screen);
+          assert.equal(
+            await page.locator('[data-music-player][data-menu-active]').count(),
+            1,
+          );
+          assert.ok(await page.locator('#music-controls').isVisible());
+          for (const selector of [
+            '.music-play',
+            '.music-song',
+            '[aria-label="Music volume"]',
+            '.music-expand',
+          ]) {
+            const box = await page.locator(selector).boundingBox();
+            assert.ok(
+              box &&
+                box.x >= 0 &&
+                box.x + box.width <= viewport.width + 1 &&
+                box.y >= 0 &&
+                box.y + box.height <= viewport.height + 1,
+              `${selector} fits the floating player`,
+            );
+          }
+        };
+        const fits = async () => {
+          assert.equal(
+            await page.evaluate(() => {
+              const shell = document.querySelector('#front-shell');
+              const tabs = [
+                ...document.querySelectorAll('.menu-top-tabs button'),
+              ];
+              return (
+                document.documentElement.scrollWidth <= innerWidth &&
+                shell.scrollWidth <= shell.clientWidth + 1 &&
+                tabs.every((tab) => {
+                  const r = tab.getBoundingClientRect();
+                  return (
+                    r.left >= 0 &&
+                    r.right <= innerWidth + 1 &&
+                    r.top >= 0 &&
+                    r.bottom <= innerHeight
+                  );
+                })
+              );
+            }),
+            true,
+            'all top-level tabs must remain visible and fit the viewport',
+          );
+        };
+        const samePlayer = async () => {
+          assert.equal(
+            await page.evaluate(
+              () =>
+                window.retainedMusic ===
+                  document.querySelector('[data-music-player]') &&
+                window.retainedAudio ===
+                  document.querySelector('[data-music-player] audio'),
+            ),
+            true,
+            'tabs must retain the same Tunes player and audio element',
+          );
+        };
+        assert.deepEqual(
+          await page.locator('.menu-top-tabs button').allTextContents(),
+          ['Race', 'Garage', 'Settings', 'Career', 'Tunes'],
+        );
+        await page.evaluate(() => {
+          window.retainedMusic = document.querySelector('[data-music-player]');
+          window.retainedAudio = window.retainedMusic.querySelector('audio');
+        });
+        await fits();
+        await activate('settings');
+        assert.equal((await front(page)).screen, 'settings');
+        await page.locator('[data-setting="quality"]').selectOption('low');
+        await fits();
+        await activate('career');
+        assert.equal((await front(page)).screen, 'career');
+        assert.equal(
+          await page
+            .locator('.utility-content [data-progression-career]')
+            .count(),
+          1,
+        );
+        assert.equal(
+          await page.locator('[data-progression-dialog][open]').count(),
+          0,
+          'Career is page content, not an open dialog',
+        );
+        assert.equal(await page.locator('.career-transfer button').count(), 4);
+        assert.equal((await front(page)).careerSlot.id, 1);
+        assert.equal(
+          await page.evaluate(() => {
+            const actions = document.querySelector('.career-transfer');
+            const summary = document.querySelector('.career-summary');
+            return (
+              !!(
+                actions.compareDocumentPosition(summary) &
+                Node.DOCUMENT_POSITION_FOLLOWING
+              ) &&
+              actions.getBoundingClientRect().bottom <=
+                summary.getBoundingClientRect().top
+            );
+          }),
+          true,
+          'save controls must appear above career progress',
+        );
+        await fits();
+        await activate('tunes');
+        await floatingTunes('career');
+        const song = page.locator('.music-song');
+        const selectedSong = await song.inputValue();
+        await song.focus();
+        await page.keyboard.press('Escape');
+        assert.equal((await front(page)).screen, 'career');
+        assert.ok(
+          await tab('tunes').evaluate((el) => el === document.activeElement),
+          'Escape restores the Tunes opener over the same Career page',
+        );
+        await samePlayer();
+        await activate('garage-tab');
+        await page.locator('.ship-preview[data-state="ready"]').waitFor();
+        await activate('tunes');
+        await floatingTunes('setup');
+        assert.equal(await song.inputValue(), selectedSong);
+        await samePlayer();
+        if (viewport.width < 760 || viewport.height < 500)
+          await page.locator('.music-expand').tap();
+        else await page.locator('.music-expand').click();
+        assert.equal((await front(page)).screen, 'setup');
+        assert.equal(
+          await page.locator('[data-music-player][data-menu-active]').count(),
+          0,
+        );
+        await activate('race-tab');
+        await activate('career');
+        await page.locator('[data-progression-career] [data-close]').click();
+        assert.equal((await front(page)).screen, 'home');
+        assert.equal(
+          await tab('career').evaluate((el) => el === document.activeElement),
+          true,
+          'Career Back restores its top-level tab focus',
+        );
+        await tab('race-tab').focus();
+        await page.keyboard.press('End');
+        assert.equal(
+          await tab('tunes').evaluate((el) => el === document.activeElement),
+          true,
+        );
+        await page.keyboard.press('Enter');
+        await floatingTunes('home');
+        await page.keyboard.press('Escape');
+        assert.equal((await front(page)).screen, 'home');
+        assert.ok(
+          await tab('tunes').evaluate((el) => el === document.activeElement),
+        );
+        await page.keyboard.press('Home');
+        await page.keyboard.press('ArrowRight');
+        assert.equal(
+          await tab('garage-tab').evaluate(
+            (el) => el === document.activeElement,
+          ),
+          true,
+        );
+        await page.keyboard.press('ArrowRight');
+        await page.keyboard.press('Enter');
+        assert.equal((await front(page)).screen, 'settings');
+        await page.keyboard.press('Escape');
+        assert.equal((await front(page)).screen, 'home');
+        await fits();
+        await samePlayer();
+        assert.equal(await page.evaluate(() => !!window.__VN), false);
+      },
+      viewport,
+    );
   }
 } finally {
   await browser.close();

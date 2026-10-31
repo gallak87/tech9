@@ -6,19 +6,19 @@ A browser anti-gravity racer built with Three.js and Vite. Choose Kestrel, Shrik
 
 The landing screen is race setup: browse circuit cards, choose Quick Race or Practice and difficulty, select a ship, then Start. Wide screens show everything together; narrow screens use Circuit/session and Ship accordion rows. Hover or arrow keys preview; click or Enter commits. During a session, Escape pauses; Circuits keeps that run loaded, and Resume returns to it.
 
-| Course            | Identity                                                                                                   | Availability          |
-| ----------------- | ---------------------------------------------------------------------------------------------------------- | --------------------- |
-| Halcyon Speedway  | 5 km metropolitan expressway with a skyline corkscrew, inverted hold and plunge                            | Default route `/`     |
-| Asterion Orbital  | 4.5 km shipyard above a planet, open lattice spans, neon decks and tall containment frames                 | `/?level=orbital`     |
-| Nacre Tempest     | Ocean/storm world, submerged racing and two airborne jumps                                                 | `/?level=nacre`       |
-| Vesper Canopy     | Colossal hollow trees, amber resin, crown jumps and sap lines                                              | `/?level=vesper`      |
-| Glasswake Comet   | Transparent ice, paired fracture jumps, a crevice corkscrew and collapsing shelves                         | `/?level=glasswake`   |
-| Cindercoil        | Ceramic volcanic circuit, warned lava surges, a furnace corkscrew and vent flight                          | `/?level=cindercoil`  |
-| Saffron Leviathan | Fossil-desert circuit, skull traversal, vertebral jumps and migrating sand on gold glass                   | `/?level=saffron`     |
-| Umbra Fold        | Ruined gravity observatory, tidal countersteering, curved leaps and continuous accretion                   | `/?level=umbra`       |
-| Zephyr Basilica   | Floating Gothic archipelago, rose-window nave, waterfall jumps and a full cloud spiral                     | `/?level=zephyr`      |
-| Helion Flare      | Solar observatory, flare-lane evasion, furnace passages and sheltered jumps                                | `/?level=helion`      |
-| Shatterline       | Ruined mountain mass driver, twelve jumps and three approximately five-second flights in a downhill sprint | `/?level=shatterline` |
+| Course            | Identity                                                                                                   | Availability            |
+| ----------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------- |
+| Halcyon Speedway  | 5 km metropolitan expressway with a skyline corkscrew, inverted hold and plunge                            | Default route `/`       |
+| Asterion Orbital  | 4.5 km shipyard above a planet, open lattice spans, neon decks and tall containment frames                 | `/?level=orbital`       |
+| Nacre Tempest     | Ocean/storm world, submerged racing and two airborne jumps                                                 | `/?level=nacre`         |
+| Vesper Forest     | Pale giant trees, rooted riverbanks, amber resin, hollow ascent and crown flight                           | `/?level=vesper-forest` |
+| Glasswake Comet   | Transparent ice, paired fracture jumps, a crevice corkscrew and collapsing shelves                         | `/?level=glasswake`     |
+| Cindercoil        | Ceramic volcanic circuit, warned lava surges, a furnace corkscrew and vent flight                          | `/?level=cindercoil`    |
+| Saffron Leviathan | Fossil-desert circuit, skull traversal, vertebral jumps and migrating sand on gold glass                   | `/?level=saffron`       |
+| Umbra Fold        | Ruined gravity observatory, tidal countersteering, curved leaps and continuous accretion                   | `/?level=umbra`         |
+| Zephyr Basilica   | Floating Gothic archipelago, rose-window nave, waterfall jumps and a full cloud spiral                     | `/?level=zephyr`        |
+| Helion Flare      | Solar observatory, flare-lane evasion, furnace passages and sheltered jumps                                | `/?level=helion`        |
+| Shatterline       | Ruined mountain mass driver, twelve jumps and three approximately five-second flights in a downhill sprint | `/?level=shatterline`   |
 
 Courses share automatic Vector boost strips and Aegis shields, with course-owned placements. Vector supplies an immediate catapult kick toward 600 km/h during a full strip pass; leaving early retains only the speed gained. Aegis protects reserve from impacts for six seconds. **Quick Race** starts two laps against Rook, Latch and Mule after the countdown; **Practice** starts open solo driving. Shatterline offers **Downhill Sprint** and **Solo Descent**. Difficulty changes rival pace and boosting. Valid finishes produce a brief on-track finish beat, then live track-backed results; invalid runs remain explicitly untimed. Race again, Continue driving and Circuits are available from results. Continue then Escape pauses on track; Circuits retains the session for Resume.
 

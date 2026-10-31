@@ -66,7 +66,7 @@ test('improving a retried cup event only awards the point difference and one win
   assert.deepEqual(restored.recordRace({ id: 'cup:event', position: 1 }), []);
   assert.deepEqual(restored.recordRace({ id: 'cup:event', position: 7 }), []);
 });
-test('v2 saves preserve unlocks and assign five points per old win without replay credit', () => {
+test('unsupported careers are rejected without rewriting their stored data', () => {
   const old = freshProfile();
   old.version = 2;
   old.wins = 3;
@@ -76,18 +76,21 @@ test('v2 saves preserve unlocks and assign five points per old win without repla
   delete old.points;
   delete old.finishes;
   delete old.raceScores;
-  const storage = memory();
-  storage.setItem(PROFILE_KEY, JSON.stringify(old));
-  const store = createProfileStore(() => storage),
-    migrated = store.snapshot().state;
-  assert.equal(migrated.points, 15);
-  assert.equal(migrated.finishes, 3);
-  assert.deepEqual(migrated.claims, old.claims);
-  assert.deepEqual(migrated.loadouts, old.loadouts);
-  assert.deepEqual(store.recordRace({ id: 'first', position: 1 }), []);
-  assert.ok(validateProfile(migrated));
-  assert.equal(validateProfile({ ...migrated, points: -1 }), null);
-  assert.equal(validateProfile({ ...migrated, raceScores: {} }), null);
+  assert.equal(validateProfile(old), null);
+  const storage = memory(),
+    raw = JSON.stringify(old);
+  storage.setItem(PROFILE_KEY, raw);
+  const store = createProfileStore(() => storage);
+  assert.deepEqual(store.snapshot().state, freshProfile());
+  assert.match(store.snapshot().notice, /could not be read/);
+  assert.equal(storage.getItem(PROFILE_KEY), raw);
+  const current = freshProfile();
+  assert.ok(validateProfile(current));
+  assert.equal(validateProfile({ ...current, points: -1 }), null);
+  assert.equal(
+    validateProfile({ ...current, raceClaims: ['missing-score'] }),
+    null,
+  );
 });
 test('mode goals hide undiscovered identities and omit practice and completed collections', () => {
   const fresh = freshProfile();

@@ -489,7 +489,7 @@
 }
 .menu-top-tabs button:is(:hover, :focus-visible) {
   background: #ffffff10;
-  border-bottom-color: transparent;
+  border-bottom-color: #d01818;
 }
 .menu-top-tabs button[aria-pressed='true'] {
   color: #fff;

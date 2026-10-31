@@ -405,6 +405,80 @@
   font-size: 11px;
   color: #aaa;
 }
+.career-page {
+  width: 100%;
+  min-width: 0;
+  color: #efefef;
+}
+.career-page .progression-header {
+  position: static;
+  align-items: flex-start;
+  padding: 0 0 24px;
+  background: transparent;
+  border: 0;
+}
+.career-page .progression-header > div {
+  min-width: 0;
+}
+.career-page .progression-header h1 {
+  margin: 8px 0 0;
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+.career-page .progression-body {
+  padding: 0 0 24px;
+}
+.career-page .career-transfer {
+  margin: 0 0 24px;
+  gap: 8px;
+}
+.career-page .career-transfer span {
+  flex-basis: 100%;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.career-page .career-summary {
+  margin-top: 0;
+}
+.front-content .career-page button:not(.primary) {
+  min-height: 40px;
+  padding: 9px 14px;
+  border: 0;
+  border-left: 2px solid transparent;
+  background: transparent;
+  color: #ddd;
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: normal;
+  white-space: normal;
+}
+.front-content .career-page button:not(.primary):is(:hover, :focus-visible) {
+  border-left-color: #d01818;
+  background: rgb(255 255 255 / 3%);
+}
+.career-page .progression-header [data-close] {
+  white-space: nowrap;
+}
+.career-page .progression-notice {
+  margin: 0 0 16px;
+  padding: 0;
+}
+.career-page .progression-notice:empty {
+  margin: 0;
+}
+.career-page .progression-confirm {
+  position: static;
+  margin: 0 0 24px;
+  padding: 20px 22px;
+  border: 0;
+  border-left: 2px solid #d01818;
+  background: #ffffff05;
+  box-shadow: none;
+}
+.career-page .progression-confirm button + button {
+  margin-left: 8px;
+}
 .earned-rewards {
   margin: 20px 0;
   border-top: 1px solid #ff9b4b55;

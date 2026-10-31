@@ -21,9 +21,7 @@ export function createMusicPlayer(
   } catch {
     // Storage is optional; the player still works with session defaults.
   }
-  let selected =
-    musicTracks.find((track) => track.id === preferences.song) ||
-    musicTracks[0];
+  let selected = musicTracks.find((track) => track.id === 'blue-hour');
   let shuffled = preferences.shuffle === true;
   let queue = musicTracks;
   let wantsPlayback = true;
@@ -99,6 +97,7 @@ export function createMusicPlayer(
   const durationOutput = root.querySelector('.music-duration');
   let disposed = false;
   let loadId = 0;
+  let awaitingGesture = false;
   for (const track of musicTracks) {
     const option = document.createElement('option');
     option.value = track.id;
@@ -116,7 +115,6 @@ export function createMusicPlayer(
       localStorage.setItem(
         preferenceKey,
         JSON.stringify({
-          song: selected.id,
           volume: audio.volume,
           repeat: audio.loop,
           shuffle: shuffled,
@@ -175,16 +173,20 @@ export function createMusicPlayer(
     const request = loadId;
     try {
       await audio.play();
+      if (!disposed && request === loadId) awaitingGesture = false;
     } catch (error) {
-      if (!disposed && request === loadId && error.name !== 'AbortError')
+      if (!disposed && request === loadId && error.name !== 'AbortError') {
+        awaitingGesture = error.name === 'NotAllowedError' && wantsPlayback;
         setStatus(
-          error.name === 'NotAllowedError' ? 'Select Play' : 'Unavailable',
+          error.name === 'NotAllowedError' ? 'Ready' : 'Unavailable',
           error.name !== 'NotAllowedError',
         );
+      }
     }
   }
   function loadSong(resume = false) {
     loadId++;
+    awaitingGesture = false;
     audio.pause();
     setStatus('Loading');
     audio.src = assetURL(selected.path);
@@ -197,7 +199,10 @@ export function createMusicPlayer(
     if (wantsPlayback) {
       if (audio.error) loadSong();
       void start();
-    } else audio.pause();
+    } else {
+      awaitingGesture = false;
+      audio.pause();
+    }
   }
   function resetQueue() {
     if (!shuffled) {
@@ -223,7 +228,6 @@ export function createMusicPlayer(
     save();
   }
   function collapse(collapsed) {
-    if (collapsed) root.removeAttribute('data-menu-active');
     root.classList.toggle('is-compact', isCompact());
     controls.hidden = collapsed;
     root.classList.toggle('is-collapsed', collapsed);
@@ -240,11 +244,16 @@ export function createMusicPlayer(
     );
     const hiddenContent = isCompact() ? panel : controls;
     if (collapsed && hiddenContent.contains(document.activeElement))
-      (isCompact() ? compactToggle : expand).focus();
+      (isCompact() ? compactToggle : expand.disabled ? play : expand).focus();
+    // Moving focus out of hidden controls fires focusin synchronously. Release
+    // the navigation scope after that redirect so a closed player stays closed.
+    if (collapsed) root.removeAttribute('data-menu-active');
   }
   function open(origin = document.activeElement) {
     if (driving && !isCompact()) return;
     if (origin && !root.contains(origin)) returnFocus = origin;
+    if (returnFocus?.getAttribute('aria-controls') === 'music-panel')
+      returnFocus.setAttribute('aria-expanded', 'true');
     collapse(false);
     root.setAttribute('data-menu-active', '');
     play.focus();
@@ -252,6 +261,8 @@ export function createMusicPlayer(
   }
   function close() {
     collapse(true);
+    if (returnFocus?.getAttribute('aria-controls') === 'music-panel')
+      returnFocus.setAttribute('aria-expanded', 'false');
     if (
       returnFocus?.isConnected &&
       returnFocus.getClientRects().length &&
@@ -268,16 +279,29 @@ export function createMusicPlayer(
   listen(expand, 'click', toggleExpanded);
   listen(compactToggle, 'click', toggleExpanded);
   listen(compact, 'change', () => {
-    const focused = root.contains(document.activeElement);
-    collapse(true);
     expand.disabled = driving && !isCompact();
-    if (focused)
-      (isCompact() ? compactToggle : expand.disabled ? play : expand).focus();
+    close();
   });
   listen(document, 'pointerdown', (event) => {
     if (!root.contains(event.target) && root.hasAttribute('data-menu-active'))
       close();
   });
+  function retryStartupPlayback(event) {
+    if (
+      !event.isTrusted ||
+      !awaitingGesture ||
+      !wantsPlayback ||
+      disposed ||
+      !audio.paused ||
+      event.code === 'KeyM' ||
+      event.target.closest?.('.music-play')
+    )
+      return;
+    awaitingGesture = false;
+    void start();
+  }
+  listen(document, 'pointerdown', retryStartupPlayback, { capture: true });
+  listen(window, 'keydown', retryStartupPlayback, { capture: true });
   listen(play, 'click', togglePlayback);
   listen(root.querySelector('.music-previous'), 'click', () => switchSong(-1));
   listen(root.querySelector('.music-next'), 'click', () => switchSong(1));
@@ -390,22 +414,37 @@ export function createMusicPlayer(
   listen(root, 'focusin', (event) => {
     if (event.relatedTarget && !root.contains(event.relatedTarget))
       returnFocus = event.relatedTarget;
+    if (isMenuVisible()) root.setAttribute('data-menu-active', '');
     clearInput();
   });
   listen(document, 'visibilitychange', () => {
     if (document.hidden && !audio.paused) audio.pause();
   });
-  collapse(true);
+  collapse(preferences.collapsed !== false);
   updateVolume();
-  loadSong();
+  // Persist only transport preferences, removing any previous song choice.
+  save();
+  loadSong(true);
   return {
     open,
+    close,
     togglePlayback,
+    configureNavigation({
+      clearInput: nextClearInput,
+      isMenuVisible: nextIsMenuVisible,
+    } = {}) {
+      if (typeof nextClearInput === 'function') clearInput = nextClearInput;
+      if (typeof nextIsMenuVisible === 'function')
+        isMenuVisible = nextIsMenuVisible;
+      returnFocus = null;
+      root.classList.toggle('is-compact', isCompact());
+      expand.disabled = driving && !isCompact();
+    },
     setDriving(value) {
       driving = value;
       root.classList.toggle('is-compact', isCompact());
-      if (value) collapse(true);
       expand.disabled = value && !isCompact();
+      if (value) close();
     },
     startWithGame() {
       if (!disposed && wantsPlayback && audio.paused) void start();

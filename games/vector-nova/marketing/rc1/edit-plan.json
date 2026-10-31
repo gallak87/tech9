@@ -1,0 +1,302 @@
+{
+  "id": "interwoven-trailer-v3",
+  "kind": "trailer",
+  "fps": 60,
+  "frames": 4020,
+  "outputFile": "vector-nova-interwoven-trailer.mp4",
+  "music": {
+    "id": "ionwake",
+    "sourceOffset": 16.15,
+    "gain": 0.48,
+    "ducks": [
+      {
+        "from": 6.4,
+        "to": 7.3,
+        "gain": 0.75
+      }
+    ],
+    "phraseJump": {
+      "at": 57.33,
+      "source": 87.8,
+      "crossfade": 0.04,
+      "gain": 1.1885022274370185
+    }
+  },
+  "closing": {
+    "from": 3816,
+    "to": 4020,
+    "tail": 0.2
+  },
+  "captureShots": [
+    {
+      "id": "glasswake-pack",
+      "seconds": 6,
+      "preroll": 6.3,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/interwoven-v2",
+        "id": "glasswake-pack"
+      }
+    },
+    {
+      "id": "cindercoil-avoid",
+      "seconds": 5,
+      "preroll": 0.08,
+      "state": {
+        "distance": 260,
+        "speed": 75,
+        "time": 3.5,
+        "lateral": 0
+      },
+      "importFrom": {
+        "directory": ".experiments/marketing/interwoven-v2",
+        "id": "cindercoil-avoid"
+      }
+    },
+    {
+      "id": "nacre-early-vista",
+      "level": "nacre",
+      "mode": "race",
+      "seconds": 15,
+      "preroll": 0.1,
+      "state": {},
+      "aiSpeed": true,
+      "exotic": "kestrel",
+      "equipment": ["lance", "deflector", "injector", "jump"],
+      "engineGain": 0.45,
+      "minVisibleRivals": 1,
+      "driver": {
+        "cameraAfterPass": true,
+        "cameraWeapon": "lance",
+        "fireAfter": 0.25,
+        "lane": 5.7,
+        "boost": false,
+        "raceSetup": {
+          "distance": 0,
+          "speed": 112,
+          "energy": 100,
+          "rivalAhead": true
+        }
+      },
+      "requireValidLap": true
+    },
+    {
+      "id": "umbra-first-lens",
+      "seconds": 8,
+      "preroll": 0.08,
+      "state": {
+        "distance": 958.5016143897458,
+        "speed": 102,
+        "time": 7,
+        "lateral": 0
+      },
+      "importFrom": {
+        "directory": ".experiments/marketing/interwoven-v2",
+        "id": "umbra-first-lens"
+      }
+    },
+    {
+      "id": "helion-sweep",
+      "seconds": 5,
+      "preroll": 0.08,
+      "state": {
+        "distance": 4016.9056548992503,
+        "speed": 95,
+        "time": 8,
+        "lateral": 0
+      },
+      "importFrom": {
+        "directory": ".experiments/marketing/interwoven-v2",
+        "id": "helion-sweep"
+      }
+    },
+    {
+      "id": "zephyr-tower-chase",
+      "seconds": 12,
+      "preroll": 0.08,
+      "state": {
+        "distance": 520.6947350868637,
+        "speed": 112,
+        "time": 7,
+        "lateral": 0
+      },
+      "importFrom": {
+        "directory": ".experiments/marketing/interwoven-v2",
+        "id": "zephyr-tower-chase"
+      }
+    },
+    {
+      "id": "shatterline-finale-vista",
+      "seconds": 9,
+      "preroll": 0.08,
+      "state": {
+        "distance": 19386.20799640747,
+        "speed": 155,
+        "time": 7,
+        "lateral": 0
+      },
+      "importFrom": {
+        "directory": ".experiments/marketing/interwoven-v2",
+        "id": "shatterline-finale-vista"
+      }
+    },
+    {
+      "id": "menu-circuits",
+      "seconds": 10.84809999999404,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/interwoven-menu-v1",
+        "id": "menu-circuits"
+      }
+    },
+    {
+      "id": "menu-cups-trial",
+      "seconds": 10.30240000000596,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/interwoven-menu-v1",
+        "id": "menu-cups-trial"
+      }
+    },
+    {
+      "id": "menu-garage",
+      "seconds": 14.58020000000298,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/interwoven-menu-v1",
+        "id": "menu-garage"
+      }
+    }
+  ],
+  "cuts": [
+    {
+      "shot": "glasswake-pack",
+      "source": 0,
+      "from": 0,
+      "to": 188
+    },
+    {
+      "shot": "cindercoil-avoid",
+      "source": 0,
+      "from": 188,
+      "to": 376
+    },
+    {
+      "shot": "nacre-early-vista",
+      "source": 0,
+      "from": 376,
+      "to": 1030
+    },
+    {
+      "shot": "umbra-first-lens",
+      "source": 0,
+      "from": 1030,
+      "to": 1390
+    },
+    {
+      "shot": "menu-circuits",
+      "source": 0.03,
+      "from": 1390,
+      "to": 1508,
+      "audio": false
+    },
+    {
+      "shot": "menu-circuits",
+      "source": 3.4477999999970197,
+      "from": 1508,
+      "to": 1598,
+      "audio": false
+    },
+    {
+      "shot": "menu-circuits",
+      "source": 5.7713999999910595,
+      "from": 1598,
+      "to": 1688,
+      "audio": false
+    },
+    {
+      "shot": "menu-circuits",
+      "source": 8.088000000000001,
+      "from": 1688,
+      "to": 1842,
+      "audio": false
+    },
+    {
+      "shot": "helion-sweep",
+      "source": 0,
+      "from": 1842,
+      "to": 2030
+    },
+    {
+      "shot": "menu-cups-trial",
+      "source": 1.8454000000059605,
+      "from": 2030,
+      "to": 2225,
+      "audio": false
+    },
+    {
+      "shot": "menu-cups-trial",
+      "source": 5.86029999999702,
+      "from": 2225,
+      "to": 2300,
+      "audio": false
+    },
+    {
+      "shot": "menu-cups-trial",
+      "source": 7.9967000000029795,
+      "from": 2300,
+      "to": 2405,
+      "audio": false
+    },
+    {
+      "shot": "zephyr-tower-chase",
+      "source": 1,
+      "from": 2405,
+      "to": 2705
+    },
+    {
+      "shot": "menu-garage",
+      "source": 0.03,
+      "from": 2705,
+      "to": 2819,
+      "audio": false
+    },
+    {
+      "shot": "menu-garage",
+      "source": 3.909,
+      "from": 2819,
+      "to": 2927,
+      "audio": false
+    },
+    {
+      "shot": "menu-garage",
+      "source": 6.52720000000298,
+      "from": 2927,
+      "to": 3035,
+      "audio": false
+    },
+    {
+      "shot": "menu-garage",
+      "source": 9.135,
+      "from": 3035,
+      "to": 3143,
+      "audio": false
+    },
+    {
+      "shot": "menu-garage",
+      "source": 11.17620000000298,
+      "from": 3143,
+      "to": 3341,
+      "audio": false
+    },
+    {
+      "shot": "shatterline-finale-vista",
+      "source": 0,
+      "from": 3341,
+      "to": 3816
+    }
+  ]
+}

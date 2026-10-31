@@ -45,13 +45,13 @@ test('copied views round-trip and replace conflicting runtime entry parameters',
   const url = new URL(
     artPassURL(
       'https://example.org/game/?level=saffron&review=shape&test=jump&case=short-fall&capture=1&inspect=1&ship=shrike&music=1&foo=bar#scene',
-      'vesper',
+      'vesper-forest',
       view,
     ),
   );
   const params = url.searchParams;
   assert.equal(url.pathname, '/game/');
-  assert.equal(params.get('level'), 'vesper');
+  assert.equal(params.get('level'), 'vesper-forest');
   assert.equal(params.get('artPass'), '1');
   assert.equal(params.get('music'), '0');
   assert.equal(params.get('foo'), 'bar');

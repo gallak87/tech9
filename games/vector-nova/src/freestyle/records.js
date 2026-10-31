@@ -1,12 +1,23 @@
 const memory = new Map();
+const storageMemories = new WeakMap();
+function memoryFor(store) {
+  if (!store?.isolated) return memory;
+  if (!storageMemories.has(store)) storageMemories.set(store, new Map());
+  return storageMemories.get(store);
+}
 export function finishFreestyle(result, identity, storage) {
   let hash = 2166136261;
   for (const character of identity)
     hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
   const key = `vector-nova.freestyle.v2.${(hash >>> 0).toString(16)}`;
-  let previous = memory.get(key) ?? null;
   try {
     storage ??= globalThis.localStorage;
+  } catch {
+    storage = null;
+  }
+  const records = memoryFor(storage);
+  let previous = records.get(key) ?? null;
+  try {
     const saved = JSON.parse(storage?.getItem(key) ?? 'null');
     if (
       saved &&
@@ -23,7 +34,7 @@ export function finishFreestyle(result, identity, storage) {
   const best = improved ? result.score : previous;
   let saved = false;
   if (improved) {
-    memory.set(key, best);
+    records.set(key, best);
     try {
       storage?.setItem(key, JSON.stringify({ score: best }));
       saved = !!storage;

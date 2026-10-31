@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import {
+  createCareerSlots,
+  createMemoryStorage,
+  CAREER_SLOTS_KEY,
+} from '../src/progression/careers.js';
 
 // Synthetic standard hardware at the browser boundary; no shipped test hooks.
 // Run --responsive only after desktop implementation/verification is final.
@@ -8,6 +13,12 @@ if (!process.env.VN_URL)
 const responsive = process.argv.includes('--responsive');
 const tunes = process.argv.includes('--tunes');
 const desktopControls = process.argv.includes('--desktop-controls');
+const careerStorage = createMemoryStorage();
+createCareerSlots({ storage: () => careerStorage, now: () => 1 }).create(1);
+const careerSeed = Array.from({ length: careerStorage.length }, (_, index) => {
+  const key = careerStorage.key(index);
+  return [key, careerStorage.getItem(key)];
+});
 const browser = await chromium.launch({
   args: ['--mute-audio'],
   headless: true,
@@ -16,32 +27,46 @@ const browser = await chromium.launch({
     : { channel: process.env.VN_BROWSER_CHANNEL ?? 'chrome' }),
 });
 const context = await browser.newContext({
+  hasTouch: responsive,
   viewport: responsive
     ? { width: 390, height: 844 }
     : { width: 1440, height: 1000 },
 });
 const errors = [];
 try {
-  await context.addInitScript(() => {
-    if (!localStorage.getItem('vector-nova.settings'))
-      localStorage.setItem(
-        'vector-nova.settings',
-        JSON.stringify({ quality: 'low', volume: 0, reducedMotion: true }),
-      );
-    window.__controllerTest = {
-      id: 'Synthetic standard controller',
-      index: 0,
-      connected: true,
-      mapping: 'standard',
-      axes: [0, 0],
-      buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })),
-    };
-    Object.defineProperty(navigator, 'getGamepads', {
-      configurable: true,
-      value: () =>
-        window.__controllerTest.connected ? [window.__controllerTest] : [],
-    });
-  });
+  await context.addInitScript(
+    ({ careerSeed, registryKey, tunes }) => {
+      if (localStorage.getItem(registryKey) === null)
+        for (const [key, value] of careerSeed) localStorage.setItem(key, value);
+      if (tunes && !localStorage.getItem('vector-nova.music'))
+        localStorage.setItem(
+          'vector-nova.music',
+          JSON.stringify({ song: 'ionwake', volume: 0.4, collapsed: true }),
+        );
+      if (!localStorage.getItem('vector-nova.settings'))
+        localStorage.setItem(
+          'vector-nova.settings',
+          JSON.stringify({ quality: 'low', volume: 0, reducedMotion: true }),
+        );
+      window.__controllerTest = {
+        id: 'Synthetic standard controller',
+        index: 0,
+        connected: true,
+        mapping: 'standard',
+        axes: [0, 0],
+        buttons: Array.from({ length: 17 }, () => ({
+          pressed: false,
+          value: 0,
+        })),
+      };
+      Object.defineProperty(navigator, 'getGamepads', {
+        configurable: true,
+        value: () =>
+          window.__controllerTest.connected ? [window.__controllerTest] : [],
+      });
+    },
+    { careerSeed, registryKey: CAREER_SLOTS_KEY, tunes },
+  );
   if (desktopControls)
     await context.addInitScript(() => {
       // Renderer contract test only; native availability is checked in the Electron probe.
@@ -112,7 +137,26 @@ try {
         )
       )
         return;
-      await tap(13);
+      const navigation = await page.evaluate((selector) => {
+        const wanted = document.querySelector(selector);
+        const music = document.querySelector(
+          '[data-music-player][data-menu-active]',
+        );
+        return {
+          leaveMusic: !!music && !music.contains(wanted),
+          wantedHeader: !!wanted?.closest('.menu-top-tabs'),
+          focusedHeader: !!document.activeElement?.closest('.menu-top-tabs'),
+        };
+      }, selector);
+      await tap(
+        navigation.leaveMusic
+          ? 1
+          : navigation.wantedHeader
+            ? navigation.focusedHeader
+              ? 15
+              : 12
+            : 13,
+      );
     }
     throw new Error(
       `Controller could not reach ${selector}; focused ${await page.evaluate(() => document.activeElement.outerHTML)}`,
@@ -125,7 +169,7 @@ try {
       { timeout: 90000 },
     );
   if (desktopControls) {
-    await page.goto(process.env.VN_URL);
+    await page.goto(new URL('?intro=0', process.env.VN_URL).href);
     const floating = '.desktop-window-controls button';
     await page.locator(floating).waitFor();
     assert.equal(
@@ -239,10 +283,36 @@ try {
       'PASS desktop controls: setup, Settings, inspector, pause, keyboard/controller access, native state updates, 800–2560px layout',
     );
   } else if (tunes) {
-    await page.goto(new URL('?level=halcyon', process.env.VN_URL).href);
+    const releasedTunes = async (selector) => {
+      assert.equal(
+        await page.locator('[data-music-player][data-menu-active]').count(),
+        0,
+        'closed Tunes must release its controller scope',
+      );
+      const opener = page.locator(selector);
+      assert.ok(
+        await opener.evaluate((element) => element === document.activeElement),
+        'closed Tunes restores its opener',
+      );
+      if ((await opener.getAttribute('aria-expanded')) !== null)
+        assert.equal(await opener.getAttribute('aria-expanded'), 'false');
+    };
+    const moveFromTunesTab = async () => {
+      await tap(15);
+      assert.ok(
+        await page
+          .locator('.menu-top-tabs [data-action="race-tab"]')
+          .evaluate((element) => element === document.activeElement),
+        'next D-pad input reaches the underlying menu',
+      );
+    };
+    await page.goto(new URL('?intro=0&level=halcyon', process.env.VN_URL).href);
     await page.locator('[data-action="tunes"]').waitFor();
     // A real browser gesture unlocks HTML audio; the pad remains synthetic.
     await page.keyboard.press('Tab');
+    const setupScreen = await page.evaluate(
+      () => window.__VN_FRONTEND.getState().screen,
+    );
     await navigate('[data-action="tunes"]');
     await tap(0);
     assert(
@@ -250,7 +320,33 @@ try {
         .locator('.music-play')
         .evaluate((el) => el === document.activeElement),
     );
-    await tap(0);
+    assert.equal(
+      await page.locator('[data-music-player][data-menu-active]').count(),
+      1,
+    );
+    assert.ok(await page.locator('#music-controls').isVisible());
+    assert.equal(
+      await page.evaluate(() => window.__VN_FRONTEND.getState().screen),
+      setupScreen,
+      'Tunes expands over the current screen',
+    );
+    assert.equal(
+      await page
+        .locator('.menu-top-tabs [aria-pressed="true"]')
+        .getAttribute('data-action'),
+      'race-tab',
+    );
+    assert.equal(await page.locator('.music-song').inputValue(), 'blue-hour');
+    assert.equal(
+      await page.evaluate(() =>
+        Object.hasOwn(
+          JSON.parse(localStorage.getItem('vector-nova.music')),
+          'song',
+        ),
+      ),
+      false,
+    );
+    if (await page.locator('audio').evaluate((el) => el.paused)) await tap(0);
     await page.waitForFunction(() => !document.querySelector('audio').paused);
     await navigate('[aria-label="Music volume"]');
     const volume = await page
@@ -269,12 +365,72 @@ try {
     await page.waitForFunction(() => document.querySelector('audio').paused);
     await tap(8); // View works even with a select focused.
     await page.waitForFunction(() => !document.querySelector('audio').paused);
+    assert.equal(
+      await page.evaluate(() =>
+        Object.hasOwn(
+          JSON.parse(localStorage.getItem('vector-nova.music')),
+          'song',
+        ),
+      ),
+      false,
+      'song changes stay in memory',
+    );
+    await navigate('.music-loop');
+    await page.keyboard.press('Tab');
+    assert.equal(
+      await page.evaluate(
+        () => !!document.activeElement.closest('[data-music-player]'),
+      ),
+      true,
+      'floating Tunes retains keyboard focus until dismissed',
+    );
     await tap(1);
     assert(
       await page
         .locator('[data-action="tunes"]')
         .evaluate((el) => el === document.activeElement),
     );
+    assert.equal(
+      await page.evaluate(() => window.__VN_FRONTEND.getState().screen),
+      setupScreen,
+      'controller Back closes Tunes without navigating',
+    );
+    await releasedTunes('[data-action="tunes"]');
+    await moveFromTunesTab();
+    for (const selector of [
+      '[aria-label="Music volume"]',
+      '[aria-label="Music position"]',
+      '.music-shuffle',
+      '.music-loop',
+    ]) {
+      await navigate('[data-action="tunes"]');
+      await tap(0);
+      await page.locator(`${selector}:not(:disabled)`).waitFor();
+      await navigate(selector);
+      await tap(1);
+      await releasedTunes('[data-action="tunes"]');
+      await moveFromTunesTab();
+      assert.equal(
+        await page.evaluate(() => window.__VN_FRONTEND.getState().screen),
+        setupScreen,
+      );
+    }
+    if (responsive)
+      for (const viewport of [
+        { width: 844, height: 390 },
+        { width: 390, height: 844 },
+      ]) {
+        await navigate('[data-action="tunes"]');
+        await tap(0);
+        await navigate('[aria-label="Music volume"]');
+        await page.setViewportSize(viewport);
+        await page.waitForFunction(
+          () =>
+            !document.querySelector('[data-music-player][data-menu-active]'),
+        );
+        await releasedTunes('[data-action="tunes"]');
+        await moveFromTunesTab();
+      }
     await page.locator('[data-action="practice"]').click();
     await page.locator('[data-action="launch"]').click();
     await waitMode('racing');
@@ -326,6 +482,7 @@ try {
       'Tunes never advances paused simulation',
     );
     await tap(1);
+    await releasedTunes('#pause-tunes');
     assert(
       await page
         .locator('#pause-tunes')
@@ -340,6 +497,7 @@ try {
         .evaluate((el) => el === document.activeElement),
     );
     await page.keyboard.press('Escape');
+    await releasedTunes('#pause-tunes');
     assert(
       await page
         .locator('#pause-tunes')
@@ -383,6 +541,7 @@ try {
           );
         }
         await tap(1);
+        await releasedTunes('#pause-tunes');
       }
     }
     if (process.env.VN_EVIDENCE) {
@@ -394,11 +553,13 @@ try {
     await tap(9);
     await waitMode('racing');
     console.log(
-      'PASS Tunes: setup/pause access, controller transport/song/volume, View while driving, keyboard focus/back, paused simulation' +
+      'PASS Tunes: Blue Hour startup, floating setup/pause access, controller transport/song/volume, View while driving, keyboard focus/back, paused simulation' +
         (responsive ? ', portrait/landscape' : ''),
     );
   } else {
-    await page.goto(new URL('?level=halcyon&music=0', process.env.VN_URL).href);
+    await page.goto(
+      new URL('?intro=0&level=halcyon&music=0', process.env.VN_URL).href,
+    );
     await page.locator('[data-action="settings"]').waitFor();
     await navigate('[data-action="settings"]');
     await tap(0);

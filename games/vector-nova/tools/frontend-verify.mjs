@@ -358,7 +358,12 @@ async function finishInputs(difficulty, initial) {
 }
 try {
   const summaryViewports = [
-    ...(!flags.includes('--responsive') ? [{ width: 1440, height: 900 }] : []),
+    ...(!flags.includes('--responsive')
+      ? [
+          { width: 1440, height: 900 },
+          { width: 1100, height: 700 },
+        ]
+      : []),
     ...(!flags.includes('--desktop')
       ? [
           { width: 390, height: 844 },
@@ -413,11 +418,21 @@ try {
             return {
               horizontal: shell.scrollWidth - shell.clientWidth,
               document: document.documentElement.scrollWidth - innerWidth,
+              tabRows: new Set(
+                [...shell.querySelectorAll('.menu-top-tabs button')].map(
+                  (tab) => tab.getBoundingClientRect().top,
+                ),
+              ).size,
             };
           });
           assert.ok(
             result.horizontal <= 1 && result.document <= 1,
             'summary and Garage layouts do not overflow horizontally',
+          );
+          assert.equal(
+            result.tabRows,
+            1,
+            'top-level navigation stays on one row',
           );
         };
         const garage = async () => {
@@ -2805,14 +2820,19 @@ try {
               const tabs = [
                 ...document.querySelectorAll('.menu-top-tabs button'),
               ];
+              const nav = document
+                .querySelector('.menu-top-tabs')
+                .getBoundingClientRect();
               return (
                 document.documentElement.scrollWidth <= innerWidth &&
                 shell.scrollWidth <= shell.clientWidth + 1 &&
+                nav.left >= 0 &&
+                nav.right <= innerWidth + 1 &&
                 tabs.every((tab) => {
                   const r = tab.getBoundingClientRect();
                   return (
-                    r.left >= 0 &&
-                    r.right <= innerWidth + 1 &&
+                    Math.abs(r.top - nav.top) < 1 &&
+                    r.bottom <= nav.bottom + 1 &&
                     r.top >= 0 &&
                     r.bottom <= innerHeight
                   );
@@ -2820,7 +2840,7 @@ try {
               );
             }),
             true,
-            'all top-level tabs must remain visible and fit the viewport',
+            'top-level tabs stay on one row inside a viewport-width strip',
           );
         };
         const samePlayer = async () => {

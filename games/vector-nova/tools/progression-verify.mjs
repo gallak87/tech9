@@ -1237,8 +1237,13 @@ try {
                 document.querySelector('.garage-fleet'),
               ).gridTemplateColumns.split(' ').length,
           ),
-          1,
+          4,
         );
+        assert.equal(
+          await page.locator('.garage-fleet button small').count(),
+          0,
+        );
+        assert.ok((await page.locator('.garage-role').textContent()).trim());
         for (const selector of [
           '.garage-fleet',
           '.garage-equipment-grid',
@@ -1400,6 +1405,19 @@ try {
         await page.setViewportSize({ width, height });
         await open(page, 'dev=2&ship=shrike');
         await action(page, 'ship-step');
+        const equipmentHeight = await page
+          .locator('.garage-equipment')
+          .evaluate((element) => element.getBoundingClientRect().height);
+        for (const item of await page.locator('[data-equip]').all()) {
+          await item.focus();
+          assert.equal(
+            await page
+              .locator('.garage-equipment')
+              .evaluate((element) => element.getBoundingClientRect().height),
+            equipmentHeight,
+            'equipment descriptions keep a stable height as focus moves',
+          );
+        }
         await page.locator('[data-equip="lance"]').focus();
         assert.ok(
           await page.evaluate(() => {

@@ -1509,7 +1509,7 @@
   }
 }
 
-/* Entry and career menus keep the wordmark anchored when navigation wraps. */
+/* The wordmark stays anchored; the navigation is always a single row. */
 .menu-topbar {
   position: fixed;
   z-index: 3;
@@ -1519,7 +1519,7 @@
   right: 380px;
   display: flex;
   align-items: flex-start;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   min-height: 44px;
   gap: 8px 24px;
 }
@@ -1537,6 +1537,16 @@
 .menu-topbar > :is(.menu-wordmark, .entry-wordmark) > span {
   margin-inline: 0;
 }
+@media (max-width: 1300px) {
+  .menu-topbar {
+    right: clamp(24px, 4vw, 64px);
+    flex-direction: column;
+    gap: 8px;
+  }
+  .menu-topbar > .menu-top-tabs {
+    width: 100%;
+  }
+}
 @media (max-width: 760px) {
   .menu-topbar {
     top: 72px;
@@ -1553,10 +1563,14 @@
   }
 }
 .menu-top-tabs {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   min-width: 0;
   max-width: 100%;
   gap: 4px 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  scroll-padding-inline: 4px;
 }
 .menu-top-tabs button {
   white-space: nowrap;

@@ -1,4 +1,9 @@
-import { garageView, toggleGarageEquipment, navigateGarage } from './garage.js';
+import {
+  garageView,
+  toggleGarageEquipment,
+  navigateGarage,
+  showGarageEquipment,
+} from './garage.js';
 import {
   createProfileStore,
   shipUnlocked,
@@ -1838,6 +1843,8 @@ export async function createFrontend(
   shell.addEventListener(
     'pointerover',
     (e) => {
+      if (e.pointerType !== 'touch')
+        showGarageEquipment(shell, e.target.closest('[data-equip]'));
       const card = e.target.closest('[data-level]');
       if (card && e.pointerType !== 'touch') showDetail(card.dataset.level);
       const cup = e.target.closest('button[data-cup]');
@@ -1850,6 +1857,7 @@ export async function createFrontend(
   shell.addEventListener(
     'focusin',
     (e) => {
+      showGarageEquipment(shell, e.target.closest('[data-equip]'));
       const cup = e.target.closest('button[data-cup]');
       if (cup) {
         showCupDetail(cup.dataset.cup);

@@ -32,6 +32,7 @@ export function garageView({
   const capacity = equipmentCapacity(profile, craft.id);
   const loadout = equippedItems(profile, craft.id);
   const count = loadout.filter(Boolean).length;
+  const unlockedFleet = fleet.filter((ship) => shipUnlocked(profile, ship.id));
   const equipment = AVAILABLE_EQUIPMENT.filter((item) =>
     profile.claims.includes(`equipment-${item.id}`),
   );
@@ -40,11 +41,14 @@ export function garageView({
     : cupLocked
       ? 'Ship locked for this championship. Return to your championship ship to change equipment.'
       : '';
-  return `<div class="garage-layout"><nav class="garage-fleet" aria-label="Choose ship">${fleet
-    .filter((ship) => shipUnlocked(profile, ship.id))
+  const detail = (item) =>
+    `${item.name} · ${item.detail} · ${item.cooldown}s cooldown`;
+  const initial =
+    equipment.find((item) => loadout.includes(item.id)) ?? equipment[0];
+  return `<div class="garage-layout"><nav class="garage-fleet" aria-label="Choose ship" style="--garage-ships:${unlockedFleet.length}">${unlockedFleet
     .map(
       (ship) =>
-        `<button data-ship="${ship.id}" aria-pressed="${ship.id === selectedShip}" data-preview="${ship.id === craft.id}" aria-label="Select ${ship.name}"><img src="${assetURL(`assets/menu/ships/${ship.id}.jpg`)}" alt=""><strong>${ship.name}${ship.id === selectedShip ? ' ✓' : ''}</strong><small>${ship.role}</small></button>`,
+        `<button data-ship="${ship.id}" aria-pressed="${ship.id === selectedShip}" data-preview="${ship.id === craft.id}" aria-label="Select ${ship.name}"><img src="${assetURL(`assets/menu/ships/${ship.id}.jpg`)}" alt=""><strong>${ship.name}${ship.id === selectedShip ? ' ✓' : ''}</strong></button>`,
     )
     .join('')}</nav>
     <div class="garage-main"><div class="garage-studio"><section class="ship-details"><h1>${craft.name}</h1><p class="garage-role">${craft.role}</p><div class="ship-preview-slot"><p role="status">Loading ship preview…</p></div><span class="garage-ship-status">${!unlocked ? shipLockText(profile, craft.id) : cupLocked ? 'Locked for this championship' : ''}</span><div class="transfer-slot ship-transfer"></div></section><section class="garage-performance" aria-label="Ship performance"><span class="kicker">Performance</span>${performanceView(craft, profile, { stock })}<div class="garage-legend"><span>Stock</span><span>Earned upgrades</span></div></section></div>
@@ -52,13 +56,19 @@ export function garageView({
       .map((item) => {
         const index = loadout.indexOf(item.id),
           equipped = index >= 0;
-        return `<button class="garage-equipment-card rarity-${item.rarity}" data-equip="${item.id}" aria-pressed="${equipped && !stock}" ${!unlocked || cupLocked || stock ? 'disabled' : ''}>${rewardIcon(`equipment-${item.id}`)}<span><strong>${item.name}</strong><small>${item.detail}</small><span class="garage-equipment-status">${equipped && !stock ? '✓ Equipped · ' : ''}${item.cooldown}s cooldown</span>${equipped && !stock ? `<kbd>${EQUIPMENT_CONTROLS[index].label}</kbd>` : ''}</span></button>`;
+        return `<button class="garage-equipment-card rarity-${item.rarity}" data-equip="${item.id}" data-equipment-detail="${escapeHTML(detail(item))}" aria-label="${escapeHTML(detail(item))}${equipped && !stock ? ` · Equipped: ${EQUIPMENT_CONTROLS[index].label}` : ''}" aria-pressed="${equipped && !stock}" ${!unlocked || cupLocked || stock ? 'disabled' : ''}>${rewardIcon(`equipment-${item.id}`)}<span><strong>${item.name}</strong><span class="garage-equipment-status">${equipped && !stock ? `✓ ${EQUIPMENT_CONTROLS[index].label}` : `${item.cooldown}s`}</span></span></button>`;
       })
       .join(
         '',
-      )}</div>${equipment.length ? '' : '<p class="garage-equipment-empty">No equipment unlocked yet.</p>'}<p class="garage-equipment-hint">${hint}</p></section>
+      )}</div><p class="garage-equipment-detail">${initial ? escapeHTML(detail(initial)) : ''}</p>${equipment.length ? '' : '<p class="garage-equipment-empty">No equipment unlocked yet.</p>'}<p class="garage-equipment-hint">${hint}</p></section>
     ${!IS_DEMO && profile.claims.includes('exotic-slot') && !profile.exoticShip && unlocked && !cupLocked ? `<section class="garage-exotic">${rewardIcon('exotic-slot')}<span><strong>Quad Core earned</strong><small>Permanently equip four items on one ship.</small></span><button data-action="fit-exotic">Fit to ${craft.name}</button></section>` : ''}
     <footer class="garage-footer"><span class="garage-notice" role="status" aria-live="polite">${escapeHTML(notice)}</span></footer></div></div>`;
+}
+
+export function showGarageEquipment(root, button) {
+  if (!button?.dataset.equipmentDetail) return;
+  const detail = root.querySelector('.garage-equipment-detail');
+  if (detail) detail.textContent = button.dataset.equipmentDetail;
 }
 
 export function toggleGarageEquipment(store, shipId, id) {
@@ -114,6 +124,12 @@ export function navigateGarage(event, root) {
         ? items.length - 1
         : items.indexOf(button) + step;
   let next = items[index];
+  if (group?.classList.contains('garage-fleet') && vertical)
+    next =
+      event.code === 'ArrowUp'
+        ? root.querySelector('[data-action="garage-tab"]')
+        : (root.querySelector('.garage-equipment-card:not(:disabled)') ??
+          root.querySelector('.ship-preview canvas'));
   if (
     group?.classList.contains('garage-fleet') &&
     columns === 1 &&

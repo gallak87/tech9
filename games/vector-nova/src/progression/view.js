@@ -100,13 +100,34 @@ export function careerProgressView(profile) {
   ).join('')}</div></section>`;
 }
 export function careerView(profile) {
-  return `<div class="career-summary"><strong>${collectedRewardCount(profile)}<small> / ${REWARDS.length} rewards</small></strong>${IS_DEMO ? '' : `<span>${profile.points} race progress</span>`}<span>${profile.finishes} finishes · ${profile.wins} wins</span><span>${IS_DEMO ? Number(profile.cups.includes('demo')) : fullCupWins(profile)} / ${IS_DEMO ? 1 : 4} cup wins</span><span>${Math.min(profile.trialTracks.length, IS_DEMO ? 1 : 2)} / ${IS_DEMO ? 1 : 2} Time Trial maps</span></div><p class="career-intro">${IS_DEMO ? 'Four rewards to earn: finish races, win the Demo Cup and set a clean Time Trial record. Equip two items. Export your save here, then import it in the full game to keep your rewards, trophy and records. Full-game upgrades stay saved while you play the demo.' : 'Permanent enhancements improve every ship. Every valid Quick Race or cup-race finish earns progress: 1st +5, 2nd +4, 3rd +3, 4th–5th +2, 6th–10th +1. Win championships and set clean Time Trial records on two different maps to complete your collection.'}</p><div class="reward-roadmap">${REWARDS.map(
-    (reward) => {
-      const owned = profile.claims.includes(reward.id),
-        [progress, total] = rewardProgress(profile, reward.requirement);
-      return `<article class="reward-milestone rarity-${reward.rarity} ${owned ? 'earned' : ''}">${rewardIcon(reward.id)}<div><strong>${reward.name}</strong><p>${reward.description}</p><small>${owned ? '✓ Earned' : `${requirementText(reward.requirement)} · ${progress}/${total}`}</small></div></article>`;
-    },
-  ).join('')}</div>`;
+  const groups = [
+    [
+      'enhancements',
+      'Enhancements',
+      REWARDS.filter((reward) => reward.kind === 'enhancement'),
+    ],
+    ['ships', 'Ships', REWARDS.filter((reward) => reward.kind === 'ship')],
+    [
+      'equipment',
+      'Equipment',
+      REWARDS.filter((reward) => ['equipment', 'exotic'].includes(reward.kind)),
+    ],
+  ].filter(([, , rewards]) => rewards.length);
+  const roadmap = groups
+    .map(([id, label, rewards]) => {
+      const earned = rewards.filter((reward) =>
+        profile.claims.includes(reward.id),
+      ).length;
+      return `<section class="career-reward-group" data-reward-group="${id}" aria-label="${label}"><header><h2>${label}</h2><span>${earned} / ${rewards.length}</span></header><div class="reward-roadmap">${rewards
+        .map((reward) => {
+          const owned = profile.claims.includes(reward.id),
+            [progress, total] = rewardProgress(profile, reward.requirement);
+          return `<article class="reward-milestone rarity-${reward.rarity} ${owned ? 'earned' : ''}">${rewardIcon(reward.id)}<div><strong>${reward.name}</strong><p>${reward.description}</p><small>${owned ? '✓ Earned' : `${requirementText(reward.requirement)} · ${progress}/${total}`}</small></div></article>`;
+        })
+        .join('')}</div></section>`;
+    })
+    .join('');
+  return `<div class="career-summary"><strong>${collectedRewardCount(profile)}<small> / ${REWARDS.length} rewards</small></strong>${IS_DEMO ? '' : `<span>${profile.points} race progress</span>`}<span>${profile.finishes} finishes · ${profile.wins} wins</span><span>${IS_DEMO ? Number(profile.cups.includes('demo')) : fullCupWins(profile)} / ${IS_DEMO ? 1 : 4} cup wins</span><span>${Math.min(profile.trialTracks.length, IS_DEMO ? 1 : 2)} / ${IS_DEMO ? 1 : 2} Time Trial maps</span></div><details class="career-rules"><summary tabindex="0">How to earn rewards</summary><p class="career-intro">${IS_DEMO ? 'Four rewards to earn: finish races, win the Demo Cup and set a clean Time Trial record. Equip two items. Export your save here, then import it in the full game to keep your rewards, trophy and records. Full-game upgrades stay saved while you play the demo.' : 'Permanent enhancements improve every ship. Every valid Quick Race or cup-race finish earns progress: 1st +5, 2nd +4, 3rd +3, 4th–5th +2, 6th–10th +1. Win championships and set clean Time Trial records on two different maps to complete your collection.'}</p></details><div class="career-rewards">${roadmap}</div>`;
 }
 export function shipLockText(profile, id) {
   if (shipUnlocked(profile, id)) return '';

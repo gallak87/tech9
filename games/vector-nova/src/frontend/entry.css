@@ -148,21 +148,27 @@
   font-weight: 400;
   letter-spacing: -0.035em;
 }
-.entry-profile-grid {
+.entry-careers .entry-page-heading {
+  margin-bottom: 18px;
+}
+.entry-careers .entry-page-heading h1 {
+  font-size: clamp(24px, 2.8vw, 30px);
+}
+.entry-careers .entry-profile-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
-  max-width: 920px;
+  max-width: 680px;
 }
-.entry-shell .entry-profile {
+.entry-shell .entry-careers .entry-profile {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
   min-width: 0;
-  min-height: 88px;
+  min-height: 68px;
   width: 100%;
-  padding: 16px 20px;
+  padding: 10px 14px;
   background: rgb(255 255 255 / 2%);
 }
 .entry-profile-copy {
@@ -179,36 +185,36 @@
   font-size: 11px;
   letter-spacing: 0.15em;
 }
-.entry-profile-title {
-  font-size: 20px;
+.entry-careers .entry-profile-title {
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.03em;
 }
-.entry-profile .career-progress {
+.entry-careers .entry-profile .career-progress {
   max-width: 420px;
   width: 100%;
-  margin-top: 10px;
+  margin-top: 6px;
 }
 .entry-profile .career-progress-heading {
   font-size: 9px;
 }
-.entry-profile .career-progress-bar {
-  height: 9px;
-  margin-top: 5px;
+.entry-careers .entry-profile .career-progress-bar {
+  height: 8px;
+  margin-top: 4px;
 }
-.entry-career-detail {
+.entry-careers .entry-career-detail {
   display: block;
   font-size: 11px;
   color: #aaa;
-  line-height: 1.5;
-  margin-top: 6px;
+  line-height: 1.4;
+  margin-top: 4px;
 }
 .entry-career-detail > span {
   color: #666;
   margin-inline: 4px;
 }
-.entry-profile-action {
-  font-size: 13px;
+.entry-careers .entry-profile-action {
+  font-size: 12px;
   white-space: nowrap;
   color: #bbb;
 }
@@ -227,6 +233,9 @@
   font-size: 12px;
   max-width: 920px;
   line-height: 1.5;
+}
+.entry-careers .entry-notice {
+  max-width: 680px;
 }
 .entry-utility-content {
   min-width: 0;
@@ -293,23 +302,16 @@
   .entry-page {
     padding-inline: 24px;
   }
-  .entry-profile-grid {
+  .entry-careers .entry-profile-grid {
     gap: 10px;
   }
-  .entry-shell .entry-profile {
+  .entry-shell .entry-careers .entry-profile {
     grid-template-columns: 18px minmax(0, 1fr) auto;
-    gap: 12px;
-    min-height: 80px;
-    padding: 14px 12px;
-  }
-  .entry-profile-title {
-    font-size: 18px;
+    gap: 10px;
+    padding: 10px 12px;
   }
   .entry-profile-action {
     font-size: 11px;
-  }
-  .entry-profile .career-progress {
-    margin-top: 8px;
   }
   .entry-utility .settings-layout {
     grid-template-columns: 1fr;

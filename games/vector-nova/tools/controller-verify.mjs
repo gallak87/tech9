@@ -12,6 +12,7 @@ if (!process.env.VN_URL)
   throw new Error('Set VN_URL to this checkout’s server.');
 const responsive = process.argv.includes('--responsive');
 const tunes = process.argv.includes('--tunes');
+const career = process.argv.includes('--career');
 const desktopControls = process.argv.includes('--desktop-controls');
 const careerStorage = createMemoryStorage();
 createCareerSlots({ storage: () => careerStorage, now: () => 1 }).create(1);
@@ -281,6 +282,40 @@ try {
       await page.screenshot({ path: process.env.VN_EVIDENCE });
     console.log(
       'PASS desktop controls: setup, Settings, inspector, pause, keyboard/controller access, native state updates, 800–2560px layout',
+    );
+  } else if (career) {
+    await page.goto(new URL('?intro=0&music=0', process.env.VN_URL).href);
+    await page.locator('[data-action="career"]').waitFor();
+    await navigate('[data-action="career"]');
+    await tap(0);
+    const rules = page.locator('details.career-rules');
+    const summary = rules.locator('summary');
+    assert.equal(await rules.getAttribute('open'), null);
+    await navigate('.career-rules summary');
+    assert.ok(
+      await summary.evaluate((element) => element === document.activeElement),
+      'controller reaches the native reward explanation',
+    );
+    await tap(0);
+    assert.ok(await rules.locator('.career-intro').isVisible());
+    await tap(0);
+    assert.equal(await rules.locator('.career-intro').isVisible(), false);
+    await tap(0);
+    assert.ok(await rules.locator('.career-intro').isVisible());
+    await tap(1);
+    assert.equal(
+      await page.evaluate(() => window.__VN_FRONTEND.getState().screen),
+      'home',
+    );
+    assert.ok(
+      await page
+        .locator('.menu-top-tabs [data-action="career"]')
+        .evaluate((element) => element === document.activeElement),
+      'controller Back restores the Career tab',
+    );
+    assert.equal(await page.locator('canvas#world').count(), 0);
+    console.log(
+      'PASS Career: controller reaches/toggles reward explanation and Back restores its tab',
     );
   } else if (tunes) {
     const releasedTunes = async (selector) => {

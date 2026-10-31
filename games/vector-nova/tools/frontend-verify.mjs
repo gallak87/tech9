@@ -2415,6 +2415,7 @@ try {
         assert.equal((await front(page)).screen, 'settings');
         await page.locator('[data-setting="quality"]').selectOption('low');
         await fits();
+        await activate('race-tab');
         await activate('career');
         assert.equal((await front(page)).screen, 'career');
         assert.equal(
@@ -2429,7 +2430,98 @@ try {
           'Career is page content, not an open dialog',
         );
         assert.equal(await page.locator('.career-transfer button').count(), 4);
+        assert.equal(
+          await page.locator('[data-backup]').textContent(),
+          'Export backup',
+        );
+        assert.equal(
+          await page.locator('[data-backup]').getAttribute('aria-label'),
+          'Export previous backup',
+        );
         assert.equal((await front(page)).careerSlot.id, 1);
+        const demo = await page.evaluate(
+          async () => (await import('/src/progression/edition.js')).IS_DEMO,
+        );
+        const groups = page.locator('.career-reward-group');
+        assert.deepEqual(
+          await groups.locator('header h2').allTextContents(),
+          demo
+            ? ['Enhancements', 'Equipment']
+            : ['Enhancements', 'Ships', 'Equipment'],
+        );
+        assert.deepEqual(
+          await groups.evaluateAll((sections) =>
+            sections.map(
+              (section) => section.querySelectorAll('.reward-milestone').length,
+            ),
+          ),
+          demo ? [2, 2] : [18, 3, 7],
+        );
+        const rewardNames = await page
+          .locator('.career-page .reward-milestone strong')
+          .allTextContents();
+        assert.equal(rewardNames.length, demo ? 4 : 28);
+        assert.equal(new Set(rewardNames).size, rewardNames.length);
+        assert.ok(
+          await page
+            .locator('.career-page .reward-milestone')
+            .evaluateAll((rewards) =>
+              rewards.every((reward) => {
+                const box = reward.getBoundingClientRect();
+                return (
+                  box.left >= 0 &&
+                  box.right <= innerWidth + 1 &&
+                  reward.scrollWidth <= reward.clientWidth + 1
+                );
+              }),
+            ),
+          'all reward rows wrap within the visible page width',
+        );
+        const rules = page.locator('details.career-rules');
+        const explanation = rules.locator('.career-intro');
+        const rulesAction = rules.locator('summary');
+        assert.equal(await rules.getAttribute('open'), null);
+        assert.equal(await explanation.isVisible(), false);
+        if (
+          await page.evaluate(() => matchMedia('(pointer: coarse)').matches)
+        ) {
+          assert.ok(
+            (await rulesAction.boundingBox()).height >= 44,
+            'reward explanation keeps a 44px touch target',
+          );
+          assert.ok(
+            await page
+              .locator('.career-page button:visible')
+              .evaluateAll((buttons) =>
+                buttons.every(
+                  (button) => button.getBoundingClientRect().height >= 44,
+                ),
+              ),
+            'Career actions keep 44px touch targets',
+          );
+        }
+        await rulesAction.focus();
+        await page.keyboard.press('Enter');
+        assert.ok(await explanation.isVisible());
+        await page.keyboard.press('Space');
+        assert.equal(await explanation.isVisible(), false);
+        assert.ok(
+          await rulesAction.evaluate(
+            (element) => element === document.activeElement,
+          ),
+          'native reward explanation retains keyboard focus',
+        );
+        await page.keyboard.press('Enter');
+        await page.keyboard.press('Escape');
+        assert.equal((await front(page)).screen, 'home');
+        assert.ok(
+          await tab('career').evaluate(
+            (element) => element === document.activeElement,
+          ),
+          'Back from the reward explanation restores the Career tab',
+        );
+        await activate('career');
+        assert.equal(await rules.getAttribute('open'), null);
         assert.equal(
           await page.evaluate(() => {
             const actions = document.querySelector('.career-transfer');
@@ -2446,6 +2538,16 @@ try {
           true,
           'save controls must appear above career progress',
         );
+        if (viewport.width >= 390 && viewport.height >= 700)
+          assert.ok(
+            await page
+              .locator('.career-page .reward-milestone')
+              .first()
+              .evaluate(
+                (element) => element.getBoundingClientRect().top < innerHeight,
+              ),
+            'compact career content reveals rewards without introductory scrolling',
+          );
         await fits();
         await activate('tunes');
         await floatingTunes('career');

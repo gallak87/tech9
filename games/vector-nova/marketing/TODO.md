@@ -1,8 +1,5 @@
-# Trailer re-record TODOs
+# Trailer recording plan
 
-RC1 is the saved review candidate in [rc1/](rc1/README.md). Re-record after the in-flight gameplay updates and bug fixes land; keep RC1 unchanged as the comparison reference.
+The RC1 notes and completed UI prerequisites have been folded into the [current working script](script.md). Follow its shot list and capture requirements for the next recording; there is no separate TODO checklist. The intro, refreshed menus, populated Time Trial records, genuine saved-ghost footage and purposeful browsing are all specified there.
 
-- [x] **Title and three real careers:** the [entry flow](../docs/intro-and-profiles.md) now has compact vertical career rows, global Settings/Tunes, independent progress/records/ghosts and a selected-career save page. It uses fresh slot storage without legacy migration. Review the completed UI before recording its opening and refreshed menu shots.
-- [ ] **New opening and timing:** capture five seconds of the actual moving backdrop, rotating Kestrel and pulsating wordmark; add 0.7 seconds of black, then Glasswake. Shift existing film-space cues by 342 frames at 60fps (+5.7s); preserve raw source offsets. Refresh the working edit plan once the new sources exist; target 72.7s before further readable-record/ghost additions.
-- [ ] **Time Trial records and ghost:** complete and save a genuine valid lap so the Records page is populated. Then capture another completed lap with the player’s saved ghost visibly racing alongside. Use readable excerpts of the populated records and ghost run in the next trailer, replacing RC1’s empty records page.
-- [ ] **More movement in menu shots:** retain smooth, purposeful cursor travel and hover transitions across maps, cups/championships and ships in the final edit. Avoid hovering and sitting still for the whole shot; keep names, previews and ship stats readable while making the browsing feel active.
+[RC1](rc1/README.md) remains the frozen comparison candidate. The next recording, updated edit-plan markers and render are still pending. This page preserves the link from the frozen RC1 notes.

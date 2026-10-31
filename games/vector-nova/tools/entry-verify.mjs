@@ -320,9 +320,20 @@ async function profiles(page, { empty = 3 } = {}) {
     'career rows remain compact',
   );
   assert.ok(
+    rows.every((row) => row.height >= 44),
+    'career rows retain accessible touch targets',
+  );
+  assert.ok(
     rows[1].top >= rows[0].bottom && rows[2].top >= rows[1].bottom,
     'careers are vertically stacked',
   );
+  if (page.viewportSize().height >= 700)
+    assert.ok(
+      rows.every(
+        (row) => row.top >= 0 && row.bottom <= page.viewportSize().height,
+      ),
+      'all three compact careers fit without scrolling in portrait and desktop views',
+    );
   await fits(page);
 }
 async function home(page, id) {

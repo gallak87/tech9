@@ -38,7 +38,11 @@ const sourceDirty = Boolean(
     { cwd: root, encoding: 'utf8' },
   ).trim(),
 );
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await chromium.launch({
+  channel: 'chrome',
+  headless: true,
+  args: ['--mute-audio'],
+});
 try {
   for (const route of routes) {
     if (missingOnly && route.preview) {

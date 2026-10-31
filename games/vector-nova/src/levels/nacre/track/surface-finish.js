@@ -1,5 +1,5 @@
-// Metric finish on the existing ceramic/glazing panels. No displacement: the
-// approved collision triangles and gap lips remain exactly where they are.
+// Metric finish on the flush ceramic/glazing panels. Fitted rim and seal relief
+// affects shading only, leaving the actual running skin smooth across seams.
 // A smooth top coat covers the ceramic PBR maps; fitted perimeter relief
 // follows the existing panel dimensions in metres. Glazing stays distinct.
 export function applyNacreSurfaceFinish(material, kind) {

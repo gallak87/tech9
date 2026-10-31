@@ -165,11 +165,10 @@ function ceramicPanels(track, runs) {
             );
             const frame = track.sample(clipped);
             const fv = v / along;
-            const bevel = u === 0 || u === across ? 0.045 : 0;
-            const leadingLip =
-              channel === 'ceramic' ? Math.exp(-fv * 32) * 0.085 : 0;
             vertices.push({
-              position: point(frame, x, 0.018 + leadingLip - bevel),
+              // Keep the real running skin flush with the route, including at
+              // panel gaps. Fitted rims and seals retain their shader relief.
+              position: point(frame, x, 0),
               up: frame.up,
               x,
               distance: clipped,
@@ -545,7 +544,7 @@ export function buildNacreTrack(track, renderer) {
   );
   group.userData.pressureBedDepth = 0.95;
   group.userData.surfaceTreatments = [
-    'Champagne / violet nacre lamellae and stepped lap joints',
+    'Champagne / violet nacre lamellae and flush fitted lap joints',
     'Twin six-metre smoked pressure bays across the grid',
     'Alternating dark-glazed breaker induction bays',
     'Broad eighteen-metre ascent pressure glazing',

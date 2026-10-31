@@ -5,7 +5,7 @@ export function createNacreCollisionWorld({ track }) {
   return collectProductionSolids({
     track,
     id: 'nacre-jump-solids',
-    geometryId: 'pressure-causeway-v1',
+    geometryId: 'pressure-causeway-v2-flush-panels',
     road: buildNacreTrack(track),
     select(object) {
       if (object.userData.drivingSurface) return { kind: 'deck' };

@@ -20,7 +20,7 @@ Implemented in browser, demo and full game through Settings, including the pause
 
 Xbox-style labels above refer to standard controller button positions.
 
-- Left-stick steering, D-pad/stick menu navigation, A confirm, B back, Menu/Start pause and X normal race-camera cycling are shared across layouts. Off-road recovery stays automatic.
+- Left-stick steering, D-pad/stick menu navigation, A confirm, B back, Menu/Start pause and right-stick-click normal race-camera cycling are shared across layouts. X/Y activate equipment slots 1/2; D-pad left/right activates slots 3/4. Off-road recovery stays automatic.
 - Steering dead zone: 0–40%, default 15%, with a live stick/steering display and reset. Use D-pad while testing the stick in controller settings; other menu navigation keeps its independent 55% threshold. Steering assistance is unchanged.
 - View/Select toggles music. Tunes in setup or pause opens song/volume controls; B returns to the menu.
 - Presets/dead zone persist locally and update layout hints. Steam omits the in-race shortcut strip; bindings stay in Settings. Keyboard controls remain available. Settings retains the current race and its Resume action.

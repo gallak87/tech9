@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import {
+  createCareerSlots,
+  CAREER_SLOTS_KEY,
+} from '../src/progression/careers.js';
+import { PROFILE_KEY } from '../src/progression/profile.js';
 import createHalcyonLevel from '../src/levels/halcyon/index.js';
 import { createVehicleState } from '../src/physics/index.js';
 import {
@@ -21,6 +26,23 @@ import {
 } from '../src/core/session-runtime.js';
 
 // Maintained player-flow check. Requires an existing server; writes no artifacts.
+const careerValues = new Map();
+const seedStorage = {
+  isolated: true,
+  get length() {
+    return careerValues.size;
+  },
+  key: (index) => [...careerValues.keys()][index] ?? null,
+  getItem: (key) => careerValues.get(key) ?? null,
+  setItem: (key, value) => careerValues.set(key, String(value)),
+  removeItem: (key) => careerValues.delete(key),
+};
+createCareerSlots({ storage: () => seedStorage, now: () => 1 }).create(1);
+const careerSeed = [...careerValues];
+const careerPrefix = careerSeed
+  .find(([key]) => key.endsWith(PROFILE_KEY))[0]
+  .slice(0, -PROFILE_KEY.length);
+
 const base = process.env.VN_URL;
 if (!base) throw new Error('Set VN_URL to an existing dev/preview server.');
 const flags = process.argv.slice(2);
@@ -36,7 +58,11 @@ const browser = await chromium.launch({
     ? { executablePath: process.env.VN_BROWSER_PATH }
     : { channel: process.env.VN_BROWSER_CHANNEL ?? 'chrome' }),
 });
-const url = (query = '') => new URL(`?${query}`, base).href;
+const url = (query = '') => {
+  const target = new URL(`?${query}`, base);
+  target.searchParams.set('intro', '0');
+  return target.href;
+};
 const front = (page) => page.evaluate(() => window.__VN_FRONTEND.getState());
 const snapshot = (page) =>
   page.evaluate(() => (window.__VN_INSPECTOR ?? window.__VN).getSnapshot());
@@ -76,7 +102,10 @@ async function check(
   });
   try {
     await context.addInitScript(
-      (settings) =>
+      ({ settings, careerSeed, registryKey }) => {
+        if (localStorage.getItem(registryKey) === null)
+          for (const [key, value] of careerSeed)
+            localStorage.setItem(key, value);
         localStorage.setItem(
           'vector-nova.settings',
           JSON.stringify({
@@ -86,8 +115,9 @@ async function check(
             difficulty: 'easy',
             ...settings,
           }),
-        ),
-      settings,
+        );
+      },
+      { settings, careerSeed, registryKey: CAREER_SLOTS_KEY },
     );
     const page = await context.newPage();
     const faults = [];
@@ -1895,36 +1925,39 @@ try {
       async (page) => {
         await page.goto(url('level=halcyon&music=0'));
         // Valid saved-record fixtures exercise a long list without running twelve races.
-        await page.evaluate((trackId) => {
-          for (let i = 0; i < 12; i++) {
-            const identity = {
-              track: trackId,
-              ship: { id: i % 2 ? 'shrike' : 'needle', version: 'fixture' },
-              version: `fixture-${i}`,
-              physics: 3,
-              rules: 'menu fixture',
-              format: 'circuit',
-              laps: 3,
-            };
-            let hash = 2166136261;
-            for (const c of JSON.stringify(identity))
-              hash = Math.imul(hash ^ c.charCodeAt(0), 16777619);
-            const duration = 180 + i;
-            localStorage.setItem(
-              `vector-nova.trial.v1.${(hash >>> 0).toString(16)}`,
-              JSON.stringify({
-                version: 1,
-                identity,
-                duration,
-                laps: Array(3).fill(duration / 3),
-                splits: Array.from(
-                  { length: 9 },
-                  (_, n) => (duration * (n + 1)) / 9,
-                ),
-              }),
-            );
-          }
-        }, createHalcyonLevel().createTrack().id);
+        await page.evaluate(
+          ({ trackId, careerPrefix }) => {
+            for (let i = 0; i < 12; i++) {
+              const identity = {
+                track: trackId,
+                ship: { id: i % 2 ? 'shrike' : 'needle', version: 'fixture' },
+                version: `fixture-${i}`,
+                physics: 3,
+                rules: 'menu fixture',
+                format: 'circuit',
+                laps: 3,
+              };
+              let hash = 2166136261;
+              for (const c of JSON.stringify(identity))
+                hash = Math.imul(hash ^ c.charCodeAt(0), 16777619);
+              const duration = 180 + i;
+              localStorage.setItem(
+                `${careerPrefix}vector-nova.trial.v1.${(hash >>> 0).toString(16)}`,
+                JSON.stringify({
+                  version: 1,
+                  identity,
+                  duration,
+                  laps: Array(3).fill(duration / 3),
+                  splits: Array.from(
+                    { length: 9 },
+                    (_, n) => (duration * (n + 1)) / 9,
+                  ),
+                }),
+              );
+            }
+          },
+          { trackId: createHalcyonLevel().createTrack().id, careerPrefix },
+        );
         await page.locator('[data-action="records"]').click();
         assert.equal(await page.locator('.records-list li').count(), 12);
         assert.equal(await page.locator('.record-course img').count(), 12);
@@ -1961,7 +1994,11 @@ try {
         await page.locator('[data-record-key]').last().click();
         assert.equal((await front(page)).intent, 'time-trial');
         assert.equal((await front(page)).selected, 'halcyon');
-        assert.equal((await front(page)).shipId, 'needle');
+        assert.equal(
+          (await front(page)).shipId,
+          'shrike',
+          'a fresh career must not equip the locked hull from an imported record',
+        );
         assert.equal((await front(page)).loadedId, null);
         assert.equal(await page.evaluate(() => !!window.__VN), false);
       },
@@ -2187,7 +2224,7 @@ try {
           });
           assert.deepEqual(
             await page.locator('.menu-top-tabs button').allTextContents(),
-            ['Race', 'Garage', 'Settings', 'Career & saves', 'Tunes'],
+            ['Race', 'Garage', 'Settings', 'Career', 'Tunes'],
           );
           assert.equal(
             await page
@@ -2290,6 +2327,9 @@ try {
         const tab = (action) =>
           page.locator(`.menu-top-tabs [data-action="${action}"]`);
         const activate = async (action) => {
+          const previous = await page
+            .locator('.menu-top-tabs [aria-pressed="true"]')
+            .getAttribute('data-action');
           if (viewport.width < 760 || viewport.height < 500)
             await tab(action).tap();
           else await tab(action).click();
@@ -2297,8 +2337,32 @@ try {
             await page
               .locator('.menu-top-tabs [aria-pressed="true"]')
               .getAttribute('data-action'),
-            action,
+            action === 'tunes' ? previous : action,
           );
+        };
+        const floatingTunes = async (screen) => {
+          assert.equal((await front(page)).screen, screen);
+          assert.equal(
+            await page.locator('[data-music-player][data-menu-active]').count(),
+            1,
+          );
+          assert.ok(await page.locator('#music-controls').isVisible());
+          for (const selector of [
+            '.music-play',
+            '.music-song',
+            '[aria-label="Music volume"]',
+            '.music-expand',
+          ]) {
+            const box = await page.locator(selector).boundingBox();
+            assert.ok(
+              box &&
+                box.x >= 0 &&
+                box.x + box.width <= viewport.width + 1 &&
+                box.y >= 0 &&
+                box.y + box.height <= viewport.height + 1,
+              `${selector} fits the floating player`,
+            );
+          }
         };
         const fits = async () => {
           assert.equal(
@@ -2340,7 +2404,7 @@ try {
         };
         assert.deepEqual(
           await page.locator('.menu-top-tabs button').allTextContents(),
-          ['Race', 'Garage', 'Settings', 'Career & saves', 'Tunes'],
+          ['Race', 'Garage', 'Settings', 'Career', 'Tunes'],
         );
         await page.evaluate(() => {
           window.retainedMusic = document.querySelector('[data-music-player]');
@@ -2364,7 +2428,8 @@ try {
           0,
           'Career is page content, not an open dialog',
         );
-        assert.equal(await page.locator('.career-transfer button').count(), 3);
+        assert.equal(await page.locator('.career-transfer button').count(), 4);
+        assert.equal((await front(page)).careerSlot.id, 1);
         assert.equal(
           await page.evaluate(() => {
             const actions = document.querySelector('.career-transfer');
@@ -2383,29 +2448,31 @@ try {
         );
         await fits();
         await activate('tunes');
-        assert.equal((await front(page)).screen, 'tunes');
-        assert.equal(
-          await page.locator('.utility-content [data-music-page]').count(),
-          1,
-        );
-        assert.equal(
-          await page.locator('[data-music-player][data-menu-active]').count(),
-          0,
-          'the Tunes page must not trap controller focus away from the tabs',
-        );
+        await floatingTunes('career');
         const song = page.locator('.music-song');
         const selectedSong = await song.inputValue();
         await song.focus();
         await page.keyboard.press('Escape');
-        assert.equal((await front(page)).screen, 'home');
+        assert.equal((await front(page)).screen, 'career');
+        assert.ok(
+          await tab('tunes').evaluate((el) => el === document.activeElement),
+          'Escape restores the Tunes opener over the same Career page',
+        );
         await samePlayer();
         await activate('garage-tab');
         await page.locator('.ship-preview[data-state="ready"]').waitFor();
         await activate('tunes');
+        await floatingTunes('setup');
         assert.equal(await song.inputValue(), selectedSong);
         await samePlayer();
-        await page.locator('[data-action="settings-back"]').click();
+        if (viewport.width < 760 || viewport.height < 500)
+          await page.locator('.music-expand').tap();
+        else await page.locator('.music-expand').click();
         assert.equal((await front(page)).screen, 'setup');
+        assert.equal(
+          await page.locator('[data-music-player][data-menu-active]').count(),
+          0,
+        );
         await activate('race-tab');
         await activate('career');
         await page.locator('[data-progression-career] [data-close]').click();
@@ -2420,6 +2487,13 @@ try {
         assert.equal(
           await tab('tunes').evaluate((el) => el === document.activeElement),
           true,
+        );
+        await page.keyboard.press('Enter');
+        await floatingTunes('home');
+        await page.keyboard.press('Escape');
+        assert.equal((await front(page)).screen, 'home');
+        assert.ok(
+          await tab('tunes').evaluate((el) => el === document.activeElement),
         );
         await page.keyboard.press('Home');
         await page.keyboard.press('ArrowRight');

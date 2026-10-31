@@ -48,26 +48,24 @@ export function createSaveTransfer({
     const profile = validateProfile(data.profile);
     if (!profile)
       throw new Error('This career save is damaged or incompatible.');
+    if (
+      !Object.hasOwn(data, 'cup') ||
+      !Object.hasOwn(data, 'trials') ||
+      !Object.hasOwn(data, 'trophies')
+    )
+      throw new Error(
+        'This save is incomplete. Export a complete career save.',
+      );
     const cup =
-      data.cup === undefined
-        ? (cupStore.exportState?.() ?? cupStore.snapshot().state)
-        : data.cup === null
-          ? null
-          : validateCup(data.cup, { crossEdition: true });
-    if (data.cup != null && !cup)
+      data.cup === null ? null : validateCup(data.cup, { crossEdition: true });
+    if (data.cup !== null && !cup)
       throw new Error('This cup save is damaged or incompatible.');
-    const trials =
-      data.trials === undefined
-        ? exportTrialSaves(readableStorage())
-        : validateTrialSaves(data.trials);
+    const trials = validateTrialSaves(data.trials);
     let trophies;
     try {
       trophies = {
         version: 1,
-        cups:
-          data.trophies === undefined
-            ? cupCollection.snapshot().cups
-            : readCupCollection(JSON.stringify(data.trophies)),
+        cups: readCupCollection(JSON.stringify(data.trophies)),
       };
     } catch {
       throw new Error('This trophy collection is damaged or incompatible.');

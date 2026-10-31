@@ -54,7 +54,7 @@ const strings = (value, max, valid = () => true) =>
 export function validateProfile(value) {
   if (
     !value ||
-    ![1, 2, CAREER_VERSION].includes(value.version) ||
+    value.version !== CAREER_VERSION ||
     !Number.isSafeInteger(value.wins) ||
     value.wins < 0 ||
     value.wins > 1000000 ||
@@ -81,56 +81,39 @@ export function validateProfile(value) {
     'exoticShip',
   ])
     next[key] = copy(value[key]);
-  if (value.version < 3) {
-    // Prior saves only counted wins. Keep every earned reward and credit those wins.
-    next.finishes = next.wins;
-    next.points = next.wins * 5;
-    next.raceScores = Object.fromEntries(next.raceClaims.map((id) => [id, 5]));
-  } else {
-    if (
-      !Number.isSafeInteger(value.finishes) ||
-      value.finishes < next.wins ||
-      value.finishes > 1000000 ||
-      !Number.isSafeInteger(value.points) ||
-      value.points < value.finishes ||
-      value.points > value.finishes * 5 ||
-      !value.raceScores ||
-      typeof value.raceScores !== 'object' ||
-      Array.isArray(value.raceScores) ||
-      Object.keys(value.raceScores).length !== next.raceClaims.length ||
-      next.raceClaims.some(
-        (id) =>
-          !Object.hasOwn(value.raceScores, id) ||
-          !Number.isInteger(value.raceScores[id]) ||
-          value.raceScores[id] < 1 ||
-          value.raceScores[id] > 5,
-      )
+  if (
+    !Number.isSafeInteger(value.finishes) ||
+    value.finishes < next.wins ||
+    value.finishes > 1000000 ||
+    !Number.isSafeInteger(value.points) ||
+    value.points < value.finishes ||
+    value.points > value.finishes * 5 ||
+    !value.raceScores ||
+    typeof value.raceScores !== 'object' ||
+    Array.isArray(value.raceScores) ||
+    Object.keys(value.raceScores).length !== next.raceClaims.length ||
+    next.raceClaims.some(
+      (id) =>
+        !Object.hasOwn(value.raceScores, id) ||
+        !Number.isInteger(value.raceScores[id]) ||
+        value.raceScores[id] < 1 ||
+        value.raceScores[id] > 5,
     )
-      return null;
-    next.finishes = value.finishes;
-    next.points = value.points;
-    next.raceScores = copy(value.raceScores);
-  }
+  )
+    return null;
+  next.finishes = value.finishes;
+  next.points = value.points;
+  next.raceScores = copy(value.raceScores);
   if (next.exoticShip && !next.claims.includes('exotic-slot')) return null;
-  // Older demos saved only Kestrel. Expand that exact legacy shape; reject
-  // partially missing full-game fleets rather than silently repairing damage.
-  const legacyDemo =
-    Object.keys(value.loadouts).length === 1 &&
-    Object.hasOwn(value.loadouts, 'kestrel');
   for (const shipId of CAREER_SHIPS) {
-    if (legacyDemo && shipId !== 'kestrel') continue;
     const slots = value.loadouts[shipId];
-    const legacy = value.version === 1;
-    const limit = legacy
-      ? next.exoticShip === shipId
-        ? 2
-        : 1
-      : next.exoticShip === shipId
+    const limit =
+      next.exoticShip === shipId
         ? MAX_EQUIPMENT_SLOTS
         : STANDARD_EQUIPMENT_SLOTS;
     if (
       !Array.isArray(slots) ||
-      slots.length !== (legacy ? 2 : MAX_EQUIPMENT_SLOTS) ||
+      slots.length !== MAX_EQUIPMENT_SLOTS ||
       slots.some(
         (id, i) =>
           id !== null &&
@@ -141,10 +124,7 @@ export function validateProfile(value) {
       new Set(slots.filter(Boolean)).size !== slots.filter(Boolean).length
     )
       return null;
-    next.loadouts[shipId] = Array.from(
-      { length: MAX_EQUIPMENT_SLOTS },
-      (_, i) => slots[i] ?? null,
-    );
+    next.loadouts[shipId] = [...slots];
   }
   return next;
 }

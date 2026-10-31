@@ -53,10 +53,13 @@ export function bindMenuGamepad(signal, { toggleMusic = () => {} } = {}) {
     const pause = document.querySelector('#pause-panel');
     return visible(pause) ? pause : null;
   };
-  const soundPanelFor = (root) =>
+  const externalPanelsFor = (root) =>
     ['front-shell', 'inspector-host', 'pause-panel'].includes(root.id)
-      ? document.querySelector('[data-sound-panel]')
-      : null;
+      ? [
+          document.querySelector('[data-sound-panel]'),
+          document.querySelector('[data-music-player]'),
+        ].filter((panel) => visible(panel) && !root.contains(panel))
+      : [];
   function key(value, code = value) {
     const target =
       value === 'Escape'
@@ -72,12 +75,11 @@ export function bindMenuGamepad(signal, { toggleMusic = () => {} } = {}) {
     );
   }
   function navigate(root, x, y) {
-    const soundPanel = soundPanelFor(root);
     const controls = [
       ...root.querySelectorAll('button, select, input, [tabindex]'),
-      ...(visible(soundPanel) && !root.contains(soundPanel)
-        ? soundPanel.querySelectorAll('button, select, input')
-        : []),
+      ...externalPanelsFor(root).flatMap((panel) => [
+        ...panel.querySelectorAll('button, select, input'),
+      ]),
     ].filter(
       (el) =>
         !el.disabled && el.tabIndex >= 0 && visible(el) && el.type !== 'hidden',
@@ -156,7 +158,10 @@ export function bindMenuGamepad(signal, { toggleMusic = () => {} } = {}) {
         if (intent.accept && !previous.accept) {
           const target = document.activeElement;
           if (
-            (root.contains(target) || soundPanelFor(root)?.contains(target)) &&
+            (root.contains(target) ||
+              externalPanelsFor(root).some((panel) =>
+                panel.contains(target),
+              )) &&
             visible(target)
           )
             target.click();

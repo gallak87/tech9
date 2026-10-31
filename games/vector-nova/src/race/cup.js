@@ -172,6 +172,9 @@ export function validateCup(value, { crossEdition = false } = {}) {
   if (
     !cup ||
     value.version !== VERSION ||
+    typeof value.runId !== 'string' ||
+    value.runId.length === 0 ||
+    value.runId.length > 100 ||
     !(crossEdition
       ? CAREER_SHIPS.includes(value.shipId)
       : SHIPS.some((s) => s.id === value.shipId)) ||
@@ -207,10 +210,7 @@ export function validateCup(value, { crossEdition = false } = {}) {
   }
   return {
     version: VERSION,
-    runId:
-      typeof value.runId === 'string' && value.runId.length <= 100
-        ? value.runId
-        : `legacy-${cup.id}-${value.shipId}`,
+    runId: value.runId,
     cupId: cup.id,
     shipId: value.shipId,
     difficulty: value.difficulty,

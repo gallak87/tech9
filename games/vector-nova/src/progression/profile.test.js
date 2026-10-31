@@ -221,59 +221,61 @@ test('early Time Trial milestones wait for the preceding boost tier and are not 
   );
 });
 
-test('legacy careers migrate without losing equipment; new careers enforce two/four items', () => {
+test('only current careers are accepted and equipment stays limited to two/four items', () => {
   const storage = memory(),
     store = createProfileStore(() => storage);
   for (let i = 0; i < 24; i++)
-    store.recordRace({ id: `migration-${i}`, won: true });
+    store.recordRace({ id: `equipment-${i}`, won: true });
   for (const cup of ['founders', 'frontier', 'horizon', 'apex'])
     store.recordCup(cup);
   store.chooseExotic('kestrel');
-  const legacy = store.snapshot().state;
-  legacy.version = 1;
-  for (const id of Object.keys(legacy.loadouts))
-    legacy.loadouts[id] = [null, null];
-  legacy.loadouts.shrike = ['jump', null];
-  legacy.loadouts.kestrel = ['lance', 'deflector'];
-  storage.setItem(PROFILE_KEY, JSON.stringify(legacy));
-  const migrated = createProfileStore(() => storage);
-  assert.equal(migrated.snapshot().state.version, 3);
-  assert.deepEqual(migrated.snapshot().state.loadouts.kestrel, [
-    'lance',
-    'deflector',
-    null,
-    null,
-  ]);
-  assert.ok(migrated.equip('shrike', 1, 'injector'));
-  assert.equal(migrated.equip('shrike', 2, 'stabilizer'), false);
-  assert.ok(migrated.equip('kestrel', 2, 'stabilizer'));
-  assert.ok(migrated.equip('kestrel', 3, 'jump'));
-  assert.equal(migrated.equip('kestrel', 4, 'injector'), false);
-  assert.ok(migrated.equip('kestrel', 3, 'lance'));
+  for (const version of [1, 2]) {
+    const old = store.snapshot().state;
+    old.version = version;
+    assert.equal(validateProfile(old), null);
+  }
+  const partialFleet = store.snapshot().state;
+  partialFleet.loadouts = { kestrel: partialFleet.loadouts.kestrel };
+  assert.equal(validateProfile(partialFleet), null);
+  assert.ok(store.equip('shrike', 1, 'injector'));
+  assert.equal(store.equip('shrike', 2, 'stabilizer'), false);
+  assert.ok(store.equip('kestrel', 2, 'stabilizer'));
+  assert.ok(store.equip('kestrel', 3, 'jump'));
+  assert.equal(store.equip('kestrel', 4, 'injector'), false);
+  assert.ok(store.equip('kestrel', 0, 'lance'));
+  assert.ok(store.equip('kestrel', 3, 'lance'));
   assert.equal(
-    migrated.snapshot().state.loadouts.kestrel[0],
+    store.snapshot().state.loadouts.kestrel[0],
     null,
     'moving an item never duplicates it',
   );
   assert.deepEqual(
     createProfileStore(() => storage).snapshot().state,
-    migrated.snapshot().state,
+    store.snapshot().state,
   );
-  const invalid = migrated.snapshot().state;
+  const invalid = store.snapshot().state;
   invalid.loadouts.shrike[2] = 'stabilizer';
   assert.equal(validateProfile(invalid), null);
   const transfer = createSaveTransfer({
-    profileStore: migrated,
+    profileStore: store,
     cupStore: createCupStore(() => storage),
     storage: () => storage,
   });
   assert.deepEqual(
     transfer.parse(transfer.export()).profile.loadouts,
-    migrated.snapshot().state.loadouts,
+    store.snapshot().state.loadouts,
   );
+  for (const key of ['cup', 'trophies', 'trials']) {
+    const incomplete = JSON.parse(transfer.export());
+    delete incomplete[key];
+    assert.throws(
+      () => transfer.parse(JSON.stringify(incomplete)),
+      /incomplete/,
+    );
+  }
 });
 
-test('save transfer carries trophies, preserves legacy saves, and rolls trophy writes back', () => {
+test('save transfer carries trophies and rolls trophy writes back', () => {
   const source = memory(),
     destination = memory();
   const trophy = { earnedAt: 12345, difficulty: 'hard', points: 75 };
@@ -297,10 +299,6 @@ test('save transfer carries trophies, preserves legacy saves, and rolls trophy w
     target = make(destination);
   const file = original.transfer.export();
   target.transfer.replace(target.transfer.parse(file));
-  assert.deepEqual(target.cupCollection.snapshot().cups, { founders: trophy });
-  const legacy = JSON.parse(file);
-  delete legacy.trophies;
-  target.transfer.replace(target.transfer.parse(JSON.stringify(legacy)));
   assert.deepEqual(target.cupCollection.snapshot().cups, { founders: trophy });
   const damaged = JSON.parse(file);
   damaged.trophies.version = 99;

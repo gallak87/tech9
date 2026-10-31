@@ -25,7 +25,8 @@ async function edition(t, name) {
     cacheDir,
     root: resolve(import.meta.dirname, '..'),
     define: { 'import.meta.env.VN_EDITION': JSON.stringify(name) },
-    server: { middlewareMode: true, hmr: false, watch: null },
+    server: { middlewareMode: true, hmr: false, ws: false, watch: null },
+    optimizeDeps: { noDiscovery: true, include: [] },
     logLevel: 'error',
   });
   t.after(async () => {
@@ -243,15 +244,18 @@ test('demo saves carry rewards and trophy to full; full saves round-trip through
     returned.trophies.snapshot().cups,
     source.trophies.snapshot().cups,
   );
-  const legacy = JSON.parse(file);
-  legacy.profile.loadouts = { kestrel: legacy.profile.loadouts.kestrel };
-  assert.deepEqual(
-    target.transfer.parse(JSON.stringify(legacy)).profile,
-    source.profile.snapshot().state,
-  );
-  legacy.cup.eventIndex = 90;
+  const incompleteFleet = JSON.parse(file);
+  incompleteFleet.profile.loadouts = {
+    kestrel: incompleteFleet.profile.loadouts.kestrel,
+  };
   assert.throws(
-    () => target.transfer.parse(JSON.stringify(legacy)),
+    () => target.transfer.parse(JSON.stringify(incompleteFleet)),
+    /career save/,
+  );
+  const invalidCup = JSON.parse(file);
+  invalidCup.cup.eventIndex = 90;
+  assert.throws(
+    () => target.transfer.parse(JSON.stringify(invalidCup)),
     /cup save/,
   );
   const damaged = JSON.parse(file);

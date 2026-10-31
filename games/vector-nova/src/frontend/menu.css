@@ -999,14 +999,6 @@
     margin-top: 8px;
   }
 }
-@media (min-width: 500px) and (max-width: 599px) {
-  body:has(.picker-header) .music-player:not(.is-compact) {
-    width: min(310px, calc(100% - 270px));
-  }
-  body[data-screen='settings'] .music-player:not(.is-compact) {
-    width: min(310px, calc(100% - 224px));
-  }
-}
 @media (max-width: 499px) {
   /* Stack only when the fixed-size title and visible transport cannot fit. */
   .menu-narrow .menu-track-picker {

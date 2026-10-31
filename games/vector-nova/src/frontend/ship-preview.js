@@ -7,11 +7,18 @@ import { getShip } from '../ships/catalog.js';
 
 // A small, on-demand studio owns only the selected chassis. It never loads a
 // circuit or runs a second game loop, and releases its context on leaving setup.
-export function createShipPreview({ autoRotate = false } = {}) {
+export function createShipPreview({
+  autoRotate = false,
+  presentation = false,
+} = {}) {
   const element = document.createElement('div');
-  element.className = 'ship-preview';
+  element.className = `ship-preview${presentation ? ' ship-preview-presentation' : ''}`;
+  if (presentation) element.setAttribute('aria-hidden', 'true');
   element.innerHTML =
-    '<div class="ship-preview-status" role="status"></div><span class="ship-preview-hint">DRAG TO ROTATE <i>/</i> ARROW KEYS · HOME TO RESET</span>';
+    '<div class="ship-preview-status" role="status"></div>' +
+    (presentation
+      ? ''
+      : '<span class="ship-preview-hint">DRAG TO ROTATE <i>/</i> ARROW KEYS · HOME TO RESET</span>');
   const status = element.querySelector('.ship-preview-status');
   const life = new AbortController();
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -20,12 +27,15 @@ export function createShipPreview({ autoRotate = false } = {}) {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
   const canvas = renderer.domElement;
-  canvas.tabIndex = 0;
-  canvas.setAttribute('role', 'img');
-  canvas.setAttribute(
-    'aria-label',
-    'Ship preview. Drag or use arrow keys to rotate; Home resets the view.',
-  );
+  canvas.tabIndex = presentation ? -1 : 0;
+  if (presentation) canvas.style.pointerEvents = 'none';
+  else {
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute(
+      'aria-label',
+      'Ship preview. Drag or use arrow keys to rotate; Home resets the view.',
+    );
+  }
   element.prepend(canvas);
   const scene = new THREE.Scene();
   const environment = createStudioEnvironment(renderer);
@@ -39,6 +49,7 @@ export function createShipPreview({ autoRotate = false } = {}) {
   scene.add(key, rim);
   const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 200);
   const controls = new OrbitControls(camera, canvas);
+  controls.enabled = !presentation;
   controls.enablePan = false;
   controls.enableZoom = false;
   controls.minPolarAngle = 0.15;
@@ -122,7 +133,7 @@ export function createShipPreview({ autoRotate = false } = {}) {
   canvas.addEventListener(
     'keydown',
     (event) => {
-      if (!current || loading) return;
+      if (presentation || !current || loading) return;
       if (
         ['Home', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(
           event.code,
@@ -201,12 +212,13 @@ export function createShipPreview({ autoRotate = false } = {}) {
       controls.autoRotate = autoRotate;
       element.dataset.state = 'ready';
       element.dataset.ship = id;
-      canvas.setAttribute(
-        'aria-label',
-        `${getShip(id).name} 3D preview. Drag or use arrow keys to rotate; Home resets the view.`,
-      );
+      if (!presentation)
+        canvas.setAttribute(
+          'aria-label',
+          `${getShip(id).name} 3D preview. Drag or use arrow keys to rotate; Home resets the view.`,
+        );
       canvas.style.visibility = '';
-      controls.enabled = true;
+      controls.enabled = !presentation;
       status.textContent = '';
       invalidate();
     } catch {
@@ -214,6 +226,7 @@ export function createShipPreview({ autoRotate = false } = {}) {
       error = `${getShip(id).name} preview could not load.`;
       element.dataset.state = 'error';
       status.textContent = error;
+      if (presentation) return;
       const retry = document.createElement('button');
       retry.textContent = 'Retry preview';
       retry.addEventListener('click', () => void setShip(requested), {

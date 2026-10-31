@@ -50,9 +50,9 @@ function standingsTable(rows, complete) {
     )
     .join('')}</tbody></table>`;
 }
-function confirmation(action, complete) {
+function confirmation(action) {
   const abandon = action === 'abandon';
-  return `<div class="cup-confirm" role="group" aria-label="Confirm ${action}"><p><strong>${abandon ? (complete ? 'Clear this cup’s results?' : 'Abandon this cup?') : 'Restart this cup?'}</strong> Saved scores will be deleted.</p><div class="front-actions">${button('cup-cancel', 'Cancel')}${button('cup-confirm', abandon ? (complete ? 'Clear results' : 'Abandon cup') : 'Restart cup', true)}</div></div>`;
+  return `<div class="cup-confirm" role="group" aria-label="Confirm ${action}"><p><strong>${abandon ? 'Abandon this cup?' : 'Restart this cup?'}</strong> Saved scores will be deleted.</p><div class="front-actions">${button('cup-cancel', 'Cancel')}${button('cup-confirm', abandon ? 'Abandon cup' : 'Restart cup', true)}</div></div>`;
 }
 
 function gridSummary(state, cup) {
@@ -86,9 +86,11 @@ function resultsView({
       return `<li ${state.eventIndex === i ? 'aria-current="step"' : ''} class="${state.results[i] ? 'scored' : ''}">${preview ? `<img src="${esc(assetURL(preview))}" alt="">` : ''}<span class="cup-event-number">${String(i + 1).padStart(2, '0')}</span><strong>${esc(trackName(id))}</strong><small>${eventFormat(id)} · ${state.results[i] ? 'Scored' : i === state.eventIndex + 1 ? 'Up next' : 'Upcoming'}</small></li>`;
     })
     .join('')}</ol>`;
-  const actions = confirm
-    ? confirmation(confirm, complete)
-    : `<div class="cup-result-actions"><div class="front-actions">${complete ? button('cup-abandon', 'Choose another cup →', true) : button('cup-next', 'Next race →', true)}${button('cup-retry', 'Retry race')}${button('home', 'Back to setup')}</div><details class="cup-options"><summary>Cup options</summary><div class="front-actions">${button('cup-restart', 'Restart cup')}${complete ? '' : button('cup-abandon', 'Abandon cup')}</div></details></div>`;
+  const actions = complete
+    ? `<div class="cup-result-actions front-actions">${button('cup-hub', 'Choose another cup →', true)}${button('home', 'Back to setup')}</div>`
+    : confirm
+      ? confirmation(confirm)
+      : `<div class="cup-result-actions"><div class="front-actions">${button('cup-next', 'Next race →', true)}${button('cup-retry', 'Retry race')}${button('home', 'Back to setup')}</div><details class="cup-options"><summary>Cup options</summary><div class="front-actions">${button('cup-restart', 'Restart cup')}${button('cup-abandon', 'Abandon cup')}</div></details></div>`;
   return `<section class="cup-panel cup-results-panel" aria-label="${esc(cup.name)}"><div class="cup-result-heading"><div class="front-heading"><span class="kicker">${complete ? esc(cup.name.toUpperCase()) + ' / FINAL' : `CHAMPIONSHIP / RACE ${state.eventIndex + 1} OF ${cup.tracks.length}`}</span><h1 tabindex="-1">${title}</h1></div><dl class="cup-personal"><div><dt>Race finish</dt><dd>${player.position ? `<span class="cup-place-prefix">P</span>${String(player.position).padStart(2, '0')}` : player.status === 'dnf' ? 'DNF' : 'Invalid'}</dd></div><div><dt>Points</dt><dd>+${player.points}</dd></div><div><dt>Race time</dt><dd class="cup-personal-time">${player.status === 'finished' ? time(player.timeMs) : '—'}</dd></div></dl></div>${actions}${gridSummary(state, cup)}${route}${notice ? `<p class="cup-save" role="status">${esc(notice)}</p>` : ''}${standingsTable(standings, complete)}<details class="cup-race-details"><summary>Race results</summary>${state.results.map((rows, i) => `<section><h2>Race ${i + 1} · ${esc(trackName(cup.tracks[i]))}</h2>${raceTable(rows, complete)}</section>`).join('')}</details></section>`;
 }
 // The primary action follows the saved championship phase.
@@ -102,7 +104,7 @@ export function cupLaunch(state, cupId, live = false) {
     };
   if (cupComplete(state))
     return {
-      action: 'cup-abandon',
+      action: 'cup-hub',
       label: 'Choose another cup →',
       detail: cupChampion(state) ? 'Cup champion' : 'Final standings',
     };
@@ -161,13 +163,15 @@ export function cupView({
     });
   const route = `<ol class="cup-route" style="--cup-events:${cup.tracks.length}">${cup.tracks.map((id, i) => `<li ${state?.eventIndex === i ? 'aria-current="step"' : ''}><span>${i + 1}</span>${menu ? `<span class="cup-event-art">${menu.eventArt(id)}</span>` : ''}<strong>${esc(trackName(id))}</strong><small>${eventFormat(id)} · ${state?.results[i] ? 'Scored' : state?.eventIndex === i ? 'Current race' : state ? 'Up next' : trackChallenge(id)}</small></li>`).join('')}</ol>`;
   let actions;
-  if (confirm) {
-    actions = confirmation(confirm, complete);
+  if (confirm && !complete) {
+    actions = confirmation(confirm);
   } else if (!state) {
     actions = `<div class="front-actions">${button('cup-start', `Start ${esc(cup.name)} →`, true)}${button('home', 'Back to setup')}</div>`;
+  } else if (complete) {
+    actions = `<div class="front-actions">${button('cup-hub', 'Choose another cup →', true)}${button('home', 'Back to setup')}</div>`;
   } else {
-    const next = state.phase === 'results' && !complete;
-    actions = `<div class="front-actions cup-actions">${next ? button('cup-next', `Continue → ${esc(trackName(cup.tracks[state.eventIndex + 1]))}`, true) : state.phase === 'racing' ? button('cup-resume', `${live ? 'Resume' : 'Start'} race ${state.eventIndex + 1} →`, true) : button('home', 'Back to setup', true)}${button('cup-retry', `Retry race ${state.eventIndex + 1}`)}${button('cup-restart', 'Restart cup')}${button('cup-abandon', complete ? 'Choose another cup' : 'Abandon cup')}${complete ? '' : button('home', 'Save & return to setup')}</div>`;
+    const next = state.phase === 'results';
+    actions = `<div class="front-actions cup-actions">${next ? button('cup-next', `Continue → ${esc(trackName(cup.tracks[state.eventIndex + 1]))}`, true) : button('cup-resume', `${live ? 'Resume' : 'Start'} race ${state.eventIndex + 1} →`, true)}${button('cup-retry', `Retry race ${state.eventIndex + 1}`)}${button('cup-restart', 'Restart cup')}${button('cup-abandon', 'Abandon cup')}${button('home', 'Save & return to setup')}</div>`;
   }
   const scores = state?.results.length
     ? `<div class="cup-results-grid"><section>${state.results.map((rows, i) => `<details><summary>Race ${i + 1} · ${esc(trackName(cup.tracks[i]))} · ${eventFormat(cup.tracks[i])}</summary>${raceTable(rows, complete)}</details>`).join('')}</section><section>${standingsTable(standings, complete)}</section></div>`
@@ -176,11 +180,12 @@ export function cupView({
     const picker = !state
       ? `<fieldset class="cup-picker" aria-label="Choose a championship">${CUPS.map((entry) => cupCard(entry, cup.id, collection)).join('')}</fieldset>`
       : '';
-    const management = confirm
-      ? actions
-      : state
-        ? `<div class="cup-management">${button('cup-retry', `Retry race ${state.eventIndex + 1}`)}${button('cup-restart', 'Restart cup')}${complete ? '' : button('cup-abandon', 'Abandon cup')}</div>`
-        : '';
+    const management =
+      confirm && !complete
+        ? actions
+        : state && !complete
+          ? `<div class="cup-management">${button('cup-retry', `Retry race ${state.eventIndex + 1}`)}${button('cup-restart', 'Restart cup')}${button('cup-abandon', 'Abandon cup')}</div>`
+          : '';
     return `<section class="cup-panel cup-menu-panel" aria-label="${esc(cup.name)}">${menu.hero(title)}${picker}${route}${gridSummary(state, cup)}${notice ? `<p class="cup-save" role="status">${esc(notice)}</p>` : ''}${management}${scores ? `<details class="cup-scores"><summary>Standings & race results · ${state.results.length}/${cup.tracks.length} scored</summary>${scores}</details>` : ''}${menu.actions ?? ''}</section>`;
   }
   return `<section class="cup-panel"><div class="front-heading"><span class="kicker">CHAMPIONSHIP / ${esc(cup.name.toUpperCase())}</span><h1 tabindex="-1">${title}</h1></div>${!state ? `<fieldset class="cup-picker"><legend>Choose a championship</legend>${CUPS.map((entry) => cupCard(entry, cup.id, collection)).join('')}</fieldset>` : ''}${route}${gridSummary(state, cup)}<p class="cup-summary">${state ? `${esc(SHIPS.find((s) => s.id === state.shipId).name)} · ${state.difficulty} · locked for this cup · ${state.results.length}/${cup.tracks.length} races scored${complete ? ` · ${player.points} points` : ''}` : `${cup.tracks.length} races · 10 pilots`}</p>${notice ? `<p class="cup-save" role="status">${esc(notice)}</p>` : ''}${!state ? `<section class="cup-setup" aria-label="Cup setup"><fieldset><legend>Ship for all ${cup.tracks.length} races</legend>${SHIPS.map((s) => `<button data-ship="${s.id}" aria-pressed="${shipId === s.id}">${s.name}</button>`).join('')}</fieldset><fieldset><legend>Opponent difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${difficulty === d}">${d}</button>`).join('')}</fieldset></section>` : ''}${actions}${scores}</section>`;

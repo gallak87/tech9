@@ -38,6 +38,7 @@ Reviewed against `main` and the active event review branches on **2026-10-31**. 
 
 ### Gameplay and progression
 
+- [ ] **Cup run history:** design persistent completed-run records separately from the active championship. Explore showing the three best runs beneath a cup's map list; decide ranking, difficulty/ship details, ties, storage limits and save transfer before implementation. Finished cups currently show final standings, then clear when the player returns to setup or selection; earned rewards and trophies remain.
 - [ ] **Sidegrades:** prototype one weapon variant and, if useful, one propulsion specialization. Define meaningful tradeoffs, slots/cooldowns, unlocks, counterplay and complete icon/VFX/audio presentation before growing the catalogue.
 - [ ] Revisit or replace Magnetic Stabilizer if its four-second air-steering/drift assist cannot justify a distinct equipment role. Preserve stock controls and stock-build course completability.
 - [ ] **Carve:** prove sustained slides and clean exits on a short banked section before authoring a course. Define useful forward-travel scoring, anti-farming and fixed-build versus career-build record rules.

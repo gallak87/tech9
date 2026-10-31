@@ -6,9 +6,10 @@ import {
   cupStandings,
   cupGridOrder,
   CUP_POINTS,
+  CUP_STORAGE_KEY,
 } from '../src/race/cup.js';
 import { createRaceGrid } from '../src/race/roster.js';
-import { seedVerificationCareer } from './verification-career.mjs';
+import { careerKey, seedVerificationCareer } from './verification-career.mjs';
 const cup = cupDefinition(process.env.VN_CUP_ID ?? 'founders');
 assert.ok(cup, 'VN_CUP_ID must name an available cup');
 const base = process.env.VN_URL;
@@ -344,6 +345,22 @@ try {
   await click('cup-resume');
   await page.evaluate(() => window.__VN.pause());
   await finish();
+  const beforeRestart = (await state()).cup.state;
+  await page.locator('.cup-options > summary').click();
+  await click('cup-restart');
+  await click('cup-cancel');
+  assert.deepEqual((await state()).cup.state, beforeRestart);
+  await page.locator('.cup-options > summary').click();
+  await click('cup-restart');
+  await click('cup-confirm');
+  await ready(cup.tracks[0]);
+  assert.equal((await state()).cup.state.results.length, 0);
+  assert.notEqual((await state()).cup.state.runId, beforeRestart.runId);
+  await finish();
+  await click('cup-retry');
+  await ready(cup.tracks[0]);
+  assert.equal((await state()).cup.state.results.length, 0);
+  await finish();
   const first = (await state()).cup.state.results[0];
   await page.reload();
   await click('cup-hub');
@@ -363,17 +380,41 @@ try {
     await click('cup-resume');
     await ready(cup.tracks[event]);
     await finish();
-    await click('cup-retry');
-    await ready(cup.tracks[event]);
-    assert.deepEqual((await state()).cup.state.results, prior);
-    await finish();
+    if (event < cup.tracks.length - 1) {
+      await click('cup-retry');
+      await ready(cup.tracks[event]);
+      assert.deepEqual((await state()).cup.state.results, prior);
+      await finish();
+    }
   }
-  assert.equal((await state()).cup.state.results.length, cup.tracks.length);
+  const completed = await state();
+  assert.equal(completed.cup.state.results.length, cup.tracks.length);
+  const assertCompleted = async () => {
+    const current = await state();
+    assert.deepEqual(current.cup.state, completed.cup.state);
+    assert.deepEqual(current.career.state, completed.career.state);
+    assert.deepEqual(current.cupCollection.cups, completed.cupCollection.cups);
+  };
+  for (const action of ['cup-next', 'cup-retry', 'cup-restart', 'cup-abandon'])
+    assert.equal(
+      await page.locator(`[data-action="${action}"]`).count(),
+      0,
+      `completed cups have no ${action} control`,
+    );
   await page.getByText('Final cup standings', { exact: true }).waitFor();
-  await page.reload();
-  await click('cup-hub');
-  if (touch) await click('circuits');
-  await page.locator('.cup-scores > summary').click();
+  await click('settings');
+  assert.equal((await state()).screen, 'settings');
+  await assertCompleted();
+  await click('settings-back');
+  assert.equal((await state()).screen, 'results');
+  await assertCompleted();
+  await click('settings');
+  await click('career');
+  assert.equal((await state()).screen, 'career');
+  await assertCompleted();
+  await page.locator('[data-progression-career] [data-close]').click();
+  assert.equal((await state()).screen, 'results');
+  await assertCompleted();
   await page.getByText('Final cup standings', { exact: true }).waitFor();
   assert.equal(
     await page.evaluate(
@@ -381,23 +422,53 @@ try {
     ),
     false,
   );
-  await click('cup-restart');
-  await click('cup-cancel');
-  assert.equal((await state()).cup.state.results.length, cup.tracks.length);
-  await click('cup-restart');
-  await click('cup-confirm');
+  const chooseAnother = page.locator(
+    '.cup-result-actions .primary[data-action="cup-hub"]',
+  );
+  assert.match(await chooseAnother.textContent(), /Choose another cup/);
+  if (touch) await chooseAnother.tap();
+  else {
+    await chooseAnother.focus();
+    await page.keyboard.press('Enter');
+  }
+  const assertCleared = async ({ preserveSelection = true } = {}) => {
+    const current = await state();
+    assert.equal(current.cup.state, null);
+    if (preserveSelection) assert.equal(current.selectedCup, cup.id);
+    assert.equal(current.sessionCup, false);
+    assert.deepEqual(current.career.state, completed.career.state);
+    assert.deepEqual(current.cupCollection.cups, completed.cupCollection.cups);
+    assert.equal(await page.locator('.cup-confirm').count(), 0);
+  };
+  assert.equal((await state()).screen, touch ? 'home' : 'cup');
+  await assertCleared();
+  // Reopen the actual completed save as if the page closed on final standings.
+  await page.evaluate(
+    ({ key, saved }) => localStorage.setItem(key, JSON.stringify(saved)),
+    { key: careerKey(CUP_STORAGE_KEY), saved: completed.cup.state },
+  );
+  await page.reload();
+  await page.locator('[data-action="cup-hub"]').first().waitFor();
+  assert.equal((await state()).screen, 'home');
+  await assertCleared();
+  await click('cup-hub');
+  if (touch) await click('circuits');
+  await click('cup-start');
   await ready(cup.tracks[0]);
   assert.equal((await state()).cup.state.results.length, 0);
   await page.locator('#home')[touch ? 'tap' : 'click']();
   await click('cup-abandon');
+  await click('cup-cancel');
+  assert.equal((await state()).cup.state.phase, 'racing');
+  await click('cup-abandon');
   await click('cup-confirm');
-  assert.equal((await state()).cup.state, null);
+  await assertCleared();
   await page.reload();
   await page.locator('[data-action="cup-hub"]').first().waitFor();
-  assert.equal((await state()).cup.state, null);
+  await assertCleared({ preserveSelection: false });
   assert.deepEqual(faults, []);
   console.log(
-    `PASS ${cup.name} ${width}x${height}: full real-physics cup, ship lock, reload, retry, final results, restart and abandon`,
+    `PASS ${cup.name} ${width}x${height}: full real-physics cup, ship lock, reload, unfinished retry/restart/abandon, final utility returns and automatic completed-cup exit`,
   );
 } finally {
   await context.close();

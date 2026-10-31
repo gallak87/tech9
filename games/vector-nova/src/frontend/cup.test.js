@@ -55,6 +55,11 @@ test('final standings include the complete field', () => {
   assert.deepEqual(ranks(html), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   assert.match(html, /Final cup standings/);
   assert.doesNotMatch(html, /Next grid:/);
+  assert.match(html, /data-action="cup-hub"[^>]*>Choose another cup/);
+  assert.doesNotMatch(
+    html,
+    /data-action="cup-(?:abandon|retry|restart|confirm)"/,
+  );
 });
 test('results explain the earned next grid instead of promising pole after a win', () => {
   assert.match(resultAt(1), /Next grid: P03 \/ 10/);

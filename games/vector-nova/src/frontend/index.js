@@ -445,6 +445,8 @@ export async function createFrontend(
   }
   function setScreen(next) {
     if (disposed) return;
+    if (['home', 'cup', 'circuits', 'setup', 'loading'].includes(next))
+      clearCompletedCup();
     const navigating = screen !== next;
     if (navigating) music?.close();
     if (screen === 'career' && next !== 'career')
@@ -578,8 +580,11 @@ export async function createFrontend(
       intent === 'time-trial' ? 'Manual boost · No road devices' : '';
     return `<div class="race-actions"><button class="primary" data-action="launch"><strong>${launchLabel()}</strong><small>${intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : 'Unlimited laps'}</small></button>${intent === 'race' ? difficultyControls() : ''}${description ? `<p class="mode-description">${description}</p>` : ''}</div>`;
   };
+  const hasResumableSession = () =>
+    game?.hasSession() &&
+    !(sessionCup && cupComplete(cupStore.snapshot().state));
   const sessionReturn = (includeCup = false) => {
-    if (!game?.hasSession() || (sessionCup && !includeCup)) return '';
+    if (!hasResumableSession() || (sessionCup && !includeCup)) return '';
     const name = sessionCup
       ? 'Cup Race'
       : sessionIntent === 'time-trial'
@@ -1552,6 +1557,15 @@ export async function createFrontend(
       game?.prepareSession();
     }
   }
+  function clearCompletedCup() {
+    const state = cupStore.snapshot().state;
+    if (!cupComplete(state)) return;
+    selectedCup = state.cupId;
+    cupStore.abandon();
+    clearCupSession();
+    lastResults = null;
+    cupConfirm = null;
+  }
   function chooseMode(mode) {
     intent = mode;
     cupConfirm = null;
@@ -1588,7 +1602,10 @@ export async function createFrontend(
       openUtility('career');
     },
     'switch-career'() {
-      if (!disposed && career) void onSwitchCareer?.();
+      if (!disposed && career) {
+        clearCompletedCup();
+        void onSwitchCareer?.();
+      }
     },
     'quick-race'() {
       chooseMode('race');
@@ -1651,6 +1668,10 @@ export async function createFrontend(
       focusMenu('[data-action="cup-cancel"]');
     },
     'cup-abandon'() {
+      if (cupComplete(cupStore.snapshot().state)) {
+        openCup();
+        return;
+      }
       cupConfirm = 'abandon';
       render();
       focusMenu('[data-action="cup-cancel"]');
@@ -1678,7 +1699,7 @@ export async function createFrontend(
       }
     },
     'resume-session'() {
-      if (!game?.hasSession()) return;
+      if (!hasResumableSession()) return;
       intent = sessionIntent;
       setScreen('race');
       game.resumeSession();

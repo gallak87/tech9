@@ -242,7 +242,22 @@ try {
     'controller B skips to standings',
   );
   assert.equal(await page.locator('.cup-standings tbody tr').count(), 10);
-  await page.locator('[data-action="cup-retry"]').click();
+  const earnedCareer = (await state()).career.state;
+  await page.locator('[data-action="cup-hub"]').focus();
+  await settle();
+  await pad(0);
+  assert.equal((await state()).cup.state, null);
+  assert.equal(await page.locator('.cup-confirm').count(), 0);
+  assert.deepEqual((await state()).career.state, earnedCareer);
+  assert.equal((await state()).cupCollection.cups.founders.points, 75);
+  // A new completed run can defend the trophy without retrying a finished cup.
+  await page.evaluate(
+    ({ key, saved }) => localStorage.setItem(key, JSON.stringify(saved)),
+    { key: careerKey(CUP_STORAGE_KEY), saved: savedFinal() },
+  );
+  await page.reload();
+  await openCup();
+  await page.locator('[data-action="cup-resume"]').click();
   await page.waitForFunction(
     () => window.__VN_FRONTEND.getState().screen === 'race',
   );
@@ -259,18 +274,9 @@ try {
     0,
     'controller A opens standings immediately',
   );
-  await page.locator('[data-action="cup-abandon"]').focus();
-  await settle();
-  await pad(0);
-  assert.equal(
-    await page.evaluate(() => document.activeElement.dataset.action),
-    'cup-cancel',
-  );
-  await pad(1);
+  await page.locator('[data-action="cup-hub"]').focus();
+  await page.keyboard.press('Enter');
   assert.equal(await page.locator('.cup-confirm').count(), 0);
-  await page.keyboard.press('Enter');
-  await page.keyboard.press('Tab');
-  await page.keyboard.press('Enter');
   assert.equal((await state()).cup.state, null);
   assert.equal(
     await page.locator('[data-cup="founders"].is-earned').count(),
@@ -296,7 +302,7 @@ try {
   assert.equal(await page.locator('.cup-cabinet .is-earned').count(), 1);
   assert.equal((await state()).cupCelebration, false);
 
-  // Old championship wins backfill once, without requiring another race or replaying fanfare.
+  // Completed saved wins keep their trophy while the active cup is cleared.
   await page.evaluate(
     ({ key, collection, saved }) => {
       localStorage.removeItem(collection);
@@ -312,7 +318,7 @@ try {
   await page.locator('.cup-cabinet').waitFor();
   assert.equal((await state()).cupCollection.cups.founders.points, 75);
   assert.equal((await state()).cupCelebration, false);
-  // A complete P2 championship is still unearned, even on migration.
+  // A completed P2 championship clears without earning a trophy.
   await page.evaluate(
     ({ key, collection, saved }) => {
       localStorage.removeItem(collection);
@@ -330,7 +336,7 @@ try {
   assert.equal(await page.locator('.cup-cabinet .is-earned').count(), 0);
   assert.deepEqual(faults, []);
   console.log(
-    `PASS cup awards ${width}x${height}: art, controller/keyboard, first-place collection, reveal, reduced motion, persistence and old-save migration`,
+    `PASS cup awards ${width}x${height}: art, controller/keyboard, first-place collection, reveal, reduced motion, persistence and completed-save cleanup`,
   );
 } finally {
   await context.close();

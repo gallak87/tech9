@@ -1,6 +1,7 @@
 import * as T from 'three';
 import { beamTransform } from '../../../track/geometry.js';
 import { framePoint } from '../../../track/frames.js';
+import { SAFFRON_SOLIDS } from './solids.js';
 
 // The reachable jump supports use the same CPU fossil floors as collision.
 // Rendering borrows this plan rather than moving these solids after physics boot.
@@ -59,7 +60,12 @@ export function jumpSupportPlan(track, survey, fossilTriangles) {
       const endpoint = hit
         ? hit.point.clone().addScaledVector(hit.normal, 1.2)
         : to;
-      const beam = beamTransform(from, endpoint, 2.1, 3.1);
+      const beam = beamTransform(
+        from,
+        endpoint,
+        SAFFRON_SOLIDS.supportWidth,
+        SAFFRON_SOLIDS.supportDepth,
+      );
       const leg = new T.Matrix4().compose(
         beam.position,
         beam.quaternion,

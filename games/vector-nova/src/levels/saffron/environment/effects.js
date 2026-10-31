@@ -4,6 +4,7 @@ import { horizontalFrame, randomSequence, UP } from './geometry.js';
 
 import { sampleBurrower, GRAZER_DURATION } from '../grazer.js';
 import { createGrazerPath } from './grazer-path.js';
+import { createTerrainColorSampler } from './terrain.js';
 export { sampleBurrower } from '../grazer.js';
 
 const SAND_HALF_WIDTH = 260;
@@ -18,22 +19,167 @@ function sandDisplacement(distance, cross, age, travel, breach, motion) {
   const passed =
     T.MathUtils.smoothstep(travel - distance, 50, 140) *
     T.MathUtils.smoothstep(distance, -60, 80);
-  const berm = Math.exp(-(((Math.abs(cross) - 110) / 24) ** 2)) * passed * 5;
-  const radius = Math.hypot((distance - travel) * 0.9, cross);
-  const ring =
-    T.MathUtils.smoothstep(radius, 70, 110) *
-    (1 - T.MathUtils.smoothstep(radius, 220, 310));
+  const lateralWander =
+    Math.sin(distance * 0.017) * 11 + Math.sin(distance * 0.039 + 1.4) * 6;
+  const shoulder = Math.abs(cross + lateralWander);
+  // Unequal deposited shoulders imply a settling furrow between them. This
+  // overlay only lifts sand; the physical terrain never becomes a depression.
+  const berm =
+    Math.exp(-(((shoulder - 108) / 31) ** 2)) *
+    passed *
+    (3.5 + Math.sin(distance * 0.026 + cross * 0.006));
+  const wakeDistance = distance - travel;
+  const reach =
+    T.MathUtils.smoothstep(Math.abs(cross), 90, 140) *
+    (1 - T.MathUtils.smoothstep(Math.abs(cross), 225, 280)) *
+    Math.exp(-((wakeDistance / 265) ** 2));
   const emergence = Math.exp(-(((age - 3.5) / 1.5) ** 2));
   const dive = Math.exp(-(((age - 12) / 2) ** 2));
   const ripple =
     motion *
     T.MathUtils.smoothstep(age, 0, 2) *
-    (0.5 + 0.5 * Math.sin(radius * 0.065 - age * 5)) *
-    ring *
-    (4 + emergence * 8 + dive * 6);
+    Math.pow(
+      0.5 +
+        0.5 *
+          Math.sin(
+            (shoulder +
+              wakeDistance * 0.32 +
+              Math.sin(distance * 0.013 + cross * 0.008) * 21) *
+              0.031 -
+              age * 2.6,
+          ),
+      1.7,
+    ) *
+    reach *
+    (2 + emergence * 6 + dive * 4);
   return (
     settling * (core * (head + tail) * 19 * (1 - breach * 0.65) + berm + ripple)
   );
+}
+
+// One material-batched receiving body for all four sources. Subdividing the
+// existing terrain triangles preserves their exact contact plane everywhere;
+// only the low irregular deposit rises above it, with its outer skirt buried.
+function impactBedLift(x, z, sourceIndex) {
+  const v = z - x * 0.15;
+  const angle = Math.atan2(v / 16, x / 14);
+  const broken =
+    1 +
+    Math.sin(angle * 3 + sourceIndex) * 0.12 +
+    Math.cos(angle * 5 - sourceIndex) * 0.08;
+  const radius = Math.hypot(x / 14, v / 16) / broken;
+  return 2.6 * Math.pow(Math.max(0, 1 - radius * radius), 1.3);
+}
+
+function impactBedPoint(frame, origin, survey, sourceIndex, radius, angle) {
+  const broken =
+    1 +
+    Math.sin(angle * 3 + sourceIndex) * 0.12 +
+    Math.cos(angle * 5 - sourceIndex) * 0.08;
+  const x = Math.cos(angle) * radius * 14 * broken;
+  const z = Math.sin(angle) * radius * 16 * broken + x * 0.15;
+  const point = origin
+    .clone()
+    .addScaledVector(frame.right, x)
+    .addScaledVector(frame.forward, z);
+  point.y =
+    survey.heightAt(point.x, point.z) + impactBedLift(x, z, sourceIndex) - 0.04;
+  return point;
+}
+
+function createSandfallReceivingBeds(
+  track,
+  survey,
+  materials,
+  resources,
+  falls,
+) {
+  const positions = [],
+    colors = [],
+    indices = [];
+  const colorAt = createTerrainColorSampler();
+  const source = survey.meshData;
+  const subdivisions = 8;
+  for (const [sourceIndex, [s, lateral]] of falls.entries()) {
+    const frame = horizontalFrame(track, s);
+    const origin = frame.position.clone().addScaledVector(frame.right, lateral);
+    for (let t = 0; t < source.indices.length; t += 3) {
+      const vertices = [0, 1, 2].map((offset) => {
+        const n = source.indices[t + offset] * 3;
+        return {
+          x: source.positions[n],
+          y: source.positions[n + 1],
+          z: source.positions[n + 2],
+        };
+      });
+      if (
+        Math.max(...vertices.map((p) => p.x)) < origin.x - 25 ||
+        Math.min(...vertices.map((p) => p.x)) > origin.x + 25 ||
+        Math.max(...vertices.map((p) => p.z)) < origin.z - 25 ||
+        Math.min(...vertices.map((p) => p.z)) > origin.z + 25
+      )
+        continue;
+      const palette = vertices.map((p) => colorAt(p.x, p.z).clone());
+      const rows = [];
+      for (let i = 0; i <= subdivisions; i++) {
+        rows[i] = [];
+        for (let j = 0; j <= subdivisions - i; j++) {
+          const weights = [
+            1 - (i + j) / subdivisions,
+            i / subdivisions,
+            j / subdivisions,
+          ];
+          const point = { x: 0, y: 0, z: 0 };
+          for (const [n, weight] of weights.entries()) {
+            point.x += vertices[n].x * weight;
+            point.y += vertices[n].y * weight;
+            point.z += vertices[n].z * weight;
+          }
+          const dx = point.x - origin.x,
+            dz = point.z - origin.z;
+          const x = dx * frame.right.x + dz * frame.right.z;
+          const z = dx * frame.forward.x + dz * frame.forward.z;
+          rows[i][j] = positions.length / 3;
+          positions.push(
+            point.x,
+            point.y + impactBedLift(x, z, sourceIndex) - 0.04,
+            point.z,
+          );
+          colors.push(
+            ...['r', 'g', 'b'].map((channel) =>
+              palette.reduce(
+                (sum, color, n) => sum + color[channel] * weights[n],
+                0,
+              ),
+            ),
+          );
+        }
+      }
+      for (let i = 0; i < subdivisions; i++) {
+        for (let j = 0; j < subdivisions - i; j++) {
+          indices.push(rows[i][j], rows[i + 1][j], rows[i][j + 1]);
+          if (j < subdivisions - i - 1)
+            indices.push(rows[i + 1][j], rows[i + 1][j + 1], rows[i][j + 1]);
+        }
+      }
+    }
+  }
+  const geometry = resources.geometry(new T.BufferGeometry());
+  geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new T.Float32BufferAttribute(colors, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  const substrate = materials.terrain ?? materials.sand;
+  const material = resources.material(substrate.clone());
+  material.name = 'Saffron / matte sandfall receiving deposits';
+  material.vertexColors = true;
+  material.roughness = 0.97;
+  material.onBeforeCompile = substrate.onBeforeCompile;
+  material.customProgramCacheKey = () => substrate.customProgramCacheKey();
+  const mesh = new T.Mesh(geometry, material);
+  mesh.name = 'Saffron / terrain-seated sandfall receiving fans';
+  mesh.receiveShadow = true;
+  return mesh;
 }
 
 export function createDesertEffects(
@@ -48,34 +194,95 @@ export function createDesertEffects(
   const path = createGrazerPath(track, survey);
   const ridgeStart = -620;
   const ridgeEnd = path.length + 320;
-  const rows = 160;
-  const columns = 32;
-  const ridgeGeometry = resources.geometry(
-    new T.PlaneGeometry(1, 1, rows, columns),
-  );
-  // Replacing the plane's XY positions with forward/right XZ coordinates
-  // reverses its winding. Keep the displaced surface visible from above.
-  const indices = ridgeGeometry.index;
-  for (let i = 0; i < indices.count; i += 3) {
-    const second = indices.getX(i + 1);
-    indices.setX(i + 1, indices.getX(i + 2));
-    indices.setX(i + 2, second);
-  }
-  const ridgeVertices = ridgeGeometry.attributes.position;
+  const ridgeGeometry = resources.geometry(new T.BufferGeometry());
+  const source = survey.meshData;
+  const remap = new Map();
+  const ridgePositions = [],
+    ridgeIndices = [],
+    ridgeColors = [],
+    ridgeAlpha = [];
+  const colorAt = createTerrainColorSampler();
   const rest = [];
-  for (let j = 0; j <= columns; j++) {
-    for (let i = 0; i <= rows; i++) {
-      const distance = T.MathUtils.lerp(ridgeStart, ridgeEnd, i / rows);
-      const cross = (j / columns - 0.5) * 2;
-      const p = path.start
-        .clone()
-        .addScaledVector(path.forward, distance)
-        .addScaledVector(path.right, cross * SAND_HALF_WIDTH);
-      p.y = survey.heightAt(p.x, p.z) - 0.7;
-      rest.push({ x: p.x, y: p.y, z: p.z, distance, cross });
+  const projected = new Map();
+  function sourceVertex(index) {
+    if (projected.has(index)) return projected.get(index);
+    const [x, y, z] = source.positions.subarray(index * 3, index * 3 + 3);
+    const dx = x - path.start.x,
+      dz = z - path.start.z;
+    const vertex = {
+      x,
+      y: y - 0.04,
+      z,
+      distance: dx * path.forward.x + dz * path.forward.z,
+      cross: (dx * path.right.x + dz * path.right.z) / SAND_HALF_WIDTH,
+    };
+    projected.set(index, vertex);
+    return vertex;
+  }
+  // Reuse the displayed terrain's triangles exactly. Resampling an unrelated
+  // dense plane was a different surface between survey vertices and exposed
+  // its rectangular extent even when no mound was present.
+  for (let i = 0; i < source.indices.length; i += 3) {
+    const triangle = source.indices.slice(i, i + 3);
+    const vertices = triangle.map(sourceVertex);
+    if (
+      Math.max(...vertices.map((p) => p.distance)) < ridgeStart ||
+      Math.min(...vertices.map((p) => p.distance)) > ridgeEnd ||
+      Math.max(...vertices.map((p) => p.cross)) < -1 ||
+      Math.min(...vertices.map((p) => p.cross)) > 1
+    )
+      continue;
+    for (const index of triangle) {
+      if (!remap.has(index)) {
+        const vertex = sourceVertex(index);
+        remap.set(index, rest.length);
+        rest.push(vertex);
+        ridgePositions.push(vertex.x, vertex.y, vertex.z);
+        colorAt(vertex.x, vertex.z).toArray(ridgeColors, ridgeColors.length);
+        ridgeAlpha.push(0);
+      }
+      ridgeIndices.push(remap.get(index));
     }
   }
-  const ridge = new T.Mesh(ridgeGeometry, materials.sand);
+  ridgeGeometry.setAttribute(
+    'position',
+    new T.Float32BufferAttribute(ridgePositions, 3),
+  );
+  ridgeGeometry.setAttribute(
+    'color',
+    new T.Float32BufferAttribute(ridgeColors, 3),
+  );
+  ridgeGeometry.setAttribute(
+    'sandLiftAlpha',
+    new T.Float32BufferAttribute(ridgeAlpha, 1),
+  );
+  ridgeGeometry.setIndex(ridgeIndices);
+  ridgeGeometry.computeVertexNormals();
+  const ridgeVertices = ridgeGeometry.attributes.position;
+  const alphaVertices = ridgeGeometry.attributes.sandLiftAlpha;
+  const substrate = materials.terrain ?? materials.sand;
+  const ridgeMaterial = resources.material(substrate.clone());
+  ridgeMaterial.name = 'Saffron / terrain-matched lifted sand';
+  ridgeMaterial.transparent = true;
+  ridgeMaterial.depthWrite = false;
+  ridgeMaterial.vertexColors = true;
+  const finish = substrate.onBeforeCompile;
+  ridgeMaterial.onBeforeCompile = (shader) => {
+    finish.call(substrate, shader);
+    shader.vertexShader =
+      `attribute float sandLiftAlpha; varying float vSandLiftAlpha;\n${shader.vertexShader}`.replace(
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\nvSandLiftAlpha=sandLiftAlpha;',
+      );
+    shader.fragmentShader =
+      `varying float vSandLiftAlpha;\n${shader.fragmentShader}`.replace(
+        '#include <color_fragment>',
+        '#include <color_fragment>\ndiffuseColor.a*=vSandLiftAlpha;',
+      );
+  };
+  ridgeMaterial.customProgramCacheKey = () =>
+    `saffron-terrain-lift-v2-${substrate.customProgramCacheKey()}`;
+  const ridge = new T.Mesh(ridgeGeometry, ridgeMaterial);
   ridge.name = 'Saffron / deforming ridge raised by subsurface burrower';
   ridge.receiveShadow = true;
   ridge.frustumCulled = false;
@@ -87,7 +294,10 @@ export function createDesertEffects(
   const kinds = [];
   const random = randomSequence(0x34ad);
   const falls = sandfallAnchors(track);
-  for (const [s, lateral, height] of falls) {
+  group.add(
+    createSandfallReceivingBeds(track, survey, materials, resources, falls),
+  );
+  for (const [sourceIndex, [s, lateral, height]] of falls.entries()) {
     const frame = horizontalFrame(track, s);
     const origin = frame.position
       .clone()
@@ -106,8 +316,17 @@ export function createDesertEffects(
       kinds.push(0);
     }
     for (let i = 0; i < 80; i++) {
-      const p = origin.clone();
-      p.y = survey.heightAt(p.x, p.z) + 1;
+      const radius = Math.sqrt(random()) * 0.88;
+      const angle = random() * Math.PI * 2;
+      const p = impactBedPoint(
+        frame,
+        origin,
+        survey,
+        sourceIndex,
+        radius,
+        angle,
+      );
+      p.y += 0.14;
       positions.push(...p.toArray());
       phases.push(random());
       drops.push(random());
@@ -146,8 +365,8 @@ export function createDesertEffects(
       transparent: true,
       depthWrite: false,
       uniforms: { time: { value: 0 }, strength: { value: 0.5 } },
-      vertexShader: `attribute float kind; attribute float phase; attribute float drop; uniform float time; uniform float strength; varying float opacity; void main(){ float age=fract(phase+time*.064); vec3 p=position; p.y-=age*age*drop; p.x+=sin(phase*31.+age*3.)*age*2.;if(kind>.5){float a=phase*61.;p=position+vec3(cos(a)*(4.+age*22.),age*(4.+drop*9.),sin(a)*(3.+age*14.));} vec4 v=modelViewMatrix*vec4(p,1.); gl_Position=projectionMatrix*v; gl_PointSize=clamp(1100./max(-v.z,1.),1.2,3.2); opacity=sin(age*3.14159)*strength;if(kind>.5){gl_PointSize=clamp(7200./max(-v.z,1.),5.,42.);opacity*=.12;} }`,
-      fragmentShader: `varying float opacity; void main(){float r=length(gl_PointCoord-.5)*2.;gl_FragColor=vec4(.82,.65,.39,(1.-smoothstep(.25,1.,r))*opacity);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}`,
+      vertexShader: `attribute float kind; attribute float phase; attribute float drop; uniform float time; uniform float strength; varying float opacity; varying float grainKind; void main(){ float age=fract(phase+time*.064); vec3 p=position; p.y-=age*age*drop; p.x+=sin(phase*31.+age*3.)*age*2.;if(kind>.5){p=position+vec3(0.,sin(age*3.14159)*(1.+drop*3.),0.);} vec4 v=modelViewMatrix*vec4(p,1.); gl_Position=projectionMatrix*v; gl_PointSize=clamp(850./max(-v.z,1.),.65,1.8); opacity=sin(age*3.14159)*strength*.75;grainKind=kind;if(kind>.5){gl_PointSize=clamp(7200.*(.55+age*.75)/max(-v.z,1.),4.,32.);opacity*=.14;} }`,
+      fragmentShader: `varying float opacity; varying float grainKind; void main(){float r=length(gl_PointCoord-.5)*2.;vec3 sandColor=mix(vec3(.34,.22,.105),vec3(.42,.31,.18),grainKind);gl_FragColor=vec4(sandColor,exp(-r*r*3.8)*opacity);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}`,
     }),
   );
   const grains = new T.Points(grainsGeometry, grainsMaterial);
@@ -175,18 +394,16 @@ export function createDesertEffects(
           float broad=step(.76,position.z);
           float grain=step(.44,position.z)*(1.-broad);
           float trail=position.z*180.;
-          vec3 p=vec3(side*(48.+age*25.-trail*.08),sin(age*3.14159)*(3.+position.x*10.),64.-trail-age*26.);
-          float angle=position.x*6.2831853;
-          float radius=100.+age*170.;
-          vec3 ring=vec3(cos(angle)*radius,age*(10.+position.x*8.),sin(angle)*radius-10.);
-          p=mix(p,ring,broad);
+          vec3 p=vec3(side*(48.+age*27.-trail*.06),sin(age*3.14159)*(2.+position.x*7.),45.-trail-age*24.);
+          vec3 peeling=vec3(side*(70.+age*70.),age*(4.+position.x*8.),-80.-trail*.9-age*45.);
+          p=mix(p,peeling,broad);
           vec4 v=modelViewMatrix*vec4(p,1.);
           gl_Position=projectionMatrix*v;
-          float dustSize=mix(clamp(8500./max(1.,-v.z),3.,27.),clamp(15500./max(1.,-v.z),6.,42.),broad);
-          gl_PointSize=mix(dustSize,clamp(1800./max(1.,-v.z),1.,4.),grain);
-          alpha=strength*sin(age*3.14159)*mix(mix(.07,.4,grain),.11,broad);
+          float dustSize=mix(clamp(7600./max(1.,-v.z),3.,24.),clamp(12000./max(1.,-v.z),5.,32.),broad);
+          gl_PointSize=mix(dustSize,clamp(1350./max(1.,-v.z),.7,2.),grain);
+          alpha=strength*sin(age*3.14159)*mix(mix(.05,.18,grain),.06,broad);
         }`,
-      fragmentShader: `varying float alpha;void main(){float r=length(gl_PointCoord-.5)*2.;gl_FragColor=vec4(.65,.46,.24,alpha*(1.-smoothstep(.1,1.,r)));}`,
+      fragmentShader: `varying float alpha;void main(){float r=length(gl_PointCoord-.5)*2.;gl_FragColor=vec4(.38,.25,.12,alpha*exp(-r*r*3.6));\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}`,
     }),
   );
   const disturbance = new T.Points(disturbanceGeometry, disturbanceMaterial);
@@ -220,22 +437,25 @@ export function createDesertEffects(
     if (age !== lastAge || motionAmount !== lastMotion) {
       for (let k = 0; k < rest.length; k++) {
         const p = rest[k];
-        ridgeVertices.setXYZ(
-          k,
-          p.x,
-          p.y +
-            sandDisplacement(
-              p.distance,
-              p.cross * SAND_HALF_WIDTH,
-              age,
-              travel,
-              event.breach,
-              motionAmount,
-            ),
-          p.z,
-        );
+        const edge =
+          T.MathUtils.smoothstep(p.distance, ridgeStart, ridgeStart + 100) *
+          (1 - T.MathUtils.smoothstep(p.distance, ridgeEnd - 100, ridgeEnd)) *
+          (1 - T.MathUtils.smoothstep(Math.abs(p.cross), 0.78, 1));
+        const lift =
+          edge *
+          sandDisplacement(
+            p.distance,
+            p.cross * SAND_HALF_WIDTH,
+            age,
+            travel,
+            event.breach,
+            motionAmount,
+          );
+        ridgeVertices.setXYZ(k, p.x, p.y + lift, p.z);
+        alphaVertices.setX(k, T.MathUtils.smoothstep(lift, 0.06, 0.75) * edge);
       }
       ridgeVertices.needsUpdate = true;
+      alphaVertices.needsUpdate = true;
       ridgeGeometry.computeVertexNormals();
       lastAge = age;
       lastMotion = motionAmount;
@@ -254,6 +474,7 @@ export function createDesertEffects(
       motion: motionAmount,
     });
     burrower.visible = age > 2 && age < 20 && !reviewing;
+    ridge.visible = age >= 0 && age < GRAZER_DURATION && !reviewing;
     disturbance.position.copy(burrower.position);
     disturbance.position.y = groundHeight + 1;
     disturbance.quaternion.copy(path.quaternion);
@@ -271,7 +492,7 @@ export function createDesertEffects(
       settings.quality === 'low' ? 430 : phases.length,
     );
     grainsMaterial.uniforms.time.value = time;
-    grainsMaterial.uniforms.strength.value = 0.4 + event.breach * 0.18;
+    grainsMaterial.uniforms.strength.value = 0.25 + event.breach * 0.1;
     group.visible = !reviewing;
   }
   update();

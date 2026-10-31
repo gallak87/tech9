@@ -38,6 +38,7 @@ export function buildFossilPlacements(track, survey) {
   const random = randomSequence(0x5aff32);
   const placements = {
     skull: [skullPlacement(track).matrix],
+    scapula: [],
     rib: [],
     rib_1: [],
     rib_2: [],
@@ -136,62 +137,83 @@ export function buildFossilPlacements(track, survey) {
       matrixAt(position, new T.Vector3(0.73, 0.86, 1.3), frame.quaternion),
     );
   }
-  for (let s = 60; s < track.length; s += 190) {
+  // Unequal fossil beds make the ordinary crests part of the excavation.
+  // Their roots share a surveyed burial plane; the Vista's open grazer side
+  // remains clear, and large outboard blades never become an extra road arch.
+  const beds = [
+    [120, -1, 1.55, 1.9, 'rib_1'],
+    [340, 1, 1.45, 1.65, 'rib_2'],
+    [track.landmarks.sandfall - 100, 1, 1.7, 1.9, 'rib_1'],
+    [track.landmarks.skullStart - 340, 1, 1.8, 2.05, 'rib_2'],
+    [track.landmarks.skullEnd + 220, -1, 1.4, 1.65, 'rib_1'],
+    [returnStart - 250, 1, 1.7, 1.3, 'rib_2', 0.38],
+    [returnStart + 90, 1, 1.75, 1.45, 'rib_1', -0.42],
+    [returnStart + 245, -1, 1.7, 1.15, 'rib_2', 0.32],
+  ];
+  for (const [s, side, width, height, family, lean = 0.03] of beds) {
     const frame = horizontalFrame(track, s);
-    for (const side of [-1, 1]) {
-      if (
-        side < 0 &&
-        s > track.landmarks.vistaStart - 180 &&
-        s < track.landmarks.vistaEnd + 160
-      )
-        continue;
-      const scale = 0.55 + random() * 0.8;
-      const position = frame.position
-        .clone()
-        .addScaledVector(
-          frame.right,
-          side * (190 + scale * 95 + random() * 130),
-        );
-      if (!survey.clears(position, scale * 185)) continue;
-      position.y = survey.heightAt(position.x, position.z) - 14;
-      const rotation = new T.Quaternion().setFromAxisAngle(
-        UP,
-        -0.65 + (random() - 0.5) * 0.55,
-      );
-      placements[random() > 0.5 ? 'dune' : 'dune_1'].push(
-        matrixAt(
-          position,
-          new T.Vector3(scale, scale * (0.8 + random() * 0.6), scale),
-          rotation,
+    const position = frame.position
+      .clone()
+      .addScaledVector(frame.right, side * (width * 110 + 115));
+    if (!survey.clears(position, width * 115)) continue;
+    const rotation = frame.quaternion
+      .clone()
+      .multiply(
+        new T.Quaternion().setFromEuler(
+          new T.Euler(lean, side * 0.18, side * 0.08),
         ),
       );
-    }
+    const roots = [
+      [-91, -37, 8],
+      [98, -39, 15],
+    ].map(([x, y, z]) =>
+      new T.Vector3(x * width, y * height, z * 2.25).applyQuaternion(rotation),
+    );
+    position.y =
+      Math.min(
+        ...roots.map(
+          (root) =>
+            survey.heightAt(position.x + root.x, position.z + root.z) - root.y,
+        ),
+      ) - 20;
+    placements[family].push(
+      matrixAt(position, new T.Vector3(width, height, 2.25), rotation),
+    );
+    const centrum = position
+      .clone()
+      .addScaledVector(frame.forward, -70)
+      .addScaledVector(frame.right, side * 40);
+    centrum.y = survey.heightAt(centrum.x, centrum.z) - 34;
+    if (survey.clears(centrum, 125))
+      placements.vertebra_2.push(
+        matrixAt(centrum, new T.Vector3(1.25, 0.8, 1.9), rotation),
+      );
   }
-  for (let s = 10; s < track.length; s += 175) {
+  // Continuous terrain and seated bedrock replace floating dune tiles and
+  // repeated isolated pancake outcrops. Effects own terrain-matched receiving fans.
+  for (const [s, side, scale, yaw] of [
+    [220, 1, 0.95, 0.42],
+    [track.landmarks.vistaStart + 345, 1, 1.15, -0.24],
+    [returnStart - 340, -1, 1.05, 0.7],
+  ]) {
     const frame = horizontalFrame(track, s);
-    for (const side of [-1, 1]) {
-      const scale = 0.6 + random() * 0.75;
-      const position = frame.position
-        .clone()
-        .addScaledVector(frame.right, side * (220 + random() * 175));
-      if (!survey.clears(position, scale * 92)) continue;
-      const inVista =
-        s > track.landmarks.vistaStart - 130 &&
-        s < track.landmarks.vistaEnd + 100;
-      if (inVista && side < 0) continue;
-      position.y = survey.heightAt(position.x, position.z) - 10;
-      placements[random() > 0.46 ? 'outcrop' : 'outcrop_1'].push(
-        matrixAt(
-          position,
-          new T.Vector3(
-            scale * (1 + random() * 0.5),
-            scale * (0.6 + random() * 0.8),
-            scale,
-          ),
-          new T.Quaternion().setFromAxisAngle(UP, random() * 6.28),
-        ),
+    const position = frame.position
+      .clone()
+      .addScaledVector(frame.right, side * (scale * 125 + 125));
+    if (!survey.clears(position, scale * 145)) continue;
+    position.y = survey.heightAt(position.x, position.z) - 14;
+    const rotation = frame.quaternion
+      .clone()
+      .multiply(
+        new T.Quaternion().setFromEuler(new T.Euler(0.08, yaw, side * 0.12)),
       );
-    }
+    placements.scapula.push(
+      matrixAt(
+        position,
+        new T.Vector3(scale, scale * 0.95, scale * 1.2),
+        rotation,
+      ),
+    );
   }
   for (const [s, lateral, height] of sandfallAnchors(track)) {
     const frame = horizontalFrame(track, s);
@@ -206,28 +228,6 @@ export function buildFossilPlacements(track, survey) {
         new T.Vector3(0.8, Math.max(0.8, drop / 80), 0.8),
         frame.quaternion,
       ),
-    );
-  }
-  for (const [index, [s, lateral]] of sandfallAnchors(track).entries()) {
-    const frame = horizontalFrame(track, s);
-    const position = frame.position
-      .clone()
-      .addScaledVector(frame.right, lateral);
-    position.y = survey.heightAt(position.x, position.z) - 4;
-    placements.dune.push(
-      matrixAt(
-        position,
-        new T.Vector3(0.18 + index * 0.012, 0.14 + index * 0.015, 0.18),
-        frame.quaternion,
-      ),
-    );
-    const spread = position
-      .clone()
-      .addScaledVector(frame.right, index % 2 ? -18 : 20)
-      .addScaledVector(frame.forward, 12);
-    spread.y = survey.heightAt(spread.x, spread.z) - 3;
-    placements.dune_1.push(
-      matrixAt(spread, new T.Vector3(0.15, 0.1, 0.18), frame.quaternion),
     );
   }
   return placements;

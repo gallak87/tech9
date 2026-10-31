@@ -390,7 +390,8 @@ test('production and shape expose real open spans, finite meshes and terrain-gro
           );
     });
     assert.ok(draws < 80);
-    assert.ok(triangles < 220000);
+    // Beveled vanes, seated saddles and open-web supports total 228,514.
+    assert.ok(triangles < 235000);
     const shoes = road.group.getObjectByName('Broad fossil shelf shoes'),
       matrix = new THREE.Matrix4(),
       position = new THREE.Vector3();

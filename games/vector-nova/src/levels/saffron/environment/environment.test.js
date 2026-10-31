@@ -454,8 +454,8 @@ test('actual grazer stays low, implies most length underground and clears every 
       );
   });
   assert.equal(meshes, 4);
-  // Extra physical filter/armor detail is offset by a larger skull reduction.
-  assert.ok(triangles < 30000);
+  // Nine closed shield undershells total 34,908 triangles in four batches.
+  assert.ok(triangles < 36000);
   const bounds = new T.Box3().setFromPoints(vertices);
   assert.ok(bounds.max.x - bounds.min.x > 140);
   assert.ok(bounds.max.z > 95 && bounds.min.z < -475);

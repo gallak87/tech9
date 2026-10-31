@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { grazerTransect } from './grazer-path.js';
+import { createDesertScarps } from './geology.js';
 import {
   horizontalFrame,
   instanced,
@@ -9,6 +10,24 @@ import {
 
 /** A CPU-only survey shared by terrain and authored-asset placement. */
 const surveys = new WeakMap();
+function aeolianHeight(x, z) {
+  const wind =
+    x * 0.0062 +
+    z * 0.0037 +
+    Math.sin(z * 0.0018) * 0.85 +
+    Math.sin(x * 0.0011) * 0.38;
+  const phase = (((wind / (Math.PI * 2)) % 1) + 1) % 1;
+  // Long windward faces meet short, steeper lee slopes at a wandering crest.
+  // The height field carries this large form; shader grain cannot replace it.
+  const profile =
+    phase < 0.79
+      ? Math.pow(Math.sin((phase / 0.79) * Math.PI * 0.5), 1.45)
+      : Math.pow((1 - phase) / 0.21, 0.83);
+  return (
+    profile * (64 + 14 * Math.sin(z * 0.0013 - x * 0.0007)) +
+    Math.sin(x * 0.0017 + z * 0.0021) * 13
+  );
+}
 export function createLandformSurvey(track) {
   if (surveys.has(track)) return surveys.get(track);
   const samples = [];
@@ -55,7 +74,16 @@ export function createLandformSurvey(track) {
       meanY - 58,
       T.MathUtils.smoothstep(local.distance, 240, 950),
     );
-    const natural = base + broad + crescent + ripple;
+    const oldDunes = broad + crescent;
+    const sculptedDunes = aeolianHeight(x, z) - 25;
+    const natural =
+      base +
+      T.MathUtils.lerp(
+        oldDunes,
+        sculptedDunes,
+        T.MathUtils.smoothstep(local.distance, 65, 210),
+      ) +
+      ripple;
     const bank =
       local.position.y - 13 + Math.max(0, local.distance - 30) * 0.61;
     const carved = T.MathUtils.lerp(
@@ -214,6 +242,21 @@ export function createLandformSurvey(track) {
   return survey;
 }
 
+export function createTerrainColorSampler(shape = false) {
+  const ochre = new T.Color(shape ? '#a6a19a' : '#c99a59');
+  const highSand = new T.Color(shape ? '#c0bbb3' : '#e0bb78');
+  const lowSilt = new T.Color(shape ? '#807e79' : '#9c7664');
+  const shade = new T.Color();
+  return (x, z) => {
+    const wave =
+      0.5 + 0.5 * Math.sin(x * 0.009 + z * 0.005 + Math.sin(z * 0.003));
+    return shade
+      .copy(ochre)
+      .lerp(highSand, wave * 0.7)
+      .lerp(lowSilt, Math.max(0, 0.5 - wave) * 0.7);
+  };
+}
+
 export function createTerrain(track, survey, materials, resources, shape) {
   const group = new T.Group();
   group.name =
@@ -226,20 +269,11 @@ export function createTerrain(track, survey, materials, resources, shape) {
   geometry.setIndex(survey.meshData.indices);
   const positions = geometry.attributes.position;
   const colors = new Float32Array(positions.count * 3);
-  const ochre = new T.Color(shape ? '#a6a19a' : '#c99a59');
-  const highSand = new T.Color(shape ? '#c0bbb3' : '#e0bb78');
-  const lowSilt = new T.Color(shape ? '#807e79' : '#9c7664');
-  const shade = new T.Color();
+  const colorAt = createTerrainColorSampler(shape);
   for (let i = 0; i < positions.count; i++) {
     const x = positions.getX(i);
     const z = positions.getZ(i);
-    const wave =
-      0.5 + 0.5 * Math.sin(x * 0.009 + z * 0.005 + Math.sin(z * 0.003));
-    shade
-      .copy(ochre)
-      .lerp(highSand, wave * 0.7)
-      .lerp(lowSilt, Math.max(0, 0.5 - wave) * 0.7);
-    shade.toArray(colors, i * 3);
+    colorAt(x, z).toArray(colors, i * 3);
   }
   geometry.setAttribute('color', new T.BufferAttribute(colors, 3));
   geometry.computeVertexNormals();
@@ -247,6 +281,7 @@ export function createTerrain(track, survey, materials, resources, shape) {
   land.name = 'Saffron / continuous wind-carved terrain with route clearance';
   land.receiveShadow = true;
   group.add(land);
+  group.add(createDesertScarps(track, survey, materials, resources));
 
   const random = randomSequence();
   const stoneTransforms = [];

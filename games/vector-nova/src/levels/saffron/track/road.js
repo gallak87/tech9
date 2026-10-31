@@ -57,8 +57,8 @@ export function createSaffronRoad(
       specularColor: 0xd8b762,
       attenuationColor: 0x80501b,
       attenuationDistance: 6,
-      clearcoat: shape ? 0 : 0.15,
-      clearcoatRoughness: 0.34,
+      clearcoat: shape ? 0 : 0.08,
+      clearcoatRoughness: 0.4,
     });
     materials.add(m);
     return m;
@@ -66,11 +66,12 @@ export function createSaffronRoad(
   const solidGlass = (color) => {
     const m = new THREE.MeshPhysicalMaterial({
       color: shape ? 0xb5b3a4 : color,
-      roughness: shape ? 0.75 : 0.22,
+      roughness: shape ? 0.75 : 0.28,
       metalness: shape ? 0.04 : 0.02,
-      clearcoat: shape ? 0 : 0.42,
-      clearcoatRoughness: 0.2,
+      clearcoat: shape ? 0 : 0.12,
+      clearcoatRoughness: 0.38,
       ior: 1.46,
+      specularIntensity: 0.38,
     });
     materials.add(m);
     return m;
@@ -114,7 +115,7 @@ vGlassPoint=(instanceMatrix*vec4(position,1.)).xyz;
           .replace(
             '#include <roughnessmap_fragment>',
             `#include <roughnessmap_fragment>
-roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
+roughnessFactor=clamp(roughnessFactor+haze*.18+skin*.045+vein*.025,.24,.64);`,
           );
         shader.fragmentShader = shader.fragmentShader.replace(
           '#include <normal_fragment_maps>',
@@ -125,14 +126,31 @@ roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
           float det=dot(dx,rx)*faceDirection;
           normal=normalize(abs(det)*normal-sign(det)*(dFdx(glassRelief)*rx+dFdy(glassRelief)*ry));`,
         );
+        // The etched skin scatters the directional sun's idealized peak. Keep
+        // low/medium highlights and all environmental reflections unchanged;
+        // only the combined direct base/coat lobe receives this soft shoulder.
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <opaque_fragment>',
+          `vec3 glassDirectHighlight=reflectedLight.directSpecular;
+          #ifdef USE_CLEARCOAT
+          glassDirectHighlight=glassDirectHighlight*(1.-material.clearcoat*Fcc)
+            +clearcoatSpecularDirect*material.clearcoat;
+          #endif
+          float glassPeak=max(glassDirectHighlight.r,max(glassDirectHighlight.g,glassDirectHighlight.b));
+          float glassExcess=max(0.,glassPeak-.45);
+          float glassShoulder=.45+glassExcess/(1.+glassExcess/.40);
+          float glassHighlightScale=glassPeak>.45?glassShoulder/max(glassPeak,.0001):1.;
+          outgoingLight+=glassDirectHighlight*(glassHighlightScale-1.);
+          #include <opaque_fragment>`,
+        );
       };
-      mat.customProgramCacheKey = () => 'saffron-fused-glass-v6';
+      mat.customProgramCacheKey = () => 'saffron-fused-glass-v7';
     }
   }
   const support = material({
     color: shape ? 0xc1bbad : 0xac7835,
-    roughness: 0.43,
-    metalness: 0.18,
+    roughness: 0.53,
+    metalness: 0.3,
   });
   const bone = material({
     color: shape ? 0xe3e0d4 : 0xe6d5a5,
@@ -382,7 +400,12 @@ roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
       const from = framePoint(f, side * 12, -3.5),
         to = foot.clone().addScaledVector(f.right, side * 4.8);
       to.y = survey.heightAt(to.x, to.z) + 1.2;
-      const beam = beamTransform(from, to, 2.1, 3.1),
+      const beam = beamTransform(
+          from,
+          to,
+          SAFFRON_SOLIDS.supportWidth,
+          SAFFRON_SOLIDS.supportDepth,
+        ),
         o = new THREE.Object3D();
       o.position.copy(beam.position);
       o.quaternion.copy(beam.quaternion);
@@ -406,7 +429,17 @@ roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
       warning.push({ s: j.takeoff - 3, x, y: 0.09, scale: [1.6, 0.12, 1.5] });
   }
   instanced('Split tapered baffle vanes', vaneGeometry(), bone, vanes);
-  instanced('Baffle ceramic anchors', box, honey, clamps);
+  instanced('Baffle bronze bearing anchors', box, support, clamps);
+  instanced(
+    'Seated baffle bearing saddles',
+    box,
+    seam,
+    clamps.map((entry) => ({
+      ...entry,
+      y: 0.24,
+      scale: [0.76, 0.3, 1.65],
+    })),
+  );
   instanced('Glass lens section seams', box, seam, panelRims);
   instanced('Deep lens compression sills', box, support, lensSills);
   instanced('Subsurface mineral laminae', box, amber, laminae);
@@ -435,9 +468,41 @@ roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
     seam,
     feet,
   );
+  const webProfile = new THREE.Shape();
+  const webOutline = [
+    [-0.47, -0.47],
+    [0.47, -0.47],
+    [0.47, -0.3],
+    [0.13, -0.3],
+    [0.13, 0.3],
+    [0.47, 0.3],
+    [0.47, 0.47],
+    [-0.47, 0.47],
+    [-0.47, 0.3],
+    [-0.13, 0.3],
+    [-0.13, -0.3],
+    [-0.47, -0.3],
+  ];
+  webOutline.forEach(([x, z], i) =>
+    i ? webProfile.lineTo(x, z) : webProfile.moveTo(x, z),
+  );
+  webProfile.closePath();
+  const supportGeometry = ownGeometry(
+    new THREE.ExtrudeGeometry(webProfile, {
+      depth: 0.96,
+      steps: 1,
+      bevelEnabled: true,
+      bevelThickness: 0.02,
+      bevelSize: 0.015,
+      bevelSegments: 1,
+      curveSegments: 1,
+    })
+      .rotateX(-Math.PI / 2)
+      .translate(0, -0.48, 0),
+  );
   const legMesh = instanced(
     'Forked gold ceramic support legs',
-    box,
+    supportGeometry,
     support,
     footBeams,
   );
@@ -589,7 +654,12 @@ roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
         .applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(world));
       if (normal.dot(direction) > 0) normal.negate();
       const endpoint = hit.point.clone().addScaledVector(normal, 1.2);
-      const beam = beamTransform(from, endpoint, 2.1, 3.1),
+      const beam = beamTransform(
+          from,
+          endpoint,
+          SAFFRON_SOLIDS.supportWidth,
+          SAFFRON_SOLIDS.supportDepth,
+        ),
         leg = new THREE.Object3D();
       leg.position.copy(beam.position);
       leg.quaternion.copy(beam.quaternion);

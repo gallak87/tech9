@@ -5,8 +5,8 @@
     "skull": {
       "origin": "mouth floor center",
       "boundsGame": {
-        "min": [-156.1678009033203, -70.04257202148438, -28.005905151367188],
-        "max": [156.69091796875, 152.8404083251953, 311.6225280761719]
+        "min": [-176.99346923828125, -74.05257415771484, -28.005916595458984],
+        "max": [181.6060028076172, 176.92625427246094, 311.6225280761719]
       },
       "clearHalfWidth": 50,
       "overheadMinimum": 70
@@ -14,43 +14,50 @@
     "vertebra": {
       "origin": "module authoring origin",
       "boundsGame": {
-        "min": [-99.10200500488281, -41.79467010498047, -33.56280517578125],
-        "max": [98.72428894042969, 110.32929229736328, 24.51506996154785]
+        "min": [-99.10200500488281, -41.79976272583008, -33.56280517578125],
+        "max": [98.72428894042969, 146.3275146484375, 28.807775497436523]
       }
     },
     "vertebra_1": {
       "origin": "module authoring origin",
       "boundsGame": {
-        "min": [-96.3651123046875, -39.04668426513672, -38.917152404785156],
-        "max": [98.20542907714844, 72.00871276855469, 29.806182861328125]
+        "min": [-96.3651123046875, -39.046871185302734, -38.91777420043945],
+        "max": [98.20542907714844, 72.00871276855469, 35.70681381225586]
       }
     },
     "vertebra_2": {
       "origin": "module authoring origin",
       "boundsGame": {
-        "min": [-105.30229949951172, -46.921104431152344, -39.16779327392578],
-        "max": [104.26445007324219, 91.79994201660156, 24.6602725982666]
+        "min": [-105.30229949951172, -47.02826690673828, -39.16779327392578],
+        "max": [104.26445007324219, 91.80828094482422, 28.64287757873535]
       }
     },
     "rib": {
       "origin": "module authoring origin",
       "boundsGame": {
-        "min": [-108.11117553710938, -40.40098571777344, -22.75452423095703],
-        "max": [101.88069152832031, 121.27495574951172, 49.12117004394531]
+        "min": [-118.71540832519531, -44.70000076293945, -28.0],
+        "max": [101.88069152832031, 127.13279724121094, 58.920326232910156]
       }
     },
     "rib_1": {
       "origin": "module authoring origin",
       "boundsGame": {
-        "min": [-108.11117553710938, -40.40098571777344, -28.050331115722656],
-        "max": [101.88069152832031, 119.5461654663086, 48.39419937133789]
+        "min": [-118.71540832519531, -44.70000076293945, -30.912235260009766],
+        "max": [101.88069152832031, 125.45901489257812, 55.89735412597656]
       }
     },
     "rib_2": {
       "origin": "module authoring origin",
       "boundsGame": {
-        "min": [-108.11117553710938, -40.40098571777344, -30.84735870361328],
-        "max": [101.88069152832031, 119.4062271118164, 50.562644958496094]
+        "min": [-118.71540832519531, -44.70000076293945, -34.793888092041016],
+        "max": [101.88069152832031, 126.65492248535156, 60.12028884887695]
+      }
+    },
+    "scapula": {
+      "origin": "module authoring origin",
+      "boundsGame": {
+        "min": [-95.40633392333984, -18.875, -23.0],
+        "max": [103.1363296508789, 175.62185668945312, 25.320796966552734]
       }
     },
     "dune": {
@@ -70,8 +77,8 @@
     "sandfall": {
       "origin": "top fossil shelf",
       "boundsGame": {
-        "min": [-51.2729377746582, -80.0, -11.935615539550781],
-        "max": [52.31049346923828, 16.70519256591797, 38.48091125488281]
+        "min": [-60.43852615356445, -92.12000274658203, -11.935615539550781],
+        "max": [50.54043960571289, 17.189680099487305, 44.71697235107422]
       }
     },
     "outcrop": {
@@ -100,32 +107,34 @@
     }
   },
   "polygonCounts": {
-    "skull": 25600,
-    "vertebra": 4197,
-    "vertebra_1": 3331,
-    "vertebra_2": 4001,
-    "rib": 1222,
-    "rib_1": 1066,
-    "rib_2": 1146,
+    "skull": 24073,
+    "vertebra": 5215,
+    "vertebra_1": 3961,
+    "vertebra_2": 4654,
+    "rib": 1726,
+    "rib_1": 1686,
+    "rib_2": 1806,
+    "scapula": 5058,
     "dune": 1728,
     "dune_1": 1728,
-    "sandfall": 2526,
+    "sandfall": 3182,
     "outcrop": 1142,
     "outcrop_1": 1142,
-    "burrower": 13031
+    "burrower": 17202
   },
   "runtime": "/assets/levels/saffron/leviathan-kit.glb",
   "sha256": {
-    "assets/levels/saffron/build_saffron.py": "179ae8e85f2e142ca474cecf0b2b5c077730e20c4aaa363ed869e8b7ca84a47c",
-    "assets/levels/saffron/leviathan-kit.blend": "7f23fc06613b7886d6f1c406d954e36948d6a0a6e7ac6689b6b20de9747f29ad",
+    "assets/levels/saffron/build_saffron.py": "60279b567976e0c3f19215de2f9b40058d3b1d614ad111e5db237c2759736ac6",
+    "assets/levels/saffron/leviathan-kit.blend": "9a4ba5e5fb01ff80b21cd6a31a1404aa7fdddca0d431cac4819c99e8f5aa244e",
     "assets/levels/saffron/scene-reference.png": "cd7a3799d7fe2ac8beaea380fcdae1d317209f86f806cd5d99fd43b421e5abdb",
     "assets/levels/saffron/saffron-sky-v2.png": "1ecef87b93df2325b2528105a783807d3fd06b449f3f0a8c2087ddc7b24c07bf",
     "assets/levels/saffron/sky-prompt-v2.txt": "76e616e5f6d3d433762b75b7d324f6febb2e2618f0cd1f2fecdba7116795e544",
-    "public/assets/levels/saffron/leviathan-kit.glb": "bdd4a33b5cd15da27e1f515e690eb48da5e80363c518e635765e24bdbddffef0",
+    "public/assets/levels/saffron/leviathan-kit.glb": "23658ccf34d8dcd3af024337e62ca3ffbe8b9b0972b8e93d6ab9f2fb808b1775",
     "public/assets/levels/saffron/saffron-sky-v2.png": "1ecef87b93df2325b2528105a783807d3fd06b449f3f0a8c2087ddc7b24c07bf",
     "assets/levels/saffron/bake_weathering.mjs": "83879b5f1afbe6b64dd8532612a0cd235044f046eb401f6909c28e2d461a1264",
     "public/assets/levels/saffron/weathering-noise-v1.r8": "4141da2f9dafb3d334f1a6b1199a5099e277f0ae064680e1dc9acb346028f807",
-    "assets/levels/saffron/dune-grazer-approved-concept-v1.png": "acb77e541a261068c43e79775fb6f65042dee07cd39ed6d7543f3753f4eec398"
+    "assets/levels/saffron/dune-grazer-approved-concept-v1.png": "acb77e541a261068c43e79775fb6f65042dee07cd39ed6d7543f3753f4eec398",
+    "public/assets/levels/shatterline/limestone-v1.png": "75bd7d822c1910eeaac67b88a49dae5805707efc167f6801c58a328c41b2e0ba"
   },
   "weatheringVolume": {
     "runtime": "public/assets/levels/saffron/weathering-noise-v1.r8",
@@ -133,5 +142,10 @@
     "format": "R8",
     "bytes": 262144,
     "source": "assets/levels/saffron/bake_weathering.mjs"
+  },
+  "mineralSurface": {
+    "runtime": "public/assets/levels/shatterline/limestone-v1.png",
+    "provenanceRecord": "assets/levels/shatterline/rock-provenance-v1.json",
+    "mapping": "Shared world triplanar finish; cortical shell 32m, chalk edges 24m, marrow fractures 16m, bedrock 54m. Sand, grazer and road excluded."
   }
 }

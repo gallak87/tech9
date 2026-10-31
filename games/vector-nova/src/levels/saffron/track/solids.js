@@ -3,8 +3,10 @@ import { boxProfile } from '../../../track/geometry.js';
 
 // Shared authored dimensions and tessellation for rendering and physical contact.
 export const SAFFRON_SOLIDS = Object.freeze({
-  version: 'saffron-solids-v2-width40',
+  version: 'saffron-solids-v3-width40',
   step: 3.2,
+  supportWidth: 3.2,
+  supportDepth: 4.4,
   top: [
     [-20, 0],
     [20, 0],
@@ -47,7 +49,10 @@ export function createBaffleGeometry() {
   shape.closePath();
   return new T.ExtrudeGeometry(shape, {
     depth: 0.75,
-    bevelEnabled: false,
+    bevelEnabled: true,
+    bevelThickness: 0.06,
+    bevelSize: 0.08,
+    bevelSegments: 1,
     curveSegments: 1,
   })
     .rotateY(Math.PI / 2)

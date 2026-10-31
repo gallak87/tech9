@@ -818,9 +818,9 @@
       "id": "saffron-leviathan",
       "source": "assets/levels/saffron/ and src/levels/saffron/",
       "creator": "VECTOR//NOVA project contributors; built-in imagegen for the retained scene and sky references",
-      "provenance": "Scene-guided editable Blender fossil/burrower/dune kit, original route glass and deterministic local sand presentation. Exact prompts, generator, selected source images and hashes are retained beside the assets.",
+      "provenance": "Scene-guided editable Blender fossil/burrower/dune kit, original route glass and deterministic local sand presentation. Rebuilt cortical anatomy and geometry-derived cavity vertex colors retain their generator and source hashes. Fossil and bedrock finish borrows the separately registered project-generated Shatterline limestone at distinct physical scales; sand, grazer and road do not use that map.",
       "rights": "Project-authored and project-generated; no third-party artwork supplied",
-      "runtimeDependencies": ["three"],
+      "runtimeDependencies": ["three", "shatterline-limestone"],
       "provenanceRecord": "assets/levels/saffron/PROVENANCE.md",
       "runtimeAssets": [
         "public/assets/levels/saffron/leviathan-kit.glb",

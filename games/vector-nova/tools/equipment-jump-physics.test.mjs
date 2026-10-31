@@ -38,7 +38,18 @@ async function fixture(t, track = flat, stateOverrides = {}, warmup = true) {
   const dynamics = await createRapierWorld({
     collisionWorld: withMagneticBoundaries(track),
   });
-  const runtime = createMagneticRuntime({ track, dynamics, equipment: true });
+  let actor;
+  const runtime = createMagneticRuntime({
+    track,
+    dynamics: {
+      ...dynamics,
+      createActor(...args) {
+        actor = dynamics.createActor(...args);
+        return actor;
+      },
+    },
+    equipment: true,
+  });
   const state = {
     ...createVehicleState('kestrel'),
     distance: 100,
@@ -51,7 +62,7 @@ async function fixture(t, track = flat, stateOverrides = {}, warmup = true) {
     runtime.dispose();
     dynamics.dispose();
   });
-  return { runtime, state, dynamics };
+  return { runtime, state, dynamics, actor };
 }
 function finishHop(runtime, state, input = drive) {
   const events = [];
@@ -206,6 +217,343 @@ test('sampled-road powered landings never invent a deck across an authored gap',
         type !== 'jump-transfer' || payload.outcome !== 'landed',
     ),
   );
+});
+
+test('inverted powered edge landings keep native hulls above sampled roads through capture and replay', async (t) => {
+  const track = { ...flat, boundaryIntervals: [] };
+  const point = new T.Vector3();
+  const inverted = new T.Quaternion()
+    .setFromAxisAngle(new T.Vector3(0, 0, 1), Math.PI)
+    .toArray();
+  for (const shipId of ['kestrel', 'shrike', 'bastion', 'needle']) {
+    const hull = getCollisionHull(shipId);
+    const clearance = (pose) => {
+      let minimum = Infinity;
+      for (let i = 0; i < hull.vertices.length; i += 3) {
+        point
+          .fromArray(hull.vertices, i)
+          .applyQuaternion(pose.quaternion)
+          .add(pose.position);
+        if (Math.abs(point.x) <= track.width / 2)
+          minimum = Math.min(minimum, point.y);
+      }
+      return minimum;
+    };
+    for (const side of [-1, 1]) {
+      const { runtime, state, dynamics, actor } = await fixture(t, track, {
+        shipId,
+        lateral: side * (track.width / 2 - 1.5),
+      });
+      assert.ok(runtime.jump(state));
+      // Resume a powered hop after a contact has rolled the hull. The model
+      // starts wholly above the road; production integration must catch its
+      // asymmetric canopy before it crosses the deck, then settle it safely.
+      const saved = runtime.snapshot();
+      saved.currentPose = {
+        position: [state.lateral, hull.bounds.max[1] + 0.15, 192],
+        quaternion: inverted,
+      };
+      saved.previousPose = structuredClone(saved.currentPose);
+      Object.assign(saved.flight, {
+        velocity: [0, -20, 80],
+        angularVelocity: [0, 0, 0],
+        elapsed: 1.15,
+        hitAt: 1.15,
+        equipmentGuide: { distance: 192, lateral: state.lateral, height: 0.72 },
+      });
+      runtime.restore(saved);
+      assert.ok(clearance(runtime.pose(1)) > 0.14, 'the initial hull is clear');
+      const physics = dynamics.snapshot();
+      const initialState = { ...state };
+      let captured;
+      const checkClearance = (tick) => {
+        for (const [kind, pose] of [
+          ['physical', actor.read()],
+          ...[0, 0.5, 1].map((alpha) => [
+            `visible alpha ${alpha}`,
+            runtime.pose(alpha),
+          ]),
+        ])
+          assert.ok(
+            clearance(pose) >= -1e-5,
+            `${shipId}, side ${side}, tick ${tick}: ${kind} hull penetrates the inboard road by ${-clearance(pose)}m`,
+          );
+        const snapshot = runtime.snapshot();
+        if (snapshot.mode === 'magnetic')
+          for (const [alpha, endpoint] of [
+            [0, snapshot.magnetic.previous ?? snapshot.magnetic.current],
+            [1, snapshot.magnetic.current],
+          ])
+            assert.ok(
+              runtime
+                .pose(alpha)
+                .position.distanceTo(
+                  new T.Vector3().fromArray(endpoint.position),
+                ) < 1e-9,
+              'already-clear endpoints retain their exact presentation height',
+            );
+      };
+      const result = () => ({
+        runtime: runtime.snapshot(),
+        physics: dynamics.snapshot(),
+        state: { ...state },
+      });
+      const run = () => {
+        let transfer;
+        for (let tick = 0; tick < 40; tick++) {
+          const events = runtime.advance(state, {}, DT);
+          transfer ??= events.find(({ type }) => type === 'jump-transfer');
+          checkClearance(tick);
+          if (transfer && !captured) captured = { ...result(), tick: tick + 1 };
+        }
+        assert.equal(transfer?.payload.outcome, 'landed');
+        assert.equal(transfer.payload.edgeCaught, true);
+        assert.ok(
+          Math.abs(state.lateral) < 12,
+          'the existing inward edge catch remains',
+        );
+        return result();
+      };
+      const expected = run();
+      Object.assign(state, initialState);
+      runtime.restore(saved);
+      dynamics.restore(physics);
+      assert.deepEqual(
+        run(),
+        expected,
+        'native landing and settling replay exactly',
+      );
+      assert.equal(
+        captured.runtime.magnetic.capture.sampledNativeClearance,
+        true,
+      );
+      for (const invalidCapture of [
+        { sampledNativeClearance: 'yes' },
+        { distance: Infinity },
+        { lateral: NaN },
+        { chassisId: 'unknown-chassis' },
+      ]) {
+        const invalid = structuredClone(captured.runtime);
+        Object.assign(invalid.magnetic.capture, invalidCapture);
+        assert.throws(
+          () => runtime.restore(invalid),
+          /Invalid magnetic body state/,
+        );
+      }
+      Object.assign(state, captured.state);
+      runtime.restore(captured.runtime);
+      dynamics.restore(captured.physics);
+      for (let tick = captured.tick; tick < 40; tick++) {
+        runtime.advance(state, {}, DT);
+        checkClearance(tick);
+      }
+      assert.deepEqual(
+        result(),
+        expected,
+        'interpolation clearance survives a mid-capture restore',
+      );
+    }
+  }
+});
+
+test('sampled capture caches repeated interpolation reads without retaining mutable poses or stale state', async (t) => {
+  let roadSamples = 0;
+  const track = {
+    ...flat,
+    boundaryIntervals: [],
+    sample(distance) {
+      roadSamples++;
+      return flat.sample(distance);
+    },
+  };
+  const { runtime, state, dynamics } = await fixture(t, track, {
+    lateral: 12.5,
+  });
+  assert.ok(runtime.jump(state));
+  const saved = runtime.snapshot();
+  saved.currentPose = {
+    position: [12.5, 1.5, 192],
+    quaternion: new T.Quaternion()
+      .setFromAxisAngle(new T.Vector3(0, 0, 1), Math.PI)
+      .toArray(),
+  };
+  saved.previousPose = structuredClone(saved.currentPose);
+  Object.assign(saved.flight, {
+    velocity: [0, -20, 80],
+    angularVelocity: [0, 0, 0],
+    elapsed: 1.15,
+    hitAt: 1.15,
+    equipmentGuide: { distance: 192, lateral: 12.5, height: 0.72 },
+  });
+  runtime.restore(saved);
+  runtime.advance(state, {}, DT);
+  runtime.advance(state, {}, DT);
+  const retained = runtime.snapshot();
+  assert.equal(retained.magnetic.capture.sampledNativeClearance, true);
+  assert.equal(retained.magnetic.capture.aligning, false);
+  const retainedPhysics = dynamics.snapshot(),
+    retainedState = { ...state };
+
+  const beforeFirst = roadSamples;
+  const first = runtime.pose(0.5);
+  assert.ok(
+    roadSamples > beforeFirst,
+    'the first interpolation read samples the road',
+  );
+  const sampled = roadSamples;
+  const expectedPosition = first.position.clone(),
+    expectedQuaternion = first.quaternion.clone();
+  first.position.set(1000, -1000, 1000);
+  first.quaternion.set(1, 0, 0, 0);
+  const repeated = runtime.pose(0.5);
+  assert.equal(roadSamples, sampled, 'same-alpha reads reuse their correction');
+  assert.deepEqual(repeated.position, expectedPosition);
+  assert.deepEqual(repeated.quaternion, expectedQuaternion);
+  assert.deepEqual(
+    runtime.snapshot(),
+    retained,
+    'derived corrections do not enter snapshots',
+  );
+
+  runtime.advance(state, {}, DT);
+  const afterAdvance = roadSamples;
+  runtime.pose(0.5);
+  assert.ok(
+    roadSamples > afterAdvance,
+    'advancement invalidates the previous correction',
+  );
+  const advanced = roadSamples;
+  runtime.pose(0.5);
+  assert.equal(roadSamples, advanced, 'the new pose can be reused too');
+
+  Object.assign(state, retainedState);
+  runtime.restore(retained);
+  dynamics.restore(retainedPhysics);
+  const beforeRestoreRead = roadSamples;
+  const restored = runtime.pose(0.5);
+  assert.ok(
+    roadSamples > beforeRestoreRead,
+    'restore rebuilds derived corrections',
+  );
+  assert.deepEqual(restored.position, expectedPosition);
+  assert.deepEqual(restored.quaternion, expectedQuaternion);
+
+  runtime.reset({ state: { ...createVehicleState(), distance: 100 } });
+  const afterReset = roadSamples;
+  assert.deepEqual(runtime.pose(0.5).position, new T.Vector3(0, 0.72, 100));
+  assert.equal(
+    roadSamples,
+    afterReset,
+    'reset drops the capture and its cached correction',
+  );
+});
+
+test('rolled Helion sampled touchdowns clear the curved road across the native footprint', async (t) => {
+  const level = createHelionLevel();
+  const track = level.createTrack();
+  const collisionWorld = level.createCollisionWorld({ track });
+  const native = await createRapierWorld({
+    collisionWorld: withMagneticBoundaries(track, collisionWorld),
+  });
+  let actor;
+  const dynamics = {
+    ...native,
+    createActor(...args) {
+      actor = native.createActor(...args);
+      return actor;
+    },
+  };
+  t.after(() => {
+    native.dispose();
+    collisionWorld.dispose();
+  });
+  const hull = getCollisionHull('kestrel');
+  const point = new T.Vector3();
+  for (const side of [-1, 1]) {
+    native.reset();
+    const runtime = level.createRuntime({ track, collisionWorld, dynamics });
+    try {
+      const state = {
+        ...createVehicleState(),
+        distance: 100,
+        lateral: side * (track.width / 2 - 1.5),
+        speed: 80,
+      };
+      runtime.reset({ state });
+      runtime.advance(state, drive, DT);
+      assert.ok(runtime.jump(state));
+      const saved = runtime.snapshot();
+      const movement = saved.flight;
+      const frame = track.sample(state.distance);
+      const position = frame.position
+        .clone()
+        .addScaledVector(frame.right, state.lateral)
+        .addScaledVector(frame.up, hull.bounds.max[1] + 0.15);
+      const quaternion = frame.quaternion
+        .clone()
+        .multiply(
+          new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 0, 1), Math.PI),
+        );
+      movement.currentPose = {
+        position: position.toArray(),
+        quaternion: quaternion.toArray(),
+      };
+      movement.previousPose = structuredClone(movement.currentPose);
+      Object.assign(movement.flight, {
+        velocity: frame.tangent
+          .clone()
+          .multiplyScalar(80)
+          .addScaledVector(frame.up, -20)
+          .toArray(),
+        angularVelocity: [0, 0, 0],
+        elapsed: 1.15,
+        hitAt: 1.15,
+        equipmentGuide: {
+          distance: state.distance,
+          lateral: state.lateral,
+          height: 0.72,
+        },
+      });
+      runtime.restore(saved);
+      let landed = false;
+      for (let tick = 0; tick < 40; tick++) {
+        const events = runtime.advance(state, drive, DT);
+        landed ||= events.some(
+          ({ type, payload }) =>
+            type === 'jump-transfer' && payload.outcome === 'landed',
+        );
+        for (const pose of [
+          actor.read(),
+          ...[0, 0.5, 1].map((alpha) => runtime.pose(alpha)),
+        ])
+          for (let i = 0; i < hull.vertices.length; i += 3) {
+            point
+              .fromArray(hull.vertices, i)
+              .applyQuaternion(pose.quaternion)
+              .add(pose.position);
+            const projected = projectMagneticBody(
+              track,
+              point,
+              state.distance,
+              state.lateral,
+              dynamics.sampleRoadSurface,
+            );
+            if (Math.abs(projected.lateral) > track.width / 2 - 0.01) continue;
+            const clearance = point
+              .clone()
+              .sub(projected.frame.position)
+              .dot(projected.frame.up);
+            assert.ok(
+              clearance >= -0.001,
+              `side ${side}, tick ${tick}: native corner penetrates curved road by ${-clearance}m`,
+            );
+          }
+      }
+      assert.ok(landed, `side ${side}: the rolled powered hop actually lands`);
+    } finally {
+      runtime.dispose();
+    }
+  }
 });
 
 test('Helion powered hops land on ordinary road outside its physical jump corridors, including the lap seam', async (t) => {

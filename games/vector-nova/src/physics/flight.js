@@ -12,6 +12,7 @@ import {
   createMagneticBody,
   magneticFrame,
   projectMagneticBody,
+  sampledRoadHullSeparation,
   MAGNETIC_BODY_RULES,
 } from './magnetic-body.js';
 import {
@@ -59,6 +60,7 @@ export const EQUIPMENT_JUMP_RULES = Object.freeze({
   arcStiffness: 64,
   arcDamping: 16,
   maximumArcCorrection: 120,
+  sampledContactVersion: 2,
 });
 
 // Shared swept contact and ballistic motion. Authored route, rules, effects,
@@ -311,7 +313,14 @@ export function createFlightModel(overrides = {}) {
   // Sweep the lower hull continuously over the receiving road. Half-width
   // support permits an edge catch; internal seams never reject a supported hull.
   // Only top-down, forward, upright contacts on the current jump can relatch.
-  function sweptLanding(track, jump, before, after, velocity) {
+  function sweptLanding(
+    track,
+    jump,
+    before,
+    after,
+    velocity,
+    normalExtent = bodyExtent,
+  ) {
     if (!track.jumps.includes(jump) && jump.id !== 'equipment-jump')
       return null;
     const receivingEnd = landingZoneEnd(track, jump);
@@ -331,10 +340,10 @@ export function createFlightModel(overrides = {}) {
       for (let iteration = 0; iteration < 4; iteration += 1) {
         const a =
           before.position.clone().sub(frame.position).dot(frame.up) -
-          bodyExtent(before.quaternion, frame.up);
+          normalExtent(before.quaternion, frame.up);
         const b =
           after.position.clone().sub(frame.position).dot(frame.up) -
-          bodyExtent(after.quaternion, frame.up);
+          normalExtent(after.quaternion, frame.up);
         if (
           a < -1e-7 ||
           b > 0 ||
@@ -390,7 +399,7 @@ export function createFlightModel(overrides = {}) {
     return (
       first ??
       (R.curvedContact
-        ? refinedLanding(track, jump, before, after, velocity)
+        ? refinedLanding(track, jump, before, after, velocity, normalExtent)
         : null)
     );
   }
@@ -399,7 +408,7 @@ export function createFlightModel(overrides = {}) {
   // If the fast plane sweep finds no hit, solve against the actual sampled
   // surface: project both endpoints independently, then bracket the support
   // crossing. Never accept a craft already beneath the deck or moving upward.
-  function refinedLanding(track, jump, before, after, velocity) {
+  function refinedLanding(track, jump, before, after, velocity, normalExtent) {
     const receivingEnd = landingZoneEnd(track, jump);
     const motion = new THREE.Line3(before.position, after.position);
     const nearest = new THREE.Vector3();
@@ -422,7 +431,7 @@ export function createFlightModel(overrides = {}) {
         frame,
         height:
           pose.position.clone().sub(frame.position).dot(frame.up) -
-          bodyExtent(pose.quaternion, frame.up),
+          normalExtent(pose.quaternion, frame.up),
       };
     }
     for (const segment of landingSegments(track, jump)) {
@@ -802,6 +811,7 @@ export function createFlightModel(overrides = {}) {
         magneticBody.adopt(state, {
           duration: R.landingSettleDuration,
           supportHeight: options.supportHeight ?? 0,
+          sampledNativeClearance: landing.sampledNativeClearance === true,
         });
       } else {
         actor?.reset();
@@ -1596,12 +1606,42 @@ export function createFlightModel(overrides = {}) {
       // there is no physical top face here. Never fill a real gap or replace a
       // compound curved sheet with its centreline plane.
       if (flight.equipmentJump) {
+        const vertices = result.contactShape?.vertices;
+        const bounds = result.contactShape?.bounds;
+        const normalExtent = (quaternion, normal) => {
+          let extent = bodyExtent(quaternion, normal);
+          if (!vertices) return extent;
+          const local = normal
+            .clone()
+            .applyQuaternion(quaternion.clone().invert());
+          if (bounds) {
+            const bound = [local.x, local.y, local.z].reduce(
+              (sum, value, axis) =>
+                sum -
+                value * (value >= 0 ? bounds.min[axis] : bounds.max[axis]),
+              0,
+            );
+            if (bound <= extent) return extent;
+          }
+          // A tilted native hull can extend below the symmetric arcade box.
+          // Keep that box's clearance while catching the actual lower vertices
+          // before they cross a sampled road, including an inverted canopy.
+          for (let i = 0; i < vertices.length; i += 3)
+            extent = Math.max(
+              extent,
+              -vertices[i] * local.x -
+                vertices[i + 1] * local.y -
+                vertices[i + 2] * local.z,
+            );
+          return extent;
+        };
         const landing = sweptLanding(
           track,
           jump,
           previousPose,
           currentPose,
           flight.velocity,
+          normalExtent,
         );
         const station =
           landing &&
@@ -1621,6 +1661,7 @@ export function createFlightModel(overrides = {}) {
           !track.sampleSurface?.(landing.distance, landing.lateral) &&
           !dynamics.sampleRoadSurface?.(station, landing.lateral, frame);
         if (supported) {
+          landing.sampledNativeClearance = true;
           const contactPose = {
             position: previousPose.position
               .clone()
@@ -1640,6 +1681,57 @@ export function createFlightModel(overrides = {}) {
             landing.heading = -landing.side * 0.015;
           }
           // Adopt the swept contact, not the integrated endpoint below it.
+          const beforeSeparation = clonePose(contactPose);
+          contactPose.position.add(
+            sampledRoadHullSeparation(
+              track,
+              contactPose,
+              vertices,
+              landing.distance,
+              landing.lateral,
+              dynamics.sampleRoadSurface,
+            ),
+          );
+          if (
+            collisionWorld?.sweepHull &&
+            contactPose.position.distanceToSquared(beforeSeparation.position) >
+              1e-16
+          ) {
+            // A model-bounds envelope conservatively protects every native
+            // vertex while separating the sampled contact. Real ceilings and
+            // nearby solids can clip this small correction just like motion.
+            const center = bounds
+              ? new THREE.Vector3()
+                  .fromArray(bounds.min)
+                  .add(new THREE.Vector3().fromArray(bounds.max))
+                  .multiplyScalar(0.5)
+                  .applyQuaternion(contactPose.quaternion)
+              : new THREE.Vector3();
+            const hull = bounds
+              ? {
+                  halfWidth: (bounds.max[0] - bounds.min[0]) / 2,
+                  hover: (bounds.max[1] - bounds.min[1]) / 2,
+                  halfLength: (bounds.max[2] - bounds.min[2]) / 2,
+                }
+              : R;
+            const hit = collisionWorld.sweepHull(
+              {
+                ...beforeSeparation,
+                position: beforeSeparation.position.clone().add(center),
+              },
+              {
+                ...contactPose,
+                position: contactPose.position.clone().add(center),
+              },
+              hull,
+            );
+            if (hit)
+              contactPose.position.lerpVectors(
+                beforeSeparation.position,
+                contactPose.position.clone(),
+                hit.fraction,
+              );
+          }
           actor.reset({
             pose: contactPose,
             velocity: flight.velocity,
@@ -2129,8 +2221,9 @@ export function createFlightModel(overrides = {}) {
         }
       },
       pose(alpha = 1) {
-        if (mode === 'magnetic' && magneticBody?.pose(alpha))
-          return magneticBody.pose(alpha);
+        const magneticPose =
+          mode === 'magnetic' ? magneticBody?.pose(alpha) : null;
+        if (magneticPose) return magneticPose;
         if (!currentPose) return null;
         const from = previousPose ?? currentPose;
         return {

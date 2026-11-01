@@ -267,17 +267,6 @@ button:disabled {
   display: none;
 }
 
-.ship-description {
-  display: grid;
-  max-width: 55ch;
-  margin: 15px 0 0;
-}
-.ship-description > span {
-  grid-area: 1 / 1;
-}
-.ship-description > [aria-hidden='true'] {
-  visibility: hidden;
-}
 .session-facts {
   display: flex;
   flex-wrap: wrap;

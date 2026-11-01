@@ -680,7 +680,6 @@ export async function createFrontend(
     }
     const wide = wideMenu.matches;
     const picking = wide || screen !== 'home';
-    const setup = showingShip();
     const cup = intent === 'cup';
     const records = screen === 'records';
     const backAction = records ? 'records-back' : 'home';
@@ -705,21 +704,16 @@ export async function createFrontend(
             heading: !wide,
             trackArt: (id) => picture(route(id)) + routeArt(route(id)),
           })
-        : setup
-          ? shipPanel(!wide)
-          : cup
-            ? cupPanel(!wide)
-            : circuitPanel();
+        : cup
+          ? cupPanel(!wide)
+          : circuitPanel();
     shell.className = 'cinematic-menu';
-    shell.innerHTML = `${topNavigation()}<main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${records ? 'menu-records-picker' : setup ? 'menu-ship-picker' : cup ? 'menu-cup-picker' : 'menu-track-picker'}" aria-label="${records ? 'Time Trial records' : setup ? 'Ship selection' : cup ? 'Championship selection' : 'Track selection'}">${pickerHeader}${pickerContent}</section>` : ''}</main>`;
+    shell.innerHTML = `${topNavigation()}<main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${records ? 'menu-records-picker' : cup ? 'menu-cup-picker' : 'menu-track-picker'}" aria-label="${records ? 'Time Trial records' : cup ? 'Championship selection' : 'Track selection'}">${pickerHeader}${pickerContent}</section>` : ''}</main>`;
     menuBackdrop.mount(shell);
     mountMenuHeader();
-    if (!setup && !cup && !records && picking) showDetail(selected);
-    if (showingShip()) mountShipPreview();
+    if (!cup && !records && picking) showDetail(selected);
     shell
-      .querySelector(
-        '.ship-transfer, .menu-transfer, .track-transfer, .records-transfer',
-      )
+      .querySelector('.menu-transfer, .track-transfer, .records-transfer')
       ?.append(transfer);
     updateLaunchSummary();
     updateStatus();
@@ -1892,9 +1886,6 @@ export async function createFrontend(
       !e.relatedTarget?.closest?.('.reward-badges')
     )
       showCupDetail(currentCup().id);
-    const shipList = e.target.closest('.ship-list');
-    if (shipList && !showingShip() && !shipList.contains(e.relatedTarget))
-      showShip(shipId);
   }
   shell.addEventListener('focusout', restoreSelection, { signal: life.signal });
   shell.addEventListener('pointerout', restoreSelection, {
@@ -2043,9 +2034,7 @@ export async function createFrontend(
         focusMenu(items[index]);
         return;
       }
-      const menu = control.closest(
-        '.race-menu, .picker-race-actions, .front-actions',
-      );
+      const menu = control.closest('.race-menu, .front-actions');
       if (menu && (vertical || (edge && !control.dataset.difficulty))) {
         e.preventDefault();
         const items = [...menu.querySelectorAll('button')].filter(

@@ -7,10 +7,9 @@ import {
   upgradedHandling,
   REWARDS,
   RARITIES,
-  EQUIPMENT,
   requirementText,
 } from './catalog.js';
-import { rewardProgress, shipUnlocked, equippedItems } from './profile.js';
+import { rewardProgress, shipUnlocked } from './profile.js';
 export const escapeHTML = (value) =>
   String(value).replace(
     /[&<>"']/g,
@@ -76,15 +75,6 @@ export function performanceView(ship, profile, { stock = false } = {}) {
       return `<div class="performance-stat" data-stat="${stat.id}"><div class="performance-label"><span>${stat.name}</span><b>${display(base)}${rank ? `<em> +${display(value - base)}</em>` : ''} <small>${stat.unit}</small></b></div><div class="enhancement-meter" role="meter" aria-label="${label}" aria-valuemin="0" aria-valuemax="${maximum}" aria-valuenow="${value}" aria-valuetext="${label}"><span class="stat-base" style="width:${baseWidth}%"></span>${Array.from({ length: rank }, (_, i) => `<span class="stat-notch" style="width:${stat.id === 'toughness' ? (stat.gains[i + 1] - stat.gains[i]) * 100 : (base / maximum) * (stat.gains[i + 1] - stat.gains[i]) * 100}%" title="${stat.name} ${i + 1}"></span>`).join('')}</div></div>`;
     },
   ).join('')}</div>`;
-}
-export function loadoutSummary(profile, shipId) {
-  const slots = equippedItems(profile, shipId);
-  return (
-    slots
-      .filter(Boolean)
-      .map((id) => EQUIPMENT.find((item) => item.id === id)?.name)
-      .join(' + ') || 'Choose your equipment'
-  );
 }
 export function rewardsView(rewards, { heading = 'Earned this run' } = {}) {
   if (!rewards?.length) return '';

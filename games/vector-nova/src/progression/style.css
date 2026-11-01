@@ -106,10 +106,6 @@
   margin-top: 3px;
   font-size: 10px;
 }
-.ship-list button[data-locked='true'] strong::after {
-  content: ' ◇';
-  color: #999;
-}
 .ship-locked-note {
   font-size: 11px;
   color: #ffbc8d;

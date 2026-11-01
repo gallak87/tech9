@@ -28,7 +28,7 @@ Start with this file and the assigned task's brief.
 - Keep checks silent at the host level: launch Chrome with `--mute-audio` and mute Electron `webContents` before loading the app. Playback controls can still be exercised; enable audible output only when the user explicitly asks to hear it.
 - For visual inspection use `?artPass=1&level=<id>`: direct production level, no Tunes, free camera and Dev tools open. Copy view link or `__VN.getArtPassURL()` preserves a camera pose for the next pass; URL/API details and comparison limits are in [architecture](ARCHITECTURE.md#lifecycle-and-verification).
 - Use a free port for your server, close owned verification processes afterward.
-- No unsolicited videos. The maintained `npm run verify` frontend check writes no artifacts; generic `verify:level` reports go to stdout unless `VN_EVIDENCE` is explicitly supplied. Do not use a historical browser harness as proof of the current front end; see tools/README.md.
+- No unsolicited videos. The maintained `npm run verify` frontend check writes no artifacts; generic `verify:level` reports go to stdout unless `VN_EVIDENCE` is explicitly supplied. Use the maintained entry/frontend/runtime checks within their documented scopes; see tools/README.md.
 - Commit and merge when requested. Human approval cannot be supplied by an agent.
 
 ## Keep documentation small

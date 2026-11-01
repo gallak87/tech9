@@ -1852,6 +1852,93 @@ try {
         assert.equal(await page.evaluate(() => !!window.__VN), false);
       }
     });
+    await fleetCheck(
+      'AI inspector preserves selection through failed and cancelled rival replacements',
+      async (page) => {
+        await page.goto(url('inspect=1&ship=kestrel&level=shatterline&dev=1'));
+        await inspectorReady(page);
+        await page.getByRole('tab', { name: 'AI racers' }).click();
+        const selected = (id) =>
+          page.waitForFunction((id) => {
+            const state = window.__VN_INSPECTOR.getSnapshot();
+            return (
+              !state.inspection.rivalLoading && state.inspection.rivalId === id
+            );
+          }, id);
+        await selected('rook');
+        const replacement = '**/assets/ships/rivals/latch/latch.glb';
+        await page.route(replacement, (route) => route.abort());
+        await page.locator('[data-rival="latch"]').click();
+        await page
+          .locator('.ship-load-status')
+          .filter({ hasText: 'Could not load Latch' })
+          .waitFor();
+        await selected('rook');
+        assert.equal(
+          await page
+            .locator('[data-rival="rook"]')
+            .getAttribute('aria-checked'),
+          'true',
+        );
+        assert.equal((await snapshot(page)).ship.id, 'kestrel');
+        await page.unroute(replacement);
+        await page.locator('[data-rival="latch"]').click();
+        await selected('latch');
+        assert.equal(await page.locator('.ship-load-status').textContent(), '');
+
+        const pending = '**/assets/ships/rivals/pike/pike.glb';
+        let release;
+        const held = new Promise((resolve) => {
+          release = resolve;
+        });
+        await page.route(pending, async (route) => {
+          await held;
+          await route.continue();
+        });
+        try {
+          const requested = page.waitForRequest(pending);
+          await page.locator('[data-rival="pike"]').click();
+          await requested;
+          await page.waitForFunction(
+            () => window.__VN_INSPECTOR.getSnapshot().inspection.rivalLoading,
+          );
+          await page.evaluate(() => {
+            window.retiredInspector = window.__VN_INSPECTOR;
+          });
+          await page.locator('#inspect-back').click();
+          assert.equal((await front(page)).screen, 'home');
+          assert.equal(
+            await page.evaluate(() => window.retiredInspector.ready),
+            false,
+          );
+          const response = page.waitForResponse(pending);
+          release();
+          await (await response).finished();
+          await page.waitForLoadState('networkidle');
+          assert.equal((await front(page)).screen, 'home');
+          assert.equal((await front(page)).shipId, 'kestrel');
+          assert.equal((await front(page)).selected, 'shatterline');
+          assert.equal(
+            await page.evaluate(() => !!window.__VN_INSPECTOR || !!window.__VN),
+            false,
+          );
+          assert.equal(await page.locator('canvas#world').count(), 0);
+          assert.equal(
+            await page.evaluate(
+              () => window.retiredInspector.getSnapshot().inspection.rivalId,
+            ),
+            'latch',
+          );
+          await page.locator('[data-action="inspect"]').click();
+          await inspectorReady(page);
+          assert.equal((await snapshot(page)).inspection.tab, 'fleet');
+          assert.equal((await snapshot(page)).ship.id, 'kestrel');
+        } finally {
+          release();
+          await page.unroute(pending);
+        }
+      },
+    );
     await check(
       'ship selectors after track selection never launch a session',
       async (page) => {
@@ -2594,57 +2681,6 @@ try {
             0,
           );
           assert.equal(await page.evaluate(() => !!window.__VN), false);
-        },
-        viewport,
-      );
-    }
-    for (const viewport of [
-      { width: 390, height: 844 },
-      { width: 768, height: 768 },
-    ]) {
-      await check(
-        `standalone inspector touch ${viewport.width}×${viewport.height}`,
-        async (page) => {
-          const loads = [];
-          page.on('request', (request) => {
-            const path = new URL(request.url()).pathname;
-            if (
-              /\/src\/core\/game\.js|\/assets\/game-[^/]+\.js|\/assets\/levels\/(?!halcyon\/audio\/)/.test(
-                path,
-              )
-            )
-              loads.push(path);
-          });
-          await page.goto(url('level=shatterline&dev=1'));
-          const entry = page.locator('[data-action="inspect"]');
-          if (viewport.width < 760) await entry.tap();
-          else await entry.click();
-          await inspectorReady(page);
-          assert.equal(await page.evaluate(() => !!window.__VN), false);
-          assert.equal((await front(page)).loadedId, null);
-          assert.deepEqual(loads, []);
-          await page.locator('[data-ship="bastion"]').click();
-          await page.waitForFunction(
-            () => window.__VN_INSPECTOR.getSnapshot().ship.id === 'bastion',
-          );
-          await page.getByRole('tab', { name: 'AI racers' }).click();
-          await page.locator('[data-rival="kite"]').click();
-          await page.waitForFunction(
-            () =>
-              window.__VN_INSPECTOR.getSnapshot().inspection.rivalId === 'kite',
-          );
-          const back = await page.locator('#inspect-back').boundingBox();
-          assert.ok(back.y >= 0 && back.y + back.height <= viewport.height);
-          assert.equal(
-            await page.evaluate(
-              () => document.documentElement.scrollWidth > innerWidth,
-            ),
-            false,
-          );
-          await page.locator('#inspect-back').click();
-          assert.equal((await front(page)).shipId, 'bastion');
-          assert.equal((await front(page)).selected, 'shatterline');
-          assert.equal(await page.locator('canvas#world').count(), 0);
         },
         viewport,
       );

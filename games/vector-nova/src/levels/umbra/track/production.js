@@ -187,7 +187,7 @@ export function buildUmbraRoad(
     vertexColors: true,
     anisotropy: 0.28,
     anisotropyRotation: Math.PI / 2,
-    roughness: 0.66,
+    roughness: 0.5,
     metalness: 0.38,
   });
   const metal = makeMaterial({
@@ -1053,7 +1053,7 @@ export function buildUmbraRoad(
     setReflection(texture) {
       for (const material of materials) {
         material.envMap = texture;
-        material.envMapIntensity = material === panel ? 0.48 : 0.62;
+        material.envMapIntensity = material === panel ? 0.9 : 0.62;
         material.needsUpdate = true;
       }
     },

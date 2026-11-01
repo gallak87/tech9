@@ -58,8 +58,9 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
     metalness: shape ? 0.44 : 0.22,
     map: maps[0] ?? null,
     normalMap: maps[1] ?? null,
+    normalScale: new THREE.Vector2(0.35, 0.35),
     roughnessMap: maps[2] ?? null,
-    envMapIntensity: 0.8,
+    envMapIntensity: 1,
   });
   const induction = material({
     color: shape ? 0x6f858b : 0x667d81,
@@ -524,7 +525,7 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
       if (disposed || shape) return;
       for (const surface of [graphite, induction]) {
         surface.envMap = texture;
-        surface.envMapIntensity = 0.8;
+        surface.envMapIntensity = surface === graphite ? 1 : 0.8;
         surface.needsUpdate = true;
       }
     },

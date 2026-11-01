@@ -121,7 +121,7 @@ export function finishUmbraMaterial(
         float panelEdge=min(min(umbraPanel.x,1.-umbraPanel.x),min(umbraPanel.y,1.-umbraPanel.y));
         float dirt=1.-smoothstep(.012,.065,panelEdge);
         float polished=(1.-smoothstep(.004,.015,panelEdge))*smoothstep(.35,.7,longitudinal);
-        float wear=exp(-pow((abs(umbraDeck.x)-5.8)/3.3,2.));
+        float wear=exp(-pow((abs(umbraDeck.x)-5.8)/3.3,2.))*(1.-dirt);
         vec2 cell=floor(umbraDeck/vec2(1.7,4.8));
         float scratchSeed=umHash(vec3(cell,3.));
         vec2 mark=fract(umbraDeck/vec2(1.7,4.8))-.5;
@@ -131,7 +131,7 @@ export function finishUmbraMaterial(
         diffuseColor.rgb*=1.+abrasion*.025;
         float trackGrain=umNoise(vec3(umbraDeck.x*24.,umbraDeck.y*1.7,2.));
         diffuseColor.rgb*=mix(.94,1.035,longitudinal)*(1.-dirt*.20)+wear*.028+polished*.12;
-        relief=longitudinal*.0015+trackGrain*.0013*visible;
+        relief=(longitudinal*.0015+trackGrain*.0013*visible)*(1.-wear*.55);
       `
               : `
         diffuseColor.rgb*=mix(.89,1.06,macro)*mix(.97,1.015,grain);
@@ -148,7 +148,7 @@ export function finishUmbraMaterial(
       .replace(
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
-        roughnessFactor=clamp(roughnessFactor+${surfaceTexture ? (stone ? '(surfaceTone-.35)*.14+' : '(surfaceTone-.35)*.035+') : ''}(macro-.5)*${stone ? '.14' : '.06'}${metal ? `+patina*.24${kind === 'plate' ? '-edgeWear*.13+protectedFinish*.10+contact*.13+seamDeposit*.09' : ''}` : kind === 'deck' ? '+dirt*.18-wear*.12-polished*.14-abrasion*.028' : ''},${stone ? '.72' : metal ? '.19' : '.24'},.98);`,
+        roughnessFactor=clamp(roughnessFactor+${surfaceTexture ? (stone ? '(surfaceTone-.35)*.14+' : '(surfaceTone-.35)*.035+') : ''}(macro-.5)*${stone ? '.14' : '.06'}${metal ? `+patina*.24${kind === 'plate' ? '-edgeWear*.13+protectedFinish*.10+contact*.13+seamDeposit*.09' : ''}` : kind === 'deck' ? '+dirt*.28-wear*.18-polished*.14-abrasion*.028' : ''},${stone ? '.72' : metal ? '.19' : '.24'},.98);`,
       )
       .replace(
         '#include <emissivemap_fragment>',
@@ -170,7 +170,7 @@ export function finishUmbraMaterial(
       );
   };
   material.customProgramCacheKey = () =>
-    `umbra-surface-v7-${kind}-${!!surfaceTexture}-${bakedLight}`;
+    `${kind === 'deck' ? 'umbra-deck-sheen-v1' : 'umbra-surface-v7'}-${kind}-${!!surfaceTexture}-${bakedLight}`;
   return material;
 }
 

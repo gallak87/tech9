@@ -18,7 +18,8 @@ export function createDeckFinish(renderer) {
     material.normalMap = maps[1];
     material.aoMap = material.roughnessMap = material.metalnessMap = maps[2];
     material.color.set(0xffffff);
-    material.roughness = material.metalness = 1;
+    material.roughness = 0.75;
+    material.metalness = 1;
     material.needsUpdate = true;
   }
   const loader = renderer
@@ -68,10 +69,10 @@ export function createDeckFinish(renderer) {
     bind(material) {
       material.name = 'Asterion coated alloy / sealed induction cassettes';
       material.color.set(0x6f818e);
-      material.roughness = 0.43;
+      material.roughness = 0.32;
       material.metalness = 0.23;
       material.aoMapIntensity = 0.65;
-      material.envMapIntensity = 0.65;
+      material.envMapIntensity = 1.05;
       material.envMap = reflection;
       material.userData.orbitalDeck = true;
       // Stable small finish differences between installed cassettes. Use native
@@ -98,16 +99,16 @@ export function createDeckFinish(renderer) {
             .replace(
               '#include <color_fragment>',
               `#include <color_fragment>
-            diffuseColor.rgb *= .91 + .18 * cassetteBatch;`,
+            diffuseColor.rgb *= .86 + .28 * cassetteBatch;`,
             )
             .replace(
               '#include <roughnessmap_fragment>',
               `#include <roughnessmap_fragment>
-            roughnessFactor = clamp(roughnessFactor + .09 * (cassetteBatch - .5), .15, 1.0);`,
+            roughnessFactor = clamp(roughnessFactor + .12 * (cassetteBatch - .5), .15, 1.0);`,
             );
       };
       material.customProgramCacheKey = () =>
-        `${cacheKey}-asterion-cassette-batches-v1`;
+        `${cacheKey}-asterion-cassette-batches-v2`;
       materials.add(material);
       apply(material);
     },

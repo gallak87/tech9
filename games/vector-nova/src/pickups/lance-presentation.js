@@ -2,6 +2,7 @@ import * as T from 'three';
 import { ARC_MUZZLE_HEIGHT, ARC_SHOT_HEIGHT, LANCE_SPEED } from './rules.js';
 import { disposeGroup } from './geometry.js';
 import { lowMaterial } from './low-geometry.js';
+import { LANCE_COLOR } from './theme.js';
 
 const BOLT_LENGTH = 14;
 const CONTACT_LIFETIME = 0.55;
@@ -38,7 +39,7 @@ function fireGlowMaterial() {
       void main() {
         float facing = max(0.,dot(normalize(vNormal),normalize(vEye)));
         float billow = .88 + .12*sin(vLocal.x*19.+vLocal.y*13.+vLocal.z*9.-time*17.);
-        float alpha = pow(facing,2.4)*billow*.4;
+        float alpha = pow(facing,2.4)*billow*.46;
         gl_FragColor = vec4(vec3(1.,.055,.004)*vEnergy,alpha);
       }`,
   });
@@ -66,7 +67,7 @@ export function createLancePresentation(parent, { low = false } = {}) {
     30 + 32 * 2,
     'Lance / yellow-hot blast cores',
   );
-  const fireMaterial = lowMaterial(0xff5908, low ? 0.8 : 0.7);
+  const fireMaterial = lowMaterial(LANCE_COLOR, low ? 0.8 : 0.7);
   fireMaterial.side = T.FrontSide;
   const fragments = batch(
     new T.IcosahedronGeometry(0.5, low ? 0 : 1),
@@ -128,20 +129,20 @@ export function createLancePresentation(parent, { low = false } = {}) {
         blob(
           cores,
           offset.set(0, 0, -length * 0.5),
-          [1.5, 1.3, length],
+          [1.8, 1.55, length],
           strength,
         );
         blob(
           fragments,
           offset.set(0, 0, -length * 0.51),
-          [3.8, 3.2, length * 0.96],
+          [4.8, 3.9, length * 0.96],
           strength,
         );
         if (glow)
           blob(
             glow,
             offset.set(0, 0, -length * 0.5),
-            [6.4, 5.5, length],
+            [7.8, 6.6, length],
             strength,
           );
       }
@@ -164,17 +165,17 @@ export function createLancePresentation(parent, { low = false } = {}) {
           blob(
             cores,
             offset.set(0, 0, 1.4),
-            [1.2 * fade, 1.1 * fade, 3.2],
+            [1.5 * fade, 1.35 * fade, 3.6],
             strength,
           );
           blob(
             fragments,
             offset.set(0, 0, 1.8),
-            [3.6 * fade, 3.1 * fade, 4.3],
+            [4.6 * fade, 3.8 * fade, 4.8],
             strength * fade,
           );
           if (glow)
-            blob(glow, offset.set(0, 0, 1.8), [5.4, 4.8, 5.2], strength * fade);
+            blob(glow, offset.set(0, 0, 1.8), [6.8, 5.8, 6], strength * fade);
           continue;
         }
         const age = Math.max(0, flash.age);
@@ -189,13 +190,13 @@ export function createLancePresentation(parent, { low = false } = {}) {
         blob(
           cores,
           offset.set(0, 0, -0.55),
-          [2.8 * size, 2.5 * size, 2.5 * size],
+          [3.6 * size, 3.1 * size, 3.1 * size],
           energy,
         );
         blob(
           fragments,
           offset.set(0, 0.4 * size, -0.35),
-          [7.2 * size, 6.3 * size, 5.8 * size],
+          [9.2 * size, 7.8 * size, 7 * size],
           energy,
         );
         const lobes = low ? 2 : 4;
@@ -205,11 +206,11 @@ export function createLancePresentation(parent, { low = false } = {}) {
           blob(
             fragments,
             offset.set(
-              Math.cos(angle) * 2.1 * size,
-              Math.sin(angle) * 1.6 * size + lift,
+              Math.cos(angle) * 2.7 * size,
+              Math.sin(angle) * 2 * size + lift,
               -0.2 - i * 0.18,
             ),
-            [3.8 * size, 3.4 * size, 3.3 * size],
+            [4.5 * size, 3.9 * size, 3.8 * size],
             energy * (0.85 + i * 0.04),
           );
         }
@@ -217,18 +218,18 @@ export function createLancePresentation(parent, { low = false } = {}) {
           blob(
             glow,
             offset.set(0, 0.3, -0.45),
-            [13.5 * size, 11.8 * size, 10.5 * size],
+            [16.2 * size, 14 * size, 12.6 * size],
             energy,
           );
           blob(
             glow,
             offset.set(0, 0.7, -0.7),
-            [9.4 * size, 8.8 * size, 8.2 * size],
+            [11.3 * size, 10.5 * size, 9.8 * size],
             energy * 0.55,
           );
         }
         const count = low ? 5 : 10;
-        const travel = reducedMotion ? 0.5 : 1 + age * 20;
+        const travel = reducedMotion ? 0.5 : 1 + age * 26;
         for (let i = 0; i < count; i++) {
           const angle = (i / count) * Math.PI * 2 + 0.3;
           direction
@@ -243,9 +244,9 @@ export function createLancePresentation(parent, { low = false } = {}) {
             .setFromUnitVectors(zAxis, direction)
             .premultiply(quaternion);
           transform.scale.set(
-            0.2 * size,
-            0.2 * size,
-            (1.4 + (i % 3) * 0.45) * size,
+            0.26 * size,
+            0.26 * size,
+            (1.8 + (i % 3) * 0.55) * size,
           );
           instance(fragments, energy);
         }

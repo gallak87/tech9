@@ -27,7 +27,7 @@ const SIDES = [-1, 1];
 // Raceway geometry follows the same sampled frames in production and review.
 // Only the two structural breaks remove deck; the dune skip is a chosen line.
 export function createSaffronRoad(
-  { track, settings = {}, collisionWorld = null },
+  { track, collisionWorld = null },
   { shape = false } = {},
 ) {
   const group = new THREE.Group();
@@ -44,13 +44,14 @@ export function createSaffronRoad(
     materials.add(m);
     return m;
   };
-  const lens = (color, transmission, thickness) => {
+  const lens = (color) => {
     const m = new THREE.MeshPhysicalMaterial({
       color: shape ? 0xb5b3a4 : color,
       roughness: shape ? 0.75 : 0.29,
       metalness: shape ? 0.04 : 0.02,
-      transmission: !shape && settings.quality !== 'low' ? transmission : 0,
-      thickness,
+      // Alpha and the existing environment probe retain optical depth without
+      // rendering the whole scene again for a barely visible refraction lobe.
+      transmission: 0,
       ior: 1.46,
       transparent: !shape,
       opacity: shape ? 1 : 0.58,
@@ -59,10 +60,9 @@ export function createSaffronRoad(
       forceSinglePass: true,
       specularIntensity: 0.28,
       specularColor: 0xd8b762,
-      attenuationColor: 0x80501b,
-      attenuationDistance: 6,
-      clearcoat: shape ? 0 : 0.08,
-      clearcoatRoughness: 0.4,
+      envMapIntensity: 1.3,
+      clearcoat: shape ? 0 : 0.26,
+      clearcoatRoughness: 0.22,
     });
     materials.add(m);
     return m;
@@ -72,17 +72,18 @@ export function createSaffronRoad(
       color: shape ? 0xb5b3a4 : color,
       roughness: shape ? 0.75 : 0.28,
       metalness: shape ? 0.04 : 0.02,
-      clearcoat: shape ? 0 : 0.12,
-      clearcoatRoughness: 0.38,
+      clearcoat: shape ? 0 : 0.32,
+      clearcoatRoughness: 0.2,
       ior: 1.46,
       specularIntensity: 0.38,
+      envMapIntensity: 1.3,
     });
     materials.add(m);
     return m;
   };
   const smoke = solidGlass(0x967026);
-  const amber = lens(0xd6ad4e, 0.14, 2.8);
-  const glass = lens(0xe8bd61, 0.12, 3.8);
+  const amber = lens(0xd6ad4e);
+  const glass = lens(0xe8bd61);
   const honey = solidGlass(0xc39d55);
   if (!shape) {
     for (const mat of [smoke, amber, glass, honey]) {
@@ -112,6 +113,7 @@ vGlassPoint=(instanceMatrix*vec4(position,1.)).xyz;
           float grainVisible=1.-smoothstep(.018,.11,footprint);
           float etching=gNoise(vGlassPoint*34.);
           float haze=smoothstep(.42,.76,folded);
+          float polish=1.-smoothstep(.34,.70,folded);
           diffuseColor.rgb*=.76+mineral*.34;
           diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.61,.40,.13),vein*.22);
           diffuseColor.rgb*=1.-haze*.075;`,
@@ -119,16 +121,25 @@ vGlassPoint=(instanceMatrix*vec4(position,1.)).xyz;
           .replace(
             '#include <roughnessmap_fragment>',
             `#include <roughnessmap_fragment>
-roughnessFactor=clamp(roughnessFactor+haze*.18+skin*.045+vein*.025,.24,.64);`,
+roughnessFactor=clamp(roughnessFactor+haze*.18+skin*.03+vein*.025-polish*.055,.19,.64);`,
           );
         shader.fragmentShader = shader.fragmentShader.replace(
           '#include <normal_fragment_maps>',
           `#include <normal_fragment_maps>
-          float glassRelief=folded*.018+skin*.005+etching*.0018*grainVisible;
+          float glassRelief=folded*.014+skin*.003+etching*.0012*grainVisible;
           vec3 dx=dFdx(-vViewPosition),dy=dFdy(-vViewPosition);
           vec3 rx=cross(dy,normal),ry=cross(normal,dx);
           float det=dot(dx,rx)*faceDirection;
           normal=normalize(abs(det)*normal-sign(det)*(dFdx(glassRelief)*rx+dFdy(glassRelief)*ry));`,
+        );
+        // The sealed coat reflects broad sky shapes above the cast mineral
+        // relief. Reuse the existing haze rather than sampling another layer.
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <lights_physical_fragment>',
+          `#include <lights_physical_fragment>
+          #ifdef USE_CLEARCOAT
+          material.clearcoatRoughness=clamp(material.clearcoatRoughness+haze*.11-polish*.025,.14,.4);
+          #endif`,
         );
         // The etched skin scatters the directional sun's idealized peak. Keep
         // low/medium highlights and all environmental reflections unchanged;
@@ -148,7 +159,7 @@ roughnessFactor=clamp(roughnessFactor+haze*.18+skin*.045+vein*.025,.24,.64);`,
           #include <opaque_fragment>`,
         );
       };
-      mat.customProgramCacheKey = () => 'saffron-fused-glass-v7';
+      mat.customProgramCacheKey = () => 'saffron-sealed-glass-v8';
     }
   }
   const support = material({
@@ -594,24 +605,10 @@ roughnessFactor=clamp(roughnessFactor+haze*.18+skin*.045+vein*.025,.24,.64);`,
     mesh.frustumCulled = false;
     sands.push({ mesh, rows, cols });
   }
-  const opticalMaterials = [amber, glass];
-  const opticalTransmission = [0.14, 0.12];
-  let currentQuality = settings.quality ?? 'high';
   let lastTime = null,
     disposed = false;
-  function update({ time = 0, settings: nextSettings = settings } = {}) {
+  function update({ time = 0 } = {}) {
     if (disposed) return;
-    if (
-      !shape &&
-      nextSettings.quality &&
-      nextSettings.quality !== currentQuality
-    ) {
-      currentQuality = nextSettings.quality;
-      opticalMaterials.forEach((m, i) => {
-        m.transmission = currentQuality === 'low' ? 0 : opticalTransmission[i];
-        m.needsUpdate = true;
-      });
-    }
     if (time === lastTime) return;
     lastTime = time;
     const zones = sampleSaffronDeposits(track, time);

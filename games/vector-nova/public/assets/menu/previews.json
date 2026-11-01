@@ -42,7 +42,7 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "fccceab0210eaef5571c7b7e9e5c1bbce59a254f",
+      "sourceRevision": "309d912c26bcf3eb9db1f5ff1e50b28672536dfb",
       "sourceDirty": true,
       "routeSignature": "32fbf71d94ca4d04"
     },
@@ -60,7 +60,7 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "927c6a254f2795160d6cc8c4999ec4f370bc7141",
+      "sourceRevision": "309d912c26bcf3eb9db1f5ff1e50b28672536dfb",
       "sourceDirty": true,
       "routeSignature": "745e0ccba1b1d203"
     },

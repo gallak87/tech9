@@ -3,6 +3,7 @@
 // A smooth top coat covers the ceramic PBR maps; fitted perimeter relief
 // follows the existing panel dimensions in metres. Glazing stays distinct.
 export function applyNacreSurfaceFinish(material, kind) {
+  const ceramic = kind === 'ceramic';
   const compile = material.onBeforeCompile;
   const key = material.customProgramCacheKey();
   material.onBeforeCompile = (shader, renderer) => {
@@ -33,12 +34,12 @@ export function applyNacreSurfaceFinish(material, kind) {
       // Local rim relief stays separate from the ceramic PBR normal map.
       // Evaluate continuously per fragment, never at triangle vertices.
       float rimHeight = .012 * smoothstep(0., .07 + edgePixel, panelEdge);
-      diffuseColor.rgb *= (1. - .24 * panelRim - .14 * registerLine);`,
+      diffuseColor.rgb *= (1. - ${ceramic ? '.32' : '.24'} * panelRim - ${ceramic ? '.18' : '.14'} * registerLine);`,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>
-      roughnessFactor = mix(roughnessFactor, .27, panelRim);`,
+      roughnessFactor = mix(roughnessFactor, ${ceramic ? '.38' : '.27'}, panelRim);`,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <normal_fragment_maps>',
@@ -46,7 +47,7 @@ export function applyNacreSurfaceFinish(material, kind) {
       normal = nacreFinishNormal(normal, -vViewPosition,
         rimHeight, faceDirection);
       ${
-        kind === 'ceramic'
+        ceramic
           ? ''
           : `
       // Clear centres retain visible under-ribs; compression seals stay denser.
@@ -62,5 +63,6 @@ export function applyNacreSurfaceFinish(material, kind) {
         clearcoatNormal = nacreFinishNormal(clearcoatNormal, -vViewPosition, rimHeight, faceDirection);`,
       );
   };
-  material.customProgramCacheKey = () => `${key}-nacre-fitted-${kind}-v1`;
+  material.customProgramCacheKey = () =>
+    `${key}-nacre-fitted-${kind}-v${ceramic ? 2 : 1}`;
 }

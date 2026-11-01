@@ -47,11 +47,13 @@ export function createCeramicMaps(renderer, material) {
           const [color, normal, arm] = results.map((result) => result.value);
           material.map = color;
           material.normalMap = normal;
-          material.normalScale.set(0.2, 0.2);
+          // Mineral relief sits beneath a continuous wet glaze. Keep it shallow
+          // enough that the ceramic reads as a coated plate at racing distance.
+          material.normalScale.set(0.14, 0.14);
           material.roughnessMap = arm;
-          material.roughness = 1;
+          material.roughness = 0.72;
           material.clearcoat = 1;
-          material.clearcoatRoughness = 0.24;
+          material.clearcoatRoughness = 0.18;
           material.needsUpdate = true;
         })
         .finally(() => loader.dispose())

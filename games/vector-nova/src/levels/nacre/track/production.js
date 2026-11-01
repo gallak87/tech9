@@ -359,11 +359,12 @@ export function buildNacreTrack(track, renderer) {
       vertexColors: true,
       metalness: 0.06,
       specularIntensity: 1,
-      roughness: 0.48,
+      // Match the average mineral-map response before renderer maps arrive.
+      roughness: 0.34,
       clearcoat: 1,
       envMapIntensity: 1.3,
       // A continuous top coat avoids a second correlated near-mirror lobe.
-      clearcoatRoughness: 0.22,
+      clearcoatRoughness: 0.18,
       iridescence: 0.36,
       iridescenceIOR: 1.3,
       iridescenceThicknessRange: [240, 360],
@@ -465,7 +466,7 @@ export function buildNacreTrack(track, renderer) {
   group.userData.setReflection = (texture) => {
     for (const surface of [ceramic, pressureGlass]) {
       surface.envMap = texture;
-      surface.envMapIntensity = surface === ceramic ? 1.5 : 1.1;
+      surface.envMapIntensity = 1.5;
       surface.needsUpdate = true;
     }
   };

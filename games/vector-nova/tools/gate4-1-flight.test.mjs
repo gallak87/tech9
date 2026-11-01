@@ -1067,7 +1067,7 @@ test('CPU pearl construction defers texture maps and retains a continuous top co
   assert.equal(ceramic.roughnessMap, null);
   assert.equal(ceramic.clearcoatMap, null);
   assert.equal(ceramic.clearcoatRoughnessMap, null);
-  assert.ok(ceramic.roughness >= 0.45 && ceramic.roughness <= 0.7);
+  assert.ok(ceramic.roughness >= 0.3 && ceramic.roughness <= 0.55);
   // The smoother coat stays spatially uniform; only its fitted rim bends.
   assert.ok(
     ceramic.clearcoatRoughness >= 0.15 && ceramic.clearcoatRoughness <= 0.5,

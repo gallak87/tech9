@@ -21,7 +21,6 @@ export default function createLevel({ shape = false }) {
       bloomThreshold: 1.12,
       fillHeight: 28,
       reflectionFar: 2600,
-      transmissionResolutionScale: 0.5,
     },
     camera: {
       preserveFlightView: true,

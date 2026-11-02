@@ -179,13 +179,16 @@ export async function createFrontend(
     earnedRewards = [],
     rewardStart = null,
     rewardContext = null;
-  const goalContext = (trackId = selected) => ({
+  const goalContext = (trackId = selected, cupId) => ({
     mode: intent,
     trackId,
-    cupId: intent === 'cup' ? currentCup().id : null,
+    cupId: intent === 'cup' ? (cupId ?? currentCup().id) : null,
   });
-  const goalBadges = (trackId = selected) =>
-    rewardBadgesView(rewardGoals(profile(), goalContext(trackId)), profile());
+  const goalBadges = (trackId = selected, cupId) =>
+    rewardBadgesView(
+      rewardGoals(profile(), goalContext(trackId, cupId)),
+      profile(),
+    );
   function beginRewardAttempt() {
     sessionRewardId = crypto.randomUUID();
     earnedRewards = [];
@@ -960,7 +963,7 @@ export async function createFrontend(
       cup,
       escape(cup.name),
       cupCollection.snapshot().cups,
-      goalBadges(),
+      goalBadges(selected, cup.id),
     );
   }
   function selectCircuit(id) {

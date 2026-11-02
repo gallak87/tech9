@@ -527,19 +527,73 @@ try {
         0,
       );
       await action(page, 'cup-hub');
+      for (const [id, name, label, icon] of [
+        ['frontier', 'Frontier Cup', /Cup: Ship \+ equipment/, 'ship-needle'],
+        ['horizon', 'Horizon Cup', /Ship: New hull/, 'ship-kestrel'],
+        ['apex', 'Apex Cup', /Weapon: Lance/, 'equipment-lance'],
+      ]) {
+        await page.locator(`[data-cup="${id}"]`).hover();
+        assert.equal(
+          await page.locator('.cup-hero .cup-title').innerText(),
+          name,
+        );
+        assert.equal(
+          await page
+            .locator('.cup-hero .reward-chip')
+            .first()
+            .getAttribute('data-reward-info'),
+          `cup-${id}`,
+        );
+        assert.match(
+          await page.locator('.cup-hero .reward-badges').innerText(),
+          label,
+        );
+        assert.ok(
+          (
+            await page
+              .locator('.cup-hero .reward-chip img')
+              .first()
+              .getAttribute('src')
+          ).endsWith(`/${icon}.png`),
+          `${id}: preview the matching reward icon`,
+        );
+        assert.equal((await state(page)).selectedCup, 'founders');
+        assert.equal(
+          await page
+            .locator('[data-cup="founders"]')
+            .getAttribute('aria-pressed'),
+          'true',
+        );
+      }
+      await page.mouse.move(10, 10);
+      assert.equal(
+        await page
+          .locator('.cup-hero .reward-chip')
+          .first()
+          .getAttribute('data-reward-info'),
+        'cup-founders',
+      );
       for (const controller of [false, true]) {
-        await page.locator('[data-cup="founders"]').focus();
+        await page.locator('[data-cup="frontier"]').focus();
         if (controller) await pad(page, 12);
         else await key(page, 'ArrowUp');
         assert.equal(
           await page.evaluate(() => document.activeElement.dataset.rewardInfo),
-          'cup-founders',
+          'cup-frontier',
         );
+        assert.equal((await state(page)).selectedCup, 'founders');
         if (controller) await pad(page, 13);
         else await key(page, 'ArrowDown');
         assert.equal(
           await page.evaluate(() => document.activeElement.dataset.cup),
           'founders',
+        );
+        assert.equal(
+          await page
+            .locator('.cup-hero .reward-chip')
+            .first()
+            .getAttribute('data-reward-info'),
+          'cup-founders',
         );
       }
       const art = await page.evaluate(async () => {

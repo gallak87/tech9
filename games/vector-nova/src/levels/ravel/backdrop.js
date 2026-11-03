@@ -36,7 +36,7 @@ export function createRavelBackdrop() {
   });
   const sky = new T.Mesh(geometry, material);
   sky.frustumCulled = false;
-  sky.renderOrder = -1000;
+  sky.renderOrder = 1000;
   group.add(sky);
   let seed = 918217;
   const random = () =>
@@ -83,13 +83,13 @@ export function createRavelBackdrop() {
     group,
     sunDirection: SUN,
     sunColor: '#ffd2a0',
-    sunIntensity: 3.8,
+    sunIntensity: 2.7,
     ambientSky: '#a9bad5',
     ambientGround: '#2c2532',
     ambientIntensity: 0.75,
     fillColor: '#a7c7ff',
-    fillIntensity: 0.65,
-    environmentIntensity: 1.1,
+    fillIntensity: 0.8,
+    environmentIntensity: 1.5,
     far: 24000,
     update({ camera }) {
       group.position.copy(camera.position);

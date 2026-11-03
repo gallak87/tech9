@@ -4,9 +4,9 @@
     {
       "id": "ravel-solar-loom",
       "source": "src/levels/ravel/ and assets/levels/ravel/",
-      "creator": "VECTOR//NOVA project",
-      "provenance": "Original physically drivable asymmetric sail basins, braided paths, analytic traveling membrane waves, ballistic transfers, foil shaders, layered upper collector sails and deterministic star radiance. Original Blender anchor fleet uses retained editable source and scalar PBR materials. Connected machinery borrows the public Worldkit industrial kit and canonical generated steel/enamel finish; reference imagegen concepts are retained separately and never rendered as scenery.",
-      "rights": "Project-authored code, geometry, Blender meshes and procedural radiance; original generated Worldkit finish maps. No downloaded third-party models or artwork.",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original physically drivable asymmetric sail basins, braided paths, analytic traveling membrane waves, ballistic transfers, foil shaders, layered upper collector sails and deterministic star radiance. One Ascent collector uses a retained Blender-authored surface cage with an asymmetric S-fold and fixed perimeter, reconstructed by the native mesh generator. Original Blender anchor fleet and transverse tension galleries retain editable sources, reproducible builders, named sockets and scalar PBR materials. A separately retained Blender ventral service insert adds formed keel coamings, recessed bays, open ribs and seated nozzle cuffs on two prominent carriers, sharing their original materials and existing batches. Small seated underside rim fittings and outboard load arms connect the galleries to the sail edges. Native supports in src/levels/ravel/bearing.js seat one retained fleet spindle at the first roll; src/levels/ravel/track/reinforcement.js supplies original composite weave and formed bond shading without new image assets. An original generated foil height field supplies linear bump relief for irregular strain creases; the retained source and runtime PNGs are byte-identical, with no baked lighting or geometry displacement. Connected machinery borrows the public Worldkit industrial kit and canonical generated steel/enamel finish; reference imagegen concepts are retained separately and never rendered as scenery.",
+      "rights": "Project-authored code, geometry, Blender meshes and procedural radiance; original generated foil height and Worldkit finish maps. No downloaded third-party models or artwork.",
       "runtimeDependencies": [
         "three",
         "@dimforge/rapier3d-compat",
@@ -15,13 +15,32 @@
       "provenanceRecords": [
         "assets/levels/ravel/reference/provenance.json",
         "assets/levels/ravel/blender/anchor-fleet-provenance.json",
+        "assets/levels/ravel/blender/tension-gallery-provenance.json",
+        "assets/levels/ravel/materials/provenance.json",
         "../../worldkit/modules/industrial/assets/provenance.json",
-        "../../worldkit/modules/industrial/assets/enamel-provenance.json"
+        "../../worldkit/modules/industrial/assets/enamel-provenance.json",
+        "assets/levels/ravel/blender/ventral-service-insert-provenance.json",
+        "assets/levels/ravel/blender/collector-fold-provenance.json"
       ],
       "runtimeAssets": [
         "public/assets/levels/ravel/anchor-fleet.glb",
+        "public/assets/levels/ravel/tension-gallery.glb",
+        "public/assets/levels/ravel/sail-foil-height-v1.png",
         "../../worldkit/modules/industrial/assets/rolled-steel-v1.png",
-        "../../worldkit/modules/industrial/assets/worn-enamel-v1.png"
+        "../../worldkit/modules/industrial/assets/worn-enamel-v1.png",
+        "public/assets/levels/ravel/ventral-service-insert.glb"
+      ],
+      "sourceAssets": [
+        "assets/levels/ravel/materials/foil-height-source-v1.png",
+        "assets/levels/ravel/blender/ravel-anchor-fleet.blend",
+        "assets/levels/ravel/blender/build_anchor_fleet.py",
+        "assets/levels/ravel/blender/ravel-tension-gallery.blend",
+        "assets/levels/ravel/blender/build_tension_gallery.py",
+        "assets/levels/ravel/blender/build_ventral_service_insert.py",
+        "assets/levels/ravel/blender/ravel-ventral-service-insert.blend",
+        "assets/levels/ravel/blender/build_collector_fold.py",
+        "assets/levels/ravel/blender/ravel-ascent-collector-fold.blend",
+        "src/levels/ravel/collector-fold-data.js"
       ]
     },
     {

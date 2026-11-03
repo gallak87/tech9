@@ -21,7 +21,9 @@ export function createDevices(track) {
     for (const s of [start, distance, end])
       for (const x of [lateral - width / 2, lateral, lateral + width / 2])
         if ((track.surfaceCoverage?.(s, x) ?? 1) <= 0) return;
-    plan.push({ id, type, distance, lateral, width, length, label });
+    const device = { id, type, distance, lateral, width, length, label };
+    if (type === 'vector' && length >= 200) device.lowChevronSpacing = 32;
+    plan.push(device);
   }
   add('ravel-opening-vector', 'vector', 350, 0, 14, 70, 'Sail departure');
   const braid = track.braid;
@@ -76,6 +78,18 @@ export function createDevices(track) {
       section.name,
     );
   }
+  // Optional combat choices stay off the central guides, on static support.
+  // Inner Ion sits on the quiet ribbon, clear of the middle sail's waves;
+  // the longer outer sail keeps its uninterrupted sustained Vector reward.
+  for (const [id, type, distance, lateral, label] of [
+    ['ravel-saddle-aegis', 'aegis', 3500, 28, 'Tension saddle counterplay'],
+    ['ravel-saddle-arc', 'arc', 3590, -28, 'Tension saddle Arc lane'],
+    ['ravel-fan-aegis', 'aegis', 7460, -28, 'Braided fan counterplay'],
+    ['ravel-fan-repulsor', 'repulsor', 7600, 28, 'Braided fan Repulsor lane'],
+    ['ravel-inner-combat-aegis', 'aegis', 8720, -75, 'Inner sail counterplay'],
+    ['ravel-inner-ion', 'ion', 8850, -125, 'Inner sail Ion lane'],
+  ])
+    add(id, type, distance, lateral, 8, type === 'aegis' ? 8 : 10, label);
   return createDeviceLayout(
     track,
     plan.sort((a, b) => a.distance - b.distance),

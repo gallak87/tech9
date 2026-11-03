@@ -155,6 +155,19 @@ export function createSurfaceProjector(track, surfaces) {
             for (let i = 0; i < polygon.length; i++) {
               const a = polygon[i],
                 b = polygon[(i + 1) % polygon.length];
+              if (track.deviceOutlineSkirts) {
+                // Adjacent projected triangles already meet. Internal skirts
+                // overlap on curved decks and can mask the painted surface.
+                const onOutline = shape.some((p, j) => {
+                  const q = shape[(j + 1) % shape.length];
+                  const length = Math.hypot(q[0] - p[0], q[1] - p[1]);
+                  return (
+                    Math.abs(cross(p, q, a.at)) <= length * 1e-5 &&
+                    Math.abs(cross(p, q, b.at)) <= length * 1e-5
+                  );
+                });
+                if (!onOutline) continue;
+              }
               const side = b.p.clone().sub(a.p).cross(n).normalize();
               for (const [v, lift] of [
                 [a, offset],

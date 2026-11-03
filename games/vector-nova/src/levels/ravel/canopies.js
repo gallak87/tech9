@@ -1,13 +1,36 @@
 import * as T from 'three';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createRavelMembraneMaterial } from './track/road.js';
+import {
+  COLLECTOR_FOLD_SIZE,
+  COLLECTOR_FOLD_OFFSETS,
+} from './collector-fold-data.js';
+
+// Blender-authored interior cage; the zero perimeter preserves every load hem.
+function collectorFold(u, v) {
+  const last = COLLECTOR_FOLD_SIZE - 1;
+  const col = T.MathUtils.clamp(u, 0, 1) * last,
+    row = T.MathUtils.clamp(v, 0, 1) * last;
+  const c = Math.min(last - 1, Math.floor(col)),
+    r = Math.min(last - 1, Math.floor(row));
+  const x = col - c,
+    y = row - r,
+    result = [0, 0, 0];
+  for (let j = 0; j < 2; j++)
+    for (let i = 0; i < 2; i++) {
+      const weight = (i ? x : 1 - x) * (j ? y : 1 - y);
+      const at = 3 * ((r + j) * COLLECTOR_FOLD_SIZE + c + i);
+      for (let axis = 0; axis < 3; axis++)
+        result[axis] += COLLECTOR_FOLD_OFFSETS[at + axis] * weight;
+    }
+  return result;
+}
 
 /** The upper, unmarked sails belong to the rig above the drivable membrane.
  * Sparse triangular mouths keep the race route and the star field exposed. */
-export function createRavelCanopies({ track }) {
+export function createRavelCanopies({ track, finish = null }) {
   const group = new T.Group();
   group.name = 'Ravel / overlapping upper sail folds';
-  const foil = createRavelMembraneMaterial('#ded4bb', 100000);
+  const foil = createRavelMembraneMaterial('#d6dcd9', null, finish);
   const edge = new T.MeshStandardMaterial({
     color: '#655344',
     metalness: 0.78,
@@ -27,14 +50,14 @@ export function createRavelCanopies({ track }) {
       lean: 310,
     },
     {
-      s: 3020,
-      length: 1000,
-      width: 1150,
-      side: 800,
-      lift: 600,
-      sag: 270,
-      yaw: 0.32,
-      lean: -250,
+      s: 3430,
+      length: 450,
+      width: 600,
+      side: 250,
+      lift: 350,
+      sag: 60,
+      yaw: -0.15,
+      lean: 250,
     },
     {
       s: 4920,
@@ -118,11 +141,12 @@ export function createRavelCanopies({ track }) {
         def.lean * (u - 0.5) +
         120 * (v - 0.5) +
         38 * Math.sin(v * Math.PI * 2) * Math.sin(u * Math.PI);
+      const fold = i === 1 ? collectorFold(u, v) : [0, 0, 0];
       return frame.position
         .clone()
-        .addScaledVector(right, x)
-        .addScaledVector(forward, z)
-        .addScaledVector(frame.up, h);
+        .addScaledVector(right, x + fold[0])
+        .addScaledVector(forward, z + fold[2])
+        .addScaledVector(frame.up, h + fold[1]);
     };
     let extra = 0;
     const clearance = () => {
@@ -135,12 +159,26 @@ export function createRavelCanopies({ track }) {
       return true;
     };
     while (!clearance() && extra < 1800) extra += 150;
+    if (i === 1)
+      group.userData.ravelAscentCollector = {
+        station: def.s,
+        hemAnchors: [
+          pos(0, 0.2, extra).toArray(),
+          pos(1, 0.25, extra).toArray(),
+        ],
+      };
     const vertices = [],
       uv = [],
       coords = [],
       indices = [];
-    const rows = Math.ceil(def.length / 20),
-      columns = Math.ceil(def.width / 20);
+    const rows = Math.max(
+        Math.ceil(def.length / 20),
+        i === 1 ? COLLECTOR_FOLD_SIZE - 1 : 0,
+      ),
+      columns = Math.max(
+        Math.ceil(def.width / 20),
+        i === 1 ? COLLECTOR_FOLD_SIZE - 1 : 0,
+      );
     for (let r = 0; r <= rows; r++)
       for (let c = 0; c <= columns; c++) {
         const u = c / columns,
@@ -182,16 +220,30 @@ export function createRavelCanopies({ track }) {
       );
     }
   }
-  const hemGeometry = mergeGeometries(hems, false);
-  hems.forEach((g) => g.dispose());
-  geometries.push(hemGeometry);
-  const hemMesh = new T.Mesh(hemGeometry, edge);
-  hemMesh.name = 'Ravel / upper sail load hems';
+  const hemMesh = new T.BatchedMesh(
+    hems.length,
+    hems.reduce((n, g) => n + g.attributes.position.count, 0),
+    hems.reduce((n, g) => n + (g.index?.count ?? 0), 0),
+    edge,
+  );
+  hemMesh.name = 'Ravel / culled upper sail load hems';
+  hemMesh.perObjectFrustumCulled = true;
+  hemMesh.sortObjects = false;
+  for (const g of hems) {
+    const id = hemMesh.addGeometry(g);
+    hemMesh.addInstance(id);
+    g.dispose();
+  }
+  hemMesh.computeBoundingSphere();
   group.add(hemMesh);
+  let disposed = false;
   return {
     group,
     dispose() {
+      if (disposed) return;
+      disposed = true;
       group.clear();
+      hemMesh.dispose();
       geometries.forEach((g) => g.dispose());
       foil.dispose();
       edge.dispose();

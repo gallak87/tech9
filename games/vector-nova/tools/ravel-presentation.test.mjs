@@ -2,6 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Vector3 } from 'three';
 import createLevel from '../src/levels/ravel/index.js';
+import { createRavelCanopies } from '../src/levels/ravel/canopies.js';
+import { createLowDeviceGeometry } from '../src/pickups/low-geometry.js';
+import { createSurfaceProjector } from '../src/pickups/surface-projector.js';
+import { disposeGroup } from '../src/pickups/geometry.js';
 
 const level = createLevel();
 const track = level.createTrack();
@@ -113,4 +117,56 @@ test('long outer ribbon has a materially longer live Vector strip', () => {
           'fixed boost hardware must stay on a steady ribbon',
         );
     }
+});
+
+test('Ravel upper-sail batches release safely across repeated cleanup', () => {
+  const canopies = createRavelCanopies({ track });
+  const hems = canopies.group.getObjectByName(
+    'Ravel / culled upper sail load hems',
+  );
+  assert.ok(hems?.isBatchedMesh);
+  canopies.dispose();
+  assert.equal(canopies.group.children.length, 0);
+  assert.doesNotThrow(() => canopies.dispose());
+});
+
+test('the 600m outer Vector keeps visible unlit direction cues along its full Low deck', () => {
+  const road = level.createRoad({ track });
+  const device = level.racing
+    .createDevices(track)
+    .find((d) => d.id === 'ravel-outer-long-vector');
+  const projector = createSurfaceProjector(
+    track,
+    road.group.children.filter((m) => m.userData.roadSurface),
+  );
+  const visual = createLowDeviceGeometry(track, device, projector);
+  try {
+    const geometry = visual.group.getObjectByName(
+      'Low pickup / symbol',
+    ).geometry;
+    const coords = geometry.attributes.roadCoord,
+      stations = [];
+    for (let i = 0; i < coords.count; i++)
+      if (Math.abs(coords.getX(i) - device.lateral) < 4.6)
+        stations.push(coords.getY(i));
+    const from = device.distance - device.length / 2,
+      to = device.distance + device.length / 2;
+    for (let s = from + 32; s < to - 24; s += 64)
+      assert.ok(
+        stations.some((at) => Math.abs(at - s) < 20),
+        `long boost deck has no near-centre cue around ${s}`,
+      );
+    assert.equal(
+      visual.group.children.length,
+      2,
+      'retain the inexpensive Low draw structure',
+    );
+    visual.group.traverse((o) => {
+      if (o.isMesh) assert.equal(o.material.isMeshBasicMaterial, true);
+    });
+  } finally {
+    disposeGroup(visual.group);
+    projector.dispose();
+    road.dispose();
+  }
 });

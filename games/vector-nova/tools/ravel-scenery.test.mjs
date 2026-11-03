@@ -93,6 +93,7 @@ function createSceneryQuery(root) {
         inverse: matrix.clone().invert(),
         bounds,
         name: `${object.name}/${instance}`,
+        rimMount: object.userData.ravelRimMount ?? null,
       };
       const id = records.push(record) - 1;
       const low = bounds.min.clone().divideScalar(cellSize).floor(),
@@ -107,7 +108,12 @@ function createSceneryQuery(root) {
     }
   });
   const transformed = new T.Triangle();
-  function firstIntersection(position, quaternion, half) {
+  function firstIntersection(
+    position,
+    quaternion,
+    half,
+    ignoreRimMounts = false,
+  ) {
     const localBox = new T.Box3(half.clone().negate(), half.clone());
     const pose = new T.Matrix4().compose(
       position,
@@ -125,6 +131,7 @@ function createSceneryQuery(root) {
           for (const id of cells.get(`${x}/${y}/${z}`) ?? []) ids.add(id);
     for (const id of ids) {
       const record = records[id];
+      if (ignoreRimMounts && record.rimMount) continue;
       if (!record.bounds.intersectsBox(worldBounds)) continue;
       const geometryBox = worldBounds.clone().applyMatrix4(record.inverse);
       const toHull = inversePose.clone().multiply(record.matrix);
@@ -157,21 +164,33 @@ function createSceneryQuery(root) {
 before(async () => {
   definition = createLevel();
   track = definition.createTrack();
-  // Run the production environment factory and actual GLB loader. Only its
-  // transport is adapted for Node: the GLB is local and has no image resources.
-  const bytes = await readFile(
-    new URL('../public/assets/levels/ravel/anchor-fleet.glb', import.meta.url),
+  // Run the production environment factory and both actual GLB loaders. Only
+  // transport is adapted for Node; these local kits have no image resources.
+  const assets = new Map(
+    await Promise.all(
+      [
+        'anchor-fleet.glb',
+        'tension-gallery.glb',
+        'ventral-service-insert.glb',
+      ].map(async (name) => [
+        `/assets/levels/ravel/${name}`,
+        await readFile(
+          new URL(`../public/assets/levels/ravel/${name}`, import.meta.url),
+        ),
+      ]),
+    ),
   );
+  const requested = new Set();
   const fetchBefore = globalThis.fetch;
   T.DefaultLoadingManager.setURLModifier(
     (url) => new URL(url, 'http://ravel-local.invalid/').href,
   );
   globalThis.fetch = async (request) => {
     const url = typeof request === 'string' ? request : request.url;
-    assert.ok(
-      url.endsWith('/assets/levels/ravel/anchor-fleet.glb'),
-      `unexpected environment resource ${url}`,
-    );
+    const path = [...assets.keys()].find((asset) => url.endsWith(asset));
+    assert.ok(path, `unexpected environment resource ${url}`);
+    const bytes = assets.get(path);
+    requested.add(path);
     return {
       status: 200,
       body: undefined,
@@ -185,6 +204,11 @@ before(async () => {
   try {
     environment = createRavelEnvironment({ track });
     await environment.ready;
+    assert.deepEqual(
+      [...requested].sort(),
+      [...assets.keys()].sort(),
+      'the production environment must load all actual Blender kits',
+    );
   } finally {
     globalThis.fetch = fetchBefore;
     T.DefaultLoadingManager.setURLModifier((url) => url);
@@ -250,26 +274,26 @@ test('real canopy and rigging triangles clear all drivable sheets and three bran
         const position = surface.position
           .clone()
           .addScaledVector(surface.up, 0.8);
+        // A seated underside bracket necessarily enters the broad 25m
+        // scenery margin. It still must clear the actual hull at every heading.
         const hit = scenery.firstIntersection(
           position,
           surface.quaternion,
           half,
+          true,
         );
-        if (hit) {
-          const raw = scenery.firstIntersection(
-            position,
-            surface.quaternion,
-            new T.Vector3(2.25, 0.72, 3.5),
-          );
-          if (hits.size < 60 && !hits.has(hit))
-            hits.set(hit, { distance, lateral, hit, rawHullHit: raw });
-          else if (raw && hits.has(hit) && !hits.get(hit).rawHullHit)
-            Object.assign(hits.get(hit), {
-              rawHullHit: raw,
-              rawDistance: distance,
-              rawLateral: lateral,
-            });
-        }
+        const raw = scenery.firstIntersection(
+          position,
+          surface.quaternion,
+          new T.Vector3(
+            4.25 + wavePadding,
+            1.3 + wavePadding,
+            4.25 + wavePadding,
+          ),
+        );
+        const key = hit ?? raw;
+        if (key && hits.size < 60 && !hits.has(key))
+          hits.set(key, { distance, lateral, hit, rawHullHit: raw });
         tested++;
       }
     }
@@ -278,8 +302,48 @@ test('real canopy and rigging triangles clear all drivable sheets and three bran
   assert.deepEqual(
     [...hits.values()],
     [],
-    'actual scenery must clear the full supported driving envelope by 25m',
+    'ordinary scenery must clear25m; every mesh, including seated underside mounts, must clear the full hull',
   );
+});
+
+test('seated rim mounts preserve hull clearance at every heading along the actual foil boundary', () => {
+  const mounts = [];
+  environment.group.traverse((object) => {
+    if (object.userData.ravelRimMount)
+      mounts.push(object.userData.ravelRimMount);
+  });
+  assert.ok(
+    mounts.length >= 2 && mounts.length <= 16,
+    'only declared small under-rim attachment meshes receive the margin exception',
+  );
+  for (const mount of mounts) {
+    const s = mount.station ?? mount.distance,
+      side = mount.side;
+    assert.ok(Number.isFinite(s) && Math.abs(side) === 1);
+    for (let ds = -18; ds <= 18; ds += 1.5)
+      for (let inset = 0; inset <= 12; inset += 1.5) {
+        const at = s + ds,
+          bounds = track.sheetBoundsAt(at) ?? track.branchAt(at, 0);
+        const x = (side < 0 ? bounds.min : bounds.max) - side * inset;
+        assert.equal(
+          sampleRavelWave(track, at, x, 0).weight,
+          0,
+          'the structural attachment seats on a fixed rim',
+        );
+        const f = track.surfaceAtTime(at, x, 0),
+          position = f.position.clone().addScaledVector(f.up, 0.8);
+        const hit = scenery.firstIntersection(
+          position,
+          f.quaternion,
+          new T.Vector3(4.25, 1.3, 4.25),
+        );
+        assert.equal(
+          hit,
+          null,
+          `rim attachment enters a craft envelope at ${at},${x}: ${hit}`,
+        );
+      }
+  }
 });
 
 test('actual physical jump paths clear canopy and rigging geometry across fleet speed envelopes', async () => {

@@ -79,8 +79,22 @@ export function createLowDeviceGeometry(
       );
   };
   if (device.type === 'vector') {
-    const reach = Math.min(w * 0.65, 2);
-    for (const offset of [-h * 0.55, 0, h * 0.55])
+    // Long authored strips keep unlit direction cues throughout their length.
+    // The ordinary three-glyph fallback remains unchanged for other devices.
+    const spacing =
+      Number.isFinite(device.lowChevronSpacing) && device.lowChevronSpacing >= 8
+        ? device.lowChevronSpacing
+        : null;
+    const reach = Math.min(w * 0.65, spacing ? 8 : 2);
+    const offsets = spacing
+      ? Array.from(
+          {
+            length: Math.max(1, Math.floor((device.length - 16) / spacing) + 1),
+          },
+          (_, i) => -h + 8 + i * spacing,
+        )
+      : [-h * 0.55, 0, h * 0.55];
+    for (const offset of offsets)
       path([
         [-reach, offset - 0.6],
         [0, offset + 0.6],

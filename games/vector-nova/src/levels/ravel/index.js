@@ -19,6 +19,7 @@ export function createPlayableRavelTrack() {
   installRavelBranches(track);
   installRavelSheets(track, { includeAdditional: true });
   track.width = 1500;
+  track.deviceOutlineSkirts = true;
   installRavelWaves(track);
   // Reinforced seams are visibly open low edges; crossing them loses support.
   track.boundaryIntervals = [];

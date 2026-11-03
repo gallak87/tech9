@@ -1,6 +1,9 @@
 import * as T from 'three';
 import { batchRavelRoad } from './batches.js';
+import { createRavelFoilFinish } from '../foil.js';
 import { RAVEL_WAVE_RULES } from '../waves.js';
+import { installRavelAONormalPass } from '../ao-normal.js';
+import { carbonFunctions, createRavelBondMaterial } from './reinforcement.js';
 
 const resolve = (value, s) => (typeof value === 'function' ? value(s) : value);
 const point = (track, s, x, time) =>
@@ -10,11 +13,17 @@ const point = (track, s, x, time) =>
         .position;
 const bounds = (band, s) => [resolve(band.min, s), resolve(band.max, s)];
 const covered = (track, s, x) => (track.surfaceCoverage?.(s, x) ?? 1) > 0;
+const smooth = (value) => {
+  const t = T.MathUtils.clamp(value, 0, 1);
+  return t * t * (3 - 2 * t);
+};
+const Y = new T.Vector3(0, 1, 0);
 
 function animateMaterial(material, clock) {
   const prepare = material.onBeforeCompile;
   const baseKey = material.customProgramCacheKey();
   material.flatShading = false;
+  material.defines = { ...material.defines, RAVEL_LIVE_SAIL: 1 };
   material.onBeforeCompile = (shader) => {
     prepare?.(shader);
     shader.uniforms.ravelTime = clock;
@@ -23,7 +32,8 @@ function animateMaterial(material, clock) {
         '#include <common>',
         `#include <common>
       uniform float ravelTime; attribute vec3 ravelWave; attribute vec3 ravelWaveUp;
-      attribute vec3 ravelDs; attribute vec3 ravelDx; attribute vec3 ravelUpDs; attribute vec3 ravelGradient;`,
+      attribute vec3 ravelDs; attribute vec3 ravelDx; attribute vec3 ravelUpDs; attribute vec3 ravelGradient;
+      attribute vec3 ravelCloth; varying vec3 ravelClothState;`,
       )
       .replace(
         '#include <beginnormal_vertex>',
@@ -41,20 +51,28 @@ function animateMaterial(material, clock) {
       )
       .replace(
         '#include <begin_vertex>',
-        '#include <begin_vertex>\ntransformed += ravelWaveUp * ravelWave.x * (.5 + .5*cos(ravelWave.y + ravelWave.z*ravelTime));',
+        '#include <begin_vertex>\nravelClothState=ravelCloth;\ntransformed += ravelWaveUp * ravelWave.x * (.5 + .5*cos(ravelWave.y + ravelWave.z*ravelTime));',
       );
   };
-  material.customProgramCacheKey = () => baseKey + '-live-membrane-v2';
-  return material;
+  const fragment = material.onBeforeCompile;
+  material.onBeforeCompile = (shader) => {
+    fragment(shader);
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <common>',
+      '#include <common>\nvarying vec3 ravelClothState;',
+    );
+  };
+  material.customProgramCacheKey = () => baseKey + '-live-membrane-v3-cloth';
+  return installRavelAONormalPass(material);
 }
 
-export function createRavelMembraneMaterial(color, center = 0) {
+export function createRavelMembraneMaterial(color, center = 0, finish = null) {
   const material = new T.MeshPhysicalMaterial({
     name: 'Ravel / bonded aluminized sail cloth',
     color,
-    roughness: 0.29,
-    metalness: 0.68,
-    clearcoat: 0.35,
+    roughness: 0.38,
+    metalness: 0.88,
+    clearcoat: 0.15,
     clearcoatRoughness: 0.3,
     side: T.DoubleSide,
   });
@@ -67,13 +85,41 @@ export function createRavelMembraneMaterial(color, center = 0) {
       )
       .replace(
         '#include <begin_vertex>',
-        '#include <begin_vertex>\nsailCoord=roadCoord;',
+        `#include <begin_vertex>
+        sailCoord=roadCoord;
+        #ifdef USE_BUMPMAP
+        vBumpMapUv=(bumpMapTransform*vec3(roadCoord.y/72.,roadCoord.x/96.,1.)).xy;
+        #endif`,
       );
+    // Collector sails share the foil finish, without evaluating the racing
+    // reinforcement that can never be visible on their unmarked surface.
+    if (center === null) {
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          '#include <common>',
+          `#include <common>
+          varying vec2 sailCoord;
+          float sailHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}`,
+        )
+        .replace(
+          '#include <map_fragment>',
+          `#include <map_fragment>
+          vec2 panelCoord=sailCoord+vec2(mod(floor((sailCoord.y+6.)/12.),2.)*40.,6.);
+          vec2 panel=floor(panelCoord/vec2(80.,12.));
+          float variation=sailHash(panel);
+          vec2 cell=abs(fract(panelCoord/vec2(80.,12.)-.5)-.5)*vec2(80.,12.);
+          float seam=1.-smoothstep(.045,.045+max(fwidth(sailCoord.x),fwidth(sailCoord.y)),min(cell.y,cell.x*3.));
+          diffuseColor.rgb*=mix(.97,1.03,variation);
+          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.23,.19,.12),seam*.12);`,
+        );
+      return;
+    }
     shader.fragmentShader = shader.fragmentShader
       .replace(
         '#include <common>',
         `#include <common>
         varying vec2 sailCoord; uniform float racingCenter;
+        ${carbonFunctions}
         float sailLine(float distance, float width){return 1.-smoothstep(width,width+max(.015,fwidth(distance)),abs(distance));}
         float sailHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}`,
       )
@@ -84,36 +130,99 @@ export function createRavelMembraneMaterial(color, center = 0) {
         vec2 panel=floor(panelCoord/vec2(80.,12.));
         float variation=sailHash(panel);
         vec2 cell=abs(fract(panelCoord/vec2(80.,12.)-.5)-.5)*vec2(80.,12.);
-        float seam=1.-smoothstep(.045,.045+max(fwidth(sailCoord.x),fwidth(sailCoord.y)),min(cell.x,cell.y));
+        float seam=1.-smoothstep(.045,.045+max(fwidth(sailCoord.x),fwidth(sailCoord.y)),min(cell.y,cell.x*3.));
         float transverse=sailCoord.y-racingCenter-6.*sin(sailCoord.x/170.);
         float line=sailLine(transverse,7.);
         float pin=sailLine(abs(transverse)-7.4,.12);
-        float dash=step(.34,fract(sailCoord.x/24.));
+        float dash=step(.82,fract(sailCoord.x/32.));
         diffuseColor.rgb*=mix(.97,1.03,variation);
-        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.23,.19,.12),seam*.18);
-        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.15,.17,.17),line*.54);
+        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.23,.19,.12),seam*.12);
+        float reinforcement=1.;
+        vec2 carbonCoord=vec2(sailCoord.x,transverse)/.015;
+        float carbonPixel=max(fwidth(carbonCoord.x),fwidth(carbonCoord.y));
+        float carbonFade=1.-smoothstep(.35,.95,carbonPixel);
+        float tow=mix(.66,ravelTow(carbonCoord),carbonFade);
+        vec3 carbonColor=mix(vec3(.022,.029,.032),vec3(.029,.037,.040),tow);
+        diffuseColor.rgb=mix(diffuseColor.rgb,mix(vec3(.022,.029,.032),carbonColor,reinforcement),line*.95);
+        float lap=sailLine(abs(transverse)-7.55,.4)*reinforcement;
+        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.055,.064,.067),lap*.85);
         diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.54,.72,.66),pin*.8);
-        float arrow=sailLine(transverse,.16)*dash;
-        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.85,.82,.62),arrow*.65);`,
+        float glyphS=mod(sailCoord.x+20.,40.)-20.;
+        float glyphPixel=max(.015,max(fwidth(sailCoord.x),fwidth(transverse)));
+        float glyph=(1.-smoothstep(.1,.1+glyphPixel,abs(glyphS+abs(transverse)*1.2)))*(1.-smoothstep(1.3,1.3+glyphPixel,abs(transverse)));
+        float arrow=mix(sailLine(transverse,.16)*dash,glyph,reinforcement);
+        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.85,.82,.62),arrow*.65);
+        #ifdef RAVEL_LIVE_SAIL
+        // Reinforced quiet cloth sits on the actual fixed seam. Curved welds
+        // cross the live bed, so their shape exposes the passing billow.
+        float quietAcross=sailCoord.y-ravelClothState.x-sin(sailCoord.x/160.);
+        float quiet=ravelClothState.y*sailLine(quietAcross,6.);
+        float quietPin=ravelClothState.y*sailLine(abs(quietAcross)-6.4,.10);
+        float bondCoord=sailCoord.x+.0025*pow(sailCoord.y-racingCenter,2.);
+        float bondDistance=mod(bondCoord+12.,24.)-12.;
+        float bondPixel=max(.015,fwidth(bondCoord));
+        float bondFade=1.-smoothstep(4.,12.,bondPixel);
+        float bond=ravelClothState.z*bondFade*(1.-smoothstep(.16,.16+bondPixel,abs(bondDistance)))*(1.-sailLine(quietAcross,6.8));
+        float quietWeave=.94+.06*sin(sailCoord.x*2.1);
+        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.075,.13,.15)*quietWeave,quiet*.75);
+        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.32,.37,.38),bond*.65);
+        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.62,.72,.70),quietPin*.65);
+        #endif`,
       )
       .replace(
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
-        roughnessFactor=mix(roughnessFactor, .4, line);
-        roughnessFactor+=sin(sailCoord.x*.71+sailCoord.y*.31)*.025;`,
+        roughnessFactor=mix(roughnessFactor,mix(.78,.70+.06*(1.-tow),reinforcement),line);
+        #ifdef RAVEL_LIVE_SAIL
+        roughnessFactor=mix(roughnessFactor,.48,quiet);
+        roughnessFactor=mix(roughnessFactor,.25,bond);
+        #endif
+`,
       )
       .replace(
         '#include <normal_fragment_maps>',
-        `#include <normal_fragment_maps>
-        float strain=sailCoord.x*.72+sin(sailCoord.y*.21)*2.+sin(sailCoord.x*.09+sailCoord.y*.18);
-        float fiber=sailCoord.y*2.6+sin(sailCoord.x*.38)*.8;
-        float fold=(sin(strain)*.026+sin(fiber)*.006)*(1.-smoothstep(.3,1.1,max(fwidth(strain),fwidth(fiber))));
-        vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition);
-        vec3 rx=cross(sy,normal),ry=cross(normal,sx);float det=dot(sx,rx);
-        normal=normalize(abs(det)*normal-sign(det)*(dFdx(fold)*rx+dFdy(fold)*ry)*(1.-line*.7));`,
+        `vec3 foilNormal=normal;
+        #include <normal_fragment_maps>
+        #ifdef USE_BUMPMAP
+        normal=normalize(mix(normal,foilNormal,line*reinforcement*.65));
+        vec2 fiberDx=dFdx(carbonCoord),fiberDy=dFdy(carbonCoord);
+        float h=ravelTow(carbonCoord);
+        vec2 fiberSlope=vec2(ravelTow(carbonCoord+fiberDx)-h,ravelTow(carbonCoord+fiberDy)-h)*.0008*carbonFade*line*reinforcement;
+        normal=perturbNormalArb(-vViewPosition,normal,fiberSlope,faceDirection);
+        #endif
+        #if defined(RAVEL_LIVE_SAIL) && defined(USE_BUMPMAP)
+        float weldWidth=max(.30,bondPixel);
+        float weldHeight=.025*min(1.,.30/weldWidth)*ravelClothState.z*bondFade*exp(-pow(bondDistance/weldWidth,2.))*(1.-sailLine(quietAcross,6.8));
+        normal=perturbNormalArb(-vViewPosition,normal,vec2(dFdx(weldHeight),dFdy(weldHeight)),faceDirection);
+        #endif`,
+      )
+      .replace(
+        '#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>
+        totalEmissiveRadiance+=vec3(.12,.24,.20)*pin*.6;
+        #ifdef RAVEL_LIVE_SAIL
+        totalEmissiveRadiance+=vec3(.08,.14,.16)*quietPin*.22;
+        #endif`,
+      )
+      .replace(
+        '#include <lights_physical_fragment>',
+        `#include <lights_physical_fragment>
+        material.specularColor*=mix(1.,.4,line);
+        #ifdef USE_CLEARCOAT
+        material.clearcoat*=1.-line;
+        #endif`,
+      )
+      .replace(
+        '#include <metalnessmap_fragment>',
+        `#include <metalnessmap_fragment>
+        metalnessFactor=mix(metalnessFactor,.18,line);`,
       );
   };
-  material.customProgramCacheKey = () => 'ravel-aluminized-membrane-v3';
+  material.customProgramCacheKey = () =>
+    center === null
+      ? 'ravel-unmarked-collector-v1'
+      : 'ravel-aluminized-membrane-v8-reinforcement';
+  finish?.bind(material);
   return material;
 }
 
@@ -151,6 +260,7 @@ function gridGeometry(
     indices = [],
     stations = [],
     waveParams = [],
+    cloth = [],
     waveUps = [],
     alongs = [],
     acrosses = [],
@@ -171,6 +281,34 @@ function gridGeometry(
       const wave = track.waveAt(s, x, 0);
       const up = track.sample(s).up;
       const zone = wave.zone;
+      const center = { inner: -100, middle: 0, outer: 100 }[band.branch] ?? 0;
+      const half = zone?.halfWidth ?? (band.branch === 'middle' ? 40 : 50);
+      const fade = zone
+        ? Math.min(
+            zone.fadeLength ?? RAVEL_WAVE_RULES.fadeLength,
+            (zone.end - zone.start) / 3,
+          )
+        : 1;
+      const across = x - center;
+      const outer = zone
+        ? 1 -
+          smooth(
+            (Math.abs(across) -
+              (zone.outerFadeStart ?? RAVEL_WAVE_RULES.outerFadeStart)) /
+              ((zone.outerFadeEnd ?? RAVEL_WAVE_RULES.outerFadeEnd) -
+                (zone.outerFadeStart ?? RAVEL_WAVE_RULES.outerFadeStart)),
+          )
+        : 0;
+      const envelope = zone
+        ? smooth((s - zone.start) / fade) *
+          smooth((zone.end - s) / fade) *
+          outer
+        : 0;
+      cloth.push(
+        center - half + RAVEL_WAVE_RULES.edgeWidth / 2,
+        envelope,
+        wave.weight,
+      );
       const amplitude =
         (zone?.amplitude ?? RAVEL_WAVE_RULES.amplitude) * wave.weight;
       const frequency =
@@ -248,6 +386,7 @@ function gridGeometry(
       2,
     ),
   );
+  geometry.setAttribute('ravelCloth', new T.Float32BufferAttribute(cloth, 3));
   geometry.setAttribute(
     'ravelWave',
     new T.Float32BufferAttribute(waveParams, 3),
@@ -270,16 +409,19 @@ function gridGeometry(
   return { geometry, stations, side };
 }
 
-export function createRavelRoad({ track, collisionOnly = false }) {
+export function createRavelRoad({ track, collisionOnly = false, view = null }) {
   const group = new T.Group();
   group.name = 'Ravel / live aluminized sail terrain';
   const waveClock = { value: 0 };
   group.userData.waveClock = waveClock;
+  const foilFinish = createRavelFoilFinish(
+    collisionOnly ? null : view?.renderer,
+  );
   const materials = {
-    main: createRavelMembraneMaterial('#d8dddb'),
-    inner: createRavelMembraneMaterial('#cfdcd4', -100),
-    middle: createRavelMembraneMaterial('#d7dce3'),
-    outer: createRavelMembraneMaterial('#e1ccad', 100),
+    main: createRavelMembraneMaterial('#d8dddb', 0, foilFinish),
+    inner: createRavelMembraneMaterial('#cfdcd4', -100, foilFinish),
+    middle: createRavelMembraneMaterial('#d7dce3', 0, foilFinish),
+    outer: createRavelMembraneMaterial('#e1ccad', 100, foilFinish),
   };
   const edge = new T.MeshStandardMaterial({
     color: '#625846',
@@ -289,12 +431,7 @@ export function createRavelRoad({ track, collisionOnly = false }) {
   });
   for (const m of [...Object.values(materials), edge])
     animateMaterial(m, waveClock);
-  const lineEdge = new T.MeshStandardMaterial({
-    color: '#a3a295',
-    metalness: 0.78,
-    roughness: 0.3,
-    side: T.DoubleSide,
-  });
+  const lineEdge = createRavelBondMaterial();
   animateMaterial(lineEdge, waveClock);
   const marker = new T.MeshStandardMaterial({
     color: '#f0cb75',
@@ -353,7 +490,15 @@ export function createRavelRoad({ track, collisionOnly = false }) {
       const mat = materials[band.branch] ?? materials.main;
       add(
         `Ravel ${band.id} membrane ${i}`,
-        gridGeometry(track, band, start, end, 0, null, collisionOnly ? 8 : 4),
+        gridGeometry(
+          track,
+          band,
+          start,
+          end,
+          0,
+          null,
+          collisionOnly ? 8 : dynamic ? 4 : 12,
+        ),
         mat,
         dynamic,
         true,
@@ -395,21 +540,33 @@ export function createRavelRoad({ track, collisionOnly = false }) {
         const s = jump.takeoff - before;
         const x = jump.optional ? (jump.lateralMin + jump.lateralMax) / 2 : 0;
         if (!covered(track, s, x)) continue;
-        const f = track.surfaceAtTime(s, x, 0);
-        const mesh = new T.Mesh(cube, marker);
-        mesh.name = 'Ravel jump approach chevron';
-        mesh.position.copy(f.position).addScaledVector(f.up, 0.09);
-        mesh.quaternion.copy(f.quaternion);
-        mesh.scale.set(
-          jump.optional
-            ? Math.max(12, (jump.lateralMax - jump.lateralMin) * 0.7)
-            : (track.mainWidth ?? 100) * 0.75,
-          0.12,
-          1.4,
-        );
-        group.add(mesh);
-        if ((track.waveZones ?? []).some((z) => s >= z.start && s <= z.end))
-          mounts.push({ mesh, s, x });
+        const crest = jump.optional && jump.lane === 'crest';
+        const pieces = crest ? [-1, 1] : [0];
+        for (const side of pieces) {
+          const across = x + (crest ? side * 3.1 : 0);
+          const yaw = crest ? side * 0.42 : 0;
+          const f = track.surfaceAtTime(s, across, 0);
+          const mesh = new T.Mesh(cube, marker);
+          mesh.name = crest
+            ? 'Ravel crest-cut approach chevron'
+            : 'Ravel jump approach chevron';
+          mesh.position.copy(f.position).addScaledVector(f.up, 0.09);
+          mesh.quaternion
+            .copy(f.quaternion)
+            .multiply(new T.Quaternion().setFromAxisAngle(Y, yaw));
+          mesh.scale.set(
+            crest
+              ? 7
+              : jump.optional
+                ? Math.max(12, (jump.lateralMax - jump.lateralMin) * 0.7)
+                : (track.mainWidth ?? 100) * 0.75,
+            0.12,
+            crest ? 0.7 : 1.4,
+          );
+          group.add(mesh);
+          if ((track.waveZones ?? []).some((z) => s >= z.start && s <= z.end))
+            mounts.push({ mesh, s, x: across, yaw });
+        }
       }
       const s = jump.landingStart + 6;
       const f = track.sample(s);
@@ -441,15 +598,19 @@ export function createRavelRoad({ track, collisionOnly = false }) {
     disposed = false;
   return {
     group,
+    ready: foilFinish.ready,
+    foilFinish,
     update({ time = 0 }) {
       if (disposed || lastTime === time) return;
       lastTime = time;
       group.userData.sampleTime = time;
       waveClock.value = time;
-      for (const { mesh, s, x } of mounts) {
+      for (const { mesh, s, x, yaw = 0 } of mounts) {
         const f = track.surfaceAtTime(s, x, time);
         mesh.position.copy(f.position).addScaledVector(f.up, 0.09);
-        mesh.quaternion.copy(f.quaternion);
+        mesh.quaternion
+          .copy(f.quaternion)
+          .multiply(new T.Quaternion().setFromAxisAngle(Y, yaw));
       }
     },
     dispose() {
@@ -460,6 +621,7 @@ export function createRavelRoad({ track, collisionOnly = false }) {
       for (const m of [...Object.values(materials), edge, lineEdge, marker])
         m.dispose();
       group.clear();
+      foilFinish.dispose();
       mounts.length = 0;
     },
   };

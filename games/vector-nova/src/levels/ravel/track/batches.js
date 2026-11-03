@@ -61,7 +61,7 @@ export function batchRavelRoad(entries) {
           drivingSurface: driving,
           roadSurface: driving,
           deforming,
-          aoExclude: deforming,
+          aoExclude: deforming && !material.userData.ravelAONormalPass,
           chunkCount: meshes.length,
         };
         batch.receiveShadow = !deforming;

@@ -6,6 +6,7 @@ import {
   ENHANCEMENTS,
   enhancementRanks,
   REWARDS,
+  requirementText,
 } from '../progression/catalog.js';
 import {
   equipmentCapacity,
@@ -28,17 +29,21 @@ const fleet = ['shrike', 'bastion', 'needle', 'kestrel']
 function fleetUpgradesView(profile, stock) {
   const ranks = enhancementRanks(profile);
   const upgrades = ENHANCEMENTS.flatMap((stat) => {
+    const rank = ranks[stat.id];
     const reward = REWARDS.find(
-      (entry) => entry.stat === stat.id && entry.rank === ranks[stat.id],
+      (entry) => entry.stat === stat.id && entry.rank === (rank || 1),
     );
     if (!reward) return [];
     const benefit = `+${Math.round(stat.gains[reward.rank] * 100)}% across your fleet`;
-    const status = stock
-      ? 'Unlocked · Inactive in stock Time Trial'
-      : 'Unlocked · Applies automatically to every ship';
-    return `<div class="reward-chip-wrap rarity-${reward.rarity}"><button type="button" class="reward-chip garage-upgrade" data-fleet-upgrade="${reward.id}" aria-label="${escapeHTML(`${reward.name} · ${benefit} · ${status}`)}" aria-expanded="false" aria-describedby="garage-upgrade-${stat.id}">${rewardIcon(reward.id)}<span>${['I', 'II', 'III'][reward.rank - 1]}</span></button><div class="reward-tooltip" id="garage-upgrade-${stat.id}" role="tooltip" hidden><strong>${reward.name} · ${benefit}</strong></div></div>`;
+    const requirement = requirementText(reward.requirement);
+    const status = !rank
+      ? `Locked · ${requirement}`
+      : stock
+        ? 'Unlocked · Inactive in stock Time Trial'
+        : 'Unlocked · Applies automatically to every ship';
+    return `<div class="reward-chip-wrap rarity-${reward.rarity}"><button type="button" class="reward-chip garage-upgrade" data-fleet-upgrade="${reward.id}" data-fleet-state="${rank ? 'unlocked' : 'locked'}" aria-label="${escapeHTML(`${reward.name} · ${benefit} · ${status}`)}" aria-expanded="false" aria-describedby="garage-upgrade-${stat.id}">${rewardIcon(reward.id)}<span class="garage-upgrade-tier">${rank ? ['I', 'II', 'III'][rank - 1] : ''}</span></button><div class="reward-tooltip" id="garage-upgrade-${stat.id}" role="tooltip" hidden><strong>${reward.name} · ${benefit}</strong>${rank ? '' : `<small class="garage-upgrade-requirement">${escapeHTML(requirement)}</small>`}</div></div>`;
   });
-  return `<section class="garage-upgrades${stock ? ' is-inactive' : ''}" data-reward-fit aria-label="Unlocked fleet upgrades"><div class="garage-upgrades-heading"><h2>Fleet upgrades</h2><span>${stock ? 'Inactive · Stock rules' : 'All ships'}</span></div>${upgrades.length ? `<div class="garage-upgrade-list">${upgrades.join('')}</div>` : '<p class="garage-upgrades-empty">No fleet upgrades unlocked yet.</p>'}</section>`;
+  return `<section class="garage-upgrades${stock ? ' is-inactive' : ''}" data-reward-fit aria-label="Fleet upgrades"><div class="garage-upgrades-heading"><h2>Fleet upgrades</h2><span>${stock ? 'Inactive · Stock rules' : 'All ships'}</span></div><div class="garage-upgrade-list">${upgrades.join('')}</div></section>`;
 }
 
 export function garageView({

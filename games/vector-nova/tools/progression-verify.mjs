@@ -145,11 +145,33 @@ try {
     async (page) => {
       await open(page, '');
       await action(page, 'garage-tab');
-      assert.equal(await page.locator('[data-fleet-upgrade]').count(), 0);
-      assert.match(
-        await page.locator('.garage-upgrades').innerText(),
-        /No fleet upgrades unlocked yet/,
+      assert.deepEqual(await fleetUpgradeIds(page), [
+        'speed-1',
+        'acceleration-1',
+        'handling-1',
+        'braking-1',
+        'boost-1',
+        'toughness-1',
+      ]);
+      assert.equal(
+        await page.locator('[data-fleet-state="locked"]').count(),
+        6,
       );
+      assert.deepEqual(
+        await page.locator('[data-fleet-upgrade]').allTextContents(),
+        Array(6).fill(''),
+        'unearned stat categories have no earned tier numeral',
+      );
+      const detail = page.locator(
+        '.garage-upgrades .reward-tooltip:not([hidden])',
+      );
+      const freshProfile = (await state(page)).career.state;
+      await page.locator('[data-fleet-upgrade="speed-1"]').hover();
+      assert.match(await detail.innerText(), /Top speed I/);
+      assert.match(await detail.innerText(), /Finish your first valid race/i);
+      await page.mouse.move(10, 10);
+      assert.equal(await detail.count(), 0);
+      assert.deepEqual((await state(page)).career.state, freshProfile);
 
       const profile = await seedFleetUpgrades(page);
       await open(page, '');
@@ -158,8 +180,31 @@ try {
         () =>
           document.querySelector('.ship-preview')?.dataset.state === 'ready',
       );
-      const expected = ['speed-2', 'acceleration-1', 'boost-1'];
+      const expected = [
+        'speed-2',
+        'acceleration-1',
+        'handling-1',
+        'braking-1',
+        'boost-1',
+        'toughness-1',
+      ];
       assert.deepEqual(await fleetUpgradeIds(page), expected);
+      assert.deepEqual(
+        await page
+          .locator('[data-fleet-state="unlocked"]')
+          .evaluateAll((items) =>
+            items.map((item) => item.dataset.fleetUpgrade),
+          ),
+        ['speed-2', 'acceleration-1', 'boost-1'],
+      );
+      assert.equal(
+        await page.locator('[data-fleet-state="locked"]').count(),
+        3,
+      );
+      assert.deepEqual(
+        await page.locator('[data-fleet-state="locked"]').allTextContents(),
+        ['', '', ''],
+      );
       assert.match(
         await page.locator('.garage-upgrades').innerText(),
         /All ships/,
@@ -178,9 +223,6 @@ try {
       assert.match(await speed.getAttribute('aria-label'), /Top speed II/i);
       assert.match(await speed.getAttribute('aria-label'), /unlocked/i);
       await speed.hover();
-      const detail = page.locator(
-        '.garage-upgrades .reward-tooltip:not([hidden])',
-      );
       assert.match(await detail.innerText(), /Top speed II/);
       assert.match(await detail.innerText(), /\+10%/);
       assert.match(await detail.innerText(), /every ship|all ships|fleet/i);
@@ -221,6 +263,34 @@ try {
           ),
           'acceleration-1',
         );
+        if (controller) await pad(page, 15);
+        else await key(page, 'ArrowRight');
+        assert.equal(
+          await page.evaluate(
+            () => document.activeElement.dataset.fleetUpgrade,
+          ),
+          'handling-1',
+        );
+        assert.match(
+          await page
+            .locator('[data-fleet-upgrade="handling-1"]')
+            .getAttribute('aria-label'),
+          /\blocked\b/i,
+        );
+        if (controller) await pad(page, 0);
+        else await key(page, 'Enter');
+        assert.match(await detail.innerText(), /Handling I/);
+        assert.match(await detail.innerText(), /Earn 20 race progress/i);
+        if (controller) await pad(page, 1);
+        else await key(page, 'Escape');
+        assert.equal(await detail.count(), 0);
+        assert.equal(
+          await page.evaluate(
+            () => document.activeElement.dataset.fleetUpgrade,
+          ),
+          'handling-1',
+          'dismissing a locked upgrade keeps focus in its category',
+        );
         if (controller) await pad(page, 13);
         else await key(page, 'ArrowDown');
         assert.equal(
@@ -233,7 +303,7 @@ try {
       await key(page, 'End');
       assert.equal(
         await page.evaluate(() => document.activeElement.dataset.fleetUpgrade),
-        'boost-1',
+        'toughness-1',
       );
       await key(page, 'Home');
       assert.equal(
@@ -286,73 +356,97 @@ try {
 
   for (const [width, height] of [
     [390, 844],
+    [320, 700],
     [844, 390],
   ])
-    await check(
-      `responsive fleet upgrades stay compact and touch accessible ${width}x${height}`,
-      async (page) => {
-        await page.setViewportSize({ width, height });
-        await seedFleetUpgrades(page, true);
-        await open(page, '');
-        await action(page, 'garage-tab');
-        const expected = [
-          'speed-3',
-          'acceleration-3',
-          'handling-3',
-          'braking-3',
-          'boost-3',
-          'toughness-3',
-        ];
-        assert.deepEqual(await fleetUpgradeIds(page), expected);
-        assert.equal(await page.locator('.stat-notch').count(), 18);
-        assert.ok(
-          await page
-            .locator('.garage-upgrade-list')
-            .evaluate((strip) => strip.scrollWidth <= strip.clientWidth + 1),
-        );
-        for (const id of [expected[0], expected.at(-1)]) {
-          const chip = page.locator(`[data-fleet-upgrade="${id}"]`);
-          await chip.tap();
-          const tooltip = page.locator(
-            '.garage-upgrades .reward-tooltip:not([hidden])',
-          );
-          assert.equal(await tooltip.count(), 1);
-          const tooltipBox = await tooltip.boundingBox();
-          assert.ok(
-            await tooltip.evaluate((element) => {
-              const box = element.getBoundingClientRect();
-              return (
-                box.left >= 0 &&
-                box.right <= innerWidth &&
-                box.top >= 0 &&
-                box.bottom <= innerHeight
-              );
-            }),
-            `${id} tooltip must fit ${width}x${height}: ${JSON.stringify(tooltipBox)}`,
-          );
-          await key(page, 'Escape');
-          assert.equal(await tooltip.count(), 0);
+    for (const full of [false, true])
+      await check(
+        `responsive fleet upgrades stay compact and touch accessible ${width}x${height} ${full ? 'complete' : 'partial'}`,
+        async (page) => {
+          await page.setViewportSize({ width, height });
+          const profile = await seedFleetUpgrades(page, full);
+          await open(page, '');
+          await action(page, 'garage-tab');
+          const expected = full
+            ? [
+                'speed-3',
+                'acceleration-3',
+                'handling-3',
+                'braking-3',
+                'boost-3',
+                'toughness-3',
+              ]
+            : [
+                'speed-2',
+                'acceleration-1',
+                'handling-1',
+                'braking-1',
+                'boost-1',
+                'toughness-1',
+              ];
+          assert.deepEqual(await fleetUpgradeIds(page), expected);
           assert.equal(
-            await page.locator('.dedicated-garage:visible').count(),
-            1,
+            await page.locator('[data-fleet-state="locked"]').count(),
+            full ? 0 : 3,
           );
-        }
-        await action(page, 'race-tab');
-        await action(page, 'time-trial');
-        await action(page, 'garage-tab');
-        assert.deepEqual(await fleetUpgradeIds(page), expected);
-        assert.match(
-          await page.locator('.garage-upgrades').innerText(),
-          /Inactive · Stock rules/,
-        );
-        assert.equal(await page.locator('.stat-notch').count(), 0);
-        assert.ok(
-          await page
-            .locator('#front-shell')
-            .evaluate((shell) => shell.scrollWidth <= innerWidth),
-        );
-      },
-    );
+          assert.equal(
+            await page.locator('.stat-notch').count(),
+            full ? 18 : 4,
+          );
+          assert.ok(
+            await page
+              .locator('.garage-upgrade-list')
+              .evaluate((strip) => strip.scrollWidth <= strip.clientWidth + 1),
+          );
+          for (const id of [expected[0], expected.at(-1)]) {
+            const chip = page.locator(`[data-fleet-upgrade="${id}"]`);
+            await chip.tap();
+            const tooltip = page.locator(
+              '.garage-upgrades .reward-tooltip:not([hidden])',
+            );
+            assert.equal(await tooltip.count(), 1);
+            if (!full && id === expected.at(-1)) {
+              assert.match(await tooltip.innerText(), /Toughness I/);
+              assert.match(await tooltip.innerText(), /Earn 20 race progress/i);
+              assert.equal(await chip.innerText(), '');
+            }
+            const tooltipBox = await tooltip.boundingBox();
+            assert.ok(
+              await tooltip.evaluate((element) => {
+                const box = element.getBoundingClientRect();
+                return (
+                  box.left >= 0 &&
+                  box.right <= innerWidth &&
+                  box.top >= 0 &&
+                  box.bottom <= innerHeight
+                );
+              }),
+              `${id} tooltip must fit ${width}x${height}: ${JSON.stringify(tooltipBox)}`,
+            );
+            await key(page, 'Escape');
+            assert.equal(await tooltip.count(), 0);
+            assert.equal(
+              await page.locator('.dedicated-garage:visible').count(),
+              1,
+            );
+          }
+          await action(page, 'race-tab');
+          await action(page, 'time-trial');
+          await action(page, 'garage-tab');
+          assert.deepEqual(await fleetUpgradeIds(page), expected);
+          assert.match(
+            await page.locator('.garage-upgrades').innerText(),
+            /Inactive · Stock rules/,
+          );
+          assert.equal(await page.locator('.stat-notch').count(), 0);
+          assert.deepEqual((await state(page)).career.state, profile);
+          assert.ok(
+            await page
+              .locator('#front-shell')
+              .evaluate((shell) => shell.scrollWidth <= innerWidth),
+          );
+        },
+      );
 
   await check(
     'developer inspector shortcut restores AI racers and sound/effect auditions in both modes',

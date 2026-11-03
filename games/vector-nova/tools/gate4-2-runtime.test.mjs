@@ -2,6 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createVehicleState, stepVehicle } from '../src/physics/index.js';
 import { createHalcyonSimulationRuntime } from '../src/levels/halcyon/device-runtime.js';
+import { createDeviceRuntime } from '../src/pickups/runtime.js';
+import {
+  AEGIS_DURATION,
+  VECTOR_PROPULSION,
+} from '../src/pickups/simulation.js';
 import {
   advanceSession,
   createMagneticRuntime,
@@ -165,6 +170,106 @@ test('drive-over shield protects one real impact and a follow-up collision loses
   );
   assert.equal(run.runtime.snapshot().aegisRemaining, 0);
   assert.ok(run.state.energy < 60);
+});
+
+test('successive Aegis gates refresh through real physics ticks and replay from before the second gate', (t) => {
+  const state = { ...createVehicleState(), distance: 60, speed: 100 };
+  const runtime = createDeviceRuntime({
+    track,
+    devices: [70, 90].map((distance, index) => ({
+      id: `shield-${index}`,
+      type: 'aegis',
+      distance,
+      lateral: 0,
+      width: 8,
+      length: 8,
+    })),
+  });
+  t.after(() => runtime.dispose());
+  runtime.reset({ state });
+  while (state.distance < 80) runtime.advance(state, {}, dt);
+  assert.ok(runtime.snapshot().aegisRemaining < AEGIS_DURATION);
+  const saved = { state: structuredClone(state), runtime: runtime.snapshot() };
+  const collectSecond = () => {
+    const events = [];
+    for (let tick = 0; tick < 120 && state.distance < 91; tick++)
+      events.push(...runtime.advance(state, {}, dt));
+    assert.equal(runtime.snapshot().aegisDevice, 'shield-1');
+    assert.ok(runtime.snapshot().aegisRemaining > AEGIS_DURATION - 0.05);
+    assert.deepEqual(
+      events
+        .filter(({ type }) => type === 'pickup-activate')
+        .map(({ payload }) => payload.deviceId),
+      ['shield-1'],
+    );
+    assert.equal(
+      events.some(({ type }) => type === 'pickup-unavailable'),
+      false,
+    );
+    return {
+      state: structuredClone(state),
+      runtime: runtime.snapshot(),
+      events,
+    };
+  };
+  const expected = collectSecond();
+  Object.assign(state, saved.state);
+  runtime.restore(JSON.parse(JSON.stringify(saved.runtime)));
+  assert.deepEqual(collectSecond(), expected);
+});
+
+test('a second overlapping Vector strip grants its capped entry impulse through the runtime', (t) => {
+  const state = { ...createVehicleState(), distance: 43, speed: 10 };
+  const runtime = createDeviceRuntime({
+    track,
+    devices: [50, 54].map((distance, index) => ({
+      id: `strip-${index}`,
+      type: 'vector',
+      distance,
+      lateral: 0,
+      width: 8,
+      length: 4,
+    })),
+  });
+  t.after(() => runtime.dispose());
+  runtime.reset({ state });
+  const collected = [];
+  for (let tick = 0; tick < 120 && collected.length < 2; tick++) {
+    const speed = state.speed;
+    const events = runtime.advance(state, {}, dt);
+    for (const event of events.filter(
+      ({ type }) => type === 'pickup-activate',
+    )) {
+      collected.push(event.payload.deviceId);
+      assert.ok(
+        state.speed >= Math.min(speed + 60, VECTOR_PROPULSION.cruiseSpeed),
+      );
+      assert.ok(state.speed <= VECTOR_PROPULSION.cruiseSpeed);
+    }
+  }
+  assert.deepEqual(collected, ['strip-0', 'strip-1']);
+  assert.equal(runtime.snapshot().vectorDevice, 'strip-1');
+  assert.equal(runtime.snapshot().vectorActive, true);
+});
+
+test('shared pickup rules participate in custom and default runtime replay identities', (t) => {
+  const defaultRuntime = createDeviceRuntime({ track, devices: [] });
+  const customRuntime = createHalcyonSimulationRuntime({ track });
+  t.after(() => {
+    defaultRuntime.dispose();
+    customRuntime.dispose();
+  });
+  for (const runtime of [defaultRuntime, customRuntime]) {
+    const identity = runtimeIdentity(runtime);
+    assert.match(identity.rulesId, /:pickups-v3/);
+    assert.equal(
+      compatibleRuntime(runtime, {
+        ...identity,
+        rulesId: identity.rulesId.replace(':pickups-v3', ''),
+      }),
+      false,
+    );
+  }
 });
 
 test('pause and presentation updates do not advance deterministic effect time', () => {

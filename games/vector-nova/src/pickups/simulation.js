@@ -2,7 +2,7 @@ import { isCombatDevice } from './combat.js';
 import { VEHICLE_HULL, headingExtents } from '../physics/hull.js';
 import { AEGIS_DURATION } from './rules.js';
 export { AEGIS_DURATION } from './rules.js';
-export const PICKUP_STATE_VERSION = 2;
+export const PICKUP_STATE_VERSION = 3;
 export const VECTOR_ENTRY_SPEED_GAIN = 65;
 export const VECTOR_PROPULSION = Object.freeze({
   cruiseSpeed: 600 / 3.6,
@@ -291,14 +291,10 @@ export function createPickupSimulation({
     const { device, traversal } = contact;
     if (traversal <= state.used[device.id]) return;
     state.used[device.id] = traversal;
-    const reason =
-      finite(input?.brake) >= 0.1
-        ? 'braking'
-        : state.vectorActive
-          ? 'active'
-          : null;
-    if (reason) {
-      events.push(event('pickup-unavailable', 'vector', device.id, { reason }));
+    if (finite(input?.brake) >= 0.1) {
+      events.push(
+        event('pickup-unavailable', 'vector', device.id, { reason: 'braking' }),
+      );
       return;
     }
     state.vectorActive = true;
@@ -339,7 +335,7 @@ export function createPickupSimulation({
       events.push(clearVector('pickup-exit', 'left-strip'));
     if (state.vectorActive && finite(input?.brake) >= 0.1)
       events.push(clearVector('pickup-cancel', 'brake'));
-    if (!state.vectorActive && currentVehicle && movingForward(currentVehicle))
+    if (currentVehicle && movingForward(currentVehicle))
       for (const contact of sweptVectorContacts(
         currentVehicle,
         currentVehicle,
@@ -403,19 +399,13 @@ export function createPickupSimulation({
         );
         continue;
       }
-      if (state.aegisRemaining > 0)
-        events.push(
-          event('pickup-unavailable', 'aegis', device.id, { reason: 'active' }),
-        );
-      else {
-        state.aegisRemaining = AEGIS_DURATION;
-        state.aegisDevice = device.id;
-        events.push(
-          event('pickup-activate', 'aegis', device.id, {
-            duration: AEGIS_DURATION,
-          }),
-        );
-      }
+      state.aegisRemaining = AEGIS_DURATION;
+      state.aegisDevice = device.id;
+      events.push(
+        event('pickup-activate', 'aegis', device.id, {
+          duration: AEGIS_DURATION,
+        }),
+      );
     }
     if (
       state.vectorActive &&

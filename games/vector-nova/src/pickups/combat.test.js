@@ -232,33 +232,195 @@ test('every racer can collect the same combat gate together or close behind', ()
     );
   }
 });
-test('a racer cannot stack active weapons, without denying another racer', () => {
+test('a new weapon gate replaces an active weapon without denying another racer or removing its trails', () => {
   const h = harness();
   h.add('player', 100);
   h.add('rival', 108);
   h.collect('player', 'ion', 'wake');
-  h.step();
+  h.step(12);
   const burst = h.combat.view().emitters.player.burst;
+  const wakes = h.combat.view().wakes.map(({ id }) => id);
+  assert.ok(wakes.length);
   h.collect('player', 'arc', 'shared');
   h.collect('rival', 'arc', 'shared');
   h.step();
-  assert.equal(h.combat.view().emitters.player.kind, 'ion');
-  assert.equal(h.combat.view().emitters.player.burst, burst);
+  assert.equal(h.combat.view().emitters.player.kind, 'arc');
+  assert.notEqual(h.combat.view().emitters.player.burst, burst);
   assert.equal(h.combat.view().emitters.rival.kind, 'arc');
   assert.deepEqual(
     h.events.filter((e) => e.type === 'pickup-unavailable'),
-    [
-      {
-        id: 'player',
-        type: 'pickup-unavailable',
-        payload: {
-          kind: 'arc',
-          deviceId: 'shared',
-          reason: 'active',
-        },
-      },
-    ],
+    [],
   );
+  assert.ok(
+    wakes.every((id) => h.combat.view().wakes.some((wake) => wake.id === id)),
+  );
+  assert.ok(h.combat.view().wakeHits[burst]);
+});
+
+test('Repulsor reacquisition restarts its full charge before firing once', () => {
+  const h = harness();
+  h.add('player', 0);
+  h.collect('player', 'repulsor', 'first');
+  h.step(48);
+  const burst = h.combat.view().emitters.player.burst;
+  h.collect('player', 'repulsor', 'second');
+  h.step();
+  assert.equal(h.combat.view().emitters.player.deviceId, 'second');
+  assert.notEqual(h.combat.view().emitters.player.burst, burst);
+  h.step(15);
+  assert.equal(h.events.filter(({ type }) => type === 'combat-fire').length, 0);
+  h.step(48);
+  assert.equal(h.events.filter(({ type }) => type === 'combat-fire').length, 1);
+  assert.equal(h.combat.view().emitters.player, undefined);
+  assert.equal(
+    h.events.filter(({ type }) => type === 'pickup-activate').length,
+    2,
+  );
+});
+
+test('Arc reacquisition replenishes three shots while its fired bolt keeps flying', () => {
+  const h = harness();
+  h.add('player', 0);
+  h.collect('player', 'arc', 'first');
+  h.step(30);
+  const shot = h.combat.view().shots[0].id;
+  assert.equal(h.combat.view().emitters.player.shots, 1);
+  h.collect('player', 'arc', 'second');
+  h.step();
+  const emitter = h.combat.view().emitters.player;
+  assert.equal(emitter.deviceId, 'second');
+  assert.equal(emitter.shots, 0);
+  assert.ok(h.combat.view().shots.some(({ id }) => id === shot));
+  h.step(150);
+  assert.equal(h.events.filter(({ type }) => type === 'combat-fire').length, 4);
+  assert.equal(h.combat.view().emitters.player, undefined);
+});
+
+test('Ion reacquisition restarts its duration with an independent burst and preserves old wake ledgers', () => {
+  const h = harness();
+  h.add('player', 0, 0, 100);
+  h.collect('player', 'ion', 'first');
+  h.step(240);
+  const burst = h.combat.view().emitters.player.burst;
+  const ledger = structuredClone(h.combat.view().wakeHits[burst]);
+  const wake = h.combat.view().wakes[0].id;
+  h.collect('player', 'ion', 'second');
+  h.step();
+  const renewed = h.combat.view().emitters.player.burst;
+  assert.notEqual(renewed, burst);
+  assert.equal(h.combat.view().emitters.player.deviceId, 'second');
+  assert.deepEqual(h.combat.view().wakeHits[burst], ledger);
+  assert.deepEqual(h.combat.view().wakeHits[renewed].targets, []);
+  assert.ok(h.combat.view().wakes.some(({ id }) => id === wake));
+  h.step(450);
+  assert.equal(h.combat.view().emitters.player.burst, renewed);
+  h.step(100);
+  assert.equal(h.combat.view().emitters.player, undefined);
+});
+
+test('replacing Ion keeps its existing one-hit ledger until the old wake dies', () => {
+  const h = harness();
+  const source = h.add('player', 300, 0, 100);
+  const follower = h.add('follower', 100, 0, 100);
+  h.collect('player', 'ion');
+  h.step(300);
+  const burst = h.combat.view().emitters.player.burst;
+  assert.equal(follower.hits.length, 1);
+  assert.ok(h.combat.view().wakeHits[burst].targets.includes('follower'));
+  source.state.lateral = 12;
+  h.collect('player', 'arc');
+  h.step(180);
+  assert.ok(h.combat.view().wakes.some((wake) => wake.burst === burst));
+  assert.equal(
+    follower.hits.length,
+    1,
+    'expired grace cannot permit a second old-burst hit',
+  );
+  source.state.lateral = 0;
+  h.collect('player', 'ion', 'new-burst');
+  h.step(300);
+  assert.equal(
+    follower.hits.length,
+    2,
+    'a fresh Ion burst can hit the follower again',
+  );
+});
+
+test('same-tick weapon gates resolve by crossing order and stable device ID', () => {
+  for (const reverse of [false, true]) {
+    for (const tied of [false, true]) {
+      const h = harness();
+      h.add('player', 0);
+      const gates = [
+        ['ion', 'a', tied ? 0.5 : 0.2],
+        ['arc', 'z', tied ? 0.5 : 0.8],
+      ];
+      if (reverse) gates.reverse();
+      for (const [kind, deviceId, fraction] of gates)
+        h.collect('player', kind, deviceId, fraction);
+      h.step();
+      assert.equal(h.combat.view().emitters.player.kind, 'arc');
+      assert.equal(h.combat.view().emitters.player.deviceId, 'z');
+      assert.deepEqual(
+        h.events
+          .filter(({ type }) => type === 'pickup-activate')
+          .map(({ payload }) => payload.deviceId),
+        ['a', 'z'],
+      );
+    }
+  }
+});
+
+test('every cross-type gate cancels the old unfired program and starts the incoming weapon', () => {
+  for (const previous of ['repulsor', 'arc', 'ion'])
+    for (const next of ['repulsor', 'arc', 'ion']) {
+      if (previous === next) continue;
+      const h = harness();
+      h.add('player', 0);
+      h.collect('player', previous, 'first');
+      h.step(12);
+      h.collect('player', next, 'second');
+      h.step();
+      assert.equal(h.combat.view().emitters.player.kind, next);
+      h.step(180);
+      const fires = h.events.filter(({ type }) => type === 'combat-fire');
+      assert.equal(
+        fires.length,
+        next === 'arc' ? 3 : next === 'repulsor' ? 1 : 0,
+      );
+      assert.ok(fires.every(({ payload }) => payload.kind === next));
+      if (next === 'ion')
+        assert.equal(h.combat.view().emitters.player.kind, 'ion');
+      else assert.equal(h.combat.view().emitters.player, undefined);
+    }
+});
+
+test('refreshed emitters, flying shots and old Ion ledgers restore deterministically', () => {
+  const h = harness();
+  h.add('player', 0);
+  const target = h.add('target', 140);
+  h.collect('player', 'arc');
+  h.step(24);
+  h.collect('player', 'ion', 'first-ion');
+  h.step(24);
+  h.collect('player', 'ion', 'second-ion');
+  h.step();
+  const saved = h.combat.snapshot();
+  assert.ok(saved.shots.length);
+  assert.ok(saved.wakes.length);
+  assert.equal(Object.keys(saved.wakeHits).length, 2);
+  h.events.length = 0;
+  h.step(180);
+  const expected = h.combat.snapshot();
+  const events = structuredClone(h.events);
+  const hits = structuredClone(target.hits);
+  h.events.length = 0;
+  target.hits = [];
+  h.combat.restore(saved);
+  h.step(180);
+  assert.deepEqual(h.combat.snapshot(), expected);
+  assert.deepEqual(h.events, events);
+  assert.deepEqual(target.hits, hits);
 });
 test('arc fires exactly three swept bolts and reaches a separated rival', () => {
   const h = harness();

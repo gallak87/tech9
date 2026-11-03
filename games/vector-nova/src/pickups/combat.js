@@ -15,7 +15,7 @@ import {
 } from './rules.js';
 
 export const COMBAT_RULES = Object.freeze({
-  version: 5,
+  version: 6,
   consequences: COMBAT_CONSEQUENCES,
   pulseDelay: 0.5,
   pulseRadius: 108,
@@ -457,37 +457,33 @@ export function createCombatSimulation({
       requests.sort(
         (a, b) =>
           (a.event.payload.fraction ?? 0) - (b.event.payload.fraction ?? 0) ||
-          a.id.localeCompare(b.id),
+          a.id.localeCompare(b.id) ||
+          a.event.payload.deviceId.localeCompare(b.event.payload.deviceId),
       );
       for (const { id, event } of requests) {
         if (!eligible(id)) continue;
         const { kind, deviceId } = event.payload;
-        if (state.emitters[id])
-          notify(id, 'pickup-unavailable', {
-            kind,
-            deviceId,
-            reason: 'active',
-          });
-        else {
-          state.emitters[id] = {
-            kind,
-            deviceId,
-            elapsed: 0,
-            shots: 0,
-            nextWake: 0,
-            tail: null,
-            burst: state.sequence++,
+        // Each accepted gate starts its full program, replacing any emitter.
+        // Fired shots, deposited wakes and their burst hit ledgers still own
+        // their original lifetime independently of the refreshed emitter.
+        state.emitters[id] = {
+          kind,
+          deviceId,
+          elapsed: 0,
+          shots: 0,
+          nextWake: 0,
+          tail: null,
+          burst: state.sequence++,
+        };
+        if (kind === 'ion')
+          state.wakeHits[state.emitters[id].burst] = {
+            until:
+              state.time +
+              COMBAT_RULES.wakeDuration +
+              COMBAT_RULES.wakeLifetime,
+            targets: [],
           };
-          if (kind === 'ion')
-            state.wakeHits[state.emitters[id].burst] = {
-              until:
-                state.time +
-                COMBAT_RULES.wakeDuration +
-                COMBAT_RULES.wakeLifetime,
-              targets: [],
-            };
-          notify(id, 'pickup-activate', event.payload);
-        }
+        notify(id, 'pickup-activate', event.payload);
       }
       requests = [];
       for (const [id, emitter] of Object.entries(state.emitters)) {

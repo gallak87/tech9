@@ -106,6 +106,44 @@ test('a high-speed sweep through the whole strip emits entry and exit without le
   assert.equal(sim.snapshot().used.strip, 0);
 });
 
+test('a fresh Vector strip activates while the previous strip still overlaps the hull', () => {
+  const sim = simulation([
+    device('first', 'vector', 100),
+    device('second', 'vector', 120),
+  ]);
+  assert.equal(cross(sim, 0, 80)[0].payload.deviceId, 'first');
+  const events = cross(sim, 80, 100);
+  assert.deepEqual(events, [
+    {
+      type: 'pickup-activate',
+      payload: { kind: 'vector', deviceId: 'second', speedGain: 65 },
+    },
+  ]);
+  assert.equal(sim.snapshot().vectorDevice, 'second');
+  cross(sim, 100, 140);
+  assert.equal(sim.snapshot().vectorActive, true);
+  assert.deepEqual(sim.beforeStep(idle, dt, vehicle(140)).modifiers, {
+    propulsion: VECTOR_PROPULSION,
+  });
+  assert.equal(cross(sim, 140, 151)[0].type, 'pickup-exit');
+  assert.equal(sim.snapshot().vectorActive, false);
+});
+
+test('one fast sweep collects every distinct Vector strip in crossing order', () => {
+  const sim = simulation([
+    device('second', 'vector', 120),
+    device('first', 'vector', 100),
+  ]);
+  assert.deepEqual(
+    cross(sim, 0, 200).map(({ type, payload }) => [type, payload.deviceId]),
+    [
+      ['pickup-activate', 'first'],
+      ['pickup-activate', 'second'],
+      ['pickup-exit', 'second'],
+    ],
+  );
+});
+
 test('lateral entry remains eligible after the nose is already longitudinally over the strip', () => {
   const strip = device('strip', 'vector', 100, 0, 2);
   const sim = simulation([strip]);
@@ -269,6 +307,71 @@ test('Aegis expiry is exact and only a qualifying protected impact consumes the 
   assert.deepEqual(timed.beforeStep(idle, dt).modifiers, {});
 });
 
+test('each fresh Aegis gate refreshes the full duration and shield source, including after restore', () => {
+  for (const closed of [false, true]) {
+    const options = {
+      trackLength: 5000,
+      closed,
+      devices: [device('first', 'aegis', 10), device('second', 'aegis', 20)],
+      vehicle: vehicle(0),
+    };
+    const live = createPickupSimulation(options);
+    cross(live, 0, 10);
+    live.beforeStep(idle, 2.5, vehicle(10));
+    assert.equal(live.snapshot().aegisRemaining, AEGIS_DURATION - 2.5);
+    const replay = createPickupSimulation(options);
+    replay.restore(JSON.parse(JSON.stringify(live.snapshot())));
+    const events = cross(live, 10, 20);
+    assert.deepEqual(cross(replay, 10, 20), events);
+    assert.deepEqual(events, [
+      {
+        type: 'pickup-activate',
+        payload: {
+          kind: 'aegis',
+          deviceId: 'second',
+          duration: AEGIS_DURATION,
+        },
+      },
+    ]);
+    assert.equal(live.snapshot().aegisRemaining, AEGIS_DURATION);
+    assert.equal(live.snapshot().aegisDevice, 'second');
+    assert.deepEqual(replay.snapshot(), live.snapshot());
+    assert.deepEqual(live.beforeStep(idle, AEGIS_DURATION - dt).modifiers, {
+      shield: true,
+    });
+    assert.deepEqual(live.beforeStep(idle, dt).events, [
+      { type: 'pickup-expire', payload: { kind: 'aegis', deviceId: 'second' } },
+    ]);
+    assert.equal(live.snapshot().aegisRemaining, 0);
+    assert.equal(live.consumeShield(), null);
+  }
+});
+
+test('Aegis refresh retains one charge and cannot be farmed by reversing through a spent gate', () => {
+  const sim = simulation([
+    device('first', 'aegis', 10),
+    device('second', 'aegis', 20),
+  ]);
+  cross(sim, 0, 10);
+  sim.beforeStep(idle, 1);
+  cross(sim, 10, 20);
+  assert.deepEqual(sim.consumeShield(), {
+    type: 'shield-hit',
+    payload: { kind: 'aegis', deviceId: 'second', combat: true },
+  });
+  assert.equal(sim.consumeShield(), null);
+  assert.deepEqual(cross(sim, 20, 0), []);
+  assert.deepEqual(cross(sim, 0, 20), []);
+  assert.equal(sim.snapshot().aegisRemaining, 0);
+  const nextLap = cross(sim, 20, 5020);
+  assert.deepEqual(
+    nextLap.map(({ payload }) => payload.deviceId),
+    ['first', 'second'],
+  );
+  assert.equal(sim.snapshot().aegisRemaining, AEGIS_DURATION);
+  assert.equal(sim.snapshot().aegisDevice, 'second');
+});
+
 test('shield impact and expiry resolve before acquiring a new shield in the same tick', () => {
   for (const expire of [false, true]) {
     const sim = simulation([
@@ -374,6 +477,7 @@ test('restore rejects stale timers, wrong strip dimensions and malformed contact
   const original = sim.snapshot();
   for (const changed of [
     { version: 1 },
+    { version: 2 },
     { layoutKey: 'old-length' },
     { vectorActive: 'yes' },
     { vectorDevice: 'missing' },

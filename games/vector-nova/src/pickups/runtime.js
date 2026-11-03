@@ -6,7 +6,11 @@ import {
   runtimeIdentity,
 } from '../core/session-runtime.js';
 import { isCombatDevice, COMBAT_RULES } from './combat.js';
-import { createPickupSimulation, VECTOR_PROPULSION } from './simulation.js';
+import {
+  createPickupSimulation,
+  PICKUP_STATE_VERSION,
+  VECTOR_PROPULSION,
+} from './simulation.js';
 
 // Compose devices around a circuit's actual simulation. Player and rivals use
 // this same adapter. Rival renderers observe feedback without a HUD or audio graph.
@@ -135,7 +139,7 @@ export function createDeviceRuntime({
       )
     )
       combat?.resetActor(combatId);
-    for (let index = events.length - 1; index >= 0; index--) {
+    for (let index = 0; index < events.length;) {
       const entry = events[index];
       if (
         entry.type === 'pickup-activate' &&
@@ -144,7 +148,7 @@ export function createDeviceRuntime({
       ) {
         combat.request(combatId, entry);
         events.splice(index, 1);
-      }
+      } else index++;
     }
     for (const event of events)
       if (event.type === 'pickup-activate' && event.payload.kind === 'vector')
@@ -163,12 +167,10 @@ export function createDeviceRuntime({
   };
   return {
     ...ownIdentity,
-    ...(combat
-      ? {
-          rulesId:
-            ownIdentity.rulesId + ':combat:' + JSON.stringify(COMBAT_RULES),
-        }
-      : {}),
+    rulesId:
+      ownIdentity.rulesId +
+      `:pickups-v${PICKUP_STATE_VERSION}` +
+      (combat ? ':combat:' + JSON.stringify(COMBAT_RULES) : ''),
     ...(combat && combatId === 'player'
       ? {
           advanceInteractions(dt) {

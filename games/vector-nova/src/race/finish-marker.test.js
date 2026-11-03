@@ -155,15 +155,15 @@ test('Nightweir finish paint clears its real tessellated running sheet without a
     track,
     collectSolid({ name, geometry, ...info }) {
       if (info.kind !== 'deck') return;
-      deck.push(
-        ...indexedTriangles(
-          geometry.attributes.position.array,
-          geometry.index.array,
-          { id: name, ...info },
-          null,
-          geometry.attributes.roadCoord,
-        ),
-      );
+      // Large full-width decks can exceed the engine argument-count limit.
+      for (const triangle of indexedTriangles(
+        geometry.attributes.position.array,
+        geometry.index.array,
+        { id: name, ...info },
+        null,
+        geometry.attributes.roadCoord,
+      ))
+        deck.push(triangle);
     },
   });
   road.dispose();

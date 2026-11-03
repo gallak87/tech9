@@ -126,6 +126,15 @@
       "sourceRevision": "655bd2801494b5122a03440aa12f80c597bb5f64",
       "sourceDirty": true,
       "routeSignature": "465f763b58be5b17"
+    },
+    "ravel": {
+      "file": "ravel.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "8ab81c4e8a2b05fb7d5f83aca7d1c6ee1d89a36a",
+      "sourceDirty": false,
+      "routeSignature": "70ec7231dc12e1e3"
     }
   }
 }

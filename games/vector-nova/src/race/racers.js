@@ -137,7 +137,10 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
     const preview = Math.max(65, state.speed * profile.brakingPreview);
     for (const fraction of [1 / 3, 2 / 3, 1]) {
       const distance = preview * fraction;
-      const future = track.sample(state.distance + distance);
+      const future =
+        (track.aiSurfacePreview
+          ? track.sampleSurface?.(state.distance + distance, state.lateral)
+          : null) ?? track.sample(state.distance + distance);
       const safeSpeed = Math.max(63, cornerLimit(future.curvature));
       cornerSpeed = Math.min(
         cornerSpeed,
@@ -245,10 +248,13 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
   const speed = Math.max(18, state.speed);
   const sidewaysLoad =
     -frame.curvature * speed * speed * 0.75 - 9.81 * frame.right.y;
+  const laneSpeedLimit = Number.isFinite(track.aiLaneSpeedLimit)
+    ? clamp(track.aiLaneSpeedLimit, 4, 30)
+    : 9;
   const targetSideways = clamp(
     laneDelta(state.lateral, targetLane) * 1.5,
-    -9,
-    9,
+    -laneSpeedLimit,
+    laneSpeedLimit,
   );
   let desiredHeading = clamp(
     Math.asin(

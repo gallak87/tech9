@@ -151,6 +151,19 @@ try {
             .addScaledVector(frame.up, 22);
           camera.fov = 62;
         }
+        if (id === 'ravel') {
+          const station = (track.braid.splitEnd + track.braid.mergeStart) / 2;
+          const frame = track.sample(station);
+          camera.position
+            .copy(frame.position)
+            .addScaledVector(frame.right, 780)
+            .addScaledVector(frame.up, 740)
+            .addScaledVector(frame.tangent, -850);
+          target
+            .copy(track.sample(station + 180).position)
+            .addScaledVector(frame.right, 100);
+          camera.fov = 62;
+        }
         camera.lookAt(target);
         camera.updateProjectionMatrix();
         // Let ordinary world updates relocate sky/weather around the free

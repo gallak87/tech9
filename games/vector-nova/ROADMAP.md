@@ -13,6 +13,8 @@ Reviewed against `main` and the active event review branches on **2026-10-31**. 
 
 ### Integrate and review the work already in flight
 
+- [ ] **Delete the obsolete developer launcher later (user request, 2026-11-02):** retire the old title/launch panel in `src/ui/index.js`, its launcher/title-panel styles in `src/ui/style.css`, and the legacy tool-entry routing in `src/frontend/index.js` (`capture`, `review`, `test=jump`). Move any necessary test entry controls to the current frontend first. Preserve the shared racing HUD, pause/input controls and current frontend; `src/ui/index.js` and its stylesheet also own active gameplay UI.
+
 - [ ] Decide release-menu grouping and Freestyle's experimental visibility. Integrate the approved event work deliberately, including the packaged full-game course/asset policy; preserve the demo boundary and original cup/reward requirements.
 - [ ] Human playtest Eliminator cut pressure, Interceptor pursuit/boss balance and Freestyle torque, catches, five-transfer scoring and medals before production expansion or new mastery rewards.
 - [ ] Observe external players: braking/boost comprehension, finishing without coaching and voluntary replay. Separate control confusion, route readability, performance and difficulty before adding mechanics.

@@ -17,6 +17,8 @@ Blue Hour is the startup track. Pausing music on the startup screens is remember
 
 Eliminator, Interceptor and Freestyle work exists in separate review branches. It is not part of this `main` build; see the [roadmap](ROADMAP.md) for integration and remaining work.
 
+This development branch also includes the playable [Ravel solar-sail circuit](docs/levels/ravel.md): a 13.5 km closed circuit with moving sail waves, three interwoven routes and a giant transfer. Development previews support direct section practice, free-camera inspection and art review.
+
 ## Run and check
 
 Use Node 22.13+ and npm from this directory. WebGL2 is required; gameplay uses local assets and needs no account or backend. Keep npm optional dependencies enabled for Vite's native package.

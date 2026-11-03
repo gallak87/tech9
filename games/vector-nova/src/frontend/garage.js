@@ -1,7 +1,12 @@
 import { SHIPS } from '../ships/catalog.js';
 import { assetURL } from '../assets/url.js';
 import { IS_DEMO } from '../progression/edition.js';
-import { AVAILABLE_EQUIPMENT } from '../progression/catalog.js';
+import {
+  AVAILABLE_EQUIPMENT,
+  ENHANCEMENTS,
+  enhancementRanks,
+  REWARDS,
+} from '../progression/catalog.js';
 import {
   equipmentCapacity,
   shipUnlocked,
@@ -19,6 +24,23 @@ import './garage.css';
 const fleet = ['shrike', 'bastion', 'needle', 'kestrel']
   .map((id) => SHIPS.find((ship) => ship.id === id))
   .filter(Boolean);
+
+function fleetUpgradesView(profile, stock) {
+  const ranks = enhancementRanks(profile);
+  const upgrades = ENHANCEMENTS.flatMap((stat) => {
+    const reward = REWARDS.find(
+      (entry) => entry.stat === stat.id && entry.rank === ranks[stat.id],
+    );
+    if (!reward) return [];
+    const benefit = `+${Math.round(stat.gains[reward.rank] * 100)}% across your fleet`;
+    const status = stock
+      ? 'Unlocked · Inactive in stock Time Trial'
+      : 'Unlocked · Applies automatically to every ship';
+    return `<div class="reward-chip-wrap rarity-${reward.rarity}"><button type="button" class="reward-chip garage-upgrade" data-fleet-upgrade="${reward.id}" aria-label="${escapeHTML(`${reward.name} · ${benefit} · ${status}`)}" aria-expanded="false" aria-describedby="garage-upgrade-${stat.id}">${rewardIcon(reward.id)}<span>${['I', 'II', 'III'][reward.rank - 1]}</span></button><div class="reward-tooltip" id="garage-upgrade-${stat.id}" role="tooltip" hidden><strong>${reward.name} · ${benefit}</strong></div></div>`;
+  });
+  return `<section class="garage-upgrades${stock ? ' is-inactive' : ''}" data-reward-fit aria-label="Unlocked fleet upgrades"><div class="garage-upgrades-heading"><h2>Fleet upgrades</h2><span>${stock ? 'Inactive · Stock rules' : 'All ships'}</span></div>${upgrades.length ? `<div class="garage-upgrade-list">${upgrades.join('')}</div>` : '<p class="garage-upgrades-empty">No fleet upgrades unlocked yet.</p>'}</section>`;
+}
+
 export function garageView({
   profile,
   craft,
@@ -37,7 +59,7 @@ export function garageView({
     profile.claims.includes(`equipment-${item.id}`),
   );
   const hint = stock
-    ? 'Stock Time Trial · Equipment and enhancements are disabled.'
+    ? 'Stock Time Trial · Equipment and fleet upgrades are inactive.'
     : cupLocked
       ? 'Ship locked for this championship. Return to your championship ship to change equipment.'
       : '';
@@ -51,7 +73,7 @@ export function garageView({
         `<button data-ship="${ship.id}" aria-pressed="${ship.id === selectedShip}" data-preview="${ship.id === craft.id}" aria-label="Select ${ship.name}"><img src="${assetURL(`assets/menu/ships/${ship.id}.jpg`)}" alt=""><strong>${ship.name}${ship.id === selectedShip ? ' ✓' : ''}</strong></button>`,
     )
     .join('')}</nav>
-    <div class="garage-main"><div class="garage-studio"><section class="ship-details"><h1>${craft.name}</h1><p class="garage-role">${craft.role}</p><div class="ship-preview-slot"><p role="status">Loading ship preview…</p></div><span class="garage-ship-status">${!unlocked ? shipLockText(profile, craft.id) : cupLocked ? 'Locked for this championship' : ''}</span><div class="transfer-slot ship-transfer"></div></section><section class="garage-performance" aria-label="Ship performance"><span class="kicker">Performance</span>${performanceView(craft, profile, { stock })}<div class="garage-legend"><span>Stock</span><span>Earned upgrades</span></div></section></div>
+    <div class="garage-main"><div class="garage-studio"><section class="ship-details"><h1>${craft.name}</h1><p class="garage-role">${craft.role}</p><div class="ship-preview-slot"><p role="status">Loading ship preview…</p></div><span class="garage-ship-status">${!unlocked ? shipLockText(profile, craft.id) : cupLocked ? 'Locked for this championship' : ''}</span><div class="transfer-slot ship-transfer"></div></section><section class="garage-performance" aria-label="Ship performance"><span class="kicker">Performance</span>${fleetUpgradesView(profile, stock)}${performanceView(craft, profile, { stock })}<div class="garage-legend"><span>Stock</span><span>Fleet upgrades</span></div></section></div>
     <section class="garage-equipment" aria-label="Choose equipment"><div class="garage-equipment-heading"><h2>Equipment</h2><span class="garage-equipment-count">${stock ? 'Stock rules' : `<b>${count} / ${capacity}</b> equipped${capacity === 4 ? ' · Quad Core' : ''}`}</span></div><div class="garage-equipment-grid">${equipment
       .map((item) => {
         const index = loadout.indexOf(item.id),
@@ -107,7 +129,9 @@ export function navigateGarage(event, root) {
   const controls = [
     ...root.querySelectorAll('button, canvas[tabindex]'),
   ].filter((item) => !item.disabled && item.getClientRects().length);
-  const group = button.closest('.garage-fleet, .garage-equipment-grid');
+  const group = button.closest(
+    '.garage-fleet, .garage-upgrade-list, .garage-equipment-grid',
+  );
   const items = group
     ? [...group.querySelectorAll('button')].filter((item) => !item.disabled)
     : controls;
@@ -128,6 +152,13 @@ export function navigateGarage(event, root) {
     next =
       event.code === 'ArrowUp'
         ? root.querySelector('[data-action="garage-tab"]')
+        : (root.querySelector('.garage-upgrade') ??
+          root.querySelector('.garage-equipment-card:not(:disabled)') ??
+          root.querySelector('.ship-preview canvas'));
+  if (group?.classList.contains('garage-upgrade-list') && vertical)
+    next =
+      event.code === 'ArrowUp'
+        ? root.querySelector('.garage-fleet [aria-pressed="true"]')
         : (root.querySelector('.garage-equipment-card:not(:disabled)') ??
           root.querySelector('.ship-preview canvas'));
   if (

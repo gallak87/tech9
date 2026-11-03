@@ -213,9 +213,7 @@ async function fits(page) {
     true,
     'no horizontal clipping',
   );
-  const nav = page.locator(
-    '.entry-topbar button:visible, .menu-topbar .menu-top-tabs button:visible',
-  );
+  const nav = page.locator('.entry-topbar button:visible');
   const targets = await nav.evaluateAll((buttons) =>
     buttons.map((button) => {
       const r = button.getBoundingClientRect();
@@ -249,6 +247,56 @@ async function fits(page) {
       );
     });
     assert.ok(centered, 'Start is centered, visible and unobstructed');
+    return;
+  }
+  const menuTabs = page.locator('.menu-topbar .menu-top-tabs');
+  if (await menuTabs.count()) {
+    assert.ok(
+      await menuTabs.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        const buttons = [...element.querySelectorAll('button')];
+        const top = buttons[0]?.getBoundingClientRect().top;
+        return (
+          box.left >= 0 &&
+          box.right <= innerWidth + 1 &&
+          box.top >= 0 &&
+          box.bottom <= innerHeight + 1 &&
+          buttons.length > 0 &&
+          buttons.every(
+            (button) => Math.abs(button.getBoundingClientRect().top - top) <= 1,
+          )
+        );
+      }),
+      'main navigation stays on one row in a viewport-width scroll strip',
+    );
+    const scrollLeft = await menuTabs.evaluate((element) => element.scrollLeft);
+    for (const button of await menuTabs.locator('button').all()) {
+      await button.evaluate((element) =>
+        element.scrollIntoView({ block: 'nearest', inline: 'nearest' }),
+      );
+      assert.ok(
+        await button.evaluate((element) => {
+          const box = element.getBoundingClientRect();
+          const strip = element.parentElement.getBoundingClientRect();
+          return (
+            box.left >= strip.left - 1 &&
+            box.right <= strip.right + 1 &&
+            box.top >= 0 &&
+            box.bottom <= innerHeight + 1 &&
+            element.contains(
+              document.elementFromPoint(
+                box.left + box.width / 2,
+                box.top + box.height / 2,
+              ),
+            )
+          );
+        }),
+        'each main-navigation tab scrolls fully into view without obstruction',
+      );
+    }
+    await menuTabs.evaluate((element, value) => {
+      element.scrollLeft = value;
+    }, scrollLeft);
     return;
   }
   assert.ok(

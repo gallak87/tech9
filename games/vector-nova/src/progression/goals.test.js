@@ -139,7 +139,7 @@ test('result progress shows the earned delta and does not double-count a reopene
   const view = raceProgressView(before, after, { mode: 'race' }, result);
   assert.match(view, /\+2 race progress/);
   assert.match(view, /0 → 2\/6 progress/);
-  assert.match(view, /Unlocked/);
+  assert.match(view, /Fleet upgrade unlocked/);
   assert.match(view, /role="progressbar"[^>]*aria-valuenow="2"/);
   const reopened = raceProgressView(after, after, { mode: 'race' }, result);
   assert.match(reopened, /<h3>Progress saved<\/h3>/);

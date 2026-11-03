@@ -1383,6 +1383,26 @@
   padding-inline: clamp(24px, 4vw, 64px);
   padding-bottom: 40px;
 }
+/* A stacked desktop header leaves less room for the two menu columns. */
+@media (min-width: 900px) and (max-width: 1300px) and (max-height: 800px) {
+  .front-content.menu-wide {
+    padding-bottom: 8px;
+  }
+  .menu-wide .menu-picker {
+    height: calc(100dvh - var(--menu-header-clearance, 138px) - 8px);
+  }
+  .menu-wide .menu-selection {
+    padding-block: 4px;
+  }
+  .menu-wide .menu-extras {
+    margin-top: 6px;
+    padding-top: 6px;
+  }
+  .menu-wide .cup-menu-panel .cup-picker .cup-card {
+    aspect-ratio: auto;
+    padding-block: 8px;
+  }
+}
 .utility-heading {
   display: flex;
   align-items: center;

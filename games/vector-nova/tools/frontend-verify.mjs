@@ -2938,8 +2938,8 @@ try {
         assert.deepEqual(
           await groups.locator('header h2').allTextContents(),
           demo
-            ? ['Enhancements', 'Equipment']
-            : ['Enhancements', 'Ships', 'Equipment'],
+            ? ['Fleet upgrades', 'Equipment']
+            : ['Fleet upgrades', 'Ships', 'Equipment'],
         );
         assert.deepEqual(
           await groups.evaluateAll((sections) =>

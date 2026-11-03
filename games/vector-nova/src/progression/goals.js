@@ -11,7 +11,7 @@ const undiscovered = (reward) =>
       : reward.name;
 const category = (reward) =>
   reward.kind === 'enhancement'
-    ? 'Stat'
+    ? 'Fleet'
     : reward.kind === 'ship'
       ? 'Ship'
       : reward.kind === 'equipment'
@@ -147,7 +147,9 @@ export function rewardBadgesView(
         ? profile.cups.includes(entry.requirement.cup)
         : profile.claims.includes(entry.id);
       const detail = ready
-        ? 'Unlocked'
+        ? entry.category === 'Fleet'
+          ? 'Fleet upgrade unlocked · Applies automatically to every ship.'
+          : 'Unlocked'
         : entry.requirement.points
           ? `${total - current} progress to go`
           : entry.detail;

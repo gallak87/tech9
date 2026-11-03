@@ -455,7 +455,7 @@ export function createNightweirTrack() {
   return {
     id: 'nightweir-sprint',
     name: 'Nightweir',
-    geometryVersion: 'nightweir-sprint-v4-transverse-deck',
+    geometryVersion: 'nightweir-sprint-v5-coil-sheet',
     deviceProjection: 'rendered-surface',
     closed: false,
     width: WIDTH,

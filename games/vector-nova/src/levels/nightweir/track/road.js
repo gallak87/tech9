@@ -151,6 +151,9 @@ export function createNightweirRoad({
   for (const [i, run] of roadIntervals(track).entries()) {
     const range = { ...run, step: 4, uvScale: 12 },
       route = { start: Math.max(0, run.start), end: run.end };
+    const twisting = track.inversions.some(
+      (roll) => roll.start < run.end && roll.end > run.start,
+    );
     add(
       'Asphalt deck ' + i,
       sweepGeometry(
@@ -159,7 +162,13 @@ export function createNightweirRoad({
           [-half, 0],
           [half, 0],
         ],
-        { ...range, transverseStep: 2 },
+        {
+          ...range,
+          // Twisting quads are not planar. Tighten both axes in roll-bearing
+          // spans so whole-hull support does not follow coarse diagonal ridges.
+          step: twisting ? 1.5 : range.step,
+          transverseStep: twisting ? 1 : 2,
+        },
       ),
       deck,
       { kind: 'deck', ...route },

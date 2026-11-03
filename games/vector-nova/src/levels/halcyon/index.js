@@ -26,6 +26,7 @@ export default function createLevel() {
       reflectionFar: 6000,
     },
     camera: {
+      preserveFlightView: true,
       portraitAspect: 0.64,
       maxPortraitScale: 1.4,
       safeFrame: (aspect) => ({

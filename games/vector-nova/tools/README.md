@@ -10,7 +10,7 @@ Run these commands from the app directory. `<dev-server>` means a Vite developme
 
 Run `npm test` for all circuits' numerical checks: magnetic handling, Nacre flight, devices, camera composition, track frames/clearance, replay, catalog loading and resource lifecycle. `npm run lint` checks source and formatting; `npm run build` produces the shared application.
 
-Jump Drive checks live in `equipment-jump-physics.test.mjs` (tuning, sampled contacts, settling and replay) and `equipment-jump-production-edges.test.mjs` (actual production skins and both road edges).
+Jump Drive checks live in `equipment-jump-physics.test.mjs` (tuning, sampled contacts, settling and replay), `equipment-jump-production-edges.test.mjs` (actual production skins and both road edges), `equipment-jump-landing.test.mjs` (tube surface coordinates and native landing continuity), and `equipment-jump-camera.test.mjs` (off-centre and deflected Halcyon/Orbital landing views).
 
 Run `npm run check:level -- <slug>` for the reusable CPU module/track/racing contract (all production levels must declare shared racing) and `VN_URL=<preview-url> npm run verify:level -- <slug>` for the generic short hidden runtime smoke check. See [level-checks](level-checks/README.md) for options, scope and limitations.
 

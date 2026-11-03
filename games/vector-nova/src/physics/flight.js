@@ -61,6 +61,7 @@ export const EQUIPMENT_JUMP_RULES = Object.freeze({
   arcDamping: 16,
   maximumArcCorrection: 120,
   sampledContactVersion: 2,
+  landingCaptureVersion: 1,
 });
 
 // Shared swept contact and ballistic motion. Authored route, rules, effects,
@@ -968,7 +969,24 @@ export function createFlightModel(overrides = {}) {
         !['deck', 'rail'].includes(hit.shape.kind)
       )
         return null;
-      const { distance, frame, offset } = receivingFrame(jump, hit);
+      let { distance, frame, offset } = receivingFrame(jump, hit);
+      let lateral = offset.dot(frame.right);
+      if (magneticBody && flight.equipmentJump && hit.shape.kind === 'deck') {
+        // Store the solved pose in the same surface chart that magnetic support
+        // will use next tick. A tube's centreline chord is not its lateral arc;
+        // adopting that chord would pull an untouched hull sideways on capture.
+        const projected = projectMagneticBody(
+          track,
+          hit.position,
+          distance + flight.lapOffset,
+          lateral,
+          dynamics.sampleRoadSurface,
+        );
+        distance = projected.distance - flight.lapOffset;
+        lateral = projected.lateral;
+        frame = projected.frame;
+        offset = hit.position.clone().sub(frame.position);
+      }
       if (
         (Number.isFinite(hit.shape.start) &&
           (distance < hit.shape.start - 1e-5 ||
@@ -978,7 +996,6 @@ export function createFlightModel(overrides = {}) {
             hit.shape.distance > receivingEnd + R.halfLength))
       )
         return null;
-      const lateral = offset.dot(frame.right);
       const strictHeading = landingHeading(hit.quaternion, frame);
       const forgivingDeck =
         options.forgivingContacts && hit.shape.kind === 'deck';
@@ -993,9 +1010,13 @@ export function createFlightModel(overrides = {}) {
               R.headingTolerance,
             )
           : strictHeading;
-      const boundary =
-        jump.halfWidth +
-        (hit.shape.kind === 'rail' ? (R.railOffset[jump.id] ?? 0) : 0);
+      const periodicDeck =
+        flight.equipmentJump && hit.shape.kind === 'deck' && frame.period > 0;
+      // A closed tube has no side edge at the flat approach ribbon's width.
+      const boundary = periodicDeck
+        ? Infinity
+        : jump.halfWidth +
+          (hit.shape.kind === 'rail' ? (R.railOffset[jump.id] ?? 0) : 0);
       const footprint = edgeFootprint(hit.quaternion, frame, lateral, boundary);
       const length = bodyExtent(hit.quaternion, frame.tangent);
       if (
@@ -1029,7 +1050,8 @@ export function createFlightModel(overrides = {}) {
         ...footprint,
         edgeCatch:
           hit.shape.kind === 'rail' ||
-          Math.abs(lateral) + footprint.extent > jump.halfWidth,
+          (!periodicDeck &&
+            Math.abs(lateral) + footprint.extent > jump.halfWidth),
       };
     }
 

@@ -588,9 +588,12 @@ export async function createFrontend(
       intent === 'time-trial' ? 'Manual boost · No road devices' : '';
     return `<div class="race-actions"><button class="primary" data-action="launch"><strong>${launchLabel()}</strong><small>${intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : 'Unlimited laps'}</small></button>${intent === 'race' ? difficultyControls() : ''}${description ? `<p class="mode-description">${description}</p>` : ''}</div>`;
   };
-  const hasResumableSession = () =>
-    game?.hasSession() &&
-    !(sessionCup && cupComplete(cupStore.snapshot().state));
+  const hasResumableSession = () => {
+    if (!game?.hasSession()) return false;
+    if (sessionCup) return !cupComplete(cupStore.snapshot().state);
+    const session = game.getSnapshot();
+    return !session.competition?.playerFinished && !session.timeTrial?.result;
+  };
   const sessionReturn = (includeCup = false) => {
     if (!hasResumableSession() || (sessionCup && !includeCup)) return '';
     const name = sessionCup

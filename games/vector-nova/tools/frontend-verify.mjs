@@ -1760,6 +1760,34 @@ try {
         await page.keyboard.press('Escape');
         assert.equal((await front(page)).screen, 'race');
         assert.equal((await snapshot(page)).mode, 'paused');
+        await page.locator('#home').click();
+        assert.equal((await front(page)).screen, 'home');
+        assert.equal(
+          await page.locator('[data-action="resume-session"]').count(),
+          0,
+          'a finished race stays complete after Continue driving and returning to setup',
+        );
+        await page.locator('[data-action="launch"]').focus();
+        await page.keyboard.press('Enter');
+        await page.waitForFunction(
+          () =>
+            window.__VN_FRONTEND.getState().screen === 'race' &&
+            ['countdown', 'racing'].includes(window.__VN.getSnapshot().mode),
+        );
+        await page.keyboard.press('Escape');
+        await page.locator('#home').click();
+        assert.equal(
+          await page.locator('[data-action="resume-session"]').count(),
+          1,
+          'a fresh unfinished race remains resumable after a previous finish',
+        );
+        await page.locator('[data-action="resume-session"]').focus();
+        await page.keyboard.press('Enter');
+        assert.equal((await snapshot(page)).mode, 'paused');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.id),
+          'resume',
+        );
       },
     );
     await fleetCheck(

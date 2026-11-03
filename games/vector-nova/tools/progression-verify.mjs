@@ -1094,6 +1094,20 @@ try {
     await page.evaluate(() => window.__VN.showResults());
     assert.equal((await state(page)).career.state.wins, 1);
     await action(page, 'retry-race');
+    await page.evaluate(() => window.__VN.devSetup({ distance: 20, speed: 0 }));
+    await key(page, 'Escape');
+    await page.locator('#home').click();
+    assert.equal(
+      await page.locator('[data-action="resume-session"]').count(),
+      1,
+      'an unfinished retry remains resumable after completed standings',
+    );
+    await action(page, 'resume-session');
+    assert.equal(
+      await page.evaluate(() => window.__VN.getSnapshot().mode),
+      'paused',
+    );
+    await page.evaluate(() => window.__VN.devSetup({ finish: true }));
     await page.waitForFunction(
       () => window.__VN_FRONTEND.getState().career.state.wins === 2,
       null,
@@ -1110,6 +1124,13 @@ try {
       await page.evaluate(() => localStorage.getItem('vector-nova.career.v1')),
       null,
       'developer wins stay isolated',
+    );
+    await action(page, 'change');
+    assert.equal((await state(page)).screen, 'home');
+    assert.equal(
+      await page.locator('[data-action="resume-session"]').count(),
+      0,
+      'Back to setup does not offer a completed Quick Race',
     );
   });
   await check(
@@ -1225,6 +1246,50 @@ try {
       await page.locator('#home').click();
       await action(page, 'records');
       assert.equal(await page.locator('.records-list > li').count(), 2);
+    },
+  );
+  await check(
+    'finished sprint Time Trials leave setup without Resume and fresh trials remain resumable',
+    async (page) => {
+      await open(page, 'dev=1&level=nightweir&finish=1');
+      await action(page, 'time-trial');
+      await launch(page);
+      await page.waitForFunction(
+        () => window.__VN_FRONTEND.getState().screen === 'results',
+        null,
+        { timeout: 15000 },
+      );
+      assert.ok(
+        await page.evaluate(() => window.__VN.getSnapshot().timeTrial.result),
+        'the sprint Time Trial actually finished',
+      );
+      await action(page, 'change');
+      assert.equal((await state(page)).screen, 'home');
+      assert.equal(
+        await page.locator('[data-action="resume-session"]').count(),
+        0,
+        'Back to setup does not offer a completed sprint Time Trial',
+      );
+      await launch(page);
+      await page.evaluate(() =>
+        window.__VN.devSetup({ distance: 20, speed: 0 }),
+      );
+      assert.equal(
+        await page.evaluate(() => window.__VN.getSnapshot().timeTrial.result),
+        null,
+        'a fresh Time Trial clears the previous terminal result',
+      );
+      await key(page, 'Escape');
+      await page.locator('#home').click();
+      assert.equal(
+        await page.locator('[data-action="resume-session"]').count(),
+        1,
+      );
+      await action(page, 'resume-session');
+      assert.equal(
+        await page.evaluate(() => window.__VN.getSnapshot().mode),
+        'paused',
+      );
     },
   );
   await check(

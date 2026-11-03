@@ -173,6 +173,69 @@ try {
   await fits();
   await capture('unearned-menu');
 
+  // Retained cup sessions have their own return policy. A standalone-race
+  // completion check must not hide an active cup or skip its next event.
+  const freshValues = new Map();
+  const freshCup = createCupStore(() => ({
+    getItem: (key) => freshValues.get(key),
+    setItem: (key, value) => freshValues.set(key, value),
+  }));
+  freshCup.start('founders', 'shrike', 'easy');
+  await page.evaluate(
+    ({ key, saved }) => localStorage.setItem(key, JSON.stringify(saved)),
+    { key: careerKey(CUP_STORAGE_KEY), saved: freshCup.snapshot().state },
+  );
+  await page.reload();
+  await openCup();
+  await page.locator('[data-action="cup-resume"]').focus();
+  await settle();
+  await pad(0);
+  await page.waitForFunction(
+    () =>
+      window.__VN?.ready && window.__VN_FRONTEND.getState().screen === 'race',
+    null,
+    { timeout: 120000 },
+  );
+  await page.evaluate(() => window.__VN.pause());
+  await page.locator('#home').click();
+  assert.equal(
+    await page.locator('.race-actions [data-action="cup-resume"]').isVisible(),
+    true,
+  );
+  await page.locator('.menu-top-tabs [data-action="settings"]').click();
+  assert.match(
+    await page.locator('[data-action="resume-session"]').innerText(),
+    /Resume Cup Race/,
+  );
+  await page.locator('[data-action="resume-session"]').focus();
+  await settle();
+  await pad(0);
+  await page.waitForFunction(
+    () => window.__VN_FRONTEND.getState().screen === 'race',
+  );
+  assert.equal(
+    await page.evaluate(() => window.__VN.getSnapshot().mode),
+    'paused',
+  );
+  await page.evaluate((data) => window.__VN.verifyCupResults(data), result(2));
+  await page.locator('.cup-result-actions [data-action="cup-next"]').waitFor();
+  const nonfinalCup = (await state()).cup.state;
+  assert.equal(nonfinalCup.results.length, 1);
+  await page.locator('.cup-result-actions [data-action="home"]').click();
+  assert.equal(
+    await page.locator('.race-actions [data-action="cup-next"]').isVisible(),
+    true,
+  );
+  assert.match(
+    await page.locator('.race-actions [data-action="cup-next"]').innerText(),
+    /Next race/i,
+  );
+  assert.equal(
+    await page.locator('.race-actions [data-action="cup-resume"]').count(),
+    0,
+  );
+  assert.deepEqual((await state()).cup.state, nonfinalCup);
+
   await page.evaluate(
     ({ key, saved }) => localStorage.setItem(key, JSON.stringify(saved)),
     { key: careerKey(CUP_STORAGE_KEY), saved: savedFinal() },
@@ -247,6 +310,12 @@ try {
   await settle();
   await pad(0);
   assert.equal((await state()).cup.state, null);
+  assert.equal(
+    await page
+      .locator('[data-action="resume-session"], [data-action="cup-resume"]')
+      .count(),
+    0,
+  );
   assert.equal(await page.locator('.cup-confirm').count(), 0);
   assert.deepEqual((await state()).career.state, earnedCareer);
   assert.equal((await state()).cupCollection.cups.founders.points, 75);
@@ -336,7 +405,7 @@ try {
   assert.equal(await page.locator('.cup-cabinet .is-earned').count(), 0);
   assert.deepEqual(faults, []);
   console.log(
-    `PASS cup awards ${width}x${height}: art, controller/keyboard, first-place collection, reveal, reduced motion, persistence and completed-save cleanup`,
+    `PASS cup awards ${width}x${height}: active/between-event/completed returns, controller/keyboard, first-place collection, reveal, reduced motion, persistence and completed-save cleanup`,
   );
 } finally {
   await context.close();

@@ -599,34 +599,95 @@ await (async () => {
         false,
         'cup content fits its containers',
       );
-      if (width >= 1200 && height >= 900) {
-        await page.locator('#front-shell').evaluate((node) => {
-          node.scrollTop = 0;
-        });
-        const layout = await page
-          .locator('.cup-results-panel')
-          .evaluate((node) => {
-            const heading = node
-              .querySelector('.cup-result-heading')
-              .getBoundingClientRect();
-            const actions = node
-              .querySelector('.cup-result-actions > .front-actions')
-              .getBoundingClientRect();
-            const table = node.querySelector('.cup-standings');
-            return {
-              headingBottom: heading.bottom,
-              actionsTop: actions.top,
-              actionsBottom: actions.bottom,
-              tableFits: table.scrollHeight <= table.clientHeight + 1,
-            };
-          });
+      const panel = page.locator('.cup-results-panel.results-with-rewards');
+      await panel.waitFor();
+      assert.equal(await panel.locator(':scope > .result-rewards').count(), 1);
+      assert.equal(await panel.locator(':scope > .results-main').count(), 1);
+      assert.equal(
+        await panel.locator(':scope > .result-rewards').isVisible(),
+        true,
+        'reward progress stays expanded',
+      );
+      assert.equal(
+        await panel.locator('.race-reward-progress > p').count(),
+        0,
+        'results omit the long reward-progress explanation',
+      );
+      await page.locator('#front-shell').evaluate((node) => {
+        node.scrollTop = 0;
+      });
+      const layout = await panel.evaluate((node) => {
+        const bounds = (element) => {
+          const { top, right, bottom, left, width, height } =
+            element.getBoundingClientRect();
+          return { top, right, bottom, left, width, height };
+        };
+        const rewards = node.querySelector(':scope > .result-rewards');
+        const cards = [
+          ...rewards.querySelectorAll('.reward-badge, .earned-reward'),
+        ];
+        const table = node.querySelector('.cup-standings');
+        return {
+          panel: bounds(node),
+          heading: bounds(node.querySelector('.cup-result-heading')),
+          actions: bounds(
+            node.querySelector(
+              '.cup-result-actions > .front-actions, .cup-result-actions.front-actions',
+            ),
+          ),
+          main: bounds(node.querySelector(':scope > .results-main')),
+          rewards: bounds(rewards),
+          cards: cards.map(bounds),
+          headings: [...rewards.querySelectorAll('h3')].map(bounds),
+          tableFits: table.scrollHeight <= table.clientHeight + 1,
+          rewardsFit: rewards.scrollHeight <= rewards.clientHeight + 1,
+        };
+      });
+      assert.ok(layout.cards.length > 0, 'verify actual reward progress cards');
+      assert.equal(
+        await panel.locator('.reward-badge, .earned-reward').count(),
+        layout.cards.length,
+        'all progress and earned cards belong to the rewards sidebar',
+      );
+      assert.ok(
+        layout.cards.every(
+          (card) =>
+            card.width > 0 &&
+            card.height > 0 &&
+            card.left >= layout.rewards.left - 1 &&
+            card.right <= layout.rewards.right + 1,
+        ) &&
+          layout.rewards.left >= layout.panel.left - 1 &&
+          layout.rewards.right <= layout.panel.right + 1,
+        'expanded reward cards fit horizontally inside the results panel',
+      );
+      assert.equal(
+        layout.rewardsFit,
+        true,
+        'rewards have no internal clipping',
+      );
+      if (width >= 1100) {
         assert.ok(
-          layout.actionsTop >= layout.headingBottom - 1 &&
-            layout.actionsTop - layout.headingBottom < 120,
+          layout.rewards.left >= layout.main.right - 1 &&
+            layout.rewards.top >= layout.heading.bottom - 1 &&
+            layout.rewards.top <= layout.actions.bottom,
+          'desktop rewards occupy the upper-right beside the main standings',
+        );
+      } else {
+        assert.ok(
+          layout.actions.bottom <= layout.rewards.top + 1 &&
+            layout.rewards.bottom <= layout.main.top + 1,
+          'narrow results stack actions, expanded rewards, then standings',
+        );
+      }
+      if (width >= 1100 && height >= 900) {
+        assert.ok(
+          layout.actions.top >= layout.heading.bottom - 1 &&
+            layout.actions.top - layout.heading.bottom < 120,
           'cup result actions stay near the heading',
         );
         assert.ok(
-          layout.actionsBottom <= height,
+          layout.actions.bottom <= height,
           'primary cup result actions are in the first viewport',
         );
         assert.equal(
@@ -634,19 +695,33 @@ await (async () => {
           true,
           'standings have no internal scrolling',
         );
-        const rewards = page.locator('.earned-rewards .earned-reward');
-        if (await rewards.count()) {
-          await rewards.last().scrollIntoViewIfNeeded();
-          const bounds = await rewards.last().boundingBox();
+        assert.ok(
+          [...layout.cards, ...layout.headings].every(
+            (bounds) => bounds.top >= 0 && bounds.bottom <= height + 1,
+          ),
+          'all progress and earned reward cards are visible without scrolling',
+        );
+      } else {
+        const reachable = [
+          panel.locator('.cup-result-actions [data-action]').first(),
+          ...(await panel
+            .locator(
+              '.result-rewards .reward-badge, .result-rewards .earned-reward',
+            )
+            .all()),
+        ];
+        for (const target of reachable) {
+          await target.scrollIntoViewIfNeeded();
+          const bounds = await target.boundingBox();
           assert.ok(
             bounds.y >= 0 && bounds.y + bounds.height <= height + 1,
-            'earned rewards remain reachable through outer-page scrolling',
+            'actions and complete reward cards remain reachable on compact screens',
           );
-          await page.locator('#front-shell').evaluate((node) => {
-            node.scrollTop = 0;
-          });
         }
       }
+      await page.locator('#front-shell').evaluate((node) => {
+        node.scrollTop = 0;
+      });
     };
     await fits();
     await page.locator('.cup-options > summary').focus();

@@ -140,8 +140,32 @@ test('result progress shows the earned delta and does not double-count a reopene
   assert.match(view, /\+2 race progress/);
   assert.match(view, /0 → 2\/6 progress/);
   assert.match(view, /Unlocked/);
-  assert.match(
-    raceProgressView(after, after, { mode: 'race' }, result),
-    /already been counted/,
+  assert.match(view, /role="progressbar"[^>]*aria-valuenow="2"/);
+  const reopened = raceProgressView(after, after, { mode: 'race' }, result);
+  assert.match(reopened, /<h3>Progress saved<\/h3>/);
+  assert.match(reopened, /2\/6 progress/);
+  assert.doesNotMatch(reopened, /0 → 2/);
+  const invalid = raceProgressView(
+    after,
+    after,
+    { mode: 'race' },
+    {
+      standings: [{ id: 'player', valid: false, finished: true }],
+    },
   );
+  assert.match(invalid, /<h3>No progress · A valid finish is required<\/h3>/);
+  const trial = raceProgressView(
+    before,
+    { ...before, trialTracks: ['halcyon'] },
+    { mode: 'time-trial', trackId: 'halcyon' },
+    { playerValid: true },
+  );
+  assert.match(trial, /<h3>New Time Trial map recorded<\/h3>/);
+  for (const markup of [view, reopened, invalid, trial])
+    assert.doesNotMatch(
+      markup,
+      /<p>/,
+      'results retain only the heading and progress cards',
+    );
+  assert.deepEqual(store.snapshot().state, after);
 });

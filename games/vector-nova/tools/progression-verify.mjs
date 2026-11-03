@@ -793,13 +793,51 @@ try {
       await pad(page, 0);
       assert.equal(await page.locator('.cup-victory').count(), 0);
       assert.ok(await page.locator('.earned-rewards').count());
-      await page.locator('[data-action="equipment"]').focus();
+      const rewards = page.locator('.result-rewards');
+      const placement = await rewards.evaluate((node) => {
+        const main = document
+          .querySelector('.results-main')
+          .getBoundingClientRect();
+        const bounds = node.getBoundingClientRect();
+        const cards = [
+          ...node.querySelectorAll('.reward-badge, .earned-reward'),
+        ];
+        return {
+          beside: bounds.left >= main.right,
+          visible: cards.every((card) => {
+            const r = card.getBoundingClientRect();
+            return r.top >= 0 && r.bottom <= innerHeight;
+          }),
+          explanation: node.querySelector('.race-reward-progress > p') !== null,
+        };
+      });
+      assert.equal(
+        placement.beside && placement.visible,
+        true,
+        'cup rewards are visible at the upper-right',
+      );
+      assert.equal(placement.explanation, false);
+      await page.locator('.cup-race-details > summary').click();
+      await page.locator('#front-shell').evaluate((node) => {
+        node.scrollTop = 300;
+      });
+      assert.equal(
+        await rewards.evaluate((node) => {
+          const r = node.getBoundingClientRect();
+          return r.top >= 0 && r.bottom <= innerHeight;
+        }),
+        true,
+        'cup rewards stay visible while scrolling the standings',
+      );
+      await page.locator('.cup-result-actions [data-action="home"]').focus();
       await pad(page, 0);
       assert.equal(
         (await state(page)).screen,
-        'setup',
-        'controller opens the between-race garage',
+        'home',
+        'controller returns from completed-cup standings to setup',
       );
+      await page.locator('[data-action="garage-tab"]').focus();
+      await pad(page, 0);
       await page.locator('[data-equip="deflector"]').focus();
       await pad(page, 0);
       assert.equal(

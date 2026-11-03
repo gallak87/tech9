@@ -1052,12 +1052,6 @@
   font-size: 22px;
   letter-spacing: -0.025em;
 }
-.race-reward-progress > p {
-  margin: 8px 0 16px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: #bbb;
-}
 .race-reward-progress .reward-badges {
   max-width: 660px;
 }
@@ -1178,28 +1172,46 @@
   white-space: nowrap;
 }
 
-.result-panel:has(.race-reward-progress) .results-list {
-  max-height: min(22vh, 180px);
+.result-rewards .race-reward-progress {
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
-.result-panel .race-reward-progress {
-  margin: 16px 0 0;
-  padding-top: 14px;
+.result-rewards .race-reward-progress > h3 {
+  font-size: 20px;
 }
-.result-panel .race-reward-progress > h3 {
-  font-size: 19px;
+.result-rewards .race-reward-progress .reward-badges {
+  margin-top: 12px;
 }
-.result-panel .race-reward-progress > p {
-  font-size: 10px;
-  margin: 6px 0 12px;
+.result-rewards .reward-badges-list {
+  flex-direction: column;
 }
-.result-panel .reward-badge {
+.result-rewards .reward-badge {
+  flex: none;
   padding: 10px;
   gap: 8px;
 }
-.result-panel .earned-rewards {
-  margin: 14px 0 0;
-  padding-top: 10px;
+.result-rewards .earned-rewards {
+  margin: 16px 0 0;
+  padding-top: 12px;
 }
-.result-panel .earned-reward {
+.result-rewards .earned-rewards > div {
+  display: grid;
+  gap: 8px;
+}
+.result-rewards .earned-reward {
+  align-items: center;
+  min-width: 0;
   padding: 10px 12px;
+  gap: 10px;
+}
+.result-rewards .earned-reward > span {
+  min-width: 0;
+}
+.result-rewards .earned-reward strong {
+  font-size: 13px;
+}
+.result-rewards .earned-reward p {
+  font-size: 10px;
+  line-height: 1.35;
 }

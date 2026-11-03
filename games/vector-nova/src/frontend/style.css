@@ -1155,6 +1155,39 @@ body[data-screen='results'] #interface {
 .cup-results-panel .cup-save {
   color: #e8e8e8;
 }
+.results-with-rewards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'heading' 'actions' 'rewards' 'main';
+  align-items: start;
+  gap: 0 28px;
+  width: min(1160px, 100%);
+}
+.results-with-rewards > :is(.front-heading, .cup-result-heading) {
+  grid-area: heading;
+}
+.results-with-rewards > :is(.results-actions, .cup-result-actions) {
+  grid-area: actions;
+}
+.results-main {
+  grid-area: main;
+  min-width: 0;
+}
+.result-rewards {
+  grid-area: rewards;
+  min-width: 0;
+  margin-bottom: 20px;
+}
+@media (min-width: 1100px) {
+  .results-with-rewards {
+    grid-template-columns: minmax(0, 1fr) 330px;
+    grid-template-areas: 'heading heading' 'actions rewards' 'main rewards';
+  }
+  .result-rewards {
+    position: sticky;
+    top: 20px;
+  }
+}
 .cup-options > summary {
   min-height: 44px;
 }

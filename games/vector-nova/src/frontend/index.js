@@ -872,7 +872,20 @@ export async function createFrontend(
           rewardContext ?? {},
           lastResults,
         ) + rewardsView(earnedRewards);
-      panel?.insertAdjacentHTML('beforeend', progression);
+      if (panel && progression) {
+        const heading = panel.firstElementChild;
+        const main = document.createElement('div');
+        main.className = 'results-main';
+        main.append(...panel.childNodes);
+        const rewards = document.createElement('aside');
+        rewards.className = 'result-rewards';
+        rewards.setAttribute('aria-label', 'Rewards');
+        rewards.innerHTML = progression;
+        panel.classList.add('results-with-rewards');
+        panel.append(heading);
+        if (actions) panel.append(actions);
+        panel.append(rewards, main);
+      }
       if (lastResults?.mode === 'cup')
         actions
           ?.querySelector('.front-actions')

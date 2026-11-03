@@ -124,6 +124,9 @@ export function createWorldspireRoad({
   for (const [i, run] of roadIntervals(track).entries()) {
     const range = { ...run, step: 4, uvScale: 12 },
       route = { start: Math.max(0, run.start), end: run.end };
+    const twisting = track.inversions.some(
+      (roll) => roll.start < run.end && roll.end > run.start,
+    );
     add(
       'Deck ' + i,
       sweepGeometry(
@@ -132,9 +135,14 @@ export function createWorldspireRoad({
           [-half, 0],
           [half, 0],
         ],
-        // The wide opening bank needs transverse facets, otherwise a whole
-        // chassis crosses alternating full-width triangle ridges at the start.
-        i === 0 ? { ...range, transverseStep: 4 } : range,
+        // Twisting quads are not planar. Refine both axes in roll-bearing
+        // spans so hull support cannot follow full-width diagonal ridges.
+        // The gentler opening bank keeps its existing transverse subdivision.
+        twisting
+          ? { ...range, step: 3, transverseStep: 1 }
+          : i === 0
+            ? { ...range, transverseStep: 4 }
+            : range,
       ),
       ivory,
       { kind: 'deck', ...route },

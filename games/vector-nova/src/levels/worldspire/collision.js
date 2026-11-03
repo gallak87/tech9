@@ -17,15 +17,14 @@ export function createWorldspireCollisionWorld({ track }) {
           geometry.index?.array ??
           Array.from({ length: positions.length / 3 }, (_, i) => i);
       const id = 'worldspire-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      triangles.push(
-        ...indexedTriangles(
-          positions,
-          indices,
-          { id, ...info },
-          matrix,
-          geometry.attributes.roadCoord,
-        ),
-      );
+      for (const triangle of indexedTriangles(
+        positions,
+        indices,
+        { id, ...info },
+        matrix,
+        geometry.attributes.roadCoord,
+      ))
+        triangles.push(triangle);
       geometry.computeBoundingBox();
       targets.push({
         id,

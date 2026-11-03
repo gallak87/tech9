@@ -478,7 +478,7 @@ export function createWorldspireTrack() {
   return {
     id: 'worldspire-sprint',
     name: 'Worldspire',
-    geometryVersion: 'worldspire-sprint-v6-start-bank-opening-deck',
+    geometryVersion: 'worldspire-sprint-v7-coil-sheet',
     deviceProjection: 'rendered-surface',
     closed: false,
     width: WIDTH,

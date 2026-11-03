@@ -438,7 +438,7 @@ export function createUmbraTrack() {
   return {
     id: 'umbra-fold-v1',
     name: 'Umbra Fold',
-    geometryVersion: 'umbra-fold-route-v1-width35',
+    geometryVersion: 'umbra-fold-route-v2-flush-continuous-skin',
     length,
     width: WIDTH,
     groundY: -400,

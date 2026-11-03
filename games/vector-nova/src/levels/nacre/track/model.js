@@ -398,7 +398,7 @@ export function createLevel3Track() {
   return {
     id: 'nacre-tempest-1-shape',
     name: 'Nacre Tempest',
-    geometryVersion: 'nacre-jump-ramps-v3',
+    geometryVersion: 'nacre-jump-ramps-v4-flush-joints',
     length,
     width: WIDTH,
     waterY: 0,

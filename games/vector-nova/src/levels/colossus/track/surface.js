@@ -5,9 +5,16 @@ export function sheetGeometry(
   track,
   start,
   end,
-  { min = -36, max = 36, lift = 0, columns = 12 } = {},
+  { min = -36, max = 36, lift = 0, columns, step } = {},
 ) {
-  const rows = Math.max(1, Math.ceil((end - start) / 6));
+  // Road, paint and machinery projections reconstruct the same running cells.
+  // Refine only the wide reversing beds; retain coarse non-driving backing.
+  const reversing =
+    lift === 0 &&
+    track.rolls.some((roll) => end > roll.start - 30 && start < roll.end + 30);
+  columns ??= reversing ? 72 : 12;
+  step ??= reversing ? 2 : 6;
+  const rows = Math.max(1, Math.ceil((end - start) / step));
   const positions = [],
     normals = [],
     uv = [],

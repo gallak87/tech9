@@ -3,7 +3,7 @@ import { boxProfile } from '../../../track/geometry.js';
 
 // Shared authored dimensions and tessellation for rendering and physical contact.
 export const SAFFRON_SOLIDS = Object.freeze({
-  version: 'saffron-solids-v4-opening-bands',
+  version: 'saffron-solids-v5-supported-bands',
   step: 3.2,
   supportWidth: 3.2,
   supportDepth: 4.4,
@@ -40,14 +40,14 @@ export function roadRuns(track) {
   runs.push([start, track.length]);
   return runs;
 }
-// The opening bank must not twist a single 40 m-wide triangle beneath the
-// chassis. Keep later approved runs and their established tessellation intact.
+// A wide twisting quad lifts hull corners at its diagonal even on ordinary
+// banks. Preserve the opening bands and refine the later supported runs too.
 export function roadSweepOptions(start, end, runningSurface = false) {
   return {
     start,
     end,
     step: SAFFRON_SOLIDS.step,
-    ...(runningSurface && start === 0 ? { transverseStep: 4 } : {}),
+    ...(runningSurface ? { transverseStep: start === 0 ? 4 : 2 } : {}),
   };
 }
 export const toeProfile = (side) => boxProfile(side * 20.48, 0.18, 0.68, 0.75);

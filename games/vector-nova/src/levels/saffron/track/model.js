@@ -411,7 +411,7 @@ export function createSaffronTrack() {
   return {
     id: 'saffron-leviathan',
     name: 'Saffron Leviathan',
-    geometryVersion: 'saffron-fossil-route-v3-opening-bands',
+    geometryVersion: 'saffron-fossil-route-v4-supported-bands',
     deviceProjection: 'rendered-surface',
     length,
     width: WIDTH,

@@ -114,8 +114,12 @@ function ceramicPanels(track, runs) {
                 ? [-14.5, 0, 14.5]
                 : [-14.5, -4.84, 4.84, 14.5];
       for (let column = 0; column < bounds.length - 1; column += 1) {
-        const x0 = bounds[column] + 0.075;
-        const x1 = bounds[column + 1] - 0.075;
+        // Internal joins stay physically flush. A 150 mm opening made hull
+        // corners switch to the analytic road frame on banked panels; gasket
+        // lines and fitted relief belong to the existing surface shader.
+        const x0 = bounds[column] + (column === 0 ? 0.075 : 0);
+        const x1 =
+          bounds[column + 1] - (column === bounds.length - 2 ? 0.075 : 0);
         const glazed =
           dryGlass &&
           ((section.id === 'grid' && (column === 1 || column === 3)) ||
@@ -153,16 +157,8 @@ function ceramicPanels(track, runs) {
         for (let v = 0; v <= along; v += 1)
           for (let u = 0; u <= across; u += 1) {
             const x = THREE.MathUtils.lerp(x0, x1, u / across);
-            const distance = THREE.MathUtils.lerp(
-              a + 0.065 + scallopAt(a, u / across),
-              b - 0.065 + scallopAt(b, u / across),
-              v / along,
-            );
-            const clipped = THREE.MathUtils.clamp(
-              distance,
-              start + 0.04,
-              end - 0.04,
-            );
+            const distance = THREE.MathUtils.lerp(a, b, v / along);
+            const clipped = THREE.MathUtils.clamp(distance, start, end);
             const frame = track.sample(clipped);
             const fv = v / along;
             vertices.push({
@@ -172,7 +168,20 @@ function ceramicPanels(track, runs) {
               up: frame.up,
               x,
               distance: clipped,
-              panel: [(u / across) * (x1 - x0), fv * (b - a), x1 - x0, b - a],
+              // Scalloped joins remain a fitted surface finish. Moving the
+              // top rows themselves left holes when adjacent channels used
+              // different scallop depths or changed their column layout.
+              panel: [
+                (u / across) * (x1 - x0),
+                fv * (b - a) -
+                  THREE.MathUtils.lerp(
+                    scallopAt(a, u / across),
+                    scallopAt(b, u / across),
+                    fv,
+                  ),
+                x1 - x0,
+                b - a,
+              ],
             });
           }
         for (let v = 0; v < along; v += 1)

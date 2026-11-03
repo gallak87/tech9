@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { finishUmbraMaterial } from '../environment/materials.js';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import {
+  mergeGeometries,
+  mergeVertices,
+} from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   sweepGeometry,
   boxProfile,
@@ -10,7 +13,7 @@ import { framePoint } from '../../../track/frames.js';
 import { tidalResponse } from './forces.js';
 import { selectPracticalFixtures } from '../../../track/lighting.js';
 
-function panelGeometry(track) {
+function panelGeometry(track, runs = track.solidRuns) {
   const positions = [];
   const normals = [];
   const colors = [];
@@ -33,7 +36,7 @@ function panelGeometry(track) {
       cassetteUvs.push(...panel[index]);
     }
   };
-  for (const [start, end] of track.solidRuns) {
+  for (const [start, end] of runs) {
     for (let from = start; from < end; from += 18) {
       const to = Math.min(end, from + 18);
       const section = track.sections.find(
@@ -65,71 +68,66 @@ function panelGeometry(track) {
         const color = new THREE.Color(shade).multiplyScalar(
           0.91 + ((Math.floor(from / 18) + column * 3) % 5) * 0.035,
         );
-        const along = Math.max(1, Math.ceil((to - from) / 6));
-        for (let row = 0; row < along; row += 1) {
-          const a = THREE.MathUtils.lerp(from + 0.08, to - 0.08, row / along);
-          const b = THREE.MathUtils.lerp(
-            from + 0.08,
-            to - 0.08,
-            (row + 1) / along,
-          );
-          const fa = track.sample(a);
-          const fb = track.sample(b);
-          const mid = (x0 + x1) / 2;
-          for (const [left, right, leftY, rightY] of [
-            [x0, x0 + 0.14, 0.003, 0.06],
-            [x0 + 0.14, mid, 0.06, 0.065],
-            [mid, x1 - 0.14, 0.065, 0.06],
-            [x1 - 0.14, x1, 0.06, 0.003],
-          ]) {
+        const twisting =
+          to > track.inversion.start - 50 && from < track.inversion.end + 50;
+        const along = Math.max(1, Math.ceil((to - from) / (twisting ? 3 : 6)));
+        const stations = Array.from({ length: along + 1 }, (_, row) =>
+          THREE.MathUtils.lerp(from, to, row / along),
+        );
+        const across = Math.ceil(
+          (bounds[column + 1] - bounds[column]) / (twisting ? 1 : 2),
+        );
+        for (let row = 0; row < stations.length - 1; row++) {
+          const a = stations[row],
+            b = stations[row + 1];
+          const fa = track.sample(a),
+            fb = track.sample(b);
+          for (let band = 0; band < across; band++) {
+            const left = THREE.MathUtils.lerp(
+              bounds[column],
+              bounds[column + 1],
+              band / across,
+            );
+            const right = THREE.MathUtils.lerp(
+              bounds[column],
+              bounds[column + 1],
+              (band + 1) / across,
+            );
             const p = [
-              framePoint(fa, left, leftY),
-              framePoint(fb, left, leftY),
-              framePoint(fa, right, rightY),
-              framePoint(fb, right, rightY),
+              framePoint(fa, left, 0),
+              framePoint(fb, left, 0),
+              framePoint(fa, right, 0),
+              framePoint(fb, right, 0),
             ];
-            const slope = (rightY - leftY) / (right - left);
-            const na = fa.up
-              .clone()
-              .addScaledVector(fa.right, -slope)
-              .normalize();
-            const nb = fb.up
-              .clone()
-              .addScaledVector(fb.right, -slope)
-              .normalize();
-            const edge = left === x0 || right === x1;
-            const finish = edge ? color.clone().multiplyScalar(1.16) : color;
-            const U = (x) => (x - x0) / (x1 - x0),
-              V = (z) => (z - from) / (to - from);
+            const panel = (x, z) => [
+              (x - x0) / (x1 - x0),
+              (z - from) / (to - from),
+              x1 - x0,
+              to - from,
+            ];
+            // Gaskets and bevels stay in the existing finish shader. Thin
+            // physical strips multiply costly helper fragments at a distance.
             triangle(
               [p[0], p[1], p[2]],
-              finish,
+              color,
               [
                 [left, a],
                 [left, b],
                 [right, a],
               ],
-              [
-                [U(left), V(a)],
-                [U(left), V(b)],
-                [U(right), V(a)],
-              ],
-              [na, nb, na],
+              [panel(left, a), panel(left, b), panel(right, a)],
+              [fa.up, fb.up, fa.up],
             );
             triangle(
               [p[2], p[1], p[3]],
-              finish,
+              color,
               [
                 [right, a],
                 [left, b],
                 [right, b],
               ],
-              [
-                [U(right), V(a)],
-                [U(left), V(b)],
-                [U(right), V(b)],
-              ],
-              [na, nb, nb],
+              [panel(right, a), panel(left, b), panel(right, b)],
+              [fa.up, fb.up, fb.up],
             );
           }
         }
@@ -150,10 +148,14 @@ function panelGeometry(track) {
   );
   geometry.setAttribute(
     'umbraCassette',
-    new THREE.Float32BufferAttribute(cassetteUvs, 2),
+    new THREE.Float32BufferAttribute(cassetteUvs, 4),
   );
   geometry.computeBoundingSphere();
-  return geometry;
+  // Share identical panel vertices; keep distinct cassette finishes.
+  // Fine running cells need no duplicate buffers for each triangle corner.
+  const indexed = mergeVertices(geometry, 1e-6);
+  geometry.dispose();
+  return indexed;
 }
 
 // The deck is an engineered graphite ribbon: continuous curb, broad faceted
@@ -257,18 +259,8 @@ export function buildUmbraRoad(
     return mesh(name, geometry, material);
   };
   const half = track.width / 2;
-  const road = sweep(
-    'Graphite deck backing / real open jump intervals',
-    [
-      [-half, shape ? 0 : -0.12],
-      [half, shape ? 0 : -0.12],
-    ],
-    graphite,
-    2,
-  );
-  road.userData.drivingSurface = true;
-  road.userData.roadSurface = true;
-  road.userData.solidRuns = track.solidRuns.map((range) => [...range]);
+  // The continuous running skin replaces the old second opaque floor. Keep
+  // the actual sides/bottom; another top sheet only duplicates shading work.
   sweep(
     'Deep faceted deck sides and bottom',
     [
@@ -282,15 +274,18 @@ export function buildUmbraRoad(
     underside,
     6,
   );
-  if (!shape) {
-    const panels = mesh(
-      'Broad segmented graphite facets and pale landing patches',
-      panelGeometry(track),
-      panel,
-    );
-    panels.userData.drivingSurface = true;
-    panels.userData.roadSurface = true;
-  }
+  // Complete cassettes per batch retain the exact panel/row phase and
+  // let the renderer cull distant fine deck cells, including in shadow passes.
+  for (const [start, end] of track.solidRuns)
+    for (let from = start; from < end; from += 576) {
+      const panels = mesh(
+        'Broad segmented graphite facets and pale landing patches',
+        panelGeometry(track, [[from, Math.min(end, from + 576)]]),
+        shape ? graphite : panel,
+      );
+      panels.userData.drivingSurface = true;
+      panels.userData.roadSurface = true;
+    }
   for (const side of [-1, 1]) {
     sweep(
       'Cold metal edge band',

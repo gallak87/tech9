@@ -1,7 +1,8 @@
 import * as T from 'three';
 import { cacheClosedCatmullRom } from '../../../track/cached-curve.js';
+import { createVesperSurfaceSampler } from './surface.js';
 
-export const VESPER_REVISION = 'vesper-route-6-crown-receiver';
+export const VESPER_REVISION = 'vesper-route-8-offset-lane-frames';
 const wrap = (s, length) => ((s % length) + length) % length;
 const PLAN = [
   [-280, -300],
@@ -336,6 +337,7 @@ export function createVesperTrack() {
     width: 28,
     groundY: -100,
     sample,
+    sampleSurface: createVesperSurfaceSampler(sample, { ...inversion, length }),
     sections,
     checkpoints,
     scenarios,

@@ -72,15 +72,19 @@ test('the approved Forest route, surfaces and device layout retain their physica
   assert.equal(track.length, 4762.5398043901305);
   assert.equal(track.jumps.length, 1);
   assert.equal(track.inversions.length, 1);
+  assert.equal(track.revision, 'vesper-route-8-offset-lane-frames');
+  assert.equal(track.geometryVersion, track.revision);
   const geometry = Object.fromEntries(
     Object.entries(track).filter(
       ([key, value]) =>
-        !['id', 'name', 'review'].includes(key) && typeof value !== 'function',
+        !['id', 'name', 'review', 'revision', 'geometryVersion'].includes(
+          key,
+        ) && typeof value !== 'function',
     ),
   );
   assert.equal(
     fingerprint(geometry),
-    '6752cd5a186fcb53d7d9f10ae3702633a5ee2878fc39ce3c150144f31e21214a',
+    'c2756f9bb101db2a8104ad977c8a9a52160f1259743b2d300d854970ee78304e',
   );
   const frames = [];
   for (let distance = -2; distance <= track.length + 2; distance++) {
@@ -109,6 +113,79 @@ test('the approved Forest route, surfaces and device layout retain their physica
     fingerprint(createDevices(track)),
     '65fdff8db17985352fa675a4b0ae82b2d8e09646fb6b027c4f63425ac1598ff3',
   );
+});
+
+test('Bloomspan lane frames follow the real ribbon while ordinary shelves retain their reference handling', () => {
+  const track = createVesperTrack();
+  const roll = track.inversions[0];
+  assert.equal(track.sampleSurface(460, -8), undefined);
+  assert.equal(track.sampleSurface(track.landmarks.hollow.entry, 8), undefined);
+  assert.equal(track.sampleSurface(track.jumps[0].takeoff, 0), undefined);
+  for (const fraction of [0.2, 0.5, 0.8])
+    for (const lateral of [-8, 0, 8]) {
+      const distance = roll.start + (roll.end - roll.start) * fraction;
+      const lane = track.sampleSurface(distance, lateral);
+      const point = (s) => {
+        const frame = track.sample(s);
+        return frame.position.addScaledVector(frame.right, lateral);
+      };
+      assert.ok(lane.position.distanceTo(point(distance)) < 1e-8);
+      // Independently compare the reported metric against a shorter physical
+      // chord, so native motion and AI guidance use actual lane metres.
+      const chord = point(distance + 0.05).sub(point(distance - 0.05));
+      assert.ok(
+        Math.abs(chord.dot(lane.tangent) / 0.1 - lane.longitudinalMetric) <
+          0.002,
+      );
+      assert.ok(Math.abs(lane.tangent.dot(lane.right)) < 1e-10);
+      assert.ok(Math.abs(lane.up.length() - 1) < 1e-10);
+      assert.ok(Number.isFinite(lane.curvature));
+      const nextLap = track.sampleSurface(distance + track.length, lateral);
+      assert.ok(nextLap.position.distanceTo(lane.position) < 1e-8);
+      assert.ok(nextLap.up.distanceTo(lane.up) < 1e-8);
+    }
+});
+
+test('Bloomspan lane guidance restores independently of surface memo history', () => {
+  const track = createVesperTrack();
+  const roll = track.inversions[0];
+  const runtime = createVesperRuntime({ track, presentation: false });
+  const state = {
+    ...createVehicleState(),
+    distance: (roll.start + roll.end) / 2,
+    lateral: 8,
+    speed: 112,
+  };
+  const input = { throttle: 1, steer: 0.05, boost: false };
+  runtime.reset({ state, seed: 7 });
+  const trace = (motion, vehicle, ticks) =>
+    Array.from({ length: ticks }, () => ({
+      events: motion.advance(vehicle, input, 1 / 120),
+      state: { ...vehicle },
+      motion: motion.snapshot(),
+    }));
+  try {
+    trace(runtime, state, 16);
+    const savedState = { ...state };
+    const savedMotion = structuredClone(runtime.snapshot());
+    const expected = trace(runtime, state, 48);
+    const otherTrack = createVesperTrack();
+    for (let i = 0; i < 1200; i++)
+      otherTrack.sampleSurface(roll.start + 2 + (i % 1100) / 3, -8);
+    const restored = createVesperRuntime({
+      track: otherTrack,
+      presentation: false,
+    });
+    try {
+      restored.reset({ state: savedState, seed: 7 });
+      restored.restore(savedMotion);
+      assert.deepEqual(trace(restored, savedState, 48), expected);
+    } finally {
+      restored.dispose();
+    }
+  } finally {
+    runtime.dispose();
+  }
 });
 
 test('Forest coast, hollow and crown-flight simulations retain their deterministic behavior', () => {
@@ -210,7 +287,8 @@ test('Forest road geometry, materials and guidance retain the approved mesh cont
     );
     assert.equal(
       fingerprint(meshes),
-      'e0403b4fb877f90bb3313f2ede5d3882f100f9c2749db99849bc5998d4176c33',
+      // Fine longitudinal/transverse running cells now match native support.
+      '93be8c558156d4b916c754ea2aa670e473f358ffe3bfc65aa1f5a1aa6c205e79',
     );
   } finally {
     road.dispose();
@@ -220,14 +298,16 @@ test('Forest road geometry, materials and guidance retain the approved mesh cont
 test('Forest collision keeps every approved deck, rail and structural triangle', () => {
   const collision = createVesperCollisionWorld({ track: createVesperTrack() });
   try {
-    assert.equal(collision.targets.length, 9);
-    assert.equal(collision.triangleCount, 4318);
+    // Exact running faces cover the whole supported route; scenery stays
+    // limited to the original launch and receiving neighbourhoods.
+    assert.equal(collision.targets.length, 15);
+    assert.equal(collision.triangleCount, 165182);
     assert.equal(
       fingerprint({
         targets: collision.targets,
         triangles: collision.triangles,
       }),
-      'f24d9bfaf21930594c3ec7cb10fdc0bc78eb00126d61731e7fd373e70e6488d7',
+      'ad090f87fdde9a5fc1bc94688b2e7559a3377b8e02a2a4b8a51d23529b62a1d7',
     );
   } finally {
     collision.dispose();

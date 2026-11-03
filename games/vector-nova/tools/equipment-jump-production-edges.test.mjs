@@ -70,8 +70,8 @@ test('Nacre Jump Drive lands at both production deck edges without physical or v
     collisionWorld.dispose();
   });
   // This receiving straight has real ceramic panels, gills and curbs in the
-  // production collision world. Ordinary roads outside jump corridors may
-  // use the sampled-road fallback and cannot establish physical skin clearance.
+  // production collision world. Nacre retains this actual running skin around
+  // the full course, including both inboard edge-landing positions.
   const distance = track.jumps[1].landingStart + 45;
   let landed = 0;
   for (const shipId of ['kestrel', 'shrike'])

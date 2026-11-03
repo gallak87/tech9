@@ -199,10 +199,10 @@ export function buildGlasswakeRoad(
             (left + right) / 2 >= zone.lateralMin &&
             (left + right) / 2 <= zone.lateralMax,
         );
-        // No longitudinal seam is removed from frost: opaque travel bands begin
-        // and end at the exact rule boundaries, including a split cassette.
-        const from = frosted ? start : start + seam;
-        const to = frosted ? end : end - seam;
+        // Keep every cassette top joined. The recessed cobalt sills still show
+        // the joints through the crystal without holes in the magnetic skin.
+        const from = start;
+        const to = end;
         const kind = frosted
           ? 'frost'
           : reinforcement
@@ -215,7 +215,7 @@ export function buildGlasswakeRoad(
               [left, 0],
               [right, 0],
             ],
-            { start: from, end: to, step: 2.5 },
+            { start: from, end: to, step: 2.5, transverseStep: 1 },
           ),
         );
         cassetteIntervals.push({

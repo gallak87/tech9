@@ -28,9 +28,6 @@ Reviewed against `main` and the active event review branches on **2026-10-31**. 
 
 ### Known course follow-ups
 
-- [ ] **Saffron / Colossus:** reduce reproduced whole-hull facet ripple on Saffron's later banks (around 4.24 / 4.80 km) and Colossus's reversing wall rolls (around 0.74 / 3.51 km). Their coarse running triangles remain separate from the completed Worldspire/Nightweir corkscrew fixes; preserve shared handling and hover height.
-- [ ] **Nacre / Umbra / Zephyr:** smooth reproduced local support transitions near Nacre 1.62 km, Umbra 2.16 km and Zephyr 1.41 km. Check collected-skin boundaries and cassette/backing changes against the actual rendered sheet; these are distinct from repeated corkscrew facets.
-- [ ] **Glasswake / Vesper:** check the rendered/support mismatch candidates in Crevice (3.36–3.95 km) and Bloomspan (2.85–3.35 km). Their sampled rolls lack native deck coverage; a large rendered-relative measurement alone does not establish physical bobbing.
 - [ ] **Zephyr:** human review of the reported extra turn-assistance feel at the early right bend beneath the stone cross-span, before the first waterfall boost strip (2026-10-17 reference: lap 1, 00:07.300, 396 km/h). Production-collider yaw and camera checks do not reproduce extra assistance; preserve the approved 0.3 setting.
 
 ## Next

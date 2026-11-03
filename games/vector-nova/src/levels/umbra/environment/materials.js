@@ -15,7 +15,7 @@ export function finishUmbraMaterial(
     shader.vertexShader = shader.vertexShader
       .replace(
         '#include <common>',
-        `#include <common>\n${bakedLight ? 'attribute float _umbralight; varying float umbraLight;' : ''} varying vec3 umbraMember; varying vec3 umbraRaw; varying vec3 umbraSurface; varying vec3 umbraNormal; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'attribute vec2 umbraCassette; varying vec2 umbraPanel;' : ''}`,
+        `#include <common>\n${bakedLight ? 'attribute float _umbralight; varying float umbraLight;' : ''} varying vec3 umbraMember; varying vec3 umbraRaw; varying vec3 umbraSurface; varying vec3 umbraNormal; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'attribute vec4 umbraCassette; varying vec4 umbraPanel;' : ''}`,
       )
       .replace(
         '#include <begin_vertex>',
@@ -37,7 +37,7 @@ export function finishUmbraMaterial(
         '#include <common>',
         `#include <common>
       ${bakedLight ? 'varying float umbraLight;' : ''}
-      varying vec3 umbraMember; varying vec3 umbraRaw; varying vec3 umbraSurface; varying vec3 umbraNormal; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'varying vec2 umbraPanel;' : ''}
+      varying vec3 umbraMember; varying vec3 umbraRaw; varying vec3 umbraSurface; varying vec3 umbraNormal; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'varying vec4 umbraPanel;' : ''}
       ${
         surfaceTexture
           ? `
@@ -64,7 +64,7 @@ export function finishUmbraMaterial(
         '#include <color_fragment>',
         `#include <color_fragment>
       vec3 up=${kind === 'plate' ? 'umbraMember' : 'umbraSurface'};
-      float macro=umFbm(up*.065+vec3(umbraSeed));
+      float macro=${kind === 'deck' ? 'umFbm(vec3(umbraDeck.x*.8,umbraDeck.y*.26,1.))' : 'umFbm(up*.065+vec3(umbraSeed))'};
       float grain=umNoise(up*2.1);
       float fine=umNoise(up*18.7);
       float visible=1.-smoothstep(.10,.65,max(length(dFdx(up)),length(dFdy(up))));
@@ -117,8 +117,14 @@ export function finishUmbraMaterial(
       `
             : kind === 'deck'
               ? `
-        float longitudinal=umFbm(vec3(umbraDeck.x*.8,umbraDeck.y*.26,1.));
+        // The same grain drives tone and subtle roughness variation.
+        float longitudinal=macro;
         float panelEdge=min(min(umbraPanel.x,1.-umbraPanel.x),min(umbraPanel.y,1.-umbraPanel.y));
+        float acrossEdge=min(umbraPanel.x,1.-umbraPanel.x)*umbraPanel.z;
+        float alongEdge=min(umbraPanel.y,1.-umbraPanel.y)*umbraPanel.w;
+        float edgeMetres=min(acrossEdge,alongEdge);
+        float edgePixel=max(fwidth(edgeMetres),.001);
+        float gasket=1.-smoothstep(-edgePixel,edgePixel,edgeMetres);
         float dirt=1.-smoothstep(.012,.065,panelEdge);
         float polished=(1.-smoothstep(.004,.015,panelEdge))*smoothstep(.35,.7,longitudinal);
         float wear=exp(-pow((abs(umbraDeck.x)-5.8)/3.3,2.))*(1.-dirt);
@@ -131,7 +137,9 @@ export function finishUmbraMaterial(
         diffuseColor.rgb*=1.+abrasion*.025;
         float trackGrain=umNoise(vec3(umbraDeck.x*24.,umbraDeck.y*1.7,2.));
         diffuseColor.rgb*=mix(.94,1.035,longitudinal)*(1.-dirt*.20)+wear*.028+polished*.12;
+        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.0203,.0307,.0409),gasket);
         relief=(longitudinal*.0015+trackGrain*.0013*visible)*(1.-wear*.55);
+        relief+=.06*smoothstep(0.,.14,max(acrossEdge,0.))*(1.-gasket);
       `
               : `
         diffuseColor.rgb*=mix(.89,1.06,macro)*mix(.97,1.015,grain);
@@ -170,7 +178,7 @@ export function finishUmbraMaterial(
       );
   };
   material.customProgramCacheKey = () =>
-    `${kind === 'deck' ? 'umbra-deck-sheen-v1' : 'umbra-surface-v7'}-${kind}-${!!surfaceTexture}-${bakedLight}`;
+    `${kind === 'deck' ? 'umbra-deck-sheen-v2' : 'umbra-surface-v7'}-${kind}-${!!surfaceTexture}-${bakedLight}`;
   return material;
 }
 

@@ -184,6 +184,8 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
   };
   // A single partitioned deck shares every longitudinal row. Induction bands
   // are part of the surface, so bank transitions cannot expose coplanar stripes.
+  // Small transverse cells keep whole-hull clearance smooth through the wall
+  // ride while sharing these exact faces with continuous native road support.
   const deckCuts = [-16, -14.4, -14, -5.15, -3.5, 3.5, 5.15, 14, 14.4, 16];
   for (let i = 0; i < deckCuts.length - 1; i++) {
     const a = deckCuts[i],
@@ -197,7 +199,7 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
           [a, 0],
           [b, 0],
         ],
-        { ...range, step: 3, uvScale: 2.5 },
+        { ...range, step: 3, transverseStep: 1, uvScale: 2.5 },
       );
       const uv = geometry.attributes.uv;
       for (let j = 0; j < uv.count; j++)

@@ -26,7 +26,8 @@ export function applyNacreSurfaceFinish(material, kind) {
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <color_fragment>',
       `#include <color_fragment>
-      vec2 panelEdges = min(vNacrePanel.xy, vNacrePanel.zw - vNacrePanel.xy);
+      vec2 panelPoint = vec2(vNacrePanel.x, mod(vNacrePanel.y, vNacrePanel.w));
+      vec2 panelEdges = min(panelPoint, vNacrePanel.zw - panelPoint);
       float panelEdge = max(0., min(panelEdges.x, panelEdges.y));
       float edgePixel = max(fwidth(panelEdge), .001);
       float panelRim = 1. - smoothstep(.018, .095 + edgePixel, panelEdge);
@@ -64,5 +65,5 @@ export function applyNacreSurfaceFinish(material, kind) {
       );
   };
   material.customProgramCacheKey = () =>
-    `${key}-nacre-fitted-${kind}-v${ceramic ? 2 : 1}`;
+    `${key}-nacre-fitted-${kind}-v${ceramic ? 3 : 2}`;
 }

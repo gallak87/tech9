@@ -296,6 +296,9 @@ export function createVesperRoad({ track, shape = false }) {
     const gap = track.jumps.find((j) => inside(mid, j));
     if (gap && !gap.optional) continue;
     const right = gap?.optional ? 5.5 : 14;
+    const twisting = track.inversions.some(
+      (roll) => roll.start < end && roll.end > start,
+    );
     const section = track.sections.find((s) => mid >= s.start && mid < s.end);
     const mat =
       section?.id === 'rootfall'
@@ -310,7 +313,7 @@ export function createVesperRoad({ track, shape = false }) {
           [-14, 0],
           [right, 0],
         ],
-        { start, end, step: 1 },
+        { start, end, step: 1, transverseStep: twisting ? 1 : 2 },
       ),
       mat,
     );

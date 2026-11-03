@@ -5,7 +5,8 @@ export function createZephyrCollisionWorld({ track }) {
   return collectProductionSolids({
     track,
     id: 'zephyr-jump-solids',
-    geometryId: 'production-corridors-v1',
+    geometryId: 'production-corridors-v2-refined-deck',
+    fullDeck: true,
     road: createZephyrRoad(track),
     uvScale: 2.5,
     select(object) {

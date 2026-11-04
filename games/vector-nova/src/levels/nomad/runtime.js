@@ -4,7 +4,7 @@ import { nomadLaunchTarget, NOMAD_PILOT_RULES } from './pilot.js';
 
 export const NOMAD_FLIGHT_RULES = Object.freeze({
   gravity: 26,
-  timeout: 7,
+  timeout: 10,
   missBelow: 80,
   missBeyond: 100,
   missLateral: 110,

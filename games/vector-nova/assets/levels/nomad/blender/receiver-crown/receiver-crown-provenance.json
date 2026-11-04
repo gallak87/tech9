@@ -13,12 +13,12 @@
   "prototypes": [
     {
       "name": "nomad_receiver_crown",
-      "triangles": 13484,
-      "collisionTriangles": 13484,
+      "triangles": 14476,
+      "collisionTriangles": 14476,
       "materialBatches": 4,
       "bounds": {
-        "min": [-117.93663, 120.825165, -368.664825],
-        "max": [117.936623, 226.0, -142.033569]
+        "min": [-141.991364, 120.825165, -368.689484],
+        "max": [141.991364, 366.0, -142.016769]
       },
       "actualHullSeats": [
         {
@@ -89,10 +89,12 @@
     }
   ],
   "reservedOpening": {
-    "min": [-78, 142, -380],
-    "max": [78, 214, -160]
+    "min": [-102, 142, -380],
+    "max": [102, 354, -160]
   },
-  "entryRake": "Port shoulder mouth is raked aft up to 136.5m; displacement fades to zero at Z=-160. Actual native diagonal flight and 25m camera envelopes drive this construction.",
+  "arrivalRise": 140,
+  "arrivalSpread": 24,
+  "entryRake": "Port shoulder mouth is raked aft up to 136.5m; displacement fades to zero at Z=-160. Actual native diagonal flight and production chase-camera footprints drive the raised canopy and widened shoulders; the low galleries and real hull seats remain connected through formed piers.",
   "materials": [
     "Nomad / warm ivory armour",
     "Nomad / navy structural steel",
@@ -100,11 +102,11 @@
     "Nomad / oxide freight enamel"
   ],
   "hashes": {
-    "build_receiver_crown.py": "34a7e6c55769a3b0940db3399552adcfe0ceeb78347d4f07867b9e2a175a0abf",
-    "receiver-crown.blend": "29c3c379385fcbf9f0a7aa9b5cc66b849ccd61aebeec1305c05c24f76ed4348b",
-    "receiver-crown.glb": "a7d9ad403d8380e7741b5259da3f29b45e6e5adc6e5db7d1018025164027082e",
-    "receiver-crown-collision.json": "528b43d77f28024caed673ed83b316908eeda3afd4e01d1c0156e38c3feed5dc",
+    "build_receiver_crown.py": "f655ffc927060df5b6caec5b3de615f1fba5dafe25f557ebf42aa1aaacb0a40d",
+    "receiver-crown.blend": "34f6df1f25cbfd66c5628562ecb0f899b7ad2b9a47a78e3fdb7704b8e8a81510",
+    "receiver-crown.glb": "64b020eec777378b5e9bb8aa526c601a66b13b5557e26c14708ffa9f33202d73",
+    "receiver-crown-collision.json": "20a45a061223319254ce1b3d43452ad646dd3abdf903a597eecb3f226a5a5ea3",
     "carrier-collision.json": "dc10f86d70c0d2422b2e330de1dee3dcd51927144e2beb6a6f18d65baba07c76",
-    "route-support-guides.json": "410aa569e0df00485a12bc6cf454e9e9f883e2622f81ff1bf210277d99cd3fda"
+    "route-support-guides.json": "299b26e466252714cc004a164d51ef0e8513239252bfc8b748e211899d256671"
   }
 }

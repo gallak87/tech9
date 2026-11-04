@@ -1,24 +1,42 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
+import * as T from 'three';
+import { createCameraRig } from '../src/camera/index.js';
+import { NOMAD_CAMERA } from '../src/levels/nomad/camera.js';
 import createLevel from '../src/levels/nomad/index.js';
 import { createVehicleState, getVehiclePace } from '../src/physics/index.js';
+import { createCollisionWorld } from '../src/physics/collision-world.js';
+import { getCollisionHull } from '../src/ships/collision-hulls.js';
 import { getRacerControl } from '../src/race/racers.js';
 import { createDeviceRuntime } from '../src/pickups/runtime.js';
 
 // Bounded production encounters: every carrier transfer is approached over real
 // ground with ordinary thrust/steering and then driven after physical landing.
 // No airborne pose placement, target-seeking force, or automated full lap.
-let definition, track, devices, collisionWorld, dynamics;
+let definition, track, devices, collisionWorld, dynamics, crownWorld;
 before(async () => {
   definition = createLevel();
   track = definition.createTrack();
   devices = definition.racing.createDevices(track);
   collisionWorld = await definition.createCollisionWorld({ track });
   dynamics = await definition.createDynamics({ track, collisionWorld });
+  crownWorld = createCollisionWorld({
+    id: 'nomad-receiver-camera-regression',
+    version: 1,
+    geometryId: collisionWorld.rulesId,
+    triangles: collisionWorld.triangles.filter((triangle) =>
+      triangle.id.endsWith('/receiving-cargo-crown'),
+    ),
+  });
+  assert.ok(
+    crownWorld.triangleCount > 0,
+    'the actual retained receiver crown is present',
+  );
 });
 after(() => {
   dynamics?.dispose();
   collisionWorld?.dispose();
+  crownWorld?.dispose();
 });
 const DT = 1 / 120;
 const profiles = [
@@ -149,6 +167,7 @@ for (let index = 0; index < 10; index++)
       (entry) => entry.id === jump.receivingCarrierId,
     );
     const failures = [];
+    let cruiseStandout = 0;
     for (const quarter of [0, 1, 2, 3])
       for (const profile of profiles) {
         const context = `${jump.id}/phase${quarter}/${profile.shipId}/${profile.mode}`;
@@ -158,7 +177,7 @@ for (let index = 0; index < 10; index++)
           const pace = getVehiclePace(profile.shipId, track.pace);
           const state = {
             ...createVehicleState(profile.shipId),
-            distance: jump.takeoff - 140,
+            distance: jump.takeoff - 250,
             speed:
               profile.mode === 'nominal'
                 ? jump.targetSpeed
@@ -174,20 +193,83 @@ for (let index = 0; index < 10; index++)
             `${context}: real grounded approach`,
           );
           let launchTime = null,
+            launchSpeed = null,
             landingTime = null,
             landingDistance = null;
+          const camera = jump.hero
+            ? new T.PerspectiveCamera(61, 16 / 9, 0.1, 40000)
+            : null;
+          const hull = getCollisionHull(profile.shipId);
+          const subject = new T.Group();
+          const rig =
+            camera &&
+            createCameraRig(
+              camera,
+              NOMAD_CAMERA,
+              new T.Box3(
+                new T.Vector3().fromArray(hull.bounds.min),
+                new T.Vector3().fromArray(hull.bounds.max),
+              ),
+            );
+          let previousEye = null;
           for (let tick = 0; tick < 1500; tick++) {
             const events = runtime.advance(
               state,
               controls(state, runtime, profile.mode),
               DT,
             );
-            if (events.some((event) => event.type === 'jump-launch'))
+            if (events.some((event) => event.type === 'jump-launch')) {
               launchTime = state.time;
+              launchSpeed = state.speed;
+            }
             const transfer = events.find(
               (event) => event.type === 'jump-transfer',
             );
             const pose = runtime.pose(1);
+            if (rig) {
+              subject.position.copy(pose.position);
+              subject.quaternion.copy(pose.quaternion);
+              rig.update(track, state, DT, {
+                worldPose: pose,
+                subject,
+                reducedMotion: false,
+              });
+              // The real native hull already proves ship clearance. Reuse its
+              // actual path to prove the production eye and sightline clear the
+              // moving crown, expressed in the crown's nominal rigid frame.
+              const offset = track.motionAt(
+                jump.landingStart,
+                state.time,
+              ).translation;
+              const eye = {
+                position: camera.position.clone().sub(offset),
+                quaternion: camera.quaternion.clone(),
+              };
+              const craft = {
+                position: pose.position.clone().sub(offset),
+                quaternion: pose.quaternion,
+              };
+              if (previousEye)
+                assert.equal(
+                  crownWorld.sweepHull(previousEye, eye, {
+                    halfWidth: 3,
+                    hover: 3,
+                    halfLength: 3,
+                  }),
+                  null,
+                  `${context}: continuous 3 m crown eye clearance`,
+                );
+              assert.equal(
+                crownWorld.sweepHull(eye, craft, {
+                  halfWidth: 0.25,
+                  hover: 0.25,
+                  halfLength: 0.25,
+                }),
+                null,
+                `${context}: crown cannot hide the craft`,
+              );
+              previousEye = eye;
+            }
             assert.ok(
               pose.position.toArray().every(Number.isFinite),
               `${context}: finite native hull`,
@@ -213,9 +295,15 @@ for (let index = 0; index < 10; index++)
             `${context}: crossed the lip and intercepted its moving receiver`,
           );
           assert.ok(
-            landingTime - launchTime > 0.5 && landingTime - launchTime < 4,
+            landingTime - launchTime > (jump.bigAir ? 3 : 0.5) &&
+              landingTime - launchTime < (jump.bigAir ? 7 : 4),
             `${context}: actual bounded ballistic flight`,
           );
+          if (
+            profile.mode === 'cruise' &&
+            launchSpeed >= pace.cruiseSpeed * 0.9
+          )
+            cruiseStandout = Math.max(cruiseStandout, landingTime - launchTime);
           for (let tick = 0; tick < 120; tick++) {
             const events = runtime.advance(
               state,
@@ -248,26 +336,192 @@ for (let index = 0; index < 10; index++)
         }
       }
     assert.deepEqual(failures, []);
+    if (jump.hero)
+      assert.ok(
+        cruiseStandout >= 5,
+        `a production cruise ship has at least five seconds of actual hero flight (${cruiseStandout})`,
+      );
   });
 
-test('long receiving cargo halls support controlled full-boost flights across all four phases', () => {
-  for (const index of [3, 7])
-    for (const quarter of [0, 1, 2, 3]) {
-      const jump = track.jumps[index],
-        carrier = track.carriers.find(
-          (entry) => entry.id === jump.receivingCarrierId,
-        );
+test('every complete supported carrier road is drivable, including four phases of each roof catch and Saltwind', () => {
+  for (const carrier of track.carriers)
+    for (const quarter of carrier.mode === 'roof' ||
+    carrier.id === 'nomad-saltwind'
+      ? [0, 1, 2, 3]
+      : [0]) {
+      const context = `${carrier.id}/phase${quarter}`;
       const runtime = makeRuntime();
       try {
         dynamics.reset();
         const state = {
           ...createVehicleState(),
+          distance: Math.max(0, carrier.start) + 30,
+          speed: getVehiclePace('kestrel', track.pace).cruiseSpeed,
+          time: (quarter * carrier.motion.period) / 4,
+        };
+        runtime.reset({ state });
+        const target = carrier.end - 12;
+        for (let tick = 0; tick < 2400 && state.distance < target; tick++) {
+          const events = runtime.advance(
+            state,
+            getRacerControl(state, track, {
+              lane: 0,
+              difficulty: 'hard',
+              devices,
+              runtime,
+            }),
+            DT,
+          );
+          assert.equal(
+            runtime.pose(1).grounded,
+            true,
+            `${context}: continuous physical road support`,
+          );
+          assert.ok(
+            !events.some((event) =>
+              [
+                'impact',
+                'jump-launch',
+                'jump-miss',
+                'road-departure',
+                'road-recovery',
+              ].includes(event.type),
+            ),
+            `${context}: ${JSON.stringify(events)}`,
+          );
+        }
+        assert.ok(
+          state.distance >= target,
+          `${context}: traversed the complete supported road`,
+        );
+        assert.ok(
+          state.speed > 30,
+          `${context}: useful racing speed after sustained turns`,
+        );
+      } finally {
+        runtime.dispose();
+      }
+    }
+});
+
+test('the full Saltwind hall, loaded portal, outboard climb and final big-air catch support the fleet at four phases', () => {
+  const jump = track.jumps.at(-1);
+  const departure = track.carriers.find(
+    (carrier) => carrier.id === jump.departureCarrierId,
+  );
+  const receiver = track.carriers.find(
+    (carrier) => carrier.id === jump.receivingCarrierId,
+  );
+  for (const quarter of [0, 1, 2, 3])
+    for (const profile of profiles) {
+      const context = `Saltwind/phase${quarter}/${profile.shipId}/${profile.mode}`;
+      const runtime = makeRuntime();
+      try {
+        dynamics.reset();
+        const pace = getVehiclePace(profile.shipId, track.pace);
+        const state = {
+          ...createVehicleState(profile.shipId),
+          distance: departure.start + 30,
+          speed:
+            profile.mode === 'nominal'
+              ? jump.targetSpeed
+              : profile.mode === 'boost'
+                ? pace.boostSpeed
+                : pace.cruiseSpeed,
+          time: (quarter * receiver.motion.period) / 4,
+        };
+        runtime.reset({ state });
+        let launchTime = null,
+          landed = false;
+        const input = () =>
+          getRacerControl(state, track, {
+            lane: 0,
+            difficulty: 'hard',
+            devices,
+            runtime,
+          });
+        for (let tick = 0; tick < 2400 && !landed; tick++) {
+          const events = runtime.advance(state, input(), DT);
+          assert.ok(
+            !events.some((event) =>
+              [
+                'impact',
+                'jump-miss',
+                'road-departure',
+                'road-recovery',
+              ].includes(event.type),
+            ),
+            `${context}: ${JSON.stringify(events)}`,
+          );
+          if (events.some((event) => event.type === 'jump-launch'))
+            launchTime = state.time;
+          const transfer = events.find(
+            (event) => event.type === 'jump-transfer',
+          );
+          if (transfer) {
+            assert.equal(transfer.payload.id, jump.id, context);
+            assert.equal(transfer.payload.outcome, 'landed', context);
+            landed = true;
+          }
+        }
+        assert.equal(
+          landed,
+          true,
+          `${context}: genuine moving roof catch after driving the whole hall`,
+        );
+        assert.ok(
+          state.time - launchTime > 3 && state.time - launchTime < 7,
+          `${context}: substantial physical flight`,
+        );
+        const atLanding = state.distance;
+        for (let tick = 0; tick < 120; tick++) {
+          const events = runtime.advance(state, input(), DT);
+          assert.equal(runtime.pose(1).grounded, true, context);
+          assert.ok(
+            !events.some((event) =>
+              [
+                'impact',
+                'jump-miss',
+                'road-departure',
+                'road-recovery',
+              ].includes(event.type),
+            ),
+            context,
+          );
+        }
+        assert.ok(
+          state.distance > atLanding + 40,
+          `${context}: useful driven roof after landing`,
+        );
+      } finally {
+        runtime.dispose();
+      }
+    }
+});
+
+test('the generous open-roof catch supports sustained boost for two ships across all four phases', () => {
+  for (const { shipId, initialSpeed } of [
+    { shipId: 'kestrel', initialSpeed: 185 },
+    { shipId: 'needle', initialSpeed: 175 },
+  ])
+    for (const quarter of [0, 1, 2, 3]) {
+      const jump = track.jumps[1],
+        carrier = track.carriers.find(
+          (entry) => entry.id === jump.receivingCarrierId,
+        );
+      const context = `${jump.id}/${shipId}/phase${quarter}`;
+      const runtime = makeRuntime();
+      try {
+        dynamics.reset();
+        const state = {
+          ...createVehicleState(shipId),
           distance: jump.takeoff - 140,
-          speed: 185,
+          speed: initialSpeed,
           time: (quarter * carrier.motion.period) / 4,
         };
         runtime.reset({ state });
         let launchSpeed = null,
+          launchTime = null,
           landed = false;
         for (let tick = 0; tick < 900 && !landed; tick++) {
           const input = controls(state, runtime, 'cruise');
@@ -277,12 +531,15 @@ test('long receiving cargo halls support controlled full-boost flights across al
             DT,
           );
           const launch = events.find((event) => event.type === 'jump-launch');
-          if (launch) launchSpeed = launch.payload.speed;
+          if (launch) {
+            launchSpeed = launch.payload.speed;
+            launchTime = state.time;
+          }
           const transfer = events.find(
             (event) => event.type === 'jump-transfer',
           );
           if (transfer) {
-            assert.equal(transfer.payload.outcome, 'landed');
+            assert.equal(transfer.payload.outcome, 'landed', context);
             landed = true;
           }
           assert.ok(
@@ -291,14 +548,53 @@ test('long receiving cargo halls support controlled full-boost flights across al
                 event.type,
               ),
             ),
+            `${context}: ${JSON.stringify(events)}`,
           );
         }
         assert.ok(
           launchSpeed > 175 && launchSpeed < 190,
-          `${jump.id}/${quarter}: real fast launch ${launchSpeed}`,
+          `${context}: real fast launch ${launchSpeed}`,
         );
         assert.equal(landed, true);
         assert.equal(runtime.pose(1).grounded, true);
+        assert.ok(
+          state.time - launchTime > 4 && state.time - launchTime < 6,
+          `${context}: sustained boost retains a substantial physical arc`,
+        );
+        const atLanding = state.distance;
+        for (
+          let tick = 0;
+          tick < 240 && state.distance < atLanding + 50;
+          tick++
+        ) {
+          // After the powered catch, brake/steer through the same ordinary
+          // driver rather than blindly holding boost into the following gap.
+          const events = runtime.advance(
+            state,
+            controls(state, runtime, 'boost'),
+            DT,
+          );
+          assert.equal(
+            runtime.pose(1).grounded,
+            true,
+            `${context}: supported postlanding drive`,
+          );
+          assert.ok(
+            !events.some((event) =>
+              [
+                'impact',
+                'jump-miss',
+                'road-departure',
+                'road-recovery',
+              ].includes(event.type),
+            ),
+            `${context}: ${JSON.stringify(events)}`,
+          );
+        }
+        assert.ok(
+          state.distance >= atLanding + 50,
+          `${context}: useful roof runway after the powered catch`,
+        );
       } finally {
         runtime.dispose();
       }

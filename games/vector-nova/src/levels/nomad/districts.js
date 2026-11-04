@@ -243,22 +243,23 @@ export function createNomadDistricts({ track, finish = null, shape = false }) {
     return record;
   }
   // The side boxes are service beds seated through the actual upper wall
-  // sockets at X±90/Y95/Z±95. Their heavy diagonals remain outboard of the road.
+  // sockets at X±90/Y95/Z±95. Their upper load beds sit well beyond the broad
+  // receivers; the fixed hull shoes retain their real attachment positions.
   function outrigger(district, side, z = 80) {
-    plate(district, [side * 99, 128.4, z], [34, 3.2, 128]);
+    plate(district, [side * 147, 128.4, z], [34, 3.2, 128]);
     for (const anchorZ of [-95, 88]) {
       const targetZ = T.MathUtils.clamp(anchorZ, z - 54, z + 54);
       beam(
         district,
         [side * 90, 95, anchorZ],
-        [side * 112, 126.8, targetZ],
+        [side * 160, 126.8, targetZ],
         3.4,
         3.4,
       );
       beam(
         district,
         [side * 90, 95, anchorZ],
-        [side * 84, 126.8, targetZ],
+        [side * 134, 126.8, targetZ],
         2.5,
         2.5,
       );
@@ -280,7 +281,7 @@ export function createNomadDistricts({ track, finish = null, shape = false }) {
   ) {
     outrigger(district, side, z);
     assembly(district, 'coolingBank', {
-      x: side * 100,
+      x: side * 148,
       z,
       plane: 130,
       scale: [0.2, 0.34, 0.62],
@@ -290,9 +291,9 @@ export function createNomadDistricts({ track, finish = null, shape = false }) {
       district,
       [
         [side * 90, 95, 88],
-        [side * 118, 101, 88],
-        [side * 118, 142, z + 15],
-        [side * 106, 145, z + 15],
+        [side * 166, 101, 88],
+        [side * 166, 142, z + 15],
+        [side * 154, 145, z + 15],
       ],
       1.1,
     );
@@ -305,14 +306,14 @@ export function createNomadDistricts({ track, finish = null, shape = false }) {
   ) {
     outrigger(district, side, z);
     assembly(district, 'hydraulicBank', {
-      x: side * 100,
+      x: side * 148,
       z: z - 24,
       plane: 130,
       scale: [0.38, 0.65, 0.55],
       title,
     });
     assembly(district, 'driveGearbox', {
-      x: side * 100,
+      x: side * 148,
       z: z + 35,
       plane: 130,
       scale: [0.36, 0.42, 0.48],
@@ -322,9 +323,9 @@ export function createNomadDistricts({ track, finish = null, shape = false }) {
       district,
       [
         [side * 90, 95, 88],
-        [side * 115, 101, 88],
-        [side * 115, 139, z - 24],
-        [side * 105, 139, z - 24],
+        [side * 163, 101, 88],
+        [side * 163, 139, z - 24],
+        [side * 153, 139, z - 24],
       ],
       0.95,
     );
@@ -410,7 +411,7 @@ export function createNomadDistricts({ track, finish = null, shape = false }) {
       } else if (carrier.index === 1) {
         roofHydraulic(d, -1, 65, 'port-side ascent hydraulic station');
         assembly(d, 'louverPanel', {
-          x: -91,
+          x: -139,
           z: 55,
           scale: [1.05, 0.45, 0.24],
           yaw: Math.PI / 2,
@@ -436,7 +437,7 @@ export function createNomadDistricts({ track, finish = null, shape = false }) {
       } else if (carrier.index === 5) {
         roofHydraulic(d, -1, 70, 'overtaking hull drive station');
         assembly(d, 'driveWheel', {
-          x: -100,
+          x: -148,
           z: 70,
           scale: [0.44, 0.64, 0.68],
           plane: 130,
@@ -448,7 +449,7 @@ export function createNomadDistricts({ track, finish = null, shape = false }) {
       } else if (carrier.index === 7) {
         roofHydraulic(d, 1, 70, 'return-hold upper workshop');
         assembly(d, 'louverPanel', {
-          x: 92,
+          x: 140,
           z: 75,
           scale: [0.95, 0.4, 0.24],
           yaw: Math.PI / 2,
@@ -480,15 +481,18 @@ export function createNomadDistricts({ track, finish = null, shape = false }) {
           'saltwind circulation reservoir',
         );
       } else {
-        rooftopHandling(
-          d,
-          'serviceTower',
-          -60,
-          [0.95, 0.65, 0.85],
-          'terminus service mast',
-        );
-        suspendedGallery(d, 80, 0.7);
-        ceilingHydraulics(d, 1, 80);
+        // The final carrier receives on its roof now. Its service machinery
+        // belongs beside that broad road, with both beds tied to real hull
+        // sockets, rather than occupying the running skin or hiding below it.
+        outrigger(d, -1, -60);
+        assembly(d, 'serviceTower', {
+          x: -146,
+          z: -60,
+          scale: [0.56, 0.65, 0.85],
+          plane: 130,
+          title: 'terminus outboard service mast',
+        });
+        roofHydraulic(d, 1, 80, 'terminus receiving-deck service station');
       }
 
       let batches = 0,

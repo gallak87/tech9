@@ -14,7 +14,15 @@ const RAW_HULL_Z = 1.4;
 const HULL_LENGTH = 760;
 const ROAD_HALF_WIDTH = 25;
 const SOURCE_STEP = 0.5;
-const SALT_GRADE = 0.025;
+const SALT_GRADE = 0.095;
+const HULL_Z = { 'passing-deck': 2, terminus: 2.6 };
+const GAP_Z = [120, 350, 360, 120, 120, 340, 120, 120, 120, 500];
+const BIG_AIR = {
+  1: { landing: 850, targetSpeed: 150, broad: true },
+  2: { landing: 450, targetSpeed: 150, broad: false },
+  5: { landing: 940, targetSpeed: 160, broad: true },
+  9: { landing: 1040, targetSpeed: 160, broad: true },
+};
 const clamp = T.MathUtils.clamp;
 const smooth = (value) => {
   const t = clamp(value, 0, 1);
@@ -33,7 +41,7 @@ const CARRIERS = [
   ['lower-hold', 'Lower Hold', 'descent', 272],
   ['crane-alley', 'Crane Alley', 'cargo', 226],
   ['saltwind', 'Saltwind Galleries', 'cargo', 264],
-  ['terminus', 'Nomad Terminus', 'cargo', 236],
+  ['terminus', 'Nomad Terminus', 'roof', 490],
 ];
 
 // These points are in the retained Blender hull's local metre coordinates.
@@ -42,20 +50,34 @@ const CARRIERS = [
 // through Z=+220. Roof-height transitions stay outside the 180 m hull beam.
 function authoredKeys(mode, index) {
   const a = index % 2 ? -24 : 24;
+  if (index === 9)
+    return [
+      [0, 54, -380, 0],
+      [0, 54, -300, 0],
+      [-24, 64, -140, 0.055],
+      [24, 61, 30, -0.055],
+      [0, 57, 140, 0],
+      [20, 58, 185, 0.08],
+      [80, 64, 220, 0.2],
+      [225, 82, 250, 0.45],
+      [260, 110, 290, 0.55],
+      [260, 174, 350, 0.25],
+      [260, 208, 430, 0],
+    ];
   if (mode === 'climb')
     return [
       [0, 54, -380, 0],
       [0, 54, -315, 0],
       [20, 62, -260, 0.05],
       [80, 64, -220, 0.2],
-      [110, 95, -170, 0.85],
-      [110, 142, -80, 1.12],
-      [110, 160, -20, 0.9],
+      [114, 95, -170, 0.85],
+      [114, 142, -80, 1.12],
+      [114, 160, -20, 0.9],
       [70, 163, 65, 0.25],
       [25, 154, 140, 0.08],
       [-20, 148, 220, -0.08],
       [0, 150, 300, 0],
-      [0, 162, 380, 0],
+      [0, 185, 380, 0],
     ];
   if (mode === 'descent')
     return [
@@ -80,9 +102,9 @@ function authoredKeys(mode, index) {
       [80, 68, -220, 0.22],
       [110, 100, -180, 0.95],
       [110, 143, -115, 1.15],
-      [116, 150, -80, 0.7],
-      [142, 157, -45, 0.2],
-      [170, 164, 0, 0],
+      [116, 180, -50, 0.7],
+      [142, 197, 15, 0.2],
+      [170, 232, 80, 0],
     ];
   const roof = mode === 'roof';
   const y = roof ? 142 : 54;
@@ -94,7 +116,19 @@ function authoredKeys(mode, index) {
     [-a, y + 7, 30, roof ? -0.12 : -0.055],
     [a * 0.7, y + 3, 190, roof ? 0.1 : 0.04],
     [0, y + 8, 300, 0],
-    [0, y + (index === CARRIERS.length - 1 ? 8 : 20), 380, 0],
+    [
+      0,
+      y +
+        (index === 2
+          ? 43
+          : index === 4
+            ? 15
+            : index === CARRIERS.length - 1
+              ? 8
+              : 20),
+      380,
+      0,
+    ],
   ];
 }
 
@@ -111,15 +145,19 @@ function bankAt(keys, fraction) {
 /** Pure rest geometry. The motion adapter translates each named carrier. */
 export function createNomadTrack() {
   let forward = 600;
+  let previousEnd = 0;
   const carriers = CARRIERS.map(([id, name, mode, x], index) => {
-    if (index) forward += index === 6 ? 620 : 1160;
+    const hullZ = HULL_Z[id] ?? RAW_HULL_Z;
+    if (index) forward += previousEnd + 380 * hullZ + GAP_Z[index - 1];
+    previousEnd = (mode === 'overtake' ? 80 : index === 9 ? 430 : 380) * hullZ;
     return {
       id: `nomad-${id}`,
       name,
       mode,
       index,
       origin: v(x, 700 - forward * SALT_GRADE, forward),
-      scale: v(1, 1, RAW_HULL_Z),
+      scale: v(1, 1, hullZ),
+      ...(index >= 9 ? { supportRoad: true } : {}),
       quaternion: new T.Quaternion().setFromAxisAngle(
         v(1, 0, 0),
         Math.atan(SALT_GRADE),
@@ -137,7 +175,9 @@ export function createNomadTrack() {
       keys.map(([x, y, z]) =>
         carrier.origin
           .clone()
-          .add(v(x, y, z * RAW_HULL_Z).applyQuaternion(carrier.quaternion)),
+          .add(
+            v(x, y, z * carrier.scale.z).applyQuaternion(carrier.quaternion),
+          ),
       ),
       false,
       'centripetal',
@@ -226,6 +266,7 @@ export function createNomadTrack() {
       landingStart = atIndex(piece.endIndex),
       receiver = roadRuns[index + 1];
     const hero = piece.from.mode === 'overtake';
+    const air = BIG_AIR[index];
     return {
       id: hero ? 'nomad-overtake-transfer' : `nomad-transfer-${index + 1}`,
       label: hero ? 'The Passing Window' : `${piece.to.name} Transfer`,
@@ -233,14 +274,21 @@ export function createNomadTrack() {
       landingStart,
       landingEnd: Math.min(
         receiver.end - 140,
-        landingStart + (hero ? 540 : 450),
+        index === gaps.length - 1 ? FINISH - 160 : Infinity,
+        landingStart + (air?.landing ?? 450),
       ),
-      recovery: Math.min(receiver.end - 120, landingStart + (hero ? 570 : 480)),
-      halfWidth: 40,
-      targetSpeed: hero ? 155 : 150,
+      recovery: Math.min(
+        receiver.end - 120,
+        index === gaps.length - 1 ? FINISH - 100 : Infinity,
+        landingStart + (air?.landing ?? 450) + 35,
+      ),
+      halfWidth: air?.broad ? 50 : 40,
+      targetSpeed: air?.targetSpeed ?? 150,
       departureCarrierId: piece.from.id,
       receivingCarrierId: piece.to.id,
       hero,
+      bigAir: Boolean(air),
+      broadReceiver: Boolean(air?.broad),
     };
   });
   const isGap = (distance) =>
@@ -264,7 +312,16 @@ export function createNomadTrack() {
     const run = runAt(distance);
     if (!run || run === roadRuns[0]) return ROAD_HALF_WIDTH;
     const approach = distance - Math.max(0, run.start);
-    return ROAD_HALF_WIDTH + 15 * (1 - smooth((approach - 80) / 160));
+    const incoming = jumps.find(
+      (jump) => jump.receivingCarrierId === run.carrierId,
+    );
+    const broad = incoming?.broadReceiver
+      ? incoming.landingEnd - run.start
+      : ['climb', 'overtake'].includes(run.mode)
+        ? 40
+        : 80;
+    const extra = incoming?.broadReceiver ? 25 : 15;
+    return ROAD_HALF_WIDTH + extra * (1 - smooth((approach - broad) / 120));
   };
   for (const run of roadRuns) {
     run.min = (distance) => -halfWidthAt(distance);
@@ -432,8 +489,8 @@ export function createNomadTrack() {
   return {
     id: 'nomad-procession',
     name: 'Nomad Procession',
-    version: 1,
-    geometryVersion: 'nomad-convoy-rest-v1',
+    version: 2,
+    geometryVersion: 'nomad-convoy-descent-v2',
     closed: false,
     length: LENGTH,
     finishDistance: FINISH,

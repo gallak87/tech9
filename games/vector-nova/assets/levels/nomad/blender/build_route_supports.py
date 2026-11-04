@@ -108,13 +108,16 @@ def girder(name, start, end, width, depth, mat, parent, contact=False):
                      (end - start).length, mat, parent, contact)
 
 
-def make_frames(samples):
-    # An inverse carrier transform does not preserve orthogonality. Recover its
-    # common scale from the supplied exact two-metre world-normal offset; retain
-    # the known 1.4 longitudinal stretch when authoring world-sized cross-sections.
-    raw = (Vector(samples[0]['center']) - Vector(samples[0]['under'])) / 2
-    uniform = 1 / Vector((raw.x, raw.y, raw.z * 1.4)).length
-    scale = Vector((uniform, uniform, uniform * 1.4))
+def make_frames(samples, authored_scale=None):
+    # An inverse carrier transform does not preserve orthogonality. New stretched
+    # receivers retain their exact scale. Legacy guides recover the common scale
+    # from the exact two-metre normal offset and their known 1.4 axial stretch.
+    if authored_scale is None:
+        raw = (Vector(samples[0]['center']) - Vector(samples[0]['under'])) / 2
+        uniform = 1 / Vector((raw.x, raw.y, raw.z * 1.4)).length
+        scale = Vector((uniform, uniform, uniform * 1.4))
+    else:
+        scale = Vector(authored_scale)
     def world(vector):
         return Vector((vector.x * scale.x, vector.y * scale.y, vector.z * scale.z))
     def local(vector):
@@ -176,9 +179,19 @@ def source_anchor(frame, side, longitudinal=0):
         exterior = 1 if centre.x >= 0 else -1
         origin, direction = Vector((exterior * 160, 36, station)), Vector((-exterior, 0, 0))
         kind = 'actual formed lower load keel'
-    position, normal, face, distance = hull_tree.ray_cast(origin, direction, 250)
-    if position is None:
+    # The retained roof packets have real two-metre joints. A load shoe must
+    # seat on a packet, never on an invented face across that open seam.
+    offsets = [0, -4, 4] if kind == 'actual roof cassette' else [0]
+    contact = None
+    for offset in offsets:
+        candidate = origin + Vector((0, 0, offset))
+        result = hull_tree.ray_cast(candidate, direction, 250)
+        if result[0] is not None and (kind != 'actual roof cassette' or result[0].y >= 129):
+            contact = result
+            break
+    if contact is None:
         raise RuntimeError('No real hull contact for %s at %s' % (kind, list(origin)))
+    position, normal, face, distance = contact
     if normal.dot(direction) > 0:
         normal = -normal
     return {'point': position, 'normal': normal.normalized(), 'kind': kind, 'sourceTriangle': face}
@@ -215,7 +228,7 @@ def saddle(parent, frame, side, index):
 
 for guide in guide_data['carriers']:
     parent = root(guide['id'])
-    frames, to_world = make_frames(guide['samples'])
+    frames, to_world = make_frames(guide['samples'], guide.get('scale'))
     for side in [-1, 1]:
         sweep_spine(parent, frames, side)
     frame_indices = sorted(set([0, len(frames) - 1] + list(range(3, len(frames) - 2, 4))))
@@ -236,13 +249,17 @@ for guide in guide_data['carriers']:
             back_point = anchor_shoe(parent, back, 'diagonal seat %02d %s' % (index, side))
             girder('longitudinal triangular load brace %02d %s' % (index, side),
                    support, back_point, 4.5, 5.2, 'navy', parent)
-    if guide['mode'] == 'overtake':
+    extended = frames[-1]['c'].z > 380 + 1e-6
+    if guide['mode'] == 'overtake' or extended:
         # The terminal interception ramp is a supported outrigged loading arm,
         # with separated longitudinal load roots, not a hovering road strip.
         last = frames[-1]
         end_points = [last['c'] + last['r'] * (side * last['half'] * .58) - last['u'] * 14 for side in [-1, 1]]
         roots = []
-        for side, longitudinal in [(-1, -108), (1, 72)]:
+        roots_at = [(-1, -108), (1, 72)] if not extended else [
+            (-1, 248 - last['c'].z), (1, 330 - last['c'].z),
+        ]
+        for side, longitudinal in roots_at:
             spec = source_anchor(last, side, longitudinal)
             point = anchor_shoe(parent, spec, 'terminal outrigger root %s' % side)
             roots.append(point)
@@ -332,7 +349,7 @@ record = {
     'roadGuides': GUIDES.name, 'sourceHull': HULL.name,
     'coordinates': '+Y up, +Z bow; metres in each matching carrier local frame; root names equal carrier IDs.',
     'rights': 'Project-authored geometry and existing project-owned scalar PBR material aliases; no external models or images.',
-    'clearance': 'Main I-section fronts are10.5worldmetres behind the sampled skin before between-sample curvature; fitted upper saddle plates meet its1.4metre slab underside. Exact raycast hull seats are retained per prototype.',
+    'clearance': 'Main I-section fronts are 10.5 world metres behind the sampled skin before between-sample curvature; fitted upper saddle plates meet its 1.4 metre slab underside. Exact raycast hull seats are retained per prototype. The outboard Saltwind launch extension retains a full-depth tied load arm with separated actual keel roots.',
     'prototypes': stats,
     'totalTriangles': sum(entry['triangles'] for entry in stats),
     'materials': [material.name for material in M.values()],

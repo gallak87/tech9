@@ -1,0 +1,129 @@
+{
+  "title": "Nomad Procession / eroded white salt-basin escarpments",
+  "generator": "Original editable Blender carbonate landforms with three distinct cross-sections, broad carved gullies, stepped aprons and closed planar bases.",
+  "source": "build_salt_escarpments.py",
+  "blend": "salt-escarpments.blend",
+  "runtimeAsset": "public/assets/levels/nomad/salt-escarpments.glb",
+  "collision": "salt-escarpments-collision.json",
+  "coordinates": "+Y up, +Z forward; metres. Source Y=0 is the complete flat contact plane. Runtime owns current salt-grade pitch, unequal placements and full convoy/flight exclusion.",
+  "rights": "Project-authored geometry and scalar rough carbonate materials. No models, imagery, scans or baked lighting from external sources.",
+  "materials": [
+    "Nomad terrain / white salt crust",
+    "Nomad terrain / fresh carbonate cut",
+    "Nomad terrain / pale mineral interbed"
+  ],
+  "prototypes": [
+    {
+      "name": "nomad_salt_rim",
+      "role": "rim",
+      "dimensions": [600, 250, 1400],
+      "base": "All perimeter and underside vertices are on source Y=0.",
+      "profile": [
+        [-1, 0],
+        [-0.86, 0.03],
+        [-0.56, 0.65],
+        [-0.1, 0.99],
+        [0.27, 0.96],
+        [0.405, 0.82],
+        [0.445, 0.72],
+        [0.455, 0.705],
+        [0.48, 0.5],
+        [0.57, 0.46],
+        [0.625, 0.4],
+        [0.65, 0.2],
+        [0.67, 0.185],
+        [0.7, 0.1],
+        [0.84, 0.025],
+        [1, 0]
+      ],
+      "drainage": "Three unequal broad gullies, asymmetric end aprons and actual narrow interbed faces.",
+      "triangles": 4600,
+      "materialBatches": 3,
+      "bounds": {
+        "min": [-300.0, 0.0, -700.0],
+        "max": [300.0, 241.0896, 700.0]
+      },
+      "basePlane": {
+        "normal": [0, 1, 0],
+        "constant": 0
+      }
+    },
+    {
+      "name": "nomad_salt_fan",
+      "role": "fan",
+      "dimensions": [900, 120, 1100],
+      "base": "All perimeter and underside vertices are on source Y=0.",
+      "profile": [
+        [-1, 0],
+        [-0.86, 0.05],
+        [-0.56, 0.83],
+        [-0.1, 0.94],
+        [0.12, 0.9],
+        [0.36, 0.68],
+        [0.445, 0.64],
+        [0.455, 0.625],
+        [0.48, 0.45],
+        [0.57, 0.43],
+        [0.625, 0.32],
+        [0.65, 0.21],
+        [0.67, 0.195],
+        [0.75, 0.11],
+        [0.94, 0.015],
+        [1, 0]
+      ],
+      "drainage": "Three unequal broad gullies, asymmetric end aprons and actual narrow interbed faces.",
+      "triangles": 4600,
+      "materialBatches": 3,
+      "bounds": {
+        "min": [-450.0, 0.0, -550.0],
+        "max": [450.0, 109.302155, 550.0]
+      },
+      "basePlane": {
+        "normal": [0, 1, 0],
+        "constant": 0
+      }
+    },
+    {
+      "name": "nomad_salt_broken_shelf",
+      "role": "broken",
+      "dimensions": [700, 180, 1300],
+      "base": "All perimeter and underside vertices are on source Y=0.",
+      "profile": [
+        [-1, 0],
+        [-0.86, 0.035],
+        [-0.56, 0.8],
+        [-0.1, 0.98],
+        [0.27, 0.88],
+        [0.405, 0.77],
+        [0.445, 0.68],
+        [0.455, 0.665],
+        [0.48, 0.46],
+        [0.57, 0.42],
+        [0.625, 0.35],
+        [0.65, 0.17],
+        [0.67, 0.155],
+        [0.75, 0.055],
+        [0.94, 0.01],
+        [1, 0]
+      ],
+      "drainage": "Three unequal broad gullies, asymmetric end aprons and actual narrow interbed faces.",
+      "triangles": 4598,
+      "materialBatches": 3,
+      "bounds": {
+        "min": [-350.0, 0.0, -650.0],
+        "max": [350.0, 159.344788, 650.0]
+      },
+      "basePlane": {
+        "normal": [0, 1, 0],
+        "constant": 0
+      }
+    }
+  ],
+  "totalTriangles": 13798,
+  "hashes": {
+    "build_salt_escarpments.py": "4158e121314412cbdd856741d17b87e14e2fc05f90ed09ffc5fa859bf4b8ab8e",
+    "salt-escarpments.blend": "2ad1d25d939448ea54e6f55921d093a4e5a8d4892c7954a3b1324a87c623f43c",
+    "salt-escarpments.glb": "a0e9a412e2bec8fe896541529ecbec5bc17ed22a01c23860de1e82ef206e7858",
+    "salt-escarpments-collision.json": "280a3ead725a70f939745a4fcf3eb67ad68630bc3eef3bacdb0f08c4d0f4b527"
+  }
+}

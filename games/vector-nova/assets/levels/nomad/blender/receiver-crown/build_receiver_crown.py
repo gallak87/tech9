@@ -26,6 +26,15 @@ CONTACTS = HERE / 'receiver-crown-collision.json'
 HULL = SOURCE / 'carrier-collision.json'
 GUIDES = SOURCE / 'route-support-guides.json'
 NAME = 'nomad_receiver_crown'
+# The roof-deck interception now arrives in a long, genuinely airborne arc.
+# Raise its formed canopy and upper machinery while leaving the lower galleries,
+# hull shoes and seated load path at their actual original source coordinates.
+ARRIVAL_RISE = 140
+ARRIVAL_SPREAD = 24
+
+
+def canopy(y):
+    return y + ARRIVAL_RISE
 
 bpy.context.preferences.filepaths.save_version = 0
 bpy.ops.object.select_all(action='SELECT')
@@ -161,39 +170,46 @@ for side in [-1, 1]:
         box('fitted roof sole %s %s' % (side, index),
             (point.x, point.y + .55, point.z), (7, 1.8, 17), 'alloy', .28)
         top = (side * 106, 155, z)
-        girder('splayed cargo shoulder load leg %s %s' % (side, index), point + Vector((0, 1, 0)), top, 7, 10, 'navy', .5)
+        girder('splayed cargo shoulder load leg %s %s' % (side, index), point + Vector((0, 1, 0)), top, 10, 14, 'navy', .5)
         girder('longitudinal shoulder triangulation %s %s' % (side, index),
             point + Vector((0, 1, 0)), (side * 106, 155, z + (21 if index < 3 else -21)), 4.5, 6, 'alloy', .35)
         box('seated upper shoulder load head %s %s' % (side, index), top, (19, 7, 16), 'navy', .6)
+        girder('tall anchored canopy load pier %s %s' % (side, index),
+            top, (side * 101, canopy(205), z), 10, 13, 'navy', .5)
+        girder('canopy pier longitudinal load brace %s %s' % (side, index),
+            top,
+            (side * 101, canopy(205), z + (21 if index < 3 else -21)),
+            6, 8, 'alloy', .4)
 
 # Continuous navy longitudinal cores hold the gallery floors and formed armor.
 # The entrance flares toward the arrival; unequal panel packets reveal real laps.
 for side in [-1, 1]:
     core = [(side * 86, 155), (side * 108, 155), (side * 115, 166),
-            (side * 114, 191), (side * 103, 215), (side * 91, 210),
+            (side * 114, canopy(191)), (side * 103, canopy(215)), (side * 91, canopy(210)),
             (side * 91, 180), (side * 86, 177)]
     prism('deep continuous gallery shoulder %s' % side, core, -367, -166, 'navy', .7)
     packets = [(-369, -331), (-328, -276), (-273, -218), (-215, -165)]
     profile = [(side * 98, 158), (side * 110, 159), (side * 118, 173),
-               (side * 116, 195), (side * 107, 212), (side * 100, 215),
-               (side * 98, 206), (side * 106, 190), (side * 107, 175), (side * 98, 166)]
+               (side * 116, canopy(195)), (side * 107, canopy(212)), (side * 100, canopy(215)),
+               (side * 98, canopy(206)), (side * 106, canopy(190)), (side * 107, 175), (side * 98, 166)]
     for index, (start, end) in enumerate(packets):
         prism('formed outer shoulder armor %s %s' % (side, index), profile, start, end, 'ivory', .7)
         # A formed carrier rim, an actual recessed field and its fitted alloy lip.
         box('outer shoulder recessed lap %s %s' % (side, index),
-            (side * 115.4, 184, (start + end) / 2), (.6, 13, end - start - 10), 'navy', .15)
+            (side * 115.4, 184 + ARRIVAL_RISE / 2, (start + end) / 2), (.6, 13, end - start - 10), 'navy', .15)
         box('outer lap retaining rail %s %s' % (side, index),
-            (side * 116, 191, (start + end) / 2), (.8, .8, end - start - 10), 'alloy', .18)
+            (side * 116, 191 + ARRIVAL_RISE / 2, (start + end) / 2), (.8, .8, end - start - 10), 'alloy', .18)
     # The inside is an inhabited freight-gallery recess, not the back of ivory.
     prism('formed inside gallery shelf %s' % side,
         [(side * 83, 158), (side * 98, 158), (side * 101, 162),
          (side * 100, 165), (side * 83, 165)], -360, -169, 'alloy', .3)
-    box('deep gallery upper machine recess %s' % side, (side * 98, 188, -265), (5, 38, 183), 'navy', .5)
+    box('deep gallery upper machine recess %s' % side,
+        (side * 98, 188 + ARRIVAL_RISE / 2, -265), (5, 38 + ARRIVAL_RISE, 183), 'navy', .5)
     for index, z in enumerate([-344, -291, -236, -183]):
         # Tall fixed ribs tie gallery floor into the upper roof arch seat.
         girder('gallery connected portal post %s %s' % (side, index),
-            (side * 90, 164, z), (side * 97, 214, z), 5, 6.5, 'navy', .4)
-        for y in [166, 211]:
+            (side * 90, 164, z), (side * 97, canopy(214), z), 7, 9, 'navy', .4)
+        for y in [166, canopy(211)]:
             box('post formed load collar %s %s %s' % (side, index, y),
                 (side * (90.3 if y == 166 else 96.7), y, z), (10, 3, 9), 'alloy', .3)
     for index, (z, length, y) in enumerate([(-320, 25, 179), (-263, 32, 179), (-207, 25, 179)]):
@@ -211,45 +227,47 @@ for side in [-1, 1]:
     # this loading crown from another generic roof arch.
     for z in [-349, -185]:
         cylinder('gallery winch drum %s %s' % (side, z),
-            (side * 92, 200, z - 7), (side * 92, 200, z + 7), 5.2, 'alloy', 20)
+            (side * 92, canopy(200), z - 7), (side * 92, canopy(200), z + 7), 5.2, 'alloy', 20)
         for dz in [-8, 8]:
             cylinder('winch seated end cheek %s %s %s' % (side, z, dz),
-                (side * 92, 200, z + dz - .6), (side * 92, 200, z + dz + .6), 6.1, 'navy', 20)
-    for y in [204, 208]:
+                (side * 92, canopy(200), z + dz - .6), (side * 92, canopy(200), z + dz + .6), 6.1, 'navy', 20)
+    for y in [canopy(204), canopy(208)]:
         cylinder('continuous upper pressure feed %s %s' % (side, y),
             (side * 87, y, -347), (side * 87, y, -182), .8, 'alloy', 12)
 
 # The main opening is a thick formed cargo aperture with deep reveals, not a
-# flat goalpost. All central overhead members remain above Y214. The shoulders
+# flat goalpost. All central overhead members remain above the tall air corridor.
+# The lower cargo galleries and fitted roof soles retain their actual seats.
+# The shoulders
 # continue into a real enclosed canopy with individually seated roof packets.
-outer = [(-108, 157), (-108, 193), (-103, 211), (-84, 223), (-54, 226),
-         (54, 226), (84, 223), (103, 211), (108, 193), (108, 157)]
-inner = [(84, 157), (84, 199), (80, 216), (54, 218), (-54, 218),
-         (-80, 216), (-84, 199), (-84, 157)]
+outer = [(-108, 157), (-108, canopy(193)), (-103, canopy(211)), (-84, canopy(223)), (-54, canopy(226)),
+         (54, canopy(226)), (84, canopy(223)), (103, canopy(211)), (108, canopy(193)), (108, 157)]
+inner = [(84, 157), (84, canopy(199)), (80, canopy(216)), (54, canopy(218)), (-54, canopy(218)),
+         (-80, canopy(216)), (-84, canopy(199)), (-84, 157)]
 arch_profile = outer + inner
 prism('primary formed armored cargo aperture', arch_profile, -370, -347, 'ivory', .8)
 # A second dark ring creates a deep stepped portal throat behind the main lip.
-navy_outer = [(-102, 162), (-102, 194), (-98, 209), (-80, 220), (-54, 223),
-              (54, 223), (80, 220), (98, 209), (102, 194), (102, 162)]
-navy_inner = [(85, 162), (85, 199), (81, 217), (54, 219), (-54, 219),
-              (-81, 217), (-85, 199), (-85, 162)]
+navy_outer = [(-102, 162), (-102, canopy(194)), (-98, canopy(209)), (-80, canopy(220)), (-54, canopy(223)),
+              (54, canopy(223)), (80, canopy(220)), (98, canopy(209)), (102, canopy(194)), (102, 162)]
+navy_inner = [(85, 162), (85, canopy(199)), (81, canopy(217)), (54, canopy(219)), (-54, canopy(219)),
+              (-81, canopy(217)), (-85, canopy(199)), (-85, 162)]
 prism('deep recessed cargo throat ring', navy_outer + navy_inner, -347.5, -333, 'navy', .45)
-roof_profile = [(-103, 215), (-82, 223), (-54, 226), (54, 226), (82, 223),
-                (103, 215), (85, 216.5), (61, 218.6), (-61, 218.6), (-85, 216.5)]
+roof_profile = [(-103, canopy(215)), (-82, canopy(223)), (-54, canopy(226)), (54, canopy(226)), (82, canopy(223)),
+                (103, canopy(215)), (85, canopy(216.5)), (61, canopy(218.6)), (-61, canopy(218.6)), (-85, canopy(216.5))]
 for index, (start, end) in enumerate([(-344, -290), (-287, -230), (-227, -170)]):
     prism('fitted curved upper roof armor %s' % index, roof_profile, start, end, 'ivory', .55)
     # Lower navy cassette sits distinctly below the ivory skin, without
     # coplanar undersides; channels retain substantial physical roof thickness.
     box('recessed roof soffit cassette %s' % index,
-        (0, 218.1, (start + end) / 2), (118, 1.8, end - start - 5), 'navy', .35)
+        (0, canopy(218.1), (start + end) / 2), (118, 1.8, end - start - 5), 'navy', .35)
     for x in [-43, 0, 43]:
-        profile = [(x - 8, 218.8), (x - 8, 216.3), (x - 6, 215.8),
-                   (x - 4.5, 217), (x + 4.5, 217), (x + 6, 215.8),
-                   (x + 8, 216.3), (x + 8, 218.8)]
+        profile = [(x - 8, canopy(218.8)), (x - 8, canopy(216.3)), (x - 6, canopy(215.8)),
+                   (x - 4.5, canopy(217)), (x + 4.5, canopy(217)), (x + 6, canopy(215.8)),
+                   (x + 8, canopy(216.3)), (x + 8, canopy(218.8))]
         prism('formed navy soffit channel %s %s' % (index, x), profile, start + 3, end - 3, 'navy', .16)
         for edge in [-1, 1]:
             box('soffit channel fitted retaining lip %s %s %s' % (index, x, edge),
-                (x + edge * 6.1, 216.2, (start + end) / 2), (.5, .6, end - start - 9), 'alloy', .1)
+                (x + edge * 6.1, canopy(216.2), (start + end) / 2), (.5, .6, end - start - 9), 'alloy', .1)
 # Three full structural roof ribs remain connected to side posts and shoulder.
 for z in [-344, -289, -231, -174]:
     prism('connected interior curved roof load rib %s' % z, navy_outer + navy_inner,
@@ -257,12 +275,12 @@ for z in [-344, -289, -231, -174]:
 # Genuine separate maintenance panels on the visible leading arch: sparse,
 # substantial fields follow the formed shape instead of a uniform surface grid.
 for side in [-1, 1]:
-    profile = [(side * 88, 178), (side * 103, 178), (side * 103, 195),
-               (side * 99, 207), (side * 88, 202)]
+    profile = [(side * 88, 178), (side * 103, 178), (side * 103, canopy(195)),
+               (side * 99, canopy(207)), (side * 88, canopy(202))]
     prism('recessed front formed armor access field %s' % side, profile, -370.8, -370.1, 'navy', .25)
     for z in [-371.4]:
         girder('front access field machined retaining lip %s' % side,
-            (side * 88, 178, z), (side * 88, 201, z), 1, 1, 'alloy', .15)
+            (side * 88, 178, z), (side * 88, canopy(201), z), 1, 1, 'alloy', .15)
     box('front service oxide identifier plate %s' % side,
         (side * 96, 168, -370.7), (13, 3, 1.2), 'oxide', .2)
 # Tapered gallery tails turn back into hull structure; avoid a severed barn end.
@@ -283,8 +301,16 @@ for side in [-1, 1]:
 # asymmetric opening is actual formed geometry, not a collision exception. The
 # deformation fades completely at Z=-160, preserving the aft hull attachments.
 def rake(point):
+    # The broad arrival also carries an outboard chase eye. Widen the real
+    # shoulders above their hull shoes; the lower splayed members stay connected
+    # to the same actual roof seats rather than moving the entire assembly.
+    source_x = point.x
+    seat_blend = max(0, min(1, (point.y - 135) / 20))
+    side_blend = max(-1, min(1, point.x / 54))
+    point = Vector((point.x + ARRIVAL_SPREAD * seat_blend * side_blend,
+                    point.y, point.z))
     amount = max(0, -point.z - 160) * .65
-    port = max(0, min(1, (118 - point.x) / 236))
+    port = max(0, min(1, (118 - source_x) / 236))
     return Vector((point.x, point.y, point.z + amount * port))
 
 
@@ -375,8 +401,11 @@ record = {
     'prototypes': [{'name': NAME, 'triangles': triangles, 'collisionTriangles': len(indices) // 3,
                     'materialBatches': len(batches), 'bounds': {'min': low, 'max': high},
                     'actualHullSeats': SEATS}],
-    'reservedOpening': {'min': [-78, 142, -380], 'max': [78, 214, -160]},
-    'entryRake': 'Port shoulder mouth is raked aft up to 136.5m; displacement fades to zero at Z=-160. Actual native diagonal flight and 25m camera envelopes drive this construction.',
+    'reservedOpening': {'min': [-78 - ARRIVAL_SPREAD, 142, -380],
+                        'max': [78 + ARRIVAL_SPREAD, canopy(214), -160]},
+    'arrivalRise': ARRIVAL_RISE,
+    'arrivalSpread': ARRIVAL_SPREAD,
+    'entryRake': 'Port shoulder mouth is raked aft up to 136.5m; displacement fades to zero at Z=-160. Actual native diagonal flight and production chase-camera footprints drive the raised canopy and widened shoulders; the low galleries and real hull seats remain connected through formed piers.',
     'materials': [item.name for item in M.values()],
     'hashes': {str(path.relative_to(HERE)) if path.is_relative_to(HERE) else path.name: hashlib.sha256(path.read_bytes()).hexdigest()
                for path in [Path(__file__), BLEND, OUT, CONTACTS, HULL, GUIDES]},

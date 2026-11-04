@@ -6,7 +6,7 @@ import { Vector3 } from 'three';
 export const NOMAD_MOTION_RULES = Object.freeze({
   version: 1,
   convoySpeed: 16,
-  groundGrade: 0.025,
+  groundGrade: 0.095,
   period: 36,
   lateralAmplitude: 5,
   longitudinalAmplitude: 16,

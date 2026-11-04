@@ -7,10 +7,11 @@ import { createNomadRoad } from './track/road.js';
 import { createNomadEnvironment } from './environment.js';
 import { createNomadBackdrop } from './backdrop.js';
 import { createDevices } from './devices.js';
+import { NOMAD_CAMERA } from './camera.js';
 
 export default function createNomadLevel({ shape = false } = {}) {
   return {
-    version: '1.0.0-nomad-v1',
+    version: '1.1.0-nomad-v2',
     renderer: {
       world: 'nomad',
       background: '#d8d9d3',
@@ -24,16 +25,7 @@ export default function createNomadLevel({ shape = false } = {}) {
       sunShadowBias: -0.00012,
       catapultBlurScale: 0.12,
     },
-    camera: {
-      preserveFlightView: true,
-      chaseHeight: 10,
-      chaseDistance: 19,
-      lookAhead: 65,
-      jumpPreview: { distance: 230, height: 22, back: 22 },
-      flightViewScale: 1,
-      flightChaseBlend: 0.25,
-      safeFrame: { left: -0.86, right: 0.86, bottom: -0.62, top: 0.8 },
-    },
+    camera: NOMAD_CAMERA,
     createTrack() {
       const track = installNomadMotion(createNomadTrack());
       track.deviceProjection = 'rendered-surface';

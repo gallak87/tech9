@@ -12,6 +12,7 @@ import { createNomadCompanions } from './companions.js';
 import { bindNomadArmourFinish } from './armour-finish.js';
 import { createNomadWheelContacts } from './wheel-contact.js';
 import { createNomadHallMachinery } from './hall-machinery.js';
+import { createNomadTerrain } from './terrain.js';
 import kitManifest from '../../../assets/levels/nomad/blender/carrier-kit-provenance.json' with { type: 'json' };
 
 function saltMaterial(clock) {
@@ -104,6 +105,7 @@ export function createNomadEnvironment({
     shape,
   });
   const hall = createNomadHallMachinery({ track, finish: road?.finish, shape });
+  const terrain = createNomadTerrain({ track, shape, loadAsset });
   const visualCarriers = [...track.carriers, ...createNomadCompanions(track)];
   const visualTrack = Object.create(track);
   visualTrack.carriers = visualCarriers;
@@ -116,6 +118,7 @@ export function createNomadEnvironment({
     : null;
   group.add(districts.group);
   group.add(hall.group);
+  group.add(terrain.group);
   if (dust) group.add(dust.group);
   if (contacts) group.add(contacts.group);
   if (guidance) group.add(guidance.group);
@@ -188,7 +191,7 @@ export function createNomadEnvironment({
         sources.add(scene);
         return scene;
       });
-  const ready = shape
+  const modelsReady = shape
     ? Promise.resolve()
     : Promise.all([
         ownedLoad('assets/levels/nomad/carrier-kit.glb'),
@@ -467,6 +470,12 @@ export function createNomadEnvironment({
             { cause },
           );
         });
+  const ready = Promise.all([modelsReady, terrain.ready]).catch((cause) => {
+    failed = true;
+    terrain.dispose();
+    releaseSource();
+    throw cause;
+  });
   function update(frame = {}) {
     if (disposed) return;
     const time = track.presentationTime;
@@ -516,6 +525,7 @@ export function createNomadEnvironment({
     }
     districts.update(frame);
     hall.update(frame);
+    terrain.update(frame);
     dust?.update(frame);
     contacts?.update(frame);
     guidance?.update(frame);
@@ -527,6 +537,7 @@ export function createNomadEnvironment({
     group.clear();
     districts.dispose();
     hall.dispose();
+    terrain.dispose();
     dust?.dispose();
     contacts?.dispose();
     guidance?.dispose();

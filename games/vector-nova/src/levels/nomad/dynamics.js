@@ -1,5 +1,9 @@
 import { createRapierWorld } from '../../physics/rapier-world.js';
 import { NOMAD_MOTION_RULES, sampleCarrierMotion } from './motion.js';
+import {
+  NOMAD_GROUND_GROUP,
+  sampleNomadGroundMotion,
+} from './ground-motion.js';
 
 /** One shared carrier clock stages all native rigid skins before racer queries. */
 export async function createNomadDynamics({ track, collisionWorld }) {
@@ -9,17 +13,23 @@ export async function createNomadDynamics({ track, collisionWorld }) {
       .map((triangle) => triangle.motionGroup)
       .filter(Boolean),
   );
+  const movingGround = usedGroups.delete(NOMAD_GROUND_GROUP);
   const carriers = track.carriers.filter((carrier) =>
     usedGroups.has(carrier.id),
   );
   if (carriers.length !== usedGroups.size) {
     world.dispose();
     throw new Error(
-      'Nomad collision motion groups must name authored carriers.',
+      'Nomad collision motion groups must name authored carriers or the salt ground.',
     );
   }
   let time = 0;
   function place(at, dt = 0) {
+    if (movingGround)
+      world.setGroupMotion(
+        NOMAD_GROUND_GROUP,
+        sampleNomadGroundMotion(track, at),
+      );
     for (const carrier of carriers) {
       const motion = sampleCarrierMotion(carrier, at);
       // Integrate the exact analytic endpoints. The collision sweep sees one
@@ -40,8 +50,9 @@ export async function createNomadDynamics({ track, collisionWorld }) {
   return {
     ...world,
     id: 'nomad-moving-carrier-world',
-    rulesId: `${world.rulesId}:nomad-carriers-v1:${JSON.stringify({
+    rulesId: `${world.rulesId}:nomad-carriers-v2:${JSON.stringify({
       rules: NOMAD_MOTION_RULES,
+      movingGround,
       carriers: carriers.map(({ id, motion }) => ({ id, motion })),
     })}`,
     // Nomad's authored sampler is the same moving chart used by rendering.

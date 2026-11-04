@@ -431,6 +431,7 @@ test('environment integration retains carrier attachments and cleans up normal, 
     'companion-armour.glb',
     'saltwind-gallery.glb',
     'wallride-service.glb',
+    'salt-escarpments.glb',
   ];
   const scenes = await Promise.all(paths.map((path) => model(path)));
   const environment = createNomadEnvironment({

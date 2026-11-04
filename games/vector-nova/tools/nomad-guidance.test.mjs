@@ -60,13 +60,15 @@ test('all ten real gaps have broad forward paint with supported, widened receive
             30,
         );
         const tip = points.reduce((a, b) => (b[1] > a[1] ? b : a));
+        const outerTail =
+          Math.max(...points.map((point) => Math.abs(point[0]))) * 0.9;
         assert.ok(
           Math.abs(tip[0]) < 0.001 && tip[1] > center + 6.9,
           'the central point faces increasing route distance',
         );
         assert.ok(
           points
-            .filter((point) => Math.abs(point[0]) > 14)
+            .filter((point) => Math.abs(point[0]) > outerTail)
             .every((point) => point[1] < center - 5),
           'wide tails are behind the point, even on winding or banked decks',
         );
@@ -75,11 +77,17 @@ test('all ten real gaps have broad forward paint with supported, widened receive
         const center = jump.landingStart + after;
         const points = white(receiver, center);
         assert.ok(points.length > 6);
-        assert.ok(
+        const span =
           Math.max(...points.map((point) => point[0])) -
-            Math.min(...points.map((point) => point[0])) >
-            43,
-          'receiver glyph spans the genuinely wider landing deck',
+          Math.min(...points.map((point) => point[0]));
+        const width = track.halfWidthAt(center) * 2;
+        assert.ok(
+          width > track.mainWidth + 1,
+          'the receiving skin is genuinely wider',
+        );
+        assert.ok(
+          span > width * 0.52 && span < width * 0.62,
+          `${jump.id}: the receiver glyph should occupy over half of its actual ${width}m deck`,
         );
       }
       const coordinates = departure.geometry.attributes.roadCoord;

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { createNomadRouteGuides } from './export-nomad-route-guides.mjs';
 
 const game = fileURLToPath(new URL('..', import.meta.url));
 const blender = resolve(game, 'assets/levels/nomad/blender');
@@ -21,7 +22,45 @@ const assets = [
   ['companion-armour', 'companion-armour/companion-armour-provenance.json'],
   ['wallride-service', 'wallride-service/wallride-service-provenance.json'],
   ['saltwind-gallery', 'saltwind-gallery/saltwind-gallery-provenance.json'],
+  ['salt-escarpments', 'salt-escarpments/salt-escarpments-provenance.json'],
 ];
+
+test('Nomad retained support guides match the actual current runtime road frames', async () => {
+  const retained = JSON.parse(
+    await readFile(resolve(blender, 'route-support-guides.json'), 'utf8'),
+  );
+  assert.deepEqual(retained, createNomadRouteGuides());
+});
+
+for (const [name, file] of [
+  ['receiving crown', 'receiver-crown/receiver-crown-provenance.json'],
+  ['route supports', 'route-supports-provenance.json'],
+])
+  test(`Nomad ${name}: retained load seats lie on actual hull faces`, async () => {
+    const record = JSON.parse(await readFile(resolve(blender, file), 'utf8'));
+    const hull = JSON.parse(
+      await readFile(resolve(blender, 'carrier-collision.json'), 'utf8'),
+    ).prototypes.find((part) => part.name === 'nomad_carrier');
+    const point = new T.Vector3(),
+      triangle = new T.Triangle();
+    for (const prototype of record.prototypes)
+      for (const seat of prototype.actualHullSeats) {
+        const indices = hull.indices.slice(
+          seat.sourceTriangle * 3,
+          seat.sourceTriangle * 3 + 3,
+        );
+        assert.equal(
+          indices.length,
+          3,
+          `${seat.name}: real retained hull face`,
+        );
+        for (const [index, corner] of ['a', 'b', 'c'].entries())
+          triangle[corner].fromArray(hull.positions, indices[index] * 3);
+        point.fromArray(seat.position);
+        const nearest = triangle.closestPointToPoint(point, new T.Vector3());
+        assert.ok(nearest.distanceTo(point) < 0.0001, seat.name);
+      }
+  });
 
 async function verifiedRecord(path) {
   const record = JSON.parse(await readFile(path, 'utf8'));

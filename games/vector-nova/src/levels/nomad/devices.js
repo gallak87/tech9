@@ -30,7 +30,9 @@ export function createDevices(track) {
   for (const carrier of track.carriers) {
     add(carrier, 'aegis', carrier.index ? 520 : 150, 0, 8, 10);
     add(carrier, 'vector', carrier.index ? 760 : 360, 0, 65, 14);
-    if (carrier.index === 2) add(carrier, 'arc', 670, -17, 10, 8);
+    // The roof carriers now devote their broad approaches to big-air catches.
+    // Keep the optional Arc on the supported opening hold, after its shield.
+    if (carrier.index === 0) add(carrier, 'arc', 540, -17, 10, 8);
     if (carrier.index === 4) add(carrier, 'repulsor', 670, 17, 10, 8);
     if (carrier.index === 8) add(carrier, 'ion', 670, -17, 10, 8);
   }

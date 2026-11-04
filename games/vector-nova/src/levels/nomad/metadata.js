@@ -14,7 +14,7 @@ export default {
     intro:
       'Race through colossal moving carriers and intercept their rolling cargo decks above the white salt basin.',
     detail:
-      'A 12.2 km downhill sprint through vast cargo halls, winding hull roads and moving-deck transfers. Climb the overtaking wall and aim ahead of the neighboring carrier.',
+      'Descend more than a kilometre through vast cargo halls, winding hull roads and huge open-air jumps. Aim ahead of the neighboring carrier and catch its moving roof deck.',
     tag: 'NOMAD PROCESSION',
     tagDetail: 'MOVING CARRIERS / CARGO HALLS',
     shape: {

@@ -20,11 +20,16 @@ import {
   createNomadHallMachinery,
   NOMAD_HALL_GEOMETRY_VERSION,
 } from './hall-machinery.js';
+import {
+  createNomadTerrainTriangles,
+  NOMAD_TERRAIN_GEOMETRY_VERSION,
+} from './terrain.js';
 
 /** Exact nominal skin/member triangles retain rigid carrier ownership in Rapier. */
 export function createNomadCollisionWorld({ track }) {
   const road = createNomadRoad({ track, collisionOnly: true });
   const triangles = [];
+  triangles.push(...createNomadTerrainTriangles({ track }));
   try {
     road.group.updateWorldMatrix(true, true);
     road.group.traverse((mesh) => {
@@ -227,7 +232,7 @@ export function createNomadCollisionWorld({ track }) {
   return createCollisionWorld({
     id: 'nomad-physical-convoy',
     version: 1,
-    geometryId: `${track.geometryVersion}:exact-road-and-blender-members-v1:${kitManifest.hashes['carrier-collision.json']}:${supportManifest.hashes['route-supports-collision.json']}:${crownManifest.hashes['receiver-crown-collision.json']}:${interiorManifest.hashes['interior-freight-collision.json']}:${saltwindManifest.hashes['saltwind-gallery-collision.json']}:${wallrideManifest.hashes['wallride-service-collision.json']}:${NOMAD_HALL_GEOMETRY_VERSION}`,
+    geometryId: `${track.geometryVersion}:exact-road-and-blender-members-v1:${kitManifest.hashes['carrier-collision.json']}:${supportManifest.hashes['route-supports-collision.json']}:${crownManifest.hashes['receiver-crown-collision.json']}:${interiorManifest.hashes['interior-freight-collision.json']}:${saltwindManifest.hashes['saltwind-gallery-collision.json']}:${wallrideManifest.hashes['wallride-service-collision.json']}:${NOMAD_HALL_GEOMETRY_VERSION}:${NOMAD_TERRAIN_GEOMETRY_VERSION}`,
     triangles,
   });
 }

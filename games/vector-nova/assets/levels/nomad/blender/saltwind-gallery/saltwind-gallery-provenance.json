@@ -1,0 +1,1947 @@
+{
+  "title": "Nomad Procession / Saltwind unequal recessed service-wall bays",
+  "generator": "Original retained editable carrier cloned locally; unequal port-side cooling, maintenance-gallery and accepted radiator fields open from inside while retaining structural breaks, exterior armor, roof, cargo portals, running gear and proportions.",
+  "source": "build_saltwind_gallery.py",
+  "blend": "saltwind-gallery.blend",
+  "runtimeAsset": "public/assets/levels/nomad/saltwind-gallery.glb",
+  "collision": "saltwind-gallery-collision.json",
+  "coordinates": "+Y up,+Z bow,metres. Replace ONLY nomad-saltwind base hull with nomad_saltwind_hull, retain shared wheel instances, add nomad_saltwind_gallery at identity. Exact hull collider replaces its original body; gallery collider is additive.",
+  "rights": "Project-authored retained carrier and original new Blender meshes with existing Nomad material aliases; no external models, textures or baked lighting.",
+  "reference": "../../reference/nomad-procession-original.png",
+  "sourceHull": "../carrier-collision.json",
+  "sourceBlend": "../nomad-carrier-kit.blend",
+  "wallBays": [
+    {
+      "sourceZ": [28, 140],
+      "function": "accepted radiator anchor"
+    },
+    {
+      "sourceZ": [-140, -80],
+      "function": "short horizontal cooling bay"
+    },
+    {
+      "sourceZ": [-62, 12],
+      "function": "open maintenance gallery"
+    }
+  ],
+  "retainedStructuralBreaks": [-146, -72, 20, 145],
+  "prototypes": [
+    {
+      "name": "nomad_saltwind_hull",
+      "materialBatches": 6,
+      "bounds": {
+        "min": [-157.89999389648438, 16.200000762939453, -376.7200012207031],
+        "max": [157.89999389648438, 179.19607543945312, 368.0]
+      },
+      "triangles": 54046,
+      "collisionTriangles": 19974
+    },
+    {
+      "name": "nomad_saltwind_gallery",
+      "materialBatches": 4,
+      "bounds": {
+        "min": [-87.05000305175781, 62.79999923706055, -146.55340576171875],
+        "max": [-56.5, 127.69625854492188, 140.0]
+      },
+      "triangles": 10460,
+      "collisionTriangles": 10460
+    }
+  ],
+  "actualRevisedHullSeats": [
+    {
+      "name": "revised shoulder seat 81 42",
+      "position": [-86.5, 81.0, 42.0],
+      "normal": [1.0, 0.0, -0.0],
+      "sourceTriangle": 11615,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "revised shoulder seat 103 42",
+      "position": [-86.44791412353516, 103.0, 42.0],
+      "normal": [0.960599422454834, -0.2779364585876465, 2.472602034231386e-7],
+      "sourceTriangle": 11611,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "revised shoulder seat 81 121",
+      "position": [-86.5, 81.0, 121.0],
+      "normal": [0.9999999403953552, -0.0, 0.0],
+      "sourceTriangle": 12269,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "revised shoulder seat 103 121",
+      "position": [-86.44792175292969, 103.0, 121.0],
+      "normal": [
+        0.9605994820594788, -0.27793648838996887, 9.439453663162567e-8
+      ],
+      "sourceTriangle": 12110,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "revised shoulder seat 81 -129",
+      "position": [-86.5, 81.0, -129.0],
+      "normal": [1.0, -0.0, 0.0],
+      "sourceTriangle": 10913,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "revised shoulder seat 103 -129",
+      "position": [-86.5, 103.0, -129.0],
+      "normal": [0.8454889059066772, -0.5339930057525635, 0.0],
+      "sourceTriangle": 10914,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "revised shoulder seat 81 -91",
+      "position": [-86.5, 81.0, -91.0],
+      "normal": [1.0, 0.0, 0.0],
+      "sourceTriangle": 11262,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "revised shoulder seat 103 -91",
+      "position": [-86.5, 103.0, -91.0],
+      "normal": [0.8454888463020325, -0.5339929461479187, 0.0],
+      "sourceTriangle": 11265,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "revised shoulder seat 81 -52",
+      "position": [-86.5, 81.0, -52.0],
+      "normal": [1.0, -0.0, 0.0],
+      "sourceTriangle": 11281,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "revised shoulder seat 103 -52",
+      "position": [-86.5, 103.0, -52.0],
+      "normal": [0.845488965511322, -0.5339930057525635, 0.0],
+      "sourceTriangle": 11282,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "revised shoulder seat 81 2",
+      "position": [-86.5, 81.0, 2.0],
+      "normal": [1.0, 0.0, 0.0],
+      "sourceTriangle": 11789,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "revised shoulder seat 103 2",
+      "position": [-86.5, 103.0, 2.0],
+      "normal": [0.8454889059066772, -0.5339930057525635, 0.0],
+      "sourceTriangle": 11791,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "retained roof bay seat 37",
+      "position": [-65.0, 126.79999542236328, 37.0],
+      "normal": [0.0, -1.0, -0.0],
+      "sourceTriangle": 9937,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "retained roof bay seat 84",
+      "position": [-65.0, 126.79999542236328, 84.0],
+      "normal": [0.0, -1.0, -0.0],
+      "sourceTriangle": 9981,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "retained roof bay seat 132",
+      "position": [-65.0, 126.79999542236328, 132.0],
+      "normal": [0.0, -1.0, -0.0],
+      "sourceTriangle": 9981,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "retained roof bay seat -129",
+      "position": [-65.0, 126.79999542236328, -129.0],
+      "normal": [0.0, -1.0, -0.0],
+      "sourceTriangle": 9893,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "retained roof bay seat -90",
+      "position": [-65.0, 126.79999542236328, -90.0],
+      "normal": [0.0, -1.0, -0.0],
+      "sourceTriangle": 9893,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "retained roof bay seat -50",
+      "position": [-65.0, 126.79999542236328, -50.0],
+      "normal": [-0.0, -1.0, -0.0],
+      "sourceTriangle": 9936,
+      "sourcePrototype": "nomad_saltwind_hull"
+    },
+    {
+      "name": "retained roof bay seat -5",
+      "position": [-65.0, 126.79999542236328, -5.0],
+      "normal": [0.0, -1.0, -0.0],
+      "sourceTriangle": 9937,
+      "sourcePrototype": "nomad_saltwind_hull"
+    }
+  ],
+  "hullChanges": [
+    {
+      "name": "continuous gallery handrail.001",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-58.83000183105469, 91.8699951171875, -159.0],
+        "max": [-58.16999816894531, 92.52999877929688, 159.0]
+      }
+    },
+    {
+      "name": "diagonal cargo brace.002",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-68.1500015258789, 58.285396575927734, -1.9010223150253296],
+        "max": [-65.8499984741211, 117.71460723876953, 45.901023864746094]
+      }
+    },
+    {
+      "name": "diagonal cargo brace.003",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-68.1500015258789, 58.285396575927734, 121.0989761352539],
+        "max": [-65.8499984741211, 117.71460723876953, 168.90101623535156]
+      }
+    },
+    {
+      "name": "formed inner shoulder liner 04",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-72.5, 73.0, -18.0],
+        "max": [-69.30000305175781, 121.79136657714844, 54.0]
+      }
+    },
+    {
+      "name": "formed inner shoulder liner 05",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-72.5, 73.0, 64.0],
+        "max": [-69.30000305175781, 121.79136657714844, 134.0]
+      }
+    },
+    {
+      "name": "gallery lower guard.001",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-58.72999954223633, 89.4699935913086, -159.0],
+        "max": [-58.27000045776367, 89.93000030517578, 159.0]
+      }
+    },
+    {
+      "name": "inner liner seated retaining strap.009",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-69.3499984741211, 76.5, 50.0],
+        "max": [-68.45000457763672, 115.5, 52.0]
+      }
+    },
+    {
+      "name": "inner liner seated retaining strap.010",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-69.3499984741211, 76.5, 66.0],
+        "max": [-68.45000457763672, 115.5, 68.0]
+      }
+    },
+    {
+      "name": "inner liner seated retaining strap.011",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-69.3499984741211, 76.5, 130.0],
+        "max": [-68.45000457763672, 115.5, 132.0]
+      }
+    },
+    {
+      "name": "interior crosshead 64 / deep inner carrier",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-81.0, 56.0, 60.5],
+        "max": [-60.0, 123.9337387084961, 67.5]
+      }
+    },
+    {
+      "name": "interior crosshead 64 / formed portal cheek",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-88.0, 53.0, 61.5],
+        "max": [-56.79999923706055, 129.85223388671875, 66.5]
+      }
+    },
+    {
+      "name": "interior crosshead 64 / pocketed portal service pad",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-67.5, 59.0, 59.5],
+        "max": [-60.5, 67.0, 61.400001525878906]
+      }
+    },
+    {
+      "name": "interior crosshead 64 / pocketed portal service pad.001",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-67.5, 83.0, 59.5],
+        "max": [-60.5, 91.0, 61.400001525878906]
+      }
+    },
+    {
+      "name": "interior crosshead 64 / pocketed portal service pad.002",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-67.5, 106.0, 59.5],
+        "max": [-60.5, 114.0, 61.400001525878906]
+      }
+    },
+    {
+      "name": "interior crosshead 64 / recessed fastener",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-66.41999816894531, 60.28000259399414, 60.099998474121094],
+        "max": [-65.58000183105469, 61.119998931884766, 60.349998474121094]
+      }
+    },
+    {
+      "name": "interior crosshead 64 / recessed fastener.001",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-62.41999816894531, 60.28000259399414, 60.099998474121094],
+        "max": [-61.58000183105469, 61.119998931884766, 60.349998474121094]
+      }
+    },
+    {
+      "name": "interior crosshead 64 / recessed fastener.002",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-66.41999816894531, 84.27999877929688, 60.099998474121094],
+        "max": [-65.58000183105469, 85.1199951171875, 60.349998474121094]
+      }
+    },
+    {
+      "name": "interior crosshead 64 / recessed fastener.003",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-62.41999816894531, 84.27999877929688, 60.099998474121094],
+        "max": [-61.58000183105469, 85.1199951171875, 60.349998474121094]
+      }
+    },
+    {
+      "name": "interior crosshead 64 / recessed fastener.004",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-66.41999816894531, 107.27999877929688, 60.099998474121094],
+        "max": [-65.58000183105469, 108.1199951171875, 60.349998474121094]
+      }
+    },
+    {
+      "name": "interior crosshead 64 / recessed fastener.005",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-62.41999816894531, 107.27999877929688, 60.099998474121094],
+        "max": [-61.58000183105469, 108.1199951171875, 60.349998474121094]
+      }
+    },
+    {
+      "name": "seated inner gallery baluster.009",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-58.900001525878906, 87.75, 35.599998474121094],
+        "max": [-58.099998474121094, 92.25, 36.400001525878906]
+      }
+    },
+    {
+      "name": "seated inner gallery baluster.010",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-58.900001525878906, 87.75, 62.599998474121094],
+        "max": [-58.099998474121094, 92.25, 63.400001525878906]
+      }
+    },
+    {
+      "name": "seated inner gallery baluster.011",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-58.900001525878906, 87.75, 89.5999984741211],
+        "max": [-58.099998474121094, 92.25, 90.4000015258789]
+      }
+    },
+    {
+      "name": "seated inner gallery baluster.012",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-58.900001525878906, 87.75, 116.5999984741211],
+        "max": [-58.099998474121094, 92.25, 117.4000015258789]
+      }
+    },
+    {
+      "name": "seated side freight 3 / corner casting",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-86.1500015258789, 57.35000228881836, 92.3499984741211],
+        "max": [-84.04999542236328, 59.45000076293945, 94.45000457763672]
+      }
+    },
+    {
+      "name": "seated side freight 3 / corner casting.001",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-86.1500015258789, 57.35000228881836, 125.54999542236328],
+        "max": [-84.04999542236328, 59.45000076293945, 127.6500015258789]
+      }
+    },
+    {
+      "name": "seated side freight 3 / corner casting.002",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-86.1500015258789, 74.54999542236328, 92.3499984741211],
+        "max": [-84.04999542236328, 76.6500015258789, 94.45000457763672]
+      }
+    },
+    {
+      "name": "seated side freight 3 / corner casting.003",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-86.1500015258789, 74.54999542236328, 125.54999542236328],
+        "max": [-84.04999542236328, 76.6500015258789, 127.6500015258789]
+      }
+    },
+    {
+      "name": "seated side freight 3 / corner casting.004",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-69.95000457763672, 57.35000228881836, 92.3499984741211],
+        "max": [-67.8499984741211, 59.45000076293945, 94.45000457763672]
+      }
+    },
+    {
+      "name": "seated side freight 3 / corner casting.005",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-69.95000457763672, 57.35000228881836, 125.54999542236328],
+        "max": [-67.8499984741211, 59.45000076293945, 127.6500015258789]
+      }
+    },
+    {
+      "name": "seated side freight 3 / corner casting.006",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-69.95000457763672, 74.54999542236328, 92.3499984741211],
+        "max": [-67.8499984741211, 76.6500015258789, 94.45000457763672]
+      }
+    },
+    {
+      "name": "seated side freight 3 / corner casting.007",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-69.95000457763672, 74.54999542236328, 125.54999542236328],
+        "max": [-67.8499984741211, 76.6500015258789, 127.6500015258789]
+      }
+    },
+    {
+      "name": "seated side freight 3 / formed corrugation",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, 95.02000427246094],
+        "max": [-85.42500305175781, 75.0, 96.41999816894531]
+      }
+    },
+    {
+      "name": "seated side freight 3 / formed corrugation.001",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, 95.02000427246094],
+        "max": [-67.82499694824219, 75.0, 96.41999816894531]
+      }
+    },
+    {
+      "name": "seated side freight 3 / formed corrugation.002",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, 99.7800064086914],
+        "max": [-85.42500305175781, 75.0, 101.18000030517578]
+      }
+    },
+    {
+      "name": "seated side freight 3 / formed corrugation.003",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, 99.7800064086914],
+        "max": [-67.82499694824219, 75.0, 101.18000030517578]
+      }
+    },
+    {
+      "name": "seated side freight 3 / formed corrugation.004",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, 104.54000091552734],
+        "max": [-85.42500305175781, 75.0, 105.93999481201172]
+      }
+    },
+    {
+      "name": "seated side freight 3 / formed corrugation.005",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, 104.54000091552734],
+        "max": [-67.82499694824219, 75.0, 105.93999481201172]
+      }
+    },
+    {
+      "name": "seated side freight 3 / formed corrugation.006",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, 109.30000305175781],
+        "max": [-85.42500305175781, 75.0, 110.69999694824219]
+      }
+    },
+    {
+      "name": "seated side freight 3 / formed corrugation.007",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, 109.30000305175781],
+        "max": [-67.82499694824219, 75.0, 110.69999694824219]
+      }
+    },
+    {
+      "name": "seated side freight 3 / formed corrugation.008",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, 114.06000518798828],
+        "max": [-85.42500305175781, 75.0, 115.45999908447266]
+      }
+    },
+    {
+      "name": "seated side freight 3 / formed corrugation.009",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, 114.06000518798828],
+        "max": [-67.82499694824219, 75.0, 115.45999908447266]
+      }
+    },
+    {
+      "name": "seated side freight 3 / formed corrugation.010",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, 118.81999969482422],
+        "max": [-85.42500305175781, 75.0, 120.2199935913086]
+      }
+    },
+    {
+      "name": "seated side freight 3 / formed corrugation.011",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, 118.81999969482422],
+        "max": [-67.82499694824219, 75.0, 120.2199935913086]
+      }
+    },
+    {
+      "name": "seated side freight 3 / formed corrugation.012",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, 123.58000183105469],
+        "max": [-85.42500305175781, 75.0, 124.97999572753906]
+      }
+    },
+    {
+      "name": "seated side freight 3 / formed corrugation.013",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, 123.58000183105469],
+        "max": [-67.82499694824219, 75.0, 124.97999572753906]
+      }
+    },
+    {
+      "name": "seated side freight 3 / front locking bar",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-81.39385223388672, 59.80000305175781, 92.1199951171875],
+        "max": [-80.76615142822266, 74.19999694824219, 92.77999877929688]
+      }
+    },
+    {
+      "name": "seated side freight 3 / front locking bar.001",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-73.23384857177734, 59.80000305175781, 92.1199951171875],
+        "max": [-72.60614776611328, 74.19999694824219, 92.77999877929688]
+      }
+    },
+    {
+      "name": "seated side freight 3 / long folded edge",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-85.94999694824219, 58.0, 93.0],
+        "max": [-85.05000305175781, 76.0, 127.0]
+      }
+    },
+    {
+      "name": "seated side freight 3 / long folded edge.001",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-68.94999694824219, 58.0, 93.0],
+        "max": [-68.05000305175781, 76.0, 127.0]
+      }
+    },
+    {
+      "name": "seated side freight 3 / recessed painted field",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-84.30000305175781, 59.20000076293945, 92.55500030517578],
+        "max": [-69.69999694824219, 74.80000305175781, 93.20499420166016]
+      }
+    },
+    {
+      "name": "seated side freight 3 / seated perimeter rail",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-85.55000305175781, 57.94999694824219, 92.75],
+        "max": [-84.25, 59.25, 127.25]
+      }
+    },
+    {
+      "name": "seated side freight 3 / seated perimeter rail.001",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-85.55000305175781, 74.75, 92.75],
+        "max": [-84.25, 76.05000305175781, 127.25]
+      }
+    },
+    {
+      "name": "seated side freight 3 / seated perimeter rail.002",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-69.75, 57.94999694824219, 92.75],
+        "max": [-68.44999694824219, 59.25, 127.25]
+      }
+    },
+    {
+      "name": "seated side freight 3 / seated perimeter rail.003",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-69.75, 74.75, 92.75],
+        "max": [-68.44999694824219, 76.05000305175781, 127.25]
+      }
+    },
+    {
+      "name": "seated side freight 3 / shadow body",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-85.5, 58.0, 93.0],
+        "max": [-68.5, 76.0, 127.0]
+      }
+    },
+    {
+      "name": "side-gallery service bus.001",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-62.599998474121094, 69.39999389648438, -159.0],
+        "max": [-61.400001525878906, 70.60000610351562, 159.0]
+      }
+    },
+    {
+      "name": "side-gallery service bus.004",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-62.599998474121094, 74.39999389648438, -159.0],
+        "max": [-61.400001525878906, 75.60000610351562, 159.0]
+      }
+    },
+    {
+      "name": "upper service gallery.001",
+      "field": [28, 140],
+      "function": "accepted radiator anchor",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-69.5, 86.5, -159.0],
+        "max": [-58.5, 88.5, 159.0]
+      }
+    },
+    {
+      "name": "continuous gallery handrail.001 / retained before bay",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-58.83000183105469, 91.8699951171875, -159.0],
+        "max": [-58.16999816894531, 92.52999877929688, 28.0]
+      }
+    },
+    {
+      "name": "diagonal cargo brace.001",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-68.1500015258789, 58.285396575927734, -168.90101623535156],
+        "max": [-65.8499984741211, 117.71460723876953, -121.0989761352539]
+      }
+    },
+    {
+      "name": "formed inner shoulder liner 02",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-72.5, 73.0, -155.0],
+        "max": [-69.30000305175781, 121.79136657714844, -108.0]
+      }
+    },
+    {
+      "name": "formed inner shoulder liner 03",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-72.5, 73.0, -98.0],
+        "max": [-69.30000305175781, 121.79136657714844, -28.0]
+      }
+    },
+    {
+      "name": "gallery lower guard.001 / retained before bay",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-58.72999954223633, 89.4699935913086, -159.0],
+        "max": [-58.27000045776367, 89.93000030517578, 28.0]
+      }
+    },
+    {
+      "name": "inner liner seated retaining strap.005",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-69.3499984741211, 76.5, -112.0],
+        "max": [-68.45000457763672, 115.5, -110.0]
+      }
+    },
+    {
+      "name": "inner liner seated retaining strap.006",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-69.3499984741211, 76.5, -96.0],
+        "max": [-68.45000457763672, 115.5, -94.0]
+      }
+    },
+    {
+      "name": "seated inner gallery baluster.003",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-58.900001525878906, 87.75, -126.4000015258789],
+        "max": [-58.099998474121094, 92.25, -125.5999984741211]
+      }
+    },
+    {
+      "name": "seated inner gallery baluster.004",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-58.900001525878906, 87.75, -99.4000015258789],
+        "max": [-58.099998474121094, 92.25, -98.5999984741211]
+      }
+    },
+    {
+      "name": "seated side freight 1 / corner casting.001",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.1500015258789, 57.35000228881836, -118.45000457763672],
+        "max": [-84.04999542236328, 59.45000076293945, -116.3499984741211]
+      }
+    },
+    {
+      "name": "seated side freight 1 / corner casting.003",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.1500015258789, 74.54999542236328, -118.45000457763672],
+        "max": [-84.04999542236328, 76.6500015258789, -116.3499984741211]
+      }
+    },
+    {
+      "name": "seated side freight 1 / corner casting.005",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.95000457763672, 57.35000228881836, -118.45000457763672],
+        "max": [-67.8499984741211, 59.45000076293945, -116.3499984741211]
+      }
+    },
+    {
+      "name": "seated side freight 1 / corner casting.007",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.95000457763672, 74.54999542236328, -118.45000457763672],
+        "max": [-67.8499984741211, 76.6500015258789, -116.3499984741211]
+      }
+    },
+    {
+      "name": "seated side freight 1 / formed corrugation.004",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, -139.45999145507812],
+        "max": [-85.42500305175781, 75.0, -138.05999755859375]
+      }
+    },
+    {
+      "name": "seated side freight 1 / formed corrugation.005",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, -139.45999145507812],
+        "max": [-67.82499694824219, 75.0, -138.05999755859375]
+      }
+    },
+    {
+      "name": "seated side freight 1 / formed corrugation.006",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, -134.6999969482422],
+        "max": [-85.42500305175781, 75.0, -133.3000030517578]
+      }
+    },
+    {
+      "name": "seated side freight 1 / formed corrugation.007",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, -134.6999969482422],
+        "max": [-67.82499694824219, 75.0, -133.3000030517578]
+      }
+    },
+    {
+      "name": "seated side freight 1 / formed corrugation.008",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, -129.94000244140625],
+        "max": [-85.42500305175781, 75.0, -128.54000854492188]
+      }
+    },
+    {
+      "name": "seated side freight 1 / formed corrugation.009",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, -129.94000244140625],
+        "max": [-67.82499694824219, 75.0, -128.54000854492188]
+      }
+    },
+    {
+      "name": "seated side freight 1 / formed corrugation.010",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, -125.18000030517578],
+        "max": [-85.42500305175781, 75.0, -123.7800064086914]
+      }
+    },
+    {
+      "name": "seated side freight 1 / formed corrugation.011",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, -125.18000030517578],
+        "max": [-67.82499694824219, 75.0, -123.7800064086914]
+      }
+    },
+    {
+      "name": "seated side freight 1 / formed corrugation.012",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, -120.41999816894531],
+        "max": [-85.42500305175781, 75.0, -119.02000427246094]
+      }
+    },
+    {
+      "name": "seated side freight 1 / formed corrugation.013",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, -120.41999816894531],
+        "max": [-67.82499694824219, 75.0, -119.02000427246094]
+      }
+    },
+    {
+      "name": "seated side freight 1 / long folded edge",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.94999694824219, 58.0, -151.0],
+        "max": [-85.05000305175781, 76.0, -117.0]
+      }
+    },
+    {
+      "name": "seated side freight 1 / long folded edge.001",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-68.94999694824219, 58.0, -151.0],
+        "max": [-68.05000305175781, 76.0, -117.0]
+      }
+    },
+    {
+      "name": "seated side freight 1 / seated perimeter rail",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.55000305175781, 57.94999694824219, -151.25],
+        "max": [-84.25, 59.25, -116.75]
+      }
+    },
+    {
+      "name": "seated side freight 1 / seated perimeter rail.001",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.55000305175781, 74.75, -151.25],
+        "max": [-84.25, 76.05000305175781, -116.75]
+      }
+    },
+    {
+      "name": "seated side freight 1 / seated perimeter rail.002",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.75, 57.94999694824219, -151.25],
+        "max": [-68.44999694824219, 59.25, -116.75]
+      }
+    },
+    {
+      "name": "seated side freight 1 / seated perimeter rail.003",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.75, 74.75, -151.25],
+        "max": [-68.44999694824219, 76.05000305175781, -116.75]
+      }
+    },
+    {
+      "name": "seated side freight 1 / shadow body",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.5, 58.0, -151.0],
+        "max": [-68.5, 76.0, -117.0]
+      }
+    },
+    {
+      "name": "side-gallery service bus.001 / retained before bay",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-62.599998474121094, 69.39999389648438, -159.0],
+        "max": [-61.400001525878906, 70.5999984741211, 28.0]
+      }
+    },
+    {
+      "name": "side-gallery service bus.004 / retained before bay",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-62.599998474121094, 74.39999389648438, -159.0],
+        "max": [-61.400001525878906, 75.5999984741211, 28.0]
+      }
+    },
+    {
+      "name": "upper service gallery.001 / retained before bay",
+      "field": [-140, -80],
+      "function": "short horizontal cooling bay",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-69.5, 86.5, -159.0],
+        "max": [-58.5, 88.5, 28.0]
+      }
+    },
+    {
+      "name": "continuous gallery handrail.001 / retained before bay / retained after bay",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-58.83000183105469, 91.8699951171875, -80.0],
+        "max": [-58.16999816894531, 92.52999877929688, 28.0]
+      }
+    },
+    {
+      "name": "diagonal cargo brace.002 / retained before bay",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-68.1500015258789, 58.40967559814453, -1.776742935180664],
+        "max": [-65.8499984741211, 97.4158935546875, 28.0]
+      }
+    },
+    {
+      "name": "formed inner shoulder liner 03 / retained after bay",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-72.5, 73.0, -80.0],
+        "max": [-69.30000305175781, 121.79136657714844, -28.0]
+      }
+    },
+    {
+      "name": "formed inner shoulder liner 04 / retained before bay",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-72.5, 73.0, -18.0],
+        "max": [-69.30000305175781, 121.79136657714844, 28.0]
+      }
+    },
+    {
+      "name": "gallery lower guard.001 / retained before bay / retained after bay",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-58.72999954223633, 89.4699935913086, -80.0],
+        "max": [-58.27000045776367, 89.93000030517578, 28.0]
+      }
+    },
+    {
+      "name": "inner liner seated retaining strap.007",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-69.3499984741211, 76.5, -32.0],
+        "max": [-68.45000457763672, 115.5, -30.0]
+      }
+    },
+    {
+      "name": "inner liner seated retaining strap.008",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-69.3499984741211, 76.5, -16.0],
+        "max": [-68.45000457763672, 115.5, -14.0]
+      }
+    },
+    {
+      "name": "seated inner gallery baluster.006",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-58.900001525878906, 87.75, -45.400001525878906],
+        "max": [-58.099998474121094, 92.25, -44.599998474121094]
+      }
+    },
+    {
+      "name": "seated inner gallery baluster.007",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-58.900001525878906, 87.75, -18.399999618530273],
+        "max": [-58.099998474121094, 92.25, -17.600000381469727]
+      }
+    },
+    {
+      "name": "seated inner gallery baluster.008",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-58.900001525878906, 87.75, 8.600000381469727],
+        "max": [-58.099998474121094, 92.25, 9.399999618530273]
+      }
+    },
+    {
+      "name": "seated side freight 2 / corner casting",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.1500015258789, 57.35000228881836, -35.64999771118164],
+        "max": [-84.04999542236328, 59.45000076293945, -33.54999923706055]
+      }
+    },
+    {
+      "name": "seated side freight 2 / corner casting.001",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.1500015258789, 57.35000228881836, 5.550000190734863],
+        "max": [-84.04999542236328, 59.45000076293945, 7.649999618530273]
+      }
+    },
+    {
+      "name": "seated side freight 2 / corner casting.002",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.1500015258789, 74.54999542236328, -35.64999771118164],
+        "max": [-84.04999542236328, 76.6500015258789, -33.54999923706055]
+      }
+    },
+    {
+      "name": "seated side freight 2 / corner casting.003",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.1500015258789, 74.54999542236328, 5.550000190734863],
+        "max": [-84.04999542236328, 76.6500015258789, 7.649999618530273]
+      }
+    },
+    {
+      "name": "seated side freight 2 / corner casting.004",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.95000457763672, 57.35000228881836, -35.64999771118164],
+        "max": [-67.8499984741211, 59.45000076293945, -33.54999923706055]
+      }
+    },
+    {
+      "name": "seated side freight 2 / corner casting.005",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.95000457763672, 57.35000228881836, 5.550000190734863],
+        "max": [-67.8499984741211, 59.45000076293945, 7.649999618530273]
+      }
+    },
+    {
+      "name": "seated side freight 2 / corner casting.006",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.95000457763672, 74.54999542236328, -35.64999771118164],
+        "max": [-67.8499984741211, 76.6500015258789, -33.54999923706055]
+      }
+    },
+    {
+      "name": "seated side freight 2 / corner casting.007",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.95000457763672, 74.54999542236328, 5.550000190734863],
+        "max": [-67.8499984741211, 76.6500015258789, 7.649999618530273]
+      }
+    },
+    {
+      "name": "seated side freight 2 / formed corrugation",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, -32.34000015258789],
+        "max": [-85.42500305175781, 75.0, -30.939998626708984]
+      }
+    },
+    {
+      "name": "seated side freight 2 / formed corrugation.001",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, -32.34000015258789],
+        "max": [-67.82499694824219, 75.0, -30.939998626708984]
+      }
+    },
+    {
+      "name": "seated side freight 2 / formed corrugation.002",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, -26.46000099182129],
+        "max": [-85.42500305175781, 75.0, -25.059999465942383]
+      }
+    },
+    {
+      "name": "seated side freight 2 / formed corrugation.003",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, -26.46000099182129],
+        "max": [-67.82499694824219, 75.0, -25.059999465942383]
+      }
+    },
+    {
+      "name": "seated side freight 2 / formed corrugation.004",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, -20.579999923706055],
+        "max": [-85.42500305175781, 75.0, -19.17999839782715]
+      }
+    },
+    {
+      "name": "seated side freight 2 / formed corrugation.005",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, -20.579999923706055],
+        "max": [-67.82499694824219, 75.0, -19.17999839782715]
+      }
+    },
+    {
+      "name": "seated side freight 2 / formed corrugation.006",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, -14.699999809265137],
+        "max": [-85.42500305175781, 75.0, -13.300000190734863]
+      }
+    },
+    {
+      "name": "seated side freight 2 / formed corrugation.007",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, -14.699999809265137],
+        "max": [-67.82499694824219, 75.0, -13.300000190734863]
+      }
+    },
+    {
+      "name": "seated side freight 2 / formed corrugation.008",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, -8.819999694824219],
+        "max": [-85.42500305175781, 75.0, -7.420000076293945]
+      }
+    },
+    {
+      "name": "seated side freight 2 / formed corrugation.009",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, -8.819999694824219],
+        "max": [-67.82499694824219, 75.0, -7.420000076293945]
+      }
+    },
+    {
+      "name": "seated side freight 2 / formed corrugation.010",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, -2.940000057220459],
+        "max": [-85.42500305175781, 75.0, -1.5399999618530273]
+      }
+    },
+    {
+      "name": "seated side freight 2 / formed corrugation.011",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, -2.940000057220459],
+        "max": [-67.82499694824219, 75.0, -1.5399999618530273]
+      }
+    },
+    {
+      "name": "seated side freight 2 / formed corrugation.012",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-86.17500305175781, 59.0, 2.940000057220459],
+        "max": [-85.42500305175781, 75.0, 4.340000152587891]
+      }
+    },
+    {
+      "name": "seated side freight 2 / formed corrugation.013",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-68.57499694824219, 59.0, 2.940000057220459],
+        "max": [-67.82499694824219, 75.0, 4.340000152587891]
+      }
+    },
+    {
+      "name": "seated side freight 2 / front locking bar",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-81.39385223388672, 59.80000305175781, -35.880001068115234],
+        "max": [-80.76615142822266, 74.19999694824219, -35.21999740600586]
+      }
+    },
+    {
+      "name": "seated side freight 2 / front locking bar.001",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-73.23384857177734, 59.80000305175781, -35.880001068115234],
+        "max": [-72.60614776611328, 74.19999694824219, -35.21999740600586]
+      }
+    },
+    {
+      "name": "seated side freight 2 / long folded edge",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.94999694824219, 58.0, -35.0],
+        "max": [-85.05000305175781, 76.0, 7.0]
+      }
+    },
+    {
+      "name": "seated side freight 2 / long folded edge.001",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-68.94999694824219, 58.0, -35.0],
+        "max": [-68.05000305175781, 76.0, 7.0]
+      }
+    },
+    {
+      "name": "seated side freight 2 / recessed painted field",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-84.30000305175781, 59.20000076293945, -35.44499969482422],
+        "max": [-69.69999694824219, 74.80000305175781, -34.79499816894531]
+      }
+    },
+    {
+      "name": "seated side freight 2 / seated perimeter rail",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.55000305175781, 57.94999694824219, -35.25],
+        "max": [-84.25, 59.25, 7.25]
+      }
+    },
+    {
+      "name": "seated side freight 2 / seated perimeter rail.001",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.55000305175781, 74.75, -35.25],
+        "max": [-84.25, 76.05000305175781, 7.25]
+      }
+    },
+    {
+      "name": "seated side freight 2 / seated perimeter rail.002",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.75, 57.94999694824219, -35.25],
+        "max": [-68.44999694824219, 59.25, 7.25]
+      }
+    },
+    {
+      "name": "seated side freight 2 / seated perimeter rail.003",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.75, 74.75, -35.25],
+        "max": [-68.44999694824219, 76.05000305175781, 7.25]
+      }
+    },
+    {
+      "name": "seated side freight 2 / shadow body",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.5, 58.0, -35.0],
+        "max": [-68.5, 76.0, 7.0]
+      }
+    },
+    {
+      "name": "side-gallery service bus.001 / retained before bay / retained after bay",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-62.599998474121094, 69.39999389648438, -80.0],
+        "max": [-61.400001525878906, 70.5999984741211, 28.0]
+      }
+    },
+    {
+      "name": "side-gallery service bus.004 / retained before bay / retained after bay",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-62.599998474121094, 74.39999389648438, -80.0],
+        "max": [-61.400001525878906, 75.5999984741211, 28.0]
+      }
+    },
+    {
+      "name": "upper freight seated tie.002",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-83.34647369384766, 92.00010681152344, -19.399999618530273],
+        "max": [-70.65352630615234, 113.19989013671875, -18.600000381469727]
+      }
+    },
+    {
+      "name": "upper freight seated tie.003",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-83.34647369384766, 92.00010681152344, 4.599999904632568],
+        "max": [-70.65352630615234, 113.19989013671875, 5.400000095367432]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / corner casting",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.6500015258789, 92.8499984741211, -21.649999618530273],
+        "max": [-83.54999542236328, 94.95000457763672, -19.55000114440918]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / corner casting.001",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.6500015258789, 92.8499984741211, 5.550000190734863],
+        "max": [-83.54999542236328, 94.95000457763672, 7.649999618530273]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / corner casting.002",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.6500015258789, 109.04999542236328, -21.649999618530273],
+        "max": [-83.54999542236328, 111.1500015258789, -19.55000114440918]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / corner casting.003",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.6500015258789, 109.04999542236328, 5.550000190734863],
+        "max": [-83.54999542236328, 111.1500015258789, 7.649999618530273]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / corner casting.004",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-70.45000457763672, 92.8499984741211, -21.649999618530273],
+        "max": [-68.3499984741211, 94.95000457763672, -19.55000114440918]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / corner casting.005",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-70.45000457763672, 92.8499984741211, 5.550000190734863],
+        "max": [-68.3499984741211, 94.95000457763672, 7.649999618530273]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / corner casting.006",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-70.45000457763672, 109.04999542236328, -21.649999618530273],
+        "max": [-68.3499984741211, 111.1500015258789, -19.55000114440918]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / corner casting.007",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-70.45000457763672, 109.04999542236328, 5.550000190734863],
+        "max": [-68.3499984741211, 111.1500015258789, 7.649999618530273]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / formed corrugation",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.67500305175781, 94.5, -19.46000099182129],
+        "max": [-84.92500305175781, 109.5, -18.059999465942383]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / formed corrugation.001",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.07499694824219, 94.5, -19.46000099182129],
+        "max": [-68.32499694824219, 109.5, -18.059999465942383]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / formed corrugation.002",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.67500305175781, 94.5, -15.539999961853027],
+        "max": [-84.92500305175781, 109.5, -14.140000343322754]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / formed corrugation.003",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.07499694824219, 94.5, -15.539999961853027],
+        "max": [-68.32499694824219, 109.5, -14.140000343322754]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / formed corrugation.004",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.67500305175781, 94.5, -11.619999885559082],
+        "max": [-84.92500305175781, 109.5, -10.220000267028809]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / formed corrugation.005",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.07499694824219, 94.5, -11.619999885559082],
+        "max": [-68.32499694824219, 109.5, -10.220000267028809]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / formed corrugation.006",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.67500305175781, 94.5, -7.699999809265137],
+        "max": [-84.92500305175781, 109.5, -6.300000190734863]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / formed corrugation.007",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.07499694824219, 94.5, -7.699999809265137],
+        "max": [-68.32499694824219, 109.5, -6.300000190734863]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / formed corrugation.008",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.67500305175781, 94.5, -3.7799999713897705],
+        "max": [-84.92500305175781, 109.5, -2.379999876022339]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / formed corrugation.009",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.07499694824219, 94.5, -3.7799999713897705],
+        "max": [-68.32499694824219, 109.5, -2.379999876022339]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / formed corrugation.010",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.67500305175781, 94.5, 0.13999998569488525],
+        "max": [-84.92500305175781, 109.5, 1.5399999618530273]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / formed corrugation.011",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.07499694824219, 94.5, 0.13999998569488525],
+        "max": [-68.32499694824219, 109.5, 1.5399999618530273]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / formed corrugation.012",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.67500305175781, 94.5, 4.060000419616699],
+        "max": [-84.92500305175781, 109.5, 5.460000038146973]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / formed corrugation.013",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.07499694824219, 94.5, 4.060000419616699],
+        "max": [-68.32499694824219, 109.5, 5.460000038146973]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / front locking bar",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-81.15384674072266, 95.19999694824219, -21.8799991607666],
+        "max": [-80.5261459350586, 108.80000305175781, -21.219999313354492]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / front locking bar.001",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-73.4738540649414, 95.19999694824219, -21.8799991607666],
+        "max": [-72.84615325927734, 108.80000305175781, -21.219999313354492]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / long folded edge",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.44999694824219, 93.5, -21.0],
+        "max": [-84.55000305175781, 110.5, 7.0]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / long folded edge.001",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-69.44999694824219, 93.5, -21.0],
+        "max": [-68.55000305175781, 110.5, 7.0]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / recessed painted field",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-83.80000305175781, 94.69999694824219, -21.44500160217285],
+        "max": [-70.19999694824219, 109.30000305175781, -20.795000076293945]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / seated perimeter rail",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.05000305175781, 93.44999694824219, -21.25],
+        "max": [-83.75, 94.75, 7.25]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / seated perimeter rail.001",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.05000305175781, 109.25, -21.25],
+        "max": [-83.75, 110.55000305175781, 7.25]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / seated perimeter rail.002",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-70.25, 93.44999694824219, -21.25],
+        "max": [-68.94999694824219, 94.75, 7.25]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / seated perimeter rail.003",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-70.25, 109.25, -21.25],
+        "max": [-68.94999694824219, 110.55000305175781, 7.25]
+      }
+    },
+    {
+      "name": "upper restrained freight 2 / shadow body",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "replace full freight assembly",
+      "originalBounds": {
+        "min": [-85.0, 93.5, -21.0],
+        "max": [-69.0, 110.5, 7.0]
+      }
+    },
+    {
+      "name": "upper service gallery.001 / retained before bay / retained after bay",
+      "field": [-62, 12],
+      "function": "open maintenance gallery",
+      "action": "open port field; retain clipped outside segments",
+      "originalBounds": {
+        "min": [-69.5, 86.5, -80.0],
+        "max": [-58.5, 88.5, 28.0]
+      }
+    },
+    {
+      "name": "formed shoulder armour 04",
+      "field": [28, 140],
+      "action": "profiled inside-only cavity; original exterior shoulder retained"
+    },
+    {
+      "name": "formed shoulder armour 05",
+      "field": [28, 140],
+      "action": "profiled inside-only cavity; original exterior shoulder retained"
+    },
+    {
+      "name": "formed shoulder armour 02",
+      "field": [-140, -80],
+      "action": "profiled inside-only cavity; original exterior shoulder retained"
+    },
+    {
+      "name": "formed shoulder armour 03",
+      "field": [-140, -80],
+      "action": "profiled inside-only cavity; original exterior shoulder retained"
+    },
+    {
+      "name": "formed shoulder armour 03",
+      "field": [-62, 12],
+      "action": "profiled inside-only cavity; original exterior shoulder retained"
+    },
+    {
+      "name": "formed shoulder armour 04",
+      "field": [-62, 12],
+      "action": "profiled inside-only cavity; original exterior shoulder retained"
+    }
+  ],
+  "clearance": "New racing-height structure remains outward of the original innermost X=-56.8 portal boundary. Deep cavity follows external shoulder profile and retains3-4m outer skin. Roof and true cargo portals stay unchanged; validate actual native road/flight/camera encounter.",
+  "replacement": "Replace only carrier9 original hull/collider; original generic suspendedGallery remains omitted. Three unequal visible wall fields retain original structural breaks and the accepted large radiator anchor.",
+  "materials": [
+    "Nomad / navy structural steel",
+    "Nomad / oxide freight enamel",
+    "Nomad / recessed blue glazing",
+    "Nomad / rubbed warm alloy",
+    "Nomad / warm ivory armour",
+    "Nomad / warm safety amber"
+  ],
+  "hashes": {
+    "build_saltwind_gallery.py": "a6b4c9b3bb961389d1cb018f62dd5f36d1fe80549e832689d513dbb516bdeb3c",
+    "saltwind-gallery.blend": "a42832bcb519125b89487ead853a97f042d3931ed1340bbe12fe312d7e243dac",
+    "saltwind-gallery.glb": "f800244e8b5701c4f72070975125604f58841b007398c6293e191819ca8f84c3",
+    "saltwind-gallery-collision.json": "939b78054e7bf59403db16d2138ba6312d05db20dd85a515b4c12733d8983389",
+    "carrier-collision.json": "dc10f86d70c0d2422b2e330de1dee3dcd51927144e2beb6a6f18d65baba07c76",
+    "nomad-carrier-kit.blend": "cb444eb738128914f622544f981ad1dc1d89e3507efad538247004ed1760dcf0"
+  }
+}

@@ -26,11 +26,12 @@ export default function createNomadLevel({ shape = false } = {}) {
     },
     camera: {
       preserveFlightView: true,
-      chaseHeight: 7.5,
+      chaseHeight: 10,
       chaseDistance: 19,
       lookAhead: 65,
-      flightViewScale: 0.85,
-      flightChaseBlend: 0.65,
+      jumpPreview: { distance: 230, height: 22, back: 22 },
+      flightViewScale: 1,
+      flightChaseBlend: 0.25,
       safeFrame: { left: -0.86, right: 0.86, bottom: -0.62, top: 0.8 },
     },
     createTrack() {

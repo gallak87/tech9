@@ -94,8 +94,11 @@ export function createNomadRuntime(context) {
       return events;
     },
     reset(args = {}) {
+      const nextClock = args.state?.time ?? 0;
+      if (!Number.isFinite(nextClock) || nextClock < 0)
+        throw new Error('Invalid Nomad reset time.');
       pending = false;
-      previousClock = clock = args.state?.time ?? 0;
+      previousClock = clock = nextClock;
       context.dynamics?.setNomadTime?.(clock);
       syncPresentation();
       flight.reset(args);
@@ -122,11 +125,25 @@ export function createNomadRuntime(context) {
         data.previousTime > data.time
       )
         throw new Error('Invalid Nomad carrier clock.');
+      const retained = {
+        clock,
+        previousClock,
+        pending,
+        presentationTime: track.presentationTime,
+      };
+      // Delegated restore may sample the private moving chart. Stage its saved
+      // time first, but a rejected nested state must leave our clocks intact.
       clock = data.time;
       previousClock = data.previousTime;
       pending = false;
       syncPresentation();
-      flight.restore(data.motion);
+      try {
+        flight.restore(data.motion);
+      } catch (error) {
+        ({ clock, previousClock, pending } = retained);
+        syncPresentation(retained.presentationTime);
+        throw error;
+      }
     },
     pose(alpha = 1) {
       syncPresentation(

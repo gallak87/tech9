@@ -5,10 +5,10 @@ import { sampleCarrierMotion } from '../motion.js';
 
 function roadMaterial(shape) {
   const material = new T.MeshStandardMaterial({
-    name: 'Nomad / sealed graphite deck plates',
-    color: shape ? '#87969c' : '#424f56',
-    roughness: 0.68,
-    metalness: shape ? 0.1 : 0.48,
+    name: 'Nomad / worn load-deck steel plates',
+    color: shape ? '#87969c' : '#75796f',
+    roughness: 0.56,
+    metalness: shape ? 0.1 : 0.42,
   });
   if (shape) return material;
   material.onBeforeCompile = (shader) => {
@@ -32,22 +32,26 @@ function roadMaterial(shape) {
         '#include <map_fragment>',
         `#include <map_fragment>
         vec2 p=steelCoord;
-        vec2 plate=vec2(p.x,p.y+mod(floor(p.x/12.),2.)*3.);
-        vec2 cell=mod(plate,vec2(12.,6.));
-        vec2 edge=min(cell,vec2(12.,6.)-cell);
+        vec2 plate=vec2(p.x,p.y+mod(floor(p.x/18.),2.)*4.);
+        vec2 cell=mod(plate,vec2(18.,8.));
+        vec2 edge=min(cell,vec2(18.,8.)-cell);
         vec2 aa=max(fwidth(p),vec2(.025));
         float seam=1.-smoothstep(.025,.065+aa.x,edge.x);
         seam=max(seam,1.-smoothstep(.025,.065+aa.y,edge.y));
-        float variation=nomadHash(floor(plate/vec2(12.,6.)));
-        diffuseColor.rgb*=.94+.12*variation;
-        diffuseColor.rgb*=1.-seam*.36;
+        float variation=nomadHash(floor(plate/vec2(18.,8.)));
+        diffuseColor.rgb*=.88+.23*variation;
+        diffuseColor.rgb*=1.-seam*.23;
         float shoulder=smoothstep(18.,24.,abs(p.y));
         float diagonal=step(.48,fract((p.x+p.y)*.12));
         float paint=shoulder*diagonal*.26;
         diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.58,.29,.066),paint);`,
       );
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <roughnessmap_fragment>',
+      '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+(.5-variation)*.12,.40,.72);',
+    );
   };
-  material.customProgramCacheKey = () => 'nomad-working-deck-v1';
+  material.customProgramCacheKey = () => 'nomad-working-deck-v4';
   return material;
 }
 

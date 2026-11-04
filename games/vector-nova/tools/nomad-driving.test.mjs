@@ -44,6 +44,103 @@ const controls = (state, runtime, mode) => ({
   ...(mode === 'boost' ? {} : { throttle: 1, brake: 0, boost: false }),
 });
 
+test('rejected Nomad reset and delegated restore preserve snapshots and presentation clocks', () => {
+  const runtime = makeMotion();
+  const state = {
+    ...createVehicleState(),
+    ...track.scenarios['cargo-entry'],
+    time: 9,
+  };
+  try {
+    dynamics.reset();
+    runtime.reset({ state });
+    runtime.advance(state, controls(state, runtime, 'cruise'), DT);
+    runtime.pose(0.25);
+    const snapshot = () => ({
+      motion: structuredClone(runtime.snapshot()),
+      world: dynamics.snapshot(),
+      presentationTime: track.presentationTime,
+    });
+    const before = snapshot();
+    for (const time of [NaN, Infinity, -1]) {
+      assert.throws(
+        () => runtime.reset({ state: { ...state, time } }),
+        /reset time/,
+      );
+      assert.deepEqual(
+        snapshot(),
+        before,
+        'rejected reset cannot change any carrier clock or actor',
+      );
+    }
+    for (const motion of [
+      { ...before.motion.motion, mode: 'invalid' },
+      { ...before.motion.motion, flight: { id: 'unknown-jump' } },
+    ]) {
+      assert.throws(() =>
+        runtime.restore({
+          ...before.motion,
+          time: 30,
+          previousTime: 29,
+          motion,
+        }),
+      );
+      assert.deepEqual(
+        snapshot(),
+        before,
+        'delegated rejection restores the exact interpolated presentation clock',
+      );
+    }
+    runtime.reset();
+    assert.equal(
+      runtime.snapshot().time,
+      0,
+      'reset without a state retains its original zero-clock default',
+    );
+    assert.equal(track.presentationTime, 0);
+  } finally {
+    runtime.dispose();
+  }
+});
+
+test('rejected Nomad native intervals preserve group poses and velocities before placement', () => {
+  dynamics.reset();
+  dynamics.setNomadTime(9);
+  dynamics.step(DT);
+  const before = dynamics.snapshot();
+  for (const interval of [undefined, NaN, Infinity, 0, -DT, 0.100001]) {
+    assert.throws(() => dynamics.step(interval), /finite fixed-step duration/);
+    assert.deepEqual(
+      dynamics.snapshot(),
+      before,
+      'rejected intervals cannot rewrite collision group velocity',
+    );
+  }
+  dynamics.step(0.1);
+  const after = dynamics.snapshot();
+  assert.ok(
+    Math.abs(after.convoyTime - before.convoyTime - 0.1) < 1e-12,
+    'the native accepted maximum remains available',
+  );
+  for (const carrier of track.carriers) {
+    const group = after.world.motionGroups.find(
+      (entry) => entry.id === carrier.id,
+    );
+    const expected = track.motionAt(
+      carrier.start + 0.1,
+      after.convoyTime,
+    ).translation;
+    assert.ok(
+      Math.hypot(
+        group.translation.x - expected.x,
+        group.translation.y - expected.y,
+        group.translation.z - expected.z,
+      ) < 1e-8,
+      'valid placement still integrates exact analytic endpoints',
+    );
+  }
+});
+
 for (let index = 0; index < 10; index++)
   test(`production moving transfer ${index + 1}: four motion phases, fleet cruise and fast approaches`, () => {
     const jump = track.jumps[index];

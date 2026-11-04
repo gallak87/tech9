@@ -1,0 +1,110 @@
+{
+  "title": "Nomad Procession / Passing Deck formed receiving cargo crown",
+  "generator": "Original connected Blender assembly, retained as editable formed components and evaluated once for both GLB and native collision.",
+  "source": "build_receiver_crown.py",
+  "blend": "receiver-crown.blend",
+  "runtimeAsset": "public/assets/levels/nomad/receiver-crown.glb",
+  "collision": "receiver-crown-collision.json",
+  "coordinates": "+Y up, +Z bow, metres; attach root unchanged to nomad-passing-deck with its existing scale, static pitch and translation.",
+  "rights": "Project-authored geometry and exact existing Nomad material aliases; no external models, textures or baked lighting.",
+  "reference": "../../reference/nomad-procession-original.png",
+  "sourceHull": "../carrier-collision.json",
+  "roadGuides": "../route-support-guides.json",
+  "prototypes": [
+    {
+      "name": "nomad_receiver_crown",
+      "triangles": 13484,
+      "collisionTriangles": 13484,
+      "materialBatches": 4,
+      "bounds": {
+        "min": [-117.93663, 120.825165, -368.664825],
+        "max": [117.936623, 226.0, -142.033569]
+      },
+      "actualHullSeats": [
+        {
+          "name": "roof seat -1 0",
+          "position": [-67.5, 130.0, -246.56875610351562],
+          "normal": [-0.0, 0.9999999403953552, 0.0],
+          "sourceTriangle": 10222
+        },
+        {
+          "name": "roof seat -1 1",
+          "position": [-67.5, 130.0, -221.13612365722656],
+          "normal": [-0.0, 0.9999999403953552, 0.0],
+          "sourceTriangle": 10222
+        },
+        {
+          "name": "roof seat -1 2",
+          "position": [-67.5, 130.0, -193.7471466064453],
+          "normal": [-0.0, 0.9999999403953552, 0.0],
+          "sourceTriangle": 10222
+        },
+        {
+          "name": "roof seat -1 3",
+          "position": [-67.5, 130.0, -168.31451416015625],
+          "normal": [-0.0, 0.9999999403953552, 0.0],
+          "sourceTriangle": 10222
+        },
+        {
+          "name": "roof seat 1 0",
+          "position": [67.5, 130.0, -312.3812561035156],
+          "normal": [0.0, 1.0, 0.0],
+          "sourceTriangle": 10179
+        },
+        {
+          "name": "roof seat 1 1",
+          "position": [67.5, 130.0, -267.6138916015625],
+          "normal": [0.0, 1.0, 0.0],
+          "sourceTriangle": 10179
+        },
+        {
+          "name": "roof seat 1 2",
+          "position": [67.5, 130.0, -219.40286254882812],
+          "normal": [0.0, 0.9999999403953552, 0.0],
+          "sourceTriangle": 10223
+        },
+        {
+          "name": "roof seat 1 3",
+          "position": [67.5, 130.0, -174.63548278808594],
+          "normal": [0.0, 0.9999999403953552, 0.0],
+          "sourceTriangle": 10223
+        },
+        {
+          "name": "aft shoulder tail seat -1",
+          "position": [-73.0, 127.7370834350586, -148.0],
+          "normal": [
+            -0.23610596358776093, 0.8822975158691406, -0.4071917235851288
+          ],
+          "sourceTriangle": 13916
+        },
+        {
+          "name": "aft shoulder tail seat 1",
+          "position": [73.0, 127.73707580566406, -148.0],
+          "normal": [
+            0.23610611259937286, 0.882296621799469, -0.40719330310821533
+          ],
+          "sourceTriangle": 14093
+        }
+      ]
+    }
+  ],
+  "reservedOpening": {
+    "min": [-78, 142, -380],
+    "max": [78, 214, -160]
+  },
+  "entryRake": "Port shoulder mouth is raked aft up to 136.5m; displacement fades to zero at Z=-160. Actual native diagonal flight and 25m camera envelopes drive this construction.",
+  "materials": [
+    "Nomad / warm ivory armour",
+    "Nomad / navy structural steel",
+    "Nomad / rubbed warm alloy",
+    "Nomad / oxide freight enamel"
+  ],
+  "hashes": {
+    "build_receiver_crown.py": "34a7e6c55769a3b0940db3399552adcfe0ceeb78347d4f07867b9e2a175a0abf",
+    "receiver-crown.blend": "29c3c379385fcbf9f0a7aa9b5cc66b849ccd61aebeec1305c05c24f76ed4348b",
+    "receiver-crown.glb": "a7d9ad403d8380e7741b5259da3f29b45e6e5adc6e5db7d1018025164027082e",
+    "receiver-crown-collision.json": "528b43d77f28024caed673ed83b316908eeda3afd4e01d1c0156e38c3feed5dc",
+    "carrier-collision.json": "dc10f86d70c0d2422b2e330de1dee3dcd51927144e2beb6a6f18d65baba07c76",
+    "route-support-guides.json": "410aa569e0df00485a12bc6cf454e9e9f883e2622f81ff1bf210277d99cd3fda"
+  }
+}

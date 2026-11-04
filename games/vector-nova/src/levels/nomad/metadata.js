@@ -8,6 +8,7 @@ export default {
     compact: true,
     compactLandscape: true,
     portraitCompactHud: true,
+    courseLabel: 'CONVOY → TERMINUS',
     edition: 'NOMAD / THE SALT PROCESSION',
     subtitle: 'MOVING CONVOY / 12.2 KM SPRINT',
     intro:

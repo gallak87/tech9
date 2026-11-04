@@ -463,7 +463,6 @@ export function createNomadDistricts({ track, finish = null, shape = false }) {
           [0.67, 0.34, 0.95],
           'crane-alley lifting crown',
         );
-        suspendedGallery(d, 80, 0.72);
         ceilingHydraulics(d, -1, 80);
       } else if (carrier.index === 9) {
         rooftopHandling(
@@ -480,7 +479,6 @@ export function createNomadDistricts({ track, finish = null, shape = false }) {
           [0.85, 0.55, 0.8],
           'saltwind circulation reservoir',
         );
-        suspendedGallery(d, 80, 0.7);
       } else {
         rooftopHandling(
           d,

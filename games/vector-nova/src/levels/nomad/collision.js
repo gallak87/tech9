@@ -7,7 +7,19 @@ import collisionKit from '../../../assets/levels/nomad/blender/carrier-collision
 import kitManifest from '../../../assets/levels/nomad/blender/carrier-kit-provenance.json' with { type: 'json' };
 import supportKit from '../../../assets/levels/nomad/blender/route-supports-collision.json' with { type: 'json' };
 import supportManifest from '../../../assets/levels/nomad/blender/route-supports-provenance.json' with { type: 'json' };
+import crownKit from '../../../assets/levels/nomad/blender/receiver-crown/receiver-crown-collision.json' with { type: 'json' };
+import crownManifest from '../../../assets/levels/nomad/blender/receiver-crown/receiver-crown-provenance.json' with { type: 'json' };
+import interiorKit from '../../../assets/levels/nomad/blender/interior-freight/interior-freight-collision.json' with { type: 'json' };
+import interiorManifest from '../../../assets/levels/nomad/blender/interior-freight/interior-freight-provenance.json' with { type: 'json' };
+import saltwindKit from '../../../assets/levels/nomad/blender/saltwind-gallery/saltwind-gallery-collision.json' with { type: 'json' };
+import saltwindManifest from '../../../assets/levels/nomad/blender/saltwind-gallery/saltwind-gallery-provenance.json' with { type: 'json' };
+import wallrideKit from '../../../assets/levels/nomad/blender/wallride-service/wallride-service-collision.json' with { type: 'json' };
+import wallrideManifest from '../../../assets/levels/nomad/blender/wallride-service/wallride-service-provenance.json' with { type: 'json' };
 import { createNomadRoad } from './track/road.js';
+import {
+  createNomadHallMachinery,
+  NOMAD_HALL_GEOMETRY_VERSION,
+} from './hall-machinery.js';
 
 /** Exact nominal skin/member triangles retain rigid carrier ownership in Rapier. */
 export function createNomadCollisionWorld({ track }) {
@@ -45,6 +57,12 @@ export function createNomadCollisionWorld({ track }) {
   } finally {
     road.dispose();
   }
+  const hall = createNomadHallMachinery({ track });
+  try {
+    triangles.push(...hall.collisionTriangles);
+  } finally {
+    hall.dispose();
+  }
   const body = collisionKit.prototypes.find(
     (part) => part.name === 'nomad_carrier',
   );
@@ -55,6 +73,12 @@ export function createNomadCollisionWorld({ track }) {
     (part) => part.name === 'nomad_carrier',
   ).anchors;
   for (const carrier of track.carriers) {
+    const hull =
+      carrier.id === 'nomad-saltwind'
+        ? (saltwindKit.prototypes.find(
+            (part) => part.name === 'nomad_saltwind_hull',
+          ) ?? body)
+        : body;
     const matrix = new T.Matrix4().compose(
       carrier.origin,
       carrier.quaternion ?? new T.Quaternion(),
@@ -62,8 +86,8 @@ export function createNomadCollisionWorld({ track }) {
     );
     triangles.push(
       ...indexedTriangles(
-        body.positions,
-        body.indices,
+        hull.positions,
+        hull.indices,
         {
           id: `${carrier.id}/structural-hull`,
           kind: 'structure',
@@ -72,6 +96,68 @@ export function createNomadCollisionWorld({ track }) {
         matrix,
       ),
     );
+    if (carrier.id === 'nomad-passing-deck') {
+      const crown = crownKit.prototypes[0];
+      triangles.push(
+        ...indexedTriangles(
+          crown.positions,
+          crown.indices,
+          {
+            id: `${carrier.id}/receiving-cargo-crown`,
+            kind: 'structure',
+            motionGroup: carrier.id,
+          },
+          matrix,
+        ),
+      );
+    }
+    if (carrier.id === 'nomad-freight-cathedral') {
+      const interior = interiorKit.prototypes[0];
+      triangles.push(
+        ...indexedTriangles(
+          interior.positions,
+          interior.indices,
+          {
+            id: `${carrier.id}/suspended-freight-installation`,
+            kind: 'structure',
+            motionGroup: carrier.id,
+          },
+          matrix,
+        ),
+      );
+    }
+    if (carrier.id === 'nomad-saltwind') {
+      const gallery = saltwindKit.prototypes.find(
+        (part) => part.name === 'nomad_saltwind_gallery',
+      );
+      triangles.push(
+        ...indexedTriangles(
+          gallery.positions,
+          gallery.indices,
+          {
+            id: `${carrier.id}/connected-service-wing`,
+            kind: 'structure',
+            motionGroup: carrier.id,
+          },
+          matrix,
+        ),
+      );
+    }
+    if (carrier.id === 'nomad-portside-dive') {
+      const wall = wallrideKit.prototypes[0];
+      triangles.push(
+        ...indexedTriangles(
+          wall.positions,
+          wall.indices,
+          {
+            id: `${carrier.id}/formed-service-belt`,
+            kind: 'structure',
+            motionGroup: carrier.id,
+          },
+          matrix,
+        ),
+      );
+    }
     const supports = supportKit.prototypes.find(
       (part) => part.name === carrier.id,
     );
@@ -141,7 +227,7 @@ export function createNomadCollisionWorld({ track }) {
   return createCollisionWorld({
     id: 'nomad-physical-convoy',
     version: 1,
-    geometryId: `${track.geometryVersion}:exact-road-and-blender-members-v1:${kitManifest.hashes['carrier-collision.json']}:${supportManifest.hashes['route-supports-collision.json']}`,
+    geometryId: `${track.geometryVersion}:exact-road-and-blender-members-v1:${kitManifest.hashes['carrier-collision.json']}:${supportManifest.hashes['route-supports-collision.json']}:${crownManifest.hashes['receiver-crown-collision.json']}:${interiorManifest.hashes['interior-freight-collision.json']}:${saltwindManifest.hashes['saltwind-gallery-collision.json']}:${wallrideManifest.hashes['wallride-service-collision.json']}:${NOMAD_HALL_GEOMETRY_VERSION}`,
     triangles,
   });
 }

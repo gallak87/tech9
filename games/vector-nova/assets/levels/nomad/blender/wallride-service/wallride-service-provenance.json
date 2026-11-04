@@ -1,0 +1,540 @@
+{
+  "title": "Nomad Procession / Portside Dive formed service belt",
+  "generator": "Original fitted Blender assembly with three unequal returned armor fields, true shallow service wells, cooling shutters and one recessed transmission-access door.",
+  "source": "build_wallride_service.py",
+  "blend": "wallride-service.blend",
+  "runtimeAsset": "public/assets/levels/nomad/wallride-service.glb",
+  "coordinates": "Metres; +Y up, +Z bow. Attach nomad_wallride_service unchanged as an identity child of carrier index 3, nomad-portside-dive.",
+  "rights": "Project-authored geometry and exact existing Nomad scalar PBR aliases; no external models, images or baked lighting.",
+  "reference": "../../reference/nomad-procession-original.png",
+  "sourceHull": "../carrier-collision.json",
+  "prototypes": [
+    {
+      "name": "nomad_wallride_service",
+      "triangles": 4724,
+      "materialBatches": 4,
+      "bounds": {
+        "min": [-93.7116928100586, 77.80000305175781, -154.0],
+        "max": [-79.02182006835938, 121.27538299560547, 154.0]
+      },
+      "actualHullSeats": [
+        {
+          "name": "stern pressure bank / lower measured socket",
+          "position": [-90.0, 83.0, -136.0],
+          "normal": [-1.0, -0.0, -0.0],
+          "sourceTriangle": 11258
+        },
+        {
+          "name": "stern pressure bank / upper measured socket",
+          "position": [-82.36363220214844, 116.0, -136.0],
+          "normal": [-0.8436614274978638, 0.5368756055831909, 0.0],
+          "sourceTriangle": 11261
+        },
+        {
+          "name": "stern pressure bank / lower measured socket",
+          "position": [-90.0, 83.0, -72.0],
+          "normal": [-1.0, -0.0, -0.0],
+          "sourceTriangle": 11586
+        },
+        {
+          "name": "stern pressure bank / upper measured socket",
+          "position": [-82.36363220214844, 116.0, -72.0],
+          "normal": [-0.8436614274978638, 0.5368756055831909, 0.0],
+          "sourceTriangle": 11589
+        },
+        {
+          "name": "offset transmission access / lower measured socket",
+          "position": [-90.0, 83.0, -33.0],
+          "normal": [-1.0, -0.0, -0.0],
+          "sourceTriangle": 11586
+        },
+        {
+          "name": "offset transmission access / upper measured socket",
+          "position": [-82.36363220214844, 116.0, -33.0],
+          "normal": [-0.8436614274978638, 0.5368756055831909, 0.0],
+          "sourceTriangle": 11588
+        },
+        {
+          "name": "offset transmission access / lower measured socket",
+          "position": [-90.0, 83.0, 24.0],
+          "normal": [-1.0, -0.0, -0.0],
+          "sourceTriangle": 11914
+        },
+        {
+          "name": "offset transmission access / upper measured socket",
+          "position": [-82.36363220214844, 116.0, 24.0],
+          "normal": [-0.843661367893219, 0.5368756055831909, 0.0],
+          "sourceTriangle": 11916
+        },
+        {
+          "name": "bow heat exchanger / lower measured socket",
+          "position": [-90.0, 83.0, 63.0],
+          "normal": [-1.0, -0.0, 0.0],
+          "sourceTriangle": 12243
+        },
+        {
+          "name": "bow heat exchanger / upper measured socket",
+          "position": [-82.36363220214844, 116.0, 63.0],
+          "normal": [-0.8436614274978638, 0.5368756055831909, 0.0],
+          "sourceTriangle": 12245
+        },
+        {
+          "name": "bow heat exchanger / lower measured socket",
+          "position": [-90.0, 83.0, 134.0],
+          "normal": [-1.0, -0.0, -0.0],
+          "sourceTriangle": 12242
+        },
+        {
+          "name": "bow heat exchanger / upper measured socket",
+          "position": [-82.36363220214844, 116.0, 134.0],
+          "normal": [-0.8436614274978638, 0.5368756055831909, 0.0],
+          "sourceTriangle": 12244
+        }
+      ]
+    }
+  ],
+  "collision": {
+    "file": "wallride-service-collision.json",
+    "policy": "Every evaluated component triangle is retained, matching the runtime GLB without simplified blocking volumes.",
+    "triangles": 4724
+  },
+  "clearance": {
+    "sourcePortalReservedZ": [
+      [-281, -159],
+      [159, 281]
+    ],
+    "newGeometryZ": [-154.0, 154.0],
+    "maximumOutwardOffsetMetres": 3.77,
+    "policy": "Shallow hull-conforming assembly preserves real side portals, roof and cargo roads. Full-width running skin, actual chassis and chase camera are checked separately against evaluated triangles before integration."
+  },
+  "materials": [
+    "Nomad / warm ivory armour",
+    "Nomad / navy structural steel",
+    "Nomad / rubbed warm alloy",
+    "Nomad / oxide freight enamel"
+  ],
+  "components": [
+    {
+      "name": "bow heat exchanger / broad folded cooling shutter 00",
+      "min": [-90.85899353027344, 106.0, 60.099998474121094],
+      "max": [-82.82282257080078, 116.80000305175781, 61.900001525878906]
+    },
+    {
+      "name": "bow heat exchanger / broad folded cooling shutter 01",
+      "min": [-90.85899353027344, 106.0, 72.76667022705078],
+      "max": [-82.82282257080078, 116.80000305175781, 74.56666564941406]
+    },
+    {
+      "name": "bow heat exchanger / broad folded cooling shutter 02",
+      "min": [-90.85899353027344, 106.0, 85.43333435058594],
+      "max": [-82.82282257080078, 116.80000305175781, 87.23332977294922]
+    },
+    {
+      "name": "bow heat exchanger / broad folded cooling shutter 03",
+      "min": [-90.85899353027344, 106.0, 98.0999984741211],
+      "max": [-82.82282257080078, 116.80000305175781, 99.9000015258789]
+    },
+    {
+      "name": "bow heat exchanger / broad folded cooling shutter 04",
+      "min": [-90.85899353027344, 106.0, 110.76667022705078],
+      "max": [-82.82282257080078, 116.80000305175781, 112.56666564941406]
+    },
+    {
+      "name": "bow heat exchanger / broad folded cooling shutter 05",
+      "min": [-90.85899353027344, 106.0, 123.43333435058594],
+      "max": [-82.82282257080078, 116.80000305175781, 125.23332977294922]
+    },
+    {
+      "name": "bow heat exchanger / broad folded cooling shutter 06",
+      "min": [-90.85899353027344, 106.0, 136.10000610351562],
+      "max": [-82.82282257080078, 116.80000305175781, 137.89999389648438]
+    },
+    {
+      "name": "bow heat exchanger / connected pressure header",
+      "min": [-90.52727508544922, 105.5, 58.0],
+      "max": [-89.52727508544922, 106.5, 140.0]
+    },
+    {
+      "name": "bow heat exchanger / connected pressure header.001",
+      "min": [-83.52727508544922, 116.5, 58.0],
+      "max": [-82.52727508544922, 117.5, 140.0]
+    },
+    {
+      "name": "bow heat exchanger / deep returned ivory armor",
+      "min": [-93.56775665283203, 77.80000305175781, 46.0],
+      "max": [-79.79850006103516, 121.0, 153.0]
+    },
+    {
+      "name": "bow heat exchanger / exposed upper alloy return",
+      "min": [-83.60176849365234, 119.82462310791016, 48.79999923706055],
+      "max": [-82.09459686279297, 121.27538299560547, 150.1999969482422]
+    },
+    {
+      "name": "bow heat exchanger / fitted sloping navy well floor",
+      "min": [-90.75725555419922, 103.9000015258789, 53.29999923706055],
+      "max": [-80.91728973388672, 119.0, 144.6999969482422]
+    },
+    {
+      "name": "bow heat exchanger / lower measured socket / captured structural spacer",
+      "min": [-92.45000457763672, 81.69999694824219, 61.150001525878906],
+      "max": [-90.3499984741211, 84.30000305175781, 64.8499984741211]
+    },
+    {
+      "name": "bow heat exchanger / lower measured socket / captured structural spacer.001",
+      "min": [-92.45000457763672, 81.69999694824219, 132.14999389648438],
+      "max": [-90.3499984741211, 84.30000305175781, 135.85000610351562]
+    },
+    {
+      "name": "bow heat exchanger / lower measured socket / seated hull sole",
+      "min": [-90.875, 81.0, 60.5],
+      "max": [-89.82499694824219, 85.0, 65.5]
+    },
+    {
+      "name": "bow heat exchanger / lower measured socket / seated hull sole.001",
+      "min": [-90.875, 81.0, 131.5],
+      "max": [-89.82499694824219, 85.0, 136.5]
+    },
+    {
+      "name": "bow heat exchanger / seated machined service reveal",
+      "min": [-93.7116928100586, 104.0, 53.5],
+      "max": [-83.67648315429688, 118.9000015258789, 144.5]
+    },
+    {
+      "name": "bow heat exchanger / shutter seated cap 00",
+      "min": [-84.01818084716797, 116.375, 59.849998474121094],
+      "max": [-83.01818084716797, 117.02499389648438, 62.150001525878906]
+    },
+    {
+      "name": "bow heat exchanger / shutter seated cap 01",
+      "min": [-84.01818084716797, 116.375, 72.51666259765625],
+      "max": [-83.01818084716797, 117.02499389648438, 74.81666564941406]
+    },
+    {
+      "name": "bow heat exchanger / shutter seated cap 02",
+      "min": [-84.01818084716797, 116.375, 85.18333435058594],
+      "max": [-83.01818084716797, 117.02499389648438, 87.48333740234375]
+    },
+    {
+      "name": "bow heat exchanger / shutter seated cap 03",
+      "min": [-84.01818084716797, 116.375, 97.8499984741211],
+      "max": [-83.01818084716797, 117.02499389648438, 100.1500015258789]
+    },
+    {
+      "name": "bow heat exchanger / shutter seated cap 04",
+      "min": [-84.01818084716797, 116.375, 110.51666259765625],
+      "max": [-83.01818084716797, 117.02499389648438, 112.81666564941406]
+    },
+    {
+      "name": "bow heat exchanger / shutter seated cap 05",
+      "min": [-84.01818084716797, 116.375, 123.18333435058594],
+      "max": [-83.01818084716797, 117.02499389648438, 125.48333740234375]
+    },
+    {
+      "name": "bow heat exchanger / shutter seated cap 06",
+      "min": [-84.01818084716797, 116.375, 135.85000610351562],
+      "max": [-83.01818084716797, 117.02499389648438, 138.14999389648438]
+    },
+    {
+      "name": "bow heat exchanger / upper measured socket / captured structural spacer",
+      "min": [-84.81363677978516, 114.69999694824219, 61.150001525878906],
+      "max": [-82.71363067626953, 117.30000305175781, 64.8499984741211]
+    },
+    {
+      "name": "bow heat exchanger / upper measured socket / captured structural spacer.001",
+      "min": [-84.81363677978516, 114.69999694824219, 132.14999389648438],
+      "max": [-82.71363067626953, 117.30000305175781, 135.85000610351562]
+    },
+    {
+      "name": "bow heat exchanger / upper measured socket / seated hull sole",
+      "min": [-83.23863220214844, 114.0, 60.5],
+      "max": [-82.18862915039062, 118.0, 65.5]
+    },
+    {
+      "name": "bow heat exchanger / upper measured socket / seated hull sole.001",
+      "min": [-83.23863220214844, 114.0, 131.5],
+      "max": [-82.18862915039062, 118.0, 136.5]
+    },
+    {
+      "name": "captured deep seam carrier",
+      "min": [-92.4000015258789, 79.0, -52.29999923706055],
+      "max": [-80.0036849975586, 120.5, -50.70000076293945]
+    },
+    {
+      "name": "captured deep seam carrier.001",
+      "min": [-92.6500015258789, 79.0, 43.70000076293945],
+      "max": [-80.0036849975586, 120.5, 45.29999923706055]
+    },
+    {
+      "name": "continuous enclosed service bearer",
+      "min": [-91.5, 87.5, -153.5],
+      "max": [-90.10000610351562, 89.30000305175781, 153.5]
+    },
+    {
+      "name": "continuous enclosed service bearer.001",
+      "min": [-91.30908966064453, 103.4000015258789, -153.5],
+      "max": [-89.90909576416016, 105.20000457763672, 153.5]
+    },
+    {
+      "name": "continuous fitted service backing",
+      "min": [-90.12000274658203, 78.0, -154.0],
+      "max": [-79.02182006835938, 121.0, 154.0]
+    },
+    {
+      "name": "offset transmission access / captured broad locking strap",
+      "min": [-92.7449951171875, 86.9000015258789, -31.825000762939453],
+      "max": [-92.09500122070312, 105.0999984741211, -30.174999237060547]
+    },
+    {
+      "name": "offset transmission access / captured broad locking strap.001",
+      "min": [-92.7449951171875, 86.9000015258789, 2.174999952316284],
+      "max": [-92.09500122070312, 105.0999984741211, 3.825000047683716]
+    },
+    {
+      "name": "offset transmission access / deep returned ivory armor",
+      "min": [-93.05000305175781, 77.80000305175781, -50.0],
+      "max": [-79.87931823730469, 121.0, 43.0]
+    },
+    {
+      "name": "offset transmission access / exposed upper alloy return",
+      "min": [-83.00177001953125, 119.82462310791016, -47.20000076293945],
+      "max": [-81.49459838867188, 121.27538299560547, 40.20000076293945]
+    },
+    {
+      "name": "offset transmission access / formed coupling collar",
+      "min": [-92.46991729736328, 88.44999694824219, 16.799999237060547],
+      "max": [-90.13008880615234, 89.55000305175781, 19.200000762939453]
+    },
+    {
+      "name": "offset transmission access / formed coupling collar.001",
+      "min": [-92.46991729736328, 101.44999694824219, 16.799999237060547],
+      "max": [-90.13008880615234, 102.55000305175781, 19.200000762939453]
+    },
+    {
+      "name": "offset transmission access / formed coupling collar.002",
+      "min": [-92.46991729736328, 88.44999694824219, 25.799999237060547],
+      "max": [-90.13008880615234, 89.55000305175781, 28.200000762939453]
+    },
+    {
+      "name": "offset transmission access / formed coupling collar.003",
+      "min": [-92.46991729736328, 101.44999694824219, 25.799999237060547],
+      "max": [-90.13008880615234, 102.55000305175781, 28.200000762939453]
+    },
+    {
+      "name": "offset transmission access / inset access door shadow",
+      "min": [-91.5, 86.0, -37.5],
+      "max": [-90.39999389648438, 106.0, 9.5]
+    },
+    {
+      "name": "offset transmission access / inset oxide access door",
+      "min": [-92.27999877929688, 87.3499984741211, -35.0],
+      "max": [-91.27999877929688, 104.6500015258789, 7.0]
+    },
+    {
+      "name": "offset transmission access / lower measured socket / captured structural spacer",
+      "min": [-92.45000457763672, 81.69999694824219, -34.849998474121094],
+      "max": [-90.3499984741211, 84.30000305175781, -31.149999618530273]
+    },
+    {
+      "name": "offset transmission access / lower measured socket / captured structural spacer.001",
+      "min": [-92.45000457763672, 81.69999694824219, 22.149999618530273],
+      "max": [-90.3499984741211, 84.30000305175781, 25.850000381469727]
+    },
+    {
+      "name": "offset transmission access / lower measured socket / seated hull sole",
+      "min": [-90.875, 81.0, -35.5],
+      "max": [-89.82499694824219, 85.0, -30.5]
+    },
+    {
+      "name": "offset transmission access / lower measured socket / seated hull sole.001",
+      "min": [-90.875, 81.0, 21.5],
+      "max": [-89.82499694824219, 85.0, 26.5]
+    },
+    {
+      "name": "offset transmission access / navy well back",
+      "min": [-90.62000274658203, 85.0, -42.0],
+      "max": [-90.12000274658203, 104.5, 35.0]
+    },
+    {
+      "name": "offset transmission access / recessed hinge",
+      "min": [-93.02999877929688, 90.41999816894531, -33.5],
+      "max": [-91.8699951171875, 91.58000183105469, -27.5]
+    },
+    {
+      "name": "offset transmission access / recessed hinge.001",
+      "min": [-93.02999877929688, 100.41999816894531, -33.5],
+      "max": [-91.8699951171875, 101.58000183105469, -27.5]
+    },
+    {
+      "name": "offset transmission access / seated machined service reveal",
+      "min": [-93.16999816894531, 85.0, -42.5],
+      "max": [-89.37435150146484, 109.0, 34.5]
+    },
+    {
+      "name": "offset transmission access / service manifold",
+      "min": [-92.12869262695312, 88.0, 17.149999618530273],
+      "max": [-90.4713134765625, 104.5, 18.850000381469727]
+    },
+    {
+      "name": "offset transmission access / service manifold.001",
+      "min": [-92.12869262695312, 88.0, 26.149999618530273],
+      "max": [-90.4713134765625, 104.5, 27.850000381469727]
+    },
+    {
+      "name": "offset transmission access / upper measured socket / captured structural spacer",
+      "min": [-84.81363677978516, 114.69999694824219, -34.849998474121094],
+      "max": [-82.71363067626953, 117.30000305175781, -31.149999618530273]
+    },
+    {
+      "name": "offset transmission access / upper measured socket / captured structural spacer.001",
+      "min": [-84.81363677978516, 114.69999694824219, 22.149999618530273],
+      "max": [-82.71363067626953, 117.30000305175781, 25.850000381469727]
+    },
+    {
+      "name": "offset transmission access / upper measured socket / seated hull sole",
+      "min": [-83.23863220214844, 114.0, -35.5],
+      "max": [-82.18862915039062, 118.0, -30.5]
+    },
+    {
+      "name": "offset transmission access / upper measured socket / seated hull sole.001",
+      "min": [-83.23863220214844, 114.0, 21.5],
+      "max": [-82.18862915039062, 118.0, 26.5]
+    },
+    {
+      "name": "stern pressure bank / broad folded cooling shutter 00",
+      "min": [-92.33859252929688, 91.5, -138.89999389648438],
+      "max": [-90.71273040771484, 100.4000015258789, -137.10000610351562]
+    },
+    {
+      "name": "stern pressure bank / broad folded cooling shutter 01",
+      "min": [-92.33859252929688, 91.5, -125.0999984741211],
+      "max": [-90.71273040771484, 100.4000015258789, -123.30000305175781]
+    },
+    {
+      "name": "stern pressure bank / broad folded cooling shutter 02",
+      "min": [-92.33859252929688, 91.5, -111.30000305175781],
+      "max": [-90.71273040771484, 100.4000015258789, -109.5]
+    },
+    {
+      "name": "stern pressure bank / broad folded cooling shutter 03",
+      "min": [-92.33859252929688, 91.5, -97.5],
+      "max": [-90.71273040771484, 100.4000015258789, -95.69999694824219]
+    },
+    {
+      "name": "stern pressure bank / broad folded cooling shutter 04",
+      "min": [-92.33859252929688, 91.5, -83.69999694824219],
+      "max": [-90.71273040771484, 100.4000015258789, -81.9000015258789]
+    },
+    {
+      "name": "stern pressure bank / broad folded cooling shutter 05",
+      "min": [-92.33859252929688, 91.5, -69.9000015258789],
+      "max": [-90.71273040771484, 100.4000015258789, -68.0999984741211]
+    },
+    {
+      "name": "stern pressure bank / connected pressure header",
+      "min": [-91.75, 90.99999237060547, -141.0],
+      "max": [-90.75, 92.00000762939453, -66.0]
+    },
+    {
+      "name": "stern pressure bank / connected pressure header.001",
+      "min": [-91.75, 100.09999084472656, -141.0],
+      "max": [-90.75, 101.10000610351562, -66.0]
+    },
+    {
+      "name": "stern pressure bank / deep returned ivory armor",
+      "min": [-93.44999694824219, 77.80000305175781, -153.0],
+      "max": [-79.8792953491211, 121.0, -53.0]
+    },
+    {
+      "name": "stern pressure bank / exposed upper alloy return",
+      "min": [-83.40176391601562, 119.82462310791016, -150.1999969482422],
+      "max": [-81.89459991455078, 121.27538299560547, -55.79999923706055]
+    },
+    {
+      "name": "stern pressure bank / lower measured socket / captured structural spacer",
+      "min": [-92.45000457763672, 81.69999694824219, -137.85000610351562],
+      "max": [-90.3499984741211, 84.30000305175781, -134.14999389648438]
+    },
+    {
+      "name": "stern pressure bank / lower measured socket / captured structural spacer.001",
+      "min": [-92.45000457763672, 81.69999694824219, -73.8499984741211],
+      "max": [-90.3499984741211, 84.30000305175781, -70.1500015258789]
+    },
+    {
+      "name": "stern pressure bank / lower measured socket / seated hull sole",
+      "min": [-90.875, 81.0, -138.5],
+      "max": [-89.82499694824219, 85.0, -133.5]
+    },
+    {
+      "name": "stern pressure bank / lower measured socket / seated hull sole.001",
+      "min": [-90.875, 81.0, -74.5],
+      "max": [-89.82499694824219, 85.0, -69.5]
+    },
+    {
+      "name": "stern pressure bank / navy well back",
+      "min": [-90.62000274658203, 89.5, -145.0],
+      "max": [-90.12000274658203, 102.5, -61.0]
+    },
+    {
+      "name": "stern pressure bank / seated machined service reveal",
+      "min": [-93.56999969482422, 89.5, -145.5],
+      "max": [-92.9000015258789, 102.5, -61.5]
+    },
+    {
+      "name": "stern pressure bank / shutter seated cap 00",
+      "min": [-92.5, 99.97500610351562, -139.14999389648438],
+      "max": [-91.5, 100.625, -136.85000610351562]
+    },
+    {
+      "name": "stern pressure bank / shutter seated cap 01",
+      "min": [-92.5, 99.97500610351562, -125.3499984741211],
+      "max": [-91.5, 100.625, -123.04999542236328]
+    },
+    {
+      "name": "stern pressure bank / shutter seated cap 02",
+      "min": [-92.5, 99.97500610351562, -111.55000305175781],
+      "max": [-91.5, 100.625, -109.25]
+    },
+    {
+      "name": "stern pressure bank / shutter seated cap 03",
+      "min": [-92.5, 99.97500610351562, -97.75],
+      "max": [-91.5, 100.625, -95.44999694824219]
+    },
+    {
+      "name": "stern pressure bank / shutter seated cap 04",
+      "min": [-92.5, 99.97500610351562, -83.95000457763672],
+      "max": [-91.5, 100.625, -81.6500015258789]
+    },
+    {
+      "name": "stern pressure bank / shutter seated cap 05",
+      "min": [-92.5, 99.97500610351562, -70.1500015258789],
+      "max": [-91.5, 100.625, -67.8499984741211]
+    },
+    {
+      "name": "stern pressure bank / upper measured socket / captured structural spacer",
+      "min": [-84.81363677978516, 114.69999694824219, -137.85000610351562],
+      "max": [-82.71363067626953, 117.30000305175781, -134.14999389648438]
+    },
+    {
+      "name": "stern pressure bank / upper measured socket / captured structural spacer.001",
+      "min": [-84.81363677978516, 114.69999694824219, -73.8499984741211],
+      "max": [-82.71363067626953, 117.30000305175781, -70.1500015258789]
+    },
+    {
+      "name": "stern pressure bank / upper measured socket / seated hull sole",
+      "min": [-83.23863220214844, 114.0, -138.5],
+      "max": [-82.18862915039062, 118.0, -133.5]
+    },
+    {
+      "name": "stern pressure bank / upper measured socket / seated hull sole.001",
+      "min": [-83.23863220214844, 114.0, -74.5],
+      "max": [-82.18862915039062, 118.0, -69.5]
+    }
+  ],
+  "hashes": {
+    "build_wallride_service.py": "bf9d15001d8bf94443b1d29261e54b45ad3c1518449af9aec1ddf822488c879e",
+    "wallride-service.blend": "07fa42e2eda54c9d481948559e1d935e17d9b982282c6b318c1ddd8c44142b48",
+    "wallride-service.glb": "67d2924fa1b401461783725b96825082746d2d92fca96e3c592cb9b712d78c18",
+    "wallride-service-collision.json": "698d48c20e7c3a45a34e90a002b17368c3ec301636de1ccd7b4c8b1a43fc1319",
+    "carrier-collision.json": "dc10f86d70c0d2422b2e330de1dee3dcd51927144e2beb6a6f18d65baba07c76"
+  }
+}

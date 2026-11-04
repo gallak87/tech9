@@ -40,12 +40,10 @@ function prototypeParts(source, kind) {
           mesh.material,
           DETAILS.map(() => []),
         );
-      materials
-        .get(mesh.material)
-        [level].push({
-          geometry: mesh.geometry,
-          matrix: inverse.clone().multiply(mesh.matrixWorld),
-        });
+      materials.get(mesh.material)[level].push({
+        geometry: mesh.geometry,
+        matrix: inverse.clone().multiply(mesh.matrixWorld),
+      });
     });
   }
   return materials;
@@ -79,6 +77,7 @@ export function createNomadFleetBatches({
   track,
   source,
   carriers = track.carriers,
+  excludeHullIds = [],
 }) {
   const group = new T.Group();
   group.name = 'Nomad / armored moving fleet';
@@ -90,6 +89,7 @@ export function createNomadFleetBatches({
       slots: [],
     }));
   let disposed = false;
+  const excludedHulls = new Set(excludeHullIds);
   const report = {
     batches: 0,
     hullInstances: 0,
@@ -212,6 +212,7 @@ export function createNomadFleetBatches({
         const bounds = new T.Box3();
         for (const placement of placements) {
           const { carrier } = placement;
+          if (kind === 'carrier' && excludedHulls.has(carrier.id)) continue;
           const nominal = new T.Matrix4().compose(
             carrier.origin,
             carrier.quaternion,

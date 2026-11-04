@@ -378,17 +378,83 @@ test('batch disposal is idempotent, releases owned native resources once and nev
   assert.equal(borrowed.size, 0);
 });
 
+test('replacing one carrier hull retains every rolling wheel and its exact moving transform', () => {
+  const track = createLevel().createTrack();
+  const full = createNomadFleetBatches({ track, source });
+  const replaced = createNomadFleetBatches({
+    track,
+    source,
+    excludeHullIds: ['nomad-saltwind'],
+  });
+  try {
+    assert.equal(
+      replaced.report.hullInstances,
+      (full.report.hullInstances * (track.carriers.length - 1)) /
+        track.carriers.length,
+    );
+    assert.equal(replaced.report.wheelInstances, full.report.wheelInstances);
+    for (const time of [0, 17]) {
+      track.presentationTime = time;
+      full.update();
+      replaced.update();
+      for (const batch of full.group.children.filter(
+        (child) => child.userData.nomadFleetKind === 'wheel',
+      )) {
+        const other = replaced.group.children.find(
+          (child) =>
+            child.userData.nomadFleetKind === 'wheel' &&
+            child.material === batch.material,
+        );
+        assert.equal(other.instanceCount, batch.instanceCount);
+        for (let index = 0; index < batch.instanceCount; index++) {
+          const a = new T.Matrix4(),
+            b = new T.Matrix4();
+          batch.getMatrixAt(index, a);
+          other.getMatrixAt(index, b);
+          assert.deepEqual(a.elements, b.elements);
+        }
+      }
+    }
+  } finally {
+    full.dispose();
+    replaced.dispose();
+  }
+});
+
 test('environment integration retains carrier attachments and cleans up normal, interrupted and failed loads', async () => {
   const track = createLevel().createTrack();
-  const scenes = await Promise.all([model(), model('route-supports.glb')]);
+  const paths = [
+    'carrier-kit.glb',
+    'route-supports.glb',
+    'receiver-crown.glb',
+    'interior-freight.glb',
+    'companion-armour.glb',
+    'saltwind-gallery.glb',
+    'wallride-service.glb',
+  ];
+  const scenes = await Promise.all(paths.map((path) => model(path)));
   const environment = createNomadEnvironment({
     track,
     loadAsset: async (url) => ({
-      scene: scenes[/route-supports/.test(url) ? 1 : 0],
+      scene: scenes[paths.findIndex((path) => url.endsWith(path))],
     }),
   });
   await environment.ready;
   try {
+    assert.equal(
+      environment.carrierRoots
+        .get('nomad-companion-starboard-heavy')
+        .children.filter((child) => child.name === 'nomad_companion_armour')
+        .length,
+      1,
+    );
+    assert.equal(
+      environment.carrierRoots
+        .get('nomad-companion-port-tender')
+        .children.find((child) => child.name === 'nomad_companion_armour').scale
+        .x,
+      -1,
+    );
     let batches = 0,
       lods = 0;
     environment.group.traverse((object) => {
@@ -412,12 +478,37 @@ test('environment integration retains carrier attachments and cleans up normal, 
         root.children.filter((child) => child.name === 'nomad_freight').length,
         2,
       );
+      assert.equal(
+        root.children.filter((child) => child.name === 'nomad_receiver_crown')
+          .length,
+        carrier.id === 'nomad-passing-deck' ? 1 : 0,
+      );
+      assert.equal(
+        root.children.filter((child) => child.name === 'nomad_interior_freight')
+          .length,
+        carrier.id === 'nomad-freight-cathedral' ? 1 : 0,
+      );
+      assert.equal(
+        root.children.filter((child) => child.name === 'nomad_saltwind_gallery')
+          .length,
+        carrier.id === 'nomad-saltwind' ? 1 : 0,
+      );
+      assert.equal(
+        root.children.filter((child) => child.name === 'nomad_saltwind_hull')
+          .length,
+        carrier.id === 'nomad-saltwind' ? 1 : 0,
+      );
+      assert.equal(
+        root.children.filter((child) => child.name === 'nomad_wallride_service')
+          .length,
+        carrier.id === 'nomad-portside-dive' ? 1 : 0,
+      );
     }
   } finally {
     environment.dispose();
     environment.dispose();
   }
-  const late = await Promise.all([model(), model('route-supports.glb')]),
+  const late = await Promise.all(paths.map((path) => model(path))),
     pending = [],
     released = new Map();
   for (const scene of late)
@@ -436,7 +527,7 @@ test('environment integration retains carrier attachments and cleans up normal, 
     loadAsset: () => new Promise((resolve) => pending.push(resolve)),
   });
   await Promise.resolve();
-  assert.equal(pending.length, 2);
+  assert.equal(pending.length, paths.length);
   interrupted.dispose();
   pending.forEach((resolve, index) => resolve({ scene: late[index] }));
   await interrupted.ready;

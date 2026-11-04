@@ -56,6 +56,9 @@ export async function createNomadDynamics({ track, collisionWorld }) {
       place(time);
     },
     step(dt) {
+      // Match the native world's accepted interval before touching any group.
+      if (!Number.isFinite(dt) || dt <= 0 || dt > 0.1)
+        throw new Error('Query world requires a finite fixed-step duration.');
       place(time, dt);
       world.step(dt);
       time += dt;

@@ -6,6 +6,7 @@ import createLevel from '../src/levels/ravel/index.js';
 import { createRavelEnvironment } from '../src/levels/ravel/environment.js';
 import { createVehicleState, getVehiclePace } from '../src/physics/index.js';
 import {
+  RAVEL_WAVE_RULES,
   sampleRavelWave,
   ravelWaveTimeForPhase,
 } from '../src/levels/ravel/waves.js';
@@ -261,11 +262,15 @@ test('real canopy and rigging triangles clear all drivable sheets and three bran
         const lateral = T.MathUtils.lerp(low, high, column / columns);
         if ((track.surfaceCoverage?.(distance, lateral) ?? 1) <= 0) continue;
         const surface = track.surfaceAtTime(distance, lateral, 0);
-        // A live floor moves at most 6m and rotates its finite craft footprint.
-        // An extra 8m in every local direction encloses its entire continuous
-        // phase envelope, rather than checking only a few convenient frames.
+        // Enclose the full authored displacement and rotating craft footprint,
+        // so taller swells cannot inherit the old six-metre clearance bound.
+        const wave = sampleRavelWave(track, distance, lateral, 0);
         const wavePadding =
-          sampleRavelWave(track, distance, lateral, 0).weight > 1e-8 ? 8 : 0;
+          wave.weight > 1e-8
+            ? (wave.zone.amplitude ?? RAVEL_WAVE_RULES.amplitude) *
+                wave.weight +
+              2
+            : 0;
         const half = new T.Vector3(
           27.25 + wavePadding,
           25.72 + wavePadding,

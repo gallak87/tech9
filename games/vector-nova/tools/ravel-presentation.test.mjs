@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Vector3 } from 'three';
+import { Matrix4, Sphere, Vector3 } from 'three';
 import createLevel from '../src/levels/ravel/index.js';
 import { createRavelCanopies } from '../src/levels/ravel/canopies.js';
 import { createLowDeviceGeometry } from '../src/pickups/low-geometry.js';
@@ -61,6 +61,89 @@ test('Ravel rendered GPU wave coordinates agree with physical moving support', (
     );
   } finally {
     road.dispose();
+    road.dispose();
+  }
+});
+
+test('production chunk culling encloses the full moving road and live hems at every crest', () => {
+  const road = level.createRoad({ track });
+  try {
+    const districts = new Set();
+    let movingVertices = 0,
+      liveHemVertices = 0,
+      needsMotionPadding = false;
+    const matrix = new Matrix4();
+    for (const batch of road.group.children.filter(
+      (mesh) => mesh.isBatchedMesh && mesh.userData.deforming,
+    )) {
+      assert.equal(batch.perObjectFrustumCulled, true);
+      const geometry = batch.geometry,
+        positions = geometry.attributes.position,
+        coordinates = geometry.attributes.roadCoord,
+        wave = geometry.attributes.ravelWave,
+        up = geometry.attributes.ravelWaveUp;
+      for (let instance = 0; instance < batch.instanceCount; instance++) {
+        const geometryId = batch.getGeometryIdAt(instance);
+        const range = batch.getGeometryRangeAt(geometryId);
+        const sphere = batch.getBoundingSphereAt(geometryId, new Sphere());
+        batch.getMatrixAt(instance, matrix);
+        sphere.applyMatrix4(matrix);
+        const referenced = new Set();
+        for (
+          let index = range.indexStart;
+          index < range.indexStart + range.indexCount;
+          index++
+        )
+          referenced.add(geometry.index.getX(index));
+        const restingPoints = [...referenced].map((index) =>
+          new Vector3()
+            .fromBufferAttribute(positions, index)
+            .applyMatrix4(matrix),
+        );
+        const unpadded = new Sphere().setFromPoints(restingPoints);
+        for (const index of referenced) {
+          const amplitude = wave.getX(index);
+          if (amplitude <= 1e-5) continue;
+          movingVertices++;
+          if (!batch.userData.drivingSurface) liveHemVertices++;
+          const station = coordinates.getX(index),
+            lateral = coordinates.getY(index);
+          districts.add(track.waveAt(station, lateral, 0).id);
+          const resting = new Vector3().fromBufferAttribute(positions, index);
+          // Each vertex reaches this endpoint at its own phase-zero crest.
+          // The GPU trajectory is the straight segment between these endpoints,
+          // so containment of both encloses every intervening simulation time.
+          const crest = resting
+            .clone()
+            .addScaledVector(
+              new Vector3().fromBufferAttribute(up, index),
+              amplitude,
+            );
+          for (const endpoint of [resting, crest]) {
+            endpoint.applyMatrix4(matrix);
+            assert.ok(
+              sphere.distanceToPoint(endpoint) < 0.006,
+              `${batch.name} instance ${instance} clips its moving skin at ${station}, ${lateral}`,
+            );
+          }
+          needsMotionPadding ||= unpadded.distanceToPoint(crest) > 0.1;
+        }
+      }
+    }
+    assert.deepEqual(
+      districts,
+      new Set(track.waveZones.map((zone) => zone.id)),
+    );
+    assert.ok(movingVertices > 1000, 'check actual packed moving terrain');
+    assert.ok(
+      liveHemVertices > 100,
+      'include the narrow animated edge and seam chunks',
+    );
+    assert.ok(
+      needsMotionPadding,
+      'an unpadded production bound would clip a real crest',
+    );
+  } finally {
     road.dispose();
   }
 });

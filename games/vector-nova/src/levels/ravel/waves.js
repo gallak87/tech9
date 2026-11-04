@@ -1,10 +1,10 @@
 import { Matrix4, Quaternion } from 'three';
 
 export const RAVEL_WAVE_RULES = Object.freeze({
-  version: 1,
-  amplitude: 6,
-  wavelength: 180,
-  speed: -32,
+  version: 2,
+  amplitude: 14,
+  wavelength: 220,
+  speed: -48,
   edgeWidth: 20,
   edgeBlend: 25,
   outerFadeStart: 60,
@@ -224,21 +224,43 @@ export function installRavelWaves(track) {
       id: 'first-swell',
       // The driving guide stays 100m wide inside the much larger sail bowl.
       halfWidth: (track.mainWidth ?? 100) / 2,
-      start: crest ? Math.max(0, crest.takeoff - 310) : 620,
+      start: crest ? Math.max(0, crest.takeoff - 370) : 580,
       end: crest ? crest.landingStart : 1080,
-      amplitude: 6,
-      wavelength: 180,
-      speed: -32,
+      amplitude: 14,
+      wavelength: 220,
+      speed: -48,
+    },
+    {
+      id: 'ascent-swell',
+      halfWidth: (track.mainWidth ?? 100) / 2,
+      start: 2640,
+      end: 3300,
+      amplitude: 16,
+      wavelength: 240,
+      speed: -54,
+      fadeLength: 90,
     },
     ...(braid
       ? [
           {
+            id: 'fan-swell',
+            halfWidth: (track.mainWidth ?? 100) / 2,
+            // Keep combat hardware quiet before the moving fork approach.
+            start: braid.splitEnd - 400,
+            end: braid.splitEnd - 40,
+            amplitude: 14,
+            wavelength: 220,
+            speed: -52,
+            branchIds: ['main'],
+          },
+          {
             id: 'braid-swell',
             start: (braid.splitEnd ?? braid.start + 260) + 30,
             end: (braid.mergeStart ?? braid.end - 260) - 30,
-            amplitude: 6,
-            wavelength: 200,
-            speed: -27,
+            amplitude: 18,
+            wavelength: 240,
+            speed: -60,
+            fadeLength: 85,
             branchIds: ['middle'],
           },
         ]

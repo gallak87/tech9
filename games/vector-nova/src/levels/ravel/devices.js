@@ -62,7 +62,9 @@ export function createDevices(track) {
     add(
       `ravel-section-${i}-aegis`,
       'aegis',
-      section.start + 95,
+      // Tiny sections and the fan counterplay used to create duplicate pairs.
+      section.start +
+        (['first-screw', 'braid'].includes(section.id) ? 300 : 95),
       0,
       10,
       8,

@@ -123,29 +123,34 @@ try {
     await page.evaluate(() => document.activeElement.id),
     'pause-button',
   );
-  await tap(9);
-  await page.waitForFunction(() => window.__VN.getSnapshot().mode === 'paused');
-  await navigate('#ravel-test-section');
-  await tap(15);
-  assert.equal(
-    await page.locator('#ravel-test-section').inputValue(),
-    'crest-rising',
-  );
-  await tap(13);
-  assert.equal(
-    await page.evaluate(() => document.activeElement.id),
-    'ravel-drive-section',
-  );
-  await tap(0);
-  await page.waitForFunction(
-    () =>
-      window.__VN.getSnapshot().scenario === 'crest-rising' &&
-      window.__VN.getSnapshot().mode === 'racing',
-  );
-  assert.equal(
-    await page.evaluate(() => document.activeElement.id),
-    'pause-button',
-  );
+  for (const scenario of ['ascent-wave', 'fan-wave', 'crest-rising']) {
+    await tap(9);
+    await page.waitForFunction(
+      () => window.__VN.getSnapshot().mode === 'paused',
+    );
+    await navigate('#ravel-test-section');
+    await tap(15);
+    assert.equal(
+      await page.locator('#ravel-test-section').inputValue(),
+      scenario,
+    );
+    await tap(13);
+    assert.equal(
+      await page.evaluate(() => document.activeElement.id),
+      'ravel-drive-section',
+    );
+    await tap(0);
+    await page.waitForFunction(
+      (scenario) =>
+        window.__VN.getSnapshot().scenario === scenario &&
+        window.__VN.getSnapshot().mode === 'racing',
+      scenario,
+    );
+    assert.equal(
+      await page.evaluate(() => document.activeElement.id),
+      'pause-button',
+    );
+  }
   await tap(9);
   await page.waitForFunction(() => window.__VN.getSnapshot().mode === 'paused');
   await tap(1);

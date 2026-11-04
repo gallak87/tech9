@@ -24,6 +24,8 @@ export const RAVEL_PLAYTEST_CASES = Object.freeze(
   [
     ['wave-approach', 'Moving sail · centre wave'],
     ['wave-seam', 'Moving sail · steady seam'],
+    ['ascent-wave', 'Ascent bowl · moving swell'],
+    ['fan-wave', 'Fork approach · moving swell'],
     ['crest-rising', 'Crest Skip · favourable wave'],
     ['crest-falling', 'Crest Skip · adverse wave'],
     ['crest-safe', 'Crest Skip · supported bypass'],
@@ -85,6 +87,17 @@ function createScenarios(track) {
         speed: 125,
         time: 0,
       },
+    };
+  }
+  for (const [id, zoneId] of [
+    ['ascent-wave', 'ascent-swell'],
+    ['fan-wave', 'fan-swell'],
+  ]) {
+    const zone = track.waveZones.find((entry) => entry.id === zoneId);
+    if (!zone) continue;
+    scenarios[id] = {
+      label: RAVEL_PLAYTEST_CASES.find((entry) => entry.id === id).label,
+      state: { distance: zone.start + 5, lateral: 30, speed: 125, time: 0 },
     };
   }
   const crest = track.jumps.find(

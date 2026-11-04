@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { createVehicleState } from '../src/physics/index.js';
 import createLevel from '../src/levels/ravel/index.js';
+import { getRacerControl } from '../src/race/racers.js';
 import {
   ravelWaveTimeForPhase,
   sampleRavelWave,
@@ -26,31 +27,127 @@ const makeRuntime = (extra = {}) =>
   createRavelRuntime({ track, dynamics, collisionWorld, ...extra });
 const stateAt = (fields) => ({ ...createVehicleState(), ...fields });
 
-test('wave has stable seam, exact material velocity and geometry/support agreement', () => {
-  const at = 800,
-    epsilon = 1e-4;
-  const crestTime = ravelWaveTimeForPhase(track, at, 0, 30);
-  const risingTime = ravelWaveTimeForPhase(track, at, -Math.PI / 2, 30);
-  assert.ok(sampleRavelWave(track, at, 30, crestTime).dynamicHeight > 5.99);
-  for (const time of [0, 1, 2, 3, 4]) {
-    assert.equal(sampleRavelWave(track, at, -35, time).dynamicHeight, 0);
-    assert.equal(sampleRavelWave(track, 1015, 30, time).height, 0);
+test('large swells span the sail bays with exact velocity, quiet seams and matching support', () => {
+  assert.ok(
+    track.waveZones.length >= 4,
+    'swells extend beyond the first bay and middle ribbon',
+  );
+  const epsilon = 1e-4;
+  for (const zone of track.waveZones) {
+    const at = (zone.start + zone.end) / 2;
+    const crestTime = ravelWaveTimeForPhase(track, at, 0, 30);
+    const risingTime = ravelWaveTimeForPhase(track, at, -Math.PI / 2, 30);
+    const crest = sampleRavelWave(track, at, 30, crestTime);
+    assert.equal(crest.id, zone.id);
+    assert.ok(
+      crest.dynamicHeight >= 12,
+      `${zone.id}: visibly substantial crest`,
+    );
+    assert.ok(Math.abs(crest.dynamicHeight - zone.amplitude) < 1e-8);
+    for (const time of [0, 1, 2, 3, 4]) {
+      assert.equal(
+        sampleRavelWave(track, at, -35, time).dynamicHeight,
+        0,
+        `${zone.id}: steady left seam`,
+      );
+      assert.equal(
+        sampleRavelWave(track, at, 400, time).dynamicHeight,
+        0,
+        `${zone.id}: fixed outer wall or ribbon`,
+      );
+      for (const boundary of [zone.start, zone.end])
+        assert.ok(
+          Math.abs(sampleRavelWave(track, boundary, 30, time).dynamicHeight) <
+            1e-12,
+          `${zone.id}: displacement fades to zero at its boundary`,
+        );
+    }
+    const velocity =
+      (sampleRavelWave(track, at, 30, risingTime + epsilon).height -
+        sampleRavelWave(track, at, 30, risingTime - epsilon).height) /
+      (2 * epsilon);
+    assert.ok(
+      Math.abs(
+        velocity - sampleRavelWave(track, at, 30, risingTime).materialVelocity,
+      ) < 1e-6,
+      `${zone.id}: analytic material velocity matches actual displacement`,
+    );
+    const frame = track.surfaceAtTime(at, 30, risingTime);
+    assert.ok(
+      frame.position.distanceTo(track.pointAtTime(at, 30, risingTime)) < 1e-9,
+    );
+    assert.ok(Math.abs(frame.right.dot(frame.up)) < 1e-8);
+    assert.ok(Math.abs(frame.tangent.dot(frame.up)) < 1e-8);
   }
-  const velocity =
-    (sampleRavelWave(track, at, 30, risingTime + epsilon).height -
-      sampleRavelWave(track, at, 30, risingTime - epsilon).height) /
-    (2 * epsilon);
-  assert.ok(
-    Math.abs(
-      velocity - sampleRavelWave(track, at, 30, risingTime).materialVelocity,
-    ) < 1e-6,
+});
+
+test('native hulls drive the added swells and middle ribbon across opposite starting phases', () => {
+  const zones = track.waveZones.filter(
+    (zone) =>
+      !track.jumps.some(
+        (jump) => jump.takeoff > zone.start && jump.takeoff < zone.end,
+      ),
   );
-  const frame = track.surfaceAtTime(at, 30, risingTime);
   assert.ok(
-    frame.position.distanceTo(track.pointAtTime(at, 30, risingTime)) < 1e-9,
+    zones.length >= 3,
+    'exercise the added bays and original middle ribbon',
   );
-  assert.ok(Math.abs(frame.right.dot(frame.up)) < 1e-8);
-  assert.ok(Math.abs(frame.tangent.dot(frame.up)) < 1e-8);
+  for (const zone of zones) {
+    for (const phase of [-Math.PI / 2, Math.PI / 2]) {
+      const runtime = makeRuntime();
+      try {
+        const start = zone.start + 70;
+        const end = Math.min(zone.end - 60, start + 280);
+        const time = ravelWaveTimeForPhase(track, start, phase, 30);
+        const state = stateAt({
+          distance: start,
+          lateral: 30,
+          speed: 120,
+          time,
+        });
+        runtime.reset({ state });
+        const events = [];
+        for (let tick = 0; tick < 720 && state.distance < end; tick++) {
+          const input = getRacerControl(state, track, {
+            lane: 30,
+            difficulty: 'hard',
+            devices: [],
+          });
+          events.push(
+            ...runtime.advance(state, { ...input, boost: false }, 1 / 120),
+          );
+          const pose = runtime.pose(1);
+          assert.equal(
+            pose.grounded,
+            true,
+            `${zone.id}/${phase}: actual magnetic support`,
+          );
+          assert.equal(
+            Boolean(pose.recovering),
+            false,
+            `${zone.id}/${phase}: no recovery`,
+          );
+        }
+        assert.ok(
+          state.distance >= end,
+          `${zone.id}/${phase}: ordinary thrust traverses the wave bay`,
+        );
+        assert.ok(
+          !events.some((event) =>
+            [
+              'road-departure',
+              'road-recovery',
+              'jump-launch',
+              'jump-miss',
+            ].includes(event.type),
+          ),
+          `${zone.id}/${phase}: uninterrupted supported drive`,
+        );
+      } finally {
+        runtime.dispose();
+      }
+    }
+  }
 });
 
 test('collision excludes live bays, crest hole is real, and phase never suppresses release', () => {

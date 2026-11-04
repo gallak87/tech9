@@ -23,7 +23,8 @@ export function createRavelEnvironment({ track, view, road = null }) {
     stations: [
       360,
       920,
-      { station: 2920, normalOffset: 62, crownLaterals: [-240, 140] },
+      // Lift the complete seated assembly above the ascent swell envelope.
+      { station: 2920, normalOffset: 86, crownLaterals: [-240, 140] },
       { station: 7890, normalOffset: 105, crownLaterals: [-95, 260] },
     ],
     serviceBays: [

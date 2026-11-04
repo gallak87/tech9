@@ -255,6 +255,7 @@ function gridGeometry(
   }
   fractions.sort((a, b) => a - b);
   const fs = fractions.filter((v, i) => !i || v - fractions[i - 1] > 1e-5);
+  let maxDisplacement = 0;
   const positions = [],
     coords = [],
     indices = [],
@@ -321,6 +322,7 @@ function gridGeometry(
       positions.push(p.x, p.y, p.z);
       coords.push(s, x);
       stations.push([s, x]);
+      maxDisplacement = Math.max(maxDisplacement, amplitude);
       waveParams.push(amplitude, phase, rate);
       waveUps.push(up.x, up.y, up.z);
       if (amplitude > 0.00001) {
@@ -405,7 +407,8 @@ function gridGeometry(
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
-  geometry.boundingSphere.radius += 12;
+  // GPU displacement must remain visible at every crest, including live hems.
+  geometry.boundingSphere.radius += maxDisplacement + 0.1;
   return { geometry, stations, side };
 }
 

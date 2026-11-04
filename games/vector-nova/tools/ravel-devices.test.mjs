@@ -17,11 +17,14 @@ const shieldIds = [
   'ravel-fan-aegis',
   'ravel-inner-combat-aegis',
 ];
-const newDevices = [...combatIds, ...shieldIds].map((id) => {
-  const device = devices.find((entry) => entry.id === id);
-  assert.ok(device, `missing authored device ${id}`);
-  return device;
-});
+const relocatedShieldIds = ['ravel-section-6-aegis', 'ravel-section-9-aegis'];
+const newDevices = [...combatIds, ...shieldIds, ...relocatedShieldIds].map(
+  (id) => {
+    const device = devices.find((entry) => entry.id === id);
+    assert.ok(device, `missing authored device ${id}`);
+    return device;
+  },
+);
 let collisionWorld, dynamics;
 before(async () => {
   collisionWorld = definition.createCollisionWorld({ track });
@@ -51,6 +54,22 @@ test('Ravel has all five sorted shared device types and preserves its long outer
   assert.equal(outer.length, 600);
   assert.equal(inner.length, 60);
   assert.ok(outer.length >= inner.length * 10);
+});
+
+test('Aegis gates leave at least 150m between successive shields, including the lap seam', () => {
+  const shields = devices.filter((device) => device.type === 'aegis');
+  assert.ok(shields.length > 1);
+  for (const [index, shield] of shields.entries()) {
+    const next = shields[(index + 1) % shields.length];
+    const gap =
+      next.distance -
+      shield.distance +
+      (index === shields.length - 1 ? track.length : 0);
+    assert.ok(
+      gap >= 150,
+      `${shield.id} and ${next.id} are only ${gap.toFixed(1)}m apart`,
+    );
+  }
 });
 
 test('all new full footprints and approach padding remain on quiet supported ground away from jump/recovery corridors', () => {

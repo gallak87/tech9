@@ -146,6 +146,8 @@ export function createCollisionWorld({ id, version, geometryId, triangles }) {
     if (
       typeof triangle.id !== 'string' ||
       !triangle.id ||
+      (triangle.motionGroup !== undefined &&
+        (typeof triangle.motionGroup !== 'string' || !triangle.motionGroup)) ||
       !['deck', 'rail', 'terrain', 'structure'].includes(triangle.kind) ||
       (triangle.kind === 'deck' && !range) ||
       (triangle.kind === 'rail' &&

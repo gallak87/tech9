@@ -2,6 +2,48 @@
   "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "nomad-moving-convoy",
+      "source": "src/levels/nomad/ and assets/levels/nomad/",
+      "creator": "VECTOR//NOVA project contributors and built-in imagegen",
+      "provenance": "Original 12.2 km downhill race and 600 m runout across eleven colossal wheeled carriers, with ten physical moving-deck transfers. Editable Blender carrier, wheel and freight meshes retain their builder, named attachment sockets, scalar PBR materials, visual detail tiers and matching collision export. Separate Blender load frames are authored from the exact road guides and seated on the retained hull triangles. Source/export SHA-256 hashes are retained in both Blender provenance records. Connected carrier work districts consume the public Worldkit industrial kit: gantries, factory bays, transfer beds, hydraulic banks, gearboxes, louvers, cooling banks, drive wheels, service decks and towers. Nomad owns their fitted foundations, load arms, feeds, placement and clearance. Canonical generated Worldkit steel/enamel maps supply physical-scale finish attached to the moving carrier or road. The original imagegen concept and exact prompt are retained as reference only. A separately generated cloud-only panorama supplies distant sky radiance and reflections; its retained source and runtime PNG are byte-identical. Salt, deck construction, navigation paint, wheel motion, suspended freight and low dust are authored geometry or shaders.",
+      "rights": "Project-authored code, Blender geometry and scalar PBR materials; original generated concept, sky and canonical Worldkit finish imagery. No downloaded third-party models or artwork.",
+      "runtimeDependencies": [
+        "three",
+        "@dimforge/rapier3d-compat",
+        "@worldkit/environment/industrial"
+      ],
+      "provenanceRecords": [
+        "assets/levels/nomad/reference/provenance.json",
+        "assets/levels/nomad/blender/carrier-kit-provenance.json",
+        "assets/levels/nomad/blender/route-supports-provenance.json",
+        "assets/levels/nomad/sky/provenance.json",
+        "../../worldkit/modules/industrial/assets/provenance.json",
+        "../../worldkit/modules/industrial/assets/enamel-provenance.json"
+      ],
+      "promptRecords": [
+        "assets/levels/nomad/reference/original-prompt.txt",
+        "assets/levels/nomad/sky/prompt-v1.txt"
+      ],
+      "runtimeAssets": [
+        "public/assets/levels/nomad/carrier-kit.glb",
+        "public/assets/levels/nomad/route-supports.glb",
+        "public/assets/levels/nomad/nomad-sky-v1.png",
+        "../../worldkit/modules/industrial/assets/rolled-steel-v1.png",
+        "../../worldkit/modules/industrial/assets/worn-enamel-v1.png"
+      ],
+      "sourceAssets": [
+        "assets/levels/nomad/reference/nomad-procession-original.png",
+        "assets/levels/nomad/blender/build_nomad_carrier.py",
+        "assets/levels/nomad/blender/nomad-carrier-kit.blend",
+        "assets/levels/nomad/blender/carrier-collision.json",
+        "assets/levels/nomad/blender/build_route_supports.py",
+        "assets/levels/nomad/blender/route-supports.blend",
+        "assets/levels/nomad/blender/route-support-guides.json",
+        "assets/levels/nomad/blender/route-supports-collision.json",
+        "assets/levels/nomad/sky/source-v1.png"
+      ]
+    },
+    {
       "id": "ravel-solar-loom",
       "source": "src/levels/ravel/ and assets/levels/ravel/",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",

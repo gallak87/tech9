@@ -1,0 +1,1757 @@
+{
+  "title": "Nomad Procession route-seated carrier load frames",
+  "generator": "Original Blender source geometry authored from exact route samples and raycast onto retained actual hull triangles.",
+  "source": "build_route_supports.py",
+  "blend": "route-supports.blend",
+  "runtimeAsset": "public/assets/levels/nomad/route-supports.glb",
+  "collision": "route-supports-collision.json",
+  "roadGuides": "route-support-guides.json",
+  "sourceHull": "carrier-collision.json",
+  "coordinates": "+Y up, +Z bow; metres in each matching carrier local frame; root names equal carrier IDs.",
+  "rights": "Project-authored geometry and existing project-owned scalar PBR material aliases; no external models or images.",
+  "clearance": "Main I-section fronts are10.5worldmetres behind the sampled skin before between-sample curvature; fitted upper saddle plates meet its1.4metre slab underside. Exact raycast hull seats are retained per prototype.",
+  "prototypes": [
+    {
+      "name": "nomad-shoulder-ascent",
+      "triangles": 3532,
+      "materialBatches": 2,
+      "bounds": {
+        "min": [-40.020118713378906, 31.394094467163086, -382.84576416015625],
+        "max": [137.302001953125, 175.08872985839844, 383.8119812011719]
+      },
+      "actualHullSeats": [
+        {
+          "name": "hull seat 00 -1",
+          "position": [-18.0, 46.0, -330.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1682
+        },
+        {
+          "name": "diagonal seat 00 -1",
+          "position": [-18.0, 46.0, -330.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1682
+        },
+        {
+          "name": "hull seat 00 1",
+          "position": [18.0, 46.0, -330.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1683
+        },
+        {
+          "name": "diagonal seat 00 1",
+          "position": [18.0, 46.0, -330.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1683
+        },
+        {
+          "name": "hull seat 03 -1",
+          "position": [-17.60845, 46.0, -330.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1682
+        },
+        {
+          "name": "diagonal seat 03 -1",
+          "position": [-17.60845, 46.0, -330.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1682
+        },
+        {
+          "name": "hull seat 03 1",
+          "position": [18.39155, 46.0, -330.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1683
+        },
+        {
+          "name": "diagonal seat 03 1",
+          "position": [18.39155, 46.0, -330.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1683
+        },
+        {
+          "name": "hull seat 07 -1",
+          "position": [87.73333, 36.0, -236.66281],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "diagonal seat 07 -1",
+          "position": [87.73334, 36.0, -284.66281],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "hull seat 07 1",
+          "position": [87.73333, 36.0, -236.66281],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "diagonal seat 07 1",
+          "position": [87.73334, 36.0, -284.66281],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "hull seat 11 -1",
+          "position": [87.73334, 36.0, -164.69095],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "diagonal seat 11 -1",
+          "position": [87.73333, 36.0, -212.69095],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "hull seat 11 1",
+          "position": [87.73334, 36.0, -164.69095],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "diagonal seat 11 1",
+          "position": [87.73333, 36.0, -212.69095],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "hull seat 15 -1",
+          "position": [87.73333, 36.0, -80.71369],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "diagonal seat 15 -1",
+          "position": [87.73333, 36.0, -128.71368],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "hull seat 15 1",
+          "position": [87.73333, 36.0, -80.71369],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "diagonal seat 15 1",
+          "position": [87.73333, 36.0, -128.71368],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "hull seat 19 -1",
+          "position": [87.73333, 36.0, 6.48107],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "diagonal seat 19 -1",
+          "position": [87.73334, 36.0, -41.51892],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "hull seat 19 1",
+          "position": [87.73333, 36.0, 6.48107],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "diagonal seat 19 1",
+          "position": [87.73334, 36.0, -41.51892],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "hull seat 23 -1",
+          "position": [33.57574, 130.0, 90.13221],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10355
+        },
+        {
+          "name": "diagonal seat 23 -1",
+          "position": [33.57574, 130.0, 42.13221],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10311
+        },
+        {
+          "name": "hull seat 23 1",
+          "position": [58.0, 130.0, 90.13221],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10355
+        },
+        {
+          "name": "diagonal seat 23 1",
+          "position": [58.0, 130.0, 42.13221],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10311
+        },
+        {
+          "name": "hull seat 27 -1",
+          "position": [-18.20101, 130.0, 171.54276],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10398
+        },
+        {
+          "name": "diagonal seat 27 -1",
+          "position": [-18.20101, 130.0, 123.54276],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10355
+        },
+        {
+          "name": "hull seat 27 1",
+          "position": [25.79899, 130.0, 171.54276],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10398
+        },
+        {
+          "name": "diagonal seat 27 1",
+          "position": [25.79899, 130.0, 123.54276],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10355
+        },
+        {
+          "name": "hull seat 31 -1",
+          "position": [-35.52012, 130.0, 257.5451],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10442
+        },
+        {
+          "name": "diagonal seat 31 -1",
+          "position": [-35.52012, 130.0, 209.5451],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10398
+        },
+        {
+          "name": "hull seat 31 1",
+          "position": [8.47988, 130.0, 257.5451],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10442
+        },
+        {
+          "name": "diagonal seat 31 1",
+          "position": [8.47988, 130.0, 209.5451],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10399
+        },
+        {
+          "name": "hull seat 35 -1",
+          "position": [-20.96348, 130.0, 338.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        },
+        {
+          "name": "diagonal seat 35 -1",
+          "position": [-20.96348, 130.0, 297.82675],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10442
+        },
+        {
+          "name": "hull seat 35 1",
+          "position": [23.03652, 130.0, 338.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        },
+        {
+          "name": "diagonal seat 35 1",
+          "position": [23.03652, 130.0, 297.82675],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        },
+        {
+          "name": "hull seat 37 -1",
+          "position": [-22.0, 130.0, 338.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        },
+        {
+          "name": "diagonal seat 37 -1",
+          "position": [-22.0, 130.0, 332.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        },
+        {
+          "name": "hull seat 37 1",
+          "position": [22.0, 130.0, 338.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        },
+        {
+          "name": "diagonal seat 37 1",
+          "position": [22.0, 130.0, 332.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        }
+      ]
+    },
+    {
+      "name": "nomad-high-balcony",
+      "triangles": 3256,
+      "materialBatches": 2,
+      "bounds": {
+        "min": [-50.13139343261719, 124.25052642822266, -382.8760681152344],
+        "max": [50.03135299682617, 161.0452423095703, 383.8072509765625]
+      },
+      "actualHullSeats": [
+        {
+          "name": "hull seat 00 -1",
+          "position": [-22.0, 130.0, -338.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "diagonal seat 00 -1",
+          "position": [-22.0, 130.0, -332.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "hull seat 00 1",
+          "position": [22.0, 130.0, -338.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "diagonal seat 00 1",
+          "position": [22.0, 130.0, -332.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "hull seat 03 -1",
+          "position": [-22.72863, 130.0, -312.71832],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "diagonal seat 03 -1",
+          "position": [-22.72863, 130.0, -338.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "hull seat 03 1",
+          "position": [21.27137, 130.0, -312.71832],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10179
+        },
+        {
+          "name": "diagonal seat 03 1",
+          "position": [21.27137, 130.0, -338.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "hull seat 07 -1",
+          "position": [-7.49086, 130.0, -223.83188],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10222
+        },
+        {
+          "name": "diagonal seat 07 -1",
+          "position": [-7.49086, 130.0, -271.83188],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10179
+        },
+        {
+          "name": "hull seat 07 1",
+          "position": [36.50914, 130.0, -223.83188],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10223
+        },
+        {
+          "name": "diagonal seat 07 1",
+          "position": [36.50914, 130.0, -271.83188],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10179
+        },
+        {
+          "name": "hull seat 11 -1",
+          "position": [1.53135, 130.0, -134.6151],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10266
+        },
+        {
+          "name": "diagonal seat 11 -1",
+          "position": [1.53135, 130.0, -182.6151],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10223
+        },
+        {
+          "name": "hull seat 11 1",
+          "position": [45.53135, 130.0, -134.6151],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10267
+        },
+        {
+          "name": "diagonal seat 11 1",
+          "position": [45.53135, 130.0, -182.6151],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10223
+        },
+        {
+          "name": "hull seat 15 -1",
+          "position": [-26.15183, 130.0, -47.26844],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10310
+        },
+        {
+          "name": "diagonal seat 15 -1",
+          "position": [-26.15183, 130.0, -95.26844],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10266
+        },
+        {
+          "name": "hull seat 15 1",
+          "position": [17.84817, 130.0, -47.26844],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10310
+        },
+        {
+          "name": "diagonal seat 15 1",
+          "position": [17.84817, 130.0, -95.26844],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10267
+        },
+        {
+          "name": "hull seat 19 -1",
+          "position": [-45.63139, 130.0, 40.90287],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10311
+        },
+        {
+          "name": "diagonal seat 19 -1",
+          "position": [-45.63139, 130.0, -7.09713],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10310
+        },
+        {
+          "name": "hull seat 19 1",
+          "position": [-1.63139, 130.0, 40.90287],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10311
+        },
+        {
+          "name": "diagonal seat 19 1",
+          "position": [-1.63139, 130.0, -7.09713],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10310
+        },
+        {
+          "name": "hull seat 23 -1",
+          "position": [-20.69653, 130.0, 128.65286],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10355
+        },
+        {
+          "name": "diagonal seat 23 -1",
+          "position": [-20.69653, 130.0, 80.65286],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10354
+        },
+        {
+          "name": "hull seat 23 1",
+          "position": [23.30347, 130.0, 128.65286],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10355
+        },
+        {
+          "name": "diagonal seat 23 1",
+          "position": [23.30347, 130.0, 80.65286],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10354
+        },
+        {
+          "name": "hull seat 27 -1",
+          "position": [-6.349, 130.0, 217.22437],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10399
+        },
+        {
+          "name": "diagonal seat 27 -1",
+          "position": [-6.349, 130.0, 169.22437],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10398
+        },
+        {
+          "name": "hull seat 27 1",
+          "position": [37.651, 130.00002, 217.22437],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10399
+        },
+        {
+          "name": "diagonal seat 27 1",
+          "position": [37.651, 130.0, 169.22437],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10398
+        },
+        {
+          "name": "hull seat 31 -1",
+          "position": [-22.40356, 130.0, 306.06354],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10442
+        },
+        {
+          "name": "diagonal seat 31 -1",
+          "position": [-22.40356, 130.0, 258.06354],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10442
+        },
+        {
+          "name": "hull seat 31 1",
+          "position": [21.59644, 130.0, 306.06354],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        },
+        {
+          "name": "diagonal seat 31 1",
+          "position": [21.59644, 130.0, 258.06354],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10442
+        },
+        {
+          "name": "hull seat 35 -1",
+          "position": [-22.0, 130.0, 338.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        },
+        {
+          "name": "diagonal seat 35 -1",
+          "position": [-22.0, 130.0, 332.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        },
+        {
+          "name": "hull seat 35 1",
+          "position": [22.0, 130.0, 338.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        },
+        {
+          "name": "diagonal seat 35 1",
+          "position": [22.0, 130.0, 332.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        }
+      ]
+    },
+    {
+      "name": "nomad-portside-dive",
+      "triangles": 3508,
+      "materialBatches": 2,
+      "bounds": {
+        "min": [-153.90818786621094, 31.394094467163086, -382.85662841796875],
+        "max": [27.752416610717773, 162.4398956298828, 383.8180847167969]
+      },
+      "actualHullSeats": [
+        {
+          "name": "hull seat 00 -1",
+          "position": [-22.0, 130.0, -338.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "diagonal seat 00 -1",
+          "position": [-22.0, 130.0, -332.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "hull seat 00 1",
+          "position": [22.0, 130.0, -338.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "diagonal seat 00 1",
+          "position": [22.0, 130.0, -332.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "hull seat 03 -1",
+          "position": [-21.21615, 130.0, -312.72156],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "diagonal seat 03 -1",
+          "position": [-21.21615, 130.0, -338.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "hull seat 03 1",
+          "position": [22.78385, 130.0, -312.72156],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10179
+        },
+        {
+          "name": "diagonal seat 03 1",
+          "position": [22.78385, 130.0, -338.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "hull seat 07 -1",
+          "position": [-31.26277, 130.0, -223.5994],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10222
+        },
+        {
+          "name": "diagonal seat 07 -1",
+          "position": [-31.26277, 130.0, -271.5994],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10179
+        },
+        {
+          "name": "hull seat 07 1",
+          "position": [12.73723, 130.0, -223.5994],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10222
+        },
+        {
+          "name": "diagonal seat 07 1",
+          "position": [12.73723, 130.0, -271.5994],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10179
+        },
+        {
+          "name": "hull seat 11 -1",
+          "position": [-58.0, 130.0, -136.93921],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10266
+        },
+        {
+          "name": "diagonal seat 11 -1",
+          "position": [-58.0, 130.0, -184.93921],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10222
+        },
+        {
+          "name": "hull seat 11 1",
+          "position": [-17.23935, 130.0, -136.93921],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10266
+        },
+        {
+          "name": "diagonal seat 11 1",
+          "position": [-17.23935, 130.0, -184.93921],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10223
+        },
+        {
+          "name": "hull seat 15 -1",
+          "position": [-87.73334, 36.0, -52.96544],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "diagonal seat 15 -1",
+          "position": [-87.73334, 36.0, -100.96544],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "hull seat 15 1",
+          "position": [-87.73334, 36.0, -52.96544],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "diagonal seat 15 1",
+          "position": [-87.73334, 36.0, -100.96544],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "hull seat 19 -1",
+          "position": [-87.73334, 36.0, 32.47022],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "diagonal seat 19 -1",
+          "position": [-87.73334, 36.0, -15.52978],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "hull seat 19 1",
+          "position": [-87.73334, 36.0, 32.47022],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "diagonal seat 19 1",
+          "position": [-87.73334, 36.0, -15.52978],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "hull seat 23 -1",
+          "position": [-87.73334, 36.0, 118.11385],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "diagonal seat 23 -1",
+          "position": [-87.73334, 36.0, 70.11385],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "hull seat 23 1",
+          "position": [-87.73334, 36.0, 118.11385],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "diagonal seat 23 1",
+          "position": [-87.73334, 36.0, 70.11385],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "hull seat 27 -1",
+          "position": [-87.73334, 36.0, 199.69408],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "diagonal seat 27 -1",
+          "position": [-87.73334, 36.0, 151.69408],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "hull seat 27 1",
+          "position": [-87.73334, 36.0, 199.69408],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "diagonal seat 27 1",
+          "position": [-87.73334, 36.0, 151.69408],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "hull seat 31 -1",
+          "position": [-36.0, 46.0, 230.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1990
+        },
+        {
+          "name": "diagonal seat 31 -1",
+          "position": [-36.0, 46.0, 230.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1990
+        },
+        {
+          "name": "hull seat 31 1",
+          "position": [-3.44997, 46.0, 230.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1990
+        },
+        {
+          "name": "diagonal seat 31 1",
+          "position": [-3.44997, 46.0, 230.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1990
+        },
+        {
+          "name": "hull seat 35 -1",
+          "position": [-18.0, 46.0, 310.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 2034
+        },
+        {
+          "name": "diagonal seat 35 -1",
+          "position": [-18.0, 46.0, 310.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 2034
+        },
+        {
+          "name": "hull seat 35 1",
+          "position": [18.0, 46.0, 310.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 2035
+        },
+        {
+          "name": "diagonal seat 35 1",
+          "position": [18.0, 46.0, 310.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 2035
+        },
+        {
+          "name": "hull seat 37 -1",
+          "position": [-18.0, 46.0, 310.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 2034
+        },
+        {
+          "name": "diagonal seat 37 -1",
+          "position": [-18.0, 46.0, 310.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 2034
+        },
+        {
+          "name": "hull seat 37 1",
+          "position": [18.0, 46.0, 310.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 2035
+        },
+        {
+          "name": "diagonal seat 37 1",
+          "position": [18.0, 46.0, 310.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 2035
+        }
+      ]
+    },
+    {
+      "name": "nomad-overtaking-wall",
+      "triangles": 2008,
+      "materialBatches": 2,
+      "bounds": {
+        "min": [-27.49551010131836, 31.394094467163086, -382.8079833984375],
+        "max": [188.48886108398438, 163.21173095703125, 77.5]
+      },
+      "actualHullSeats": [
+        {
+          "name": "hull seat 00 -1",
+          "position": [-18.0, 46.0, -330.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1682
+        },
+        {
+          "name": "diagonal seat 00 -1",
+          "position": [-18.0, 46.0, -330.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1682
+        },
+        {
+          "name": "hull seat 00 1",
+          "position": [18.0, 46.0, -330.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1683
+        },
+        {
+          "name": "diagonal seat 00 1",
+          "position": [18.0, 46.0, -330.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1683
+        },
+        {
+          "name": "hull seat 03 -1",
+          "position": [-17.56903, 46.0, -330.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1682
+        },
+        {
+          "name": "diagonal seat 03 -1",
+          "position": [-17.56903, 46.0, -330.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1682
+        },
+        {
+          "name": "hull seat 03 1",
+          "position": [18.43097, 46.0, -330.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1683
+        },
+        {
+          "name": "diagonal seat 03 1",
+          "position": [18.43097, 46.0, -330.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1683
+        },
+        {
+          "name": "hull seat 07 -1",
+          "position": [87.73333, 36.0, -236.2193],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "diagonal seat 07 -1",
+          "position": [87.73334, 36.0, -284.2193],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "hull seat 07 1",
+          "position": [87.73333, 36.0, -236.2193],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "diagonal seat 07 1",
+          "position": [87.73334, 36.0, -284.2193],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "hull seat 11 -1",
+          "position": [87.73333, 36.0, -167.3708],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "diagonal seat 11 -1",
+          "position": [87.73334, 36.0, -215.3708],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "hull seat 11 1",
+          "position": [87.73333, 36.0, -167.3708],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "diagonal seat 11 1",
+          "position": [87.73334, 36.0, -215.3708],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "hull seat 15 -1",
+          "position": [87.73333, 36.0, -83.66478],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "diagonal seat 15 -1",
+          "position": [87.73334, 36.0, -131.66478],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "hull seat 15 1",
+          "position": [87.73333, 36.0, -83.66478],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "diagonal seat 15 1",
+          "position": [87.73334, 36.0, -131.66478],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "hull seat 20 -1",
+          "position": [87.73334, 36.0, 0.0],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "diagonal seat 20 -1",
+          "position": [87.73333, 36.0, 48.0],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "hull seat 20 1",
+          "position": [87.73334, 36.0, 0.0],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "diagonal seat 20 1",
+          "position": [87.73333, 36.0, 48.0],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "terminal outrigger root -1",
+          "position": [87.73334, 36.0, -108.0],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        },
+        {
+          "name": "terminal outrigger root 1",
+          "position": [87.73333, 36.0, 72.0],
+          "normal": [0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1198
+        }
+      ]
+    },
+    {
+      "name": "nomad-passing-deck",
+      "triangles": 3256,
+      "materialBatches": 2,
+      "bounds": {
+        "min": [-50.13139343261719, 124.25052642822266, -382.87957763671875],
+        "max": [50.03135299682617, 161.04449462890625, 383.80096435546875]
+      },
+      "actualHullSeats": [
+        {
+          "name": "hull seat 00 -1",
+          "position": [-22.0, 130.0, -338.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "diagonal seat 00 -1",
+          "position": [-22.0, 130.0, -332.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "hull seat 00 1",
+          "position": [22.0, 130.0, -338.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "diagonal seat 00 1",
+          "position": [22.0, 130.0, -332.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "hull seat 03 -1",
+          "position": [-22.72863, 130.0, -312.71832],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "diagonal seat 03 -1",
+          "position": [-22.72863, 130.0, -338.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "hull seat 03 1",
+          "position": [21.27137, 130.0, -312.71832],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10179
+        },
+        {
+          "name": "diagonal seat 03 1",
+          "position": [21.27137, 130.0, -338.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "hull seat 07 -1",
+          "position": [-7.49086, 130.0, -223.83188],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10222
+        },
+        {
+          "name": "diagonal seat 07 -1",
+          "position": [-7.49086, 130.0, -271.83188],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10179
+        },
+        {
+          "name": "hull seat 07 1",
+          "position": [36.50914, 130.0, -223.83188],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10223
+        },
+        {
+          "name": "diagonal seat 07 1",
+          "position": [36.50914, 130.0, -271.83188],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10179
+        },
+        {
+          "name": "hull seat 11 -1",
+          "position": [1.53135, 130.0, -134.6151],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10266
+        },
+        {
+          "name": "diagonal seat 11 -1",
+          "position": [1.53135, 130.0, -182.6151],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10223
+        },
+        {
+          "name": "hull seat 11 1",
+          "position": [45.53135, 130.0, -134.6151],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10267
+        },
+        {
+          "name": "diagonal seat 11 1",
+          "position": [45.53135, 130.0, -182.6151],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10223
+        },
+        {
+          "name": "hull seat 15 -1",
+          "position": [-26.15183, 130.0, -47.26844],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10310
+        },
+        {
+          "name": "diagonal seat 15 -1",
+          "position": [-26.15183, 130.0, -95.26844],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10266
+        },
+        {
+          "name": "hull seat 15 1",
+          "position": [17.84817, 130.0, -47.26844],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10310
+        },
+        {
+          "name": "diagonal seat 15 1",
+          "position": [17.84817, 130.0, -95.26844],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10267
+        },
+        {
+          "name": "hull seat 19 -1",
+          "position": [-45.63139, 130.0, 40.90287],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10311
+        },
+        {
+          "name": "diagonal seat 19 -1",
+          "position": [-45.63139, 130.0, -7.09713],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10310
+        },
+        {
+          "name": "hull seat 19 1",
+          "position": [-1.63139, 130.0, 40.90287],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10311
+        },
+        {
+          "name": "diagonal seat 19 1",
+          "position": [-1.63139, 130.0, -7.09713],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10310
+        },
+        {
+          "name": "hull seat 23 -1",
+          "position": [-20.69653, 130.0, 128.65286],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10355
+        },
+        {
+          "name": "diagonal seat 23 -1",
+          "position": [-20.69653, 130.0, 80.65286],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10354
+        },
+        {
+          "name": "hull seat 23 1",
+          "position": [23.30347, 130.0, 128.65286],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10355
+        },
+        {
+          "name": "diagonal seat 23 1",
+          "position": [23.30347, 130.0, 80.65286],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10354
+        },
+        {
+          "name": "hull seat 27 -1",
+          "position": [-6.349, 130.0, 217.22437],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10399
+        },
+        {
+          "name": "diagonal seat 27 -1",
+          "position": [-6.349, 130.0, 169.22437],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10398
+        },
+        {
+          "name": "hull seat 27 1",
+          "position": [37.651, 130.00002, 217.22437],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10399
+        },
+        {
+          "name": "diagonal seat 27 1",
+          "position": [37.651, 130.0, 169.22437],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10398
+        },
+        {
+          "name": "hull seat 31 -1",
+          "position": [-22.40356, 130.0, 306.06354],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10442
+        },
+        {
+          "name": "diagonal seat 31 -1",
+          "position": [-22.40356, 130.0, 258.06354],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10442
+        },
+        {
+          "name": "hull seat 31 1",
+          "position": [21.59644, 130.0, 306.06354],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        },
+        {
+          "name": "diagonal seat 31 1",
+          "position": [21.59644, 130.0, 258.06354],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10442
+        },
+        {
+          "name": "hull seat 35 -1",
+          "position": [-22.0, 130.0, 338.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        },
+        {
+          "name": "diagonal seat 35 -1",
+          "position": [-22.0, 130.0, 332.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        },
+        {
+          "name": "hull seat 35 1",
+          "position": [22.0, 130.0, 338.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        },
+        {
+          "name": "diagonal seat 35 1",
+          "position": [22.0, 130.0, 332.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10443
+        }
+      ]
+    },
+    {
+      "name": "nomad-lower-hold",
+      "triangles": 3508,
+      "materialBatches": 2,
+      "bounds": {
+        "min": [-153.90818786621094, 31.394094467163086, -382.8494873046875],
+        "max": [27.75242042541504, 162.4398956298828, 383.8155822753906]
+      },
+      "actualHullSeats": [
+        {
+          "name": "hull seat 00 -1",
+          "position": [-22.0, 130.0, -338.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "diagonal seat 00 -1",
+          "position": [-22.0, 130.0, -332.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "hull seat 00 1",
+          "position": [22.0, 130.0, -338.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "diagonal seat 00 1",
+          "position": [22.0, 130.0, -332.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "hull seat 03 -1",
+          "position": [-21.21615, 130.0, -312.72156],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "diagonal seat 03 -1",
+          "position": [-21.21615, 130.0, -338.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "hull seat 03 1",
+          "position": [22.78385, 130.0, -312.72156],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10179
+        },
+        {
+          "name": "diagonal seat 03 1",
+          "position": [22.78385, 130.0, -338.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10178
+        },
+        {
+          "name": "hull seat 07 -1",
+          "position": [-31.26277, 130.0, -223.5994],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10222
+        },
+        {
+          "name": "diagonal seat 07 -1",
+          "position": [-31.26277, 130.0, -271.5994],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10179
+        },
+        {
+          "name": "hull seat 07 1",
+          "position": [12.73723, 130.0, -223.5994],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10222
+        },
+        {
+          "name": "diagonal seat 07 1",
+          "position": [12.73723, 130.0, -271.5994],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10179
+        },
+        {
+          "name": "hull seat 11 -1",
+          "position": [-58.0, 130.0, -136.93921],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10266
+        },
+        {
+          "name": "diagonal seat 11 -1",
+          "position": [-58.0, 130.0, -184.93921],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10222
+        },
+        {
+          "name": "hull seat 11 1",
+          "position": [-17.23935, 130.0, -136.93921],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10266
+        },
+        {
+          "name": "diagonal seat 11 1",
+          "position": [-17.23935, 130.0, -184.93921],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual roof cassette",
+          "sourceTriangle": 10223
+        },
+        {
+          "name": "hull seat 15 -1",
+          "position": [-87.73334, 36.0, -52.96544],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "diagonal seat 15 -1",
+          "position": [-87.73334, 36.0, -100.96544],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "hull seat 15 1",
+          "position": [-87.73334, 36.0, -52.96544],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "diagonal seat 15 1",
+          "position": [-87.73334, 36.0, -100.96544],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "hull seat 19 -1",
+          "position": [-87.73334, 36.0, 32.47022],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "diagonal seat 19 -1",
+          "position": [-87.73334, 36.0, -15.52978],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "hull seat 19 1",
+          "position": [-87.73334, 36.0, 32.47022],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "diagonal seat 19 1",
+          "position": [-87.73334, 36.0, -15.52978],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "hull seat 23 -1",
+          "position": [-87.73334, 36.0, 118.11385],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "diagonal seat 23 -1",
+          "position": [-87.73334, 36.0, 70.11385],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "hull seat 23 1",
+          "position": [-87.73334, 36.0, 118.11385],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "diagonal seat 23 1",
+          "position": [-87.73334, 36.0, 70.11385],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "hull seat 27 -1",
+          "position": [-87.73334, 36.0, 199.69408],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "diagonal seat 27 -1",
+          "position": [-87.73334, 36.0, 151.69408],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "hull seat 27 1",
+          "position": [-87.73334, 36.0, 199.69408],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "diagonal seat 27 1",
+          "position": [-87.73334, 36.0, 151.69408],
+          "normal": [-0.991228, 0.132164, 0.0],
+          "kind": "actual formed lower load keel",
+          "sourceTriangle": 1061
+        },
+        {
+          "name": "hull seat 31 -1",
+          "position": [-36.0, 46.0, 230.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1990
+        },
+        {
+          "name": "diagonal seat 31 -1",
+          "position": [-36.0, 46.0, 230.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1990
+        },
+        {
+          "name": "hull seat 31 1",
+          "position": [-3.44997, 46.0, 230.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1990
+        },
+        {
+          "name": "diagonal seat 31 1",
+          "position": [-3.44997, 46.0, 230.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 1990
+        },
+        {
+          "name": "hull seat 35 -1",
+          "position": [-18.0, 46.0, 310.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 2034
+        },
+        {
+          "name": "diagonal seat 35 -1",
+          "position": [-18.0, 46.0, 310.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 2034
+        },
+        {
+          "name": "hull seat 35 1",
+          "position": [18.0, 46.0, 310.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 2035
+        },
+        {
+          "name": "diagonal seat 35 1",
+          "position": [18.0, 46.0, 310.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 2035
+        },
+        {
+          "name": "hull seat 37 -1",
+          "position": [-18.0, 46.0, 310.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 2034
+        },
+        {
+          "name": "diagonal seat 37 -1",
+          "position": [-18.0, 46.0, 310.0],
+          "normal": [-0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 2034
+        },
+        {
+          "name": "hull seat 37 1",
+          "position": [18.0, 46.0, 310.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 2035
+        },
+        {
+          "name": "diagonal seat 37 1",
+          "position": [18.0, 46.0, 310.0],
+          "normal": [0.0, 1.0, 0.0],
+          "kind": "actual transverse chassis bearer",
+          "sourceTriangle": 2035
+        }
+      ]
+    }
+  ],
+  "totalTriangles": 19068,
+  "materials": ["Nomad / navy structural steel", "Nomad / rubbed warm alloy"],
+  "hashes": {
+    "build_route_supports.py": "b9eeaaa90c4dfa8c89d4bec4f9402f3234c4f536277f6bd06283056d4d93e198",
+    "route-supports.blend": "296a7af6848f30fa552655ec482441a3acc9b40c8730dc5e0dd70101550536c7",
+    "route-supports.glb": "fb82290feea96ad927f6a8c2d68767976abcc4c8742e2d461013eaed84bc205a",
+    "route-supports-collision.json": "df77dcbcb06112d841e9cd245da90a2f9779d9ea6bfa7929515a8cab949fc20f",
+    "route-support-guides.json": "410aa569e0df00485a12bc6cf454e9e9f883e2622f81ff1bf210277d99cd3fda",
+    "carrier-collision.json": "dc10f86d70c0d2422b2e330de1dee3dcd51927144e2beb6a6f18d65baba07c76"
+  }
+}

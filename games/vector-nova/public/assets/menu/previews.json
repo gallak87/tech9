@@ -135,6 +135,15 @@
       "sourceRevision": "1daaa24091f3628fcc84ed40b9e09a73a55f3743",
       "sourceDirty": true,
       "routeSignature": "70ec7231dc12e1e3"
+    },
+    "nomad": {
+      "file": "nomad.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "cef24392e6234f0309f48f5f7d88b7b77c11a152",
+      "sourceDirty": true,
+      "routeSignature": "c864d4f0f2b0cecb"
     }
   }
 }

@@ -94,7 +94,7 @@ const sameShape = (saved, current) =>
       saved.vertices.length === current.vertices.length &&
       saved.vertices.every((v, i) => v === current.vertices[i]);
 
-// Game-owned movement, immutable Rapier scene queries. All racers propose their
+// Game-owned movement and retained Rapier scene queries. All racers propose their
 // movement before one shared contact pass; no dynamic solver or support joints.
 export async function createRapierWorld({
   collisionWorld = null,
@@ -109,7 +109,14 @@ export async function createRapierWorld({
   initialization ??= RAPIER.init();
   await initialization;
   const roadSurface = createRoadSurface(collisionWorld?.triangles ?? []);
-  const rulesId = `${collisionWorld?.rulesId ?? 'no-static-geometry'}:query:${JSON.stringify({ ...RAPIER_RULES, gravity })}`;
+  const movingGroupIds = [
+    ...new Set(
+      (collisionWorld?.triangles ?? [])
+        .map((triangle) => triangle.motionGroup)
+        .filter(Boolean),
+    ),
+  ].sort();
+  const rulesId = `${collisionWorld?.rulesId ?? 'no-static-geometry'}:query:${JSON.stringify({ ...RAPIER_RULES, gravity })}${movingGroupIds.length ? `:moving-translations-v1:${JSON.stringify(movingGroupIds)}` : ''}`;
   const identity = `${collisionWorld?.id ?? 'racer-world'}:${collisionWorld?.version ?? 1}:${rulesId}`;
   const sources = new Map();
   for (const triangle of collisionWorld?.triangles ?? []) {
@@ -121,6 +128,7 @@ export async function createRapierWorld({
       top
         ? Math.floor(Math.min(...coords.map((point) => point[0])) / 64)
         : null,
+      ...(triangle.motionGroup ? [triangle.motionGroup] : []),
     ]);
     if (!sources.has(key)) sources.set(key, []);
     sources.get(key).push(triangle);
@@ -173,8 +181,25 @@ export async function createRapierWorld({
   const actors = new Map(),
     statics = new Map(),
     shapes = new Map();
+  const motionGroups = new Map(
+    movingGroupIds.map((id) => [
+      id,
+      {
+        translation: zero(),
+        velocity: zero(),
+        entries: [],
+      },
+    ]),
+  );
   const engine = new RAPIER.World({ x: 0, y: 0, z: 0 });
   let disposed = false;
+  let queryDirty = false,
+    motionMargin = 0;
+  const refreshQueries = () => {
+    if (!queryDirty) return;
+    engine.step();
+    queryDirty = false;
+  };
   const alive = () => {
     if (disposed) throw new Error('Query world has been disposed.');
   };
@@ -204,9 +229,28 @@ export async function createRapierWorld({
     const faces = triangles.map(
       (t) => new T.Triangle(...t.points.map((p) => new T.Vector3(...p))),
     );
-    statics.set(collider.handle, { collider, triangles, faces, road });
+    const motionGroup = motionGroups.get(triangles[0].motionGroup);
+    const entry = { collider, triangles, faces, road, motionGroup };
+    statics.set(collider.handle, entry);
+    motionGroup?.entries.push(entry);
   }
-  engine.step(); // Build the immutable static query index once.
+  engine.step(); // Ordinary worlds build their immutable query index once.
+  function placeMovingEntry(entry, elapsed = 0) {
+    if (!entry.motionGroup) return;
+    entry.collider.setTranslation(
+      entry.motionGroup.translation
+        .clone()
+        .addScaledVector(entry.motionGroup.velocity, elapsed),
+    );
+  }
+  function advanceMotionGroups(elapsed) {
+    if (!elapsed || !motionGroups.size) return;
+    for (const group of motionGroups.values()) {
+      group.translation.addScaledVector(group.velocity, elapsed);
+      for (const entry of group.entries) placeMovingEntry(entry);
+    }
+    queryDirty = true;
+  }
   function ownsRoad(a, entry) {
     const s = a.support?.road,
       r = entry.road;
@@ -296,16 +340,26 @@ export async function createRapierWorld({
     let index = 0,
       distance = Infinity;
     const nearest = zero();
+    const localPoint = entry.motionGroup
+      ? point.clone().sub(entry.motionGroup.translation)
+      : point;
     entry.faces.forEach((face, i) => {
-      face.closestPointToPoint(point, nearest);
-      const d = nearest.distanceToSquared(point);
+      face.closestPointToPoint(localPoint, nearest);
+      const d = nearest.distanceToSquared(localPoint);
       if (d < distance) {
         index = i;
         distance = d;
       }
     });
     const { points, ...shape } = entry.triangles[index];
-    if (shape.roadBoundary) shape.boundaryPoints = points;
+    if (shape.roadBoundary)
+      shape.boundaryPoints = entry.motionGroup
+        ? points.map((p) =>
+            vector({ x: p[0], y: p[1], z: p[2] })
+              .add(entry.motionGroup.translation)
+              .toArray(),
+          )
+        : points;
     const surfaceNormal = entry.faces[index].getNormal(zero());
     return {
       shape,
@@ -381,58 +435,32 @@ export async function createRapierWorld({
     let time = 0,
       contact,
       safeHit = null;
-    const relative = a.motion.clone().sub(b?.motion ?? zero());
-    for (let i = 0; i < RAPIER_RULES.castIterations; i++) {
-      const ap = at(a, time, dt),
-        bp = b && at(b, time, dt);
-      const prediction =
-        relative.length() * (dt - time) + rotational * (dt - time) + 0.1;
-      a.proxy.setTranslation(ap.position);
-      a.proxy.setRotation(ap.quaternion);
-      if (b) {
-        b.proxy.setTranslation(bp.position);
-        b.proxy.setRotation(bp.quaternion);
-      }
-      contact = b
-        ? a.proxy.contactCollider(b.proxy, prediction)
-        : entry.collider.contactCollider(a.proxy, prediction);
-      if (!contact) return null;
-      const normal = vector(b ? contact.normal2 : contact.normal1).normalize(),
-        point = vector(b ? contact.point2 : contact.point1);
-      const speed = Math.max(0, -relative.dot(normal)) + rotational;
-      const gap = contact.distance - RAPIER_RULES.skin;
-      safeHit = {
-        a,
-        b,
-        entry,
-        time,
-        point,
-        normal,
-        depth: Math.max(0, -contact.distance),
-      };
-      if (gap <= 0.0001) {
-        const pointVelocity = relative
-          .clone()
-          .add(a.castOmega.clone().cross(point.clone().sub(ap.position)));
-        if (b)
-          pointVelocity.sub(
-            b.castOmega.clone().cross(point.clone().sub(bp.position)),
-          );
-        if (
-          time === 0 &&
-          contact.distance >= -RAPIER_RULES.skin &&
-          pointVelocity.dot(normal) >= -1e-6
-        )
-          return null;
+    const relative = a.motion
+      .clone()
+      .sub(b?.motion ?? entry?.motionGroup?.velocity ?? zero());
+    try {
+      for (let i = 0; i < RAPIER_RULES.castIterations; i++) {
+        const ap = at(a, time, dt),
+          bp = b && at(b, time, dt);
+        const prediction =
+          relative.length() * (dt - time) + rotational * (dt - time) + 0.1;
+        a.proxy.setTranslation(ap.position);
+        a.proxy.setRotation(ap.quaternion);
         if (b) {
-          const middle = ap.position
-            .clone()
-            .add(bp.position)
-            .multiplyScalar(0.5);
-          middle.addScaledVector(normal, point.clone().sub(middle).dot(normal));
-          point.copy(middle);
-        }
-        return {
+          b.proxy.setTranslation(bp.position);
+          b.proxy.setRotation(bp.quaternion);
+        } else if (entry?.motionGroup) placeMovingEntry(entry, time);
+        contact = b
+          ? a.proxy.contactCollider(b.proxy, prediction)
+          : entry.collider.contactCollider(a.proxy, prediction);
+        if (!contact) return null;
+        const normal = vector(
+            b ? contact.normal2 : contact.normal1,
+          ).normalize(),
+          point = vector(b ? contact.point2 : contact.point1);
+        const speed = Math.max(0, -relative.dot(normal)) + rotational;
+        const gap = contact.distance - RAPIER_RULES.skin;
+        safeHit = {
           a,
           b,
           entry,
@@ -441,18 +469,56 @@ export async function createRapierWorld({
           normal,
           depth: Math.max(0, -contact.distance),
         };
+        if (gap <= 0.0001) {
+          const pointVelocity = relative
+            .clone()
+            .add(a.castOmega.clone().cross(point.clone().sub(ap.position)));
+          if (b)
+            pointVelocity.sub(
+              b.castOmega.clone().cross(point.clone().sub(bp.position)),
+            );
+          if (
+            time === 0 &&
+            contact.distance >= -RAPIER_RULES.skin &&
+            pointVelocity.dot(normal) >= -1e-6
+          )
+            return null;
+          if (b) {
+            const middle = ap.position
+              .clone()
+              .add(bp.position)
+              .multiplyScalar(0.5);
+            middle.addScaledVector(
+              normal,
+              point.clone().sub(middle).dot(normal),
+            );
+            point.copy(middle);
+          }
+          return {
+            a,
+            b,
+            entry,
+            time,
+            point,
+            normal,
+            depth: Math.max(0, -contact.distance),
+          };
+        }
+        if (speed < 1e-8) return null;
+        time += Math.max(1e-8, gap / speed);
+        if (time > dt) return null;
       }
-      if (speed < 1e-8) return null;
-      time += Math.max(1e-8, gap / speed);
-      if (time > dt) return null;
+      // Exhausting an angular-distance search clips to its last verified safe
+      // interval. It must never turn a query budget into permission to tunnel.
+      return safeHit;
+    } finally {
+      if (entry?.motionGroup) placeMovingEntry(entry);
     }
-    // Exhausting an angular-distance search clips to its last verified safe
-    // interval. It must never turn a query budget into permission to tunnel.
-    return safeHit;
   }
   function staticCandidates(a, delta) {
-    // A swept enclosing sphere includes the full rotating hull. The immutable
-    // scene index rejects distant solids without rebuilding a native shape.
+    // A swept enclosing sphere includes the full rotating hull. The retained
+    // index rejects distant solids without rebuilding any native mesh. A motion
+    // margin also covers grouped solids moving beyond their indexed start pose.
     const center = a.position.clone().addScaledVector(delta, 0.5);
     const extent = new T.Vector3(
       Math.abs(delta.x),
@@ -460,7 +526,7 @@ export async function createRapierWorld({
       Math.abs(delta.z),
     )
       .multiplyScalar(0.5)
-      .addScalar(a.radius + RAPIER_RULES.skin);
+      .addScalar(a.radius + RAPIER_RULES.skin + motionMargin);
     const candidates = [];
     engine.collidersWithAabbIntersectingAabb(center, extent, (collider) => {
       const entry = statics.get(collider.handle);
@@ -480,11 +546,14 @@ export async function createRapierWorld({
       a.proxy.setTranslation(a.position);
       a.proxy.setRotation(a.quaternion);
       if (
-        a.motion.lengthSq() >= 1e-10 &&
+        a.motion
+          .clone()
+          .sub(entry.motionGroup?.velocity ?? zero())
+          .lengthSq() >= 1e-10 &&
         !a.proxy.castCollider(
           a.motion,
           entry.collider,
-          zero(),
+          entry.motionGroup?.velocity ?? zero(),
           RAPIER_RULES.skin + a.radius * a.angle,
           best?.time ?? dt,
           true,
@@ -571,11 +640,17 @@ export async function createRapierWorld({
     }
     const ra = point.clone().sub(a.position),
       rb = b && point.clone().sub(b.position);
-    const relative = a.velocity
+    const relative = (motionGroups.size ? a.motion : a.velocity)
       .clone()
       .add(a.angularVelocity.clone().cross(ra));
     if (b)
-      relative.sub(b.velocity.clone().add(b.angularVelocity.clone().cross(rb)));
+      relative.sub(
+        (motionGroups.size ? b.motion : b.velocity)
+          .clone()
+          .add(b.angularVelocity.clone().cross(rb)),
+      );
+    else if (hit.entry.motionGroup)
+      relative.sub(hit.entry.motionGroup.velocity);
     const incoming = Math.max(0, -relative.dot(normal));
     const la = normalContact
         ? normal.clone().divideScalar(a.mass)
@@ -611,7 +686,7 @@ export async function createRapierWorld({
     const linear = normal.dot(la.clone().add(lb)),
       closing = a.motion
         .clone()
-        .sub(b?.motion ?? zero())
+        .sub(b?.motion ?? hit.entry?.motionGroup?.velocity ?? zero())
         .dot(normal);
     if (closing < 0 && linear > 1e-8) {
       const j = -closing / linear;
@@ -708,12 +783,14 @@ export async function createRapierWorld({
         a.position.copy(pose.position);
         a.quaternion.copy(pose.quaternion);
       }
+      advanceMotionGroups(time);
       remaining -= time;
       if (!first) break;
       respond(first);
       for (const a of [first.a, first.b].filter(Boolean))
         if (++a.hits >= RAPIER_RULES.contactBudget) a.blocked = true;
     }
+    advanceMotionGroups(remaining);
   }
   function clear(a) {
     Object.assign(a, {
@@ -736,6 +813,7 @@ export async function createRapierWorld({
     gravity,
     occlusionFraction(start, end) {
       alive();
+      refreshQueries();
       const direction = end.clone().sub(start);
       if (direction.lengthSq() < 1e-12) return 1;
       const hit = engine.castRay(
@@ -752,8 +830,38 @@ export async function createRapierWorld({
     },
     sampleRoadSurface: (...args) => {
       alive();
+      if (motionGroups.size) {
+        const [distance, lateral, reference] = args;
+        const group = motionGroups.get(reference?.motionGroup);
+        if (!group) return null;
+        const surface = roadSurface(distance, lateral, {
+          ...reference,
+          position: reference.position.clone().sub(group.translation),
+        });
+        if (surface) surface.position.add(group.translation);
+        return surface;
+      }
       return roadSurface(...args);
     },
+    ...(motionGroups.size
+      ? {
+          setGroupMotion(id, { translation, velocity } = {}) {
+            alive();
+            const group = motionGroups.get(id);
+            if (!group)
+              throw new Error(`Unknown collision motion group: ${id}`);
+            const nextTranslation = finiteVector(
+              translation,
+              'group translation',
+            );
+            const nextVelocity = finiteVector(velocity, 'group velocity');
+            group.translation.copy(nextTranslation);
+            group.velocity.copy(nextVelocity);
+            for (const entry of group.entries) placeMovingEntry(entry);
+            queryDirty = true;
+          },
+        }
+      : {}),
     createActor({
       hull = VEHICLE_HULL,
       mass = 1,
@@ -901,6 +1009,14 @@ export async function createRapierWorld({
       if (!Number.isFinite(dt) || dt <= 0 || dt > 0.1)
         throw new Error('Query world requires a finite fixed-step duration.');
       const active = [...actors.values()].filter((a) => a.active);
+      refreshQueries();
+      motionMargin = motionGroups.size
+        ? Math.max(
+            ...[...motionGroups.values()].map((group) =>
+              group.velocity.length(),
+            ),
+          ) * dt
+        : 0;
       for (const a of actors.values()) a.contacts = [];
       const steps = Math.ceil(dt * RAPIER_RULES.simulationHz - 1e-10),
         step = dt / steps;
@@ -933,6 +1049,15 @@ export async function createRapierWorld({
       return JSON.parse(
         JSON.stringify({
           identity,
+          ...(motionGroups.size
+            ? {
+                motionGroups: [...motionGroups].map(([id, group]) => ({
+                  id,
+                  translation: group.translation,
+                  velocity: group.velocity,
+                })),
+              }
+            : {}),
           actors: [...actors.values()].map((a) => ({
             id: a.id,
             mass: a.mass,
@@ -990,14 +1115,36 @@ export async function createRapierWorld({
         support: a.support && finiteSupport(a.support),
         contacts: a.contacts.map(copyContact),
       }));
+      let nextGroups;
+      if (motionGroups.size) {
+        if (
+          !Array.isArray(data.motionGroups) ||
+          data.motionGroups.length !== motionGroups.size ||
+          new Set(data.motionGroups.map((group) => group.id)).size !==
+            motionGroups.size ||
+          data.motionGroups.some((group) => !motionGroups.has(group.id))
+        )
+          throw new Error('Query snapshot motion groups do not match.');
+        nextGroups = data.motionGroups.map((group) => ({
+          id: group.id,
+          translation: finiteVector(group.translation, 'group translation'),
+          velocity: finiteVector(group.velocity, 'group velocity'),
+        }));
+      }
       for (const a of next) {
         Object.assign(actors.get(a.id), a);
         shapeFor(actors.get(a.id));
       }
+      for (const group of nextGroups ?? []) api.setGroupMotion(group.id, group);
     },
     reset() {
       alive();
       for (const a of actors.values()) clear(a);
+      for (const id of motionGroups.keys())
+        api.setGroupMotion(id, {
+          translation: zero(),
+          velocity: zero(),
+        });
     },
     dispose() {
       if (disposed) return;
@@ -1007,6 +1154,7 @@ export async function createRapierWorld({
       actors.clear();
       statics.clear();
       shapes.clear();
+      motionGroups.clear();
       batches.length = 0;
     },
   };

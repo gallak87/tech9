@@ -204,8 +204,9 @@ export async function createGame({
       }),
     );
     const { road, environment } = world;
+    let finishMarker = null;
     if (!blockout) {
-      const finishMarker = lifetime.own(
+      finishMarker = lifetime.own(
         createFinishMarker(track, definition.racing?.finishMarker),
       );
       road.add(finishMarker.group);
@@ -1734,6 +1735,7 @@ export async function createGame({
         ship.group.position,
       );
       world.update(frame);
+      finishMarker?.update();
       if (mode === 'inspection')
         inspectionStage.render(() =>
           inspectionPipeline.render({

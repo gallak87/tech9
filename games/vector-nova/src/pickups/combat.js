@@ -66,11 +66,13 @@ export function createCombatSimulation({
 }) {
   const actors = new Map();
   const touched = new Set();
+  const movingFrames = typeof track.frameAtTime === 'function';
   let requests = [];
   let state;
   const fresh = () => ({
     version: COMBAT_RULES.version,
     time: 0,
+    ...(movingFrames ? { frameTime: 0 } : {}),
     sequence: 0,
     emitters: {},
     grace: {},
@@ -82,6 +84,8 @@ export function createCombatSimulation({
     flashes: [],
   });
   state = fresh();
+  const courseFrame = (distance, time = state.frameTime) =>
+    movingFrames ? track.frameAtTime(distance, time) : track.sample(distance);
   function eligible(id, requireTouched = true) {
     const actor = actors.get(id);
     const pose = actor?.pose();
@@ -118,7 +122,7 @@ export function createCombatSimulation({
         T.MathUtils.euclideanModulo(ahead + track.length / 2, track.length) -
         track.length / 2;
     if (ahead <= 0 || ahead > COMBAT_RULES.arcLockRange) return null;
-    const frame = track.sample(other.actor.state.distance);
+    const frame = courseFrame(other.actor.state.distance);
     const height = other.pose.position
       .clone()
       .sub(frame.position)
@@ -232,9 +236,11 @@ export function createCombatSimulation({
   function pulse(id, actor, pose) {
     const origin = pose.position;
     const roadFrame = (distance, lateral) => {
-      const surface = track.sampleSurface?.(distance, lateral);
+      const surface = movingFrames
+        ? track.surfaceAtTime?.(distance, lateral, state.frameTime)
+        : track.sampleSurface?.(distance, lateral);
       if (surface) return surface;
-      const frame = track.sample(distance);
+      const frame = courseFrame(distance);
       return {
         ...frame,
         position: frame.position.clone().addScaledVector(frame.right, lateral),
@@ -331,7 +337,10 @@ export function createCombatSimulation({
   }
   function shoot(id, actor, pose, heavy = false) {
     const direction = forward.clone().applyQuaternion(pose.quaternion);
-    const frame = track.sample(actor.state.distance);
+    const frame = courseFrame(
+      actor.state.distance,
+      Number.isFinite(actor.state.time) ? actor.state.time : state.frameTime,
+    );
     const heading = Math.atan2(
       direction.dot(frame.right),
       direction.dot(frame.tangent),
@@ -409,6 +418,8 @@ export function createCombatSimulation({
     bind(id, actor) {
       actors.set(id, actor);
       touched.add(id);
+      if (movingFrames && Number.isFinite(actor.state.time))
+        state.frameTime = actor.state.time;
     },
     draftTarget(id) {
       const source = eligible(id);
@@ -448,6 +459,12 @@ export function createCombatSimulation({
     step(dt) {
       if (!Number.isFinite(dt) || dt <= 0) return;
       state.time += dt;
+      if (movingFrames) {
+        const simulationTime = [...touched]
+          .map((id) => actors.get(id)?.state.time)
+          .find(Number.isFinite);
+        state.frameTime = simulationTime ?? state.frameTime + dt;
+      }
       for (const [id, disruption] of Object.entries(state.disruptions))
         if (state.time >= disruption.startedAt + disruption.duration)
           delete state.disruptions[id];
@@ -561,7 +578,7 @@ export function createCombatSimulation({
           Math.abs(shot.lateral) > track.width / 2
         )
           return false;
-        const frame = track.sample(shot.distance);
+        const frame = courseFrame(shot.distance);
         const b = frame.position
           .clone()
           .addScaledVector(frame.right, shot.lateral)
@@ -763,6 +780,8 @@ export function createCombatSimulation({
         !finite(data) ||
         !Number.isFinite(data.time) ||
         data.time < 0 ||
+        (movingFrames &&
+          (!Number.isFinite(data.frameTime) || data.frameTime < 0)) ||
         !Number.isSafeInteger(data.sequence) ||
         !Array.isArray(data.shots) ||
         data.shots.length > 30 ||

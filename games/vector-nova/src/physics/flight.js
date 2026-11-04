@@ -147,11 +147,22 @@ export function createFlightModel(overrides = {}) {
       for (let start = jump.landingStart; start < receivingEnd; start += 4) {
         const end = Math.min(start + 4, receivingEnd);
         const distance = (start + end) / 2;
-        segments.push({ start, end, distance, frame: track.sample(distance) });
+        segments.push({
+          start,
+          end,
+          distance,
+          frame: track.movingSurfaces === true ? null : track.sample(distance),
+        });
       }
       surfaces.set(jump, segments);
     }
-    return surfaces.get(jump);
+    const segments = surfaces.get(jump);
+    return track.movingSurfaces === true
+      ? segments.map((segment) => ({
+          ...segment,
+          frame: track.sample(segment.distance),
+        }))
+      : segments;
   }
 
   // A centred projected hull has half its width over the road at the boundary.
@@ -571,6 +582,7 @@ export function createFlightModel(overrides = {}) {
         contactFeedback,
         automaticRecovery,
         recoveryDelay: R.recoveryDelay,
+        supportVelocity: options.supportVelocity,
       });
     let pending = null;
     let mode = 'magnetic';
@@ -663,6 +675,7 @@ export function createFlightModel(overrides = {}) {
       events,
       startPose,
       physical = null,
+      inheritSupport = true,
     ) {
       const frame =
         track.sampleSurface?.(from, state.lateral) ?? track.sample(from);
@@ -687,6 +700,26 @@ export function createFlightModel(overrides = {}) {
               position: world.position.clone(),
               time: state.time,
             });
+      // Magnetic destination guides carry road-relative velocity. On release,
+      // inherit the real support velocity; subsequent air motion is inertial.
+      const supportVelocity =
+        inheritSupport &&
+        options.supportVelocity?.({
+          state,
+          jump,
+          position: world.position.clone(),
+          time: state.time,
+          phase: 'launch',
+        });
+      if (supportVelocity) {
+        if (
+          ![supportVelocity.x, supportVelocity.y, supportVelocity.z].every(
+            Number.isFinite,
+          )
+        )
+          throw new Error('Support velocity must be a finite world vector.');
+        velocity.add(supportVelocity);
+      }
       if (impulse) {
         if (![impulse.x, impulse.y, impulse.z].every(Number.isFinite))
           throw new Error('Launch impulse must be a finite world vector.');
@@ -723,7 +756,7 @@ export function createFlightModel(overrides = {}) {
       currentPose = world;
       if (physical) {
         actor.stage({ support: null });
-        if (impulse) actor.setVelocity(velocity);
+        if (impulse || supportVelocity) actor.setVelocity(velocity);
       }
       // The first interpolated flight interval starts at the previous magnetic
       // tick, not at the lip partway through that interval.
@@ -752,11 +785,31 @@ export function createFlightModel(overrides = {}) {
       state.lateral = landing ? landing.lateral : 0;
       state.heading = landing ? landing.heading : 0;
       state.steeringHeading = 0;
+      let landingVelocity = flight.velocity;
+      const supportVelocity =
+        landing &&
+        options.supportVelocity?.({
+          state,
+          jump,
+          position: contactPose.position.clone(),
+          time: state.time,
+          phase: 'landing',
+        });
+      if (supportVelocity) {
+        if (
+          ![supportVelocity.x, supportVelocity.y, supportVelocity.z].every(
+            Number.isFinite,
+          )
+        )
+          throw new Error('Support velocity must be a finite world vector.');
+        landingVelocity = flight.velocity.clone().sub(supportVelocity);
+        actor?.setVelocity(landingVelocity, flight.angularVelocity);
+      }
       state.lateralSpeed = landing
-        ? flight.velocity.dot(track.sample(state.distance).right)
+        ? landingVelocity.dot(track.sample(state.distance).right)
         : 0;
       state.speed = landing
-        ? Math.max(0, flight.velocity.dot(track.sample(state.distance).tangent))
+        ? Math.max(0, landingVelocity.dot(track.sample(state.distance).tangent))
         : 0;
       state.impact = flight.edgeCaught
         ? Math.max(state.impact, 0.35)
@@ -1977,7 +2030,7 @@ export function createFlightModel(overrides = {}) {
     const adapter = {
       id: options.id,
       version: options.version,
-      rulesId: `${collisionWorld ? `${options.rulesId}:collision-${JSON.stringify({ id: collisionWorld.id, version: collisionWorld.version, rulesId: collisionWorld.rulesId })}` : options.rulesId}${dynamics ? `:dynamics-${JSON.stringify({ id: dynamics.id, version: dynamics.version, rulesId: dynamics.rulesId })}:${MAGNETIC_BODY_RULES}:shared-transition-tick-v1:equipment-jump-v2-${JSON.stringify(EQUIPMENT_JUMP_RULES)}` : collisionWorld ? ':supported-rail-slide-v1' : ''}${options.forgivingContacts ? `:forgiving-deck-wall-v4:support-height-${options.supportHeight ?? 0}` : ''}${boundaryRecoveryGrace ? ':boundary-recovery-grace-v1' : ''}${automaticRecovery ? '' : ':manual-recovery-v1'}`,
+      rulesId: `${collisionWorld ? `${options.rulesId}:collision-${JSON.stringify({ id: collisionWorld.id, version: collisionWorld.version, rulesId: collisionWorld.rulesId })}` : options.rulesId}${dynamics ? `:dynamics-${JSON.stringify({ id: dynamics.id, version: dynamics.version, rulesId: dynamics.rulesId })}:${MAGNETIC_BODY_RULES}:shared-transition-tick-v1:equipment-jump-v2-${JSON.stringify(EQUIPMENT_JUMP_RULES)}` : collisionWorld ? ':supported-rail-slide-v1' : ''}${options.forgivingContacts ? `:forgiving-deck-wall-v4:support-height-${options.supportHeight ?? 0}` : ''}${options.supportVelocity ? ':moving-support-velocity-v2-edge-release' : ''}${boundaryRecoveryGrace ? ':boundary-recovery-grace-v1' : ''}${automaticRecovery ? '' : ':manual-recovery-v1'}`,
       scenarios,
       jump(state) {
         if (disposed || pending || !dynamics) return false;
@@ -2019,7 +2072,8 @@ export function createFlightModel(overrides = {}) {
           halfWidth: track.width / 2,
         };
         let physical = actor.read();
-        if (!magneticBody.snapshot().initialized) {
+        const magnetic = magneticBody.snapshot();
+        if (!magnetic.initialized) {
           // Equipment can be pressed on the first green tick, before the actor
           // has been staged. Launch from the real countdown support pose then.
           const frame = surfaceFrame(state);
@@ -2038,7 +2092,17 @@ export function createFlightModel(overrides = {}) {
             angularVelocity: physical.angularVelocity,
           });
         }
-        beginFlight(state, jump, from, [], physical, physical);
+        // A side fall has already released the support into inertial motion.
+        // Equipment supplies lift without inheriting that old deck again.
+        beginFlight(
+          state,
+          jump,
+          from,
+          [],
+          physical,
+          physical,
+          !magnetic.roadRecovery,
+        );
         flight.equipmentJump = jump;
         flight.equipmentGuide = { distance: from, lateral: state.lateral };
         flight.equipmentControl = true;

@@ -106,12 +106,15 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
   const handling = getShip(state.shipId).handling;
   const coursePace = getVehiclePace(state.shipId, track.pace);
   const speedProfile = coursePace ?? handling;
-  const surface = track.sampleSurface?.(state.distance, state.lateral);
+  const sampleSurface = (distance, lateral) =>
+    track.movingSurfaces === true && track.surfaceAtTime
+      ? track.surfaceAtTime(distance, lateral, state.time)
+      : track.sampleSurface?.(distance, lateral);
+  const surface = sampleSurface(state.distance, state.lateral);
   const frame = surface ?? track.sample(state.distance);
   const aheadDistance = state.distance + Math.max(45, state.speed * 0.65);
   const lookahead =
-    track.sampleSurface?.(aheadDistance, state.lateral) ??
-    track.sample(aheadDistance);
+    sampleSurface(aheadDistance, state.lateral) ?? track.sample(aheadDistance);
   const laneDelta = (from, to) =>
     surface?.period > 0
       ? ((((to - from + surface.period / 2) % surface.period) +
@@ -139,7 +142,7 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
       const distance = preview * fraction;
       const future =
         (track.aiSurfacePreview
-          ? track.sampleSurface?.(state.distance + distance, state.lateral)
+          ? sampleSurface(state.distance + distance, state.lateral)
           : null) ?? track.sample(state.distance + distance);
       const safeSpeed = Math.max(63, cornerLimit(future.curvature));
       cornerSpeed = Math.min(
@@ -282,6 +285,21 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
       clamp((-state.lateralSpeed * 0.15) / speed, -0.2, 0.2),
     );
     desiredHeading += (aligned - desiredHeading) * weight;
+  }
+  const launchTarget = jump && track.aiLaunchTarget?.(state, jump);
+  if (
+    launchTarget &&
+    ['x', 'y', 'z'].every((axis) => Number.isFinite(launchTarget[axis]))
+  ) {
+    const x = launchTarget.x - frame.position.x,
+      y = launchTarget.y - frame.position.y,
+      z = launchTarget.z - frame.position.z;
+    const along =
+      x * frame.tangent.x + y * frame.tangent.y + z * frame.tangent.z;
+    const across = x * frame.right.x + y * frame.right.y + z * frame.right.z;
+    // A moving receiver may need a deliberate intercept heading at the lip.
+    // This is ordinary steering through the same driver and magnetic solver.
+    if (along > 1) desiredHeading = clamp(Math.atan2(across, along), -0.5, 0.5);
   }
   const authority = (1 - STEERING_ASSIST) * 1.5 * handling.turn;
   const feedforward = (-frame.curvature * state.speed) / (1.5 * handling.turn);

@@ -1,0 +1,20 @@
+{
+  "title": "Nomad Procession salt-basin daylight panorama",
+  "generator": "OpenAI built-in imagegen",
+  "createdDate": "2026-11-03",
+  "purpose": "Cloud-only distant sky radiance and reflections; nearby salt, roads and carriers remain modeled geometry.",
+  "source": "source-v1.png",
+  "runtimeAsset": "public/assets/levels/nomad/nomad-sky-v1.png",
+  "exactPrompt": "prompt-v1.txt",
+  "width": 1774,
+  "height": 887,
+  "bytes": 1501637,
+  "sha256": "bb63acb4ec02f5f753f1e1a00471781f70ce8809365e221ba3fb8bd9ecf0a669",
+  "processing": "Source and runtime PNG are byte-identical. Runtime wraps longitude with a four-percent shader overlap, explicit texture gradients and filtered polar rows. No image editing or baked scene lighting was applied.",
+  "lighting": {
+    "sourceWarmLongitude": 0.74,
+    "sunDirection": [-0.62, 0.39, -0.67],
+    "note": "The source contains broad horizon glow, not a sharply located sun disk. The physical directional key supplies the approximately 23-degree sun elevation."
+  },
+  "rights": "Project-generated original imagery. No third-party source image, model or texture was supplied to generation."
+}

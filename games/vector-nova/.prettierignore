@@ -18,3 +18,6 @@ public/assets/levels/shatterline/collision-kit.json
 assets/levels/saffron/baffles-meshes.json
 assets/levels/saffron/scarps-meshes.json
 src/levels/zephyr/environment/geometry/aqueduct-bay.js
+assets/levels/nomad/blender/carrier-collision.json
+assets/levels/nomad/blender/route-supports-collision.json
+assets/levels/nomad/blender/route-support-guides.json

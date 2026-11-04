@@ -164,6 +164,18 @@ try {
             .addScaledVector(frame.right, 100);
           camera.fov = 62;
         }
+        if (id === 'nomad') {
+          const transfer = track.jumps.find((jump) => jump.hero);
+          const frame = track.sample(transfer.takeoff - 100);
+          camera.position
+            .copy(frame.position)
+            .addScaledVector(frame.right, -460)
+            .addScaledVector(frame.up, 170)
+            .addScaledVector(frame.tangent, -520);
+          target.copy(track.sample(transfer.landingStart + 110).position);
+          target.y -= 35;
+          camera.fov = 58;
+        }
         camera.lookAt(target);
         camera.updateProjectionMatrix();
         // Let ordinary world updates relocate sky/weather around the free

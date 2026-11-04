@@ -148,6 +148,7 @@ export function createMagneticBody({
   contactFeedback = createContactFeedback(),
   automaticRecovery = true,
   recoveryDelay = 1.5,
+  supportVelocity,
 }) {
   const sampleRoad = dynamics.sampleRoadSurface;
   let initialized = false,
@@ -170,7 +171,25 @@ export function createMagneticBody({
     };
     return lateral < bounds.min - 0.15 || lateral > bounds.max + 0.15;
   }
-  function leaveRoad(state, distance, reason, events) {
+  function leaveRoad(state, distance, reason, events, body) {
+    // Guided road velocity is relative to its support. An ordinary edge fall
+    // releases through this path rather than the authored-jump adapter.
+    const materialVelocity = supportVelocity?.({
+      state,
+      position: body.position.clone(),
+      time: state.time,
+      phase: 'launch',
+    });
+    if (materialVelocity) {
+      if (
+        ![materialVelocity.x, materialVelocity.y, materialVelocity.z].every(
+          Number.isFinite,
+        )
+      )
+        throw new Error('Support velocity must be a finite world vector.');
+      body.velocity.add(materialVelocity);
+      actor.setVelocity(body.velocity, body.angularVelocity);
+    }
     roadRecovery = { elapsed: 0, distance, reason };
     edgeStall = 0;
     capture = null;
@@ -457,9 +476,9 @@ export function createMagneticBody({
       const events = [];
       if (!roadRecovery) {
         if (outsideRoad(f, state.lateral))
-          leaveRoad(state, state.distance, 'off-road', events);
+          leaveRoad(state, state.distance, 'off-road', events, body);
         else if (strandedAtEdge(state, input, dt, f, body))
-          leaveRoad(state, state.distance, 'stranded-edge', events);
+          leaveRoad(state, state.distance, 'stranded-edge', events, body);
       }
       if (roadRecovery) {
         roadRecovery.elapsed += dt;
@@ -663,7 +682,7 @@ export function createMagneticBody({
             sampleRoad,
           );
       if (projected && outsideRoad(projected.frame, projected.lateral))
-        leaveRoad(state, pending.beforeDistance, 'off-road', events);
+        leaveRoad(state, pending.beforeDistance, 'off-road', events, body);
       const f = roadRecovery
         ? magneticFrame(track, state.distance, state.lateral, sampleRoad)
         : projected.frame;

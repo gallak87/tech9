@@ -18,6 +18,7 @@ const challenges = {
   colossus: 'Hard',
   ravel: 'Hard',
   nomad: 'Hard',
+  oriel: 'Medium',
 };
 
 export const trackChallenge = (id) =>

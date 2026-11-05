@@ -105,7 +105,7 @@ test('Orbital menu records use the production identity rather than its shape stu
 test('the full desktop catalogue and every championship resolve to the active worlds', async () => {
   const policy = editionPolicy('full');
   const routes = await menuCatalog({ levelIds: policy.levels, warn() {} });
-  assert.equal(routes.length, 14);
+  assert.equal(routes.length, 15);
   assert.deepEqual(
     new Set(policy.levels),
     new Set(routes.map((route) => route.id)),

@@ -4,7 +4,7 @@ Reviewed against `main` and the active event review branches on **2026-10-31**. 
 
 ## Current baseline
 
-- Main has fourteen racing courses, four original championships, four playable ships and a ten-racer field. Quick Race, Practice, continuous circuit Time Trials, sprint trials, saved bests and personal ghosts are implemented. Course details and shared rules live in [architecture](ARCHITECTURE.md) and the [level API](docs/LEVEL_API.md).
+- Main has fifteen racing courses, four original championships, four playable ships and a ten-racer field. Quick Race, Practice, continuous circuit Time Trials, sprint trials, saved bests and personal ghosts are implemented. Course details and shared rules live in [architecture](ARCHITECTURE.md) and the [level API](docs/LEVEL_API.md).
 - Career rewards, six enhancement tracks, six equipped abilities, Quad Core, the live Garage, physical combat/contact and demo-to-full save transfer are implemented. The manual title screen, three named career slots, top-level navigation and shared audio controls are described in [entry and careers](docs/intro-and-profiles.md).
 - Eight songs, local music/SFX generation, browser publishing and offline Electron demo/full packages exist. Startup selects Blue Hour and honors the saved startup-pause preference. See [audio](docs/audio/README.md), [desktop builds](docs/steam/desktop.md) and the [release checklist](docs/steam/release.md).
 - Eliminator, Interceptor and experimental Freestyle are playable in the consolidated `codex/nova-freestyle` review branch, **not merged into main or approved for release**. Their status and remaining design choices are in [events and rewards](docs/level-types-and-rewards.md#current-implementation-status).
@@ -49,6 +49,8 @@ Reviewed against `main` and the active event review branches on **2026-10-31**. 
 - [ ] Broaden static collision coverage where driving reveals missing scenery contacts outside current deck/jump corridors. Add sparks for actual contacts and consider bounded scrape marks; the shared physical racer-contact system already exists.
 
 ### Worlds, effects and presentation
+
+- [ ] **Oriel:** compose the remaining broad shell slopes and serial middle-distance town rows into larger agricultural/civic districts. Preserve the completed winding route and garden corkscrew, the two composed waterfront quarters, all-sided civic galleries, connected contour grove and warm axial daylight. The latest completed art pass does not authorize reopening its critic loop.
 
 - [ ] **Nomad:** run the deferred fresh art-pass after the downhill/1,500 km/h revision, including a High-quality rendering-cost pass before adding visual density.
 - [ ] **Worldkit weather/VFX unification:** consolidate the reusable parts of [Glasswake's local snow/gust layers](src/levels/glasswake/weather/index.js) and [Nomad's wheel-salt wakes](src/levels/nomad/dust.js) with the public [Worldkit weather package](../../worldkit/modules/weather/README.md). Share seeded GPU particles, wind/turbulence, fading/culling, quality budgets and resource ownership through public APIs; keep wheel-contact history, moving/stacked surfaces and racing exclusions level-owned. Match High/Low appearance, pause/seek behavior and frame cost before migrating either consumer; the current static precipitation/cover field is not a direct moving-wheel emitter.

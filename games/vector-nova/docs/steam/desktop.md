@@ -6,7 +6,7 @@ Run from `games/vector-nova` with Node 22.13+ and npm. Browser/Vite commands are
 
 |             | Demo                                                       | Full game                           |
 | ----------- | ---------------------------------------------------------- | ----------------------------------- |
-| Content     | Kestrel; Halcyon and Nacre; unlimited play                 | Four ships and all 14 courses       |
+| Content     | Kestrel; Halcyon and Nacre; unlimited play                 | Four ships and all 15 courses       |
 | Modes       | Quick Race, Practice, Time Trial/ghosts, two-race Demo Cup | Same core modes; four championships |
 | Racing      | Nine AI rivals; solo Practice/Time Trial                   | Same                                |
 | Save folder | `vector-nova-demo`                                         | `vector-nova-full`                  |

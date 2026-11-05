@@ -179,6 +179,13 @@ try {
           target.z += 140;
           camera.fov = 58;
         }
+        if (id === 'oriel') {
+          // Stay inside the habitat and show the inhabited ceiling, axial sun,
+          // lakes and circumferential route together.
+          camera.position.set(-140, 350, -1980);
+          target.set(0, 1100, 1200);
+          camera.fov = 74;
+        }
         camera.lookAt(target);
         camera.updateProjectionMatrix();
         // Let ordinary world updates relocate sky/weather around the free

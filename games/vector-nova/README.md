@@ -6,7 +6,7 @@ An anti-gravity racer built with Three.js and Vite, playable in the browser or a
 
 The full game on `main` includes:
 
-- Fourteen courses, including three downhill sprints; four player ships and nine physical AI rivals.
+- Fifteen courses, including three downhill sprints; four player ships and nine physical AI rivals.
 - Quick Race, four saved championships, Time Trial and Practice. Time Trials use stock ships, manual boost and local standing/flying records with personal ghosts.
 - Twenty-eight career rewards: permanent enhancements, ship unlocks, six equipped abilities and Quad Core. Road devices add automatic boost, shields and combat during races and practice.
 - A manual Start screen, three named career slots, dedicated Race/Garage pages, save export/import, shared Settings and a persistent Tunes player.
@@ -18,6 +18,8 @@ Blue Hour is the startup track. Pausing music on the startup screens is remember
 Eliminator, Interceptor and Freestyle work exists in separate review branches. It is not part of this `main` build; see the [roadmap](ROADMAP.md) for integration and remaining work.
 
 This development branch also includes the playable [Ravel solar-sail circuit](docs/levels/ravel.md): a 13.5 km closed circuit with moving sail waves, three interwoven routes and a giant transfer. Development previews support direct section practice, free-camera inspection and art review.
+
+Oriel adds a 9.34 km medium circuit inside an inhabited cylindrical world, with planted promenade/orchard chicanes, a spatial garden corkscrew, a complete wall climb and ceiling inversion, two composed waterfront quarters, connected civic promenades, Worldkit gardens and two physical transfers with guided launch approaches. Its local centrifugal flight field points outward from the habitat axis; the full game includes it while the demo and original championship requirements retain their existing scope.
 
 ## Run and check
 

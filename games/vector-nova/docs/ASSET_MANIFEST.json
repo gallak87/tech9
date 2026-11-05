@@ -2,6 +2,61 @@
   "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "oriel-inward-world",
+      "source": "src/levels/oriel/ and assets/levels/oriel/",
+      "creator": "VECTOR//NOVA project contributors; original concept generated with built-in imagegen",
+      "provenance": "Original cylindrical-habitat circuit with winding S-bends, a spatial 360-degree garden corkscrew, wall climb and ceiling inversion, two native open transfers and a target-independent outward flight field. Five planted chicanes and paired launch guides share exact rendered/native faces, local lane bounds and rival previews. The original Blender civic kit retains all-sided full/Far gallery families, planted-roof sockets, footprint bounds, editable source and reproducible export hashes. Authored legacy ground retains seventeen terrace recipes, exact CPU seating heights and route guides. Two separately authored quarters join a lakeside canal/loggia and stepped housing to a contrasting low Waterside market, sunken court, basin, founded paths and stairs. A contour-garden carrier follows exact legacy triangles with smooth exported normals, canonical borrowed terrain material/UVs, a mature crescent grove and seated pavilion arrival; buried foundation geometry remains in editable source. Asset records retain actual face support, route/lake clearance, planting sockets and lifecycle guards. Level-owned reservoirs/quays, connected promenades, viaduct piers, Sunline gates, corkscrew load spines, endcaps and axial sun complete the world. Gardens consume the public Worldkit Living Forest geometry and canonical bark/foliage imagery, including one consumer-owned simplified wood tier. Independently decoded Helion ceramic KTX2 maps borrow the registered CC0 Concrete034 substrate. The original generated concept and exact prompt are retained as reference only and never rendered as scenery.",
+      "rights": "Original code, authored geometry and Blender models; generated original reference and Worldkit bark/foliage imagery; existing registered CC0-1.0 Concrete034 substrate.",
+      "runtimeDependencies": [
+        "three",
+        "@dimforge/rapier3d-compat",
+        "@worldkit/environment/living-forest"
+      ],
+      "provenanceRecords": [
+        "assets/levels/oriel/reference/provenance.json",
+        "assets/levels/oriel/blender/civic-kit-manifest.json",
+        "assets/levels/oriel/blender/ground/ground-provenance.json",
+        "assets/levels/oriel/blender/garden-quarter/manifest.json",
+        "assets/levels/oriel/blender/shore-quarter/manifest.json",
+        "assets/levels/oriel/blender/garden-sector/manifest.json",
+        "../../worldkit/modules/living-forest/assets/provenance.json",
+        "assets/levels/helion/ceramic/provenance.json"
+      ],
+      "promptRecords": ["assets/levels/oriel/reference/original-prompt.txt"],
+      "runtimeAssets": [
+        "public/assets/levels/oriel/oriel-civic-kit.glb",
+        "public/assets/levels/oriel/oriel-ground.glb",
+        "public/assets/levels/oriel/oriel-garden-quarter.glb",
+        "public/assets/levels/oriel/oriel-shore-quarter.glb",
+        "public/assets/levels/oriel/oriel-garden-sector.glb",
+        "public/assets/levels/helion/ceramic/color.ktx2",
+        "public/assets/levels/helion/ceramic/normal.ktx2",
+        "public/assets/levels/helion/ceramic/arm.ktx2",
+        "public/assets/menu/oriel.webp"
+      ],
+      "sourceAssets": [
+        "assets/levels/oriel/reference/oriel-original.png",
+        "assets/levels/oriel/blender/build_civic_kit.py",
+        "assets/levels/oriel/blender/civic-kit.blend",
+        "assets/levels/oriel/blender/ground/export_route_guides.mjs",
+        "assets/levels/oriel/blender/ground/build_ground.py",
+        "assets/levels/oriel/blender/ground/oriel-ground.blend",
+        "assets/levels/oriel/blender/ground/height-field.json",
+        "assets/levels/oriel/blender/ground/route-guides.json",
+        "assets/levels/oriel/blender/garden-quarter/build_garden_quarter.py",
+        "assets/levels/oriel/blender/garden-quarter/export_garden_guides.mjs",
+        "assets/levels/oriel/blender/garden-quarter/road-guides.json",
+        "assets/levels/oriel/blender/garden-quarter/garden-quarter.blend",
+        "assets/levels/oriel/blender/shore-quarter/build_shore_quarter.py",
+        "assets/levels/oriel/blender/shore-quarter/export_shore_guides.mjs",
+        "assets/levels/oriel/blender/shore-quarter/road-guides.json",
+        "assets/levels/oriel/blender/shore-quarter/shore-quarter.blend",
+        "assets/levels/oriel/blender/garden-sector/build_garden_sector.py",
+        "assets/levels/oriel/blender/garden-sector/route-guides.json",
+        "assets/levels/oriel/blender/garden-sector/garden-sector.blend"
+      ]
+    },
+    {
       "id": "nomad-moving-convoy",
       "source": "src/levels/nomad/ and assets/levels/nomad/",
       "creator": "VECTOR//NOVA project contributors and built-in imagegen",

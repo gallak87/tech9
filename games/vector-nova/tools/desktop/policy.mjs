@@ -16,6 +16,7 @@ export const fullLevels = [
   'worldspire',
   'nightweir',
   'colossus',
+  'oriel',
 ];
 export function editionPolicy(edition) {
   if (!['demo', 'full'].includes(edition))

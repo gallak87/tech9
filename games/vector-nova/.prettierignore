@@ -27,3 +27,8 @@ assets/levels/nomad/blender/saltwind-gallery/saltwind-gallery-collision.json
 assets/levels/nomad/blender/wallride-service/wallride-service-collision.json
 assets/levels/nomad/blender/salt-escarpments/salt-escarpments-collision.json
 assets/levels/nomad/blender/salt-escarpments/salt-ground-guides.json
+assets/levels/oriel/blender/ground/height-field.json
+assets/levels/oriel/blender/ground/route-guides.json
+assets/levels/oriel/blender/garden-quarter/road-guides.json
+assets/levels/oriel/blender/shore-quarter/road-guides.json
+assets/levels/oriel/blender/garden-sector/route-guides.json

@@ -179,6 +179,48 @@ export function captureInitial(state, runtime, dynamics = null) {
     }),
   );
 }
+
+/** A level may choose a supported manual reset and supply an authored transfer.
+ * Race validation still owns checkpoint credit; manual recovery invalidates the
+ * attempt exactly as it does on ordinary circuits. */
+export function recoverSession({ state, runtime, race }) {
+  const target = runtime.manualRecoveryTarget?.(state);
+  if (
+    target &&
+    (!Number.isFinite(target.distance) ||
+      !Number.isFinite(target.speed) ||
+      target.speed < 0)
+  )
+    throw new Error('Manual recovery requires a finite supported target.');
+  const fallback = race.recover();
+  const events = target?.transfer ? [target.transfer] : [];
+  if (events.length)
+    events.push(...race.step(state.distance, target.distance, 0, events));
+  Object.assign(state, {
+    distance: target?.distance ?? fallback,
+    lateral: 0,
+    heading: 0,
+    steeringHeading: 0,
+    lateralSpeed: 0,
+    speed: target?.speed ?? 0,
+    steer: 0,
+    boosting: false,
+  });
+  return events;
+}
+
+// A moving grid can play a pre-roll into its deterministic start phase while
+// the race, input log, reserve and simulation time remain untouched.
+export function stageSessionCountdown(
+  { state, runtime, racers = null },
+  phase,
+) {
+  if (typeof runtime.stageCountdown !== 'function') return;
+  runtime.stageCountdown(state, phase);
+  for (const opponent of racers?.opponents ?? [])
+    opponent.runtime.stageCountdown?.(opponent.state, phase);
+}
+
 export function restoreReplayInitial(
   initial,
   expected,

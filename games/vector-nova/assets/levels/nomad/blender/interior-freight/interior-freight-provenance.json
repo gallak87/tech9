@@ -1,0 +1,153 @@
+{
+  "title": "Nomad Procession / Freight Cathedral suspended heavy-freight crane installation",
+  "generator": "Original connected Blender component assembly; paired roof runways, formed crane bridges, bronze hoists, taut lifting stays and three reinforced oxide freight shells.",
+  "source": "build_interior_freight.py",
+  "blend": "interior-freight.blend",
+  "runtimeAsset": "public/assets/levels/nomad/interior-freight.glb",
+  "collision": "interior-freight-collision.json",
+  "coordinates": "+Y up, +Z bow, metres; attach root unchanged to nomad-freight-cathedral with its existing scale, static pitch and translation.",
+  "rights": "Project-authored geometry and exact existing Nomad material aliases; no external models, textures or baked lighting.",
+  "reference": "../../reference/nomad-procession-original.png",
+  "sourceHull": "../carrier-collision.json",
+  "prototypes": [
+    {
+      "name": "nomad_interior_freight",
+      "triangles": 10760,
+      "collisionTriangles": 10760,
+      "materialBatches": 4,
+      "bounds": {
+        "min": [-44.75, 96.050003, 71.5],
+        "max": [44.75, 127.050003, 259.5]
+      },
+      "actualHullSeats": [
+        {
+          "name": "ceiling runway seat -1 0",
+          "position": [-40.0, 125.69999694824219, 78.0],
+          "normal": [0.0, -0.9999999403953552, 0.0],
+          "sourceTriangle": 10229
+        },
+        {
+          "name": "ceiling runway seat -1 1",
+          "position": [-40.0, 125.69999694824219, 106.0],
+          "normal": [0.0, -0.9999999403953552, 0.0],
+          "sourceTriangle": 10339
+        },
+        {
+          "name": "ceiling runway seat -1 2",
+          "position": [-40.0, 125.69999694824219, 137.0],
+          "normal": [0.0, -0.9999999403953552, 0.0],
+          "sourceTriangle": 10339
+        },
+        {
+          "name": "ceiling runway seat -1 3",
+          "position": [-40.0, 125.69999694824219, 169.0],
+          "normal": [0.0, -1.0, 0.0],
+          "sourceTriangle": 10889
+        },
+        {
+          "name": "ceiling runway seat -1 4",
+          "position": [-40.0, 125.69999694824219, 201.0],
+          "normal": [0.0, -1.0, 0.0],
+          "sourceTriangle": 10999
+        },
+        {
+          "name": "ceiling runway seat -1 5",
+          "position": [-40.0, 125.69999694824219, 231.0],
+          "normal": [0.0, -1.0, 0.0],
+          "sourceTriangle": 10999
+        },
+        {
+          "name": "ceiling runway seat -1 6",
+          "position": [-40.0, 126.80000305175781, 247.0],
+          "normal": [0.0, -1.0, 0.0],
+          "sourceTriangle": 12366
+        },
+        {
+          "name": "ceiling runway seat 1 0",
+          "position": [40.0, 125.69999694824219, 78.0],
+          "normal": [0.0, -0.9999999403953552, 0.0],
+          "sourceTriangle": 10669
+        },
+        {
+          "name": "ceiling runway seat 1 1",
+          "position": [40.0, 125.69999694824219, 106.0],
+          "normal": [0.0, -0.9999999403953552, 0.0],
+          "sourceTriangle": 10779
+        },
+        {
+          "name": "ceiling runway seat 1 2",
+          "position": [40.0, 125.69999694824219, 137.0],
+          "normal": [0.0, -0.9999999403953552, 0.0],
+          "sourceTriangle": 10779
+        },
+        {
+          "name": "ceiling runway seat 1 3",
+          "position": [40.0, 125.69999694824219, 169.0],
+          "normal": [0.0, -1.0, 0.0],
+          "sourceTriangle": 11329
+        },
+        {
+          "name": "ceiling runway seat 1 4",
+          "position": [40.0, 125.69999694824219, 201.0],
+          "normal": [0.0, -1.0, 0.0],
+          "sourceTriangle": 11439
+        },
+        {
+          "name": "ceiling runway seat 1 5",
+          "position": [40.0, 125.69999694824219, 231.0],
+          "normal": [0.0, -1.0, 0.0],
+          "sourceTriangle": 11439
+        },
+        {
+          "name": "ceiling runway seat 1 6",
+          "position": [40.0, 126.80000305175781, 247.0],
+          "normal": [0.0, -1.0, 0.0],
+          "sourceTriangle": 12366
+        }
+      ]
+    }
+  ],
+  "freight": [
+    {
+      "name": "port offset transformer freight",
+      "x": -18,
+      "z": 110,
+      "width": 44,
+      "depth": 40,
+      "bottom": 97.8,
+      "height": 12.4
+    },
+    {
+      "name": "starboard suspended heavy freight",
+      "x": 18,
+      "z": 172,
+      "width": 46,
+      "depth": 42,
+      "bottom": 97.0,
+      "height": 13.4
+    },
+    {
+      "name": "central broad process freight",
+      "x": -2,
+      "z": 234,
+      "width": 52,
+      "depth": 32,
+      "bottom": 98.4,
+      "height": 12.0
+    }
+  ],
+  "clearance": "The complete installation stays at or above Y96 in its original carrier local frame; actual road/camera and native-flight validation is performed against the exported triangles.",
+  "materials": [
+    "Nomad / warm ivory armour",
+    "Nomad / navy structural steel",
+    "Nomad / rubbed warm alloy",
+    "Nomad / oxide freight enamel"
+  ],
+  "hashes": {
+    "build_interior_freight.py": "4219f54dfe22d159d5be372f5e323f657429315b4ac46d9cc77b091beb92c916",
+    "interior-freight.blend": "716a848178fc264ccfc9210265da933f8cbad8188ab1e8a01df7819324183145",
+    "interior-freight.glb": "07b511b06905a4ea924bdeddcaaf67f1d20215363fedaea19305e455fd526cad",
+    "interior-freight-collision.json": "d34189433cea47897909d6f3b06209242f63f0eec6608f0e224bfc56c40b3888",
+    "carrier-collision.json": "550021843249dcda8199c0727a058c80a59dbefe68d79cd77315484dc4281204"
+  }
+}

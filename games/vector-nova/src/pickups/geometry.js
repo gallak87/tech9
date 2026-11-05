@@ -526,6 +526,7 @@ export function createDeviceGeometry(
   );
   if (arch.children.length) group.add(arch);
   const archBounds = new THREE.Box3().setFromObject(arch);
+  const movingArchBounds = archBounds.clone();
   group.userData.deviceId = device.id;
   const edgeLight = createDeviceSignal(
     { ...device, length },
@@ -564,12 +565,14 @@ export function createDeviceGeometry(
     archMaterials,
     activate: edgeLight.activate,
     reset: edgeLight.reset,
-    updateCamera(camera, shipPosition) {
+    updateCamera(camera, shipPosition, translation = null) {
       if (!arch.children.length) return;
       const opacity = archVisibility(
         camera?.position,
         shipPosition,
-        archBounds,
+        translation
+          ? movingArchBounds.copy(archBounds).translate(translation)
+          : archBounds,
       );
       arch.visible = opacity > 0.001;
       for (const mesh of arch.children) {

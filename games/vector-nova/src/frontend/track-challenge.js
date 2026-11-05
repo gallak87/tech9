@@ -16,6 +16,8 @@ const challenges = {
   worldspire: 'Medium',
   nightweir: 'Medium',
   colossus: 'Hard',
+  ravel: 'Hard',
+  nomad: 'Hard',
 };
 
 export const trackChallenge = (id) =>

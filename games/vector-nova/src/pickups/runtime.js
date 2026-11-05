@@ -195,6 +195,14 @@ export function createDeviceRuntime({
     ...(motion.launch
       ? { launch: (state, setup) => motion.launch(state, setup) }
       : {}),
+    ...(typeof motion.stageCountdown === 'function'
+      ? {
+          stageCountdown: (state, phase) => motion.stageCountdown(state, phase),
+        }
+      : {}),
+    ...(typeof motion.manualRecoveryTarget === 'function'
+      ? { manualRecoveryTarget: (state) => motion.manualRecoveryTarget(state) }
+      : {}),
     advance(state, input, dt) {
       if (disposed || !Number.isFinite(dt) || dt <= 0) return [];
       if (!enabled) return motion.advance(state, input, dt);

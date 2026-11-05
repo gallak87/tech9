@@ -1,0 +1,455 @@
+{
+  "version": 1,
+  "geometryVersion": "nomad-convoy-salt-terraces-v5-roomy-powered-straights",
+  "meaning": "Final rest-world coordinates, +Y up and +Z course. The exact profile extrusion is static. Only separately named scarp details translate with the ground group.",
+  "saltPlane": {
+    "height": 525,
+    "grade": 0.18
+  },
+  "saltBenches": [
+    {
+      "id": "nomad-salt-shelf-1",
+      "minX": -600,
+      "maxX": 162.17517882501187,
+      "heightOffset": 0,
+      "carrierIds": [
+        "nomad-tailforge",
+        "nomad-shoulder-ascent"
+      ]
+    },
+    {
+      "id": "nomad-salt-shelf-2",
+      "minX": 197.5,
+      "maxX": 426.5,
+      "heightOffset": -112.5,
+      "carrierIds": [
+        "nomad-high-balcony"
+      ]
+    },
+    {
+      "id": "nomad-salt-shelf-3",
+      "minX": 506.27068903606244,
+      "maxX": 941.05,
+      "heightOffset": -180,
+      "carrierIds": [
+        "nomad-portside-dive",
+        "nomad-freight-cathedral",
+        "nomad-overtaking-wall"
+      ]
+    },
+    {
+      "id": "nomad-salt-shelf-4",
+      "minX": 1022.5,
+      "maxX": 1485.5,
+      "heightOffset": -345,
+      "carrierIds": [
+        "nomad-passing-deck",
+        "nomad-lower-hold",
+        "nomad-crane-alley",
+        "nomad-saltwind"
+      ]
+    },
+    {
+      "id": "nomad-salt-shelf-5",
+      "minX": 1588,
+      "maxX": 1817,
+      "heightOffset": -510,
+      "carrierIds": [
+        "nomad-terminus"
+      ]
+    }
+  ],
+  "convoy": [
+    {
+      "id": "nomad-tailforge",
+      "origin": [
+        0,
+        444,
+        450
+      ],
+      "quaternion": [
+        0.08892883679185483,
+        0,
+        0,
+        0.9960379822009037
+      ],
+      "scale": [
+        0.75,
+        0.75,
+        1.0499999999999998
+      ]
+    },
+    {
+      "id": "nomad-shoulder-ascent",
+      "origin": [
+        24,
+        284.15999999999997,
+        1338
+      ],
+      "quaternion": [
+        0.08892883679185483,
+        0,
+        0,
+        0.9960379822009037
+      ],
+      "scale": [
+        0.75,
+        0.75,
+        1.0499999999999998
+      ]
+    },
+    {
+      "id": "nomad-high-balcony",
+      "origin": [
+        312,
+        -66.75,
+        2662.5
+      ],
+      "quaternion": [
+        0.08892883679185483,
+        0,
+        0,
+        0.9960379822009037
+      ],
+      "scale": [
+        0.75,
+        0.75,
+        1.35
+      ]
+    },
+    {
+      "id": "nomad-portside-dive",
+      "origin": [
+        663,
+        -486.8699999999999,
+        4621.5
+      ],
+      "quaternion": [
+        0.08892883679185483,
+        0,
+        0,
+        0.9960379822009037
+      ],
+      "scale": [
+        0.75,
+        0.75,
+        2.7
+      ]
+    },
+    {
+      "id": "nomad-freight-cathedral",
+      "origin": [
+        625.5,
+        -763.6199999999999,
+        6159
+      ],
+      "quaternion": [
+        0.08892883679185483,
+        0,
+        0,
+        0.9960379822009037
+      ],
+      "scale": [
+        0.75,
+        0.75,
+        1.0499999999999998
+      ]
+    },
+    {
+      "id": "nomad-overtaking-wall",
+      "origin": [
+        631.5,
+        -927.5099999999999,
+        7069.5
+      ],
+      "quaternion": [
+        0.08892883679185483,
+        0,
+        0,
+        0.9960379822009037
+      ],
+      "scale": [
+        0.75,
+        0.75,
+        1.0499999999999998
+      ]
+    },
+    {
+      "id": "nomad-passing-deck",
+      "origin": [
+        1149,
+        -1364.13,
+        8578.5
+      ],
+      "quaternion": [
+        0.08892883679185483,
+        0,
+        0,
+        0.9960379822009037
+      ],
+      "scale": [
+        0.75,
+        0.75,
+        2.4000000000000004
+      ]
+    },
+    {
+      "id": "nomad-lower-hold",
+      "origin": [
+        1171.5,
+        -1620.3600000000001,
+        10002
+      ],
+      "quaternion": [
+        0.08892883679185483,
+        0,
+        0,
+        0.9960379822009037
+      ],
+      "scale": [
+        0.75,
+        0.75,
+        1.0499999999999998
+      ]
+    },
+    {
+      "id": "nomad-crane-alley",
+      "origin": [
+        1137,
+        -1784.25,
+        10912.5
+      ],
+      "quaternion": [
+        0.08892883679185483,
+        0,
+        0,
+        0.9960379822009037
+      ],
+      "scale": [
+        0.75,
+        0.75,
+        1.0499999999999998
+      ]
+    },
+    {
+      "id": "nomad-saltwind",
+      "origin": [
+        1165.5,
+        -1948.1399999999999,
+        11823
+      ],
+      "quaternion": [
+        0.08892883679185483,
+        0,
+        0,
+        0.9960379822009037
+      ],
+      "scale": [
+        0.75,
+        0.75,
+        1.0499999999999998
+      ]
+    },
+    {
+      "id": "nomad-terminus",
+      "origin": [
+        1702.5,
+        -2446.05,
+        13672.5
+      ],
+      "quaternion": [
+        0.08892883679185483,
+        0,
+        0,
+        0.9960379822009037
+      ],
+      "scale": [
+        0.75,
+        0.75,
+        2.0999999999999996
+      ]
+    },
+    {
+      "id": "nomad-companion-port-tender",
+      "origin": [
+        -420,
+        341.4,
+        1020
+      ],
+      "quaternion": [
+        0.08892883679185483,
+        0,
+        0,
+        0.9960379822009037
+      ],
+      "scale": [
+        0.8250000000000001,
+        0.8250000000000001,
+        1.1549999999999998
+      ]
+    },
+    {
+      "id": "nomad-companion-starboard-heavy",
+      "origin": [
+        819,
+        -1271.1299999999999,
+        8978.5
+      ],
+      "quaternion": [
+        0.08892883679185483,
+        0,
+        0,
+        0.9960379822009037
+      ],
+      "scale": [
+        0.855,
+        0.855,
+        2.736
+      ]
+    }
+  ],
+  "groundProfileKnots": [
+    {
+      "x": -80000,
+      "heightOffset": 0
+    },
+    {
+      "x": -600,
+      "heightOffset": 0
+    },
+    {
+      "x": 162.17517882501187,
+      "heightOffset": 0
+    },
+    {
+      "x": 197.5,
+      "heightOffset": -112.5
+    },
+    {
+      "x": 426.5,
+      "heightOffset": -112.5
+    },
+    {
+      "x": 506.27068903606244,
+      "heightOffset": -180
+    },
+    {
+      "x": 941.05,
+      "heightOffset": -180
+    },
+    {
+      "x": 1022.5,
+      "heightOffset": -345
+    },
+    {
+      "x": 1485.5,
+      "heightOffset": -345
+    },
+    {
+      "x": 1588,
+      "heightOffset": -510
+    },
+    {
+      "x": 1817,
+      "heightOffset": -510
+    },
+    {
+      "x": 80000,
+      "heightOffset": -510
+    }
+  ],
+  "staticDomain": {
+    "minX": -80000,
+    "maxX": 80000,
+    "minZ": -80000,
+    "maxZ": 80000
+  },
+  "detailedFloorDomain": {
+    "minZ": -8000,
+    "maxZ": 32000
+  },
+  "detailCoverage": {
+    "minZ": -8000,
+    "maxZ": 93000,
+    "courseMaxZ": 15623.818452132617,
+    "forwardDistance": 14000,
+    "groundTravel": 62499.99999999999
+  },
+  "detailShape": {
+    "maxLongitudinalStep": 300,
+    "crestLength": 5200,
+    "shoulderLength": 2100,
+    "gullyPeriod": 7200,
+    "fadeLength": 1500
+  },
+  "detailBands": [
+    {
+      "id": "salt-riser-1",
+      "minX": 163.58817167201138,
+      "maxX": 196.08700715300049,
+      "minZ": -8000,
+      "maxZ": 93000,
+      "centerZ": 42500,
+      "length": 101000,
+      "relief": 45,
+      "phase": 0,
+      "fromBench": "nomad-salt-shelf-1",
+      "toBench": "nomad-salt-shelf-2",
+      "encounterDistance": 2237.1380921716473,
+      "encounterTime": 15.979557801226052
+    },
+    {
+      "id": "salt-riser-2",
+      "minX": 428.5,
+      "maxX": 504.27068903606244,
+      "minZ": -8000,
+      "maxZ": 93000,
+      "centerZ": 42500,
+      "length": 101000,
+      "relief": 27,
+      "phase": 1.7,
+      "fromBench": "nomad-salt-shelf-2",
+      "toBench": "nomad-salt-shelf-3",
+      "encounterDistance": 3853.0846364845765,
+      "encounterTime": 27.522033117746975
+    },
+    {
+      "id": "salt-riser-3",
+      "minX": 943.05,
+      "maxX": 1020.5,
+      "minZ": -8000,
+      "maxZ": 93000,
+      "centerZ": 42500,
+      "length": 101000,
+      "relief": 66,
+      "phase": 3.4,
+      "fromBench": "nomad-salt-shelf-3",
+      "toBench": "nomad-salt-shelf-4",
+      "encounterDistance": 8345.504386771825,
+      "encounterTime": 59.61074561979875
+    },
+    {
+      "id": "salt-riser-4",
+      "minX": 1487.5,
+      "maxX": 1586,
+      "minZ": -8000,
+      "maxZ": 93000,
+      "centerZ": 42500,
+      "length": 101000,
+      "relief": 66,
+      "phase": 5.1,
+      "fromBench": "nomad-salt-shelf-4",
+      "toBench": "nomad-salt-shelf-5",
+      "encounterDistance": 14027.665242337243,
+      "encounterTime": 100.19760887383745
+    }
+  ],
+  "detailMotion": {
+    "convoySpeed": 416.66666666666663,
+    "encounterSpeed": 140,
+    "coverageClock": {
+      "min": 0,
+      "max": 150
+    }
+  }
+}

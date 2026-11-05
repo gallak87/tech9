@@ -104,7 +104,7 @@ test('Orbital menu records use the production identity rather than its shape stu
 
 test('the full desktop catalogue and every championship resolve to the active worlds', async () => {
   const policy = editionPolicy('full');
-  const routes = await menuCatalog({ warn() {} });
+  const routes = await menuCatalog({ levelIds: policy.levels, warn() {} });
   assert.equal(routes.length, 14);
   assert.deepEqual(
     new Set(policy.levels),
@@ -120,4 +120,14 @@ test('the full desktop catalogue and every championship resolve to the active wo
   for (const cup of ALL_CUPS)
     for (const id of cup.tracks)
       assert.ok(policy.levels.includes(id), `${cup.name}: ${id}`);
+});
+
+test('the development catalogue exposes Ravel without adding the greybox to release editions', async () => {
+  const routes = await menuCatalog({ warn() {} });
+  const ravel = routes.find((route) => route.id === 'ravel');
+  assert.ok(ravel);
+  assert.equal(ravel.closed, true);
+  assert.ok(ravel.length >= 12000 && ravel.length <= 13500);
+  for (const edition of ['demo', 'full'])
+    assert.equal(editionPolicy(edition).levels.includes('ravel'), false);
 });

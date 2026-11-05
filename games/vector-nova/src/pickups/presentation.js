@@ -1,13 +1,9 @@
 import * as THREE from 'three';
 import { isCombatDevice, COMBAT_RULES } from './combat.js';
-import { createCombatDeviceGeometry, COMBAT_NAMES } from './combat-geometry.js';
+import { COMBAT_NAMES } from './combat-geometry.js';
 import { createCombatPresentation } from './combat-presentation.js';
-import {
-  createRoadProjector,
-  createDeviceGeometry,
-  disposeGroup,
-} from './geometry.js';
-import { collectRoadSurfaces, roadDeviceMountHeight } from './device-mount.js';
+import { disposeGroup } from './geometry.js';
+import { collectRoadSurfaces } from './device-mount.js';
 import { createPickupAudio } from './audio.js';
 import { deviceCSSColor } from './theme.js';
 import { createShipFeedbackPresentation } from './ship-feedback.js';
@@ -16,7 +12,7 @@ import { createHitFeedback } from './hit-feedback.js';
 import { createCombatScreenFeedback } from './combat-screen-feedback.js';
 import { createSurfaceProjector } from './surface-projector.js';
 import { pickupQuality } from './quality.js';
-import { createLowDeviceGeometry } from './low-geometry.js';
+import { createDeviceHardware, deviceGeometryTrack } from './hardware.js';
 import { createReadoutAnchor } from './readout-anchor.js';
 import './style.css';
 
@@ -98,30 +94,14 @@ export function createPickupPresentation({
   let hardware = [];
   function buildHardware() {
     for (const visual of hardware) disposeGroup(visual.group);
-    const projector =
-      track.deviceProjection === 'rendered-surface'
-        ? createSurfaceProjector(track, surfaces)
-        : createRoadProjector(track);
-    hardware = devices.map((device) => {
-      const mountHeight =
-        track.deviceProjection === 'rendered-surface'
-          ? 0
-          : roadDeviceMountHeight(surfaces, device, projector);
-      const createGeometry =
-        quality === 'low'
-          ? createLowDeviceGeometry
-          : isCombatDevice(device.type)
-            ? createCombatDeviceGeometry
-            : createDeviceGeometry;
-      const visual = createGeometry(track, device, projector, { mountHeight });
-      root.add(visual.group);
-      return { ...visual, device };
-    });
-    projector.dispose();
+    hardware = createDeviceHardware({ track, surfaces, devices, quality });
+    for (const visual of hardware) root.add(visual.group);
   }
   buildHardware();
   const combatProjector = combat
-    ? createSurfaceProjector(track, surfaces)
+    ? createSurfaceProjector(deviceGeometryTrack(track), surfaces, {
+        nominal: typeof track.deviceMotionAt === 'function',
+      })
     : null;
   const combatVisual = combat
     ? createCombatPresentation(scene, combat, settings, {
@@ -477,7 +457,12 @@ export function createPickupPresentation({
         hud.style.top = Math.max(110, Math.min(height - 70, y)) + 'px';
       }
       for (const visual of hardware) {
-        visual.updateCamera(camera, (ship.group || ship).position);
+        visual.updateMotion?.();
+        visual.updateCamera(
+          camera,
+          (ship.group || ship).position,
+          track.deviceMotionAt ? visual.group.position : null,
+        );
         const lap = Math.floor((vehicle?.distance || 0) / track.length);
         visual.setAvailable(
           (effects.used?.[visual.device.id] ?? -Infinity) < lap ||

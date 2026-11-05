@@ -1,0 +1,10 @@
+{
+  "generator": "OpenAI built-in imagegen",
+  "createdDate": "2026-11-02",
+  "purpose": "Original Nomad Procession concept reference; not a gameplay capture.",
+  "image": "nomad-procession-original.png",
+  "sha256": "5a961fb83dbdcd16629dfaf7c99f9c7ab3292c98c9b785793033156f5de7ce07",
+  "exactPrompt": "original-prompt.txt",
+  "recoveredFrom": "Original concept tool call in this chat, 2026-11-02.",
+  "direction": "User supplied this reference again and authorized the finished 12\u201313 km downhill level on the Ravel worktree, with moving receiving decks and cargo-bay traversal."
+}

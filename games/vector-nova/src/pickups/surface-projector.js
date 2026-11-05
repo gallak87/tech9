@@ -5,11 +5,23 @@ const cross = (a, b, p) =>
 
 // Opt-in projection onto the exact rendered triangles, including transverse
 // curvature. Borrow meshes; the returned geometry belongs to each device.
-export function createSurfaceProjector(track, surfaces) {
+export function createSurfaceProjector(
+  track,
+  surfaces,
+  { nominal = false } = {},
+) {
   const buckets = new Map(),
     bucketSize = 64;
   const bounds = { minX: Infinity, maxX: -Infinity };
   for (const mesh of surfaces) {
+    const matrix =
+      nominal && mesh.userData?.motionGroup
+        ? mesh.userData.nominalMatrixWorld
+        : mesh.matrixWorld;
+    if (!matrix?.isMatrix4)
+      throw new Error(
+        'Moving road surfaces require a nominalMatrixWorld for device projection.',
+      );
     const g = mesh.geometry,
       p = g.attributes.position,
       c = g.attributes.roadCoord;
@@ -20,9 +32,7 @@ export function createSurfaceProjector(track, surfaces) {
         const n = indices ? indices.getX(i + j) : i + j;
         return {
           at: [c.getY(n), c.getX(n)],
-          p: new T.Vector3()
-            .fromBufferAttribute(p, n)
-            .applyMatrix4(mesh.matrixWorld),
+          p: new T.Vector3().fromBufferAttribute(p, n).applyMatrix4(matrix),
         };
       });
       const normal = vertices[1].p
@@ -33,6 +43,7 @@ export function createSurfaceProjector(track, surfaces) {
       const triangle = {
         vertices,
         normal,
+        motionGroup: mesh.userData?.motionGroup,
         minX: Math.min(...vertices.map((v) => v.at[0])),
         maxX: Math.max(...vertices.map((v) => v.at[0])),
         minS: Math.min(...vertices.map((v) => v.at[1])),
@@ -61,30 +72,35 @@ export function createSurfaceProjector(track, surfaces) {
       for (const triangle of buckets.get(b) ?? []) result.add(triangle);
     return result;
   };
-  function sample(distance, lateral) {
+  function surfaceAt(distance, lateral) {
     const s =
         track.closed === false
           ? T.MathUtils.clamp(distance, 0, track.length)
           : T.MathUtils.euclideanModulo(distance, track.length),
       point = [lateral, s];
-    for (const { vertices } of candidates(s, s)) {
+    for (const triangle of candidates(s, s)) {
+      const { vertices } = triangle;
       const [a, b, c] = vertices,
         area = cross(a.at, b.at, c.at);
       const u = cross(b.at, c.at, point) / area,
         v = cross(c.at, a.at, point) / area,
         w = 1 - u - v;
-      if (Math.min(u, v, w) >= -1e-6)
-        return a.p
-          .clone()
-          .multiplyScalar(u)
-          .addScaledVector(b.p, v)
-          .addScaledVector(c.p, w);
+      if (Math.min(u, v, w) >= -1e-6) return { triangle, u, v, w };
     }
     throw new Error(
       `Device footprint has no rendered surface at ${s}, ${lateral}`,
     );
   }
-  function geometry(shapes, offset = 0.08, skirt = null) {
+  function sample(distance, lateral) {
+    const { triangle, u, v, w } = surfaceAt(distance, lateral);
+    const [a, b, c] = triangle.vertices;
+    return a.p
+      .clone()
+      .multiplyScalar(u)
+      .addScaledVector(b.p, v)
+      .addScaledVector(c.p, w);
+  }
+  function geometry(shapes, offset = 0.08, skirt = null, { motionGroup } = {}) {
     const positions = [],
       normals = [],
       coordinates = [];
@@ -117,6 +133,8 @@ export function createSurfaceProjector(track, surfaces) {
           Math.max(0, low - lap * track.length),
           Math.min(track.length, high - lap * track.length),
         )) {
+          if (motionGroup !== undefined && triangle.motionGroup !== motionGroup)
+            continue;
           if (
             triangle.maxX < minX ||
             triangle.minX > maxX ||
@@ -155,6 +173,19 @@ export function createSurfaceProjector(track, surfaces) {
             for (let i = 0; i < polygon.length; i++) {
               const a = polygon[i],
                 b = polygon[(i + 1) % polygon.length];
+              if (track.deviceOutlineSkirts) {
+                // Adjacent projected triangles already meet. Internal skirts
+                // overlap on curved decks and can mask the painted surface.
+                const onOutline = shape.some((p, j) => {
+                  const q = shape[(j + 1) % shape.length];
+                  const length = Math.hypot(q[0] - p[0], q[1] - p[1]);
+                  return (
+                    Math.abs(cross(p, q, a.at)) <= length * 1e-5 &&
+                    Math.abs(cross(p, q, b.at)) <= length * 1e-5
+                  );
+                });
+                if (!onOutline) continue;
+              }
               const side = b.p.clone().sub(a.p).cross(n).normalize();
               for (const [v, lift] of [
                 [a, offset],
@@ -183,6 +214,7 @@ export function createSurfaceProjector(track, surfaces) {
   }
   return {
     sample,
+    motionGroupAt: (s, x = 0) => surfaceAt(s, x).triangle.motionGroup,
     geometry,
     frame: (s, x) => track.sampleSurface?.(s, x) ?? track.sample(s),
     dispose() {

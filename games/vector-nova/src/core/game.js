@@ -52,6 +52,8 @@ import {
   runtimeIdentity,
   compatibleRuntime,
   advanceSession,
+  stageSessionCountdown,
+  recoverSession,
   captureInitial,
   restoreReplayInitial,
   validateReplayInputs,
@@ -204,8 +206,9 @@ export async function createGame({
       }),
     );
     const { road, environment } = world;
+    let finishMarker = null;
     if (!blockout) {
-      const finishMarker = lifetime.own(
+      finishMarker = lifetime.own(
         createFinishMarker(track, definition.racing?.finishMarker),
       );
       road.add(finishMarker.group);
@@ -833,16 +836,12 @@ export async function createGame({
       if (mode !== 'racing') return;
       if (track.closed === false && race.complete)
         return restart(competition, true);
-      state.distance = race.recover();
-      state.lateral = 0;
-      state.heading = 0;
-      state.steeringHeading = 0;
-      state.lateralSpeed = 0;
-      state.speed = 0;
+      const recoveryEvents = recoverSession({ state, runtime, race });
       state.resetCount++;
       resetRuntime('manual-recover');
       prev = { ...state };
       rig.reset();
+      recoveryEvents.forEach(emit);
       emit({ type: 'recover', payload: { penalty: 'current lap invalid' } });
     }
     function home() {
@@ -1499,6 +1498,10 @@ export async function createGame({
       );
       if (mode === 'countdown') {
         const step = countdown.advance();
+        stageSessionCountdown(
+          { state, runtime, racers },
+          -countdown.snapshot().remaining,
+        );
         if (step !== null) {
           ui.setCountdown(step);
           audio.event({
@@ -1734,6 +1737,7 @@ export async function createGame({
         ship.group.position,
       );
       world.update(frame);
+      finishMarker?.update();
       if (mode === 'inspection')
         inspectionStage.render(() =>
           inspectionPipeline.render({

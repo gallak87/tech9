@@ -13,13 +13,14 @@ export function createRoadPulsePresentation(
   const pulses = new Map();
   const windows = new Map();
   const { track, projector } = projection;
+  const moving = typeof track.deviceMotionAt === 'function';
   const handles = (flash) =>
     flash.kind === 'repulsor' &&
     !flash.target &&
     flash.radius > 10 &&
     Number.isFinite(flash.distance) &&
     Number.isFinite(flash.lateral);
-  function geometry(flash, radius, ring) {
+  function geometry(flash, radius, ring, motionGroup) {
     const shapes = [];
     const { lateral: x, distance: s } = flash;
     if (ring) {
@@ -40,7 +41,7 @@ export function createRoadPulsePresentation(
         [x + radius, s + radius],
         [x - radius, s + radius],
       ]);
-    return projector.geometry(shapes, 0.16);
+    return projector.geometry(shapes, 0.16, null, { motionGroup });
   }
   function windowFor(flash) {
     // Nearby racers share a projected road window. Only the small material
@@ -49,15 +50,20 @@ export function createRoadPulsePresentation(
       track.closed === false
         ? flash.distance
         : T.MathUtils.euclideanModulo(flash.distance, track.length);
-    const key = Math.floor(s / 64);
+    const bucket = Math.floor(s / 64);
+    const motionGroup = moving
+      ? projector.motionGroupAt(s, flash.lateral)
+      : undefined;
+    const key = moving ? `${bucket}:${motionGroup}` : bucket;
     if (!windows.has(key))
       windows.set(key, {
         key,
         references: 0,
         geometry: geometry(
-          { distance: key * 64 + 32, lateral: 0 },
+          { distance: bucket * 64 + 32, lateral: 0 },
           flash.radius + 32,
           false,
+          motionGroup,
         ),
       });
     const window = windows.get(key);
@@ -101,8 +107,11 @@ export function createRoadPulsePresentation(
             ? lowMaterial(DEVICE_COLORS.repulsor, 0.8)
             : energyMaterial('road-pressure');
           const window = low ? null : windowFor(flash);
+          const motionGroup = moving
+            ? projector.motionGroupAt(flash.distance, flash.lateral)
+            : undefined;
           const mesh = new T.Mesh(
-            window?.geometry ?? geometry(flash, radius, true),
+            window?.geometry ?? geometry(flash, radius, true, motionGroup),
             material,
           );
           mesh.name = 'Repulsor / road-conforming pressure wave';
@@ -115,8 +124,18 @@ export function createRoadPulsePresentation(
             distance: flash.distance,
             lateral: flash.lateral,
             range: flash.radius,
+            motionGroup,
           };
           pulses.set(flash.id, pulse);
+        }
+        if (moving) {
+          const translation = track.deviceMotionAt(flash.distance);
+          if (
+            !translation?.isVector3 ||
+            !translation.toArray().every(Number.isFinite)
+          )
+            throw new Error('Moving road pulses require a finite translation.');
+          pulse.mesh.position.copy(translation);
         }
         const fade = Math.pow(Math.max(0, 1 - flash.age / 0.55), 1.5);
         if (low) {
@@ -124,7 +143,12 @@ export function createRoadPulsePresentation(
           // pause and the stationary fade perform no geometry work.
           if (Math.abs(radius - pulse.radius) > 0.5) {
             pulse.mesh.geometry.dispose();
-            pulse.mesh.geometry = geometry(flash, radius, true);
+            pulse.mesh.geometry = geometry(
+              flash,
+              radius,
+              true,
+              pulse.motionGroup,
+            );
             pulse.radius = radius;
           }
           pulse.mesh.material.opacity =

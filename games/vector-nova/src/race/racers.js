@@ -95,23 +95,32 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
     const jump = track.jumps?.find(
       (entry) => Math.abs(entry.takeoff - state.distance) < 1,
     );
-    const boost =
+    let boost =
       profile.flightBoost === true &&
       track.closed === false &&
       jump?.landingEnd - jump?.landingStart >= 600 &&
       state.energy >
         (state.boosting ? profile.boostFloor : profile.boostReserve);
+    const flightBoost = track.aiFlightBoost?.(state, jump, {
+      runtime: opponent.runtime,
+      defaultBoost: boost,
+      allowBoost: profile.flightBoost === true,
+    });
+    if (typeof flightBoost === 'boolean') boost = flightBoost;
     return { throttle: 1, brake: 0, steer: 0, boost, airbrake: false };
   }
   const handling = getShip(state.shipId).handling;
   const coursePace = getVehiclePace(state.shipId, track.pace);
   const speedProfile = coursePace ?? handling;
-  const surface = track.sampleSurface?.(state.distance, state.lateral);
+  const sampleSurface = (distance, lateral) =>
+    track.movingSurfaces === true && track.surfaceAtTime
+      ? track.surfaceAtTime(distance, lateral, state.time)
+      : track.sampleSurface?.(distance, lateral);
+  const surface = sampleSurface(state.distance, state.lateral);
   const frame = surface ?? track.sample(state.distance);
   const aheadDistance = state.distance + Math.max(45, state.speed * 0.65);
   const lookahead =
-    track.sampleSurface?.(aheadDistance, state.lateral) ??
-    track.sample(aheadDistance);
+    sampleSurface(aheadDistance, state.lateral) ?? track.sample(aheadDistance);
   const laneDelta = (from, to) =>
     surface?.period > 0
       ? ((((to - from + surface.period / 2) % surface.period) +
@@ -137,7 +146,10 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
     const preview = Math.max(65, state.speed * profile.brakingPreview);
     for (const fraction of [1 / 3, 2 / 3, 1]) {
       const distance = preview * fraction;
-      const future = track.sample(state.distance + distance);
+      const future =
+        (track.aiSurfacePreview
+          ? sampleSurface(state.distance + distance, state.lateral)
+          : null) ?? track.sample(state.distance + distance);
       const safeSpeed = Math.max(63, cornerLimit(future.curvature));
       cornerSpeed = Math.min(
         cornerSpeed,
@@ -245,10 +257,13 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
   const speed = Math.max(18, state.speed);
   const sidewaysLoad =
     -frame.curvature * speed * speed * 0.75 - 9.81 * frame.right.y;
+  const laneSpeedLimit = Number.isFinite(track.aiLaneSpeedLimit)
+    ? clamp(track.aiLaneSpeedLimit, 4, 30)
+    : 9;
   const targetSideways = clamp(
     laneDelta(state.lateral, targetLane) * 1.5,
-    -9,
-    9,
+    -laneSpeedLimit,
+    laneSpeedLimit,
   );
   let desiredHeading = clamp(
     Math.asin(
@@ -276,6 +291,26 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
       clamp((-state.lateralSpeed * 0.15) / speed, -0.2, 0.2),
     );
     desiredHeading += (aligned - desiredHeading) * weight;
+  }
+  const launchTarget =
+    jump &&
+    track.aiLaunchTarget?.(state, jump, {
+      runtime: opponent.runtime,
+      allowBoost: profile.flightBoost === true,
+    });
+  if (
+    launchTarget &&
+    ['x', 'y', 'z'].every((axis) => Number.isFinite(launchTarget[axis]))
+  ) {
+    const x = launchTarget.x - frame.position.x,
+      y = launchTarget.y - frame.position.y,
+      z = launchTarget.z - frame.position.z;
+    const along =
+      x * frame.tangent.x + y * frame.tangent.y + z * frame.tangent.z;
+    const across = x * frame.right.x + y * frame.right.y + z * frame.right.z;
+    // A moving receiver may need a deliberate intercept heading at the lip.
+    // This is ordinary steering through the same driver and magnetic solver.
+    if (along > 1) desiredHeading = clamp(Math.atan2(across, along), -0.5, 0.5);
   }
   const authority = (1 - STEERING_ASSIST) * 1.5 * handling.turn;
   const feedforward = (-frame.curvature * state.speed) / (1.5 * handling.turn);

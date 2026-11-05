@@ -13,6 +13,8 @@ Reviewed against `main` and the active event review branches on **2026-10-31**. 
 
 ### Integrate and review the work already in flight
 
+- [ ] **Delete the obsolete developer launcher later (user request, 2026-11-02):** retire the old title/launch panel in `src/ui/index.js`, its launcher/title-panel styles in `src/ui/style.css`, and the legacy tool-entry routing in `src/frontend/index.js` (`capture`, `review`, `test=jump`). Move any necessary test entry controls to the current frontend first. Preserve the shared racing HUD, pause/input controls and current frontend; `src/ui/index.js` and its stylesheet also own active gameplay UI.
+
 - [ ] Decide release-menu grouping and Freestyle's experimental visibility. Integrate the approved event work deliberately, including the packaged full-game course/asset policy; preserve the demo boundary and original cup/reward requirements.
 - [ ] Human playtest Eliminator cut pressure, Interceptor pursuit/boss balance and Freestyle torque, catches, five-transfer scoring and medals before production expansion or new mastery rewards.
 - [ ] Observe external players: braking/boost comprehension, finishing without coaching and voluntary replay. Separate control confusion, route readability, performance and difficulty before adding mechanics.
@@ -34,6 +36,7 @@ Reviewed against `main` and the active event review branches on **2026-10-31**. 
 
 ### Gameplay and progression
 
+- [ ] **Endgame courses — Ravel and Nomad Procession:** unlock both maps only after the current career has **won all four original cups AND reached 28/28 progression unlocks**. Implement this later on main; this merge adds the courses without the gate. Reuse saved cup wins and progression state, keep the original cup/reward requirements stable, and make the requirement clear in the course picker with keyboard/controller access.
 - [ ] **Cup run history:** design persistent completed-run records separately from the active championship. Explore showing the three best runs beneath a cup's map list; decide ranking, difficulty/ship details, ties, storage limits and save transfer before implementation. Finished cups currently show final standings, then clear when the player returns to setup or selection; earned rewards and trophies remain.
 - [ ] **Sidegrades:** prototype one weapon variant and, if useful, one propulsion specialization. Define meaningful tradeoffs, slots/cooldowns, unlocks, counterplay and complete icon/VFX/audio presentation before growing the catalogue.
 - [ ] Revisit or replace Magnetic Stabilizer if its four-second air-steering/drift assist cannot justify a distinct equipment role. Preserve stock controls and stock-build course completability.
@@ -47,6 +50,8 @@ Reviewed against `main` and the active event review branches on **2026-10-31**. 
 
 ### Worlds, effects and presentation
 
+- [ ] **Nomad:** run the deferred fresh art-pass after the downhill/1,500 km/h revision, including a High-quality rendering-cost pass before adding visual density.
+- [ ] **Worldkit weather/VFX unification:** consolidate the reusable parts of [Glasswake's local snow/gust layers](src/levels/glasswake/weather/index.js) and [Nomad's wheel-salt wakes](src/levels/nomad/dust.js) with the public [Worldkit weather package](../../worldkit/modules/weather/README.md). Share seeded GPU particles, wind/turbulence, fading/culling, quality budgets and resource ownership through public APIs; keep wheel-contact history, moving/stacked surfaces and racing exclusions level-owned. Match High/Low appearance, pause/seek behavior and frame cost before migrating either consumer; the current static precipitation/cover field is not a direct moving-wheel emitter.
 - [ ] Human driving review of Worldspire and Nightweir, including their jumps, corkscrews, distance-linked Awakening/Floodgates events and braking runouts. Production implementation does not close that review.
 - [ ] Review Saffron surroundings/clearance against its canonical 40 m roadway. Scope Umbra's adjacent scenery, supports and observatory against its canonical 35 m roadway.
 - [ ] **Cindercoil:** add player-facing lava-contact flames and lingering ship/HUD smoke or heat feedback. Crater-spill glow and road-contact smoke exist; reuse suitable Helion effects.

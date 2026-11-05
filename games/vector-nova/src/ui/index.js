@@ -532,8 +532,10 @@ export function createUI(
   for (let s = 0; s < track.length; s += track.length / 180)
     points.push(track.sample(s).position.clone());
   if (sprint) points.push(track.sample(track.length).position.clone());
-  const xs = points.map((p) => p.x),
-    zs = points.map((p) => p.z),
+  const mapPaths = track.mapPaths ?? [{ points, closed: !sprint }];
+  const allMapPoints = mapPaths.flatMap((path) => path.points);
+  const xs = allMapPoints.map((p) => p.x),
+    zs = allMapPoints.map((p) => p.z),
     minX = Math.min(...xs),
     minZ = Math.min(...zs),
     scale = Math.min(
@@ -849,13 +851,16 @@ export function createUI(
       ctx.clearRect(0, 0, 200, 150);
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = '#dbe8e1cc';
-      ctx.beginPath();
-      points.forEach((p, i) => {
-        const [x, y] = coord(p);
-        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-      });
-      if (!sprint) ctx.closePath();
-      ctx.stroke();
+      for (const path of mapPaths) {
+        ctx.strokeStyle = path.color ?? '#dbe8e1cc';
+        ctx.beginPath();
+        path.points.forEach((p, i) => {
+          const [x, y] = coord(p);
+          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        });
+        if (path.closed) ctx.closePath();
+        ctx.stroke();
+      }
       const dot = (position, color, radius, player = false) => {
         const [x, y] = coord(position);
         ctx.fillStyle = color;
@@ -887,8 +892,14 @@ export function createUI(
           (entry) => entry.id !== 'player',
         )) {
           const frame = track.sample(rival.distance);
+          const surface = track.mapPaths
+            ? track.sampleSurface?.(rival.distance, rival.lateral)
+            : null;
           dot(
-            frame.position.clone().addScaledVector(frame.right, rival.lateral),
+            surface?.position ??
+              frame.position
+                .clone()
+                .addScaledVector(frame.right, rival.lateral),
             racerColors[rival.id],
             3.5,
           );
@@ -898,7 +909,9 @@ export function createUI(
       dot(
         world
           ? { x: world[0], z: world[2] }
-          : track.sample(s.distance).position,
+          : ((track.mapPaths
+              ? track.sampleSurface?.(s.distance, s.lateral)?.position
+              : null) ?? track.sample(s.distance).position),
         racerColors.player,
         4,
         true,

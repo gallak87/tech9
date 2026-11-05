@@ -18,3 +18,12 @@ public/assets/levels/shatterline/collision-kit.json
 assets/levels/saffron/baffles-meshes.json
 assets/levels/saffron/scarps-meshes.json
 src/levels/zephyr/environment/geometry/aqueduct-bay.js
+assets/levels/nomad/blender/carrier-collision.json
+assets/levels/nomad/blender/route-supports-collision.json
+assets/levels/nomad/blender/route-support-guides.json
+assets/levels/nomad/blender/receiver-crown/receiver-crown-collision.json
+assets/levels/nomad/blender/interior-freight/interior-freight-collision.json
+assets/levels/nomad/blender/saltwind-gallery/saltwind-gallery-collision.json
+assets/levels/nomad/blender/wallride-service/wallride-service-collision.json
+assets/levels/nomad/blender/salt-escarpments/salt-escarpments-collision.json
+assets/levels/nomad/blender/salt-escarpments/salt-ground-guides.json

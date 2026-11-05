@@ -20,10 +20,10 @@ const COMPANIONS = [
   },
   {
     id: 'starboard-heavy',
-    name: 'Starboard Heavy / Overtaking Procession',
+    name: 'Upper Shelf Heavy / Overtaking Procession',
     reference: 'nomad-passing-deck',
-    lateral: 440,
-    ahead: -190,
+    lateral: -330,
+    ahead: 400,
     size: 1.14,
     motion: {
       period: 40,
@@ -49,7 +49,9 @@ export function createNomadCompanions(track) {
       0,
       reference.origin.z + placement.ahead,
     );
-    origin.y = track.saltPlane.height - track.saltPlane.grade * origin.z;
+    origin.y = track.groundHeightAt
+      ? track.groundHeightAt(origin.x, origin.z)
+      : track.saltPlane.height - track.saltPlane.grade * origin.z;
     return {
       id: `nomad-companion-${placement.id}`,
       name: placement.name,

@@ -10,13 +10,14 @@ import argparse
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import struct
 import sys
 
 import bpy
 import bmesh
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 HERE = Path(__file__).resolve().parent
 GAME = HERE.parents[3]
@@ -24,7 +25,19 @@ OUTPUT = GAME / 'public/assets/levels/nomad/carrier-kit.glb'
 BLEND = HERE / 'nomad-carrier-kit.blend'
 parser = argparse.ArgumentParser()
 parser.add_argument('--render', action='store_true')
+parser.add_argument('--candidate-dir', help='Write an isolated kit below the ignored .experiments directory.')
 args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else [])
+RECORD_DIR = Path(args.candidate_dir).resolve() if args.candidate_dir else HERE
+if args.candidate_dir:
+    assert RECORD_DIR.is_relative_to(GAME / '.experiments')
+    RECORD_DIR.mkdir(parents=True, exist_ok=True)
+    OUTPUT = RECORD_DIR / 'carrier-kit.glb'
+    BLEND = RECORD_DIR / 'nomad-carrier-kit.blend'
+COLLISION = RECORD_DIR / 'carrier-collision.json'
+WHEEL_RADIUS = 30
+WHEEL_RADIAL_SCALE = WHEEL_RADIUS / 24
+WHEEL_AXLE_Y = WHEEL_RADIUS
+WHEEL_STATIONS = [-312, -234, -156, -78, 0, 78, 156, 234, 312]
 
 bpy.context.preferences.filepaths.save_version = 0
 bpy.ops.object.select_all(action='SELECT')
@@ -68,6 +81,7 @@ MATERIALS = {
 ROOTS = {}
 LODS = {}
 ANCHORS = {}
+WHEELWELL_CUTTER = None
 
 
 def root(name, lod=False):
@@ -99,7 +113,7 @@ def attach(obj, name, mat, parent):
         'formed roof cassette', 'formed portal cheek', 'deep inner carrier',
         'formed crosshead', 'formed inner shoulder liner',
         'formed recessed soffit channel', 'continuous load tyre', 'cast hub barrel',
-        'shadow body',
+        'shadow body', 'formed wheel guard',
     ])
     return obj
 
@@ -220,7 +234,26 @@ def build_wheel():
             centre = (side * 4.1, 23.65 * math.cos(angle), 23.65 * math.sin(angle))
             obj = box('open-groove chevron tread', centre, (7.6, 1.0, 1.8), 'rubber', parent, .12)
             obj.rotation_euler = (angle, 0, side * .25)
-    anchor(parent, 'axle_origin', (0, 0, 0), 'axis', axis=[1, 0, 0], rollingRadius=24)
+    # Preserve the accepted axial width and bake the enlarged circle into every
+    # real component, including bevels. Decorative tread is bounded by the true
+    # rolling circle rather than protruding below the declared ground contact.
+    bpy.context.view_layer.update()
+    graph = bpy.context.evaluated_depsgraph_get()
+    for obj in list(parent.children_recursive):
+        if obj.type != 'MESH':
+            continue
+        data = bpy.data.meshes.new_from_object(obj.evaluated_get(graph), preserve_all_data_layers=True, depsgraph=graph)
+        data.transform(obj.matrix_world)
+        data.transform(Matrix.Diagonal((1, WHEEL_RADIAL_SCALE, WHEEL_RADIAL_SCALE, 1)))
+        for vertex in data.vertices:
+            radius = math.hypot(vertex.co.y, vertex.co.z)
+            if radius > WHEEL_RADIUS:
+                vertex.co.y *= WHEEL_RADIUS / radius
+                vertex.co.z *= WHEEL_RADIUS / radius
+        obj.modifiers.clear()
+        obj.data = data
+        obj.matrix_basis = Matrix.Identity(4)
+    anchor(parent, 'axle_origin', (0, 0, 0), 'axis', axis=[1, 0, 0], rollingRadius=WHEEL_RADIUS)
     return parent
 
 
@@ -260,6 +293,52 @@ def port_frame(parent, station, name, depth=18):
     prism(name + ' / formed crosshead', [(-57.2, 124.3), (57.2, 124.3), (61, 127), (57, 130), (-57, 130), (-61, 127)], station - depth * .54, station + depth * .54, 'navy', parent, .5)
     for x in [-39, -13, 13, 39]:
         box(name + ' / warm soffit fixture', (x, 123.9, station), (13, .55, 2.2), 'amber', parent, .12)
+
+
+def wheel_guard_spec(station):
+    # Open the guard ends toward the two real side-portal road corridors.
+    # The large tyre stays round; its guards have purposeful loading-bay cuts.
+    if abs(station) == 234:
+        return (31, 32, 22, 70) if station > 0 else (31, 32, 110, 158)
+    if abs(station) == 156:
+        return (32.5, 35, 65, 158) if station > 0 else (32.5, 35, 22, 115)
+    return 32.5, 35, 22, 158
+
+
+def cut_actual_wheelwells(parent):
+    # The inboard X44..83 load keel stays continuous. Cut real openings only
+    # into its outside wing, lower chine and sill, not into cargo or upperbody.
+    global WHEELWELL_CUTTER
+    collection = bpy.data.collections.new('Editable / real enlarged wheelwell cutters')
+    bpy.context.scene.collection.children.link(collection)
+    helper = bpy.data.objects.new('HELPER__enlarged wheelwell cutters', None)
+    collection.objects.link(helper)
+    cutters = []
+    for side in [-1, 1]:
+        for station in WHEEL_STATIONS:
+            cutters.append(beam('editable wheelwell opening', (side * 83, WHEEL_AXLE_Y, station),
+                                (side * 130, WHEEL_AXLE_Y, station), 32.5,
+                                'navy', helper, 48))
+    bpy.ops.object.select_all(action='DESELECT')
+    for obj in cutters:
+        obj.select_set(True)
+    bpy.context.view_layer.objects.active = cutters[0]
+    bpy.ops.object.join()
+    cutter = bpy.context.object
+    cutter.name = 'HELPER__actual outer wheelwell openings'
+    cutter.display_type = 'WIRE'
+    cutter.hide_render = True
+    cutter.hide_set(True)
+    WHEELWELL_CUTTER = cutter
+    for obj in parent.children_recursive:
+        if obj.type != 'MESH' or not any(name in obj.name for name in [
+            'continuous formed load keel', 'folded lower armour chine', 'cargo-side service sill',
+        ]):
+            continue
+        modifier = obj.modifiers.new('Actual open enlarged tyre wells', 'BOOLEAN')
+        modifier.operation = 'DIFFERENCE'
+        modifier.solver = 'EXACT'
+        modifier.object = cutter
 
 
 def build_carrier():
@@ -358,27 +437,41 @@ def build_carrier():
                     beam('upper freight seated tie', (side * 77 - 6, 92.2, station + 7 + end * 12), (side * 77 + 6, 113, station + 7 + end * 12), .4, 'alloy', parent)
 
     # Real suspension, kingpins, connected axle cases and open tyre fairings.
-    axle_stations = [-312, -234, -156, -78, 0, 78, 156, 234, 312]
     for side in [-1, 1]:
-        for i, station in enumerate(axle_stations):
-            anchor(parent, 'wheel_%s_%02d' % ('port' if side < 0 else 'starboard', i), (side * 96, 24, station), 'wheel', axis=[1, 0, 0], rollingRadius=24)
-            beam('connected axle casing', (side * 65, 25, station), (side * 95, 25, station), 6.8, 'navy', parent, 20)
-            beam('seated axle collar', (side * 84, 25, station), (side * 88, 25, station), 8.8, 'alloy', parent, 24)
+        for i, station in enumerate(WHEEL_STATIONS):
+            anchor(parent, 'wheel_%s_%02d' % ('port' if side < 0 else 'starboard', i), (side * 96, WHEEL_AXLE_Y, station), 'wheel', axis=[1, 0, 0], rollingRadius=WHEEL_RADIUS)
+            beam('connected axle casing / inboard rise', (side * 65, 25, station), (side * 84, WHEEL_AXLE_Y, station), 6.8, 'navy', parent, 20)
+            beam('connected axle casing / coaxial outer stub', (side * 84, WHEEL_AXLE_Y, station), (side * 95, WHEEL_AXLE_Y, station), 6.8, 'navy', parent, 20)
+            beam('seated axle collar', (side * 84, WHEEL_AXLE_Y, station), (side * 88, WHEEL_AXLE_Y, station), 8.8, 'alloy', parent, 24)
             for delta in [-13, 13]:
-                girder('bogie wishbone', (side * 68, 45, station + delta), (side * 88, 27, station + delta * .3), 4.2, 5.2, 'navy', parent, .4)
-                beam('inclined suspension ram', (side * 73, 48, station + delta), (side * 91, 31, station + delta * .2), 2.2, 'alloy', parent, 16)
+                girder('bogie wishbone', (side * 68, 45, station + delta), (side * 88, WHEEL_AXLE_Y + 3, station + delta * .3), 4.2, 5.2, 'navy', parent, .4)
+                beam('inclined suspension ram', (side * 73, 48, station + delta), (side * 91, WHEEL_AXLE_Y + 7, station + delta * .2), 2.2, 'alloy', parent, 16)
             # A segmented top guard arches around the actual wheel envelope.
+            inner, outer, first, last = wheel_guard_spec(station)
             vertices, faces = [], []
             for j in range(17):
-                angle = math.radians(22 + 136 * j / 16)
-                for x, radius in [(side * 83, 26), (side * 109, 26), (side * 109, 28), (side * 83, 28)]:
-                    vertices.append((x, 24 + radius * math.sin(angle), station + radius * math.cos(angle)))
+                angle = math.radians(first + (last - first) * j / 16)
+                for x, radius in [(side * 83, inner), (side * 109, inner), (side * 109, outer), (side * 83, outer)]:
+                    vertices.append((x, WHEEL_AXLE_Y + radius * math.sin(angle), station + radius * math.cos(angle)))
             for j in range(16):
                 for k in range(4):
                     faces.append((j * 4 + k, j * 4 + (k + 1) % 4, (j + 1) * 4 + (k + 1) % 4, (j + 1) * 4 + k))
             faces += [(3, 2, 1, 0), tuple(64 + k for k in range(4))]
             mesh('formed wheel guard', vertices, faces, 'ivory', parent, .35)
-            box('bogie safety marker', (side * 109.5, 44, station), (.6, 2, 8), 'amber', parent, .1)
+            for end in [first, last]:
+                angle = math.radians(end)
+                radius = (inner + outer) / 2
+                y = WHEEL_AXLE_Y + radius * math.sin(angle)
+                z = station + radius * math.cos(angle)
+                girder('formed wheel guard seated end bracket',
+                       (side * 79, 38 if y < 48 else 46, z), (side * 83, y, z),
+                       1.6, 1.8, 'navy', parent, .2)
+            angle = math.radians((first + last) / 2)
+            radius = (inner + outer) / 2
+            lamp = box('bogie safety marker', (side * 109.15,
+                WHEEL_AXLE_Y + radius * math.sin(angle), station + radius * math.cos(angle)),
+                (.6, min(2, (outer - inner) * .65), 8), 'amber', parent, .1)
+            lamp.rotation_euler.x = math.pi / 2 - angle
 
     # Two asymmetric outboard cargo cranes: the load path remains legible.
     for side, station in [(-1, -289), (1, 278)]:
@@ -413,6 +506,7 @@ def build_carrier():
     anchor(parent, 'stern_deck', (0, 54, -380), 'road')
     anchor(parent, 'bow_deck', (0, 54, 380), 'road')
     anchor(parent, 'roof_centre', (0, 132, 0), 'road')
+    cut_actual_wheelwells(parent)
     return parent
 
 
@@ -449,12 +543,24 @@ def build_lod(source_name, name, ratio, omit_fine=False):
             continue
         if omit_fine and any(part in obj.name for part in ['open-groove chevron tread', 'hub seated stud']):
             continue
-        data = bpy.data.meshes.new_from_object(obj.evaluated_get(graph), preserve_all_data_layers=True, depsgraph=graph)
+        category = 'collapse'
+        if source_name == 'nomad_wheel' and 'continuous load tyre' in obj.name:
+            category = 'rolling silhouette'
+        elif source_name == 'nomad_carrier' and 'formed wheel guard' in obj.name:
+            category = 'seated guards'
+        elif source_name == 'nomad_carrier' and any(label in obj.name for label in [
+            'continuous formed load keel', 'folded lower armour chine', 'cargo-side service sill',
+        ]):
+            category = 'open lower wells'
+        data = obj.data.copy() if category == 'seated guards' else bpy.data.meshes.new_from_object(obj.evaluated_get(graph), preserve_all_data_layers=True, depsgraph=graph)
+        if category == 'rolling silhouette':
+            radius = max(math.hypot(vertex.co.y, vertex.co.z) for vertex in data.vertices)
+            data.transform(Matrix.Diagonal((1, WHEEL_RADIUS / radius, WHEEL_RADIUS / radius, 1)))
         copy = bpy.data.objects.new('LOD_INPUT__' + obj.name, data)
         parent.users_collection[0].objects.link(copy)
         copy.parent = parent
         copy.matrix_world = obj.matrix_world.copy()
-        batches.setdefault(obj.data.materials[0].name, []).append(copy)
+        batches.setdefault((obj.data.materials[0].name, category), []).append(copy)
     for key, objects in batches.items():
         bpy.ops.object.select_all(action='DESELECT')
         for obj in objects:
@@ -463,12 +569,19 @@ def build_lod(source_name, name, ratio, omit_fine=False):
         if len(objects) > 1:
             bpy.ops.object.join()
         batch = bpy.context.object
-        batch.name = name + ' / editable ' + key.split(' / ')[-1]
+        batch.name = name + ' / editable ' + key[0].split(' / ')[-1] + ' / ' + key[1]
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        if key[1] in ['rolling silhouette', 'seated guards']:
+            continue
         modifier = batch.modifiers.new('Distance-only silhouette-preserving collapse', 'DECIMATE')
         modifier.decimate_type = 'COLLAPSE'
         modifier.ratio = ratio
         modifier.use_collapse_triangulate = True
+        if key[1] == 'open lower wells':
+            modifier = batch.modifiers.new('Retain actual open tyre wells after collapse', 'BOOLEAN')
+            modifier.operation = 'DIFFERENCE'
+            modifier.solver = 'EXACT'
+            modifier.object = WHEELWELL_CUTTER
     return parent
 
 
@@ -488,6 +601,31 @@ for source in LODS.values():
     source.users_collection[0].hide_viewport = False
 bpy.context.view_layer.update()
 
+# Evaluate each real component exactly once. Boolean wheelwell n-gons can
+# choose different diagonals after material joining; retain explicit triangles
+# in one pool for both physical extraction and the final rendered batches.
+evaluated_meshes = {}
+evaluation_graph = bpy.context.evaluated_depsgraph_get()
+for source in {**ROOTS, **LODS}.values():
+    for obj in source.children_recursive:
+        if obj.type != 'MESH':
+            continue
+        data = bpy.data.meshes.new_from_object(obj.evaluated_get(evaluation_graph),
+            preserve_all_data_layers=True, depsgraph=evaluation_graph)
+        bm = bmesh.new()
+        bm.from_mesh(data)
+        bmesh.ops.triangulate(bm, faces=list(bm.faces))
+        degenerate = [face for face in bm.faces if face.calc_area() < 1e-12]
+        if degenerate:
+            bmesh.ops.delete(bm, geom=degenerate, context='FACES_ONLY')
+        unused = [vertex for vertex in bm.verts if not vertex.link_faces]
+        if unused:
+            bmesh.ops.delete(bm, geom=unused, context='VERTS')
+        bm.to_mesh(data)
+        bm.free()
+        data.calc_loop_triangles()
+        evaluated_meshes[obj] = data
+
 # CPU contacts are extracted from the same evaluated substantial members that
 # are consolidated into the GLB. Their real profiles, bevels and open portals
 # survive; small railings, lamps and cosmetic fittings do not become blockers.
@@ -498,8 +636,7 @@ for prototype, source in ROOTS.items():
     for obj in source.children_recursive:
         if obj.type != 'MESH' or not obj.get('nomadCollision'):
             continue
-        data = bpy.data.meshes.new_from_object(obj.evaluated_get(collision_graph), preserve_all_data_layers=True, depsgraph=collision_graph)
-        data.calc_loop_triangles()
+        data = evaluated_meshes[obj]
         offset, first = len(positions) // 3, len(indices)
         for vertex in data.vertices:
             point = obj.matrix_world @ vertex.co
@@ -507,9 +644,7 @@ for prototype, source in ROOTS.items():
         for triangle in data.loop_triangles:
             indices.extend([offset + vertex for vertex in triangle.vertices])
         parts.append({'name': obj.name.split(' / ', 1)[-1], 'indexStart': first, 'indexCount': len(indices) - first})
-        bpy.data.meshes.remove(data)
     collision_prototypes.append({'name': prototype, 'positions': positions, 'indices': indices, 'parts': parts, 'triangles': len(indices) // 3})
-COLLISION = HERE / 'carrier-collision.json'
 COLLISION.write_text(json.dumps({'version': 1, 'coordinates': '+Y up, +Z bow, metres, same local frames as carrier-kit.glb', 'source': 'Evaluated real substantial Blender members, identical to the corresponding GLB source geometry; small cosmetic fittings excluded.', 'prototypes': collision_prototypes}, separators=(',', ':')) + '\n')
 
 # The .blend retains all manufacturing components and modifiers. Only the GLB
@@ -525,7 +660,7 @@ for prototype, source in {**ROOTS, **LODS}.items():
     for obj in list(source.children_recursive):
         if obj.type != 'MESH':
             continue
-        data = bpy.data.meshes.new_from_object(obj.evaluated_get(graph), preserve_all_data_layers=True, depsgraph=graph)
+        data = evaluated_meshes[obj].copy()
         copy = bpy.data.objects.new('EXPORT__' + obj.name, data)
         bpy.context.scene.collection.objects.link(copy)
         copy.matrix_world = obj.matrix_world.copy()
@@ -635,7 +770,7 @@ if args.render:
     scene.render.resolution_y = 900
     scene.render.resolution_percentage = 100
     scene.view_settings.view_transform = 'AgX'
-    temporary = GAME / '.experiments/nomad-carrier'
+    temporary = RECORD_DIR if args.candidate_dir else GAME / '.experiments/nomad-carrier'
     temporary.mkdir(parents=True, exist_ok=True)
     scene.render.filepath = str(temporary / 'representative.png')
     bpy.ops.render.render(write_still=True)
@@ -643,7 +778,7 @@ if args.render:
 provenance = {
     'title': 'Nomad Procession original wheeled land-carrier kit',
     'generator': 'Original Blender mesh authoring, with editable component source retained before runtime consolidation.',
-    'source': Path(__file__).name,
+    'source': os.path.relpath(Path(__file__), RECORD_DIR),
     'blend': BLEND.name,
     'runtimeAsset': str(OUTPUT.relative_to(GAME)),
     'coordinates': 'Metres; glTF +Y up, +Z bow, wheel axle +X; carrier root at nominal ground centre.',
@@ -652,6 +787,12 @@ provenance = {
     'reservedEnvelopes': {'cargoHall': {'min': [-56, 54, -380], 'max': [56, 124, 380]}, 'roofRoad': {'min': [-75, 132, -380], 'max': [75, 155, 380]}, 'outerWallRide': {'absoluteX': [90, 125], 'y': [80, 145]}},
     'prototypes': records,
     'materials': [mat.name for mat in MATERIALS.values()],
+    'wheelGeometry': {'rollingRadius': WHEEL_RADIUS, 'axleHeight': WHEEL_AXLE_Y,
+        'axialScale': 1, 'radialScale': WHEEL_RADIAL_SCALE, 'wheelwellRadius': 32.5,
+        'construction': 'True circle baked into near geometry; all distance tiers retain that rolling radius. Continuous inboard load keels with real outside wheelwell cuts, raised suspension, and bracket-seated partial portal fenders. All upperbody, cargo and crane coordinates remain fixed.',
+        'guards': [{'station': station, 'innerRadius': wheel_guard_spec(station)[0],
+                    'outerRadius': wheel_guard_spec(station)[1],
+                    'anglesDegrees': list(wheel_guard_spec(station)[2:])} for station in WHEEL_STATIONS]},
     'totalTriangles': sum(record['triangles'] for record in records),
     'collision': {'file': COLLISION.name, 'prototypes': [{'name': entry['name'], 'triangles': entry['triangles']} for entry in collision_prototypes]},
     'visualLOD': {'policy': 'Only the three near prototypes define physical contacts. Mid/far are real material-group meshes collapsed in Blender; apertures and wheel silhouettes remain geometry.',
@@ -660,5 +801,5 @@ provenance = {
                                'omittedFineParts': source['omittedFineParts'].split('|') if source['omittedFineParts'] else []} for name, source in LODS.items()]},
     'hashes': {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in [Path(__file__), BLEND, OUTPUT, COLLISION]},
 }
-(HERE / 'carrier-kit-provenance.json').write_text(json.dumps(provenance, indent=2) + '\n')
+(RECORD_DIR / 'carrier-kit-provenance.json').write_text(json.dumps(provenance, indent=2) + '\n')
 print('NOMAD_CARRIER_KIT ' + json.dumps({'output': str(OUTPUT), 'prototypes': [{key: value for key, value in record.items() if key != 'anchors'} for record in records], 'triangles': provenance['totalTriangles'], 'collision': provenance['collision']}))

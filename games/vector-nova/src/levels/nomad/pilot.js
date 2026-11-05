@@ -1,28 +1,63 @@
 import { vehicleHandling } from '../../ships/catalog.js';
 
 export const NOMAD_PILOT_RULES = Object.freeze({
-  version: 4,
+  version: 9,
   approach: 240,
   gravity: 26,
   rangeIterations: 6,
   boostArcStep: 1 / 60,
+  forecastTime: 9.5,
+  lateralVelocityLeadLimit: 12,
 });
+
+/** The primary long-transfer line holds the ordinary boost button. Shared
+ * reserve hysteresis/drain/recharge still decides when the engine can fire.
+ * This never changes heading or position; coasting uses its own grounded line.
+ */
+export function nomadFlightBoost(
+  track,
+  state,
+  jump,
+  { runtime, allowBoost = true } = {},
+) {
+  return (
+    allowBoost && Boolean(jump?.bigAir) && Boolean(runtime) && state.energy >= 0
+  );
+}
 
 // Ordinary hard-driver boost is already part of shared flight propulsion.
 // Predict that input on the ground; the actual jump remains wholly inertial.
-function boostedArc(horizontal, vertical, energy, handling) {
+function boostedArc(
+  horizontal,
+  vertical,
+  energy,
+  handling,
+  duration,
+  boosting,
+) {
   const step = NOMAD_PILOT_RULES.boostArcStep;
   const points = [{ height: 0, range: 0 }];
   let height = 0,
     range = 0,
     apex = 0;
-  for (let time = step; time <= 8 + step / 2; time += step) {
+  for (
+    let time = step;
+    time <= NOMAD_PILOT_RULES.forecastTime + step / 2;
+    time += step
+  ) {
     const speed = Math.hypot(horizontal, vertical);
-    const thrust = energy > 0 ? handling.boostThrust - handling.thrust : 0;
+    boosting = time <= duration && energy > (boosting ? 0 : 12);
+    const thrust = boosting ? handling.boostThrust - handling.thrust : 0;
     horizontal += ((thrust * horizontal) / speed) * step;
     vertical +=
       ((thrust * vertical) / speed - NOMAD_PILOT_RULES.gravity) * step;
-    energy = Math.max(0, energy - handling.boostDrain * step);
+    energy = Math.min(
+      100,
+      Math.max(
+        0,
+        energy + (boosting ? -handling.boostDrain : handling.recharge) * step,
+      ),
+    );
     range += horizontal * step;
     height += vertical * step;
     points.push({ height, range });
@@ -47,7 +82,7 @@ function boostedArc(horizontal, vertical, energy, handling) {
     at,
     timeAtHeight(target) {
       let low = apex * step,
-        high = 8;
+        high = NOMAD_PILOT_RULES.forecastTime;
       if (target > points[apex].height) return null;
       for (let i = 0; i < 14; i++) {
         const middle = (low + high) / 2;
@@ -59,10 +94,20 @@ function boostedArc(horizontal, vertical, energy, handling) {
   };
 }
 
+// Shared with the level's visual approach lights. This is the identical pure
+// range/height forecast used by grounded planning; it applies no flight force.
+export { boostedArc as forecastNomadPoweredArc };
+
 /** Aim an ordinary grounded driver at the future receiver, never its old lip. */
-export function nomadLaunchTarget(track, state, jump) {
+export function nomadLaunchTarget(
+  track,
+  state,
+  jump,
+  { boost = false, boostDuration = Infinity } = {},
+) {
   const ahead = jump.takeoff - state.distance;
-  const approach = jump.bigAir ? NOMAD_PILOT_RULES.approach : 140;
+  const approach =
+    jump.interceptApproach ?? (jump.bigAir ? NOMAD_PILOT_RULES.approach : 140);
   if (ahead < 0 || ahead > approach) return null;
   // Keep ordinary road-following through the banked climb. Interception is a
   // final ground alignment, not a request to cut across the wall's inner rail.
@@ -81,16 +126,15 @@ export function nomadLaunchTarget(track, state, jump) {
   const horizontalSpeed = Math.sqrt(
     Math.max(1, speed * speed - roadVerticalSpeed * roadVerticalSpeed),
   );
-  const expectsBoost =
-    jump.landingEnd - jump.landingStart >= 600 &&
-    state.energy > 12 &&
-    (state.boosting || state.speed >= jump.targetSpeed - 1);
+  const expectsBoost = boost;
   const arc = expectsBoost
     ? boostedArc(
         horizontalSpeed,
         verticalSpeed,
         state.energy,
         vehicleHandling(state),
+        boostDuration,
+        state.boosting,
       )
     : null;
   const candidate = (station) => {
@@ -111,7 +155,7 @@ export function nomadLaunchTarget(track, state, jump) {
       flightTime = Math.max(
         0.35,
         Math.min(
-          8,
+          NOMAD_PILOT_RULES.forecastTime,
           (verticalSpeed + Math.sqrt(discriminant)) / NOMAD_PILOT_RULES.gravity,
         ),
       );
@@ -140,7 +184,18 @@ export function nomadLaunchTarget(track, state, jump) {
     if (result.error > 0) high = station;
     else low = station;
   }
+  // Magnetic body velocity can lag the nose through the last banked bend.
+  // Aim the grounded nose ahead of that measured sideways velocity; release
+  // still inherits the unchanged actual native velocity, with no air steering.
+  const lateralMismatch = Math.max(
+    -NOMAD_PILOT_RULES.lateralVelocityLeadLimit,
+    Math.min(
+      NOMAD_PILOT_RULES.lateralVelocityLeadLimit,
+      (state.lateralSpeed ?? 0) - speed * Math.sin(state.heading),
+    ),
+  );
   return result.target
     .clone()
-    .addScaledVector(materialVelocity, -result.flightTime);
+    .addScaledVector(materialVelocity, -result.flightTime)
+    .addScaledVector(departure.right, -lateralMismatch * result.flightTime);
 }

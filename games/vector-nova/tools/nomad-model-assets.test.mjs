@@ -62,6 +62,96 @@ for (const [name, file] of [
       }
   });
 
+test('Nomad receiving crown keeps the real depleted-coast hull and chase-eye loading slot open', async () => {
+  const record = JSON.parse(
+    await readFile(
+      resolve(blender, 'receiver-crown/receiver-crown-provenance.json'),
+      'utf8',
+    ),
+  );
+  const crown = JSON.parse(
+    await readFile(
+      resolve(blender, 'receiver-crown/receiver-crown-collision.json'),
+      'utf8',
+    ),
+  ).prototypes[0];
+  assert.deepEqual(record.arrivalSlot.sourceX, [-94, 50]);
+  assert.equal(
+    record.arrivalRise,
+    140,
+    'opening the mouth does not raise the canopy again',
+  );
+  const triangle = new T.Triangle(),
+    hit = new T.Vector3();
+  // Actual depleted Shrike paths descend through the port roof; the v4 Needle
+  // coast eye crosses farther starboard. Cover those separate physical
+  // footprints through the full retained top, with 4m local lateral clearance.
+  for (const [x, z] of [
+    [-99, -169],
+    [-82, -228],
+    [-84, -216],
+    [-38, -189],
+    [-40, -174],
+    [55, -205],
+    [62, -196],
+  ])
+    for (const dx of [-4, 0, 4])
+      for (const dz of [-3, 0, 3]) {
+        const ray = new T.Ray(
+          new T.Vector3(x + dx, 410, z + dz),
+          new T.Vector3(0, -1, 0),
+        );
+        for (let i = 0; i < crown.indices.length; i += 3) {
+          for (const [j, corner] of ['a', 'b', 'c'].entries())
+            triangle[corner].fromArray(
+              crown.positions,
+              crown.indices[i + j] * 3,
+            );
+          const contact = ray.intersectTriangle(
+            triangle.a,
+            triangle.b,
+            triangle.c,
+            false,
+            hit,
+          );
+          assert.ok(
+            !contact || contact.y < 334,
+            `real upper loading slot is closed at ${x + dx},${z + dz}`,
+          );
+        }
+      }
+  // Actual v5 phase-three powered hull contacts on the former port edge.
+  // Preserve their local clearance without demanding an unused vertical shaft
+  // through the lower shoulder machinery.
+  for (const point of [
+    [-112.15, 360.5, -220.04],
+    [-112.99, 359.81, -188.77],
+  ]) {
+    const center = new T.Vector3().fromArray(point),
+      box = new T.Box3().setFromCenterAndSize(center, new T.Vector3(2, 2, 2));
+    for (let i = 0; i < crown.indices.length; i += 3) {
+      for (const [j, corner] of ['a', 'b', 'c'].entries())
+        triangle[corner].fromArray(crown.positions, crown.indices[i + j] * 3);
+      assert.ok(
+        !box.intersectsTriangle(triangle),
+        `powered hull port-edge clearance is closed at ${point}`,
+      );
+    }
+  }
+  assert.ok(
+    crown.parts.some((part) =>
+      part.name.includes(
+        'primary formed armored cargo aperture / starboard cap',
+      ),
+    ),
+  );
+  assert.ok(
+    crown.parts.some((part) =>
+      part.name.includes('fitted curved upper roof armor 0 / port rim'),
+    ),
+  );
+});
+
 async function verifiedRecord(path) {
   const record = JSON.parse(await readFile(path, 'utf8'));
   const directory = dirname(path);
@@ -73,7 +163,13 @@ async function verifiedRecord(path) {
     resolve(directory, record.source),
     resolve(directory, record.blend),
     resolve(game, record.runtimeAsset),
-    ...[collision, record.sourceHull, record.sourceBlend, record.roadGuides]
+    ...[
+      collision,
+      record.sourceHull,
+      record.sourceBlend,
+      record.roadGuides,
+      record.groundGuides,
+    ]
       .filter(Boolean)
       .map((name) => resolve(directory, name)),
   ];

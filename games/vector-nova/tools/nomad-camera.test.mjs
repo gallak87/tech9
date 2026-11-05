@@ -327,11 +327,7 @@ test(
             devices,
             runtime,
           });
-          const events = runtime.advance(
-            state,
-            { ...input, throttle: 1, brake: 0, boost: false },
-            1 / 120,
-          );
+          const events = runtime.advance(state, input, 1 / 120);
           assert.ok(
             !events.some((event) =>
               ['jump-miss', 'road-departure', 'road-recovery'].includes(

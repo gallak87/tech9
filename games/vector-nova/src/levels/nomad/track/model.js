@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { createReferenceFrames } from '../../../track/frames.js';
+import { createNomadGroundProfile } from '../ground-profile.js';
 
 export const NOMAD_PACE = Object.freeze({
   cruiseScale: 1.25,
@@ -8,20 +9,35 @@ export const NOMAD_PACE = Object.freeze({
   overspeedDeceleration: 0.4,
 });
 
-const LENGTH = 12800;
-const FINISH = 12200;
+const AUTHORED_WORLD_SCALE = 0.75;
 const RAW_HULL_Z = 1.4;
 const HULL_LENGTH = 760;
 const ROAD_HALF_WIDTH = 25;
 const SOURCE_STEP = 0.5;
-const SALT_GRADE = 0.095;
-const HULL_Z = { 'passing-deck': 2, terminus: 2.6 };
-const GAP_Z = [120, 350, 360, 120, 120, 340, 120, 120, 120, 500];
+const SALT_GRADE = 0.18;
+const SHELF_INDEX = [0, 0, 1, 2, 2, 2, 3, 3, 3, 3, 4];
+const SHELF_X = [0, 430, 860, 1290, 1780];
+const SHELF_HEIGHT = [0, -150, -240, -460, -680];
+const HULL_Z = {
+  'high-balcony': 1.8,
+  'portside-dive': 3.6,
+  'passing-deck': 3.2,
+  terminus: 2.8,
+};
+const GAP_Z = [120, 550, 560, 150, 150, 600, 150, 150, 150, 800];
 const BIG_AIR = {
-  1: { landing: 850, targetSpeed: 150, broad: true },
-  2: { landing: 450, targetSpeed: 150, broad: false },
-  5: { landing: 940, targetSpeed: 160, broad: true },
-  9: { landing: 1040, targetSpeed: 160, broad: true },
+  1: { landing: 950, targetSpeed: 150, broad: true, aim: 80 },
+  2: { landing: 1000, halfWidth: 60, targetSpeed: 140, broad: true, aim: 80 },
+  5: { landing: 1600, halfWidth: 60, targetSpeed: 155, broad: true, aim: 120 },
+  9: { landing: 1040, targetSpeed: 160, broad: true, aim: 80 },
+};
+// These are physical, bank-free road straights, not launch impulses. The lower
+// pitch leaves a useful receiving/braking window for a player holding boost.
+const PRIMARY_LAUNCHES = {
+  1: { yawDegrees: 13, pitchDegrees: 4, length: 120 },
+  2: { yawDegrees: 18.5, pitchDegrees: 2, length: 120 },
+  5: { yawDegrees: 13.5, pitchDegrees: 5.5, length: 120 },
+  9: { yawDegrees: 14.5, pitchDegrees: 0.5, length: 120 },
 };
 const clamp = T.MathUtils.clamp;
 const smooth = (value) => {
@@ -48,36 +64,55 @@ const CARRIERS = [
 // The running skins are supplied by the game, never by the carrier model.
 // Side climbs cross the large lateral portals at local Z=-220; descents return
 // through Z=+220. Roof-height transitions stay outside the 180 m hull beam.
-function authoredKeys(mode, index) {
-  const a = index % 2 ? -24 : 24;
+function baseAuthoredKeys(mode, index) {
+  const a =
+    (index % 2 ? -1 : 1) *
+    (mode === 'cargo' ? 20 : [6, 10].includes(index) ? 0 : 24);
   if (index === 9)
     return [
       [0, 54, -380, 0],
       [0, 54, -300, 0],
-      [-24, 64, -140, 0.055],
-      [24, 61, 30, -0.055],
+      [-20, 64, -140, 0.055],
+      [20, 61, 30, -0.055],
       [0, 57, 140, 0],
       [20, 58, 185, 0.08],
       [80, 64, 220, 0.2],
       [225, 82, 250, 0.45],
-      [260, 110, 290, 0.55],
-      [260, 174, 350, 0.25],
-      [260, 208, 430, 0],
+      [270, 142, 290, 0.55],
+      [336, 174, 350, 0.25],
+      [360, 208, 430, 0],
     ];
   if (mode === 'climb')
     return [
       [0, 54, -380, 0],
       [0, 54, -315, 0],
-      [20, 62, -260, 0.05],
+      [20, 62, -280, 0.05],
       [80, 64, -220, 0.2],
-      [114, 95, -170, 0.85],
-      [114, 142, -80, 1.12],
-      [114, 160, -20, 0.9],
+      [121, 95, -170, 0.85],
+      [121, 142, -80, 1.12],
+      [121, 160, -20, 0.9],
       [70, 163, 65, 0.25],
       [25, 154, 140, 0.08],
-      [-20, 148, 220, -0.08],
-      [0, 150, 300, 0],
-      [0, 185, 380, 0],
+      [20, 148, 220, -0.08],
+      [54, 150, 300, 0],
+      [80, 185, 380, 0],
+    ];
+  if (index === 3)
+    return [
+      [0, 142, -380, 0],
+      [0, 142, -240, 0],
+      [0, 142, -80, 0],
+      [0, 142, 10, 0],
+      [-80, 162, 90, -0.3],
+      [-120, 158, 135, -0.5],
+      [-140, 145, 170, -0.8],
+      [-140, 112, 195, -0.9],
+      [-120, 82, 220, -0.6],
+      [-75, 65, 245, -0.15],
+      [-35, 60, 270, 0],
+      [-10, 60, 310, 0],
+      [0, 64, 350, 0],
+      [0, 70, 380, 0],
     ];
   if (mode === 'descent')
     return [
@@ -85,9 +120,9 @@ function authoredKeys(mode, index) {
       [0, 142, -300, 0],
       [-20, 156, -180, -0.06],
       [-70, 160, -80, -0.2],
-      [-115, 150, 20, -0.7],
-      [-125, 118, 100, -1.05],
-      [-125, 83, 180, -0.6],
+      [-125, 150, 20, -0.7],
+      [-140, 118, 100, -1.05],
+      [-135, 83, 180, -0.6],
       [-80, 65, 220, 0],
       [-20, 56, 265, 0],
       [0, 58, 300, 0],
@@ -97,14 +132,15 @@ function authoredKeys(mode, index) {
   if (mode === 'overtake')
     return [
       [0, 54, -380, 0],
-      [0, 54, -315, 0],
-      [22, 62, -260, 0.05],
+      [0, 54, -325, 0],
+      [20, 62, -280, 0.05],
       [80, 68, -220, 0.22],
-      [110, 100, -180, 0.95],
-      [110, 143, -115, 1.15],
+      [118, 100, -180, 0.95],
+      [118, 143, -115, 1.15],
       [116, 180, -50, 0.7],
-      [142, 197, 15, 0.2],
-      [170, 232, 80, 0],
+      [140, 190, -10, 0.3],
+      [200, 210, 50, 0],
+      [230, 270, 140, 0],
     ];
   const roof = mode === 'roof';
   const y = roof ? 142 : 54;
@@ -115,20 +151,54 @@ function authoredKeys(mode, index) {
     [a, y + 10, -140, roof ? 0.12 : 0.055],
     [-a, y + 7, 30, roof ? -0.12 : -0.055],
     [a * 0.7, y + 3, 190, roof ? 0.1 : 0.04],
-    [0, y + 8, 300, 0],
+    [index === 2 ? 46 : 0, y + 8, 300, 0],
     [
-      0,
+      index === 2 ? 80 : 0,
       y +
         (index === 2
-          ? 43
+          ? 53
           : index === 4
             ? 15
             : index === CARRIERS.length - 1
               ? 8
-              : 20),
+              : index === 0
+                ? 12
+                : 20),
       380,
       0,
     ],
+  ];
+}
+
+function authoredKeys(mode, index) {
+  const keys = baseAuthoredKeys(mode, index);
+  const straight = PRIMARY_LAUNCHES[index];
+  if (!straight) return keys;
+  const yaw = T.MathUtils.degToRad(straight.yawDegrees);
+  const pitch = T.MathUtils.degToRad(straight.pitchDegrees);
+  const direction = v(
+    Math.sin(yaw) * Math.cos(pitch),
+    Math.sin(pitch),
+    Math.cos(yaw) * Math.cos(pitch),
+  )
+    .applyAxisAngle(v(1, 0, 0), -Math.atan(SALT_GRADE))
+    .divide(
+      v(
+        AUTHORED_WORLD_SCALE,
+        AUTHORED_WORLD_SCALE,
+        AUTHORED_WORLD_SCALE * (HULL_Z[CARRIERS[index][0]] ?? RAW_HULL_Z),
+      ),
+    );
+  const end = v(...keys.at(-1).slice(0, 3));
+  const start = end.clone().addScaledVector(direction, -straight.length);
+  const middle = end.clone().addScaledVector(direction, -straight.length / 2);
+  // Three collinear keys give the final segment a constant tangent; adding a
+  // single endpoint to a winding Catmull curve does not make a usable run-up.
+  return [
+    ...keys.filter((key) => key[2] < start.z - 1),
+    [...start.toArray(), 0],
+    [...middle.toArray(), 0],
+    [...end.toArray(), 0],
   ];
 }
 
@@ -149,13 +219,18 @@ export function createNomadTrack() {
   const carriers = CARRIERS.map(([id, name, mode, x], index) => {
     const hullZ = HULL_Z[id] ?? RAW_HULL_Z;
     if (index) forward += previousEnd + 380 * hullZ + GAP_Z[index - 1];
-    previousEnd = (mode === 'overtake' ? 80 : index === 9 ? 430 : 380) * hullZ;
+    previousEnd = (mode === 'overtake' ? 140 : index === 9 ? 430 : 380) * hullZ;
     return {
       id: `nomad-${id}`,
       name,
       mode,
       index,
-      origin: v(x, 700 - forward * SALT_GRADE, forward),
+      shelfIndex: SHELF_INDEX[index],
+      origin: v(
+        x + SHELF_X[SHELF_INDEX[index]],
+        700 - forward * SALT_GRADE + SHELF_HEIGHT[SHELF_INDEX[index]],
+        forward,
+      ),
       scale: v(1, 1, hullZ),
       ...(index >= 9 ? { supportRoad: true } : {}),
       quaternion: new T.Quaternion().setFromAxisAngle(
@@ -226,7 +301,11 @@ export function createNomadTrack() {
     piece.endIndex = positions.length - 1;
     piece.rawEnd = total;
   }
-  const scale = LENGTH / total;
+  // Keep carrier/terrain dimensions stable while authoring local driving lines.
+  // The playable distance is the real arc length, not a fixed progress scale.
+  const scale = AUTHORED_WORLD_SCALE;
+  const LENGTH = total * scale;
+  const FINISH = LENGTH - 600;
   for (const point of positions) point.multiplyScalar(scale);
   const distances = Float64Array.from(arcs, (distance) => distance * scale);
   for (const carrier of carriers) {
@@ -282,13 +361,19 @@ export function createNomadTrack() {
         index === gaps.length - 1 ? FINISH - 100 : Infinity,
         landingStart + (air?.landing ?? 450) + 35,
       ),
-      halfWidth: air?.broad ? 50 : 40,
-      targetSpeed: air?.targetSpeed ?? 150,
+      halfWidth: air?.halfWidth ?? (air?.broad ? 50 : 40),
+      targetSpeed: air?.targetSpeed ?? ([3, 4].includes(index) ? 145 : 150),
       departureCarrierId: piece.from.id,
       receivingCarrierId: piece.to.id,
       hero,
       bigAir: Boolean(air),
       broadReceiver: Boolean(air?.broad),
+      ...(PRIMARY_LAUNCHES[index]
+        ? { launchStraight: { ...PRIMARY_LAUNCHES[index] } }
+        : {}),
+      ...(air?.aim || [0, 3, 4].includes(index)
+        ? { interceptApproach: air?.aim ?? 80 }
+        : {}),
     };
   });
   const isGap = (distance) =>
@@ -320,7 +405,9 @@ export function createNomadTrack() {
       : ['climb', 'overtake'].includes(run.mode)
         ? 40
         : 80;
-    const extra = incoming?.broadReceiver ? 25 : 15;
+    const extra = incoming?.broadReceiver
+      ? incoming.halfWidth - ROAD_HALF_WIDTH
+      : 15;
     return ROAD_HALF_WIDTH + extra * (1 - smooth((approach - broad) / 120));
   };
   for (const run of roadRuns) {
@@ -486,11 +573,34 @@ export function createNomadTrack() {
     };
   const bounds = new T.Box3().setFromPoints(positions);
   bounds.expandByScalar(70);
+  // Authored world-space shelf edges remain fixed when a local driving line changes.
+  // Full tire, road and camera clearance is verified against these real edges.
+  const shelfBounds = [
+    [-600, 162.17517882501187],
+    [197.5, 426.5],
+    [506.27068903606244, 941.05],
+    [1022.5, 1485.5],
+    [1588, 1817],
+  ];
+  const benches = SHELF_HEIGHT.map((height, index) => ({
+    id: `nomad-salt-shelf-${index + 1}`,
+    minX: shelfBounds[index][0],
+    maxX: shelfBounds[index][1],
+    heightOffset: height * scale,
+    carrierIds: carriers
+      .filter((carrier) => carrier.shelfIndex === index)
+      .map((carrier) => carrier.id),
+  }));
+  const profile = createNomadGroundProfile({
+    height: 700 * scale,
+    grade: SALT_GRADE,
+    benches,
+  });
   return {
     id: 'nomad-procession',
     name: 'Nomad Procession',
-    version: 2,
-    geometryVersion: 'nomad-convoy-descent-v2',
+    version: 5,
+    geometryVersion: 'nomad-convoy-salt-terraces-v5-roomy-powered-straights',
     closed: false,
     length: LENGTH,
     finishDistance: FINISH,
@@ -508,6 +618,7 @@ export function createNomadTrack() {
     bounds,
     restScale: scale,
     saltPlane: { height: 700 * scale, grade: SALT_GRADE },
+    ...profile,
     sample,
     sampleBase: sample,
     sampleSurface,

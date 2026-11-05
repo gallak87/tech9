@@ -5,6 +5,10 @@ import createLevel from '../src/levels/nomad/index.js';
 import { createNomadCompanions } from '../src/levels/nomad/companions.js';
 import { createNomadWheelContacts } from '../src/levels/nomad/wheel-contact.js';
 import { sampleCarrierMotion } from '../src/levels/nomad/motion.js';
+import {
+  nomadGroundHeightAt,
+  nomadGroundNormalAt,
+} from '../src/levels/nomad/ground-profile.js';
 import kit from '../assets/levels/nomad/blender/carrier-kit-provenance.json' with { type: 'json' };
 
 const anchors = kit.prototypes
@@ -15,7 +19,6 @@ test('one instanced draw seats every main and companion tire contact on the real
   const track = createLevel().createTrack();
   const carriers = [...track.carriers, ...createNomadCompanions(track)];
   const contact = createNomadWheelContacts({ track, carriers });
-  const normal = new T.Vector3(0, 1, track.saltPlane.grade).normalize();
   const matrix = new T.Matrix4(),
     centre = new T.Vector3(),
     corner = new T.Vector3();
@@ -50,22 +53,26 @@ test('one instanced draw seats every main and companion tire contact on the real
           const expected = new T.Vector3()
             .fromArray(anchor.position)
             .applyMatrix4(pose)
-            .add(displacement)
-            .addScaledVector(
-              normal,
-              -anchor.rollingRadius * carrier.scale.x + 0.06,
-            );
+            .add(displacement);
+          const normal = nomadGroundNormalAt(track, expected.x, expected.z);
+          expected.addScaledVector(
+            normal,
+            -anchor.rollingRadius * carrier.scale.x + 0.06,
+          );
           assert.ok(centre.distanceTo(expected) < 0.001);
           assert.ok(
             Math.abs(
               new T.Vector3().setFromMatrixColumn(matrix, 0).length() -
-                12 * carrier.scale.x,
+                kit.prototypes.find((part) => part.name === 'nomad_wheel')
+                  .dimensions[0] *
+                  0.5 *
+                  carrier.scale.x,
             ) < 1e-5,
           );
           assert.ok(
             Math.abs(
               new T.Vector3().setFromMatrixColumn(matrix, 1).length() -
-                18 * carrier.scale.x,
+                anchor.rollingRadius * 0.75 * carrier.scale.x,
             ) < 1e-5,
           );
           assert.ok(
@@ -76,10 +83,8 @@ test('one instanced draw seats every main and companion tire contact on the real
             for (const y of [-0.5, 0.5]) {
               corner.set(x, y, 0).applyMatrix4(matrix);
               const planeDistance =
-                (corner.y +
-                  track.saltPlane.grade * corner.z -
-                  track.saltPlane.height) /
-                Math.sqrt(1 + track.saltPlane.grade * track.saltPlane.grade);
+                (corner.y - nomadGroundHeightAt(track, corner.x, corner.z)) *
+                nomadGroundNormalAt(track, corner.x, corner.z).y;
               assert.ok(Math.abs(planeDistance - 0.06) < 0.001);
               assert.ok(contact.mesh.boundingBox.containsPoint(corner));
               assert.ok(contact.mesh.boundingSphere.containsPoint(corner));

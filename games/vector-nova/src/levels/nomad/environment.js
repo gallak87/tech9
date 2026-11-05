@@ -7,6 +7,7 @@ import { sampleCarrierMotion, NOMAD_MOTION_RULES } from './motion.js';
 import { createNomadDust } from './dust.js';
 import { createNomadDistricts } from './districts.js';
 import { createNomadGuidance } from './guidance.js';
+import { createNomadAirGuidance } from './air-guidance.js';
 import { createNomadFleetBatches } from './fleet-batches.js';
 import { createNomadCompanions } from './companions.js';
 import { bindNomadArmourFinish } from './armour-finish.js';
@@ -78,34 +79,20 @@ export function createNomadEnvironment({
   const carrierRoots = new Map(),
     freight = [];
   const clock = { value: 0 };
-  const positions = [
-    -18000, 0, -400, -18000, 0, 24000, 18000, 0, -400, 18000, 0, 24000,
-  ];
-  for (let i = 0; i < positions.length; i += 3)
-    positions[i + 1] =
-      track.saltPlane.height - track.saltPlane.grade * positions[i + 2];
-  const saltGeometry = new T.BufferGeometry();
-  saltGeometry.setAttribute(
-    'position',
-    new T.Float32BufferAttribute(positions, 3),
-  );
-  saltGeometry.setIndex([0, 1, 2, 2, 1, 3]);
-  saltGeometry.computeVertexNormals();
-  saltGeometry.computeBoundingSphere();
   const salt = saltMaterial(clock);
-  geometries.add(saltGeometry);
   materials.add(salt);
-  const basin = new T.Mesh(saltGeometry, salt);
-  basin.name = 'Nomad / actual salt basin';
-  basin.receiveShadow = true;
-  group.add(basin);
   const districts = createNomadDistricts({
     track,
     finish: road?.finish,
     shape,
   });
   const hall = createNomadHallMachinery({ track, finish: road?.finish, shape });
-  const terrain = createNomadTerrain({ track, shape, loadAsset });
+  const terrain = createNomadTerrain({
+    track,
+    shape,
+    floorMaterial: salt,
+    loadAsset,
+  });
   const visualCarriers = [...track.carriers, ...createNomadCompanions(track)];
   const visualTrack = Object.create(track);
   visualTrack.carriers = visualCarriers;
@@ -116,12 +103,14 @@ export function createNomadEnvironment({
   const guidance = road
     ? createNomadGuidance({ track, surfaces: collectRoadSurfaces(road.group) })
     : null;
+  const airGuidance = createNomadAirGuidance({ track, shape });
   group.add(districts.group);
   group.add(hall.group);
   group.add(terrain.group);
   if (dust) group.add(dust.group);
   if (contacts) group.add(contacts.group);
   if (guidance) group.add(guidance.group);
+  group.add(airGuidance.group);
   const hullGrey = new T.MeshStandardMaterial({
     color: '#a29a88',
     roughness: 0.8,
@@ -312,6 +301,7 @@ export function createNomadEnvironment({
             ).anchors;
             fleet = createNomadFleetBatches({
               track,
+              settings,
               source,
               excludeHullIds: saltwindScene.getObjectByName(
                 'nomad_saltwind_hull',
@@ -529,6 +519,7 @@ export function createNomadEnvironment({
     dust?.update(frame);
     contacts?.update(frame);
     guidance?.update(frame);
+    airGuidance.update(frame);
   }
   function dispose() {
     if (disposed) return;
@@ -541,6 +532,7 @@ export function createNomadEnvironment({
     dust?.dispose();
     contacts?.dispose();
     guidance?.dispose();
+    airGuidance.dispose();
     fleet?.dispose();
     for (const instance of instances) instance.dispose();
     for (const geometry of geometries) geometry.dispose();

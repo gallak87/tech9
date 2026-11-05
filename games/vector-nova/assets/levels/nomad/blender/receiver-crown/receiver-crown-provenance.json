@@ -13,8 +13,8 @@
   "prototypes": [
     {
       "name": "nomad_receiver_crown",
-      "triangles": 14476,
-      "collisionTriangles": 14476,
+      "triangles": 13076,
+      "collisionTriangles": 13076,
       "materialBatches": 4,
       "bounds": {
         "min": [-141.991364, 120.825165, -368.689484],
@@ -24,50 +24,50 @@
         {
           "name": "roof seat -1 0",
           "position": [-67.5, 130.0, -246.56875610351562],
-          "normal": [-0.0, 0.9999999403953552, 0.0],
-          "sourceTriangle": 10222
+          "normal": [0.0, 0.9999999403953552, 0.0],
+          "sourceTriangle": 12193
         },
         {
           "name": "roof seat -1 1",
           "position": [-67.5, 130.0, -221.13612365722656],
-          "normal": [-0.0, 0.9999999403953552, 0.0],
-          "sourceTriangle": 10222
+          "normal": [0.0, 0.9999999403953552, 0.0],
+          "sourceTriangle": 12193
         },
         {
           "name": "roof seat -1 2",
           "position": [-67.5, 130.0, -193.7471466064453],
-          "normal": [-0.0, 0.9999999403953552, 0.0],
-          "sourceTriangle": 10222
+          "normal": [0.0, 0.9999999403953552, 0.0],
+          "sourceTriangle": 12193
         },
         {
           "name": "roof seat -1 3",
           "position": [-67.5, 130.0, -168.31451416015625],
-          "normal": [-0.0, 0.9999999403953552, 0.0],
-          "sourceTriangle": 10222
+          "normal": [0.0, 0.9999999403953552, 0.0],
+          "sourceTriangle": 12193
         },
         {
           "name": "roof seat 1 0",
           "position": [67.5, 130.0, -312.3812561035156],
-          "normal": [0.0, 1.0, 0.0],
-          "sourceTriangle": 10179
+          "normal": [0.0, 1.0, -0.0],
+          "sourceTriangle": 12131
         },
         {
           "name": "roof seat 1 1",
           "position": [67.5, 130.0, -267.6138916015625],
-          "normal": [0.0, 1.0, 0.0],
-          "sourceTriangle": 10179
+          "normal": [0.0, 1.0, -0.0],
+          "sourceTriangle": 12131
         },
         {
           "name": "roof seat 1 2",
           "position": [67.5, 130.0, -219.40286254882812],
-          "normal": [0.0, 0.9999999403953552, 0.0],
-          "sourceTriangle": 10223
+          "normal": [0.0, 0.9999999403953552, -0.0],
+          "sourceTriangle": 12175
         },
         {
           "name": "roof seat 1 3",
           "position": [67.5, 130.0, -174.63548278808594],
-          "normal": [0.0, 0.9999999403953552, 0.0],
-          "sourceTriangle": 10223
+          "normal": [0.0, 0.9999999403953552, -0.0],
+          "sourceTriangle": 12175
         },
         {
           "name": "aft shoulder tail seat -1",
@@ -75,7 +75,7 @@
           "normal": [
             -0.23610596358776093, 0.8822975158691406, -0.4071917235851288
           ],
-          "sourceTriangle": 13916
+          "sourceTriangle": 25965
         },
         {
           "name": "aft shoulder tail seat 1",
@@ -83,7 +83,7 @@
           "normal": [
             0.23610611259937286, 0.882296621799469, -0.40719330310821533
           ],
-          "sourceTriangle": 14093
+          "sourceTriangle": 26056
         }
       ]
     }
@@ -94,6 +94,11 @@
   },
   "arrivalRise": 140,
   "arrivalSpread": 24,
+  "arrivalSlot": {
+    "sourceX": [-94, 50],
+    "actualX": [-118, 72.22222222222223],
+    "purpose": "Physically open port-offset loading slot through the formed upper aperture, throat, roof packets, soffits and ribs; admits depleted-reserve diagonal hull descent and the later production chase eye without raising the canopy."
+  },
   "entryRake": "Port shoulder mouth is raked aft up to 136.5m; displacement fades to zero at Z=-160. Actual native diagonal flight and production chase-camera footprints drive the raised canopy and widened shoulders; the low galleries and real hull seats remain connected through formed piers.",
   "materials": [
     "Nomad / warm ivory armour",
@@ -102,11 +107,11 @@
     "Nomad / oxide freight enamel"
   ],
   "hashes": {
-    "build_receiver_crown.py": "f655ffc927060df5b6caec5b3de615f1fba5dafe25f557ebf42aa1aaacb0a40d",
-    "receiver-crown.blend": "34f6df1f25cbfd66c5628562ecb0f899b7ad2b9a47a78e3fdb7704b8e8a81510",
-    "receiver-crown.glb": "64b020eec777378b5e9bb8aa526c601a66b13b5557e26c14708ffa9f33202d73",
-    "receiver-crown-collision.json": "20a45a061223319254ce1b3d43452ad646dd3abdf903a597eecb3f226a5a5ea3",
-    "carrier-collision.json": "dc10f86d70c0d2422b2e330de1dee3dcd51927144e2beb6a6f18d65baba07c76",
-    "route-support-guides.json": "299b26e466252714cc004a164d51ef0e8513239252bfc8b748e211899d256671"
+    "build_receiver_crown.py": "a9bb291c39913e0d84553ed1e2bb7a0dc98301a22c11872c4189babb08c61383",
+    "receiver-crown.blend": "92b04fa739b2cde52cfacfb5f256911aa08d07a1ca1c2972699746097be9c7cd",
+    "receiver-crown.glb": "a06cfcf0744a1365e5e8ee42fc63b55d57560d630c1dfae7a9b3f23c033228aa",
+    "receiver-crown-collision.json": "9720ce2ad77457cafc419ea31bc1bccb88e262d01b9c71013f1ecc99b8d635ed",
+    "carrier-collision.json": "550021843249dcda8199c0727a058c80a59dbefe68d79cd77315484dc4281204",
+    "route-support-guides.json": "d6ddbcd912ed66967dcc65c2507ffff0ad799a8aba11f06f3d66286c5c28ca65"
   }
 }

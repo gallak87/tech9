@@ -64,7 +64,7 @@ test('two companion machines reuse fleet records without becoming authored route
   assert.notEqual(companions[0].origin.x, 0);
 });
 
-test('companion rolling contacts stay on the same graded salt plane across all four phases', () => {
+test('companion rolling contacts stay on their actual salt shelves across all four phases', () => {
   const normal = new Vector3(0, 1, track.saltPlane.grade).normalize();
   for (const carrier of companions)
     for (const quarter of [0, 1, 2, 3]) {
@@ -84,9 +84,12 @@ test('companion rolling contacts stay on the same graded salt plane across all f
           .applyMatrix4(pose)
           .addScaledVector(normal, -anchor.rollingRadius * carrier.scale.x);
         const planeError =
-          contact.y +
-          track.saltPlane.grade * contact.z -
-          track.saltPlane.height;
+          contact.y - track.groundHeightAt(contact.x, contact.z);
+        assert.equal(
+          Math.abs(track.groundNormalAt(contact.x, contact.z).x),
+          0,
+          `${carrier.id}: every tire stays within a flat shelf`,
+        );
         assert.ok(
           Math.abs(planeError) < 1e-9,
           `${carrier.id}: ${anchor.name} salt error ${planeError}`,

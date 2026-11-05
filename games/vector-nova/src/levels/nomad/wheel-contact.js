@@ -1,12 +1,15 @@
 import * as T from 'three';
 import { carrierMotionRules, sampleCarrierMotion } from './motion.js';
+import { nomadGroundNormalAt } from './ground-profile.js';
 import kit from '../../../assets/levels/nomad/blender/carrier-kit-provenance.json' with { type: 'json' };
 
 const WHEELS = kit.prototypes
   .find((part) => part.name === 'nomad_carrier')
   .anchors.filter((anchor) => anchor.kind === 'wheel');
-const WIDTH = 12;
-const LENGTH = 18;
+const WIDTH =
+  kit.prototypes.find((part) => part.name === 'nomad_wheel').dimensions[0] *
+  0.5;
+const LENGTH_RADIUS = 0.75;
 const LIFT = 0.06;
 
 /** Small ambient contact beneath the real rolling tires. The graded salt and
@@ -18,11 +21,7 @@ export function createNomadWheelContacts({ track, carriers = track.carriers }) {
   group.name = 'Nomad / seated wheel contacts';
   group.userData.aoExclude = true;
   group.userData.reflectionExclude = true;
-  const normal = new T.Vector3(0, 1, track.saltPlane.grade).normalize();
-  const orientation = new T.Quaternion().setFromUnitVectors(
-    new T.Vector3(0, 0, 1),
-    normal,
-  );
+  const face = new T.Vector3(0, 0, 1);
   const geometry = new T.PlaneGeometry(1, 1);
   const material = new T.ShaderMaterial({
     name: 'Nomad / soft tire ambient contact',
@@ -77,36 +76,44 @@ export function createNomadWheelContacts({ track, carriers = track.carriers }) {
 
   const records = [];
   const bounds = new T.Box3();
-  const right = new T.Vector3(1, 0, 0);
-  const along = new T.Vector3(0, -track.saltPlane.grade, 1).normalize();
+  const corner = new T.Vector3(),
+    contactMatrix = new T.Matrix4();
   for (const carrier of carriers) {
-    const contacts = WHEELS.map((anchor) =>
-      new T.Vector3()
+    const contacts = WHEELS.map((anchor) => {
+      const position = new T.Vector3()
         .fromArray(anchor.position)
         .multiply(carrier.scale)
         .applyQuaternion(carrier.quaternion)
-        .add(carrier.origin)
-        .addScaledVector(
-          normal,
-          -anchor.rollingRadius * carrier.scale.x + LIFT,
+        .add(carrier.origin);
+      const normal = nomadGroundNormalAt(track, position.x, position.z);
+      position.addScaledVector(
+        normal,
+        -anchor.rollingRadius * carrier.scale.x + LIFT,
+      );
+      return {
+        position,
+        orientation: new T.Quaternion().setFromUnitVectors(face, normal),
+        scale: new T.Vector3(
+          WIDTH * carrier.scale.x,
+          LENGTH_RADIUS * anchor.rollingRadius * carrier.scale.x,
+          1,
         ),
-    );
-    const scale = new T.Vector3(
-      WIDTH * carrier.scale.x,
-      LENGTH * carrier.scale.x,
-      1,
-    );
-    records.push({ carrier, contacts, scale });
+      };
+    });
+    records.push({ carrier, contacts });
     const carrierBounds = new T.Box3();
-    for (const contact of contacts)
-      for (const x of [-1, 1])
-        for (const z of [-1, 1])
+    for (const contact of contacts) {
+      contactMatrix.compose(
+        contact.position,
+        contact.orientation,
+        contact.scale,
+      );
+      for (const x of [-0.5, 0.5])
+        for (const y of [-0.5, 0.5])
           carrierBounds.expandByPoint(
-            contact
-              .clone()
-              .addScaledVector(right, (x * scale.x) / 2)
-              .addScaledVector(along, (z * scale.y) / 2),
+            corner.set(x, y, 0).applyMatrix4(contactMatrix),
           );
+    }
     const motion = carrierMotionRules(carrier);
     carrierBounds.expandByVector(
       new T.Vector3(
@@ -134,11 +141,11 @@ export function createNomadWheelContacts({ track, carriers = track.carriers }) {
     if (time === previousTime) return;
     previousTime = time;
     let index = 0;
-    for (const { carrier, contacts, scale } of records) {
+    for (const { carrier, contacts } of records) {
       const displacement = sampleCarrierMotion(carrier, time).translation;
       for (const contact of contacts) {
-        position.copy(contact).add(displacement);
-        matrix.compose(position, orientation, scale);
+        position.copy(contact.position).add(displacement);
+        matrix.compose(position, contact.orientation, contact.scale);
         mesh.setMatrixAt(index++, matrix);
       }
     }

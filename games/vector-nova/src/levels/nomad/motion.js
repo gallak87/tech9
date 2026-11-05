@@ -4,9 +4,9 @@ import { Vector3 } from 'three';
 // Salt and wheel travel express its common ground speed. These rigid offsets
 // are the additional, physically queried motion of each individual carrier.
 export const NOMAD_MOTION_RULES = Object.freeze({
-  version: 1,
-  convoySpeed: 16,
-  groundGrade: 0.095,
+  version: 4,
+  convoySpeed: 1500 / 3.6,
+  groundGrade: 0.18,
   period: 36,
   lateralAmplitude: 5,
   longitudinalAmplitude: 16,

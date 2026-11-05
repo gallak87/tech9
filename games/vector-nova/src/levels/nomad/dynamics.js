@@ -23,7 +23,8 @@ export async function createNomadDynamics({ track, collisionWorld }) {
       'Nomad collision motion groups must name authored carriers or the salt ground.',
     );
   }
-  let time = 0;
+  let time = 0,
+    countdownTime = null;
   function place(at, dt = 0) {
     if (movingGround)
       world.setGroupMotion(
@@ -62,30 +63,48 @@ export async function createNomadDynamics({ track, collisionWorld }) {
     setNomadTime(value) {
       if (!Number.isFinite(value) || value < 0)
         throw new Error('Invalid Nomad carrier time.');
-      if (value === time) return;
+      if (value === time && countdownTime === null) return;
       time = value;
+      countdownTime = null;
       place(time);
+    },
+    setNomadCountdownTime(value) {
+      if (value !== null && (!Number.isFinite(value) || value > time))
+        throw new Error('Invalid Nomad countdown phase.');
+      if (countdownTime === value) return;
+      countdownTime = value;
+      place(countdownTime ?? time);
     },
     step(dt) {
       // Match the native world's accepted interval before touching any group.
       if (!Number.isFinite(dt) || dt <= 0 || dt > 0.1)
         throw new Error('Query world requires a finite fixed-step duration.');
+      if (countdownTime !== null)
+        throw new Error('Finish the Nomad countdown before advancing.');
       place(time, dt);
       world.step(dt);
       time += dt;
     },
     snapshot() {
-      return { world: world.snapshot(), convoyTime: time };
+      return { world: world.snapshot(), convoyTime: time, countdownTime };
     },
     restore(data) {
       if (!Number.isFinite(data?.convoyTime) || data.convoyTime < 0)
         throw new Error('Invalid Nomad carrier snapshot.');
+      const nextCountdown = data.countdownTime ?? null;
+      if (
+        nextCountdown !== null &&
+        (!Number.isFinite(nextCountdown) || nextCountdown > data.convoyTime)
+      )
+        throw new Error('Invalid Nomad countdown snapshot.');
       world.restore(data.world);
       time = data.convoyTime;
+      countdownTime = nextCountdown;
     },
     reset() {
       world.reset();
       time = 0;
+      countdownTime = null;
       place(time);
     },
   };

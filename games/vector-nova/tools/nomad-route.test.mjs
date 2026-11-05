@@ -3,24 +3,28 @@ import test from 'node:test';
 import { Vector3 } from 'three';
 import { createNomadTrack } from '../src/levels/nomad/track/model.js';
 import { assertTrackContract } from './level-checks/track-contract.mjs';
+import { sampleCarrierMotion } from '../src/levels/nomad/motion.js';
 
 const track = createNomadTrack();
 
-test('Nomad is a physical 12.8 km open sprint with a supported 600 m finish runout', () => {
+test('Nomad is an enlarged 15.6 km descending sprint with a supported 600 m finish runout', () => {
   assert.equal(track.closed, false);
-  assert.equal(track.length, 12800);
-  assert.equal(track.finishDistance, 12200);
+  assert.ok(track.length >= 15000 && track.length <= 16000);
+  assert.equal(track.finishDistance, track.length - 600);
   assert.equal(track.length - track.finishDistance, 600);
   assert.equal(track.mainWidth, 50);
-  assert.equal(track.version, 2);
+  assert.equal(track.version, 5);
   assertTrackContract(track);
   const descent =
     track.sample(0).position.y - track.sample(track.finishDistance).position.y;
-  assert.ok(descent > 900, 'the race physically descends about a kilometre');
   assert.ok(
-    descent / track.finishDistance >= 0.08 &&
-      descent / track.finishDistance <= 0.1,
-    'an actual 8–10% net descent, independent of presentation or speed tuning',
+    descent > 2300,
+    'the race physically descends between high salt shelves and the lower basin',
+  );
+  assert.ok(
+    descent / track.finishDistance >= 0.18 &&
+      descent / track.finishDistance <= 0.23,
+    'a pronounced physical descent independent of presentation or speed tuning',
   );
   for (let s = track.finishDistance; s <= track.length; s += 2) {
     assert.equal(track.surfaceCoverage(s, 0), 1, `runout at ${s}`);
@@ -46,8 +50,12 @@ test('Nomad is a physical 12.8 km open sprint with a supported 600 m finish runo
 test('eleven enormous moving-support owners retain long grounded routes and genuine gaps', () => {
   assert.equal(track.carriers.length, 11);
   assert.equal(track.jumps.length, 10);
-  assert.ok(track.carriers.every((carrier) => carrier.length > 850));
-  assert.ok(track.carriers.every((carrier) => carrier.width > 140));
+  assert.ok(
+    track.carriers.every((carrier) => carrier.length > track.mainWidth * 15),
+  );
+  assert.ok(
+    track.carriers.every((carrier) => carrier.width > track.mainWidth * 2.5),
+  );
   let supported = 0;
   for (const run of track.roadRuns) {
     supported += run.end - Math.max(0, run.start);
@@ -65,7 +73,7 @@ test('eleven enormous moving-support owners retain long grounded routes and genu
     );
   }
   assert.ok(
-    supported / track.length > 0.8,
+    supported / track.length > 0.75,
     'the race is predominantly supported driving',
   );
   for (const jump of track.jumps) {
@@ -90,7 +98,7 @@ test('eleven enormous moving-support owners retain long grounded routes and genu
   }
 });
 
-test('the signature transfer joins overlapping side-by-side carriers without wheel-envelope overlap', () => {
+test('the signature transfer spans separated moving carriers without wheel or hull-envelope overlap', () => {
   const jump = track.jumps.find((entry) => entry.hero);
   assert.ok(jump);
   const departure = track.carriers.find(
@@ -101,8 +109,8 @@ test('the signature transfer joins overlapping side-by-side carriers without whe
     );
   const axialSeparation = receiver.origin.z - departure.origin.z;
   assert.ok(
-    axialSeparation < (departure.length + receiver.length) / 2,
-    'the next enormous hull overtakes alongside',
+    axialSeparation > (departure.length + receiver.length) / 2,
+    'the enlarged procession leaves genuine open distance between the enormous hulls',
   );
   assert.ok(
     Math.abs(receiver.origin.x - departure.origin.x) >
@@ -113,6 +121,25 @@ test('the signature transfer joins overlapping side-by-side carriers without whe
   assert.ok(to.x - from.x > 60, 'the transfer is genuinely diagonal');
   assert.ok(to.z - from.z > 60);
   assert.ok(from.y > to.y, 'the broad receiver is lower and visible');
+  for (const time of [0, 9.5, 19, 28.5, 38]) {
+    const a = sampleCarrierMotion(departure, time),
+      b = sampleCarrierMotion(receiver, time);
+    assert.ok(
+      Math.abs(
+        receiver.origin.x +
+          b.translation.x -
+          departure.origin.x -
+          a.translation.x,
+      ) >
+        (departure.tireWidth + receiver.tireWidth) / 2 + 30,
+    );
+  }
+  assert.ok(
+    sampleCarrierMotion(departure, 0).velocity.distanceTo(
+      sampleCarrierMotion(receiver, 0).velocity,
+    ) > 1,
+    'landing decks retain actual independent material velocity',
+  );
   const wall = track.sections.find((section) => section.id === departure.id);
   let sustainedWall = 0;
   for (let s = wall.start; s < jump.takeoff; s += 1)
@@ -123,7 +150,7 @@ test('the signature transfer joins overlapping side-by-side carriers without whe
   );
 });
 
-test('four substantial unsupported gaps use rising physical ramps and open roof catches', () => {
+test('four substantial unsupported gaps use physical above-grade ramps, settled straights and open roof catches', () => {
   assert.equal(track.jumps.filter((jump) => jump.bigAir).length, 4);
   for (const jump of track.jumps) {
     const lip = track.sample(jump.takeoff),
@@ -131,16 +158,37 @@ test('four substantial unsupported gaps use rising physical ramps and open roof 
       receiver = track.sample(jump.landingStart);
     if (jump.bigAir) {
       assert.ok(
-        lip.tangent.y > 0.18 && lip.tangent.y < 0.3,
-        `${jump.id}: a visible 10–17 degree launch ramp`,
+        lip.tangent.y > 0 && lip.tangent.y < 0.12,
+        `${jump.id}: a real rising ramp whose moderate pitch preserves a boosted catch window`,
       );
       assert.ok(
-        lip.position.y - approach.position.y > 12,
-        `${jump.id}: the actual last 80 m rise before release`,
+        lip.position.y -
+          track.groundHeightAt(lip.position.x, lip.position.z) -
+          (approach.position.y -
+            track.groundHeightAt(approach.position.x, approach.position.z)) >
+          12,
+        `${jump.id}: the actual last 80 m rise substantially above the descending salt shelf`,
+      );
+      const settled = track.sample(jump.takeoff - 55);
+      assert.equal(jump.launchStraight.length, 120);
+      for (let ahead = 55; ahead >= 1; ahead -= 1) {
+        const frame = track.sample(jump.takeoff - ahead);
+        assert.ok(
+          frame.tangent.angleTo(settled.tangent) < 0.001,
+          `${jump.id}: a player holding a steady line has a genuinely constant final tangent`,
+        );
+        assert.ok(
+          Math.abs(frame.bank) < 1e-9,
+          `${jump.id}: the final straight is bank-free`,
+        );
+      }
+      assert.ok(
+        jump.landingStart - jump.takeoff > 500,
+        `${jump.id}: the enlarged convoy leaves more than half a kilometre genuinely unsupported`,
       );
       assert.ok(
-        jump.landingStart - jump.takeoff > 280,
-        `${jump.id}: several hundred metres are genuinely unsupported`,
+        jump.landingEnd - jump.landingStart >= 600 - 1e-6,
+        `${jump.id}: the main boosted line has a long physical receiving window`,
       );
       assert.ok(
         track.carriers.find((carrier) => carrier.id === jump.receivingCarrierId)
@@ -149,9 +197,14 @@ test('four substantial unsupported gaps use rising physical ramps and open roof 
       );
     } else {
       assert.ok(
-        Math.abs(lip.tangent.y) < 0.1,
+        lip.tangent.y > -0.2 && lip.tangent.y < 0.06,
         `${jump.id}: cargo entries remain low and clear their real ceilings`,
       );
+      if (jump !== track.jumps[0])
+        assert.ok(
+          jump.landingStart - jump.takeoff > 120,
+          `${jump.id}: ordinary carriers also have visibly greater spacing`,
+        );
     }
     assert.ok(
       lip.position.y > receiver.position.y + 15,
@@ -245,7 +298,17 @@ test('the complete road width clears each hull roof and uses its real lateral ca
   }
 });
 
-test('static carrier pitch seats all longitudinal wheel contacts on the same salt plane', () => {
+test('every rigid carrier is seated on its own real flat salt shelf', () => {
+  assert.equal(track.saltBenches.length, 5);
+  for (let index = 1; index < track.saltBenches.length; index++) {
+    assert.ok(
+      track.saltBenches[index].minX > track.saltBenches[index - 1].maxX,
+    );
+    assert.ok(
+      track.saltBenches[index].heightOffset <
+        track.saltBenches[index - 1].heightOffset - 60,
+    );
+  }
   for (const carrier of track.carriers)
     for (const x of [-100, 100])
       for (const z of [-340, 0, 340]) {
@@ -253,11 +316,15 @@ test('static carrier pitch seats all longitudinal wheel contacts on the same sal
           .multiply(carrier.scale)
           .applyQuaternion(carrier.quaternion)
           .add(carrier.origin);
-        const saltHeight =
-          track.saltPlane.height - track.saltPlane.grade * contact.z;
+        const saltHeight = track.groundHeightAt(contact.x, contact.z);
         assert.ok(
           Math.abs(contact.y - saltHeight) < 1e-8,
           `${carrier.id}: wheel contact floats above salt`,
+        );
+        assert.equal(
+          Math.abs(track.groundNormalAt(contact.x, contact.z).x),
+          0,
+          'every longitudinal tire row stays on a true flat cross-shelf plateau',
         );
       }
 });

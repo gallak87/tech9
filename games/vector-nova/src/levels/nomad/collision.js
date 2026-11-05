@@ -28,8 +28,7 @@ import {
 /** Exact nominal skin/member triangles retain rigid carrier ownership in Rapier. */
 export function createNomadCollisionWorld({ track }) {
   const road = createNomadRoad({ track, collisionOnly: true });
-  const triangles = [];
-  triangles.push(...createNomadTerrainTriangles({ track }));
+  const triangles = createNomadTerrainTriangles();
   try {
     road.group.updateWorldMatrix(true, true);
     road.group.traverse((mesh) => {
@@ -212,23 +211,6 @@ export function createNomadCollisionWorld({ track }) {
       );
     }
   }
-  const height = track.saltPlane.height,
-    grade = track.saltPlane.grade;
-  const salt = [
-    new T.Vector3(-18000, height + 400 * grade, -400),
-    new T.Vector3(-18000, height - 24000 * grade, 24000),
-    new T.Vector3(18000, height + 400 * grade, -400),
-    new T.Vector3(18000, height - 24000 * grade, 24000),
-  ];
-  for (const ids of [
-    [0, 1, 2],
-    [2, 1, 3],
-  ])
-    triangles.push({
-      id: 'nomad-salt-basin',
-      kind: 'terrain',
-      points: ids.map((index) => salt[index].toArray()),
-    });
   return createCollisionWorld({
     id: 'nomad-physical-convoy',
     version: 1,

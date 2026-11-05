@@ -197,11 +197,11 @@ test('actual native intercepted flights clear every moving district by a continu
     const cases = [
       ...track.jumps.map((jump) => ({ jump, fast: false })),
       ...[3, 7].map((index) => ({ jump: track.jumps[index], fast: true })),
-      // This open-roof catch independently supports the full held-boost arc.
-      // Low cargo-hall fast seeds retain the production braking/boost policy.
-      { jump: track.jumps[1], fast: true, heldBoost: true },
+      // The broad roof catch also proves a fast approach with the same
+      // production braking/boost policy as the low cargo-hall fast seeds.
+      { jump: track.jumps[1], fast: true },
     ];
-    for (const { jump, fast, heldBoost = false } of cases)
+    for (const { jump, fast } of cases)
       for (const quarter of [0, 1, 2, 3]) {
         const receiver = track.carriers.find(
           (carrier) => carrier.id === jump.receivingCarrierId,
@@ -222,27 +222,23 @@ test('actual native intercepted flights clear every moving district by a continu
           transferred = false;
         try {
           runtime.reset({ state });
-          for (let tick = 0; tick < 800; tick++) {
+          // Match production's budget for ~7.3s hero air plus approach and
+          // supported post-drive; this clearance sweep ends at the catch.
+          for (let tick = 0; tick < 1500; tick++) {
             const input = getRacerControl(state, track, {
               lane: 0,
               difficulty: 'hard',
               devices,
               runtime,
             });
-            const events = runtime.advance(
-              state,
-              heldBoost
-                ? { ...input, throttle: 1, brake: 0, boost: true }
-                : input,
-              1 / 120,
-            );
+            const events = runtime.advance(state, input, 1 / 120);
             assert.ok(
               !events.some((event) =>
                 ['jump-miss', 'road-departure', 'road-recovery'].includes(
                   event.type,
                 ),
               ),
-              `${jump.id}/phase${quarter}/fastSeed${fast}/roofBoost${heldBoost}: the approach must reach the receiver before clearance is checked: ${JSON.stringify(events)}`,
+              `${jump.id}/phase${quarter}/fastSeed${fast}: the approach must reach the receiver before clearance is checked: ${JSON.stringify(events)}`,
             );
             const pose = runtime.pose(1);
             if (

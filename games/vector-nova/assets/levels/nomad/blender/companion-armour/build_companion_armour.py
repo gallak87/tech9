@@ -327,7 +327,7 @@ record = {
     'prototypes': [{'name': NAME, 'triangles': triangles, 'materialBatches': len(batches),
         'bounds': {'min': low, 'max': high}, 'actualHullSeats': SEATS}],
     'clearance': {'sidePortalReservedZ': [[-281, -159], [159, 281]],
-        'wheelAndGuardMaxY': 52, 'craneReservedZ': [[-304, -274], [263, 293]],
+        'wheelAndGuardMaxY': 65, 'craneReservedZ': [[-304, -274], [263, 293]],
         'result': 'Every evaluated attachment vertex is above Y70 and strictly inside Z(-159,159); convex hull bounds therefore separate the entire kit from all tire/guard, lateral portal and crane station envelopes.'},
     'materials': [item.name for item in M.values()],
     'components': component_bounds,

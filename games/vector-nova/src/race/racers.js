@@ -95,12 +95,18 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
     const jump = track.jumps?.find(
       (entry) => Math.abs(entry.takeoff - state.distance) < 1,
     );
-    const boost =
+    let boost =
       profile.flightBoost === true &&
       track.closed === false &&
       jump?.landingEnd - jump?.landingStart >= 600 &&
       state.energy >
         (state.boosting ? profile.boostFloor : profile.boostReserve);
+    const flightBoost = track.aiFlightBoost?.(state, jump, {
+      runtime: opponent.runtime,
+      defaultBoost: boost,
+      allowBoost: profile.flightBoost === true,
+    });
+    if (typeof flightBoost === 'boolean') boost = flightBoost;
     return { throttle: 1, brake: 0, steer: 0, boost, airbrake: false };
   }
   const handling = getShip(state.shipId).handling;
@@ -286,7 +292,12 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
     );
     desiredHeading += (aligned - desiredHeading) * weight;
   }
-  const launchTarget = jump && track.aiLaunchTarget?.(state, jump);
+  const launchTarget =
+    jump &&
+    track.aiLaunchTarget?.(state, jump, {
+      runtime: opponent.runtime,
+      allowBoost: profile.flightBoost === true,
+    });
   if (
     launchTarget &&
     ['x', 'y', 'z'].every((axis) => Number.isFinite(launchTarget[axis]))

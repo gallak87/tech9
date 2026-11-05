@@ -24,139 +24,139 @@
   "prototypes": [
     {
       "name": "nomad_carrier",
-      "triangles": 56092,
+      "triangles": 61012,
       "materialBatches": 6,
       "bounds": {
-        "min": [-157.89999389648438, 16.200000762939453, -376.7200012207031],
+        "min": [-157.89999389648438, 18.423892974853516, -376.7200012207031],
         "max": [157.89999389648438, 179.19607543945312, 368.0]
       },
-      "dimensions": [315.79998779296875, 162.99607467651367, 744.7200012207031],
+      "dimensions": [315.79998779296875, 160.7721824645996, 744.7200012207031],
       "anchors": [
         {
           "name": "wheel_port_00",
-          "position": [-96, 24, -312],
+          "position": [-96, 30, -312],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_port_01",
-          "position": [-96, 24, -234],
+          "position": [-96, 30, -234],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_port_02",
-          "position": [-96, 24, -156],
+          "position": [-96, 30, -156],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_port_03",
-          "position": [-96, 24, -78],
+          "position": [-96, 30, -78],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_port_04",
-          "position": [-96, 24, 0],
+          "position": [-96, 30, 0],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_port_05",
-          "position": [-96, 24, 78],
+          "position": [-96, 30, 78],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_port_06",
-          "position": [-96, 24, 156],
+          "position": [-96, 30, 156],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_port_07",
-          "position": [-96, 24, 234],
+          "position": [-96, 30, 234],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_port_08",
-          "position": [-96, 24, 312],
+          "position": [-96, 30, 312],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_starboard_00",
-          "position": [96, 24, -312],
+          "position": [96, 30, -312],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_starboard_01",
-          "position": [96, 24, -234],
+          "position": [96, 30, -234],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_starboard_02",
-          "position": [96, 24, -156],
+          "position": [96, 30, -156],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_starboard_03",
-          "position": [96, 24, -78],
+          "position": [96, 30, -78],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_starboard_04",
-          "position": [96, 24, 0],
+          "position": [96, 30, 0],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_starboard_05",
-          "position": [96, 24, 78],
+          "position": [96, 30, 78],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_starboard_06",
-          "position": [96, 24, 156],
+          "position": [96, 30, 156],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_starboard_07",
-          "position": [96, 24, 234],
+          "position": [96, 30, 234],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "wheel_starboard_08",
-          "position": [96, 24, 312],
+          "position": [96, 30, 312],
           "kind": "wheel",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         },
         {
           "name": "freight_hook_port",
@@ -292,17 +292,19 @@
       "triangles": 4896,
       "materialBatches": 4,
       "bounds": {
-        "min": [-11.899999618530273, -24.149999618530273, -25.0745906829834],
-        "max": [11.899999618530273, 24.149999618530273, 25.0745906829834]
+        "min": [-11.899999618530273, -29.999879837036133, -29.980693817138672],
+        "max": [11.899999618530273, 29.999879837036133, 29.980693817138672]
       },
-      "dimensions": [23.799999237060547, 48.29999923706055, 50.1491813659668],
+      "dimensions": [
+        23.799999237060547, 59.999759674072266, 59.961387634277344
+      ],
       "anchors": [
         {
           "name": "axle_origin",
           "position": [0, 0, 0],
           "kind": "axis",
           "axis": [1, 0, 0],
-          "rollingRadius": 24
+          "rollingRadius": 30
         }
       ]
     },
@@ -340,51 +342,53 @@
     },
     {
       "name": "nomad_carrier_mid",
-      "triangles": 14300,
+      "triangles": 18858,
       "materialBatches": 6,
       "bounds": {
-        "min": [-157.9085235595703, 15.974045753479004, -376.72003173828125],
-        "max": [157.9807586669922, 179.06813049316406, 367.89068603515625]
+        "min": [-157.9807891845703, 18.404335021972656, -376.7200622558594],
+        "max": [157.90701293945312, 179.06813049316406, 367.8907470703125]
       },
-      "dimensions": [315.8892822265625, 163.09408473968506, 744.6107177734375],
+      "dimensions": [315.88780212402344, 160.6637954711914, 744.6108093261719],
       "anchors": [],
-      "evaluatedSourceTriangles": 14576
+      "evaluatedSourceTriangles": 19134
     },
     {
       "name": "nomad_carrier_far",
-      "triangles": 3554,
+      "triangles": 7591,
       "materialBatches": 6,
       "bounds": {
-        "min": [-158.28765869140625, 14.728540420532227, -376.72003173828125],
-        "max": [158.62086486816406, 179.85606384277344, 368.2828063964844]
+        "min": [-158.29881286621094, 16.91421890258789, -376.7200622558594],
+        "max": [158.32003784179688, 179.02200317382812, 368.5762023925781]
       },
-      "dimensions": [316.9085235595703, 165.1275234222412, 745.0028381347656],
+      "dimensions": [316.6188507080078, 162.10778427124023, 745.2962646484375],
       "anchors": [],
-      "evaluatedSourceTriangles": 4652
+      "evaluatedSourceTriangles": 8710
     },
     {
       "name": "nomad_wheel_mid",
-      "triangles": 905,
+      "triangles": 1517,
       "materialBatches": 4,
       "bounds": {
-        "min": [-11.899999618530273, -23.816665649414062, -24.953039169311523],
-        "max": [11.899999618530273, 23.899999618530273, 24.953039169311523]
+        "min": [-11.899999618530273, -29.999998092651367, -30.006271362304688],
+        "max": [11.899999618530273, 29.999998092651367, 30.006271362304688]
       },
-      "dimensions": [23.799999237060547, 47.716665267944336, 49.90607833862305],
+      "dimensions": [
+        23.799999237060547, 59.999996185302734, 60.012542724609375
+      ],
       "anchors": [],
-      "evaluatedSourceTriangles": 976
+      "evaluatedSourceTriangles": 1590
     },
     {
       "name": "nomad_wheel_far",
-      "triangles": 240,
+      "triangles": 958,
       "materialBatches": 4,
       "bounds": {
-        "min": [-11.69069766998291, -22.37879180908203, -22.447681427001953],
-        "max": [11.665306091308594, 22.37879180908203, 22.447681427001953]
+        "min": [-11.675509452819824, -29.999998092651367, -29.999998092651367],
+        "max": [11.675509452819824, 29.999998092651367, 29.999998092651367]
       },
-      "dimensions": [23.356003761291504, 44.75758361816406, 44.895362854003906],
+      "dimensions": [23.35101890563965, 59.999996185302734, 59.999996185302734],
       "anchors": [],
-      "evaluatedSourceTriangles": 242
+      "evaluatedSourceTriangles": 960
     }
   ],
   "materials": [
@@ -397,13 +401,77 @@
     "Nomad / recessed blue glazing",
     "Nomad / deep machinery"
   ],
-  "totalTriangles": 80451,
+  "wheelGeometry": {
+    "rollingRadius": 30,
+    "axleHeight": 30,
+    "axialScale": 1,
+    "radialScale": 1.25,
+    "wheelwellRadius": 32.5,
+    "construction": "True circle baked into near geometry; all distance tiers retain that rolling radius. Continuous inboard load keels with real outside wheelwell cuts, raised suspension, and bracket-seated partial portal fenders. All upperbody, cargo and crane coordinates remain fixed.",
+    "guards": [
+      {
+        "station": -312,
+        "innerRadius": 32.5,
+        "outerRadius": 35,
+        "anglesDegrees": [22, 158]
+      },
+      {
+        "station": -234,
+        "innerRadius": 31,
+        "outerRadius": 32,
+        "anglesDegrees": [110, 158]
+      },
+      {
+        "station": -156,
+        "innerRadius": 32.5,
+        "outerRadius": 35,
+        "anglesDegrees": [22, 115]
+      },
+      {
+        "station": -78,
+        "innerRadius": 32.5,
+        "outerRadius": 35,
+        "anglesDegrees": [22, 158]
+      },
+      {
+        "station": 0,
+        "innerRadius": 32.5,
+        "outerRadius": 35,
+        "anglesDegrees": [22, 158]
+      },
+      {
+        "station": 78,
+        "innerRadius": 32.5,
+        "outerRadius": 35,
+        "anglesDegrees": [22, 158]
+      },
+      {
+        "station": 156,
+        "innerRadius": 32.5,
+        "outerRadius": 35,
+        "anglesDegrees": [65, 158]
+      },
+      {
+        "station": 234,
+        "innerRadius": 31,
+        "outerRadius": 32,
+        "anglesDegrees": [22, 70]
+      },
+      {
+        "station": 312,
+        "innerRadius": 32.5,
+        "outerRadius": 35,
+        "anglesDegrees": [22, 158]
+      }
+    ]
+  },
+  "totalTriangles": 95296,
   "collision": {
     "file": "carrier-collision.json",
     "prototypes": [
       {
         "name": "nomad_carrier",
-        "triangles": 20436
+        "triangles": 32412
       },
       {
         "name": "nomad_wheel",
@@ -449,9 +517,9 @@
     ]
   },
   "hashes": {
-    "build_nomad_carrier.py": "a65b828edbe4e29fe44d408279e2d5fb445004b0116bd30c0e423e9d2c337cab",
-    "nomad-carrier-kit.blend": "cb444eb738128914f622544f981ad1dc1d89e3507efad538247004ed1760dcf0",
-    "carrier-kit.glb": "6aca29f33c66c3834d92a865b252e67c4b71dd92299b03180c2458e78f9f1178",
-    "carrier-collision.json": "dc10f86d70c0d2422b2e330de1dee3dcd51927144e2beb6a6f18d65baba07c76"
+    "build_nomad_carrier.py": "2990af68a5bb339c03ca790a90993350008fa628813500e4d4e9663b1943a815",
+    "nomad-carrier-kit.blend": "5e266bc8c0593e12c77e3e40d21159e07c436793070ef87b223be7d23cb6baf7",
+    "carrier-kit.glb": "96eedefb4027de9d594efcbcb54b6614970b181861ec45583a68e3c17b84b753",
+    "carrier-collision.json": "550021843249dcda8199c0727a058c80a59dbefe68d79cd77315484dc4281204"
   }
 }

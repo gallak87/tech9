@@ -5,6 +5,7 @@ import {
   NOMAD_MOTION_RULES,
 } from './motion.js';
 import kitManifest from '../../../assets/levels/nomad/blender/carrier-kit-provenance.json' with { type: 'json' };
+import { createNomadWheelSpeedFinish } from './wheel-speed-finish.js';
 
 const DETAILS = [
   { suffix: '', distance: 0 },
@@ -78,6 +79,7 @@ export function createNomadFleetBatches({
   source,
   carriers = track.carriers,
   excludeHullIds = [],
+  settings = {},
 }) {
   const group = new T.Group();
   group.name = 'Nomad / armored moving fleet';
@@ -90,6 +92,7 @@ export function createNomadFleetBatches({
     }));
   let disposed = false;
   const excludedHulls = new Set(excludeHullIds);
+  const wheelFinish = createNomadWheelSpeedFinish({ track, settings });
   const report = {
     batches: 0,
     hullInstances: 0,
@@ -109,10 +112,12 @@ export function createNomadFleetBatches({
     group.removeFromParent();
     group.clear();
     for (const batch of batches) batch.dispose();
+    wheelFinish.dispose();
   }
 
   function update(frame = {}) {
     if (disposed) return;
+    wheelFinish.update(frame);
     const time = track.presentationTime ?? 0;
     if (frame.camera) {
       group.updateWorldMatrix(true, false);
@@ -143,8 +148,9 @@ export function createNomadFleetBatches({
       placement.level = level;
       placement.time = time;
       const angle =
-        (NOMAD_MOTION_RULES.convoySpeed * time + motion.translation.z) /
-        (24 * carrier.scale.x);
+        ((NOMAD_MOTION_RULES.convoySpeed * time + motion.translation.z) *
+          Math.hypot(1, track.saltPlane.grade)) /
+        (wheelAnchors[0].rollingRadius * carrier.scale.x);
       rotation.makeRotationX(angle);
       for (const slot of placement.slots) {
         const part = slot.parts[level];
@@ -178,12 +184,13 @@ export function createNomadFleetBatches({
             (sum, part) => sum + (part.geometry.index?.count ?? 0),
             0,
           ),
-          material,
+          kind === 'wheel' ? wheelFinish.bindMaterial(material) : material,
         );
         batches.push(batch);
         group.add(batch);
         batch.name = `Nomad / ${kind === 'wheel' ? 'rolling bogies' : 'armored hulls'} / ${material.name}`;
         batch.userData.nomadFleetKind = kind;
+        batch.userData.nomadSourceMaterialUUID = material.uuid;
         batch.perObjectFrustumCulled = true;
         batch.sortObjects = false;
         batch.castShadow = true;

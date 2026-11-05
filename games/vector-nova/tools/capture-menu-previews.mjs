@@ -166,14 +166,17 @@ try {
         }
         if (id === 'nomad') {
           const transfer = track.jumps.find((jump) => jump.hero);
-          const frame = track.sample(transfer.takeoff - 100);
-          camera.position
-            .copy(frame.position)
-            .addScaledVector(frame.right, -460)
-            .addScaledVector(frame.up, 170)
-            .addScaledVector(frame.tangent, -520);
-          target.copy(track.sample(transfer.landingStart + 110).position);
+          const departure = track.sample(transfer.takeoff).position;
+          const receiver = track.sample(transfer.landingStart + 180).position;
+          const centre = departure.clone().lerp(receiver, 0.45);
+          // View from the lower side, above the intervening salt shelves.
+          camera.position.copy(centre);
+          camera.position.x += 650;
+          camera.position.y += 440;
+          camera.position.z -= 700;
+          target.copy(centre);
           target.y -= 35;
+          target.z += 140;
           camera.fov = 58;
         }
         camera.lookAt(target);

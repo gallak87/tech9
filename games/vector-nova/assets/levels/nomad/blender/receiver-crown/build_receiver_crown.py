@@ -31,6 +31,11 @@ NAME = 'nomad_receiver_crown'
 # hull shoes and seated load path at their actual original source coordinates.
 ARRIVAL_RISE = 140
 ARRIVAL_SPREAD = 24
+# The depleted-reserve arrival descends through the port half of the canopy;
+# its chase eye crosses the roof later and farther inboard. Keep a real open
+# loading slot through every upper ring, rib and skin, with closed formed ends.
+# These are pre-spread/pre-rake source X coordinates, not collision exclusions.
+ARRIVAL_SLOT = (-94, 50)
 
 
 def canopy(y):
@@ -116,6 +121,36 @@ def prism(name, profile, start, end, mat, edge=0):
     faces = [tuple(range(n - 1, -1, -1)), tuple(n + i for i in range(n))]
     faces += [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)]
     return mesh(name, points, faces, mat, edge)
+
+
+def clip_profile(profile, boundary, keep_left):
+    """Clip an ordered formed cross-section and retain its closed cut edge."""
+    result = []
+    for a, b in zip(profile, profile[1:] + profile[:1]):
+        a_inside = a[0] <= boundary if keep_left else a[0] >= boundary
+        b_inside = b[0] <= boundary if keep_left else b[0] >= boundary
+        if a_inside:
+            result.append(a)
+        if a_inside != b_inside:
+            t = (boundary - a[0]) / (b[0] - a[0])
+            result.append((boundary, a[1] + t * (b[1] - a[1])))
+    return result
+
+
+def open_prism(name, profile, start, end, mat, edge=0):
+    for side, boundary, keep_left in [('port rim', ARRIVAL_SLOT[0], True),
+                                       ('starboard cap', ARRIVAL_SLOT[1], False)]:
+        clipped = clip_profile(profile, boundary, keep_left)
+        if len(clipped) >= 3:
+            prism(name + ' / ' + side, clipped, start, end, mat, edge)
+
+
+def open_box(name, centre, size, mat, edge=0):
+    x, y, z = centre
+    w, h, length = size
+    profile = [(x - w / 2, y - h / 2), (x + w / 2, y - h / 2),
+               (x + w / 2, y + h / 2), (x - w / 2, y + h / 2)]
+    open_prism(name, profile, z - length / 2, z + length / 2, mat, edge)
 
 
 def box(name, centre, size, mat, edge=0):
@@ -235,42 +270,41 @@ for side in [-1, 1]:
         cylinder('continuous upper pressure feed %s %s' % (side, y),
             (side * 87, y, -347), (side * 87, y, -182), .8, 'alloy', 12)
 
-# The main opening is a thick formed cargo aperture with deep reveals, not a
-# flat goalpost. All central overhead members remain above the tall air corridor.
-# The lower cargo galleries and fitted roof soles retain their actual seats.
-# The shoulders
-# continue into a real enclosed canopy with individually seated roof packets.
+# The main opening retains thick formed reveals and individually seated roof
+# packets around a real port-offset loading slot. Its open top admits the slow
+# diagonal descent and the later chase eye, while both shoulders stay seated.
 outer = [(-108, 157), (-108, canopy(193)), (-103, canopy(211)), (-84, canopy(223)), (-54, canopy(226)),
          (54, canopy(226)), (84, canopy(223)), (103, canopy(211)), (108, canopy(193)), (108, 157)]
 inner = [(84, 157), (84, canopy(199)), (80, canopy(216)), (54, canopy(218)), (-54, canopy(218)),
          (-80, canopy(216)), (-84, canopy(199)), (-84, 157)]
 arch_profile = outer + inner
-prism('primary formed armored cargo aperture', arch_profile, -370, -347, 'ivory', .8)
+open_prism('primary formed armored cargo aperture', arch_profile, -370, -347, 'ivory', .8)
 # A second dark ring creates a deep stepped portal throat behind the main lip.
 navy_outer = [(-102, 162), (-102, canopy(194)), (-98, canopy(209)), (-80, canopy(220)), (-54, canopy(223)),
               (54, canopy(223)), (80, canopy(220)), (98, canopy(209)), (102, canopy(194)), (102, 162)]
 navy_inner = [(85, 162), (85, canopy(199)), (81, canopy(217)), (54, canopy(219)), (-54, canopy(219)),
               (-81, canopy(217)), (-85, canopy(199)), (-85, 162)]
-prism('deep recessed cargo throat ring', navy_outer + navy_inner, -347.5, -333, 'navy', .45)
+open_prism('deep recessed cargo throat ring', navy_outer + navy_inner, -347.5, -333, 'navy', .45)
 roof_profile = [(-103, canopy(215)), (-82, canopy(223)), (-54, canopy(226)), (54, canopy(226)), (82, canopy(223)),
                 (103, canopy(215)), (85, canopy(216.5)), (61, canopy(218.6)), (-61, canopy(218.6)), (-85, canopy(216.5))]
 for index, (start, end) in enumerate([(-344, -290), (-287, -230), (-227, -170)]):
-    prism('fitted curved upper roof armor %s' % index, roof_profile, start, end, 'ivory', .55)
+    open_prism('fitted curved upper roof armor %s' % index, roof_profile, start, end, 'ivory', .55)
     # Lower navy cassette sits distinctly below the ivory skin, without
     # coplanar undersides; channels retain substantial physical roof thickness.
-    box('recessed roof soffit cassette %s' % index,
+    open_box('recessed roof soffit cassette %s' % index,
         (0, canopy(218.1), (start + end) / 2), (118, 1.8, end - start - 5), 'navy', .35)
     for x in [-43, 0, 43]:
         profile = [(x - 8, canopy(218.8)), (x - 8, canopy(216.3)), (x - 6, canopy(215.8)),
                    (x - 4.5, canopy(217)), (x + 4.5, canopy(217)), (x + 6, canopy(215.8)),
                    (x + 8, canopy(216.3)), (x + 8, canopy(218.8))]
-        prism('formed navy soffit channel %s %s' % (index, x), profile, start + 3, end - 3, 'navy', .16)
+        open_prism('formed navy soffit channel %s %s' % (index, x), profile, start + 3, end - 3, 'navy', .16)
         for edge in [-1, 1]:
-            box('soffit channel fitted retaining lip %s %s %s' % (index, x, edge),
+            open_box('soffit channel fitted retaining lip %s %s %s' % (index, x, edge),
                 (x + edge * 6.1, canopy(216.2), (start + end) / 2), (.5, .6, end - start - 9), 'alloy', .1)
-# Three full structural roof ribs remain connected to side posts and shoulder.
+# Roof rib arms terminate at the same formed slot and stay connected to the
+# substantial side posts; no invisible bridge remains across the arrival.
 for z in [-344, -289, -231, -174]:
-    prism('connected interior curved roof load rib %s' % z, navy_outer + navy_inner,
+    open_prism('connected interior curved roof load rib %s' % z, navy_outer + navy_inner,
           z - 2.5, z + 2.5, 'navy', .25)
 # Genuine separate maintenance panels on the visible leading arch: sparse,
 # substantial fields follow the formed shape instead of a uniform surface grid.
@@ -405,6 +439,9 @@ record = {
                         'max': [78 + ARRIVAL_SPREAD, canopy(214), -160]},
     'arrivalRise': ARRIVAL_RISE,
     'arrivalSpread': ARRIVAL_SPREAD,
+    'arrivalSlot': {'sourceX': list(ARRIVAL_SLOT),
+                    'actualX': [ARRIVAL_SLOT[0] - ARRIVAL_SPREAD, ARRIVAL_SLOT[1] + ARRIVAL_SPREAD * ARRIVAL_SLOT[1] / 54],
+                    'purpose': 'Physically open port-offset loading slot through the formed upper aperture, throat, roof packets, soffits and ribs; admits depleted-reserve diagonal hull descent and the later production chase eye without raising the canopy.'},
     'entryRake': 'Port shoulder mouth is raked aft up to 136.5m; displacement fades to zero at Z=-160. Actual native diagonal flight and production chase-camera footprints drive the raised canopy and widened shoulders; the low galleries and real hull seats remain connected through formed piers.',
     'materials': [item.name for item in M.values()],
     'hashes': {str(path.relative_to(HERE)) if path.is_relative_to(HERE) else path.name: hashlib.sha256(path.read_bytes()).hexdigest()

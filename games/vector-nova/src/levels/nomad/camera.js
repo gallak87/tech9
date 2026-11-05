@@ -9,7 +9,10 @@ export function nomadJumpPreviewHeight(track, state, jump) {
   const from = track.sample(jump.takeoff).position;
   const to = track.sample(jump.landingStart).position;
   const scale = MathUtils.smoothstep(from.distanceTo(to), 180, 450);
-  const height = MathUtils.lerp(22, 42, scale);
+  // A deep receiver needs an eye above the rising launch deck's silhouette.
+  const drop = Math.max(0, from.y - to.y);
+  const height =
+    MathUtils.lerp(22, 42, scale) + 28 * MathUtils.smoothstep(drop, 260, 350);
   const station = state.distance - 32 - state.speed * 0.025;
   const carrier = track.carrierAt(station);
   const frame = track.sample(station);

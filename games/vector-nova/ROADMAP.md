@@ -49,6 +49,8 @@ Reviewed against `main` and the active event review branches on **2026-10-31**. 
 
 ### Worlds, effects and presentation
 
+- [ ] **Nomad:** run the deferred fresh art-pass after the downhill/1,500 km/h revision, including a High-quality rendering-cost pass before adding visual density.
+- [ ] **Worldkit weather/VFX unification:** consolidate the reusable parts of [Glasswake's local snow/gust layers](src/levels/glasswake/weather/index.js) and [Nomad's wheel-salt wakes](src/levels/nomad/dust.js) with the public [Worldkit weather package](../../worldkit/modules/weather/README.md). Share seeded GPU particles, wind/turbulence, fading/culling, quality budgets and resource ownership through public APIs; keep wheel-contact history, moving/stacked surfaces and racing exclusions level-owned. Match High/Low appearance, pause/seek behavior and frame cost before migrating either consumer; the current static precipitation/cover field is not a direct moving-wheel emitter.
 - [ ] Human driving review of Worldspire and Nightweir, including their jumps, corkscrews, distance-linked Awakening/Floodgates events and braking runouts. Production implementation does not close that review.
 - [ ] Review Saffron surroundings/clearance against its canonical 40 m roadway. Scope Umbra's adjacent scenery, supports and observatory against its canonical 35 m roadway.
 - [ ] **Cindercoil:** add player-facing lava-contact flames and lingering ship/HUD smoke or heat feedback. Crater-spill glow and road-contact smoke exist; reuse suitable Helion effects.

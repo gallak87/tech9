@@ -10,6 +10,7 @@ import {
   sampleCarrierMotion,
   NOMAD_MOTION_RULES,
 } from '../src/levels/nomad/motion.js';
+import { sampleNomadGroundMotion } from '../src/levels/nomad/ground-motion.js';
 import kit from '../assets/levels/nomad/blender/carrier-kit-provenance.json' with { type: 'json' };
 
 const anchors = kit.prototypes
@@ -28,23 +29,63 @@ async function model(path = 'carrier-kit.glb') {
   ).scene;
 }
 const source = await model();
+const sourceMaterials = new Map();
 source.traverse((mesh) => {
-  if (mesh.isMesh)
+  if (mesh.isMesh) {
+    sourceMaterials.set(mesh.material.uuid, mesh.material);
     mesh.geometry.setAttribute(
       'industrialCoord',
       mesh.geometry.attributes.position.clone(),
     );
+  }
 });
 source.updateWorldMatrix(true, true);
+const sourceMaterial = (batch) => {
+  const material = sourceMaterials.get(batch.userData.nomadSourceMaterialUUID);
+  assert.ok(material, `${batch.name}: retained source material identity`);
+  return material;
+};
 const partsOf = (kind, level) => {
   const root = source.getObjectByName(`nomad_${kind}${details[level]}`);
   const parts = new Map();
   root.traverse((mesh) => {
-    if (mesh.isMesh) parts.set(mesh.material, mesh);
+    if (!mesh.isMesh) return;
+    if (!parts.has(mesh.material)) parts.set(mesh.material, []);
+    parts.get(mesh.material).push(mesh);
   });
   return parts;
 };
-function expectedMatrix(carrier, time, kind, anchorIndex, mesh) {
+const partCount = (kind, material) =>
+  Math.max(
+    ...details.map(
+      (_, level) => partsOf(kind, level).get(material)?.length ?? 0,
+    ),
+  );
+const retainedInstances = (kind, carrierCount) => {
+  const materials = new Set(
+    details.flatMap((_, level) => [...partsOf(kind, level).keys()]),
+  );
+  return (
+    [...materials].reduce(
+      (sum, material) => sum + partCount(kind, material),
+      0,
+    ) *
+    carrierCount *
+    (kind === 'wheel' ? anchors.length : 1)
+  );
+};
+const retainedTriangleCounts = (kind) =>
+  details.map((suffix) => {
+    let triangles = 0;
+    source.getObjectByName(`nomad_${kind}${suffix}`).traverse((mesh) => {
+      if (mesh.isMesh)
+        triangles +=
+          (mesh.geometry.index?.count ??
+            mesh.geometry.attributes.position.count) / 3;
+    });
+    return triangles;
+  });
+function expectedMatrix(carrier, time, kind, anchorIndex, mesh, grade) {
   const position = carrier.origin
     .clone()
     .add(sampleCarrierMotion(carrier, time).translation);
@@ -55,9 +96,10 @@ function expectedMatrix(carrier, time, kind, anchorIndex, mesh) {
   );
   if (kind === 'wheel') {
     const angle =
-      (NOMAD_MOTION_RULES.convoySpeed * time +
-        sampleCarrierMotion(carrier, time).translation.z) /
-      (24 * carrier.scale.x);
+      ((NOMAD_MOTION_RULES.convoySpeed * time +
+        sampleCarrierMotion(carrier, time).translation.z) *
+        Math.hypot(1, grade)) /
+      (anchors[anchorIndex].rollingRadius * carrier.scale.x);
     matrix
       .multiply(
         new T.Matrix4()
@@ -85,16 +127,63 @@ function expectedMatrix(carrier, time, kind, anchorIndex, mesh) {
   return matrix;
 }
 
+test('1500 km/h wheel rotation covers exact relative ground travel along the slope without changing carrier motion', () => {
+  assert.equal(NOMAD_MOTION_RULES.convoySpeed * 3.6, 1500);
+  const track = createLevel().createTrack();
+  const fleet = createNomadFleetBatches({ track, source });
+  const batch = fleet.group.children.find(
+    (child) => child.userData.nomadFleetKind === 'wheel',
+  );
+  const orientation = (index, time) => {
+    track.presentationTime = time;
+    fleet.update();
+    const matrix = new T.Matrix4();
+    batch.getMatrixAt(
+      index * partCount('wheel', sourceMaterial(batch)) * anchors.length,
+      matrix,
+    );
+    const quaternion = new T.Quaternion();
+    matrix.decompose(new T.Vector3(), quaternion, new T.Vector3());
+    return quaternion;
+  };
+  try {
+    for (const index of [0, 5, 6])
+      for (const time of [0, 8.3, 19, 40, 75]) {
+        const carrier = track.carriers[index];
+        const dt = 0.03; // Below half a revolution, so no angle unwrapping ambiguity.
+        const rotation = orientation(index, time).angleTo(
+          orientation(index, time + dt),
+        );
+        const rimTravel = rotation * anchors[0].rollingRadius * carrier.scale.x;
+        const relativeTravel = sampleNomadGroundMotion(track, time)
+          .translation.sub(
+            sampleNomadGroundMotion(track, time + dt).translation,
+          )
+          .add(sampleCarrierMotion(carrier, time + dt).translation)
+          .sub(sampleCarrierMotion(carrier, time).translation);
+        // The tires roll in the pitched longitudinal plane. The carrier's
+        // small lateral drift is separate from its fore/aft wheel rotation.
+        relativeTravel.x = 0;
+        assert.ok(
+          Math.abs(rimTravel - relativeTravel.length()) < 0.001,
+          `${carrier.id}: actual rendered tread and moving graded salt cover the same distance`,
+        );
+      }
+  } finally {
+    fleet.dispose();
+  }
+});
+
 test('fleet batches retain all authored LOD vertices, normals, finish coordinates, indices and materials', () => {
   const track = createLevel().createTrack(),
     fleet = createNomadFleetBatches({ track, source });
   try {
     assert.deepEqual(fleet.report, {
       batches: 10,
-      hullInstances: 66,
-      wheelInstances: 792,
-      hullTriangles: [56092, 14300, 3554],
-      wheelTriangles: [4896, 905, 240],
+      hullInstances: retainedInstances('carrier', track.carriers.length),
+      wheelInstances: retainedInstances('wheel', track.carriers.length),
+      hullTriangles: retainedTriangleCounts('carrier'),
+      wheelTriangles: retainedTriangleCounts('wheel'),
     });
     const camera = new T.PerspectiveCamera();
     for (const [level, distance] of [0, 2200, 6000].entries()) {
@@ -108,46 +197,85 @@ test('fleet batches retain all authored LOD vertices, normals, finish coordinate
         assert.equal(batch.sortObjects, false);
         assert.equal(batch.castShadow, true);
         assert.equal(batch.receiveShadow, true);
-        const original = partsOf(batch.userData.nomadFleetKind, level).get(
-          batch.material,
-        );
-        assert.ok(original, batch.name);
-        const range = batch.getGeometryRangeAt(batch.getGeometryIdAt(0));
-        assert.equal(
-          range.vertexCount,
-          original.geometry.attributes.position.count,
-        );
-        assert.equal(range.indexCount, original.geometry.index.count);
-        for (const [name, attribute] of Object.entries(
-          original.geometry.attributes,
-        )) {
-          const packed = batch.geometry.attributes[name];
-          assert.equal(packed.itemSize, attribute.itemSize);
-          assert.equal(packed.normalized, attribute.normalized);
-          for (let vertex = 0; vertex < attribute.count; vertex++)
-            for (let component = 0; component < attribute.itemSize; component++)
+        const kind = batch.userData.nomadFleetKind;
+        const originals = partsOf(kind, level).get(sourceMaterial(batch)) ?? [];
+        const copies = kind === 'wheel' ? anchors.length : 1;
+        for (
+          let part = 0;
+          part < partCount(kind, sourceMaterial(batch));
+          part++
+        ) {
+          const original = originals[part];
+          const instance = part * copies;
+          assert.equal(
+            batch.getVisibleAt(instance),
+            Boolean(original),
+            `${batch.name}/${level}/${part}: retained part visibility`,
+          );
+          if (!original) continue;
+          if (batch.userData.nomadFleetKind === 'wheel') {
+            assert.notEqual(batch.material, original.material);
+            assert.deepEqual(batch.material.color, original.material.color);
+            for (const property of [
+              'map',
+              'normalMap',
+              'roughnessMap',
+              'metalnessMap',
+              'envMap',
+            ])
               assert.equal(
-                packed.getComponent(range.vertexStart + vertex, component),
-                attribute.getComponent(vertex, component),
-                `${batch.name}/${level}/${name}/${vertex}/${component}`,
+                batch.material[property],
+                original.material[property],
+              );
+            assert.equal(batch.material.opacity, original.material.opacity);
+            assert.equal(
+              batch.material.transparent,
+              original.material.transparent,
+            );
+          } else assert.equal(batch.material, original.material);
+          const range = batch.getGeometryRangeAt(
+            batch.getGeometryIdAt(instance),
+          );
+          assert.equal(
+            range.vertexCount,
+            original.geometry.attributes.position.count,
+          );
+          assert.equal(range.indexCount, original.geometry.index.count);
+          for (const [name, attribute] of Object.entries(
+            original.geometry.attributes,
+          )) {
+            const packed = batch.geometry.attributes[name];
+            assert.equal(packed.itemSize, attribute.itemSize);
+            assert.equal(packed.normalized, attribute.normalized);
+            for (let vertex = 0; vertex < attribute.count; vertex++)
+              for (
+                let component = 0;
+                component < attribute.itemSize;
+                component++
+              )
+                assert.equal(
+                  packed.getComponent(range.vertexStart + vertex, component),
+                  attribute.getComponent(vertex, component),
+                  `${batch.name}/${level}/${name}/${vertex}/${component}`,
+                );
+          }
+          for (let index = 0; index < range.indexCount; index++)
+            assert.equal(
+              batch.geometry.index.getX(range.indexStart + index) -
+                range.vertexStart,
+              original.geometry.index.getX(index),
+            );
+          if (
+            !original.geometry.hasAttribute('uv') &&
+            batch.geometry.hasAttribute('uv')
+          )
+            for (let vertex = 0; vertex < range.vertexCount; vertex++)
+              assert.equal(
+                batch.geometry.attributes.uv.getX(range.vertexStart + vertex) +
+                  batch.geometry.attributes.uv.getY(range.vertexStart + vertex),
+                0,
               );
         }
-        for (let index = 0; index < range.indexCount; index++)
-          assert.equal(
-            batch.geometry.index.getX(range.indexStart + index) -
-              range.vertexStart,
-            original.geometry.index.getX(index),
-          );
-        if (
-          !original.geometry.hasAttribute('uv') &&
-          batch.geometry.hasAttribute('uv')
-        )
-          for (let vertex = 0; vertex < range.vertexCount; vertex++)
-            assert.equal(
-              batch.geometry.attributes.uv.getX(range.vertexStart + vertex) +
-                batch.geometry.attributes.uv.getY(range.vertexStart + vertex),
-              0,
-            );
       }
     }
     const versions = fleet.group.children.map(
@@ -193,73 +321,91 @@ test('all carrier/wheel matrices, world vertices and bounds agree with the forme
           fleet.update({ camera });
           for (const batch of fleet.group.children) {
             const kind = batch.userData.nomadFleetKind;
-            const original = partsOf(kind, level).get(batch.material);
+            const originals =
+              partsOf(kind, level).get(sourceMaterial(batch)) ?? [];
+            const count = partCount(kind, sourceMaterial(batch));
             const copies = kind === 'wheel' ? anchors.length : 1;
-            for (let anchor = 0; anchor < copies; anchor++) {
-              const instance = carrierIndex * copies + anchor;
-              const range = batch.getGeometryRangeAt(
-                batch.getGeometryIdAt(instance),
-              );
-              assert.equal(
-                range.indexCount,
-                original.geometry.index.count,
-                `${carrier.id}/${kind}/${level}`,
-              );
-              batch.getMatrixAt(instance, actual);
-              const expected = expectedMatrix(
-                carrier,
-                time,
-                kind,
-                anchor,
-                original,
-              );
-              for (let index = 0; index < 16; index++)
-                assert.ok(
-                  Math.abs(actual.elements[index] - expected.elements[index]) <
-                    0.001,
-                  `${carrier.id}/${kind}/${anchor}: matrix component ${index}`,
+            for (let part = 0; part < count; part++) {
+              const original = originals[part];
+              for (let anchor = 0; anchor < copies; anchor++) {
+                const instance =
+                  (carrierIndex * count + part) * copies + anchor;
+                assert.equal(
+                  batch.getVisibleAt(instance),
+                  Boolean(original),
+                  `${carrier.id}/${kind}/${level}/${part}: retained part visibility`,
                 );
-              matrices++;
-              const attribute = original.geometry.attributes.position;
-              // Every actual source vertex for the first carrier and wheel;
-              // the remaining placements use their exact matrices and extrema.
-              const stride =
-                carrierIndex === 0 && anchor === 0
-                  ? 1
-                  : Math.max(1, Math.floor(attribute.count / 24));
-              for (let vertex = 0; vertex < attribute.count; vertex += stride) {
-                const point = new T.Vector3().fromBufferAttribute(
-                  attribute,
-                  vertex,
+                if (!original) continue;
+                const range = batch.getGeometryRangeAt(
+                  batch.getGeometryIdAt(instance),
                 );
-                const expectedPoint = point.clone().applyMatrix4(expected);
-                const actualPoint = point.applyMatrix4(actual);
-                maxError = Math.max(
-                  maxError,
-                  expectedPoint.distanceTo(actualPoint),
+                assert.equal(
+                  range.indexCount,
+                  original.geometry.index.count,
+                  `${carrier.id}/${kind}/${level}`,
                 );
-                vertices++;
-                assert.ok(
-                  batch.boundingBox.containsPoint(actualPoint),
-                  `${batch.name}: bounded full motion`,
+                batch.getMatrixAt(instance, actual);
+                const expected = expectedMatrix(
+                  carrier,
+                  time,
+                  kind,
+                  anchor,
+                  original,
+                  track.saltPlane.grade,
                 );
-                assert.ok(
-                  batch.boundingSphere.containsPoint(actualPoint),
-                  `${batch.name}: bounded all wheel angles`,
-                );
-              }
-              if (kind === 'wheel') {
-                const centre = new T.Vector3().applyMatrix4(actual);
-                const ry = new T.Vector3(0, 24, 0)
-                  .applyMatrix4(actual)
-                  .distanceTo(centre);
-                const rz = new T.Vector3(0, 0, 24)
-                  .applyMatrix4(actual)
-                  .distanceTo(centre);
-                assert.ok(
-                  Math.abs(ry - rz) < 0.00001,
-                  `${carrier.id}: rotating tyres stay circular`,
-                );
+                for (let index = 0; index < 16; index++)
+                  assert.ok(
+                    Math.abs(
+                      actual.elements[index] - expected.elements[index],
+                    ) < 0.001,
+                    `${carrier.id}/${kind}/${anchor}: matrix component ${index}`,
+                  );
+                matrices++;
+                const attribute = original.geometry.attributes.position;
+                // Every actual source vertex for the first carrier and wheel;
+                // the remaining placements use their exact matrices and extrema.
+                const stride =
+                  carrierIndex === 0 && anchor === 0
+                    ? 1
+                    : Math.max(1, Math.floor(attribute.count / 24));
+                for (
+                  let vertex = 0;
+                  vertex < attribute.count;
+                  vertex += stride
+                ) {
+                  const point = new T.Vector3().fromBufferAttribute(
+                    attribute,
+                    vertex,
+                  );
+                  const expectedPoint = point.clone().applyMatrix4(expected);
+                  const actualPoint = point.applyMatrix4(actual);
+                  maxError = Math.max(
+                    maxError,
+                    expectedPoint.distanceTo(actualPoint),
+                  );
+                  vertices++;
+                  assert.ok(
+                    batch.boundingBox.containsPoint(actualPoint),
+                    `${batch.name}: bounded full motion`,
+                  );
+                  assert.ok(
+                    batch.boundingSphere.containsPoint(actualPoint),
+                    `${batch.name}: bounded all wheel angles`,
+                  );
+                }
+                if (kind === 'wheel') {
+                  const centre = new T.Vector3().applyMatrix4(actual);
+                  const ry = new T.Vector3(0, anchors[anchor].rollingRadius, 0)
+                    .applyMatrix4(actual)
+                    .distanceTo(centre);
+                  const rz = new T.Vector3(0, 0, anchors[anchor].rollingRadius)
+                    .applyMatrix4(actual)
+                    .distanceTo(centre);
+                  assert.ok(
+                    Math.abs(ry - rz) < 0.00001,
+                    `${carrier.id}: rotating tyres stay circular`,
+                  );
+                }
               }
             }
           }
@@ -310,14 +456,29 @@ test('LOD transitions match THREE.LOD including camera zoom and a transformed pa
         fleet.update({ camera });
         const expectedLevel = lod.getCurrentLevel();
         for (const batch of fleet.group.children) {
-          const original = partsOf(
-            batch.userData.nomadFleetKind,
-            expectedLevel,
-          ).get(batch.material);
-          assert.equal(
-            batch.getGeometryRangeAt(batch.getGeometryIdAt(0)).indexCount,
-            original.geometry.index.count,
-          );
+          const kind = batch.userData.nomadFleetKind;
+          const originals =
+            partsOf(kind, expectedLevel).get(sourceMaterial(batch)) ?? [];
+          const copies = kind === 'wheel' ? anchors.length : 1;
+          for (
+            let part = 0;
+            part < partCount(kind, sourceMaterial(batch));
+            part++
+          ) {
+            const original = originals[part];
+            const instance = part * copies;
+            assert.equal(
+              batch.getVisibleAt(instance),
+              Boolean(original),
+              `${batch.name}/${expectedLevel}/${part}: retained part visibility`,
+            );
+            if (!original) continue;
+            assert.equal(
+              batch.getGeometryRangeAt(batch.getGeometryIdAt(instance))
+                .indexCount,
+              original.geometry.index.count,
+            );
+          }
         }
       }
   } finally {
@@ -340,13 +501,21 @@ test('batch disposal is idempotent, releases owned native resources once and nev
     }
   });
   const fleet = createNomadFleetBatches({ track, source });
+  const ownedFinishes = new Set();
   for (const batch of fleet.group.children) {
     watch(batch, released);
     watch(batch.geometry, released);
     watch(batch._matricesTexture, released);
     watch(batch._indirectTexture, released);
+    if (
+      batch.material !== sourceMaterial(batch) &&
+      !ownedFinishes.has(batch.material)
+    ) {
+      ownedFinishes.add(batch.material);
+      watch(batch.material, released);
+    }
   }
-  const expected = fleet.report.batches * 4;
+  const expected = fleet.report.batches * 4 + ownedFinishes.size;
   fleet.dispose();
   fleet.dispose();
   fleet.update();
@@ -403,7 +572,8 @@ test('replacing one carrier hull retains every rolling wheel and its exact movin
         const other = replaced.group.children.find(
           (child) =>
             child.userData.nomadFleetKind === 'wheel' &&
-            child.material === batch.material,
+            child.userData.nomadSourceMaterialUUID ===
+              batch.userData.nomadSourceMaterialUUID,
         );
         assert.equal(other.instanceCount, batch.instanceCount);
         for (let index = 0; index < batch.instanceCount; index++) {

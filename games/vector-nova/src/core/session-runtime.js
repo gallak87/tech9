@@ -179,6 +179,19 @@ export function captureInitial(state, runtime, dynamics = null) {
     }),
   );
 }
+
+// A moving grid can play a pre-roll into its deterministic start phase while
+// the race, input log, reserve and simulation time remain untouched.
+export function stageSessionCountdown(
+  { state, runtime, racers = null },
+  phase,
+) {
+  if (typeof runtime.stageCountdown !== 'function') return;
+  runtime.stageCountdown(state, phase);
+  for (const opponent of racers?.opponents ?? [])
+    opponent.runtime.stageCountdown?.(opponent.state, phase);
+}
+
 export function restoreReplayInitial(
   initial,
   expected,

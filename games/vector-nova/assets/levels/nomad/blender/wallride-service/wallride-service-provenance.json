@@ -21,74 +21,74 @@
         {
           "name": "stern pressure bank / lower measured socket",
           "position": [-90.0, 83.0, -136.0],
-          "normal": [-1.0, -0.0, -0.0],
-          "sourceTriangle": 11258
+          "normal": [-1.0, 0.0, 0.0],
+          "sourceTriangle": 13148
         },
         {
           "name": "stern pressure bank / upper measured socket",
           "position": [-82.36363220214844, 116.0, -136.0],
           "normal": [-0.8436614274978638, 0.5368756055831909, 0.0],
-          "sourceTriangle": 11261
+          "sourceTriangle": 13149
         },
         {
           "name": "stern pressure bank / lower measured socket",
           "position": [-90.0, 83.0, -72.0],
-          "normal": [-1.0, -0.0, -0.0],
-          "sourceTriangle": 11586
+          "normal": [-1.0, 0.0, 0.0],
+          "sourceTriangle": 13476
         },
         {
           "name": "stern pressure bank / upper measured socket",
           "position": [-82.36363220214844, 116.0, -72.0],
           "normal": [-0.8436614274978638, 0.5368756055831909, 0.0],
-          "sourceTriangle": 11589
+          "sourceTriangle": 13477
         },
         {
           "name": "offset transmission access / lower measured socket",
           "position": [-90.0, 83.0, -33.0],
-          "normal": [-1.0, -0.0, -0.0],
-          "sourceTriangle": 11586
+          "normal": [-1.0, 0.0, 0.0],
+          "sourceTriangle": 13558
         },
         {
           "name": "offset transmission access / upper measured socket",
           "position": [-82.36363220214844, 116.0, -33.0],
           "normal": [-0.8436614274978638, 0.5368756055831909, 0.0],
-          "sourceTriangle": 11588
+          "sourceTriangle": 13559
         },
         {
           "name": "offset transmission access / lower measured socket",
           "position": [-90.0, 83.0, 24.0],
-          "normal": [-1.0, -0.0, -0.0],
-          "sourceTriangle": 11914
+          "normal": [-1.0, 0.0, 0.0],
+          "sourceTriangle": 13804
         },
         {
           "name": "offset transmission access / upper measured socket",
           "position": [-82.36363220214844, 116.0, 24.0],
           "normal": [-0.843661367893219, 0.5368756055831909, 0.0],
-          "sourceTriangle": 11916
+          "sourceTriangle": 13887
         },
         {
           "name": "bow heat exchanger / lower measured socket",
           "position": [-90.0, 83.0, 63.0],
-          "normal": [-1.0, -0.0, 0.0],
-          "sourceTriangle": 12243
+          "normal": [-1.0, 0.0, 0.0],
+          "sourceTriangle": 14132
         },
         {
           "name": "bow heat exchanger / upper measured socket",
           "position": [-82.36363220214844, 116.0, 63.0],
           "normal": [-0.8436614274978638, 0.5368756055831909, 0.0],
-          "sourceTriangle": 12245
+          "sourceTriangle": 14133
         },
         {
           "name": "bow heat exchanger / lower measured socket",
           "position": [-90.0, 83.0, 134.0],
-          "normal": [-1.0, -0.0, -0.0],
-          "sourceTriangle": 12242
+          "normal": [-1.0, 0.0, 0.0],
+          "sourceTriangle": 14214
         },
         {
           "name": "bow heat exchanger / upper measured socket",
-          "position": [-82.36363220214844, 116.0, 134.0],
+          "position": [-82.36363983154297, 116.0, 134.0],
           "normal": [-0.8436614274978638, 0.5368756055831909, 0.0],
-          "sourceTriangle": 12244
+          "sourceTriangle": 14215
         }
       ]
     }
@@ -241,8 +241,8 @@
     },
     {
       "name": "bow heat exchanger / upper measured socket / captured structural spacer.001",
-      "min": [-84.81363677978516, 114.69999694824219, 132.14999389648438],
-      "max": [-82.71363067626953, 117.30000305175781, 135.85000610351562]
+      "min": [-84.81364440917969, 114.69999694824219, 132.14999389648438],
+      "max": [-82.71363830566406, 117.30000305175781, 135.85000610351562]
     },
     {
       "name": "bow heat exchanger / upper measured socket / seated hull sole",
@@ -251,8 +251,8 @@
     },
     {
       "name": "bow heat exchanger / upper measured socket / seated hull sole.001",
-      "min": [-83.23863220214844, 114.0, 131.5],
-      "max": [-82.18862915039062, 118.0, 136.5]
+      "min": [-83.23863983154297, 114.0, 131.5],
+      "max": [-82.18863677978516, 118.0, 136.5]
     },
     {
       "name": "captured deep seam carrier",
@@ -532,9 +532,9 @@
   ],
   "hashes": {
     "build_wallride_service.py": "bf9d15001d8bf94443b1d29261e54b45ad3c1518449af9aec1ddf822488c879e",
-    "wallride-service.blend": "07fa42e2eda54c9d481948559e1d935e17d9b982282c6b318c1ddd8c44142b48",
-    "wallride-service.glb": "67d2924fa1b401461783725b96825082746d2d92fca96e3c592cb9b712d78c18",
-    "wallride-service-collision.json": "698d48c20e7c3a45a34e90a002b17368c3ec301636de1ccd7b4c8b1a43fc1319",
-    "carrier-collision.json": "dc10f86d70c0d2422b2e330de1dee3dcd51927144e2beb6a6f18d65baba07c76"
+    "wallride-service.blend": "603b2a258f334a9ebf23334d32462e5f96e70d9bca963f34e4f2a56d11379f66",
+    "wallride-service.glb": "6a4af2ffdc5acda657bb92640f3ddc84f3e702d73cb8f60b5c854c203c0a25d4",
+    "wallride-service-collision.json": "006035238a439df9c2bf6938c9ea99e6938773c3b3d7c5a81d7ae9d0ac81ece8",
+    "carrier-collision.json": "550021843249dcda8199c0727a058c80a59dbefe68d79cd77315484dc4281204"
   }
 }

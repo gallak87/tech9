@@ -161,9 +161,12 @@ def sweep_spine(parent, frames, side):
     return mesh('continuous deep I-keel %s' % side, vertices, faces, 'navy', parent)
 
 
-def source_anchor(frame, side, longitudinal=0):
+def source_anchor(frame, side, longitudinal=0, between_wheels=False):
     centre = frame['c']
     station = max(-338, min(338, centre.z + longitudinal))
+    if between_wheels:
+        station = min([-351, -273, -195, -117, -39, 39, 117, 195, 273, 351],
+                      key=lambda value: abs(value - centre.z - longitudinal))
     # Elevated central roads sit on the actual closed roof. Side climbs stay
     # connected to the deep load keel; no anchor is invented in an open portal.
     if centre.y > 132 and abs(centre.x) < 66:
@@ -229,6 +232,7 @@ def saddle(parent, frame, side, index):
 for guide in guide_data['carriers']:
     parent = root(guide['id'])
     frames, to_world = make_frames(guide['samples'], guide.get('scale'))
+    lower_arm_nodes = {}
     for side in [-1, 1]:
         sweep_spine(parent, frames, side)
     frame_indices = sorted(set([0, len(frames) - 1] + list(range(3, len(frames) - 2, 4))))
@@ -238,29 +242,46 @@ for guide in guide_data['carriers']:
         girder('heavy transverse load head %02d' % index, supports[0], supports[1],
                5.5, 6, 'navy', parent)
         for side, support in zip([-1, 1], supports):
-            spec = source_anchor(frame, side)
+            # A direct leg across Saltwind's curved outboard rise can pierce
+            # the banked skin even when both ends are seated correctly. Carry
+            # that loading arm on a continuous low truss with vertical posts;
+            # its hull transfers stay below the ordinary cargo floor.
+            wheel_bay = guide['id'] == 'nomad-saltwind' and frame['c'].x > 100
+            outboard = wheel_bay and frame['c'].x > 180
+            load_node = Vector((support.x, 20, support.z)) if outboard else support
+            if outboard:
+                girder('primary boxed load leg %02d %s' % (index, side),
+                       support, load_node, 5.5, 6.5, 'navy', parent)
+                if side in lower_arm_nodes:
+                    girder('continuous outboard lower arm %02d %s' % (index, side),
+                           lower_arm_nodes[side], load_node, 8, 8, 'navy', parent)
+                lower_arm_nodes[side] = load_node
+            spec = source_anchor(frame, side, between_wheels=wheel_bay)
             anchor_point = anchor_shoe(parent, spec, 'hull seat %02d %s' % (index, side))
             # Short spacers already embedded in roof mass do not need a false
             # extra leg. Taller gaps receive a full box-section diagonal.
-            if (support - anchor_point).length > 5:
-                girder('primary boxed load leg %02d %s' % (index, side), support,
+            if (load_node - anchor_point).length > 5:
+                girder(('seated lower hull transfer' if outboard else 'primary boxed load leg') + ' %02d %s' % (index, side), load_node,
                        anchor_point, 5.5, 6.5, 'navy', parent)
-            back = source_anchor(frame, side, -48 if index % 2 else 48)
+            back = source_anchor(frame, side, -48 if index % 2 else 48, between_wheels=wheel_bay)
             back_point = anchor_shoe(parent, back, 'diagonal seat %02d %s' % (index, side))
             girder('longitudinal triangular load brace %02d %s' % (index, side),
-                   support, back_point, 4.5, 5.2, 'navy', parent)
+                   load_node, back_point, 4.5, 5.2, 'navy', parent)
     extended = frames[-1]['c'].z > 380 + 1e-6
     if guide['mode'] == 'overtake' or extended:
         # The terminal interception ramp is a supported outrigged loading arm,
         # with separated longitudinal load roots, not a hovering road strip.
         last = frames[-1]
         end_points = [last['c'] + last['r'] * (side * last['half'] * .58) - last['u'] * 14 for side in [-1, 1]]
+        if guide['id'] == 'nomad-saltwind':
+            end_points = [Vector((point.x, 20, point.z)) for point in end_points]
         roots = []
         roots_at = [(-1, -108), (1, 72)] if not extended else [
             (-1, 248 - last['c'].z), (1, 330 - last['c'].z),
         ]
         for side, longitudinal in roots_at:
-            spec = source_anchor(last, side, longitudinal)
+            spec = source_anchor(last, side, longitudinal,
+                                 between_wheels=guide['id'] == 'nomad-saltwind')
             point = anchor_shoe(parent, spec, 'terminal outrigger root %s' % side)
             roots.append(point)
         girder('terminal lower longitudinal load keel', roots[0], roots[1], 8, 8,

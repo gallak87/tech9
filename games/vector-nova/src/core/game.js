@@ -52,6 +52,7 @@ import {
   runtimeIdentity,
   compatibleRuntime,
   advanceSession,
+  stageSessionCountdown,
   captureInitial,
   restoreReplayInitial,
   validateReplayInputs,
@@ -1500,6 +1501,10 @@ export async function createGame({
       );
       if (mode === 'countdown') {
         const step = countdown.advance();
+        stageSessionCountdown(
+          { state, runtime, racers },
+          -countdown.snapshot().remaining,
+        );
         if (step !== null) {
           ui.setCountdown(step);
           audio.event({

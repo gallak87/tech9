@@ -10,11 +10,11 @@ export default {
     portraitCompactHud: true,
     courseLabel: 'CONVOY → TERMINUS',
     edition: 'NOMAD / THE SALT PROCESSION',
-    subtitle: 'MOVING CONVOY / 12.2 KM SPRINT',
+    subtitle: 'DOWNHILL CONVOY / 15.0 KM SPRINT',
     intro:
-      'Race through colossal moving carriers and intercept their rolling cargo decks above the white salt basin.',
+      'Descend the salt escarpments through colossal moving carriers and catch their rolling cargo decks above the lower basin.',
     detail:
-      'Descend more than a kilometre through vast cargo halls, winding hull roads and huge open-air jumps. Aim ahead of the neighboring carrier and catch its moving roof deck.',
+      'Plunge through vast cargo halls and winding hull roads. Follow suspended approach lights across huge downward jumps into broad moving landing decks.',
     tag: 'NOMAD PROCESSION',
     tagDetail: 'MOVING CARRIERS / CARGO HALLS',
     shape: {

@@ -30,11 +30,11 @@
       "name": "nomad_saltwind_hull",
       "materialBatches": 6,
       "bounds": {
-        "min": [-157.89999389648438, 16.200000762939453, -376.7200012207031],
+        "min": [-157.89999389648438, 18.423892974853516, -376.7200012207031],
         "max": [157.89999389648438, 179.19607543945312, 368.0]
       },
-      "triangles": 54046,
-      "collisionTriangles": 19974
+      "triangles": 58966,
+      "collisionTriangles": 31950
     },
     {
       "name": "nomad_saltwind_gallery",
@@ -52,21 +52,21 @@
       "name": "revised shoulder seat 81 42",
       "position": [-86.5, 81.0, 42.0],
       "normal": [1.0, 0.0, -0.0],
-      "sourceTriangle": 11615,
+      "sourceTriangle": 13583,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "revised shoulder seat 103 42",
       "position": [-86.44791412353516, 103.0, 42.0],
       "normal": [0.960599422454834, -0.2779364585876465, 2.472602034231386e-7],
-      "sourceTriangle": 11611,
+      "sourceTriangle": 13579,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "revised shoulder seat 81 121",
       "position": [-86.5, 81.0, 121.0],
       "normal": [0.9999999403953552, -0.0, 0.0],
-      "sourceTriangle": 12269,
+      "sourceTriangle": 14237,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
@@ -75,112 +75,112 @@
       "normal": [
         0.9605994820594788, -0.27793648838996887, 9.439453663162567e-8
       ],
-      "sourceTriangle": 12110,
+      "sourceTriangle": 14078,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "revised shoulder seat 81 -129",
       "position": [-86.5, 81.0, -129.0],
       "normal": [1.0, -0.0, 0.0],
-      "sourceTriangle": 10913,
+      "sourceTriangle": 12881,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "revised shoulder seat 103 -129",
       "position": [-86.5, 103.0, -129.0],
       "normal": [0.8454889059066772, -0.5339930057525635, 0.0],
-      "sourceTriangle": 10914,
+      "sourceTriangle": 12882,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "revised shoulder seat 81 -91",
       "position": [-86.5, 81.0, -91.0],
       "normal": [1.0, 0.0, 0.0],
-      "sourceTriangle": 11262,
+      "sourceTriangle": 13230,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "revised shoulder seat 103 -91",
       "position": [-86.5, 103.0, -91.0],
       "normal": [0.8454888463020325, -0.5339929461479187, 0.0],
-      "sourceTriangle": 11265,
+      "sourceTriangle": 13233,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "revised shoulder seat 81 -52",
       "position": [-86.5, 81.0, -52.0],
       "normal": [1.0, -0.0, 0.0],
-      "sourceTriangle": 11281,
+      "sourceTriangle": 13249,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "revised shoulder seat 103 -52",
       "position": [-86.5, 103.0, -52.0],
       "normal": [0.845488965511322, -0.5339930057525635, 0.0],
-      "sourceTriangle": 11282,
+      "sourceTriangle": 13250,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "revised shoulder seat 81 2",
       "position": [-86.5, 81.0, 2.0],
       "normal": [1.0, 0.0, 0.0],
-      "sourceTriangle": 11789,
+      "sourceTriangle": 13757,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "revised shoulder seat 103 2",
       "position": [-86.5, 103.0, 2.0],
       "normal": [0.8454889059066772, -0.5339930057525635, 0.0],
-      "sourceTriangle": 11791,
+      "sourceTriangle": 13759,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "retained roof bay seat 37",
       "position": [-65.0, 126.79999542236328, 37.0],
       "normal": [0.0, -1.0, -0.0],
-      "sourceTriangle": 9937,
+      "sourceTriangle": 11905,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "retained roof bay seat 84",
       "position": [-65.0, 126.79999542236328, 84.0],
       "normal": [0.0, -1.0, -0.0],
-      "sourceTriangle": 9981,
+      "sourceTriangle": 11949,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "retained roof bay seat 132",
       "position": [-65.0, 126.79999542236328, 132.0],
       "normal": [0.0, -1.0, -0.0],
-      "sourceTriangle": 9981,
+      "sourceTriangle": 11949,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "retained roof bay seat -129",
       "position": [-65.0, 126.79999542236328, -129.0],
       "normal": [0.0, -1.0, -0.0],
-      "sourceTriangle": 9893,
+      "sourceTriangle": 11861,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "retained roof bay seat -90",
       "position": [-65.0, 126.79999542236328, -90.0],
       "normal": [0.0, -1.0, -0.0],
-      "sourceTriangle": 9893,
+      "sourceTriangle": 11861,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "retained roof bay seat -50",
       "position": [-65.0, 126.79999542236328, -50.0],
       "normal": [-0.0, -1.0, -0.0],
-      "sourceTriangle": 9936,
+      "sourceTriangle": 11904,
       "sourcePrototype": "nomad_saltwind_hull"
     },
     {
       "name": "retained roof bay seat -5",
       "position": [-65.0, 126.79999542236328, -5.0],
       "normal": [0.0, -1.0, -0.0],
-      "sourceTriangle": 9937,
+      "sourceTriangle": 11905,
       "sourcePrototype": "nomad_saltwind_hull"
     }
   ],
@@ -1937,11 +1937,11 @@
     "Nomad / warm safety amber"
   ],
   "hashes": {
-    "build_saltwind_gallery.py": "a6b4c9b3bb961389d1cb018f62dd5f36d1fe80549e832689d513dbb516bdeb3c",
-    "saltwind-gallery.blend": "a42832bcb519125b89487ead853a97f042d3931ed1340bbe12fe312d7e243dac",
-    "saltwind-gallery.glb": "f800244e8b5701c4f72070975125604f58841b007398c6293e191819ca8f84c3",
-    "saltwind-gallery-collision.json": "939b78054e7bf59403db16d2138ba6312d05db20dd85a515b4c12733d8983389",
-    "carrier-collision.json": "dc10f86d70c0d2422b2e330de1dee3dcd51927144e2beb6a6f18d65baba07c76",
-    "nomad-carrier-kit.blend": "cb444eb738128914f622544f981ad1dc1d89e3507efad538247004ed1760dcf0"
+    "build_saltwind_gallery.py": "604f952d57699e58ce32a140f54f63c8b6afe05c36af5928ffa18e38fb442e0f",
+    "saltwind-gallery.blend": "bbed35a6dd1d7ef44309eaf209d8c740fe29364a11f29218fcfe53183a3de181",
+    "saltwind-gallery.glb": "934c116715f35125cbe8388e1a65d8a02b5b088f29547c198b3b4f02daa40338",
+    "saltwind-gallery-collision.json": "cff494c4997b540c2814969a862850c1fc8af201f1c2fad77eabea9fab382f97",
+    "carrier-collision.json": "550021843249dcda8199c0727a058c80a59dbefe68d79cd77315484dc4281204",
+    "nomad-carrier-kit.blend": "5e266bc8c0593e12c77e3e40d21159e07c436793070ef87b223be7d23cb6baf7"
   }
 }

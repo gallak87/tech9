@@ -147,7 +147,7 @@ def cylinder(name, start, end, radius, mat, segments=16):
 
 
 # Clone only the editable near hull. Wheels remain level-owned instances from
-# the unchanged shared wheel prototype; no shared .blend or GLB is overwritten.
+# the shared wheel prototype; no shared .blend or GLB is overwritten.
 with bpy.data.libraries.load(str(BASE_BLEND), link=False) as (source, target):
     target.collections = ['Editable / nomad_carrier']
 body_collection = target.collections[0]
@@ -157,6 +157,21 @@ body_collection.hide_render = False
 body_collection.hide_viewport = False
 body = next(obj for obj in body_collection.objects if obj.name.startswith('SOURCE__nomad_carrier') and obj.type == 'EMPTY')
 body.name = 'SOURCE__' + HULL_NAME
+# The enlarged canonical wheelwells retain editable Boolean cutters outside
+# the near-hull collection. Link those inherited dependencies explicitly so
+# this local clone evaluates exactly the same actual lower openings.
+inherited = bpy.data.collections.new('Editable Saltwind / inherited wheelwell tools')
+bpy.context.scene.collection.children.link(inherited)
+linked = set()
+for obj in body.children_recursive:
+    for modifier in obj.modifiers:
+        tool = modifier.object if modifier.type == 'BOOLEAN' else None
+        if tool is None or tool in linked:
+            continue
+        inherited.objects.link(tool)
+        tool.hide_render = True
+        tool.hide_set(True)
+        linked.add(tool)
 for obj in body.children_recursive:
     if obj.type != 'MESH':
         continue

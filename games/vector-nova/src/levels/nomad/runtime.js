@@ -1,13 +1,17 @@
 import { createFlightModel } from '../../physics/flight.js';
 import { installNomadMotion, NOMAD_MOTION_RULES } from './motion.js';
-import { nomadLaunchTarget, NOMAD_PILOT_RULES } from './pilot.js';
+import {
+  nomadLaunchTarget,
+  nomadFlightBoost,
+  NOMAD_PILOT_RULES,
+} from './pilot.js';
 
 export const NOMAD_FLIGHT_RULES = Object.freeze({
   gravity: 26,
   timeout: 10,
   missBelow: 80,
   missBeyond: 100,
-  missLateral: 110,
+  missLateral: 600,
   airAcceleration: 4,
   airYaw: 0.22,
   pitchTolerance: 0.95,
@@ -18,19 +22,23 @@ const model = createFlightModel(NOMAD_FLIGHT_RULES);
 export function createNomadRuntime(context) {
   const track = context.track;
   if (!track.frameAtTime) installNomadMotion(track);
-  track.aiLaunchTarget ??= (state, jump) =>
-    nomadLaunchTarget(track, state, jump);
+  track.aiLaunchTarget ??= (state, jump, { allowBoost = false } = {}) =>
+    nomadLaunchTarget(track, state, jump, { boost: allowBoost && jump.bigAir });
+  track.aiFlightBoost ??= (state, jump, driver) =>
+    nomadFlightBoost(track, state, jump, driver);
   const player = context.presentation !== false;
   let clock = 0,
     previousClock = 0,
+    countdownOffset = null,
     pending = false,
     disposed = false;
   const privateTrack = Object.create(track);
-  privateTrack.sample = (distance) => track.frameAtTime(distance, clock);
+  const sampleTime = (time = clock) => time + (countdownOffset ?? 0);
+  privateTrack.sample = (distance) => track.frameAtTime(distance, sampleTime());
   privateTrack.sampleSurface = (distance, lateral = 0) =>
-    track.surfaceAtTime(distance, lateral, clock);
+    track.surfaceAtTime(distance, lateral, sampleTime());
   const syncPresentation = (time = clock) => {
-    if (player) track.presentationTime = time;
+    if (player) track.presentationTime = sampleTime(time);
   };
   const flight = model.createRuntime(
     { ...context, track: privateTrack },
@@ -53,6 +61,7 @@ export function createNomadRuntime(context) {
         pace: track.pace,
         jumps: track.jumps,
         flight: model.rules,
+        countdownPreroll: 1,
       })}`,
       groundOptions: () => ({ pace: track.pace }),
       supportVelocity({ state, jump, time, phase }) {
@@ -74,6 +83,7 @@ export function createNomadRuntime(context) {
     ...flight,
     advance(state, input, dt, modifiers) {
       if (disposed || !Number.isFinite(dt) || dt <= 0) return [];
+      if (countdownOffset !== null) runtime.stageCountdown(state, 0);
       const elapsed = Math.min(dt, 0.1);
       const count = Math.ceil(elapsed * 120 - 1e-10);
       const step = elapsed / count,
@@ -93,11 +103,34 @@ export function createNomadRuntime(context) {
       }
       return events;
     },
+    stageCountdown(state, phase) {
+      if (disposed) return;
+      if (
+        pending ||
+        !Number.isFinite(phase) ||
+        phase > 0 ||
+        !Number.isFinite(state?.time) ||
+        state.time < 0
+      )
+        throw new Error('Nomad countdown requires a finite pre-start phase.');
+      const nextOffset = phase === 0 ? null : phase;
+      if (nextOffset === countdownOffset && clock === state.time) return;
+      previousClock = clock = state.time;
+      countdownOffset = nextOffset;
+      context.dynamics?.setNomadCountdownTime?.(
+        countdownOffset === null ? null : sampleTime(),
+      );
+      // Locked ships use the same whole-hull clearance as a normal reset. No
+      // force, control, device or race tick runs while the grid is carried.
+      flight.reset({ state, seed: flight.snapshot().seed });
+      syncPresentation();
+    },
     reset(args = {}) {
       const nextClock = args.state?.time ?? 0;
       if (!Number.isFinite(nextClock) || nextClock < 0)
         throw new Error('Invalid Nomad reset time.');
       pending = false;
+      countdownOffset = null;
       previousClock = clock = nextClock;
       context.dynamics?.setNomadTime?.(clock);
       syncPresentation();
@@ -108,6 +141,7 @@ export function createNomadRuntime(context) {
       return {
         time: clock,
         previousTime: previousClock,
+        countdownOffset,
         motion,
         mode: motion.mode,
         currentPose: motion.currentPose,
@@ -125,9 +159,16 @@ export function createNomadRuntime(context) {
         data.previousTime > data.time
       )
         throw new Error('Invalid Nomad carrier clock.');
+      const nextCountdown = data.countdownOffset ?? null;
+      if (
+        nextCountdown !== null &&
+        (!Number.isFinite(nextCountdown) || nextCountdown > 0)
+      )
+        throw new Error('Invalid Nomad countdown offset.');
       const retained = {
         clock,
         previousClock,
+        countdownOffset,
         pending,
         presentationTime: track.presentationTime,
       };
@@ -135,13 +176,14 @@ export function createNomadRuntime(context) {
       // time first, but a rejected nested state must leave our clocks intact.
       clock = data.time;
       previousClock = data.previousTime;
+      countdownOffset = nextCountdown;
       pending = false;
       syncPresentation();
       try {
         flight.restore(data.motion);
       } catch (error) {
-        ({ clock, previousClock, pending } = retained);
-        syncPresentation(retained.presentationTime);
+        ({ clock, previousClock, countdownOffset, pending } = retained);
+        if (player) track.presentationTime = retained.presentationTime;
         throw error;
       }
     },
@@ -170,6 +212,7 @@ export function createNomadRuntime(context) {
         state.time < 0
       )
         throw new Error('Nomad dynamics require a live finite fixed step.');
+      if (countdownOffset !== null) runtime.stageCountdown(state, 0);
       previousClock = state.time;
       clock = state.time + dt;
       context.dynamics?.setNomadTime?.(previousClock);

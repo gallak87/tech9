@@ -1,5 +1,6 @@
 import { createFlightModel } from '../../physics/flight.js';
 import { installNomadMotion, NOMAD_MOTION_RULES } from './motion.js';
+import { createNomadRecovery, NOMAD_RECOVERY_RULES } from './recovery.js';
 import {
   nomadLaunchTarget,
   nomadFlightBoost,
@@ -27,6 +28,7 @@ export function createNomadRuntime(context) {
   track.aiFlightBoost ??= (state, jump, driver) =>
     nomadFlightBoost(track, state, jump, driver);
   const player = context.presentation !== false;
+  const recovery = createNomadRecovery(track);
   let clock = 0,
     previousClock = 0,
     countdownOffset = null,
@@ -62,6 +64,7 @@ export function createNomadRuntime(context) {
         jumps: track.jumps,
         flight: model.rules,
         countdownPreroll: 1,
+        recovery: NOMAD_RECOVERY_RULES,
       })}`,
       groundOptions: () => ({ pace: track.pace }),
       supportVelocity({ state, jump, time, phase }) {
@@ -79,8 +82,25 @@ export function createNomadRuntime(context) {
       testLaunch: Boolean(context.playtest),
     },
   );
+  function resolveRecovery(state, events) {
+    const target = recovery.observe(state, events, flight.pose(1));
+    if (target) {
+      Object.assign(state, target, {
+        lateral: 0,
+        heading: 0,
+        steeringHeading: 0,
+        lateralSpeed: 0,
+        steer: 0,
+        boosting: false,
+      });
+      flight.reset({ state, seed: flight.snapshot().seed });
+    }
+    return events;
+  }
   const runtime = {
     ...flight,
+    manualRecoveryTarget: (state) =>
+      recovery.manualTarget(state, flight.snapshot(), flight.pose(1)),
     advance(state, input, dt, modifiers) {
       if (disposed || !Number.isFinite(dt) || dt <= 0) return [];
       if (countdownOffset !== null) runtime.stageCountdown(state, 0);
@@ -96,7 +116,12 @@ export function createNomadRuntime(context) {
         } else {
           previousClock = state.time;
           clock = state.time + step;
-          events.push(...flight.advance(state, input, step, modifiers));
+          events.push(
+            ...resolveRecovery(
+              state,
+              flight.advance(state, input, step, modifiers),
+            ),
+          );
           clock = state.time;
           syncPresentation();
         }
@@ -130,6 +155,10 @@ export function createNomadRuntime(context) {
       if (!Number.isFinite(nextClock) || nextClock < 0)
         throw new Error('Invalid Nomad reset time.');
       pending = false;
+      recovery.reset({
+        preserveBank: args.reason === 'manual-recover',
+        state: args.state,
+      });
       countdownOffset = null;
       previousClock = clock = nextClock;
       context.dynamics?.setNomadTime?.(clock);
@@ -143,6 +172,7 @@ export function createNomadRuntime(context) {
         previousTime: previousClock,
         countdownOffset,
         motion,
+        recovery: recovery.snapshot(),
         mode: motion.mode,
         currentPose: motion.currentPose,
         previousPose: motion.previousPose,
@@ -160,6 +190,7 @@ export function createNomadRuntime(context) {
       )
         throw new Error('Invalid Nomad carrier clock.');
       const nextCountdown = data.countdownOffset ?? null;
+      recovery.validate(data.recovery);
       if (
         nextCountdown !== null &&
         (!Number.isFinite(nextCountdown) || nextCountdown > 0)
@@ -181,6 +212,7 @@ export function createNomadRuntime(context) {
       syncPresentation();
       try {
         flight.restore(data.motion);
+        recovery.restore(data.recovery);
       } catch (error) {
         ({ clock, previousClock, countdownOffset, pending } = retained);
         if (player) track.presentationTime = retained.presentationTime;
@@ -223,7 +255,7 @@ export function createNomadRuntime(context) {
     runtime.finishAdvance = (state) => {
       if (!pending)
         throw new Error('Stage the Nomad step before resolving it.');
-      const events = flight.finishAdvance(state);
+      const events = resolveRecovery(state, flight.finishAdvance(state));
       pending = false;
       clock = state.time;
       syncPresentation();

@@ -1044,8 +1044,19 @@ function recoveringEmptyCoast({
       for (const event of events) {
         if (event.type === 'jump-launch') launchSpeed = state.speed;
         if (event.type === 'impact') physicalHit = true;
-        if (event.type === 'jump-miss')
-          miss = { time: state.time, ...event.payload };
+        if (event.type === 'jump-miss') {
+          const from = track.frameAtTime(jump.takeoff, state.time).position;
+          const delta = track
+            .frameAtTime(jump.landingStart, state.time)
+            .position.sub(from)
+            .setY(0);
+          const travel = runtime.pose(1).position.clone().sub(from).setY(0);
+          miss = {
+            time: state.time,
+            ...event.payload,
+            progress: travel.dot(delta) / Math.max(1, delta.lengthSq()),
+          };
+        }
         if (event.type === 'jump-transfer')
           transfer = { time: state.time, ...event.payload };
       }
@@ -1060,16 +1071,26 @@ function recoveringEmptyCoast({
     assert.equal(transfer.id, jump.id);
     assert.equal(transfer.outcome, 'recovered');
     assert.ok(Math.abs(transfer.time - miss.time - miss.delay) <= DT + 1e-9);
-    assert.ok(Math.abs(state.distance - jump.recovery) < 1e-8);
+    const expected =
+      miss.progress < 0.65
+        ? Math.max(
+            track.carrierAt(jump.takeoff - 1).start + 20,
+            jump.takeoff - 220,
+          )
+        : jump.recovery;
+    assert.ok(
+      Math.abs(state.distance - expected) < 1e-8,
+      `${jump.id}/${shipId}/phase${quarter}: ${miss.progress.toFixed(3)} horizontal progress selects the proper recovery side`,
+    );
     assert.equal(runtime.pose(1).grounded, true);
-    assert.equal(state.speed, 0);
+    assert.equal(state.speed, 100);
     return { launchSpeed, miss, transfer };
   } finally {
     runtime.dispose();
   }
 }
 
-test('a slow depleted final coast strikes real steel and uses bounded normal recovery', () => {
+test('a slow depleted final coast strikes real steel and uses bounded moving-carrier recovery', () => {
   const { launchSpeed } = recoveringEmptyCoast();
   assert.ok(
     launchSpeed > 100 && launchSpeed < 135,
@@ -1077,7 +1098,7 @@ test('a slow depleted final coast strikes real steel and uses bounded normal rec
   );
 });
 
-test('sixteen named unsafe depleted lines preserve real misses and exact bounded recovery', () => {
+test('sixteen named unsafe depleted lines preserve real misses and select a run-up or receiving deck', () => {
   let cases = 0;
   for (const { index, ships } of [
     { index: 2, ships: ['shrike'] },

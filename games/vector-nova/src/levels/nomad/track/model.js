@@ -1,6 +1,7 @@
 import * as T from 'three';
 import { createReferenceFrames } from '../../../track/frames.js';
 import { createNomadGroundProfile } from '../ground-profile.js';
+import { NOMAD_RECOVERY_RULES } from '../recovery.js';
 
 export const NOMAD_PACE = Object.freeze({
   cruiseScale: 1.25,
@@ -359,7 +360,7 @@ export function createNomadTrack() {
       recovery: Math.min(
         receiver.end - 120,
         index === gaps.length - 1 ? FINISH - 100 : Infinity,
-        landingStart + (air?.landing ?? 450) + 35,
+        landingStart + (air ? NOMAD_RECOVERY_RULES.receiverOffset : 485),
       ),
       halfWidth: air?.halfWidth ?? (air?.broad ? 50 : 40),
       targetSpeed: air?.targetSpeed ?? ([3, 4].includes(index) ? 145 : 150),

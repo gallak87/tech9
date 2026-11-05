@@ -53,6 +53,7 @@ import {
   compatibleRuntime,
   advanceSession,
   stageSessionCountdown,
+  recoverSession,
   captureInitial,
   restoreReplayInitial,
   validateReplayInputs,
@@ -835,16 +836,12 @@ export async function createGame({
       if (mode !== 'racing') return;
       if (track.closed === false && race.complete)
         return restart(competition, true);
-      state.distance = race.recover();
-      state.lateral = 0;
-      state.heading = 0;
-      state.steeringHeading = 0;
-      state.lateralSpeed = 0;
-      state.speed = 0;
+      const recoveryEvents = recoverSession({ state, runtime, race });
       state.resetCount++;
       resetRuntime('manual-recover');
       prev = { ...state };
       rig.reset();
+      recoveryEvents.forEach(emit);
       emit({ type: 'recover', payload: { penalty: 'current lap invalid' } });
     }
     function home() {

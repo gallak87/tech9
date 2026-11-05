@@ -98,12 +98,12 @@ function boostedArc(
 // range/height forecast used by grounded planning; it applies no flight force.
 export { boostedArc as forecastNomadPoweredArc };
 
-/** Aim an ordinary grounded driver at the future receiver, never its old lip. */
-export function nomadLaunchTarget(
+/** Pure moving-receiver forecast shared by ordinary AI and the launch strip. */
+export function nomadLaunchPlan(
   track,
   state,
   jump,
-  { boost = false, boostDuration = Infinity } = {},
+  { boost = false, boostDuration = Infinity, catchInset = 18 } = {},
 ) {
   const ahead = jump.takeoff - state.distance;
   const approach =
@@ -194,8 +194,23 @@ export function nomadLaunchTarget(
       (state.lateralSpeed ?? 0) - speed * Math.sin(state.heading),
     ),
   );
-  return result.target
+  const target = result.target
     .clone()
     .addScaledVector(materialVelocity, -result.flightTime)
     .addScaledVector(departure.right, -lateralMismatch * result.flightTime);
+  return {
+    target,
+    flightTime: result.flightTime,
+    rangeError: result.error,
+    shortfall: Math.max(
+      0,
+      candidate(Math.min(jump.landingEnd - 35, jump.landingStart + catchInset))
+        .error,
+    ),
+  };
+}
+
+/** Preserve the existing grounded AI interception point exactly. */
+export function nomadLaunchTarget(track, state, jump, options) {
+  return nomadLaunchPlan(track, state, jump, options)?.target ?? null;
 }

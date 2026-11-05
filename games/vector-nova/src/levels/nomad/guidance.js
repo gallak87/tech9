@@ -2,11 +2,13 @@ import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createSurfaceProjector } from '../../pickups/surface-projector.js';
 import { sampleCarrierMotion } from './motion.js';
+import { NOMAD_LAUNCH_ASSIST_RULES } from './launch-assist.js';
 
 const PAINT = {
   white: new T.Color('#e5e6da'),
   amber: new T.Color('#db9438'),
   graphite: new T.Color('#182229'),
+  mint: new T.Color('#42d5ad'),
 };
 
 // The point advances in route metres. It never aims at a moving receiver.
@@ -81,6 +83,42 @@ export function createNomadGuidance({ track, surfaces }) {
   };
   try {
     for (const jump of track.jumps) {
+      if (jump.bigAir) {
+        const from = jump.takeoff - NOMAD_LAUNCH_ASSIST_RULES.length;
+        const to = jump.takeoff - 8.5;
+        const edge = Math.min(21, track.halfWidthAt(from) - 3);
+        for (const side of [-1, 1]) {
+          const outer = side * edge,
+            inner = side * (edge - 1.5);
+          paint(
+            jump.departureCarrierId,
+            [
+              [
+                [outer, from],
+                [inner, from],
+                [inner, to],
+                [outer, to],
+              ],
+            ],
+            PAINT.mint,
+          );
+          for (const before of [36, 26, 16]) {
+            const station = jump.takeoff - before;
+            paint(
+              jump.departureCarrierId,
+              [
+                [
+                  [inner, station - 1],
+                  [side * (edge - 5), station - 1],
+                  [side * (edge - 5), station + 1],
+                  [inner, station + 1],
+                ],
+              ],
+              PAINT.mint,
+            );
+          }
+        }
+      }
       for (const before of [140, 95, 50]) {
         const s = jump.takeoff - before;
         paint(

@@ -62,7 +62,15 @@ const profiles = [
   { shipId: 'needle', mode: 'boost' },
 ];
 const makeMotion = (presentation = true) =>
-  definition.createRuntime({ track, collisionWorld, dynamics, presentation });
+  // Retain the unassisted geometry/driver baseline, including deliberate misses.
+  // The player's experimental launch assistance has its own bounded suite.
+  definition.createRuntime({
+    track,
+    collisionWorld,
+    dynamics,
+    presentation,
+    launchAssist: false,
+  });
 const makeRuntime = () =>
   createDeviceRuntime({ track, devices, motion: makeMotion() });
 // Profile modes choose the initial speed only. Every main encounter then uses

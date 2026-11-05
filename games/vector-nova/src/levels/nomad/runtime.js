@@ -2,6 +2,10 @@ import { createFlightModel } from '../../physics/flight.js';
 import { installNomadMotion, NOMAD_MOTION_RULES } from './motion.js';
 import { createNomadRecovery, NOMAD_RECOVERY_RULES } from './recovery.js';
 import {
+  assistedNomadStep,
+  NOMAD_LAUNCH_ASSIST_RULES,
+} from './launch-assist.js';
+import {
   nomadLaunchTarget,
   nomadFlightBoost,
   NOMAD_PILOT_RULES,
@@ -28,6 +32,7 @@ export function createNomadRuntime(context) {
   track.aiFlightBoost ??= (state, jump, driver) =>
     nomadFlightBoost(track, state, jump, driver);
   const player = context.presentation !== false;
+  const launchAssist = context.launchAssist !== false;
   const recovery = createNomadRecovery(track);
   let clock = 0,
     previousClock = 0,
@@ -65,6 +70,7 @@ export function createNomadRuntime(context) {
         flight: model.rules,
         countdownPreroll: 1,
         recovery: NOMAD_RECOVERY_RULES,
+        launchAssist: launchAssist ? NOMAD_LAUNCH_ASSIST_RULES : false,
       })}`,
       groundOptions: () => ({ pace: track.pace }),
       supportVelocity({ state, jump, time, phase }) {
@@ -116,10 +122,13 @@ export function createNomadRuntime(context) {
         } else {
           previousClock = state.time;
           clock = state.time + step;
+          const assisted = launchAssist
+            ? assistedNomadStep(track, state, input, modifiers, flight.pose(1))
+            : { input, modifiers };
           events.push(
             ...resolveRecovery(
               state,
-              flight.advance(state, input, step, modifiers),
+              flight.advance(state, assisted.input, step, assisted.modifiers),
             ),
           );
           clock = state.time;
@@ -250,7 +259,10 @@ export function createNomadRuntime(context) {
       context.dynamics?.setNomadTime?.(previousClock);
       syncPresentation();
       pending = true;
-      flight.beginAdvance(state, input, dt, modifiers);
+      const assisted = launchAssist
+        ? assistedNomadStep(track, state, input, modifiers, flight.pose(1))
+        : { input, modifiers };
+      flight.beginAdvance(state, assisted.input, dt, assisted.modifiers);
     };
     runtime.finishAdvance = (state) => {
       if (!pending)

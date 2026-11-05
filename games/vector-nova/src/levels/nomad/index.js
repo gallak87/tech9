@@ -11,7 +11,7 @@ import { NOMAD_CAMERA } from './camera.js';
 
 export default function createNomadLevel({ shape = false } = {}) {
   return {
-    version: '1.4.0-nomad-recovery',
+    version: '1.5.0-nomad-launch-assist',
     renderer: {
       world: 'nomad',
       background: '#d8d9d3',
@@ -40,7 +40,8 @@ export default function createNomadLevel({ shape = false } = {}) {
     createRuntime: createNomadRuntime,
     racing: {
       createDevices,
-      createMotion: createNomadRuntime,
+      createMotion: (context) =>
+        createNomadRuntime({ ...context, launchAssist: false }),
       finishMarker: { width: 48 },
     },
     railContactSparks: true,

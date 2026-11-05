@@ -1,14 +1,8 @@
 {
-  "purpose": "Reference-only Ravel concept images and the later user-selected sail-basin crop. The selected crop and written correction supersede narrow-road interpretations.",
+  "purpose": "Current Ravel anchor and fold design references with the user-selected sail-basin crop.",
   "rights": "Original project-generated concept artwork; selected crop supplied by the user from that same artwork.",
   "acceptanceTarget": "Vast connected drivable sail surfaces forming bowls, rising walls and overlapping folds, with racing lines running across them.",
   "images": [
-    {
-      "file": "ravel-initial-concept.png",
-      "role": "Original Ravel solar-sail identity",
-      "sha256": "4b4897512ed1780fc57b786a8c442480651ebaa283c0c88b6f7a1dd04d211383",
-      "source": "/Users/g/code/scratch/tech9/games/vector-nova/assets/levels/environment-driving-concepts/2026-11-02/ravel-v1.png"
-    },
     {
       "file": "ravel-anchor-narrows-concept.png",
       "role": "Layered anchored sail installation reference",
@@ -29,12 +23,6 @@
     }
   ],
   "prompts": [
-    {
-      "id": "ravel",
-      "title": "Ravel",
-      "file": "ravel-v1.png",
-      "prompt": "Use case: stylized-concept.\nAsset type: standalone landscape driving-view environment concept for VECTOR//NOVA, an antigravity racing game.\nStyle/medium: high-end grounded 3D game environment concept, physically convincing geometry and materials, crisp readable forms at driving speed, cinematic light without painterly blur.\nComposition/framing: one continuous widescreen 16:9 image, slightly elevated close chase camera behind one small low-slung antigravity racing craft, showing its full hull in the lower foreground and a broad clear drivable surface leading deep into the environment. Moderate wide-angle perspective, not an aerial establishing shot.\nCraft: slender split nose, swept angular pearl ceramic panels over graphite and titanium, dark canopy, restrained vermilion markings, compact powerful blue ion exhaust at real aft nozzles. This is a hovering racing craft, no wheels or helicopter rotors.\nConstraints: make the road and its signature interaction immediately understandable through physical form. Real edge thickness, coherent scale, clear receiving surfaces and open racing sightlines. No HUD, no captions, no logos, no typography, no watermarks, no collage or inset panels.\nPrimary request: RAVEL, a race course on an enormous silver solar sail suspended between distant spacecraft. The environment and the driving surface are the same tensioned fabric structure.\nScene/backdrop: deep space, sparse sharp stars, distant immense cable anchor assemblies and the curve of the sail disappearing into shadow. A low off-axis sun backlights thin foil.\nUnique materials: vast silver translucent foil panels, fine woven reinforcement, dark structural fibre seams, purposeful stitched joins, thick cable attachments. Warm champagne transmitted light with cool silver reflections; large folds and broad negative space carry the composition.\nSignature mechanic visible in this single frame: the raceable silver membrane rises into a broad smooth traveling wave immediately ahead of the craft, its illuminated crest curling diagonally across the route. Heavy reinforced seams stay flatter and offer a readable stable line. Farther ahead the surface banks up a deep sail fold toward a clearly visible real tear, with a separate broad receiving sheet beyond. One small distant rival is cresting the wave in a short controlled hop to show scale and the surf interaction.\nThe sail must feel thin, flexible and stretched under enormous tension, not a metal motorway or a solid mountain. Both wave crest and safe seam are clear. The road remains wide enough for several ships. Preserve visibility of the upcoming route and receiving sheet."
-    },
     {
       "id": "ravel-anchor-narrows",
       "title": "Anchor Narrows",

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { BONUS_LEVEL_IDS } from '../src/levels/access.js';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chromium } from 'playwright';
@@ -43,6 +44,7 @@ function urlFor({ shape = false, id = slug } = {}) {
   url.hash = '';
   url.searchParams.set('level', id);
   url.searchParams.set('capture', '1');
+  if (BONUS_LEVEL_IDS.includes(id)) url.searchParams.set('dev', '1');
   if (shape) url.searchParams.set('review', 'shape');
   return url.href;
 }

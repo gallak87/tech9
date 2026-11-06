@@ -28,8 +28,17 @@ const finite = (value, fallback = 0) =>
 const poseCopy = (p) =>
   p && { position: p.position.clone(), quaternion: p.quaternion.clone() };
 
-export function magneticFrame(track, distance, lateral, sampleRoad) {
-  let surface = track.sampleSurface?.(distance, lateral);
+export function magneticFrame(
+  track,
+  distance,
+  lateral,
+  sampleRoad,
+  geometryOnly = false,
+) {
+  // Projecting a point or clearing hull corners never reads route curvature.
+  // Levels may omit that derived field on this optional exact-geometry path;
+  // the normal frame query still supplies it for handling and force updates.
+  let surface = track.sampleSurface?.(distance, lateral, { geometryOnly });
   let reference = surface;
   if (sampleRoad && !surface?.period) {
     reference ??= track.sample(distance);
@@ -62,7 +71,7 @@ export function projectMagneticBody(
   sampleRoad,
 ) {
   for (let i = 0; i < 8; i++) {
-    const f = magneticFrame(track, distance, lateral, sampleRoad);
+    const f = magneticFrame(track, distance, lateral, sampleRoad, true);
     const residual = position.clone().sub(f.position);
     const along = residual.dot(f.tangent) / (f.longitudinalMetric ?? 1);
     const across =
@@ -130,7 +139,7 @@ export function sampledRoadHullSeparation(
       )
     )
       continue;
-    const road = magneticFrame(track, at, across, sampleRoad);
+    const road = magneticFrame(track, at, across, sampleRoad, true);
     const alignment = up.dot(road.up);
     const height = point.add(pose.position).sub(road.position).dot(road.up);
     if (height < -1e-8 && alignment > 0.5)
@@ -323,7 +332,13 @@ export function createMagneticBody({
     pose.position.add(correction);
   }
   function support(state, options = {}, dt = 0) {
-    const f = magneticFrame(track, state.distance, state.lateral, sampleRoad);
+    const f = magneticFrame(
+      track,
+      state.distance,
+      state.lateral,
+      sampleRoad,
+      true,
+    );
     const solved = initialized ? actor.read() : null;
     const actual = solved?.quaternion ?? f.quaternion;
     const aligned = f.quaternion
@@ -366,7 +381,7 @@ export function createMagneticBody({
           state.lateral +
           (offset.dot(f.right) - (f.longitudinalShear ?? 0) * along) /
             (f.lateralMetric ?? 1);
-        const road = magneticFrame(track, distance, lateral, sampleRoad);
+        const road = magneticFrame(track, distance, lateral, sampleRoad, true);
         for (const owner of road.surface?.roadOwners ?? [])
           roadOwners.add(owner);
         height = Math.max(

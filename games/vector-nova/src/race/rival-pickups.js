@@ -47,7 +47,9 @@ export function createRivalPickups(ship, runtime, settings) {
       feedback.update({
         effects,
         events,
-        racing: visible && (mode === 'racing' || events.length > 0),
+        racing:
+          visible &&
+          (['racing', 'results'].includes(mode) || events.length > 0),
         driving: visible,
         dt,
         speed: state.speed,

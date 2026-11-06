@@ -33,6 +33,15 @@ test('demo contains two worlds and one player ship; shared materials do not ship
     assert(!includePublic(path, 'demo'), path);
   assert.throws(() => editionPolicy('unlocked'));
 });
+test('full packages every original and bonus course without exposing bonus content in the demo', () => {
+  assert.equal(editionPolicy('full').levels.length, 17);
+  for (const id of ['ravel', 'nomad', 'oriel']) {
+    assert.equal(editionPolicy('full').levels.includes(id), true);
+    assert.equal(includePublic(`assets/menu/${id}.webp`, 'full'), true);
+    assert.equal(includePublic(`assets/levels/${id}/world.glb`, 'full'), true);
+    assert.equal(includePublic(`assets/levels/${id}/world.glb`, 'demo'), false);
+  }
+});
 test('custom protocol confines requests to the renderer root', () => {
   const root = resolve('example/dist');
   assert.equal(resourcePath('vn-game://app/', root), root + sep + 'index.html');

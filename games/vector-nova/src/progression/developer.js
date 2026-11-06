@@ -15,6 +15,10 @@ import { RACE_OPPONENTS } from '../race/roster.js';
 import { SHIPS } from '../ships/catalog.js';
 export function createDeveloperSession(parameters, sourceStorage = null) {
   const storage = createMemoryStorage();
+  const completionShowcase =
+    !IS_DEMO &&
+    parameters.get('dev') === '2' &&
+    parameters.get('showcase') === 'completion';
   if (parameters.get('dev') !== '2' && sourceStorage)
     for (let i = 0; i < sourceStorage.length; i++) {
       const key = sourceStorage.key(i);
@@ -118,11 +122,21 @@ export function createDeveloperSession(parameters, sourceStorage = null) {
       : sourceStorage
         ? createCupCollection(() => sourceStorage).snapshot().cups
         : {};
+  if (completionShowcase) {
+    state.cups = state.cups.filter((id) => id !== 'encore');
+    delete trophies.encore;
+  }
   storage.setItem(
     CUP_COLLECTION_KEY,
     JSON.stringify({ version: 1, cups: trophies }),
   );
   storage.setItem(PROFILE_KEY, JSON.stringify(state));
+  if (completionShowcase) {
+    const shipId =
+      SHIPS.find((ship) => ship.id === parameters.get('ship'))?.id ??
+      starterShip();
+    createProfileStore(() => storage).queueCompletion(shipId);
+  }
   return {
     storage: () => storage,
     parameters: new URLSearchParams(parameters),

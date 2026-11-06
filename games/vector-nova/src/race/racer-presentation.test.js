@@ -62,6 +62,16 @@ test('rivals follow their own speed, boost/Vector, simulation clock and live gra
     assert.equal(frames.at(-1).time, 8);
     assert.equal(frames.at(-1).quality, 'high');
     assert.equal(frames.at(-1).reducedMotion, true);
+    state.time = 9;
+    state.speed = 95;
+    presentation.update({ mode: 'results', settings: { quality: 'high' } });
+    assert.equal(
+      frames.at(-1).visible,
+      true,
+      'rivals stay visible behind results',
+    );
+    assert.equal(frames.at(-1).time, 9);
+    assert.equal(frames.at(-1).speed, 95);
     presentation.update({ mode: 'title', settings: { quality: 'low' } });
     assert.equal(frames.at(-1).visible, false);
   } finally {

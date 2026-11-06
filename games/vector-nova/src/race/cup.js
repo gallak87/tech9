@@ -25,11 +25,19 @@ export const ALL_CUPS = Object.freeze(
       name: 'Apex Cup',
       tracks: ['worldspire', 'helion', 'nightweir', 'umbra', 'colossus'],
     },
+    {
+      id: 'encore',
+      name: 'Encore Cup',
+      tracks: ['ravel', 'nomad', 'oriel'],
+      bonus: true,
+    },
   ].map(Object.freeze),
 );
 export const CUPS = Object.freeze(
   ALL_CUPS.filter((cup) => (IS_DEMO ? cup.id === 'demo' : cup.id !== 'demo')),
 );
+export const availableCups = ({ complete = false, developer = false } = {}) =>
+  CUPS.filter((cup) => !cup.bonus || complete || developer);
 export const CUP_POINTS = Object.freeze([25, 18, 15, 12, 10, 8, 6, 4, 2, 1]);
 export const CUP_FINISH_GRACE = 30;
 export const CUP_STORAGE_KEY = 'vector-nova.cup.v1';
@@ -53,6 +61,7 @@ const GRID_PROGRESSION = Object.freeze({
   frontier: { advance: 5, setback: 1.25 },
   horizon: { advance: 3.5, setback: 1.5 },
   apex: { advance: 2.5, setback: 2 },
+  encore: { advance: 2.5, setback: 2 },
 });
 
 // A results screen may preview the next grid. Default callers always use only

@@ -40,6 +40,7 @@ import { artPassURL } from './art-pass.js';
 
 import { createStartCountdown } from './start-countdown.js';
 import { discoverLevels } from '../levels/catalog.js';
+import { levelAvailable, filterAvailableLevels } from '../levels/access.js';
 import {
   validateTrack,
   validateCollisionWorld,
@@ -73,6 +74,7 @@ export async function createGame({
   trialStorage,
   onCupRetry,
   onCircuit,
+  contentAccess = { complete: false },
 } = {}) {
   if (import.meta.env?.VN_DESKTOP)
     parameters = new URLSearchParams({
@@ -125,17 +127,24 @@ export async function createGame({
   async function boot() {
     await checkpoint('Reading circuit');
     const levelCatalog = discoverLevels();
+    const requestedLevel =
+      parameters.get('level') ||
+      (parameters.get('test') === 'jump' ? 'saffron' : undefined);
+    const access = {
+      complete: contentAccess.complete === true,
+      developer:
+        !import.meta.env?.VN_DESKTOP &&
+        ['1', '2'].includes(parameters.get('dev')),
+    };
+    if (!levelAvailable(requestedLevel, access))
+      throw new Error('Complete all 28 career unlocks to open this circuit.');
     const {
       metadata,
       definition,
       shape: blockout,
-    } = await levelCatalog.load(
-      parameters.get('level') ||
-        (parameters.get('test') === 'jump' ? 'saffron' : undefined),
-      {
-        review: !import.meta.env?.VN_DESKTOP ? parameters.get('review') : null,
-      },
-    );
+    } = await levelCatalog.load(requestedLevel, {
+      review: !import.meta.env?.VN_DESKTOP ? parameters.get('review') : null,
+    });
     const VERSION = definition.version;
     const settings = loadSettings();
     await checkpoint('Preparing route');
@@ -203,6 +212,7 @@ export async function createGame({
         host,
         settings,
         checkpoint,
+        developer: access.developer,
       }),
     );
     const { road, environment } = world;
@@ -296,7 +306,6 @@ export async function createGame({
       time = 0,
       raf = 0,
       active = true,
-      fastForwarding = false,
       inspectionTime = 0,
       inspectionLayout = null;
     const inputLog = [],
@@ -336,7 +345,6 @@ export async function createGame({
       if (events.length > 500) events.shift();
       if (e.type === 'jump-transfer' || e.type === 'road-recovery')
         prev = { ...state };
-      if (fastForwarding) return;
       raceFeedback.event(event);
       try {
         if (e.type === 'lap' && competition) {
@@ -453,17 +461,7 @@ export async function createGame({
     const ghost = lifetime.own(createPersonalGhost(scene));
     let cupRace = null,
       cupFinish = null,
-      finishNeedsRender = false,
       cupFinalResult = null;
-    window.addEventListener(
-      'resize',
-      () => {
-        finishNeedsRender = true;
-      },
-      {
-        signal: listeners.signal,
-      },
-    );
     let timeTrial = false,
       trial = null,
       ghostSamples = null;
@@ -548,7 +546,6 @@ export async function createGame({
       };
     }
     function advanceTick(control) {
-      if (trial?.result) return;
       prev = { ...state };
       if (!import.meta.env?.VN_DESKTOP) {
         inputLog.push({ tick, input: { ...control } });
@@ -556,7 +553,8 @@ export async function createGame({
       }
       advance(control);
       tick++;
-      const trialResult = trial?.capture(trialPose(), 1 / 120);
+      const trialResult =
+        !trial?.result && trial?.capture(trialPose(), 1 / 120);
       if (ghostSamples !== trial?.reference?.samples) {
         ghostSamples = trial?.reference?.samples;
         ghost.reset(ship.group, ghostSamples);
@@ -919,10 +917,6 @@ export async function createGame({
       if (!lastResults) return;
       if (mode === 'inspection' && inspectionReturnMode) exitInspection();
       if (mode === 'fly') leaveFly();
-      if (cupFinish && !cupFinalResult) {
-        resume();
-        return;
-      }
       mode = 'results';
       resultsDismissed = false;
       ui.setFinish(null);
@@ -1192,7 +1186,7 @@ export async function createGame({
         track,
         {
           metadata,
-          circuits: levelCatalog.list,
+          circuits: filterAvailableLevels(levelCatalog.list, access),
           shape: blockout,
           selectedShip: ship.selected,
           racing: racingEnabled,
@@ -1205,7 +1199,6 @@ export async function createGame({
       appliedMotion = settings.reducedMotion;
     lifetime.defer(
       subscribeSettings((next) => {
-        finishNeedsRender = true;
         const graphicsChanged =
           next.quality !== appliedQuality ||
           next.reducedMotion !== appliedMotion;
@@ -1443,50 +1436,6 @@ export async function createGame({
       const finishing = finishAt !== null && !resultsDismissed;
       // Observe button releases during countdown/pause, without advancing physics.
       const sampledInput = input.sample();
-      if (cupFinish && ['racing', 'results', 'paused'].includes(mode)) {
-        // Hold the finish frame while the field resolves offscreen. Never
-        // render accelerated motion or tie the banner's duration to race time.
-        audio.update(state, effectsVolume(settings), false, {
-          results: mode !== 'paused',
-        });
-        if (finishNeedsRender) {
-          view.render(now);
-          finishNeedsRender = false;
-        }
-        if (mode !== 'paused') {
-          let progress;
-          fastForwarding = true;
-          try {
-            progress = cupFinish.advance(dt);
-          } finally {
-            fastForwarding = false;
-          }
-          if (progress.complete && !cupFinalResult) {
-            cupFinalResult = {
-              ...structuredClone(
-                racers.snapshot({
-                  playerState: state,
-                  playerRace: race,
-                  playerPose: runtime.pose(1),
-                }).results,
-              ),
-              mode: 'cup',
-              final: true,
-              remaining: 0,
-            };
-            lastResults = cupFinalResult;
-          }
-          if (progress.ready && mode === 'racing') {
-            mode = 'results';
-            ui.setFinish(null);
-            input.clear();
-            ui.setMode(mode);
-            onResults(cupFinalResult);
-          }
-        }
-        raf = requestAnimationFrame(render);
-        return;
-      }
       audio.update(
         state,
         effectsVolume(settings),
@@ -1520,11 +1469,7 @@ export async function createGame({
         ui.setCountdown(null);
         goUntil = 0;
       }
-      if (
-        (mode === 'racing' || mode === 'results') &&
-        !trial?.result &&
-        !cupFinalResult
-      ) {
+      if (mode === 'racing' || mode === 'results') {
         accumulator += dt;
         const control =
           mode === 'results' || finishing
@@ -1536,9 +1481,10 @@ export async function createGame({
           accumulator -= 1 / 120;
         }
       }
-      const alpha = mode === 'racing' ? accumulator * 120 : 1;
+      const alpha =
+        mode === 'racing' || mode === 'results' ? accumulator * 120 : 1;
       const s =
-        mode === 'racing'
+        mode === 'racing' || mode === 'results'
           ? {
               ...state,
               distance: T.MathUtils.lerp(prev.distance, state.distance, alpha),
@@ -1684,7 +1630,7 @@ export async function createGame({
       }
       const frame = {
         state: s,
-        dt: mode === 'racing' ? dt : 0,
+        dt: mode === 'racing' || mode === 'results' ? dt : 0,
         time: s.time,
         mode,
         camera,
@@ -1730,7 +1676,9 @@ export async function createGame({
         subjectPosition: ship.group.position,
         time: s.time,
       });
-      effects.update(mode === 'racing' ? dt : 0, { visible: mode !== 'fly' });
+      effects.update(mode === 'racing' || mode === 'results' ? dt : 0, {
+        visible: mode !== 'fly',
+      });
       ghost.update(
         trial?.snapshot().elapsed ?? 0,
         timeTrial && ['racing', 'paused', 'countdown'].includes(mode),
@@ -1780,34 +1728,44 @@ export async function createGame({
           ui.setFinish(lastResults);
           if (cupRace) {
             accumulator = 0;
-            finishNeedsRender = false;
             input.clear();
             cupFinish = createCupFinish({
               simulationTime: () => state.time,
               allFinished: () =>
                 racers.opponents.every((racer) => racer.finish),
-              step: () =>
-                advanceTick({
-                  throttle: 0,
-                  brake: 1,
-                  steer: 0,
-                  boost: false,
-                  airbrake: false,
-                }),
             });
           }
         }
-        if (!cupRace && mode === 'racing' && state.time - finishAt >= 2.4) {
-          lastResults = structuredClone(standings.results);
+        const liveResults = structuredClone(standings.results);
+        const progress =
+          cupFinish && ['racing', 'results'].includes(mode)
+            ? cupFinish.advance(dt)
+            : null;
+        if (cupRace) {
+          if (progress?.complete && !cupFinalResult)
+            cupFinalResult = {
+              ...liveResults,
+              mode: 'cup',
+              final: true,
+              remaining: 0,
+            };
+          lastResults = cupFinalResult ?? {
+            ...liveResults,
+            mode: 'cup',
+            final: false,
+            remaining: racers.opponents.filter((racer) => !racer.finish).length,
+          };
+        } else lastResults = liveResults;
+        if (
+          mode === 'racing' &&
+          (cupRace ? progress?.ready : state.time - finishAt >= 2.4)
+        ) {
           mode = 'results';
           ui.setFinish(null);
           input.clear();
           ui.setMode(mode);
         }
-        if (!cupRace && mode === 'results') {
-          lastResults = structuredClone(standings.results);
-          onResults(lastResults);
-        }
+        if (mode === 'results') onResults(lastResults);
       }
       if (mode === 'countdown' && countdownReady) {
         countdownReady = false;

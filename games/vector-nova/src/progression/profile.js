@@ -1,5 +1,6 @@
 import { IS_DEMO, CAREER_SHIPS, FULL_CUPS, fullCupWins } from './edition.js';
 import { SHIPS } from '../ships/catalog.js';
+import { isCareerComplete } from './completion.js';
 import {
   REWARDS,
   ALL_REWARDS,
@@ -23,7 +24,7 @@ export const equipmentCapacity = (profile, shipId) =>
   !IS_DEMO && profile.exoticShip === shipId
     ? MAX_EQUIPMENT_SLOTS
     : STANDARD_EQUIPMENT_SLOTS;
-const cups = [...FULL_CUPS, 'demo'];
+const cups = [...FULL_CUPS, 'demo', 'encore'];
 const copy = (value) => structuredClone(value);
 export const starterShip = () =>
   SHIPS.some((ship) => ship.id === 'shrike') ? 'shrike' : SHIPS[0].id;
@@ -39,6 +40,7 @@ export function freshProfile() {
     trialTracks: [],
     claims: [],
     exoticShip: null,
+    completion: null,
     loadouts: Object.fromEntries(
       CAREER_SHIPS.map((id) => [id, Array(MAX_EQUIPMENT_SLOTS).fill(null)]),
     ),
@@ -104,6 +106,24 @@ export function validateProfile(value) {
   next.finishes = value.finishes;
   next.points = value.points;
   next.raceScores = copy(value.raceScores);
+  if (value.completion !== undefined && value.completion !== null) {
+    const completion = value.completion;
+    if (
+      typeof completion !== 'object' ||
+      Array.isArray(completion) ||
+      !CAREER_SHIPS.includes(completion.shipId) ||
+      typeof completion.acknowledged !== 'boolean' ||
+      Object.keys(completion).some(
+        (key) => !['shipId', 'acknowledged'].includes(key),
+      ) ||
+      !ALL_REWARDS.every((reward) => next.claims.includes(reward.id))
+    )
+      return null;
+    next.completion = {
+      shipId: completion.shipId,
+      acknowledged: completion.acknowledged,
+    };
+  }
   if (next.exoticShip && !next.claims.includes('exotic-slot')) return null;
   for (const shipId of CAREER_SHIPS) {
     const slots = value.loadouts[shipId];
@@ -251,6 +271,30 @@ export function createProfileStore(storage = () => localStorage) {
     subscribe(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);
+    },
+    queueCompletion(shipId) {
+      if (
+        !isCareerComplete(state) ||
+        !CAREER_SHIPS.includes(shipId) ||
+        state.completion
+      )
+        return false;
+      const next = copy(state);
+      next.completion = { shipId, acknowledged: false };
+      persist(next);
+      return true;
+    },
+    acknowledgeCompletion() {
+      if (
+        !isCareerComplete(state) ||
+        !state.completion ||
+        state.completion.acknowledged
+      )
+        return false;
+      const next = copy(state);
+      next.completion.acknowledged = true;
+      persist(next);
+      return true;
     },
     recordRace({
       id,

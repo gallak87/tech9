@@ -16,6 +16,8 @@ export const fullLevels = [
   'worldspire',
   'nightweir',
   'colossus',
+  'ravel',
+  'nomad',
   'oriel',
 ];
 export function editionPolicy(edition) {

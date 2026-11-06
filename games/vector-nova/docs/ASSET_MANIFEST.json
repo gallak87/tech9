@@ -2,6 +2,33 @@
   "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "career-completion-cinematic",
+      "source": "src/frontend/completion-cinematic.js and src/frontend/completion-stage.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original real-time directed victory sequence using the actual last-used player chassis and the registered Rook/Manta rival models. Timeline, coastal terrain, causeway, civic facades, checker arch, camera cuts, lance/shield effects and soft skid sprites are source-native. The existing Nomad panorama and Halcyon Asphalt 03 maps are independently owned consumers of their registered generated/CC0 assets; no duplicate runtime images or recorded ship variants. Engine synthesis and the existing authored lance, jump and victory cues follow the saved master/effects controls.",
+      "rights": "Original authored code/geometry; existing project-generated imagery, chassis and sound effects; registered CC0-1.0 Poly Haven Asphalt 03 scan.",
+      "borrowedAssets": [
+        "public/assets/levels/nomad/nomad-sky-v1.png",
+        "public/assets/levels/halcyon/asphalt/color.ktx2",
+        "public/assets/levels/halcyon/asphalt/normal.ktx2",
+        "public/assets/levels/halcyon/asphalt/arm.ktx2",
+        "public/assets/ships/rivals/rook/rook.glb",
+        "public/assets/ships/rivals/manta/manta.glb"
+      ],
+      "provenanceRecords": [
+        "assets/levels/nomad/sky/provenance.json",
+        "assets/levels/halcyon/asphalt/provenance.json",
+        "assets/ships/rivals/rook/provenance.json",
+        "assets/ships/rivals/manta/provenance.json"
+      ],
+      "runtimeDependencies": ["three"],
+      "sourceAssets": [
+        "src/frontend/completion-timeline.js",
+        "src/frontend/completion-stage.js",
+        "src/frontend/completion-audio.js"
+      ]
+    },
+    {
       "id": "oriel-inward-world",
       "source": "src/levels/oriel/ and assets/levels/oriel/",
       "creator": "VECTOR//NOVA project contributors; original concept generated with built-in imagegen",

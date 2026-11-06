@@ -64,7 +64,9 @@ export default function createLevel() {
     createTrack: createPlayableRavelTrack,
     createRoad: createRavelRoad,
     createEnvironment: createRavelEnvironment,
-    createOverlay: createRavelOverlay,
+    createOverlay: !import.meta.env?.VN_DESKTOP
+      ? createRavelOverlay
+      : undefined,
     createBackdrop: createRavelBackdrop,
     createCollisionWorld: createRavelCollisionWorld,
     async createDynamics({ collisionWorld }) {

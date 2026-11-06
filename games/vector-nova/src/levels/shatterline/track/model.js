@@ -3,6 +3,8 @@ import { createReferenceFrames } from '../../../track/frames.js';
 import { SHATTERLINE_PACE } from '../pace.js';
 import { createTubeSurface } from './tube-surface.js';
 import { roadIntervals } from './road-runs.js';
+import { createWeaveAxis, rotationProgress } from './weave-axis.js';
+import { SamplingCache, copySample } from './sampling-cache.js';
 
 const HORIZONTAL_LENGTH = 11050;
 const WIDTH = 50;
@@ -67,6 +69,8 @@ const VARIATION_DROPS = [
   { start: 8050, end: 8170, drop: 200 },
   { start: 8750, end: 8850, drop: 250 },
 ];
+const STRETCHES = [...DESCENTS, ...CONNECTORS];
+const HEIGHT_DROPS = [...STRETCHES, ...VARIATION_DROPS];
 const VARIATION_START = 6160;
 const VARIATION_END = 8850;
 const RECEIVING_EXTENSION = 280;
@@ -88,77 +92,6 @@ const smooth = (value) => {
 };
 const progress = (section, source) =>
   smooth((source - section.start) / (section.end - section.start));
-// Smooth angular acceleration at each end, constant rotation in the middle.
-const rotationProgress = (value, ramp = 0.15) => {
-  const u = clamp(value, 0, 1);
-  const enter = (t) => (ramp * (t ** 3 - 0.5 * t ** 4)) / (1 - ramp);
-  return u < ramp
-    ? enter(u / ramp)
-    : u > 1 - ramp
-      ? 1 - enter((1 - u) / ramp)
-      : (u - ramp / 2) / (1 - ramp);
-};
-// Integrate a unit horizontal tangent instead of interpolating lateral
-// offsets. The enclosed bends have opposite signed curvature, with no sharp
-// shoulder where the open reverse corkscrew changes direction.
-function createWeaveAxis(zLength, deltaX) {
-  const breaks = [0, 0.13, 0.5, 0.87, 1];
-  const beta = T.MathUtils.degToRad(75);
-  const nodes = [
-    -0.9602898564975363, -0.7966664774136267, -0.525532409916329,
-    -0.1834346424956498, 0.1834346424956498, 0.525532409916329,
-    0.7966664774136267, 0.9602898564975363,
-  ];
-  const weights = [
-    0.1012285362903763, 0.2223810344533745, 0.3137066458778873,
-    0.362683783378362, 0.362683783378362, 0.3137066458778873,
-    0.2223810344533745, 0.1012285362903763,
-  ];
-  const integral = (u, alpha) => {
-    const angles = [0, alpha, -beta, alpha, 0];
-    let x = 0,
-      z = 0;
-    for (let phase = 0; phase < 4; phase++) {
-      const span = breaks[phase + 1] - breaks[phase];
-      const cuts = [0, 0.15, 0.85, 1].map((v) => breaks[phase] + v * span);
-      for (let part = 0; part < 3; part++) {
-        const low = cuts[part],
-          high = Math.min(u, cuts[part + 1]);
-        if (high <= low) continue;
-        const half = (high - low) / 2,
-          middle = (high + low) / 2;
-        for (let index = 0; index < nodes.length; index++) {
-          const q = middle + half * nodes[index];
-          const angle = T.MathUtils.lerp(
-            angles[phase],
-            angles[phase + 1],
-            rotationProgress((q - breaks[phase]) / span),
-          );
-          x += half * weights[index] * Math.sin(angle);
-          z += half * weights[index] * Math.cos(angle);
-        }
-      }
-    }
-    return { x, z };
-  };
-  let low = 0,
-    high = T.MathUtils.degToRad(85);
-  for (let index = 0; index < 44; index++) {
-    const middle = (low + high) / 2,
-      total = integral(1, middle);
-    if (total.x / total.z < deltaX / zLength) low = middle;
-    else high = middle;
-  }
-  const alpha = (low + high) / 2,
-    length = zLength / integral(1, alpha).z;
-  return {
-    length,
-    point(u) {
-      const point = integral(u, alpha);
-      return { x: point.x * length, z: point.z * length };
-    },
-  };
-}
 const SOURCE_JUMPS = [
   ['first-break', 'First Break', 450, 0],
   ['ridge-skip', 'Ridge Skip', 1050, 60],
@@ -242,7 +175,7 @@ export function createShatterlineTrack() {
     return (
       h +
       heroExtensionAt(h) +
-      [...DESCENTS, ...CONNECTORS].reduce(
+      STRETCHES.reduce(
         (z, section) => z + section.length * progress(section, h),
         0,
       )
@@ -265,7 +198,7 @@ export function createShatterlineTrack() {
     legacyHeight(h) -
     heroExtensionAt(h) * DESCENT_GRADE -
     RECEIVING_EXTENSION * DESCENT_GRADE * rotationProgress((h - 8470) / 280) -
-    [...DESCENTS, ...CONNECTORS, ...VARIATION_DROPS].reduce(
+    HEIGHT_DROPS.reduce(
       (drop, section) => drop + section.drop * progress(section, h),
       0,
     );
@@ -299,8 +232,20 @@ export function createShatterlineTrack() {
       return profile;
     }),
     connectorProfiles = CONNECTORS.map(makeProfile);
-  const physicalProgress = (section, h) =>
-    clamp((acceleratorZAt(h) - section.zStart) / section.zLength, 0, 1);
+  const allProfiles = [...profiles, ...connectorProfiles];
+  for (const section of allProfiles)
+    section.heightKeys = [
+      [
+        0,
+        section.yStart,
+        section.startSlope * (section.axis?.length ?? section.zLength),
+      ],
+      [
+        1,
+        section.yEnd,
+        section.endSlope * (section.axis?.length ?? section.zLength),
+      ],
+    ];
   // The late descent folds across itself in plan. Ballistic corridors are
   // rigid straight pieces; wide tangent-matched bends connect those pieces.
   // Source metres remain stable authoring addresses, not world coordinates.
@@ -406,29 +351,19 @@ export function createShatterlineTrack() {
     return (low + high) / 2;
   };
   const rawPoint = (h) => {
-    const point = new T.Vector3(
-      hermite(lateral, h),
-      baseHeight(h),
-      acceleratorZAt(h),
+    const sourceZ = acceleratorZAt(h);
+    const activeProfile = allProfiles.find(
+      (section) => h >= section.start && h <= section.end,
     );
-    for (const section of [...profiles, ...connectorProfiles]) {
-      if (h < section.start || h > section.end) continue;
-      const u = physicalProgress(section, h);
-      point.y = hermite(
-        [
-          [
-            0,
-            section.yStart,
-            section.startSlope * (section.axis?.length ?? section.zLength),
-          ],
-          [
-            1,
-            section.yEnd,
-            section.endSlope * (section.axis?.length ?? section.zLength),
-          ],
-        ],
-        u,
-      );
+    // Supported descent profiles replace both authored height and lateral
+    // coordinates. Avoid evaluating the overwritten source splines there.
+    const point = activeProfile
+      ? new T.Vector3(0, 0, sourceZ)
+      : new T.Vector3(hermite(lateral, h), baseHeight(h), sourceZ);
+    if (activeProfile) {
+      const section = activeProfile;
+      const u = clamp((sourceZ - section.zStart) / section.zLength, 0, 1);
+      point.y = hermite(section.heightKeys, u);
       point.x = T.MathUtils.lerp(section.xStart, section.xEnd, smooth(u));
       if (section.kind === 'sweep')
         point.x += 60 * Math.sin(Math.PI * smooth(u)) ** 2;
@@ -510,7 +445,12 @@ export function createShatterlineTrack() {
     }
     return (lo + (d - arcs[lo]) / (arcs[hi] - arcs[lo])) * sourceStep;
   };
-  const positionAt = (s) => rawPoint(sourceAt(s));
+  const positionCache = new SamplingCache(32768);
+  const referencePositionAt = (s) => {
+    const retained = positionCache.get(s);
+    return retained ?? positionCache.set(s, rawPoint(sourceAt(s)));
+  };
+  const positionAt = (s) => referencePositionAt(s).clone();
   const tangentAt = (s) =>
     positionAt(Math.min(length, s + 0.2))
       .sub(positionAt(Math.max(0, s - 0.2)))
@@ -523,6 +463,7 @@ export function createShatterlineTrack() {
     false,
   );
   const rollAt = (h) => {
+    const sourceZ = acceleratorZAt(h);
     let angle = 0;
     for (let i = 0; i < sourceJumps.length - 1; i++) {
       const a = sourceJumps[i],
@@ -546,7 +487,7 @@ export function createShatterlineTrack() {
           1 - smooth((distanceAt(h) - distanceAt(5480)) / OVERTURN.rollLength);
     }
     for (const section of profiles) {
-      const u = physicalProgress(section, h);
+      const u = clamp((sourceZ - section.zStart) / section.zLength, 0, 1);
       if (section.kind === 'sweep')
         angle -= 0.7 * Math.sin(2 * Math.PI * u) * Math.sin(Math.PI * u);
       if (section.kind === 'corkscrew')
@@ -571,7 +512,7 @@ export function createShatterlineTrack() {
       }
     }
     for (const section of connectorProfiles) {
-      const u = physicalProgress(section, h);
+      const u = clamp((sourceZ - section.zStart) / section.zLength, 0, 1);
       angle -=
         Math.sign(section.xEnd - section.xStart) *
         0.28 *
@@ -588,7 +529,7 @@ export function createShatterlineTrack() {
     }
     return angle;
   };
-  function sample(s) {
+  function computeFrame(s) {
     const d = clamp(s, 0, length),
       f = d / frameStep,
       i = Math.min(frameCount - 1, Math.floor(f));
@@ -612,15 +553,30 @@ export function createShatterlineTrack() {
       up,
       bank,
       roll,
-      quaternion: new T.Quaternion().setFromRotationMatrix(
-        new T.Matrix4().makeBasis(right, up, tangent),
-      ),
-      curvature: tangentAt(Math.min(length, d + 1))
-        .sub(tangentAt(Math.max(0, d - 1)))
-        .multiplyScalar(0.5)
-        .dot(right),
     };
   }
+  const frameCache = new SamplingCache(8192);
+  const referenceFrameAt = (s) => {
+    const retained = frameCache.get(s);
+    return retained ?? frameCache.set(s, computeFrame(s));
+  };
+  const sample = (s) => {
+    const frame = referenceFrameAt(s);
+    // Tube geometry needs the basis and position, not a second finite
+    // difference for curvature or a quaternion. Complete those fields only
+    // for public road-frame queries, sharing their exact results thereafter.
+    frame.quaternion ??= new T.Quaternion().setFromRotationMatrix(
+      new T.Matrix4().makeBasis(frame.right, frame.up, frame.tangent),
+    );
+    if (frame.curvature === undefined) {
+      const d = clamp(s, 0, length);
+      frame.curvature = tangentAt(Math.min(length, d + 1))
+        .sub(tangentAt(Math.max(0, d - 1)))
+        .multiplyScalar(0.5)
+        .dot(frame.right);
+    }
+    return copySample(frame);
+  };
   const jumps = sourceJumps.map((j) => ({
     id: j.id,
     label: j.label,
@@ -661,7 +617,7 @@ export function createShatterlineTrack() {
     sourceEnd: sourceAt(tube.end),
   }));
   const tubeSurface = createTubeSurface({
-    sample,
+    sample: referenceFrameAt,
     tubes: tubeDefinitions,
     exposedStart: overturnStart,
     exposedEnd: overturnEnd,

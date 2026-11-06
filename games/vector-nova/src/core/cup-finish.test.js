@@ -8,61 +8,52 @@ import { createRace } from '../race/index.js';
 import { createRacers } from '../race/racers.js';
 import { classifyCupRace } from '../race/cup.js';
 
-test('fast-forward preserves the full 30 simulated seconds and the finish beat', () => {
-  let ticks = 0;
+test('results open while the field continues at the ordinary simulation rate', () => {
+  let simulationTime = 100;
   const finish = createCupFinish({
-    simulationTime: () => 100 + ticks / 120,
+    simulationTime: () => simulationTime,
     allFinished: () => false,
-    step: () => ticks++,
-    now: () => 0,
   });
-  let progress;
-  for (let frame = 0; frame < 15; frame++) progress = finish.advance(1 / 60);
-  assert.equal(ticks, 3600);
-  assert.deepEqual(progress, { complete: true, ready: false });
-  assert.deepEqual(finish.advance(2.2), { complete: true, ready: true });
-  finish.advance(10);
-  assert.equal(
-    ticks,
-    3600,
-    'classification never continues after the deadline',
+  for (let frame = 0; frame < 150; frame++) {
+    simulationTime += 1 / 60;
+    finish.advance(1 / 60);
+  }
+  assert.deepEqual(finish.advance(0), { complete: false, ready: true });
+  assert.ok(
+    Math.abs(simulationTime - 102.5) < 1e-8,
+    'presentation cannot advance physics',
   );
+  simulationTime = 129.99;
+  assert.equal(finish.advance(0).complete, false);
+  simulationTime = 130;
+  assert.equal(finish.advance(0).complete, true);
 });
 
-test('slow work yields to the browser without prematurely classifying the field', () => {
-  let ticks = 0,
-    clock = 0;
+test('a pause cannot consume the classification deadline', () => {
+  let simulationTime = 0;
   const finish = createCupFinish({
-    simulationTime: () => ticks / 120,
-    allFinished: () => ticks === 12,
-    step: () => {
-      ticks++;
-      clock += 5;
-    },
-    now: () => clock,
+    simulationTime: () => simulationTime,
+    allFinished: () => false,
   });
-  assert.deepEqual(finish.advance(3), { complete: false, ready: false });
-  assert.equal(ticks, 3);
-  // A pause simply stops pumping; elapsed wall time cannot consume race time.
-  clock += 60000;
-  assert.deepEqual(finish.advance(0), { complete: false, ready: false });
-  assert.equal(ticks, 6);
-  finish.advance(0);
-  assert.deepEqual(finish.advance(0), { complete: true, ready: true });
-  assert.equal(ticks, 12, 'the final finisher stops simulation immediately');
+  assert.deepEqual(finish.advance(60), { complete: false, ready: true });
+  simulationTime = 29;
+  assert.equal(finish.advance(0).complete, false);
+  simulationTime = 30;
+  assert.equal(finish.advance(0).complete, true);
 });
 
-test('an already finished field keeps the banner without advancing physics', () => {
+test('the final rival classifies the field while the finish banner keeps its beat', () => {
+  let finished = false;
   const finish = createCupFinish({
     simulationTime: () => 100,
-    allFinished: () => true,
-    step: () => assert.fail('no remaining race'),
+    allFinished: () => finished,
   });
-  assert.deepEqual(finish.advance(1), { complete: true, ready: false });
+  assert.deepEqual(finish.advance(1), { complete: false, ready: false });
+  finished = true;
   assert.deepEqual(finish.advance(1.4), { complete: true, ready: true });
 });
 
-test('fixed-tick fast-forward retains actual rival times, points, invalid finishes and DNFs', () => {
+test('live classification retains actual rival times, points, invalid finishes and DNFs', () => {
   const track = createTrack();
   const racers = createRacers({
     track,
@@ -96,15 +87,18 @@ test('fixed-tick fast-forward retains actual rival times, points, invalid finish
     const finish = createCupFinish({
       simulationTime: () => ticks / 120,
       allFinished: () => racers.opponents.every((racer) => racer.finish),
-      step: () => {
-        racers.advance(1 / 120, context);
-        ticks++;
-      },
-      now: () => 0,
     });
     while (!finish.advance(1 / 60).complete) {
-      /* bounded frames */
+      for (let i = 0; i < 2; i++) {
+        racers.advance(1 / 120, context);
+        ticks++;
+      }
     }
+    assert.equal(
+      ticks,
+      3600,
+      'the full grace period runs at two ticks per rendered 60Hz frame',
+    );
     assert.deepEqual(results(), expected);
   } finally {
     racers.dispose();

@@ -6,6 +6,7 @@ import {
 } from '../src/progression/careers.js';
 import { createProfileStore, PROFILE_KEY } from '../src/progression/profile.js';
 import { saveShipSelection } from '../src/ships/catalog.js';
+import { filterAvailableLevels } from '../src/levels/access.js';
 import createHalcyonLevel from '../src/levels/halcyon/index.js';
 import { createVehicleState } from '../src/physics/index.js';
 import {
@@ -1125,7 +1126,7 @@ try {
           window.retainedPlayer = document.querySelector('[data-music-player]');
         });
         const routes = await page.evaluate(() => window.__VN_FRONTEND.routes);
-        const circuits = routes;
+        const circuits = filterAvailableLevels(routes);
         assert.equal(
           await page.locator('.circuit-card').count(),
           circuits.length,

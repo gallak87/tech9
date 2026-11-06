@@ -65,10 +65,15 @@ export function createHabitatStructure(own, track) {
     if (!buckets.has(material)) buckets.set(material, { geometries: [], name });
     buckets.get(material).geometries.push(geometry);
   };
-  const beam = (a, b, width, depth, material) => {
+  const beam = (a, b, width, depth, material, headFrame = null) => {
     const direction = b.clone().sub(a),
       length = direction.length();
     const g = new T.BoxGeometry(width, depth, length);
+    const positions = g.attributes.position;
+    const headVertices = [];
+    if (headFrame)
+      for (let i = 0; i < positions.count; i++)
+        if (positions.getZ(i) > 0) headVertices.push(i);
     g.applyQuaternion(
       new T.Quaternion().setFromUnitVectors(
         new T.Vector3(0, 0, 1),
@@ -76,6 +81,26 @@ export function createHabitatStructure(own, track) {
       ),
     );
     g.translate(...a.clone().add(b).multiplyScalar(0.5).toArray());
+    if (headFrame) {
+      // Miter the whole head to the local deck underside. A square shaft cap
+      // can cross the running surface where the road tilts across a wide pier.
+      // Sliding its corners along the shaft preserves the shell foundation
+      // and seats the formed head against the existing bronze load arms.
+      const along = direction.dot(headFrame.up);
+      if (along <= 1e-4) throw new Error('Oriel pier must face its deck seat.');
+      const plane = b.dot(headFrame.up);
+      const point = new T.Vector3();
+      for (const i of headVertices) {
+        point.fromBufferAttribute(positions, i);
+        point.addScaledVector(
+          direction,
+          (plane - point.dot(headFrame.up)) / along,
+        );
+        positions.setXYZ(i, point.x, point.y, point.z);
+      }
+      positions.needsUpdate = true;
+      g.computeVertexNormals();
+    }
     add(g, material, 'Oriel / connected habitat members');
   };
   // The long light source is physically present in the middle of the cylinder.
@@ -177,7 +202,7 @@ export function createHabitatStructure(own, track) {
       const angle = Math.atan2(top.x, 1000 - top.y);
       const foot = shellPoint(angle, top.z, 4);
       const big = radial < 890;
-      beam(foot, top, big ? 12 : 4.2, big ? 30 : 8, limestone);
+      beam(foot, top, big ? 12 : 4.2, big ? 30 : 8, limestone, frame);
       beam(
         top.clone().addScaledVector(frame.right, -side * 10),
         top.clone().addScaledVector(frame.right, side * 6),
@@ -208,7 +233,7 @@ export function createHabitatStructure(own, track) {
         .addScaledVector(frame.right, side * 48)
         .addScaledVector(frame.up, -14);
       const angle = Math.atan2(top.x, 1000 - top.y);
-      beam(shellPoint(angle, top.z, 3), top, 13, 24, limestone);
+      beam(shellPoint(angle, top.z, 3), top, 13, 24, limestone, frame);
     }
   }
   const coil = track.landmarks.corkscrew;
@@ -246,7 +271,7 @@ export function createHabitatStructure(own, track) {
       for (const side of [-1, 1]) {
         const top = framePoint(f, side * 31, -25),
           a = Math.atan2(top.x, 1000 - top.y);
-        beam(shellPoint(a, top.z, 3), top, 11, 22, limestone);
+        beam(shellPoint(a, top.z, 3), top, 11, 22, limestone, f);
       }
     }
   }

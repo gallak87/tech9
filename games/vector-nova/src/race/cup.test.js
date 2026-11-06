@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   CUPS,
+  availableCups,
+  cupDefinition,
   createCupStore,
   CUP_STORAGE_KEY,
   CUP_POINTS,
@@ -14,6 +16,16 @@ import {
 } from './cup.js';
 import { RACE_OPPONENTS } from './roster.js';
 const ids = ['player', ...RACE_OPPONENTS.map((r) => r.id)];
+test('Encore is an additional gated championship; original schedules and IDs stay intact', () => {
+  assert.deepEqual(
+    availableCups().map(({ id }) => id),
+    ['founders', 'frontier', 'horizon', 'apex'],
+  );
+  assert.deepEqual(cupDefinition('encore').tracks, ['ravel', 'nomad', 'oriel']);
+  assert.equal(availableCups({ complete: true }).at(-1).id, 'encore');
+  assert.equal(availableCups({ developer: true }).at(-1).id, 'encore');
+  assert.equal(cupDefinition('encore').bonus, true);
+});
 const result = (order = ids, base = 100) => ({
   standings: order.map((id, i) => ({
     id,

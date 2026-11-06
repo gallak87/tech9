@@ -7,6 +7,9 @@ export default defineConfig({
   resolve: { dedupe: ['three'] },
   // Canonical assets in the linked package are also served during development.
   server: {
+    watch: {
+      ignored: ['**/.desktop/**', '**/release/**', '**/.experiments/**'],
+    },
     fs: {
       allow: [
         import.meta.dirname,

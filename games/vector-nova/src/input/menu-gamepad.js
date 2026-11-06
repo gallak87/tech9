@@ -42,6 +42,8 @@ export function bindMenuGamepad(
     element.getClientRects().length &&
     !element.closest('[hidden], .hidden, [inert]');
   const menuRoot = () => {
+    const completion = document.querySelector('.completion-cinematic');
+    if (visible(completion)) return completion;
     const progression = document.querySelector(
       'dialog[data-progression-dialog][open]',
     );
@@ -165,7 +167,12 @@ export function bindMenuGamepad(
       padIdentity = identity;
     }
     if (!document.hidden) {
-      if (intent.music && !previous.music) toggleMusic();
+      if (
+        intent.music &&
+        !previous.music &&
+        !root?.matches('.completion-cinematic')
+      )
+        toggleMusic();
       if (intent.pause && !previous.pause) key('Escape');
       else if (root) {
         if (intent.back && !previous.back) key('Escape');

@@ -4,12 +4,14 @@ Run from `games/vector-nova` with Node 22.13+ and npm. Browser/Vite commands are
 
 ## Editions
 
-|             | Demo                                                       | Full game                           |
-| ----------- | ---------------------------------------------------------- | ----------------------------------- |
-| Content     | Kestrel; Halcyon and Nacre; unlimited play                 | Four ships and all 15 courses       |
-| Modes       | Quick Race, Practice, Time Trial/ghosts, two-race Demo Cup | Same core modes; four championships |
-| Racing      | Nine AI rivals; solo Practice/Time Trial                   | Same                                |
-| Save folder | `vector-nova-demo`                                         | `vector-nova-full`                  |
+|             | Demo                                                       | Full game                                            |
+| ----------- | ---------------------------------------------------------- | ---------------------------------------------------- |
+| Content     | Kestrel; Halcyon and Nacre; unlimited play                 | Four ships; 14 initial + 3 bonus courses             |
+| Modes       | Quick Race, Practice, Time Trial/ghosts, two-race Demo Cup | Same core modes; four initial + Encore championships |
+| Racing      | Nine AI rivals; solo Practice/Time Trial                   | Same                                                 |
+| Save folder | `vector-nova-demo`                                         | `vector-nova-full`                                   |
+
+Completing all 28 career rewards opens Ravel, Nomad and Oriel and their Encore Cup. Those courses ship in the full package but remain hidden from incomplete careers; development query parameters do not bypass the desktop gate.
 
 The demo omits excluded player hulls/worlds from its catalog and package. Shared materials are explicitly allowlisted, not playable worlds. Edition selection is build-time; no runtime unlock switch exists. See the [edition policy](../../tools/desktop/policy.mjs).
 

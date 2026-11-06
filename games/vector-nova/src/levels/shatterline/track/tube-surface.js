@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { createTubeTessellation, quadTriangles } from './tube-tessellation.js';
+import { SamplingCache, copySample } from './sampling-cache.js';
 
 const clamp = T.MathUtils.clamp;
 const smooth = (value) => {
@@ -193,9 +194,10 @@ export function createTubeSurface(options) {
   };
   // A small deterministic cache shares route derivatives across tessellation
   // columns. It is only an acceleration cache, never replay/simulation state.
-  const baseCache = new Map();
+  const baseCache = new SamplingCache(2048);
   function baseAt(distance) {
-    if (baseCache.has(distance)) return baseCache.get(distance);
+    const retained = baseCache.get(distance);
+    if (retained) return retained;
     const delta = 0.002;
     const frame = sample(distance);
     const before = sample(distance - delta);
@@ -215,11 +217,13 @@ export function createTubeSurface(options) {
         .sub(before.up)
         .multiplyScalar(1 / (2 * delta)),
     };
-    if (baseCache.size >= 192) baseCache.delete(baseCache.keys().next().value);
-    baseCache.set(distance, value);
-    return value;
+    return baseCache.set(distance, value);
   }
+  const geometryCache = new SamplingCache(8192);
   function geometryAt(distance, lateral) {
+    const key = `${distance}:${lateral}`;
+    const retained = geometryCache.get(key);
+    if (retained) return retained;
     const profile = profileAt(distance);
     const k = profile?.curvature ?? 0;
     const dk = profile?.curvatureDerivative ?? 0;
@@ -252,7 +256,7 @@ export function createTubeSurface(options) {
     const longitudinalMetric = tangent.length();
     tangent.normalize();
     const up = tangent.clone().cross(right).normalize();
-    return {
+    return geometryCache.set(key, {
       profile,
       position,
       tangent,
@@ -261,7 +265,7 @@ export function createTubeSurface(options) {
       longitudinalMetric,
       longitudinalShear,
       roll: frame.roll + angle,
-    };
+    });
   }
   const mesh = createTubeTessellation({
     tubes: descriptors,
@@ -271,31 +275,98 @@ export function createTubeSurface(options) {
     roadIntervals,
     width,
   });
-  function clipFootprint(polygon, halfWidth, halfLength) {
-    for (const [axis, sign, limit] of [
-      [0, 1, halfWidth],
-      [0, -1, halfWidth],
-      [1, 1, halfLength],
-      [1, -1, halfLength],
-    ]) {
-      const result = [];
-      for (let i = 0; i < polygon.length; i++) {
-        const a = polygon[i],
-          b = polygon[(i + 1) % polygon.length];
-        const da = sign * a[axis] - limit,
-          db = sign * b[axis] - limit;
-        if (da <= 0) result.push(a);
+  // Mesh vertices and station charts are immutable. Retain their station
+  // data independently of the moving-query FIFO so a dispersed field never
+  // regenerates it after another racer advances through the tube.
+  const stationData = new Map();
+  function stationAt(distance) {
+    let value = stationData.get(distance);
+    if (!value) {
+      const profile = profileAt(distance);
+      value = {
+        profile,
+        base: baseAt(distance).frame,
+        minEdge: geometryAt(distance, -profile.halfWidth),
+        maxEdge: geometryAt(distance, profile.halfWidth),
+      };
+      stationData.set(distance, value);
+    }
+    return value;
+  }
+  // Clipping a triangle to a rectangle has at most seven vertices. These
+  // private workspaces replace per-face polygon/intersection allocations;
+  // every actual facet and the original four clipping planes are retained.
+  const clipA = new Float64Array(24),
+    clipB = new Float64Array(24);
+  const projections = new WeakMap();
+  let projectionGeneration = 0;
+  function clipMaximum(triangle, origin, cosine, sine, halfWidth, halfLength) {
+    for (let index = 0; index < 3; index++) {
+      const point = triangle[index];
+      let projected = projections.get(point);
+      if (!projected) {
+        projected = { generation: 0, x: 0, z: 0, y: 0 };
+        projections.set(point, projected);
+      }
+      if (projected.generation !== projectionGeneration) {
+        const dx = point.x - origin.position.x,
+          dy = point.y - origin.position.y,
+          dz = point.z - origin.position.z;
+        const x =
+            dx * origin.right.x + dy * origin.right.y + dz * origin.right.z,
+          z =
+            dx * origin.tangent.x +
+            dy * origin.tangent.y +
+            dz * origin.tangent.z;
+        projected.x = x * cosine - z * sine;
+        projected.z = x * sine + z * cosine;
+        projected.y = dx * origin.up.x + dy * origin.up.y + dz * origin.up.z;
+        projected.generation = projectionGeneration;
+      }
+      clipA[index * 3] = projected.x;
+      clipA[index * 3 + 1] = projected.z;
+      clipA[index * 3 + 2] = projected.y;
+    }
+    let polygon = clipA,
+      result = clipB,
+      count = 3;
+    for (let plane = 0; plane < 4; plane++) {
+      const axis = plane < 2 ? 0 : 1,
+        sign = plane % 2 === 0 ? 1 : -1,
+        limit = plane < 2 ? halfWidth : halfLength;
+      let resultCount = 0;
+      for (let index = 0; index < count; index++) {
+        const a = index * 3,
+          b = ((index + 1) % count) * 3,
+          da = sign * polygon[a + axis] - limit,
+          db = sign * polygon[b + axis] - limit;
+        if (da <= 0) {
+          const target = resultCount * 3;
+          result[target] = polygon[a];
+          result[target + 1] = polygon[a + 1];
+          result[target + 2] = polygon[a + 2];
+          resultCount++;
+        }
         if (da <= 0 !== db <= 0) {
-          const mix = da / (da - db);
-          result.push(
-            a.map((value, component) => value + (b[component] - value) * mix),
-          );
+          const mix = da / (da - db),
+            target = resultCount * 3;
+          for (let component = 0; component < 3; component++)
+            result[target + component] =
+              polygon[a + component] +
+              (polygon[b + component] - polygon[a + component]) * mix;
+          resultCount++;
         }
       }
+      const swap = polygon;
       polygon = result;
-      if (!polygon.length) break;
+      result = swap;
+      count = resultCount;
+      if (!count) return -Infinity;
     }
-    return polygon;
+    let maximum = -Infinity;
+    for (let index = 0; index < count; index++)
+      maximum = Math.max(maximum, polygon[index * 3 + 2]);
+    return maximum;
   }
   function firstCell(stations, distance) {
     let low = 0,
@@ -317,36 +388,24 @@ export function createTubeSurface(options) {
       high = distance + reach;
     const cosine = Math.cos(heading),
       sine = Math.sin(heading);
-    const projected = new Map();
-    const project = (point) => {
-      if (projected.has(point)) return projected.get(point);
-      const offset = point.clone().sub(origin.position),
-        x = offset.dot(origin.right),
-        z = offset.dot(origin.tangent);
-      const result = [
-        x * cosine - z * sine,
-        x * sine + z * cosine,
-        offset.dot(origin.up),
-      ];
-      projected.set(point, result);
-      return result;
-    };
+    projectionGeneration++;
     const include = (triangle, key) => {
-      if (
-        key !== 'sheet' &&
-        triangle[1]
-          .clone()
-          .sub(triangle[0])
-          .cross(triangle[2].clone().sub(triangle[0]))
-          .lengthSq() <= 1e-12
-      )
-        return;
-      for (const point of clipFootprint(
-        triangle.map(project),
-        halfWidth,
-        halfLength,
-      ))
-        support[key] = Math.max(support[key], point[2]);
+      if (key !== 'sheet') {
+        const ax = triangle[1].x - triangle[0].x,
+          ay = triangle[1].y - triangle[0].y,
+          az = triangle[1].z - triangle[0].z,
+          bx = triangle[2].x - triangle[0].x,
+          by = triangle[2].y - triangle[0].y,
+          bz = triangle[2].z - triangle[0].z;
+        const x = ay * bz - az * by,
+          y = az * bx - ax * bz,
+          z = ax * by - ay * bx;
+        if (x * x + y * y + z * z <= 1e-12) return;
+      }
+      support[key] = Math.max(
+        support[key],
+        clipMaximum(triangle, origin, cosine, sine, halfWidth, halfLength),
+      );
     };
     // Preserve the original full-run row phase of the opaque deck. Its wide
     // twisted facets can rise above the smooth reference between vertices.
@@ -376,8 +435,7 @@ export function createTubeSurface(options) {
           after = chunk.stations[row + 1];
         const columns = new Set();
         for (const station of [before, after]) {
-          const profile = profileAt(station),
-            base = baseAt(station).frame;
+          const { profile, base } = stationAt(station);
           const offset = origin.position.clone().sub(base.position),
             x = offset.dot(base.right),
             y = offset.dot(base.up);
@@ -419,8 +477,9 @@ export function createTubeSurface(options) {
         if (chunk.closed) continue;
         for (const side of [-1, 1]) {
           const nearby = [before, after].some((station) => {
-            const profile = profileAt(station),
-              edge = geometryAt(station, side * profile.halfWidth);
+            const stationFrame = stationAt(station),
+              profile = stationFrame.profile,
+              edge = side < 0 ? stationFrame.minEdge : stationFrame.maxEdge;
             return (
               edge.position.distanceTo(origin.position) <=
               diagonal + profile.railToeWidth + profile.railHeight + reach
@@ -441,7 +500,7 @@ export function createTubeSurface(options) {
     return support;
   }
 
-  function sampleSurface(distance, lateral = 0) {
+  function computeSurface(distance, lateral) {
     const tubeProfile = profileAt(distance);
     if (!tubeProfile && (distance < exposedStart || distance > exposedEnd))
       return null;
@@ -460,20 +519,18 @@ export function createTubeSurface(options) {
       hullInsetScaleDerivative: 0,
     };
     const geometry = geometryAt(distance, lateral);
-    const delta = 0.2;
-    const before = geometryAt(distance - delta, lateral);
-    const after = geometryAt(distance + delta, lateral);
-    const curvature = after.tangent
-      .clone()
-      .sub(before.tangent)
-      .multiplyScalar(1 / (2 * delta * geometry.longitudinalMetric))
-      .dot(geometry.right);
-    let supportKey, supportValue;
+    let supportHeading, supportWidth, supportLength, supportValue;
     const hullSupport = (footprint) => {
-      const key = `${footprint.heading ?? 0}:${footprint.halfWidth}:${footprint.halfLength}`;
-      if (key !== supportKey) {
+      const heading = footprint.heading ?? 0;
+      if (
+        heading !== supportHeading ||
+        footprint.halfWidth !== supportWidth ||
+        footprint.halfLength !== supportLength
+      ) {
         supportValue = hullSupportAt(distance, lateral, geometry, footprint);
-        supportKey = key;
+        supportHeading = heading;
+        supportWidth = footprint.halfWidth;
+        supportLength = footprint.halfLength;
       }
       return supportValue;
     };
@@ -501,9 +558,10 @@ export function createTubeSurface(options) {
       ),
       bank: Math.atan2(Math.sin(roll), Math.cos(roll)),
       roll,
-      curvature,
       transverseCurvature: profile.curvature,
-      ...(tubeProfile ? { hullSupport } : {}),
+      ...(tubeProfile
+        ? { hullSupport: (footprint) => ({ ...hullSupport(footprint) }) }
+        : {}),
       hullClearance: (footprint) => {
         const support = hullSupport(footprint);
         return Math.max(0, support.sheet, support.minGuide, support.maxGuide);
@@ -525,6 +583,30 @@ export function createTubeSurface(options) {
       hullInsetScale: profile.hullInsetScale,
       hullInsetScaleDerivative: profile.hullInsetScaleDerivative,
     };
+  }
+  const surfaceCache = new SamplingCache(4096);
+  // Geometry-only readers (Newton projection and hull corners) need the exact
+  // basis, metrics and facets but do not apply curvature-dependent forces.
+  // Ordinary queries retain the complete historical surface contract.
+  function sampleSurface(distance, lateral = 0, { geometryOnly = false } = {}) {
+    if ((distance < exposedStart || distance > exposedEnd) && !tubeAt(distance))
+      return null;
+    const key = `${distance}:${lateral}`;
+    const retained = surfaceCache.get(key);
+    const surface =
+      retained ?? surfaceCache.set(key, computeSurface(distance, lateral));
+    if (!surface) return null;
+    if (!geometryOnly && surface.curvature === undefined) {
+      const delta = 0.2;
+      const before = geometryAt(distance - delta, lateral);
+      const after = geometryAt(distance + delta, lateral);
+      surface.curvature = after.tangent
+        .clone()
+        .sub(before.tangent)
+        .multiplyScalar(1 / (2 * delta * surface.longitudinalMetric))
+        .dot(surface.right);
+    }
+    return copySample(surface);
   }
   return {
     descriptors,

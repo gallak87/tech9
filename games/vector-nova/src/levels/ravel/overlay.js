@@ -1,7 +1,8 @@
 import { RAVEL_PLAYTEST_CASES } from './runtime.js';
 
 /** Section practice lives in the normal pause flow throughout greybox review. */
-export function createRavelOverlay({ host, track }) {
+export function createRavelOverlay({ host, track, developer = false }) {
+  if (!developer) return { dispose() {} };
   const document = host.ownerDocument;
   const browser = document.defaultView;
   const section = document.createElement('section');

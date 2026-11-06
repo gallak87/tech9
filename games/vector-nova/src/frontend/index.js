@@ -19,10 +19,15 @@ import {
 } from '../progression/goals.js';
 import { createSaveTransfer } from '../progression/save-transfer.js';
 import { createProgressionMenu } from '../progression/menu.js';
+import {
+  isCareerComplete,
+  remainingModeUnlocks,
+} from '../progression/completion.js';
 import { bindDesktopControls } from '../ui/desktop-controls.js';
 import { settingsView, bindSettingsPanel } from './settings-panel.js';
 import {
   CUPS,
+  availableCups,
   createCupStore,
   cupDefinition,
   cupGridOrder,
@@ -41,6 +46,7 @@ import { recordsView } from './records.js';
 import { readTrialRecords } from '../race/time-trial.js';
 import { formatTime, formatDelta } from '../race/timing.js';
 import { discoverLevels } from '../levels/catalog.js';
+import { filterAvailableLevels, levelAvailable } from '../levels/access.js';
 import routes from 'virtual:menu-catalog';
 import { RACE_FIELD_SIZE, RACE_OPPONENTS } from '../race/roster.js';
 import {
@@ -105,7 +111,6 @@ export async function createFrontend(
     throw new TypeError('A selected career storage adapter is required.');
   let disposed = false;
   const catalog = discoverLevels().list;
-  const circuits = catalog;
   const parameters = new URLSearchParams(
     !import.meta.env?.VN_DESKTOP ? location.search : '',
   );
@@ -119,8 +124,23 @@ export async function createFrontend(
   const careerStorage = () => developer?.storage?.() ?? storage;
   const profileStore = createProfileStore(careerStorage);
   const profile = () => profileStore.snapshot().state;
+  const contentAccess = () => ({
+    complete: isCareerComplete(profile()),
+    developer: !!developer,
+  });
+  const circuits = () => filterAvailableLevels(catalog, contentAccess());
+  const cups = () => availableCups(contentAccess());
+  const circuitAvailable = (id) =>
+    catalog.some((level) => level.id === id) &&
+    levelAvailable(id, contentAccess());
+  const cupAvailable = (id) => cups().some((cup) => cup.id === id);
   const cupStore = createCupStore(careerStorage);
   const cupCollection = createCupCollection(careerStorage);
+  if (
+    cupStore.snapshot().state &&
+    !cupAvailable(cupStore.snapshot().state.cupId)
+  )
+    cupStore.abandon();
   cupCollection.award(cupStore.snapshot().state);
   for (const id of Object.keys(cupCollection.snapshot().cups))
     profileStore.recordCup(id);
@@ -144,8 +164,7 @@ export async function createFrontend(
     parameters.has('test') ||
     parameters.has('capture');
   const requested = parameters.get('level');
-  let invalidLevel =
-    requested && !catalog.some((level) => level.id === requested);
+  let invalidLevel = requested && !circuitAvailable(requested);
   let selected =
     requested || (parameters.get('test') === 'jump' ? 'saffron' : null);
   if (!selected) {
@@ -155,7 +174,7 @@ export async function createFrontend(
       /* Optional storage. */
     }
   }
-  if (!catalog.some((level) => level.id === selected)) selected = catalog[0].id;
+  if (!circuitAvailable(selected)) selected = circuits()[0].id;
   let screen = 'home',
     intent = 'race';
   let sessionIntent = 'race',
@@ -220,6 +239,10 @@ export async function createFrontend(
   let inspector = null,
     inspectorController = null,
     inspectorPending = null;
+  let completion = null,
+    completionPending = null,
+    completionController = null,
+    completionGeneration = 0;
   let cacheModule,
     unsubscribeCache,
     unsubscribeSettings,
@@ -319,6 +342,7 @@ export async function createFrontend(
     onChange({ imported = false } = {}) {
       if (disposed) return;
       if (imported) {
+        stopCompletion();
         generation++;
         launchGeneration++;
         controller?.abort();
@@ -332,6 +356,10 @@ export async function createFrontend(
           settingsFocus = null;
         }
         selectedCup = cupStore.snapshot().state?.cupId ?? CUPS[0].id;
+        if (!cupAvailable(selectedCup)) {
+          cupStore.abandon();
+          selectedCup = CUPS[0].id;
+        }
         if (intent === 'cup' && cupStore.snapshot().state) {
           shipId = cupStore.snapshot().state.shipId;
           selected = currentCup().tracks[cupStore.snapshot().state.eventIndex];
@@ -339,8 +367,10 @@ export async function createFrontend(
       }
       if (!shipUnlocked(profile(), shipId) && !lockedCup())
         shipId = starterShip();
+      if (!circuitAvailable(selected)) selected = circuits()[0].id;
       inspector?.refreshProgression?.();
       render();
+      void showCompletion();
     },
   });
   const level = () => catalog.find((l) => l.id === selected);
@@ -506,6 +536,123 @@ export async function createFrontend(
       shell.querySelector(focus)?.scrollIntoView({ block: 'nearest' });
     updateStatus();
   }
+  function stopCompletion() {
+    completionGeneration++;
+    completionController?.abort();
+    completionController = null;
+    completion?.dispose();
+    completion = null;
+    completionPending = null;
+    host.querySelector('.completion-boot')?.remove();
+    shell.inert = false;
+    music?.setSuspended(false);
+  }
+  function closeCompletion() {
+    if (disposed) return;
+    profileStore.acknowledgeCompletion();
+    stopCompletion();
+    clearCompletedCup();
+    if (!cupStore.snapshot().state) {
+      selectedCup = 'encore';
+      intent = 'cup';
+    }
+    setScreen(wideMenu.matches && intent === 'cup' ? 'cup' : 'home');
+    focusMenu('[data-cup="encore"], [data-action="cup-hub"]');
+  }
+  function showCompletion() {
+    // Keep the full-edition finale and its fleet models out of demo bundles.
+    if (import.meta.env?.VN_EDITION === 'demo') return;
+    if (
+      disposed ||
+      special ||
+      completion ||
+      completionPending ||
+      !isCareerComplete(profile()) ||
+      !profile().completion ||
+      profile().completion.acknowledged
+    )
+      return completionPending;
+    const token = ++completionGeneration;
+    completionController = new AbortController();
+    const signal = completionController.signal;
+    const loading = document.createElement('section');
+    loading.className = 'completion-cinematic completion-boot';
+    loading.setAttribute('aria-label', 'Career complete');
+    loading.innerHTML =
+      '<div class="completion-boot-content"><span class="kicker">28 / 28 · CAREER COMPLETE</span><h1>One last victory.</h1><p role="status">Preparing your finale</p><progress max="1" value="0.02" aria-label="Loading finale"></progress></div>';
+    host.append(loading);
+    menuBackdrop.mount(loading);
+    menuBackdrop.configure({
+      active: true,
+      reducedMotion: settings.reducedMotion,
+    });
+    game?.clearInput();
+    game?.setSuspended(true);
+    gameHost.inert = true;
+    shell.inert = true;
+    music?.close();
+    music?.setSuspended(true);
+    music?.setDriving(false);
+    desktopControls?.mount(null);
+    completionPending = import('./completion-cinematic.js')
+      .then(({ createCompletionCinematic }) => {
+        if (disposed || signal.aborted || token !== completionGeneration)
+          return;
+        loading.remove();
+        menuBackdrop.configure({
+          active: false,
+          reducedMotion: settings.reducedMotion,
+        });
+        completion = createCompletionCinematic({
+          host,
+          shipId: profile().completion.shipId,
+          settings: () => settings,
+          signal,
+          onClose: closeCompletion,
+        });
+        return completion.ready;
+      })
+      .catch((failure) => {
+        if (disposed || signal.aborted || token !== completionGeneration)
+          return;
+        completion?.dispose();
+        // A failed chunk download must still leave a keyboard/controller exit and
+        // the earned unlocks. Pending completion is acknowledged only by Close.
+        completion = {
+          dispose: () => loading.remove(),
+          snapshot: () => ({ phase: 'credits', error: failure.message }),
+        };
+        loading.innerHTML =
+          '<div class="completion-boot-content" role="dialog" aria-modal="true" aria-labelledby="completion-fallback-title"><span class="kicker">28 / 28 · CAREER COMPLETE</span><h1 id="completion-fallback-title">Thx for playing, 3 new courses unlocked!</h1><p>Dev: George Allakhverdyan<br>Studio name TBD</p><p>Homies who helped test the game:<br>Noyan Gunday</p><button type="button" class="primary">Close</button></div>';
+        host.append(loading);
+        menuBackdrop.mount(loading);
+        menuBackdrop.configure({
+          active: true,
+          reducedMotion: settings.reducedMotion,
+        });
+        loading
+          .querySelector('button')
+          .addEventListener('click', closeCompletion, { signal });
+        loading.addEventListener(
+          'keydown',
+          (event) => {
+            if (event.code === 'Escape') {
+              event.preventDefault();
+              closeCompletion();
+            } else if (event.code === 'Tab') {
+              event.preventDefault();
+              loading.querySelector('button').focus();
+            }
+          },
+          { signal },
+        );
+        loading.querySelector('button').focus();
+      })
+      .finally(() => {
+        if (token === completionGeneration) completionPending = null;
+      });
+    return completionPending;
+  }
   function heading(kicker, title) {
     return `<div class="front-heading"><span class="kicker">${kicker}</span><h1 tabindex="-1">${title}</h1></div>`;
   }
@@ -517,7 +664,7 @@ export async function createFrontend(
   };
   const circuitPanel = () => {
     const groups = new Map();
-    for (const track of circuits.toSorted(
+    for (const track of circuits().toSorted(
       (a, b) =>
         TRACK_CHALLENGES.indexOf(trackChallenge(a.id)) -
         TRACK_CHALLENGES.indexOf(trackChallenge(b.id)),
@@ -548,6 +695,7 @@ export async function createFrontend(
       notice: garageNotice,
     });
   const modePicker = () => {
+    const remaining = remainingModeUnlocks(profile());
     const saved = cupStore.snapshot().state;
     const activeCup =
       saved && !cupComplete(saved) ? cupDefinition(saved.cupId) : null;
@@ -560,7 +708,7 @@ export async function createFrontend(
     ]
       .map(
         ([action, mode, label]) =>
-          `<button data-action="${action}" aria-pressed="${intent === mode}"${mode === 'cup' && activeCup ? ` aria-describedby="active-cup-description" title="${cupStatus}"` : ''}>${label}${mode === 'cup' && activeCup ? `<img class="mode-cup-trophy" src="${cupArt(activeCup.id).trophy}" alt="" aria-hidden="true">` : ''}</button>`,
+          `<button data-action="${action}" aria-pressed="${intent === mode}" aria-label="${label}${remaining[mode] ? `, ${remaining[mode]} unlocks remaining` : ''}"${mode === 'cup' && activeCup ? ` aria-describedby="active-cup-description" title="${cupStatus}"` : ''}><span>${label}</span><span class="mode-status">${mode === 'cup' && activeCup ? `<img class="mode-cup-trophy" src="${cupArt(activeCup.id).trophy}" alt="" aria-hidden="true">` : ''}${remaining[mode] ? `<span class="mode-unlock-badge" aria-hidden="true">${remaining[mode]}</span>` : ''}</span></button>`,
       )
       .join(
         '',
@@ -611,7 +759,7 @@ export async function createFrontend(
     const selectedCraft = lockedCup()
       ? SHIPS.find((entry) => entry.id === savedCup.shipId)
       : selectedShip();
-    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot())}${import.meta.env?.VN_DESKTOP === true ? `<nav class="menu-links" aria-label="Application">${button('desktop-quit', 'Quit game')}</nav>` : ''}<div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot(), cups())}${import.meta.env?.VN_DESKTOP === true ? `<nav class="menu-links" aria-label="Application">${button('desktop-quit', 'Quit game')}</nav>` : ''}<div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
   };
   function cupPanel(withActions) {
     const cup = currentCup();
@@ -619,7 +767,8 @@ export async function createFrontend(
       ...cupStore.snapshot(),
       collection: cupCollection.snapshot().cups,
       routes,
-      catalog,
+      catalog: circuits(),
+      cups: cups(),
       cupId: selectedCup,
       shipId,
       difficulty: settings.difficulty,
@@ -703,7 +852,7 @@ export async function createFrontend(
       : records
         ? recordsView({
             records: readTrialRecords(careerStorage()),
-            catalog,
+            catalog: circuits(),
             routes,
             shipId: recordShip,
             trackId: recordTrack,
@@ -964,6 +1113,7 @@ export async function createFrontend(
     updateStatus();
   }
   function showDetail(id) {
+    if (!circuitAvailable(id)) return;
     const l = catalog.find((l) => l.id === id),
       r = route(id),
       node = shell.querySelector('.circuit-hero');
@@ -974,7 +1124,7 @@ export async function createFrontend(
   function showCupDetail(id) {
     const cup = cupDefinition(id),
       node = shell.querySelector('.cup-menu-panel .cup-hero');
-    if (!cup || !node || cupStore.snapshot().state) return;
+    if (!cup || !cupAvailable(id) || !node || cupStore.snapshot().state) return;
     node.outerHTML = cupHero(
       cup,
       escape(cup.name),
@@ -983,6 +1133,7 @@ export async function createFrontend(
     );
   }
   function selectCircuit(id) {
+    if (!circuitAvailable(id)) return;
     invalidLevel = false;
     selected = id;
     remember();
@@ -1108,6 +1259,8 @@ export async function createFrontend(
   // before the next renderer can acquire GPU resources; music is never disposed here.
   async function prepare() {
     if (disposed) throw new DOMException('Disposed', 'AbortError');
+    if (!circuitAvailable(selected))
+      throw new Error('This circuit unlocks after all 28 career rewards.');
     if (game && loadedId === selected) return game;
     if (pending?.id === selected && !pending.signal.aborted)
       return pending.promise;
@@ -1143,6 +1296,7 @@ export async function createFrontend(
         for (const flag of runtimeEntryParameters) params.delete(flag);
       const gameOptions = {
         host: gameHost,
+        contentAccess: { complete: isCareerComplete(profile()) },
         parameters: params,
         trialStorage: careerStorage(),
         onAttempt() {
@@ -1154,6 +1308,14 @@ export async function createFrontend(
           earnedRewards.push(
             ...profileStore.recordTrial(id, data.playerValid && data.improved),
           );
+          // Circuit trials continue into the next lap and never enter results.
+          // Their clean personal best is the completion event in its own right.
+          if (data.playerValid && data.improved) {
+            profileStore.queueCompletion(
+              data.shipId ?? game?.getSnapshot().vehicle?.shipId ?? shipId,
+            );
+            void showCompletion();
+          }
         },
         signal,
         onProgress(stage) {
@@ -1202,6 +1364,7 @@ export async function createFrontend(
         },
         onCircuit(next) {
           if (disposed || signal.aborted || token !== generation) return;
+          if (!circuitAvailable(next)) return;
           leaveReview();
           selected = next;
           remember();
@@ -1279,6 +1442,25 @@ export async function createFrontend(
           lastResults = data;
           if (screen === 'race' || screen === 'review') setScreen('results');
           else if (screen === 'results') updateResults(data);
+          const player = data.standings?.find((row) => row.id === 'player');
+          const validWin =
+            (sessionIntent === 'race' || data.mode === 'cup') &&
+            !!data.playerValid &&
+            !!player?.valid &&
+            !!player?.finished &&
+            player.position === 1;
+          const trialWin =
+            data.mode === 'time-trial' && data.playerValid && data.improved;
+          const championshipWin =
+            data.mode === 'cup' &&
+            data.final &&
+            cupChampion(cupStore.snapshot().state);
+          if (validWin || trialWin || championshipWin) {
+            profileStore.queueCompletion(
+              data.shipId ?? game?.getSnapshot().vehicle?.shipId ?? shipId,
+            );
+            void showCompletion();
+          }
         },
       };
       let created;
@@ -1638,7 +1820,8 @@ export async function createFrontend(
       setScreen('records');
     },
     'record-trial'() {
-      if (recordTrack !== 'all') selected = recordTrack;
+      if (recordTrack !== 'all' && circuitAvailable(recordTrack))
+        selected = recordTrack;
       if (recordShip !== 'all' && shipUnlocked(profile(), recordShip))
         shipId = recordShip;
       saveShipSelection(shipId, careerStorage());
@@ -1660,7 +1843,7 @@ export async function createFrontend(
     },
     'saved-cup': openCup,
     'cup-start'() {
-      if (cupStore.snapshot().state) return;
+      if (cupStore.snapshot().state || !cupAvailable(selectedCup)) return;
       cupStore.start(selectedCup, shipId, settings.difficulty);
       launchCup();
     },
@@ -1796,6 +1979,7 @@ export async function createFrontend(
       const el = e.target.closest('button');
       if (!el || el.disabled) return;
       if (el.dataset.recordTrack) {
+        if (!circuitAvailable(el.dataset.recordTrack)) return;
         selected = el.dataset.recordTrack;
         shipId = shipUnlocked(profile(), el.dataset.recordShip)
           ? el.dataset.recordShip
@@ -1805,7 +1989,7 @@ export async function createFrontend(
         chooseMode('time-trial');
         focusMenu('[data-action="launch"]');
       } else if (el.dataset.cup) {
-        if (cupStore.snapshot().state || !cupDefinition(el.dataset.cup)) return;
+        if (cupStore.snapshot().state || !cupAvailable(el.dataset.cup)) return;
         selectedCup = el.dataset.cup;
         render();
         focusMenu(`[data-cup="${selectedCup}"]`);
@@ -2157,13 +2341,27 @@ export async function createFrontend(
       let next = items[index];
       if (card.dataset.cup) {
         const current = items.indexOf(card);
-        if (e.code === 'ArrowUp' && current < columns) {
+        const bounds = card.getBoundingClientRect();
+        if (vertical) {
+          const direction = e.code === 'ArrowDown' ? 1 : -1;
+          const candidates = items
+            .map((item) => ({ item, bounds: item.getBoundingClientRect() }))
+            .filter((entry) => (entry.bounds.top - bounds.top) * direction > 1)
+            .sort(
+              (a, b) =>
+                (a.bounds.top - b.bounds.top) * direction ||
+                Math.abs(a.bounds.left - bounds.left) -
+                  Math.abs(b.bounds.left - bounds.left),
+            );
+          next = candidates[0]?.item ?? card;
+        }
+        if (e.code === 'ArrowUp' && next === card) {
           const reward = shell.querySelector('.cup-hero .reward-chip');
           if (reward) focusMenu(reward);
           else focusPickerHeader();
           return;
         }
-        if (e.code === 'ArrowDown' && current + columns >= items.length) {
+        if (e.code === 'ArrowDown' && next === card) {
           focusMenu('[data-action="cup-start"]');
           return;
         }
@@ -2231,6 +2429,8 @@ export async function createFrontend(
     (e) => {
       if (
         shell.hidden ||
+        completion ||
+        completionPending ||
         e.defaultPrevented ||
         e.target.closest('[data-music-player]') ||
         e.target.closest('[data-sound-panel]') ||
@@ -2299,6 +2499,7 @@ export async function createFrontend(
     previewGeneration++;
     controller?.abort();
     inspectorController?.abort();
+    stopCompletion();
     life.abort();
     game?.dispose();
     game = null;
@@ -2369,6 +2570,9 @@ export async function createFrontend(
         cup: cupStore.snapshot(),
         cupCollection: cupCollection.snapshot(),
         cupCelebration: !!cupCelebration,
+        completion:
+          completion?.snapshot() ??
+          (completionPending ? { phase: 'loading' } : null),
         selectedCup,
         sessionCup,
         shipId,
@@ -2381,12 +2585,15 @@ export async function createFrontend(
       routes,
     };
   if (invalidLevel) {
-    error = `Unknown circuit: ${requested}. Choose another circuit to continue.`;
+    error = catalog.some((level) => level.id === requested)
+      ? 'This circuit unlocks after all 28 career rewards. Choose another circuit to continue.'
+      : `Unknown circuit: ${requested}. Choose another circuit to continue.`;
     setScreen('loading');
   } else if (special) {
     void launchSpecial();
   } else {
     setScreen('home');
+    void showCompletion();
   }
   if (!special) {
     // Let the lightweight circuit picker paint before parsing the first model.

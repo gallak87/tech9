@@ -54,7 +54,8 @@ export async function createRacerPresentation({
     update({ alpha = 1, mode = 'title', settings = {} } = {}) {
       if (disposed) return;
       const enabled = racers.enabled;
-      const show = enabled && ['racing', 'paused', 'countdown'].includes(mode);
+      const show =
+        enabled && ['racing', 'results', 'paused', 'countdown'].includes(mode);
       const combatState = combat?.view();
       const flashes = combatState?.flashes ?? [];
       for (const { ship, opponent, yaw, roll, hitFeedback, pickups } of ships) {
@@ -84,7 +85,9 @@ export async function createRacerPresentation({
           hitFeedback?.update(undefined, settings);
           continue;
         }
-        const blend = mode === 'racing' ? MathUtils.clamp(alpha, 0, 1) : 1;
+        const blend = ['racing', 'results'].includes(mode)
+          ? MathUtils.clamp(alpha, 0, 1)
+          : 1;
         const state = opponent.state;
         ship.update?.({
           speed: MathUtils.lerp(

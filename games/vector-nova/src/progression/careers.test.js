@@ -298,3 +298,42 @@ test('developer careers clone only the supplied slot and never mutate it', () =>
   );
   assert.equal(synthetic.getItem(SAVE_BACKUP_KEY), null);
 });
+
+test('completion showcase uses a disposable completed career and leaves Encore unearned', () => {
+  const source = memory();
+  createProfileStore(() => source).recordRace({ id: 'real-race', won: true });
+  const before = entries(source);
+  const preview = createDeveloperSession(
+    new URLSearchParams('dev=2&showcase=completion&ship=bastion'),
+    source,
+  ).storage();
+  const store = createProfileStore(() => preview);
+  assert.equal(store.snapshot().state.claims.length, 28);
+  assert.deepEqual(store.snapshot().state.completion, {
+    shipId: 'bastion',
+    acknowledged: false,
+  });
+  assert.equal(store.snapshot().state.cups.includes('encore'), false);
+  assert.equal(
+    createCupCollection(() => preview).snapshot().cups.encore,
+    undefined,
+  );
+  store.acknowledgeCompletion();
+  assert.deepEqual(entries(source), before);
+  const incomplete = createDeveloperSession(
+    new URLSearchParams('dev=2&showcase=completion&upgrades=0'),
+    source,
+  ).storage();
+  assert.equal(
+    createProfileStore(() => incomplete).snapshot().state.completion,
+    null,
+  );
+  const normal = createDeveloperSession(
+    new URLSearchParams('dev=1&showcase=completion'),
+    source,
+  ).storage();
+  assert.equal(
+    createProfileStore(() => normal).snapshot().state.completion,
+    null,
+  );
+});

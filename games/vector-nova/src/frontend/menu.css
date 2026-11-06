@@ -855,6 +855,10 @@
   width: min(100%, 370px);
 }
 .front-content .mode-picker button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
   min-height: 40px;
   padding: 10px 8px;
   border: 0;
@@ -864,6 +868,59 @@
   text-transform: none;
   letter-spacing: 0;
   font-size: 13px;
+}
+.mode-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.mode-status:empty {
+  display: none;
+}
+.mode-unlock-badge {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 4px;
+  border: 1px solid #ee9a625c;
+  border-radius: 3px;
+  background: #4a271dcc;
+  color: #ffc69c;
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.completion-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  background: #08090b;
+}
+.completion-boot-content {
+  width: min(570px, calc(100% - 48px));
+  position: relative;
+  z-index: 1;
+  padding: 32px;
+  background: #08090bd9;
+  border-top: 1px solid #b7f4fa;
+}
+.completion-boot h1 {
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 500;
+}
+.completion-boot p {
+  color: #b9bfc7;
+  line-height: 1.6;
+}
+.completion-boot progress {
+  width: 100%;
+  height: 4px;
+  accent-color: #71edf4;
 }
 .front-content .mode-picker button[aria-pressed='true'] {
   border-left-color: #d01818;

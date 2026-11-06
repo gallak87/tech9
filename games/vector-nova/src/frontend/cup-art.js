@@ -1,5 +1,12 @@
-import { CUPS, ALL_CUPS, cupDefinition, cupChampion } from '../race/cup.js';
+import {
+  CUPS,
+  ALL_CUPS,
+  availableCups,
+  cupDefinition,
+  cupChampion,
+} from '../race/cup.js';
 import { assetURL } from '../assets/url.js';
+import { encoreTrophy, encoreBackground } from './encore-art.js';
 
 const accents = {
   founders: '#85be99',
@@ -8,6 +15,12 @@ const accents = {
   apex: '#b38ae8',
 };
 export function cupArt(id) {
+  if (id === 'encore')
+    return {
+      accent: '#71edf4',
+      trophy: encoreTrophy,
+      background: encoreBackground,
+    };
   const key = id === 'demo' ? 'founders' : id;
   return {
     accent: accents[key] ?? accents.founders,
@@ -18,11 +31,14 @@ export function cupArt(id) {
 export function cupCard(cup, selected, collection) {
   const art = cupArt(cup.id),
     won = !!collection[cup.id];
-  return `<button class="cup-card ${won ? 'is-earned' : ''}" data-cup="${cup.id}" aria-pressed="${selected === cup.id}" aria-label="${cup.name}, ${cup.tracks.length} races, ${won ? 'trophy earned' : 'not yet won'}" style="--cup-accent:${art.accent}"><img class="cup-card-background" src="${art.background}" alt=""><img class="cup-card-trophy" src="${art.trophy}" alt=""><span class="cup-card-label"><strong>${cup.name}</strong><small>${cup.tracks.length} races</small></span>${won ? '<span class="cup-earned-mark" aria-hidden="true">✓</span>' : ''}</button>`;
+  return `<button class="cup-card ${cup.bonus ? 'is-bonus' : ''} ${won ? 'is-earned' : ''}" data-cup="${cup.id}" aria-pressed="${selected === cup.id}" aria-label="${cup.name}, ${cup.tracks.length} races, ${won ? 'trophy earned' : 'not yet won'}" style="--cup-accent:${art.accent}"><img class="cup-card-background" src="${art.background}" alt=""><img class="cup-card-trophy" src="${art.trophy}" alt=""><span class="cup-card-label"><strong>${cup.name}</strong><small>${cup.bonus ? 'Career complete · ' : ''}${cup.tracks.length} races</small></span>${cup.bonus && !won ? '<span class="cup-bonus-badge" aria-label="New cup to complete">NEW CUP</span>' : ''}${won ? '<span class="cup-earned-mark" aria-hidden="true">✓</span>' : ''}</button>`;
 }
-export function cupCabinet({ cups = {}, notice = '' } = {}) {
+export function cupCabinet(
+  { cups = {}, notice = '' } = {},
+  available = availableCups(),
+) {
   const displayed = [
-    ...CUPS,
+    ...available,
     ...ALL_CUPS.filter(
       (cup) => cup.id === 'demo' && cups.demo && !CUPS.includes(cup),
     ),
@@ -32,7 +48,7 @@ export function cupCabinet({ cups = {}, notice = '' } = {}) {
     .map((cup) => {
       const won = !!cups[cup.id],
         art = cupArt(cup.id);
-      return `<li class="${won ? 'is-earned' : ''}" style="--cup-accent:${art.accent}" aria-label="${cup.name}: ${won ? 'trophy earned' : 'not yet won'}"><img src="${art.trophy}" alt=""><span>${cup.name.replace(' Cup', '')}</span><small>${won ? '✓ Won' : '—'}</small></li>`;
+      return `<li class="${cup.bonus ? 'is-bonus' : ''} ${won ? 'is-earned' : ''}" style="--cup-accent:${art.accent}" aria-label="${cup.name}: ${won ? 'trophy earned' : 'not yet won'}"><img src="${art.trophy}" alt=""><span>${cup.name.replace(' Cup', '')}</span><small>${won ? '✓ Won' : cup.bonus ? 'NEW' : '—'}</small></li>`;
     })
     .join(
       '',

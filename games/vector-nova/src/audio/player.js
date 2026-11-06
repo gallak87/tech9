@@ -105,6 +105,7 @@ export function createMusicPlayer(
   const elapsed = root.querySelector('.music-elapsed');
   const durationOutput = root.querySelector('.music-duration');
   let disposed = false;
+  let suspended = false;
   let loadId = 0;
   let awaitingGesture = false;
   let starting = false;
@@ -187,14 +188,14 @@ export function createMusicPlayer(
     volumeOutput.textContent = `${Math.round(settings.musicVolume * 100)}%`;
   }
   async function start() {
-    if (disposed || !wantsPlayback || starting) return;
+    if (disposed || suspended || !wantsPlayback || starting) return;
     const request = ++playRequest;
     const song = loadId;
     starting = true;
     update();
     try {
       await audio.play();
-      if (disposed || !wantsPlayback) {
+      if (disposed || suspended || !wantsPlayback) {
         audio.pause();
         return;
       }
@@ -233,6 +234,7 @@ export function createMusicPlayer(
     if (resume) void start();
   }
   function togglePlayback() {
+    if (suspended) return;
     wantsPlayback = audio.paused && !starting;
     if (isStartupScreen()) {
       try {
@@ -341,6 +343,7 @@ export function createMusicPlayer(
       !awaitingGesture ||
       !wantsPlayback ||
       disposed ||
+      suspended ||
       !audio.paused ||
       event.code === 'KeyM' ||
       event.target.closest?.('.music-play')
@@ -416,6 +419,7 @@ export function createMusicPlayer(
     window,
     'keydown',
     (event) => {
+      if (suspended || document.querySelector('.completion-cinematic')) return;
       if (event.code === 'Escape' && root.hasAttribute('data-menu-active')) {
         event.preventDefault();
         event.stopPropagation();
@@ -502,6 +506,15 @@ export function createMusicPlayer(
       root.classList.toggle('is-compact', isCompact());
       expand.disabled = value && !isCompact();
       if (value) close();
+    },
+    setSuspended(value) {
+      suspended = !!value;
+      root.inert = suspended;
+      if (suspended) {
+        playRequest++;
+        starting = false;
+        audio.pause();
+      } else if (wantsPlayback) void start();
     },
     startWithGame() {
       if (!disposed && wantsPlayback && audio.paused) void start();

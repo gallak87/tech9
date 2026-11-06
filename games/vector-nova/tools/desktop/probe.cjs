@@ -132,7 +132,7 @@ async function enterCareer() {
 }
 async function unlockFullFleet() {
   const { unlockedCareerSave } = await import('./probe-helpers.mjs');
-  const text = unlockedCareerSave();
+  const text = unlockedCareerSave({ complete: true });
   await click('.menu-top-tabs [data-action="career"]');
   await wait(`!!document.querySelector('[data-save-file]')`);
   await evaluate(`(() => {
@@ -151,6 +151,42 @@ async function unlockFullFleet() {
     assert(profile.claims.includes(`ship-${ship}`));
   await click('[data-action="race-tab"]');
   await wait(menu);
+}
+async function checkFinaleOffline() {
+  const profile = JSON.parse(await readCareer('vector-nova.career.v1'));
+  profile.completion = { shipId: 'needle', acknowledged: false };
+  await writeCareer({ 'vector-nova.career.v1': JSON.stringify(profile) });
+  await window.loadURL('vn-game://app/index.html');
+  await enterCareer();
+  await wait(
+    `document.querySelector('.completion-cinematic')?.dataset.phase === 'playing'`,
+  );
+  assert.equal(
+    await evaluate(
+      `document.querySelector('.completion-cinematic canvas.completion-cinematic-canvas')?.width > 0`,
+    ),
+    true,
+  );
+  await delay(4500);
+  await press('Escape');
+  await wait(
+    `document.querySelector('.completion-cinematic')?.dataset.phase === 'credits'`,
+  );
+  assert.equal(
+    await evaluate(`document.querySelector('#completion-thanks').textContent`),
+    'Thx for playing, 3 new courses unlocked!',
+  );
+  await press('Enter');
+  await wait(`!document.querySelector('.completion-cinematic')`);
+  assert.equal(
+    JSON.parse(await readCareer('vector-nova.career.v1')).completion
+      .acknowledged,
+    true,
+  );
+  await click('[data-action="quick-race"]');
+  console.log(
+    'PASS full: offline last-racer finale, weapon audio assets, credits, keyboard Close and saved acknowledgement',
+  );
 }
 async function checkCollection() {
   const total = manifest.edition === 'demo' ? 4 : 28;
@@ -276,13 +312,25 @@ async function run() {
     ['getFullscreen', 'onFullscreenChange', 'quit', 'toggleFullscreen'],
   );
   const expected = [...manifest.levels].sort();
+  const initialLevels = expected.filter(
+    (id) => !['ravel', 'nomad', 'oriel'].includes(id),
+  );
   assert.deepEqual(
     await evaluate(
       `[...document.querySelectorAll('button[data-level]')].map(b=>b.dataset.level).sort()`,
     ),
-    expected,
+    initialLevels,
   );
-  if (manifest.edition === 'full') await unlockFullFleet();
+  if (manifest.edition === 'full') {
+    await click('[data-action="cup-hub"]');
+    assert.equal(
+      await evaluate(`document.querySelectorAll('[data-cup]').length`),
+      4,
+    );
+    await click('[data-action="quick-race"]');
+    await unlockFullFleet();
+    await checkFinaleOffline();
+  }
   // Attempt conventional URL/save unlocks; the executable catalog cannot grow.
   await writeCareer({
     'vector-nova.ship': 'needle',
@@ -469,6 +517,18 @@ async function run() {
   await click('button[data-ship="kestrel"]');
   await click('[data-action="race-tab"]');
   await click('[data-action="cup-hub"]');
+  if (manifest.edition === 'full') {
+    assert.equal(
+      await evaluate(`document.querySelectorAll('.cup-bonus-badge').length`),
+      1,
+    );
+    assert.equal(
+      await evaluate(
+        `document.querySelectorAll('.cup-cabinet .is-bonus.is-earned').length`,
+      ),
+      0,
+    );
+  }
   assert(
     await evaluate(
       `document.body.innerText.includes(${JSON.stringify(manifest.edition === 'demo' ? 'Demo Cup' : 'Founders Cup')})`,
@@ -476,7 +536,7 @@ async function run() {
   );
   assert.equal(
     await evaluate(`document.querySelectorAll('[data-cup]').length`),
-    manifest.edition === 'demo' ? 1 : 4,
+    manifest.edition === 'demo' ? 1 : 5,
   );
   await click('[data-action="cup-start"]');
   await wait(racing);

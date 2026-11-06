@@ -2,7 +2,7 @@ import { cupChampion } from '../race/cup.js';
 
 export const CUP_COLLECTION_KEY = 'vector-nova.cup-collection.v1';
 // Preserve awards from the other edition when both share the same profile.
-const ids = ['demo', 'founders', 'frontier', 'horizon', 'apex'];
+const ids = ['demo', 'founders', 'frontier', 'horizon', 'apex', 'encore'];
 const copy = (value) => structuredClone(value);
 export function readCupCollection(raw) {
   if (!raw) return {};

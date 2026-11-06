@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { BONUS_LEVEL_IDS } from '../src/levels/access.js';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -67,7 +68,10 @@ try {
       );
       const page = await context.newPage();
       await page.goto(
-        new URL(`?level=${route.id}&capture=1&music=0`, base).href,
+        new URL(
+          `?level=${route.id}&capture=1&music=0${BONUS_LEVEL_IDS.includes(route.id) ? '&dev=1' : ''}`,
+          base,
+        ).href,
       );
       await page.waitForFunction(
         () => window.__VN?.ready || window.__VN_FRONTEND?.getState().error,

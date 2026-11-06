@@ -3,7 +3,7 @@ import { createSampleBank } from '../audio/sample-bank.js';
 import { DEVICE_SAMPLES } from '../pickups/sample-cues.js';
 import { RACE_SAMPLES } from '../audio/sample-cues.js';
 import { effectsVolume } from '../progression/index.js';
-import { COMPLETION_CUES } from './completion-timeline.js';
+import { completionCueForEvent } from './completion-timeline.js';
 
 // Reuse the game's authored weapons, jump and victory cues. A separate effects
 // bus follows the same saved master/effects controls and owns no music player.
@@ -29,20 +29,16 @@ export function createCompletionAudio(settings) {
   engineGain.gain.value = 0.65;
   engineGain.connect(master);
   const propulsion = createPropulsion(context, engineGain);
-  const bank = createSampleBank(
-    context,
-    Object.fromEntries(
-      [...new Set(COMPLETION_CUES.map(({ id }) => id))].map((id) => [
-        id,
-        DEVICE_SAMPLES[id] ?? RACE_SAMPLES[id],
-      ]),
-    ),
-  );
+  const bank = createSampleBank(context, {
+    ...DEVICE_SAMPLES,
+    'cup-champion': RACE_SAMPLES['cup-champion'],
+  });
   void bank.prepare();
   const sources = new Set();
   let disposed = false,
     paused = true,
-    previousTime = 0;
+    previousTime = -1e-8,
+    careerCuePlayed = false;
   const stopSources = () => {
     for (const source of sources) {
       try {
@@ -74,20 +70,31 @@ export function createCompletionAudio(settings) {
       if (disposed || paused) return;
       const volume = effectsVolume(readSettings());
       master.gain.setTargetAtTime(volume, context.currentTime, 0.05);
+      const hero = sample.hero.state ?? sample.hero;
       propulsion.update({
-        speed: sample.hero.speed,
+        speed: hero.speed,
         time: sample.time,
-        boosting: sample.hero.boost,
-        steer: sample.slideSteer ?? 0,
+        boosting: hero.boosting ?? sample.hero.boost,
+        steer: hero.steer ?? sample.hero.input?.steer ?? 0,
       });
-      for (const cue of COMPLETION_CUES)
+      const played = new Set();
+      for (const event of sample.eventsThroughTime ?? sample.events ?? [])
         if (
-          cue.time > previousTime &&
-          cue.time <= sample.time &&
-          sample.time - cue.time < 0.2 &&
+          event.time > previousTime &&
+          event.time <= sample.time &&
+          sample.time - event.time < 0.2 &&
           volume > 0
-        )
-          play(cue.id, cue.gain);
+        ) {
+          const cue = completionCueForEvent(event);
+          if (!cue) continue;
+          const key = `${cue.id}:${Math.round(event.time * 120)}`;
+          if (!played.has(key)) play(cue.id, cue.gain);
+          played.add(key);
+        }
+      if (!careerCuePlayed && sample.title > 0) {
+        careerCuePlayed = true;
+        if (volume > 0) play('cup-champion', 0.65);
+      }
       previousTime = sample.time;
     },
     pause() {

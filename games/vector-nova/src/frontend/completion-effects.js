@@ -1,325 +1,259 @@
-import * as T from 'three';
+import { Group, Quaternion, Vector3 } from 'three';
+import { createCombatPresentation } from '../pickups/combat-presentation.js';
+import { createShipFeedbackPresentation } from '../pickups/ship-feedback.js';
+import { createHitFeedback } from '../pickups/hit-feedback.js';
 import {
-  COMPLETION_FIRES,
-  COMPLETION_JUMP_START,
-  COMPLETION_JUMP_END,
-  COMPLETION_SLIDE_START,
-  COMPLETION_SLIDE_END,
-  sampleCompletionTimeline,
-} from './completion-timeline.js';
-import { completionPose } from './completion-course.js';
+  createDeviceHardware,
+  deviceGeometryTrack,
+} from '../pickups/hardware.js';
+import { collectRoadSurfaces } from '../pickups/device-mount.js';
+import { createSurfaceProjector } from '../pickups/surface-projector.js';
+import { pickupQuality } from '../pickups/quality.js';
+import { disposeGroup } from '../pickups/geometry.js';
+import { sampleCombatDisruption } from '../pickups/combat-consequences.js';
+import { sampleIonContact } from '../pickups/ion-contact.js';
+import { COMBAT_RULES } from '../pickups/combat.js';
 
-// These are presentation effects only. Every ground trace is sampled once from
-// the real course and stays fixed there as the craft and camera move away.
-export function createCompletionEffects({ scene, track }) {
-  const group = new T.Group();
-  group.name = 'Career finale / weapons and braking';
-  group.userData.aoExclude = true;
-  group.userData.reflectionExclude = true;
-  scene.add(group);
-  const resources = new Set();
-  const own = (value) => {
-    resources.add(value);
-    return value;
-  };
-  const material = (color, opacity = 1) =>
-    own(
-      new T.MeshBasicMaterial({
-        color,
-        transparent: true,
-        opacity,
-        depthWrite: false,
-        toneMapped: false,
-        blending: T.AdditiveBlending,
-      }),
-    );
-  const cylinder = own(new T.CylinderGeometry(1, 1, 1, 8, 1, true));
-  const beamOuter = material('#9e79ff', 0.5);
-  const beamInner = material('#eee7ff', 0.9);
-  const beams = [-1, 1].map((side) => {
-    const outer = new T.Mesh(cylinder, beamOuter),
-      inner = new T.Mesh(cylinder, beamInner);
-    group.add(outer, inner);
-    return { side, outer, inner };
-  });
-  const torus = own(new T.TorusGeometry(1, 0.026, 6, 48));
-  const hitMaterial = material('#c2a1ff', 0);
-  const hitRings = [0, 1].map(() => {
-    const ring = new T.Mesh(torus, hitMaterial);
-    group.add(ring);
-    return ring;
-  });
-  const sparkGeometry = own(new T.BoxGeometry(0.05, 0.05, 0.7));
-  const sparkMaterial = material('#ffdfa0', 0.8);
-  const sparks = Array.from({ length: 12 }, () => {
-    const spark = new T.Mesh(sparkGeometry, sparkMaterial);
-    group.add(spark);
-    return spark;
-  });
-  const jumpMaterial = material('#86dfff', 0);
-  const jumpRing = new T.Mesh(torus, jumpMaterial);
-  group.add(jumpRing);
-  const flatRing = new T.Quaternion().setFromAxisAngle(
-    new T.Vector3(1, 0, 0),
-    -Math.PI / 2,
+// Playback borrows production device, projectile and hull renderers. Every pose,
+// effect and event time comes from the recorded native race; no attacks, jump
+// rings, trajectories or braking animation are generated here.
+export function createCompletionEffects({
+  scene,
+  track,
+  road,
+  run,
+  settings = {},
+}) {
+  const readSettings = () =>
+    typeof settings === 'function' ? settings() : settings;
+  const surfaces = collectRoadSurfaces(road);
+  const root = new Group();
+  root.name = 'Career finale / production road devices';
+  scene.add(root);
+  const bindings = new Map();
+  const actors = run.actors;
+  const events = run.events.toSorted((a, b) => a.time - b.time);
+  const projector = createSurfaceProjector(
+    deviceGeometryTrack(track),
+    surfaces,
   );
-
-  const tracePositions = [],
-    traceIndices = [];
-  const traceSteps = 100;
-  for (const side of [-1, 1]) {
-    const offset = tracePositions.length / 3;
-    for (let i = 0; i <= traceSteps; i++) {
-      const time = T.MathUtils.lerp(
-        COMPLETION_SLIDE_START,
-        COMPLETION_SLIDE_END,
-        i / traceSteps,
-      );
-      const hero = sampleCompletionTimeline(time).hero;
-      const pose = completionPose(track, {
-        ...hero,
-        y: 0.07,
-        pitch: 0,
-        roll: 0,
+  const poses = new Map(
+    actors.map(({ id, combatId }) => [
+      combatId ?? id,
+      { position: new Vector3(), quaternion: new Quaternion() },
+    ]),
+  );
+  let current = null,
+    previousTime = null,
+    cursor = 0,
+    disposed = false;
+  let quality = pickupQuality(readSettings()),
+    hardware = [];
+  const combat = {
+    view: () => current.combat,
+    pose: (id) => poses.get(id) ?? null,
+  };
+  const combatVisual = createCombatPresentation(scene, combat, readSettings(), {
+    track,
+    projector,
+  });
+  function buildHardware() {
+    for (const visual of hardware) disposeGroup(visual.group);
+    hardware = createDeviceHardware({
+      track,
+      surfaces,
+      devices: run.devices,
+      quality,
+    });
+    for (const visual of hardware) root.add(visual.group);
+  }
+  function bind(models, currentSettings) {
+    for (const actor of actors) {
+      const model = models.get(actor.id);
+      if (!model || bindings.has(actor.id)) continue;
+      const hit = createHitFeedback(model.group, currentSettings);
+      const feedback = createShipFeedbackPresentation(currentSettings, {
+        vectorThrust: actor.id === 'hero',
       });
-      for (const width of [-0.055, 0.055]) {
-        const point = new T.Vector3(side * 1.35 + width, 0, -1.6)
-          .applyQuaternion(pose.quaternion)
-          .add(pose.position);
-        tracePositions.push(point.x, point.y, point.z);
+      const attachment = new Group();
+      attachment.name = 'Career finale / recorded pickup feedback';
+      const bounds = model.group.userData.bounds;
+      if (actor.id !== 'hero' && bounds) {
+        const size = bounds.max.map((value, axis) => value - bounds.min[axis]);
+        attachment.scale.set(
+          Math.max(1, size[0] / 4),
+          Math.max(1, size[1] / 1.5),
+          Math.max(1, size[2] / 7.3),
+        );
+        attachment.position.set(
+          (bounds.min[0] + bounds.max[0]) / 2,
+          0,
+          (bounds.min[2] + bounds.max[2]) / 2,
+        );
       }
-      if (i < traceSteps) {
-        const a = offset + i * 2;
-        traceIndices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
-      }
+      attachment.add(feedback.group);
+      model.group.add(attachment);
+      bindings.set(actor.id, { actor, hit, feedback, attachment });
     }
   }
-  const traceGeometry = own(new T.BufferGeometry());
-  traceGeometry.setAttribute(
-    'position',
-    new T.Float32BufferAttribute(tracePositions, 3),
-  );
-  traceGeometry.setIndex(traceIndices);
-  // Two strips share one mesh; each range is revealed without rewriting its
-  // positions. Age lives in a vertex attribute, not a moving texture window.
-  const born = [];
-  for (let side = 0; side < 2; side++)
-    for (let i = 0; i <= traceSteps; i++)
-      born.push(
-        COMPLETION_SLIDE_START +
-          (i / traceSteps) * (COMPLETION_SLIDE_END - COMPLETION_SLIDE_START),
-        COMPLETION_SLIDE_START +
-          (i / traceSteps) * (COMPLETION_SLIDE_END - COMPLETION_SLIDE_START),
-      );
-  traceGeometry.setAttribute('born', new T.Float32BufferAttribute(born, 1));
-  const traceTime = { value: 0 };
-  const traceMaterial = own(
-    new T.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      side: T.DoubleSide,
-      blending: T.AdditiveBlending,
-      toneMapped: false,
-      uniforms: { time: traceTime },
-      vertexShader:
-        'attribute float born;varying float vBorn;void main(){vBorn=born;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader:
-        'uniform float time;varying float vBorn;void main(){float age=time-vBorn;if(age<0.||age>1.25)discard;float fade=pow(max(0.,1.-age/1.25),2.);gl_FragColor=vec4(.38,.72,1.,fade*.34);}',
-    }),
-  );
-  const traces = new T.Mesh(traceGeometry, traceMaterial);
-  traces.name = 'Career finale / fixed road skid traces';
-  traces.frustumCulled = false;
-  group.add(traces);
-
-  const hazePositions = new Float32Array(24 * 3),
-    intensities = new Float32Array(24);
-  const hazeGeometry = own(new T.BufferGeometry());
-  hazeGeometry.setAttribute(
-    'position',
-    new T.BufferAttribute(hazePositions, 3),
-  );
-  hazeGeometry.setAttribute('intensity', new T.BufferAttribute(intensities, 1));
-  const hazeMaterial = own(
-    new T.PointsMaterial({
-      color: '#c1d4dc',
-      size: 1.35,
-      transparent: true,
-      opacity: 0.2,
-      depthWrite: false,
-      toneMapped: false,
-    }),
-  );
-  hazeMaterial.onBeforeCompile = (shader) => {
-    shader.vertexShader =
-      'attribute float intensity;varying float vIntensity;\n' +
-      shader.vertexShader.replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\nvIntensity=intensity;',
-      );
-    shader.fragmentShader =
-      'varying float vIntensity;\n' +
-      shader.fragmentShader.replace(
-        '#include <opaque_fragment>',
-        'float r=length(gl_PointCoord-.5)*2.;diffuseColor.a*=vIntensity*pow(max(0.,1.-r*r),2.);\n#include <opaque_fragment>',
-      );
-  };
-  hazeMaterial.customProgramCacheKey = () => 'completion-brake-haze-v1';
-  const haze = new T.Points(hazeGeometry, hazeMaterial);
-  haze.name = 'Career finale / braking haze';
-  haze.frustumCulled = false;
-  group.add(haze);
-  const start = new T.Vector3(),
-    end = new T.Vector3(),
-    direction = new T.Vector3();
-  const up = new T.Vector3(0, 1, 0),
-    local = new T.Vector3(),
-    rotation = new T.Quaternion();
-  const hitPoint = new T.Vector3();
-  let disposed = false;
-
-  function pointOnCraft(model, x, y, z, target) {
-    return target
-      .set(x, y, z)
-      .applyQuaternion(model.group.quaternion)
-      .add(model.group.position);
+  function reset() {
+    cursor = 0;
+    previousTime = 0;
+    for (const { feedback, hit } of bindings.values()) {
+      feedback.reset();
+      hit.update();
+    }
+    for (const visual of hardware) visual.reset?.();
+  }
+  function feedbackAt(time, dt, batch, currentSettings) {
+    for (const [id, { feedback }] of bindings) {
+      const actor = current[id];
+      feedback.update({
+        effects: actor.effects,
+        events: batch.filter((event) => event.actor === id),
+        racing: true,
+        driving: true,
+        dt,
+        speed: actor.state.speed,
+        time,
+        settings: currentSettings,
+      });
+    }
+  }
+  try {
+    buildHardware();
+  } catch (error) {
+    combatVisual.dispose();
+    projector.dispose();
+    root.removeFromParent();
+    throw error;
   }
   return {
-    update(sample, { models, reducedMotion = false }) {
+    update(sample, { models, reducedMotion = false, camera } = {}) {
       if (disposed) return;
-      group.visible = !reducedMotion;
-      if (reducedMotion) return;
-      const hero = models.get('hero');
-      const fireIndex = COMPLETION_FIRES.findIndex(
-        (fire) => sample.time >= fire && sample.time < fire + 0.23,
+      current = sample;
+      const currentSettings = { ...readSettings(), reducedMotion };
+      const nextQuality = pickupQuality(currentSettings);
+      if (nextQuality !== quality) {
+        quality = nextQuality;
+        buildHardware();
+      }
+      bind(models, currentSettings);
+      if (previousTime === null || sample.time < previousTime - 1e-8) reset();
+      for (const { id, combatId } of actors) {
+        const pose = poses.get(combatId ?? id);
+        pose.position.fromArray(sample[id].position);
+        pose.quaternion.fromArray(sample[id].quaternion);
+        pose.grounded = sample[id].grounded;
+        pose.recovering = sample[id].recovering;
+      }
+      // Integrate real event ages, including skips. A held/repeated render
+      // cannot re-fire an acquisition or extend a hit tail.
+      let time = previousTime;
+      while (
+        cursor < events.length &&
+        events[cursor].time <= sample.time + 1e-8
+      ) {
+        const at = Math.max(time, events[cursor].time),
+          batch = [];
+        while (cursor < events.length && events[cursor].time <= at + 1e-8)
+          batch.push(events[cursor++]);
+        feedbackAt(at, at - time, batch, currentSettings);
+        for (const event of batch)
+          if (event.type === 'pickup-activate')
+            hardware
+              .find((visual) => visual.device.id === event.payload?.deviceId)
+              ?.activate?.(event.time);
+        time = at;
+      }
+      feedbackAt(
+        sample.time,
+        Math.max(0, sample.time - time),
+        [],
+        currentSettings,
       );
-      const target = models.get(fireIndex === 3 ? 'rook' : 'manta');
-      for (const beam of beams) {
-        const visible = fireIndex >= 0 && !!hero && !!target;
-        beam.outer.visible = beam.inner.visible = visible;
-        if (!visible) continue;
-        pointOnCraft(
-          hero,
-          beam.side * 0.7,
-          0.55,
-          hero.group.userData.bounds?.max?.[2] ?? 3,
-          start,
+      previousTime = sample.time;
+      combatVisual.update({
+        mode: 'racing',
+        enabled: true,
+        settings: currentSettings,
+      });
+      for (const [id, { actor: specification, hit }] of bindings) {
+        const actor = sample[id],
+          combatId = specification.combatId ?? id;
+        const flash = sample.combat.flashes.findLast(
+          (entry) =>
+            entry.target === combatId &&
+            ['arc', 'repulsor', 'ion'].includes(entry.kind),
         );
-        pointOnCraft(
-          target,
-          beam.side * 0.35,
-          0.55,
-          (target.group.userData.bounds?.min?.[2] ?? -3) + 0.7,
-          end,
-        );
-        direction.subVectors(end, start);
-        const length = direction.length();
-        direction.normalize();
-        for (const [mesh, radius] of [
-          [beam.outer, 0.08],
-          [beam.inner, 0.022],
-        ]) {
-          mesh.position.copy(start).addScaledVector(direction, length * 0.5);
-          mesh.quaternion.setFromUnitVectors(up, direction);
-          mesh.scale.set(radius, length, radius);
-        }
-      }
-      const hitIndex = COMPLETION_FIRES.findIndex(
-        (fire) => sample.time >= fire + 0.16 && sample.time < fire + 0.7,
-      );
-      const hitTarget = models.get(hitIndex === 3 ? 'rook' : 'manta');
-      const hitAge =
-        hitIndex >= 0
-          ? (sample.time - COMPLETION_FIRES[hitIndex] - 0.16) / 0.54
-          : 0;
-      if (hitTarget) pointOnCraft(hitTarget, 0, 0.55, -2.3, hitPoint);
-      hitMaterial.opacity = (1 - hitAge) * 0.65;
-      for (const [i, ring] of hitRings.entries()) {
-        ring.visible = hitIndex >= 0 && !!hitTarget;
-        if (!ring.visible) continue;
-        ring.position.copy(hitPoint);
-        rotation.setFromEuler(
-          new T.Euler(hitAge * 2 + i * 1.2, hitAge + i * 0.8, hitAge),
-        );
-        ring.quaternion.copy(hitTarget.group.quaternion).multiply(rotation);
-        ring.scale.setScalar(1.1 + hitAge * 2 + i * 0.4);
-      }
-      for (const [i, spark] of sparks.entries()) {
-        spark.visible = hitIndex >= 0 && !!hitTarget;
-        if (!spark.visible) continue;
-        const angle = i * 2.4;
-        local.set(
-          Math.cos(angle) * hitAge * 5,
-          0.2 + Math.sin(i * 4.1) * hitAge * 2 - hitAge * hitAge,
-          -hitAge * (2 + (i % 4)),
-        );
-        spark.position
-          .copy(local.applyQuaternion(hitTarget.group.quaternion))
-          .add(hitPoint);
-        rotation.setFromEuler(new T.Euler(angle, angle * 2, angle));
-        spark.quaternion.copy(hitTarget.group.quaternion).multiply(rotation);
-        spark.scale.set(1, 1, 0.4 + (1 - hitAge) * 0.8);
-      }
-      const burst = [COMPLETION_JUMP_START, COMPLETION_JUMP_END].find(
-        (time) => sample.time >= time && sample.time < time + 0.7,
-      );
-      jumpRing.visible = burst !== undefined;
-      if (jumpRing.visible) {
-        const age = (sample.time - burst) / 0.7;
-        const ground = completionPose(track, {
-          ...sampleCompletionTimeline(burst).hero,
-          y: 0.1,
-          pitch: 0,
-          yaw: 0,
-          roll: 0,
-        });
-        jumpRing.position.copy(ground.position);
-        jumpRing.quaternion.copy(ground.quaternion).multiply(flatRing);
-        jumpRing.scale.setScalar(1.4 + age * 6);
-        jumpMaterial.opacity = (1 - age) * 0.5;
-      }
-      traceTime.value = sample.time;
-      traces.visible =
-        sample.time >= COMPLETION_SLIDE_START &&
-        sample.time < COMPLETION_SLIDE_END + 1.25;
-      haze.visible =
-        sample.time >= COMPLETION_SLIDE_START &&
-        sample.time < COMPLETION_SLIDE_END + 1;
-      if (haze.visible) {
-        for (let i = 0; i < intensities.length; i++) {
-          const age = (i / intensities.length) * 0.9;
-          const emitted = sample.time - age;
-          const valid =
-            emitted >= COMPLETION_SLIDE_START &&
-            emitted <= COMPLETION_SLIDE_END;
-          const pose = completionPose(track, {
-            ...sampleCompletionTimeline(
-              Math.max(COMPLETION_SLIDE_START, emitted),
-            ).hero,
-            y: 0.18 + age * 0.45,
-            pitch: 0,
-            roll: 0,
-          });
-          local
-            .set((i % 2 ? 1 : -1) * (1.2 + age * 0.5), 0, -2.4 - age * 1.8)
-            .applyQuaternion(pose.quaternion)
-            .add(pose.position);
-          hazePositions.set(local.toArray(), i * 3);
-          intensities[i] = valid
-            ? (1 - age) *
-              (1 - Math.max(0, emitted - (COMPLETION_SLIDE_END - 0.9)) / 0.9)
+        const grounded = actor.grounded !== false && !actor.recovering;
+        const disruption = grounded
+          ? sampleCombatDisruption(
+              sample.combat.disruptions?.[combatId],
+              sample.combat.time,
+            )
+          : null;
+        const blocking =
+          actor.effects.aegisRemaining > 0 ||
+          sample.combat.flashes.some(
+            (entry) => entry.target === combatId && entry.kind === 'aegis',
+          );
+        const ionContact =
+          grounded && !blocking
+            ? sampleIonContact(
+                sample.combat.wakes,
+                poses.get(combatId).position,
+                combatId,
+                COMBAT_RULES.wakeLifetime,
+                (wake) => {
+                  const gap =
+                    Math.abs(wake.distance - actor.state.distance) %
+                    track.length;
+                  return Math.min(gap, track.length - gap) <= 45;
+                },
+              )
             : 0;
-        }
-        hazeGeometry.attributes.position.needsUpdate = true;
-        hazeGeometry.attributes.intensity.needsUpdate = true;
+        hit.update(
+          flash?.age,
+          currentSettings,
+          disruption?.kind ?? flash?.kind ?? 'ion',
+          {
+            equipment: flash?.equipment,
+            disruptionEquipment: disruption?.equipment,
+            disruption: disruption?.strength ?? 0,
+            ionContact,
+            time: sample.combat.time,
+          },
+        );
+      }
+      const hero = sample.hero;
+      for (const visual of hardware) {
+        visual.updateMotion?.();
+        visual.updateCamera?.(camera, poses.get('player').position);
+        const lap = Math.floor(hero.state.distance / track.length);
+        visual.setAvailable(
+          (hero.effects.used?.[visual.device.id] ?? -Infinity) < lap ||
+            (visual.device.type === 'vector' &&
+              hero.effects.vectorActive &&
+              hero.effects.vectorDevice === visual.device.id),
+        );
+        visual.update({ time: sample.time, reducedMotion, running: true });
       }
     },
     dispose() {
       if (disposed) return;
       disposed = true;
-      group.removeFromParent();
-      for (const resource of resources) resource.dispose();
-      resources.clear();
+      for (const { hit, feedback, attachment } of bindings.values()) {
+        hit.dispose();
+        feedback.dispose();
+        attachment.removeFromParent();
+      }
+      bindings.clear();
+      for (const visual of hardware) disposeGroup(visual.group);
+      hardware = [];
+      combatVisual.dispose();
+      projector.dispose();
+      root.removeFromParent();
     },
   };
 }

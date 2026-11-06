@@ -75,12 +75,15 @@ const phase = async (page, value) => {
     { timeout: 90000 },
   );
   const completion = (await state(page)).completion;
-  if (!completion.error)
+  if (!completion.error) {
     assert.equal(
       completion.rendering?.world,
-      'halcyon',
-      'finale uses the production Halcyon world',
+      'nacre',
+      'finale uses the production Nacre world',
     );
+    assert.equal(completion.rendering?.source, 'native-replay');
+    assert.equal(completion.rendering?.pipeline?.world, 'nacre-tempest');
+  }
 };
 const mockGame = `export async function createGame(options) {
   let shipId='needle', session=false, mode='overview';
@@ -178,9 +181,11 @@ async function check(
       )
     ) {
       for (const source of [
-        '/src/levels/halcyon/index.js',
+        '/src/levels/nacre/index.js',
+        '/src/frontend/completion-run.js',
         '/src/renderer/index.js',
-        '/assets/levels/halcyon/halcyon-clouds-v1.png',
+        '/assets/levels/nacre/nacre-storm-sky-v1.png',
+        '/assets/levels/nacre/leviathan/nacre-leviathan-v2.glb',
       ])
         assert.ok(
           [...requests].some((path) => path.endsWith(source)),
@@ -191,7 +196,7 @@ async function check(
           path.endsWith('/assets/levels/nomad/nomad-sky-v1.png'),
         ),
         false,
-        'Halcyon finale uses its own sky',
+        'Nacre finale uses its own storm sky',
       );
     }
     assert.deepEqual(faults, [], 'no uncaught browser errors');

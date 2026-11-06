@@ -35,7 +35,7 @@ export function createCompletionCinematic({
   element.setAttribute('aria-label', 'Career complete');
   element.setAttribute(
     'aria-description',
-    'A victory film starring your racer: lance fire, an aerial overtake, and a checkered finish. Skip leads to the completion credits.',
+    'An actual Nacre race with your racer: the Arc weapon gate, a leviathan breach, and the first jump and landing. Skip leads to the completion credits.',
   );
   element.innerHTML = `
     <div class="completion-stage"></div>

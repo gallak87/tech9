@@ -1,21 +1,20 @@
+import { Quaternion, Vector3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createShip } from '../ships/index.js';
 import { createRivalPreview } from '../ships/rivals.js';
 import { createRenderer } from '../renderer/index.js';
-import createHalcyonLevel from '../levels/halcyon/index.js';
+import createNacreLevel from '../levels/nacre/index.js';
 import { createLevelPresentation } from '../levels/presentation.js';
-import { createFinishMarker } from '../race/finish-marker.js';
 import { createLifetime } from '../core/lifecycle.js';
 import { createCompletionEffects } from './completion-effects.js';
 import {
-  COMPLETION_COURSE,
-  completionCamera,
-  completionPose,
-} from './completion-course.js';
-import { sampleCompletionTimeline } from './completion-timeline.js';
+  generateCompletionRun,
+  sampleCompletionRun,
+} from './completion-run.js';
+import { createCompletionDirector } from './completion-timeline.js';
 
-// This is the racing world's actual factory, road, skyline, sky and HDR pipeline.
-// Only the ships and cameras are directed; no replacement map is constructed.
+// Record production physics first, then play its poses and events at 1× in the
+// production Nacre world. The director controls only the camera.
 export function createCompletionStage({
   mount,
   shipId,
@@ -26,17 +25,25 @@ export function createCompletionStage({
 }) {
   const readSettings = () =>
     typeof settings === 'function' ? settings() : (settings ?? {});
-  const lifetime = createLifetime();
-  const loading = new AbortController();
-  const models = new Map();
+  const lifetime = createLifetime(),
+    loading = new AbortController(),
+    models = new Map();
+  const clockPosition = new Vector3(),
+    clockQuaternion = new Quaternion();
+  const localRoll = new Quaternion(),
+    forward = new Vector3(0, 0, 1);
   let disposed = false,
     prepared = false,
     view,
     world,
     effects,
-    track;
+    track,
+    run,
+    director;
   let previousTime = 0,
-    lastSample = sampleCompletionTimeline(0);
+    requestedTime = 0,
+    lastSample = null,
+    environmentTick = -1;
   let appliedQuality, appliedMotion;
   const abort = () => loading.abort(signal?.reason);
   if (signal?.aborted) abort();
@@ -52,42 +59,35 @@ export function createCompletionStage({
     loading.signal.throwIfAborted();
     view?.graphics.check();
   };
-  function updateFrame(sample, reducedMotion) {
-    const hero = models.get('hero');
-    const placement = completionPose(track, sample.hero);
-    const currentSettings = { ...readSettings(), reducedMotion };
-    const frame = {
-      state: {
-        distance: placement.distance,
-        lateral: sample.hero.x,
-        speed: sample.hero.speed,
-        heading: sample.hero.yaw,
-        steer: sample.hero.steer ?? 0,
-        lateralSpeed: 0,
-        time: sample.time,
-        energy: 100,
-        boosting: sample.hero.boost,
-      },
-      dt: reducedMotion
-        ? 0
-        : Math.max(0, Math.min(0.1, sample.time - previousTime)),
-      time: sample.time,
-      mode: 'racing',
-      camera: view.camera,
-      settings: currentSettings,
-      ship: hero,
-      motion: {},
-      reviewing: false,
-    };
-    world.update(frame);
-    view.follow(hero.group.position);
-    // Use the production contact treatment only while the hero is grounded.
-    view.updateContact(
-      track,
-      frame.state,
-      sample.hero.y > 1 ? () => 0 : world.road.userData.surfaceCoverage,
+  function advanceEnvironment(sample, reducedMotion) {
+    const targetTick = Math.min(
+      run.frames.length - 1,
+      Math.round(sample.hero.state.time / run.step),
     );
-    return frame;
+    if (
+      targetTick < environmentTick ||
+      (reducedMotion && targetTick > environmentTick + 1)
+    ) {
+      world.reset();
+      environmentTick = targetTick;
+      return;
+    }
+    // Crossing/animal clocks receive every native tick. Missing those ticks
+    // would look like a teleport to their normal gameplay safeguards.
+    for (let tick = environmentTick + 1; tick <= targetTick; tick++) {
+      const actor = run.frames[tick].hero;
+      world.environment.userData.updateVehicle?.({
+        position: clockPosition.fromArray(actor.position),
+        quaternion: clockQuaternion.fromArray(actor.quaternion),
+        distance: actor.state.distance,
+        speed: actor.state.speed,
+        time: actor.state.time,
+        mode: 'racing',
+        reset: tick === 0,
+        motion: actor.motion,
+      });
+    }
+    environmentTick = targetTick;
   }
   function positionScene(sample, reducedMotion = false) {
     const next = readSettings();
@@ -98,37 +98,66 @@ export function createCompletionStage({
       view.apply();
     }
     for (const [id, model] of models) {
-      const pose = sample[id];
-      const placement = completionPose(track, pose);
-      model.group.position.copy(placement.position);
-      model.group.quaternion.copy(placement.quaternion);
+      const actor = sample[id];
+      model.group.position.fromArray(actor.position);
+      model.group.quaternion.fromArray(actor.quaternion);
+      if (actor.steeringBank) {
+        localRoll.setFromAxisAngle(forward, actor.state.steer * 0.08);
+        model.group.quaternion.multiply(localRoll);
+      }
       model.update({
-        ...pose,
-        steer: pose.steer ?? 0,
+        speed: actor.state.speed,
+        boost: actor.state.boosting,
+        catapulting: actor.effects.vectorActive,
+        steer: actor.state.steer,
         time: sample.time,
-        energy: 1,
+        energy: actor.state.energy / 100,
         quality: renderSettings.quality,
         reducedMotion,
       });
     }
-    const camera = completionCamera(track, sample, view.camera.aspect);
-    view.camera.position.copy(camera.position);
-    view.camera.up.copy(camera.up);
-    view.camera.fov = sample.camera.fov;
-    view.camera.lookAt(camera.target);
+    advanceEnvironment(sample, reducedMotion);
+    const directed = director.sample(sample.time, sample, view.camera.aspect);
+    Object.assign(sample, { shot: directed.shot, title: directed.title });
+    view.camera.position.copy(directed.position);
+    view.camera.up.copy(directed.up);
+    view.camera.fov = directed.fov;
+    view.camera.lookAt(directed.target);
     view.camera.updateProjectionMatrix();
-    effects.update(sample, { models, reducedMotion });
-    return updateFrame(sample, reducedMotion);
+    effects.update(sample, { models, reducedMotion, camera: view.camera });
+    const hero = models.get('hero');
+    const frame = {
+      state: sample.hero.state,
+      dt: reducedMotion
+        ? 0
+        : Math.max(0, Math.min(0.1, sample.time - previousTime)),
+      time: sample.hero.state.time,
+      mode: 'racing',
+      camera: view.camera,
+      settings: { ...readSettings(), reducedMotion },
+      ship: hero,
+      motion: sample.hero.motion,
+      reviewing: false,
+    };
+    world.update(frame);
+    view.follow(hero.group.position);
+    view.updateContact(
+      track,
+      frame.state,
+      sample.hero.grounded ? world.road.userData.surfaceCoverage : () => 0,
+    );
+    return frame;
   }
   function draw(time, reducedMotion = false) {
-    const sample = sampleCompletionTimeline(time);
-    lastSample = sample;
-    if (!prepared || disposed) return sample;
+    requestedTime = time;
+    if (!prepared || disposed) return lastSample;
     check();
-    const frame = positionScene(sample, reducedMotion);
+    const sample = sampleCompletionRun(run, time),
+      frame = positionScene(sample, reducedMotion);
     view.render(performance.now());
     world.afterRender(frame);
     previousTime = sample.time;
+    lastSample = sample;
     return sample;
   }
   function dispose() {
@@ -138,14 +167,23 @@ export function createCompletionStage({
     signal?.removeEventListener('abort', abort);
     lifetime.dispose();
     models.clear();
+    run = null;
   }
   const renderSettings = { ...readSettings() };
   const ready = (async () => {
     try {
       check();
-      const definition = createHalcyonLevel();
+      const definition = createNacreLevel({ shape: false });
       track = definition.createTrack();
-      onProgress?.(0.08);
+      onProgress?.(0.03);
+      run = await generateCompletionRun({
+        track,
+        shipId,
+        signal: loading.signal,
+        onProgress: (progress) => onProgress?.(0.03 + progress * 0.32),
+      });
+      check();
+      director = createCompletionDirector({ track, run });
       view = own(
         await createRenderer(mount, renderSettings, {
           ...definition.renderer,
@@ -178,7 +216,7 @@ export function createCompletionStage({
         },
         { signal: loading.signal },
       );
-      onProgress?.(0.22);
+      onProgress?.(0.4);
       world = own(
         await createLevelPresentation(definition, {
           track,
@@ -193,12 +231,16 @@ export function createCompletionStage({
         }),
       );
       check();
-      const marker = own(
-        createFinishMarker(track, definition.racing?.finishMarker),
+      onProgress?.(0.62);
+      effects = own(
+        createCompletionEffects({
+          scene: view.scene,
+          track,
+          road: world.road,
+          run,
+          settings: readSettings,
+        }),
       );
-      world.road.add(marker.group);
-      onProgress?.(0.55);
-      effects = own(createCompletionEffects({ scene: view.scene, track }));
       const loader = new GLTFLoader();
       const loadAsset = async (url) => {
         const response = await fetch(url, { signal: loading.signal });
@@ -214,7 +256,7 @@ export function createCompletionStage({
         models.set(id, model);
         view.scene.add(model.group);
         lifetime.defer(() => model.group.removeFromParent());
-        onProgress?.(0.55 + models.size * 0.08);
+        onProgress?.(0.62 + models.size * 0.06);
       }
       await Promise.all([
         load('hero', () => createShip({ id: shipId })),
@@ -241,14 +283,15 @@ export function createCompletionStage({
             if (material?.isMeshStandardMaterial) material.envMap = reflection;
         });
       world.setReflection(reflection);
+      lastSample = sampleCompletionRun(run, requestedTime);
       positionScene(lastSample, Boolean(readSettings().reducedMotion));
-      onProgress?.(0.85);
+      onProgress?.(0.86);
       await view.warm();
       check();
       prepared = true;
-      draw(lastSample.time, Boolean(readSettings().reducedMotion));
+      draw(requestedTime, Boolean(readSettings().reducedMotion));
       onProgress?.(1);
-      return { world: COMPLETION_COURSE };
+      return { world: 'nacre', source: 'native-replay' };
     } catch (error) {
       dispose();
       throw error;
@@ -259,7 +302,23 @@ export function createCompletionStage({
     draw,
     dispose,
     metrics: () => ({
-      world: COMPLETION_COURSE,
+      world: 'nacre',
+      source: 'native-replay',
+      ...(run
+        ? {
+            replay: {
+              identity: run.identity,
+              duration: run.duration,
+              landmarks: run.landmarks,
+              time: lastSample?.time ?? 0,
+              shot: lastSample?.shot,
+              speed: lastSample?.hero.state.speed,
+              grounded: lastSample?.hero.grounded,
+              leviathan:
+                world?.environment.userData.getLeviathanPresentation?.(),
+            },
+          }
+        : {}),
       ...(view && !disposed ? view.getMetrics() : {}),
     }),
   };

@@ -60,6 +60,8 @@ export function createCompletionCinematic({
           <p><span>DEV</span><strong>George Allakhverdyan</strong><small>Studio name TBD</small></p>
           <p><span>HOMIES WHO HELPED TEST THE GAME</span><strong>Noyan Gunday</strong></p>
         </div>
+        <p class="completion-error" role="alert" hidden>The cinematic couldn’t load. Your unlocks are still available.</p>
+        <button type="button" class="completion-retry" data-completion-retry hidden>Reload and retry</button>
         <button type="button" class="primary completion-close" data-completion-close>Close <span aria-hidden="true">↗</span></button>
       </div>
     </div>`;
@@ -68,6 +70,8 @@ export function createCompletionCinematic({
   const credits = element.querySelector('.completion-credits');
   const skip = element.querySelector('[data-completion-skip]');
   const close = element.querySelector('[data-completion-close]');
+  const retry = element.querySelector('[data-completion-retry]');
+  const errorNotice = element.querySelector('.completion-error');
   const title = element.querySelector('.completion-title');
   const progressBar = element.querySelector('progress');
   const progressText = element.querySelector('.completion-progress');
@@ -106,6 +110,9 @@ export function createCompletionCinematic({
     frame = 0;
     last = 0;
   }
+  function showFailure() {
+    errorNotice.hidden = retry.hidden = !error;
+  }
   function dispose() {
     if (phase === 'disposed') return;
     phase = 'disposed';
@@ -132,8 +139,10 @@ export function createCompletionCinematic({
       error = failure?.message ?? 'Finale unavailable';
       stage?.dispose();
       stage = null;
+      element.dataset.stageReady = 'false';
       backdrop.configure({ active: true, reducedMotion: reduced() });
     }
+    showFailure();
     audio?.pause();
     loading.hidden = skip.hidden = true;
     credits.hidden = false;
@@ -152,7 +161,9 @@ export function createCompletionCinematic({
     error = failure?.message ?? 'Finale unavailable';
     stage?.dispose();
     stage = null;
+    element.dataset.stageReady = 'false';
     backdrop.configure({ active: true, reducedMotion: reduced() });
+    showFailure();
     showCredits();
     announce();
   }
@@ -188,6 +199,9 @@ export function createCompletionCinematic({
   }
   skip.addEventListener('click', showCredits, { signal: life.signal });
   close.addEventListener('click', closeCredits, { signal: life.signal });
+  retry.addEventListener('click', () => location.reload(), {
+    signal: life.signal,
+  });
   element.addEventListener(
     'keydown',
     (event) => {
@@ -197,7 +211,14 @@ export function createCompletionCinematic({
         if (phase === 'credits') closeCredits();
         else showCredits();
       } else if (event.key === 'Tab') {
-        const control = phase === 'credits' ? close : skip;
+        const controls =
+          phase === 'credits' ? (error ? [retry, close] : [close]) : [skip];
+        const index = controls.indexOf(document.activeElement);
+        const control =
+          controls[
+            (index + (event.shiftKey ? -1 : 1) + controls.length) %
+              controls.length
+          ];
         event.preventDefault();
         control.focus({ preventScroll: true });
       }

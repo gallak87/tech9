@@ -436,7 +436,48 @@ try {
           (await state(page)).completion.error,
           /Injected finale chunk failure/,
         );
-        await creditsClose(page);
+        assert.equal(
+          await page.getByRole('alert').textContent(),
+          'The cinematic couldn’t load. Your unlocks are still available.',
+        );
+        const retry = page.getByRole('button', { name: 'Reload and retry' });
+        await retry.focus();
+        await page.keyboard.press('Tab');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.textContent.trim()),
+          'Close',
+          'Tab reaches Close from Retry',
+        );
+        await page.keyboard.press('Shift+Tab');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.textContent.trim()),
+          'Reload and retry',
+          'Shift+Tab reaches Retry',
+        );
+        assert.equal(
+          (await state(page)).career.state.completion.acknowledged,
+          false,
+        );
+        const reloaded = page.waitForEvent('domcontentloaded');
+        await retry.click();
+        await reloaded;
+        await phase(page, 'credits');
+        assert.equal(
+          (await state(page)).career.state.completion.acknowledged,
+          false,
+          'Retry preserves pending completion',
+        );
+        await page.getByRole('button', { name: /^Close/ }).click();
+        await page.waitForFunction(
+          () => !window.__VN_FRONTEND.getState().completion,
+        );
+        assert.equal(
+          (await state(page)).career.state.completion.acknowledged,
+          true,
+        );
+        await page.reload();
+        await ready(page);
+        assert.equal((await state(page)).completion, null);
         await page.getByRole('button', { name: /^Championships/ }).click();
         assert.equal(await page.locator('[data-cup="encore"]').count(), 1);
       },

@@ -275,6 +275,33 @@
 .completion-close:hover {
   background: #d01818;
 }
+.completion-error {
+  margin: 22px 0 0;
+  padding: 12px 14px;
+  border-left: 2px solid #d01818;
+  background: #d0181812;
+  color: #f1ede4;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.completion-retry {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 18px;
+  padding: 11px 17px;
+  border: 1px solid #eee9df40;
+  background: #242424;
+  color: #f1ede4;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.completion-retry:hover {
+  background: #303030;
+}
+.completion-retry:not([hidden]) + .completion-close {
+  margin-top: 10px;
+}
 @media (max-height: 650px) {
   .completion-card {
     padding-block: 22px;

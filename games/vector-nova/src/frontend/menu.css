@@ -922,6 +922,25 @@
   height: 4px;
   accent-color: #d01818;
 }
+.completion-boot .completion-error {
+  padding: 12px 14px;
+  border-left: 2px solid #d01818;
+  background: #d0181812;
+  color: #f1ede4;
+  font-size: 13px;
+}
+.completion-boot .completion-retry {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin: 18px 0 10px;
+  padding: 11px 17px;
+  border: 1px solid #eee9df40;
+  background: #242424;
+  color: #f1ede4;
+  font: inherit;
+  font-size: 13px;
+}
 .front-content .mode-picker button[aria-pressed='true'] {
   border-left-color: #d01818;
   background: #ffffff12;

@@ -2,6 +2,8 @@
 
 Run these commands from the app directory. `<dev-server>` means a Vite development server; a compiled preview does not serve the `/src/...` modules used by checks that import or intercept source modules. Entry, frontend, component and compatibility launcher checks cover different contracts.
 
+When starting a second Vite server in this checkout, give it an independent optimizer cache, for example `VN_VITE_CACHE_DIR=node_modules/.vite-5187 npm exec vite -- --host 127.0.0.1 --port 5187 --strictPort`. Sharing the default cache between concurrent servers can invalidate one server's optimized dependencies and produce HTTP 504 responses even in a fresh browser.
+
 Open `?dev=2&showcase=completion&ship=bastion&music=0` to replay the 28/28 finale in an isolated completed developer career. Any player hull ID may replace `bastion`; reload to replay. Closing reveals the unearned Encore Cup. Real careers stay unchanged, and this preview is absent from desktop builds.
 
 `VN_URL=<dev-server> node tools/release-verify.mjs` checks original reward-mode badges, 28/28 completion queuing/resume/credits, bonus-course gates and Encore Cup/trophy controls using isolated careers and the real finale scene. Race callbacks use an unshipped fixture; native race/background progression is checked separately. Add `--responsive` for the final production-menu/credits layout checks. `node tools/profile-shatterline-physics.mjs --case reported --ticks 240` runs the bounded ten-racer tube CPU reproduction and prints per-phase timings; it does not measure browser FPS.

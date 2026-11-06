@@ -623,7 +623,7 @@ export async function createFrontend(
           snapshot: () => ({ phase: 'credits', error: failure.message }),
         };
         loading.innerHTML =
-          '<div class="completion-boot-content" role="dialog" aria-modal="true" aria-labelledby="completion-fallback-title"><span class="kicker">28 / 28 · CAREER COMPLETE</span><h1 id="completion-fallback-title">Thx for playing, 3 new courses unlocked!</h1><p>Dev: George Allakhverdyan<br>Studio name TBD</p><p>Homies who helped test the game:<br>Noyan Gunday</p><button type="button" class="primary">Close</button></div>';
+          '<div class="completion-boot-content" role="dialog" aria-modal="true" aria-labelledby="completion-fallback-title"><span class="kicker">28 / 28 · CAREER COMPLETE</span><h1 id="completion-fallback-title">Thx for playing, 3 new courses unlocked!</h1><p class="completion-error" role="alert">The cinematic couldn’t load. Your unlocks are still available.</p><p>Dev: George Allakhverdyan<br>Studio name TBD</p><p>Homies who helped test the game:<br>Noyan Gunday</p><button type="button" class="completion-retry" data-completion-retry>Reload and retry</button><button type="button" class="primary" data-completion-close>Close</button></div>';
         host.append(loading);
         menuBackdrop.mount(loading);
         menuBackdrop.configure({
@@ -631,8 +631,11 @@ export async function createFrontend(
           reducedMotion: settings.reducedMotion,
         });
         loading
-          .querySelector('button')
+          .querySelector('[data-completion-close]')
           .addEventListener('click', closeCompletion, { signal });
+        loading
+          .querySelector('[data-completion-retry]')
+          .addEventListener('click', () => location.reload(), { signal });
         loading.addEventListener(
           'keydown',
           (event) => {
@@ -641,12 +644,17 @@ export async function createFrontend(
               closeCompletion();
             } else if (event.code === 'Tab') {
               event.preventDefault();
-              loading.querySelector('button').focus();
+              const controls = [...loading.querySelectorAll('button')];
+              const index = controls.indexOf(document.activeElement);
+              controls[
+                (index + (event.shiftKey ? -1 : 1) + controls.length) %
+                  controls.length
+              ].focus();
             }
           },
           { signal },
         );
-        loading.querySelector('button').focus();
+        loading.querySelector('[data-completion-close]').focus();
       })
       .finally(() => {
         if (token === completionGeneration) completionPending = null;

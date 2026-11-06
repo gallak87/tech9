@@ -27,7 +27,7 @@ Start with this file and the assigned task's brief.
 - Default to hidden/headless browsers for autonomous verification. When the user asks to watch a test, replay, or browser interaction, use headed mode without requesting confirmation again. Avoid normal-speed automated full laps unless requested by the user results.
 - Keep checks silent at the host level: launch Chrome with `--mute-audio` and mute Electron `webContents` before loading the app. Playback controls can still be exercised; enable audible output only when the user explicitly asks to hear it.
 - For visual inspection use `?artPass=1&level=<id>`: direct production level, no Tunes, free camera and Dev tools open. Copy view link or `__VN.getArtPassURL()` preserves a camera pose for the next pass; URL/API details and comparison limits are in [architecture](ARCHITECTURE.md#lifecycle-and-verification).
-- Use a free port for your server, close owned verification processes afterward.
+- Use a free port for your server, close owned verification processes afterward. Concurrent Vite servers in this checkout must use separate optimizer caches: set `VN_VITE_CACHE_DIR=node_modules/.vite-<port>` for a secondary server so it cannot invalidate the user-facing server’s dependencies.
 - No unsolicited videos. The maintained `npm run verify` frontend check writes no artifacts; generic `verify:level` reports go to stdout unless `VN_EVIDENCE` is explicitly supplied. Use the maintained entry/frontend/runtime checks within their documented scopes; see tools/README.md.
 - Commit and merge when requested. Human approval cannot be supplied by an agent.
 

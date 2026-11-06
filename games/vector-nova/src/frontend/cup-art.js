@@ -17,7 +17,7 @@ const accents = {
 export function cupArt(id) {
   if (id === 'encore')
     return {
-      accent: '#71edf4',
+      accent: '#c79c6e',
       trophy: encoreTrophy,
       background: encoreBackground,
     };

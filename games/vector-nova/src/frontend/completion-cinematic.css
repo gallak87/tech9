@@ -4,8 +4,8 @@
   z-index: 1200;
   isolation: isolate;
   overflow: hidden;
-  color: #f5f1e8;
-  background: #11171b;
+  color: #f1ede4;
+  background: #090909;
   font-family: inherit;
 }
 .completion-cinematic .menu-backdrop,
@@ -24,15 +24,17 @@
   opacity: 0;
   transition: opacity 600ms ease;
 }
-.completion-cinematic[data-phase='playing'] .completion-stage,
-.completion-cinematic[data-phase='credits'] .completion-stage {
+.completion-cinematic[data-phase='playing'][data-stage-ready='true']
+  .completion-stage,
+.completion-cinematic[data-phase='credits'][data-stage-ready='true']
+  .completion-stage {
   opacity: 1;
 }
 .completion-letterbox {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  border-block: 5vh solid #0b1115;
+  border-block: 5vh solid #090909;
 }
 .completion-wordmark {
   position: absolute;
@@ -41,10 +43,10 @@
   font-size: clamp(14px, 1.35vw, 23px);
   font-weight: 850;
   letter-spacing: -0.055em;
-  text-shadow: 0 1px 12px #08111966;
+  text-shadow: 0 1px 12px #09090999;
 }
 .completion-wordmark span {
-  color: #da6652;
+  color: #d01818;
 }
 .completion-skip {
   position: absolute;
@@ -52,9 +54,9 @@
   top: max(6.5vh, 24px);
   min-height: 44px;
   padding: 10px 15px;
-  border: 1px solid #dbe3e557;
-  background: #111d27b8;
-  color: #f7f3e9;
+  border: 1px solid #eee9df40;
+  background: #171717cc;
+  color: #f1ede4;
   font: inherit;
   font-size: 12px;
   letter-spacing: 0.06em;
@@ -62,10 +64,10 @@
 }
 .completion-skip span {
   margin-left: 16px;
-  color: #a9dae3;
+  color: #d01818;
 }
 .completion-cinematic button:focus-visible {
-  outline: 2px solid #f4dfab;
+  outline: 2px solid #f1ede4;
   outline-offset: 5px;
 }
 .completion-loading {
@@ -80,7 +82,7 @@
   font-size: 10px;
   font-weight: 650;
   letter-spacing: 0.22em;
-  color: #d8b583;
+  color: #c79c6e;
 }
 .completion-loading h1 {
   margin: 17px 0 28px;
@@ -91,7 +93,7 @@
 }
 .completion-loading p {
   margin: 0 0 14px;
-  color: #d7d9d8;
+  color: #c8c3b9;
   font-size: 13px;
 }
 .completion-loading progress {
@@ -106,16 +108,16 @@
   background: #ffffff22;
 }
 .completion-loading progress::-webkit-progress-value {
-  background: #e2bd84;
+  background: #d01818;
   transition: width 180ms ease;
 }
 .completion-loading progress::-moz-progress-bar {
-  background: #e2bd84;
+  background: #d01818;
 }
 .completion-progress {
   display: block;
   margin-top: 11px;
-  color: #929d9f;
+  color: #96928a;
   font-size: 11px;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -125,7 +127,7 @@
   left: 5vw;
   bottom: 12vh;
   opacity: 0;
-  text-shadow: 0 2px 30px #07121bcc;
+  text-shadow: 0 2px 30px #090909cc;
   pointer-events: none;
 }
 .completion-title span {
@@ -133,7 +135,7 @@
   margin-bottom: 17px;
   font-size: 10px;
   letter-spacing: 0.2em;
-  color: #f4d9a6;
+  color: #eee9df;
 }
 .completion-title strong {
   display: block;
@@ -146,7 +148,7 @@
   position: absolute;
   inset: 0;
   overflow-y: auto;
-  background: #07101999;
+  background: #090909bf;
   backdrop-filter: blur(5px);
   padding: 30px 18px;
   display: grid;
@@ -160,8 +162,8 @@
   width: min(570px, 100%);
   box-sizing: border-box;
   padding: 36px 42px 30px;
-  border: 1px solid #d9bc874d;
-  background: linear-gradient(140deg, #26333bed, #121e28f5 67%);
+  border: 1px solid #ffffff26;
+  background: #171717f5;
   box-shadow:
     0 30px 110px #0007,
     inset 0 1px #eee1;
@@ -173,7 +175,7 @@
   top: -1px;
   left: 42px;
   right: 42px;
-  background: linear-gradient(90deg, #c28945, #ffe8b1, #c28945);
+  background: #d01818;
 }
 .completion-medal {
   display: flex;
@@ -181,25 +183,25 @@
   justify-content: center;
   gap: 15px;
   margin: 0 auto 24px;
-  color: #e2c38e;
+  color: #c79c6e;
 }
 .completion-medal b {
   display: grid;
   place-items: center;
   width: 42px;
   height: 45px;
-  border: 1px solid #dcb77a;
+  border: 1px solid #c79c6e;
   clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%);
   font-size: 26px;
   font-weight: 450;
-  background: #a77c3f22;
+  background: #c79c6e14;
   padding-bottom: 4px;
 }
 .completion-medal i {
   display: block;
   width: 44px;
   height: 1px;
-  background: linear-gradient(90deg, #d9bc8700, #d9bc87);
+  background: linear-gradient(90deg, #c79c6e00, #c79c6e);
 }
 .completion-medal i:last-child {
   transform: rotate(180deg);
@@ -217,17 +219,17 @@
 }
 .completion-next {
   text-align: center;
-  color: #bed3d8;
+  color: #c8c3b9;
   font-size: 13px;
   letter-spacing: 0.08em;
   margin: 0 0 27px;
 }
 .completion-next span {
   margin: 0 8px;
-  color: #cdab75;
+  color: #c79c6e;
 }
 .completion-credit-lines {
-  border-top: 1px solid #c6d8e124;
+  border-top: 1px solid #ffffff24;
   padding-top: 23px;
   display: grid;
   gap: 18px;
@@ -239,20 +241,20 @@
   display: block;
   font-size: 9px;
   letter-spacing: 0.14em;
-  color: #aeb7b8;
+  color: #aba69c;
   margin-bottom: 7px;
 }
 .completion-credit-lines strong {
   display: block;
   font-size: 14px;
   font-weight: 450;
-  color: #f2eee4;
+  color: #f1ede4;
 }
 .completion-credit-lines small {
   display: block;
   margin-top: 5px;
   font-size: 11px;
-  color: #8f9fa3;
+  color: #96928a;
 }
 .completion-close {
   display: flex;
@@ -262,16 +264,16 @@
   min-height: 46px;
   margin-top: 27px;
   padding: 13px 17px;
-  border: 1px solid #cfb482;
-  background: #d5bc8d;
-  color: #17212a;
+  border: 1px solid #d01818;
+  background: #b51b1b;
+  color: #f1ede4;
   font: inherit;
   font-size: 13px;
   font-weight: 650;
   cursor: pointer;
 }
 .completion-close:hover {
-  background: #efdbb3;
+  background: #d01818;
 }
 @media (max-height: 650px) {
   .completion-card {

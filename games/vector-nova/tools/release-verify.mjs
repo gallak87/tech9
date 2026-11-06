@@ -67,13 +67,21 @@ const ready = (page) =>
     null,
     { timeout: 90000 },
   );
-const phase = (page, value) =>
-  page.waitForFunction(
+const phase = async (page, value) => {
+  await page.waitForFunction(
     (expected) =>
       window.__VN_FRONTEND?.getState().completion?.phase === expected,
     value,
     { timeout: 90000 },
   );
+  const completion = (await state(page)).completion;
+  if (!completion.error)
+    assert.equal(
+      completion.rendering?.world,
+      'halcyon',
+      'finale uses the production Halcyon world',
+    );
+};
 const mockGame = `export async function createGame(options) {
   let shipId='needle', session=false, mode='overview';
   const snapshot=()=>({mode,ship:{id:shipId},vehicle:{shipId},competition:{enabled:true,playerFinished:false},timeTrial:null});
@@ -108,7 +116,11 @@ async function check(
   });
   const page = await context.newPage();
   const faults = [];
+  const requests = new Set();
   page.on('pageerror', (error) => faults.push(error.message));
+  page.on('request', (request) =>
+    requests.add(new URL(request.url()).pathname),
+  );
   try {
     await context.addInitScript(
       ({ values, registryKey, reducedMotion }) => {
@@ -159,6 +171,29 @@ async function check(
         }),
       );
     await run(page);
+    if (
+      !failImport &&
+      [...requests].some((path) =>
+        path.endsWith('/src/frontend/completion-stage.js'),
+      )
+    ) {
+      for (const source of [
+        '/src/levels/halcyon/index.js',
+        '/src/renderer/index.js',
+        '/assets/levels/halcyon/halcyon-clouds-v1.png',
+      ])
+        assert.ok(
+          [...requests].some((path) => path.endsWith(source)),
+          `production finale requested ${source}`,
+        );
+      assert.equal(
+        [...requests].some((path) =>
+          path.endsWith('/assets/levels/nomad/nomad-sky-v1.png'),
+        ),
+        false,
+        'Halcyon finale uses its own sky',
+      );
+    }
     assert.deepEqual(faults, [], 'no uncaught browser errors');
     console.log(`PASS ${name}`);
   } catch (error) {

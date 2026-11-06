@@ -29,6 +29,7 @@ export function createCompletionCinematic({
   const element = document.createElement('section');
   element.className = 'completion-cinematic';
   element.dataset.phase = 'loading';
+  element.dataset.stageReady = 'false';
   element.setAttribute('role', 'dialog');
   element.setAttribute('aria-modal', 'true');
   element.setAttribute('aria-label', 'Career complete');
@@ -247,6 +248,7 @@ export function createCompletionCinematic({
         ),
       ]);
       if (phase === 'disposed') return snapshot();
+      element.dataset.stageReady = 'true';
       setProgress(1);
       backdrop.configure({ active: false, reducedMotion: reduced() });
       loading.hidden = true;

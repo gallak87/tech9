@@ -78,7 +78,7 @@ export function createCompletionAudio(settings) {
         speed: sample.hero.speed,
         time: sample.time,
         boosting: sample.hero.boost,
-        steer: sample.slide * -0.5,
+        steer: sample.slideSteer ?? 0,
       });
       for (const cue of COMPLETION_CUES)
         if (

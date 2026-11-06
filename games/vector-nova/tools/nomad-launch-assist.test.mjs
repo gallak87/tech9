@@ -150,35 +150,37 @@ test('finite capped controls preserve inputs and use moving forecasts and actual
   );
 });
 
-test('existing AI interception points retain their pre-assistance numeric behavior', () => {
+test('AI interception forecasts retain their numeric baseline on the eased route', () => {
+  // Route v6 resamples the receiving roads while preserving the physical lips.
+  // Powered hero planning also aims inside the actual receiving-crown opening.
   for (const [index, time, speed, boost, expected] of [
     [
       0,
       0,
       125,
       false,
-      [312.39722106037533, 107.35500499520461, 2300.7959296231425],
+      [312.4107971709281, 107.33496053510244, 2300.9338856831873],
     ],
     [
       1,
       19,
       170,
       true,
-      [655.5761892591969, -278.18344174327825, 4063.3054929121145],
+      [655.5768198546003, -278.1842421346819, 4063.3099395310237],
     ],
     [
       2,
       28.5,
       155,
       true,
-      [1151.6924481166452, -1228.9553482782774, 8469.147996765247],
+      [1175.568772921309, -1218.626772025118, 8422.158658223001],
     ],
     [
       3,
       27,
       130,
       false,
-      [1709.1860992017553, -2201.4660952197864, 12914.530799830198],
+      [1709.1860239722027, -2201.466185508644, 12914.53130143496],
     ],
   ]) {
     const jump = majors[index];
@@ -188,6 +190,31 @@ test('existing AI interception points retain their pre-assistance numeric behavi
       assert.ok(Math.abs(value - expected[axis]) < 1e-9),
     );
   }
+});
+
+test('powered hero AI aims inside the crown while coasting and the player field stay centred', () => {
+  const hero = majors.find((jump) => jump.hero);
+  const state = initial(hero, {
+    distance: hero.takeoff - 20,
+    time: 28.5,
+    speed: 155,
+  });
+  const centred = { ...hero, boostInterceptLateral: 0 };
+  assert.equal(hero.boostInterceptLateral, 24);
+  assert.ok(
+    hero.boostInterceptLateral < track.halfWidthAt(hero.landingStart) - 12,
+  );
+  assert.deepEqual(
+    nomadLaunchTarget(track, state, hero, { boost: false }).toArray(),
+    nomadLaunchTarget(track, state, centred, { boost: false }).toArray(),
+  );
+  const powered = nomadLaunchTarget(track, state, hero, { boost: true });
+  const centre = nomadLaunchTarget(track, state, centred, { boost: true });
+  assert.ok(powered.x - centre.x > 20 && powered.x - centre.x < 25);
+  assert.deepEqual(
+    nomadLaunchPlan(track, state, hero, { boost: true }).target.toArray(),
+    centre.toArray(),
+  );
 });
 
 function encounter(

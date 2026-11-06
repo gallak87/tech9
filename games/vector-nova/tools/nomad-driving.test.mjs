@@ -1014,6 +1014,7 @@ function recoveringEmptyCoast({
   jump = track.jumps.at(-1),
   shipId = 'kestrel',
   quarter = 0,
+  entrySpeed = 120,
 } = {}) {
   const runtime = makeMotion();
   const receiver = track.carriers.find(
@@ -1024,7 +1025,7 @@ function recoveringEmptyCoast({
     const state = {
       ...createVehicleState(shipId),
       distance: jump.takeoff - 250,
-      speed: getVehiclePace(shipId, track.pace).cruiseSpeed,
+      speed: entrySpeed,
       energy: 0,
       time: (quarter * receiver.motion.period) / 4,
     };
@@ -1051,7 +1052,11 @@ function recoveringEmptyCoast({
         );
       for (const event of events) {
         if (event.type === 'jump-launch') launchSpeed = state.speed;
-        if (event.type === 'impact') physicalHit = true;
+        if (
+          event.type === 'impact' &&
+          ['deck', 'rail', 'structure'].includes(event.payload.contactKind)
+        )
+          physicalHit = true;
         if (event.type === 'jump-miss') {
           const from = track.frameAtTime(jump.takeoff, state.time).position;
           const delta = track
@@ -1073,7 +1078,11 @@ function recoveringEmptyCoast({
       launchSpeed > 0,
       'the unsafe attempt still releases with real ground momentum',
     );
-    assert.equal(physicalHit, true, 'the unsafe line contacts real geometry');
+    assert.equal(
+      physicalHit,
+      true,
+      `${jump.id}/${shipId}/phase${quarter}: the unsafe line contacts real steel`,
+    );
     assert.ok(miss && transfer);
     assert.equal(miss.id, jump.id);
     assert.equal(transfer.id, jump.id);
@@ -1108,14 +1117,27 @@ test('a slow depleted final coast strikes real steel and uses bounded moving-car
 
 test('sixteen named unsafe depleted lines preserve real misses and select a run-up or receiving deck', () => {
   let cases = 0;
-  for (const { index, ships } of [
-    { index: 2, ships: ['shrike'] },
-    { index: 5, ships: ['shrike'] },
-    { index: 9, ships: ['kestrel', 'shrike'] },
+  // These grounded entry speeds retain actual steel strikes: smoother ramps
+  // turn some former misses into catches, while overly slow lines hit only salt.
+  for (const { index, attempts } of [
+    { index: 2, attempts: [{ shipId: 'shrike', entrySpeed: 130 }] },
+    { index: 5, attempts: [{ shipId: 'shrike', entrySpeed: 115 }] },
+    {
+      index: 9,
+      attempts: [
+        { shipId: 'kestrel', entrySpeed: 120 },
+        { shipId: 'shrike', entrySpeed: 140 },
+      ],
+    },
   ])
-    for (const shipId of ships)
+    for (const { shipId, entrySpeed } of attempts)
       for (const quarter of [0, 1, 2, 3]) {
-        recoveringEmptyCoast({ jump: track.jumps[index], shipId, quarter });
+        recoveringEmptyCoast({
+          jump: track.jumps[index],
+          shipId,
+          quarter,
+          entrySpeed,
+        });
         cases++;
       }
   assert.equal(cases, 16);

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "geometryVersion": "nomad-convoy-salt-terraces-v5-roomy-powered-straights",
+  "geometryVersion": "nomad-convoy-salt-terraces-v6-eased-launch-approaches",
   "meaning": "Final rest-world coordinates, +Y up and +Z course. The exact profile extrusion is static. Only separately named scarp details translate with the ground group.",
   "saltPlane": {
     "height": 525,
@@ -371,7 +371,7 @@
   "detailCoverage": {
     "minZ": -8000,
     "maxZ": 93000,
-    "courseMaxZ": 15623.818452132617,
+    "courseMaxZ": 15606.796781110177,
     "forwardDistance": 14000,
     "groundTravel": 62499.99999999999
   },
@@ -395,8 +395,8 @@
       "phase": 0,
       "fromBench": "nomad-salt-shelf-1",
       "toBench": "nomad-salt-shelf-2",
-      "encounterDistance": 2237.1380921716473,
-      "encounterTime": 15.979557801226052
+      "encounterDistance": 2227.369544316484,
+      "encounterTime": 15.909782459403456
     },
     {
       "id": "salt-riser-2",
@@ -410,8 +410,8 @@
       "phase": 1.7,
       "fromBench": "nomad-salt-shelf-2",
       "toBench": "nomad-salt-shelf-3",
-      "encounterDistance": 3853.0846364845765,
-      "encounterTime": 27.522033117746975
+      "encounterDistance": 3844.320721351354,
+      "encounterTime": 27.459433723938243
     },
     {
       "id": "salt-riser-3",
@@ -425,8 +425,8 @@
       "phase": 3.4,
       "fromBench": "nomad-salt-shelf-3",
       "toBench": "nomad-salt-shelf-4",
-      "encounterDistance": 8345.504386771825,
-      "encounterTime": 59.61074561979875
+      "encounterDistance": 8332.119489975525,
+      "encounterTime": 59.51513921411089
     },
     {
       "id": "salt-riser-4",
@@ -440,8 +440,8 @@
       "phase": 5.1,
       "fromBench": "nomad-salt-shelf-4",
       "toBench": "nomad-salt-shelf-5",
-      "encounterDistance": 14027.665242337243,
-      "encounterTime": 100.19760887383745
+      "encounterDistance": 14010.643571314804,
+      "encounterTime": 100.07602550939146
     }
   ],
   "detailMotion": {

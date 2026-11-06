@@ -245,21 +245,21 @@ export function createNomadDistricts({ track, finish = null, shape = false }) {
   // The side boxes are service beds seated through the actual upper wall
   // sockets at X±90/Y95/Z±95. Their upper load beds sit well beyond the broad
   // receivers; the fixed hull shoes retain their real attachment positions.
-  function outrigger(district, side, z = 80) {
-    plate(district, [side * 147, 128.4, z], [34, 3.2, 128]);
+  function outrigger(district, side, z = 80, outboardOffset = 0) {
+    plate(district, [side * (147 + outboardOffset), 128.4, z], [34, 3.2, 128]);
     for (const anchorZ of [-95, 88]) {
       const targetZ = T.MathUtils.clamp(anchorZ, z - 54, z + 54);
       beam(
         district,
         [side * 90, 95, anchorZ],
-        [side * 160, 126.8, targetZ],
+        [side * (160 + outboardOffset), 126.8, targetZ],
         3.4,
         3.4,
       );
       beam(
         district,
         [side * 90, 95, anchorZ],
-        [side * 134, 126.8, targetZ],
+        [side * (134 + outboardOffset), 126.8, targetZ],
         2.5,
         2.5,
       );
@@ -278,10 +278,11 @@ export function createNomadDistricts({ track, finish = null, shape = false }) {
     side,
     z = 80,
     title = 'outboard cooling bank',
+    outboardOffset = 0,
   ) {
-    outrigger(district, side, z);
+    outrigger(district, side, z, outboardOffset);
     assembly(district, 'coolingBank', {
-      x: side * 148,
+      x: side * (148 + outboardOffset),
       z,
       plane: 130,
       scale: [0.2, 0.34, 0.62],
@@ -291,9 +292,9 @@ export function createNomadDistricts({ track, finish = null, shape = false }) {
       district,
       [
         [side * 90, 95, 88],
-        [side * 166, 101, 88],
-        [side * 166, 142, z + 15],
-        [side * 154, 145, z + 15],
+        [side * (166 + outboardOffset), 101, 88],
+        [side * (166 + outboardOffset), 142, z + 15],
+        [side * (154 + outboardOffset), 145, z + 15],
       ],
       1.1,
     );
@@ -445,7 +446,9 @@ export function createNomadDistricts({ track, finish = null, shape = false }) {
         });
       } else if (carrier.index === 6) {
         roofCooling(d, -1, 80, 'passing-deck port circulation bank');
-        roofCooling(d, 1, 80, 'passing-deck starboard circulation bank');
+        // Leave the powered diagonal arrival and its chase envelope open;
+        // braces and feeds extend from the same real hull sockets.
+        roofCooling(d, 1, 80, 'passing-deck starboard circulation bank', 24);
       } else if (carrier.index === 7) {
         roofHydraulic(d, 1, 70, 'return-hold upper workshop');
         assembly(d, 'louverPanel', {

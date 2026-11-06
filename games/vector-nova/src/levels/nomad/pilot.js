@@ -1,7 +1,7 @@
 import { vehicleHandling } from '../../ships/catalog.js';
 
 export const NOMAD_PILOT_RULES = Object.freeze({
-  version: 9,
+  version: 10,
   approach: 240,
   gravity: 26,
   rangeIterations: 6,
@@ -103,7 +103,12 @@ export function nomadLaunchPlan(
   track,
   state,
   jump,
-  { boost = false, boostDuration = Infinity, catchInset = 18 } = {},
+  {
+    boost = false,
+    boostDuration = Infinity,
+    catchInset = 18,
+    interceptLateral = 0,
+  } = {},
 ) {
   const ahead = jump.takeoff - state.distance;
   const approach =
@@ -137,11 +142,16 @@ export function nomadLaunchPlan(
         state.boosting,
       )
     : null;
+  const targetLateral = expectsBoost ? interceptLateral : 0;
+  const targetAt = (station, time) => {
+    const frame = track.frameAtTime(station, time);
+    return frame.position.addScaledVector(frame.right, targetLateral);
+  };
   const candidate = (station) => {
     let flightTime = jump.bigAir ? 4.5 : 1.5,
       target;
     for (let iteration = 0; iteration < 4; iteration++) {
-      target = track.frameAtTime(station, launchTime + flightTime).position;
+      target = targetAt(station, launchTime + flightTime);
       const height = departure.position.y - target.y;
       if (arc) {
         const time = arc.timeAtHeight(-height);
@@ -160,7 +170,7 @@ export function nomadLaunchPlan(
         ),
       );
     }
-    target = track.frameAtTime(station, launchTime + flightTime).position;
+    target = targetAt(station, launchTime + flightTime);
     const x = target.x - departure.position.x - materialVelocity.x * flightTime,
       z = target.z - departure.position.z - materialVelocity.z * flightTime;
     return {
@@ -210,7 +220,12 @@ export function nomadLaunchPlan(
   };
 }
 
-/** Preserve the existing grounded AI interception point exactly. */
-export function nomadLaunchTarget(track, state, jump, options) {
-  return nomadLaunchPlan(track, state, jump, options)?.target ?? null;
+/** Ordinary AI steering clears the hero crown; the player's field stays centred. */
+export function nomadLaunchTarget(track, state, jump, options = {}) {
+  return (
+    nomadLaunchPlan(track, state, jump, {
+      ...options,
+      interceptLateral: options.boost ? (jump.boostInterceptLateral ?? 0) : 0,
+    })?.target ?? null
+  );
 }

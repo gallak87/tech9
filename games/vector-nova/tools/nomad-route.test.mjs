@@ -13,7 +13,7 @@ test('Nomad is an enlarged 15.6 km descending sprint with a supported 600 m fini
   assert.equal(track.finishDistance, track.length - 600);
   assert.equal(track.length - track.finishDistance, 600);
   assert.equal(track.mainWidth, 50);
-  assert.equal(track.version, 5);
+  assert.equal(track.version, 6);
   assertTrackContract(track);
   const descent =
     track.sample(0).position.y - track.sample(track.finishDistance).position.y;
@@ -169,9 +169,9 @@ test('four substantial unsupported gaps use physical above-grade ramps, settled 
           12,
         `${jump.id}: the actual last 80 m rise substantially above the descending salt shelf`,
       );
-      const settled = track.sample(jump.takeoff - 55);
+      const settled = track.sample(jump.takeoff - 119);
       assert.equal(jump.launchStraight.length, 120);
-      for (let ahead = 55; ahead >= 1; ahead -= 1) {
+      for (let ahead = 119; ahead >= 1; ahead -= 1) {
         const frame = track.sample(jump.takeoff - ahead);
         assert.ok(
           frame.tangent.angleTo(settled.tangent) < 0.001,

@@ -11,7 +11,7 @@ import { NOMAD_CAMERA } from './camera.js';
 
 export default function createNomadLevel({ shape = false } = {}) {
   return {
-    version: '1.5.0-nomad-launch-assist',
+    version: '1.6.0-nomad-eased-launch-approaches',
     renderer: {
       world: 'nomad',
       background: '#d8d9d3',

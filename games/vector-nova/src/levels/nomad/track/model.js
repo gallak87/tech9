@@ -2,6 +2,7 @@ import * as T from 'three';
 import { createReferenceFrames } from '../../../track/frames.js';
 import { createNomadGroundProfile } from '../ground-profile.js';
 import { NOMAD_RECOVERY_RULES } from '../recovery.js';
+import { easeNomadApproach } from './approaches.js';
 
 export const NOMAD_PACE = Object.freeze({
   cruiseScale: 1.25,
@@ -193,8 +194,9 @@ function authoredKeys(mode, index) {
   const end = v(...keys.at(-1).slice(0, 3));
   const start = end.clone().addScaledVector(direction, -straight.length);
   const middle = end.clone().addScaledVector(direction, -straight.length / 2);
-  // Three collinear keys give the final segment a constant tangent; adding a
-  // single endpoint to a winding Catmull curve does not make a usable run-up.
+  // Retain the authored approach and launch direction as the source shape.
+  // easeNomadApproach replaces its tail with the full physical straight;
+  // Catmull's incoming control point otherwise bends its first half.
   return [
     ...keys.filter((key) => key[2] < start.z - 1),
     [...start.toArray(), 0],
@@ -247,7 +249,7 @@ export function createNomadTrack() {
   const pieces = [];
   for (const carrier of carriers) {
     const keys = authoredKeys(carrier.mode, carrier.index);
-    const curve = new T.CatmullRomCurve3(
+    const sourceCurve = new T.CatmullRomCurve3(
       keys.map(([x, y, z]) =>
         carrier.origin
           .clone()
@@ -257,6 +259,13 @@ export function createNomadTrack() {
       ),
       false,
       'centripetal',
+    );
+    const { curve, bankAt: sampleBank } = easeNomadApproach(
+      sourceCurve,
+      carrier.index,
+      AUTHORED_WORLD_SCALE,
+      PRIMARY_LAUNCHES[carrier.index],
+      (fraction) => bankAt(keys, fraction),
     );
     carrier.curve = curve;
     carrier.keys = keys;
@@ -278,7 +287,7 @@ export function createNomadTrack() {
         to: carrier,
       });
     }
-    pieces.push({ kind: 'road', curve, carrier, keys });
+    pieces.push({ kind: 'road', curve, carrier, keys, sampleBank });
   }
 
   // Retain exact piece boundaries while refining the shape to sub-metre chords.
@@ -297,7 +306,7 @@ export function createNomadTrack() {
       if (positions.length) total += point.distanceTo(positions.at(-1));
       positions.push(point);
       arcs.push(total);
-      bankValues.push(piece.kind === 'road' ? bankAt(piece.keys, fraction) : 0);
+      bankValues.push(piece.kind === 'road' ? piece.sampleBank(fraction) : 0);
     }
     piece.endIndex = positions.length - 1;
     piece.rawEnd = total;
@@ -367,6 +376,7 @@ export function createNomadTrack() {
       departureCarrierId: piece.from.id,
       receivingCarrierId: piece.to.id,
       hero,
+      ...(hero ? { boostInterceptLateral: 24 } : {}),
       bigAir: Boolean(air),
       broadReceiver: Boolean(air?.broad),
       ...(PRIMARY_LAUNCHES[index]
@@ -600,8 +610,8 @@ export function createNomadTrack() {
   return {
     id: 'nomad-procession',
     name: 'Nomad Procession',
-    version: 5,
-    geometryVersion: 'nomad-convoy-salt-terraces-v5-roomy-powered-straights',
+    version: 6,
+    geometryVersion: 'nomad-convoy-salt-terraces-v6-eased-launch-approaches',
     closed: false,
     length: LENGTH,
     finishDistance: FINISH,

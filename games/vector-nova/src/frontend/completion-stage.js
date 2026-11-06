@@ -3,18 +3,16 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createShip } from '../ships/index.js';
 import { createRivalPreview } from '../ships/rivals.js';
 import { createRenderer } from '../renderer/index.js';
-import createNacreLevel from '../levels/nacre/index.js';
+import createShatterlineLevel from '../levels/shatterline/index.js';
+import { createFinishMarker } from '../race/finish-marker.js';
 import { createLevelPresentation } from '../levels/presentation.js';
 import { createLifetime } from '../core/lifecycle.js';
 import { createCompletionEffects } from './completion-effects.js';
-import {
-  generateCompletionRun,
-  sampleCompletionRun,
-} from './completion-run.js';
+import { loadCompletionRun, sampleCompletionRun } from './completion-run.js';
 import { createCompletionDirector } from './completion-timeline.js';
 
 // Record production physics first, then play its poses and events at 1× in the
-// production Nacre world. The director controls only the camera.
+// production Shatterline world. The director controls only the camera.
 export function createCompletionStage({
   mount,
   shipId,
@@ -28,8 +26,6 @@ export function createCompletionStage({
   const lifetime = createLifetime(),
     loading = new AbortController(),
     models = new Map();
-  const clockPosition = new Vector3(),
-    clockQuaternion = new Quaternion();
   const localRoll = new Quaternion(),
     forward = new Vector3(0, 0, 1);
   let disposed = false,
@@ -42,8 +38,7 @@ export function createCompletionStage({
     director;
   let previousTime = 0,
     requestedTime = 0,
-    lastSample = null,
-    environmentTick = -1;
+    lastSample = null;
   let appliedQuality, appliedMotion;
   const abort = () => loading.abort(signal?.reason);
   if (signal?.aborted) abort();
@@ -59,36 +54,6 @@ export function createCompletionStage({
     loading.signal.throwIfAborted();
     view?.graphics.check();
   };
-  function advanceEnvironment(sample, reducedMotion) {
-    const targetTick = Math.min(
-      run.frames.length - 1,
-      Math.round(sample.hero.state.time / run.step),
-    );
-    if (
-      targetTick < environmentTick ||
-      (reducedMotion && targetTick > environmentTick + 1)
-    ) {
-      world.reset();
-      environmentTick = targetTick;
-      return;
-    }
-    // Crossing/animal clocks receive every native tick. Missing those ticks
-    // would look like a teleport to their normal gameplay safeguards.
-    for (let tick = environmentTick + 1; tick <= targetTick; tick++) {
-      const actor = run.frames[tick].hero;
-      world.environment.userData.updateVehicle?.({
-        position: clockPosition.fromArray(actor.position),
-        quaternion: clockQuaternion.fromArray(actor.quaternion),
-        distance: actor.state.distance,
-        speed: actor.state.speed,
-        time: actor.state.time,
-        mode: 'racing',
-        reset: tick === 0,
-        motion: actor.motion,
-      });
-    }
-    environmentTick = targetTick;
-  }
   function positionScene(sample, reducedMotion = false) {
     const next = readSettings();
     if (next.quality !== appliedQuality || reducedMotion !== appliedMotion) {
@@ -116,7 +81,6 @@ export function createCompletionStage({
         reducedMotion,
       });
     }
-    advanceEnvironment(sample, reducedMotion);
     const directed = director.sample(sample.time, sample, view.camera.aspect);
     Object.assign(sample, { shot: directed.shot, title: directed.title });
     view.camera.position.copy(directed.position);
@@ -173,10 +137,10 @@ export function createCompletionStage({
   const ready = (async () => {
     try {
       check();
-      const definition = createNacreLevel({ shape: false });
+      const definition = createShatterlineLevel();
       track = definition.createTrack();
       onProgress?.(0.03);
-      run = await generateCompletionRun({
+      run = await loadCompletionRun({
         track,
         shipId,
         signal: loading.signal,
@@ -231,6 +195,10 @@ export function createCompletionStage({
         }),
       );
       check();
+      const finish = own(
+        createFinishMarker(track, definition.racing?.finishMarker),
+      );
+      world.road.add(finish.group);
       onProgress?.(0.62);
       effects = own(
         createCompletionEffects({
@@ -268,9 +236,12 @@ export function createCompletionStage({
         ),
       ]);
       check();
-      const reflectionPoint = track
-        .sample(100)
-        .position.addScaledVector(track.sample(100).up, 8);
+      const reflectionFrame = track.sample(run.landmarks.startDistance);
+      const reflectionPoint = reflectionFrame.position.addScaledVector(
+        reflectionFrame.up,
+        8,
+      );
+      view.follow(reflectionPoint);
       const reflection = view.bakeCityReflection(
         reflectionPoint,
         [...models.values()].map((model) => model.group),
@@ -291,7 +262,7 @@ export function createCompletionStage({
       prepared = true;
       draw(requestedTime, Boolean(readSettings().reducedMotion));
       onProgress?.(1);
-      return { world: 'nacre', source: 'native-replay' };
+      return { world: 'shatterline', source: 'native-replay' };
     } catch (error) {
       dispose();
       throw error;
@@ -302,7 +273,7 @@ export function createCompletionStage({
     draw,
     dispose,
     metrics: () => ({
-      world: 'nacre',
+      world: 'shatterline',
       source: 'native-replay',
       ...(run
         ? {
@@ -310,12 +281,13 @@ export function createCompletionStage({
               identity: run.identity,
               duration: run.duration,
               landmarks: run.landmarks,
+              outcome: run.outcome,
               time: lastSample?.time ?? 0,
               shot: lastSample?.shot,
               speed: lastSample?.hero.state.speed,
+              distance: lastSample?.hero.state.distance,
               grounded: lastSample?.hero.grounded,
-              leviathan:
-                world?.environment.userData.getLeviathanPresentation?.(),
+              race: lastSample?.hero.race,
             },
           }
         : {}),

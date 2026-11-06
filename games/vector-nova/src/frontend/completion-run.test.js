@@ -1,176 +1,243 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { gunzipSync } from 'node:zlib';
 import * as T from 'three';
-import createNacreLevel from '../levels/nacre/index.js';
 import {
-  generateCompletionRun,
+  loadCompletionRun,
+  validateCompletionRun,
   sampleCompletionRun,
-  COMPLETION_RUN_STEP,
-  COMPLETION_RUN_DURATION,
 } from './completion-run.js';
+import {
+  COMPLETION_CAPTURE,
+  COMPLETION_DURATION,
+  COMPLETION_SHIPS,
+} from './completion-config.js';
 
-const track = createNacreLevel({ shape: false }).createTrack();
-const runs = new Map();
-async function runFor(shipId) {
-  if (!runs.has(shipId))
-    runs.set(shipId, generateCompletionRun({ track, shipId }));
-  return runs.get(shipId);
+const base = new URL(
+  '../../public/assets/completion/shatterline-v1/',
+  import.meta.url,
+);
+const manifest = JSON.parse(
+  await readFile(new URL('manifest.json', base), 'utf8'),
+);
+const records = new Map();
+const compressed = new Map();
+const raw = new Map();
+const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
+for (const shipId of COMPLETION_SHIPS) {
+  const bytes = await readFile(new URL(`${shipId}.json.gz`, base));
+  const json = gunzipSync(bytes, {
+    maxOutputLength: COMPLETION_CAPTURE.maxRawBytes,
+  });
+  compressed.set(shipId, bytes);
+  raw.set(shipId, json);
+  records.set(shipId, JSON.parse(json));
 }
-const finitePose = (pose) =>
-  pose.position.length === 3 &&
-  pose.quaternion.length === 4 &&
-  [...pose.position, ...pose.quaternion].every(Number.isFinite);
+const currentTrack = {
+  id: manifest.route.trackId,
+  geometryVersion: manifest.geometryVersion,
+  length: manifest.route.length,
+  finishDistance: manifest.route.finishDistance,
+  jumps: [
+    {
+      id: manifest.route.jumpId,
+      takeoff: manifest.route.takeoffDistance,
+      landingStart: manifest.route.landingDistance,
+    },
+  ],
+};
+function fetchAssets(t, { decoded = false, corrupt = false } = {}) {
+  const calls = [];
+  t.mock.method(globalThis, 'fetch', async (url) => {
+    calls.push(url);
+    if (url.endsWith('/manifest.json'))
+      return new Response(JSON.stringify(manifest));
+    const shipId = url.split('/').at(-1).replace('.json.gz', '');
+    let bytes = decoded ? raw.get(shipId) : compressed.get(shipId);
+    if (corrupt) {
+      bytes = Uint8Array.from(bytes);
+      bytes[bytes.length - 1] ^= 1;
+    }
+    return new Response(bytes);
+  });
+  return calls;
+}
 
-test('every supported hero chassis genuinely fires, jumps and lands in a bounded native three-racer run', async (t) => {
-  for (const shipId of ['kestrel', 'shrike', 'bastion', 'needle']) {
-    await t.test(shipId, async () => {
-      const run = await runFor(shipId);
-      assert.equal(run.duration, COMPLETION_RUN_DURATION);
-      assert.equal(run.step, COMPLETION_RUN_STEP);
-      assert.equal(run.frames.length, Math.round(run.duration / run.step) + 1);
-      assert.equal(run.frames[0].hero.state.distance, 250);
-      assert.equal(run.frames[0].hero.state.speed, 112);
-      assert.equal(run.frames[0].hero.state.shipId, shipId);
-      assert.equal(run.frames[0].hero.state.chassisId, shipId);
-      assert.deepEqual(
-        run.actors.map(({ id }) => id),
-        ['hero', 'rook', 'manta'],
-      );
-      assert.deepEqual(
-        run.devices.find(({ id }) => id === 'breaker-arc'),
-        {
-          id: 'breaker-arc',
-          type: 'arc',
-          distance: 620,
-          lateral: -6,
-          width: 5,
-          length: 10,
-          label: 'Breaker arc',
-        },
-      );
-      for (const { id } of run.actors) {
-        const launches = run.events.filter(
-          (event) => event.actor === id && event.type === 'jump-launch',
-        );
-        const landings = run.events.filter(
-          (event) => event.actor === id && event.type === 'jump-transfer',
-        );
-        assert.equal(launches.length, 1);
-        assert.equal(landings.length, 1);
-        assert.equal(landings[0].payload.outcome, 'landed');
-        assert.equal(landings[0].payload.id, 'storm-leap');
-        assert.ok(landings[0].time > launches[0].time + 1);
-        let previous = null;
-        for (const frame of run.frames) {
-          const actor = frame[id];
-          assert.ok(finitePose(actor));
-          assert.ok(
-            Math.abs(
-              new T.Quaternion().fromArray(actor.quaternion).length() - 1,
-            ) < 1e-10,
-          );
-          assert.equal(actor.state.resetCount, 0);
-          assert.equal(actor.recovering, false);
-          assert.ok(actor.state.speed > 50 && actor.state.speed < 190);
-          if (previous)
-            assert.ok(
-              new T.Vector3().fromArray(actor.position).distanceTo(previous) <
-                3,
-              `${id}: physical pose cannot teleport between 120 Hz ticks`,
-            );
-          previous = new T.Vector3().fromArray(actor.position);
-        }
-        assert.equal(run.frames.at(-1)[id].grounded, true);
-        assert.ok(
-          run.frames.at(-1)[id].state.distance > track.jumps[0].landingEnd,
-        );
-      }
-      assert.equal(
-        run.events.some(({ type }) =>
-          [
-            'jump-miss',
-            'jump-recover',
-            'road-recovery',
-            'manual-reset',
-          ].includes(type),
-        ),
-        false,
-      );
-      const heroEvents = run.events.filter(({ actor }) => actor === 'hero');
-      const fires = heroEvents.filter(
-        ({ type, payload }) => type === 'combat-fire' && payload.kind === 'arc',
-      );
-      assert.equal(
-        fires.length,
-        3,
-        'the real Arc gate emits its complete three-shot program',
-      );
-      assert.ok(
-        heroEvents.some(
-          ({ type, payload }) => type === 'combat-confirm' && payload.shielded,
-        ),
-      );
-      assert.ok(
-        heroEvents.some(
-          ({ type, payload }) => type === 'combat-confirm' && !payload.shielded,
-        ),
-      );
-      assert.ok(run.frames.some(({ combat }) => combat.shots.length > 0));
-      assert.ok(
-        run.frames.some(
-          ({ combat }) => combat.disruptions.rook?.kind === 'arc',
-        ),
-      );
-      const {
-        gateTime,
-        firstFireTime,
-        firstHitTime,
-        launchTime,
-        landingTime,
-        wormPeakTime,
-      } = run.landmarks;
-      assert.ok(gateTime < firstFireTime && firstFireTime < firstHitTime);
-      assert.ok(firstHitTime < launchTime && launchTime < landingTime);
-      assert.ok(wormPeakTime > firstFireTime && wormPeakTime < landingTime);
-      assert.ok(
-        run.duration - landingTime > 3,
-        'normal driving continues after the genuine landing',
-      );
-      assert.ok(
-        run.frames.some(
-          (frame) =>
-            !frame.hero.grounded && frame.hero.motion.mode === 'flight',
-        ),
-      );
-      assert.ok(
-        JSON.stringify(run).length < 8_000_000,
-        'recording remains bounded without native snapshots or assets',
-      );
+test('four final shipped records preserve native combat, landing and the actual winning checker crossing', () => {
+  for (const shipId of COMPLETION_SHIPS) {
+    const run = validateCompletionRun(records.get(shipId), {
+      shipId,
+      track: currentTrack,
     });
+    const entry = manifest.records[shipId];
+    assert.equal(raw.get(shipId).length, entry.rawBytes);
+    assert.equal(compressed.get(shipId).length, entry.compressedBytes);
+    assert.equal(hash(raw.get(shipId)), entry.rawSha256);
+    assert.equal(hash(compressed.get(shipId)), entry.compressedSha256);
+    assert.equal(run.duration, COMPLETION_DURATION);
+    assert.equal(run.frames.length, 1921);
+    assert.equal(run.outcome.heroPosition, 1);
+    assert.ok(run.landmarks.finishTime < run.landmarks.finishTimes.rook);
+    assert.ok(run.landmarks.finishTime < run.landmarks.finishTimes.manta);
+    assert.ok(
+      run.events.some(
+        (event) =>
+          event.actor === 'hero' &&
+          event.type === 'combat-confirm' &&
+          event.payload.kind === 'repulsor' &&
+          !event.payload.shielded,
+      ),
+    );
+    for (const { id } of run.actors) {
+      const landing = run.events.filter(
+        (event) => event.actor === id && event.type === 'jump-transfer',
+      );
+      assert.equal(landing.length, 1);
+      assert.equal(landing[0].payload.id, 'horizon-transfer');
+      assert.equal(landing[0].payload.outcome, 'landed');
+      const crossing = run.frames.findIndex(
+        (frame) => frame[id].state.distance >= currentTrack.finishDistance,
+      );
+      const before = run.frames[crossing - 1],
+        after = run.frames[crossing];
+      assert.ok(before[id].grounded && after[id].grounded);
+      const time =
+        before.time +
+        (run.step * (currentTrack.finishDistance - before[id].state.distance)) /
+          (after[id].state.distance - before[id].state.distance);
+      assert.ok(Math.abs(time - run.landmarks.finishTimes[id]) < 1e-9);
+      assert.ok(
+        run.frames.every(
+          (frame) => frame[id].state.resetCount === 0 && !frame[id].recovering,
+        ),
+      );
+      assert.ok(
+        run.frames.at(-1)[id].state.speed > 30,
+        'the native runout is still moving at the cut',
+      );
+    }
+    assert.equal(
+      run.events.some(({ type }) =>
+        ['jump-miss', 'road-recovery'].includes(type),
+      ),
+      false,
+    );
   }
 });
 
-test('playback interpolates only the actual recorded world poses at one-times speed', async () => {
-  const run = await runFor('kestrel');
-  for (const frame of run.frames) {
-    const exact = sampleCompletionRun(run, frame.time);
-    assert.equal(exact.hero.state.time, frame.hero.state.time);
-    assert.equal(exact.hero.grounded, frame.hero.grounded);
-  }
-  const firstFire = run.landmarks.firstFireTime;
-  const crossed = sampleCompletionRun(
-    run,
-    firstFire + 1 / 60,
-  ).eventsThroughTime;
-  assert.ok(
-    crossed.some(
-      (event) => event.actor === 'hero' && event.type === 'combat-fire',
-    ),
+test('final capture provenance matches the current physics sources without timestamps or machine paths', async () => {
+  assert.equal(
+    manifest.provenance.generator,
+    'tools/capture-completion-runs.mjs',
   );
-  const index = 500;
-  const a = run.frames[index],
-    b = run.frames[index + 1];
-  const originalSpeed = a.hero.state.speed;
+  assert.equal(manifest.duration, COMPLETION_DURATION);
+  for (const [path, expected] of Object.entries(
+    manifest.provenance.sourceFiles,
+  )) {
+    assert.ok(!path.startsWith('/') && !path.includes('\\'));
+    assert.equal(
+      hash(await readFile(new URL(`../../${path}`, import.meta.url))),
+      expected,
+      path,
+    );
+  }
+});
+
+test('the browser loads only the selected final recording and reports bounded progress', async (t) => {
+  const calls = fetchAssets(t);
+  const progress = [];
+  const run = await loadCompletionRun({
+    shipId: 'shrike',
+    track: currentTrack,
+    onProgress: (value) => progress.push(value),
+  });
+  assert.equal(run.frames[0].hero.state.shipId, 'shrike');
+  assert.deepEqual(
+    calls.map((url) => url.split('/').at(-1)),
+    ['manifest.json', 'shrike.json.gz'],
+  );
+  assert.equal(progress.at(-1), 1);
+  assert.ok(progress.every((value) => value >= 0 && value <= 1));
+});
+
+test('hosts that already decode gzip still validate the raw recording', async (t) => {
+  fetchAssets(t, { decoded: true });
+  assert.equal(
+    (await loadCompletionRun({ shipId: 'kestrel' })).outcome.winner,
+    'hero',
+  );
+});
+
+test('corrupt, oversized or stale captures fail honestly', async (t) => {
+  fetchAssets(t, { corrupt: true });
+  await assert.rejects(loadCompletionRun({ shipId: 'needle' }), /checksum/);
+  assert.throws(
+    () =>
+      validateCompletionRun(records.get('needle'), {
+        shipId: 'needle',
+        track: {
+          ...currentTrack,
+          finishDistance: currentTrack.finishDistance + 0.01,
+        },
+      }),
+    /current track/,
+  );
+  const wrong = structuredClone(records.get('needle'));
+  wrong.metadata.hullsId = 'stale';
+  assert.throws(
+    () => validateCompletionRun(wrong, { shipId: 'needle' }),
+    /stale/,
+  );
+  t.mock.method(globalThis, 'fetch', async (url) =>
+    url.endsWith('manifest.json')
+      ? new Response(JSON.stringify(manifest))
+      : new Response(new Uint8Array(manifest.records.needle.rawBytes + 1)),
+  );
+  await assert.rejects(loadCompletionRun({ shipId: 'needle' }), /size budget/);
+  const oversizedGzip = new Uint8Array(
+    manifest.records.needle.compressedBytes + 1,
+  );
+  oversizedGzip.set([0x1f, 0x8b]);
+  t.mock.method(globalThis, 'fetch', async (url) =>
+    url.endsWith('manifest.json')
+      ? new Response(JSON.stringify(manifest))
+      : new Response(oversizedGzip),
+  );
+  await assert.rejects(loadCompletionRun({ shipId: 'needle' }), /size budget/);
+});
+
+test('cancellation stops before loading or between the manifest and selected recording', async (t) => {
+  const calls = fetchAssets(t);
+  const before = new AbortController();
+  before.abort();
+  await assert.rejects(
+    loadCompletionRun({ shipId: 'kestrel', signal: before.signal }),
+    { name: 'AbortError' },
+  );
+  assert.equal(calls.length, 0);
+  const during = new AbortController();
+  await assert.rejects(
+    loadCompletionRun({
+      shipId: 'kestrel',
+      signal: during.signal,
+      onProgress: () => during.abort(),
+    }),
+    { name: 'AbortError' },
+  );
+  assert.equal(calls.length, 1);
+});
+
+test('playback interpolates the shipped world poses and retains crossed events without changing records', () => {
+  const run = records.get('kestrel');
+  for (const frame of run.frames)
+    assert.equal(
+      sampleCompletionRun(run, frame.time).hero.state.time,
+      frame.hero.state.time,
+    );
+  const a = run.frames[500],
+    b = run.frames[501];
   const sample = sampleCompletionRun(run, (a.time + b.time) / 2);
   const expected = new T.Vector3()
     .fromArray(a.hero.position)
@@ -179,57 +246,15 @@ test('playback interpolates only the actual recorded world poses at one-times sp
     new T.Vector3().fromArray(sample.hero.position).distanceTo(expected) <
       1e-10,
   );
-  const orientation = new T.Quaternion()
-    .fromArray(a.hero.quaternion)
-    .slerp(new T.Quaternion().fromArray(b.hero.quaternion), 0.5);
-  assert.ok(
-    new T.Quaternion().fromArray(sample.hero.quaternion).angleTo(orientation) <
-      1e-7,
-  );
-  assert.deepEqual(sample.hero.state, a.hero.state);
-  sample.hero.position[0] += 999;
-  sample.hero.state.speed = -999;
-  assert.equal(run.frames[index].hero.state.speed, originalSpeed);
+  const originalSpeed = a.hero.state.speed;
+  sample.hero.position[0] += 99;
+  sample.hero.state.speed = -99;
+  assert.equal(a.hero.state.speed, originalSpeed);
   assert.notEqual(sample.hero.position[0], a.hero.position[0]);
-  assert.deepEqual(
-    sampleCompletionRun(run, -1).hero.position,
-    run.frames[0].hero.position,
+  assert.ok(
+    sampleCompletionRun(
+      run,
+      run.landmarks.firstFireTime + 1 / 60,
+    ).eventsThroughTime.some((event) => event.type === 'combat-fire'),
   );
-  assert.deepEqual(
-    sampleCompletionRun(run, 99).hero.position,
-    run.frames.at(-1).hero.position,
-  );
-});
-
-test('a second capture repeats the real controls, contacts and flight exactly', async () => {
-  const first = await runFor('kestrel');
-  const second = await generateCompletionRun({ track, shipId: 'kestrel' });
-  assert.equal(second.identity, first.identity);
-  assert.deepEqual(second.events, first.events);
-  for (const index of [0, 333, 650, 800, 1000, 1680])
-    assert.deepEqual(second.frames[index], first.frames[index]);
-});
-
-test('capture cancellation interrupts loading before returning a partial film', async () => {
-  const already = new AbortController();
-  already.abort();
-  await assert.rejects(
-    generateCompletionRun({ track, shipId: 'kestrel', signal: already.signal }),
-    { name: 'AbortError' },
-  );
-  const loading = new AbortController();
-  let progress = 0;
-  await assert.rejects(
-    generateCompletionRun({
-      track,
-      shipId: 'kestrel',
-      signal: loading.signal,
-      onProgress(value) {
-        progress = value;
-        loading.abort();
-      },
-    }),
-    { name: 'AbortError' },
-  );
-  assert.ok(progress > 0 && progress < 1);
 });

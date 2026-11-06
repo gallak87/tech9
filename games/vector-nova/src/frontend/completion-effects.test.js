@@ -240,3 +240,64 @@ test('recorded target hits use the actual hull response and quality changes pres
     'only the borrowed road and three racers remain',
   );
 });
+
+test('recorded Repulsor pressure stays on the real road and fades in both graphics presets', () => {
+  for (const quality of ['low', 'high']) {
+    const f = fixture();
+    f.run.devices[0] = {
+      ...f.run.devices[0],
+      id: 'horizon-approach-repulsor',
+      type: 'repulsor',
+      lateral: 6,
+    };
+    f.run.events[0].payload = {
+      kind: 'repulsor',
+      deviceId: 'horizon-approach-repulsor',
+    };
+    const effects = createCompletionEffects({ ...f, settings: { quality } });
+    try {
+      const sample = f.frame(0.25);
+      sample.combat.flashes.push({
+        id: 'recorded-pressure',
+        kind: 'repulsor',
+        source: 'player',
+        type: 'pulse',
+        radius: 24,
+        age: 0.12,
+        distance: 620,
+        lateral: 6,
+        position: [6, 0.72, 620],
+        quaternion: [0, 0, 0, 1],
+      });
+      effects.update(sample, { models: f.models });
+      const pulse = f.scene.getObjectByName(
+        'Repulsor / road-conforming pressure wave',
+      );
+      assert.ok(pulse, quality);
+      const points = pulse.geometry.attributes.position;
+      assert.ok(points.count > 0);
+      for (let index = 0; index < points.count; index++) {
+        assert.ok(
+          Number.isFinite(points.getX(index)) &&
+            Number.isFinite(points.getY(index)) &&
+            Number.isFinite(points.getZ(index)),
+        );
+        assert.ok(
+          Math.abs(points.getX(index)) <= 15.001,
+          'pressure clips at the authored road edge',
+        );
+        assert.ok(
+          Math.abs(points.getY(index) - 0.16) < 1e-5,
+          'pressure follows the borrowed road skin',
+        );
+      }
+      effects.update(f.frame(1), { models: f.models });
+      assert.equal(
+        f.scene.getObjectByName('Repulsor / road-conforming pressure wave'),
+        undefined,
+      );
+    } finally {
+      effects.dispose();
+    }
+  }
+});

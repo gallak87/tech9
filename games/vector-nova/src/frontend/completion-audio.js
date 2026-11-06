@@ -31,14 +31,14 @@ export function createCompletionAudio(settings) {
   const propulsion = createPropulsion(context, engineGain);
   const bank = createSampleBank(context, {
     ...DEVICE_SAMPLES,
-    'cup-champion': RACE_SAMPLES['cup-champion'],
+    'race-winner': RACE_SAMPLES['race-winner'],
+    'race-finisher': RACE_SAMPLES['race-finisher'],
   });
   void bank.prepare();
   const sources = new Set();
   let disposed = false,
     paused = true,
-    previousTime = -1e-8,
-    careerCuePlayed = false;
+    previousTime = -1e-8;
   const stopSources = () => {
     for (const source of sources) {
       try {
@@ -91,10 +91,6 @@ export function createCompletionAudio(settings) {
           if (!played.has(key)) play(cue.id, cue.gain);
           played.add(key);
         }
-      if (!careerCuePlayed && sample.title > 0) {
-        careerCuePlayed = true;
-        if (volume > 0) play('cup-champion', 0.65);
-      }
       previousTime = sample.time;
     },
     pause() {

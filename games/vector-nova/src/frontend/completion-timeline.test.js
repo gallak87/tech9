@@ -1,16 +1,12 @@
 import test, { before } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { gunzipSync } from 'node:zlib';
 import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
 import { getCollisionHull } from '../ships/collision-hulls.js';
-import { createLevel3Track } from '../levels/nacre/track/model.js';
-import {
-  createLeviathanPath,
-  NACRE_LEVIATHAN,
-} from '../levels/nacre/environment/leviathan/path.js';
-import {
-  generateCompletionRun,
-  sampleCompletionRun,
-} from './completion-run.js';
+import { createShatterlineTrack } from '../levels/shatterline/track/model.js';
+import { createFinishMarker } from '../race/finish-marker.js';
+import { sampleCompletionRun } from './completion-run.js';
 import {
   COMPLETION_DURATION,
   completionShotPlan,
@@ -18,11 +14,16 @@ import {
   completionCueForEvent,
 } from './completion-timeline.js';
 
-const track = createLevel3Track();
-const path = createLeviathanPath(track);
+const track = createShatterlineTrack();
 let run;
 before(async () => {
-  run = await generateCompletionRun({ track, shipId: 'kestrel' });
+  const bytes = await readFile(
+    new URL(
+      '../../public/assets/completion/shatterline-v1/kestrel.json.gz',
+      import.meta.url,
+    ),
+  );
+  run = JSON.parse(gunzipSync(bytes).toString('utf8'));
 });
 function cameraFor(view, aspect) {
   const camera = new PerspectiveCamera(view.fov, aspect, 0.1, 10000);
@@ -33,7 +34,7 @@ function cameraFor(view, aspect) {
   return camera;
 }
 
-test('the event-anchored director covers the real gate, worm, jump and landing at race pace', () => {
+test('the director follows real repulsor, Horizon flight, landing and sprint finish times', () => {
   const plan = completionShotPlan(run);
   assert.equal(run.duration, COMPLETION_DURATION);
   assert.equal(plan.shots[0].start, 0);
@@ -45,18 +46,28 @@ test('the event-anchored director covers the real gate, worm, jump and landing a
   const at = (time) =>
     plan.shots.find(({ start, end }) => time >= start && time < end)?.id;
   assert.equal(at(run.landmarks.firstFireTime), 'combat');
-  assert.equal(at(run.landmarks.wormPeakTime), 'leviathan');
   assert.equal(at(run.landmarks.launchTime), 'flight');
   assert.equal(at(run.landmarks.landingTime), 'landing');
+  assert.equal(at(run.landmarks.finishTime - 0.1), 'finish');
+  assert.equal(at(run.landmarks.finishTime + 0.2), 'finish');
   assert.ok(
-    run.frames.find(
-      (frame) => Math.abs(frame.time - run.landmarks.launchTime) < 1e-6,
-    ).hero.state.speed > 100,
+    plan.titleStart > run.landmarks.finishTime,
+    'the victory title cannot precede the physical checker crossing',
   );
-  assert.ok(!plan.shots.some(({ id }) => /finish|slide|park/.test(id)));
+  assert.equal(run.landmarks.finishDistance, track.finishDistance);
+  assert.equal(run.landmarks.jumpId, 'horizon-transfer');
+  assert.ok(!plan.shots.some(({ id }) => /worm|leviathan|slide|park/.test(id)));
+  assert.throws(
+    () =>
+      completionShotPlan({
+        duration: 16,
+        landmarks: { launchTime: 6, landingTime: 10 },
+      }),
+    /actual finish/,
+  );
 });
 
-test('camera direction preserves every actual pose and keeps all player hulls framed', () => {
+test('camera direction preserves all native poses and frames all four player hulls', () => {
   const director = createCompletionDirector({ track, run });
   for (const aspect of [1.1, 1.6, 2.5])
     for (let time = 0; time <= run.duration; time += 1 / 30) {
@@ -66,7 +77,7 @@ test('camera direction preserves every actual pose and keeps all player hulls fr
       assert.deepEqual(
         recording,
         original,
-        'directing the camera must not write replay state',
+        'the director must not modify recorded physics or events',
       );
       for (const value of [
         ...view.position,
@@ -100,81 +111,92 @@ test('camera direction preserves every actual pose and keeps all player hulls fr
     }
 });
 
-test('the reveal frames the actual production animal without changing its event age', () => {
+test('the real production checker and physical hero are readable before and after crossing', () => {
   const director = createCompletionDirector({ track, run });
-  const recording = sampleCompletionRun(run, run.landmarks.wormPeakTime);
-  const age = recording.leviathan.age;
-  const view = director.sample(run.landmarks.wormPeakTime, recording, 1.6);
-  const camera = cameraFor(view, 1.6);
-  assert.equal(view.shot, 'leviathan');
-  assert.equal(recording.leviathan.age, age);
-  assert.ok(recording.leviathan.active);
-  let visible = 0;
-  for (let back = 0; back <= NACRE_LEVIATHAN.length; back += 35) {
-    const point = path.sample(path.headArc(age) - back).position.clone();
-    if (point.y <= (track.waterY ?? 0) - 12) continue;
-    const screen = point.project(camera);
-    assert.ok(
-      Math.abs(screen.x) < 0.9 && Math.abs(screen.y) < 0.9 && screen.z < 1,
-      'the real exposed body remains inside the wide reveal',
+  const marker = createFinishMarker(track);
+  try {
+    assert.equal(
+      marker.group.userData.finishDistance,
+      run.landmarks.finishDistance,
     );
-    visible++;
+    const positions = marker.group.children[0].geometry.attributes.position;
+    for (const offset of [-0.1, 0, 0.2]) {
+      const time = run.landmarks.finishTime + offset;
+      const view = director.sample(time, sampleCompletionRun(run, time), 1.6);
+      assert.equal(view.shot, 'finish');
+      const camera = cameraFor(view, 1.6);
+      let left = Infinity,
+        right = -Infinity,
+        bottom = Infinity,
+        top = -Infinity;
+      for (let index = 0; index < positions.count; index++) {
+        const screen = new Vector3()
+          .fromBufferAttribute(positions, index)
+          .project(camera);
+        assert.ok(
+          Math.abs(screen.x) < 0.94 &&
+            Math.abs(screen.y) < 0.94 &&
+            screen.z < 1,
+          'actual finish paint is cropped',
+        );
+        left = Math.min(left, screen.x);
+        right = Math.max(right, screen.x);
+        bottom = Math.min(bottom, screen.y);
+        top = Math.max(top, screen.y);
+      }
+      assert.ok(right - left > 0.6, 'checker width must remain readable');
+      assert.ok(
+        top - bottom > 0.025,
+        'the real two-row paint must not collapse to a line',
+      );
+    }
+  } finally {
+    marker.dispose();
   }
-  assert.ok(visible >= 4);
 });
 
-test('breach and jump cameras clear the real deck and retain a close view of the physical racer', () => {
+test('flight camera follows actual airborne velocity without tethering to the high launch lip', () => {
   const director = createCompletionDirector({ track, run });
-  for (let time = 0; time <= run.duration; time += 1 / 60) {
+  for (
+    let time = run.landmarks.launchTime;
+    time < run.landmarks.landingTime - 0.15;
+    time += 1 / 60
+  ) {
     const recording = sampleCompletionRun(run, time);
     const view = director.sample(time, recording, 1.6);
+    assert.equal(view.shot, 'flight');
     const hero = new Vector3().fromArray(recording.hero.position);
-    const road = track.sample(recording.hero.state.distance);
-    if (view.shot === 'leviathan')
-      assert.ok(
-        view.position.y >= Math.max(hero.y, road.position.y) + 20 - 1e-8,
-        'the wide fit cannot lower the camera beneath the bridge',
-      );
-    if (view.shot === 'flight') {
-      assert.ok(
-        view.position.y >= Math.max(hero.y, road.position.y) + 8 - 1e-8,
-      );
-      assert.ok(
-        view.position.distanceTo(hero) < 35,
-        'the worm cannot drag the flight camera away from the racer',
-      );
-      assert.ok(
-        view.target.clone().sub(hero).dot(road.tangent) > 4,
-        'the physical receiver remains ahead of the flight camera',
-      );
-    }
-    if (view.shot === 'exit') {
-      assert.ok(
-        view.position.clone().sub(hero).dot(road.tangent) < -10,
-        'the exit stays behind the actual headlight direction',
-      );
-      assert.ok(
-        view.position.y >= Math.max(hero.y, road.position.y) + 6 - 1e-8,
-      );
-      assert.ok(
-        view.position.y > track.waterY + 5,
-        'the shortened exit stays above the immersion glare',
-      );
-    }
+    assert.ok(
+      view.position.distanceTo(hero) < 40,
+      'the native plunge cannot leave the racer tiny in frame',
+    );
+    assert.ok(view.position.y >= hero.y + 7 - 1e-8);
+    const travel = new Vector3()
+      .fromArray(recording.hero.motion.flight.velocity)
+      .normalize();
+    assert.ok(
+      view.target.clone().sub(hero).dot(travel) > 2,
+      'the receiving direction stays ahead',
+    );
   }
-  assert.equal(run.duration, 11);
 });
 
-test('audio cues come from native events rather than fabricated shot or jump times', () => {
+test('audio follows native repulsor/jump events and the exact genuine winner crossing', () => {
   const heroEvents = run.events.filter(({ actor }) => actor === 'hero');
   const launch = heroEvents.find(({ type }) => type === 'jump-launch');
   const land = heroEvents.find(({ type }) => type === 'jump-transfer');
+  const finish = heroEvents.find(({ type }) => type === 'sprint-complete');
   assert.equal(completionCueForEvent(launch).id, 'jump-activate');
   assert.equal(completionCueForEvent(land).id, 'jump-land');
+  assert.equal(finish.time, run.landmarks.finishTime);
+  assert.equal(finish.place, 1);
+  assert.equal(completionCueForEvent(finish).id, 'race-winner');
   const pickup = heroEvents.find(
-    ({ type, payload }) => type === 'pickup-activate' && payload.kind === 'arc',
+    ({ type, payload }) =>
+      type === 'pickup-activate' && payload.kind === 'repulsor',
   );
-  assert.equal(completionCueForEvent(pickup).id, 'arc-activate');
+  assert.equal(completionCueForEvent(pickup).id, 'repulsor-charge');
+  assert.equal(completionCueForEvent({ ...finish, actor: 'rook' }), null);
   assert.equal(
     completionCueForEvent({
       type: 'jump-transfer',
@@ -183,15 +205,10 @@ test('audio cues come from native events rather than fabricated shot or jump tim
     }),
     null,
   );
-  assert.equal(completionCueForEvent({ ...launch, actor: 'rook' }), null);
-  const sampled = sampleCompletionRun(run, launch.time + 1 / 60);
   assert.ok(
-    sampled.eventsThroughTime.includes(launch),
-    'a skipped120Hz tick still exposes the real launch to audio',
-  );
-  assert.ok(
-    !run.events.some((event) =>
-      completionCueForEvent(event)?.id.startsWith('lance'),
+    sampleCompletionRun(run, finish.time + 1 / 60).eventsThroughTime.includes(
+      finish,
     ),
+    '60Hz audio observes the exact interpolated finish event',
   );
 });

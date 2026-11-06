@@ -7,6 +7,7 @@
     "dev": "vite --host 127.0.0.1 --port 5179 --strictPort",
     "build": "vite build",
     "previews": "node tools/capture-menu-previews.mjs",
+    "completion:capture": "node --max-old-space-size=8192 tools/capture-completion-runs.mjs",
     "audio:setup": "python3 tools/setup-audio.py",
     "audio:generate": "python3 assets/levels/halcyon/audio/render.py",
     "audio:encode": "node tools/encode-audio.mjs",

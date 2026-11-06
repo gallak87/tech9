@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resolve, sep } from 'node:path';
 import { createRequire } from 'node:module';
-import { editionPolicy, includePublic } from './policy.mjs';
+import { editionPolicy, includePublic, forbiddenModules } from './policy.mjs';
 import { menuIntent } from '../../src/input/menu-gamepad.js';
 const { resourcePath, forbiddenArguments, trustedSender, CSP } = createRequire(
   import.meta.url,
@@ -41,6 +41,46 @@ test('full packages every original and bonus course without exposing bonus conte
     assert.equal(includePublic(`assets/levels/${id}/world.glb`, 'full'), true);
     assert.equal(includePublic(`assets/levels/${id}/world.glb`, 'demo'), false);
   }
+});
+test('only the four final native finale records and provenance manifest ship in the full edition', () => {
+  for (const file of [
+    'kestrel.json.gz',
+    'shrike.json.gz',
+    'bastion.json.gz',
+    'needle.json.gz',
+    'manifest.json',
+  ]) {
+    const path = `assets/completion/shatterline-v1/${file}`;
+    assert.equal(includePublic(path, 'full'), true, path);
+    assert.equal(includePublic(path, 'demo'), false, path);
+  }
+  for (const file of [
+    'kestrel.json',
+    'test.json.gz',
+    'kestrel.webm',
+    'capture.log',
+    'source.js',
+    '../needle.json.gz',
+  ])
+    assert.equal(
+      includePublic(`assets/completion/shatterline-v1/${file}`, 'full'),
+      false,
+      file,
+    );
+  assert.equal(
+    includePublic('assets/completion/old/needle.json.gz', 'full'),
+    false,
+  );
+  for (const tool of ['completion-capture', 'capture-completion-runs'])
+    assert.equal(
+      forbiddenModules.test(`/project/tools/${tool}.mjs`),
+      true,
+      'offline capture tools never enter the renderer bundle',
+    );
+  assert.equal(
+    forbiddenModules.test('/project/src/frontend/completion-run.js'),
+    false,
+  );
 });
 test('custom protocol confines requests to the renderer root', () => {
   const root = resolve('example/dist');

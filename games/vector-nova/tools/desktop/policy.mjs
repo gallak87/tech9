@@ -45,6 +45,13 @@ export function includePublic(path, edition) {
   const policy = editionPolicy(edition);
   if (/\.(?:map|blend|py|md|wav)$/.test(path) || path.endsWith('previews.json'))
     return false;
+  if (/^assets\/completion\//.test(path))
+    return (
+      edition === 'full' &&
+      /^assets\/completion\/shatterline-v1\/(?:(?:kestrel|shrike|bastion|needle)\.json\.gz|manifest\.json)$/.test(
+        path,
+      )
+    );
   if (
     /^assets\/rewards\/icons-v2\/(?:(?:speed|acceleration|handling|braking|boost|toughness)-[123]|equipment-(?:jump|injector|slipstream|deflector|stabilizer|lance)|ship-(?:bastion|needle|kestrel)|exotic-slot)\.png$/.test(
       path,
@@ -81,7 +88,7 @@ export function includePublic(path, edition) {
   );
 }
 export const forbiddenModules =
-  /\/src\/(?:core\/(?:fly-camera|review-camera)\.js|ui\/dev-tools\.js|audio\/sound-panel\.js|ships\/pickup-inspector\.js|progression\/developer(?:-runtime)?\.js)/;
+  /\/(?:src\/(?:core\/(?:fly-camera|review-camera)\.js|ui\/dev-tools\.js|audio\/sound-panel\.js|ships\/pickup-inspector\.js|progression\/developer(?:-runtime)?\.js)|tools\/(?:completion-capture|capture-completion-runs)\.mjs)/;
 export const forbiddenRendererText = [
   '__VN',
   'devSetup',

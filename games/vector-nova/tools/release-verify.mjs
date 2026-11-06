@@ -78,11 +78,23 @@ const phase = async (page, value) => {
   if (!completion.error) {
     assert.equal(
       completion.rendering?.world,
-      'nacre',
-      'finale uses the production Nacre world',
+      'shatterline',
+      'finale uses the production Shatterline world',
     );
     assert.equal(completion.rendering?.source, 'native-replay');
-    assert.equal(completion.rendering?.pipeline?.world, 'nacre-tempest');
+    assert.equal(completion.rendering?.pipeline?.world, 'shatterline');
+    const selectedRecord = `/assets/completion/shatterline-v1/${completion.shipId}.json.gz`;
+    assert.equal(
+      await page.evaluate(
+        (suffix) =>
+          performance
+            .getEntriesByType('resource')
+            .some((entry) => new URL(entry.name).pathname.endsWith(suffix)),
+        selectedRecord,
+      ),
+      true,
+      'finale loaded its selected final native record',
+    );
   }
 };
 const mockGame = `export async function createGame(options) {
@@ -181,11 +193,11 @@ async function check(
       )
     ) {
       for (const source of [
-        '/src/levels/nacre/index.js',
+        '/src/levels/shatterline/index.js',
         '/src/frontend/completion-run.js',
         '/src/renderer/index.js',
-        '/assets/levels/nacre/nacre-storm-sky-v1.png',
-        '/assets/levels/nacre/leviathan/nacre-leviathan-v2.glb',
+        '/assets/levels/shatterline/shatterline-sky-v1.png',
+        '/assets/levels/shatterline/receiver-command.glb',
       ])
         assert.ok(
           [...requests].some((path) => path.endsWith(source)),
@@ -196,7 +208,7 @@ async function check(
           path.endsWith('/assets/levels/nomad/nomad-sky-v1.png'),
         ),
         false,
-        'Nacre finale uses its own storm sky',
+        'Shatterline finale uses its own sky',
       );
     }
     assert.deepEqual(faults, [], 'no uncaught browser errors');

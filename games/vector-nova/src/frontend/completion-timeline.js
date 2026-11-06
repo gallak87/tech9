@@ -1,11 +1,8 @@
 import { Vector3 } from 'three';
-import {
-  createLeviathanPath,
-  NACRE_LEVIATHAN,
-} from '../levels/nacre/environment/leviathan/path.js';
 import { deviceSample } from '../pickups/sample-cues.js';
+import { COMPLETION_DURATION } from './completion-config.js';
 
-export const COMPLETION_DURATION = 11;
+export { COMPLETION_DURATION };
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const smooth = (value) => value * value * (3 - 2 * value);
 const unit = (time, start, end) =>
@@ -22,38 +19,49 @@ const globalUp = new Vector3(0, 1, 0);
 export function completionShotPlan(run = {}) {
   const duration = valid(run.duration, COMPLETION_DURATION);
   const event = run.landmarks ?? {};
-  const launch = clamp(valid(event.launchTime, 5.9), 3, duration - 3);
-  const landing = clamp(
-    valid(event.landingTime, launch + 1.9),
-    launch + 0.5,
-    duration - 1.8,
-  );
-  const fire = clamp(valid(event.firstFireTime, launch - 3), 1.2, launch - 1.5);
-  const peak = clamp(
-    valid(event.wormPeakTime, launch - 1.6),
-    fire + 0.6,
-    launch - 0.4,
-  );
-  const combat = clamp(fire - 0.5, 1.2, launch - 2.5);
-  const breach = clamp(peak - 0.8, combat + 0.7, launch - 0.9);
-  const flight = Math.max(breach + 0.55, launch - 0.3);
-  const catchDeck = landing - 0.12;
-  const exit = Math.min(duration - 1.2, landing + 1.1);
-  const ends = [combat, breach, flight, catchDeck, exit, duration];
-  const ids = ['chase', 'combat', 'leviathan', 'flight', 'landing', 'exit'];
-  return {
-    duration,
-    shots: ids.map((id, index) => ({
-      id,
-      start: index ? ends[index - 1] : 0,
-      end: ends[index],
-    })),
-    titleStart: Math.max(exit + 0.5, duration - 1.8),
+  const launch = event.launchTime,
+    landing = event.landingTime,
+    finish = event.finishTime;
+  if (
+    ![launch, landing, finish].every(Number.isFinite) ||
+    !(launch > 0.8 && landing > launch && finish > landing && duration > finish)
+  )
+    throw new Error(
+      'Completion requires a recorded launch, landing and actual finish.',
+    );
+  const shots = [];
+  const append = (id, end) => {
+    const start = shots.at(-1)?.end ?? 0;
+    if (end > start + 0.05) shots.push({ id, start, end });
   };
+  const fire = event.firstFireTime;
+  if (Number.isFinite(fire) && fire > 0.6 && fire < launch - 1.5) {
+    const combat = Math.max(0.45, fire - 0.5);
+    append('chase', combat);
+    append(
+      'combat',
+      Math.min(
+        launch - 1,
+        Math.max(fire + 1.05, valid(event.firstHitTime, fire) + 0.6),
+      ),
+    );
+  } else append('chase', Math.max(0.5, launch - 2));
+  append('approach', launch - 0.3);
+  append('flight', landing - 0.12);
+  append('landing', Math.min(landing + 1, finish - 1.2));
+  append('run-in', finish - 0.85);
+  append('finish', Math.min(duration - 0.2, finish + 0.4));
+  append('exit', duration);
+  return { duration, shots, titleStart: finish + 0.3 };
 }
 
 export function completionCueForEvent(event) {
   if (event.actor && event.actor !== 'hero') return null;
+  if (event.type === 'sprint-complete')
+    return {
+      id: event.place === 1 ? 'race-winner' : 'race-finisher',
+      gain: 0.8,
+    };
   if (event.type === 'jump-launch') return { id: 'jump-activate', gain: 0.65 };
   if (event.type === 'jump-transfer' && event.payload?.outcome === 'landed')
     return { id: 'jump-land', gain: 0.7 };
@@ -72,7 +80,7 @@ function pointsAround(center, radius) {
 }
 
 // Fit selected real subjects into a cinematic frame. Only the camera is pulled
-// back; the native replay and the animal's production animation stay untouched.
+// back; the native replay remains untouched.
 function fitSubjects(
   position,
   target,
@@ -108,11 +116,21 @@ function fitSubjects(
 
 export function createCompletionDirector({ track, run }) {
   const plan = completionShotPlan(run);
-  const path = createLeviathanPath(track);
+  const finishDistance = run.landmarks.finishDistance ?? track.finishDistance;
+  if (
+    !Number.isFinite(finishDistance) ||
+    Math.abs(finishDistance - track.finishDistance) > 1e-5
+  )
+    throw new Error('Completion must frame the production finish distance.');
+  const finishFrame = track.sample(finishDistance);
+  const landingFrame = run.frames.find(
+    (frame) => frame.time >= run.landmarks.landingTime,
+  );
+  const landingPosition = vector(landingFrame.hero.position);
   return {
     duration: plan.duration,
     shots: plan.shots,
-    sample(value, recording, aspect = 1.6, leviathanPresentation) {
+    sample(value, recording, aspect = 1.6) {
       const time = clamp(valid(value, 0), 0, plan.duration);
       const shot =
         plan.shots.find(({ end }) => time < end) ?? plan.shots.at(-1);
@@ -151,46 +169,68 @@ export function createCompletionDirector({ track, run }) {
           subjects.push(...pointsAround(rival, 3.5));
         }
         fov = 63;
-      } else if (shot.id === 'leviathan') {
-        // View the breach from above the actual bridge. Fitting a high animal
-        // must never retreat down into the water or behind its guard fins.
-        offset(-45, 55, -65);
-        minimumY = Math.max(heroPosition.y, frame.position.y) + 20;
-        const clock = leviathanPresentation ?? recording.leviathan;
-        const body = [];
-        if (clock?.active && Number.isFinite(clock.age)) {
-          const head = path.headArc(clock.age);
-          for (let back = 0; back <= NACRE_LEVIATHAN.length; back += 35) {
-            const point = path.sample(head - back).position.clone();
-            if (point.y > (track.waterY ?? 0) - 12) body.push(point);
-          }
-        }
-        if (body.length) {
-          const center = body
-            .reduce((sum, point) => sum.add(point), new Vector3())
-            .multiplyScalar(1 / body.length);
-          target.lerp(center, 0.54);
-          for (const point of body) subjects.push(...pointsAround(point, 20));
-        }
-        up.lerp(globalUp, 0.7).normalize();
-        fov = 67;
       } else if (shot.id === 'flight') {
-        // Follow the physical jump closely with its receiving deck ahead. The
-        // worm remains scenery; it cannot pull this action shot away from the
-        // racer or turn the flight into a distant side-on silhouette.
-        offset(-12, 10, -15 + u * 2);
-        minimumY = Math.max(heroPosition.y, frame.position.y) + 8;
-        target.addScaledVector(frame.tangent, 6);
+        // Follow the native airborne velocity, not the takeoff's now-distant
+        // road frame. The recorded receiver is the only secondary focus.
+        const travel = vector(hero.motion?.flight?.velocity);
+        if (travel.lengthSq() < 1) travel.copy(frame.tangent);
+        travel.normalize();
+        const side = new Vector3().crossVectors(globalUp, travel).normalize();
+        if (side.dot(frame.right) < 0) side.negate();
+        up.copy(globalUp);
+        position
+          .addScaledVector(side, -11)
+          .addScaledVector(globalUp, 8)
+          .addScaledVector(travel, -16);
+        minimumY = heroPosition.y + 7;
+        target.addScaledVector(travel, 8);
+        target.lerp(
+          landingPosition,
+          0.14 *
+            unit(
+              time,
+              run.landmarks.landingTime - 1.2,
+              run.landmarks.landingTime,
+            ),
+        );
         fov = 59;
       } else if (shot.id === 'landing') {
-        offset(8.5, 2.7, -11.5);
+        offset(8.5, 5, -13);
+        minimumY = heroPosition.y + 4;
         target.addScaledVector(frame.tangent, 5);
         fov = 57;
+      } else if (shot.id === 'finish') {
+        // The real production checker stays fixed while the genuine racer
+        // crosses it. Fit both subjects, including the full painted width.
+        up.copy(finishFrame.up);
+        position
+          .copy(finishFrame.position)
+          .addScaledVector(finishFrame.right, 23)
+          .addScaledVector(up, 13)
+          .addScaledVector(finishFrame.tangent, 30);
+        target
+          .copy(finishFrame.position)
+          .addScaledVector(up, 0.8)
+          .lerp(focus, 0.35);
+        const width = track.width - Math.min(1.6, track.width * 0.1);
+        for (const lateral of [-width / 2, width / 2])
+          for (const depth of [-1.5, 1.5])
+            subjects.push(
+              finishFrame.position
+                .clone()
+                .addScaledVector(finishFrame.right, lateral)
+                .addScaledVector(finishFrame.tangent, depth)
+                .addScaledVector(up, 0.15),
+            );
+        minimumY = finishFrame.position.y + 8;
+        fov = 54;
+      } else if (shot.id === 'approach' || shot.id === 'run-in') {
+        offset(-7 + u * 2, 4.5, -15);
+        target.addScaledVector(frame.tangent, 8);
+        fov = 58;
       } else {
-        // The native racer keeps driving. Finish on its wake rather than in
-        // front of its underwater headlight cones.
-        offset(7 - u * 1.5, 7 + u, -12 - u * 3);
-        minimumY = Math.max(heroPosition.y, frame.position.y) + 6;
+        offset(7 - u, 7 + u, -13 - u * 2);
+        minimumY = heroPosition.y + 6;
         target.addScaledVector(frame.tangent, 4);
         fov = 52 - u * 2;
       }

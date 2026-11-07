@@ -1557,7 +1557,7 @@ try {
     },
   );
   await check(
-    'Quad Core controller confirmation assigns four items to exactly one hull',
+    'Quad Core transfers, removes and reapplies with keyboard and controller',
     async (page) => {
       await open(page, 'dev=2');
       await page.evaluate((profileKey) => {
@@ -1569,52 +1569,160 @@ try {
         }
         localStorage.setItem(profileKey, JSON.stringify(profile));
       }, scopedProfileKey);
-      await open(page, 'dev=1&ship=shrike');
-      await action(page, 'ship-step');
+      // The playtest entry only seeds earned rewards. Exercise the normal saved
+      // career for the garage changes, reload and save-transfer assertions.
+      await open(page, 'ship=shrike');
+      await action(page, 'garage-tab');
+      const expected = structuredClone((await state(page)).career.state);
+      const matchesProfile = async () =>
+        assert.deepEqual((await state(page)).career.state, expected);
+      const focusedAction = () =>
+        page.evaluate(() => document.activeElement.dataset.action);
+      for (const controller of [false, true]) {
+        const activate = async (selector) => {
+          await page.locator(selector).focus();
+          if (controller) await pad(page, 0);
+          else await key(page, 'Enter');
+        };
+        const cancel = async () => {
+          if (controller) await pad(page, 1);
+          else await key(page, 'Escape');
+        };
+        const fit = async (ship) => {
+          await activate('[data-action="fit-exotic"]');
+          await activate('[data-confirm-exotic]');
+          expected.exoticShip = ship;
+          assert.equal(await focusedAction(), 'remove-exotic');
+          await matchesProfile();
+        };
+        await activate('[data-ship="shrike"]');
+        // The new control remains in the native keyboard/controller path.
+        await page.locator('[data-equip="lance"]').focus();
+        if (controller) await pad(page, 13);
+        else await key(page, 'Tab');
+        assert.equal(await focusedAction(), 'fit-exotic');
+        if (controller) await pad(page, 0);
+        else await key(page, 'Enter');
+        assert.equal(
+          await page.evaluate(() =>
+            document.activeElement.hasAttribute('data-cancel'),
+          ),
+          true,
+        );
+        await cancel();
+        assert.equal(await page.locator('dialog[open]').count(), 0);
+        assert.equal(await focusedAction(), 'fit-exotic');
+        await matchesProfile();
+        await fit('shrike');
+        for (const id of ['deflector', 'lance'])
+          await activate(`[data-equip="${id}"]`);
+        expected.loadouts.shrike = ['jump', 'injector', 'deflector', 'lance'];
+        await matchesProfile();
+        await activate('[data-equip="stabilizer"]');
+        assert.match(
+          await page.locator('.garage-notice').innerText(),
+          /4 equipped/,
+        );
+        await matchesProfile();
+
+        await activate('[data-ship="kestrel"]');
+        assert.match(
+          await page.locator('.garage-exotic').innerText(),
+          /Shrike/i,
+        );
+        assert.match(
+          await page.locator('.garage-equipment-count').innerText(),
+          /2 \/ 2 equipped/,
+        );
+        await activate('[data-action="fit-exotic"]');
+        assert.match(
+          await page.locator('dialog[open]').innerText(),
+          /move|transfer/i,
+        );
+        await cancel();
+        assert.equal(await focusedAction(), 'fit-exotic');
+        await matchesProfile();
+        // Transfer gives the new owner capacity, without copying old extras.
+        expected.loadouts.shrike[2] = expected.loadouts.shrike[3] = null;
+        await fit('kestrel');
+        assert.match(
+          await page.locator('.garage-equipment-count').innerText(),
+          /2 \/ 4 equipped/,
+        );
+        for (const id of ['deflector', 'lance'])
+          await activate(`[data-equip="${id}"]`);
+        expected.loadouts.kestrel = ['jump', 'injector', 'deflector', 'lance'];
+        await matchesProfile();
+        await activate('[data-action="remove-exotic"]');
+        expected.exoticShip = null;
+        expected.loadouts.kestrel[2] = expected.loadouts.kestrel[3] = null;
+        assert.equal(await page.locator('dialog[open]').count(), 0);
+        assert.equal(await focusedAction(), 'fit-exotic');
+        assert.match(
+          await page.locator('.garage-equipment-count').innerText(),
+          /2 \/ 2 equipped/,
+        );
+        await matchesProfile();
+        await fit('kestrel');
+        assert.match(
+          await page.locator('.garage-equipment-count').innerText(),
+          /2 \/ 4 equipped/,
+        );
+        await activate('[data-action="remove-exotic"]');
+        expected.exoticShip = null;
+        await matchesProfile();
+      }
+
       await page.locator('[data-action="fit-exotic"]').focus();
-      await pad(page, 0);
+      await key(page, 'Enter');
+      await page.locator('[data-confirm-exotic]').focus();
+      await key(page, 'Enter');
+      expected.exoticShip = 'kestrel';
+      for (const id of ['deflector', 'lance']) {
+        await page.locator(`[data-equip="${id}"]`).focus();
+        await key(page, 'Enter');
+      }
+      expected.loadouts.kestrel = ['jump', 'injector', 'deflector', 'lance'];
+      await page.reload();
+      await page.waitForFunction(() => window.__VN_FRONTEND);
+      await matchesProfile();
+      await action(page, 'career');
+      const download = page.waitForEvent('download');
+      await page.locator('[data-export]').focus();
+      await key(page, 'Enter');
+      const stream = await (await download).createReadStream();
+      const chunks = [];
+      for await (const chunk of stream) chunks.push(chunk);
+      const bytes = Buffer.concat(chunks);
+      assert.deepEqual(JSON.parse(bytes).profile, expected);
+      await action(page, 'garage-tab');
+      await page.locator('[data-action="remove-exotic"]').focus();
+      await key(page, 'Enter');
+      assert.equal((await state(page)).career.state.exoticShip, null);
+      await action(page, 'career');
+      await page.locator('[data-save-file]').setInputFiles({
+        name: 'quad-core-save.json',
+        mimeType: 'application/json',
+        buffer: bytes,
+      });
       assert.equal(
         await page.evaluate(() =>
           document.activeElement.hasAttribute('data-cancel'),
         ),
         true,
       );
-      await pad(page, 1);
-      assert.equal((await state(page)).career.state.exoticShip, null);
-      assert.equal(await page.locator('dialog[open]').count(), 0);
+      await pad(page, 15);
       assert.equal(
-        await page.evaluate(() => document.activeElement.dataset.action),
-        'fit-exotic',
+        await page.evaluate(() =>
+          document.activeElement.hasAttribute('data-confirm-import'),
+        ),
+        true,
       );
       await pad(page, 0);
-      await page.locator('[data-confirm-exotic]').focus();
-      await pad(page, 0);
-      assert.equal((await state(page)).career.state.exoticShip, 'shrike');
-      assert.equal(
-        await page.evaluate(() => document.activeElement.dataset.action),
-        'garage-tab',
-      );
-      for (const id of ['deflector', 'lance']) {
-        await page.locator(`[data-equip="${id}"]`).focus();
-        await pad(page, 0);
-      }
-      assert.deepEqual((await state(page)).career.state.loadouts.shrike, [
-        'jump',
-        'injector',
-        'deflector',
-        'lance',
-      ]);
-      await page.locator('[data-equip="stabilizer"]').click();
-      assert.match(
-        await page.locator('.garage-notice').innerText(),
-        /4 equipped/,
-      );
-      await page.locator('[data-ship="kestrel"]').click();
-      assert.equal(await page.locator('[data-action="fit-exotic"]').count(), 0);
-      assert.match(
-        await page.locator('.garage-equipment-heading').innerText(),
-        /2 \/ 2 equipped/,
-      );
+      await matchesProfile();
+      await page.reload();
+      await page.waitForFunction(() => window.__VN_FRONTEND);
+      await matchesProfile();
     },
   );
   await check(
@@ -1670,11 +1778,21 @@ try {
       await open(page, 'dev=2&ship=shrike');
       await action(page, 'time-trial');
       await action(page, 'ship-step');
+      const stockProfile = (await state(page)).career.state;
+      assert.equal(
+        await page.locator('[data-action="remove-exotic"]:disabled').count(),
+        1,
+      );
+      assert.equal(
+        await page.locator('.garage-exotic button:enabled').count(),
+        0,
+      );
       assert.equal(
         await page.locator('.garage-equipment-card:enabled').count(),
         0,
       );
       assert.equal(await page.locator('.stat-notch').count(), 0);
+      assert.deepEqual((await state(page)).career.state, stockProfile);
       await key(page, 'Escape');
       await action(page, 'quick-race');
       await action(page, 'ship-step');
@@ -1688,10 +1806,22 @@ try {
       await page.locator('[data-ship="needle"]').click();
       assert.equal((await state(page)).shipId, 'shrike');
       assert.equal(
+        await page.locator('[data-action="fit-exotic"]:disabled').count(),
+        1,
+      );
+      assert.equal(
+        await page.locator('.garage-exotic button:enabled').count(),
+        0,
+      );
+      assert.equal(
         await page.locator('.garage-equipment-card:enabled').count(),
         0,
       );
       await page.locator('[data-ship="shrike"]').click();
+      assert.equal(
+        await page.locator('[data-action="remove-exotic"]:enabled').count(),
+        1,
+      );
       await page.locator('[data-equip="lance"]').click();
       await page.locator('[data-equip="stabilizer"]').click();
       await action(page, 'race-tab');
@@ -1904,6 +2034,67 @@ try {
     [390, 844],
     [844, 390],
   ]) {
+    await check(
+      `responsive Quad Core controls ${width}x${height}`,
+      async (page) => {
+        await page.setViewportSize({ width, height });
+        await seedFleetUpgrades(page, true);
+        await open(page, 'ship=kestrel');
+        await action(page, 'garage-tab');
+        const fitsScreen = async () => {
+          assert.equal(
+            await page.evaluate(
+              () =>
+                document.querySelector('#front-shell').scrollWidth <=
+                innerWidth,
+            ),
+            true,
+          );
+          await page.locator('.garage-exotic button').scrollIntoViewIfNeeded();
+          assert.equal(
+            await page.locator('.garage-exotic button').evaluate((element) => {
+              const r = element.getBoundingClientRect();
+              return (
+                r.left >= 0 &&
+                r.right <= innerWidth &&
+                r.top >= 0 &&
+                r.bottom <= innerHeight
+              );
+            }),
+            true,
+          );
+        };
+        await fitsScreen();
+        await page.locator('[data-ship="shrike"]').tap();
+        await fitsScreen();
+        await page.locator('[data-action="fit-exotic"]').tap();
+        const dialog = page.locator('dialog[open]');
+        assert.match(await dialog.innerText(), /Move Quad Core/);
+        assert.equal(
+          await dialog.evaluate((element) => {
+            const r = element.getBoundingClientRect();
+            return (
+              r.left >= 0 &&
+              r.right <= innerWidth &&
+              r.top >= 0 &&
+              r.bottom <= innerHeight &&
+              element.scrollWidth <= element.clientWidth + 1
+            );
+          }),
+          true,
+        );
+        await page.locator('[data-confirm-exotic]').tap();
+        assert.equal((await state(page)).career.state.exoticShip, 'shrike');
+        await fitsScreen();
+        await page.locator('[data-action="remove-exotic"]').tap();
+        assert.equal((await state(page)).career.state.exoticShip, null);
+        await fitsScreen();
+        await page.locator('[data-action="fit-exotic"]').tap();
+        await page.locator('[data-confirm-exotic]').tap();
+        assert.equal((await state(page)).career.state.exoticShip, 'shrike');
+        await fitsScreen();
+      },
+    );
     await check(
       `responsive garage and equipment HUD ${width}x${height}`,
       async (page) => {

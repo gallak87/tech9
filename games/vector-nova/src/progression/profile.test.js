@@ -6,6 +6,7 @@ import {
   sessionBuild,
   shipUnlocked,
   validateProfile,
+  freshProfile,
   PROFILE_KEY,
 } from './profile.js';
 import { ENHANCEMENTS, REWARDS } from './catalog.js';
@@ -60,7 +61,7 @@ test('wins award each milestone once, starter and ordered cup unlocks persist', 
     store.snapshot().state,
   );
 });
-test('full collection requires distinct valid Time Trial maps and exotic choice is permanent', () => {
+test('full collection requires distinct valid Time Trial maps and Quad Core expands one loadout', () => {
   const store = createProfileStore(() => memory());
   for (let i = 0; i < 24; i++) store.recordRace({ id: `${i}`, won: true });
   for (const cup of ['founders', 'frontier', 'horizon', 'apex'])
@@ -73,7 +74,7 @@ test('full collection requires distinct valid Time Trial maps and exotic choice 
   store.recordTrial('orbital', true);
   assert.equal(store.snapshot().state.claims.length, REWARDS.length);
   assert.ok(store.chooseExotic('kestrel'));
-  assert.equal(store.chooseExotic('shrike'), false);
+  assert.equal(store.chooseExotic('kestrel'), false);
   store.equip('kestrel', 1, 'jump');
   assert.deepEqual(sessionBuild(store.snapshot().state, 'kestrel').equipment, [
     null,
@@ -86,6 +87,140 @@ test('full collection requires distinct valid Time Trial maps and exotic choice 
     { version: 1, enhancements: {}, equipment: [] },
   );
   assert.ok(validateProfile(store.snapshot().state));
+});
+
+test('Quad Core requires all four campaign cups, excluding Encore and demo', () => {
+  const storage = memory(),
+    store = createProfileStore(() => storage);
+  assert.equal(store.chooseExotic('shrike'), false);
+  assert.equal(store.removeExotic(), false);
+  for (const cup of ['encore', 'demo', 'founders', 'frontier', 'horizon'])
+    store.recordCup(cup);
+  assert.ok(!store.snapshot().state.claims.includes('exotic-slot'));
+  assert.equal(store.chooseExotic('kestrel'), false);
+  assert.ok(store.recordCup('apex').some(({ id }) => id === 'exotic-slot'));
+  assert.ok(store.chooseExotic('kestrel'));
+  assert.equal(store.snapshot().state.points, 0);
+  assert.deepEqual(store.snapshot().state.trialTracks, []);
+
+  const locked = freshProfile();
+  locked.claims.push('exotic-slot');
+  storage.setItem(PROFILE_KEY, JSON.stringify(locked));
+  const imported = createProfileStore(() => storage);
+  assert.equal(imported.chooseExotic('kestrel'), false);
+  assert.equal(imported.chooseExotic('unknown'), false);
+  assert.equal(imported.removeExotic(), false);
+  assert.deepEqual(imported.snapshot().state, locked);
+});
+
+test('Quad Core transfers and removes atomically while preserving progress and base loadouts', () => {
+  const storage = memory(),
+    store = createProfileStore(() => storage);
+  for (let i = 0; i < 24; i++) store.recordRace({ id: `quad-${i}`, won: true });
+  for (const cup of ['founders', 'frontier', 'horizon', 'apex'])
+    store.recordCup(cup);
+  for (const track of ['halcyon', 'orbital']) store.recordTrial(track, true);
+  assert.ok(store.queueCompletion('kestrel'));
+  assert.ok(store.acknowledgeCompletion());
+  assert.ok(store.chooseExotic('kestrel'));
+  for (const [slot, id] of [
+    'jump',
+    'injector',
+    'stabilizer',
+    'lance',
+  ].entries())
+    assert.ok(store.equip('kestrel', slot, id));
+  assert.ok(store.equip('shrike', 0, 'deflector'));
+  assert.ok(store.equip('shrike', 1, 'slipstream'));
+  assert.ok(store.equip('bastion', 0, 'injector'));
+  const before = store.snapshot().state;
+  const updates = [];
+  store.subscribe((state) => {
+    assert.ok(validateProfile(state), 'every published update is a valid save');
+    updates.push(state);
+  });
+  assert.equal(store.chooseExotic('kestrel'), false);
+  assert.equal(store.chooseExotic('unknown'), false);
+  assert.deepEqual(store.snapshot().state, before);
+  assert.equal(updates.length, 0);
+
+  assert.ok(store.chooseExotic('shrike'));
+  assert.equal(updates.length, 1, 'transfer publishes one atomic update');
+  const transferred = store.snapshot().state;
+  assert.equal(transferred.exoticShip, 'shrike');
+  assert.deepEqual(transferred.loadouts.kestrel, [
+    'jump',
+    'injector',
+    null,
+    null,
+  ]);
+  assert.deepEqual(transferred.loadouts.shrike, before.loadouts.shrike);
+  assert.deepEqual(
+    {
+      ...transferred,
+      exoticShip: before.exoticShip,
+      loadouts: before.loadouts,
+    },
+    before,
+  );
+  assert.equal(sessionBuild(transferred, 'kestrel').equipment.length, 2);
+  assert.equal(sessionBuild(transferred, 'shrike').equipment.length, 4);
+  assert.deepEqual(
+    createProfileStore(() => storage).snapshot().state,
+    transferred,
+  );
+  const stale = structuredClone(transferred);
+  stale.loadouts.kestrel[2] = 'stabilizer';
+  assert.equal(
+    validateProfile(stale),
+    null,
+    'old holder cannot retain extra items',
+  );
+
+  assert.ok(store.equip('shrike', 2, 'jump'));
+  assert.ok(store.equip('shrike', 3, 'lance'));
+  const beforeRemoval = store.snapshot().state;
+  updates.length = 0;
+  assert.ok(store.removeExotic());
+  assert.equal(updates.length, 1, 'removal publishes one atomic update');
+  const removed = store.snapshot().state;
+  assert.equal(removed.exoticShip, null);
+  assert.deepEqual(removed.loadouts.shrike, [
+    'deflector',
+    'slipstream',
+    null,
+    null,
+  ]);
+  assert.deepEqual(removed.loadouts.kestrel, transferred.loadouts.kestrel);
+  assert.deepEqual(
+    {
+      ...removed,
+      exoticShip: beforeRemoval.exoticShip,
+      loadouts: beforeRemoval.loadouts,
+    },
+    beforeRemoval,
+  );
+  assert.equal(sessionBuild(removed, 'shrike').equipment.length, 2);
+  assert.equal(store.equip('shrike', 2, 'lance'), false);
+  assert.equal(store.removeExotic(), false);
+  assert.equal(updates.length, 1, 'already removed is a no-op');
+  assert.deepEqual(createProfileStore(() => storage).snapshot().state, removed);
+
+  const transfer = createSaveTransfer({
+    profileStore: store,
+    cupStore: createCupStore(() => storage),
+    storage: () => storage,
+  });
+  assert.deepEqual(transfer.parse(transfer.export()).profile, removed);
+  assert.ok(store.chooseExotic('bastion'));
+  const reapplied = store.snapshot().state;
+  assert.equal(reapplied.exoticShip, 'bastion');
+  assert.deepEqual(reapplied.loadouts, removed.loadouts);
+  assert.deepEqual(reapplied.completion, before.completion);
+  assert.deepEqual(
+    createProfileStore(() => storage).snapshot().state,
+    reapplied,
+  );
 });
 test('player upgrades never mutate fleet handling or rival defaults', () => {
   const stock = getShip('shrike').handling,

@@ -59,6 +59,13 @@ export function garageView({
   const capacity = equipmentCapacity(profile, craft.id);
   const loadout = equippedItems(profile, craft.id);
   const count = loadout.filter(Boolean).length;
+  const coreShip = SHIPS.find((ship) => ship.id === profile.exoticShip);
+  const coreFitted = coreShip?.id === craft.id;
+  const coreDetail = coreFitted
+    ? 'Four equipment slots. Removing or moving it unequips slots 3–4.'
+    : coreShip
+      ? `Fitted to ${coreShip.name}. Move it here to equip four items.`
+      : 'Four equipment slots on one ship. You can move it later.';
   const unlockedFleet = fleet.filter((ship) => shipUnlocked(profile, ship.id));
   const equipment = AVAILABLE_EQUIPMENT.filter((item) =>
     profile.claims.includes(`equipment-${item.id}`),
@@ -88,7 +95,7 @@ export function garageView({
       .join(
         '',
       )}</div><p class="garage-equipment-detail">${initial ? escapeHTML(detail(initial)) : ''}</p>${equipment.length ? '' : '<p class="garage-equipment-empty">No equipment unlocked yet.</p>'}<p class="garage-equipment-hint">${hint}</p></section>
-    ${!IS_DEMO && profile.claims.includes('exotic-slot') && !profile.exoticShip && unlocked && !cupLocked ? `<section class="garage-exotic">${rewardIcon('exotic-slot')}<span><strong>Quad Core earned</strong><small>Permanently equip four items on one ship.</small></span><button data-action="fit-exotic">Fit to ${craft.name}</button></section>` : ''}
+    ${!IS_DEMO && profile.claims.includes('exotic-slot') && unlocked ? `<section class="garage-exotic">${rewardIcon('exotic-slot')}<span><strong>Quad Core${coreFitted ? ' · Fitted' : ''}</strong><small>${coreDetail}</small></span><button data-action="${coreFitted ? 'remove-exotic' : 'fit-exotic'}" ${stock || cupLocked ? 'disabled' : ''}>${coreFitted ? 'Remove Quad Core' : `${coreShip ? 'Move' : 'Fit'} to ${craft.name}`}</button></section>` : ''}
     <footer class="garage-footer"><span class="garage-notice" role="status" aria-live="polite">${escapeHTML(notice)}</span></footer></div></div>`;
 }
 

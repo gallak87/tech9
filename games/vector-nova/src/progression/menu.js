@@ -33,7 +33,7 @@ export function createProgressionMenu({
     message = '',
     importSequence = 0;
   const profile = () => store.snapshot().state;
-  function close() {
+  function close(action = opener?.dataset.action) {
     importSequence++;
     if (!dialog.open) {
       if (careerMounted) {
@@ -46,7 +46,6 @@ export function createProgressionMenu({
     confirmation = null;
     if (opener?.isConnected) opener.focus({ preventScroll: true });
     else {
-      const action = opener?.dataset.action;
       const replacement = action
         ? host.querySelector(`[data-action="${action}"]`)
         : null;
@@ -61,17 +60,21 @@ export function createProgressionMenu({
   function render(focus) {
     const state = profile();
     const ship = SHIPS.find((entry) => entry.id === shipId) ?? SHIPS[0];
+    const coreShip = SHIPS.find((entry) => entry.id === state.exoticShip);
+    const movingCore = coreShip && coreShip.id !== ship.id;
     const root = activeRoot();
     const inline = root === career;
     const title =
-      confirmation === 'exotic' ? 'Fit Quad Core' : escapeHTML(careerName);
+      confirmation === 'exotic'
+        ? `${movingCore ? 'Move' : 'Fit'} Quad Core`
+        : escapeHTML(careerName);
     const content =
       confirmation === 'exotic'
         ? ''
         : `<div class="career-transfer"><button data-export>Export save</button><button data-import>Import save</button><button data-backup aria-label="Export previous backup">Export backup</button><input type="file" accept=".json,application/json" hidden data-save-file><span>Includes rewards, equipment, cups, records and ghosts.</span></div>${careerView(state)}`;
     const ask =
       confirmation === 'exotic'
-        ? `<section class="progression-confirm" role="alertdialog" aria-label="Choose exotic ship"><h3>Fit Quad Core to ${ship.name}?</h3><p>This permanent reward gives ${ship.name} four equipment slots.</p><button data-cancel>Keep choosing</button><button data-confirm-exotic>Fit Quad Core</button></section>`
+        ? `<section class="progression-confirm" role="alertdialog" aria-label="${movingCore ? 'Move' : 'Fit'} Quad Core"><h3>${movingCore ? 'Move' : 'Fit'} Quad Core to ${ship.name}?</h3><p>${ship.name} will have four equipment slots.${movingCore ? ` ${coreShip.name} returns to two slots; its third and fourth items will be unequipped.` : ''} You can remove Quad Core or move it again in the Garage.</p><button data-cancel>Keep choosing</button><button data-confirm-exotic>${movingCore ? 'Move' : 'Fit'} Quad Core</button></section>`
         : imported
           ? `<section class="progression-confirm" role="alertdialog" aria-label="Import career"><h3>Replace this career?</h3><p>Incoming save: ${imported.profile.wins} wins · ${imported.profile.claims.length} rewards · ${imported.profile.cups.length} cup wins. A backup of your current career will be kept on this device.</p>${imported.cupUnavailable ? '<p>This championship can only resume in the other edition. Its results, rewards and trophies will stay saved.</p>' : ''}<button data-cancel>Cancel</button><button data-confirm-import>Import career</button></section>`
           : '';
@@ -230,10 +233,10 @@ export function createProgressionMenu({
           return finishRename(false);
         if (button.hasAttribute('data-close')) return close();
         if (button.hasAttribute('data-confirm-exotic')) {
-          store.chooseExotic(shipId);
+          const changed = store.chooseExotic(shipId);
           confirmation = null;
-          onChange();
-          close();
+          if (changed) onChange();
+          close(changed ? 'remove-exotic' : undefined);
           return;
         }
         if (button.hasAttribute('data-cancel')) {

@@ -235,6 +235,8 @@ test('demo saves carry rewards and trophy to full; full saves round-trip through
   });
   assert.equal(inDemo.profile.equip('kestrel', 1, 'lance'), false);
   assert.equal(inDemo.profile.chooseExotic('kestrel'), false);
+  assert.equal(inDemo.profile.removeExotic(), false);
+  assert.deepEqual(inDemo.profile.snapshot().state, original);
   assert.match(demo.careerView(original), /4<small> \/ 4 rewards/);
   const returned = stores(full);
   returned.transfer.replace(returned.transfer.parse(inDemo.transfer.export()));

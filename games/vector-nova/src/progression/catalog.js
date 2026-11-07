@@ -164,7 +164,7 @@ export const ALL_REWARDS = Object.freeze([
     kind: 'exotic',
     rarity: 4,
     description:
-      'Choose one ship to permanently equip four items instead of two.',
+      'Equip four items instead of two on one ship. Refit to another ship anytime.',
     requirement: { cups: 4 },
   },
 ]);

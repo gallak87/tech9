@@ -341,6 +341,7 @@ export async function createFrontend(
     onCareerBack: () => actions['settings-back'](),
     onChange({ imported = false } = {}) {
       if (disposed) return;
+      garageNotice = '';
       if (imported) {
         stopCompletion();
         generation++;
@@ -1803,7 +1804,24 @@ export async function createFrontend(
       focusMenu('[data-action="garage-tab"]');
     },
     'fit-exotic'() {
+      if (
+        intent === 'time-trial' ||
+        (lockedCup() && lockedCup().shipId !== ship().id)
+      )
+        return;
       progressionMenu.openExotic(ship().id);
+    },
+    'remove-exotic'() {
+      if (
+        intent === 'time-trial' ||
+        (lockedCup() && lockedCup().shipId !== ship().id) ||
+        profile().exoticShip !== ship().id ||
+        !profileStore.removeExotic()
+      )
+        return;
+      garageNotice = 'Quad Core removed. Fit it to any unlocked ship.';
+      render();
+      focusMenu('[data-action="fit-exotic"]');
     },
     career() {
       earnedRewards = [];

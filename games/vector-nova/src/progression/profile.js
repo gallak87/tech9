@@ -375,13 +375,23 @@ export function createProfileStore(storage = () => localStorage) {
     chooseExotic(ship) {
       if (
         IS_DEMO ||
-        state.exoticShip ||
+        state.exoticShip === ship ||
         !state.claims.includes('exotic-slot') ||
         !shipUnlocked(state, ship)
       )
         return false;
       const next = copy(state);
+      if (next.exoticShip)
+        next.loadouts[next.exoticShip].fill(null, STANDARD_EQUIPMENT_SLOTS);
       next.exoticShip = ship;
+      persist(next);
+      return true;
+    },
+    removeExotic() {
+      if (IS_DEMO || !state.exoticShip) return false;
+      const next = copy(state);
+      next.loadouts[next.exoticShip].fill(null, STANDARD_EQUIPMENT_SLOTS);
+      next.exoticShip = null;
       persist(next);
       return true;
     },

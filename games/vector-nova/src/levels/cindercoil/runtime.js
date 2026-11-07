@@ -1,6 +1,7 @@
 import { toughness } from '../../progression/catalog.js';
 import { Vector3 } from 'three';
 import { createFlightModel } from '../../physics/flight.js';
+import { createScenarioDescriptors } from '../../core/scenarios.js';
 import {
   HAZARD_SURFACE_RULES,
   sampleHazardSurface,
@@ -44,12 +45,7 @@ export function createCindercoilRuntime(context) {
         0,
       ),
   });
-  const scenarios = Object.fromEntries(
-    Object.entries(track.scenarios).map(([id, state]) => [
-      id,
-      { label: id.replaceAll('-', ' '), state: { ...state } },
-    ]),
-  );
+  const scenarios = createScenarioDescriptors(track.scenarios);
   for (const [index, zone] of (track.surgeZones ?? []).entries()) {
     for (const [line, side] of [
       ['protected', -1],

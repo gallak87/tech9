@@ -1,5 +1,6 @@
 import { headingExtents } from '../../physics/hull.js';
 import { createFlightModel } from '../../physics/flight.js';
+import { createScenarioDescriptors } from '../../core/scenarios.js';
 import {
   HAZARD_SURFACE_RULES,
   sampleHazardSurface,
@@ -47,12 +48,7 @@ export function createHelionRuntime(context, telemetry = {}) {
     disposed = false,
     staged = null;
   const rulesId = `helion-thermal-flight-v6-grounded-contact:${JSON.stringify({ geometry: track.geometryVersion, heat: HELION_HEAT_RULES, hazard: HAZARD_SURFACE_RULES, severity: HELION_FIRE_SEVERITY, flight: flightModel.rules, jumps: track.jumps, zones: track.thermalZones })}`;
-  const scenarios = Object.fromEntries(
-    Object.entries(track.scenarios).map(([name, state]) => [
-      name,
-      { label: name.replaceAll('-', ' '), state: { ...state } },
-    ]),
-  );
+  const scenarios = createScenarioDescriptors(track.scenarios);
   const firstFurnace = track.thermalZones.find(
     (zone) => zone.kind === 'furnace',
   );

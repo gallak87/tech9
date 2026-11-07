@@ -1,5 +1,6 @@
 import { createSaffronScreenDust } from './atmosphere.js';
 import { createFlightModel } from '../../physics/flight.js';
+import { createScenarioDescriptors } from '../../core/scenarios.js';
 import {
   HAZARD_SURFACE_RULES,
   sampleHazardSurface,
@@ -52,12 +53,7 @@ export function createSaffronRuntime(context) {
     rulesId: `saffron-width40-v${context.dynamics ? 7 : 5}:${JSON.stringify({ track: track.id, geometry: track.geometryVersion, jumps: track.jumps, rules: flightModel.rules, sand: { pattern: 'migrating-four-v1', severity: SAFFRON_SAND_SEVERITY, response: HAZARD_SURFACE_RULES }, grazer: { event: 'forward-breach-v1', trigger: grazerTrigger(track) } })}`,
     edgeSource: 'saffron-baffle-catch',
     automaticRecovery: context.playtest?.automaticRecovery !== false,
-    scenarios: Object.fromEntries(
-      Object.entries(track.scenarios).map(([id, state]) => [
-        id,
-        { label: id.replaceAll('-', ' '), state: { ...state } },
-      ]),
-    ),
+    scenarios: createScenarioDescriptors(track.scenarios),
     shouldLaunch: ({ jump, state }) =>
       !jump.optional || state.lateral >= jump.lateralMin,
     groundOptions: ({ state }) => ({

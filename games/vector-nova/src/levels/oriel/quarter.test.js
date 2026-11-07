@@ -2,11 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { Raycaster } from 'three';
+import { Raycaster, Texture, Vector3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createLifetime } from '../../core/lifecycle.js';
 import { createOrielTrack } from './track/model.js';
-import { createGardenQuarter } from './environment/garden-quarter.js';
+import {
+  createGardenQuarter,
+  getGardenQuarterReservation,
+} from './environment/garden-quarter.js';
 import {
   createShoreQuarter,
   getShoreQuarterReservation,
@@ -32,9 +35,21 @@ function watchResources(scene) {
   return resources;
 }
 
-for (const [name, manifest, createQuarter, folder] of [
-  ['garden', garden, createGardenQuarter, 'garden-quarter'],
-  ['shore', shore, createShoreQuarter, 'shore-quarter'],
+for (const [name, manifest, createQuarter, folder, getReservation] of [
+  [
+    'garden',
+    garden,
+    createGardenQuarter,
+    'garden-quarter',
+    getGardenQuarterReservation,
+  ],
+  [
+    'shore',
+    shore,
+    createShoreQuarter,
+    'shore-quarter',
+    getShoreQuarterReservation,
+  ],
 ]) {
   const bytes = await readFile(source(manifest.export.path));
   const parse = () =>
@@ -57,10 +72,19 @@ for (const [name, manifest, createQuarter, folder] of [
   test(`Oriel ${name} quarter leaves shoulders and chase envelope open, and releases each asset once`, async () => {
     const track = createOrielTrack(),
       lifetime = createLifetime();
+    const borrowedMap = new Texture();
+    let borrowedDisposals = 0;
+    borrowedMap.addEventListener('dispose', () => borrowedDisposals++);
     let watched;
     const quarter = await createQuarter({
       track,
       lifetime,
+      stoneMaps: {
+        apply(material) {
+          material.map = borrowedMap;
+        },
+        coordinates() {},
+      },
       loadAsset: async () => {
         const asset = await parse();
         watched = watchResources(asset.scene);
@@ -115,9 +139,74 @@ for (const [name, manifest, createQuarter, folder] of [
       quarter.dispose();
       quarter.dispose();
       lifetime.dispose();
+      assert.equal(
+        borrowedDisposals,
+        0,
+        'the environment owns borrowed stone maps',
+      );
+      borrowedMap.dispose();
     }
     assert.ok([...watched.values()].every((count) => count === 1));
     assert.equal(quarter.group.children.length, 0);
+  });
+  test(`Oriel ${name} quarter reservation preserves side, boundary and padding behavior`, () => {
+    const track = {
+      sample(distance) {
+        return {
+          position: new Vector3(0, 0, distance),
+          tangent: new Vector3(0, 0, 1),
+          right: new Vector3(1, 0, 0),
+          up: new Vector3(0, 1, 0),
+        };
+      },
+    };
+    const reservation = getReservation(track);
+    const { start, end, side, minOffset, maxOffset } = manifest.reservation;
+    const distance = start + 64;
+    assert.equal(reservation.side, side);
+    for (const at of [start, distance, end])
+      for (const lateral of [side * minOffset, side * 80, side * maxOffset])
+        assert.equal(reservation.containsTrackPlacement(at, lateral), true);
+    for (const at of [start - 0.01, end + 0.01])
+      assert.equal(reservation.containsTrackPlacement(at, side * 80), false);
+    assert.equal(
+      reservation.containsTrackPlacement(distance, -side * 80),
+      false,
+    );
+    for (const lateral of [
+      side * (minOffset - 0.01),
+      side * (maxOffset + 0.01),
+    ])
+      assert.equal(
+        reservation.containsTrackPlacement(distance, lateral),
+        false,
+      );
+    assert.equal(
+      reservation.containsTrackPlacement(start - 2, side * (minOffset - 2), 2),
+      true,
+    );
+    assert.equal(
+      reservation.containsTrackPlacement(end + 2, side * (maxOffset + 2), 2),
+      true,
+    );
+    for (const height of [-200, 0, 300])
+      assert.equal(
+        reservation.contains(new Vector3(side * 80, height, distance)),
+        true,
+      );
+    for (const height of [-200.01, 300.01])
+      assert.equal(
+        reservation.contains(new Vector3(side * 80, height, distance)),
+        false,
+      );
+    assert.equal(
+      reservation.contains(new Vector3(-side * 80, 0, distance)),
+      false,
+    );
+    assert.equal(
+      reservation.contains(new Vector3(side * 80, 302, distance), 2),
+      true,
+    );
   });
   test(`Oriel ${name} quarter releases every decoded resource if material integration fails`, async () => {
     const lifetime = createLifetime();

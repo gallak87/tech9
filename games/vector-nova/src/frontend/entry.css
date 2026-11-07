@@ -1,4 +1,6 @@
 #front-shell.entry-shell {
+  --entry-accent: #d01818;
+  --entry-paper: #e8e8e8;
   scroll-padding-top: var(--entry-header-clearance, 100px);
 }
 .entry-shell > section {
@@ -41,10 +43,10 @@
     sans-serif;
   letter-spacing: -0.055em;
   white-space: nowrap;
-  color: #e8e8e8;
+  color: var(--entry-paper);
 }
 .entry-wordmark > span {
-  color: #d01818;
+  color: var(--entry-accent);
   margin-inline: 0.045em;
 }
 .entry-intro .entry-wordmark {
@@ -58,19 +60,19 @@
   border-left: 2px solid transparent;
   border-radius: 0;
   background: transparent;
-  color: #e8e8e8;
+  color: var(--entry-paper);
   letter-spacing: normal;
   text-transform: none;
   text-align: left;
 }
 .entry-shell button:enabled:is(:hover, :focus-visible) {
-  border-left-color: #d01818;
+  border-left-color: var(--entry-accent);
   background: rgb(255 255 255 / 3%);
 }
 #front-shell.entry-shell button:focus-visible {
   outline: 0;
-  border-left-color: #d01818;
-  box-shadow: inset 2px 0 #d01818;
+  border-left-color: var(--entry-accent);
+  box-shadow: inset 2px 0 var(--entry-accent);
   background: rgb(255 255 255 / 6%);
 }
 #front-shell.entry-shell .entry-tab {
@@ -87,7 +89,7 @@
 }
 #front-shell.entry-shell
   .entry-tab:is(:hover, :focus-visible, [aria-pressed='true']) {
-  border-bottom-color: #d01818;
+  border-bottom-color: var(--entry-accent);
   color: #fff;
 }
 #front-shell.entry-shell .entry-continue {
@@ -182,7 +184,7 @@
 .entry-profile-row-editing {
   grid-template-columns: 22px minmax(0, 1fr);
   background: rgb(255 255 255 / 2%);
-  box-shadow: inset 2px 0 #d01818;
+  box-shadow: inset 2px 0 var(--entry-accent);
 }
 .entry-rename-actions {
   display: flex;
@@ -221,11 +223,11 @@
   min-width: 0;
   box-sizing: border-box;
   border: 0;
-  border-bottom: 1px solid #d01818;
+  border-bottom: 1px solid var(--entry-accent);
   border-radius: 0;
   padding: 7px 4px;
   background: #090909a8;
-  color: #e8e8e8;
+  color: var(--entry-paper);
   font:
     16px Arial,
     sans-serif;
@@ -251,7 +253,7 @@
   display: block;
   width: 35%;
   height: 100%;
-  background: #d01818;
+  background: var(--entry-accent);
   will-change: transform;
   animation: entry-career-loading 1.1s ease-in-out infinite;
 }
@@ -280,7 +282,7 @@
   min-width: 0;
 }
 .entry-shell .entry-profile[aria-pressed='true'] {
-  border-left-color: #d01818;
+  border-left-color: var(--entry-accent);
 }
 .entry-slot-number {
   color: #888;

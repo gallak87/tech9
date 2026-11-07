@@ -42,15 +42,11 @@ import { artPassURL } from './art-pass.js';
 import { createStartCountdown } from './start-countdown.js';
 import { discoverLevels } from '../levels/catalog.js';
 import { levelAvailable, filterAvailableLevels } from '../levels/access.js';
-import {
-  validateTrack,
-  validateCollisionWorld,
-  circuitURL,
-} from '../levels/contract.js';
+import { circuitURL } from '../levels/contract.js';
 import { createLevelPresentation } from '../levels/presentation.js';
 import { createLifetime } from './lifecycle.js';
+import { createSimulationWorld, createSimulationActors } from './simulation.js';
 import {
-  createMagneticRuntime,
   readRuntimeFrame,
   runtimeIdentity,
   compatibleRuntime,
@@ -150,33 +146,10 @@ export async function createGame({
     const VERSION = definition.version;
     const settings = loadSettings();
     await checkpoint('Preparing route');
-    const track = validateTrack(await definition.createTrack());
-    const collisionWorld = definition.createCollisionWorld
-      ? lifetime.own(
-          validateCollisionWorld(
-            await definition.createCollisionWorld({ track }),
-          ),
-        )
-      : null;
-    let dynamics = null;
-    if (!blockout && definition.racing) {
-      const { withMagneticBoundaries } =
-        await import('../physics/magnetic-boundaries.js');
-      const physicalWorld = withMagneticBoundaries(track, collisionWorld);
-      const { createRapierWorld } = await import('../physics/rapier-world.js');
-      dynamics = lifetime.own(
-        definition.createDynamics
-          ? await definition.createDynamics({
-              track,
-              collisionWorld: physicalWorld,
-            })
-          : await createRapierWorld({ collisionWorld: physicalWorld }),
-      );
-    } else if (definition.createDynamics) {
-      dynamics = lifetime.own(
-        await definition.createDynamics({ track, collisionWorld }),
-      );
-    }
+    const simulation = lifetime.own(
+      await createSimulationWorld(definition, { shape: blockout, signal }),
+    );
+    const { track, collisionWorld, dynamics } = simulation;
     const playtestName = parameters.get('test');
     const playtest =
       !import.meta.env?.VN_DESKTOP &&
@@ -375,7 +348,7 @@ export async function createGame({
         );
       }
     };
-    const racingEnabled = Boolean(definition.racing) && !blockout;
+    const { racingEnabled } = simulation;
     const runtimeContext = {
       track,
       road,
@@ -390,60 +363,18 @@ export async function createGame({
       audioImmersion: definition.audio?.immersion,
       equipment: true,
     };
-    const motion = await (definition.createRuntime ?? createMagneticRuntime)(
-      runtimeContext,
+    const simulationActors = lifetime.own(
+      createSimulationActors(simulation, { settings, signal }),
     );
-    const devices = racingEnabled ? definition.racing.createDevices(track) : [];
-    const combat = devices.some((device) =>
-      ['repulsor', 'arc', 'ion'].includes(device.type),
-    )
-      ? (await import('../pickups/combat.js')).createCombatSimulation({
-          track,
-          collisionWorld,
-          dynamics,
-        })
-      : null;
-    runtimeContext.combat = combat;
-    const runtime = lifetime.own(
-      racingEnabled
-        ? (await import('../pickups/index.js')).createCircuitDeviceRuntime(
-            runtimeContext,
-            { motion, devices, ...definition.racing },
-          )
-        : motion,
-    );
-    const racerModule = racingEnabled
-      ? await import('../race/racers.js')
-      : null;
-    const { createDeviceRuntime } = racingEnabled
-      ? await import('../pickups/runtime.js')
-      : {};
-    const racers = racerModule
-      ? lifetime.own(
-          racerModule.createRacers({
-            track,
-            devices,
-            dynamics,
-            createRuntime: (specification) =>
-              createDeviceRuntime({
-                combat,
-                combatId: specification.id,
-                track,
-                devices,
-                identity: definition.racing.identity,
-                motion: (
-                  definition.racing.createMotion ?? createMagneticRuntime
-                )({
-                  track,
-                  collisionWorld,
-                  dynamics,
-                  settings,
-                  presentation: false,
-                }),
-              }),
-          }),
-        )
-      : null;
+    const wrapPlayer = racingEnabled
+      ? (await import('../pickups/index.js')).createCircuitDeviceRuntime
+      : undefined;
+    const { runtime } = await simulationActors.createPlayer(runtimeContext, {
+      wrap: wrapPlayer,
+    });
+    const { combat } = simulationActors.prepareRacing();
+    const racers = await simulationActors.createField();
+    const racerModule = racers ? await import('../race/racers.js') : null;
     const racerPresentation = racers
       ? lifetime.own(
           await racerModule.createRacerPresentation({

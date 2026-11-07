@@ -1,14 +1,10 @@
 import { discoverLevels } from '../levels/catalog.js';
-import { validateCollisionWorld, validateTrack } from '../levels/contract.js';
-import { withMagneticBoundaries } from '../physics/magnetic-boundaries.js';
-import { createRapierWorld } from '../physics/rapier-world.js';
 import { createVehicleState } from '../physics/index.js';
-import { createCombatSimulation } from '../pickups/combat.js';
-import { createDeviceRuntime } from '../pickups/runtime.js';
-import { createRacers } from '../race/racers.js';
 import { createRace } from '../race/index.js';
 import { CUP_FINISH_GRACE } from '../race/cup.js';
-import { advanceSession, createMagneticRuntime } from './session-runtime.js';
+import { advanceSession } from './session-runtime.js';
+import { createSimulationWorld, createSimulationActors } from './simulation.js';
+import { createLifetime } from './lifecycle.js';
 
 const STEP = 1 / 120;
 const BRAKE = Object.freeze({
@@ -31,19 +27,13 @@ export async function createCupClassificationSession({
   now = () => performance.now(),
   yieldWork = yieldTask,
 } = {}) {
-  let track, collisionWorld, dynamics, motion, runtime, racers;
+  let track, dynamics, runtime, racers;
   let disposed = false;
-  const rivalRuntimes = [];
+  const lifetime = createLifetime();
   const dispose = () => {
     if (disposed) return;
     disposed = true;
-    if (racers) racers.dispose();
-    else rivalRuntimes.forEach((rival) => rival.dispose());
-    if (runtime) runtime.dispose();
-    else motion?.dispose();
-    dynamics?.dispose();
-    collisionWorld?.dispose();
-    track?.dispose?.();
+    lifetime.dispose();
   };
   try {
     const { definition, shape } = await loadLevel(levelId);
@@ -51,65 +41,15 @@ export async function createCupClassificationSession({
       throw new Error(
         'Cup classification requires a production racing circuit.',
       );
-    track = validateTrack(await definition.createTrack());
-    collisionWorld = definition.createCollisionWorld
-      ? validateCollisionWorld(await definition.createCollisionWorld({ track }))
-      : null;
-    const physicalWorld = withMagneticBoundaries(track, collisionWorld);
-    dynamics = definition.createDynamics
-      ? await definition.createDynamics({
-          track,
-          collisionWorld: physicalWorld,
-        })
-      : await createRapierWorld({ collisionWorld: physicalWorld });
-    // A level's player motion may own a simulation clock (Nomad). Keep the
-    // normal player context; silence belongs to the device/presentation adapter.
-    const context = {
-      track,
-      collisionWorld,
-      dynamics,
-      settings: clone(settings),
-      equipment: true,
-    };
-    motion = await (definition.createRuntime ?? createMagneticRuntime)(context);
-    const devices = definition.racing.createDevices(track);
-    const combat = devices.some((device) =>
-      ['repulsor', 'arc', 'ion'].includes(device.type),
-    )
-      ? createCombatSimulation({ track, collisionWorld, dynamics })
-      : null;
-    runtime = createDeviceRuntime({
-      ...context,
-      motion,
-      devices,
-      combat,
-      identity: definition.racing.identity,
-      scenarios: definition.racing.scenarios,
-      presentation: null,
-    });
-    racers = createRacers({
-      track,
-      devices,
-      dynamics,
-      createRuntime: (specification) => {
-        const rival = createDeviceRuntime({
-          combat,
-          combatId: specification.id,
-          track,
-          devices,
-          identity: definition.racing.identity,
-          motion: (definition.racing.createMotion ?? createMagneticRuntime)({
-            track,
-            collisionWorld,
-            dynamics,
-            settings: context.settings,
-            presentation: false,
-          }),
-        });
-        rivalRuntimes.push(rival);
-        return rival;
-      },
-    });
+    const world = lifetime.own(await createSimulationWorld(definition));
+    ({ track, dynamics } = world);
+    // The normal player context owns moving-world clocks even in a worker.
+    const context = { settings: clone(settings), equipment: true };
+    const actors = lifetime.own(
+      createSimulationActors(world, { settings: context.settings }),
+    );
+    ({ runtime } = await actors.createPlayer(context));
+    racers = await actors.createField();
     const state = createVehicleState();
     return {
       async resolve(checkpoint, { signal } = {}) {

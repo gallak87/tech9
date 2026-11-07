@@ -9,11 +9,12 @@ import {
 } from '../src/ships/collision-hulls.js';
 import createShatterlineLevel from '../src/levels/shatterline/index.js';
 import { createRace } from '../src/race/index.js';
-import { withMagneticBoundaries } from '../src/physics/magnetic-boundaries.js';
 import { createVehicleState, STEERING_ASSIST } from '../src/physics/index.js';
-import { createDeviceRuntime } from '../src/pickups/runtime.js';
-import { createCombatSimulation } from '../src/pickups/combat.js';
 import { getRacerControl } from '../src/race/racers.js';
+import {
+  createSimulationWorld,
+  createSimulationActors,
+} from '../src/core/simulation.js';
 
 export const COMPLETION_RUN_STEP = 1 / 120;
 export const COMPLETION_RUN_DURATION = COMPLETION_DURATION;
@@ -274,25 +275,22 @@ export async function generateCompletionRun({
   signal?.throwIfAborted();
   const level = createShatterlineLevel({ shape: false });
   track ??= level.createTrack();
-  let collisionWorld, dynamics;
+  let simulation, simulationActors;
   const actors = [];
   try {
-    await waitForPaint();
-    signal?.throwIfAborted();
-    collisionWorld = level.createCollisionWorld({ track });
-    onProgress?.(0.02);
-    await waitForPaint();
-    signal?.throwIfAborted();
-    const physicalWorld = withMagneticBoundaries(track, collisionWorld);
-    onProgress?.(0.05);
-    await waitForPaint();
-    signal?.throwIfAborted();
-    dynamics = await level.createDynamics({
+    simulation = await createSimulationWorld(level, {
       track,
-      collisionWorld: physicalWorld,
+      signal,
+      onStage(stage) {
+        if (stage === 'boundaries') onProgress?.(0.02);
+        if (stage === 'dynamics') onProgress?.(0.05);
+      },
+      yieldWork: waitForPaint,
     });
-    signal?.throwIfAborted();
-    const devices = level.racing.createDevices(track);
+    const { dynamics } = simulation;
+    simulationActors = createSimulationActors(simulation, { signal });
+    // This bounded three-actor capture prepares devices before its custom actors.
+    const { devices, combat } = simulationActors.prepareRacing();
     const jump = track.jumps.find((item) => item.id === 'horizon-transfer');
     const weapon = devices.find(
       (item) => item.id === 'horizon-approach-repulsor',
@@ -304,22 +302,15 @@ export async function generateCompletionRun({
     const visibleDevices = devices.filter(
       (device) => device.distance >= startDistance - 50,
     );
-    const combat = createCombatSimulation({ track, collisionWorld, dynamics });
     const events = [],
       frames = [];
     let stepEvents = [],
       time = 0;
     for (const specification of ACTORS) {
       const chassis = specification.shipId ?? shipId;
-      const motion = level.createRuntime({
-        track,
-        collisionWorld,
-        dynamics,
-        settings: { steeringAssist: STEERING_ASSIST },
-      });
       const actor = {
         specification,
-        motion,
+        motion: null,
         effects: {},
         runtime: null,
         state: {
@@ -330,11 +321,9 @@ export async function generateCompletionRun({
           speed: specification.speed,
         },
       };
-      actor.runtime = createDeviceRuntime({
-        track,
-        devices,
-        motion,
-        combat,
+      const created = await simulationActors.createActor({
+        motionFactory: level.createRuntime,
+        context: { settings: { steeringAssist: STEERING_ASSIST } },
         combatId: specification.combatId,
         presentation: {
           reset() {
@@ -356,6 +345,8 @@ export async function generateCompletionRun({
           dispose() {},
         },
       });
+      actor.motion = created.motion;
+      actor.runtime = created.runtime;
       actor.race = createRace(track, {
         rulesId: actor.runtime.rulesId,
         laps: 1,
@@ -538,8 +529,10 @@ export async function generateCompletionRun({
       events,
     };
   } finally {
-    actors.forEach((actor) => actor.runtime?.dispose());
-    dynamics?.dispose();
-    collisionWorld?.dispose();
+    try {
+      simulationActors?.dispose();
+    } finally {
+      simulation?.dispose();
+    }
   }
 }

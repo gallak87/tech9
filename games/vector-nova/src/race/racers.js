@@ -871,7 +871,9 @@ export function createRacers({
         const engine = dynamics?.snapshot();
         let validation;
         try {
-          validation = createRuntime();
+          validation = createRuntime(opponent.specification, {
+            validation: true,
+          });
           validation.restore(saved.runtime, { presentation });
         } finally {
           validation?.dispose();

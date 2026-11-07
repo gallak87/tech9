@@ -50,8 +50,9 @@ export function completionShotPlan(run = {}) {
   append('flight', landing - 0.12);
   append('landing', Math.min(landing + 1, finish - 1.2));
   append('run-in', finish - 0.85);
+  // Keep the actual crossing, then show the entire recorded exit maneuver.
   const finishHold = Number.isFinite(event.slideStartTime)
-    ? clamp(event.slideStartTime - 0.02, finish + 0.12, finish + 0.4)
+    ? clamp(event.slideStartTime - 0.02, finish + 0.04, finish + 0.4)
     : finish + 0.4;
   append('finish', Math.min(duration - 0.2, finishHold));
   append('exit', duration);
@@ -246,7 +247,7 @@ export function createCompletionDirector({ track, run }) {
         // A higher front three-quarter view exposes the planform rotating
         // against the road. It follows position only: no nose/yaw tracking,
         // orbit or lens change can cancel the recorded powerslide.
-        offset(12, 11, 10);
+        offset(-10, 12, 12);
         fov = 46;
       }
       fitSubjects(position, target, up, fov, aspect, subjects, minimumY);

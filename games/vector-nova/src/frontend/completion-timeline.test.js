@@ -57,7 +57,7 @@ test('the director follows real repulsor, Horizon flight, landing and sprint fin
   assert.equal(at(run.landmarks.launchTime), 'flight');
   assert.equal(at(run.landmarks.landingTime), 'landing');
   assert.equal(at(run.landmarks.finishTime - 0.1), 'finish');
-  assert.equal(at(run.landmarks.finishTime + 0.08), 'finish');
+  assert.equal(at(run.landmarks.finishTime + 0.02), 'finish');
   assert.equal(at(run.landmarks.slideStartTime), 'exit');
   assert.ok(
     plan.titleStart > run.landmarks.finishTime,
@@ -129,7 +129,7 @@ test('the real production checker and physical hero are readable before and afte
       run.landmarks.finishDistance,
     );
     const positions = marker.group.children[0].geometry.attributes.position;
-    for (const offset of [-0.1, 0, 0.08]) {
+    for (const offset of [-0.1, 0, 0.02]) {
       const time = run.landmarks.finishTime + offset;
       const view = director.sample(time, sampleCompletionRun(run, time), 1.6);
       assert.equal(view.shot, 'finish');
@@ -190,7 +190,7 @@ test('flight camera follows actual airborne velocity without tethering to the hi
   }
 });
 
-test('all four native slides produce obvious pixel-space rotation and visible sideslip', (context) => {
+test('all four fast native slides produce obvious pixel-space rotation and visible sideslip', (context) => {
   const aspect = 1581 / 890;
   const angleDifference = (a, b) =>
     Math.atan2(Math.sin(a - b), Math.cos(a - b));
@@ -212,6 +212,52 @@ test('all four native slides produce obvious pixel-space rotation and visible si
         end < recording.duration,
     );
     const peakSample = sampleCompletionRun(recording, peak);
+    const startSample = sampleCompletionRun(recording, start);
+    assert.ok(
+      startSample.hero.state.speed >= 90 && peakSample.hero.state.speed >= 90,
+      'the actual turn must retain racing speed instead of braking first',
+    );
+    const movementTime = Math.min(peak - 0.025, start + 0.12);
+    const movementStart = sampleCompletionRun(recording, movementTime);
+    const movementEnd = sampleCompletionRun(recording, movementTime + 0.1);
+    assert.ok(
+      new Vector3()
+        .fromArray(movementStart.hero.position)
+        .distanceTo(new Vector3().fromArray(movementEnd.hero.position)) >= 9,
+      'native position must keep travelling at racing pace during the turn',
+    );
+    const movementCameras = [movementStart, movementEnd].map((sample, index) =>
+      cameraFor(
+        director.sample(movementTime + index * 0.1, sample, aspect),
+        aspect,
+      ),
+    );
+    let roadTravelPixels = 0;
+    for (const ahead of [-8, 0, 8])
+      for (const side of [-6, 0, 6]) {
+        const road = track.sample(movementStart.hero.state.distance + ahead);
+        const point = road.position
+          .clone()
+          .addScaledVector(road.right, movementStart.hero.state.lateral + side);
+        const projected = movementCameras.map((camera) =>
+          point.clone().project(camera),
+        );
+        if (
+          projected.every(
+            (p) => Math.abs(p.x) < 0.94 && Math.abs(p.y) < 0.94 && p.z < 1,
+          )
+        ) {
+          const delta = projected[1].clone().sub(projected[0]);
+          roadTravelPixels = Math.max(
+            roadTravelPixels,
+            Math.hypot(delta.x * aspect, delta.y) * (890 / 2),
+          );
+        }
+      }
+    assert.ok(
+      roadTravelPixels >= 45,
+      'in-frame road details must travel visibly through the position-following camera',
+    );
     assert.equal(peakSample.hero.effects.slide.active, true);
     assert.ok(
       Math.abs(peakSample.hero.effects.slide.slipAngle) > 0.02,
@@ -219,7 +265,7 @@ test('all four native slides produce obvious pixel-space rotation and visible si
     );
     const exitStart = director.shots.find(({ id }) => id === 'exit').start;
     assert.ok(
-      exitStart < start && exitStart >= recording.landmarks.finishTime + 0.12,
+      exitStart < start && exitStart >= recording.landmarks.finishTime + 0.04,
       'the checker clears before the camera shows the native slide develop',
     );
     let minCamera = Infinity,
@@ -250,7 +296,7 @@ test('all four native slides produce obvious pixel-space rotation and visible si
       const frame = track.sample(sample.hero.state.distance);
       const direction = view.position.clone().sub(position);
       const nose = new Vector3(0, 0, 1).applyQuaternion(quaternion);
-      assert.ok(direction.length() < 25, 'the small slide needs a close view');
+      assert.ok(direction.length() < 25, 'the fast slide needs a close view');
       assert.ok(
         direction.normalize().dot(nose) < Math.cos((35 * Math.PI) / 180),
         'the camera stays outside forward light cones',
@@ -335,7 +381,7 @@ test('all four native slides produce obvious pixel-space rotation and visible si
       );
     }
     assert.ok(
-      maxBody - minBody > 0.4,
+      maxBody - minBody > 0.25,
       `${id} has visible native yaw through the exit`,
     );
     assert.ok(
@@ -376,7 +422,7 @@ test('all four native slides produce obvious pixel-space rotation and visible si
       1,
     );
     context.diagnostic(
-      `${id}: ${apparentRotation.toFixed(1)} degrees screen heading, ${apparentSlip.toFixed(1)} degrees screen sideslip`,
+      `${id}: ${apparentRotation.toFixed(1)} degrees screen heading, ${apparentSlip.toFixed(1)} degrees screen sideslip, ${roadTravelPixels.toFixed(0)}px road travel/100ms, ${startSample.hero.state.speed.toFixed(0)}→${peakSample.hero.state.speed.toFixed(0)}m/s`,
     );
   }
 });

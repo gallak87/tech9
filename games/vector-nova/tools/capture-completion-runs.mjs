@@ -50,11 +50,27 @@ function validateSlide(run, track) {
   );
   const active = frames.filter((frame) => frame.hero.effects.slide?.active);
   assert.ok(active.length > 0);
+  const crossing = run.frames.find(
+    (frame) => frame.time >= run.landmarks.finishTime,
+  );
+  const yawPeak = active.reduce((peak, frame) =>
+    Math.abs(frame.hero.state.heading) > Math.abs(peak.hero.state.heading)
+      ? frame
+      : peak,
+  );
+  assert.ok(
+    active[0].hero.state.speed >= crossing.hero.state.speed * 0.9,
+    'the turn begins with the genuine racing momentum, without preparatory braking',
+  );
+  assert.ok(
+    yawPeak.hero.state.speed >= 90,
+    'the visible body turn still carries at least 324 km/h',
+  );
   const peakYaw = Math.max(
     ...active.map((frame) => Math.abs(frame.hero.state.heading)),
   );
   assert.ok(
-    peakYaw >= (25 * Math.PI) / 180 && peakYaw <= (35 * Math.PI) / 180,
+    peakYaw >= (18 * Math.PI) / 180 && peakYaw <= (35 * Math.PI) / 180,
     'the native post-checker yaw is clearly visible',
   );
   assert.ok(
@@ -126,7 +142,9 @@ function validateSlide(run, track) {
   }
   return {
     start: run.landmarks.slideStartTime,
+    entrySpeed: active[0].hero.state.speed,
     peak: run.landmarks.slidePeakTime,
+    speedAtPeakYaw: yawPeak.hero.state.speed,
     end: run.landmarks.slideEndTime,
     peakYaw: Math.max(
       ...active.map((frame) => Math.abs(frame.hero.state.heading)),

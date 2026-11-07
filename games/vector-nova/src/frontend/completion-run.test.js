@@ -315,20 +315,33 @@ test('native slide stays after the unchanged checker crossing and settles clear 
       ...active.map((frame) => Math.abs(frame.hero.state.heading)),
     );
     assert.ok(
-      peakYaw >= (25 * Math.PI) / 180 && peakYaw <= (35 * Math.PI) / 180,
-      'a clearly visible 25–35 degree native body turn',
+      peakYaw >= (18 * Math.PI) / 180 && peakYaw <= (35 * Math.PI) / 180,
+      'a clearly visible 18–35 degree native body turn',
     );
-    assert.ok(slideEndTime - slideStartTime > 0.8);
+    assert.ok(slideEndTime - slideStartTime > 0.6);
     assert.ok(run.duration - slideEndTime >= 0.8);
+    const crossing = run.frames.find((frame) => frame.time >= finishTime);
     assert.ok(
-      run.frames.some(
+      active[0].hero.state.speed >= crossing.hero.state.speed * 0.9,
+      'the inward airbrake turn starts with racing momentum',
+    );
+    const yawPeak = active.reduce((peak, frame) =>
+      Math.abs(frame.hero.state.heading) > Math.abs(peak.hero.state.heading)
+        ? frame
+        : peak,
+    );
+    assert.ok(
+      yawPeak.hero.state.speed >= 90,
+      'the maximum visible turn still carries at least 324 km/h',
+    );
+    assert.equal(
+      active.some(
         (frame) =>
-          frame.time > finishTime &&
-          frame.time < slideStartTime &&
-          frame.hero.input.brake === 1 &&
-          !frame.hero.input.airbrake,
+          ['turn', 'countersteer'].includes(frame.hero.effects.slide.phase) &&
+          frame.hero.input.brake > 0,
       ),
-      'real braking reduces speed before the outward airbrake turn',
+      false,
+      'wheel braking follows the high-speed turn and countersteer',
     );
     const last = run.frames.at(-1).hero;
     assert.ok(

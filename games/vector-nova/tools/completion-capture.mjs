@@ -54,26 +54,28 @@ const ACTORS = Object.freeze([
   },
 ]);
 export const COMPLETION_SLIDE = Object.freeze({
-  delay: 0.15,
-  entrySpeed: 30,
-  steer: -0.88,
-  turn: 0.44,
-  counter: 0.44,
-  brake: 0.12,
+  delay: 0.05,
+  steer: 0.88,
+  turn: 0.24,
+  counter: 0.24,
+  brake: 0,
+});
+// The agile hull carries its turn through to the clear lane beyond both rivals.
+// These are authored driver inputs for this capture, never handling overrides.
+const SLIDE_INPUTS = Object.freeze({
+  shrike: Object.freeze({ ...COMPLETION_SLIDE, turn: 0.4, counter: 0.4 }),
 });
 function slideControl(actor, ordinary, pattern) {
   if (actor.specification.id !== 'hero' || !actor.race.complete || !pattern)
     return ordinary;
   const age = actor.state.time - actor.race.elapsed - pattern.delay;
   if (age < 0) return ordinary;
-  actor.slide ??= { brakeTime: actor.state.time, turnTime: null };
-  if (actor.slide.turnTime === null) {
-    if (actor.state.speed > pattern.entrySpeed)
-      return { throttle: 0, brake: 1, airbrake: false, boost: false, steer: 0 };
-    actor.slide.turnTime = actor.state.time;
-  }
+  // Turn inward while carrying the genuine crossing speed. The airbrake
+  // supplies slip; ordinary runout braking takes over after countersteer.
+  actor.slide ??= { turnTime: actor.state.time };
   const turnAge = actor.state.time - actor.slide.turnTime;
-  if (turnAge >= pattern.turn + pattern.counter) return ordinary;
+  const { turn, counter } = pattern;
+  if (turnAge >= turn + counter) return ordinary;
   const handling = getShip(actor.state.shipId).handling;
   const steer = Math.max(-1, Math.min(1, pattern.steer / handling.turn));
   return {
@@ -81,10 +83,7 @@ function slideControl(actor, ordinary, pattern) {
     brake: pattern.brake,
     airbrake: true,
     boost: false,
-    steer:
-      turnAge < pattern.turn
-        ? steer
-        : (-steer * pattern.turn) / pattern.counter,
+    steer: turnAge < turn ? steer : (-steer * turn) / counter,
   };
 }
 function slideTelemetry(actor, input, track, pattern) {
@@ -118,18 +117,19 @@ function slideTelemetry(actor, input, track, pattern) {
     actor.slide?.turnTime == null
       ? -1
       : actor.state.time - actor.slide.turnTime;
+  const { turn, counter } = pattern;
   const commanded = input.airbrake === true;
   const active =
     turnAge >= 0 &&
     (commanded ||
-      (turnAge < pattern.turn + pattern.counter + 1.5 &&
+      (turnAge < turn + counter + 1.5 &&
         (Math.abs(slipSpeed) > 0.25 || Math.abs(actor.state.heading) > 0.025)));
   const phase =
     turnAge < 0
-      ? 'braking'
-      : turnAge < pattern.turn
+      ? 'ready'
+      : turnAge < turn
         ? 'turn'
-        : turnAge < pattern.turn + pattern.counter
+        : turnAge < turn + counter
           ? 'countersteer'
           : active
             ? 'settling'
@@ -203,7 +203,7 @@ export async function generateCompletionRun({
   shipId,
   signal,
   onProgress,
-  slidePattern = COMPLETION_SLIDE,
+  slidePattern = SLIDE_INPUTS[shipId] ?? COMPLETION_SLIDE,
   onFinishProbe,
 } = {}) {
   if (!HERO_SHIPS.has(shipId)) throw new Error('Unknown completion chassis.');
@@ -540,7 +540,6 @@ export async function generateCompletionRun({
         finishDistance: track.finishDistance,
         finishTime: finishTimes.hero,
         finishTimes,
-        slideBrakeTime: actors[0].slide?.brakeTime ?? null,
         slideStartTime,
         slidePeakTime: peakSlide?.time ?? null,
         slideEndTime,

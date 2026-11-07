@@ -1,7 +1,7 @@
 {
   "format": "vector-nova-completion-native",
   "version": 1,
-  "captureVersion": 4,
+  "captureVersion": 5,
   "course": "shatterline",
   "geometryVersion": "shatterline-tube-weave-v2",
   "hullsId": "compound-v2-f5d706b44afc53a2abad7c55621e481f86007b3af71a67ccf602e35088558a49",
@@ -27,7 +27,7 @@
       "src/core/session-runtime.js": "70f1b6d322ad40a63112d423dba63c623614c098ece094ae391d91fe6e6ac8d1",
       "src/environment/placement.js": "fbf715e2840b8ef8b02420dc1795ea48c949daec25d60b66cd6e3289e747e32e",
       "src/equipment/runtime.js": "067e7819cc81b8d4c7a44f2a771edbbc2494a0ed3eec8dc0e96fecf9ebf02acf",
-      "src/frontend/completion-config.js": "4878d29c5611fad5a26957909adb58ed137424dbcb91b2e47823dabebe52321d",
+      "src/frontend/completion-config.js": "b786e21e9b7bc73684ba4e191f919b9e2ace1516cfaa9ea01f2fdff018cb5bcd",
       "src/levels/halcyon/track/asphalt.js": "7cd86a19d6d350562283d6764740a62f4474e9dac6ab3ef39a88f56c677b17c1",
       "src/levels/shatterline/backdrop/index.js": "1e31e1b3c08367b45e3fa39ac051c2d4ba23b4454c776a93e7c8011a457948d5",
       "src/levels/shatterline/collision.js": "da1304095e33d61f9cd1d9be3764b908d9380856321fad0a97fdb424e0792500",
@@ -82,7 +82,7 @@
       "src/pickups/surface-projector.js": "e7944389d4dde55e62f90f995a287c02efafaa714e3127d8200fe32819d1d039",
       "src/pickups/theme.js": "4038370f6cfa7f1bcc56245b7f504f37dcbd3f4b22603cb5c7a00421094e6dce",
       "src/pickups/vector-deck.js": "0691be05c086945e935519a31eb78d0baebf59759b3e90d5ee1201a0e5a37980",
-      "src/progression/catalog.js": "17c328651eaa9fefb97374e727e03aef687a1c060acbe5aacb877f242c909985",
+      "src/progression/catalog.js": "8e6057b8a49cc011b8aeba9fc995e1f850ff7f3b2f40a88ee1f74bcd41db5da2",
       "src/progression/edition.js": "88006eee081b27ae976ccadc970f490ae12f3c7245423cff4331388d787cdf79",
       "src/race/course.js": "58bd518dd0bfd285308d92c91ceda5f60335b415f7cd212df4cc7c5393874c4b",
       "src/race/index.js": "3a7eaf27dcbcf875d3bf9b3fe689a0c11646ff7639d4d456156d676d6d010795",
@@ -102,18 +102,18 @@
       "src/ships/texture-loader.js": "9bbe0ba1dee3101973d4d0929541b0ff87fd2849be70219dcd3d48a9682b9c2d",
       "src/track/frames.js": "da51d3bdad391dd0c8c147ff507ceeb296ad599343e2bc6e708a3e566532388e",
       "src/track/geometry.js": "3b92db3ecb11d1c5370e26314cebc4e261378de0d7167bb6fbd19b47dd4ff1d5",
-      "tools/completion-capture.mjs": "315bdb717db64d4a415df4a83511749ff0e5206b8a075fac41c0e153a850677a",
-      "tools/capture-completion-runs.mjs": "0098a14c973428d3630e7c19b62bac6e0032c26368f6f8c804a300392b435f55"
+      "tools/completion-capture.mjs": "91790000f8dcf1673d5dbb9f5686e3fcdfc9cc96a51a00ff502ff44d0372aa5e",
+      "tools/capture-completion-runs.mjs": "20d559ff64137b6bab71f4560ff99feceff3d6a28f42e4686c6a0605d5ba0616"
     }
   },
   "records": {
     "kestrel": {
       "file": "kestrel.json.gz",
-      "rawBytes": 7486907,
-      "compressedBytes": 1024888,
-      "rawSha256": "4d18e22fa7d50f1df975be3cbd87aa06b776bca1dbffee5e2b066299e13683f5",
-      "compressedSha256": "acd283ae16db0806995097e8034dfb7d545e752cc4a89d3cf3e37af6580ba6a5",
-      "identity": "completion-shatterline-native-v4:shatterline-tube-weave-v2:kestrel",
+      "rawBytes": 7507022,
+      "compressedBytes": 1037368,
+      "rawSha256": "fde0d410505c61af313bd17ede0a950f3b74e338514e1f14e91f58086346cbd1",
+      "compressedSha256": "9f000ba2ea29299c0786696dfd524184e2f10bd6e10f73e6f37112e30db0404c",
+      "identity": "completion-shatterline-native-v5:shatterline-tube-weave-v2:kestrel",
       "frames": 2161,
       "finishTimes": {
         "hero": 14.17746676334248,
@@ -122,22 +122,24 @@
       },
       "preFinishSha256": "1dc3690dc7422e24c13ae7199e95ab23dd7ba1d9b2aab60d1b85fd7284553f52",
       "slide": {
-        "start": 15.775,
-        "peak": 16.208333333333332,
-        "end": 16.9,
-        "peakYaw": 0.5649802764345253,
-        "peakSlip": 0.28473578574246117,
-        "peakSlipSpeed": 5.535627814695269,
-        "minClearance": 10.22536904853843
+        "start": 14.241666666666667,
+        "entrySpeed": 171.0847143155273,
+        "peak": 14.475,
+        "speedAtPeakYaw": 154.32517137541458,
+        "end": 15.466666666666667,
+        "peakYaw": 0.37630502900362456,
+        "peakSlip": 0.23246954385986962,
+        "peakSlipSpeed": 36.5364544939428,
+        "minClearance": 13.098242893011566
       }
     },
     "shrike": {
       "file": "shrike.json.gz",
-      "rawBytes": 7476551,
-      "compressedBytes": 1022919,
-      "rawSha256": "56327f7589c87af88b2f9a992f8e957d279fef89add48f9d2e4cac39126d1670",
-      "compressedSha256": "bd461ab532451bb7965331463b3b130388c8888b5734e3d93f59153bc3d595a5",
-      "identity": "completion-shatterline-native-v4:shatterline-tube-weave-v2:shrike",
+      "rawBytes": 7491866,
+      "compressedBytes": 1035890,
+      "rawSha256": "7bf14a5ea65300d467c5378ecadf7e6a0368afb18a6c00b09160306c1af25ef9",
+      "compressedSha256": "581c570834481e892f20fde0f8e4e6567b4f5bd544e7d8d0ce9ad5b412c753ef",
+      "identity": "completion-shatterline-native-v5:shatterline-tube-weave-v2:shrike",
       "frames": 2161,
       "finishTimes": {
         "hero": 14.44355788811042,
@@ -146,22 +148,24 @@
       },
       "preFinishSha256": "0931e0af80be7b9d5638ad82f6bf9f18dd2804d450f2794a7f72c5ac08b59ff1",
       "slide": {
-        "start": 15.758333333333333,
-        "peak": 16.191666666666666,
-        "end": 16.825,
-        "peakYaw": 0.5673731570096039,
-        "peakSlip": 0.25452408320021824,
-        "peakSlipSpeed": 4.971735210329737,
-        "minClearance": 9.663401080920739
+        "start": 14.508333333333333,
+        "entrySpeed": 154.17946253782355,
+        "peak": 14.908333333333333,
+        "speedAtPeakYaw": 128.1910542396578,
+        "end": 16.008333333333333,
+        "peakYaw": 0.5973071846252842,
+        "peakSlip": 0.24899576532744153,
+        "peakSlipSpeed": 32.59637676590432,
+        "minClearance": 6.266657376353983
       }
     },
     "bastion": {
       "file": "bastion.json.gz",
-      "rawBytes": 7485944,
-      "compressedBytes": 1026320,
-      "rawSha256": "70cc7ba46a57cb01fee8e569e432236f63a47dc61793bbcea3f86bfa8e072fe0",
-      "compressedSha256": "1cb436036459194a8731ecc81992aa22aa03c8d002b902c5642e7cb7f027842a",
-      "identity": "completion-shatterline-native-v4:shatterline-tube-weave-v2:bastion",
+      "rawBytes": 7508142,
+      "compressedBytes": 1040806,
+      "rawSha256": "415ea15a65feae6f9ea5b97a97b9d8ed1ef32c6edb706d0030deccb7466a7abc",
+      "compressedSha256": "803b36591a2ef610bd47480b105143c2b8202e87aef6dbb986f035f4fd724d17",
+      "identity": "completion-shatterline-native-v5:shatterline-tube-weave-v2:bastion",
       "frames": 2161,
       "finishTimes": {
         "hero": 13.80022167608851,
@@ -170,22 +174,24 @@
       },
       "preFinishSha256": "c0d523f99c752599c0a13c2ac037e47f1939551d53c3b818247cf80f8572285b",
       "slide": {
-        "start": 15.583333333333334,
-        "peak": 16.016666666666666,
-        "end": 16.65,
-        "peakYaw": 0.49769502148624534,
-        "peakSlip": 0.21446050963925847,
-        "peakSlipSpeed": 4.44065343933938,
-        "minClearance": 9.922134168994349
+        "start": 13.866666666666667,
+        "entrySpeed": 180.94840442189232,
+        "peak": 14.1,
+        "speedAtPeakYaw": 165.44495036503304,
+        "end": 14.641666666666666,
+        "peakYaw": 0.3261291935491169,
+        "peakSlip": 0.18614444722458712,
+        "peakSlipSpeed": 31.157357807260553,
+        "minClearance": 12.743813169195644
       }
     },
     "needle": {
       "file": "needle.json.gz",
-      "rawBytes": 7453553,
-      "compressedBytes": 1019573,
-      "rawSha256": "c4b38799bc59c332b311437dee57854bb816d8db58c2f4d20726c6039035dcf8",
-      "compressedSha256": "cac166a8658bdd90a8eb1b5c18e2b9328fbff47b42d52cff6da2622c53f4e83d",
-      "identity": "completion-shatterline-native-v4:shatterline-tube-weave-v2:needle",
+      "rawBytes": 7474466,
+      "compressedBytes": 1030481,
+      "rawSha256": "4b8038c9fa408e9efe36b23a85508ed0588ebdf71154da6b8228bc5f518e4bd7",
+      "compressedSha256": "494c09295bcf02e3365cbaf34f86cdda3bd82a5dfccab4a637decc1e40d0a9bb",
+      "identity": "completion-shatterline-native-v5:shatterline-tube-weave-v2:needle",
       "frames": 2161,
       "finishTimes": {
         "hero": 13.91216828153664,
@@ -194,13 +200,15 @@
       },
       "preFinishSha256": "29753d26fbedc8ec0ecc1c0be44e1c7bbbf27976bc564dda16fc74c5b20658cb",
       "slide": {
-        "start": 15.975,
-        "peak": 16.40833333333333,
-        "end": 17.141666666666666,
-        "peakYaw": 0.5650070101656708,
-        "peakSlip": 0.2973027961246548,
-        "peakSlipSpeed": 5.9293553620074,
-        "minClearance": 9.74375455980917
+        "start": 13.975,
+        "entrySpeed": 184.1554837181816,
+        "peak": 14.208333333333334,
+        "speedAtPeakYaw": 165.68097450339508,
+        "end": 15.258333333333333,
+        "peakYaw": 0.37283994734909337,
+        "peakSlip": 0.24071809266814553,
+        "peakSlipSpeed": 40.67102318692521,
+        "minClearance": 12.664108895343782
       }
     }
   }

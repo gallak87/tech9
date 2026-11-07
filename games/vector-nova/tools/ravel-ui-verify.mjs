@@ -69,8 +69,9 @@ try {
     }
     throw new Error('Controller could not reach ' + selector);
   };
+  // Bonus-course access and section-practice controls require developer mode.
   await page.goto(
-    new URL('?intro=0&level=ravel&music=0', process.env.VN_URL).href,
+    new URL('?intro=0&dev=1&level=ravel&music=0', process.env.VN_URL).href,
   );
   await page.locator('[data-action="practice"]').click();
   assert.equal(

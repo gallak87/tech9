@@ -150,6 +150,10 @@ try {
         );
         return {
           leaveMusic: !!music && !music.contains(wanted),
+          wantedWindow: !!wanted?.closest('.desktop-window-controls'),
+          inGarage: !!document.querySelector('.dedicated-garage'),
+          focusedGarageUpgrade:
+            document.activeElement?.matches('.garage-upgrade'),
           wantedHeader: !!wanted?.closest('.menu-top-tabs'),
           focusedHeader: !!document.activeElement?.closest('.menu-top-tabs'),
         };
@@ -157,11 +161,15 @@ try {
       await tap(
         navigation.leaveMusic
           ? 1
-          : navigation.wantedHeader
-            ? navigation.focusedHeader
+          : navigation.wantedWindow && navigation.inGarage
+            ? navigation.focusedGarageUpgrade
               ? 15
-              : 12
-            : 13,
+              : 13
+            : navigation.wantedHeader
+              ? navigation.focusedHeader
+                ? 15
+                : 12
+              : 13,
       );
     }
     throw new Error(

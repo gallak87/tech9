@@ -339,6 +339,10 @@ try {
   await page.keyboard.press('Enter');
   assert.equal(await page.locator('.cup-confirm').count(), 0);
   assert.equal((await state()).cup.state, null);
+  if (width < 900) {
+    await page.locator('[data-action="circuits"]').focus();
+    await page.keyboard.press('Enter');
+  }
   assert.equal(
     await page.locator('[data-cup="founders"].is-earned').count(),
     1,

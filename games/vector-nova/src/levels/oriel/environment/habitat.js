@@ -1,5 +1,6 @@
 import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
+import { createLcgRandom } from '../../../environment/random.js';
 import { groundHeight, groundSlope } from './ground-field.js';
 export { groundSlope };
 
@@ -23,10 +24,7 @@ export function civicExcluded(track, distance, margin = 0) {
   );
 }
 export function randomSource(seed = 61037) {
-  return () => {
-    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-    return seed / 4294967296;
-  };
+  return createLcgRandom(seed);
 }
 
 export function shellPoint(angle, z, height = 0) {

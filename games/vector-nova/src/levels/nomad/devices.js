@@ -28,13 +28,23 @@ export function createDevices(track) {
     });
   };
   for (const carrier of track.carriers) {
-    add(carrier, 'aegis', carrier.index ? 520 : 150, 0, 8, 10);
+    const portside = carrier.id === 'nomad-portside-dive';
+    // Portside's broad receiving deck ends 1000m into the carrier.
+    add(
+      carrier,
+      'aegis',
+      portside ? 1050 : carrier.index ? 520 : 150,
+      0,
+      8,
+      10,
+    );
     add(carrier, 'vector', carrier.index ? 760 : 360, 0, 65, 14);
-    // The roof carriers now devote their broad approaches to big-air catches.
-    // Keep the optional Arc on the supported opening hold, after its shield.
-    if (carrier.index === 0) add(carrier, 'arc', 540, -17, 10, 8);
-    if (carrier.index === 4) add(carrier, 'repulsor', 670, 17, 10, 8);
-    if (carrier.index === 8) add(carrier, 'ion', 670, -17, 10, 8);
+    // Short cargo holds have no offensive lane clear of both catch and launch.
+    // Keep all three choices on supported deck after reachable shield gates.
+    if (carrier.id === 'nomad-tailforge') add(carrier, 'arc', 350, -17, 10, 8);
+    if (portside) add(carrier, 'ion', 1200, -17, 10, 8);
+    if (carrier.id === 'nomad-saltwind')
+      add(carrier, 'repulsor', 655, 17, 10, 8);
   }
   return createDeviceLayout(
     track,

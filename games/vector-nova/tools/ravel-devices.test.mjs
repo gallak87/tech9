@@ -56,6 +56,32 @@ test('Ravel has all five sorted shared device types and preserves its long outer
   assert.ok(outer.length >= inner.length * 10);
 });
 
+test('automatic section Vectors stay in their own section without removing shield counterplay', () => {
+  for (const device of devices) {
+    const owner = /^ravel-section-(\d+)-vector$/.exec(device.id);
+    if (!owner) continue;
+    const section = track.sections[Number(owner[1])];
+    assert.ok(device.distance - device.length / 2 >= section.start, device.id);
+    assert.ok(device.distance + device.length / 2 <= section.end, device.id);
+  }
+  const tiny = track.sections.findIndex(
+    (section) => section.id === 'anchor-dive',
+  );
+  assert.ok(track.sections[tiny].end - track.sections[tiny].start < 55);
+  assert.equal(
+    devices.some((device) => device.id === `ravel-section-${tiny}-vector`),
+    false,
+  );
+  assert.equal(
+    devices.find((device) => device.id === `ravel-section-${tiny}-aegis`)
+      .distance,
+    track.sections[tiny].start + 95,
+  );
+  assert.ok(
+    devices.some((device) => device.id === `ravel-section-${tiny - 1}-vector`),
+  );
+});
+
 test('Aegis gates leave at least 150m between successive shields, including the lap seam', () => {
   const shields = devices.filter((device) => device.type === 'aegis');
   assert.ok(shields.length > 1);

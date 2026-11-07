@@ -70,15 +70,18 @@ export function createDevices(track) {
       8,
       section.name,
     );
-    add(
-      `ravel-section-${i}-vector`,
-      'vector',
-      section.end - 180,
-      0,
-      14,
-      55,
-      section.name,
-    );
+    const distance = section.end - 180;
+    // A tiny section's trailing Vector would fall back onto its predecessor.
+    if (distance - 55 / 2 >= section.start && distance + 55 / 2 <= section.end)
+      add(
+        `ravel-section-${i}-vector`,
+        'vector',
+        distance,
+        0,
+        14,
+        55,
+        section.name,
+      );
   }
   // Optional combat choices stay off the central guides, on static support.
   // Inner Ion sits on the quiet ribbon, clear of the middle sail's waves;

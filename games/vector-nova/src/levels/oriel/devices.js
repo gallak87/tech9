@@ -17,7 +17,8 @@ export function createDevices(track) {
     ['promenade', 'arc', at('lakeside', 0.6), 8, 10, 5],
     ['gardens', 'ion', at('wall-gardens', 0.75), 8, 10, 5],
     ['borough', 'repulsor', at('ceiling', 0.7), -8, 10, 5],
-    ['orchard', 'arc', at('orchards', 0.8), 8, 10, 5],
+    // The right garden island narrows this station; use its open left lane.
+    ['orchard', 'arc', at('orchards', 0.8), -8, 10, 5],
   ].map(([id, type, distance, lateral, length, width]) => {
     let min = -20;
     let max = 20;

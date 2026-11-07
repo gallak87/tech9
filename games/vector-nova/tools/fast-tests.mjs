@@ -35,6 +35,7 @@ export const FAST_TESTS = Object.freeze([
   'src/progression/cup-collection.test.js',
   'src/progression/goals.test.js',
   'src/progression/profile.test.js',
+  'src/progression/result-coordinator.test.js',
   'src/race/cup.test.js',
   'src/race/relative-timing.test.js',
   'src/race/sprint.test.js',

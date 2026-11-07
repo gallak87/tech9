@@ -23,6 +23,10 @@ import {
   isCareerComplete,
   remainingModeUnlocks,
 } from '../progression/completion.js';
+import {
+  settleRaceResult,
+  settleTrialRecord,
+} from '../progression/result-coordinator.js';
 import { bindDesktopControls } from '../ui/desktop-controls.js';
 import { settingsView, bindSettingsPanel } from './settings-panel.js';
 import {
@@ -31,7 +35,6 @@ import {
   createCupStore,
   cupDefinition,
   cupGridOrder,
-  cupChampion,
   cupComplete,
 } from '../race/cup.js';
 import { createCupCollection } from '../progression/cup-collection.js';
@@ -136,6 +139,7 @@ export async function createFrontend(
   const cupAvailable = (id) => cups().some((cup) => cup.id === id);
   const cupStore = createCupStore(careerStorage);
   const cupCollection = createCupCollection(careerStorage);
+  const resultStores = { profileStore, cupStore, cupCollection };
   if (
     cupStore.snapshot().state &&
     !cupAvailable(cupStore.snapshot().state.cupId)
@@ -1314,17 +1318,14 @@ export async function createFrontend(
         },
         onTrialRecord(data) {
           if (disposed || signal.aborted || token !== generation) return;
-          earnedRewards.push(
-            ...profileStore.recordTrial(id, data.playerValid && data.improved),
-          );
+          const outcome = settleTrialRecord(profileStore, data, {
+            trackId: id,
+            getShipId: () => game?.getSnapshot().vehicle?.shipId ?? shipId,
+          });
+          earnedRewards.push(...outcome.rewards);
           // Circuit trials continue into the next lap and never enter results.
           // Their clean personal best is the completion event in its own right.
-          if (data.playerValid && data.improved) {
-            profileStore.queueCompletion(
-              data.shipId ?? game?.getSnapshot().vehicle?.shipId ?? shipId,
-            );
-            void showCompletion();
-          }
+          if (outcome.completionEligible) void showCompletion();
         },
         signal,
         onProgress(stage) {
@@ -1412,60 +1413,14 @@ export async function createFrontend(
         },
         onResults(data, { present = true } = {}) {
           if (disposed || signal.aborted || token !== generation) return;
-          if (
-            data.mode === 'cup' &&
-            sessionCup &&
-            data.final &&
-            cupStore.finish(data)
-          ) {
-            const saved = cupStore.snapshot().state;
-            const player = data.standings.find((row) => row.id === 'player');
-            earnedRewards.push(
-              ...profileStore.recordRace({
-                id: `${saved.runId}:${saved.eventIndex}`,
-                position: player?.position,
-                valid: !!player?.valid,
-                finished: !!player?.finished,
-              }),
-            );
-            if (cupChampion(saved)) {
-              earnedRewards.push(...profileStore.recordCup(saved.cupId));
-              const fresh = cupCollection.award(saved);
-              pendingCupCelebration = { fresh, runId: saved.runId };
-            }
-          } else if (
-            data.mode !== 'cup' &&
-            data.mode !== 'time-trial' &&
-            sessionIntent === 'race'
-          ) {
-            const player = data.standings?.find((row) => row.id === 'player');
-            earnedRewards.push(
-              ...profileStore.recordRace({
-                id: sessionRewardId,
-                position: player?.position,
-                valid: !!data.playerValid && !!player?.valid,
-                finished: !!player?.finished,
-              }),
-            );
-          }
-          const player = data.standings?.find((row) => row.id === 'player');
-          const validWin =
-            (sessionIntent === 'race' || data.mode === 'cup') &&
-            !!data.playerValid &&
-            !!player?.valid &&
-            !!player?.finished &&
-            player.position === 1;
-          const trialWin =
-            data.mode === 'time-trial' && data.playerValid && data.improved;
-          const championshipWin =
-            data.mode === 'cup' &&
-            data.final &&
-            cupChampion(cupStore.snapshot().state);
-          if (validWin || trialWin || championshipWin) {
-            profileStore.queueCompletion(
-              data.shipId ?? game?.getSnapshot().vehicle?.shipId ?? shipId,
-            );
-          }
+          const outcome = settleRaceResult(resultStores, data, {
+            sessionIntent,
+            sessionCup,
+            attemptId: sessionRewardId,
+            getShipId: () => game?.getSnapshot().vehicle?.shipId ?? shipId,
+          });
+          earnedRewards.push(...outcome.rewards);
+          if (outcome.celebration) pendingCupCelebration = outcome.celebration;
           lastResults = data;
           if (!present) {
             // Classification may finish while the race is paused in a menu.
@@ -1490,7 +1445,7 @@ export async function createFrontend(
           }
           if (screen === 'race' || screen === 'review') setScreen('results');
           else if (screen === 'results') updateResults(data);
-          if (validWin || trialWin || championshipWin) void showCompletion();
+          if (outcome.completionEligible) void showCompletion();
         },
       };
       let created;

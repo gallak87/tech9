@@ -273,6 +273,8 @@ export function installRavelWaves(track) {
     ravelPointAtTime(track, s, x, time);
   track.surfaceAtTime = (s, x = 0, time = track.presentationTime) =>
     sampleRavelSurface(track, s, x, time);
-  track.sampleSurface = track.surfaceAtTime;
+  // Projection may pass geometry options as its third argument. Explicit
+  // numeric clocks belong to surfaceAtTime; ordinary sampling uses this frame.
+  track.sampleSurface = (s, x = 0) => track.surfaceAtTime(s, x);
   return track;
 }

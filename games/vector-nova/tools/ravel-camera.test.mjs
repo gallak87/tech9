@@ -157,8 +157,12 @@ function verify(scene, result, state, label) {
     `${label}: chase looks away from the chosen path`,
   );
   assert.ok(
-    result.clearance > 2.8 && result.clearance < 12,
+    result.clearance > 2.8,
     `${label}: eye entered the actual road: ${result.clearance}`,
+  );
+  assert.ok(
+    result.clearance < 12,
+    `${label}: eye pulled away from the actual road: ${result.clearance}`,
   );
   assert.ok(
     camera.up.dot(result.surface.up) > 0.85,
@@ -167,6 +171,56 @@ function verify(scene, result, state, label) {
   assert.ok([...camera.position, ...camera.quaternion].every(Number.isFinite));
   assert.ok(Math.abs(camera.quaternion.length() - 1) < 1e-8);
 }
+
+test('Ravel support projection options preserve the live wave while explicit clock sampling stays independent', () => {
+  const zone = track.waveZones.find((entry) => entry.id === 'braid-swell');
+  const distance = (zone.start + zone.end) / 2;
+  const explicitTime = 0.73;
+  const explicit = track.surfaceAtTime(distance, 0, explicitTime);
+  let heightChange = 0;
+  for (const time of [0, 1.9, 3.2]) {
+    track.presentationTime = time;
+    const expected = track.surfaceAtTime(distance, 0, time);
+    heightChange = Math.max(
+      heightChange,
+      Math.abs(expected.wave.height - explicit.wave.height),
+    );
+    for (const options of [
+      undefined,
+      { geometryOnly: true },
+      { geometryOnly: false },
+    ]) {
+      const sampled = track.sampleSurface(distance, 0, options);
+      assert.deepEqual(
+        sampled,
+        expected,
+        `geometry options must not replace wave time ${time}`,
+      );
+      assert.ok(Number.isFinite(sampled.wave.phase));
+    }
+    const eye = expected.position
+      .clone()
+      .addScaledVector(expected.up, level.camera.chaseHeight);
+    const projected = projectMagneticBody(track, eye, distance, 0);
+    const clearance = eye
+      .clone()
+      .sub(projected.frame.position)
+      .dot(projected.frame.up);
+    assert.ok(
+      Math.abs(clearance - level.camera.chaseHeight) < 1e-6,
+      `live support height at ${time}: ${clearance}`,
+    );
+    assert.deepEqual(
+      track.surfaceAtTime(distance, 0, explicitTime),
+      explicit,
+      'explicit-time physics samples do not follow presentation time',
+    );
+  }
+  assert.ok(
+    heightChange > 5,
+    'the cases exercise distinct moving-wave geometry',
+  );
+});
 
 for (const aspect of [16 / 9, 16 / 10]) {
   test(`production Ravel chase frames the real craft and its chosen surface at desktop aspect ${aspect}`, () => {

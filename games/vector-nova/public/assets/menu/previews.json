@@ -132,8 +132,8 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "1daaa24091f3628fcc84ed40b9e09a73a55f3743",
-      "sourceDirty": true,
+      "sourceRevision": "024a8b2a87b5d9b354120148f3dc88a911bcc360",
+      "sourceDirty": false,
       "routeSignature": "70ec7231dc12e1e3"
     },
     "nomad": {
@@ -141,8 +141,8 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "7fff5e8a4215080e18cc418c64b8e433e0dd188d",
-      "sourceDirty": true,
+      "sourceRevision": "024a8b2a87b5d9b354120148f3dc88a911bcc360",
+      "sourceDirty": false,
       "routeSignature": "37a93254a696cb8f"
     },
     "oriel": {
@@ -150,8 +150,8 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "0df4bfc314a4b5b5bdaab55bc0a72ba9c6450504",
-      "sourceDirty": true,
+      "sourceRevision": "024a8b2a87b5d9b354120148f3dc88a911bcc360",
+      "sourceDirty": false,
       "routeSignature": "cc5a0db53f912a6e"
     }
   }

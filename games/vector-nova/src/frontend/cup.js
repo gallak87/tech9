@@ -13,14 +13,7 @@ import { SHIPS } from '../ships/catalog.js';
 import { formatTime } from '../race/timing.js';
 import { trackChallenge } from './track-challenge.js';
 import { assetURL } from '../assets/url.js';
-const esc = (value) =>
-  String(value).replace(
-    /[&<>"']/g,
-    (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
-        c
-      ],
-  );
+import { escapeHTML as esc } from '../ui/html.js';
 const button = (action, label, primary = false) =>
   `<button data-action="${action}" class="${primary ? 'primary' : ''}">${label}</button>`;
 const time = (ms) => formatTime(ms == null ? null : ms / 1000);

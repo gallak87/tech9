@@ -1,13 +1,6 @@
 import { SHIPS } from '../ships/catalog.js';
 import { formatTime } from '../race/timing.js';
-const esc = (value) =>
-  String(value).replace(
-    /[&<>"']/g,
-    (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
-        c
-      ],
-  );
+import { escapeHTML as esc } from '../ui/html.js';
 export function recordsView({
   records,
   catalog,

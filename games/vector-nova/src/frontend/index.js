@@ -28,6 +28,7 @@ import {
   settleTrialRecord,
 } from '../progression/result-coordinator.js';
 import { bindDesktopControls } from '../ui/desktop-controls.js';
+import { escapeHTML as escape } from '../ui/html.js';
 import { settingsView, bindSettingsPanel } from './settings-panel.js';
 import {
   CUPS,
@@ -76,14 +77,6 @@ import './style.css';
 import './menu.css';
 import './cup-art.css';
 
-const escape = (text) =>
-  String(text).replace(
-    /[&<>"']/g,
-    (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
-        c
-      ],
-  );
 const stamp = formatTime;
 const button = (action, label, primary = false) =>
   `<button data-action="${action}" class="${primary ? 'primary' : ''}">${label}</button>`;

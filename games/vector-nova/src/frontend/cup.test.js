@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cupView } from './cup.js';
+import { cupView, cupWaitingView } from './cup.js';
 import { createCupStore, availableCups } from '../race/cup.js';
 import { cupCabinet, cupCard, cupArt } from './cup-art.js';
 import { RACE_OPPONENTS } from '../race/roster.js';
@@ -95,4 +95,27 @@ test('invalid finishes stay visible with zero points and storage warnings surviv
   assert.match(html, /<dd>Invalid<\/dd>/);
   assert.match(html, /<dd>\+0<\/dd>/);
   assert.match(html, /role="status">Could not save &lt;progress&gt;\.<\/p>/);
+});
+test('waiting classification keeps rival names as text', () => {
+  const html = cupWaitingView({
+    playerValid: true,
+    playerTotalTime: 120,
+    courseFormat: 'circuit',
+    remaining: 9,
+    standings: [
+      {
+        id: 'player',
+        position: 1,
+        finished: true,
+        valid: true,
+        totalTime: 120,
+      },
+      { id: 'rook', name: `Rook & <"Nova"> 'II'`, finished: false },
+    ],
+  });
+  assert.ok(
+    html.includes('<b>Rook &amp; &lt;&quot;Nova&quot;&gt; &#39;II&#39;</b>'),
+  );
+  assert.doesNotMatch(html, /<"Nova">/);
+  assert.match(html, /ON TRACK/);
 });

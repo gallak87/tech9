@@ -10,14 +10,8 @@ import {
   requirementText,
 } from './catalog.js';
 import { rewardProgress, shipUnlocked } from './profile.js';
-export const escapeHTML = (value) =>
-  String(value).replace(
-    /[&<>"']/g,
-    (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
-        c
-      ],
-  );
+import { escapeHTML } from '../ui/html.js';
+export { escapeHTML };
 const paths = {
   speed: 'm4 17 8-10 8 10M7 17l5-6 5 6',
   acceleration: 'm5 17 7-5-7-5m8 10 7-5-7-5',

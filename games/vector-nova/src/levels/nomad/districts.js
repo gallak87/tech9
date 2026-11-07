@@ -74,15 +74,17 @@ export function createNomadDistricts({ track, finish = null, shape = false }) {
       key = material.customProgramCacheKey();
     material.onBeforeCompile = (shader, renderer) => {
       compile.call(material, shader, renderer);
-      shader.fragmentShader = replaceShaderAll(
-        replaceShader(
-          shader.fragmentShader,
-          'texture2D(industrialDetail,vec2(industrialLocal.y,length(industrialLocal.xz))/3.).rgb',
-          '(texture2D(industrialDetail,industrialLocal.yz/7.).rgb*iw.x+texture2D(industrialDetail,industrialLocal.xz/7.).rgb*iw.y+texture2D(industrialDetail,industrialLocal.xy/7.).rgb*iw.z)',
-        ),
-        'industrialPoint.xz*.015',
-        'industrialLocal.xz*.015',
+      shader.fragmentShader = replaceShader(
+        shader.fragmentShader,
+        'texture2D(industrialDetail,vec2(industrialLocal.y,length(industrialLocal.xz))/3.).rgb',
+        '(texture2D(industrialDetail,industrialLocal.yz/7.).rgb*iw.x+texture2D(industrialDetail,industrialLocal.xz/7.).rgb*iw.y+texture2D(industrialDetail,industrialLocal.xy/7.).rgb*iw.z)',
       );
+      if (kind === 'shell')
+        shader.fragmentShader = replaceShaderAll(
+          shader.fragmentShader,
+          'industrialPoint.xz*.015',
+          'industrialLocal.xz*.015',
+        );
     };
     material.customProgramCacheKey = () =>
       key + '-nomad-working-district-local-v1';

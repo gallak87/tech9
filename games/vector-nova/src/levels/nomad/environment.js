@@ -277,22 +277,26 @@ export function createNomadEnvironment({
                     : /navy|machinery/.test(material.name)
                       ? 'dark'
                       : 'steel';
-                  road?.finish?.bind(material, kind, 'part');
+                  const finish = road?.finish;
+                  finish?.bind(material, kind, 'part');
                   const compile = material.onBeforeCompile,
                     key = material.customProgramCacheKey();
                   material.onBeforeCompile = (shader, renderer) => {
                     compile.call(material, shader, renderer);
                     // A rigidly attached, metre-scaled finish stays with the vehicle.
                     // Generic industrial lathe coordinates become local triplanar here.
-                    shader.fragmentShader = replaceShaderAll(
-                      replaceShader(
-                        shader.fragmentShader,
-                        'texture2D(industrialDetail,vec2(industrialLocal.y,length(industrialLocal.xz))/3.).rgb',
-                        '(texture2D(industrialDetail,industrialLocal.yz/7.).rgb*iw.x+texture2D(industrialDetail,industrialLocal.xz/7.).rgb*iw.y+texture2D(industrialDetail,industrialLocal.xy/7.).rgb*iw.z)',
-                      ),
-                      'industrialPoint.xz*.015',
-                      'industrialLocal.xz*.015',
+                    if (!finish) return;
+                    shader.fragmentShader = replaceShader(
+                      shader.fragmentShader,
+                      'texture2D(industrialDetail,vec2(industrialLocal.y,length(industrialLocal.xz))/3.).rgb',
+                      '(texture2D(industrialDetail,industrialLocal.yz/7.).rgb*iw.x+texture2D(industrialDetail,industrialLocal.xz/7.).rgb*iw.y+texture2D(industrialDetail,industrialLocal.xy/7.).rgb*iw.z)',
                     );
+                    if (kind === 'shell')
+                      shader.fragmentShader = replaceShaderAll(
+                        shader.fragmentShader,
+                        'industrialPoint.xz*.015',
+                        'industrialLocal.xz*.015',
+                      );
                   };
                   material.customProgramCacheKey = () =>
                     key + '-nomad-attached-finish-v1';

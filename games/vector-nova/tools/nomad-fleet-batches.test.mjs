@@ -3,9 +3,13 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { createIndustrialFinish } from '@worldkit/environment/industrial';
 import createLevel from '../src/levels/nomad/index.js';
 import { createNomadEnvironment } from '../src/levels/nomad/environment.js';
+import { createNomadDistricts } from '../src/levels/nomad/districts.js';
+import { createNomadHallMachinery } from '../src/levels/nomad/hall-machinery.js';
 import { createNomadFleetBatches } from '../src/levels/nomad/fleet-batches.js';
+import { createNomadRoad } from '../src/levels/nomad/track/road.js';
 import {
   sampleCarrierMotion,
   NOMAD_MOTION_RULES,
@@ -17,6 +21,19 @@ const anchors = kit.prototypes
   .find((part) => part.name === 'nomad_carrier')
   .anchors.filter((anchor) => anchor.kind === 'wheel');
 const details = ['', '_mid', '_far'];
+const environmentPaths = [
+  'carrier-kit.glb',
+  'route-supports.glb',
+  'receiver-crown.glb',
+  'interior-freight.glb',
+  'companion-armour.glb',
+  'saltwind-gallery.glb',
+  'wallride-service.glb',
+  'salt-escarpments.glb',
+];
+const industrialPartSample =
+  'texture2D(industrialDetail,vec2(industrialLocal.y,length(industrialLocal.xz))/3.).rgb';
+const industrialShellNoise = 'industrialPoint.xz*.015';
 async function model(path = 'carrier-kit.glb') {
   const bytes = await readFile(
     new URL(`../public/assets/levels/nomad/${path}`, import.meta.url),
@@ -27,6 +44,110 @@ async function model(path = 'carrier-kit.glb') {
       '',
     )
   ).scene;
+}
+async function environmentAssets() {
+  const scenes = await Promise.all(environmentPaths.map((path) => model(path)));
+  return {
+    scenes,
+    loadAsset: async (url) => ({
+      scene: scenes[environmentPaths.findIndex((path) => url.endsWith(path))],
+    }),
+  };
+}
+function materialsIn(scenes) {
+  const materials = new Set();
+  for (const scene of scenes)
+    scene.traverse((mesh) => {
+      if (mesh.isMesh)
+        for (const material of [].concat(mesh.material))
+          materials.add(material);
+    });
+  return materials;
+}
+function shaderProgram(material) {
+  const source =
+    T.ShaderLib[
+      {
+        MeshPhysicalMaterial: 'physical',
+        MeshStandardMaterial: 'standard',
+      }[material.type]
+    ];
+  assert.ok(source, `Use the actual stock shader for ${material.type}`);
+  return {
+    vertexShader: source.vertexShader,
+    fragmentShader: source.fragmentShader,
+    uniforms: T.UniformsUtils.clone(source.uniforms),
+  };
+}
+function observedIndustrialFinish() {
+  const finish = createIndustrialFinish(),
+    bindings = [];
+  const bind = finish.bind;
+  const fixture = { finish, bindings, missingAnchor: null };
+  finish.bind = (material, kind, coordinates) => {
+    bind(material, kind, coordinates);
+    const compile = material.onBeforeCompile;
+    material.onBeforeCompile = (shader, renderer) => {
+      compile.call(material, shader, renderer);
+      if (fixture.missingAnchor)
+        shader.fragmentShader = shader.fragmentShader.replaceAll(
+          fixture.missingAnchor,
+          '',
+        );
+    };
+    bindings.push({ material, kind, key: material.customProgramCacheKey() });
+  };
+  return fixture;
+}
+function assertAttachedIndustrialFinish({ material, kind }, machined = false) {
+  const shader = shaderProgram(material),
+    key = material.customProgramCacheKey();
+  assert.doesNotThrow(
+    () => material.onBeforeCompile(shader, null),
+    material.name,
+  );
+  assert.equal(material.customProgramCacheKey(), key);
+  assert.ok(shader.uniforms.industrialDetail, material.name);
+  if (machined) {
+    assert.ok(shader.fragmentShader.includes(industrialPartSample));
+    assert.ok(shader.fragmentShader.includes('float turning='));
+  } else {
+    assert.ok(!shader.fragmentShader.includes(industrialPartSample));
+    for (const plane of ['yz', 'xz', 'xy'])
+      assert.ok(
+        shader.fragmentShader.includes(
+          `texture2D(industrialDetail,industrialLocal.${plane}/7.).rgb`,
+        ),
+        `${material.name}: attached triplanar ${plane} sample`,
+      );
+  }
+  assert.ok(!shader.fragmentShader.includes(industrialShellNoise));
+  assert.equal(
+    shader.fragmentShader.includes('industrialLocal.xz*.015'),
+    kind === 'shell',
+  );
+}
+function assertRequiredIndustrialAnchors(fixture, bindings) {
+  fixture.missingAnchor = industrialPartSample;
+  for (const { material } of bindings)
+    assert.throws(
+      () => material.onBeforeCompile(shaderProgram(material), null),
+      /Shader patch anchor not found: texture2D\(industrialDetail,vec2/,
+      `${material.name}: active part sample remains required`,
+    );
+  fixture.missingAnchor = industrialShellNoise;
+  for (const { material, kind } of bindings) {
+    const compile = () =>
+      material.onBeforeCompile(shaderProgram(material), null);
+    if (kind === 'shell')
+      assert.throws(
+        compile,
+        /Shader patch anchor not found: industrialPoint\.xz\*\.015/,
+        `${material.name}: active shell noise remains required`,
+      );
+    else assert.doesNotThrow(compile, material.name);
+  }
+  fixture.missingAnchor = null;
 }
 const source = await model();
 const sourceMaterials = new Map();
@@ -591,27 +712,138 @@ test('replacing one carrier hull retains every rolling wheel and its exact movin
   }
 });
 
-test('environment integration retains carrier attachments and cleans up normal, interrupted and failed loads', async () => {
+test('Nomad industrial finishes compose real district and hall material kinds with strict active anchors', () => {
   const track = createLevel().createTrack();
-  const paths = [
-    'carrier-kit.glb',
-    'route-supports.glb',
-    'receiver-crown.glb',
-    'interior-freight.glb',
-    'companion-armour.glb',
-    'saltwind-gallery.glb',
-    'wallride-service.glb',
-    'salt-escarpments.glb',
-  ];
-  const scenes = await Promise.all(paths.map((path) => model(path)));
+  for (const [create, suffix] of [
+    [createNomadDistricts, '-nomad-working-district-local-v1'],
+    [createNomadHallMachinery, '-nomad-hoist-local-v1'],
+  ]) {
+    const fixture = observedIndustrialFinish();
+    const owner = create({ track, finish: fixture.finish });
+    try {
+      assert.deepEqual(
+        fixture.bindings.map(({ kind }) => kind),
+        ['shell', 'steel', 'dark', 'cast', 'machined'],
+      );
+      for (const binding of fixture.bindings) {
+        const machined = binding.kind === 'machined';
+        assertAttachedIndustrialFinish(binding, machined);
+        assert.equal(
+          binding.material.customProgramCacheKey(),
+          binding.key + (machined ? '' : suffix),
+        );
+      }
+      assertRequiredIndustrialAnchors(
+        fixture,
+        fixture.bindings.filter(({ kind }) => kind !== 'machined'),
+      );
+      const unbound = create({ track });
+      try {
+        const unboundMaterials = materialsIn([unbound.group]);
+        for (const { material: bound } of fixture.bindings) {
+          const material = [...unboundMaterials].find(
+            (candidate) => candidate.name === bound.name,
+          );
+          assert.ok(material, `${bound.name}: retained without a finish`);
+          const stock = shaderProgram(material),
+            shader = shaderProgram(material);
+          assert.doesNotThrow(() => material.onBeforeCompile(shader, null));
+          assert.equal(shader.vertexShader, stock.vertexShader);
+          assert.equal(shader.fragmentShader, stock.fragmentShader);
+          assert.equal(
+            material.customProgramCacheKey(),
+            T.Material.prototype.onBeforeCompile.toString(),
+          );
+        }
+      } finally {
+        unbound.dispose();
+      }
+    } finally {
+      owner.dispose();
+      fixture.finish.dispose();
+    }
+  }
+});
+
+test('Nomad industrial finishes compose loaded carrier materials and require only their active anchors', async () => {
+  const track = createLevel().createTrack(),
+    fixture = observedIndustrialFinish(),
+    assets = await environmentAssets();
+  const road = createNomadRoad({ track, collisionOnly: true });
   const environment = createNomadEnvironment({
     track,
-    loadAsset: async (url) => ({
-      scene: scenes[paths.findIndex((path) => url.endsWith(path))],
-    }),
+    road: { ...road, finish: fixture.finish },
+    loadAsset: assets.loadAsset,
+  });
+  try {
+    await environment.ready;
+    const bindings = fixture.bindings.filter(({ material }) =>
+      material.customProgramCacheKey().includes('-nomad-attached-finish-v1'),
+    );
+    assert.deepEqual([...new Set(bindings.map(({ kind }) => kind))].sort(), [
+      'dark',
+      'shell',
+      'steel',
+    ]);
+    for (const binding of bindings) {
+      assertAttachedIndustrialFinish(binding);
+      assert.equal(
+        binding.material.customProgramCacheKey(),
+        binding.key +
+          '-nomad-attached-finish-v1' +
+          (/ivory/.test(binding.material.name) ? '-nomad-coating-wear-v2' : ''),
+      );
+    }
+    assertRequiredIndustrialAnchors(fixture, bindings);
+  } finally {
+    environment.dispose();
+    road.dispose();
+    fixture.finish.dispose();
+  }
+});
+
+test('environment integration retains carrier attachments, absent-finish shaders and cleans up normal, interrupted and failed loads', async () => {
+  const track = createLevel().createTrack();
+  const { scenes, loadAsset } = await environmentAssets();
+  const attachedScenes = scenes.filter(
+    (_, index) => environmentPaths[index] !== 'salt-escarpments.glb',
+  );
+  const originalPrograms = new Map(
+    [...materialsIn(attachedScenes)].map((material) => [
+      material,
+      {
+        shader: shaderProgram(material),
+        key: material.customProgramCacheKey(),
+      },
+    ]),
+  );
+  const expectedAttachedNames = new Set(
+    [...originalPrograms.keys()]
+      .filter((material) => !/rubber|amber|glazing/.test(material.name))
+      .map((material) => material.name),
+  );
+  const environment = createNomadEnvironment({
+    track,
+    loadAsset,
   });
   await environment.ready;
   try {
+    const attachedNames = new Set();
+    for (const material of materialsIn(attachedScenes)) {
+      if (/rubber|amber|glazing/.test(material.name)) continue;
+      const original = originalPrograms.get(material);
+      const shader = shaderProgram(material);
+      assert.doesNotThrow(() => material.onBeforeCompile(shader, null));
+      assert.equal(shader.vertexShader, original.shader.vertexShader);
+      assert.equal(shader.fragmentShader, original.shader.fragmentShader);
+      assert.equal(
+        material.customProgramCacheKey(),
+        original.key + '-nomad-attached-finish-v1',
+      );
+      attachedNames.add(material.name);
+    }
+    assert.ok(expectedAttachedNames.size > 0);
+    assert.deepEqual(attachedNames, expectedAttachedNames);
     assert.equal(
       environment.carrierRoots
         .get('nomad-companion-starboard-heavy')
@@ -679,7 +911,7 @@ test('environment integration retains carrier attachments and cleans up normal, 
     environment.dispose();
     environment.dispose();
   }
-  const late = await Promise.all(paths.map((path) => model(path))),
+  const late = await Promise.all(environmentPaths.map((path) => model(path))),
     pending = [],
     released = new Map();
   for (const scene of late)
@@ -698,7 +930,7 @@ test('environment integration retains carrier attachments and cleans up normal, 
     loadAsset: () => new Promise((resolve) => pending.push(resolve)),
   });
   await Promise.resolve();
-  assert.equal(pending.length, paths.length);
+  assert.equal(pending.length, environmentPaths.length);
   interrupted.dispose();
   pending.forEach((resolve, index) => resolve({ scene: late[index] }));
   await interrupted.ready;

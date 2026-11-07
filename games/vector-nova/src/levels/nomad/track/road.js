@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { createIndustrialFinish } from '@worldkit/environment/industrial';
 import { sweepGeometry } from '../../../track/geometry.js';
@@ -12,25 +13,25 @@ function roadMaterial(shape) {
   });
   if (shape) return material;
   material.onBeforeCompile = (shader) => {
-    shader.vertexShader = shader.vertexShader
-      .replace(
+    shader.vertexShader = replaceShader(
+      replaceShader(
+        shader.vertexShader,
         '#include <common>',
         '#include <common>\nattribute vec2 roadCoord; varying vec2 steelCoord;',
-      )
-      .replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\nsteelCoord=roadCoord;',
-      );
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
+      ),
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\nsteelCoord=roadCoord;',
+    );
+    shader.fragmentShader = replaceShader(
+      replaceShader(
+        shader.fragmentShader,
         '#include <common>',
         `#include <common>
         varying vec2 steelCoord;
         float nomadHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}`,
-      )
-      .replace(
-        '#include <map_fragment>',
-        `#include <map_fragment>
+      ),
+      '#include <map_fragment>',
+      `#include <map_fragment>
         vec2 p=steelCoord;
         vec2 plate=vec2(p.x,p.y+mod(floor(p.x/18.),2.)*4.);
         vec2 cell=mod(plate,vec2(18.,8.));
@@ -45,8 +46,9 @@ function roadMaterial(shape) {
         float diagonal=step(.48,fract((p.x+p.y)*.12));
         float paint=shoulder*diagonal*.26;
         diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.58,.29,.066),paint);`,
-      );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    );
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <roughnessmap_fragment>',
       '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+(.5-variation)*.12,.40,.72);',
     );

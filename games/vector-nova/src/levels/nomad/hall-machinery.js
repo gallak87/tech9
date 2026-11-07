@@ -1,3 +1,7 @@
+import {
+  replaceShader,
+  replaceShaderAll,
+} from '../../renderer/shader-patch.js';
 import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createIndustrialKit } from '@worldkit/environment/industrial';
@@ -83,12 +87,15 @@ export function createNomadHallMachinery({
       key = material.customProgramCacheKey();
     material.onBeforeCompile = (shader, renderer) => {
       compile.call(material, shader, renderer);
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
+      shader.fragmentShader = replaceShaderAll(
+        replaceShader(
+          shader.fragmentShader,
           'texture2D(industrialDetail,vec2(industrialLocal.y,length(industrialLocal.xz))/3.).rgb',
           '(texture2D(industrialDetail,industrialLocal.yz/7.).rgb*iw.x+texture2D(industrialDetail,industrialLocal.xz/7.).rgb*iw.y+texture2D(industrialDetail,industrialLocal.xy/7.).rgb*iw.z)',
-        )
-        .replaceAll('industrialPoint.xz*.015', 'industrialLocal.xz*.015');
+        ),
+        'industrialPoint.xz*.015',
+        'industrialLocal.xz*.015',
+      );
     };
     material.customProgramCacheKey = () => key + '-nomad-hoist-local-v1';
   }

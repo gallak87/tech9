@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 // Member-space surfaces and CPU-baked contact shading stay attached during
 // stretching. Mineral structure, exposed breaks and machined metal have distinct
 // response; fine detail fades with screen footprint instead of sparkling.
@@ -12,14 +13,14 @@ export function finishUmbraMaterial(
   const metal = ['metal', 'plate'].includes(kind);
   material.onBeforeCompile = (shader) => {
     if (surfaceTexture) shader.uniforms.umbraAtlas = { value: surfaceTexture };
-    shader.vertexShader = shader.vertexShader
-      .replace(
+    shader.vertexShader = replaceShader(
+      replaceShader(
+        shader.vertexShader,
         '#include <common>',
         `#include <common>\n${bakedLight ? 'attribute float _umbralight; varying float umbraLight;' : ''} varying vec3 umbraMember; varying vec3 umbraRaw; varying vec3 umbraSurface; varying vec3 umbraNormal; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'attribute vec4 umbraCassette; varying vec4 umbraPanel;' : ''}`,
-      )
-      .replace(
-        '#include <begin_vertex>',
-        `#include <begin_vertex>
+      ),
+      '#include <begin_vertex>',
+      `#include <begin_vertex>
         ${bakedLight ? 'umbraLight=_umbralight;' : ''}
         umbraRaw=position; umbraMember=position; umbraSurface=position; umbraNormal=normal; umbraDeck=position.xz; umbraSeed=0.;
         ${kind === 'deck' ? 'umbraDeck=uv; umbraPanel=umbraCassette;' : ''}
@@ -31,11 +32,16 @@ export function finishUmbraMaterial(
           umbraNormal=normalize(umBasis*(normal/vec3(dot(umBasis[0],umBasis[0]),dot(umBasis[1],umBasis[1]),dot(umBasis[2],umBasis[2]))));
           ${kind === 'plate' ? 'umbraNormal=normalize(normal/vec3(length(umBasis[0]),length(umBasis[1]),length(umBasis[2])));' : ''}
         #endif`,
-      );
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
-        '#include <common>',
-        `#include <common>
+    );
+    shader.fragmentShader = replaceShader(
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            replaceShader(
+              replaceShader(
+                shader.fragmentShader,
+                '#include <common>',
+                `#include <common>
       ${bakedLight ? 'varying float umbraLight;' : ''}
       varying vec3 umbraMember; varying vec3 umbraRaw; varying vec3 umbraSurface; varying vec3 umbraNormal; varying vec2 umbraDeck; varying float umbraSeed; ${kind === 'deck' ? 'varying vec4 umbraPanel;' : ''}
       ${
@@ -59,10 +65,9 @@ export function finishUmbraMaterial(
       float umNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(umHash(i),umHash(i+vec3(1,0,0)),f.x),mix(umHash(i+vec3(0,1,0)),umHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(umHash(i+vec3(0,0,1)),umHash(i+vec3(1,0,1)),f.x),mix(umHash(i+vec3(0,1,1)),umHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
       float umFbm(vec3 p){return umNoise(p)*.64+umNoise(p*2.17)*.25+umNoise(p*4.31)*.11;}
       vec3 umBump(vec3 n,float h){vec3 dx=dFdx(-vViewPosition),dy=dFdy(-vViewPosition),cx=cross(dy,n),cy=cross(n,dx);float det=dot(dx,cx);return normalize(n-sign(det)*(dFdx(h)*cx+dFdy(h)*cy)/max(abs(det),.00001));}`,
-      )
-      .replace(
-        '#include <color_fragment>',
-        `#include <color_fragment>
+              ),
+              '#include <color_fragment>',
+              `#include <color_fragment>
       vec3 up=${kind === 'plate' ? 'umbraMember' : 'umbraSurface'};
       float macro=${kind === 'deck' ? 'umFbm(vec3(umbraDeck.x*.8,umbraDeck.y*.26,1.))' : 'umFbm(up*.065+vec3(umbraSeed))'};
       float grain=umNoise(up*2.1);
@@ -148,17 +153,14 @@ export function finishUmbraMaterial(
       }
       ${surfaceTexture ? `diffuseColor.rgb*=mix(vec3(1.),clamp(authoredSurface/${stone ? 'vec3(.59,.53,.44)' : metal ? 'vec3(.26,.265,.27)' : 'vec3(.085)'},vec3(.68),vec3(1.32)),${kind === 'deck' ? '(.16+dirt*.18+abrasion*.13)' : stone ? '.8' : kind === 'plate' ? '.44' : metal ? '.22' : '.24'});` : ''}
       ${surfaceTexture ? `relief=relief*${stone ? '.5' : '.25'}+surfaceTone*${stone ? '.06' : metal ? '.0015' : kind === 'deck' ? '.0011' : '.0012'};` : ''}`,
-      )
-      .replace(
-        '#include <map_fragment>',
-        surfaceTexture ? '' : '#include <map_fragment>',
-      )
-      .replace(
-        '#include <roughnessmap_fragment>',
-        `#include <roughnessmap_fragment>
+            ),
+            '#include <map_fragment>',
+            surfaceTexture ? '' : '#include <map_fragment>',
+          ),
+          '#include <roughnessmap_fragment>',
+          `#include <roughnessmap_fragment>
         roughnessFactor=clamp(roughnessFactor+${surfaceTexture ? (stone ? '(surfaceTone-.35)*.14+' : '(surfaceTone-.35)*.035+') : ''}(macro-.5)*${stone ? '.14' : '.06'}${metal ? `+patina*.24${kind === 'plate' ? '-edgeWear*.13+protectedFinish*.10+contact*.13+seamDeposit*.09' : ''}` : kind === 'deck' ? '+dirt*.28-wear*.18-polished*.14-abrasion*.028' : ''},${stone ? '.72' : metal ? '.19' : '.24'},.98);`,
-      )
-      .replace(
+        ),
         '#include <emissivemap_fragment>',
         '#include <emissivemap_fragment>' +
           (bakedLight
@@ -171,11 +173,10 @@ export function finishUmbraMaterial(
         #endif
         totalEmissiveRadiance+=receiverAlbedo*vec3(1.,.46,.17)*umbraLight*2.2;`
             : ''),
-      )
-      .replace(
-        '#include <normal_fragment_begin>',
-        '#include <normal_fragment_begin>\nnormal=umBump(normal,relief);',
-      );
+      ),
+      '#include <normal_fragment_begin>',
+      '#include <normal_fragment_begin>\nnormal=umBump(normal,relief);',
+    );
   };
   material.customProgramCacheKey = () =>
     `${kind === 'deck' ? 'umbra-deck-sheen-v2' : 'umbra-surface-v7'}-${kind}-${!!surfaceTexture}-${bakedLight}`;

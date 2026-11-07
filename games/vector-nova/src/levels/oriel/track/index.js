@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
@@ -33,13 +34,15 @@ export function createOrielRoad(track, { shape = false } = {}) {
     limestone.onBeforeCompile = (shader) => {
       shader.vertexShader =
         'attribute vec2 roadCoord; varying vec2 orielMetres;\n' +
-        shader.vertexShader.replace(
+        replaceShader(
+          shader.vertexShader,
           '#include <begin_vertex>',
           '#include <begin_vertex>\norielMetres=roadCoord;',
         );
       shader.fragmentShader =
         'varying vec2 orielMetres;\n' +
-        shader.fragmentShader.replace(
+        replaceShader(
+          shader.fragmentShader,
           '#include <color_fragment>',
           `#include <color_fragment>
         float jointS=abs(mod(orielMetres.x+7.,14.)-7.);

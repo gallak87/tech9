@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 
 const noiseGLSL = `
@@ -30,7 +31,8 @@ export function createTurbineWater(records, clock, rippleTexture) {
     shader.vertexShader =
       `uniform float hydroTime;attribute vec2 hydroCoord;attribute vec4 hydroData;attribute vec3 hydroOutlet;
       varying vec2 vHydroCoord;varying vec4 vHydroData;varying vec3 vHydroOutlet;\n` +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <begin_vertex>',
         `
       #include <begin_vertex>
@@ -53,10 +55,13 @@ export function createTurbineWater(records, clock, rippleTexture) {
     shader.fragmentShader =
       `uniform float hydroTime;uniform sampler2D hydroRipple;
       varying vec2 vHydroCoord;varying vec4 vHydroData;varying vec3 vHydroOutlet;\n${noiseGLSL}\n` +
-      shader.fragmentShader
-        .replace(
-          '#include <map_fragment>',
-          `
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            replaceShader(
+              shader.fragmentShader,
+              '#include <map_fragment>',
+              `
         #include <map_fragment>
         float jetEdge=step(4.5,vHydroData.w);
         float jet=step(.5,vHydroData.w)*(1.-step(1.5,vHydroData.w))+jetEdge;
@@ -135,18 +140,15 @@ export function createTurbineWater(records, clock, rippleTexture) {
         vec2 rippleFine=texture2D(hydroRipple,chop*.72+vec2(17.,hydroTime*.1)).rg*2.-1.;
         vec2 hydroSlope=(ripple*.16+rippleFine*.09*visibility)*(1.-foam*.45)*mix(1.,.45,jet);
       `,
-        )
-        .replace(
-          '#include <opaque_fragment>',
-          'if(hydroDiscard)discard;\n#include <opaque_fragment>',
-        )
-        .replace(
+            ),
+            '#include <opaque_fragment>',
+            'if(hydroDiscard)discard;\n#include <opaque_fragment>',
+          ),
           '#include <roughnessmap_fragment>',
           `#include <roughnessmap_fragment>\nroughnessFactor=mix(.18,.72,foam);`,
-        )
-        .replace(
-          '#include <normal_fragment_maps>',
-          `#include <normal_fragment_maps>
+        ),
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
         vec3 q0=dFdx(-vViewPosition),q1=dFdy(-vViewPosition);
         vec2 st0=dFdx(vHydroCoord),st1=dFdy(vHydroCoord);
         float orientation=sign(st0.x*st1.y-st0.y*st1.x);
@@ -154,7 +156,7 @@ export function createTurbineWater(records, clock, rippleTexture) {
         vec3 along=normalize(-q0*st1.x+q1*st0.x+vec3(1e-8))*orientation;
         normal=normalize(normal+across*hydroSlope.x+along*hydroSlope.y);
       `,
-        );
+      );
   };
   water.customProgramCacheKey = () => 'nightweir-turbine-water-v9';
   materials.add(water);
@@ -567,31 +569,34 @@ export function createTurbineWater(records, clock, rippleTexture) {
       shader.uniforms.hydroTime = clock;
       shader.vertexShader =
         `uniform float hydroTime;attribute vec3 sprayOrigin;attribute vec3 sprayVelocity;attribute vec4 spraySeed;varying vec2 vSprayUV;varying vec2 vSprayLife;\n` +
-        shader.vertexShader
-          .replace(
-            '#include <defaultnormal_vertex>',
-            'vec3 transformedNormal=vec3(0.,0.,1.);',
-          )
-          .replace(
+        replaceShader(
+          replaceShader(
+            replaceShader(
+              shader.vertexShader,
+              '#include <defaultnormal_vertex>',
+              'vec3 transformedNormal=vec3(0.,0.,1.);',
+            ),
             '#include <begin_vertex>',
             `#include <begin_vertex>\nvSprayUV=uv;float phase=fract(hydroTime/spraySeed.y+spraySeed.x);float age=phase*spraySeed.y;vSprayLife=vec2(phase,spraySeed.w);vec3 sprayPoint=sprayOrigin+sprayVelocity*age; sprayPoint.y-=mix(4.9,.55,spraySeed.w)*age*age;transformed=sprayPoint;`,
-          )
-          .replace(
-            '#include <project_vertex>',
-            `vec4 mvPosition=modelViewMatrix*vec4(transformed,1.);float size=spraySeed.z*mix(1.,1.+phase*1.5,spraySeed.w);mvPosition.xy+=position.xy*size;gl_Position=projectionMatrix*mvPosition;`,
-          );
+          ),
+          '#include <project_vertex>',
+          `vec4 mvPosition=modelViewMatrix*vec4(transformed,1.);float size=spraySeed.z*mix(1.,1.+phase*1.5,spraySeed.w);mvPosition.xy+=position.xy*size;gl_Position=projectionMatrix*mvPosition;`,
+        );
       shader.fragmentShader =
         `varying vec2 vSprayUV;varying vec2 vSprayLife;\n${noiseGLSL}\n` +
-        shader.fragmentShader.replace(
+        replaceShader(
+          shader.fragmentShader,
           '#include <map_fragment>',
           `#include <map_fragment>\nvec2 p=vSprayUV-.5;float radius=length(p*vec2(1.,mix(.55,1.,vSprayLife.y)));float grain=hydroNoise(vSprayUV*8.+vSprayLife.x*3.);float edge=1.-smoothstep(.12,.5,radius+grain*.09);float life=smoothstep(0.,.08,vSprayLife.x)*(1.-smoothstep(.5,1.,vSprayLife.x));diffuseColor.rgb*=mix(1.,.62,vSprayLife.y);diffuseColor.a=edge*life*mix(.72,.13,vSprayLife.y);`,
         );
       // Droplet clouds scatter light through their volume, unlike an opaque
       // camera-facing card. Reuse the same real lights and attenuation with a
       // broad phase response; no emissive glow or additional light loop.
-      shader.fragmentShader = shader.fragmentShader.replace(
+      shader.fragmentShader = replaceShader(
+        shader.fragmentShader,
         '#include <lights_physical_pars_fragment>',
-        T.ShaderChunk.lights_physical_pars_fragment.replace(
+        replaceShader(
+          T.ShaderChunk.lights_physical_pars_fragment,
           'float dotNL = saturate( dot( geometryNormal, directLight.direction ) );',
           'float phaseLight=.25+.5*pow(saturate(dot(geometryViewDir,-directLight.direction)),2.);float dotNL=mix(saturate(dot(geometryNormal,directLight.direction)),phaseLight,vSprayLife.y);',
         ),

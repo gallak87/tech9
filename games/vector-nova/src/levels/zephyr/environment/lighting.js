@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import { ShaderChunk } from 'three';
 
 const finished = new WeakSet();
@@ -6,12 +7,11 @@ const start = lights.indexOf('#if ( NUM_POINT_LIGHTS');
 const end = lights.indexOf('#if ( NUM_SPOT_LIGHTS');
 const boundedLights =
   lights.slice(0, start) +
-  lights
-    .slice(start, end)
-    .replace(
-      'RE_Direct( directLight,',
-      'if ( directLight.visible ) RE_Direct( directLight,',
-    ) +
+  replaceShader(
+    lights.slice(start, end),
+    'RE_Direct( directLight,',
+    'if ( directLight.visible ) RE_Direct( directLight,',
+  ) +
   lights.slice(end);
 
 // Three computes finite light attenuation before evaluating the material BRDF.
@@ -27,7 +27,8 @@ export function finishZephyrLighting(group) {
       const key = material.customProgramCacheKey();
       material.onBeforeCompile = function (shader, renderer) {
         compile.call(this, shader, renderer);
-        shader.fragmentShader = shader.fragmentShader.replace(
+        shader.fragmentShader = replaceShader(
+          shader.fragmentShader,
           '#include <lights_fragment_begin>',
           boundedLights,
         );

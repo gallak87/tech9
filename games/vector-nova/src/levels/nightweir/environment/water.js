@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { finishNightweirMetal } from './materials.js';
@@ -58,19 +59,20 @@ export function createNightweirWater(track) {
       'uniform float waterTime;varying vec3 waterPoint;\n' +
       NACRE_WAVE_GLSL +
       '\n' +
-      shader.vertexShader
-        .replace(
+      replaceShader(
+        replaceShader(
+          shader.vertexShader,
           '#include <begin_vertex>',
           '#include <begin_vertex>\nNacreOcean wave=nacreOcean(position.xz,waterTime,vec3(.055,0.,0.),vec3(50.,0.,0.));transformed+=wave.displacement;waterPoint=position;',
-        )
-        .replace(
-          '#include <beginnormal_vertex>',
-          '#include <beginnormal_vertex>\nNacreOcean wn=nacreOcean(position.xz,waterTime,vec3(.055,0.,0.),vec3(50.,0.,0.));objectNormal=normalize(normal+(wn.normal-vec3(0.,1.,0.))*.35);',
-        );
+        ),
+        '#include <beginnormal_vertex>',
+        '#include <beginnormal_vertex>\nNacreOcean wn=nacreOcean(position.xz,waterTime,vec3(.055,0.,0.),vec3(50.,0.,0.));objectNormal=normalize(normal+(wn.normal-vec3(0.,1.,0.))*.35);',
+      );
     shader.fragmentShader =
       'varying vec3 waterPoint;uniform float waterTime;uniform sampler2D basinRipples;\n' +
-      shader.fragmentShader
-        .replace(
+      replaceShader(
+        replaceShader(
+          shader.fragmentShader,
           '#include <roughnessmap_fragment>',
           `#include <roughnessmap_fragment>
         vec2 current=vec2(waterTime*.00025,waterTime*.0007);
@@ -80,15 +82,14 @@ export function createNightweirWater(track) {
         vec2 slope=broad*.48+fine*.22*nearRipple;
         roughnessFactor=.21+min(.10,length(broad)*.22);
       `,
-        )
-        .replace(
-          '#include <normal_fragment_maps>',
-          `#include <normal_fragment_maps>
+        ),
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
         // Mipmapped wind/current ripples break the reflected sky at basin scale;
         // the coarse analytic wave mesh still supplies the underlying normal.
         normal=normalize(normal+mat3(viewMatrix)*vec3(slope.x,0.,slope.y));
       `,
-        );
+      );
   };
   river.customProgramCacheKey = () => 'nightweir-nacre-basin-v2';
   materials.add(river);
@@ -218,11 +219,11 @@ export function createNightweirWater(track) {
     depthWrite: false,
     uniforms: { waterTime: clock },
     vertexShader: `uniform float waterTime;attribute vec2 seedSize;varying float fade;void main(){float phase=fract(waterTime*.19+seedSize.x);vec3 p=position+vec3(sin(seedSize.x*7.)*phase*9.,phase*28.,cos(seedSize.x*11.)*phase*9.);vec4 v=modelViewMatrix*vec4(p,1.);gl_PointSize=min(100.,seedSize.y*500./max(8.,-v.z));fade=sin(phase*3.14159)*.11;gl_Position=projectionMatrix*v;}`,
-    fragmentShader:
-      `varying float fade;void main(){float a=(1.-smoothstep(.1,.5,length(gl_PointCoord-.5)))*fade;gl_FragColor=vec4(.65,.78,.81,a);#include <tonemapping_fragment>\n#include <colorspace_fragment>}`.replace(
-        'a);#include',
-        'a);\n#include',
-      ),
+    fragmentShader: replaceShader(
+      `varying float fade;void main(){float a=(1.-smoothstep(.1,.5,length(gl_PointCoord-.5)))*fade;gl_FragColor=vec4(.65,.78,.81,a);#include <tonemapping_fragment>\n#include <colorspace_fragment>}`,
+      'a);#include',
+      'a);\n#include',
+    ),
   });
   materials.add(sprayMaterial);
   const spray = new T.Points(sg, sprayMaterial);
@@ -332,18 +333,21 @@ export function createNightweirWater(track) {
     Object.assign(material.uniforms, T.UniformsUtils.clone(T.UniformsLib.fog));
     material.vertexShader =
       '#include <fog_pars_vertex>\n' + material.vertexShader;
-    material.vertexShader = material.vertexShader.replace(
+    material.vertexShader = replaceShader(
+      material.vertexShader,
       /}\s*$/,
       '\nvec4 mvPosition=modelViewMatrix*vec4(position,1.);\n#include <fog_vertex>\n}',
     );
     if (material === impactMaterial)
-      material.vertexShader = material.vertexShader.replace(
+      material.vertexShader = replaceShader(
+        material.vertexShader,
         'vec4 mvPosition=modelViewMatrix*vec4(position,1.);',
         'vec4 mvPosition=viewMatrix*w;',
       );
     material.fragmentShader =
       '#include <fog_pars_fragment>\n' +
-      material.fragmentShader.replace(
+      replaceShader(
+        material.fragmentShader,
         '#include <colorspace_fragment>',
         '#include <colorspace_fragment>\n#include <fog_fragment>\n',
       );

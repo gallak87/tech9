@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 const noise = `float slHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}float slNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(slHash(i),slHash(i+vec3(1,0,0)),f.x),mix(slHash(i+vec3(0,1,0)),slHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(slHash(i+vec3(0,0,1)),slHash(i+vec3(1,0,1)),f.x),mix(slHash(i+vec3(0,1,1)),slHash(i+vec3(1,1,1)),f.x),f.y),f.z);}\n`;
 /** True world-space triplanar mineral finish; geometry carries the large landforms. */
 export function finishShatterlineMaterial(
@@ -11,7 +12,8 @@ export function finishShatterlineMaterial(
     if (rockTexture && rock) shader.uniforms.slRock = { value: rockTexture };
     shader.vertexShader =
       'varying vec3 slLocal;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <begin_vertex>',
         `#include <begin_vertex>
 vec4 slWorld=vec4(transformed,1.);
@@ -24,8 +26,9 @@ slLocal=(modelMatrix*slWorld).xyz;`,
       'varying vec3 slLocal;\n' +
       (rock && rockTexture ? 'uniform sampler2D slRock;\n' : '') +
       noise +
-      shader.fragmentShader
-        .replace(
+      replaceShader(
+        replaceShader(
+          shader.fragmentShader,
           '#include <color_fragment>',
           `#include <color_fragment>
       float slBroad=slNoise(slLocal*.004),slGrain=slNoise(slLocal*.15);float slHeight=slGrain*.03;float slDetailFade=1.-smoothstep(1800.,7600.,length(vViewPosition));
@@ -39,13 +42,12 @@ slLocal=(modelMatrix*slWorld).xyz;`,
             : 'diffuseColor.rgb*=.84+slBroad*.14+slGrain*.06;slHeight=slGrain*.008;'
       }
     `,
-        )
-        .replace(
-          '#include <normal_fragment_maps>',
-          `#include <normal_fragment_maps>
+        ),
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
       vec3 slSx=dFdx(-vViewPosition),slSy=dFdy(-vViewPosition);vec3 slRx=cross(slSy,normal),slRy=cross(normal,slSx);float slDet=dot(slSx,slRx);normal=normalize(normal-sign(slDet)*(dFdx(slHeight)*slRx+dFdy(slHeight)*slRy)/max(abs(slDet),.00001));
     `,
-        );
+      );
   };
   material.customProgramCacheKey = () =>
     `shatterline-finish-v7-${rock ? 'rock' : ceramic ? 'ceramic' : 'metal'}-${Boolean(rockTexture)}`;

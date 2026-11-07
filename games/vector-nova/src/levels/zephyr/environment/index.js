@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { assetURL } from '../../../assets/url.js';
 import { finishZephyrLighting } from './lighting.js';
@@ -205,26 +206,27 @@ export async function createZephyrEnvironment({
   foamMaterial.onBeforeCompile = (shader) => {
     shader.vertexShader =
       'varying vec3 foamLocal;\n' +
-      shader.vertexShader
-        .replace(
-          '#include <begin_vertex>',
-          '#include <begin_vertex>\nfoamLocal=position;',
-        )
-        .replace(
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            shader.vertexShader,
+            '#include <begin_vertex>',
+            '#include <begin_vertex>\nfoamLocal=position;',
+          ),
           '#include <defaultnormal_vertex>',
           'vec3 transformedNormal=vec3(0.,0.,1.);',
-        )
-        .replace(
-          '#include <project_vertex>',
-          `vec4 mvPosition=modelViewMatrix*vec4(instanceMatrix[3].xyz,1.);
+        ),
+        '#include <project_vertex>',
+        `vec4 mvPosition=modelViewMatrix*vec4(instanceMatrix[3].xyz,1.);
         vec2 foamSize=vec2(length(instanceMatrix[0].xyz),length(instanceMatrix[1].xyz));
         mvPosition.xy+=position.xy*foamSize*length(modelMatrix[0].xyz);
         gl_Position=projectionMatrix*mvPosition;`,
-        );
+      );
     shader.fragmentShader =
       'varying vec3 foamLocal;\n' +
       zephyrNoiseGLSL +
-      shader.fragmentShader.replace(
+      replaceShader(
+        shader.fragmentShader,
         '#include <normal_fragment_maps>',
         `#include <normal_fragment_maps>
       float breakup=zephyrNoise(foamLocal*3.)*.7+zephyrNoise(foamLocal*8.)*.3;

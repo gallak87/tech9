@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 
 export function randomSource(seed) {
@@ -76,29 +77,32 @@ export function createForestTerrain(track) {
     roughness: 0.95,
   });
   material.onBeforeCompile = (shader) => {
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 groundP;')
-      .replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\ngroundP=(modelMatrix*vec4(transformed,1.)).xyz;',
-      );
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
+    shader.vertexShader = replaceShader(
+      replaceShader(
+        shader.vertexShader,
+        '#include <common>',
+        '#include <common>\nvarying vec3 groundP;',
+      ),
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\ngroundP=(modelMatrix*vec4(transformed,1.)).xyz;',
+    );
+    shader.fragmentShader = replaceShader(
+      replaceShader(
+        shader.fragmentShader,
         '#include <common>',
         `#include <common>
    varying vec3 groundP;
    float groundHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
    float groundNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(groundHash(i),groundHash(i+vec2(1,0)),f.x),mix(groundHash(i+vec2(0,1)),groundHash(i+vec2(1,1)),f.x),f.y);}
   `,
-      )
-      .replace(
-        '#include <map_fragment>',
-        `#include <map_fragment>
+      ),
+      '#include <map_fragment>',
+      `#include <map_fragment>
    float soil=groundNoise(groundP.xz*.055)*.65+groundNoise(groundP.xz*.21+19.)*.35;
    float grit=groundNoise(groundP.xz*1.8+groundP.y*.3);
    diffuseColor.rgb*=mix(.77,1.13,soil)*mix(.94,1.06,grit);
    diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.16,.95,.78),smoothstep(.55,.8,soil)*.45);`,
-      );
+    );
   };
   material.customProgramCacheKey = () => 'living-forest-ground-v2';
   const mesh = new T.Mesh(geometry, material);

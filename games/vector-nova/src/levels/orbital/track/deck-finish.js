@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as THREE from 'three';
 import { SharedKTX2Loader } from '../../../assets/ktx2-loader.js';
 import { assetURL } from '../../../assets/url.js';
@@ -82,30 +83,29 @@ export function createDeckFinish(renderer) {
       const cacheKey = material.customProgramCacheKey();
       material.onBeforeCompile = (shader, view) => {
         compile.call(material, shader, view);
-        shader.vertexShader =
-          `varying vec2 cassetteUv;\n${shader.vertexShader}`.replace(
-            '#include <uv_vertex>',
-            '#include <uv_vertex>\n cassetteUv = uv * vec2(6.0, 2.0);',
-          );
-        shader.fragmentShader =
-          `varying vec2 cassetteUv;\n${shader.fragmentShader}`
-            .replace(
+        shader.vertexShader = replaceShader(
+          `varying vec2 cassetteUv;\n${shader.vertexShader}`,
+          '#include <uv_vertex>',
+          '#include <uv_vertex>\n cassetteUv = uv * vec2(6.0, 2.0);',
+        );
+        shader.fragmentShader = replaceShader(
+          replaceShader(
+            replaceShader(
+              `varying vec2 cassetteUv;\n${shader.fragmentShader}`,
               '#include <map_fragment>',
               `#include <map_fragment>
             vec3 cassetteSeed = fract(vec3(floor(cassetteUv).xyx) * .1031);
             cassetteSeed += dot(cassetteSeed, cassetteSeed.yzx + 33.33);
             float cassetteBatch = fract((cassetteSeed.x + cassetteSeed.y) * cassetteSeed.z);`,
-            )
-            .replace(
-              '#include <color_fragment>',
-              `#include <color_fragment>
+            ),
+            '#include <color_fragment>',
+            `#include <color_fragment>
             diffuseColor.rgb *= .86 + .28 * cassetteBatch;`,
-            )
-            .replace(
-              '#include <roughnessmap_fragment>',
-              `#include <roughnessmap_fragment>
+          ),
+          '#include <roughnessmap_fragment>',
+          `#include <roughnessmap_fragment>
             roughnessFactor = clamp(roughnessFactor + .12 * (cassetteBatch - .5), .15, 1.0);`,
-            );
+        );
       };
       material.customProgramCacheKey = () =>
         `${cacheKey}-asterion-cassette-batches-v2`;

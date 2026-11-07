@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { SimplifyModifier } from 'three/addons/modifiers/SimplifyModifier.js';
 import {
@@ -70,14 +71,16 @@ function finishCivicStone(material) {
     base(shader, renderer);
     shader.vertexShader =
       'varying vec3 civicLocal;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <begin_vertex>',
         '#include <begin_vertex>\ncivicLocal=position;',
       );
     shader.fragmentShader =
       'varying vec3 civicLocal;\n' +
-      shader.fragmentShader
-        .replace(
+      replaceShader(
+        replaceShader(
+          shader.fragmentShader,
           '#include <color_fragment>',
           `#include <color_fragment>
       float row=floor(civicLocal.y/3.2);
@@ -90,11 +93,10 @@ function finishCivicStone(material) {
       diffuseColor.rgb*=1.+course;
       diffuseColor.rgb*=1.-joint*.16;
     `,
-        )
-        .replace(
-          '#include <roughnessmap_fragment>',
-          `#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+sin(civicLocal.x*2.1)*sin(civicLocal.y*1.7)*.035,.3,.92);`,
-        );
+        ),
+        '#include <roughnessmap_fragment>',
+        `#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+sin(civicLocal.x*2.1)*sin(civicLocal.y*1.7)*.035,.3,.92);`,
+      );
   };
   material.customProgramCacheKey = () => key + ':oriel-civic-cut-block-v1';
 }

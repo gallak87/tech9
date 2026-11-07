@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 // Local metric surface detail: geometry owns silhouettes and carved relief;
 // these layers give the stone pores, sediment, repaired joints and bronze patina.
 export const zephyrNoiseGLSL = `
@@ -17,17 +18,21 @@ export function finishZephyrMaterial(material, { stoneTexture } = {}) {
   material.onBeforeCompile = (shader) => {
     shader.vertexShader =
       'varying vec3 zephyrSurface;varying vec3 zephyrLocalNormal;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <begin_vertex>',
         '#include <begin_vertex>\nzephyrSurface=position;zephyrLocalNormal=normal;',
       );
     shader.fragmentShader =
       'varying vec3 zephyrSurface;varying vec3 zephyrLocalNormal;\n' +
       zephyrNoiseGLSL +
-      shader.fragmentShader
-        .replace(
-          '#include <color_fragment>',
-          `#include <color_fragment>
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            replaceShader(
+              shader.fragmentShader,
+              '#include <color_fragment>',
+              `#include <color_fragment>
       vec3 zp=zephyrSurface;
       float broad=zephyrNoise(zp*.17);
       float detailVisibility=1.-smoothstep(.12,.65,max(length(dFdx(zp)),length(dFdy(zp))));
@@ -56,18 +61,16 @@ export function finishZephyrMaterial(material, { stoneTexture } = {}) {
       ${rock ? 'float strata=zephyrNoise(vec3(zp.x*.05,zp.y*.42,zp.z*.05));float fracture=pow(1.-abs(zephyrNoise(zp*.18)*2.-1.),14.);diffuseColor.rgb*=(.82+strata*.2)*(1.-fracture*.16);float mineral=zephyrNoise(zp*.045+vec3(broad*.8));float seam=1.-smoothstep(.012,.055,abs(mineral-.5));diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.72,.75,.78),seam*.33);diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.09,1.05,.94),smoothstep(.52,.72,mineral)*.45);' : ''}`
       }
     `,
-        )
-        .replace(
-          '#include <map_fragment>',
-          material.map
-            ? `
+            ),
+            '#include <map_fragment>',
+            material.map
+              ? `
       vec3 blend=pow(abs(zephyrLocalNormal),vec3(4.));blend/=max(.0001,blend.x+blend.y+blend.z);
       vec3 stoneSample=texture2D(map,zephyrSurface.yz*.15).rgb*blend.x+texture2D(map,zephyrSurface.xz*.15).rgb*blend.y+texture2D(map,zephyrSurface.xy*.15).rgb*blend.z;
       diffuseColor.rgb*=mix(vec3(1.),clamp(stoneSample/vec3(.45,.42,.36),.5,1.5),.72);
     `
-            : '',
-        )
-        .replace(
+              : '',
+          ),
           '#include <normal_fragment_maps>',
           `#include <normal_fragment_maps>
       float relief=(zephyrNoise(zephyrSurface*1.7)*.045+zephyrNoise(zephyrSurface*8.)*.009)*detailVisibility;
@@ -78,12 +81,11 @@ export function finishZephyrMaterial(material, { stoneTexture } = {}) {
       float det=dot(sx,rx);float safeDet=max(abs(det),.00001);
       normal=normalize(normal-sign(det)*(dFdx(relief)*rx+dFdy(relief)*ry)/safeDet);
     `,
-        )
-        .replace(
-          '#include <roughnessmap_fragment>',
-          `#include <roughnessmap_fragment>
+        ),
+        '#include <roughnessmap_fragment>',
+        `#include <roughnessmap_fragment>
     roughnessFactor=clamp(roughnessFactor+zephyrNoise(zephyrSurface*2.1)*.12-.06,.2,1.);`,
-        );
+      );
   };
   material.customProgramCacheKey = () =>
     `zephyr-weathered-v9-${bronze}-${rock}-${!!material.map}`;

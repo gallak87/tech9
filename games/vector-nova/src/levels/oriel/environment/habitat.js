@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { groundHeight, groundSlope } from './ground-field.js';
 export { groundSlope };
@@ -107,7 +108,8 @@ export function finishHabitatMaterial(material, { bounce = 0.32 } = {}) {
     shader.uniforms.orielRadialBounce = radialBounce;
     shader.vertexShader =
       'varying vec3 orielWorld;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <worldpos_vertex>',
         `#include <worldpos_vertex>
       vec4 ow = vec4(transformed, 1.0);
@@ -118,7 +120,8 @@ export function finishHabitatMaterial(material, { bounce = 0.32 } = {}) {
       );
     shader.fragmentShader =
       'varying vec3 orielWorld;uniform float orielRadialBounce;\n' +
-      shader.fragmentShader.replace(
+      replaceShader(
+        shader.fragmentShader,
         '#include <lights_fragment_end>',
         `#include <lights_fragment_end>
       vec3 radialSun = normalize(vec3(-orielWorld.x, 1000.0-orielWorld.y, 0.0));
@@ -172,7 +175,8 @@ export function createHabitatTerrain(own, authoredGeometries) {
     base(shader, renderer);
     shader.vertexShader =
       'varying vec2 habitatUV;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <uv_vertex>',
         '#include <uv_vertex>\nhabitatUV=uv;',
       );
@@ -185,10 +189,14 @@ export function createHabitatTerrain(own, authoredGeometries) {
     `;
     shader.fragmentShader =
       functions +
-      shader.fragmentShader
-        .replace(
-          '#include <color_fragment>',
-          `#include <color_fragment>
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            replaceShader(
+              replaceShader(
+                shader.fragmentShader,
+                '#include <color_fragment>',
+                `#include <color_fragment>
       vec2 hp=vec2(habitatUV.x*6.2831853,habitatUV.y*4800.-2400.);
       vec2 metres=vec2(hp.x*1000.,hp.y);
       float lake=10.;
@@ -222,29 +230,25 @@ export function createHabitatTerrain(own, authoredGeometries) {
       surface=mix(surface,vec3(.41,.39,.29),bank*.9);
       diffuseColor.rgb*=surface;
     `,
-        )
-        .replace(
-          '#include <roughnessmap_fragment>',
-          `#include <roughnessmap_fragment>\nroughnessFactor=mix(.91,.17,orielLakeMask);`,
-        )
-        .replace(
-          '#include <metalnessmap_fragment>',
-          `#include <metalnessmap_fragment>\nmetalnessFactor=mix(.0,.3,orielLakeMask);`,
-        )
-        .replace(
+              ),
+              '#include <roughnessmap_fragment>',
+              `#include <roughnessmap_fragment>\nroughnessFactor=mix(.91,.17,orielLakeMask);`,
+            ),
+            '#include <metalnessmap_fragment>',
+            `#include <metalnessmap_fragment>\nmetalnessFactor=mix(.0,.3,orielLakeMask);`,
+          ),
           '#include <lights_fragment_maps>',
           `#include <lights_fragment_maps>\n#if defined(USE_ENVMAP) && defined(RE_IndirectSpecular)\nradiance*=mix(1.,3.2,orielLakeMask);\n#endif`,
-        )
-        .replace(
-          '#include <normal_fragment_maps>',
-          `#include <normal_fragment_maps>
+        ),
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
         float waterAngle=atan(orielWorld.x,1000.-orielWorld.y);
         vec2 waterMetres=vec2(waterAngle*1000.,orielWorld.z);
         float rippleX=sin(waterMetres.x*.7+waterMetres.y*.31)*.012+sin(waterMetres.x*2.1-waterMetres.y*1.6)*.006;
         float rippleZ=cos(waterMetres.x*.41+waterMetres.y*.57)*.012+cos(waterMetres.y*2.4+waterMetres.x*.8)*.005;
         vec3 rippleWorld=vec3(cos(waterAngle),sin(waterAngle),0.)*rippleX+vec3(0.,0.,rippleZ);
         normal=normalize(normal+orielLakeMask*mat3(viewMatrix)*rippleWorld);`,
-        );
+      );
   };
   land.customProgramCacheKey = () => 'oriel-planted-shell-analytic-lakes-v2';
   const group = new T.Group();

@@ -1,3 +1,7 @@
+import {
+  replaceShader,
+  replaceShaderAll,
+} from '../../renderer/shader-patch.js';
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { beamTransform } from '../../track/geometry.js';
@@ -24,25 +28,25 @@ function saltMaterial(clock) {
   });
   material.onBeforeCompile = (shader) => {
     shader.uniforms.nomadSaltTravel = clock;
-    shader.vertexShader = shader.vertexShader
-      .replace(
+    shader.vertexShader = replaceShader(
+      replaceShader(
+        shader.vertexShader,
         '#include <common>',
         '#include <common>\nvarying vec3 saltPoint;',
-      )
-      .replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\nsaltPoint=position;',
-      );
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
+      ),
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\nsaltPoint=position;',
+    );
+    shader.fragmentShader = replaceShader(
+      replaceShader(
+        shader.fragmentShader,
         '#include <common>',
         `#include <common>
       varying vec3 saltPoint; uniform float nomadSaltTravel;
       vec2 saltHash(vec2 p){return fract(sin(vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3))))*43758.5453);}`,
-      )
-      .replace(
-        '#include <map_fragment>',
-        `#include <map_fragment>
+      ),
+      '#include <map_fragment>',
+      `#include <map_fragment>
         vec2 p=vec2(saltPoint.x,saltPoint.z+nomadSaltTravel)/8.;
         vec2 cell=floor(p),f=fract(p);float first=9.,second=9.;
         for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){
@@ -56,7 +60,7 @@ function saltMaterial(clock) {
         grain=mix(.5,grain,1.-smoothstep(.05,.35,footprint*25.));
         diffuseColor.rgb*=.96+grain*.055;
         diffuseColor.rgb*=1.-crack*.28;`,
-      );
+    );
   };
   material.customProgramCacheKey = () => 'nomad-moving-salt-v2-filtered';
   return material;
@@ -280,15 +284,15 @@ export function createNomadEnvironment({
                     compile.call(material, shader, renderer);
                     // A rigidly attached, metre-scaled finish stays with the vehicle.
                     // Generic industrial lathe coordinates become local triplanar here.
-                    shader.fragmentShader = shader.fragmentShader
-                      .replace(
+                    shader.fragmentShader = replaceShaderAll(
+                      replaceShader(
+                        shader.fragmentShader,
                         'texture2D(industrialDetail,vec2(industrialLocal.y,length(industrialLocal.xz))/3.).rgb',
                         '(texture2D(industrialDetail,industrialLocal.yz/7.).rgb*iw.x+texture2D(industrialDetail,industrialLocal.xz/7.).rgb*iw.y+texture2D(industrialDetail,industrialLocal.xy/7.).rgb*iw.z)',
-                      )
-                      .replaceAll(
-                        'industrialPoint.xz*.015',
-                        'industrialLocal.xz*.015',
-                      );
+                      ),
+                      'industrialPoint.xz*.015',
+                      'industrialLocal.xz*.015',
+                    );
                   };
                   material.customProgramCacheKey = () =>
                     key + '-nomad-attached-finish-v1';

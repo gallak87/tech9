@@ -1,12 +1,13 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as THREE from 'three';
 
 function surfaceFinish(material, kind) {
   material.onBeforeCompile = (shader) => {
-    shader.vertexShader =
-      `varying vec3 orbitalSurface;\n${shader.vertexShader}`.replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\n orbitalSurface = position;',
-      );
+    shader.vertexShader = replaceShader(
+      `varying vec3 orbitalSurface;\n${shader.vertexShader}`,
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\n orbitalSurface = position;',
+    );
     shader.fragmentShader = `varying vec3 orbitalSurface;
       float orbitHash(vec3 p) { p=fract(p*.1031); p+=dot(p,p.yzx+31.32); return fract((p.x+p.y)*p.z); }
       float orbitNoise(vec3 p) {
@@ -23,7 +24,8 @@ function surfaceFinish(material, kind) {
       composite: `float mould=orbitNoise(orbitalSurface*vec3(.7,1.3,.5));
         diffuseColor.rgb*=.91+mould*.12; roughnessFactor=clamp(roughnessFactor+(mould-.5)*.11,.52,.8);`,
     }[kind];
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>\n${response}`,
     );

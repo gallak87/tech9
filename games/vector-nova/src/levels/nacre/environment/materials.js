@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 
 const mineralShader = `uniform sampler2D nacreMineralColor;
@@ -92,7 +93,8 @@ export function createNacreMaterials(
       if (calcareous) {
         shader.vertexShader =
           'varying float nacreTissueTone;\n' + shader.vertexShader;
-        shader.vertexShader = shader.vertexShader.replace(
+        shader.vertexShader = replaceShader(
+          shader.vertexShader,
           '#include <begin_vertex>',
           `#include <begin_vertex>
           nacreTissueTone=1.;
@@ -101,7 +103,8 @@ export function createNacreMaterials(
           #endif`,
         );
       }
-      shader.vertexShader = shader.vertexShader.replace(
+      shader.vertexShader = replaceShader(
+        shader.vertexShader,
         '#include <worldpos_vertex>',
         `
         #include <worldpos_vertex>
@@ -119,7 +122,8 @@ export function createNacreMaterials(
         (calcareous ? 'varying float nacreTissueTone;\n' : '') +
         shader.fragmentShader;
       if (rock) {
-        shader.fragmentShader = shader.fragmentShader.replace(
+        shader.fragmentShader = replaceShader(
+          shader.fragmentShader,
           '#include <color_fragment>',
           `
         #include <color_fragment>
@@ -143,7 +147,8 @@ export function createNacreMaterials(
         ${mineral ? mineralColor : ''}
       `,
         );
-        shader.fragmentShader = shader.fragmentShader.replace(
+        shader.fragmentShader = replaceShader(
+          shader.fragmentShader,
           '#include <roughnessmap_fragment>',
           `#include <roughnessmap_fragment>
         // Rain gives exposed stone a satin response; fresh splash is smoother.
@@ -152,14 +157,16 @@ export function createNacreMaterials(
         roughnessFactor=mix(roughnessFactor,.54,deepWater);
         roughnessFactor=mix(roughnessFactor,.87,saltDeposit*.35);`,
         );
-        shader.fragmentShader = shader.fragmentShader.replace(
+        shader.fragmentShader = replaceShader(
+          shader.fragmentShader,
           '#include <normal_fragment_maps>',
           `#include <normal_fragment_maps>
         ${mineral ? mineralNormal : 'normal=nacreReliefNormal(normal,-vViewPosition,rockRelief,faceDirection);'}`,
         );
       }
       if (calcareous) {
-        shader.fragmentShader = shader.fragmentShader.replace(
+        shader.fragmentShader = replaceShader(
+          shader.fragmentShader,
           '#include <color_fragment>',
           `#include <color_fragment>
         // The un-tinted geometry channel follows actual deep pores and thick
@@ -179,7 +186,8 @@ export function createNacreMaterials(
         float reefRelief=(reefGrain-.5)*mix(.035,.014,reefCavity)*reefDetail*(1.-reefRim*.78);
 `,
         );
-        shader.fragmentShader = shader.fragmentShader.replace(
+        shader.fragmentShader = replaceShader(
+          shader.fragmentShader,
           '#include <roughnessmap_fragment>',
           `#include <roughnessmap_fragment>
         // Porous recesses scatter broadly, raised calcareous mouths stay
@@ -190,14 +198,16 @@ export function createNacreMaterials(
         roughnessFactor=clamp(roughnessFactor+(reefGrain-.5)*.06*reefDetail,.64,.98);
 `,
         );
-        shader.fragmentShader = shader.fragmentShader.replace(
+        shader.fragmentShader = replaceShader(
+          shader.fragmentShader,
           '#include <normal_fragment_maps>',
           `#include <normal_fragment_maps>
           normal=nacreReliefNormal(normal,-vViewPosition,reefRelief,faceDirection);`,
         );
       }
       if (marineShell) {
-        shader.fragmentShader = shader.fragmentShader.replace(
+        shader.fragmentShader = replaceShader(
+          shader.fragmentShader,
           '#include <color_fragment>',
           `#include <color_fragment>
         // Thin rain/spray film preserves the clean pearl and titanium finishes.
@@ -205,13 +215,15 @@ export function createNacreMaterials(
         float shellSplash=1.-smoothstep(2.,17.,nacreWorld.y-nacreWaterY+(shellVariation-.5)*6.);
         diffuseColor.rgb*=mix(.97,.89,shellSplash);`,
         );
-        shader.fragmentShader = shader.fragmentShader.replace(
+        shader.fragmentShader = replaceShader(
+          shader.fragmentShader,
           '#include <roughnessmap_fragment>',
           `#include <roughnessmap_fragment>
         roughnessFactor=clamp(roughnessFactor+(shellVariation-.5)*.045-shellSplash*.055,.2,.42);`,
         );
       }
-      shader.fragmentShader = shader.fragmentShader.replace(
+      shader.fragmentShader = replaceShader(
+        shader.fragmentShader,
         '#include <opaque_fragment>',
         `
         float submerged=1.-smoothstep(nacreWaterY-8.,nacreWaterY+1.,nacreWorld.y);

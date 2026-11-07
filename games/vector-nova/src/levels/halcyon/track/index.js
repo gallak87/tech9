@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import { createPortalTrusses } from './portal-detail.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createArchitectureMaps } from '../environment/architectural-finish.js';
@@ -46,7 +47,8 @@ export function buildTrackVisual(track, settings, renderer) {
     asphaltFinish(shader, renderer);
     // Limit the low sun's direct highlight on this damp coated aggregate;
     // keep the broad sky/building reflections and scan's normal response.
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <lights_fragment_end>',
       '#include <lights_fragment_end>\nreflectedLight.directSpecular *= .3;',
     );

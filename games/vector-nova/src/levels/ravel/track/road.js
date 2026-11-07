@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { batchRavelRoad } from './batches.js';
 import { createRavelFoilFinish } from '../foil.js';
@@ -27,15 +28,16 @@ function animateMaterial(material, clock) {
   material.onBeforeCompile = (shader) => {
     prepare?.(shader);
     shader.uniforms.ravelTime = clock;
-    shader.vertexShader = shader.vertexShader
-      .replace(
-        '#include <common>',
-        `#include <common>
+    shader.vertexShader = replaceShader(
+      replaceShader(
+        replaceShader(
+          shader.vertexShader,
+          '#include <common>',
+          `#include <common>
       uniform float ravelTime; attribute vec3 ravelWave; attribute vec3 ravelWaveUp;
       attribute vec3 ravelDs; attribute vec3 ravelDx; attribute vec3 ravelUpDs; attribute vec3 ravelGradient;
       attribute vec3 ravelCloth; varying vec3 ravelClothState;`,
-      )
-      .replace(
+        ),
         '#include <beginnormal_vertex>',
         `#include <beginnormal_vertex>
         if(ravelWave.x>0.00001){
@@ -48,16 +50,16 @@ function animateMaterial(material, clock) {
           vec3 dx=ravelDx+ravelWaveUp*hx;
           objectNormal=normalize(cross(ds,dx));
         }`,
-      )
-      .replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\nravelClothState=ravelCloth;\ntransformed += ravelWaveUp * ravelWave.x * (.5 + .5*cos(ravelWave.y + ravelWave.z*ravelTime));',
-      );
+      ),
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\nravelClothState=ravelCloth;\ntransformed += ravelWaveUp * ravelWave.x * (.5 + .5*cos(ravelWave.y + ravelWave.z*ravelTime));',
+    );
   };
   const fragment = material.onBeforeCompile;
   material.onBeforeCompile = (shader) => {
     fragment(shader);
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <common>',
       '#include <common>\nvarying vec3 ravelClothState;',
     );
@@ -78,32 +80,32 @@ export function createRavelMembraneMaterial(color, center = 0, finish = null) {
   });
   material.onBeforeCompile = (shader) => {
     shader.uniforms.racingCenter = { value: center };
-    shader.vertexShader = shader.vertexShader
-      .replace(
+    shader.vertexShader = replaceShader(
+      replaceShader(
+        shader.vertexShader,
         '#include <common>',
         '#include <common>\nattribute vec2 roadCoord; varying vec2 sailCoord;',
-      )
-      .replace(
-        '#include <begin_vertex>',
-        `#include <begin_vertex>
+      ),
+      '#include <begin_vertex>',
+      `#include <begin_vertex>
         sailCoord=roadCoord;
         #ifdef USE_BUMPMAP
         vBumpMapUv=(bumpMapTransform*vec3(roadCoord.y/72.,roadCoord.x/96.,1.)).xy;
         #endif`,
-      );
+    );
     // Collector sails share the foil finish, without evaluating the racing
     // reinforcement that can never be visible on their unmarked surface.
     if (center === null) {
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
+      shader.fragmentShader = replaceShader(
+        replaceShader(
+          shader.fragmentShader,
           '#include <common>',
           `#include <common>
           varying vec2 sailCoord;
           float sailHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}`,
-        )
-        .replace(
-          '#include <map_fragment>',
-          `#include <map_fragment>
+        ),
+        '#include <map_fragment>',
+        `#include <map_fragment>
           vec2 panelCoord=sailCoord+vec2(mod(floor((sailCoord.y+6.)/12.),2.)*40.,6.);
           vec2 panel=floor(panelCoord/vec2(80.,12.));
           float variation=sailHash(panel);
@@ -111,21 +113,26 @@ export function createRavelMembraneMaterial(color, center = 0, finish = null) {
           float seam=1.-smoothstep(.045,.045+max(fwidth(sailCoord.x),fwidth(sailCoord.y)),min(cell.y,cell.x*3.));
           diffuseColor.rgb*=mix(.97,1.03,variation);
           diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.23,.19,.12),seam*.12);`,
-        );
+      );
       return;
     }
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
-        '#include <common>',
-        `#include <common>
+    shader.fragmentShader = replaceShader(
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            replaceShader(
+              replaceShader(
+                replaceShader(
+                  shader.fragmentShader,
+                  '#include <common>',
+                  `#include <common>
         varying vec2 sailCoord; uniform float racingCenter;
         ${carbonFunctions}
         float sailLine(float distance, float width){return 1.-smoothstep(width,width+max(.015,fwidth(distance)),abs(distance));}
         float sailHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}`,
-      )
-      .replace(
-        '#include <map_fragment>',
-        `#include <map_fragment>
+                ),
+                '#include <map_fragment>',
+                `#include <map_fragment>
         vec2 panelCoord=sailCoord+vec2(mod(floor((sailCoord.y+6.)/12.),2.)*40.,6.);
         vec2 panel=floor(panelCoord/vec2(80.,12.));
         float variation=sailHash(panel);
@@ -168,20 +175,18 @@ export function createRavelMembraneMaterial(color, center = 0, finish = null) {
         diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.32,.37,.38),bond*.65);
         diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.62,.72,.70),quietPin*.65);
         #endif`,
-      )
-      .replace(
-        '#include <roughnessmap_fragment>',
-        `#include <roughnessmap_fragment>
+              ),
+              '#include <roughnessmap_fragment>',
+              `#include <roughnessmap_fragment>
         roughnessFactor=mix(roughnessFactor,mix(.78,.70+.06*(1.-tow),reinforcement),line);
         #ifdef RAVEL_LIVE_SAIL
         roughnessFactor=mix(roughnessFactor,.48,quiet);
         roughnessFactor=mix(roughnessFactor,.25,bond);
         #endif
 `,
-      )
-      .replace(
-        '#include <normal_fragment_maps>',
-        `vec3 foilNormal=normal;
+            ),
+            '#include <normal_fragment_maps>',
+            `vec3 foilNormal=normal;
         #include <normal_fragment_maps>
         #ifdef USE_BUMPMAP
         normal=normalize(mix(normal,foilNormal,line*reinforcement*.65));
@@ -195,28 +200,25 @@ export function createRavelMembraneMaterial(color, center = 0, finish = null) {
         float weldHeight=.025*min(1.,.30/weldWidth)*ravelClothState.z*bondFade*exp(-pow(bondDistance/weldWidth,2.))*(1.-sailLine(quietAcross,6.8));
         normal=perturbNormalArb(-vViewPosition,normal,vec2(dFdx(weldHeight),dFdy(weldHeight)),faceDirection);
         #endif`,
-      )
-      .replace(
-        '#include <emissivemap_fragment>',
-        `#include <emissivemap_fragment>
+          ),
+          '#include <emissivemap_fragment>',
+          `#include <emissivemap_fragment>
         totalEmissiveRadiance+=vec3(.12,.24,.20)*pin*.6;
         #ifdef RAVEL_LIVE_SAIL
         totalEmissiveRadiance+=vec3(.08,.14,.16)*quietPin*.22;
         #endif`,
-      )
-      .replace(
+        ),
         '#include <lights_physical_fragment>',
         `#include <lights_physical_fragment>
         material.specularColor*=mix(1.,.4,line);
         #ifdef USE_CLEARCOAT
         material.clearcoat*=1.-line;
         #endif`,
-      )
-      .replace(
-        '#include <metalnessmap_fragment>',
-        `#include <metalnessmap_fragment>
+      ),
+      '#include <metalnessmap_fragment>',
+      `#include <metalnessmap_fragment>
         metalnessFactor=mix(metalnessFactor,.18,line);`,
-      );
+    );
   };
   material.customProgramCacheKey = () =>
     center === null

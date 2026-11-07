@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as THREE from 'three';
 import { assetURL } from '../../../assets/url.js';
 import { createHelionCeramicMaps } from '../../helion/track/ceramic-maps.js';
@@ -10,7 +11,8 @@ export function finishArchitecture(material, kind = 'concrete') {
   material.onBeforeCompile = (shader) => {
     shader.vertexShader =
       'varying vec3 hcPoint;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <uv_vertex>',
         `#include <uv_vertex>
       vec4 hp=vec4(position,1.); vec3 hn=normal;
@@ -33,7 +35,8 @@ export function finishArchitecture(material, kind = 'concrete') {
       );
     shader.fragmentShader =
       'varying vec3 hcPoint;\n' +
-      shader.fragmentShader.replace(
+      replaceShader(
+        shader.fragmentShader,
         '#include <color_fragment>',
         `#include <color_fragment>
       float streak=pow(.5+.5*sin(hcPoint.x*.77+hcPoint.z*.61+sin(hcPoint.x*.12+hcPoint.z*.15)),6.);

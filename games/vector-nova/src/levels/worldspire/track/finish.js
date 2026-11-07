@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { createHelionCeramicMaps } from '../../helion/track/ceramic-maps.js';
 import { assetURL } from '../../../assets/url.js';
@@ -77,15 +78,15 @@ export function setMetreUV(geometry) {
 }
 export function applySlabFinish(material) {
   material.onBeforeCompile = (shader) => {
-    shader.vertexShader = shader.vertexShader
-      .replace(
+    shader.vertexShader = replaceShader(
+      replaceShader(
+        shader.vertexShader,
         '#include <common>',
         '#include <common>\nattribute vec2 roadCoord; varying vec2 roadMetres;',
-      )
-      .replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\nroadMetres=roadCoord;',
-      );
+      ),
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\nroadMetres=roadCoord;',
+    );
     shader.fragmentShader =
       `varying vec2 roadMetres;
       vec3 mineralReturn(vec3 n,vec3 p,float h,float signFace){
@@ -93,10 +94,14 @@ export function applySlabFinish(material) {
         float det=dot(dx,rx)*signFace;
         return normalize(abs(det)*n-sign(det)*(dFdx(h)*rx+dFdy(h)*ry));
       }\n` + shader.fragmentShader;
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
-        '#include <color_fragment>',
-        `#include <color_fragment>
+    shader.fragmentShader = replaceShader(
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            replaceShader(
+              shader.fragmentShader,
+              '#include <color_fragment>',
+              `#include <color_fragment>
       // Long interlocked mineral plates; broad restrained tone variation is
       // separate from the fine physical substrate and shallow sealed joints.
       vec2 slab=vec2(roadMetres.y+25.,roadMetres.x);
@@ -113,23 +118,19 @@ export function applySlabFinish(material) {
       float shoulder=smoothstep(21.8,22.1,abs(roadMetres.y));
       diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.64,.71,.69),shoulder*.32);
     `,
-      )
-      .replace(
-        '#include <roughnessmap_fragment>',
-        '#include <roughnessmap_fragment>\nroughnessFactor=mix(clamp(roughnessFactor+plate*.055,.3,.95),.81,joint);',
-      )
-      .replace(
-        '#include <lights_physical_fragment>',
-        '#include <lights_physical_fragment>\nmaterial.clearcoatRoughness=clamp(material.clearcoatRoughness+plate*.045,.12,.32);',
-      )
-      .replace(
+            ),
+            '#include <roughnessmap_fragment>',
+            '#include <roughnessmap_fragment>\nroughnessFactor=mix(clamp(roughnessFactor+plate*.055,.3,.95),.81,joint);',
+          ),
+          '#include <lights_physical_fragment>',
+          '#include <lights_physical_fragment>\nmaterial.clearcoatRoughness=clamp(material.clearcoatRoughness+plate*.045,.12,.32);',
+        ),
         '#include <normal_fragment_maps>',
         '#include <normal_fragment_maps>\nnormal=mineralReturn(normal,-vViewPosition,lipHeight,faceDirection);',
-      )
-      .replace(
-        '#include <clearcoat_normal_fragment_maps>',
-        '#include <clearcoat_normal_fragment_maps>\nclearcoatNormal=mineralReturn(clearcoatNormal,-vViewPosition,lipHeight,faceDirection);',
-      );
+      ),
+      '#include <clearcoat_normal_fragment_maps>',
+      '#include <clearcoat_normal_fragment_maps>\nclearcoatNormal=mineralReturn(clearcoatNormal,-vViewPosition,lipHeight,faceDirection);',
+    );
   };
   material.customProgramCacheKey = () => 'worldspire-mineral-slabs-v3';
 }

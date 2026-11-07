@@ -1044,8 +1044,8 @@ test('nacre growth shading is continuous fragment response rather than diagonal 
     (entry) => entry.name === 'Pearlescent scalloped ceramic running scales',
   ).material;
   const shader = {
-    vertexShader: '#include <uv_vertex>',
-    fragmentShader: '#include <color_fragment>',
+    vertexShader: THREE.ShaderLib.physical.vertexShader,
+    fragmentShader: THREE.ShaderLib.physical.fragmentShader,
   };
   ceramic.onBeforeCompile(shader);
   assert.ok(shader.fragmentShader.includes('fwidth(nacrePhase)'));

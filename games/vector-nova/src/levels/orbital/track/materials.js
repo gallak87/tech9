@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as THREE from 'three';
 
 export function roadNeonSections(lattice) {
@@ -38,33 +39,33 @@ export function fullRoadNeonMaterial(base) {
   const deck = base.userData.orbitalDeck === true;
   material.name = `${base.name || 'Orbital alloy'} / full-color magnetic coating`;
   material.onBeforeCompile = (shader) => {
-    shader.vertexShader =
-      `attribute vec4 roadNeon; varying vec4 vRoadNeon;\n${shader.vertexShader}`.replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\n vRoadNeon = roadNeon;',
-      );
-    shader.fragmentShader = `varying vec4 vRoadNeon;\n${shader.fragmentShader}`
-      .replace(
-        '#include <color_fragment>',
-        `#include <color_fragment>
+    shader.vertexShader = replaceShader(
+      `attribute vec4 roadNeon; varying vec4 vRoadNeon;\n${shader.vertexShader}`,
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\n vRoadNeon = roadNeon;',
+    );
+    shader.fragmentShader = replaceShader(
+      replaceShader(
+        replaceShader(
+          `varying vec4 vRoadNeon;\n${shader.fragmentShader}`,
+          '#include <color_fragment>',
+          `#include <color_fragment>
         float cassetteFinish = 1.0;
         #ifdef USE_MAP
           cassetteFinish = clamp(sampledDiffuseColor.r * ${deck ? '4.8' : '3.3'}, ${deck ? '0.03' : '0.18'}, 1.0);
         #endif
         diffuseColor.rgb = mix(diffuseColor.rgb, vRoadNeon.rgb * cassetteFinish, vRoadNeon.a);`,
-      )
-      .replace(
+        ),
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
         ${deck ? '// Preserve the authored gasket, coating and metal roughness.' : 'roughnessFactor = mix(roughnessFactor, 0.48, vRoadNeon.a);'}`,
-      )
-      .replace(
-        '#include <emissivemap_fragment>',
-        `#include <emissivemap_fragment>
+      ),
+      '#include <emissivemap_fragment>',
+      `#include <emissivemap_fragment>
         // Broad saturated light-emitting coating, kept below the white bloom
         // threshold. Directional PBR shading still describes its real framing.
         totalEmissiveRadiance = mix(totalEmissiveRadiance, vRoadNeon.rgb * ${deck ? '0.48' : '1.65'} * cassetteFinish, vRoadNeon.a);`,
-      );
+    );
   };
   material.customProgramCacheKey = () =>
     `orbital-induction-cassette-neon-v3-${deck ? 'pbr-deck' : 'structure'}`;

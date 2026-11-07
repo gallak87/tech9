@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 // Metric finish on the flush ceramic/glazing panels. Fitted rim and seal relief
 // affects shading only, leaving the actual running skin smooth across seams.
 // A smooth top coat covers the ceramic PBR maps; fitted perimeter relief
@@ -8,11 +9,11 @@ export function applyNacreSurfaceFinish(material, kind) {
   const key = material.customProgramCacheKey();
   material.onBeforeCompile = (shader, renderer) => {
     compile.call(material, shader, renderer);
-    shader.vertexShader =
-      `attribute vec4 nacrePanel; varying vec4 vNacrePanel;\n${shader.vertexShader}`.replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\n vNacrePanel = nacrePanel;',
-      );
+    shader.vertexShader = replaceShader(
+      `attribute vec4 nacrePanel; varying vec4 vNacrePanel;\n${shader.vertexShader}`,
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\n vNacrePanel = nacrePanel;',
+    );
     shader.fragmentShader = `
       varying vec4 vNacrePanel;
       vec3 nacreFinishNormal(vec3 surfaceNormal, vec3 surfacePosition, float height, float faceSign) {
@@ -23,7 +24,8 @@ export function applyNacreSurfaceFinish(material, kind) {
           - sign(det) * (dFdx(height) * rx + dFdy(height) * ry));
       }
       ${shader.fragmentShader}`;
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <color_fragment>',
       `#include <color_fragment>
       vec2 panelPoint = vec2(vNacrePanel.x, mod(vNacrePanel.y, vNacrePanel.w));
@@ -37,12 +39,14 @@ export function applyNacreSurfaceFinish(material, kind) {
       float rimHeight = .012 * smoothstep(0., .07 + edgePixel, panelEdge);
       diffuseColor.rgb *= (1. - ${ceramic ? '.32' : '.24'} * panelRim - ${ceramic ? '.18' : '.14'} * registerLine);`,
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>
       roughnessFactor = mix(roughnessFactor, ${ceramic ? '.38' : '.27'}, panelRim);`,
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <normal_fragment_maps>',
       `#include <normal_fragment_maps>
       normal = nacreFinishNormal(normal, -vViewPosition,
@@ -58,7 +62,8 @@ export function applyNacreSurfaceFinish(material, kind) {
       }`,
     );
     if (material.isMeshPhysicalMaterial)
-      shader.fragmentShader = shader.fragmentShader.replace(
+      shader.fragmentShader = replaceShader(
+        shader.fragmentShader,
         '#include <clearcoat_normal_fragment_maps>',
         `#include <clearcoat_normal_fragment_maps>
         clearcoatNormal = nacreFinishNormal(clearcoatNormal, -vViewPosition, rimHeight, faceDirection);`,

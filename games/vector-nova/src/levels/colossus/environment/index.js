@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import { createColossusFoundationBuilder } from './foundations.js';
 import { buildColossusReceivingHalls } from './receivers.js';
 import * as T from 'three';
@@ -301,24 +302,24 @@ export function createColossusEnvironment({
     metalness: 0.18,
   });
   caution.onBeforeCompile = (shader) => {
-    shader.vertexShader = shader.vertexShader
-      .replace(
+    shader.vertexShader = replaceShader(
+      replaceShader(
+        shader.vertexShader,
         '#include <common>',
         '#include <common>\nvarying vec3 cautionPosition;',
-      )
-      .replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\ncautionPosition=position;',
-      );
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
+      ),
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\ncautionPosition=position;',
+    );
+    shader.fragmentShader = replaceShader(
+      replaceShader(
+        shader.fragmentShader,
         '#include <common>',
         '#include <common>\nvarying vec3 cautionPosition;',
-      )
-      .replace(
-        '#include <map_fragment>',
-        '#include <map_fragment>\nfloat stripe=step(.48,fract((cautionPosition.x+cautionPosition.y)/7.)); diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.018,.025,.029),stripe);',
-      );
+      ),
+      '#include <map_fragment>',
+      '#include <map_fragment>\nfloat stripe=step(.48,fract((cautionPosition.x+cautionPosition.y)/7.)); diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.018,.025,.029),stripe);',
+    );
   };
   caution.customProgramCacheKey = () => 'colossus-tooling-caution-v1';
   materials.add(caution);
@@ -568,7 +569,8 @@ export function createColossusEnvironment({
         cacheKey = m.customProgramCacheKey();
       m.onBeforeCompile = (shader, renderer) => {
         compile.call(m, shader, renderer);
-        shader.fragmentShader = shader.fragmentShader.replace(
+        shader.fragmentShader = replaceShader(
+          shader.fragmentShader,
           '#include <roughnessmap_fragment>',
           `#include <roughnessmap_fragment>
         vec3 wallNormal=abs(normalize(cross(dFdx(industrialPoint),dFdy(industrialPoint))));

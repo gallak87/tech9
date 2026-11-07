@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -36,24 +37,25 @@ export function createFallSpray(clock) {
     shader.uniforms.waterTime = clock;
     shader.vertexShader =
       'uniform float waterTime;attribute vec3 sprayOrigin;attribute vec3 spraySeed;varying vec2 sprayUV;varying float sprayLife;\n' +
-      shader.vertexShader
-        .replace(
-          '#include <defaultnormal_vertex>',
-          'vec3 transformedNormal=vec3(0.,0.,1.);',
-        )
-        .replace(
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            shader.vertexShader,
+            '#include <defaultnormal_vertex>',
+            'vec3 transformedNormal=vec3(0.,0.,1.);',
+          ),
           '#include <begin_vertex>',
           `#include <begin_vertex>
         sprayUV=uv;float phase=fract(waterTime*.16+spraySeed.x);sprayLife=sin(phase*3.14159);
         transformed=sprayOrigin+vec3(sin(phase*5.+spraySeed.x)*3.,-phase*28.,phase*12.);`,
-        )
-        .replace(
-          '#include <project_vertex>',
-          `vec4 mvPosition=modelViewMatrix*vec4(transformed,1.);float scale=length(modelMatrix[0].xyz);mvPosition.xy+=position.xy*spraySeed.y*scale*(1.+sprayLife*.7);gl_Position=projectionMatrix*mvPosition;`,
-        );
+        ),
+        '#include <project_vertex>',
+        `vec4 mvPosition=modelViewMatrix*vec4(transformed,1.);float scale=length(modelMatrix[0].xyz);mvPosition.xy+=position.xy*spraySeed.y*scale*(1.+sprayLife*.7);gl_Position=projectionMatrix*mvPosition;`,
+      );
     shader.fragmentShader =
       'varying vec2 sprayUV;varying float sprayLife;\n' +
-      shader.fragmentShader.replace(
+      replaceShader(
+        shader.fragmentShader,
         '#include <map_fragment>',
         `#include <map_fragment>
       vec2 p=(sprayUV-.5)*vec2(1.,.72);float grain=sin(p.x*53.+sin(p.y*37.))*sin(p.y*43.+p.x*17.);
@@ -86,7 +88,8 @@ export function createImpactFoam(clock) {
     shader.uniforms.waterTime = clock;
     shader.vertexShader =
       'uniform float waterTime;varying vec3 foamLocal;varying float foamPhase;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <begin_vertex>',
         `#include <begin_vertex>
       foamLocal=position;foamPhase=instanceMatrix[3].x*.71+instanceMatrix[3].z*.39;
@@ -95,7 +98,8 @@ export function createImpactFoam(clock) {
       );
     shader.fragmentShader =
       'uniform float waterTime;varying vec3 foamLocal;varying float foamPhase;\n' +
-      shader.fragmentShader.replace(
+      replaceShader(
+        shader.fragmentShader,
         '#include <map_fragment>',
         `#include <map_fragment>
       float bubbles=sin(foamLocal.x*21.+waterTime*3.)*sin(foamLocal.z*17.-waterTime*2.+foamPhase)*.5+.5;

@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { assetURL } from '../../../assets/url.js';
 
@@ -115,17 +116,18 @@ function weathered(material, kind, texture, mineralSurface = null) {
       // The renderer inventories direct material texture properties.
       material.saffronMineralSurface = mineral;
     }
-    shader.vertexShader =
-      `varying vec3 vSaffronWorld;\n${shader.vertexShader}`.replace(
-        '#include <worldpos_vertex>',
-        `#include <worldpos_vertex>\nvec4 saffronWorld=vec4(transformed,1.);\n#ifdef USE_INSTANCING\nsaffronWorld=instanceMatrix*saffronWorld;\n#endif\nvSaffronWorld=(modelMatrix*saffronWorld).xyz;`,
-      );
+    shader.vertexShader = replaceShader(
+      `varying vec3 vSaffronWorld;\n${shader.vertexShader}`,
+      '#include <worldpos_vertex>',
+      `#include <worldpos_vertex>\nvec4 saffronWorld=vec4(transformed,1.);\n#ifdef USE_INSTANCING\nsaffronWorld=instanceMatrix*saffronWorld;\n#endif\nvSaffronWorld=(modelMatrix*saffronWorld).xyz;`,
+    );
     shader.fragmentShader = `varying vec3 vSaffronWorld;
       uniform highp sampler3D saffronWeatheringNoise;
       ${mineral ? 'uniform sampler2D saffronMineralSurface;' : ''}
       float sNoise(vec3 p){vec3 cell=floor(p),f=fract(p);f=f*f*(3.-2.*f);return textureGrad(saffronWeatheringNoise,(cell+f+.5)/64.,dFdx(p)/64.,dFdy(p)/64.).r;}
       ${shader.fragmentShader}`;
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <color_fragment>',
       `#include <color_fragment>
       float broad=sNoise(vSaffronWorld*.041);
@@ -170,11 +172,13 @@ function weathered(material, kind, texture, mineralSurface = null) {
           : ''
       }`,
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+pores*.14+relief*.12-broad*.09,.45,1.);`,
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <normal_fragment_maps>',
       `#include <normal_fragment_maps>
       float micro=sNoise(vSaffronWorld*${bone ? '.43' : '.32'})*${bone ? '.045' : '.14'}+mineralHeight;

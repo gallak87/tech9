@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { finishNightweirMetal } from './materials.js';
 
@@ -160,14 +161,16 @@ export function finishNightweirWindows(material, uniforms) {
     shader.uniforms.nwPowerFront = uniforms.front;
     shader.vertexShader =
       'varying vec2 nwPane;varying vec3 nwWindowPoint;varying vec3 nwWindowNormal;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <begin_vertex>',
         '#include <begin_vertex>\nnwPane=vec2(uv.x,1.-uv.y);nwWindowPoint=(modelMatrix*vec4(position,1.)).xyz;nwWindowNormal=normalize(mat3(modelMatrix)*normal);',
       );
     shader.fragmentShader =
       'varying vec2 nwPane;varying vec3 nwWindowPoint;varying vec3 nwWindowNormal;uniform float nwPowerFront;\n' +
-      shader.fragmentShader
-        .replace(
+      replaceShader(
+        replaceShader(
+          shader.fragmentShader,
           '#include <color_fragment>',
           `#include <color_fragment>
         vec3 wn=normalize(nwWindowNormal), eye=normalize(cameraPosition-nwWindowPoint);
@@ -190,16 +193,15 @@ export function finishNightweirWindows(material, uniforms) {
           sin(nwWindowPoint.y*.26+sin(nwWindowPoint.x*.032+nwWindowPoint.z*.026)*2.4)));
         diffuseColor.rgb=mix(vec3(.018,.035,.041),roomColor,room*.18);
       `,
-        )
-        .replace(
-          '#include <emissivemap_fragment>',
-          `#include <emissivemap_fragment>
+        ),
+        '#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>
         totalEmissiveRadiance=${occupied ? 'roomColor*room*(.04+power*.72)*habitation*(1.-curtain*.25)' : 'roomColor*room*.012'};
         #if defined(USE_COLOR) || defined(USE_COLOR_ALPHA)
           totalEmissiveRadiance *= vColor.rgb;
         #endif
       `,
-        );
+      );
   };
   material.customProgramCacheKey = () =>
     'nightweir-recessed-room-v4-' + occupied + '-' + pale;

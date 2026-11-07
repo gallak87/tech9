@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createLifetime } from '../../../core/lifecycle.js';
@@ -8,21 +9,22 @@ function finishQuarterWater(material) {
   const key = material.customProgramCacheKey();
   material.onBeforeCompile = (shader, renderer) => {
     base(shader, renderer);
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
-        '#include <color_fragment>',
-        `#include <color_fragment>
+    shader.fragmentShader = replaceShader(
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            shader.fragmentShader,
+            '#include <color_fragment>',
+            `#include <color_fragment>
         float quarterWater = 0.;
         #ifdef USE_COLOR
           quarterWater = step(.5, vColor.r);
         #endif`,
-      )
-      .replace(
-        '#include <roughnessmap_fragment>',
-        `#include <roughnessmap_fragment>
+          ),
+          '#include <roughnessmap_fragment>',
+          `#include <roughnessmap_fragment>
         roughnessFactor = mix(.3, .15, quarterWater);`,
-      )
-      .replace(
+        ),
         '#include <normal_fragment_maps>',
         `#include <normal_fragment_maps>
         float quarterAngle = atan(orielWorld.x, 1000.-orielWorld.y);
@@ -34,14 +36,13 @@ function finishQuarterWater(material) {
         vec3 quarterRippleWorld = vec3(cos(quarterAngle), sin(quarterAngle), 0.)*quarterRippleX
           + vec3(0., 0., quarterRippleZ);
         normal = normalize(normal + quarterWater*mat3(viewMatrix)*quarterRippleWorld);`,
-      )
-      .replace(
-        '#include <lights_fragment_maps>',
-        `#include <lights_fragment_maps>
+      ),
+      '#include <lights_fragment_maps>',
+      `#include <lights_fragment_maps>
         #if defined(USE_ENVMAP) && defined(RE_IndirectSpecular)
           radiance *= mix(1., 2., quarterWater);
         #endif`,
-      );
+    );
   };
   material.customProgramCacheKey = () => key + ':oriel-quarter-water-finish-v1';
 }

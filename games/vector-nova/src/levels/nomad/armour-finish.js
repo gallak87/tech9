@@ -1,3 +1,4 @@
+import { replaceShader } from '../../renderer/shader-patch.js';
 /** Broad coating variation and directional salt wear over the borrowed
  * Worldkit enamel substrate. Coordinates stay attached to the Blender hull.
  */
@@ -6,7 +7,8 @@ export function bindNomadArmourFinish(material) {
   const key = material.customProgramCacheKey();
   material.onBeforeCompile = (shader, renderer) => {
     compile.call(material, shader, renderer);
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>
        vec3 armourNormal=abs(normalize(cross(dFdx(industrialLocal),dFdy(industrialLocal))));

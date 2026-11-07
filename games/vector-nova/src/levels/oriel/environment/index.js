@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { createLifetime } from '../../../core/lifecycle.js';
 import { createHabitatTerrain } from './habitat.js';
@@ -85,7 +86,8 @@ export async function createOrielEnvironment({
             key = material.customProgramCacheKey();
           material.onBeforeCompile = (shader, renderer) => {
             base(shader, renderer);
-            shader.fragmentShader = shader.fragmentShader.replace(
+            shader.fragmentShader = replaceShader(
+              shader.fragmentShader,
               '#include <roughnessmap_fragment>',
               '#include <roughnessmap_fragment>\nroughnessFactor=max(roughnessFactor,.62);',
             );

@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { sweepGeometry, boxProfile } from '../../../track/geometry.js';
 import { framePoint } from '../../../track/frames.js';
@@ -79,7 +80,8 @@ export function createShatterlineRoad({
     const compileAsphalt = graphite.onBeforeCompile;
     graphite.onBeforeCompile = (shader) => {
       compileAsphalt(shader);
-      shader.fragmentShader = shader.fragmentShader.replace(
+      shader.fragmentShader = replaceShader(
+        shader.fragmentShader,
         '#include <color_fragment>',
         `#include <color_fragment>
         // Large cassette joints and guidance stay independent of aggregate.

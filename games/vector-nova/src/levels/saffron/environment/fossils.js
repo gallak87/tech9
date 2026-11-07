@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import { buildFossilPlacements } from './placements.js';
 export { skullPlacement, sandfallAnchors } from './placements.js';
 import { GRAZER_GROUND_SAMPLES } from './grazer-path.js';
@@ -171,15 +172,15 @@ export function createFossils(
               material.forceSinglePass = true;
               material.onBeforeCompile = (shader) => {
                 shader.uniforms.saffronFlowTime = poseUniforms.time;
-                shader.vertexShader =
-                  `uniform float saffronFlowTime; varying vec3 vFall;\n${shader.vertexShader}`.replace(
-                    '#include <begin_vertex>',
-                    '#include <begin_vertex>\nvFall=position;float fallProgress=clamp(-position.y/80.,0.,1.);transformed.x+=sin(position.y*.045+saffronFlowTime*.22)*.22*fallProgress;',
-                  );
-                shader.fragmentShader =
-                  `varying vec3 vFall; uniform float saffronFlowTime; float fHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float fNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(fHash(i),fHash(i+vec2(1,0)),f.x),mix(fHash(i+vec2(0,1)),fHash(i+vec2(1,1)),f.x),f.y);}\n${shader.fragmentShader}`.replace(
-                    '#include <color_fragment>',
-                    `#include <color_fragment>
+                shader.vertexShader = replaceShader(
+                  `uniform float saffronFlowTime; varying vec3 vFall;\n${shader.vertexShader}`,
+                  '#include <begin_vertex>',
+                  '#include <begin_vertex>\nvFall=position;float fallProgress=clamp(-position.y/80.,0.,1.);transformed.x+=sin(position.y*.045+saffronFlowTime*.22)*.22*fallProgress;',
+                );
+                shader.fragmentShader = replaceShader(
+                  `varying vec3 vFall; uniform float saffronFlowTime; float fHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float fNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(fHash(i),fHash(i+vec2(1,0)),f.x),mix(fHash(i+vec2(0,1)),fHash(i+vec2(1,1)),f.x),f.y);}\n${shader.fragmentShader}`,
+                  '#include <color_fragment>',
+                  `#include <color_fragment>
                     float fallDepth=clamp(-vFall.y/80.,0.,1.);
                     float fallFlight=sqrt(max(.001,fallDepth));
                     float edge=abs(vFall.x)/(10.+17.*fallDepth);
@@ -192,7 +193,7 @@ export function createFossils(
                     float density=(.54+.46*smoothstep(.12,.86,threads))*(.72+.28*granular);
                     diffuseColor.a*=silhouette*density;
                     diffuseColor.rgb*=.77+granular*.23;`,
-                  );
+                );
               };
               material.customProgramCacheKey = () =>
                 'saffron-accelerating-granular-volume-v7';
@@ -221,20 +222,20 @@ export function createFossils(
                   float grazerY(float z) { return grazerHeight(grazer_travel+z)-grazer_headGround+grazerLift(z); }
                   float grazerX(float z) { float lag=max(0.,-z);return sin(lag*.007-grazer_age*.22)*smoothstep(50.,360.,lag)*3.*grazer_motion; }
                 `;
-                shader.vertexShader = `${declarations}\n${shader.vertexShader}`
-                  .replace(
+                shader.vertexShader = replaceShader(
+                  replaceShader(
+                    `${declarations}\n${shader.vertexShader}`,
                     '#include <beginnormal_vertex>',
                     `#include <beginnormal_vertex>
                     // Inverse transpose of the continuous longitudinal deformation.
                     objectNormal.z -= objectNormal.y*(grazerY(position.z+1.)-grazerY(position.z-1.))*.5
                       +objectNormal.x*(grazerX(position.z+1.)-grazerX(position.z-1.))*.5;`,
-                  )
-                  .replace(
-                    '#include <begin_vertex>',
-                    `#include <begin_vertex>
+                  ),
+                  '#include <begin_vertex>',
+                  `#include <begin_vertex>
                     transformed.y += grazerY(position.z);
                     transformed.x += grazerX(position.z);`,
-                  );
+                );
               };
               material.customProgramCacheKey = () =>
                 'saffron-baked-grazer-forward-breach-v4';

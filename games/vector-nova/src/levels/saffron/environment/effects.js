@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { sandfallAnchors } from './fossils.js';
 import { horizontalFrame, randomSequence, UP } from './geometry.js';
@@ -274,16 +275,16 @@ export function createDesertEffects(
   const finish = substrate.onBeforeCompile;
   ridgeMaterial.onBeforeCompile = (shader) => {
     finish.call(substrate, shader);
-    shader.vertexShader =
-      `attribute float sandLiftAlpha; varying float vSandLiftAlpha;\n${shader.vertexShader}`.replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\nvSandLiftAlpha=sandLiftAlpha;',
-      );
-    shader.fragmentShader =
-      `varying float vSandLiftAlpha;\n${shader.fragmentShader}`.replace(
-        '#include <color_fragment>',
-        '#include <color_fragment>\ndiffuseColor.a*=vSandLiftAlpha;',
-      );
+    shader.vertexShader = replaceShader(
+      `attribute float sandLiftAlpha; varying float vSandLiftAlpha;\n${shader.vertexShader}`,
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\nvSandLiftAlpha=sandLiftAlpha;',
+    );
+    shader.fragmentShader = replaceShader(
+      `varying float vSandLiftAlpha;\n${shader.fragmentShader}`,
+      '#include <color_fragment>',
+      '#include <color_fragment>\ndiffuseColor.a*=vSandLiftAlpha;',
+    );
   };
   ridgeMaterial.customProgramCacheKey = () =>
     `saffron-terrain-lift-v2-${substrate.customProgramCacheKey()}`;

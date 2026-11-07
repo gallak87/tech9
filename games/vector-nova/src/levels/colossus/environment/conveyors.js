@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { createColossusPaint } from '../track/presentation.js';
 import {
@@ -20,25 +21,26 @@ function treadMaterial(shape) {
   material.onBeforeCompile = (shader) => {
     shader.uniforms.crossfeedTravel = travel;
     shader.uniforms.crossfeedSide = side;
-    shader.vertexShader = shader.vertexShader
-      .replace(
+    shader.vertexShader = replaceShader(
+      replaceShader(
+        shader.vertexShader,
         '#include <common>',
         '#include <common>\nattribute vec2 roadCoord; varying vec2 conveyorCoord;',
-      )
-      .replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\nconveyorCoord=roadCoord;',
-      );
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
-        '#include <common>',
-        `#include <common>
+      ),
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\nconveyorCoord=roadCoord;',
+    );
+    shader.fragmentShader = replaceShader(
+      replaceShader(
+        replaceShader(
+          shader.fragmentShader,
+          '#include <common>',
+          `#include <common>
         uniform float crossfeedTravel, crossfeedSide;
         varying vec2 conveyorCoord;
         float plateEdge, plateBevel, plateJoint, hinge;
         `,
-      )
-      .replace(
+        ),
         '#include <map_fragment>',
         `#include <map_fragment>
         // Steel links travel laterally; the amber machine framing never moves.
@@ -63,11 +65,10 @@ function treadMaterial(shape) {
         arrow*=1.-smoothstep(2.5,3.2,lane);
         diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.62,.39,.07),arrow*.8);
         `,
-      )
-      .replace(
-        '#include <roughnessmap_fragment>',
-        '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+plateJoint*.25-plateBevel*.15,.25,.8);',
-      );
+      ),
+      '#include <roughnessmap_fragment>',
+      '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+plateJoint*.25-plateBevel*.15,.25,.8);',
+    );
   };
   material.customProgramCacheKey = () => 'colossus-linked-crossfeed-v1';
   return material;

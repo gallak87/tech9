@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 
 export const carbonFunctions = `
@@ -21,19 +22,24 @@ export function createRavelBondMaterial() {
     side: T.DoubleSide,
   });
   material.onBeforeCompile = (shader) => {
-    shader.vertexShader = shader.vertexShader
-      .replace(
+    shader.vertexShader = replaceShader(
+      replaceShader(
+        shader.vertexShader,
         '#include <common>',
         '#include <common>\nattribute vec2 roadCoord; varying vec2 bondCoord;',
-      )
-      .replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\nbondCoord=roadCoord;',
-      );
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
-        '#include <common>',
-        `#include <common>
+      ),
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\nbondCoord=roadCoord;',
+    );
+    shader.fragmentShader = replaceShader(
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            replaceShader(
+              replaceShader(
+                shader.fragmentShader,
+                '#include <common>',
+                `#include <common>
         varying vec2 bondCoord;
         float ravelBondRelief(vec2 uv){
           vec2 p=vec2(mod(uv.x+4.,8.)-4.,uv.y);
@@ -43,10 +49,9 @@ export function createRavelBondMaterial() {
           float hem=.018*exp(-pow((abs(uv.y)-.26)/.055,2.));
           return max(head,washer)+hem;
         }`,
-      )
-      .replace(
-        '#include <map_fragment>',
-        `#include <map_fragment>
+              ),
+              '#include <map_fragment>',
+              `#include <map_fragment>
         float reinforcement=1.;
         float across=mod(bondCoord.y+50.,100.)-50.-6.*sin(bondCoord.x/170.);
         vec2 fitting=vec2(bondCoord.x,abs(across)-8.4);
@@ -58,18 +63,15 @@ export function createRavelBondMaterial() {
         float washer=(1.-smoothstep(.22,.22+pixel,length(p)))*(1.-head);
         diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.065,.08,.085),washer*visibleFitting*.8);
         diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.50,.57,.59),head*visibleFitting*.85);`,
-      )
-      .replace(
-        '#include <roughnessmap_fragment>',
-        `#include <roughnessmap_fragment>
+            ),
+            '#include <roughnessmap_fragment>',
+            `#include <roughnessmap_fragment>
         roughnessFactor=mix(roughnessFactor,.27,reinforcement);
         roughnessFactor=mix(roughnessFactor,.23,head*visibleFitting);`,
-      )
-      .replace(
-        '#include <metalnessmap_fragment>',
-        '#include <metalnessmap_fragment>\nmetalnessFactor=mix(metalnessFactor,.9,reinforcement);',
-      )
-      .replace(
+          ),
+          '#include <metalnessmap_fragment>',
+          '#include <metalnessmap_fragment>\nmetalnessFactor=mix(metalnessFactor,.9,reinforcement);',
+        ),
         '#include <normal_fragment_maps>',
         `#include <normal_fragment_maps>
         vec2 dx=dFdx(fitting),dy=dFdy(fitting);
@@ -78,14 +80,13 @@ export function createRavelBondMaterial() {
         vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition);
         vec3 rx=cross(sy,normal),ry=cross(normal,sx);float det=dot(sx,rx)*faceDirection;
         normal=normalize(abs(det)*normal-sign(det)*(slope.x*rx+slope.y*ry));`,
-      )
-      .replace(
-        '#include <lights_physical_fragment>',
-        `#include <lights_physical_fragment>
+      ),
+      '#include <lights_physical_fragment>',
+      `#include <lights_physical_fragment>
         #ifdef USE_CLEARCOAT
         material.clearcoat*=reinforcement;
         #endif`,
-      );
+    );
   };
   material.customProgramCacheKey = () => 'ravel-formed-reinforcement-lap-v1';
   return material;

@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
@@ -103,13 +104,15 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
     silk.onBeforeCompile = (shader) => {
       shader.vertexShader =
         'varying vec3 clothPosition;\n' +
-        shader.vertexShader.replace(
+        replaceShader(
+          shader.vertexShader,
           '#include <begin_vertex>',
           '#include <begin_vertex>\nclothPosition=position;',
         );
       shader.fragmentShader =
         'varying vec3 clothPosition;\n' +
-        shader.fragmentShader.replace(
+        replaceShader(
+          shader.fragmentShader,
           '#include <color_fragment>',
           '#include <color_fragment>\nfloat thread=.5+.5*sin(clothPosition.y*18.);diffuseColor.rgb*=.88+thread*.12;',
         );
@@ -123,15 +126,17 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
       surface.onBeforeCompile = (shader) => {
         shader.vertexShader =
           'varying float zephyrRoadS;varying float zephyrRoadU;\n' +
-          shader.vertexShader.replace(
+          replaceShader(
+            shader.vertexShader,
             '#include <begin_vertex>',
             '#include <begin_vertex>\nzephyrRoadS=uv.y*2.5;zephyrRoadU=uv.x;',
           );
         shader.fragmentShader =
           'varying float zephyrRoadS;varying float zephyrRoadU;\n' +
           zephyrNoiseGLSL +
-          shader.fragmentShader
-            .replace(
+          replaceShader(
+            replaceShader(
+              shader.fragmentShader,
               '#include <color_fragment>',
               `#include <color_fragment>
  float zx=abs((zephyrRoadU-.5)*32.);
@@ -151,17 +156,16 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
  diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.19,.105,.045),edging*.75);
  diffuseColor.rgb*=1.-joint*.16;
  `,
-            )
-            .replace(
-              '#include <roughnessmap_fragment>',
-              `#include <roughnessmap_fragment>
+            ),
+            '#include <roughnessmap_fragment>',
+            `#include <roughnessmap_fragment>
         float zw=0.;
         ${(track.curtains ?? []).map((c) => `zw=max(zw,1.-smoothstep(4.,38.,abs(zephyrRoadS-${c.s.toFixed(3)})));`).join('')}
         float wear=zephyrNoise(vec3(zephyrRoadU*32.,0.,zephyrRoadS)*.24);
         roughnessFactor=clamp(roughnessFactor+wear*.12-.025,.28,.86);
         // Local water film fills the shallow weave; the dry circuit stays satin.
         roughnessFactor=mix(roughnessFactor,.16,zw*.9);`,
-            );
+          );
       };
       surface.customProgramCacheKey = () => 'zephyr-metric-twill-wet-road-v5';
     }

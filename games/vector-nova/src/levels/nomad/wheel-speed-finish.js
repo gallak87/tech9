@@ -1,3 +1,4 @@
+import { replaceShader } from '../../renderer/shader-patch.js';
 import * as T from 'three';
 import { NOMAD_MOTION_RULES } from './motion.js';
 import kit from '../../../assets/levels/nomad/blender/carrier-kit-provenance.json' with { type: 'json' };
@@ -57,33 +58,33 @@ export function createNomadWheelSpeedFinish({
         nomadWheelHubColor: hubColor,
         nomadWheelSourceRadius: { value: sourceRadius },
       });
-      shader.vertexShader = shader.vertexShader
-        .replace(
+      shader.vertexShader = replaceShader(
+        replaceShader(
+          shader.vertexShader,
           '#include <common>',
           `#include <common>
          uniform float nomadWheelBlur;
          varying vec3 nomadWheelLocal;`,
-        )
-        .replace(
-          '#include <beginnormal_vertex>',
-          `#include <beginnormal_vertex>
+        ),
+        '#include <beginnormal_vertex>',
+        `#include <beginnormal_vertex>
          nomadWheelLocal=position;
          vec2 wheelRadial=position.yz/max(length(position.yz),.001);
          vec3 wheelAverageNormal=normalize(vec3(objectNormal.x,
            wheelRadial*length(objectNormal.yz)));
          objectNormal=normalize(mix(objectNormal,wheelAverageNormal,nomadWheelBlur));`,
-        );
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
+      );
+      shader.fragmentShader = replaceShader(
+        replaceShader(
+          shader.fragmentShader,
           '#include <common>',
           `#include <common>
          uniform float nomadWheelBlur,nomadWheelStreak,nomadWheelRubber,nomadWheelSourceRadius;
          uniform vec3 nomadWheelHubColor;
          varying vec3 nomadWheelLocal;`,
-        )
-        .replace(
-          '#include <lights_physical_fragment>',
-          `float wheelRawRadius=length(nomadWheelLocal.yz);
+        ),
+        '#include <lights_physical_fragment>',
+        `float wheelRawRadius=length(nomadWheelLocal.yz);
          float wheelRadius=wheelRawRadius/nomadWheelSourceRadius;
          vec2 wheelDirection=nomadWheelLocal.yz/max(wheelRawRadius,.001);
          float wheelHub=smoothstep(.25,.291666667,wheelRadius)*
@@ -97,7 +98,7 @@ export function createNomadWheelSpeedFinish({
          wheelWear*=wheelWear;wheelWear*=wheelWear;
          diffuseColor.rgb*=1.+nomadWheelStreak*wheelWear*smoothstep(.583333333,.75,wheelRadius);
          #include <lights_physical_fragment>`,
-        );
+      );
     };
     material.customProgramCacheKey = () => `${key}-nomad-wheel-shutter-v2`;
     materials.set(source, material);

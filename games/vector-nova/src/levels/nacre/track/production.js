@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
@@ -388,13 +389,15 @@ export function buildNacreTrack(track, renderer) {
     // a normal map or modulate the physical lobe width.
     shader.vertexShader =
       'varying vec2 vNacreTintUv;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <uv_vertex>',
         '#include <uv_vertex>\nvNacreTintUv = uv;',
       );
     shader.fragmentShader =
       'varying vec2 vNacreTintUv;\n' +
-      shader.fragmentShader.replace(
+      replaceShader(
+        shader.fragmentShader,
         '#include <color_fragment>',
         `#include <color_fragment>
        vec2 nacreUV = vNacreTintUv;

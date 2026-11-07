@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { sweepGeometry, boxProfile } from '../../../track/geometry.js';
@@ -189,7 +190,8 @@ export function createVesperRoad({ track, shape = false }) {
         varying vec3 vVesperResinCoord, vVesperResinView, vVesperResinNormal;
         varying float vVesperResinActive;
         ` +
-        shader.vertexShader.replace(
+        replaceShader(
+          shader.vertexShader,
           '#include <begin_vertex>',
           `#include <begin_vertex>
             vVesperUv=uv;
@@ -215,10 +217,14 @@ export function createVesperRoad({ track, shape = false }) {
           return mix(mix(resinHash(i),resinHash(i+vec2(1,0)),f.x),mix(resinHash(i+vec2(0,1)),resinHash(i+vec2(1,1)),f.x),f.y);
         }
         ` +
-        shader.fragmentShader
-          .replace(
-            '#include <color_fragment>',
-            `#include <color_fragment>
+        replaceShader(
+          replaceShader(
+            replaceShader(
+              replaceShader(
+                replaceShader(
+                  shader.fragmentShader,
+                  '#include <color_fragment>',
+                  `#include <color_fragment>
         float longitudinal = vVesperUv.y * 16.0;
         vec2 resinP = vec2(vVesperUv.x * 28.0, longitudinal);
         vec2 warp = vec2(resinNoise(resinP * .09),resinNoise(resinP * .08 + 19.0));
@@ -255,23 +261,19 @@ export function createVesperRoad({ track, shape = false }) {
         }
         ${flowing ? 'float flow = pow(0.5 + 0.5 * sin(vVesperUv.y * 11.0 - vesperSapTime * 0.75 + sin(vVesperUv.x * 19.0)), 9.0); diffuseColor.rgb += vec3(0.045,0.027,0.01)*flow;' : ''}
       `,
-          )
-          .replace(
-            'vec3 totalSpecular = reflectedLight.directSpecular + reflectedLight.indirectSpecular;',
-            'vec3 totalSpecular = resinReflectionShoulder(reflectedLight.directSpecular + reflectedLight.indirectSpecular, .24);',
-          )
-          .replace(
-            '( clearcoatSpecularDirect + clearcoatSpecularIndirect ) * material.clearcoat',
-            'resinReflectionShoulder((clearcoatSpecularDirect + clearcoatSpecularIndirect) * material.clearcoat, .12)',
-          )
-          .replace(
+                ),
+                'vec3 totalSpecular = reflectedLight.directSpecular + reflectedLight.indirectSpecular;',
+                'vec3 totalSpecular = resinReflectionShoulder(reflectedLight.directSpecular + reflectedLight.indirectSpecular, .24);',
+              ),
+              '( clearcoatSpecularDirect + clearcoatSpecularIndirect ) * material.clearcoat',
+              'resinReflectionShoulder((clearcoatSpecularDirect + clearcoatSpecularIndirect) * material.clearcoat, .12)',
+            ),
             '#include <roughnessmap_fragment>',
             '#include <roughnessmap_fragment>\n roughnessFactor*=.78+.4*cloud;',
-          )
-          .replace(
-            '#include <emissivemap_fragment>',
-            '#include <emissivemap_fragment>\n totalEmissiveRadiance+=vesperInterior*.22;',
-          );
+          ),
+          '#include <emissivemap_fragment>',
+          '#include <emissivemap_fragment>\n totalEmissiveRadiance+=vesperInterior*.22;',
+        );
     };
     material.customProgramCacheKey = () =>
       flowing ? 'vesper-flow-v7' : 'vesper-lamina-v7';

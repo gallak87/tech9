@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { shatterlineGroundHeight } from '../environment/terrain.js';
@@ -132,14 +133,16 @@ function polymerMaterial({ shape = false, outer = false, exit = null } = {}) {
       };
       shader.vertexShader =
         'varying vec2 slTubeUv;\n' +
-        shader.vertexShader.replace(
+        replaceShader(
+          shader.vertexShader,
           '#include <begin_vertex>',
           '#include <begin_vertex>\nslTubeUv=uv;',
         );
       shader.fragmentShader =
         'varying vec2 slTubeUv;\nuniform vec4 slTubeExit;\n' +
-        shader.fragmentShader
-          .replace(
+        replaceShader(
+          replaceShader(
+            shader.fragmentShader,
             '#include <color_fragment>',
             `#include <color_fragment>
 vec2 slTubeCell=abs(fract(slTubeUv+.5)-.5);
@@ -159,12 +162,11 @@ float slExitPaint=(1.-smoothstep(.85,.85+slExitAA,slExitLine))*step(slTubeExit.x
 vec3 slExitRed=vec3(.63076,.00913,.00913);
 diffuseColor.rgb=mix(diffuseColor.rgb,slExitRed,slExitPaint);
 diffuseColor.a=mix(diffuseColor.a,1.,slExitPaint);`,
-          )
-          .replace(
-            '#include <emissivemap_fragment>',
-            `#include <emissivemap_fragment>
+          ),
+          '#include <emissivemap_fragment>',
+          `#include <emissivemap_fragment>
 totalEmissiveRadiance+=slExitRed*slExitPaint*.32;`,
-          );
+        );
     };
     material.customProgramCacheKey = () => 'shatterline-static-polymer-exit-v2';
   }

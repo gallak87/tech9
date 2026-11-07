@@ -1578,42 +1578,82 @@ try {
         assert.deepEqual((await state(page)).career.state, expected);
       const focusedAction = () =>
         page.evaluate(() => document.activeElement.dataset.action);
+      const core = page.locator('[data-action="toggle-exotic"]');
+      const coreState = async (pressed) => {
+        assert.equal(await core.count(), 1);
+        assert.equal(await core.getAttribute('aria-pressed'), String(pressed));
+        assert.match(
+          await core.innerText(),
+          pressed ? /Equipped on this ship/ : /Equip on this ship/,
+        );
+        assert.equal(await core.locator('.reward-icon').count(), 1);
+        assert.equal(
+          await page.locator('#garage-core-hint').innerText(),
+          'Four equipment slots · One ship at a time',
+        );
+        assert.equal(await page.locator('dialog[open]').count(), 0);
+      };
+      assert.equal(
+        await core.evaluate((button) => {
+          const panel = button.closest('.garage-performance');
+          const legend = panel?.querySelector('.garage-legend');
+          return (
+            !!legend &&
+            !!(
+              legend.compareDocumentPosition(button) &
+              Node.DOCUMENT_POSITION_FOLLOWING
+            ) &&
+            button.getBoundingClientRect().top >=
+              legend.getBoundingClientRect().bottom
+          );
+        }),
+        true,
+        'the compact toggle follows the legend under the performance stats',
+      );
       for (const controller of [false, true]) {
         const activate = async (selector) => {
           await page.locator(selector).focus();
           if (controller) await pad(page, 0);
           else await key(page, 'Enter');
         };
-        const cancel = async () => {
-          if (controller) await pad(page, 1);
-          else await key(page, 'Escape');
-        };
         const fit = async (ship) => {
-          await activate('[data-action="fit-exotic"]');
-          await activate('[data-confirm-exotic]');
+          await activate('[data-action="toggle-exotic"]');
           expected.exoticShip = ship;
-          assert.equal(await focusedAction(), 'remove-exotic');
+          assert.equal(await focusedAction(), 'toggle-exotic');
+          await coreState(true);
           await matchesProfile();
         };
         await activate('[data-ship="shrike"]');
-        // The new control remains in the native keyboard/controller path.
-        await page.locator('[data-equip="lance"]').focus();
-        if (controller) await pad(page, 13);
-        else await key(page, 'Tab');
-        assert.equal(await focusedAction(), 'fit-exotic');
-        if (controller) await pad(page, 0);
-        else await key(page, 'Enter');
+        await coreState(false);
+        await page.locator('[data-equip="jump"]').focus();
+        const move = async (up) => {
+          if (controller) await pad(page, up ? 12 : 13);
+          else await key(page, up ? 'ArrowUp' : 'ArrowDown');
+        };
+        await move(true);
+        assert.equal(await focusedAction(), 'toggle-exotic');
+        await move(true);
         assert.equal(
           await page.evaluate(() =>
-            document.activeElement.hasAttribute('data-cancel'),
+            document.activeElement.hasAttribute('data-fleet-upgrade'),
           ),
           true,
         );
-        await cancel();
-        assert.equal(await page.locator('dialog[open]').count(), 0);
-        assert.equal(await focusedAction(), 'fit-exotic');
+        await move(false);
+        assert.equal(await focusedAction(), 'toggle-exotic');
+        await move(false);
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.equip),
+          'jump',
+        );
+        await move(true);
+        assert.equal(await focusedAction(), 'toggle-exotic');
         await matchesProfile();
         await fit('shrike');
+        assert.match(
+          await core.getAttribute('title'),
+          /Slots 3–4 will be unequipped/,
+        );
         for (const id of ['deflector', 'lance'])
           await activate(`[data-equip="${id}"]`);
         expected.loadouts.shrike = ['jump', 'injector', 'deflector', 'lance'];
@@ -1625,23 +1665,51 @@ try {
         );
         await matchesProfile();
 
-        await activate('[data-ship="kestrel"]');
+        const activeTone = await core.evaluate((button) => {
+          const style = getComputedStyle(button);
+          return [
+            style.color,
+            style.backgroundColor,
+            style.borderColor,
+            style.opacity,
+          ];
+        });
+        await page.locator('[data-ship="kestrel"]').hover();
+        await coreState(false);
         assert.match(
-          await page.locator('.garage-exotic').innerText(),
-          /Shrike/i,
+          await core.getAttribute('title'),
+          /Shrike.*slots 3–4 will be unequipped/,
         );
+        assert.equal(
+          (await state(page)).shipId,
+          'shrike',
+          'hover only previews a hull',
+        );
+        await matchesProfile();
+        const inactiveTone = await core.evaluate((button) => {
+          const style = getComputedStyle(button);
+          return [
+            style.color,
+            style.backgroundColor,
+            style.borderColor,
+            style.opacity,
+          ];
+        });
+        assert.notDeepEqual(
+          activeTone,
+          inactiveTone,
+          'the fitted hull has a brighter toggle',
+        );
+        await page.locator('[data-ship="shrike"]').hover();
+        await coreState(true);
+        await matchesProfile();
+        await page.mouse.move(10, 10);
+        await activate('[data-ship="kestrel"]');
+        await coreState(false);
         assert.match(
           await page.locator('.garage-equipment-count').innerText(),
           /2 \/ 2 equipped/,
         );
-        await activate('[data-action="fit-exotic"]');
-        assert.match(
-          await page.locator('dialog[open]').innerText(),
-          /move|transfer/i,
-        );
-        await cancel();
-        assert.equal(await focusedAction(), 'fit-exotic');
-        await matchesProfile();
         // Transfer gives the new owner capacity, without copying old extras.
         expected.loadouts.shrike[2] = expected.loadouts.shrike[3] = null;
         await fit('kestrel');
@@ -1653,11 +1721,11 @@ try {
           await activate(`[data-equip="${id}"]`);
         expected.loadouts.kestrel = ['jump', 'injector', 'deflector', 'lance'];
         await matchesProfile();
-        await activate('[data-action="remove-exotic"]');
+        await activate('[data-action="toggle-exotic"]');
         expected.exoticShip = null;
         expected.loadouts.kestrel[2] = expected.loadouts.kestrel[3] = null;
-        assert.equal(await page.locator('dialog[open]').count(), 0);
-        assert.equal(await focusedAction(), 'fit-exotic');
+        await coreState(false);
+        assert.equal(await focusedAction(), 'toggle-exotic');
         assert.match(
           await page.locator('.garage-equipment-count').innerText(),
           /2 \/ 2 equipped/,
@@ -1668,14 +1736,13 @@ try {
           await page.locator('.garage-equipment-count').innerText(),
           /2 \/ 4 equipped/,
         );
-        await activate('[data-action="remove-exotic"]');
+        await activate('[data-action="toggle-exotic"]');
         expected.exoticShip = null;
+        await coreState(false);
         await matchesProfile();
       }
 
-      await page.locator('[data-action="fit-exotic"]').focus();
-      await key(page, 'Enter');
-      await page.locator('[data-confirm-exotic]').focus();
+      await core.focus();
       await key(page, 'Enter');
       expected.exoticShip = 'kestrel';
       for (const id of ['deflector', 'lance']) {
@@ -1696,7 +1763,7 @@ try {
       const bytes = Buffer.concat(chunks);
       assert.deepEqual(JSON.parse(bytes).profile, expected);
       await action(page, 'garage-tab');
-      await page.locator('[data-action="remove-exotic"]').focus();
+      await core.focus();
       await key(page, 'Enter');
       assert.equal((await state(page)).career.state.exoticShip, null);
       await action(page, 'career');
@@ -1780,11 +1847,11 @@ try {
       await action(page, 'ship-step');
       const stockProfile = (await state(page)).career.state;
       assert.equal(
-        await page.locator('[data-action="remove-exotic"]:disabled').count(),
+        await page.locator('[data-action="toggle-exotic"]:disabled').count(),
         1,
       );
       assert.equal(
-        await page.locator('.garage-exotic button:enabled').count(),
+        await page.locator('[data-action="toggle-exotic"]:enabled').count(),
         0,
       );
       assert.equal(
@@ -1806,11 +1873,11 @@ try {
       await page.locator('[data-ship="needle"]').click();
       assert.equal((await state(page)).shipId, 'shrike');
       assert.equal(
-        await page.locator('[data-action="fit-exotic"]:disabled').count(),
+        await page.locator('[data-action="toggle-exotic"]:disabled').count(),
         1,
       );
       assert.equal(
-        await page.locator('.garage-exotic button:enabled').count(),
+        await page.locator('[data-action="toggle-exotic"]:enabled').count(),
         0,
       );
       assert.equal(
@@ -1819,7 +1886,7 @@ try {
       );
       await page.locator('[data-ship="shrike"]').click();
       assert.equal(
-        await page.locator('[data-action="remove-exotic"]:enabled').count(),
+        await page.locator('[data-action="toggle-exotic"]:enabled').count(),
         1,
       );
       await page.locator('[data-equip="lance"]').click();
@@ -2041,6 +2108,7 @@ try {
         await seedFleetUpgrades(page, true);
         await open(page, 'ship=kestrel');
         await action(page, 'garage-tab');
+        const core = page.locator('[data-action="toggle-exotic"]');
         const fitsScreen = async () => {
           assert.equal(
             await page.evaluate(
@@ -2050,9 +2118,9 @@ try {
             ),
             true,
           );
-          await page.locator('.garage-exotic button').scrollIntoViewIfNeeded();
+          await core.scrollIntoViewIfNeeded();
           assert.equal(
-            await page.locator('.garage-exotic button').evaluate((element) => {
+            await core.evaluate((element) => {
               const r = element.getBoundingClientRect();
               return (
                 r.left >= 0 &&
@@ -2065,33 +2133,22 @@ try {
           );
         };
         await fitsScreen();
+        assert.equal(await core.getAttribute('aria-pressed'), 'true');
         await page.locator('[data-ship="shrike"]').tap();
         await fitsScreen();
-        await page.locator('[data-action="fit-exotic"]').tap();
-        const dialog = page.locator('dialog[open]');
-        assert.match(await dialog.innerText(), /Move Quad Core/);
-        assert.equal(
-          await dialog.evaluate((element) => {
-            const r = element.getBoundingClientRect();
-            return (
-              r.left >= 0 &&
-              r.right <= innerWidth &&
-              r.top >= 0 &&
-              r.bottom <= innerHeight &&
-              element.scrollWidth <= element.clientWidth + 1
-            );
-          }),
-          true,
-        );
-        await page.locator('[data-confirm-exotic]').tap();
+        assert.equal(await core.getAttribute('aria-pressed'), 'false');
+        await core.tap();
+        assert.equal(await page.locator('dialog[open]').count(), 0);
         assert.equal((await state(page)).career.state.exoticShip, 'shrike');
+        assert.equal(await core.getAttribute('aria-pressed'), 'true');
         await fitsScreen();
-        await page.locator('[data-action="remove-exotic"]').tap();
+        await core.tap();
         assert.equal((await state(page)).career.state.exoticShip, null);
+        assert.equal(await core.getAttribute('aria-pressed'), 'false');
         await fitsScreen();
-        await page.locator('[data-action="fit-exotic"]').tap();
-        await page.locator('[data-confirm-exotic]').tap();
+        await core.tap();
         assert.equal((await state(page)).career.state.exoticShip, 'shrike');
+        assert.equal(await core.getAttribute('aria-pressed'), 'true');
         await fitsScreen();
       },
     );

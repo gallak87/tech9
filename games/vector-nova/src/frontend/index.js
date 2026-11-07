@@ -320,7 +320,6 @@ export async function createFrontend(
         sounds.mount(inspectorHost.querySelector('#inspection-tools'));
     });
   const progressionMenu = createProgressionMenu({
-    host,
     store: createSaveTransfer({
       profileStore,
       cupStore,
@@ -1112,9 +1111,6 @@ export async function createFrontend(
         .querySelector(selector)
         ?.replaceWith(template.content.querySelector(selector));
     }
-    shell.querySelector('.garage-exotic')?.remove();
-    const exotic = template.content.querySelector('.garage-exotic');
-    if (exotic) shell.querySelector('.garage-footer').before(exotic);
     for (const item of shell.querySelectorAll('button[data-ship]'))
       item.dataset.preview = String(item.dataset.ship === ship().id);
     mountShipPreview();
@@ -1803,25 +1799,23 @@ export async function createFrontend(
       openGarage();
       focusMenu('[data-action="garage-tab"]');
     },
-    'fit-exotic'() {
+    'toggle-exotic'() {
       if (
         intent === 'time-trial' ||
         (lockedCup() && lockedCup().shipId !== ship().id)
       )
         return;
-      progressionMenu.openExotic(ship().id);
-    },
-    'remove-exotic'() {
-      if (
-        intent === 'time-trial' ||
-        (lockedCup() && lockedCup().shipId !== ship().id) ||
-        profile().exoticShip !== ship().id ||
-        !profileStore.removeExotic()
-      )
-        return;
-      garageNotice = 'Quad Core removed. Fit it to any unlocked ship.';
+      const id = ship().id;
+      const fitted = profile().exoticShip === id;
+      const changed = fitted
+        ? profileStore.removeExotic()
+        : profileStore.chooseExotic(id);
+      if (!changed) return;
+      garageNotice = fitted
+        ? 'Quad Core removed. Extra equipment slots unequipped.'
+        : `Quad Core equipped on ${ship().name}.`;
       render();
-      focusMenu('[data-action="fit-exotic"]');
+      focusMenu('[data-action="toggle-exotic"]');
     },
     career() {
       earnedRewards = [];

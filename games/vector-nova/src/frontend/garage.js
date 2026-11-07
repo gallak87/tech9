@@ -61,11 +61,16 @@ export function garageView({
   const count = loadout.filter(Boolean).length;
   const coreShip = SHIPS.find((ship) => ship.id === profile.exoticShip);
   const coreFitted = coreShip?.id === craft.id;
-  const coreDetail = coreFitted
-    ? 'Four equipment slots. Removing or moving it unequips slots 3–4.'
+  const coreAction = `${coreFitted ? 'Remove Quad Core from' : 'Equip Quad Core on'} ${craft.name}`;
+  const coreTitle = coreFitted
+    ? `${coreAction}. Slots 3–4 will be unequipped.`
     : coreShip
-      ? `Fitted to ${coreShip.name}. Move it here to equip four items.`
-      : 'Four equipment slots on one ship. You can move it later.';
+      ? `${coreAction}. ${coreShip.name}'s slots 3–4 will be unequipped.`
+      : coreAction;
+  const coreControl =
+    !IS_DEMO && profile.claims.includes('exotic-slot') && unlocked
+      ? `<section class="garage-quad-core" aria-label="Quad Core"><button type="button" class="garage-core-toggle" data-action="toggle-exotic" aria-pressed="${coreFitted}" aria-label="${escapeHTML(coreAction)}" aria-describedby="garage-core-hint" title="${escapeHTML(coreTitle)}" ${stock || cupLocked ? 'disabled' : ''}>${rewardIcon('exotic-slot')}<span class="garage-core-label"><strong>Quad Core</strong><small>${coreFitted ? 'Equipped on this ship' : 'Equip on this ship'}</small></span><span class="garage-core-state" aria-hidden="true">${coreFitted ? '✓' : '+'}</span></button><p id="garage-core-hint">${stock ? 'Inactive in stock Time Trial.' : 'Four equipment slots · One ship at a time'}</p></section>`
+      : '';
   const unlockedFleet = fleet.filter((ship) => shipUnlocked(profile, ship.id));
   const equipment = AVAILABLE_EQUIPMENT.filter((item) =>
     profile.claims.includes(`equipment-${item.id}`),
@@ -85,7 +90,7 @@ export function garageView({
         `<button data-ship="${ship.id}" aria-pressed="${ship.id === selectedShip}" data-preview="${ship.id === craft.id}" aria-label="Select ${ship.name}"><img src="${assetURL(`assets/menu/ships/${ship.id}.jpg`)}" alt=""><strong>${ship.name}${ship.id === selectedShip ? ' ✓' : ''}</strong></button>`,
     )
     .join('')}</nav>
-    <div class="garage-main"><div class="garage-studio"><section class="ship-details"><h1>${craft.name}</h1><p class="garage-role">${craft.role}</p><div class="ship-preview-slot"><p role="status">Loading ship preview…</p></div><span class="garage-ship-status">${!unlocked ? shipLockText(profile, craft.id) : cupLocked ? 'Locked for this championship' : ''}</span><div class="transfer-slot ship-transfer"></div></section><section class="garage-performance" aria-label="Ship performance"><span class="kicker">Performance</span>${fleetUpgradesView(profile, stock)}${performanceView(craft, profile, { stock })}<div class="garage-legend"><span>Stock</span><span>Fleet upgrades</span></div></section></div>
+    <div class="garage-main"><div class="garage-studio"><section class="ship-details"><h1>${craft.name}</h1><p class="garage-role">${craft.role}</p><div class="ship-preview-slot"><p role="status">Loading ship preview…</p></div><span class="garage-ship-status">${!unlocked ? shipLockText(profile, craft.id) : cupLocked ? 'Locked for this championship' : ''}</span><div class="transfer-slot ship-transfer"></div></section><section class="garage-performance" aria-label="Ship performance"><span class="kicker">Performance</span>${fleetUpgradesView(profile, stock)}${performanceView(craft, profile, { stock })}<div class="garage-legend"><span>Stock</span><span>Fleet upgrades</span></div>${coreControl}</section></div>
     <section class="garage-equipment" aria-label="Choose equipment"><div class="garage-equipment-heading"><h2>Equipment</h2><span class="garage-equipment-count">${stock ? 'Stock rules' : `<b>${count} / ${capacity}</b> equipped${capacity === 4 ? ' · Quad Core' : ''}`}</span></div><div class="garage-equipment-grid">${equipment
       .map((item) => {
         const index = loadout.indexOf(item.id),
@@ -95,7 +100,6 @@ export function garageView({
       .join(
         '',
       )}</div><p class="garage-equipment-detail">${initial ? escapeHTML(detail(initial)) : ''}</p>${equipment.length ? '' : '<p class="garage-equipment-empty">No equipment unlocked yet.</p>'}<p class="garage-equipment-hint">${hint}</p></section>
-    ${!IS_DEMO && profile.claims.includes('exotic-slot') && unlocked ? `<section class="garage-exotic">${rewardIcon('exotic-slot')}<span><strong>Quad Core${coreFitted ? ' · Fitted' : ''}</strong><small>${coreDetail}</small></span><button data-action="${coreFitted ? 'remove-exotic' : 'fit-exotic'}" ${stock || cupLocked ? 'disabled' : ''}>${coreFitted ? 'Remove Quad Core' : `${coreShip ? 'Move' : 'Fit'} to ${craft.name}`}</button></section>` : ''}
     <footer class="garage-footer"><span class="garage-notice" role="status" aria-live="polite">${escapeHTML(notice)}</span></footer></div></div>`;
 }
 
@@ -171,8 +175,17 @@ export function navigateGarage(event, root) {
     next =
       event.code === 'ArrowUp'
         ? root.querySelector('.garage-fleet [aria-pressed="true"]')
-        : (root.querySelector('.garage-equipment-card:not(:disabled)') ??
+        : (root.querySelector('.garage-core-toggle:not(:disabled)') ??
+          root.querySelector('.garage-equipment-card:not(:disabled)') ??
           root.querySelector('.ship-preview canvas'));
+  if (
+    group?.classList.contains('garage-equipment-grid') &&
+    vertical &&
+    index < 0
+  )
+    next =
+      root.querySelector('.garage-core-toggle:not(:disabled)') ??
+      root.querySelector('.garage-upgrade-list button:last-child');
   if (
     group?.classList.contains('garage-fleet') &&
     columns === 1 &&

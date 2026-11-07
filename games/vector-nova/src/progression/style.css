@@ -111,36 +111,6 @@
   color: #ffbc8d;
   margin-top: 6px;
 }
-.progression-dialog {
-  width: min(1010px, calc(100vw - 48px));
-  max-height: calc(100dvh - 48px);
-  padding: 0;
-  color: #efefef;
-  border: 1px solid #ffffff30;
-  background:
-    radial-gradient(ellipse at 95% 0%, #53301644, transparent 52%), #101012;
-  box-shadow: 0 30px 120px #000c;
-  font-family: inherit;
-}
-.progression-dialog::backdrop {
-  background: #050507b8;
-  backdrop-filter: blur(10px);
-}
-.progression-dialog button {
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-  border: 1px solid #ffffff25;
-  background: #ffffff05;
-  padding: 10px 14px;
-}
-.progression-dialog button:hover {
-  background-color: #ffffff10;
-}
-.progression-dialog button:focus-visible {
-  outline: 2px solid #fff1da;
-  outline-offset: 3px;
-}
 .progression-header {
   position: sticky;
   top: 0;
@@ -217,23 +187,6 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
-.progression-dialog .equipment-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  padding: 20px 18px 14px;
-  min-width: 0;
-  background: radial-gradient(
-    ellipse at 0 0,
-    color-mix(in srgb, var(--rarity) 9%, transparent),
-    transparent 80%
-  );
-  transition:
-    border-color 0.15s,
-    background-color 0.15s;
-}
 .equipment-card > .reward-icon {
   height: 36px;
   width: 36px;
@@ -273,10 +226,6 @@
   border-top: 1px solid #ffffff18;
   font-size: 11px;
   color: var(--rarity);
-}
-.progression-dialog .equipment-card.equipped {
-  border-color: var(--rarity);
-  box-shadow: inset 0 0 25px color-mix(in srgb, var(--rarity) 7%, transparent);
 }
 .equipment-card.locked {
   opacity: 0.65;
@@ -712,10 +661,6 @@
   font-size: 12px;
 }
 @media (max-width: 700px) {
-  .progression-dialog {
-    width: calc(100vw - 20px);
-    max-height: calc(100dvh - 20px);
-  }
   .progression-header {
     padding: 18px;
   }
@@ -724,9 +669,6 @@
   }
   .equipment-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .progression-dialog .equipment-card {
-    padding: 14px;
   }
   .equipment-slots {
     flex-wrap: wrap;
@@ -760,13 +702,6 @@
   .equipment-card {
     transition: none;
   }
-}
-
-.progression-dialog button {
-  letter-spacing: normal;
-}
-.progression-dialog .equipment-description {
-  letter-spacing: normal;
 }
 
 .equipment-hud {
@@ -915,16 +850,6 @@
   .equipment-hud-slot small {
     font-size: 8px;
   }
-}
-
-.exotic-confirm-dialog {
-  width: min(520px, calc(100vw - 32px));
-}
-.exotic-confirm-dialog .progression-body {
-  display: none;
-}
-.exotic-confirm-dialog .progression-confirm {
-  position: static;
 }
 
 /* Reward emblems sit on the hero artwork, above the existing track caption. */

@@ -44,10 +44,6 @@ export function bindMenuGamepad(
   const menuRoot = () => {
     const completion = document.querySelector('.completion-cinematic');
     if (visible(completion)) return completion;
-    const progression = document.querySelector(
-      'dialog[data-progression-dialog][open]',
-    );
-    if (visible(progression)) return progression;
     const music = document.querySelector(
       '[data-music-player][data-menu-active]',
     );

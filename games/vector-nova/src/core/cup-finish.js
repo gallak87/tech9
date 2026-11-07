@@ -1,16 +1,58 @@
-import { CUP_FINISH_GRACE } from '../race/cup.js';
+const immutable = (value) => {
+  if (value && typeof value === 'object') {
+    Object.values(value).forEach(immutable);
+    Object.freeze(value);
+  }
+  return value;
+};
 
-// Classification observes the ordinary simulation clock. It never steps or
-// accelerates the field, so finishers remain visible behind the results.
-export function createCupFinish({ simulationTime, allFinished }) {
-  const deadline = simulationTime() + CUP_FINISH_GRACE;
+// The worker owns classification. This owner only latches its result and keeps
+// the normal finish beat, while the visible race continues at its own clock.
+export function createCupFinish({ resolve, onComplete, onError } = {}) {
   let elapsed = 0;
-  let complete = false;
+  let result;
+  let error;
+  let disposed = false;
+  const reject = (failure) => {
+    if (disposed || error) return;
+    result = undefined;
+    if (failure?.name === 'AbortError') return;
+    error = failure instanceof Error ? failure : new Error(String(failure));
+    try {
+      onError?.(error);
+    } catch {
+      /* Reporting cannot leak an unhandled classification rejection. */
+    }
+  };
+  try {
+    void Promise.resolve(resolve())
+      .then((value) => {
+        if (disposed) return;
+        if (!value || typeof value !== 'object')
+          throw new Error('Cup classification returned no result.');
+        result = immutable(structuredClone(value));
+        // Persistence must not wait for RAF in a hidden or suspended view.
+        return onComplete?.(result);
+      })
+      .catch(reject);
+  } catch (failure) {
+    reject(failure);
+  }
   return {
     advance(dt) {
-      elapsed += dt;
-      complete ||= allFinished() || simulationTime() >= deadline - 1e-8;
-      return { complete, ready: elapsed >= 2.4 };
+      if (!disposed) elapsed += dt;
+      const complete = !disposed && result !== undefined;
+      return {
+        complete,
+        ready: complete && elapsed >= 2.4,
+        ...(complete ? { result } : {}),
+        ...(!disposed && error ? { error } : {}),
+      };
+    },
+    dispose() {
+      disposed = true;
+      result = undefined;
+      error = undefined;
     },
   };
 }

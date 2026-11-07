@@ -1,106 +1,182 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { setImmediate } from 'node:timers';
 import { createCupFinish } from './cup-finish.js';
-import { createTrack } from '../levels/halcyon/track/model.js';
-import { createHalcyonSimulationRuntime } from '../levels/halcyon/device-runtime.js';
-import { createVehicleState } from '../physics/index.js';
-import { createRace } from '../race/index.js';
-import { createRacers } from '../race/racers.js';
-import { classifyCupRace } from '../race/cup.js';
 
-test('results open while the field continues at the ordinary simulation rate', () => {
-  let simulationTime = 100;
-  const finish = createCupFinish({
-    simulationTime: () => simulationTime,
-    allFinished: () => false,
+const flush = () => new Promise((resolve) => setImmediate(resolve));
+function deferred() {
+  let resolve, reject;
+  const promise = new Promise((yes, no) => {
+    resolve = yes;
+    reject = no;
   });
-  for (let frame = 0; frame < 150; frame++) {
-    simulationTime += 1 / 60;
-    finish.advance(1 / 60);
-  }
-  assert.deepEqual(finish.advance(0), { complete: false, ready: true });
-  assert.ok(
-    Math.abs(simulationTime - 102.5) < 1e-8,
-    'presentation cannot advance physics',
-  );
-  simulationTime = 129.99;
-  assert.equal(finish.advance(0).complete, false);
-  simulationTime = 130;
-  assert.equal(finish.advance(0).complete, true);
-});
+  return { promise, resolve, reject };
+}
 
-test('a pause cannot consume the classification deadline', () => {
-  let simulationTime = 0;
+test('the worker result latches once while the normal finish beat elapses', async () => {
+  const task = deferred();
+  let calls = 0;
   const finish = createCupFinish({
-    simulationTime: () => simulationTime,
-    allFinished: () => false,
+    resolve: () => {
+      calls++;
+      return task.promise;
+    },
   });
-  assert.deepEqual(finish.advance(60), { complete: false, ready: true });
-  simulationTime = 29;
-  assert.equal(finish.advance(0).complete, false);
-  simulationTime = 30;
-  assert.equal(finish.advance(0).complete, true);
-});
-
-test('the final rival classifies the field while the finish banner keeps its beat', () => {
-  let finished = false;
-  const finish = createCupFinish({
-    simulationTime: () => 100,
-    allFinished: () => finished,
-  });
+  assert.equal(calls, 1);
   assert.deepEqual(finish.advance(1), { complete: false, ready: false });
-  finished = true;
-  assert.deepEqual(finish.advance(1.4), { complete: true, ready: true });
+  const source = { standings: [{ id: 'player', totalTime: 100 }] };
+  task.resolve(source);
+  await flush();
+  const progress = finish.advance(0);
+  assert.equal(progress.complete, true);
+  assert.equal(progress.ready, false);
+  source.standings[0].totalTime = 999;
+  assert.equal(progress.result.standings[0].totalTime, 100);
+  assert.ok(Object.isFrozen(progress.result.standings[0]));
+  assert.throws(() => {
+    progress.result.standings[0].totalTime = 1;
+  }, TypeError);
+  const final = finish.advance(1.4);
+  assert.equal(final.ready, true);
+  assert.equal(final.result, progress.result);
+  assert.equal(calls, 1);
 });
 
-test('live classification retains actual rival times, points, invalid finishes and DNFs', () => {
-  const track = createTrack();
-  const racers = createRacers({
-    track,
-    createRuntime: () => createHalcyonSimulationRuntime({ track }),
+test('a slow classifier never fabricates readiness or advances any simulation', async () => {
+  const task = deferred();
+  const finish = createCupFinish({ resolve: () => task.promise });
+  assert.deepEqual(finish.advance(10), { complete: false, ready: false });
+  task.resolve({ standings: [] });
+  await flush();
+  assert.equal(finish.advance(0).ready, true);
+});
+
+test('classification can arrive while the presentation clock is paused', async () => {
+  const task = deferred();
+  const finish = createCupFinish({ resolve: () => task.promise });
+  for (let i = 0; i < 20; i++) finish.advance(0);
+  task.resolve({ standings: [] });
+  await flush();
+  assert.equal(finish.advance(0).ready, false);
+  assert.equal(finish.advance(2.4).ready, true);
+});
+
+test('completion publishes once without a frame or presentation advance', async () => {
+  const task = deferred();
+  const saved = [];
+  const finish = createCupFinish({
+    resolve: () => task.promise,
+    onComplete: (result) => {
+      assert.ok(Object.isFrozen(result.standings[0]));
+      saved.push(result);
+    },
   });
-  const playerState = { ...createVehicleState(), distance: track.length * 2 };
-  const playerRace = createRace(track);
-  playerRace.step(0, track.length, 60);
-  playerRace.step(track.length, track.length * 2, 59);
-  const context = { playerState, playerRace };
-  try {
-    racers.reset({ ...context, enabled: true });
-    racers.opponents.forEach((opponent, i) => {
-      const distance = i === 8 ? 0 : track.length * 1.85 - i * 45;
-      opponent.race.step(0, distance, 119);
-      if (i === 0) opponent.race.recover();
-      Object.assign(opponent.state, { distance, speed: 90 });
-      opponent.runtime.reset({ reason: 'scenario', state: opponent.state });
-    });
-    const initial = racers.serialize();
-    const results = () => classifyCupRace(racers.snapshot(context).results);
-    for (let tick = 0; tick < 3600; tick++) racers.advance(1 / 120, context);
-    const expected = results();
-    assert.ok(
-      expected.some((row) => row.status === 'finished' && row.id !== 'player'),
-    );
-    assert.ok(expected.some((row) => row.status === 'invalid'));
-    assert.ok(expected.some((row) => row.status === 'dnf'));
-    racers.restore(initial);
-    let ticks = 0;
+  const source = { standings: [{ id: 'player', totalTime: 100 }] };
+  task.resolve(source);
+  await flush();
+  assert.equal(saved.length, 1, 'a hidden tab saves without waiting for RAF');
+  source.standings[0].totalTime = 999;
+  assert.equal(saved[0].standings[0].totalTime, 100);
+  assert.equal(finish.advance(0).result, saved[0]);
+  assert.equal(finish.advance(0).ready, false);
+  assert.equal(finish.advance(2.4).ready, true);
+  finish.advance(10);
+  assert.equal(saved.length, 1);
+});
+
+test('failed completion callbacks are reported without a successful presentation', async () => {
+  for (const asynchronous of [false, true]) {
+    const failure = new Error('persistence failed');
+    const notices = [];
     const finish = createCupFinish({
-      simulationTime: () => ticks / 120,
-      allFinished: () => racers.opponents.every((racer) => racer.finish),
+      resolve: () => Promise.resolve({ standings: [] }),
+      onComplete: () => {
+        if (asynchronous) return Promise.reject(failure);
+        throw failure;
+      },
+      onError: (error) => notices.push(error),
     });
-    while (!finish.advance(1 / 60).complete) {
-      for (let i = 0; i < 2; i++) {
-        racers.advance(1 / 120, context);
-        ticks++;
-      }
-    }
-    assert.equal(
-      ticks,
-      3600,
-      'the full grace period runs at two ticks per rendered 60Hz frame',
-    );
-    assert.deepEqual(results(), expected);
-  } finally {
-    racers.dispose();
+    await flush();
+    assert.deepEqual(notices, [failure]);
+    assert.deepEqual(finish.advance(5), {
+      complete: false,
+      ready: false,
+      error: failure,
+    });
   }
+});
+
+test('synchronous and asynchronous errors are stored and notified once', async () => {
+  for (const synchronous of [false, true]) {
+    const task = deferred(),
+      notices = [];
+    const failure = new Error('classification failed');
+    const finish = createCupFinish({
+      resolve: () => {
+        if (synchronous) throw failure;
+        return task.promise;
+      },
+      onError: (error) => notices.push(error),
+    });
+    if (!synchronous) task.reject(failure);
+    await flush();
+    assert.deepEqual(finish.advance(5), {
+      complete: false,
+      ready: false,
+      error: failure,
+    });
+    finish.advance(10);
+    assert.deepEqual(notices, [failure]);
+  }
+});
+
+test('canceled and disposed owners ignore late results and errors', async () => {
+  for (const outcome of ['resolve', 'reject', 'abort']) {
+    const task = deferred(),
+      notices = [],
+      completed = [];
+    const finish = createCupFinish({
+      resolve: () => task.promise,
+      onComplete: (result) => completed.push(result),
+      onError: (error) => notices.push(error),
+    });
+    if (outcome !== 'abort') finish.dispose();
+    if (outcome === 'resolve') task.resolve({ standings: [] });
+    else
+      task.reject(
+        outcome === 'abort'
+          ? new DOMException('canceled', 'AbortError')
+          : new Error('late failure'),
+      );
+    await flush();
+    assert.deepEqual(finish.advance(5), { complete: false, ready: false });
+    assert.deepEqual(notices, []);
+    assert.deepEqual(completed, []);
+    finish.dispose();
+  }
+});
+
+test('missing results and throwing error reporters cannot leak unhandled promises', async () => {
+  let notices = 0;
+  const finish = createCupFinish({
+    resolve: () => Promise.resolve(null),
+    onError: () => {
+      notices++;
+      throw new Error('reporter failed');
+    },
+  });
+  await flush();
+  assert.match(finish.advance(0).error.message, /no result/);
+  assert.equal(notices, 1);
+});
+
+test('disposing a completed owner releases its result and prevents a stale award', async () => {
+  const finish = createCupFinish({
+    resolve: () => Promise.resolve({ standings: [] }),
+  });
+  await flush();
+  assert.equal(finish.advance(2.4).ready, true);
+  finish.dispose();
+  finish.dispose();
+  assert.deepEqual(finish.advance(10), { complete: false, ready: false });
 });

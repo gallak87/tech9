@@ -32,6 +32,103 @@ export async function buildDesktop(edition) {
   await mkdir(stage, { recursive: true });
   const moduleIds = new Set();
   const levelCatalog = '\0desktop-level-catalog';
+  const contentBoundary = ({ worker: isWorker = false } = {}) => ({
+    name: 'desktop-content-boundary',
+    enforce: 'pre',
+    resolveId(id, importer) {
+      if (id === 'virtual:menu-catalog') return '\0virtual:menu-catalog';
+      if (
+        importer &&
+        id.startsWith('.') &&
+        resolve(dirname(importer), id) ===
+          resolve(root, 'src/levels/catalog.js')
+      )
+        return levelCatalog;
+    },
+    transform(code, id) {
+      if (
+        !id
+          .replaceAll('\\', '/')
+          .endsWith('/three/examples/jsm/loaders/KTX2Loader.js')
+      )
+        return;
+      const original =
+        'this.workerSourceURL = URL.createObjectURL( new Blob( [ body ] ) );';
+      if (!code.includes(original))
+        throw new Error(
+          'Three KTX2 worker contract changed; review the desktop decoder integration',
+        );
+      return {
+        code: code.replace(
+          original,
+          "this.workerSourceURL = new URL('assets/decoder-worker.js', document.baseURI).href;",
+        ),
+        map: null,
+      };
+    },
+    async buildStart() {
+      if (isWorker) return;
+      const basis = await readFile(
+        resolve(root, 'public/assets/ships/decoder/basis_transcoder.js'),
+        'utf8',
+      );
+      const worker = KTX2Loader.BasisWorker.toString();
+      const source = [
+        ...[
+          'EngineFormat',
+          'EngineType',
+          'TranscoderFormat',
+          'BasisFormat',
+        ].map((name) => `let _${name} = ${JSON.stringify(KTX2Loader[name])};`),
+        basis,
+        worker.slice(worker.indexOf('{') + 1, worker.lastIndexOf('}')),
+      ].join('\n');
+      this.emitFile({
+        type: 'asset',
+        fileName: 'assets/decoder-worker.js',
+        source,
+      });
+    },
+    async load(id) {
+      if (id === '\0virtual:menu-catalog')
+        return `export default ${JSON.stringify(await menuCatalog({ levelIds: policy.levels }))}`;
+      if (
+        id === levelCatalog ||
+        id === resolve(root, 'src/levels/catalog.js')
+      ) {
+        const module = (path) => JSON.stringify(resolve(root, path));
+        return (
+          `import { createCatalog } from ${module('src/levels/contract.js')};\n` +
+          policy.levels
+            .map(
+              (id, i) =>
+                `import m${i} from ${module(`src/levels/${id}/metadata.js`)};`,
+            )
+            .join('\n') +
+          `\nexport function discoverLevels() { return createCatalog({${policy.levels.map((id, i) => `${JSON.stringify(`./${id}/metadata.js`)}:m${i}`).join(',')}}, {${policy.levels.map((id) => `${JSON.stringify(`./${id}/index.js`)}:()=>import(${module(`src/levels/${id}/index.js`)})`).join(',')}}); }`
+        );
+      }
+    },
+    generateBundle(_options, bundle) {
+      for (const chunk of Object.values(bundle)) {
+        if (chunk.type !== 'chunk') continue;
+        for (const [id, info] of Object.entries(chunk.modules)) {
+          if (!info.renderedLength) continue;
+          moduleIds.add(relative(root, id).replaceAll('\\', '/'));
+          if (forbiddenModules.test(id.replaceAll('\\', '/')))
+            throw new Error(`Developer module shipped: ${id}`);
+          const level = id.match(/\/src\/levels\/([^/]+)\/index\.js$/)?.[1];
+          if (level && !policy.levels.includes(level))
+            throw new Error(`Excluded world shipped: ${level}`);
+        }
+        for (const marker of forbiddenRendererText)
+          if (chunk.code.includes(marker))
+            throw new Error(
+              `Developer API shipped: ${marker} in ${chunk.fileName}`,
+            );
+      }
+    },
+  });
   await build({
     configFile: false,
     resolve: { dedupe: ['three'] },
@@ -47,106 +144,11 @@ export async function buildDesktop(edition) {
       sourcemap: false,
       emptyOutDir: true,
     },
-    plugins: [
-      {
-        name: 'desktop-content-boundary',
-        enforce: 'pre',
-        resolveId(id, importer) {
-          if (id === 'virtual:menu-catalog') return '\0virtual:menu-catalog';
-          if (
-            importer &&
-            id.startsWith('.') &&
-            resolve(dirname(importer), id) ===
-              resolve(root, 'src/levels/catalog.js')
-          )
-            return levelCatalog;
-        },
-        transform(code, id) {
-          if (
-            !id
-              .replaceAll('\\', '/')
-              .endsWith('/three/examples/jsm/loaders/KTX2Loader.js')
-          )
-            return;
-          const original =
-            'this.workerSourceURL = URL.createObjectURL( new Blob( [ body ] ) );';
-          if (!code.includes(original))
-            throw new Error(
-              'Three KTX2 worker contract changed; review the desktop decoder integration',
-            );
-          return {
-            code: code.replace(
-              original,
-              "this.workerSourceURL = new URL('assets/decoder-worker.js', document.baseURI).href;",
-            ),
-            map: null,
-          };
-        },
-        async buildStart() {
-          const basis = await readFile(
-            resolve(root, 'public/assets/ships/decoder/basis_transcoder.js'),
-            'utf8',
-          );
-          const worker = KTX2Loader.BasisWorker.toString();
-          const source = [
-            ...[
-              'EngineFormat',
-              'EngineType',
-              'TranscoderFormat',
-              'BasisFormat',
-            ].map(
-              (name) => `let _${name} = ${JSON.stringify(KTX2Loader[name])};`,
-            ),
-            basis,
-            worker.slice(worker.indexOf('{') + 1, worker.lastIndexOf('}')),
-          ].join('\n');
-          this.emitFile({
-            type: 'asset',
-            fileName: 'assets/decoder-worker.js',
-            source,
-          });
-        },
-        async load(id) {
-          if (id === '\0virtual:menu-catalog')
-            return `export default ${JSON.stringify(await menuCatalog({ levelIds: policy.levels }))}`;
-          if (
-            id === levelCatalog ||
-            id === resolve(root, 'src/levels/catalog.js')
-          ) {
-            const module = (path) => JSON.stringify(resolve(root, path));
-            return (
-              `import { createCatalog } from ${module('src/levels/contract.js')};\n` +
-              policy.levels
-                .map(
-                  (id, i) =>
-                    `import m${i} from ${module(`src/levels/${id}/metadata.js`)};`,
-                )
-                .join('\n') +
-              `\nexport function discoverLevels() { return createCatalog({${policy.levels.map((id, i) => `${JSON.stringify(`./${id}/metadata.js`)}:m${i}`).join(',')}}, {${policy.levels.map((id) => `${JSON.stringify(`./${id}/index.js`)}:()=>import(${module(`src/levels/${id}/index.js`)})`).join(',')}}); }`
-            );
-          }
-        },
-        generateBundle(_options, bundle) {
-          for (const chunk of Object.values(bundle)) {
-            if (chunk.type !== 'chunk') continue;
-            for (const [id, info] of Object.entries(chunk.modules)) {
-              if (!info.renderedLength) continue;
-              moduleIds.add(relative(root, id).replaceAll('\\', '/'));
-              if (forbiddenModules.test(id.replaceAll('\\', '/')))
-                throw new Error(`Developer module shipped: ${id}`);
-              const level = id.match(/\/src\/levels\/([^/]+)\/index\.js$/)?.[1];
-              if (level && !policy.levels.includes(level))
-                throw new Error(`Excluded world shipped: ${level}`);
-            }
-            for (const marker of forbiddenRendererText)
-              if (chunk.code.includes(marker))
-                throw new Error(
-                  `Developer API shipped: ${marker} in ${chunk.fileName}`,
-                );
-          }
-        },
-      },
-    ],
+    worker: {
+      format: 'es',
+      plugins: () => [contentBoundary({ worker: true })],
+    },
+    plugins: [contentBoundary()],
   });
   for (const file of await files(resolve(root, 'public'))) {
     const path = relative(resolve(root, 'public'), file).replaceAll('\\', '/');

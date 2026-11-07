@@ -144,7 +144,8 @@ export async function createFrontend(
   cupCollection.award(cupStore.snapshot().state);
   for (const id of Object.keys(cupCollection.snapshot().cups))
     profileStore.recordCup(id);
-  let cupCelebration = null;
+  let cupCelebration = null,
+    pendingCupCelebration = null;
   let selectedCup = cupStore.snapshot().state?.cupId ?? CUPS[0].id;
   const currentCup = () =>
     cupDefinition(cupStore.snapshot().state?.cupId ?? selectedCup);
@@ -209,6 +210,7 @@ export async function createFrontend(
       profile(),
     );
   function beginRewardAttempt() {
+    pendingCupCelebration = null;
     sessionRewardId = crypto.randomUUID();
     earnedRewards = [];
     rewardStart = profile();
@@ -350,6 +352,7 @@ export async function createFrontend(
         game = null;
         loadedId = null;
         sessionCup = false;
+        pendingCupCelebration = null;
         lastResults = null;
         if (['race', 'results'].includes(settingsBack)) {
           settingsBack = 'home';
@@ -1406,7 +1409,7 @@ export async function createFrontend(
           if (disposed || signal.aborted || token !== generation) return;
           if (sessionCup) cupStore.retry();
         },
-        onResults(data) {
+        onResults(data, { present = true } = {}) {
           if (disposed || signal.aborted || token !== generation) return;
           if (
             data.mode === 'cup' &&
@@ -1427,7 +1430,7 @@ export async function createFrontend(
             if (cupChampion(saved)) {
               earnedRewards.push(...profileStore.recordCup(saved.cupId));
               const fresh = cupCollection.award(saved);
-              cupCelebration = { fresh, delay: game?.celebrateCup() ?? 0.6 };
+              pendingCupCelebration = { fresh, runId: saved.runId };
             }
           } else if (
             data.mode !== 'cup' &&
@@ -1444,9 +1447,6 @@ export async function createFrontend(
               }),
             );
           }
-          lastResults = data;
-          if (screen === 'race' || screen === 'review') setScreen('results');
-          else if (screen === 'results') updateResults(data);
           const player = data.standings?.find((row) => row.id === 'player');
           const validWin =
             (sessionIntent === 'race' || data.mode === 'cup') &&
@@ -1464,8 +1464,32 @@ export async function createFrontend(
             profileStore.queueCompletion(
               data.shipId ?? game?.getSnapshot().vehicle?.shipId ?? shipId,
             );
-            void showCompletion();
           }
+          lastResults = data;
+          if (!present) {
+            // Classification may finish while the race is paused in a menu.
+            // Save its rewards immediately without replacing the current view.
+            if (screen === 'home' || screen === 'cup') {
+              const focused = focusSelector();
+              render();
+              focusMenu(focused);
+            }
+            return;
+          }
+          if (
+            pendingCupCelebration &&
+            sessionCup &&
+            cupStore.snapshot().state?.runId === pendingCupCelebration.runId
+          ) {
+            cupCelebration = {
+              fresh: pendingCupCelebration.fresh,
+              delay: game?.celebrateCup() ?? 0.6,
+            };
+            pendingCupCelebration = null;
+          }
+          if (screen === 'race' || screen === 'review') setScreen('results');
+          else if (screen === 'results') updateResults(data);
+          if (validWin || trialWin || championshipWin) void showCompletion();
         },
       };
       let created;
@@ -1759,6 +1783,7 @@ export async function createFrontend(
   function clearCupSession() {
     if (sessionCup) {
       sessionCup = false;
+      pendingCupCelebration = null;
       game?.prepareSession();
     }
   }

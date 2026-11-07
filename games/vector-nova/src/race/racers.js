@@ -68,7 +68,12 @@ const raceFields = [
   'completedTransfers',
 ];
 const captureRace = (race) =>
-  Object.fromEntries(raceFields.map((key) => [key, copy(race[key])]));
+  Object.fromEntries(
+    [...raceFields, 'splits', 'completedTime'].map((key) => [
+      key,
+      copy(race[key]),
+    ]),
+  );
 
 function finishFrom(race) {
   const lapsRequired = race.course.format === 'sprint' ? 1 : RACE_LAPS;
@@ -479,7 +484,13 @@ export function createRacers({
 
   function prepareTick(
     step,
-    { playerState, playerRace, playerPrevious, playerPose } = {},
+    {
+      playerState,
+      playerRace,
+      playerPrevious,
+      playerPose,
+      presentation = true,
+    } = {},
   ) {
     elapsed += step;
     // All controls are sampled before anyone advances, so this one bounded
@@ -495,11 +506,18 @@ export function createRacers({
     opponents.forEach((opponent) => {
       opponent.prev = { ...opponent.state };
     });
-    return { step, controls, playerState, playerRace, playerPose };
+    return {
+      step,
+      controls,
+      playerState,
+      playerRace,
+      playerPose,
+      presentation,
+    };
   }
 
   function finishTick(
-    { step, controls, playerState, playerPose },
+    { step, controls, playerState, playerPose, presentation },
     shared = false,
   ) {
     const events = [];
@@ -518,7 +536,7 @@ export function createRacers({
       );
       // Deliver decorative events to attached observers, then drain them even
       // in CPU-only races so feedback never accumulates between simulation ticks.
-      opponent.runtime.update({});
+      opponent.runtime.update(presentation ? {} : { presentation: false });
       relativeTiming.update(
         opponent.specification.id,
         presentationDistance(track, opponent.state, opponent.runtime.pose(1)),
@@ -755,98 +773,110 @@ export function createRacers({
     };
   }
 
-  function restore(data) {
-    if (
-      !data ||
-      JSON.stringify(data.field) !== identityJSON ||
-      JSON.stringify(data.course) !== JSON.stringify(course) ||
-      data.trackId !== track.id ||
-      typeof data.enabled !== 'boolean' ||
-      !RACE_DIFFICULTIES.includes(data.difficulty) ||
-      !Number.isFinite(data.elapsed) ||
-      data.elapsed < 0 ||
-      data.opponents?.length !== opponents.length
-    )
-      throw new Error('Racer state mismatch');
-    const finiteTree = (value) =>
-      typeof value === 'number'
-        ? Number.isFinite(value)
-        : !value ||
-          typeof value !== 'object' ||
-          Object.values(value).every(finiteTree);
-    if (!finiteTree(data)) throw new Error('Racer state must remain finite');
-    const validFinish = (finish) =>
-      finish === null ||
-      (!!finish &&
-        Array.isArray(finish.lapTimes) &&
-        finish.lapTimes.length === lapsRequired &&
-        finish.lapTimes.every(
-          (duration) => Number.isFinite(duration) && duration > 0,
-        ) &&
-        Array.isArray(finish.lapValidity) &&
-        finish.lapValidity.length === lapsRequired &&
-        finish.lapValidity.every((valid) => typeof valid === 'boolean') &&
-        Number.isFinite(finish.totalTime) &&
-        finish.totalTime > 0 &&
-        typeof finish.valid === 'boolean');
-    if (!validFinish(data.playerFinish))
-      throw new Error('Player race finish mismatch');
-    for (const [index, saved] of data.opponents.entries()) {
-      const opponent = opponents[index];
+  function restore(data, { trusted = false, presentation = true } = {}) {
+    // Trusted checkpoints belong to this live field. Public replay restores
+    // retain full identity, value and isolated-runtime validation below.
+    if (!trusted) {
       if (
-        saved.id !== opponent.specification.id ||
-        saved.state?.shipId !== opponent.specification.shipId ||
-        !saved.prev ||
-        !saved.race ||
-        !Array.isArray(saved.race.history) ||
-        !Array.isArray(saved.race.completedTransfers) ||
-        !saved.race.completedTransfers.every(
-          (key) => typeof key === 'string' && /^-?\d+:.+$/.test(key),
-        ) ||
-        typeof saved.race.complete !== 'boolean' ||
-        !raceFields.every((key) => key in saved.race) ||
-        !Number.isFinite(saved.boostSeconds) ||
-        saved.boostSeconds < 0
+        !data ||
+        JSON.stringify(data.field) !== identityJSON ||
+        JSON.stringify(data.course) !== JSON.stringify(course) ||
+        data.trackId !== track.id ||
+        typeof data.enabled !== 'boolean' ||
+        !RACE_DIFFICULTIES.includes(data.difficulty) ||
+        !Number.isFinite(data.elapsed) ||
+        data.elapsed < 0 ||
+        data.opponents?.length !== opponents.length
       )
-        throw new Error('Racer identity mismatch');
-      const defaults = createVehicleState(opponent.specification.shipId);
-      for (const state of [saved.state, saved.prev])
+        throw new Error('Racer state mismatch');
+      const finiteTree = (value) =>
+        typeof value === 'number'
+          ? Number.isFinite(value)
+          : !value ||
+            typeof value !== 'object' ||
+            Object.values(value).every(finiteTree);
+      if (!finiteTree(data)) throw new Error('Racer state must remain finite');
+      const validFinish = (finish) =>
+        finish === null ||
+        (!!finish &&
+          Array.isArray(finish.lapTimes) &&
+          finish.lapTimes.length === lapsRequired &&
+          finish.lapTimes.every(
+            (duration) => Number.isFinite(duration) && duration > 0,
+          ) &&
+          Array.isArray(finish.lapValidity) &&
+          finish.lapValidity.length === lapsRequired &&
+          finish.lapValidity.every((valid) => typeof valid === 'boolean') &&
+          Number.isFinite(finish.totalTime) &&
+          finish.totalTime > 0 &&
+          typeof finish.valid === 'boolean');
+      if (!validFinish(data.playerFinish))
+        throw new Error('Player race finish mismatch');
+      for (const [index, saved] of data.opponents.entries()) {
+        const opponent = opponents[index];
         if (
-          !Object.entries(defaults).every(
-            ([key, value]) => typeof state[key] === typeof value,
+          saved.id !== opponent.specification.id ||
+          saved.state?.shipId !== opponent.specification.shipId ||
+          !saved.prev ||
+          !saved.race ||
+          !Array.isArray(saved.race.history) ||
+          !Array.isArray(saved.race.completedTransfers) ||
+          !saved.race.completedTransfers.every(
+            (key) => typeof key === 'string' && /^-?\d+:.+$/.test(key),
           ) ||
-          state.shipId !== opponent.specification.shipId ||
-          state.chassisId !== opponent.specification.id
+          typeof saved.race.complete !== 'boolean' ||
+          !raceFields.every((key) => key in saved.race) ||
+          !Number.isFinite(saved.boostSeconds) ||
+          saved.boostSeconds < 0
         )
-          throw new Error('Racer vehicle state mismatch');
-      if (
-        !Number.isSafeInteger(saved.race.lap) ||
-        saved.race.lap < 1 ||
-        !Number.isSafeInteger(saved.race.checkpoint) ||
-        saved.race.checkpoint < 0 ||
-        saved.race.checkpoint >= track.checkpoints.length ||
-        !Number.isFinite(saved.race.elapsed) ||
-        saved.race.elapsed < 0 ||
-        typeof saved.race.valid !== 'boolean' ||
-        !validFinish(saved.finish) ||
-        !saved.race.history.every(
-          (lap) =>
-            Number.isFinite(lap.duration) &&
-            lap.duration > 0 &&
-            typeof lap.valid === 'boolean' &&
-            typeof lap.rulesId === 'string',
+          throw new Error('Racer identity mismatch');
+        const defaults = createVehicleState(opponent.specification.shipId);
+        for (const state of [saved.state, saved.prev])
+          if (
+            !Object.entries(defaults).every(
+              ([key, value]) => typeof state[key] === typeof value,
+            ) ||
+            state.shipId !== opponent.specification.shipId ||
+            state.chassisId !== opponent.specification.id
+          )
+            throw new Error('Racer vehicle state mismatch');
+        if (
+          !Number.isSafeInteger(saved.race.lap) ||
+          saved.race.lap < 1 ||
+          !Number.isSafeInteger(saved.race.checkpoint) ||
+          saved.race.checkpoint < 0 ||
+          saved.race.checkpoint >= track.checkpoints.length ||
+          !Number.isFinite(saved.race.elapsed) ||
+          saved.race.elapsed < 0 ||
+          typeof saved.race.valid !== 'boolean' ||
+          (saved.race.splits !== undefined &&
+            (!Array.isArray(saved.race.splits) ||
+              !saved.race.splits.every(
+                (time) => Number.isFinite(time) && time >= 0,
+              ))) ||
+          (saved.race.completedTime !== undefined &&
+            (!Number.isFinite(saved.race.completedTime) ||
+              saved.race.completedTime < 0)) ||
+          !validFinish(saved.finish) ||
+          !saved.race.history.every(
+            (lap) =>
+              Number.isFinite(lap.duration) &&
+              lap.duration > 0 &&
+              typeof lap.valid === 'boolean' &&
+              typeof lap.rulesId === 'string',
+          )
         )
-      )
-        throw new Error('Racer checkpoint state mismatch');
-      // Validate pickup state before changing the live model.
-      const engine = dynamics?.snapshot();
-      let validation;
-      try {
-        validation = createRuntime();
-        validation.restore(saved.runtime);
-      } finally {
-        validation?.dispose();
-        if (dynamics) dynamics.restore(engine);
+          throw new Error('Racer checkpoint state mismatch');
+        // Validate pickup state before changing the live model.
+        const engine = dynamics?.snapshot();
+        let validation;
+        try {
+          validation = createRuntime();
+          validation.restore(saved.runtime, { presentation });
+        } finally {
+          validation?.dispose();
+          if (dynamics) dynamics.restore(engine);
+        }
       }
     }
     relativeTiming.restore(data.relativeTiming);
@@ -857,10 +887,15 @@ export function createRacers({
     playerFinish = copy(data.playerFinish);
     opponents.forEach((opponent, index) => {
       const saved = data.opponents[index];
-      opponent.state = copy(saved.state);
+      const restoredState = copy(saved.state);
+      for (const key of Object.keys(opponent.state)) delete opponent.state[key];
+      Object.assign(opponent.state, restoredState);
       opponent.prev = copy(saved.prev);
-      Object.assign(opponent.race, copy(saved.race));
-      opponent.runtime.restore(copy(saved.runtime));
+      Object.assign(opponent.race, copy(saved.race), {
+        splits: copy(saved.race.splits ?? []),
+        completedTime: saved.race.completedTime ?? 0,
+      });
+      opponent.runtime.restore(copy(saved.runtime), { presentation });
       opponent.finish = copy(saved.finish);
       opponent.boostSeconds = saved.boostSeconds;
     });

@@ -7,6 +7,8 @@ import {
 } from '../src/progression/careers.js';
 import { createProfileStore } from '../src/progression/profile.js';
 import { saveShipSelection } from '../src/ships/catalog.js';
+import { createCupStore } from '../src/race/cup.js';
+import { RACE_ORDER } from '../src/race/roster.js';
 
 // Maintained release-flow integration checks. Use an existing development server:
 // VN_URL=http://127.0.0.1:5179 node tools/release-verify.mjs
@@ -20,7 +22,30 @@ assert.ok(
 );
 const base = process.env.VN_URL;
 assert.ok(base, 'Set VN_URL to an existing development server.');
-function fixture({ wins = 0, cups = false, trials = 0, pending = false } = {}) {
+const cupFinish = {
+  mode: 'cup',
+  final: true,
+  courseFormat: 'sprint',
+  playerValid: true,
+  playerTotalTime: 106.107,
+  playerLapTimes: [106.107],
+  laps: 1,
+  standings: RACE_ORDER.map((id, index) => ({
+    id,
+    name: id === 'player' ? 'You' : id,
+    position: index + 1,
+    valid: true,
+    finished: true,
+    totalTime: 106.107 + index,
+  })),
+};
+function fixture({
+  wins = 0,
+  cups = false,
+  trials = 0,
+  pending = false,
+  horizonFinal = false,
+} = {}) {
   const storage = createMemoryStorage();
   const careers = createCareerSlots({ storage: () => storage, now: () => 1 });
   careers.create(1);
@@ -33,6 +58,18 @@ function fixture({ wins = 0, cups = false, trials = 0, pending = false } = {}) {
       store.recordCup(id);
   for (const id of ['halcyon', 'orbital'].slice(0, trials))
     store.recordTrial(id, true);
+  if (horizonFinal) {
+    store.recordCup('founders');
+    store.recordCup('frontier');
+    const cup = createCupStore(() => scoped);
+    cup.start('horizon', 'shrike', 'hard');
+    for (let event = 0; event < 2; event++) {
+      const state = cup.snapshot().state;
+      cup.finish(cupFinish);
+      store.recordRace({ id: `${state.runId}:${event}`, position: 1 });
+      cup.next();
+    }
+  }
   if (pending) assert.equal(store.queueCompletion('needle'), true);
   saveShipSelection(wins ? 'needle' : 'shrike', scoped);
   return Array.from({ length: storage.length }, (_, index) => {
@@ -46,6 +83,7 @@ const trialsRemaining = fixture({ wins: 24, cups: true });
 const lastTrial = fixture({ wins: 24, cups: true, trials: 1 });
 const lastRace = fixture({ wins: 23, cups: true, trials: 2 });
 const pending = fixture({ wins: 24, cups: true, trials: 2, pending: true });
+const horizonFinal = fixture({ horizonFinal: true });
 const browser = await chromium.launch({
   headless: true,
   args: ['--mute-audio'],
@@ -111,10 +149,11 @@ const mockGame = `export async function createGame(options) {
     start(){session=true;mode='racing';options.onMode(mode)},
     timeTrial(){this.start()},practice(){this.start()},startCup(){this.start()},
     returnToSetup(){mode='overview'},resumeSession(){mode='racing';options.onMode(mode)},showResults(){mode='results'},
-    celebrateCup(){return 0.6}};
+    celebrateCup(){window.__releaseCelebrations=(window.__releaseCelebrations??0)+1;return 0.6}};
   window.__releaseRace={
     trial(){options.onTrialRecord({playerValid:true,improved:true,shipId})},
     home(){options.onHome()},
+    cupFinish(present=true){mode='results';options.onResults(${JSON.stringify(cupFinish)},{present})},
     win(valid=true){mode='results';options.onResults({playerValid:valid,playerTotalTime:65,playerLapTimes:[32,33],laps:2,
       standings:[{id:'player',name:'You',position:1,valid,finished:true,totalTime:65}]})}};
   window.__VN=api;return api;
@@ -267,6 +306,29 @@ async function creditsClose(page, { controller = false } = {}) {
     'acknowledged finale never replays on reload',
   );
 }
+async function launchHorizonFinal(page) {
+  await page.goto(url());
+  await ready(page);
+  await page.getByRole('button', { name: /^Championships/ }).click();
+  await page.locator('.race-actions [data-action="cup-resume"]').click();
+  await page.waitForFunction(
+    () =>
+      window.__releaseRace && window.__VN_FRONTEND.getState().screen === 'race',
+  );
+  const current = await state(page);
+  assert.equal(current.loadedId, 'shatterline');
+  assert.equal(current.cup.state.eventIndex, 2);
+  assert.equal(current.cup.state.results.length, 2);
+}
+function horizonAward(current) {
+  assert.equal(current.career.state.finishes, 3);
+  assert.equal(current.career.state.wins, 3);
+  assert.equal(current.career.state.points, 15);
+  assert.ok(current.career.state.cups.includes('horizon'));
+  assert.ok(current.career.state.claims.includes('ship-kestrel'));
+  assert.equal(current.cupCollection.cups.horizon.points, 75);
+  assert.equal(current.cupCollection.cups.horizon.difficulty, 'hard');
+}
 try {
   if (!responsive) {
     await check(
@@ -383,6 +445,98 @@ try {
           'controller returns to preceding row',
         );
       },
+    );
+    await check(
+      'the final Horizon score and rewards persist in the hub before results are presented',
+      horizonFinal,
+      async (page) => {
+        await launchHorizonFinal(page);
+        await page.evaluate(() => window.__releaseRace.home());
+        await page.locator('[data-action="race-tab"]').click();
+        assert.equal((await state(page)).screen, 'home');
+        await page.locator('[data-action="time-trial"]').focus();
+        await page.evaluate(() => window.__releaseRace.cupFinish(false));
+        const earned = await state(page);
+        horizonAward(earned);
+        assert.equal(earned.screen, 'home');
+        assert.equal(earned.cup.state.results.length, 3);
+        assert.equal(earned.cup.state.phase, 'results');
+        assert.equal(earned.cupCelebration, false);
+        assert.equal(earned.completion, null);
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.action),
+          'time-trial',
+          'the current menu control retains keyboard focus',
+        );
+        assert.match(
+          await page
+            .locator('.menu-selection[data-action="circuits"]')
+            .textContent(),
+          /3 scored/,
+        );
+        assert.equal(
+          await page
+            .locator('.cup-cabinet [aria-label="Horizon Cup: trophy earned"]')
+            .count(),
+          1,
+        );
+        await page.evaluate(() => window.__releaseRace.cupFinish(false));
+        horizonAward(await state(page));
+        assert.equal(
+          await page.evaluate(() => window.__releaseCelebrations ?? 0),
+          0,
+          'saving results does not play the celebration',
+        );
+        await page.getByRole('button', { name: /^Championships/ }).click();
+        horizonAward(await state(page));
+        await page.reload();
+        await ready(page);
+        const restored = await state(page);
+        horizonAward(restored);
+        assert.deepEqual(
+          restored.cupCollection.cups.horizon,
+          earned.cupCollection.cups.horizon,
+          'navigation and reload do not award the trophy again',
+        );
+        assert.equal(restored.cup.state, null);
+      },
+      { game: true },
+    );
+    await check(
+      'presenting a saved cup finish reveals its rewards and celebration exactly once',
+      horizonFinal,
+      async (page) => {
+        await launchHorizonFinal(page);
+        await page.evaluate(() => window.__releaseRace.cupFinish(false));
+        const saved = await state(page);
+        horizonAward(saved);
+        assert.equal(saved.screen, 'race');
+        assert.equal(saved.cupCelebration, false);
+        assert.equal(
+          await page.evaluate(() => window.__releaseCelebrations ?? 0),
+          0,
+        );
+        await page.evaluate(() => window.__releaseRace.cupFinish());
+        assert.equal((await state(page)).screen, 'results');
+        assert.equal((await state(page)).cupCelebration, true);
+        assert.equal(
+          await page.evaluate(() => window.__releaseCelebrations),
+          1,
+        );
+        await page.locator('[data-action="cup-standings"]').click();
+        assert.match(
+          await page.locator('.result-rewards').textContent(),
+          /Kestrel/,
+        );
+        await page.evaluate(() => window.__releaseRace.cupFinish());
+        horizonAward(await state(page));
+        assert.equal(
+          await page.evaluate(() => window.__releaseCelebrations),
+          1,
+        );
+        assert.equal((await state(page)).cupCelebration, false);
+      },
+      { game: true },
     );
     await check(
       'a final circuit Time Trial record queues the last racer without needing a results screen',

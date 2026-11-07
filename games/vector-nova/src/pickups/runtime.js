@@ -310,14 +310,14 @@ export function createDeviceRuntime({
         ...(movement === null ? {} : { motion: movement }),
       };
     },
-    restore(data) {
+    restore(data, { presentation: notifyPresentation = true } = {}) {
       simulation.restore(data);
       if (equipment && data.equipment) equipment.restore(data.equipment);
       if (combat && combatId === 'player') combat.restore(data.combat);
       motion.restore(data?.motion ?? null);
       pending = [];
       staged = null;
-      resetPresentation();
+      if (notifyPresentation) resetPresentation();
     },
     pose: (alpha) => motion.pose(alpha),
     equipment: () => equipment?.snapshot() ?? null,
@@ -327,6 +327,12 @@ export function createDeviceRuntime({
       return () => presentationObservers.delete(observer);
     },
     update(context) {
+      if (context?.presentation === false) {
+        // Hidden classification owns simulation only. Its feedback must not
+        // reach the renderer now or be replayed by the next visible update.
+        pending = [];
+        return;
+      }
       motion.update(context);
       presentation?.update({
         ...context,

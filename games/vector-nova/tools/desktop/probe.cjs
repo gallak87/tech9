@@ -188,6 +188,46 @@ async function checkFinaleOffline() {
     'PASS full: offline last-racer finale, weapon audio assets, credits, keyboard Close and saved acknowledgement',
   );
 }
+async function checkClassificationWorkerOffline() {
+  assert(manifest.levels.includes('nacre'));
+  const workers = manifest.files
+    .map((entry) => entry.path)
+    .filter((path) =>
+      /^dist\/assets\/cup-classification-worker-[\w-]+\.js$/.test(path),
+    );
+  assert.equal(
+    workers.length,
+    1,
+    'the package contains one classifier worker entry',
+  );
+  const url = `vn-game://app/${workers[0].slice('dist/'.length)}`;
+  const ready = await evaluate(`(async () => {
+    let worker, timer;
+    try {
+      worker = new Worker(${JSON.stringify(url)}, { type: 'module' });
+      return await new Promise((resolve, reject) => {
+        timer = setTimeout(() => reject(new Error('Packaged classifier worker boot exceeded 60 seconds')), 60000);
+        worker.addEventListener('error', event => reject(new Error(event.message || 'Packaged classifier worker failed')));
+        worker.addEventListener('messageerror', () => reject(new Error('Packaged classifier worker message could not be decoded')));
+        worker.addEventListener('message', ({data}) => {
+          if (data?.type === 'ready') resolve(true);
+          else if (data?.type === 'error') reject(new Error(data.message || 'Packaged classifier worker initialization failed'));
+        });
+        worker.postMessage({
+          type: 'init', levelId: 'nacre',
+          settings: JSON.parse(localStorage.getItem('vector-nova.settings') || '{}'),
+        });
+      });
+    } finally {
+      clearTimeout(timer);
+      worker?.terminate();
+    }
+  })()`);
+  assert.equal(ready, true);
+  console.log(
+    `PASS ${manifest.edition}: packaged classifier worker boots Nacre offline under the unchanged custom-scheme CSP`,
+  );
+}
 async function checkCollection() {
   const total = manifest.edition === 'demo' ? 4 : 28;
   const claims =
@@ -284,6 +324,7 @@ async function run() {
     await evaluate('window.vectorNovaDesktop.quit()');
     return;
   }
+  await checkClassificationWorkerOffline();
   const menuItems = (menu) =>
     (menu?.items ?? []).flatMap((item) => [item, ...menuItems(item.submenu)]);
   assert(

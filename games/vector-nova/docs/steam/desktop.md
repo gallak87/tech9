@@ -33,6 +33,8 @@ npm run verify:desktop -- full --archive "release/full/Vector Nova-darwin-arm64/
 
 Packaging rebuilds/audits and writes a complete directory plus ZIP under `release/<edition>/`. Extract before launch. Windows launch executables are `VectorNovaDemo.exe` / `VectorNova.exe`; upload the whole corresponding directory, including runtime and `resources/app.asar`. Playing needs no Node, server, account or Internet connection.
 
+For an offline packaging run, append `--electron-zip-dir <directory>` with the cached official `electron-v<version>-<platform>-<arch>.zip` files. Packaging still runs the normal content, archive and fuse audits.
+
 The unshipped native verifier loads staged code or `--archive` without enabling release DevTools/APIs, mutes host audio and checks real startup, careers, driving, saves and synthetic input. `VN_PROBE_LEVELS=halcyon,nacre` narrows iteration; `VN_PROBE_WINDOW_ONLY=1` isolates native window checks. Use the [browser checks](../../tools/README.md) for deeper accelerated race/replay coverage. CI remains paused in `.github/workflows/vector-nova-desktop.yml.disabled` until the private-repository move.
 
 ## Player controls and saves

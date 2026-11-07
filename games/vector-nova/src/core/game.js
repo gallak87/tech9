@@ -2,6 +2,7 @@ import { createEquipmentPresentation } from '../equipment/presentation.js';
 import { buildIdentity } from '../progression/profile.js';
 import { vehicleHandling } from '../ships/catalog.js';
 import { createCupFinish } from './cup-finish.js';
+import { createCupClassification } from './cup-classification.js';
 import { createRaceGrid } from '../race/roster.js';
 import { interpolateSurfaceLateral } from '../track/surface.js';
 import * as T from 'three';
@@ -460,8 +461,14 @@ export async function createGame({
       resultsDismissed = false;
     const ghost = lifetime.own(createPersonalGhost(scene));
     let cupRace = null,
+      cupClassifier = null,
       cupFinish = null,
+      cupProgress = null,
       cupFinalResult = null;
+    lifetime.defer(() => {
+      cupFinish?.dispose();
+      cupClassifier?.dispose();
+    });
     let timeTrial = false,
       trial = null,
       ghostSamples = null;
@@ -482,7 +489,13 @@ export async function createGame({
     const resetRuntime = (reason) => {
       if (reason !== 'manual-recover') {
         finishAt = null;
+        cupFinish?.dispose();
+        cupClassifier?.dispose();
+        cupClassifier = cupRace
+          ? createCupClassification({ levelId: metadata.id, settings })
+          : null;
         cupFinish = null;
+        cupProgress = null;
         cupFinalResult = null;
         resultsDismissed = false;
         lastResults = null;
@@ -567,6 +580,44 @@ export async function createGame({
         ui.setMode(mode);
         onResults?.(lastResults);
       }
+    }
+    // Capture once after feedback is drained. Classification owns a separate
+    // worker world; it never swaps checkpoints into the visible simulation.
+    const raceData = () =>
+      Object.fromEntries(
+        Object.entries(Object.getOwnPropertyDescriptors(race))
+          .filter(
+            ([, descriptor]) =>
+              Object.hasOwn(descriptor, 'value') &&
+              typeof descriptor.value !== 'function',
+          )
+          .map(([key, descriptor]) => [key, descriptor.value]),
+      );
+    const captureCupFinish = () => ({
+      settings: structuredClone(settings),
+      state: structuredClone(state),
+      race: structuredClone(raceData()),
+      runtime: runtime.snapshot(),
+      racers: racers.serialize(),
+      dynamics: dynamics?.snapshot(),
+    });
+    function persistCupResult(result) {
+      if (!cupFinalResult) {
+        cupFinalResult = {
+          ...structuredClone(result),
+          mode: 'cup',
+          final: true,
+          remaining: 0,
+        };
+        lastResults = cupFinalResult;
+        cupClassifier?.dispose();
+        cupClassifier = null;
+        // Saving scores and rewards cannot depend on remaining on this screen.
+        onResults?.(cupFinalResult, { present: false });
+      }
+    }
+    function advanceCupFinish(dt) {
+      if (cupFinish) cupProgress = cupFinish.advance(dt);
     }
     function resetRacers(enabled = competition) {
       dynamics?.reset();
@@ -1425,13 +1476,17 @@ export async function createGame({
     }
     function render(now) {
       if (!active) return;
+      const dt = last ? Math.min((now - last) / 1000, 0.1) : 1 / 60;
+      last = now;
+      // Classification can finish in a paused hub; only the visible race and
+      // its finish beat obey presentation suspension.
+      advanceCupFinish(
+        !suspended && ['racing', 'results'].includes(mode) ? dt : 0,
+      );
       if (suspended) {
-        last = now;
         raf = requestAnimationFrame(render);
         return;
       }
-      const dt = last ? Math.min((now - last) / 1000, 0.1) : 1 / 60;
-      last = now;
       time += dt;
       const finishing = finishAt !== null && !resultsDismissed;
       // Observe button releases during countdown/pause, without advancing physics.
@@ -1730,25 +1785,16 @@ export async function createGame({
             accumulator = 0;
             input.clear();
             cupFinish = createCupFinish({
-              simulationTime: () => state.time,
-              allFinished: () =>
-                racers.opponents.every((racer) => racer.finish),
+              resolve: () => cupClassifier.resolve(captureCupFinish()),
+              onComplete: persistCupResult,
+              onError: fail,
             });
+            advanceCupFinish(0);
           }
         }
         const liveResults = structuredClone(standings.results);
-        const progress =
-          cupFinish && ['racing', 'results'].includes(mode)
-            ? cupFinish.advance(dt)
-            : null;
+        const progress = cupProgress;
         if (cupRace) {
-          if (progress?.complete && !cupFinalResult)
-            cupFinalResult = {
-              ...liveResults,
-              mode: 'cup',
-              final: true,
-              remaining: 0,
-            };
           lastResults = cupFinalResult ?? {
             ...liveResults,
             mode: 'cup',
@@ -2148,7 +2194,9 @@ export async function createGame({
                 sessionActive,
                 inspectionReturnMode,
                 finishAt,
+                cupClassifier,
                 cupFinish,
+                cupProgress,
                 cupFinalResult,
                 resultsDismissed,
                 cameraMode,
@@ -2170,6 +2218,12 @@ export async function createGame({
                 inputs: [...inputLog],
                 events: [...events],
               };
+              // Validation may reset the simulation before rejecting a replay.
+              // Keep its current classification owners alive until that succeeds.
+              cupClassifier = null;
+              cupFinish = null;
+              cupProgress = null;
+              cupFinalResult = null;
               try {
                 if (
                   replay.competition &&
@@ -2200,6 +2254,8 @@ export async function createGame({
                   dynamics,
                 );
               } catch (error) {
+                cupFinish?.dispose();
+                cupClassifier?.dispose();
                 ({
                   state,
                   prev,
@@ -2208,7 +2264,9 @@ export async function createGame({
                   sessionActive,
                   inspectionReturnMode,
                   finishAt,
+                  cupClassifier,
                   cupFinish,
+                  cupProgress,
                   cupFinalResult,
                   resultsDismissed,
                   cameraMode,
@@ -2248,6 +2306,8 @@ export async function createGame({
                 );
                 throw error;
               }
+              retained.cupFinish?.dispose();
+              retained.cupClassifier?.dispose();
               prev = { ...state };
               for (const entry of replay.inputs) {
                 advanceTick(entry.input);

@@ -110,6 +110,7 @@ export function advanceSession({
   emit,
   dynamics = null,
   racers = null,
+  presentation = true,
 }) {
   if (dynamics && runtime.beginAdvance && runtime.finishAdvance) {
     if (!Number.isFinite(dt) || dt <= 0) return [];
@@ -128,6 +129,7 @@ export function advanceSession({
         playerInput: controls,
         playerPose: runtime.pose(1),
         playerPrevious,
+        ...(presentation ? {} : { presentation: false }),
       };
       runtime.beginAdvance(state, controls, step);
       racers?.beginAdvance?.(step, context);
@@ -144,6 +146,7 @@ export function advanceSession({
       const interactions = runtime.advanceInteractions?.(step) ?? [];
       interactions.forEach(emit);
       events.push(...completed, ...interactions);
+      if (!presentation) runtime.update?.({ presentation: false });
     }
     return events;
   }
@@ -162,11 +165,13 @@ export function advanceSession({
       playerRace: race,
       playerInput: controls,
       playerPose: runtime.pose(1),
+      ...(presentation ? {} : { presentation: false }),
     })
     ?.forEach(emit);
   const interactions = runtime.advanceInteractions?.(dt) ?? [];
   interactions.forEach(emit);
   events.push(...interactions);
+  if (!presentation) runtime.update?.({ presentation: false });
   return events;
 }
 

@@ -101,3 +101,57 @@ for (const staged of [false, true]) {
     );
   });
 }
+
+for (const shared of [false, true]) {
+  test(`hidden session steps propagate silence and drain player feedback (${shared ? 'shared dynamics' : 'magnetic'})`, () => {
+    const state = { distance: 0 };
+    const calls = [];
+    const advance = () => {
+      state.distance++;
+      return [];
+    };
+    const runtime = {
+      ...(shared ? { beginAdvance() {}, finishAdvance: advance } : { advance }),
+      pose: () => ({ grounded: true }),
+      update: (context) => calls.push(['player', context]),
+    };
+    const racers = shared
+      ? {
+          enabled: true,
+          beginAdvance: (_dt, context) =>
+            calls.push(['field', context.presentation]),
+          finishAdvance: () => [],
+        }
+      : {
+          advance: (_dt, context) => {
+            calls.push(['field', context.presentation]);
+            return [];
+          },
+        };
+    const session = {
+      state,
+      runtime,
+      racers,
+      input: {},
+      dt: 1 / 60,
+      dynamics: shared ? { step() {} } : null,
+      race: { runoutControl: (_state, input) => input, step: () => [] },
+      emit() {},
+    };
+    advanceSession({ ...session, presentation: false });
+    assert.deepEqual(
+      calls,
+      Array.from({ length: shared ? 2 : 1 }, () => [
+        ['field', false],
+        ['player', { presentation: false }],
+      ]).flat(),
+    );
+    calls.length = 0;
+    advanceSession(session);
+    assert.deepEqual(
+      calls,
+      Array.from({ length: shared ? 2 : 1 }, () => ['field', undefined]),
+      'ordinary session does not add an extra player presentation update',
+    );
+  });
+}

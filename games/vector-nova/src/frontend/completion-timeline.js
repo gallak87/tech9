@@ -77,7 +77,7 @@ export function completionCueForEvent(event) {
   if (event.type === 'sprint-complete')
     return {
       id: event.place === 1 ? 'race-winner' : 'race-finisher',
-      // Leave the coded motor rev audible through the post-checker drift.
+      // Leave the regular boost engine audible through the post-checker drift.
       gain: event.place === 1 ? 0.18 : 0.8,
     };
   if (event.type === 'jump-launch') return { id: 'jump-activate', gain: 0.65 };

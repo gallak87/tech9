@@ -417,6 +417,13 @@ export function sampleCompletionRun(run, time) {
   for (const { id } of run.actors) {
     const a = before[id],
       b = after[id];
+    const drifting =
+      id === 'hero' &&
+      a.effects.slide?.source === 'choreographed-finish' &&
+      a.effects.slide.active === true &&
+      a.effects.slide.phase === 'drifting';
+    // Sustain the usual boost presentation until the staged drift stops.
+    const boosting = a.state.boosting || drifting;
     sample[id] = {
       ...a,
       position: new T.Vector3()
@@ -427,13 +434,13 @@ export function sampleCompletionRun(run, time) {
         .fromArray(a.quaternion)
         .slerp(new T.Quaternion().fromArray(b.quaternion), fraction)
         .toArray(),
-      state: { ...a.state },
+      state: { ...a.state, boosting },
       distance: a.state.distance,
       lateral: a.state.lateral,
       speed: a.state.speed,
       heading: a.state.heading,
       steer: a.state.steer,
-      boost: a.state.boosting,
+      boost: boosting,
       energy: a.state.energy,
     };
   }

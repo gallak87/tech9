@@ -262,6 +262,39 @@ test('playback interpolates the shipped world poses and retains crossed events w
   );
 });
 
+test('playback sustains ordinary boost through the drift and releases it at the recorded stop', () => {
+  for (const run of records.values()) {
+    const { slideStartTime: start, slideStopTime: stop } = run.landmarks;
+    for (const time of [start, start + 0.8, stop - run.step]) {
+      const sample = sampleCompletionRun(run, time);
+      assert.equal(sample.hero.state.boosting, true);
+      assert.equal(sample.hero.boost, true);
+      for (const id of ['rook', 'manta']) {
+        const frame = run.frames.findLast((frame) => frame.time <= time);
+        assert.equal(sample[id].state.boosting, frame[id].state.boosting);
+      }
+    }
+    for (const time of [stop, stop + 1]) {
+      const sample = sampleCompletionRun(run, time);
+      const frame = run.frames.findLast((frame) => frame.time <= time);
+      assert.equal(sample.hero.state.boosting, false);
+      assert.equal(sample.hero.boost, false);
+      assert.deepEqual(sample.hero.position, frame.hero.position);
+      assert.ok(
+        sample.hero.quaternion.every(
+          (value, index) =>
+            Math.abs(value - frame.hero.quaternion[index]) < 1e-12,
+        ),
+      );
+    }
+    assert.equal(
+      run.frames.find((frame) => frame.time === start).hero.state.boosting,
+      false,
+      'presentation does not rewrite the recording',
+    );
+  }
+});
+
 test('the choreographed finish preserves native racing, drifts sideways at speed and holds a full stop', () => {
   for (const shipId of COMPLETION_SHIPS) {
     const run = records.get(shipId);

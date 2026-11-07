@@ -5,7 +5,6 @@ import { RACE_SAMPLES } from '../audio/sample-cues.js';
 import { effectsVolume } from '../progression/index.js';
 import { completionCueForEvent } from './completion-timeline.js';
 import { createCompletionSkidAudio } from './completion-skid-audio.js';
-import { createCompletionRevAudio } from './completion-rev-audio.js';
 
 // Reuse the game's authored weapons, jump and victory cues. A separate effects
 // bus follows the same saved master/effects controls and owns no music player.
@@ -31,7 +30,6 @@ export function createCompletionAudio(settings) {
   engineGain.gain.value = 0.65;
   engineGain.connect(master);
   const propulsion = createPropulsion(context, engineGain);
-  const rev = createCompletionRevAudio(context, engineGain);
   const skid = createCompletionSkidAudio(context, engineGain);
   const bank = createSampleBank(context, {
     ...DEVICE_SAMPLES,
@@ -82,14 +80,11 @@ export function createCompletionAudio(settings) {
         boosting: hero.boosting ?? sample.hero.boost,
         steer: hero.steer ?? sample.hero.input?.steer ?? 0,
       });
-      if (volume === 0) {
-        rev.cancel();
-        skid.cancel();
-      } else {
-        const options = { reducedMotion: preferences?.reducedMotion };
-        rev.update(sample.hero, options);
-        skid.update(sample.hero, options);
-      }
+      if (volume === 0) skid.cancel();
+      else
+        skid.update(sample.hero, {
+          reducedMotion: preferences?.reducedMotion,
+        });
       const played = new Set();
       for (const event of sample.eventsThroughTime ?? sample.events ?? [])
         if (
@@ -111,7 +106,6 @@ export function createCompletionAudio(settings) {
       paused = true;
       master.gain.cancelScheduledValues(context.currentTime);
       master.gain.value = 0;
-      rev.cancel();
       skid.cancel();
       stopSources();
       void context.suspend().catch(() => {});
@@ -128,7 +122,6 @@ export function createCompletionAudio(settings) {
       stopSources();
       bank.dispose();
       propulsion.dispose();
-      rev.dispose();
       skid.dispose();
       engineGain.disconnect();
       master.disconnect();

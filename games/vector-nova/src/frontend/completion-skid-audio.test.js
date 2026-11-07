@@ -132,6 +132,7 @@ test('magnetic skid follows real grounded postfinish slip, never a held control 
     { ...actor, effects: { slide: { active: false, slipSpeed: 8 } } },
     { ...actor, effects: { slide: { active: true, slipSpeed: 0 } } },
     { ...actor, state: { speed: 0 } },
+    { ...actor, state: { speed: 2 } },
     { ...actor, input: { airbrake: false, brake: 0, steer: 1 } },
     undefined,
   ]) {
@@ -143,6 +144,17 @@ test('magnetic skid follows real grounded postfinish slip, never a held control 
     effects: { slide: { active: true, slipSpeed: 2 } },
   });
   assert.ok(level.value > 0 && level.value < slidingGain);
+  sound.update({ ...actor, state: { speed: 22 } });
+  assert.equal(
+    level.value,
+    slidingGain,
+    'a deliberate slow slide keeps its actual slip intensity',
+  );
+  sound.update({ ...actor, state: { speed: 10 } });
+  assert.ok(
+    level.value > 0 && level.value < slidingGain,
+    'only the approach to standstill fades that intensity',
+  );
   sound.dispose();
 });
 

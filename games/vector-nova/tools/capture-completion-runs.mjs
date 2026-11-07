@@ -50,6 +50,17 @@ function validateSlide(run, track) {
   );
   const active = frames.filter((frame) => frame.hero.effects.slide?.active);
   assert.ok(active.length > 0);
+  const peakYaw = Math.max(
+    ...active.map((frame) => Math.abs(frame.hero.state.heading)),
+  );
+  assert.ok(
+    peakYaw >= (25 * Math.PI) / 180 && peakYaw <= (35 * Math.PI) / 180,
+    'the native post-checker yaw is clearly visible',
+  );
+  assert.ok(
+    run.duration - run.landmarks.slideEndTime >= 0.8,
+    'the actual slide settles before the closing title',
+  );
   assert.ok(run.landmarks.slideStartTime > run.landmarks.finishTime);
   assert.ok(run.landmarks.slideEndTime < run.duration);
   assert.ok(

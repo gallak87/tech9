@@ -1,6 +1,6 @@
 // Final production captures are rebuilt when this course, hull identity or
 // duration changes. This module is deliberately independent of native physics.
-export const COMPLETION_DURATION = 16;
+export const COMPLETION_DURATION = 18;
 export const COMPLETION_SHIPS = Object.freeze([
   'kestrel',
   'shrike',
@@ -8,7 +8,7 @@ export const COMPLETION_SHIPS = Object.freeze([
   'needle',
 ]);
 export const COMPLETION_CAPTURE = Object.freeze({
-  version: 3,
+  version: 4,
   course: 'shatterline',
   trackId: 'shatterline-mass-driver',
   geometryVersion: 'shatterline-tube-weave-v2',

@@ -190,7 +190,14 @@ test('flight camera follows actual airborne velocity without tethering to the hi
   }
 });
 
-test('all four genuine little slides stay framed without the camera cancelling their yaw', () => {
+test('all four native slides produce obvious pixel-space rotation and visible sideslip', (context) => {
+  const aspect = 1581 / 890;
+  const angleDifference = (a, b) =>
+    Math.atan2(Math.sin(a - b), Math.cos(a - b));
+  // NDC axes have different pixel scales. Measure on the actual landscape
+  // viewport rather than overestimating apparent rotation with raw NDC angles.
+  const screenAngle = (direction) =>
+    Math.atan2(-direction.y, direction.x * aspect);
   for (const [id, recording] of Object.entries(runs)) {
     const director = createCompletionDirector({ track, run: recording });
     const {
@@ -219,6 +226,11 @@ test('all four genuine little slides stay framed without the camera cancelling t
       maxCamera = -Infinity,
       minBody = Infinity,
       maxBody = -Infinity;
+    let previousScreenAngle = null,
+      screenRotation = 0,
+      minScreenRotation = Infinity,
+      maxScreenRotation = -Infinity,
+      maxScreenSlip = 0;
     for (
       let time = Math.max(start, exitStart) + 0.001;
       time <= end;
@@ -226,7 +238,7 @@ test('all four genuine little slides stay framed without the camera cancelling t
     ) {
       const sample = sampleCompletionRun(recording, time);
       const original = structuredClone(sample);
-      const view = director.sample(time, sample, 1.6);
+      const view = director.sample(time, sample, aspect);
       assert.deepEqual(
         sample,
         original,
@@ -255,8 +267,46 @@ test('all four genuine little slides stay framed without the camera cancelling t
       maxCamera = Math.max(maxCamera, cameraAngle);
       minBody = Math.min(minBody, bodyAngle);
       maxBody = Math.max(maxBody, bodyAngle);
-      const camera = cameraFor(view, 1.6),
+      const camera = cameraFor(view, aspect),
         bounds = getCollisionHull(id).bounds;
+      const front = new Vector3(0, 0.6, 3)
+        .applyQuaternion(quaternion)
+        .add(position)
+        .project(camera);
+      const rear = new Vector3(0, 0.6, -3)
+        .applyQuaternion(quaternion)
+        .add(position)
+        .project(camera);
+      const headingOnScreen = screenAngle(front.sub(rear));
+      if (previousScreenAngle !== null)
+        screenRotation += angleDifference(headingOnScreen, previousScreenAngle);
+      previousScreenAngle = headingOnScreen;
+      minScreenRotation = Math.min(minScreenRotation, screenRotation);
+      maxScreenRotation = Math.max(maxScreenRotation, screenRotation);
+      const before = sampleCompletionRun(recording, time - recording.step).hero
+        .position;
+      const after = sampleCompletionRun(recording, time + recording.step).hero
+        .position;
+      const velocity = new Vector3()
+        .fromArray(after)
+        .sub(new Vector3().fromArray(before))
+        .normalize();
+      const origin = position.clone().addScaledVector(frame.up, 0.6),
+        projectedOrigin = origin.clone().project(camera);
+      const facing = origin
+        .clone()
+        .addScaledVector(nose, 3)
+        .project(camera)
+        .sub(projectedOrigin);
+      const moving = origin
+        .clone()
+        .addScaledVector(velocity, 3)
+        .project(camera)
+        .sub(projectedOrigin);
+      maxScreenSlip = Math.max(
+        maxScreenSlip,
+        Math.abs(angleDifference(screenAngle(facing), screenAngle(moving))),
+      );
       let left = Infinity,
         right = -Infinity,
         top = -Infinity;
@@ -285,12 +335,48 @@ test('all four genuine little slides stay framed without the camera cancelling t
       );
     }
     assert.ok(
-      maxBody - minBody > 0.05,
+      maxBody - minBody > 0.4,
       `${id} has visible native yaw through the exit`,
     );
     assert.ok(
-      maxCamera - minCamera < (maxBody - minBody) * 0.25 + 0.002,
-      'road anchoring preserves most of the native body rotation',
+      maxCamera - minCamera < (maxBody - minBody) * 0.1 + 0.001,
+      'the road-referenced camera does not follow away the native body rotation',
+    );
+    const apparentRotation =
+      ((maxScreenRotation - minScreenRotation) * 180) / Math.PI;
+    const apparentSlip = (maxScreenSlip * 180) / Math.PI;
+    assert.ok(
+      apparentRotation >= 20,
+      `${id} only shows ${apparentRotation.toFixed(2)} degrees of actual pixel-space heading change`,
+    );
+    assert.ok(
+      apparentSlip >= 10,
+      `${id} only shows ${apparentSlip.toFixed(2)} degrees between actual body and movement directions on screen`,
+    );
+    assert.equal(
+      director.sample(peak, peakSample, aspect).title,
+      0,
+      'the title must wait through the major slide',
+    );
+    const plan = completionShotPlan(recording);
+    assert.ok(
+      plan.titleStart >= end - 0.31,
+      'title waits until nearly settled',
+    );
+    assert.ok(
+      recording.duration - plan.titleStart - plan.titleFade >= 0.6,
+      'title has readable time at full opacity',
+    );
+    assert.equal(
+      director.sample(
+        recording.duration,
+        sampleCompletionRun(recording, recording.duration),
+        aspect,
+      ).title,
+      1,
+    );
+    context.diagnostic(
+      `${id}: ${apparentRotation.toFixed(1)} degrees screen heading, ${apparentSlip.toFixed(1)} degrees screen sideslip`,
     );
   }
 });

@@ -77,7 +77,10 @@ test('four final shipped records preserve native combat, landing and the actual 
     assert.equal(hash(raw.get(shipId)), entry.rawSha256);
     assert.equal(hash(compressed.get(shipId)), entry.compressedSha256);
     assert.equal(run.duration, COMPLETION_DURATION);
-    assert.equal(run.frames.length, 1921);
+    assert.equal(
+      run.frames.length,
+      Math.round(COMPLETION_DURATION / run.step) + 1,
+    );
     assert.equal(run.outcome.heroPosition, 1);
     assert.ok(run.landmarks.finishTime < run.landmarks.finishTimes.rook);
     assert.ok(run.landmarks.finishTime < run.landmarks.finishTimes.manta);
@@ -114,8 +117,8 @@ test('four final shipped records preserve native combat, landing and the actual 
         ),
       );
       assert.ok(
-        run.frames.at(-1)[id].state.speed > 30,
-        'the native runout is still moving at the cut',
+        run.frames.at(-1)[id].state.speed >= 0,
+        'the native runout never reverses',
       );
     }
     assert.equal(
@@ -308,9 +311,24 @@ test('native slide stays after the unchanged checker crossing and settles clear 
         ...active.map((frame) => Math.abs(frame.hero.effects.slide.slipSpeed)),
       ) > 3,
     );
+    const peakYaw = Math.max(
+      ...active.map((frame) => Math.abs(frame.hero.state.heading)),
+    );
     assert.ok(
-      Math.max(...active.map((frame) => Math.abs(frame.hero.state.heading))) <
-        0.25,
+      peakYaw >= (25 * Math.PI) / 180 && peakYaw <= (35 * Math.PI) / 180,
+      'a clearly visible 25–35 degree native body turn',
+    );
+    assert.ok(slideEndTime - slideStartTime > 0.8);
+    assert.ok(run.duration - slideEndTime >= 0.8);
+    assert.ok(
+      run.frames.some(
+        (frame) =>
+          frame.time > finishTime &&
+          frame.time < slideStartTime &&
+          frame.hero.input.brake === 1 &&
+          !frame.hero.input.airbrake,
+      ),
+      'real braking reduces speed before the outward airbrake turn',
     );
     const last = run.frames.at(-1).hero;
     assert.ok(

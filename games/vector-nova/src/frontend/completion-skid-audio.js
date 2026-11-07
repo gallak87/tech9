@@ -17,9 +17,11 @@ function slideIntensity(actor) {
   const braking = actor.input?.airbrake
     ? 1
     : clamp(finite(actor.input?.brake), 0, 1);
+  // Native slip already supplies the motion intensity. Forward speed only
+  // fades the breath near standstill, including a deliberately slow slide.
   return (
     clamp((Math.abs(finite(slide.slipSpeed)) - 0.1) / 8, 0, 1) *
-    clamp((finite(actor.state?.speed) - 2) / 60, 0, 1) *
+    clamp((finite(actor.state?.speed) - 2) / 18, 0, 1) *
     braking
   );
 }

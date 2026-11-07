@@ -44,9 +44,8 @@ export function createCompletionCinematic({
     <button type="button" class="completion-skip" data-completion-skip>Skip cinematic <span aria-hidden="true">↗</span></button>
     <div class="completion-loading" role="status" aria-live="polite">
       <span class="completion-eyebrow">28 / 28 · CAREER COMPLETE</span>
-      <h1>One last victory.</h1>
-      <p>Preparing your finale</p>
-      <progress max="1" value="0" aria-label="Loading finale"></progress>
+      <h1>Loading…</h1>
+      <progress max="1" value="0" aria-label="Loading"></progress>
       <span class="completion-progress" aria-hidden="true">0%</span>
     </div>
     <div class="completion-title" aria-hidden="true"><span>28 / 28 · CAREER COMPLETE</span><strong>THE CIRCUIT<br>IS YOURS.</strong></div>

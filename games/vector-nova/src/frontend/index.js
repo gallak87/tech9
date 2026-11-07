@@ -579,7 +579,7 @@ export async function createFrontend(
     loading.className = 'completion-cinematic completion-boot';
     loading.setAttribute('aria-label', 'Career complete');
     loading.innerHTML =
-      '<div class="completion-boot-content"><span class="kicker">28 / 28 · CAREER COMPLETE</span><h1>One last victory.</h1><p role="status">Preparing your finale</p><progress max="1" value="0.02" aria-label="Loading finale"></progress></div>';
+      '<div class="completion-boot-content"><span class="kicker">28 / 28 · CAREER COMPLETE</span><h1 role="status">Loading…</h1><progress max="1" value="0.02" aria-label="Loading"></progress></div>';
     host.append(loading);
     menuBackdrop.mount(loading);
     menuBackdrop.configure({

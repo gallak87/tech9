@@ -14,6 +14,7 @@ import { createVehicleState, STEERING_ASSIST } from '../src/physics/index.js';
 import { createDeviceRuntime } from '../src/pickups/runtime.js';
 import { createCombatSimulation } from '../src/pickups/combat.js';
 import { getRacerControl } from '../src/race/racers.js';
+import { getShip } from '../src/ships/catalog.js';
 
 export const COMPLETION_RUN_STEP = 1 / 120;
 export const COMPLETION_RUN_DURATION = COMPLETION_DURATION;
@@ -54,25 +55,36 @@ const ACTORS = Object.freeze([
 ]);
 export const COMPLETION_SLIDE = Object.freeze({
   delay: 0.15,
-  steer: -0.3,
-  turn: 0.28,
-  counter: 0.28,
+  entrySpeed: 30,
+  steer: -0.88,
+  turn: 0.44,
+  counter: 0.44,
   brake: 0.12,
 });
 function slideControl(actor, ordinary, pattern) {
   if (actor.specification.id !== 'hero' || !actor.race.complete || !pattern)
     return ordinary;
   const age = actor.state.time - actor.race.elapsed - pattern.delay;
-  if (age < 0 || age >= pattern.turn + pattern.counter) return ordinary;
+  if (age < 0) return ordinary;
+  actor.slide ??= { brakeTime: actor.state.time, turnTime: null };
+  if (actor.slide.turnTime === null) {
+    if (actor.state.speed > pattern.entrySpeed)
+      return { throttle: 0, brake: 1, airbrake: false, boost: false, steer: 0 };
+    actor.slide.turnTime = actor.state.time;
+  }
+  const turnAge = actor.state.time - actor.slide.turnTime;
+  if (turnAge >= pattern.turn + pattern.counter) return ordinary;
+  const handling = getShip(actor.state.shipId).handling;
+  const steer = Math.max(-1, Math.min(1, pattern.steer / handling.turn));
   return {
     throttle: 0,
     brake: pattern.brake,
     airbrake: true,
     boost: false,
     steer:
-      age < pattern.turn
-        ? pattern.steer
-        : (-pattern.steer * pattern.turn) / pattern.counter,
+      turnAge < pattern.turn
+        ? steer
+        : (-steer * pattern.turn) / pattern.counter,
   };
 }
 function slideTelemetry(actor, input, track, pattern) {
@@ -102,12 +114,34 @@ function slideTelemetry(actor, input, track, pattern) {
       track.width / 2 - Math.abs(vertex.dot(frame.right)),
     );
   }
+  const turnAge =
+    actor.slide?.turnTime == null
+      ? -1
+      : actor.state.time - actor.slide.turnTime;
   const commanded = input.airbrake === true;
   const active =
-    commanded ||
-    (age < pattern.turn + pattern.counter + 1 &&
-      (Math.abs(slipSpeed) > 0.25 || Math.abs(actor.state.heading) > 0.025));
-  return { active, slipAngle, slipSpeed, yaw: actor.state.heading, clearance };
+    turnAge >= 0 &&
+    (commanded ||
+      (turnAge < pattern.turn + pattern.counter + 1.5 &&
+        (Math.abs(slipSpeed) > 0.25 || Math.abs(actor.state.heading) > 0.025)));
+  const phase =
+    turnAge < 0
+      ? 'braking'
+      : turnAge < pattern.turn
+        ? 'turn'
+        : turnAge < pattern.turn + pattern.counter
+          ? 'countersteer'
+          : active
+            ? 'settling'
+            : 'settled';
+  return {
+    active,
+    phase,
+    slipAngle,
+    slipSpeed,
+    yaw: actor.state.heading,
+    clearance,
+  };
 }
 const waitForPaint = () => new Promise((resolve) => setTimeout(resolve, 0));
 const copy = (value) => structuredClone(value);
@@ -397,6 +431,7 @@ export async function generateCompletionRun({
             state: copy(actor.state),
             runtime: actor.runtime.snapshot(),
             effects: copy(actor.effects),
+            slide: copy(actor.slide ?? null),
             race: Object.fromEntries(
               raceKeys.map((key) => [key, copy(actor.race[key])]),
             ),
@@ -409,6 +444,7 @@ export async function generateCompletionRun({
             actor.runtime.restore(copy(state.runtime));
             Object.assign(actor.race, copy(state.race));
             actor.effects = copy(state.effects);
+            actor.slide = copy(state.slide);
           });
           dynamics.restore(copy(saved.native));
           time = saved.time;
@@ -504,6 +540,7 @@ export async function generateCompletionRun({
         finishDistance: track.finishDistance,
         finishTime: finishTimes.hero,
         finishTimes,
+        slideBrakeTime: actors[0].slide?.brakeTime ?? null,
         slideStartTime,
         slidePeakTime: peakSlide?.time ?? null,
         slideEndTime,

@@ -46,7 +46,7 @@ test('the director follows real repulsor, Horizon flight, landing and sprint fin
   const plan = completionShotPlan(run);
   assert.equal(run.duration, COMPLETION_DURATION);
   assert.equal(plan.shots[0].start, 0);
-  assert.equal(plan.shots.at(-1).end, run.duration);
+  assert.equal(plan.shots.at(-1).end, run.landmarks.slideStopTime + 1);
   for (let index = 0; index < plan.shots.length; index++) {
     assert.ok(plan.shots[index].end > plan.shots[index].start);
     if (index) assert.equal(plan.shots[index].start, plan.shots[index - 1].end);
@@ -59,10 +59,7 @@ test('the director follows real repulsor, Horizon flight, landing and sprint fin
   assert.equal(at(run.landmarks.finishTime - 0.1), 'finish');
   assert.equal(at(run.landmarks.finishTime + 0.02), 'finish');
   assert.equal(at(run.landmarks.slideStartTime), 'exit');
-  assert.ok(
-    plan.titleStart > run.landmarks.finishTime,
-    'the victory title cannot precede the physical checker crossing',
-  );
+  assert.equal(plan.creditsAt, run.landmarks.slideStopTime + 1);
   assert.equal(run.landmarks.finishDistance, track.finishDistance);
   assert.equal(run.landmarks.jumpId, 'horizon-transfer');
   assert.ok(!plan.shots.some(({ id }) => /worm|leviathan|slide|park/.test(id)));
@@ -70,13 +67,18 @@ test('the director follows real repulsor, Horizon flight, landing and sprint fin
     () =>
       completionShotPlan({
         duration: 16,
-        landmarks: { launchTime: 6, landingTime: 10 },
+        landmarks: {
+          launchTime: 6,
+          landingTime: 10,
+          finishTime: 9,
+          slideStopTime: 12,
+        },
       }),
     /actual finish/,
   );
 });
 
-test('camera direction preserves all native poses and frames all four player hulls', () => {
+test('camera direction preserves all recorded poses and frames all four player hulls', () => {
   const director = createCompletionDirector({ track, run });
   for (const aspect of [1.1, 1.6, 2.5])
     for (let time = 0; time <= run.duration; time += 1 / 30) {
@@ -190,7 +192,7 @@ test('flight camera follows actual airborne velocity without tethering to the hi
   }
 });
 
-test('all four fast native slides produce obvious pixel-space rotation and visible sideslip', (context) => {
+test('all four recorded drifts remain readable from racing speed to the sideways stop', (context) => {
   const aspect = 1581 / 890;
   const angleDifference = (a, b) =>
     Math.atan2(Math.sin(a - b), Math.cos(a - b));
@@ -203,7 +205,7 @@ test('all four fast native slides produce obvious pixel-space rotation and visib
     const {
       slideStartTime: start,
       slidePeakTime: peak,
-      slideEndTime: end,
+      slideStopTime: end,
     } = recording.landmarks;
     assert.ok(
       start > recording.landmarks.finishTime &&
@@ -211,11 +213,16 @@ test('all four fast native slides produce obvious pixel-space rotation and visib
         end > peak &&
         end < recording.duration,
     );
+    assert.ok(
+      Math.abs(start - recording.landmarks.finishTime - 0.5) <=
+        recording.step + 0.001,
+      'the sustained drift begins half a second after the actual checker',
+    );
     const peakSample = sampleCompletionRun(recording, peak);
     const startSample = sampleCompletionRun(recording, start);
     assert.ok(
-      startSample.hero.state.speed >= 90 && peakSample.hero.state.speed >= 90,
-      'the actual turn must retain racing speed instead of braking first',
+      startSample.hero.state.speed >= 90,
+      'the actual drift must begin at racing speed',
     );
     const movementTime = Math.min(peak - 0.025, start + 0.12);
     const movementStart = sampleCompletionRun(recording, movementTime);
@@ -224,7 +231,7 @@ test('all four fast native slides produce obvious pixel-space rotation and visib
       new Vector3()
         .fromArray(movementStart.hero.position)
         .distanceTo(new Vector3().fromArray(movementEnd.hero.position)) >= 9,
-      'native position must keep travelling at racing pace during the turn',
+      'recorded position must keep travelling at racing pace during the turn',
     );
     const movementCameras = [movementStart, movementEnd].map((sample, index) =>
       cameraFor(
@@ -288,7 +295,7 @@ test('all four fast native slides produce obvious pixel-space rotation and visib
       assert.deepEqual(
         sample,
         original,
-        'the exit must not change native slide data',
+        'the exit must not change recorded slide data',
       );
       assert.equal(view.shot, 'exit');
       const position = new Vector3().fromArray(sample.hero.position);
@@ -335,8 +342,9 @@ test('all four fast native slides produce obvious pixel-space rotation and visib
         .position;
       const velocity = new Vector3()
         .fromArray(after)
-        .sub(new Vector3().fromArray(before))
-        .normalize();
+        .sub(new Vector3().fromArray(before));
+      const movingAtSpeed = velocity.length() / (recording.step * 2) > 5;
+      velocity.normalize();
       const origin = position.clone().addScaledVector(frame.up, 0.6),
         projectedOrigin = origin.clone().project(camera);
       const facing = origin
@@ -349,10 +357,11 @@ test('all four fast native slides produce obvious pixel-space rotation and visib
         .addScaledVector(velocity, 3)
         .project(camera)
         .sub(projectedOrigin);
-      maxScreenSlip = Math.max(
-        maxScreenSlip,
-        Math.abs(angleDifference(screenAngle(facing), screenAngle(moving))),
-      );
+      if (movingAtSpeed)
+        maxScreenSlip = Math.max(
+          maxScreenSlip,
+          Math.abs(angleDifference(screenAngle(facing), screenAngle(moving))),
+        );
       let left = Infinity,
         right = -Infinity,
         top = -Infinity;
@@ -370,23 +379,19 @@ test('all four fast native slides produce obvious pixel-space rotation and visib
             left = Math.min(left, point.x);
             right = Math.max(right, point.x);
             top = Math.max(top, point.y);
-            assert.ok(
-              !(point.x < -0.08 && point.y < -0.5),
-              'the title area must not cover the racer',
-            );
           }
       assert.ok(
         right - left > 0.2 && top > -0.2,
-        'the real hull remains large and centered above the title',
+        'the real hull remains large and centered',
       );
     }
     assert.ok(
       maxBody - minBody > 0.25,
-      `${id} has visible native yaw through the exit`,
+      `${id} has visible recorded yaw through the exit`,
     );
     assert.ok(
       maxCamera - minCamera < (maxBody - minBody) * 0.1 + 0.001,
-      'the road-referenced camera does not follow away the native body rotation',
+      'the road-referenced camera does not follow away the recorded body rotation',
     );
     const apparentRotation =
       ((maxScreenRotation - minScreenRotation) * 180) / Math.PI;
@@ -399,27 +404,50 @@ test('all four fast native slides produce obvious pixel-space rotation and visib
       apparentSlip >= 10,
       `${id} only shows ${apparentSlip.toFixed(2)} degrees between actual body and movement directions on screen`,
     );
-    assert.equal(
-      director.sample(peak, peakSample, aspect).title,
-      0,
-      'the title must wait through the major slide',
-    );
     const plan = completionShotPlan(recording);
-    assert.ok(
-      plan.titleStart >= end - 0.31,
-      'title waits until nearly settled',
+    assert.equal(plan.creditsAt, end + 1);
+    const stopped = sampleCompletionRun(recording, end).hero;
+    const stoppedPosition = new Vector3().fromArray(stopped.position);
+    const stoppedQuaternion = new Quaternion().fromArray(stopped.quaternion);
+    const stoppedRoad = track.sample(stopped.state.distance);
+    const stoppedNose = new Vector3(0, 0, 1).applyQuaternion(stoppedQuaternion);
+    const stoppedYaw = Math.abs(
+      Math.atan2(
+        stoppedNose.dot(stoppedRoad.right),
+        stoppedNose.dot(stoppedRoad.tangent),
+      ),
     );
     assert.ok(
-      recording.duration - plan.titleStart - plan.titleFade >= 0.6,
-      'title has readable time at full opacity',
+      stoppedYaw >= Math.PI / 3 && stoppedYaw <= Math.PI / 2,
+      'the racer must stop sideways, rather than countersteering straight',
     );
+    for (let time = end; time <= plan.creditsAt; time += 1 / 60) {
+      const held = sampleCompletionRun(recording, time).hero;
+      assert.ok(held.state.speed < 0.2);
+      assert.ok(
+        stoppedPosition.distanceTo(new Vector3().fromArray(held.position)) <
+          0.05,
+        'the stopped racer stays still for the full one-second hold',
+      );
+      assert.ok(
+        stoppedQuaternion.angleTo(new Quaternion().fromArray(held.quaternion)) <
+          0.03,
+        'the stopped hull holds its sideways orientation',
+      );
+      assert.equal(
+        director.sample(time, sampleCompletionRun(recording, time), aspect)
+          .title,
+        0,
+      );
+    }
     assert.equal(
       director.sample(
-        recording.duration,
-        sampleCompletionRun(recording, recording.duration),
+        plan.creditsAt,
+        sampleCompletionRun(recording, plan.creditsAt),
         aspect,
       ).title,
-      1,
+      0,
+      'the stopped racer leads directly to the dialog without a closing title',
     );
     context.diagnostic(
       `${id}: ${apparentRotation.toFixed(1)} degrees screen heading, ${apparentSlip.toFixed(1)} degrees screen sideslip, ${roadTravelPixels.toFixed(0)}px road travel/100ms, ${startSample.hero.state.speed.toFixed(0)}→${peakSample.hero.state.speed.toFixed(0)}m/s`,

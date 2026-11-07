@@ -14,10 +14,23 @@ const vector = (value) =>
     : new Vector3().fromArray(value ?? [0, 0, 0]);
 const globalUp = new Vector3(0, 1, 0);
 
-// All cuts are anchored to observed production events. This module never
+export function completionPlaybackTiming(run = {}) {
+  const stopTime = run.landmarks?.slideStopTime;
+  const finishTime = run.landmarks?.finishTime;
+  if (
+    ![stopTime, finishTime, run.duration].every(Number.isFinite) ||
+    stopTime <= finishTime ||
+    run.duration < stopTime + 1
+  )
+    throw new Error('Completion requires a stopped racer and one-second hold.');
+  return { stopTime, creditsAt: stopTime + 1, dialogFadeSeconds: 0.7 };
+}
+
+// Cuts follow recorded race and action landmarks. This module never
 // generates a racer position, velocity, hit, jump, landing or finish.
 export function completionShotPlan(run = {}) {
-  const duration = valid(run.duration, COMPLETION_DURATION);
+  const timing = completionPlaybackTiming(run);
+  const duration = timing.creditsAt;
   const event = run.landmarks ?? {};
   const launch = event.launchTime,
     landing = event.landingTime,
@@ -56,18 +69,7 @@ export function completionShotPlan(run = {}) {
     : finish + 0.4;
   append('finish', Math.min(duration - 0.2, finishHold));
   append('exit', duration);
-  const titleStart = Number.isFinite(event.slideEndTime)
-    ? Math.max(
-        finish + 0.3,
-        Math.min(duration - 0.75, event.slideEndTime - 0.3),
-      )
-    : finish + 0.3;
-  return {
-    duration,
-    shots,
-    titleStart,
-    titleFade: Number.isFinite(event.slideEndTime) ? 0.45 : 0.7,
-  };
+  return { duration, shots, ...timing };
 }
 
 export function completionCueForEvent(event) {
@@ -95,7 +97,7 @@ function pointsAround(center, radius) {
 }
 
 // Fit selected real subjects into a cinematic frame. Only the camera is pulled
-// back; the native replay remains untouched.
+// back; the recorded motion remains untouched.
 function fitSubjects(
   position,
   target,
@@ -246,7 +248,7 @@ export function createCompletionDirector({ track, run }) {
       } else {
         // A higher front three-quarter view exposes the planform rotating
         // against the road. It follows position only: no nose/yaw tracking,
-        // orbit or lens change can cancel the recorded powerslide.
+        // orbit or lens change can cancel the recorded drift.
         offset(-10, 12, 12);
         fov = 46;
       }
@@ -257,9 +259,7 @@ export function createCompletionDirector({ track, run }) {
         up,
         fov,
         shot: shot.id,
-        title: smooth(
-          unit(time, plan.titleStart, plan.titleStart + plan.titleFade),
-        ),
+        title: 0,
       };
     },
   };

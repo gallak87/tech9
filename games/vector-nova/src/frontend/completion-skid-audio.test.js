@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCompletionSkidAudio } from './completion-skid-audio.js';
 import { createCompletionAudio } from './completion-audio.js';
+import { createCompletionRevAudio } from './completion-rev-audio.js';
 
 class Param {
   value = 0;
@@ -111,7 +112,9 @@ const sliding = () => ({
   race: { complete: true },
   state: { speed: 100, time: 14.5, steer: 0.5 },
   input: { airbrake: true, brake: 0.3, steer: 0.5 },
-  effects: { slide: { active: true, slipSpeed: 6 } },
+  effects: {
+    slide: { active: true, slipSpeed: 6, phase: 'drifting', progress: 0.5 },
+  },
 });
 const lastGain = (context) =>
   context.nodes.filter(({ kind }) => kind === 'gain').at(-1);
@@ -212,7 +215,61 @@ test('the skid is bounded filtered noise with a soft envelope and immediate owne
   assert.ok(context.nodes.every((node) => node.disconnects === 1));
 });
 
-test('completion skid shares saved effects mix, pause, reduced motion and one audio owner', () => {
+test('a separate bounded motor rev rises through the drift and falls at the stop', () => {
+  const context = new Context();
+  const rev = createCompletionRevAudio(context, context.destination);
+  const motor = context.nodes.find(({ kind }) => kind === 'oscillator');
+  const filter = context.nodes.find(({ kind }) => kind === 'filter');
+  const level = lastGain(context).gain;
+  const actor = sliding();
+  const at = (progress) => ({
+    ...actor,
+    effects: { slide: { ...actor.effects.slide, progress } },
+  });
+  rev.update(at(0.1));
+  const openingPitch = motor.frequency.value;
+  rev.update(at(0.75));
+  assert.ok(motor.frequency.value > openingPitch * 1.8);
+  assert.ok(level.value > 0.02 && level.value <= 0.05);
+  const movingPitch = motor.frequency.value;
+  for (const progress of [-10, 0, 0.5, 1, 100]) {
+    rev.update(at(progress));
+    assert.ok(motor.frequency.value >= 100 && motor.frequency.value <= 260);
+    assert.ok(level.value >= 0 && level.value <= 0.05);
+    assert.ok(filter.frequency.value <= 1700);
+  }
+  rev.update({
+    ...actor,
+    effects: { slide: { ...actor.effects.slide, phase: 'stopped' } },
+  });
+  assert.equal(level.value, 0);
+  assert.ok(motor.frequency.value < movingPitch);
+  assert.ok(level.automation.at(-1).response >= 0.08);
+  for (const quiet of [
+    { ...actor, grounded: false },
+    { ...actor, recovering: true },
+    { ...actor, race: { complete: false } },
+    { ...actor, effects: { slide: { active: true, progress: NaN } } },
+    undefined,
+  ]) {
+    rev.update(quiet);
+    assert.equal(level.value, 0);
+  }
+  rev.update(actor);
+  rev.update(actor, { reducedMotion: true });
+  assert.equal(level.value, 0);
+  assert.equal(level.automation.at(-1).type, 'set');
+  rev.update(actor);
+  rev.cancel();
+  assert.equal(level.value, 0);
+  rev.dispose();
+  rev.dispose();
+  rev.update(actor);
+  assert.equal(motor.stops, 1);
+  assert.ok(context.nodes.every((node) => node.disconnects === 1));
+});
+
+test('completion motor and skid share saved effects mix, pause, reduced motion and one audio owner', () => {
   const previous = globalThis.AudioContext;
   let context;
   globalThis.AudioContext = class extends Context {
@@ -227,22 +284,29 @@ test('completion skid shares saved effects mix, pause, reduced motion and one au
     audio = createCompletionAudio(() => settings);
     const master = context.nodes[0].gain;
     const level = lastGain(context).gain;
+    const revLevel = context.nodes.find(
+      (node) => node.kind === 'oscillator' && node.frequency.value === 100,
+    ).destination.destination.gain;
     const sample = { time: 14.5, hero: sliding(), events: [] };
     audio.update(sample);
     assert.equal(master.value, 0);
     assert.equal(level.value, 0);
+    assert.equal(revLevel.value, 0);
     audio.resume();
     audio.update(sample);
     assert.equal(master.value, 0.2);
     assert.ok(level.value > 0);
+    assert.ok(revLevel.value > 0);
     settings.muted = true;
     audio.update(sample);
     assert.equal(master.value, 0);
     assert.equal(level.value, 0);
+    assert.equal(revLevel.value, 0);
     settings.muted = false;
     settings.reducedMotion = true;
     audio.update(sample);
     assert.equal(level.value, 0);
+    assert.equal(revLevel.value, 0);
     settings.reducedMotion = false;
     audio.update(sample);
     assert.ok(level.value > 0);
@@ -250,6 +314,7 @@ test('completion skid shares saved effects mix, pause, reduced motion and one au
     assert.equal(context.state, 'suspended');
     assert.equal(master.value, 0);
     assert.equal(level.value, 0);
+    assert.equal(revLevel.value, 0);
     audio.update(sample);
     assert.equal(level.value, 0);
     audio.resume();

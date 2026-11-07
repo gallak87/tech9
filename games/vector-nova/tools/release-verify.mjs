@@ -81,7 +81,12 @@ const phase = async (page, value) => {
       'shatterline',
       'finale uses the production Shatterline world',
     );
-    assert.equal(completion.rendering?.source, 'native-replay');
+    assert.equal(completion.rendering?.source, 'recorded-race');
+    assert.equal(completion.rendering?.replay?.raceMotion, 'native');
+    assert.equal(
+      completion.rendering?.replay?.finishMotion,
+      'choreographed-drift',
+    );
     assert.equal(completion.rendering?.pipeline?.world, 'shatterline');
     const selectedRecord = `/assets/completion/shatterline-v1/${completion.shipId}.json.gz`;
     assert.equal(

@@ -14,7 +14,6 @@ import { createVehicleState, STEERING_ASSIST } from '../src/physics/index.js';
 import { createDeviceRuntime } from '../src/pickups/runtime.js';
 import { createCombatSimulation } from '../src/pickups/combat.js';
 import { getRacerControl } from '../src/race/racers.js';
-import { getShip } from '../src/ships/catalog.js';
 
 export const COMPLETION_RUN_STEP = 1 / 120;
 export const COMPLETION_RUN_DURATION = COMPLETION_DURATION;
@@ -53,95 +52,161 @@ const ACTORS = Object.freeze([
     difficulty: 'medium',
   },
 ]);
-export const COMPLETION_SLIDE = Object.freeze({
-  delay: 0.05,
-  steer: 0.88,
-  turn: 0.24,
-  counter: 0.24,
-  brake: 0,
+export const COMPLETION_DRIFT = Object.freeze({
+  delay: 0.5,
+  duration: 1.9,
+  turnDuration: 0.75,
+  lateralDuration: 1.1,
+  lateral: 14,
+  yaw: (78 * Math.PI) / 180,
 });
-// The agile hull carries its turn through to the clear lane beyond both rivals.
-// These are authored driver inputs for this capture, never handling overrides.
-const SLIDE_INPUTS = Object.freeze({
-  shrike: Object.freeze({ ...COMPLETION_SLIDE, turn: 0.4, counter: 0.4 }),
-});
-function slideControl(actor, ordinary, pattern) {
-  if (actor.specification.id !== 'hero' || !actor.race.complete || !pattern)
-    return ordinary;
-  const age = actor.state.time - actor.race.elapsed - pattern.delay;
-  if (age < 0) return ordinary;
-  // Turn inward while carrying the genuine crossing speed. The airbrake
-  // supplies slip; ordinary runout braking takes over after countersteer.
-  actor.slide ??= { turnTime: actor.state.time };
-  const turnAge = actor.state.time - actor.slide.turnTime;
-  const { turn, counter } = pattern;
-  if (turnAge >= turn + counter) return ordinary;
-  const handling = getShip(actor.state.shipId).handling;
-  const steer = Math.max(-1, Math.min(1, pattern.steer / handling.turn));
-  return {
-    throttle: 0,
-    brake: pattern.brake,
-    airbrake: true,
-    boost: false,
-    steer: turnAge < turn ? steer : (-steer * turn) / counter,
-  };
+const clampUnit = (value) => Math.max(0, Math.min(1, value));
+const smooth = (value) => value * value * (3 - 2 * value);
+function roadQuaternion(frame) {
+  return new T.Quaternion().setFromRotationMatrix(
+    new T.Matrix4().makeBasis(frame.right, frame.up, frame.tangent),
+  );
 }
-function slideTelemetry(actor, input, track, pattern) {
-  if (!pattern || actor.specification.id !== 'hero' || !actor.race.complete)
-    return null;
-  const age = actor.state.time - actor.race.elapsed - pattern.delay;
-  if (age < 0) return null;
-  const body = actor.physical.read(),
-    frame = track.sample(actor.state.distance);
-  const forward = new T.Vector3(0, 0, 1).applyQuaternion(body.quaternion);
-  forward.addScaledVector(frame.up, -forward.dot(frame.up)).normalize();
-  const side = frame.up.clone().cross(forward).normalize();
-  const slipSpeed = body.velocity.dot(side),
-    speed = body.velocity.dot(forward);
-  const slipAngle = Math.atan2(slipSpeed, Math.max(1, Math.abs(speed)));
-  let clearance = Infinity;
-  const vertex = new T.Vector3();
-  const vertices = getCollisionHull(actor.state.chassisId).vertices;
-  for (let i = 0; i < vertices.length; i += 3) {
-    vertex
-      .fromArray(vertices, i)
-      .applyQuaternion(body.quaternion)
-      .add(body.position)
-      .sub(frame.position);
-    clearance = Math.min(
-      clearance,
-      track.width / 2 - Math.abs(vertex.dot(frame.right)),
-    );
+
+// Only this disposable finale owns the post-checker choreography. The race,
+// jump, overtaking and half-second finish runout stay exactly as captured from
+// production physics. The staged drift never changes gameplay handling.
+function choreographFinish(frames, track, finishTime) {
+  const pattern = COMPLETION_DRIFT;
+  const startIndex = frames.findIndex(
+    (frame) => frame.time >= finishTime + pattern.delay,
+  );
+  const stopIndex =
+    startIndex + Math.round(pattern.duration / COMPLETION_RUN_STEP);
+  if (startIndex < 1 || stopIndex >= frames.length)
+    throw new Error('The completion drift needs its full braking and hold.');
+  const start = frames[startIndex];
+  const original = copy(start.hero);
+  const startTime = start.time,
+    stopTime = frames[stopIndex].time;
+  const initialFrame = track.sample(original.state.distance);
+  const initialPosition = new T.Vector3().fromArray(original.position);
+  const relative = initialPosition.clone().sub(initialFrame.position);
+  const height = relative.dot(initialFrame.up);
+  const rightResidual =
+    relative.dot(initialFrame.right) - original.state.lateral;
+  const forwardResidual = relative.dot(initialFrame.tangent);
+  const entryVelocity = initialPosition
+    .clone()
+    .sub(new T.Vector3().fromArray(frames[startIndex - 1].hero.position))
+    .divideScalar(COMPLETION_RUN_STEP);
+  const entrySpeed = Math.max(0, entryVelocity.dot(initialFrame.tangent));
+  const initialYaw = original.state.heading;
+  const initialBasis = roadQuaternion(initialFrame).multiply(
+    new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), initialYaw),
+  );
+  const correction = initialBasis
+    .invert()
+    .multiply(new T.Quaternion().fromArray(original.quaternion));
+  const identity = new T.Quaternion();
+  const poses = [];
+  for (let index = startIndex; index < frames.length; index++) {
+    const elapsed =
+      index >= stopIndex ? pattern.duration : frames[index].time - startTime;
+    const u = clampUnit(elapsed / pattern.duration);
+    const turn = smooth(clampUnit(elapsed / pattern.turnDuration));
+    const distance =
+      original.state.distance +
+      entrySpeed * pattern.duration * (u - u * u * u + 0.5 * u * u * u * u);
+    const lateral =
+      original.state.lateral +
+      (pattern.lateral - original.state.lateral) *
+        smooth(clampUnit(elapsed / pattern.lateralDuration));
+    const yaw = initialYaw + (pattern.yaw - initialYaw) * turn;
+    const frame = track.sample(distance);
+    const position = frame.position
+      .clone()
+      .addScaledVector(frame.right, lateral + rightResidual)
+      .addScaledVector(frame.up, height)
+      .addScaledVector(frame.tangent, forwardResidual);
+    const quaternion = roadQuaternion(frame)
+      .multiply(
+        new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), yaw),
+      )
+      .multiply(correction.clone().slerp(identity, turn));
+    poses.push({ position, quaternion, frame, distance, lateral, yaw, u });
   }
-  const turnAge =
-    actor.slide?.turnTime == null
-      ? -1
-      : actor.state.time - actor.slide.turnTime;
-  const { turn, counter } = pattern;
-  const commanded = input.airbrake === true;
-  const active =
-    turnAge >= 0 &&
-    (commanded ||
-      (turnAge < turn + counter + 1.5 &&
-        (Math.abs(slipSpeed) > 0.25 || Math.abs(actor.state.heading) > 0.025)));
-  const phase =
-    turnAge < 0
-      ? 'ready'
-      : turnAge < turn
-        ? 'turn'
-        : turnAge < turn + counter
-          ? 'countersteer'
-          : active
-            ? 'settling'
-            : 'settled';
-  return {
-    active,
-    phase,
-    slipAngle,
-    slipSpeed,
-    yaw: actor.state.heading,
-    clearance,
-  };
+  const vertex = new T.Vector3();
+  const vertices = getCollisionHull(original.state.chassisId).vertices;
+  for (let index = startIndex; index < frames.length; index++) {
+    const local = index - startIndex,
+      pose = poses[local],
+      sample = frames[index],
+      hero = sample.hero;
+    const velocity =
+      index >= stopIndex
+        ? new T.Vector3()
+        : local === 0
+          ? entryVelocity.clone()
+          : poses[Math.min(local + 1, poses.length - 1)].position
+              .clone()
+              .sub(poses[local - 1].position)
+              .divideScalar(2 * COMPLETION_RUN_STEP);
+    const forward = new T.Vector3(0, 0, 1).applyQuaternion(pose.quaternion);
+    const side = pose.frame.up.clone().cross(forward).normalize();
+    const slipSpeed = velocity.dot(side),
+      speed = velocity.dot(forward);
+    let clearance = Infinity;
+    for (let i = 0; i < vertices.length; i += 3) {
+      vertex
+        .fromArray(vertices, i)
+        .applyQuaternion(pose.quaternion)
+        .add(pose.position)
+        .sub(pose.frame.position);
+      clearance = Math.min(
+        clearance,
+        track.width / 2 - Math.abs(vertex.dot(pose.frame.right)),
+      );
+    }
+    hero.position = pose.position.toArray();
+    hero.quaternion = pose.quaternion.toArray();
+    hero.grounded = true;
+    hero.recovering = false;
+    hero.steeringBank = false;
+    Object.assign(hero.state, {
+      distance: pose.distance,
+      lateral: pose.lateral,
+      speed,
+      lateralSpeed: velocity.dot(pose.frame.right),
+      heading: pose.yaw,
+      steeringHeading: 0,
+      steer: 0,
+      boosting: false,
+      impact: 0,
+    });
+    hero.input = {
+      throttle: 0,
+      brake: 1,
+      airbrake: index < stopIndex,
+      boost: false,
+      steer: 0,
+    };
+    hero.effects.slide = {
+      source: 'choreographed-finish',
+      active: index < stopIndex,
+      phase: index < stopIndex ? 'drifting' : 'stopped',
+      progress: pose.u,
+      velocity: velocity.toArray(),
+      linearSpeed: velocity.length(),
+      slipAngle: Math.atan2(slipSpeed, Math.max(1, Math.abs(speed))),
+      slipSpeed,
+      yaw: pose.yaw,
+      clearance,
+    };
+  }
+  const active = frames.slice(startIndex, stopIndex);
+  const peak = active.reduce((peak, frame) =>
+    Math.abs(frame.hero.effects.slide.slipSpeed) >
+    Math.abs(peak.hero.effects.slide.slipSpeed)
+      ? frame
+      : peak,
+  );
+  return { start: startTime, peak: peak.time, stop: stopTime };
 }
 const waitForPaint = () => new Promise((resolve) => setTimeout(resolve, 0));
 const copy = (value) => structuredClone(value);
@@ -195,16 +260,15 @@ function recordActor(actor, input) {
 }
 
 // Build-time capture of a small genuine race. Only the supported
-// rolling grid is seeded; every later pose, velocity, hit and landing is produced
-// by ordinary driver inputs, the production devices and the shared native solve.
+// rolling grid is seeded; racing, combat, flight and landing use ordinary inputs
+// and the shared native solve. Only the hero's finish drift is choreographed.
 // The final shipped data owns no native resources and plays at one real second/second.
 export async function generateCompletionRun({
   track,
   shipId,
   signal,
   onProgress,
-  slidePattern = SLIDE_INPUTS[shipId] ?? COMPLETION_SLIDE,
-  onFinishProbe,
+  duration = COMPLETION_RUN_DURATION,
 } = {}) {
   if (!HERO_SHIPS.has(shipId)) throw new Error('Unknown completion chassis.');
   signal?.throwIfAborted();
@@ -247,24 +311,15 @@ export async function generateCompletionRun({
       time = 0;
     for (const specification of ACTORS) {
       const chassis = specification.shipId ?? shipId;
-      let physical;
-      const actorDynamics = Object.create(dynamics);
-      Object.defineProperty(actorDynamics, 'createActor', {
-        value: (...args) => {
-          physical = dynamics.createActor(...args);
-          return physical;
-        },
-      });
       const motion = level.createRuntime({
         track,
         collisionWorld,
-        dynamics: actorDynamics,
+        dynamics,
         settings: { steeringAssist: STEERING_ASSIST },
       });
       const actor = {
         specification,
         motion,
-        physical,
         effects: {},
         runtime: null,
         state: {
@@ -325,15 +380,13 @@ export async function generateCompletionRun({
       actor.runtime.reset({ state: actor.state });
       actor.runtime.update({});
     }
-    const record = (inputs, pattern) => {
-      const telemetry = slideTelemetry(actors[0], inputs[0], track, pattern);
+    const record = (inputs) => {
       const encoded = Object.fromEntries(
         actors.map((actor, index) => [
           actor.specification.id,
           recordActor(actor, inputs[index]),
         ]),
       );
-      if (telemetry) encoded.hero.effects.slide = telemetry;
       frames.push({
         time,
         ...encoded,
@@ -345,27 +398,23 @@ export async function generateCompletionRun({
     record(
       actors.map(() => ({ throttle: 1, steer: 0, brake: 0, boost: false })),
     );
-    const ticks = Math.round(COMPLETION_RUN_DURATION / COMPLETION_RUN_STEP);
+    const ticks = Math.round(duration / COMPLETION_RUN_STEP);
     onProgress?.(0.12);
     let yieldedAt = performance.now();
-    const advanceTick = (tick, pattern) => {
+    const advanceTick = (tick) => {
       signal?.throwIfAborted();
       const nearby = actors.map((actor) => actor.state);
       const inputs = actors.map((actor) =>
-        slideControl(
-          actor,
-          actor.race.runoutControl(
-            actor.state,
-            getRacerControl(actor.state, track, {
-              lane: actor.specification.lane,
-              pace: actor.specification.pace,
-              difficulty: actor.specification.difficulty,
-              devices,
-              nearby,
-              runtime: actor.runtime,
-            }),
-          ),
-          pattern,
+        actor.race.runoutControl(
+          actor.state,
+          getRacerControl(actor.state, track, {
+            lane: actor.specification.lane,
+            pace: actor.specification.pace,
+            difficulty: actor.specification.difficulty,
+            devices,
+            nearby,
+            runtime: actor.runtime,
+          }),
         ),
       );
       time = (tick + 1) * COMPLETION_RUN_STEP;
@@ -401,73 +450,10 @@ export async function generateCompletionRun({
       });
       actors[0].runtime.advanceInteractions(COMPLETION_RUN_STEP);
       actors.forEach((actor) => actor.runtime.update({}));
-      record(inputs, pattern);
+      record(inputs);
     };
-    let probed = false;
     for (let tick = 0; tick < ticks; tick++) {
-      advanceTick(tick, slidePattern);
-      if (actors[0].race.complete && onFinishProbe && !probed) {
-        probed = true;
-        const raceKeys = [
-          'completedTransfers',
-          'lap',
-          'checkpoint',
-          'elapsed',
-          'lastLap',
-          'best',
-          'valid',
-          'complete',
-          'startDistance',
-          'history',
-          'splits',
-          'completedTime',
-        ];
-        const saved = {
-          native: dynamics.snapshot(),
-          time,
-          frameLength: frames.length,
-          eventLength: events.length,
-          actors: actors.map((actor) => ({
-            state: copy(actor.state),
-            runtime: actor.runtime.snapshot(),
-            effects: copy(actor.effects),
-            slide: copy(actor.slide ?? null),
-            race: Object.fromEntries(
-              raceKeys.map((key) => [key, copy(actor.race[key])]),
-            ),
-          })),
-        };
-        const restore = () => {
-          actors.forEach((actor, index) => {
-            const state = saved.actors[index];
-            Object.assign(actor.state, copy(state.state));
-            actor.runtime.restore(copy(state.runtime));
-            Object.assign(actor.race, copy(state.race));
-            actor.effects = copy(state.effects);
-            actor.slide = copy(state.slide);
-          });
-          dynamics.restore(copy(saved.native));
-          time = saved.time;
-          frames.length = saved.frameLength;
-          events.length = saved.eventLength;
-          stepEvents = [];
-        };
-        await onFinishProbe({
-          track,
-          probe(pattern) {
-            restore();
-            for (let next = tick + 1; next < ticks; next++)
-              advanceTick(next, pattern);
-            const result = copy({
-              frames: frames.slice(saved.frameLength),
-              events: events.slice(saved.eventLength),
-            });
-            restore();
-            return result;
-          },
-        });
-        restore();
-      }
+      advanceTick(tick);
       if (performance.now() - yieldedAt >= 10 || (tick + 1) % 24 === 0) {
         onProgress?.(0.12 + 0.88 * ((tick + 1) / ticks));
         await waitForPaint();
@@ -494,35 +480,21 @@ export async function generateCompletionRun({
     for (const event of events)
       if (event.type === 'sprint-complete')
         event.place = finishOrder.indexOf(event.actor) + 1;
-    const slideFrames = frames.filter(
-      (frame) => frame.hero.effects.slide?.active,
-    );
-    const peakSlide = slideFrames.reduce(
-      (peak, frame) =>
-        !peak ||
-        Math.abs(frame.hero.effects.slide.slipAngle) >
-          Math.abs(peak.hero.effects.slide.slipAngle)
-          ? frame
-          : peak,
-      null,
-    );
-    const slideStartTime = slideFrames[0]?.time ?? null;
-    const slideEndTime = slideFrames.length
-      ? (frames.find((frame) => frame.time > slideFrames.at(-1).time)?.time ??
-        null)
-      : null;
+    const drift = choreographFinish(frames, track, finishTimes.hero);
     return {
       version: COMPLETION_CAPTURE.version,
       metadata: {
         course: 'shatterline',
+        raceMotion: 'native',
+        finishMotion: 'choreographed-drift',
         trackId: track.id,
         geometryVersion: track.geometryVersion,
         hullsId: COLLISION_HULLS_ID,
         trackLength: track.length,
       },
-      identity: `completion-shatterline-native-v${COMPLETION_CAPTURE.version}:${track.geometryVersion}:${shipId}`,
+      identity: `completion-shatterline-v${COMPLETION_CAPTURE.version}:${track.geometryVersion}:${shipId}`,
       step: COMPLETION_RUN_STEP,
-      duration: COMPLETION_RUN_DURATION,
+      duration,
       actors: ACTORS.map((actor) => ({
         id: actor.id,
         combatId: actor.combatId,
@@ -540,9 +512,10 @@ export async function generateCompletionRun({
         finishDistance: track.finishDistance,
         finishTime: finishTimes.hero,
         finishTimes,
-        slideStartTime,
-        slidePeakTime: peakSlide?.time ?? null,
-        slideEndTime,
+        slideStartTime: drift.start,
+        slidePeakTime: drift.peak,
+        slideEndTime: drift.stop,
+        slideStopTime: drift.stop,
         gateTime:
           events.find(
             (event) =>
@@ -569,68 +542,4 @@ export async function generateCompletionRun({
     dynamics?.dispose();
     collisionWorld?.dispose();
   }
-}
-
-// Compare post-finish input programs by restoring one real native checkpoint;
-// no alternate world, scripted trajectory or overwritten velocity is involved.
-export async function probeCompletionSlides({
-  shipId = 'shrike',
-  patterns,
-  ...options
-}) {
-  let reports;
-  await generateCompletionRun({
-    ...options,
-    shipId,
-    slidePattern: null,
-    onFinishProbe({ probe }) {
-      reports = patterns.map((pattern) => {
-        const { frames, events } = probe(pattern);
-        const slide = frames.filter(
-          (frame) => frame.hero.effects.slide?.active,
-        );
-        let nearest = Infinity;
-        for (const frame of frames)
-          for (const id of ['rook', 'manta'])
-            nearest = Math.min(
-              nearest,
-              new T.Vector3()
-                .fromArray(frame.hero.position)
-                .distanceTo(new T.Vector3().fromArray(frame[id].position)),
-            );
-        return {
-          pattern,
-          start: slide[0]?.time,
-          end: slide.at(-1)?.time,
-          maxYaw: Math.max(
-            ...slide.map((frame) => Math.abs(frame.hero.state.heading)),
-          ),
-          maxSlip: Math.max(
-            ...slide.map((frame) =>
-              Math.abs(frame.hero.effects.slide.slipAngle),
-            ),
-          ),
-          maxSlipSpeed: Math.max(
-            ...slide.map((frame) =>
-              Math.abs(frame.hero.effects.slide.slipSpeed),
-            ),
-          ),
-          minClearance: Math.min(
-            ...frames.map(
-              (frame) => frame.hero.effects.slide?.clearance ?? Infinity,
-            ),
-          ),
-          nearest,
-          final: frames.at(-1).hero.state,
-          allGrounded: frames.every(
-            (frame) => frame.hero.grounded && !frame.hero.recovering,
-          ),
-          contacts: events.filter((event) =>
-            ['impact', 'road-departure', 'road-recovery'].includes(event.type),
-          ),
-        };
-      });
-    },
-  });
-  return reports;
 }

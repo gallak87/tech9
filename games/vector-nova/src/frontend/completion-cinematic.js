@@ -2,7 +2,7 @@ import './completion-cinematic.css';
 import { createMenuBackdrop } from './menu-backdrop.js';
 import { createCompletionStage } from './completion-stage.js';
 import { createCompletionAudio } from './completion-audio.js';
-import { COMPLETION_DURATION } from './completion-timeline.js';
+import { completionPlaybackTiming } from './completion-timeline.js';
 
 const PLAYER_SHIPS = new Set(['kestrel', 'shrike', 'bastion', 'needle']);
 
@@ -30,12 +30,13 @@ export function createCompletionCinematic({
   element.className = 'completion-cinematic';
   element.dataset.phase = 'loading';
   element.dataset.stageReady = 'false';
+  element.dataset.reducedMotion = String(reduced());
   element.setAttribute('role', 'dialog');
   element.setAttribute('aria-modal', 'true');
   element.setAttribute('aria-label', 'Career complete');
   element.setAttribute(
     'aria-description',
-    'An actual Shatterline run with your racer: the last jump, a real landing, and the course finish. Skip leads to the completion credits.',
+    'Your racer takes Shatterline’s last jump, crosses the finish, and drifts to a stop. Skip leads to the completion credits.',
   );
   element.innerHTML = `
     <div class="completion-stage"></div>
@@ -48,7 +49,6 @@ export function createCompletionCinematic({
       <progress max="1" value="0" aria-label="Loading"></progress>
       <span class="completion-progress" aria-hidden="true">0%</span>
     </div>
-    <div class="completion-title" aria-hidden="true"><span>28 / 28 · CAREER COMPLETE</span><strong>THE CIRCUIT<br>IS YOURS.</strong></div>
     <div class="completion-credits" hidden>
       <div class="completion-card">
         <div class="completion-medal" aria-hidden="true"><i></i><b>V</b><i></i></div>
@@ -71,7 +71,6 @@ export function createCompletionCinematic({
   const close = element.querySelector('[data-completion-close]');
   const retry = element.querySelector('[data-completion-retry]');
   const errorNotice = element.querySelector('.completion-error');
-  const title = element.querySelector('.completion-title');
   const progressBar = element.querySelector('progress');
   const progressText = element.querySelector('.completion-progress');
   host.append(element);
@@ -83,6 +82,7 @@ export function createCompletionCinematic({
     time = 0,
     error = null;
   let stage,
+    timing,
     audio,
     frame = 0,
     last = 0,
@@ -94,6 +94,7 @@ export function createCompletionCinematic({
     time,
     shipId,
     error,
+    ...(timing ? { timing } : {}),
     ...(stage ? { rendering: stage.metrics() } : {}),
   });
   const announce = () => onState?.(snapshot());
@@ -125,17 +126,22 @@ export function createCompletionCinematic({
       previousFocus.focus({ preventScroll: true });
     announce();
   }
-  function showCredits() {
+  function showCredits({ fade = false } = {}) {
     if (phase === 'disposed' || phase === 'credits') return;
     phase = 'credits';
     element.dataset.phase = phase;
     element.setAttribute('aria-labelledby', 'completion-thanks');
     stopFrame();
-    time = COMPLETION_DURATION;
+    const reducedMotion = reduced();
+    element.dataset.reducedMotion = String(reducedMotion);
+    element.dataset.creditsTransition =
+      fade && !reducedMotion ? 'fade' : 'instant';
+    time = timing?.creditsAt ?? time;
     try {
       stage?.draw(time, true);
     } catch (failure) {
       error = failure?.message ?? 'Finale unavailable';
+      element.dataset.creditsTransition = 'instant';
       stage?.dispose();
       stage = null;
       element.dataset.stageReady = 'false';
@@ -145,7 +151,6 @@ export function createCompletionCinematic({
     audio?.pause();
     loading.hidden = skip.hidden = true;
     credits.hidden = false;
-    title.style.opacity = '0';
     close.focus({ preventScroll: true });
     announce();
   }
@@ -158,6 +163,7 @@ export function createCompletionCinematic({
   function fail(failure) {
     if (phase === 'disposed') return;
     error = failure?.message ?? 'Finale unavailable';
+    element.dataset.creditsTransition = 'instant';
     stage?.dispose();
     stage = null;
     element.dataset.stageReady = 'false';
@@ -175,14 +181,13 @@ export function createCompletionCinematic({
     }
     if (last) time += Math.min((now - last) / 1000, 0.1);
     last = now;
-    if (time >= COMPLETION_DURATION) {
-      showCredits();
+    if (time >= timing.creditsAt) {
+      showCredits({ fade: true });
       return;
     }
     try {
       const sample = stage.draw(time);
       audio?.update(sample);
-      title.style.opacity = sample.title;
       frame = requestAnimationFrame(tick);
     } catch (failure) {
       fail(failure);
@@ -268,13 +273,21 @@ export function createCompletionCinematic({
         ),
       ]);
       if (phase === 'disposed') return snapshot();
+      timing = completionPlaybackTiming(stage.metrics().replay);
+      element.dataset.reducedMotion = String(reduced());
+      element.style.setProperty(
+        '--completion-dialog-fade',
+        `${timing.dialogFadeSeconds}s`,
+      );
       element.dataset.stageReady = 'true';
       setProgress(1);
       backdrop.configure({ active: false, reducedMotion: reduced() });
       loading.hidden = true;
       if (phase === 'credits' || reduced()) {
-        if (phase === 'credits') stage.draw(COMPLETION_DURATION, true);
-        else showCredits();
+        if (phase === 'credits') {
+          time = timing.creditsAt;
+          stage.draw(time, true);
+        } else showCredits();
       } else {
         phase = 'playing';
         element.dataset.phase = phase;

@@ -50,57 +50,68 @@ function validateSlide(run, track) {
   );
   const active = frames.filter((frame) => frame.hero.effects.slide?.active);
   assert.ok(active.length > 0);
-  const crossing = run.frames.find(
-    (frame) => frame.time >= run.landmarks.finishTime,
+  assert.equal(run.metadata.raceMotion, 'native');
+  assert.equal(run.metadata.finishMotion, 'choreographed-drift');
+  const {
+    finishTime,
+    slideStartTime,
+    slidePeakTime,
+    slideStopTime,
+    slideEndTime,
+  } = run.landmarks;
+  assert.ok(
+    slideStartTime - finishTime >= 0.5 &&
+      slideStartTime - finishTime <= 0.5 + run.step,
   );
-  const yawPeak = active.reduce((peak, frame) =>
-    Math.abs(frame.hero.state.heading) > Math.abs(peak.hero.state.heading)
-      ? frame
-      : peak,
+  assert.equal(slideEndTime, slideStopTime);
+  assert.ok(slidePeakTime >= slideStartTime && slidePeakTime < slideStopTime);
+  assert.ok(slideStopTime - slideStartTime >= 1.8);
+  assert.ok(run.duration - slideStopTime >= 1.7);
+  assert.ok(
+    active[0].hero.effects.slide.linearSpeed >= 90,
+    'the staged drift begins with the recorded racing momentum',
   );
   assert.ok(
-    active[0].hero.state.speed >= crossing.hero.state.speed * 0.9,
-    'the turn begins with the genuine racing momentum, without preparatory braking',
+    active.some(
+      (frame) =>
+        Math.abs(frame.hero.state.heading) >= (65 * Math.PI) / 180 &&
+        frame.hero.effects.slide.linearSpeed >= 60,
+    ),
+    'the hero is visibly sideways while still travelling at speed',
   );
+  const held = frames.filter((frame) => frame.time >= slideStopTime);
+  const stopped = held[0].hero;
   assert.ok(
-    yawPeak.hero.state.speed >= 90,
-    'the visible body turn still carries at least 324 km/h',
+    Math.abs(stopped.state.heading) >= (65 * Math.PI) / 180 &&
+      Math.abs(stopped.state.heading) <= (90 * Math.PI) / 180,
   );
-  const peakYaw = Math.max(
-    ...active.map((frame) => Math.abs(frame.hero.state.heading)),
-  );
-  assert.ok(
-    peakYaw >= (18 * Math.PI) / 180 && peakYaw <= (35 * Math.PI) / 180,
-    'the native post-checker yaw is clearly visible',
-  );
-  assert.ok(
-    run.duration - run.landmarks.slideEndTime >= 0.8,
-    'the actual slide settles before the closing title',
-  );
-  assert.ok(run.landmarks.slideStartTime > run.landmarks.finishTime);
-  assert.ok(run.landmarks.slideEndTime < run.duration);
-  assert.ok(
-    run.landmarks.slidePeakTime >= run.landmarks.slideStartTime &&
-      run.landmarks.slidePeakTime < run.landmarks.slideEndTime,
-  );
+  for (const frame of held) {
+    assert.deepEqual(frame.hero.position, stopped.position);
+    assert.deepEqual(frame.hero.quaternion, stopped.quaternion);
+    assert.ok(Math.abs(frame.hero.state.speed) < 0.01);
+    assert.ok(Math.abs(frame.hero.state.lateralSpeed) < 0.01);
+    assert.equal(frame.hero.effects.slide.active, false);
+    assert.equal(frame.hero.effects.slide.phase, 'stopped');
+    assert.equal(frame.hero.effects.slide.progress, 1);
+  }
   assert.ok(
     Math.min(
       ...frames.map((frame) => frame.hero.effects.slide?.clearance ?? Infinity),
     ) > 4,
   );
   assert.ok(
-    frames.every((frame) => frame.hero.grounded && !frame.hero.recovering),
+    frames.every((frame) =>
+      run.actors.every(({ id }) => frame[id].grounded && !frame[id].recovering),
+    ),
   );
   assert.equal(
     run.events.some(
       (event) =>
-        event.time > run.landmarks.finishTime &&
+        event.time > finishTime &&
         ['impact', 'road-departure', 'road-recovery'].includes(event.type),
     ),
     false,
   );
-  assert.ok(Math.abs(run.frames.at(-1).hero.state.heading) < 0.01);
-  assert.ok(Math.abs(run.frames.at(-1).hero.state.lateralSpeed) < 0.5);
   const basis = track.sample(track.finishDistance);
   const axes = [basis.right, basis.up, basis.tangent];
   const vertex = new T.Vector3(),
@@ -137,15 +148,16 @@ function validateSlide(run, track) {
             hulls[a][axis][1] < hulls[b][axis][0] ||
             hulls[b][axis][1] < hulls[a][axis][0],
         ),
-        'post-finish native hull envelopes remain separate',
+        'the choreographed hero and recorded rivals remain separate',
       );
   }
   return {
-    start: run.landmarks.slideStartTime,
-    entrySpeed: active[0].hero.state.speed,
-    peak: run.landmarks.slidePeakTime,
-    speedAtPeakYaw: yawPeak.hero.state.speed,
-    end: run.landmarks.slideEndTime,
+    source: 'choreographed-finish',
+    start: slideStartTime,
+    entrySpeed: active[0].hero.effects.slide.linearSpeed,
+    peak: slidePeakTime,
+    stop: slideStopTime,
+    end: slideEndTime,
     peakYaw: Math.max(
       ...active.map((frame) => Math.abs(frame.hero.state.heading)),
     ),
@@ -249,7 +261,7 @@ const packageJSON = JSON.parse(
   await readFile(new URL('../package.json', import.meta.url), 'utf8'),
 );
 const manifest = {
-  format: 'vector-nova-completion-native',
+  format: 'vector-nova-completion-race',
   version: 1,
   captureVersion: COMPLETION_CAPTURE.version,
   course: COMPLETION_CAPTURE.course,
@@ -279,5 +291,5 @@ const json = JSON.stringify(manifest, null, 2) + '\n';
 assert.ok(Buffer.byteLength(json) <= COMPLETION_CAPTURE.maxManifestBytes);
 await writeFile(path.join(directory, 'manifest.json'), json);
 console.log(
-  'Wrote the four final native records and deterministic provenance manifest.',
+  'Wrote the four final race recordings with choreographed finish drifts and provenance.',
 );

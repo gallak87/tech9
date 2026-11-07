@@ -130,7 +130,7 @@ test('four final shipped records preserve native combat, landing and the actual 
   }
 });
 
-test('final capture provenance matches the current physics sources without timestamps or machine paths', async () => {
+test('final capture provenance matches the current race and finish sources without timestamps or machine paths', async () => {
   assert.equal(
     manifest.provenance.generator,
     'tools/capture-completion-runs.mjs',
@@ -262,9 +262,11 @@ test('playback interpolates the shipped world poses and retains crossed events w
   );
 });
 
-test('native slide stays after the unchanged checker crossing and settles clear of the road edges', () => {
+test('the choreographed finish preserves native racing, drifts sideways at speed and holds a full stop', () => {
   for (const shipId of COMPLETION_SHIPS) {
     const run = records.get(shipId);
+    assert.equal(run.metadata.raceMotion, 'native');
+    assert.equal(run.metadata.finishMotion, 'choreographed-drift');
     const crossingTick =
       Math.ceil(run.landmarks.finishTime / run.step) * run.step;
     const prefix = JSON.stringify({
@@ -272,82 +274,89 @@ test('native slide stays after the unchanged checker crossing and settles clear 
       events: run.events.filter((event) => event.time <= crossingTick + 1e-9),
     });
     assert.equal(hash(prefix), manifest.records[shipId].preFinishSha256);
-    const { finishTime, slideStartTime, slidePeakTime, slideEndTime } =
-      run.landmarks;
+    const {
+      finishTime,
+      slideStartTime,
+      slidePeakTime,
+      slideStopTime,
+      slideEndTime,
+    } = run.landmarks;
     assert.ok(
-      finishTime < slideStartTime &&
-        slideStartTime <= slidePeakTime &&
-        slidePeakTime <= slideEndTime &&
-        slideEndTime < run.duration,
+      slideStartTime - finishTime >= 0.5 &&
+        slideStartTime - finishTime <= 0.5 + run.step,
     );
-    const active = run.frames.filter(
+    assert.ok(slideStartTime < slidePeakTime && slidePeakTime < slideStopTime);
+    assert.equal(slideEndTime, slideStopTime);
+    assert.ok(Math.abs(slideStopTime - slideStartTime - 1.9) < 1e-9);
+    assert.ok(run.duration - slideStopTime >= 1.7);
+    const drift = run.frames.filter(
       (frame) => frame.hero.effects.slide?.active,
     );
-    assert.ok(active.length > 20);
+    assert.ok(drift[0].hero.effects.slide.linearSpeed > 90);
     assert.ok(
-      active.some(
-        (frame) => frame.hero.input.airbrake && frame.hero.input.steer < 0,
-      ),
-    );
-    assert.ok(
-      active.some(
-        (frame) => frame.hero.input.airbrake && frame.hero.input.steer > 0,
-      ),
-    );
-    assert.ok(
-      active.every(
+      drift.some(
         (frame) =>
-          frame.hero.grounded &&
-          frame.hero.race.complete &&
-          frame.hero.state.resetCount === 0,
+          Math.abs(frame.hero.state.heading) >= (65 * Math.PI) / 180 &&
+          frame.hero.effects.slide.linearSpeed >= 60,
       ),
+      'sideways orientation develops while the ship still has racing momentum',
     );
+    const all = run.frames.filter((frame) => frame.time >= slideStartTime);
+    let previous = -1;
+    for (const frame of all) {
+      const slide = frame.hero.effects.slide;
+      assert.equal(slide.source, 'choreographed-finish');
+      assert.ok(
+        slide.progress >= previous &&
+          slide.progress >= 0 &&
+          slide.progress <= 1,
+      );
+      previous = slide.progress;
+      assert.ok(slide.clearance > 4);
+      assert.ok(
+        run.actors.every(
+          ({ id }) => frame[id].grounded && !frame[id].recovering,
+        ),
+      );
+      const velocity = new T.Vector3().fromArray(slide.velocity);
+      const forward = new T.Vector3(0, 0, 1).applyQuaternion(
+        new T.Quaternion().fromArray(frame.hero.quaternion),
+      );
+      assert.ok(
+        Math.abs(frame.hero.state.speed - velocity.dot(forward)) < 1e-7,
+        'displayed speed is derived from the recorded trajectory and orientation',
+      );
+    }
+    for (let index = 1; index < drift.length - 1; index++) {
+      const frame = drift[index],
+        indexInRun = Math.round(frame.time / run.step);
+      const actualVelocity = new T.Vector3()
+        .fromArray(run.frames[indexInRun + 1].hero.position)
+        .sub(
+          new T.Vector3().fromArray(run.frames[indexInRun - 1].hero.position),
+        )
+        .divideScalar(2 * run.step);
+      assert.ok(
+        actualVelocity.distanceTo(
+          new T.Vector3().fromArray(frame.hero.effects.slide.velocity),
+        ) < 1e-7,
+      );
+    }
+    const held = run.frames.filter((frame) => frame.time >= slideStopTime),
+      stopped = held[0].hero;
     assert.ok(
-      Math.min(...active.map((frame) => frame.hero.effects.slide.clearance)) >
-        4,
+      Math.abs(stopped.state.heading) >= (65 * Math.PI) / 180 &&
+        Math.abs(stopped.state.heading) <= (90 * Math.PI) / 180,
     );
-    assert.ok(
-      Math.max(
-        ...active.map((frame) => Math.abs(frame.hero.effects.slide.slipSpeed)),
-      ) > 3,
-    );
-    const peakYaw = Math.max(
-      ...active.map((frame) => Math.abs(frame.hero.state.heading)),
-    );
-    assert.ok(
-      peakYaw >= (18 * Math.PI) / 180 && peakYaw <= (35 * Math.PI) / 180,
-      'a clearly visible 18–35 degree native body turn',
-    );
-    assert.ok(slideEndTime - slideStartTime > 0.6);
-    assert.ok(run.duration - slideEndTime >= 0.8);
-    const crossing = run.frames.find((frame) => frame.time >= finishTime);
-    assert.ok(
-      active[0].hero.state.speed >= crossing.hero.state.speed * 0.9,
-      'the inward airbrake turn starts with racing momentum',
-    );
-    const yawPeak = active.reduce((peak, frame) =>
-      Math.abs(frame.hero.state.heading) > Math.abs(peak.hero.state.heading)
-        ? frame
-        : peak,
-    );
-    assert.ok(
-      yawPeak.hero.state.speed >= 90,
-      'the maximum visible turn still carries at least 324 km/h',
-    );
-    assert.equal(
-      active.some(
-        (frame) =>
-          ['turn', 'countersteer'].includes(frame.hero.effects.slide.phase) &&
-          frame.hero.input.brake > 0,
-      ),
-      false,
-      'wheel braking follows the high-speed turn and countersteer',
-    );
-    const last = run.frames.at(-1).hero;
-    assert.ok(
-      Math.abs(last.state.heading) < 0.01 &&
-        Math.abs(last.state.lateralSpeed) < 0.5,
-    );
+    for (const frame of held) {
+      assert.deepEqual(frame.hero.position, stopped.position);
+      assert.deepEqual(frame.hero.quaternion, stopped.quaternion);
+      assert.equal(frame.hero.effects.slide.phase, 'stopped');
+      assert.equal(frame.hero.effects.slide.active, false);
+      assert.equal(frame.hero.effects.slide.progress, 1);
+      assert.ok(Math.abs(frame.hero.state.speed) < 0.01);
+      assert.ok(Math.abs(frame.hero.state.lateralSpeed) < 0.01);
+    }
     assert.equal(
       run.events.some(
         (event) =>
@@ -364,6 +373,9 @@ test('missing, reversed or prefinish slide anchors reject a stale recording', ()
   for (const change of [
     (run) => {
       delete run.landmarks.slideEndTime;
+    },
+    (run) => {
+      delete run.landmarks.slideStopTime;
     },
     (run) => {
       run.landmarks.slideStartTime = run.landmarks.finishTime - 0.1;

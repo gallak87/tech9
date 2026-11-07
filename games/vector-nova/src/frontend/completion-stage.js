@@ -11,8 +11,8 @@ import { createCompletionEffects } from './completion-effects.js';
 import { loadCompletionRun, sampleCompletionRun } from './completion-run.js';
 import { createCompletionDirector } from './completion-timeline.js';
 
-// Record production physics first, then play its poses and events at 1× in the
-// production Shatterline world. The director controls only the camera.
+// Replay the production race and its choreographed post-finish drift at 1× in
+// the production Shatterline world. The director controls only the camera.
 export function createCompletionStage({
   mount,
   shipId,
@@ -262,7 +262,7 @@ export function createCompletionStage({
       prepared = true;
       draw(requestedTime, Boolean(readSettings().reducedMotion));
       onProgress?.(1);
-      return { world: 'shatterline', source: 'native-replay' };
+      return { world: 'shatterline', source: 'recorded-race' };
     } catch (error) {
       dispose();
       throw error;
@@ -274,7 +274,7 @@ export function createCompletionStage({
     dispose,
     metrics: () => ({
       world: 'shatterline',
-      source: 'native-replay',
+      source: 'recorded-race',
       ...(run
         ? {
             replay: {
@@ -282,6 +282,8 @@ export function createCompletionStage({
               duration: run.duration,
               landmarks: run.landmarks,
               outcome: run.outcome,
+              raceMotion: run.metadata.raceMotion,
+              finishMotion: run.metadata.finishMotion,
               time: lastSample?.time ?? 0,
               shot: lastSample?.shot,
               speed: lastSample?.hero.state.speed,

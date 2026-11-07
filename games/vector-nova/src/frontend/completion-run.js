@@ -39,14 +39,16 @@ export function validateCompletionRun(run, { shipId, track } = {}) {
   );
   demand(
     run.identity ===
-      `completion-shatterline-native-v${COMPLETION_CAPTURE.version}:${COMPLETION_CAPTURE.geometryVersion}:${shipId}`,
+      `completion-shatterline-v${COMPLETION_CAPTURE.version}:${COMPLETION_CAPTURE.geometryVersion}:${shipId}`,
     'has an incompatible identity',
   );
   demand(
     run.metadata?.course === COMPLETION_CAPTURE.course &&
       run.metadata.trackId === COMPLETION_CAPTURE.trackId &&
       run.metadata.geometryVersion === COMPLETION_CAPTURE.geometryVersion &&
-      run.metadata.hullsId === COMPLETION_CAPTURE.hullsId,
+      run.metadata.hullsId === COMPLETION_CAPTURE.hullsId &&
+      run.metadata.raceMotion === 'native' &&
+      run.metadata.finishMotion === 'choreographed-drift',
     'uses stale course or hull data',
   );
   demand(
@@ -111,6 +113,16 @@ export function validateCompletionRun(run, { shipId, track } = {}) {
         anchors.slidePeakTime <= anchors.slideEndTime &&
         anchors.slideEndTime < run.duration,
       'has inconsistent post-finish slide timing',
+    );
+  }
+  if (COMPLETION_CAPTURE.version >= 6) {
+    demand(
+      Number.isFinite(anchors.slideStopTime) &&
+        Math.abs(anchors.slideStartTime - anchors.finishTime - 0.5) < 0.025 &&
+        anchors.slidePeakTime <= anchors.slideStopTime &&
+        anchors.slideStopTime === anchors.slideEndTime &&
+        anchors.slideStopTime + 1.7 <= run.duration,
+      'has inconsistent drift stop or dialog hold timing',
     );
   }
   if (track) {
@@ -213,7 +225,7 @@ export function validateCompletionRun(run, { shipId, track } = {}) {
 }
 function validateManifest(manifest, shipId) {
   demand(
-    manifest?.format === 'vector-nova-completion-native' &&
+    manifest?.format === 'vector-nova-completion-race' &&
       manifest.version === 1 &&
       manifest.captureVersion === COMPLETION_CAPTURE.version &&
       manifest.course === COMPLETION_CAPTURE.course &&

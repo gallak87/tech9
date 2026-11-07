@@ -621,7 +621,14 @@ export function createCupFinish(options) {
     await click('cup-restart');
     await click('cup-cancel');
     assert.deepEqual((await state()).cup.state, beforeRestart);
-    await page.locator('.cup-options > summary').click();
+    assert.equal(
+      await page.evaluate(() => document.activeElement.dataset.action),
+      'cup-restart',
+    );
+    assert.equal(
+      await page.locator('.cup-options').evaluate((details) => details.open),
+      true,
+    );
     await click('cup-restart');
     await click('cup-confirm');
     await ready(cup.tracks[0]);

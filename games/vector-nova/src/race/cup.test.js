@@ -21,7 +21,7 @@ test('Encore is an additional gated championship; original schedules and IDs sta
     availableCups().map(({ id }) => id),
     ['founders', 'frontier', 'horizon', 'apex'],
   );
-  assert.deepEqual(cupDefinition('encore').tracks, ['ravel', 'nomad', 'oriel']);
+  assert.deepEqual(cupDefinition('encore').tracks, ['oriel', 'ravel', 'nomad']);
   assert.equal(availableCups({ complete: true }).at(-1).id, 'encore');
   assert.equal(availableCups({ developer: true }).at(-1).id, 'encore');
   assert.equal(cupDefinition('encore').bonus, true);

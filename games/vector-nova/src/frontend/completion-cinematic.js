@@ -54,7 +54,7 @@ export function createCompletionCinematic({
         <div class="completion-medal" aria-hidden="true"><i></i><b>V</b><i></i></div>
         <span class="completion-eyebrow">THE NEXT CHAPTER</span>
         <h1 id="completion-thanks">Thx for playing, 3 new courses unlocked!</h1>
-        <p class="completion-next">Ravel <span>·</span> Nomad <span>·</span> Oriel</p>
+        <p class="completion-next">Oriel <span>·</span> Ravel <span>·</span> Nomad</p>
         <div class="completion-credit-lines">
           <p><span>DEV</span><strong>George Allakhverdyan</strong><small>Studio name TBD</small></p>
           <p><span>HOMIES WHO HELPED TEST THE GAME</span><strong>Noyan Gunday</strong></p>

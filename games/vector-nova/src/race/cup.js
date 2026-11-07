@@ -28,7 +28,7 @@ export const ALL_CUPS = Object.freeze(
     {
       id: 'encore',
       name: 'Encore Cup',
-      tracks: ['ravel', 'nomad', 'oriel'],
+      tracks: ['oriel', 'ravel', 'nomad'],
       bonus: true,
     },
   ].map(Object.freeze),

@@ -22,6 +22,7 @@ assert.ok(
 );
 const base = process.env.VN_URL;
 assert.ok(base, 'Set VN_URL to an existing development server.');
+const selectedChecks = new RegExp(process.env.VN_CHECK ?? '.');
 const cupFinish = {
   mode: 'cup',
   final: true,
@@ -169,6 +170,7 @@ async function check(
     viewport = { width: 1440, height: 900 },
   } = {},
 ) {
+  if (!selectedChecks.test(name)) return;
   const context = await browser.newContext({
     viewport,
     deviceScaleFactor: 1,
@@ -362,6 +364,81 @@ try {
         await page.goto(url());
         await ready(page);
         assert.equal((await state(page)).career.state.claims.length, 0);
+      },
+    );
+    await check(
+      'developer completion requires the exact showcase=1 parameter',
+      pending,
+      async (page) => {
+        for (const query of [
+          'dev=1',
+          'dev=2',
+          'dev=1&showcase=0',
+          'dev=2&showcase=completion',
+        ]) {
+          await page.goto(url(query));
+          await ready(page);
+          assert.equal((await state(page)).developer, true);
+          if (query === 'dev=2') {
+            await page.locator('[data-action="quick-race"]').click();
+            await page.locator('[data-action="launch"]').click();
+            await page.waitForFunction(() => !!window.__releaseRace);
+            await page.evaluate(() => window.__releaseRace.win());
+            const finished = await state(page);
+            assert.equal(finished.screen, 'results');
+            assert.equal(finished.career.state.claims.length, 28);
+            assert.equal(
+              finished.career.state.completion.acknowledged,
+              false,
+              'the developer win queues a completion without presenting it',
+            );
+          }
+          assert.equal((await state(page)).completion, null, query);
+          assert.equal(await page.locator('.completion-cinematic').count(), 0);
+          assert.equal(
+            await page.evaluate(() =>
+              performance
+                .getEntriesByType('resource')
+                .some((entry) =>
+                  /\/src\/frontend\/completion-(cinematic|stage)\.js/.test(
+                    new URL(entry.name).pathname,
+                  ),
+                ),
+            ),
+            false,
+            `${query} never loads the finale`,
+          );
+        }
+        await page.goto(url());
+        await phase(page, 'credits');
+        assert.equal((await state(page)).completion.shipId, 'needle');
+        await creditsClose(page);
+      },
+      { game: true },
+    );
+    await check(
+      'developer showcase=1 explicitly previews completion without acknowledging the real career',
+      pending,
+      async (page) => {
+        for (const mode of ['1', '2']) {
+          await page.goto(url(`dev=${mode}&showcase=1&ship=bastion`));
+          await phase(page, 'credits');
+          assert.equal((await state(page)).developer, true);
+          assert.equal((await state(page)).completion.error, null);
+          assert.equal((await state(page)).completion.shipId, 'bastion');
+          await page.getByRole('button', { name: /^Close/ }).click();
+          await page.waitForFunction(
+            () => !window.__VN_FRONTEND.getState().completion,
+          );
+        }
+        await page.goto(url());
+        await phase(page, 'credits');
+        assert.equal((await state(page)).completion.shipId, 'needle');
+        assert.equal(
+          (await state(page)).career.state.completion.acknowledged,
+          false,
+        );
+        await creditsClose(page);
       },
     );
     await check(

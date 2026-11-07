@@ -568,6 +568,7 @@ export async function createFrontend(
     if (
       disposed ||
       special ||
+      (developer && parameters.get('showcase') !== '1') ||
       completion ||
       completionPending ||
       !isCareerComplete(profile()) ||

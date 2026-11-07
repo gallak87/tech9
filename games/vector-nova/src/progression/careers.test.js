@@ -304,7 +304,7 @@ test('completion showcase uses a disposable completed career and leaves Encore u
   createProfileStore(() => source).recordRace({ id: 'real-race', won: true });
   const before = entries(source);
   const preview = createDeveloperSession(
-    new URLSearchParams('dev=2&showcase=completion&ship=bastion'),
+    new URLSearchParams('dev=2&showcase=1&ship=bastion'),
     source,
   ).storage();
   const store = createProfileStore(() => preview);
@@ -321,7 +321,7 @@ test('completion showcase uses a disposable completed career and leaves Encore u
   store.acknowledgeCompletion();
   assert.deepEqual(entries(source), before);
   const incomplete = createDeveloperSession(
-    new URLSearchParams('dev=2&showcase=completion&upgrades=0'),
+    new URLSearchParams('dev=2&showcase=1&upgrades=0'),
     source,
   ).storage();
   assert.equal(
@@ -329,11 +329,35 @@ test('completion showcase uses a disposable completed career and leaves Encore u
     null,
   );
   const normal = createDeveloperSession(
-    new URLSearchParams('dev=1&showcase=completion'),
+    new URLSearchParams('dev=1'),
     source,
   ).storage();
   assert.equal(
     createProfileStore(() => normal).snapshot().state.completion,
     null,
   );
+});
+
+test('explicit finale preview works in either developer mode and requires showcase=1', () => {
+  for (const dev of ['1', '2']) {
+    const preview = createDeveloperSession(
+      new URLSearchParams(`dev=${dev}&showcase=1&ship=kestrel`),
+    ).storage();
+    assert.deepEqual(
+      createProfileStore(() => preview).snapshot().state.completion,
+      {
+        shipId: 'kestrel',
+        acknowledged: false,
+      },
+    );
+    for (const showcase of ['', '0', 'completion']) {
+      const normal = createDeveloperSession(
+        new URLSearchParams(`dev=${dev}&showcase=${showcase}`),
+      ).storage();
+      assert.equal(
+        createProfileStore(() => normal).snapshot().state.completion,
+        null,
+      );
+    }
+  }
 });

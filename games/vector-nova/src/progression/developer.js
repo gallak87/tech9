@@ -17,20 +17,20 @@ export function createDeveloperSession(parameters, sourceStorage = null) {
   const storage = createMemoryStorage();
   const completionShowcase =
     !IS_DEMO &&
-    parameters.get('dev') === '2' &&
-    parameters.get('showcase') === 'completion';
-  if (parameters.get('dev') !== '2' && sourceStorage)
+    ['1', '2'].includes(parameters.get('dev')) &&
+    parameters.get('showcase') === '1';
+  const fullCollection = parameters.get('dev') === '2' || completionShowcase;
+  if (!fullCollection && sourceStorage)
     for (let i = 0; i < sourceStorage.length; i++) {
       const key = sourceStorage.key(i);
       if (key !== null) storage.setItem(key, sourceStorage.getItem(key));
     }
-  const state =
-    parameters.get('dev') === '2'
-      ? freshProfile()
-      : sourceStorage
-        ? createProfileStore(() => sourceStorage).snapshot().state
-        : freshProfile();
-  if (parameters.get('dev') === '2') {
+  const state = fullCollection
+    ? freshProfile()
+    : sourceStorage
+      ? createProfileStore(() => sourceStorage).snapshot().state
+      : freshProfile();
+  if (fullCollection) {
     state.wins = 24;
     state.finishes = 24;
     state.points = 120;
@@ -107,21 +107,20 @@ export function createDeveloperSession(parameters, sourceStorage = null) {
     );
     storage.setItem(CUP_STORAGE_KEY, JSON.stringify(saved));
   }
-  const trophies =
-    parameters.get('dev') === '2'
-      ? Object.fromEntries(
-          CUPS.map((cup) => [
-            cup.id,
-            {
-              earnedAt: Date.now(),
-              difficulty: 'hard',
-              points: cup.tracks.length * 25,
-            },
-          ]),
-        )
-      : sourceStorage
-        ? createCupCollection(() => sourceStorage).snapshot().cups
-        : {};
+  const trophies = fullCollection
+    ? Object.fromEntries(
+        CUPS.map((cup) => [
+          cup.id,
+          {
+            earnedAt: Date.now(),
+            difficulty: 'hard',
+            points: cup.tracks.length * 25,
+          },
+        ]),
+      )
+    : sourceStorage
+      ? createCupCollection(() => sourceStorage).snapshot().cups
+      : {};
   if (completionShowcase) {
     state.cups = state.cups.filter((id) => id !== 'encore');
     delete trophies.encore;

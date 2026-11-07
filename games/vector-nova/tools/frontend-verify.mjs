@@ -1696,6 +1696,13 @@ try {
         assert.equal((await snapshot(page)).mode, 'inspection');
         await page.keyboard.press('Escape');
         assert.equal((await snapshot(page)).mode, 'racing');
+        const nativeStart = (await snapshot(page)).tick;
+        await page.keyboard.down('w');
+        await page.waitForFunction(
+          (tick) => window.__VN.getSnapshot().tick >= tick + 24,
+          nativeStart,
+        );
+        await page.keyboard.up('w');
         const replay = await page.evaluate(() => {
           window.__VN.pause();
           return window.__VN.getReplay();
@@ -1729,6 +1736,41 @@ try {
           assert.match(rejection.message, /Replay version mismatch/);
           assert.equal(rejection.unchanged, true);
         }
+        const invalidInitial = structuredClone(replay);
+        invalidInitial.initial.vehicle.distance += 1;
+        const rollback = await page.evaluate((recording) => {
+          const retained = () => {
+            const { mode, tick, vehicle, runtime, competition, lap } =
+              window.__VN.getSnapshot();
+            return { mode, tick, vehicle, runtime, competition, lap };
+          };
+          const before = retained();
+          let message;
+          try {
+            window.__VN.playReplay(recording);
+          } catch (error) {
+            message = error.message;
+          }
+          return { message, before, after: retained() };
+        }, invalidInitial);
+        assert.match(rollback.message, /Replay initial state mismatch/);
+        assert.deepEqual(
+          rollback.after,
+          rollback.before,
+          'rejection after replay reset restores the retained simulation',
+        );
+        await page.evaluate(() => window.__VN.resume());
+        await page.keyboard.down('w');
+        await page.waitForFunction(
+          (tick) => window.__VN.getSnapshot().tick >= tick + 12,
+          rollback.after.tick,
+        );
+        await page.keyboard.up('w');
+        await page.evaluate(() => window.__VN.pause());
+        assert.ok(
+          (await snapshot(page)).vehicle.time > rollback.after.vehicle.time,
+          'the restored simulation continues ordinary native ticks',
+        );
         const finished = await page.evaluate(
           (recording) => window.__VN.playReplay(recording),
           {

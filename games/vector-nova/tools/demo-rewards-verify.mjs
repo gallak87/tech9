@@ -182,6 +182,18 @@ try {
       assert.ok((await state(page)).cupCollection.cups.demo);
       assert.equal(await page.locator('.cup-victory').count(), 1);
       await pad(page, 0);
+      assert.equal(
+        await page.locator('.cup-result-actions.front-actions').count(),
+        1,
+      );
+      assert.equal(
+        await page
+          .locator(
+            '.cup-result-actions.front-actions > [data-action="equipment"]',
+          )
+          .count(),
+        1,
+      );
       await action(page, 'equipment').focus();
       await pad(page, 0);
       await page.locator('[data-equip="deflector"]').focus();

@@ -1054,13 +1054,15 @@ export async function createFrontend(
         if (actions) panel.append(actions);
         panel.append(rewards, main);
       }
-      if (lastResults?.mode === 'cup')
-        actions
-          ?.querySelector('.front-actions')
-          ?.insertAdjacentHTML(
-            'beforeend',
-            button('equipment', 'Change equipment'),
-          );
+      if (lastResults?.mode === 'cup') {
+        const equipmentActions = actions?.matches('.front-actions')
+          ? actions
+          : actions?.querySelector('.front-actions');
+        equipmentActions?.insertAdjacentHTML(
+          'beforeend',
+          button('equipment', 'Change equipment'),
+        );
+      }
     }
     const statusSlot = shell.querySelector('.transfer-slot');
     if (statusSlot) statusSlot.append(transfer);

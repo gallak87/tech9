@@ -1448,6 +1448,11 @@ try {
       );
       await pad(page, 13);
       assert.equal(
+        await page.evaluate(() => document.activeElement.dataset.action),
+        'toggle-exotic',
+      );
+      await pad(page, 13);
+      assert.equal(
         await page.evaluate(() => document.activeElement.dataset.equip),
         'jump',
       );
@@ -1507,13 +1512,14 @@ try {
       const bytes = Buffer.concat(chunks),
         saved = JSON.parse(bytes);
       assert.equal(saved.profile.version, CAREER_VERSION);
-      assert.equal(Object.keys(saved.trophies.cups).length, 4);
+      assert.deepEqual(saved.trophies.cups, before.cupCollection.cups);
       assert.ok('cup' in saved && Array.isArray(saved.trials));
       await page.locator('[data-save-file]').setInputFiles({
         name: 'save.json',
         mimeType: 'application/json',
         buffer: bytes,
       });
+      await page.locator('[data-cancel]').waitFor({ state: 'visible' });
       assert.equal(
         await page.evaluate(() =>
           document.activeElement.hasAttribute('data-cancel'),
@@ -1771,6 +1777,7 @@ try {
         mimeType: 'application/json',
         buffer: bytes,
       });
+      await page.locator('[data-cancel]').waitFor({ state: 'visible' });
       assert.equal(
         await page.evaluate(() =>
           document.activeElement.hasAttribute('data-cancel'),
@@ -2049,7 +2056,12 @@ try {
         ['deflector'],
       );
       await page.locator('.garage-fleet [data-ship="bastion"]').focus();
-      await pad(page, 15);
+      await pad(page, 13);
+      assert.equal(
+        await page.evaluate(() => document.activeElement.dataset.fleetUpgrade),
+        'speed-1',
+      );
+      await pad(page, 13);
       assert.equal(
         await page.evaluate(() => document.activeElement.dataset.equip),
         'deflector',

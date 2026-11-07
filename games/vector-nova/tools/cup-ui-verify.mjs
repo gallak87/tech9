@@ -6,7 +6,7 @@ import {
 import { routeRuntimeProbe } from './runtime-probe.mjs';
 import { RACE_OPPONENTS } from '../src/race/roster.js';
 import {
-  CUPS,
+  availableCups,
   CUP_STORAGE_KEY,
   cupDefinition,
   createCupStore,
@@ -16,7 +16,7 @@ const sessionReturnOnly = process.argv.includes('--session-return');
 assert.ok(process.argv.slice(2).every((flag) => flag === '--session-return'));
 const cup = cupDefinition(process.env.VN_CUP_ID ?? 'founders');
 assert.ok(cup, 'VN_CUP_ID must name an available cup');
-const lastCup = CUPS.at(-1);
+const lastCup = availableCups().at(-1);
 const lastCupNames = await Promise.all(
   lastCup.tracks.map(
     async (id) =>

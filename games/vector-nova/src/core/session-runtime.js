@@ -66,6 +66,8 @@ export function createMagneticRuntime({
         body.reset(state);
       },
       snapshot: () => body.snapshot(),
+      status: () => ({ mode: 'magnetic' }),
+      readFrame: () => ({}),
       restore: (data) => body.restore(data),
       pose: (alpha) => body.pose(alpha),
       update() {},
@@ -83,6 +85,8 @@ export function createMagneticRuntime({
       stepVehicle(state, input, track, dt, modifiers),
     reset() {},
     snapshot: () => null,
+    status: () => ({ mode: 'magnetic' }),
+    readFrame: () => null,
     restore() {},
     pose: () => null,
     update() {},
@@ -91,6 +95,13 @@ export function createMagneticRuntime({
 }
 export function runtimeIdentity(runtime) {
   return { id: runtime.id, version: runtime.version, rulesId: runtime.rulesId };
+}
+// Presentation reads never need an owned replay checkpoint. Older adapters can
+// retain their snapshot contract until they supply a dedicated frame reader.
+export function readRuntimeFrame(runtime) {
+  return typeof runtime.readFrame === 'function'
+    ? runtime.readFrame()
+    : runtime.snapshot();
 }
 export function compatibleRuntime(runtime, identity) {
   const expected = runtimeIdentity(runtime);

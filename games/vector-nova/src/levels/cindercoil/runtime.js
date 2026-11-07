@@ -193,6 +193,9 @@ export function createCindercoilRuntime(context) {
       contactId = null;
       flight.reset(args);
     },
+    readFrame() {
+      return { flight: flight.readFrame(), contactSeconds, contactId };
+    },
     snapshot() {
       return { flight: flight.snapshot(), contactSeconds, contactId };
     },

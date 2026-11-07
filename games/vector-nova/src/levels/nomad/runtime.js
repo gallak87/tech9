@@ -174,6 +174,19 @@ export function createNomadRuntime(context) {
       syncPresentation();
       flight.reset(args);
     },
+    readFrame() {
+      const motion = flight.readFrame();
+      return {
+        time: clock,
+        previousTime: previousClock,
+        countdownOffset,
+        motion,
+        mode: motion.mode,
+        currentPose: motion.currentPose,
+        previousPose: motion.previousPose,
+        flight: motion.flight,
+      };
+    },
     snapshot() {
       const motion = flight.snapshot();
       return {

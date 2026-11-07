@@ -277,6 +277,18 @@ export function createRavelRuntime(context) {
       syncPresentation();
       flight.reset(args);
     },
+    readFrame() {
+      const motion = flight.readFrame();
+      return {
+        time: clock,
+        previousTime: previousClock,
+        motion,
+        mode: motion.mode,
+        currentPose: motion.currentPose,
+        previousPose: motion.previousPose,
+        flight: motion.flight,
+      };
+    },
     snapshot() {
       const motion = flight.snapshot();
       return {

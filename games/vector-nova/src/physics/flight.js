@@ -2054,6 +2054,23 @@ export function createFlightModel(overrides = {}) {
       version: options.version,
       rulesId: `${collisionWorld ? `${options.rulesId}:collision-${JSON.stringify({ id: collisionWorld.id, version: collisionWorld.version, rulesId: collisionWorld.rulesId })}` : options.rulesId}${dynamics ? `:dynamics-${JSON.stringify({ id: dynamics.id, version: dynamics.version, rulesId: dynamics.rulesId })}:${MAGNETIC_BODY_RULES}:shared-transition-tick-v1:equipment-jump-v2-${JSON.stringify(EQUIPMENT_JUMP_RULES)}` : collisionWorld ? ':supported-rail-slide-v1' : ''}${options.forgivingContacts ? `:forgiving-deck-wall-v4:support-height-${options.supportHeight ?? 0}` : ''}${options.supportVelocity ? ':moving-support-velocity-v2-edge-release' : ''}${boundaryRecoveryGrace ? ':boundary-recovery-grace-v1' : ''}${automaticRecovery ? '' : ':manual-recovery-v1'}`,
       scenarios,
+      status: () => ({ mode }),
+      readFrame() {
+        return {
+          mode,
+          currentPose: encodePose(currentPose),
+          previousPose: encodePose(previousPose),
+          landingSettle: landingSettle
+            ? {
+                ...landingSettle,
+                orientation: landingSettle.orientation.toArray(),
+              }
+            : null,
+          flight: flight
+            ? { id: flight.id, manualRecovery: flight.manualRecovery }
+            : null,
+        };
+      },
       jump(state) {
         if (disposed || pending || !dynamics) return false;
         if (mode !== 'magnetic') {

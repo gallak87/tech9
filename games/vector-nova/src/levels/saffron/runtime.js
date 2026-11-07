@@ -88,7 +88,7 @@ export function createSaffronRuntime(context) {
         startedAt: beforeTime + (state.time - beforeTime) * fraction,
       };
     }
-    const grounded = runtime.snapshot().mode === 'magnetic';
+    const grounded = runtime.status().mode === 'magnetic';
     sandExposure = grounded
       ? saffronSandExposure(track, state.distance, state.lateral, state.time)
       : 0;
@@ -128,6 +128,12 @@ export function createSaffronRuntime(context) {
       const beforeTime = state.time;
       const events = runtime.advance(state, input, dt, modifiers);
       return finishLocal(state, events, beforeDistance, beforeTime);
+    },
+    readFrame() {
+      return {
+        ...runtime.readFrame(),
+        saffron: { surfaceId, sandExposure, grazer: { ...grazer } },
+      };
     },
     snapshot() {
       return {
@@ -209,10 +215,13 @@ export function createSaffronOverlay({ track, host }) {
   return {
     update(frame) {
       dust.update(frame);
-      const data = activeRuntimes.get(track)?.snapshot();
+      const data =
+        frame.motion?.motion ??
+        frame.motion ??
+        activeRuntimes.get(track)?.readFrame();
       presentation = {
-        sandExposure: data?.saffron.sandExposure ?? 0,
-        surfaceId: data?.saffron.surfaceId ?? null,
+        sandExposure: data?.saffron?.sandExposure ?? 0,
+        surfaceId: data?.saffron?.surfaceId ?? null,
         flight: data?.mode,
       };
     },

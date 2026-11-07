@@ -6,7 +6,7 @@ import { finishIceMaterial } from './materials.js';
 import { consolidateIceParts } from './consolidate.js';
 import { createGlasswakeWeather } from '../weather/index.js';
 import { createCalvingPowder } from '../weather/calving-powder.js';
-import { glasswakeFlightState } from '../runtime.js';
+import { glasswakeFrameState } from '../runtime.js';
 import { FIRST_SHELF_RULES, sampleFirstShelf } from './first-shelf.js';
 import { createOpeningAvalanche } from './opening-avalanche.js';
 
@@ -701,6 +701,7 @@ export function createGlasswakeEnvironment({
     time = state.time ?? 0,
     mode,
     reset,
+    motion,
   } = {}) {
     if (disposed) return;
     currentSettings = nextSettings;
@@ -715,7 +716,8 @@ export function createGlasswakeEnvironment({
     });
     const conditions = weather.snapshot();
     event = sampleCalvingState(track, state, ship?.group?.position);
-    firstShelf = sampleFirstShelf(glasswakeFlightState(track).openingShelf);
+    const flight = motion?.motion ?? motion ?? glasswakeFrameState(track);
+    firstShelf = sampleFirstShelf(flight.openingShelf);
     if (openingPivot) {
       const t = firstShelf.separation;
       openingAvalanche.update(firstShelf.elapsed);

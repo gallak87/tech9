@@ -3,6 +3,7 @@ import { toughness } from '../progression/catalog.js';
 import { Vector3 } from 'three';
 import {
   createMagneticRuntime,
+  readRuntimeFrame,
   runtimeIdentity,
 } from '../core/session-runtime.js';
 import { isCombatDevice, COMBAT_RULES } from './combat.js';
@@ -297,6 +298,14 @@ export function createDeviceRuntime({
       pending = [];
       staged = null;
       resetPresentation();
+    },
+    readFrame() {
+      const movement = readRuntimeFrame(motion);
+      return {
+        ...movement,
+        ...simulation.status(),
+        ...(movement === null ? {} : { motion: movement }),
+      };
     },
     snapshot() {
       const movement = motion.snapshot();

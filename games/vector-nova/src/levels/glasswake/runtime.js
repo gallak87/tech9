@@ -11,6 +11,8 @@ const flightModel = createFlightModel(GLASSWAKE_RULES);
 const runtimes = new WeakMap();
 export const glasswakeFlightState = (track) =>
   runtimes.get(track)?.snapshot() ?? { mode: 'magnetic' };
+export const glasswakeFrameState = (track) =>
+  runtimes.get(track)?.readFrame() ?? { mode: 'magnetic' };
 export function createGlasswakeRuntime(context) {
   const { track } = context;
   const runtime = flightModel.createRuntime(context, {
@@ -146,6 +148,7 @@ export function createGlasswakeRuntime(context) {
     }
   };
   owner.snapshot = () => ({ ...snapshot(), openingShelf, calvingSoundLap });
+  owner.readFrame = () => ({ ...runtime.readFrame(), openingShelf });
   owner.restore = (data) => {
     if (
       data?.openingShelf !== null &&

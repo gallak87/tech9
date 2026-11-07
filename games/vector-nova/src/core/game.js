@@ -51,6 +51,7 @@ import { createLevelPresentation } from '../levels/presentation.js';
 import { createLifetime } from './lifecycle.js';
 import {
   createMagneticRuntime,
+  readRuntimeFrame,
   runtimeIdentity,
   compatibleRuntime,
   advanceSession,
@@ -1551,7 +1552,7 @@ export async function createGame({
           : state;
       ship.group.visible =
         mode !== 'fly' && (mode !== 'inspection' || inspectionTab === 'fleet');
-      const motionFeedback = runtime.snapshot() ?? {};
+      const motionFeedback = readRuntimeFrame(runtime) ?? {};
       const thermal = motionFeedback.motion ?? motionFeedback;
       const feedback = raceFeedback.update({
         state: s,
@@ -1752,22 +1753,18 @@ export async function createGame({
       ui.updateDevTools(now, renderer.info.render);
       world.afterRender(frame);
       for (const event of view.drainStormEvents()) audio.event(event);
-      ui.update(state, race, runtime.snapshot(), {
-        practice: definition.practiceSectionsUntimed && scenario !== 'staging',
-        competition: racers?.snapshot({
-          playerState: state,
-          playerRace: race,
-          playerPose: runtime.pose(1),
-        }),
-        lastResults,
-        gamepad: input.gamepadPresent,
-        trial: trial?.snapshot(),
-        cup: cupRace,
-      });
       const standings = racers?.snapshot({
         playerState: state,
         playerRace: race,
         playerPose: runtime.pose(1),
+      });
+      ui.update(state, race, motionFeedback, {
+        practice: definition.practiceSectionsUntimed && scenario !== 'staging',
+        competition: standings,
+        lastResults,
+        gamepad: input.gamepadPresent,
+        trial: trial?.snapshot(),
+        cup: cupRace,
       });
       if (
         onResults &&

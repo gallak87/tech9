@@ -32,7 +32,7 @@ export function createZephyrRuntime(context) {
         presentation.wetStart = state.time;
     }
     presentation.exposure =
-      runtime.snapshot().mode === 'magnetic'
+      runtime.status().mode === 'magnetic'
         ? wetnessAt(track, state.distance)
         : 0;
     if (presentation.exposure > 0.02) presentation.wetStart = state.time;

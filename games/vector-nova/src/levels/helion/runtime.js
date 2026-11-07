@@ -218,6 +218,19 @@ export function createHelionRuntime(context, telemetry = {}) {
     version: base.version,
     rulesId: base.rulesId,
     scenarios,
+    status: () => base.status(),
+    readFrame() {
+      const flight = base.readFrame();
+      return {
+        mode: flight.mode,
+        flight,
+        heat,
+        contactAge,
+        contactHeat,
+        contactDuration,
+        fireClearAge,
+      };
+    },
     ...(base.launch
       ? {
           launch(state, setup) {

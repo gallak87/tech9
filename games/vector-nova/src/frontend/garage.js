@@ -69,7 +69,7 @@ export function garageView({
       : coreAction;
   const coreControl =
     !IS_DEMO && profile.claims.includes('exotic-slot') && unlocked
-      ? `<section class="garage-quad-core" aria-label="Quad Core"><button type="button" class="garage-core-toggle" data-action="toggle-exotic" aria-pressed="${coreFitted}" aria-label="${escapeHTML(coreAction)}" aria-describedby="garage-core-hint" title="${escapeHTML(coreTitle)}" ${stock || cupLocked ? 'disabled' : ''}>${rewardIcon('exotic-slot')}<span class="garage-core-label"><strong>Quad Core</strong><small>${coreFitted ? 'Equipped on this ship' : 'Equip on this ship'}</small></span><span class="garage-core-state" aria-hidden="true">${coreFitted ? '✓' : '+'}</span></button><p id="garage-core-hint">${stock ? 'Inactive in stock Time Trial.' : 'Four equipment slots · One ship at a time'}</p></section>`
+      ? `<section class="garage-quad-core" aria-label="Quad Core"><button type="button" class="garage-core-toggle" data-action="toggle-exotic" aria-pressed="${coreFitted}" aria-label="${escapeHTML(coreAction)}" aria-describedby="garage-core-hint" title="${escapeHTML(coreTitle)}" ${stock || cupLocked ? 'disabled' : ''}>${rewardIcon('exotic-slot')}<span class="garage-core-label"><strong>Quad Core</strong><small>${coreFitted ? 'Equipped on this ship' : 'Equip on this ship'}</small></span><span class="garage-core-state" aria-hidden="true">${coreFitted ? '✓' : '+'}</span></button><p id="garage-core-hint">${stock ? 'Inactive in stock Time Trial.' : 'Four equipment slots'}</p></section>`
       : '';
   const unlockedFleet = fleet.filter((ship) => shipUnlocked(profile, ship.id));
   const equipment = AVAILABLE_EQUIPMENT.filter((item) =>

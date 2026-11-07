@@ -1589,7 +1589,7 @@ try {
         assert.equal(await core.locator('.reward-icon').count(), 1);
         assert.equal(
           await page.locator('#garage-core-hint').innerText(),
-          'Four equipment slots · One ship at a time',
+          'Four equipment slots',
         );
         assert.equal(await page.locator('dialog[open]').count(), 0);
       };

@@ -2,7 +2,10 @@
 // a second smoke check loads the audited desktop renderer with a host-window
 // bridge stub. Developer APIs must remain absent; native IPC has separate tests.
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
 import { createServer, preview } from 'vite';
 import config from '../vite.config.js';
 import { resolve } from 'node:path';
@@ -27,11 +30,7 @@ const server = await createServer({
   },
 });
 await server.listen();
-const browser = await chromium.launch({
-  args: ['--mute-audio'],
-  channel: process.env.VN_BROWSER_CHANNEL ?? 'chrome',
-  headless: true,
-});
+const browser = await launchVerificationBrowser();
 const base = `http://127.0.0.1:${server.httpServer.address().port}`;
 const errors = [];
 let compiled, activePage;
@@ -80,10 +79,7 @@ async function open(query) {
     };
   });
   page.setDefaultTimeout(60000);
-  page.on('pageerror', (error) => {
-    errors.push(error.message);
-    console.error(error.message);
-  });
+  collectPageErrors(page, errors, (message) => console.error(message));
   await page.goto(`${base}/?${query}`);
   await page.waitForFunction(() => window.__VN_FRONTEND);
   return { context, page };
@@ -298,10 +294,7 @@ try {
     };
   });
   page.setDefaultTimeout(60000);
-  page.on('pageerror', (error) => {
-    errors.push(error.message);
-    console.error(error.message);
-  });
+  collectPageErrors(page, errors, (message) => console.error(message));
   await page.goto(
     `http://127.0.0.1:${compiled.httpServer.address().port}/?intro=0&dev=2`,
   );

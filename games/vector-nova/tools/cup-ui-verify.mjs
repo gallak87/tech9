@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
+import { routeRuntimeProbe } from './runtime-probe.mjs';
 import { RACE_OPPONENTS } from '../src/race/roster.js';
 import {
   CUPS,
@@ -24,11 +28,7 @@ if (!base) throw Error('Set VN_URL to a dev server');
 const [width, height] = (process.env.VN_CUP_VIEWPORT ?? '1440x900')
   .split('x')
   .map(Number);
-const browser = await chromium.launch({
-  args: ['--mute-audio'],
-  headless: true,
-  channel: 'chrome',
-});
+const browser = await launchVerificationBrowser();
 const context = await browser.newContext({
   viewport: { width, height },
   hasTouch: width < 900,
@@ -42,18 +42,10 @@ await (async () => {
         JSON.stringify({ quality: 'low', volume: 0, reducedMotion: true }),
       ),
     );
-    await context.route('**/src/core/game.js*', async (route) => {
-      const response = await route.fetch();
-      const source = await response.text();
-      assert.ok(source.includes('      getSnapshot() {'));
-      await route.fulfill({
-        response,
-        body: source.replace(
-          '      getSnapshot() {',
-          '      verifyCupResults(data) { onResults?.(data); },\n      getSnapshot() {',
-        ),
-      });
-    });
+    await routeRuntimeProbe(
+      context,
+      '      verifyCupResults(data) { onResults?.(data); },',
+    );
     const page = await context.newPage();
     const openCup = async () => {
       await page.locator('[data-action="cup-hub"]').click();
@@ -62,7 +54,7 @@ await (async () => {
       await page.mouse.move(0, 0);
     };
     const faults = [];
-    page.on('pageerror', (e) => faults.push(e.message));
+    collectPageErrors(page, faults);
     const assertSettingsResume = async (name) => {
       await page.locator('[data-action="settings-back"]').waitFor();
       assert.equal(

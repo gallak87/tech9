@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
+import { routeRuntimeProbe } from './runtime-probe.mjs';
 import { formatTime } from '../src/race/timing.js';
 import { careerKey, seedVerificationCareer } from './verification-career.mjs';
 
@@ -9,11 +13,7 @@ const base = process.env.VN_URL;
 const level = process.env.VN_TRIAL_LEVEL ?? 'halcyon';
 const sprint = level === 'shatterline';
 if (!base) throw Error('Set VN_URL to the current dev server');
-const browser = await chromium.launch({
-  args: ['--mute-audio'],
-  headless: true,
-  channel: 'chrome',
-});
+const browser = await launchVerificationBrowser();
 const [width, height] = (process.env.VN_TRIAL_VIEWPORT ?? '1440x900')
   .split('x')
   .map(Number);
@@ -30,15 +30,9 @@ try {
       JSON.stringify({ quality: 'low', volume: 0, reducedMotion: true }),
     ),
   );
-  await context.route('**/src/core/game.js*', async (route) => {
-    const response = await route.fetch();
-    const source = await response.text();
-    assert.ok(source.includes('      getSnapshot() {'));
-    await route.fulfill({
-      response,
-      body: source.replace(
-        '      getSnapshot() {',
-        `
+  await routeRuntimeProbe(
+    context,
+    `
       verifyTrialStep(ticks, idle = false, untilLap = Infinity) {
         cancelCountdown();
         mode = 'racing';
@@ -51,14 +45,11 @@ try {
       verifyTrialGhost() {
         const root = scene.getObjectByName('Personal best ghost / non-colliding');
         return { visible: root.visible, meshes: root.children.length, position: root.position.toArray(), samples: ghostSamples?.length ?? 0 };
-      },
-      getSnapshot() {`,
-      ),
-    });
-  });
+      },`,
+  );
   const page = await context.newPage();
   const faults = [];
-  page.on('pageerror', (e) => faults.push(e.message));
+  collectPageErrors(page, faults);
   let snap;
   const activate = (locator) => locator[touch ? 'tap' : 'click']();
   async function start() {

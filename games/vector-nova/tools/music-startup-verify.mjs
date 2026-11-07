@@ -1,14 +1,13 @@
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
 
 if (!process.env.VN_URL)
   throw new Error('Set VN_URL to an existing dev server.');
-const browser = await chromium.launch({
-  headless: true,
-  args: ['--mute-audio', '--autoplay-policy=no-user-gesture-required'],
-  ...(process.env.VN_BROWSER_PATH
-    ? { executablePath: process.env.VN_BROWSER_PATH }
-    : { channel: process.env.VN_BROWSER_CHANNEL ?? 'chrome' }),
+const browser = await launchVerificationBrowser({
+  args: ['--autoplay-policy=no-user-gesture-required'],
 });
 const errors = [];
 const desktopOnly = process.argv.includes('--desktop');
@@ -79,7 +78,7 @@ async function setup({ blocked = false, delayed = false } = {}) {
   // This module-only fixture must not disappear when another parallel task
   // edits an unrelated imported module on the shared checkout.
   await page.routeWebSocket('**', () => {});
-  page.on('pageerror', (error) => errors.push(error.message));
+  collectPageErrors(page, errors);
   // Exercise only the production music module, without starting a game or career.
   await page.route('**/src/core/main.js*', (route) =>
     route.fulfill({ contentType: 'text/javascript', body: '' }),

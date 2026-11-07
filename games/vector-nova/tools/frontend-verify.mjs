@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
 import {
   createCareerSlots,
   CAREER_SLOTS_KEY,
@@ -61,13 +64,7 @@ assert.ok(
     flags.length <= 1,
   'Use --desktop or --responsive, or neither for both.',
 );
-const browser = await chromium.launch({
-  args: ['--mute-audio'],
-  headless: true,
-  ...(process.env.VN_BROWSER_PATH
-    ? { executablePath: process.env.VN_BROWSER_PATH }
-    : { channel: process.env.VN_BROWSER_CHANNEL ?? 'chrome' }),
-});
+const browser = await launchVerificationBrowser();
 const url = (query = '') => {
   const target = new URL(`?${query}`, base);
   target.searchParams.set('intro', '0');
@@ -132,7 +129,7 @@ async function check(
     );
     const page = await context.newPage();
     const faults = [];
-    page.on('pageerror', (error) => faults.push(error.message));
+    collectPageErrors(page, faults);
     await fn(page);
     assert.deepEqual(faults, [], 'uncaught browser errors');
     console.log(`PASS ${name}`);

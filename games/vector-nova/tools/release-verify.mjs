@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
 import {
   createCareerSlots,
   createMemoryStorage,
@@ -85,13 +88,7 @@ const lastTrial = fixture({ wins: 24, cups: true, trials: 1 });
 const lastRace = fixture({ wins: 23, cups: true, trials: 2 });
 const pending = fixture({ wins: 24, cups: true, trials: 2, pending: true });
 const horizonFinal = fixture({ horizonFinal: true });
-const browser = await chromium.launch({
-  headless: true,
-  args: ['--mute-audio'],
-  ...(process.env.VN_BROWSER_PATH
-    ? { executablePath: process.env.VN_BROWSER_PATH }
-    : { channel: process.env.VN_BROWSER_CHANNEL ?? 'chrome' }),
-});
+const browser = await launchVerificationBrowser();
 const url = (query = '') => {
   const target = new URL(base);
   target.search = query;
@@ -178,7 +175,7 @@ async function check(
   const page = await context.newPage();
   const faults = [];
   const requests = new Set();
-  page.on('pageerror', (error) => faults.push(error.message));
+  collectPageErrors(page, faults);
   page.on('request', (request) =>
     requests.add(new URL(request.url()).pathname),
   );

@@ -10,7 +10,10 @@ import {
 } from '../src/progression/careers.js';
 import { DEVICE_PREVIEWS } from '../src/ships/pickup-preview-sequence.js';
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
 const base = process.env.VN_URL;
 if (!base) throw new Error('Set VN_URL to a running browser build.');
 const responsive = process.argv.includes('--responsive');
@@ -21,11 +24,7 @@ const careerSeed = Array.from({ length: careerStorage.length }, (_, index) => {
   return [key, careerStorage.getItem(key)];
 });
 const scopedProfileKey = `${CAREER_SLOTS_KEY}.slot.1.${PROFILE_KEY}`;
-const browser = await chromium.launch({
-  args: ['--mute-audio'],
-  channel: process.env.VN_BROWSER_CHANNEL ?? 'chrome',
-  headless: true,
-});
+const browser = await launchVerificationBrowser();
 async function check(name, fn) {
   if (responsive !== name.startsWith('responsive ')) return;
   if (process.env.VN_CHECK && !new RegExp(process.env.VN_CHECK).test(name))
@@ -63,7 +62,7 @@ async function check(name, fn) {
     );
     const page = await context.newPage(),
       errors = [];
-    page.on('pageerror', (error) => errors.push(error.message));
+    collectPageErrors(page, errors);
     await fn(page);
     assert.deepEqual(errors, [], 'no browser exceptions');
     console.log(`PASS ${name}`);

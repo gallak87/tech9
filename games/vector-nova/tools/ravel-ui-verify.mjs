@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
 import {
   createCareerSlots,
   createMemoryStorage,
@@ -13,17 +16,13 @@ const seed = Array.from({ length: storage.length }, (_, i) => {
   const key = storage.key(i);
   return [key, storage.getItem(key)];
 });
-const browser = await chromium.launch({
-  channel: process.env.VN_BROWSER_CHANNEL ?? 'chrome',
-  headless: true,
-  args: ['--mute-audio'],
-});
+const browser = await launchVerificationBrowser();
 const errors = [];
 try {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 900 },
   });
-  page.on('pageerror', (e) => errors.push(e.message));
+  collectPageErrors(page, errors);
   await page.addInitScript((seed) => {
     for (const [key, value] of seed) localStorage.setItem(key, value);
     localStorage.setItem(

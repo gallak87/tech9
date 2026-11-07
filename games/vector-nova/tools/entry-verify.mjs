@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
 import { Quaternion, Vector3 } from 'three';
 import { createProfileStore, PROFILE_KEY } from '../src/progression/profile.js';
 import { createCupStore } from '../src/race/cup.js';
@@ -25,13 +28,7 @@ assert.ok(
     flags.every((flag) => ['--desktop', '--responsive'].includes(flag)),
   'Use --desktop or --responsive, or neither for both.',
 );
-const browser = await chromium.launch({
-  headless: true,
-  args: ['--mute-audio', '--autoplay-policy=no-user-gesture-required'],
-  ...(process.env.VN_BROWSER_PATH
-    ? { executablePath: process.env.VN_BROWSER_PATH }
-    : { channel: process.env.VN_BROWSER_CHANNEL ?? 'chrome' }),
-});
+const browser = await launchVerificationBrowser();
 const url = (query = 'intro=1') => new URL(`?${query}`, base).href;
 const front = (page) => page.evaluate(() => window.__VN_FRONTEND.getState());
 const stage = (page, value) =>
@@ -191,7 +188,7 @@ async function check(name, fn, options = {}) {
     );
     const page = await context.newPage();
     const errors = [];
-    page.on('pageerror', (error) => errors.push(error.message));
+    collectPageErrors(page, errors);
     await fn(page);
     assert.deepEqual(errors, [], 'uncaught browser errors');
     console.log(`PASS ${name}`);

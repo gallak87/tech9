@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import { BONUS_LEVEL_IDS } from '../src/levels/access.js';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
 import { loadLevel } from './level-checks/level-contract.mjs';
 
 // An existing, coordinated preview is required. This harness never starts a
@@ -29,15 +32,7 @@ const report = {
     'Sampled route and authored scenery/jump clearance require their separate CPU checks.',
   ],
 };
-const browser = await chromium.launch({
-  args: ['--mute-audio'],
-  headless: true,
-  ...(process.env.VN_BROWSER_PATH
-    ? { executablePath: process.env.VN_BROWSER_PATH }
-    : process.env.VN_BROWSER_CHANNEL
-      ? { channel: process.env.VN_BROWSER_CHANNEL }
-      : {}),
-});
+const browser = await launchVerificationBrowser({ defaultChannel: null });
 function urlFor({ shape = false, id = slug } = {}) {
   const url = new URL(base);
   url.search = '';
@@ -98,7 +93,7 @@ try {
           status: 'running',
         };
         report.cases.push(result);
-        page.on('pageerror', (error) => faults.push(error.message));
+        collectPageErrors(page, faults);
         page.on('console', (message) => {
           if (message.type() === 'error') faults.push(message.text());
         });

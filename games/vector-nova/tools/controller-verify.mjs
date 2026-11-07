@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
 import {
   createCareerSlots,
   createMemoryStorage,
@@ -21,13 +24,7 @@ const careerSeed = Array.from({ length: careerStorage.length }, (_, index) => {
   const key = careerStorage.key(index);
   return [key, careerStorage.getItem(key)];
 });
-const browser = await chromium.launch({
-  args: ['--mute-audio'],
-  headless: true,
-  ...(process.env.VN_BROWSER_PATH
-    ? { executablePath: process.env.VN_BROWSER_PATH }
-    : { channel: process.env.VN_BROWSER_CHANNEL ?? 'chrome' }),
-});
+const browser = await launchVerificationBrowser();
 const context = await browser.newContext({
   hasTouch: responsive,
   viewport: responsive
@@ -96,7 +93,7 @@ try {
       };
     });
   const page = await context.newPage();
-  page.on('pageerror', (error) => errors.push(error.message));
+  collectPageErrors(page, errors);
   const settleInput = () =>
     page.evaluate(
       () =>

@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
+import { routeRuntimeProbe } from './runtime-probe.mjs';
 import { createCupStore, CUP_STORAGE_KEY } from '../src/race/cup.js';
 import { RACE_OPPONENTS } from '../src/race/roster.js';
 import { CUP_COLLECTION_KEY } from '../src/progression/cup-collection.js';
@@ -47,11 +51,7 @@ function savedFinal(position = 1, complete = false) {
   if (complete) store.finish(result(position));
   return store.snapshot().state;
 }
-const browser = await chromium.launch({
-  args: ['--mute-audio'],
-  channel: 'chrome',
-  headless: true,
-});
+const browser = await launchVerificationBrowser();
 const context = await browser.newContext({
   viewport: { width, height },
   hasTouch: width < 900,
@@ -77,21 +77,13 @@ try {
     });
   });
   // Inject at the browser boundary; production code has no result-writing hook.
-  await context.route('**/src/core/game.js*', async (route) => {
-    const response = await route.fetch();
-    const source = await response.text();
-    assert.ok(source.includes('      getSnapshot() {'));
-    await route.fulfill({
-      response,
-      body: source.replace(
-        '      getSnapshot() {',
-        '      verifyCupResults(data) { mode = "results"; onResults?.(data); },\n      getSnapshot() {',
-      ),
-    });
-  });
+  await routeRuntimeProbe(
+    context,
+    '      verifyCupResults(data) { mode = "results"; onResults?.(data); },',
+  );
   const page = await context.newPage();
   const faults = [];
-  page.on('pageerror', (error) => faults.push(error.message));
+  collectPageErrors(page, faults);
   const settle = () =>
     page.evaluate(
       () =>

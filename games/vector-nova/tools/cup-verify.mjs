@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
+import { routeRuntimeProbe, replaceOnce } from './runtime-probe.mjs';
 import {
   cupDefinition,
   cupRaceRows,
@@ -37,11 +41,7 @@ const [width, height] = (process.env.VN_CUP_VIEWPORT ?? '1440x900')
   .split('x')
   .map(Number);
 const touch = width < 900;
-const browser = await chromium.launch({
-  args: ['--mute-audio'],
-  headless: true,
-  channel: 'chrome',
-});
+const browser = await launchVerificationBrowser();
 const context = await browser.newContext({
   viewport: { width, height },
   hasTouch: touch,
@@ -101,11 +101,15 @@ try {
       const response = await route.fetch();
       const source = await response.text();
       const signature = 'export function createCupFinish(';
-      assert.ok(source.includes(signature));
       await route.fulfill({
         response,
         body:
-          source.replace(signature, 'function createUnprofiledCupFinish(') +
+          replaceOnce(
+            source,
+            signature,
+            'function createUnprofiledCupFinish(',
+            'cup-finish export',
+          ) +
           `
 export function createCupFinish(options) {
   const profile = window.__cupForecastProfile = {
@@ -136,22 +140,9 @@ export function createCupFinish(options) {
 `,
       });
     });
-  await context.route('**/src/core/game.js*', async (route) => {
-    const response = await route.fetch();
-    const source = await response.text();
-    assert.ok(source.includes('      getSnapshot() {'));
-    const instrumented = profileFinish
-      ? source.replace(
-          '    function render(now) {',
-          `    function render(now) {
-      window.__cupForecastRafs = (window.__cupForecastRafs ?? 0) + 1;`,
-        )
-      : source;
-    await route.fulfill({
-      response,
-      body: instrumented.replace(
-        '      getSnapshot() {',
-        `
+  await routeRuntimeProbe(
+    context,
+    `
       verifyCupMotion() {
         return {
           at: performance.now(), tick, time: state.time,
@@ -185,18 +176,27 @@ export function createCupFinish(options) {
           window.__cupPlayerFinishStepAt ??= performance.now();
         if (race.history.length < (track.closed === false ? 1 : 2)) pause();
         return this.getSnapshot();
-      },
-      getSnapshot() {`,
-      ),
-    });
-  });
+      },`,
+    {
+      transform: (source) =>
+        profileFinish
+          ? replaceOnce(
+              source,
+              '    function render(now) {',
+              `    function render(now) {
+      window.__cupForecastRafs = (window.__cupForecastRafs ?? 0) + 1;`,
+              'runtime render function',
+            )
+          : source,
+    },
+  );
   const page = await context.newPage();
   const navigations = [];
   page.on('framenavigated', (frame) => {
     if (frame === page.mainFrame())
       navigations.push({ url: frame.url(), at: Date.now() });
   });
-  page.on('pageerror', (e) => faults.push(e.message));
+  collectPageErrors(page, faults);
   const click = async (action) =>
     page
       .locator(`[data-action="${action}"]`)

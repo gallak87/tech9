@@ -8,7 +8,7 @@ export const COMPLETION_SHIPS = Object.freeze([
   'needle',
 ]);
 export const COMPLETION_CAPTURE = Object.freeze({
-  version: 2,
+  version: 3,
   course: 'shatterline',
   trackId: 'shatterline-mass-driver',
   geometryVersion: 'shatterline-tube-weave-v2',

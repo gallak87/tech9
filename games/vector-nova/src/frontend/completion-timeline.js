@@ -1,4 +1,4 @@
-import { Vector3 } from 'three';
+import { Quaternion, Vector3 } from 'three';
 import { deviceSample } from '../pickups/sample-cues.js';
 import { COMPLETION_DURATION } from './completion-config.js';
 
@@ -50,7 +50,10 @@ export function completionShotPlan(run = {}) {
   append('flight', landing - 0.12);
   append('landing', Math.min(landing + 1, finish - 1.2));
   append('run-in', finish - 0.85);
-  append('finish', Math.min(duration - 0.2, finish + 0.4));
+  const finishHold = Number.isFinite(event.slideStartTime)
+    ? Math.max(finish + 0.12, event.slideStartTime - 0.02)
+    : finish + 0.4;
+  append('finish', Math.min(duration - 0.2, finishHold));
   append('exit', duration);
   return { duration, shots, titleStart: finish + 0.3 };
 }
@@ -229,10 +232,24 @@ export function createCompletionDirector({ track, run }) {
         target.addScaledVector(frame.tangent, 8);
         fov = 58;
       } else {
-        offset(7 - u, 7 + u, -13 - u * 2);
-        minimumY = heroPosition.y + 6;
-        target.addScaledVector(frame.tangent, 4);
-        fov = 52 - u * 2;
+        // Hold most of the viewing angle against the road so the native little
+        // powerslide remains visible. A camera locked to the nose would hide
+        // its yaw; a head-on view would stare into the forward light cones.
+        const nose = new Vector3(0, 0, 1).applyQuaternion(
+          new Quaternion().fromArray(hero.quaternion),
+        );
+        nose.addScaledVector(up, -nose.dot(up)).normalize();
+        const forward = frame.tangent.clone().lerp(nose, 0.1).normalize();
+        const side = frame.right
+          .clone()
+          .addScaledVector(forward, -frame.right.dot(forward))
+          .normalize();
+        position
+          .addScaledVector(side, -14)
+          .addScaledVector(forward, 8.5)
+          .addScaledVector(up, 4.5 + u * 0.5);
+        minimumY = heroPosition.y + 4;
+        fov = 51 - u * 2;
       }
       fitSubjects(position, target, up, fov, aspect, subjects, minimumY);
       return {

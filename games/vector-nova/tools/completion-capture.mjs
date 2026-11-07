@@ -1,5 +1,12 @@
-import { COMPLETION_DURATION } from '../src/frontend/completion-config.js';
-import { COLLISION_HULLS_ID } from '../src/ships/collision-hulls.js';
+import {
+  COMPLETION_DURATION,
+  COMPLETION_CAPTURE,
+} from '../src/frontend/completion-config.js';
+import * as T from 'three';
+import {
+  COLLISION_HULLS_ID,
+  getCollisionHull,
+} from '../src/ships/collision-hulls.js';
 import createShatterlineLevel from '../src/levels/shatterline/index.js';
 import { createRace } from '../src/race/index.js';
 import { withMagneticBoundaries } from '../src/physics/magnetic-boundaries.js';
@@ -45,6 +52,63 @@ const ACTORS = Object.freeze([
     difficulty: 'medium',
   },
 ]);
+export const COMPLETION_SLIDE = Object.freeze({
+  delay: 0.15,
+  steer: -0.3,
+  turn: 0.28,
+  counter: 0.28,
+  brake: 0.12,
+});
+function slideControl(actor, ordinary, pattern) {
+  if (actor.specification.id !== 'hero' || !actor.race.complete || !pattern)
+    return ordinary;
+  const age = actor.state.time - actor.race.elapsed - pattern.delay;
+  if (age < 0 || age >= pattern.turn + pattern.counter) return ordinary;
+  return {
+    throttle: 0,
+    brake: pattern.brake,
+    airbrake: true,
+    boost: false,
+    steer:
+      age < pattern.turn
+        ? pattern.steer
+        : (-pattern.steer * pattern.turn) / pattern.counter,
+  };
+}
+function slideTelemetry(actor, input, track, pattern) {
+  if (!pattern || actor.specification.id !== 'hero' || !actor.race.complete)
+    return null;
+  const age = actor.state.time - actor.race.elapsed - pattern.delay;
+  if (age < 0) return null;
+  const body = actor.physical.read(),
+    frame = track.sample(actor.state.distance);
+  const forward = new T.Vector3(0, 0, 1).applyQuaternion(body.quaternion);
+  forward.addScaledVector(frame.up, -forward.dot(frame.up)).normalize();
+  const side = frame.up.clone().cross(forward).normalize();
+  const slipSpeed = body.velocity.dot(side),
+    speed = body.velocity.dot(forward);
+  const slipAngle = Math.atan2(slipSpeed, Math.max(1, Math.abs(speed)));
+  let clearance = Infinity;
+  const vertex = new T.Vector3();
+  const vertices = getCollisionHull(actor.state.chassisId).vertices;
+  for (let i = 0; i < vertices.length; i += 3) {
+    vertex
+      .fromArray(vertices, i)
+      .applyQuaternion(body.quaternion)
+      .add(body.position)
+      .sub(frame.position);
+    clearance = Math.min(
+      clearance,
+      track.width / 2 - Math.abs(vertex.dot(frame.right)),
+    );
+  }
+  const commanded = input.airbrake === true;
+  const active =
+    commanded ||
+    (age < pattern.turn + pattern.counter + 1 &&
+      (Math.abs(slipSpeed) > 0.25 || Math.abs(actor.state.heading) > 0.025));
+  return { active, slipAngle, slipSpeed, yaw: actor.state.heading, clearance };
+}
 const waitForPaint = () => new Promise((resolve) => setTimeout(resolve, 0));
 const copy = (value) => structuredClone(value);
 const eventTag = (event) => {
@@ -105,6 +169,8 @@ export async function generateCompletionRun({
   shipId,
   signal,
   onProgress,
+  slidePattern = COMPLETION_SLIDE,
+  onFinishProbe,
 } = {}) {
   if (!HERO_SHIPS.has(shipId)) throw new Error('Unknown completion chassis.');
   signal?.throwIfAborted();
@@ -147,15 +213,24 @@ export async function generateCompletionRun({
       time = 0;
     for (const specification of ACTORS) {
       const chassis = specification.shipId ?? shipId;
+      let physical;
+      const actorDynamics = Object.create(dynamics);
+      Object.defineProperty(actorDynamics, 'createActor', {
+        value: (...args) => {
+          physical = dynamics.createActor(...args);
+          return physical;
+        },
+      });
       const motion = level.createRuntime({
         track,
         collisionWorld,
-        dynamics,
+        dynamics: actorDynamics,
         settings: { steeringAssist: STEERING_ASSIST },
       });
       const actor = {
         specification,
         motion,
+        physical,
         effects: {},
         runtime: null,
         state: {
@@ -216,15 +291,18 @@ export async function generateCompletionRun({
       actor.runtime.reset({ state: actor.state });
       actor.runtime.update({});
     }
-    const record = (inputs) => {
+    const record = (inputs, pattern) => {
+      const telemetry = slideTelemetry(actors[0], inputs[0], track, pattern);
+      const encoded = Object.fromEntries(
+        actors.map((actor, index) => [
+          actor.specification.id,
+          recordActor(actor, inputs[index]),
+        ]),
+      );
+      if (telemetry) encoded.hero.effects.slide = telemetry;
       frames.push({
         time,
-        ...Object.fromEntries(
-          actors.map((actor, index) => [
-            actor.specification.id,
-            recordActor(actor, inputs[index]),
-          ]),
-        ),
+        ...encoded,
         combat: combatFrame(combat),
         events: stepEvents,
       });
@@ -236,20 +314,24 @@ export async function generateCompletionRun({
     const ticks = Math.round(COMPLETION_RUN_DURATION / COMPLETION_RUN_STEP);
     onProgress?.(0.12);
     let yieldedAt = performance.now();
-    for (let tick = 0; tick < ticks; tick++) {
+    const advanceTick = (tick, pattern) => {
       signal?.throwIfAborted();
       const nearby = actors.map((actor) => actor.state);
       const inputs = actors.map((actor) =>
-        actor.race.runoutControl(
-          actor.state,
-          getRacerControl(actor.state, track, {
-            lane: actor.specification.lane,
-            pace: actor.specification.pace,
-            difficulty: actor.specification.difficulty,
-            devices,
-            nearby,
-            runtime: actor.runtime,
-          }),
+        slideControl(
+          actor,
+          actor.race.runoutControl(
+            actor.state,
+            getRacerControl(actor.state, track, {
+              lane: actor.specification.lane,
+              pace: actor.specification.pace,
+              difficulty: actor.specification.difficulty,
+              devices,
+              nearby,
+              runtime: actor.runtime,
+            }),
+          ),
+          pattern,
         ),
       );
       time = (tick + 1) * COMPLETION_RUN_STEP;
@@ -285,7 +367,71 @@ export async function generateCompletionRun({
       });
       actors[0].runtime.advanceInteractions(COMPLETION_RUN_STEP);
       actors.forEach((actor) => actor.runtime.update({}));
-      record(inputs);
+      record(inputs, pattern);
+    };
+    let probed = false;
+    for (let tick = 0; tick < ticks; tick++) {
+      advanceTick(tick, slidePattern);
+      if (actors[0].race.complete && onFinishProbe && !probed) {
+        probed = true;
+        const raceKeys = [
+          'completedTransfers',
+          'lap',
+          'checkpoint',
+          'elapsed',
+          'lastLap',
+          'best',
+          'valid',
+          'complete',
+          'startDistance',
+          'history',
+          'splits',
+          'completedTime',
+        ];
+        const saved = {
+          native: dynamics.snapshot(),
+          time,
+          frameLength: frames.length,
+          eventLength: events.length,
+          actors: actors.map((actor) => ({
+            state: copy(actor.state),
+            runtime: actor.runtime.snapshot(),
+            effects: copy(actor.effects),
+            race: Object.fromEntries(
+              raceKeys.map((key) => [key, copy(actor.race[key])]),
+            ),
+          })),
+        };
+        const restore = () => {
+          actors.forEach((actor, index) => {
+            const state = saved.actors[index];
+            Object.assign(actor.state, copy(state.state));
+            actor.runtime.restore(copy(state.runtime));
+            Object.assign(actor.race, copy(state.race));
+            actor.effects = copy(state.effects);
+          });
+          dynamics.restore(copy(saved.native));
+          time = saved.time;
+          frames.length = saved.frameLength;
+          events.length = saved.eventLength;
+          stepEvents = [];
+        };
+        await onFinishProbe({
+          track,
+          probe(pattern) {
+            restore();
+            for (let next = tick + 1; next < ticks; next++)
+              advanceTick(next, pattern);
+            const result = copy({
+              frames: frames.slice(saved.frameLength),
+              events: events.slice(saved.eventLength),
+            });
+            restore();
+            return result;
+          },
+        });
+        restore();
+      }
       if (performance.now() - yieldedAt >= 10 || (tick + 1) % 24 === 0) {
         onProgress?.(0.12 + 0.88 * ((tick + 1) / ticks));
         await waitForPaint();
@@ -312,8 +458,25 @@ export async function generateCompletionRun({
     for (const event of events)
       if (event.type === 'sprint-complete')
         event.place = finishOrder.indexOf(event.actor) + 1;
+    const slideFrames = frames.filter(
+      (frame) => frame.hero.effects.slide?.active,
+    );
+    const peakSlide = slideFrames.reduce(
+      (peak, frame) =>
+        !peak ||
+        Math.abs(frame.hero.effects.slide.slipAngle) >
+          Math.abs(peak.hero.effects.slide.slipAngle)
+          ? frame
+          : peak,
+      null,
+    );
+    const slideStartTime = slideFrames[0]?.time ?? null;
+    const slideEndTime = slideFrames.length
+      ? (frames.find((frame) => frame.time > slideFrames.at(-1).time)?.time ??
+        null)
+      : null;
     return {
-      version: 2,
+      version: COMPLETION_CAPTURE.version,
       metadata: {
         course: 'shatterline',
         trackId: track.id,
@@ -321,7 +484,7 @@ export async function generateCompletionRun({
         hullsId: COLLISION_HULLS_ID,
         trackLength: track.length,
       },
-      identity: `completion-shatterline-native-v2:${track.geometryVersion}:${shipId}`,
+      identity: `completion-shatterline-native-v${COMPLETION_CAPTURE.version}:${track.geometryVersion}:${shipId}`,
       step: COMPLETION_RUN_STEP,
       duration: COMPLETION_RUN_DURATION,
       actors: ACTORS.map((actor) => ({
@@ -341,6 +504,9 @@ export async function generateCompletionRun({
         finishDistance: track.finishDistance,
         finishTime: finishTimes.hero,
         finishTimes,
+        slideStartTime,
+        slidePeakTime: peakSlide?.time ?? null,
+        slideEndTime,
         gateTime:
           events.find(
             (event) =>
@@ -367,4 +533,68 @@ export async function generateCompletionRun({
     dynamics?.dispose();
     collisionWorld?.dispose();
   }
+}
+
+// Compare post-finish input programs by restoring one real native checkpoint;
+// no alternate world, scripted trajectory or overwritten velocity is involved.
+export async function probeCompletionSlides({
+  shipId = 'shrike',
+  patterns,
+  ...options
+}) {
+  let reports;
+  await generateCompletionRun({
+    ...options,
+    shipId,
+    slidePattern: null,
+    onFinishProbe({ probe }) {
+      reports = patterns.map((pattern) => {
+        const { frames, events } = probe(pattern);
+        const slide = frames.filter(
+          (frame) => frame.hero.effects.slide?.active,
+        );
+        let nearest = Infinity;
+        for (const frame of frames)
+          for (const id of ['rook', 'manta'])
+            nearest = Math.min(
+              nearest,
+              new T.Vector3()
+                .fromArray(frame.hero.position)
+                .distanceTo(new T.Vector3().fromArray(frame[id].position)),
+            );
+        return {
+          pattern,
+          start: slide[0]?.time,
+          end: slide.at(-1)?.time,
+          maxYaw: Math.max(
+            ...slide.map((frame) => Math.abs(frame.hero.state.heading)),
+          ),
+          maxSlip: Math.max(
+            ...slide.map((frame) =>
+              Math.abs(frame.hero.effects.slide.slipAngle),
+            ),
+          ),
+          maxSlipSpeed: Math.max(
+            ...slide.map((frame) =>
+              Math.abs(frame.hero.effects.slide.slipSpeed),
+            ),
+          ),
+          minClearance: Math.min(
+            ...frames.map(
+              (frame) => frame.hero.effects.slide?.clearance ?? Infinity,
+            ),
+          ),
+          nearest,
+          final: frames.at(-1).hero.state,
+          allGrounded: frames.every(
+            (frame) => frame.hero.grounded && !frame.hero.recovering,
+          ),
+          contacts: events.filter((event) =>
+            ['impact', 'road-departure', 'road-recovery'].includes(event.type),
+          ),
+        };
+      });
+    },
+  });
+  return reports;
 }

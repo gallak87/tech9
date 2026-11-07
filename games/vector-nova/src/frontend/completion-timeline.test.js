@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { gunzipSync } from 'node:zlib';
 import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
 import { getCollisionHull } from '../ships/collision-hulls.js';
+import { COMPLETION_SHIPS } from './completion-config.js';
 import { createShatterlineTrack } from '../levels/shatterline/track/model.js';
 import { createFinishMarker } from '../race/finish-marker.js';
 import { sampleCompletionRun } from './completion-run.js';
@@ -15,15 +16,22 @@ import {
 } from './completion-timeline.js';
 
 const track = createShatterlineTrack();
-let run;
+let run, runs;
 before(async () => {
-  const bytes = await readFile(
-    new URL(
-      '../../public/assets/completion/shatterline-v1/kestrel.json.gz',
-      import.meta.url,
+  runs = Object.fromEntries(
+    await Promise.all(
+      COMPLETION_SHIPS.map(async (id) => {
+        const bytes = await readFile(
+          new URL(
+            `../../public/assets/completion/shatterline-v1/${id}.json.gz`,
+            import.meta.url,
+          ),
+        );
+        return [id, JSON.parse(gunzipSync(bytes).toString('utf8'))];
+      }),
     ),
   );
-  run = JSON.parse(gunzipSync(bytes).toString('utf8'));
+  run = runs.kestrel;
 });
 function cameraFor(view, aspect) {
   const camera = new PerspectiveCamera(view.fov, aspect, 0.1, 10000);
@@ -49,7 +57,8 @@ test('the director follows real repulsor, Horizon flight, landing and sprint fin
   assert.equal(at(run.landmarks.launchTime), 'flight');
   assert.equal(at(run.landmarks.landingTime), 'landing');
   assert.equal(at(run.landmarks.finishTime - 0.1), 'finish');
-  assert.equal(at(run.landmarks.finishTime + 0.2), 'finish');
+  assert.equal(at(run.landmarks.finishTime + 0.08), 'finish');
+  assert.equal(at(run.landmarks.slideStartTime), 'exit');
   assert.ok(
     plan.titleStart > run.landmarks.finishTime,
     'the victory title cannot precede the physical checker crossing',
@@ -120,7 +129,7 @@ test('the real production checker and physical hero are readable before and afte
       run.landmarks.finishDistance,
     );
     const positions = marker.group.children[0].geometry.attributes.position;
-    for (const offset of [-0.1, 0, 0.2]) {
+    for (const offset of [-0.1, 0, 0.08]) {
       const time = run.landmarks.finishTime + offset;
       const view = director.sample(time, sampleCompletionRun(run, time), 1.6);
       assert.equal(view.shot, 'finish');
@@ -177,6 +186,111 @@ test('flight camera follows actual airborne velocity without tethering to the hi
     assert.ok(
       view.target.clone().sub(hero).dot(travel) > 2,
       'the receiving direction stays ahead',
+    );
+  }
+});
+
+test('all four genuine little slides stay framed without the camera cancelling their yaw', () => {
+  for (const [id, recording] of Object.entries(runs)) {
+    const director = createCompletionDirector({ track, run: recording });
+    const {
+      slideStartTime: start,
+      slidePeakTime: peak,
+      slideEndTime: end,
+    } = recording.landmarks;
+    assert.ok(
+      start > recording.landmarks.finishTime &&
+        peak > start &&
+        end > peak &&
+        end < recording.duration,
+    );
+    const peakSample = sampleCompletionRun(recording, peak);
+    assert.equal(peakSample.hero.effects.slide.active, true);
+    assert.ok(
+      Math.abs(peakSample.hero.effects.slide.slipAngle) > 0.02,
+      'the capture contains physical slip',
+    );
+    const exitStart = director.shots.find(({ id }) => id === 'exit').start;
+    assert.ok(
+      exitStart < start && exitStart >= recording.landmarks.finishTime + 0.12,
+      'the checker clears before the camera shows the native slide develop',
+    );
+    let minCamera = Infinity,
+      maxCamera = -Infinity,
+      minBody = Infinity,
+      maxBody = -Infinity;
+    for (
+      let time = Math.max(start, exitStart) + 0.001;
+      time <= end;
+      time += 1 / 120
+    ) {
+      const sample = sampleCompletionRun(recording, time);
+      const original = structuredClone(sample);
+      const view = director.sample(time, sample, 1.6);
+      assert.deepEqual(
+        sample,
+        original,
+        'the exit must not change native slide data',
+      );
+      assert.equal(view.shot, 'exit');
+      const position = new Vector3().fromArray(sample.hero.position);
+      const quaternion = new Quaternion().fromArray(sample.hero.quaternion);
+      const frame = track.sample(sample.hero.state.distance);
+      const direction = view.position.clone().sub(position);
+      const nose = new Vector3(0, 0, 1).applyQuaternion(quaternion);
+      assert.ok(direction.length() < 25, 'the small slide needs a close view');
+      assert.ok(
+        direction.normalize().dot(nose) < Math.cos((35 * Math.PI) / 180),
+        'the camera stays outside forward light cones',
+      );
+      const cameraAngle = Math.atan2(
+        direction.dot(frame.right),
+        direction.dot(frame.tangent),
+      );
+      const bodyAngle = Math.atan2(
+        nose.dot(frame.right),
+        nose.dot(frame.tangent),
+      );
+      minCamera = Math.min(minCamera, cameraAngle);
+      maxCamera = Math.max(maxCamera, cameraAngle);
+      minBody = Math.min(minBody, bodyAngle);
+      maxBody = Math.max(maxBody, bodyAngle);
+      const camera = cameraFor(view, 1.6),
+        bounds = getCollisionHull(id).bounds;
+      let left = Infinity,
+        right = -Infinity,
+        top = -Infinity;
+      for (const x of [bounds.min[0], bounds.max[0]])
+        for (const y of [bounds.min[1], bounds.max[1]])
+          for (const z of [bounds.min[2], bounds.max[2]]) {
+            const point = new Vector3(x, y, z)
+              .applyQuaternion(quaternion)
+              .add(position)
+              .project(camera);
+            assert.ok(
+              Math.abs(point.x) < 0.94 && Math.abs(point.y) < 0.94,
+              `${id} slide cropped`,
+            );
+            left = Math.min(left, point.x);
+            right = Math.max(right, point.x);
+            top = Math.max(top, point.y);
+            assert.ok(
+              !(point.x < -0.08 && point.y < -0.5),
+              'the title area must not cover the racer',
+            );
+          }
+      assert.ok(
+        right - left > 0.2 && top > -0.2,
+        'the real hull remains large and centered above the title',
+      );
+    }
+    assert.ok(
+      maxBody - minBody > 0.05,
+      `${id} has visible native yaw through the exit`,
+    );
+    assert.ok(
+      maxCamera - minCamera < (maxBody - minBody) * 0.25 + 0.002,
+      'road anchoring preserves most of the native body rotation',
     );
   }
 });

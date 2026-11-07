@@ -258,3 +258,91 @@ test('playback interpolates the shipped world poses and retains crossed events w
     ).eventsThroughTime.some((event) => event.type === 'combat-fire'),
   );
 });
+
+test('native slide stays after the unchanged checker crossing and settles clear of the road edges', () => {
+  for (const shipId of COMPLETION_SHIPS) {
+    const run = records.get(shipId);
+    const crossingTick =
+      Math.ceil(run.landmarks.finishTime / run.step) * run.step;
+    const prefix = JSON.stringify({
+      frames: run.frames.filter((frame) => frame.time <= crossingTick + 1e-9),
+      events: run.events.filter((event) => event.time <= crossingTick + 1e-9),
+    });
+    assert.equal(hash(prefix), manifest.records[shipId].preFinishSha256);
+    const { finishTime, slideStartTime, slidePeakTime, slideEndTime } =
+      run.landmarks;
+    assert.ok(
+      finishTime < slideStartTime &&
+        slideStartTime <= slidePeakTime &&
+        slidePeakTime <= slideEndTime &&
+        slideEndTime < run.duration,
+    );
+    const active = run.frames.filter(
+      (frame) => frame.hero.effects.slide?.active,
+    );
+    assert.ok(active.length > 20);
+    assert.ok(
+      active.some(
+        (frame) => frame.hero.input.airbrake && frame.hero.input.steer < 0,
+      ),
+    );
+    assert.ok(
+      active.some(
+        (frame) => frame.hero.input.airbrake && frame.hero.input.steer > 0,
+      ),
+    );
+    assert.ok(
+      active.every(
+        (frame) =>
+          frame.hero.grounded &&
+          frame.hero.race.complete &&
+          frame.hero.state.resetCount === 0,
+      ),
+    );
+    assert.ok(
+      Math.min(...active.map((frame) => frame.hero.effects.slide.clearance)) >
+        4,
+    );
+    assert.ok(
+      Math.max(
+        ...active.map((frame) => Math.abs(frame.hero.effects.slide.slipSpeed)),
+      ) > 3,
+    );
+    assert.ok(
+      Math.max(...active.map((frame) => Math.abs(frame.hero.state.heading))) <
+        0.25,
+    );
+    const last = run.frames.at(-1).hero;
+    assert.ok(
+      Math.abs(last.state.heading) < 0.01 &&
+        Math.abs(last.state.lateralSpeed) < 0.5,
+    );
+    assert.equal(
+      run.events.some(
+        (event) =>
+          event.time > finishTime &&
+          ['impact', 'road-departure', 'road-recovery'].includes(event.type),
+      ),
+      false,
+    );
+  }
+});
+
+test('missing, reversed or prefinish slide anchors reject a stale recording', () => {
+  const original = records.get('shrike');
+  for (const change of [
+    (run) => {
+      delete run.landmarks.slideEndTime;
+    },
+    (run) => {
+      run.landmarks.slideStartTime = run.landmarks.finishTime - 0.1;
+    },
+    (run) => {
+      run.landmarks.slidePeakTime = run.landmarks.slideEndTime + 0.1;
+    },
+  ]) {
+    const run = structuredClone(original);
+    change(run);
+    assert.throws(() => validateCompletionRun(run, { shipId: 'shrike' }));
+  }
+});

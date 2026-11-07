@@ -3,8 +3,10 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
-import { gzipSync } from 'node:zlib';
+import { gzipSync, gunzipSync } from 'node:zlib';
 import assert from 'node:assert/strict';
+import * as T from 'three';
+import { getCollisionHull } from '../src/ships/collision-hulls.js';
 import createLevel from '../src/levels/shatterline/index.js';
 import { generateCompletionRun } from './completion-capture.mjs';
 import {
@@ -34,11 +36,118 @@ async function sources(file, retained = new Map()) {
   return retained;
 }
 
+function prefix(run) {
+  const crossingTick =
+    Math.ceil(run.landmarks.finishTime / run.step) * run.step;
+  return JSON.stringify({
+    frames: run.frames.filter((frame) => frame.time <= crossingTick + 1e-9),
+    events: run.events.filter((event) => event.time <= crossingTick + 1e-9),
+  });
+}
+function validateSlide(run, track) {
+  const frames = run.frames.filter(
+    (frame) => frame.time > run.landmarks.finishTime,
+  );
+  const active = frames.filter((frame) => frame.hero.effects.slide?.active);
+  assert.ok(active.length > 0);
+  assert.ok(run.landmarks.slideStartTime > run.landmarks.finishTime);
+  assert.ok(run.landmarks.slideEndTime < run.duration);
+  assert.ok(
+    run.landmarks.slidePeakTime >= run.landmarks.slideStartTime &&
+      run.landmarks.slidePeakTime < run.landmarks.slideEndTime,
+  );
+  assert.ok(
+    Math.min(
+      ...frames.map((frame) => frame.hero.effects.slide?.clearance ?? Infinity),
+    ) > 4,
+  );
+  assert.ok(
+    frames.every((frame) => frame.hero.grounded && !frame.hero.recovering),
+  );
+  assert.equal(
+    run.events.some(
+      (event) =>
+        event.time > run.landmarks.finishTime &&
+        ['impact', 'road-departure', 'road-recovery'].includes(event.type),
+    ),
+    false,
+  );
+  assert.ok(Math.abs(run.frames.at(-1).hero.state.heading) < 0.01);
+  assert.ok(Math.abs(run.frames.at(-1).hero.state.lateralSpeed) < 0.5);
+  const basis = track.sample(track.finishDistance);
+  const axes = [basis.right, basis.up, basis.tangent];
+  const vertex = new T.Vector3(),
+    quaternion = new T.Quaternion();
+  const bounds = (actor) => {
+    const result = axes.map(() => [Infinity, -Infinity]);
+    const vertices = getCollisionHull(actor.state.chassisId).vertices;
+    quaternion.fromArray(actor.quaternion);
+    for (let i = 0; i < vertices.length; i += 3) {
+      vertex
+        .fromArray(vertices, i)
+        .applyQuaternion(quaternion)
+        .add(new T.Vector3().fromArray(actor.position));
+      axes.forEach((axis, index) => {
+        const value = vertex.dot(axis);
+        result[index][0] = Math.min(result[index][0], value);
+        result[index][1] = Math.max(result[index][1], value);
+      });
+    }
+    return result;
+  };
+  for (const frame of frames) {
+    const hulls = Object.fromEntries(
+      run.actors.map(({ id }) => [id, bounds(frame[id])]),
+    );
+    for (const [a, b] of [
+      ['hero', 'rook'],
+      ['hero', 'manta'],
+      ['rook', 'manta'],
+    ])
+      assert.ok(
+        axes.some(
+          (_, axis) =>
+            hulls[a][axis][1] < hulls[b][axis][0] ||
+            hulls[b][axis][1] < hulls[a][axis][0],
+        ),
+        'post-finish native hull envelopes remain separate',
+      );
+  }
+  return {
+    start: run.landmarks.slideStartTime,
+    peak: run.landmarks.slidePeakTime,
+    end: run.landmarks.slideEndTime,
+    peakYaw: Math.max(
+      ...active.map((frame) => Math.abs(frame.hero.state.heading)),
+    ),
+    peakSlip: Math.max(
+      ...active.map((frame) => Math.abs(frame.hero.effects.slide.slipAngle)),
+    ),
+    peakSlipSpeed: Math.max(
+      ...active.map((frame) => Math.abs(frame.hero.effects.slide.slipSpeed)),
+    ),
+    minClearance: Math.min(
+      ...frames.map((frame) => frame.hero.effects.slide?.clearance ?? Infinity),
+    ),
+  };
+}
+
 await mkdir(directory, { recursive: true });
 const track = createLevel().createTrack();
 const entries = {};
 for (const shipId of COMPLETION_SHIPS) {
+  const previous = JSON.parse(
+    gunzipSync(
+      await readFile(path.join(directory, `${shipId}.json.gz`)),
+    ).toString('utf8'),
+  );
   const run = await generateCompletionRun({ track, shipId });
+  assert.equal(
+    prefix(run),
+    prefix(previous),
+    'all native poses, controls and events through the real checker stay byte-equivalent',
+  );
+  const slide = validateSlide(run, track);
   assert.equal(run.duration, COMPLETION_DURATION);
   assert.equal(run.metadata.hullsId, COMPLETION_CAPTURE.hullsId);
   assert.equal(
@@ -81,9 +190,16 @@ for (const shipId of COMPLETION_SHIPS) {
     identity: run.identity,
     frames: run.frames.length,
     finishTimes: run.landmarks.finishTimes,
+    preFinishSha256: sha256(prefix(run)),
+    slide,
   };
   console.log(
-    `Captured ${shipId}: ${compressed.length} bytes; actual hero finish ${run.landmarks.finishTime.toFixed(6)}s.`,
+    JSON.stringify({
+      shipId,
+      compressedBytes: compressed.length,
+      finish: run.landmarks.finishTime,
+      slide,
+    }),
   );
 }
 const provenance = await sources(

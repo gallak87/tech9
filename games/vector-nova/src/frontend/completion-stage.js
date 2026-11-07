@@ -288,6 +288,7 @@ export function createCompletionStage({
               distance: lastSample?.hero.state.distance,
               grounded: lastSample?.hero.grounded,
               race: lastSample?.hero.race,
+              slide: lastSample?.hero.effects.slide,
             },
           }
         : {}),

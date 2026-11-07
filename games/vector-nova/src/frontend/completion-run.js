@@ -39,7 +39,7 @@ export function validateCompletionRun(run, { shipId, track } = {}) {
   );
   demand(
     run.identity ===
-      `completion-shatterline-native-v2:${COMPLETION_CAPTURE.geometryVersion}:${shipId}`,
+      `completion-shatterline-native-v${COMPLETION_CAPTURE.version}:${COMPLETION_CAPTURE.geometryVersion}:${shipId}`,
     'has an incompatible identity',
   );
   demand(
@@ -99,6 +99,20 @@ export function validateCompletionRun(run, { shipId, track } = {}) {
       anchors.finishTime < run.duration,
     'has inconsistent event timing',
   );
+  if (COMPLETION_CAPTURE.version >= 3) {
+    demand(
+      [
+        anchors.slideStartTime,
+        anchors.slidePeakTime,
+        anchors.slideEndTime,
+      ].every(Number.isFinite) &&
+        anchors.finishTime < anchors.slideStartTime &&
+        anchors.slideStartTime <= anchors.slidePeakTime &&
+        anchors.slidePeakTime <= anchors.slideEndTime &&
+        anchors.slideEndTime < run.duration,
+      'has inconsistent post-finish slide timing',
+    );
+  }
   if (track) {
     const jump = track.jumps?.find((item) => item.id === anchors.jumpId);
     demand(

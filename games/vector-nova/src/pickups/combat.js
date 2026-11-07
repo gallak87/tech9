@@ -415,10 +415,10 @@ export function createCombatSimulation({
     }
   }
   return {
-    bind(id, actor) {
+    bind(id, actor, { touch = true } = {}) {
       actors.set(id, actor);
-      touched.add(id);
-      if (movingFrames && Number.isFinite(actor.state.time))
+      if (touch) touched.add(id);
+      if (touch && movingFrames && Number.isFinite(actor.state.time))
         state.frameTime = actor.state.time;
     },
     draftTarget(id) {

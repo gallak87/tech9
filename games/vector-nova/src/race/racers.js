@@ -6,6 +6,11 @@ import {
 import { getShip } from '../ships/catalog.js';
 import { createRace } from './index.js';
 import {
+  REQUIRED_RACE_PROGRESS_FIELDS,
+  captureRaceProgress,
+  restoreRaceProgress,
+} from './checkpoint.js';
+import {
   courseIdentity,
   distanceAhead,
   presentationDistance,
@@ -55,26 +60,6 @@ const REORIENT = Object.freeze({ belowSpeed: 14, heading: Math.PI / 3 });
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const copy = (value) => JSON.parse(JSON.stringify(value));
-const raceFields = [
-  'lap',
-  'checkpoint',
-  'elapsed',
-  'lastLap',
-  'best',
-  'valid',
-  'complete',
-  'startDistance',
-  'history',
-  'completedTransfers',
-];
-const captureRace = (race) =>
-  Object.fromEntries(
-    [...raceFields, 'splits', 'completedTime'].map((key) => [
-      key,
-      copy(race[key]),
-    ]),
-  );
-
 function finishFrom(race) {
   const lapsRequired = race.course.format === 'sprint' ? 1 : RACE_LAPS;
   if (race.history.length < lapsRequired) return null;
@@ -445,6 +430,7 @@ export function createRacers({
     enabled: nextEnabled = true,
     difficulty: nextDifficulty = 'easy',
     gridOrder = RACE_ORDER,
+    presentation = true,
   } = {}) {
     if (!RACE_DIFFICULTIES.includes(nextDifficulty))
       throw new Error('Unknown race difficulty');
@@ -477,7 +463,11 @@ export function createRacers({
       });
       opponent.finish = null;
       opponent.boostSeconds = 0;
-      opponent.runtime.reset({ reason: 'restart', state: opponent.state });
+      opponent.runtime.reset({
+        reason: 'restart',
+        state: opponent.state,
+        presentation,
+      });
     }
   }
   reset({ enabled: false });
@@ -765,7 +755,7 @@ export function createRacers({
         id: opponent.specification.id,
         state: copy(opponent.state),
         prev: copy(opponent.prev),
-        race: captureRace(opponent.race),
+        race: captureRaceProgress(opponent.race),
         runtime: opponent.runtime.snapshot(),
         finish: copy(opponent.finish),
         boostSeconds: opponent.boostSeconds,
@@ -773,7 +763,10 @@ export function createRacers({
     };
   }
 
-  function restore(data, { trusted = false, presentation = true } = {}) {
+  function restore(
+    data,
+    { trusted = false, presentation = true, bindState = false } = {},
+  ) {
     // Trusted checkpoints belong to this live field. Public replay restores
     // retain full identity, value and isolated-runtime validation below.
     if (!trusted) {
@@ -825,7 +818,7 @@ export function createRacers({
             (key) => typeof key === 'string' && /^-?\d+:.+$/.test(key),
           ) ||
           typeof saved.race.complete !== 'boolean' ||
-          !raceFields.every((key) => key in saved.race) ||
+          !REQUIRED_RACE_PROGRESS_FIELDS.every((key) => key in saved.race) ||
           !Number.isFinite(saved.boostSeconds) ||
           saved.boostSeconds < 0
         )
@@ -893,11 +886,11 @@ export function createRacers({
       for (const key of Object.keys(opponent.state)) delete opponent.state[key];
       Object.assign(opponent.state, restoredState);
       opponent.prev = copy(saved.prev);
-      Object.assign(opponent.race, copy(saved.race), {
-        splits: copy(saved.race.splits ?? []),
-        completedTime: saved.race.completedTime ?? 0,
+      restoreRaceProgress(opponent.race, saved.race);
+      opponent.runtime.restore(copy(saved.runtime), {
+        presentation,
+        ...(bindState ? { state: opponent.state } : {}),
       });
-      opponent.runtime.restore(copy(saved.runtime), { presentation });
       opponent.finish = copy(saved.finish);
       opponent.boostSeconds = saved.boostSeconds;
     });

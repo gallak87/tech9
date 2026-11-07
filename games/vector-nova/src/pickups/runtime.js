@@ -80,43 +80,47 @@ export function createDeviceRuntime({
       motion.applyImpulse(state, impulse);
     } else state.speed = disruption.speedLimit;
   }
-  function bindCombat(state) {
+  function bindCombat(state, options) {
     if (!combat || !enabled) return;
-    combat.bind(combatId, {
-      state,
-      pose: () => motion.pose(1),
-      notify: (event) => pending.push(event),
-      disrupt: (disruption) => applyDisruption(state, disruption),
-      hit({ source, kind, impulse, cost }) {
-        if (equipment?.absorbHit()) {
-          const position = combat.pose(source)?.position?.toArray();
-          pending.push({
-            type: 'equipment-block',
-            payload: {
-              kind: 'deflector',
-              source,
-              ...(position ? { position } : {}),
-            },
-          });
-          return true;
-        }
-        const shield = simulation.consumeShield({ source, attack: kind });
-        if (shield) {
-          pending.push(shield);
-          return true;
-        }
-        motion.applyImpulse?.(
-          state,
-          impulse.clone().multiplyScalar(1 - toughness(state)),
-        );
-        state.energy = Math.max(
-          0,
-          state.energy - cost * (1 - toughness(state)),
-        );
-        state.impact = Math.max(state.impact, 0.65);
-        return false;
+    combat.bind(
+      combatId,
+      {
+        state,
+        pose: () => motion.pose(1),
+        notify: (event) => pending.push(event),
+        disrupt: (disruption) => applyDisruption(state, disruption),
+        hit({ source, kind, impulse, cost }) {
+          if (equipment?.absorbHit()) {
+            const position = combat.pose(source)?.position?.toArray();
+            pending.push({
+              type: 'equipment-block',
+              payload: {
+                kind: 'deflector',
+                source,
+                ...(position ? { position } : {}),
+              },
+            });
+            return true;
+          }
+          const shield = simulation.consumeShield({ source, attack: kind });
+          if (shield) {
+            pending.push(shield);
+            return true;
+          }
+          motion.applyImpulse?.(
+            state,
+            impulse.clone().multiplyScalar(1 - toughness(state)),
+          );
+          state.energy = Math.max(
+            0,
+            state.energy - cost * (1 - toughness(state)),
+          );
+          state.impact = Math.max(state.impact, 0.65);
+          return false;
+        },
       },
-    });
+      options,
+    );
   }
   function beforeEquipment(state, input, dt, before) {
     if (!equipment) return before;
@@ -297,7 +301,7 @@ export function createDeviceRuntime({
       );
       pending = [];
       staged = null;
-      resetPresentation();
+      if (context?.presentation !== false) resetPresentation();
     },
     readFrame() {
       const movement = readRuntimeFrame(motion);
@@ -319,13 +323,14 @@ export function createDeviceRuntime({
         ...(movement === null ? {} : { motion: movement }),
       };
     },
-    restore(data, { presentation: notifyPresentation = true } = {}) {
+    restore(data, { presentation: notifyPresentation = true, state } = {}) {
       simulation.restore(data);
       if (equipment && data.equipment) equipment.restore(data.equipment);
       if (combat && combatId === 'player') combat.restore(data.combat);
       motion.restore(data?.motion ?? null);
       pending = [];
       staged = null;
+      if (state) bindCombat(state, { touch: false });
       if (notifyPresentation) resetPresentation();
     },
     pose: (alpha) => motion.pose(alpha),

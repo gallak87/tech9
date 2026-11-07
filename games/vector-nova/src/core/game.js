@@ -47,6 +47,10 @@ import { createLevelPresentation } from '../levels/presentation.js';
 import { createLifetime } from './lifecycle.js';
 import { createSimulationWorld, createSimulationActors } from './simulation.js';
 import {
+  captureSimulationCheckpoint,
+  restoreSimulationCheckpoint,
+} from './simulation-checkpoint.js';
+import {
   readRuntimeFrame,
   runtimeIdentity,
   compatibleRuntime,
@@ -515,24 +519,15 @@ export async function createGame({
     }
     // Capture once after feedback is drained. Classification owns a separate
     // worker world; it never swaps checkpoints into the visible simulation.
-    const raceData = () =>
-      Object.fromEntries(
-        Object.entries(Object.getOwnPropertyDescriptors(race))
-          .filter(
-            ([, descriptor]) =>
-              Object.hasOwn(descriptor, 'value') &&
-              typeof descriptor.value !== 'function',
-          )
-          .map(([key, descriptor]) => [key, descriptor.value]),
-      );
-    const captureCupFinish = () => ({
-      settings: structuredClone(settings),
-      state: structuredClone(state),
-      race: structuredClone(raceData()),
-      runtime: runtime.snapshot(),
-      racers: racers.serialize(),
-      dynamics: dynamics?.snapshot(),
-    });
+    const captureCupFinish = () =>
+      captureSimulationCheckpoint({
+        settings,
+        state,
+        race,
+        runtime,
+        racers,
+        dynamics,
+      });
     function persistCupResult(result) {
       if (!cupFinalResult) {
         cupFinalResult = {
@@ -2134,9 +2129,13 @@ export async function createGame({
                 accumulator,
                 initial,
                 testLaunch,
-                runtime: runtime.snapshot(),
-                dynamics: dynamics?.snapshot(),
-                racers: racers?.serialize(),
+                simulation: captureSimulationCheckpoint({
+                  state,
+                  race,
+                  runtime,
+                  racers,
+                  dynamics,
+                }),
                 competition,
                 lastResults,
                 raceDifficulty,
@@ -2210,9 +2209,13 @@ export async function createGame({
                   pausedCountdown,
                   goUntil,
                 } = retained);
-                runtime.restore(retained.runtime);
-                if (racers) racers.restore(retained.racers);
-                if (dynamics) dynamics.restore(retained.dynamics);
+                restoreSimulationCheckpoint(retained.simulation, {
+                  state,
+                  race,
+                  runtime,
+                  racers,
+                  dynamics,
+                });
                 countdown.restore(retained.countdown);
                 if (mode === 'countdown')
                   ui.setCountdown(retained.countdown.step ?? 3);

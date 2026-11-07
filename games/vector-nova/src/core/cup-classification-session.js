@@ -5,6 +5,7 @@ import { CUP_FINISH_GRACE } from '../race/cup.js';
 import { advanceSession } from './session-runtime.js';
 import { createSimulationWorld, createSimulationActors } from './simulation.js';
 import { createLifetime } from './lifecycle.js';
+import { restoreSimulationCheckpoint } from './simulation-checkpoint.js';
 
 const STEP = 1 / 120;
 const BRAKE = Object.freeze({
@@ -73,32 +74,15 @@ export async function createCupClassificationSession({
             delete context.settings[key];
           Object.assign(context.settings, clone(checkpoint.settings));
         }
-        const gridOrder = Object.entries(checkpoint.racers.field.grid)
-          .sort(
-            ([, a], [, b]) => b.distance - a.distance || b.lateral - a.lateral,
-          )
-          .map(([id]) => id);
-        for (const key of Object.keys(state)) delete state[key];
-        Object.assign(state, clone(checkpoint.state));
-        // Set each actor's actual chassis shape before restoring the shared
-        // native world, whose snapshot validates actor IDs and hull identities.
-        runtime.reset({ reason: 'restart', state });
-        racers.reset({
-          enabled: true,
-          difficulty: checkpoint.racers.difficulty,
-          gridOrder,
-        });
         const race = createRace(track, {
           rulesId: checkpoint.race.rulesId,
           laps: Infinity,
         });
-        Object.assign(race, clone(checkpoint.race));
-        runtime.restore(checkpoint.runtime, { presentation: false });
-        racers.restore(checkpoint.racers, {
-          trusted: true,
-          presentation: false,
-        });
-        dynamics.restore(checkpoint.dynamics);
+        restoreSimulationCheckpoint(
+          checkpoint,
+          { state, race, runtime, racers, dynamics },
+          { presentation: false },
+        );
         const snapshot = () =>
           racers.snapshot({
             playerState: state,

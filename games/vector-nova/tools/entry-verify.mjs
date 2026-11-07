@@ -28,7 +28,9 @@ assert.ok(
     flags.every((flag) => ['--desktop', '--responsive'].includes(flag)),
   'Use --desktop or --responsive, or neither for both.',
 );
-const browser = await launchVerificationBrowser();
+const browser = await launchVerificationBrowser({
+  args: ['--autoplay-policy=no-user-gesture-required'],
+});
 const url = (query = 'intro=1') => new URL(`?${query}`, base).href;
 const front = (page) => page.evaluate(() => window.__VN_FRONTEND.getState());
 const stage = (page, value) =>

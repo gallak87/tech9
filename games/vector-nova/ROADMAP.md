@@ -1,11 +1,11 @@
 # VECTOR//NOVA roadmap
 
-Reviewed against `main` and the active event review branches on **2026-10-31**. This is open work, not authorization to restart completed art or critic campaigns. Implementation and automated checks do not replace human or physical-device approval.
+Main baseline checked on **2026-11-06**; event-branch status below remains subject to its separate integration review. This is open work, not authorization to restart completed art or critic campaigns. Implementation and automated checks do not replace human or physical-device approval.
 
 ## Current baseline
 
-- Main has fifteen racing courses, four original championships, four playable ships and a ten-racer field. Quick Race, Practice, continuous circuit Time Trials, sprint trials, saved bests and personal ghosts are implemented. Course details and shared rules live in [architecture](ARCHITECTURE.md) and the [level API](docs/LEVEL_API.md).
-- Career rewards, six enhancement tracks, six equipped abilities, Quad Core, the live Garage, physical combat/contact and demo-to-full save transfer are implemented. The manual title screen, three named career slots, top-level navigation and shared audio controls are described in [entry and careers](docs/intro-and-profiles.md).
+- Main has seventeen racing courses, four original championships plus the unlockable Encore Cup, four playable ships and a ten-racer field. Quick Race, Practice, continuous circuit Time Trials, sprint trials, saved bests and personal ghosts are implemented. Course details and shared rules live in [architecture](ARCHITECTURE.md) and the [level API](docs/LEVEL_API.md).
+- All 28 career rewards, six enhancement tracks, six equipped abilities, Quad Core, the live Garage, physical combat/contact and demo-to-full save transfer are implemented. Completing the original collection unlocks Oriel, Ravel and Nomad Procession, grouped in Encore Cup, and queues the Shatterline completion cinematic. Browser developer modes require `showcase=1` to preview that cinematic. The manual title screen, three named career slots, top-level navigation and shared audio controls are described in [entry and careers](docs/intro-and-profiles.md).
 - Eight songs, local music/SFX generation, browser publishing and offline Electron demo/full packages exist. Startup selects Blue Hour and honors the saved startup-pause preference. See [audio](docs/audio/README.md), [desktop builds](docs/steam/desktop.md) and the [release checklist](docs/steam/release.md).
 - Eliminator, Interceptor and experimental Freestyle are playable in the consolidated `codex/nova-freestyle` review branch, **not merged into main or approved for release**. Their status and remaining design choices are in [events and rewards](docs/level-types-and-rewards.md#current-implementation-status).
 
@@ -36,7 +36,6 @@ Reviewed against `main` and the active event review branches on **2026-10-31**. 
 
 ### Gameplay and progression
 
-- [ ] **Endgame courses — Ravel and Nomad Procession:** unlock both maps only after the current career has **won all four original cups AND reached 28/28 progression unlocks**. Implement this later on main; this merge adds the courses without the gate. Reuse saved cup wins and progression state, keep the original cup/reward requirements stable, and make the requirement clear in the course picker with keyboard/controller access.
 - [ ] **Cup run history:** design persistent completed-run records separately from the active championship. Explore showing the three best runs beneath a cup's map list; decide ranking, difficulty/ship details, ties, storage limits and save transfer before implementation. Finished cups currently show final standings, then clear when the player returns to setup or selection; earned rewards and trophies remain.
 - [ ] **Sidegrades:** prototype one weapon variant and, if useful, one propulsion specialization. Define meaningful tradeoffs, slots/cooldowns, unlocks, counterplay and complete icon/VFX/audio presentation before growing the catalogue.
 - [ ] Revisit or replace Magnetic Stabilizer if its four-second air-steering/drift assist cannot justify a distinct equipment role. Preserve stock controls and stock-build course completability.
@@ -84,4 +83,3 @@ Reviewed against `main` and the active event review branches on **2026-10-31**. 
 - [ ] Expand beyond the eight-song pool only if useful; the earlier target was roughly sixteen. Finalize circuit assignments, race mix and audible loop transitions with the user. Blue Hour is tagged for Halcyon; seven tracks remain general mix auditions.
 - [ ] Optionally package the existing prompt → sequential render → Tunes audition → human-feedback process as an audio-generation Skill. Reuse its guide, provenance and one-current-take rules.
 - [ ] Resume Kestrel photorealism only as a separate authoring pass: matched Blender/Three.js baselines, then a visible improvement on one assembly before fleet rollout. Follow the [ship workflow](assets/ships/README.md#visual-improvement-workflow); the shipped finish does not prove export degradation or photorealism.
-- [ ] Consolidate the compatibility developer launcher into dedicated views after migrating consumers. Preserve jump cases/reset/step/launch, shape review and ship/rival inspection.

@@ -288,7 +288,9 @@ test('Forest road geometry, materials and guidance retain the approved mesh cont
     assert.equal(
       fingerprint(meshes),
       // Fine longitudinal/transverse running cells now match native support.
-      '93be8c558156d4b916c754ea2aa670e473f358ffe3bfc65aa1f5a1aa6c205e79',
+      // Checked shader anchors change the included hook source; compiled GLSL,
+      // cache keys, material state and exact geometry bytes remain unchanged.
+      'aaa7b085dd8d482d12b600e1d22c6a7dcf33279b43844fa4ee0ddf797cd635bc',
     );
   } finally {
     road.dispose();

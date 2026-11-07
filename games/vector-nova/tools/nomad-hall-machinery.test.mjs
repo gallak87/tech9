@@ -217,31 +217,34 @@ test('eight actual native arrivals and full hall drives clear the hoist with a c
   const track = definition.createTrack(),
     carrier = track.carriers[8];
   const hall = createNomadHallMachinery({ track });
-  const solid = createCollisionWorld({
-    id: 'nomad-hoist-camera',
-    version: 1,
-    geometryId: hall.geometryVersion,
-    triangles: hall.collisionTriangles,
-  });
-  const base = definition.createCollisionWorld({ track });
-  const collisionWorld = createCollisionWorld({
-    id: 'nomad-hoist-native',
-    version: 1,
-    geometryId: `${base.rulesId}:${hall.geometryVersion}`,
-    triangles: [
-      ...base.triangles,
-      ...(base.triangles.some((triangle) =>
-        triangle.id.startsWith('Nomad / suspended hoist /'),
-      )
-        ? []
-        : hall.collisionTriangles),
-    ],
-  });
-  const dynamics = await definition.createDynamics({ track, collisionWorld });
-  const devices = definition.racing.createDevices(track),
-    jump = track.jumps[7];
-  let passes = 0;
+  let solid, collisionWorld, dynamics;
   try {
+    solid = createCollisionWorld({
+      id: 'nomad-hoist-camera',
+      version: 1,
+      geometryId: hall.geometryVersion,
+      triangles: hall.collisionTriangles,
+    });
+    collisionWorld = definition.createCollisionWorld({ track });
+    // Both worlds apply the same degenerate-face validation to the exact hoist
+    // geometry. Verify their retained faces rather than rebuilding and keeping
+    // a second full convoy BVH.
+    const hallIds = new Set(hall.collisionRecords.map(({ id }) => id));
+    const hallFaces = collisionWorld.triangles.filter(({ id }) =>
+      hallIds.has(id),
+    );
+    assert.equal(hallFaces.length, solid.triangles.length);
+    for (const [index, actual] of hallFaces.entries()) {
+      const expected = solid.triangles[index];
+      assert.equal(actual.id, expected.id);
+      assert.equal(actual.kind, expected.kind);
+      assert.equal(actual.motionGroup, expected.motionGroup);
+      assert.deepEqual(actual.points, expected.points);
+    }
+    dynamics = await definition.createDynamics({ track, collisionWorld });
+    const devices = definition.racing.createDevices(track),
+      jump = track.jumps[7];
+    let passes = 0;
     for (const fast of [false, true])
       for (const quarter of [0, 1, 2, 3]) {
         dynamics.reset();
@@ -322,10 +325,9 @@ test('eight actual native arrivals and full hall drives clear the hoist with a c
       `${passes} native phase/speed arrivals and full-hall drives clear the exact machinery faces and 25m camera envelope`,
     );
   } finally {
-    dynamics.dispose();
-    collisionWorld.dispose();
-    base.dispose();
-    solid.dispose();
+    dynamics?.dispose();
+    collisionWorld?.dispose();
+    solid?.dispose();
     hall.dispose();
   }
 });

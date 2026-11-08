@@ -1,7 +1,10 @@
 import { createLaunchworksTrack } from './track/model.js';
 import { createLaunchworksRoad } from './track/road.js';
 import { createLaunchworksEnvironment } from './environment.js';
-import { createLaunchworksRuntime } from './runtime.js';
+import {
+  createLaunchworksRuntime,
+  createLaunchworksDynamics,
+} from './runtime.js';
 import { createLaunchworksDevices } from './devices.js';
 import { createZephyrBackdrop } from '../zephyr/backdrop/index.js';
 import { collectProductionSolids } from '../../physics/production-solids.js';
@@ -11,7 +14,7 @@ import { DEVICE_SAMPLES } from '../../pickups/sample-cues.js';
 
 export default function createLevel() {
   return {
-    version: '0.3.0-skywell-freestyle-pilot',
+    version: '0.4.0-skywell-freestyle-pilot',
     freestyle: true,
     audio: {
       samples: {
@@ -53,6 +56,7 @@ export default function createLevel() {
               : null,
       }),
     createRuntime: createLaunchworksRuntime,
+    createDynamics: createLaunchworksDynamics,
     racing: {
       createDevices: createLaunchworksDevices,
       createMotion: createLaunchworksRuntime,

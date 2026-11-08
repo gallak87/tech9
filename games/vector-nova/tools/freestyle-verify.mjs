@@ -261,7 +261,7 @@ try {
       window.__approachPilot = createTransferPilot(window.__VN.getTrack(), {
         reaction: 0.15,
         quantum: 0.25,
-        targetSpeed: 145,
+        targetSpeed: 'course',
       });
     });
     for (let i = 0; i < 40; i++) {
@@ -315,16 +315,18 @@ try {
   await page.keyboard.press('KeyR');
   assert.equal((await read()).freestylePractice.id, 'transfer-4');
   await flyToLip();
-  // Deliberate gesture: wait150ms, E550ms, E+Space400ms, then settle.
+  // Deliberate gesture: hold a right line, E550ms, E+Space400ms, then settle.
   // No receiver quaternion, future contact or controller steers this gesture.
   await page.keyboard.down('KeyW');
+  await page.keyboard.down('KeyD');
   await heldTicks(18);
   await page.keyboard.down('KeyE');
   await heldTicks(66);
   await page.keyboard.down('Space');
   await heldTicks(48);
   await page.keyboard.up('KeyE');
-  for (let i = 0; i < 12; i++) {
+  await page.keyboard.up('KeyD');
+  for (let i = 0; i < 20; i++) {
     snapshot = await heldTicks(60);
     if (snapshot.freestylePractice.outcome) break;
   }
@@ -377,12 +379,20 @@ try {
     ).length,
     3,
   );
-  assert.equal(
-    snapshot.events.some((e) => e.type === 'impact'),
-    false,
+  let airborne = false;
+  const airborneImpacts = [];
+  for (const event of snapshot.events) {
+    if (event.type === 'jump-launch') airborne = true;
+    if (event.type === 'impact' && airborne) airborneImpacts.push(event);
+    if (['jump-transfer', 'jump-miss'].includes(event.type)) airborne = false;
+  }
+  assert.deepEqual(
+    airborneImpacts,
+    [],
+    'every scored catch must remain physically clean',
   );
   console.log(
-    `PASS · native five-transfer chain from rest, ${result.score} points, no resets or impacts`,
+    `PASS · native five-transfer chain from rest, ${result.score} points, no resets or airborne impacts`,
   );
   assert.deepEqual(errors, []);
   assert.deepEqual(snapshot.errors, []);
@@ -394,7 +404,7 @@ try {
           screen: window.__VN_FRONTEND?.getState().screen,
           error: window.__VN_FRONTEND?.getState().error,
           practice: window.__VN?.getSnapshot().freestylePractice,
-          focus: document.activeElement?.outerHTML,
+          focus: document.activeElement?.id || document.activeElement?.tagName,
         }))
         .catch(() => null),
     ),

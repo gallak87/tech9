@@ -328,22 +328,28 @@ export function createFreestyleController({ track }) {
 
 // Estimate from the real ballistic state against the receiving slope, never an
 // authored airtime countdown. Continuing to boost can change this estimate.
-export function landingEstimate(track, jump, pose, velocity) {
+export function landingEstimate(
+  track,
+  jump,
+  pose,
+  velocity,
+  { gravity = 26, timeout = 8 } = {},
+) {
   if (!pose || !jump || !velocity) return null;
   const frame = track.sample(jump.target),
     normal = frame.up;
-  const a = -13 * normal.y,
+  const a = -0.5 * gravity * normal.y,
     b = velocity.dot(normal),
     c = pose.position.clone().sub(frame.position).dot(normal) - 0.72;
   if (Math.abs(a) < 1e-6) {
     const time = -c / b;
-    return Number.isFinite(time) && time > 0 && time < 8 ? time : null;
+    return Number.isFinite(time) && time > 0 && time < timeout ? time : null;
   }
   const disc = b * b - 4 * a * c;
   if (disc < 0) return null;
   const roots = [
     (-b + Math.sqrt(disc)) / (2 * a),
     (-b - Math.sqrt(disc)) / (2 * a),
-  ].filter((t) => t > 0 && t < 8);
+  ].filter((t) => t > 0 && t < timeout);
   return roots.length ? Math.max(...roots) : null;
 }

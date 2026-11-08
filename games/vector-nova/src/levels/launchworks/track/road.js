@@ -132,13 +132,20 @@ export function createLaunchworksRoad({ track, shape = false }) {
     if (end <= start + 0.01) return null;
     return add(
       name,
-      sweepGeometry(track, profile, {
-        start,
-        end,
-        step: 2,
-        transverseStep: driving ? 1.5 : undefined,
-        uvScale: 2.5,
-      }),
+      sweepGeometry(
+        track,
+        profile.map(([lateral, height]) => [
+          (lateral * track.width) / 38,
+          height,
+        ]),
+        {
+          start,
+          end,
+          step: 2,
+          transverseStep: driving ? 1.5 : undefined,
+          uvScale: 2.5,
+        },
+      ),
       material,
       driving,
     );
@@ -295,8 +302,8 @@ export function createLaunchworksRoad({ track, shape = false }) {
     const frame = track.sample(jump.landingStart + 15);
     for (const side of [-1, 1]) {
       const crown = i === 0,
-        height = crown ? 80 : 34,
-        elevation = crown ? 28 : 12;
+        height = crown ? 200 : 34,
+        elevation = crown ? 88 : 12;
       const mast = new T.Mesh(new T.BoxGeometry(2.5, height, 4), bronze);
       mast.name = `Receiver ${i + 1} / outboard approach lantern`;
       mast.position
@@ -306,12 +313,12 @@ export function createLaunchworksRoad({ track, shape = false }) {
       mast.quaternion.copy(frame.quaternion);
       group.add(mast);
       const lamp = new T.Mesh(
-        new T.BoxGeometry(2.7, crown ? 36 : 13, 1.2),
+        new T.BoxGeometry(2.7, crown ? 70 : 13, 1.2),
         mint,
       );
       lamp.position
         .copy(mast.position)
-        .addScaledVector(frame.up, crown ? 18 : 0)
+        .addScaledVector(frame.up, crown ? 55 : 0)
         .addScaledVector(frame.tangent, -2.2);
       lamp.quaternion.copy(frame.quaternion);
       group.add(lamp);

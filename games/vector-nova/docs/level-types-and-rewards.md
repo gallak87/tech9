@@ -142,7 +142,7 @@ These choices can be settled one pilot at a time; the matrix is intended to keep
 
 ## Freestyle browser pilot
 
-**Zephyr Skywell** is a dedicated five-transfer descent through Zephyr’s suspended water gardens, retaining the `launchworks` level ID. Canonical Zephyr islands, masonry, water, road finishes and sky support a new route; the short receiving tube uses Shatterline’s shared surface and tessellation. Approved circuit routes remain separate. Three powered approaches and two gravity dives supply different launch conditions rather than repeating one straight jump.
+**Zephyr Skywell** is a dedicated five-transfer descent through Zephyr’s suspended water gardens, retaining the `launchworks` level ID. Canonical Zephyr islands, masonry, water, road finishes and sky support a new route; the short receiving tube uses Shatterline’s shared surface and tessellation. Approved circuit routes remain separate. Three powered approaches and two gravity dives supply different launch conditions rather than repeating one straight jump. Longer open-air gaps, lighter course gravity and extended receiving runouts leave room to align at speed; the next connector waits until after the landing.
 
 | Transfer    | Approach and receiving challenge                                                     |
 | ----------- | ------------------------------------------------------------------------------------ |

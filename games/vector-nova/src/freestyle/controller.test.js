@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
-import { createFreestyleController } from './controller.js';
+import { createFreestyleController, landingEstimate } from './controller.js';
 
 const track = {
   jumps: Array.from({ length: 5 }, (_, i) => ({
@@ -219,4 +219,21 @@ test('holding the rotation brake permits slow deliberate bank trim instead of fi
   assert.ok(snapshot.progress[2] < 0.8);
   steps(c, { airbrake: true }, 0.3);
   assert.ok(c.snapshot().angular[2] < 0.025);
+});
+
+test('touchdown guidance uses the course gravity while retaining the default ballistic estimate', () => {
+  const plane = {
+    sample: () => ({ position: new T.Vector3(), up: new T.Vector3(0, 1, 0) }),
+  };
+  const pose = { position: new T.Vector3(0, 100, 0) };
+  const velocity = new T.Vector3();
+  const jump = { target: 0 };
+  const ordinary = landingEstimate(plane, jump, pose, velocity);
+  const skywell = landingEstimate(plane, jump, pose, velocity, {
+    gravity: 18,
+    timeout: 10,
+  });
+  assert.ok(Math.abs(ordinary - Math.sqrt((2 * (100 - 0.72)) / 26)) < 1e-8);
+  assert.ok(Math.abs(skywell - Math.sqrt((2 * (100 - 0.72)) / 18)) < 1e-8);
+  assert.ok(skywell > ordinary);
 });

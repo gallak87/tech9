@@ -1,7 +1,7 @@
 import * as T from 'three';
 import { createTubeSurface } from '../../shatterline/track/tube-surface.js';
 
-const WIDTH = 38;
+const WIDTH = 44;
 const clamp = T.MathUtils.clamp;
 const smooth = (value) => {
   const t = clamp(value, 0, 1);
@@ -35,7 +35,33 @@ function heightAt(knots, station) {
 // Five different pieces of flight architecture. The launch vectors come from
 // the real driven road; no target-seeking force steers a racer across a gap.
 export function createLaunchworksTrack() {
-  const lips = [650, 2050, 3450, 4850, 6250];
+  const sourceLips = [650, 2050, 3450, 4850, 6250];
+  // Add space to the actual flight corridors and a smaller amount to each
+  // receiving runout. Grounded setups retain their authored turns and rolls.
+  const spans = [
+    [650, 900, 650],
+    [900, 1350, 600],
+    [2050, 2400, 620],
+    [2400, 2830, 550],
+    [3450, 3770, 620],
+    [3770, 4200, 530],
+    [4850, 5130, 620],
+    [5130, 5630, 690],
+    [6250, 6590, 700],
+    [6590, 7030, 560],
+  ];
+  function expandedStation(source) {
+    let extra = 0;
+    for (const [start, end, span] of spans) {
+      if (source <= start) break;
+      const fraction = clamp((source - start) / (end - start), 0, 1);
+      extra += fraction * (span - (end - start));
+    }
+    return source + extra;
+  }
+  const knots = (values) =>
+    values.map(([source, ...value]) => [expandedStation(source), ...value]);
+  const lips = sourceLips.map(expandedStation);
   const definitions = [
     {
       label: 'Crown Hook',
@@ -43,10 +69,10 @@ export function createLaunchworksTrack() {
       approachHint: 'Unwind the corkscrew · turn right',
       receiverHint: 'Catch the right bank',
       speedHint: 'Bleed speed after the powered entry',
-      speedRange: [130, 150],
-      gap: 250,
-      end: 700,
-      target: 600,
+      speedRange: [145, 195],
+      gap: 650,
+      end: 1250,
+      target: 980,
     },
     {
       label: 'Bell Dive',
@@ -54,10 +80,10 @@ export function createLaunchworksTrack() {
       approachHint: 'Brake the plunge before release',
       receiverHint: 'Climb into the left shelf',
       speedHint: 'Gravity supplies speed · brake early',
-      speedRange: [115, 140],
-      gap: 350,
-      end: 780,
-      target: 460,
+      speedRange: [125, 180],
+      gap: 620,
+      end: 1170,
+      target: 880,
     },
     {
       label: 'Veil Bore',
@@ -65,10 +91,10 @@ export function createLaunchworksTrack() {
       approachHint: 'Sight the lanterns before the veil',
       receiverHint: 'Enter the open tube floor',
       speedHint: 'Carry speed into the mouth',
-      speedRange: [145, 165],
-      gap: 320,
-      end: 750,
-      target: 390,
+      speedRange: [150, 195],
+      gap: 620,
+      end: 1150,
+      target: 820,
     },
     {
       label: 'Counterbank',
@@ -76,10 +102,10 @@ export function createLaunchworksTrack() {
       approachHint: 'Release from the wall · reverse roll',
       receiverHint: 'Catch the opposing bank',
       speedHint: 'Hold the wall line until release',
-      speedRange: [135, 155],
-      gap: 280,
-      end: 780,
-      target: 650,
+      speedRange: [150, 195],
+      gap: 620,
+      end: 1310,
+      target: 960,
     },
     {
       label: 'Last Light',
@@ -87,73 +113,74 @@ export function createLaunchworksTrack() {
       approachHint: 'Choose your line before the split',
       receiverHint: 'Settle into the falling curve',
       speedHint: 'A controlled dive beats full boost',
-      speedRange: [115, 140],
-      gap: 340,
-      end: 780,
-      target: 440,
+      speedRange: [125, 180],
+      gap: 700,
+      end: 1260,
+      target: 940,
     },
   ];
-  const heights = [
+  const heights = knots([
     [0, 1480, 0],
     [150, 1500, 0],
     [390, 1500, 0],
-    [650, 1500, 0.18],
-    [900, 1470, -0.15],
-    [1350, 1390, -0.18],
+    [650, 1500, 0.12],
+    [900, 1400, -0.12],
+    [1350, 1380, -0.02],
     [1750, 1420, -0.38],
     [2050, 1290, -0.12],
-    [2470, 1080, 0.08],
-    [2830, 1100, 0],
+    [2400, 965, -0.16],
+    [2670, 945, 0.03],
+    [2830, 970, 0.06],
     [3270, 1060, 0.08],
     [3450, 1080, 0.12],
-    [3770, 1045, -0.04],
-    [4200, 1018, -0.04],
+    [3770, 1000, -0.08],
+    [4200, 988, -0.02],
     [4690, 890, 0.05],
-    [4850, 910, 0.22],
-    [5130, 880, -0.28],
-    [5630, 785, -0.06],
+    [4850, 910, 0.14],
+    [5130, 840, -0.12],
+    [5630, 810, -0.02],
     [6000, 800, -0.4],
-    [6250, 700, -0.18],
-    [6590, 500, 0.14],
-    [7030, 530, 0],
-    [7600, 545, 0],
-  ];
-  const headings = [
+    [6250, 700, -0.1],
+    [6590, 310, -0.12],
+    [7030, 305, 0.04],
+    [7600, 345, 0],
+  ]);
+  const headings = knots([
     [0, 0],
     [360, 0],
     [610, 0.95],
-    [1080, 0.95],
-    [1400, 1.37],
-    [1690, -0.35],
+    [1380, 0.95],
+    [1500, 1.37],
+    [1740, -0.35],
     [2440, -0.35],
     [2760, -0.57],
     [3100, 1.05],
     [4120, 1.05],
     [4420, 1.35],
     [4770, 2.1],
-    [5450, 2.1],
-    [5730, 1.7],
-    [6020, 0.5],
-    [6570, 0.5],
-    [6980, 0.9],
+    [5670, 2.1],
+    [5830, 1.7],
+    [6100, 0.5],
+    [6880, 0.5],
+    [7310, 0.9],
     [7600, 0.9],
-  ];
+  ]);
   const tau = Math.PI * 2;
-  const banks = [
+  const banks = knots([
     [0, 0],
     [140, 0],
     [460, tau],
     [570, tau - 0.68],
     [650, tau],
     [850, tau - 0.68],
-    [1130, tau - 0.68],
-    [1430, tau],
+    [1380, tau - 0.68],
+    [1480, tau],
     [1680, tau + 0.7],
     [1970, tau - 0.24],
     [2050, tau - 0.24],
     [2420, tau + 0.9],
-    [2700, tau + 0.9],
-    [2940, tau],
+    [2850, tau + 0.9],
+    [3020, tau],
     [3100, tau + 0.42],
     [3360, tau],
     [4320, tau],
@@ -165,11 +192,11 @@ export function createLaunchworksTrack() {
     [6030, tau + 0.4],
     [6250, tau + 0.4],
     [6540, tau - 0.85],
-    [6810, tau - 0.85],
+    [7050, tau - 0.85],
     [7100, tau - 0.1],
     [7370, tau],
-  ];
-  const endStation = 7600,
+  ]);
+  const endStation = expandedStation(7600),
     samples = [],
     distances = [];
   let length = 0,
@@ -250,11 +277,12 @@ export function createLaunchworksTrack() {
     landingEnd: distanceAt(lips[index] + definition.end),
     recovery: distanceAt(lips[index] + definition.end + 8),
     halfWidth: WIDTH / 2,
-    catchWidth: 34,
+    catchWidth: WIDTH - 4,
     target: distanceAt(lips[index] + definition.target),
     targetLateral: 0,
   }));
   const tubeJump = jumps[2];
+  const veilOffset = (tubeJump.landingStart - tubeJump.takeoff) * 0.55;
   const tubes = createTubeSurface({
     sample,
     width: WIDTH,
@@ -262,60 +290,61 @@ export function createLaunchworksTrack() {
       {
         id: 'skywell-glass-throat',
         start: tubeJump.landingStart,
-        end: tubeJump.landingStart + 340,
+        end: tubeJump.landingStart + 390,
         radius: 22,
-        entryLength: 100,
-        exitLength: 140,
+        entryLength: 120,
+        exitLength: 150,
         rimTransitionLength: 40,
         toeTransitionLength: 20,
         exposedStart: tubeJump.landingStart,
-        exposedEnd: tubeJump.landingStart + 340,
+        exposedEnd: tubeJump.landingStart + 390,
       },
     ],
   });
-  const finishDistance = distanceAt(7300);
+  const sourceDistance = (source) => distanceAt(expandedStation(source));
+  const finishDistance = sourceDistance(7300);
   const moments = [
     {
       id: 'crown-corkscrew',
       type: 'corkscrew',
-      start: distanceAt(140),
-      end: distanceAt(460),
+      start: sourceDistance(140),
+      end: sourceDistance(460),
     },
     {
       id: 'hook-right',
       type: 'turn',
-      start: distanceAt(360),
+      start: sourceDistance(360),
       end: jumps[0].takeoff,
     },
     {
       id: 'bell-plunge',
       type: 'drop',
-      start: distanceAt(1750),
+      start: sourceDistance(1750),
       end: jumps[1].takeoff,
     },
     {
       id: 'veil-crossing',
       type: 'waterfall',
-      start: jumps[2].takeoff + 160,
-      end: jumps[2].takeoff + 220,
+      start: jumps[2].takeoff + veilOffset - 30,
+      end: jumps[2].takeoff + veilOffset + 30,
     },
     {
       id: 'counterbank-wall',
       type: 'wall',
-      start: distanceAt(4530),
+      start: sourceDistance(4530),
       end: jumps[3].takeoff,
     },
     {
       id: 'last-light-dive',
       type: 'drop',
-      start: distanceAt(6000),
+      start: sourceDistance(6000),
       end: jumps[4].takeoff,
     },
   ];
   return {
-    id: 'zephyr-skywell-v3',
+    id: 'zephyr-skywell-v4',
     name: 'Zephyr Skywell',
-    geometryVersion: 'five-distinct-bank-tube-transfers-v3',
+    geometryVersion: 'long-air-bank-tube-transfers-v4',
     length,
     width: WIDTH,
     closed: false,
@@ -326,7 +355,7 @@ export function createLaunchworksTrack() {
     stationAt,
     endStation,
     routeMoments: moments,
-    curtains: [{ id: 'skywell-veil', s: jumps[2].takeoff + 195 }],
+    curtains: [{ id: 'skywell-veil', s: jumps[2].takeoff + veilOffset }],
     tubes: tubes.descriptors,
     tubeMesh: tubes.mesh,
     tubeAt: tubes.tubeAt,
@@ -362,14 +391,14 @@ export function createLaunchworksTrack() {
           `jump${index + 1}-approach`,
           {
             distance: jump.takeoff - (index === 0 ? 560 : 320),
-            speed: index === 1 || index === 4 ? 110 : 125,
+            speed: index === 1 || index === 4 ? 125 : 145,
             lateral: 0,
             heading: 0,
           },
         ],
         [
           `jump${index + 1}-success`,
-          { distance: jump.takeoff - 5, speed: 150, lateral: 0, heading: 0 },
+          { distance: jump.takeoff - 5, speed: 170, lateral: 0, heading: 0 },
         ],
       ]),
     ]),

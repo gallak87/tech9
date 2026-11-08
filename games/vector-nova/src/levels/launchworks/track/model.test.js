@@ -53,7 +53,14 @@ test('Skywell has five distinct launch and receiving problems rather than repeat
       jump.catchWidth >= 30,
       'arrival credit is not an invisible five-metre stripe',
     );
-    assert.ok(jump.landingEnd - jump.landingStart > 100);
+    assert.ok(
+      jump.landingStart - jump.takeoff >= 600,
+      'every transfer has a substantial open-air gap',
+    );
+    assert.ok(
+      jump.landingEnd - jump.landingStart >= 530,
+      'the receiving deck leaves room to settle',
+    );
     assert.ok(jump.approachHint && jump.receiverHint && jump.speedHint);
     assert.ok(
       jump.speedRange[1] > jump.speedRange[0] &&

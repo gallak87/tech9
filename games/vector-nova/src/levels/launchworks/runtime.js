@@ -1,5 +1,7 @@
 import * as T from 'three';
 import { createFlightModel } from '../../physics/flight.js';
+import { createRapierWorld } from '../../physics/rapier-world.js';
+
 import {
   createFreestyleController,
   landingEstimate,
@@ -7,19 +9,29 @@ import {
 } from '../../freestyle/controller.js';
 import { freestyleReceiverCorrection } from '../../freestyle/feedback.js';
 
+export const SKYWELL_FLIGHT_RULES = Object.freeze({
+  gravity: 18,
+  timeout: 10,
+  missBelow: 220,
+});
+export function createLaunchworksDynamics({ collisionWorld }) {
+  return createRapierWorld({
+    collisionWorld,
+    gravity: SKYWELL_FLIGHT_RULES.gravity,
+  });
+}
+
 export function createLaunchworksRuntime(context) {
   const { track, dynamics } = context;
   const controller = createFreestyleController({ track });
   const model = createFlightModel({
-    gravity: 26,
-    timeout: 8,
-    missBelow: 180,
+    ...SKYWELL_FLIGHT_RULES,
     railHeight: Object.fromEntries(track.jumps.map((j) => [j.id, 0.8])),
   });
   const motion = model.createRuntime(context, {
     id: 'launchworks-freestyle',
-    version: 3,
-    rulesId: `launchworks-v3:${JSON.stringify({ rules: FREESTYLE_RULES, pace: track.pace })}`,
+    version: 4,
+    rulesId: `launchworks-v4:${JSON.stringify({ rules: FREESTYLE_RULES, pace: track.pace, flight: SKYWELL_FLIGHT_RULES })}`,
     scenarios: Object.fromEntries(
       Object.entries(track.scenarios).map(([id, state]) => [
         id,
@@ -96,6 +108,7 @@ export function createLaunchworksRuntime(context) {
         snapshot.flight
           ? new T.Vector3().fromArray(snapshot.flight.velocity)
           : null,
+        SKYWELL_FLIGHT_RULES,
       );
       return { ...snapshot, freestyle };
     },
@@ -116,6 +129,7 @@ export function createLaunchworksRuntime(context) {
         jump,
         pose,
         velocity ? new T.Vector3().fromArray(velocity) : null,
+        SKYWELL_FLIGHT_RULES,
       );
       freestyle.actualAngularSpeed = frame.flight?.angularVelocity
         ? Math.hypot(...frame.flight.angularVelocity)

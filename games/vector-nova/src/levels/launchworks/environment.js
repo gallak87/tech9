@@ -179,15 +179,16 @@ export async function createLaunchworksEnvironment({
   }
   const veil = track.jumps[2],
     departure = track.sample(veil.takeoff),
+    veilOffset = track.curtains[0].s - veil.takeoff,
     curtainPosition = departure.position
       .clone()
-      .addScaledVector(departure.tangent, 195)
+      .addScaledVector(departure.tangent, veilOffset)
       .addScaledVector(UP, 125);
-  place('waterfall-curtain', veil.takeoff + 195, {
+  place('waterfall-curtain', veil.takeoff + veilOffset, {
     position: curtainPosition,
     scale: [0.85, 1, 1],
   });
-  place('aqueduct-source', veil.takeoff + 195, {
+  place('aqueduct-source', veil.takeoff + veilOffset, {
     position: curtainPosition
       .clone()
       .addScaledVector(UP, 30)

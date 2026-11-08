@@ -9,6 +9,10 @@ import { createSoundPreview } from './sound-preview.js';
 import { soundEffects } from './sounds.js';
 import { RACE_SAMPLES, raceSample } from './sample-cues.js';
 import { EQUIPMENT } from '../progression/catalog.js';
+import {
+  createHazardContactAudio,
+  HAZARD_CONTACT_AUDIO,
+} from './hazard-contact.js';
 
 class Param {
   value = 0;
@@ -475,6 +479,8 @@ test('every Sounds entry reaches a live cue or bed, using the current sample whe
   let context, driver;
   const preview = createSoundPreview({
     getSettings: () => ({ volume: 0.35 }),
+    createContactAudio: (context, bus, options) =>
+      createHazardContactAudio(context, bus, { ...options, fetchAudio }),
     createDeviceAudio: () => {
       context = sampleContext();
       driver = createPickupAudio({ createContext: () => context, fetchAudio });
@@ -524,6 +530,23 @@ test('every Sounds entry reaches a live cue or bed, using the current sample whe
       }
     } else {
       assert.equal(driver.getStatus().audible, true, sound.id);
+      if (sound.hazard) {
+        const source = context.nodes.find(
+          (node) => node.kind === 'buffer' && node.loop,
+        );
+        assert.ok(source, sound.id);
+        assert.ok(
+          source.buffer.sampleUrl.includes(sound.id + '.wav'),
+          'audition uses the exact gameplay texture',
+        );
+        assert.equal(
+          context.nodes.filter((node) => node.kind === 'oscillator').length,
+          0,
+        );
+        preview.stop();
+        await driver.dispose();
+        continue;
+      }
       const sample = raceSample(sound.event);
       if (sample) {
         const source = context.nodes.find(
@@ -1078,4 +1101,78 @@ test('level-owned shelf sound uses the shared master bus and obeys unlock, mute,
   ordinary.event(event);
   assert.equal(ordinary.getPresentation(), null);
   await ordinary.dispose();
+});
+
+test('world contact audio prepares on unlock and shares effects volume, pause, mute and reset ownership', async () => {
+  const context = sampleContext();
+  const audio = createAudio({
+    createContext: () => context,
+    engine: false,
+    samples: {},
+    environment: (ctx, bus) =>
+      createHazardContactAudio(ctx, bus, {
+        kind: 'fire',
+        readFeedback: (frame) => frame.feedback,
+        fetchAudio,
+      }),
+  });
+  const frame = { mode: 'racing', feedback: { contact: 1, envelope: 1 } };
+  audio.setEnvironment(frame);
+  assert.equal(context.nodes.length, 0);
+  await audio.unlock();
+  assert.equal(
+    audio.getPresentation().loaded,
+    true,
+    'unlock prepares the optional world sample',
+  );
+  audio.setEnvironment(frame);
+  assert.equal(
+    audio.getPresentation().starts,
+    0,
+    'a running audio device is not a running race',
+  );
+  audio.update(state, 0.4, true);
+  audio.setEnvironment(frame);
+  const source = context.nodes.find((node) => node.kind === 'buffer');
+  assert.equal(source.destination.gain.value, HAZARD_CONTACT_AUDIO.fire.gain);
+  assert.equal(
+    source.destination.destination.kind,
+    'filter',
+    'contact joins the existing world bus',
+  );
+  const master = context.nodes.find(
+    (node) => node.kind === 'gain' && node.destination === context.destination,
+  );
+  assert.equal(
+    master.gain.value,
+    0.4,
+    'the shared master scales contact exactly once',
+  );
+  assert.doesNotThrow(
+    () => audio.event({ type: 'impact' }),
+    'frame-only environment owners need no event handler',
+  );
+  audio.update(state, 0, true);
+  assert.equal(audio.getPresentation().activeVoices, 0);
+  audio.setEnvironment(frame);
+  assert.equal(audio.getPresentation().starts, 1);
+  audio.update(state, 0.4, true);
+  audio.setEnvironment(frame);
+  assert.equal(audio.getPresentation().starts, 2);
+  audio.update(state, 0.4, false);
+  audio.setEnvironment(frame);
+  assert.equal(audio.getPresentation().activeVoices, 0);
+  audio.update(state, 0.4, false, { results: true });
+  audio.setEnvironment(frame);
+  assert.equal(
+    audio.getPresentation().activeVoices,
+    0,
+    'results never become contact ambience',
+  );
+  audio.update(state, 0.4, true);
+  audio.setEnvironment(frame);
+  audio.resetEnvironment();
+  assert.equal(audio.getPresentation().activeVoices, 0);
+  await audio.dispose();
+  assert.ok(context.nodes.every((node) => node.disconnected));
 });

@@ -12,6 +12,12 @@ import {
   surgeAt,
   sampleSpill,
 } from './mechanics.js';
+import {
+  CINDERCOIL_AI_RULES,
+  createCindercoilHazardPlanner,
+} from './avoidance.js';
+
+export const CINDERCOIL_CONTACT_RELEASE = 5;
 
 export const CINDERCOIL_FLIGHT_RULES = Object.freeze({
   railHeight: Object.freeze({ 'vent-launch': 3.36 }),
@@ -23,6 +29,8 @@ export function createCindercoilRuntime(context) {
   const model = createFlightModel(CINDERCOIL_FLIGHT_RULES);
   let contactSeconds = 0;
   let contactId = null;
+  let contactAge = CINDERCOIL_CONTACT_RELEASE;
+  let contactDuration = 0;
   let disposed = false;
   const flight = model.createRuntime(context, {
     id: 'cindercoil-volcanic',
@@ -133,6 +141,8 @@ export function createCindercoilRuntime(context) {
           CINDERCOIL_RULES.reserveDrain * step * (1 - toughness(state)),
       );
       contactSeconds += step;
+      contactAge = 0;
+      contactDuration = Math.min(1, contactDuration + step);
       if (contactId !== contact.zone.id)
         events.push({
           type: 'lava-contact',
@@ -147,12 +157,18 @@ export function createCindercoilRuntime(context) {
           },
         });
       contactId = contact.zone.id;
-    } else contactId = null;
+    } else {
+      contactId = null;
+      contactDuration = 0;
+      contactAge = Math.min(CINDERCOIL_CONTACT_RELEASE, contactAge + step);
+    }
     return events;
   }
   return {
     ...flight,
     scenarios,
+    aiRulesId: JSON.stringify(CINDERCOIL_AI_RULES),
+    aiHazardPlan: createCindercoilHazardPlanner(track),
     advance(state, input, dt, modifiers) {
       if (disposed || !Number.isFinite(dt) || dt <= 0) return [];
       const events = [];
@@ -187,19 +203,47 @@ export function createCindercoilRuntime(context) {
       stagedContact = null;
       contactSeconds = 0;
       contactId = null;
+      contactAge = CINDERCOIL_CONTACT_RELEASE;
+      contactDuration = 0;
       flight.reset(args);
     },
     readFrame() {
-      return { flight: flight.readFrame(), contactSeconds, contactId };
+      return {
+        flight: flight.readFrame(),
+        contactSeconds,
+        contactId,
+        contactAge,
+        contactDuration,
+      };
     },
     snapshot() {
-      return { flight: flight.snapshot(), contactSeconds, contactId };
+      return {
+        flight: flight.snapshot(),
+        contactSeconds,
+        contactId,
+        contactAge,
+        contactDuration,
+      };
     },
     restore(data) {
+      const age =
+        data && Object.hasOwn(data, 'contactAge')
+          ? data.contactAge
+          : CINDERCOIL_CONTACT_RELEASE;
+      const duration =
+        data && Object.hasOwn(data, 'contactDuration')
+          ? data.contactDuration
+          : 0;
       if (
         !data ||
         !Number.isFinite(data.contactSeconds) ||
         data.contactSeconds < 0 ||
+        !Number.isFinite(age) ||
+        age < 0 ||
+        age > CINDERCOIL_CONTACT_RELEASE ||
+        !Number.isFinite(duration) ||
+        duration < 0 ||
+        duration > 1 ||
         (data.contactId !== null &&
           !track.surgeZones.some((zone) => zone.id === data.contactId))
       )
@@ -208,6 +252,8 @@ export function createCindercoilRuntime(context) {
       stagedContact = null;
       contactSeconds = data.contactSeconds;
       contactId = data.contactId;
+      contactAge = age;
+      contactDuration = duration;
     },
     dispose() {
       disposed = true;

@@ -11,6 +11,7 @@ import {
   integrateHelionHeat,
   helionActiveThrustScale,
 } from './thermal.js';
+import { HELION_AI_RULES, createHelionHazardPlanner } from './avoidance.js';
 
 export const HELION_FIRE_SEVERITY = 1;
 const FLIGHT_RULES = {
@@ -214,6 +215,8 @@ export function createHelionRuntime(context, telemetry = {}) {
     version: base.version,
     rulesId: base.rulesId,
     scenarios,
+    aiRulesId: JSON.stringify(HELION_AI_RULES),
+    aiHazardPlan: createHelionHazardPlanner(track),
     status: () => base.status(),
     readFrame() {
       const flight = base.readFrame();

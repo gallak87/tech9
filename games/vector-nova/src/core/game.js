@@ -1637,6 +1637,7 @@ export async function createGame({
         definition.audio?.immersion?.({ ...frame, track }) ?? 0,
       );
       runtime.update?.(frame);
+      audio.setEnvironment(frame);
       equipmentPresentation.update({
         equipment: runtime.equipment?.(),
         pose: runtime.pose(alpha),

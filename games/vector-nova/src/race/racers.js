@@ -266,6 +266,7 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
   const hazardPlan = opponent.runtime?.aiHazardPlan?.(state, {
     laneSpeedLimit,
     braking: handling.braking,
+    turn: handling.turn,
   });
   if (Number.isFinite(hazardPlan?.lane)) {
     targetLane = clamp(

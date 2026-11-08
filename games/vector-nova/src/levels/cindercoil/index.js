@@ -7,10 +7,22 @@ import { createCindercoilBackdrop } from './backdrop/index.js';
 import { createCindercoilRuntime } from './runtime.js';
 import { createCindercoilCues } from './cues.js';
 import { createCindercoilOverlay } from './overlay.js';
+import {
+  withCindercoilShipHeatEffects,
+  readCindercoilHeatFeedback,
+} from './ship-heat.js';
+import { createHazardContactAudio } from '../../audio/hazard-contact.js';
 
 export default function createLevel({ shape = false }) {
   return {
     version: '0.5.1-cindercoil-racing',
+    audio: {
+      environment: (context, bus) =>
+        createHazardContactAudio(context, bus, {
+          kind: 'lava',
+          readFeedback: readCindercoilHeatFeedback,
+        }),
+    },
     racing: { createDevices, createMotion: createCindercoilRuntime },
     renderer: {
       world: shape ? 'cindercoil-shape' : 'cindercoil-caldera',
@@ -83,7 +95,7 @@ export default function createLevel({ shape = false }) {
         group.add(world.group, cues.group);
         group.userData.metrics = world.group.userData.metrics;
         group.userData.clearanceReport = world.group.userData.clearanceReport;
-        return {
+        return withCindercoilShipHeatEffects({
           group,
           ready: world.ready,
           update(frame) {
@@ -102,7 +114,7 @@ export default function createLevel({ shape = false }) {
             cues.dispose();
             group.clear();
           },
-        };
+        });
       } catch (error) {
         world?.dispose();
         cues?.dispose();

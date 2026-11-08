@@ -107,8 +107,10 @@ export function createAudio({
             };
           }
           await resources.context.resume();
-          if (!disposed && resources.context.state === 'running')
+          if (!disposed && resources.context.state === 'running') {
             await resources.samples.prepare();
+            await resources.environment?.prepare?.();
+          }
           return !disposed && resources.context.state === 'running';
         } catch {
           if (resources) {
@@ -175,6 +177,10 @@ export function createAudio({
     setImmersion(submerged) {
       resources?.immersion?.update(submerged);
     },
+    setEnvironment(frame) {
+      if (resources && !disposed && environmentActive)
+        resources.environment?.update?.(frame);
+    },
     getStatus() {
       return {
         active,
@@ -197,7 +203,7 @@ export function createAudio({
     },
     event(event) {
       if (resources && !disposed && environmentActive)
-        resources.environment?.trigger(event);
+        resources.environment?.trigger?.(event);
       if (event?.type === 'nacre-thunder') {
         if (resources && !disposed && environmentActive)
           resources.thunder?.trigger(event);

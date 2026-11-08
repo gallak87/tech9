@@ -6,12 +6,20 @@ import { createHelionEnvironment } from './environment/index.js';
 import { createHelionBackdrop } from './backdrop/index.js';
 import { createHelionRuntime } from './runtime.js';
 import { createHelionOverlay } from './overlay.js';
-import { withShipHeatEffects } from './ship-heat.js';
+import { withShipHeatEffects, readHelionHeatFeedback } from './ship-heat.js';
+import { createHazardContactAudio } from '../../audio/hazard-contact.js';
 
 export default function createLevel({ shape = false } = {}) {
   const telemetry = {};
   return {
     version: '0.7.0-helion-racing',
+    audio: {
+      environment: (context, bus) =>
+        createHazardContactAudio(context, bus, {
+          kind: 'fire',
+          readFeedback: (frame) => readHelionHeatFeedback(telemetry, frame),
+        }),
+    },
     playtests: {
       jump: {
         scenario: 'jump1-success',

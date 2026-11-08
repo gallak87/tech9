@@ -4,6 +4,10 @@ import { deviceSample } from '../pickups/sample-cues.js';
 import { raceSample } from './sample-cues.js';
 import { soundEffects } from './sounds.js';
 import { effectsVolume } from '../progression/index.js';
+import {
+  createHazardContactAudio,
+  HAZARD_CONTACT_AUDIO,
+} from './hazard-contact.js';
 
 // Dedicated owners let the menu audition real cues without emitting gameplay
 // events or changing a running race's audio state. Each preview releases its
@@ -13,6 +17,7 @@ export function createSoundPreview({
   onStatus = () => {},
   createRaceAudio = createAudio,
   createDeviceAudio = createPickupAudio,
+  createContactAudio = createHazardContactAudio,
   schedule = setTimeout,
   cancel = clearTimeout,
 } = {}) {
@@ -42,6 +47,11 @@ export function createSoundPreview({
     if (sound.bus === 'devices') audio.update(settings, true);
     else {
       audio.update(sound.state ?? {}, volume, true);
+      if (sound.hazard)
+        audio.setEnvironment({
+          mode: 'racing',
+          feedback: { contact: current.releasing ? 0 : 1, envelope: 1 },
+        });
     }
     return true;
   }
@@ -57,8 +67,18 @@ export function createSoundPreview({
           ? createDeviceAudio()
           : createRaceAudio({
               engine: Boolean(sound.state),
+              ...(sound.hazard
+                ? {
+                    samples: {},
+                    environment: (context, bus) =>
+                      createContactAudio(context, bus, {
+                        kind: sound.hazard,
+                        readFeedback: (frame) => frame.feedback,
+                      }),
+                  }
+                : {}),
             });
-      const preview = { sound, audio };
+      const preview = { sound, audio, releasing: false };
       current = preview;
       onStatus('Loading');
       const unlocked = await audio.unlock();
@@ -78,13 +98,31 @@ export function createSoundPreview({
         onStatus(`Sample unavailable: ${sample.id}`);
         return false;
       }
+      if (sound.hazard && audio.getPresentation()?.loaded !== true) {
+        stop();
+        onStatus(`Sample unavailable: ${sound.id}`);
+        return false;
+      }
       if (!configure()) return false;
       if (sound.effects) audio.setEffects(sound.effects);
       if (sound.event) audio.event(sound.event);
       onStatus('Playing');
       timer = schedule(
         () => {
-          if (current === preview) stop();
+          if (current !== preview) return;
+          if (!sound.hazard) {
+            stop();
+            return;
+          }
+          cancel(timer);
+          preview.releasing = true;
+          audio.setEnvironment({
+            mode: 'racing',
+            feedback: { contact: 0, envelope: 0 },
+          });
+          timer = schedule(() => {
+            if (current === preview) stop();
+          }, HAZARD_CONTACT_AUDIO.releaseSeconds * 1000);
         },
         Math.max(
           sound.seconds,

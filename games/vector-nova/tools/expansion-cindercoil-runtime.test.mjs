@@ -24,6 +24,53 @@ const stateAt = (distance, speed = 0, time = 0, lateral = 0) => ({
   time,
   lateral,
 });
+
+test('lava contact presentation history restores its release tail without changing physical identity', () => {
+  const zone = track.surgeZones[0];
+  const state = stateAt(zone.start + 15, 0, 4, -8.5);
+  const a = createCindercoilRuntime({ track });
+  const b = createCindercoilRuntime({ track });
+  try {
+    a.reset({ state });
+    for (let i = 0; i < 130; i++) a.advance(state, idle, dt);
+    assert.equal(a.readFrame().contactAge, 0);
+    assert.equal(a.readFrame().contactDuration, 1);
+    state.distance = zone.end + 30;
+    for (let i = 0; i < 60; i++) a.advance(state, idle, dt);
+    assert.ok(Math.abs(a.readFrame().contactAge - 0.5) < 1e-9);
+    assert.equal(a.readFrame().contactDuration, 0);
+    const saved = structuredClone(a.snapshot());
+    const copy = structuredClone(state);
+    b.restore(saved);
+    for (let i = 0; i < 600; i++) {
+      assert.deepEqual(a.advance(state, idle, dt), b.advance(copy, idle, dt));
+    }
+    assert.deepEqual(a.snapshot(), b.snapshot());
+    assert.equal(a.readFrame().contactAge, 5);
+    const paused = structuredClone(a.snapshot());
+    a.advance(state, idle, 0);
+    assert.deepEqual(a.snapshot(), paused);
+    const legacy = structuredClone(saved);
+    delete legacy.contactAge;
+    delete legacy.contactDuration;
+    b.restore(legacy);
+    assert.equal(b.readFrame().contactAge, 5);
+    assert.equal(b.readFrame().contactDuration, 0);
+    assert.equal(a.version, 1);
+    assert.ok(a.rulesId.startsWith('cindercoil-v3-grounded-contact:'));
+    assert.deepEqual(runtimeIdentity(a), runtimeIdentity(b));
+    for (const contactAge of [-1, 6, null, NaN])
+      assert.throws(() => b.restore({ ...saved, contactAge }), /snapshot/);
+    for (const contactDuration of [-1, 2, null, Infinity])
+      assert.throws(() => b.restore({ ...saved, contactDuration }), /snapshot/);
+    a.reset({ state });
+    assert.equal(a.readFrame().contactAge, 5);
+    assert.equal(a.readFrame().contactDuration, 0);
+  } finally {
+    a.dispose();
+    b.dispose();
+  }
+});
 function cross(speed, time) {
   const runtime = createCindercoilRuntime({ track });
   const state = stateAt(track.jumps[0].takeoff - 0.01, speed, time);

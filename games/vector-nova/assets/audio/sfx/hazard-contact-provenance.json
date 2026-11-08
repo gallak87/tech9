@@ -1,0 +1,43 @@
+{
+  "runtime": "Stable Audio 3 Small-SFX MLX",
+  "toolchain": "tools/sfx-models.json",
+  "referenceAudio": null,
+  "format": "mono 24000 Hz 16-bit PCM; exact decoded loop endpoints",
+  "rights": "AI-generated output; model weights use the Stability AI Community License and T5Gemma encoder carries Gemma terms. Runtime MIT. See docs/audio/sfx.md.",
+  "mastering": "assets/audio/sfx/hazard-contact-edit.py",
+  "approval": "Generated and integrated for in-game audition; no claim of user listening approval.",
+  "cues": {
+    "helion-fire-contact": {
+      "config": "helion-fire-contact.json",
+      "configSha256": "0e207217554d8de0902aa6199c965c88f2277556285bd72737f5743777e08f8e",
+      "sourceSha256": "62f6a3dd03250cc30048cd6681ccb4d5d1eb1e24c373ba6458d75327f9b093cc",
+      "filters": "highpass=f=120,lowpass=f=6500,acompressor=threshold=0.02:ratio=3.5:attack=4:release=80:makeup=2",
+      "trimStartFrame": 3600,
+      "trimEndFrame": 50400,
+      "overlapFrames": 2880,
+      "overlapCurve": "equal-power cosine/sine tail-to-head, then rotate to the former head endpoint",
+      "gain": 3.5165271517493024,
+      "seconds": 1.83,
+      "bytes": 87884,
+      "peakDbfs": -6.020864989640003,
+      "rmsDbfs": -26.224654434449842,
+      "sha256": "eab09977389163f8f099e61b4d9c8e775cca30a63c8fd13d2742647ff757eb9d"
+    },
+    "cindercoil-lava-contact": {
+      "config": "cindercoil-lava-contact.json",
+      "configSha256": "0fbd8638e0e753161423e0b9556851e2c33ca422e09b551a3dbf7ef9762cc6fc",
+      "sourceSha256": "d8572a5b3877092ea4c93833865d7df69b32b380a63bd473406f4f3d8d124fdb",
+      "filters": "highpass=f=90,lowpass=f=5200,acompressor=threshold=0.03:ratio=3:attack=5:release=100:makeup=1.6",
+      "trimStartFrame": 6000,
+      "trimEndFrame": 64800,
+      "overlapFrames": 2880,
+      "overlapCurve": "equal-power cosine/sine tail-to-head, then rotate to the former head endpoint",
+      "gain": 3.139804522805673,
+      "seconds": 2.33,
+      "bytes": 111884,
+      "peakDbfs": -6.020864989640003,
+      "rmsDbfs": -20.760443708742926,
+      "sha256": "d17819061c6a89ba6855c8744f4e5fa6a2a7ac92811a55190bf476c314431e6d"
+    }
+  }
+}

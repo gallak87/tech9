@@ -315,6 +315,23 @@
       ]
     },
     {
+      "id": "hazard-contact-sfx",
+      "source": "assets/audio/sfx/",
+      "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
+      "provenance": "Two original locally generated contact textures: Helion dry fire crackle and Cindercoil molten lava sizzle. Seeded four-second prompts use the pinned official MLX Small-SFX runtime without reference audio. The retained mastering script trims the useful body, filters and compresses it, folds an equal-power seam and exports mono 24 kHz 16-bit PCM loops. Exact prompts, toolchain, source/final hashes and sample-accurate edits are retained. One bounded voice follows actual player contact through the shared effects bus with soft onset/release; driving sounds remain unchanged. Integrated for in-game audition without a claim of user listening approval.",
+      "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See docs/audio/sfx.md.",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/audio/sfx/hazard-contact-provenance.json",
+      "promptRecords": [
+        "assets/audio/sfx/helion-fire-contact.json",
+        "assets/audio/sfx/cindercoil-lava-contact.json"
+      ],
+      "runtimeAssets": [
+        "assets/audio/sfx/helion-fire-contact.wav",
+        "assets/audio/sfx/cindercoil-lava-contact.wav"
+      ]
+    },
+    {
       "id": "equipment-sfx",
       "source": "assets/audio/sfx/",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",

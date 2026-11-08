@@ -605,6 +605,8 @@ try {
           'stabilizer-activate',
           'lance-fire',
           'lance-hit',
+          'helion-fire-contact',
+          'cindercoil-lava-contact',
         ]) {
           await page.locator('#sound-picker').selectOption(cue);
           await page.locator('#sound-picker').focus();

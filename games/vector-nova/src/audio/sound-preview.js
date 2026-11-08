@@ -50,7 +50,10 @@ export function createSoundPreview({
       if (sound.hazard)
         audio.setEnvironment({
           mode: 'racing',
-          feedback: { contact: current.releasing ? 0 : 1, envelope: 1 },
+          feedback: {
+            contact: current.releasing ? 0 : 1,
+            envelope: current.releasing ? 0 : 1,
+          },
         });
     }
     return true;
@@ -72,7 +75,6 @@ export function createSoundPreview({
                     samples: {},
                     environment: (context, bus) =>
                       createContactAudio(context, bus, {
-                        kind: sound.hazard,
                         readFeedback: (frame) => frame.feedback,
                       }),
                   }

@@ -6,36 +6,61 @@ import {
   createShipContactOutline,
 } from './ship-contact-outline.js';
 
-test('contact and recovery each get at most three hull pulses within one second', () => {
-  for (const contact of [0, 1]) {
-    const values = Array.from({ length: 101 }, (_, index) =>
-      contactOutlineStrength({
-        contact,
-        contactDuration: index / 100,
-        contactAge: index / 100,
-      }),
+test('the hull pulses slowly without dark gaps throughout long contact and the complete cooling envelope', () => {
+  const burning = Array.from({ length: 601 }, (_, index) =>
+    contactOutlineStrength(
+      { contact: 1, envelope: 1, contactDuration: 1 },
+      false,
+      index / 100,
+    ),
+  );
+  assert.ok(Math.min(...burning) >= 0.49);
+  assert.ok(Math.max(...burning) <= 0.76);
+  const peaks = burning.filter(
+    (value, index) =>
+      index > 0 &&
+      index < burning.length - 1 &&
+      value > burning[index - 1] &&
+      value > burning[index + 1],
+  );
+  assert.ok(
+    peaks.length >= 4 && peaks.length <= 6,
+    'approximately one slow pulse per 1.2 seconds',
+  );
+  assert.ok(
+    Math.abs(burning[240] - burning[300]) > 0.2,
+    'the capped contact-duration field cannot freeze the pulse',
+  );
+  const reduced = [];
+  for (let index = 0; index <= 500; index++) {
+    const envelope = Math.pow(1 - index / 500, 0.75);
+    const frame = { contact: 0, envelope, contactAge: index / 100 };
+    const strength = contactOutlineStrength(frame, false, 6 + index / 100);
+    assert.ok(strength <= 0.58);
+    assert.equal(
+      strength > 0,
+      index < 500,
+      'the red surround persists while cooling is visible',
     );
-    const peaks = values.filter(
-      (value, index) =>
-        value > 0.01 &&
-        (index === 0 || value > values[index - 1]) &&
-        (index === values.length - 1 || value > values[index + 1]),
-    );
-    assert.ok(peaks.length >= 2 && peaks.length <= 3);
-    assert.ok(Math.max(...values) <= 0.76);
-    assert.ok(values.slice(85).every((value) => value === 0));
-    const reduced = values.map((_value, index) =>
-      contactOutlineStrength(
-        { contact, contactDuration: index / 100, contactAge: index / 100 },
-        true,
-      ),
-    );
-    assert.ok(
-      reduced.every(
-        (value, index) => index === 0 || value <= reduced[index - 1],
-      ),
-    );
+    reduced.push(contactOutlineStrength(frame, true, 6 + index / 100));
   }
+  assert.ok(
+    reduced.every((value, index) => index === 0 || value <= reduced[index - 1]),
+  );
+  assert.equal(
+    contactOutlineStrength({ contact: 1, envelope: 1 }, true, 1),
+    contactOutlineStrength({ contact: 1, envelope: 1 }, true, 9),
+  );
+  const atExit = 4.27;
+  assert.ok(
+    Math.abs(
+      contactOutlineStrength({ contact: 1, envelope: 1 }, false, atExit) /
+        0.76 -
+        contactOutlineStrength({ contact: 0, envelope: 1 }, false, atExit) /
+          0.58,
+    ) < 1e-12,
+    'contact and recovery retain the same pulse phase',
+  );
   assert.equal(contactOutlineStrength(), 0);
 });
 

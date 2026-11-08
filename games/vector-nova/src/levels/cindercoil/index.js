@@ -19,7 +19,6 @@ export default function createLevel({ shape = false }) {
     audio: {
       environment: (context, bus) =>
         createHazardContactAudio(context, bus, {
-          kind: 'lava',
           readFeedback: readCindercoilHeatFeedback,
         }),
     },

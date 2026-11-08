@@ -76,6 +76,17 @@ export function createShipHeatEffects(
   const fire = plume(label + ' / small aft hull flames', 4, true);
   group.add(smoke.mesh, fire.mesh);
   const outline = createShipContactOutline();
+  const heatSource = new T.Object3D();
+  heatSource.name = 'Thermal contact / hull heat refraction';
+  heatSource.userData.aoExclude = heatSource.userData.reflectionExclude = true;
+  const heat = (heatSource.userData.exhaustHeat = {
+    kind: 'thermal',
+    enabled: false,
+    strength: 0,
+    pressure: 0,
+    velocity: 0,
+    time: 0,
+  });
   const pose = new T.Object3D(),
     offset = new T.Vector3(),
     rear = new T.Vector3(),
@@ -83,6 +94,7 @@ export function createShipHeatEffects(
   let disposed = false;
   return {
     group,
+    heatSource,
     update(frame = {}) {
       if (disposed) return;
       const {
@@ -98,9 +110,44 @@ export function createShipHeatEffects(
       const driving = Boolean(
         camera && !reviewing && ['racing', 'paused'].includes(mode),
       );
+      const bounds = ship?.group.userData.bounds ?? {
+        min: [-2.25, -0.12, -3.5],
+        max: [2.25, 1.8, 3.7],
+      };
+      if (ship?.group !== heatSource.parent) {
+        heatSource.removeFromParent();
+        ship?.group.add(heatSource);
+      }
+      const envelope = Number.isFinite(feedback.envelope)
+        ? T.MathUtils.clamp(feedback.envelope, 0, 1)
+        : 0;
+      heat.enabled = Boolean(
+        ship?.group &&
+        driving &&
+        settings.quality !== 'low' &&
+        !settings.reducedMotion &&
+        envelope > 0.005,
+      );
+      heat.strength = heat.enabled ? envelope : 0;
+      heat.time = time;
+      heat.bounds = bounds;
+      const padding = 0.95;
+      heatSource.position.set(
+        (bounds.min[0] + bounds.max[0]) * 0.5,
+        (bounds.min[1] + bounds.max[1]) * 0.5,
+        bounds.max[2] + padding,
+      );
+      // The existing refraction proxy occupies x/y ±.36 and z -1..0.
+      heatSource.scale.set(
+        (bounds.max[0] - bounds.min[0] + padding * 2) / 0.72,
+        (bounds.max[1] - bounds.min[1] + padding * 2) / 0.72,
+        bounds.max[2] - bounds.min[2] + padding * 2,
+      );
       outline.update(
         ship?.group,
-        driving ? contactOutlineStrength(feedback, settings.reducedMotion) : 0,
+        driving
+          ? contactOutlineStrength(feedback, settings.reducedMotion, time)
+          : 0,
       );
       group.visible = Boolean(
         ship?.group &&
@@ -111,10 +158,6 @@ export function createShipHeatEffects(
       );
       if (!group.visible) return;
       ship.group.updateWorldMatrix(true, false);
-      const bounds = ship.group.userData.bounds ?? {
-        min: [-2.25, -0.12, -3.5],
-        max: [2.25, 1.8, 3.7],
-      };
       const halfWidth = (bounds.max[0] - bounds.min[0]) * 0.5;
       const y = bounds.min[1] + (bounds.max[1] - bounds.min[1]) * 0.7;
       const z = bounds.min[2] + (bounds.max[2] - bounds.min[2]) * 0.22;
@@ -184,6 +227,8 @@ export function createShipHeatEffects(
     reset() {
       group.visible = false;
       outline.reset();
+      heat.enabled = false;
+      heat.strength = 0;
       resetFeedback?.();
     },
     dispose() {
@@ -191,6 +236,7 @@ export function createShipHeatEffects(
       disposed = true;
       group.removeFromParent();
       outline.dispose();
+      heatSource.removeFromParent();
       smoke.dispose();
       fire.dispose();
       group.clear();

@@ -5,39 +5,25 @@
   "format": "mono 24000 Hz 16-bit PCM; exact decoded loop endpoints",
   "rights": "AI-generated output; model weights use the Stability AI Community License and T5Gemma encoder carries Gemma terms. Runtime MIT. See docs/audio/sfx.md.",
   "mastering": "assets/audio/sfx/hazard-contact-edit.py",
-  "approval": "Generated and integrated for in-game audition; no claim of user listening approval.",
+  "approval": "User approved this nine-second generated recording; the shared gameplay and inspector gain is 0.4.",
   "cues": {
-    "helion-fire-contact": {
-      "config": "helion-fire-contact.json",
-      "configSha256": "0e207217554d8de0902aa6199c965c88f2277556285bd72737f5743777e08f8e",
-      "sourceSha256": "62f6a3dd03250cc30048cd6681ccb4d5d1eb1e24c373ba6458d75327f9b093cc",
-      "filters": "highpass=f=120,lowpass=f=6500,acompressor=threshold=0.02:ratio=3.5:attack=4:release=80:makeup=2",
-      "trimStartFrame": 3600,
-      "trimEndFrame": 50400,
+    "fire-contact": {
+      "config": "fire-contact.json",
+      "configSha256": "f384d5fae5b0e0ba074195857f7f140b4880e567fc8a611775be48e3a6755d74",
+      "sourceSha256": "c88d975284b51eb16525e20c151275c22d99fd87f0cd03db3d0dfa3f4225f122",
+      "processing": "New model generation of crisp continuous bonfire crackles; first 9.12 seconds converted to mono 24 kHz, peak-leveled and folded by 120 ms into a nine-second loop; no EQ or compression",
+      "sourceFramesAfterConversion": 240000,
+      "trimStartFrame": 0,
+      "trimEndFrame": 218880,
       "overlapFrames": 2880,
+      "loopRotationFrames": 1,
       "overlapCurve": "equal-power cosine/sine tail-to-head, then rotate to the former head endpoint",
-      "gain": 3.5165271517493024,
-      "seconds": 1.83,
-      "bytes": 87884,
+      "gain": 2.4752228433298082,
+      "seconds": 9.0,
+      "bytes": 432044,
       "peakDbfs": -6.020864989640003,
-      "rmsDbfs": -26.224654434449842,
-      "sha256": "eab09977389163f8f099e61b4d9c8e775cca30a63c8fd13d2742647ff757eb9d"
-    },
-    "cindercoil-lava-contact": {
-      "config": "cindercoil-lava-contact.json",
-      "configSha256": "0fbd8638e0e753161423e0b9556851e2c33ca422e09b551a3dbf7ef9762cc6fc",
-      "sourceSha256": "d8572a5b3877092ea4c93833865d7df69b32b380a63bd473406f4f3d8d124fdb",
-      "filters": "highpass=f=90,lowpass=f=5200,acompressor=threshold=0.03:ratio=3:attack=5:release=100:makeup=1.6",
-      "trimStartFrame": 6000,
-      "trimEndFrame": 64800,
-      "overlapFrames": 2880,
-      "overlapCurve": "equal-power cosine/sine tail-to-head, then rotate to the former head endpoint",
-      "gain": 3.139804522805673,
-      "seconds": 2.33,
-      "bytes": 111884,
-      "peakDbfs": -6.020864989640003,
-      "rmsDbfs": -20.760443708742926,
-      "sha256": "d17819061c6a89ba6855c8744f4e5fa6a2a7ac92811a55190bf476c314431e6d"
+      "rmsDbfs": -27.46497057881419,
+      "sha256": "944fab6537659f92655a66a5de45f5b65598c2e1e49b5265e888270b4116d6b5"
     }
   }
 }

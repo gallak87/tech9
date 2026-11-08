@@ -1111,7 +1111,6 @@ test('world contact audio prepares on unlock and shares effects volume, pause, m
     samples: {},
     environment: (ctx, bus) =>
       createHazardContactAudio(ctx, bus, {
-        kind: 'fire',
         readFeedback: (frame) => frame.feedback,
         fetchAudio,
       }),
@@ -1134,7 +1133,7 @@ test('world contact audio prepares on unlock and shares effects volume, pause, m
   audio.update(state, 0.4, true);
   audio.setEnvironment(frame);
   const source = context.nodes.find((node) => node.kind === 'buffer');
-  assert.equal(source.destination.gain.value, HAZARD_CONTACT_AUDIO.fire.gain);
+  assert.equal(source.destination.gain.value, HAZARD_CONTACT_AUDIO.gain);
   assert.equal(
     source.destination.destination.kind,
     'filter',

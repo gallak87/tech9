@@ -2,14 +2,16 @@ import { Color, DoubleSide, Group, Matrix4, Mesh, ShaderMaterial } from 'three';
 
 const clamp = (value) => Math.max(0, Math.min(1, value));
 export function contactOutlineStrength(
-  { contact = 0, contactDuration = 0, contactAge = 5 } = {},
+  { contact = 0, envelope = 0 } = {},
   reducedMotion = false,
+  time = 0,
 ) {
-  const age = contact ? contactDuration : contactAge;
-  const release = Math.pow(1 - clamp(age / 0.85), 0.8);
+  const release = clamp(envelope);
   if (reducedMotion) return release * (contact ? 0.22 : 0.16);
+  // The simulation clock keeps the same slow phase through contact and cooling;
+  // contact-duration telemetry may cap or reset when the ship leaves a hazard.
   const pulse =
-    0.25 + 0.75 * Math.pow(0.5 + 0.5 * Math.cos((age * Math.PI * 2) / 0.32), 2);
+    0.65 + 0.35 * (0.5 + 0.5 * Math.cos((time * Math.PI * 2) / 1.2));
   return release * pulse * (contact ? 0.76 : 0.58);
 }
 

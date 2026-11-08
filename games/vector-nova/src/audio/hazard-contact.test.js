@@ -61,7 +61,6 @@ function fixture({ available = true, decode } = {}) {
   };
   const destination = {};
   const audio = createHazardContactAudio(context, destination, {
-    kind: 'fire',
     readFeedback: (frame) => frame.feedback,
     fetchAudio: async () => {
       requests++;
@@ -70,7 +69,7 @@ function fixture({ available = true, decode } = {}) {
   });
   const frame = (contact, extra = {}) => ({
     mode: 'racing',
-    feedback: { contact, envelope: 1 },
+    feedback: { contact, envelope: contact },
     ...extra,
   });
   return {
@@ -97,7 +96,7 @@ test('one prepared sample follows solved contact with a bounded onset, loop and 
   assert.equal(source.loop, true);
   assert.equal(source.target, gain);
   assert.equal(gain.target, f.destination);
-  assert.equal(gain.gain.value, HAZARD_CONTACT_AUDIO.fire.gain);
+  assert.equal(gain.gain.value, HAZARD_CONTACT_AUDIO.gain);
   assert.equal(
     gain.gain.changes.at(-1).time,
     HAZARD_CONTACT_AUDIO.attackSeconds,
@@ -175,12 +174,29 @@ test('reduced motion keeps the same restrained contact sound and release, withou
   await f.audio.prepare();
   f.audio.update(f.frame(1, { settings: { reducedMotion: true } }));
   assert.equal(f.audio.getPresentation().activeVoices, 1);
-  assert.equal(
-    f.audio.getPresentation().maxGain,
-    HAZARD_CONTACT_AUDIO.fire.gain,
-  );
+  assert.equal(f.audio.getPresentation().maxGain, HAZARD_CONTACT_AUDIO.gain);
   f.audio.update(f.frame(0, { settings: { reducedMotion: true } }));
   assert.equal(f.audio.getPresentation().releasing, true);
+  f.audio.dispose();
+});
+
+test('the same voice follows the fading visual afterburn until recovery ends', async () => {
+  const f = fixture();
+  await f.audio.prepare();
+  f.audio.update(f.frame(1));
+  const gain = f.nodes.find(({ kind }) => kind === 'gain');
+  for (const envelope of [1, 0.8, 0.5, 0.1]) {
+    f.audio.update(f.frame(0, { feedback: { contact: 0, envelope } }));
+    assert.equal(f.audio.getPresentation().activeVoices, 1);
+    assert.equal(f.audio.getPresentation().starts, 1);
+    assert.equal(f.audio.getPresentation().releasing, false);
+    assert.equal(gain.gain.value, envelope * HAZARD_CONTACT_AUDIO.gain);
+  }
+  f.audio.update(f.frame(0));
+  assert.equal(f.audio.getPresentation().releasing, true);
+  f.context.currentTime += HAZARD_CONTACT_AUDIO.releaseSeconds;
+  f.audio.update(f.frame(0));
+  assert.equal(f.audio.getPresentation().activeVoices, 0);
   f.audio.dispose();
 });
 
@@ -241,6 +257,7 @@ test('committed generated textures match their provenance and small mono loop bu
   const provenance = JSON.parse(
     await readFile(new URL('hazard-contact-provenance.json', base)),
   );
+  assert.deepEqual(Object.keys(provenance.cues), ['fire-contact']);
   for (const [id, cue] of Object.entries(provenance.cues)) {
     const wav = await readFile(new URL(id + '.wav', base));
     const config = await readFile(new URL(cue.config, base));
@@ -253,9 +270,14 @@ test('committed generated textures match their provenance and small mono loop bu
     assert.equal(wav.readUInt16LE(22), 1);
     assert.equal(wav.readUInt32LE(24), 24000);
     assert.equal(wav.readUInt16LE(34), 16);
-    assert.ok(wav.length < 120000);
-    assert.ok(cue.seconds > 1.5 && cue.seconds < 2.5);
-    assert.ok(cue.peakDbfs < -6 && cue.rmsDbfs > -30);
+    assert.equal(wav.length, 44 + 9 * 24000 * 2);
+    assert.equal(cue.seconds, 9);
+    assert.equal(
+      cue.trimEndFrame - cue.trimStartFrame - cue.overlapFrames,
+      9 * 24000,
+    );
+    // Natural, uncompressed fire keeps quiet gaps between its close crackles.
+    assert.ok(cue.peakDbfs < -6 && cue.rmsDbfs > -42);
     let ordinaryDelta = 0;
     for (let offset = 46; offset < wav.length; offset += 2)
       ordinaryDelta += Math.abs(

@@ -16,7 +16,6 @@ export default function createLevel({ shape = false } = {}) {
     audio: {
       environment: (context, bus) =>
         createHazardContactAudio(context, bus, {
-          kind: 'fire',
           readFeedback: (frame) => readHelionHeatFeedback(telemetry, frame),
         }),
     },

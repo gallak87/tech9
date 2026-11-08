@@ -41,6 +41,13 @@ export const DEVICE_PREVIEWS = [
     group: 'Equipped abilities',
     detail: 'Protect your ship, then absorb an incoming hit.',
   },
+  {
+    id: 'fire-contact',
+    label: 'Fire · heat + recovery',
+    group: 'World contact',
+    detail:
+      'Fire contact with a red hull pulse, smoke, flames and shared fire sound, followed by cooling.',
+  },
 ];
 
 const quaternion = [0, 0, 0, 1];

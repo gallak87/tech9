@@ -398,6 +398,7 @@ export async function createInspector({
         host: root.querySelector('#inspection-tools'),
         ship: fleet.group,
         frame: inspectionFrame,
+        camera,
         onFramingChanged: () => {
           const subject = tab === 'fleet' ? fleet?.group : rival?.group;
           if (subject) fit(subject, false);

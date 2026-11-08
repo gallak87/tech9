@@ -1719,6 +1719,49 @@ try {
     );
 
     await check(
+      'music Pause and Play persist after entering a career and reloading',
+      async (page) => {
+        const playing = () =>
+          page.waitForFunction(
+            () => !document.querySelector('[data-music-player] audio').paused,
+          );
+        const preference = () =>
+          page.evaluate(() => localStorage.getItem('startUpMusicOn'));
+        await page.goto(url('intro=0'));
+        await home(page, 1);
+        await playing();
+        await page.locator('.music-play').focus();
+        await page.keyboard.press('KeyM');
+        assert.equal(await preference(), 'false');
+        await page.reload();
+        await home(page, 1);
+        assert.equal(
+          await page
+            .locator('[data-music-player] audio')
+            .evaluate((audio) => audio.paused),
+          true,
+        );
+        assert.equal(
+          await page.locator('.music-play').getAttribute('aria-label'),
+          'Play music',
+        );
+        await page.locator('.music-play').focus();
+        await pulse(page, 0, true);
+        await pulse(page, 0, false);
+        await playing();
+        assert.equal(await preference(), 'true');
+        await page.reload();
+        await home(page, 1);
+        await playing();
+        assert.equal(
+          await page.locator('.music-song').inputValue(),
+          'blue-hour',
+        );
+      },
+      { existingCareer: true },
+    );
+
+    await check(
       'startup controller can Pause before Start without advancing the title',
       async (page) => {
         await page.goto(url());

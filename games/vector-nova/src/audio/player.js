@@ -8,7 +8,7 @@ import {
 import './player.css';
 
 const preferenceKey = 'vector-nova.music';
-const startupPreferenceKey = 'startUpMusicOn';
+const playbackPreferenceKey = 'startUpMusicOn';
 const icon = (paths) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 const playIcon = icon(
@@ -19,17 +19,13 @@ const pauseIcon = icon('<path d="M8 5v14M16 5v14" stroke-width="4"/>');
 // Shared music transport. Independent of race time and the effects mix.
 export function createMusicPlayer(
   host,
-  {
-    clearInput = () => {},
-    isMenuVisible = () => false,
-    isStartupScreen = () => false,
-  } = {},
+  { clearInput = () => {}, isMenuVisible = () => false } = {},
 ) {
   let preferences = {};
   let wantsPlayback = true;
   let settings = loadSettings();
   try {
-    wantsPlayback = localStorage.getItem(startupPreferenceKey) !== 'false';
+    wantsPlayback = localStorage.getItem(playbackPreferenceKey) !== 'false';
     preferences = JSON.parse(localStorage.getItem(preferenceKey)) || {};
   } catch {
     // Storage is optional; the player still works with session defaults.
@@ -236,12 +232,10 @@ export function createMusicPlayer(
   function togglePlayback() {
     if (suspended) return;
     wantsPlayback = audio.paused && !starting;
-    if (isStartupScreen()) {
-      try {
-        localStorage.setItem(startupPreferenceKey, String(wantsPlayback));
-      } catch {
-        // The explicit session intent still applies when storage is unavailable.
-      }
+    try {
+      localStorage.setItem(playbackPreferenceKey, String(wantsPlayback));
+    } catch {
+      // The explicit session intent still applies when storage is unavailable.
     }
     if (wantsPlayback) {
       if (audio.error) loadSong(true);

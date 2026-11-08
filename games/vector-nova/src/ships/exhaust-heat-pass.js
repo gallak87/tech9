@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { createOrbitalPlumeGeometry } from './orbital-plume.js';
 
-// A bounded nozzle volume writes only displacement, coverage and front depth.
+// Bounded nozzle and thermal hull volumes write displacement, coverage and depth.
 // The beauty pass supplies opaque scene depth; there is no second world render.
 // Keeping the field separate means the hull, HUD and all pixels outside the
 // exhaust footprint retain their original image, including at volume edges.
@@ -40,6 +40,8 @@ export class ExhaustHeatPass extends Pass {
         flowTime: { value: 0 },
         pressure: { value: 0 },
         velocity: { value: 0 },
+        hullHeat: { value: 0 },
+        thermalStrength: { value: 0 },
         heatToHull: { value: new THREE.Matrix4() },
         hullMin: { value: new THREE.Vector3() },
         hullMax: { value: new THREE.Vector3() },
@@ -66,6 +68,8 @@ export class ExhaustHeatPass extends Pass {
         uniform float flowTime;
         uniform float pressure;
         uniform float velocity;
+        uniform float hullHeat;
+        uniform float thermalStrength;
         uniform mat4 heatToHull;
         uniform vec3 hullMin;
         uniform vec3 hullMax;
@@ -96,6 +100,16 @@ export class ExhaustHeatPass extends Pass {
           float weight = 0.;
           for(int i=0;i<12;i++) {
             vec3 p = localEye+ray*(entry+(float(i)+.5)*stride);
+            if(hullHeat>.5) {
+              vec3 q = abs(vec3(p.xy/.36,(p.z+.5)*2.));
+              float roundedBox = pow(pow(q.x,4.)+pow(q.y,4.)+pow(q.z,4.),.25);
+              float envelope = 1.-smoothstep(.55,1.,roundedBox);
+              float travel = p.y*11.-flowTime*2.8;
+              vec2 wave = vec2(sin(travel+p.z*14.),cos(travel*.83+p.x*13.));
+              wave += .3*vec2(sin(travel*1.61-p.x*21.),cos(travel*1.43+p.z*19.));
+              bend += wave*envelope*stride;
+              weight += envelope*stride;
+            } else {
             float aft = clamp(-p.z,0.,1.);
             float radius = (.23+.075*sin(aft*3.14159))*(1.-smoothstep(.72,1.,aft)*.8);
             float radial = length(p.xy)/max(radius,.005);
@@ -108,12 +122,13 @@ export class ExhaustHeatPass extends Pass {
             wave += .36*vec2(sin(travel*1.83-p.x*24.),cos(travel*1.47+p.y*27.));
             bend += wave*envelope*stride;
             weight += envelope*stride;
+            }
           }
           float coverage = 1.-exp(-weight*7.);
           if(coverage<.002) discard;
           vec2 direction = bend/max(weight,.0001);
           // Pixel amplitudes are independent of canvas/device pixel ratio.
-          float pixels = 1.1+velocity*1.1+pressure*3.6;
+          float pixels = hullHeat>.5 ? 2.5*thermalStrength : 1.1+velocity*1.1+pressure*3.6;
           float frontDepth = -viewZ*entry/max(rayLength,.00001);
           gl_FragColor = vec4(direction*pixels*coverage,frontDepth*coverage,coverage);
         }`,
@@ -216,20 +231,24 @@ export class ExhaustHeatPass extends Pass {
           const source = mesh.userData.source;
           const heat = source.userData.exhaustHeat;
           const hull = source.parent;
+          const bounds = hull.userData.bounds ?? heat.bounds;
           this.hullInverse.copy(hull.matrixWorld).invert();
           this.material.uniforms.heatToHull.value.multiplyMatrices(
             this.hullInverse,
             mesh.matrixWorld,
           );
           this.material.uniforms.hullMin.value
-            .fromArray(hull.userData.bounds.min)
+            .fromArray(bounds.min)
             .addScalar(-0.025);
           this.material.uniforms.hullMax.value
-            .fromArray(hull.userData.bounds.max)
+            .fromArray(bounds.max)
             .addScalar(0.025);
           this.material.uniforms.flowTime.value = heat.time;
           this.material.uniforms.pressure.value = mesh.userData.heatLevel;
           this.material.uniforms.velocity.value = heat.velocity;
+          this.material.uniforms.hullHeat.value =
+            heat.kind === 'thermal' ? 1 : 0;
+          this.material.uniforms.thermalStrength.value = heat.strength ?? 0;
           this.material.uniformsNeedUpdate = true;
         };
         this.fieldScene.add(mesh);
@@ -238,6 +257,15 @@ export class ExhaustHeatPass extends Pass {
       const mesh = this.proxies[index];
       mesh.visible = true;
       mesh.userData.source = source;
+      const thermal = source.userData.exhaustHeat.kind === 'thermal';
+      // The field does not blend: preserve stronger nozzle heat wherever the
+      // hull-wide volume overlaps it, independent of source traversal order.
+      mesh.renderOrder = thermal ? -1 : 0;
+      if (thermal) {
+        mesh.userData.heatLevel = 0;
+        mesh.matrix.copy(source.matrixWorld);
+        return;
+      }
       const { velocity, pressure } = source.userData.exhaustHeat;
       // The source already grows from idle to full cruise and then boost.
       // Follow its actual dimensions so the heat always surrounds the flame.
@@ -280,6 +308,8 @@ export class ExhaustHeatPass extends Pass {
       const hull = this.sources[0]?.parent;
       this.composite.uniforms.protectHull.value = hull ? 1 : 0;
       if (hull) {
+        const bounds =
+          hull.userData.bounds ?? this.sources[0].userData.exhaustHeat.bounds;
         this.hullInverse.copy(hull.matrixWorld).invert();
         this.composite.uniforms.viewToHull.value.multiplyMatrices(
           this.hullInverse,
@@ -289,10 +319,10 @@ export class ExhaustHeatPass extends Pass {
           this.camera.projectionMatrixInverse,
         );
         this.composite.uniforms.hullMin.value
-          .fromArray(hull.userData.bounds.min)
+          .fromArray(bounds.min)
           .addScalar(-0.025);
         this.composite.uniforms.hullMax.value
-          .fromArray(hull.userData.bounds.max)
+          .fromArray(bounds.max)
           .addScalar(0.025);
       }
       renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer);

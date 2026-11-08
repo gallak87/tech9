@@ -20,17 +20,14 @@ const race = (id, label, type, payload = {}, seconds = 0.8) => ({
 });
 
 export const soundEffects = [
-  ...[
-    ['helion-fire-contact', 'Helion · fire crackle', 'fire'],
-    ['cindercoil-lava-contact', 'Cindercoil · lava sizzle', 'lava'],
-  ].map(([id, label, hazard]) => ({
-    id,
-    label,
-    hazard,
+  {
+    id: 'fire-contact',
+    label: 'Fire · bonfire crackle',
+    hazard: true,
     group: 'World contact',
     bus: 'race',
     seconds: 3,
-  })),
+  },
   ...EQUIPMENT.filter(({ id }) => id !== 'lance').map(({ id, name }) => ({
     ...device(
       `${id}-activate`,

@@ -22,21 +22,23 @@ async function mount(page) {
       '<button id="tunes-opener" aria-controls="music-panel" aria-expanded="false">Tunes</button><button id="startup-gesture">Continue</button>';
     const { createMusicPlayer } = await import('/src/audio/player.js');
     window.navigationCalls = { initial: 0, next: 0 };
-    window.startupScreen = true;
     window.music = createMusicPlayer(document.querySelector('#app'), {
       clearInput: () => window.navigationCalls.initial++,
       isMenuVisible: () => true,
-      isStartupScreen: () => window.startupScreen,
     });
     window.audioIdentity = document.querySelector('[data-music-player] audio');
   });
 }
-async function setup({ blocked = false, delayed = false } = {}) {
+async function setup({
+  blocked = false,
+  delayed = false,
+  unavailableStorage = false,
+} = {}) {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
   });
   await context.addInitScript(
-    ({ blocked, delayed }) => {
+    ({ blocked, delayed, unavailableStorage }) => {
       localStorage.setItem(
         'vector-nova.settings',
         JSON.stringify({ musicVolume: 0.37, masterVolume: 0.5 }),
@@ -51,6 +53,19 @@ async function setup({ blocked = false, delayed = false } = {}) {
           collapsed: false,
         }),
       );
+      if (unavailableStorage) {
+        const { getItem, setItem } = Storage.prototype;
+        Storage.prototype.getItem = function (key) {
+          if (key === 'startUpMusicOn')
+            throw new DOMException('Storage unavailable', 'SecurityError');
+          return getItem.call(this, key);
+        };
+        Storage.prototype.setItem = function (key, value) {
+          if (key === 'startUpMusicOn')
+            throw new DOMException('Storage unavailable', 'SecurityError');
+          return setItem.call(this, key, value);
+        };
+      }
       if (blocked || delayed) {
         const play = HTMLMediaElement.prototype.play;
         window.playAttempts = 0;
@@ -72,7 +87,7 @@ async function setup({ blocked = false, delayed = false } = {}) {
         };
       }
     },
-    { blocked, delayed },
+    { blocked, delayed, unavailableStorage },
   );
   const page = await context.newPage();
   // This module-only fixture must not disappear when another parallel task
@@ -289,26 +304,95 @@ try {
       'true',
     );
     await page.evaluate(() => {
-      window.startupScreen = false;
+      window.music.setDriving(true);
       window.music.togglePlayback();
     });
     assert.equal(
       await page.evaluate(() => localStorage.getItem('startUpMusicOn')),
-      'true',
-      'a later in-game pause does not rewrite the startup choice',
+      'false',
+      'an explicit in-game pause becomes the saved playback choice',
     );
     await page.evaluate(() => window.music.startWithGame());
     assert.equal(await page.evaluate(() => window.audioIdentity.paused), true);
+    await page.reload();
+    await mount(page);
+    await page.waitForTimeout(150);
+    assert.equal(await page.evaluate(() => window.audioIdentity.paused), true);
+    await page.locator('#startup-gesture').click();
+    await page.evaluate(() => window.music.startWithGame());
+    assert.equal(await page.evaluate(() => window.audioIdentity.paused), true);
+    assert.equal(
+      await page.evaluate(() => localStorage.getItem('startUpMusicOn')),
+      'false',
+    );
+    await page.locator('.music-play').click();
+    await audioPlaying(page);
+    assert.equal(
+      await page.evaluate(() => localStorage.getItem('startUpMusicOn')),
+      'true',
+    );
     await page.reload();
     await mount(page);
     await audioPlaying(page);
     assert.equal(await page.locator('.music-song').inputValue(), 'blue-hour');
     assert.equal(Object.hasOwn(await stored(page), 'song'), false);
     console.log(
-      'PASS startup Pause/Play persists across reload while later session pause stays local',
+      'PASS explicit Pause/Play persists across reload from startup and in-game transport',
+    );
+
+    await page.evaluate(() => window.music.setSuspended(true));
+    assert.equal(await page.evaluate(() => window.audioIdentity.paused), true);
+    assert.equal(
+      await page.evaluate(() => localStorage.getItem('startUpMusicOn')),
+      'true',
+    );
+    await page.evaluate(() => window.music.setSuspended(false));
+    await audioPlaying(page);
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        value: true,
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+      delete document.hidden;
+    });
+    assert.equal(await page.evaluate(() => window.audioIdentity.paused), true);
+    assert.equal(
+      await page.evaluate(() => localStorage.getItem('startUpMusicOn')),
+      'true',
+    );
+    await page.evaluate(() => window.music.startWithGame());
+    await audioPlaying(page);
+    console.log(
+      'PASS automatic suspension and visibility pauses preserve the explicit playback choice',
     );
   } finally {
     await context.close();
+  }
+
+  {
+    const { context, page } = await setup({ unavailableStorage: true });
+    try {
+      await audioPlaying(page);
+      await page.locator('.music-play').click();
+      assert.equal(
+        await page.evaluate(() => window.audioIdentity.paused),
+        true,
+      );
+      await page.locator('#startup-gesture').click();
+      await page.evaluate(() => window.music.startWithGame());
+      assert.equal(
+        await page.evaluate(() => window.audioIdentity.paused),
+        true,
+      );
+      await page.locator('.music-play').click();
+      await audioPlaying(page);
+      console.log(
+        'PASS unavailable playback storage preserves explicit session Pause/Play',
+      );
+    } finally {
+      await context.close();
+    }
   }
 
   for (const target of ['#startup-gesture', '.music-play', 'keyboard']) {

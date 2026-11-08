@@ -91,6 +91,11 @@ test('lava plumes and hull outline are absent from inactive staging and release 
     'Thermal contact / lava-red hull envelope',
   );
   assert.ok(visible(smoke) && outline.visible);
+  const heat = ship.group.getObjectByName(
+    'Thermal contact / hull heat refraction',
+  ).userData.exhaustHeat;
+  assert.equal(heat.enabled, true);
+  assert.equal(heat.strength, 1);
   const matrices = Array.from(smoke.instanceMatrix.array);
   world.update({
     ...frame,
@@ -98,13 +103,32 @@ test('lava plumes and hull outline are absent from inactive staging and release 
     motion: { contactId: 'lava', contactDuration: 0.1, contactAge: 0 },
   });
   assert.deepEqual(Array.from(smoke.instanceMatrix.array), matrices);
+  const sustained = {
+    ...frame,
+    mode: 'racing',
+    motion: { contactId: 'lava', contactDuration: 1, contactAge: 0 },
+  };
+  world.update({ ...sustained, time: 1.2 });
+  const peak = outline.children[0].material.uniforms.strength.value;
+  world.update({ ...sustained, time: 1.8 });
+  assert.ok(outline.visible);
+  assert.ok(
+    outline.children[0].material.uniforms.strength.value < peak,
+    'the simulation clock continues pulsing after contact duration has capped',
+  );
   world.update({
     ...frame,
     mode: 'racing',
     motion: { contactId: null, contactAge: 2 },
   });
   assert.ok(visible(smoke));
-  assert.equal(outline.visible, false);
+  assert.equal(heat.enabled, true);
+  assert.ok(heat.strength > 0 && heat.strength < 1);
+  assert.equal(
+    outline.visible,
+    true,
+    'the red hull envelope follows the smoke through recovery',
+  );
   world.update({
     ...frame,
     mode: 'racing',
@@ -112,6 +136,7 @@ test('lava plumes and hull outline are absent from inactive staging and release 
   });
   assert.equal(visible(smoke), false);
   assert.equal(outline.visible, false);
+  assert.equal(heat.enabled, false);
   world.dispose();
   geometry.dispose();
   material.dispose();

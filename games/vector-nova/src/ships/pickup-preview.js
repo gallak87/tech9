@@ -5,6 +5,11 @@ import { createHitFeedback } from '../pickups/hit-feedback.js';
 import { createPickupPreviewAudio } from './pickup-preview-audio.js';
 import { createEquipmentEffects } from '../equipment/effects.js';
 import {
+  createThermalPreview,
+  THERMAL_PREVIEW_CONTACT,
+  THERMAL_PREVIEW_DURATION,
+} from './thermal-preview.js';
+import {
   DEVICE_PREVIEWS,
   PREVIEW_TARGET_DISTANCE,
   pickupPreviewFrame,
@@ -14,6 +19,7 @@ export function createPickupPreview({
   ship,
   target,
   frame,
+  camera,
   getSettings,
   getDriving = () => ({}),
   onStatus = () => {},
@@ -21,6 +27,7 @@ export function createPickupPreview({
   createAudio = createPickupPreviewAudio,
   createFeedback = createShipFeedbackPresentation,
   createCombat = createCombatPresentation,
+  createThermal = createThermalPreview,
 }) {
   const root = new Group();
   root.name = 'Inspector / isolated pickup audition';
@@ -70,6 +77,12 @@ export function createPickupPreview({
   root.visible = false;
   combatRoot.visible = false;
   ship?.add(root);
+  const thermal = createThermal({
+    ship,
+    scene: frame.parent ?? frame,
+    camera,
+    getSettings,
+  });
   if (target) {
     target.position.set(0, 0, PREVIEW_TARGET_DISTANCE);
     frame.add(target);
@@ -79,6 +92,7 @@ export function createPickupPreview({
     request++;
     current = null;
     audio.stop();
+    thermal.stop();
     feedback.reset();
     equipment.reset();
     targetFeedback?.update();
@@ -97,6 +111,16 @@ export function createPickupPreview({
     onStatus(status);
   }
   function render(previous, dt = 0) {
+    if (current.kind === 'fire-contact') {
+      thermal.update(current.time, current.paused);
+      const status =
+        current.time < THERMAL_PREVIEW_CONTACT
+          ? 'Demo · Fire contact'
+          : 'Demo · Cooling';
+      if (current.status !== status) onStatus((current.status = status));
+      current.end = THERMAL_PREVIEW_DURATION;
+      return;
+    }
     const settings = getSettings();
     const next = pickupPreviewFrame(
       current.kind,
@@ -208,7 +232,9 @@ export function createPickupPreview({
       stop('Preparing…');
       const token = request;
       try {
-        const audioDuration = await audio.prepare(kind);
+        const audioDuration = await (
+          kind === 'fire-contact' ? thermal : audio
+        ).prepare(kind);
         if (disposed || token !== request) return false;
         current = {
           kind,
@@ -218,8 +244,8 @@ export function createPickupPreview({
           shieldConsumed: false,
           paused,
         };
-        root.visible = true;
-        combatRoot.visible = true;
+        root.visible = kind !== 'fire-contact';
+        combatRoot.visible = kind !== 'fire-contact';
         render(-1);
         if (time > 0) {
           current.time = Math.max(0, time);
@@ -243,7 +269,13 @@ export function createPickupPreview({
       if (current.time >= current.end) stop();
     },
     configure() {
-      if (!disposed) audio.update(getSettings(), !!current);
+      if (!disposed) {
+        audio.update(
+          getSettings(),
+          !!current && current.kind !== 'fire-contact',
+        );
+        thermal.configure();
+      }
     },
     setShip(next) {
       stop();
@@ -251,6 +283,7 @@ export function createPickupPreview({
       attachPlayer(next);
       ship = next;
       next?.add(root);
+      thermal.setShip(next);
       if (target) target.visible = showTarget();
     },
     select(kind) {
@@ -264,6 +297,7 @@ export function createPickupPreview({
       position: pose.position.toArray(),
       quaternion: pose.quaternion.toArray(),
       target: targetPose.position.toArray(),
+      thermal: selectedKind === 'fire-contact' ? thermal.getSnapshot() : null,
     }),
     stop,
     dispose() {
@@ -271,6 +305,7 @@ export function createPickupPreview({
       stop();
       disposed = true;
       audio.dispose();
+      thermal.dispose();
       feedback.dispose();
       equipment.dispose();
       combat.dispose();

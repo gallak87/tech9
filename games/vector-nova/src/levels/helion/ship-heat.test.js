@@ -60,6 +60,10 @@ test('ship heat presentation freezes with simulation time, respects all modes, a
   };
   effect.update(frame);
   assert.ok(effect.group.visible);
+  const heat = effect.heatSource.userData.exhaustHeat;
+  assert.equal(heat.enabled, true);
+  assert.equal(heat.strength, 1);
+  assert.equal(heat.time, frame.time);
   const smoke = effect.group.children[0];
   const positions = Array.from(smoke.instanceMatrix.array);
   assert.ok(positions.every(Number.isFinite));
@@ -67,11 +71,13 @@ test('ship heat presentation freezes with simulation time, respects all modes, a
   effect.update({ ...frame, mode: 'paused' });
   assert.deepEqual(Array.from(smoke.instanceMatrix.array), positions);
   effect.update({ ...frame, settings: { reducedMotion: true } });
+  assert.equal(heat.enabled, false);
   const frozen = Array.from(smoke.instanceMatrix.array);
   effect.update({ ...frame, time: 18, settings: { reducedMotion: true } });
   assert.deepEqual(Array.from(smoke.instanceMatrix.array), frozen);
   effect.update({ ...frame, settings: { quality: 'low' } });
   assert.equal(smoke.count, 24);
+  assert.equal(heat.enabled, false);
   effect.update({ ...frame, mode: 'inspection' });
   assert.equal(effect.group.visible, false);
   effect.update({ ...frame, reviewing: true });
@@ -83,10 +89,13 @@ test('ship heat presentation freezes with simulation time, respects all modes, a
   effect.update(frame);
   assert.ok(effect.group.visible, 'cold hull still smokes after a brief hit');
   assert.ok(telemetry.shipFlame > 0);
+  assert.equal(heat.enabled, true);
+  assert.ok(heat.strength > 0 && heat.strength < 1);
   telemetry.contactAge = 5;
   effect.update(frame);
   assert.equal(effect.group.visible, false);
   assert.equal(telemetry.shipSmoke, 0);
+  assert.equal(heat.enabled, false);
   effect.dispose();
 });
 

@@ -74,11 +74,7 @@ export async function startEntry(host) {
     renaming = null,
     renameDraft = '',
     message = '';
-  const music = quiet
-    ? null
-    : createMusicPlayer(audioHost, {
-        isStartupScreen: () => frontend === null,
-      });
+  const music = quiet ? null : createMusicPlayer(audioHost);
   const reducedMotion = () =>
     loadSettings().reducedMotion ||
     matchMedia('(prefers-reduced-motion: reduce)').matches;

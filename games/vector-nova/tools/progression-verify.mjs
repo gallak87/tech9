@@ -528,7 +528,11 @@ try {
         const status = page.locator('.inspection-pickups [role="status"]');
         for (const { id: kind } of DEVICE_PREVIEWS) {
           await page.locator('#inspection-pickup').selectOption(kind);
-          await page.locator('[data-trigger]').click();
+          if (kind === 'fire-contact') {
+            await page.locator('[data-trigger]').focus();
+            if (mode === '1') await key(page, 'Enter');
+            else await pad(page, 0);
+          } else await page.locator('[data-trigger]').click();
           await page.waitForFunction(() =>
             document
               .querySelector('.inspection-pickups [role="status"]')
@@ -553,8 +557,104 @@ try {
               1,
             );
           }
+          if (kind === 'fire-contact') {
+            const thermal = demonstration.thermal;
+            assert.equal(thermal.contact, 1);
+            assert.equal(thermal.outlineVisible, true);
+            assert.equal(thermal.smokeVisible, true);
+            assert.equal(thermal.flameVisible, true);
+            assert.equal(thermal.audio.loaded, true);
+            assert.equal(thermal.audio.activeVoices, 1);
+            const inspectionSettings = await page.evaluate(() =>
+              JSON.parse(localStorage.getItem('vector-nova.settings')),
+            );
+            for (const [quality, reducedMotion, expected] of [
+              ['high', false, true],
+              ['high', true, false],
+              ['low', false, false],
+            ]) {
+              await page.evaluate(
+                async ({ settings, quality, reducedMotion }) => {
+                  window.__VN_INSPECTOR.configure({
+                    ...settings,
+                    quality,
+                    reducedMotion,
+                  });
+                  await window.__VN_INSPECTOR.audition('fire-contact', {
+                    time: 0.3,
+                    paused: true,
+                  });
+                },
+                { settings: inspectionSettings, quality, reducedMotion },
+              );
+              assert.equal(
+                await page.evaluate(
+                  () =>
+                    window.__VN_INSPECTOR.getSnapshot().inspection.demonstration
+                      .thermal.heatwaveEnabled,
+                ),
+                expected,
+              );
+            }
+            await page.evaluate(
+              (settings) => window.__VN_INSPECTOR.configure(settings),
+              inspectionSettings,
+            );
+            await page.evaluate(() =>
+              window.__VN_INSPECTOR.audition('fire-contact', {
+                time: 4.3,
+              }),
+            );
+            const burning = await page.evaluate(
+              () =>
+                window.__VN_INSPECTOR.getSnapshot().inspection.demonstration
+                  .thermal,
+            );
+            assert.equal(burning.contact, 0);
+            assert.equal(burning.outlineVisible, true);
+            assert.equal(burning.audio.activeVoices, 1);
+            await page.evaluate(() =>
+              window.__VN_INSPECTOR.audition('fire-contact', {
+                time: 4.3,
+                paused: true,
+              }),
+            );
+            const cooling = await page.evaluate(
+              () =>
+                window.__VN_INSPECTOR.getSnapshot().inspection.demonstration
+                  .thermal,
+            );
+            assert.equal(cooling.contact, 0);
+            assert.equal(cooling.outlineVisible, true);
+            assert.equal(cooling.smokeVisible, true);
+            assert.equal(cooling.audio.activeVoices, 0);
+            await page.evaluate(() =>
+              window.__VN_INSPECTOR.audition('fire-contact', {
+                time: 9,
+                paused: true,
+              }),
+            );
+            const recovered = await page.evaluate(
+              () =>
+                window.__VN_INSPECTOR.getSnapshot().inspection.demonstration
+                  .thermal,
+            );
+            assert.equal(recovered.envelope, 0);
+            assert.equal(recovered.outlineVisible, false);
+            assert.equal(recovered.smokeVisible, false);
+            assert.equal(recovered.audio.activeVoices, 0);
+          }
           await page.locator('[data-stop]').click();
           assert.equal(await status.innerText(), 'Ready');
+          if (kind === 'fire-contact')
+            assert.equal(
+              await page.evaluate(
+                () =>
+                  window.__VN_INSPECTOR.getSnapshot().inspection.demonstration
+                    .thermal.active,
+              ),
+              false,
+            );
           assert.deepEqual(
             await page.evaluate(
               () =>
@@ -605,8 +705,7 @@ try {
           'stabilizer-activate',
           'lance-fire',
           'lance-hit',
-          'helion-fire-contact',
-          'cindercoil-lava-contact',
+          'fire-contact',
         ]) {
           await page.locator('#sound-picker').selectOption(cue);
           await page.locator('#sound-picker').focus();

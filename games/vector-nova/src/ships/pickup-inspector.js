@@ -11,6 +11,7 @@ export async function createPickupInspector({
   host,
   ship,
   frame,
+  camera,
   getSettings,
   getDriving,
   onFramingChanged = () => {},
@@ -25,9 +26,9 @@ export async function createPickupInspector({
   element.className = 'inspection-pickups';
   element.setAttribute(
     'aria-label',
-    'Powerup and equipment sound and effects preview',
+    'Powerup, equipment and contact sound and effects preview',
   );
-  element.innerHTML = `<label for="inspection-pickup">Powerups & equipment</label><div class="inspection-pickup-controls"><select id="inspection-pickup"></select><button type="button" data-trigger>Trigger</button><button type="button" data-stop>Stop</button></div><p data-detail></p><div class="inspection-reserve" data-reserve hidden><span>Demo boost reserve <output>25 → 70</output></span><meter min="0" max="100" value="25" aria-label="Demonstration boost reserve"></meter></div><label class="inspection-engine"><input type="checkbox" data-engine>Engine sound <span>Driving / Boost</span></label><label class="inspection-engine"><input type="checkbox" data-shield><span data-shield-label>Shield target</span></label><p role="status">Ready · Rook target ahead</p>`;
+  element.innerHTML = `<label for="inspection-pickup">Powerups, equipment & contact</label><div class="inspection-pickup-controls"><select id="inspection-pickup"></select><button type="button" data-trigger>Trigger</button><button type="button" data-stop>Stop</button></div><p data-detail></p><div class="inspection-reserve" data-reserve hidden><span>Demo boost reserve <output>25 → 70</output></span><meter min="0" max="100" value="25" aria-label="Demonstration boost reserve"></meter></div><label class="inspection-engine"><input type="checkbox" data-engine>Engine sound <span>Driving / Boost</span></label><label class="inspection-engine"><input type="checkbox" data-shield><span data-shield-label>Shield target</span></label><p role="status">Ready · Rook target ahead</p>`;
   const select = element.querySelector('#inspection-pickup');
   for (const name of new Set(DEVICE_PREVIEWS.map(({ group }) => group))) {
     const group = document.createElement('optgroup');
@@ -66,6 +67,7 @@ export async function createPickupInspector({
   const preview = createPickupPreview({
     ship,
     frame,
+    camera,
     target: target?.group,
     getSettings,
     getDriving,

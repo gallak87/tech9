@@ -998,12 +998,17 @@
       "runtimeDependencies": ["three"]
     },
     {
-      "id": "zephyr-skywell-pilot",
+      "id": "zephyr-skywell",
       "source": "src/levels/launchworks/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original source-authored Zephyr Skywell five-transfer route, banked receivers, bronze running-deck construction and suspended water-garden composition. Reuses registered canonical Zephyr islands, abbey/aqueduct/waterfall GLBs, limestone image, road weave, material/water/lighting helpers and sky backdrop. The short receiving tube shares Shatterline tube-surface.js and tube-tessellation.js geometry/contact mechanics; three powered approaches reuse shared Vector hardware. Its clean-catch cue reuses the registered Vector jump landing sample. No new downloaded or generated media.",
-      "rights": "Derived from this project's registered Zephyr and equipment assets plus project-authored Shatterline geometry mechanics; their original provenance and rights apply",
-      "runtimeDependencies": ["three"]
+      "provenance": "Original source-authored Zephyr Skywell five-transfer route, banked receivers, bronze running-deck construction and descending water-garden composition. Reuses registered canonical Zephyr islands, cathedral/abbey/chapel/tower/halo/aqueduct/waterfall GLBs, the Blender-authored open aqueduct bay, limestone image, road weave, material/water/lighting helpers and sky backdrop. Skywell owns stacked shores, five architectural districts, stepped source-fed canals and connector cisterns. Cultivated groves use the public Worldkit Living Forest kit and its canonical bark/leaf images, ray-seated on actual terrace triangles; package assets retain their existing provenance. The short receiving tube shares Shatterline tube-surface.js and tube-tessellation.js geometry/contact mechanics; three powered approaches reuse shared Vector hardware. Its clean-catch cue reuses the registered Vector jump landing sample. No new downloaded or generated media.",
+      "rights": "Derived from this project's registered Zephyr and equipment assets, project-authored Shatterline geometry mechanics and Worldkit Living Forest assets; their original provenance and rights apply",
+      "runtimeDependencies": ["three", "@worldkit/environment/living-forest"],
+      "provenanceRecords": [
+        "../../worldkit/modules/living-forest/assets/provenance.json",
+        "../../worldkit/NOTICE.md",
+        "assets/levels/zephyr/asset-manifest.json"
+      ]
     },
     {
       "id": "asterion-deck-finish",

@@ -806,11 +806,14 @@ export function createFlightModel(overrides = {}) {
         landingVelocity = flight.velocity.clone().sub(supportVelocity);
         actor?.setVelocity(landingVelocity, flight.angularVelocity);
       }
+      const landingFrame = options.surfaceLanding
+        ? (landing?.frame ?? surfaceFrame(state))
+        : track.sample(state.distance);
       state.lateralSpeed = landing
-        ? landingVelocity.dot(track.sample(state.distance).right)
+        ? landingVelocity.dot(landingFrame.right)
         : 0;
       state.speed = landing
-        ? Math.max(0, landingVelocity.dot(track.sample(state.distance).tangent))
+        ? Math.max(0, landingVelocity.dot(landingFrame.tangent))
         : 0;
       state.impact = flight.edgeCaught
         ? Math.max(state.impact, 0.35)
@@ -818,7 +821,7 @@ export function createFlightModel(overrides = {}) {
       mode = 'magnetic';
       const roadPose = poseOnRoad(state, true);
       if (landing) {
-        const frame = track.sample(state.distance);
+        const frame = landingFrame;
         const support = Math.max(
           0,
           bodyExtent(contactPose.quaternion, frame.up) -
@@ -1024,7 +1027,11 @@ export function createFlightModel(overrides = {}) {
         return null;
       let { distance, frame, offset } = receivingFrame(jump, hit);
       let lateral = offset.dot(frame.right);
-      if (magneticBody && flight.equipmentJump && hit.shape.kind === 'deck') {
+      if (
+        magneticBody &&
+        (flight.equipmentJump || options.surfaceLanding) &&
+        hit.shape.kind === 'deck'
+      ) {
         // Store the solved pose in the same surface chart that magnetic support
         // will use next tick. A tube's centreline chord is not its lateral arc;
         // adopting that chord would pull an untouched hull sideways on capture.
@@ -1032,7 +1039,12 @@ export function createFlightModel(overrides = {}) {
           track,
           hit.position,
           distance + flight.lapOffset,
-          lateral,
+          options.surfaceLanding && hit.shape.roadCoordinates
+            ? hit.shape.roadCoordinates.reduce(
+                (sum, coordinate) => sum + coordinate[1],
+                0,
+              ) / hit.shape.roadCoordinates.length
+            : lateral,
           dynamics.sampleRoadSurface,
         );
         distance = projected.distance - flight.lapOffset;
@@ -1064,7 +1076,9 @@ export function createFlightModel(overrides = {}) {
             )
           : strictHeading;
       const periodicDeck =
-        flight.equipmentJump && hit.shape.kind === 'deck' && frame.period > 0;
+        (flight.equipmentJump || options.surfaceLanding) &&
+        hit.shape.kind === 'deck' &&
+        frame.period > 0;
       // A closed tube has no side edge at the flat approach ribbon's width.
       const boundary = periodicDeck
         ? Infinity
@@ -1253,8 +1267,68 @@ export function createFlightModel(overrides = {}) {
       // contact pose. Never integrate an unchecked remainder through a solid.
       return false;
     }
+    const flightCorridors = new Map();
     function flightFailure(jump) {
       if (flight.equipmentGraceUntil > flight.elapsed) return null;
+      if (options.surfaceLanding) {
+        // A banked road's right axis contains height. It cannot bound an
+        // airborne corridor: a perfectly centred ship high above an 80-degree
+        // receiver would otherwise be declared hundreds of metres sideways.
+        // Use the authored route's plan view for broad miss/recovery bounds;
+        // actual finite deck/tube contacts still decide every landing.
+        let corridor = flightCorridors.get(jump);
+        if (!corridor) {
+          const end = landingZoneEnd(track, jump);
+          const points = [track.sample(jump.takeoff).position.clone()];
+          for (let distance = jump.landingStart; distance < end; distance += 24)
+            points.push(track.sample(distance).position.clone());
+          points.push(track.sample(end).position.clone());
+          corridor = {
+            points,
+            floor: Math.min(...points.slice(1).map((point) => point.y)),
+            end: track.sample(end),
+          };
+          flightCorridors.set(jump, corridor);
+        }
+        let lateralSquared = Infinity,
+          nearestSegment = 0,
+          nearestFraction = 0;
+        for (let i = 1; i < corridor.points.length; i++) {
+          const a = corridor.points[i - 1],
+            b = corridor.points[i];
+          const dx = b.x - a.x,
+            dz = b.z - a.z;
+          const rawFraction =
+            ((currentPose.position.x - a.x) * dx +
+              (currentPose.position.z - a.z) * dz) /
+            Math.max(1e-9, dx * dx + dz * dz);
+          const fraction = clamp(rawFraction, 0, 1);
+          const squared =
+            (currentPose.position.x - a.x - fraction * dx) ** 2 +
+            (currentPose.position.z - a.z - fraction * dz) ** 2;
+          if (squared < lateralSquared) {
+            lateralSquared = squared;
+            nearestSegment = i;
+            nearestFraction = rawFraction;
+          }
+        }
+        const beyond = currentPose.position.clone().sub(corridor.end.position);
+        const horizontalForward = corridor.end.tangent
+          .clone()
+          .setY(0)
+          .normalize();
+        return currentPose.position.y < corridor.floor - R.missBelow
+          ? 'short'
+          : nearestSegment === corridor.points.length - 1 &&
+              nearestFraction >= 1 &&
+              beyond.dot(horizontalForward) > R.missBeyond + R.halfLength
+            ? 'long'
+            : lateralSquared > R.missLateral ** 2
+              ? 'lateral'
+              : flight.elapsed >= R.timeout
+                ? 'timeout'
+                : null;
+      }
       const frame = track.sample(jump.landingStart);
       const offset = currentPose.position.clone().sub(frame.position);
       const down = offset.dot(frame.up);
@@ -2062,7 +2136,7 @@ export function createFlightModel(overrides = {}) {
     const adapter = {
       id: options.id,
       version: options.version,
-      rulesId: `${collisionWorld ? `${options.rulesId}:collision-${JSON.stringify({ id: collisionWorld.id, version: collisionWorld.version, rulesId: collisionWorld.rulesId })}` : options.rulesId}${dynamics ? `:dynamics-${JSON.stringify({ id: dynamics.id, version: dynamics.version, rulesId: dynamics.rulesId })}:${MAGNETIC_BODY_RULES}:shared-transition-tick-v1:equipment-jump-v2-${JSON.stringify(EQUIPMENT_JUMP_RULES)}` : collisionWorld ? ':supported-rail-slide-v1' : ''}${options.forgivingContacts ? `:forgiving-deck-wall-v4:support-height-${options.supportHeight ?? 0}` : ''}${options.supportVelocity ? ':moving-support-velocity-v2-edge-release' : ''}${boundaryRecoveryGrace ? ':boundary-recovery-grace-v1' : ''}${automaticRecovery ? '' : ':manual-recovery-v1'}`,
+      rulesId: `${collisionWorld ? `${options.rulesId}:collision-${JSON.stringify({ id: collisionWorld.id, version: collisionWorld.version, rulesId: collisionWorld.rulesId })}` : options.rulesId}${dynamics ? `:dynamics-${JSON.stringify({ id: dynamics.id, version: dynamics.version, rulesId: dynamics.rulesId })}:${MAGNETIC_BODY_RULES}:shared-transition-tick-v1:equipment-jump-v2-${JSON.stringify(EQUIPMENT_JUMP_RULES)}` : collisionWorld ? ':supported-rail-slide-v1' : ''}${options.forgivingContacts ? `:forgiving-deck-wall-v4:support-height-${options.supportHeight ?? 0}` : ''}${options.supportVelocity ? ':moving-support-velocity-v2-edge-release' : ''}${boundaryRecoveryGrace ? ':boundary-recovery-grace-v1' : ''}${automaticRecovery ? '' : ':manual-recovery-v1'}${options.surfaceLanding ? ':authored-surface-chart-landing-plan-corridor-v2' : ''}`,
       scenarios,
       status: () => ({ mode }),
       readFrame() {

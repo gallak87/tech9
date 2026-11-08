@@ -5,6 +5,7 @@ import {
   landingEstimate,
   FREESTYLE_RULES,
 } from '../../freestyle/controller.js';
+import { freestyleReceiverCorrection } from '../../freestyle/feedback.js';
 
 export function createLaunchworksRuntime(context) {
   const { track, dynamics } = context;
@@ -17,8 +18,8 @@ export function createLaunchworksRuntime(context) {
   });
   const motion = model.createRuntime(context, {
     id: 'launchworks-freestyle',
-    version: 2,
-    rulesId: `launchworks-v2:${JSON.stringify({ rules: FREESTYLE_RULES, pace: track.pace })}`,
+    version: 3,
+    rulesId: `launchworks-v3:${JSON.stringify({ rules: FREESTYLE_RULES, pace: track.pace })}`,
     scenarios: Object.fromEntries(
       Object.entries(track.scenarios).map(([id, state]) => [
         id,
@@ -30,17 +31,13 @@ export function createLaunchworksRuntime(context) {
     airAngularSpeed: 6,
     airAngularResponse: 24,
     forgivingContacts: false,
+    surfaceLanding: true,
   });
   let incoming = null;
   function before(state, input, dt) {
     incoming = { pose: motion.pose(1), flight: motion.snapshot().flight };
     controller.step(input, dt);
-    const turning =
-      incoming.flight &&
-      [input.aerialPitch, input.aerialYaw, input.aerialRoll].some(
-        (v) => Math.abs(v ?? 0) > 0.05,
-      );
-    return turning ? { ...input, steer: 0, boost: false } : input;
+    return input;
   }
   function finish(state, events) {
     for (const e of events) {
@@ -54,6 +51,8 @@ export function createLaunchworksRuntime(context) {
         if (!jump || !pose) continue;
         const leg = controller.land({
           jump,
+          distance: state.distance,
+          lateral: state.lateral,
           outcome: e.payload.outcome,
           position: pose.position,
           quaternion: pose.quaternion,
@@ -80,7 +79,10 @@ export function createLaunchworksRuntime(context) {
     reset(options = {}) {
       motion.reset(options);
       if (options.reason === 'manual-recover') controller.invalidate();
-      else controller.reset();
+      else {
+        controller.reset();
+        if (options.reason === 'freestyle-practice') controller.invalidate();
+      }
       incoming = null;
     },
     snapshot() {
@@ -97,8 +99,50 @@ export function createLaunchworksRuntime(context) {
       );
       return { ...snapshot, freestyle };
     },
-    restore(data) {
-      motion.restore(data);
+    readFrame() {
+      const frame = motion.readFrame();
+      const freestyle = controller.readFrame();
+      const jump = track.jumps.find(
+        (candidate) => candidate.id === freestyle.flight?.id,
+      );
+      const pose = motion.pose(1);
+      const velocity =
+        frame.flight?.velocity ??
+        (incoming?.flight?.id === frame.flight?.id
+          ? incoming?.flight?.velocity
+          : null);
+      freestyle.touchdown = landingEstimate(
+        track,
+        jump,
+        pose,
+        velocity ? new T.Vector3().fromArray(velocity) : null,
+      );
+      freestyle.actualAngularSpeed = frame.flight?.angularVelocity
+        ? Math.hypot(...frame.flight.angularVelocity)
+        : 0;
+      if (pose && jump) {
+        // This is an aiming reference, not a prediction of future contact:
+        // compare the real hull with the authored receiver's target surface.
+        const receiver =
+          track.sampleSurface?.(jump.target, jump.targetLateral ?? 0) ??
+          track.sample(jump.target);
+        const up = new T.Vector3(0, 1, 0).applyQuaternion(pose.quaternion);
+        const forward = new T.Vector3(0, 0, 1).applyQuaternion(pose.quaternion);
+        freestyle.receiverReference = {
+          tilt: Math.acos(T.MathUtils.clamp(up.dot(receiver.up), -1, 1)),
+          nose: Math.acos(
+            T.MathUtils.clamp(forward.dot(receiver.tangent), -1, 1),
+          ),
+          correction: freestyleReceiverCorrection(
+            pose.quaternion,
+            receiver.quaternion,
+          ),
+        };
+      }
+      return { ...frame, freestyle };
+    },
+    restore(data, options) {
+      motion.restore(data, options);
       controller.restore(data.freestyle);
       incoming = null;
     },
@@ -107,7 +151,14 @@ export function createLaunchworksRuntime(context) {
         flight = motion.snapshot().flight;
       if (pose && !pose.grounded && flight) {
         const forward = new T.Vector3().fromArray(flight.velocity).normalize();
-        const right = new T.Vector3(0, 1, 0).cross(forward).normalize();
+        const right = new T.Vector3(0, 1, 0).cross(forward);
+        if (right.lengthSq() < 1e-8) {
+          right.fromArray(flight.launchRight);
+          right.addScaledVector(forward, -right.dot(forward));
+        }
+        if (right.lengthSq() < 1e-8)
+          right.set(1, 0, 0).addScaledVector(forward, -forward.x);
+        right.normalize();
         const up = forward.clone().cross(right).normalize();
         pose.viewQuaternion = new T.Quaternion().setFromRotationMatrix(
           new T.Matrix4().makeBasis(right, up, forward),

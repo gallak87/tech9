@@ -26,7 +26,7 @@ export function createInput(
     'ShiftLeft',
     'ShiftRight',
     'Space',
-    ...(freestyle ? ['ControlLeft', 'ControlRight'] : []),
+    ...(freestyle ? ['ControlLeft', 'ControlRight', 'KeyC', 'KeyV'] : []),
     ...EQUIPMENT_CONTROLS.map(({ key }) => key),
   ];
   const equipmentPulses = EQUIPMENT_CONTROLS.map(() => false);
@@ -46,14 +46,14 @@ export function createInput(
         e.preventDefault();
         keys.add(e.code);
         const slot = EQUIPMENT_CONTROLS.findIndex(({ key }) => key === e.code);
-        if (slot >= 0 && !e.repeat) equipmentPulses[slot] = true;
+        if (!freestyle && slot >= 0 && !e.repeat) equipmentPulses[slot] = true;
       }
       if (!e.repeat) {
         const commands = {
           Escape: 'pause',
           KeyR: 'restart',
           Enter: 'start',
-          KeyC: 'camera',
+          ...(!freestyle ? { KeyC: 'camera' } : {}),
         };
         if (
           commands[e.code] &&
@@ -67,6 +67,13 @@ export function createInput(
   window.addEventListener('keyup', (e) => keys.delete(e.code), {
     signal: abort.signal,
   });
+  window.addEventListener(
+    'vn-camera-toggle',
+    () => {
+      if (enabled && !document.hidden) onCommand('camera');
+    },
+    { signal: abort.signal },
+  );
   window.addEventListener('resize', () => touch.clear(), {
     signal: abort.signal,
   });
@@ -94,6 +101,7 @@ export function createInput(
     activateEquipment(slot) {
       if (
         enabled &&
+        !freestyle &&
         Number.isInteger(slot) &&
         slot >= 0 &&
         slot < equipmentPulses.length
@@ -139,23 +147,45 @@ export function createInput(
           i[`equipment${slot}`] ||= pad[`equipment${slot}`];
       }
       if (freestyle) {
+        const active = enabled && !document.hidden;
         const ctrl = down('ControlLeft', 'ControlRight');
         const horizontal =
           Number(down('ArrowRight', 'KeyD')) -
           Number(down('ArrowLeft', 'KeyA'));
         const vertical =
           Number(down('ArrowDown', 'KeyS')) - Number(down('ArrowUp', 'KeyW'));
-        i.aerialPitch = ctrl
-          ? vertical
-          : pad.equipment1
-            ? -(pad.aerialStickY ?? 0)
-            : 0;
-        i.aerialRoll = ctrl ? -horizontal : pad.equipment1 ? -pad.steer : 0;
-        i.aerialYaw = ctrl
-          ? Number(down('KeyQ')) - Number(down('KeyE'))
-          : pad.equipment1
-            ? -(pad.aerialStickX ?? 0)
-            : 0;
+        const clamp = (value) => Math.max(-1, Math.min(1, value));
+        // Direct paired keys compose freely. Ctrl remains an alternate for the
+        // original one-hand direction controls, never a canned trick chooser.
+        i.aerialPitch = active
+          ? clamp(
+              Number(down('KeyX')) -
+                Number(down('KeyZ')) +
+                (ctrl ? vertical : 0) +
+                (pad.aerialStickY ?? 0),
+            )
+          : 0;
+        i.aerialRoll = active
+          ? clamp(
+              (ctrl
+                ? -horizontal
+                : Number(down('KeyQ')) - Number(down('KeyE'))) +
+                Number(pad.equipment1) -
+                Number(pad.equipment2),
+            )
+          : 0;
+        i.aerialYaw = active
+          ? clamp(
+              Number(down('KeyC')) -
+                Number(down('KeyV')) +
+                (ctrl ? Number(down('KeyQ')) - Number(down('KeyE')) : 0) +
+                (pad.aerialStickX ?? 0),
+            )
+          : 0;
+        // These buttons belong to attitude control in this discipline. No
+        // keyboard pulse, touch activation or pad input can arm equipment.
+        for (let slot = 1; slot <= EQUIPMENT_CONTROLS.length; slot++)
+          i[`equipment${slot}`] = false;
       }
       // Equipment taps survive observation and frames without a physics tick.
       return i;

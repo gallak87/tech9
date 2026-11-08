@@ -69,11 +69,45 @@
   color: #d7a096;
   border-color: #925c52;
 }
+.fs-transfer {
+  font-size: 19px;
+  margin: 7px 0 5px;
+}
+.fs-approach,
+.fs-receiver {
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 4px 0;
+  color: #c7d2c8;
+}
+.fs-receiver {
+  color: #9edcbe;
+}
+.fs-speed {
+  display: block;
+  font-size: 10px;
+  color: #c8b990;
+}
+.fs-speed[data-state='ready'] {
+  color: #9edcbe;
+}
+.fs-speed[data-state='high'] {
+  color: #ee997f;
+}
+.fs-alignment {
+  display: block;
+  margin-top: 5px;
+  font-size: 10px;
+  color: #c6d3d4;
+}
+.fs-alignment[hidden] {
+  display: none;
+}
 .fs-trick {
   display: block;
-  font-size: 17px;
+  font-size: 15px;
   line-height: 1.35;
-  min-height: 46px;
+  min-height: 20px;
   margin: 8px 0;
 }
 .fs-rotation {
@@ -103,6 +137,7 @@
 }
 .fs-controls {
   display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 7px;
   border-top: 1px solid #ffffff20;
   padding-top: 14px;
@@ -111,17 +146,14 @@
   color: #899a9f;
   letter-spacing: 0.035em;
 }
+.fs-controls .fs-brake {
+  grid-column: 1 / -1;
+}
 .fs-controls b {
   display: block;
   color: #ccd7d7;
   font-weight: 600;
   margin-bottom: 2px;
-}
-.freestyle-hud[data-armed='true'] {
-  border-color: #a1e7d0;
-}
-.freestyle-hud[data-armed='true'] .fs-catch {
-  color: #b7f8df;
 }
 .freestyle-hud[data-late='true'] .fs-rotation i {
   background: #ea593f;
@@ -214,4 +246,39 @@
     gap: 14px;
     flex-wrap: wrap;
   }
+}
+
+#pause-panel .fs-practice {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #ffffff20;
+}
+#pause-panel .fs-practice label {
+  display: grid;
+  gap: 8px;
+}
+#pause-panel .fs-practice select {
+  width: 100%;
+  max-width: none;
+}
+.fs-practice-status {
+  min-height: 32px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #afc2ba;
+  margin: 10px 0;
+}
+.fs-practice-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+#pause-panel .fs-practice-actions button {
+  flex: 1;
+  min-width: 140px;
+}
+
+/* Transfer practice already provides both retry and full-chain actions. */
+#interface[data-level='launchworks'] #pause-panel .pause-restart {
+  display: none;
 }

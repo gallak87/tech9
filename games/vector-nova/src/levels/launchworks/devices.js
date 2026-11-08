@@ -1,18 +1,21 @@
 import { createDeviceLayout } from '../../pickups/layout.js';
 
-// Use the ordinary Vector hardware and propulsion; the approach supplies launch
-// speed without spending the pilot's manual boost reserve.
+// Three powered entries end before release, leaving road angle and braking to
+// determine the launch. The two plunges supply their own speed through gravity.
 export function createLaunchworksDevices(track) {
   return createDeviceLayout(
     track,
-    track.jumps.map((jump, i) => ({
-      id: `launch-vector-${i + 1}`,
-      type: 'vector',
-      distance: jump.takeoff - 66,
-      lateral: 0,
-      width: 28,
-      length: 68,
-      label: `Transfer ${i + 1} launch strip`,
-    })),
+    [0, 2, 3].map((index) => {
+      const jump = track.jumps[index];
+      return {
+        id: `launch-vector-${index + 1}`,
+        type: 'vector',
+        distance: jump.takeoff - { 0: 170, 2: 200, 3: 240 }[index],
+        lateral: 0,
+        width: 28,
+        length: 48,
+        label: `${jump.label} approach strip`,
+      };
+    }),
   );
 }

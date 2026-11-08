@@ -3,7 +3,7 @@ import { createLaunchworksRoad } from './track/road.js';
 import { createLaunchworksEnvironment } from './environment.js';
 import { createLaunchworksRuntime } from './runtime.js';
 import { createLaunchworksDevices } from './devices.js';
-import { createOrbitalBackdrop } from '../orbital/backdrop/index.js';
+import { createZephyrBackdrop } from '../zephyr/backdrop/index.js';
 import { collectProductionSolids } from '../../physics/production-solids.js';
 import { createFreestyleOverlay } from '../../freestyle/overlay.js';
 import { RACE_SAMPLES } from '../../audio/sample-cues.js';
@@ -11,7 +11,7 @@ import { DEVICE_SAMPLES } from '../../pickups/sample-cues.js';
 
 export default function createLevel() {
   return {
-    version: '0.2.0-freestyle-pilot',
+    version: '0.3.0-skywell-freestyle-pilot',
     freestyle: true,
     audio: {
       samples: {
@@ -20,12 +20,12 @@ export default function createLevel() {
       },
     },
     renderer: {
-      world: 'orbital',
-      background: '#08111b',
-      fog: { color: '#142330', density: 0.000045 },
+      world: 'zephyr-basilica',
+      background: '#a18eac',
+      fog: { color: '#a9b0c6', density: 0.00022 },
       bloomStrength: 0.08,
       bloomThreshold: 1.2,
-      reflectionFar: 24000,
+      reflectionFar: 6500,
     },
     camera: {
       preserveFlightView: true,
@@ -37,14 +37,14 @@ export default function createLevel() {
     createTrack: createLaunchworksTrack,
     createRoad: createLaunchworksRoad,
     createEnvironment: createLaunchworksEnvironment,
-    createBackdrop: createOrbitalBackdrop,
+    createBackdrop: createZephyrBackdrop,
     createOverlay: createFreestyleOverlay,
     createCollisionWorld: ({ track }) =>
       collectProductionSolids({
         track,
         id: 'launchworks-solids',
-        geometryId: 'five-bending-aprons-v2',
-        road: createLaunchworksRoad({ track }),
+        geometryId: track.geometryVersion,
+        road: createLaunchworksRoad({ track, shape: true }),
         select: (object) =>
           object.userData.drivingSurface
             ? { kind: 'deck' }

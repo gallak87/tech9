@@ -3,6 +3,7 @@ import { buildIdentity } from '../progression/profile.js';
 import { vehicleHandling } from '../ships/catalog.js';
 import { createCupFinish } from './cup-finish.js';
 import { finishFreestyle } from '../freestyle/records.js';
+import { freestylePracticeOutcome } from '../freestyle/feedback.js';
 import { createRaceGrid, RACE_ORDER } from '../race/roster.js';
 import { createEliminatorEvent } from '../events/eliminator.js';
 import { createEliminatorPresentation } from '../events/eliminator-view.js';
@@ -260,6 +261,15 @@ export async function createGame({
         settings,
         checkpoint,
         developer: access.developer,
+        ...(freestyle
+          ? {
+              freestyleActions: {
+                practiceTransfer: (id) => practiceFreestyleTransfer(id),
+                startFullRun: () => startFreestyleRun(),
+                getPractice: () => structuredClone(freestylePractice),
+              },
+            }
+          : {}),
       }),
     );
     const { road, environment } = world;
@@ -355,6 +365,7 @@ export async function createGame({
       time = 0,
       raf = 0,
       active = true,
+      freestylePractice = null,
       inspectionTime = 0,
       inspectionLayout = null;
     const inputLog = [],
@@ -395,6 +406,19 @@ export async function createGame({
       if (e.type === 'jump-transfer' || e.type === 'road-recovery')
         prev = { ...state };
       raceFeedback.event(event);
+      if (
+        freestylePractice &&
+        e.type === 'jump-launch' &&
+        e.payload?.id === freestylePractice.id
+      )
+        freestylePractice.launchSpeed = e.payload.speed;
+      if (
+        freestylePractice &&
+        !freestylePractice.outcome &&
+        e.payload?.id === freestylePractice.id &&
+        ['freestyle-bank', 'jump-miss'].includes(e.type)
+      )
+        freestylePractice.outcome = freestylePracticeOutcome(e);
       try {
         if (e.type === 'lap' && competition) {
           if (!eliminator && race.history.length === 1)
@@ -438,7 +462,7 @@ export async function createGame({
       settings,
       emit,
       audioImmersion: definition.audio?.immersion,
-      equipment: true,
+      equipmentEnabled: !freestyle,
       ...(interceptor
         ? {
             team: 'hunters',
@@ -703,6 +727,11 @@ export async function createGame({
       }
       advance(control);
       tick++;
+      if (freestylePractice?.outcome && !freestylePractice.notified) {
+        freestylePractice.notified = true;
+        pause();
+        return;
+      }
       const freestyleResult = freestyle && runtime.snapshot().freestyle?.result;
       if (freestyleResult && lastResults?.mode !== 'freestyle') {
         lastResults = finishFreestyle(
@@ -1088,6 +1117,7 @@ export async function createGame({
         return;
       }
       if (newRun) {
+        freestylePractice = null;
         sessionActive = true;
         onAttempt?.();
         ui.setFinish(null);
@@ -1229,6 +1259,47 @@ export async function createGame({
         parameters.get('finish') === '1'
       )
         api.devSetup({ finish: true, place: parameters.get('place') ?? 1 });
+    }
+    function practiceFreestyleTransfer(id) {
+      if (!freestyle || shipLoading) return false;
+      const index = track.jumps.findIndex((jump) => jump.id === id);
+      if (index < 0) return false;
+      const jump = track.jumps[index];
+      const scenarioId = jump.approachScenario ?? `jump${index + 1}-approach`;
+      const approach = track.scenarios[scenarioId];
+      if (!approach) return false;
+      restart(false, false, false);
+      freestylePractice = {
+        id,
+        label: jump.label,
+        outcome: null,
+        notified: false,
+      };
+      scenario = scenarioId;
+      Object.assign(state, approach);
+      race = makeRace();
+      race.placeScenario(state.distance);
+      resetRuntime('freestyle-practice');
+      initial = !import.meta.env?.VN_DESKTOP
+        ? captureInitial(state, runtime, dynamics)
+        : null;
+      prev = { ...state };
+      input.clear();
+      rig.reset();
+      ui.setMode(mode);
+      audio.unlock().catch(() => {});
+      return true;
+    }
+    function startFreestyleRun() {
+      if (!freestyle || shipLoading) return;
+      freestylePractice = null;
+      restart(false, true, false);
+      audio.unlock().catch(() => {});
+    }
+    function retrySession() {
+      if (freestylePractice)
+        return practiceFreestyleTransfer(freestylePractice.id);
+      return playtest ? repeatPlaytest() : restart(competition, true);
     }
     function repeatPlaytest() {
       window.__VN.loadScenario(selectedPlaytestCase.scenario, 7);
@@ -1550,8 +1621,7 @@ export async function createGame({
           },
           pause,
           resume,
-          restart: () =>
-            playtest ? repeatPlaytest() : restart(competition, true),
+          restart: retrySession,
           ...(!import.meta.env?.VN_DESKTOP
             ? {
                 repeatPlaytest: () => repeatPlaytest(),
@@ -1721,7 +1791,9 @@ export async function createGame({
             command === 'restart' &&
             !['fly', 'results'].includes(mode)
           ) {
-            restart(!!eliminator || !!interceptor, true, timeTrial);
+            if (freestylePractice)
+              practiceFreestyleTransfer(freestylePractice.id);
+            else restart(!!eliminator || !!interceptor, true, timeTrial);
             return;
           }
           if (suspended || mode === 'results' || mode === 'fly') return;
@@ -1754,13 +1826,16 @@ export async function createGame({
     );
     input.bindTouch(ui.root);
     const equipmentPresentation = lifetime.own(
-      createEquipmentPresentation({
-        host,
-        scene,
-        activate: (slot) => {
-          if (mode === 'racing' && !suspended) input.activateEquipment(slot);
-        },
-      }),
+      freestyle
+        ? { update() {}, reset() {}, dispose() {} }
+        : createEquipmentPresentation({
+            host,
+            scene,
+            activate: (slot) => {
+              if (mode === 'racing' && !suspended)
+                input.activateEquipment(slot);
+            },
+          }),
     );
     const equipmentEvents = [];
     if (runtime.observePresentation)
@@ -2127,6 +2202,9 @@ export async function createGame({
         eliminator: competition ? eliminator?.snapshot() : null,
         interceptor: competition ? missionSnapshot() : null,
         gamepad: input.gamepadPresent,
+        ...(freestyle
+          ? { freestylePractice: structuredClone(freestylePractice) }
+          : {}),
         reviewing: mode === 'overview' || (blockout && mode === 'title'),
       };
       audio.setImmersion(
@@ -2202,6 +2280,7 @@ export async function createGame({
         gamepad: input.gamepadPresent,
         trial: trial?.snapshot(),
         cup: cupRace,
+        freestylePractice,
       });
       if (
         onResults &&
@@ -2555,9 +2634,7 @@ export async function createGame({
       clearInput: () => input.clear(),
       inspect: (options) => setCamera('inspection', options),
       selectShip,
-      restartRace() {
-        restart(competition, true);
-      },
+      restartRace: retrySession,
       ...(!import.meta.env?.VN_DESKTOP
         ? {
             getTrack: () => track,
@@ -2791,6 +2868,9 @@ export async function createGame({
           mode,
           scenario,
           sessionActive,
+          ...(freestyle
+            ? { freestylePractice: structuredClone(freestylePractice) }
+            : {}),
           timeTrial: trial?.snapshot() ?? null,
           cup: cupRace
             ? { ...structuredClone(cupRace), final: !!cupFinalResult }

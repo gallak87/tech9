@@ -127,8 +127,8 @@ export function createGamepadReader(
         ...sampleGamepad(pad, getSettings(), blocked),
         ...(freestyle
           ? {
-              aerialStickY: -steeringAxis(
-                pad?.axes[1],
+              aerialStickY: steeringAxis(
+                pad?.axes[3],
                 getSettings().steeringDeadZone,
               ),
               aerialStickX: steeringAxis(

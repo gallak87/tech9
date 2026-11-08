@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createDeviceRuntime } from './runtime.js';
 import { createVehicleState } from '../physics/index.js';
 
-function fixture() {
+function fixture(options = {}) {
   const calls = { motion: 0, presentation: 0, events: [], resets: 0 };
   let tick = 0;
   const runtime = createDeviceRuntime({
@@ -32,6 +32,7 @@ function fixture() {
       },
       dispose() {},
     },
+    ...options,
     presentation: {
       update() {
         calls.presentation++;
@@ -112,5 +113,30 @@ test('silent device restore restores simulation without resetting visible observ
     );
   } finally {
     runtime.dispose();
+  }
+});
+
+test('equipment-disabled disciplines ignore equipped saves and injected equipment inputs', () => {
+  for (const equipmentEnabled of [false, true]) {
+    const { runtime, state } = fixture({ equipmentEnabled });
+    try {
+      state.equipment = ['injector'];
+      state.energy = 0;
+      runtime.reset({ reason: 'fresh-lap', state });
+      const events = runtime.advance(state, { equipment1: true }, 1 / 120);
+      assert.equal(state.energy, equipmentEnabled ? 45 : 0);
+      assert.equal(
+        events.some((event) => event.type === 'equipment-activate'),
+        equipmentEnabled,
+      );
+      if (equipmentEnabled) assert.ok(runtime.equipment());
+      else {
+        assert.equal(runtime.equipment(), null);
+        assert.equal('equipment' in runtime.snapshot(), false);
+        assert.match(runtime.rulesId, /equipmentEnabled.*false/);
+      }
+    } finally {
+      runtime.dispose();
+    }
   }
 });

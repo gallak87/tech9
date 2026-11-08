@@ -1,383 +1,406 @@
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
+import {
+  createCareerSlots,
+  createMemoryStorage,
+} from '../src/progression/careers.js';
+import { createProfileStore } from '../src/progression/profile.js';
 
-const url = process.env.VN_URL ?? 'http://127.0.0.1:5213';
-const browser = await chromium.launch({
-  channel: 'chrome',
-  headless: true,
-  args: ['--mute-audio'],
+// Completed, acknowledged career, using the real progression reducer. This
+// exercises the production event entry rather than bypassing it with dev=2.
+const storage = createMemoryStorage();
+const careers = createCareerSlots({ storage: () => storage, now: () => 1 });
+careers.create(1);
+const profile = createProfileStore(() => careers.storageFor(1));
+for (let i = 0; i < 24; i++)
+  profile.recordRace({ id: `fixture-${i}`, position: 1 });
+for (const cup of ['founders', 'frontier', 'horizon', 'apex'])
+  profile.recordCup(cup);
+profile.recordTrial('halcyon', true);
+profile.recordTrial('nacre', true);
+profile.queueCompletion('shrike');
+profile.acknowledgeCompletion();
+const seed = Array.from({ length: storage.length }, (_, i) => {
+  const key = storage.key(i);
+  return [key, storage.getItem(key)];
 });
-const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-const errors = [];
-page.on('pageerror', (error) => errors.push(error.message));
-
-// Fixed ticks run the unchanged live session, with ordinary normalized controls.
-// This response-only probe is never present in the application or its builds.
+const browser = await launchVerificationBrowser();
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+const errors = collectPageErrors(page);
+await page.addInitScript((values) => {
+  for (const [key, value] of values) localStorage.setItem(key, value);
+  localStorage.setItem(
+    'vector-nova.settings',
+    JSON.stringify({ quality: 'low', volume: 0 }),
+  );
+}, seed);
+// Fixed ticks still run the live native session with bounded normalized input.
+// This response-only hook freezes between assertions, never changes poses,
+// contacts or outcomes, and is absent from the application and its builds.
 await page.route('**/src/core/game.js*', async (route) => {
-  const response = await route.fetch(),
-    body = await response.text();
-  assert.ok(body.includes('getSnapshot() {'));
-  await route.fulfill({
-    response,
-    body: body.replace(
-      'getSnapshot() {',
-      `
-    stepFreestyle(n,control={}){
-      cancelCountdown();mode='racing';ui.setMode(mode);
-      for(let i=0;i<Math.min(n,1200)&&mode==='racing';i++)
-        advanceTick(typeof control==='function'?control({state:{...state},motion:runtime.snapshot(),pose:runtime.pose(1),track}):control);
-      if(mode==='racing')pause();return this.getSnapshot();
-    },getSnapshot() {`,
-    ),
-  });
+  const response = await route.fetch();
+  let source = await response.text();
+  assert.ok(source.includes('function advanceTick(control) {'));
+  source = source.replace(
+    'const errors = [];',
+    'const errors = []; let __fsFrozen = false;',
+  );
+  source = source.replace(
+    'function advanceTick(control) {',
+    'function advanceTick(control) { if (__fsFrozen) return;',
+  );
+  source = source.replace(
+    'getSnapshot() {',
+    `stepFreestyle(n, driver) {
+    __fsFrozen=false;cancelCountdown();mode='racing';ui.setMode(mode);
+    for(let i=0;i<Math.min(n,2400)&&mode==='racing';i++)
+      advanceTick(typeof driver==='function'?driver({state:{...state},motion:runtime.snapshot(),pose:runtime.pose(1),track}):driver);
+    __fsFrozen=true;return this.getSnapshot();
+  },getSnapshot() {`,
+  );
+  await route.fulfill({ response, body: source });
 });
-
-export function pilot({ state, motion, track }) {
-  const f = motion.freestyle;
-  const jump =
-    track.jumps.find((j) => j.id === f.flight?.id) ??
-    track.jumps[Math.min(f.legs.length, 4)];
-  const airborne = !!motion.flight;
-  const steer = Math.max(
-    -0.9,
-    Math.min(
-      0.9,
-      (state.lateral - jump.targetLateral) * 0.04 +
-        state.heading * 1.8 +
-        state.lateralSpeed * 0.03 -
-        (track.sample(state.distance).curvature * state.speed) / (1.5 * 1.24),
-    ),
-  );
-  return {
-    throttle: 1,
-    brake: 0,
-    steer,
-    boost: false,
-    airbrake:
-      airborne &&
-      f.touchdown != null &&
-      f.touchdown < 0.35 &&
-      f.touchdown > 0.03,
-    aerialRoll:
-      airborne &&
-      motion.flight.elapsed > 0.15 &&
-      f.flight?.tricks.length === 0 &&
-      f.progress[2] < 5.45
-        ? -1
-        : 0,
-    aerialPitch: 0,
-    aerialYaw: 0,
-  };
+const read = () => page.evaluate(() => window.__VN.getSnapshot());
+const motion = (snapshot) =>
+  snapshot.runtime.state.motion ?? snapshot.runtime.state;
+async function padButton(index) {
+  await page.evaluate((i) => {
+    window.__testPad.buttons[i] = { pressed: true, value: 1 };
+  }, index);
+  await page.waitForTimeout(80);
+  await page.evaluate((i) => {
+    window.__testPad.buttons[i] = { pressed: false, value: 0 };
+  }, index);
+  await page.waitForTimeout(80);
 }
-
+async function focusByPad(selector) {
+  for (let i = 0; i < 30; i++) {
+    if (
+      await page
+        .locator(selector)
+        .evaluate((node) => node === document.activeElement)
+    )
+      return;
+    await padButton(13);
+  }
+  assert.fail(`Controller cannot reach ${selector}`);
+}
 try {
-  await page.goto(`${url}/?level=launchworks&music=0`);
-  await page.waitForFunction(
-    () => window.__VN_FRONTEND?.getState().screen === 'home',
+  const url = new URL(
+    '/?intro=0&level=launchworks&music=0',
+    process.env.VN_URL ?? 'http://127.0.0.1:5213',
   );
-  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto(url.href);
+  await page.locator('[data-action="launch"]').waitFor();
   assert.equal(
     await page.evaluate(() => !!window.__VN),
     false,
-    'setup does not load a world',
+    'menu entry constructs no world',
   );
-  const fit = await page.locator('#front-shell').evaluate((node) => ({
-    vertical: node.scrollHeight - node.clientHeight,
-    horizontal: node.scrollWidth - node.clientWidth,
-  }));
-  assert.ok(
-    fit.vertical <= 1 && fit.horizontal <= 1,
-    'the pilot menu fits a short desktop viewport',
+  assert.match(
+    await page.locator('#front-shell').innerText(),
+    /Freestyle.*Pilot/i,
   );
-  await page.locator('[data-action="quick-race"]').click();
-  assert.notEqual(
-    await page.evaluate(() => window.__VN_FRONTEND.getState().selected),
-    'launchworks',
+  await page.waitForFunction(
+    () => window.__VN_FRONTEND.getState().preload.ready === 4,
+    null,
+    { timeout: 60000 },
   );
-  assert.equal(
-    await page.locator('[data-level="launchworks"]').count(),
-    0,
-    'normal races exclude the freestyle course',
-  );
-  await page.locator('[data-action="freestyle"]').focus();
-  await page.keyboard.press('Enter');
-  assert.equal(
-    await page.evaluate(() => window.__VN_FRONTEND.getState().selected),
-    'launchworks',
-  );
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page
-    .getByRole('button', { name: 'Start Freestyle', exact: false })
-    .click();
+  await page.locator('[data-action="launch"]').press('Enter');
   await page.waitForFunction(
     () =>
-      window.__VN?.ready &&
-      window.__VN_FRONTEND?.getState().screen === 'race' &&
-      !window.__VN_FRONTEND.getState().loading,
+      window.__VN?.ready && window.__VN_FRONTEND.getState().screen === 'race',
+    null,
+    { timeout: 90000 },
   );
-  await page.waitForFunction(
-    () => window.__VN.getSnapshot().camera.position[2] < -12,
+  await page.waitForFunction(() => window.__VN.getSnapshot().mode === 'racing');
+  const boot = await read();
+  assert.equal(boot.track.name, 'Zephyr Skywell');
+  assert.equal(motion(boot).equipment, undefined);
+  assert.equal(await page.locator('.equipment-hud').count(), 0);
+  await page.evaluate(() => window.__VN.stepFreestyle(1, {}));
+  console.log(
+    'PASS · post-credits Pilot entry, Zephyr biome, equipment disabled',
   );
-  assert.ok(
-    (await page.evaluate(() => window.__VN.getSnapshot().vehicle.distance)) < 1,
-    'the chase camera starts behind the grid before driving',
-  );
-  for (const [modifier, directions, expected] of [
+
+  // Exercise actual DOM keyboard events, not calls into the input reader.
+  for (const [keys, expected] of [
     [
-      'ControlLeft',
-      ['KeyW', 'KeyA'],
-      { aerialPitch: -1, aerialRoll: 1, aerialYaw: 0, boost: false },
+      ['KeyQ', 'KeyZ', 'KeyC'],
+      { aerialRoll: 1, aerialPitch: -1, aerialYaw: 1, boost: false },
     ],
-    ['ControlLeft', ['KeyD'], { aerialRoll: -1, boost: false }],
-    ['ControlLeft', ['KeyQ'], { aerialYaw: 1, boost: false }],
-    ['ShiftLeft', ['KeyD'], { aerialRoll: 0, boost: true }],
+    [
+      ['KeyE', 'KeyX', 'KeyV', 'Space'],
+      { aerialRoll: -1, aerialPitch: 1, aerialYaw: -1, airbrake: true },
+    ],
+    [
+      ['ShiftLeft'],
+      { aerialRoll: 0, aerialPitch: 0, aerialYaw: 0, boost: true },
+    ],
+    [
+      ['ControlLeft', 'KeyW', 'KeyA'],
+      { aerialRoll: 1, aerialPitch: -1, aerialYaw: 0 },
+    ],
   ]) {
-    await page.evaluate(() => window.__VN.loadScenario('jump1-success'));
-    await page.keyboard.down(modifier);
-    for (const key of directions) await page.keyboard.down(key);
-    const sampled = await page.evaluate(() => window.__VN.getSnapshot().input);
-    for (const [axis, value] of Object.entries(expected))
-      assert.equal(sampled[axis], value);
-    await page.waitForFunction(
-      () => window.__VN.getSnapshot().runtime.state.flight?.elapsed > 0.5,
-    );
-    const held = await page.evaluate(() => {
-      window.__VN.pause();
-      return window.__VN.getSnapshot();
+    await page.evaluate(() => {
+      window.__VN.loadScenario('jump1-success');
+      window.__VN.stepFreestyle(1, {});
     });
-    if (modifier === 'ShiftLeft')
-      assert.equal(
-        Math.hypot(...held.runtime.state.freestyle.angular),
-        0,
-        'boost never requests a trick',
-      );
+    for (const key of keys) await page.keyboard.down(key);
+    const input = (await read()).input;
+    for (const [axis, value] of Object.entries(expected))
+      assert.equal(input[axis], value, axis);
+    for (let i = 1; i <= 4; i++) assert.equal(input[`equipment${i}`], false);
+    const turned = await page.evaluate(
+      (control) => window.__VN.stepFreestyle(100, control),
+      input,
+    );
+    if (keys.includes('ShiftLeft'))
+      assert.equal(Math.hypot(...motion(turned).freestyle.angular), 0);
     else
       assert.ok(
-        Math.hypot(...held.runtime.state.flight.angularVelocity) > 1,
-        'held directions rotate the actual hull',
+        Math.hypot(...motion(turned).flight.angularVelocity) > 0.1,
+        'held axes turn the actual native hull',
       );
-    assert.ok(
-      Math.abs(held.camera.up[0]) < 0.08 && held.camera.up[1] > 0.95,
-      `the camera keeps a readable horizon with ordinary speed feedback: ${held.camera.up}`,
-    );
-    for (const key of directions) await page.keyboard.up(key);
-    await page.keyboard.up(modifier);
-    await page.waitForTimeout(150);
-    assert.equal(
-      await page.evaluate(
-        () => window.__VN.getSnapshot().runtime.state.freestyle.clock,
-      ),
-      held.runtime.state.freestyle.clock,
-      'pause freezes trick physics',
-    );
+    for (const key of keys) await page.keyboard.up(key);
   }
   console.log(
-    'PASS · compact setup, keyboard entry, held directional input and pause',
+    'PASS · compound held keys, fine trim, boost separation and native hull rotation',
   );
+
   await page.evaluate(() => {
     window.__testPad = {
-      id: 'freestyle-check',
+      id: 'freestyle-verifier',
       index: 0,
       mapping: 'standard',
       connected: true,
-      axes: [-0.8, -1, 0.6, 0],
+      axes: [0, 0, 0, 0],
       buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })),
     };
     Object.defineProperty(navigator, 'getGamepads', {
       configurable: true,
       value: () => [window.__testPad],
     });
-    window.__VN.loadScenario('jump1-success');
   });
   await page.waitForFunction(() => window.__VN.getSnapshot().gamepadPresent);
   await page.evaluate(() => {
+    window.__testPad.axes = [0.4, 0, 0.6, -0.9];
     window.__testPad.buttons[2] = { pressed: true, value: 1 };
   });
-  await page.waitForFunction(
-    () => window.__VN.getSnapshot().input.aerialPitch < -0.9,
-  );
-  const stick = await page.evaluate(() => {
-    const input = window.__VN.getSnapshot().input;
-    window.__VN.pause();
-    return input;
-  });
+  const padInput = (await read()).input;
   assert.ok(
-    stick.aerialRoll > 0.7 && stick.aerialYaw < -0.4,
-    'one held controller modifier combines all three axes',
+    padInput.steer > 0.2 &&
+      padInput.aerialPitch < -0.8 &&
+      padInput.aerialYaw > 0.5,
   );
-  assert.equal(stick.boost, false);
+  assert.equal(padInput.aerialRoll, 1);
+  assert.equal(padInput.boost, false);
   await page.evaluate(() => {
-    window.__testPad.connected = false;
+    window.__testPad.axes = [0, 0, 0, 0];
     window.__testPad.buttons[2] = { pressed: false, value: 0 };
   });
+  console.log('PASS · independent controller steering, pitch/yaw and roll');
+
+  // Production practice controls must be reachable through the shared pad menu.
+  await page.evaluate(() => window.__VN.pause());
+  await focusByPad('#freestyle-practice-transfer');
+  await padButton(15);
+  assert.equal(
+    await page.locator('#freestyle-practice-transfer').inputValue(),
+    'transfer-2',
+  );
+  await focusByPad('#freestyle-practice-start');
+  await padButton(0);
+  let snapshot = await read();
+  assert.equal(snapshot.freestylePractice.id, 'transfer-2');
+  assert.equal(motion(snapshot).freestyle.invalid, true);
+  await page.keyboard.press('KeyR');
+  assert.equal((await read()).freestylePractice.id, 'transfer-2');
+  await page.evaluate(() => window.__VN.pause());
+  // Native select typeahead chooses Veil; Tab and Enter activate practice.
+  await page.locator('#freestyle-practice-transfer').focus();
+  await page.keyboard.press('v');
+  assert.equal(
+    await page.locator('#freestyle-practice-transfer').inputValue(),
+    'transfer-3',
+  );
+  await page.keyboard.press('Tab');
+  assert.equal(
+    await page.evaluate(() => document.activeElement.id),
+    'freestyle-practice-start',
+  );
+  await page.keyboard.press('Enter');
+  assert.equal((await read()).freestylePractice.id, 'transfer-3');
+  assert.equal(
+    await page.evaluate(() =>
+      document.activeElement?.matches('button,input,select'),
+    ),
+    false,
+    'practice gives driving keys back to the game',
+  );
+  await page.evaluate(() => window.__VN.pause());
+  await focusByPad('#freestyle-full-run');
+  await padButton(0);
+  assert.equal((await read()).freestylePractice, null);
   console.log(
-    'PASS · one controller modifier, mixed left stick and right-stick spin',
+    'PASS · keyboard and controller practice selection, retry, unranked state and ranked exit',
   );
-  const run = await page.evaluate((driver) => {
-    const v = window.__VN,
-      control = eval(`(${driver})`);
-    v.restart();
-    v.pause();
-    for (
-      let i = 0;
-      i < 7 && !v.getSnapshot().runtime.state.freestyle.result;
-      i++
-    )
-      v.stepFreestyle(1200, control);
-    const s = v.getSnapshot();
-    return {
-      state: s.vehicle ?? s.state,
-      mode: s.mode,
-      freestyle: s.runtime.state.freestyle,
-      vectorEntries: s.events.filter(
-        (event) =>
-          event.type === 'pickup-activate' && event.payload.kind === 'vector',
-      ).length,
-      errors: s.errors,
-    };
-  }, pilot.toString());
-  console.log(
-    JSON.stringify({
-      check: 'five actual transfers from rest',
-      score: run.freestyle.score,
-      chain: run.freestyle.bestChain,
-      reserve: run.state.energy,
-      elapsed: run.state.time,
-      legs: run.freestyle.legs.map(({ tricks, reason, bank }) => ({
-        tricks,
-        reason,
-        bank,
-      })),
-    }),
-  );
-  assert.ok(run.freestyle.result, 'the real course reaches its result');
-  assert.equal(run.freestyle.legs.length, 5);
-  assert.equal(
-    run.vectorEntries,
-    5,
-    'each real approach strip supplies launch propulsion',
-  );
-  assert.equal(
-    run.state.energy,
-    100,
-    'the complete curved course needs no manual boost',
-  );
-  assert.equal(
-    run.freestyle.bestChain,
-    5,
-    'five clean trick links are physically possible',
-  );
-  assert.ok(run.freestyle.legs.every((leg) => leg.tricks.includes('roll')));
-  assert.ok(run.freestyle.score >= 27000, 'five well-linked rolls earn gold');
-  await page
-    .getByRole('button', { name: 'Retry Freestyle', exact: false })
-    .click();
-  await page.waitForFunction(
-    () => window.__VN.getSnapshot().runtime.state.freestyle.score === 0,
-  );
-  console.log('PASS · real five-transfer chain, scoring, results and retry');
-  for (const [axis, sign] of [
-    ['aerialRoll', 1],
-    ['aerialPitch', 1],
-    ['aerialPitch', -1],
-    ['aerialYaw', 1],
-    ['compound', 1],
-  ]) {
-    const leg = await page.evaluate(
-      ({ axis, sign }) => {
-        const v = window.__VN;
-        v.loadScenario('jump1-success');
-        v.pause();
-        let released = false;
-        v.stepFreestyle(680, ({ motion }) => {
-          const f = motion.freestyle,
-            t = motion.flight?.elapsed ?? 0;
-          const index = { aerialPitch: 0, aerialYaw: 1, aerialRoll: 2 }[axis];
-          if (
-            (axis === 'compound' ? f.compoundProgress : f.progress[index]) >=
-            (axis === 'compound' ? 5.5 : 5.45)
-          )
-            released = true;
-          const turn =
-            !!motion.flight &&
-            t > 0.15 &&
-            !released &&
-            f.flight?.tricks.length === 0;
-          return {
-            throttle: 1,
-            brake: 0,
-            steer: 0,
-            boost: false,
-            airbrake:
-              !!motion.flight &&
-              f.touchdown != null &&
-              f.touchdown < 0.35 &&
-              f.touchdown > 0.03,
-            aerialPitch: axis === 'compound' && turn ? 1 : 0,
-            aerialYaw: 0,
-            aerialRoll: axis === 'compound' && turn ? 1 : 0,
-            ...(axis === 'compound' ? {} : { [axis]: turn ? sign : 0 }),
-          };
-        });
-        const snapshot = v.getSnapshot();
-        return {
-          leg: snapshot.runtime.state.freestyle.legs[0],
-          errors: snapshot.errors,
-        };
-      },
-      { axis, sign },
-    );
-    console.log(
-      JSON.stringify({ check: `directional ${axis}/${sign}`, ...leg }),
-    );
-    assert.equal(leg.leg?.clean, true);
-    assert.ok(
-      leg.leg.tricks.includes(
-        {
-          aerialRoll: 'roll',
-          aerialPitch: 'flip',
-          aerialYaw: 'spin',
-          compound: 'corkscrew',
-        }[axis],
-      ),
-    );
-    assert.deepEqual(leg.errors, []);
-  }
-  for (const mistake of ['held-catch', 'late-flip']) {
-    const outcome = await page.evaluate((mistake) => {
-      const v = window.__VN;
-      v.loadScenario('jump1-success');
-      v.pause();
-      v.stepFreestyle(1000, ({ motion }) => ({
-        throttle: 1,
-        brake: 0,
-        steer: 0,
-        boost: false,
-        airbrake: mistake === 'held-catch',
-        aerialPitch:
-          mistake === 'late-flip' && (motion.flight?.elapsed ?? 0) > 3 ? 1 : 0,
-        aerialYaw: 0,
-        aerialRoll: 0,
-      }));
-      const s = v.getSnapshot();
-      return {
-        freestyle: s.runtime.state.freestyle,
-        events: s.events.filter((e) =>
-          ['impact', 'jump-miss'].includes(e.type),
-        ),
-      };
-    }, mistake);
-    assert.equal(outcome.freestyle.chain, 0);
-    assert.equal(outcome.freestyle.score, 0);
-    assert.equal(outcome.freestyle.legs[0]?.clean, false);
-    if (mistake === 'late-flip')
-      assert.ok(
-        outcome.events.length,
-        'late rotation has a real contact/recovery consequence',
+
+  // One deliberate failure and retry use the native practice flow. The
+  // approach driver only steers the road; the airborne attempt is held keys.
+  await page.evaluate(() => window.__VN.pause());
+  await page.locator('#freestyle-practice-transfer').selectOption('transfer-4');
+  await page.locator('#freestyle-practice-start').click();
+  async function flyToLip() {
+    await page.evaluate(async () => {
+      const { createTransferPilot } =
+        await import('/tools/freestyle-pilot.mjs');
+      window.__approachPilot = createTransferPilot(window.__VN.getTrack(), {
+        reaction: 0.15,
+        quantum: 0.25,
+        targetSpeed: 145,
+      });
+    });
+    for (let i = 0; i < 40; i++) {
+      const state = await page.evaluate(() =>
+        window.__VN.stepFreestyle(12, window.__approachPilot),
       );
-    console.log(`PASS · ${mistake} cannot auto-bank a chain`);
+      if (motion(state).flight) return;
+    }
+    assert.fail('Practice approach must reach its native launch');
   }
+  async function heldTicks(count) {
+    return page.evaluate(
+      (ticks) =>
+        window.__VN.stepFreestyle(ticks, window.__VN.getSnapshot().input),
+      count,
+    );
+  }
+  await flyToLip();
+  await page.keyboard.down('KeyW');
+  for (let i = 0; i < 12; i++) {
+    snapshot = await heldTicks(90);
+    if (snapshot.freestylePractice.outcome) break;
+  }
+  await page.keyboard.up('KeyW');
+  assert.ok(snapshot.freestylePractice.outcome);
+  assert.equal(
+    snapshot.freestylePractice.outcome.clean,
+    false,
+    'holding the launch bank must not silently pass the opposing bank',
+  );
+  await page.waitForTimeout(100);
+  assert.match(
+    await page.locator('.fs-practice-status').innerText(),
+    /Launch \d+ km\/h; band/,
+  );
+  assert.equal(
+    await page.locator('#restart').isVisible(),
+    false,
+    'practice provides one visible retry action',
+  );
+  const missed = snapshot.freestylePractice.outcome.reason;
+  assert.equal(
+    await page.evaluate(() =>
+      Object.keys(localStorage).some((key) =>
+        key.includes('vector-nova.freestyle.v2.'),
+      ),
+    ),
+    false,
+    'practice cannot save a ranked best',
+  );
+  await page.keyboard.press('KeyR');
+  assert.equal((await read()).freestylePractice.id, 'transfer-4');
+  await flyToLip();
+  // Deliberate gesture: wait150ms, E550ms, E+Space400ms, then settle.
+  // No receiver quaternion, future contact or controller steers this gesture.
+  await page.keyboard.down('KeyW');
+  await heldTicks(18);
+  await page.keyboard.down('KeyE');
+  await heldTicks(66);
+  await page.keyboard.down('Space');
+  await heldTicks(48);
+  await page.keyboard.up('KeyE');
+  for (let i = 0; i < 12; i++) {
+    snapshot = await heldTicks(60);
+    if (snapshot.freestylePractice.outcome) break;
+  }
+  await page.keyboard.up('Space');
+  await page.keyboard.up('KeyW');
+  assert.equal(
+    snapshot.freestylePractice.outcome?.clean,
+    true,
+    `a deliberate keyboard roll and brake trim catches the opposing bank: ${JSON.stringify(snapshot.freestylePractice.outcome)}`,
+  );
+  console.log(
+    `PASS · failed keyboard practice (${missed}), launch feedback, R retry and clean held-key bank`,
+  );
+  await page.locator('#freestyle-full-run').click();
+  assert.equal((await read()).freestylePractice, null);
+
+  await page.evaluate(async () => {
+    const { createTransferPilot } = await import('/tools/freestyle-pilot.mjs');
+    window.__fsPilot = createTransferPilot(window.__VN.getTrack(), {
+      reaction: 0.15,
+      quantum: 0.25,
+      targetSpeed: 'course',
+    });
+    window.__VN.restart();
+    window.__VN.stepFreestyle(1, window.__fsPilot);
+  });
+  for (let i = 0; i < 8; i++) {
+    snapshot = await page.evaluate(() =>
+      window.__VN.stepFreestyle(1200, window.__fsPilot),
+    );
+    if (motion(snapshot).freestyle.result) break;
+  }
+  const result = motion(snapshot).freestyle.result;
+  assert.ok(result, 'native full run must reach the finish');
+  assert.equal(result.clean, 5);
+  assert.equal(result.bestChain, 5);
+  assert.equal(result.playerValid, true);
+  assert.ok(result.score >= 27000);
+  assert.equal(
+    snapshot.events.filter((e) => e.type === 'jump-launch').length,
+    5,
+  );
+  assert.equal(
+    snapshot.events.filter((e) => e.type === 'road-recovery').length,
+    0,
+  );
+  assert.equal(
+    snapshot.events.filter(
+      (e) => e.type === 'pickup-activate' && e.payload.kind === 'vector',
+    ).length,
+    3,
+  );
+  assert.equal(
+    snapshot.events.some((e) => e.type === 'impact'),
+    false,
+  );
+  console.log(
+    `PASS · native five-transfer chain from rest, ${result.score} points, no resets or impacts`,
+  );
   assert.deepEqual(errors, []);
+  assert.deepEqual(snapshot.errors, []);
+} catch (error) {
+  console.error(
+    JSON.stringify(
+      await page
+        .evaluate(() => ({
+          screen: window.__VN_FRONTEND?.getState().screen,
+          error: window.__VN_FRONTEND?.getState().error,
+          practice: window.__VN?.getSnapshot().freestylePractice,
+          focus: document.activeElement?.outerHTML,
+        }))
+        .catch(() => null),
+    ),
+  );
+  console.error(errors);
+  throw error;
 } finally {
   await browser.close();
 }

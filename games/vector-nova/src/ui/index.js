@@ -699,6 +699,7 @@ export function createUI(
       motion = null,
       {
         practice = false,
+        freestylePractice = null,
         gamepad = false,
         competition = null,
         lastResults = null,
@@ -717,11 +718,15 @@ export function createUI(
       );
       updateControlHints(gamepad);
       if (!playtest)
-        $('restart').textContent = sprint
-          ? 'Restart sprint'
-          : competition?.enabled
-            ? 'Restart race'
-            : 'Restart practice';
+        $('restart').textContent = metadata.freestyle
+          ? freestylePractice
+            ? 'Retry transfer'
+            : 'Restart full chain'
+          : sprint
+            ? 'Restart sprint'
+            : competition?.enabled
+              ? 'Restart race'
+              : 'Restart practice';
       updateRoster();
       $('sprint-finish-actions')?.classList.toggle(
         'hidden',

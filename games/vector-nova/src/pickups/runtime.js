@@ -34,8 +34,11 @@ export function createDeviceRuntime({
   combatResistance = 0,
   damageDuringGrace = false,
   equipmentTuning = {},
+  equipmentEnabled = true,
   beforeCombat,
 }) {
+  if (typeof equipmentEnabled !== 'boolean')
+    throw new Error('Equipment enabled must be a boolean');
   if (team != null && typeof team !== 'string')
     throw new Error('Combat team must be a string');
   if (beforeCombat !== undefined && typeof beforeCombat !== 'function')
@@ -47,6 +50,7 @@ export function createDeviceRuntime({
   const resistance = validateCombatResistance(combatResistance);
   const tuning = structuredClone(equipmentTuning);
   const actorIdentity = {
+    ...(equipmentEnabled ? {} : { equipmentEnabled: false }),
     ...(actorTeam ? { team: actorTeam } : {}),
     ...(actorBounds ? { hitBounds: actorBounds } : {}),
     ...(resistance ? { combatResistance: resistance } : {}),
@@ -54,7 +58,7 @@ export function createDeviceRuntime({
     ...(Object.keys(tuning).length ? { equipmentTuning: tuning } : {}),
   };
   const equipment =
-    combatId === 'player'
+    combatId === 'player' && equipmentEnabled
       ? createEquipmentSystem({ motion, combat, actorId: combatId, tuning })
       : null;
   const simulation = createPickupSimulation({

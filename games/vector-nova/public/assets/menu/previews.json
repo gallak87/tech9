@@ -132,9 +132,9 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "dd4b5d5ddc53baa6e96d3a1d1b347bc8857225e2",
+      "sourceRevision": "54c9c46302f0cc238fc83e0fe7e3339700b2f960",
       "sourceDirty": true,
-      "routeSignature": "755f6f868afaf354"
+      "routeSignature": "14f4361c7efc3568"
     },
     "crucible": {
       "file": "crucible.webp",

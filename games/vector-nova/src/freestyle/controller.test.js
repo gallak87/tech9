@@ -68,7 +68,7 @@ test('full rolls in both directions and multi-axis corkscrews are recognized wit
   }
 });
 
-test('five clean slope catches grow a chain, bank only once each, and cannot earn gold without tricks', () => {
+test('five clean geometric transfers grow a chain, bank only once each, and earn gold without mandatory tricks', () => {
   const c = createFreestyleController({ track });
   for (let i = 0; i < 5; i++) {
     c.launch(track.jumps[i].id);
@@ -83,21 +83,25 @@ test('five clean slope catches grow a chain, bank only once each, and cannot ear
   }
   const result = c.complete('kestrel');
   assert.equal(result.bestChain, 5);
-  assert.equal(result.score, 15000);
-  assert.equal(result.medal, 'Silver');
+  assert.equal(result.score, 37500);
+  assert.equal(result.medal, 'Gold');
   assert.equal(result.playerValid, true);
 });
 
-test('held or early catch inputs do not automatically bank landings', () => {
+test('held or early brake can settle a legitimate landing without the fresh-brake precision bonus', () => {
   const c = createFreestyleController({ track });
   steps(c, { airbrake: true }, 1);
   c.launch('jump-0');
   steps(c, { airbrake: true }, 0.3);
-  assert.equal(contact(c).clean, false);
+  const held = contact(c);
+  assert.equal(held.clean, true);
+  assert.equal(held.perfect, false);
   c.reset();
   c.launch('jump-0');
   steps(c, { airbrake: true }, 1);
-  assert.equal(contact(c).clean, false);
+  const early = contact(c);
+  assert.equal(early.clean, true);
+  assert.equal(early.perfect, false);
 });
 
 test('an unfinished rotation, collision or missed receiver breaks the link and preserves earlier banks', () => {
@@ -106,13 +110,13 @@ test('an unfinished rotation, collision or missed receiver breaks the link and p
   steps(c, {}, 0.1);
   steps(c, { airbrake: true }, 0.25);
   contact(c);
-  assert.equal(c.snapshot().score, 1000);
+  assert.equal(c.snapshot().score, 2500);
   c.launch('jump-1');
   steps(c, { aerialRoll: 1 }, 1);
   steps(c, { airbrake: true }, 0.25);
   assert.equal(contact(c, 1).clean, false);
   assert.equal(c.snapshot().chain, 0);
-  assert.equal(c.snapshot().score, 1000);
+  assert.equal(c.snapshot().score, 2500);
   c.launch('jump-2');
   steps(c, {}, 0.1);
   steps(c, { airbrake: true }, 0.25);
@@ -133,4 +137,86 @@ test('pause-safe snapshots replay torque and points, while partial routes and ma
   assert.equal(a.complete('kestrel').playerValid, false);
   b.invalidate();
   assert.equal(b.complete('kestrel').playerValid, false);
+});
+
+test('touchdown scoring uses the actual receiving bank rather than its distant precision marker', () => {
+  const jump = {
+    id: 'curving-bank',
+    label: 'Crown Hook',
+    target: 250,
+    landingStart: 100,
+    landingEnd: 350,
+    targetLateral: 0,
+    catchWidth: 34,
+  };
+  const sample = (distance) => {
+    const quaternion = new T.Quaternion().setFromAxisAngle(
+      new T.Vector3(0, 0, 1),
+      distance * 0.004,
+    );
+    return {
+      position: new T.Vector3(0, 0, distance),
+      quaternion,
+      tangent: new T.Vector3(0, 0, 1),
+      right: new T.Vector3(1, 0, 0).applyQuaternion(quaternion),
+      up: new T.Vector3(0, 1, 0).applyQuaternion(quaternion),
+    };
+  };
+  const course = { jumps: [jump], sample };
+  const c = createFreestyleController({ track: course });
+  c.launch(jump.id);
+  steps(c, {}, 0.5);
+  const frame = sample(110);
+  const leg = c.land({
+    jump,
+    distance: 110,
+    lateral: 0,
+    outcome: 'landed',
+    position: frame.position.clone().addScaledVector(frame.up, 0.72),
+    quaternion: frame.quaternion,
+    velocity: frame.tangent.clone().multiplyScalar(145),
+  });
+  assert.equal(leg.clean, true);
+  assert.equal(leg.perfect, false);
+  assert.equal(leg.reason, 'Clean banked catch');
+  assert.equal(leg.bank, 2000);
+});
+
+test('high-spin or wrong-bank touchdown is visibly rough instead of silently failing a catch timer', () => {
+  for (const [quaternion, angularSpeed, reason] of [
+    [new T.Quaternion(), 1.4, 'Still rotating'],
+    [
+      new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 0, 1), 0.55),
+      0,
+      'Off-bank attitude',
+    ],
+  ]) {
+    const c = createFreestyleController({ track });
+    c.launch('jump-0');
+    steps(c, {}, 0.5);
+    const leg = c.land({
+      jump: track.jumps[0],
+      distance: 0,
+      lateral: 0,
+      outcome: 'landed',
+      position: new T.Vector3(0, 0.72, 0),
+      quaternion,
+      velocity: new T.Vector3(0, 0, 145),
+      angularSpeed,
+    });
+    assert.equal(leg.clean, false);
+    assert.equal(leg.reason, reason);
+    assert.equal(leg.chain, 0);
+  }
+});
+
+test('holding the rotation brake permits slow deliberate bank trim instead of fighting a full-speed spin', () => {
+  const c = createFreestyleController({ track });
+  c.launch('jump-0');
+  steps(c, { aerialRoll: 1, airbrake: true }, 1);
+  const snapshot = c.snapshot();
+  assert.ok(snapshot.angular[2] > 0.7 && snapshot.angular[2] < 0.8);
+  assert.ok(snapshot.progress[2] < 0.8);
+  steps(c, { airbrake: true }, 0.3);
+  assert.ok(c.snapshot().angular[2] < 0.025);
 });

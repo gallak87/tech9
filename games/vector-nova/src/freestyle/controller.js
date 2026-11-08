@@ -41,6 +41,24 @@ export function createFreestyleController({ track }) {
         active: names.length ? names.join(' + ') : null,
       };
     },
+    readFrame() {
+      const names = ['flip', 'spin', 'roll']
+        .filter((_, i) => Math.abs(data.angular[i]) > 0.25)
+        .map((kind) => TRICKS[kind].name);
+      return {
+        clock: data.clock,
+        score: data.score,
+        chain: data.chain,
+        invalid: data.invalid,
+        braceAt: data.braceAt,
+        angular: [...data.angular],
+        active: names.length ? names.join(' + ') : null,
+        flight: data.flight
+          ? { ...data.flight, tricks: [...data.flight.tricks] }
+          : null,
+        legs: data.legs.map((leg) => ({ ...leg, tricks: [...leg.tricks] })),
+      };
+    },
     restore: (saved) => {
       data = structuredClone(saved);
       delete data.active;
@@ -69,11 +87,12 @@ export function createFreestyleController({ track }) {
       const turning = controls.some((v) => Math.abs(v) > 0.05);
       if (turning) data.lastTorque = data.clock;
       for (let i = 0; i < 3; i++) {
-        const target = controls[i] * FREESTYLE_RULES.angularSpeed[i];
-        const response = turning
-          ? FREESTYLE_RULES.acceleration
-          : brace
-            ? 12
+        const target =
+          controls[i] * FREESTYLE_RULES.angularSpeed[i] * (brace ? 0.25 : 1);
+        const response = brace
+          ? 12
+          : turning
+            ? FREESTYLE_RULES.acceleration
             : FREESTYLE_RULES.releaseDamping;
         data.angular[i] +=
           (target - data.angular[i]) * -Math.expm1(-response * dt);
@@ -158,6 +177,8 @@ export function createFreestyleController({ track }) {
     },
     land({
       jump,
+      distance = jump.target,
+      lateral: surfaceLateral = null,
       outcome,
       position,
       quaternion,
@@ -171,37 +192,49 @@ export function createFreestyleController({ track }) {
         data.legs.some((l) => l.id === jump.id)
       )
         return null;
-      const frame = track.sample(jump.target),
-        delta = position.clone().sub(frame.position);
-      const lateral = delta.dot(frame.right),
-        along = delta.dot(frame.tangent);
+      // Score the surface actually contacted. A banked receiver can turn or
+      // twist substantially between its lip and its far-away precision marker.
+      const frame =
+        track.sampleSurface?.(distance, surfaceLateral ?? 0) ??
+        track.sample(distance);
+      const delta = position.clone().sub(frame.position);
+      const lateral = surfaceLateral ?? delta.dot(frame.right);
+      const along = distance - jump.target;
       const up = new T.Vector3(0, 1, 0).applyQuaternion(quaternion);
       const forward = new T.Vector3(0, 0, 1).applyQuaternion(quaternion);
       const lead = data.clock - data.braceAt;
-      const ready =
-        Math.hypot(...data.angular) < 0.65 &&
-        angularSpeed < 0.9 &&
-        data.clock - data.lastTorque > 0.18 &&
-        up.dot(frame.up) > 0.92 &&
-        forward.dot(frame.tangent) > 0.85;
+      const rotating =
+        Math.hypot(...data.angular) >= 0.9 || angularSpeed >= 1.2;
+      const bankAligned = up.dot(frame.up) > Math.cos(0.48);
+      const headingAligned = forward.dot(frame.tangent) > Math.cos(0.58);
+      const ready = !rotating && bankAligned && headingAligned;
+      const tube = jump.receiverType === 'tube' && frame.period > 0;
+      const halfCatchWidth = (jump.catchWidth ?? 11) / 2;
+      const receiverStart = jump.landingStart ?? jump.target - 130;
+      const receiverEnd = jump.landingEnd ?? jump.target + 130;
+      const laneError = Math.abs(lateral - (jump.targetLateral ?? 0));
       const line =
-        Math.abs(lateral - jump.targetLateral) <= 5.5 && Math.abs(along) <= 130;
+        distance >= receiverStart &&
+        distance <= receiverEnd &&
+        (tube || laneError <= halfCatchWidth);
       const timed =
         lead >= FREESTYLE_RULES.catchLead &&
         lead <= FREESTYLE_RULES.catchWindow;
       const clean =
         outcome === 'landed' &&
+        !data.flight.failed &&
         !data.flight.damaged &&
         !edgeCaught &&
         ready &&
-        line &&
-        timed;
+        line;
+      // Airbrake is a real rotation brake. A fresh well-timed squeeze earns
+      // precision; holding it early never vetoes an otherwise sound landing.
       const perfect =
         clean &&
-        Math.abs(lateral - jump.targetLateral) < 2.5 &&
-        Math.abs(along) < 75 &&
-        lead >= 0.18 &&
-        lead <= 0.45;
+        (tube || laneError < Math.max(2.5, halfCatchWidth * 0.5)) &&
+        Math.abs(along) < (jump.precisionLength ?? 150) &&
+        Math.abs(velocity.dot(frame.up)) < 38 &&
+        timed;
       const style = data.flight.tricks.reduce(
         (sum, kind, i, all) =>
           sum +
@@ -215,29 +248,43 @@ export function createFreestyleController({ track }) {
         outcome === 'landed' && !data.flight.failed
           ? Math.round(
               clean
-                ? (style + (perfect ? 1000 : 800)) * data.chain
+                ? (style + (perfect ? 2500 : 2000)) * data.chain
                 : style * 0.2,
             )
           : 0;
       data.score += bank;
       const reason = clean
         ? perfect
-          ? 'Perfect catch'
-          : 'Clean catch'
+          ? 'Perfect banked catch'
+          : tube
+            ? 'Tube catch'
+            : 'Clean banked catch'
         : outcome !== 'landed'
           ? 'Missed receiver'
-          : !ready
-            ? 'Unrecovered attitude'
-            : data.flight.damaged || edgeCaught
-              ? 'Contact'
-              : !timed
-                ? 'Catch timing'
-                : 'Outside catch zone';
+          : data.flight.damaged || edgeCaught
+            ? 'Rough contact'
+            : rotating
+              ? 'Still rotating'
+              : !headingAligned
+                ? 'Nose out of line'
+                : !bankAligned
+                  ? 'Off-bank attitude'
+                  : distance > receiverEnd
+                    ? 'Late receiver'
+                    : 'Outside receiver line';
       const leg = {
         id: jump.id,
+        label: jump.label ?? jump.id,
         at: data.clock,
         clean,
         perfect,
+        quality: perfect
+          ? 'perfect'
+          : clean
+            ? 'clean'
+            : outcome === 'landed'
+              ? 'rough'
+              : 'miss',
         bank,
         chain: data.chain,
         tricks: [...data.flight.tricks],
@@ -288,6 +335,10 @@ export function landingEstimate(track, jump, pose, velocity) {
   const a = -13 * normal.y,
     b = velocity.dot(normal),
     c = pose.position.clone().sub(frame.position).dot(normal) - 0.72;
+  if (Math.abs(a) < 1e-6) {
+    const time = -c / b;
+    return Number.isFinite(time) && time > 0 && time < 8 ? time : null;
+  }
   const disc = b * b - 4 * a * c;
   if (disc < 0) return null;
   const roots = [

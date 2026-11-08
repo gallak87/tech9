@@ -998,11 +998,11 @@
       "runtimeDependencies": ["three"]
     },
     {
-      "id": "asterion-launchworks-pilot",
+      "id": "zephyr-skywell-pilot",
       "source": "src/levels/launchworks/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original source-authored five-transfer course with curved ground connectors, receiving lanes and suspended deck trusses. Reuses the registered Asterion drydock/solar-garden geometry, materials and planetary backdrop, plus the shared Vector boost-strip hardware. Its clean-catch cue reuses the registered Vector jump landing sample. No new downloaded or generated media.",
-      "rights": "Derived from this project's registered Asterion and equipment assets; their original provenance and rights apply",
+      "provenance": "Original source-authored Zephyr Skywell five-transfer route, banked receivers, bronze running-deck construction and suspended water-garden composition. Reuses registered canonical Zephyr islands, abbey/aqueduct/waterfall GLBs, limestone image, road weave, material/water/lighting helpers and sky backdrop. The short receiving tube shares Shatterline tube-surface.js and tube-tessellation.js geometry/contact mechanics; three powered approaches reuse shared Vector hardware. Its clean-catch cue reuses the registered Vector jump landing sample. No new downloaded or generated media.",
+      "rights": "Derived from this project's registered Zephyr and equipment assets plus project-authored Shatterline geometry mechanics; their original provenance and rights apply",
       "runtimeDependencies": ["three"]
     },
     {

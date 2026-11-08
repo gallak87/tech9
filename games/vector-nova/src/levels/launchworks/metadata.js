@@ -1,20 +1,20 @@
 export default {
   id: 'launchworks',
-  name: 'Asterion Launchworks',
+  name: 'Zephyr Skywell',
   order: 40,
   freestyle: true,
   shape: false,
   review: true,
   ui: {
     edition: 'FREESTYLE / PILOT',
-    subtitle: 'ASTERION / TRANSFER ARRAY',
+    subtitle: 'ZEPHYR / FIVE IMPOSSIBLE ARRIVALS',
     heading: ['COMMIT.', 'CONNECT.'],
     intro:
-      'Five colossal transfers. Commit a slow trick, recover, and catch the receiving slope. Protect the chain.',
+      'Five different transfers through the suspended water gardens. Drive the launch angle, match the bank and keep the chain.',
     detail:
-      'Ctrl + W/S flips, A/D rolls, Q/E spins. Combine directions for diagonal tricks. Ride the Vector strips into each launch. Pad: X + left stick flips / rolls, X + right stick spins. Release and settle; tap the airbrake before touchdown.',
-    tag: 'ASTERION LAUNCHWORKS',
-    tagDetail: 'FIVE TRANSFERS / STOCK BUILD',
+      'Q/E roll · Z/X pitch · C/V spin. Combine axes and match the receiving surface. Space brakes rotation; Shift boosts. Three Vector approaches and two gravity dives demand different speed choices. Equipment is disabled. Pad: right stick pitch/spin, X/Y roll.',
+    tag: 'ZEPHYR SKYWELL',
+    tagDetail: 'FIVE DISTINCT ARRIVALS / STOCK BUILD',
     start: 'START FREESTYLE',
   },
 };

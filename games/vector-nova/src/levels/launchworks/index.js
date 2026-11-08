@@ -14,7 +14,7 @@ import { DEVICE_SAMPLES } from '../../pickups/sample-cues.js';
 
 export default function createLevel() {
   return {
-    version: '0.4.0-skywell-freestyle-pilot',
+    version: '0.5.0-skywell-freestyle-pilot',
     freestyle: true,
     audio: {
       samples: {

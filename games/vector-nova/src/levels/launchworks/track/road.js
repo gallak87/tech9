@@ -266,6 +266,19 @@ export function createLaunchworksRoad({ track, shape = false }) {
       );
     }
   for (const [i, jump] of track.jumps.entries()) {
+    // Quiet lane inlays make the settled release surface visible at speed.
+    if (jump.releaseLength)
+      for (const side of [-1, 1])
+        sweep(
+          'Launch timing inlay',
+          jump.takeoff - jump.releaseLength,
+          jump.takeoff - 3,
+          [
+            [side * 10 - 0.18, 0.045],
+            [side * 10 + 0.18, 0.045],
+          ],
+          amber,
+        );
     for (let mark = 0; mark < 7; mark++) {
       const s = jump.takeoff - 83 + mark * 11;
       sweep(

@@ -17,31 +17,47 @@ test('Skywell has five distinct launch and receiving problems rather than repeat
     track.jumps.map((jump) => jump.receiverType),
     ['bank', 'shelf', 'tube', 'bank', 'curve'],
   );
-  const first = track.jumps[0],
-    second = track.jumps[1],
-    fourth = track.jumps[3],
-    fifth = track.jumps[4];
+  const fourth = track.jumps[3];
   const roll = track.routeMoments.find((moment) => moment.type === 'corkscrew');
   assert.ok(
     track
       .sample(roll.start)
       .up.dot(track.sample((roll.start + roll.end) / 2).up) < -0.9,
   );
+  const hook = track.routeMoments.find((moment) => moment.id === 'hook-right');
   assert.ok(
-    angle(
-      track.sample(first.takeoff - 270).tangent,
-      track.sample(first.takeoff).tangent,
-    ) > 0.7,
+    angle(track.sample(hook.start).tangent, track.sample(hook.end).tangent) >
+      0.7,
   );
   assert.ok(
     new T.Vector3().crossVectors(
-      track.sample(first.takeoff - 270).tangent,
-      track.sample(first.takeoff).tangent,
+      track.sample(hook.start).tangent,
+      track.sample(hook.end).tangent,
     ).y < -0.6,
-    'the horizontal hook turns towards driver right, matching its advice',
+    'the hook still turns towards driver right',
   );
-  assert.ok(track.sample(second.takeoff - 180).tangent.y < -0.3);
-  assert.ok(track.sample(fifth.takeoff - 180).tangent.y < -0.3);
+  for (const index of [0, 1, 4]) {
+    const jump = track.jumps[index],
+      release = track.sample(jump.takeoff - 2);
+    for (let before = 170; before >= 10; before -= 20) {
+      const frame = track.sample(jump.takeoff - before);
+      assert.ok(
+        angle(frame.tangent, release.tangent) < 0.01,
+        `${jump.label}: steady release pitch and heading`,
+      );
+      assert.ok(
+        angle(frame.up, release.up) < 0.01,
+        `${jump.label}: steady release bank`,
+      );
+    }
+  }
+  for (const id of ['bell-plunge', 'last-light-dive']) {
+    const dive = track.routeMoments.find((moment) => moment.id === id);
+    assert.ok(
+      track.sample((dive.start + dive.end) / 2).tangent.y < -0.25,
+      'gravity dives still precede their stable launch run',
+    );
+  }
   const departure = track.sample(fourth.takeoff),
     arrival = track.sample(fourth.target);
   assert.ok(

@@ -44,6 +44,7 @@ function harness(t, options = {}, settings = {}) {
   return {
     input,
     window,
+    document,
     key,
     commands,
     setPad: (value) => {
@@ -87,48 +88,124 @@ test('equipment taps clear on suspension and blur, and typing never arms an item
   assert.equal(input.sample().equipment1, false);
 });
 
-test('Freestyle paired keys rotate directly, compose and never arm equipment or steal boost', (t) => {
+test('Freestyle two-hand keys compose attitude independently of driving and never arm equipment', (t) => {
   const { input, key, commands } = harness(t, { freestyle: true });
-  for (const code of ['KeyQ', 'KeyZ', 'KeyC', 'ShiftLeft'])
+  for (const code of [
+    'KeyW',
+    'KeyD',
+    'ArrowUp',
+    'ArrowLeft',
+    'KeyE',
+    'ShiftLeft',
+  ])
     key('keydown', code);
   let sample = input.sample();
-  assert.equal(sample.aerialRoll, 1);
-  assert.equal(sample.aerialPitch, -1);
-  assert.equal(sample.aerialYaw, 1);
+  assert.equal(sample.aerialRoll, 1, 'left arrow rolls left');
+  assert.equal(sample.aerialPitch, -1, 'up arrow lifts the nose');
+  assert.equal(sample.aerialYaw, 1, 'E spins right');
+  assert.equal(sample.throttle, 1);
+  assert.equal(sample.steer, 1, 'D steering is independent of left-roll input');
+  assert.equal(sample.brake, 0);
   assert.equal(sample.boost, true);
   assert.deepEqual(commands, []);
   for (let i = 1; i <= 4; i++) assert.equal(sample[`equipment${i}`], false);
-  for (const code of ['KeyQ', 'KeyZ', 'KeyC', 'ShiftLeft']) key('keyup', code);
-  input.activateEquipment(0);
-  sample = input.sample();
-  assert.equal(sample.aerialRoll, 0, 'rotation stops when its key is released');
-  assert.equal(
-    sample.equipment1,
-    false,
-    'touch/programmatic activation also stays disabled',
-  );
-  for (const code of ['KeyE', 'KeyX', 'KeyV']) key('keydown', code);
+  for (const code of ['KeyD', 'ArrowUp', 'ArrowLeft', 'KeyE', 'ShiftLeft'])
+    key('keyup', code);
+  for (const code of ['ArrowDown', 'ArrowRight', 'KeyQ', 'Space'])
+    key('keydown', code);
   sample = input.sample();
   assert.equal(sample.aerialRoll, -1);
   assert.equal(sample.aerialPitch, 1);
   assert.equal(sample.aerialYaw, -1);
-  key('keydown', 'Space');
-  assert.equal(input.sample().airbrake, true);
+  assert.equal(
+    sample.throttle,
+    1,
+    'settling and reversing rotation do not release held throttle',
+  );
+  assert.equal(sample.steer, 0, 'a held roll never becomes driving steering');
+  assert.equal(sample.airbrake, true);
+  input.activateEquipment(0);
+  assert.equal(
+    input.sample().equipment1,
+    false,
+    'programmatic activation stays disabled',
+  );
   key('keydown', 'Escape');
   assert.deepEqual(commands, ['pause']);
 });
 
-test('Freestyle keeps optional Ctrl directions while ordinary races retain C camera and equipment', (t) => {
+test('Freestyle arrows never drive and opposing rotation keys cancel without a modifier', (t) => {
   const { input, key } = harness(t, { freestyle: true });
-  for (const code of ['ControlLeft', 'KeyW', 'KeyA']) key('keydown', code);
-  assert.equal(input.sample().aerialPitch, -1);
-  assert.equal(input.sample().aerialRoll, 1);
-  key('keydown', 'KeyQ');
-  assert.equal(input.sample().aerialYaw, 1);
-  input.setEnabled(false);
-  assert.equal(input.sample().aerialPitch, 0);
-  assert.equal(input.sample().aerialRoll, 0);
+  for (const code of [
+    'ArrowUp',
+    'ArrowDown',
+    'ArrowLeft',
+    'ArrowRight',
+    'KeyQ',
+    'KeyE',
+  ])
+    key('keydown', code);
+  let sample = input.sample();
+  assert.equal(sample.throttle, 0);
+  assert.equal(sample.brake, 0);
+  assert.equal(sample.steer, 0);
+  assert.equal(sample.aerialPitch, 0);
+  assert.equal(sample.aerialRoll, 0);
+  assert.equal(sample.aerialYaw, 0);
+  for (const code of ['ArrowDown', 'ArrowRight', 'KeyE']) key('keyup', code);
+  sample = input.sample();
+  assert.equal(sample.aerialPitch, -1);
+  assert.equal(sample.aerialRoll, 1);
+  assert.equal(sample.aerialYaw, -1);
+  assert.equal(sample.throttle, 0);
+  assert.equal(sample.brake, 0);
+  assert.equal(sample.steer, 0);
+});
+
+test('Freestyle removes legacy rotation aliases and restores C camera without changing WASD', (t) => {
+  const { input, key, commands } = harness(t, { freestyle: true });
+  for (const code of ['ControlLeft', 'KeyW', 'KeyA', 'KeyZ', 'KeyX', 'KeyV'])
+    key('keydown', code);
+  const sample = input.sample();
+  assert.equal(sample.throttle, 1);
+  assert.equal(sample.steer, -1);
+  assert.equal(sample.aerialPitch, 0);
+  assert.equal(sample.aerialRoll, 0);
+  assert.equal(sample.aerialYaw, 0);
+  key('keydown', 'KeyC');
+  assert.deepEqual(commands, ['camera']);
   assert.equal(input.sample().aerialYaw, 0);
+});
+
+test('Freestyle rotation clears on blur, hidden documents and suspension; typing never rotates', (t) => {
+  const { input, key, window, document } = harness(t, { freestyle: true });
+  const rotate = () => {
+    for (const code of ['ArrowUp', 'ArrowLeft', 'KeyE']) key('keydown', code);
+  };
+  const neutral = () => {
+    const sample = input.sample();
+    for (const axis of ['aerialPitch', 'aerialRoll', 'aerialYaw'])
+      assert.equal(sample[axis], 0);
+  };
+  rotate();
+  window.dispatchEvent(new Event('blur'));
+  neutral();
+  rotate();
+  document.hidden = true;
+  document.dispatchEvent(new Event('visibilitychange'));
+  neutral();
+  document.hidden = false;
+  document.dispatchEvent(new Event('visibilitychange'));
+  neutral();
+  rotate();
+  input.setEnabled(false);
+  neutral();
+  rotate();
+  input.setEnabled(true);
+  neutral();
+  for (const code of ['ArrowUp', 'ArrowLeft', 'KeyE'])
+    key('keydown', code, { editing: true });
+  neutral();
 });
 
 test('ordinary C camera remains separate from equipment and Freestyle axes are absent', (t) => {
@@ -154,7 +231,7 @@ test('controller camera commands never latch Freestyle yaw and respect suspensio
   assert.equal(input.sample().aerialYaw, 0);
 });
 
-test('Freestyle right stick and X/Y rotate independently of driving across all presets', (t) => {
+test('Freestyle right stick pitches and rolls while X/Y spin independently across all presets', (t) => {
   const settings = { controllerPreset: 'classic', steeringDeadZone: 0.15 };
   const { input, setPad } = harness(t, { freestyle: true }, settings);
   const pad = {
@@ -171,21 +248,78 @@ test('Freestyle right stick and X/Y rotate independently of driving across all p
     settings.controllerPreset = preset;
     pad.axes = [0.4, 0.8, 0.6, -0.9];
     pad.buttons[2] = { value: 1, pressed: true };
-    const sample = input.sample();
-    assert.ok(sample.aerialPitch < -0.8, 'right vertical axis supplies pitch');
-    assert.ok(sample.aerialYaw > 0.5, 'right stick right turns the nose right');
-    assert.equal(sample.aerialRoll, 1);
+    let sample = input.sample();
+    assert.ok(sample.aerialPitch < -0.8, 'right stick up lifts the nose');
+    assert.ok(sample.aerialRoll < -0.5, 'right stick right rolls right');
+    assert.equal(sample.aerialYaw, -1, 'X spins left');
     assert.ok(sample.steer > 0.2, 'left stick still steers');
     assert.equal(sample.throttle, 0, preset);
+    assert.equal(sample.brake, 0, preset);
     assert.equal(sample.boost, false, preset);
     assert.equal(sample.airbrake, false, preset);
     for (let i = 1; i <= 4; i++) assert.equal(sample[`equipment${i}`], false);
     pad.buttons[3] = { value: 1, pressed: true };
-    assert.equal(input.sample().aerialRoll, 0, 'opposing roll inputs cancel');
-    pad.buttons[2] = pad.buttons[3] = { value: 0, pressed: false };
+    assert.equal(
+      input.sample().aerialYaw,
+      0,
+      'opposing flat-spin buttons cancel',
+    );
+    pad.buttons[2] = { value: 0, pressed: false };
+    pad.axes = [0.4, -0.8, -0.6, 0.9];
+    sample = input.sample();
+    assert.equal(sample.aerialYaw, 1, 'Y spins right');
+    assert.ok(sample.aerialRoll > 0.5, 'right stick left rolls left');
+    assert.ok(sample.aerialPitch > 0.8, 'right stick down lowers the nose');
+    pad.buttons[3] = { value: 0, pressed: false };
     input.sample();
   }
   input.setEnabled(false);
   assert.equal(input.sample().aerialPitch, 0);
   assert.equal(input.sample().aerialYaw, 0);
+  assert.equal(input.sample().aerialRoll, 0);
+});
+
+test('ordinary races retain WASD and arrow driving while controller right-stick movement stays unused', (t) => {
+  const { input, key, setPad } = harness(t);
+  for (const keys of [
+    ['KeyW', 'KeyD'],
+    ['ArrowUp', 'ArrowRight'],
+  ]) {
+    for (const code of keys) key('keydown', code);
+    assert.equal(input.sample().throttle, 1);
+    assert.equal(input.sample().steer, 1);
+    for (const code of keys) key('keyup', code);
+  }
+  for (const keys of [
+    ['KeyS', 'KeyA'],
+    ['ArrowDown', 'ArrowLeft'],
+  ]) {
+    for (const code of keys) key('keydown', code);
+    assert.equal(input.sample().brake, 1);
+    assert.equal(input.sample().steer, -1);
+    for (const code of keys) key('keyup', code);
+  }
+  const pad = {
+    id: 'ordinary-input',
+    index: 0,
+    connected: true,
+    mapping: 'standard',
+    axes: [0, 0, 0, 0],
+    buttons: Array.from({ length: 17 }, () => ({ value: 0, pressed: false })),
+  };
+  setPad(pad);
+  input.sample();
+  pad.axes = [0.4, 1, -1, 1];
+  pad.buttons[2] = { value: 1, pressed: true };
+  const sample = input.sample();
+  assert.ok(sample.steer > 0.2);
+  assert.equal(sample.throttle, 0);
+  assert.equal(sample.brake, 0);
+  assert.equal(
+    sample.equipment1,
+    true,
+    'X still fires the first equipped item',
+  );
+  for (const axis of ['aerialPitch', 'aerialRoll', 'aerialYaw'])
+    assert.equal(axis in sample, false);
 });

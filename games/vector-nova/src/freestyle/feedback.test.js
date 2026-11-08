@@ -120,17 +120,27 @@ test('receiver correction uses the real local quaternion and shortest rotation',
 
 test('attitude advice supplies actual signed keys, a quiet deadband and rotation recovery priority', () => {
   const reference = { correction: { pitch: 0.3, yaw: 0.1, roll: -0.7 } };
-  assert.equal(freestyleAttitudeCue(reference), 'E roll right · X nose down');
+  assert.equal(freestyleAttitudeCue(reference), '→ roll right · ↓ nose down');
   assert.equal(
     freestyleAttitudeCue(reference, { gamepad: true }),
-    'Y roll right · STICK ↓ nose down',
+    'STICK → roll right · STICK ↓ nose down',
   );
   assert.equal(
     freestyleAttitudeCue(
       { correction: { pitch: -0.4, yaw: 0.7, roll: 0 } },
       { gamepad: true },
     ),
-    'STICK → turn right · STICK ↑ nose up',
+    'Y turn right · STICK ↑ nose up',
+  );
+  const opposite = { correction: { pitch: -0.4, yaw: -0.7, roll: 0.9 } };
+  assert.equal(freestyleAttitudeCue(opposite), '← roll left · Q turn left');
+  assert.equal(
+    freestyleAttitudeCue(opposite, { gamepad: true }),
+    'STICK ← roll left · X turn left',
+  );
+  assert.equal(
+    freestyleAttitudeCue({ correction: { pitch: -0.7, yaw: 0.4, roll: 0 } }),
+    '↑ nose up · E turn right',
   );
   assert.equal(
     freestyleAttitudeCue({

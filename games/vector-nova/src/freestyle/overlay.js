@@ -9,7 +9,7 @@ export function createFreestyleOverlay({ host, track, freestyleActions }) {
   root.innerHTML =
     '<div class="fs-score"><span>FREESTYLE</span><strong>0</strong><small>CHAIN <b>—</b></small></div><div class="fs-links" aria-label="Transfer chain">' +
     track.jumps.map((_, i) => `<i>${i + 1}</i>`).join('') +
-    '</div><div class="fs-flight"><span class="fs-phase">BUILD YOUR APPROACH</span><h3 class="fs-transfer"></h3><p class="fs-approach"></p><p class="fs-receiver"></p><small class="fs-speed"></small><small class="fs-alignment"></small><strong class="fs-trick">Set your launch line.</strong><div class="fs-rotation" aria-label="Rotation speed"><i></i></div><p class="fs-catch">Match the receiving bank.</p><small class="fs-last"></small></div><div class="fs-controls"><span><b>Q / E</b>ROLL</span><span><b>Z / X</b>FLIP</span><span><b>C / V</b>FLAT SPIN</span><span class="fs-brake"><b>SPACE</b>BRAKE / FINE TRIM</span></div>';
+    '</div><div class="fs-flight"><span class="fs-phase">BUILD YOUR APPROACH</span><h3 class="fs-transfer"></h3><p class="fs-approach"></p><p class="fs-receiver"></p><small class="fs-speed"></small><small class="fs-alignment"></small><strong class="fs-trick">Set your launch line.</strong><div class="fs-rotation" aria-label="Rotation speed"><i></i></div><p class="fs-catch">Match the receiving bank.</p><small class="fs-last"></small></div><div class="fs-controls"><span><b>← / →</b>ROLL</span><span><b>↑ / ↓</b>FLIP</span><span><b>Q / E</b>FLAT SPIN</span><span class="fs-brake"><b>SPACE</b>BRAKE / FINE TRIM</span></div>';
   host.append(root);
   const score = root.querySelector('.fs-score>strong'),
     modeLabel = root.querySelector('.fs-score>span'),
@@ -102,12 +102,12 @@ export function createFreestyleOverlay({ host, track, freestyleActions }) {
       if (!data) return;
       const names = frame.gamepad
         ? [
-            'X / Y',
-            'RIGHT STICK ↑↓',
             'RIGHT STICK ←→',
+            'RIGHT STICK ↑↓',
+            'X / Y',
             controllerLayout(frame.settings).airbrake,
           ]
-        : ['Q / E', 'Z / X', 'C / V', 'SPACE'];
+        : ['← / →', '↑ / ↓', 'Q / E', 'SPACE'];
       controls.forEach((node, i) => {
         node.querySelector('b').textContent = names[i];
       });

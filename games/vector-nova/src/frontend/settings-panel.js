@@ -11,7 +11,7 @@ import {
 
 export function settingsView(
   settings,
-  { developer = false, artPass = false } = {},
+  { developer = false, artPass = false, freestyle = false } = {},
 ) {
   const audio = [
     ['masterVolume', 'Master volume'],
@@ -23,14 +23,21 @@ export function settingsView(
         `<label><span>${label}</span><span class="audio-volume-control"><output for="setting-${key}" data-setting-output="${key}">${Math.round(settings[key] * 100)}%</output><input id="setting-${key}" aria-label="${label}" data-setting="${key}" type="range" min="0" max="1" step=".01" value="${settings[key]}"></span></label>`,
     )
     .join('');
-  return `<div class="settings-layout"><section class="settings-form"><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label>${audio}<label><span>Reduced motion</span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label>${controllerSettingsView(settings)}</section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
+  return `<div class="settings-layout"><section class="settings-form"><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label>${audio}<label><span>Reduced motion</span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label>${controllerSettingsView(settings, { freestyle })}</section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
     [
-      'Driving',
+      freestyle ? 'Freestyle' : 'Driving',
       [
-        ['WASD / Arrows', 'Throttle, brake and steer'],
+        ...(freestyle
+          ? [
+              ['WASD', 'Throttle, brake and steer'],
+              ['↑ / ↓', 'Pitch nose up / down'],
+              ['← / →', 'Roll left / right'],
+              ['Q / E', 'Flat spin left / right'],
+            ]
+          : [['WASD / Arrows', 'Throttle, brake and steer']]),
         ['Shift', 'Boost'],
-        ['Q / E / Z / X', 'Equipment 1 / 2 / 3 / 4'],
-        ['Space', 'Airbrake'],
+        ...(!freestyle ? [['Q / E / Z / X', 'Equipment 1 / 2 / 3 / 4']] : []),
+        ['Space', freestyle ? 'Airbrake / rotation brake' : 'Airbrake'],
         ['Esc', 'Pause / resume'],
         ['R', 'Reset / retry'],
         ['C', 'Change camera'],

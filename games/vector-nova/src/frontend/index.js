@@ -755,7 +755,7 @@ export async function createFrontend(
     }
     const guide =
       intent === 'freestyle'
-        ? `<aside class="freestyle-guide"><h3>Five different approaches. One chain.</h3><p><b>Q / E</b> roll · <b>Z / X</b> flip · <b>C / V</b> spin. Combine freely; <b>Space</b> brakes rotation; hold with a direction for fine trim. Match the receiving bank. A well-timed brake adds precision.</p><p class="freestyle-pad-guide">Pad: <b>right stick</b> flips / spins · <b>X / Y</b> rolls · <b>${controllerLayout(settings).airbrake}</b> settles. Left stick keeps steering. Ctrl + direction remains an alternate.</p><p><b>Pause → Transfer practice</b> to learn one landing. Full-course finishes earn career progress: <b>Gold +5 · Silver +4 · Bronze +3 · Complete +1</b>. Stock ship · Equipment disabled.</p></aside>`
+        ? `<aside class="freestyle-guide"><h3>Five different approaches. One chain.</h3><p><b>WASD</b> drives · <b>↑ / ↓</b> pitches · <b>← / →</b> rolls · <b>Q / E</b> flat-spins. Combine directions; <b>Space</b> brakes rotation; hold with a direction for fine trim. Match the receiving bank. A well-timed brake adds precision.</p><p class="freestyle-pad-guide">Pad: <b>right stick</b> pitches / rolls · <b>X / Y</b> flat-spins · <b>${controllerLayout(settings).airbrake}</b> settles. Left stick keeps steering.</p><p><b>Pause → Transfer practice</b> to learn one landing. Full-course finishes earn career progress: <b>Gold +5 · Silver +4 · Bronze +3 · Complete +1</b>. Stock ship · Equipment disabled.</p></aside>`
         : intent === 'eliminator'
           ? '<aside class="event-guide"><h3>Stay ahead of the cut.</h3><p>Last place is removed after <b>22 seconds</b>, then every <b>10 seconds</b>. Watch the at-risk racer and survive to the final ship. Your equipped build and the course’s weapons are active.</p><p>Every valid result earns normal race progress. Cups keep their original lineups.</p></aside>'
           : intent === 'interceptor'
@@ -1053,6 +1053,7 @@ export async function createFrontend(
       content.innerHTML = `${sessionReturn(true)}${settingsView(settings, {
         developer: parameters.get('dev') === '1',
         artPass,
+        freestyle: intent === 'freestyle',
       })}`;
       disposeControllerSettings = bindSettingsPanel(content, {
         getSettings: () => settings,

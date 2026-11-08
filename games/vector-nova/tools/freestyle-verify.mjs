@@ -106,6 +106,24 @@ try {
     await page.locator('[data-action="freestyle"]').textContent(),
     /Pilot/i,
   );
+  assert.match(
+    await page.locator('.freestyle-guide').innerText(),
+    /WASD.*↑ \/ ↓.*← \/ →.*Q \/ E/s,
+  );
+  assert.match(
+    await page.locator('.freestyle-pad-guide').innerText(),
+    /right stick.*pitches \/ rolls.*X \/ Y.*flat-spins/s,
+  );
+  await page.locator('[data-action="settings"]').click();
+  assert.match(
+    await page.locator('.settings-layout > .keyboard-guide').innerText(),
+    /↑.*↓.*Pitch.*←.*→.*Roll/s,
+  );
+  assert.match(
+    await page.locator('.controller-guide').innerText(),
+    /Right stick.*Pitch.*Roll.*X \/ Y.*Flat spin/s,
+  );
+  await page.locator('[data-action="settings-back"]').click();
   await page.waitForFunction(
     () => window.__VN_FRONTEND.getState().preload.ready === 4,
     null,
@@ -125,24 +143,57 @@ try {
   assert.equal(await page.locator('.equipment-hud').count(), 0);
   await page.evaluate(() => window.__VN.stepFreestyle(1, {}));
   console.log('PASS · Freestyle entry, Zephyr biome, equipment disabled');
+  await page.keyboard.down('ArrowUp');
+  await page.keyboard.down('ArrowRight');
+  const groundInput = (await read()).input;
+  assert.equal(groundInput.throttle, 0);
+  assert.equal(groundInput.brake, 0);
+  assert.equal(groundInput.steer, 0);
+  const grounded = await page.evaluate(
+    (control) => window.__VN.stepFreestyle(30, control),
+    groundInput,
+  );
+  assert.equal(
+    Math.hypot(...motion(grounded).freestyle.angular),
+    0,
+    'arrows do not rotate a supported ship',
+  );
+  await page.keyboard.up('ArrowUp');
+  await page.keyboard.up('ArrowRight');
 
   // Exercise actual DOM keyboard events, not calls into the input reader.
   for (const [keys, expected] of [
     [
-      ['KeyQ', 'KeyZ', 'KeyC'],
-      { aerialRoll: 1, aerialPitch: -1, aerialYaw: 1, boost: false },
+      ['ArrowLeft', 'ArrowUp', 'KeyE', 'KeyW'],
+      {
+        aerialRoll: 1,
+        aerialPitch: -1,
+        aerialYaw: 1,
+        boost: false,
+        throttle: 1,
+        steer: 0,
+        brake: 0,
+      },
     ],
     [
-      ['KeyE', 'KeyX', 'KeyV', 'Space'],
-      { aerialRoll: -1, aerialPitch: 1, aerialYaw: -1, airbrake: true },
+      ['ArrowRight', 'ArrowDown', 'KeyQ', 'Space'],
+      {
+        aerialRoll: -1,
+        aerialPitch: 1,
+        aerialYaw: -1,
+        airbrake: true,
+        throttle: 0,
+        brake: 0,
+        steer: 0,
+      },
     ],
     [
       ['ShiftLeft'],
       { aerialRoll: 0, aerialPitch: 0, aerialYaw: 0, boost: true },
     ],
     [
-      ['ControlLeft', 'KeyW', 'KeyA'],
-      { aerialRoll: 1, aerialPitch: -1, aerialYaw: 0 },
+      ['KeyW', 'KeyA'],
+      { aerialRoll: 0, aerialPitch: 0, aerialYaw: 0, throttle: 1, steer: -1 },
     ],
   ]) {
     await page.evaluate(() => {
@@ -158,7 +209,7 @@ try {
       (control) => window.__VN.stepFreestyle(100, control),
       input,
     );
-    if (keys.includes('ShiftLeft'))
+    if (!Math.hypot(input.aerialRoll, input.aerialPitch, input.aerialYaw))
       assert.equal(Math.hypot(...motion(turned).freestyle.angular), 0);
     else
       assert.ok(
@@ -194,15 +245,21 @@ try {
   assert.ok(
     padInput.steer > 0.2 &&
       padInput.aerialPitch < -0.8 &&
-      padInput.aerialYaw > 0.5,
+      padInput.aerialRoll < -0.5,
   );
-  assert.equal(padInput.aerialRoll, 1);
+  assert.equal(
+    padInput.aerialYaw,
+    -1,
+    'X flat-spins left independently of right-stick roll',
+  );
   assert.equal(padInput.boost, false);
   await page.evaluate(() => {
     window.__testPad.axes = [0, 0, 0, 0];
     window.__testPad.buttons[2] = { pressed: false, value: 0 };
   });
-  console.log('PASS · independent controller steering, pitch/yaw and roll');
+  console.log(
+    'PASS · independent controller steering, right-stick pitch/roll and X/Y flat spins',
+  );
 
   // Production practice controls must be reachable through the shared pad menu.
   await page.evaluate(() => window.__VN.pause());
@@ -315,16 +372,16 @@ try {
   await page.keyboard.press('KeyR');
   assert.equal((await read()).freestylePractice.id, 'transfer-4');
   await flyToLip();
-  // Deliberate gesture: hold a right line, E550ms, E+Space400ms, then settle.
+  // Deliberate gesture: hold a right line, roll right550ms, trim400ms, then settle.
   // No receiver quaternion, future contact or controller steers this gesture.
   await page.keyboard.down('KeyW');
   await page.keyboard.down('KeyD');
   await heldTicks(18);
-  await page.keyboard.down('KeyE');
+  await page.keyboard.down('ArrowRight');
   await heldTicks(66);
   await page.keyboard.down('Space');
   await heldTicks(48);
-  await page.keyboard.up('KeyE');
+  await page.keyboard.up('ArrowRight');
   await page.keyboard.up('KeyD');
   for (let i = 0; i < 20; i++) {
     snapshot = await heldTicks(60);
@@ -420,6 +477,51 @@ try {
   );
   console.log(
     `PASS · native five-transfer chain from rest, ${result.score} points, no resets or airborne impacts`,
+  );
+  await page.locator('[data-action="change"]').click();
+  await page.locator('[data-action="quick-race"]').click();
+  await page.locator('[data-action="settings"]').click();
+  assert.match(
+    await page.locator('.settings-layout > .keyboard-guide').innerText(),
+    /WASD \/ Arrows/,
+  );
+  assert.match(
+    await page.locator('.controller-guide').innerText(),
+    /Equipment 1 \/ 2 \/ 3 \/ 4/,
+  );
+  assert.doesNotMatch(
+    await page.locator('.controller-guide').innerText(),
+    /Flat spin/,
+  );
+  await page.locator('[data-action="settings-back"]').click();
+  await page.locator('[data-action="launch"]').click();
+  await page.waitForFunction(
+    () =>
+      window.__VN?.ready && window.__VN_FRONTEND.getState().screen === 'race',
+    null,
+    { timeout: 90000 },
+  );
+  await page.evaluate(() => window.__VN.stepFreestyle(1, {}));
+  await page.keyboard.down('ArrowUp');
+  await page.keyboard.down('ArrowRight');
+  const raceInput = (await read()).input;
+  assert.equal(raceInput.throttle, 1);
+  assert.equal(raceInput.steer, 1);
+  assert.equal('aerialRoll' in raceInput, false);
+  await page.keyboard.up('ArrowUp');
+  await page.keyboard.up('ArrowRight');
+  await page.evaluate(() => {
+    window.__testPad.axes = [0, 0, 0.9, -0.9];
+  });
+  const racePad = (await read()).input;
+  assert.equal(racePad.throttle, 0);
+  assert.equal(racePad.brake, 0);
+  assert.equal(racePad.steer, 0);
+  assert.equal('aerialPitch' in racePad, false);
+  assert.equal('aerialYaw' in racePad, false);
+  assert.equal('aerialRoll' in racePad, false);
+  console.log(
+    'PASS · ordinary keyboard/controller driving and Settings hints retain their existing layout',
   );
   assert.deepEqual(errors, []);
   assert.deepEqual(snapshot.errors, []);

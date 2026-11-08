@@ -80,10 +80,10 @@ export function freestyleAttitudeCue(
   const keys = gamepad
     ? {
         pitch: ['STICK ↑', 'STICK ↓'],
-        yaw: ['STICK ←', 'STICK →'],
-        roll: ['Y', 'X'],
+        yaw: ['X', 'Y'],
+        roll: ['STICK →', 'STICK ←'],
       }
-    : { pitch: ['Z', 'X'], yaw: ['V', 'C'], roll: ['E', 'Q'] };
+    : { pitch: ['↑', '↓'], yaw: ['Q', 'E'], roll: ['→', '←'] };
   const actions = {
     pitch: ['nose up', 'nose down'],
     yaw: ['turn left', 'turn right'],

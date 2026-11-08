@@ -195,7 +195,7 @@ export function bindMenuGamepad(
         }
         direction = current;
       } else if (intent.camera && !previous.camera)
-        // Camera is an action, not a held C key: Freestyle owns C for yaw.
+        // Camera is a semantic action rather than a synthetic keyboard event.
         window.dispatchEvent(new Event('vn-camera-toggle'));
     }
     previous = intent;

@@ -26,8 +26,9 @@ export function createInput(
     'ShiftLeft',
     'ShiftRight',
     'Space',
-    ...(freestyle ? ['ControlLeft', 'ControlRight', 'KeyC', 'KeyV'] : []),
-    ...EQUIPMENT_CONTROLS.map(({ key }) => key),
+    ...(freestyle
+      ? ['KeyQ', 'KeyE']
+      : EQUIPMENT_CONTROLS.map(({ key }) => key)),
   ];
   const equipmentPulses = EQUIPMENT_CONTROLS.map(() => false);
   const clear = () => {
@@ -53,7 +54,7 @@ export function createInput(
           Escape: 'pause',
           KeyR: 'restart',
           Enter: 'start',
-          ...(!freestyle ? { KeyC: 'camera' } : {}),
+          KeyC: 'camera',
         };
         if (
           commands[e.code] &&
@@ -96,6 +97,8 @@ export function createInput(
     { signal: abort.signal },
   );
   const down = (...k) => k.some((v) => keys.has(v));
+  const drivingKey = (letter, arrow) =>
+    down(letter) || (!freestyle && down(arrow));
   return {
     clear,
     activateEquipment(slot) {
@@ -121,11 +124,11 @@ export function createInput(
     sample() {
       const t = touch.sample();
       let i = {
-        throttle: down('ArrowUp', 'KeyW') ? 1 : t.throttle,
-        brake: down('ArrowDown', 'KeyS') ? 1 : t.brake,
+        throttle: drivingKey('KeyW', 'ArrowUp') ? 1 : t.throttle,
+        brake: drivingKey('KeyS', 'ArrowDown') ? 1 : t.brake,
         steer:
-          Number(down('ArrowRight', 'KeyD')) -
-            Number(down('ArrowLeft', 'KeyA')) || t.steer,
+          Number(drivingKey('KeyD', 'ArrowRight')) -
+            Number(drivingKey('KeyA', 'ArrowLeft')) || t.steer,
         boost: down('ShiftLeft', 'ShiftRight') || t.boost,
         airbrake: down('Space') || t.airbrake,
         ...Object.fromEntries(
@@ -148,38 +151,30 @@ export function createInput(
       }
       if (freestyle) {
         const active = enabled && !document.hidden;
-        const ctrl = down('ControlLeft', 'ControlRight');
-        const horizontal =
-          Number(down('ArrowRight', 'KeyD')) -
-          Number(down('ArrowLeft', 'KeyA'));
-        const vertical =
-          Number(down('ArrowDown', 'KeyS')) - Number(down('ArrowUp', 'KeyW'));
         const clamp = (value) => Math.max(-1, Math.min(1, value));
-        // Direct paired keys compose freely. Ctrl remains an alternate for the
-        // original one-hand direction controls, never a canned trick chooser.
+        // Driving and attitude stay separate for the entire discipline. The
+        // flight controller ignores attitude on support, so a held arrow can
+        // never turn into steering when the ship touches down.
         i.aerialPitch = active
           ? clamp(
-              Number(down('KeyX')) -
-                Number(down('KeyZ')) +
-                (ctrl ? vertical : 0) +
+              Number(down('ArrowDown')) -
+                Number(down('ArrowUp')) +
                 (pad.aerialStickY ?? 0),
             )
           : 0;
         i.aerialRoll = active
           ? clamp(
-              (ctrl
-                ? -horizontal
-                : Number(down('KeyQ')) - Number(down('KeyE'))) +
-                Number(pad.equipment1) -
-                Number(pad.equipment2),
+              Number(down('ArrowLeft')) -
+                Number(down('ArrowRight')) -
+                (pad.aerialStickX ?? 0),
             )
           : 0;
         i.aerialYaw = active
           ? clamp(
-              Number(down('KeyC')) -
-                Number(down('KeyV')) +
-                (ctrl ? Number(down('KeyQ')) - Number(down('KeyE')) : 0) +
-                (pad.aerialStickX ?? 0),
+              Number(down('KeyE')) -
+                Number(down('KeyQ')) +
+                Number(pad.equipment2) -
+                Number(pad.equipment1),
             )
           : 0;
         // These buttons belong to attitude control in this discipline. No

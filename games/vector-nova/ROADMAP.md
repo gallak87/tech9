@@ -13,8 +13,6 @@ Main baseline checked on **2026-11-06**; event-branch status below remains subje
 
 ### Integrate and review the work already in flight
 
-- [ ] **Delete the obsolete developer launcher later (user request, 2026-11-02):** retire the old title/launch panel in `src/ui/index.js`, its launcher/title-panel styles in `src/ui/style.css`, and the legacy tool-entry routing in `src/frontend/index.js` (`capture`, `review`, `test=jump`). Move any necessary test entry controls to the current frontend first. Preserve the shared racing HUD, pause/input controls and current frontend; `src/ui/index.js` and its stylesheet also own active gameplay UI.
-
 - [ ] Decide release-menu grouping and Freestyle's experimental visibility. Integrate the approved event work deliberately, including the packaged full-game course/asset policy; preserve the demo boundary and original cup/reward requirements.
 - [ ] Human playtest Eliminator cut pressure, Interceptor pursuit/boss balance and Freestyle torque, catches, five-transfer scoring and medals before production expansion or new mastery rewards.
 - [ ] Observe external players: braking/boost comprehension, finishing without coaching and voluntary replay. Separate control confusion, route readability, performance and difficulty before adding mechanics.
@@ -31,6 +29,19 @@ Main baseline checked on **2026-11-06**; event-branch status below remains subje
 ### Known course follow-ups
 
 - [ ] **Zephyr:** human review of the reported extra turn-assistance feel at the early right bend beneath the stone cross-span, before the first waterfall boost strip (2026-10-17 reference: lap 1, 00:07.300, 396 km/h). Production-collider yaw and camera checks do not reproduce extra assistance; preserve the approved 0.3 setting.
+
+## Code quality and maintenance
+
+Remaining audit work; original item numbers are retained. Prefer bounded shared-utility extractions, then a two-adapter runtime-wrapper trial before broad session/navigation or collision changes. Preserve approved handling, save/replay compatibility, deterministic stepping, resource ownership and desktop edition boundaries.
+
+- [ ] **Session/navigation ownership (#5):** give pause, resume, results, inspection, cancellation and focus transitions explicit owners in `src/frontend/index.js` and `src/core/game.js`. Build on the existing results coordinator and owned simulation checkpoints; keep frontend navigation separate from scene/resource ownership. Migrate one transition at a time.
+- [ ] **Legacy launcher and inspection retirement (#6; requested 2026-11-02):** move remaining `capture`, `review` and `test=jump` tooling consumers to the current frontend before removing the old title/launch panel, inspection branch and related routing/styles. Preserve the shared racing HUD and pause/input controls still owned by `src/ui/index.js` and `src/ui/style.css`.
+- [ ] **Explicit collision metadata (#8):** replace art-name/UV assumptions with explicit solid roles and route-coordinate meanings. Distinguish broad ownership intervals from actual face coverage; migrate one level first while preserving collider geometry, triangle order, fingerprints and replay identities.
+- [ ] **Shared staged-runtime wrappers (#9):** consolidate repeated before/after-step capture, pending guards, reset and restore sequencing, starting with Glasswake and Zephyr. Keep local hazards, per-substep behavior and moving-world clocks level-owned; verify tick/replay parity before adding other adapters.
+- [ ] **CSS scoping and tokens (#10, remaining work):** scope broader frontend/HUD rules and give intentional color roles distinct token names. Entry palette tokens are already scoped. Preserve current computed styles, focus states and layouts while removing global token/specificity collisions.
+- [ ] **Shader composition (#11, remaining work):** extend the existing checked-anchor helper into shared patch composition and cache-key handling where implementations truly match. Anchor assertions are complete; preserve shader output and validate program-cache behavior and affected visuals before migrating materials.
+- [ ] **Shared cross-level utilities (#12, remaining work):** move proven material primitives, texture loaders and clocks out of individual levels into named shared modules. HTML escaping, matching LCG streams and default scenario construction are already shared. Keep world composition, differing algorithms, asset provenance and package content ownership local.
+- [ ] **One completion overlay shell:** consolidate duplicated boot/loading, failure, credits and focus handling in `src/frontend/index.js` and `src/frontend/completion-cinematic.js`. Preserve eager loading feedback, cancellation/retry, saved completion acknowledgement and keyboard/controller focus return.
 
 ## Next
 

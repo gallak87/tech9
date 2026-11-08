@@ -1,17 +1,26 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { chromium } from 'playwright';
+import { launchVerificationBrowser } from './verification-browser.mjs';
 
 const root = new URL('../', import.meta.url);
 const { images: sources } = JSON.parse(
   await readFile(new URL('assets/ui/cups/provenance.json', root)),
 );
+const args = process.argv.slice(2);
+if (args.length && (args.length !== 2 || args[0] !== '--cup'))
+  throw new Error('Usage: node tools/export-cup-art.mjs [--cup <id>]');
+const selected = args.length
+  ? sources.filter(({ cupId }) => cupId === args[1])
+  : sources;
+if (!selected.length) throw new Error(`Unknown cup: ${args[1]}`);
+const manifest = new URL('assets/ui/cups/runtime-exports.json', root);
+const retained = args.length ? JSON.parse(await readFile(manifest)).images : [];
 await mkdir(new URL('public/assets/menu/cups/', root), { recursive: true });
-const browser = await chromium.launch({ headless: true, channel: 'chrome' });
+const browser = await launchVerificationBrowser();
 const images = [];
 try {
   const page = await browser.newPage();
-  for (const { cupId, kind, file: sourceFile } of sources) {
+  for (const { cupId, kind, file: sourceFile } of selected) {
     const source = `assets/ui/cups/${sourceFile}`;
     const width = kind === 'trophy' ? 512 : 960;
     const input = (await readFile(new URL(source, root))).toString('base64');
@@ -43,13 +52,21 @@ try {
 } finally {
   await browser.close();
 }
+const current = sources.map(({ file }) => {
+  const source = `assets/ui/cups/${file}`;
+  const image =
+    images.find((entry) => entry.source === source) ??
+    retained.find((entry) => entry.source === source);
+  if (!image) throw new Error(`Missing runtime export for ${source}`);
+  return image;
+});
 await writeFile(
-  new URL('assets/ui/cups/runtime-exports.json', root),
+  manifest,
   JSON.stringify(
     {
       process:
         'Chromium canvas WebP quality 0.86, high-quality scaling: 512px trophies with alpha and 960px-wide backgrounds. Original sources retained unchanged.',
-      images,
+      images: current,
     },
     null,
     2,

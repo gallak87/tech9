@@ -48,6 +48,12 @@
       "file": "public/assets/menu/cups/apex-background.webp",
       "bytes": 43116,
       "sha256": "618052e431235ef13967c1906747f92eda71c36275b068e271e44b20c3c582b6"
+    },
+    {
+      "source": "assets/ui/cups/encore-trophy.png",
+      "file": "public/assets/menu/cups/encore-trophy.webp",
+      "bytes": 47290,
+      "sha256": "08eb0642fd4b89bc3aecbafbf1c63b4d9b448fcec6e1cc630b776e5e9a9c841d"
     }
   ]
 }

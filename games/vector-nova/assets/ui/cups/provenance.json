@@ -1,7 +1,7 @@
 {
   "generator": "Built-in image_gen",
   "rights": "Generated for VECTOR//NOVA with built-in imagegen; no third-party reference artwork supplied.",
-  "usage": "Current approved source artwork for cup selection, the trophy cabinet and championship reveals. Four transparent trophies and four opaque backgrounds. Runtime WebP exports and source mappings are recorded in runtime-exports.json.",
+  "usage": "Current source artwork for cup selection, the trophy cabinet and championship reveals. Five transparent trophies and four opaque backgrounds; Encore retains its code-native background. Runtime WebP exports and source mappings are recorded in runtime-exports.json.",
   "images": [
     {
       "cupId": "founders",
@@ -102,6 +102,21 @@
       "size": [2171, 724],
       "mode": "RGB",
       "sha256": "4bda5842e6d9aa2ba63bf117107419a3e1da725594488df2eea5500cc0e00008"
+    },
+    {
+      "cupId": "encore",
+      "kind": "trophy",
+      "concept": "Victory Lap",
+      "complexityTier": 5,
+      "file": "encore-trophy.png",
+      "accentReference": "#D8DEE5",
+      "originalOutput": "/Users/g/.codex/generated_images/01a1aa50-ebe6-71a2-9beb-c91ded4275db/exec-32022160-4b36-43a7-b5a5-72071dbead11.png",
+      "prompt": "Use case: stylized-concept.\nAsset type: one premium transparent championship trophy icon for VECTOR//NOVA, a futuristic anti-gravity racing game.\nPrimary request: ENCORE CUP — VICTORY LAP, the special post-career fifth championship, matching a collection of realistically rendered physical science-fiction trophies. This award has its own warm copper identity, distinct from the green starter cup, gold sunrise arc, red armored crown and purple orbital sphere.\nSubject and silhouette: one elegant manufactured trophy on a compact faceted graphite pedestal. Three broad burnished-copper racing ribbons rise from a short central stem, sweep upward in a graceful twisting loop, then open into a three-point victory crown. One ribbon makes a bold diagonal oval sweep behind the crown, while the others form the open front, suggesting a final celebratory racing lap. Generous genuine transparent openings, an immediately legible continuous sculptural silhouette, no hair-thin cage. It should read as a prestigious tangible collectible trophy, not a logo or an ordinary cup. A few pearl-ceramic inserts and tiny recessed vermilion accents tie it to the game's racing ships.\nMaterials and lighting: satin copper and champagne-titanium edges inspired by #C79C6E, dark graphite inset panels, finely machined beveled joints, restrained warm amber illumination confined to a few seams. Premium realistic studio product rendering, crisp controlled highlights, readable against a very dark menu. Avoid a yellow-gold wash, giant glowing jewel, neon bloom, red-dominant styling, or the nested spherical gimbal-ring design of the purple award.\nComposition: exactly one complete trophy centered on a square canvas, full object visible including base, about ten percent clear margin. Near-front three-quarter view with shallow perspective and camera just slightly above the object. Large simple shapes readable at 64–96 pixels, with convincing polished material detail for larger victory reveals.\nConstraints: genuine transparent background including every opening within the trophy. No scenery, floor, contact shadow, cast ground shadow, smoke, particles, surrounding glow cloud, frame, badge outline, collage, lettering, numbers, text, logos or watermark.",
+      "editPrompt": "Use case: background-extraction.\nEdit ONLY the transparency of the supplied copper racing trophy icon. Preserve the physical trophy's exact shape, every metal ribbon and crown point, pearl inserts, graphite pedestal, materials, colors, highlights, proportions and composition.\nRemove the diffuse beige/grey haze and any faint residual background cloud from ALL empty space outside the physical trophy, including inside every opening between ribbons and behind the oval sweep. Empty areas must be genuinely fully transparent, not pale or semi-transparent haze. Keep clean anti-aliased metal edges but remove stray glow/fringe noise. Do not add a floor, shadow, backdrop, glow, particles or text. Do not redraw or change the trophy. One isolated physical trophy on a genuinely transparent canvas.",
+      "size": [1254, 1254],
+      "mode": "RGBA",
+      "sha256": "d5b3417af818d2f28e7f03d45032c98bf9884e7b744d66edf7aa954e29784dfc",
+      "materialPrompt": "Use case: precise-object-edit / material replacement.\nEdit the supplied trophy for the final ENCORE CUP in the premium futuristic racing game VECTOR//NOVA. Change ALL copper, bronze, champagne-gold and orange metal surfaces to luxurious polished PLATINUM and PALLADIUM: bright neutral silver-white metal with refined brushed planes, crisp machined bevels, subtly mirrored platinum edges and controlled realistic studio highlights. It must look like a prestigious top-tier award, clearly platinum rather than bronze, yellow gold, chrome-blue or plastic. Preserve the exact twisting racing-ribbon silhouette, three-point crown, diagonal oval sweep, open spaces, proportions, perspective and faceted pedestal. Keep the dark graphite inset panels, pearl ceramic inserts and a few tiny deep-red recessed light accents; convert warm amber light seams to restrained red or neutral white. Do not add gemstones or change the design.\nMaintain genuine transparent alpha outside the physical object AND through every opening in the ribbons; empty space must have zero opacity, with clean anti-aliased physical edges. No background, haze, glow cloud, floor, shadow, particles, lettering, text, logos or frame. Keep the complete trophy centered on the same square canvas. Render only one finished physical platinum trophy."
     }
   ]
 }

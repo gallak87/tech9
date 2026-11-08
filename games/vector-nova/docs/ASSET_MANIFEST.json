@@ -358,7 +358,7 @@
       "id": "cup-menu-art",
       "source": "public/assets/menu/cups/",
       "creator": "VECTOR//NOVA project contributors using approved imagegen sources",
-      "provenance": "Runtime WebP exports of the approved distinct trophy silhouettes and four cup backgrounds. Transparent trophies at 512 square, opaque backgrounds at 960 by 320; browser Canvas high-quality resampling and WebP quality 0.86 via tools/export-cup-art.mjs. Original PNGs remain intact. Source mapping, dimensions and SHA-256 hashes retained.",
+      "provenance": "Runtime WebP exports of five distinct trophy silhouettes and four cup backgrounds. Encore uses a platinum Victory Lap crown and retains its code-native graphite/red background. Transparent trophies at 512 square, opaque backgrounds at 960 by 320; browser Canvas high-quality resampling and WebP quality 0.86 via tools/export-cup-art.mjs. Only current PNG sources and runtime WebPs are retained. Source mapping, dimensions and SHA-256 hashes retained.",
       "rights": "Generated for this project; no third-party reference artwork supplied",
       "runtimeDependencies": [],
       "provenanceRecord": "assets/ui/cups/runtime-exports.json",
@@ -370,7 +370,8 @@
         "public/assets/menu/cups/horizon-trophy.webp",
         "public/assets/menu/cups/horizon-background.webp",
         "public/assets/menu/cups/apex-trophy.webp",
-        "public/assets/menu/cups/apex-background.webp"
+        "public/assets/menu/cups/apex-background.webp",
+        "public/assets/menu/cups/encore-trophy.webp"
       ]
     },
     {
@@ -387,7 +388,7 @@
       "id": "cup-art-sources",
       "source": "assets/ui/cups/",
       "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
-      "provenance": "Current approved source PNGs: Founders Ignition with a green pigment background, Frontier Sunrise Arc with a gold sunset, Horizon Forge Crown with a red volcanic pit, and Apex Singularity with a purple wormhole. Exact prompts, palette references, dimensions and SHA-256 hashes retained. Runtime WebP exports are separately registered.",
+      "provenance": "Current source PNGs: Founders Ignition with a green pigment background, Frontier Sunrise Arc with a gold sunset, Horizon Forge Crown with a red volcanic pit, Apex Singularity with a purple wormhole, and the Encore Victory Lap trophy in polished platinum/palladium with graphite and red details. Encore's transparent cutout and material edit use only original project-generated artwork; only its final source PNG is retained. Exact prompts, palette references, dimensions and SHA-256 hashes retained. Runtime WebP exports are separately registered.",
       "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
       "runtimeDependencies": [],
       "provenanceRecord": "assets/ui/cups/provenance.json"

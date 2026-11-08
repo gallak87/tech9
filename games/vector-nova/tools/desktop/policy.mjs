@@ -67,6 +67,7 @@ export function includePublic(path, edition) {
     return true;
   if (policy.ships.some((id) => path === `assets/menu/ships/${id}.jpg`))
     return true;
+  if (path === 'assets/menu/cups/encore-trophy.webp') return edition === 'full';
   if (
     /^assets\/menu\/cups\/(founders|frontier|horizon|apex)-(trophy|background)\.webp$/.test(
       path,

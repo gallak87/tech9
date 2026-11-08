@@ -6,7 +6,7 @@ import {
   cupChampion,
 } from '../race/cup.js';
 import { assetURL } from '../assets/url.js';
-import { encoreTrophy, encoreBackground } from './encore-art.js';
+import { encoreBackground } from './encore-art.js';
 
 const accents = {
   founders: '#85be99',
@@ -17,8 +17,8 @@ const accents = {
 export function cupArt(id) {
   if (id === 'encore')
     return {
-      accent: '#c79c6e',
-      trophy: encoreTrophy,
+      accent: '#D8DEE5',
+      trophy: assetURL('/assets/menu/cups/encore-trophy.webp'),
       background: encoreBackground,
     };
   const key = id === 'demo' ? 'founders' : id;

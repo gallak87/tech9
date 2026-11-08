@@ -2,7 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cupView, cupWaitingView } from './cup.js';
 import { createCupStore, availableCups } from '../race/cup.js';
-import { cupCabinet, cupCard, cupArt } from './cup-art.js';
+import {
+  cupCabinet,
+  cupCard,
+  cupArt,
+  cupHero,
+  cupVictoryView,
+} from './cup-art.js';
+import { assetURL } from '../assets/url.js';
 import { RACE_OPPONENTS } from '../race/roster.js';
 
 function resultAt(
@@ -70,7 +77,10 @@ test('the bonus cup only enters the picker and trophy cabinet after career compl
   assert.match(html, /class="cup-card is-bonus[^>]*data-cup="encore"/);
   assert.equal((html.match(/class="cup-bonus-badge"/g) ?? []).length, 1);
   assert.match(cupCabinet({}, unlocked), /Encore Cup: not yet won/);
-  assert.match(cupArt('encore').trophy, /^data:image\/svg\+xml,/);
+  assert.equal(
+    cupArt('encore').trophy,
+    assetURL('/assets/menu/cups/encore-trophy.webp'),
+  );
   assert.notEqual(cupArt('encore').accent, cupArt('apex').accent);
   const won = { encore: { earnedAt: 1, points: 75, difficulty: 'hard' } };
   const encore = unlocked.at(-1);
@@ -79,6 +89,42 @@ test('the bonus cup only enters the picker and trophy cabinet after career compl
     cupCabinet({ cups: won }, unlocked),
     /Encore Cup: trophy earned/,
   );
+});
+test('Encore uses the same runtime trophy export in cards, cabinet, hero and victory', () => {
+  const encore = availableCups({ complete: true }).find(
+    ({ id }) => id === 'encore',
+  );
+  const trophy = assetURL('/assets/menu/cups/encore-trophy.webp');
+  const store = createCupStore(() => ({ getItem: () => null, setItem() {} }));
+  store.start('encore', 'kestrel', 'easy');
+  for (let event = 0; event < encore.tracks.length; event++) {
+    store.finish({
+      standings: ['player', ...RACE_OPPONENTS.map(({ id }) => id)].map(
+        (id, index) => ({
+          id,
+          finished: true,
+          valid: true,
+          totalTime: 100 + index,
+        }),
+      ),
+    });
+    if (event < encore.tracks.length - 1) store.next();
+  }
+  for (const [surface, html] of [
+    ['card', cupCard(encore, encore.id, {})],
+    ['unearned cabinet', cupCabinet({}, [encore])],
+    [
+      'earned cabinet',
+      cupCabinet({ cups: { encore: { earnedAt: 1 } } }, [encore]),
+    ],
+    ['hero', cupHero(encore, encore.name, {})],
+    ['victory', cupVictoryView(store.snapshot().state)],
+  ])
+    assert.ok(
+      html.includes(`src="${trophy}"`),
+      `${surface} uses the canonical raster icon`,
+    );
+  assert.match(cupArt('encore').background, /^data:image\/svg\+xml,/);
 });
 for (const [position, expected] of [
   [1, [1, 2, 3]],

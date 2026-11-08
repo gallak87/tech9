@@ -518,6 +518,31 @@ try {
           ),
           'controller returns to preceding row',
         );
+        await encore.click();
+        for (const selector of [
+          '[data-cup="encore"] .cup-card-trophy',
+          '.cup-cabinet .is-bonus img',
+          '.cup-hero-trophy',
+        ]) {
+          const image = page.locator(selector);
+          await image.evaluate((element) => element.decode());
+          assert.ok(
+            (await image.getAttribute('src')).endsWith(
+              '/assets/menu/cups/encore-trophy.webp',
+            ),
+            `${selector} uses the current Encore export`,
+          );
+          assert.equal(
+            await image.evaluate((element) => element.naturalWidth),
+            512,
+          );
+        }
+        assert.equal(
+          await encore.evaluate((element) =>
+            element.style.getPropertyValue('--cup-accent').toLowerCase(),
+          ),
+          '#d8dee5',
+        );
       },
     );
     await check(

@@ -112,6 +112,22 @@ test('cup art ships only approved runtime exports for each edition', () => {
       assert.equal(includePublic(path, 'demo'), cup === 'founders');
     }
   assert.equal(includePublic('assets/menu/cups/source.png', 'full'), false);
+  assert.equal(
+    includePublic('assets/menu/cups/encore-trophy.webp', 'full'),
+    true,
+  );
+  assert.equal(
+    includePublic('assets/menu/cups/encore-trophy.webp', 'demo'),
+    false,
+  );
+  assert.equal(
+    includePublic('assets/menu/cups/encore-background.webp', 'full'),
+    false,
+  );
+  assert.equal(
+    includePublic('assets/menu/cups/encore-trophy.png', 'full'),
+    false,
+  );
 });
 test('native operations require the window main frame', () => {
   const mainFrame = { url: 'vn-game://app/index.html' };

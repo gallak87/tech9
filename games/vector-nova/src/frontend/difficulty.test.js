@@ -31,9 +31,5 @@ test('difficulty notes have a safe description target and introduce no interacti
     html,
     /data-rival-bonus-description>Rivals receive 75% of your stat upgrade bonuses\./,
   );
-  assert.match(
-    html,
-    /Random loadouts from your unlocked gear\. Same slot limit, effects and cooldowns\./,
-  );
   assert.doesNotMatch(html, /<(button|a|input|select|textarea)\b|tabindex=/);
 });

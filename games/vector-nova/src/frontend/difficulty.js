@@ -11,5 +11,5 @@ export function difficultyBonusDescription(difficulty) {
 }
 
 export function difficultyDescriptionView(difficulty, id) {
-  return `<p class="rival-difficulty-note" id="${escapeHTML(id)}"><span data-rival-bonus-description>${difficultyBonusDescription(difficulty)}</span><span>Random loadouts from your unlocked gear. Same slot limit, effects and cooldowns.</span></p>`;
+  return `<p class="rival-difficulty-note" id="${escapeHTML(id)}"><span data-rival-bonus-description>${difficultyBonusDescription(difficulty)}</span></p>`;
 }
